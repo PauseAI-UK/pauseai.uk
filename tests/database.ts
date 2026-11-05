@@ -29,12 +29,14 @@ export const MAKES_DATABASES = { timeout: 30_000 };
 const DATABASE_HOOK = 60_000;
 
 /**
- * The tables whose rows the migrations seed, which tests read and leave alone:
- * the asks and campaigns, their statuses and the day's text. The mailings are
- * seeded too, and emptied of only those a test wrote. Every other table in the
- * database is emptied before each test.
+ * The tables not truncated before each test: those whose rows the migrations
+ * seed, which tests read and leave alone (the asks and campaigns, their
+ * statuses and the day's text), and two emptied by a DELETE instead: the
+ * mailings, of only those a test wrote, and the message templates, as
+ * truncating them would take the imported mailings that refer to them. Every
+ * other table in the database is truncated.
  */
-const SEEDED = ["ask_kind_statuses", "asks", "campaigns", "day_texts", "mailings"];
+const SEEDED = ["ask_kind_statuses", "asks", "campaigns", "day_texts", "mailings", "message_templates"];
 
 /**
  * Gives this test file its own database, empty before each test: a copy of
@@ -59,6 +61,7 @@ export function useTestDatabase() {
     await query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
     // The mailings written here; the imported ones come with the migrations.
     await query("DELETE FROM mailings WHERE body IS NOT NULL");
+    await query("DELETE FROM message_templates");
     // The kept supporters list, emptied with the tables it's made from.
     await query("REFRESH MATERIALIZED VIEW supporters_list");
   });

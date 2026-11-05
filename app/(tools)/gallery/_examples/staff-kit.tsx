@@ -96,6 +96,7 @@ const PAGES: Record<StaffPageName, true> = {
   me: true,
   supporters: true,
   campaigns: true,
+  messages: true,
   sentEmails: true,
   events: true,
   supporterEmails: true,
