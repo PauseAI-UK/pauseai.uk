@@ -7,6 +7,7 @@ import {
   ChangeTimeFormExample,
   ChoosingListExample,
   DueTimeFieldsExample,
+  EventColumnsExample,
   EventsTableExample,
   HeldSyncExample,
   MailingWriterExample,
@@ -95,6 +96,22 @@ describe("the staff examples", () => {
     await page.getByRole("textbox", { name: staffCopy.notes.note }).fill("Met them");
     await page.getByRole("button", { name: staffCopy.notes.add }).click();
     await expect.element(log().nth(0)).toHaveTextContent('add({"politicianId":"1","body":"Met them"})');
+  });
+
+  it("logs an event's save in the lists, or says there are none", async () => {
+    const { unmount } = await render(<EventColumnsExample grouping="owner" />);
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: "AI risk talk" })
+      .getByRole("button", { name: staffCopy.events.edit })
+      .click();
+    const form = page.getByRole("form", { name: staffCopy.events.editLabel("AI risk talk") });
+    await form.getByLabelText(staffCopy.events.owner).selectOptions("sean@pauseai.uk");
+    await form.getByRole("button", { name: staffCopy.events.save }).click();
+    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^save\(/);
+    await unmount();
+    await render(<EventColumnsExample grouping="tag" none />);
+    await expect.element(page.getByText(staffCopy.events.noneFound)).toBeVisible();
   });
 
   it("logs an event's save in the table", async () => {

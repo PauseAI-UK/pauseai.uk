@@ -1,4 +1,4 @@
-import type { SearchedEvent } from "@/lib/server/staff-events";
+import type { SearchedEvent, StaffEvent } from "@/lib/server/staff-events";
 import { findEvents } from "@/lib/staff-events-list";
 import { eventsSearch } from "@/lib/staff-search";
 
@@ -71,3 +71,64 @@ export function exampleEventsTab(params: Parameters<typeof eventsSearch>[0] = {}
   const { filter, ...search } = eventsSearch(params);
   return { search, found: findEvents(exampleEvents, filter, exampleEventsNow) };
 }
+
+/**
+ * Example events to come for the lists by owner and by tag: an owner with more
+ * than fold, two with no owner, one with no tag, one online with no tags, and
+ * a Scotland call in both Scotland's list and Online's.
+ */
+export const exampleEventsToCome: StaffEvent[] = [
+  ...[
+    "London pub social",
+    "London flyering",
+    "Lobby day planning",
+    "London film night",
+    "London stall",
+    "London panel",
+  ].map((name, i) =>
+    event(`evt-london-${i}`, {
+      name,
+      startAt: `2026-11-0${i + 3}T18:00:00.000Z`,
+      tags: ["London"],
+      going: 10 + i,
+      doc: i === 0 ? "https://docs.google.com/document/d/example-social-plan/edit" : null,
+      owner: "joseph@pauseai.uk",
+    }),
+  ),
+  event("evt-march-to-come", { name: "March on Parliament", startAt: "2026-11-21T13:00:00.000Z", going: 120 }),
+  event("evt-oxford-to-come", {
+    name: "AI risk talk",
+    startAt: "2026-11-12T19:00:00.000Z",
+    city: "Oxford",
+    tags: ["Oxford"],
+    going: 7,
+    owner: null,
+  }),
+  event("evt-scotland-call", {
+    name: "Scotland organisers' call",
+    startAt: "2026-11-13T19:00:00.000Z",
+    city: null,
+    tags: ["Online", "Scotland"],
+    going: 6,
+    owner: "jo@pauseai.uk",
+  }),
+  event("evt-untagged-online", {
+    name: "New volunteers' welcome",
+    startAt: "2026-11-14T19:00:00.000Z",
+    city: null,
+    tags: [],
+    going: 4,
+    owner: "jo@pauseai.uk",
+  }),
+  event("evt-untagged-place", {
+    name: "Leeds first meet-up",
+    startAt: "2026-11-15T14:00:00.000Z",
+    city: "Leeds",
+    tags: [],
+    going: 3,
+    owner: null,
+  }),
+].map(({ hostEmails, ...one }) => {
+  void hostEmails;
+  return one;
+});

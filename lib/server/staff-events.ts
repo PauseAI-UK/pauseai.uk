@@ -2,7 +2,7 @@ import "server-only";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { ruleOwner } from "@/lib/event-owners";
 import { now } from "@/lib/now";
-import { findEvents, type EventFilter, type EventsFound } from "@/lib/staff-events-list";
+import { findEvents, stillToCome, type EventFilter, type EventsFound } from "@/lib/staff-events-list";
 import { londonStart } from "@/lib/staff-time";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
@@ -110,6 +110,19 @@ export async function eventsPage(
     events: found.events.map(withoutEmails),
     ...(await choicesOf(events)),
     now: iso,
+  };
+}
+
+/**
+ * The By owner and By tag tabs: every event to come still on Luma, soonest
+ * first, not a page of them, and every staff account, whom one can be given to.
+ */
+export async function eventsToCome(): Promise<{ events: StaffEvent[]; staff: string[] }> {
+  const iso = now().toISOString();
+  const events = await listEvents();
+  return {
+    events: events.filter((event) => !event.removed && stillToCome(event.startAt, iso)).map(withoutEmails),
+    staff: (await choicesOf(events)).staff,
   };
 }
 

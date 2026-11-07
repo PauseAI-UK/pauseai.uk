@@ -752,7 +752,15 @@ export const staffCopy = {
     none: "No events yet.",
     // The tabs over the list, and their name, for a screen reader: those still to come, soonest first, and those
     // past, latest first.
-    tabs: { label: "When", future: "Future", past: "Past" },
+    tabs: { label: "When", future: "Future", byOwner: "By owner", byTag: "By tag", past: "Past" },
+    // On the By owner and By tag tabs: the list of those with no tag; the other tags of an event listed under one;
+    // the fold of a list's later events; and how many are going to an event.
+    lists: {
+      noTag: "No tag",
+      also: (tags: string) => `also ${tags}`,
+      more: (n: number) => `${n} more`,
+      going: (n: number) => `${n} going`,
+    },
     // Over the list: how many the tab and filters find; and what it says when they find none.
     total: (n: number) => `${n} ${n === 1 ? "event" : "events"}`,
     noneFound: "No events match.",

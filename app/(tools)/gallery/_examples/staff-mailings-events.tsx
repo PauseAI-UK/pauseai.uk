@@ -2,8 +2,9 @@
 // scheduling and viewing a mailing, and the events list and its editing.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
+import { staffCopy } from "@/lib/content/staff-interface";
 import EventFilters from "@/app/(staff)/staff/_components/EventFilters";
-import { EventsSource, EventTabs } from "@/app/(staff)/staff/_components/EventsTable";
+import { EventsSource, EventTabs, Missing } from "@/app/(staff)/staff/_components/EventsTable";
 import { exampleEventsTab, exampleStaff } from "@/app/(staff)/staff/_components/EventsTable.examples";
 import { MailingLetter } from "@/app/(staff)/staff/_components/MailingLetter";
 import { FilterPills } from "@/app/(staff)/staff/_components/MailingParts";
@@ -24,6 +25,7 @@ import {
   MailingFilesExample,
   MailingForExample,
   MailingsOverviewExample,
+  EventColumnsExample,
   EventsTableExample,
   MailingViewExample,
   MailingWriterExample,
@@ -129,10 +131,63 @@ export const staffMailingsEvents: Group = {
       file: "app/(staff)/staff/_components/EventsTable.tsx",
       variants: [
         {
-          label: "On Past, with a filter on, which each tab keeps",
+          label: "On Past, with a filter on, which Future keeps too; By owner and By tag have none",
           render: () => (
             <StaffPage as="div">
               <EventTabs search={exampleEventsTab({ when: "past", tag: "London" }).search} />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "On By owner",
+          render: () => (
+            <StaffPage as="div">
+              <EventTabs search={exampleEventsTab().search} grouping="owner" />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "Missing",
+      file: "app/(staff)/staff/_components/EventsTable.tsx",
+      variants: [
+        {
+          label: "What an event to come lacks: an error",
+          render: () => <Missing needed>{staffCopy.events.noOwner}</Missing>,
+        },
+        {
+          label: "What an event past lacks: only said",
+          render: () => <Missing needed={false}>{staffCopy.events.noOwner}</Missing>,
+        },
+      ],
+    },
+    {
+      name: "EventColumns",
+      file: "app/(staff)/staff/_components/EventColumns.tsx",
+      variants: [
+        {
+          label: "By owner: No owner first, in red, each line its tags, or city, or Online; a list folded after five",
+          render: () => (
+            <StaffPage as="div">
+              <EventColumnsExample grouping="owner" />
+            </StaffPage>
+          ),
+        },
+        {
+          label:
+            "By tag: an event in a list for each of its tags, saying its others; places, Big events, Online, No tag",
+          render: () => (
+            <StaffPage as="div">
+              <EventColumnsExample grouping="tag" />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "With no events to come",
+          render: () => (
+            <StaffPage as="div">
+              <EventColumnsExample grouping="owner" none />
             </StaffPage>
           ),
         },
