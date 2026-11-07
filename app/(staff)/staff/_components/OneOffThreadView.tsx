@@ -5,6 +5,7 @@ import { mailboxes, named } from "@/lib/email-parsing/addresses";
 import type { OneOffThread } from "@/lib/server/one-off-emails";
 import { MessageText } from "./LetterThread";
 import ThreadEmail from "./ThreadEmail";
+import Grid, { spanClass } from "./ui/Grid";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 import styles from "./LetterThread.module.css";
@@ -45,24 +46,28 @@ export default function OneOffThreadView({ thread }: { thread: OneOffThread }) {
           <Withheld>{copy.hidden}</Withheld>
         </p>
       ) : (
-        <section aria-label={copy.thread} className={styles.thread}>
-          {thread.messages_.map((message) => (
-            <ThreadEmail
-              key={message.id}
-              from={<Mailbox name={message.fromName} address={message.fromAddress} politicians={message.politicians} />}
-              to={<Mailboxes line={message.to} politicians={message.politicians} />}
-              cc={message.cc ? <Mailboxes line={message.cc} politicians={message.politicians} /> : null}
-              at={message.at}
-              subject={message.subject}
-            >
-              {message.text === null ? (
-                <Muted>{copy.unreadable}</Muted>
-              ) : (
-                <MessageText text={message.text} quoted={message.quoted} auto={message.auto} />
-              )}
-            </ThreadEmail>
-          ))}
-        </section>
+        <Grid>
+          <section aria-label={copy.thread} className={`${spanClass(3)} ${styles.thread}`}>
+            {thread.messages_.map((message) => (
+              <ThreadEmail
+                key={message.id}
+                from={
+                  <Mailbox name={message.fromName} address={message.fromAddress} politicians={message.politicians} />
+                }
+                to={<Mailboxes line={message.to} politicians={message.politicians} />}
+                cc={message.cc ? <Mailboxes line={message.cc} politicians={message.politicians} /> : null}
+                at={message.at}
+                subject={message.subject}
+              >
+                {message.text === null ? (
+                  <Muted>{copy.unreadable}</Muted>
+                ) : (
+                  <MessageText text={message.text} quoted={message.quoted} auto={message.auto} />
+                )}
+              </ThreadEmail>
+            ))}
+          </section>
+        </Grid>
       )}
     </>
   );

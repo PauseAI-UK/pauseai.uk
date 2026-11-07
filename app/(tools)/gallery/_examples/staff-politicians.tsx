@@ -233,9 +233,20 @@ export const staffPoliticians: Group = {
       variants: [
         {
           label: "Threads with a reply, an automatic reply, none, and own words",
-          render: () => <PoliticianCorrespondenceExample />,
+          render: () => (
+            <StaffPage as="div">
+              <PoliticianCorrespondenceExample />
+            </StaffPage>
+          ),
         },
-        { label: "Past the newest few, folded", render: () => <PoliticianCorrespondenceExample count={12} /> },
+        {
+          label: "Past the newest few, folded",
+          render: () => (
+            <StaffPage as="div">
+              <PoliticianCorrespondenceExample count={12} />
+            </StaffPage>
+          ),
+        },
       ],
     },
     {

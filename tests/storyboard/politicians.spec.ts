@@ -198,7 +198,7 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
   await expect(asks.getByRole("group", { name: PM_LETTER })).toHaveCount(0);
   await expect(history).toContainText(copy.statusCleared.before);
   await expect(history).toContainText("Entered by mistake");
-  await frame(page, "The answer, cleared");
+  await frame(page, "The answer, cleared", { of: history });
 });
 
 test("Peers, MSPs and former MPs", async ({ page, request, flowDatabase }) => {

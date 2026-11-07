@@ -333,7 +333,12 @@ export const staffSupporters: Group = {
         {
           label: "A note kept somewhere else: its text, then where it's from",
           render: () => (
-            <NoteFrom body={"Met at the example fair.\nRecommended by the local group."} source="Notes from Airtable" />
+            <StaffPage as="div">
+              <NoteFrom
+                body={"Met at the example fair.\nRecommended by the local group."}
+                source="Notes from Airtable"
+              />
+            </StaffPage>
           ),
         },
       ],
