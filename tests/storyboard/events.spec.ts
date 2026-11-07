@@ -166,3 +166,186 @@ test("Event hosts", async ({ page, request, flowDatabase }) => {
   );
   await frame(page, "Jane Fixture's page");
 });
+
+/**
+ * A busy calendar, all made up, on the fixed clock's 16 October 2026: every kind
+ * of list By owner and By tag have, one owner past the fold, events with no owner
+ * and with no tag, a call in both Scotland and Online, one earlier today and
+ * yesterday's.
+ */
+function busyCalendar(database: string) {
+  const owners = ["joseph", "annabelle", "sean", "priya", "maya"];
+  for (const owner of owners) addStaffAccount(database, `${owner}@pauseai.uk`);
+  const events: [at: string, name: string, city: string | null, owner: string | null, tags: string[]][] = [
+    ["2026-10-15T18:00:00Z", "Yesterday's pub social", "London", "joseph", ["London"]],
+    ["2026-10-16T09:00:00Z", "Breakfast with organisers", "Bristol", null, ["West of England"]],
+    ["2026-10-17T11:00:00Z", "Bristol street stall", "Bristol", "priya", ["West of England"]],
+    ["2026-10-20T18:00:00Z", "London monthly pub social", "London", "joseph", ["London"]],
+    ["2026-10-21T19:00:00Z", "Introduction to PauseAI UK", null, "annabelle", ["Online"]],
+    ["2026-10-22T18:30:00Z", "Oxford AI risk talk", "Oxford", null, ["Oxford"]],
+    ["2026-10-24T13:00:00Z", "Edinburgh flyering", "Edinburgh", "maya", ["Scotland"]],
+    ["2026-10-27T19:00:00Z", "Scotland organisers' call", null, "maya", ["Online", "Scotland"]],
+    ["2026-11-03T18:00:00Z", "Lobby your MP day", "London", "joseph", ["Big events", "London"]],
+    ["2026-11-04T19:00:00Z", "New volunteers' welcome", null, "sean", []],
+    ["2026-11-07T11:00:00Z", "Leeds first meet-up", "Leeds", null, []],
+    ["2026-11-10T18:00:00Z", "Cambridge reading group", "Cambridge", "sean", []],
+    ["2026-11-14T13:00:00Z", "London flyering", "London", "joseph", ["London"]],
+    ["2026-11-18T18:00:00Z", "London film night", "London", "joseph", ["London"]],
+    ["2026-11-21T13:00:00Z", "March on Parliament", "London", "joseph", ["Big events", "London"]],
+    ["2026-12-02T18:00:00Z", "London panel with speakers", "London", "joseph", ["Big events", "London"]],
+    ["2026-12-09T18:00:00Z", "London winter social", "London", "joseph", ["London"]],
+  ];
+  const text = (value: string | null) => (value === null ? "NULL" : `'${value.replace(/'/g, "''")}'`);
+  const values = (rows: string[]) => rows.join(", ");
+  runSql(
+    database,
+    `INSERT INTO luma_events (id, name, url, start_at, access, city, location_type, tags) VALUES ${values(
+      events.map(
+        ([at, name, city, , tags], i) =>
+          `('evt-busy-${i}', ${text(name)}, 'busy-${i}', '${at}', 'manage', ${text(city)}, '${city ? "offline" : "online"}', ARRAY[${tags.map(text).join(", ")}]::text[])`,
+      ),
+    )};
+     INSERT INTO event_owners (event_id, owner, assigned_by) VALUES ${values(
+       events.flatMap(([, , , owner], i) => (owner ? [`('evt-busy-${i}', '${owner}@pauseai.uk', 'rules')`] : [])),
+     )};
+     INSERT INTO luma_people (user_id, email, name)
+       SELECT 'usr-busy-' || n, 'guest' || n || '@example.com', 'Guest ' || n FROM generate_series(1, 30) n;
+     INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at)
+       SELECT 'gst-busy-' || i || '-' || n, 'evt-busy-' || i, 'usr-busy-' || n, 'approved', '2026-10-01T00:00:00Z'
+       FROM generate_series(0, ${events.length - 1}) i, generate_series(1, 30) n WHERE n <= 2 + (i * 7) % 29;
+     INSERT INTO event_docs (event_id, url, set_by)
+       VALUES ('evt-busy-3', 'https://docs.google.com/document/d/made-up-social-plan/edit', 'joseph@pauseai.uk');`,
+  );
+}
+
+/** A list on the By owner or By tag tab, by its heading's words. */
+const eventList = (page: Page, title: string | RegExp) =>
+  page.locator("section").filter({ has: page.getByRole("heading", { level: 2, name: title }) });
+
+test("Events by owner", async ({ page, flowDatabase }) => {
+  story(
+    "The calendar is busy, and Future's table is long. By owner lists every event to come under who owns it, with the ones nobody owns first, in red.",
+  );
+  busyCalendar(flowDatabase);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/events`);
+  await page.getByRole("link", { name: copy.tabs.byOwner }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/events?view=owner`);
+  const noOwner = eventList(page, new RegExp(`^${copy.noOwner}`));
+  await expect(noOwner.getByRole("link", { name: "Oxford AI risk talk" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2 }).first()).toContainText(copy.noOwner);
+  await expect(page.getByRole("searchbox")).toHaveCount(0);
+  await frame(page, "Every event to come, by owner");
+
+  story("Joseph has more than five, so the rest fold. Opening them moves only what's under them in that column.");
+  const other = page.getByRole("heading", { level: 2, name: /^priya/ });
+  const before = await other.boundingBox();
+  const joseph = eventList(page, /^joseph/);
+  await joseph.getByText(copy.lists.more(2)).click();
+  await expect(joseph.getByRole("link", { name: "London winter social" })).toBeVisible();
+  expect(await other.boundingBox()).toEqual(before);
+  await frame(page, "Joseph's events, unfolded");
+
+  story("Someone takes the Oxford talk: Edit on its line opens the same bubble as Future's table.");
+  await noOwner
+    .getByRole("listitem")
+    .filter({ hasText: "Oxford AI risk talk" })
+    .getByRole("button", { name: copy.edit })
+    .click();
+  const form = page.getByRole("form", { name: copy.editLabel("Oxford AI risk talk") });
+  await form.getByLabel(copy.owner).selectOption("sean@pauseai.uk");
+  await frame(page, "The Oxford talk, being given to Sean");
+
+  story("Saved, it's under Sean, and no longer under No owner.");
+  await form.getByRole("button", { name: copy.save }).click();
+  await expect(eventList(page, /^sean/).getByRole("link", { name: "Oxford AI risk talk" })).toBeVisible();
+  await expect(noOwner.getByRole("link", { name: "Oxford AI risk talk" })).toHaveCount(0);
+  await frame(page, "The Oxford talk, under Sean");
+});
+
+test("Events by tag", async ({ page, flowDatabase }) => {
+  story(
+    "By tag lists an event under each of its Luma tags: the places, then Big events, Online, and any with no tag. Those with no owner say so in red.",
+  );
+  busyCalendar(flowDatabase);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/events`);
+  await page.getByRole("link", { name: copy.tabs.byTag }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/events?view=tag`);
+  const titles = await page.getByRole("heading", { level: 2 }).allTextContents();
+  expect(titles.map((title) => title.replace(/\d+$/, ""))).toEqual([
+    "London",
+    "Oxford",
+    "Scotland",
+    "West of England",
+    "Big events",
+    "Online",
+    copy.lists.noTag,
+  ]);
+  await frame(page, "Every event to come, by tag");
+
+  story("The Scotland call is in both lists, each saying the other. Its Edit in Online's list opens under that line.");
+  const call = (title: string) =>
+    eventList(page, new RegExp(`^${title}`))
+      .getByRole("listitem")
+      .filter({ hasText: "Scotland organisers' call" });
+  await expect(call("Scotland")).toContainText(copy.lists.also("Online"));
+  await expect(call("Online")).toContainText(copy.lists.also("Scotland"));
+  await call("Online").getByRole("button", { name: copy.edit }).click();
+  await expect(call("Online").getByRole("form", { name: copy.editLabel("Scotland organisers' call") })).toBeVisible();
+  await frame(page, "The Scotland call's Edit, in Online's list");
+  await page.keyboard.press("Escape");
+
+  story("London has more than five, so the rest fold.");
+  const london = eventList(page, /^London/);
+  await london.getByText(copy.lists.more(1)).click();
+  await expect(london.getByRole("link", { name: "London winter social" })).toBeVisible();
+  await frame(page, "London's events, unfolded");
+});
+
+test("Filters are only on Future and Past", async ({ page, flowDatabase }) => {
+  story("Staff filter Future to Oxford, so its table has one event, and they can save that filter.");
+  busyCalendar(flowDatabase);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/events?place=Oxford`);
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await frame(page, "Future, filtered to Oxford");
+
+  story("By owner shows every event to come regardless, and has no filters to set.");
+  await page.getByRole("link", { name: copy.tabs.byOwner }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/events?view=owner`);
+  await expect(page.getByRole("link", { name: "London film night", exact: true }).first()).toBeAttached();
+  await expect(page.getByRole("button", { name: staffCopy.filters.saved.chip, exact: true })).toHaveCount(0);
+  await frame(page, "By owner, with everything on it");
+
+  story("So does By tag, even if the address has a filter in it, from a link someone kept.");
+  await page.goto(`${BASE}/staff/events?view=tag&place=Oxford`);
+  await expect(page.getByRole("heading", { level: 2, name: /^London/ })).toBeVisible();
+  await frame(page, "By tag, its address naming Oxford");
+});
+
+test("An event stays on Future until the end of its day", async ({ page, flowDatabase }) => {
+  story(
+    "It's 1pm in London. The breakfast this morning has begun, but it's still on Future until midnight, in red as nobody owns it.",
+  );
+  busyCalendar(flowDatabase);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/events`);
+  const today = page.getByRole("row").filter({ hasText: "Breakfast with organisers" });
+  await expect(today.getByText(copy.noOwner)).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "Yesterday's pub social" })).toHaveCount(0);
+  await frame(page, "This morning's event, still on Future");
+
+  story("It's on By owner too, in the red list.");
+  await page.getByRole("link", { name: copy.tabs.byOwner }).click();
+  await expect(
+    eventList(page, new RegExp(`^${copy.noOwner}`)).getByRole("link", { name: "Breakfast with organisers" }),
+  ).toBeVisible();
+  await frame(page, "This morning's event, by owner");
+
+  story("Yesterday's is on Past, and this morning's isn't yet.");
+  await page.getByRole("link", { name: copy.tabs.past }).click();
+  await expect(page.getByRole("row").filter({ hasText: "Yesterday's pub social" })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "Breakfast with organisers" })).toHaveCount(0);
+  await frame(page, "Past, with yesterday's event");
+});
