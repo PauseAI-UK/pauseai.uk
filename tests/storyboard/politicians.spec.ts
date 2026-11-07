@@ -237,7 +237,7 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   await frame(page, "Boxes, with Any answer gone");
 
   story("Each tick changes the list at once, with the menu open. The chip's second half says both.");
-  await menu.getByRole("checkbox", { name: staffCopy.statuses.going }).check();
+  await menu.getByRole("checkbox", { name: staffCopy.statuses.going, exact: true }).check();
   await expect(page).toHaveURL(/answer=going$/);
   await menu.getByRole("checkbox", { name: filters.noAnswer }).check();
   await expect(page).toHaveURL(/answer=going&answer=none/);
