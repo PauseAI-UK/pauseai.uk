@@ -20,7 +20,8 @@ const copy = staffCopy.politicians;
  * ask, from those its kind allows, and goes with it. Party, nation, email,
  * the markers, the asks they've been mailed about and the answers can each be
  * chosen more than once, the first three having one value each; Except on the
- * asks finds those not yet mailed about it.
+ * asks finds those not yet mailed about it. How recently they agreed is only
+ * from the dashboard's link.
  */
 export function politicianFilters(askSlug: string, parties: string[], asks: Ask[]): Filter[] {
   const ask = asks.find((a) => a.slug === askSlug);
@@ -68,7 +69,7 @@ export function politicianFilters(askSlug: string, parties: string[], asks: Ask[
       label: copy.ask,
       options: asks.map((a) => ({ value: a.slug, label: a.title })),
     },
-    { name: "agreed", label: copy.agreedIn, options: WINDOW_OPTIONS },
+    { name: "agreed", label: copy.agreedIn, options: WINDOW_OPTIONS, linkedOnly: true },
     {
       name: "mailed",
       label: copy.mailed,

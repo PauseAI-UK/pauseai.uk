@@ -75,7 +75,6 @@ import { navigation } from "@/tests/browser/navigation";
 import StaffSessions from "./StaffSessions";
 import { spanClass } from "./ui/Grid";
 import StaffDashboard from "./StaffDashboard";
-import { DASHBOARD_WINDOWS } from "@/lib/staff-dashboard";
 import { exampleDashboard, exampleQuietDashboard } from "./StaffDashboard.examples";
 import Sparkline from "./Sparkline";
 import StackedBars from "./StackedBars";
@@ -5459,7 +5458,6 @@ describe("PoliticianFilters", () => {
       "Green",
       ...Object.values(copy.emailStates),
       ...Object.values(copy.flags),
-      ...DASHBOARD_WINDOWS.map((days) => staffCopy.filters.lastDays(days)),
       // Those mailed about each ask.
       ...exampleAsks.map((ask) => ask.title),
     ]);
@@ -5482,7 +5480,6 @@ describe("PoliticianFilters", () => {
       staffCopy.fields.email,
       copy.flag,
       copy.ask,
-      copy.agreedIn,
       copy.mailed,
     ]);
     expect(page.getByRole("link", { name: staffCopy.resetFilters }).query()).toBeNull();
