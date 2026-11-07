@@ -696,7 +696,7 @@ export const staffCopy = {
       removed: "No longer in Airtable",
       test: "Test politician",
     } as Record<string, string>,
-    ask: "Ask",
+    ask: "Answered ask",
     // An answer to the ask chosen, in the second half of the ask's chip, its menu named after the ask. With no
     // ask, as a link from the dashboard can have it, its own chip.
     answer: "Answer",
@@ -2306,10 +2306,18 @@ All events: ${link}`,
     // The other half of + Filter: adds a choice the list leaves out. Its menu's heading, and a left-out choice's chip.
     except: "Except",
     exceptHeading: "Leave out those with",
+    not: "not",
     notChip: (label: string, value: string) => `${label}: not ${value}`,
-    // In a chip's menu: the same choice, left out instead of found, or found instead of left out.
-    exceptInstead: "Except this instead",
-    onlyInstead: "Only this instead",
+    // The choices of a filter on one chip, in its words, which finds any of them, or leaves them all out.
+    anyOf: (values: string[]) => values.join(" or "),
+    // In a chip's menu: the same choices, left out rather than found, or found rather than left out, one or several.
+    exceptThis: "Except this",
+    exceptThese: "Except these",
+    onlyThis: "Only this",
+    onlyThese: "Only these",
+    // In a chip's menu: turns its rows to boxes, to choose several; then, in its place, back to one.
+    addChoice: "+ Add",
+    justOne: "Just one",
     remove: "Remove",
     // Over a long list of a filter's choices: narrows them as it's typed in.
     narrow: "Search these",
@@ -2393,7 +2401,9 @@ All events: ${link}`,
     title: "Audit log",
     // Over the list: how many entries there are.
     total: (n: number) => `${n} ${n === 1 ? "entry" : "entries"}`,
-    none: "Nothing logged yet.",
+    none: "No entries match.",
+    // The search box: what it searches. The details include whom an entry is about.
+    search: "Who, what or details",
     // The column of the day, before the time.
     day: "Date",
     at: "When",

@@ -1,12 +1,14 @@
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Form from "next/form";
 import { Button } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { chosenValues } from "@/lib/filter-choices";
 import { filtersPath, firstOf, NOT, notValue, valuesOf, type Params } from "@/lib/staff-search";
-import ChoiceSearch from "./ChoiceSearch";
+import Choices from "./Choices";
 import FilterBarLines from "./FilterBarLines";
 import FormPending from "./FormPending";
+import ManyChoices, { NotWords } from "./ManyChoices";
 import StaffLink from "./StaffLink";
 import Menu from "./Menu";
 import NotIcon from "./NotIcon";
@@ -33,8 +35,11 @@ export type FilterOption = {
  * choice whose value is blank is the filter's default, offered only to go
  * back to it. One `after` another is chosen in the second half of that
  * one's chip, and goes with it. One that can `repeat` can be chosen more
- * than once, a chip each, and finds what has any of them; it can leave out
- * too, a choice marked with NOT, which finds what has none of them. A `searchable`
+ * than once, one chip saying them all, and finds what has any of them; it can
+ * leave out too, each marked with NOT, in a chip of its own, which finds what
+ * has none of them, unless it's `after` another. `oneEach` on one where a record
+ * has only one value, so that finding one and leaving out another can't both
+ * be needed. A choice in two parts doesn't repeat. A `searchable`
  * one has a box over its choices, which show only once something's typed
  * in it, those that have it. A
  * `place` one takes words typed, a postcode or a town, and how far from it
@@ -48,12 +53,16 @@ export type Filter = {
   options: FilterOption[];
   after?: string;
   repeat?: boolean;
+  oneEach?: boolean;
   searchable?: boolean;
   place?: { within: string; distances: FilterOption[]; placeholder: string };
   linkedOnly?: boolean;
 };
 
 const copy = staffCopy.filters;
+
+/** A filter's choices, without its blank one, its default. */
+const everyChoice = (filter: Filter) => filter.options.map((option) => option.value).filter(Boolean);
 
 /** The choice of `filter` a value is, or whose second part it is, and that second part, if it narrows it. */
 function parts(filter: Filter, value: string): { first?: FilterOption; second?: FilterOption } {
@@ -65,11 +74,16 @@ function parts(filter: Filter, value: string): { first?: FilterOption; second?: 
   return {};
 }
 
-/** A value of `filter` in words: its name and choice, the second part too, joined by `join`, or that it's left out. */
+/** A choice of `filter` in words: its group, its words and its second part; or as typed, when it has none. */
+function choiceWords(filter: Filter, plain: string): string {
+  const { first, second } = parts(filter, plain);
+  return first ? [first.group?.label, first.label, second?.label].filter(Boolean).join(", ") : plain;
+}
+
+/** A value of `filter` in words: its name and choice, joined by `join`, or that it's left out. */
 function valueWords(filter: Filter, value: string, join: string): string {
   const { value: plain, not } = notValue(value);
-  const { first, second } = parts(filter, plain);
-  const choice = first ? [first.group?.label, first.label, second?.label].filter(Boolean).join(", ") : plain;
+  const choice = choiceWords(filter, plain);
   return not ? copy.notChip(filter.label, choice) : `${filter.label}${join}${choice}`;
 }
 
@@ -80,7 +94,12 @@ function valueWords(filter: Filter, value: string, join: string): string {
 export function filterWords(filters: Filter[], values: Params, search: string): string[] {
   const words = values[search] ? [`${staffCopy.search} ${firstOf(values[search])}`] : [];
   for (const filter of filters) {
-    for (const value of valuesOf(values[filter.name])) words.push(valueWords(filter, value, " "));
+    const chosen = valuesOf(values[filter.name]).map(notValue);
+    const [found, out] = [false, true].map((not) =>
+      chosen.filter((one) => one.not === not).map((one) => choiceWords(filter, one.value)),
+    );
+    if (found.length) words.push(`${filter.label} ${copy.anyOf(found)}`);
+    if (out.length) words.push(copy.notChip(filter.label, copy.anyOf(out)));
   }
   return words;
 }
@@ -108,43 +127,6 @@ function goneWords(filters: Filter[], gone: string[]): string[] {
     const filter = filters.find((f) => f.name === name);
     return filter ? valueWords(filter, value.join("="), ": ") : value.join("=");
   });
-}
-
-/** A list of choices, each a link; the one chosen marked; with `search`, a box over it that narrows it. */
-function Choices({
-  options,
-  current,
-  href,
-  search,
-}: {
-  options: FilterOption[];
-  current: string;
-  href: (value: string) => string;
-  search?: string;
-}) {
-  return (
-    <>
-      {search && <ChoiceSearch label={search} />}
-      <ul className={styles.choices} data-search={search ? "empty" : undefined}>
-        {options.map((option, i) => (
-          <Fragment key={option.value}>
-            {option.group && option.group.label !== options[i - 1]?.group?.label && (
-              <li className={styles.choiceGroup}>
-                {option.group.icon}
-                {option.group.label}
-              </li>
-            )}
-            <li className={option.group ? styles.inGroup : undefined}>
-              <StaffLink href={href(option.value)} aria-current={option.value === current ? "true" : undefined}>
-                {option.label}
-                {option.detail && <span className={styles.detail}>{option.detail}</span>}
-              </StaffLink>
-            </li>
-          </Fragment>
-        ))}
-      </ul>
-    </>
-  );
 }
 
 /**
@@ -199,13 +181,13 @@ function PlaceForm({
  * A staff list's filters (docs/style-guide.md, "Filters"): the search box,
  * with its button and an × that empties it; then a chip for each filter
  * that's on, which opens its choices and a way to remove it (one with a
- * filter after it is a chip in two halves, a menu each; one chosen more
- * than once, a chip for each choice, one it leaves out marked so); "+
+ * filter after it is a chip in two halves, a menu each; one that repeats, a
+ * chip for all it finds and one for all it leaves out, marked so); "+
  * Filter", which lists every other filter, and one that repeats, a row
  * each, its choices opening under it, cut in two with "Except", which lists
  * those that repeat to choose one to leave out; and Clear filters, while
- * anything is on. A repeating filter's chip can turn its choice from found
- * to left out, and back. Every choice is a link, so the URL holds
+ * anything is on. A repeating filter's chip adds a choice to itself, takes
+ * one off, and can turn all it has from found to left out, and back. Every choice is a link, so the URL holds
  * the filters. `values` are the URL's parameters as typed: a change keeps
  * the rest, but for the page, and Clear filters clears the sort too,
  * keeping only those named in `keep`, such as a tab. With `saved`, that
@@ -269,9 +251,9 @@ export default function FilterBar({
   const othersThan = (filter: Filter) =>
     hidden.filter(([name]) => name !== filter.name && name !== filter.place!.within) as [string, string][];
   // A filter's chip, for `value` of it: its menu has its choices and, but in a chip's second half, a way to
-  // remove it. A choice in a repeating filter's chip changes that one value, keeping it found or left out, and
-  // the chip can turn it the other way, but from the second half of a choice in two parts, which offers that
-  // choice's `seconds`.
+  // remove it. A choice in a first half or a chip of its own takes the filter's place; one in the second half of a
+  // choice in two parts, which offers its `seconds`, changes that one value, keeping it found or left out. More
+  // than one value of a filter that doesn't repeat can only come from a link or a saved filter: each has its chip.
   const chip = (
     filter: Filter,
     value: string,
@@ -282,7 +264,7 @@ export default function FilterBar({
     const { value: plain, not } = notValue(value);
     const others = chosen(filter.name).filter((v) => v !== value);
     const choose = (v: string) =>
-      filter.repeat
+      seconds
         ? href({ [filter.name]: [...others, not ? NOT + v : v] })
         : href({ ...without(filter.name), [filter.name]: v });
     return (
@@ -303,28 +285,53 @@ export default function FilterBar({
         ) : (
           <Choices
             options={seconds?.options ?? filter.options}
-            current={seconds?.current ?? parts(filter, plain).first?.value ?? plain}
+            current={[seconds?.current ?? parts(filter, plain).first?.value ?? plain]}
             href={choose}
             search={filter.searchable ? copy.narrow : undefined}
           />
         )}
-        {((filter.repeat && !seconds) || !second) && (
+        {!second && (
           <p className={styles.actions}>
-            {filter.repeat && !seconds && (
-              <StaffLink href={href({ [filter.name]: [...others, not ? plain : NOT + plain] })}>
-                {not ? copy.onlyInstead : copy.exceptInstead}
-              </StaffLink>
-            )}
-            {!second && (
-              <StaffLink
-                href={filter.repeat && others.length > 0 ? href({ [filter.name]: others }) : href(without(filter.name))}
-              >
-                {copy.remove}
-              </StaffLink>
-            )}
+            <StaffLink href={others.length > 0 ? href({ [filter.name]: others }) : href(without(filter.name))}>
+              {copy.remove}
+            </StaffLink>
           </p>
         )}
       </Menu>
+    );
+  };
+  // A repeating filter's values, found or left out, without their marks.
+  const side = (filter: Filter, not: boolean) =>
+    chosen(filter.name)
+      .map(notValue)
+      .filter((one) => one.not === not)
+      .map((one) => one.value);
+  // A repeating filter's chip for all it finds, or all it leaves out, if any; as a lozenge's second half, `half`,
+  // always.
+  const manyChip = (filter: Filter, not: boolean, half = false) => {
+    const here = side(filter, not);
+    if (here.length === 0 && !half) return null;
+    const elsewhere = side(filter, !not);
+    return (
+      <ManyChoices
+        key={`${filter.name}-${not}`}
+        path={path}
+        values={values}
+        name={filter.name}
+        label={filter.label}
+        all={chosen(filter.name)}
+        here={here}
+        not={not}
+        oneEach={Boolean(filter.oneEach)}
+        options={[
+          ...here.filter((v) => !parts(filter, v).first).map((value) => ({ value, label: value })),
+          ...filter.options.filter((o) => (o.value || filter.after) && !elsewhere.includes(o.value)),
+        ]}
+        every={everyChoice(filter)}
+        search={filter.searchable ? copy.narrow : undefined}
+        turns={!filter.after}
+        half={half}
+      />
     );
   };
   // "+ Filter"'s menu, or Except's: a filter a row, its choices opening under it, one at a time; a choice
@@ -339,8 +346,19 @@ export default function FilterBar({
           ) : (
             <Choices
               options={options}
-              current=""
-              href={(v) => href({ [filter.name]: [...chosen(filter.name), not ? NOT + v : v] })}
+              current={[]}
+              href={(v) =>
+                href({
+                  [filter.name]: chosenValues({
+                    all: chosen(filter.name),
+                    was: side(filter, not).map((one) => (not ? NOT + one : one)),
+                    chosen: [...side(filter, not), v],
+                    not,
+                    oneEach: Boolean(filter.oneEach),
+                    every: everyChoice(filter),
+                  }),
+                })
+              }
               search={filter.searchable ? copy.narrow : undefined}
             />
           )}
@@ -350,8 +368,7 @@ export default function FilterBar({
   );
   return (
     <>
-      {/* Keyed on the filters, so the menu chosen from closes when they change. */}
-      <FilterBarLines key={filtersPath(path, values)} className={styles.bar}>
+      <FilterBarLines urlKey={filtersPath(path, values)} className={styles.bar}>
         <Form action={path} className={styles.search} role="search">
           <span className={styles.box}>
             <TextInput
@@ -390,11 +407,12 @@ export default function FilterBar({
                 return (
                   <span key={filter.name} className={styles.pair} role="group" aria-label={filter.label}>
                     {chip(filter, value, label(filter, value))}
-                    {chip(next, nextValue, label(next, nextValue), true)}
+                    {next.repeat ? manyChip(next, false, true) : chip(next, nextValue, label(next, nextValue), true)}
                   </span>
                 );
               }
               if (filter.place) return chip(filter, value, placeLabel(filter, value));
+              if (filter.repeat) return [manyChip(filter, false), manyChip(filter, true)];
               return chosen(filter.name).map((one) => {
                 const { value: plain, not } = notValue(one);
                 const { first, second } = parts(filter, plain);
@@ -411,7 +429,7 @@ export default function FilterBar({
                 );
                 const words = not ? (
                   <>
-                    {copy.notChip(filter.label, "")}
+                    <NotWords label={filter.label} />
                     {named}
                   </>
                 ) : (

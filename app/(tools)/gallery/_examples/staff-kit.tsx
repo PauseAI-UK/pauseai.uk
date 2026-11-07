@@ -5,6 +5,8 @@
 // login page.
 import { Button, ButtonLink } from "@/components/ui/Button";
 import FilterBar from "@/app/(staff)/staff/_components/ui/FilterBar";
+import Choices from "@/app/(staff)/staff/_components/ui/Choices";
+import ManyChoices, { NotWords } from "@/app/(staff)/staff/_components/ui/ManyChoices";
 import Menu from "@/app/(staff)/staff/_components/ui/Menu";
 import Bubble, { BubbleBox } from "@/app/(staff)/staff/_components/ui/Bubble";
 import { bubbleTrigger } from "@/app/(staff)/staff/_components/ui/bubble-trigger";
@@ -83,6 +85,7 @@ const EXAMPLE_NATIONS = [
       { value: "england", label: "England" },
       { value: "scotland", label: "Scotland" },
       { value: "wales", label: "Wales" },
+      { value: "ireland", label: "Northern Ireland" },
     ],
   },
 ];
@@ -925,6 +928,19 @@ export const staffKit: Group = {
             </StaffPage>
           ),
         },
+        {
+          label: "A filter that repeats, several choices: all it finds on one chip, all it leaves out on another",
+          render: () => (
+            <StaffPage as="div">
+              <FilterBar
+                path="#"
+                values={{ nation: ["scotland", "england", "!wales", "!ireland"] }}
+                search={{ name: "q", label: "Name" }}
+                filters={EXAMPLE_NATIONS}
+              />
+            </StaffPage>
+          ),
+        },
       ],
     },
     {
@@ -991,6 +1007,61 @@ export const staffKit: Group = {
                 note="Paste it in"
                 close="Close"
               />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "Choices",
+      file: "app/(staff)/staff/_components/ui/Choices.tsx",
+      variants: [
+        {
+          label: "A filter's choices, one chosen",
+          render: () => (
+            <StaffPage as="div">
+              <Choices options={EXAMPLE_NATIONS[0].options} current={["wales"]} href={() => "#"} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "ManyChoices",
+      file: "app/(staff)/staff/_components/ui/ManyChoices.tsx",
+      variants: [
+        {
+          label: "In a chip's menu: several chosen, so it opens as boxes",
+          render: () => (
+            <StaffPage as="div">
+              <ManyChoices
+                path="#"
+                values={{}}
+                name="nation"
+                label="Nation"
+                all={["scotland", "england"]}
+                here={["scotland", "england"]}
+                not={false}
+                oneEach
+                options={EXAMPLE_NATIONS[0].options}
+                every={EXAMPLE_NATIONS[0].options.map((option) => option.value)}
+                turns
+                half={false}
+              />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "NotWords",
+      file: "app/(staff)/staff/_components/ui/ManyChoices.tsx",
+      variants: [
+        {
+          label: "A chip's words that leave out, before its choices",
+          render: () => (
+            <StaffPage as="div">
+              <NotWords label="Nation" />
             </StaffPage>
           ),
         },

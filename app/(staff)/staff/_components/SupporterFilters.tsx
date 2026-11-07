@@ -46,8 +46,8 @@ function nearWords(text: string, near: SupportersPage["near"]): string {
  * email or phone shows that column; and when they were first seen, last
  * registered for an event or unsubscribed, the lists the dashboard's tiles open,
  * the last two only from those tiles.
- * Activities, subscriptions, nations, MPs and events can each be chosen
- * more than once.
+ * Activities, nations, MPs and events can each be chosen more than once; a
+ * supporter has one nation and one MP.
  */
 function supporterFilters(
   search: Pick<SupportersSearch, "near">,
@@ -61,6 +61,7 @@ function supporterFilters(
       name: "nation",
       label: staffCopy.politician.country,
       repeat: true,
+      oneEach: true,
       options: Object.entries(staffCopy.countries).map(([value, label]) => ({ value, label })),
     },
     {
@@ -77,6 +78,7 @@ function supporterFilters(
       name: "mp",
       label: staffCopy.politician.roles.commons,
       repeat: true,
+      oneEach: true,
       searchable: true,
       options: mps.map((mp) => ({ value: String(mp.id), label: copy.mpChoice(mp.name, mp.constituency) })),
     },
@@ -89,7 +91,6 @@ function supporterFilters(
     {
       name: "contact",
       label: columns.subscriptions,
-      repeat: true,
       // Each topic under its channel's heading, chosen as those we can contact about it; then in its chip's second
       // half, another answer. Blocked is last of email's.
       options: CHANNELS.flatMap((channel) => [

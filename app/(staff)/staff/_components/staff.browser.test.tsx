@@ -9,8 +9,10 @@ import { registrationStatus, type SupporterRow } from "@/lib/supporters";
 import type { DownloadColumn } from "@/lib/staff-list";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
+import { changesSearch } from "@/lib/staff-search";
 import type { AnyImportRun, ControlAiImport, MpCheck, PoliticianSync } from "@/lib/import-runs";
 import type { StaffAccount } from "@/lib/server/staff-accounts";
+import ChangesFilters, { changeWords } from "./ChangesFilters";
 import ChangesTable from "./ChangesTable";
 import EmailBlockFilters from "./EmailBlockFilters";
 import EmailBlocksTable, { blockColumns } from "./EmailBlocksTable";
@@ -73,7 +75,6 @@ import { navigation } from "@/tests/browser/navigation";
 import StaffSessions from "./StaffSessions";
 import { spanClass } from "./ui/Grid";
 import StaffDashboard from "./StaffDashboard";
-import { DASHBOARD_WINDOWS } from "@/lib/staff-dashboard";
 import { exampleDashboard, exampleQuietDashboard } from "./StaffDashboard.examples";
 import Sparkline from "./Sparkline";
 import StackedBars from "./StackedBars";
@@ -3651,20 +3652,112 @@ describe("RunList", () => {
   });
 });
 
+describe("ChangesFilters", () => {
+  const choices = { actors: ["jo@pauseai.uk", "sync"], actions: ["add note", "edit event"] };
+  const none = vi.fn();
+  const actions = { save: none, update: none, rename: none, remove: none };
+
+  it("has a search, and who, what and how recent to filter by, keeping the sort, with who and what said in words", async () => {
+    const search = changesSearch({
+      q: "polly",
+      actor: ["jo@pauseai.uk", "sync"],
+      action: "!add note",
+      when: "30",
+      sort: "actor",
+    });
+    await render(<ChangesFilters search={search} choices={choices} actions={actions} />);
+    await expect.element(page.getByRole("searchbox", { name: staffCopy.changes.search })).toHaveValue("polly");
+    expect(chips()).toEqual([
+      "When: Last 30 days",
+      "Who: jo@pauseai.uk or sync",
+      staffCopy.filters.notChip("What", "add note"),
+    ]);
+    expect(changeWords(search)).toEqual([
+      `${staffCopy.search} polly`,
+      "When Last 30 days",
+      "Who jo@pauseai.uk or sync",
+      staffCopy.filters.notChip("What", "add note"),
+    ]);
+    await page.getByRole("button", { name: "When: Last 30 days" }).click();
+    expect(document.querySelector("[popover]:popover-open a")!.getAttribute("href")).toContain("sort=actor");
+  });
+
+  it("offers saved filters, each summed up in those words, to those given them", async () => {
+    const row = {
+      id: 4,
+      name: "Sam's notes",
+      params: { actor: "sam@pauseai.uk", action: ["add note", "edit event"], sort: "day" },
+      createdBy: "jo@pauseai.uk",
+      createdAt: "2026-10-01T09:00:00Z",
+      changedAt: "2026-10-01T09:00:00Z",
+    };
+    await render(
+      <ChangesFilters
+        search={changesSearch({ actor: "sam@pauseai.uk" })}
+        choices={choices}
+        saved={{ rows: [row], params: {} }}
+        actions={actions}
+      />,
+    );
+    await page.getByRole("button", { name: staffCopy.filters.saved.chip, exact: true }).click();
+    await expect
+      .element(page.getByRole("link", { name: /Sam's notes/ }))
+      .toHaveAttribute("href", expect.stringContaining("/staff/audit-log?"));
+    await expect.element(page.getByText("Who sam@pauseai.uk · What add note or edit event")).toBeVisible();
+  });
+});
+
 describe("ChangesTable", () => {
   const log = (changes: typeof exampleChanges) => ({ changes, total: changes.length, pages: 1, pageSize: 100 });
+
+  it("sorts by date, who and what, keeping the filters, and pages and downloads what they find", async () => {
+    const search = changesSearch({ actor: ["sync"], sort: "actor", dir: "asc", page: "2", saved: "4" });
+    await render(
+      <ChangesTable
+        search={search}
+        log={{ ...log(exampleChanges), pages: 3 }}
+        page={2}
+        airtableTable="https://airtable.com/app/tbl"
+      />,
+    );
+    const copy = staffCopy.changes;
+    const heading = (name: string) =>
+      [...document.querySelectorAll("th a")].find((a) => a.textContent!.includes(name))!.getAttribute("href");
+    expect(heading(copy.day)).toBe("/staff/audit-log?actor=sync&sort=day&dir=desc&saved=4");
+    expect(heading(copy.actor)).toBe("/staff/audit-log?actor=sync&sort=actor&dir=desc&saved=4");
+    expect(heading(copy.action)).toBe("/staff/audit-log?actor=sync&sort=action&dir=asc&saved=4");
+    expect([...document.querySelectorAll("th a")]).toHaveLength(3);
+    await expect
+      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .toHaveAttribute("href", "/staff/audit-log?actor=sync&sort=actor&dir=asc&saved=4&page=3");
+    expect(await downloads()).toContain("/staff/audit-log/download?format=csv&actor=sync&sort=actor&dir=asc");
+  });
 
   it("leaves a change of nothing out of an entry's fields", async () => {
     const edit = exampleChanges.find((one) => one.action === "edit politician")!;
     const empty = { ...edit, details: { ...edit.details, changed: {} } };
-    await render(<ChangesTable log={log([empty])} page={1} airtableTable="https://airtable.com/app/tbl" />);
+    await render(
+      <ChangesTable
+        search={changesSearch({})}
+        log={log([empty])}
+        page={1}
+        airtableTable="https://airtable.com/app/tbl"
+      />,
+    );
     const details = page.getByRole("row").nth(1).getByRole("cell").nth(4).element().textContent!;
     expect(details).not.toContain("·  ·");
     expect(details).not.toMatch(/·\s*·/);
   });
 
   it("lists who changed what, the day in a column of its own, and every field each logged, in words, linked where there's a page", async () => {
-    await render(<ChangesTable log={log(exampleChanges)} page={1} airtableTable="https://airtable.com/app/tbl" />);
+    await render(
+      <ChangesTable
+        search={changesSearch({})}
+        log={log(exampleChanges)}
+        page={1}
+        airtableTable="https://airtable.com/app/tbl"
+      />,
+    );
     const copy = staffCopy.changes;
     const fields = staffCopy.fields;
     const labels = copy.labels;
@@ -3735,7 +3828,12 @@ describe("ChangesTable", () => {
 
   it("opens each entry's details as logged from a button at the right", async () => {
     await render(
-      <ChangesTable log={log(exampleChanges.slice(4, 5))} page={1} airtableTable="https://airtable.com/app/tbl" />,
+      <ChangesTable
+        search={changesSearch({})}
+        log={log(exampleChanges.slice(4, 5))}
+        page={1}
+        airtableTable="https://airtable.com/app/tbl"
+      />,
     );
     const json = page.getByText('"name": "Old MP"', { exact: false });
     await expect.element(json).not.toBeVisible();
@@ -5082,6 +5180,7 @@ describe("the lists' paging", () => {
   it("leads the audit log through its pages, from the first when none is given", async () => {
     await render(
       <ChangesTable
+        search={changesSearch({})}
         log={{ changes: exampleChanges, total: 250, pages: 3, pageSize: 100 }}
         page={2}
         airtableTable="https://airtable.com/app/tbl"
@@ -5322,7 +5421,7 @@ describe("PoliticianFilters", () => {
     status: "retired",
     party: ["Labour"],
     ask: "edinburgh-conference-2026",
-    answer: "declined",
+    answer: ["declined"],
     sort: "asks",
     dir: "asc",
     page: "2",
@@ -5359,7 +5458,6 @@ describe("PoliticianFilters", () => {
       "Green",
       ...Object.values(copy.emailStates),
       ...Object.values(copy.flags),
-      ...DASHBOARD_WINDOWS.map((days) => staffCopy.filters.lastDays(days)),
       // Those mailed about each ask.
       ...exampleAsks.map((ask) => ask.title),
     ]);
@@ -5382,7 +5480,6 @@ describe("PoliticianFilters", () => {
       staffCopy.fields.email,
       copy.flag,
       copy.ask,
-      copy.agreedIn,
       copy.mailed,
     ]);
     expect(page.getByRole("link", { name: staffCopy.resetFilters }).query()).toBeNull();
@@ -5390,7 +5487,7 @@ describe("PoliticianFilters", () => {
 });
 
 describe("PoliticianFilters, chosen more than once", () => {
-  it("has a chip for each party, each changing or removing only its own", async () => {
+  it("has one chip for the parties, which opens as boxes and removes them", async () => {
     await render(
       <PoliticianFilters
         search={{ ...emptyPoliticiansSearch, party: ["Green", "Labour"] }}
@@ -5399,10 +5496,14 @@ describe("PoliticianFilters, chosen more than once", () => {
       />,
     );
     const party = staffCopy.fields.party;
-    expect(chips()).toEqual([`${party}: Green`, `${party}: Labour`]);
-    const green = await menu(`${party}: Green`);
-    expect(green.find(([text]) => text === "Reform UK")![1]).toBe("/staff/politicians?party=Labour&party=Reform+UK");
-    expect(green.find(([text]) => text === staffCopy.filters.remove)![1]).toBe("/staff/politicians?party=Labour");
+    const both = `${party}: ${staffCopy.filters.anyOf(["Green", "Labour"])}`;
+    expect(chips()).toEqual([both]);
+    const chip = await menu(both);
+    expect(chip.find(([text]) => text === staffCopy.filters.remove)![1]).toBe("/staff/politicians");
+    // Several are chosen, so its rows are boxes, those two ticked, and no row is a link to swap to.
+    const boxes = [...document.querySelectorAll<HTMLInputElement>("[popover]:popover-open input[type=checkbox]")];
+    expect(boxes.map((box) => box.checked)).toEqual([true, true, false]);
+    await userEvent.keyboard("{Escape}");
     // + Filter offers the party not yet chosen.
     expect((await menu(staffCopy.filters.add)).map(([text]) => text)).toContain("Reform UK");
   });
@@ -5492,7 +5593,6 @@ describe("SupporterFilters", () => {
       staffCopy.filters.notChip(label, topics["march-day"]),
       answers.text.yes,
       `${label}: ${channels.email}, ${copy.subscriptions.blocked}`,
-      // A reason, as an older link has it, is no choice offered: the chip says it as it is.
       `${label}: email:site-forms:asked`,
     ]);
     // The topic's icon in its chip, before its name.
@@ -5500,15 +5600,16 @@ describe("SupporterFilters", () => {
       (b) => b.textContent === `${label}: ${topics["pauseai-updates"]}`,
     )!;
     expect(topicChip.querySelector("svg")).not.toBeNull();
-    // The first half: each topic, choosing one finds those we can contact about it, then turning it the other way
-    // and Remove; the erased notice goes.
+    // Contact doesn't repeat, so several can only come from an old link or saved filter: a chip each. The first
+    // half: each topic, choosing one takes the filter's place, finding those we can contact about it; then Remove,
+    // taking off only that one; the erased notice goes.
     const others = "contact=%21phone%3Amarch-day%3Ayes&contact=email%3Ablocked&contact=email%3Asite-forms%3Aasked";
     const first = await menu(new RegExp(`^${label}:\\s+${topics["pauseai-updates"]}`));
     expect(first).toContainEqual([
       topics["site-forms"],
-      `/staff/supporters?activity=registered&${others}&contact=email%3Asite-forms%3Ayes`,
+      "/staff/supporters?activity=registered&contact=email%3Asite-forms%3Ayes",
     ]);
-    expect(first.at(-1)![0]).toBe(staffCopy.filters.remove);
+    expect(first.at(-1)).toEqual([staffCopy.filters.remove, `/staff/supporters?activity=registered&${others}`]);
     // Under its channel's heading, each once, a phone's ways quiet after it.
     const box = document.querySelector("[popover]:popover-open")!;
     expect([...box.querySelectorAll("li[class*=choiceGroup]")].map((li) => li.textContent)).toEqual([
@@ -5529,10 +5630,9 @@ describe("SupporterFilters", () => {
       answers.text.no,
       "/staff/supporters?activity=registered&contact=email%3Apauseai-updates%3Ano&contact=email%3Ablocked&contact=email%3Asite-forms%3Aasked&contact=%21phone%3Amarch-day%3Ano",
     ]);
-    // + Filter offers the topics not taken.
+    // + Filter doesn't offer it again.
     const add = await menu(staffCopy.filters.add);
-    expect(add.map(([words]) => words)).toContain(`${topics.volunteering}${ways["call-or-text"]}`);
-    expect(add.map(([href]) => href)).not.toContain(topics["pauseai-updates"]);
+    expect(add.map(([words]) => words)).not.toContain(`${topics.volunteering}${ways["call-or-text"]}`);
   });
 
   it("offers every topic once in the Contact filter, email's then phone's, ours first", () => {
@@ -5584,7 +5684,6 @@ describe("SupporterFilters", () => {
       staffCopy.politician.country,
       staffCopy.politician.roles.commons,
       copy.columns.badges,
-      copy.columns.subscriptions,
       copy.filters.event,
     ]);
     expect(await menu(staffCopy.filters.except)).toContainEqual([
@@ -5598,10 +5697,7 @@ describe("SupporterFilters", () => {
     const { filter, ...search } = supportersSearch({ mp: ["7", "x"] });
     void filter;
     const { rerender } = await render(<SupporterFilters search={search} choices={choices} />);
-    expect(chips()).toEqual([
-      `${staffCopy.politician.roles.commons}: ${mo}`,
-      `${staffCopy.politician.roles.commons}: x`,
-    ]);
+    expect(chips()).toEqual([`${staffCopy.politician.roles.commons}: ${staffCopy.filters.anyOf([mo, "x"])}`]);
     const { filter: unused, ...unfiltered } = supportersSearch({});
     void unused;
     await rerender(<SupporterFilters search={unfiltered} choices={choices} />);
@@ -5617,12 +5713,14 @@ describe("SupporterFilters", () => {
     expect(chips()).toEqual([`${copy.filters.event}: ${leeds}`, staffCopy.filters.notChip(copy.filters.event, oxford)]);
     // A chip turns its choice the other way; a choice in a left-out chip stays left out.
     expect(await menu(`${copy.filters.event}: ${leeds}`)).toContainEqual([
-      staffCopy.filters.exceptInstead,
-      "/staff/supporters?event=%21evt-2&event=%21evt-1",
+      // Leaving out this one too would leave out every event, so it takes off the filter.
+      staffCopy.filters.exceptThis,
+      "/staff/supporters",
     ]);
     const out = await menu(staffCopy.filters.notChip(copy.filters.event, oxford));
-    expect(out).toContainEqual([staffCopy.filters.onlyInstead, "/staff/supporters?event=evt-1&event=evt-2"]);
-    expect(out).toContainEqual([leeds, "/staff/supporters?event=evt-1&event=%21evt-1"]);
+    expect(out).toContainEqual([staffCopy.filters.onlyThis, "/staff/supporters?event=evt-1&event=evt-2"]);
+    // The one it finds isn't offered.
+    expect(out.map(([text]) => text)).not.toContain(leeds);
     expect(out.at(-1)).toEqual([staffCopy.filters.remove, "/staff/supporters?event=evt-1"]);
   });
 

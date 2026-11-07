@@ -488,7 +488,6 @@ describe("FilterBar", () => {
           {
             name: "part",
             label: "Part",
-            repeat: true,
             options: [
               {
                 value: "a:1",
@@ -827,8 +826,7 @@ describe("filterWords", () => {
     ];
     expect(filterWords(filters, { q: ["jo", "x"], kind: ["a", "b", "!a"], near: "LS1" }, "q")).toEqual([
       `${staffCopy.search} jo`,
-      "Kind A",
-      "Kind b",
+      `Kind ${staffCopy.filters.anyOf(["A", "b"])}`,
       staffCopy.filters.notChip("Kind", "A"),
       "Near LS1",
     ]);

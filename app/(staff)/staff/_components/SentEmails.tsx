@@ -17,7 +17,6 @@ import FilterBar, { type Filter } from "./ui/FilterBar";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
-import styles from "./SentEmails.module.css";
 
 const PATH = "/staff/sent-emails";
 const copy = staffCopy.sentEmails;
@@ -28,6 +27,7 @@ const filtersFor = (supporters: boolean): Filter[] => [
     name: "purpose",
     label: copy.filters.purpose,
     repeat: true,
+    oneEach: true,
     options: Object.entries(copy.purposes)
       .filter(([value]) => supporters || SENT_EMAILS_WITHOUT_SUPPORTERS.includes(value))
       .map(([value, label]) => ({ value, label })),
@@ -36,12 +36,14 @@ const filtersFor = (supporters: boolean): Filter[] => [
     name: "backend",
     label: copy.filters.backend,
     repeat: true,
+    oneEach: true,
     options: Object.entries(copy.backends).map(([value, label]) => ({ value, label })),
   },
   {
     name: "outcome",
     label: copy.filters.outcome,
     repeat: true,
+    oneEach: true,
     options: Object.entries(copy.outcomes).map(([value, label]) => ({ value, label })),
   },
   {
@@ -117,8 +119,7 @@ const columns: (ListColumn<SentEmail> & { key: SentEmailSort | "links" })[] = [
 ];
 
 /**
- * The send log, for admins: a heading only a screen reader reads, as the
- * menu names the page; a search and filters; then a row for each email, each
+ * The send log, for admins: its heading; a search and filters; then a row for each email, each
  * column but its links a sort, newest first unless another is chosen.
  * A row never shows the email's text.
  */
@@ -163,7 +164,7 @@ export default function SentEmails({
   );
   return (
     <>
-      <h1 className={styles.heading}>{staffCopy.nav.sentEmails}</h1>
+      <h1>{staffCopy.nav.sentEmails}</h1>
       {!supporters && (
         <p>
           <Withheld>{copy.withheld}</Withheld>

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { changesSearch } from "@/lib/staff-search";
 import { staffTime } from "@/lib/staff-time";
 import type { Mailing } from "@/lib/server/mailings";
 import AnswerWord from "./AnswerWord";
@@ -243,7 +244,9 @@ describe("AskView", () => {
 
   it("gives a letter the months of its letters, or with none the month typed, and an event its day", async () => {
     const { rerender } = await render(<AskView ask={exampleAskPage} answer="" />);
-    await expect.element(link(words.everyone)).toHaveAttribute("href", `/staff/politicians?ask=${exampleAskPage.slug}`);
+    await expect
+      .element(link(words.everyone))
+      .toHaveAttribute("href", `/staff/politicians?ask=${exampleAskPage.slug}&status=any`);
     await says(words.when);
     await says("Jun–Nov 2026");
     await rerender(
@@ -308,7 +311,9 @@ describe("AskView", () => {
     await says(words.lastWrittenTo);
     await says(staffCopy.statuses.declined);
     await says("1 Oct 2026");
-    await expect.element(link(words.everyone)).toHaveAttribute("href", `/staff/politicians?ask=${exampleAskPage.slug}`);
+    await expect
+      .element(link(words.everyone))
+      .toHaveAttribute("href", `/staff/politicians?ask=${exampleAskPage.slug}&status=any`);
     // Those with no answer, and an answer nobody gave isn't a link.
     await rerender(
       <AskView
@@ -366,9 +371,11 @@ describe("AskView", () => {
 describe("ChangesTable, without the supporters permission", () => {
   it("says entries about supporters are left out", async () => {
     const log = { changes: [], total: 0, pages: 1, pageSize: 100 };
-    const { rerender } = await render(<ChangesTable log={log} page={1} airtableTable="x" supporters={false} />);
+    const { rerender } = await render(
+      <ChangesTable search={changesSearch({})} log={log} page={1} airtableTable="x" supporters={false} />,
+    );
     await says(staffCopy.changes.withheld);
-    await rerender(<ChangesTable log={log} page={1} airtableTable="x" />);
+    await rerender(<ChangesTable search={changesSearch({})} log={log} page={1} airtableTable="x" />);
     expect(document.body.textContent).not.toContain(staffCopy.changes.withheld);
   });
 });
@@ -462,12 +469,11 @@ describe("SentEmails", () => {
     expect(heading(words.subject).element().closest("th")!.getAttribute("aria-sort")).toBe("ascending");
   });
 
-  it("has a heading only for a screen reader, each person linked if they can be, imported tagged, and links through its letter", async () => {
+  it("has a heading, each person linked if they can be, imported tagged, and links through its letter", async () => {
     await render(
       <SentEmails emails={exampleSentEmails} total={150} pages={2} page={1} pageSize={100} search={NO_SEARCH} />,
     );
-    const heading = page.getByRole("heading", { level: 1 }).element() as HTMLElement;
-    expect(heading.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    await expect.element(page.getByRole("heading", { level: 1, name: staffCopy.nav.sentEmails })).toBeVisible();
     const words = staffCopy.sentEmails;
     expect([...document.querySelectorAll("th")].map((th) => th.textContent!.replace(/[ ▲▼]+$/, ""))).toEqual(
       Object.values(words.columns),

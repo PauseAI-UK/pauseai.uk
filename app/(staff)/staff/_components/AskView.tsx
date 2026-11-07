@@ -219,7 +219,7 @@ export default function AskView({ ask, answer }: { ask: AskPageData; answer: str
         </section>
       )}
       <p className={styles.toPoliticians}>
-        <StaffLink href={`/staff/politicians?ask=${ask.slug}`}>{page.everyone}</StaffLink>
+        <StaffLink href={`/staff/politicians?ask=${ask.slug}&status=any`}>{page.everyone}</StaffLink>
       </p>
       <Grid>
         <Card

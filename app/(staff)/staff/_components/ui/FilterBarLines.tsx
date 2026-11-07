@@ -1,15 +1,51 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 /**
- * A filter bar's row, which knows whether what's in it all fits on one line.
- * If not, it's marked `data-stacked`, for its last child, the chips, to start
- * a line of their own, whatever else then has room. CSS alone can't say so: a
- * flex row fills each line with what it can. The last child counts as its own
- * children side by side, as it's as wide as the row once stacked.
+ * Holding a filter bar as it is: `hold` while a menu in it is choosing several,
+ * as each choice changes the URL, and `release` once it's done.
  */
-export default function FilterBarLines({ className, children }: { className: string; children: ReactNode }) {
+const BarHold = createContext({ hold: () => {}, release: () => {} });
+
+export const useBarHold = () => useContext(BarHold);
+
+/**
+ * A filter bar's row. It starts afresh when its URL, `urlKey`, changes, so a menu
+ * chosen from closes. While it's held, it keeps what it was showing instead,
+ * whatever the page sends, so the menu held open, and the chip whose choices have
+ * all gone, stay until it's released.
+ */
+export default function FilterBarLines({
+  className,
+  urlKey,
+  children,
+}: {
+  className: string;
+  urlKey?: string;
+  children: ReactNode;
+}) {
+  const [held, setHeld] = useState<{ children: ReactNode; urlKey?: string } | null>(null);
+  const shown = held ?? { children, urlKey };
+  return (
+    <BarHold.Provider
+      value={{ hold: () => setHeld((now) => now ?? { children, urlKey }), release: () => setHeld(null) }}
+    >
+      <Lines key={shown.urlKey} className={className}>
+        {shown.children}
+      </Lines>
+    </BarHold.Provider>
+  );
+}
+
+/**
+ * The row, which knows whether what's in it all fits on one line. If not, it's
+ * marked `data-stacked`, for its last child, the chips, to start a line of their
+ * own, whatever else then has room. CSS alone can't say so: a flex row fills each
+ * line with what it can. The last child counts as its own children side by side,
+ * as it's as wide as the row once stacked.
+ */
+function Lines({ className, children }: { className: string; children: ReactNode }) {
   const row = useRef<HTMLDivElement>(null);
   const [stacked, setStacked] = useState(false);
   useEffect(() => {

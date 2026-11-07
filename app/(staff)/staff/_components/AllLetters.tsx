@@ -29,6 +29,7 @@ function emailFilters(supporters: boolean, people: EmailChoice[]): Filter[] {
       name: "from",
       label: copy.from,
       repeat: true,
+      oneEach: true,
       options: EMAIL_SENDERS.filter((kind) => supporters || kind !== "supporter").map((kind) => ({
         value: kind,
         label: copy.fromKinds[kind],
@@ -50,6 +51,7 @@ function emailFilters(supporters: boolean, people: EmailChoice[]): Filter[] {
       name: "type",
       label: copy.topic,
       repeat: true,
+      oneEach: true,
       options: EMAIL_TYPES.filter((type) => supporters || type !== "campaign").map((type) => ({
         value: type,
         label: copy.types[type],

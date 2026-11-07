@@ -47,7 +47,7 @@ const EMPTY_POLITICIAN_FILTERS = {
   nation: [] as string[],
   email: [] as string[],
   ask: "",
-  answer: "",
+  answer: [],
   mailed: [] as string[],
   agreed: "",
   sort: "",
@@ -284,7 +284,7 @@ export const staffPoliticians: Group = {
                   nation: ["wales"],
                   email: ["blocked"],
                   ask: "edinburgh-conference-2026",
-                  answer: "declined",
+                  answer: ["declined", "none"],
                 }}
                 asks={exampleAsks}
                 parties={parties}

@@ -462,17 +462,37 @@ are:
   is hidden as a rule (`linkedOnly`): it isn't in "+ Filter", and is on only from
   that link, a chip like any other.
 - A filter that makes sense more than once (`repeat`: a party, a nation,
-  an event) can be chosen again, a chip each, and finds what has any of
-  them; different filters must all match. An ask's answer doesn't repeat.
+  an event) can be chosen again, and finds what has any of them; different
+  filters must all match. All it finds are on one chip, "Party: Labour or
+  Green", the "or" lighter. Its menu (`ui/ManyChoices`) has a row for each
+  choice: a click swaps to that one, and the menu closes. "+ Add", in the
+  menu's foot, turns the rows to boxes, with what it has ticked; "Just one", in
+  its place, turns them back, keeping the first ticked. Each tick changes the
+  list at once, replacing the URL so Back isn't full of them, and the menu stays
+  open; the newest tick wins. Clicking away or Escape just closes it. With
+  several chosen the menu opens as boxes, so a click on a row can't clear them.
+  Unticking everything takes the filter off the list at once; its chip goes when
+  the menu closes. While ticking, `ui/FilterBarLines` holds the bar as it is. A
+  filter that doesn't repeat has no "+ Add". A choice in two parts doesn't repeat.
 - A filter that repeats can leave out, too. "+ Filter" is cut in two,
   "+ Filter | Except", and Except lists those filters to choose one to
-  leave out. A chip that leaves out sits among the others, white with a
-  dashed edge and a struck-through circle, and its words say "not". The
-  list has none of what's left out and any of what's chosen. Each chip's
-  menu, beside Remove, turns its choice the other way: "Except this
-  instead", or "Only this instead". In the URL a choice left out is the
-  same parameter, its value marked `!`: `event=!evt-2`.
-- Politicians, Supporters and Events have saved filters (`ui/SavedFilters`,
+  leave out. All a filter leaves out are on a chip of their own among the
+  others, white with a dashed edge and a struck-through circle, and its words
+  say "not": "Party: not Labour or Green". The list has none of what's left
+  out and any of what's chosen. Each chip's menu, beside Remove, turns all it
+  has the other way: "Except this", or "Only this", or "these" for several.
+  Leaving out every choice removes the filter. In the URL a choice left out is
+  the same parameter, its value marked `!`: `event=!evt-2`.
+- Where a record has only one value of a filter (`oneEach`: a nation, a party,
+  who did it), finding one already leaves the others out, so it only ever has
+  one lozenge: adding a found choice drops those left out, and the other way
+  round. One from an old link or saved filter with both shows both until it
+  changes. Where a record can have several (a tag, an event), it keeps both.
+- A filter `after` another that repeats, as an ask's answers do, has "+ Add" in
+  the lozenge's second half: "Ask: Winter reception | Going or Tentative going",
+  its blank choice, "Any answer", being what ticking none means. Changing the
+  first half clears it. It can't leave out.
+- Politicians, Supporters, Events and the audit log have saved filters (`ui/SavedFilters`,
   FilterBar's `saved`, and "Saved filters" in `docs/domain-concepts.md`): a
   white lozenge at the right of the bar's first row; on a phone it shares a
   row with the search, which takes what it leaves, or on the narrowest has
