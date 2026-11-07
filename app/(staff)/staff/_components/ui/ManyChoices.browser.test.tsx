@@ -5,6 +5,7 @@ import type { ComponentProps } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { navigation } from "@/tests/browser/navigation";
 import FilterBar, { type Filter } from "./FilterBar";
+import ManyChoices from "./ManyChoices";
 
 // Outside Next's app router a Link is a plain link, and following it would
 // leave the test's page. Here, as the app router does, a click calls the
@@ -307,6 +308,31 @@ describe("a repeating filter's lozenge's menu", () => {
     );
     await page.getByRole("button", { name: "Tag: A or B" }).click();
     expect(rows()[0][0]).toBe("Aquiet");
+  });
+});
+
+describe("ManyChoices outside a bar, as in the gallery", () => {
+  it("opens and closes with nothing to hold", async () => {
+    await render(
+      <ManyChoices
+        path="/list"
+        values={{}}
+        name="tag"
+        label="Tag"
+        all={["a", "b"]}
+        here={["a", "b"]}
+        not={false}
+        oneEach={false}
+        options={tag.options}
+        every={["a", "b", "c"]}
+        turns={false}
+        half={false}
+      />,
+    );
+    await page.getByRole("button", { name: "Tag: A or B" }).click();
+    expect(rows()).toHaveLength(3);
+    await away();
+    expect(document.querySelector("[popover]:popover-open")).toBeNull();
   });
 });
 
