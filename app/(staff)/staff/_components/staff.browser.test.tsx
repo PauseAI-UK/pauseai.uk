@@ -5390,7 +5390,7 @@ async function menu(button: string | RegExp) {
   await userEvent.keyboard("{Escape}");
   await page.getByRole("button", { name: button }).click();
   const box = document.querySelector<HTMLElement>("[popover]:popover-open")!;
-  return [...box.querySelectorAll("a:not([hidden])")].map((a) => [a.textContent, a.getAttribute("href")]);
+  return [...box.querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")]);
 }
 
 describe("EmailBlockFilters", () => {

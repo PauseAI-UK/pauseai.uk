@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, changeFilter } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { logIn } from "./staff-steps";
+import { holdNextPage, logIn } from "./staff-steps";
 
 // The audit log's search, filters and sorting, on a few entries of their own.
 
@@ -66,14 +66,21 @@ test("Filtering the audit log", { tag: "@phone" }, async ({ page, flowDatabase }
   story("To have Jo's as well, + Add turns the rows to boxes, with Sam ticked.");
   await page.getByRole("button", { name: sam }).click();
   await menu(page).getByRole("button", { name: filters.addChoice }).click();
-  await menu(page).getByRole("checkbox", { name: JO }).check();
-  await frame(page, "The menu, Jo ticked as well");
+  await expect(menu(page).getByRole("checkbox", { name: SAM })).toBeChecked();
+  await frame(page, "The boxes, Sam ticked");
 
-  story("Clicking away loads the list with what's ticked. The chip says both.");
-  await page.keyboard.press("Escape");
+  story("Ticking Jo changes the list at once, behind the menu, which stays open.");
+  await menu(page).getByRole("checkbox", { name: JO }).check();
+  await expect(page.locator("tbody tr")).toHaveCount(4);
+  await expect(menu(page).getByRole("checkbox", { name: JO })).toBeChecked();
   const both = `${copy.actor}: ${filters.anyOf([SAM, JO])}`;
   await expect(page.getByRole("button", { name: both })).toBeVisible();
-  await expect(page.locator("tbody tr")).toHaveCount(4);
+  await frame(page, "Jo's and Sam's, the menu still open");
+
+  story("Clicking away just closes it. The URL has both, and only one step back to the list before them.");
+  await page.keyboard.press("Escape");
+  await expect(menu(page)).toHaveCount(0);
+  await expect(page).toHaveURL(/actor=.*actor=/);
   await frame(page, "Jo's and Sam's, on one chip");
 
   story("Only the last week's, sorted by what they did.");
@@ -113,24 +120,50 @@ test("Back to one on a chip, and none", async ({ page, flowDatabase }) => {
   await expect(menu(page).getByRole("checkbox", { name: SAM })).toBeChecked();
   await frame(page, "The menu, both ticked");
 
-  story("Just one keeps the first ticked, and the rows are links again.");
+  story("Just one keeps the first ticked, and the list changes at once. The rows are links again.");
   await menu(page).getByRole("button", { name: filters.justOne }).click();
   await expect(menu(page).getByRole("link", { name: JO, exact: true })).toHaveAttribute("aria-current", "true");
-  await frame(page, "The menu, Jo alone");
-  await page.keyboard.press("Escape");
-  const jo = `${copy.actor}: ${JO}`;
-  await expect(page.getByRole("button", { name: jo })).toBeVisible();
   await expect(page.locator("tbody tr")).toHaveCount(2);
-  await frame(page, "Only Jo's");
+  await frame(page, "Jo alone, the menu still open");
 
-  story("Unticking the last one takes the filter off.");
-  await page.getByRole("button", { name: jo }).click();
+  story("A row swaps, and the menu closes.");
+  await menu(page).getByRole("link", { name: SAM, exact: true }).click();
+  const sam = `${copy.actor}: ${SAM}`;
+  await expect(page.getByRole("button", { name: sam })).toBeVisible();
+  await expect(menu(page)).toHaveCount(0);
+  await frame(page, "Only Sam's");
+
+  story("Unticking the last one takes the filter off the list at once. The chip stays while the menu's open.");
+  await page.getByRole("button", { name: sam }).click();
   await menu(page).getByRole("button", { name: filters.addChoice }).click();
-  await menu(page).getByRole("checkbox", { name: JO }).uncheck();
-  await page.keyboard.press("Escape");
+  await menu(page).getByRole("checkbox", { name: SAM }).uncheck();
   await expect(page).toHaveURL(`${BASE}/staff/audit-log`);
   await expect(page.locator("tbody tr")).toHaveCount(5);
-  await frame(page, "Everyone's again");
+  await expect(menu(page).getByRole("checkbox", { name: SAM })).not.toBeChecked();
+  await frame(page, "Everyone's, the menu still open");
+
+  story("Once the menu closes, the chip has gone.");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: `${copy.actor}:` })).toHaveCount(0);
+  await frame(page, "No filter");
+});
+
+test("Ticking quickly", async ({ page, flowDatabase }) => {
+  story("Each tick asks for the list. A slow answer to an older tick must not replace a newer one.");
+  addEntries(flowDatabase);
+  await logIn(page, flowDatabase, ["admin", "supporters"]);
+  await page.goto(`${BASE}/staff/audit-log?actor=${JO}`);
+  // The first tick's answer waits until the second tick's has arrived.
+  const next = await holdNextPage(page, /actor=.*actor=sync$/);
+  await page.getByRole("button", { name: `${copy.actor}: ${JO}` }).click();
+  await menu(page).getByRole("button", { name: filters.addChoice }).click();
+  await menu(page).getByRole("checkbox", { name: "sync", exact: true }).check();
+  await menu(page).getByRole("checkbox", { name: "sync", exact: true }).uncheck();
+  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await next.release();
+  await expect(page).toHaveURL(new RegExp(`actor=${JO.replace("@", "(@|%40)")}$`));
+  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await frame(page, "Only Jo's: the newer tick won");
 });
 
 test("One way or the other, where a record has one value", async ({ page, flowDatabase }) => {
@@ -157,9 +190,10 @@ test("Leaving out every choice", async ({ page, flowDatabase }) => {
   const out = filters.notChip(copy.actor, filters.anyOf([JO, SAM]));
   await page.getByRole("button", { name: out }).click();
   await menu(page).getByRole("checkbox", { name: "sync", exact: true }).check();
-  await frame(page, "Everyone ticked");
-  await page.keyboard.press("Escape");
   await expect(page).toHaveURL(new RegExp(`/staff/audit-log$`));
+  await frame(page, "Everyone ticked, and the list unfiltered");
+  await page.keyboard.press("Escape");
+  await expect(menu(page)).toHaveCount(0);
   await frame(page, "No filter");
 });
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import type { ComponentProps } from "react";
@@ -56,18 +56,13 @@ const open = () => document.querySelector("[popover]:popover-open")!;
 const rows = () => [...open().querySelectorAll("li")].map((li) => [li.textContent, chosen(li)]);
 const chosen = (li: Element) => Boolean(li.querySelector("a[aria-current], input:checked"));
 const foot = () =>
-  [...open().querySelectorAll("p:last-of-type > :not([hidden])")].map((el) => [
-    el.textContent,
-    el.getAttribute("href"),
-  ]);
-const pressed = () => navigation.pushed;
+  [...open().querySelectorAll("p:last-of-type > *")].map((el) => [el.textContent, el.getAttribute("href")]);
+const pushed = () => navigation.pushed;
+const replaced = () => navigation.replaced;
 const away = () => userEvent.keyboard("{Escape}");
+const chipWords = () => document.querySelector("[popover] ")?.previousElementSibling?.textContent;
 
 describe("a repeating filter's lozenge's menu", () => {
-  beforeEach(() => {
-    navigation.pushed.length = 0;
-  });
-
   it("with one choice: a row swaps to it alone; + Add, turning it round and Remove are its foot", async () => {
     await render(bar([tag], { tag: ["a"] }));
     await page.getByRole("button", { name: "Tag: A" }).click();
@@ -83,13 +78,13 @@ describe("a repeating filter's lozenge's menu", () => {
     ]);
     expect(open().querySelector("input")).toBeNull();
     await page.getByRole("link", { name: "B", exact: true }).click();
-    await vi.waitFor(() => expect(pressed()).toEqual(["/list?tag=b"]));
-    // The row was followed, so closing the menu loads nothing more.
+    await vi.waitFor(() => expect(pushed()).toEqual(["/list?tag=b"]));
+    // Only ticks replace, and closing the menu loads nothing more.
     await away();
-    expect(pressed()).toEqual(["/list?tag=b"]);
+    expect(replaced()).toEqual([]);
   });
 
-  it("+ Add turns the rows to boxes with what it has ticked, and closing the menu loads what's ticked, once", async () => {
+  it("+ Add turns the rows to boxes with what it has ticked; each tick changes the list, the menu staying open", async () => {
     await render(bar([tag], { tag: ["a"] }));
     await page.getByRole("button", { name: "Tag: A" }).click();
     await page.getByRole("button", { name: copy.addChoice }).click();
@@ -100,30 +95,66 @@ describe("a repeating filter's lozenge's menu", () => {
     ]);
     expect(open().querySelectorAll("input[type=checkbox]")).toHaveLength(3);
     expect(foot()[0]).toEqual([copy.justOne, null]);
+    expect(replaced()).toEqual([]);
     await page.getByRole("checkbox", { name: "C" }).click();
-    expect(pressed()).toEqual([]);
-    // Its words count what's ticked, and turning round takes what's ticked.
-    expect(foot()[1]).toEqual([copy.exceptThese, "/list?tag=%21a&tag=%21c"]);
+    await page.getByRole("checkbox", { name: "B" }).click();
+    expect(replaced()).toEqual(["/list?tag=a&tag=c", "/list?tag=a&tag=c&tag=b"]);
+    expect(pushed()).toEqual([]);
+    expect(open()).not.toBeNull();
+    // Its words count what's ticked, and turning round takes what's ticked, here leaving out every choice. The
+    // chip says them at once.
+    expect(foot()[1]).toEqual([copy.exceptThese, "/list"]);
+    expect(chipWords()).toBe("Tag: A or C or B");
+    // Clicking away only closes it.
     await away();
-    await vi.waitFor(() => expect(pressed()).toEqual(["/list?tag=a&tag=c"]));
+    expect(open()).toBeNull();
+    expect(replaced()).toHaveLength(2);
   });
 
-  it("closing it with nothing changed loads nothing, and a link followed loads only that", async () => {
+  it("stays open with the page's new URL while ticking, its chip with nothing ticked, and starts afresh once closed", async () => {
+    const { rerender } = await render(bar([tag], { tag: ["a"] }));
+    await page.getByRole("button", { name: "Tag: A" }).click();
+    await page.getByRole("button", { name: copy.addChoice }).click();
+    await page.getByRole("checkbox", { name: "A" }).click();
+    expect(replaced()).toEqual(["/list"]);
+    // The page arrives without the filter: the menu and its chip stay.
+    await rerender(bar([tag], {}));
+    expect(open()).not.toBeNull();
+    expect(chipWords()).toBe("Tag: ");
+    // Ticking again brings it back.
+    await page.getByRole("checkbox", { name: "B" }).click();
+    expect(replaced()).toEqual(["/list", "/list?tag=b"]);
+    await rerender(bar([tag], { tag: ["b"] }));
+    expect(open()).not.toBeNull();
+    await page.getByRole("checkbox", { name: "B" }).click();
+    await rerender(bar([tag], {}));
+    await away();
+    // Closed, the bar shows what the page has: no chip.
+    await vi.waitFor(() => expect(document.body.textContent).not.toContain("Tag:"));
+  });
+
+  it("closing with nothing ticked differently goes back to rows", async () => {
     await render(bar([tag], { tag: ["a"] }));
     await page.getByRole("button", { name: "Tag: A" }).click();
     await page.getByRole("button", { name: copy.addChoice }).click();
     await away();
-    expect(pressed()).toEqual([]);
+    expect(replaced()).toEqual([]);
     await page.getByRole("button", { name: "Tag: A" }).click();
-    await page.getByRole("checkbox", { name: "B" }).click();
-    await page.getByRole("link", { name: copy.remove }).click();
-    await vi.waitFor(() => expect(pressed()).toEqual(["/list"]));
-    await away();
-    expect(pressed()).toEqual(["/list"]);
+    expect(open().querySelector("input")).toBeNull();
   });
 
-  it("with several chosen opens as boxes; Just one keeps the first ticked, and closing loads that", async () => {
-    await render(bar([tag], { tag: ["b", "a"] }));
+  it("a link followed from the boxes goes there, by push, the bar no longer held", async () => {
+    const { rerender } = await render(bar([tag], { tag: ["a"] }));
+    await page.getByRole("button", { name: "Tag: A" }).click();
+    await page.getByRole("button", { name: copy.addChoice }).click();
+    await page.getByRole("link", { name: copy.remove }).click();
+    await vi.waitFor(() => expect(pushed()).toEqual(["/list"]));
+    await rerender(bar([tag], {}));
+    await vi.waitFor(() => expect(open()).toBeNull());
+  });
+
+  it("with several chosen opens as boxes, held; Just one keeps the first ticked, at once", async () => {
+    const { rerender } = await render(bar([tag], { tag: ["b", "a"] }));
     await page.getByRole("button", { name: "Tag: B or A" }).click();
     expect(rows()).toEqual([
       ["A", true],
@@ -137,31 +168,28 @@ describe("a repeating filter's lozenge's menu", () => {
     ]);
     await page.getByRole("button", { name: copy.justOne }).click();
     expect(open().querySelector("input")).toBeNull();
+    expect(replaced()).toEqual(["/list?tag=b"]);
+    await rerender(bar([tag], { tag: ["b"] }));
+    expect(open()).not.toBeNull();
     expect(rows()).toEqual([
       ["A", false],
       ["B", true],
       ["C", false],
     ]);
     expect(foot()[0]).toEqual([copy.addChoice, null]);
-    await away();
-    await vi.waitFor(() => expect(pressed()).toEqual(["/list?tag=b"]));
-  });
-
-  it("unticking everything removes the filter", async () => {
-    await render(bar([tag], { tag: ["a"] }));
-    await page.getByRole("button", { name: "Tag: A" }).click();
+    // With one ticked, Just one changes nothing.
     await page.getByRole("button", { name: copy.addChoice }).click();
-    await page.getByRole("checkbox", { name: "A" }).click();
-    await away();
-    await vi.waitFor(() => expect(pressed()).toEqual(["/list"]));
+    await page.getByRole("button", { name: copy.justOne }).click();
+    expect(replaced()).toEqual(["/list?tag=b"]);
   });
 
-  it("leaving out every choice removes the filter", async () => {
+  it("leaving out every choice takes the filter off the list, the menu and chip staying", async () => {
     await render(bar([tag], { tag: ["!a", "!b"] }));
     await page.getByRole("button", { name: copy.notChip("Tag", "A or B") }).click();
     await page.getByRole("checkbox", { name: "C" }).click();
-    await away();
-    await vi.waitFor(() => expect(pressed()).toEqual(["/list"]));
+    expect(replaced()).toEqual(["/list"]);
+    expect(open()).not.toBeNull();
+    expect(chipWords()).toBe(copy.notChip("Tag", "A or B or C"));
   });
 
   it("where a record has several, keeps what the other lozenge has, and doesn't offer it", async () => {
@@ -174,7 +202,7 @@ describe("a repeating filter's lozenge's menu", () => {
       [copy.remove, "/list?tag=%21b"],
     ]);
     await page.getByRole("link", { name: "C", exact: true }).click();
-    await vi.waitFor(() => expect(pressed()).toEqual(["/list?tag=%21b&tag=c"]));
+    await vi.waitFor(() => expect(pushed()).toEqual(["/list?tag=%21b&tag=c"]));
     await away();
     await page.getByRole("button", { name: copy.notChip("Tag", "B") }).click();
     expect(foot()[1]).toEqual([copy.onlyThis, "/list?tag=a&tag=b"]);
@@ -184,7 +212,7 @@ describe("a repeating filter's lozenge's menu", () => {
     await render(bar([nation], { nation: ["a", "!b"] }));
     await page.getByRole("button", { name: "Nation: A" }).click();
     await page.getByRole("link", { name: "C", exact: true }).click();
-    await vi.waitFor(() => expect(pressed()).toEqual(["/list?nation=c"]));
+    await vi.waitFor(() => expect(pushed()).toEqual(["/list?nation=c"]));
     await away();
     // Removing a lozenge isn't choosing: the other stays.
     await page.getByRole("button", { name: "Nation: A" }).click();
@@ -214,6 +242,15 @@ describe("a repeating filter's lozenge's menu", () => {
     expect(rows().map(([words, on]) => [words, on])[0]).toEqual(["gone", true]);
   });
 
+  it("names a choice in a group by both", async () => {
+    const grouped: Filter = {
+      ...tag,
+      options: [{ value: "a", label: "A", group: { label: "Group", icon: null } }],
+    };
+    await render(bar([grouped], { tag: ["a"] }));
+    expect(chipWords()).toBe("Tag: Group, A");
+  });
+
   it("as a lozenge's second half: named for its blank choice, no turning round or Remove, with a row for its default", async () => {
     await render(bar([ask, answer], { ask: "x" }));
     const halves = page.getByRole("group", { name: "Ask" }).getByRole("button");
@@ -230,8 +267,7 @@ describe("a repeating filter's lozenge's menu", () => {
     expect(rows().map(([words]) => words)).toEqual(["Yes", "No"]);
     await page.getByRole("checkbox", { name: "Yes" }).click();
     await page.getByRole("checkbox", { name: "No" }).click();
-    await away();
-    await vi.waitFor(() => expect(pressed()).toEqual(["/list?ask=x&answer=yes&answer=no"]));
+    expect(replaced()).toEqual(["/list?ask=x&answer=yes", "/list?ask=x&answer=yes&answer=no"]);
   });
 
   it("says the answers in the second half, whose default row takes them off, and changing the first takes them off too", async () => {
@@ -290,8 +326,7 @@ describe("a filter that doesn't repeat, with several values from an old link or 
       { value: "b", label: "B" },
     ],
   };
-  const links = () =>
-    [...open().querySelectorAll("a:not([hidden])")].map((a) => [a.textContent, a.getAttribute("href")]);
+  const links = () => [...open().querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")]);
 
   it("has a chip for each; its second half changes that one, its first takes the filter's place, and Remove takes only that", async () => {
     await render(bar([part], { part: ["a:2", "b", "!a:1"] }));

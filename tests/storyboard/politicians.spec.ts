@@ -234,16 +234,19 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
 
   story("+ Add turns the rows to boxes. Any answer isn't one of them: it's what ticking none means.");
   await menu.getByRole("button", { name: staffCopy.filters.addChoice }).click();
-  await menu.getByRole("checkbox", { name: staffCopy.statuses.going }).check();
-  await menu.getByRole("checkbox", { name: filters.noAnswer }).check();
-  await frame(page, "Going and Not answered, ticked");
+  await frame(page, "Boxes, with Any answer gone");
 
-  story("Clicking away loads the list once. The second half of the chip says both.");
-  await page.keyboard.press("Escape");
+  story("Each tick changes the list at once, with the menu open. The chip's second half says both.");
+  await menu.getByRole("checkbox", { name: staffCopy.statuses.going }).check();
+  await expect(page).toHaveURL(/answer=going$/);
+  await menu.getByRole("checkbox", { name: filters.noAnswer }).check();
   await expect(page).toHaveURL(/answer=going&answer=none/);
+  await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toBeVisible();
   const both = staffCopy.filters.anyOf([staffCopy.statuses.going, filters.noAnswer]);
   await expect(page.getByRole("button", { name: both })).toBeVisible();
-  await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toBeVisible();
+  await frame(page, "Those going, or who haven't answered, the menu still open");
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
   await frame(page, "Those going, or who haven't answered");
 
   story("A download keeps both answers, and says so in its name.");

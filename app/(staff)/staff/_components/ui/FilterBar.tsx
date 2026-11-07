@@ -8,7 +8,7 @@ import { filtersPath, firstOf, NOT, notValue, valuesOf, type Params } from "@/li
 import Choices from "./Choices";
 import FilterBarLines from "./FilterBarLines";
 import FormPending from "./FormPending";
-import ManyChoices from "./ManyChoices";
+import ManyChoices, { NotWords } from "./ManyChoices";
 import StaffLink from "./StaffLink";
 import Menu from "./Menu";
 import NotIcon from "./NotIcon";
@@ -72,15 +72,6 @@ function parts(filter: Filter, value: string): { first?: FilterOption; second?: 
     if (second) return { first: option, second };
   }
   return {};
-}
-
-/** The start of a chip that leaves out: its filter's name, then "not", lighter than the choices that follow. */
-function NotWords({ label }: { label: string }) {
-  return (
-    <>
-      {label}: <span className={styles.joining}>{copy.not}</span>{" "}
-    </>
-  );
 }
 
 /** A choice of `filter` in words: its group, its words and its second part; or as typed, when it has none. */
@@ -315,65 +306,32 @@ export default function FilterBar({
       .map(notValue)
       .filter((one) => one.not === not)
       .map((one) => one.value);
-  // A repeating filter's chip for all it finds, or all it leaves out: "Kind: A or B", the "or" lighter so the eye
-  // finds the choices (ui/ManyChoices has what its menu does). As a lozenge's second half, `half`, it's there with
-  // none chosen too, named for the filter's blank choice.
+  // A repeating filter's chip for all it finds, or all it leaves out, if any; as a lozenge's second half, `half`,
+  // always.
   const manyChip = (filter: Filter, not: boolean, half = false) => {
     const here = side(filter, not);
     if (here.length === 0 && !half) return null;
     const elsewhere = side(filter, !not);
-    const unknown = here.filter((v) => !parts(filter, v).first).map((value) => ({ value, label: value }));
-    const words = here.flatMap((v, i) => {
-      const word = choiceWords(filter, v);
-      return i === 0
-        ? [word]
-        : [
-            <span key={v} className={styles.joining}>
-              {copy.anyOf(["", ""])}
-            </span>,
-            word,
-          ];
-    });
     return (
-      <Menu
+      <ManyChoices
         key={`${filter.name}-${not}`}
-        id={`filter-${filter.name}-${not ? "left-out" : "found"}`}
-        trigger={not ? `${styles.chip} ${styles.not}` : styles.chip}
-        label={
-          half ? (
-            words.length > 0 ? (
-              words
-            ) : (
-              label(filter, "")
-            )
-          ) : (
-            <>
-              {not && <NotIcon />}
-              {not ? <NotWords label={filter.label} /> : `${filter.label}: `}
-              {words}
-            </>
-          )
-        }
-      >
-        <p className={styles.heading}>{filter.label}</p>
-        <ManyChoices
-          path={path}
-          values={values}
-          name={filter.name}
-          all={chosen(filter.name)}
-          here={here}
-          not={not}
-          oneEach={Boolean(filter.oneEach)}
-          options={[
-            ...unknown,
-            ...filter.options.filter((o) => (o.value || filter.after) && !elsewhere.includes(o.value)),
-          ]}
-          every={everyChoice(filter)}
-          search={filter.searchable ? copy.narrow : undefined}
-          turns={!filter.after}
-          removes={!half}
-        />
-      </Menu>
+        path={path}
+        values={values}
+        name={filter.name}
+        label={filter.label}
+        all={chosen(filter.name)}
+        here={here}
+        not={not}
+        oneEach={Boolean(filter.oneEach)}
+        options={[
+          ...here.filter((v) => !parts(filter, v).first).map((value) => ({ value, label: value })),
+          ...filter.options.filter((o) => (o.value || filter.after) && !elsewhere.includes(o.value)),
+        ]}
+        every={everyChoice(filter)}
+        search={filter.searchable ? copy.narrow : undefined}
+        turns={!filter.after}
+        half={half}
+      />
     );
   };
   // "+ Filter"'s menu, or Except's: a filter a row, its choices opening under it, one at a time; a choice
@@ -410,8 +368,7 @@ export default function FilterBar({
   );
   return (
     <>
-      {/* Keyed on the filters, so the menu chosen from closes when they change. */}
-      <FilterBarLines key={filtersPath(path, values)} className={styles.bar}>
+      <FilterBarLines urlKey={filtersPath(path, values)} className={styles.bar}>
         <Form action={path} className={styles.search} role="search">
           <span className={styles.box}>
             <TextInput

@@ -467,11 +467,13 @@ are:
   Green", the "or" lighter. Its menu (`ui/ManyChoices`) has a row for each
   choice: a click swaps to that one, and the menu closes. "+ Add", in the
   menu's foot, turns the rows to boxes, with what it has ticked; "Just one", in
-  its place, turns them back, keeping the first ticked. Clicking away or Escape
-  applies what's ticked, in one page load, and there's no Apply button. With
-  several chosen the menu opens as boxes, so a click on a row can't clear
-  them. Unticking everything removes the filter. A filter that doesn't repeat
-  has no "+ Add". A choice in two parts doesn't repeat.
+  its place, turns them back, keeping the first ticked. Each tick changes the
+  list at once, replacing the URL so Back isn't full of them, and the menu stays
+  open; the newest tick wins. Clicking away or Escape just closes it. With
+  several chosen the menu opens as boxes, so a click on a row can't clear them.
+  Unticking everything takes the filter off the list at once; its chip goes when
+  the menu closes. While ticking, `ui/FilterBarLines` holds the bar as it is. A
+  filter that doesn't repeat has no "+ Add". A choice in two parts doesn't repeat.
 - A filter that repeats can leave out, too. "+ Filter" is cut in two,
   "+ Filter | Except", and Except lists those filters to choose one to
   leave out. All a filter leaves out are on a chip of their own among the

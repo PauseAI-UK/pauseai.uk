@@ -6,7 +6,7 @@
 import { Button, ButtonLink } from "@/components/ui/Button";
 import FilterBar from "@/app/(staff)/staff/_components/ui/FilterBar";
 import Choices from "@/app/(staff)/staff/_components/ui/Choices";
-import ManyChoices from "@/app/(staff)/staff/_components/ui/ManyChoices";
+import ManyChoices, { NotWords } from "@/app/(staff)/staff/_components/ui/ManyChoices";
 import Menu from "@/app/(staff)/staff/_components/ui/Menu";
 import Bubble, { BubbleBox } from "@/app/(staff)/staff/_components/ui/Bubble";
 import { bubbleTrigger } from "@/app/(staff)/staff/_components/ui/bubble-trigger";
@@ -1034,24 +1034,30 @@ export const staffKit: Group = {
           label: "In a chip's menu: several chosen, so it opens as boxes",
           render: () => (
             <StaffPage as="div">
-              <Menu id="example-many-choices" label="Nation: Scotland or England">
-                <ManyChoices
-                  path="#"
-                  values={{}}
-                  name="nation"
-                  all={["scotland", "england"]}
-                  here={["scotland", "england"]}
-                  not={false}
-                  oneEach
-                  options={EXAMPLE_NATIONS[0].options}
-                  every={EXAMPLE_NATIONS[0].options.map((option) => option.value)}
-                  turns
-                  removes
-                />
-              </Menu>
+              <ManyChoices
+                path="#"
+                values={{}}
+                name="nation"
+                label="Nation"
+                all={["scotland", "england"]}
+                here={["scotland", "england"]}
+                not={false}
+                oneEach
+                options={EXAMPLE_NATIONS[0].options}
+                every={EXAMPLE_NATIONS[0].options.map((option) => option.value)}
+                turns
+                half={false}
+              />
             </StaffPage>
           ),
         },
+      ],
+    },
+    {
+      name: "NotWords",
+      file: "app/(staff)/staff/_components/ui/ManyChoices.tsx",
+      variants: [
+        { label: "A chip's words that leave out, before its choices", render: () => <NotWords label="Nation" /> },
       ],
     },
     {

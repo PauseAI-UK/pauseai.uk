@@ -1,32 +1,49 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Checkbox } from "@/components/ui/Controls";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { chosenValues } from "@/lib/filter-choices";
 import { filtersPath, NOT, type Params } from "@/lib/staff-search";
 import Choices from "./Choices";
 import type { FilterOption } from "./FilterBar";
+import { useBarHold } from "./FilterBarLines";
+import Menu from "./Menu";
+import NotIcon from "./NotIcon";
 import StaffLink from "./StaffLink";
 import styles from "./FilterBar.module.css";
 
 const copy = staffCopy.filters;
 
+/** The start of a chip that leaves out: its filter's name, then "not", lighter than the choices that follow. */
+export function NotWords({ label }: { label: string }) {
+  return (
+    <>
+      {label}: <span className={styles.joining}>{copy.not}</span>{" "}
+    </>
+  );
+}
+
 /**
- * The inside of a repeating filter's lozenge's menu: `here` are the choices it
- * has, found or with `not` left out. Each row is a link that swaps to that
- * choice alone. "+ Add" turns the rows to boxes with those it has ticked, as
- * they are from the start when it has several, and "Just one", in its place,
- * turns them back, keeping the first ticked. Closing the menu, by a click
- * away or Escape, loads the list with what's ticked, unless a link has been
- * followed. `turns` offers turning what it has the other way, and `removes`
- * taking it off; without that, as a lozenge's second half, a blank row or
- * nothing ticked is its default.
+ * A repeating filter's chip for all it finds, or with `not` all it leaves out:
+ * "Kind: A or B", the "or" lighter so the eye finds the choices. `here` are the
+ * choices it has. In its menu each row is a link that swaps to that choice alone
+ * and closes it. "+ Add" turns the rows to boxes with those it has ticked, as they
+ * are from the start when it has several, and "Just one", in its place, turns them
+ * back, keeping the first ticked. Each tick changes the list at once, replacing
+ * the URL so Back isn't full of them, the router dropping one still on its way
+ * for a newer. Meanwhile the bar is held (ui/FilterBarLines), so the menu stays
+ * open and the chip stays, even with nothing ticked, until the menu closes; only
+ * the chip's words change. As a lozenge's second half (`half`) it's there with
+ * none chosen too, named for its blank choice, and has nothing to turn round or
+ * remove. `turns` offers turning what it has the other way.
  */
 export default function ManyChoices({
   path,
   values,
   name,
+  label,
   all,
   here,
   not,
@@ -35,11 +52,12 @@ export default function ManyChoices({
   every,
   search,
   turns,
-  removes,
+  half,
 }: {
   path: string;
   values: Params;
   name: string;
+  label: string;
   /** Every value of the filter, as its URL has them. */
   all: string[];
   here: string[];
@@ -50,90 +68,133 @@ export default function ManyChoices({
   every: string[];
   search?: string;
   turns: boolean;
-  removes: boolean;
+  half: boolean;
 }) {
   const was = here.map((value) => (not ? NOT + value : value));
   const [boxes, setBoxes] = useState(here.length > 1);
   const [ticked, setTicked] = useState(here);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const { hold, release } = useBarHold();
   const wrapper = useRef<HTMLDivElement>(null);
-  const apply = useRef<HTMLAnchorElement>(null);
-  const followed = useRef(false);
   const hrefOf = (chosen: string[], way = not) =>
     filtersPath(path, values, { page: "", [name]: chosenValues({ all, was, chosen, not: way, oneEach, every }) });
-  const changed = ticked.length !== here.length || ticked.some((value) => !here.includes(value));
+  const tick = (chosen: string[]) => {
+    setTicked(chosen);
+    startTransition(() => router.replace(hrefOf(chosen), { scroll: false }));
+  };
   useEffect(() => {
     const menu = wrapper.current!.closest("[popover]")!;
-    const closed = (event: Event) => {
-      if ((event as ToggleEvent).newState !== "closed") return;
-      if (changed && !followed.current) apply.current!.click();
-      followed.current = false;
+    const toggled = (event: Event) => {
+      if ((event as ToggleEvent).newState === "closed") {
+        release();
+        setBoxes(ticked.length > 1);
+      } else if (boxes) {
+        hold();
+      }
     };
-    menu.addEventListener("toggle", closed);
-    return () => menu.removeEventListener("toggle", closed);
-  }, [changed]);
-  const isTicked = (value: string) => ticked.includes(value);
+    menu.addEventListener("toggle", toggled);
+    return () => menu.removeEventListener("toggle", toggled);
+  });
+  const words = (value: string) => {
+    const option = options.find((one) => one.value === value)!;
+    return [option.group?.label, option.label].filter(Boolean).join(", ");
+  };
+  const chosenWords = ticked.flatMap((value, i) =>
+    i === 0
+      ? [words(value)]
+      : [
+          <span key={value} className={styles.joining}>
+            {copy.anyOf(["", ""])}
+          </span>,
+          words(value),
+        ],
+  );
   return (
-    <div
-      ref={wrapper}
-      onClickCapture={(event) => {
-        if ((event.target as Element).closest("a")) followed.current = true;
-      }}
+    <Menu
+      id={`filter-${name}-${not ? "left-out" : "found"}`}
+      trigger={not ? `${styles.chip} ${styles.not}` : styles.chip}
+      label={
+        half ? (
+          chosenWords.length > 0 ? (
+            chosenWords
+          ) : (
+            words("")
+          )
+        ) : (
+          <>
+            {not && <NotIcon />}
+            {not ? <NotWords label={label} /> : `${label}: `}
+            {chosenWords}
+          </>
+        )
+      }
     >
-      {boxes ? (
-        <Choices
-          options={options.filter((option) => option.value)}
-          current={ticked}
-          search={search}
-          row={(option) => (
-            <span className={styles.tick}>
-              <Checkbox
-                checked={isTicked(option.value)}
-                onChange={() =>
-                  setTicked(
-                    isTicked(option.value)
-                      ? ticked.filter((value) => value !== option.value)
-                      : [...ticked, option.value],
-                  )
-                }
-              >
-                {option.label}
-                {option.detail && <span className={styles.detail}>{option.detail}</span>}
-              </Checkbox>
-            </span>
-          )}
-        />
-      ) : (
-        <Choices
-          options={options}
-          current={ticked.length ? ticked : [""]}
-          href={(value) => hrefOf(value ? [value] : [])}
-          search={search}
-        />
-      )}
-      <p className={styles.actions}>
-        <button
-          type="button"
-          onClick={() => {
-            setBoxes(!boxes);
-            if (boxes) setTicked(ticked.slice(0, 1));
-          }}
-        >
-          {boxes ? copy.justOne : copy.addChoice}
-        </button>
-        {turns && (
-          <StaffLink href={hrefOf(ticked, !not)}>
-            {not
-              ? ticked.length > 1
-                ? copy.onlyThese
-                : copy.onlyThis
-              : ticked.length > 1
-                ? copy.exceptThese
-                : copy.exceptThis}
-          </StaffLink>
+      <p className={styles.heading}>{label}</p>
+      <div
+        ref={wrapper}
+        data-pending={pending || undefined}
+        onClickCapture={(event) => {
+          // A link followed goes where it says: the bar starts afresh when it gets there, closing the menu.
+          if ((event.target as Element).closest("a")) release();
+        }}
+      >
+        {boxes ? (
+          <Choices
+            options={options.filter((option) => option.value)}
+            current={ticked}
+            search={search}
+            row={(option) => (
+              <span className={styles.tick}>
+                <Checkbox
+                  checked={ticked.includes(option.value)}
+                  onChange={() =>
+                    tick(
+                      ticked.includes(option.value)
+                        ? ticked.filter((value) => value !== option.value)
+                        : [...ticked, option.value],
+                    )
+                  }
+                >
+                  {option.label}
+                  {option.detail && <span className={styles.detail}>{option.detail}</span>}
+                </Checkbox>
+              </span>
+            )}
+          />
+        ) : (
+          <Choices
+            options={options}
+            current={ticked.length ? ticked : [""]}
+            href={(value) => hrefOf(value ? [value] : [])}
+            search={search}
+          />
         )}
-        {removes && <StaffLink href={hrefOf([])}>{copy.remove}</StaffLink>}
-      </p>
-      <StaffLink ref={apply} href={hrefOf(ticked)} hidden aria-hidden="true" tabIndex={-1} />
-    </div>
+        <p className={styles.actions}>
+          <button
+            type="button"
+            onClick={() => {
+              hold();
+              setBoxes(!boxes);
+              if (boxes && ticked.length > 1) tick(ticked.slice(0, 1));
+            }}
+          >
+            {boxes ? copy.justOne : copy.addChoice}
+          </button>
+          {turns && (
+            <StaffLink href={hrefOf(ticked, !not)}>
+              {not
+                ? ticked.length > 1
+                  ? copy.onlyThese
+                  : copy.onlyThis
+                : ticked.length > 1
+                  ? copy.exceptThese
+                  : copy.exceptThis}
+            </StaffLink>
+          )}
+          {!half && <StaffLink href={hrefOf([])}>{copy.remove}</StaffLink>}
+        </p>
+      </div>
+    </Menu>
   );
 }

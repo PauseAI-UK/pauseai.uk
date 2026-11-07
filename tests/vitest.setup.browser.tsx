@@ -10,6 +10,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => navigation.pathname,
   useRouter: () => ({
     push: (url: string) => navigation.pushed.push(url),
+    replace: (url: string) => navigation.replaced.push(url),
     refresh: () => navigation.refreshes++,
   }),
   notFound: () => {
@@ -20,6 +21,7 @@ vi.mock("next/navigation", () => ({
 afterEach(() => {
   navigation.pathname = "/";
   navigation.pushed = [];
+  navigation.replaced = [];
   navigation.refreshes = 0;
   document.body.removeAttribute("data-no-analytics");
   document.body.className = "";
