@@ -171,8 +171,8 @@ export type PoliticianWho = {
   mailed?: string[];
   /** Only those who answered this ask: in the way `answer` says, if given. */
   ask?: string;
-  /** Only those who gave this answer, to `ask` or, without one, to any ask; "none" for those who gave none. */
-  answer?: string;
+  /** Only those who gave any of these answers, to `ask` or, without one, to any ask; "none" for those who gave none. */
+  answer?: string[];
   /** Only those who agreed to an ask (AGREED_STATUSES), not by Airtable's record, in the last so many days. */
   agreedDays?: number;
   /** Those with none of these, each a filter above that repeats. */
@@ -200,7 +200,7 @@ export type PoliticiansSearch = {
   nation: string[];
   email: string[];
   ask: string;
-  answer: string;
+  answer: string[];
   mailed: string[];
   /** Those who agreed to an ask in the last so many days. */
   agreed: string;
@@ -231,11 +231,11 @@ export type PoliticiansSearch = {
 export function politiciansSearch(params: Partial<Record<keyof PoliticiansSearch, ParamValue>>): PoliticiansSearch & {
   filter: PoliticianFilter;
 } {
-  const [q, house, status, ask, answer, agreed, sort, dir, page, mailing, tab, saved] = (
-    ["q", "house", "status", "ask", "answer", "agreed", "sort", "dir", "page", "mailing", "tab", "saved"] as const
+  const [q, house, status, ask, agreed, sort, dir, page, mailing, tab, saved] = (
+    ["q", "house", "status", "ask", "agreed", "sort", "dir", "page", "mailing", "tab", "saved"] as const
   ).map((name) => firstOf(params[name]));
-  const [party, flag, nation, email, mailed, pasted] = (
-    ["party", "flag", "nation", "email", "mailed", "pasted"] as const
+  const [party, flag, nation, email, answer, mailed, pasted] = (
+    ["party", "flag", "nation", "email", "answer", "mailed", "pasted"] as const
   ).map((name) => valuesOf(params[name]));
   const [parties, notParties] = anyAndNone(party, (values) => values);
   const [flags, notFlags] = anyAndNone(flag, (values) => among(values, POLITICIAN_FLAGS));
@@ -252,7 +252,7 @@ export function politiciansSearch(params: Partial<Record<keyof PoliticiansSearch
     email: emails,
     mailed: mailedAbout,
     ask: ask || undefined,
-    answer: answer || undefined,
+    answer: answer.length ? answer : undefined,
     agreedDays: listWindow(agreed),
     not: notOf({
       party: notParties,
@@ -351,12 +351,16 @@ function politicianWhere(filter: PoliticianWho, value: (v: unknown) => string, c
   if (filter.not) where.push(...anyOf(filter.not, value).map((condition) => `${condition} IS NOT TRUE`));
   if (filter.ask || filter.answer) {
     const ask = filter.ask ? ` AND a.ask = ${value(filter.ask)}` : "";
-    if (filter.answer === "none") {
-      where.push(`NOT EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask})`);
-    } else {
-      const answer = filter.answer ? ` AND a.status = ${value(filter.answer)}` : "";
-      where.push(`EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask}${answer})`);
+    const given = filter.answer?.filter((answer) => answer !== "none") ?? [];
+    const conditions: string[] = [];
+    if (filter.answer?.includes("none")) {
+      conditions.push(`NOT EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask})`);
     }
+    if (given.length > 0 || !filter.answer) {
+      const answer = given.length > 0 ? ` AND a.status = ANY(${value(given)})` : "";
+      conditions.push(`EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask}${answer})`);
+    }
+    where.push(`(${conditions.join(" OR ")})`);
   }
   return where.length ? `WHERE ${where.join(" AND ")}` : "";
 }

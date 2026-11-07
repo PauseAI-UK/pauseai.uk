@@ -5390,7 +5390,7 @@ async function menu(button: string | RegExp) {
   await userEvent.keyboard("{Escape}");
   await page.getByRole("button", { name: button }).click();
   const box = document.querySelector<HTMLElement>("[popover]:popover-open")!;
-  return [...box.querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")]);
+  return [...box.querySelectorAll("a:not([hidden])")].map((a) => [a.textContent, a.getAttribute("href")]);
 }
 
 describe("EmailBlockFilters", () => {
@@ -5422,7 +5422,7 @@ describe("PoliticianFilters", () => {
     status: "retired",
     party: ["Labour"],
     ask: "edinburgh-conference-2026",
-    answer: "declined",
+    answer: ["declined"],
     sort: "asks",
     dir: "asc",
     page: "2",
@@ -5490,7 +5490,7 @@ describe("PoliticianFilters", () => {
 });
 
 describe("PoliticianFilters, chosen more than once", () => {
-  it("has one chip for the parties, which adds another, and takes off or removes them", async () => {
+  it("has one chip for the parties, which opens as boxes and removes them", async () => {
     await render(
       <PoliticianFilters
         search={{ ...emptyPoliticiansSearch, party: ["Green", "Labour"] }}
@@ -5502,11 +5502,11 @@ describe("PoliticianFilters, chosen more than once", () => {
     const both = `${party}: ${staffCopy.filters.anyOf(["Green", "Labour"])}`;
     expect(chips()).toEqual([both]);
     const chip = await menu(both);
-    expect(chip.find(([text]) => text === "Reform UK")![1]).toBe(
-      "/staff/politicians?party=Green&party=Labour&party=Reform+UK",
-    );
-    expect(chip.find(([text]) => text === "Green")![1]).toBe("/staff/politicians?party=Labour");
     expect(chip.find(([text]) => text === staffCopy.filters.remove)![1]).toBe("/staff/politicians");
+    // Several are chosen, so its rows are boxes, those two ticked, and no row is a link to swap to.
+    const boxes = [...document.querySelectorAll<HTMLInputElement>("[popover]:popover-open input[type=checkbox]")];
+    expect(boxes.map((box) => box.checked)).toEqual([true, true, false]);
+    await userEvent.keyboard("{Escape}");
     // + Filter offers the party not yet chosen.
     expect((await menu(staffCopy.filters.add)).map(([text]) => text)).toContain("Reform UK");
   });
@@ -5591,27 +5591,28 @@ describe("SupporterFilters", () => {
     const answers = copy.detail.permissions.answers;
     expect(chips()).toEqual([
       `${copy.columns.badges}: ${copy.badges.registered}`,
-      // A reason, as an older link has it, is no choice offered: the chip says it as it is.
-      `${label}: ${channels.email}, ${copy.subscriptions.blocked} or email:site-forms:asked`,
       `${label}: ${topics["pauseai-updates"]}`,
       answers.email.no,
       staffCopy.filters.notChip(label, topics["march-day"]),
       answers.text.yes,
+      `${label}: ${channels.email}, ${copy.subscriptions.blocked}`,
+      `${label}: email:site-forms:asked`,
     ]);
     // The topic's icon in its chip, before its name.
     const topicChip = [...document.querySelectorAll("button")].find(
       (b) => b.textContent === `${label}: ${topics["pauseai-updates"]}`,
     )!;
     expect(topicChip.querySelector("svg")).not.toBeNull();
-    // The first half: each topic, choosing one finds those we can contact about it, then turning it the other way
-    // and Remove; the erased notice goes.
+    // Contact doesn't repeat, so several can only come from an old link or saved filter: a chip each. The first
+    // half: each topic, choosing one takes the filter's place, finding those we can contact about it; then Remove,
+    // taking off only that one; the erased notice goes.
     const others = "contact=%21phone%3Amarch-day%3Ayes&contact=email%3Ablocked&contact=email%3Asite-forms%3Aasked";
     const first = await menu(new RegExp(`^${label}:\\s+${topics["pauseai-updates"]}`));
     expect(first).toContainEqual([
       topics["site-forms"],
-      `/staff/supporters?activity=registered&${others}&contact=email%3Asite-forms%3Ayes`,
+      "/staff/supporters?activity=registered&contact=email%3Asite-forms%3Ayes",
     ]);
-    expect(first.at(-1)![0]).toBe(staffCopy.filters.remove);
+    expect(first.at(-1)).toEqual([staffCopy.filters.remove, `/staff/supporters?activity=registered&${others}`]);
     // Under its channel's heading, each once, a phone's ways quiet after it.
     const box = document.querySelector("[popover]:popover-open")!;
     expect([...box.querySelectorAll("li[class*=choiceGroup]")].map((li) => li.textContent)).toEqual([
@@ -5632,10 +5633,9 @@ describe("SupporterFilters", () => {
       answers.text.no,
       "/staff/supporters?activity=registered&contact=email%3Apauseai-updates%3Ano&contact=email%3Ablocked&contact=email%3Asite-forms%3Aasked&contact=%21phone%3Amarch-day%3Ano",
     ]);
-    // + Filter offers the topics not taken.
+    // + Filter doesn't offer it again.
     const add = await menu(staffCopy.filters.add);
-    expect(add.map(([words]) => words)).toContain(`${topics.volunteering}${ways["call-or-text"]}`);
-    expect(add.map(([href]) => href)).not.toContain(topics["pauseai-updates"]);
+    expect(add.map(([words]) => words)).not.toContain(`${topics.volunteering}${ways["call-or-text"]}`);
   });
 
   it("offers every topic once in the Contact filter, email's then phone's, ours first", () => {
@@ -5687,7 +5687,6 @@ describe("SupporterFilters", () => {
       staffCopy.politician.country,
       staffCopy.politician.roles.commons,
       copy.columns.badges,
-      copy.columns.subscriptions,
       copy.filters.event,
     ]);
     expect(await menu(staffCopy.filters.except)).toContainEqual([
@@ -5717,13 +5716,13 @@ describe("SupporterFilters", () => {
     expect(chips()).toEqual([`${copy.filters.event}: ${leeds}`, staffCopy.filters.notChip(copy.filters.event, oxford)]);
     // A chip turns its choice the other way; a choice in a left-out chip stays left out.
     expect(await menu(`${copy.filters.event}: ${leeds}`)).toContainEqual([
-      staffCopy.filters.exceptInstead,
-      "/staff/supporters?event=%21evt-2&event=%21evt-1",
+      // Leaving out this one too would leave out every event, so it takes off the filter.
+      staffCopy.filters.exceptThis,
+      "/staff/supporters",
     ]);
     const out = await menu(staffCopy.filters.notChip(copy.filters.event, oxford));
-    expect(out).toContainEqual([staffCopy.filters.onlyInstead, "/staff/supporters?event=evt-1&event=evt-2"]);
-    // Following the one it leaves out takes it off; the one it finds isn't offered.
-    expect(out).toContainEqual([oxford, "/staff/supporters?event=evt-1"]);
+    expect(out).toContainEqual([staffCopy.filters.onlyThis, "/staff/supporters?event=evt-1&event=evt-2"]);
+    // The one it finds isn't offered.
     expect(out.map(([text]) => text)).not.toContain(leeds);
     expect(out.at(-1)).toEqual([staffCopy.filters.remove, "/staff/supporters?event=evt-1"]);
   });

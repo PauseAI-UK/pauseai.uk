@@ -18,8 +18,9 @@ const copy = staffCopy.politicians;
  * email them after the status. Status is those in
  * office unless another is chosen. An answer is offered once there's an
  * ask, from those its kind allows, and goes with it. Party, nation, email,
- * the markers and the asks they've been mailed about can each be chosen
- * more than once; Except on the last finds those not yet mailed about it.
+ * the markers, the asks they've been mailed about and the answers can each be
+ * chosen more than once, the first three having one value each; Except on the
+ * asks finds those not yet mailed about it.
  */
 export function politicianFilters(askSlug: string, parties: string[], asks: Ask[]): Filter[] {
   const ask = asks.find((a) => a.slug === askSlug);
@@ -28,12 +29,14 @@ export function politicianFilters(askSlug: string, parties: string[], asks: Ask[
       name: "nation",
       label: staffCopy.politician.country,
       repeat: true,
+      oneEach: true,
       options: COUNTRIES.map((country) => ({ value: country, label: staffCopy.countries[country] })),
     },
     {
       name: "party",
       label: staffCopy.fields.party,
       repeat: true,
+      oneEach: true,
       options: parties.map((party) => ({ value: party, label: party })),
     },
     {
@@ -51,6 +54,7 @@ export function politicianFilters(askSlug: string, parties: string[], asks: Ask[
       name: "email",
       label: staffCopy.fields.email,
       repeat: true,
+      oneEach: true,
       options: EMAIL_STATES.map((state) => ({ value: state, label: copy.emailStates[state] })),
     },
     {
@@ -75,6 +79,7 @@ export function politicianFilters(askSlug: string, parties: string[], asks: Ask[
       name: "answer",
       label: ask?.title ?? copy.answer,
       after: "ask",
+      repeat: true,
       options: [
         { value: "", label: copy.anyAnswer },
         // With no ask, as a link from the dashboard can have it, any ask's answers.

@@ -24,6 +24,7 @@ function eventFilters({ staff, tags, cities }: EventChoices): Filter[] {
       name: "place",
       label: copy.filters.place,
       repeat: true,
+      oneEach: true,
       options: [...cities.map((city) => ({ value: city, label: city })), { value: ONLINE, label: copy.online }],
     },
     {
@@ -36,6 +37,7 @@ function eventFilters({ staff, tags, cities }: EventChoices): Filter[] {
       name: "owner",
       label: copy.owner,
       repeat: true,
+      oneEach: true,
       options: [{ value: NO_OWNER, label: copy.noOwner }, ...staff.map((email) => ({ value: email, label: email }))],
     },
     {

@@ -96,13 +96,9 @@ test("Filtering supporters", async ({ page, request, flowDatabase }) => {
   const named = names.filter((name) => name !== copy.noName);
   expect(names).toEqual([...named.sort(), copy.noName]);
   await frame(page, "The list, filtered and sorted by name");
-  story(
-    "They change the filter to those who wrote to their MP, adding it on the chip, then taking off the first. Nobody has yet.",
-  );
+  story("They change the filter to those who wrote to their MP. Nobody has yet.");
 
   await changeFilter(page, `${copy.columns.badges}: ${copy.badges.registered}`, copy.badges.letter);
-  const both = `${copy.columns.badges}: ${staffCopy.filters.anyOf([copy.badges.registered, copy.badges.letter])}`;
-  await changeFilter(page, both, copy.badges.registered);
   await expect(page.getByText(copy.none)).toBeVisible();
   await frame(page, "The list, with nobody in it");
 
@@ -157,11 +153,11 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   story("The filter's chip has a menu. Only this instead turns the filter round.");
   await page.getByRole("button", { name: staffCopy.filters.notChip(copy.filters.event, march) }).click();
   await expect(
-    page.locator("[popover]:popover-open").getByRole("link", { name: staffCopy.filters.onlyInstead }),
+    page.locator("[popover]:popover-open").getByRole("link", { name: staffCopy.filters.onlyThis }),
   ).toBeVisible();
   await frame(page, "The chip's menu");
   story("Now the list is the four guests approved for the march, with a column for each one's registration.");
-  await page.locator("[popover]:popover-open").getByRole("link", { name: staffCopy.filters.onlyInstead }).click();
+  await page.locator("[popover]:popover-open").getByRole("link", { name: staffCopy.filters.onlyThis }).click();
   await expect(page.getByText(copy.total(4))).toBeVisible();
   await expect(page.getByRole("columnheader", { name: copy.columns.registrations })).toBeVisible();
   await expect(page.locator("tbody").getByText(copy.detail.registered).first()).toBeVisible();
@@ -531,6 +527,26 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("row").filter({ hasText: "Owen Member" })).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toHaveCount(0);
   await frame(page, "Those who can't be emailed PauseAI global updates");
+});
+
+test("An old link with two subscriptions", async ({ page, request, flowDatabase }) => {
+  story(
+    "Subscriptions is chosen one at a time now, but a link or saved filter from before can have two. Each keeps its chip.",
+  );
+  await importLuma(request, BASE);
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters?contact=email:luma-calendar:no&contact=email:pauseai-updates:no`);
+  const { topics } = copy.filters;
+  const label = copy.columns.subscriptions;
+  await expect(page.getByRole("button", { name: `${label}: ${topics["luma-calendar"]}` })).toBeVisible();
+  await expect(page.getByRole("button", { name: `${label}: ${topics["pauseai-updates"]}` })).toBeVisible();
+  await frame(page, "Two chips");
+
+  story("Choosing another topic in one takes the filter's place, leaving one chip.");
+  await changeFilter(page, `${label}: ${topics["luma-calendar"]}`, topics["site-forms"]);
+  await expect(page.getByRole("button", { name: `${label}: ${topics["site-forms"]}` })).toBeVisible();
+  await expect(page.getByRole("button", { name: `${label}: ${topics["pauseai-updates"]}` })).toHaveCount(0);
+  await frame(page, "One chip");
 });
 
 test("A member who said no to updates", async ({ page, request, flowDatabase }) => {

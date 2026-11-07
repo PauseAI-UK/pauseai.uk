@@ -27,6 +27,7 @@ const filtersFor = (supporters: boolean): Filter[] => [
     name: "purpose",
     label: copy.filters.purpose,
     repeat: true,
+      oneEach: true,
     options: Object.entries(copy.purposes)
       .filter(([value]) => supporters || SENT_EMAILS_WITHOUT_SUPPORTERS.includes(value))
       .map(([value, label]) => ({ value, label })),
@@ -35,12 +36,14 @@ const filtersFor = (supporters: boolean): Filter[] => [
     name: "backend",
     label: copy.filters.backend,
     repeat: true,
+      oneEach: true,
     options: Object.entries(copy.backends).map(([value, label]) => ({ value, label })),
   },
   {
     name: "outcome",
     label: copy.filters.outcome,
     repeat: true,
+      oneEach: true,
     options: Object.entries(copy.outcomes).map(([value, label]) => ({ value, label })),
   },
   {

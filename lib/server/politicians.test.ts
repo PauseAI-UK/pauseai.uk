@@ -70,7 +70,7 @@ describe("politiciansSearch", () => {
       nation: ["wales", "!scotland"],
       email: ["none", "blocked", "!yes"],
       ask: BILL,
-      answer: "signed",
+      answer: ["signed"],
       mailed: ["deepmind-letter", "!frontier-ai-letter"],
       sort: "party",
       dir: "desc",
@@ -93,7 +93,7 @@ describe("politiciansSearch", () => {
         email: ["none", "blocked"],
         mailed: ["deepmind-letter"],
         ask: BILL,
-        answer: "signed",
+        answer: ["signed"],
         not: {
           party: ["Reform UK"],
           flags: ["connection", "test"],
@@ -136,7 +136,7 @@ describe("politiciansSearch", () => {
       nation: [],
       email: [],
       ask: "",
-      answer: "",
+      answer: [],
       mailed: [],
       agreed: "",
       sort: "",
@@ -528,7 +528,7 @@ describeWithDatabase("politicians", () => {
     }
     // Everyone who signed, by their newest answer.
     await setStatus(peer, BILL, { status: "signed", date: null, note: "" }, "jo@pauseai.uk");
-    const signed = await listPoliticians({ answer: "signed", sort: { key: "asks", dir: "desc" } });
+    const signed = await listPoliticians({ answer: ["signed"], sort: { key: "asks", dir: "desc" } });
     expect(signed.map((p) => p.id)).toEqual([peer, mp]);
   });
 
@@ -599,11 +599,14 @@ describeWithDatabase("politicians", () => {
     expect(await ids({ not: { country: ["wales"] } })).toEqual([mp, retired].sort());
     expect(await ids({ not: { email: ["blocked"] } })).toEqual([mp, retired].sort());
     expect(await ids({ ask: EDINBURGH })).toEqual([mp, peer].sort());
-    expect(await ids({ ask: EDINBURGH, answer: "going" })).toEqual([peer]);
-    expect(await ids({ ask: EDINBURGH, answer: "none" })).toEqual([retired]);
+    expect(await ids({ ask: EDINBURGH, answer: ["going"] })).toEqual([peer]);
+    expect(await ids({ ask: EDINBURGH, answer: ["none"] })).toEqual([retired]);
+    // Several answers find any of them, no answer among them.
+    expect(await ids({ ask: EDINBURGH, answer: ["going", "declined"] })).toEqual([mp, peer].sort());
+    expect(await ids({ ask: EDINBURGH, answer: ["going", "none"] })).toEqual([peer, retired].sort());
     // An answer to any ask, or none to any.
-    expect(await ids({ answer: "going" })).toEqual([peer]);
-    expect(await ids({ answer: "none" })).toEqual([retired]);
+    expect(await ids({ answer: ["going"] })).toEqual([peer]);
+    expect(await ids({ answer: ["none"] })).toEqual([retired]);
     // Mailed about an ask: a mailing about it went or is going to them, not one stopped or skipped.
     const [{ id: mailing }] = await query<{ id: number }>(
       `INSERT INTO mailings (title, ask, audience, channel, state, airtable_sent_between)

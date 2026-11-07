@@ -196,7 +196,7 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
 
   story("Except this instead, in the chip's menu, turns it round: everyone but the personal connections.");
   // A chip's menu turns its choice to one the list leaves out.
-  await changeFilter(page, `${filters.flag}: ${filters.flags.connection}`, staffCopy.filters.exceptInstead);
+  await changeFilter(page, `${filters.flag}: ${filters.flags.connection}`, staffCopy.filters.exceptThis);
   await expect(page).toHaveURL(/flag=%21connection/);
   await expect(rows.filter({ hasText: "Morag Example" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
@@ -219,6 +219,45 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   await page.getByRole("link", { name: staffCopy.resetFilters }).click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
+});
+
+test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {
+  story("Staff want those going to the Edinburgh conference or who haven't answered, for a reminder.");
+  await syncPoliticians(request, BASE);
+  await logIn(page, flowDatabase);
+  const filters = staffCopy.politicians;
+  const rows = page.getByRole("row");
+  await page.goto(`${BASE}/staff/politicians?ask=edinburgh-conference-2026`);
+  await page.getByRole("button", { name: filters.anyAnswer }).click();
+  const menu = page.locator("[popover]:popover-open");
+  await frame(page, "The answers, a row each");
+
+  story("+ Add turns the rows to boxes. Any answer isn't one of them: it's what ticking none means.");
+  await menu.getByRole("button", { name: staffCopy.filters.addChoice }).click();
+  await menu.getByRole("checkbox", { name: staffCopy.statuses.going }).check();
+  await menu.getByRole("checkbox", { name: filters.noAnswer }).check();
+  await frame(page, "Going and Not answered, ticked");
+
+  story("Clicking away loads the list once. The second half of the chip says both.");
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/answer=going&answer=none/);
+  const both = staffCopy.filters.anyOf([staffCopy.statuses.going, filters.noAnswer]);
+  await expect(page.getByRole("button", { name: both })).toBeVisible();
+  await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toBeVisible();
+  await frame(page, "Those going, or who haven't answered");
+
+  story("A download keeps both answers, and says so in its name.");
+  const download = await page.request.get(
+    `${BASE}/staff/politicians/download?format=json&ask=edinburgh-conference-2026&answer=going&answer=none`,
+  );
+  expect(download.headers()["content-disposition"]).toContain("or");
+
+  story("Choosing another ask clears the answers, as they might not be its answers.");
+  await page.getByRole("button", { name: "Edinburgh conference" }).click();
+  await menu.getByRole("link").filter({ hasNotText: "Edinburgh conference" }).first().click();
+  await expect(page).not.toHaveURL(/answer=/);
+  await expect(page.getByRole("button", { name: filters.anyAnswer })).toBeVisible();
+  await frame(page, "Another ask, any answer");
 });
 
 test("The house tabs", async ({ page, request, flowDatabase }) => {

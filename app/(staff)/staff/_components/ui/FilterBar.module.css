@@ -238,7 +238,7 @@
 }
 
 /* A searchable list shows only the choice made, if any, until something's typed (ChoiceSearch). */
-.choices[data-search="empty"] > li:not(:has(a[aria-current="true"])) {
+.choices[data-search="empty"] > li:not(:has(a[aria-current="true"], input:checked)) {
   display: none;
 }
 
@@ -302,25 +302,24 @@
 }
 
 /* A choice clicked (StaffLink): chosen at once, the one it was no longer; the menu closes when the list arrives. */
-.choices:not(.toggles):has(a[data-pending]) a[aria-current]:not([data-pending]) {
+.choices:has(a[data-pending]) a[aria-current]:not([data-pending]) {
   background: none;
   font-weight: inherit;
 }
 
-/* A repeating filter's chip's choices: following one chosen takes it off, as the × at its right says. */
-.toggles a[aria-current] {
-  display: flex;
-  gap: var(--space-3);
-  justify-content: space-between;
+/* A choice in a menu choosing several, in line with the rows that are links. */
+.tick {
+  display: block;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
 }
 
-.toggles a[aria-current]::after {
-  content: "×" / "";
-  font-weight: 400;
+.tick:hover {
+  background: var(--surface-2);
 }
 
-/* Under a chip's choices, ruled off from them: turning it the other way and
-   removing it, side by side, wrapping if the menu is narrow. */
+/* Under a chip's choices, ruled off from them: choosing several, turning it the
+   other way and removing it, side by side, wrapping if the menu is narrow. */
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -328,6 +327,17 @@
   margin: var(--space-2) 0 0;
   padding-top: var(--space-2);
   border-top: 1px solid var(--border);
+}
+
+/* Choosing several: a button, as it stays in the menu, looking like the links beside it. */
+.actions button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link, var(--accent));
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* A place filter's form: the words, how far, and its button, in a row. */

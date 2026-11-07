@@ -2311,11 +2311,14 @@ All events: ${link}`,
     notChip: (label: string, value: string) => `${label}: not ${value}`,
     // The choices of a filter on one chip, in its words, which finds any of them, or leaves them all out.
     anyOf: (values: string[]) => values.join(" or "),
-    // In a chip's menu: the same choice, left out instead of found, or found instead of left out; then for several.
-    exceptInstead: "Except this instead",
-    onlyInstead: "Only this instead",
-    exceptAllInstead: "Except these instead",
-    onlyAllInstead: "Only these instead",
+    // In a chip's menu: the same choices, left out rather than found, or found rather than left out, one or several.
+    exceptThis: "Except this",
+    exceptThese: "Except these",
+    onlyThis: "Only this",
+    onlyThese: "Only these",
+    // In a chip's menu: turns its rows to boxes, to choose several; then, in its place, back to one.
+    addChoice: "+ Add",
+    justOne: "Just one",
     remove: "Remove",
     // Over a long list of a filter's choices: narrows them as it's typed in.
     narrow: "Search these",

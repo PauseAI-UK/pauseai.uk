@@ -16,8 +16,20 @@ export type ChangeChoices = { actors: string[]; actions: string[] };
 function changeFilters({ actors, actions }: ChangeChoices): Filter[] {
   return [
     { name: "when", label: copy.at, options: WINDOW_OPTIONS },
-    { name: "actor", label: copy.actor, repeat: true, options: actors.map((value) => ({ value, label: value })) },
-    { name: "action", label: copy.action, repeat: true, options: actions.map((value) => ({ value, label: value })) },
+    {
+      name: "actor",
+      label: copy.actor,
+      repeat: true,
+      oneEach: true,
+      options: actors.map((value) => ({ value, label: value })),
+    },
+    {
+      name: "action",
+      label: copy.action,
+      repeat: true,
+      oneEach: true,
+      options: actions.map((value) => ({ value, label: value })),
+    },
   ];
 }
 

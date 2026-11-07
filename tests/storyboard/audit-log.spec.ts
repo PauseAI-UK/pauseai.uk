@@ -26,6 +26,8 @@ function addEntries(database: string) {
   );
 }
 
+const menu = (page: Page) => page.locator("[popover]:popover-open");
+
 /** The cells of who and what, a row a line. */
 const whoAndWhat = async (page: Page) => {
   const rows = await page.locator("tbody tr").all();
@@ -50,16 +52,26 @@ test("Filtering the audit log", { tag: "@phone" }, async ({ page, flowDatabase }
   await expect.poll(() => whoAndWhat(page)).toEqual([`${JO} save filter`, `${JO} rename filter`]);
   await frame(page, "Only Jo's");
 
-  story("Sam's too: the same chip's menu adds another, and the chip says both.");
+  story("A row in the chip's menu swaps to it, in one click.");
   const jo = `${copy.actor}: ${JO}`;
   await page.getByRole("button", { name: jo }).click();
-  await expect(page.locator("[popover]:popover-open").getByRole("link", { name: JO })).toHaveAttribute(
-    "aria-current",
-    "true",
-  );
+  await expect(menu(page).getByRole("link", { name: JO })).toHaveAttribute("aria-current", "true");
   await frame(page, "The chip's menu");
-  await page.locator("[popover]:popover-open").getByRole("link", { name: SAM, exact: true }).click();
-  const both = `${copy.actor}: ${filters.anyOf([JO, SAM])}`;
+  await menu(page).getByRole("link", { name: SAM, exact: true }).click();
+  const sam = `${copy.actor}: ${SAM}`;
+  await expect(page.getByRole("button", { name: sam })).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await frame(page, "Only Sam's");
+
+  story("To have Jo's as well, + Add turns the rows to boxes, with Sam ticked.");
+  await page.getByRole("button", { name: sam }).click();
+  await menu(page).getByRole("button", { name: filters.addChoice }).click();
+  await menu(page).getByRole("checkbox", { name: JO }).check();
+  await frame(page, "The menu, Jo ticked as well");
+
+  story("Clicking away loads the list with what's ticked. The chip says both.");
+  await page.keyboard.press("Escape");
+  const both = `${copy.actor}: ${filters.anyOf([SAM, JO])}`;
   await expect(page.getByRole("button", { name: both })).toBeVisible();
   await expect(page.locator("tbody tr")).toHaveCount(4);
   await frame(page, "Jo's and Sam's, on one chip");
@@ -83,10 +95,72 @@ test("Filtering the audit log", { tag: "@phone" }, async ({ page, flowDatabase }
   await frame(page, "Without the saved filters");
 
   story("Turning Who round leaves both out, so the list is the sync's.");
-  await changeFilter(page, both, filters.exceptAllInstead);
-  await expect(page.getByRole("button", { name: filters.notChip(copy.actor, filters.anyOf([JO, SAM])) })).toBeVisible();
+  await changeFilter(page, both, filters.exceptThese);
+  await expect(page.getByRole("button", { name: filters.notChip(copy.actor, filters.anyOf([SAM, JO])) })).toBeVisible();
   await expect.poll(() => whoAndWhat(page)).toEqual(["sync sync politicians"]);
   await frame(page, "All but Jo's and Sam's");
+});
+
+test("Back to one on a chip, and none", async ({ page, flowDatabase }) => {
+  story(
+    "Two people are chosen, so the chip's menu opens with its boxes ticked, and no row can clear them by accident.",
+  );
+  addEntries(flowDatabase);
+  await logIn(page, flowDatabase, ["admin", "supporters"]);
+  await page.goto(`${BASE}/staff/audit-log?actor=${JO}&actor=${SAM}`);
+  const both = `${copy.actor}: ${filters.anyOf([JO, SAM])}`;
+  await page.getByRole("button", { name: both }).click();
+  await expect(menu(page).getByRole("checkbox", { name: SAM })).toBeChecked();
+  await frame(page, "The menu, both ticked");
+
+  story("Just one keeps the first ticked, and the rows are links again.");
+  await menu(page).getByRole("button", { name: filters.justOne }).click();
+  await expect(menu(page).getByRole("link", { name: JO, exact: true })).toHaveAttribute("aria-current", "true");
+  await frame(page, "The menu, Jo alone");
+  await page.keyboard.press("Escape");
+  const jo = `${copy.actor}: ${JO}`;
+  await expect(page.getByRole("button", { name: jo })).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await frame(page, "Only Jo's");
+
+  story("Unticking the last one takes the filter off.");
+  await page.getByRole("button", { name: jo }).click();
+  await menu(page).getByRole("button", { name: filters.addChoice }).click();
+  await menu(page).getByRole("checkbox", { name: JO }).uncheck();
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(`${BASE}/staff/audit-log`);
+  await expect(page.locator("tbody tr")).toHaveCount(5);
+  await frame(page, "Everyone's again");
+});
+
+test("One way or the other, where a record has one value", async ({ page, flowDatabase }) => {
+  story("An entry has one person, so someone left out and someone found can't both be needed. Sam is left out.");
+  addEntries(flowDatabase);
+  await logIn(page, flowDatabase, ["admin", "supporters"]);
+  await page.goto(`${BASE}/staff/audit-log?actor=!${SAM}`);
+  const out = filters.notChip(copy.actor, SAM);
+  await expect(page.getByRole("button", { name: out })).toBeVisible();
+  await frame(page, "All but Sam's");
+
+  story("Staff add Jo from + Filter. Sam's lozenge goes, as finding Jo already leaves Sam out.");
+  await addFilter(page, copy.actor, JO);
+  await expect(page.getByRole("button", { name: `${copy.actor}: ${JO}` })).toBeVisible();
+  await expect(page.getByRole("button", { name: out })).toHaveCount(0);
+  await frame(page, "Only Jo's");
+});
+
+test("Leaving out every choice", async ({ page, flowDatabase }) => {
+  story("All but one person is left out. Leaving that one out too would find nobody, so it takes the filter off.");
+  addEntries(flowDatabase);
+  await logIn(page, flowDatabase, ["admin", "supporters"]);
+  await page.goto(`${BASE}/staff/audit-log?actor=!${JO}&actor=!${SAM}`);
+  const out = filters.notChip(copy.actor, filters.anyOf([JO, SAM]));
+  await page.getByRole("button", { name: out }).click();
+  await menu(page).getByRole("checkbox", { name: "sync", exact: true }).check();
+  await frame(page, "Everyone ticked");
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(new RegExp(`/staff/audit-log$`));
+  await frame(page, "No filter");
 });
 
 test("Searching the audit log, and saving it", async ({ page, flowDatabase }) => {

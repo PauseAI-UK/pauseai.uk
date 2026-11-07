@@ -5,6 +5,8 @@
 // login page.
 import { Button, ButtonLink } from "@/components/ui/Button";
 import FilterBar from "@/app/(staff)/staff/_components/ui/FilterBar";
+import Choices from "@/app/(staff)/staff/_components/ui/Choices";
+import ManyChoices from "@/app/(staff)/staff/_components/ui/ManyChoices";
 import Menu from "@/app/(staff)/staff/_components/ui/Menu";
 import Bubble, { BubbleBox } from "@/app/(staff)/staff/_components/ui/Bubble";
 import { bubbleTrigger } from "@/app/(staff)/staff/_components/ui/bubble-trigger";
@@ -1005,6 +1007,48 @@ export const staffKit: Group = {
                 note="Paste it in"
                 close="Close"
               />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "Choices",
+      file: "app/(staff)/staff/_components/ui/Choices.tsx",
+      variants: [
+        {
+          label: "A filter's choices, one chosen",
+          render: () => (
+            <StaffPage as="div">
+              <Choices options={EXAMPLE_NATIONS[0].options} current={["wales"]} href={() => "#"} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "ManyChoices",
+      file: "app/(staff)/staff/_components/ui/ManyChoices.tsx",
+      variants: [
+        {
+          label: "In a chip's menu: several chosen, so it opens as boxes",
+          render: () => (
+            <StaffPage as="div">
+              <Menu id="example-many-choices" label="Nation: Scotland or England">
+                <ManyChoices
+                  path="#"
+                  values={{}}
+                  name="nation"
+                  all={["scotland", "england"]}
+                  here={["scotland", "england"]}
+                  not={false}
+                  oneEach
+                  options={EXAMPLE_NATIONS[0].options}
+                  every={EXAMPLE_NATIONS[0].options.map((option) => option.value)}
+                  turns
+                  removes
+                />
+              </Menu>
             </StaffPage>
           ),
         },
