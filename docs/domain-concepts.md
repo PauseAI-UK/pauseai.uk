@@ -421,6 +421,25 @@ pointing at `form_entries`, as `form_entry_luma` holds what Luma said to a
 form that registers people for an event. What a form's box said when
 someone ticked it is its wording in git at the entry's `created_at`.
 
+**Paper sign-ups** (`paper-signup`) come from a CSV staff upload at
+`/staff/supporters/upload`, of forms filled in while flyering. The file itself
+isn't kept: the page reads it in the browser and holds it in that tab until it's
+imported. `signup_uploads` has its name, the date on the forms, a note, the
+event, and how many it imported and held back; `signup_upload_entries` ties each
+entry to its upload, whose note is the entry's line in a supporter's history. The
+reading is in `lib/signup-upload.ts`: liberal about separators, encodings, how a
+heading is spelt and ways of saying yes, and nothing else. A column whose heading
+isn't on its list is ignored, so a doubt in a file is settled before it's uploaded.
+The entry is dated midday on the date on the forms, which is also what makes an
+upload safe to repeat: an email with a paper entry of that date gets no other.
+The mailing list column is the entry's box, so it's PauseAI UK by email, and
+calls and texts for a number given. Staff may link one column of yes and blank to
+one event to come, and a yes then registers them on Luma, who emails them, unless
+they're already going. A row with no name, a bad email or phone, a yes or no it
+can't read, a blocked email, or an email on another row of the file is held back,
+with nothing kept. The preview shows what each person will come to, and importing
+checks it's still so.
+
 ## Supporters
 
 One row per person we know of (`supporters`), tied to each record about
@@ -507,7 +526,8 @@ constituency: their newest postcode, else the newest city they gave
 themselves (never Luma's, whose cities are its events'), else the newest
 event they registered for that isn't a big day or online. Each postcode
 and town is looked up at postcodes.io once, at the end of each Luma
-import, and kept in `postcode_places` and `named_places`
+import, and kept in `postcode_places` and `named_places`. A postcode's first
+half alone ("SE15") says roughly where someone is but not their constituency, so it gives no MP
 (`lib/server/supporter-places.ts`); a big import catches up over a few
 runs. The list's Near filter and a supporter's MP read it, and the
 supporter's page shows the cities they gave (`givenPlaces()` in

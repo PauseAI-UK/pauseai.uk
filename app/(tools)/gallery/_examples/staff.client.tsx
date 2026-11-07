@@ -1,5 +1,8 @@
 "use client";
 
+import { exampleSignupPlan } from "@/app/(staff)/staff/_components/SignupUpload.examples";
+import SignupUploadPreview, { SignupPlanView } from "@/app/(staff)/staff/_components/SignupUploadPreview";
+
 // The staff screens' examples whose Server Actions are props: client
 // components with no props, each action logged rather than sent.
 import ChangesFilters from "@/app/(staff)/staff/_components/ChangesFilters";
@@ -1063,4 +1066,19 @@ export function SavedFilterExample({ state }: { state: keyof typeof SAVED_STATES
 /** The same, with part of the filter gone, which the bar says under itself. */
 export function SavedFilterGoneExample() {
   return <SavedFilterExample state="gone" />;
+}
+
+/** The preview of a file with someone in every pile, whose button does nothing here. */
+export function SignupPlanViewExample() {
+  return <SignupPlanView plan={exampleSignupPlan} onImport={() => {}} />;
+}
+
+/** The preview page in a tab with no file left, as there's none here. */
+export function SignupUploadPreviewExample() {
+  return (
+    <SignupUploadPreview
+      preview={async () => exampleSignupPlan}
+      finish={async () => ({ uploadId: exampleSignupPlan.rows.length })}
+    />
+  );
 }

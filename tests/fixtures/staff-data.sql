@@ -584,6 +584,17 @@ INSERT INTO letters_from_supporters (id, entry_id, campaign, subject, airtable_i
 SELECT w.id, w.id, w.campaign, w.subject, w.airtable_id FROM seeded_web_form w JOIN letters l ON l.id = w.id;
 SELECT setval(pg_get_serial_sequence('form_entries', 'id'), (SELECT max(id) FROM form_entries));
 
+-- An upload of paper sign-ups: one person imported, one held back. Long enough
+-- ago to leave the dashboard's weeks alone.
+INSERT INTO signup_uploads (filename, signed_on, note, imported, held_back, uploaded_by, uploaded_at)
+VALUES ('flyering.csv', current_date - 60, 'Flyering at Camden Town', 1, 1, 'jo@pauseai.uk', now() - interval '59 days');
+WITH entry AS (
+  INSERT INTO form_entries (form, created_at, name, email, postcode, contact_consent)
+  VALUES ('paper-signup', current_date - 60 + time '12:00', 'Robin Flyer', 'robin.flyer@example.com', 'SE15', true)
+  RETURNING id
+)
+INSERT INTO signup_upload_entries (entry_id, upload_id) SELECT id, 1 FROM entry;
+
 -- ---------------------------------------------------- march sign-ups
 
 -- Two sign-ups for the march, as the route keeps them: Ben, who also wrote

@@ -1,0 +1,10 @@
+Name,Email,Mobile,Mailing list
+Fine Person,fine.person@example.com,,Y
+,no.name@example.com,,Y
+No Email,,,Y
+Bad Email,bad.email.example.com,,Y
+Bad Phone,bad.phone@example.com,call me,Y
+Tim Robson,robson.home@example.com,,Y
+Emma Robson,robson.home@example.com,,
+Unsure Person,unsure.person@example.com,,Maybe
+Blocked Person,blocked.person@example.com,,Y

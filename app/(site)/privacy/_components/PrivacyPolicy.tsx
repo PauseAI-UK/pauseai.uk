@@ -31,6 +31,12 @@ export default function PrivacyPolicy() {
           . If you live in the UK and shared your details with PauseAI UK when you joined, or joined before the form
           asked, PauseAI UK holds a copy of them too, as the next section says.
         </li>
+        <li>
+          <strong>⁂ If you fill in a paper form with us, such as while we&apos;re flyering</strong>, ⁂ PauseAI UK holds
+          what you wrote: your name and email, and any phone number, city, postcode and whether you want to hear from
+          us. We use it to sign you up for any event you asked to go to, through Luma, and to contact you if you said we
+          could.
+        </li>
       </ul>
       <p>
         For questions about donation data or this notice, contact us at{" "}

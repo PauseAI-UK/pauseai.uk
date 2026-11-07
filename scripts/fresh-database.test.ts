@@ -162,6 +162,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "{luma}",
           "{march-2026-11}",
           "{member}",
+          "{paper-signup}",
           "{web-form}",
         ]);
         // Letters in every state, and every kind of event about them.

@@ -10,6 +10,7 @@ import type { Permission } from "./staff-permissions";
 
 export type StaffPageId =
   | "supporters"
+  | "signupUpload"
   | "campaigns"
   | "events"
   | "supporterEmails"
@@ -39,6 +40,7 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
     pages: [
       // A supporter's letters are a page of the supporter's.
       { id: "supporters", href: "/staff/supporters", permission: "supporters", under: ["/staff/letters/supporter"] },
+      { id: "signupUpload", href: "/staff/supporters/upload", permission: "supporters" },
       // A letter's page stays at /staff/letters/[id], and shows in Campaigns.
       { id: "campaigns", href: "/staff/campaigns", permission: "supporters", under: ["/staff/letters"] },
       { id: "supporterEmails", href: "/staff/supporters/blocked-emails", permission: "supporters" },

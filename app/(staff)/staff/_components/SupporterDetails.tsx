@@ -136,9 +136,9 @@ function Subject({ item }: { item: SupporterActivity }) {
   }
   if (item.kind === "form-entry") {
     // The form, then the link they came by and what Luma said, where there's either.
-    const said = [item.detail && copy.detail.cameFrom(item.detail), item.status && copy.detail.luma[item.status]]
-      .filter(Boolean)
-      .join(" · ");
+    // A paper entry's detail is its upload's note, in staff's own words.
+    const detail = item.detail && (item.title === "paper-signup" ? item.detail : copy.detail.cameFrom(item.detail));
+    const said = [detail, item.status && copy.detail.luma[item.status]].filter(Boolean).join(" · ");
     return (
       <>
         {copy.sources[item.title ?? ""] ?? item.title}

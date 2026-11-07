@@ -194,12 +194,14 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
     return json({ applied_count: event_ids.length, skipped_count: 0 });
   }
   if (hostname === "public-api.luma.com" && pathname === "/v1/events/guests/add") {
-    // The march sign-up. Luma takes every guest but two: one it skips, as if
-    // they'd unsubscribed from the calendar, and one it fails on.
+    // Sign-ups. Luma takes every guest but two: one it skips, as if they'd
+    // unsubscribed from the calendar, and one that fails the whole call.
     const { guests } = JSON.parse(String(init!.body)) as { guests: { email: string }[] };
-    const [email] = guests.map((guest) => guest.email);
-    if (email.startsWith("luma-fails@")) return new Response('{"message":"Fixture failure"}', { status: 500 });
-    return json({ skipped: email.startsWith("luma-skips@") ? [{ email }] : [] });
+    const emails = guests.map((guest) => guest.email);
+    if (emails.some((email) => email.startsWith("luma-fails@"))) {
+      return new Response('{"message":"Fixture failure"}', { status: 500 });
+    }
+    return json({ skipped: emails.filter((email) => email.startsWith("luma-skips@")).map((email) => ({ email })) });
   }
   // The UK Parliamentarians base's tables: a politician of each body, one
   // retired and one who left; PauseAI's emails to them, of each

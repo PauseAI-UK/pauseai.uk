@@ -45,6 +45,28 @@ const places = () =>
 describeWithDatabase("lookUpPlaces and supporter_place", () => {
   useTestDatabase();
 
+  it("places someone by a postcode's first half alone, with no constituency", async () => {
+    await member("half", "", "se15");
+    await linkSupporters();
+    server.use(
+      http.post("https://api.postcodes.io/postcodes", () =>
+        HttpResponse.json({ result: [{ query: "SE15", result: null }] }),
+      ),
+      http.get("https://api.postcodes.io/outcodes/SE15", () =>
+        HttpResponse.json({
+          result: { latitude: 51.47, longitude: -0.06, admin_district: ["Southwark"], country: ["England"] },
+        }),
+      ),
+    );
+    await lookUpPlaces();
+    expect(await places()).toEqual([
+      { email: "half@example.com", place: "Southwark", basis: "postcode", given: "se15", country: "england" },
+    ]);
+    expect(await query("SELECT constituency, constituency_checked FROM postcode_places")).toEqual([
+      { constituency: null, constituency_checked: true },
+    ]);
+  });
+
   it("looks up postcodes and towns once, and places each supporter by postcode, city, then a local event", async () => {
     await event("evt-manchester", "Manchester", ["Manchester"]);
     await event("evt-march", "London", ["Big events"]);
