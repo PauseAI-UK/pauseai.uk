@@ -46,6 +46,65 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   await frame(page, "Polly's page");
 });
 
+test("A politician's correspondence", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly has had PauseAI's emails and has answered one. Staff open her page, which lists each with who wrote and when.",
+  );
+  await syncPoliticians(request, BASE);
+  await logIn(page, flowDatabase);
+  await importEmails(page);
+  const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
+  runSql(
+    flowDatabase,
+    `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, at, from_us, blob_key, size)
+     SELECT id, 'policy@pauseai.uk', 'correspondence-reply', 'correspondence-thread', 'polly.placeholder.mp@parliament.uk', 'Polly Placeholder',
+       coalesce(sent_at, created_at) + interval '1 hour', false, 'correspondence-reply', 1
+     FROM letters WHERE notable_person_id = ${polly} AND kind = 'pauseai' ORDER BY id LIMIT 1`,
+  );
+  await openPolitician(page, "Polly Placeholder");
+  const words = copy.correspondence;
+  const correspondence = page.getByRole("region", { name: words.title });
+  const threads = correspondence.getByRole("listitem");
+  await expect(correspondence.getByText(words.noReply).first()).toBeVisible();
+  const all = await threads.count();
+  expect(all).toBeGreaterThan(1);
+  await frame(page, "Her correspondence, her reply in bold");
+
+  story(
+    "Replies only, at the card's top right, leaves just the emails she really answered, and keeps the list in view.",
+  );
+  await correspondence.getByRole("link", { name: words.repliesOnly }).click();
+  await expect(page).toHaveURL(/\?correspondence=replies#correspondence-title$/);
+  await expect(threads).toHaveCount(1);
+  await expect(correspondence.getByRole("link", { name: words.repliesOnly })).toHaveAttribute("aria-current", "page");
+  await frame(page, "Replies only", { of: correspondence });
+
+  story("All emails brings them all back.");
+  await correspondence.getByRole("link", { name: words.allEmails }).click();
+  await expect(threads).toHaveCount(all);
+
+  story("At the top, the count of emails from her does the same, and pressed again it shows them all.");
+  const fromThem = page.getByRole("link", { name: copy.band.emailsFromThem });
+  await fromThem.click();
+  await expect(threads).toHaveCount(1);
+  await expect(fromThem).toHaveAttribute("aria-current", "true");
+  await frame(page, "From the count of emails from her");
+  await fromThem.click();
+  await expect(threads).toHaveCount(all);
+
+  story("The count of emails to her leads down to her correspondence, and the asks she agreed to, to her asks.");
+  await page.getByRole("link", { name: copy.band.emailsToThem }).click();
+  await expect(page).toHaveURL(/#correspondence-title$/);
+  await expect(correspondence).toBeInViewport();
+  await page
+    .getByRole("link", { name: copy.band.asksAgreed(2) })
+    .or(page.getByRole("link", { name: copy.band.asksAgreed(1) }))
+    .click();
+  await expect(page).toHaveURL(/#asks-title$/);
+  await expect(page.getByRole("region", { name: copy.statusesTitle })).toBeInViewport();
+  await frame(page, "Down to her asks", { window: true });
+});
+
 test("A note on a politician", async ({ page, request, flowDatabase }) => {
   story("Staff write a note on Polly's page, in the notes beside her correspondence.");
   await syncPoliticians(request, BASE);
