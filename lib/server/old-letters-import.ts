@@ -833,11 +833,18 @@ async function fillAugust(): Promise<void> {
   );
 }
 
-/** The last step: each letter with a person's reply is marked with when the first came. */
+/** The last step: each letter with a reply from their office, not a supporter's own message or an automatic one, is marked with when the first came. */
 async function setRepliedAt(reader: Reader): Promise<void> {
   const set = await query(
     `UPDATE letters l SET replied_at = least(l.replied_at, first.at)
-     FROM (SELECT letter_id, min(at) AS at FROM letter_replies WHERE NOT from_us GROUP BY letter_id) first
+     FROM (
+       SELECT r.letter_id, min(r.at) AS at FROM letter_replies r
+       WHERE NOT r.from_us AND NOT r.from_supporter AND NOT EXISTS (
+         SELECT 1 FROM letter_events e
+         WHERE e.letter_id = r.letter_id AND e.status = 'auto_reply' AND e.details->>'gmailMessageId' = r.gmail_message_id
+       )
+       GROUP BY r.letter_id
+     ) first
      WHERE first.letter_id = l.id AND (l.replied_at IS NULL OR l.replied_at > first.at) RETURNING l.id`,
   );
   // least() ignores a NULL, so a letter with none takes the first reply's.

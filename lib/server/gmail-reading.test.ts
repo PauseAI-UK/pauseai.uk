@@ -7,7 +7,13 @@ import { server } from "@/tests/fixtures/msw";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { NIGHTLY } from "@/lib/import-runs";
 import { notifications } from "@/tests/notifications";
-import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import {
+  addTestLetter,
+  addTestPolitician,
+  connectTestGmail,
+  describeWithDatabase,
+  useTestDatabase,
+} from "@/tests/database";
 import { query } from "./db";
 import { readBounce, readGmail } from "./gmail-reading";
 import { listRuns, latestRun } from "./import-runs";
@@ -224,6 +230,27 @@ describeWithDatabase("reading Gmail", () => {
     // Read again, nothing is kept twice.
     expect(await read()).toEqual([{ account: JO, replies: 0, autoReplies: 0, bounces: 0 }]);
     expect(await replies()).toHaveLength(2);
+  });
+
+  it("keeps a supporter's own message on their letter as theirs, without marking it replied to", async () => {
+    await connectTestGmail(JO);
+    const polly = await addTestPolitician({ airtableId: null, email: "polly@example.org" });
+    const letter = await addTestLetter({ politicianId: polly, senderEmail: "Wendy@example.com" });
+    await query(
+      `INSERT INTO email_sends (purpose, letter_id, address, outcome, message_id, backend, sender, rfc_message_id, gmail_thread_id, imported)
+       VALUES ('letter', $1, 'polly@example.org', 'sent', 'g-letter', 'gmail', $2, 'letter@pauseai.uk', 't1', true)`,
+      [letter, JO],
+    );
+    mailbox({
+      history: ["s1"],
+      messages: {
+        s1: { headers: { From: "Wendy <wendy@example.com>", "In-Reply-To": "<letter@pauseai.uk>" }, raw: "Update." },
+      },
+    });
+    expect(await read()).toMatchObject([{ replies: 1 }]);
+    expect(await query("SELECT from_supporter FROM letter_replies")).toEqual([{ from_supporter: true }]);
+    expect(await query("SELECT replied_at FROM letters")).toEqual([{ replied_at: null }]);
+    expect((await events()).map((event) => event.status)).toContain("replied");
   });
 
   it("finds the letter by its thread when a reply names nothing: ours, or one a kept message is in", async () => {
