@@ -481,7 +481,7 @@ export const staffLetters: Group = {
       file: "app/(staff)/staff/_components/OneOffThreadView.tsx",
       variants: [
         {
-          label: "A thread of two, one unreadable",
+          label: "A thread of three: one unreadable, and an automatic reply folded to its first paragraph",
           render: () => (
             <StaffPage as="div">
               <OneOffThreadView thread={exampleOneOffThread} />
