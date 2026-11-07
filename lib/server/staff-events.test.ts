@@ -6,8 +6,9 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query, transaction } from "./db";
 import { recordProblem } from "./email";
+import { EVENTS_PAGE_SIZE } from "@/lib/staff-events-list";
 import { eventsSearch } from "@/lib/staff-search";
-import { assignRuleOwners, eventsPage, ownerEmails, setEventDoc, setEventOwner } from "./staff-events";
+import { assignRuleOwners, eventsPage, eventsToCome, ownerEmails, setEventDoc, setEventOwner } from "./staff-events";
 
 type Sent = { From: string; To: string; Cc?: string; Subject: string; TextBody: string; Tag: string };
 
@@ -75,6 +76,23 @@ afterEach(() => vi.unstubAllEnvs());
 
 describeWithDatabase("staff events", () => {
   useTestDatabase();
+
+  it("gives every event to come, not a page, soonest first: on Luma, ours, and earlier today, but not yesterday's", async () => {
+    await addStaff("jo@pauseai.uk");
+    const count = EVENTS_PAGE_SIZE + 1;
+    for (let i = 0; i < count; i++)
+      await addEvent(`evt-${i}`, new Date(Date.parse(NOW) + (i + 1) * 3_600_000).toISOString());
+    await addEvent("evt-earlier-today", new Date(Date.parse(NOW) - 60_000).toISOString());
+    await addEvent("evt-yesterday", new Date(Date.parse(NOW) - 86_400_000).toISOString());
+    await addEvent("evt-removed", "2026-12-01T18:00:00Z", { removed: true });
+    await addEvent("evt-theirs", "2026-12-01T18:00:00Z", { access: "view" });
+    const { events, staff } = await eventsToCome();
+    expect(events).toHaveLength(count + 1);
+    expect(events[0].id).toBe("evt-earlier-today");
+    expect(events[0]).not.toHaveProperty("hostEmails");
+    expect(events.map((event) => event.id)).not.toContain("evt-yesterday");
+    expect(staff).toEqual(["jo@pauseai.uk"]);
+  });
 
   it("lists our events to come, soonest first, or those past, latest first, with who's going, their owners and docs", async () => {
     await addStaff("jo@pauseai.uk", "sean@pauseai.uk");

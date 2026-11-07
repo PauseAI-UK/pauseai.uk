@@ -13,7 +13,7 @@ import { LETTER_SORTS, type LetterSort } from "@/lib/letter-sort";
 import { SENT_EMAIL_SORTS } from "@/lib/sent-email-sort";
 import { POLITICIAN_FLAGS, type PoliticianFlag } from "@/lib/politician-filters";
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
-import { EVENT_SORTS, type EventFilter } from "@/lib/staff-events-list";
+import { type EventGrouping, EVENT_SORTS, type EventFilter } from "@/lib/staff-events-list";
 import { ACCOUNT_SORTS, type AccountSort } from "@/lib/staff-account-sort";
 import { isSupporterBadge, NEAR_MILES, SUPPORTER_SORTS, type SupporterFilter } from "@/lib/supporters";
 
@@ -558,6 +558,15 @@ export type EventsSearch = {
   /** The saved filter loaded, by ID. */
   saved: string;
 };
+
+/**
+ * What the events page's URL asks it to show: every event to come, by owner or
+ * by tag (`view`), as a tab of its own, or a table. The Past tab is always a table.
+ */
+export function eventView(params: { when?: ParamValue; view?: ParamValue }): EventGrouping | "table" {
+  const view = firstOf(params.view);
+  return firstOf(params.when) !== "past" && (view === "owner" || view === "tag") ? view : "table";
+}
 
 /** The events list's tab, filters and sort, each as typed and as applied. */
 export function eventsSearch(

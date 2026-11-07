@@ -52,10 +52,13 @@ export function EventEdit({
   event,
   staff,
   save,
+  where = "",
 }: {
   event: { id: string; name: string; owner: string | null; doc: string | null };
   staff: readonly string[];
   save: SaveEvent;
+  /** Which of the lists it's in, where an event is in several: its bubble's ID must be unique on the page. */
+  where?: string;
 }) {
   const setSaved = use(SavedContext)!;
   const form = useRef<HTMLFormElement>(null);
@@ -73,7 +76,7 @@ export function EventEdit({
   };
   return (
     <Bubble
-      id={`event-edit-${event.id}`}
+      id={`event-edit-${where}${event.id}`}
       trigger={buttonClass({ variant: "ghost", size: "small", fit: true })}
       label={copy.edit}
     >

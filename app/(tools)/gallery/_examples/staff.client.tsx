@@ -82,8 +82,15 @@ import {
 } from "@/app/(staff)/staff/_components/MailingWriter.examples";
 import MailingsOverview from "@/app/(staff)/staff/_components/MailingsOverview";
 import Notice from "@/app/(staff)/staff/_components/ui/Notice";
+import EventColumns from "@/app/(staff)/staff/_components/EventColumns";
 import EventsTable from "@/app/(staff)/staff/_components/EventsTable";
-import { exampleEventsNow, exampleEventsTab, exampleStaff } from "@/app/(staff)/staff/_components/EventsTable.examples";
+import {
+  exampleEventsNow,
+  exampleEventsTab,
+  exampleEventsToCome,
+  exampleStaff,
+} from "@/app/(staff)/staff/_components/EventsTable.examples";
+import type { EventGrouping } from "@/lib/staff-events-list";
 import LetterView from "@/app/(staff)/staff/_components/LetterView";
 import FindInGmail from "@/app/(staff)/staff/_components/FindInGmail";
 import LetterThread, { SupporterLetterThread } from "@/app/(staff)/staff/_components/LetterThread";
@@ -656,6 +663,25 @@ export function EventsTableExample({
             log("save")(form);
             const chosen = String(form.get("owner"));
             return emailed ? { emailed: [chosen, "joseph@pauseai.uk"], owner: chosen } : { emailed: [], owner: null };
+          }}
+        />
+      )}
+    </Logged>
+  );
+}
+
+/** The lists of events to come, by owner or by tag; saving an event's edit form is logged. */
+export function EventColumnsExample({ grouping, none = false }: { grouping: EventGrouping; none?: boolean }) {
+  return (
+    <Logged>
+      {(log) => (
+        <EventColumns
+          events={none ? [] : exampleEventsToCome}
+          grouping={grouping}
+          staff={exampleStaff}
+          save={async (form) => {
+            log("save")(form);
+            return { emailed: [], owner: null };
           }}
         />
       )}

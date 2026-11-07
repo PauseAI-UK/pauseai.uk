@@ -1,9 +1,12 @@
 // The staff events list's tabs, filters and sorts, applied to our events
 // as lib/server/staff-events.ts lists them. There are few enough events
 // to filter and sort them all here, rather than in SQL.
+import { staffCopy } from "@/lib/content/staff-interface";
+import { BIG_EVENTS_TAG, ONLINE_TAG } from "@/lib/event-tags";
 import type { SearchedEvent, StaffEvent } from "@/lib/server/staff-events";
 import { windowStart } from "@/lib/staff-dashboard";
 import type { SortColumns, SortSpec } from "@/lib/staff-sort";
+import { londonDayHour } from "@/lib/staff-time";
 
 /** The list's tabs: events still to come, and those past. */
 export const EVENT_TABS = ["future", "past"] as const;
@@ -20,6 +23,15 @@ export const EVENT_SORTS: Record<EventTab, SortColumns<EventSort>> = {
 export type EventSort = "start" | "name" | "place" | "going" | "owner" | "doc";
 
 export const EVENTS_PAGE_SIZE = 100;
+
+/** The tabs that list every event to come in lists, rather than a table: by owner and by tag. */
+export type EventGrouping = "owner" | "tag";
+
+/** One of those lists: its heading, and its events, soonest first. */
+export type EventList = { title: string; events: StaffEvent[] };
+
+/** How many of a list's events show, the rest folded. */
+export const EVENT_LIST_SHOWS = 5;
 
 /** The Owner filter's choice for events with no owner. */
 export const NO_OWNER = "none";
@@ -97,6 +109,15 @@ function searchFinds(event: SearchedEvent, search: string): boolean {
 }
 
 /**
+ * Whether an event starting at `startAt` is still to come at `now`: it is
+ * until the end of its day in London, so one on today stays on the Future tab,
+ * however late it began, and moves to Past at midnight.
+ */
+export function stillToCome(startAt: string, now: string): boolean {
+  return londonDayHour(startAt).day >= londonDayHour(now).day;
+}
+
+/**
  * The events `filter` finds of `events`, its tab's, to come or past at
  * `now`, sorted, one page of them; any tie, by when it starts, in the
  * tab's own direction, then by ID.
@@ -111,7 +132,8 @@ export function findEvents<E extends SearchedEvent>(
   const matching = (removed: boolean) =>
     events.filter(
       (event) =>
-        event.startAt >= now === (filter.tab === "future") &&
+        // How many were held, as the dashboard's tile counts them, includes those that began earlier today.
+        (stillToCome(event.startAt, now) === (filter.tab === "future") || (filter.tab === "past" && heldSince)) &&
         (!heldSince || (event.startAt >= heldSince && event.startAt <= now)) &&
         (!search || searchFinds(event, search)) &&
         event.removed === removed &&
@@ -134,4 +156,65 @@ export function findEvents<E extends SearchedEvent>(
     pages,
     removed: search && found.length === 0 && !filter.removed ? matching(true).length : 0,
   };
+}
+
+/** `events` in a list for each of `titlesOf` it, in order, the lists as `rank` puts them, alphabetically within a rank. */
+function listsOf(
+  events: readonly StaffEvent[],
+  titlesOf: (event: StaffEvent) => string[],
+  rank: (title: string) => number,
+): EventList[] {
+  const lists = new Map<string, StaffEvent[]>();
+  for (const event of events) {
+    for (const title of titlesOf(event)) lists.set(title, [...(lists.get(title) ?? []), event]);
+  }
+  return [...lists]
+    .map(([title, listed]) => ({ title, events: listed }))
+    .sort((a, b) => rank(a.title) - rank(b.title) || a.title.localeCompare(b.title));
+}
+
+/** An owner's address as a list's heading: the part before its @. */
+export const ownerName = (owner: string) => owner.split("@")[0];
+
+/** `events` in a list for each owner, by the part of their address before its @, those with none first. */
+export function eventsByOwner(events: readonly StaffEvent[]): EventList[] {
+  const none = staffCopy.events.noOwner;
+  return listsOf(
+    events,
+    (event) => [event.owner ? ownerName(event.owner) : none],
+    (title) => (title === none ? 0 : 1),
+  );
+}
+
+/**
+ * `events` in a list for each of their Luma tags, so one with two is in both:
+ * the places, then Big events, Online and those with no tag. One with no tags
+ * goes under Online if it has no city.
+ */
+export function eventsByTag(events: readonly StaffEvent[]): EventList[] {
+  const last = [BIG_EVENTS_TAG, ONLINE_TAG, staffCopy.events.lists.noTag];
+  return listsOf(
+    events,
+    (event) => (event.tags.length ? event.tags : [event.city ? staffCopy.events.lists.noTag : ONLINE_TAG]),
+    (title) => last.indexOf(title),
+  );
+}
+
+/**
+ * `lists` split into two columns, in order down the first then the second,
+ * where each is about half the height with every list closed: a list's lines
+ * as far as it folds, and two for its heading and its fold. The split doesn't
+ * change as lists open, so opening one moves only what's under it.
+ */
+export function eventListColumns(lists: readonly EventList[]): [EventList[], EventList[]] {
+  const height = (list: EventList) => Math.min(list.events.length, EVENT_LIST_SHOWS) + 2;
+  const half = lists.reduce((sum, list) => sum + height(list), 0) / 2;
+  let filled = 0;
+  let split = 0;
+  // Each goes in the first column unless that takes it further past half than it now falls short.
+  while (split < lists.length && filled + height(lists[split]) - half <= half - filled) {
+    filled += height(lists[split]);
+    split++;
+  }
+  return [lists.slice(0, split), lists.slice(split)];
 }

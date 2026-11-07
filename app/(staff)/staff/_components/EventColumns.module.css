@@ -1,0 +1,84 @@
+/* A list of events, under its heading, apart from the next. */
+.list {
+  margin-bottom: var(--space-5);
+}
+
+.list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list summary {
+  padding-block: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+/* Events with no owner: an error. */
+.noOwner {
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--status-red-bg);
+}
+
+.noOwner .title {
+  color: var(--status-red);
+}
+
+/* A list's name, and how many, at the right, over a rule. */
+.heading {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding-bottom: var(--space-1);
+  border-bottom: 2px solid var(--border-strong);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.title {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.count {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* A line: the day, the name with its detail stacked under it, then Edit. */
+.line {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  gap: var(--space-2);
+  align-items: start;
+  padding-block: var(--space-2);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-sm);
+}
+
+.day {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.7;
+}
+
+.name {
+  display: grid;
+  gap: 2px;
+  font-weight: 600;
+}
+
+.detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}

@@ -1,35 +1,46 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { eventsPage } from "@/lib/server/staff-events";
+import { eventsPage, eventsToCome } from "@/lib/server/staff-events";
 import { savedFiltersState } from "@/lib/server/saved-filters";
 import { requireStaff } from "@/lib/server/staff-auth";
-import { eventsSearch, type EventsSearch } from "@/lib/staff-search";
+import type { EventGrouping } from "@/lib/staff-events-list";
+import { eventsSearch, eventView, type EventsSearch, type ParamValue } from "@/lib/staff-search";
 import { saveEventNow } from "../../actions";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
+import EventColumns from "../../_components/EventColumns";
 import EventFilters, { eventWords } from "../../_components/EventFilters";
 import EventsTable, { EventsSource, EventTabs } from "../../_components/EventsTable";
 import { filteredTitle } from "../../_components/ui/FilterBar";
 import PageTitle from "../../_components/ui/PageTitle";
 
-type Props = { searchParams: Promise<Partial<EventsSearch>> };
+type Params = Partial<EventsSearch> & { view?: ParamValue };
+type Props = { searchParams: Promise<Params> };
 
-/** The list's title, with its filters. */
+/** The table's title, with its filters. */
+async function tableTitle(params: Params, hosts: boolean): Promise<string> {
+  const { filter, ...search } = eventsSearch((await savedFiltersState("events", params)).params);
+  return filteredTitle(staffCopy.events.title, eventWords(search, await eventsPage(filter, hosts)));
+}
+
+/** The By owner and By tag tabs' title: they have no filters, whatever the URL says. */
+const groupedTitle = async () => staffCopy.events.title;
+
+const TITLES = { owner: groupedTitle, tag: groupedTitle, table: tableTitle };
+
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const staff = await requireStaff();
-  const { filter, ...search } = eventsSearch((await savedFiltersState("events", await searchParams)).params);
-  const page = await eventsPage(filter, staff.permissions.includes("supporters"));
-  return { title: filteredTitle(staffCopy.events.title, eventWords(search, page)) };
+  const params = await searchParams;
+  return { title: await TITLES[eventView(params)](params, staff.permissions.includes("supporters")) };
 }
 
 /** Our events, to come or past, filtered, each with its owner and Google Doc, and its hosts for those who see supporters. */
-export default async function EventsPage({ searchParams }: Props) {
-  const hosts = (await requireStaff()).permissions.includes("supporters");
-  const saved = await savedFiltersState("events", await searchParams);
+async function Table({ params, hosts }: { params: Params; hosts: boolean }) {
+  const saved = await savedFiltersState("events", params);
   const { filter, ...search } = eventsSearch(saved.params);
   const { events, total, pages, removed, staff, tags, cities, now } = await eventsPage(filter, hosts);
   return (
     <>
-      <PageTitle action={<EventsSource />}>{staffCopy.events.title}</PageTitle>
       <EventTabs search={search} />
       <EventFilters
         search={search}
@@ -47,6 +58,35 @@ export default async function EventsPage({ searchParams }: Props) {
         save={saveEventNow}
         hosts={hosts}
       />
+    </>
+  );
+}
+
+/** Every event to come, in lists by owner or by tag, with no filters, whatever the URL says. */
+async function Grouped({ grouping }: { grouping: EventGrouping }) {
+  const { events, staff } = await eventsToCome();
+  return (
+    <>
+      <EventTabs search={eventsSearch({})} grouping={grouping} />
+      <EventColumns events={events} grouping={grouping} staff={staff} save={saveEventNow} />
+    </>
+  );
+}
+
+const VIEWS: Record<EventGrouping | "table", (props: { params: Params; hosts: boolean }) => ReactNode> = {
+  owner: () => <Grouped grouping="owner" />,
+  tag: () => <Grouped grouping="tag" />,
+  table: (props) => <Table {...props} />,
+};
+
+/** Each tab's view of our events, under the page's title. */
+export default async function EventsPage({ searchParams }: Props) {
+  const hosts = (await requireStaff()).permissions.includes("supporters");
+  const params = await searchParams;
+  return (
+    <>
+      <PageTitle action={<EventsSource />}>{staffCopy.events.title}</PageTitle>
+      {VIEWS[eventView(params)]({ params, hosts })}
     </>
   );
 }

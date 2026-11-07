@@ -7,6 +7,8 @@ import type { EventHost, StaffEvent } from "@/lib/server/staff-events";
 import {
   EVENT_SORTS,
   EVENTS_PAGE_SIZE,
+  stillToCome,
+  type EventGrouping,
   type EventsFound,
   type EventSort,
   type EventTab,
@@ -51,17 +53,23 @@ export function eventFiltersOf(search: EventsSearch): Params {
   return rest;
 }
 
-/** The Future and Past tabs, keeping the filters, each in its own default order. */
-export function EventTabs({ search }: { search: EventsSearch }) {
+/**
+ * The tabs: Future and Past, keeping the filters, each in its own default
+ * order; between them By owner and By tag, which have none, `grouping` being
+ * the one it's on.
+ */
+export function EventTabs({ search, grouping = null }: { search: EventsSearch; grouping?: EventGrouping | null }) {
   const filters = { ...eventFiltersOf(search), sort: "", dir: "" };
   return (
     <Tabs
       label={copy.tabs.label}
       tabs={[
         { key: "future", label: copy.tabs.future, href: filtersPath(PATH, filters, { when: "" }) },
+        { key: "owner", label: copy.tabs.byOwner, href: filtersPath(PATH, { view: "owner" }) },
+        { key: "tag", label: copy.tabs.byTag, href: filtersPath(PATH, { view: "tag" }) },
         { key: "past", label: copy.tabs.past, href: filtersPath(PATH, filters, { when: "past" }) },
       ]}
-      current={eventTab(search)}
+      current={grouping ?? eventTab(search)}
     />
   );
 }
@@ -71,7 +79,7 @@ export function EventTabs({ search }: { search: EventsSearch }) {
  * still to come and on Luma (`needed`), as someone must see to it;
  * otherwise only said, in grey.
  */
-function Missing({ needed, children }: { needed: boolean; children: string }) {
+export function Missing({ needed, children }: { needed: boolean; children: string }) {
   if (!needed) return <Muted>{children}</Muted>;
   return (
     <span className={styles.missing}>
@@ -149,7 +157,7 @@ function eventColumns(
     </SortHeading>
   );
   // Still to come and on Luma, so an owner is needed.
-  const needed = (event: StaffEvent) => event.startAt >= now && !event.removed;
+  const needed = (event: StaffEvent) => stillToCome(event.startAt, now) && !event.removed;
   return [
     {
       key: "start",

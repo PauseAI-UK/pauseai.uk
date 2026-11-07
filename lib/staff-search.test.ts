@@ -7,6 +7,7 @@ import {
   askFormSearch,
   staffBack,
   emailsSearch,
+  eventView,
   eventsSearch,
   letterId,
   mailingId,
@@ -223,6 +224,17 @@ describe("emailsSearch", () => {
   it("searches the addresses for what was typed, trimmed", () => {
     expect(emailsSearch({ q: " bob@ " })).toEqual({ q: " bob@ ", kind: "", filter: { search: "bob@" } });
     expect(emailsSearch({ q: "  " }).filter).toEqual({});
+  });
+});
+
+describe("eventView", () => {
+  it("is the grouping the URL asks for, if it's one, or else the table, as on the Past tab always", () => {
+    expect(eventView({ view: "owner" })).toBe("owner");
+    expect(eventView({ view: "tag", place: "London" } as Parameters<typeof eventView>[0])).toBe("tag");
+    expect(eventView({ view: ["tag", "owner"] })).toBe("tag");
+    expect(eventView({})).toBe("table");
+    expect(eventView({ view: "city" })).toBe("table");
+    expect(eventView({ when: "past", view: "owner" })).toBe("table");
   });
 });
 

@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SearchedEvent } from "@/lib/server/staff-events";
-import { EVENTS_PAGE_SIZE, findEvents, type EventFilter } from "./staff-events-list";
+import {
+  eventListColumns,
+  eventsByOwner,
+  eventsByTag,
+  EVENT_LIST_SHOWS,
+  EVENTS_PAGE_SIZE,
+  findEvents,
+  stillToCome,
+  type EventFilter,
+  type EventList,
+} from "./staff-events-list";
 
 const NOW = "2026-11-02T12:00:00.000Z";
 
@@ -129,5 +139,131 @@ describe("findEvents", () => {
     expect(second).toMatchObject({ total: EVENTS_PAGE_SIZE + 2, pages: 2 });
     expect(second.events.map((e) => e.id)).toEqual(["e100", "e101"]);
     expect(findEvents([], future(), NOW)).toEqual({ events: [], total: 0, pages: 1, removed: 0 });
+  });
+});
+
+describe("stillToCome", () => {
+  it("is so until the end of its day in London, and not after", () => {
+    expect(stillToCome("2026-11-02T09:00:00.000Z", "2026-11-02T23:59:59.000Z")).toBe(true);
+    expect(stillToCome("2026-11-02T09:00:00.000Z", "2026-11-03T00:00:00.000Z")).toBe(false);
+    expect(stillToCome("2026-11-03T09:00:00.000Z", "2026-11-02T12:00:00.000Z")).toBe(true);
+  });
+
+  it("ends at midnight by the clocks in summer, an hour before midnight UTC", () => {
+    expect(stillToCome("2026-07-01T09:00:00.000Z", "2026-07-01T22:59:59.000Z")).toBe(true);
+    expect(stillToCome("2026-07-01T09:00:00.000Z", "2026-07-01T23:00:00.000Z")).toBe(false);
+    // 00:30 on 2 July in London, though still 1 July in UTC, is that day's.
+    expect(stillToCome("2026-07-01T23:30:00.000Z", "2026-07-02T22:59:59.000Z")).toBe(true);
+  });
+
+  it("holds across the clocks going forward, on the day of 23 hours", () => {
+    expect(stillToCome("2026-03-28T23:30:00.000Z", "2026-03-28T23:59:59.000Z")).toBe(true);
+    expect(stillToCome("2026-03-28T23:30:00.000Z", "2026-03-29T00:00:00.000Z")).toBe(false);
+    expect(stillToCome("2026-03-29T22:30:00.000Z", "2026-03-29T22:59:59.000Z")).toBe(true);
+    expect(stillToCome("2026-03-29T22:30:00.000Z", "2026-03-29T23:00:00.000Z")).toBe(false);
+  });
+
+  it("holds across the clocks going back, on the day of 25 hours", () => {
+    expect(stillToCome("2026-10-24T22:30:00.000Z", "2026-10-24T22:59:59.000Z")).toBe(true);
+    expect(stillToCome("2026-10-24T22:30:00.000Z", "2026-10-24T23:00:00.000Z")).toBe(false);
+    expect(stillToCome("2026-10-25T00:30:00.000Z", "2026-10-25T23:59:59.000Z")).toBe(true);
+    expect(stillToCome("2026-10-25T00:30:00.000Z", "2026-10-26T00:00:00.000Z")).toBe(false);
+  });
+});
+
+describe("findEvents around today", () => {
+  const today = event("earlier-today", { startAt: "2026-11-02T09:00:00.000Z" });
+  const yesterday = event("yesterday", { startAt: "2026-11-01T23:30:00.000Z" });
+  const past = { ...future(), tab: "past" as const, sort: { key: "start" as const, dir: "desc" as const } };
+
+  it("keeps an event earlier today on Future, and yesterday's on Past", () => {
+    const found = (filter: EventFilter) => findEvents([today, yesterday], filter, NOW).events.map((e) => e.id);
+    expect(found(future())).toEqual(["earlier-today"]);
+    expect(found(past)).toEqual(["yesterday"]);
+  });
+
+  it("counts it among those held, as the dashboard's tile does, once it's begun", () => {
+    vi.stubEnv("FIXTURE_NOW", NOW);
+    const later = event("later-today", { startAt: "2026-11-02T18:00:00.000Z" });
+    const found = findEvents([today, later, yesterday], { ...past, heldDays: 7 }, NOW).events.map((e) => e.id);
+    expect(found).toEqual(["earlier-today", "yesterday"]);
+    vi.unstubAllEnvs();
+  });
+});
+
+describe("eventsByOwner", () => {
+  const titles = (lists: EventList[]) => lists.map((list) => [list.title, list.events.map((e) => e.id)]);
+
+  it("lists by the part of the address before its @, alphabetically, those with no owner first", () => {
+    const events = [
+      event("a", { owner: "sean@pauseai.uk" }),
+      event("b", { owner: "jo@pauseai.uk" }),
+      event("c", { owner: null }),
+      event("d", { owner: "sean@pauseai.uk" }),
+    ];
+    expect(titles(eventsByOwner(events))).toEqual([
+      ["No owner", ["c"]],
+      ["jo", ["b"]],
+      ["sean", ["a", "d"]],
+    ]);
+  });
+
+  it("has no list of those with no owner when there are none", () => {
+    expect(titles(eventsByOwner([event("a", { owner: "jo@pauseai.uk" })]))).toEqual([["jo", ["a"]]]);
+  });
+});
+
+describe("eventsByTag", () => {
+  const titles = (lists: EventList[]) => lists.map((list) => [list.title, list.events.map((e) => e.id)]);
+
+  it("lists an event under each of its tags: places in order, then Big events, Online and No tag", () => {
+    const events = [
+      event("untagged", { city: "Leeds", tags: [] }),
+      event("online", { city: null, tags: ["Online"] }),
+      event("big", { tags: ["Big events", "London"] }),
+      event("scotland-call", { city: null, tags: ["Online", "Scotland"] }),
+    ];
+    expect(titles(eventsByTag(events))).toEqual([
+      ["London", ["big"]],
+      ["Scotland", ["scotland-call"]],
+      ["Big events", ["big"]],
+      ["Online", ["online", "scotland-call"]],
+      ["No tag", ["untagged"]],
+    ]);
+  });
+
+  it("puts one with no tags under Online only if it has no city", () => {
+    expect(titles(eventsByTag([event("a", { city: null, tags: [] })]))).toEqual([["Online", ["a"]]]);
+    expect(titles(eventsByTag([event("a", { city: "Leeds", tags: [] })]))).toEqual([["No tag", ["a"]]]);
+  });
+});
+
+describe("eventListColumns", () => {
+  const list = (title: string, n: number): EventList => ({
+    title,
+    events: Array.from({ length: n }, (_, i) => event(`${title}-${i}`)),
+  });
+  const split = (...lists: EventList[]) => eventListColumns(lists).map((column) => column.map((one) => one.title));
+
+  it("runs down the first column then the second, split at about half the height", () => {
+    expect(split(list("a", 3), list("b", 3), list("c", 3), list("d", 3))).toEqual([
+      ["a", "b"],
+      ["c", "d"],
+    ]);
+  });
+
+  it("counts a long list only as far as it folds, as it's closed", () => {
+    const long = list("long", EVENT_LIST_SHOWS * 4);
+    expect(split(long, list("b", 3), list("c", 2))).toEqual([["long"], ["b", "c"]]);
+  });
+
+  it("keeps a list in the first column if that's nearer half than leaving it out", () => {
+    expect(split(list("a", 1), list("b", 3), list("c", 1))).toEqual([["a", "b"], ["c"]]);
+    expect(split(list("a", 5), list("b", 1), list("c", 1), list("d", 1))).toEqual([["a"], ["b", "c", "d"]]);
+  });
+
+  it("puts a single list in the first column, and none in either with none", () => {
+    expect(split(list("a", 2))).toEqual([["a"], []]);
+    expect(split()).toEqual([[], []]);
   });
 });

@@ -14,9 +14,14 @@ const PLACES_OF_TAGS: Readonly<Record<string, readonly string[]>> = {
   Scotland: ["Edinburgh", "Glasgow"],
 };
 
-/** The tag for events held online, and the tags that aren't places. */
-const ONLINE_TAG = "Online";
-const NOT_PLACES = [ONLINE_TAG, "Big events"];
+/**
+ * The tags that aren't places, by their names on our Luma calendar: renaming
+ * one there means renaming it here, or it's taken for a place. Online is for
+ * events held online, Big events a kind of event.
+ */
+export const ONLINE_TAG = "Online";
+export const BIG_EVENTS_TAG = "Big events";
+const NOT_PLACES = [ONLINE_TAG, BIG_EVENTS_TAG];
 
 /** An event as Luma gives it, for telling which tags it should have. */
 export type EventToTag = { name: string; city: string | null; region: string | null; locationType: string };
