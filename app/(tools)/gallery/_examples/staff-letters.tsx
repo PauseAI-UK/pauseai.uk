@@ -142,7 +142,7 @@ export const staffLetters: Group = {
         {
           label: "An automatic reply of four paragraphs, folded to its first",
           render: () => {
-            const reply = exampleAutoRepliedLetterDetails.sent!.messages[0];
+            const reply = exampleAutoRepliedLetterDetails.messages[0];
             return (
               <StaffPage as="div">
                 <MessageText text={reply.text!} quoted="" auto />

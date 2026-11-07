@@ -221,13 +221,10 @@ export type SupporterLetterDetails = LetterSummary & {
   gmail: GmailFind | null;
   /** Every forward of a reply to it, oldest first. */
   forwards: LetterForward[];
-  /**
-   * For one with its text kept: its text as sent, and the draft it was
-   * written from, if kept; then every
-   * message of its thread, oldest first. Null for others, whose text isn't
-   * kept.
-   */
-  sent: { text: string; draft: string | null; messages: ThreadMessage[] } | null;
+  /** For one with its text kept: its text as sent, and the draft it was written from, if kept. Null for others. */
+  sent: { text: string; draft: string | null } | null;
+  /** Every message kept of its thread, oldest first, whether or not its own text is. */
+  messages: ThreadMessage[];
 };
 
 /** One of PauseAI's letters, for its own page: to whom, at which address now, in which mailing, and what happened. */
@@ -359,23 +356,20 @@ export async function getSupporterLetter(id: number): Promise<SupporterLetterDet
     [id],
   );
   const sentDoc = checkDoc(doc);
+  const messages = await threadMessages(id);
   if (sentDoc) {
     // Kept here, and found in the mailbox it went from by the Message-ID it went with: the letters inbox, or for one the
     // import read, Joseph's.
-    const sent = {
-      text: toText(sentDoc),
-      draft,
-      messages: await threadMessages(id),
-    };
+    const sent = { text: toText(sentDoc), draft };
     const gmail = rfcId
       ? { mailbox: sentBy ?? lettersInbox() ?? null, search: messageIdSearch(rfcId) }
       : postmarkId
         ? policyCopy(postmarkId, mpEmail, letter.sentAt)
         : null;
-    return { ...letter, kind: "supporter", subject, mpEmail, campaignAsk, gmail, forwards, sent };
+    return { ...letter, kind: "supporter", subject, mpEmail, campaignAsk, gmail, forwards, sent, messages };
   }
   const gmail = policyCopy(postmarkId, mpEmail, letter.sentAt);
-  return { ...letter, kind: "supporter", subject, mpEmail, campaignAsk, gmail, forwards, sent: null };
+  return { ...letter, kind: "supporter", subject, mpEmail, campaignAsk, gmail, forwards, sent: null, messages };
 }
 
 /** A letter on an MP's page for staff without `supporters`: what happened to it, and nothing of who wrote it. */

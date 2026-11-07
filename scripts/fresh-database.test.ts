@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -122,6 +122,21 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         );
         expect(tables.length).toBeGreaterThan(15);
         for (const table of tables) expect(runSql(name, `SELECT count(*) FROM ${table}`), table).not.toEqual(["0"]);
+        // Each kept reply's message is there to read.
+        for (const key of runSql(name, "SELECT blob_key FROM letter_replies")) {
+          const file = key.replace(/^fixture\/(.+)\.gz$/, "$1");
+          expect(existsSync(join(process.cwd(), "tests/fixtures/letter-replies", file)), key).toBe(true);
+        }
+        // Every letter to Polly Placeholder that's replied to has its reply and its own text kept.
+        expect(
+          runSql(
+            name,
+            `SELECT l.id FROM letters l JOIN notable_people n ON n.id = l.notable_person_id
+               JOIN letters_from_supporters s ON s.id = l.id
+             WHERE n.airtable_id = 'recPlaceholder' AND l.replied_at IS NOT NULL
+               AND (s.letter IS NULL OR NOT EXISTS (SELECT 1 FROM letter_replies r WHERE r.letter_id = l.id AND r.at = l.replied_at))`,
+          ),
+        ).toEqual([]);
         // No two politicians share a name, so a list of them never shows the same row twice.
         expect(runSql(name, "SELECT name FROM notable_people GROUP BY name HAVING count(*) > 1")).toEqual([]);
         // One supporter per email, with nothing left unlinked, and every kind of supporter among them.

@@ -9,14 +9,37 @@ import {
   addTestPolitician,
   connectTestGmail,
   describeWithDatabase,
+  MAKES_DATABASES,
+  useDatabaseUpTo,
   useTestDatabase,
 } from "@/tests/database";
+import { migrate } from "@/scripts/db-migrate.mjs";
 import { stubLettersInboxEnv } from "@/tests/gmail-sends";
 import { sentToday } from "./gmail-accounts";
 import { query, transaction } from "./db";
 import { importOldLetters, jobProgress, pacer, politicianSearches } from "./old-letters-import";
 
 const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
+
+/** A kept message on a letter, automatic if `auto`, as a real reply unless it says otherwise. */
+async function keptMessage(
+  letter: number,
+  id: string,
+  at: string,
+  { supporter = false, us = false, auto = false }: { supporter?: boolean; us?: boolean; auto?: boolean } = {},
+) {
+  await query(
+    `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, at, from_us, from_supporter, blob_key, size)
+     VALUES ($1, 'policy@pauseai.uk', $2, $2, 'someone@example.org', $3, $4, $5, $2, 1)`,
+    [letter, id, at, us, supporter],
+  );
+  if (auto) {
+    await query("INSERT INTO letter_events (letter_id, status, details) VALUES ($1, 'auto_reply', $2)", [
+      letter,
+      JSON.stringify({ gmailMessageId: id }),
+    ]);
+  }
+}
 
 /** The fixture's politicians and letters, as the syncs copy them, at the moments the fake mailbox's mail went. */
 async function seed() {
@@ -300,6 +323,22 @@ describeWithDatabase("the import of old letters", () => {
       (await query<{ at: Date | null }>("SELECT replied_at AS at FROM letters WHERE id = $1", [id]))[0].at;
     expect(new Date((await replied(deepmind))!)).toEqual(new Date("2025-07-10T09:00:00Z"));
     expect(await replied(csrb)).toBeNull();
+  });
+
+  it("marks a letter replied to only from a real reply, not ours, a supporter's own or an automatic one", async () => {
+    const { csrb, debate, edinburgh, june } = await seed();
+    await keptMessage(csrb, "own", "2026-06-11T09:00:00Z", { supporter: true });
+    await keptMessage(debate, "machine", "2026-10-15T09:00:00Z", { auto: true });
+    await keptMessage(june, "ours", "2025-06-11T09:00:00Z", { us: true });
+    await keptMessage(edinburgh, "early-machine", "2026-10-01T11:00:00Z", { auto: true });
+    await keptMessage(edinburgh, "real", "2026-10-02T11:00:00Z");
+    await run();
+    const replied = async (id: number) =>
+      (await query<{ at: Date | null }>("SELECT replied_at AS at FROM letters WHERE id = $1", [id]))[0].at;
+    expect(await replied(csrb)).toBeNull();
+    expect(await replied(debate)).toBeNull();
+    expect(await replied(june)).toBeNull();
+    expect(new Date((await replied(edinburgh))!)).toEqual(new Date("2026-10-02T11:00:00Z"));
   });
 
   it("keeps every other thread as a one-off email, whole, threaded by what it answers", async () => {
@@ -985,4 +1024,47 @@ it("splits the politicians' own domains over searches short enough for Gmail", (
   expect(searches.length).toBeGreaterThan(1);
   for (const search of searches) expect(search.length).toBeLessThan(2500);
   for (const domain of domains.keys()) expect(searches.join(" ")).toContain(`to:${domain}`);
+});
+
+describeWithDatabase("migration 0088_replied_at_real_replies_only", MAKES_DATABASES, () => {
+  const db = useDatabaseUpTo("0087");
+
+  it("clears replied_at set from a supporter's own or an automatic message, and leaves the rest", async () => {
+    const polly = await addTestPolitician({ airtableId: null });
+    const AT = "2026-11-04T10:50:00Z";
+    const letter = async (repliedAt: string | null = AT) => {
+      const id = await addTestLetter({ politicianId: polly });
+      await query("UPDATE letters SET replied_at = $2 WHERE id = $1", [id, repliedAt]);
+      return id;
+    };
+    const own = await letter();
+    await keptMessage(own, "own", AT, { supporter: true });
+    const machine = await letter();
+    await keptMessage(machine, "machine", AT, { auto: true });
+    // Dated by a machine's message, but with a real reply later, so it was replied to.
+    const realLater = await letter();
+    await keptMessage(realLater, "early", AT, { auto: true });
+    await keptMessage(realLater, "real", "2026-11-05T10:50:00Z");
+    const real = await letter();
+    await keptMessage(real, "reply", AT);
+    // Nothing kept, as with replies from before messages were: only its events say so.
+    const nothingKept = await letter();
+    await query("INSERT INTO letter_events (letter_id, status, details) VALUES ($1, 'replied', '{}')", [nothingKept]);
+
+    expect(migrate(db.url, { appliedUpTo: "0087" })).toContain("0088_replied_at_real_replies_only");
+
+    const rows = await query<{ id: number; replied: boolean }>(
+      "SELECT id::int AS id, replied_at IS NOT NULL AS replied FROM letters ORDER BY id",
+    );
+    expect(Object.fromEntries(rows.map((row) => [row.id, row.replied]))).toEqual({
+      [own]: false,
+      [machine]: false,
+      [realLater]: true,
+      [real]: true,
+      [nothingKept]: true,
+    });
+    expect(
+      await query("SELECT 1 FROM letter_events WHERE letter_id = $1 AND status = 'auto_reply'", [machine]),
+    ).toHaveLength(1);
+  });
 });

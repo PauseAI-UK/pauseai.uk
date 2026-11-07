@@ -177,6 +177,24 @@ test("A letter's page", async ({ page, flowDatabase }) => {
   await frame(page, "The letter, answered");
 });
 
+test("A reply to a letter whose text isn't kept", async ({ page, flowDatabase }) => {
+  story("A letter from before its text was kept says so on its page. The MP's reply was kept, and shows under it.");
+  const id = await sentLetterId(page, flowDatabase, madeUpAddress("Jane Smith", 17));
+  runSql(
+    flowDatabase,
+    `UPDATE letters_from_supporters SET letter = NULL, draft = NULL, draft_approximate = NULL, own_words = NULL,
+       proxy_id = NULL, copy_state = NULL, postmark_mailbox = 'old-letter' WHERE id = ${id};
+     INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, subject, at,
+       from_us, blob_key, size)
+     VALUES (${id}, 'policy@pauseai.uk', 'reply-1', 'thread-1', 'mp90001.office@parliament.uk', 'Dora Dummy',
+       'Re: Please support a pause', '2026-10-16T15:00:00Z', false, 'fixture/dora-reply.eml.gz', 512)`,
+  );
+  await page.goto(`${BASE}/staff/letters/${id}`);
+  await expect(page.getByText(staffCopy.letterThread.supporterNoText)).toBeVisible();
+  await expect(page.getByText("I will raise this at the next opportunity.")).toBeVisible();
+  await frame(page, "The letter's page, with the reply");
+});
+
 test("A letter bounces", async ({ page, request, flowDatabase }) => {
   story(
     "Jane writes to an MP whose address bounces her letter. The address is blocked, and staff get an email with a link to the blocked emails.",

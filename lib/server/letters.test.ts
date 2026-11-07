@@ -392,21 +392,21 @@ describeWithDatabase("a letter for its page", () => {
     expect(letter.sent).toEqual({
       text: "Dear Mr McTestface,\n\nPlease back a pause.",
       draft: expect.stringContaining("Jane Smith"),
-      messages: [
-        expect.objectContaining({
-          fromAddress: "test-mp@parliament.example",
-          fromSupporter: false,
-          auto: false,
-          text: "Dear Jane,\n\nThank you for writing to me.",
-        }),
-      ],
     });
+    expect(letter.messages).toEqual([
+      expect.objectContaining({
+        fromAddress: "test-mp@parliament.example",
+        fromSupporter: false,
+        auto: false,
+        text: "Dear Jane,\n\nThank you for writing to me.",
+      }),
+    ]);
     // Noted as an automatic reply, it says so.
     await query(
       `UPDATE letter_events e SET status = 'auto_reply' FROM letter_replies r
        WHERE e.letter_id = r.letter_id AND e.status = 'replied' AND e.details->>'gmailMessageId' = r.gmail_message_id`,
     );
-    expect((await getSupporterLetter(id))!.sent!.messages).toMatchObject([{ auto: true }]);
+    expect((await getSupporterLetter(id))!.messages).toMatchObject([{ auto: true }]);
     // Where the letters inbox isn't set, in a mailbox we don't know.
     vi.stubEnv("LETTERS_INBOX", "");
     expect((await getSupporterLetter(id))!.gmail).toMatchObject({ mailbox: null });

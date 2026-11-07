@@ -126,7 +126,8 @@ type KeepReplyOptions = { raw?: Buffer; from?: { address: string; name: string }
  * Keeps a message in a letter's thread whole, and marks the letter replied
  * to if the politician wrote it. `from` is who wrote it, if the From says
  * otherwise; `raw` the message, if it's been read already; `fromUs` whether
- * it's one of ours, by default if it's from the account.
+ * it's one of ours, by default if it's from the account. A supporter's own
+ * message on their letter is kept as theirs, and doesn't mark it replied to.
  */
 export async function keepReply(
   account: string,
@@ -143,10 +144,16 @@ export async function keepReply(
   const at = new Date(Number(message.internalDate));
   const key = `${account}/${message.id}.eml.gz`;
   await saveLetterReply(key, gzipSync(raw));
+  const [supporter] = await query(
+    `SELECT 1 FROM letters_from_supporters s
+       LEFT JOIN form_entries f ON f.id = s.entry_id LEFT JOIN proxies p ON p.id = s.proxy_id
+     WHERE s.id = $1 AND $2 IN (lower(f.email), p.supporter_email)`,
+    [letterId, from.address],
+  );
   const [kept] = await query(
     `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address,
-       from_name, subject, at, from_us, blob_key, size)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       from_name, subject, at, from_us, blob_key, size, from_supporter)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
      ON CONFLICT (account, gmail_message_id) DO NOTHING RETURNING id`,
     [
       letterId,
@@ -161,10 +168,12 @@ export async function keepReply(
       fromUs,
       key,
       raw.length,
+      !!supporter,
     ],
   );
   if (!kept || fromUs) return;
-  await query("UPDATE letters SET replied_at = coalesce(replied_at, $2) WHERE id = $1", [letterId, at]);
+  // A supporter's own message on their letter isn't an answer to it.
+  if (!supporter) await query("UPDATE letters SET replied_at = coalesce(replied_at, $2) WHERE id = $1", [letterId, at]);
   await query("INSERT INTO letter_events (letter_id, at, status, details) VALUES ($1, $2, 'replied', $3)", [
     letterId,
     at,

@@ -445,6 +445,22 @@ INSERT INTO letter_events (letter_id, at, status, details) SELECT id, sent_at + 
 INSERT INTO letter_events (letter_id, at, status, details) SELECT id, sent_at + interval '1 minute', 'bounced', '{"type": "HardBounce", "description": "The address does not exist"}' FROM seed_letter_rows WHERE status = 'bounced';
 INSERT INTO letter_events (letter_id, at, status, details) SELECT id, sent_at + interval '3 hours', 'spam_complaint', '{"type": "SpamComplaint"}' FROM seed_letter_rows WHERE status = 'spam_complaint';
 
+-- Replies kept whole, as the letters inbox keeps them: Polly Placeholder's to
+-- her three answered letters, whose text is kept too; and Dora Dummy's to one
+-- from before letters' text was kept, which says it isn't. Another of those
+-- answered, Priya's, has its reply noted in its events and nothing kept.
+UPDATE letters_from_supporters SET letter = jsonb_build_object('type', 'doc', 'content', jsonb_build_array(
+  jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Dear Ms Placeholder,'))),
+  jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Please support this. It matters to me and to many people here.')))))
+WHERE postmark_mailbox IN ('seed-prev-omar', 'seed-week-sam', 'seed-week-grace');
+INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address, from_name,
+  subject, at, from_us, from_supporter, blob_key, size)
+SELECT r.id, 'fixture-letters@pauseai.uk', 'gmail-' || r.postmark_mailbox, 'thread-' || r.postmark_mailbox, r.postmark_mailbox || '-reply@parliament.example',
+  lower(n.email), n.name, 'Re: ' || s.subject, r.replied_at, false, false, 'fixture/' || f.file || '.eml.gz', 512
+FROM seed_letter_rows r JOIN letters_from_supporters s USING (id) JOIN notable_people n ON n.id = r.notable_person_id
+  JOIN (VALUES ('seed-prev-omar', 'polly-reply-bill'), ('seed-week-sam', 'polly-reply-sobel'), ('seed-week-grace', 'polly-reply-ai'), ('seed-prev-li', 'dora-reply'))
+    AS f (postmark_mailbox, file) ON f.postmark_mailbox = r.postmark_mailbox;
+
 -- Every email that went out, or didn't: the letters, two forwarded replies,
 -- staff login links, a bounce alert; one refused by a block, one that failed.
 INSERT INTO email_sends (at, purpose, letter_id, address, outcome, message_id)
