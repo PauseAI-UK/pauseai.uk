@@ -5,7 +5,7 @@ import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { toText } from "@/lib/letter-format";
 import { letterFor } from "@/lib/mailing-doc";
-import { named } from "@/lib/named-address";
+import { named } from "@/lib/email-parsing/addresses";
 import type { MessageCopy } from "@/lib/server/message-pages";
 import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, MESSAGE_SENDER, TEXT_SENDER_NAME } from "@/lib/supporter-messages";

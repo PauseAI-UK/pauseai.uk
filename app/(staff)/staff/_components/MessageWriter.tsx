@@ -23,7 +23,7 @@ import {
   NOT_CONDITION,
   type MailingDoc,
 } from "@/lib/mailing-doc";
-import { named } from "@/lib/named-address";
+import { named } from "@/lib/email-parsing/addresses";
 import type { ChannelResult } from "@/lib/server/mailing-channels";
 import type { MessageScheduleResult, MessageTemplate, WrittenMessage } from "@/lib/server/message-drafts";
 import type { MessagePreviewRecipient, MessageWriterData } from "@/lib/server/message-pages";
