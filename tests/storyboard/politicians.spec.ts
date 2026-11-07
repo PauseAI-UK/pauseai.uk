@@ -194,7 +194,7 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   await expect(rows).toHaveCount(2);
   await frame(page, "The personal connections");
 
-  story("Except this instead, in the chip's menu, turns it round: everyone but the personal connections.");
+  story("Except this, in the chip's menu, turns it round: everyone but the personal connections.");
   // A chip's menu turns its choice to one the list leaves out.
   await changeFilter(page, `${filters.flag}: ${filters.flags.connection}`, staffCopy.filters.exceptThis);
   await expect(page).toHaveURL(/flag=%21connection/);

@@ -127,9 +127,9 @@ test("An ask's pages", async ({ page, flowDatabase }) => {
   await expect(page.getByText(staffCopy.campaigns.politicians(12))).toBeVisible();
   await frame(page, "Those who declined");
 
-  story("Under the answers, a link leads to everyone who answered, on the politicians list.");
+  story("Under the answers, a link leads to everyone who answered, in office or not, on the politicians list.");
   await page.getByRole("link", { name: staffCopy.asks.page.everyone }).click();
-  await expect(page).toHaveURL(/\/staff\/politicians\?ask=our-letter/);
+  await expect(page).toHaveURL(/\/staff\/politicians\?ask=our-letter&status=any/);
   await frame(page, "Those who answered, on the politicians list");
 });
 

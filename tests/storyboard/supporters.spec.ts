@@ -150,7 +150,7 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
     expect.arrayContaining(["Dee Clined", "Fay Follower"]),
   );
   await frame(page, "Supporters not at the London March");
-  story("The filter's chip has a menu. Only this instead turns the filter round.");
+  story("The filter's chip has a menu. Only this turns the filter round.");
   await page.getByRole("button", { name: staffCopy.filters.notChip(copy.filters.event, march) }).click();
   await expect(
     page.locator("[popover]:popover-open").getByRole("link", { name: staffCopy.filters.onlyThis }),

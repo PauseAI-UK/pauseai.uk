@@ -244,7 +244,7 @@ describe("AskView", () => {
 
   it("gives a letter the months of its letters, or with none the month typed, and an event its day", async () => {
     const { rerender } = await render(<AskView ask={exampleAskPage} answer="" />);
-    await expect.element(link(words.everyone)).toHaveAttribute("href", `/staff/politicians?ask=${exampleAskPage.slug}`);
+    await expect.element(link(words.everyone)).toHaveAttribute("href", `/staff/politicians?ask=${exampleAskPage.slug}&status=any`);
     await says(words.when);
     await says("Jun–Nov 2026");
     await rerender(
@@ -309,7 +309,7 @@ describe("AskView", () => {
     await says(words.lastWrittenTo);
     await says(staffCopy.statuses.declined);
     await says("1 Oct 2026");
-    await expect.element(link(words.everyone)).toHaveAttribute("href", `/staff/politicians?ask=${exampleAskPage.slug}`);
+    await expect.element(link(words.everyone)).toHaveAttribute("href", `/staff/politicians?ask=${exampleAskPage.slug}&status=any`);
     // Those with no answer, and an answer nobody gave isn't a link.
     await rerender(
       <AskView
