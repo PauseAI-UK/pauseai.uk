@@ -696,7 +696,7 @@ export const staffCopy = {
       removed: "No longer in Airtable",
       test: "Test politician",
     } as Record<string, string>,
-    ask: "Ask",
+    ask: "Answered ask",
     // An answer to the ask chosen, in the second half of the ask's chip, its menu named after the ask. With no
     // ask, as a link from the dashboard can have it, its own chip.
     answer: "Answer",
