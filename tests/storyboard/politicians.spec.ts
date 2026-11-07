@@ -41,8 +41,8 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   // ControlAI's campaign statement and her answer to the conference, both from Airtable.
   await expect(asks.getByText(staffCopy.statuses.declined)).toBeVisible();
   await expect(asks.getByText(copy.fromImport.airtable).first()).toBeVisible();
-  // The conference's invitation, personalised.
-  await expect(page.getByText(copy.personalised, { exact: false }).first()).toBeVisible();
+  // The conference's invitation, personalised, in her folded history.
+  await expect(page.getByText(copy.personalised, { exact: false }).first()).toBeAttached();
   await frame(page, "Polly's page");
 });
 
