@@ -218,6 +218,9 @@ function busyCalendar(database: string) {
   );
 }
 
+/** The headings of the lists on the By owner or By tag tab, not the menu's. */
+const listHeadings = (page: Page) => page.locator("section:not(nav section) > h2");
+
 /** A list on the By owner or By tag tab, by its heading's words. */
 const eventList = (page: Page, title: string | RegExp) =>
   page.locator("section").filter({ has: page.getByRole("heading", { level: 2, name: title }) });
@@ -233,7 +236,7 @@ test("Events by owner", async ({ page, flowDatabase }) => {
   await expect(page).toHaveURL(`${BASE}/staff/events?view=owner`);
   const noOwner = eventList(page, new RegExp(`^${copy.noOwner}`));
   await expect(noOwner.getByRole("link", { name: "Oxford AI risk talk" })).toBeVisible();
-  await expect(page.getByRole("main").getByRole("heading", { level: 2 }).first()).toContainText(copy.noOwner);
+  await expect(listHeadings(page).first()).toContainText(copy.noOwner);
   await expect(page.getByRole("searchbox")).toHaveCount(0);
   await frame(page, "Every event to come, by owner");
 
@@ -274,7 +277,7 @@ test("Events by tag", async ({ page, flowDatabase }) => {
   await page.goto(`${BASE}/staff/events`);
   await page.getByRole("link", { name: copy.tabs.byTag }).click();
   await expect(page).toHaveURL(`${BASE}/staff/events?view=tag`);
-  const titles = await page.getByRole("main").getByRole("heading", { level: 2 }).allTextContents();
+  const titles = await listHeadings(page).allTextContents();
   expect(titles.map((title) => title.replace(/\d+$/, ""))).toEqual([
     "London",
     "Oxford",
