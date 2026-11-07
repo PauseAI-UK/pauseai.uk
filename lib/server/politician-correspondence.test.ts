@@ -77,7 +77,7 @@ describeWithDatabase("politicianMessages", () => {
       ["other", "vera@example.com", false],
       ["them", POLLY, true],
     ]);
-    expect(held).toMatchObject({ emailsToThem: 1, emailsFromThem: 2 });
+    expect(held).toMatchObject({ emailsToThem: 2, emailsFromThem: 1 });
   });
 
   it("gives staff without the permission no supporter's message, name or hidden thread, only the counts", async () => {

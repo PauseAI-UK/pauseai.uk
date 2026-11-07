@@ -140,11 +140,6 @@
 }
 
 /* Notes kept as they were written, a line each. */
-.notes {
-  margin: 0;
-  white-space: pre-line;
-}
-
 /* A row that has to be one element (a list's line, keyed). */
 .pair {
   display: contents;

@@ -32,7 +32,10 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return { title: politician.name };
 }
 
-export default async function PoliticianPage({ params }: Params) {
+export default async function PoliticianPage({
+  params,
+  searchParams,
+}: Params & { searchParams: Promise<{ correspondence?: string | string[] }> }) {
   const staff = await requireStaff();
   const { permissions } = staff;
   const politician = found(await getPolitician(found(politicianId((await params).id))));
@@ -60,6 +63,7 @@ export default async function PoliticianPage({ params }: Params) {
         pauseaiLetters={fromPauseai}
         oneOffs={oneOffs}
         messages={messages}
+        onlyReplies={(await searchParams).correspondence === "replies"}
         history={history}
         airtableTable={PARLIAMENTARIANS_TABLE_URL}
         notes={{

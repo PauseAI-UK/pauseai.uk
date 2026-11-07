@@ -1335,30 +1335,30 @@ All events: ${link}`,
     band: {
       // The asks they signed or are going to.
       asksAgreed: (n: number) => (n === 1 ? "ask agreed" : "asks agreed"),
-      emailsToThem: "⁂ emails to them",
-      emailsFromThem: "⁂ emails from them",
+      emailsToThem: "emails to them",
+      emailsFromThem: "emails from them",
     },
     // Their letters and threads, each with who wrote and when, a line of steps with arrows between.
     correspondence: {
       title: "Correspondence",
-      none: "⁂ No emails yet.",
+      none: "No emails yet.",
       wrote: (name: string, date: string) => `${name} wrote ${date}`,
       replied: (name: string, date: string) => `${name} replied ${date}`,
-      sent: (date: string) => `⁂ PauseAI sent ${date}`,
-      usReplied: (date: string) => `⁂ PauseAI replied ${date}`,
-      auto: (date: string) => `⁂ Automatic reply ${date}`,
+      sent: (date: string) => `PauseAI sent ${date}`,
+      usReplied: (date: string) => `PauseAI replied ${date}`,
+      auto: (date: string) => `Automatic reply ${date}`,
       // Who replied, when the message doesn't say.
-      office: "⁂ Their office",
+      office: "Their office",
       // At the end of the steps, when nothing's come back from them.
       noReply: "no reply",
       // Opens the rest of the threads, in place: how many there are in all.
-      all: (n: number) => `⁂ All ${n}`,
+      all: (n: number) => `All ${n}`,
     },
     // In the history, a one-off thread with someone else in it: who it's from, and its subject.
     emailFrom: (name: string) => `Email from ${name}`,
     // Under the history: edits to their record and their address blocked or unblocked, with who.
     recordTitle: "Changes to their record",
-    recordWho: "⁂ Who",
+    recordWho: "Who",
     historyTitle: "History",
     // A status set or cleared, in the history: around the ask's name.
     statusSet: (status: string) => ({ before: `${status} '`, after: "'" }),

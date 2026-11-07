@@ -13,7 +13,7 @@ import type { EmailBlock } from "@/lib/server/email";
 import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
 import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/server/letters";
 import type { Politician, PoliticianChange } from "@/lib/server/politicians";
-import { correspondenceThreads, type ThreadMessages } from "@/lib/politician-correspondence";
+import { correspondenceThreads, hasReply, type ThreadMessages } from "@/lib/politician-correspondence";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import styles from "./Details.module.css";
 import Band, { BandFact } from "./ui/Band";
@@ -25,7 +25,7 @@ import Withheld from "./ui/Withheld";
 import { NationShape, Rosette, StatusDot } from "./PoliticianIcons";
 import UnblockForm from "./UnblockForm";
 import NotesCard from "./NotesCard";
-import { NoteEntry, NoteText, type NotesProps } from "./Notes";
+import { NoteEntry, NoteFrom, type NotesProps } from "./Notes";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
@@ -273,6 +273,7 @@ function PoliticianBand({
               key: "asks",
               n: asksAgreed(politician.statuses),
               label: copy.band.asksAgreed(asksAgreed(politician.statuses)),
+              href: `/staff/politicians/${politician.id}#asks-title`,
             },
           ]}
         />
@@ -324,8 +325,8 @@ const changeColumns: ListColumn<PoliticianChange & { what: ReactNode }>[] = [
  * are (PoliticianBand); if their address is blocked, why, and a way to
  * unblock it; then their correspondence (PoliticianCorrespondence); and
  * beside it the card of their answer to each ask, with the button to change
- * one staff record, the card of staff's notes (NotesCard), and Airtable's
- * notes on them, which are changed there. Under those, folded as a
+ * one staff record, and the card of staff's notes (NotesCard), with Airtable's
+ * notes on them, which are changed there, as the last. Under those, folded as a
  * supporter's are, their history, newest first: the letters written to them,
  * the replies, PauseAI's emails, one-off threads, staff's notes and their
  * answers, the letters' senders only when it's given them; then what changed
@@ -344,6 +345,7 @@ export default function PoliticianDetails({
   history,
   airtableTable,
   notes,
+  onlyReplies = false,
 }: {
   politician: Politician;
   /** Every ask, by the asks table's order. */
@@ -365,6 +367,8 @@ export default function PoliticianDetails({
   airtableTable: string;
   /** Staff's notes on them, and what adding and changing them needs. */
   notes?: NotesProps;
+  /** Correspondence shows only the threads they've really replied on, as Emails from them leads to. */
+  onlyReplies?: boolean;
 }) {
   const entries: Entry[] = [
     ...letterEntries(letters),
@@ -431,13 +435,14 @@ export default function PoliticianDetails({
       key: "to-them",
       n: messages.emailsToThem,
       label: copy.band.emailsToThem,
-      href: `/staff/emails?to=${politician.id}&from=supporter&from=pauseai`,
+      href: `/staff/politicians/${politician.id}#correspondence-title`,
     },
     {
       key: "from-them",
       n: messages.emailsFromThem,
       label: copy.band.emailsFromThem,
-      href: `/staff/emails?to=${politician.id}&replied=yes`,
+      href: `/staff/politicians/${politician.id}${onlyReplies ? "" : "?correspondence=replies"}`,
+      current: onlyReplies,
     },
   ].filter((count) => count.n > 0);
   return (
@@ -481,24 +486,32 @@ export default function PoliticianDetails({
 
       <Grid>
         <Card span={4} title={copy.correspondence.title} id="correspondence-title">
-          <PoliticianCorrespondence threads={correspondenceThreads({ letters, pauseaiLetters, oneOffs, messages })} />
+          <PoliticianCorrespondence
+            threads={correspondenceThreads({ letters, pauseaiLetters, oneOffs, messages }).filter(
+              (thread) => !onlyReplies || hasReply(thread),
+            )}
+          />
         </Card>
         <Column span={2}>
           <Card look="aside" title={copy.statusesTitle} id="asks-title">
             <PoliticianAsks politician={politician} asks={asks} setStatus={setStatus} />
           </Card>
           <NotesCard politicianId={politician.id} writer={notes?.reader.email ?? ""} add={notes?.add}>
-            {(notes?.notes ?? []).map((note) => (
-              <li key={note.id}>
-                <NoteEntry note={note} {...notes!} />
-              </li>
-            ))}
+            {[
+              ...(notes?.notes ?? []).map((note) => (
+                <li key={note.id}>
+                  <NoteEntry note={note} {...notes!} />
+                </li>
+              )),
+              ...(politician.notes
+                ? [
+                    <li key="airtable">
+                      <NoteFrom body={politician.notes} source={copy.notes} />
+                    </li>,
+                  ]
+                : []),
+            ]}
           </NotesCard>
-          {politician.notes && (
-            <Card look="aside" title={copy.notes} id="airtable-notes-title">
-              <NoteText body={politician.notes} className={styles.notes} />
-            </Card>
-          )}
         </Column>
       </Grid>
       <div className={styles.foot}>

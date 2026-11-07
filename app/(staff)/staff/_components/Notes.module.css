@@ -24,6 +24,11 @@
   justify-items: start;
 }
 
+/* A note being written: room under the field for its focus ring, clear of the buttons. */
+.note:has(textarea) {
+  gap: var(--space-3);
+}
+
 /* As it was typed: its line breaks kept, a long address broken to fit. */
 .body {
   margin: 0;

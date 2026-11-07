@@ -1657,7 +1657,8 @@ describe("PoliticianDetails", () => {
     // Not PauseAI's emails: they're in the history.
     expect(page.getByRole("link", { name: /from PauseAI/ }).query()).toBeNull();
     // Airtable's notes keep their lines.
-    const airtable = page.getByRole("region", { name: staffCopy.politician.notes });
+    const airtable = page.getByRole("region", { name: staffCopy.notes.title });
+    await expect.element(airtable.getByText(staffCopy.politician.notes)).toBeVisible();
     expect(getComputedStyle(airtable.getByText(/example fair/).element()).whiteSpace).toBe("pre-line");
     await expect.element(page.getByRole("region", { name: staffCopy.politician.statusesTitle })).toBeVisible();
     await expect.element(page.getByText(staffCopy.politician.noHistory)).toBeVisible();
@@ -1672,7 +1673,7 @@ describe("PoliticianDetails", () => {
       />,
     );
     await expect.element(page.getByText(staffCopy.politician.personalConnection)).toBeVisible();
-    await expect.element(page.getByRole("region", { name: staffCopy.politician.notes })).not.toBeInTheDocument();
+    await expect.element(page.getByText(staffCopy.politician.notes)).not.toBeInTheDocument();
   });
 
   it("links their address, to write to them, and has no party, country or salutation for someone with none", async () => {
@@ -1719,7 +1720,7 @@ describe("PoliticianDetails", () => {
   it("drafts a note in a notes card with nothing in it yet", async () => {
     await render(
       <PoliticianDetails
-        politician={MP}
+        politician={{ ...MP, notes: "" }}
         unblock={vi.fn()}
         {...none}
         notes={{

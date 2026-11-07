@@ -21,7 +21,7 @@ type Message = { id: number; at: string; name: string; address: string; fromUs: 
  */
 export async function politicianMessages(id: number, permissions: readonly Permission[]): Promise<ThreadMessages> {
   const supporters = permissions.includes("supporters");
-  const [replies, oneOffs, [{ letters }], book, hidden] = await Promise.all([
+  const [replies, oneOffs, [{ letters }], book, hidden, subjects] = await Promise.all([
     query<Message & { fromSupporter: boolean; auto: boolean }>(
       `SELECT r.letter_id::int AS id, r.at, r.from_name AS name, r.from_address AS address, r.from_us AS "fromUs",
          r.from_supporter AS "fromSupporter",
@@ -43,16 +43,27 @@ export async function politicianMessages(id: number, permissions: readonly Permi
     ),
     politicianBook(),
     supporters ? ([] as number[]) : threadsWithSomeoneElse(),
+    query<{ id: number; subject: string }>(
+      `SELECT l.id::int AS id, coalesce(CASE WHEN $2 THEN s.subject END, m.subject, '') AS subject
+       FROM letters l LEFT JOIN letters_from_supporters s ON s.id = l.id
+         LEFT JOIN letters_from_pauseai p ON p.id = l.id LEFT JOIN mailings m ON m.id = p.mailing_id
+       WHERE l.notable_person_id = $1`,
+      [id, supporters],
+    ),
   ]);
   const office = (address: string) => politiciansOf(book, address).includes(id) || onParliamentDomain(address);
   const named = (message: Message) => message.name || message.address;
   const messages: ThreadMessages = {
     letters: {},
     oneOffs: {},
-    emailsToThem: letters + oneOffs.filter((message) => message.fromUs).length,
+    subjects: Object.fromEntries(subjects.map((letter) => [letter.id, letter.subject])),
+    // One-off messages from anyone but their office: people copy policy@ into theirs to them.
+    emailsToThem: letters + oneOffs.filter((message) => !office(message.address)).length,
     emailsFromThem:
       replies.filter((reply) => !reply.fromUs && !reply.fromSupporter && !reply.auto).length +
-      oneOffs.filter((message) => !message.fromUs && office(message.address)).length,
+      oneOffs.filter(
+        (message) => !message.fromUs && office(message.address) && !isMachineReply(() => undefined, message.subject),
+      ).length,
   };
   const add = (to: Record<number, ThreadStep[]>, at: number, step: ThreadStep) => {
     (to[at] ??= []).push(step);

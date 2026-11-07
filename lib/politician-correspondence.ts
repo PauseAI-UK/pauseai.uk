@@ -16,6 +16,8 @@ export type ThreadStep = {
 
 /** Each letter's and one-off thread's messages, oldest first, by ID, and roughly how many emails went each way. */
 export type ThreadMessages = {
+  /** Each letter's subject as sent, by its ID; blank where this staff member can't see it. */
+  subjects?: Record<number, string>;
   letters: Record<number, ThreadStep[]>;
   oneOffs: Record<number, ThreadStep[]>;
   emailsToThem: number;
@@ -82,12 +84,17 @@ function letterSteps(
     : steps;
 }
 
-function supporterThread(letter: LetterSummary | UnsignedLetter, senders: boolean, messages: ThreadStep[]) {
+function supporterThread(
+  letter: LetterSummary | UnsignedLetter,
+  senders: boolean,
+  messages: ThreadStep[],
+  subject?: string,
+) {
   const signed = senders ? (letter as LetterSummary) : null;
   return thread(
     {
       key: `letter-${letter.id}`,
-      title: letter.campaignTitle,
+      title: subject || letter.campaignTitle,
       href: signed && `/staff/letters/${letter.id}`,
       sender: signed && signed.senderName,
       status: signed ? null : letter.status,
@@ -98,11 +105,11 @@ function supporterThread(letter: LetterSummary | UnsignedLetter, senders: boolea
   );
 }
 
-function pauseaiThread(letter: PauseaiLetter, messages: ThreadStep[]) {
+function pauseaiThread(letter: PauseaiLetter, messages: ThreadStep[], subject?: string) {
   return thread(
     {
       key: `letter-${letter.id}`,
-      title: letter.mailing,
+      title: subject || letter.mailing,
       href: `/staff/mailings/${letter.mailingId}/letters/${letter.id}`,
       sender: null,
       status: null,
@@ -129,6 +136,11 @@ function oneOffThread(row: OneOffThreadRow, messages: ThreadStep[]) {
   );
 }
 
+/** Whether someone at their office really wrote on it, an automatic reply aside. */
+export function hasReply(thread: CorrespondenceThread): boolean {
+  return thread.steps.some((step) => step.who === "them" && !step.auto);
+}
+
 /** Every letter that went to them and every one-off thread of theirs, newest activity first. */
 export function correspondenceThreads({
   letters,
@@ -144,9 +156,11 @@ export function correspondenceThreads({
   const went = <T extends { status: string }>(list: readonly T[]) => list.filter((l) => !NEVER_WENT.includes(l.status));
   return [
     ...went<LetterSummary | UnsignedLetter>(letters.letters).map((letter) =>
-      supporterThread(letter, letters.senders, messages.letters[letter.id] ?? []),
+      supporterThread(letter, letters.senders, messages.letters[letter.id] ?? [], messages.subjects?.[letter.id]),
     ),
-    ...went(pauseaiLetters).map((letter) => pauseaiThread(letter, messages.letters[letter.id] ?? [])),
+    ...went(pauseaiLetters).map((letter) =>
+      pauseaiThread(letter, messages.letters[letter.id] ?? [], messages.subjects?.[letter.id]),
+    ),
     ...oneOffs.map((row) => oneOffThread(row, messages.oneOffs[row.id] ?? [])),
   ].sort((a, b) => b.at.localeCompare(a.at));
 }

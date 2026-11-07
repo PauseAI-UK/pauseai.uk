@@ -2,17 +2,18 @@
 .withheld {
   display: inline-flex;
   gap: var(--space-2);
-  align-items: flex-start;
+  align-items: baseline;
   color: var(--muted);
   font-style: italic;
 }
 
-/* Its bottom edge on the first line's baseline. */
+/* The box's foot is on the first line's baseline, so its words line up with the text beside them; the drawing, which stops short of that foot, moves down to meet it. */
 .envelope {
+  position: relative;
+  top: 0.234em;
   flex: none;
   width: 1.25em;
   height: 1.25em;
-  margin-top: 0.11em;
 }
 
 .seal {
