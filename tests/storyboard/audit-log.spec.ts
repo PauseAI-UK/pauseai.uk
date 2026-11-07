@@ -85,6 +85,8 @@ test("Filtering the audit log", { tag: "@phone" }, async ({ page, flowDatabase }
 
   story("Only the last week's, sorted by what they did.");
   await addFilter(page, copy.at, filters.lastDays(7));
+  // The sort's link carries the filters of the page it's on, so wait for the filtered page.
+  await expect(page.locator("tbody tr")).toHaveCount(3);
   await page.getByRole("table").getByRole("link", { name: copy.action }).click();
   await expect(page).toHaveURL(/sort=action/);
   await expect.poll(() => whoAndWhat(page)).toEqual([`${SAM} edit event`, `${JO} save filter`, `${SAM} save filter`]);
