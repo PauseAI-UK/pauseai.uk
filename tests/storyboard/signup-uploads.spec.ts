@@ -107,7 +107,8 @@ test("A spreadsheet's own export, with no event", async ({ page, flowDatabase })
   await frame(page, "All three imported");
 });
 
-test("A file with a column it won't guess at", async ({ page, flowDatabase }) => {
+test("A file with a column it won't guess at", async ({ page, flowDatabase, request }) => {
+  await importLuma(request, BASE);
   story(
     "A tab-separated file with a favourite colour. That column goes nowhere, and there's nothing to link to an event.",
   );

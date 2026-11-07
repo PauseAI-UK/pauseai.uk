@@ -167,6 +167,11 @@ describe("signupRows", () => {
     ]);
   });
 
+  it("takes a row cut short as blank in its missing cells, yes or no included", () => {
+    const [person] = rows("Name,Email,March,Mailing list\na,a@example.com", "March");
+    expect(person).toMatchObject({ mailingList: false, going: false, problem: null });
+  });
+
   it("drops an optional cell too long to be what it says", () => {
     const [person] = rows(`Name,Email,City,Postcode\na,a@example.com,${"x".repeat(101)},${"y".repeat(101)}`);
     expect(person).toMatchObject({ city: null, postcode: null, problem: null });

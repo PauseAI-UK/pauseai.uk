@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToString } from "react-dom/server";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { longDay } from "@/lib/calendar-days";
@@ -230,6 +231,13 @@ describe("SignupUploadPreview", () => {
   const store = () => sessionStorage.setItem(SIGNUP_UPLOAD_STORAGE, JSON.stringify(input));
   const button = () => page.getByRole("button", { name: words.importNow(3, 1) });
 
+  it("has nothing of the file on the server, only that it's working it out", () => {
+    store();
+    expect(renderToString(<SignupUploadPreview preview={vi.fn()} finish={vi.fn()} />)).toContain(
+      words.loading.replace("'", "&#x27;"),
+    );
+  });
+
   it("says there's no file, without asking the server", async () => {
     const preview = vi.fn();
     await render(<SignupUploadPreview preview={preview} finish={vi.fn()} />);
@@ -316,6 +324,10 @@ describe("SignupUploadResult", () => {
     ]) {
       await expect.element(page.getByText(said)).toBeVisible();
     }
+  });
+
+  it("titles the page with the file's name", () => {
+    expect(copy.result.title("flyering.csv")).toContain("flyering.csv");
   });
 
   it("says so when everyone's gone, with no event or note", async () => {

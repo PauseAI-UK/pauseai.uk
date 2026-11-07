@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -23,13 +23,33 @@ import {
   PoliticianDetailsExample,
   PoliticianTableEmptyExample,
   PoliticianTableExample,
+  SignupPlanViewExample,
+  SignupUploadPreviewExample,
 } from "./staff.client";
+import { SIGNUP_UPLOAD_STORAGE } from "@/lib/signup-upload";
+import { exampleSignupPlan } from "@/app/(staff)/staff/_components/SignupUpload.examples";
+
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", async (original) => ({
+  ...(await original<typeof import("next/navigation")>()),
+  useRouter: () => ({ push }),
+}));
 
 // The staff examples' Server Actions are logged, not sent: pressing each adds its line to the event log.
 const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listitem");
 const subject = () => page.getByLabelText(new RegExp(`^${staffCopy.mailingPages.subject}`));
 
 describe("the staff examples", () => {
+  it("previews and imports an upload, going to what it did", async () => {
+    await render(<SignupPlanViewExample />);
+    const importNow = staffCopy.signupUpload.preview.importNow(3, 1);
+    await page.getByRole("button", { name: importNow }).click();
+    sessionStorage.setItem(SIGNUP_UPLOAD_STORAGE, JSON.stringify(exampleSignupPlan.input));
+    await render(<SignupUploadPreviewExample />);
+    await page.getByRole("button", { name: importNow }).last().click();
+    await expect.poll(() => push.mock.calls).toEqual([["/staff/supporters/upload/6"]]);
+  });
+
   it("picks a mailing's hour, and logs Change the time's save", async () => {
     const { unmount } = await render(<DueTimeFieldsExample />);
     await page.getByRole("combobox").selectOptions("15");
