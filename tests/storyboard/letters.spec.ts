@@ -178,11 +178,16 @@ test("A letter's page", async ({ page, flowDatabase }) => {
 });
 
 test("A reply to a letter whose text isn't kept", async ({ page, flowDatabase }) => {
-  story(
-    "An older letter went before its text was kept, so its page says so. The MP's reply was kept, and shows under it.",
+  story("A letter from before its text was kept says so on its page. The MP's reply was kept, and shows under it.");
+  const id = await sentLetterId(page, flowDatabase, madeUpAddress("Jane Smith", 17));
+  runSql(
+    flowDatabase,
+    `UPDATE letters_from_supporters SET letter = NULL, draft = NULL WHERE id = ${id};
+     INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, subject, at,
+       from_us, blob_key, size)
+     VALUES (${id}, 'policy@pauseai.uk', 'reply-1', 'thread-1', 'mp90001.office@parliament.uk', 'Dora Dummy',
+       'Re: Please support a pause', '2026-10-16T15:00:00Z', false, 'fixture/dora-reply.eml.gz', 512)`,
   );
-  const id = runSql(flowDatabase, "SELECT id FROM letters_from_supporters WHERE postmark_mailbox = 'seed-prev-li'");
-  await logIn(page, flowDatabase, ["admin", "supporters"]);
   await page.goto(`${BASE}/staff/letters/${id}`);
   await expect(page.getByText(staffCopy.letterThread.supporterNoText)).toBeVisible();
   await expect(page.getByText("I will raise this at the next opportunity.")).toBeVisible();
