@@ -21,6 +21,7 @@ import Counts, { type Count } from "./ui/Counts";
 import Grid, { Card, Column } from "./ui/Grid";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import Strip from "./ui/Strip";
+import Tabs from "./ui/Tabs";
 import Withheld from "./ui/Withheld";
 import { NationShape, Rosette, StatusDot } from "./PoliticianIcons";
 import UnblockForm from "./UnblockForm";
@@ -312,7 +313,7 @@ function PoliticianBand({
   );
 }
 
-const NO_MESSAGES: ThreadMessages = { letters: {}, oneOffs: {}, emailsToThem: 0, emailsFromThem: 0 };
+const NO_MESSAGES: ThreadMessages = { subjects: {}, letters: {}, oneOffs: {}, emailsToThem: 0, emailsFromThem: 0 };
 
 const changeColumns: ListColumn<PoliticianChange & { what: ReactNode }>[] = [
   { key: "at", label: staffCopy.supporters.detail.held.columns.when, short: true, cell: (c) => staffTime(c.at) },
@@ -430,6 +431,7 @@ export default function PoliticianDetails({
         </>
       ),
     }));
+  const threads = correspondenceThreads({ letters, pauseaiLetters, oneOffs, messages });
   const emailCounts: Count[] = [
     {
       key: "to-them",
@@ -484,64 +486,86 @@ export default function PoliticianDetails({
         </section>
       )}
 
-      <Grid>
-        <Card span={4} title={copy.correspondence.title} id="correspondence-title">
-          <PoliticianCorrespondence
-            threads={correspondenceThreads({ letters, pauseaiLetters, oneOffs, messages }).filter(
-              (thread) => !onlyReplies || hasReply(thread),
-            )}
-          />
-        </Card>
-        <Column span={2}>
-          <Card look="aside" title={copy.statusesTitle} id="asks-title">
-            <PoliticianAsks politician={politician} asks={asks} setStatus={setStatus} />
+      <div className={styles.scrollRoom}>
+        <Grid>
+          <Card
+            span={4}
+            title={copy.correspondence.title}
+            id="correspondence-title"
+            action={
+              (onlyReplies || threads.some(hasReply)) && (
+                <Tabs
+                  label={copy.correspondence.title}
+                  current={onlyReplies ? "replies" : "all"}
+                  tabs={[
+                    {
+                      key: "all",
+                      label: copy.correspondence.allEmails,
+                      href: `/staff/politicians/${politician.id}#correspondence-title`,
+                    },
+                    {
+                      key: "replies",
+                      label: copy.correspondence.repliesOnly,
+                      href: `/staff/politicians/${politician.id}?correspondence=replies#correspondence-title`,
+                    },
+                  ]}
+                />
+              )
+            }
+          >
+            <PoliticianCorrespondence threads={onlyReplies ? threads.filter(hasReply) : threads} />
           </Card>
-          <NotesCard politicianId={politician.id} writer={notes?.reader.email ?? ""} add={notes?.add}>
-            {[
-              ...(notes?.notes ?? []).map((note) => (
-                <li key={note.id}>
-                  <NoteEntry note={note} {...notes!} />
-                </li>
-              )),
-              ...(politician.notes
-                ? [
-                    <li key="airtable">
-                      <NoteFrom body={politician.notes} source={copy.notes} />
-                    </li>,
-                  ]
-                : []),
-            ]}
-          </NotesCard>
-        </Column>
-      </Grid>
-      <div className={styles.foot}>
-        {entries.length === 0 ? (
-          <section aria-labelledby="history-title" className={styles.footRow}>
-            <h2 id="history-title">{copy.historyTitle}</h2> <span className={styles.none}>{copy.noHistory}</span>
-          </section>
-        ) : (
-          <details className={styles.footRow}>
-            <summary>
-              <h2 id="history-title">{copy.historyTitle}</h2> <span className={styles.count}>{entries.length}</span>
-            </summary>
-            <ol className={styles.history} aria-labelledby="history-title">
-              {entries.map((entry) => (
-                <li key={entry.key}>
-                  <span className={styles.when}>{entry.day ? staffDate(entry.at) : staffTime(entry.at)}</span>
-                  <div>{entry.what}</div>
-                </li>
-              ))}
-            </ol>
-          </details>
-        )}
-        {changes.length > 0 && (
-          <details className={styles.footRow}>
-            <summary>
-              <h2 id="record-changes">{copy.recordTitle}</h2> <span className={styles.count}>{changes.length}</span>
-            </summary>
-            <ListTable columns={changeColumns} rows={changes} rowKey={(change) => String(change.id)} />
-          </details>
-        )}
+          <Column span={2}>
+            <Card look="aside" title={copy.statusesTitle} id="asks-title">
+              <PoliticianAsks politician={politician} asks={asks} setStatus={setStatus} />
+            </Card>
+            <NotesCard politicianId={politician.id} writer={notes?.reader.email ?? ""} add={notes?.add}>
+              {[
+                ...(notes?.notes ?? []).map((note) => (
+                  <li key={note.id}>
+                    <NoteEntry note={note} {...notes!} />
+                  </li>
+                )),
+                ...(politician.notes
+                  ? [
+                      <li key="airtable">
+                        <NoteFrom body={politician.notes} source={copy.notes} />
+                      </li>,
+                    ]
+                  : []),
+              ]}
+            </NotesCard>
+          </Column>
+        </Grid>
+        <div className={styles.foot}>
+          {entries.length === 0 ? (
+            <section aria-labelledby="history-title" className={styles.footRow}>
+              <h2 id="history-title">{copy.historyTitle}</h2> <span className={styles.none}>{copy.noHistory}</span>
+            </section>
+          ) : (
+            <details className={styles.footRow}>
+              <summary>
+                <h2 id="history-title">{copy.historyTitle}</h2> <span className={styles.count}>{entries.length}</span>
+              </summary>
+              <ol className={styles.history} aria-labelledby="history-title">
+                {entries.map((entry) => (
+                  <li key={entry.key}>
+                    <span className={styles.when}>{entry.day ? staffDate(entry.at) : staffTime(entry.at)}</span>
+                    <div>{entry.what}</div>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )}
+          {changes.length > 0 && (
+            <details className={styles.footRow}>
+              <summary>
+                <h2 id="record-changes">{copy.recordTitle}</h2> <span className={styles.count}>{changes.length}</span>
+              </summary>
+              <ListTable columns={changeColumns} rows={changes} rowKey={(change) => String(change.id)} />
+            </details>
+          )}
+        </div>
       </div>
     </>
   );

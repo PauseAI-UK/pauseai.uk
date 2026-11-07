@@ -58,7 +58,7 @@ test("A note on a politician", async ({ page, request, flowDatabase }) => {
   // The card alone, as where focus leaves the window varies between runs.
   await frame(page, "The note, written", { of: notes });
   story(
-    "Once added, the note is the newest in the card, and the web address in it is a link. Airtable's notes on her stay where they were, under it.",
+    "Once added, the note is the newest in the card, and the web address in it is a link. Airtable's notes on her stay last.",
   );
   await notes.getByRole("button", { name: staffCopy.notes.add }).click();
   const note = notes.getByRole("listitem").filter({ hasText: "Her office says" });
@@ -66,8 +66,9 @@ test("A note on a politician", async ({ page, request, flowDatabase }) => {
     "href",
     "https://www.example.org/contact",
   );
-  // Airtable's notes stay in their own card, the sync's to change.
-  await expect(page.getByRole("region", { name: copy.notes })).toContainText("Met at the example fair.");
+  // Airtable's notes stay as the last, the sync's to change.
+  await expect(notes.getByRole("listitem").last()).toContainText("Met at the example fair.");
+  await expect(notes.getByRole("listitem").last()).toContainText(copy.notes);
   await frame(page, "The note in Polly's notes", { of: notes });
 });
 

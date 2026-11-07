@@ -1353,6 +1353,9 @@ All events: ${link}`,
       noReply: "no reply",
       // Opens the rest of the threads, in place: how many there are in all.
       all: (n: number) => `All ${n}`,
+      // The switch at the card's top right: every thread, or those they've really replied on.
+      allEmails: "All emails",
+      repliesOnly: "Replies only",
     },
     // In the history, a one-off thread with someone else in it: who it's from, and its subject.
     emailFrom: (name: string) => `Email from ${name}`,
@@ -2194,7 +2197,7 @@ All events: ${link}`,
     repliedChoices: { yes: "Any time", no: "No reply" },
     // What a row is about, and after it, plain, which kind of thing that is.
     topic: "Topic",
-    topicKinds: { campaign: "campaign", mailing: "mailing", subject: "subject" },
+    topicKinds: { campaign: "campaign", mailing: "mailing", oneOff: "one-off" },
     noneFound: "No emails found.",
   },
   letters: {

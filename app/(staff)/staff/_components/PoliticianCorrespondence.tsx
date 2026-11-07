@@ -40,7 +40,8 @@ function Thread({ thread }: { thread: CorrespondenceThread }) {
     thread.title === null ? <Withheld>{staffCopy.oneOff.hidden}</Withheld> : thread.title || staffCopy.oneOff.noSubject;
   return (
     <li>
-      {thread.href ? <StaffLink href={thread.href}>{title}</StaffLink> : title}
+      {thread.href ? <StaffLink href={thread.href}>{title}</StaffLink> : title}{" "}
+      <Tag>{staffCopy.allLetters.topicKinds[thread.kind]}</Tag>
       {thread.status && <Muted> · {staffCopy.letters.status[thread.status] ?? thread.status}</Muted>}
       {(thread.ownWords ?? 0) >= OWN_WORDS_WORTH_MARKING && (
         <span className={styles.ownWords}>

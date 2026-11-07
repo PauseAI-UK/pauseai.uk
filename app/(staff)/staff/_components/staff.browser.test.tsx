@@ -1650,7 +1650,7 @@ describe("PoliticianDetails", () => {
     expect(document.querySelectorAll("dd svg[aria-hidden]")).toHaveLength(2);
     // No emails either way, so only the asks agreed: MP signed one.
     const counts = document.querySelector("[class*=counts]")!;
-    expect(counts.querySelector("a")).toBeNull();
+    expect(counts.querySelector("a")?.getAttribute("href")).toBe(`/staff/politicians/${MP.id}#asks-title`);
     expect([...counts.children].map((count) => count.textContent)).toEqual([
       `1 ${staffCopy.politician.band.asksAgreed(1)}`,
     ]);
@@ -1797,6 +1797,7 @@ describe("PoliticianDetails", () => {
 
   describe("their correspondence", () => {
     const words = staffCopy.politician.correspondence;
+    const kinds = staffCopy.allLetters.topicKinds;
     const region = () => page.getByRole("region", { name: words.title });
     const step = (at: string, who: ThreadStep["who"], fields: Partial<ThreadStep> = {}): ThreadStep => ({
       at,
@@ -1806,6 +1807,7 @@ describe("PoliticianDetails", () => {
       ...fields,
     });
     const messages = (fields: Partial<ThreadMessages> = {}): ThreadMessages => ({
+      subjects: {},
       letters: {},
       oneOffs: {},
       emailsToThem: 0,
@@ -1861,7 +1863,7 @@ describe("PoliticianDetails", () => {
       const items = region().getByRole("listitem");
       expect(items.nth(0).element().textContent).toBe(
         [
-          `${pm.title}${staffCopy.letters.columns.ownWords} ${staffCopy.letters.ownWords(0.14)}`,
+          `${pm.title} ${kinds.campaign}${staffCopy.letters.columns.ownWords} ${staffCopy.letters.ownWords(0.14)}`,
           words.wrote("Jane Smith", "13 Oct 2026"),
           words.auto("13 Oct 2026"),
           words.replied("Polly Placeholder", "14 Oct 2026"),
@@ -1875,10 +1877,12 @@ describe("PoliticianDetails", () => {
       const auto = items.nth(0).getByText(words.auto("13 Oct 2026"));
       expect(getComputedStyle(reply.element()).fontWeight).toBe("600");
       expect(getComputedStyle(auto.element()).fontWeight).not.toBe("600");
-      expect(items.nth(1).element().textContent).toBe(`Example Mailing${words.sent("2 Sept 2026")}${words.noReply}`);
+      expect(items.nth(1).element().textContent).toBe(
+        `Example Mailing ${kinds.mailing}${words.sent("2 Sept 2026")}${words.noReply}`,
+      );
       await expect.element(items.nth(1).getByRole("link")).toHaveAttribute("href", "/staff/mailings/3/letters/22");
       expect(items.nth(2).element().textContent).toBe(
-        `${staffCopy.oneOff.noSubject}${words.sent("4 Aug 2026")}${words.replied("Polly", "5 Aug 2026")}`,
+        `${staffCopy.oneOff.noSubject} ${kinds.oneOff}${words.sent("4 Aug 2026")}${words.replied("Polly", "5 Aug 2026")}`,
       );
     });
 
@@ -1887,6 +1891,7 @@ describe("PoliticianDetails", () => {
         <PoliticianCorrespondence
           threads={Array.from({ length: 10 }, (_, i) => ({
             key: `t${i}`,
+            kind: "oneOff" as const,
             title: `Thread ${i}`,
             href: `/staff/one-off/${i}`,
             at: "2020-10-13T08:00:00.000Z",
@@ -1926,10 +1931,70 @@ describe("PoliticianDetails", () => {
       );
       await expect
         .element(page.getByRole("link", { name: `3 ${staffCopy.politician.band.emailsToThem}` }))
-        .toHaveAttribute("href", `/staff/emails?to=${MP.id}&from=supporter&from=pauseai`);
+        .toHaveAttribute("href", `/staff/politicians/${MP.id}#correspondence-title`);
       await expect
         .element(page.getByRole("link", { name: `2 ${staffCopy.politician.band.emailsFromThem}` }))
-        .toHaveAttribute("href", `/staff/emails?to=${MP.id}&replied=yes`);
+        .toHaveAttribute("href", `/staff/politicians/${MP.id}?correspondence=replies`);
+      await expect
+        .element(page.getByRole("link", { name: `1 ${staffCopy.politician.band.asksAgreed(1)}` }))
+        .toHaveAttribute("href", `/staff/politicians/${MP.id}#asks-title`);
+    });
+
+    it("shows only the threads they've replied on, from Emails from them, which then leads back", async () => {
+      const props = {
+        ...none,
+        politician: MP,
+        unblock: vi.fn(),
+        letters: { senders: true as const, letters: [letter, { ...letter, id: 26 }] },
+        messages: messages({
+          emailsFromThem: 1,
+          subjects: { 21: "Answered one", 26: "Unanswered one" },
+          letters: { 21: [step("2026-10-13T08:00:00Z", "supporter"), step("2026-10-14T09:00:00Z", "them")] },
+        }),
+      };
+      const { rerender } = await render(<PoliticianDetails {...props} />);
+      const tile = page.getByRole("link", { name: `1 ${staffCopy.politician.band.emailsFromThem}` });
+      await expect.element(region().getByRole("link", { name: "Unanswered one" })).toBeVisible();
+      expect(tile.element().getAttribute("aria-current")).toBeNull();
+      await rerender(<PoliticianDetails {...props} onlyReplies />);
+      await expect.element(region().getByRole("link", { name: "Answered one" })).toBeVisible();
+      expect(region().getByRole("link", { name: "Unanswered one" }).query()).toBeNull();
+      await expect.element(tile).toHaveAttribute("aria-current", "true");
+      await expect.element(tile).toHaveAttribute("href", `/staff/politicians/${MP.id}`);
+    });
+
+    it("has a switch for replies only once they've replied on something, or it's on", async () => {
+      const props = {
+        ...none,
+        politician: MP,
+        unblock: vi.fn(),
+        letters: { senders: true as const, letters: [letter] },
+      };
+      const replied = messages({
+        letters: { 21: [step("2026-10-13T08:00:00Z", "supporter"), step("2026-10-14T09:00:00Z", "them")] },
+      });
+      const all = page.getByRole("link", { name: words.allEmails });
+      const replies = page.getByRole("link", { name: words.repliesOnly });
+      const { rerender } = await render(<PoliticianDetails {...props} />);
+      await expect.element(region()).toBeVisible();
+      expect(replies.query()).toBeNull();
+      await rerender(<PoliticianDetails {...props} messages={replied} />);
+      await expect.element(all).toHaveAttribute("aria-current", "page");
+      await expect.element(all).toHaveAttribute("href", `/staff/politicians/${MP.id}#correspondence-title`);
+      await expect
+        .element(replies)
+        .toHaveAttribute("href", `/staff/politicians/${MP.id}?correspondence=replies#correspondence-title`);
+      await rerender(<PoliticianDetails {...props} onlyReplies />);
+      await expect.element(replies).toHaveAttribute("aria-current", "page");
+      expect(all.element().getAttribute("aria-current")).toBeNull();
+      await expect.element(region().getByText(words.none)).toBeVisible();
+    });
+
+    it("tags a thread that's hidden too, after its sealed words", async () => {
+      await render(<PoliticianDetails {...none} politician={MP} unblock={vi.fn()} oneOffs={[exampleHiddenOneOff]} />);
+      expect(region().getByRole("listitem").first().element().textContent).toContain(
+        `${staffCopy.oneOff.hidden} ${kinds.oneOff}`,
+      );
     });
 
     it("names someone else's thread in the history for staff with the permission", async () => {
@@ -2002,12 +2067,12 @@ describe("PoliticianDetails", () => {
       );
       const items = region().getByRole("listitem");
       const sealed = staffCopy.politician.history.unsignedLetter;
-      expect(items.first().element().textContent).toContain(`${pm.title} · made-up`);
+      expect(items.first().element().textContent).toContain(`${pm.title} ${kinds.campaign} · made-up`);
       expect(items.first().element().textContent).toContain(`${sealed} 13 Oct 2026`);
       expect(items.first().element().textContent).toContain(words.replied("Polly", "14 Oct 2026"));
       expect(items.nth(1).element().textContent).toContain(staffCopy.letters.status.sent);
       await expect.element(region().getByText(staffCopy.oneOff.hidden)).toBeVisible();
-      expect(region().element().querySelector("a")).toBeNull();
+      expect(region().element().querySelector("li a")).toBeNull();
     });
   });
 

@@ -206,6 +206,7 @@ const exampleThreads = (count = 3) =>
     ],
     oneOffs: [],
     messages: {
+      subjects: {},
       letters: {
         100: [{ at: exampleLetter.createdAt, who: "them", name: "Polly Placeholder", auto: false }],
         101: [{ at: exampleLetter.createdAt, who: "them", name: null, auto: true }],

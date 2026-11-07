@@ -101,6 +101,24 @@ describeWithDatabase("politicianMessages", () => {
     expect(held.emailsFromThem).toBe(3);
   });
 
+  it("gives a letter's subject to those who may see it, and a mailing's to anyone", async () => {
+    const polly = await addTestPolitician();
+    const letter = await addTestLetter({ politicianId: polly, subject: "Please support this" });
+    const [{ mailing }] = await query<{ mailing: number }>(
+      "INSERT INTO mailings (title, subject, airtable_field, audience, channel, state) VALUES ('A mailing', 'Our invitation', 'March', 'politicians', 'email', 'sent') RETURNING id::int AS mailing",
+    );
+    const [{ sent }] = await query<{ sent: number }>(
+      "INSERT INTO letters (notable_person_id, status, kind) VALUES ($1, 'sent', 'pauseai') RETURNING id::int AS sent",
+      [polly],
+    );
+    await query("INSERT INTO letters_from_pauseai (id, kind, mailing_id) VALUES ($1, 'pauseai', $2)", [sent, mailing]);
+    expect((await politicianMessages(polly, ["supporters"])).subjects).toEqual({
+      [letter]: "Please support this",
+      [sent]: "Our invitation",
+    });
+    expect((await politicianMessages(polly, [])).subjects).toEqual({ [letter]: "", [sent]: "Our invitation" });
+  });
+
   it("gives a nameless letter reply no name for those with the permission", async () => {
     const polly = await addTestPolitician();
     const letter = await addTestLetter({ politicianId: polly });

@@ -17,7 +17,7 @@ export type ThreadStep = {
 /** Each letter's and one-off thread's messages, oldest first, by ID, and roughly how many emails went each way. */
 export type ThreadMessages = {
   /** Each letter's subject as sent, by its ID; blank where this staff member can't see it. */
-  subjects?: Record<number, string>;
+  subjects: Record<number, string>;
   letters: Record<number, ThreadStep[]>;
   oneOffs: Record<number, ThreadStep[]>;
   emailsToThem: number;
@@ -27,6 +27,7 @@ export type ThreadMessages = {
 /** A letter or a one-off thread: a null `title` is a thread this reader can't see, and a null `href` one they can't open. */
 export type CorrespondenceThread = {
   key: string;
+  kind: "campaign" | "mailing" | "oneOff";
   title: string | null;
   href: string | null;
   /** When anything last happened on it. */
@@ -88,12 +89,13 @@ function supporterThread(
   letter: LetterSummary | UnsignedLetter,
   senders: boolean,
   messages: ThreadStep[],
-  subject?: string,
+  subject: string | undefined,
 ) {
   const signed = senders ? (letter as LetterSummary) : null;
   return thread(
     {
       key: `letter-${letter.id}`,
+      kind: "campaign",
       title: subject || letter.campaignTitle,
       href: signed && `/staff/letters/${letter.id}`,
       sender: signed && signed.senderName,
@@ -105,10 +107,11 @@ function supporterThread(
   );
 }
 
-function pauseaiThread(letter: PauseaiLetter, messages: ThreadStep[], subject?: string) {
+function pauseaiThread(letter: PauseaiLetter, messages: ThreadStep[], subject: string | undefined) {
   return thread(
     {
       key: `letter-${letter.id}`,
+      kind: "mailing",
       title: subject || letter.mailing,
       href: `/staff/mailings/${letter.mailingId}/letters/${letter.id}`,
       sender: null,
@@ -124,6 +127,7 @@ function oneOffThread(row: OneOffThreadRow, messages: ThreadStep[]) {
   return thread(
     {
       key: `one-off-${row.id}`,
+      kind: "oneOff",
       title: row.subject,
       href: row.subject === null ? null : `/staff/one-off/${row.id}`,
       sender: null,
@@ -156,10 +160,10 @@ export function correspondenceThreads({
   const went = <T extends { status: string }>(list: readonly T[]) => list.filter((l) => !NEVER_WENT.includes(l.status));
   return [
     ...went<LetterSummary | UnsignedLetter>(letters.letters).map((letter) =>
-      supporterThread(letter, letters.senders, messages.letters[letter.id] ?? [], messages.subjects?.[letter.id]),
+      supporterThread(letter, letters.senders, messages.letters[letter.id] ?? [], messages.subjects[letter.id]),
     ),
     ...went(pauseaiLetters).map((letter) =>
-      pauseaiThread(letter, messages.letters[letter.id] ?? [], messages.subjects?.[letter.id]),
+      pauseaiThread(letter, messages.letters[letter.id] ?? [], messages.subjects[letter.id]),
     ),
     ...oneOffs.map((row) => oneOffThread(row, messages.oneOffs[row.id] ?? [])),
   ].sort((a, b) => b.at.localeCompare(a.at));

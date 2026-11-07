@@ -134,7 +134,7 @@ function Topic({ letter }: { letter: AnyLetter }) {
     if (!letter.subject) return staffCopy.oneOff.noSubject;
     return (
       <>
-        {letter.subject} <Tag>{copy.topicKinds.subject}</Tag>
+        {letter.subject} <Tag>{copy.topicKinds.oneOff}</Tag>
       </>
     );
   }

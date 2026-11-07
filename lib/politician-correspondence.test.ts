@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LetterSummary, PauseaiLetter, UnsignedLetter } from "@/lib/server/letters";
 import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
-import { correspondenceThreads, type ThreadMessages, type ThreadStep } from "./politician-correspondence";
+import { correspondenceThreads, hasReply, type ThreadMessages, type ThreadStep } from "./politician-correspondence";
 
 const at = (day: number) => `2026-10-${String(day).padStart(2, "0")}T09:00:00.000Z`;
 const step = (day: number, who: ThreadStep["who"], fields: Partial<ThreadStep> = {}): ThreadStep => ({
@@ -12,6 +12,7 @@ const step = (day: number, who: ThreadStep["who"], fields: Partial<ThreadStep> =
   ...fields,
 });
 const messages = (fields: Partial<ThreadMessages> = {}): ThreadMessages => ({
+  subjects: {},
   letters: {},
   oneOffs: {},
   emailsToThem: 0,
@@ -82,6 +83,29 @@ describe("correspondenceThreads", () => {
       ["letter-3", "/staff/mailings/9/letters/3", at(3)],
     ]);
     expect(list[0]).toMatchObject({ sender: "Jane Smith", status: null, ownWords: 0.2, noReply: false });
+  });
+
+  it("says what kind each is, titled by a letter's subject where it has one, else its campaign's or mailing's", () => {
+    const list = threads({
+      letters: [signed(), signed({ id: 5 })],
+      pauseaiLetters: [pauseai, { ...pauseai, id: 6 }],
+      oneOffs: [oneOff()],
+      kept: messages({ subjects: { 1: "Please support this", 3: "Our invitation", 5: "", 6: "" } }),
+    });
+    expect(Object.fromEntries(list.map(({ key, kind, title }) => [key, [kind, title]]))).toEqual({
+      "letter-1": ["campaign", "Please support this"],
+      "letter-5": ["campaign", "Email your MP"],
+      "letter-3": ["mailing", "Our invitation"],
+      "letter-6": ["mailing", "Example Mailing"],
+      "one-off-4": ["oneOff", "Coffee?"],
+    });
+  });
+
+  it("says whether someone at their office really wrote, an automatic reply aside", () => {
+    const [none, auto, real] = [[], [step(5, "them", { auto: true })], [step(5, "them")]].map(
+      (steps) => threads({ oneOffs: [oneOff()], kept: messages({ oneOffs: { 4: steps } }) })[0],
+    );
+    expect([none, auto, real].map(hasReply)).toEqual([false, false, true]);
   });
 
   it("starts a letter with its own step when no kept message is it", () => {

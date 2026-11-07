@@ -81,7 +81,7 @@ describe("AllLetters", () => {
     expect(rows.nth(1).element().textContent).toContain(copy.topicKinds.campaign);
     const pauseai = rows.nth(2).element().textContent;
     expect(pauseai).toContain(copy.topicKinds.mailing);
-    expect(rows.nth(3).element().textContent).toContain(copy.topicKinds.subject);
+    expect(rows.nth(3).element().textContent).toContain(copy.topicKinds.oneOff);
     expect(link(copy.topicKinds.mailing).query()).toBeNull();
     expect(pauseai).toContain(staffCopy.letters.fromPauseai);
     // A status with no words of its own shows as stored; nothing sent or replied, a dash.

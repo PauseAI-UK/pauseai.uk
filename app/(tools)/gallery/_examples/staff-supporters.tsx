@@ -2,6 +2,7 @@
 // supporter's details, notes and erasure, on fake supporters.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
+import { NoteFrom } from "@/app/(staff)/staff/_components/Notes";
 import EraseLink from "@/app/(staff)/staff/_components/EraseLink";
 import ErasedNotice from "@/app/(staff)/staff/_components/ErasedNotice";
 import SupporterBadges from "@/app/(staff)/staff/_components/SupporterBadges";
@@ -323,6 +324,18 @@ export const staffSupporters: Group = {
       variants: [
         { label: "Its writer's: Edit, which opens Save, Cancel and Delete", render: () => <NoteChangesExample /> },
         { label: "An admin's, on someone else's: Delete alone", render: () => <NoteChangesExample editable={false} /> },
+      ],
+    },
+    {
+      name: "NoteFrom",
+      file: "app/(staff)/staff/_components/Notes.tsx",
+      variants: [
+        {
+          label: "A note kept somewhere else: its text, then where it's from",
+          render: () => (
+            <NoteFrom body={"Met at the example fair.\nRecommended by the local group."} source="Notes from Airtable" />
+          ),
+        },
       ],
     },
     {

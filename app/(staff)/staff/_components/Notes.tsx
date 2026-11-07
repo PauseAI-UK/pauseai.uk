@@ -24,7 +24,6 @@ export type NotesProps = {
   remove: Change;
 };
 
-/** A note's text, its line breaks kept and each address in it a link, opening in a new tab. */
 /** A note kept somewhere else, so with no way to change it: its text, then where it's from. */
 export function NoteFrom({ body, source }: { body: string; source: string }) {
   return (
@@ -37,6 +36,7 @@ export function NoteFrom({ body, source }: { body: string; source: string }) {
   );
 }
 
+/** A note's text, its line breaks kept and each address in it a link, opening in a new tab. */
 export function NoteText({ body, className }: { body: string; className?: string }) {
   return (
     <p className={className ?? styles.body}>
