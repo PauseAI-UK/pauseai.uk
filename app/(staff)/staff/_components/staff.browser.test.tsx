@@ -1995,7 +1995,7 @@ describe("PoliticianDetails", () => {
               },
             ],
           }}
-          oneOffs={[exampleHiddenOneOff]}
+          oneOffs={[{ ...exampleHiddenOneOff, latestAt: "2026-01-01T08:00:00Z" }]}
           messages={messages({ letters: { 21: [step("2026-10-14T09:00:00Z", "them", { name: "Polly" })] } })}
         />,
       );
@@ -2168,14 +2168,14 @@ describe("PoliticianDetails", () => {
       .element(historyList.getByRole("link", { name: ask("frontier-ai-letter").title }))
       .toHaveAttribute("href", "/staff/asks/frontier-ai-letter");
     await expect
-      .element(page.getByRole("link", { name: "Example Mailing" }).first())
+      .element(historyList.getByRole("link", { name: "Example Mailing" }).first())
       .toHaveAttribute("href", "/staff/mailings/3");
     await expect
       .element(page.getByRole("link", { name: "polly@example.org" }))
       .toHaveAttribute("href", "/staff/politicians/blocked-emails?q=polly%40example.org");
     // Each letter's status leads to it alone on the letters page.
     await expect
-      .element(page.getByRole("link", { name: staffCopy.mailingPages.theLetter }).nth(1))
+      .element(historyList.getByRole("link", { name: staffCopy.mailingPages.theLetter }).nth(2))
       .toHaveAttribute("href", `/staff/letters/${exampleLetter.id}`);
     // Each campaign it names leads to its page here.
     const list = page.getByRole("list", { name: staffCopy.politician.historyTitle });

@@ -178,7 +178,13 @@ describe("the staff examples", () => {
 
   it("shows a politician's letters without who wrote them", async () => {
     await render(<PoliticianDetailsExample fromAirtable senders={false} />);
-    await expect.element(page.getByText(staffCopy.politician.history.unsignedLetter, { exact: false })).toBeVisible();
+    await expect
+      .element(
+        page
+          .getByRole("region", { name: staffCopy.politician.correspondence.title })
+          .getByText(staffCopy.politician.history.unsignedLetter),
+      )
+      .toBeVisible();
     await expect.element(page.getByText(exampleLetter.senderName)).not.toBeInTheDocument();
   });
 
