@@ -182,7 +182,8 @@ test("A reply to a letter whose text isn't kept", async ({ page, flowDatabase })
   const id = await sentLetterId(page, flowDatabase, madeUpAddress("Jane Smith", 17));
   runSql(
     flowDatabase,
-    `UPDATE letters_from_supporters SET letter = NULL, draft = NULL WHERE id = ${id};
+    `UPDATE letters_from_supporters SET letter = NULL, draft = NULL, draft_approximate = NULL, own_words = NULL,
+       proxy_id = NULL, copy_state = NULL, postmark_mailbox = 'old-letter' WHERE id = ${id};
      INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, subject, at,
        from_us, blob_key, size)
      VALUES (${id}, 'policy@pauseai.uk', 'reply-1', 'thread-1', 'mp90001.office@parliament.uk', 'Dora Dummy',
