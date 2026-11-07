@@ -91,13 +91,13 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
 
 test("A spreadsheet's own export, with no event", async ({ page, flowDatabase }) => {
   story(
-    "This file has semicolons, a title over its headings, first names and surnames, a heading in capitals, and emails written all sorts of ways. It's still read.",
+    "This file has semicolons, a title over its headings, a heading in capitals, and emails written all sorts of ways. It's still read.",
   );
   await openUpload(page, flowDatabase);
   await chooseFile(page, "stall-export.csv");
   await frame(page, "Its columns, read");
 
-  story("With no event, nobody goes on Luma. The last row has no first name, and goes in by surname.");
+  story("With no event, nobody goes on Luma.");
   await preview(page).click();
   await expect(page.getByRole("button", { name: copy.preview.importOnly(3) })).toBeVisible();
   await frame(page, "The preview, with nobody on Luma");

@@ -100,14 +100,10 @@ describe("readSignupFile", () => {
     ]);
   });
 
-  it("ignores first and last names beside a full name, and a column with no heading", () => {
+  it("ignores first and last names, as a supporter has one name", () => {
     const file = read("Name,First name,Surname,,Email\na,b,c,d,e");
     expect(file.columns.map((c) => c.field)).toEqual(["name", null, null, "email"]);
-  });
-
-  it("takes first or last names alone in place of a name", () => {
-    expect(read("First,Email\na,b").columns[0].field).toBe("firstName");
-    expect(read("Surname,Email\na,b").columns[0].field).toBe("lastName");
+    expect(readSignupFile("First name,Surname,Email\na,b,c")).toMatchObject({ reason: "missing", missing: ["name"] });
   });
 });
 
@@ -140,7 +136,7 @@ describe("signupRows", () => {
 
   it("reads every field, cleaning what it can", () => {
     const [person] = rows(
-      "First,Last,Email,Phone,Postcode,Town,Newsletter,March\nJo,Bloggs,JO Bloggs <JO@Example.com>,7700900123,se15   1aa,Leeds,Yes.,✓",
+      "Name,Email,Phone,Postcode,Town,Newsletter,March\nJo Bloggs,JO Bloggs <JO@Example.com>,7700900123,se15   1aa,Leeds,Yes.,✓",
       "March",
     );
     expect(person).toEqual({

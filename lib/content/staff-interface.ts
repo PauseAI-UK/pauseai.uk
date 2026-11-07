@@ -275,8 +275,6 @@ export const staffCopy = {
       columns: { field: "⁂ Column", names: "⁂ Headings it understands", values: "⁂ Values" },
       fields: {
         name: { label: "⁂ Name (required)", values: "⁂ Any text" },
-        firstName: { label: "⁂ First name", values: "⁂ Used with last name, if there's no name column" },
-        lastName: { label: "⁂ Last name", values: "⁂ Used with first name, if there's no name column" },
         email: { label: "⁂ Email (required)", values: "⁂ An email address" },
         phone: { label: "⁂ Phone", values: "⁂ A phone number, in any format" },
         postcode: {

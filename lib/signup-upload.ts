@@ -5,23 +5,12 @@
 import { toCsv } from "./staff-list";
 
 /** What a column of a file can go into. */
-export const SIGNUP_FIELDS = [
-  "name",
-  "firstName",
-  "lastName",
-  "email",
-  "phone",
-  "postcode",
-  "city",
-  "mailingList",
-] as const;
+export const SIGNUP_FIELDS = ["name", "email", "phone", "postcode", "city", "mailingList"] as const;
 export type SignupField = (typeof SIGNUP_FIELDS)[number];
 
 /** The headings each field goes by, as signupHeading() writes them. */
 export const SIGNUP_FIELD_NAMES: Record<SignupField, readonly string[]> = {
   name: ["name", "full name", "your name", "names", "contact name", "supporter"],
-  firstName: ["first name", "first", "forename", "given name"],
-  lastName: ["last name", "last", "surname", "family name"],
   email: ["email", "email address", "e-mail", "e-mail address", "your email", "emails", "mail"],
   phone: ["phone", "phone number", "mobile", "mobile number", "telephone", "tel", "cell", "your phone"],
   postcode: ["postcode", "post code", "postal code", "zip", "zip code", "your postcode"],
@@ -209,14 +198,9 @@ export function readSignupFile(text: string): SignupFileRead {
   const rows = records.slice(at + 1);
 
   const fieldOf = (heading: string) => FIELD_OF_HEADING.get(signupHeading(heading)) ?? null;
-  const fields = headings.map(fieldOf);
-  const hasName = fields.includes("name");
   const columns = headings.flatMap((heading, index): SignupColumn[] => {
     if (!heading) return [];
-    const field = fieldOf(heading);
-    // A full name's column says it all, so first and last names beside it are ignored.
-    const used = hasName && (field === "firstName" || field === "lastName") ? null : field;
-    return [{ heading, index, field: used, filled: rows.filter((row) => row.cells[index]).length }];
+    return [{ heading, index, field: fieldOf(heading), filled: rows.filter((row) => row.cells[index]).length }];
   });
 
   for (const field of SIGNUP_FIELDS) {
@@ -225,7 +209,7 @@ export function readSignupFile(text: string): SignupFileRead {
   }
   const has = (field: SignupField) => columns.some((column) => column.field === field);
   const missing: ("name" | "email")[] = [];
-  if (!has("name") && !has("firstName") && !has("lastName")) missing.push("name");
+  if (!has("name")) missing.push("name");
   if (!has("email")) missing.push("email");
   if (missing.length > 0) return { ok: false, reason: "missing", missing, headings: columns.map((c) => c.heading) };
   return { ok: true, columns, rows };
@@ -317,7 +301,7 @@ export function signupRows(file: Extract<SignupFileRead, { ok: true }>, eventCol
     return { row, cell, email };
   });
   return cleaned.map(({ row, cell, email }) => {
-    const name = (cell("name") || `${cell("firstName")} ${cell("lastName")}`).replace(/\s+/g, " ").trim();
+    const name = cell("name").replace(/\s+/g, " ");
     const phone = cell("phone") ? cleanPhone(cell("phone")) : null;
     const answer = (from: SignupColumn | undefined) => (from ? (row.cells[from.index] ?? "") : "");
     const problem = ((): SignupRowProblem | null => {
