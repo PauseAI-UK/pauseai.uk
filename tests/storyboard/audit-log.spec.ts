@@ -117,16 +117,16 @@ test("Searching the audit log, and saving it", async ({ page, flowDatabase }) =>
 });
 
 test("The audit log without Supporters", async ({ page, flowDatabase }) => {
-  story("An admin who can't see supporters has the filters, but not saved filters, as those can name a supporter.");
+  story("An admin who can't see supporters has the filters and the saved filters, but no entries about supporters.");
   addEntries(flowDatabase);
   runSql(
     flowDatabase,
-    `INSERT INTO saved_filters (list, name, params, created_by) VALUES ('audit-log', 'Named after a supporter', '{"q": "jane"}', '${JO}')`,
+    `INSERT INTO saved_filters (list, name, params, created_by) VALUES ('audit-log', 'Sam''s', '{"actor": ["${SAM}"]}', '${JO}')`,
   );
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/audit-log`);
   await expect(page.getByText(copy.withheld)).toBeVisible();
-  await expect(page.getByRole("button", { name: filters.saved.chip, exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: filters.saved.chip, exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: filters.add })).toBeVisible();
   await frame(page, "The audit log");
 });

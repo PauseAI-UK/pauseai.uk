@@ -114,6 +114,12 @@
   white-space: normal;
 }
 
+/* The words joining a chip's choices, "or" and "not", lighter than the choices. */
+.joining {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
 /* The arrow after a no-break space, so a chip that wraps keeps it with its
    last word rather than alone on a line. */
 .chip::after {

@@ -2307,6 +2307,7 @@ All events: ${link}`,
     // The other half of + Filter: adds a choice the list leaves out. Its menu's heading, and a left-out choice's chip.
     except: "Except",
     exceptHeading: "Leave out those with",
+    not: "not",
     notChip: (label: string, value: string) => `${label}: not ${value}`,
     // The choices of a filter on one chip, in its words, which finds any of them, or leaves them all out.
     anyOf: (values: string[]) => values.join(" or "),

@@ -66,6 +66,15 @@ function parts(filter: Filter, value: string): { first?: FilterOption; second?: 
   return {};
 }
 
+/** The start of a chip that leaves out: its filter's name, then "not", lighter than the choices that follow. */
+function NotWords({ label }: { label: string }) {
+  return (
+    <>
+      {label}: <span className={styles.joining}>{copy.not}</span>{" "}
+    </>
+  );
+}
+
 /** A choice of `filter` in words: its group, its words and its second part; or as typed, when it has none. */
 function choiceWords(filter: Filter, plain: string): string {
   const { first, second } = parts(filter, plain);
@@ -362,7 +371,18 @@ export default function FilterBar({
       return parts(filter, plain).first?.value ?? plain;
     });
     const unknown = here.filter((v) => !parts(filter, v).first).map((value) => ({ value, label: value }));
-    const words = copy.anyOf(here.map((v) => choiceWords(filter, v)));
+    // Each choice with the word between them lighter, so the eye finds the choices.
+    const words = here.flatMap((v, i) => {
+      const word = choiceWords(filter, v);
+      return i === 0
+        ? [word]
+        : [
+            <span key={v} className={styles.joining}>
+              {copy.anyOf(["", ""])}
+            </span>,
+            word,
+          ];
+    });
     const [turn, turnAll] = not ? [copy.onlyInstead, copy.onlyAllInstead] : [copy.exceptInstead, copy.exceptAllInstead];
     return (
       <Menu
@@ -372,7 +392,8 @@ export default function FilterBar({
         label={
           <>
             {not && <NotIcon />}
-            {not ? copy.notChip(filter.label, words) : `${filter.label}: ${words}`}
+            {not ? <NotWords label={filter.label} /> : `${filter.label}: `}
+            {words}
           </>
         }
       >
@@ -485,7 +506,7 @@ export default function FilterBar({
                   );
                   const words = not ? (
                     <>
-                      {copy.notChip(filter.label, "")}
+                      <NotWords label={filter.label} />
                       {named}
                     </>
                   ) : (

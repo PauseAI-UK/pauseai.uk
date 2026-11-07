@@ -798,8 +798,9 @@ its result what's left.
 A saved filter is a staff list's filters under a name, for everyone who can
 open that list (`saved_filters`, `lib/server/saved-filters.ts`, and
 `ui/SavedFilters` for how it looks). Politicians, Supporters, Events and the
-audit log have them. The audit log shows them only to admins who may see
-supporters, as one's name or search can name a supporter. Anyone who can open
+audit log have them. Every admin sees the audit log's, including one who may
+not see supporters: its name or search can name a supporter, though entries
+about supporters stay hidden from them whichever is on. Anyone who can open
 the list can update, rename or delete any of them,
 and the audit log records each change by its ID and list, never its name or
 parameters, which can name a supporter.

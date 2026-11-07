@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { changeChoices, recentChanges } from "@/lib/server/audit";
 import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
-import { savedFiltersIf } from "@/lib/server/saved-filters";
+import { savedFiltersState } from "@/lib/server/saved-filters";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { changesSearch, type ChangesSearch, type ParamValue } from "@/lib/staff-search";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
@@ -18,15 +18,12 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return { title: filteredTitle(staffCopy.changes.title, changeWords(changesSearch(await searchParams))) };
 }
 
-/**
- * The log, filtered. Saved filters can name a supporter, in their name or
- * search, so only those who may see supporters get them.
- */
+/** The log, filtered. Whichever filter is on, entries about supporters show only to those who may see them. */
 export default async function ChangesPage({ searchParams }: Props) {
   const { permissions } = await requireStaff("admin");
   const supporters = permissions.includes("supporters");
-  const { state, params } = await savedFiltersIf(supporters, "audit-log", await searchParams);
-  const { filter, ...search } = changesSearch(params);
+  const saved = await savedFiltersState("audit-log", await searchParams);
+  const { filter, ...search } = changesSearch(saved.params);
   const [log, choices] = await Promise.all([recentChanges(supporters, filter), changeChoices(supporters)]);
   return (
     <>
@@ -34,7 +31,7 @@ export default async function ChangesPage({ searchParams }: Props) {
       <ChangesFilters
         search={search}
         choices={choices}
-        saved={state}
+        saved={saved}
         actions={{ save: saveFilter, update: updateFilter, rename: renameFilter, remove: deleteFilter }}
       />
       <ChangesTable
