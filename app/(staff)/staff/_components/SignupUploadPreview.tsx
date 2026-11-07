@@ -57,6 +57,8 @@ export function SignupPlanView({
   const permission = fresh.filter((row) => row.mailingList).length;
   const known = fresh.filter((row) => row.known).length;
   const offered = SIGNUP_PILES.filter((key) => counts[key] > 0);
+  // What a person who gets no entry, held back or already imported, would have had says nothing.
+  const entryAnswer = (row: SignupPlanRow, yes: boolean) => (row.newEntry ? (yes ? words.yes : words.no) : "–");
 
   return (
     <div className={styles.page}>
@@ -110,7 +112,7 @@ export function SignupPlanView({
             <th>{words.table.entry}</th>
             <th>{words.table.luma}</th>
             <th>{words.table.permission}</th>
-            <th>{words.table.why}</th>
+            {counts.held > 0 && <th>{words.table.why}</th>}
           </tr>
         </thead>
         <tbody>
@@ -122,7 +124,7 @@ export function SignupPlanView({
                 <br />
                 {row.email}
               </td>
-              <td>{row.phone}</td>
+              <td className={styles.nowrap}>{row.phone}</td>
               <td>{row.postcode}</td>
               <td>
                 {row.pile !== "held" && (
@@ -131,12 +133,12 @@ export function SignupPlanView({
                   </Tag>
                 )}
               </td>
-              <td>{row.newEntry ? words.yes : words.no}</td>
+              <td>{entryAnswer(row, true)}</td>
               <td>
                 <Tag tone={LUMA_TONES[row.pile]}>{words.piles[row.pile]}</Tag>
               </td>
-              <td>{row.newEntry && row.mailingList ? words.yes : words.no}</td>
-              <td>{whyHeld(row)}</td>
+              <td>{entryAnswer(row, row.mailingList)}</td>
+              {counts.held > 0 && <td>{whyHeld(row)}</td>}
             </tr>
           ))}
         </tbody>
@@ -145,7 +147,7 @@ export function SignupPlanView({
       <div className={styles.actions}>
         {fresh.length + counts.register > 0 ? (
           <Button variant="primary" fit pending={pending} onClick={onImport}>
-            {words.importNow(fresh.length, counts.register)}
+            {plan.eventName ? words.importNow(fresh.length, counts.register) : words.importOnly(fresh.length)}
           </Button>
         ) : (
           <p>{words.nothing}</p>
@@ -233,9 +235,9 @@ export default function SignupUploadPreview({
   }
 
   return (
-    <>
+    <div className={styles.page}>
       {changed && <Strip tone="amber">{words.changed}</Strip>}
       <SignupPlanView plan={plan} pending={pending} onImport={importNow} />
-    </>
+    </div>
   );
 }

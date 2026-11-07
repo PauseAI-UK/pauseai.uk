@@ -142,3 +142,18 @@
 .actions p {
   margin: 0;
 }
+
+/* The drop box, with what's wrong with the file under it, where the eye already is. */
+.chooser {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.uploads {
+  margin-top: var(--space-6);
+}
+
+.nowrap {
+  white-space: nowrap;
+}

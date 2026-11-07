@@ -99,10 +99,10 @@ test("A spreadsheet's own export, with no event", async ({ page, flowDatabase })
 
   story("With no event, nobody goes on Luma. The last row has no first name, and goes in by surname.");
   await preview(page).click();
-  await expect(page.getByRole("button", { name: copy.preview.importNow(3, 0) })).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.preview.importOnly(3) })).toBeVisible();
   await frame(page, "The preview, with nobody on Luma");
 
-  await page.getByRole("button", { name: copy.preview.importNow(3, 0) }).click();
+  await page.getByRole("button", { name: copy.preview.importOnly(3) }).click();
   await expect(page.getByRole("heading", { name: copy.result.title("stall-export.csv") })).toBeVisible();
   await frame(page, "All three imported");
 });
@@ -140,7 +140,7 @@ test("Rows held back, fixed and uploaded again", async ({ page, flowDatabase }) 
     page.getByRole("link", { name: copy.preview.download }).click(),
   ]);
   expect(download.suggestedFilename()).toBe(copy.preview.downloadName("needs-fixing.csv"));
-  await page.getByRole("button", { name: copy.preview.importNow(1, 0) }).click();
+  await page.getByRole("button", { name: copy.preview.importOnly(1) }).click();
   await expect(page.getByRole("heading", { name: copy.result.title("needs-fixing.csv") })).toBeVisible();
   await frame(page, "One imported, eight held back");
 
@@ -148,12 +148,12 @@ test("Rows held back, fixed and uploaded again", async ({ page, flowDatabase }) 
   await page.goto(`${BASE}/staff/supporters/upload`);
   await chooseFile(page, "fixed.csv");
   await preview(page).click();
-  await expect(page.getByRole("button", { name: copy.preview.importNow(6, 0) })).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.preview.importOnly(6) })).toBeVisible();
   await expect(pile(page, copy.preview.piles.done)).toBeVisible();
   await frame(page, "The fixed file: one already imported");
 
   story("Uploaded a third time, there's nothing left to do.");
-  await page.getByRole("button", { name: copy.preview.importNow(6, 0) }).click();
+  await page.getByRole("button", { name: copy.preview.importOnly(6) }).click();
   await expect(page.getByRole("heading", { name: copy.result.title("fixed.csv") })).toBeVisible();
   await page.goto(`${BASE}/staff/supporters/upload`);
   await chooseFile(page, "fixed.csv");

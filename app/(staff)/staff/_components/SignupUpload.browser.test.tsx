@@ -178,6 +178,7 @@ describe("SignupPlanView", () => {
         .slice(1)
         .map((row) => row.element().textContent);
     expect(lines()[0]).toContain("Ruth Bell");
+    expect(lines()[0]).toContain("–");
     expect(lines()[0]).toContain(words.problems["same-email"]);
     expect(lines()[1]).toContain(words.unread("Maybe", "March"));
     expect(lines()).toHaveLength(6);
@@ -206,6 +207,8 @@ describe("SignupPlanView", () => {
     };
     await render(<SignupPlanView plan={plan} onImport={() => {}} />);
     await expect.element(page.getByText(words.summary.noEvent)).toBeVisible();
+    await expect.element(page.getByRole("button", { name: words.importOnly(1) })).toBeVisible();
+    expect(page.getByRole("columnheader", { name: words.table.why }).elements()).toEqual([]);
     expect(page.getByRole("link", { name: words.download }).elements()).toEqual([]);
     expect(page.getByText(words.summary.note("")).elements()).toEqual([]);
     expect(page.getByRole("button", { name: `0 ` }).elements()).toEqual([]);

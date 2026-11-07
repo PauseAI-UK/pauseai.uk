@@ -56,7 +56,7 @@ export default function SignupUploadResult({
                   <br />
                   {person.email}
                 </td>
-                <td>{person.phone}</td>
+                <td className={styles.nowrap}>{person.phone}</td>
                 <td>{person.postcode}</td>
                 <td>{person.consent ? copy.preview.yes : copy.preview.no}</td>
                 <td>
@@ -80,7 +80,7 @@ export function SignupUploadsTable({ uploads }: { uploads: SignupUploadSummary[]
   if (uploads.length === 0) return null;
   const heads = copy.uploads;
   return (
-    <section className={styles.section}>
+    <section className={`${styles.section} ${styles.uploads}`}>
       <h2>{heads.title}</h2>
       <Table>
         <thead>

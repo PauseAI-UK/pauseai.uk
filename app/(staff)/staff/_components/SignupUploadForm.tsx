@@ -97,33 +97,34 @@ export default function SignupUploadForm({ events, today }: { events: SignupEven
   return (
     <div className={styles.page}>
       <div className={styles.start}>
-        <label
-          className={dragging ? `${styles.drop} ${styles.dragging}` : styles.drop}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={dropped}
-        >
-          <strong>{chosen ? chosen.name : copy.drop.title}</strong>
-          <span>{read ? copy.drop.read(read.rows.length, read.columns.length) : copy.drop.or}</span>
-          {chosen && <span className={styles.another}>{copy.drop.another}</span>}
-          <FileInput
-            aria-label={copy.drop.label}
-            accept=".csv,.tsv,.txt,text/csv"
-            onChange={(event) => {
-              const [file] = event.target.files!;
-              if (file) void choose(file);
-              event.target.value = "";
+        <div className={styles.chooser}>
+          <label
+            className={dragging ? `${styles.drop} ${styles.dragging}` : styles.drop}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
             }}
-          />
-        </label>
+            onDragLeave={() => setDragging(false)}
+            onDrop={dropped}
+          >
+            <strong>{chosen ? chosen.name : copy.drop.title}</strong>
+            <span>{read ? copy.drop.read(read.rows.length, read.columns.length) : copy.drop.or}</span>
+            {chosen && <span className={styles.another}>{copy.drop.another}</span>}
+            <FileInput
+              aria-label={copy.drop.label}
+              accept=".csv,.tsv,.txt,text/csv"
+              onChange={(event) => {
+                const [file] = event.target.files!;
+                if (file) void choose(file);
+                event.target.value = "";
+              }}
+            />
+          </label>
+          {fileError && <Strip tone="red">{fileError}</Strip>}
+          {chosen && !chosen.read.ok && <Strip tone="red">{refusedWords(chosen.read)}</Strip>}
+        </div>
         <SignupUploadHelp />
       </div>
-
-      {fileError && <Strip tone="red">{fileError}</Strip>}
-      {chosen && !chosen.read.ok && <Strip tone="red">{refusedWords(chosen.read)}</Strip>}
 
       {read && (
         <>
