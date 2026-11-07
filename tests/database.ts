@@ -23,10 +23,10 @@ export const MAKES_DATABASES = { timeout: 30_000 };
 
 /**
  * The time a hook that makes or drops a test file's database is given. Over
- * 10s, the hooks' default, has been seen dropping one while the storyboard's
- * builds run alongside.
+ * 30s has been seen dropping one with several storyboards' builds and test
+ * runs alongside, on a machine loaded to four times its cores.
  */
-const DATABASE_HOOK = MAKES_DATABASES.timeout;
+const DATABASE_HOOK = 60_000;
 
 const TABLES = [
   "ask_statuses",
