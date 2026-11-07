@@ -1057,7 +1057,14 @@ export const staffKit: Group = {
       name: "NotWords",
       file: "app/(staff)/staff/_components/ui/ManyChoices.tsx",
       variants: [
-        { label: "A chip's words that leave out, before its choices", render: () => <NotWords label="Nation" /> },
+        {
+          label: "A chip's words that leave out, before its choices",
+          render: () => (
+            <StaffPage as="div">
+              <NotWords label="Nation" />
+            </StaffPage>
+          ),
+        },
       ],
     },
     {
