@@ -19,7 +19,9 @@ import {
 } from "@/app/(staff)/staff/_components/EmailBlocksTable.examples";
 import { ImportJobPage } from "@/app/(staff)/staff/_components/ImportJob";
 import JobActions from "@/app/(staff)/staff/_components/JobActions";
+import PoliticianCorrespondence from "@/app/(staff)/staff/_components/PoliticianCorrespondence";
 import PoliticianDetails from "@/app/(staff)/staff/_components/PoliticianDetails";
+import { correspondenceThreads } from "@/lib/politician-correspondence";
 import PoliticianTable from "@/app/(staff)/staff/_components/PoliticianTable";
 import {
   emptyPoliticiansSearch,
@@ -44,7 +46,7 @@ import type { StaffAccount } from "@/lib/server/staff-accounts";
 import UnblockForm from "@/app/(staff)/staff/_components/UnblockForm";
 import NoteChanges from "@/app/(staff)/staff/_components/NoteChanges";
 import NoteForm from "@/app/(staff)/staff/_components/NoteForm";
-import NoteHistory from "@/app/(staff)/staff/_components/NoteHistory";
+import NotesCard from "@/app/(staff)/staff/_components/NotesCard";
 import Notes, { NoteEntry, NoteText } from "@/app/(staff)/staff/_components/Notes";
 import {
   exampleNoteAdmin,
@@ -178,6 +180,44 @@ export function AskRowExample({ others = false, declined = false }: { others?: b
       }
     </Logged>
   );
+}
+
+/** Threads of each kind: answered, unanswered, an automatic reply, own words, and past the fold. */
+const exampleThreads = (count = 3) =>
+  correspondenceThreads({
+    letters: {
+      senders: true,
+      letters: Array.from({ length: count }, (_, i) => ({
+        ...exampleLetter,
+        id: 100 + i,
+        ownWords: i === 0 ? 0.14 : 0,
+        repliedAt: null,
+      })),
+    },
+    pauseaiLetters: [
+      {
+        id: 200,
+        mailingId: 3,
+        mailing: "Example Mailing",
+        status: "sent",
+        at: exampleLetter.createdAt,
+        personalised: false,
+      },
+    ],
+    oneOffs: [],
+    messages: {
+      letters: {
+        100: [{ at: exampleLetter.createdAt, who: "them", name: "Polly Placeholder", auto: false }],
+        101: [{ at: exampleLetter.createdAt, who: "them", name: null, auto: true }],
+      },
+      oneOffs: {},
+      emailsToThem: 0,
+      emailsFromThem: 0,
+    },
+  });
+
+export function PoliticianCorrespondenceExample({ count }: { count?: number }) {
+  return <PoliticianCorrespondence threads={exampleThreads(count)} />;
 }
 
 export function PoliticianDetailsExample({
@@ -326,30 +366,15 @@ export function NoteChangesExample({ editable = true }: { editable?: boolean }) 
 }
 
 /** A politician's history card, its Write a note logged: two lines, or none; or without Write a note. */
-export function NoteHistoryExample({ lines = true, writable = true }: { lines?: boolean; writable?: boolean }) {
-  const rows = [
-    { at: "2 Nov 2026, 11:00", what: "Email from PauseAI: Example Mailing" },
-    { at: "1 Nov 2026, 09:30", what: "Signed 'Example Letter to the PM'" },
-  ];
+export function NotesCardExample({ lines = true, writable = true }: { lines?: boolean; writable?: boolean }) {
   return (
     <Logged>
       {(log) => (
-        <NoteHistory
-          title="History"
-          id="example-history"
-          empty="Nothing yet."
-          politicianId={7}
-          writer={exampleNoteWriter.email}
-          at={exampleNotesAt}
-          add={writable ? log("add") : undefined}
-        >
-          {(lines ? rows : []).map((row) => (
-            <li key={row.at}>
-              <span>{row.at}</span>
-              <div>{row.what}</div>
-            </li>
+        <NotesCard politicianId={7} writer={exampleNoteWriter.email} add={writable ? log("add") : undefined}>
+          {(lines ? ["Met them at the fair", "Asked for the one-pager"] : []).map((note) => (
+            <li key={note}>{note}</li>
           ))}
-        </NoteHistory>
+        </NotesCard>
       )}
     </Logged>
   );

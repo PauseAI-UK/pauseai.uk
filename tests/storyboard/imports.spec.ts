@@ -432,6 +432,7 @@ test("PauseAI's emails to politicians", async ({ page, request, flowDatabase }) 
   // in a mailbox Airtable didn't say.
   await page.goto(`${BASE}/staff/politicians`);
   await page.getByRole("link", { name: "Polly Placeholder" }).click();
+  await page.locator("summary", { hasText: staffCopy.politician.historyTitle }).click();
   const history = page.getByRole("list", { name: staffCopy.politician.historyTitle });
   await history.getByRole("link", { name: staffCopy.mailingPages.theLetter }).first().click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(

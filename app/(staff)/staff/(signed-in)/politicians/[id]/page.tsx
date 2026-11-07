@@ -19,6 +19,7 @@ import {
   unblockAddress,
 } from "../../../actions";
 import { politicianOneOffs } from "@/lib/server/one-off-emails";
+import { politicianMessages } from "@/lib/server/politician-correspondence";
 import DeletePolitician from "../../../_components/DeletePolitician";
 import PoliticianDetails from "../../../_components/PoliticianDetails";
 import Breadcrumb from "../../../_components/Breadcrumb";
@@ -35,7 +36,7 @@ export default async function PoliticianPage({ params }: Params) {
   const staff = await requireStaff();
   const { permissions } = staff;
   const politician = found(await getPolitician(found(politicianId((await params).id))));
-  const [asks, block, letters, fromPauseai, history, deletable, notes, oneOffs] = await Promise.all([
+  const [asks, block, letters, fromPauseai, history, deletable, notes, oneOffs, messages] = await Promise.all([
     listAsks(),
     blockOn(politician.email),
     politicianLetters(politician.id, permissions),
@@ -44,6 +45,7 @@ export default async function PoliticianPage({ params }: Params) {
     canDeletePolitician(politician.id),
     notesOn({ politicianId: politician.id }),
     politicianOneOffs(politician.id, permissions),
+    politicianMessages(politician.id, permissions),
   ]);
   return (
     <>
@@ -57,6 +59,7 @@ export default async function PoliticianPage({ params }: Params) {
         letters={letters}
         pauseaiLetters={fromPauseai}
         oneOffs={oneOffs}
+        messages={messages}
         history={history}
         airtableTable={PARLIAMENTARIANS_TABLE_URL}
         notes={{

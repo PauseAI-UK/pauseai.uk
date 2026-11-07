@@ -47,28 +47,28 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
 });
 
 test("A note on a politician", async ({ page, request, flowDatabase }) => {
-  story("Staff write a note on Polly's page, at the top of her history.");
+  story("Staff write a note on Polly's page, in the notes beside her correspondence.");
   await syncPoliticians(request, BASE);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
-  const history = page.getByRole("region", { name: copy.historyTitle });
-  await history.getByRole("button", { name: staffCopy.notes.write }).click();
-  const box = history.getByRole("textbox", { name: staffCopy.notes.note });
+  const notes = page.getByRole("region", { name: staffCopy.notes.title, exact: true });
+  await notes.getByRole("button", { name: staffCopy.notes.write }).click();
+  const box = notes.getByRole("textbox", { name: staffCopy.notes.note });
   await box.fill("Her office says write to www.example.org/contact");
-  // The history alone, as where focus leaves the window varies between runs.
-  await frame(page, "The note, written", { of: history });
+  // The card alone, as where focus leaves the window varies between runs.
+  await frame(page, "The note, written", { of: notes });
   story(
-    "Once added, the note is the newest thing in her history, and the web address in it is a link. Airtable's notes on her stay where they were, beside it.",
+    "Once added, the note is the newest in the card, and the web address in it is a link. Airtable's notes on her stay where they were, under it.",
   );
-  await history.getByRole("button", { name: staffCopy.notes.add }).click();
-  const note = history.getByRole("listitem").filter({ hasText: "Her office says" });
+  await notes.getByRole("button", { name: staffCopy.notes.add }).click();
+  const note = notes.getByRole("listitem").filter({ hasText: "Her office says" });
   await expect(note.getByRole("link", { name: "www.example.org/contact" })).toHaveAttribute(
     "href",
     "https://www.example.org/contact",
   );
-  // Airtable's notes stay beside the history, the sync's to change.
+  // Airtable's notes stay in their own card, the sync's to change.
   await expect(page.getByRole("region", { name: copy.notes })).toContainText("Met at the example fair.");
-  await frame(page, "The note in Polly's history", { of: history });
+  await frame(page, "The note in Polly's notes", { of: notes });
 });
 
 test("An answer to a new ask", async ({ page, request, flowDatabase }) => {
@@ -123,7 +123,9 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
   story("Once saved, the answer shows with its note under it, and goes into her history.");
   await row.getByRole("button", { name: copy.save }).click();
   await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffCopy.statuses.declined}`));
-  await expect(page.getByRole("region", { name: copy.historyTitle })).toContainText(staffCopy.statuses.declined);
+  await page.locator("summary", { hasText: copy.historyTitle }).click();
+  const history = page.getByRole("list", { name: copy.historyTitle });
+  await expect(history).toContainText(staffCopy.statuses.declined);
   await frame(page, "The letter, declined");
 
   story(
@@ -134,8 +136,8 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
   await row.getByLabel(copy.note).fill("Entered by mistake");
   await row.getByRole("button", { name: copy.save }).click();
   await expect(asks.getByRole("group", { name: PM_LETTER })).toHaveCount(0);
-  await expect(page.getByRole("region", { name: copy.historyTitle })).toContainText(copy.statusCleared.before);
-  await expect(page.getByRole("region", { name: copy.historyTitle })).toContainText("Entered by mistake");
+  await expect(history).toContainText(copy.statusCleared.before);
+  await expect(history).toContainText("Entered by mistake");
   await frame(page, "The answer, cleared");
 });
 

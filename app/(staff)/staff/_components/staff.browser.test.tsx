@@ -33,7 +33,10 @@ import JobActions from "./JobActions";
 import LoginCard from "./LoginCard";
 import LoginForm from "./LoginForm";
 import PasteForm from "./PasteForm";
+import { exampleHiddenOneOff, exampleOneOffs } from "./CampaignPages.examples";
+import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import PoliticianDetails from "./PoliticianDetails";
+import type { ThreadMessages, ThreadStep } from "@/lib/politician-correspondence";
 import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "./Notes.examples";
 import PoliticianFilters, { politicianWords } from "./PoliticianFilters";
 import PoliticianTable, { politicianColumns, politicianContact } from "./PoliticianTable";
@@ -1618,8 +1621,9 @@ describe("PoliticianDetails", () => {
       .getByRole("term")
       .all()
       .map((dt) => dt.element().textContent);
+  const openFolds = () => document.querySelectorAll("details").forEach((fold) => (fold.open = true));
 
-  it("heads the page with a band of who they are, beside counts, then their history beside their asks and Airtable's notes", async () => {
+  it("heads the page with a band of who they are, beside counts, then their correspondence beside their asks and notes", async () => {
     const { rerender } = await render(
       <PoliticianDetails politician={{ ...MP, airtableId: null, email: null }} unblock={vi.fn()} {...none} />,
     );
@@ -1644,11 +1648,10 @@ describe("PoliticianDetails", () => {
       .element(page.getByText(`${staffCopy.politician.source} ${staffCopy.politician.sources.staff}`))
       .toBeVisible();
     expect(document.querySelectorAll("dd svg[aria-hidden]")).toHaveLength(2);
-    // The letters supporters wrote them, then the asks agreed: MP signed one.
+    // No emails either way, so only the asks agreed: MP signed one.
     const counts = document.querySelector("[class*=counts]")!;
     expect(counts.querySelector("a")).toBeNull();
     expect([...counts.children].map((count) => count.textContent)).toEqual([
-      `0 ${staffCopy.politician.band.lettersCounted(0)}`,
       `1 ${staffCopy.politician.band.asksAgreed(1)}`,
     ]);
     // Not PauseAI's emails: they're in the history.
@@ -1713,7 +1716,7 @@ describe("PoliticianDetails", () => {
     await expect.element(page.getByText(staffCopy.politician.airtableRemoved("20 Oct 2026"))).toBeVisible();
   });
 
-  it("drafts a note in a history with nothing in it yet", async () => {
+  it("drafts a note in a notes card with nothing in it yet", async () => {
     await render(
       <PoliticianDetails
         politician={MP}
@@ -1729,19 +1732,17 @@ describe("PoliticianDetails", () => {
         }}
       />,
     );
-    await expect.element(page.getByText(staffCopy.politician.noHistory)).toBeVisible();
+    await expect.element(page.getByText(staffCopy.notes.none)).toBeVisible();
     await page.getByRole("button", { name: staffCopy.notes.write }).click();
-    await expect.element(page.getByText(staffCopy.politician.noHistory)).not.toBeInTheDocument();
+    await expect.element(page.getByText(staffCopy.notes.none)).not.toBeInTheDocument();
     await expect
       .element(
-        page
-          .getByRole("list", { name: staffCopy.politician.historyTitle })
-          .getByRole("textbox", { name: staffCopy.notes.note }),
+        page.getByRole("list", { name: staffCopy.notes.title }).getByRole("textbox", { name: staffCopy.notes.note }),
       )
       .toBeVisible();
   });
 
-  it("puts staff's notes in the history, by when they were written, with the button to write one over it", async () => {
+  it("puts staff's notes in their card, to change there, and in the history as plain lines", async () => {
     const add = vi.fn();
     await render(
       <PoliticianDetails
@@ -1758,24 +1759,26 @@ describe("PoliticianDetails", () => {
         }}
       />,
     );
+    const notes = page.getByRole("list", { name: staffCopy.notes.title }).getByRole("listitem");
+    await expect.element(notes.nth(0)).toBeVisible();
+    expect(notes.nth(0).element().textContent).toContain(exampleNotes[0].body);
+    await expect.element(notes.nth(0).getByRole("button", { name: staffCopy.notes.edit })).toBeVisible();
+    openFolds();
     const history = page.getByRole("list", { name: staffCopy.politician.historyTitle }).getByRole("listitem");
-    await expect.element(history.nth(0)).toBeVisible();
     expect(history.nth(0).element().textContent).toContain(
-      `${staffTime(exampleNotes[0].createdAt)}${exampleNotes[0].body}${staffCopy.politician.history.note} · jo@pauseai.uk`,
+      `${staffTime(exampleNotes[0].createdAt)}${exampleNotes[0].body} · ${staffCopy.politician.history.note} · jo@pauseai.uk`,
     );
-    await expect.element(history.nth(0).getByRole("button", { name: staffCopy.notes.edit })).toBeVisible();
-    // Write a note drafts it at the top of the history, as it will be, and goes while it's there.
+    expect(history.nth(0).getByRole("button").query()).toBeNull();
+    // Write a note drafts it at the top of the card, and goes while it's there.
     const write = page.getByRole("button", { name: staffCopy.notes.write });
     await write.click();
     await expect.element(write).not.toBeInTheDocument();
     await expect.element(page.getByRole("textbox", { name: staffCopy.notes.note })).toHaveFocus();
-    expect(history.nth(0).element().textContent).toContain(
-      `${staffTime(exampleNotesAt)}${staffCopy.politician.history.note} · jo@pauseai.uk`,
-    );
+    expect(notes.nth(0).element().textContent).toContain(`${staffCopy.politician.history.note} · jo@pauseai.uk`);
     // Cancel takes it away.
     await page.getByRole("button", { name: staffCopy.notes.cancel }).click();
     await expect.element(page.getByRole("textbox")).not.toBeInTheDocument();
-    expect(history.nth(0).element().textContent).toContain(exampleNotes[0].body);
+    expect(notes.nth(0).element().textContent).toContain(exampleNotes[0].body);
     await write.click();
     await page.getByRole("textbox", { name: staffCopy.notes.note }).fill("Met them");
     await page.getByRole("button", { name: staffCopy.notes.add }).click();
@@ -1791,6 +1794,222 @@ describe("PoliticianDetails", () => {
     await vi.waitFor(() => expect(add).toHaveBeenCalledTimes(2));
   });
 
+  describe("their correspondence", () => {
+    const words = staffCopy.politician.correspondence;
+    const region = () => page.getByRole("region", { name: words.title });
+    const step = (at: string, who: ThreadStep["who"], fields: Partial<ThreadStep> = {}): ThreadStep => ({
+      at,
+      who,
+      name: null,
+      auto: false,
+      ...fields,
+    });
+    const messages = (fields: Partial<ThreadMessages> = {}): ThreadMessages => ({
+      letters: {},
+      oneOffs: {},
+      emailsToThem: 0,
+      emailsFromThem: 0,
+      ...fields,
+    });
+    const letter = {
+      ...exampleLetter,
+      id: 21,
+      senderName: "Jane Smith",
+      ownWords: 0.14,
+      createdAt: "2026-10-13T08:00:00Z",
+      repliedAt: null,
+    };
+
+    it("says who wrote and when, a real reply marked, an automatic one not, and when nothing came back", async () => {
+      await render(
+        <PoliticianDetails
+          {...none}
+          politician={MP}
+          unblock={vi.fn()}
+          letters={{ senders: true, letters: [letter] }}
+          pauseaiLetters={[
+            {
+              id: 22,
+              mailingId: 3,
+              mailing: "Example Mailing",
+              status: "sent",
+              personalised: false,
+              at: "2026-09-02T08:00:00Z",
+            },
+          ]}
+          oneOffs={[
+            { ...exampleOneOffs[0], id: 23, subject: "", someoneElse: false, latestAt: "2026-08-05T08:00:00Z" },
+          ]}
+          messages={messages({
+            letters: {
+              21: [
+                step("2026-10-13T08:00:00Z", "supporter"),
+                step("2026-10-13T09:00:00Z", "them", { auto: true }),
+                step("2026-10-14T09:00:00Z", "them", { name: "Polly Placeholder" }),
+                step("2026-10-15T09:00:00Z", "us"),
+                step("2026-10-16T09:00:00Z", "them"),
+                step("2026-10-17T09:00:00Z", "supporter"),
+              ],
+            },
+            oneOffs: {
+              23: [step("2026-08-04T08:00:00Z", "us"), step("2026-08-05T08:00:00Z", "them", { name: "Polly" })],
+            },
+          })}
+        />,
+      );
+      const items = region().getByRole("listitem");
+      expect(items.nth(0).element().textContent).toBe(
+        [
+          `${pm.title}${staffCopy.letters.columns.ownWords} ${staffCopy.letters.ownWords(0.14)}`,
+          words.wrote("Jane Smith", "13 Oct 2026"),
+          words.auto("13 Oct 2026"),
+          words.replied("Polly Placeholder", "14 Oct 2026"),
+          words.usReplied("15 Oct 2026"),
+          words.replied(words.office, "16 Oct 2026"),
+          words.replied("Jane Smith", "17 Oct 2026"),
+        ].join(""),
+      );
+      await expect.element(items.nth(0).getByRole("link")).toHaveAttribute("href", "/staff/letters/21");
+      const reply = items.nth(0).getByText(words.replied("Polly Placeholder", "14 Oct 2026"));
+      const auto = items.nth(0).getByText(words.auto("13 Oct 2026"));
+      expect(getComputedStyle(reply.element()).fontWeight).toBe("600");
+      expect(getComputedStyle(auto.element()).fontWeight).not.toBe("600");
+      expect(items.nth(1).element().textContent).toBe(`Example Mailing${words.sent("2 Sept 2026")}${words.noReply}`);
+      await expect.element(items.nth(1).getByRole("link")).toHaveAttribute("href", "/staff/mailings/3/letters/22");
+      expect(items.nth(2).element().textContent).toBe(
+        `${staffCopy.oneOff.noSubject}${words.sent("4 Aug 2026")}${words.replied("Polly", "5 Aug 2026")}`,
+      );
+    });
+
+    it("heads them by month and year, and opens the rest in place, a month not named twice", async () => {
+      await render(
+        <PoliticianCorrespondence
+          threads={Array.from({ length: 10 }, (_, i) => ({
+            key: `t${i}`,
+            title: `Thread ${i}`,
+            href: `/staff/one-off/${i}`,
+            at: "2020-10-13T08:00:00.000Z",
+            sender: null,
+            status: null,
+            ownWords: 0.01,
+            someoneElse: false,
+            steps: [],
+            noReply: true,
+          }))}
+        />,
+      );
+      expect(
+        page
+          .getByRole("heading")
+          .all()
+          .map((h) => h.element().textContent),
+      ).toEqual(["2020"]);
+      expect(page.getByRole("link").all()).toHaveLength(8);
+      expect(page.getByText(staffCopy.letters.columns.ownWords, { exact: false }).query()).toBeNull();
+      await page.getByText(words.all(10)).click();
+      expect(page.getByRole("link").all()).toHaveLength(10);
+      expect(page.getByRole("heading").all()).toHaveLength(1);
+      expect(page.getByText(words.all(10)).element().checkVisibility()).toBe(false);
+    });
+
+    it("says when there's nothing, and shows the band's counts only when there are any, leading to All emails", async () => {
+      const { rerender } = await render(<PoliticianDetails {...none} politician={MP} unblock={vi.fn()} />);
+      await expect.element(region().getByText(words.none)).toBeVisible();
+      await rerender(
+        <PoliticianDetails
+          {...none}
+          politician={MP}
+          unblock={vi.fn()}
+          messages={messages({ emailsToThem: 3, emailsFromThem: 2 })}
+        />,
+      );
+      await expect
+        .element(page.getByRole("link", { name: `3 ${staffCopy.politician.band.emailsToThem}` }))
+        .toHaveAttribute("href", `/staff/emails?to=${MP.id}&from=supporter&from=pauseai`);
+      await expect
+        .element(page.getByRole("link", { name: `2 ${staffCopy.politician.band.emailsFromThem}` }))
+        .toHaveAttribute("href", `/staff/emails?to=${MP.id}&replied=yes`);
+    });
+
+    it("names someone else's thread in the history for staff with the permission", async () => {
+      await render(
+        <PoliticianDetails
+          {...none}
+          politician={MP}
+          unblock={vi.fn()}
+          oneOffs={[
+            { ...exampleOneOffs[0], id: 23, subject: "Please meet", someoneElse: true },
+            { ...exampleOneOffs[0], id: 24, subject: "", someoneElse: true },
+          ]}
+          messages={messages({
+            oneOffs: {
+              23: [step("2026-08-05T08:00:00Z", "other", { name: "Vera Volunteer" })],
+              24: [step("2026-08-05T08:00:00Z", "us")],
+            },
+          })}
+        />,
+      );
+      openFolds();
+      const history = page.getByRole("list", { name: staffCopy.politician.historyTitle });
+      await expect
+        .element(
+          history.getByText(`${staffCopy.politician.emailFrom("Vera Volunteer")}: Please meet`, { exact: false }),
+        )
+        .toBeVisible();
+      await expect
+        .element(history.getByRole("link", { name: staffCopy.allLetters.theThread }).first())
+        .toHaveAttribute("href", "/staff/one-off/23");
+      await expect
+        .element(history.getByText(`${staffCopy.oneOff.title}: ${staffCopy.oneOff.noSubject}`, { exact: false }))
+        .toBeVisible();
+      await expect
+        .element(region().getByText(words.replied("Vera Volunteer", "5 Aug 2026"), { exact: false }))
+        .not.toBeInTheDocument();
+      await expect.element(region().getByText(words.wrote("Vera Volunteer", "5 Aug 2026"))).toBeVisible();
+    });
+
+    it("seals who wrote a letter and any thread with someone else, for staff without the permission", async () => {
+      await render(
+        <PoliticianDetails
+          {...none}
+          politician={MP}
+          unblock={vi.fn()}
+          letters={{
+            senders: false,
+            letters: [
+              {
+                id: 21,
+                campaign: pm.slug,
+                campaignTitle: pm.title,
+                status: "made-up",
+                createdAt: "2026-10-13T08:00:00Z",
+                repliedAt: null,
+              },
+              {
+                id: 25,
+                campaign: pm.slug,
+                campaignTitle: pm.title,
+                status: "sent",
+                createdAt: "2026-09-13T08:00:00Z",
+                repliedAt: null,
+              },
+            ],
+          }}
+          oneOffs={[exampleHiddenOneOff]}
+          messages={messages({ letters: { 21: [step("2026-10-14T09:00:00Z", "them", { name: "Polly" })] } })}
+        />,
+      );
+      const items = region().getByRole("listitem");
+      const sealed = staffCopy.politician.history.unsignedLetter;
+      expect(items.first().element().textContent).toContain(`${pm.title} · made-up`);
+      expect(items.first().element().textContent).toContain(`${sealed} 13 Oct 2026`);
+      expect(items.first().element().textContent).toContain(words.replied("Polly", "14 Oct 2026"));
+      expect(items.nth(1).element().textContent).toContain(staffCopy.letters.status.sent);
+      await expect.element(region().getByText(staffCopy.oneOff.hidden)).toBeVisible();
+      expect(region().element().querySelector("a")).toBeNull();
+    });
+  });
+
   it("says under their name what they are: in which house, for where, and if they're no longer in office", async () => {
     const { roles, role } = staffCopy.politician;
     for (const [politician, words] of [
@@ -1804,7 +2023,7 @@ describe("PoliticianDetails", () => {
     }
   });
 
-  it("tells one history of the letters to them, the replies, and what the audit log says about them, newest first", async () => {
+  it("tells one history of the letters to them, the replies and their answers, newest first, and apart what changed their record", async () => {
     // A peer: no constituency, country or notes, so no line for them.
     const peer = { ...MP, constituency: null, country: null, notes: "" };
     const fromPauseai = {
@@ -1905,6 +2124,7 @@ describe("PoliticianDetails", () => {
     );
     // No constituency or nation, so no nation in the band.
     expect(terms()).not.toContain(staffCopy.politician.country);
+    openFolds();
     // The sender leads to their supporter once they're one; the letters and replies sit among the audit log's entries by time.
     await expect
       .element(page.getByRole("link", { name: exampleLetter.senderName }))
@@ -1915,25 +2135,29 @@ describe("PoliticianDetails", () => {
     const history = page.getByRole("list", { name: staffCopy.politician.historyTitle }).getByRole("listitem").all();
     const copy = staffCopy.politician.history;
     expect(history.map((item) => item.element().textContent)).toEqual([
-      `15 Oct 2026, 09:00${copy["letter-replied"]} Anon Writer · ${pm.title}`,
-      `14 Oct 2026, 09:30${copy["unblock address"]} polly.placeholder.mp@parliament.uk · Fixed in Airtable · jo@pauseai.uk`,
+      `15 Oct 2026, 09:00${copy["letter-replied"]} Anon Writer · ${pm.title} · ${staffCopy.mailingPages.theLetter}`,
       `13 Oct 2026, 08:00${copy.letter} Anon Writer · ${pm.title} · ${staffCopy.letters.status.sent} · ${staffCopy.mailingPages.theLetter}`,
-      `12 Oct 2026, 09:10${copy["block address"]} polly.placeholder.mp@parliament.uk · ${staffCopy.emails.kinds.hard} · postmark`,
       `12 Oct 2026, 09:00${copy.letter} ${exampleLetter.senderName} · ${pm.title} · ${staffCopy.letters.status.bounced} · ${staffCopy.mailingPages.theLetter}`,
       `3 Oct 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${staffCopy.politician.personalised} · ${staffCopy.letters.status.sent} · ${staffCopy.mailingPages.theLetter}`,
       // Dated the day before it was recorded, so on that day.
       `1 Oct 2026${statusLine(staffCopy.politician.statusSet(staffCopy.statuses.signed), ask("frontier-ai-letter").title)} · Told us at the march · jo@pauseai.uk`,
-      `30 Sept 2026, 10:00${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uk · samuel.whitlock@pauseai.uk`,
       `2 Sept 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${staffCopy.letters.status.sent} · ${staffCopy.mailingPages.theLetter}`,
       `1 Sept 2026, 10:00${statusLine(staffCopy.politician.statusCleared, "gone")} · jo@pauseai.uk`,
       `15 Aug 2026, 10:00${statusLine(staffCopy.politician.statusSet("odd"), pm.title)} · jo@pauseai.uk`,
       `12 Aug 2026, 10:00${statusLine(staffCopy.politician.statusSet(staffCopy.statuses.signed), "an-old-ask")} · airtable`,
-      `10 Aug 2026, 10:00${copy["block address"]} polly@example.org · weird · postmark`,
-      "1 Aug 2026, 10:00strange  · x",
-      `20 Jul 2026, 10:00${copy["edit politician"]} Polly Placeholder · ${staffCopy.fields.party} Labour → Labour (Co-op) · sync`,
-      `15 Jul 2026, 10:00${copy["add politician"]} Polly Placeholder · import`,
       `1 Jul 2026, 08:00${copy.letter} Old Writer · Old campaign, from pauseai.info · mislaid · ${staffCopy.mailingPages.theLetter}`,
       `1 Jun 2026, 08:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffCopy.mailingPages.theLetter}`,
+    ]);
+    // What changed their record, with who, apart from the answers.
+    const record = page.getByRole("heading", { name: staffCopy.politician.recordTitle }).element().closest("details")!;
+    expect([...record.querySelectorAll("tbody tr")].map((row) => row.textContent)).toEqual([
+      `14 Oct 2026, 09:30${copy["unblock address"]} polly.placeholder.mp@parliament.uk · Fixed in Airtablejo@pauseai.uk`,
+      `12 Oct 2026, 09:10${copy["block address"]} polly.placeholder.mp@parliament.uk · ${staffCopy.emails.kinds.hard}postmark`,
+      `30 Sept 2026, 10:00${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uksamuel.whitlock@pauseai.uk`,
+      `10 Aug 2026, 10:00${copy["block address"]} polly@example.org · weirdpostmark`,
+      "1 Aug 2026, 10:00strange x",
+      `20 Jul 2026, 10:00${copy["edit politician"]} Polly Placeholder · ${staffCopy.fields.party} Labour → Labour (Co-op)sync`,
+      `15 Jul 2026, 10:00${copy["add politician"]} Polly Placeholderimport`,
     ]);
     // An answer leads to everyone who gave it, the ask to the letter as in the asks card, PauseAI's email to its
     // mailing, an address to its block.
@@ -2011,6 +2235,7 @@ describe("PoliticianDetails", () => {
         }}
       />,
     );
+    openFolds();
     const copy = staffCopy.politician.history;
     const list = page.getByRole("list", { name: staffCopy.politician.historyTitle });
     expect(

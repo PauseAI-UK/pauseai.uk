@@ -27,6 +27,7 @@ import {
   PickBoxExample,
   PoliticiansListExample,
   AskRowExample,
+  PoliticianCorrespondenceExample,
   PoliticianDetailsExample,
   PoliticianTableEmptyExample,
   PoliticianTableExample,
@@ -227,11 +228,22 @@ export const staffPoliticians: Group = {
       ],
     },
     {
+      name: "PoliticianCorrespondence",
+      file: "app/(staff)/staff/_components/PoliticianCorrespondence.tsx",
+      variants: [
+        {
+          label: "Threads with a reply, an automatic reply, none, and own words",
+          render: () => <PoliticianCorrespondenceExample />,
+        },
+        { label: "Past the newest few, folded", render: () => <PoliticianCorrespondenceExample count={12} /> },
+      ],
+    },
+    {
       name: "PoliticianDetails",
       file: "app/(staff)/staff/_components/PoliticianDetails.tsx",
       variants: [
         {
-          label: "A signer the team added, staff's notes in the history",
+          label: "A signer the team added, staff's notes beside their correspondence",
           render: () => (
             <StaffPage as="div">
               <PoliticianDetailsExample />

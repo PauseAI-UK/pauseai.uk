@@ -664,7 +664,7 @@ describe("PageIntro", () => {
 });
 
 describe("the rest", () => {
-  it("lists a politician's one-off emails in their history, one they can't read said so", async () => {
+  it("lists a politician's one-off emails in their correspondence, one they can't read said so", async () => {
     await render(
       <PoliticianDetails
         politician={examplePolitician}
@@ -680,7 +680,13 @@ describe("the rest", () => {
     );
     await expect.element(link(exampleOneOffs[0].subject!)).toHaveAttribute("href", "/staff/one-off/1");
     await expect.element(link(staffCopy.oneOff.noSubject)).toHaveAttribute("href", "/staff/one-off/3");
-    await says(staffCopy.oneOff.hidden);
+    await expect
+      .element(
+        page
+          .getByRole("region", { name: staffCopy.politician.correspondence.title })
+          .getByText(staffCopy.oneOff.hidden),
+      )
+      .toBeVisible();
     expect(link(staffCopy.oneOff.hidden).query()).toBeNull();
   });
 

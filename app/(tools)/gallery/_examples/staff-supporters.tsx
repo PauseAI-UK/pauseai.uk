@@ -26,7 +26,7 @@ import {
   NoteChangesExample,
   NoteEntryExample,
   NoteFormExample,
-  NoteHistoryExample,
+  NotesCardExample,
   NoteTextExample,
 } from "./staff.client";
 
@@ -326,22 +326,22 @@ export const staffSupporters: Group = {
       ],
     },
     {
-      name: "NoteHistory",
-      file: "app/(staff)/staff/_components/NoteHistory.tsx",
+      name: "NotesCard",
+      file: "app/(staff)/staff/_components/NotesCard.tsx",
       variants: [
         {
           label: "With Write a note, which drafts one at the top",
           render: () => (
             <StaffPage as="div">
-              <NoteHistoryExample />
+              <NotesCardExample />
             </StaffPage>
           ),
         },
         {
-          label: "Nothing yet",
+          label: "No notes yet",
           render: () => (
             <StaffPage as="div">
-              <NoteHistoryExample lines={false} />
+              <NotesCardExample lines={false} />
             </StaffPage>
           ),
         },
@@ -349,7 +349,7 @@ export const staffSupporters: Group = {
           label: "Without Write a note",
           render: () => (
             <StaffPage as="div">
-              <NoteHistoryExample writable={false} />
+              <NotesCardExample writable={false} />
             </StaffPage>
           ),
         },
