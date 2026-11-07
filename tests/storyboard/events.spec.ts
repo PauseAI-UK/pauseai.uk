@@ -233,17 +233,19 @@ test("Events by owner", async ({ page, flowDatabase }) => {
   await expect(page).toHaveURL(`${BASE}/staff/events?view=owner`);
   const noOwner = eventList(page, new RegExp(`^${copy.noOwner}`));
   await expect(noOwner.getByRole("link", { name: "Oxford AI risk talk" })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2 }).first()).toContainText(copy.noOwner);
+  await expect(page.locator("section h2").first()).toContainText(copy.noOwner);
   await expect(page.getByRole("searchbox")).toHaveCount(0);
   await frame(page, "Every event to come, by owner");
 
   story("Joseph has more than five, so the rest fold. Opening them moves only what's under them in that column.");
   const other = page.getByRole("heading", { level: 2, name: /^priya/ });
-  const before = await other.boundingBox();
+  const before = (await other.boundingBox())!;
   const joseph = eventList(page, /^joseph/);
+  const left = (await joseph.boundingBox())!.x;
   await joseph.getByText(copy.lists.more(2)).click();
   await expect(joseph.getByRole("link", { name: "London winter social" })).toBeVisible();
-  expect(await other.boundingBox()).toEqual(before);
+  // A phone has one column, so everything under it moves.
+  if (left < before.x) expect(await other.boundingBox()).toEqual(before);
   await frame(page, "Joseph's events, unfolded");
 
   story("Someone takes the Oxford talk: Edit on its line opens the same bubble as Future's table.");
@@ -272,7 +274,7 @@ test("Events by tag", async ({ page, flowDatabase }) => {
   await page.goto(`${BASE}/staff/events`);
   await page.getByRole("link", { name: copy.tabs.byTag }).click();
   await expect(page).toHaveURL(`${BASE}/staff/events?view=tag`);
-  const titles = await page.getByRole("heading", { level: 2 }).allTextContents();
+  const titles = await page.locator("section h2").allTextContents();
   expect(titles.map((title) => title.replace(/\d+$/, ""))).toEqual([
     "London",
     "Oxford",
@@ -298,7 +300,7 @@ test("Events by tag", async ({ page, flowDatabase }) => {
 
   story("London has more than five, so the rest fold.");
   const london = eventList(page, /^London/);
-  await london.getByText(copy.lists.more(1)).click();
+  await london.getByText(copy.lists.more(2)).click();
   await expect(london.getByRole("link", { name: "London winter social" })).toBeVisible();
   await frame(page, "London's events, unfolded");
 });
@@ -332,7 +334,7 @@ test("An event stays on Future until the end of its day", async ({ page, flowDat
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/events`);
   const today = page.getByRole("row").filter({ hasText: "Breakfast with organisers" });
-  await expect(today.getByText(copy.noOwner)).toBeVisible();
+  await expect(today.getByRole("cell").nth(5).getByText(copy.noOwner)).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Yesterday's pub social" })).toHaveCount(0);
   await frame(page, "This morning's event, still on Future");
 
