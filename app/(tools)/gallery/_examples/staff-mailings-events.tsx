@@ -154,11 +154,19 @@ export const staffMailingsEvents: Group = {
       variants: [
         {
           label: "What an event to come lacks: an error",
-          render: () => <Missing needed>{staffCopy.events.noOwner}</Missing>,
+          render: () => (
+            <StaffPage as="div">
+              <Missing needed>{staffCopy.events.noOwner}</Missing>
+            </StaffPage>
+          ),
         },
         {
           label: "What an event past lacks: only said",
-          render: () => <Missing needed={false}>{staffCopy.events.noOwner}</Missing>,
+          render: () => (
+            <StaffPage as="div">
+              <Missing needed={false}>{staffCopy.events.noOwner}</Missing>
+            </StaffPage>
+          ),
         },
       ],
     },

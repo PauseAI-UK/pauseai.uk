@@ -74,7 +74,7 @@ export function exampleEventsTab(params: Parameters<typeof eventsSearch>[0] = {}
 
 /**
  * Example events to come for the lists by owner and by tag: an owner with more
- * than fold, two with no owner, one with no tag, one online with no tags, and
+ * than a list shows before its fold, two with no owner, one with no tag, one online with no tags, and
  * a Scotland call in both Scotland's list and Online's.
  */
 export const exampleEventsToCome: StaffEvent[] = [
