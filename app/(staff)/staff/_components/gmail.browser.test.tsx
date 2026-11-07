@@ -266,12 +266,16 @@ describe("SupporterLetterThread", () => {
     expect(changes.more(1)).not.toBe(changes.more(2));
   });
 
+  it("shows the replies kept of a letter whose own text isn't", async () => {
+    await render(<SupporterLetterThread letter={{ ...exampleProxiedLetterDetails, sent: null, gmail: null }} />);
+    await expect.element(page.getByText(copy.supporterNoText)).toBeVisible();
+    await expect.element(page.getByText(exampleProxiedLetterDetails.messages[0].subject).first()).toBeVisible();
+  });
+
   it("a message whose text can't be read says so", async () => {
-    const sent = exampleProxiedLetterDetails.sent!;
+    const [first] = exampleProxiedLetterDetails.messages;
     await render(
-      <SupporterLetterThread
-        letter={{ ...exampleProxiedLetterDetails, sent: { ...sent, messages: [{ ...sent.messages[0], text: null }] } }}
-      />,
+      <SupporterLetterThread letter={{ ...exampleProxiedLetterDetails, messages: [{ ...first, text: null }] }} />,
     );
     await expect.element(page.getByText(copy.unreadable)).toBeVisible();
   });

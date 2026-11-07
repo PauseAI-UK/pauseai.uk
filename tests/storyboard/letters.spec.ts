@@ -177,6 +177,18 @@ test("A letter's page", async ({ page, flowDatabase }) => {
   await frame(page, "The letter, answered");
 });
 
+test("A reply to a letter whose text isn't kept", async ({ page, flowDatabase }) => {
+  story(
+    "An older letter went before its text was kept, so its page says so. The MP's reply was kept, and shows under it.",
+  );
+  const id = runSql(flowDatabase, "SELECT id FROM letters_from_supporters WHERE postmark_mailbox = 'seed-prev-li'");
+  await logIn(page, flowDatabase, ["admin", "supporters"]);
+  await page.goto(`${BASE}/staff/letters/${id}`);
+  await expect(page.getByText(staffCopy.letterThread.supporterNoText)).toBeVisible();
+  await expect(page.getByText("I will raise this at the next opportunity.")).toBeVisible();
+  await frame(page, "The letter's page, with the reply");
+});
+
 test("A letter bounces", async ({ page, request, flowDatabase }) => {
   story(
     "Jane writes to an MP whose address bounces her letter. The address is blocked, and staff get an email with a link to the blocked emails.",

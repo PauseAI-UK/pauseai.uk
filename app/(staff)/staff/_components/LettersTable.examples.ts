@@ -57,6 +57,7 @@ export const exampleSupporterLetterDetails: SupporterLetterDetails = {
   },
   forwards: [],
   sent: null,
+  messages: [],
 };
 
 const LETTERS_INBOX = "fixture-letters@pauseai.uk";
@@ -142,80 +143,74 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
       },
     },
   ],
-  sent: {
-    text: PROXIED_SENT,
-    draft: PROXIED_DRAFT,
-    messages: [
-      {
-        id: 1,
-        at: "2026-10-13T09:00:00Z",
-        fromName: "Testy McTestface MP",
-        fromAddress: "testy.mctestface.mp@parliament.uk",
-        fromUs: false,
-        fromSupporter: false,
-        auto: false,
-        subject: "Re: Please back a pause on frontier AI",
-        text: "Dear Jane,\n\nThank you for writing to me.\n\nTesty",
-        quoted: "",
-        // The office copied their caseworker in.
-        cc: "Casey Worker <casey.worker@parliament.uk>",
-      },
-      {
-        id: 2,
-        at: "2026-10-13T10:00:00Z",
-        fromName: "Jane Smith",
-        fromAddress: "jane@example.com",
-        fromUs: false,
-        fromSupporter: true,
-        auto: false,
-        subject: "Re: Please back a pause on frontier AI",
-        text: "Dear Mr McTestface,\n\nThank you. Could we meet?\n\nJane",
-        quoted: "",
-        cc: null,
-      },
-    ],
-  },
+  sent: { text: PROXIED_SENT, draft: PROXIED_DRAFT },
+  messages: [
+    {
+      id: 1,
+      at: "2026-10-13T09:00:00Z",
+      fromName: "Testy McTestface MP",
+      fromAddress: "testy.mctestface.mp@parliament.uk",
+      fromUs: false,
+      fromSupporter: false,
+      auto: false,
+      subject: "Re: Please back a pause on frontier AI",
+      text: "Dear Jane,\n\nThank you for writing to me.\n\nTesty",
+      quoted: "",
+      // The office copied their caseworker in.
+      cc: "Casey Worker <casey.worker@parliament.uk>",
+    },
+    {
+      id: 2,
+      at: "2026-10-13T10:00:00Z",
+      fromName: "Jane Smith",
+      fromAddress: "jane@example.com",
+      fromUs: false,
+      fromSupporter: true,
+      auto: false,
+      subject: "Re: Please back a pause on frontier AI",
+      text: "Dear Mr McTestface,\n\nThank you. Could we meet?\n\nJane",
+      quoted: "",
+      cc: null,
+    },
+  ],
 };
 
 /** The same letter with only an office's acknowledgement, of four paragraphs, and Jane's out-of-office, of one. */
 export const exampleAutoRepliedLetterDetails: SupporterLetterDetails = {
   ...exampleProxiedLetterDetails,
-  sent: {
-    ...exampleProxiedLetterDetails.sent!,
-    messages: [
-      {
-        id: 3,
-        at: "2026-10-12T09:06:00Z",
-        fromName: "Testy McTestface MP",
-        fromAddress: "testy.mctestface.mp@parliament.uk",
-        fromUs: false,
-        fromSupporter: false,
-        auto: true,
-        subject: "Automatic reply: Please back a pause on frontier AI",
-        text: [
-          "Thank you for contacting me. Please take this reply as confirmation that your email has been received.",
-          "I receive a very large volume of correspondence, and priority is given to constituents.",
-          "If your matter is urgent, please call my constituency office.",
-          "For my surgeries, please see my website.",
-        ].join("\n\n"),
-        quoted: "",
-        cc: null,
-      },
-      {
-        id: 4,
-        at: "2026-10-12T09:07:00Z",
-        fromName: "Jane Smith",
-        fromAddress: "jane@example.com",
-        fromUs: false,
-        fromSupporter: true,
-        auto: true,
-        subject: "Out of office",
-        text: "I'm away until Monday.",
-        quoted: "",
-        cc: null,
-      },
-    ],
-  },
+  messages: [
+    {
+      id: 3,
+      at: "2026-10-12T09:06:00Z",
+      fromName: "Testy McTestface MP",
+      fromAddress: "testy.mctestface.mp@parliament.uk",
+      fromUs: false,
+      fromSupporter: false,
+      auto: true,
+      subject: "Automatic reply: Please back a pause on frontier AI",
+      text: [
+        "Thank you for contacting me. Please take this reply as confirmation that your email has been received.",
+        "I receive a very large volume of correspondence, and priority is given to constituents.",
+        "If your matter is urgent, please call my constituency office.",
+        "For my surgeries, please see my website.",
+      ].join("\n\n"),
+      quoted: "",
+      cc: null,
+    },
+    {
+      id: 4,
+      at: "2026-10-12T09:07:00Z",
+      fromName: "Jane Smith",
+      fromAddress: "jane@example.com",
+      fromUs: false,
+      fromSupporter: true,
+      auto: true,
+      subject: "Out of office",
+      text: "I'm away until Monday.",
+      quoted: "",
+      cc: null,
+    },
+  ],
 };
 
 const LETTER_ADDRESS = "jane.smith.482913@letters.pauseai.uk";

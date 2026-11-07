@@ -129,9 +129,9 @@ export default function LetterThread({ thread, link }: { thread: Thread; link?: 
  * them, leading to their supporter page once they're linked to one, to
  * their MP, when it went, with its subject. One from the letters inbox
  * shows its text against the draft it was written from (LetterChanges),
- * with `link`, the way to it there, at the right of the heading, then each
- * message both ways, oldest first. For another, whose text the site doesn't have, a
- * note saying so, with `link` in its place.
+ * with `link`, the way to it there, at the right of the heading. For another,
+ * whose text the site doesn't have, a note saying so, with `link` in its
+ * place. Then each message kept, both ways, oldest first.
  */
 export function SupporterLetterThread({ letter, link }: { letter: SupporterLetterDetails; link?: ReactNode }) {
   const sender = named(letter.senderName, letter.senderEmail);
@@ -153,7 +153,7 @@ export function SupporterLetterThread({ letter, link }: { letter: SupporterLette
           <NoText note={copy.supporterNoText} link={link} />
         </ThreadEmail>
       )}
-      {sent?.messages.map((message) => (
+      {letter.messages.map((message) => (
         <ThreadEmail
           key={message.id}
           from={named(message.fromName, message.fromAddress)}
