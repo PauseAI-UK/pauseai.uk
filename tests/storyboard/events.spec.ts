@@ -242,13 +242,19 @@ test("Events by owner", async ({ page, flowDatabase }) => {
 
   story("Joseph has more than five, so the rest fold. Opening them moves only what's under them in that column.");
   const other = page.getByRole("heading", { level: 2, name: /^priya/ });
-  const before = (await other.boundingBox())!;
+  // Its place on the page, as a click can scroll the window.
+  const place = () =>
+    other.evaluate((heading) => {
+      const { x, y } = heading.getBoundingClientRect();
+      return { x, y: y + window.scrollY };
+    });
+  const before = await place();
   const joseph = eventList(page, /^joseph/);
   const left = (await joseph.boundingBox())!.x;
   await joseph.getByText(copy.lists.more(2)).click();
   await expect(joseph.getByRole("link", { name: "London winter social" })).toBeVisible();
   // A phone has one column, so everything under it moves.
-  if (left < before.x) expect(await other.boundingBox()).toEqual(before);
+  if (left < before.x) expect(await place()).toEqual(before);
   await frame(page, "Joseph's events, unfolded");
 
   story("Someone takes the Oxford talk: Edit on its line opens the same bubble as Future's table.");
