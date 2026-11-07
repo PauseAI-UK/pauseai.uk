@@ -458,7 +458,7 @@ INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_i
 SELECT r.id, 'fixture-letters@pauseai.uk', 'gmail-' || r.postmark_mailbox, 'thread-' || r.postmark_mailbox, r.postmark_mailbox || '-reply@parliament.example',
   lower(n.email), n.name, 'Re: ' || s.subject, r.replied_at, false, false, 'fixture/' || f.file || '.eml.gz', 512
 FROM seed_letter_rows r JOIN letters_from_supporters s USING (id) JOIN notable_people n ON n.id = r.notable_person_id
-  JOIN (VALUES ('seed-prev-omar', 'polly-reply-bill'), ('seed-week-sam', 'polly-reply-bill'), ('seed-week-grace', 'polly-reply-ai'), ('seed-prev-li', 'dora-reply'))
+  JOIN (VALUES ('seed-prev-omar', 'polly-reply-bill'), ('seed-week-sam', 'polly-reply-sobel'), ('seed-week-grace', 'polly-reply-ai'), ('seed-prev-li', 'dora-reply'))
     AS f (postmark_mailbox, file) ON f.postmark_mailbox = r.postmark_mailbox;
 
 -- Every email that went out, or didn't: the letters, two forwarded replies,
