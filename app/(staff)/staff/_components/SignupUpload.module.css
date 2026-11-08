@@ -240,7 +240,9 @@
   min-width: 16rem;
 }
 
-/* An email breaks anywhere, so a long one doesn't push the table past its card. */
+/* An email has room for most addresses whole, and breaks anywhere past that, so a long one
+   doesn't push the table past its card. */
 .email {
+  min-width: 14rem;
   overflow-wrap: anywhere;
 }
