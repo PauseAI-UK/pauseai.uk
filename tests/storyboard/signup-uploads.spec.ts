@@ -80,7 +80,7 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   story("The page links to every import so far, by the date on the forms.");
   await page.goto(`${BASE}/staff/supporters/upload`);
   await page.getByRole("link", { name: copy.uploads.see }).click();
-  await expect(page.getByRole("link", { name: "street-flyering.csv" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Flyering at Camden Town" })).toBeVisible();
   await frame(page, "Past imports");
 });
 
