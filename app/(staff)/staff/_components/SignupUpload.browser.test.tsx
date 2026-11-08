@@ -214,7 +214,7 @@ describe("SignupPlanView", () => {
     expect(lines()[2]).toContain(`${said.fresh}${said.register}${said.mailing}`);
     expect(lines()[3]).toContain(`${said.known.email}${said.going}`);
     expect(lines()[3]).toContain("07700 900123");
-    expect(lines()[4]).toContain(said.known.mobile);
+    expect(lines()[4]).toContain(`${said.known.mobile}${said.mailing}${said.phone}`);
     expect(lines()[5]).toContain(said.alreadyImported);
   });
 

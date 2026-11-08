@@ -13,6 +13,7 @@ import {
   signupUploadPath,
   type SignupPlan,
   type SignupPlanRow,
+  type SignupRowProblem,
   type SignupUploadInput,
 } from "@/lib/signup-upload";
 import { Card } from "./ui/Grid";
@@ -26,11 +27,8 @@ const words = copy.preview;
 const fields = copy.help.fields;
 
 /** Why a person is held back, in words. */
-function whyHeld(row: SignupPlanRow): string {
-  if (!row.problem) return "";
-  return row.problem.kind === "unread-yes-no"
-    ? words.unread(row.problem.value, row.problem.column)
-    : words.problems[row.problem.kind];
+function whyHeld(problem: SignupRowProblem): string {
+  return problem.kind === "unread-yes-no" ? words.unread(problem.value, problem.column) : words.problems[problem.kind];
 }
 
 /** What will happen to one person, a lozenge each: held back and why; or already imported; or the supporter they'll be, Luma, and how they can be contacted. */
@@ -40,7 +38,7 @@ function Happens({ row }: { row: SignupPlanRow }) {
     return (
       <span className={styles.lozenges}>
         <Tag tone="red">{said.notImported}</Tag>
-        <Tag tone="amber">{whyHeld(row)}</Tag>
+        <Tag tone="amber">{whyHeld(row.problem!)}</Tag>
       </span>
     );
   }

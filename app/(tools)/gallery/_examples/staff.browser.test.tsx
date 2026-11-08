@@ -24,6 +24,7 @@ import {
   PoliticianTableEmptyExample,
   PoliticianTableExample,
   SignupPlanViewExample,
+  SignupUploadHelpExample,
   SignupUploadPreviewExample,
 } from "./staff.client";
 
@@ -38,6 +39,15 @@ const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listi
 const subject = () => page.getByLabelText(new RegExp(`^${staffCopy.mailingPages.subject}`));
 
 describe("the staff examples", () => {
+  it("opens and closes every column name under what the file needs", async () => {
+    await render(<SignupUploadHelpExample />);
+    const help = staffCopy.signupUpload.help;
+    await page.getByRole("button", { name: help.more }).click();
+    await expect.element(page.getByText(help.fields.mailingList.label)).toBeVisible();
+    await page.getByRole("button", { name: help.less }).click();
+    expect(page.getByText(help.fields.mailingList.label).elements()).toEqual([]);
+  });
+
   it("previews and imports an upload, going to what it did", async () => {
     await render(<SignupPlanViewExample />);
     await render(<SignupUploadPreviewExample />);

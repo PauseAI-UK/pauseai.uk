@@ -44,6 +44,8 @@ export const exampleSignupPlan: SignupPlan = {
       line: 4,
       name: "Ben Wood",
       email: "ben.wood@example.com",
+      phone: "07700 900456",
+      mailingList: true,
       pile: "none",
       known: "mobile",
       newEntry: true,

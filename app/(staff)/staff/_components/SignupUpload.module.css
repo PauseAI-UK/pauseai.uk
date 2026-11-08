@@ -235,7 +235,7 @@
   vertical-align: -0.1em;
 }
 
-/* What will happen: room for a row's lozenges side by side, the other columns taking what's left. */
+/* What will happen: room for a few lozenges a line, wrapping, without pushing the table past its card. */
 .happens {
-  min-width: 22rem;
+  min-width: 16rem;
 }

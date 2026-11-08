@@ -66,7 +66,7 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   story("Importing adds the five, and registers the one who wasn't going yet.");
   await page.getByRole("button", { name: copy.preview.importNow(5, 1) }).click();
   await expect(page.getByRole("heading", { name: copy.result.title("street-flyering.csv") })).toBeVisible();
-  await expect(page.getByText(copy.result.luma.added)).toHaveCount(1);
+  await expect(page.getByText(copy.result.luma.added, { exact: true })).toHaveCount(1);
   await frame(page, "What the upload did");
 
   story("The person's own page shows the form they filled in, with the note, and permission to contact them.");
