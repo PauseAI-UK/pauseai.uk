@@ -239,3 +239,8 @@
 .happens {
   min-width: 16rem;
 }
+
+/* An email breaks anywhere, so a long one doesn't push the table past its card. */
+.email {
+  overflow-wrap: anywhere;
+}

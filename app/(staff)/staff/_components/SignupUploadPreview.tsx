@@ -94,7 +94,7 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
             <tr key={row.line}>
               <td>{row.line}</td>
               <td>{row.name}</td>
-              <td>{row.email}</td>
+              <td className={styles.email}>{row.email}</td>
               <td className={styles.nowrap}>{row.phone}</td>
               <td className={styles.nowrap}>{row.postcode}</td>
               <td>
