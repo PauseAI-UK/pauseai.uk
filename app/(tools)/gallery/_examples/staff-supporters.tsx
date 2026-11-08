@@ -17,9 +17,8 @@ import {
   exampleSupporterRows,
   exampleSupporterDetails,
 } from "@/app/(staff)/staff/_components/SupportersTable.examples";
-import SignupUploadForm from "@/app/(staff)/staff/_components/SignupUploadForm";
-import SignupUploadHelp from "@/app/(staff)/staff/_components/SignupUploadHelp";
-import SignupUploadResult, { SignupUploadsTable } from "@/app/(staff)/staff/_components/SignupUploadResult";
+import { SignupColumnNames } from "@/app/(staff)/staff/_components/SignupUploadHelp";
+import SignupUploadResult, { SignupUploadsList } from "@/app/(staff)/staff/_components/SignupUploadResult";
 import { exampleSignupUpload, exampleSignupUploadPeople } from "@/app/(staff)/staff/_components/SignupUpload.examples";
 import { supportersSearch } from "@/lib/staff-search";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
@@ -33,6 +32,8 @@ import {
   NoteHistoryExample,
   NoteTextExample,
   SignupPlanViewExample,
+  SignupUploadFormExample,
+  SignupUploadHelpExample,
   SignupUploadPreviewExample,
 } from "./staff.client";
 
@@ -378,22 +379,22 @@ export const staffSupporters: Group = {
     {
       name: "SignupUploadForm",
       file: "app/(staff)/staff/_components/SignupUploadForm.tsx",
-      variants: [
-        {
-          label: "Before a file: the drop box beside what the file should look like",
-          render: () => (
-            <SignupUploadForm
-              today="2026-10-31"
-              events={[{ id: "evt-march", name: "PauseAI London March", startAt: "2026-11-21T12:00:00Z" }]}
-            />
-          ),
-        },
-      ],
+      variants: [{ label: "Before a file: its four steps", render: () => <SignupUploadFormExample /> }],
     },
     {
       name: "SignupUploadHelp",
       file: "app/(staff)/staff/_components/SignupUploadHelp.tsx",
-      variants: [{ label: "The columns it understands, and their values", render: () => <SignupUploadHelp /> }],
+      variants: [
+        {
+          label: "What the file needs, and the button that opens every name",
+          render: () => <SignupUploadHelpExample />,
+        },
+      ],
+    },
+    {
+      name: "SignupColumnNames",
+      file: "app/(staff)/staff/_components/SignupUploadHelp.tsx",
+      variants: [{ label: "Every column name, and its values", render: () => <SignupColumnNames /> }],
     },
     {
       name: "SignupPlanView",
@@ -403,7 +404,7 @@ export const staffSupporters: Group = {
     {
       name: "SignupUploadPreview",
       file: "app/(staff)/staff/_components/SignupUploadPreview.tsx",
-      variants: [{ label: "With no file left in the tab", render: () => <SignupUploadPreviewExample /> }],
+      variants: [{ label: "Worked out, with someone in every pile", render: () => <SignupUploadPreviewExample /> }],
     },
     {
       name: "SignupUploadResult",
@@ -422,10 +423,22 @@ export const staffSupporters: Group = {
       ],
     },
     {
-      name: "SignupUploadsTable",
+      name: "SignupUploadsList",
       file: "app/(staff)/staff/_components/SignupUploadResult.tsx",
       variants: [
-        { label: "The earlier uploads", render: () => <SignupUploadsTable uploads={[exampleSignupUpload]} /> },
+        {
+          label: "This year's and last year's, by the date on the forms",
+          render: () => (
+            <SignupUploadsList
+              now="2026-11-07T12:00:00Z"
+              uploads={[
+                exampleSignupUpload,
+                { ...exampleSignupUpload, id: 2, signedOn: "2025-06-14", note: null, eventName: null, heldBack: 0 },
+              ]}
+            />
+          ),
+        },
+        { label: "None yet", render: () => <SignupUploadsList now="2026-11-07T12:00:00Z" uploads={[]} /> },
       ],
     },
   ],

@@ -5,7 +5,6 @@ import {
   signupEventColumns,
   signupFileText,
   signupHeading,
-  signupHeldCsv,
   signupPileCounts,
   signupRows,
   type SignupFileRead,
@@ -126,7 +125,6 @@ describe("signupRows", () => {
         email: "jane@example.com",
         phone: null,
         postcode: null,
-        city: null,
         mailingList: false,
         going: false,
         problem: null,
@@ -145,7 +143,6 @@ describe("signupRows", () => {
       email: "jo@example.com",
       phone: "07700900123",
       postcode: "SE15 1AA",
-      city: "Leeds",
       mailingList: true,
       going: true,
       problem: null,
@@ -154,7 +151,7 @@ describe("signupRows", () => {
 
   it("copes with the ways an address and a phone number are written, and missing cells", () => {
     const people = rows(
-      "Name,Email,Phone,City\na,mailto:a @example.com.,+44 7700 900123\nb,b@example.com\nc,c@example.com,,",
+      "Name,Email,Phone,Town\na,mailto:a @example.com.,+44 7700 900123\nb,b@example.com\nc,c@example.com,,",
     );
     expect(people.map((p) => [p.email, p.phone])).toEqual([
       ["a@example.com", "+44 7700 900123"],
@@ -169,8 +166,8 @@ describe("signupRows", () => {
   });
 
   it("drops an optional cell too long to be what it says", () => {
-    const [person] = rows(`Name,Email,City,Postcode\na,a@example.com,${"x".repeat(101)},${"y".repeat(101)}`);
-    expect(person).toMatchObject({ city: null, postcode: null, problem: null });
+    const [person] = rows(`Name,Email,Postcode\na,a@example.com,${"y".repeat(101)}`);
+    expect(person).toMatchObject({ postcode: null, problem: null });
   });
 
   it("holds back each kind of row it can't use", () => {
@@ -219,7 +216,6 @@ Fine,fine@example.com,07700900123,n,no`,
 const plan = (eventColumn: string | null, ...planRows: Partial<SignupPlanRow>[]): SignupPlan => ({
   input: { csv: "", filename: "f.csv", eventId: null, eventColumn, signedOn: "2026-10-31", note: "" },
   eventName: null,
-  ignored: [],
   signature: "",
   rows: planRows.map(
     (row, i) =>
@@ -229,7 +225,6 @@ const plan = (eventColumn: string | null, ...planRows: Partial<SignupPlanRow>[])
         email: "jo@example.com",
         phone: null,
         postcode: null,
-        city: null,
         mailingList: false,
         going: false,
         problem: null,
@@ -250,26 +245,5 @@ describe("signupPileCounts", () => {
       none: 2,
       done: 0,
     });
-  });
-});
-
-describe("signupHeldCsv", () => {
-  const why = () => "Because";
-
-  it("has the held back alone, in columns it would read again, the event's among them", () => {
-    const csv = signupHeldCsv(
-      plan("March", { going: true, mailingList: true, phone: "1", postcode: "M1", city: "Leeds" }, { pile: "none" }),
-      { why: "Why" },
-      why,
-    );
-    expect(csv).toBe(
-      `Name,Email,Phone,Postcode,City,Mailing list,March,Why\r\nJo,jo@example.com,1,M1,Leeds,Y,Y,Because\r\n`,
-    );
-  });
-
-  it("has no event column without one", () => {
-    expect(signupHeldCsv(plan(null, {}), { why: "Why" }, why)).toBe(
-      "Name,Email,Phone,Postcode,City,Mailing list,Why\r\nJo,jo@example.com,,,,,Because\r\n",
-    );
   });
 });

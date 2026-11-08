@@ -1,26 +1,32 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
-import { listSignupUploads, signupEventChoices } from "@/lib/server/signup-uploads";
+import { signupEventChoices } from "@/lib/server/signup-uploads";
+import { SIGNUP_UPLOADS_PATH } from "@/lib/signup-upload";
 import { requireStaff } from "@/lib/server/staff-auth";
 import SignupUploadForm from "../../../_components/SignupUploadForm";
-import { SignupUploadsTable } from "../../../_components/SignupUploadResult";
-import PageIntro from "../../../_components/ui/PageIntro";
+import PageTitle from "../../../_components/ui/PageTitle";
+import StaffLink from "../../../_components/ui/StaffLink";
+import { importSignupUpload, previewSignupUpload } from "../../../signup-upload-actions";
 
 const copy = staffCopy.signupUpload;
 
 export const metadata: Metadata = { title: copy.title };
 
-/** Uploading a CSV of paper sign-ups, and the uploads so far. */
+/** Uploading a CSV of paper sign-ups, with the way to the uploads so far. */
 export default async function SignupUploadPage() {
   await requireStaff("supporters");
-  const [events, uploads] = await Promise.all([signupEventChoices(), listSignupUploads()]);
+  const events = await signupEventChoices();
   return (
     <>
-      <h1>{copy.title}</h1>
-      <PageIntro>{copy.intro}</PageIntro>
-      <SignupUploadForm events={events} today={now().toISOString().slice(0, 10)} />
-      <SignupUploadsTable uploads={uploads} />
+      <PageTitle intro={copy.intro} action={<StaffLink href={SIGNUP_UPLOADS_PATH}>{copy.uploads.see}</StaffLink>}>
+        {copy.title}
+      </PageTitle>
+      <SignupUploadForm
+        events={events}
+        today={now().toISOString().slice(0, 10)}
+        actions={{ preview: previewSignupUpload, finish: importSignupUpload }}
+      />
     </>
   );
 }

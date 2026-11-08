@@ -1,7 +1,7 @@
 import type { getSignupUpload, SignupUploadSummary } from "@/lib/server/signup-uploads";
 import type { SignupPlan } from "@/lib/signup-upload";
 
-const person = { phone: null, postcode: null, city: null, mailingList: false, going: false, problem: null };
+const person = { phone: null, postcode: null, mailingList: false, going: false, problem: null };
 
 /** A file with someone in every pile. */
 export const exampleSignupPlan: SignupPlan = {
@@ -14,7 +14,6 @@ export const exampleSignupPlan: SignupPlan = {
     note: "Flyering at Camden Town",
   },
   eventName: "PauseAI London March",
-  ignored: ["WhatsApp", "Needs check"],
   signature: "example",
   rows: [
     {
@@ -88,6 +87,7 @@ export const exampleSignupUpload: SignupUploadSummary = {
   signedOn: "2026-10-31",
   note: "Flyering at Camden Town",
   eventName: "PauseAI London March",
+  eventUrl: "https://luma.com/example",
   imported: 4,
   heldBack: 2,
   uploadedBy: "jo@pauseai.uk",

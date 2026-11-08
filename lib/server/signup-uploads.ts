@@ -23,12 +23,12 @@ import { linkSupporters } from "./supporters";
 // docs/domain-concepts.md, "Form entries".
 
 /** An event a file can sign people up for: one to come, on a calendar we manage. */
-export type SignupEventChoice = { id: string; name: string; startAt: string };
+export type SignupEventChoice = { id: string; name: string; startAt: string; url: string };
 
 /** The events a file can sign people up for, soonest first. */
 export async function signupEventChoices(): Promise<SignupEventChoice[]> {
   return query<SignupEventChoice>(
-    `SELECT id, name, start_at AS "startAt" FROM luma_events
+    `SELECT id, name, start_at AS "startAt", url FROM luma_events
      WHERE access = 'manage' AND removed_at IS NULL AND start_at >= $1 ORDER BY start_at, id`,
     [now()],
   );
@@ -112,9 +112,6 @@ export async function planSignupUpload(input: SignupUploadInput): Promise<Signup
   const plan = { input, eventName: event?.name ?? null, rows };
   return {
     ...plan,
-    ignored: file.columns.flatMap((column) =>
-      column.field || column.heading === input.eventColumn ? [] : [column.heading],
-    ),
     signature: createHash("sha256")
       .update(JSON.stringify([input.csv, input.eventId, input.eventColumn, input.signedOn, rows]))
       .digest("hex"),
@@ -137,6 +134,8 @@ export async function finishSignupUpload(
 ): Promise<SignupUploadFinished> {
   const plan = await planSignupUpload(input);
   if ("ok" in plan) return plan;
+  // The note says where the forms came from, on everyone's history, so nothing goes in without one.
+  if (!input.note.trim()) return { ok: false, reason: "bad-choice" };
   if (plan.signature !== signature) return { changed: plan };
 
   const fresh = plan.rows.filter((row) => row.newEntry);
@@ -146,19 +145,18 @@ export async function finishSignupUpload(
     const [{ id }] = await query<{ id: number }>(
       `INSERT INTO signup_uploads (filename, signed_on, note, event_id, imported, held_back, uploaded_by, uploaded_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id::int AS id`,
-      [input.filename, input.signedOn, input.note.trim() || null, input.eventId, fresh.length, heldBack, by, now()],
+      [input.filename, input.signedOn, input.note.trim(), input.eventId, fresh.length, heldBack, by, now()],
       db,
     );
     const added = await query<{ id: number; email: string }>(
-      `INSERT INTO form_entries (form, created_at, name, email, phone, city, postcode, contact_consent)
-       SELECT 'paper-signup', $1, * FROM unnest($2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::boolean[])
+      `INSERT INTO form_entries (form, created_at, name, email, phone, postcode, contact_consent)
+       SELECT 'paper-signup', $1, * FROM unnest($2::text[], $3::text[], $4::text[], $5::text[], $6::boolean[])
        RETURNING id::int AS id, email`,
       [
         entryTime(input.signedOn),
         fresh.map((row) => row.name),
         fresh.map((row) => row.email),
         fresh.map((row) => row.phone),
-        fresh.map((row) => row.city),
         fresh.map((row) => row.postcode),
         fresh.map((row) => row.mailingList),
       ],
@@ -179,7 +177,7 @@ export async function finishSignupUpload(
     );
     await linkSupporters(db);
     await refreshSupportersList(db);
-    await logChange(by, "upload sign-ups", { uploadId: id, imported: fresh.length, heldBack }, db);
+    await logChange(by, "import sign-ups", { uploadId: id, imported: fresh.length, heldBack }, db);
     return { uploadId: id, entries };
   });
 
@@ -209,6 +207,8 @@ export type SignupUploadSummary = {
   signedOn: string;
   note: string | null;
   eventName: string | null;
+  /** The event's page on Luma. */
+  eventUrl: string | null;
   imported: number;
   heldBack: number;
   uploadedBy: string;
@@ -227,7 +227,7 @@ export type SignupUploadPerson = {
   supporterId: number | null;
 };
 
-const UPLOAD_COLUMNS = `u.id::int AS id, u.filename, u.signed_on::text AS "signedOn", u.note, e.name AS "eventName",
+const UPLOAD_COLUMNS = `u.id::int AS id, u.filename, u.signed_on::text AS "signedOn", u.note, e.name AS "eventName", e.url AS "eventUrl",
   u.imported, u.held_back AS "heldBack", u.uploaded_by AS "uploadedBy", u.uploaded_at AS "uploadedAt"`;
 
 /** How many uploads the page lists: there's little reason to look further back. */

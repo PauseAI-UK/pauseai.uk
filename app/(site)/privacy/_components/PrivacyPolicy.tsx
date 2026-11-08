@@ -32,10 +32,10 @@ export default function PrivacyPolicy() {
           asked, PauseAI UK holds a copy of them too, as the next section says.
         </li>
         <li>
-          <strong>⁂ If you fill in a paper form with us, such as while we&apos;re flyering</strong>, ⁂ PauseAI UK holds
-          what you wrote: your name and email, and any phone number, city, postcode and whether you want to hear from
-          us. We use it to sign you up for any event you asked to go to, through Luma, and to contact you if you said we
-          could.
+          <strong>If you fill in a paper form for us</strong>, for example when we&apos;re out leafleting, PauseAI UK
+          keeps what you wrote: your name and email, your phone number and postcode if you gave them, and whether you
+          joined our mailing list. We use this to register you for any event you signed up for, through Luma, and to
+          contact you if you said we could.
         </li>
       </ul>
       <p>

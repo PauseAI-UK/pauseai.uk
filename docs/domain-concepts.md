@@ -421,17 +421,19 @@ pointing at `form_entries`, as `form_entry_luma` holds what Luma said to a
 form that registers people for an event. What a form's box said when
 someone ticked it is its wording in git at the entry's `created_at`.
 
-**Paper sign-ups** (`paper-signup`) come from a CSV staff upload at
-`/staff/supporters/upload`, of forms filled in while flyering. The file itself
-isn't kept: the page reads it in the browser and holds it in that tab until it's
-imported. `signup_uploads` has its name, the date on the forms, a note, the
-event, and how many it imported and held back; `signup_upload_entries` ties each
-entry to its upload, whose note is the entry's line in a supporter's history. The
+**Paper sign-ups** (`paper-signup`) come from a CSV staff import at
+`/staff/supporters/upload`, of forms collected while flyering. The file itself
+isn't kept: the page reads it in the browser, and sends it to the server only to
+preview and import it. Each import is a row of `signup_uploads`: the file's name,
+the date collected, where collected (`note`), the event, and how many it imported
+and held back. `signup_upload_entries` ties each entry to its import, whose where
+collected is the entry's line in a supporter's history, and the import's own page
+is under Past imports. The
 reading is in `lib/signup-upload.ts`: liberal about separators, encodings, how a
 heading is spelt and ways of saying yes, and nothing else. A column whose heading
-isn't on its list is ignored, so a doubt in a file is settled before it's uploaded.
-The entry is dated midday on the date on the forms, which is also what makes an
-upload safe to repeat: an email with a paper entry of that date gets no other.
+isn't on its list is ignored, so a doubt in a file is settled before it's imported.
+The entry is dated midday on the date collected, which is also what makes an
+import safe to repeat: an email with a paper entry of that date gets no other.
 The mailing list column is the entry's box, so it's PauseAI UK by email, and
 calls and texts for a number given. Staff may link one column of yes and blank to
 one event to come, and a yes then registers them on Luma, who emails them, unless
@@ -884,6 +886,7 @@ blocked addresses. Nothing else about reading is logged.
 | `create mailing`, `schedule mailing`, `reschedule mailing`, `stop mailing`, `delete mailing`                  | staff                                | A mailing written on the site                                                                   | `id`, and `recipients`, `dueAt` or what it `was`             |
 | `start mailing`, `finish mailing`                                                                             | `send-mailings`                      | The hourly job starts a scheduled mailing, and sends its last letter                            | `id`                                                         |
 | `set event owner`, `set event doc`                                                                            | staff, `sync`                        | An event's owner or Google Doc set on the events page, or an owner given by the rules           | `eventId`, `owner` or `url`, `previous`                      |
+| `import sign-ups`                                                                                             | staff                                | A file of paper sign-ups imported                                                               | `uploadId`, `imported`, `heldBack`                           |
 | `block address`, `unblock address`                                                                            | `postmark`, staff                    | A bounce or complaint blocks an address; staff unblock it                                       | `address`, and the `kind` or the `note`                      |
 | `add staff account`, `set staff permissions`, `remove staff account`, `end staff sessions`                    | staff, or the address on first login | The accounts page, a first login, and sessions ended from the accounts page or `/staff/me`      | `email`, the permissions `from` and `to`, or `sessions`      |
 | `connect gmail`, `disconnect gmail`                                                                           | staff                                | A Gmail connected or disconnected on `/staff/me`, or by Google                                  | `email`, and `why`                                           |

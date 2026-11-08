@@ -21,31 +21,33 @@ async function openUpload(page: Page, database: string) {
   await page.goto(`${BASE}/staff/supporters/upload`);
 }
 
-/** Chooses one of the fixture files, and waits for it to be read. */
-async function chooseFile(page: Page, name: string) {
+/** Chooses one of the fixture files, and gives the note any upload needs. */
+async function chooseFile(page: Page, name: string, note = "Flyering at Camden Town") {
   await page.getByLabel(copy.drop.label).setInputFiles({
     name,
     mimeType: "text/csv",
     buffer: readFileSync(join(FILES, name)),
   });
-  await expect(page.locator("strong", { hasText: name })).toBeVisible();
+  await page.getByRole("textbox", { name: copy.form.note }).fill(note);
 }
 
-const pile = (page: Page, name: string) => page.getByRole("button", { name: new RegExp(`\\d+ ${name}$`) });
-const preview = (page: Page) => page.getByRole("button", { name: copy.form.preview });
-
-/** Picks the event by its name, as its option also says its date. */
-async function chooseEvent(page: Page) {
-  const select = page.getByRole("combobox", { name: copy.form.event });
-  const value = await select.locator("option", { hasText: EVENT }).first().getAttribute("value");
-  await select.selectOption(value!);
+/** Chooses the column saying who's going, then finds the event by typing part of its name, and picks it. */
+async function chooseEvent(page: Page, column: string) {
+  await page.getByRole("combobox", { name: copy.form.eventColumn }).selectOption(column);
+  await page.getByRole("searchbox", { name: copy.form.findEvent }).fill("Protest");
+  await page.getByRole("button", { name: EVENT }).click();
 }
 
 test("A flyering file, linked to an event", async ({ page, flowDatabase, request }) => {
   await importLuma(request, BASE);
-  story("Staff open Upload sign-ups, from the navigation. Before any file, the page says what it understands.");
+  story("Staff open Paper sign-ups, from the navigation. Before any file, the page says what it needs.");
   await openUpload(page, flowDatabase);
-  await frame(page, "Before a file: the drop box beside the columns and values it understands");
+  await frame(page, "Before a file: its four steps");
+
+  story("Every column name it understands, and the values each can hold, open in a section of their own.");
+  await page.getByRole("button", { name: copy.help.more }).click();
+  await frame(page, "All column names and values");
+  await page.getByRole("button", { name: copy.help.less }).click();
 
   story(
     "They drop in a file. Name, email, postcode, phone and mailing list are understood. Other columns are ignored.",
@@ -53,21 +55,13 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   await chooseFile(page, "street-flyering.csv");
   await frame(page, "What each column will do");
 
-  story("They link the column saying who's going to an event, and add a note saying where the forms came from.");
-  await chooseEvent(page);
-  await page.getByRole("combobox", { name: copy.form.eventColumn }).selectOption("Saturday march");
-  await page.getByLabel(copy.form.note).fill("Flyering at Camden Town");
+  story("They choose the column saying who's going, then the event it's for.");
+  await chooseEvent(page, "Saturday march");
   await frame(page, "The event, its column and a note");
 
-  story("The preview is its own page, with exactly what will happen to everyone.");
-  await preview(page).click();
-  await expect(page.getByRole("heading", { name: copy.preview.title })).toBeVisible();
+  story("What will happen to everyone is worked out as soon as there's a file and a note, at the foot of the page.");
   await expect(page.getByRole("button", { name: copy.preview.importNow(5, 1) })).toBeVisible();
   await frame(page, "The preview: one long table");
-
-  story("Each pile can be looked at on its own. Two of the three going are on Luma already.");
-  await pile(page, copy.preview.piles.going).click();
-  await frame(page, "Only those already going");
 
   story("Importing adds the five, and registers the one who wasn't going yet.");
   await page.getByRole("button", { name: copy.preview.importNow(5, 1) }).click();
@@ -83,10 +77,30 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   await expect(page.getByText("Flyering at Camden Town")).toBeVisible();
   await frame(page, "On the supporter's page");
 
-  story("The upload is listed for next time.");
+  story("The page links to every import so far, by the date on the forms.");
   await page.goto(`${BASE}/staff/supporters/upload`);
+  await page.getByRole("link", { name: copy.uploads.see }).click();
   await expect(page.getByRole("link", { name: "street-flyering.csv" })).toBeVisible();
-  await frame(page, "The earlier uploads");
+  await frame(page, "Past imports");
+});
+
+test("A big file", async ({ page, flowDatabase, request }) => {
+  await importLuma(request, BASE);
+  story(
+    "A hundred sign-ups from a cheese vigil's stall, linked to an event, with all the mistakes a pile of paper has. Those held back are at the top.",
+  );
+  await openUpload(page, flowDatabase);
+  await chooseFile(page, "cheesemouse.csv", "Cheese vigil stall");
+  await chooseEvent(page, "5 Dec cheese vigil");
+  const importNow = page.getByRole("button", { name: /^Import \d+ people and register \d+ on Luma/ });
+  await expect(importNow).toBeEnabled();
+  await page.getByRole("heading", { name: copy.steps.check }).scrollIntoViewIfNeeded();
+  await frame(page, "What will happen, those held back first");
+
+  story("Importing them all.");
+  await importNow.click();
+  await expect(page.getByRole("heading", { name: copy.result.title("cheesemouse.csv") })).toBeVisible();
+  await frame(page, "A hundred imported");
 });
 
 test("A spreadsheet's own export, with no event", async ({ page, flowDatabase }) => {
@@ -98,7 +112,6 @@ test("A spreadsheet's own export, with no event", async ({ page, flowDatabase })
   await frame(page, "Its columns, read");
 
   story("With no event, nobody goes on Luma.");
-  await preview(page).click();
   await expect(page.getByRole("button", { name: copy.preview.importOnly(3) })).toBeVisible();
   await frame(page, "The preview, with nobody on Luma");
 
@@ -114,10 +127,9 @@ test("A file with a column it won't guess at", async ({ page, flowDatabase, requ
   );
   await openUpload(page, flowDatabase);
   await chooseFile(page, "volunteers.tsv");
-  await page.getByRole("combobox", { name: copy.form.event }).selectOption({ index: 1 });
   await expect(page.getByText(copy.form.noEventColumn)).toBeVisible();
-  await expect(preview(page)).toBeDisabled();
-  await frame(page, "An event chosen, with no column to link it to");
+  await expect(page.getByRole("searchbox", { name: copy.form.findEvent })).toBeDisabled();
+  await frame(page, "No column to link an event to");
 });
 
 test("Rows held back, fixed and uploaded again", async ({ page, flowDatabase }) => {
@@ -129,17 +141,10 @@ test("Rows held back, fixed and uploaded again", async ({ page, flowDatabase }) 
   story("One row in this file is fine. Each of the others has something the site won't guess at.");
   await openUpload(page, flowDatabase);
   await chooseFile(page, "needs-fixing.csv");
-  await preview(page).click();
-  await pile(page, copy.preview.piles.held).click();
   await expect(page.getByText(copy.preview.unread("Maybe", "Mailing list"))).toBeVisible();
   await frame(page, "Those held back, and why");
 
-  story("They can be downloaded, with why, to fix. Importing goes ahead with the one that's fine.");
-  const [download] = await Promise.all([
-    page.waitForEvent("download"),
-    page.getByRole("link", { name: copy.preview.download }).click(),
-  ]);
-  expect(download.suggestedFilename()).toBe(copy.preview.downloadName("needs-fixing.csv"));
+  story("Importing goes ahead with the one that's fine. The rest are fixed in the spreadsheet.");
   await page.getByRole("button", { name: copy.preview.importOnly(1) }).click();
   await expect(page.getByRole("heading", { name: copy.result.title("needs-fixing.csv") })).toBeVisible();
   await frame(page, "One imported, eight held back");
@@ -147,9 +152,8 @@ test("Rows held back, fixed and uploaded again", async ({ page, flowDatabase }) 
   story("Fixed, the whole file goes in again. The person already in isn't added twice.");
   await page.goto(`${BASE}/staff/supporters/upload`);
   await chooseFile(page, "fixed.csv");
-  await preview(page).click();
   await expect(page.getByRole("button", { name: copy.preview.importOnly(6) })).toBeVisible();
-  await expect(pile(page, copy.preview.piles.done)).toBeVisible();
+  await expect(page.getByText(copy.preview.happens.alreadyImported)).toBeVisible();
   await frame(page, "The fixed file: one already imported");
 
   story("Uploaded a third time, there's nothing left to do.");
@@ -157,7 +161,6 @@ test("Rows held back, fixed and uploaded again", async ({ page, flowDatabase }) 
   await expect(page.getByRole("heading", { name: copy.result.title("fixed.csv") })).toBeVisible();
   await page.goto(`${BASE}/staff/supporters/upload`);
   await chooseFile(page, "fixed.csv");
-  await preview(page).click();
   await expect(page.getByText(copy.preview.nothing)).toBeVisible();
   await frame(page, "Nothing to import");
 });
@@ -194,8 +197,7 @@ test("What Luma says", async ({ page, flowDatabase, request }) => {
   story("Luma takes one guest here, and skips another who's left the calendar. They're imported either way.");
   await openUpload(page, flowDatabase);
   await chooseFile(page, "luma-skips.csv");
-  await chooseEvent(page);
-  await preview(page).click();
+  await chooseEvent(page, "Going");
   await page.getByRole("button", { name: copy.preview.importNow(2, 2) }).click();
   await expect(page.getByText(copy.result.luma.skipped)).toBeVisible();
   await frame(page, "Luma skips one");
@@ -203,8 +205,7 @@ test("What Luma says", async ({ page, flowDatabase, request }) => {
   story("When Luma fails, the person is kept, and the page says to upload again to retry.");
   await page.goto(`${BASE}/staff/supporters/upload`);
   await chooseFile(page, "luma-fails.csv");
-  await chooseEvent(page);
-  await preview(page).click();
+  await chooseEvent(page, "Going");
   await page.getByRole("button", { name: copy.preview.importNow(1, 1) }).click();
   await expect(page.getByText(copy.result.luma.failed)).toBeVisible();
   await frame(page, "Luma fails");
@@ -212,20 +213,17 @@ test("What Luma says", async ({ page, flowDatabase, request }) => {
   story("Uploading again tries Luma again, without adding them twice.");
   await page.goto(`${BASE}/staff/supporters/upload`);
   await chooseFile(page, "luma-fails.csv");
-  await chooseEvent(page);
-  await preview(page).click();
+  await chooseEvent(page, "Going");
   await expect(page.getByRole("button", { name: copy.preview.importNow(0, 1) })).toBeVisible();
   await frame(page, "Trying Luma again");
 });
 
 test("Something changes before importing", async ({ page, flowDatabase, request }) => {
   await importLuma(request, BASE);
-  story("Staff preview a file. While they read it, Robin registers for the event on Luma.");
+  story("Staff look at what a file will do. While they read it, Robin registers for the event on Luma.");
   await openUpload(page, flowDatabase);
   await chooseFile(page, "street-flyering.csv");
-  await chooseEvent(page);
-  await page.getByRole("combobox", { name: copy.form.eventColumn }).selectOption("Saturday march");
-  await preview(page).click();
+  await chooseEvent(page, "Saturday march");
   const before = page.getByRole("button", { name: copy.preview.importNow(5, 1) });
   await expect(before).toBeVisible();
   runSql(
@@ -239,12 +237,4 @@ test("Something changes before importing", async ({ page, flowDatabase, request 
   await expect(page.getByText(copy.preview.changed)).toBeVisible();
   await expect(page.getByRole("button", { name: copy.preview.importNow(5, 0) })).toBeVisible();
   await frame(page, "What would happen now");
-});
-
-test("The preview with no file", async ({ page, flowDatabase }) => {
-  story("The file stays only in the browser tab. A new tab's preview has none, and says so.");
-  await logIn(page, flowDatabase, ["supporters"]);
-  await page.goto(`${BASE}/staff/supporters/upload/preview`);
-  await expect(page.getByText(copy.preview.none)).toBeVisible();
-  await frame(page, "No file to preview");
 });

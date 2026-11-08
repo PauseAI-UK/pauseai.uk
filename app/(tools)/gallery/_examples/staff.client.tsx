@@ -1,6 +1,8 @@
 "use client";
 
 import { exampleSignupPlan } from "@/app/(staff)/staff/_components/SignupUpload.examples";
+import SignupUploadForm from "@/app/(staff)/staff/_components/SignupUploadForm";
+import SignupUploadHelp, { SignupColumnNames } from "@/app/(staff)/staff/_components/SignupUploadHelp";
 import SignupUploadPreview, { SignupPlanView } from "@/app/(staff)/staff/_components/SignupUploadPreview";
 
 // The staff screens' examples whose Server Actions are props: client
@@ -1068,17 +1070,47 @@ export function SavedFilterGoneExample() {
   return <SavedFilterExample state="gone" />;
 }
 
-/** The preview of a file with someone in every pile, whose button does nothing here. */
+/** The upload's Server Actions here: a preview with someone in every pile, and an import that's upload 6. */
+const exampleUploadActions = {
+  preview: async () => exampleSignupPlan,
+  finish: async () => ({ uploadId: exampleSignupPlan.rows.length }),
+};
+
+/** The preview of a file with someone in every pile. */
 export function SignupPlanViewExample() {
-  return <SignupPlanView plan={exampleSignupPlan} onImport={() => {}} />;
+  return <SignupPlanView plan={exampleSignupPlan} />;
 }
 
-/** The preview page in a tab with no file left, as there's none here. */
+/** What a file will do, worked out by the example's preview, with its import. */
 export function SignupUploadPreviewExample() {
+  return <SignupUploadPreview input={exampleSignupPlan.input} blockers={[]} {...exampleUploadActions} />;
+}
+
+/** The upload page before a file, with an event to come. */
+export function SignupUploadFormExample() {
   return (
-    <SignupUploadPreview
-      preview={async () => exampleSignupPlan}
-      finish={async () => ({ uploadId: exampleSignupPlan.rows.length })}
+    <SignupUploadForm
+      today="2026-10-31"
+      events={[
+        {
+          id: "evt-march",
+          name: "PauseAI London March",
+          startAt: "2026-11-21T12:00:00Z",
+          url: "https://luma.com/example",
+        },
+      ]}
+      actions={exampleUploadActions}
     />
+  );
+}
+
+/** What the file needs, with its button opening and closing the full list. */
+export function SignupUploadHelpExample() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <SignupUploadHelp open={open} onToggle={() => setOpen(!open)} />
+      {open && <SignupColumnNames />}
+    </>
   );
 }

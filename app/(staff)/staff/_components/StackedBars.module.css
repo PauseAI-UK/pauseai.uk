@@ -61,6 +61,11 @@
   background: var(--text-secondary);
 }
 
+.part[data-part="5"],
+.swatch[data-part="5"] {
+  background: var(--chart-teal);
+}
+
 .ends {
   display: flex;
   justify-content: space-between;

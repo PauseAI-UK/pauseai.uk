@@ -25,7 +25,7 @@ const input = (csv: string, more: Partial<SignupUploadInput> = {}): SignupUpload
   eventId: null,
   eventColumn: null,
   signedOn: "2026-10-10",
-  note: "",
+  note: "Flyering",
   ...more,
 });
 
@@ -73,6 +73,7 @@ describeWithDatabase("uploading sign-ups", () => {
     await event("evt-theirs", "2099-11-21T12:00:00Z", "view");
     await event("evt-gone", "2099-11-21T12:00:00Z", "manage", "2026-01-01T00:00:00Z");
     expect((await signupEventChoices()).map((choice) => choice.id)).toEqual([EVENT, "evt-later"]);
+    expect((await signupEventChoices())[0].url).toBe(EVENT);
   });
 
   it("passes on why a file can't be read", async () => {
@@ -85,6 +86,8 @@ describeWithDatabase("uploading sign-ups", () => {
     await event(EVENT);
     const csv = "Name,Email,March\na,a@example.com,Y";
     const refused = { ok: false, reason: "bad-choice" };
+    expect(await planSignupUpload(input(csv, { note: "  " }))).not.toEqual(refused);
+    expect(await finishSignupUpload(input(csv, { note: "  " }), "x", BY)).toEqual(refused);
     expect(await planSignupUpload(input(csv, { signedOn: "soon" }))).toEqual(refused);
     expect(await planSignupUpload(input(csv, { signedOn: "2026-99-99" }))).toEqual(refused);
     expect(await planSignupUpload(input(csv, { eventId: EVENT }))).toEqual(refused);
@@ -92,7 +95,7 @@ describeWithDatabase("uploading sign-ups", () => {
     expect(await planSignupUpload(input(csv, { eventId: "evt-none", eventColumn: "March" }))).toEqual(refused);
   });
 
-  it("sorts people by what will happen, and names the event and what's ignored", async () => {
+  it("sorts people by what will happen, and names the event", async () => {
     await event(EVENT);
     await guest("going@example.com");
     await guest("waiting@example.com", "waitlist");
@@ -120,7 +123,6 @@ Bad,bad,Y,`,
     expect(piles(plan)).toEqual(["going", "going", "register", "register", "register", "none", "held", "held"]);
     expect(plan.rows.map((row) => row.problem?.kind ?? null).slice(-2)).toEqual(["blocked", "bad-email"]);
     expect(plan.eventName).toBe(`The ${EVENT}`);
-    expect(plan.ignored).toEqual(["Colour"]);
     expect(plan.rows[0].known).toBe("email");
     expect(plan.rows[4].known).toBeNull();
   });
@@ -175,6 +177,7 @@ Bad,bad,,,,,Y`,
       signedOn: "2026-10-10",
       note: "Camden",
       eventName: `The ${EVENT}`,
+      eventUrl: EVENT,
       imported: 4,
       heldBack: 1,
       uploadedBy: BY,
@@ -187,10 +190,11 @@ Bad,bad,,,,,Y`,
     ]);
     expect(upload.people[1]).toMatchObject({ phone: "07700900333", postcode: "SE15" });
 
-    const [entry] = await query<{ created_at: Date; city: string; form: string }>(
+    const [entry] = await query<{ created_at: Date; city: string | null; form: string }>(
       "SELECT created_at, city, form FROM form_entries WHERE email = 'new@example.com'",
     );
-    expect(entry).toMatchObject({ city: "Leeds", form: "paper-signup" });
+    // Town is ignored, as a postcode places someone better.
+    expect(entry).toMatchObject({ city: null, form: "paper-signup" });
     expect(entry.created_at.toISOString()).toBe("2026-10-10T12:00:00.000Z");
 
     const [line] = await query<{ detail: string; href: string; status: string; title: string }>(
@@ -199,7 +203,7 @@ Bad,bad,,,,,Y`,
     );
     expect(line).toEqual({
       detail: "Camden",
-      href: `/staff/supporters/upload/${id}`,
+      href: `/staff/supporters/upload/previous/${id}`,
       status: "added",
       title: "paper-signup",
     });
@@ -209,7 +213,7 @@ Bad,bad,,,,,Y`,
     );
     expect(permission).toEqual({ send: "yes", source: "paper-signup" });
 
-    const [logged] = await query<{ details: object }>("SELECT details FROM audit_log WHERE action = 'upload sign-ups'");
+    const [logged] = await query<{ details: object }>("SELECT details FROM audit_log WHERE action = 'import sign-ups'");
     expect(logged.details).toEqual({ uploadId: id, imported: 4, heldBack: 1 });
 
     const [listed] = await query("SELECT id FROM supporters_list WHERE name = 'New Person'");

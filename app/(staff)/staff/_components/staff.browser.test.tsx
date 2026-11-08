@@ -214,9 +214,9 @@ describe("StaffNav", () => {
     )!;
     expect([...supporters.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
       "/staff/supporters",
-      "/staff/supporters/upload",
       "/staff/campaigns",
       "/staff/supporters/blocked-emails",
+      "/staff/supporters/upload",
     ]);
   });
 });

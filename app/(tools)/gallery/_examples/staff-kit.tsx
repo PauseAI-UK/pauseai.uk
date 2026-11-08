@@ -33,6 +33,7 @@ import Band, { BandFact } from "@/app/(staff)/staff/_components/ui/Band";
 import Counts, { countsOpening } from "@/app/(staff)/staff/_components/ui/Counts";
 import DownloadMenu from "@/app/(staff)/staff/_components/ui/DownloadMenu";
 import Grid, { Card, Column } from "@/app/(staff)/staff/_components/ui/Grid";
+import Numbered from "@/app/(staff)/staff/_components/ui/Numbered";
 import Progress from "@/app/(staff)/staff/_components/ui/Progress";
 import PageTitle from "@/app/(staff)/staff/_components/ui/PageTitle";
 import Strip from "@/app/(staff)/staff/_components/ui/Strip";
@@ -171,6 +172,27 @@ export const staffKit: Group = {
                 <Card span={2}>A third</Card>
                 <Card span={2}>A third, with more in it than the others, which grow to match.</Card>
                 <Card span={2}>A third</Card>
+              </Grid>
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "Numbered",
+      file: "app/(staff)/staff/_components/ui/Numbered.tsx",
+      variants: [
+        {
+          label: "Steps going down a page, each a card",
+          render: () => (
+            <StaffPage as="div">
+              <Grid>
+                <Card span={6} title={<Numbered n={1}>Choose who</Numbered>} id="example-step-1">
+                  <p>The first step.</p>
+                </Card>
+                <Card span={6} title={<Numbered n={2}>Write it</Numbered>} id="example-step-2">
+                  <p>The second.</p>
+                </Card>
               </Grid>
             </StaffPage>
           ),

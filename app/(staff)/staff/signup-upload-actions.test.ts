@@ -16,7 +16,7 @@ const input = {
   eventId: null,
   eventColumn: null,
   signedOn: "2026-10-10",
-  note: "",
+  note: "Flyering",
 };
 
 async function staff(email: string, permissions: string) {

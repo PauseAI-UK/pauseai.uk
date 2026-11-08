@@ -1,29 +1,29 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
-import { Button, ButtonAnchor } from "@/components/ui/Button";
+import { useEffect, useState, useTransition } from "react";
+import { Button } from "@/components/ui/Button";
 import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { SignupUploadFinished, SignupUploadRefused } from "@/lib/server/signup-uploads";
 import {
   SIGNUP_PILES,
-  SIGNUP_UPLOAD_STORAGE,
-  signupHeldCsv,
   signupPileCounts,
-  type SignupPile,
+  signupUploadPath,
   type SignupPlan,
   type SignupPlanRow,
   type SignupUploadInput,
 } from "@/lib/signup-upload";
-import StaffLink from "./ui/StaffLink";
+import { Card } from "./ui/Grid";
+import Numbered from "./ui/Numbered";
 import Strip from "./ui/Strip";
 import styles from "./SignupUpload.module.css";
 
 const copy = staffCopy.signupUpload;
 const words = copy.preview;
-const FORM_PATH = "/staff/supporters/upload";
+/** The columns' names, as what the file needs calls them. */
+const fields = copy.help.fields;
 
 /** Why a person is held back, in words. */
 function whyHeld(row: SignupPlanRow): string {
@@ -33,32 +33,41 @@ function whyHeld(row: SignupPlanRow): string {
     : words.problems[row.problem.kind];
 }
 
-const LUMA_TONES = { held: "red", register: "green", going: undefined, none: undefined, done: undefined } as const;
+/** What will happen to one person, a lozenge each: held back and why; or already imported; or the supporter they'll be, Luma, and how they can be contacted. */
+function Happens({ row }: { row: SignupPlanRow }) {
+  const said = words.happens;
+  if (row.pile === "held") {
+    return (
+      <span className={styles.lozenges}>
+        <Tag tone="red">{said.notImported}</Tag>
+        <Tag tone="amber">{whyHeld(row)}</Tag>
+      </span>
+    );
+  }
+  const contact = row.newEntry && row.mailingList;
+  return (
+    <span className={styles.lozenges}>
+      {row.newEntry ? (
+        <Tag tone={row.known ? "blue" : "green"}>{row.known ? said.known[row.known] : said.fresh}</Tag>
+      ) : (
+        <Tag>{said.alreadyImported}</Tag>
+      )}
+      {row.pile === "register" && <Tag tone="green">{said.register}</Tag>}
+      {row.pile === "going" && <Tag>{said.going}</Tag>}
+      {contact && <Tag tone="green">{said.mailing}</Tag>}
+      {contact && row.phone && <Tag tone="green">{said.phone}</Tag>}
+    </span>
+  );
+}
 
-/** The piles and every person, shown as one long table, or one pile's people. */
-export function SignupPlanView({
-  plan,
-  pending = false,
-  onImport,
-}: {
-  plan: SignupPlan;
-  pending?: boolean;
-  onImport: () => void;
-}) {
-  const [pile, setPile] = useState<SignupPile | "all">("all");
+/** The people, each with what will happen to them, those held back first, as they're what needs doing. */
+export function SignupPlanView({ plan }: { plan: SignupPlan }) {
   const counts = signupPileCounts(plan);
   const fresh = plan.rows.filter((row) => row.newEntry);
-  const shown = [...plan.rows]
-    .filter((row) => pile === "all" || row.pile === pile)
-    .sort((a, b) => SIGNUP_PILES.indexOf(a.pile) - SIGNUP_PILES.indexOf(b.pile));
+  const shown = [...plan.rows].sort((a, b) => SIGNUP_PILES.indexOf(a.pile) - SIGNUP_PILES.indexOf(b.pile));
   const summary = words.summary;
-  const note = plan.input.note.trim();
-  const heldCsv = counts.held > 0 && signupHeldCsv(plan, { why: words.why }, whyHeld);
   const permission = fresh.filter((row) => row.mailingList).length;
   const known = fresh.filter((row) => row.known).length;
-  const offered = SIGNUP_PILES.filter((key) => counts[key] > 0);
-  // What a person who gets no entry, held back or already imported, would have had says nothing.
-  const entryAnswer = (row: SignupPlanRow, yes: boolean) => (row.newEntry ? (yes ? words.yes : words.no) : "–");
 
   return (
     <div className={styles.page}>
@@ -66,178 +75,162 @@ export function SignupPlanView({
         <li>
           {summary.entries(fresh.length)} {summary.supporters(fresh.length - known, known)}
         </li>
+        {counts.held > 0 && <li>{summary.held(counts.held)}</li>}
         <li>{summary.permission(permission)}</li>
-        <li>{plan.eventName ? summary.event(plan.eventName, counts.register) : summary.noEvent}</li>
-        {note && <li>{summary.note(note)}</li>}
-        {plan.ignored.length > 0 && <li>{summary.ignored(plan.ignored.join(", "))}</li>}
+        {plan.eventName && <li>{summary.event(plan.eventName, counts.register)}</li>}
       </ul>
-
-      <div className={styles.piles} role="group" aria-label={words.title}>
-        {(["all", ...offered] as const).map((key) => (
-          <button
-            key={key}
-            type="button"
-            className={styles.pile}
-            aria-pressed={pile === key}
-            onClick={() => setPile(key)}
-          >
-            <strong>{key === "all" ? plan.rows.length : counts[key]}</strong>
-            <span>{words.piles[key]}</span>
-          </button>
-        ))}
-      </div>
-      <p>{words.explain[pile]}</p>
-      {heldCsv && (pile === "held" || pile === "all") && (
-        <div>
-          <ButtonAnchor
-            variant="ghost"
-            size="small"
-            fit
-            href={`data:text/csv;charset=utf-8,${encodeURIComponent(heldCsv)}`}
-            download={words.downloadName(plan.input.filename)}
-          >
-            {words.download}
-          </ButtonAnchor>
-        </div>
-      )}
 
       <Table>
         <thead>
           <tr>
             <th>{words.table.row}</th>
-            <th>{words.table.person}</th>
-            <th>{words.table.phone}</th>
-            <th>{words.table.postcode}</th>
-            <th>{words.table.supporter}</th>
-            <th>{words.table.entry}</th>
-            <th>{words.table.luma}</th>
-            <th>{words.table.permission}</th>
-            {counts.held > 0 && <th>{words.table.why}</th>}
+            <th>{fields.name.label}</th>
+            <th>{fields.email.label}</th>
+            <th>{fields.phone.label}</th>
+            <th>{fields.postcode.label}</th>
+            <th className={styles.happens}>{words.table.happens}</th>
           </tr>
         </thead>
         <tbody>
           {shown.map((row) => (
             <tr key={row.line}>
               <td>{row.line}</td>
-              <td>
-                {row.name}
-                <br />
-                {row.email}
-              </td>
+              <td>{row.name}</td>
+              <td>{row.email}</td>
               <td className={styles.nowrap}>{row.phone}</td>
-              <td>{row.postcode}</td>
+              <td className={styles.nowrap}>{row.postcode}</td>
               <td>
-                {row.pile !== "held" && (
-                  <Tag tone={row.known ? "blue" : "green"}>
-                    {row.known ? words.known[row.known] : words.known.fresh}
-                  </Tag>
-                )}
+                <Happens row={row} />
               </td>
-              <td>{entryAnswer(row, true)}</td>
-              <td>
-                <Tag tone={LUMA_TONES[row.pile]}>{words.piles[row.pile]}</Tag>
-              </td>
-              <td>{entryAnswer(row, row.mailingList)}</td>
-              {counts.held > 0 && <td>{whyHeld(row)}</td>}
             </tr>
           ))}
         </tbody>
       </Table>
-
-      <div className={styles.actions}>
-        {fresh.length + counts.register > 0 ? (
-          <Button variant="primary" fit pending={pending} onClick={onImport}>
-            {plan.eventName ? words.importNow(fresh.length, counts.register) : words.importOnly(fresh.length)}
-          </Button>
-        ) : (
-          <p>{words.nothing}</p>
-        )}
-        <StaffLink href={FORM_PATH}>{words.backToForm}</StaffLink>
-      </div>
     </div>
   );
 }
 
-/** Nothing stored in this tab's lifetime changes it from elsewhere, so there's nothing to listen for. */
-const noChanges = () => () => {};
+/** How long to wait after the last change, such as a key typed in the note, before working out the preview again. */
+const PREVIEW_DELAY_MS = 400;
+
+/** The upload's Server Actions (app/(staff)/staff/signup-upload-actions.ts), which the page hands in. */
+export type SignupUploadActions = {
+  preview: (input: SignupUploadInput) => Promise<SignupPlan | SignupUploadRefused>;
+  finish: (input: SignupUploadInput, signature: string) => Promise<SignupUploadFinished>;
+};
 
 type Outcome = SignupPlan | SignupUploadRefused | "failed";
 
+/** That the preview is being worked out: a spinner, and the words in italics. */
+function Working() {
+  return (
+    <p className={styles.working} role="status">
+      <span className={styles.spinner} aria-hidden="true" />
+      {words.loading}
+    </p>
+  );
+}
+
 /**
- * The preview of an upload: the file the form left in this tab, as the server
- * says it would go in, and importing it. If what's held has moved on by then,
- * it shows what would happen now instead, for another look.
+ * The last step of an upload: what importing `input` will do, as the server
+ * works it out a moment after it last changed, and the button to import it,
+ * greyed with what stops it listed under it. Until a
+ * change is worked out, the last preview stays, and can't be imported. If what's
+ * held has moved on by the time it's imported, it shows what would happen now
+ * instead, for another look.
  */
 export default function SignupUploadPreview({
+  input,
+  blockers,
   preview,
   finish,
-}: {
-  preview: (input: SignupUploadInput) => Promise<SignupPlan | SignupUploadRefused>;
-  finish: (input: SignupUploadInput, signature: string) => Promise<SignupUploadFinished>;
-}) {
+}: SignupUploadActions & { input: SignupUploadInput | null; blockers: string[] }) {
   const router = useRouter();
-  const stored = useSyncExternalStore(
-    noChanges,
-    () => sessionStorage.getItem(SIGNUP_UPLOAD_STORAGE),
-    () => undefined,
-  );
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [outcome, setOutcome] = useState<{ of: SignupUploadInput; is: Outcome } | null>(null);
   const [changed, setChanged] = useState(false);
   const [pending, start] = useTransition();
 
   useEffect(() => {
-    if (!stored) return;
+    if (!input) return;
     let gone = false;
-    preview(JSON.parse(stored) as SignupUploadInput).then(
-      (result) => !gone && setOutcome(result),
-      () => !gone && setOutcome("failed"),
-    );
+    const timer = setTimeout(() => {
+      preview(input).then(
+        (result) => {
+          if (gone) return;
+          setChanged(false);
+          setOutcome({ of: input, is: result });
+        },
+        () => !gone && setOutcome({ of: input, is: "failed" }),
+      );
+    }, PREVIEW_DELAY_MS);
     return () => {
       gone = true;
+      clearTimeout(timer);
     };
-  }, [stored, preview]);
+  }, [input, preview]);
 
-  if (stored === null) {
-    return (
-      <p>
-        {words.none} <StaffLink href={FORM_PATH}>{words.start}</StaffLink>
-      </p>
-    );
-  }
-  if (outcome === null) return <p>{words.loading}</p>;
-  if (outcome === "failed") return <Strip tone="red">{words.failed}</Strip>;
-  if ("ok" in outcome) {
-    return (
-      <Strip tone="red" action={<StaffLink href={FORM_PATH}>{words.backToForm}</StaffLink>}>
-        {copy.refused.badChoice}
-      </Strip>
-    );
-  }
-  const plan = outcome;
+  const stale = outcome?.of !== input;
+  const plan = input && outcome && typeof outcome.is === "object" && !("ok" in outcome.is) ? outcome.is : null;
+  const fresh = plan ? plan.rows.filter((row) => row.newEntry).length : 0;
+  const registering = plan ? signupPileCounts(plan).register : 0;
 
   function importNow() {
     start(async () => {
       try {
-        const finished = await finish(plan.input, plan.signature);
-        if ("uploadId" in finished) {
-          router.push(`${FORM_PATH}/${finished.uploadId}`);
-          sessionStorage.removeItem(SIGNUP_UPLOAD_STORAGE);
-        } else if ("changed" in finished) {
+        const finished = await finish(plan!.input, plan!.signature);
+        if ("uploadId" in finished) router.push(signupUploadPath(finished.uploadId));
+        else if ("changed" in finished) {
           setChanged(true);
-          setOutcome(finished.changed);
-        } else {
-          setOutcome(finished);
-        }
+          setOutcome({ of: input!, is: finished.changed });
+        } else setOutcome({ of: input!, is: finished });
       } catch {
-        setOutcome("failed");
+        setOutcome({ of: input!, is: "failed" });
       }
     });
   }
 
-  return (
+  // What's in step 3: why there's nothing yet, what went wrong, or the plan, the last one while a change is worked out.
+  const shown = !input ? (
+    <p>{words.needsFile}</p>
+  ) : !outcome ? (
+    <Working />
+  ) : outcome.is === "failed" ? (
+    <Strip tone="red">{words.failed}</Strip>
+  ) : "ok" in outcome.is ? (
+    <Strip tone="red">{copy.refused.badChoice}</Strip>
+  ) : (
     <div className={styles.page}>
       {changed && <Strip tone="amber">{words.changed}</Strip>}
-      <SignupPlanView plan={plan} pending={pending} onImport={importNow} />
+      {stale && <Working />}
+      <SignupPlanView plan={outcome.is} />
     </div>
+  );
+
+  return (
+    <Card span={6} title={<Numbered n={4}>{copy.steps.check}</Numbered>} id="upload-check">
+      {shown}
+      <div className={styles.actions}>
+        {plan && fresh + registering === 0 ? (
+          <p>{words.nothing}</p>
+        ) : (
+          <Button
+            variant="primary"
+            fit
+            pending={pending}
+            disabled={!plan || stale || blockers.length > 0}
+            onClick={importNow}
+          >
+            {plan?.eventName ? words.importNow(fresh, registering) : words.importOnly(fresh)}
+          </Button>
+        )}
+      </div>
+      {blockers.length > 0 && (
+        <ul className={styles.blockers}>
+          {blockers.map((blocker) => (
+            <li key={blocker}>{blocker}</li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }

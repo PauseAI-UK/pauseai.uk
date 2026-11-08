@@ -1,11 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, type DragEvent } from "react";
-import { Button } from "@/components/ui/Button";
+import { useMemo, useState, type DragEvent } from "react";
 import { FileInput, Select, TextInput } from "@/components/ui/Controls";
 import DatePicker from "@/components/ui/DatePicker";
-import { Field } from "@/components/ui/Field";
+import { Field, FieldSet } from "@/components/ui/Field";
+import LinkButton from "@/components/ui/LinkButton";
+import Required from "@/components/ui/Required";
 import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -13,14 +13,18 @@ import type { SignupEventChoice } from "@/lib/server/signup-uploads";
 import {
   MAX_SIGNUP_FILE_BYTES,
   readSignupFile,
-  SIGNUP_UPLOAD_STORAGE,
   signupEventColumns,
   signupFileText,
   type SignupFileRead,
   type SignupUploadInput,
 } from "@/lib/signup-upload";
 import { staffDate } from "@/lib/staff-time";
-import SignupUploadHelp from "./SignupUploadHelp";
+import SignupUploadHelp, { SignupColumnNames } from "./SignupUploadHelp";
+import SignupUploadPreview, { type SignupUploadActions } from "./SignupUploadPreview";
+import Choices from "./ui/Choices";
+import ExternalLink from "./ui/ExternalLink";
+import Grid, { Card } from "./ui/Grid";
+import Numbered from "./ui/Numbered";
 import Strip from "./ui/Strip";
 import styles from "./SignupUpload.module.css";
 
@@ -44,13 +48,21 @@ function refusedWords(read: Exclude<SignupFileRead, { ok: true }>): string {
 type Chosen = { name: string; text: string; read: SignupFileRead };
 
 /**
- * The first page of uploading sign-ups: the drop box beside what the file
- * should look like, then, once a file is read, what each of its columns will
- * do, and the event, date and note. It reads the file in the browser, and keeps
- * it in this tab for the preview.
+ * Uploading sign-ups, in four numbered steps always shown: the file, beside
+ * what it should look like, and once read, what each of its columns will do;
+ * the date and note; an event; and what importing will do, worked out as soon
+ * as there's enough to go on, with the button that does it. The file is read
+ * in the browser, and sent to the server only to preview and import it.
  */
-export default function SignupUploadForm({ events, today }: { events: SignupEventChoice[]; today: string }) {
-  const router = useRouter();
+export default function SignupUploadForm({
+  events,
+  today,
+  actions,
+}: {
+  events: SignupEventChoice[];
+  today: string;
+  actions: SignupUploadActions;
+}) {
   const [chosen, setChosen] = useState<Chosen | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -58,6 +70,7 @@ export default function SignupUploadForm({ events, today }: { events: SignupEven
   const [column, setColumn] = useState("");
   const [signedOn, setSignedOn] = useState(today);
   const [note, setNote] = useState("");
+  const [allNames, setAllNames] = useState(false);
 
   async function choose(file: File) {
     setChosen(null);
@@ -69,6 +82,12 @@ export default function SignupUploadForm({ events, today }: { events: SignupEven
     setChosen({ name: file.name, text, read: readSignupFile(text) });
   }
 
+  function startAgain() {
+    setChosen(null);
+    setColumn("");
+    setFileError(null);
+  }
+
   function dropped(event: DragEvent) {
     event.preventDefault();
     setDragging(false);
@@ -78,58 +97,55 @@ export default function SignupUploadForm({ events, today }: { events: SignupEven
 
   const read = chosen?.read.ok ? chosen.read : null;
   const choices = read ? signupEventColumns(read) : [];
-  // With only one column it could be, there's nothing to choose.
-  const eventColumn = eventId ? column || (choices.length === 1 ? choices[0] : "") : "";
+  const chosenEvent = events.find((event) => event.id === eventId);
+  // A column chosen, and then an event, are the upload's event sign-up; either alone is none.
+  const eventColumn = column && eventId ? column : "";
+  // What stops the import, though not the preview: each a line under the button.
+  const blockers = [
+    ...(read ? [] : [copy.preview.blockers.file]),
+    ...(note.trim() ? [] : [copy.preview.blockers.note]),
+    ...(column && !eventId ? [copy.preview.blockers.event] : []),
+  ];
+  // What the preview is sent, as text, so it's the same object, and the preview isn't worked out again, until something in it changes.
+  const sent = !read
+    ? null
+    : JSON.stringify({
+        csv: chosen!.text,
+        filename: chosen!.name,
+        eventId: eventColumn ? eventId : null,
+        eventColumn: eventColumn || null,
+        signedOn,
+        note,
+      } satisfies SignupUploadInput);
+  const input = useMemo(() => (sent === null ? null : (JSON.parse(sent) as SignupUploadInput)), [sent]);
 
-  function preview() {
-    const input: SignupUploadInput = {
-      csv: chosen!.text,
-      filename: chosen!.name,
-      eventId: eventId || null,
-      eventColumn: eventColumn || null,
-      signedOn,
-      note,
-    };
-    sessionStorage.setItem(SIGNUP_UPLOAD_STORAGE, JSON.stringify(input));
-    router.push("/staff/supporters/upload/preview");
-  }
-
+  // Even, so the file's card and what it needs are as tall as each other; every other card has a row to itself.
   return (
-    <div className={styles.page}>
-      <div className={styles.start}>
-        <div className={styles.chooser}>
-          <label
-            className={dragging ? `${styles.drop} ${styles.dragging}` : styles.drop}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={dropped}
-          >
-            <strong>{chosen ? chosen.name : copy.drop.title}</strong>
-            <span>{read ? copy.drop.read(read.rows.length, read.columns.length) : copy.drop.or}</span>
-            {chosen && <span className={styles.another}>{copy.drop.another}</span>}
-            <FileInput
-              aria-label={copy.drop.label}
-              accept=".csv,.tsv,.txt,text/csv"
-              onChange={(event) => {
-                const [file] = event.target.files!;
-                if (file) void choose(file);
-                event.target.value = "";
-              }}
+    <Grid even>
+      <Card span={6} title={<Numbered n={1}>{copy.form.formsTitle}</Numbered>} id="upload-forms">
+        <div className={styles.fields}>
+          <Field label={<Required>{copy.form.signedOn}</Required>}>
+            <DatePicker value={signedOn} onChange={setSignedOn} />
+          </Field>
+          <Field label={<Required>{copy.form.note}</Required>}>
+            <TextInput
+              value={note}
+              required
+              placeholder={copy.form.noteHint}
+              onChange={(event) => setNote(event.target.value)}
             />
-          </label>
-          {fileError && <Strip tone="red">{fileError}</Strip>}
-          {chosen && !chosen.read.ok && <Strip tone="red">{refusedWords(chosen.read)}</Strip>}
+          </Field>
         </div>
-        <SignupUploadHelp />
-      </div>
-
-      {read && (
-        <>
-          <section className={styles.section}>
-            <h2>{copy.columns.title}</h2>
+      </Card>
+      <Card
+        span={3}
+        title={<Numbered n={2}>{read ? chosen!.name : copy.steps.file}</Numbered>}
+        id="upload-file"
+        action={read && <LinkButton onClick={startAgain}>{copy.drop.another}</LinkButton>}
+      >
+        {read ? (
+          <>
+            <p>{copy.drop.read(read.rows.length, read.columns.length)}</p>
             <Table>
               <thead>
                 <tr>
@@ -143,7 +159,7 @@ export default function SignupUploadForm({ events, today }: { events: SignupEven
                   <tr key={c.index}>
                     <td>{c.heading}</td>
                     <td>
-                      {c.heading === eventColumn ? (
+                      {c.heading === column ? (
                         <Tag tone="blue">{copy.columns.event}</Tag>
                       ) : c.field ? (
                         <Tag tone="green">{copy.help.fields[c.field].label}</Tag>
@@ -156,52 +172,92 @@ export default function SignupUploadForm({ events, today }: { events: SignupEven
                 ))}
               </tbody>
             </Table>
-          </section>
-
-          <section className={styles.fields}>
-            <Field label={copy.form.event}>
-              <Select value={eventId} onChange={(event) => setEventId(event.target.value)}>
-                <option value="">{copy.form.noEvent}</option>
-                {events.map((event) => (
-                  <option key={event.id} value={event.id}>
-                    {event.name}, {staffDate(event.startAt)}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            {eventId && choices.length > 0 && (
-              <Field label={copy.form.eventColumn}>
-                <Select value={eventColumn} onChange={(event) => setColumn(event.target.value)}>
-                  <option value="" disabled>
-                    {copy.form.chooseColumn}
-                  </option>
-                  {choices.map((heading) => (
-                    <option key={heading} value={heading}>
-                      {heading}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            )}
-            <Field label={copy.form.signedOn}>
-              <DatePicker value={signedOn} onChange={setSignedOn} />
-            </Field>
-            <Field label={copy.form.note}>
-              <TextInput
-                value={note}
-                placeholder={copy.form.noteHint}
-                onChange={(event) => setNote(event.target.value)}
+          </>
+        ) : (
+          <>
+            <label
+              className={dragging ? `${styles.drop} ${styles.dragging}` : styles.drop}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={dropped}
+            >
+              <strong>{copy.drop.title}</strong>
+              <span>{copy.drop.or}</span>
+              <FileInput
+                aria-label={copy.drop.label}
+                accept=".csv,.tsv,.txt,text/csv"
+                onChange={(event) => {
+                  const [file] = event.target.files!;
+                  if (file) void choose(file);
+                  event.target.value = "";
+                }}
               />
-            </Field>
-          </section>
-          {eventId && choices.length === 0 && <Strip tone="amber">{copy.form.noEventColumn}</Strip>}
-          <div>
-            <Button variant="primary" fit disabled={Boolean(eventId) && !eventColumn} onClick={preview}>
-              {copy.form.preview}
-            </Button>
-          </div>
-        </>
+            </label>
+            {fileError && <Strip tone="red">{fileError}</Strip>}
+            {chosen && !chosen.read.ok && <Strip tone="red">{refusedWords(chosen.read)}</Strip>}
+          </>
+        )}
+      </Card>
+      <Card span={3} look="aside" title={copy.help.title} id="upload-help">
+        <SignupUploadHelp open={allNames} onToggle={() => setAllNames(!allNames)} />
+      </Card>
+      {allNames && (
+        <Card span={6} look="aside" title={copy.help.more} id="upload-names">
+          <SignupColumnNames />
+        </Card>
       )}
-    </div>
+
+      <Card span={6} title={<Numbered n={3}>{copy.form.eventTitle}</Numbered>} id="upload-event">
+        <div className={styles.fields}>
+          <Field label={copy.form.eventColumn}>
+            <Select value={column} disabled={choices.length === 0} onChange={(event) => setColumn(event.target.value)}>
+              <option value="">{copy.form.noColumn}</option>
+              {choices.map((heading) => (
+                <option key={heading} value={heading}>
+                  {heading}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {read && choices.length === 0 && <Strip tone="amber">{copy.form.noEventColumn}</Strip>}
+          {/* The event, greyed out until there's a column saying who's going to it. */}
+          <FieldSet label={copy.form.event} disabled={!column}>
+            {chosenEvent ? (
+              <p className={styles.chosen}>
+                <span>
+                  <strong>
+                    <ExternalLink href={chosenEvent.url}>{chosenEvent.name}</ExternalLink>
+                  </strong>{" "}
+                  {staffDate(chosenEvent.startAt)}
+                </span>
+                <LinkButton onClick={() => setEventId("")}>{copy.form.removeEvent}</LinkButton>
+              </p>
+            ) : (
+              <div>
+                <Choices
+                  search={copy.form.findEvent}
+                  current={[]}
+                  options={events.map((event) => ({
+                    value: event.id,
+                    label: event.name,
+                    detail: staffDate(event.startAt),
+                  }))}
+                  row={(option) => (
+                    <button type="button" className={styles.choice} onClick={() => setEventId(option.value)}>
+                      {option.label} <span>{option.detail}</span>
+                    </button>
+                  )}
+                />
+              </div>
+            )}
+          </FieldSet>
+        </div>
+      </Card>
+
+      <SignupUploadPreview input={input} blockers={blockers} {...actions} />
+    </Grid>
   );
 }

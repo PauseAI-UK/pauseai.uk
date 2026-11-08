@@ -3,21 +3,9 @@
   gap: var(--form-gap);
 }
 
-/* The drop box beside what the file should look like, the box first on a phone. */
-.start {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: minmax(0, 1fr);
-}
-
-@media (min-width: 900px) {
-  .start {
-    grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr);
-    align-items: start;
-  }
-}
-
+/* The drop box fills its card, as tall as what the file needs beside it. */
 .drop {
+  flex: 1;
   position: relative;
   display: grid;
   gap: var(--space-1);
@@ -59,10 +47,6 @@
   cursor: pointer;
 }
 
-.another {
-  text-decoration: underline;
-}
-
 .help,
 .section {
   display: grid;
@@ -70,7 +54,6 @@
   min-width: 0;
 }
 
-.help h2,
 .section h2 {
   margin: 0;
   font-size: var(--text-lg);
@@ -80,10 +63,11 @@
   margin: 0;
 }
 
+/* One field a row, at the measure. */
 .fields {
   display: grid;
-  gap: var(--space-3);
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--form-gap);
+  max-width: var(--staff-measure);
 }
 
 .summary {
@@ -91,45 +75,6 @@
   gap: var(--space-1);
   margin: 0;
   padding-left: var(--space-5);
-}
-
-.piles {
-  display: grid;
-  gap: var(--space-2);
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-}
-
-.pile {
-  display: grid;
-  gap: 2px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.pile strong {
-  font-size: var(--text-lg);
-  font-variant-numeric: tabular-nums;
-}
-
-.pile span {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-}
-
-.pile[aria-pressed="true"] {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-
-.pile:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .actions {
@@ -143,17 +88,154 @@
   margin: 0;
 }
 
-/* The drop box, with what's wrong with the file under it, where the eye already is. */
-.chooser {
-  display: grid;
-  gap: var(--space-3);
-  min-width: 0;
-}
-
-.uploads {
-  margin-top: var(--space-6);
-}
-
 .nowrap {
   white-space: nowrap;
+}
+
+.short {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+/* The previous uploads, as the mailings are listed: rows ruled apart, in
+   columns that line up; on a phone, the date over the rest. */
+.rows {
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.when {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.what {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.rowTitle {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+@media (max-width: 860px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .when {
+    font-size: var(--text-xs);
+  }
+}
+
+/* Working out what will happen: a spinner, as a waiting button's, then the words in italics. */
+.working {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.spinner {
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+/* An event to choose, in the shared list of choices (ui/Choices), as one of its links looks. */
+.choice {
+  display: block;
+  width: 100%;
+  padding: 2px var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.choice:hover {
+  background: var(--surface-2);
+}
+
+.choice:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.choice span {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+/* The event chosen, with the way to remove it beside it. */
+.chosen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: baseline;
+  margin: 0;
+}
+
+/* What will happen to a person: its lozenges in a row, wrapping. */
+.lozenges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+}
+
+/* What stops the import, under its button, as the mailings list theirs. */
+.blockers {
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--text-secondary);
+}
+
+/* The fold's triangle, before the words that open what it folds: big enough to see, on their line. */
+.fold {
+  display: inline-block;
+  margin-right: var(--space-1);
+  font-size: 1.4em;
+  line-height: 1;
+  vertical-align: -0.1em;
+}
+
+/* What will happen: room for a row's lozenges side by side, the other columns taking what's left. */
+.happens {
+  min-width: 22rem;
 }

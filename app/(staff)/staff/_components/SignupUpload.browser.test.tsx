@@ -1,19 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderToString } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { longDay } from "@/lib/calendar-days";
 import { staffCopy } from "@/lib/content/staff-interface";
-import {
-  MAX_SIGNUP_FILE_BYTES,
-  SIGNUP_UPLOAD_STORAGE,
-  type SignupPlan,
-  type SignupUploadInput,
-} from "@/lib/signup-upload";
+import { MAX_SIGNUP_FILE_BYTES, type SignupPlan, type SignupUploadInput } from "@/lib/signup-upload";
 import { exampleSignupPlan, exampleSignupUpload, exampleSignupUploadPeople } from "./SignupUpload.examples";
 import SignupUploadForm from "./SignupUploadForm";
-import SignupUploadPreview, { SignupPlanView } from "./SignupUploadPreview";
-import SignupUploadResult, { SignupUploadsTable } from "./SignupUploadResult";
+import SignupUploadPreview, { SignupPlanView, type SignupUploadActions } from "./SignupUploadPreview";
+import SignupUploadResult, { SignupUploadsList } from "./SignupUploadResult";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", async (original) => ({
@@ -23,7 +17,7 @@ vi.mock("next/navigation", async (original) => ({
 
 const copy = staffCopy.signupUpload;
 const words = copy.preview;
-const EVENTS = [{ id: "evt-1", name: "The march", startAt: "2099-11-21T12:00:00Z" }];
+const EVENTS = [{ id: "evt-1", name: "The march", startAt: "2099-11-21T12:00:00Z", url: "https://luma.com/the-march" }];
 const CSV = "Name,Email,March,Colour,Mailing list\nJo,jo@example.com,Y,red,Y\n";
 
 const fileInput = () => document.querySelector<HTMLInputElement>('input[type="file"]')!;
@@ -38,35 +32,68 @@ async function choose(file: File) {
 }
 
 const csvFile = (text: string, name = "f.csv") => new File([text], name, { type: "text/csv" });
-const showForm = () => render(<SignupUploadForm events={EVENTS} today="2026-10-31" />);
-const stored = () => JSON.parse(sessionStorage.getItem(SIGNUP_UPLOAD_STORAGE)!) as SignupUploadInput;
 
-beforeEach(() => {
-  sessionStorage.clear();
-  push.mockClear();
-});
-afterEach(() => sessionStorage.clear());
+/** The form, with actions that answer with the example plan, and what they were asked. */
+function showForm() {
+  const preview = vi.fn(async (input: SignupUploadInput) => ({ ...exampleSignupPlan, input }));
+  const finish = vi.fn(async () => ({ uploadId: 9 }));
+  const view = render(<SignupUploadForm events={EVENTS} today="2026-10-31" actions={{ preview, finish }} />);
+  return { view, preview, finish };
+}
+
+const note = () => page.getByRole("textbox", { name: copy.form.note }).fill("Camden");
+/** Finds the march by typing in the event search, and picks it. */
+async function event() {
+  await page.getByRole("searchbox", { name: copy.form.findEvent }).fill("march");
+  await page.getByRole("button", { name: /The march/ }).click();
+}
+const importButton = () => page.getByRole("button", { name: /^Import \d+ people/ });
 
 describe("SignupUploadForm", () => {
-  it("says what it understands before there's a file, and nothing more", async () => {
-    await showForm();
-    await expect.element(page.getByText(copy.help.title)).toBeVisible();
-    await expect.element(page.getByText(copy.help.fields.mailingList.label)).toBeVisible();
-    await expect.element(page.getByText(copy.drop.title)).toBeVisible();
-    expect(page.getByRole("button", { name: copy.form.preview }).elements()).toEqual([]);
+  it("shows its four steps in order before a file, the event greyed out, and what stops the import", async () => {
+    await showForm().view;
+    const titles = page
+      .getByRole("heading", { level: 2 })
+      .all()
+      .map((heading) => heading.element().textContent);
+    expect(titles).toEqual([
+      `1${copy.form.formsTitle}`,
+      `2${copy.steps.file}`,
+      copy.help.title,
+      `3${copy.form.eventTitle}`,
+      `4${copy.steps.check}`,
+    ]);
+    await expect.element(page.getByText(copy.help.short[0])).toBeVisible();
+    await expect.element(page.getByText(words.needsFile)).toBeVisible();
+    await expect.element(page.getByRole("combobox", { name: copy.form.eventColumn })).toBeDisabled();
+    await expect.element(page.getByRole("searchbox", { name: copy.form.findEvent })).toBeDisabled();
+    await expect.element(importButton()).toBeDisabled();
+    await expect.element(page.getByText(words.blockers.file)).toBeVisible();
+    await expect.element(page.getByText(words.blockers.note)).toBeVisible();
   });
 
-  it("shows what each column will do, and sends a file with no event to the preview", async () => {
-    await showForm();
+  it("opens every column name in a section of its own, and closes it", async () => {
+    await showForm().view;
+    await page.getByRole("button", { name: copy.help.more }).click();
+    await expect.element(page.getByRole("heading", { name: copy.help.more })).toBeVisible();
+    await expect.element(page.getByText(copy.help.fields.mailingList.label)).toBeVisible();
+    await page.getByRole("button", { name: copy.help.less }).click();
+    expect(page.getByRole("heading", { name: copy.help.more }).elements()).toEqual([]);
+  });
+
+  it("previews a file without a note, but imports only with one", async () => {
+    const { view, preview, finish } = showForm();
+    await view;
     await choose(csvFile(CSV));
-    await expect.element(page.getByRole("button", { name: copy.form.preview })).toBeEnabled();
+    await expect.element(page.getByRole("heading", { name: /f\.csv/ })).toBeVisible();
     await expect.element(page.getByText(copy.drop.read(1, 5))).toBeVisible();
-    await expect.element(page.getByRole("cell", { name: copy.columns.ignored }).first()).toBeVisible();
     await expect.element(page.getByRole("cell", { name: "Colour" })).toBeVisible();
-    await page.getByLabelText(copy.form.note).fill("Camden");
-    await page.getByRole("button", { name: copy.form.preview }).click();
-    expect(push).toHaveBeenCalledWith("/staff/supporters/upload/preview");
-    expect(stored()).toEqual({
+    await expect.poll(() => preview.mock.calls.length).toBeGreaterThan(0);
+    await expect.element(importButton()).toBeDisabled();
+    expect(page.getByText(words.blockers.file).elements()).toEqual([]);
+    await note();
+    await expect.element(importButton()).toBeEnabled();
+    expect(preview).toHaveBeenLastCalledWith({
       csv: CSV,
       filename: "f.csv",
       eventId: null,
@@ -74,42 +101,43 @@ describe("SignupUploadForm", () => {
       signedOn: "2026-10-31",
       note: "Camden",
     });
+    await importButton().click();
+    await expect.poll(() => push.mock.calls.at(-1)).toEqual(["/staff/supporters/upload/previous/9"]);
+    expect(finish).toHaveBeenCalled();
   });
 
-  it("takes the only column it could be for an event, marking it", async () => {
-    await showForm();
-    await choose(csvFile(CSV));
-    await page.getByRole("combobox", { name: copy.form.event }).selectOptions("evt-1");
-    await expect.element(page.getByRole("cell", { name: copy.columns.event, exact: true })).toBeVisible();
-    await page.getByRole("button", { name: copy.form.preview }).click();
-    expect(stored()).toMatchObject({ eventId: "evt-1", eventColumn: "March" });
-  });
-
-  it("waits for a column to be chosen when more than one could be, starting over with a new file", async () => {
-    await showForm();
+  it("takes the column first, then the event, and lets the event go again", async () => {
+    const { view, preview } = showForm();
+    await view;
     await choose(csvFile("Name,Email,March,Stall\nJo,jo@example.com,Y,Y\n"));
-    await page.getByRole("combobox", { name: copy.form.event }).selectOptions("evt-1");
-    const button = page.getByRole("button", { name: copy.form.preview });
-    await expect.element(button).toBeDisabled();
+    await note();
     await page.getByRole("combobox", { name: copy.form.eventColumn }).selectOptions("Stall");
-    await expect.element(button).toBeEnabled();
-    await button.click();
-    expect(stored().eventColumn).toBe("Stall");
-    await choose(csvFile("Name,Email,March,Stall\nJo,jo@example.com,Y,Y\n", "again.csv"));
-    await expect.element(page.getByText("again.csv")).toBeVisible();
-    await expect.element(button).toBeDisabled();
+    await expect.element(page.getByRole("cell", { name: copy.columns.event, exact: true })).toBeVisible();
+    await expect.element(page.getByText(words.blockers.event)).toBeVisible();
+    await expect.element(importButton()).toBeDisabled();
+    await event();
+    await expect.poll(() => preview.mock.lastCall?.[0]).toMatchObject({ eventId: "evt-1", eventColumn: "Stall" });
+    await expect
+      .element(page.getByRole("link", { name: /The march/ }))
+      .toHaveAttribute("href", "https://luma.com/the-march");
+    await expect.element(importButton()).toBeEnabled();
+    await page.getByRole("button", { name: copy.form.removeEvent }).click();
+    await expect.element(page.getByText(words.blockers.event)).toBeVisible();
+    await page.getByRole("combobox", { name: copy.form.eventColumn }).selectOptions(copy.form.noColumn);
+    await expect.poll(() => preview.mock.lastCall?.[0]).toMatchObject({ eventId: null, eventColumn: null });
+    await page.getByRole("button", { name: copy.drop.another }).click();
+    await expect.element(page.getByText(words.needsFile)).toBeVisible();
   });
 
-  it("says when an event has no column to link it to", async () => {
-    await showForm();
+  it("says when a file has no column to link an event to", async () => {
+    await showForm().view;
     await choose(csvFile("Name,Email\nJo,jo@example.com\n"));
-    await page.getByRole("combobox", { name: copy.form.event }).selectOptions("evt-1");
     await expect.element(page.getByText(copy.form.noEventColumn)).toBeVisible();
-    await expect.element(page.getByRole("button", { name: copy.form.preview })).toBeDisabled();
+    await expect.element(page.getByRole("combobox", { name: copy.form.eventColumn })).toBeDisabled();
   });
 
   it("says why it can't read a file", async () => {
-    await showForm();
+    await showForm().view;
     await choose(csvFile(""));
     await expect.element(page.getByText(copy.refused.empty)).toBeVisible();
     await choose(csvFile("Comment\nHello\n"));
@@ -122,19 +150,19 @@ describe("SignupUploadForm", () => {
   });
 
   it("refuses a spreadsheet's own file and one too big, and the next good file clears it", async () => {
-    await showForm();
+    await showForm().view;
     await choose(new File(["PK"], "list.XLSX"));
     await expect.element(page.getByText(copy.drop.notCsv("list.XLSX"))).toBeVisible();
     await choose(csvFile("x".repeat(MAX_SIGNUP_FILE_BYTES + 1)));
     await expect.element(page.getByText(copy.drop.tooBig)).toBeVisible();
     await choose(csvFile(CSV));
-    await expect.element(page.getByRole("button", { name: copy.form.preview })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: /f\.csv/ })).toBeVisible();
     expect(page.getByText(copy.drop.tooBig).elements()).toEqual([]);
   });
 
   it("takes a file dropped on the box, lit while one's over it, and ignores a drop of nothing", async () => {
-    await showForm();
-    const box = document.querySelector("label")!;
+    await showForm().view;
+    const box = fileInput().closest("label")!;
     const plain = box.className;
     const transfer = new DataTransfer();
     box.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: transfer }));
@@ -142,170 +170,164 @@ describe("SignupUploadForm", () => {
     box.dispatchEvent(new DragEvent("dragleave", { bubbles: true }));
     await expect.poll(() => box.className).toBe(plain);
     box.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }));
-    expect(page.getByText(copy.drop.another).elements()).toEqual([]);
+    await expect.element(page.getByText(words.needsFile)).toBeVisible();
     transfer.items.add(csvFile(CSV, "dropped.csv"));
     box.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }));
-    await expect.element(page.getByText("dropped.csv")).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: /dropped\.csv/ })).toBeVisible();
   });
 
   it("does nothing when choosing a file is cancelled", async () => {
-    await showForm();
+    await showForm().view;
     fileInput().dispatchEvent(new Event("change", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 50));
-    await expect.element(page.getByText(copy.drop.title)).toBeVisible();
+    await expect.element(page.getByText(words.needsFile)).toBeVisible();
   });
 
   it("sets the date from the calendar", async () => {
-    await showForm();
+    const { view, preview } = showForm();
+    await view;
     await choose(csvFile(CSV));
     await page.getByRole("button", { name: copy.form.signedOn }).click();
     await page.getByRole("button", { name: new RegExp(`^${longDay("2026-10-30")}`) }).click();
-    await page.getByRole("button", { name: copy.form.preview }).click();
-    expect(stored().signedOn).toBe("2026-10-30");
+    await expect.poll(() => preview.mock.lastCall?.[0].signedOn).toBe("2026-10-30");
   });
 });
 
 describe("SignupPlanView", () => {
   it("shows everyone, held back first, then one pile, with the download where it belongs", async () => {
-    await render(<SignupPlanView plan={exampleSignupPlan} onImport={() => {}} />);
+    await render(<SignupPlanView plan={exampleSignupPlan} />);
     await expect.element(page.getByText(words.summary.event("PauseAI London March", 1))).toBeVisible();
-    await expect.element(page.getByText(words.summary.note("Flyering at Camden Town"))).toBeVisible();
-    await expect.element(page.getByText(words.summary.ignored("WhatsApp, Needs check"))).toBeVisible();
+    await expect.element(page.getByText(words.summary.held(2))).toBeVisible();
     const lines = () =>
       page
         .getByRole("row")
         .all()
         .slice(1)
         .map((row) => row.element().textContent);
+    // Everyone, those held back first, as they're what needs doing.
+    expect(lines()).toHaveLength(6);
     expect(lines()[0]).toContain("Ruth Bell");
-    expect(lines()[0]).toContain("–");
+    expect(lines()[0]).toContain(words.happens.notImported);
     expect(lines()[0]).toContain(words.problems["same-email"]);
     expect(lines()[1]).toContain(words.unread("Maybe", "March"));
-    expect(lines()).toHaveLength(6);
-    await expect.element(page.getByRole("link", { name: words.download })).toBeVisible();
-
-    await page.getByRole("button", { name: `1 ${words.piles.none}` }).click();
-    expect(lines()).toHaveLength(1);
-    expect(page.getByRole("link", { name: words.download }).elements()).toEqual([]);
-    await expect.element(page.getByText(words.explain.none)).toBeVisible();
-
-    await page.getByRole("button", { name: `2 ${words.piles.held}` }).click();
-    expect(lines()).toHaveLength(2);
-    await expect.element(page.getByRole("link", { name: words.download })).toBeVisible();
-
-    await page.getByRole("button", { name: `6 ${words.piles.all}` }).click();
-    expect(lines()).toHaveLength(6);
+    const said = words.happens;
+    expect(lines()[2]).toContain(`${said.fresh}${said.register}${said.mailing}`);
+    expect(lines()[3]).toContain(`${said.known.email}${said.going}`);
+    expect(lines()[3]).toContain("07700 900123");
+    expect(lines()[4]).toContain(said.known.mobile);
+    expect(lines()[5]).toContain(said.alreadyImported);
   });
 
-  it("has what it needs to say with no event, note, ignored columns or anyone held back", async () => {
+  it("has what it needs to say with no event, note or anyone held back", async () => {
     const plan: SignupPlan = {
       ...exampleSignupPlan,
       eventName: null,
-      ignored: [],
       input: { ...exampleSignupPlan.input, note: "  " },
       rows: exampleSignupPlan.rows.filter((row) => row.pile === "none"),
     };
-    await render(<SignupPlanView plan={plan} onImport={() => {}} />);
-    await expect.element(page.getByText(words.summary.noEvent)).toBeVisible();
-    await expect.element(page.getByRole("button", { name: words.importOnly(1) })).toBeVisible();
-    expect(page.getByRole("columnheader", { name: words.table.why }).elements()).toEqual([]);
-    expect(page.getByRole("link", { name: words.download }).elements()).toEqual([]);
-    expect(page.getByText(words.summary.note("")).elements()).toEqual([]);
-    expect(page.getByRole("button", { name: `0 ` }).elements()).toEqual([]);
-  });
-
-  it("imports when asked, and offers nothing when there's nothing to do", async () => {
-    const onImport = vi.fn();
-    const view = await render(<SignupPlanView plan={exampleSignupPlan} onImport={onImport} />);
-    await page.getByRole("button", { name: words.importNow(3, 1) }).click();
-    expect(onImport).toHaveBeenCalled();
-    await view.rerender(
-      <SignupPlanView
-        plan={{ ...exampleSignupPlan, rows: exampleSignupPlan.rows.filter((row) => row.pile === "done") }}
-        onImport={onImport}
-      />,
-    );
-    await expect.element(page.getByText(words.nothing)).toBeVisible();
+    await render(<SignupPlanView plan={plan} />);
+    expect(page.getByText(/registered for/).elements()).toEqual([]);
+    expect(page.getByText(/won't be imported/).elements()).toEqual([]);
   });
 });
 
 describe("SignupUploadPreview", () => {
   const input = exampleSignupPlan.input;
-  const store = () => sessionStorage.setItem(SIGNUP_UPLOAD_STORAGE, JSON.stringify(input));
   const button = () => page.getByRole("button", { name: words.importNow(3, 1) });
-
-  it("has nothing of the file on the server, only that it's working it out", () => {
-    store();
-    expect(renderToString(<SignupUploadPreview preview={vi.fn()} finish={vi.fn()} />)).toContain(
-      words.loading.replace("'", "&#x27;"),
+  const show = (actions: Partial<SignupUploadActions>, of: typeof input | null = input, blockers: string[] = []) =>
+    render(
+      <SignupUploadPreview
+        input={of}
+        blockers={blockers}
+        preview={actions.preview ?? (async () => exampleSignupPlan)}
+        finish={actions.finish ?? vi.fn()}
+      />,
     );
-  });
 
-  it("says there's no file, without asking the server", async () => {
+  it("says a file is needed, with nothing to import, before there's one", async () => {
     const preview = vi.fn();
-    await render(<SignupUploadPreview preview={preview} finish={vi.fn()} />);
-    await expect.element(page.getByRole("link", { name: words.start })).toBeVisible();
-    expect(document.body.textContent).toContain(words.none);
+    await show({ preview }, null, [words.blockers.file]);
+    await expect.element(page.getByText(words.needsFile)).toBeVisible();
+    await expect.element(page.getByRole("button", { name: words.importOnly(0) })).toBeDisabled();
+    await expect.element(page.getByText(words.blockers.file)).toBeVisible();
     expect(preview).not.toHaveBeenCalled();
   });
 
+  it("shows nothing to import, with no button, when a file has nothing new", async () => {
+    const done = { ...exampleSignupPlan, rows: exampleSignupPlan.rows.filter((row) => row.pile === "done") };
+    await show({ preview: async () => done });
+    await expect.element(page.getByText(words.nothing)).toBeVisible();
+    expect(page.getByRole("button", { name: /^Import \d+ people/ }).elements()).toEqual([]);
+  });
+
   it("says it's working, then shows what the server says, and imports it", async () => {
-    store();
-    const finish = vi.fn(async () => ({ uploadId: 7 }));
     let answer!: (plan: SignupPlan) => void;
     const preview = vi.fn(() => new Promise<SignupPlan>((resolve) => (answer = resolve)));
-    await render(<SignupUploadPreview preview={preview} finish={finish} />);
-    await expect.element(page.getByText(words.loading)).toBeVisible();
-    expect(preview).toHaveBeenCalledWith(input);
+    const finish = vi.fn(async () => ({ uploadId: 7 }));
+    await show({ preview, finish });
+    await expect.element(page.getByRole("status")).toHaveTextContent(words.loading);
+    await expect.poll(() => preview.mock.calls.length).toBe(1);
     answer(exampleSignupPlan);
     await button().click();
-    await expect.poll(() => push.mock.calls).toEqual([["/staff/supporters/upload/7"]]);
+    await expect.poll(() => push.mock.calls.at(-1)).toEqual(["/staff/supporters/upload/previous/7"]);
     expect(finish).toHaveBeenCalledWith(input, exampleSignupPlan.signature);
-    expect(sessionStorage.getItem(SIGNUP_UPLOAD_STORAGE)).toBeNull();
+  });
+
+  it("keeps the last preview, but not to import, while a change is worked out", async () => {
+    const view = await show({});
+    await expect.element(button()).toBeEnabled();
+    await view.rerender(
+      <SignupUploadPreview
+        input={{ ...input, note: "Changed" }}
+        blockers={[]}
+        preview={async () => exampleSignupPlan}
+        finish={vi.fn()}
+      />,
+    );
+    await expect.element(page.getByRole("status")).toHaveTextContent(words.loading);
+    await expect.element(button()).toBeDisabled();
+    await expect.element(button()).toBeEnabled();
   });
 
   it("shows what would happen now, if things changed", async () => {
-    store();
     const changed = { ...exampleSignupPlan, rows: exampleSignupPlan.rows.slice(1) };
-    await render(<SignupUploadPreview preview={async () => exampleSignupPlan} finish={async () => ({ changed })} />);
+    await show({ finish: async () => ({ changed }) });
     await button().click();
     await expect.element(page.getByText(words.changed)).toBeVisible();
     await expect.element(page.getByRole("button", { name: words.importNow(2, 0) })).toBeVisible();
   });
 
   it("says when the file can't go in, on previewing or importing", async () => {
-    store();
     const refused = { ok: false, reason: "bad-choice" } as const;
-    const view = await render(<SignupUploadPreview preview={async () => refused} finish={vi.fn()} />);
+    const view = await show({ preview: async () => refused });
     await expect.element(page.getByText(copy.refused.badChoice)).toBeVisible();
     await view.unmount();
-    await render(<SignupUploadPreview preview={async () => exampleSignupPlan} finish={async () => refused} />);
+    await show({ finish: async () => refused });
     await button().click();
     await expect.element(page.getByText(copy.refused.badChoice)).toBeVisible();
   });
 
   it("says when it fails, on previewing or importing", async () => {
-    store();
     const down = async () => {
       throw new Error("down");
     };
-    const view = await render(<SignupUploadPreview preview={down} finish={vi.fn()} />);
+    const view = await show({ preview: down });
     await expect.element(page.getByText(words.failed)).toBeVisible();
     await view.unmount();
-    await render(<SignupUploadPreview preview={async () => exampleSignupPlan} finish={down} />);
+    await show({ finish: down });
     await button().click();
     await expect.element(page.getByText(words.failed)).toBeVisible();
   });
 
   it("doesn't take an answer that comes after it's gone", async () => {
-    store();
     for (const preview of [
-      () => new Promise<SignupPlan>((resolve) => setTimeout(() => resolve(exampleSignupPlan), 20)),
-      () => new Promise<SignupPlan>((_, reject) => setTimeout(() => reject(new Error("down")), 20)),
+      () => new Promise<SignupPlan>((resolve) => setTimeout(() => resolve(exampleSignupPlan), 500)),
+      () => new Promise<SignupPlan>((_, reject) => setTimeout(() => reject(new Error("down")), 500)),
     ]) {
-      const view = await render(<SignupUploadPreview preview={preview} finish={vi.fn()} />);
+      const view = await show({ preview });
+      await new Promise((resolve) => setTimeout(resolve, 450));
       await view.unmount();
-      await new Promise((resolve) => setTimeout(resolve, 40));
+      await new Promise((resolve) => setTimeout(resolve, 600));
     }
     expect(page.getByText(words.failed).elements()).toEqual([]);
   });
@@ -316,7 +338,9 @@ describe("SignupUploadResult", () => {
     await render(<SignupUploadResult upload={exampleSignupUploadPeople} />);
     await expect.element(page.getByText(copy.result.summary(4, 2))).toBeVisible();
     await expect.element(page.getByText(copy.result.note("Flyering at Camden Town"))).toBeVisible();
-    await expect.element(page.getByText(copy.result.event("PauseAI London March"))).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: /PauseAI London March/ }))
+      .toHaveAttribute("href", "https://luma.com/example");
     await expect.element(page.getByRole("link", { name: "Person 1" })).toHaveAttribute("href", "/staff/supporters/1");
     expect(page.getByRole("link", { name: "Person 3" }).elements()).toEqual([]);
     for (const said of [
@@ -339,16 +363,34 @@ describe("SignupUploadResult", () => {
   });
 });
 
-describe("SignupUploadsTable", () => {
-  it("lists each upload, linked", async () => {
-    await render(<SignupUploadsTable uploads={[exampleSignupUpload]} />);
+describe("SignupUploadsList", () => {
+  it("lists each upload under its month or year, by its note or else its file, with this year's date short", async () => {
+    await render(
+      <SignupUploadsList
+        now="2026-11-07T12:00:00Z"
+        uploads={[
+          exampleSignupUpload,
+          { ...exampleSignupUpload, id: 2, signedOn: "2025-06-14", note: null, eventName: null },
+        ]}
+      />,
+    );
+    await expect.element(page.getByRole("heading", { name: "October 2026" })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: "2025" })).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: "Flyering at Camden Town" }))
+      .toHaveAttribute("href", "/staff/supporters/upload/previous/1");
+    await expect.element(page.getByText("31 Oct", { exact: true })).toBeVisible();
+    await expect.element(page.getByText("14 Jun 2025")).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: /PauseAI London March/ }))
+      .toHaveAttribute("href", "https://luma.com/example");
     await expect
       .element(page.getByRole("link", { name: "flyering.csv" }))
-      .toHaveAttribute("href", "/staff/supporters/upload/1");
+      .toHaveAttribute("href", "/staff/supporters/upload/previous/2");
   });
 
-  it("is nothing before the first", async () => {
-    const view = await render(<SignupUploadsTable uploads={[]} />);
-    expect(view.container.textContent).toBe("");
+  it("says there are none before the first", async () => {
+    await render(<SignupUploadsList now="2026-11-07T12:00:00Z" uploads={[]} />);
+    await expect.element(page.getByText(copy.uploads.none)).toBeVisible();
   });
 });

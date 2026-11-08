@@ -2,10 +2,9 @@
 // server to import it. It's liberal about how a file is written (separators,
 // encodings, spellings of a heading, ways of saying yes) and has no opinion on
 // what a column means beyond the names here: any other column is ignored.
-import { toCsv } from "./staff-list";
 
 /** What a column of a file can go into. */
-export const SIGNUP_FIELDS = ["name", "email", "phone", "postcode", "city", "mailingList"] as const;
+export const SIGNUP_FIELDS = ["name", "email", "phone", "postcode", "mailingList"] as const;
 export type SignupField = (typeof SIGNUP_FIELDS)[number];
 
 /** The headings each field goes by, as signupHeading() writes them. */
@@ -14,7 +13,6 @@ export const SIGNUP_FIELD_NAMES: Record<SignupField, readonly string[]> = {
   email: ["email", "email address", "e-mail", "e-mail address", "your email", "emails", "mail"],
   phone: ["phone", "phone number", "mobile", "mobile number", "telephone", "tel", "cell", "your phone"],
   postcode: ["postcode", "post code", "postal code", "zip", "zip code", "your postcode"],
-  city: ["city", "town", "city or town", "town or city", "city/town", "town/city"],
   mailingList: [
     "mailing list",
     "mailing",
@@ -76,7 +74,7 @@ const ROWS_TO_FIND_HEADINGS = 10;
 const MAX_NAME_LENGTH = 100;
 /** The longest address SMTP allows. */
 const MAX_EMAIL_LENGTH = 254;
-/** Longer than any real phone number, city or postcode. */
+/** Longer than any real phone number or postcode. */
 const MAX_OPTIONAL_LENGTH = 100;
 const FEWEST_PHONE_DIGITS = 7;
 /** Loose: one @, something either side, a dot in the domain, nothing that would separate two addresses. */
@@ -266,7 +264,6 @@ export type SignupRow = {
   email: string;
   phone: string | null;
   postcode: string | null;
-  city: string | null;
   mailingList: boolean;
   /** A yes in the column linked to an event. */
   going: boolean;
@@ -324,7 +321,6 @@ export function signupRows(file: Extract<SignupFileRead, { ok: true }>, eventCol
       email,
       phone: phone ?? null,
       postcode: optional(cell("postcode"))?.replace(/\s+/g, " ").toUpperCase() ?? null,
-      city: optional(cell("city")),
       mailingList: yesNoOf(answer(mailing)) === "yes",
       going: yesNoOf(answer(event)) === "yes",
       problem,
@@ -343,8 +339,9 @@ export type SignupUploadInput = {
   note: string;
 };
 
-/** Where the page keeps the file for the preview: only this browser tab, so nothing of it stays on the server until it's imported. */
-export const SIGNUP_UPLOAD_STORAGE = "signup-upload";
+/** Where the uploads so far are listed, and each upload's own page, under that. */
+export const SIGNUP_UPLOADS_PATH = "/staff/supporters/upload/previous";
+export const signupUploadPath = (id: number) => `${SIGNUP_UPLOADS_PATH}/${id}`;
 
 /** What will happen to a person: one pile each. */
 export const SIGNUP_PILES = ["held", "register", "going", "none", "done"] as const;
@@ -364,7 +361,6 @@ export type SignupPlan = {
   input: SignupUploadInput;
   eventName: string | null;
   rows: SignupPlanRow[];
-  ignored: string[];
   signature: string;
 };
 
@@ -373,25 +369,4 @@ export function signupPileCounts(plan: Pick<SignupPlan, "rows">): Record<SignupP
   const counts = Object.fromEntries(SIGNUP_PILES.map((pile) => [pile, 0])) as Record<SignupPile, number>;
   for (const row of plan.rows) counts[row.pile]++;
   return counts;
-}
-
-/** The rows held back as a CSV to fix and upload again: columns it can read again, and why, which it will ignore. */
-export function signupHeldCsv(plan: SignupPlan, words: { why: string }, why: (row: SignupPlanRow) => string): string {
-  const yes = (answer: boolean) => (answer ? "Y" : "");
-  const columns = [
-    { key: "name", label: "Name", text: (row: SignupPlanRow) => row.name },
-    { key: "email", label: "Email", text: (row: SignupPlanRow) => row.email },
-    { key: "phone", label: "Phone", text: (row: SignupPlanRow) => row.phone },
-    { key: "postcode", label: "Postcode", text: (row: SignupPlanRow) => row.postcode },
-    { key: "city", label: "City", text: (row: SignupPlanRow) => row.city },
-    { key: "mailing", label: "Mailing list", text: (row: SignupPlanRow) => yes(row.mailingList) },
-    ...(plan.input.eventColumn
-      ? [{ key: "event", label: plan.input.eventColumn, text: (row: SignupPlanRow) => yes(row.going) }]
-      : []),
-    { key: "why", label: words.why, text: why },
-  ];
-  return toCsv(
-    columns,
-    plan.rows.filter((row) => row.pile === "held"),
-  );
 }

@@ -1,6 +1,6 @@
-# Upload sign-ups
+# Paper sign-ups
 
-A staff page, Upload sign-ups, in the navigation under Supporters. It takes a CSV
+A staff page, Paper sign-ups, in the navigation under Supporters. It takes a CSV
 of paper forms filled in while flyering. Built on the `upload-signups` branch, and
 described in `docs/domain-concepts.md`, "Form entries". This plan holds only what's
 left before it can merge.
@@ -43,10 +43,13 @@ form without ticking anything means.
   giving their details?
 - What does a march Y mean on the handwritten page, which has no tick box?
 
-### Words
+### Pushing waits for those answers
 
-Every new word on the pages, and the privacy policy's new line, is a placeholder
-for a person to write. `tests/checks/placeholder-copy.test.ts` fails until then.
+`0088_signup_uploads.sql` was pushed while every preview build failed on the
+placeholder check, so Netlify never applied it, and it has been edited since. The
+placeholders are gone, so the next push builds a preview and applies it, after
+which it can't change. If Reuben's answers move the permission, that change goes
+in 0088 before pushing, keeping one migration.
 
 ## Outside this feature
 

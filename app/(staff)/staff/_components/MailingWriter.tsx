@@ -42,6 +42,7 @@ import Grid, { Card } from "./ui/Grid";
 import Bubble from "./ui/Bubble";
 import NotIcon from "./ui/NotIcon";
 import Strip from "./ui/Strip";
+import Numbered from "./ui/Numbered";
 import styles from "./MailingWriter.module.css";
 
 const copy = staffCopy.mailingPages;
@@ -76,18 +77,6 @@ export type MailingWriterActions = {
 };
 
 type SaveState = "saving" | "saved" | "conflict" | "failed";
-
-/** A section's title: its number, then its name. */
-function Numbered({ n, children }: { n: number; children: ReactNode }) {
-  return (
-    <>
-      <span className={styles.number} aria-hidden="true">
-        {n}
-      </span>
-      {children}
-    </>
-  );
-}
 
 /** Whether the draft is saved: saving, grey; saved, green; not saved, red. */
 function SaveState({ state }: { state: SaveState }) {
