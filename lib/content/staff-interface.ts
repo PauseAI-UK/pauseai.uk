@@ -1218,7 +1218,7 @@ All events: ${link}`,
     },
     summary: (n: number, channel: "email" | "text", from: string, when: string | null) =>
       channel === "email"
-        ? `⁂ ${count(n, "email", "emails")} from ${from}${when ? `, on ${when}` : ""}.`
+        ? `${count(n, "email", "emails")} from ${from}${when ? `, on ${when}` : ""}.`
         : `${count(n, "text", "texts")} from ${from} on WhatsApp${when ? `, on ${when}` : ""}.`,
     schedule: (n: number, channel: "email" | "text") =>
       `Schedule ${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")}`,
