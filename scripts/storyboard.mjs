@@ -12,7 +12,8 @@
 //   npm run storyboard -- --desktop         # or --phone: one viewport
 //   npm run storyboard -- --no-open         # leave the page closed (an agent reads storyboard.json)
 //   npm run storyboard -- --paths           # print each frame's caption and picture, to open one directly
-//   npm run storyboard -- --server=URL      # a server you started for this branch (default: Playwright builds one on 3100)
+//   npm run storyboard -- --changed         # print only the frames that changed against main (storyboard-changed.mjs)
+//   npm run storyboard -- --server=URL      # a server you started for this branch (default: Playwright builds one on this checkout's port)
 //   npm run storyboard -- --main-server=URL # a server you started for main
 //   npm run storyboard -- --fresh-main      # run main again even if its frames are kept (below)
 //   npm run storyboard -- staff-login -g login    # anything else goes to `playwright test`
@@ -46,6 +47,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   statSync,
@@ -55,9 +57,9 @@ import {
 import { createHash } from "node:crypto";
 import { platform } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { MAIN_OUTBOX_DIR } from "../tests/checkout.mjs";
-import { LOCAL_URL, MAIN_URL } from "../tests/fixture-env.mjs";
+import { LOCAL_URL, MAIN_OUTBOX_DIR, MAIN_URL } from "../tests/checkout.mjs";
 import { writeStoryboard } from "../tests/storyboard/report/board.ts";
+import { describeChanged } from "./storyboard-changed.mjs";
 import {
   cacheKey,
   carryable,
@@ -83,6 +85,7 @@ const options = {
   main: "origin/main",
   open: true,
   paths: false,
+  changed: false,
   projects: [],
   server: LOCAL_URL,
   mainServer: undefined,
@@ -94,6 +97,7 @@ for (const arg of process.argv.slice(2)) {
   else if (arg.startsWith("--main=")) options.main = arg.slice("--main=".length);
   else if (arg === "--no-open") options.open = false;
   else if (arg === "--paths") options.paths = true;
+  else if (arg === "--changed") options.changed = true;
   else if (arg === "--desktop" || arg === "--phone") options.projects.push(`--project=${arg.slice(2)}`);
   else if (arg.startsWith("--server=")) options.server = arg.slice("--server=".length);
   else if (arg.startsWith("--main-server=")) options.mainServer = arg.slice("--main-server=".length);
@@ -446,6 +450,10 @@ if (options.paths) {
   } catch {
     console.log("No storyboard.json: the run wrote no frames.");
   }
+}
+
+if (options.changed && existsSync(join(runDir, "storyboard.json"))) {
+  console.log(`\n${describeChanged(readJson(join(runDir, "storyboard.json")), realpathSync(runDir)).join("\n")}`);
 }
 
 if (options.open && existsSync(page)) {

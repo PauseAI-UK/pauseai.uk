@@ -1,5 +1,8 @@
 import { briefings } from "@/lib/content/briefings";
 import { BASE, expect, frame, test } from "./fixtures";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Briefings", part: "Public site", order: 30 };
 
 // The briefings: posts like the blog's, under the campaigns. The page is
 // the first briefing, with its charts and its numbered sources.

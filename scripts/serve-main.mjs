@@ -4,17 +4,18 @@
 // request sees it, where this branch started from (the merge base of
 // origin/main and HEAD). Nothing is fetched. Local only.
 //
-//   node scripts/serve-main.mjs [--ref <commit>] [--port 3001]
+//   node scripts/serve-main.mjs [--ref <commit>] [--port <port>]
 //
 // It keeps one git worktree outside the repo, checked out at that commit
 // each time, installs that version's own dependencies when its
 // package-lock.json changes, gives it a fresh database if that version has
 // one, builds it with the same fixture settings as this branch's
-// test build, and serves it until stopped.
+// test build, and serves it until stopped, by default on this checkout's
+// port for main (MAIN_URL, tests/checkout.mjs).
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { MAIN_DATABASE, MAIN_OUTBOX_DIR, MAIN_WORKTREE } from "../tests/checkout.mjs";
+import { MAIN_DATABASE, MAIN_OUTBOX_DIR, MAIN_URL, MAIN_WORKTREE } from "../tests/checkout.mjs";
 import { fixtureEnv } from "../tests/fixture-env.mjs";
 import { testServerUrl } from "./fresh-database.mjs";
 
@@ -23,7 +24,7 @@ function option(name, fallback) {
   return at === -1 ? fallback : process.argv[at + 1];
 }
 
-const port = option("port", "3001");
+const port = option("port", new URL(MAIN_URL).port);
 const run = (command, args, options = {}) => execFileSync(command, args, { stdio: "inherit", ...options });
 const ref =
   option("ref", undefined) ?? execFileSync("git", ["merge-base", "origin/main", "HEAD"], { encoding: "utf8" }).trim();

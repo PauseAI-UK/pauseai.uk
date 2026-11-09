@@ -28,66 +28,35 @@ export const MAKES_DATABASES = { timeout: 30_000 };
  */
 const DATABASE_HOOK = 60_000;
 
-const TABLES = [
-  "ask_statuses",
-  "audit_log",
-  "email_blocks",
-  "email_problems",
-  "email_sends",
-  "import_runs",
-  "letter_events",
-  "letter_replies",
-  "letters",
-  "form_entries",
-  "form_entry_luma",
-  "luma_erased",
-  "luma_events",
-  "luma_guests",
-  "luma_import_state",
-  "luma_people",
-  "mailing_attachments",
-  "members",
-  "message_events",
-  "messages_to_supporters",
-  "members_erased",
-  "named_places",
-  "notable_people",
-  "notes",
-  "old_letters_mail",
-  "one_off_erased",
-  "one_off_messages",
-  "one_off_thread_people",
-  "one_off_threads",
-  "saved_filters",
-  "opt_outs",
-  "politician_domains",
-  "politicians",
-  "postcode_places",
-  "staff_login_links",
-  "staff_accounts",
-  "staff_sessions",
-  "letters_from_supporters",
-  "supporter_links",
-  "supporters",
-  "staff_nav_seen",
-  "unmatched_mail",
-];
+/**
+ * The tables whose rows the migrations seed, which tests read and leave alone:
+ * the asks and campaigns, their statuses and the day's text. The mailings are
+ * seeded too, and emptied of only those a test wrote. Every other table in the
+ * database is emptied before each test.
+ */
+const SEEDED = ["ask_kind_statuses", "asks", "campaigns", "day_texts", "mailings"];
 
 /**
  * Gives this test file its own database, empty before each test: a copy of
  * the migrated template made once for the run (tests/vitest.global-setup.node.ts).
  * Call at the top of a describeWithDatabase block.
  */
-export function useTestDatabase(extraTables: string[] = []) {
+export function useTestDatabase() {
   const name = `test_${process.pid}_${Math.random().toString(36).slice(2, 8)}`;
   const original = process.env.NETLIFY_DB_URL;
+  let tables = "";
 
-  beforeAll(() => {
+  beforeAll(async () => {
     copyDatabase(name, inject("templateDatabase"));
     process.env.NETLIFY_DB_URL = databaseUrl(name);
+    const rows = await query<{ name: string }>(
+      "SELECT quote_ident(tablename) AS name FROM pg_tables WHERE schemaname = 'public' AND NOT tablename = ANY($1) ORDER BY 1",
+      [SEEDED],
+    );
+    tables = rows.map((row) => row.name).join(", ");
   }, DATABASE_HOOK);
   beforeEach(async () => {
-    await query(`TRUNCATE ${[...TABLES, ...extraTables].join(", ")} RESTART IDENTITY CASCADE`);
+    await query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
     // The mailings written here; the imported ones come with the migrations.
     await query("DELETE FROM mailings WHERE body IS NOT NULL");
     // The kept supporters list, emptied with the tables it's made from.

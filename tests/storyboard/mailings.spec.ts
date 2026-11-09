@@ -6,6 +6,9 @@ import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { importEmails, NOTIFICATION_INBOX, stayOnPage } from "./staff-steps";
 import { runQueue } from "./letters-inbox-steps";
 import { scrollSettled } from "./settle";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Mailings", part: "Staff pages", order: 40 };
 
 // Mailings to politicians written on the site: started from New mailing,
 // who it's for ticked on the politicians list, written, previewed and sent

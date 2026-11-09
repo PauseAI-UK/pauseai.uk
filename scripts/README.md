@@ -16,12 +16,13 @@ where there's an npm script. Each file's opening comment has the details.
 
 ## Storyboard
 
-| Script                | Run with                             | What it does                                                                                                                                                                               |
-| --------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `storyboard.mjs`      | `npm run storyboard`                 | The storyboard review: runs the Playwright suite with screenshots on both viewports, for this branch and for main, and opens the page pairing them.                                        |
-| `storyboard-main.mjs` | imported by `storyboard.mjs`         | Keeps main's frames between runs, under main's commit and a hash of the suite's shared files, so a run builds and runs main only for the flows it hasn't got.                              |
-| `serve-fixture.mjs`   | Playwright's `webServer`, or by hand | Builds this checkout on fixture data, with a fresh database of its own, and serves it on port 3100. Start it yourself to keep one server up between runs (`docs/development.md`, "Tests"). |
-| `serve-main.mjs`      | started by `storyboard.mjs`          | Builds and serves where this branch left origin/main (or `--ref`) on fixture data, from a git worktree in your temp folder, on port 3001, for the comparison.                              |
+| Script                   | Run with                             | What it does                                                                                                                                                                                                                    |
+| ------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storyboard.mjs`         | `npm run storyboard`                 | The storyboard review: runs the Playwright suite with screenshots on both viewports, for this branch and for main, and opens the page pairing them.                                                                             |
+| `storyboard-changed.mjs` | `npm run storyboard:changed`         | Prints the frames of the latest run (or one named) that differ from main, are new or are gone, with each one's caption and the paths of its pictures. `npm run storyboard -- --changed` prints them after a run.                |
+| `storyboard-main.mjs`    | imported by `storyboard.mjs`         | Keeps main's frames between runs, under main's commit and a hash of the suite's shared files, so a run builds and runs main only for the flows it hasn't got.                                                                   |
+| `serve-fixture.mjs`      | Playwright's `webServer`, or by hand | Builds this checkout on fixture data, with a fresh database of its own, and serves it on the checkout's own port (`tests/checkout.mjs`). Start it yourself to keep one server up between runs (`docs/development.md`, "Tests"). |
+| `serve-main.mjs`         | started by `storyboard.mjs`          | Builds and serves where this branch left origin/main (or `--ref`) on fixture data, from a git worktree in your temp folder, on the checkout's port for main, for the comparison.                                                |
 
 `docs/testing.md`, "The storyboard", covers them.
 
@@ -35,12 +36,24 @@ where there's an npm script. Each file's opening comment has the details.
 
 `docs/development.md`, section 5, covers the photos.
 
+## The gate
+
+`gate.mjs`, run with `npm run gate`, is the CI gate: Prettier, the types, ESLint and Stylelint on the files changed since `origin/main`, then what CI runs, in parallel, each with a time limit and a log in `tmp/gate/`, ending with a table of exit codes. `--fast` stops after the first part, and `--no-storyboard` leaves out the storyboard. `docs/testing.md`, "`npm run gate`", covers it.
+
+## Worktrees
+
+`worktree.mjs`, run with `npm run worktree -- <branch>`, fetches, adds `tmp/worktrees/<branch>` as a new branch from `origin/main`, runs `npm ci` in it and prints the ports its storyboard will serve on. `--ports` prints this checkout's. `docs/development.md`, "Worktrees", covers it.
+
+## Coverage
+
+`test-changed.mjs`, run with `npm run test:changed`, runs the Vitest tests for the files changed since origin/main, committed or not, and lists each changed source file's uncovered lines, functions and branches, even while a test fails. Anything after `--` goes to Vitest. `npm test` is still the gate (`docs/testing.md`, "Coverage").
+
 ## Investments
 
 `investments.mjs`, run with `npm run investments`, lists the items in `investments/`, most hits first, with each one's size and kind (`investments/README.md`).
 
 ## Tests and types
 
-`db-migrate.test.ts`, `fresh-database.test.ts` and `storyboard-main.test.ts`
-test the scripts beside them, in the Vitest node project. The `.d.mts` files give the scripts'
-functions types, for the TypeScript that imports them.
+The `*.test.ts` files test the scripts beside them, in the Vitest node
+project. The `.d.mts` files give the scripts' functions types, for the
+TypeScript that imports them.

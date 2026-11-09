@@ -85,6 +85,13 @@ export async function stayOnPage(page: Page, target: RegExp): Promise<{ asked: (
   return { asked: () => page.evaluate(() => document.documentElement.dataset.stayedFrom!) };
 }
 
+/**
+ * Waits until nothing on the page is pending, so the line along the top
+ * (StaffPage) has gone. A navigation can still be pending after the URL and
+ * the rows show the answer, and the line fades in over it on a slow machine.
+ */
+export const settled = (page: Page) => expect(page.locator("[data-pending]")).toHaveCount(0);
+
 /** Whether the line along the top of the page, while something loads, is showing (StaffPage). */
 export const loadingLine = (page: Page) =>
   page.evaluate(() => {

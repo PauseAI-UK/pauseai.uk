@@ -1,10 +1,20 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { readdirSync } from "node:fs";
-import { carryRuns, comparePngs, pairRuns, SECTION_ORDER, sortRuns, type FlowRun, type RunManifest } from "./frames.ts";
+import {
+  carryRuns,
+  comparePngs,
+  pairRuns,
+  parseSection,
+  readSections,
+  sections,
+  sortRuns,
+  type FlowRun,
+  type RunManifest,
+} from "./frames.ts";
 import { renderStoryboardPage } from "./page.ts";
 
 const run = (flow: string, captions: string[], extra: Partial<FlowRun> = {}): FlowRun => ({
@@ -139,7 +149,7 @@ describe("pairRuns", () => {
 describe("sortRuns", () => {
   const at = (section: string, line: number, flow = "f", viewport = "desktop") => ({ section, line, flow, viewport });
 
-  it("puts the sections in SECTION_ORDER, unknown ones after, alphabetically", async () => {
+  it("puts the sections in their declared order, unknown ones after, alphabetically", async () => {
     const sorted = sortRuns([at("zz-new", 1), at("mailings", 1), at("aa-new", 1), at("public-pages", 1)]);
     expect(sorted.map((r) => r.section)).toEqual(["public-pages", "mailings", "aa-new", "zz-new"]);
   });
@@ -157,15 +167,6 @@ describe("sortRuns", () => {
       [9, "b", "desktop"],
       [9, "b", "phone"],
     ]);
-  });
-
-  it("lists every section, so each spec file is placed on purpose", async () => {
-    const specs = readdirSync(join(__dirname, ".."))
-      .filter((f) => f.endsWith(".spec.ts"))
-      .map((f) => f.replace(/\.spec\.ts$/, ""));
-    expect([...SECTION_ORDER].sort()).toEqual(specs.sort());
-    expect(SECTION_ORDER[0]).toBe("public-pages");
-    expect(SECTION_ORDER.at(-1)).toBe("gallery");
   });
 
   it("orders the flows of both runs, whatever order they finished in", async () => {
@@ -319,5 +320,70 @@ describe("renderStoryboardPage", () => {
     // The page's own script parses.
     const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
     for (const script of scripts) expect(() => new Function(script)).not.toThrow();
+  });
+});
+
+describe("sections", () => {
+  it("has every spec file declare its section, so each is placed on purpose", () => {
+    const specs = readdirSync(join(__dirname, ".."))
+      .filter((f) => f.endsWith(".spec.ts"))
+      .map((f) => f.replace(/\.spec\.ts$/, ""));
+    const ids = sections().map((s) => s.id);
+    expect([...ids].sort()).toEqual(specs.sort());
+    expect(ids[0]).toBe("public-pages");
+    expect(ids.at(-1)).toBe("gallery");
+    expect(sections()[0]).toEqual({ id: "public-pages", name: "Every public page", part: "Public site", order: 10 });
+  });
+
+  it("are read once", () => {
+    expect(sections()).toBe(sections());
+  });
+});
+
+describe("parseSection", () => {
+  it("reads a spec file's declaration, on one line or several, with escaped quotes", () => {
+    expect(
+      parseSection(
+        'import x from "y";\n\nexport const section: Section = { name: "Write to your MP", part: "Public site", order: 20 };\n',
+      ),
+    ).toEqual({ name: "Write to your MP", part: "Public site", order: 20 });
+    expect(
+      parseSection(
+        'export const section: Section = {\n  name: "The \\"long\\" one",\n  part: "Tools and checks",\n  order: 5,\n};\n',
+      ),
+    ).toEqual({ name: 'The "long" one', part: "Tools and checks", order: 5 });
+  });
+
+  it("is undefined without a declaration, or with a field missing or a part not in PARTS", () => {
+    expect(parseSection('test("a flow", () => {});')).toBeUndefined();
+    expect(parseSection('export const section: Section = { part: "Public site", order: 1 };')).toBeUndefined();
+    expect(parseSection('export const section: Section = { name: "A", order: 1 };')).toBeUndefined();
+    expect(parseSection('export const section: Section = { name: "A", part: "Elsewhere", order: 1 };')).toBeUndefined();
+    expect(parseSection('export const section: Section = { name: "A", part: "Public site" };')).toBeUndefined();
+  });
+});
+
+describe("readSections", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "sections-"));
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  const spec = (id: string, part: string, order: number) =>
+    writeFileSync(
+      join(dir, `${id}.spec.ts`),
+      `export const section: Section = { name: "${id}", part: "${part}", order: ${order} };\n`,
+    );
+
+  it("orders the spec files' sections by part, then order, then name, leaving out those that declare none", () => {
+    spec("tools", "Tools and checks", 10);
+    spec("staff-b", "Staff pages", 20);
+    spec("staff-a", "Staff pages", 20);
+    spec("first-staff", "Staff pages", 10);
+    spec("public", "Public site", 90);
+    writeFileSync(join(dir, "undeclared.spec.ts"), 'test("a flow", () => {});\n');
+    writeFileSync(join(dir, "steps.ts"), "export {};\n");
+    expect(readSections(dir).map((s) => s.id)).toEqual(["public", "first-staff", "staff-a", "staff-b", "tools"]);
   });
 });

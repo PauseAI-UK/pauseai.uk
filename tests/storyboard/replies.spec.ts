@@ -36,6 +36,9 @@ import {
   testProxy,
 } from "./letters-inbox-steps";
 import { bouncy, BOUNCY_ADDRESS, logIn, NOTIFICATION_INBOX, POLICY_INBOX, sentLetterId } from "./staff-steps";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Replies to letters", part: "Staff pages", order: 110 };
 
 // Letters to MPs through the letters inbox, and every email both ways: the
 // letter from the supporter's proxy, her copy, the MP's office's replies

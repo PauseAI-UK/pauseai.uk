@@ -1,6 +1,6 @@
 # Tests that find Postgres without help
 
-Size: S. Kind: tools.
+Size: M. Kind: tools.
 
 ## Problem
 

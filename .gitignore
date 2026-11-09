@@ -50,3 +50,6 @@ orca.yaml
 
 # Wrangler's local state (backup/)
 .wrangler/
+
+# Written by npm run investments and the Git hooks, to open in an editor.
+investments/ranked.txt

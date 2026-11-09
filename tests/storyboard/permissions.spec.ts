@@ -18,6 +18,9 @@ import {
 } from "../steps";
 import { importEmails } from "./staff-steps";
 import { BASE, expect, flowStorageState, madeUpAddress, frame, story, test } from "./fixtures";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Permissions", part: "Staff pages", order: 140 };
 
 // Who sees what: supporter data only with `supporters`, wherever it would
 // show; and the sessions an account has, which an admin, or its owner, can

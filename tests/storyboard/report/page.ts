@@ -1,4 +1,4 @@
-import { SECTIONS, type Storyboard } from "./frames.ts";
+import { sections, type Storyboard } from "./frames.ts";
 
 // The storyboard page: `test-results/storyboard/index.html`, built from the
 // same data as storyboard.json, with each section's name and part
@@ -61,7 +61,7 @@ export function renderStoryboardPage(storyboard: Storyboard): string {
   <div class="lightbox-image"><img id="lightbox-img" alt=""></div>
 </dialog>
 <script id="data" type="application/json">${inlineJson(storyboard)}</script>
-<script id="sections" type="application/json">${inlineJson(SECTIONS)}</script>
+<script id="sections" type="application/json">${inlineJson(sections())}</script>
 <script>${JS}</script>
 </body>
 </html>

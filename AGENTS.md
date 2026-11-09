@@ -10,42 +10,33 @@ Read `README.md` first. It links the docs in `docs/`, including the code structu
 
 A comment says what the code does and why, as it stands. It doesn't tell the code's history: not what it replaced, what changed or moved, what it used to do, or which plan or PR brought it. That belongs in the commit message. Write "Every field is the kit's", not "Fields now come from the kit instead of each form's own". The same goes for docs. The rest of the rules (no counts that go stale, explain once at the definition, what a test fixture's comment says) are in `docs/code-structure.md`, "Comments".
 
+## Claude Code's settings
+
+`.claude/settings.json` sets `CLAUDE_CODE_THRIFTY_SONIC=0`, which turns off an experiment in Claude Code's auto mode that tells agents to read with `cat` and edit with `sed` or scripts rather than the Read and Edit tools. Edit is safer: it needs the file read first and an exact match, and shows a diff. The variable isn't documented, so if a session's instructions still steer you to Bash, say so.
+
 ## Scratch files
 
 Put throwaway scripts, logs and screenshots in `tmp/` at the repo root (to screenshot the site, see "Screenshots" below). It's gitignored, and scripts there can import the project's `node_modules` (e.g. `@playwright/test`, `sharp`). Long-running checks, such as probing the site in Chromium, Firefox and WebKit, can run in the background and write their output there.
 
+## Worktrees
+
+`npm run worktree -- <branch>` starts a new branch from `origin/main` in `tmp/worktrees/<branch>`, with its dependencies installed, and prints the ports its storyboard serves on (`docs/development.md`, "Worktrees"). Each checkout's storyboard has its own ports and databases, so worktrees can run it at once.
+
 ## The CI gate
 
-Run the fast checks first, then the slow ones. Check exit codes, not a grep of the output: `npm test` can report every test passing and still fail on coverage.
-
-The fast checks, seconds each. Run them on the files you changed and fix what they find:
-
 ```bash
-npx tsc --noEmit                  # types
-npx prettier --write <files>      # formatting
-npx eslint --max-warnings 0 <files>
-npx stylelint <css files>
+npm run gate                      # the fast checks on the files you changed, then everything CI runs
+npm run gate -- --fast            # the fast checks alone: types, and Prettier, ESLint and Stylelint on the changed files
+npm run gate -- --no-storyboard   # everything but the storyboard
 ```
 
-Then everything CI runs (`.github/workflows/ci.yml`), which takes minutes. The branch isn't done until every command exits 0:
+The branch isn't done until `npm run gate` exits 0. It takes the files changed since the branch left `origin/main`, committed or not, formats them with Prettier and checks them, and stops there if a check fails. Then it runs what CI runs (`.github/workflows/ci.yml`) in parallel, as CI's jobs do: the types then the storyboard, `npm test` with the coverage gate, the four linters one after another, and the backup Worker's package. Each command has a time limit and a log in `tmp/gate/`, a line a minute says which are still running and whose log has gone quiet, and it ends with a table of exit codes and the end of each failed log. Go by those exit codes, not a grep of the output: `npm test` can report every test passing and still fail on coverage. It takes a few minutes, so run it in the background, its output to a file in `tmp/`, and look at that each minute (`docs/testing.md`, "`npm run gate`").
 
-```bash
-npm run typecheck                 # types, on their own, as `next build` checks them too
-npm test                          # both Vitest projects, and the 100% per-file coverage gate
-npm run lint                      # ESLint, failing on warnings too
-npm run lint:css                  # Stylelint
-npm run lint:unused               # Knip: unused files, exports and dependencies
-npm run format:check              # Prettier; `npm run format` fixes it
-npm run build
-npm run test:storyboard           # Playwright: the storyboard's gate, on fixture data
-(cd backup && npm ci && npm test && npm run typecheck)   # the backup Worker's own package
-```
-
-Give each long run a time limit and check on it when it should be done, so one that freezes isn't missed (`docs/testing.md`, "Long runs in the background"). Run them as CI does, in parallel, which takes two or three minutes rather than six: the four linters one after another, alongside `npm test`, `npm run test:storyboard` and the backup Worker's tests. Skip `npm run build` locally: it repeats the unit tests and linters, and the storyboard already builds the site. Never run two `next build`s at once in one checkout, as they share `.next`.
+It leaves out `npm run build`, which repeats the unit tests and linters, as the storyboard builds the site. Never run two `next build`s at once in one checkout, as they share `.next`, so don't run the gate beside a storyboard review in the same checkout.
 
 If the prek Git hook is installed (`npm run hooks:install`), commits run Prettier, ESLint and Stylelint on the staged files first. Prettier rewrites them, so `git add` and commit again. That's only part of the gate.
 
-Running one Vitest project (`npm run test:node`, `npm run test:browser`) or one file doesn't check coverage, so it isn't the gate. The tests that need a database make their own in Postgres (`docs/testing.md`).
+Running one Vitest project (`npm run test:node`, `npm run test:browser`) or one file doesn't check coverage, so it isn't the gate. While writing tests, `npm run test:changed` runs just the tests for the files changed since origin/main and lists what in those files isn't covered (`docs/testing.md`, "Coverage"); it isn't the gate either. The tests that need a database make their own in Postgres (`docs/testing.md`).
 
 ## Pull request descriptions are short
 
@@ -61,7 +52,7 @@ Before changing a migration, `git fetch`, then check whether it's on the remote 
 
 ## The storyboard
 
-`tests/storyboard/` is one Playwright suite that drives every flow on fixture data (`docs/testing.md`, "The storyboard"). A spec file is a section, a test a flow, and each `await frame(page, "caption")` a frame: a caption and, in the review, a screenshot (the whole page at the top, the window once scrolled or while a menu or dialog is open). `docs/testing.md`, "What the storyboard covers", lists what each section drives; a new spec file or route handler needs a line there.
+`tests/storyboard/` is one Playwright suite that drives every flow on fixture data (`docs/testing.md`, "The storyboard"). A spec file is a section, a test a flow, and each `await frame(page, "caption")` a frame: a caption and, in the review, a screenshot (the whole page at the top, the window once scrolled or while a menu or dialog is open). A spec file declares its section's name and place on the review page (`export const section: Section = …`, after its imports). `docs/testing.md`, "What the storyboard covers", lists what each section drives; a new spec file or route handler needs a line there.
 
 - Every new interactive behaviour goes in a flow, existing or new, with a frame after each thing a person would see. A PR without it isn't done.
 - A flow is told in words anyone who has used the site would follow: its title just names it ("The letter bounces"), each caption says what its frame shows ("The email staff get"), and `story("…")` lines, at the start and between the frames, say what happens and why (`docs/testing.md`, "How a flow is told").
@@ -70,8 +61,11 @@ Before changing a migration, `git fetch`, then check whether it's on the remote 
 
 ```bash
 npm run storyboard                # both viewports, screenshots, against a build of where this branch left origin/main, then opens test-results/storyboard/index.html
-npm run storyboard -- --no-open   # the same; read test-results/storyboard/latest/storyboard.json instead
+npm run storyboard -- --no-open   # the same, leaving the page closed
+npm run storyboard:changed        # the latest run's changed frames: new, gone or different from main's, with each one's caption and PNGs
 ```
+
+To review a run, list its changed frames with `npm run storyboard:changed` (or add `--changed` to the run) and open each one's PNGs with the Read tool, rather than reading `storyboard.json` with a script of your own.
 
 - A flaky flow, or a frame that differs between two runs of the same build, is fixed, never retried, skipped or masked. No stored baselines, no gate on pixels.
 - Any flaky test, Vitest or Playwright, is fixed at once, in whatever branch finds it, even when the branch has nothing to do with it (`docs/testing.md`, "Rules for new code").
@@ -85,7 +79,7 @@ npm run storyboard -- --no-main --no-open --paths public-pages -g '/donate$'   #
 npm run storyboard -- --no-main --no-open --paths --phone campaigns -g ZZ99ZZ   # a flow, every frame
 ```
 
-`--no-main` skips building main, which is the slow part (drop it to see main beside it), `--desktop` or `--phone` picks one viewport, and `--paths` prints each frame's caption and PNG path, to open with the Read tool. Each run gets its own folder, so the review someone has open is never changed, and a narrow run carries the rest of the latest review rather than clearing it. Main's frames are kept between runs, so after one full review a narrow one doesn't build main. Playwright reuses whatever is serving on port 3100, so check that it's this branch's fixture build, or stop it. If no flow reaches what you need, add a `frame()` to one, or a flow (see above), rather than a script in `tmp/`.
+`--no-main` skips building main, which is the slow part (drop it to see main beside it), `--desktop` or `--phone` picks one viewport, and `--paths` prints each frame's caption and PNG path, to open with the Read tool. Each run gets its own folder, so the review someone has open is never changed, and a narrow run carries the rest of the latest review rather than clearing it. Main's frames are kept between runs, so after one full review a narrow one doesn't build main. The fixture server's port comes from the checkout's path, and the storyboard refuses one built from another checkout, but it reuses this checkout's server however old its build: stop one left from before your last change. If no flow reaches what you need, add a `frame()` to one, or a flow (see above), rather than a script in `tmp/`.
 
 To see a component, use the component gallery (`/gallery`, fixture builds only; `docs/testing.md`, "The component gallery"). Every component has an example there, a page per group, and the gallery section pictures each group's page whole:
 

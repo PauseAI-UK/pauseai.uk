@@ -7,10 +7,15 @@ import {
   freshDatabase,
   runSql,
 } from "@/scripts/fresh-database.mjs";
-import { FLOW_DATABASES, OUTBOX_DIR, TEMPLATE_DATABASE } from "../checkout.mjs";
-import { FIXTURE_NOW, fixtureEnv, LETTERS_INBOX, TEST_MP_EMAIL } from "../fixture-env.mjs";
+import { FLOW_DATABASES, foreignServer, LOCAL_URL, OUTBOX_DIR, OWN_URL, TEMPLATE_DATABASE } from "../checkout.mjs";
+import { CHECKOUT_HEADER, FIXTURE_NOW, fixtureEnv, LETTERS_INBOX, TEST_MP_EMAIL } from "../fixture-env.mjs";
 
-// Before the flows: the template database each flow's is copied from
+// Before the flows, the server on this checkout's own port, which Playwright
+// reuses whatever it is, must be this checkout's build: another checkout's,
+// left running, would be tested in its place. A server named with LOCAL_URL
+// (--server, or main's in the review) is taken as it is.
+//
+// Then the template database each flow's is copied from
 // (fixtures.ts), migrated and with the test MPs, as the build's own database
 // is made, with the letters inbox connected. Flows that need the fixture politicians sync them in themselves
 // (syncPoliticians in tests/steps.ts).
@@ -20,7 +25,13 @@ import { FIXTURE_NOW, fixtureEnv, LETTERS_INBOX, TEST_MP_EMAIL } from "../fixtur
 // first on its search path, and which the columns that default to now() use.
 // So a letter's sent time and an audit entry's time are the same on every
 // run, and the storyboard compares those pages unmasked.
-export default function globalSetup(): void {
+export default async function globalSetup(): Promise<void> {
+  if (LOCAL_URL === OWN_URL) {
+    const res = await fetch(OWN_URL, { method: "HEAD", redirect: "manual" });
+    const foreign = foreignServer(res.headers.get(CHECKOUT_HEADER));
+    if (foreign) throw new Error(foreign);
+  }
+
   // Left over from this checkout's run that was stopped: nothing can be using them now.
   for (const name of databaseNames(FLOW_DATABASES)) dropDatabase(name);
 

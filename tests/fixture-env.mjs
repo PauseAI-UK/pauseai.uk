@@ -6,11 +6,6 @@
 //
 // Plain JavaScript, not TypeScript, so the scripts can import it with Node.
 
-/** This branch's build, under test. Not the dev server's port, so a running `npm run dev` is left alone. */
-export const LOCAL_URL = process.env.LOCAL_URL ?? "http://localhost:3100";
-/** Main's build (scripts/serve-main.mjs), for the storyboard's comparison. */
-export const MAIN_URL = process.env.MAIN_URL ?? "http://localhost:3001";
-
 /** The test MPs' inbox in a fixture build. */
 export const TEST_MP_EMAIL = "test-mp@parliament.example";
 
@@ -39,6 +34,9 @@ export const FIXTURE_NOW = "2026-10-16T12:00:00.000Z";
  */
 export const FLOW_DATABASE_COOKIE = "storyboard_database";
 export const FLOW_DATABASE_PREFIX = "pauseai_sb_";
+
+/** The response header a storyboard build names the checkout it was built from in (FIXTURE_CHECKOUT, next.config.ts). */
+export const CHECKOUT_HEADER = "X-Fixture-Checkout";
 
 /** @param {{ outboxDir: string, origin?: string }} options */
 export function fixtureEnv({ outboxDir, origin = "" }) {

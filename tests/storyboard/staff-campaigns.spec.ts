@@ -4,6 +4,9 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, syncPoliticians } from "../steps";
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import { chooseDay, importEmails, logIn, sentLetterId } from "./staff-steps";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Campaigns, asks and sent emails", part: "Staff pages", order: 80 };
 
 // Campaigns, each ask's page and form, and the sent emails. Each flow on its
 // own database.
