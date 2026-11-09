@@ -2157,7 +2157,7 @@ All events: ${link}`,
     nightly: "Nightly",
     // On a job's page, while a run of it is going: one a staff member started, or one of its schedule's.
     running: (who: string, when: string) => `Running, started by ${who} at ${when}. Can only run one at a time.`,
-    runningScheduled: (when: string) => `⁂ Running on its schedule, started at ${when}. Can only run one at a time.`,
+    runningScheduled: (when: string) => `Running now, started at ${when}. Can only run one at a time.`,
     frequent: "Every 5 minutes",
     hourly: "Hourly",
     oneOff: "One-off",
