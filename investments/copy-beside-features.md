@@ -10,7 +10,7 @@ All the staff interface's words are in one object in `lib/content/staff-interfac
 
 ## Fix
 
-Each feature gets a `copy.ts` beside its components, which its tests import as they import `staffCopy` today. A small shared vocabulary (statuses, houses, fields, paging) stays central. Emails and problem messages move beside the server code that sends them. Move one top-level key at a time, the most used first (`politician`, `mailingPages`, `letters`), and change the rule in `docs/code-structure.md` to "a feature's words are in its `copy.ts`". Do `plural-helper.md` first.
+Each feature gets a `copy.ts` beside its components, which its tests import as they import `staffCopy` today. A small shared vocabulary (statuses, houses, fields, paging) stays central. Emails and problem messages move beside the server code that sends them. Move one top-level key at a time, the most used first (`politician`, `mailingPages`, `letters`), and change the rule in `docs/code-structure.md` to "a feature's words are in its `copy.ts`". Plurals go through `plural()` and `count()` in `lib/content/plural.ts`.
 
 ## Hits
 

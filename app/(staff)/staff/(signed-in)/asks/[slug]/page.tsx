@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { askPageData } from "@/lib/server/asks";
+import { askPageData, askTitle } from "@/lib/server/asks";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { firstOf, pageNumber, type ParamValue } from "@/lib/staff-search";
 import AskView from "../../../_components/AskView";
@@ -11,7 +11,7 @@ type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ answe
 
 export async function generateMetadata({ params }: Pick<Params, "params">): Promise<Metadata> {
   await requireStaff();
-  return { title: found(await askPageData((await params).slug)).title };
+  return { title: found(await askTitle((await params).slug)) };
 }
 
 /** An ask: what they were asked, how we asked, and their answers. */

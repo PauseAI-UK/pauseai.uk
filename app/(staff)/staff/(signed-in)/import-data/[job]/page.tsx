@@ -5,7 +5,7 @@ import { type ImportJob, jobBySlug } from "@/lib/import-runs";
 import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
 import { currentPress, listRuns } from "@/lib/server/import-runs";
 import { jobProgress } from "@/lib/server/old-letters-import";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import {
   checkNow,
   decideSync,
@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 /** One import or check: what it does, its button, and every run it has made, newest first. */
 export default async function ImportJobRoute({ params }: Params) {
-  const { permissions } = await requireStaff();
+  const staff = await requireStaff();
   const job = found(jobBySlug((await params).job));
   const [runs, press, progress] = await Promise.all([listRuns(job), currentPress(job), jobProgress(job)]);
   return (
@@ -60,7 +60,7 @@ export default async function ImportJobRoute({ params }: Params) {
         run={RUN_NOW[job]}
         decide={decideSync}
         airtableTable={PARLIAMENTARIANS_TABLE_URL}
-        people={permissions.includes("supporters")}
+        people={canSeeSupporters(staff)}
         progress={progress}
       />
     </>

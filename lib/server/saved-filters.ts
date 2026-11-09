@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import {
   choosingParams,
@@ -48,12 +49,12 @@ const COLUMNS = `id::int AS id, name, params, created_by AS "createdBy", created
   coalesce(updated_at, created_at) AS "changedAt"`;
 
 /** A list's saved filters, those changed most recently first. */
-async function listSavedFilters(list: SavedList): Promise<SavedFilter[]> {
+const listSavedFilters = cache(async function listSavedFilters(list: SavedList): Promise<SavedFilter[]> {
   return query<SavedFilter>(
     `SELECT ${COLUMNS} FROM saved_filters WHERE list = $1 ORDER BY coalesce(updated_at, created_at) DESC, id DESC`,
     [list],
   );
-}
+});
 
 /**
  * What a list's URL means for its saved filters. A loaded filter's values

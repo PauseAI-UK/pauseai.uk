@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { ANSWER_GROUPS, askSlug, FIXED_ASKS, type Asker, type AskKind, type AskStatus } from "@/lib/asks";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
@@ -48,9 +49,9 @@ export type CampaignRow = { slug: string; title: string; ask: string | null };
 const ASK_COLUMNS = `a.slug, a.title, a.kind, to_char(a.date, 'YYYY-MM-DD') AS date, a.url, a.asked_by AS "askedBy"`;
 
 /** Every ask, newest first, those without a date last. */
-export async function listAsks(): Promise<Ask[]> {
+export const listAsks = cache(async function listAsks(): Promise<Ask[]> {
   return query<Ask>(`SELECT ${ASK_COLUMNS} FROM asks a ORDER BY a.date DESC NULLS LAST, a.title`);
-}
+});
 
 /** Every ask, as listAsks() orders them, with how many have each status. */
 export async function asksWithCounts(): Promise<AskWithCounts[]> {
@@ -164,6 +165,12 @@ function answersGiven(slug: string, answer: string, statuses: readonly string[],
      LIMIT ${limit} OFFSET ${offset}`,
     [slug, answer, statuses],
   );
+}
+
+/** The title of the ask with `slug`, for its page's metadata, which needs no more of it; or undefined for none. */
+export async function askTitle(slug: string): Promise<string | undefined> {
+  const [ask] = await query<{ title: string }>("SELECT title FROM asks WHERE slug = $1", [slug]);
+  return ask?.title;
 }
 
 /**
@@ -301,7 +308,7 @@ export async function deleteAsk(slug: string, by: string): Promise<AskChange> {
 }
 
 /** One ask, if there is one, with whether staff can change it, its kind, or delete it. */
-export async function askToEdit(
+export const askToEdit = cache(async function askToEdit(
   slug: string,
 ): Promise<(Ask & { fixed: boolean; kindFixed: boolean; deletable: boolean }) | undefined> {
   const [ask] = await query<Ask>(`SELECT ${ASK_COLUMNS} FROM asks a WHERE a.slug = $1`, [slug]);
@@ -309,4 +316,4 @@ export async function askToEdit(
   const used = await uses(slug);
   const fixed = FIXED_ASKS.includes(slug);
   return { ...ask, fixed, kindFixed: used.answers > 0, deletable: !fixed && used.answers + used.others === 0 };
-}
+});

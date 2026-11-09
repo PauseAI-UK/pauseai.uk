@@ -139,3 +139,6 @@ export async function requireStaff(needs: StaffNeeds = "account"): Promise<Staff
   if (needs !== "account" && !permissions.includes(needs)) redirect(STAFF_HOME);
   return { email: session.email, token, permissions, sessions: session.sessions };
 }
+
+/** Whether the staff member `requireStaff()` gave has the `supporters` permission, so may see supporters. */
+export const canSeeSupporters = (staff: Pick<Staff, "permissions">) => staff.permissions.includes("supporters");

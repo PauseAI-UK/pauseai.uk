@@ -35,7 +35,7 @@ import { importGoToParliament } from "@/lib/server/go-to-parliament-import";
 import { importWebFormLetters } from "@/lib/server/web-form-import";
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
 import { deletePolitician, setStatus } from "@/lib/server/politicians";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { type EventSaved, setEventDoc, setEventOwner } from "@/lib/server/staff-events";
 import { runSending } from "@/lib/server/sending-job";
 import { runTidying } from "@/lib/server/log-retention";
@@ -222,12 +222,12 @@ export async function decideSync(form: FormData): Promise<void> {
  * the provider can't be reached, it's logged and the address stays blocked.
  */
 export async function unblockAddress(form: FormData): Promise<void> {
-  const { email, permissions } = await requireStaff();
+  const staff = await requireStaff();
   const parsed = unblockFrom(form);
   if (!parsed) return;
-  if (!permissions.includes("supporters") && !(await isPoliticianAddress(parsed.address))) return;
+  if (!canSeeSupporters(staff) && !(await isPoliticianAddress(parsed.address))) return;
   try {
-    await unblock(parsed.address, email, parsed.note);
+    await unblock(parsed.address, staff.email, parsed.note);
   } catch (error) {
     console.error(error);
   }

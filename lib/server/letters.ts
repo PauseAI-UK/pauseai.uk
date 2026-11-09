@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { AskStatus } from "@/lib/asks";
 import type { Permission } from "@/lib/staff-permissions";
 import type { LetterBackend, LetterFilter } from "@/lib/staff-search";
@@ -282,7 +283,10 @@ function pauseaiGmail(
  * PauseAI's letter `id`, for its page under mailing `mailingId`, or
  * undefined if that mailing has no such letter.
  */
-export async function getPauseaiLetter(mailingId: number, id: number): Promise<PauseaiLetterDetails | undefined> {
+export const getPauseaiLetter = cache(async function getPauseaiLetter(
+  mailingId: number,
+  id: number,
+): Promise<PauseaiLetterDetails | undefined> {
   const [row] = await query<Omit<PauseaiLetterDetails, "gmail"> & { inGmail: PauseaiInGmail }>(
     `SELECT 'pauseai' AS kind, l.id::int AS id, l.status, l.created_at AS "createdAt", l.sent_at AS "sentAt",
        n.name AS "mpName", n.id::int AS "politicianId", n.email AS "mpEmail", m.id::int AS "mailingId",
@@ -306,7 +310,7 @@ export async function getPauseaiLetter(mailingId: number, id: number): Promise<P
   if (!row) return undefined;
   const { inGmail, ...letter } = row;
   return { ...letter, gmail: pauseaiGmail(letter, inGmail) };
-}
+});
 
 /**
  * Where to find a letter's copy Bcc'd to the policy inbox: by the Message-ID of
@@ -327,7 +331,9 @@ function policyCopy(postmarkId: string | null, mpEmail: string | null, sentAt: s
  * shows it, and is found by the Message-ID it went with where it has one, or
  * else by its copy in the policy inbox (policyCopy).
  */
-export async function getSupporterLetter(id: number): Promise<SupporterLetterDetails | undefined> {
+export const getSupporterLetter = cache(async function getSupporterLetter(
+  id: number,
+): Promise<SupporterLetterDetails | undefined> {
   const [letter] = await recentLetters({ letterId: id });
   if (!letter) return undefined;
   const [{ subject, postmarkId, rfcId, sentBy, mpEmail, campaignAsk, forwards, doc, draft }] = await query<{
@@ -370,7 +376,7 @@ export async function getSupporterLetter(id: number): Promise<SupporterLetterDet
   }
   const gmail = policyCopy(postmarkId, mpEmail, letter.sentAt);
   return { ...letter, kind: "supporter", subject, mpEmail, campaignAsk, gmail, forwards, sent: null, messages };
-}
+});
 
 /** A letter on an MP's page for staff without `supporters`: what happened to it, and nothing of who wrote it. */
 export type UnsignedLetter = Pick<

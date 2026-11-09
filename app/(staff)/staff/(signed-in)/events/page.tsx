@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { eventsPage, eventsToCome } from "@/lib/server/staff-events";
 import { savedFiltersState } from "@/lib/server/saved-filters";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import type { EventGrouping } from "@/lib/staff-events-list";
 import { eventsSearch, eventView, type EventsSearch, type ParamValue } from "@/lib/staff-search";
 import { saveEventNow } from "../../actions";
@@ -29,9 +29,9 @@ const groupedTitle = async () => staffCopy.events.title;
 const TITLES = { owner: groupedTitle, tag: groupedTitle, table: tableTitle };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const staff = await requireStaff();
+  const hosts = canSeeSupporters(await requireStaff());
   const params = await searchParams;
-  return { title: await TITLES[eventView(params)](params, staff.permissions.includes("supporters")) };
+  return { title: await TITLES[eventView(params)](params, hosts) };
 }
 
 /** Our events, to come or past, filtered, each with its owner and Google Doc, and its hosts for those who see supporters. */
@@ -81,7 +81,7 @@ const VIEWS: Record<EventGrouping | "table", (props: { params: Params; hosts: bo
 
 /** Each tab's view of our events, under the page's title. */
 export default async function EventsPage({ searchParams }: Props) {
-  const hosts = (await requireStaff()).permissions.includes("supporters");
+  const hosts = canSeeSupporters(await requireStaff());
   const params = await searchParams;
   return (
     <>
