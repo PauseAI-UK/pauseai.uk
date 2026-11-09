@@ -311,8 +311,6 @@ export type MessageCopy = {
   messageId: number;
   title: string;
   channel: BroadcastChannel;
-  /** How many the whole broadcast went to. */
-  to: number;
   subject: string;
   body: MailingDoc;
   fromName: string;
@@ -324,26 +322,33 @@ export type MessageCopy = {
   merge: MailingRecipientValues | null;
   status: string;
   skipReason: string | null;
+  /** Where they are, as sending found it. */
+  place: string | null;
   sentAt: Date | null;
-  deliveredAt: Date | null;
-  readAt: Date | null;
+  /** What its provider reported, newest first. */
+  events: BroadcastEvent[];
 };
+
+/** Something that happened to a copy, as its provider reported it. */
+export type BroadcastEvent = { at: Date; kind: string; details: Record<string, unknown> };
 
 /** One copy of a broadcast, by its broadcast's ID and its own; or undefined. */
 export async function messageCopy(broadcastId: number, copyId: number): Promise<MessageCopy | undefined> {
-  const [row] = await query<MessageCopy>(
+  const [row] = await query<Omit<MessageCopy, "events">>(
     `SELECT c.id::int AS id, m.id::int AS "messageId", m.title, m.channel, m.subject, m.body,
        m.from_name AS "fromName", m.sent_from AS "sentFrom", c.supporter_id::int AS "supporterId",
-       c.merge_values ->> 'name' AS name, c.address,
-       CASE WHEN c.merge_values ? 'values' THEN c.merge_values END AS merge, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
-       (SELECT max(e.at) FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'delivered') AS "deliveredAt",
-       (SELECT max(e.at) FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'read') AS "readAt",
-       (SELECT count(*)::int FROM broadcast_messages a WHERE a.mailing_id = m.id) AS "to"
+       c.merge_values ->> 'name' AS name, c.merge_values ->> 'place' AS place, c.address,
+       CASE WHEN c.merge_values ? 'values' THEN c.merge_values END AS merge, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt"
      FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
      WHERE c.id = $2 AND m.id = $1 AND m.audience = 'supporters'`,
     [broadcastId, copyId],
   );
-  return row && { ...row, body: checkMailingDoc(row.body)! };
+  if (!row) return undefined;
+  const events = await query<BroadcastEvent>(
+    "SELECT at, kind, details FROM broadcast_message_events WHERE message_id = $1 ORDER BY at DESC, id DESC",
+    [copyId],
+  );
+  return { ...row, body: checkMailingDoc(row.body)!, events };
 }
 
 /** A broadcast sent to a supporter, on their page. */

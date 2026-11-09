@@ -947,29 +947,40 @@ describe("BroadcastsOverview", () => {
 });
 
 describe("MessageCopyView", () => {
-  it("shows a text as they got it, and when it was delivered and read", async () => {
+  it("shows a text as they got it, titled as a letter is, with what its provider reported", async () => {
     await render(<MessageCopyView one={exampleMessageCopy} />);
-    await expect.element(page.getByRole("heading", { name: "Jane Example" })).toBeVisible();
+    await expect
+      .element(page.getByRole("heading", { level: 1 }))
+      .toHaveTextContent(copy.copyTitle("text", "Jane Example"));
     await expect.element(page.getByText(copy.statuses.read, { exact: true }).first()).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: "Jane Example", exact: true }))
+      .toHaveAttribute("href", "/staff/supporters/7");
+    await expect.element(page.getByText("· Leeds")).toBeVisible();
     await expect
       .element(page.getByLabelText(copy.threadTitle).getByText(staffTime(exampleMessageCopy.sentAt!)))
       .toBeVisible();
-    await expect.element(page.getByText(copy.facts.read)).toBeVisible();
-    await expect.element(page.getByRole("link", { name: copy.everythingElse("Jane Example") })).toBeVisible();
+    const history = page.getByRole("list", { name: staffCopy.letters.detail.historyTitle });
+    await expect.element(history.getByText(copy.events.read)).toBeVisible();
+    await expect.element(history.getByText(copy.events.sent)).toBeVisible();
   });
 
-  it("shows an email as the thread", async () => {
+  it("shows an email as a mail app does", async () => {
     const one = {
       ...exampleMessageCopy,
       channel: "email" as const,
       subject: "Thank you",
       sentFrom: "hello@pauseai.uk",
       address: "jane@example.com",
-      readAt: null,
+      place: null,
+      events: [],
     };
     await render(<MessageCopyView one={one} />);
+    await expect
+      .element(page.getByRole("heading", { level: 1 }))
+      .toHaveTextContent(copy.copyTitle("email", "Jane Example"));
     await expect.element(page.getByRole("article", { name: "Thank you" })).toBeVisible();
-    await expect.element(page.getByText(copy.standing.email("Jane Example"))).toBeVisible();
+    await expect.element(page.getByText(staffCopy.letters.detail.noHistory)).toBeVisible();
   });
 
   it("keeps only that one was sent, once they're erased", async () => {
@@ -979,21 +990,25 @@ describe("MessageCopyView", () => {
       name: null,
       address: null,
       merge: null,
+      place: null,
       status: "skipped",
       skipReason: "blocked",
       sentAt: null,
-      deliveredAt: null,
-      readAt: null,
+      events: [],
     };
     await render(<MessageCopyView one={one} />);
-    await expect.element(page.getByRole("heading", { name: copy.erased })).toBeVisible();
+    await expect
+      .element(page.getByRole("heading", { level: 1 }))
+      .toHaveTextContent(copy.copyTitle("text", copy.erased));
+    await expect.element(page.getByRole("link", { name: copy.erased })).not.toBeInTheDocument();
     await expect.element(page.getByText(`Hi {${copy.fieldWords.firstName}}`, { exact: false })).toBeVisible();
-    await expect.element(page.getByRole("link", { name: copy.everythingElse(copy.erased) })).not.toBeInTheDocument();
   });
 
   it("names someone with none", async () => {
     await render(<MessageCopyView one={{ ...exampleMessageCopy, name: null, channel: "email", address: null }} />);
-    await expect.element(page.getByRole("heading", { name: staffCopy.supporters.noName })).toBeVisible();
+    await expect
+      .element(page.getByRole("heading", { level: 1 }))
+      .toHaveTextContent(copy.copyTitle("email", staffCopy.supporters.noName));
   });
 });
 

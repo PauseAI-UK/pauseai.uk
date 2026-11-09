@@ -52,11 +52,19 @@ export function MessageText({ text, quoted, auto = false }: { text: string; quot
 }
 
 /** The thread's section: its heading, `link`, if any, at its right, over its messages. */
-function Thread({ link, children }: { link?: ReactNode; children: ReactNode }) {
+export function Thread({
+  title = copy.title,
+  link,
+  children,
+}: {
+  title?: string;
+  link?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <section aria-labelledby="letter-thread" className={styles.thread}>
       <div className={styles.heading}>
-        <h2 id="letter-thread">{copy.title}</h2>
+        <h2 id="letter-thread">{title}</h2>
         {link}
       </div>
       {children}

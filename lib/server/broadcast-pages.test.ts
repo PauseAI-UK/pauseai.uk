@@ -239,7 +239,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await broadcastPageData(id, { page: "2" }, JO)).toMatchObject({ recipients: [] });
   });
 
-  it("gives one copy, with when it was delivered and read", async () => {
+  it("gives one copy, with what its provider reported, newest first", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane Smith", { phone: "07700 900001" });
     const id = await scheduled(TEXT_FILTER, { templateId: await addTemplate("March day") });
     const [copy] = await sent(id, [["delivered", null]]);
@@ -249,21 +249,25 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       name: "Jane Smith",
       address: "+447700900001",
       merge: { values: { firstName: "Jane" } },
-      deliveredAt: null,
-      readAt: null,
-      to: 1,
+      events: [],
     });
     await query(
       "INSERT INTO broadcast_message_events (message_id, kind, at) VALUES ($1, 'delivered', '2026-10-20T08:01:00Z'), ($1, 'read', '2026-10-20T08:02:00Z')",
       [copy],
     );
-    expect(await messageCopy(id, copy)).toMatchObject({
-      deliveredAt: new Date("2026-10-20T08:01:00Z"),
-      readAt: new Date("2026-10-20T08:02:00Z"),
-    });
+    expect((await messageCopy(id, copy))!.events).toEqual([
+      { at: new Date("2026-10-20T08:02:00Z"), kind: "read", details: {} },
+      { at: new Date("2026-10-20T08:01:00Z"), kind: "delivered", details: {} },
+    ]);
     // Erased, it keeps only that it was sent.
     await query("UPDATE broadcast_messages SET supporter_id = NULL, address = NULL, merge_values = NULL");
-    expect(await messageCopy(id, copy)).toMatchObject({ name: null, address: null, merge: null, supporterId: null });
+    expect(await messageCopy(id, copy)).toMatchObject({
+      name: null,
+      place: null,
+      address: null,
+      merge: null,
+      supporterId: null,
+    });
   });
 
   it("lists the broadcasts a supporter was sent, newest first", async () => {

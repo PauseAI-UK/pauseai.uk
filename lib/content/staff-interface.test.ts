@@ -114,7 +114,6 @@ describe("the words of messages to supporters", () => {
           copy.summary(n, channel, "PauseAI UK", null),
           copy.schedule(n, channel),
           copy.scheduledLine(n, channel, "PauseAI UK"),
-          copy.copySubtitle("A title", channel, n),
         ];
         for (const words of said) expect(words).toEqual(expect.any(String));
       }

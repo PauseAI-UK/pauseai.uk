@@ -325,7 +325,6 @@ export const exampleMessageCopy: MessageCopy = {
   messageId: 5,
   title: "March day: where to meet",
   channel: "text",
-  to: 318,
   subject: "",
   body: exampleTextWords,
   fromName: "PauseAI UK",
@@ -336,7 +335,11 @@ export const exampleMessageCopy: MessageCopy = {
   merge: { values: { firstName: "Jane" }, meets: ["has:firstName"] },
   status: "delivered",
   skipReason: null,
+  place: "Leeds",
   sentAt: new Date("2026-11-07T07:18:00Z"),
-  deliveredAt: new Date("2026-11-07T07:18:30Z"),
-  readAt: new Date("2026-11-07T07:40:00Z"),
+  events: [
+    { at: new Date("2026-11-07T07:40:00Z"), kind: "read", details: {} },
+    { at: new Date("2026-11-07T07:18:30Z"), kind: "delivered", details: {} },
+    { at: new Date("2026-11-07T07:18:00Z"), kind: "sent", details: { id: "wamid.example" } },
+  ],
 };

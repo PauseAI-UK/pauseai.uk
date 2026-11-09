@@ -102,12 +102,6 @@
   font-weight: 800;
 }
 
-.thread {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
 /* A recipient's cell: their name over where they are, or how it went over when. */
 .stack {
   display: flex;

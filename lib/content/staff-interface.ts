@@ -1305,14 +1305,20 @@ All events: ${link}`,
       "not-on-whatsapp": "⁂ Not on WhatsApp",
     },
     threadLink: "Thread →",
-    // Thread: one copy's page.
-    copySubtitle: (title: string, channel: "email" | "text", n: number) =>
-      `⁂ ${title}, ${channel === "email" ? "an email" : "a text"} to ${count(n, "supporter", "supporters")}`,
+    // Thread: one copy's page, titled as a letter's is.
+    copyTitle: (channel: "email" | "text", to: string) =>
+      `${channel === "email" ? "Email" : "Text"} from PauseAI UK to ${to}`,
+    // Its history: each thing its provider reported.
+    events: {
+      sent: "Sent",
+      delivered: "Delivered",
+      read: "Read",
+      failed: "Failed",
+      bounced: "⁂ Bounced",
+      "opted-out": "⁂ Stopped",
+      replied: "⁂ Replied",
+    },
     facts: {
-      sent: "⁂ Sent",
-      delivered: "⁂ Delivered",
-      read: "⁂ Read",
-      supporter: "⁂ Supporter",
       from: "From",
       // What everyone a broadcast is to said yes to: its channel and topic, from the Consent filter.
       saidYes: "Said yes to",
@@ -1320,14 +1326,7 @@ All events: ${link}`,
     // In To, when Consent is the only filter.
     everyoneWhoSaidYes: "Everyone who did",
     threadTitle: "Thread",
-    headers: { from: "From", to: "To", received: "⁂ Received" },
-    standingTitle: "⁂ How it stands",
-    standing: {
-      email: (name: string) => `⁂ ${name} can unsubscribe from the link in the email, and we'd see it here.`,
-      text: (name: string) =>
-        `⁂ ${name} can stop at any time with the Stop button or by replying “stop”, and we'd see it here.`,
-    },
-    everythingElse: (name: string) => `⁂ Everything else we know about ${name} →`,
+    headers: { from: "From", to: "To" },
     // A supporter's page.
     supporterTitle: "Broadcasts",
     supporterNone: "No broadcasts sent to them.",
