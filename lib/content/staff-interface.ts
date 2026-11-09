@@ -1132,7 +1132,7 @@ All events: ${link}`,
     // Over the broadcast's first choice, by email or by text, before its topics.
     consentChannel: "Email or text",
     // Hovering the Consent's chip while choosing who a broadcast goes to, where it can't be changed.
-    consentLocked: "⁂ Change the Consent in the broadcast",
+    consentLocked: "To change the consent, go back to the broadcast page.",
     // The same, for a draft with nothing written yet, as from New broadcast.
     choosingNew: "Choose who the new broadcast goes to",
     choosingCount: (n: number) => `${count(n, "supporter", "supporters")} found`,
