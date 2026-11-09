@@ -1,74 +1,72 @@
 import "server-only";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { importPath, type AnyImportRun, type ImportJob, type ImportRunStatus } from "@/lib/import-runs";
-import { query, type Queryable } from "./db";
+import { query } from "./db";
 import { notifyStaff, staffLink } from "./notifications";
 import { describeError } from "./problems";
 import { currentRun, inRun } from "./run-store";
 
-// One log of every run of every import and check: the MPs and the
-// signatories from Airtable, the check against Parliament, and ControlAI's
-// letter. Each run is a row: when, who started it, how it ended, why it
-// failed, what went wrong along the way (problems.ts), and the job's own
-// account of what it found. Failures are kept
-// too, so each job's page under /staff/import-data can say what went
-// wrong, and so are runs that changed nothing, so it can say when the job
-// last ran. Each job's page lists all of its runs. The types are in lib/import-runs.ts,
-// for the components.
+// One log of every run of every job (lib/import-runs.ts, JOBS). Each run is
+// a row: when, who started it, how it ended, why it failed, what went wrong
+// along the way (problems.ts), and the job's own account of what it found.
+// Failures are kept too, so each job's page under /staff/import-data can
+// say what went wrong, and so are runs that changed nothing, so it can say
+// when the job last ran. Each job's page lists all of its runs. The types
+// are in lib/import-runs.ts, for the components. What runs each job, one
+// run of it at a time, is lib/server/jobs.ts.
 
 const COLUMNS = `id::int AS id, at, job, started_by AS "startedBy", status, error, result, problems, decided_by AS "decidedBy"`;
 
-/** Keeps a run that ended, with the problems reported so far, and returns its ID. */
+/** Keeps a run that ended, with the problems it reported, and returns its ID. */
 export async function recordRun(
   job: ImportJob,
   startedBy: string,
   status: Exclude<ImportRunStatus, "failed">,
   result: object,
-  db?: Queryable,
 ): Promise<number> {
-  const run = currentRun();
   const [{ id }] = await query<{ id: number }>(
     "INSERT INTO import_runs (job, started_by, status, result, problems) VALUES ($1, $2, $3, $4, $5) RETURNING id::int AS id",
-    [job, startedBy, status, JSON.stringify(result), JSON.stringify(run?.problems ?? [])],
-    db,
+    [job, startedBy, status, JSON.stringify(result), JSON.stringify(currentRun()?.problems ?? [])],
   );
-  if (run) run.recorded = id;
   return id;
 }
 
-/** Keeps a run that failed, with why, and the problems reported before it did. */
+/** Keeps a run that failed, with why, and the problems it reported before it did. */
 export async function recordFailure(job: ImportJob, startedBy: string, error: unknown): Promise<number> {
-  const run = currentRun();
   const [{ id }] = await query<{ id: number }>(
     "INSERT INTO import_runs (job, started_by, status, error, problems) VALUES ($1, $2, 'failed', $3, $4) RETURNING id::int AS id",
-    [job, startedBy, describeError(error), JSON.stringify(run?.problems ?? [])],
+    [job, startedBy, describeError(error), JSON.stringify(currentRun()?.problems ?? [])],
   );
-  if (run) run.recorded = id;
   return id;
 }
 
+/** How a run that didn't fail ended, and the job's own account of what it found, to keep. A job may add more, for its caller. */
+export type Ran<Result extends object = object> = { status: Exclude<ImportRunStatus, "failed">; result: Result };
+
 /**
- * Runs a job's work as a run: what it reports with problem() is kept on the
- * run it records, and once it's done, staff are emailed if it failed or had
- * problems that the run before didn't (below). A failure is kept as a failed
- * run and thrown on, for the caller to log, and ends any press of the job.
+ * Does a job's work as a run, and keeps it: how it ended and what it found,
+ * as the work says, with what it reported along the way with problem(). A
+ * failure is kept as a failed run, with those problems, and thrown on, for
+ * the caller to log. Once it's kept, staff are emailed if it failed or had
+ * problems that the run before didn't (below).
  */
-export async function keepingFailure<T>(job: ImportJob, startedBy: string, work: () => Promise<T>): Promise<T> {
+export async function asRun<Done extends Ran>(
+  job: ImportJob,
+  startedBy: string,
+  work: () => Promise<Done>,
+): Promise<Done> {
   let recorded: number | undefined;
   try {
-    return await inRun(async (run) => {
+    return await inRun(async () => {
+      let done: Done;
       try {
-        const result = await work();
-        recorded = run.recorded;
-        // Problems reported after the run was recorded, as a job's last steps may.
-        if (recorded) {
-          await query("UPDATE import_runs SET problems = $2 WHERE id = $1", [recorded, JSON.stringify(run.problems)]);
-        }
-        return result;
+        done = await work();
       } catch (error) {
         recorded = await recordFailure(job, startedBy, error);
         throw error;
       }
+      recorded = await recordRun(job, startedBy, done.status, done.result);
+      return done;
     });
   } finally {
     if (recorded) await alertIfNew(job, recorded);
@@ -86,8 +84,9 @@ function wentWrong(run: AnyImportRun | undefined): string[] {
  * Emails the notification inbox about run `id` if it went wrong in a way the
  * run before didn't: a failure, or a problem by its name. A job failing every
  * hour, or stuck on the same problem, says so once; it says so again once a
- * run has gone right, or when something new goes wrong. A run that stopped
- * as another was going did nothing, so isn't the run before.
+ * run has gone right, or when something new goes wrong. A run kept, from
+ * before one run went at a time, as having stopped because another was
+ * going did nothing, so isn't the run before.
  */
 async function alertIfNew(job: ImportJob, id: number): Promise<void> {
   const [run, before] = await query<AnyImportRun>(
@@ -117,35 +116,42 @@ async function alertIfNew(job: ImportJob, id: number): Promise<void> {
   );
 }
 
-/** Longer than any press can run, so one that died is ignored. */
-const PRESS_LASTS = "16 minutes";
+/**
+ * Longer than any run can go, so one that died is ignored: every run is a
+ * request to the site, which Netlify stops well within this.
+ */
+const RUN_LASTS = "5 minutes";
 
-/** A job's button pressed and not finished. */
-export type JobPress = { startedBy: string; startedAt: Date };
+/** A job's run going now: who started it (NIGHTLY for its schedule) and when. */
+export type RunningJob = { startedBy: string; startedAt: Date };
 
-/** The press of `job` that's still running, if any. */
-export async function currentPress(job: ImportJob): Promise<JobPress | undefined> {
-  const [press] = await query<JobPress>(
+/** The run of `job` going now, if any. */
+export async function runningNow(job: ImportJob): Promise<RunningJob | undefined> {
+  const [running] = await query<RunningJob>(
     `SELECT started_by AS "startedBy", started_at AS "startedAt" FROM job_presses
-     WHERE job = $1 AND started_at > now() - interval '${PRESS_LASTS}'`,
+     WHERE job = $1 AND started_at > now() - interval '${RUN_LASTS}'`,
     [job],
   );
-  return press;
+  return running;
 }
 
-/** Marks `job` pressed, unless a press of it is still running: says whether it may go ahead. */
-export async function takePress(job: ImportJob, startedBy: string): Promise<boolean> {
+/**
+ * Marks `job` running, unless a run of it is going, and says whether this
+ * one may go: one run of a job at a time, whoever starts it, its schedule or
+ * a staff member. The table is named for when only staff presses took it.
+ */
+export async function startRunning(job: ImportJob, startedBy: string): Promise<boolean> {
   const taken = await query(
     `INSERT INTO job_presses (job, started_by) VALUES ($1, $2)
      ON CONFLICT (job) DO UPDATE SET started_by = $2, started_at = now()
-     WHERE job_presses.started_at <= now() - interval '${PRESS_LASTS}' RETURNING job`,
+     WHERE job_presses.started_at <= now() - interval '${RUN_LASTS}' RETURNING job`,
     [job, startedBy],
   );
   return taken.length > 0;
 }
 
-/** Marks a press of `job` finished. */
-export async function endPress(job: ImportJob): Promise<void> {
+/** Marks a run of `job` ended. */
+export async function stopRunning(job: ImportJob): Promise<void> {
   await query("DELETE FROM job_presses WHERE job = $1", [job]);
 }
 

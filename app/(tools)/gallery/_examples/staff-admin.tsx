@@ -59,7 +59,7 @@ import { GmailConnect, GmailOutcome, SentToday } from "@/app/(staff)/staff/_comp
 import AccountTitle from "@/app/(staff)/staff/_components/AccountTitle";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { changesSearch } from "@/lib/staff-search";
-import type { ImportJob } from "@/lib/import-runs";
+import { type ImportJob, NIGHTLY } from "@/lib/import-runs";
 import type { Group, Variant } from "../_components/types";
 import {
   HeldSyncExample,
@@ -743,7 +743,7 @@ export const staffAdmin: Group = {
           render: () => (
             <StaffPage as="div">
               <ImportOverview
-                presses={[undefined, { startedBy: "jo@pauseai.uk", startedAt: new Date("2026-10-21T11:47:00Z") }]}
+                running={[undefined, { startedBy: "jo@pauseai.uk", startedAt: new Date("2026-10-21T11:47:00Z") }]}
                 newest={[
                   exampleRun(
                     "import-luma",
@@ -794,7 +794,15 @@ export const staffAdmin: Group = {
           label: "A press still running: the earlier runs plain",
           render: () => (
             <StaffPage as="div">
-              <ImportJobPageExample running />
+              <ImportJobPageExample running="jo@pauseai.uk" />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A run of its schedule going",
+          render: () => (
+            <StaffPage as="div">
+              <ImportJobPageExample running={NIGHTLY} />
             </StaffPage>
           ),
         },

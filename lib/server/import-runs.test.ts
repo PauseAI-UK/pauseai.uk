@@ -5,15 +5,18 @@ import { notifications } from "@/tests/notifications";
 import { query } from "./db";
 import { problem } from "./problems";
 import {
-  currentPress,
-  endPress,
-  keepingFailure,
+  asRun,
   latestRun,
   listRuns,
   recordFailure,
   recordRun,
-  takePress,
+  runningNow,
+  startRunning,
+  stopRunning,
 } from "./import-runs";
+
+/** A run's work that ends as it says, with nothing to say of what it found. */
+const ended = (status: "ok" | "unchanged" = "ok") => ({ status, result: {} });
 
 describeWithDatabase("the import log", () => {
   useTestDatabase();
@@ -22,12 +25,12 @@ describeWithDatabase("the import log", () => {
   it("emails the notification inbox when a job fails, once, until a run of it has worked", async () => {
     const sent = notifications();
     const fail = (why: string) =>
-      keepingFailure("import-luma", "nightly", async () => {
+      asRun("import-luma", "nightly", async () => {
         throw new Error(why);
       }).catch(() => {});
     await fail("Luma is down");
     await fail("Luma is still down");
-    await keepingFailure("import-luma", "nightly", () => recordRun("import-luma", "nightly", "unchanged", {}));
+    await asRun("import-luma", "nightly", async () => ended("unchanged"));
     await fail("Luma is down again");
     const words = staffCopy.notifications.importFailed;
     const luma = jobTitles["import-luma"];
@@ -41,19 +44,17 @@ describeWithDatabase("the import log", () => {
     const sent = notifications();
     vi.spyOn(console, "error").mockImplementation(() => {});
     const run = (whats: string[], after: string[] = []) =>
-      keepingFailure("import-luma", "nightly", async () => {
+      asRun("import-luma", "nightly", async () => {
         for (const what of whats) problem(what, new Error("503"));
-        const id = await recordRun("import-luma", "nightly", "ok", { events: 1 });
-        // Reported after the run was kept, as a job's last steps may.
         for (const what of after) problem(what);
-        return id;
+        return { status: "ok", result: { events: 1 } } as const;
       });
-    await keepingFailure("import-luma", "nightly", async () => {
+    await asRun("import-luma", "nightly", async () => {
       // One with an alert of its own: kept, but not emailed about again.
       problem("Google disconnected an account", undefined, { told: true });
-      await recordRun("import-luma", "nightly", "ok", {});
+      return ended();
     });
-    const first = await run(["An event wouldn't load"], ["Postcodes.io failed"]);
+    await run(["An event wouldn't load"], ["Postcodes.io failed"]);
     await run(["An event wouldn't load", "Postcodes.io failed"]);
     await run(["An event wouldn't load", "A host wouldn't load"]);
     await run([]);
@@ -63,7 +64,10 @@ describeWithDatabase("the import log", () => {
       { problems: [] },
       { problems: [{ what: "An event wouldn't load" }, { what: "A host wouldn't load" }] },
       { problems: [{ what: "An event wouldn't load" }, { what: "Postcodes.io failed" }] },
-      { id: first, problems: [{ what: "An event wouldn't load", error: "503" }, { what: "Postcodes.io failed" }] },
+      {
+        result: { events: 1 },
+        problems: [{ what: "An event wouldn't load", error: "503" }, { what: "Postcodes.io failed" }],
+      },
       { problems: [{ what: "Google disconnected an account", told: true }] },
     ]);
     expect(await latestRun("import-luma")).toMatchObject({
@@ -84,9 +88,9 @@ describeWithDatabase("the import log", () => {
     const sent = notifications();
     vi.spyOn(console, "error").mockImplementation(() => {});
     for (const count of [2, 3]) {
-      await keepingFailure("check-mps", "nightly", async () => {
+      await asRun("check-mps", "nightly", async () => {
         problem("Messages that matched nothing:", count);
-        await recordRun("check-mps", "nightly", "ok", { problems: [] });
+        return ended();
       });
     }
     expect(sent).toHaveLength(1);
@@ -95,10 +99,10 @@ describeWithDatabase("the import log", () => {
   it("leaves a problem with an alert of its own out of the email about another", async () => {
     const sent = notifications();
     vi.spyOn(console, "error").mockImplementation(() => {});
-    await keepingFailure("check-mps", "nightly", async () => {
+    await asRun("check-mps", "nightly", async () => {
       problem("Google disconnected an account", undefined, { told: true });
       problem("Parliament was slow");
-      await recordRun("check-mps", "nightly", "ok", { problems: [] });
+      return ended();
     });
     const title = jobTitles["check-mps"];
     expect(sent.map((email) => email.TextBody)).toEqual([
@@ -117,18 +121,17 @@ describeWithDatabase("the import log", () => {
   it("emails about a failure after a run with problems, and about problems after a failure, as each is new", async () => {
     const sent = notifications();
     vi.spyOn(console, "error").mockImplementation(() => {});
-    await keepingFailure("check-mps", "nightly", async () => {
-      problem("Parliament was slow");
-      await recordRun("check-mps", "nightly", "ok", { problems: [] });
-    });
-    await keepingFailure("check-mps", "nightly", async () => {
+    const slow = () =>
+      asRun("check-mps", "nightly", async () => {
+        problem("Parliament was slow");
+        return ended();
+      });
+    await slow();
+    await asRun("check-mps", "nightly", async () => {
       problem("Parliament was slow");
       throw new Error("then it went away");
     }).catch(() => {});
-    await keepingFailure("check-mps", "nightly", async () => {
-      problem("Parliament was slow");
-      await recordRun("check-mps", "nightly", "ok", { problems: [] });
-    });
+    await slow();
     expect(await listRuns("check-mps")).toMatchObject([
       { status: "ok", problems: [{ what: "Parliament was slow" }] },
       { status: "failed", error: "then it went away", problems: [{ what: "Parliament was slow" }] },
@@ -141,10 +144,17 @@ describeWithDatabase("the import log", () => {
     ]);
   });
 
-  it("records nothing, and emails nobody, for work that keeps no run", async () => {
+  it("keeps how a run ended and what it found, and gives the caller all the work said, emailing nobody when it went well", async () => {
     const sent = notifications();
-    expect(await keepingFailure("check-mps", "nightly", async () => 42)).toBe(42);
-    expect(await listRuns("check-mps")).toEqual([]);
+    const done = await asRun("check-mps", "jo@pauseai.uk", async () => ({
+      status: "unchanged" as const,
+      result: { problems: [] },
+      extra: 42,
+    }));
+    expect(done.extra).toBe(42);
+    expect(await listRuns("check-mps")).toMatchObject([
+      { status: "unchanged", startedBy: "jo@pauseai.uk", result: { problems: [] }, problems: [] },
+    ]);
     expect(sent).toEqual([]);
   });
 
@@ -172,25 +182,35 @@ describeWithDatabase("the import log", () => {
     expect(await latestRun("import-controlai")).toBeUndefined();
   });
 
-  it("keepingFailure keeps a failure and throws it on, and leaves success to the work", async () => {
+  it("throws on, emailing nobody, when a run can't be kept at all", async () => {
+    const sent = notifications();
+    // JSON can't hold a BigInt.
     await expect(
-      keepingFailure("check-mps", "nightly", async () => {
+      asRun("check-mps", "nightly", async () => ({ status: "ok", result: { n: BigInt(1) } }) as const),
+    ).rejects.toThrow("BigInt");
+    expect(await listRuns("check-mps")).toEqual([]);
+    expect(sent).toEqual([]);
+  });
+
+  it("asRun keeps a failure and throws it on", async () => {
+    await expect(
+      asRun("check-mps", "nightly", async () => {
         throw new Error("boom");
       }),
     ).rejects.toThrow("boom");
     expect(await listRuns("check-mps")).toMatchObject([{ status: "failed", error: "boom", problems: [] }]);
   });
 
-  it("lets one press of a job run at a time, until it ends or is older than any can run", async () => {
-    expect(await currentPress("sync-emails")).toBeUndefined();
-    expect(await takePress("sync-emails", "jo@pauseai.uk")).toBe(true);
-    expect(await currentPress("sync-emails")).toMatchObject({ startedBy: "jo@pauseai.uk" });
-    expect(await takePress("sync-emails", "sam@pauseai.uk")).toBe(false);
-    expect(await takePress("check-mps", "sam@pauseai.uk")).toBe(true);
-    await endPress("sync-emails");
-    expect(await takePress("sync-emails", "sam@pauseai.uk")).toBe(true);
-    await query("UPDATE job_presses SET started_at = now() - interval '17 minutes' WHERE job = 'sync-emails'");
-    expect(await currentPress("sync-emails")).toBeUndefined();
-    expect(await takePress("sync-emails", "jo@pauseai.uk")).toBe(true);
+  it("lets one run of a job go at a time, until it ends or is older than any can be", async () => {
+    expect(await runningNow("sync-emails")).toBeUndefined();
+    expect(await startRunning("sync-emails", "nightly")).toBe(true);
+    expect(await runningNow("sync-emails")).toMatchObject({ startedBy: "nightly" });
+    expect(await startRunning("sync-emails", "sam@pauseai.uk")).toBe(false);
+    expect(await startRunning("check-mps", "sam@pauseai.uk")).toBe(true);
+    await stopRunning("sync-emails");
+    expect(await startRunning("sync-emails", "sam@pauseai.uk")).toBe(true);
+    await query("UPDATE job_presses SET started_at = now() - interval '6 minutes' WHERE job = 'sync-emails'");
+    expect(await runningNow("sync-emails")).toBeUndefined();
+    expect(await startRunning("sync-emails", "jo@pauseai.uk")).toBe(true);
   });
 });

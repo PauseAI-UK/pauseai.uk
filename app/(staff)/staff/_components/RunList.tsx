@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { AnyImportRun } from "@/lib/import-runs";
 import { type LogEntry, runLog, tabled } from "@/lib/run-log";
-import type { JobPress } from "@/lib/server/import-runs";
+import type { RunningJob } from "@/lib/server/import-runs";
 import { staffClock } from "@/lib/staff-time";
 import Run, { type Decide } from "./Run";
 import RunTable from "./RunTable";
@@ -16,8 +16,8 @@ type Props = {
   decide?: Decide;
   /** Whether they may see who mail that matched nothing is from. */
   people?: boolean;
-  /** A press of the job that's still running. */
-  press?: JobPress;
+  /** The job's run going now. */
+  running?: RunningJob;
 };
 
 /** A run shown whole, in its box, tinted by its tone. */
@@ -73,13 +73,13 @@ function DayTable({ entries, decide, people }: { entries: LogEntry[] } & Pick<Pr
  * are none. The newest is the job's state now: tinted by how it ended, and
  * unfolded however long its detail. Further down, each is laid out by
  * lib/run-log.ts: whole, plain and folded when long. A job that runs often
- * has one table a day instead, the newest a tinted row of it. While a press
- * runs, that's the state instead, so the newest is treated as an older one.
+ * has one table a day instead, the newest a tinted row of it. While a run
+ * is going, that's the state instead, so the newest is treated as an older one.
  */
-export default function RunList({ runs, none, decide, people, press }: Props) {
+export default function RunList({ runs, none, decide, people, running }: Props) {
   if (runs.length === 0) return <p>{none}</p>;
   const table = tabled(runs[0].job);
-  return runLog(runs, !!press).map(({ day, entries }) => (
+  return runLog(runs, !!running).map(({ day, entries }) => (
     <Fragment key={day}>
       <h2>{day}</h2>
       {table ? (

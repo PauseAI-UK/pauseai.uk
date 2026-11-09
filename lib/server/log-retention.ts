@@ -1,7 +1,7 @@
 import "server-only";
 import { IMPORT_JOBS, type JobSchedule, jobSchedule, type TidyingResult } from "@/lib/import-runs";
 import { auditActions } from "./audit";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun } from "./import-runs";
 import { deleteForgottenDrafts } from "./mailing-drafts";
 import { query } from "./db";
 
@@ -36,13 +36,13 @@ const POLITICIAN_HISTORY = `(
     AND EXISTS (SELECT 1 FROM notable_people n WHERE lower(n.email) = a.details->>'address')))`;
 
 /** One run of the tidying, kept in the import log: the logs (below), and the mailing drafts nobody wrote anything in. */
-export function runTidying(startedBy: string): Promise<TidyingResult> {
-  return keepingFailure(JOB, startedBy, async () => {
+export async function runTidying(startedBy: string): Promise<TidyingResult> {
+  const { result } = await asRun(JOB, startedBy, async () => {
     const result: TidyingResult = { ...(await tidyLogs()), drafts: await deleteForgottenDrafts() };
     const anything = result.importRuns + result.auditEntries + result.drafts > 0;
-    await recordRun(JOB, startedBy, anything ? "ok" : "unchanged", result);
-    return result;
+    return { status: anything ? "ok" : "unchanged", result } as const;
   });
+  return result;
 }
 
 /** Deletes what the logs no longer keep. Returns how many import runs and audit log entries went. */

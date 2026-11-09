@@ -2,7 +2,7 @@ import "server-only";
 import { config } from "./config";
 import { docFromMarkup, toText } from "@/lib/letter-format";
 import type { MailingDoc } from "@/lib/mailing-doc";
-import { type ImportJob, type OldLettersImportResult, type OldLettersProgress } from "@/lib/import-runs";
+import { type ImportJob, JOBS, type OldLettersImportResult, type OldLettersProgress } from "@/lib/import-runs";
 import { ownWords } from "@/lib/letter-changes";
 import {
   augustColleagues,
@@ -33,10 +33,10 @@ import {
   type PoliticianBook,
 } from "@/lib/one-off";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { query, transaction } from "./db";
+import { query } from "./db";
 import { gmailAccess } from "./gmail-accounts";
 import { keepReply, noteAutoReply } from "./gmail-reading";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun, type Ran } from "./import-runs";
 import { wholeTextOf } from "@/lib/email-parsing/mime";
 import { messageIds, parseMime } from "@/lib/email-parsing/mime";
 import { addressesOn, keepOneOff, ONE_OFF_HEADERS, rfcIdOf, senderOf } from "./one-off-emails";
@@ -78,9 +78,6 @@ const POLICY = "policy@pauseai.uk";
 
 /** The gap between Gmail requests: at most 2 a second. */
 const PACE_MS = 500;
-
-/** How long a run reads, well inside what a function is given. */
-const READ_MS = 20_000;
 
 /** The group's mail, as Gmail lists it. */
 const GROUP_SEARCH = "list:policy@pauseai.uk OR list:policy-archive@pauseai.uk";
@@ -870,7 +867,7 @@ async function lastRun(): Promise<OldLettersImportResult | undefined> {
 }
 
 /** As far as a run gets in its time, keeping its place and its run. Gmail refusing stops it there, with the reason in its result. */
-async function readSome(startedBy: string, paceMs: number, readMs: number): Promise<OldLettersImportResult> {
+async function readSome(paceMs: number, readMs: number): Promise<Ran<OldLettersImportResult>> {
   const last = await lastRun();
   const carrying = last?.finished === false ? last : undefined;
   const result = emptyResult();
@@ -913,31 +910,22 @@ async function readSome(startedBy: string, paceMs: number, readMs: number): Prom
   result.threadsDone = threadsDone.id;
   result.titles = await countedTitles();
   result.left = await leftToRead();
-  await recordRun(JOB, startedBy, "ok", result);
-  return result;
+  return { status: "ok", result };
 }
 
 /**
- * A run of the import, keeping it in the log. Only one runs at a time: a second
- * started meanwhile, a press during a scheduled run, stops at once, leaving no
- * record. The transaction only holds that lock, so what's read stays kept
+ * A run of the import, keeping it in the log: it reads for its budget
+ * (JOBS), at `paceMs` between requests. Two runs would read the same mail,
+ * so only one goes at a time (lib/server/jobs.ts). What's read stays kept
  * whatever becomes of the run.
  */
-export function importOldLetters(
+export async function importOldLetters(
   startedBy: string,
   paceMs = config.fixtures ? 0 : PACE_MS,
-  readMs = READ_MS,
+  readMs: number = JOBS[JOB].budgetMs,
 ): Promise<OldLettersImportResult> {
-  return keepingFailure(JOB, startedBy, () =>
-    transaction(async (db) => {
-      const [{ locked }] = await query<{ locked: boolean }>(
-        "SELECT pg_try_advisory_xact_lock(hashtext($1)) AS locked",
-        [JOB],
-        db,
-      );
-      return locked ? readSome(startedBy, paceMs, readMs) : emptyResult();
-    }),
-  );
+  const { result } = await asRun(JOB, startedBy, () => readSome(paceMs, readMs));
+  return result;
 }
 
 /** How far a job has got, for its page: only the import of old letters says. */

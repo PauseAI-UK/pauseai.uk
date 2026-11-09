@@ -1,7 +1,7 @@
 import "server-only";
 import { checkAgainstParliament, ownDomains, type MpProblem } from "@/lib/mp-check";
 import { query } from "./db";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun } from "./import-runs";
 import { mpsInOffice } from "./politician-sync";
 import { currentMps } from "./outside-services/parliament";
 import type { ParliamentMp } from "@/lib/parliament";
@@ -35,12 +35,12 @@ async function saveOwnDomains(parliament: ParliamentMp[]): Promise<void> {
 }
 
 /** Checks the MPs in office against Parliament's, keeping the result, or the failure. */
-export function checkMps(startedBy: string): Promise<MpProblem[]> {
-  return keepingFailure(JOB, startedBy, async () => {
+export async function checkMps(startedBy: string): Promise<MpProblem[]> {
+  const { result } = await asRun(JOB, startedBy, async () => {
     const parliament = await currentMps();
     const problems = checkAgainstParliament(await mpsInOffice(), parliament);
     await saveOwnDomains(parliament);
-    await recordRun(JOB, startedBy, "ok", { problems });
-    return problems;
+    return { status: "ok", result: { problems } } as const;
   });
+  return result.problems;
 }

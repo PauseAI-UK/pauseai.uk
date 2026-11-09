@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import { site } from "@/lib/content/site";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
-import type { JobPress } from "@/lib/server/import-runs";
+import type { RunningJob } from "@/lib/server/import-runs";
 import {
   type AnyImportRun,
   IMPORT_JOBS,
@@ -10,6 +10,7 @@ import {
   jobSchedule,
   type ImportJob,
   importPath,
+  NIGHTLY,
   runStatus,
   runTone,
 } from "@/lib/import-runs";
@@ -176,14 +177,14 @@ function Intro({ job, airtableTable }: { job: ImportJob; airtableTable: string }
   );
 }
 
-/** That a press of the job is running, or how its newest run ended, and when, in a strip tinted to match (ui/Strip); or that it has never run. */
-function NewestRun({ job, run, press }: { job: ImportJob; run: AnyImportRun | undefined; press?: JobPress }) {
-  if (press)
+/** That a run of the job is going, or how its newest run ended, and when, in a strip tinted to match (ui/Strip); or that it has never run. */
+function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | undefined; running?: RunningJob }) {
+  if (running)
     return (
       <Strip tone="blue" icon={false}>
         <span className={styles.line}>
           {staffCopy.runs.status.running}
-          <span className={styles.when}>{staffTime(press.startedAt)}</span>
+          <span className={styles.when}>{staffTime(running.startedAt)}</span>
         </span>
       </Strip>
     );
@@ -209,13 +210,13 @@ const SCHEDULES = ["frequent", "hourly", "nightly", "oneOff"] as const;
 /** Every job, a card each, under a heading for how often it runs: every 5 minutes, hourly, nightly, then the one-off imports. */
 export function ImportOverview({
   newest,
-  presses,
+  running,
   airtableTable,
 }: {
   /** Each job's newest run, in IMPORT_JOBS order; undefined for one that has never run. */
   newest: (AnyImportRun | undefined)[];
-  /** Each job's press that's still running, in the same order. */
-  presses: (JobPress | undefined)[];
+  /** Each job's run going now, in the same order. */
+  running: (RunningJob | undefined)[];
   airtableTable: string;
 }) {
   return (
@@ -235,7 +236,7 @@ export function ImportOverview({
                   tags={<JobTag job={job} />}
                   intro={<Intro job={job} airtableTable={airtableTable} />}
                 >
-                  <NewestRun job={job} run={newest[i]} press={presses[i]} />
+                  <NewestRun job={job} run={newest[i]} running={running[i]} />
                 </ImportCard>
               ) : null,
             )}
@@ -250,7 +251,7 @@ export function ImportOverview({
 export function ImportJobPage({
   job,
   runs,
-  press,
+  running,
   run,
   decide,
   airtableTable,
@@ -259,8 +260,8 @@ export function ImportJobPage({
 }: {
   job: ImportJob;
   runs: AnyImportRun[];
-  /** A press of it that's still running, which a second press won't add to. */
-  press?: JobPress;
+  /** Its run going now, which a press won't add to. */
+  running?: RunningJob;
   /** The Server Action that runs the job now. */
   run: (form: FormData) => void | Promise<void>;
   /** Applies or discards a held politician sync. */
@@ -285,16 +286,20 @@ export function ImportJobPage({
       <p>
         <Intro job={job} airtableTable={airtableTable} />
       </p>
-      {press && (
+      {running && (
         <div className={styles.running}>
           <Strip tone="blue">
-            <span>{words.running(press.startedBy, staffTime(press.startedAt))}</span>
+            <span>
+              {running.startedBy === NIGHTLY
+                ? words.runningScheduled(staffTime(running.startedAt))
+                : words.running(running.startedBy, staffTime(running.startedAt))}
+            </span>
           </Strip>
         </div>
       )}
       <JobActions action={run} label={ABOUT[job].button} />
       {progress && <OldLettersProgressBar progress={progress} />}
-      <RunList runs={runs} none={ABOUT[job].none} decide={decide} people={people} press={press} />
+      <RunList runs={runs} none={ABOUT[job].none} decide={decide} people={people} running={running} />
     </>
   );
 }

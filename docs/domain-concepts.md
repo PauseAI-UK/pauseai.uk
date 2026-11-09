@@ -787,10 +787,13 @@ job's own page (`/staff/import-data/<slug>`, `importPath()` in
 always its newest and a held run (`lib/server/log-retention.ts`, run
 nightly).
 
-Pressing a job's button marks it running (`job_presses`) until it finishes, or
-for 16 minutes if it dies, and its page says so: a second press of that job meanwhile
-starts nothing. Scheduled runs don't take a press; the Luma import and the import
-of old letters each take a lock, so a press can't overlap a scheduled run.
+One run of a job goes at a time, whoever starts it, its schedule or a staff
+member's press (`runJob()` in `lib/server/jobs.ts`): a run marks the job
+running (`job_presses`) until it ends, or for 5 minutes if it dies, and its
+page says so. A run started meanwhile doesn't go, and keeps no run, as it did
+nothing. Each run is a request to the site, which Netlify stops at 30
+seconds, so a job with more to do than that, as the Luma import has, works
+for its budget (`JOBS`) and leaves the rest for the next run.
 
 A job's page shows its runs under a heading for each day (`lib/run-log.ts`).
 A job that runs every 5 minutes or hourly makes hundreds a day, nearly all
@@ -802,8 +805,8 @@ has got.
 
 A new job is its name, page slug and schedule in `JOBS` (`lib/import-runs.ts`),
 its name in the `import_runs` CHECK, a result type and how a run shows
-(`Run.tsx`), a function that runs it inside `keepingFailure()` and records
-its run, named in `lib/server/jobs.ts`, its title (`jobTitles`), icon and
+(`Run.tsx`), a function that does it inside `asRun()`, which keeps the run,
+named in `lib/server/jobs.ts`, its title (`jobTitles`), icon and
 description (`ImportJob.tsx`), and, if it runs on a schedule, a scheduled
 function in `netlify/functions/<job>/` (`netlify/scheduled.ts`), whose
 schedule a test checks against `JOBS`. A job that has more to do

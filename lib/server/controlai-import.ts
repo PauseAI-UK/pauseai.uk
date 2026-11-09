@@ -4,7 +4,7 @@ import { CONTROLAI, matchSignatories, signatoriesIn, type Candidate } from "@/li
 import type { ControlAiImportResult } from "@/lib/import-runs";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun } from "./import-runs";
 import { fetchLetter } from "./outside-services/controlai";
 
 // Copies the signatories of ControlAI's letter to the PM into the statuses
@@ -21,14 +21,14 @@ const JOB = "import-controlai";
 const MIN_SIGNATORIES = 5;
 
 /** Reads the letter and makes the bill's statuses match it. Keeps the result, or the failure, then throws it on. */
-export function importControlAiLetter(startedBy: string): Promise<ControlAiImportResult> {
-  return keepingFailure(JOB, startedBy, async () => {
+export async function importControlAiLetter(startedBy: string): Promise<ControlAiImportResult> {
+  const { result } = await asRun(JOB, startedBy, async () => {
     const { pdfUrl, text } = await fetchLetter();
     const signatories = signatoriesIn(text);
     if (signatories.length < MIN_SIGNATORIES) {
       throw new Error(`Only ${signatories.length} signatories found in ${pdfUrl}: has the letter changed shape?`);
     }
-    return transaction(async (db) => {
+    const result = await transaction(async (db) => {
       // MPs in office and peers; never the test MPs, whose statuses are their own.
       const candidates = await query<Candidate>(
         `SELECT n.id::int AS id, p.house, n.name FROM notable_people n JOIN politicians p ON p.id = n.id
@@ -88,8 +88,9 @@ export function importControlAiLetter(startedBy: string): Promise<ControlAiImpor
           );
         }
       }
-      await recordRun(JOB, startedBy, "ok", result, db);
       return result;
     });
+    return { status: "ok", result } as const;
   });
+  return result;
 }

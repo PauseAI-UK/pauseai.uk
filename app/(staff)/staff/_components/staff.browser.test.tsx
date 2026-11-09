@@ -4,7 +4,7 @@ import { page, userEvent, type Locator } from "vitest/browser";
 import { ASK_STATUSES } from "@/lib/asks";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { campaigns } from "@/lib/content/email-your-mp";
-import { importPath } from "@/lib/import-runs";
+import { importPath, NIGHTLY } from "@/lib/import-runs";
 import { registrationStatus, type SupporterRow } from "@/lib/supporters";
 import type { DownloadColumn } from "@/lib/staff-list";
 import { staffDate, staffTime } from "@/lib/staff-time";
@@ -2819,7 +2819,7 @@ describe("ImportOverview", () => {
       undefined,
     ];
     await render(
-      <ImportOverview newest={newest} presses={[]} airtableTable="https://airtable.com/app/tblPoliticians" />,
+      <ImportOverview newest={newest} running={[]} airtableTable="https://airtable.com/app/tblPoliticians" />,
     );
     await expect.element(page.getByRole("heading", { level: 1, name: staffCopy.import.pageTitle })).toBeVisible();
     // A heading for each schedule, its jobs' cards under it.
@@ -2928,7 +2928,7 @@ describe("ImportOverview", () => {
     const unchanged = ran("import-luma", exampleLumaResult, { status: "unchanged" });
     const { rerender } = await render(
       <ImportOverview
-        presses={[]}
+        running={[]}
         newest={[undefined, unchanged, undefined, undefined, undefined, exampleAppliedSync, undefined, undefined]}
         airtableTable="x"
       />,
@@ -2940,7 +2940,7 @@ describe("ImportOverview", () => {
     expect(status(4)).toMatch(/green/);
     await rerender(
       <ImportOverview
-        presses={[]}
+        running={[]}
         newest={[undefined, undefined, undefined, undefined, undefined, discarded, undefined, undefined]}
         airtableTable="x"
       />,
@@ -2949,7 +2949,7 @@ describe("ImportOverview", () => {
     await rerender(
       <ImportOverview
         newest={[undefined, undefined, undefined, undefined, undefined, exampleAppliedSync, undefined, undefined]}
-        presses={[undefined, undefined, undefined, undefined, undefined, press]}
+        running={[undefined, undefined, undefined, undefined, undefined, press]}
         airtableTable="x"
       />,
     );
@@ -2963,9 +2963,11 @@ describe("ImportOverview", () => {
 const press = { startedBy: "jo@pauseai.uk", startedAt: new Date("2026-10-21T11:47:00Z") };
 
 describe("ImportJobPage", () => {
-  it("says when a press of it is still running", async () => {
+  it("says when a run of it is going, a press or one of its schedule's", async () => {
     const props = { job: "sync-emails" as const, runs: [], run: vi.fn(), decide: vi.fn(), airtableTable: "x" };
-    const { rerender } = await render(<ImportJobPage {...props} press={press} />);
+    const { rerender } = await render(<ImportJobPage {...props} running={{ ...press, startedBy: NIGHTLY }} />);
+    expect(document.body.textContent).toContain(staffCopy.import.runningScheduled(staffTime(press.startedAt)));
+    await rerender(<ImportJobPage {...props} running={press} />);
     expect(document.body.textContent).toContain(staffCopy.import.running(press.startedBy, staffTime(press.startedAt)));
     await rerender(<ImportJobPage {...props} />);
     expect(document.body.textContent).not.toContain(press.startedBy);
@@ -3576,7 +3578,7 @@ describe("RunList", () => {
     const { rerender } = await render(<RunList runs={short} none="None" />);
     expect(opens()).toEqual([true, true, true, true, true, false]);
     const long = sync(7, [1, 2, 3, 4, 5, 6]);
-    await rerender(<RunList runs={[long, ...short]} none="None" press={press} />);
+    await rerender(<RunList runs={[long, ...short]} none="None" running={press} />);
     expect(opens().slice(0, 2)).toEqual([false, true]);
   });
 
@@ -3953,7 +3955,7 @@ describe("RunList", () => {
       { id: 1, at: new Date("2026-10-21T11:00:00Z") },
     );
     const during = ran("import-luma", exampleLumaResult, { id: 2, at: new Date("2026-10-21T11:48:00Z") });
-    await rerender(<RunList runs={[before, during]} none="Nothing here" press={press} />);
+    await rerender(<RunList runs={[before, during]} none="Nothing here" running={press} />);
     expect(document.querySelector("section")!.parentElement!.className).not.toMatch(/amber/);
   });
 });

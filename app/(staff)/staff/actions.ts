@@ -5,7 +5,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { type ImportJob, importPath, isImportJob } from "@/lib/import-runs";
-import { endPress, takePress } from "@/lib/server/import-runs";
 import { runJob } from "@/lib/server/jobs";
 import { now } from "@/lib/now";
 import { erasedPath, staffBack } from "@/lib/staff-search";
@@ -120,23 +119,19 @@ function refreshImport(job: ImportJob): void {
 }
 
 /**
- * A job's button, bound to the job's name: runs it as the staff member
- * (lib/server/jobs.ts), unless a press of it is still running, then
- * refreshes its pages. Any staff member may run any job. A failure is in the
- * import log, shown on its page like a scheduled one, so it's logged rather
- * than crashing the page.
+ * A job's button, bound to the job's name: runs it as the staff member,
+ * unless a run of it is going (lib/server/jobs.ts), then refreshes its
+ * pages. Any staff member may run any job. A failure is in the import log,
+ * shown on its page like a scheduled one, so it's logged rather than
+ * crashing the page.
  */
 export async function runJobNow(job: string): Promise<void> {
   const { email } = await requireStaff();
   if (!isImportJob(job)) return;
-  if (await takePress(job, email)) {
-    try {
-      await runJob(job, email);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      await endPress(job);
-    }
+  try {
+    await runJob(job, email);
+  } catch (error) {
+    console.error(error);
   }
   refreshImport(job);
 }

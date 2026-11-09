@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db";
-import { listRuns } from "@/lib/server/import-runs";
+import { listRuns, runningNow, startRunning } from "@/lib/server/import-runs";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { POST } from "./route";
 
@@ -45,6 +45,16 @@ describeWithDatabase("POST /api/cron/<job>", () => {
     expect(await query("SELECT job, status FROM import_runs ORDER BY id")).toEqual([
       { job: "sync-politicians", status: "failed" },
     ]);
+    // It's no longer going, so the next run goes.
+    expect(await runningNow("sync-politicians")).toBeUndefined();
+  });
+
+  it("doesn't run a job while a staff member's run of it is going, and says so", async () => {
+    await startRunning("check-mps", "jo@pauseai.uk");
+    const res = await call("check-mps");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ stoppedBy: "running" });
+    expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);
   });
 
   it("checks the MPs against Parliament's, and says how many problems it found", async () => {

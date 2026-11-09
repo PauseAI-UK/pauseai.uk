@@ -19,7 +19,7 @@ import { TEST_MPS } from "@/lib/test-mps";
 import { AIRTABLE_ASKS, airtableToken, fetchPoliticians } from "./outside-services/airtable";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun } from "./import-runs";
 import { notifyStaff, staffLink } from "./notifications";
 import { addPolitician } from "./politicians";
 
@@ -235,13 +235,13 @@ async function applyStatuses(records: PoliticianRecord[], db: Queryable): Promis
  * Airtable's statuses for those here. `startedBy` is NIGHTLY or the staff
  * member's email.
  */
-export function syncPoliticians(startedBy: string): Promise<SyncResult> {
-  return keepingFailure(JOB, startedBy, async () => {
+export async function syncPoliticians(startedBy: string): Promise<SyncResult> {
+  const { status, result, renamed, statuses } = await asRun(JOB, startedBy, async () => {
     const records = await fetchPoliticians(airtableToken());
     const fetched = records.map((record) => record.politician);
     // Whether this run holds a sync when none was held before, to email about once it's kept.
     let newlyHeld = false;
-    const result = await transaction(async (db): Promise<SyncResult> => {
+    const synced = await transaction(async (db) => {
       await ensureTestMps(db);
       const before = await syncedPoliticians(db);
       const changes = comparePoliticians(before, fetched, await goneRecords(db));
@@ -252,11 +252,10 @@ export function syncPoliticians(startedBy: string): Promise<SyncResult> {
       if (count > 0 && !held) await applyPoliticians(fetched, db);
       const statuses = await applyStatuses(records, db);
       const changedStatuses = statuses.added + statuses.changed + statuses.removed;
-      const status = held ? "held" : count + changedStatuses > 0 ? "applied" : "unchanged";
+      const status: SyncResult["status"] = held ? "held" : count + changedStatuses > 0 ? "applied" : "unchanged";
       const result: PoliticianSyncResult = { changes, renamed, statuses, ...(held ? { records } : {}) };
       const [heldBefore] = await query("SELECT 1 FROM import_runs WHERE job = $1 AND status = 'held'", [JOB], db);
       newlyHeld = held && !heldBefore;
-      await recordRun(JOB, startedBy, status, result, db);
       if (count > 0) {
         await logChange(
           SYNC,
@@ -265,15 +264,16 @@ export function syncPoliticians(startedBy: string): Promise<SyncResult> {
           db,
         );
       }
-      return { status, changes, renamed, statuses };
+      return { status, result, renamed, statuses };
     });
     if (newlyHeld) {
       const words = staffCopy.notifications.syncHeld;
-      const count = changeCount(result.changes);
+      const count = changeCount(synced.result.changes);
       await notifyStaff(words.subject(count), words.body(count, staffLink(importPath(JOB), undefined)));
     }
-    return result;
+    return synced;
   });
+  return { status, changes: result.changes, renamed, statuses };
 }
 
 /** Applies or discards a held sync, with its statuses. False if there's no held sync with that ID. */
