@@ -186,7 +186,7 @@ describeWithDatabase("the import log", () => {
     const sent = notifications();
     // A count too large for JSON.
     await expect(
-      asRun("check-mps", "nightly", async () => ({ status: "ok", result: { n: 1n } }) as const),
+      asRun("check-mps", "nightly", async () => ({ status: "ok", result: { n: BigInt(1) } }) as const),
     ).rejects.toThrow("BigInt");
     expect(await listRuns("check-mps")).toEqual([]);
     expect(sent).toEqual([]);
