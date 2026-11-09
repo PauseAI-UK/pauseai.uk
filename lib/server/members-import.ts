@@ -7,7 +7,7 @@ import { refreshSupporterFacts, refreshSupportersList } from "./supporter-facts"
 import { linkSupporters } from "./supporters";
 
 // Copies PauseAI's UK members whom we may hold into `members`: hourly
-// (app/api/cron/import-members) or when staff ask, each run in the import
+// (/api/cron/import-members) or when staff ask, each run in the import
 // log as "import-members". Every run reads every one of them, so a run is
 // whole and the next corrects anything the last missed. An upsert touches a
 // row only when a value differs; a member no longer read is marked

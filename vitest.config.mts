@@ -124,6 +124,7 @@ export default defineConfig({
         "next.config.ts",
         "proxy.ts",
         "netlify/functions/**/*.ts",
+        "netlify/scheduled.ts",
       ],
       // page.tsx and layout.tsx are the one scope rule: async server
       // components can't render in Vitest and layout.tsx needs next/font.

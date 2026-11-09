@@ -24,7 +24,7 @@ import { notifyStaff, staffLink } from "./notifications";
 import { addPolitician } from "./politicians";
 
 // Copies every politician from Airtable's UK Parliamentarians into the
-// database, nightly (app/api/cron/sync-politicians) or when staff ask, keyed
+// database, nightly (/api/cron/sync-politicians) or when staff ask, keyed
 // by the record's ID, with their answers to the asks Airtable records. A
 // sync that would change more than MAX_UNCHECKED_CHANGES politicians, or
 // any one's name, is held for a person to check; the statuses are set

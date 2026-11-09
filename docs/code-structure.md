@@ -111,8 +111,8 @@ the code should go instead. The rules below say which ones are enforced.
   `netlify/functions` writes an error to the log by hand: `console.error`
   reaches only Netlify's logs, and `String(error)` drops the error's cause,
   so a network failure reads "fetch failed" and nothing more
-  (`describeError()` keeps it). Every route under `app/api/cron` runs as a
-  run of the import log. Three checks enforce it:
+  (`describeError()` keeps it). Every job, run by
+  `lib/server/jobs.ts`, runs as a run of the import log. Three checks enforce it:
   `tests/checks/caught-errors.test.ts`, `problem-reporting.test.ts` and
   `cron-runs.test.ts`; the first names its few exceptions, each a catch
   that answers a question rather than carrying on past a failure. A
@@ -219,8 +219,10 @@ the code should go instead. The rules below say which ones are enforced.
   A page that shows more to staff who may see supporters asks
   `canSeeSupporters(staff)`, beside `requireStaff()`.
 - **Scheduled jobs** are Netlify scheduled functions, each in its own folder
-  in `netlify/functions/`, that POST to a route under `app/api/cron/` with
-  `CRON_SECRET`. The work itself stays in the Next app. Every one is a job
+  in `netlify/functions/`, named after its job, that POST to
+  `/api/cron/<job>` with `CRON_SECRET` (`netlify/scheduled.ts`). The work
+  itself stays in the Next app: `lib/server/jobs.ts` says what runs each
+  job, for that route and for its button. Every one is a job
   on `/staff/import-data`, whether or not it imports anything, despite the
   page's name, so that staff can see its runs and press its button
   (`docs/domain-concepts.md`, "Imports"). A scheduled function gets 30

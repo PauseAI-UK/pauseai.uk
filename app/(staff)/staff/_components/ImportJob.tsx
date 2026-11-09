@@ -7,7 +7,7 @@ import {
   type AnyImportRun,
   IMPORT_JOBS,
   type OldLettersProgress,
-  JOB_SCHEDULES,
+  jobSchedule,
   type ImportJob,
   importPath,
   runStatus,
@@ -226,7 +226,7 @@ export function ImportOverview({
           <h2>{words[schedule]}</h2>
           <ImportCards>
             {IMPORT_JOBS.map((job, i) =>
-              JOB_SCHEDULES[job] === schedule ? (
+              jobSchedule(job) === schedule ? (
                 <ImportCard
                   key={job}
                   title={jobTitles[job]}
@@ -278,7 +278,7 @@ export function ImportJobPage({
         <ImportIcon source={SOURCES[job]} />
         <h1 className={styles.heading}>
           {jobTitles[job]}
-          <Tag>{words[JOB_SCHEDULES[job]]}</Tag>
+          <Tag>{words[jobSchedule(job)]}</Tag>
           <JobTag job={job} />
         </h1>
       </div>

@@ -1,45 +1,15 @@
 import type { Metadata } from "next";
 import { jobTitles } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { type ImportJob, jobBySlug } from "@/lib/import-runs";
+import { jobBySlug } from "@/lib/import-runs";
 import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
 import { currentPress, listRuns } from "@/lib/server/import-runs";
 import { jobProgress } from "@/lib/server/old-letters-import";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
-import {
-  checkNow,
-  decideSync,
-  importControlAiNow,
-  importGoToParliamentNow,
-  importLumaNow,
-  importOldLettersNow,
-  importMembersNow,
-  importWebFormLettersNow,
-  readGmailNow,
-  sendNow,
-  tidyNow,
-  syncEmailsNow,
-  syncNow,
-} from "../../../actions";
+import { decideSync, runJobNow } from "../../../actions";
 import { ImportJobPage } from "../../../_components/ImportJob";
 
 type Params = { params: Promise<{ job: string }> };
-
-/** Each job's button: the Server Action that runs it now. */
-const RUN_NOW: Record<ImportJob, (form: FormData) => Promise<void>> = {
-  "import-luma": importLumaNow,
-  "sync-politicians": syncNow,
-  "sync-emails": syncEmailsNow,
-  "import-web-form-letters": importWebFormLettersNow,
-  "import-go-to-parliament": importGoToParliamentNow,
-  "check-mps": checkNow,
-  "import-controlai": importControlAiNow,
-  "import-members": importMembersNow,
-  "read-gmail": readGmailNow,
-  "import-old-letters": importOldLettersNow,
-  "send-mailings": sendNow,
-  "tidy-logs": tidyNow,
-};
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   await requireStaff();
@@ -57,7 +27,7 @@ export default async function ImportJobRoute({ params }: Params) {
         job={job}
         runs={runs}
         press={press}
-        run={RUN_NOW[job]}
+        run={runJobNow.bind(null, job)}
         decide={decideSync}
         airtableTable={PARLIAMENTARIANS_TABLE_URL}
         people={canSeeSupporters(staff)}

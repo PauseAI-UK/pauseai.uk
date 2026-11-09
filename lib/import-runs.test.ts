@@ -1,6 +1,16 @@
 import { expect, it } from "vitest";
 import { exampleOldLettersResult } from "@/app/(staff)/staff/_components/CampaignPages.examples";
-import { asList, IMPORT_JOBS, importPath, isImportJob, jobBySlug, runStatus, runTone } from "./import-runs";
+import {
+  asList,
+  IMPORT_JOBS,
+  importPath,
+  isImportJob,
+  jobBySlug,
+  jobSchedule,
+  runStatus,
+  runTone,
+  SCHEDULED_JOBS,
+} from "./import-runs";
 import {
   exampleAppliedSync,
   exampleEmailsResult,
@@ -16,6 +26,14 @@ it("knows the jobs", () => {
   expect(isImportJob("sync-mps")).toBe(false);
   expect(isImportJob("")).toBe(false);
   expect(isImportJob("sync-peers")).toBe(false);
+  expect(isImportJob("toString")).toBe(false);
+});
+
+it("knows which jobs run on a schedule, and how often", () => {
+  expect(jobSchedule("import-luma")).toBe("frequent");
+  expect(jobSchedule("sync-emails")).toBe("oneOff");
+  expect(SCHEDULED_JOBS).toContain("tidy-logs");
+  expect(SCHEDULED_JOBS).not.toContain("import-old-letters");
 });
 
 it("lists a job's newest run, or none", () => {

@@ -1,4 +1,4 @@
-import { type AnyImportRun, type ImportJob, JOB_SCHEDULES, runStatus, runTone } from "./import-runs";
+import { type AnyImportRun, type ImportJob, jobSchedule, runStatus, runTone } from "./import-runs";
 import { staffDate } from "./staff-time";
 
 // How a job's page lays out its runs. A job that runs every few minutes makes
@@ -16,11 +16,11 @@ const RECENT_ROWS = 12;
 type Shape = "run" | "rows" | "quiet";
 
 /** Whether a job makes many runs a day: one every 5 minutes, or the import of old letters, which did when it read its mail. */
-const runsOften = (job: ImportJob) => JOB_SCHEDULES[job] === "frequent" || job === "import-old-letters";
+const runsOften = (job: ImportJob) => jobSchedule(job) === "frequent" || job === "import-old-letters";
 
 /** Whether a job's page lays its history out as a table of the day's runs: one that runs often, or hourly. */
 export function tabled(job: ImportJob): boolean {
-  return runsOften(job) || JOB_SCHEDULES[job] === "hourly";
+  return runsOften(job) || jobSchedule(job) === "hourly";
 }
 
 /** How a run shows when it isn't the newest. */

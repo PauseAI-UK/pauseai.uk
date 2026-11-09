@@ -485,14 +485,15 @@ flow that drives it or why nothing does.
 - `/api/postmark/bounce`, `/api/postmark/inbound`: `campaigns`, `letters` and `replies`: the webhook flows post Postmark's payloads, with and without credentials; a bounce for a sent letter, and one for an email we can't place; an MP office's written and automatic replies to letters.
 - `/api/signatories`: `staff-navigation`: setting a status, then reading the public list.
 - `/blog/feed.xml`, `/campaigns/briefings/feed.xml`: `public-pages`: each feed, its type and entries, and its link in the head of its section's index and a post's page.
-- `/api/cron/sync-politicians`: `syncPoliticians()` in `tests/steps.ts`, at the start of the staff and `campaigns` flows that need politicians; it copies the emails too.
-- `/api/cron/check-mps`, `/api/cron/import-controlai`: Not driven. The `imports` page runs the same check and import through Server Actions; the nightly routes themselves are Vitest-tested.
-- `/api/cron/tidy-logs`: Not driven: nothing a person sees changes but its run on its own page. The route is Vitest-tested.
-- `/api/cron/send-mailings`: `mailings`: a mailing scheduled from your Gmail, then started and sent by the job.
-- `/api/cron/read-gmail`: `imports`: the Gmail page runs `readGmail()`, which the route calls; the fixture Gmail has no messages to read, so a flow adds the reply it would keep.
+- `/api/cron/[job]`, each scheduled job's run (`lib/server/jobs.ts`), Vitest-tested beside it for every job:
+  - `sync-politicians`: `syncPoliticians()` in `tests/steps.ts`, at the start of the staff and `campaigns` flows that need politicians; it copies the emails too.
+  - `check-mps`, `import-controlai`: Not driven. The `imports` page runs the same check and import through its buttons.
+  - `tidy-logs`: Not driven: nothing a person sees changes but its run on its own page.
+  - `send-mailings`: `mailings`: a mailing scheduled from your Gmail, then started and sent by the job.
+  - `read-gmail`: `imports`: the Gmail page runs `readGmail()`, which the route calls; the fixture Gmail has no messages to read, so a flow adds the reply it would keep.
+  - `import-luma`: `supporters`: `importLuma()` in `tests/steps.ts` fills a flow's database from the fixture calendar; the `imports` page runs it too.
+  - `import-members`: `imports`: the import page runs `importMembers()`, which the route calls.
 - `/api/backup/letter-replies`, `/api/backup/letter-replies/[id]`: Not driven: they are for the backup Worker, and show nothing. Vitest-tested.
-- `/api/cron/import-luma`: `supporters`: `importLuma()` in `tests/steps.ts` fills a flow's database from the fixture calendar; the `imports` page runs it too.
-- `/api/cron/import-members`: `imports`: the import page runs `importMembers()`, which the route calls.
 - `/api/csp-report`: Not driven: a browser posts to it only on a CSP violation. Vitest-tested.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `tests/steps.ts`), and the redelivery that changes nothing.
 - `/staff/api/login`, `/staff/api/callback`: `staff-login`: asking for a login link and opening it (`logInWithLink` in `tests/steps.ts`).
@@ -630,7 +631,7 @@ import("@/tests/next-headers"))` and put the session cookie in
 - **A page has no branches** (`tests/checks/thin-pages.test.ts`). Put the
   choice in a component or a `lib/` helper with its own tests.
 - **A caught error is rethrown or reported** with `problem()`, nothing
-  writes an error to the log by hand, and every cron route runs as a run of
+  writes an error to the log by hand, and every job runs as a run of
   the import log (`docs/code-structure.md`, "Rules"). Three checks fail
   otherwise: `tests/checks/caught-errors.test.ts`, which names its few
   exceptions, `problem-reporting.test.ts` and `cron-runs.test.ts`.

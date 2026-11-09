@@ -4,66 +4,58 @@ import type { ControlAiMatchProblem } from "./controlai-letter";
 import type { MpProblem } from "./mp-check";
 import type { PoliticianChanges, PoliticianRecord, Renamed } from "./politician-sync";
 
-export const IMPORT_JOBS = [
-  "import-old-letters",
-  "import-luma",
-  "import-members",
-  "read-gmail",
-  "send-mailings",
-  "sync-politicians",
-  "sync-emails",
-  "check-mps",
-  "import-controlai",
-  "import-web-form-letters",
-  "import-go-to-parliament",
-  "tidy-logs",
-] as const;
-export type ImportJob = (typeof IMPORT_JOBS)[number];
+/**
+ * How often a job runs on its own: every 5 minutes, hourly or nightly, each
+ * by a scheduled function in netlify/functions/<job>/ whose cron says the
+ * same (netlify/scheduled.test.ts); or a one-off, which only staff run.
+ */
+export type JobSchedule = "frequent" | "hourly" | "nightly" | "oneOff";
+
+/**
+ * Every job, by its name in the import log (`import_runs.job`): its page,
+ * /staff/import-data/<slug>, and how often it runs. What runs it is
+ * lib/server/jobs.ts; its title, icon and description are the staff
+ * interface's (jobTitles, ImportJob.tsx). The overview lists them in this
+ * order.
+ */
+export const JOBS = {
+  "import-old-letters": { slug: "old-letters", schedule: "oneOff" },
+  "import-luma": { slug: "luma", schedule: "frequent" },
+  "import-members": { slug: "members", schedule: "hourly" },
+  "read-gmail": { slug: "gmail", schedule: "frequent" },
+  "send-mailings": { slug: "sending", schedule: "hourly" },
+  "sync-politicians": { slug: "politicians", schedule: "nightly" },
+  "sync-emails": { slug: "emails", schedule: "oneOff" },
+  "check-mps": { slug: "mp-check", schedule: "nightly" },
+  "import-controlai": { slug: "controlai", schedule: "nightly" },
+  "import-web-form-letters": { slug: "web-form-letters", schedule: "oneOff" },
+  "import-go-to-parliament": { slug: "go-to-parliament", schedule: "oneOff" },
+  "tidy-logs": { slug: "tidying", schedule: "nightly" },
+} as const satisfies Record<string, { slug: string; schedule: JobSchedule }>;
+
+export type ImportJob = keyof typeof JOBS;
+export const IMPORT_JOBS = Object.keys(JOBS) as ImportJob[];
 
 export function isImportJob(value: string): value is ImportJob {
-  return (IMPORT_JOBS as readonly string[]).includes(value);
+  return Object.hasOwn(JOBS, value);
 }
 
-/** Each job's page, /staff/import-data/<slug>: its button and every run. */
-const IMPORT_SLUGS: Record<ImportJob, string> = {
-  "import-luma": "luma",
-  "sync-politicians": "politicians",
-  "sync-emails": "emails",
-  "import-web-form-letters": "web-form-letters",
-  "import-go-to-parliament": "go-to-parliament",
-  "import-old-letters": "old-letters",
-  "check-mps": "mp-check",
-  "import-controlai": "controlai",
-  "import-members": "members",
-  "read-gmail": "gmail",
-  "send-mailings": "sending",
-  "tidy-logs": "tidying",
-};
+/** How often a job runs on its own. */
+export function jobSchedule(job: ImportJob): JobSchedule {
+  return JOBS[job].schedule;
+}
 
-/** How often each job runs on its own, matching its schedule in netlify/functions/; a one-off is only run by staff. */
-export const JOB_SCHEDULES: Record<ImportJob, "frequent" | "hourly" | "nightly" | "oneOff"> = {
-  "import-luma": "frequent",
-  "import-members": "hourly",
-  "read-gmail": "frequent",
-  "send-mailings": "hourly",
-  "tidy-logs": "nightly",
-  "sync-politicians": "nightly",
-  "sync-emails": "oneOff",
-  "import-web-form-letters": "oneOff",
-  "import-go-to-parliament": "oneOff",
-  "import-old-letters": "oneOff",
-  "check-mps": "nightly",
-  "import-controlai": "nightly",
-};
+/** The jobs that run on a schedule, each called by its scheduled function at /api/cron/<job>. */
+export const SCHEDULED_JOBS = IMPORT_JOBS.filter((job) => jobSchedule(job) !== "oneOff");
 
 /** Where a job's page is. */
 export function importPath(job: ImportJob): string {
-  return `/staff/import-data/${IMPORT_SLUGS[job]}`;
+  return `/staff/import-data/${JOBS[job].slug}`;
 }
 
 /** The job a page's slug names, if any. */
 export function jobBySlug(slug: string): ImportJob | undefined {
-  return IMPORT_JOBS.find((job) => IMPORT_SLUGS[job] === slug);
+  return IMPORT_JOBS.find((job) => JOBS[job].slug === slug);
 }
 
 /** A job's newest run as a list for RunList: itself, or none if it has never run. */
