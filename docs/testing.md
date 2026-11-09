@@ -251,6 +251,16 @@ The same data is in `test-results/storyboard/latest/storyboard.json`, for
 an agent. Both are local only and gitignored. A difference never fails;
 only this branch's checks do, and the exit code is theirs.
 
+**The changed frames**, for an agent: `npm run storyboard:changed`
+(`scripts/storyboard-changed.mjs`) prints the latest run's, without running
+anything, or another run's given its folder or name. They're the page's
+Changed: each frame that differs from main, is new, or is gone, with its
+viewport, section, flow and caption, how much of it differs, and the full
+paths of this branch's picture, main's and the diff, to open one by one.
+Before them, the flows that failed, here or on main. The paths are the
+run's own folder, not `latest/`, so they stay right after another run.
+`npm run storyboard -- --changed` runs the review and then prints the same.
+
 **Runs.** Each run has its own folder,
 `test-results/storyboard/runs/<when>/`, with every picture its page shows,
 so a page you have open is never changed by the next run. `latest` points
@@ -299,7 +309,8 @@ under them. The limits are `CHANNEL_NOISE`, `NOISE_TOTAL` and
 
 Switches, after `--`: `--no-main` (this branch alone), `--main=<ref>`
 (another branch), `--desktop` or `--phone`, `--no-open`, `--paths` (print
-each frame's caption and picture), `--server=URL` and `--main-server=URL`
+each frame's caption and picture), `--changed` (print only the changed
+frames, as above), `--server=URL` and `--main-server=URL`
 for servers you started. Anything else goes to `playwright test`: a file
 (`staff-login`), `-g login`, `--headed`.
 
@@ -363,7 +374,7 @@ order, alongside the others:
   the reverse. The review runs every other flow on both viewports.
 - Before saying a change is done, run `npm run storyboard` and look at
   every changed frame on both viewports; say what changed in the PR. An
-  agent reads `storyboard.json`.
+  agent lists them with `npm run storyboard:changed` and opens each.
 - A flaky flow, or a frame that differs between two runs of the same
   build, is fixed at once, in the branch that finds it, even when the
   branch has nothing to do with it. Never retried, skipped or masked.

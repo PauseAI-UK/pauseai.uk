@@ -70,8 +70,11 @@ Before changing a migration, `git fetch`, then check whether it's on the remote 
 
 ```bash
 npm run storyboard                # both viewports, screenshots, against a build of where this branch left origin/main, then opens test-results/storyboard/index.html
-npm run storyboard -- --no-open   # the same; read test-results/storyboard/latest/storyboard.json instead
+npm run storyboard -- --no-open   # the same, leaving the page closed
+npm run storyboard:changed        # the latest run's changed frames: new, gone or different from main's, with each one's caption and PNGs
 ```
+
+To review a run, list its changed frames with `npm run storyboard:changed` (or add `--changed` to the run) and open each one's PNGs with the Read tool, rather than reading `storyboard.json` with a script of your own.
 
 - A flaky flow, or a frame that differs between two runs of the same build, is fixed, never retried, skipped or masked. No stored baselines, no gate on pixels.
 - Any flaky test, Vitest or Playwright, is fixed at once, in whatever branch finds it, even when the branch has nothing to do with it (`docs/testing.md`, "Rules for new code").
