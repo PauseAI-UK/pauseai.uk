@@ -272,7 +272,7 @@ test("Loading a saved filter while choosing who a mailing goes to", async ({ pag
   await frame(page, "The ticked tab");
 });
 
-test("Loading a saved filter while choosing who a message goes to", async ({ page, request, flowDatabase }) => {
+test("Loading a saved filter while choosing who a broadcast goes to", async ({ page, request, flowDatabase }) => {
   story("Staff write an email to supporters, then Change who: the supporters list is choosing who it's for.");
   const broadcasts = staffCopy.broadcastPages;
   await importLuma(request, BASE);

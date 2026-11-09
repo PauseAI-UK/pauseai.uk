@@ -1153,11 +1153,11 @@ All events: ${link}`,
     // What a part can be only for, as the editor's menus and the preview's case buttons say it.
     conditions: {
       // A part for those who wrote to their MP in a campaign, its menu's group, then each campaign by its title.
-      wroteGroup: "⁂ Wrote to their MP",
-      wrote: (campaign: string) => `⁂ wrote to their MP in “${campaign}”`,
+      wroteGroup: "Wrote to their MP",
+      wrote: (campaign: string) => `wrote to their MP in “${campaign}”`,
       // A part for those who registered for an event, past or to come, its menu's group, then each event.
-      registeredGroup: "⁂ Registered for",
-      registered: (event: string) => `⁂ registered for “${event}”`,
+      registeredGroup: "Registered for",
+      registered: (event: string) => `registered for “${event}”`,
     },
     // The preview's buttons, of the one made-up recipient: each field they have; a part's own words say the rest.
     previewCases: {
