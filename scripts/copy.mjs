@@ -27,8 +27,8 @@ import sharp from "sharp";
 import { sections } from "../tests/storyboard/report/frames.ts";
 import { runDirOf } from "./storyboard-changed.mjs";
 
-/** The placeholder mark, as an escape, so this file isn't taken for copy (tests/checks/placeholder-copy.test.ts). */
-export const MARK = "⁂";
+/** The placeholder mark, by its code point, so this file isn't taken for copy (tests/checks/placeholder-copy.test.ts). */
+export const MARK = String.fromCodePoint(0x2042);
 const BASE = "origin/main";
 export const PAGE = "test-results/copy.html";
 
@@ -71,8 +71,8 @@ export function addedLines(diff) {
   return files;
 }
 
-/** Files whose placeholders aren't copy: tests, which check for it, and the storyboard. */
-const NOT_COPY = /(^|\/)tests\/|\.(test|spec|browser\.test)\.[cm]?[jt]sx?$/;
+/** Files whose placeholders aren't copy: tests, which check for it, and the notes about the code. */
+const NOT_COPY = /(^|\/)tests\/|\.(test|spec)\.[cm]?[jt]sx?$|^(docs|plans|investments)\/|^AGENTS\.md$/;
 
 /** How a file's copy is read: JSX, the rest of JavaScript and TypeScript, or plain text. */
 export function kindOf(file) {

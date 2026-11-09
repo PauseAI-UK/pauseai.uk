@@ -192,6 +192,7 @@ describe("changedPlaceholders", () => {
     "lib/plain.ts": "no copy\n",
     "lib/a.test.ts": `"${M} a test"`,
     "tests/storyboard/x.spec.ts": `"${M} a spec"`,
+    "investments/x.md": `${M} a note`,
   };
   const git = (args: string[]) => {
     if (args[0] === "merge-base") return "abc123\n";
@@ -215,14 +216,14 @@ describe("changedPlaceholders", () => {
         "+x",
       ].join("\n");
     }
-    return "app/new.tsx\ntests/storyboard/x.spec.ts\n";
+    return "app/new.tsx\ntests/storyboard/x.spec.ts\ninvestments/x.md\n";
   };
   const readFile = (file: string) => {
     if (!(file in files)) throw new Error("gone");
     return files[file];
   };
 
-  it("lists the placeholders on added lines and in new files, not in tests", () => {
+  it("lists the placeholders on added lines and in new files, not in tests or notes", () => {
     expect(changedPlaceholders("origin/main", git, readFile).map((p) => [p.file, p.line, copyText(p.parts)])).toEqual([
       ["app/new.tsx", 1, `${M} new`],
       ["lib/a.ts", 3, `${M} changed`],
