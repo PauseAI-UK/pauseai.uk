@@ -1,0 +1,177 @@
+/* The flyer's lower half: a heading on orange, then a band an event, black
+   for the main ones and orange for the rest. */
+.programme {
+  background: linear-gradient(90deg, var(--fest-orange) 0%, var(--fest-orange-light) 100%);
+}
+
+.heading {
+  margin: 0;
+  padding: var(--space-7) 0 var(--space-4);
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(34px, 5.4vw, 72px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── Rows ─────────────────────────────────────────────────────────── */
+
+.row {
+  padding: var(--space-4) 0;
+}
+
+.row + .row {
+  border-top: 1px solid rgb(var(--ink-rgb) / 0.12);
+}
+
+.rowInner {
+  display: grid;
+  grid-template-columns: 170px 1fr auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+}
+
+.rowDay {
+  margin: 0;
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.rowTitle {
+  margin: 0;
+  font-family: "Anton", "Arial Narrow", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(26px, 3vw, 36px);
+  line-height: 1.1;
+  color: var(--white);
+  text-shadow: 0 2px 4px rgb(var(--ink-rgb) / 0.35);
+}
+
+.rowMeta {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.rowLink {
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.rowLink:hover {
+  color: var(--white);
+}
+
+/* ── Featured bands ───────────────────────────────────────────────── */
+
+.featured {
+  padding: var(--space-7) 0;
+  background: var(--ink);
+  color: var(--white);
+}
+
+.featuredInner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.featuredWhen {
+  margin: 0;
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(20px, 2.6vw, 34px);
+  line-height: 1.15;
+  color: var(--fest-orange);
+}
+
+.featuredTitle {
+  margin: var(--space-2) 0 0;
+  font-family: "Anton", "Arial Narrow", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(40px, 6vw, 80px);
+  line-height: 1.02;
+}
+
+.featuredPlace {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(18px, 2vw, 26px);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+  margin-top: var(--space-5);
+}
+
+.extra {
+  font-weight: 600;
+  color: var(--white);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.extra:hover {
+  color: var(--fest-orange);
+}
+
+/* The cover sits where the flyer has its QR code, on the same white card. */
+.cover {
+  position: relative;
+  width: 220px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 8px solid var(--white);
+  border-radius: var(--radius-xl);
+  background: var(--white);
+}
+
+@media (max-width: 860px) {
+  .rowInner {
+    grid-template-columns: 1fr auto;
+  }
+
+  .rowDay {
+    grid-column: 1 / -1;
+    font-size: 18px;
+  }
+
+  .cover {
+    width: 160px;
+  }
+}
+
+@media (max-width: 520px) {
+  .rowInner {
+    grid-template-columns: 1fr;
+  }
+
+  .featuredInner {
+    grid-template-columns: 1fr;
+  }
+
+  .cover {
+    grid-row: 1;
+    width: 120px;
+  }
+}

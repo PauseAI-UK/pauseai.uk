@@ -1,0 +1,80 @@
+/* The flyer's top: an orange band, the name in Montserrat with the logo on a
+   black pill beside it, where and when along its foot, then the photo. */
+.band {
+  background: linear-gradient(180deg, var(--fest-orange) 0%, var(--fest-orange-light) 100%);
+  color: var(--ink);
+  padding: var(--space-8) 0 var(--space-6);
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+}
+
+.title {
+  margin: 0;
+  font-family: "Montserrat", var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(44px, 8.4vw, 118px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.fest {
+  color: var(--white);
+}
+
+.logo {
+  box-sizing: content-box;
+  width: clamp(110px, 14vw, 190px);
+  height: auto;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+}
+
+.where,
+.when {
+  margin: 0;
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(20px, 2.6vw, 36px);
+  line-height: 1.1;
+  color: var(--white);
+  text-shadow: 0 2px 6px rgb(var(--ink-rgb) / 0.25);
+}
+
+.when {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.when sup {
+  font-size: 0.5em;
+}
+
+.photo {
+  position: relative;
+  height: clamp(280px, 48vw, 640px);
+}
+
+@media (max-width: 520px) {
+  .band {
+    padding: var(--space-6) 0 var(--space-5);
+  }
+
+  .inner {
+    grid-template-columns: 1fr;
+  }
+
+  .logo {
+    display: none;
+  }
+
+  .when {
+    justify-self: start;
+  }
+}
