@@ -1303,7 +1303,7 @@ All events: ${link}`,
       read: "Read",
       failed: "Failed",
       bounced: "Bounced",
-      "opted-out": "⁂ Stopped",
+      "opted-out": "Stopped",
       replied: "⁂ Replied",
     },
     facts: {
