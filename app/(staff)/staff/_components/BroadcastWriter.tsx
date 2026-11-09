@@ -387,6 +387,14 @@ export default function BroadcastWriter({
   const [submitting, setSubmitting] = useState(false);
   // New words sent to WhatsApp, waiting for it to approve them.
   const waiting = draft.template?.status === "pending" ? draft.template : undefined;
+  // Once taken back, the words can be changed again: Write is brought fully into view once the page has them.
+  const withdrew = useRef(false);
+  const writeCard = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!withdrew.current) return;
+    withdrew.current = false;
+    writeCard.current!.scrollIntoView({ block: "start", behavior: "instant" });
+  }, [waiting]);
   // A text's words: an approved template's, or new ones, a tab each. New words
   // are kept while the other tab is open, so going back finds them.
   const [writingNew, setWritingNew] = useState(
@@ -587,7 +595,14 @@ export default function BroadcastWriter({
               )}
             </Card>
 
-            <Card span={6} title={<Numbered n={3}>{copy.sections.write}</Numbered>} id="write-title">
+            <Card
+              span={6}
+              title={<Numbered n={3}>{copy.sections.write}</Numbered>}
+              id="write-title"
+              ref={(element) => {
+                writeCard.current = element;
+              }}
+            >
               {email && (
                 <Field label={copy.subject}>
                   <TextInput value={values.subject} onChange={(event) => change({ subject: event.target.value })} />
@@ -632,7 +647,10 @@ export default function BroadcastWriter({
                       <TemplatePending
                         template={waiting}
                         withdraw={async () => {
-                          if (await actions.withdrawTemplate(id)) router.refresh();
+                          if (await actions.withdrawTemplate(id)) {
+                            withdrew.current = true;
+                            router.refresh();
+                          }
                         }}
                       />
                     ) : (
@@ -723,7 +741,11 @@ export default function BroadcastWriter({
                     onClick={async () => {
                       setSubmitting(true);
                       await saveNow();
-                      if ((await actions.submitTemplate(id)) === "submitted") router.refresh();
+                      // Up to the strip at the top that says they've gone, as the button is far below it.
+                      if ((await actions.submitTemplate(id)) === "submitted") {
+                        window.scrollTo({ top: 0, behavior: "instant" });
+                        router.refresh();
+                      }
                       setSubmitting(false);
                     }}
                   >

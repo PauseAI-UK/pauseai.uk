@@ -481,15 +481,21 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText(copy.testVia.textNew)).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
     const refreshes = navigation.refreshes;
+    // Sent, it goes up to the top, where the strip says they've gone.
+    const scrolled = vi.spyOn(window, "scrollTo");
     await button(copy.submitTemplate).click();
     await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledWith(4), WAIT);
     await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
+    expect(scrolled).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
+    scrolled.mockClear();
     // Refused: nothing to show again.
     actions.submitTemplate.mockResolvedValue("already");
     const before = navigation.refreshes;
     await button(copy.submitTemplate).click();
     await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledTimes(2), WAIT);
     expect(navigation.refreshes).toBe(before);
+    expect(scrolled).not.toHaveBeenCalled();
+    scrolled.mockRestore();
   });
 
   it("can't send words for approval before there are any, or while anything but the time stops it", async () => {
@@ -556,6 +562,30 @@ describe("BroadcastWriter, by text", () => {
     await button(copy.withdrawSure).click();
     await vi.waitFor(() => expect(actions.withdrawTemplate).toHaveBeenCalledTimes(2), WAIT);
     expect(navigation.refreshes).toBe(before);
+  });
+
+  it("brings Write fully into view once the words are taken back", async () => {
+    const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null, name: "Hi there" };
+    const actions = fakeActions();
+    const writer = (withTemplate: typeof template | null) => (
+      <BroadcastWriter
+        data={exampleBroadcastData}
+        draft={{ ...exampleBroadcastText, body: exampleTextWords, template: withTemplate }}
+        who={<p>Who</p>}
+        actions={actions as unknown as BroadcastWriterActions}
+      />
+    );
+    const screen = await render(writer(template));
+    const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");
+    await button(copy.withdrawTemplate).click();
+    await button(copy.withdrawSure).click();
+    await vi.waitFor(() => expect(actions.withdrawTemplate).toHaveBeenCalledWith(4), WAIT);
+    // Not until the page has the words back.
+    expect(scrolled).not.toHaveBeenCalled();
+    await screen.rerender(writer(null));
+    await vi.waitFor(() => expect(scrolled).toHaveBeenCalledWith({ block: "start", behavior: "instant" }), WAIT);
+    expect(scrolled.mock.contexts[0]).toBe(document.querySelector('[aria-labelledby="write-title"]'));
+    scrolled.mockRestore();
   });
 
   it("titles a new text as new until it has words", async () => {

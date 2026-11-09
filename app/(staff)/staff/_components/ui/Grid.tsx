@@ -88,6 +88,7 @@ export function Card({
   action,
   id,
   className,
+  ref,
   children,
 }: {
   span?: Span;
@@ -98,10 +99,13 @@ export function Card({
   /** The title's id, for the card's name; needed with `title`. */
   id?: string;
   className?: string;
+  /** The card's element, such as to bring it into view. */
+  ref?: (element: HTMLElement | null) => void;
   children: ReactNode;
 }) {
   return (
     <Tag
+      ref={ref}
       className={[styles.card, styles[look], span && SPANS[span], className].filter(Boolean).join(" ")}
       aria-labelledby={title ? id : undefined}
     >
