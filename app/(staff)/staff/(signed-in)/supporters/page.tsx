@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { savedFiltersState } from "@/lib/server/saved-filters";
 import { requireStaff } from "@/lib/server/staff-auth";
-import { newTo } from "@/lib/server/staff-nav-seen";
 import { listSupporters, supporterChoices } from "@/lib/server/supporters";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
@@ -10,8 +9,6 @@ import ErasedNotice from "../../_components/ErasedNotice";
 import SupporterFilters, { supporterWords } from "../../_components/SupporterFilters";
 import SupportersTable from "../../_components/SupportersTable";
 import { filteredTitle } from "../../_components/ui/FilterBar";
-import PageTitle from "../../_components/ui/PageTitle";
-import ImportSignupsButton from "../../_components/ImportSignupsButton";
 
 type Props = { searchParams: Promise<Partial<SupportersSearch>> };
 
@@ -22,19 +19,15 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return { title: filteredTitle(staffCopy.supporters.title, supporterWords(search, await supporterChoices())) };
 }
 
-/** Everyone we know of, filtered, newest activity first, with a button to import paper sign-ups, tagged new for a few days. */
+/** Everyone we know of, filtered, newest activity first. */
 export default async function SupportersPage({ searchParams }: Props) {
-  const { email } = await requireStaff("supporters");
+  await requireStaff("supporters");
   const saved = await savedFiltersState("supporters", await searchParams);
   const { filter, ...search } = supportersSearch(saved.params);
-  const [page, choices, importIsNew] = await Promise.all([
-    listSupporters(filter),
-    supporterChoices(),
-    newTo(email, "signupImport"),
-  ]);
+  const [page, choices] = await Promise.all([listSupporters(filter), supporterChoices()]);
   return (
     <>
-      <PageTitle action={<ImportSignupsButton isNew={importIsNew} />}>{staffCopy.supporters.title}</PageTitle>
+      <h1>{staffCopy.supporters.title}</h1>
       <ErasedNotice erased={search.erased} why={search.why} />
       <SupporterFilters
         search={search}

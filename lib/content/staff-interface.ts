@@ -82,6 +82,7 @@ export const staffCopy = {
     // Beside a page the staff member first saw in the last 3 days.
     newTag: "new",
     supporterEmails: "Blocked emails",
+    signupUpload: "Import sign-ups",
     mpEmails: "Blocked emails",
     logout: "Log out",
   },
@@ -394,8 +395,6 @@ export const staffCopy = {
   // The supporters list (/staff/supporters) and a supporter's page.
   supporters: {
     title: "Supporters",
-    // The button at the top of the list to the page importing a CSV of paper sign-ups.
-    importSignups: "Import sign-ups",
     none: "Nobody found.",
     // Over the list: how many there are.
     total: (total: number) => count(total, "supporter", "supporters"),

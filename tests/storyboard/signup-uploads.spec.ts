@@ -43,14 +43,12 @@ async function chooseEvent(page: Page, column: string) {
 
 test("A flyering file, linked to an event", async ({ page, flowDatabase, request }) => {
   await importLuma(request, BASE);
-  story("On the Supporters page, a button imports sign-ups, tagged new for the first few days.");
+  story(
+    "Staff open Import sign-ups, under Supporters in the navigation. Before any file, the page says what it needs.",
+  );
   await logIn(page, flowDatabase, ["supporters"]);
   await page.goto(`${BASE}/staff/supporters`);
-  await expect(page.getByText(staffCopy.nav.newTag, { exact: true })).toBeVisible();
-  await frame(page, "The Import sign-ups button");
-
-  story("It opens Import sign-ups. Before any file, the page says what it needs.");
-  await page.getByRole("link", { name: staffCopy.supporters.importSignups }).click();
+  await page.getByRole("link", { name: new RegExp(`^${staffCopy.nav.signupUpload}`) }).click();
   await expect(page.getByRole("heading", { name: copy.title, level: 1 })).toBeVisible();
   await frame(page, "Before a file: its four steps");
 

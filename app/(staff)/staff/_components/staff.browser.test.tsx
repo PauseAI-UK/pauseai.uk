@@ -219,6 +219,7 @@ describe("StaffNav", () => {
       "/staff/supporters",
       "/staff/campaigns",
       "/staff/supporters/blocked-emails",
+      "/staff/supporters/import",
     ]);
   });
 });

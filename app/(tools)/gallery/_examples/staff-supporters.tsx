@@ -5,7 +5,6 @@
 import { NoteFrom } from "@/app/(staff)/staff/_components/Notes";
 import EraseLink from "@/app/(staff)/staff/_components/EraseLink";
 import ErasedNotice from "@/app/(staff)/staff/_components/ErasedNotice";
-import ImportSignupsButton from "@/app/(staff)/staff/_components/ImportSignupsButton";
 import SupporterBadges from "@/app/(staff)/staff/_components/SupporterBadges";
 import SubscriptionBadges from "@/app/(staff)/staff/_components/SubscriptionBadges";
 import ChannelIcon from "@/app/(staff)/staff/_components/ChannelIcon";
@@ -250,14 +249,6 @@ export const staffSupporters: Group = {
             </StaffPage>
           ),
         },
-      ],
-    },
-    {
-      name: "ImportSignupsButton",
-      file: "app/(staff)/staff/_components/ImportSignupsButton.tsx",
-      variants: [
-        { label: "In its first few days", render: () => <ImportSignupsButton isNew /> },
-        { label: "After", render: () => <ImportSignupsButton isNew={false} /> },
       ],
     },
     {

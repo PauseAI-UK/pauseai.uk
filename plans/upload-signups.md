@@ -1,6 +1,6 @@
 # Import sign-ups
 
-A staff page, Import sign-ups, opened from the Supporters page. It takes a CSV
+A staff page, Import sign-ups, in the navigation under Supporters. It takes a CSV
 of paper forms filled in while flyering. Built on the `upload-signups-2` branch, and
 described in `docs/domain-concepts.md`, "Form entries". This plan holds only what's
 left before it can merge.
