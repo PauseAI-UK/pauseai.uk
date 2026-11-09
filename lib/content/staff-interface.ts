@@ -2231,7 +2231,7 @@ All events: ${link}`,
       // A page that lists events shows none.
       lumaEventsDown: "Luma couldn't be asked for the events, so the page shows none",
       // An import of sign-ups registered people on Luma, and they're copied at the next scheduled run instead.
-      lumaImportNotStarted: "⁂ The Luma import couldn't be started after importing sign-ups",
+      lumaImportNotStarted: "The Luma import couldn't be started after importing sign-ups",
       // A request from Postmark or the march form that isn't JSON, treated as empty.
       badBody: (from: string) => `${from} sent a body that isn't JSON`,
       // Nobody sees anything: a warning, as the next query carries on.
