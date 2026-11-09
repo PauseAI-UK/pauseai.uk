@@ -232,16 +232,16 @@ export function approvalProblems(problems: MessageScheduleProblem[]): MessageSch
 export function messageScheduleProblems(message: SchedulingMessage): MessageScheduleProblem[] {
   const blank = isBlankMailing(message.body);
   const email = message.channel === "email";
-  // In the order of the page's sections: who it's to, what's written, who it's from, when.
+  // In the order of the page's sections: who it's to, what's written, who it's from, then WhatsApp's approval, then when.
   const checks: [MessageScheduleProblem, boolean][] = [
     ["unknown-filter", message.unknown.length > 0],
     ["no-recipients", message.recipients === 0],
     ["no-subject", email && !message.subject.trim()],
     ["no-letter", email && blank],
     ["no-template", !email && blank],
-    ["not-approved", !email && !blank && !message.approved],
     ["not-connected", message.byGmail && !message.connected],
     ["no-number", !email && !message.numbered],
+    ["not-approved", !email && !blank && !message.approved],
     ["no-time", !message.dueAt],
     ["time-passed", Boolean(message.dueAt) && new Date(message.dueAt!) <= now()],
     ["cannot-send", !message.sends],

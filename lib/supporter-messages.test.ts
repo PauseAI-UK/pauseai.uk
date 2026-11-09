@@ -213,8 +213,18 @@ describe("messageScheduleProblems", () => {
     expect(approvalProblems(["no-recipients", "not-approved", "no-number"])).toEqual(["no-recipients", "no-number"]);
   });
 
-  it("wants a text's words approved by WhatsApp, but not an email's", () => {
+  it("wants a text's words approved by WhatsApp, but not an email's, said after all but the time", () => {
     expect(messageScheduleProblems({ ...good, channel: "text", approved: false })).toEqual(["not-approved"]);
+    expect(
+      messageScheduleProblems({
+        ...good,
+        channel: "text",
+        approved: false,
+        numbered: false,
+        recipients: 0,
+        dueAt: null,
+      }),
+    ).toEqual(["no-recipients", "no-number", "not-approved", "no-time"]);
     expect(messageScheduleProblems({ ...good, approved: false })).toEqual([]);
   });
 
