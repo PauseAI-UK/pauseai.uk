@@ -1276,7 +1276,7 @@ All events: ${link}`,
     // In place of the recipients of one scheduled, as sending finds them.
     recipientsNow: "Who it would go to if sent now. May change by the time it is sent.",
     columns: { who: "Supporter", status: "Status" },
-    erased: "⁂ Erased",
+    erased: "Erased supporter",
     // How a copy stands.
     statuses: {
       scheduled: "Scheduled",
