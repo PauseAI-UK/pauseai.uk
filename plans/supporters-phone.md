@@ -74,6 +74,20 @@ the stop is skipped with the reason. It's kept
 after erasure. A resume in WhatsApp's settings closes the stop it
 made; a new yes, on a form or to staff, closes any.
 
+A stop by WhatsApp, whichever way it's given, stops every text to that
+number, of every topic, as WhatsApp's own setting and Stop button are
+for the whole number. Choosing less, such as no more march-day texts
+but still event reminders, is for the preferences page an email's
+unsubscribe link opens (`plans/supporters-email.md`, "Opt-outs"), where
+a supporter sets what they get by each channel and topic: the same
+page, with texts on it too, reached later by a link in a text.
+
+Staff see a stop in three places: on the message it came from, as
+"Stopped" in its history (the provider's `opted-out` event); on the
+supporter's page, in their consent, as a no by that channel with how it
+was given and when; and in the supporter's list of broadcasts, where
+that broadcast's row says "Stopped" rather than delivered or read.
+
 These stops don't cover calls, which have their own ("Calls"). Global
 doesn't call or text, so all of them are ours alone, though CiviCRM
 has "Do not phone" and "Do not SMS" flags and its chapter contacts API
