@@ -189,14 +189,13 @@ describe("the staff examples", () => {
 
   it("logs clearing a politician's signature on their page", async () => {
     await render(<PoliticianDetailsExample />);
-    await page
+    const letter = page
       .getByRole("region", { name: staffCopy.politician.statusesTitle })
-      .getByRole("group", { name: "Example Letter to the PM" })
-      .getByText(staffCopy.politician.edit, { exact: true })
-      .click();
-    await page.getByRole("radio", { name: staffCopy.politician.clearAnswer }).click();
-    await page.getByLabelText(staffCopy.politician.note).fill("Their office wrote");
-    await page.getByRole("button", { name: staffCopy.politician.save }).click();
+      .getByRole("group", { name: "Example Letter to the PM" });
+    await letter.getByText(staffCopy.politician.edit, { exact: true }).click();
+    await letter.getByRole("radio", { name: staffCopy.politician.clearAnswer }).click();
+    await letter.getByLabelText(staffCopy.politician.note).fill("Their office wrote");
+    await letter.getByRole("button", { name: staffCopy.politician.save }).click();
     await expect
       .element(log().nth(0))
       .toHaveTextContent(

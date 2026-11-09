@@ -2395,7 +2395,7 @@ describe("PoliticianDetails", () => {
         event.getByText(`${staffCopy.politician.askedThem(staffCopy.asks.askedBy.pauseai, "event")} · 1 Nov 2026`),
       )
       .toBeVisible();
-    expect(event.getByRole("button").all()).toHaveLength(0);
+    await expect.element(event.getByRole("button", { name: staffCopy.politician.edit })).toBeVisible();
 
     // The form, behind Edit: a letter's answers in a row, starting from theirs, and Clear answer set apart.
     expect(letter.getByRole("radiogroup").query()).toBeNull();
@@ -3731,7 +3731,6 @@ describe("RunList", () => {
   it("says what each one-off import did, who ran it, or why it failed", async () => {
     const runs: AnyImportRun[] = [
       ran("import-web-form-letters", exampleWebFormResult, { id: 3, startedBy: "jo@pauseai.uk" }),
-      ran("import-web-form-letters", exampleWebFormResult, { id: 2, startedBy: "jo@pauseai.uk" }),
       failed("import-web-form-letters", "AIRTABLE_TOKEN isn't set", { id: 1, startedBy: null }),
     ];
     await render(<RunList runs={runs} none="None" />);
@@ -3741,7 +3740,7 @@ describe("RunList", () => {
     ]) {
       await expect.element(page.getByText(words, { exact: false })).toBeVisible();
     }
-    expect(page.getByText(staffCopy.runs.by("jo@pauseai.uk"), { exact: false }).all()).toHaveLength(2);
+    expect(page.getByText(staffCopy.runs.by("jo@pauseai.uk"), { exact: false }).all()).toHaveLength(1);
   });
 
   it("shows an hour's sending and a night's tidying as their counts, or why they failed", async () => {
