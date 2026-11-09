@@ -155,7 +155,7 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters?${EMAIL}`);
   await expect(page.getByRole("button", { name: copy.broadcastButton(EMAILABLE) })).toBeVisible();
   await frame(page, "The list, ready to broadcast");
-  story("It makes a draft to them and opens the writer: by email, from PauseAI UK, with who's left out.");
+  story("It makes a draft to them and opens the writer: by email, from PauseAI UK.");
   await page.getByRole("button", { name: copy.broadcastButton(EMAILABLE) }).click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.newTitle.email);

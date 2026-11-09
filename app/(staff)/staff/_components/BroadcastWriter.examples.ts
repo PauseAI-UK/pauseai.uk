@@ -154,19 +154,13 @@ const exampleParts: BroadcastPart[] = [
 const examplePartsCovering = exampleParts.map((part, i) => ({ ...part, covers: [120, 85, 12][i] }));
 
 /**
- * Those a broadcast finds, 23 of them with no name; and those left out: Pat
- * said no, Gus is blocked, and Tom asked us to stop.
+ * Those a broadcast finds, 23 of them with no name.
  */
 export const exampleBroadcastData: BroadcastWriterData = {
   filter: { list: "supporters", params: { contact: "email:site-forms:yes", near: "LS1" } },
   choices: exampleSupporterChoices,
   unknown: [],
   count: 412,
-  leftOut: [
-    { id: 9, name: "Pat Example", reason: "no-permission" },
-    { id: 10, name: "Gus Blocked", reason: "blocked" },
-    { id: 11, name: "Tom Sample", reason: "stopped" },
-  ],
   fields: [
     { id: "firstName", label: "First name", lacking: 23, fallback: true },
     { id: "name", label: "Name", lacking: 23, fallback: true },

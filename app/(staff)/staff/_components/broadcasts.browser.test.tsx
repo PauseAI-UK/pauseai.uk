@@ -212,12 +212,10 @@ describe("BroadcastWriter's Consent", () => {
 });
 
 describe("BroadcastWriter, by email", () => {
-  it("shows the six sections, who's left out and why, what it'll cost, and schedules", async () => {
+  it("shows the six sections, what it'll cost, and schedules", async () => {
     const actions = await renderWriter();
     await expect.element(page.getByRole("heading", { name: exampleBroadcastEmail.subject, level: 1 })).toBeVisible();
     await expect.element(page.getByText(copy.willGet(412, "email"))).toBeVisible();
-    await expect.element(page.getByText("Pat Example")).toBeInTheDocument();
-    await expect.element(page.getByText(`1 ${copy.leftOutCounted.stopped}`, { exact: false })).toBeVisible();
     await expect.element(page.getByText(broadcastCost("email", 412).about, { exact: false })).toBeVisible();
     await button(copy.schedule(412, "email")).click();
     await vi.waitFor(() => expect(actions.schedule).toHaveBeenCalledWith(3, 4), WAIT);
@@ -334,7 +332,7 @@ describe("BroadcastWriter, by email", () => {
 
   it("says when no one's left to send to, and when the filter's values are gone", async () => {
     await renderWriter({
-      data: { ...exampleBroadcastData, count: 0, leftOut: [], unknown: ["event=gone"] },
+      data: { ...exampleBroadcastData, count: 0, unknown: ["event=gone"] },
     });
     await expect.element(page.getByText(/event=gone/)).toBeVisible();
     await expect.element(page.getByText(copy.problems["no-recipients"])).toBeVisible();

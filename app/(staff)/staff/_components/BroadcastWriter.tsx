@@ -447,10 +447,6 @@ export default function BroadcastWriter({
     ) : (
       children
     );
-  const leftOutCounts = (["no-permission", "stopped", "blocked"] as const).flatMap((reason) => {
-    const n = data.leftOut.filter((one) => one.reason === reason).length;
-    return n ? [{ reason: copy.leftOutCounted[reason], n }] : [];
-  });
   // Choosing a template takes its words and name; new words, and their name, are kept while one is chosen.
   const chooseWords = (value: string) => {
     if (value === "new") {
@@ -535,19 +531,6 @@ export default function BroadcastWriter({
               )}
               {/* Greyed, it's to no one yet: who the Consent finds once it's chosen. */}
               {!blank && <p className={styles.count}>{copy.willGet(data.count, draft.channel)}</p>}
-              {data.leftOut.length > 0 && (
-                <details className={styles.leftOut}>
-                  <summary>{copy.leftOut(data.count + data.leftOut.length, leftOutCounts)}</summary>
-                  <ul>
-                    {data.leftOut.map((one) => (
-                      <li key={one.id}>
-                        <a href={`/staff/supporters/${one.id}`}>{one.name}</a>{" "}
-                        <Muted>{copy.leftOutReasons[one.reason]}</Muted>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
             </>,
           )}
         </Card>

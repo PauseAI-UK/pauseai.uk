@@ -1,5 +1,4 @@
 import "server-only";
-import type { ContactPermission } from "@/lib/contact-permissions";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { MailingChoice } from "@/lib/mailing-fields";
 import type { MailingRecipientValues } from "@/lib/mailing-doc";
@@ -26,25 +25,13 @@ export type SupporterRecipient = MailingRecipientValues & {
   place: string | null;
 };
 
-/** Someone the filter finds whom a broadcast can't go to, and why: no yes for this topic, a stop, or a blocked address. */
-export type BroadcastLeftOutReason = "no-permission" | "stopped" | "blocked";
-export type BroadcastLeftOut = { id: number; name: string; reason: BroadcastLeftOutReason };
-
 export type SupporterAudience = {
   recipients: SupporterRecipient[];
-  leftOut: BroadcastLeftOut[];
   /** The merge fields, with how many recipients lack a value for each and get its fallback. */
   fields: MailingChoice[];
   /** What a part can be only for, with how many recipients each covers. */
   conditions: MailingChoice[];
 };
-
-/** Why none of someone's addresses can be used: a stop or a block outranks never having said yes. */
-function whyLeftOut(answers: ContactPermission[]): BroadcastLeftOutReason {
-  if (answers.some((answer) => answer.reason === "blocked")) return "blocked";
-  const stops = ["unsubscribed", "removed", "ended"];
-  return answers.some((answer) => stops.includes(answer.reason)) ? "stopped" : "no-permission";
-}
 
 /** A part a broadcast's words can be only for: its condition, as its box says it, and as the editor's menu offers it. */
 export type BroadcastPart = Required<Pick<MailingChoice, "id" | "label" | "group" | "option">> &
@@ -107,25 +94,27 @@ function recipientValues(row: SupporterRow, parts: string[]): MailingRecipientVa
   };
 }
 
-/** Who a broadcast with this filter, channel and topic goes to and who it leaves out, and what its words can use. */
+/**
+ * Who a broadcast with this filter, channel and topic goes to, and what its
+ * words can use: those the filter finds with an address or number that said
+ * yes. Its Consent filter finds only them already; this is the check as
+ * sending makes it.
+ */
 export async function supporterAudience(filter: StoredFilter, terms: BroadcastTerms): Promise<SupporterAudience> {
   const { supporters } = await listSupporters(supportersSearch(filter.params).filter, null);
   const [parts, inParts] = await Promise.all([broadcastParts(), partsOf(supporters.map((row) => row.id))]);
   const channel = terms.channel === "email" ? "email" : "phone";
   const recipients: SupporterRecipient[] = [];
-  const leftOut: BroadcastLeftOut[] = [];
   for (const row of supporters) {
     const name = row.name || staffCopy.supporters.noName;
-    const answers = row.permissions.filter((one) => one.channel === channel && one.topic === terms.topic);
-    const yes = answers.find((answer) => answer.send === "yes");
-    if (!yes) {
-      leftOut.push({ id: row.id, name, reason: whyLeftOut(answers) });
-      continue;
-    }
+    const yes = row.permissions.find(
+      (one) => one.channel === channel && one.topic === terms.topic && one.send === "yes",
+    );
+    if (!yes) continue;
     const values = recipientValues(row, inParts.get(row.id) ?? []);
     recipients.push({ id: row.id, name, address: yes.address, place: row.place?.name ?? null, ...values });
   }
-  return { recipients, leftOut, ...broadcastChoices(recipients, parts) };
+  return { recipients, ...broadcastChoices(recipients, parts) };
 }
 
 /**

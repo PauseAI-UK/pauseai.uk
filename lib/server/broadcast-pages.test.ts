@@ -149,7 +149,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     await connectTestGmail(LETTERS_INBOX);
     const { draft, data } = await newBroadcastPageData(JO);
     expect(draft).toMatchObject({ id: 0, channel: "email", state: "draft", filter: { params: {} } });
-    expect(data).toMatchObject({ count: 0, leftOut: [], me: JO, templates: [] });
+    expect(data).toMatchObject({ count: 0, me: JO, templates: [] });
     expect(data.fields.map((field) => field.lacking)).toEqual([0, 0]);
     // Each condition a part can be for, as a draft's, covering no one yet.
     expect(data.conditions.length).toBeGreaterThan(0);

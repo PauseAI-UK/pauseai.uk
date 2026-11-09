@@ -18,7 +18,7 @@ import {
   type WhatsAppTemplate,
   type WrittenBroadcast,
 } from "./broadcast-drafts";
-import { broadcastChoices, broadcastParts, supporterAudience, type BroadcastLeftOut } from "./broadcast-recipients";
+import { broadcastChoices, broadcastParts, supporterAudience } from "./broadcast-recipients";
 import type { MailingSummary } from "./mailings";
 import { checkStoredFilter, filterProblems } from "./stored-filters";
 import { supporterChoices, type SupporterChoices } from "./supporters";
@@ -130,7 +130,6 @@ export type BroadcastWriterData = {
   unknown: string[];
   /** How many it goes to; its preview is for someone made up (fakeRecipient), so none of them is sent. */
   count: number;
-  leftOut: BroadcastLeftOut[];
   fields: MailingChoice[];
   conditions: MailingChoice[];
   /** The connected Gmail accounts an email can be from instead. */
@@ -173,7 +172,6 @@ async function writerData(draft: WrittenBroadcast, me: string): Promise<Broadcas
     choices,
     unknown,
     count: audience.recipients.length,
-    leftOut: audience.leftOut,
     fields: audience.fields,
     conditions: audience.conditions,
     // Never the letters inbox, which sends supporters' letters and nothing else.
@@ -224,7 +222,6 @@ export async function newBroadcastPageData(
       choices,
       unknown: [],
       count: 0,
-      leftOut: [],
       ...broadcastChoices([], parts),
       senders: senders.filter((sender) => !isLettersInboxAddress(sender.email)),
       me,

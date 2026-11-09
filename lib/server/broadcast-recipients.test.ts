@@ -22,8 +22,7 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
     );
     const jane = await addFollower("usr-1", "jane@example.com", "Jane Smith", { postcode: "M1 1AE" });
     const sam = await addFollower("usr-2", "sam@example.com", "");
-    const { recipients, fields, conditions, leftOut } = await supporterAudience(FILTER, EMAIL);
-    expect(leftOut).toEqual([]);
+    const { recipients, fields, conditions } = await supporterAudience(FILTER, EMAIL);
     expect(recipients.find((one) => one.id === jane)).toMatchObject({
       name: "Jane Smith",
       address: "jane@example.com",
@@ -91,36 +90,24 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
     expect(recipients.map((one) => one.address)).toEqual(["+447700900001"]);
   });
 
-  it("leaves out, with why, those with no yes, a stop or a blocked address", async () => {
-    const pat = await addFollower("usr-1", "pat@example.com", "Pat");
+  it("goes to none with no yes, a stop or a blocked address", async () => {
+    await addFollower("usr-1", "pat@example.com", "Pat");
     await query("UPDATE luma_people SET contact_since = NULL WHERE user_id = 'usr-1'");
-    const sam = await addFollower("usr-2", "sam@example.com", "Sam");
+    await addFollower("usr-2", "sam@example.com", "Sam");
     await query(
       `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)
        VALUES ('sam@example.com', 'luma-calendar', 'luma-webhook', 'msg-1', '2026-10-01T00:00:00Z')`,
     );
-    const bob = await addFollower("usr-3", "bob@example.com", "Bob");
+    await addFollower("usr-3", "bob@example.com", "Bob");
     await query(
       `WITH p AS (INSERT INTO email_problems (address, kind, at, can_reset) VALUES ('bob@example.com', 'hard', '2026-10-13T00:00:00Z', false) RETURNING id)
        INSERT INTO email_blocks (address, problem_id) SELECT 'bob@example.com', id FROM p`,
     );
     const nobody = await addFollower("usr-4", "nobody@example.com", "");
-    const { recipients, leftOut } = await supporterAudience(FILTER, { channel: "text", topic: "site-forms" });
+    const { recipients } = await supporterAudience(FILTER, { channel: "text", topic: "site-forms" });
     expect(recipients).toEqual([]);
-    expect(leftOut.map((one) => one.reason)).toEqual(expect.arrayContaining(["no-permission"]));
+    // Pat never said yes, Sam asked us to stop and Bob's address is blocked: only the one with no name goes, said so.
     const email = await supporterAudience(FILTER, EMAIL);
-    expect(email.recipients.map((one) => one.id)).toEqual([nobody]);
-    expect(email.leftOut).toEqual(
-      expect.arrayContaining([
-        { id: pat, name: "Pat", reason: "no-permission" },
-        { id: sam, name: "Sam", reason: "stopped" },
-        { id: bob, name: "Bob", reason: "blocked" },
-      ]),
-    );
-    // Someone with no name is said so.
-    await query("UPDATE luma_people SET contact_since = NULL WHERE user_id = 'usr-4'");
-    expect((await supporterAudience(FILTER, EMAIL)).leftOut.find((one) => one.id === nobody)?.name).toBe(
-      staffCopy.supporters.noName,
-    );
+    expect(email.recipients.map((one) => [one.id, one.name])).toEqual([[nobody, staffCopy.supporters.noName]]);
   });
 });

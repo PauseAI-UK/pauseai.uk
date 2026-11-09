@@ -30,7 +30,7 @@ export default function ChannelWriter({
     template: null,
   };
   // To no one yet, as who it goes to depends on the Consent still to be chosen.
-  const data = { ...props.data, count: 0, recipients: [], leftOut: [] };
+  const data = { ...props.data, count: 0, recipients: [] };
   return (
     <BroadcastWriter
       {...props}

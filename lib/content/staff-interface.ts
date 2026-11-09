@@ -1168,18 +1168,6 @@ All events: ${link}`,
     sections: { who: "To", write: "Write", preview: "Preview", from: "From", when: "When", send: "Send" },
     willGet: (n: number, channel: "email" | "text") =>
       `${count(n, "supporter", "supporters")} will be ${channel === "email" ? "emailed" : "texted"}.`,
-    leftOut: (found: number, counts: { reason: string; n: number }[]) =>
-      `⁂ Of ${found} the filters find, ${counts.reduce((all, one) => all + one.n, 0)} are left out: ${counts.map((one) => `${one.n} ${one.reason}`).join(", ")}.`,
-    leftOutCounted: {
-      "no-permission": "⁂ haven't said yes to this",
-      stopped: "⁂ have asked us to stop",
-      blocked: "⁂ have addresses that are blocked",
-    },
-    leftOutReasons: {
-      "no-permission": "⁂ hasn't said yes to this",
-      stopped: "⁂ asked us to stop",
-      blocked: "⁂ address blocked",
-    },
     cantSend:
       "⁂ Broadcasts can't be sent yet, by email or text. You can write one, and test an email by sending it to yourself.",
     // Write.
