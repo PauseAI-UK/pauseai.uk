@@ -29,6 +29,7 @@ import type { PhotoView } from "@/lib/collateral/photoTransform";
 import { renderCollateral, type RenderOptions } from "@/lib/collateral/render";
 import { defaultValues, type Drawable } from "@/lib/collateral/templates";
 import { CLEAR_PHOTO_LOGO_SRC, getTheme } from "@/lib/collateral/themes";
+import { count } from "@/lib/content/plural";
 import Checks from "./Checks";
 import CropControls from "./CropControls";
 import DesignControls from "./DesignControls";
@@ -317,8 +318,7 @@ export default function PackStudio({ events }: { events: CalendarEvent[] }) {
     formats.length === 0
       ? "Tick at least one format."
       : [
-          designWarnings &&
-            `${designWarnings} ${designWarnings === 1 ? "problem affects" : "problems affect"} every format.`,
+          designWarnings && `${count(designWarnings, "problem affects", "problems affect")} every format.`,
           needAttention
             ? `${needAttention} of ${formats.length} formats need a look of their own.`
             : designWarnings
@@ -354,7 +354,7 @@ export default function PackStudio({ events }: { events: CalendarEvent[] }) {
             {summary}
           </p>
           <DownloadButton onClick={onDownloadPack} disabled={!ready || formats.length === 0} pending={busy}>
-            {`Download ${formats.length} ${formats.length === 1 ? "format" : "formats"} (.zip)`}
+            {`Download ${count(formats.length, "format", "formats")} (.zip)`}
           </DownloadButton>
           <ProjectMenu
             noun="pack"
