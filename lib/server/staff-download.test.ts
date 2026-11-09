@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { DownloadAction } from "@/lib/audit-events";
 import { query } from "@/lib/server/db";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
@@ -58,21 +59,22 @@ describeWithDatabase("staffDownload", () => {
       rows: [{ name: "Ann" }],
       contact,
     });
-  const route = (contact?: Download<Row>["contact"], log?: string) => (request: Parameters<typeof staffDownload>[0]) =>
-    staffDownload(request, "jo@pauseai.uk", load(contact), log);
+  const route =
+    (contact?: Download<Row>["contact"], log?: DownloadAction) => (request: Parameters<typeof staffDownload>[0]) =>
+      staffDownload(request, "jo@pauseai.uk", load(contact), log);
 
   it("gives the rows the filters find, in the format asked for, and logs it when asked", async () => {
-    const res = await downloadAs(route(undefined, "download people"), "https://pauseai.uk/x?format=csv&q=ann");
+    const res = await downloadAs(route(undefined, "download supporters"), "https://pauseai.uk/x?format=csv&q=ann");
     // A parameter that repeats keeps every value.
-    await downloadAs(route(undefined, "download twice"), "https://pauseai.uk/x?format=csv&q=ann&q=bob");
-    expect(await query("SELECT details->'filters' AS filters FROM audit_log WHERE action = 'download twice'")).toEqual([
-      { filters: ["Search ann", "Search bob"] },
-    ]);
+    await downloadAs(route(undefined, "download blocked emails"), "https://pauseai.uk/x?format=csv&q=ann&q=bob");
+    expect(
+      await query("SELECT details->'filters' AS filters FROM audit_log WHERE action = 'download blocked emails'"),
+    ).toEqual([{ filters: ["Search ann", "Search bob"] }]);
     expect(await res.text()).toContain("Name\r\nAnn\r\n");
-    expect(await query("SELECT actor, action, details FROM audit_log WHERE action = 'download people'")).toEqual([
+    expect(await query("SELECT actor, action, details FROM audit_log WHERE action = 'download supporters'")).toEqual([
       {
         actor: "jo@pauseai.uk",
-        action: "download people",
+        action: "download supporters",
         details: { filters: ["Search ann"], format: "csv", rows: 1 },
       },
     ]);
@@ -80,7 +82,7 @@ describeWithDatabase("staffDownload", () => {
 
   it("gives vCards with a code of their own, in each name, the filename and the log", async () => {
     const res = await downloadAs(
-      route((row) => ({ name: row.name, emails: [], phones: [], url: "/p/1" }), "download people"),
+      route((row) => ({ name: row.name, emails: [], phones: [], url: "/p/1" }), "download supporters"),
       "https://pauseai.uk/x?format=vcf",
     );
     const cards = await res.text();
@@ -88,7 +90,7 @@ describeWithDatabase("staffDownload", () => {
     expect(cards).toContain("URL:https://pauseai.uk/p/1");
     expect(res.headers.get("Content-Disposition")).toContain(`people_${code.toLowerCase()}_`);
     const [{ details }] = await query<{ details: { code: string } }>(
-      "SELECT details FROM audit_log WHERE action = 'download people'",
+      "SELECT details FROM audit_log WHERE action = 'download supporters'",
     );
     expect(details.code).toBe(code);
   });

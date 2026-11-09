@@ -1,5 +1,6 @@
 import "server-only";
 import { IMPORT_JOBS, JOB_SCHEDULES, type ImportJob, type TidyingResult } from "@/lib/import-runs";
+import { auditActions } from "./audit";
 import { keepingFailure, recordRun } from "./import-runs";
 import { deleteForgottenDrafts } from "./mailing-drafts";
 import { query } from "./db";
@@ -28,11 +29,11 @@ const jobsThat = (schedule: (typeof JOB_SCHEDULES)[ImportJob]) =>
 
 /** An audit log entry `a` that's part of a politician's history, while they're here. */
 const POLITICIAN_HISTORY = `(
-  (a.action IN ('add politician', 'edit politician', 'remove politician')
+  (a.action IN (${auditActions("add politician", "edit politician", "remove politician")})
     AND EXISTS (SELECT 1 FROM notable_people n WHERE n.id::text = a.details->>'id'))
-  OR (a.action = 'set status'
+  OR (a.action = ${auditActions("set status")}
     AND EXISTS (SELECT 1 FROM notable_people n WHERE n.id::text = a.details->>'politicianId'))
-  OR (a.action IN ('block address', 'unblock address')
+  OR (a.action IN (${auditActions("block address", "unblock address")})
     AND EXISTS (SELECT 1 FROM notable_people n WHERE lower(n.email) = a.details->>'address')))`;
 
 /** One run of the tidying, kept in the import log: the logs (below), and the mailing drafts nobody wrote anything in. */

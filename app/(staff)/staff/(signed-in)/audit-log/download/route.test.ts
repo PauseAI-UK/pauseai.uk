@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { addAuditEntry, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { downloadAs } from "@/tests/staff-download";
-import { logChange } from "@/lib/server/audit";
 import { GET } from "./route";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
@@ -16,7 +15,7 @@ describeWithDatabase("GET /staff/audit-log/download", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("gives the whole log, its details as logged, to admins who see supporters", async () => {
-    await logChange("jo@pauseai.uk", "erase supporter", { id: 9 });
+    await addAuditEntry("jo@pauseai.uk", "erase supporter", { id: 9 });
     const rows = await (
       await downloadAs(GET, "https://pauseai.uk/staff/audit-log/download?format=json", ["admin", "supporters"])
     ).json();
@@ -24,9 +23,9 @@ describeWithDatabase("GET /staff/audit-log/download", () => {
   });
 
   it("gives what the log's filters find, in the order chosen, named for them", async () => {
-    await logChange("jo@pauseai.uk", "add note", { noteId: 1 });
-    await logChange("sam@pauseai.uk", "add note", { noteId: 2 });
-    await logChange("sam@pauseai.uk", "edit event", {});
+    await addAuditEntry("jo@pauseai.uk", "add note", { noteId: 1 });
+    await addAuditEntry("sam@pauseai.uk", "add note", { noteId: 2 });
+    await addAuditEntry("sam@pauseai.uk", "edit event", {});
     const response = await downloadAs(
       GET,
       "https://pauseai.uk/staff/audit-log/download?format=json&action=add+note&sort=actor&dir=asc",
@@ -41,7 +40,7 @@ describeWithDatabase("GET /staff/audit-log/download", () => {
   });
 
   it("leaves out entries about supporters for an admin who doesn't", async () => {
-    await logChange("jo@pauseai.uk", "erase supporter", { id: 9 });
+    await addAuditEntry("jo@pauseai.uk", "erase supporter", { id: 9 });
     const rows = await (
       await downloadAs(GET, "https://pauseai.uk/staff/audit-log/download?format=json", ["admin"])
     ).json();

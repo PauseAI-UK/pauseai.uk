@@ -1,5 +1,6 @@
 import "server-only";
 import type { NextRequest } from "next/server";
+import type { DownloadAction } from "@/lib/audit-events";
 import { now } from "@/lib/now";
 import { siteUrl } from "@/lib/site-url";
 import {
@@ -75,7 +76,7 @@ export async function staffDownload<Row>(
   request: NextRequest,
   email: string,
   load: (params: Record<string, ParamValue>) => Promise<Download<Row>>,
-  log?: string,
+  log?: DownloadAction,
 ): Promise<Response> {
   // Each parameter, a list where it repeats, as a page's search params have it.
   const search = request.nextUrl.searchParams;

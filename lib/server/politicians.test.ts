@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { addTestLetter, addTestMp, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import {
+  addAuditEntry,
+  addTestLetter,
+  addTestMp,
+  addTestPolitician,
+  describeWithDatabase,
+  useTestDatabase,
+} from "@/tests/database";
 import { query, transaction } from "./db";
 import {
   addPolitician,
@@ -646,7 +653,7 @@ describeWithDatabase("politicians", () => {
     const peer = await addPeer();
     const mp = await addTestPolitician();
     // As the MP sync logs an edit.
-    await logChange("samuel.whitlock@pauseai.uk", "edit politician", { id: peer, name: "Lord Example" });
+    await addAuditEntry("samuel.whitlock@pauseai.uk", "edit politician", { id: peer, name: "Lord Example" });
     await setStatus(mp, PM, { status: "signed", date: null, note: "" }, "jo@pauseai.uk");
     await setStatus(peer, PM, { status: "signed", date: null, note: "" }, "jo@pauseai.uk");
     await recordProblem({
@@ -662,10 +669,10 @@ describeWithDatabase("politicians", () => {
       note: "Back",
     });
     // As the imports log them: added, and gone from Airtable.
-    await logChange("jo@pauseai.uk", "add politician", { id: peer, name: "Lord Example" });
+    await addAuditEntry("jo@pauseai.uk", "add politician", { id: peer, name: "Lord Example" });
     await logChange("sync", "remove politician", { id: peer, name: "Lord Example" });
     // Not theirs: a held sync's run with the same id, and someone else's status.
-    await logChange("jo@pauseai.uk", "apply held MP sync", { id: peer });
+    await logChange("jo@pauseai.uk", "apply held politician sync", { id: peer });
     expect((await politicianHistory(peer, null)).map((c) => [c.action, c.actor])).toEqual([
       ["remove politician", "sync"],
       ["add politician", "jo@pauseai.uk"],

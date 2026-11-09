@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { addAuditEntry, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { AUDIT_PAGE_SIZE, changeChoices, logChange, recentChanges, type ChangesFilter } from "./audit";
 import { query } from "./db";
 
@@ -7,12 +7,12 @@ describeWithDatabase("the change log", () => {
   useTestDatabase();
 
   it("lists changes, newest first, a page at a time", async () => {
-    await logChange("jo@pauseai.uk", "first", { a: 1 });
-    await logChange("sync", "second", {});
+    await logChange("jo@pauseai.uk", "create mailing", { id: 1 });
+    await addAuditEntry("sync", "second", {});
     const { changes, pages } = await recentChanges(true);
     expect(changes.map(({ actor, action, details }) => ({ actor, action, details }))).toEqual([
       { actor: "sync", action: "second", details: {} },
-      { actor: "jo@pauseai.uk", action: "first", details: { a: 1 } },
+      { actor: "jo@pauseai.uk", action: "create mailing", details: { id: 1 } },
     ]);
     expect(pages).toBe(1);
     await query(
@@ -22,18 +22,18 @@ describeWithDatabase("the change log", () => {
     expect((await recentChanges(true)).changes).toHaveLength(AUDIT_PAGE_SIZE);
     const last = await recentChanges(true, { page: 2 });
     expect(last.pages).toBe(2);
-    expect(last.changes.map((c) => c.action)).toEqual(["second", "first"]);
+    expect(last.changes.map((c) => c.action)).toEqual(["second", "create mailing"]);
   });
 
   it("names the politician or supporter an entry is about, while they're here", async () => {
     const polly = await addTestPolitician();
     await query("INSERT INTO supporters DEFAULT VALUES");
-    await logChange("jo@pauseai.uk", "set status", { politicianId: polly });
-    await logChange("sync", "edit politician", { id: polly, name: "Polly Placeholder" });
-    await logChange("sync", "remove politician", { id: 999 });
-    await logChange("jo@pauseai.uk", "view supporter", { id: 1 });
-    await logChange("jo@pauseai.uk", "add note", { noteId: 1, supporterId: 1 });
-    await logChange("jo@pauseai.uk", "erase supporter", { id: 1 });
+    await addAuditEntry("jo@pauseai.uk", "set status", { politicianId: polly });
+    await addAuditEntry("sync", "edit politician", { id: polly, name: "Polly Placeholder" });
+    await addAuditEntry("sync", "remove politician", { id: 999 });
+    await addAuditEntry("jo@pauseai.uk", "view supporter", { id: 1 });
+    await addAuditEntry("jo@pauseai.uk", "add note", { noteId: 1, supporterId: 1 });
+    await addAuditEntry("jo@pauseai.uk", "erase supporter", { id: 1 });
     const about = (await recentChanges(true)).changes.map(({ action, politician, supporter }) => [
       action,
       politician,
@@ -55,14 +55,14 @@ describeWithDatabase("the change log", () => {
       "SELECT lower(email) AS email FROM notable_people WHERE id = $1",
       [polly],
     );
-    await logChange("jo@pauseai.uk", "add note", { noteId: 1, supporterId: 1 });
-    await logChange("jo@pauseai.uk", "add note", { noteId: 2, politicianId: polly });
-    await logChange("jo@pauseai.uk", "view supporter", { id: 1 });
-    await logChange("jo@pauseai.uk", "erase supporter", { id: 1 });
-    await logChange("jo@pauseai.uk", "download supporters", { filters: ["jane@example.com"] });
-    await logChange("postmark", "block address", { address: "jane@example.com" });
-    await logChange("postmark", "block address", { address: email });
-    await logChange("jo@pauseai.uk", "unblock address", { address: "jane@example.com", note: "Checked" });
+    await addAuditEntry("jo@pauseai.uk", "add note", { noteId: 1, supporterId: 1 });
+    await addAuditEntry("jo@pauseai.uk", "add note", { noteId: 2, politicianId: polly });
+    await addAuditEntry("jo@pauseai.uk", "view supporter", { id: 1 });
+    await addAuditEntry("jo@pauseai.uk", "erase supporter", { id: 1 });
+    await addAuditEntry("jo@pauseai.uk", "download supporters", { filters: ["jane@example.com"] });
+    await addAuditEntry("postmark", "block address", { address: "jane@example.com" });
+    await addAuditEntry("postmark", "block address", { address: email });
+    await addAuditEntry("jo@pauseai.uk", "unblock address", { address: "jane@example.com", note: "Checked" });
     await query("DELETE FROM audit_log WHERE action = 'add politician'");
     const limited = await recentChanges(false);
     expect(limited.total).toBe(2);
@@ -130,9 +130,9 @@ describeWithDatabase("the change log", () => {
       "INSERT INTO supporter_links (supporter_id, form_entry_id, matched_by, matched_value) VALUES ($1, $2, 'email', 'jane.smith@example.com')",
       [jane, entry.id],
     );
-    await logChange("jo@pauseai.uk", "edit event", { owner: "morag@pauseai.uk" });
-    await logChange("sam@pauseai.uk", "add note", { noteId: 1, politicianId: polly });
-    await logChange("sam@pauseai.uk", "view supporter", { id: jane });
+    await addAuditEntry("jo@pauseai.uk", "edit event", { owner: "morag@pauseai.uk" });
+    await addAuditEntry("sam@pauseai.uk", "add note", { noteId: 1, politicianId: polly });
+    await addAuditEntry("sam@pauseai.uk", "view supporter", { id: jane });
     const found = async (search: string) => (await recentChanges(true, { search })).changes.map((c) => c.action);
     expect(await found("MORAG")).toEqual(["edit event"]);
     expect(await found("sam@")).toEqual(["view supporter", "add note"]);

@@ -194,6 +194,18 @@ export function addTestMp(email: string | null = "test-mp@parliament.example"): 
   });
 }
 
+/**
+ * Adds an entry straight into the audit log, of any action and details: only
+ * what the reader of an entry needs, or an action logChange doesn't log.
+ */
+export async function addAuditEntry(actor: string, action: string, details: object): Promise<void> {
+  await query("INSERT INTO audit_log (actor, action, details) VALUES ($1, $2, $3)", [
+    actor,
+    action,
+    JSON.stringify(details),
+  ]);
+}
+
 /** Runs `work` with the database unreachable, then reconnects. */
 export async function withDatabaseDown<T>(work: () => Promise<T>): Promise<T> {
   const url = process.env.NETLIFY_DB_URL;

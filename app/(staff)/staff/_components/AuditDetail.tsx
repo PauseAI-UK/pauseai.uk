@@ -1,6 +1,7 @@
 import StaffLink from "./ui/StaffLink";
 import { Fragment, type ReactNode } from "react";
 import { Muted } from "@/components/ui/Text";
+import type { AuditAction, AuditEvent, StoredAuditDetails } from "@/lib/audit-events";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffDate } from "@/lib/staff-time";
 import type { FieldChange } from "@/lib/field-changes";
@@ -88,105 +89,178 @@ function Field({ name, value, airtableTable }: { name: string; value: unknown; a
  * note). `airtableTable` is the table an Airtable ID is a record of.
  */
 export default function AuditDetail({ change, airtableTable }: { change: LoggedChange; airtableTable: string }) {
-  const { details } = change;
-  const used = new Set<string>();
-  const take = (...keys: string[]) => keys.forEach((key) => used.add(key));
-  const text = (key: string) => (typeof details[key] === "string" ? (details[key] as string) : "");
-  const lead: ReactNode[] = [];
-  switch (change.action) {
-    case "set status":
-    case "add politician":
-    case "edit politician":
-    case "remove politician":
-    case "delete politician":
-      take("politicianId", "id", "name");
-      lead.push(
-        <Who
-          named={change.politician}
-          href="/staff/politicians"
-          name={text("name")}
-          id={details.politicianId ?? details.id}
-        />,
-      );
-      break;
-    case "view supporter":
-      take("id");
-      lead.push(<Who named={change.supporter} href="/staff/supporters" name="" id={details.id} />);
-      break;
-    // Which note isn't said: only whom it's about.
-    case "add note":
-    case "edit note":
-    case "delete note":
-      take("noteId", "politicianId", "supporterId");
-      lead.push(
-        details.politicianId ? (
-          <Who named={change.politician} href="/staff/politicians" name="" id={details.politicianId} />
-        ) : (
-          <Who named={change.supporter} href="/staff/supporters" name="" id={details.supporterId} />
-        ),
-      );
-      break;
-    case "save filter":
-    case "update filter":
-    case "rename filter":
-    case "delete filter":
-      take("id", "list");
-      lead.push(copy.savedFilter(text("list"), String(details.id)));
-      break;
-    case "erase supporter":
-      take("id");
-      lead.push(copy.gone(String(details.id)));
-      break;
-    // Logged by the politician sync, or before it read every body, the MP sync.
-    case "apply held politician sync":
-    case "discard held politician sync":
-    case "apply held MP sync":
-    case "discard held MP sync":
-      take("id");
-      lead.push(<StaffLink href={importPath("sync-politicians")}>{copy.run(String(details.id))}</StaffLink>);
-      break;
-    case "add staff account":
-    case "set staff permissions":
-    case "remove staff account":
-    case "block address":
-    case "unblock address":
-      take("email", "address");
-      lead.push(text("email") || text("address"));
-      break;
-  }
-  if (change.action === "set status") {
-    take("status", "ask", "campaign", "date");
-    const words =
-      details.status === null
-        ? staffCopy.politician.statusCleared
-        : staffCopy.politician.statusSet(staffCopy.statuses[text("status")] ?? text("status"));
-    lead.push(
-      <>
-        {words.before}
-        {/* By ask's slug, or, logged before asks, by campaign. */}
-        {details.ask ? text("ask") : <CampaignName slug={text("campaign")} />}
-        {words.after}
-        {text("date") && `, ${staffDate(text("date"))}`}
-      </>,
-    );
-  }
-  if (change.action === "set staff permissions") {
-    take("from", "to");
-    lead.push(`${permissionNames(details.from)} → ${permissionNames(details.to)}`);
-  }
+  const { fields, parts } = leadOf(change);
   // Leaving out what has nothing in it: an empty note, a null date, a change of nothing. An empty list
   // says something ("No permissions"), so it stays.
   const empty = (value: unknown) =>
     value === null ||
     value === "" ||
     (typeof value === "object" && !Array.isArray(value) && Object.keys(value as object).length === 0);
-  const rest = Object.entries(details).filter(([key, value]) => !used.has(key) && !empty(value));
+  const rest = Object.entries(change.details).filter(([key, value]) => !fields.includes(key) && !empty(value));
   return (
     <DotParts>
       {[
-        ...lead,
+        ...parts,
         ...rest.map(([key, value]) => <Field key={key} name={key} value={value} airtableTable={airtableTable} />),
       ]}
     </DotParts>
   );
+}
+
+/** What an entry says first, before the rest of its fields: its parts, and the fields they say. */
+type Lead = { parts: ReactNode[]; fields: string[] };
+
+/** An entry's lead, from its details as action `A` logs them. */
+type LeadOf<A extends AuditAction> = (details: StoredAuditDetails[A], change: LoggedChange) => Lead;
+
+const NO_LEAD: Lead = { parts: [], fields: [] };
+
+/** For an action whose fields say it all. */
+const none = () => NO_LEAD;
+
+/** About a politician, by the name it gave. */
+const politician: LeadOf<"add politician" | "edit politician" | "remove politician" | "delete politician"> = (
+  details,
+  change,
+) => ({
+  parts: [<Who key="about" named={change.politician} href="/staff/politicians" name={details.name} id={details.id} />],
+  fields: ["id", "name"],
+});
+
+/** About a politician, and the answer set or cleared. */
+const status: LeadOf<"set status"> = (details, change) => {
+  const words =
+    details.status === null
+      ? staffCopy.politician.statusCleared
+      : staffCopy.politician.statusSet(staffCopy.statuses[details.status] ?? details.status);
+  return {
+    parts: [
+      <Who key="about" named={change.politician} href="/staff/politicians" name="" id={details.politicianId} />,
+      <>
+        {words.before}
+        {/* By ask's slug, or, logged before asks, by campaign. */}
+        {"ask" in details ? details.ask : <CampaignName slug={details.campaign} />}
+        {words.after}
+        {details.date && `, ${staffDate(details.date)}`}
+      </>,
+    ],
+    fields: ["politicianId", "status", "ask", "campaign", "date"],
+  };
+};
+
+/** Which note isn't said: only whom it's about. */
+const note: LeadOf<"add note" | "edit note" | "delete note"> = (details, change) => ({
+  parts: [
+    "politicianId" in details ? (
+      <Who named={change.politician} href="/staff/politicians" name="" id={details.politicianId} />
+    ) : (
+      <Who named={change.supporter} href="/staff/supporters" name="" id={details.supporterId} />
+    ),
+  ],
+  fields: ["noteId", "politicianId", "supporterId"],
+});
+
+const savedFilter: LeadOf<"save filter" | "update filter" | "rename filter" | "delete filter"> = (details) => ({
+  parts: [copy.savedFilter(details.list, String(details.id))],
+  fields: ["id", "list"],
+});
+
+/** Logged by the politician sync, or before it read every body, the MP sync. */
+const heldSync: LeadOf<
+  "apply held politician sync" | "discard held politician sync" | "apply held MP sync" | "discard held MP sync"
+> = (details) => ({
+  parts: [
+    <StaffLink key="run" href={importPath("sync-politicians")}>
+      {copy.run(String(details.id))}
+    </StaffLink>,
+  ],
+  fields: ["id"],
+});
+
+const account: LeadOf<"add staff account" | "remove staff account"> = (details) => ({
+  parts: [details.email],
+  fields: ["email"],
+});
+
+const address: LeadOf<"block address" | "unblock address"> = (details) => ({
+  parts: [details.address],
+  fields: ["address"],
+});
+
+/** Each action's lead: whom or what it's about, linked where there's a page. */
+const LEADS: { [A in AuditAction]: LeadOf<A> } = {
+  "set status": status,
+  "add politician": politician,
+  "edit politician": politician,
+  "remove politician": politician,
+  "delete politician": politician,
+  "view supporter": (details, change) => ({
+    parts: [<Who key="about" named={change.supporter} href="/staff/supporters" name="" id={details.id} />],
+    fields: ["id"],
+  }),
+  "add note": note,
+  "edit note": note,
+  "delete note": note,
+  "save filter": savedFilter,
+  "update filter": savedFilter,
+  "rename filter": savedFilter,
+  "delete filter": savedFilter,
+  "erase supporter": (details) => ({ parts: [copy.gone(String(details.id))], fields: ["id"] }),
+  "apply held politician sync": heldSync,
+  "discard held politician sync": heldSync,
+  "apply held MP sync": heldSync,
+  "discard held MP sync": heldSync,
+  "add staff account": account,
+  "set staff permissions": (details) => ({
+    parts: [details.email, `${permissionNames(details.from)} → ${permissionNames(details.to)}`],
+    fields: ["email", "from", "to"],
+  }),
+  "remove staff account": account,
+  "block address": address,
+  "unblock address": address,
+  "apply politician sync": none,
+  "hold politician sync": none,
+  "apply MP sync": none,
+  "hold MP sync": none,
+  "import ControlAI letter": none,
+  "import Go to Parliament": none,
+  "import web form letters": none,
+  "import signatories from Airtable": none,
+  "copy PauseAI emails": none,
+  "remove supports status": none,
+  "add ask": none,
+  "edit ask": none,
+  "delete ask": none,
+  "end staff sessions": none,
+  "connect gmail": none,
+  "disconnect gmail": none,
+  "set event owner": none,
+  "set event doc": none,
+  "create mailing": none,
+  "schedule mailing": none,
+  "reschedule mailing": none,
+  "stop mailing": none,
+  "delete mailing": none,
+  "start mailing": none,
+  "finish mailing": none,
+  "download supporters": none,
+  "download blocked emails": none,
+  "download letters": none,
+};
+
+/**
+ * An entry's lead, its details taken to be as its action logs them; none
+ * for an action not known here, which the log may still hold.
+ */
+function leadOf(change: LoggedChange): Lead {
+  return Object.hasOwn(LEADS, change.action) ? leadOfEvent(change as unknown as AuditEvent, change) : NO_LEAD;
+}
+
+/** The lead an entry's action gives, from its details: generic in the action, so each meets its own. */
+function leadOfEvent<A extends AuditAction>(
+  event: { action: A; details: StoredAuditDetails[A] },
+  change: LoggedChange,
+) {
+  const lead: LeadOf<A> = LEADS[event.action];
+  return lead(event.details, change);
 }

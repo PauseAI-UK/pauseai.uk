@@ -132,7 +132,8 @@ export async function saveStaffAccount(email: string, permissions: Permission[],
       [address, to, by],
       db,
     );
-    await logChange(by, from ? "set staff permissions" : "add staff account", { email: address, from, to }, db);
+    if (from) await logChange(by, "set staff permissions", { email: address, from, to }, db);
+    else await logChange(by, "add staff account", { email: address, to }, db);
     return "changed";
   });
 }

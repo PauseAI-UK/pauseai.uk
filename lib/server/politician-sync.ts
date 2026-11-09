@@ -1,4 +1,5 @@
 import "server-only";
+import type { AskStatus } from "@/lib/asks";
 import { changedFields } from "@/lib/field-changes";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { importPath, type PoliticianSyncResult, type StatusCounts } from "@/lib/import-runs";
@@ -190,7 +191,7 @@ async function applyStatuses(records: PoliticianRecord[], db: Queryable): Promis
     [JSON.stringify(wanted)],
     db,
   );
-  const added = await query<{ politicianId: number; ask: string; status: string; date: string }>(
+  const added = await query<{ politicianId: number; ask: string; status: AskStatus; date: string }>(
     `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, updated_by)
      SELECT w.person, w.ask, w.kind, w.status,
        CASE WHEN EXISTS (SELECT 1 FROM ask_statuses s WHERE s.ask = w.ask AND s.updated_by = $1) THEN now()::date
@@ -202,7 +203,7 @@ async function applyStatuses(records: PoliticianRecord[], db: Queryable): Promis
     [AIRTABLE],
     db,
   );
-  const changed = await query<{ politicianId: number; ask: string; status: string; date: string }>(
+  const changed = await query<{ politicianId: number; ask: string; status: AskStatus; date: string }>(
     `UPDATE ask_statuses s SET status = w.status, status_date = now()::date, updated_at = now()
      FROM airtable_statuses w
      WHERE s.notable_person_id = w.person AND s.ask = w.ask AND s.updated_by = $1 AND s.status <> w.status
