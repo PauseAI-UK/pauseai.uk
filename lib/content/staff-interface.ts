@@ -1200,7 +1200,7 @@ All events: ${link}`,
       textNew: "A test copy can only be sent after WhatsApp has approved the template.",
       textOff: "You can't send test texts, as WhatsApp isn't configured yet.",
     },
-    testSent: (to: string) => `⁂ Sent to ${to}.`,
+    testSent: (to: string) => `Sent to ${to}.`,
     testFailed: "⁂ The test copy couldn't be sent.",
     // From.
     // Each address an email can go from, with what sends it: Postmark, or a staff member's Gmail.
