@@ -31,6 +31,16 @@ start`), so it is slower. Use it only for what Vitest can't see:
 `coverage/`. CI fails if it drops below the thresholds in
 `vitest.config.mts`.
 
+While writing tests, `npm run test:changed` is quicker: it runs only the
+tests for the files changed since `origin/main`, committed or not (Vitest's
+`--changed`), measures coverage of only the changed source files, and then
+lists each one's lines not run, functions not called and branches not
+taken. It reports coverage even when a test fails, such as
+`tests/checks/placeholder-copy.test.ts` while copy is a placeholder.
+Anything after `--` goes to Vitest (`npm run test:changed -- --project
+node`). A change to `package.json` or the Vitest config makes Vitest run
+every test. It isn't the gate: `npm test` is, over every file.
+
 - **Every file is held at 100%**: statements, branches, functions and
   lines, each file on its own (`perFile: true`).
 - **Code that needs a browser is tested in the browser project**, even when
@@ -580,6 +590,7 @@ import("@/tests/next-headers"))` and put the session cookie in
 ```bash
 npm run typecheck         # types (also runs in npm run build)
 npm test                  # both Vitest projects, with the coverage gate (what CI runs)
+npm run test:changed      # the tests for the files changed since origin/main, and those files' uncovered lines and branches
 npm run test:node         # Vitest node project (also runs in npm run build)
 npm run lint              # ESLint, failing on warnings too (also runs in npm run build)
 npm run lint:css          # Stylelint (also runs in npm run build)

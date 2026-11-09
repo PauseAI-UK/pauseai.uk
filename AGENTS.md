@@ -45,7 +45,7 @@ Give each long run a time limit and check on it when it should be done, so one t
 
 If the prek Git hook is installed (`npm run hooks:install`), commits run Prettier, ESLint and Stylelint on the staged files first. Prettier rewrites them, so `git add` and commit again. That's only part of the gate.
 
-Running one Vitest project (`npm run test:node`, `npm run test:browser`) or one file doesn't check coverage, so it isn't the gate. The tests that need a database make their own in Postgres (`docs/testing.md`).
+Running one Vitest project (`npm run test:node`, `npm run test:browser`) or one file doesn't check coverage, so it isn't the gate. While writing tests, `npm run test:changed` runs just the tests for the files changed since origin/main and lists what in those files isn't covered (`docs/testing.md`, "Coverage"); it isn't the gate either. The tests that need a database make their own in Postgres (`docs/testing.md`).
 
 ## Pull request descriptions are short
 

@@ -35,12 +35,16 @@ where there's an npm script. Each file's opening comment has the details.
 
 `docs/development.md`, section 5, covers the photos.
 
+## Coverage
+
+`test-changed.mjs`, run with `npm run test:changed`, runs the Vitest tests for the files changed since origin/main, committed or not, and lists each changed source file's uncovered lines, functions and branches, even while a test fails. Anything after `--` goes to Vitest. `npm test` is still the gate (`docs/testing.md`, "Coverage").
+
 ## Investments
 
 `investments.mjs`, run with `npm run investments`, lists the items in `investments/`, most hits first, with each one's size and kind (`investments/README.md`).
 
 ## Tests and types
 
-`db-migrate.test.ts`, `fresh-database.test.ts` and `storyboard-main.test.ts`
-test the scripts beside them, in the Vitest node project. The `.d.mts` files give the scripts'
+`db-migrate.test.ts`, `fresh-database.test.ts`, `storyboard-main.test.ts` and
+`test-changed.test.ts` test the scripts beside them, in the Vitest node project. The `.d.mts` files give the scripts'
 functions types, for the TypeScript that imports them.
