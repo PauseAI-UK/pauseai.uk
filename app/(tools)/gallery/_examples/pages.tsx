@@ -13,8 +13,8 @@ import DonationPolicies from "@/app/(site)/governance/_components/DonationPolici
 import { ClosedNotice, JobRole, Salary, SkillTags } from "@/app/(site)/jobs/_components/JobRole";
 import JobRoles from "@/app/(site)/jobs/_components/JobRoles";
 import JobsArticle from "@/app/(site)/jobs/_components/JobsArticle";
-import Lineup from "@/app/(site)/pausefest/_components/Lineup";
-import PauseFestHero from "@/app/(site)/pausefest/_components/PauseFestHero";
+import Lineup from "@/app/(site)/pausefest-london-2026/_components/Lineup";
+import PauseFestHero from "@/app/(site)/pausefest-london-2026/_components/PauseFestHero";
 import PersonHeader from "@/app/(site)/people/_components/PersonHeader";
 import PersonStory from "@/app/(site)/people/_components/PersonStory";
 import ShareYourStory from "@/app/(site)/people/_components/ShareYourStory";
@@ -258,12 +258,12 @@ export const pages: Group = {
     },
     {
       name: "PauseFestHero",
-      file: "app/(site)/pausefest/_components/PauseFestHero.tsx",
+      file: "app/(site)/pausefest-london-2026/_components/PauseFestHero.tsx",
       variants: [{ label: "The name, the dates and a ticket for each day", render: () => <PauseFestHero /> }],
     },
     {
       name: "Lineup",
-      file: "app/(site)/pausefest/_components/Lineup.tsx",
+      file: "app/(site)/pausefest-london-2026/_components/Lineup.tsx",
       variants: [
         { label: "Every day, the march's wider", render: () => <Lineup days={pausefest.days} /> },
         {

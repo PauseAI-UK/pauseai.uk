@@ -1,5 +1,5 @@
 // PauseFest, 20–23 November 2026: four days of action in London around the
-// March Against AI Extinction, for its page (app/(site)/pausefest). The
+// March Against AI Extinction, for its page (app/(site)/pausefest-london-2026). The
 // events, times and places are the PauseAI UK Luma calendar's.
 import { march } from "./march";
 
@@ -29,7 +29,7 @@ export type FestDay = {
 
 export const pausefest: { name: string; path: string; tagline: string; days: FestDay[] } = {
   name: "PauseFest",
-  path: "/pausefest",
+  path: "/pausefest-london-2026",
   tagline: "Four days of action in London, 20–23 November",
   days: [
     {
