@@ -2014,12 +2014,12 @@ All events: ${link}`,
     },
     // WhatsApp approved or rejected a template, to who sent it and the inbox: why, the words, and the texts on it.
     templateApproved: {
-      subject: (name: string) => `⁂ WhatsApp approved the template: ${name}`,
+      subject: (name: string) => `WhatsApp approved the template: ${name}`,
       body: (words: string, links: string[]) =>
         `WhatsApp approved this copy, so a text on it can be scheduled now.\n\n${words}\n\n${links.join("\n")}`,
     },
     templateRejected: {
-      subject: (name: string) => `⁂ WhatsApp rejected the template: ${name}`,
+      subject: (name: string) => `WhatsApp rejected the template: ${name}`,
       body: (reason: string, words: string, links: string[]) =>
         `WhatsApp rejected this copy: ${reason}\n\nChange it, and send it for approval again.\n\n${words}\n\n${links.join("\n")}`,
     },
