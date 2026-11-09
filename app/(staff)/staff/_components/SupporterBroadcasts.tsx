@@ -30,7 +30,7 @@ const COLUMNS: ListColumn<SupporterBroadcastRow>[] = [
     label: copy.supporterColumns.status,
     short: true,
     cell: (m) => {
-      const { words, tone } = copyStatus(m, m.channel);
+      const { words, tone } = copyStatus(m);
       return (
         <span className={styles.stack}>
           <Tag tone={tone}>{words}</Tag>

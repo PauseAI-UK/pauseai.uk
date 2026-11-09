@@ -62,7 +62,7 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
 export default function MessageCopyView({ one }: { one: MessageCopy }) {
   const name = one.name ?? (one.supporterId ? staffCopy.supporters.noName : copy.erased);
   const read = one.events.some((event) => event.kind === "read");
-  const { words, tone } = copyStatus({ ...one, read }, one.channel);
+  const { words, tone } = copyStatus({ ...one, read });
   return (
     <>
       <div className={letter.heading}>

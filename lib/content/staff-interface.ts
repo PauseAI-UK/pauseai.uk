@@ -1288,7 +1288,7 @@ All events: ${link}`,
     } as Record<string, string>,
     skipReasons: {
       blocked: "Skipped: address blocked",
-      unsubscribed: { email: "Stopped: asked us not to email", text: "Stopped: asked us not to text" },
+      unsubscribed: "Stopped: supporter asked us to stop",
       "no-permission": "Skipped: consent ended",
       "not-on-whatsapp": "Not on WhatsApp",
     },

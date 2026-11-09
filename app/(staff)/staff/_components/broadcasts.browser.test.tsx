@@ -753,7 +753,7 @@ describe("a broadcast's page", () => {
     await expect.element(page.getByText("Leeds")).toBeVisible();
     await expect.element(page.getByText(copy.erased)).toBeVisible();
     await expect.element(page.getByText(copy.skipReasons.blocked)).toBeVisible();
-    await expect.element(page.getByText(copy.skipReasons.unsubscribed.email)).toBeVisible();
+    await expect.element(page.getByText(copy.skipReasons.unsubscribed)).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.threadLink }).first())
       .toHaveAttribute("href", "/staff/broadcasts/5/21");
@@ -827,7 +827,7 @@ describe("a broadcast's page", () => {
       .closest("p")!;
     expect(words.querySelector("[class*=field]")!.textContent).toBe(copy.fieldWords.firstName);
     await expect.element(page.getByText(copy.stopButton, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(copy.skipReasons.unsubscribed.text)).toBeVisible();
+    await expect.element(page.getByText(copy.skipReasons.unsubscribed)).toBeVisible();
   });
 
   it("says one scheduled goes as it is, and when it stops, with no counts", async () => {
@@ -872,10 +872,10 @@ describe("a broadcast's page", () => {
 
   it("says each copy's status", () => {
     const base = { status: "delivered", skipReason: null, read: false };
-    expect(copyStatus(base, "email").words).toBe(copy.statuses.delivered);
-    expect(copyStatus({ ...base, read: true }, "text")).toEqual({ words: copy.statuses.read, tone: "green" });
-    expect(copyStatus({ ...base, status: "failed" }, "text").tone).toBe("red");
-    expect(copyStatus({ ...base, status: "skipped", skipReason: "not-on-whatsapp" }, "text").words).toBe(
+    expect(copyStatus(base).words).toBe(copy.statuses.delivered);
+    expect(copyStatus({ ...base, read: true })).toEqual({ words: copy.statuses.read, tone: "green" });
+    expect(copyStatus({ ...base, status: "failed" }).tone).toBe("red");
+    expect(copyStatus({ ...base, status: "skipped", skipReason: "not-on-whatsapp" }).words).toBe(
       copy.skipReasons["not-on-whatsapp"],
     );
   });

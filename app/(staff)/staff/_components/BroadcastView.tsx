@@ -52,12 +52,11 @@ export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
 }
 
 /** How a copy went, in words and its tone: skipped with why, or its status, or read. */
-export function copyStatus(
-  copyOf: Pick<MessageRecipient, "status" | "skipReason" | "read">,
-  channel: BroadcastChannel,
-): { words: string; tone?: TagTone } {
+export function copyStatus(copyOf: Pick<MessageRecipient, "status" | "skipReason" | "read">): {
+  words: string;
+  tone?: TagTone;
+} {
   const { skipReason, status, read } = copyOf;
-  if (skipReason === "unsubscribed") return { words: copy.skipReasons.unsubscribed[channel], tone: "red" };
   if (skipReason) return { words: copy.skipReasons[skipReason as "blocked"], tone: "red" };
   if (read) return { words: copy.statuses.read, tone: "green" };
   return { words: copy.statuses[status], tone: status === "failed" ? "red" : undefined };
@@ -90,7 +89,7 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
       label: copy.columns.status,
       short: true,
       cell: (r) => {
-        const { words, tone } = copyStatus(r, broadcast.channel);
+        const { words, tone } = copyStatus(r);
         return (
           <span className={styles.stack}>
             <Tag tone={tone}>{words}</Tag>
