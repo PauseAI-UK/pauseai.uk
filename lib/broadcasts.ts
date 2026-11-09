@@ -61,6 +61,94 @@ export const FIELDS_AS_WORDS: MailingRecipientValues = {
   meets: [],
 };
 
+/** Titles people put before their name, without a full stop: "Dr Jane Smith" has no first name we can use. */
+const TITLES = new Set([
+  "mr",
+  "mrs",
+  "ms",
+  "miss",
+  "mx",
+  "dr",
+  "prof",
+  "professor",
+  "sir",
+  "rev",
+  "revd",
+  "reverend",
+  "lord",
+  "lady",
+  "dame",
+  "cllr",
+  "councillor",
+]);
+
+/** One letter or several, each but perhaps the last with a full stop: "J", "J." or "J.R.". */
+const INITIALS = /^(\p{L}\.)*\p{L}\.?$/u;
+
+/** A word in one case, as "jane" or "JANE" is: it has letters, and none in the other case. */
+function allOneCase(word: string): boolean {
+  const lower = word.toLowerCase();
+  const upper = word.toUpperCase();
+  return lower !== upper && (word === lower || word === upper);
+}
+
+/** Each part of a word with its first letter a capital and the rest small, between hyphens and apostrophes: "jean-luc" is "Jean-Luc". */
+function capitalised(word: string): string {
+  return word
+    .split(/([-'’])/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join("");
+}
+
+/** Words that make a name an organisation's or a household's, not a person's: "Example Events", "The Smiths". */
+const NOT_A_PERSON = new Set([
+  "the",
+  "events",
+  "group",
+  "team",
+  "society",
+  "network",
+  "club",
+  "association",
+  "committee",
+  "foundation",
+  "institute",
+  "university",
+  "ltd",
+  "limited",
+  "inc",
+  "pauseai",
+]);
+
+/** Two letters with no vowel, as "bd" and "xz" are: initials, typed without full stops. */
+const NO_VOWEL_PAIR = /^[b-df-hj-np-tv-xz]{2}$/i;
+
+/**
+ * Someone's first name, from the whole name they gave: its first word, in
+ * capitals and small letters as a name is written when they typed it all
+ * one case ("jane", "JANE"), and as they typed it otherwise ("McKenzie").
+ * None, so they get the fallback rather than "Hi Dr", when there's no name;
+ * when it's an organisation's or a household's ("The Smiths", "Example
+ * Events"); when the name looks like an address or a username: it has an @, an
+ * underscore or a digit, or it's one word with a capital after a small
+ * letter inside it ("JaneTheGreat"); when the first word has no letter,
+ * or anything but letters, hyphens, apostrophes and full stops; or when
+ * it's a title or initials: "Dr", "J.R.", two capitals ("AB") or two
+ * letters with no vowel ("bd").
+ */
+export function firstNameOf(name: string | null | undefined): string | undefined {
+  const whole = name?.trim();
+  if (!whole || /[@_\d]/.test(whole)) return undefined;
+  const words = whole.split(/\s+/);
+  if (words.some((word) => NOT_A_PERSON.has(word.toLowerCase()))) return undefined;
+  const first = words[0];
+  if (!/\p{L}/u.test(first) || /[^\p{L}\p{M}'’.-]/u.test(first)) return undefined;
+  if (words.length === 1 && /\p{Ll}\p{Lu}/u.test(first)) return undefined;
+  const initials = INITIALS.test(first) || /^\p{Lu}{2}$/u.test(first) || NO_VOWEL_PAIR.test(first);
+  if (initials || TITLES.has(first.replace(/\.$/, "").toLowerCase())) return undefined;
+  return allOneCase(first) ? capitalised(first) : first;
+}
+
 /** The condition that someone has a value for a field. */
 export function hasField(field: string): string {
   return `has:${field}`;

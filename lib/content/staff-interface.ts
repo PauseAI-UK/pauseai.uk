@@ -1144,9 +1144,9 @@ All events: ${link}`,
     // At the top right of the broadcasts page: to the supporters list, to choose who first.
     newBroadcast: "New broadcast",
     // What's filled in for those without a field, and the fields as the editor and the preview say them.
-    fallbacks: { firstName: "⁂ there", name: "friend", mp: "⁂ your MP" },
+    fallbacks: { firstName: "there", name: "friend", mp: "⁂ your MP" },
     // Each field, as its lozenge in the editor, a template's row and a title say it.
-    fieldWords: { firstName: "⁂ First name", name: "Name", mp: "⁂ Their MP" },
+    fieldWords: { firstName: "First name", name: "Name", mp: "⁂ Their MP" },
     greeting: "Hi",
     // A new email's lines at its end, a few lines under the greeting.
     signature: ["Best wishes,", "PauseAI UK"],
@@ -1158,8 +1158,8 @@ All events: ${link}`,
     },
     // The preview's buttons, of the one made-up recipient: each field they have, and each part they're in.
     previewCases: {
-      "has:firstName": "⁂ has a first name",
-      "has:name": "⁂ has a name",
+      "has:firstName": "has a first name",
+      "has:name": "has a name",
       "has:mp": "⁂ has an MP",
       "volunteer:yes": "⁂ volunteers",
       "member:yes": "⁂ is a member",
@@ -1300,9 +1300,9 @@ All events: ${link}`,
     } as Record<string, string>,
     skipReasons: {
       blocked: "⁂ Skipped: address blocked",
-      unsubscribed: { email: "⁂ Stopped: asked us not to email", text: "⁂ Stopped: asked us not to text" },
+      unsubscribed: { email: "⁂ Stopped: asked us not to email", text: "Stopped: asked us not to text" },
       "no-permission": "⁂ Skipped: no longer said yes",
-      "not-on-whatsapp": "⁂ Not on WhatsApp",
+      "not-on-whatsapp": "Not on WhatsApp",
     },
     threadLink: "Thread →",
     // Thread: one copy's page, titled as a letter's is.

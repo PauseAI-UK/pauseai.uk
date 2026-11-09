@@ -5,6 +5,7 @@ import type { MailingChoice } from "@/lib/mailing-fields";
 import type { MailingRecipientValues } from "@/lib/mailing-doc";
 import { supportersSearch, type StoredFilter } from "@/lib/staff-search";
 import {
+  firstNameOf,
   hasField,
   MEMBER_CONDITION,
   BROADCAST_FIELDS,
@@ -66,7 +67,7 @@ function whyLeftOut(answers: ContactPermission[]): BroadcastLeftOutReason {
 /** A supporter's merge values, each field's fallback for those without it, and the conditions they meet. */
 function recipientValues(row: SupporterRow, mp: string | undefined): MailingRecipientValues {
   const given: Record<(typeof BROADCAST_FIELDS)[number], string | null | undefined> = {
-    firstName: row.name?.trim().split(/\s+/)[0],
+    firstName: firstNameOf(row.name),
     name: row.name?.trim(),
     mp,
   };

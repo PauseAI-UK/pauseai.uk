@@ -3,6 +3,7 @@ import { staffCopy } from "./content/staff-interface";
 import { EMPTY_MAILING_DOC, type MailingDoc } from "./mailing-doc";
 import {
   fakeRecipient,
+  firstNameOf,
   approvalProblems,
   firstWords,
   hasWords,
@@ -16,6 +17,193 @@ import {
   textStopsAt,
   type SchedulingBroadcast,
 } from "./broadcasts";
+
+describe("firstNameOf", () => {
+  it.each([
+    ["Jane Smith", "Jane"],
+    ["Jane", "Jane"],
+    ["  Jane   Smith  ", "Jane"],
+    ["Jane\tSmith", "Jane"],
+    ["Mary Ann Smith", "Mary"],
+    ["Jane-Marie Smith", "Jane-Marie"],
+    ["Zoë Brown", "Zoë"],
+    ["Siân Jones", "Siân"],
+    ["José García", "José"],
+    ["O'Neill", "O'Neill"],
+    ["Jo", "Jo"],
+  ])("takes the first word of %j: %j", (name, first) => {
+    expect(firstNameOf(name)).toBe(first);
+  });
+
+  it.each([
+    ["jane smith", "Jane"],
+    ["JANE SMITH", "Jane"],
+    ["jane", "Jane"],
+    ["JANE", "Jane"],
+    ["jean-luc picard", "Jean-Luc"],
+    ["JEAN-LUC PICARD", "Jean-Luc"],
+    ["d'arcy", "D'Arcy"],
+    ["d’arcy", "D’Arcy"],
+    ["zoë", "Zoë"],
+    ["ÉLODIE MARTIN", "Élodie"],
+    ["jo SMITH", "Jo"],
+  ])("writes a first name typed all in one case as names are written: %j is %j", (name, first) => {
+    expect(firstNameOf(name)).toBe(first);
+  });
+
+  it.each([
+    ["McKenzie Smith", "McKenzie"],
+    ["DeShawn Jones", "DeShawn"],
+    ["JoAnne Smith", "JoAnne"],
+    ["jANE Smith", "jANE"],
+  ])("keeps one typed in mixed case as it is: %j is %j", (name, first) => {
+    expect(firstNameOf(name)).toBe(first);
+  });
+
+  it.each([
+    "Mr Smith",
+    "Mrs Jane Smith",
+    "Ms Smith",
+    "Miss Jane Smith",
+    "Mx Sam Smith",
+    "Dr Jane Smith",
+    "Dr. Jane Smith",
+    "DR JANE SMITH",
+    "dr jane smith",
+    "Prof Jane Smith",
+    "Prof. Smith",
+    "Professor Jane Smith",
+    "Sir Keir Example",
+    "Rev Jane Smith",
+    "Revd Jane Smith",
+    "Reverend Jane Smith",
+    "Lord Example",
+    "Lady Jane Example",
+    "Dame Jane Example",
+    "Cllr Jane Smith",
+    "Councillor Jane Smith",
+  ])("has none when the name starts with a title: %j", (name) => {
+    expect(firstNameOf(name)).toBeUndefined();
+  });
+
+  it.each(["J Smith", "J. Smith", "j smith", "J.R. Smith", "J.R Smith", "j.r. smith", "J", "É. Martin"])(
+    "has none when the name starts with initials: %j",
+    (name) => {
+      expect(firstNameOf(name)).toBeUndefined();
+    },
+  );
+
+  it.each(["jane.smith@example.com", "Jane Smith jane@example.com", "jane_smith", "Jane Smith 2", "jsmith1984"])(
+    "has none when the name looks like an address or a username: %j",
+    (name) => {
+      expect(firstNameOf(name)).toBeUndefined();
+    },
+  );
+
+  it.each([null, undefined, "", "   ", "\t"])("has none with no name: %j", (name) => {
+    expect(firstNameOf(name)).toBeUndefined();
+  });
+
+  it.each(["AB Smith", "AB", "XY", "CD", "QR Smith", "PP Smith"])(
+    "has none when the first word is two capitals, initials without full stops: %j",
+    (name) => {
+      expect(firstNameOf(name)).toBeUndefined();
+    },
+  );
+
+  it.each(["bd", "xz Smith", "pq", "Gh Smith", "Kv"])(
+    "has none when the first word is two letters with no vowel, initials too: %j",
+    (name) => {
+      expect(firstNameOf(name)).toBeUndefined();
+    },
+  );
+
+  it.each([
+    ["Al Smith", "Al"],
+    ["Ed", "Ed"],
+    ["Em", "Em"],
+    ["mo", "Mo"],
+    ["Jo Smith", "Jo"],
+    ["Ty Smith", "Ty"],
+  ])("keeps a two-letter first name with a vowel, typed as a name: %j is %j", (name, first) => {
+    expect(firstNameOf(name)).toBe(first);
+  });
+
+  it.each(["-", "--- Smith", "!!!", ". Smith", "’"])("has none when the first word has no letter: %j", (name) => {
+    expect(firstNameOf(name)).toBeUndefined();
+  });
+
+  it.each(["Jane(Sam)", "Jane! Smith", "Jane/Sam Smith", "★Jane", "Jane, Smith", "Jane&Sam"])(
+    "has none when the first word has anything but letters, hyphens, apostrophes and full stops: %j",
+    (name) => {
+      expect(firstNameOf(name)).toBeUndefined();
+    },
+  );
+
+  it.each(["JaneTheGreat", "PauseAIExampleTown", "JaneSmith", "McKenzie", "jANE"])(
+    "has none for one word with a capital after a small letter inside it, as a username has: %j",
+    (name) => {
+      expect(firstNameOf(name)).toBeUndefined();
+    },
+  );
+
+  it.each([
+    ["O'Neill", "O'Neill"],
+    ["Jean-Luc", "Jean-Luc"],
+    ["D’Arcy", "D’Arcy"],
+    ["Janesmith", "Janesmith"],
+  ])("keeps one word whose capitals come after a hyphen or an apostrophe: %j is %j", (name, first) => {
+    expect(firstNameOf(name)).toBe(first);
+  });
+
+  it.each([
+    "The Smiths",
+    "the smiths",
+    "London Example Events",
+    "Example Club",
+    "PauseAI London",
+    "Example Ltd",
+    "Example Limited",
+    "Example Inc",
+    "Leeds Group",
+    "Outreach Team",
+    "Example Society",
+    "Example Network",
+    "Example Association",
+    "Example Committee",
+    "Example Foundation",
+    "Example Institute",
+    "Example University",
+  ])("has none for an organisation's or a household's name: %j", (name) => {
+    expect(firstNameOf(name)).toBeUndefined();
+  });
+
+  it.each([
+    ["Theo Smith", "Theo"],
+    ["Theresa Clubb", "Theresa"],
+    ["Jane Teams", "Jane"],
+    ["Jane Grouper", "Jane"],
+  ])("doesn't take a name for an organisation's for having one in part: %j is %j", (name, first) => {
+    expect(firstNameOf(name)).toBe(first);
+  });
+
+  it.each([
+    ["梁宇震", "梁宇震"],
+    ["Νίκος Παππάς", "Νίκος"],
+    ["ΝΊΚΟΣ ΠΑΠΠΆΣ", "Νίκος"],
+    ["Åsa Lindqvist", "Åsa"],
+  ])("takes names in other scripts as they come, or with their case written as names: %j is %j", (name, first) => {
+    expect(firstNameOf(name)).toBe(first);
+  });
+
+  it("doesn't take a name that only starts like a title or an initial for one", () => {
+    expect(firstNameOf("Drew Smith")).toBe("Drew");
+    expect(firstNameOf("Missy Smith")).toBe("Missy");
+    expect(firstNameOf("Sirius Black")).toBe("Sirius");
+    expect(firstNameOf("Lorde")).toBe("Lorde");
+    expect(firstNameOf("Jo. Smith")).toBe("Jo.");
+  });
+});
 
 const WORDS: MailingDoc = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Hello" }] }] };
 
