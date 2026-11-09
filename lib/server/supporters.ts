@@ -175,7 +175,7 @@ function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>, add: (va
         .contact!.filter((state) => state.channel === channel)
         .map(({ topic, send, reason }) => {
           const parts = [
-            topic && `p.topic = ${add(topic)}`,
+            `p.topic = ${add(topic)}`,
             send && `p.send = ${add(send)}`,
             reason && `p.reason = ${add(reason)}`,
           ];

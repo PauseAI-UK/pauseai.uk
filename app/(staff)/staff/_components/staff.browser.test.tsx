@@ -768,7 +768,7 @@ describe("StaffAccountsTable", () => {
       copy.never,
       copy.never,
       "0",
-      `${copy.gmailConnected} 21 Oct 2026, 10:00`,
+      `${copy.gmailConnected} 21 Oct 2026, 09:00`,
     ]);
     expect(row("samuel.whitlock@pauseai.uk").slice(2, 7)).toEqual([
       `21 Oct 2026, 10:30 ${copy.addedByLogin}`,
@@ -2726,6 +2726,14 @@ describe("EmailBlocksTable", () => {
             ],
           },
           { ...exampleBlock, address: "unknown@example.org", letter: null, purpose: null },
+          {
+            ...exampleComplaint,
+            address: "two@example.org",
+            supporters: [
+              { id: 8, name: null },
+              { id: 9, name: "Sam" },
+            ],
+          },
         ]}
         unblock={fn}
         letterLinks
@@ -2742,10 +2750,19 @@ describe("EmailBlocksTable", () => {
       .element(bounced.getByRole("link", { name: `${staffCopy.emails.letterTo} Bouncy McTestface MP` }))
       .toHaveAttribute("href", "/staff/letters/17");
     await expect.element(bounced.getByRole("cell", { name: "2", exact: true })).toBeVisible();
-    // A complaint can't be unblocked; two politicians share its address.
+    // A complaint can't be unblocked; two politicians share its address, and a supporter, after them, linked too.
     const complained = page.getByRole("row").filter({ hasText: exampleComplaint.address });
     await expect.element(complained.getByText(staffCopy.emails.cantReset)).toBeVisible();
-    await expect.element(complained.getByText("A, B")).toBeVisible();
+    await expect.element(complained.getByText("A, B, Jane Example")).toBeVisible();
+    await expect
+      .element(complained.getByRole("link", { name: "Jane Example" }))
+      .toHaveAttribute("href", "/staff/supporters/7");
+    // Two supporters, one with no name.
+    const two = page.getByRole("row").filter({ hasText: "two@example.org" });
+    await expect.element(two.getByText(`${staffCopy.supporters.noName}, Sam`)).toBeVisible();
+    await expect
+      .element(two.getByRole("link", { name: staffCopy.supporters.noName }))
+      .toHaveAttribute("href", "/staff/supporters/8");
     // What the email was: a letter, another of ours, or one the site has no record of.
     await expect.element(complained.getByText(staffCopy.emails.purposes["forwarded-reply"])).toBeVisible();
     const unknown = page.getByRole("row").filter({ hasText: "unknown@example.org" });
@@ -4006,7 +4023,7 @@ describe("ChangesFilters", () => {
     await expect
       .element(page.getByRole("link", { name: /Sam's notes/ }))
       .toHaveAttribute("href", expect.stringContaining("/staff/audit-log?"));
-    await expect.element(page.getByText("Who sam@pauseai.uk · What add note or edit event")).toBeVisible();
+    await expect.element(page.getByText("Who: sam@pauseai.uk · What: add note or edit event")).toBeVisible();
   });
 });
 
@@ -4563,7 +4580,7 @@ describe("SubscriptionBadges", () => {
     expect(document.body.textContent!.trim()).toBe("");
   });
 
-  it("takes the best answer across their addresses, leaving out a blocked one, and says blocked when every one is", async () => {
+  it("takes the best answer across their addresses, and shows nothing for one that's blocked", async () => {
     const [jane] = exampleSupporterRows[0].permissions;
     const { rerender } = await render(
       <SubscriptionBadges
@@ -4576,7 +4593,7 @@ describe("SubscriptionBadges", () => {
     );
     expect(document.body.textContent!.trim()).toBe(copy.topics.email["luma-calendar"]);
     await rerender(<SubscriptionBadges permissions={exampleBlockedPermissions} />);
-    expect(document.body.textContent!.trim()).toBe(copy.blocked);
+    expect(document.body.textContent!.trim()).toBe("");
   });
 });
 
@@ -4632,7 +4649,6 @@ describe("SupportersTable", () => {
       .element(page.getByRole("link", { name: "Jane Example" }))
       .toHaveAttribute("href", "/staff/supporters/7");
     await expect.element(page.getByRole("link", { name: copy.noName })).toHaveAttribute("href", "/staff/supporters/8");
-    await expect.element(page.getByText(copy.subscriptions.blocked)).toBeVisible();
     await expect.element(page.getByRole("cell", { name: "1 Mar 2026" }).first()).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: staffCopy.paging.previous }))
@@ -5429,15 +5445,17 @@ describe("PermissionTiles", () => {
     expect(reasons(rows()[0])[0]).toBe("joined");
   });
 
-  it("gives a blocked address one row, after the topics', saying why and linking to the blocked emails", async () => {
+  it("says no for a blocked address under each of its topics, with what blocked it and the link to the blocked emails", async () => {
     await render(<PermissionTiles permissions={exampleBlockedPermissions} />);
-    expect(rows()).toHaveLength(1);
-    expect(rows()[0].textContent).toBe(
-      `${copy.everyTopic}${copy.blocked}gus@example.com${copy.blockedBecause.complaint("5 Oct 2026")} ${copy.seeBlocked}`,
-    );
-    expect(rows()[0].querySelector("[class*=red]")).not.toBeNull();
+    expect(rows().map(head)).toEqual([`${copy.topics.email["site-forms"]}?`, `${copy.topics.email["luma-calendar"]}?`]);
+    for (const row of rows()) {
+      expect(lines(row)).toEqual([`gus@example.com${copy.answers.email.no}`]);
+      expect(reasons(row)).toEqual([`${copy.blockedBecause.complaint("5 Oct 2026")} ${copy.seeBlocked}`]);
+      expect(row.querySelector("[class*=green], [class*=amber], [class*=red]")).toBeNull();
+      expect(row.querySelectorAll("[class*=address] a")).toHaveLength(0);
+    }
     await expect
-      .element(page.getByRole("link", { name: copy.seeBlocked }))
+      .element(page.getByRole("link", { name: copy.seeBlocked }).first())
       .toHaveAttribute("href", "/staff/supporters/blocked-emails");
   });
 
@@ -5461,21 +5479,27 @@ describe("PermissionTiles", () => {
         expect(document.body.textContent, topic).toContain(words("12 Sept 2026", copy.otherForm));
   });
 
-  it("says a bounce blocked an address, and nothing of a block it can't date", async () => {
+  it("says a bounce blocked an address, and only the link for a block it can't date", async () => {
     const [blocked] = exampleBlockedPermissions;
     const { rerender } = await render(<PermissionTiles permissions={[{ ...blocked, source: "hard" }]} />);
-    expect(rows()[0].textContent).toContain(copy.blockedBecause.hard("5 Oct 2026"));
+    expect(reasons(rows()[0])).toEqual([`${copy.blockedBecause.hard("5 Oct 2026")} ${copy.seeBlocked}`]);
     await rerender(<PermissionTiles permissions={[{ ...blocked, source: null }]} />);
-    expect(rows()[0].textContent).toBe(`${copy.everyTopic}${copy.blocked}gus@example.com${copy.seeBlocked}`);
+    expect(reasons(rows()[0])).toEqual([copy.seeBlocked]);
   });
 
-  it("names a blocked address among several, and leaves out a cause it has no words for", async () => {
+  it("keeps a blocked address beside another of its topic, each with its own answer and reason", async () => {
     const [blocked] = exampleBlockedPermissions;
-    await render(
-      <PermissionTiles permissions={[{ ...blocked, source: "soft" }, { ...exampleSupporterDetails.permissions[1] }]} />,
-    );
-    expect(rows()).toHaveLength(2);
-    expect(rows()[1].textContent).toBe(`${copy.everyTopic}${copy.blocked}gus@example.com${copy.seeBlocked}`);
+    const agreed = exampleSupporterDetails.permissions.find((p) => p.topic === "site-forms")!;
+    // A cause it has no words for: the link alone.
+    await render(<PermissionTiles permissions={[{ ...blocked, topic: "site-forms", source: "soft" }, agreed]} />);
+    expect(rows()).toHaveLength(1);
+    expect(lines(rows()[0])).toEqual([
+      `gus@example.com${copy.answers.email.no}`,
+      `jane@example.com${copy.answers.email.yes}`,
+    ]);
+    expect(reasons(rows()[0])).toHaveLength(2);
+    expect(reasons(rows()[0])[0]).toBe(copy.seeBlocked);
+    expect(rows()[0].querySelectorAll("a[href='/staff/supporters/blocked-emails']")).toHaveLength(1);
   });
 });
 
@@ -5506,6 +5530,12 @@ describe("each list's download values and contact cards", () => {
       sent: `${staffCopy.emails.letterTo} Bouncy McTestface MP`,
     });
     expect(values(columns, exampleComplaint).sent).toBe(staffCopy.emails.purposes["forwarded-reply"]);
+    expect(values(columns, { ...exampleComplaint, politicians: exampleBlock.politicians }).whose).toBe(
+      "Bouncy McTestface MP; Jane Example",
+    );
+    expect(values(columns, { ...exampleComplaint, supporters: [{ id: 8, name: null }] }).whose).toBe(
+      staffCopy.supporters.noName,
+    );
     expect(values(columns, { ...exampleComplaint, purpose: null }).sent).toBeNull();
     // A bounce found in Gmail says so after its reason.
     expect(values(columns, exampleBlock).reason).toBe(exampleBlock.reason);
@@ -5588,7 +5618,7 @@ describe("each list's download values and contact cards", () => {
       }).join("; "),
     );
     expect(subscriptionWords(sam.permissions)).toContain(staffCopy.supporters.subscriptions.unsure(""));
-    expect(subscriptionWords(gus.permissions)).toBe(staffCopy.supporters.subscriptions.blocked);
+    expect(subscriptionWords(gus.permissions)).toBe("");
     const placed = {
       ...jane,
       phone: "+447700900001",
@@ -5679,13 +5709,21 @@ describe("ErasedNotice", () => {
   });
 });
 
-/** The chips of the filters on, by their words. */
+/** The chips of the filters on, by their words: not Consent's own button, there while it's off. */
 const chips = () =>
   page
     .getByRole("button")
     .all()
     .map((b) => b.element().textContent)
-    .filter((text) => ![staffCopy.search, staffCopy.filters.add, staffCopy.filters.except].includes(text!));
+    .filter(
+      (text) =>
+        ![
+          staffCopy.search,
+          staffCopy.filters.add,
+          staffCopy.filters.except,
+          staffCopy.supporters.columns.subscriptions,
+        ].includes(text!),
+    );
 
 /** Opens a filter's menu, by its button, and gives its links' words and addresses. */
 async function menu(button: string | RegExp) {
@@ -5834,8 +5872,8 @@ describe("the supporters list's Email and Phone columns", () => {
     expect(supporterColumns(search(["!email:site-forms:yes"])).map((c) => c.key)).not.toContain("email");
     // A value it can't read finds nothing to show.
     expect(supporterColumns(search(["email:nonsense"])).map((c) => c.key)).not.toContain("email");
-    // An answer, a topic's any answer, and blocked, a reason; each channel's column, of its own.
-    const contact = ["email:luma-calendar:no", "phone:luma-calendar", "email:blocked"];
+    // An answer, a topic's any answer, and a reason; each channel's column, of its own.
+    const contact = ["email:luma-calendar:no", "phone:luma-calendar", "email:site-forms:asked"];
     const columns = supporterColumns(search(contact));
     const [jane] = exampleSupporterRows;
     expect(text(columns, "email", jane)).toBe("jane@example.com");
@@ -5845,6 +5883,42 @@ describe("the supporters list's Email and Phone columns", () => {
     await render(<SupportersTable search={search(contact)} page={{ supporters: [jane], total: 1, pages: 1 }} />);
     await expect.element(page.getByRole("cell", { name: "jane@example.com" })).toBeVisible();
     await expect.element(page.getByRole("cell", { name: "+447700900001" })).toBeVisible();
+  });
+});
+
+describe("the supporters list's Consent reason column", () => {
+  const search = (contact: string[]) => supportersSearch({ contact });
+  const reasons = staffCopy.supporters.detail.permissions;
+  const column = (contact: string[]) => supporterColumns(search(contact)).find((c) => c.key === "consentReason");
+
+  it("is there only with the Consent filter, finding some rather than leaving them out", () => {
+    expect(column([])).toBeUndefined();
+    expect(column(["!email:luma-calendar:no"])).toBeUndefined();
+    expect(column(["email:nonsense"])).toBeUndefined();
+    expect(column(["email:luma-calendar:no"])!.label).toBe(staffCopy.supporters.columns.consentReason);
+    expect(column(["phone:luma-calendar"])).toBeDefined();
+  });
+
+  it("says why for each answer the filter finds, an address's before a number's, a line each", async () => {
+    const [jane] = exampleSupporterRows;
+    const contact = ["email:luma-calendar:no", "phone:luma-calendar:no"];
+    const unsubscribed = reasons.reasons["luma-calendar"].unsubscribed("12 Oct 2026");
+    // Jane's address and her number, each unsubscribed from Luma's calendar; her yes for our forms isn't there.
+    expect(column(contact)!.text!(jane)).toBe(`${unsubscribed}; ${unsubscribed}`);
+    expect(column(["email:luma-calendar:no"])!.text!(jane)).toBe(unsubscribed);
+    // A yes has its reason too.
+    expect(column(["email:site-forms:yes"])!.text!(jane)).toBe(
+      reasons.reasons["site-forms"].asked("5 Oct 2026", reasons.forms["email-your-mp"]),
+    );
+    // A blocked address's: what blocked it.
+    expect(column(contact)!.text!({ ...jane, permissions: exampleBlockedPermissions })).toBe(
+      reasons.blockedBecause.complaint("5 Oct 2026"),
+    );
+    // The filter on another topic finds none of hers.
+    expect(column(["email:pauseai-updates:no"])!.text!(jane)).toBe("");
+    await render(<SupportersTable search={search(contact)} page={{ supporters: [jane], total: 1, pages: 1 }} />);
+    await expect.element(page.getByText(staffCopy.supporters.columns.consentReason, { exact: true })).toBeVisible();
+    expect(page.getByText(unsubscribed).all()).toHaveLength(2);
   });
 });
 
@@ -5881,7 +5955,7 @@ describe("SupporterFilters", () => {
   it("has a chip for each filter on, a contact one in two halves, its topic then its answer", async () => {
     const { filter, ...search } = supportersSearch({
       activity: "registered",
-      contact: ["email:pauseai-updates:no", "!phone:march-day:yes", "email:blocked", "email:site-forms:asked"],
+      contact: ["email:pauseai-updates:no", "!phone:march-day:yes", "email:site-forms:asked"],
       erased: "1",
     });
     void filter;
@@ -5889,14 +5963,14 @@ describe("SupporterFilters", () => {
     const { topics, channels, ways } = copy.filters;
     const label = copy.columns.subscriptions;
     const answers = copy.detail.permissions.answers;
+    // Consent's chips first, in its own place.
     expect(chips()).toEqual([
-      `${copy.columns.badges}: ${copy.badges.registered}`,
       `${label}: ${topics["pauseai-updates"]}`,
       answers.email.no,
       staffCopy.filters.notChip(label, topics["march-day"]),
       answers.text.yes,
-      `${label}: ${channels.email}, ${copy.subscriptions.blocked}`,
       `${label}: email:site-forms:asked`,
+      `${copy.columns.badges}: ${copy.badges.registered}`,
     ]);
     // The topic's icon in its chip, before its name.
     const topicChip = [...document.querySelectorAll("button")].find(
@@ -5904,13 +5978,13 @@ describe("SupporterFilters", () => {
     )!;
     expect(topicChip.querySelector("svg")).not.toBeNull();
     // Consent doesn't repeat, so several can only come from an old link or saved filter: a chip each. The first
-    // half: each topic, choosing one takes the filter's place, finding those we can contact about it; then Remove,
-    // taking off only that one; the erased notice goes.
-    const others = "contact=%21phone%3Amarch-day%3Ayes&contact=email%3Ablocked&contact=email%3Asite-forms%3Aasked";
+    // half: each topic, choosing one takes the filter's place, keeping the answer where the topic can give it; then
+    // Remove, taking off only that one; the erased notice goes.
+    const others = "contact=%21phone%3Amarch-day%3Ayes&contact=email%3Asite-forms%3Aasked";
     const first = await menu(new RegExp(`^${label}:\\s+${topics["pauseai-updates"]}`));
     expect(first).toContainEqual([
       topics["site-forms"],
-      "/staff/supporters?activity=registered&contact=email%3Asite-forms%3Ayes",
+      "/staff/supporters?activity=registered&contact=email%3Asite-forms%3Ano",
     ]);
     expect(first.at(-1)).toEqual([staffCopy.filters.remove, `/staff/supporters?activity=registered&${others}`]);
     // Under its channel's heading, each once, a phone's ways quiet after it.
@@ -5920,22 +5994,55 @@ describe("SupporterFilters", () => {
       channels.phone,
     ]);
     expect(first.map(([words]) => words)).toContain(`${topics.volunteering}${ways["call-or-text"]}`);
-    // The second: each answer in the topic's words; no Remove.
+    // Changing the topic keeps a no; one that can't give the answer had, not sure, takes its best.
+    const fromNo = await menu(new RegExp(`^${label}:\\s+${topics["pauseai-updates"]}`));
+    expect(fromNo).toContainEqual([
+      `${topics["luma-calendar"]}`,
+      "/staff/supporters?activity=registered&contact=email%3Aluma-calendar%3Ano",
+    ]);
+    expect(fromNo).toContainEqual([
+      `${topics["march-day"]}${ways.text}`,
+      "/staff/supporters?activity=registered&contact=phone%3Amarch-day%3Ano",
+    ]);
+    // The second: each answer the topic can give, in its words, the updates never a sure yes; no Remove.
     const second = await menu(answers.email.no);
-    expect(second.map(([words]) => words)).toEqual([answers.email.yes, answers.email.unsure, answers.email.no]);
+    expect(second.map(([words]) => words)).toEqual([answers.email.unsure, answers.email.no]);
     expect(second[0]).toEqual([
-      answers.email.yes,
-      `/staff/supporters?activity=registered&${others}&contact=email%3Apauseai-updates%3Ayes`,
+      answers.email.unsure,
+      `/staff/supporters?activity=registered&${others}&contact=email%3Apauseai-updates%3Aunsure`,
     ]);
     // A number's answers in the words of the ways its topic allows, kept left out.
     const march = await menu(answers.text.yes);
-    expect(march[2]).toEqual([
+    expect(march.map(([words]) => words)).toEqual([answers.text.yes, answers.text.no]);
+    expect(march[1]).toEqual([
       answers.text.no,
-      "/staff/supporters?activity=registered&contact=email%3Apauseai-updates%3Ano&contact=email%3Ablocked&contact=email%3Asite-forms%3Aasked&contact=%21phone%3Amarch-day%3Ano",
+      "/staff/supporters?activity=registered&contact=email%3Apauseai-updates%3Ano&contact=email%3Asite-forms%3Aasked&contact=%21phone%3Amarch-day%3Ano",
     ]);
     // + Filter doesn't offer it again.
     const add = await menu(staffCopy.filters.add);
     expect(add.map(([words]) => words)).not.toContain(`${topics.volunteering}${ways["call-or-text"]}`);
+  });
+
+  it("changes Consent's topic to its best answer when the new one can't give the answer it had", async () => {
+    const { topics } = copy.filters;
+    const label = copy.columns.subscriptions;
+    const at = async (contact: string, topic: string) => {
+      const { filter, ...search } = supportersSearch({ contact });
+      void filter;
+      await render(<SupporterFilters search={search} choices={choices} />);
+      const options = await menu(new RegExp(`^${label}:\\s+${topic}`));
+      await userEvent.keyboard("{Escape}");
+      return options;
+    };
+    // Not sure, which our forms can't give: a yes. A yes, which the updates can't: not sure.
+    expect(await at("email:pauseai-updates:unsure", topics["pauseai-updates"])).toContainEqual([
+      topics["site-forms"],
+      "/staff/supporters?contact=email%3Asite-forms%3Ayes",
+    ]);
+    expect(await at("email:site-forms:yes", topics["site-forms"])).toContainEqual([
+      topics["pauseai-updates"],
+      "/staff/supporters?contact=email%3Apauseai-updates%3Aunsure",
+    ]);
   });
 
   it("offers every topic once in the Consent filter, email's then phone's, ours first", () => {

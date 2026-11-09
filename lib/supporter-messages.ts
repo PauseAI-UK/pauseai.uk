@@ -25,7 +25,7 @@ export function messageTerms(contact: ParamValue | undefined): MessageTerms | un
   const [found] = anyAndNone(valuesOf(contact), (values) => values.flatMap((value) => contactState(value) ?? []));
   if (found?.length !== 1) return undefined;
   const [{ channel, topic, send }] = found;
-  if (!topic || send !== "yes") return undefined;
+  if (send !== "yes") return undefined;
   return { channel: channel === "email" ? "email" : "text", topic };
 }
 

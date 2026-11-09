@@ -12,7 +12,6 @@ import SupporterDetails from "@/app/(staff)/staff/_components/SupporterDetails";
 import SupporterFilters from "@/app/(staff)/staff/_components/SupporterFilters";
 import SupportersTable from "@/app/(staff)/staff/_components/SupportersTable";
 import {
-  exampleBlockedPermissions,
   exampleMemberDetails,
   exampleSupporter,
   exampleSupporterRows,
@@ -153,14 +152,6 @@ export const staffSupporters: Group = {
           render: () => (
             <StaffPage as="div">
               <SubscriptionBadges permissions={exampleSupporterRows[1].permissions} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Every address blocked",
-          render: () => (
-            <StaffPage as="div">
-              <SubscriptionBadges permissions={exampleBlockedPermissions} />
             </StaffPage>
           ),
         },

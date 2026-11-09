@@ -156,6 +156,12 @@
   background: transparent;
 }
 
+/* A filter's own button, before it's on: plain as + Filter, with a chip's
+   arrow, so it reads as a filter to open. */
+.own::after {
+  content: " ▾" / "";
+}
+
 /* Clear filters: the chips' height, so its text is level with theirs. */
 .clearAll {
   display: flex;

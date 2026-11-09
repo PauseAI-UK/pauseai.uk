@@ -28,6 +28,8 @@ export type FilterOption = {
   group?: { label: string; icon: ReactNode };
   detail?: string;
   seconds?: FilterOption[];
+  /** A second part's kind, the same across choices, so changing the first keeps it where the new one has it. */
+  like?: string;
 };
 
 /**
@@ -261,7 +263,8 @@ export default function FilterBar({
   const othersThan = (filter: Filter) =>
     hidden.filter(([name]) => name !== filter.name && name !== filter.place!.within) as [string, string][];
   // A filter's chip, for `value` of it: its menu has its choices and, but in a chip's second half, a way to
-  // remove it. A choice in a first half or a chip of its own takes the filter's place; one in the second half of a
+  // remove it. A choice in a first half or a chip of its own takes the filter's place, with the second part it had,
+  // by its `like`, where the new choice has one the same, else the choice's own; one in the second half of a
   // choice in two parts, which offers its `seconds`, changes that one value, keeping it found or left out. More
   // than one value of a filter that doesn't repeat can only come from a link or a saved filter: each has its chip.
   const chip = (
@@ -273,10 +276,14 @@ export default function FilterBar({
   ) => {
     const { value: plain, not } = notValue(value);
     const others = chosen(filter.name).filter((v) => v !== value);
+    const like = parts(filter, plain).second?.like;
+    // The new choice's second part the same as the one it had, if there was one and it has it.
+    const same = (v: string) =>
+      (like && filter.options.find((o) => o.value === v)?.seconds?.find((o) => o.like === like)?.value) || v;
     const choose = (v: string) =>
       seconds
         ? href({ [filter.name]: [...others, not ? NOT + v : v] })
-        : href({ ...without(filter.name), [filter.name]: v });
+        : href({ ...without(filter.name), [filter.name]: same(v) });
     return (
       <Menu
         key={`${filter.name}-${value}${seconds ? "-2" : ""}`}
@@ -407,7 +414,12 @@ export default function FilterBar({
         )}
         <div className={styles.chips}>
           {ownButtons.map((filter) => (
-            <Menu key={filter.name} id={`filter-${filter.name}`} trigger={styles.add} label={filter.label}>
+            <Menu
+              key={filter.name}
+              id={`filter-${filter.name}`}
+              trigger={`${styles.add} ${styles.own}`}
+              label={filter.label}
+            >
               <p className={styles.heading}>{filter.label}</p>
               <Choices
                 options={filter.options.filter((option) => option.value)}

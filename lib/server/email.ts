@@ -257,6 +257,8 @@ export type EmailBlock = {
   foundInGmail: boolean;
   /** The politicians with this address. */
   politicians: { id: number; name: string; isTest: boolean }[];
+  /** The supporters with this address, by the name the supporters list gives them; none on politicians' lists. */
+  supporters: { id: number; name: string | null }[];
   /** The letter whose email found it out, if one did, and the politician it was to. */
   letter: SentLetter | null;
   /** What the email that found it out was, if the site has a record of sending it. */
@@ -265,8 +267,23 @@ export type EmailBlock = {
   refused: number;
 };
 
-const SELECT_BLOCKS = `
+/**
+ * The supporters with an address, as the supporters list names them: the
+ * newest name any of their records gives. Only on the lists of addresses
+ * that aren't politicians', which only staff who may see supporters open.
+ */
+const BLOCK_SUPPORTERS = `
+    (SELECT coalesce(json_agg(json_build_object('id', x.id, 'name', x.name) ORDER BY x.name NULLS LAST, x.id), '[]')
+     FROM (SELECT n.supporter_id::int AS id,
+             (array_agg(n.name ORDER BY n.seen_at DESC NULLS LAST, n.name) FILTER (WHERE n.name <> ''))[1] AS name
+           FROM supporter_identity n
+           WHERE n.supporter_id IN (SELECT i.supporter_id FROM supporter_identity i WHERE i.email = b.address)
+           GROUP BY n.supporter_id) x)`;
+
+/** The blocked addresses' query, with whose they are: politicians' always, supporters' only `withSupporters`. */
+const selectBlocks = (withSupporters: boolean) => `
   SELECT b.address, p.kind, p.reason, p.at AS since, p.can_reset AS "canReset",
+    ${withSupporters ? BLOCK_SUPPORTERS : "'[]'::json"} AS supporters,
     p.gmail_message_id IS NOT NULL AS "foundInGmail",
     coalesce((SELECT json_agg(json_build_object('id', pol.id, 'name', pol.name, 'isTest', coalesce(seat.is_test, false)) ORDER BY pol.name)
               FROM notable_people pol LEFT JOIN politicians seat ON seat.id = pol.id WHERE lower(pol.email) = b.address), '[]') AS politicians,
@@ -301,7 +318,7 @@ export type BlocksFilter = { kind?: "hard" | "complaint"; search?: string };
 /** Every blocked address in `scope` that `filter` lets through, newest first. */
 export async function listBlocks(scope: EmailScope, filter: BlocksFilter = {}): Promise<EmailBlock[]> {
   return query<EmailBlock>(
-    `${SELECT_BLOCKS} WHERE ($1::text IS NULL OR p.kind = $1) AND ($2::text IS NULL OR b.address ILIKE $2)
+    `${selectBlocks(scope === "others")} WHERE ($1::text IS NULL OR p.kind = $1) AND ($2::text IS NULL OR b.address ILIKE $2)
        AND ${inScope("b.address", scope)} ORDER BY p.at DESC, b.address`,
     [filter.kind ?? null, filter.search ? `%${filter.search}%` : null],
   );
@@ -310,7 +327,7 @@ export async function listBlocks(scope: EmailScope, filter: BlocksFilter = {}): 
 /** The block on an address, if it has one, such as a politician's, who may have none. */
 export async function blockOn(address: string | null): Promise<EmailBlock | undefined> {
   if (!address) return undefined;
-  const [block] = await query<EmailBlock>(`${SELECT_BLOCKS} WHERE b.address = $1`, [bareAddress(address)]);
+  const [block] = await query<EmailBlock>(`${selectBlocks(false)} WHERE b.address = $1`, [bareAddress(address)]);
   return block;
 }
 

@@ -12,6 +12,7 @@ import { GUEST_STATUSES, type ImportList } from "@/lib/server/luma-import";
 import type { mailingChannel } from "@/lib/server/mailing-channels";
 import type { MailingState } from "@/lib/server/mailing-drafts";
 import type { SkipReason } from "@/lib/server/mailings";
+import type { MessageTemplate } from "@/lib/server/message-drafts";
 import type { OptOutSource } from "@/lib/server/opt-outs";
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar";
 import { HOUSES, PERSON_STATUSES } from "@/lib/server/politicians";
@@ -64,6 +65,7 @@ const LISTED: Record<string, readonly string[]> = {
   "mailings.channel": every<Parameters<typeof mailingChannel>[0]>()(["email", "text", "whatsapp"]),
   "mailings.state": every<MailingState>()(["draft", "scheduled", "sending", "sent", "cancelled"]),
   "mailings.topic": TOPICS,
+  "message_templates.status": every<MessageTemplate["status"]>()(["approved", "pending", "rejected"]),
   "notable_people.status": PERSON_STATUSES,
   "opt_outs.channel": CHANNELS,
   "opt_outs.list": every<OptOutList>()(["luma-calendar", "pauseai-updates"]),

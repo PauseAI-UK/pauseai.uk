@@ -218,9 +218,10 @@ INSERT INTO luma_people (user_id, email, name, contact_since, changed_at) VALUES
   ('usr-seed-18', 'kwame.seed@example.com', 'Kwame Seed', now() - interval '6 days', now() - interval '1 day'),
   ('usr-seed-19', 'mia.seed@example.com', 'Mia Seed', NULL, now() - interval '1 day'),
   ('usr-seed-20', 'erased.seed@example.com', 'Erin Erased', now() - interval '70 days', now() - interval '1 day'),
-  -- Following since an hour ago: after Luma's webhook went live in a database
-  -- made now, so we'd email her (lib/email-permissions.ts); the others
-  -- followed before it, so we can't be sure.
+  -- Robin follows the calendar at one address and is a member at another
+  -- (recMemberRobin), one supporter by their mobile; this one is blocked further down.
+  ('usr-seed-22', 'robin.events@example.com', 'Robin Rivers', now() - interval '40 days', now() - interval '1 day'),
+  -- Following the calendar since an hour ago: the newest contact.
   ('usr-seed-21', 'nia.seed@example.com', 'Nia Seed', now() - interval '1 hour', now() - interval '1 hour');
 INSERT INTO luma_erased (user_id, erased_at) VALUES ('usr-seed-20', now() - interval '15 days');
 INSERT INTO luma_import_state (list, full_pass_at, cursor) VALUES
@@ -237,6 +238,7 @@ INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, 
   ('gst-3', 'evt-fixture-past-glasgow-stall', 'usr-fixture-3', 'approved', now() - interval '275 days', NULL, 'G1 1AA', 'brixton', NULL, now() - interval '30 days'),
   ('gst-seed-yuki-march', 'evt-fixture-past-london-march', 'usr-seed-15', 'approved', now() - interval '255 days', NULL, 'SE1 7PB', NULL, NULL, now() - interval '30 days'),
   ('gst-seed-erased-march', 'evt-fixture-past-london-march', 'usr-seed-20', 'approved', now() - interval '255 days', NULL, NULL, NULL, now() - interval '15 days', now() - interval '15 days'),
+  ('gst-seed-robin-march', 'evt-fixture-past-london-march', 'usr-seed-22', 'approved', now() - interval '254 days', '+447700900333', NULL, NULL, NULL, now() - interval '30 days'),
   -- the Manchester talk, 12 days ago: the week before last
   ('gst-seed-7-talk', 'evt-seed-manchester-talk', 'usr-seed-7', 'approved', now() - interval '13 days', '+447700900007', 'M4 1HQ', 'instagram', NULL, now() - interval '12 days'),
   ('gst-seed-8-talk', 'evt-seed-manchester-talk', 'usr-seed-8', 'approved', now() - interval '13 days', NULL, 'M20 2RN', 'instagram', NULL, now() - interval '12 days'),
@@ -288,6 +290,7 @@ INSERT INTO members (id, email, name, phone, city, postcode, joined_at, created_
   ('recMemberKit', 'kit.member@example.com', 'Kit Member', NULL, 'Oxford', 'OX1 1AA', '2026-03-03T18:00:00Z', '2026-03-03T18:00:00Z', true, false, NULL, 'Volunteer', '2026-08-29T17:33:10Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
   ('recMemberTom', 'tom.seed@example.com', 'Tom Seed', '+447700900456', 'London', NULL, '2024-11-03T00:00:00Z', '2025-06-06T06:18:44Z', true, false, NULL, NULL, '2026-08-29T17:33:12Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
   ('recMemberLee', 'lee.letter@example.com', 'Lee Letter', NULL, 'Bristol', 'BS1 1AA', '2025-11-29T21:06:16Z', '2025-11-29T21:06:16Z', false, false, NULL, 'None', '2026-08-29T17:33:13Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
+  ('recMemberRobin', 'robin.rivers@example.com', 'Robin Rivers', '+447700900333', 'Leeds', NULL, '2026-05-01T00:00:00Z', '2026-05-01T00:00:00Z', true, false, NULL, 'Keep informed', '2026-08-29T17:33:14Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
   ('recMemberGil', 'gil.member@example.com', 'Gil Member', NULL, 'Leeds', 'LS1 1AA', '2026-08-01T12:00:00Z', '2026-08-01T12:00:00Z', true, true, 'pauseai.uk', 'Act now', '2026-08-01T12:00:00Z', '2026-09-01T00:00:00Z', now() - interval '2 days', now() - interval '2 days');
 -- Erin, erased with her Luma user (the audit log's erasure), is still in
 -- Airtable's table: the import skips her.
@@ -602,13 +605,17 @@ SELECT setval(pg_get_serial_sequence('form_entries', 'id'), (SELECT max(id) FROM
 
 -- ---------------------------------------------------- march sign-ups
 
--- Two sign-ups for the march, as the route keeps them: Ben, who also wrote
+-- Sign-ups for the march, as the route keeps them: Ben, who also wrote
 -- to his MP, came by the newsletter's link, ticked the box and is on Luma's
--- list; Mo came by no link, didn't tick it, and Luma skipped them.
+-- list; Mo came by no link, didn't tick it, and Luma skipped them. Dana
+-- signed up twice with one mobile, so is one supporter with two addresses,
+-- each ticking the box; her old one is blocked further down.
 WITH entries AS (
   INSERT INTO form_entries (form, created_at, name, email, phone, city, postcode, contact_consent, utm_source) VALUES
     ('march-2026-11', now() - interval '2 days', 'Ben Seed', 'ben.seed@example.com', '07700 900111', 'Bristol', 'BS1 1AA', true, 'nl'),
-    ('march-2026-11', now() - interval '1 day', 'Mo March', 'mo.march@example.com', NULL, 'Leeds', NULL, false, NULL)
+    ('march-2026-11', now() - interval '1 day', 'Mo March', 'mo.march@example.com', NULL, 'Leeds', NULL, false, NULL),
+    ('march-2026-11', now() - interval '4 days', 'Dana Double', 'dana.old@example.com', '07700 900222', 'Leeds', 'LS1 1AA', true, NULL),
+    ('march-2026-11', now() - interval '3 days', 'Dana Double', 'dana.double@example.com', '07700 900222', 'Leeds', 'LS1 1AA', true, NULL)
   RETURNING id, email
 )
 INSERT INTO form_entry_luma (entry_id, event_id, status)
@@ -1083,6 +1090,15 @@ INSERT INTO email_sends (at, purpose, address, outcome, message_id, backend, sub
 INSERT INTO email_problems (at, address, message_id, kind, reason, can_reset) VALUES
   (now() - interval '7 hours', 'bouncing@example.com', 'seed-log-bounced', 'hard', 'No such mailbox', true),
   (now() - interval '8 hours', 'complaining@example.com', 'seed-log-complained', 'complaint', 'Marked as spam', false);
+-- Dana's old address bounced, so it's blocked; her other still says yes.
+-- Robin's calendar address bounced too; their member address isn't blocked.
+WITH bounced AS (
+  INSERT INTO email_problems (at, address, kind, reason, can_reset) VALUES
+    (now() - interval '2 days', 'dana.old@example.com', 'hard', 'No such mailbox', true),
+    (now() - interval '2 days', 'robin.events@example.com', 'hard', 'No such mailbox', true)
+  RETURNING id, address
+)
+INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM bounced;
 -- The new tag: the migration's pages for each account here, so only the pages it didn't name show as new.
 INSERT INTO staff_nav_seen (email, page, first_seen_at)
 SELECT a.email, p.page, '2000-01-01' FROM staff_accounts a CROSS JOIN unnest(ARRAY['supporters', 'supporterEmails', 'politicians', 'asks', 'mailings', 'mpEmails', 'events', 'import', 'accounts', 'changes']) AS p (page)

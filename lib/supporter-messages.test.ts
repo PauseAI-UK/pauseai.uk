@@ -34,7 +34,6 @@ describe("messageTerms", () => {
     expect(messageTerms("nonsense")).toBeUndefined();
     expect(messageTerms("email:pauseai-updates:unsure")).toBeUndefined();
     expect(messageTerms("email:pauseai-updates")).toBeUndefined();
-    expect(messageTerms("email:blocked")).toBeUndefined();
     expect(messageTerms(["email:site-forms:yes", "email:luma-calendar:yes"])).toBeUndefined();
   });
 });

@@ -150,10 +150,19 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         );
         // No two politicians share a name, so a list of them never shows the same row twice.
         expect(runSql(name, "SELECT name FROM notable_people GROUP BY name HAVING count(*) > 1")).toEqual([]);
-        // One supporter per email, with nothing left unlinked, and every kind of supporter among them.
+        // One supporter per email, but Dana and Robin, each two emails merged by a mobile, with nothing left
+        // unlinked, and every kind of supporter among them.
         expect(runSql(name, "SELECT count(*) FROM supporters")).toEqual(
-          runSql(name, "SELECT count(DISTINCT matched_value) FROM supporter_links"),
+          runSql(name, "SELECT count(DISTINCT supporter_id) FROM supporter_links"),
         );
+        expect(
+          runSql(
+            name,
+            `SELECT DISTINCT i.name FROM supporter_identity i WHERE i.supporter_id IN
+               (SELECT supporter_id FROM supporter_links GROUP BY supporter_id HAVING count(DISTINCT matched_value) > 1)
+             ORDER BY 1`,
+          ),
+        ).toEqual(["Dana Double", "Robin Rivers"]);
         expect(
           runSql(
             name,

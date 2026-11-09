@@ -346,7 +346,7 @@ export function supporterId(id: string): number | undefined {
 export type SupportersSearch = {
   q: string;
   activity: string[];
-  /** Each "email:blocked", or "<channel>:<topic>", with ":<answer>" or ":<reason>" after it, for one. */
+  /** Each "<channel>:<topic>", with ":<answer>" or ":<reason>" after it, for one. */
   contact: string[];
   /** Luma event IDs. */
   event: string[];

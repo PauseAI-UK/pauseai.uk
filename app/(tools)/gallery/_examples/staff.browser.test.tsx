@@ -255,5 +255,7 @@ it("switches the tabs' panel, each tab saying whether it's chosen", async () => 
   await page.getByRole("tab", { name: "Approved templates" }).click();
   await expect.element(page.getByRole("tab", { name: "Approved templates" })).toHaveAttribute("aria-selected", "true");
   await expect.element(page.getByRole("tab", { name: "New template" })).toHaveAttribute("aria-selected", "false");
-  await expect.element(page.getByRole("tabpanel", { name: "Approved templates" })).toHaveTextContent("The templates");
+  await expect
+    .element(page.getByRole("tabpanel", { name: "Approved templates" }))
+    .toHaveTextContent("The templates, to choose from.");
 });

@@ -502,12 +502,13 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ contact: [{ channel: "email", topic: "pauseai-updates", reason: "declined" }] })).toEqual([
       "Old",
     ]);
-    // A block is every topic's answer, and outranks the unsubscribe.
+    // A block is a no for each of the address's topics, and outranks the unsubscribe.
     await query(
       `WITH p AS (INSERT INTO email_problems (address, kind, at, can_reset) VALUES ('sam@example.com', 'hard', '2026-10-13T00:00:00Z', false) RETURNING id)
        INSERT INTO email_blocks (address, problem_id) SELECT 'sam@example.com', id FROM p`,
     );
-    expect(await names({ contact: [{ channel: "email", reason: "blocked" }] })).toEqual(["Sam"]);
+    expect(await names({ contact: [...unsubscribed] })).toEqual([]);
+    expect(await names({ contact: [{ channel: "email", topic: "luma-calendar", send: "no" }] })).toContain("Sam");
     // Any answer for a topic, and one answer.
     expect(await names({ contact: [{ channel: "email", topic: "pauseai-updates", send: "no" }] })).toEqual(["Old"]);
     expect(await names({ contact: [{ channel: "email", topic: "pauseai-updates" }] })).toEqual(

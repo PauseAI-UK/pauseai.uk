@@ -283,7 +283,7 @@ describe("MessageWriter, by text", () => {
     await expect.element(page.getByText(copy.problems["no-template"])).toBeVisible();
     await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
     await expect.element(page.getByLabelText(copy.subject)).not.toBeInTheDocument();
-    await expect.element(page.getByText("+447700900000")).toBeVisible();
+    await expect.element(page.getByText("+44 7700 900000", { exact: false })).toBeVisible();
     await expect.element(page.getByText(stopsFor(exampleMessageText.dueAt!))).toBeVisible();
   });
 

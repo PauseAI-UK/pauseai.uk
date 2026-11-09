@@ -294,6 +294,8 @@ export const staffCopy = {
       place: "Place",
       badges: "Activities",
       subscriptions: "Consent",
+      // With the Consent filter: why each answer it finds is what it is.
+      consentReason: "Consent reason",
       firstSeen: "First sign-up",
       lastActive: "Last activity",
       events: "Luma events",
@@ -329,8 +331,6 @@ export const staffCopy = {
       } as Record<Channel, Record<string, string>>,
       // A yes that an unsubscribe we can't see may have undone.
       unsure: (topic: string) => `${topic} (?)`,
-      // Every address they have is blocked.
-      blocked: "Blocked",
     },
     sources: {
       luma: "Luma",
@@ -487,9 +487,7 @@ export const staffCopy = {
             },
           },
         } as Record<Channel, Record<string, { about: string; yes: string; no: string; caveat?: string }>>,
-        // One tile in place of the topics', when the address is blocked: in place of a topic, then the answer.
-        everyTopic: "Every topic",
-        blocked: "Can't email: blocked",
+        // Why a blocked address is a no, under each of its topics: what blocked it, then the link to the list.
         blockedBecause: {
           hard: (when: string) => `An email to it bounced, ${when}.`,
           complaint: (when: string) => `They marked an email as spam, ${when}.`,
