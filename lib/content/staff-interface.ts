@@ -1289,9 +1289,9 @@ All events: ${link}`,
       cancelled: "⁂ Stopped: the broadcast was stopped",
     } as Record<string, string>,
     skipReasons: {
-      blocked: "⁂ Skipped: address blocked",
-      unsubscribed: { email: "⁂ Stopped: asked us not to email", text: "Stopped: asked us not to text" },
-      "no-permission": "⁂ Skipped: no longer said yes",
+      blocked: "Skipped: address blocked",
+      unsubscribed: { email: "Stopped: asked us not to email", text: "Stopped: asked us not to text" },
+      "no-permission": "Skipped: consent ended",
       "not-on-whatsapp": "Not on WhatsApp",
     },
     threadLink: "Thread →",
@@ -1320,7 +1320,7 @@ All events: ${link}`,
     // A supporter's page.
     supporterTitle: "Broadcasts",
     supporterNone: "No broadcasts sent to them.",
-    supporterColumns: { message: "⁂ Broadcast", status: "⁂ Status" },
+    supporterColumns: { message: "Broadcast", status: "Status" },
   },
 
   // The pages for writing a mailing, its own page once it's scheduled, and the list of them.

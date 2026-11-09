@@ -40,8 +40,10 @@ export type BroadcastSummary = MailingSummary & {
   rejected: boolean;
 };
 
-const STOPPED = "(c.status = 'cancelled' OR c.skip_reason = 'unsubscribed')";
-const FAILED = "(c.status = 'failed' OR (c.status = 'skipped' AND c.skip_reason <> 'unsubscribed'))";
+// Stopped: never sent, as the broadcast was stopped, they asked us to stop, or their consent ended before it went.
+const STOPPED = "(c.status = 'cancelled' OR c.skip_reason IN ('unsubscribed', 'no-permission'))";
+const FAILED =
+  "(c.status = 'failed' OR (c.status = 'skipped' AND c.skip_reason NOT IN ('unsubscribed', 'no-permission')))";
 const WAS_READ = "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'read')";
 
 const SELECT_BROADCASTS = `

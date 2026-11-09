@@ -76,6 +76,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     await addFollower("usr-2", "sam@example.com", "Sam", { phone: "07700 900002" });
     await addFollower("usr-3", "pat@example.com", "Pat", { phone: "07700 900003" });
     await addFollower("usr-4", "bob@example.com", "Bob", { phone: "07700 900004" });
+    await addFollower("usr-5", "kim@example.com", "Kim", { phone: "07700 900005" });
     await createBroadcastDraft(JO, EMAIL_FILTER);
     const later = await scheduled(TEXT_FILTER, { templateId: await addTemplate("Event") });
     const onTemplate = await scheduled(TEXT_FILTER, {
@@ -88,6 +89,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       ["failed", null],
       ["skipped", "unsubscribed"],
       ["skipped", "blocked"],
+      ["skipped", "no-permission"],
     ]);
     await query("INSERT INTO broadcast_message_events (message_id, kind) VALUES ($1, 'read')", [copies[0]]);
     const { groups, now } = await broadcastsPage();
@@ -98,15 +100,16 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       [later, "scheduled"],
       [expect.any(Number), "draft"],
     ]);
-    expect(coming[2].to).toBe(4);
+    expect(coming[2].to).toBe(5);
     expect(groups[1].mailings[0]).toMatchObject({
       id: went,
       channel: "email",
-      to: 4,
+      to: 5,
       sent: 1,
       delivered: 1,
+      // The failure and the blocked address; and those who asked us to stop, or whose consent ended.
       failed: 2,
-      stopped: 1,
+      stopped: 2,
       read: 1,
     });
   });
