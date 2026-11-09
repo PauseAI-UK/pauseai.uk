@@ -3,69 +3,75 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { march } from "@/lib/content/march";
 import { pausefest, type FestDay } from "@/lib/content/pausefest";
-import Lineup from "./Lineup";
 import PauseFestHero from "./PauseFestHero";
+import Programme from "./Programme";
 
 describe("PauseFestHero", () => {
-  it("names the festival and links to each day", async () => {
+  it("names the festival, where and when", async () => {
     await render(<PauseFestHero />);
     await expect.element(page.getByRole("heading", { level: 1, name: "PauseFest" })).toBeVisible();
-    const days = page.getByRole("navigation", { name: "Days" }).getByRole("link");
-    expect(days.all()).toHaveLength(4);
-    await expect
-      .element(page.getByRole("link", { name: /Mon 23 Nov.*Conference in Parliament · Fireside chat/ }))
-      .toHaveAttribute("href", "#mon-23");
+    await expect.element(page.getByText("London 2026")).toBeVisible();
+    await expect.element(page.getByText(/20th – 23rd November/)).toBeVisible();
   });
 });
 
-describe("Lineup", () => {
-  it("heads each day, with its events under it", async () => {
-    await render(<Lineup days={pausefest.days} />);
-    for (const day of ["Fri 20 Nov", "Sat 21 Nov", "Sun 22 Nov", "Mon 23 Nov"])
-      await expect.element(page.getByRole("heading", { level: 2, name: day })).toBeVisible();
-    const monday = page.getByRole("region", { name: "Mon 23 Nov" });
-    expect(monday.getByRole("heading", { level: 3 }).all()).toHaveLength(2);
+describe("Programme", () => {
+  it("lists every event in order, the main ones with their full date", async () => {
+    await render(<Programme days={pausefest.days} />);
+    const titles = page.getByRole("listitem").getByRole("heading", { level: 3 });
+    expect(titles.elements().map((title) => title.textContent)).toEqual([
+      "Sign-making",
+      "March Against AI Extinction",
+      "Flyering for the next march",
+      "Conference in Parliament",
+      "Fireside chat with Siliconversations",
+    ]);
+    await expect.element(page.getByText("Saturday 21 November, 12–3pm")).toBeVisible();
+    await expect.element(page.getByText("Fri 20 Nov")).toBeVisible();
   });
 
   it("registers for the march on its own page, and for the rest on Luma in a new tab", async () => {
-    await render(<Lineup days={pausefest.days} />);
-    const saturday = page.getByRole("region", { name: "Sat 21 Nov" });
-    const marchLink = saturday.getByRole("link", { name: "Register" });
+    await render(<Programme days={pausefest.days} />);
+    const marchBand = page.getByRole("listitem").filter({ hasText: "March Against AI Extinction" });
+    const marchLink = marchBand.getByRole("link", { name: "Register" });
     await expect.element(marchLink).toHaveAttribute("href", march.path);
     await expect.element(marchLink).not.toHaveAttribute("target");
     await expect
-      .element(saturday.getByRole("link", { name: "Bus from Oxford →" }))
+      .element(marchBand.getByRole("link", { name: "Bus from Oxford →" }))
       .toHaveAttribute("href", "https://luma.com/2iot5awn");
 
-    const friday = page.getByRole("region", { name: "Fri 20 Nov" }).getByRole("link", { name: "Register" });
-    await expect.element(friday).toHaveAttribute("href", "https://luma.com/5na05tdu");
-    await expect.element(friday).toHaveAttribute("target", "_blank");
+    const conference = page
+      .getByRole("listitem")
+      .filter({ hasText: "Conference in Parliament" })
+      .getByRole("link", { name: "Register" });
+    await expect.element(conference).toHaveAttribute("href", "https://luma.com/pauseai-conf-nov26");
+    await expect.element(conference).toHaveAttribute("target", "_blank");
+
+    const signMaking = page
+      .getByRole("listitem")
+      .filter({ hasText: "Sign-making" })
+      .getByRole("link", { name: "Register →" });
+    await expect.element(signMaking).toHaveAttribute("href", "https://luma.com/5na05tdu");
+    await expect.element(signMaking).toHaveAttribute("target", "_blank");
   });
 
-  it("marks the main event and its day as featured, and no other", async () => {
-    await render(<Lineup days={pausefest.days} />);
-    await expect.element(page.getByRole("region", { name: "Sat 21 Nov" })).toHaveAttribute("data-featured", "true");
-    await expect.element(page.getByRole("region", { name: "Sun 22 Nov" })).not.toHaveAttribute("data-featured");
-  });
-
-  it("lays out a day of events without a featured one", async () => {
-    const quiet: FestDay = {
-      id: "example-day",
-      weekday: "Tue",
-      date: "1 Jan",
+  it("links a row to a page of ours in the same tab", async () => {
+    const day: FestDay = {
+      short: "Tue 1 Jan",
+      long: "Tuesday 1 January",
       events: [
         {
           title: "An example event",
           time: "1–2pm",
           place: "An example place",
-          blurb: "An example line about the event.",
-          href: "https://luma.com/example",
+          href: "/events",
           image: "/images/march-nov-26/luma-cover.webp",
         },
       ],
     };
-    await render(<Lineup days={[quiet]} />);
-    await expect.element(page.getByRole("heading", { level: 3, name: "An example event" })).toBeVisible();
-    await expect.element(page.getByRole("region", { name: "Tue 1 Jan" })).not.toHaveAttribute("data-featured");
+    await render(<Programme days={[day]} />);
+    const link = page.getByRole("link", { name: "Register →" });
+    await expect.element(link).toHaveAttribute("href", "/events");
+    await expect.element(link).not.toHaveAttribute("target");
   });
 });
