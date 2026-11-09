@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { emailView } from "../fixtures/email-view";
 import type { OutboxEmail } from "../fixtures/outbox";
 import { LOCAL_URL } from "../checkout.mjs";
+import type { PlaceholderText } from "./report/frames";
 
 /**
  * A frame of the storyboard: a caption, saying what the picture shows, and, when the run takes screenshots
@@ -24,6 +25,9 @@ import { LOCAL_URL } from "../checkout.mjs";
  * pictures only the window, for a page too long to picture whole (the
  * gallery itself). `hover` puts the pointer over an element, and keeps it
  * there for the picture, in place of moving it out of the way.
+ *
+ * Each frame also records the placeholders it pictures (placeholdersOnPage), for
+ * `npm run copy` to show the copy waiting for approval where it appears.
  */
 export async function frame(
   page: Page,
@@ -84,6 +88,7 @@ export async function frame(
   if (of) {
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     const box = (await of.boundingBox())!;
+    await attachPlaceholders(page, index, { x: -box.x, y: -box.y, scrolled: false });
     const body = await page.screenshot({
       fullPage: true,
       ...SHOT,
@@ -92,8 +97,109 @@ export async function frame(
     await info.attach(`frame ${index}: ${caption}`, { body, contentType: "image/png" });
     return;
   }
-  const body = inWindow || windowOnly ? await page.screenshot(SHOT) : await wholePage(page);
+  const windowShot = inWindow || windowOnly;
+  await attachPlaceholders(page, index, { x: 0, y: 0, scrolled: !windowShot });
+  const body = windowShot ? await page.screenshot(SHOT) : await wholePage(page);
   await info.attach(`frame ${index}: ${caption}`, { body, contentType: "image/png" });
+}
+
+/**
+ * The placeholders the page shows, attached to the frame as `placeholders <index>` for
+ * the reporter, if there are any.
+ */
+async function attachPlaceholders(page: Page, index: number, origin: Origin): Promise<void> {
+  const found = await page.evaluate(placeholdersOnPage, origin).catch((): PlaceholderText[] => []);
+  if (found.length === 0) return;
+  await test.info().attach(`placeholders ${index}`, { body: JSON.stringify(found), contentType: "application/json" });
+}
+
+/**
+ * Where the picture's top left is: `x` and `y` are added to each box, and
+ * `scrolled` adds the page's scroll too, for a picture of the whole page.
+ */
+type Origin = { x: number; y: number; scrolled: boolean };
+
+/**
+ * Every visible piece of placeholder copy on the page (PlaceholderText in
+ * report/frames.ts), run in the page. It only reads: the text and boxes of
+ * the page as it is, so the picture is the same with it or without.
+ *
+ * A placeholder runs from its mark to the next, or to the end of the block it's in:
+ * the nearest element around it that isn't inline, so copy split across a
+ * link or a <strong> reads as one, as it does in JSX. A box is a text node's,
+ * or a line's in one with line breaks (a plain-text email's <pre>). A field's
+ * placeholder or value, and a select's chosen option, are boxed by the field.
+ */
+function placeholdersOnPage({ x, y, scrolled }: Origin): PlaceholderText[] {
+  const MARK = "\u2042";
+  const dx = x + (scrolled ? window.scrollX : 0);
+  const dy = y + (scrolled ? window.scrollY : 0);
+  const visible = (element: Element) => element.checkVisibility({ visibilityProperty: true, opacityProperty: true });
+  // Text never shown as it stands: a field's is read from the field, below.
+  const unseen = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "TEXTAREA", "OPTION", "OPTGROUP"]);
+  const shows = (element: Element | null) => element !== null && !unseen.has(element.tagName) && visible(element);
+  const box = (at: number, rect: DOMRect): PlaceholderText["boxes"][number] => [
+    at,
+    Math.round(rect.x + dx),
+    Math.round(rect.y + dy),
+    Math.round(rect.width),
+    Math.round(rect.height),
+  ];
+  const found: PlaceholderText[] = [];
+
+  // From the mark at `from` in `start` to the next mark or the end of its block.
+  const stretch = (start: Text, from: number): PlaceholderText => {
+    let block = start.parentElement!;
+    while (block.parentElement && getComputedStyle(block).display === "inline") block = block.parentElement;
+    const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+    walker.currentNode = start;
+    let text = "";
+    const boxes: PlaceholderText["boxes"] = [];
+    for (let node: Text | null = start, at = from; node; node = walker.nextNode() as Text | null, at = 0) {
+      if (node !== start && !shows(node.parentElement)) continue;
+      const next = node.data.indexOf(MARK, node === start ? at + 1 : at);
+      const end = next === -1 ? node.data.length : next;
+      // A piece a line, so a box is never wider than the text it holds.
+      for (let lineStart = at; lineStart < end;) {
+        const newline = node.data.indexOf("\n", lineStart);
+        const lineEnd = newline === -1 || newline >= end ? end : newline + 1;
+        let piece = node.data.slice(lineStart, lineEnd).replace(/[\s\u00a0]+/g, " ");
+        if (text.endsWith(" ") && piece.startsWith(" ")) piece = piece.slice(1);
+        const range = document.createRange();
+        range.setStart(node, lineStart);
+        range.setEnd(node, lineEnd);
+        const rect = range.getBoundingClientRect();
+        if (piece && rect.width > 0 && rect.height > 0) boxes.push(box(text.length, rect));
+        text += piece;
+        lineStart = lineEnd;
+      }
+      if (next !== -1) break;
+    }
+    return { text: text.trim(), boxes };
+  };
+
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
+    if (!node.data.includes(MARK) || !shows(node.parentElement)) continue;
+    for (let at = node.data.indexOf(MARK); at !== -1; at = node.data.indexOf(MARK, at + 1)) {
+      const placeholder = stretch(node, at);
+      if (placeholder.boxes.length > 0) found.push(placeholder);
+    }
+  }
+  for (const field of document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+    "input, textarea, select",
+  )) {
+    const shown =
+      field instanceof HTMLSelectElement ? (field.selectedOptions[0]?.text ?? "") : field.value || field.placeholder;
+    const rect = field.getBoundingClientRect();
+    if (!shown.includes(MARK) || !visible(field) || rect.width === 0 || rect.height === 0) continue;
+    const text = shown
+      .slice(shown.indexOf(MARK))
+      .replace(/[\s\u00a0]+/g, " ")
+      .trim();
+    found.push({ text, boxes: [box(0, rect)] });
+  }
+  return found;
 }
 
 /**

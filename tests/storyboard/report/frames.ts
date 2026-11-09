@@ -74,6 +74,17 @@ export function sections() {
   return read;
 }
 
+/**
+ * A placeholder's text where a frame pictures it (frame.ts, `placeholdersOnPage`), for
+ * scripts/copy.mjs to match with the copy a branch changes. `text` runs from
+ * the placeholder mark (U+2042) to the end of the block it's in, or to the next mark, its
+ * whitespace collapsed. Each of `boxes` is a piece of it, `[at, x, y, width, height]`:
+ * where in `text` the piece starts, and its box in the frame's picture, in
+ * CSS pixels (as every frame is pictured), so a match of the text's first n
+ * characters is boxed by the pieces that start before n.
+ */
+export type PlaceholderText = { text: string; boxes: [number, number, number, number, number][] };
+
 /** A test as one run of the suite saw it, with its frames in order. */
 export type FlowRun = {
   section: string;
@@ -84,8 +95,8 @@ export type FlowRun = {
   status: FlowStatus;
   /** The failure's first line, if it failed. */
   error?: string;
-  /** Each with the lines of the flow's story that come before it (frame.ts's `story`). */
-  frames: { caption: string; png?: string; story?: string[] }[];
+  /** Each with the lines of the flow's story that come before it (frame.ts's `story`), and the placeholders it pictures. */
+  frames: { caption: string; png?: string; story?: string[]; placeholders?: PlaceholderText[] }[];
   /** The story's lines after the last frame. */
   end?: string[];
   /** When the run that shot it started: a partial run carries the flows it didn't run from the last one. */
@@ -105,6 +116,8 @@ export type Frame = {
   caption: string;
   /** The lines of the flow's story before it. */
   story?: string[];
+  /** The placeholders this branch's picture shows (PlaceholderText). */
+  placeholders?: PlaceholderText[];
   /** PNG paths, relative to the storyboard directory. */
   branch?: string;
   main?: string;
@@ -205,6 +218,7 @@ export async function pairRuns(
         index: i + 1,
         caption: f.caption,
         ...(f.story ? { story: f.story } : {}),
+        ...(f.placeholders ? { placeholders: f.placeholders } : {}),
         branch: f.png,
         main: paired?.png,
         changed: false,
