@@ -1,9 +1,10 @@
 // Lists the items in investments/, most hits first, with each one's size and
-// kind, and writes the same list to investments/ranked.txt (gitignored), each
-// line starting with its file's name, so `gf` in an editor opens the item. A
-// hit is a line starting "- " under "## Hits"; "(x14)" in it counts as
-// fourteen. investments/README.md explains the format. The Git hooks
-// (.pre-commit-config.yaml) run it after a checkout or merge, with --quiet.
+// kind, and writes the same list to investments/ranked.txt (gitignored), then
+// says where it wrote it. Each line starts with its item's file name, so `gf`
+// in an editor opens the item. A hit is a line starting "- " under "## Hits";
+// "(x14)" in it counts as fourteen. investments/README.md explains the format.
+// The Git hooks (.pre-commit-config.yaml) run it after a checkout or merge,
+// with --quiet.
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -32,4 +33,7 @@ const lines = items.map(
 );
 
 writeFileSync(join(folder, "ranked.txt"), lines.join("\n") + "\n");
-if (!process.argv.includes("--quiet")) console.log(lines.join("\n"));
+if (!process.argv.includes("--quiet")) {
+  console.log(lines.join("\n"));
+  console.log("\nWritten to investments/ranked.txt");
+}
