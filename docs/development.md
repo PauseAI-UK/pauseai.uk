@@ -193,6 +193,13 @@ That records 0001 to 0011 as applied, then applies the rest.
    the migration and what it does to the schema. A unit test fails while
    `schema.sql` is out of date.
 
+Once pushed, a migration can't change: Netlify applies it to the PR's
+preview database, and refuses it changed. CI's "Types, migrations" job
+fails if a migration on main or in the branch's last push has changed, and
+the pre-push hook (`npm run hooks:install`) stops such a push
+(`scripts/migrations-unchanged.mjs`). Change a pushed migration with a new
+one instead.
+
 ### Collation
 
 How Postgres sorts and compares text is the database's collation, fixed

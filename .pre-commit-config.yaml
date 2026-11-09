@@ -2,8 +2,10 @@
 # `npm run hooks:install` (docs/development.md). Prettier formats the files
 # itself; then `git add` them and commit again. CI runs these and more
 # either way. After a checkout or merge, investments/ranked.txt is written
-# again (scripts/investments.mjs).
-default_install_hook_types: [pre-commit, post-checkout, post-merge]
+# again (scripts/investments.mjs). Before a push, it checks that no migration
+# already pushed has changed (scripts/migrations-unchanged.mjs).
+default_install_hook_types: [pre-commit, post-checkout, post-merge, pre-push]
+default_stages: [pre-commit]
 repos:
   - repo: local
     hooks:
@@ -29,3 +31,10 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [post-checkout, post-merge]
+      - id: migrations-unchanged
+        name: Pushed migrations unchanged
+        entry: node scripts/migrations-unchanged.mjs --main --pushed
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

@@ -12,7 +12,7 @@ where there's an npm script. Each file's opening comment has the details.
 | `db-schema.mjs`      | `npm run db:schema`                                          | Rewrites `netlify/database/schema.sql` by applying every migration to a throwaway database and dumping it with `pg_dump` 18. Run it with each new migration.                                 |
 | `fresh-database.mjs` | `node scripts/fresh-database.mjs <name> [--test-mp <email>]` | Makes an empty database with the migrations applied and prints its URL. The other database scripts, the tests (`tests/database.ts`) and the Playwright builds use its functions.             |
 
-`docs/development.md`, section 3, covers using them.
+`docs/development.md`, section 3, covers using them. `migrations-unchanged.mjs`, run by CI and the pre-push hook, fails if a migration already pushed has changed (`--main` for where the branch left origin/main, `--pushed` for the branch on origin, or a commit).
 
 ## Storyboard
 
