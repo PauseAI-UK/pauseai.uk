@@ -164,6 +164,9 @@
   --status-blue: #1d4e89;
   --status-blue-bg: #dbe8f7;
 
+  /* A chart's part beyond the five the status and accent colours give it (StackedBars). */
+  --chart-teal: #0b7d78;
+
   /* The weekly briefings' colours, from their designer's A4 layout. Each
      topic has its own, for its box, its tab and its bars and dots in the
      charts and calendars; the headline orange rules the masthead and the

@@ -219,6 +219,7 @@ describe("StaffNav", () => {
       "/staff/supporters",
       "/staff/campaigns",
       "/staff/supporters/blocked-emails",
+      "/staff/supporters/upload",
     ]);
   });
 });
@@ -5274,6 +5275,7 @@ describe("SupporterDetails, a march sign-up", () => {
             { ...entry, detail: null },
             { ...entry, detail: null, status: null, title: "a-new-form" },
             { ...entry, detail: null, status: null, title: null },
+            { ...entry, detail: "Flyering", status: null, title: "paper-signup" },
           ],
         }}
       />,
@@ -5290,6 +5292,7 @@ describe("SupporterDetails, a march sign-up", () => {
       `${form} · ${copy.detail.luma.skipped}`,
       `${copy.detail.kinds["form-entry"]} a-new-form`,
       `${copy.detail.kinds["form-entry"]} `,
+      `${copy.detail.kinds["form-entry"]} ${copy.sources["paper-signup"]} · Flyering`,
     ]);
   });
 });

@@ -320,8 +320,11 @@ of the row it takes: a sixth, a third, a half, two-thirds or all (`span`
 tall as what's in them; a grid of things of one kind side by side (the
 dashboard's tiles, the import jobs) is `even`, each as tall as its row.
 On a page laid out on the grid, the content is never wider than 88rem, so
-the columns don't stretch on a big monitor. A page with no grid, a list,
-takes the whole width, its filters as wide as its table.
+the columns don't stretch on a big monitor. A new page is laid out on the
+grid, its sections cards the full six columns wide, even a short table. Only
+a list whose table needs the room, many columns with filters over them (the
+supporters, the politicians), takes the whole width, its filters as wide as
+its table.
 
 **Widths.** A component never sets its own `max-width` or `width`: the
 grid gives a box its width, and anything read line by line (a form, a

@@ -23,10 +23,11 @@ export function Field({ label, className, children }: { label: ReactNode; classN
 /**
  * A field of more than one control, such as a DateRange: a fieldset, its
  * label's words the legend over them. Each control needs its own label.
+ * `disabled` greys it all out, for controls that wait on another.
  */
-export function FieldSet({ label, children }: { label: ReactNode; children: ReactNode }) {
+export function FieldSet({ label, disabled, children }: { label: ReactNode; disabled?: boolean; children: ReactNode }) {
   return (
-    <fieldset className={`${styles.field} ${styles.fieldset}`}>
+    <fieldset className={`${styles.field} ${styles.fieldset}`} disabled={disabled}>
       <legend className={`${styles.label} ${styles.legend}`}>{label}</legend>
       {children}
     </fieldset>

@@ -31,6 +31,7 @@ export const DYNAMIC_EXAMPLES: Record<string, string> = {
   // Edinburgh follow-up's letter to Polly, which she answered (tests/fixtures/staff-data.sql).
   "/staff/mailings/[id]/letters/[letter]": "/staff/mailings/11/letters/35",
   "/staff/politicians/[id]": "/staff/politicians/1",
+  "/staff/supporters/upload/previous/[id]": "/staff/supporters/upload/previous/1",
   "/staff/supporters/[id]": "/staff/supporters/1",
   "/staff/supporters/[id]/erase": "/staff/supporters/1/erase",
   // A group of the component gallery (fixture builds only).

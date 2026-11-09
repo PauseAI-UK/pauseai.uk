@@ -132,6 +132,26 @@ export async function placesForPostcodes(postcodes: string[]): Promise<Map<strin
 }
 
 /**
+ * The first half of a postcode ("SE15"), at postcodes.io's outcodes: its
+ * middle and the first district it reaches into, or null for one it doesn't
+ * know. It spans constituencies, so it has none. Throws if the request fails.
+ */
+export async function placeForOutcode(outcode: string): Promise<FoundPlace | null> {
+  const res = await outsideFetch(`https://api.postcodes.io/outcodes/${encodeURIComponent(outcode)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`postcodes.io returned ${res.status}`);
+  const result = (await res.json())?.result;
+  if (typeof result?.latitude !== "number" || typeof result?.longitude !== "number") return null;
+  return {
+    latitude: result.latitude,
+    longitude: result.longitude,
+    place: String([result.admin_district].flat()[0] ?? outcode),
+    country: nation([result.country].flat()[0]),
+    constituency: null,
+  };
+}
+
+/**
  * A town or city by its name, at postcodes.io's places (Ordnance Survey's
  * names): the first city or town of that name, as a village can share it,
  * else the first place of any kind; null for none. Throws if the request

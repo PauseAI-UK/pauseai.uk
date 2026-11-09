@@ -1,26 +1,11 @@
 /* A new mailing, on one page: its title and whether it's saved, then its
-   numbered sections, each a card. */
+   numbered sections, each a card (ui/Numbered). */
 
 /* The title, leaving room at the right for whether it's saved, which the
    bar's frame puts there. */
 .title {
   margin: 0;
   padding-right: 10rem;
-}
-
-/* A section's number, in a dark circle before its name. */
-.number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  margin-right: var(--space-3);
-  border-radius: 50%;
-  background: var(--text);
-  color: var(--surface);
-  font-size: var(--text-sm);
-  vertical-align: 0.1em;
 }
 
 .who {

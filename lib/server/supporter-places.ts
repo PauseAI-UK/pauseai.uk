@@ -1,7 +1,14 @@
 import "server-only";
 import type { PlacesLookup } from "@/lib/import-runs";
 import { query, type Queryable } from "./db";
-import { placeNamed, placesForPostcodes, POSTCODES_AT_ONCE, type FoundPlace } from "./outside-services/postcodes";
+import { isOutcode } from "@/lib/signup-upload";
+import {
+  placeForOutcode,
+  placeNamed,
+  placesForPostcodes,
+  POSTCODES_AT_ONCE,
+  type FoundPlace,
+} from "./outside-services/postcodes";
 import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
 
@@ -81,7 +88,10 @@ export async function lookUpPlaces(db?: Queryable): Promise<PlacesLookup> {
   try {
     for (let i = 0; i < postcodes.length; i += POSTCODES_AT_ONCE) {
       const found = await placesForPostcodes(postcodes.slice(i, i + POSTCODES_AT_ONCE));
-      for (const [postcode, place] of found) await storePostcode(postcode, place, db);
+      for (const [postcode, place] of found) {
+        // A bulk lookup doesn't know a postcode's first half alone, which is enough to say roughly where someone is.
+        await storePostcode(postcode, place ?? (isOutcode(postcode) ? await placeForOutcode(postcode) : null), db);
+      }
       result.postcodes += found.size;
     }
     for (const town of towns) {

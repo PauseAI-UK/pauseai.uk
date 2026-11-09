@@ -29,6 +29,8 @@ const PATHS: Record<StaffPageId | "home" | "me" | "logout", ReactNode> = {
       <path d="M2.5 20c.7-3.6 3.3-5.5 6.5-5.5s5.8 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c1.9.7 3.1 2.4 3.5 5.2" />
     </>
   ),
+  // An arrow up, out of a tray.
+  signupUpload: <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" />,
   // A pen writing on a page.
   campaigns: (
     <>

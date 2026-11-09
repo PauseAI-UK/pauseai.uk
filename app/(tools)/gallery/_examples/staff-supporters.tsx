@@ -18,6 +18,9 @@ import {
   exampleSupporterRows,
   exampleSupporterDetails,
 } from "@/app/(staff)/staff/_components/SupportersTable.examples";
+import { SignupColumnNames } from "@/app/(staff)/staff/_components/SignupUploadHelp";
+import SignupUploadResult, { SignupUploadsList } from "@/app/(staff)/staff/_components/SignupUploadResult";
+import { exampleSignupUpload, exampleSignupUploadPeople } from "@/app/(staff)/staff/_components/SignupUpload.examples";
 import { supportersSearch } from "@/lib/staff-search";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import type { Group } from "../_components/types";
@@ -29,6 +32,10 @@ import {
   NoteFormExample,
   NotesCardExample,
   NoteTextExample,
+  SignupPlanViewExample,
+  SignupUploadFormExample,
+  SignupUploadHelpExample,
+  SignupUploadPreviewExample,
 } from "./staff.client";
 
 /** Luma events a filter of supporters picks from, newest first. */
@@ -386,6 +393,71 @@ export const staffSupporters: Group = {
       name: "NoteText",
       file: "app/(staff)/staff/_components/Notes.tsx",
       variants: [{ label: "With addresses, as links, on two lines", render: () => <NoteTextExample /> }],
+    },
+    {
+      name: "SignupUploadForm",
+      file: "app/(staff)/staff/_components/SignupUploadForm.tsx",
+      variants: [{ label: "Before a file: its four steps", render: () => <SignupUploadFormExample /> }],
+    },
+    {
+      name: "SignupUploadHelp",
+      file: "app/(staff)/staff/_components/SignupUploadHelp.tsx",
+      variants: [
+        {
+          label: "What the file needs, and the button that opens every name",
+          render: () => <SignupUploadHelpExample />,
+        },
+      ],
+    },
+    {
+      name: "SignupColumnNames",
+      file: "app/(staff)/staff/_components/SignupUploadHelp.tsx",
+      variants: [{ label: "Every column name, and its values", render: () => <SignupColumnNames /> }],
+    },
+    {
+      name: "SignupPlanView",
+      file: "app/(staff)/staff/_components/SignupUploadPreview.tsx",
+      variants: [{ label: "Someone in every pile", render: () => <SignupPlanViewExample /> }],
+    },
+    {
+      name: "SignupUploadPreview",
+      file: "app/(staff)/staff/_components/SignupUploadPreview.tsx",
+      variants: [{ label: "Worked out, with someone in every pile", render: () => <SignupUploadPreviewExample /> }],
+    },
+    {
+      name: "SignupUploadResult",
+      file: "app/(staff)/staff/_components/SignupUploadResult.tsx",
+      variants: [
+        {
+          label: "With what Luma said of each",
+          render: () => <SignupUploadResult upload={exampleSignupUploadPeople} />,
+        },
+        {
+          label: "Everyone since erased, with no event or note",
+          render: () => (
+            <SignupUploadResult upload={{ ...exampleSignupUpload, eventName: null, note: null, people: [] }} />
+          ),
+        },
+      ],
+    },
+    {
+      name: "SignupUploadsList",
+      file: "app/(staff)/staff/_components/SignupUploadResult.tsx",
+      variants: [
+        {
+          label: "This year's and last year's, by the date on the forms",
+          render: () => (
+            <SignupUploadsList
+              now="2026-11-07T12:00:00Z"
+              uploads={[
+                exampleSignupUpload,
+                { ...exampleSignupUpload, id: 2, signedOn: "2025-06-14", note: null, eventName: null, heldBack: 0 },
+              ]}
+            />
+          ),
+        },
+        { label: "None yet", render: () => <SignupUploadsList now="2026-11-07T12:00:00Z" uploads={[]} /> },
+      ],
     },
   ],
 };

@@ -20,7 +20,7 @@ import { toText } from "@/lib/letter-format";
 import AttachmentChips from "./AttachmentChips";
 import { saveDraft, type Draft } from "./draft";
 import LetterEditor from "./LetterEditor";
-import Required from "./Required";
+import Required from "@/components/ui/Required";
 import styles from "./LetterForm.module.css";
 
 type Props = {

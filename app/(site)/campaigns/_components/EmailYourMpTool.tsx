@@ -9,7 +9,7 @@ import type { Place } from "@/lib/events";
 import { TEST_MPS, type TestMp } from "@/lib/test-mps";
 import { readLookup, saveLookup } from "./draft";
 import MpCard from "./MpCard";
-import Required from "./Required";
+import Required from "@/components/ui/Required";
 import { TextInput } from "@/components/ui/Controls";
 import { Field, FieldError, FieldGroup, Hint } from "@/components/ui/Field";
 import { Column, Notice } from "./FormParts";
