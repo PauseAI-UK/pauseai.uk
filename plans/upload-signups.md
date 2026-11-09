@@ -2,19 +2,10 @@
 
 A staff page, Import sign-ups, in the navigation under Supporters. It takes a CSV
 of paper forms filled in while flyering. Built on the `upload-signups-2` branch, and
-described in `docs/domain-concepts.md`, "Form entries". This plan holds only what's
-left before it can merge.
+described in `docs/domain-concepts.md`, "Form entries". Nothing is left to settle before it merges.
+This plan holds what's outside it and left for later.
 
 Designs: https://claude.ai/artifact/2LoKADT8Xw4zFXgVEbdJ4E (private to Francis).
-
-## To settle before merging
-
-### Is signing the form enough to email them? (legal)
-
-The new forms have no mailing list box: signing one is joining, so every import
-gives PauseAI UK by email, and calls and texts for a number given. Whether
-what volunteers say in the street makes that consent is for whoever advises on
-data protection (`docs/data-protection.md`).
 
 ## Outside this feature
 
