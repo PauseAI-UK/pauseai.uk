@@ -1136,7 +1136,7 @@ All events: ${link}`,
     // The same, for a draft with nothing written yet, as from New broadcast.
     choosingNew: "Choose who the new broadcast goes to",
     choosingCount: (n: number) => `${count(n, "supporter", "supporters")} found`,
-    choosingLabel: "⁂ Who the broadcast goes to",
+    choosingLabel: "Who the broadcast goes to",
     useThese: (n: number) => `Use these ${n}`,
     // A broadcast's channel, as a pill, a list's row and the band say it.
     channels: { email: "Email", text: "Text" },
@@ -1177,8 +1177,7 @@ All events: ${link}`,
     // The dropdown of a text's words: its label, and its first choice till one's made.
     templateLabel: "Template",
     pickTemplate: "Choose a template",
-    // Over the approved ones in it, apart from New template under them.
-    approvedTemplates: "⁂ Approved templates",
+    // Under the approved ones, past a rule: new words, to send for approval.
     newTemplate: "New template",
     templateMadeIn: "⁂ Made in WhatsApp Manager",
     templateBy: (name: string, approved: string, used: string) => `${name}, approved ${approved}, ${used}`,
@@ -1240,18 +1239,18 @@ All events: ${link}`,
     problems: {
       // Before a Consent by the channel picked is chosen, first of what stops it.
       "no-consent": "⁂ Choose a consent reason.",
-      "unknown-filter": "⁂ The filter has values that have changed or are no longer supported.",
+      "unknown-filter": "The filter has values that have changed or are no longer supported.",
       "no-recipients": "There's nobody to send to.",
       "no-subject": "Fill in the subject.",
       "no-letter": "Write the email.",
       "no-template": "Choose a template.",
       "no-name": "Give the template a name.",
       "not-approved": "WhatsApp needs to approve the words first.",
-      "not-connected": "⁂ The Gmail you've chosen to send from isn't connected.",
+      "not-connected": "The Gmail you've chosen to send from isn't connected.",
       "no-number": "No WhatsApp number is configured, so texts can't be sent.",
       "no-time": "Choose what time it will be sent.",
-      "time-passed": "⁂ You can't send it into the past!",
-      "cannot-send": "⁂ Sending isn't built yet.",
+      "time-passed": "You can't send it into the past!",
+      "cannot-send": "Sending isn't built yet.",
     } as Record<string, string>,
     // Its page.
     scheduledLine: (n: number, channel: "email" | "text", from: string) =>

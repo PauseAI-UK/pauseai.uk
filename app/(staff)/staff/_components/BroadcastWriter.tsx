@@ -610,15 +610,13 @@ export default function BroadcastWriter({
                           {copy.pickTemplate}
                         </option>
                       )}
-                      {data.templates.length > 0 && (
-                        <optgroup label={copy.approvedTemplates}>
-                          {data.templates.map((one) => (
-                            <option key={one.id} value={one.id}>
-                              {one.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
+                      {data.templates.map((one) => (
+                        <option key={one.id} value={one.id}>
+                          {one.name}
+                        </option>
+                      ))}
+                      {/* A rule between the approved templates and new words, as browsers draw one in a select's list. */}
+                      {data.templates.length > 0 && <hr />}
                       <option value="new">{copy.newTemplate}</option>
                     </Select>
                   </Field>
