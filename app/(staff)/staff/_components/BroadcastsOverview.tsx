@@ -26,7 +26,18 @@ const LOOK: OverviewLook<BroadcastSummary> = {
     ),
 };
 
-/** The list of broadcasts, emails and texts together, as the list of mailings is, each row with its channel. */
-export default function BroadcastsOverview({ groups, now }: { groups: MailingGroup<BroadcastSummary>[]; now: string }) {
-  return <MailingsOverview groups={groups} now={now} look={LOOK} />;
+/**
+ * The list of broadcasts, emails and texts together, as the list of mailings is, each row with its channel;
+ * `pulse`, the one whose words were just sent for approval, drawing the eye.
+ */
+export default function BroadcastsOverview({
+  groups,
+  now,
+  pulse,
+}: {
+  groups: MailingGroup<BroadcastSummary>[];
+  now: string;
+  pulse?: number;
+}) {
+  return <MailingsOverview groups={groups} now={now} look={LOOK} pulse={pulse} />;
 }

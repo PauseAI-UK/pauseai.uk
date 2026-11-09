@@ -109,7 +109,17 @@ function Standing<T extends MailingSummary>({
 }
 
 /** One mailing, a row: when; its title, leading to it, over who it's from, name and address, and its ask; how it stands. */
-function Row<T extends MailingSummary>({ mailing, year, look }: { mailing: T; year: string; look: OverviewLook<T> }) {
+function Row<T extends MailingSummary>({
+  mailing,
+  year,
+  look,
+  pulse,
+}: {
+  mailing: T;
+  year: string;
+  look: OverviewLook<T>;
+  pulse: boolean;
+}) {
   const href = `${look.base}/${mailing.id}`;
   // Its name, as a mail app shows it, before its address; with no name of its own, the address alone.
   const from =
@@ -120,7 +130,7 @@ function Row<T extends MailingSummary>({ mailing, year, look }: { mailing: T; ye
         (mailing.oldLetters ? staffCopy.mailings.notRecorded : staffCopy.mailings.imported))
       : named(mailing.fromName === mailing.sentFrom ? null : mailing.fromName, mailing.sentFrom));
   return (
-    <li className={styles.row}>
+    <li className={styles.row} data-pulse={pulse || undefined}>
       <span className={styles.when}>
         <When mailing={mailing} year={year} />
       </span>
@@ -158,10 +168,13 @@ export default function MailingsOverview<T extends MailingSummary = MailingSumma
   groups,
   now,
   look = MAILINGS_LOOK as unknown as OverviewLook<T>,
+  pulse,
 }: {
   groups: MailingGroup<T>[];
   now: string;
   look?: OverviewLook<T>;
+  /** The one to draw the eye to, just changed on its own page. */
+  pulse?: number;
 }) {
   if (groups.length === 0) {
     return (
@@ -180,7 +193,7 @@ export default function MailingsOverview<T extends MailingSummary = MailingSumma
             <h2 id={`mailings-${group.key}`}>{group.heading}</h2>
             <ul className={styles.rows}>
               {group.mailings.map((mailing) => (
-                <Row key={mailing.id} mailing={mailing} year={year} look={look} />
+                <Row key={mailing.id} mailing={mailing} year={year} look={look} pulse={mailing.id === pulse} />
               ))}
             </ul>
           </section>

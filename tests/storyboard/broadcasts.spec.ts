@@ -254,25 +254,28 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await expect(send.getByText(copy.problems["not-approved"])).toBeVisible();
   await frame(page, "New words: WhatsApp approves them before they can be scheduled", { window: true });
   story(
-    "The button to send them to WhatsApp is at the foot, apart from the words, so it isn't pressed lightly. Sent, the words are locked till WhatsApp decides.",
+    "The button to send them to WhatsApp is at the foot, apart from the words, in Schedule's place, as they can't be scheduled till WhatsApp approves them.",
   );
+  const draftPage = page.url();
+  const id = new URL(draftPage).pathname.split("/").at(-1);
   await send.getByRole("button", { name: copy.submitTemplate }).click();
-  const withdraw = page.getByRole("button", { name: copy.withdrawTemplate });
-  await expect(withdraw).toBeVisible();
-  await page.getByLabel(copy.templateLabel).first().scrollIntoViewIfNeeded();
-  await frame(page, "Sent for approval, the words locked", { window: true });
+  story(
+    "Sent, it's back to the list of broadcasts, where the draft says it's waiting for WhatsApp, its row tinted to find it.",
+  );
+  await page.waitForURL(`${BASE}/staff/broadcasts?submitted=${id}`);
+  await expect(page.getByText(copy.waitingTag)).toBeVisible();
+  await frame(page, "Back on the list, the draft waiting for WhatsApp");
   story("Whoever sent them, and the notification inbox, get the words by email.");
   const sent = newestEmail((one) => one.Cc === staffEmail())!;
   expect(sent.Subject).toBe(staffCopy.notifications.templateSubmitted.subject("March day: where to meet"));
   await emailFrame(page, sent, "The email saying they've gone for approval");
-  story("The list of broadcasts says it's waiting for WhatsApp, beside its Draft.");
-  const draftPage = page.url();
-  await page.goto(`${BASE}/staff/broadcasts`);
-  await expect(page.getByText(copy.waitingTag)).toBeVisible();
-  await frame(page, "The list, the draft waiting for WhatsApp");
+  story("On the draft, a strip at the top says they've gone, and the words are locked till WhatsApp decides.");
   await page.goto(draftPage);
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  await frame(page, "The draft, sent for approval");
+  await page.getByLabel(copy.templateLabel).first().scrollIntoViewIfNeeded();
+  await frame(page, "Its words locked", { window: true });
   story("WhatsApp rejects them. The draft says why in plain words, and the words can be changed and sent again.");
-  const id = new URL(page.url()).pathname.split("/").at(-1);
   runSql(
     flowDatabase,
     `UPDATE whatsapp_templates SET status = 'rejected', rejected_at = '2026-10-16T11:00:00Z', rejected_reason = 'The text ends with a merge field.' WHERE status = 'pending'`,

@@ -184,3 +184,9 @@
 .sentValue {
   margin: 0;
 }
+
+/* Write, brought into view once words come back from WhatsApp: its heading
+   just under the bar that stays at the top of the window. */
+.write {
+  scroll-margin-top: var(--space-7);
+}

@@ -476,26 +476,21 @@ describe("BroadcastWriter, by text", () => {
       draft: { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords },
     });
     await expect.element(page.getByRole("heading", { name: "Hi there", level: 1 })).toBeVisible();
-    await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
     await expect.element(page.getByText(copy.problems["not-approved"])).toBeVisible();
     await expect.element(page.getByText(copy.testVia.textNew)).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
-    const refreshes = navigation.refreshes;
-    // Sent, it goes up to the top, where the strip says they've gone.
-    const scrolled = vi.spyOn(window, "scrollTo");
+    // In Schedule's place, as it can't be scheduled till WhatsApp approves.
+    expect(button(copy.schedule(412, "text")).query()).toBeNull();
+    // Refused: it stays, to be pressed again.
+    actions.submitTemplate.mockResolvedValue("already");
     await button(copy.submitTemplate).click();
     await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledWith(4), WAIT);
-    await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
-    expect(scrolled).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
-    scrolled.mockClear();
-    // Refused: nothing to show again.
-    actions.submitTemplate.mockResolvedValue("already");
-    const before = navigation.refreshes;
+    await expect.element(button(copy.submitTemplate)).toBeEnabled();
+    expect(navigation.pushed).toEqual([]);
+    // Sent: back to the list, where its row pulses.
+    actions.submitTemplate.mockResolvedValue("submitted");
     await button(copy.submitTemplate).click();
-    await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledTimes(2), WAIT);
-    expect(navigation.refreshes).toBe(before);
-    expect(scrolled).not.toHaveBeenCalled();
-    scrolled.mockRestore();
+    await vi.waitFor(() => expect(navigation.pushed).toEqual(["/staff/broadcasts?submitted=4"]), WAIT);
   });
 
   it("can't send words for approval before there are any, or while anything but the time stops it", async () => {

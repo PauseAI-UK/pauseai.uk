@@ -382,6 +382,16 @@ aren't one card, such as a letter's ask over its history, stack in a
 **No box under or beside a box** but a card or tile in the same grid. A
 card holds strips, rows and fields, never another card.
 
+**Drawing the eye.** When a page opens on something a person just did or
+picked, that one thing pulses once in the accent's tint (`--accent-light`,
+or the orange at 40%) and settles: one pulse of about a second and a half,
+starting just after the page appears, never repeated. It's a change of
+colour, not a movement, so it stays with motion turned off. Three do it:
+the ask a link picked out on an asks list (`AsksList.module.css`, which
+stays tinted), a notice that opens after something happened
+(`ui/Notice.module.css`, fading to plain), and the broadcast just sent for
+approval on the list of broadcasts (`MailingsOverview.module.css`).
+
 **Strips, not alerts.** Anything that needs a person is a red or amber
 strip, with its icon at the left and its button at the right: a strip
 each at the top of the home page, one at the top of an MP's page whose

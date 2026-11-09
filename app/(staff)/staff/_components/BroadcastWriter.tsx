@@ -599,6 +599,7 @@ export default function BroadcastWriter({
               span={6}
               title={<Numbered n={3}>{copy.sections.write}</Numbered>}
               id="write-title"
+              className={own.write}
               ref={(element) => {
                 writeCard.current = element;
               }}
@@ -725,32 +726,34 @@ export default function BroadcastWriter({
                 )}
               </p>
               <div className={styles.send}>
-                <ScheduleButton
-                  label={copy.schedule(data.count, draft.channel)}
-                  disabled={problems.length > 0 || !data.sends}
-                  saveNow={saveNow}
-                  schedule={() => actions.schedule(id, version.current)}
-                />
-                {/* New words go to WhatsApp from here, at the foot, once they're written. */}
-                {words === "new" && !waiting && (
+                {/* New words go to WhatsApp from here, at the foot, once they're written, in Schedule's
+                    place, as they can't be scheduled till WhatsApp approves them. */}
+                {words === "new" && !waiting ? (
                   <Button
-                    variant="ghost"
+                    variant="primary"
                     fit
                     disabled={!written || approvalProblems(problems).length > 0 || !data.sends}
                     pending={submitting}
                     onClick={async () => {
                       setSubmitting(true);
                       await saveNow();
-                      // Up to the strip at the top that says they've gone, as the button is far below it.
+                      // Back to the list, where the broadcast's row says it's waiting for WhatsApp, and pulses.
                       if ((await actions.submitTemplate(id)) === "submitted") {
-                        window.scrollTo({ top: 0, behavior: "instant" });
-                        router.refresh();
+                        router.push(`/staff/broadcasts?submitted=${id}`);
+                      } else {
+                        setSubmitting(false);
                       }
-                      setSubmitting(false);
                     }}
                   >
                     {copy.submitTemplate}
                   </Button>
+                ) : (
+                  <ScheduleButton
+                    label={copy.schedule(data.count, draft.channel)}
+                    disabled={problems.length > 0 || !data.sends}
+                    saveNow={saveNow}
+                    schedule={() => actions.schedule(id, version.current)}
+                  />
                 )}
                 <DeleteDraft id={id} action={actions.deleteDraft} />
               </div>

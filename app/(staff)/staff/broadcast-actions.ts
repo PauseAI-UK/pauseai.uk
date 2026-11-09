@@ -140,6 +140,7 @@ export async function scheduleBroadcastNow(id: number, version: number): Promise
 export async function submitTemplateNow(id: number): Promise<TemplateSubmitResult> {
   const { email } = await requireStaff("supporters");
   const result = await submitTemplate(id, email);
+  revalidatePath(LIST);
   revalidatePath(`${LIST}/${id}`);
   return result;
 }
