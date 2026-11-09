@@ -25,8 +25,8 @@ const row = (id: number, name: string, params: SavedFilter["params"] = { party: 
   name,
   params,
   createdBy: `jane.smith+${id}@pauseai.uk`,
-  createdAt: "2026-10-28T10:00:00Z",
-  changedAt: "2026-10-28T10:00:00Z",
+  createdAt: new Date("2026-10-28T10:00:00Z"),
+  changedAt: new Date("2026-10-28T10:00:00Z"),
 });
 
 const FILTERS = [

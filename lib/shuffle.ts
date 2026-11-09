@@ -1,3 +1,5 @@
+import { config } from "@/lib/server/config";
+
 // The seed for a fixture build's shuffles: any fixed number.
 const FIXTURE_SEED = 2026;
 
@@ -17,7 +19,7 @@ export function shuffle<T>(arr: readonly T[], random: () => number = defaultRand
  * code, is the same on every render and the storyboard can compare it.
  */
 export function defaultRandom(): () => number {
-  return process.env.DATA_FIXTURES === "1" ? seededRandom(FIXTURE_SEED) : Math.random;
+  return config.fixtures ? seededRandom(FIXTURE_SEED) : Math.random;
 }
 
 /** A random() in [0, 1) that gives the same sequence for the same seed (mulberry32). */

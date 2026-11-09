@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { canDeleteNote, canEditNote, isSaveKey, NOTE_EDIT_HOURS, noteParts } from "./notes";
 
-const note = { writtenBy: "jo@pauseai.uk", createdAt: "2026-11-02T09:00:00Z" };
+const note = { writtenBy: "jo@pauseai.uk", createdAt: new Date("2026-11-02T09:00:00Z") };
 const jo = { email: "jo@pauseai.uk", permissions: [] };
 const sam = { email: "sam@pauseai.uk", permissions: [] };
 const admin = { email: "ada@pauseai.uk", permissions: ["admin" as const] };
-const hours = (n: number) => new Date(Date.parse(note.createdAt) + n * 60 * 60 * 1000);
+const hours = (n: number) => new Date(note.createdAt.getTime() + n * 60 * 60 * 1000);
 
 describe("canEditNote and canDeleteNote", () => {
   it("let the writer change a note for a day, and no one else", () => {

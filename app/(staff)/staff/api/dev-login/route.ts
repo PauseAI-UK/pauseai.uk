@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { fixturesEnabled } from "@/lib/fixtures-enabled";
+import { config } from "@/lib/server/config";
 import { createSession } from "@/lib/server/staff-auth";
 import { afterLogin, NEXT_PARAM, sessionCookie } from "@/lib/staff-session";
 import { siteUrl } from "@/lib/site-url";
@@ -8,7 +8,7 @@ import { siteUrl } from "@/lib/site-url";
 // form posts an address and gets a session for it at once, with no email
 // and no link, and goes on to the page it was given. Anywhere else it doesn't exist: a 404, whatever is posted.
 export async function POST(request: NextRequest) {
-  if (!fixturesEnabled()) return new NextResponse(null, { status: 404 });
+  if (!config.fixtures) return new NextResponse(null, { status: 404 });
   const form = await request.formData().catch(() => undefined);
   const email = form?.get("email");
   const next = afterLogin(form?.get(NEXT_PARAM));

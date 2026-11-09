@@ -141,7 +141,7 @@ describe("EventsTable", () => {
 
   it("still calls one earlier today with no owner an error", async () => {
     const [soon] = exampleEvents;
-    const today = { ...soon, owner: null, startAt: "2026-11-02T09:00:00.000Z" };
+    const today = { ...soon, owner: null, startAt: new Date("2026-11-02T09:00:00.000Z") };
     await render(
       <EventsTable
         found={{ events: [today], total: 1, pages: 1, removed: 0 }}

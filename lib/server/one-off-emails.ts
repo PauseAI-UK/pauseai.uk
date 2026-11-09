@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { headerText } from "@/lib/email-parsing/mime";
 import { gzipSync } from "node:zlib";
 import { addressesIn, realSender } from "@/lib/email-parsing/addresses";
@@ -60,7 +61,7 @@ export const ONE_OFF_HEADERS = [
 
 /** The shared inbox one-off emails are copied to, as the page says: POLICY_INBOX, or else its usual address. */
 export function oneOffInbox(): string {
-  return process.env.POLICY_INBOX || "policy@pauseai.uk";
+  return config.policyInbox ?? "policy@pauseai.uk";
 }
 
 /** A message's Message-ID, if it has one. */
@@ -298,7 +299,7 @@ export async function reportUnmatchedMail(token: (account: string) => Promise<st
   const [last] = await query<{ at: Date | null }>(
     "SELECT greatest(max(reported_at), max(tried_at)) AS at FROM unmatched_mail",
   );
-  if (last.at && now().getTime() - new Date(last.at).getTime() < REPORT_EVERY_MS) return 0;
+  if (last.at && now().getTime() - last.at.getTime() < REPORT_EVERY_MS) return 0;
   await query("UPDATE unmatched_mail SET tried_at = now() WHERE reported_at IS NULL");
   const batch = await query<{ account: string; id: string; waiting: number }>(
     `SELECT account, gmail_message_id AS id, count(*) OVER ()::int AS waiting FROM unmatched_mail
@@ -338,7 +339,7 @@ export type OneOffThreadRow = {
   id: number;
   subject: string | null;
   someoneElse: boolean;
-  latestAt: string;
+  latestAt: Date;
   messages: number;
   people: { id: number; name: string; isTest: boolean }[];
   /** Who wrote in it, each once, in the order they first wrote; null when hidden. */
@@ -438,7 +439,7 @@ export function supporterOneOffs(supporterId: number): Promise<OneOffThreadRow[]
 /** A message of a thread, as its page shows it. */
 export type OneOffMessage = {
   id: number;
-  at: string;
+  at: Date;
   fromName: string;
   fromAddress: string;
   to: string;

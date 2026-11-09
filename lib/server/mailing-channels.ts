@@ -8,7 +8,7 @@ import { headerName, notifyDomain, type Attachment } from "./outside-services/po
 // many more it can send today and what one costs, and turns its provider's
 // report on a message into an event. Each has a fake for fixture builds,
 // the dev server and tests, which writes each message to the outbox
-// (tests/fixtures/outbox.ts); for email, that's sendEmail's own.
+// (lib/server/fixtures/outbox.ts); for email, that's sendEmail's own.
 
 /** One message, as a channel sends it. */
 export type ChannelMessage = {

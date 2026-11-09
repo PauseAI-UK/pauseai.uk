@@ -18,7 +18,7 @@ const READY: SchedulingMailing = {
   subject: "Hello",
   body: LETTER,
   sentFrom: "jo@pauseai.uk",
-  dueAt: "2026-11-02T09:00:00Z",
+  dueAt: new Date("2026-11-02T09:00:00Z"),
   recipients: 2,
   lacking: ["constituency"],
   unknown: [],
@@ -51,7 +51,7 @@ describe("scheduleProblems", () => {
   });
 
   it("refuses a field someone lacks, and a time gone by", () => {
-    expect(scheduleProblems({ ...READY, lacking: ["salutation"], dueAt: "2026-11-01T09:00:00Z" })).toEqual([
+    expect(scheduleProblems({ ...READY, lacking: ["salutation"], dueAt: new Date("2026-11-01T09:00:00Z") })).toEqual([
       "field-lacking",
       "time-passed",
     ]);

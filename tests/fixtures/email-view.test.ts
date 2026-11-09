@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { attachmentSize, emailView } from "./email-view";
-import type { OutboxEmail } from "./outbox";
+import type { OutboxEmail } from "@/lib/server/fixtures/outbox";
 
 const email: OutboxEmail = {
   From: '"Jane <Smith>" <jane.smith.482913@letters.pauseai.uk>',

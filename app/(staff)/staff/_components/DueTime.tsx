@@ -100,7 +100,7 @@ export function ChangeTimeForm({
   className,
 }: {
   id: number;
-  dueAt: string;
+  dueAt: Date;
   action: (form: FormData) => void | Promise<void>;
   className?: string;
 }) {
@@ -113,7 +113,7 @@ export function ChangeTimeForm({
   }, []);
   const soonest = earliestHour();
   const chosen = fromLondon(picked.day, picked.hour);
-  const when = Date.parse(chosen) < Date.parse(soonest) ? londonDayHour(soonest) : picked;
+  const when = chosen < soonest ? londonDayHour(soonest) : picked;
   return (
     <form action={action} className={className}>
       <input type="hidden" name="id" value={id} />

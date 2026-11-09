@@ -25,9 +25,9 @@ export type SavedFilter = {
   name: string;
   params: Params;
   createdBy: string;
-  createdAt: string;
+  createdAt: Date;
   /** When it was last changed: when it was made, if it hasn't been. */
-  changedAt: string;
+  changedAt: Date;
 };
 
 /** The saved filter a list's URL has loaded. */

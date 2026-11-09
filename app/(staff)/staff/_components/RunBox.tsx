@@ -55,7 +55,7 @@ export default function RunBox({ run, summary, lines, open, actions, bare, child
       problems={problems}
       actions={actions}
       bare={bare}
-      aria-label={run.at}
+      aria-label={String(run.at)}
     >
       {failed ? undefined : children}
     </ResultBox>

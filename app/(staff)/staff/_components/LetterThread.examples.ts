@@ -7,7 +7,7 @@ export const exampleThread: LetterThread = {
   approximate: false,
   mailingTitle: "Edinburgh follow-up",
   to: { name: "Polly Placeholder", email: "polly.placeholder.mp@parliament.uk" },
-  sentAt: "2026-10-09T09:00:00Z",
+  sentAt: new Date("2026-10-09T09:00:00Z"),
   subject: "Edinburgh follow-up",
   letter: {
     type: "doc",
@@ -22,7 +22,7 @@ export const exampleThread: LetterThread = {
   messages: [
     {
       id: 1,
-      at: "2026-10-10T09:00:00Z",
+      at: new Date("2026-10-10T09:00:00Z"),
       fromName: "Polly Placeholder",
       fromAddress: "polly.placeholder.mp@parliament.uk",
       fromUs: false,
@@ -35,7 +35,7 @@ export const exampleThread: LetterThread = {
     },
     {
       id: 2,
-      at: "2026-10-10T11:30:00Z",
+      at: new Date("2026-10-10T11:30:00Z"),
       fromName: "Jo Seed",
       fromAddress: "jo@pauseai.uk",
       fromUs: true,
@@ -64,7 +64,7 @@ export const exampleImportedThread: LetterThread = {
 export const exampleGmailAccount: GmailAccount = {
   email: "jo@pauseai.uk",
   name: "Jo Seed",
-  connectedAt: "2026-10-01T09:00:00Z",
+  connectedAt: new Date("2026-10-01T09:00:00Z"),
   sentToday: 120,
   remaining: 1680,
 };

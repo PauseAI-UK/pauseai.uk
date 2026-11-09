@@ -5,13 +5,9 @@ import type { MailingSummary } from "@/lib/server/mailings";
 /** A heading of the mailings page, and its mailings in order. */
 export type MailingGroup = { key: string; heading: string; mailings: MailingSummary[] };
 
-/**
- * When a mailing went, for its group, as an ISO string: its first letter
- * sent, or else when it was due, or last changed. The database gives these
- * as Dates, so each is read as one.
- */
-export function mailingWhen(mailing: MailingSummary): string {
-  return new Date(mailing.sentAt ?? mailing.dueAt ?? mailing.updatedAt).toISOString();
+/** When a mailing went, for its group: its first letter sent, or else when it was due, or last changed. */
+export function mailingWhen(mailing: MailingSummary): Date {
+  return mailing.sentAt ?? mailing.dueAt ?? mailing.updatedAt;
 }
 
 /**
@@ -28,7 +24,7 @@ export function mailingGroups(
   if (coming.length + drafts.length > 0) {
     groups.push({ key: "coming", heading: staffCopy.mailingPages.comingUp, mailings: [...coming, ...drafts] });
   }
-  for (const { key, heading, items } of monthsAndYears(sent, mailingWhen, now)) {
+  for (const { key, heading, items } of monthsAndYears(sent, (mailing) => mailingWhen(mailing).toISOString(), now)) {
     groups.push({ key, heading, mailings: items });
   }
   return groups;

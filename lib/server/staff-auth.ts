@@ -81,8 +81,8 @@ export async function sessionEmail(token: string): Promise<string | undefined> {
 export type StaffSession = {
   id: string;
   userAgent: string | null;
-  startedAt: string;
-  expiresAt: string;
+  startedAt: Date;
+  expiresAt: Date;
   remember: boolean;
   current: boolean;
 };

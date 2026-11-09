@@ -3,9 +3,9 @@ import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { type ImportJob, importPath } from "@/lib/import-runs";
 import { staffDate } from "@/lib/staff-time";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { FIXTURE_NOW, LETTERS_INBOX, NOTIFICATION_INBOX } from "../fixture-env.mjs";
+import { FIXTURE_NOW, LETTERS_INBOX, NOTIFICATION_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
-import { failService } from "../fixtures/failing-services";
+import { failService } from "@/lib/server/fixtures/failing-services";
 import { logInAsStaff, newestEmail, syncPoliticians } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { importEmails, logIn, staffEmail } from "./staff-steps";
@@ -259,7 +259,7 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
   await check.click();
   await expect(page.getByRole("row").filter({ hasText: "Cities of London and Westminster" })).toHaveCount(2);
   // One day's heading over both: the fixture clock's day.
-  const day = page.getByRole("heading", { level: 2, name: staffDate(FIXTURE_NOW) });
+  const day = page.getByRole("heading", { level: 2, name: staffDate(new Date(FIXTURE_NOW)) });
   await expect(day).toHaveCount(1);
   // Where the second run leaves the window depends on when its result arrives, so the frame starts at the day.
   await day.evaluate((heading) => heading.scrollIntoView({ block: "start" }));

@@ -141,7 +141,7 @@ const status: LeadOf<"set status"> = (details, change) => {
         {/* By ask's slug, or, logged before asks, by campaign. */}
         {"ask" in details ? details.ask : <CampaignName slug={details.campaign} />}
         {words.after}
-        {details.date && `, ${staffDate(details.date)}`}
+        {details.date && `, ${staffDate(new Date(details.date))}`}
       </>,
     ],
     fields: ["politicianId", "status", "ask", "campaign", "date"],

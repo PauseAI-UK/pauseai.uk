@@ -23,7 +23,7 @@ export default function ThreadEmail({
   from: ReactNode;
   to: ReactNode;
   cc?: ReactNode;
-  at: string | null;
+  at: Date | null;
   subject: string;
   action?: ReactNode;
   /** Its text isn't kept, so its body is a slot with a note in it, not words of the letter. */

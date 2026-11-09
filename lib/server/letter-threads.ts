@@ -17,7 +17,7 @@ import { letterReply } from "./outside-services/blobs";
 /** A later message in a letter's thread, with its text. */
 export type ThreadMessage = {
   id: number;
-  at: string;
+  at: Date;
   fromName: string;
   fromAddress: string;
   /** Our answer, rather than their reply. */
@@ -40,7 +40,7 @@ export type LetterThread = {
   subject: string;
   /** Whom it went to, and when. */
   to: { name: string; email: string | null };
-  sentAt: string | null;
+  sentAt: Date | null;
   /** The letter as it went; null for one imported, whose text we don't have. */
   letter: LetterDoc | null;
   /** The letter's text is rebuilt from replies quoting others like it, not what they received. */

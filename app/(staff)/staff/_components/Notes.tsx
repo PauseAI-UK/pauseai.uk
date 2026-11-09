@@ -82,7 +82,7 @@ export function NoteEntry({
   if (editable || canDeleteNote(note, reader, time)) {
     return (
       <NoteChanges
-        key={note.editedAt}
+        key={String(note.editedAt)}
         note={note}
         editable={editable}
         text={text}

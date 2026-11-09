@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { tagsForEvent, type EventToTag } from "@/lib/event-tags";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { londonStart } from "@/lib/staff-time";
@@ -16,13 +17,13 @@ import { problem } from "./problems";
 const EVENTS_PER_RUN = 10;
 
 /** An event left for a person to tag. */
-export type UnclearEvent = { name: string; startAt: string; city: string | null; url: string };
+export type UnclearEvent = { name: string; startAt: Date; city: string | null; url: string };
 
 export type EventTagging = { tagged: number; requests: number; unclear: UnclearEvent[] };
 
 /** Whether this build may change the real calendar: not a preview's or a local one, which hold a copy of its events. */
 function mayTag(): boolean {
-  return process.env.DEPLOY_CONTEXT === "production" || process.env.DATA_FIXTURES === "1";
+  return config.production || config.fixtures;
 }
 
 /**
@@ -55,12 +56,7 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
   for (const event of events) {
     const tags = tagsForEvent(event, calendarTags);
     if (tags === null) {
-      done.unclear.push({
-        name: event.name,
-        startAt: new Date(event.startAt).toISOString(),
-        city: event.city,
-        url: event.url,
-      });
+      done.unclear.push({ name: event.name, startAt: event.startAt, city: event.city, url: event.url });
     } else {
       try {
         for (const tag of tags) {

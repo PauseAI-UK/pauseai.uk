@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { copy } from "@/lib/content/email-your-mp";
 import { campaignBySlug, draftLetter, looksLikeEmail, signatureAddress } from "@/lib/email-your-mp";
 import { draftHash, ownWords } from "@/lib/letter-changes";
@@ -64,7 +65,7 @@ export function parseLetterForm(body: unknown): LetterForm {
  * DEPLOY_CONTEXT is Netlify's CONTEXT, fixed at build time by next.config.ts.
  */
 export function mayWriteTo(mp: { isTest: boolean }): boolean {
-  return mp.isTest || process.env.DEPLOY_CONTEXT === "production";
+  return mp.isTest || config.production;
 }
 
 function fail(status: number, message: string): SubmitResult {
@@ -73,7 +74,7 @@ function fail(status: number, message: string): SubmitResult {
 
 /** Whether `email` is one of ours, which a sender can't give: the letters inbox's, a proxy, or the policy team's. */
 function isOurAddress(email: string): boolean {
-  const policy = process.env.POLICY_INBOX?.trim().toLowerCase();
+  const policy = config.policyInbox;
   return isLettersInboxAddress(email) || (!!policy && email.trim().toLowerCase() === policy);
 }
 

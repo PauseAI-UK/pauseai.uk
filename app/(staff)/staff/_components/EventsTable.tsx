@@ -142,7 +142,7 @@ function Doc({ doc }: { doc: string | null }) {
  */
 function eventColumns(
   search: EventsSearch,
-  { staff, now, save, hosts }: { staff: readonly string[]; now: string; save: SaveEvent; hosts: boolean },
+  { staff, now, save, hosts }: { staff: readonly string[]; now: Date; save: SaveEvent; hosts: boolean },
 ): ListColumn<StaffEvent>[] {
   const tab = eventTab(search);
   const sort = parseSort(EVENT_SORTS[tab], "start", search.sort, search.dir);
@@ -245,7 +245,7 @@ export default function EventsTable({
   found: EventsFound;
   search: EventsSearch;
   staff: readonly string[];
-  now: string;
+  now: Date;
   save: SaveEvent;
   hosts: boolean;
 }) {

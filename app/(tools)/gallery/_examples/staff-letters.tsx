@@ -61,7 +61,7 @@ const [pm] = campaigns;
 const EXAMPLE_EMAIL = {
   from: "Jane Smith <jane@example.com>",
   to: "Testy McTestface MP <testy.mctestface.mp@parliament.uk>",
-  at: "2026-10-12T09:05:00Z",
+  at: new Date("2026-10-12T09:05:00Z"),
   subject: "Please back a pause on frontier AI",
 };
 
@@ -514,8 +514,8 @@ export const staffLetters: Group = {
                       id: 1,
                       kind: "supporter",
                       status: "sent",
-                      sentAt: "2026-10-20T10:00:00Z",
-                      repliedAt: "2026-10-21T10:00:00Z",
+                      sentAt: new Date("2026-10-20T10:00:00Z"),
+                      repliedAt: new Date("2026-10-21T10:00:00Z"),
                       people: [{ id: 1, name: "Polly Placeholder" }],
                       senderName: "Jane Smith",
                       senderEmail: "jane.smith@example.com",
@@ -537,7 +537,7 @@ export const staffLetters: Group = {
                       id: 3,
                       kind: "one-off",
                       status: "one-off",
-                      sentAt: "2026-10-19T10:00:00Z",
+                      sentAt: new Date("2026-10-19T10:00:00Z"),
                       repliedAt: null,
                       people: [{ id: 1, name: "Polly Placeholder" }],
                       senderName: "Sam Jones",
@@ -594,10 +594,10 @@ export const staffLetters: Group = {
                     senderEmail: "sender@example.org",
                     mpName: "Polly Placeholder",
                     isTest: false,
-                    repliedAt: "2026-10-13T09:00:00Z",
+                    repliedAt: new Date("2026-10-13T09:00:00Z"),
                     events: [
-                      { at: "2026-10-12T09:00:00Z", status: "sending", details: {} },
-                      { at: "2026-10-12T09:05:00Z", status: "sent", details: {} },
+                      { at: new Date("2026-10-12T09:00:00Z"), status: "sending", details: {} },
+                      { at: new Date("2026-10-12T09:05:00Z"), status: "sent", details: {} },
                     ],
                   },
                   {
@@ -608,11 +608,11 @@ export const staffLetters: Group = {
                     senderEmail: "sam@example.org",
                     mpName: "Polly Placeholder",
                     isTest: false,
-                    autoRepliedAt: "2026-10-12T09:06:00Z",
+                    autoRepliedAt: new Date("2026-10-12T09:06:00Z"),
                     events: [
-                      { at: "2026-10-12T09:06:00Z", status: "auto_reply", details: {} },
-                      { at: "2026-10-12T09:05:00Z", status: "sent", details: {} },
-                      { at: "2026-10-12T09:00:00Z", status: "sending", details: {} },
+                      { at: new Date("2026-10-12T09:06:00Z"), status: "auto_reply", details: {} },
+                      { at: new Date("2026-10-12T09:05:00Z"), status: "sent", details: {} },
+                      { at: new Date("2026-10-12T09:00:00Z"), status: "sending", details: {} },
                     ],
                   },
                   {
@@ -623,8 +623,8 @@ export const staffLetters: Group = {
                     backend: null,
                     sentAt: null,
                     events: [
-                      { at: "2026-10-12T09:00:00Z", status: "sending", details: {} },
-                      { at: "2026-10-12T09:00:00Z", status: "not_sent", details: {} },
+                      { at: new Date("2026-10-12T09:00:00Z"), status: "sending", details: {} },
+                      { at: new Date("2026-10-12T09:00:00Z"), status: "not_sent", details: {} },
                     ],
                   },
                 ]}
@@ -692,8 +692,8 @@ export const staffLetters: Group = {
                 events={historyOf({
                   ...exampleSupporterLetterDetails,
                   backend: "airtable",
-                  createdAt: "2026-09-30T18:00:00Z",
-                  sentAt: "2026-09-30T18:02:00Z",
+                  createdAt: new Date("2026-09-30T18:00:00Z"),
+                  sentAt: new Date("2026-09-30T18:02:00Z"),
                   events: [],
                 })}
               />

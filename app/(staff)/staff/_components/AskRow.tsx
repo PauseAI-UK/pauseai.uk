@@ -126,7 +126,7 @@ export default function AskRow({
       </div>
       <div className={styles.answer}>
         <AnswerWord status={status?.status ?? null} />
-        {status?.date && <span className={styles.askMeta}>{staffDate(status.date)}</span>}
+        {status?.date && <span className={styles.askMeta}>{staffDate(new Date(status.date))}</span>}
         {byHand && (
           <button type="button" className={styles.edit} {...bubbleTrigger(editId)}>
             {copy.edit}
@@ -136,7 +136,7 @@ export default function AskRow({
       {byHand && (
         // Keyed on the answer, so a change made from it closes it and empties the note.
         <BubbleBox
-          key={status?.updatedAt ?? "none"}
+          key={status?.updatedAt.toISOString() ?? "none"}
           ref={popover}
           keep={row}
           id={editId}

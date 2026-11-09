@@ -3,7 +3,7 @@ import type { LetterSummary, PauseaiLetter, UnsignedLetter } from "@/lib/server/
 import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
 import { correspondenceThreads, hasReply, type ThreadMessages, type ThreadStep } from "./politician-correspondence";
 
-const at = (day: number) => `2026-10-${String(day).padStart(2, "0")}T09:00:00.000Z`;
+const at = (day: number) => new Date(`2026-10-${String(day).padStart(2, "0")}T09:00:00.000Z`);
 const step = (day: number, who: ThreadStep["who"], fields: Partial<ThreadStep> = {}): ThreadStep => ({
   at: at(day),
   who,

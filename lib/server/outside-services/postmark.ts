@@ -1,6 +1,7 @@
 import "server-only";
+import { config } from "@/lib/server/config";
 import { randomUUID } from "node:crypto";
-import { saveToOutbox } from "@/tests/fixtures/outbox";
+import { saveToOutbox } from "@/lib/server/fixtures/outbox";
 import { outsideFetch } from "./outside-fetch";
 import { readJsonIfAny } from "../json";
 
@@ -47,18 +48,18 @@ export class PostmarkError extends Error {
 
 /** Letters to representatives are sent from here, and replies come back to it. */
 export function lettersDomain(): string {
-  return process.env.LETTERS_MAIL_DOMAIN || "letters.pauseai.uk";
+  return config.lettersMailDomain;
 }
 
 /** The site's other email, such as forwarded replies, is sent from here. */
 export function notifyDomain(): string {
-  return process.env.NOTIFY_MAIL_DOMAIN || "notify.pauseai.uk";
+  return config.notifyMailDomain;
 }
 
 /**
  * Sends one email on the transactional stream. Returns Postmark's MessageID.
  *
- * Emails that aren't really sent go to the outbox (tests/fixtures/outbox.ts)
+ * Emails that aren't really sent go to the outbox (lib/server/fixtures/outbox.ts)
  * instead, and the server log says which file: with DATA_FIXTURES=1, and in
  * the dev server without a real Postmark token. The outbox is OUTBOX_DIR, or
  * tmp/outbox in the dev server.
@@ -66,10 +67,10 @@ export function notifyDomain(): string {
 export async function sendEmail(email: Email): Promise<string> {
   const what = `Email${email.Tag ? ` "${email.Tag}"` : ""} to an address at ${email.To.replace(/^.*@|>$/g, "")}`;
   const body = { ...email, MessageStream: STREAM };
-  const dev = process.env.NODE_ENV === "development";
-  const outbox = process.env.OUTBOX_DIR || (dev ? "tmp/outbox" : "");
-  const fixtures = process.env.DATA_FIXTURES === "1";
-  const token = process.env.POSTMARK_SERVER_TOKEN ?? "";
+  const dev = config.nodeEnv === "development";
+  const outbox = config.outboxDir ?? (dev ? "tmp/outbox" : "");
+  const fixtures = config.fixtures;
+  const token = config.postmarkServerToken ?? "";
   const unsent = fixtures
     ? "DATA_FIXTURES=1"
     : !token
@@ -120,9 +121,9 @@ export async function sendEmail(email: Email): Promise<string> {
  * The dev server, without a real token, doesn't ask.
  */
 export async function unsuppress(address: string): Promise<void> {
-  const fixtures = process.env.DATA_FIXTURES === "1";
-  const token = process.env.POSTMARK_SERVER_TOKEN ?? "";
-  if (!fixtures && process.env.NODE_ENV === "development" && (!token || token === TEST_TOKEN)) {
+  const fixtures = config.fixtures;
+  const token = config.postmarkServerToken ?? "";
+  if (!fixtures && config.nodeEnv === "development" && (!token || token === TEST_TOKEN)) {
     log(`${address}: not taken off Postmark's suppression list, as there's no real POSTMARK_SERVER_TOKEN.`);
     return;
   }
@@ -141,7 +142,7 @@ export async function unsuppress(address: string): Promise<void> {
 
 /** Says in the server log what happened to an email. Quiet in unit tests, which send plenty. */
 function log(line: string): void {
-  if (process.env.NODE_ENV !== "test") console.info(line);
+  if (config.nodeEnv !== "test") console.info(line);
 }
 
 /** A display name that can't break out of the From header's quotes. */

@@ -13,7 +13,7 @@ import {
   labelNames,
   lettersMailbox,
   resetLettersInbox,
-} from "@/tests/fixtures/letters-inbox";
+} from "@/lib/server/fixtures/letters-inbox";
 import {
   LETTERS_INBOX,
   recordGmail,

@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { createHash, randomBytes } from "node:crypto";
 
 /**
@@ -10,7 +11,7 @@ import { createHash, randomBytes } from "node:crypto";
  * value must; it's only worked out in a fixture build.
  */
 export async function randomId(bytes: number, fixtureSeed: () => string | Promise<string>): Promise<Buffer> {
-  if (process.env.DATA_FIXTURES !== "1") return randomBytes(bytes);
+  if (!config.fixtures) return randomBytes(bytes);
   return createHash("sha256")
     .update(await fixtureSeed())
     .digest()

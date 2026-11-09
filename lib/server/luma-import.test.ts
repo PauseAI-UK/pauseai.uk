@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { query, transaction } from "@/lib/server/db";
+import { allResults, atOnce } from "@/tests/at-once";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { importLuma } from "./luma-import";
@@ -553,6 +554,24 @@ describeWithDatabase("importLuma", () => {
       { event_id: "evt-oxford", owner: "sean@pauseai.uk" },
     ]);
     expect(sent.map((email) => email.To)).toEqual(["joseph@pauseai.uk", "sean@pauseai.uk"]);
+  });
+
+  it("copies each event, guest and contact once when runs overlap", async () => {
+    fakeLuma({
+      events: [event("evt-1", days(1)), event("evt-2", days(2))],
+      guests: { "evt-1": [guest(1), guest(2)], "evt-2": [guest(2, { id: "gst-22" }), guest(3)] },
+      contacts: [contact(1), contact(4)],
+    });
+    const results = allResults(await atOnce(() => importLuma("nightly")));
+    // Between them the runs copied each once: those that ran at the same time as another stopped.
+    const total = (key: "events" | "guestsChanged" | "contacts" | "supportersAdded") =>
+      results.reduce((sum, result) => sum + result[key], 0);
+    expect([total("events"), total("guestsChanged"), total("contacts"), total("supportersAdded")]).toEqual([
+      2, 4, 2, 4,
+    ]);
+    expect((await guestRows()).map((row) => row.id)).toEqual(["gst-1", "gst-2", "gst-22", "gst-3"]);
+    expect(await query("SELECT count(*)::int AS supporters FROM supporters")).toEqual([{ supporters: 4 }]);
+    expect(await runs()).toHaveLength(3);
   });
 
   it("records a run started while another holds the lock, and stops", async () => {

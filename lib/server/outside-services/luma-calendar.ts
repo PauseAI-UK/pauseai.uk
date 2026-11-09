@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/lib/server/config";
 import type { LumaEvent } from "@/lib/events";
 import { now } from "@/lib/now";
 import { LUMA_PAGE_SIZE, lumaList, lumaPost, type LumaPage } from "./luma-api";
@@ -47,8 +48,7 @@ function startOfDay(date: Date): Date {
  * all day.
  */
 export async function getEvents(period: EventPeriod = "future"): Promise<LumaEvent[]> {
-  const key = process.env.LUMA_API_KEY;
-  if (!key) return [];
+  if (!config.lumaApiKey) return [];
 
   const today = startOfDay(now());
   const params = new URLSearchParams({
@@ -64,7 +64,7 @@ export async function getEvents(period: EventPeriod = "future"): Promise<LumaEve
 
   try {
     const res = await outsideFetch(`https://public-api.luma.com/v1/calendars/events/list?${params}`, {
-      headers: { "x-luma-api-key": key, accept: "application/json" },
+      headers: { "x-luma-api-key": config.lumaApiKey, accept: "application/json" },
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];

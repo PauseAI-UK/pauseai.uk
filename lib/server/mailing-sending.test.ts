@@ -52,7 +52,7 @@ describeWithDatabase("sending mailings", () => {
   async function scheduled(due = "2026-11-01T10:00:00Z", subject = "AI"): Promise<number> {
     await connectTestGmail(JO);
     const { id } = await createDraft(JO, { list: "politicians", params: {} }, { subject, body: LETTER });
-    const saved = await saveDraft(id, 1, { sentFrom: JO, fromName: "Jo Staff", dueAt: due });
+    const saved = await saveDraft(id, 1, { sentFrom: JO, fromName: "Jo Staff", dueAt: new Date(due) });
     expect(await scheduleMailing(id, (saved as { version: number }).version, JO)).toEqual({ scheduled: true });
     return id;
   }
@@ -146,7 +146,7 @@ describeWithDatabase("sending mailings", () => {
     await connectTestGmail(JO);
     await query("UPDATE staff_accounts SET gmail_name = 'Jo Gmail' WHERE email = $1", [JO]);
     const { id } = await createDraft(JO, { list: "politicians", params: {} }, { subject: "AI", body: LETTER });
-    const saved = await saveDraft(id, 1, { sentFrom: JO, fromName: "", dueAt: "2026-11-01T10:00:00Z" });
+    const saved = await saveDraft(id, 1, { sentFrom: JO, fromName: "", dueAt: new Date("2026-11-01T10:00:00Z") });
     await scheduleMailing(id, (saved as { version: number }).version, JO);
     vi.setSystemTime(new Date("2026-11-01T10:00:00Z"));
     await startDueMailings();

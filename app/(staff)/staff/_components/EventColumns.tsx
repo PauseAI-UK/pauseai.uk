@@ -19,8 +19,8 @@ import styles from "./EventColumns.module.css";
 
 const copy = staffCopy.events;
 
-const inLondon = (at: string) =>
-  new Date(at).toLocaleDateString("en-GB", {
+const inLondon = (at: Date) =>
+  at.toLocaleDateString("en-GB", {
     weekday: "short",
     day: "numeric",
     month: "short",

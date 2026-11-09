@@ -15,8 +15,8 @@ import { politicianBook } from "./politician-book";
 type AnyLetterBase = {
   id: number;
   status: string;
-  sentAt: string | null;
-  repliedAt: string | null;
+  sentAt: Date | null;
+  repliedAt: Date | null;
 };
 
 /** One who a letter or thread is with. */

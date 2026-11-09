@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { now } from "@/lib/now";
 import { recordOptOut, recordResubscribe } from "./opt-outs";
@@ -19,7 +20,7 @@ const MAX_AGE_SECONDS = 5 * 60;
  * Returns the signed timestamp, as a Date, for the record of when.
  */
 export function signedByLuma(request: Request, body: string): Date | undefined {
-  const secret = process.env.LUMA_WEBHOOK_SECRET;
+  const secret = config.lumaWebhookSecret;
   if (!secret) return undefined;
   const parts = new Map(
     (request.headers.get("webhook-signature") ?? "").split(",").map((part) => {

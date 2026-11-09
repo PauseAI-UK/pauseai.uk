@@ -43,7 +43,7 @@ export type WrittenMailing = {
   /** Whose account it's sent from, and the name it's from. */
   sentFrom: string | null;
   fromName: string | null;
-  dueAt: string | null;
+  dueAt: Date | null;
   state: MailingState;
   version: number;
   attachments: MailingAttachmentSummary[];
@@ -106,7 +106,7 @@ export function mailingChangesFrom(value: unknown): MailingChanges | undefined {
     // Never the letters inbox, which sends supporters' letters and nothing else.
     else if (name === "sentFrom" && textOrNull(one) && !isLettersInboxAddress(String(one ?? "")))
       changes.sentFrom = (one as string | null)?.toLowerCase() || null;
-    else if (name === "dueAt" && (one === null || (typeof one === "string" && !Number.isNaN(Date.parse(one))))) {
+    else if (name === "dueAt" && (one === null || (one instanceof Date && !Number.isNaN(one.getTime())))) {
       changes.dueAt = one;
     } else return undefined;
   }
@@ -423,15 +423,15 @@ export async function stopMailing(id: number, by: string): Promise<boolean> {
 }
 
 /** Changes when a scheduled mailing goes, to a time still to come. Says whether it did. */
-export async function rescheduleMailing(id: number, dueAt: string, by: string): Promise<boolean> {
-  if (new Date(dueAt) <= now()) return false;
+export async function rescheduleMailing(id: number, dueAt: Date, by: string): Promise<boolean> {
+  if (dueAt <= now()) return false;
   return transaction(async (db) => {
     const changed = await query(
       "UPDATE mailings SET due_at = $2, updated_at = now() WHERE id = $1 AND state = 'scheduled' RETURNING id",
       [id, dueAt],
       db,
     );
-    if (changed.length) await logChange(by, "reschedule mailing", { id, dueAt }, db);
+    if (changed.length) await logChange(by, "reschedule mailing", { id, dueAt: dueAt.toISOString() }, db);
     return changed.length > 0;
   });
 }

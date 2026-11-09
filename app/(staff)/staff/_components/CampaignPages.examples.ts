@@ -24,8 +24,8 @@ export const exampleCampaign: CampaignSummary = {
   answered: 3,
   politicians: 9,
   supporters: 10,
-  firstAt: "2026-06-18T09:00:00Z",
-  lastAt: "2026-10-22T09:00:00Z",
+  firstAt: new Date("2026-06-18T09:00:00Z"),
+  lastAt: new Date("2026-10-22T09:00:00Z"),
 };
 
 /** A campaign with no ask, whose letters are from last year. */
@@ -38,8 +38,8 @@ export const exampleCampaignNoAsk: CampaignSummary = {
   askKind: null,
   answered: 0,
   failed: 0,
-  firstAt: "2025-05-20T09:00:00Z",
-  lastAt: "2025-06-17T09:00:00Z",
+  firstAt: new Date("2025-05-20T09:00:00Z"),
+  lastAt: new Date("2025-06-17T09:00:00Z"),
 };
 
 /** A campaign nobody has written to anyone for. */
@@ -59,14 +59,14 @@ export const exampleCampaignEmpty: CampaignSummary = {
 export const exampleVersions: CampaignVersion[] = [
   {
     key: "newer",
-    from: "2026-09-23T02:00:00Z",
+    from: new Date("2026-09-23T02:00:00Z"),
     letters: 4,
     subject: "Request to co-sign letter on frontier AI risks",
     text: "Dear {salutation}\n\nI'm a resident of {constituency} and a supporter of **PauseAI**.\n\n{name}\n\n{postcode}",
   },
   {
     key: "older",
-    from: "2026-06-18T02:00:00Z",
+    from: new Date("2026-06-18T02:00:00Z"),
     letters: 8,
     subject: "Please sign the letter",
     text: "Dear {salutation}\n\nPlease sign the letter.\n\n{name}",
@@ -117,7 +117,7 @@ export const exampleAskPage: AskPageData = {
           constituency: "Seat One",
           party: "Example Party",
           status: "signed",
-          lastWrittenTo: "2026-10-01T09:00:00Z",
+          lastWrittenTo: new Date("2026-10-01T09:00:00Z"),
         },
       ],
     },
@@ -160,7 +160,7 @@ export const exampleAskPage: AskPageData = {
       constituency: "Seat One",
       party: "Example Party",
       status: "signed",
-      lastWrittenTo: "2026-10-01T09:00:00Z",
+      lastWrittenTo: new Date("2026-10-01T09:00:00Z"),
     },
     {
       politicianId: 2,
@@ -180,7 +180,7 @@ export const exampleOneOffs: OneOffThreadRow[] = [
     id: 1,
     subject: "Meeting about the bill",
     someoneElse: false,
-    latestAt: "2026-10-20T09:00:00Z",
+    latestAt: new Date("2026-10-20T09:00:00Z"),
     messages: 2,
     people: [{ id: 1, name: "Polly Placeholder", isTest: false }],
     participants: ["Joseph Example", "Polly Placeholder"],
@@ -191,7 +191,7 @@ export const exampleOneOffs: OneOffThreadRow[] = [
     id: 2,
     subject: "Fwd: my MP's answer",
     someoneElse: true,
-    latestAt: "2026-10-19T09:00:00Z",
+    latestAt: new Date("2026-10-19T09:00:00Z"),
     messages: 1,
     people: [],
     participants: ["Jane Smith"],
@@ -214,7 +214,7 @@ export const exampleOneOffThread: OneOffThread = {
   messages_: [
     {
       id: 1,
-      at: "2026-10-19T09:00:00Z",
+      at: new Date("2026-10-19T09:00:00Z"),
       fromName: "Joseph Example",
       fromAddress: "joseph@pauseai.uk",
       to: '"Placeholder, Polly" <polly.placeholder.mp@parliament.uk>, Jane Smith <jane.smith@example.com>',
@@ -228,7 +228,7 @@ export const exampleOneOffThread: OneOffThread = {
     },
     {
       id: 2,
-      at: "2026-10-20T09:00:00Z",
+      at: new Date("2026-10-20T09:00:00Z"),
       fromName: "",
       fromAddress: "polly.placeholder.mp@parliament.uk",
       to: "joseph@pauseai.uk",
@@ -242,7 +242,7 @@ export const exampleOneOffThread: OneOffThread = {
     },
     {
       id: 3,
-      at: "2026-10-20T09:01:00Z",
+      at: new Date("2026-10-20T09:01:00Z"),
       fromName: "Polly Placeholder",
       fromAddress: "polly.placeholder.mp@parliament.uk",
       to: "joseph@pauseai.uk",
@@ -259,7 +259,7 @@ export const exampleOneOffThread: OneOffThread = {
 
 const SENT_ROW: SentEmail = {
   id: 1,
-  at: "2026-11-04T10:50:00Z",
+  at: new Date("2026-11-04T10:50:00Z"),
   purpose: "letter",
   imported: false,
   address: "polly.placeholder.mp@parliament.uk",
@@ -290,7 +290,7 @@ export const exampleSentEmails: SentEmail[] = [
   {
     ...SENT_ROW,
     id: 3,
-    at: "2025-06-20T09:00:00Z",
+    at: new Date("2025-06-20T09:00:00Z"),
     purpose: "mailing",
     imported: true,
     fromAddress: "joseph@pauseai.info",

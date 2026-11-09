@@ -1,7 +1,7 @@
 // Canned responses for the outside services the site calls. One table, used
 // by both:
 //
-// - lib/outside-fetch.ts when DATA_FIXTURES=1, so a Playwright run renders
+// - lib/server/outside-services/outside-fetch.ts when DATA_FIXTURES=1, so a Playwright run renders
 //   every page from this data instead of the live APIs;
 // - tests/fixtures/msw.ts, so Vitest tests get the same responses over a
 //   real fetch.
@@ -287,7 +287,7 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
     return new Response(Buffer.from(controlaiLetter.pdf, "base64"), { headers: { "Content-Type": "application/pdf" } });
   }
   // Postmark accepts every email. What was sent is checked from the request
-  // (Vitest) or the outbox (Playwright, tests/fixtures/outbox.ts). The
+  // (Vitest) or the outbox (Playwright, lib/server/fixtures/outbox.ts). The
   // MessageID is made from the email, so the same letter gets the same id
   // every run: it shows on the staff letters page, which the storyboard
   // compares. Each letter's address ends in random digits, so they're left out.
@@ -400,7 +400,7 @@ function toLettersInbox(raw: string): boolean {
 
 // Netlify Blobs, kept for the life of the process, shared by every bundle
 // of the server. A key under fixture/ that wasn't stored is read from
-// tests/fixtures/letter-replies/, gzipped, so a fixture database can name
+// lib/server/fixtures/letter-replies/, gzipped, so a fixture database can name
 // replies that are there from the start.
 const BLOBS = ((globalThis as { fixtureBlobs?: Map<string, Uint8Array> }).fixtureBlobs ??= new Map());
 
@@ -422,7 +422,7 @@ function fixtureReply(key: string): Uint8Array | undefined {
   const name = /^fixture\/([\w-]+\.eml)\.gz$/.exec(key)?.[1];
   // From the checkout's root, where the tests and fixture builds run: a build's own files are elsewhere. The
   // turbopackIgnores keep Turbopack from tracing the whole project into every build's server code for this path.
-  const file = name && join(process.cwd(), "tests/fixtures/letter-replies", name);
+  const file = name && join(process.cwd(), "lib/server/fixtures/letter-replies", name);
   return file && existsSync(/*turbopackIgnore: true*/ file)
     ? gzipSync(readFileSync(/*turbopackIgnore: true*/ file))
     : undefined;

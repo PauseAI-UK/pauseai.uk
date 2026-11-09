@@ -30,7 +30,7 @@ export { GMAIL_DAILY_LIMIT };
  * none of its own; and how many it has sent in the last day and how many
  * more it can.
  */
-export type GmailAccount = { email: string; name: string; connectedAt: string; sentToday: number; remaining: number };
+export type GmailAccount = { email: string; name: string; connectedAt: Date; sentToday: number; remaining: number };
 
 /** Why connecting didn't: the person consented as another Google account than their own. */
 export type ConnectResult = { connected: true } | { connected: false; reason: "other-account" };
@@ -40,7 +40,7 @@ const SENT_TODAY = `(SELECT count(*)::int FROM email_sends s
 
 /** Every connected account, by address. */
 export async function gmailAccounts(): Promise<GmailAccount[]> {
-  const rows = await query<{ email: string; name: string; connectedAt: string; sentToday: number }>(
+  const rows = await query<{ email: string; name: string; connectedAt: Date; sentToday: number }>(
     `SELECT a.email, coalesce(a.gmail_name, '') AS name, a.gmail_connected_at AS "connectedAt", ${SENT_TODAY} AS "sentToday"
      FROM staff_accounts a WHERE a.gmail_token IS NOT NULL ORDER BY a.email`,
   );
