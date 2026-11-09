@@ -977,8 +977,8 @@ All events: ${link}`,
     choosing: (title: string) => `Change who the broadcast “${title}” goes to`,
     choosingHow: "Change the filters. The broadcast goes to everyone they find at the time it is actually sent.",
     choosingCancel: "Cancel",
-    // In Said yes to's dropdown, on New broadcast, before a Consent is chosen.
-    chooseConsent: "⁂ Choose a Consent",
+    // Over the broadcast's first choice, by email or by text, before its topics.
+    consentChannel: "Email or text",
     // Hovering the Consent's chip while choosing who a broadcast goes to, where it can't be changed.
     consentLocked: "⁂ Change the Consent in the broadcast",
     // The same, for a draft with nothing written yet, as from New broadcast.
@@ -1054,7 +1054,7 @@ All events: ${link}`,
     // Preview.
     chooseTemplate: "⁂ Choose a template to see the text here.",
     findRecipient: "⁂ Find a recipient who…",
-    noOne: "⁂ No one to preview it for yet.",
+    noOne: "There's nobody to preview for yet.",
     noOneMix: "⁂ No one it goes to is like that.",
     // Under a text's preview.
     howToStop: "⁂ Every text has a Stop button, and WhatsApp must have approved its template.",
@@ -1087,16 +1087,16 @@ All events: ${link}`,
       text: (pounds: string, pence: number) => `⁂ About £${pounds} (${pence}p each delivered).`,
     },
     summary: (n: number, channel: "email" | "text", from: string, when: string | null) =>
-      `⁂ ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"} from ${from}, ${when ? `on ${when}` : "at a time not yet chosen"}.`,
+      `⁂ ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"} from ${from}${when ? `, on ${when}` : ""}.`,
     schedule: (n: number, channel: "email" | "text") =>
       `Schedule ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"}`,
     scheduleOnceApproved: (n: number) => `⁂ Schedule ${n} ${n === 1 ? "text" : "texts"}, once approved`,
     mustApprove: "⁂ WhatsApp must approve the template first, which takes up to 24 hours.",
     problems: {
       "unknown-filter": "⁂ The filter has values that have changed or are no longer supported.",
-      "no-recipients": "⁂ There's nobody to send to.",
+      "no-recipients": "There's nobody to send to.",
       "no-subject": "Fill in the subject.",
-      "no-letter": "⁂ Write the email.",
+      "no-letter": "Write the email.",
       "no-template": "⁂ Choose a template.",
       "not-connected": "⁂ The Gmail you've chosen to send from isn't connected.",
       "no-time": "Choose what time it will be sent.",

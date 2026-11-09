@@ -424,7 +424,7 @@ export default function MessageWriter({
             written={hasOwnWords}
             pending={picking}
             pick={pickConsent}
-            className={styles.sender}
+            className={own.consent}
           />
           {lockable(
             <>

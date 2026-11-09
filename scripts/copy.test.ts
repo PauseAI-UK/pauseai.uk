@@ -9,8 +9,8 @@ import {
   changedPlaceholders,
   copyPattern,
   copyText,
-  cropAround,
-  cropFrame,
+  boxesInside,
+  clusterOf,
   cutHtml,
   decodeEntities,
   findInFrames,
@@ -23,7 +23,7 @@ import {
   readCopy,
   renderCopyPage,
   sectionsToRun,
-  shotsOf,
+  picturesOf,
   staleness,
 } from "./copy.mjs";
 
@@ -311,58 +311,101 @@ describe("findInFrames", () => {
   });
 });
 
-describe("cropAround", () => {
-  it("centres a crop of at least the smallest size on the copy, inside the picture", () => {
-    expect(cropAround([[600, 500, 80, 20]], 1280, 2000)).toEqual({
-      crop: { left: 320, top: 410, width: 640, height: 200 },
-      box: { x: 276, y: 86, width: 88, height: 28 },
-    });
-    expect(cropAround([[0, 0, 50, 10]], 390, 100)).toEqual({
-      crop: { left: 0, top: 0, width: 390, height: 100 },
-      box: { x: 0, y: 0, width: 58, height: 18 },
-    });
-  });
-
-  it("shows the top of copy taller than the largest crop, and nothing for copy outside the picture", () => {
-    expect(cropAround([[10, 100, 300, 2000]], 1280, 5000)?.crop).toEqual({ left: 0, top: 28, width: 640, height: 720 });
-    expect(cropAround([[10, 900, 300, 20]], 1280, 800)).toBeUndefined();
+describe("boxesInside", () => {
+  it("cuts the boxes to the picture, and is nothing when none is in it", () => {
+    expect(
+      boxesInside(
+        [
+          [-10, 790, 50, 20],
+          [10, 900, 300, 20],
+        ],
+        1280,
+        800,
+      ),
+    ).toEqual([[0, 790, 40, 10]]);
+    expect(boxesInside([[10, 900, 300, 20]], 1280, 800)).toBeUndefined();
   });
 });
 
-describe("cropFrame and shotsOf", () => {
+describe("picturesOf", () => {
   const dir = mkdtempSync(join(tmpdir(), "copy-test-"));
-  const png = join(dir, "frame.png");
-
-  it("crops a picture around the copy with a box drawn on it, as WebP", async () => {
+  const picture = async (name: string, width: number, height: number, background = "#fff") =>
     writeFileSync(
-      png,
-      await sharp({ create: { width: 800, height: 600, channels: 3, background: "#fff" } })
+      join(dir, name),
+      await sharp({ create: { width, height, channels: 3, background } })
         .png()
         .toBuffer(),
     );
-    const image = (await cropFrame(png, [[100, 100, 50, 10]]))!;
-    expect(await sharp(image).metadata()).toMatchObject({ format: "webp", width: 640, height: 200 });
-    const { data, info } = await sharp(image).raw().toBuffer({ resolveWithObject: true });
-    // The box's top edge, at its padding above the copy, is drawn; inside it is the page.
-    const at = (x: number, y: number) => [...data.subarray((y * info.width + x) * 3, (y * info.width + x) * 3 + 3)];
-    expect(at(120, 92)[1]).toBeLessThan(100);
-    expect(at(120, 98)).toEqual([255, 255, 255]);
-    expect(await cropFrame(png, [[100, 700, 50, 10]])).toBeUndefined();
+
+  it("has each picture once, and each copy's shots: the frames the same picture with it in the same place under one", async () => {
+    await picture("a.png", 800, 600);
+    await picture("same.png", 800, 600);
+    await picture("b.png", 400, 300, "#000");
+    const a = group([`${M} a`]);
+    const b = group([`${M} b`]);
+    const found = new Map([
+      [
+        a.key,
+        [
+          { frame: frame({ branch: "a.png", flow: "A" }), boxes: [[100, 100, 50, 10]] },
+          { frame: frame({ branch: "same.png", flow: "B" }), boxes: [[100, 100, 50, 10]] },
+          { frame: frame({ branch: "a.png", flow: "C" }), boxes: [[300, 300, 50, 10]] },
+          { frame: frame({ branch: "a.png", flow: "D" }), boxes: [[300, 900, 50, 10]] },
+        ],
+      ],
+      [b.key, [{ frame: frame({ branch: "b.png", flow: "E" }), boxes: [[1, 2, 3, 4]] }]],
+    ]);
+    const { images, shots } = await picturesOf([a, b, group([`${M} c`])], found, dir, (f) => f.flow);
+    expect(images.map(({ id, width, height }) => ({ id, width, height }))).toEqual([
+      { id: "i1", width: 800, height: 600 },
+      { id: "i2", width: 400, height: 300 },
+    ]);
+    expect(images[0].src).toMatch(/^data:image\/webp;base64,/);
+    expect(shots.get(a.key)).toEqual([
+      { image: "i1", boxes: [[100, 100, 50, 10]], where: ["A", "B"] },
+      { image: "i1", boxes: [[300, 300, 50, 10]], where: ["C"] },
+    ]);
+    expect(shots.get(b.key)).toEqual([{ image: "i2", boxes: [[1, 2, 3, 4]], where: ["E"] }]);
+    expect(shots.get(group([`${M} c`]).key)).toEqual([]);
   });
 
-  it("puts frames whose crops are the same picture under one, and skips frames without the copy in view", async () => {
-    const shots = await shotsOf(
-      [
-        { frame: frame({ branch: "frame.png", flow: "A" }), boxes: [[100, 100, 50, 10]] },
-        { frame: frame({ branch: "frame.png", flow: "B" }), boxes: [[100, 100, 50, 10]] },
-        { frame: frame({ branch: "frame.png", flow: "C" }), boxes: [[300, 300, 50, 10]] },
-        { frame: frame({ branch: "frame.png", flow: "D" }), boxes: [[300, 900, 50, 10]] },
-      ],
-      dir,
-      (f) => f.flow,
-    );
-    expect(shots.map((s) => s.where)).toEqual([["A", "B"], ["C"]]);
-    expect(shots[0].image).toMatch(/^data:image\/webp;base64,/);
+  it("scales a page taller than a WebP can be down to one, keeping its size for its boxes", async () => {
+    await picture("tall.png", 20, 17000);
+    const t = group([`${M} t`]);
+    const found = new Map([[t.key, [{ frame: frame({ branch: "tall.png" }), boxes: [[1, 16900, 5, 5]] }]]]);
+    const { images } = await picturesOf([t], found, dir);
+    expect(images[0]).toMatchObject({ width: 20, height: 17000 });
+    const webp = Buffer.from(images[0].src.split(",")[1], "base64");
+    expect((await sharp(webp).metadata()).height).toBe(16383);
+  });
+});
+
+describe("clusterOf", () => {
+  const source = [
+    "export const copy = {",
+    "  login: {",
+    "    title: 'a',",
+    "  },",
+    "  messagePages: {",
+    "    // Write.",
+    "    subject: 'b',",
+    "    // In To, when Consent is the only filter, and much more said about it here.",
+    "    subject: 'b',",
+    "    fields: {",
+    "      name: 'c',",
+    "    },",
+    "  },",
+    "};",
+  ].join("\n");
+  const at = (line: number, file = "lib/content/x.ts") => clusterOf({ file, line }, source);
+
+  it("is the file, or in lib/content/ the set of strings and the part of it the copy is in", () => {
+    expect(at(3)).toBe("lib/content/x.ts › login");
+    expect(at(7)).toBe("lib/content/x.ts › messagePages › Write");
+    expect(at(9)).toBe("lib/content/x.ts › messagePages › In To");
+    expect(at(11)).toBe("lib/content/x.ts › messagePages › fields");
+    expect(at(1)).toBe("lib/content/x.ts");
+    expect(at(11, "app/x.tsx")).toBe("app/x.tsx");
   });
 });
 
@@ -411,46 +454,59 @@ describe("sectionsToRun", () => {
 });
 
 describe("renderCopyPage", () => {
-  it("shows each file's copy with its frames, and the copy in no frame at the end", () => {
+  it("lists the copy in clusters, and shows each with its frames, whole and boxed, each picture once", () => {
     const seen = {
       ...group([`${M} Hi `, { expr: "name" }, " <you>"], "app/x.tsx", 4),
-      shots: [] as { image: string; where: string[] }[],
+      shots: [
+        { image: "i1", boxes: [[96, 46, 8, 8]], where: ["desktop › A › B › 1. C", "phone › A › B › 1. C"] },
+        { image: "i1", boxes: [[0, 0, 10, 10]], where: ["desktop › A › D › 1. E"] },
+      ],
     };
-    seen.shots = [
-      { image: "data:image/webp;base64,AAA", where: ["desktop › A › B › 1. C", "phone › A › B › 1. C"] },
-      { image: "data:image/webp;base64,BBB", where: ["desktop › A › D › 1. E"] },
+    const unseen = { ...group([`${M} Nowhere`], "lib/y.ts", 9), cluster: "lib/y.ts › set", shots: [] };
+    const parted = [
+      { ...group([`${M} One`], "lib/content/c.ts", 2), cluster: "lib/content/c.ts › set › Write", shots: [] },
+      { ...group([`${M} Two`], "lib/content/c.ts", 3), cluster: "lib/content/c.ts › set › fields", shots: [] },
     ];
-    const unseen = { ...group([`${M} Nowhere`], "lib/y.ts", 9), shots: [] };
     const html = renderCopyPage({
       branch: "my-branch",
       base: "abc1234",
       run: { name: "2026-11-09T10-00-00", at: "2026-11-09T10:00:00Z" },
       warnings: ["Old & stale"],
-      groups: [seen, unseen],
+      images: [{ id: "i1", src: "data:image/webp;base64,AAA</script>", width: 200, height: 100 }],
+      groups: [seen, unseen, ...parted],
     });
     expect(html).toContain(
       `<p class="text">${M} Hi <span class="slot" title="Filled in as the page is made">name</span> &lt;you&gt;</p>`,
     );
-    expect(html).toContain('<a href="#file-app-x-tsx">app/x.tsx</a> (1)');
-    expect(html).toContain('<a href="#unseen">In no frame</a> (1)');
+    expect(html).toContain('<h2>app/x.tsx <span class="count">(1)</span></h2>');
+    expect(html).toContain('<h2>lib/y.ts › set <span class="count">(1)</span></h2>');
+    // A copy set's parts under the set's one heading.
+    expect(html).toContain(
+      '<h2>lib/content/c.ts › set <span class="count">(2)</span></h2><h3>Write</h3><ol><li class="none"><a href="#copy-3"',
+    );
+    expect(html).toContain('</ol>\n<h3>fields</h3><ol><li class="none"><a href="#copy-4"');
     expect(html).toContain("<code>app/x.tsx:4</code>");
     expect(html).toContain("and 1 more frame the same");
     expect(html).toContain("phone › A › B › 1. C");
     expect(html).toContain('<p class="warning">Old &amp; stale</p>');
-    expect(html).toContain("2 placeholders that <code>my-branch</code>");
-    expect(html).toContain("1 in frames, 1 in none. Frames from storyboard run 2026-11-09T10-00-00");
-    expect(html.indexOf(`<p class="text">${M} Nowhere`)).toBeGreaterThan(html.indexOf('id="unseen"'));
-    // The sidebar: each piece of copy under its file, without its mark, linked to its card.
+    expect(html).toContain("4 placeholders that <code>my-branch</code>");
+    expect(html).toContain("1 in frames, 3 in none. Frames from storyboard run 2026-11-09T10-00-00");
+    // The sidebar: each piece of copy without its mark, linked to its card; copy in no frame marked so.
     expect(html).toContain('<li><a href="#copy-1" title="Hi … &lt;you&gt;">Hi … &lt;you&gt;</a></li>');
-    expect(html).toContain('<li><a href="#copy-2" title="Nowhere">Nowhere</a></li>');
-    expect(html).toContain('<article class="copy" id="copy-1">');
-    expect(html.indexOf('href="#copy-2"')).toBeGreaterThan(html.indexOf('href="#unseen"'));
+    expect(html).toContain('<li class="none"><a href="#copy-2" title="Nowhere (in no frame)">Nowhere</a></li>');
+    expect(html).toContain('<article class="copy" id="copy-1" hidden>');
+    expect(html).toContain("No storyboard frame shows this");
+    // Each shot is the picture by its id, with its copy boxed in percentages of it.
+    expect(html.match(/data-image="i1"/g)).toHaveLength(2);
+    expect(html).toContain('<span class="box" style="left:46%;top:42%;width:8%;height:16%"></span>');
+    // The picture is in the page once, nothing in it closing the script.
+    expect(html.match(/base64,AAA/g)).toHaveLength(1);
+    expect(html).toContain("AAA\\u003c/script>");
   });
 
-  it("says so when there's no run, and leaves out the list of copy in no frame when there's none", () => {
+  it("says so when there's no run", () => {
     const html = renderCopyPage({ branch: "b", base: "c", warnings: [], groups: [] });
     expect(html).toContain("0 placeholders");
     expect(html).not.toContain("Frames from storyboard run");
-    expect(html).not.toContain('id="unseen"');
   });
 });

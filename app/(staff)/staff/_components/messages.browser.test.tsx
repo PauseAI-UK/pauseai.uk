@@ -75,46 +75,68 @@ const button = (name: string | RegExp) => page.getByRole("button", { name });
 
 describe("MessageWriter's Consent", () => {
   const topics = staffCopy.supporters.subscriptions.topics;
-  const consent = () => page.getByLabelText(copy.facts.saidYes, { exact: false });
-  const options = () =>
-    [...consent().element().querySelectorAll("option")].map((o) => [o.textContent, (o as HTMLOptionElement).disabled]);
+  const group = (name: string) => page.getByRole("radiogroup", { name });
+  const radios = (name: string) =>
+    [...group(name).element().querySelectorAll("button")].map((b) => [
+      b.textContent,
+      b.getAttribute("aria-checked") === "true",
+      (b as HTMLButtonElement).disabled,
+    ]);
+  const choose = (within: string, name: string) => group(within).getByRole("radio", { name }).click();
 
-  it("offers each Consent that can be a yes, its own chosen, only by its channel once it has words", async () => {
+  it("asks email or text, then offers that channel's Consents in a row, its own chosen, the other channel shut once it has words", async () => {
     await renderWriter();
-    expect((consent().element() as HTMLSelectElement).value).toBe("email:site-forms:yes");
-    expect(options()).toEqual([
-      [topics.email["site-forms"], false],
-      [topics.email["luma-calendar"], false],
-      [topics.phone["site-forms"], true],
-      [topics.phone["luma-calendar"], true],
-      [topics.phone.volunteering, true],
-      [topics.phone["march-day"], true],
+    expect(radios(copy.consentChannel)).toEqual([
+      [copy.channels.email, true, false],
+      [copy.channels.text, false, true],
+    ]);
+    expect(radios(copy.facts.saidYes)).toEqual([
+      [topics.email["site-forms"], true, false],
+      [topics.email["luma-calendar"], false, false],
     ]);
   });
 
-  it("offers either channel to one with no words of its own", async () => {
-    await renderWriter({ draft: { ...exampleMessageEmail, subject: "", body: EMPTY_MAILING_DOC } });
-    expect(options().every(([, disabled]) => !disabled)).toBe(true);
+  it("offers either channel to one with no words of its own, showing the other's Consents without changing it", async () => {
+    const actions = await renderWriter({ draft: { ...exampleMessageEmail, subject: "", body: EMPTY_MAILING_DOC } });
+    await choose(copy.consentChannel, copy.channels.text);
+    await vi.waitFor(
+      () =>
+        expect(radios(copy.facts.saidYes).map(([name]) => name)).toEqual([
+          topics.phone["site-forms"],
+          topics.phone["luma-calendar"],
+          topics.phone.volunteering,
+          topics.phone["march-day"],
+        ]),
+      WAIT,
+    );
+    expect(radios(copy.facts.saidYes).every(([, checked, disabled]) => !checked && !disabled)).toBe(true);
+    expect(actions.changeConsent).not.toHaveBeenCalled();
   });
 
   it("saves what's typed, changes the Consent, and shows the draft as it is then", async () => {
     const actions = await renderWriter();
     const refreshes = navigation.refreshes;
-    await consent().selectOptions(topics.email["luma-calendar"]);
+    // The one it has already: nothing to change.
+    await choose(copy.facts.saidYes, topics.email["site-forms"]);
+    await choose(copy.facts.saidYes, topics.email["luma-calendar"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:luma-calendar:yes"), WAIT);
+    expect(actions.changeConsent).toHaveBeenCalledTimes(1);
     await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
     // Refused, nothing to show again.
     actions.changeConsent.mockResolvedValue(false);
     const before = navigation.refreshes;
-    await consent().selectOptions(topics.email["site-forms"]);
+    await choose(copy.facts.saidYes, topics.email["luma-calendar"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledTimes(2), WAIT);
     expect(navigation.refreshes).toBe(before);
   });
 
-  it("on New broadcast, starts with none chosen, everything after it greyed and still, and makes the draft", async () => {
-    const actions = await renderWriter({ blank: true });
-    expect((consent().element() as HTMLSelectElement).value).toBe("");
-    expect(options()[0]).toEqual([copy.chooseConsent, true]);
+  it("on New broadcast, starts with neither channel chosen, everything after it greyed and still, and makes the draft", async () => {
+    const actions = await renderWriter({
+      blank: true,
+      draft: { ...exampleMessageEmail, subject: "", body: EMPTY_MAILING_DOC },
+    });
+    expect(radios(copy.consentChannel).every(([, checked, disabled]) => !checked && !disabled)).toBe(true);
+    expect(group(copy.facts.saidYes).query()).toBeNull();
     expect(page.getByText("Who").element().closest("[inert]")).not.toBeNull();
     expect(
       page
@@ -122,10 +144,11 @@ describe("MessageWriter's Consent", () => {
         .element()
         .closest("[inert]"),
     ).not.toBeNull();
-    expect(consent().element().closest("[inert]")).toBeNull();
+    expect(group(copy.consentChannel).element().closest("[inert]")).toBeNull();
     // Nothing saved, so no save state.
     expect(page.getByText(staffCopy.mailingPages.savePill.saved).query()).toBeNull();
-    await consent().selectOptions(topics.phone["luma-calendar"]);
+    await choose(copy.consentChannel, copy.channels.text);
+    await choose(copy.facts.saidYes, topics.phone["luma-calendar"]);
     await vi.waitFor(() => expect(actions.create).toHaveBeenCalledWith("phone:luma-calendar:yes"), WAIT);
     expect(actions.save).not.toHaveBeenCalled();
   });

@@ -189,3 +189,10 @@
   padding: 0;
   list-style: none;
 }
+
+/* The Consent: email or text, and under it that channel's topics, a field's gap apart. */
+.consent {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}

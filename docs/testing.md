@@ -275,14 +275,17 @@ run's own folder, not `latest/`, so they stay right after another run.
 (`scripts/copy.mjs`) writes `test-results/copy.html`, one page, with its
 pictures in it, of each placeholder (AGENTS.md, "Never write final copy")
 that this branch adds or changes since it left origin/main, committed or
-not. Each shows the copy as written, its file and line (and the source,
-folded), and every frame of the latest run that pictures it, cropped around
-it with the copy boxed; frames whose crops are the same picture are listed
-under one. A sidebar lists every piece, under its file, each linked to it. It's grouped by file, in the diff's order, as the copy is
-written and changed there, and each piece has one place there but often
-many frames. The copy no frame pictures is listed last: it needs a flow, or
-can't be reached (an `aria-label`, a message shown only on an error). Copy
-with the same text in two places is shown once, with both.
+not. A sidebar lists every piece in clusters, in the diff's order: its
+file, or for `lib/content/` the set of strings it's in (the copy object's
+top-level key, such as `staff-interface.ts › messagePages`). Clicking one
+(or <kbd>j</kbd> and <kbd>k</kbd>) shows it alone: the copy as written, its
+file and line (and the source, folded), and every frame of the latest run
+that pictures it, each the whole page with the copy boxed, scrolled to it.
+Frames that are the same picture with the copy in the same place are listed
+under one, and each picture is in the page once, however many pieces it
+shows. Copy no frame pictures is in italics: it needs a flow, or can't be
+reached (an `aria-label`, a message shown only on an error). Copy with the
+same text in two places is shown once, with both.
 
 Each frame records the placeholder text it pictures and its boxes
 (`placeholdersOnPage` in `tests/storyboard/frame.ts`, kept in

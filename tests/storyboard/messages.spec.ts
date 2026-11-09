@@ -100,23 +100,29 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
   await frame(page, "The Broadcasts page, with New broadcast");
   story(
-    "It opens the writer, asking first which Consent it goes under, as that says whether it's an email or a text, and what about. The rest is there, greyed, till one's chosen.",
+    "It opens the writer, asking first which Consent it goes under: by email or by text, then what about. The rest is there, greyed, till one's chosen.",
   );
   await page.getByRole("link", { name: copy.newMessage }).click();
   await expect(page).toHaveURL(`${BASE}/staff/messages/new`);
-  await expect(page.getByLabel(copy.facts.saidYes)).toHaveValue("");
-  await frame(page, "New broadcast, its Consent to choose");
+  const channel = page.getByRole("radiogroup", { name: copy.consentChannel });
+  const saidYes = page.getByRole("radiogroup", { name: copy.facts.saidYes });
+  await expect(saidYes).toHaveCount(0);
+  await frame(page, "New broadcast, email or text to choose");
+  story("Email shows the Consents someone can have said yes to by email.");
+  await channel.getByRole("radio", { name: copy.channels.email }).click();
+  await expect(saidYes.getByRole("radio")).toHaveCount(2);
+  await frame(page, "The Consents by email");
   story("Choosing one makes the draft, to everyone who said yes. Change who can narrow them, but needn't.");
-  await page
-    .getByLabel(copy.facts.saidYes)
-    .selectOption(staffCopy.supporters.subscriptions.topics.email["luma-calendar"]);
+  await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["luma-calendar"] }).click();
   await expect(page).toHaveURL(/\/staff\/messages\/\d+$/);
   await expect(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
   await expect(page.getByText(copy.willGet(EMAILABLE, "email"))).toBeVisible();
   await frame(page, "The new email, to everyone who said yes");
   story("Its Consent can change while it's a draft, but, once it has words, only to another by email.");
-  await page.getByLabel(copy.facts.saidYes).selectOption(staffCopy.supporters.subscriptions.topics.email["site-forms"]);
-  await expect(page.getByLabel(copy.facts.saidYes)).toHaveValue("email:site-forms:yes");
+  await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["site-forms"] }).click();
+  await expect(
+    saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["site-forms"] }),
+  ).toBeChecked();
   await frame(page, "Under another Consent");
 });
 
