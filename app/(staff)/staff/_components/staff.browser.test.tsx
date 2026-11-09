@@ -3820,6 +3820,15 @@ describe("RunList", () => {
     await expect.element(page.getByText(exampleDisconnectedGmail.error!, { exact: false })).not.toBeInTheDocument();
   });
 
+  it("says a Gmail read stopped as another was reading, and no totals", async () => {
+    const stopped = { accounts: [], stoppedBy: "running" as const };
+    await render(<RunList runs={[ran("read-gmail", stopped, { status: "unchanged" })]} none="None" />);
+    await expect
+      .element(page.getByRole("status"))
+      .toHaveTextContent(`${staffCopy.runs.status.unchanged} · ${staffCopy.luma.stoppedBy.running}`);
+    expect(page.getByText(staffCopy.gmailReading.result([]), { exact: false }).query()).toBeNull();
+  });
+
   it("says a Gmail read had problems that found mail in the letters inbox it couldn't account for, listing each with a link", async () => {
     const told = { what: staffCopy.problems.job.notUnderstood, error: "2", told: true as const };
     await render(

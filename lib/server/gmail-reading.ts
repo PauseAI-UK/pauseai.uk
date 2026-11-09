@@ -4,7 +4,7 @@ import { gzipSync } from "node:zlib";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { importPath, type GmailRead, type GmailReadResult } from "@/lib/import-runs";
 import { gmailMessageLink } from "@/lib/letter-links";
-import { query } from "./db";
+import { query, transaction } from "./db";
 import { handleDeliveryProblem } from "./delivery-problems";
 import { sentBy } from "./email";
 import { lettersInbox } from "./letters-inbox";
@@ -203,23 +203,35 @@ function addressed(message: GmailMessageHeaders) {
   return { to: line("to"), cc: line("cc"), replyTo: line("reply-to"), handling };
 }
 
-/** Notes an automatic reply on its letter, once, as of when it arrived. */
-export async function noteAutoReply(letterId: number, message: GmailMessageHeaders): Promise<boolean> {
-  const [seen] = await query(
-    "SELECT 1 FROM letter_events WHERE letter_id = $1 AND status = 'auto_reply' AND details->>'gmailMessageId' = $2",
-    [letterId, message.id],
-  );
-  if (seen) return false;
-  await query("INSERT INTO letter_events (letter_id, at, status, details) VALUES ($1, $2, 'auto_reply', $3)", [
-    letterId,
-    new Date(Number(message.internalDate)),
-    JSON.stringify({
-      from: fromAddress(message.headers.get("from")).address,
-      ...addressed(message),
-      gmailMessageId: message.id,
-    }),
-  ]);
-  return true;
+/**
+ * Notes an automatic reply on its letter, once, as of when it arrived. Says
+ * whether it did. The message is locked while it's looked for, as both a read
+ * of Gmail and the import of old letters may come to it at once.
+ */
+export function noteAutoReply(letterId: number, message: GmailMessageHeaders): Promise<boolean> {
+  return transaction(async (db) => {
+    await query("SELECT pg_advisory_xact_lock(hashtext($1))", [`auto-reply ${message.id}`], db);
+    const [seen] = await query(
+      "SELECT 1 FROM letter_events WHERE letter_id = $1 AND status = 'auto_reply' AND details->>'gmailMessageId' = $2",
+      [letterId, message.id],
+      db,
+    );
+    if (seen) return false;
+    await query(
+      "INSERT INTO letter_events (letter_id, at, status, details) VALUES ($1, $2, 'auto_reply', $3)",
+      [
+        letterId,
+        new Date(Number(message.internalDate)),
+        JSON.stringify({
+          from: fromAddress(message.headers.get("from")).address,
+          ...addressed(message),
+          gmailMessageId: message.id,
+        }),
+      ],
+      db,
+    );
+    return true;
+  });
 }
 
 /** One address a bounce says failed: what happened, in the server's words and its status code. */
@@ -394,46 +406,64 @@ async function alertNotUnderstood(accounts: GmailRead[], request: Request | unde
  * problem of the run, and the next is read all the same; it's read again from
  * where it got to next time, unless Google refused its access, which
  * disconnects it (gmailAccess). `request` is the job's call, for links in
- * alerts; a staff member's run has none.
+ * alerts; a staff member's run has none. Only one runs at a time: a second
+ * started meanwhile, a press during a scheduled run, records that and stops,
+ * as two would each handle the same messages. The transaction only holds
+ * that lock, so what's read stays kept whatever becomes of the run.
  */
 export function readGmail(startedBy: string, request?: Request): Promise<GmailReadResult> {
-  return keepingFailure(JOB, startedBy, async () => {
-    const accounts: GmailRead[] = [];
-    for (const { email, historyId } of await gmailReadingState()) {
-      try {
-        accounts.push(await readAccount(email, historyId, request));
-      } catch (error) {
-        const disconnected = error instanceof GmailError && error.revoked;
-        // One Google disconnected has an email of its own (gmail-accounts.ts).
-        problem(staffCopy.problems.job.couldntRead(email), error, { told: disconnected });
-        accounts.push({
-          account: email,
-          replies: 0,
-          autoReplies: 0,
-          bounces: 0,
-          error: describeError(error),
-          ...(disconnected && { disconnected }),
-        });
-      }
-    }
-    const found = accounts.some(
-      (a) =>
-        a.replies + a.autoReplies + a.bounces > 0 ||
-        a.oneOffs ||
-        a.relayed ||
-        a.spam ||
-        a.notUnderstood?.length ||
-        a.restarted ||
-        a.error,
-    );
-    const notUnderstood = accounts.reduce((n, a) => n + (a.notUnderstood?.length ?? 0), 0);
-    if (notUnderstood) {
-      problem(staffCopy.problems.job.notUnderstood, notUnderstood, {
-        told: await alertNotUnderstood(accounts, request),
+  return keepingFailure(JOB, startedBy, () =>
+    transaction(async (db) => {
+      const [{ locked }] = await query<{ locked: boolean }>(
+        "SELECT pg_try_advisory_xact_lock(hashtext($1)) AS locked",
+        [JOB],
+        db,
+      );
+      if (locked) return readAll(startedBy, request);
+      const result: GmailReadResult = { accounts: [], stoppedBy: "running" };
+      await recordRun(JOB, startedBy, "unchanged", result, db);
+      return result;
+    }),
+  );
+}
+
+/** A run of readGmail, holding its lock. */
+async function readAll(startedBy: string, request: Request | undefined): Promise<GmailReadResult> {
+  const accounts: GmailRead[] = [];
+  for (const { email, historyId } of await gmailReadingState()) {
+    try {
+      accounts.push(await readAccount(email, historyId, request));
+    } catch (error) {
+      const disconnected = error instanceof GmailError && error.revoked;
+      // One Google disconnected has an email of its own (gmail-accounts.ts).
+      problem(staffCopy.problems.job.couldntRead(email), error, { told: disconnected });
+      accounts.push({
+        account: email,
+        replies: 0,
+        autoReplies: 0,
+        bounces: 0,
+        error: describeError(error),
+        ...(disconnected && { disconnected }),
       });
     }
-    await recordRun(JOB, startedBy, found ? "ok" : "unchanged", { accounts });
-    await reportUnmatchedMail(gmailAccess);
-    return { accounts };
-  });
+  }
+  const found = accounts.some(
+    (a) =>
+      a.replies + a.autoReplies + a.bounces > 0 ||
+      a.oneOffs ||
+      a.relayed ||
+      a.spam ||
+      a.notUnderstood?.length ||
+      a.restarted ||
+      a.error,
+  );
+  const notUnderstood = accounts.reduce((n, a) => n + (a.notUnderstood?.length ?? 0), 0);
+  if (notUnderstood) {
+    problem(staffCopy.problems.job.notUnderstood, notUnderstood, {
+      told: await alertNotUnderstood(accounts, request),
+    });
+  }
+  await recordRun(JOB, startedBy, found ? "ok" : "unchanged", { accounts });
+  await reportUnmatchedMail(gmailAccess);
+  return { accounts };
 }

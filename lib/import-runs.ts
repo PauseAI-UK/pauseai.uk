@@ -210,8 +210,8 @@ export type NotUnderstoodReason = "unknown_proxy" | "no_proxy" | "stranger" | "n
 /** A message the letters inbox couldn't account for: its Gmail ID, for a link, who it's from, its subject and why. */
 export type NotUnderstood = { gmailMessageId: string; from: string; subject: string; reason: NotUnderstoodReason };
 
-/** What a run of reading Gmail found, account by account. */
-export type GmailReadResult = { accounts: GmailRead[] };
+/** What a run of reading Gmail found, account by account; or that another run was reading, so it read nothing. */
+export type GmailReadResult = { accounts: GmailRead[]; stoppedBy?: "running" };
 export type GmailReading = ImportRun<"read-gmail", GmailReadResult>;
 
 /** What a run of the Emails sync did: the emails read, those it added, and those it couldn't. */
