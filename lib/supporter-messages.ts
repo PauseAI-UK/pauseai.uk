@@ -1,6 +1,6 @@
 import { contactState, type Topic } from "./contact-permissions";
 import { staffCopy } from "./content/staff-interface";
-import { inlinesOf, isBlankMailing, type MailingDoc, type MailingRecipientValues } from "./mailing-doc";
+import { greetingLetter, inlinesOf, isBlankMailing, type MailingDoc, type MailingRecipientValues } from "./mailing-doc";
 import { now } from "./now";
 import { anyAndNone, valuesOf, type ParamValue } from "./staff-search";
 
@@ -13,6 +13,26 @@ export type MessageChannel = "email" | "text";
 
 /** What a message is, fixed when it's made: its channel and its topic. */
 export type MessageTerms = { channel: MessageChannel; topic: Topic };
+
+/** A new email's words: the greeting to their first name, a line to write on, and the signature. */
+export const MESSAGE_START: MailingDoc = greetingLetter(
+  staffCopy.messagePages.greeting,
+  "firstName",
+  staffCopy.messagePages.signature,
+);
+
+/**
+ * Whether a message has words of its own: a subject, a template chosen, or
+ * words that aren't a new email's start. Until it has, its Consent can move
+ * to the other channel, as nothing written is lost.
+ */
+export function hasWords(message: { subject: string; body: MailingDoc; templateId: number | null }): boolean {
+  return (
+    Boolean(message.subject.trim()) ||
+    message.templateId !== null ||
+    (!isBlankMailing(message.body) && JSON.stringify(message.body) !== JSON.stringify(MESSAGE_START))
+  );
+}
 
 /**
  * A message's channel and topic, from the supporters list's Consent filter:

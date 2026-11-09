@@ -3,9 +3,16 @@ import type { MailingDoc, MailingRecipientValues } from "@/lib/mailing-doc";
 import { checkMailingDoc } from "@/lib/mailing-doc";
 import type { MailingChoice } from "@/lib/mailing-fields";
 import { mailingGroups, type MailingGroup } from "@/lib/mailing-groups";
+import { stateValue } from "@/lib/contact-permissions";
 import { now } from "@/lib/now";
-import { firstOf, pageNumber, type ParamValue, type StoredFilter } from "@/lib/staff-search";
-import { textReplyUntil, type MessageChannel, type MessageTerms } from "@/lib/supporter-messages";
+import { firstOf, pageNumber, storedFilter, type Params, type ParamValue, type StoredFilter } from "@/lib/staff-search";
+import {
+  MESSAGE_FIELDS,
+  MESSAGE_SENDER,
+  textReplyUntil,
+  type MessageChannel,
+  type MessageTerms,
+} from "@/lib/supporter-messages";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "./db";
 import { gmailAccounts, type GmailAccount } from "./gmail-accounts";
@@ -195,6 +202,56 @@ async function writerData(draft: WrittenMessage, me: string): Promise<MessageWri
 }
 
 /**
+ * New broadcast, before its Consent is chosen: a writer for an email to
+ * no one yet, with the staff member's Gmail and the other choices it will
+ * have, for its greyed sections to show what's to come. Nothing is saved.
+ */
+export async function newMessagePageData(me: string): Promise<{ draft: WrittenMessage; data: MessageWriterData }> {
+  const [choices, senders] = await Promise.all([supporterChoices(), gmailAccounts()]);
+  const filter = storedFilter("supporters", {});
+  return {
+    draft: {
+      id: 0,
+      filter,
+      subject: "",
+      body: { type: "doc", content: [] },
+      ask: null,
+      createdBy: me,
+      sentFrom: MESSAGE_SENDER.email,
+      fromName: MESSAGE_SENDER.name,
+      dueAt: null,
+      state: "draft",
+      version: 0,
+      attachments: [],
+      title: "",
+      channel: "email",
+      topic: "site-forms",
+      template: null,
+    },
+    data: {
+      filter,
+      choices,
+      unknown: [],
+      count: 0,
+      recipients: [],
+      leftOut: [],
+      fields: MESSAGE_FIELDS.map((id) => ({
+        id,
+        label: staffCopy.messagePages.fields[id],
+        lacking: 0,
+        fallback: true,
+      })),
+      conditions: [],
+      senders: senders.filter((sender) => !isLettersInboxAddress(sender.email)),
+      me,
+      sends: Boolean(messageBackend()),
+      templates: [],
+      textNumber: textSenderNumber(),
+    },
+  };
+}
+
+/**
  * A message's page: a draft, to write, which opening keeps from being tidied
  * away; or one scheduled or sent, with a page of its recipients in a tab; as
  * `me`, the staff member looking. Undefined for none.
@@ -339,7 +396,29 @@ export async function messagesToSupporter(supporterId: number): Promise<Supporte
 }
 
 /** The draft the supporters list is choosing who for. */
-export type ChoosingMessage = Pick<WrittenMessage, "id" | "channel" | "topic"> & { title: string };
+export type ChoosingMessage = Pick<WrittenMessage, "id" | "channel" | "topic"> & {
+  title: string;
+  /** Nothing written yet, as from New broadcast. */
+  blank: boolean;
+};
+
+/** The Consent a draft being chosen for goes under, as the list's Consent filter writes it. */
+export function choosingConsent(choosing: ChoosingMessage): string {
+  return stateValue({ channel: choosing.channel === "email" ? "email" : "phone", topic: choosing.topic, send: "yes" });
+}
+
+/**
+ * The supporters list's filters, `params`, while it's choosing who the draft
+ * `message` names goes to: that draft, and its Consent over any other, as the
+ * list can't change it. As they are, with no such draft.
+ */
+export async function withChoosing(
+  params: Params,
+  message: ParamValue | undefined,
+): Promise<{ choosing?: ChoosingMessage; params: Params }> {
+  const choosing = await choosingMessage(firstOf(message) ?? "");
+  return { choosing, params: choosing ? { ...params, contact: choosingConsent(choosing) } : params };
+}
 
 /** The draft the list's `message` parameter names; undefined for none, or one no longer a draft. */
 export async function choosingMessage(message: string): Promise<ChoosingMessage | undefined> {
@@ -350,5 +429,6 @@ export async function choosingMessage(message: string): Promise<ChoosingMessage 
     channel: draft.channel,
     topic: draft.topic,
     title: draft.title || staffCopy.messagePages.newTitle[draft.channel],
+    blank: !draft.title,
   };
 }

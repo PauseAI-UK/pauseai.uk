@@ -11,6 +11,7 @@ import FormPending from "./FormPending";
 import ManyChoices, { NotWords } from "./ManyChoices";
 import StaffLink from "./StaffLink";
 import Menu from "./Menu";
+import LockIcon from "./LockIcon";
 import NotIcon from "./NotIcon";
 import SavedFilters, { SavedFilterGone, type SavedFiltersProps } from "./SavedFilters";
 import styles from "./FilterBar.module.css";
@@ -61,6 +62,12 @@ export type Filter = {
   linkedOnly?: boolean;
   /** A filter that matters most: its own button, first, rather than a row in "+ Filter". */
   own?: boolean;
+  /**
+   * A filter that can't be changed here, and why, said on hovering its chip:
+   * its chip is there but doesn't open, with a lock for its arrow, it's never
+   * offered, and Clear filters keeps it.
+   */
+  locked?: string;
 };
 
 const copy = staffCopy.filters;
@@ -240,7 +247,11 @@ export default function FilterBar({
   const offered = filters
     .filter(
       (filter) =>
-        !filter.after && !filter.own && !filter.linkedOnly && (filter.repeat || chosen(filter.name).length === 0),
+        !filter.after &&
+        !filter.own &&
+        !filter.linkedOnly &&
+        !filter.locked &&
+        (filter.repeat || chosen(filter.name).length === 0),
     )
     .map((filter) => {
       const taken = chosen(filter.name).map((value) => {
@@ -254,7 +265,9 @@ export default function FilterBar({
   const hidden = Object.entries(values)
     .filter(([name]) => name !== search.name && name !== "page")
     .flatMap(([name, value]) => valuesOf(value).map((one) => [name, one] as const));
-  const kept = Object.fromEntries(keep.map((name) => [name, values[name] ?? ""]));
+  const kept = Object.fromEntries(
+    [...keep, ...filters.filter((f) => f.locked).map((f) => f.name)].map((name) => [name, values[name] ?? ""]),
+  );
   const label = (filter: Filter, value: string) =>
     filter.options.find((option) => option.value === value)?.label ?? value;
   // A place filter's chip: the words found, and how far.
@@ -288,6 +301,21 @@ export default function FilterBar({
       seconds
         ? href({ [filter.name]: [...others, not ? NOT + v : v] })
         : href({ ...without(filter.name), [filter.name]: same(v) });
+    if (filter.locked) {
+      // There, saying what it is and why it can't change, but not opening.
+      return (
+        <span
+          key={`${filter.name}-${value}${seconds ? "-2" : ""}`}
+          className={`${styles.chip} ${styles.locked}`}
+          title={filter.locked}
+        >
+          {not && <NotIcon />}
+          {text}
+          {/* At the end of the lozenge: in its second half, if it has two. */}
+          {(second || !parts(filter, plain).first?.seconds) && <LockIcon />}
+        </span>
+      );
+    }
     return (
       <Menu
         key={`${filter.name}-${value}${seconds ? "-2" : ""}`}

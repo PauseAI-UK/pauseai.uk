@@ -259,14 +259,19 @@ member, so their pages, actions and the `send-mailings` job all leave
 broadcasts out. In the code a broadcast is a message (`message-drafts.ts`,
 `messages_to_supporters` for its copies).
 
-- **Channel and topic.** A broadcast has one of each, fixed when it's made,
-  from the Consent chosen on New broadcast (`/staff/messages/new`), or from
-  the supporters list's Consent filter: one topic, answered yes
-  (`messageTerms` in `lib/supporter-messages.ts`). "Not sure" isn't enough.
-  Staff choose email or text, never the backend.
+- **Channel and topic.** A broadcast has one of each, its Consent: one
+  topic, answered yes (`messageTerms` in `lib/supporter-messages.ts`). "Not
+  sure" isn't enough. New broadcast (`/staff/messages/new`) is the writer
+  with nothing yet but Said yes to: choosing a Consent there makes the
+  draft. The supporters list's Broadcast button, with its Consent filter
+  answered yes, makes one too. The writer's Said yes to changes it while
+  it's a draft, to the other channel only while it has no words of its own
+  (`hasWords`), starting it afresh. Staff choose email or text, never the
+  backend.
 - **Who.** The list's filter, kept as its URL parameters; there are no
-  ticks. Change who opens the list choosing for the draft, and the draft
-  keeps the filters only while they say its channel and topic. Scheduling
+  ticks. With no other filters it's everyone who said yes. Change who opens
+  the list choosing for the draft, its Consent locked there, as it's the
+  draft's: a saved filter loaded keeps it. Scheduling
   doesn't fix who it goes to: sending finds them when it starts, a row of
   `messages_to_supporters` each, from those `contact_permission()` says yes
   for (`lib/server/message-recipients.ts`), so it reaches whoever the filters

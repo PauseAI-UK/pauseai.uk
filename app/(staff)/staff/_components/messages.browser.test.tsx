@@ -10,10 +10,10 @@ import { londonWhen, staffDate, staffTime } from "@/lib/staff-time";
 import { messageCost, textStopsAt } from "@/lib/supporter-messages";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { navigation } from "@/tests/browser/navigation";
+import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
 import MessageCopyView from "./MessageCopyView";
 import MessageFor, { MessageContact, MessageWho } from "./MessageFor";
-import { ChoosingMessageFrame, MessageSupporters, NeedsContactFilter } from "./MessageSupporters";
-import NewMessage from "./NewMessage";
+import { ChoosingMessageFrame, MessageSupporters } from "./MessageSupporters";
 import MessageView, { copyStatus } from "./MessageView";
 import MessageWriter, { type MessageWriterActions } from "./MessageWriter";
 import {
@@ -52,6 +52,8 @@ function fakeActions() {
     sendTest: action(() => ({ sent: true, id: "m", to: "me@pauseai.uk" })),
     schedule: action(() => ({ scheduled: true })),
     deleteDraft: vi.fn(async () => {}),
+    changeConsent: action(() => true),
+    create: vi.fn(async () => {}),
   };
 }
 
@@ -62,7 +64,6 @@ async function renderWriter(props: Partial<Parameters<typeof MessageWriter>[0]> 
       data={exampleMessageData}
       draft={exampleMessageEmail}
       who={<p>Who</p>}
-      contact={<span>Luma email</span>}
       actions={actions as unknown as MessageWriterActions}
       {...props}
     />,
@@ -71,6 +72,62 @@ async function renderWriter(props: Partial<Parameters<typeof MessageWriter>[0]> 
 }
 
 const button = (name: string | RegExp) => page.getByRole("button", { name });
+
+describe("MessageWriter's Consent", () => {
+  const topics = staffCopy.supporters.subscriptions.topics;
+  const consent = () => page.getByLabelText(copy.facts.saidYes, { exact: false });
+  const options = () =>
+    [...consent().element().querySelectorAll("option")].map((o) => [o.textContent, (o as HTMLOptionElement).disabled]);
+
+  it("offers each Consent that can be a yes, its own chosen, only by its channel once it has words", async () => {
+    await renderWriter();
+    expect((consent().element() as HTMLSelectElement).value).toBe("email:site-forms:yes");
+    expect(options()).toEqual([
+      [topics.email["site-forms"], false],
+      [topics.email["luma-calendar"], false],
+      [topics.phone["site-forms"], true],
+      [topics.phone["luma-calendar"], true],
+      [topics.phone.volunteering, true],
+      [topics.phone["march-day"], true],
+    ]);
+  });
+
+  it("offers either channel to one with no words of its own", async () => {
+    await renderWriter({ draft: { ...exampleMessageEmail, subject: "", body: EMPTY_MAILING_DOC } });
+    expect(options().every(([, disabled]) => !disabled)).toBe(true);
+  });
+
+  it("saves what's typed, changes the Consent, and shows the draft as it is then", async () => {
+    const actions = await renderWriter();
+    const refreshes = navigation.refreshes;
+    await consent().selectOptions(topics.email["luma-calendar"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:luma-calendar:yes"), WAIT);
+    await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
+    // Refused, nothing to show again.
+    actions.changeConsent.mockResolvedValue(false);
+    const before = navigation.refreshes;
+    await consent().selectOptions(topics.email["site-forms"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledTimes(2), WAIT);
+    expect(navigation.refreshes).toBe(before);
+  });
+
+  it("on New broadcast, starts with none chosen, everything after it greyed and still, and makes the draft", async () => {
+    const actions = await renderWriter({ blank: true });
+    expect((consent().element() as HTMLSelectElement).value).toBe("");
+    expect(options()[0]).toEqual([copy.chooseConsent, true]);
+    expect(page.getByText("Who").element().closest("[inert]")).not.toBeNull();
+    expect(
+      page
+        .getByRole("button", { name: copy.schedule(412, "email") })
+        .element()
+        .closest("[inert]"),
+    ).not.toBeNull();
+    expect(consent().element().closest("[inert]")).toBeNull();
+    await consent().selectOptions(topics.phone["luma-calendar"]);
+    await vi.waitFor(() => expect(actions.create).toHaveBeenCalledWith("phone:luma-calendar:yes"), WAIT);
+    expect(actions.save).not.toHaveBeenCalled();
+  });
+});
 
 describe("MessageWriter, by email", () => {
   it("shows the six sections, who's left out and why, what it'll cost, and schedules", async () => {
@@ -93,7 +150,6 @@ describe("MessageWriter, by email", () => {
         data={exampleMessageData}
         draft={exampleMessageEmail}
         who={null}
-        contact={null}
         actions={actions as unknown as MessageWriterActions}
       />,
     );
@@ -122,9 +178,7 @@ describe("MessageWriter, by email", () => {
     await renderWriter();
     await page.getByRole("link", { name: staffCopy.mailingPages.changeWho }).click();
     await vi.waitFor(() =>
-      expect(leavePage).toHaveBeenCalledWith(
-        "/staff/supporters?contact=email%3Apauseai-updates%3Ayes&near=LS1&message=3",
-      ),
+      expect(leavePage).toHaveBeenCalledWith("/staff/supporters?contact=email%3Asite-forms%3Ayes&near=LS1&message=3"),
     );
   });
 
@@ -208,7 +262,6 @@ describe("MessageWriter, by email", () => {
         data={{ ...exampleMessageData, sends: false }}
         draft={exampleMessageEmail}
         who={null}
-        contact={null}
         actions={actions as unknown as MessageWriterActions}
       />,
     );
@@ -251,7 +304,6 @@ describe("MessageWriter, by email", () => {
         data={{ ...exampleMessageData, recipients }}
         draft={exampleMessageEmail}
         who={null}
-        contact={null}
         actions={actions as unknown as MessageWriterActions}
       />
     );
@@ -445,27 +497,33 @@ describe("TemplatePicker", () => {
 });
 
 describe("the supporters list", () => {
-  const yes = supportersSearch({ contact: "email:pauseai-updates:yes", near: "LS1" });
+  const yes = supportersSearch({ contact: "email:site-forms:yes", near: "LS1" });
   const none = supportersSearch({ near: "LS1" });
 
   it("messages those found with a Consent filter answered yes, keeping who they are", async () => {
     await render(<MessageSupporters search={yes} total={430} action={nothing} />);
     await expect.element(button(copy.messageButton(430))).toBeVisible();
-    expect(document.querySelector<HTMLInputElement>('input[name="contact"]')!.value).toBe("email:pauseai-updates:yes");
+    expect(document.querySelector<HTMLInputElement>('input[name="contact"]')!.value).toBe("email:site-forms:yes");
     expect(document.querySelector<HTMLInputElement>('input[name="near"]')!.value).toBe("LS1");
   });
 
-  it("is dashed without one, and leads back to say which filter to add", async () => {
-    await render(<MessageSupporters search={none} total={1} action={nothing} />);
-    const link = page.getByRole("link", { name: copy.messageButton(1) });
-    await expect
-      .element(link)
-      .toHaveAttribute("href", "/staff/supporters?near=LS1&within=&why=contact".replace("within=&", ""));
-    expect(getComputedStyle(link.element()).borderTopStyle).toBe("dashed");
+  it("isn't there without a Consent filter answered yes", async () => {
+    await render(
+      <div data-testid="here">
+        <MessageSupporters search={none} total={1} action={nothing} />
+      </div>,
+    );
+    await expect.element(page.getByTestId("here")).toBeEmptyDOMElement();
   });
 
   it("isn't there while choosing for a draft", async () => {
-    const choosing = { id: 3, title: "Events", channel: "email" as const, topic: "pauseai-updates" as const };
+    const choosing = {
+      id: 3,
+      title: "Events",
+      channel: "email" as const,
+      topic: "site-forms" as const,
+      blank: false,
+    };
     await render(
       <div data-testid="here">
         <MessageSupporters search={yes} total={430} action={nothing} choosing={choosing} />
@@ -474,17 +532,14 @@ describe("the supporters list", () => {
     await expect.element(page.getByTestId("here")).toBeEmptyDOMElement();
   });
 
-  it("says which filter to add only after pressing, and not once there's one", async () => {
-    const shown = await render(<NeedsContactFilter search={{ ...none, why: "contact" }} />);
-    await expect.element(page.getByText(copy.needsContact)).toBeVisible();
-    await shown.rerender(<NeedsContactFilter search={none} />);
-    await expect.element(page.getByText(copy.needsContact)).not.toBeInTheDocument();
-    await shown.rerender(<NeedsContactFilter search={{ ...yes, why: "contact" }} />);
-    await expect.element(page.getByText(copy.needsContact)).not.toBeInTheDocument();
-  });
-
   describe("choosing who a draft goes to", () => {
-    const choosing = { id: 3, title: "Events", channel: "email" as const, topic: "pauseai-updates" as const };
+    const choosing = {
+      id: 3,
+      title: "Events",
+      channel: "email" as const,
+      topic: "site-forms" as const,
+      blank: false,
+    };
 
     it("is only the page when it isn't", async () => {
       await render(
@@ -503,6 +558,7 @@ describe("the supporters list", () => {
         </ChoosingMessageFrame>,
       );
       await expect.element(page.getByText(copy.choosing("Events"))).toBeVisible();
+      await expect.element(page.getByText(copy.choosingNew)).not.toBeInTheDocument();
       await expect
         .element(page.getByRole("link", { name: copy.choosingCancel }))
         .toHaveAttribute("href", "/staff/messages/3");
@@ -510,40 +566,15 @@ describe("the supporters list", () => {
       await expect.element(button(copy.useThese(430))).toBeVisible();
     });
 
-    it("only goes back once the filters no longer say its channel and topic", async () => {
+    it("says it's choosing for a new one, for a draft with nothing written yet", async () => {
       await render(
-        <ChoosingMessageFrame choosing={choosing} search={none} total={1180} keep={nothing}>
+        <ChoosingMessageFrame choosing={{ ...choosing, blank: true }} search={yes} total={430} keep={nothing}>
           <p>The list</p>
         </ChoosingMessageFrame>,
       );
-      await expect.element(page.getByText(copy.keepContact)).toBeVisible();
-      await expect.element(page.getByRole("link", { name: copy.backToDraft })).toBeVisible();
-      await expect.element(button(copy.useThese(1180))).not.toBeInTheDocument();
+      await expect.element(page.getByText(copy.choosingNew)).toBeVisible();
+      await expect.element(page.getByText(copy.choosing("Events"))).not.toBeInTheDocument();
     });
-  });
-});
-
-describe("NewMessage", () => {
-  it("offers each Consent that can be a yes, and sends the one chosen on with Change who", async () => {
-    const chosen: (string | null)[] = [];
-    await render(<NewMessage action={(form) => void chosen.push(form.get("contact") as string | null)} />);
-    await expect.element(page.getByRole("heading", { name: copy.newMessage, level: 1 })).toBeVisible();
-    const consent = page.getByLabelText(copy.facts.saidYes, { exact: false });
-    const topics = staffCopy.supporters.subscriptions.topics;
-    expect([...consent.element().querySelectorAll("option")].map((o) => o.textContent)).toEqual([
-      staffCopy.mailingPages.choose,
-      topics.email["site-forms"],
-      topics.email["luma-calendar"],
-      topics.phone["site-forms"],
-      topics.phone["luma-calendar"],
-      topics.phone.volunteering,
-      topics.phone["march-day"],
-    ]);
-    // None chosen, the browser won't send it.
-    expect((consent.element() as HTMLSelectElement).required).toBe(true);
-    await consent.selectOptions(topics.email["luma-calendar"]);
-    await button(staffCopy.mailingPages.changeWho).click();
-    await vi.waitFor(() => expect(chosen).toEqual(["email:luma-calendar:yes"]), WAIT);
   });
 });
 
@@ -725,7 +756,7 @@ describe("MessageFor", () => {
       <>
         <MessageContact params={{ contact: "phone:luma-calendar:yes" }} />
         <MessageContact params={{ contact: "email:luma-calendar:yes" }} />
-        <MessageWho params={{ contact: "email:pauseai-updates:yes", near: "LS1" }} choices={exampleSupporterChoices} />
+        <MessageWho params={{ contact: "email:site-forms:yes", near: "LS1" }} choices={exampleSupporterChoices} />
       </>,
     );
     await expect.element(page.getByText(supporters.phone["luma-calendar"])).toBeVisible();

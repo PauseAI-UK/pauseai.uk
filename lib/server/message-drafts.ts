@@ -4,6 +4,7 @@ import { toText } from "@/lib/letter-format";
 import { now } from "@/lib/now";
 import { storedFilter, type Params } from "@/lib/staff-search";
 import {
+  hasWords,
   messageTitle,
   messageScheduleProblems,
   messageTerms,
@@ -144,6 +145,36 @@ export async function changeMessageFilter(id: number, params: Params): Promise<b
     id,
     JSON.stringify(filter),
   ]);
+  return true;
+}
+
+/**
+ * Changes the Consent a draft goes under to `value`, one topic answered yes,
+ * keeping its other filters. To the other channel only while it has no words
+ * of its own (hasWords), starting it afresh as one new on that channel is.
+ * Says whether it did.
+ */
+export async function changeMessageConsent(id: number, value: string, by: string): Promise<boolean> {
+  const message = await getWrittenMessage(id);
+  const terms = messageTerms(value);
+  if (message?.state !== "draft" || !terms) return false;
+  const moving = terms.channel !== message.channel;
+  if (moving && hasWords({ ...message, templateId: message.template?.id ?? null })) return false;
+  const filter = storedFilter("supporters", { ...message.filter.params, contact: value });
+  const sender = senderOf(terms.channel);
+  await query(
+    `UPDATE mailings SET channel = $2, topic = $3, filter = $4,
+       subject = CASE WHEN $5 THEN '' ELSE subject END,
+       body = CASE WHEN $5 THEN '{"type": "doc", "content": []}'::jsonb ELSE body END,
+       title = CASE WHEN $5 THEN '' ELSE title END,
+       template_id = CASE WHEN $5 THEN NULL ELSE template_id END,
+       sent_from = CASE WHEN $5 THEN $6 ELSE sent_from END,
+       from_name = CASE WHEN $5 THEN $7 ELSE from_name END,
+       version = version + 1, updated_at = now()
+     WHERE id = $1`,
+    [id, terms.channel, terms.topic, JSON.stringify(filter), moving, sender.sentFrom, sender.fromName],
+  );
+  await logChange(by, "change message consent", { id, channel: terms.channel, topic: terms.topic });
   return true;
 }
 

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { choosingMessage } from "@/lib/server/message-pages";
+import { withChoosing } from "@/lib/server/message-pages";
 import { savedFiltersState } from "@/lib/server/saved-filters";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { listSupporters, supporterChoices } from "@/lib/server/supporters";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
 import ErasedNotice from "../../_components/ErasedNotice";
-import { ChoosingMessageFrame, MessageSupporters, NeedsContactFilter } from "../../_components/MessageSupporters";
+import { ChoosingMessageFrame, MessageSupporters } from "../../_components/MessageSupporters";
 import SupporterFilters, { supporterWords } from "../../_components/SupporterFilters";
 import SupportersTable from "../../_components/SupportersTable";
 import { filteredTitle } from "../../_components/ui/FilterBar";
@@ -22,16 +22,18 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return { title: filteredTitle(staffCopy.supporters.title, supporterWords(search, await supporterChoices())) };
 }
 
-/** Everyone we know of, filtered, newest activity first; while it's choosing who a draft message goes to, the way back to it. */
+/**
+ * Everyone we know of, filtered, newest activity first; while it's choosing
+ * who a draft message goes to, the way back to it, and the draft's Consent,
+ * which a saved filter loaded keeps and the list can't change.
+ */
 export default async function SupportersPage({ searchParams }: Props) {
   await requireStaff("supporters");
-  const saved = await savedFiltersState("supporters", await searchParams);
-  const { filter, ...search } = supportersSearch(saved.params);
-  const [page, choices, choosing] = await Promise.all([
-    listSupporters(filter),
-    supporterChoices(),
-    choosingMessage(search.message),
-  ]);
+  const asked = await searchParams;
+  const saved = await savedFiltersState("supporters", asked);
+  const { choosing, params } = await withChoosing(saved.params, asked.message);
+  const { filter, ...search } = supportersSearch(params);
+  const [page, choices] = await Promise.all([listSupporters(filter), supporterChoices()]);
   return (
     <ChoosingMessageFrame choosing={choosing} search={search} total={page.total} keep={keepFilterForMessage}>
       <h1>{staffCopy.supporters.title}</h1>
@@ -40,12 +42,12 @@ export default async function SupportersPage({ searchParams }: Props) {
         search={search}
         choices={choices}
         near={page.near}
+        lockConsent={Boolean(choosing)}
         saved={{
           state: saved,
           actions: { save: saveFilter, update: updateFilter, rename: renameFilter, remove: deleteFilter },
         }}
       />
-      <NeedsContactFilter search={search} />
       <SupportersTable
         page={page}
         search={search}

@@ -533,6 +533,10 @@ are:
 - A filter that matters most has its own button (`own`), before "+ Filter",
   which doesn't offer it; once it's on, its chip comes first. The
   supporters list's Consent is one, as it's what a broadcast needs.
+- A filter that can't change in a mode is `locked`, with why: its chip is
+  there, with a padlock for its arrow, but doesn't open, "+ Filter" doesn't
+  offer it, and Clear filters keeps it. The Consent is, while the list is
+  choosing who a broadcast goes to, as the broadcast's writer changes it.
 - Clear filters, last, while anything is on, empties the search and every
   filter, and the sort. A tab over the list, such as the politicians'
   houses, isn't a filter: Clear filters keeps it.

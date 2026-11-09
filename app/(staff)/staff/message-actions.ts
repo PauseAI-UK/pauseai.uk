@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { addAttachment, deleteDraft, removeAttachment, rescheduleMailing } from "@/lib/server/mailing-drafts";
 import {
+  changeMessageConsent,
   changeMessageFilter,
   createMessageDraft,
   getWrittenMessage,
@@ -40,29 +41,35 @@ function whoFrom(form: FormData): Params {
 
 /**
  * Makes a draft to everyone the form's filter finds, and opens it; with no
- * Consent filter answered yes, back to the list, to say which to add.
+ * Consent filter answered yes, back to the list.
  */
 export async function newMessage(form: FormData): Promise<void> {
   const { email } = await requireStaff("supporters");
   const params = whoFrom(form);
   const id = await createMessageDraft(email, params);
-  if (!id) redirect(filtersPath("/staff/supporters", params, { why: "contact" }));
+  if (!id) redirect(filtersPath("/staff/supporters", params));
   revalidatePath(LIST);
   redirect(`${LIST}/${id}`);
 }
 
 /**
- * Makes a draft to everyone who said yes to the form's Consent, from New
- * broadcast, and opens the supporters list choosing who it goes to; with no
- * Consent answered yes, back to New broadcast.
+ * Makes a draft to everyone who said yes to `consent`, one topic answered
+ * yes, as New broadcast's Consent is chosen, and opens it; with none, stays.
  */
-export async function newMessageChoosing(form: FormData): Promise<void> {
+export async function newMessageWith(consent: string): Promise<void> {
   const { email } = await requireStaff("supporters");
-  const params = whoFrom(form);
-  const id = await createMessageDraft(email, params);
-  if (!id) redirect(`${LIST}/new`);
+  const id = await createMessageDraft(email, { contact: consent });
+  if (!id) return;
   revalidatePath(LIST);
-  redirect(filtersPath("/staff/supporters", params, { message: String(id) }));
+  redirect(`${LIST}/${id}`);
+}
+
+/** Changes the Consent draft `id` goes under, as its writer's dropdown is changed; says whether it did. */
+export async function changeMessageConsentNow(id: number, consent: string): Promise<boolean> {
+  const { email } = await requireStaff("supporters");
+  const changed = await changeMessageConsent(id, consent, email);
+  if (changed) revalidatePath(`${LIST}/${id}`);
+  return changed;
 }
 
 /** Keeps the form's filter for draft `id`, and goes back to it. */

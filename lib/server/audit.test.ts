@@ -64,6 +64,7 @@ describeWithDatabase("the change log", () => {
     await logChange("postmark", "block address", { address: email });
     await logChange("jo@pauseai.uk", "unblock address", { address: "jane@example.com", note: "Checked" });
     await logChange("jo@pauseai.uk", "create message", { id: 1, channel: "email", topic: "luma-calendar" });
+    await logChange("jo@pauseai.uk", "change message consent", { id: 1, channel: "email", topic: "site-forms" });
     await logChange("jo@pauseai.uk", "schedule message", { id: 1, recipients: 3 });
     await logChange("jo@pauseai.uk", "stop message", { id: 1, was: "scheduled" });
     await logChange("jo@pauseai.uk", "reply to message", { id: 1 });
@@ -74,7 +75,7 @@ describeWithDatabase("the change log", () => {
       ["block address", { address: email }],
       ["add note", { noteId: 2, politicianId: polly }],
     ]);
-    expect((await recentChanges(true)).total).toBe(12);
+    expect((await recentChanges(true)).total).toBe(13);
     expect(await changeChoices(false)).toEqual({
       actors: expect.arrayContaining(["jo@pauseai.uk", "postmark"]),
       actions: ["add note", "block address"],

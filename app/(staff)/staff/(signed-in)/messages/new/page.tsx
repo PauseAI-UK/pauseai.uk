@@ -1,13 +1,31 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { newMessagePageData } from "@/lib/server/message-pages";
 import { requireStaff } from "@/lib/server/staff-auth";
-import NewMessage from "../../../_components/NewMessage";
-import { newMessageChoosing } from "../../../message-actions";
+import Breadcrumb from "../../../_components/Breadcrumb";
+import MessageWriter from "../../../_components/MessageWriter";
+import { MessageWho } from "../../../_components/MessageFor";
+import { messageWriterActions } from "../writer-actions";
 
 export const metadata: Metadata = { title: staffCopy.messagePages.newMessage };
 
-/** New broadcast: the Consent it goes under, then on to choose who. */
+/**
+ * New broadcast: the writer, its Consent to choose first, which makes the
+ * draft; everything after it greyed till then, to show what's to come.
+ */
 export default async function NewMessagePage() {
-  await requireStaff("supporters");
-  return <NewMessage action={newMessageChoosing} />;
+  const { email } = await requireStaff("supporters");
+  const { draft, data } = await newMessagePageData(email);
+  return (
+    <>
+      <Breadcrumb href="/staff/messages">{staffCopy.nav.messages}</Breadcrumb>
+      <MessageWriter
+        data={data}
+        draft={draft}
+        who={<MessageWho params={draft.filter.params} choices={data.choices} />}
+        blank
+        actions={messageWriterActions}
+      />
+    </>
+  );
 }

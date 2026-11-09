@@ -12,7 +12,8 @@ import {
   detachFromMessage,
   keepFilterForMessage,
   newMessage,
-  newMessageChoosing,
+  changeMessageConsentNow,
+  newMessageWith,
   replyToMessageNow,
   rescheduleMessageNow,
   saveMessage,
@@ -67,24 +68,34 @@ describeWithDatabase("the message pages' Server Actions", () => {
     expect((await getWrittenMessage(id))!.filter.params).toEqual({ ...EMAIL, near: "LS1" });
   });
 
-  it("goes back to say which filter to add, without one", async () => {
+  it("goes back to the list, without a Consent filter answered yes", async () => {
     await expect(expectRedirect(() => newMessage(form({ near: "LS1", within: ["10", "25"] })))).resolves.toBe(
-      "/staff/supporters?near=LS1&within=10&within=25&why=contact",
+      "/staff/supporters?near=LS1&within=10&within=25",
     );
     expect(await query("SELECT id FROM mailings WHERE body IS NOT NULL")).toEqual([]);
   });
 
-  it("makes a draft from New broadcast's Consent, and opens the list choosing who for it", async () => {
-    const to = await expectRedirect(() => newMessageChoosing(form(EMAIL)));
+  it("makes a draft under New broadcast's Consent, to everyone who said yes, and opens it", async () => {
+    const to = await expectRedirect(() => newMessageWith(EMAIL.contact));
     const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM mailings WHERE body IS NOT NULL");
-    expect(to).toBe(`/staff/supporters?contact=${encodeURIComponent(EMAIL.contact)}&message=${id}`);
+    expect(to).toBe(`/staff/messages/${id}`);
     expect((await getWrittenMessage(id))!.filter.params).toEqual(EMAIL);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/messages");
   });
 
-  it("goes back to New broadcast without a Consent answered yes", async () => {
-    await expect(expectRedirect(() => newMessageChoosing(form({})))).resolves.toBe("/staff/messages/new");
+  it("makes none without a Consent answered yes", async () => {
+    await newMessageWith("email:pauseai-updates:unsure");
     expect(await query("SELECT id FROM mailings WHERE body IS NOT NULL")).toEqual([]);
+  });
+
+  it("changes a draft's Consent, and says when it didn't", async () => {
+    const id = await draft();
+    expect(await changeMessageConsentNow(id, "email:site-forms:yes")).toBe(true);
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/messages/${id}`);
+    expect((await getWrittenMessage(id))!.topic).toBe("site-forms");
+    vi.mocked(revalidatePath).mockClear();
+    expect(await changeMessageConsentNow(id, "nonsense")).toBe(false);
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("keeps who it's to from the list, and goes back to the draft", async () => {

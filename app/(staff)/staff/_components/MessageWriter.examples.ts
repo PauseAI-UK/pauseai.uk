@@ -96,7 +96,7 @@ export const exampleSupporterChoices: SupporterChoices = {
  * local group or MP. Pat said no and Gus is blocked, and Tom asked us to stop.
  */
 export const exampleMessageData: MessageWriterData = {
-  filter: { list: "supporters", params: { contact: "email:pauseai-updates:yes", near: "LS1" } },
+  filter: { list: "supporters", params: { contact: "email:site-forms:yes", near: "LS1" } },
   choices: exampleSupporterChoices,
   unknown: [],
   count: 412,
@@ -174,7 +174,7 @@ export const exampleMessageEmail: WrittenMessage = {
   version: 4,
   attachments: [],
   channel: "email",
-  topic: "pauseai-updates",
+  topic: "site-forms",
   template: null,
 };
 

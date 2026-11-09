@@ -3,6 +3,8 @@ import { staffCopy } from "./content/staff-interface";
 import { EMPTY_MAILING_DOC, type MailingDoc } from "./mailing-doc";
 import {
   firstWords,
+  hasWords,
+  MESSAGE_START,
   messageTitle,
   hasField,
   messageCost,
@@ -102,6 +104,24 @@ describe("firstWords", () => {
     const words = firstWords(doc(` ${"word ".repeat(40)}`), {});
     expect(words.length).toBeLessThanOrEqual(81);
     expect(words.endsWith("…")).toBe(true);
+  });
+});
+
+describe("hasWords", () => {
+  const none = { subject: "", body: EMPTY_MAILING_DOC, templateId: null };
+
+  it("is a subject, a template, or words that aren't a new email's start", () => {
+    expect(hasWords(none)).toBe(false);
+    expect(hasWords({ ...none, body: MESSAGE_START })).toBe(false);
+    expect(hasWords({ ...none, subject: " " })).toBe(false);
+    expect(hasWords({ ...none, subject: "Events" })).toBe(true);
+    expect(hasWords({ ...none, templateId: 1 })).toBe(true);
+    expect(
+      hasWords({
+        ...none,
+        body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Hi" }] }] },
+      }),
+    ).toBe(true);
   });
 });
 

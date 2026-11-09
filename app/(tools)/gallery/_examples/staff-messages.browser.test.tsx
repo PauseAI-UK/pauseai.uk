@@ -7,8 +7,8 @@ import {
   MailingStandingExample,
   MessageCopyViewExample,
   MessageForExample,
+  MessageConsentExample,
   MessageSupportersExample,
-  NewMessageExample,
   MessageViewExample,
   MessageWriterExample,
   ChoosingMessageFrameExample,
@@ -45,7 +45,7 @@ it("draws the rest", async () => {
   await render(
     <>
       <DraftTitleExample />
-      <NewMessageExample />
+      <MessageConsentExample />
       <MessageSupportersExample />
       <ChoosingMessageFrameExample />
       <MessageViewExample kind="email" />

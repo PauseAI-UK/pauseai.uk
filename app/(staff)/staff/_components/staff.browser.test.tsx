@@ -6045,6 +6045,30 @@ describe("SupporterFilters", () => {
     ]);
   });
 
+  it("while choosing who a broadcast goes to, shows its Consent locked: no menu, never offered, kept by Clear filters", async () => {
+    const { topics } = copy.filters;
+    const label = copy.columns.subscriptions;
+    const { filter, ...search } = supportersSearch({ contact: "email:site-forms:yes", near: "LS1", message: "3" });
+    void filter;
+    await render(<SupporterFilters search={search} choices={choices} lockConsent />);
+    const locked = [...document.querySelectorAll("[class*=locked]")];
+    expect(locked.map((chip) => chip.textContent)).toEqual([
+      `${label}: ${topics["site-forms"]}`,
+      copy.detail.permissions.answers.email.yes,
+    ]);
+    expect(locked.every((chip) => chip.tagName === "SPAN")).toBe(true);
+    expect(locked.map((chip) => chip.getAttribute("title"))).toEqual([
+      staffCopy.messagePages.consentLocked,
+      staffCopy.messagePages.consentLocked,
+    ]);
+    // Its padlock at the end, in the second half.
+    expect(locked.map((chip) => Boolean(chip.querySelector("svg:last-child[class*=lockIcon]")))).toEqual([false, true]);
+    expect((await menu(staffCopy.filters.add)).map(([words]) => words)).not.toContain(label);
+    await expect
+      .element(page.getByRole("link", { name: staffCopy.resetFilters }))
+      .toHaveAttribute("href", "/staff/supporters?contact=email%3Asite-forms%3Ayes");
+  });
+
   it("offers every topic once in the Consent filter, email's then phone's, ours first", () => {
     expect(SUBSCRIPTION_ORDER.map(([channel, topic]) => `${channel}:${topic}`).sort()).toEqual(
       CHANNELS.flatMap((channel) => topicsOf(channel).map((topic) => `${channel}:${topic}`)).sort(),

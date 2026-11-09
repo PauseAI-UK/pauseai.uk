@@ -973,17 +973,19 @@ All events: ${link}`,
     untitled: "Untitled draft",
     // In the supporters list's count row.
     messageButton: (n: number) => `Broadcast to ${n} ${n === 1 ? "supporter" : "supporters"}`,
-    needsContact:
-      "To send an email or text to lots of supporters, choose the Consent you would like to do it under first.",
     // Change who: the supporters list choosing who a draft goes to.
     choosing: (title: string) => `Change who the broadcast “${title}” goes to`,
     choosingHow: "Change the filters. The broadcast goes to everyone they find at the time it is actually sent.",
     choosingCancel: "Cancel",
+    // In Said yes to's dropdown, on New broadcast, before a Consent is chosen.
+    chooseConsent: "⁂ Choose a Consent",
+    // Hovering the Consent's chip while choosing who a broadcast goes to, where it can't be changed.
+    consentLocked: "⁂ Change the Consent in the broadcast",
+    // The same, for a draft with nothing written yet, as from New broadcast.
+    choosingNew: "⁂ Choose who the new broadcast goes to",
     choosingCount: (n: number) => `${n} ${n === 1 ? "supporter" : "supporters"} found`,
     choosingLabel: "⁂ Who the broadcast goes to",
     useThese: (n: number) => `Use these ${n}`,
-    keepContact: "⁂ Keep the Consent filter this broadcast was made from: its channel and topic are fixed.",
-    backToDraft: "⁂ Back to the draft",
     // A broadcast's channel, as a pill, a list's row and the band say it.
     channels: { email: "Email", text: "Text" },
     newTitle: { email: "New broadcast", text: "New broadcast" },

@@ -149,24 +149,33 @@ export function supporterWords(
   return filterWords(supporterFilters(search, choices, near), supporterFiltersOf(search), "q");
 }
 
-/** Search and filter the supporters list, with its `saved` filters. The erased notice goes with any change. */
+/**
+ * Search and filter the supporters list, with its `saved` filters. The
+ * erased notice goes with any change. With `lockConsent`, while choosing who
+ * a broadcast goes to, the Consent is its own, there but not to be changed.
+ */
 export default function SupporterFilters({
   search,
   choices,
   near,
   saved,
+  lockConsent = false,
 }: {
   search: SupportersSearch;
   choices: SupporterChoices;
   near?: SupportersPage["near"];
   saved?: { state: SavedFiltersState; actions: SavedFilterActions };
+  lockConsent?: boolean;
 }) {
+  const filters = supporterFilters(search, choices, near).map((filter) =>
+    lockConsent && filter.name === "contact" ? { ...filter, locked: staffCopy.messagePages.consentLocked } : filter,
+  );
   return (
     <FilterBar
       path="/staff/supporters"
       values={{ ...search, erased: "" }}
       search={{ name: "q", label: staffCopy.supporters.filters.search }}
-      filters={supporterFilters(search, choices, near)}
+      filters={filters}
       saved={
         saved &&
         savedFiltersProps({

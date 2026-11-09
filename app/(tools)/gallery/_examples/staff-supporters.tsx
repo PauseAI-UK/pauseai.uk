@@ -71,6 +71,18 @@ export const staffSupporters: Group = {
           ),
         },
         {
+          label: "Choosing who a broadcast goes to: its Consent locked",
+          render: () => (
+            <StaffPage as="div">
+              <SupporterFilters
+                search={supportersSearch({ contact: "email:site-forms:yes", near: "LS1", message: "3" })}
+                choices={{ events: exampleEventChoices, mps: [] }}
+                lockConsent
+              />
+            </StaffPage>
+          ),
+        },
+        {
           label: "Near somewhere postcodes.io doesn't know",
           render: () => (
             <StaffPage as="div">

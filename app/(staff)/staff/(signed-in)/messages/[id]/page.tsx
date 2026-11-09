@@ -6,16 +6,7 @@ import { requireStaff } from "@/lib/server/staff-auth";
 import { mailingId, type ParamValue } from "@/lib/staff-search";
 import Breadcrumb from "../../../_components/Breadcrumb";
 import MessageFor from "../../../_components/MessageFor";
-import {
-  attachToMessage,
-  deleteMessageDraft,
-  detachFromMessage,
-  rescheduleMessageNow,
-  saveMessage,
-  scheduleMessageNow,
-  sendMessageTestNow,
-  stopMessageNow,
-} from "../../../message-actions";
+import { messageWriterActions } from "../writer-actions";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -34,19 +25,7 @@ export default async function MessagePage({ params, searchParams }: Params) {
   return (
     <>
       <Breadcrumb href="/staff/messages">{staffCopy.nav.messages}</Breadcrumb>
-      <MessageFor
-        data={data}
-        actions={{
-          save: saveMessage,
-          attach: attachToMessage,
-          detach: detachFromMessage,
-          sendTest: sendMessageTestNow,
-          schedule: scheduleMessageNow,
-          deleteDraft: deleteMessageDraft,
-          stop: stopMessageNow,
-          reschedule: rescheduleMessageNow,
-        }}
-      />
+      <MessageFor data={data} actions={messageWriterActions} />
     </>
   );
 }

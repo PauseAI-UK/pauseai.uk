@@ -6,12 +6,15 @@ import { LETTERS_INBOX } from "@/tests/fixture-env.mjs";
 import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/message-fixtures";
 import { createMessageDraft, getWrittenMessage, saveMessageDraft, scheduleMessage } from "./message-drafts";
 import {
+  choosingConsent,
   choosingMessage,
   messageCopy,
   messagePageData,
   messagesPage,
   messagesToSupporter,
   messageTitle,
+  newMessagePageData,
+  withChoosing,
 } from "./message-pages";
 
 const JO = "jo@pauseai.uk";
@@ -139,6 +142,16 @@ describeWithDatabase("the pages of messages to supporters", () => {
     expect(data!.kind === "draft" && data!.senders.map((one) => one.email)).toEqual([JO]);
   });
 
+  it("gives New broadcast an email to no one yet, with the Gmails it could go from but never the letters inbox", async () => {
+    await connectTestGmail(JO);
+    await connectTestGmail(LETTERS_INBOX);
+    const { draft, data } = await newMessagePageData(JO);
+    expect(draft).toMatchObject({ id: 0, channel: "email", state: "draft", filter: { params: {} } });
+    expect(data).toMatchObject({ count: 0, recipients: [], leftOut: [], me: JO, templates: [] });
+    expect(data.fields.map((field) => field.lacking)).toEqual([0, 0, 0]);
+    expect(data.senders.map((sender) => sender.email)).toEqual([JO]);
+  });
+
   it("titles a draft, or says it has none; a mailing to politicians is none", async () => {
     const id = (await createMessageDraft(JO, EMAIL_FILTER))!;
     expect(await messageTitle(id)).toBe(staffCopy.messagePages.untitled);
@@ -149,9 +162,21 @@ describeWithDatabase("the pages of messages to supporters", () => {
       channel: "email",
       topic: "luma-calendar",
       title: "Events",
+      blank: false,
     });
+    expect(choosingConsent((await choosingMessage(String(id)))!)).toBe(EMAIL_FILTER.contact);
+    // The list choosing for it keeps its Consent over another; with no draft, the filters as they are.
+    const other = { contact: "email:site-forms:yes", near: "LS1" };
+    expect(await withChoosing(other, String(id))).toMatchObject({
+      choosing: { id },
+      params: { ...other, contact: EMAIL_FILTER.contact },
+    });
+    expect(await withChoosing(other, undefined)).toEqual({ choosing: undefined, params: other });
     await query("UPDATE mailings SET title = '' WHERE id = $1", [id]);
-    expect((await choosingMessage(String(id)))!.title).toBe(staffCopy.messagePages.newTitle.email);
+    expect(await choosingMessage(String(id))).toMatchObject({
+      title: staffCopy.messagePages.newTitle.email,
+      blank: true,
+    });
     expect(await choosingMessage("not a number")).toBeUndefined();
   });
 

@@ -2,8 +2,14 @@
    shows it, the WhatsApp templates to choose from, and who a text is from. */
 
 /* What everyone it's to said yes to, over the other filters' pills. */
-.saidYes {
-  margin: 0;
+/* On New broadcast, all but the Consent: there, so what's to come shows,
+   but faint, as nothing can be done there till a Consent is chosen. */
+.locked {
+  display: contents;
+}
+
+.locked > * {
+  opacity: 0.45;
 }
 
 /* The channel in a list's row, before who it's from. */

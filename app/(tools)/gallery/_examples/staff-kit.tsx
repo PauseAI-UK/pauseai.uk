@@ -15,6 +15,7 @@ import Alert from "@/app/(staff)/staff/_components/Alert";
 import AlertIcon from "@/app/(staff)/staff/_components/AlertIcon";
 import StaffNav, { type StaffPage as StaffPageName } from "@/app/(staff)/staff/_components/StaffNav";
 import Breadcrumb from "@/app/(staff)/staff/_components/Breadcrumb";
+import LockIcon from "@/app/(staff)/staff/_components/ui/LockIcon";
 import NotIcon from "@/app/(staff)/staff/_components/ui/NotIcon";
 import IconText from "@/app/(staff)/staff/_components/ui/IconText";
 import ChannelIcon from "@/app/(staff)/staff/_components/ChannelIcon";
@@ -842,6 +843,23 @@ export const staffKit: Group = {
               <h3>
                 <IconText icon={<ChannelIcon channel="email" />}>Email</IconText>
               </h3>
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "LockIcon",
+      file: "app/(staff)/staff/_components/ui/LockIcon.tsx",
+      variants: [
+        {
+          label: "After a locked chip's words, where its arrow would be",
+          render: () => (
+            <StaffPage as="div">
+              <p>
+                Consent: PauseAI UK
+                <LockIcon />
+              </p>
             </StaffPage>
           ),
         },

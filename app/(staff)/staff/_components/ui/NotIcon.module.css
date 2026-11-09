@@ -6,3 +6,13 @@
   stroke-width: 2;
   vertical-align: -2px;
 }
+
+/* A padlock, after a locked chip's words, where its arrow would be. */
+.lockIcon {
+  flex: none;
+  margin-left: var(--space-1);
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.75;
+  vertical-align: -1px;
+}

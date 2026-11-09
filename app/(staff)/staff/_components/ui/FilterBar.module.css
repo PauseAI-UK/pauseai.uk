@@ -126,6 +126,18 @@
   content: " ▾" / "";
 }
 
+/* A chip that can't be changed here: no arrow, as it doesn't open, but a
+   padlock (LockIcon), and the ordinary pointer. */
+.chip.locked {
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+}
+
+.chip.locked::after {
+  content: none;
+}
+
 /* A chip that leaves its choice out: white, its edge dashed, and a circle
    struck through before its words. */
 .chip.not {

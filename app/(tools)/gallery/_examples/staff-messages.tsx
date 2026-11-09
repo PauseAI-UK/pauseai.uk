@@ -1,6 +1,5 @@
 // The staff interface's messages to supporters: from the supporters list, the
 // writer, the list of them, each one's page, and one copy with its replies.
-import { NeedsContactFilter } from "@/app/(staff)/staff/_components/MessageSupporters";
 import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
 import { MessageContact, MessageWho } from "@/app/(staff)/staff/_components/MessageFor";
 import { MessageChannelName } from "@/app/(staff)/staff/_components/MessageView";
@@ -15,7 +14,6 @@ import SupporterMessages from "@/app/(staff)/staff/_components/SupporterMessages
 import TextBubble, { ChatBubble, ChatWall } from "@/app/(staff)/staff/_components/TextBubble";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import { mailingGroups } from "@/lib/mailing-groups";
-import { supportersSearch } from "@/lib/staff-search";
 import type { Group } from "../_components/types";
 import {
   ChoosingMessageFrameExample,
@@ -23,8 +21,8 @@ import {
   MailingStandingExample,
   MessageCopyViewExample,
   MessageForExample,
+  MessageConsentExample,
   MessageSupportersExample,
-  NewMessageExample,
   MessageViewExample,
   MessageWriterExample,
   TemplatePickerExample,
@@ -67,14 +65,14 @@ export const staffMessages: Group = {
   title: "The staff interface: messages to supporters",
   examples: [
     {
-      name: "NewMessage",
-      file: "app/(staff)/staff/_components/NewMessage.tsx",
+      name: "MessageConsent",
+      file: "app/(staff)/staff/_components/MessageConsent.tsx",
       variants: [
         {
-          label: "New broadcast: the Consent it goes under, then Change who",
+          label: "Said yes to: none chosen yet, then one with words of its own, so only by email",
           render: () => (
             <StaffPage as="div">
-              <NewMessageExample />
+              <MessageConsentExample />
             </StaffPage>
           ),
         },
@@ -85,24 +83,10 @@ export const staffMessages: Group = {
       file: "app/(staff)/staff/_components/MessageSupporters.tsx",
       variants: [
         {
-          label: "With a Consent filter answered yes, then without one: dashed",
+          label: "With a Consent filter answered yes; without one there's none",
           render: () => (
             <StaffPage as="div">
               <MessageSupportersExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "NeedsContactFilter",
-      file: "app/(staff)/staff/_components/MessageSupporters.tsx",
-      variants: [
-        {
-          label: "What pressing the dashed button says",
-          render: () => (
-            <StaffPage as="div">
-              <NeedsContactFilter search={supportersSearch({ why: "contact" })} />
             </StaffPage>
           ),
         },
@@ -113,7 +97,7 @@ export const staffMessages: Group = {
       file: "app/(staff)/staff/_components/MessageSupporters.tsx",
       variants: [
         {
-          label: "Change who: the dark strip at the top and, in place of the bar at the foot, how the filters stand",
+          label: "Change who: the dark strip at the top, and the bar at the foot",
           render: () => (
             <StaffPage as="div">
               <ChoosingMessageFrameExample />
@@ -126,6 +110,14 @@ export const staffMessages: Group = {
       name: "MessageWriter",
       file: "app/(staff)/staff/_components/MessageWriter.tsx",
       variants: [
+        {
+          label: "New broadcast: its Consent to choose, all after it greyed",
+          render: () => (
+            <StaffPage as="div">
+              <MessageWriterExample kind="blank" />
+            </StaffPage>
+          ),
+        },
         {
           label: "A draft email",
           render: () => (

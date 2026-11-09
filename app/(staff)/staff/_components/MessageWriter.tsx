@@ -17,7 +17,6 @@ import {
   conditionsIn,
   EMPTY_MAILING_DOC,
   fieldsIn,
-  greetingLetter,
   isBlankMailing,
   letterFor,
   NOT_CONDITION,
@@ -29,8 +28,11 @@ import type { MessageScheduleResult, MessageTemplate, WrittenMessage } from "@/l
 import type { MessagePreviewRecipient, MessageWriterData } from "@/lib/server/message-pages";
 import { filtersPath } from "@/lib/staff-search";
 import { earliestHour, fromLondon, londonClock, londonDayHour, londonWhen, sendsAt, staffTime } from "@/lib/staff-time";
+import { stateValue } from "@/lib/contact-permissions";
 import {
   hasField,
+  hasWords,
+  MESSAGE_START,
   messageCost,
   messageScheduleProblems,
   MESSAGE_SENDER,
@@ -44,6 +46,7 @@ import { SentToday } from "./GmailConnect";
 import { DeleteDraft } from "./MailingButtons";
 import MailingEditor from "./MailingEditor";
 import MailingFiles from "./MailingFiles";
+import MessageConsent from "./MessageConsent";
 import { MailingLetter } from "./MailingLetter";
 import TemplatePicker, { templateLine } from "./TemplatePicker";
 import TextBubble from "./TextBubble";
@@ -71,6 +74,10 @@ export type MessageWriterActions = DraftActions & {
   sendTest: (id: number, supporterId: number, to: string) => Promise<(ChannelResult & { to: string }) | undefined>;
   schedule: (id: number, version: number) => Promise<MessageScheduleResult>;
   deleteDraft: (form: FormData) => void | Promise<void>;
+  /** Changes the Consent a draft goes under; says whether it did. */
+  changeConsent: (id: number, consent: string) => Promise<boolean>;
+  /** Makes a draft under a Consent, from New broadcast, and opens it. */
+  create: (consent: string) => Promise<void>;
 };
 
 /** How a draft's words stand: an email's own, or a text's template chosen, new words, or none yet. */
@@ -265,22 +272,23 @@ export default function MessageWriter({
   data,
   draft,
   who,
-  contact,
+  blank = false,
   actions,
 }: {
   data: MessageWriterData;
   draft: WrittenMessage;
   /** Who else it's to, as pills (MessageWho). */
   who: ReactNode;
-  /** What they all said yes to (MessageContact). */
-  contact: ReactNode;
+  /** New broadcast, before its Consent is chosen: no draft yet, everything but the Consent greyed and still. */
+  blank?: boolean;
   actions: MessageWriterActions;
 }) {
   const router = useRouter();
   const label = useId();
   const email = draft.channel === "email";
   const { id } = draft;
-  const [start] = useState(() => greetingLetter(copy.greeting, "firstName", copy.signature));
+  const start = MESSAGE_START;
+  const [picking, setPicking] = useState(false);
   // An email with nothing written yet starts with a greeting and a signature, saved with its first change.
   const [fresh] = useState<Partial<Changes>>(() =>
     email && !draft.subject && isBlankMailing(draft.body) ? { body: start } : {},
@@ -338,6 +346,27 @@ export default function MessageWriter({
     ? values.subject.trim() || copy.newTitle.email
     : (template?.name ?? (draft.title || copy.newTitle.text));
   const whoPath = filtersPath("/staff/supporters", { ...data.filter.params, message: String(id) });
+  const hasOwnWords = hasWords({ subject: values.subject, body, templateId: values.templateId });
+  // Choosing a Consent: on New broadcast, makes the draft; on a draft, saves what's typed, then changes it.
+  const pickConsent = async (consent: string) => {
+    setPicking(true);
+    try {
+      if (blank) return await actions.create(consent);
+      await saveNow();
+      if (await actions.changeConsent(id, consent)) router.refresh();
+    } finally {
+      setPicking(false);
+    }
+  };
+  // On New broadcast, what's still to come: there, but greyed and out of reach.
+  const lockable = (children: ReactNode) =>
+    blank ? (
+      <div inert className={own.locked}>
+        {children}
+      </div>
+    ) : (
+      children
+    );
   const leftOutCounts = (["no-permission", "stopped", "blocked"] as const).flatMap((reason) => {
     const n = data.leftOut.filter((one) => one.reason === reason).length;
     return n ? [{ reason: copy.leftOutCounted[reason], n }] : [];
@@ -381,218 +410,241 @@ export default function MessageWriter({
       )}
       <Grid>
         <Card span={6} title={<Numbered n={1}>{copy.sections.who}</Numbered>} id="who-title">
-          <p className={own.saidYes}>
-            {copy.facts.saidYes} {contact}
-          </p>
-          <div className={styles.who}>
-            {who}
-            <ButtonAnchor
-              variant="primary"
-              size="small"
-              fit
-              href={whoPath}
-              pending={choosing}
-              onClick={async (event) => {
-                // What's typed is saved first, so going to the list loses none of it.
-                event.preventDefault();
-                choose();
-                await saveNow();
-                leavePage(whoPath);
-              }}
-            >
-              {staffCopy.mailingPages.changeWho}
-            </ButtonAnchor>
-          </div>
-          {data.unknown.length > 0 && (
-            <Strip tone="amber">{staffCopy.mailingPages.unknownFilter(data.unknown.join(", "))}</Strip>
-          )}
-          <p className={styles.count}>{copy.willGet(data.count, draft.channel)}</p>
-          {data.leftOut.length > 0 && (
-            <details className={styles.leftOut}>
-              <summary>{copy.leftOut(data.count + data.leftOut.length, leftOutCounts)}</summary>
-              <ul>
-                {data.leftOut.map((one) => (
-                  <li key={one.id}>
-                    <a href={`/staff/supporters/${one.id}`}>{one.name}</a>{" "}
-                    <Muted>{copy.leftOutReasons[one.reason]}</Muted>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-        </Card>
-
-        <Card span={6} title={<Numbered n={2}>{copy.sections.from}</Numbered>} id="from-title">
-          {email ? (
-            <div className={styles.from}>
-              <div className={styles.fromFields}>
-                <Field label={copy.fromAccount} className={styles.sender}>
-                  <Select value={values.sentFrom!} onChange={(event) => change({ sentFrom: event.target.value })}>
-                    {/* Each address with what sends from it: ours by Postmark, a staff member's by their Gmail. */}
-                    <option value={MESSAGE_SENDER.email}>{copy.fromOption(MESSAGE_SENDER.email, "Postmark")}</option>
-                    {data.senders.map((one) => (
-                      <option key={one.email} value={one.email}>
-                        {copy.fromOption(one.email, "Gmail")}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label={copy.fromName} className={styles.sender}>
-                  <TextInput
-                    value={values.fromName ?? ""}
-                    onChange={(event) => change({ fromName: event.target.value })}
-                  />
-                </Field>
-              </div>
-              {/* A Gmail's sending today, against its daily limit, as a mailing's writer says it. */}
-              {sender && <SentToday sent={sender.sentToday} />}
-            </div>
-          ) : (
-            <div className={own.account}>
-              <span className={own.picture} aria-hidden="true">
-                {TEXT_SENDER_NAME[0]}
-              </span>
-              <p>
-                <strong>{TEXT_SENDER_NAME}</strong>{" "}
-                <Muted>{data.textNumber ? spacedNumber(data.textNumber) : copy.noNumber}</Muted>
-                <br />
-                <Muted>{copy.textFromNote}</Muted>
-              </p>
-            </div>
-          )}
-        </Card>
-
-        <Card span={6} title={<Numbered n={3}>{copy.sections.write}</Numbered>} id="write-title">
-          {email && (
-            <Field label={copy.subject}>
-              <TextInput value={values.subject} onChange={(event) => change({ subject: event.target.value })} />
-            </Field>
-          )}
-          {words === "email" && (
-            <div className={styles.letter}>
-              <p id={label} className={styles.label}>
-                {copy.emailLabel}
-              </p>
-              {wordsEditor(label)}
-            </div>
-          )}
-          {!email && (
-            <div>
-              <ButtonTabs
-                label={copy.sections.write}
-                tabs={wordsTabs}
-                current={writingNew ? "new" : "approved"}
-                onChoose={showTab}
-              />
-              <div role="tabpanel" aria-labelledby={wordsTabs[writingNew ? 1 : 0].id} className={styles.letter}>
-                {!writingNew && (
-                  <TemplatePicker
-                    templates={data.templates}
-                    chosen={template?.id}
-                    onChoose={(one) => change({ templateId: one.id, body: one.body })}
-                  />
-                )}
-                {template && <TemplateChosen template={template} />}
-                {writingNew && (
-                  <>
-                    {wordsEditor(wordsTabs[1].id)}
-                    <Hint>{copy.newTemplateHint}</Hint>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-          {email && (
-            <div>
-              <p className={styles.label}>{copy.files}</p>
-              <MailingFiles
-                files={attachments}
-                base={`/staff/messages/${id}/files`}
-                onAdd={attach}
-                onRemove={detach}
-                problem={fileProblem}
-              />
-            </div>
-          )}
-        </Card>
-
-        <Card span={6} title={<Numbered n={4}>{copy.sections.preview}</Numbered>} id="preview-title">
-          <MessagePreview
-            data={data}
-            draft={draft}
-            body={body}
-            words={words}
-            subject={values.subject}
-            from={fromLine}
-            gmail={byGmail && sender ? sender.email : null}
-            written={written}
-            dueAt={values.dueAt}
-            sendTest={async (recipient, to) => {
-              // The test is of the draft as saved, so what's typed goes first.
-              await saveNow();
-              return actions.sendTest(id, recipient, to);
-            }}
+          <MessageConsent
+            value={
+              blank
+                ? ""
+                : stateValue({
+                    channel: draft.channel === "email" ? "email" : "phone",
+                    topic: draft.topic,
+                    send: "yes",
+                  })
+            }
+            channel={draft.channel === "email" ? "email" : "phone"}
+            written={hasOwnWords}
+            pending={picking}
+            pick={pickConsent}
+            className={styles.sender}
           />
-        </Card>
-
-        <Card span={6} title={<Numbered n={5}>{copy.sections.when}</Numbered>} id="when-title">
-          <div className={styles.when}>
-            <DueTimeFields
-              day={when.day}
-              hour={when.hour}
-              dayClass={styles.day}
-              hourClass={styles.hour}
-              onChange={(day, hour) => {
-                setDayPicked(day);
-                if (hour !== null) change({ dueAt: fromLondon(day, hour) });
-              }}
-            />
-          </div>
-          {!email && values.dueAt && (
-            <p>
-              <Muted>{copy.stopsOn(londonWhen(textStopsAt(values.dueAt), "short"))}</Muted>
-            </p>
+          {lockable(
+            <>
+              <div className={styles.who}>
+                {who}
+                <ButtonAnchor
+                  variant="primary"
+                  size="small"
+                  fit
+                  href={whoPath}
+                  pending={choosing}
+                  onClick={async (event) => {
+                    // What's typed is saved first, so going to the list loses none of it.
+                    event.preventDefault();
+                    choose();
+                    await saveNow();
+                    leavePage(whoPath);
+                  }}
+                >
+                  {staffCopy.mailingPages.changeWho}
+                </ButtonAnchor>
+              </div>
+              {data.unknown.length > 0 && (
+                <Strip tone="amber">{staffCopy.mailingPages.unknownFilter(data.unknown.join(", "))}</Strip>
+              )}
+              <p className={styles.count}>{copy.willGet(data.count, draft.channel)}</p>
+              {data.leftOut.length > 0 && (
+                <details className={styles.leftOut}>
+                  <summary>{copy.leftOut(data.count + data.leftOut.length, leftOutCounts)}</summary>
+                  <ul>
+                    {data.leftOut.map((one) => (
+                      <li key={one.id}>
+                        <a href={`/staff/supporters/${one.id}`}>{one.name}</a>{" "}
+                        <Muted>{copy.leftOutReasons[one.reason]}</Muted>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </>,
           )}
         </Card>
 
-        <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
-          <p className={styles.count}>
-            {copy.summary(data.count, draft.channel, fromLine, values.dueAt ? londonWhen(values.dueAt) : null)}{" "}
-            {messageCost(draft.channel, data.count)}
-          </p>
-          {words === "new" && <p>{copy.mustApprove}</p>}
-          <div className={styles.send}>
-            <Button
-              variant="primary"
-              fit
-              disabled={problems.length > 0 || !data.sends}
-              pending={scheduling}
-              onClick={async () => {
-                setScheduling(true);
-                // What's still to be saved, such as a time just chosen, goes first, or it's scheduled without it.
-                await saveNow();
-                const result = await actions.schedule(id, version.current);
-                // The page becomes the scheduled message's, from its top; till then the button stays pending.
-                if (result.scheduled) {
-                  window.scrollTo({ top: 0, behavior: "instant" });
-                  router.refresh();
-                } else {
-                  setScheduling(false);
-                }
-              }}
-            >
-              {words === "new" ? copy.scheduleOnceApproved(data.count) : copy.schedule(data.count, draft.channel)}
-            </Button>
-            <DeleteDraft id={id} action={actions.deleteDraft} />
-          </div>
-          {problems.length > 0 && (
-            <ul className={styles.problems}>
-              {problems.map((problem) => (
-                <li key={problem}>{copy.problems[problem]}</li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        {lockable(
+          <>
+            <Card span={6} title={<Numbered n={2}>{copy.sections.from}</Numbered>} id="from-title">
+              {email ? (
+                <div className={styles.from}>
+                  <div className={styles.fromFields}>
+                    <Field label={copy.fromAccount} className={styles.sender}>
+                      <Select value={values.sentFrom!} onChange={(event) => change({ sentFrom: event.target.value })}>
+                        {/* Each address with what sends from it: ours by Postmark, a staff member's by their Gmail. */}
+                        <option value={MESSAGE_SENDER.email}>
+                          {copy.fromOption(MESSAGE_SENDER.email, "Postmark")}
+                        </option>
+                        {data.senders.map((one) => (
+                          <option key={one.email} value={one.email}>
+                            {copy.fromOption(one.email, "Gmail")}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                    <Field label={copy.fromName} className={styles.sender}>
+                      <TextInput
+                        value={values.fromName ?? ""}
+                        onChange={(event) => change({ fromName: event.target.value })}
+                      />
+                    </Field>
+                  </div>
+                  {/* A Gmail's sending today, against its daily limit, as a mailing's writer says it. */}
+                  {sender && <SentToday sent={sender.sentToday} />}
+                </div>
+              ) : (
+                <div className={own.account}>
+                  <span className={own.picture} aria-hidden="true">
+                    {TEXT_SENDER_NAME[0]}
+                  </span>
+                  <p>
+                    <strong>{TEXT_SENDER_NAME}</strong>{" "}
+                    <Muted>{data.textNumber ? spacedNumber(data.textNumber) : copy.noNumber}</Muted>
+                    <br />
+                    <Muted>{copy.textFromNote}</Muted>
+                  </p>
+                </div>
+              )}
+            </Card>
+
+            <Card span={6} title={<Numbered n={3}>{copy.sections.write}</Numbered>} id="write-title">
+              {email && (
+                <Field label={copy.subject}>
+                  <TextInput value={values.subject} onChange={(event) => change({ subject: event.target.value })} />
+                </Field>
+              )}
+              {words === "email" && (
+                <div className={styles.letter}>
+                  <p id={label} className={styles.label}>
+                    {copy.emailLabel}
+                  </p>
+                  {wordsEditor(label)}
+                </div>
+              )}
+              {!email && (
+                <div>
+                  <ButtonTabs
+                    label={copy.sections.write}
+                    tabs={wordsTabs}
+                    current={writingNew ? "new" : "approved"}
+                    onChoose={showTab}
+                  />
+                  <div role="tabpanel" aria-labelledby={wordsTabs[writingNew ? 1 : 0].id} className={styles.letter}>
+                    {!writingNew && (
+                      <TemplatePicker
+                        templates={data.templates}
+                        chosen={template?.id}
+                        onChoose={(one) => change({ templateId: one.id, body: one.body })}
+                      />
+                    )}
+                    {template && <TemplateChosen template={template} />}
+                    {writingNew && (
+                      <>
+                        {wordsEditor(wordsTabs[1].id)}
+                        <Hint>{copy.newTemplateHint}</Hint>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+              {email && (
+                <div>
+                  <p className={styles.label}>{copy.files}</p>
+                  <MailingFiles
+                    files={attachments}
+                    base={`/staff/messages/${id}/files`}
+                    onAdd={attach}
+                    onRemove={detach}
+                    problem={fileProblem}
+                  />
+                </div>
+              )}
+            </Card>
+
+            <Card span={6} title={<Numbered n={4}>{copy.sections.preview}</Numbered>} id="preview-title">
+              <MessagePreview
+                data={data}
+                draft={draft}
+                body={body}
+                words={words}
+                subject={values.subject}
+                from={fromLine}
+                gmail={byGmail && sender ? sender.email : null}
+                written={written}
+                dueAt={values.dueAt}
+                sendTest={async (recipient, to) => {
+                  // The test is of the draft as saved, so what's typed goes first.
+                  await saveNow();
+                  return actions.sendTest(id, recipient, to);
+                }}
+              />
+            </Card>
+
+            <Card span={6} title={<Numbered n={5}>{copy.sections.when}</Numbered>} id="when-title">
+              <div className={styles.when}>
+                <DueTimeFields
+                  day={when.day}
+                  hour={when.hour}
+                  dayClass={styles.day}
+                  hourClass={styles.hour}
+                  onChange={(day, hour) => {
+                    setDayPicked(day);
+                    if (hour !== null) change({ dueAt: fromLondon(day, hour) });
+                  }}
+                />
+              </div>
+              {!email && values.dueAt && (
+                <p>
+                  <Muted>{copy.stopsOn(londonWhen(textStopsAt(values.dueAt), "short"))}</Muted>
+                </p>
+              )}
+            </Card>
+
+            <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
+              <p className={styles.count}>
+                {copy.summary(data.count, draft.channel, fromLine, values.dueAt ? londonWhen(values.dueAt) : null)}{" "}
+                {messageCost(draft.channel, data.count)}
+              </p>
+              {words === "new" && <p>{copy.mustApprove}</p>}
+              <div className={styles.send}>
+                <Button
+                  variant="primary"
+                  fit
+                  disabled={problems.length > 0 || !data.sends}
+                  pending={scheduling}
+                  onClick={async () => {
+                    setScheduling(true);
+                    // What's still to be saved, such as a time just chosen, goes first, or it's scheduled without it.
+                    await saveNow();
+                    const result = await actions.schedule(id, version.current);
+                    // The page becomes the scheduled message's, from its top; till then the button stays pending.
+                    if (result.scheduled) {
+                      window.scrollTo({ top: 0, behavior: "instant" });
+                      router.refresh();
+                    } else {
+                      setScheduling(false);
+                    }
+                  }}
+                >
+                  {words === "new" ? copy.scheduleOnceApproved(data.count) : copy.schedule(data.count, draft.channel)}
+                </Button>
+                <DeleteDraft id={id} action={actions.deleteDraft} />
+              </div>
+              {problems.length > 0 && (
+                <ul className={styles.problems}>
+                  {problems.map((problem) => (
+                    <li key={problem}>{copy.problems[problem]}</li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </>,
+        )}
       </Grid>
     </>
   );

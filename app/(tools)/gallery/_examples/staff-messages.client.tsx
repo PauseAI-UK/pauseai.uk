@@ -8,8 +8,8 @@ import MessageCopyView from "@/app/(staff)/staff/_components/MessageCopyView";
 import MessageFor, { MessageContact, MessageWho } from "@/app/(staff)/staff/_components/MessageFor";
 import { ChoosingMessageFrame, MessageSupporters } from "@/app/(staff)/staff/_components/MessageSupporters";
 import MessageView from "@/app/(staff)/staff/_components/MessageView";
+import MessageConsent from "@/app/(staff)/staff/_components/MessageConsent";
 import MessageWriter, { type MessageWriterActions } from "@/app/(staff)/staff/_components/MessageWriter";
-import NewMessage from "@/app/(staff)/staff/_components/NewMessage";
 import {
   exampleMessageCopy,
   exampleMessageData,
@@ -40,13 +40,19 @@ function messageActions(log: (name: string) => (...args: unknown[]) => void): Me
     sendTest: logged("sendMessageTestNow", { sent: true as const, id: "example", to: "me@example.com" }),
     schedule: logged("scheduleMessageNow", { scheduled: false as const, problems: [] }),
     deleteDraft: log("deleteMessageDraft"),
+    changeConsent: logged("changeMessageConsentNow", true),
+    create: logged("newMessageWith", undefined),
   };
 }
 
-/** The writer: an email, or a text with no template, one chosen, new words, or rejected. */
-export function MessageWriterExample({ kind }: { kind: "email" | "choose" | "template" | "new" | "rejected" | "off" }) {
+/** The writer: New broadcast, before its Consent; an email; or a text with no template, one chosen, new words, or rejected. */
+export function MessageWriterExample({
+  kind,
+}: {
+  kind: "blank" | "email" | "choose" | "template" | "new" | "rejected" | "off";
+}) {
   const draft =
-    kind === "email"
+    kind === "email" || kind === "blank"
       ? exampleMessageEmail
       : kind === "choose" || kind === "off"
         ? exampleMessageText
@@ -78,11 +84,7 @@ export function MessageWriterExample({ kind }: { kind: "email" | "choose" | "tem
           data={data}
           draft={draft}
           who={<Muted>PauseAI London March</Muted>}
-          contact={
-            <MessageContact
-              params={{ contact: kind === "email" ? "email:luma-calendar:yes" : "phone:luma-calendar:yes" }}
-            />
-          }
+          blank={kind === "blank"}
           actions={messageActions(log)}
         />
       )}
@@ -114,14 +116,13 @@ export function DraftTitleExample() {
 }
 
 const nothing = async () => {};
-const yes = supportersSearch({ contact: "email:pauseai-updates:yes", near: "LS1" });
+const yes = supportersSearch({ contact: "email:site-forms:yes", near: "LS1" });
 
 /** Message N supporters with a Consent filter answered yes, then without one: dashed. */
 export function MessageSupportersExample() {
   return (
     <>
       <MessageSupporters search={yes} total={430} action={nothing} />
-      <MessageSupporters search={supportersSearch({ near: "LS1" })} total={1180} action={nothing} />
     </>
   );
 }
@@ -130,7 +131,7 @@ export function MessageSupportersExample() {
 export function ChoosingMessageFrameExample() {
   return (
     <ChoosingMessageFrame
-      choosing={{ id: 3, title: "Events near you", channel: "email", topic: "pauseai-updates" }}
+      choosing={{ id: 3, title: "Events near you", channel: "email", topic: "site-forms", blank: false }}
       search={yes}
       total={430}
       keep={nothing}
@@ -218,7 +219,16 @@ export function MessageCopyViewExample({ email = false }: { email?: boolean }) {
   return <MessageCopyView one={one} reply={nothing} />;
 }
 
-/** New broadcast, its Consent to choose. */
-export function NewMessageExample() {
-  return <NewMessage action={nothing} />;
+/** Said yes to: none chosen yet, as on New broadcast; and one with words of its own, so only by its channel. */
+export function MessageConsentExample() {
+  return (
+    <Logged>
+      {(log) => (
+        <>
+          <MessageConsent value="" channel="email" written={false} pending={false} pick={log("pick")} />
+          <MessageConsent value="email:site-forms:yes" channel="email" written pending={false} pick={log("pick")} />
+        </>
+      )}
+    </Logged>
+  );
 }

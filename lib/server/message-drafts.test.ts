@@ -6,6 +6,7 @@ import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/mes
 import { getWrittenMailing, saveDraft } from "./mailing-drafts";
 import {
   approvedTemplates,
+  changeMessageConsent,
   changeMessageFilter,
   createMessageDraft,
   getWrittenMessage,
@@ -18,6 +19,7 @@ import {
   stopMessage,
 } from "./message-drafts";
 import { supporterAudience } from "./message-recipients";
+import { TEXT_SENDER_NAME } from "@/lib/supporter-messages";
 
 const JO = "jo@pauseai.uk";
 const FUTURE = "2099-01-01T09:18:00.000Z";
@@ -239,6 +241,35 @@ describeWithDatabase("messages to supporters", () => {
       { id: used, lastUsedAt: expect.anything(), lastUsedTo: 1 },
       { id: unused, createdBy: null, lastUsedAt: null, lastUsedTo: 0 },
     ]);
+  });
+
+  it("changes a draft's Consent, keeping its other filters, to the other channel only with no words of its own", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+    const id = await draftOf({ ...EMAIL_FILTER, near: "LS1" });
+    // By email still, keeping the rest of the filter and what's written.
+    await readied(id, { subject: "Events", body: EVENT_WORDS });
+    expect(await changeMessageConsent(id, "email:site-forms:yes", JO)).toBe(true);
+    expect(await getWrittenMessage(id)).toMatchObject({
+      channel: "email",
+      topic: "site-forms",
+      subject: "Events",
+      filter: { params: { contact: "email:site-forms:yes", near: "LS1" } },
+    });
+    // Not to a text while it has words, nor to what isn't a yes, nor once it's no draft.
+    expect(await changeMessageConsent(id, TEXT_FILTER.contact, JO)).toBe(false);
+    expect(await changeMessageConsent(id, "email:pauseai-updates:unsure", JO)).toBe(false);
+    expect(await changeMessageConsent(999, TEXT_FILTER.contact, JO)).toBe(false);
+    // With none, to a text, starting afresh as one, from the business account.
+    const blank = await draftOf(EMAIL_FILTER);
+    expect(await changeMessageConsent(blank, TEXT_FILTER.contact, JO)).toBe(true);
+    expect(await getWrittenMessage(blank)).toMatchObject({
+      channel: "text",
+      topic: "luma-calendar",
+      subject: "",
+      template: null,
+      fromName: TEXT_SENDER_NAME,
+    });
+    expect(await query("SELECT action FROM audit_log WHERE action = 'change message consent'")).toHaveLength(2);
   });
 
   it("makes a scheduled message a draft again, taking back any words sent for approval", async () => {

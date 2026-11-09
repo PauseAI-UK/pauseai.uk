@@ -35,7 +35,7 @@ const SUPPORTER_ID = `(CASE WHEN a.action = 'view supporter' THEN a.details->>'i
  * nor downloads, whose filters may name one, nor an address that isn't a politician's.
  */
 const WITHOUT_SUPPORTERS = `NOT (
-  action = ANY(ARRAY['view supporter', 'erase supporter', 'download supporters', 'download letters', 'download blocked emails', 'create message', 'schedule message', 'stop message', 'reply to message'])
+  action = ANY(ARRAY['view supporter', 'erase supporter', 'download supporters', 'download letters', 'download blocked emails', 'create message', 'change message consent', 'schedule message', 'stop message', 'reply to message'])
   OR details ? 'supporterId'
   OR (action = ANY(ARRAY['block address', 'unblock address'])
     AND NOT EXISTS (SELECT 1 FROM notable_people n WHERE lower(n.email) = lower(details->>'address')))

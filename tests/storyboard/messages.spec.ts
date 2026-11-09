@@ -18,10 +18,9 @@ const copy = staffCopy.messagePages;
 const mailingCopy = staffCopy.mailingPages;
 const EMAIL = "contact=email%3Aluma-calendar%3Ayes";
 const TEXT = "contact=phone%3Aluma-calendar%3Ayes";
-/** How many of the fixture's supporters each filter finds, and how many there are. */
+/** How many of the fixture's supporters each filter finds. */
 const EMAILABLE = 3;
 const TEXTABLE = 1;
-const EVERYONE = 7;
 const WORDS =
   '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hi "}, {"type": "field", "attrs": {"field": "firstName"}}, {"type": "text", "text": ", the march meets at 11:00 at Parliament Square."}]}]}';
 
@@ -101,36 +100,32 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
   await frame(page, "The Broadcasts page, with New broadcast");
   story(
-    "New broadcast asks which Consent it goes under, as that says whether it's an email or a text, and what about.",
+    "It opens the writer, asking first which Consent it goes under, as that says whether it's an email or a text, and what about. The rest is there, greyed, till one's chosen.",
   );
   await page.getByRole("link", { name: copy.newMessage }).click();
   await expect(page).toHaveURL(`${BASE}/staff/messages/new`);
+  await expect(page.getByLabel(copy.facts.saidYes)).toHaveValue("");
+  await frame(page, "New broadcast, its Consent to choose");
+  story("Choosing one makes the draft, to everyone who said yes. Change who can narrow them, but needn't.");
   await page
     .getByLabel(copy.facts.saidYes)
     .selectOption(staffCopy.supporters.subscriptions.topics.email["luma-calendar"]);
-  await frame(page, "New broadcast, a Consent chosen");
-  story("Change who makes the draft, to everyone who said yes, and opens the supporters list to narrow them.");
-  await page.getByRole("button", { name: staffCopy.mailingPages.changeWho }).click();
-  await expect(page).toHaveURL(new RegExp(`/staff/supporters\\?${EMAIL}&message=\\d+$`));
-  await expect(page.getByText(copy.choosingCount(EMAILABLE))).toBeVisible();
-  await frame(page, "The list, choosing who it goes to", { window: true });
+  await expect(page).toHaveURL(/\/staff\/messages\/\d+$/);
+  await expect(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
+  await expect(page.getByText(copy.willGet(EMAILABLE, "email"))).toBeVisible();
+  await frame(page, "The new email, to everyone who said yes");
+  story("Its Consent can change while it's a draft, but, once it has words, only to another by email.");
+  await page.getByLabel(copy.facts.saidYes).selectOption(staffCopy.supporters.subscriptions.topics.email["site-forms"]);
+  await expect(page.getByLabel(copy.facts.saidYes)).toHaveValue("email:site-forms:yes");
+  await frame(page, "Under another Consent");
 });
 
 test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   story(
-    "Staff open the supporters list. Broadcast needs a Consent filter, as that says who said yes and how, so it's dashed.",
+    "A broadcast can start from the supporters list too. With the Consent filter on those who can be emailed, answered yes, there's a button, counting who it finds.",
   );
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
-  await page.goto(`${BASE}/staff/supporters`);
-  await frame(page, "The supporters list, Broadcast dashed");
-  story("Pressing it says which filter to add.");
-  await page.getByRole("link", { name: copy.messageButton(EVERYONE) }).click();
-  await expect(page.getByText(copy.needsContact)).toBeVisible();
-  await frame(page, "It says which filter to add");
-  story(
-    "With the Consent filter on those who can be emailed, answered yes, the button is live, counting who it finds.",
-  );
   await page.goto(`${BASE}/staff/supporters?${EMAIL}`);
   await expect(page.getByRole("button", { name: copy.messageButton(EMAILABLE) })).toBeVisible();
   await frame(page, "The list, ready to broadcast");
@@ -281,14 +276,13 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   await page.goto(url.toString());
   await expect(bar.getByRole("button", { name: copy.useThese(EMAILABLE) })).toBeVisible();
   await frame(page, "Narrowed", { window: true });
-  story("Take off the Consent filter and the bar says it's needed, as the broadcast's channel and topic are fixed.");
-  const without = new URL(page.url());
-  without.searchParams.delete("contact");
-  await page.goto(without.toString());
-  await expect(page.getByText(copy.keepContact)).toBeVisible();
-  await frame(page, "Without its Consent filter", { window: true });
-  story("Back with the filter, the orange button keeps them for the draft.");
-  await page.goto(url.toString());
+  story(
+    "The Consent is the broadcast's own: its chip has a padlock and doesn't open, as it's changed in the broadcast.",
+  );
+  await expect(page.locator(`[title="${copy.consentLocked}"]`).first()).toBeVisible();
+  await page.locator(`[title="${copy.consentLocked}"]`).first().hover();
+  await frame(page, "The Consent, locked", { window: true });
+  story("The orange button keeps them for the draft.");
   await bar.getByRole("button", { name: copy.useThese(EMAILABLE) }).click();
   await expect(page).toHaveURL(draft);
   await expect(page.getByRole("list", { name: staffCopy.mailingPages.whoLabel })).toContainText("fixture");
