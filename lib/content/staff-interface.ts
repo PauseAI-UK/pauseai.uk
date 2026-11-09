@@ -724,7 +724,7 @@ export const staffCopy = {
     confirm: "I'm sure: this person asked to be erased.",
     button: "Erase",
     cancel: "Cancel",
-    done: "Erased.",
+    done: "Erased. We've kept only their blocked addresses and unsubscribes, so we never contact them again.",
     // In amber, over what couldn't be cleared afterwards: the person is erased all the same.
     partly: "Erased everything except:",
     // What couldn't be cleared, a line each under `partly`; the log has `partly` and the line together.
