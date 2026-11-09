@@ -6,8 +6,12 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    // The container tests dump and restore real databases, which takes a few seconds each.
+    // The container tests dump and restore real databases, which takes a few
+    // seconds each. Their hooks make and drop databases, which takes seconds
+    // too while other tests share the server (npm run gate runs them beside
+    // npm test), so hooks get the same time as tests.
     testTimeout: 60_000,
+    hookTimeout: 60_000,
     coverage: {
       provider: "v8",
       include: ["container/**/*.ts", "worker/**/*.ts"],
