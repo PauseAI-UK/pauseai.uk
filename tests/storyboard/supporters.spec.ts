@@ -22,6 +22,9 @@ import {
 } from "../steps";
 import { LETTERS_INBOX } from "../fixture-env.mjs";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Supporters", part: "Staff pages", order: 50 };
 
 // The supporter pages, behind the supporters permission, on the fixture
 // Luma calendar (five guests at every event, three contacts) and the

@@ -3,6 +3,9 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { importLuma, lockTable, syncPoliticians } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { PM_LETTER, staffEmail, logIn, holdNextPage, loadingLine } from "./staff-steps";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Dashboard and getting around", part: "Staff pages", order: 20 };
 
 // Finding your way round the staff pages: the dashboard's tiles, the sidebar
 // folded and followed, a list sorted or searched, a politician's page,

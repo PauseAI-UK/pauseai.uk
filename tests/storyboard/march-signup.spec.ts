@@ -2,6 +2,9 @@ import type { Locator, Page } from "@playwright/test";
 import { marchSignupCopy as copy } from "@/lib/content/march-signup";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import { hydrated, layoutSettled, scrollSettled } from "./settle";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "March sign-up", part: "Public site", order: 40 };
 
 // The march sign-up (app/(march)/): its own header, which drops in past the
 // hero; the form, which adds the person to the Luma event; and the cards it

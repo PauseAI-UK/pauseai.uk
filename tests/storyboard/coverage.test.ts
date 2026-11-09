@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = join(__dirname, "..", "..");
 const docs = readFileSync(join(ROOT, "docs", "testing.md"), "utf8");
-const table = docs.slice(docs.indexOf("### What the storyboard covers"), docs.indexOf("## The database"));
+const list = docs.slice(docs.indexOf("### What the storyboard covers"), docs.indexOf("## The database"));
 
 /** The URL paths of every route handler under app/, e.g. "/api/signatories". */
 function routeHandlers(dir = join(ROOT, "app"), base = ""): string[] {
@@ -23,20 +23,20 @@ function routeHandlers(dir = join(ROOT, "app"), base = ""): string[] {
 }
 
 describe("what the storyboard covers", () => {
-  it("is a section of docs/testing.md", () => {
-    expect(table).toContain("| Route or section");
+  it("is a section of docs/testing.md, a list", () => {
+    expect(list).toContain("\n- `public-pages.spec.ts`: ");
   });
 
   it("names every route handler", () => {
     const handlers = routeHandlers();
     expect(handlers).toContain("/api/signatories");
-    for (const route of handlers) expect(table, `${route} is missing from the table`).toContain(`\`${route}\``);
+    for (const route of handlers) expect(list, `${route} is missing from the list`).toContain(`\`${route}\``);
   });
 
   it("names every section", () => {
     const specs = readdirSync(__dirname).filter((f) => f.endsWith(".spec.ts"));
     expect(specs.length).toBeGreaterThan(5);
     for (const spec of specs)
-      expect(table, `${relative(ROOT, join(__dirname, spec))} is missing from the table`).toContain(`\`${spec}\``);
+      expect(list, `${relative(ROOT, join(__dirname, spec))} has no line of its own`).toContain(`\n- \`${spec}\`: `);
   });
 });

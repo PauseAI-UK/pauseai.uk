@@ -4,6 +4,9 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, changeFilter, lockTable, syncPoliticians } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { logIn, staffEmail } from "./staff-steps";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Saved filters", part: "Staff pages", order: 60 };
 
 // Saved filters on the staff lists: saving what's on, loading it, editing it,
 // finding one, and what happens when part of one has gone.

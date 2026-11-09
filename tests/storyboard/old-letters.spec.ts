@@ -8,6 +8,9 @@ import { fixtureEnv } from "../fixture-env.mjs";
 import { addStaffAccount, logInAsStaff, newestEmail, syncPoliticians } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { importEmails, logIn } from "./staff-steps";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Old letters and one-off emails", part: "Staff pages", order: 90 };
 
 // The letters written before the site could send them, read from the policy
 // team's mailboxes, and every other thread with a politician. Each flow on its

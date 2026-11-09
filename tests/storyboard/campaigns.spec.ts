@@ -6,6 +6,9 @@ import { BASE, emailFrame, expect, madeUpAddress, frame, story, test } from "./f
 import { caretAt, editor, newParagraphAboveSignOff, paste, toolbar } from "./editor-steps";
 import { letterIdOf, sentEmail, MPS_PROXY } from "./letters-inbox-steps";
 import { wholePage } from "./settle";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Write to your MP", part: "Public site", order: 20 };
 
 // Email your MP, end to end on fixture data. ZZ99ZZ finds the test
 // MP, so the whole flow runs as it would for a real one. Emails go to the

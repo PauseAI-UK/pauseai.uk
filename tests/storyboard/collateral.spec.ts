@@ -3,6 +3,9 @@ import type { Download, Page } from "@playwright/test";
 import JSZip from "jszip";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { wholePage } from "./settle";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Collateral maker", part: "Tools and checks", order: 10 };
 
 // The collateral maker (/tools/collateral), as a volunteer uses it before a
 // protest: one flow per studio, from a blank page to the files downloaded.

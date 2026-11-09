@@ -2,6 +2,9 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { addStaffAccount, askForLoginLink, logInWithLink, loginLinkFor, newestEmailTo } from "../steps";
 import { BASE, emailFrame, expect, flowStorageState, frame, story, test } from "./fixtures";
 import { STAFF_PAGES, stayOnPage, staffEmail, logIn } from "./staff-steps";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Logging in, and your account", part: "Staff pages", order: 10 };
 
 // Logging in to the staff pages, and your own account: the dev login, a
 // login link, a first login and an admin's accounts, being logged out, your

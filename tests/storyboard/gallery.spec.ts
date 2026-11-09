@@ -1,5 +1,8 @@
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Component gallery", part: "Tools and checks", order: 30 };
 
 // The component gallery (app/(tools)/gallery):
 // its index, then each group's page pictured whole, so a change to any

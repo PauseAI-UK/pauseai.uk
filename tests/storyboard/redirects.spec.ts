@@ -1,4 +1,7 @@
 import { BASE, expect, story, test } from "./fixtures";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Redirects", part: "Tools and checks", order: 20 };
 
 // Every redirect in next.config.ts exists because a link that other people
 // control was already broken once: story permalinks shared before the /stories

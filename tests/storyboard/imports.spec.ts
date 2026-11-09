@@ -9,6 +9,9 @@ import { failService } from "../fixtures/failing-services";
 import { logInAsStaff, newestEmail, syncPoliticians } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { importEmails, logIn, staffEmail } from "./staff-steps";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };
 
 // The imports staff run and watch: Luma's, the members', Gmail's, PauseAI's emails, pauseai.info's letters and Go to Parliament's meetings, each import's
 // own page of its runs, an import failing, a Gmail Google disconnects, and a

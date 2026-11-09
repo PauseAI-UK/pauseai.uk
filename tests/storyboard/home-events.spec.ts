@@ -2,6 +2,9 @@ import { homeEventsCopy as copy } from "@/lib/content/home-events";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
 import type { Page } from "@playwright/test";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Events on the home page", part: "Public site", order: 50 };
 
 // The home page's events (app/(site)/_components/HomeEvents.tsx): choosing
 // where to see in-person events near, by postcode, the device's location or

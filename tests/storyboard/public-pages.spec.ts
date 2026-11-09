@@ -5,6 +5,9 @@ import { BRIEFINGS, briefings } from "../../lib/content/briefings";
 import { ROUTES } from "../routes";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Every public page", part: "Public site", order: 10 };
 
 // Every public page on the site (tests/routes.ts), loaded in a real browser
 // against the production build, and pictured. This is the gate for page.tsx

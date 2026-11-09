@@ -1,6 +1,9 @@
 import type { Page } from "@playwright/test";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Phone menu", part: "Public site", order: 70 };
 
 // The burger menu is the only navigation below 1024px, so a regression here
 // strands every phone visitor on whatever page they landed on. What the
