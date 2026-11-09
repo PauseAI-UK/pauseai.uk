@@ -123,6 +123,8 @@ describe("MessageWriter's Consent", () => {
         .closest("[inert]"),
     ).not.toBeNull();
     expect(consent().element().closest("[inert]")).toBeNull();
+    // Nothing saved, so no save state.
+    expect(page.getByText(staffCopy.mailingPages.savePill.saved).query()).toBeNull();
     await consent().selectOptions(topics.phone["luma-calendar"]);
     await vi.waitFor(() => expect(actions.create).toHaveBeenCalledWith("phone:luma-calendar:yes"), WAIT);
     expect(actions.save).not.toHaveBeenCalled();

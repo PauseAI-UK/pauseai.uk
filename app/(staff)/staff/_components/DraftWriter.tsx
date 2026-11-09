@@ -56,7 +56,7 @@ function SaveStatePill({ state }: { state: SaveState }) {
  * with the title; once the title has scrolled off, in a bar at the top of
  * the window with the title, in the same place.
  */
-export function DraftTitle({ title, saveState }: { title: string; saveState: SaveState }) {
+export function DraftTitle({ title, saveState }: { title: string; saveState?: SaveState }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [titleGone, setTitleGone] = useState(false);
   useEffect(() => {
@@ -72,9 +72,12 @@ export function DraftTitle({ title, saveState }: { title: string; saveState: Sav
       <div className={styles.barFrame} data-shown={titleGone || undefined}>
         <div className={styles.bar}>
           <strong aria-hidden="true">{title}</strong>
-          <span role="status">
-            <SaveStatePill state={saveState} />
-          </span>
+          {/* None for what's not a draft yet, as nothing's saved. */}
+          {saveState && (
+            <span role="status">
+              <SaveStatePill state={saveState} />
+            </span>
+          )}
         </div>
       </div>
       <h1 ref={heading} className={styles.title}>

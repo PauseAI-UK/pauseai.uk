@@ -6,20 +6,14 @@ import { mailingGroups, type MailingGroup } from "@/lib/mailing-groups";
 import { stateValue } from "@/lib/contact-permissions";
 import { now } from "@/lib/now";
 import { firstOf, pageNumber, storedFilter, type Params, type ParamValue, type StoredFilter } from "@/lib/staff-search";
-import {
-  MESSAGE_FIELDS,
-  MESSAGE_SENDER,
-  textReplyUntil,
-  type MessageChannel,
-  type MessageTerms,
-} from "@/lib/supporter-messages";
+import { MESSAGE_SENDER, textReplyUntil, type MessageChannel, type MessageTerms } from "@/lib/supporter-messages";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "./db";
 import { gmailAccounts, type GmailAccount } from "./gmail-accounts";
 import { isLettersInboxAddress } from "./letters-inbox";
 import { messageBackend, textSenderNumber } from "./message-channels";
 import { approvedTemplates, getWrittenMessage, type MessageTemplate, type WrittenMessage } from "./message-drafts";
-import { supporterAudience, type MessageLeftOut, type SupporterRecipient } from "./message-recipients";
+import { messageChoices, supporterAudience, type MessageLeftOut, type SupporterRecipient } from "./message-recipients";
 import type { MailingSummary } from "./mailings";
 import { checkStoredFilter, filterProblems } from "./stored-filters";
 import { supporterChoices, type SupporterChoices } from "./supporters";
@@ -235,13 +229,7 @@ export async function newMessagePageData(me: string): Promise<{ draft: WrittenMe
       count: 0,
       recipients: [],
       leftOut: [],
-      fields: MESSAGE_FIELDS.map((id) => ({
-        id,
-        label: staffCopy.messagePages.fields[id],
-        lacking: 0,
-        fallback: true,
-      })),
-      conditions: [],
+      ...messageChoices([]),
       senders: senders.filter((sender) => !isLettersInboxAddress(sender.email)),
       me,
       sends: Boolean(messageBackend()),

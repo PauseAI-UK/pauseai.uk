@@ -108,11 +108,20 @@ export async function supporterAudience(filter: StoredFilter, terms: MessageTerm
     const values = recipientValues(row, row.postcode ? mps.get(postcodeKey(row.postcode)) : undefined);
     recipients.push({ id: row.id, name, address: yes.address, place: row.place?.name ?? null, ...values });
   }
+  return { recipients, leftOut, ...messageChoices(recipients) };
+}
+
+/**
+ * What a message's words can use, for these `recipients`: each merge field,
+ * with how many lack it and get its fallback, and each condition a part can
+ * be only for, with how many it covers.
+ */
+export function messageChoices(
+  recipients: Pick<SupporterRecipient, "meets">[],
+): Pick<SupporterAudience, "fields" | "conditions"> {
   const covering = (id: string) => recipients.filter((recipient) => recipient.meets.includes(id)).length;
   const conditionCopy = copy.conditions;
   return {
-    recipients,
-    leftOut,
     fields: MESSAGE_FIELDS.map((id) => ({
       id,
       label: copy.fields[id],

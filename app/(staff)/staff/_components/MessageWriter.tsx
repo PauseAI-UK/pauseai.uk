@@ -398,7 +398,7 @@ export default function MessageWriter({
   ];
   return (
     <>
-      <DraftTitle title={title} saveState={saveState} />
+      <DraftTitle title={title} saveState={blank ? undefined : saveState} />
       {!data.sends && <Strip tone="amber">{copy.cantSend}</Strip>}
       {saveState === "conflict" && (
         <Strip tone="red" announce>
