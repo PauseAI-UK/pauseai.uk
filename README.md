@@ -40,6 +40,7 @@ Try Email your MP with postcode ZZ99ZZ; the letter lands in `tmp/outbox/`. The r
 - [scripts/README.md](scripts/README.md): what each script does
 - [backup/README.md](backup/README.md): the nightly database backup to Cloudflare, and restoring one
 - [plans/](plans/): plans for work in progress, deleted when done
+- [investments/](investments/README.md): what would make working here faster or safer, ranked, with the friction logged against each
 - [AGENTS.md](AGENTS.md): notes for coding agents
 
 ## Deployment

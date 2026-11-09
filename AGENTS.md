@@ -2,6 +2,10 @@
 
 Read `README.md` first. It links the docs in `docs/`, including the code structure and styling rules (`docs/code-structure.md`), test policy (`docs/testing.md`) and the style guide (`docs/style-guide.md`). Plans for work in progress are in `plans/`. They're temporary, deleted when the work is done, so nothing references them (`plans/README.md`).
 
+## Log friction in `investments/`
+
+`investments/` holds the work that would make the code easier to change or the site safer to run: architecture refactors, operations, small fixes and missing tools, one file each. When one costs you time (a script in `tmp/` you'd want again, the same edit in many places, a flaky test, a long wait on a check, a bug the design made easy), add a dated line under its "Hits", or start a file for it. `investments/README.md` says how, and `npm run investments` lists the most hit. Nothing private goes in a hit, and nothing about how you used production services or the database.
+
 ## Comments describe the code as it is
 
 A comment says what the code does and why, as it stands. It doesn't tell the code's history: not what it replaced, what changed or moved, what it used to do, or which plan or PR brought it. That belongs in the commit message. Write "Every field is the kit's", not "Fields now come from the kit instead of each form's own". The same goes for docs. The rest of the rules (no counts that go stale, explain once at the definition, what a test fixture's comment says) are in `docs/code-structure.md`, "Comments".
