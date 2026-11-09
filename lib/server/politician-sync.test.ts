@@ -150,10 +150,10 @@ describeWithDatabase("syncPoliticians", () => {
     expect(sync).toMatchObject({ status: "applied", startedBy: NIGHTLY, error: null, decidedBy: null });
     // Applied, so the records aren't needed again.
     expect(sync.result.records).toBeUndefined();
-    // The run's summary, one entry per politician added, by their row, and one per status set.
+    // The run's summary, and one entry per politician added, by their row; no status set.
     const log = await query<{ actor: string; action: string }>("SELECT actor, action FROM audit_log ORDER BY id");
     expect(log.filter((e) => e.action === "add politician")).toHaveLength(7);
-    expect(log.filter((e) => e.action === "set status" && e.actor === "airtable")).toHaveLength(5);
+    expect(log.filter((e) => e.action === "set status")).toHaveLength(0);
     expect(log.at(-1)).toEqual({ actor: "sync", action: "apply politician sync" });
     expect(
       await query(

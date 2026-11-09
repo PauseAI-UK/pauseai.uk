@@ -471,9 +471,16 @@ describeWithDatabase("staff Server Actions", () => {
       expect(
         await expectRedirect(() => saveAskNow(reception({ slug: "winter-reception-dec-2026", title: "Reception" }))),
       ).toBe("/staff/asks?notice=saved");
-      expect(await expectRedirect(() => saveAskNow(reception({ slug: "frontier-ai-letter" })))).toBe(
-        "/staff/asks/frontier-ai-letter/edit?notice=fixed&back=%2Fstaff%2Fasks",
+      // Answered, so its kind can't change.
+      const polly = await addTestPolitician();
+      await query(
+        `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by)
+         VALUES ($1, 'winter-reception-dec-2026', 'event', 'going', 'jo@pauseai.uk')`,
+        [polly],
       );
+      expect(
+        await expectRedirect(() => saveAskNow(reception({ slug: "winter-reception-dec-2026", kind: "letter" }))),
+      ).toBe("/staff/asks/winter-reception-dec-2026/edit?notice=kind-in-use&back=%2Fstaff%2Fasks");
       expect(await expectRedirect(() => saveAskNow(form({ title: "", kind: "event" })))).toBe(
         "/staff/asks/new?notice=invalid&back=%2Fstaff%2Fasks",
       );
@@ -482,7 +489,7 @@ describeWithDatabase("staff Server Actions", () => {
     it("deletes an ask, or goes back to its form saying why not, or to the asks if it's gone", async () => {
       await expectRedirect(() => saveAskNow(reception()));
       expect(await expectRedirect(() => deleteAskNow(form({ slug: "frontier-ai-letter" })))).toBe(
-        "/staff/asks/frontier-ai-letter/edit?notice=fixed&back=%2Fstaff%2Fasks",
+        "/staff/asks/frontier-ai-letter/edit?notice=named&back=%2Fstaff%2Fasks",
       );
       expect(await expectRedirect(() => deleteAskNow(form({ slug: "winter-reception-dec-2026" })))).toBe(
         "/staff/asks?notice=deleted",

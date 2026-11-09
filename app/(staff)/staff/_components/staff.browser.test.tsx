@@ -2385,9 +2385,9 @@ describe("PoliticianDetails", () => {
     await expect
       .element(letter.getByText(`By email · ${staffCopy.politician.setBy("jo@pauseai.uk", "2 Oct 2026")}`))
       .toBeVisible();
-    // Declined, from Airtable: crossed, not green, with no form, as staff don't record it.
+    // Declined, from Airtable: crossed, not green, and staff can change it.
     const event = row("edinburgh-conference-2026");
-    expect(answer(event).textContent).toBe(staffCopy.statuses.declined);
+    expect(answer(event).firstElementChild!.textContent).toBe(staffCopy.statuses.declined);
     expect(answer(event).firstElementChild!.className).not.toMatch(/yes/);
     await expect.element(event.getByText(staffCopy.politician.fromImport.airtable)).toBeVisible();
     await expect
@@ -2438,7 +2438,7 @@ describe("PoliticianDetails", () => {
     );
     const row = page.getByRole("group", { name: bare.title });
     const answer = row.element().querySelector("[class*=answer]")!;
-    expect(answer.textContent).toBe(staffCopy.statuses.other);
+    expect(answer.firstElementChild!.textContent).toBe(staffCopy.statuses.other);
     expect(answer.firstElementChild!.className).not.toMatch(/yes/);
     await expect.element(row.getByRole("link")).toHaveAttribute("href", `/staff/asks/${bare.slug}`);
     await expect.element(row.getByText(staffCopy.politician.askedThem("", "event"), { exact: true })).toBeVisible();

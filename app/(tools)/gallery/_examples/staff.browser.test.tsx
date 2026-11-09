@@ -191,6 +191,7 @@ describe("the staff examples", () => {
     await render(<PoliticianDetailsExample />);
     await page
       .getByRole("region", { name: staffCopy.politician.statusesTitle })
+      .getByRole("group", { name: "Example Letter to the PM" })
       .getByText(staffCopy.politician.edit, { exact: true })
       .click();
     await page.getByRole("radio", { name: staffCopy.politician.clearAnswer }).click();

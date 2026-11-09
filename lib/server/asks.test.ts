@@ -41,7 +41,6 @@ describeWithDatabase("asks and campaigns", () => {
     );
     const ask = await askPageData("deepmind-letter");
     expect(ask).toMatchObject({
-      fixed: true,
       writtenTo: 1,
       replied: 0,
       noAnswer: 0,
