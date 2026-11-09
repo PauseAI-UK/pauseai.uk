@@ -23,6 +23,23 @@ describe("LetterStatus", () => {
     expect(tags()).toEqual([staffCopy.mailingPages.skipReasons["left-office"], replied]);
   });
 
+  it("wraps a long tag in a narrow cell that keeps its words on one line, rather than running out of it", async () => {
+    await render(
+      <table style={{ width: 120 }}>
+        <tbody>
+          <tr>
+            <td style={{ whiteSpace: "nowrap" }}>
+              <LetterStatus status="cancelled" answered={false} replied={false} />
+            </td>
+          </tr>
+        </tbody>
+      </table>,
+    );
+    const tag = page.getByText(staffCopy.letters.status.cancelled, { exact: true }).element();
+    expect(getComputedStyle(tag).whiteSpace).toBe("normal");
+    expect(tag.getBoundingClientRect().width).toBeLessThanOrEqual(120);
+  });
+
   it("shows the status alone when neither", async () => {
     await render(<LetterStatus status="sent" answered={false} replied={false} />);
     await expect.element(page.getByText(staffCopy.letters.status.sent, { exact: true })).toBeVisible();
