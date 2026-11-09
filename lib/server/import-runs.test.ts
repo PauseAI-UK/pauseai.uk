@@ -184,7 +184,7 @@ describeWithDatabase("the import log", () => {
 
   it("throws on, emailing nobody, when a run can't be kept at all", async () => {
     const sent = notifications();
-    // A count too large for JSON.
+    // JSON can't hold a BigInt.
     await expect(
       asRun("check-mps", "nightly", async () => ({ status: "ok", result: { n: BigInt(1) } }) as const),
     ).rejects.toThrow("BigInt");
