@@ -602,6 +602,11 @@ not a mock.
   that calls `requireStaff()` use `vi.mock("next/headers", () =>
 import("@/tests/next-headers"))` and put the session cookie in
   `requestCookies`.
+- **React's `cache()`** memoizes only while React renders a request, so in
+  Node tests it calls straight through. `tests/request-cache.ts` memoizes
+  as React does within one request, until `newRequest()`;
+  `lib/server/page-loaders.test.ts` uses it to show each staff page's
+  loaders query once for its metadata and the page both.
 
 ## Rules for new code
 

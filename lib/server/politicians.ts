@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { listWindow, windowStart } from "@/lib/staff-dashboard";
 import { now } from "@/lib/now";
 import { AGREED_STATUSES, type AskStatus } from "@/lib/asks";
@@ -667,17 +668,17 @@ export async function addPolitician(politician: NewPolitician, db: Queryable, te
 }
 
 /** Every party a politician is in, for the list's filter. */
-export async function listParties(): Promise<string[]> {
+export const listParties = cache(async function listParties(): Promise<string[]> {
   const rows = await query<{ party: string }>(
     "SELECT DISTINCT party FROM politicians WHERE party <> '' ORDER BY party",
   );
   return rows.map((row) => row.party);
-}
+});
 
-export async function getPolitician(id: number): Promise<Politician | undefined> {
+export const getPolitician = cache(async function getPolitician(id: number): Promise<Politician | undefined> {
   const [row] = await query<Row>(`${SELECT_POLITICIANS} WHERE n.id = $1 GROUP BY n.id, p.id`, [id]);
   return row && toPolitician(row);
-}
+});
 
 /**
  * Whether a politician can be deleted: their record has gone from Airtable

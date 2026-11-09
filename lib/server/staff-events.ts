@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { ruleOwner } from "@/lib/event-owners";
 import { now } from "@/lib/now";
@@ -68,7 +69,7 @@ const SELECT_EVENTS = `SELECT e.id, e.name, 'https://luma.com/' || e.url AS url,
  * its start as an ISO string, and its hosts by name, those with none last,
  * and their emails; or, without `hosts`, none.
  */
-async function listEvents(ids?: string[], hosts = false): Promise<SearchedEvent[]> {
+const listEvents = cache(async function listEvents(ids?: string[], hosts = false): Promise<SearchedEvent[]> {
   const rows = await query<Omit<StaffEvent, "hosts"> & { hosts: (EventHost & { email: string })[] }>(
     `${SELECT_EVENTS} AND ($1::text[] IS NULL OR e.id = ANY($1)) ORDER BY e.start_at, e.id`,
     [ids ?? null],
@@ -82,7 +83,7 @@ async function listEvents(ids?: string[], hosts = false): Promise<SearchedEvent[
       hostEmails: shown.map((host) => host.email),
     };
   });
-}
+});
 
 /** An event as the page has it: without its hosts' emails. */
 function withoutEmails({ hostEmails, ...event }: SearchedEvent): StaffEvent {
@@ -127,7 +128,9 @@ export async function eventsToCome(): Promise<{ events: StaffEvent[]; staff: str
 }
 
 /** What the events list's filters offer, among `events`. */
-async function choicesOf(events: SearchedEvent[]): Promise<{ staff: string[]; tags: string[]; cities: string[] }> {
+const choicesOf = cache(async function choicesOf(
+  events: SearchedEvent[],
+): Promise<{ staff: string[]; tags: string[]; cities: string[] }> {
   const staff = await query<{ email: string }>("SELECT email FROM staff_accounts ORDER BY email");
   const sorted = (values: string[]) => [...new Set(values)].sort((a, b) => a.localeCompare(b));
   return {
@@ -135,7 +138,7 @@ async function choicesOf(events: SearchedEvent[]): Promise<{ staff: string[]; ta
     tags: sorted(events.flatMap((event) => event.tags)),
     cities: sorted(events.flatMap((event) => event.city ?? [])),
   };
-}
+});
 
 /** What the events list's filters offer: every staff account, and every tag and city our events have. */
 export async function eventChoices(): Promise<{ staff: string[]; tags: string[]; cities: string[] }> {

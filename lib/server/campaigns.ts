@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { FORM_VERSIONS } from "@/lib/content/pauseai-info-form";
 import { formVersionAt } from "@/lib/old-letters";
@@ -52,13 +53,15 @@ export async function listCampaignSummaries(): Promise<CampaignSummary[]> {
 }
 
 /** One campaign's counts, or undefined for none. */
-export async function getCampaignSummary(slug: string): Promise<CampaignSummary | undefined> {
+export const getCampaignSummary = cache(async function getCampaignSummary(
+  slug: string,
+): Promise<CampaignSummary | undefined> {
   const [campaign] = await query<CampaignSummary>(
     `${SELECT_CAMPAIGNS} WHERE c.slug = $1 GROUP BY c.slug, a.title, a.kind`,
     [slug],
   );
   return campaign;
-}
+});
 
 /** A version of a campaign's text, with how many letters were written from it. */
 export type CampaignVersion = { key: string; from: string | null; letters: number; subject: string; text: string };

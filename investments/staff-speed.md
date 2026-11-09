@@ -4,7 +4,7 @@ Size: S. Kind: operations.
 
 ## Problem
 
-Staff pages and buttons have been reported as slow, and nobody knows where the time goes. Likely causes: every action calls `revalidatePath` (27 calls in `actions.ts` and `mailing-actions.ts`), so a button waits for the whole page to render again, some for the whole staff layout; metadata repeats the page's queries (`cached-page-loaders.md`); dynamic routes with no `loading.tsx` aren't prefetched; and the database's distance from Netlify's functions.
+Staff pages and buttons have been reported as slow, and nobody knows where the time goes. Likely causes: every action calls `revalidatePath` (27 calls in `actions.ts` and `mailing-actions.ts`), so a button waits for the whole page to render again, some for the whole staff layout; dynamic routes with no `loading.tsx` aren't prefetched; and the database's distance from Netlify's functions.
 
 ## Fix
 

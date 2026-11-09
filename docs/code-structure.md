@@ -129,7 +129,14 @@ the code should go instead. The rules below say which ones are enforced.
   `JobRole`); one-off prose can stay as JSX inside a section component.
 - **Metadata** comes from `pageMetadata()` (`lib/metadata.ts`), which fills in
   the social preview images, the "PauseAI UK | <title>" social title and the
-  canonical path.
+  canonical path. A page's `generateMetadata` reuses its loader: the
+  function in `lib/server/` that both call is wrapped in React's `cache()`
+  (https://react.dev/reference/react/cache), so it queries once a request,
+  with arguments that are the same each time (an ID or a slug, not an
+  object, as `cache()` compares objects by identity). When the loader
+  loads far more than the title, such as an ask's page of answers, the
+  metadata has a small query of its own (`askTitle()`).
+  `lib/server/page-loaders.test.ts` shows each one runs once.
 - **No scripts in `public/`.** Browser behaviour goes in a typed
   `"use client"` component, like the track record's `Gallery`.
 - **Components render their state.** What a component shows comes from
