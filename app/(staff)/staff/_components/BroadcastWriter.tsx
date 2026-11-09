@@ -39,7 +39,7 @@ import {
   hasField,
   hasWords,
   BROADCAST_START,
-  broadcastCost,
+  textCost,
   broadcastScheduleProblems,
   BROADCAST_SENDER,
   spacedNumber,
@@ -423,7 +423,6 @@ export default function BroadcastWriter({
   const fromLine = email ? named(fromName, values.sentFrom!) : TEXT_SENDER_NAME;
   // In the summary, a text's WhatsApp number too, once there is one, as an email's address.
   const summaryFrom = email || !data.textNumber ? fromLine : textSender(TEXT_SENDER_NAME, data.textNumber);
-  const cost = broadcastCost(draft.channel, data.count);
   const title = email ? values.subject.trim() || copy.newTitle.email : values.title.trim() || copy.newTitle.text;
   const whoPath = filtersPath("/staff/supporters", { ...data.filter.params, broadcast: String(id) });
   const hasOwnWords = hasWords({ subject: values.subject, body, templateId: values.templateId });
@@ -697,8 +696,12 @@ export default function BroadcastWriter({
                   summaryFrom,
                   values.dueAt ? londonWhen(values.dueAt, "short") : null,
                 )}{" "}
-                {cost.about}
-                {cost.rate && <span className={own.rate}>{cost.rate}</span>}
+                {!email && (
+                  <>
+                    {textCost(data.count).about}
+                    <span className={own.rate}>{textCost(data.count).rate}</span>
+                  </>
+                )}
               </p>
               <div className={styles.send}>
                 <ScheduleButton

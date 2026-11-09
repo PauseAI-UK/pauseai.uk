@@ -9,7 +9,7 @@ import {
   hasWords,
   BROADCAST_START,
   hasField,
-  broadcastCost,
+  textCost,
   broadcastScheduleProblems,
   broadcastTerms,
   spacedNumber,
@@ -235,10 +235,9 @@ describe("the fixed limits", () => {
   });
 });
 
-it("says what messages cost, by channel", () => {
+it("says what texts cost, and at what rate", () => {
   const cost = staffCopy.broadcastPages.cost;
-  expect(broadcastCost("email", 400)).toEqual({ about: cost.email("0.50") });
-  expect(broadcastCost("text", 100)).toEqual({ about: cost.text("4.58"), rate: cost.textRate(4.58, "1 Oct 2026") });
+  expect(textCost(100)).toEqual({ about: cost.text("4.58"), rate: cost.textRate(4.58, "1 Oct 2026") });
 });
 
 describe("a text's sender", () => {

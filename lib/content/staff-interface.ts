@@ -1169,7 +1169,7 @@ All events: ${link}`,
     willGet: (n: number, channel: "email" | "text") =>
       `${count(n, "supporter", "supporters")} will be ${channel === "email" ? "emailed" : "texted"}.`,
     cantSend:
-      "⁂ Broadcasts can't be sent yet, by email or text. You can write one, and test an email by sending it to yourself.",
+      "Broadcasts can't be sent yet, by email or text. You can write one, and test an email by sending it to yourself.",
     // Write.
     subject: "Subject",
     emailLabel: "Email",
@@ -1213,7 +1213,6 @@ All events: ${link}`,
     stopsOn: (when: string) => `⁂ Any texts not sent by ${when} won't be sent, so none arrive days late.`,
     // Send.
     cost: {
-      email: (dollars: string) => `⁂ About $${dollars}.`,
       text: (pounds: string) => `About £${pounds}.`,
       // After it, smaller and grey: the rate it's worked out at, and since when, as it may have changed.
       textRate: (pence: number, from: string) => `${pence}p each, rate as at ${from}`,

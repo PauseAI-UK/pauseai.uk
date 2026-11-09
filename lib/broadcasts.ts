@@ -226,9 +226,6 @@ export function textStopsAt(dueAt: Date): Date {
   return new Date(dueAt.getTime() + TEXT_SENDS_FOR_DAYS * 24 * 60 * 60 * 1000);
 }
 
-/** What an email costs by Postmark's broadcast stream, in dollars (https://postmarkapp.com/pricing). */
-const EMAIL_DOLLARS_EACH = 0.00125;
-
 /**
  * What a text costs when delivered, in pence: a marketing message to the UK,
  * £0.0458 on Meta's GBP rate card effective 1 October 2026, checked 9
@@ -241,15 +238,13 @@ const TEXT_PENCE_EACH = 4.58;
 /** When that rate came in, said beside it, as it may have changed since. */
 const TEXT_RATE_FROM = new Date("2026-10-01");
 
-/** What `n` messages by `channel` cost, in words, and for texts the rate it's worked out at and since when. */
-export function broadcastCost(channel: BroadcastChannel, n: number): { about: string; rate?: string } {
+/** What `n` texts cost, in words, and the rate it's worked out at and since when. An email's few pennies go unsaid. */
+export function textCost(n: number): { about: string; rate: string } {
   const copy = staffCopy.broadcastPages.cost;
-  return channel === "email"
-    ? { about: copy.email((n * EMAIL_DOLLARS_EACH).toFixed(2)) }
-    : {
-        about: copy.text(((n * TEXT_PENCE_EACH) / 100).toFixed(2)),
-        rate: copy.textRate(TEXT_PENCE_EACH, staffDate(TEXT_RATE_FROM)),
-      };
+  return {
+    about: copy.text(((n * TEXT_PENCE_EACH) / 100).toFixed(2)),
+    rate: copy.textRate(TEXT_PENCE_EACH, staffDate(TEXT_RATE_FROM)),
+  };
 }
 
 /** The most of a broadcast's words its title and a template's row say. */

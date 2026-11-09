@@ -7,7 +7,7 @@ import { mailingGroups } from "@/lib/mailing-groups";
 import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
 import { supportersSearch } from "@/lib/staff-search";
 import { londonWhen, staffTime } from "@/lib/staff-time";
-import { broadcastCost, textStopsAt } from "@/lib/broadcasts";
+import { textCost, textStopsAt } from "@/lib/broadcasts";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { navigation } from "@/tests/browser/navigation";
 import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
@@ -216,7 +216,8 @@ describe("BroadcastWriter, by email", () => {
     const actions = await renderWriter();
     await expect.element(page.getByRole("heading", { name: exampleBroadcastEmail.subject, level: 1 })).toBeVisible();
     await expect.element(page.getByText(copy.willGet(412, "email"))).toBeVisible();
-    await expect.element(page.getByText(broadcastCost("email", 412).about, { exact: false })).toBeVisible();
+    // An email's cost goes unsaid: a few pennies.
+    expect(page.getByText(/About [$£]/).query()).toBeNull();
     await button(copy.schedule(412, "email")).click();
     await vi.waitFor(() => expect(actions.schedule).toHaveBeenCalledWith(3, 4), WAIT);
     expect(navigation.refreshes).toBeGreaterThan(0);
@@ -580,6 +581,8 @@ describe("BroadcastWriter, by text", () => {
     const actions = await renderWriter({ draft: onTemplate });
     await expect.element(page.getByText(copy.stopButton, { exact: true })).toBeVisible();
     await expect.element(page.getByText(/Hi Jane, the march meets/)).toBeVisible();
+    // What they'll cost, and the rate, as it may have changed.
+    await expect.element(page.getByText(textCost(exampleBroadcastData.count).rate)).toBeVisible();
     // The summary names the WhatsApp number it's from.
     await expect.element(page.getByText(/texts from PauseAI UK \(\+44 7700 900000\) on WhatsApp/)).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
