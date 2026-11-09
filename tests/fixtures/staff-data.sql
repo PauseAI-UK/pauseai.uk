@@ -1226,4 +1226,6 @@ SELECT id, now() + due, 'sent' FROM seed_copies WHERE status IN ('sent', 'delive
 UNION ALL SELECT id, now() + due + interval '1 minute', 'delivered' FROM seed_copies WHERE status = 'delivered'
 UNION ALL SELECT id, now() + due + interval '1 minute', CASE channel WHEN 'email' THEN 'bounced' ELSE 'failed' END FROM seed_copies WHERE status = 'failed'
 UNION ALL SELECT id, now() + due + interval '20 minutes', 'read' FROM seed_copies WHERE was_read
-UNION ALL SELECT id, now() + due, 'opted-out' FROM seed_copies WHERE reason = 'unsubscribed';
+-- One asked us to stop after PauseCon room change reached them.
+UNION ALL SELECT id, now() + due + interval '2 hours', 'opted-out' FROM seed_copies
+  WHERE channel = 'text' AND status = 'delivered' AND NOT was_read AND due = interval '-3 days';
