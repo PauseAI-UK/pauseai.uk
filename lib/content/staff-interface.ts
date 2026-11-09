@@ -1284,7 +1284,7 @@ All events: ${link}`,
       delivered: "Delivered",
       read: "Read",
       failed: "Failed",
-      cancelled: "⁂ Stopped: the broadcast was stopped",
+      cancelled: "Stopped: we stopped the broadcast",
     } as Record<string, string>,
     skipReasons: {
       blocked: "Skipped: address blocked",
