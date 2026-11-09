@@ -40,7 +40,8 @@ const STATE_TONES: Record<MailingState, TagTone | undefined> = {
   scheduled: "blue",
   sending: "blue",
   sent: undefined,
-  cancelled: undefined,
+  // Amber, as we stopped it, as its stopped letters are (docs/style-guide.md, "Status colours").
+  cancelled: "amber",
 };
 
 /** Each merge field's label, and each answer to an ask's, as a part only for them says it. */
