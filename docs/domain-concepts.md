@@ -248,25 +248,31 @@ written to and kept.
   be passed on (`lib/server/held-replies.ts`). A soft bounce is only
   noted.
 
-### Messages to supporters
+### Broadcasts to supporters
 
-A message is a row of `mailings` with the audience `supporters`, but to staff
-it's apart from a mailing, in its own place: `/staff/messages`, under
-Supporters, behind the `supporters` permission. Mailings to politicians are
-open to every staff member, so their pages, actions and the `send-mailings`
-job all leave messages out.
+A broadcast is an email or a text to many supporters at once, and each
+supporter's copy of it is a message. A broadcast is a row of `mailings` with
+the audience `supporters`, but to staff it's apart from a mailing, in its own
+place: Broadcasts, at `/staff/messages`, under Supporters, behind the
+`supporters` permission. Mailings to politicians are open to every staff
+member, so their pages, actions and the `send-mailings` job all leave
+broadcasts out. In the code a broadcast is a message (`message-drafts.ts`,
+`messages_to_supporters` for its copies).
 
-- **Channel and topic.** A message has one of each, fixed when it's made
-  from the supporters list's Consent filter: one topic, answered yes
+- **Channel and topic.** A broadcast has one of each, fixed when it's made,
+  from the Consent chosen on New broadcast (`/staff/messages/new`), or from
+  the supporters list's Consent filter: one topic, answered yes
   (`messageTerms` in `lib/supporter-messages.ts`). "Not sure" isn't enough.
   Staff choose email or text, never the backend.
 - **Who.** The list's filter, kept as its URL parameters; there are no
   ticks. Change who opens the list choosing for the draft, and the draft
   keeps the filters only while they say its channel and topic. Scheduling
-  fixes the recipients, a row of `messages_to_supporters` each, from
-  those `contact_permission()` says yes for (`lib/server/message-recipients.ts`).
+  doesn't fix who it goes to: sending finds them when it starts, a row of
+  `messages_to_supporters` each, from those `contact_permission()` says yes
+  for (`lib/server/message-recipients.ts`), so it reaches whoever the filters
+  find then. Until it's sent, the list and its page count who they find now.
 - **Fields.** No field is everyone's, so each has a fallback, and a
-  message can be scheduled with a field some lack, unlike a mailing to
+  broadcast can be scheduled with a field some lack, unlike a mailing to
   politicians. Each field and part has a condition (`has:mp`), and the
   preview has a case button for each.
 - **A text's words** are a WhatsApp template: one approved, chosen in the
@@ -274,13 +280,13 @@ job all leave messages out.
   until WhatsApp decides (`message_templates`). A template has no parts
   only some get, as its words are the same for everyone. A text
   stops sending a fixed three days after its time.
-- **Sending.** No backend sends messages yet (`lib/server/message-channels.ts`):
+- **Sending.** No backend sends broadcasts yet (`lib/server/message-channels.ts`):
   on the live site scheduling and replying are refused and the pages say so,
   and only an email's test copy goes, by Postmark. A fixture build has
   a fake backend, so its flows can be driven whole.
 - **Replies** are kept in `message_replies`, each from the supporter or, with
-  `sent_by`, from staff, and shown on the copy's page
-  (`/staff/messages/<id>/<copy>`) and the supporter's. A reply to a text is
+  `sent_by`, from staff, and shown on the message's page, Message and reply
+  (`/staff/messages/<id>/<copy>`), and the supporter's. A reply to a text is
   free within 24 hours of the person's last message, and refused after.
 
 ### Mailings to politicians

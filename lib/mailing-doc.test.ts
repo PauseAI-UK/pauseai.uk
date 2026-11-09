@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { toHtml, toText } from "./letter-format";
-import { checkMailingDoc, conditionsIn, fieldsIn, isBlankMailing, letterFor, type MailingDoc } from "./mailing-doc";
+import {
+  checkMailingDoc,
+  conditionsIn,
+  fieldsIn,
+  greetingLetter,
+  isBlankMailing,
+  letterFor,
+  type MailingDoc,
+} from "./mailing-doc";
 
 const text = (value: string, ...marks: ("bold" | "italic")[]) =>
   marks.length ? { type: "text", text: value, marks: marks.map((type) => ({ type })) } : { type: "text", text: value };
@@ -140,6 +148,33 @@ describe("letterFor", () => {
       type: "doc",
       content: [p(text("Jo")), p()],
     });
+  });
+});
+
+describe("greetingLetter", () => {
+  const text = (text: string) => ({ type: "text", text });
+  const field = { type: "field", attrs: { field: "name" } };
+
+  it("is the greeting, then a field or none and a comma, then a line to write on", () => {
+    expect(greetingLetter("Dear", "name").content).toEqual([
+      { type: "paragraph", content: [text("Dear "), field, text(",")] },
+      { type: "paragraph" },
+    ]);
+    expect(greetingLetter("Hello", undefined).content).toEqual([
+      { type: "paragraph", content: [text("Hello,")] },
+      { type: "paragraph" },
+    ]);
+  });
+
+  it("puts a signature's lines a few lines down, a paragraph each", () => {
+    expect(greetingLetter("Hi", "name", ["Best wishes,", "PauseAI UK"]).content).toEqual([
+      { type: "paragraph", content: [text("Hi "), field, text(",")] },
+      { type: "paragraph" },
+      { type: "paragraph" },
+      { type: "paragraph" },
+      { type: "paragraph", content: [text("Best wishes,")] },
+      { type: "paragraph", content: [text("PauseAI UK")] },
+    ]);
   });
 });
 

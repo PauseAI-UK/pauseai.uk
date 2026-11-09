@@ -1,6 +1,5 @@
 import { contactState, type Topic } from "./contact-permissions";
 import { staffCopy } from "./content/staff-interface";
-import { GMAIL_DAILY_LIMIT } from "./gmail-connect";
 import { inlinesOf, isBlankMailing, type MailingDoc, type MailingRecipientValues } from "./mailing-doc";
 import { now } from "./now";
 import { anyAndNone, valuesOf, type ParamValue } from "./staff-search";
@@ -107,9 +106,9 @@ export function messageCost(channel: MessageChannel, n: number): string {
 /** The most of a message's words its title and a template's row say. */
 const FIRST_WORDS = 80;
 
-/** A message's first words, its merge fields each as `{label}`, for a title or a template's row. */
-export function firstWords(doc: MailingDoc, labels: Record<string, string>): string {
-  const words = doc.content
+/** A message's words on one line, its merge fields each as `{label}`. */
+function wordsOf(doc: MailingDoc, labels: Record<string, string>): string {
+  return doc.content
     .flatMap((block) => [...inlinesOf(block), { type: "hardBreak" as const }])
     .map((node) => {
       if (node.type === "field") return `{${labels[node.attrs.field] ?? node.attrs.field}}`;
@@ -118,7 +117,35 @@ export function firstWords(doc: MailingDoc, labels: Record<string, string>): str
     .join("")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** `words` cut to FIRST_WORDS, with "…" where they're cut. */
+function cut(words: string): string {
   return words.length > FIRST_WORDS ? `${words.slice(0, FIRST_WORDS).trimEnd()}…` : words;
+}
+
+/** A message's first words, its merge fields each as `{label}`, for a template's row. */
+export function firstWords(doc: MailingDoc, labels: Record<string, string>): string {
+  return cut(wordsOf(doc, labels));
+}
+
+/** A greeting at the start of a message, up to its first comma or stop: "Hi {First name}," or "Dear all." */
+const GREETING = /^(?:hi|hello|hey|dear|good (?:morning|afternoon|evening))\b[^,.!?]*[,.!?]\s*/i;
+
+/** A message's first sentence, up to its first full stop, question or exclamation mark. */
+const FIRST_SENTENCE = /^.*?[.!?](?=\s|$)/;
+
+/**
+ * A message's title, from its words: its first sentence after any greeting,
+ * begun with a capital, so "Hi {First name}, the stall needs a hand on
+ * Saturday. Can you…" is "The stall needs a hand on Saturday."; the greeting
+ * itself if that's all there is. Cut to FIRST_WORDS, as a template's row is.
+ */
+export function messageTitle(doc: MailingDoc, labels: Record<string, string>): string {
+  const words = wordsOf(doc, labels);
+  const rest = words.replace(GREETING, "") || words;
+  const sentence = rest.match(FIRST_SENTENCE)?.[0] ?? rest;
+  return cut(sentence.charAt(0).toUpperCase() + sentence.slice(1));
 }
 
 export type MessageScheduleProblem =
@@ -128,7 +155,6 @@ export type MessageScheduleProblem =
   | "no-letter"
   | "no-template"
   | "not-connected"
-  | "too-many"
   | "no-time"
   | "time-passed"
   | "cannot-send";
@@ -166,7 +192,6 @@ export function messageScheduleProblems(message: SchedulingMessage): MessageSche
     ["no-letter", email && blank],
     ["no-template", !email && blank],
     ["not-connected", message.byGmail && !message.connected],
-    ["too-many", message.byGmail && message.recipients > GMAIL_DAILY_LIMIT],
     ["no-time", !message.dueAt],
     ["time-passed", Boolean(message.dueAt) && new Date(message.dueAt!) <= now()],
     ["cannot-send", !message.sends],

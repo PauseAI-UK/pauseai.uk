@@ -1116,7 +1116,7 @@ INSERT INTO job_presses (job, started_by) VALUES ('import-go-to-parliament', 'jo
 -- a draft, one scheduled, one sending, one sent and one stopped. A text's
 -- draft also comes with no template yet, an approved one, new words and
 -- words WhatsApp rejected, and one scheduled waits for approval. Each copy
--- keeps its supporter's real name, as scheduling does. After the rest, so no
+-- keeps its supporter's real name, as sending does. After the rest, so no
 -- ID above moves.
 CREATE FUNCTION pg_temp.seed_words(words text) RETURNS jsonb LANGUAGE sql AS $$
   SELECT jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(
@@ -1181,12 +1181,11 @@ SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 's
 FROM seed_messages m LEFT JOIN message_templates t ON t.name = m.template;
 
 -- Each copy, by who it's to and how it stands: every way one can go, a text
--- also read, or not on WhatsApp.
+-- also read, or not on WhatsApp. Those scheduled have none, as sending finds
+-- who they go to.
 CREATE TEMP TABLE seed_copies ON COMMIT DROP AS
 SELECT nextval(pg_get_serial_sequence('messages_to_supporters', 'id')) AS id, m.id AS mailing_id, m.channel, m.due, c.person, c.status, c.reason, c.was_read
 FROM (VALUES
-  ('Stall on Saturday', 'email', 1, 'scheduled', NULL, false),
-  ('Stall on Saturday', 'email', 2, 'scheduled', NULL, false),
   ('Thank you for marching', 'email', 1, 'delivered', NULL, false),
   ('Thank you for marching', 'email', 2, 'sent', NULL, false),
   ('Thank you for marching', 'email', 3, 'scheduled', NULL, false),
@@ -1197,10 +1196,6 @@ FROM (VALUES
   ('PauseCon: the recordings', 'email', 4, 'skipped', 'unsubscribed', false),
   ('PauseCon: the recordings', 'email', 5, 'skipped', 'no-permission', false),
   ('PauseCon: the recordings', 'email', 6, 'cancelled', NULL, false),
-  ('March day reminder', 'text', 1, 'scheduled', NULL, false),
-  ('March day reminder', 'text', 2, 'scheduled', NULL, false),
-  ('Bring a coat on Saturday', 'text', 1, 'scheduled', NULL, false),
-  ('Bring a coat on Saturday', 'text', 2, 'scheduled', NULL, false),
   ('Event reminder', 'text', 1, 'delivered', NULL, true),
   ('Event reminder', 'text', 2, 'delivered', NULL, false),
   ('Event reminder', 'text', 3, 'scheduled', NULL, false),

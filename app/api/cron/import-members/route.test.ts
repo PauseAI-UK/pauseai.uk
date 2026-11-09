@@ -16,7 +16,7 @@ describeWithDatabase("POST /api/cron/import-members", () => {
 
   it("copies the fixture members and says what it did", async () => {
     const res = await call("Bearer s3cret");
-    expect(await res.json()).toMatchObject({ members: 8, added: 8 });
+    expect(await res.json()).toMatchObject({ members: 9, added: 9 });
   });
 
   it("refuses anyone without the secret", async () => {

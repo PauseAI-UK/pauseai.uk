@@ -11,6 +11,7 @@ import {
   exampleSupporterChoices,
 } from "@/app/(staff)/staff/_components/MessageWriter.examples";
 import MessagesOverview from "@/app/(staff)/staff/_components/MessagesOverview";
+import NewMessage from "@/app/(staff)/staff/_components/NewMessage";
 import SupporterMessages from "@/app/(staff)/staff/_components/SupporterMessages";
 import TextBubble, { ChatBubble, ChatWall } from "@/app/(staff)/staff/_components/TextBubble";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
@@ -65,6 +66,20 @@ export const staffMessages: Group = {
   id: "staff-messages",
   title: "The staff interface: messages to supporters",
   examples: [
+    {
+      name: "NewMessage",
+      file: "app/(staff)/staff/_components/NewMessage.tsx",
+      variants: [
+        {
+          label: "New broadcast: the Consent it goes under, then Change who",
+          render: () => (
+            <StaffPage as="div">
+              <NewMessage action={async () => {}} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
     {
       name: "MessageSupporters",
       file: "app/(staff)/staff/_components/MessageSupporters.tsx",

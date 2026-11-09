@@ -40,6 +40,7 @@ import {
 } from "@/lib/supporter-messages";
 import { DraftTitle, Numbered, useDraftWriter, type DraftActions } from "./DraftWriter";
 import { DueTimeFields } from "./DueTime";
+import { SentToday } from "./GmailConnect";
 import { DeleteDraft } from "./MailingButtons";
 import MailingEditor from "./MailingEditor";
 import MailingFiles from "./MailingFiles";
@@ -108,6 +109,7 @@ function MessagePreview({
   words,
   subject,
   from,
+  gmail,
   written,
   dueAt,
   sendTest,
@@ -118,6 +120,8 @@ function MessagePreview({
   words: Words;
   subject: string;
   from: string;
+  /** The connected Gmail an email goes from, which its test goes from too; none for Postmark. */
+  gmail: string | null;
   written: boolean;
   dueAt: string | null;
   sendTest: (recipient: number, to: string) => ReturnType<MessageWriterActions["sendTest"]>;
@@ -155,14 +159,11 @@ function MessagePreview({
     if (match) setChosen(match.id);
     setSent(undefined);
   };
-  const lacking = fieldsIn(body).flatMap((field) => {
-    const n = data.fields.find((one) => one.id === field)?.lacking;
-    const say = copy.lackingField[field as keyof typeof copy.lackingField];
-    return n && say ? [say(n)] : [];
-  });
   const canTest = email ? written && looksLikeEmail(testTo.trim()) : words === "chosen" && data.sends && testTo.trim();
   const testNote = email
-    ? copy.testVia.email
+    ? gmail
+      ? copy.testVia.emailGmail(gmail)
+      : copy.testVia.email
     : !data.sends
       ? copy.testVia.textOff
       : words === "chosen"
@@ -189,10 +190,6 @@ function MessagePreview({
       )}
       {recipient ? (
         <>
-          <p className={styles.whoShown}>
-            {copy.shownAs(recipient.name)}
-            {lacking.length > 0 && ` ${copy.lackingLine(lacking)}`}
-          </p>
           {email ? (
             <div className={styles.email}>
               <dl className={styles.headers}>
@@ -218,7 +215,7 @@ function MessagePreview({
       ) : (
         <p className={styles.noEmail}>{copy.noOneMix}</p>
       )}
-      <Hint>{copy.howToStop[draft.channel]}</Hint>
+      {!email && <Hint>{copy.howToStop}</Hint>}
       <div className={styles.test}>
         <div className={styles.testRow}>
           <label htmlFor={testId} className={styles.testLabel}>
@@ -283,8 +280,8 @@ export default function MessageWriter({
   const label = useId();
   const email = draft.channel === "email";
   const { id } = draft;
-  const [start] = useState(() => greetingLetter(copy.greeting, "firstName"));
-  // An email with nothing written yet starts with a greeting, saved with its first change.
+  const [start] = useState(() => greetingLetter(copy.greeting, "firstName", copy.signature));
+  // An email with nothing written yet starts with a greeting and a signature, saved with its first change.
   const [fresh] = useState<Partial<Changes>>(() =>
     email && !draft.subject && isBlankMailing(draft.body) ? { body: start } : {},
   );
@@ -428,23 +425,14 @@ export default function MessageWriter({
         <Card span={6} title={<Numbered n={2}>{copy.sections.from}</Numbered>} id="from-title">
           {email ? (
             <div className={styles.from}>
-              <p>
-                {byGmail ? (
-                  copy.fromGmail(values.sentFrom!)
-                ) : (
-                  <>
-                    <strong>{copy.fromPostmark(MESSAGE_SENDER.name, MESSAGE_SENDER.email)}</strong>{" "}
-                    <Muted>{copy.fromReplies}</Muted>
-                  </>
-                )}
-              </p>
               <div className={styles.fromFields}>
                 <Field label={copy.fromAccount} className={styles.sender}>
                   <Select value={values.sentFrom!} onChange={(event) => change({ sentFrom: event.target.value })}>
-                    <option value={MESSAGE_SENDER.email}>{MESSAGE_SENDER.email}</option>
+                    {/* Each address with what sends from it: ours by Postmark, a staff member's by their Gmail. */}
+                    <option value={MESSAGE_SENDER.email}>{copy.fromOption(MESSAGE_SENDER.email, "Postmark")}</option>
                     {data.senders.map((one) => (
                       <option key={one.email} value={one.email}>
-                        {one.email}
+                        {copy.fromOption(one.email, "Gmail")}
                       </option>
                     ))}
                   </Select>
@@ -456,6 +444,8 @@ export default function MessageWriter({
                   />
                 </Field>
               </div>
+              {/* A Gmail's sending today, against its daily limit, as a mailing's writer says it. */}
+              {sender && <SentToday sent={sender.sentToday} />}
             </div>
           ) : (
             <div className={own.account}>
@@ -534,6 +524,7 @@ export default function MessageWriter({
             words={words}
             subject={values.subject}
             from={fromLine}
+            gmail={byGmail && sender ? sender.email : null}
             written={written}
             dueAt={values.dueAt}
             sendTest={async (recipient, to) => {

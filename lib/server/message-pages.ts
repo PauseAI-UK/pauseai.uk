@@ -56,29 +56,32 @@ const SELECT_MESSAGES = `
 
 /** The page of messages: what's coming up, and those sent under their months and years; and now, which says which year needn't be written. */
 export async function messagesPage(): Promise<{ groups: MailingGroup<MessageSummary>[]; now: string }> {
-  const [drafts, all] = await Promise.all([
+  // A draft or one scheduled has no messages yet, so how many it goes to is who its filters find now.
+  const [unsent, all] = await Promise.all([
     query<MessageSummary & { filter: unknown; topic: MessageTerms["topic"] }>(
-      `SELECT d.*, f.filter, f.topic FROM (${SELECT_MESSAGES} AND m.state = 'draft' GROUP BY m.id, t.status) d
+      `SELECT d.*, f.filter, f.topic FROM (${SELECT_MESSAGES} AND m.state IN ('draft', 'scheduled') GROUP BY m.id, t.status) d
        JOIN (SELECT id::int AS id, filter, topic FROM mailings) f USING (id) ORDER BY d."updatedAt" DESC, d.id DESC`,
     ),
     query<MessageSummary>(
-      `${SELECT_MESSAGES} AND m.state <> 'draft' GROUP BY m.id, t.status ORDER BY min(c.sent_at) DESC NULLS FIRST, m.id DESC`,
+      `${SELECT_MESSAGES} AND m.state NOT IN ('draft', 'scheduled') GROUP BY m.id, t.status
+       ORDER BY min(c.sent_at) DESC NULLS FIRST, m.id DESC`,
     ),
   ]);
   const counted = await Promise.all(
-    drafts.map(async ({ filter, topic, ...draft }) => ({
-      ...draft,
-      to: (await supporterAudience(checkStoredFilter(filter)!, { channel: draft.channel, topic })).recipients.length,
+    unsent.map(async ({ filter, topic, ...message }) => ({
+      ...message,
+      to: (await supporterAudience(checkStoredFilter(filter)!, { channel: message.channel, topic })).recipients.length,
     })),
   );
-  const coming = (m: MessageSummary) => m.state === "scheduled" || m.state === "sending";
   const at = now();
   return {
     groups: mailingGroups(
       {
-        drafts: counted,
-        comingUp: all.filter(coming).sort((a, b) => Date.parse(a.dueAt!) - Date.parse(b.dueAt!)),
-        sent: all.filter((m) => !coming(m)),
+        drafts: counted.filter((m) => m.state === "draft"),
+        comingUp: [...counted.filter((m) => m.state === "scheduled"), ...all.filter((m) => m.state === "sending")].sort(
+          (a, b) => Date.parse(a.dueAt!) - Date.parse(b.dueAt!),
+        ),
+        sent: all.filter((m) => m.state !== "sending"),
       },
       at,
     ),
@@ -220,10 +223,13 @@ export async function messagePageData(
     query<{ total: number }>(`SELECT count(*)::int AS total ${from}`, [id]),
     supporterChoices(),
   ]);
+  // One scheduled has no messages yet: it goes to whoever its filters find when it's sent, so for now, who they find.
+  const to =
+    written.state === "scheduled" ? (await supporterAudience(written.filter, written)).recipients.length : summary.to;
   return {
     kind: "written",
     written,
-    summary,
+    summary: { ...summary, to },
     choices,
     tab,
     recipients,

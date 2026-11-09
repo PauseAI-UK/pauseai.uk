@@ -10,9 +10,8 @@ import Strip from "../../_components/ui/Strip";
 export const metadata: Metadata = { title: staffCopy.messagePages.title };
 
 /**
- * Emails and texts to supporters together. A new one starts from the
- * supporters list, as its Consent filter says how it goes and what it's
- * about: New message opens the list saying to add one.
+ * Broadcasts, emails and texts to supporters, together. New broadcast asks
+ * which Consent it goes under, as that says how it goes and what it's about.
  */
 export default async function MessagesPage() {
   await requireStaff("supporters");
@@ -22,7 +21,7 @@ export default async function MessagesPage() {
       <PageTitle
         intro={staffCopy.messagePages.intro}
         action={
-          <ButtonLink variant="primary" fit href="/staff/supporters?why=contact">
+          <ButtonLink variant="primary" fit href="/staff/messages/new">
             {staffCopy.messagePages.newMessage}
           </ButtonLink>
         }

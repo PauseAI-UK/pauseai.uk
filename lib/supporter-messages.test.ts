@@ -3,6 +3,7 @@ import { staffCopy } from "./content/staff-interface";
 import { EMPTY_MAILING_DOC, type MailingDoc } from "./mailing-doc";
 import {
   firstWords,
+  messageTitle,
   hasField,
   messageCost,
   messageScheduleProblems,
@@ -104,6 +105,47 @@ describe("firstWords", () => {
   });
 });
 
+describe("messageTitle", () => {
+  const words = (...texts: (string | { field: string })[]): MailingDoc => ({
+    type: "doc",
+    content: [
+      {
+        type: "paragraph",
+        content: texts.map((one) =>
+          typeof one === "string" ? { type: "text", text: one } : { type: "field", attrs: { field: one.field } },
+        ),
+      },
+    ],
+  });
+  const labels = { firstName: "First name" };
+
+  it("is the first sentence after a greeting, begun with a capital", () => {
+    expect(
+      messageTitle(
+        words("Hi ", { field: "firstName" }, ", the stall needs a hand on Saturday. asdfa;sdjf ae fawelfkna w"),
+        labels,
+      ),
+    ).toBe("The stall needs a hand on Saturday.");
+    expect(messageTitle(words("Dear all. Is anyone free? Do say."), labels)).toBe("Is anyone free?");
+    expect(messageTitle(words("Good morning! We marched!"), labels)).toBe("We marched!");
+  });
+
+  it("keeps a field in the sentence, and a sentence with no greeting or no stop as it is", () => {
+    expect(messageTitle(words("See you there, ", { field: "firstName" }, ". Bring a coat."), labels)).toBe(
+      "See you there, {First name}.",
+    );
+    expect(messageTitle(words("hiking on Sunday"), labels)).toBe("Hiking on Sunday");
+  });
+
+  it("is the greeting when that's all there is, and cut short when long", () => {
+    expect(messageTitle(words("Hi ", { field: "firstName" }, ","), labels)).toBe("Hi {First name},");
+    const title = messageTitle(words(`Hi all, ${"word ".repeat(40)}`), labels);
+    expect(title.length).toBeLessThanOrEqual(81);
+    expect(title.startsWith("Word word")).toBe(true);
+    expect(title.endsWith("…")).toBe(true);
+  });
+});
+
 describe("messageScheduleProblems", () => {
   const good: SchedulingMessage = {
     channel: "email",
@@ -142,11 +184,9 @@ describe("messageScheduleProblems", () => {
     ]);
   });
 
-  it("holds a Gmail to being connected and to its daily limit", () => {
-    expect(messageScheduleProblems({ ...good, byGmail: true, recipients: 5000 })).toEqual([
-      "not-connected",
-      "too-many",
-    ]);
+  it("holds a Gmail to being connected, but not to its daily limit, as the rest go the next day", () => {
+    expect(messageScheduleProblems({ ...good, byGmail: true, recipients: 5000 })).toEqual(["not-connected"]);
+    expect(messageScheduleProblems({ ...good, byGmail: true, connected: true, recipients: 5000 })).toEqual([]);
     expect(messageScheduleProblems({ ...good, byGmail: true, connected: true })).toEqual([]);
   });
 

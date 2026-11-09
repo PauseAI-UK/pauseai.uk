@@ -6,9 +6,9 @@ import { addStaffAccount, importLuma, logInAsStaff, newestEmail } from "../steps
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
-export const section: Section = { name: "Messages to supporters", part: "Staff pages", order: 45 };
+export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
 
-// Messages to supporters: started from the supporters list's Consent filter,
+// Broadcasts to supporters: started from the supporters list's Consent filter,
 // by email or text; a text on a WhatsApp approved template, or on new words
 // held for approval; who it's to changed from the list; and the pages of those
 // sent, with each copy's replies, made in the database as scheduling and
@@ -93,30 +93,37 @@ function addSent(database: string, channel: "email" | "text", title: string): { 
   return { id, copy: first };
 }
 
-test("New message, from the messages page", async ({ page, request, flowDatabase }) => {
-  story("Staff open the messages page. New message, at its top right, starts one.");
+test("New broadcast, from the Broadcasts page", async ({ page, request, flowDatabase }) => {
+  story("Staff open the Broadcasts page. New broadcast, at its top right, starts one.");
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/messages`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
-  await frame(page, "The messages page, with New message");
+  await frame(page, "The Broadcasts page, with New broadcast");
   story(
-    "A message starts from the supporters list, as its Consent filter says how it goes, so New message opens the list saying which filter to add.",
+    "New broadcast asks which Consent it goes under, as that says whether it's an email or a text, and what about.",
   );
   await page.getByRole("link", { name: copy.newMessage }).click();
-  await expect(page).toHaveURL(`${BASE}/staff/supporters?why=contact`);
-  await expect(page.getByText(copy.needsContact)).toBeVisible();
-  await frame(page, "The supporters list, saying which filter to add");
+  await expect(page).toHaveURL(`${BASE}/staff/messages/new`);
+  await page
+    .getByLabel(copy.facts.saidYes)
+    .selectOptions(staffCopy.supporters.subscriptions.topics.email["luma-calendar"]);
+  await frame(page, "New broadcast, a Consent chosen");
+  story("Change who makes the draft, to everyone who said yes, and opens the supporters list to narrow them.");
+  await page.getByRole("button", { name: staffCopy.mailingPages.changeWho }).click();
+  await expect(page).toHaveURL(new RegExp(`/staff/supporters\\?${EMAIL}&message=\\d+$`));
+  await expect(page.getByText(copy.choosingCount(EMAILABLE))).toBeVisible();
+  await frame(page, "The list, choosing who it goes to", { window: true });
 });
 
-test("Messaging supporters by email", async ({ page, request, flowDatabase }) => {
+test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   story(
-    "Staff open the supporters list. Message needs a Consent filter, as that says who said yes and how, so it's dashed.",
+    "Staff open the supporters list. Broadcast needs a Consent filter, as that says who said yes and how, so it's dashed.",
   );
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
-  await frame(page, "The supporters list, Message dashed");
+  await frame(page, "The supporters list, Broadcast dashed");
   story("Pressing it says which filter to add.");
   await page.getByRole("link", { name: copy.messageButton(EVERYONE) }).click();
   await expect(page.getByText(copy.needsContact)).toBeVisible();
@@ -126,7 +133,7 @@ test("Messaging supporters by email", async ({ page, request, flowDatabase }) =>
   );
   await page.goto(`${BASE}/staff/supporters?${EMAIL}`);
   await expect(page.getByRole("button", { name: copy.messageButton(EMAILABLE) })).toBeVisible();
-  await frame(page, "The list, ready to message");
+  await frame(page, "The list, ready to broadcast");
   story("It makes a draft to them and opens the writer: by email, from PauseAI UK, with who's left out.");
   await page.getByRole("button", { name: copy.messageButton(EMAILABLE) }).click();
   await expect(page).toHaveURL(/\/staff\/messages\/\d+$/);
@@ -165,10 +172,10 @@ test("Messaging supporters by email", async ({ page, request, flowDatabase }) =>
   await send.getByRole("button", { name: copy.schedule(EMAILABLE, "email") }).click();
   await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
   await frame(page, "The email, scheduled");
-  story("It's in the list of messages, under Coming up.");
+  story("It's in the list of broadcasts, under Coming up.");
   await page.goto(`${BASE}/staff/messages`);
   await expect(page.getByRole("link", { name: "Events near you this month" })).toBeVisible();
-  await frame(page, "The list of messages");
+  await frame(page, "The list of broadcasts");
   story("Unschedule makes it a draft again.");
   await page.getByRole("link", { name: "Events near you this month" }).click();
   await page.getByRole("button", { name: mailingCopy.unschedule }).click();
@@ -246,14 +253,13 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
     flowDatabase,
     `UPDATE message_templates SET status = 'rejected', rejected_at = '2026-10-16T11:00:00Z', rejected_reason = 'The text ends with a merge field.' WHERE status = 'pending'`,
   );
-  runSql(flowDatabase, `DELETE FROM messages_to_supporters WHERE mailing_id = ${id}`);
   runSql(flowDatabase, `UPDATE mailings SET state = 'draft' WHERE id = ${id}`);
   await page.goto(`${BASE}/staff/messages/${id}`);
   await expect(page.getByText(/The text ends with a merge field/)).toBeVisible();
   await frame(page, "Rejected, and what to do");
 });
 
-test("Changing who a message goes to", async ({ page, request, flowDatabase }) => {
+test("Changing who a broadcast goes to", async ({ page, request, flowDatabase }) => {
   story(
     "On a draft, Change who opens the supporters list choosing for it: the dark strip at the top naming the draft, and the dark bar at the foot.",
   );
@@ -275,7 +281,7 @@ test("Changing who a message goes to", async ({ page, request, flowDatabase }) =
   await page.goto(url.toString());
   await expect(bar.getByRole("button", { name: copy.useThese(EMAILABLE) })).toBeVisible();
   await frame(page, "Narrowed", { window: true });
-  story("Take off the Consent filter and the bar says it's needed, as the message's channel and topic are fixed.");
+  story("Take off the Consent filter and the bar says it's needed, as the broadcast's channel and topic are fixed.");
   const without = new URL(page.url());
   without.searchParams.delete("contact");
   await page.goto(without.toString());
@@ -320,7 +326,7 @@ test("An email sent, and replying", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: copy.sendReply.email }).click();
   await expect(page.getByText("Yes, dogs are welcome.")).toBeVisible();
   await frame(page, "The reply sent");
-  story("The supporter's page lists the message, with their reply.");
+  story("The supporter's page lists the broadcast, with their reply.");
   const [supporter] = runSql(flowDatabase, `SELECT supporter_id FROM messages_to_supporters WHERE id = ${sent.copy}`);
   await page.goto(`${BASE}/staff/supporters/${supporter}`);
   await expect(page.getByRole("heading", { name: copy.supporterTitle })).toBeVisible();

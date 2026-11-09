@@ -525,13 +525,12 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await frame(page, "Those who can't be emailed about Luma");
   story("They change the topic to PauseAI global. Now Owen is there, and Jane isn't.");
 
-  // Another topic, from the chip's first half, then its answer.
+  // Another topic, from the chip's first half, keeping its answer.
   await changeFilter(
     page,
     `${copy.columns.subscriptions}: ${copy.filters.topics["luma-calendar"]}`,
     copy.filters.topics["pauseai-updates"],
   );
-  await changeFilter(page, answers.email.yes, answers.email.no);
   await expect(page).toHaveURL(/contact=email%3Apauseai-updates%3Ano/);
   await expect(page.getByRole("row").filter({ hasText: "Owen Member" })).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toHaveCount(0);

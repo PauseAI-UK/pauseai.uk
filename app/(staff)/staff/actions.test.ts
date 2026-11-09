@@ -284,7 +284,7 @@ describeWithDatabase("staff Server Actions", () => {
   it("importMembersNow copies the members as the staff member", async () => {
     await importMembersNow();
     expect(await runs()).toEqual([{ job: "import-members", status: "ok", startedBy: "jo@pauseai.uk" }]);
-    expect(await query("SELECT count(*)::int AS n FROM members")).toEqual([{ n: 8 }]);
+    expect(await query("SELECT count(*)::int AS n FROM members")).toEqual([{ n: 9 }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/members");
   });
 

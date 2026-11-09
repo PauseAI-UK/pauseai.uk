@@ -4,7 +4,7 @@ import { createDraft, getWrittenMailing, saveDraft } from "@/lib/server/mailing-
 import { createMessageDraft, getWrittenMessage } from "@/lib/server/message-drafts";
 import { createSession } from "@/lib/server/staff-auth";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/message-fixtures";
+import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/message-fixtures";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
   attachToMessage,
@@ -12,6 +12,7 @@ import {
   detachFromMessage,
   keepFilterForMessage,
   newMessage,
+  newMessageChoosing,
   replyToMessageNow,
   rescheduleMessageNow,
   saveMessage,
@@ -70,6 +71,19 @@ describeWithDatabase("the message pages' Server Actions", () => {
     await expect(expectRedirect(() => newMessage(form({ near: "LS1", within: ["10", "25"] })))).resolves.toBe(
       "/staff/supporters?near=LS1&within=10&within=25&why=contact",
     );
+    expect(await query("SELECT id FROM mailings WHERE body IS NOT NULL")).toEqual([]);
+  });
+
+  it("makes a draft from New broadcast's Consent, and opens the list choosing who for it", async () => {
+    const to = await expectRedirect(() => newMessageChoosing(form(EMAIL)));
+    const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM mailings WHERE body IS NOT NULL");
+    expect(to).toBe(`/staff/supporters?contact=${encodeURIComponent(EMAIL.contact)}&message=${id}`);
+    expect((await getWrittenMessage(id))!.filter.params).toEqual(EMAIL);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/messages");
+  });
+
+  it("goes back to New broadcast without a Consent answered yes", async () => {
+    await expect(expectRedirect(() => newMessageChoosing(form({})))).resolves.toBe("/staff/messages/new");
     expect(await query("SELECT id FROM mailings WHERE body IS NOT NULL")).toEqual([]);
   });
 
@@ -151,6 +165,7 @@ describeWithDatabase("the message pages' Server Actions", () => {
     const id = await draft();
     await saveMessage(id, 1, { subject: "Hi", body: EVENT_WORDS, dueAt: FUTURE });
     await scheduleMessageNow(id, 2);
+    await startSending(id, "sent");
     const [{ copy }] = await query<{ copy: number }>("SELECT id::int AS copy FROM messages_to_supporters");
     await replyToMessageNow(form({ id: "", copy: String(copy), body: "No" }));
     await replyToMessageNow(form({ id: String(id), copy: "", body: "No" }));

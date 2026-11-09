@@ -1,3 +1,4 @@
+import Tag from "@/components/ui/Tag";
 import type React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
@@ -831,6 +832,24 @@ describe("filterWords", () => {
       "Near: LS1",
     ]);
   });
+
+  it("says one that comes after another with it, its default too, and only while that one's on", () => {
+    const filters: Filter[] = [
+      { name: "campaign", label: "Campaign", options: [{ value: "c", label: "C" }] },
+      {
+        name: "wrote",
+        label: "Campaign",
+        after: "campaign",
+        options: [
+          { value: "", label: "Wrote" },
+          { value: "no", label: "Didn't" },
+        ],
+      },
+    ];
+    expect(filterWords(filters, { campaign: "c" }, "q")).toEqual(["Campaign: C, Wrote"]);
+    expect(filterWords(filters, { campaign: "c", wrote: "no" }, "q")).toEqual(["Campaign: C, Didn't"]);
+    expect(filterWords(filters, { wrote: "no" }, "q")).toEqual([]);
+  });
 });
 
 describe("filteredTitle", () => {
@@ -899,6 +918,31 @@ describe("Band", () => {
     }
     // A fact with no value isn't there.
     await expect.element(page.getByText("Ask")).not.toBeInTheDocument();
+  });
+
+  it("shows a plain tag on it in white, apart from the band, and a coloured one in its colour", async () => {
+    await render(
+      <Band
+        title="A message"
+        tag={
+          <>
+            <Tag>Sent</Tag>
+            <Tag tone="green">Read</Tag>
+          </>
+        }
+      >
+        {null}
+      </Band>,
+    );
+    const background = (element: Element) => getComputedStyle(element).backgroundColor;
+    const band = page.getByRole("heading", { level: 1 }).element().closest("div")!.parentElement!.parentElement!;
+    const plain = page.getByText("Sent", { exact: true }).element();
+    expect(background(plain)).toBe("rgb(255, 255, 255)");
+    expect(background(plain)).not.toBe(background(band));
+    expect(background(page.getByText("Read", { exact: true }).element())).not.toBe("rgb(255, 255, 255)");
+    // Off the band, a plain tag keeps the second surface.
+    await render(<Tag>Alone</Tag>);
+    expect(background(page.getByText("Alone", { exact: true }).element())).toBe(background(band));
   });
 });
 

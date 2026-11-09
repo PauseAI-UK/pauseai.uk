@@ -200,10 +200,9 @@ export default function MessageView({
         }
         aside={!scheduled && <Counts counts={counts} />}
       >
+        {/* The channel's icon is Said yes to's, beside it. */}
         <BandFact label={copy.facts.from} detail={`${written.fromName}, ${copy.byBackend[written.channel]}`}>
-          <IconText icon={<ChannelIcon channel={written.channel === "email" ? "email" : "phone"} />}>
-            {spacedNumber(written.sentFrom!)}
-          </IconText>
+          {spacedNumber(written.sentFrom!)}
         </BandFact>
         <BandFact label={copy.facts.saidYes}>{contact}</BandFact>
         <BandFact label={staffCopy.mailingPages.to} detail={staffCopy.campaigns.supporters(summary.to)}>
@@ -231,18 +230,23 @@ export default function MessageView({
             <h2>{tab === "all" ? copy.recipientsTitle : copy.tabs[tab]}</h2>
             {tab !== "all" && <StaffLink href={path}>{staffCopy.mailingPages.showEveryone}</StaffLink>}
           </div>
-          <ListFrame
-            count={copy.recipientsCount(data.recipientsTotal)}
-            total={data.recipientsTotal}
-            page={data.page}
-            pages={data.pages}
-            pageSize={data.pageSize}
-            href={(n) => filtersPath(path, { tab: tab === "all" ? "" : tab, ...pageParam(n) })}
-            columns={recipientColumns(summary)}
-            rows={data.recipients}
-            rowKey={(r) => r.copyId}
-            empty={copy.noRecipients}
-          />
+          {/* Sending finds who it goes to, so one scheduled has none yet. */}
+          {scheduled ? (
+            <Muted>{copy.recipientsWhenSent}</Muted>
+          ) : (
+            <ListFrame
+              count={copy.recipientsCount(data.recipientsTotal)}
+              total={data.recipientsTotal}
+              page={data.page}
+              pages={data.pages}
+              pageSize={data.pageSize}
+              href={(n) => filtersPath(path, { tab: tab === "all" ? "" : tab, ...pageParam(n) })}
+              columns={recipientColumns(summary)}
+              rows={data.recipients}
+              rowKey={(r) => r.copyId}
+              empty={copy.noRecipients}
+            />
+          )}
         </Card>
       </Grid>
     </div>

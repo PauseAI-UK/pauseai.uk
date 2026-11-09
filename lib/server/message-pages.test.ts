@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { LETTERS_INBOX } from "@/tests/fixture-env.mjs";
-import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/message-fixtures";
+import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/message-fixtures";
 import { createMessageDraft, getWrittenMessage, saveMessageDraft, scheduleMessage } from "./message-drafts";
 import {
   choosingMessage,
@@ -33,9 +33,13 @@ async function scheduled(params: Record<string, string>, changes: object): Promi
   return id;
 }
 
-/** Sets a message's copies going as sent, and each status by supporter's order, as `statuses`; returns their IDs. */
+/**
+ * Sets a message sent, with a message to each recipient its filters find, as
+ * sending makes them, each status by supporter's order, as `statuses`;
+ * returns their IDs.
+ */
 async function sent(id: number, statuses: [string, string | null][]): Promise<number[]> {
-  await query("UPDATE mailings SET state = 'sent' WHERE id = $1", [id]);
+  await startSending(id, "sent");
   const copies = await query<{ id: number }>(
     "SELECT id::int AS id FROM messages_to_supporters WHERE mailing_id = $1 ORDER BY id",
     [id],

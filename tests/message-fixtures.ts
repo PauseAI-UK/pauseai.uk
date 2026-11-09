@@ -1,4 +1,6 @@
 import { query } from "@/lib/server/db";
+import { getWrittenMessage } from "@/lib/server/message-drafts";
+import { supporterAudience } from "@/lib/server/message-recipients";
 import { refreshSupportersList } from "@/lib/server/supporter-facts";
 import { linkSupporters } from "@/lib/server/supporters";
 
@@ -71,4 +73,20 @@ export async function addTemplate(
     ],
   );
   return id;
+}
+
+/**
+ * Sets scheduled message `id` going, `state`, with a message to each
+ * recipient its filters find, not yet sent, as sending will make them.
+ */
+export async function startSending(id: number, state: "sending" | "sent" = "sending"): Promise<void> {
+  const message = (await getWrittenMessage(id))!;
+  for (const r of (await supporterAudience(message.filter, message)).recipients) {
+    await query(
+      `INSERT INTO messages_to_supporters (mailing_id, supporter_id, address, status, merge_values)
+       VALUES ($1, $2, $3, 'scheduled', $4)`,
+      [id, r.id, r.address, JSON.stringify({ name: r.name, place: r.place, values: r.values, meets: r.meets })],
+    );
+  }
+  await query("UPDATE mailings SET state = $2 WHERE id = $1", [id, state]);
 }

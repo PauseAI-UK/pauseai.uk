@@ -1,9 +1,9 @@
 # Email to supporters
 
-The UK weekly, and smaller mailings such as one to a local group, sent
+The UK weekly, and smaller broadcasts such as one to a local group, sent
 from pauseai.uk instead of CiviCRM, so each email can be personal, with
 events near the reader and their MP, and the UK controls its list. This
-uses the staff pages at `/staff/messages`, and is one pull request,
+uses the Broadcasts pages at `/staff/messages`, and is one pull request,
 once we can read CiviCRM's unsubscribes.
 
 ## Now
@@ -183,12 +183,24 @@ question 1).
    `hello@pauseai.uk`, which needs that address as a sender signature in
    Postmark; the site's own emails go from `noreply@`. Postmark reviews
    new broadcast senders, so apply early. A small local message could go by
-   Gmail instead.
-5. Opt-outs, as below: the link and header in every email, the page
+   Gmail instead. Sending finds who it goes to when it starts. By a Gmail,
+   those past its daily limit go the next day, and the next, until all
+   have gone, and the broadcast's page says how many days it takes.
+5. Postmark's webhooks on the broadcast stream, as the site already takes
+   them for its own emails (`lib/server/postmark-webhooks.ts`), each
+   matched to its message by Postmark's message ID: delivery, for the
+   delivered count; a bounce, marking the message failed and, if hard,
+   blocking the address; and a spam complaint (below). Replies come by
+   Postmark's inbound webhook to the message's page, unless the site can
+   read `hello@pauseai.uk` (open question 5).
+6. Opt-outs, as below: the link and header in every email, the page
    they lead to, the webhooks, and staff recording one by hand.
-6. The weekly's sections: the main events with how many have signed up,
+7. Opt-ins: staff recording a yes given elsewhere, such as at an event
+   or in an email, as for texts (`plans/supporters-phone.md`, step 2 of
+   the groundwork), below.
+8. The weekly's sections: the main events with how many have signed up,
    events near the reader, and their MP.
-7. Before the first send, set up Google Postmaster Tools and DMARC
+9. Before the first send, set up Google Postmaster Tools and DMARC
    reports, so we can see our spam rate; pauseai.uk's DMARC is
    `p=none`, with no reports. Google wants complaints below 0.1%
    ([sender guidelines](https://support.google.com/a/answer/81126)).
@@ -231,6 +243,12 @@ member records can reopen one.
 
 ## Getting more people to say yes
 
+- Staff record a yes given another way, such as at an event or in an
+  email, on the supporter's page: the address, which emails it's for,
+  when and how it was given, and who recorded it. It's a yes for that
+  address from then on, but not over a stop: a resubscribe must come
+  from the person (above).
+
 - Our own join form on pauseai.uk, with a "PauseAI UK can email me" box,
   still passing new members to Global. pauseai.uk brought in 351 of the
   427 UK signups in October.
@@ -248,8 +266,9 @@ member records can reopen one.
 Record in `docs/data-protection.md`: the chapter contacts read from
 CiviCRM, kept after erasure like other stops; our stops sent to Global,
 a disclosure to a joint controller once the agreement is signed; the
-weekly, sent by Postmark's broadcast stream; and our join form as a new
-source. The privacy policy should say that we email people who said
+weekly, sent by Postmark's broadcast stream; our join form as a new
+source; and the yeses staff record, with who recorded each and how it
+was given. The privacy policy should say that we email people who said
 yes, and how to stop.
 
 ## Open questions
@@ -270,3 +289,9 @@ yes, and how to stop.
 5. Is `hello@pauseai.uk` a mailbox the site can read, as it reads
    connected Gmails for replies from politicians (`read-gmail`)? If not,
    replies need another address or Postmark's inbound webhook.
+6. Should there be a preferences page anyone can reach, not only from an
+   email's unsubscribe link? It would let someone sign up, choose their
+   emails and resubscribe after a stop, ticking a box whose words are
+   kept, from a link we email to their address. It's the place open
+   question 4 needs, and the only way back after a stop; without it, a
+   resubscribe can come only from a new form.

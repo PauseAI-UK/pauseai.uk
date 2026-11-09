@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { messageCopy } from "@/lib/server/message-pages";
 import { requireStaff } from "@/lib/server/staff-auth";
@@ -27,7 +26,7 @@ export default async function MessageCopyPage({ params }: Params) {
   const one = await copyOf(params);
   return (
     <>
-      <Breadcrumb href={`/staff/messages/${one.messageId}`}>{staffCopy.nav.messages}</Breadcrumb>
+      <Breadcrumb href={`/staff/messages/${one.messageId}`}>{one.title}</Breadcrumb>
       <MessageCopyView one={one} reply={replyToMessageNow} />
     </>
   );

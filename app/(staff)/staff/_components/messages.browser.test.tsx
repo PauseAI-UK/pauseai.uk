@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
+import { GMAIL_DAILY_LIMIT } from "@/lib/gmail-connect";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mailingGroups } from "@/lib/mailing-groups";
 import type { MessageTemplate } from "@/lib/server/message-drafts";
@@ -12,6 +13,7 @@ import { navigation } from "@/tests/browser/navigation";
 import MessageCopyView from "./MessageCopyView";
 import MessageFor, { MessageContact, MessageWho } from "./MessageFor";
 import { ChoosingMessageFrame, MessageSupporters, NeedsContactFilter } from "./MessageSupporters";
+import NewMessage from "./NewMessage";
 import MessageView, { copyStatus } from "./MessageView";
 import MessageWriter, { type MessageWriterActions } from "./MessageWriter";
 import {
@@ -111,7 +113,8 @@ describe("MessageWriter, by email", () => {
     await vi.waitFor(() => expect(actions.save).toHaveBeenCalled(), WAIT);
     const saved = actions.save.mock.calls[0][2] as { subject: string; body: { content: unknown[] } };
     expect(saved.subject).toBe("Events");
-    expect(saved.body.content).toHaveLength(2);
+    // The greeting, a line to write on, and the signature a few lines down.
+    expect(saved.body.content).toHaveLength(4 + copy.signature.length);
     await expect.element(page.getByRole("heading", { name: "Events", level: 1 })).toBeVisible();
   });
 
@@ -129,19 +132,14 @@ describe("MessageWriter, by email", () => {
     await renderWriter();
     const local = button(copy.conditions.localGroup.label);
     const mp = button(copy.conditions.mp.label);
-    await expect.element(page.getByText(copy.shownAs("Jane Example"), { exact: false })).toBeVisible();
+    await expect.element(page.getByText("Jane Example <jane@example.com>")).toBeVisible();
     await expect.element(local).toHaveAttribute("aria-pressed", "true");
     await local.click();
     await expect.element(page.getByText(copy.noOneMix)).toBeVisible();
     await mp.click();
     await button(copy.conditions.volunteer.label).click();
-    await expect.element(page.getByText(copy.shownAs("Sam"), { exact: false })).toBeVisible();
+    await expect.element(page.getByText("Sam <sam@example.com>")).toBeVisible();
     await expect.element(page.getByText(/your MP/).first()).toBeVisible();
-  });
-
-  it("says how many lack the fields it uses", async () => {
-    await renderWriter();
-    await expect.element(page.getByText(copy.lackingField.firstName(23), { exact: false })).toBeVisible();
   });
 
   it("sends a test copy, and says where it went, or that it couldn't", async () => {
@@ -157,11 +155,25 @@ describe("MessageWriter, by email", () => {
     await expect.element(button(copy.sendTest)).toBeDisabled();
   });
 
-  it("says plainly who it's from, and changes to a connected Gmail", async () => {
+  it("names what sends from each address, and changes to a connected Gmail", async () => {
     const actions = await renderWriter();
-    await expect.element(page.getByText(copy.fromPostmark("PauseAI UK", "hello@pauseai.uk"))).toBeVisible();
+    // Each address names what sends from it.
+    await expect
+      .element(page.getByRole("option", { name: copy.fromOption("hello@pauseai.uk", "Postmark") }))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByRole("option", { name: copy.fromOption("jo@pauseai.uk", "Gmail") }))
+      .toBeInTheDocument();
+    expect(document.body.textContent).not.toContain(GMAIL_DAILY_LIMIT.toLocaleString("en-GB"));
+    await expect.element(page.getByText(copy.testVia.email)).toBeVisible();
+    // An email's preview says nothing of how to stop; a text's does (below).
+    await expect.element(page.getByText(copy.howToStop)).not.toBeInTheDocument();
     await page.getByLabelText(copy.fromAccount, { exact: false }).selectOptions("jo@pauseai.uk");
-    await expect.element(page.getByText(copy.fromGmail("jo@pauseai.uk"))).toBeVisible();
+    // The test goes the same way.
+    await expect.element(page.getByText(copy.testVia.emailGmail("jo@pauseai.uk"))).toBeVisible();
+    // How many it has sent today, of its daily limit; none for Postmark's.
+    const sentToday = staffCopy.gmail.sentToday(12, GMAIL_DAILY_LIMIT.toLocaleString("en-GB"));
+    await expect.element(page.getByText(sentToday)).toBeVisible();
     await page.getByLabelText(copy.fromName, { exact: false }).fill("Jo at PauseAI");
     await vi.waitFor(() => expect(actions.save).toHaveBeenCalled(), WAIT);
   });
@@ -232,12 +244,6 @@ describe("MessageWriter, by email", () => {
     await expect.element(page.getByText(copy.problems["no-letter"])).toBeVisible();
   });
 
-  it("names only those lacking a field it uses", async () => {
-    const fields = exampleMessageData.fields.map((field) => ({ ...field, lacking: 0 }));
-    await renderWriter({ data: { ...exampleMessageData, fields } });
-    await expect.element(page.getByText(copy.shownAs("Jane Example"), { exact: true })).toBeVisible();
-  });
-
   it("goes back to the first if the one shown is no longer among them", async () => {
     const actions = fakeActions();
     const writer = (recipients: typeof exampleMessageData.recipients) => (
@@ -251,7 +257,7 @@ describe("MessageWriter, by email", () => {
     );
     const view = await render(writer(exampleMessageData.recipients));
     await view.rerender(writer([exampleMessageData.recipients[1]]));
-    await expect.element(page.getByText(copy.shownAs("Sam"), { exact: false })).toBeVisible();
+    await expect.element(page.getByText("Sam <sam@example.com>")).toBeVisible();
   });
 
   it("copes with a condition it has no words for, and a part for all but those", async () => {
@@ -293,8 +299,8 @@ describe("MessageWriter, by text", () => {
     await march.click();
     await expect.element(march).toBeChecked();
     await expect.element(page.getByText(copy.templateFixed, { exact: false })).toBeVisible();
+    await expect.element(page.getByText(copy.howToStop)).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "March day reminder", level: 1 })).toBeVisible();
-    await expect.element(page.getByText(copy.shownAs("Jane Example"), { exact: false })).toBeVisible();
     await vi.waitFor(() => expect(actions.save.mock.calls[0][2]).toMatchObject({ templateId: 1 }), WAIT);
     await expect.element(page.getByRole("group", { name: copy.templatesLabel })).toBeVisible();
     await page.getByRole("radio", { name: /Event reminder/ }).click();
@@ -517,6 +523,30 @@ describe("the supporters list", () => {
   });
 });
 
+describe("NewMessage", () => {
+  it("offers each Consent that can be a yes, and sends the one chosen on with Change who", async () => {
+    const chosen: (string | null)[] = [];
+    await render(<NewMessage action={(form) => void chosen.push(form.get("contact") as string | null)} />);
+    await expect.element(page.getByRole("heading", { name: copy.newMessage, level: 1 })).toBeVisible();
+    const consent = page.getByLabelText(copy.facts.saidYes, { exact: false });
+    const topics = staffCopy.supporters.subscriptions.topics;
+    expect([...consent.element().querySelectorAll("option")].map((o) => o.textContent)).toEqual([
+      staffCopy.mailingPages.choose,
+      topics.email["site-forms"],
+      topics.email["luma-calendar"],
+      topics.phone["site-forms"],
+      topics.phone["luma-calendar"],
+      topics.phone.volunteering,
+      topics.phone["march-day"],
+    ]);
+    // None chosen, the browser won't send it.
+    expect((consent.element() as HTMLSelectElement).required).toBe(true);
+    await consent.selectOptions(topics.email["luma-calendar"]);
+    await button(staffCopy.mailingPages.changeWho).click();
+    await vi.waitFor(() => expect(chosen).toEqual(["email:luma-calendar:yes"]), WAIT);
+  });
+});
+
 describe("a message's page", () => {
   const actions = { stop: nothing, reschedule: nothing };
   const who = <p>Who</p>;
@@ -628,6 +658,9 @@ describe("a message's page", () => {
     await expect.element(page.getByText(copy.waitingStrip)).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.waiting, { exact: true })).not.toBeInTheDocument();
     await expect.element(page.getByText(ONCE_APPROVED)).not.toBeInTheDocument();
+    // No one listed yet, as sending finds who it goes to.
+    await expect.element(page.getByText(copy.recipientsWhenSent)).toBeVisible();
+    expect(page.getByRole("table").all()).toHaveLength(0);
   });
 
   it("shows one sending with a bar, no tag, and untitled when it has none", async () => {

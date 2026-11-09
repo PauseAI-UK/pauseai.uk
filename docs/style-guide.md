@@ -311,7 +311,7 @@ The page's own button for the same thing (New mailing, or Mail these) goes while
 choosing, so there's one way on. The person chooses with tools they
 already know. The top always says what they're doing and how to stop,
 and the foot always shows the result and the way on, however far they've
-scrolled. A new choosing mode, such as supporters for a message, uses
+scrolled. A new choosing mode, such as supporters for a broadcast, uses
 these two bars, not a design of its own. Both live with the politicians
 list now (`_components/PoliticiansList.tsx`); a second user moves them to
 `ui/`.
@@ -532,7 +532,7 @@ are:
   it. Its value is one parameter: `contact=email:site-forms:yes`.
 - A filter that matters most has its own button (`own`), before "+ Filter",
   which doesn't offer it; once it's on, its chip comes first. The
-  supporters list's Consent is one, as it's what a message needs.
+  supporters list's Consent is one, as it's what a broadcast needs.
 - Clear filters, last, while anything is on, empties the search and every
   filter, and the sort. A tab over the list, such as the politicians'
   houses, isn't a filter: Clear filters keeps it.

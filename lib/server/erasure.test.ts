@@ -136,14 +136,14 @@ describeWithDatabase("eraseSupporter", () => {
       },
     ]);
     // Everyone else is still there, and the next import doesn't bring Jane back.
-    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 13 }]);
+    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 14 }]);
     await query("UPDATE luma_events SET guests_synced_at = NULL, hosts_synced_at = NULL");
     await importLuma("test");
     await importMembers("test");
     expect(await query("SELECT 1 FROM luma_people WHERE user_id = 'usr-fixture-1'")).toEqual([]);
     expect(await query("SELECT 1 FROM luma_event_hosts WHERE user_id = 'usr-fixture-1'")).toEqual([]);
     expect(await query("SELECT 1 FROM members WHERE id = 'recMemberJane'")).toEqual([]);
-    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 13 }]);
+    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 14 }]);
   });
 
   describe("a letter from the letters inbox", () => {

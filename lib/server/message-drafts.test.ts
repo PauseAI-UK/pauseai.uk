@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { query } from "@/lib/server/db";
 import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/message-fixtures";
+import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/message-fixtures";
 import { getWrittenMailing, saveDraft } from "./mailing-drafts";
 import {
   approvedTemplates,
@@ -147,25 +147,21 @@ describeWithDatabase("messages to supporters", () => {
       version: 3,
     });
     expect(await getWrittenMessage(id)).toMatchObject({
-      title: expect.stringContaining("see you there"),
+      title: "See you there.",
       template: null,
     });
     // Only a time keeps them.
     await saveMessageDraft(message, 3, { dueAt: FUTURE });
-    expect((await getWrittenMessage(id))!.title).toContain("see you there");
+    expect((await getWrittenMessage(id))!.title).toBe("See you there.");
   });
 
-  it("schedules an email: fixes who gets it, with their values, and sets it going", async () => {
-    const jane = await addFollower("usr-1", "jane@example.com", "Jane Smith");
+  it("schedules an email, leaving who gets it for sending to find", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith");
     const id = await draftOf(EMAIL_FILTER);
     const version = await readied(id, { subject: "Events", body: EVENT_WORDS, fromName: null });
     expect(await scheduleMessage(id, version, JO)).toEqual({ scheduled: true });
     expect(await getWrittenMessage(id)).toMatchObject({ state: "scheduled", fromName: "" });
-    expect(
-      await query(
-        `SELECT supporter_id::int AS id, address, status, merge_values ->> 'name' AS name FROM messages_to_supporters`,
-      ),
-    ).toEqual([{ id: jane, address: "jane@example.com", status: "scheduled", name: "Jane Smith" }]);
+    expect(await query("SELECT id FROM messages_to_supporters")).toEqual([]);
     expect(await scheduleMessage(id, version + 1, JO)).toEqual({ scheduled: false, reason: "not-draft" });
   });
 
@@ -205,7 +201,7 @@ describeWithDatabase("messages to supporters", () => {
     expect((await getWrittenMessage(fresh))!.template).toMatchObject({
       status: "pending",
       createdBy: JO,
-      name: expect.stringContaining("see you there"),
+      name: "See you there.",
       body: EVENT_WORDS,
     });
   });
@@ -238,7 +234,7 @@ describeWithDatabase("messages to supporters", () => {
     await addTemplate("Rejected", { status: "rejected" });
     const id = await draftOf(TEXT_FILTER);
     await scheduleMessage(id, await readied(id, { templateId: used }), JO);
-    await query("UPDATE mailings SET state = 'sent' WHERE id = $1", [id]);
+    await startSending(id, "sent");
     expect(await approvedTemplates()).toMatchObject([
       { id: used, lastUsedAt: expect.anything(), lastUsedTo: 1 },
       { id: unused, createdBy: null, lastUsedAt: null, lastUsedTo: 0 },
@@ -251,7 +247,6 @@ describeWithDatabase("messages to supporters", () => {
     await scheduleMessage(id, await readied(id, { body: EVENT_WORDS }), JO);
     expect(await stopMessage(id, JO)).toBe(true);
     expect(await getWrittenMessage(id)).toMatchObject({ state: "draft", template: null, body: EVENT_WORDS });
-    expect(await query("SELECT id FROM messages_to_supporters")).toEqual([]);
     expect(await query("SELECT id FROM message_templates")).toEqual([]);
     expect(await stopMessage(id, JO)).toBe(false);
     expect(await stopMessage(999, JO)).toBe(false);
@@ -270,7 +265,7 @@ describeWithDatabase("messages to supporters", () => {
     await addFollower("usr-1", "jane@example.com", "Jane");
     const id = await draftOf(EMAIL_FILTER);
     await scheduleMessage(id, await readied(id, { subject: "Events", body: EVENT_WORDS }), JO);
-    await query("UPDATE mailings SET state = 'sending' WHERE id = $1", [id]);
+    await startSending(id);
     expect(await stopMessage(id, JO)).toBe(true);
     expect((await getWrittenMessage(id))!.state).toBe("cancelled");
     expect(await query("SELECT status FROM messages_to_supporters")).toEqual([{ status: "cancelled" }]);
@@ -305,7 +300,7 @@ function describe_replies() {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const id = await draftOf(params);
     await scheduleMessage(id, await readied(id, changes), JO);
-    await query("UPDATE mailings SET state = 'sent' WHERE id = $1", [id]);
+    await startSending(id, "sent");
     const [{ copy }] = await query<{ copy: number }>(
       "UPDATE messages_to_supporters SET status = 'sent' RETURNING id::int AS copy",
     );

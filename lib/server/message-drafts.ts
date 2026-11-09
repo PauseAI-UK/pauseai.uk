@@ -4,7 +4,7 @@ import { toText } from "@/lib/letter-format";
 import { now } from "@/lib/now";
 import { storedFilter, type Params } from "@/lib/staff-search";
 import {
-  firstWords,
+  messageTitle,
   messageScheduleProblems,
   messageTerms,
   FIELD_WORDS,
@@ -188,7 +188,7 @@ export async function saveMessageDraft(
   return saveDraft(
     message.id,
     version,
-    changes.body ? { ...changes, title: firstWords(changes.body, FIELD_WORDS) } : changes,
+    changes.body ? { ...changes, title: messageTitle(changes.body, FIELD_WORDS) } : changes,
   );
 }
 
@@ -198,10 +198,10 @@ export type MessageScheduleResult =
   | { scheduled: false; reason: "conflict" | "not-draft" | "gone" };
 
 /**
- * Schedules a draft message at `version`, if nothing stops it: its recipients
- * are fixed, a scheduled message each, keeping their name, place and merge
- * values, which erasing them deletes. A text on new words sends them for
- * approval as a new template, and stays held until WhatsApp decides.
+ * Schedules a draft message at `version`, if nothing stops it. Who it goes to
+ * isn't fixed: sending finds them, a message each, keeping their name, place
+ * and merge values, which erasing them deletes. A text on new words sends
+ * them for approval as a new template, and stays held until WhatsApp decides.
  */
 export async function scheduleMessage(id: number, version: number, by: string): Promise<MessageScheduleResult> {
   return transaction(async (db) => {
@@ -233,7 +233,7 @@ export async function scheduleMessage(id: number, version: number, by: string): 
         `WITH t AS (INSERT INTO message_templates (name, body, status, created_by)
            VALUES ($2, $3, 'pending', $4) RETURNING id)
          UPDATE mailings SET template_id = t.id FROM t WHERE mailings.id = $1`,
-        [id, firstWords(message.body, FIELD_WORDS), JSON.stringify(message.body), by],
+        [id, messageTitle(message.body, FIELD_WORDS), JSON.stringify(message.body), by],
         db,
       );
     }
@@ -242,30 +242,16 @@ export async function scheduleMessage(id: number, version: number, by: string): 
       [id],
       db,
     );
-    await query(
-      `INSERT INTO messages_to_supporters (mailing_id, supporter_id, address, status, merge_values)
-       SELECT $1, r.id, r.address, 'scheduled', r.merge FROM json_to_recordset($2::json) AS r (id bigint, address text, merge jsonb)`,
-      [
-        id,
-        JSON.stringify(
-          audience.recipients.map((r) => ({
-            id: r.id,
-            address: r.address,
-            merge: { name: r.name, place: r.place, values: r.values, meets: r.meets },
-          })),
-        ),
-      ],
-      db,
-    );
+    // Who it goes to isn't kept: sending finds them, so it reaches whoever the filters find then.
     await logChange(by, "schedule message", { id, recipients: audience.recipients.length }, db);
     return { scheduled: true };
   });
 }
 
 /**
- * Stops a message: a scheduled one becomes a draft again, its recipients let
- * go and any new words it sent for approval taken back; one sending sends no
- * more. Says whether it stopped.
+ * Stops a message: a scheduled one becomes a draft again, any new words it
+ * sent for approval taken back; one sending sends no more. Says whether it
+ * stopped.
  */
 export async function stopMessage(id: number, by: string): Promise<boolean> {
   return transaction(async (db) => {
@@ -275,7 +261,6 @@ export async function stopMessage(id: number, by: string): Promise<boolean> {
       db,
     );
     if (message?.state === "scheduled") {
-      await query("DELETE FROM messages_to_supporters WHERE mailing_id = $1", [id], db);
       await query(
         "UPDATE mailings SET state = 'draft', version = version + 1, updated_at = now() WHERE id = $1",
         [id],

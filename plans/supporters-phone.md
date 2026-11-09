@@ -1,8 +1,9 @@
 # Texts to supporters
 
-Messages to supporters by text, on the staff pages at
-`/staff/messages`. A message is by email or by text. A text is sent
-by WhatsApp, and perhaps later by SMS to numbers not on WhatsApp.
+Broadcasts to supporters by text, on the Broadcasts pages at
+`/staff/messages`. A broadcast is by email or by text, and each
+supporter's copy is a message; a broadcast by text is a text for short.
+A text is sent by WhatsApp, and perhaps later by SMS to numbers not on WhatsApp.
 Two pull requests, and an optional third:
 
 1. Groundwork: consent, opt-outs and replies.
@@ -98,7 +99,7 @@ and event messages.
 
 ### Steps
 
-1. Each message in a text records which backend sent it.
+1. Each message of a broadcast by text records which backend sent it.
    `mailings.channel` loses `whatsapp`, leaving `email` and `text`.
 2. Opt-ins: the Luma checkbox, which the import reads as it reads the
    postcode question; and staff recording a yes given elsewhere, with
@@ -218,8 +219,10 @@ then on the site sends by itself for three days from its scheduled
 time, a fixed limit nobody sets. The writer and the scheduled page say
 so quietly, in grey, under the time: "Will automatically stop sending
 on Sun 15 Nov at 09:18". They say how many days the text
-takes at the account's daily limit when it's more than one. Until then,
-every copy that can go, goes:
+takes at the account's daily limit when it's more than one. Who it goes
+to is found when sending starts, as for every broadcast, so a text held
+for approval reaches whoever the filters find once it's approved. Until
+then, every copy that can go, goes:
 
 - at the scheduled time, if the template is approved by then;
 - as soon as approval arrives, if it comes later;
@@ -234,8 +237,8 @@ before the time runs out stops the text the same way, at once, with
 Meta's reason in plain words. A template rejected is a draft again
 (step 2), as nothing has gone. Nothing is ever sent after a
 text has stopped. A stopped text's page offers to schedule it
-again to those it never reached, a new text whose filter is "not
-sent this message", so fixing the words or giving it more time
+again to those it never reached, a new broadcast whose filter is "not
+sent this broadcast", so fixing the words or giving it more time
 doesn't text again the people it did reach.
 
 ## 3. Optional: an SMS backend

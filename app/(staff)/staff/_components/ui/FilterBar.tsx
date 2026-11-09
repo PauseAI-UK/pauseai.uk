@@ -93,16 +93,20 @@ function valueWords(filter: Filter, value: string, join: string): string {
 
 /**
  * The search and each filter that's on, in words, as their chips say them:
- * for a download's filename.
+ * for a download's filename. One that comes `after` another and doesn't
+ * repeat goes with it, as its chip's second half does, its default too.
  */
 export function filterWords(filters: Filter[], values: Params, search: string): string[] {
   const words = values[search] ? [`${staffCopy.search}: ${firstOf(values[search])}`] : [];
   for (const filter of filters) {
+    if (filter.after && !filter.repeat) continue;
     const chosen = valuesOf(values[filter.name]).map(notValue);
     const [found, out] = [false, true].map((not) =>
       chosen.filter((one) => one.not === not).map((one) => choiceWords(filter, one.value)),
     );
-    if (found.length) words.push(`${filter.label}: ${copy.anyOf(found)}`);
+    const next = filters.find((f) => f.after === filter.name && !f.repeat);
+    const then = next ? `, ${choiceWords(next, firstOf(values[next.name]) ?? "")}` : "";
+    if (found.length) words.push(`${filter.label}: ${copy.anyOf(found)}${then}`);
     if (out.length) words.push(copy.notChip(filter.label, copy.anyOf(out)));
   }
   return words;

@@ -51,6 +51,20 @@ export async function newMessage(form: FormData): Promise<void> {
   redirect(`${LIST}/${id}`);
 }
 
+/**
+ * Makes a draft to everyone who said yes to the form's Consent, from New
+ * broadcast, and opens the supporters list choosing who it goes to; with no
+ * Consent answered yes, back to New broadcast.
+ */
+export async function newMessageChoosing(form: FormData): Promise<void> {
+  const { email } = await requireStaff("supporters");
+  const params = whoFrom(form);
+  const id = await createMessageDraft(email, params);
+  if (!id) redirect(`${LIST}/new`);
+  revalidatePath(LIST);
+  redirect(filtersPath("/staff/supporters", params, { message: String(id) }));
+}
+
 /** Keeps the form's filter for draft `id`, and goes back to it. */
 export async function keepFilterForMessage(id: number, form: FormData): Promise<void> {
   await requireStaff("supporters");

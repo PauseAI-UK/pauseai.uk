@@ -122,9 +122,9 @@ export const exampleMessageData: MessageWriterData = {
     { id: 11, name: "Tom Sample", reason: "stopped" },
   ],
   fields: [
-    { id: "firstName", label: "first name", lacking: 23, fallback: true },
-    { id: "localGroup", label: "local group", lacking: 140, fallback: true },
-    { id: "mp", label: "their MP", lacking: 261, fallback: true },
+    { id: "firstName", label: "First name", lacking: 23, fallback: true },
+    { id: "localGroup", label: "Local group", lacking: 140, fallback: true },
+    { id: "mp", label: "Their MP", lacking: 261, fallback: true },
   ],
   conditions: [
     {
