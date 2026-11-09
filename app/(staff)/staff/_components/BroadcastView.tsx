@@ -8,7 +8,6 @@ import { filtersPath, pageParam } from "@/lib/staff-search";
 import { londonClock, londonWhen, sendsAt, staffDate } from "@/lib/staff-time";
 import {
   FIELD_WORDS,
-  hasField,
   MEMBER_CONDITION,
   spacedNumber,
   textStopsAt,
@@ -127,7 +126,6 @@ function BroadcastWords({ written }: { written: WrittenBroadcast }) {
     );
   }
   const conditions = {
-    [hasField("mp")]: copy.conditions.mp.label,
     [VOLUNTEER_CONDITION]: copy.conditions.volunteer.label,
     [MEMBER_CONDITION]: copy.conditions.member.label,
   };

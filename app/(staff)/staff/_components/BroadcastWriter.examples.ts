@@ -25,29 +25,15 @@ const exampleBroadcastWords: MailingDoc = {
     { type: "paragraph", content: [{ type: "text", text: "Here's what's on near you this month." }] },
     {
       type: "onlyFor",
-      attrs: { condition: "has:mp" },
-      content: [
-        {
-          type: "paragraph",
-          content: [
-            { type: "text", text: "Your MP is " },
-            { type: "field", attrs: { field: "mp" } },
-            { type: "text", text: "." },
-          ],
-        },
-      ],
-    },
-    {
-      type: "onlyFor",
       attrs: { condition: "!volunteer:yes" },
       content: [{ type: "paragraph", content: [{ type: "text", text: "Could you volunteer?" }] }],
     },
     {
       type: "paragraph",
       content: [
-        { type: "text", text: "Have you written to " },
-        { type: "field", attrs: { field: "mp" } },
-        { type: "text", text: " yet?" },
+        { type: "text", text: "See you soon, " },
+        { type: "field", attrs: { field: "name" } },
+        { type: "text", text: "." },
       ],
     },
   ],
@@ -156,16 +142,8 @@ export const exampleBroadcastData: BroadcastWriterData = {
   fields: [
     { id: "firstName", label: "First name", lacking: 23, fallback: true },
     { id: "name", label: "Name", lacking: 23, fallback: true },
-    { id: "mp", label: "Their MP", lacking: 261, fallback: true },
   ],
   conditions: [
-    {
-      id: "has:mp",
-      label: staffCopy.broadcastPages.conditions.mp.label,
-      covers: 151,
-      group: "What we know",
-      option: "Their MP",
-    },
     {
       id: "volunteer:yes",
       label: staffCopy.broadcastPages.conditions.volunteer.label,

@@ -269,16 +269,16 @@ describe("BroadcastWriter, by email", () => {
   it("shows someone made up, any mix of fields and parts a press away, each field's fallback when they lack it", async () => {
     await renderWriter();
     const volunteers = button(copy.previewCases["volunteer:yes"]);
-    const mp = button(copy.previewCases["has:mp"]);
+    const named = button(copy.previewCases["has:name"]);
     // Never a real supporter: the made-up one, with everything to start with.
     await expect.element(page.getByText("Jane Smith <jane.smith@example.com>")).toBeVisible();
     await expect.element(volunteers).toHaveAttribute("aria-pressed", "true");
     await volunteers.click();
     await expect.element(volunteers).toHaveAttribute("aria-pressed", "false");
-    await mp.click();
-    await expect.element(page.getByText(/your MP/).first()).toBeVisible();
-    await mp.click();
-    await expect.element(page.getByText(/Alex Example MP/).first()).toBeVisible();
+    await named.click();
+    await expect.element(page.getByText(`See you soon, ${copy.fallbacks.name}.`).first()).toBeVisible();
+    await named.click();
+    await expect.element(page.getByText("See you soon, Jane Smith.").first()).toBeVisible();
   });
 
   it("sends a test copy, and says where it went, or that it couldn't", async () => {
@@ -356,7 +356,11 @@ describe("BroadcastWriter, by email", () => {
 
   it("saves what's written and the time chosen", async () => {
     const actions = await renderWriter();
-    await page.getByRole("textbox", { name: copy.emailLabel }).click();
+    // Into a line of words, not onto a field's chip or a part's box, which can't be typed in.
+    await page
+      .getByRole("textbox", { name: copy.emailLabel })
+      .getByText("Here's what's on near you this month.")
+      .click();
     await userEvent.keyboard("More words");
     await vi.waitFor(() => expect(JSON.stringify(actions.save.mock.calls.at(-1)?.[2])).toContain("More words"), WAIT);
     await page.getByLabelText(staffCopy.mailingPages.hour, { exact: false }).selectOptions("14");

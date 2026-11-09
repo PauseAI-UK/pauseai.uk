@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { query } from "@/lib/server/db";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower } from "@/tests/broadcast-fixtures";
 import { supporterAudience } from "./broadcast-recipients";
 import { refreshSupportersList } from "./supporter-facts";
@@ -19,7 +19,6 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
       `INSERT INTO postcode_places (postcode, latitude, longitude, place, country, constituency, constituency_checked)
        VALUES ('M11AE', 53.4794, -2.2353, 'Manchester', 'england', 'Manchester Central', true)`,
     );
-    await addTestPolitician({ name: "Mo Manchester", constituency: "Manchester Central", airtableId: "recMo" });
     const jane = await addFollower("usr-1", "jane@example.com", "Jane Smith", { postcode: "M1 1AE" });
     const sam = await addFollower("usr-2", "sam@example.com", "");
     const { recipients, fields, conditions, leftOut } = await supporterAudience(FILTER, EMAIL);
@@ -30,20 +29,17 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
       values: {
         firstName: "Jane",
         name: "Jane Smith",
-        mp: "Mo Manchester",
       },
-      meets: ["has:firstName", "has:name", "has:mp"],
+      meets: ["has:firstName", "has:name"],
     });
     expect(recipients.find((one) => one.id === sam)).toMatchObject({
       name: staffCopy.supporters.noName,
-      values: { firstName: copy.fallbacks.firstName, name: copy.fallbacks.name, mp: copy.fallbacks.mp },
+      values: { firstName: copy.fallbacks.firstName, name: copy.fallbacks.name },
     });
     expect(fields.map(({ id, lacking, fallback }) => ({ id, lacking, fallback }))).toEqual([
       { id: "firstName", lacking: 1, fallback: true },
       { id: "name", lacking: 1, fallback: true },
-      { id: "mp", lacking: 1, fallback: true },
     ]);
-    expect(conditions.find((one) => one.id === "has:mp")?.covers).toBe(1);
     expect(conditions.find((one) => one.id === "member:yes")?.covers).toBe(0);
   });
 

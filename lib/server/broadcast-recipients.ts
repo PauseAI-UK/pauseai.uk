@@ -13,8 +13,7 @@ import {
   type BroadcastTerms,
 } from "@/lib/broadcasts";
 import type { SupporterRow } from "@/lib/supporters";
-import { query } from "./db";
-import { listSupporters, MP_CHOICES } from "./supporters";
+import { listSupporters } from "./supporters";
 
 // Who a broadcast to supporters goes to: everyone the supporters list's filter
 // finds, of whom those contact_permission() says yes for, by the broadcast's
@@ -45,18 +44,6 @@ export type SupporterAudience = {
   conditions: MailingChoice[];
 };
 
-/** Each postcode's MP, in office for its constituency, by the postcode as postcode_places has it. */
-async function mpsByPostcode(postcodes: string[]): Promise<Map<string, string>> {
-  const rows = await query<{ postcode: string; name: string }>(
-    `SELECT pp.postcode, m.name FROM postcode_places pp JOIN (${MP_CHOICES}) m ON m.constituency = pp.constituency
-     WHERE pp.postcode = ANY($1::text[])`,
-    [postcodes.map(postcodeKey)],
-  );
-  return new Map(rows.map((row) => [row.postcode, row.name]));
-}
-
-const postcodeKey = (postcode: string) => postcode.replace(/ /g, "").toUpperCase();
-
 /** Why none of someone's addresses can be used: a stop or a block outranks never having said yes. */
 function whyLeftOut(answers: ContactPermission[]): BroadcastLeftOutReason {
   if (answers.some((answer) => answer.reason === "blocked")) return "blocked";
@@ -65,11 +52,10 @@ function whyLeftOut(answers: ContactPermission[]): BroadcastLeftOutReason {
 }
 
 /** A supporter's merge values, each field's fallback for those without it, and the conditions they meet. */
-function recipientValues(row: SupporterRow, mp: string | undefined): MailingRecipientValues {
+function recipientValues(row: SupporterRow): MailingRecipientValues {
   const given: Record<(typeof BROADCAST_FIELDS)[number], string | null | undefined> = {
     firstName: firstNameOf(row.name),
     name: row.name?.trim(),
-    mp,
   };
   const volunteers = row.permissions.some((answer) => answer.reason === "volunteered");
   return {
@@ -85,7 +71,6 @@ function recipientValues(row: SupporterRow, mp: string | undefined): MailingReci
 /** Who a broadcast with this filter, channel and topic goes to and who it leaves out, and what its words can use. */
 export async function supporterAudience(filter: StoredFilter, terms: BroadcastTerms): Promise<SupporterAudience> {
   const { supporters } = await listSupporters(supportersSearch(filter.params).filter, null);
-  const mps = await mpsByPostcode(supporters.flatMap((row) => row.postcode ?? []));
   const channel = terms.channel === "email" ? "email" : "phone";
   const recipients: SupporterRecipient[] = [];
   const leftOut: BroadcastLeftOut[] = [];
@@ -97,7 +82,7 @@ export async function supporterAudience(filter: StoredFilter, terms: BroadcastTe
       leftOut.push({ id: row.id, name, reason: whyLeftOut(answers) });
       continue;
     }
-    const values = recipientValues(row, row.postcode ? mps.get(postcodeKey(row.postcode)) : undefined);
+    const values = recipientValues(row);
     recipients.push({ id: row.id, name, address: yes.address, place: row.place?.name ?? null, ...values });
   }
   return { recipients, leftOut, ...broadcastChoices(recipients) };
@@ -121,7 +106,6 @@ export function broadcastChoices(
       fallback: true,
     })),
     conditions: [
-      { id: hasField("mp"), ...conditionCopy.mp },
       { id: VOLUNTEER_CONDITION, ...conditionCopy.volunteer },
       { id: MEMBER_CONDITION, ...conditionCopy.member },
     ].map((condition) => ({ ...condition, covers: covering(condition.id) })),

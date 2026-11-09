@@ -50,7 +50,7 @@ export function broadcastTerms(contact: ParamValue | undefined): BroadcastTerms 
 }
 
 /** The merge fields of a broadcast to supporters. No one has all of them, so each has a fallback. */
-export const BROADCAST_FIELDS = ["firstName", "name", "mp"] as const;
+export const BROADCAST_FIELDS = ["firstName", "name"] as const;
 
 /** Each merge field's words, as a template's row and a title say it. */
 export const FIELD_WORDS: Record<string, string> = staffCopy.broadcastPages.fieldWords;
@@ -159,7 +159,7 @@ const FAKE = {
   name: "Jane Smith",
   email: "jane.smith@example.com",
   phone: "+447700900123",
-  values: { firstName: "Jane", name: "Jane Smith", mp: "Alex Example MP" },
+  values: { firstName: "Jane", name: "Jane Smith" },
 };
 
 /** A made-up recipient to preview a broadcast for, and fill a test copy in for. */

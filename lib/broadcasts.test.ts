@@ -320,7 +320,6 @@ describe("fakeRecipient", () => {
     expect(one.values).toEqual({
       firstName: "Jane",
       name: staffCopy.broadcastPages.fallbacks.name,
-      mp: staffCopy.broadcastPages.fallbacks.mp,
     });
     expect(fakeRecipient([], "text").address).toBe("+447700900123");
   });

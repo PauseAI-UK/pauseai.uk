@@ -1144,23 +1144,21 @@ All events: ${link}`,
     // At the top right of the broadcasts page: to the supporters list, to choose who first.
     newBroadcast: "New broadcast",
     // What's filled in for those without a field, and the fields as the editor and the preview say them.
-    fallbacks: { firstName: "there", name: "friend", mp: "⁂ your MP" },
+    fallbacks: { firstName: "there", name: "friend" },
     // Each field, as its lozenge in the editor, a template's row and a title say it.
-    fieldWords: { firstName: "First name", name: "Name", mp: "⁂ Their MP" },
+    fieldWords: { firstName: "First name", name: "Name" },
     greeting: "Hi",
     // A new email's lines at its end, a few lines under the greeting.
     signature: ["Best wishes,", "PauseAI UK"],
     // What a part can be only for, as the editor's menus and the preview's case buttons say it.
     conditions: {
-      mp: { label: "⁂ have an MP", group: "⁂ What we know", option: "⁂ Their MP" },
       volunteer: { label: "⁂ volunteer", group: "⁂ Volunteering", option: "⁂ Volunteers" },
       member: { label: "⁂ are members", group: "⁂ Membership", option: "⁂ Members" },
     },
     // The preview's buttons, of the one made-up recipient: each field they have, and each part they're in.
     previewCases: {
-      "has:firstName": "has a first name",
-      "has:name": "has a name",
-      "has:mp": "⁂ has an MP",
+      "has:firstName": "have a first name",
+      "has:name": "have a name",
       "volunteer:yes": "⁂ volunteers",
       "member:yes": "⁂ is a member",
     } as Record<string, string>,

@@ -220,7 +220,7 @@ function BroadcastPreview({
   const meets = Object.fromEntries(used.map((c) => [c, !lacks[c]]));
   const met = used.filter((c) => meets[c]);
   const recipient = fakeRecipient(met, draft.channel);
-  // Of the one made-up recipient, so "has a first name"; a part's own words where a condition has none here.
+  // Of the one made-up recipient, so "have a first name"; a part's own words where a condition has none here.
   const labels: Record<string, string> = {
     ...Object.fromEntries(data.conditions.map((condition) => [condition.id, condition.label])),
     ...copy.previewCases,
