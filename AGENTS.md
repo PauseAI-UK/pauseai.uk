@@ -20,32 +20,15 @@ Put throwaway scripts, logs and screenshots in `tmp/` at the repo root (to scree
 
 ## The CI gate
 
-Run the fast checks first, then the slow ones. Check exit codes, not a grep of the output: `npm test` can report every test passing and still fail on coverage.
-
-The fast checks, seconds each. Run them on the files you changed and fix what they find:
-
 ```bash
-npx tsc --noEmit                  # types
-npx prettier --write <files>      # formatting
-npx eslint --max-warnings 0 <files>
-npx stylelint <css files>
+npm run gate                      # the fast checks on the files you changed, then everything CI runs
+npm run gate -- --fast            # the fast checks alone: types, and Prettier, ESLint and Stylelint on the changed files
+npm run gate -- --no-storyboard   # everything but the storyboard
 ```
 
-Then everything CI runs (`.github/workflows/ci.yml`), which takes minutes. The branch isn't done until every command exits 0:
+The branch isn't done until `npm run gate` exits 0. It takes the files changed since the branch left `origin/main`, committed or not, formats them with Prettier and checks them, and stops there if a check fails. Then it runs what CI runs (`.github/workflows/ci.yml`) in parallel, as CI's jobs do: the types then the storyboard, `npm test` with the coverage gate, the four linters one after another, and the backup Worker's package. Each command has a time limit and a log in `tmp/gate/`, a line a minute says which are still running and whose log has gone quiet, and it ends with a table of exit codes and the end of each failed log. Go by those exit codes, not a grep of the output: `npm test` can report every test passing and still fail on coverage. It takes a few minutes, so run it in the background, its output to a file in `tmp/`, and look at that each minute (`docs/testing.md`, "`npm run gate`").
 
-```bash
-npm run typecheck                 # types, on their own, as `next build` checks them too
-npm test                          # both Vitest projects, and the 100% per-file coverage gate
-npm run lint                      # ESLint, failing on warnings too
-npm run lint:css                  # Stylelint
-npm run lint:unused               # Knip: unused files, exports and dependencies
-npm run format:check              # Prettier; `npm run format` fixes it
-npm run build
-npm run test:storyboard           # Playwright: the storyboard's gate, on fixture data
-(cd backup && npm ci && npm test && npm run typecheck)   # the backup Worker's own package
-```
-
-Give each long run a time limit and check on it when it should be done, so one that freezes isn't missed (`docs/testing.md`, "Long runs in the background"). Run them as CI does, in parallel, which takes two or three minutes rather than six: the four linters one after another, alongside `npm test`, `npm run test:storyboard` and the backup Worker's tests. Skip `npm run build` locally: it repeats the unit tests and linters, and the storyboard already builds the site. Never run two `next build`s at once in one checkout, as they share `.next`.
+It leaves out `npm run build`, which repeats the unit tests and linters, as the storyboard builds the site. Never run two `next build`s at once in one checkout, as they share `.next`, so don't run the gate beside a storyboard review in the same checkout.
 
 If the prek Git hook is installed (`npm run hooks:install`), commits run Prettier, ESLint and Stylelint on the staged files first. Prettier rewrites them, so `git add` and commit again. That's only part of the gate.
 

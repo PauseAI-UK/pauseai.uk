@@ -35,6 +35,10 @@ where there's an npm script. Each file's opening comment has the details.
 
 `docs/development.md`, section 5, covers the photos.
 
+## The gate
+
+`gate.mjs`, run with `npm run gate`, is the CI gate: Prettier, the types, ESLint and Stylelint on the files changed since `origin/main`, then what CI runs, in parallel, each with a time limit and a log in `tmp/gate/`, ending with a table of exit codes. `--fast` stops after the first part, and `--no-storyboard` leaves out the storyboard. `docs/testing.md`, "`npm run gate`", covers it.
+
 ## Worktrees
 
 `worktree.mjs`, run with `npm run worktree -- <branch>`, fetches, adds `tmp/worktrees/<branch>` as a new branch from `origin/main`, runs `npm ci` in it and prints the ports its storyboard will serve on. `--ports` prints this checkout's. `docs/development.md`, "Worktrees", covers it.

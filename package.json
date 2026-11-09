@@ -9,6 +9,7 @@
     "build": "npm run typecheck && vitest run --project node && npm run lint && npm run lint:css && next build",
     "typecheck": "next typegen && tsc --noEmit",
     "start": "next start",
+    "gate": "node scripts/gate.mjs",
     "investments": "node scripts/investments.mjs",
     "worktree": "node scripts/worktree.mjs",
     "lint": "eslint --max-warnings 0",

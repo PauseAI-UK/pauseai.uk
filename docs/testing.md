@@ -576,6 +576,8 @@ import("@/tests/next-headers"))` and put the session cookie in
 ## Commands
 
 ```bash
+npm run gate              # the CI gate: the fast checks on the changed files, then everything CI runs (below)
+npm run gate -- --fast    # the fast checks alone
 npm run typecheck         # types (also runs in npm run build)
 npm test                  # both Vitest projects, with the coverage gate (what CI runs)
 npm run test:node         # Vitest node project (also runs in npm run build)
@@ -610,6 +612,35 @@ npm run test:report       # open the last Playwright report
   `-g "login link"`, or point at another fixture build with `LOCAL_URL`.
 - Browser tests need Chromium: `npx playwright install chromium`.
 
+### `npm run gate`
+
+`scripts/gate.mjs` runs the gate as AGENTS.md describes it, in two parts.
+
+**The fast checks**, in seconds: Prettier writes the files changed since
+the branch left `origin/main` (the merge base, as a pull request compares;
+committed, uncommitted and untracked, and nothing is fetched), then `tsc
+--noEmit`, ESLint on the changed scripts and Stylelint on the changed CSS
+run at once. If one fails, the gate stops: the slow part would only wait
+on the same mistake. `--fast` stops after them anyway.
+
+**What CI runs**, in four lanes at once, as CI's jobs run: `npm run
+typecheck` then `npm run test:storyboard` (the storyboard waits for the
+types, as in CI, and both write `.next`); `npm test`; the four linters one
+after another; and the backup Worker's `npm ci`, tests and types. A lane
+stops at a failed `typecheck` or backup `npm ci`, as what follows needs it;
+the linters each run whatever came before. `--no-storyboard` leaves the
+storyboard out, while making changes. `npm run build` isn't run: it
+repeats the unit tests and linters, and the storyboard builds the site.
+
+Each command has a time limit, from three minutes for a linter to twenty
+for the storyboard, and its output goes to `tmp/gate/<command>.log`,
+emptied at the start of each run. A command stopped at its limit exits
+124, as `timeout` does. Once a minute the gate names the commands still
+running, and how long each one's log has been quiet once it's been two
+minutes, the sign of a run that's stuck (below). It ends with the last
+lines of each failed command's log, a table of every command's exit code,
+time and log, and exits 1 if any failed.
+
 ### Long runs in the background
 
 A run left in the background (`npm test`, the storyboard) that freezes or
@@ -618,6 +649,7 @@ gate once sat for an hour and a half, printing nothing, before anyone
 noticed. So give each a limit, and check on it when it's due:
 
 ```bash
+timeout 30m npm run gate > tmp/gate.out 2>&1          # its commands have limits of their own (above)
 timeout 15m npm test                                  # usually about 5 minutes
 timeout 15m npm run test:storyboard                   # usually a few minutes
 timeout 25m npm run storyboard -- --no-open           # builds main too: usually about 10
