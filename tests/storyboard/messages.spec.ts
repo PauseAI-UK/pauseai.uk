@@ -107,7 +107,7 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await expect(page).toHaveURL(`${BASE}/staff/messages/new`);
   await page
     .getByLabel(copy.facts.saidYes)
-    .selectOptions(staffCopy.supporters.subscriptions.topics.email["luma-calendar"]);
+    .selectOption(staffCopy.supporters.subscriptions.topics.email["luma-calendar"]);
   await frame(page, "New broadcast, a Consent chosen");
   story("Change who makes the draft, to everyone who said yes, and opens the supporters list to narrow them.");
   await page.getByRole("button", { name: staffCopy.mailingPages.changeWho }).click();
