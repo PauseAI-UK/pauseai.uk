@@ -121,19 +121,21 @@ function TemplatePending({ template, withdraw }: { template: MessageTemplate; wi
     <div className={own.chosen}>
       <MailingLetter doc={template.body} fields={fields} />
       <Muted>{copy.templatePending}</Muted>
-      <Button
-        variant="ghost"
-        size="small"
-        fit
-        pending={withdrawing}
-        onClick={async () => {
-          setWithdrawing(true);
-          await withdraw();
-          setWithdrawing(false);
-        }}
-      >
-        {copy.withdrawTemplate}
-      </Button>
+      <div>
+        <Button
+          variant="ghost"
+          size="small"
+          fit
+          pending={withdrawing}
+          onClick={async () => {
+            setWithdrawing(true);
+            await withdraw();
+            setWithdrawing(false);
+          }}
+        >
+          {copy.withdrawTemplate}
+        </Button>
+      </div>
     </div>
   );
 }
