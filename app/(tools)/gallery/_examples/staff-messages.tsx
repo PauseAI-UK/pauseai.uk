@@ -11,7 +11,6 @@ import {
   exampleSupporterChoices,
 } from "@/app/(staff)/staff/_components/MessageWriter.examples";
 import MessagesOverview from "@/app/(staff)/staff/_components/MessagesOverview";
-import NewMessage from "@/app/(staff)/staff/_components/NewMessage";
 import SupporterMessages from "@/app/(staff)/staff/_components/SupporterMessages";
 import TextBubble, { ChatBubble, ChatWall } from "@/app/(staff)/staff/_components/TextBubble";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
@@ -25,6 +24,7 @@ import {
   MessageCopyViewExample,
   MessageForExample,
   MessageSupportersExample,
+  NewMessageExample,
   MessageViewExample,
   MessageWriterExample,
   TemplatePickerExample,
@@ -74,7 +74,7 @@ export const staffMessages: Group = {
           label: "New broadcast: the Consent it goes under, then Change who",
           render: () => (
             <StaffPage as="div">
-              <NewMessage action={async () => {}} />
+              <NewMessageExample />
             </StaffPage>
           ),
         },

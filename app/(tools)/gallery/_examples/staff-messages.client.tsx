@@ -9,6 +9,7 @@ import MessageFor, { MessageContact, MessageWho } from "@/app/(staff)/staff/_com
 import { ChoosingMessageFrame, MessageSupporters } from "@/app/(staff)/staff/_components/MessageSupporters";
 import MessageView from "@/app/(staff)/staff/_components/MessageView";
 import MessageWriter, { type MessageWriterActions } from "@/app/(staff)/staff/_components/MessageWriter";
+import NewMessage from "@/app/(staff)/staff/_components/NewMessage";
 import {
   exampleMessageCopy,
   exampleMessageData,
@@ -215,4 +216,9 @@ export function MessageCopyViewExample({ email = false }: { email?: boolean }) {
       }
     : exampleMessageCopy;
   return <MessageCopyView one={one} reply={nothing} />;
+}
+
+/** New broadcast, its Consent to choose. */
+export function NewMessageExample() {
+  return <NewMessage action={nothing} />;
 }
