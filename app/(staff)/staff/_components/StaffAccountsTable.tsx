@@ -116,7 +116,7 @@ function EndSessionsForm({ account, yours, end }: { account: StaffAccount; yours
 }
 
 /** When, or never. */
-const when = (at: string | null) => (at ? staffTime(at) : staffCopy.accounts.never);
+const when = (at: Date | null) => (at ? staffTime(at) : staffCopy.accounts.never);
 
 /** Why an address typed to add can't be: not at pauseai.uk, or already in the table. */
 type AddProblem = "not-pauseai" | "exists";

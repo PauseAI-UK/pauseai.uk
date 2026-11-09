@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/lib/server/config";
 import { outsideFetch } from "./outside-fetch";
 import { problem } from "../problems";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -38,7 +39,7 @@ type PaymentIntent = {
  * no wall. If only the payments fail, dates are the checkouts'.
  */
 export async function getThankedDonors(): Promise<ThankedDonor[]> {
-  const key = process.env.STRIPE_WALL_OF_THANKS_KEY;
+  const key = config.stripeWallOfThanksKey;
   if (!key) return [];
 
   try {

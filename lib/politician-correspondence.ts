@@ -6,7 +6,7 @@ import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
 
 /** One message of a thread: who sent it, when, and whether a machine did. */
 export type ThreadStep = {
-  at: string;
+  at: Date;
   /** PauseAI; them or their office; the supporter who wrote the letter; or anyone else on a one-off thread. */
   who: "us" | "them" | "supporter" | "other";
   /** Their name, when the message gave one that this reader may see. */
@@ -31,7 +31,7 @@ export type CorrespondenceThread = {
   title: string | null;
   href: string | null;
   /** When anything last happened on it. */
-  at: string;
+  at: Date;
   /** Who wrote a supporter's letter, when this reader may see. */
   sender: string | null;
   /** How a letter without its sender stands, as that's all this reader has of it. */
@@ -46,8 +46,6 @@ export type CorrespondenceThread = {
 /** Letters that never went, which there's no correspondence about. */
 const NEVER_WENT = ["not_sent", "scheduled", "cancelled", "skipped", "queued"];
 
-const iso = (at: string) => new Date(at).toISOString();
-
 const replied = (step: ThreadStep) => step.who === "them" && !step.auto;
 
 /** A run of automatic replies, as one. */
@@ -56,11 +54,11 @@ const oneAutoReply = (step: ThreadStep, i: number, steps: ThreadStep[]) => !(ste
 /** A thread from its steps: when it last moved, and whether it's waiting on them. */
 function thread(
   fields: Omit<CorrespondenceThread, "at" | "steps" | "noReply" | "someoneElse"> & { someoneElse?: boolean },
-  sent: string,
+  sent: Date,
   steps: ThreadStep[],
 ): CorrespondenceThread {
   const kept = steps.filter(oneAutoReply);
-  const times = [sent, ...kept.map((step) => step.at)].map(iso).sort();
+  const times = [sent, ...kept.map((step) => step.at)].sort((a, b) => a.getTime() - b.getTime());
   const someoneElse = fields.someoneElse ?? false;
   return {
     ...fields,
@@ -74,14 +72,13 @@ function thread(
 /** A letter's steps: its own first, if no kept message is it, and a reply the letter knows of when nothing from them was kept. */
 function letterSteps(
   own: ThreadStep["who"],
-  written: string,
-  repliedAt: string | null,
+  written: Date,
+  repliedAt: Date | null,
   messages: ThreadStep[],
 ): ThreadStep[] {
-  const steps =
-    messages[0]?.who === own ? messages : [{ at: iso(written), who: own, name: null, auto: false }, ...messages];
+  const steps = messages[0]?.who === own ? messages : [{ at: written, who: own, name: null, auto: false }, ...messages];
   return repliedAt && !steps.some((step) => step.who === "them")
-    ? [...steps, { at: iso(repliedAt), who: "them", name: null, auto: false }]
+    ? [...steps, { at: repliedAt, who: "them", name: null, auto: false }]
     : steps;
 }
 
@@ -166,5 +163,5 @@ export function correspondenceThreads({
       pauseaiThread(letter, messages.letters[letter.id] ?? [], messages.subjects[letter.id]),
     ),
     ...oneOffs.map((row) => oneOffThread(row, messages.oneOffs[row.id] ?? [])),
-  ].sort((a, b) => b.at.localeCompare(a.at));
+  ].sort((a, b) => b.at.getTime() - a.at.getTime());
 }

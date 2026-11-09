@@ -3,6 +3,7 @@
 import type { Channel } from "@/lib/contact-permissions";
 import { letterEditorCopy } from "@/lib/content/letter-editor";
 import type { ImportJob } from "@/lib/import-runs";
+import { count, plural } from "@/lib/content/plural";
 
 /**
  * What can't be done to an ask, said on its form and, the same words, when a
@@ -211,14 +212,14 @@ export const staffCopy = {
       windows: "Show",
       // After each number: what it counts, for one and for more.
       metrics: {
-        lettersSent: (n: number) => (n === 1 ? "supporter email to politicians" : "supporter emails to politicians"),
-        lettersReplied: (n: number) => (n === 1 ? "reply from politicians" : "replies from politicians"),
-        politiciansAgreed: (n: number) => (n === 1 ? "politician agreed to an ask" : "politicians agreed to an ask"),
+        lettersSent: (n: number) => plural(n, "supporter email to politicians", "supporter emails to politicians"),
+        lettersReplied: (n: number) => plural(n, "reply from politicians", "replies from politicians"),
+        politiciansAgreed: (n: number) => plural(n, "politician agreed to an ask", "politicians agreed to an ask"),
         eventRegistrations: (n: number) =>
-          n === 1 ? "person registered for an event" : "people registered for an event",
-        eventsHeld: (n: number) => (n === 1 ? "event held" : "events held"),
-        supportersAdded: (n: number) => (n === 1 ? "new supporter" : "new supporters"),
-        unsubscribes: (n: number) => (n === 1 ? "unsubscribe from Luma emails" : "unsubscribes from Luma emails"),
+          plural(n, "person registered for an event", "people registered for an event"),
+        eventsHeld: (n: number) => plural(n, "event held", "events held"),
+        supportersAdded: (n: number) => plural(n, "new supporter", "new supporters"),
+        unsubscribes: (n: number) => plural(n, "unsubscribe from Luma emails", "unsubscribes from Luma emails"),
       } as Record<string, (n: number) => string>,
       // A count of nothing, instead of a 0.
       none: "No",
@@ -249,7 +250,7 @@ export const staffCopy = {
     title: "Supporters",
     none: "Nobody found.",
     // Over the list: how many there are.
-    total: (total: number) => `${total} ${total === 1 ? "supporter" : "supporters"}`,
+    total: (total: number) => count(total, "supporter", "supporters"),
     filters: {
       search: "Name, email or phone",
       // The date filters: when they were first seen, last registered for an event, and unsubscribed from Luma's emails.
@@ -506,8 +507,8 @@ export const staffCopy = {
       // and how many events they registered for and letters they wrote, each linked to its table.
       theirMp: "Their MP",
       firstVia: (source: string) => `first came via ${source}`,
-      eventsCounted: (n: number) => (n === 1 ? "event" : "events"),
-      lettersCounted: (n: number) => (n === 1 ? "letter to an MP" : "letters to MPs"),
+      eventsCounted: (n: number) => plural(n, "event", "events"),
+      lettersCounted: (n: number) => plural(n, "letter to an MP", "letters to MPs"),
       // Beside the box of what we hold: the events they registered for, and their letters, a table each.
       eventsTitle: "Events",
       noEvents: "No events.",
@@ -707,13 +708,13 @@ export const staffCopy = {
     noAnswer: "Not answered",
     none: "None found.",
     // Over the list: how many there are.
-    total: (total: number) => `${total} ${total === 1 ? "politician" : "politicians"}`,
+    total: (total: number) => count(total, "politician", "politicians"),
     // Under the list, when a search of those in office finds others too, linked to them all.
-    outOfOffice: (n: number) => `${n} ${n === 1 ? "match" : "matches"} found for politicians not in office`,
+    outOfOffice: (n: number) => `${count(n, "match", "matches")} found for politicians not in office`,
     // The same, when a search of one house finds no one there, linked to every house.
-    otherHouses: (n: number) => `${n} ${n === 1 ? "match" : "matches"} found for politicians in other houses`,
+    otherHouses: (n: number) => `${count(n, "match", "matches")} found for politicians in other houses`,
     // The same, when a search finds no one, but would among the test politicians, linked to them.
-    tests: (n: number) => `${n} ${n === 1 ? "match" : "matches"} found for test politicians`,
+    tests: (n: number) => `${count(n, "match", "matches")} found for test politicians`,
     // Over the nearest names, when a search finds no one.
     closest: "No one matches exactly. These are close matches:",
     // The counts in the list: letters written to them, and how many of those got a reply.
@@ -762,10 +763,10 @@ export const staffCopy = {
       going: (n: number) => `${n} going`,
     },
     // Over the list: how many the tab and filters find; and what it says when they find none.
-    total: (n: number) => `${n} ${n === 1 ? "event" : "events"}`,
+    total: (n: number) => count(n, "event", "events"),
     noneFound: "No events match.",
     // Under it, when a search finds none, but would among those taken off Luma, linked to them.
-    removedMatches: (n: number) => `${n} ${n === 1 ? "match" : "matches"} found for events taken off Luma`,
+    removedMatches: (n: number) => `${count(n, "match", "matches")} found for events taken off Luma`,
     // The table's headings; the owner's and Google Doc's are `owner` and `doc` below. Going is how many registered
     // and were approved. Hosts are its hosts on Luma, for staff who see supporters.
     columns: { when: "When", name: "Event", tags: "Tags", place: "Place", going: "Going", hosts: "Hosts" },
@@ -835,7 +836,7 @@ All events: ${link}`,
     },
     ownerEmail: {
       subject: (n: number, first: string, owner: string) =>
-        n === 1 ? `You're now owner for ${first}, ${owner}` : `You're now owner for ${n} events, ${owner}`,
+        plural(n, `You're now owner for ${first}, ${owner}`, `You're now owner for ${n} events, ${owner}`),
       // `link`: the events page, showing the event, or for several, the owner's events.
       body: ({
         events,
@@ -850,7 +851,7 @@ All events: ${link}`,
         by: string | null;
         link: string;
       }) =>
-        `${by ? `You're now the owner of this event, ${owner}. ${by === owner ? "You took it on" : `${by} gave it to you`}${previous ? `, from ${previous}` : ""}.` : `You're now the owner of ${events.length === 1 ? "this event" : "these events"}, ${owner}, by the rules for who owns which events.`}\n\n${events.length === 1 ? "This event in the staff interface:" : "Your events in the staff interface:"}\n${link}\n\n${events
+        `${by ? `You're now the owner of this event, ${owner}. ${by === owner ? "You took it on" : `${by} gave it to you`}${previous ? `, from ${previous}` : ""}.` : `You're now the owner of ${plural(events.length, "this event", "these events")}, ${owner}, by the rules for who owns which events.`}\n\n${plural(events.length, "This event in the staff interface:", "Your events in the staff interface:")}\n${link}\n\n${events
           .map((event) => `${event.name}\n${event.when}\n${event.url}`)
           .join(
             "\n\n",
@@ -862,7 +863,7 @@ All events: ${link}`,
     intro: "Emails PauseAI sends to many notable people at once.",
     none: "No mailings yet.",
     // Over the list: how many there are.
-    total: (n: number) => `${n} ${n === 1 ? "mailing" : "mailings"}`,
+    total: (n: number) => count(n, "mailing", "mailings"),
     columns: {
       title: "Mailing",
       ask: "Ask",
@@ -896,7 +897,7 @@ All events: ${link}`,
     noText: "Text not available, as sent from Airtable. Open a letter under Recipients to copy a Gmail search for it.",
     recipientsTitle: "Recipients",
     // Over the recipients: how many; instead of them, when there are none.
-    recipientsCount: (n: number) => `${n} ${n === 1 ? "recipient" : "recipients"}`,
+    recipientsCount: (n: number) => count(n, "recipient", "recipients"),
     noRecipients: "Nobody yet.",
     recipientColumns: {
       name: "Politician",
@@ -916,7 +917,7 @@ All events: ${link}`,
     // On hovering a field or a condition beside the letter.
     dragHint: "Click to insert it where the cursor is, or drag it to where you want in the letter",
     // On hovering a field some recipients have no value for, which can't be used.
-    lacking: (n: number) => `${n} ${n === 1 ? "recipient has" : "recipients have"} none, so it can't be used`,
+    lacking: (n: number) => `${count(n, "recipient has", "recipients have")} none, so it can't be used`,
     // Over the two menus of who a part of the letter is for.
     partsHeading: "Conditional parts",
     // The menu that puts the paragraphs at the cursor in a part only those who gave an answer get.
@@ -977,7 +978,7 @@ All events: ${link}`,
     // A new mailing's page's title, and the button that starts an empty one: on the mailings page, and on the politicians list with no filter.
     newTitle: "New mailing",
     // On the politicians list with a filter: the button that starts one to everyone it finds.
-    mailThese: (n: number) => (n === 1 ? "Mail this one…" : `Mail these ${n}…`),
+    mailThese: (n: number) => plural(n, "Mail this one…", `Mail these ${n}…`),
     // A draft with no subject yet, in the list and as its page's title.
     untitled: "Untitled draft",
     // At the top of a new mailing, until a channel sends.
@@ -1004,13 +1005,13 @@ All events: ${link}`,
       when: "When",
       send: "Send",
     },
-    willGet: (n: number) => `${n} ${n === 1 ? "politician" : "politicians"} will be emailed.`,
+    willGet: (n: number) => `${count(n, "politician", "politicians")} will be emailed.`,
     // Who's left out: each part only when there are some.
     // Of those ticked, or for a mailing from before ticks, those its filter found.
     leftOut: (found: number, noAddress: number, blocked: number, ticked = false) =>
-      `${ticked ? `Of the ${found} ticked` : `Of the ${found} ${found === 1 ? "person" : "people"} the filter found`}, ${[
-        noAddress && `${noAddress} ${noAddress === 1 ? "has" : "have"} no email address`,
-        blocked && `${blocked} ${blocked === 1 ? "has an address that's blocked" : "have addresses that are blocked"}`,
+      `${ticked ? `Of the ${found} ticked` : `Of the ${count(found, "person", "people")} the filter found`}, ${[
+        noAddress && `${count(noAddress, "has", "have")} no email address`,
+        blocked && count(blocked, "has an address that's blocked", "have addresses that are blocked"),
       ]
         .filter(Boolean)
         .join(" and ")}, so they'll be left out.`,
@@ -1087,8 +1088,8 @@ All events: ${link}`,
     // An hour overnight, when no mailing starts, that a mailing was due at already: the hour, and when it goes.
     goesAt: (hour: string, sends: string) => `${hour} (goes at ${sends})`,
     summary: (n: number, from: string | null, when: string | null) =>
-      `${n} ${n === 1 ? "email" : "emails"}, from ${from ? `${from}'s Gmail` : "no one yet"}, ${when ? `on ${when}` : "at a time not yet chosen"}.`,
-    schedule: (n: number) => `Schedule ${n} ${n === 1 ? "email" : "emails"}`,
+      `${count(n, "email", "emails")}, from ${from ? `${from}'s Gmail` : "no one yet"}, ${when ? `on ${when}` : "at a time not yet chosen"}.`,
+    schedule: (n: number) => `Schedule ${count(n, "email", "emails")}`,
     // Why the schedule button can't be pressed.
     problems: {
       "unknown-filter": "The filter has values that have changed or are no longer supported.",
@@ -1140,17 +1141,17 @@ All events: ${link}`,
     pastedSome: "More than one match: tick the right one",
     pastedNone: "No exact match: nearest name",
     // Under it: how many lines found no one; or, if none did, that.
-    pastedSkipped: (n: number) => `Couldn't find a politician on ${n} ${n === 1 ? "line" : "lines"}.`,
+    pastedSkipped: (n: number) => `Couldn't find a politician on ${count(n, "line", "lines")}.`,
     pastedNoOne: "None found.",
     // In the bar at the foot of the list: how many are ticked, and the button on to the draft.
     choosingCount: (n: number) => `${n} ticked for the mailing`,
     seeTicked: "See them",
     untickAll: "Clear all ticks",
     noneTicked: "Tick who it's for",
-    writeToThese: (n: number) => (n === 1 ? "Write to this one" : `Write to these ${n}`),
+    writeToThese: (n: number) => plural(n, "Write to this one", `Write to these ${n}`),
     // The same, greyed, while no one's ticked.
     writeToNone: "Write to these",
-    useThese: (n: number) => (n === 1 ? "Use this one" : `Use these ${n}`),
+    useThese: (n: number) => plural(n, "Use this one", `Use these ${n}`),
     // Who a mailing's for, when everyone a filter found was ticked: that filter, the day, how many, then those
     // added and taken off since, by name. With more changes than a few, or no such filter, the names ticked.
     pickedFrom: (when: string, n: number) => `as found on ${when} (${n})`,
@@ -1167,7 +1168,7 @@ All events: ${link}`,
       cancelled: "Stopped",
     } as Record<string, string>,
     sends: (when: string) => `Sends on ${when}`,
-    scheduledLine: (n: number, from: string) => `${n} ${n === 1 ? "email" : "emails"} from ${from}.`,
+    scheduledLine: (n: number, from: string) => `${count(n, "email", "emails")} from ${from}.`,
     changeTime: "Change the time",
     saveTime: "Change it",
     // Takes a scheduled mailing back to a draft, sending nothing.
@@ -1184,7 +1185,7 @@ All events: ${link}`,
     },
     // The list of mailings: when a draft was last saved, and how many a draft or one scheduled goes to.
     savedAt: (when: string) => `Saved ${when}`,
-    toCount: (n: number) => `to ${n} ${n === 1 ? "person" : "people"}`,
+    toCount: (n: number) => `to ${count(n, "person", "people")}`,
     // The bar of how far a mailing sending has got, and once it's sent, how many have answered its ask.
     sendingBar: (n: number, of: number) => `Sending: ${n} of ${of} sent`,
     answeredBar: (n: number, of: number) => `Sent: ✓ ${n} of ${of} answered the ask`,
@@ -1194,7 +1195,7 @@ All events: ${link}`,
     // Over a mailing's recipients filtered by one of its counts, back to them all.
     showEveryone: "Show everyone",
     // Each recipient's link to their letter's page, with their replies when there are some.
-    letterAndReplies: (n: number) => (n === 1 ? "Letter and reply →" : "Letter and replies →"),
+    letterAndReplies: (n: number) => plural(n, "Letter and reply →", "Letter and replies →"),
     theLetter: "Letter →",
     // In a mailing's email, who it's to: each recipient, as it's a letter to many.
     toEach: "Each recipient, by name and address",
@@ -1269,7 +1270,7 @@ All events: ${link}`,
       readIt: { letter: "Read it", event: "Find out more" } as Record<string, string>,
       theLink: { letter: "The letter", event: "The event" } as Record<string, string>,
       writtenTo: "written to",
-      lettersWord: (n: number) => (n === 1 ? "letter" : "letters"),
+      lettersWord: (n: number) => plural(n, "letter", "letters"),
       replied: "replies",
       howWeAsked: "How we asked",
       answersTitle: "Answers",
@@ -1286,7 +1287,7 @@ All events: ${link}`,
       lastWrittenTo: "Last written to",
       // Under the answers: leads to the politicians list, filtered to those who answered this ask.
       everyone: "All answers in Politicians →",
-      letters: (n: number) => `${n} ${n === 1 ? "letter" : "letters"}`,
+      letters: (n: number) => count(n, "letter", "letters"),
     },
     askedBy: { supporters: "Supporters", pauseai: "PauseAI", controlai: "ControlAI" },
     // Over the campaigns and mailings that asked it, on the list of asks.
@@ -1334,7 +1335,7 @@ All events: ${link}`,
     // The band at the top of their page: where their record came from, and the counts at its right.
     band: {
       // The asks they signed or are going to.
-      asksAgreed: (n: number) => (n === 1 ? "ask agreed" : "asks agreed"),
+      asksAgreed: (n: number) => plural(n, "ask agreed", "asks agreed"),
       emailsToThem: "emails to them",
       emailsFromThem: "emails from them",
     },
@@ -1442,7 +1443,7 @@ All events: ${link}`,
     },
     intro: "Nothing is sent to these addresses until they're unblocked.",
     // Over the list: how many are blocked, of those the filters find.
-    count: (n: number) => `${n} blocked ${n === 1 ? "address" : "addresses"}`,
+    count: (n: number) => `${n} blocked ${plural(n, "address", "addresses")}`,
     // Instead of the table, when no address is blocked, or none of the cause filtered for.
     noBlocks: "No addresses are blocked.",
     // Instead of the history, when nothing has bounced or been complained about.
@@ -1549,14 +1550,14 @@ All events: ${link}`,
     }) =>
       `${r.events} events changed; ${r.eventsSynced} guest lists read, ${r.eventsLeft} waiting; ${r.guestsChanged} guests, ${r.people} people, ${r.contacts} contacts changed; ${r.supportersAdded} new supporters, ${r.linked} linked; ${r.requests} requests.`,
     // After the counts, how many hosts were added to or taken off events (runs kept before hosts were copied don't say).
-    hostsChanged: (n: number) => `${n} ${n === 1 ? "host" : "hosts"} changed.`,
+    hostsChanged: (n: number) => `${count(n, "host", "hosts")} changed.`,
     // After that, how many pages of contacts the run read (runs kept before this was recorded don't say).
     contactPages: (pages: number) => `${pages} pages of contacts read.`,
     // After that, how many upcoming events the run tagged on Luma, when any.
-    eventsTagged: (n: number) => `${n} ${n === 1 ? "event" : "events"} tagged on Luma.`,
+    eventsTagged: (n: number) => `${count(n, "event", "events")} tagged on Luma.`,
     // After that, the postcodes and towns looked up at postcodes.io for where supporters are (runs kept before this was recorded don't say).
     places: (p: { postcodes: number; towns: number }) =>
-      `${p.postcodes} ${p.postcodes === 1 ? "postcode" : "postcodes"}, ${p.towns} ${p.towns === 1 ? "town" : "towns"} looked up.`,
+      `${count(p.postcodes, "postcode", "postcodes")}, ${count(p.towns, "town", "towns")} looked up.`,
     // After that, when postcodes.io failed partway: the next run carries on.
     placesFailed: "Postcodes.io failed: the next run carries on.",
     stoppedBy: {
@@ -1571,9 +1572,9 @@ All events: ${link}`,
     asSent: "Show as sent",
     showChanges: "Show changes",
     // In place of paragraphs left as they were; a click unfolds them.
-    folded: (n: number) => (n === 1 ? "1 paragraph unchanged" : `${n} paragraphs unchanged`),
+    folded: (n: number) => `${count(n, "paragraph", "paragraphs")} unchanged`,
     // An automatic reply folded to its first paragraph: in place of the rest, which a click unfolds.
-    more: (n: number) => (n === 1 ? "1 more paragraph" : `${n} more paragraphs`),
+    more: (n: number) => `${n} more ${plural(n, "paragraph", "paragraphs")}`,
   },
   // The letters inbox, which supporters' letters to MPs go from (lib/server/letters-inbox-reading.ts).
   lettersInbox: {
@@ -1600,8 +1601,7 @@ All events: ${link}`,
     openInGmail: "Open in Gmail",
     // The email to the policy inbox after a run with any.
     alert: {
-      subject: (count: number, inbox: string) =>
-        `${count} MP ${count === 1 ? "email" : "emails"} in ${inbox} not relayed`,
+      subject: (n: number, inbox: string) => `${n} MP ${plural(n, "email", "emails")} in ${inbox} not relayed`,
       body: (inbox: string, lines: string[], runUrl: string) =>
         `Open each in Gmail and deal with it by hand: forward it, answer it, or leave it.\n\n${lines.join("\n")}\n\nThe run: ${runUrl}`,
     },
@@ -1636,29 +1636,28 @@ All events: ${link}`,
     },
     // Once a day at most: each MP whose address bounced a mailing's letter since the last, and what its server said.
     mailingBounces: {
-      subject: (count: number) => `${count} ${count === 1 ? "MP's address" : "MPs' addresses"} bounced a mailing`,
+      subject: (n: number) => `${count(n, "MP's address", "MPs' addresses")} bounced a mailing`,
       body: (lines: string[], link: string) =>
         `These MPs' addresses bounced letters from a mailing since the last report:\n\n${lines.join("\n")}\n\nNothing more will be sent to them until they're fixed in Airtable and unblocked here:\n${link}`,
     },
     // Once a day at most: the supporters' copies that bounced since the last, so their MP's replies can't be
     // passed on; how many replies are held; each address's domain and what its server said.
     supporterBounces: {
-      subject: (count: number) => `${count} supporters' ${count === 1 ? "address" : "addresses"} bounced`,
-      body: (count: number, held: number, lines: string[], link: string) =>
-        `${count} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${held} ${held === 1 ? "reply is" : "replies are"} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nSupporters' blocked emails: ${link}`,
+      subject: (n: number) => `${n} supporters' ${plural(n, "address", "addresses")} bounced`,
+      body: (n: number, held: number, lines: string[], link: string) =>
+        `${n} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${count(held, "reply is", "replies are")} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nSupporters' blocked emails: ${link}`,
     },
     // Letters to MPs have waited LATE_HOURS to go: how many, why, and the queued letters.
     lettersWaiting: {
-      subject: (count: number, hours: number) =>
-        `${count} ${count === 1 ? "letter" : "letters"} to MPs waiting over ${hours} hours`,
-      body: (count: number, hours: number, why: string, link: string) =>
-        `${count === 1 ? "A letter" : `${count} letters`} to MPs ${count === 1 ? "has" : "have"} waited over ${hours} hours to go. Why: ${why}.\n\nThe letters waiting: ${link}`,
+      subject: (n: number, hours: number) => `${count(n, "letter", "letters")} to MPs waiting over ${hours} hours`,
+      body: (n: number, hours: number, why: string, link: string) =>
+        `${plural(n, "A letter", `${n} letters`)} to MPs ${plural(n, "has", "have")} waited over ${hours} hours to go. Why: ${why}.\n\nThe letters waiting: ${link}`,
     },
   },
   // The read every 5 minutes of the connected Gmail accounts for replies to our
   // letters and bounces (lib/server/gmail-reading.ts), on the import page.
   gmailReading: {
-    oneOffs: (n: number) => `${n} one-off ${n === 1 ? "email" : "emails"} kept.`,
+    oneOffs: (n: number) => `${n} one-off ${plural(n, "email", "emails")} kept.`,
     title: "Replies, bounces and one-off emails from Gmail",
     intro: {
       before: "Reads the replies to our letters, and their bounces, in each ",
@@ -1670,7 +1669,7 @@ All events: ${link}`,
     never: "Not read yet.",
     // The run's totals, over every account, then a line for each.
     result: (accounts: { replies: number; autoReplies: number; bounces: number }[]) =>
-      `${accounts.length} ${accounts.length === 1 ? "account" : "accounts"} read: ${accounts.reduce((n, a) => n + a.replies, 0)} replies, ${accounts.reduce((n, a) => n + a.autoReplies, 0)} automatic replies, ${accounts.reduce((n, a) => n + a.bounces, 0)} bounces.`,
+      `${count(accounts.length, "account", "accounts")} read: ${accounts.reduce((n, a) => n + a.replies, 0)} replies, ${accounts.reduce((n, a) => n + a.autoReplies, 0)} automatic replies, ${accounts.reduce((n, a) => n + a.bounces, 0)} bounces.`,
     account: (a: { account: string; replies: number; autoReplies: number; bounces: number }) =>
       `${a.account}: ${a.replies} replies, ${a.autoReplies} automatic replies, ${a.bounces} bounces.`,
     // After an account's line: its history had gone, so the last few days were searched instead.
@@ -1703,7 +1702,7 @@ All events: ${link}`,
       left: number;
       queue: { sent: number; left: number };
     }) =>
-      `Started ${r.started.length} ${r.started.length === 1 ? "mailing" : "mailings"}; sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}, ${r.left} left. The queue: sent ${r.queue.sent}, ${r.queue.left} left.`,
+      `Started ${count(r.started.length, "mailing", "mailings")}; sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}, ${r.left} left. The queue: sent ${r.queue.sent}, ${r.queue.left} left.`,
   },
   // The nightly tidying (app/api/cron/tidy-logs): this log, the audit log and forgotten drafts.
   tidying: {
@@ -1721,7 +1720,7 @@ All events: ${link}`,
     tidyNow: "Tidy logs now",
     never: "Not tidied yet.",
     result: (r: { importRuns: number; auditEntries: number; drafts: number }) =>
-      `Deleted ${r.importRuns} ${r.importRuns === 1 ? "run" : "runs"}, ${r.auditEntries} audit log ${r.auditEntries === 1 ? "entry" : "entries"} and ${r.drafts} ${r.drafts === 1 ? "draft" : "drafts"}.`,
+      `Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")} and ${count(r.drafts, "draft", "drafts")}.`,
   },
   // The hourly copy of PauseAI's UK members (lib/server/members-import.ts),
   // on the import page.
@@ -1765,16 +1764,15 @@ All events: ${link}`,
     last: "Last letter",
     from: "From",
     to: "To",
-    supporters: (n: number) => `${n} ${n === 1 ? "supporter" : "supporters"}`,
-    politicians: (n: number) => `${n} ${n === 1 ? "politician" : "politicians"}`,
+    supporters: (n: number) => count(n, "supporter", "supporters"),
+    politicians: (n: number) => count(n, "politician", "politicians"),
     lettersTo: (letters: number, politicians: number) =>
-      `${letters} ${letters === 1 ? "letter" : "letters"} to ${politicians} ${politicians === 1 ? "politician" : "politicians"}`,
+      `${count(letters, "letter", "letters")} to ${count(politicians, "politician", "politicians")}`,
     theLetter: "The letter",
     publicPage: "Public page",
     seePublicPage: "See it",
     version: "Version of the letter",
-    versionLine: (from: string | null, n: number) =>
-      `${from ? `From ${from}: ` : ""}${n} ${n === 1 ? "letter" : "letters"}`,
+    versionLine: (from: string | null, n: number) => `${from ? `From ${from}: ` : ""}${count(n, "letter", "letters")}`,
     // Over a campaign's letter, as a mailing's says who it's to.
     fromEach: "Each supporter",
     lettersTitle: "Letters",
@@ -1802,7 +1800,7 @@ All events: ${link}`,
     // Over the list, for an admin without the supporters permission.
     withheld: "Emails to and from supporters are not shown, as you don't have the supporters permission.",
     search: "Address or subject",
-    total: (n: number) => `${n} ${n === 1 ? "email" : "emails"}`,
+    total: (n: number) => count(n, "email", "emails"),
     none: "No emails match.",
     columns: {
       when: "When",
@@ -1895,7 +1893,7 @@ All events: ${link}`,
       counts: (read: string, left: string) => `${read} read, ${left} left`,
       totals: (p: { joined: string; replies: string; autoReplies: string; oneOffs: string }) =>
         `So far: ${p.joined} joined, ${p.replies} replies, ${p.autoReplies} automatic replies, ${p.oneOffs} one-off emails`,
-      refusals: (n: number) => `Gmail refused ${n} ${n === 1 ? "run" : "runs"}.`,
+      refusals: (n: number) => `Gmail refused ${count(n, "run", "runs")}.`,
     },
     columns: {
       read: "Read",
@@ -1932,7 +1930,7 @@ All events: ${link}`,
     // In any other mailbox, around a link to the mailings.
     notKept: { before: "Replies to threads sent like this will be kept, and show under", after: "." },
     unmatchedAlert: {
-      subject: (n: number) => `${n} ${n === 1 ? "email" : "emails"} in policy@ matched no politician`,
+      subject: (n: number) => `${count(n, "email", "emails")} in policy@ matched no politician`,
       body: (lines: string[], link: string) =>
         `Some emails arrived in the policy@ inbox and weren't kept, because they didn't match a politician. Work out who they're from, and widen the rule or add exceptions.\n\n${lines.join("\n")}\n\n${link}`,
       // After the list, when a report is full: how many wait for the next one.
@@ -2112,8 +2110,8 @@ All events: ${link}`,
     time: "Time",
     found: "What it found",
     range: (from: string, to: string) => (from === to ? from : `${from}–${to}`),
-    quiet: (n: number) => `${n} ${n === 1 ? "run" : "runs"}, nothing new`,
-    stretch: (n: number) => `${n} ${n === 1 ? "run" : "runs"}, no problems`,
+    quiet: (n: number) => `${count(n, "run", "runs")}, nothing new`,
+    stretch: (n: number) => `${count(n, "run", "runs")}, no problems`,
   },
   check: {
     title: "Members of Parliament against Parliament's list",
@@ -2127,7 +2125,7 @@ All events: ${link}`,
     checkNow: "Check MPs now",
     never: "Never checked",
     allGood: "All good.",
-    problems: (n: number) => `${n} problem${n === 1 ? "" : "s"}`,
+    problems: (n: number) => count(n, "problem", "problems"),
     columns: {
       constituency: "Constituency",
       problem: "Problem",
@@ -2169,7 +2167,7 @@ All events: ${link}`,
   allLetters: {
     title: "All emails with politicians",
     // Over the list: how many there are.
-    total: (total: number) => `${total} ${total === 1 ? "email" : "emails"}`,
+    total: (total: number) => count(total, "email", "emails"),
     search: "Sender, politician or topic",
     // Who a letter is from, the filter's name and its choices.
     from: "Started by",
@@ -2203,7 +2201,7 @@ All events: ${link}`,
   letters: {
     title: "Letters to MPs",
     // Over the list: how many there are.
-    total: (total: number) => `${total} ${total === 1 ? "letter" : "letters"}`,
+    total: (total: number) => count(total, "letter", "letters"),
     search: "Sender or MP",
     // The Replied filter: whether the MP replied.
     // The Replied filter: what came back to a letter.
@@ -2373,7 +2371,7 @@ All events: ${link}`,
       shared: "All staff see the same saved filters.",
       cancel: "Cancel",
       find: "Find a saved filter",
-      count: (n: number) => `${n} saved ${n === 1 ? "filter" : "filters"}, shared by all staff`,
+      count: (n: number) => `${n} saved ${plural(n, "filter", "filters")}, shared by all staff`,
       none: "No saved filters yet. Set some filters and press Save.",
       update: "Update for all",
       saveAsNew: "Save as new",
@@ -2437,7 +2435,7 @@ All events: ${link}`,
     withheld: "Entries about supporters are not shown, as you don't have the supporters permission.",
     title: "Audit log",
     // Over the list: how many entries there are.
-    total: (n: number) => `${n} ${n === 1 ? "entry" : "entries"}`,
+    total: (n: number) => count(n, "entry", "entries"),
     none: "No entries match.",
     // The search box: what it searches. The details include whom an entry is about.
     search: "Who, what or details",
@@ -2486,14 +2484,14 @@ All events: ${link}`,
       changed: () => "changed",
       matched: () => "matched",
       alreadySet: () => "already signed",
-      problems: (n: number) => (n === 1 ? "problem" : "problems"),
-      lumaUsers: (n: number) => (n === 1 ? "Luma person" : "Luma people"),
-      formEntries: (n: number) => (n === 1 ? "form entry" : "form entries"),
-      letters: (n: number) => (n === 1 ? "letter" : "letters"),
-      members: (n: number) => (n === 1 ? "member record" : "member records"),
-      proxies: (n: number) => (n === 1 ? "proxy" : "proxies"),
-      messages: (n: number) => (n === 1 ? "message in the letters inbox" : "messages in the letters inbox"),
-      sessions: (n: number) => (n === 1 ? "session" : "sessions"),
+      problems: (n: number) => plural(n, "problem", "problems"),
+      lumaUsers: (n: number) => plural(n, "Luma person", "Luma people"),
+      formEntries: (n: number) => plural(n, "form entry", "form entries"),
+      letters: (n: number) => plural(n, "letter", "letters"),
+      members: (n: number) => plural(n, "member record", "member records"),
+      proxies: (n: number) => plural(n, "proxy", "proxies"),
+      messages: (n: number) => plural(n, "message in the letters inbox", "messages in the letters inbox"),
+      sessions: (n: number) => plural(n, "session", "sessions"),
     } as Record<string, (n: number) => string>,
   },
 };

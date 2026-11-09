@@ -367,15 +367,15 @@ describe("MailingWriter", () => {
       expect(actions.save).not.toHaveBeenCalled();
       await hour.selectOptions("14");
       await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
-      expect(actions.save.mock.calls[0][2]).toEqual({ dueAt: "2026-07-03T13:00:00.000Z" });
+      expect(actions.save.mock.calls[0][2]).toEqual({ dueAt: new Date("2026-07-03T13:00:00.000Z") });
       await expect.element(page.getByText(copy.summary(2, "jo@pauseai.uk", "Friday 3 July at 14:18"))).toBeVisible();
       // Back to today, an hour too soon moves on to the first it can go at; another keeps it.
       await hour.selectOptions("9");
       await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(2);
-      expect(actions.save.mock.calls[1][2]).toEqual({ dueAt: "2026-07-03T08:00:00.000Z" });
+      expect(actions.save.mock.calls[1][2]).toEqual({ dueAt: new Date("2026-07-03T08:00:00.000Z") });
       await chooseDay(day, "2026-07-01");
       await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(3);
-      expect(actions.save.mock.calls[2][2]).toEqual({ dueAt: "2026-07-01T11:00:00.000Z" });
+      expect(actions.save.mock.calls[2][2]).toEqual({ dueAt: new Date("2026-07-01T11:00:00.000Z") });
     } finally {
       vi.useRealTimers();
     }
@@ -384,9 +384,11 @@ describe("MailingWriter", () => {
   it("opens a draft whose time has gone at the next hour, and saves that", async () => {
     vi.useFakeTimers({ now: new Date("2026-07-01T10:30:00Z"), toFake: ["Date"] });
     try {
-      const { actions } = await renderWriter({ draft: { ...exampleWrittenMailing, dueAt: "2026-06-01T09:00:00Z" } });
+      const { actions } = await renderWriter({
+        draft: { ...exampleWrittenMailing, dueAt: new Date("2026-06-01T09:00:00Z") },
+      });
       await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
-      expect(actions.save.mock.calls[0][2]).toEqual({ dueAt: "2026-07-01T11:00:00.000Z" });
+      expect(actions.save.mock.calls[0][2]).toEqual({ dueAt: new Date("2026-07-01T11:00:00.000Z") });
     } finally {
       vi.useRealTimers();
     }
@@ -416,7 +418,7 @@ describe("MailingWriter", () => {
     const ready = {
       ...exampleWrittenMailing,
       sentFrom: "samuel.whitlock@pauseai.uk",
-      dueAt: "2099-12-01T09:00:00Z",
+      dueAt: new Date("2099-12-01T09:00:00Z"),
     };
     const data = { ...exampleWriterData, fields: [] };
     const { actions } = await renderWriter({ data, draft: ready });
@@ -495,7 +497,7 @@ describe("MailingWriter", () => {
     const policy = {
       email: DEFAULT_SENDER,
       name: "PauseAI Policy Team",
-      connectedAt: "2026-10-03T09:00:00Z",
+      connectedAt: new Date("2026-10-03T09:00:00Z"),
       sentToday: 0,
       remaining: 1800,
     };

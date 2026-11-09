@@ -4,7 +4,7 @@ import { givenPlaces } from "./supporter-place";
 
 /** A contact from `source` at `at`, with a city if given. */
 function contact(source: SupporterContact["source"], at: string, city: string | null = null): SupporterContact {
-  return { source, at, phone: null, postcode: null, latitude: null, longitude: null, city };
+  return { source, at: new Date(at), phone: null, postcode: null, latitude: null, longitude: null, city };
 }
 
 describe("givenPlaces", () => {

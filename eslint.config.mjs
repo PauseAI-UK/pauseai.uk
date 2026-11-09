@@ -10,13 +10,21 @@ const DATABASE_URL_RULE = {
 };
 const PG_IMPORT = { name: "pg", message: "Only lib/server/db.ts connects to the database. Query through it." };
 
+// The site's settings are read from the environment only in
+// lib/server/config.ts, which gives each one shape for every caller. The
+// database's connection string has its own rule, above.
+const PROCESS_ENV_RULE = {
+  selector: "MemberExpression[object.name='process'][property.name='env'][parent.property.name!='NETLIFY_DB_URL']",
+  message: "Read settings from config (lib/server/config.ts), which reads and normalises each environment variable.",
+};
+
 // The site's own address: every absolute URL on it, in an email or a
 // redirect, comes from siteUrl() in lib/site-url.ts, which uses the deploy's
 // address. A request's own URL or Host is the wrong one on Netlify
 // (main--pauseaiuk.netlify.app), and whoever sends the request can set it.
 const SITE_URL_RULE = {
   selector: [
-    "MemberExpression[property.name='SITE_ORIGIN']",
+    "MemberExpression[property.name=/^(SITE_ORIGIN|siteOrigin)$/]",
     "MemberExpression[property.name='url'][object.name=/^req(uest)?$/]",
     "MemberExpression[property.name=/^(origin|host|hostname)$/][object.property.name='nextUrl']",
     "CallExpression[callee.property.name='get'][arguments.0.value=/^(host|origin|x-forwarded-host)$/i]",
@@ -27,7 +35,7 @@ const SITE_URL_RULE = {
 
 // Outside services are called only from their bindings in
 // lib/server/outside-services/, through outsideFetch, so a fixture build
-// answers from tests/fixtures instead. Nothing else imports outsideFetch,
+// answers from lib/server/fixtures/ instead. Nothing else imports outsideFetch,
 // and server code never calls fetch() itself.
 const OUTSIDE = "lib/server/outside-services";
 const OUTSIDE_FETCH_IMPORT = {
@@ -127,11 +135,14 @@ const NETWORK_IMPORTS = [
  * everything above, but for what the file is allowed. `service` may name
  * its own API; `fetch` may call fetch() (code that runs in the browser
  * fetches the site's own API); `outsideFetch` may import it; `sendEmail`
- * may use Postmark's binding to send. `staff` adds the staff pages' rule for
+ * may use Postmark's binding to send. `fakes` may name every service's API,
+ * as the fixtures answer for each. `env` may read process.env. `staff` adds the staff pages' rule for
  * links that look like buttons.
  */
 function siteCodeRules({
   service,
+  fakes = false,
+  env = false,
   siteUrl = false,
   database = false,
   fetch = false,
@@ -143,8 +154,9 @@ function siteCodeRules({
     "no-restricted-syntax": [
       "error",
       ...(database ? [] : [DATABASE_URL_RULE]),
+      ...(env ? [] : [PROCESS_ENV_RULE]),
       ...(siteUrl ? [] : [SITE_URL_RULE]),
-      ...SERVICES.filter((other) => other !== service).map(hostRule),
+      ...(fakes ? [] : SERVICES.filter((other) => other !== service).map(hostRule)),
       ...(fetch ? [] : [OUTSIDE_FETCH_RULE]),
       ...EXTERNAL_LINK_RULES,
       ...(staff ? STAFF_BUTTON_LINK_RULES : []),
@@ -260,6 +272,20 @@ const ROUTE_IMPORTS = [
       "That's another route's _components/. Share code between routes from components/ or lib/, or from a _components/ folder above both.",
   },
 ];
+// The site's code never imports tests/, which isn't part of the site: what a
+// fixture build answers with instead of the outside services is in
+// lib/server/fixtures/. The component gallery, a page of the site, is held
+// to it too.
+const TESTS_IMPORTS = [
+  {
+    group: ["@/tests", "@/tests/**"],
+    message: "The site's code doesn't import tests/. What a fixture build needs goes in lib/server/fixtures/.",
+  },
+  {
+    regex: "^(\\.\\./)+tests(/|$)",
+    message: "The site's code doesn't import tests/. What a fixture build needs goes in lib/server/fixtures/.",
+  },
+];
 const COMPONENT_IMPORTS = {
   group: ["@/components", "@/components/**"],
   message: "lib/ is logic and data, without React components. See LAYERS in eslint.config.mjs.",
@@ -286,11 +312,19 @@ const LAYERS = [
     paths: [STAFF_LINK_IMPORT],
   },
   { files: ["app/(staff)/**/page.tsx"], patterns: ROUTE_IMPORTS, paths: [PAGE_REDIRECT, STAFF_LINK_IMPORT] },
-].map(({ files, ignores = [], patterns, paths = [] }) => ({
-  files,
-  ignores: ["**/*.test.{ts,tsx}", "app/(tools)/gallery/**", ...ignores],
-  rules: { "@typescript-eslint/no-restricted-imports": ["error", { patterns, paths }] },
-}));
+]
+  .map(({ files, ignores = [], patterns, paths = [] }) => ({
+    files,
+    ignores: ["**/*.test.{ts,tsx}", "app/(tools)/gallery/**", ...ignores],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": ["error", { patterns: [...patterns, ...TESTS_IMPORTS], paths }],
+    },
+  }))
+  .concat({
+    files: ["app/(tools)/gallery/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}"],
+    rules: { "@typescript-eslint/no-restricted-imports": ["error", { patterns: TESTS_IMPORTS }] },
+  });
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -327,8 +361,13 @@ const eslintConfig = defineConfig([
   // earlier one's, so each file allowed one of these things comes after.
   ...[
     { files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "proxy.ts"], fetch: true },
+    // The server's clock runs in the browser too, where config can't go.
+    { files: ["lib/now.ts"], fetch: true, env: true },
     { files: ["app/(staff)/**/*.tsx"], fetch: true, staff: true },
     { files: ["lib/server/**/*.ts", "app/**/route.ts", "app/**/actions.ts"] },
+    // The fakes read the fixture build's own settings, as the storyboard loads them outside the site.
+    { files: ["lib/server/fixtures/*.ts"], fakes: true, env: true },
+    { files: ["lib/server/config.ts"], env: true, siteUrl: true },
     { files: [`${OUTSIDE}/*.ts`], outsideFetch: true },
     ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true })),
     { files: [`${OUTSIDE}/outside-fetch.ts`], fetch: true },

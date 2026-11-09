@@ -4,14 +4,14 @@
 // checkout's path, so a worktree's run beside the main checkout's never
 // drops the other's databases, reads its emails or tests its build.
 //
-// Plain JavaScript, as the scripts import it with Node, and not
-// tests/fixture-env.mjs, which the site's own code imports. From the repo
-// root, where every script and test runs. (Not import.meta: Playwright's
-// loader compiles to CommonJS.)
+// Plain JavaScript, as the scripts import it with Node, and apart from
+// lib/server/fixtures/fixture-env.mjs, which the site's own code imports.
+// From the repo root, where every script and test runs. (Not import.meta:
+// Playwright's loader compiles to CommonJS.)
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CHECKOUT_HEADER, FLOW_DATABASE_PREFIX } from "./fixture-env.mjs";
+import { CHECKOUT_HEADER, FLOW_DATABASE_PREFIX } from "../lib/server/fixtures/fixture-env.mjs";
 
 /** The checkout's path, which its fixture build answers with (scripts/serve-fixture.mjs). */
 export const CHECKOUT_DIR = process.cwd();
@@ -59,11 +59,11 @@ export function foreignServer(served, dir = CHECKOUT_DIR, url = OWN_URL) {
   return `${url} is serving ${what}, not this checkout's (${dir}). Stop that server and run again.`;
 }
 
-/** Where the build under test writes its emails (tests/fixtures/outbox.ts). */
+/** Where the build under test writes its emails (lib/server/fixtures/outbox.ts). */
 export const OUTBOX_DIR = process.env.OUTBOX_DIR ?? join(tmpdir(), `pauseai-storyboard-outbox-${CHECKOUT}`);
-/** Where a flow writes mail to the letters inbox, for the build's fake Gmail to pick up (tests/fixtures/letters-inbox.ts); as tests/fixture-env.mjs tells the build. */
+/** Where a flow writes mail to the letters inbox, for the build's fake Gmail to pick up (lib/server/fixtures/letters-inbox.ts); as lib/server/fixtures/fixture-env.mjs tells the build. */
 export const LETTERS_INBOX_DIR = join(OUTBOX_DIR, "letters-inbox");
-/** Where a flow says which outside services fail for it (tests/fixtures/failing-services.ts). */
+/** Where a flow says which outside services fail for it (lib/server/fixtures/failing-services.ts). */
 export const FAILING_DIR = join(OUTBOX_DIR, "failing");
 /** Where main's fixture build (scripts/serve-main.mjs) writes its emails. */
 export const MAIN_OUTBOX_DIR = join(tmpdir(), `pauseai-storyboard-main-outbox-${CHECKOUT}`);

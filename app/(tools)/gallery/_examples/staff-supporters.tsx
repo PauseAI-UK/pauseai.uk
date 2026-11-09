@@ -33,9 +33,9 @@ import {
 
 /** Luma events a filter of supporters picks from, newest first. */
 const exampleEventChoices = [
-  { id: "evt-1", name: "PauseAI Leicester meetup", startAt: "2026-10-20T18:00:00Z" },
-  { id: "evt-2", name: "AI risk talk", startAt: "2026-10-12T18:00:00Z" },
-  { id: "evt-3", name: "PauseAI London March", startAt: "2026-09-05T11:00:00Z" },
+  { id: "evt-1", name: "PauseAI Leicester meetup", startAt: new Date("2026-10-20T18:00:00Z") },
+  { id: "evt-2", name: "AI risk talk", startAt: new Date("2026-10-12T18:00:00Z") },
+  { id: "evt-3", name: "PauseAI London March", startAt: new Date("2026-09-05T11:00:00Z") },
 ];
 
 export const staffSupporters: Group = {

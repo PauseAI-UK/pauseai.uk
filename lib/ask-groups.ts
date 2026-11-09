@@ -12,7 +12,7 @@ const month = (day: string, year: boolean) =>
  * with none on record the month typed for it, if any.
  */
 export function askPeriod(ask: AskWithCounts): string {
-  if (ask.kind === "event") return ask.date ? staffDate(ask.date) : "";
+  if (ask.kind === "event") return ask.date ? staffDate(new Date(ask.date)) : "";
   const { firstLetter: first, lastLetter: last } = ask;
   if (!first || !last) return ask.date ? month(ask.date, true) : "";
   if (first.slice(0, 7) === last.slice(0, 7)) return month(first, true);

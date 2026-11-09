@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import type { AskStatus } from "@/lib/asks";
 import { changedFields } from "@/lib/field-changes";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -84,7 +85,7 @@ export async function mpsInOffice(): Promise<AirtableMp[]> {
  * so staff can change them.
  */
 async function ensureTestMps(db: Queryable): Promise<void> {
-  const email = process.env.TEST_MP_EMAIL?.trim() || null;
+  const email = config.testMpEmail ?? null;
   for (const mp of TEST_MPS) {
     const address = mp.noEmail ? null : (mp.email ?? email);
     const [existing] = await query<{ id: number }>(

@@ -251,7 +251,7 @@ export type EmailBlock = {
   kind: "hard" | "complaint";
   reason: string;
   /** When the problem that blocked it came. */
-  since: string;
+  since: Date;
   canReset: boolean;
   /** The bounce was read from a staff member's Gmail, not reported by Postmark. */
   foundInGmail: boolean;
@@ -320,7 +320,7 @@ export type SentLetter = { id: number; to: string };
 /** A bounce or complaint, for the staff interface. */
 export type ProblemSummary = {
   id: number;
-  at: string;
+  at: Date;
   address: string;
   kind: DeliveryProblem["kind"];
   reason: string;

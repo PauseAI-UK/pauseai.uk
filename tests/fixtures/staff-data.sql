@@ -347,7 +347,7 @@ UPDATE luma_events SET removed_at = now() - interval '3 days' WHERE id = 'evt-se
 -- Each made on Luma six weeks before it starts.
 UPDATE luma_events SET created_at = start_at - interval '42 days';
 -- Hosts the import has read. Those to come are the Luma fixture's
--- (tests/fixtures/outside-services.ts): the London protest's three, Sam,
+-- (lib/server/fixtures/outside-services.ts): the London protest's three, Sam,
 -- Jane, who registered for it too, and one Luma has no name for; Alex for
 -- each of the rest. Read two hours ago, so the next import reads them again.
 -- Of those over, never read again: the past London march's, Jane, so it's
@@ -499,7 +499,7 @@ INSERT INTO email_blocks (address, problem_id) VALUES
 -- A letter from the letters inbox, long ago, so it counts in neither week:
 -- Pat's proxy and the test MP's; the letter as sent, and the draft it was
 -- written from; her copy; the office's acknowledgement and reply to her
--- proxy, kept whole (tests/fixtures/letter-replies/) and relayed to her.
+-- proxy, kept whole (lib/server/fixtures/letter-replies/) and relayed to her.
 INSERT INTO proxies (tag, supporter_email, created_at) VALUES ('pat.proxy', 'pat.proxy@example.com', now() - interval '50 days');
 INSERT INTO proxies (tag, notable_person_id, created_at)
 SELECT 'testy.mctestface.mp', id, now() - interval '50 days' FROM politicians WHERE test_postcode = 'ZZ99ZZ';
@@ -677,7 +677,7 @@ SELECT w.id, w.mailing_id, json_build_object('values', json_build_object('saluta
 FROM seed_written w;
 -- The follow-up went from Jo's Gmail: each letter's send, with its
 -- Message-ID and thread; the first bounced, as Jo's mailbox showed, and the
--- second was answered, the reply kept whole (tests/fixtures/letter-replies/).
+-- second was answered, the reply kept whole (lib/server/fixtures/letter-replies/).
 INSERT INTO email_sends (at, purpose, letter_id, address, outcome, message_id, backend, sender, rfc_message_id, gmail_thread_id)
 SELECT w.due_at, 'mailing', w.id, lower(n.email), 'sent', 'gmail-seed-' || w.n, 'gmail', 'jo@pauseai.uk',
   'fixture-letter-' || w.n || '@pauseai.uk', 'thread-seed-' || w.n

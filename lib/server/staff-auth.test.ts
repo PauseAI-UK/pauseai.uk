@@ -3,6 +3,7 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies, requestHeaders } from "@/tests/next-headers";
 import { query } from "./db";
 import {
+  canSeeSupporters,
   createSession,
   deleteSession,
   endSession,
@@ -14,6 +15,11 @@ import {
 import { saveStaffAccount } from "./staff-accounts";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
+
+it("lets only staff with the supporters permission see supporters", () => {
+  expect(canSeeSupporters({ permissions: ["supporters"] })).toBe(true);
+  expect(canSeeSupporters({ permissions: ["admin"] })).toBe(false);
+});
 
 describeWithDatabase("staff sessions", () => {
   useTestDatabase();

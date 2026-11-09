@@ -1,3 +1,4 @@
+import { config } from "@/lib/server/config";
 import { copy } from "@/lib/content/email-your-mp";
 import { pageMetadata } from "@/lib/metadata";
 import LetterPreview from "../../_components/LetterPreview";
@@ -16,7 +17,7 @@ export const metadata = {
 export default function Page() {
   return (
     <LetterStep title={copy.preview.title}>
-      <LetterPreview campaignSlug="support-sobel-bill" turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
+      <LetterPreview campaignSlug="support-sobel-bill" turnstileSiteKey={config.turnstileSiteKey} />
     </LetterStep>
   );
 }

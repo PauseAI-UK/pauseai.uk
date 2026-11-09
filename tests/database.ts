@@ -225,7 +225,7 @@ export const TEST_GMAIL_TOKEN_KEY = Buffer.alloc(32, 1).toString("base64");
 /**
  * Gives `email` a staff account with its Gmail connected, straight into the
  * table, read up to `historyId`. Its token is the Gmail fixture's
- * (tests/fixtures/outside-services.ts), which knows the account by it.
+ * (lib/server/fixtures/outside-services.ts), which knows the account by it.
  * Sets GMAIL_TOKEN_KEY and the OAuth client's settings; the test unstubs them.
  */
 export async function connectTestGmail(email = "jo@pauseai.uk", historyId = "1000"): Promise<void> {

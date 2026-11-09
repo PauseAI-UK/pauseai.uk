@@ -10,7 +10,8 @@ import DonateIntro from "@/app/(site)/donate/_components/DonateIntro";
 import DonateThanks from "@/app/(site)/donate/_components/DonateThanks";
 import { exampleDonors } from "@/app/(site)/donate/_components/DonateThanks.examples";
 import FindYourGroup from "@/app/(site)/events/_components/FindYourGroup";
-import { BLOG, findPost, newestFirst, posts, type BlogPost } from "@/lib/content/blog";
+import { BLOG, findPost, posts } from "@/lib/content/blog";
+import { newestFirst, type BlogPost } from "@/lib/content/posts";
 import type { Group } from "../_components/types";
 
 /** A real post, by its slug. */

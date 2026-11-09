@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { gzipSync } from "node:zlib";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { importPath, type GmailRead, type GmailReadResult } from "@/lib/import-runs";
@@ -333,14 +334,7 @@ async function readMessage(account: string, token: string, id: string, read: Gma
     if (keepsPoliticianThreads(account))
       read.oneOffs =
         (read.oneOffs ?? 0) +
-        ((await keepIfPoliticianThread(
-          account,
-          token,
-          message,
-          account === process.env.POLICY_INBOX?.toLowerCase(),
-        )) === "kept"
-          ? 1
-          : 0);
+        ((await keepIfPoliticianThread(account, token, message, account === config.policyInbox)) === "kept" ? 1 : 0);
     return;
   }
   if (isMachineReply((name) => message.headers.get(name), message.headers.get("subject") ?? "")) {

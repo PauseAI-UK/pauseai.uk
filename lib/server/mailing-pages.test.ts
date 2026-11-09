@@ -104,7 +104,7 @@ describeWithDatabase("the mailing pages' data", () => {
       mailing: { tab: "all" },
     });
 
-    await saveDraft(id, 1, { sentFrom: "jo@pauseai.uk", fromName: "Jo", dueAt: "2099-01-01T09:00:00Z" });
+    await saveDraft(id, 1, { sentFrom: "jo@pauseai.uk", fromName: "Jo", dueAt: new Date("2099-01-01T09:00:00Z") });
     await query("UPDATE mailings SET state = 'scheduled' WHERE id = $1", [id]);
     expect(await mailingPageData(id, { tab: "failed", page: "2" }, "jo@pauseai.uk")).toMatchObject({
       kind: "written",

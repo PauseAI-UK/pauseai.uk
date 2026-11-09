@@ -41,6 +41,9 @@ lib/                      logic and data, no React state
                           `import "server-only"`
     outside-services/     one binding per outside service, the only
                           code that calls one (outsideFetch)
+    fixtures/             what a fixture build (DATA_FIXTURES=1) answers
+                          instead of the outside services: their canned
+                          answers, the outbox, the settings (fixture-env.mjs)
   content/                the site's content as typed data (people, blog,
                           briefings, ...)
   collateral/             the collateral tool's drawing engine
@@ -51,8 +54,8 @@ netlify/                  database migrations, scheduled functions
 backup/                   the nightly database backup: a Cloudflare Worker and
                           container, a package of its own (backup/README.md)
 proxy.ts                  turns away /staff requests without a session cookie
-tests/                    Playwright suites, the route list, fixtures,
-                          Vitest setup
+tests/                    Playwright suites, the route list, the fixtures
+                          only tests use, Vitest setup
   checks/                 tests that scan the whole repo (placeholder copy,
                           thin pages, staff auth and the rest)
 scripts/                  database, storyboard and data scripts
@@ -81,9 +84,10 @@ the code should go instead. The rules below say which ones are enforced.
   and the `_components/` folders above it, by a relative path, but never
   another route's folder or anything by `@/app/`. `components/` doesn't
   import routes, and `lib/` imports neither routes nor components, except
-  the content in `lib/content/`, which is partly JSX. Tests and the
-  component gallery may reach across. An ESLint rule enforces it (`LAYERS`
-  in `eslint.config.mjs`).
+  the content in `lib/content/`, which is partly JSX. Nothing in `app/`,
+  `components/` or `lib/` imports `tests/`: what a fixture build needs is
+  in `lib/server/fixtures/`. Tests and the component gallery may reach
+  across. An ESLint rule enforces it (`LAYERS` in `eslint.config.mjs`).
 - **Redirects are in `next.config.ts`.** A path that only sends people
   elsewhere is an entry in its `redirects()`, never a page that calls
   `redirect()`: on a click within the site, a page that redirects while
@@ -129,7 +133,14 @@ the code should go instead. The rules below say which ones are enforced.
   `JobRole`); one-off prose can stay as JSX inside a section component.
 - **Metadata** comes from `pageMetadata()` (`lib/metadata.ts`), which fills in
   the social preview images, the "PauseAI UK | <title>" social title and the
-  canonical path.
+  canonical path. A page's `generateMetadata` reuses its loader: the
+  function in `lib/server/` that both call is wrapped in React's `cache()`
+  (https://react.dev/reference/react/cache), so it queries once a request,
+  with arguments that are the same each time (an ID or a slug, not an
+  object, as `cache()` compares objects by identity). When the loader
+  loads far more than the title, such as an ask's page of answers, the
+  metadata has a small query of its own (`askTitle()`).
+  `lib/server/page-loaders.test.ts` shows each one runs once.
 - **No scripts in `public/`.** Browser behaviour goes in a typed
   `"use client"` component, like the track record's `Gallery`.
 - **Components render their state.** What a component shows comes from
@@ -156,7 +167,7 @@ the code should go instead. The rules below say which ones are enforced.
   (`outside-fetch.ts` there), so tests and fixture builds can answer
   instead. The rest of the code calls the binding's functions. A new
   service gets a new binding there, and its canned answers in
-  `tests/fixtures/outside-services.ts` (`docs/testing.md`, "Mocking").
+  `lib/server/fixtures/outside-services.ts` (`docs/testing.md`, "Mocking").
   ESLint rules (`npm run lint`) fail on, in the site's code:
   - importing `outsideFetch` outside that folder, or calling `fetch()` in
     server code (`lib/server/`, route handlers, Server Actions);
@@ -187,6 +198,13 @@ the code should go instead. The rules below say which ones are enforced.
   applied: a change is a new file. Each one is committed with
   `netlify/database/schema.sql` (`docs/development.md`, "Adding a
   migration"). Tables follow the SQL rules below.
+- **Settings** come from `config` (`lib/server/config.ts`), which reads
+  each environment variable and gives it one shape for every caller: an
+  address trimmed and lowercased, unset and empty alike undefined. Nothing
+  else in `app/`, `components/` or `lib/` reads `process.env` (an ESLint
+  rule, `PROCESS_ENV_RULE`), but `lib/server/db.ts` for its connection
+  string, `lib/now.ts`, which runs in the browser too, and the fakes in
+  `lib/server/fixtures/`, which the storyboard loads outside the site.
 - **Links to the site** in emails and redirects are built with
   `siteUrl(path, request)` (`lib/site-url.ts`), on the deploy's own address
   (`SITE_ORIGIN`, set in `next.config.ts` from Netlify's settings):
@@ -198,6 +216,8 @@ the code should go instead. The rules below say which ones are enforced.
 - **Staff pages** each call `requireStaff()` (`lib/server/staff-auth.ts`)
   first, as does every staff route handler and Server Action
   (`tests/checks/staff-auth.test.ts`). `proxy.ts` only checks the cookie exists.
+  A page that shows more to staff who may see supporters asks
+  `canSeeSupporters(staff)`, beside `requireStaff()`.
 - **Scheduled jobs** are Netlify scheduled functions, each in its own folder
   in `netlify/functions/`, that POST to a route under `app/api/cron/` with
   `CRON_SECRET`. The work itself stays in the Next app. Every one is a job
@@ -215,6 +235,11 @@ the code should go instead. The rules below say which ones are enforced.
 - **Content vs logic.** Data the site displays (people, posts, press, board)
   goes in `lib/content/`. Logic goes next to the feature it serves
   (`lib/events.ts`, `lib/collateral/`).
+- **A post a file.** Each blog post is `lib/content/blog/<slug>.tsx`, and
+  each weekly briefing `lib/content/briefings/<slug>.tsx`, listed newest
+  first in its folder's `index.ts`, so a new one is a new file and a line
+  there. What the two share, a post's fields, byline, images, metadata and
+  feed, is in `lib/content/posts.tsx`.
 - **Where the words go.** A page's own text is written in the page. A
   tool's words (labels, messages, errors, the emails it sends) go in one
   copy object in `lib/content/<feature>.ts`, such as `copy` in
@@ -436,12 +461,14 @@ only a variant. The look itself (colours, type, buttons, cards) is in
 page each week (`docs/style-guide.md`, "The briefings and the march"). It
 follows the rules above, with these particulars:
 
-- **A briefing is data and its kit.** `lib/content/briefings.tsx` gives each
-  briefing's week and key stories as data (its summary is the key stories'
-  headlines), and writes the rest with `components/briefings/`: `BriefingBox`,
+- **A briefing is data and its kit.** Each briefing's file,
+  `lib/content/briefings/<slug>.tsx`, gives its week and key stories as data
+  (its summary is the key stories' headlines, `defineBriefing` in
+  `define.tsx`), and writes the rest with `components/briefings/`: `BriefingBox`,
   `BriefingColumns`, `BriefingQuote`, `BriefingText`'s pieces, the charts,
   `BriefingSources`. A new week's briefing is the design's HTML page
-  rewritten with those, a new chart a new component there.
+  rewritten with those in a new file, listed first in the folder's
+  `index.ts`, a new chart a new component there.
 - **Colours by topic.** The `--briefing-*` tokens are the design's palette, one a
   topic. A box sets `--tone` on itself (`toneStyle` in `tone.ts`), and what's
   in it, its list markers, quote rules, headings' accents and charts, draws

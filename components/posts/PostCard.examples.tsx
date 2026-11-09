@@ -1,4 +1,5 @@
-import { posts, type BlogPost } from "@/lib/content/blog";
+import { posts } from "@/lib/content/blog";
+import type { BlogPost } from "@/lib/content/posts";
 
 /**
  * A post with no image, by the organisation, for the blog's tests and the

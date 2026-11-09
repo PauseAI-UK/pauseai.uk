@@ -71,7 +71,7 @@ function emailFilters(supporters: boolean, people: EmailChoice[]): Filter[] {
 }
 
 /** When something happened, or a dash for what hasn't. */
-const when = (at: string | null) => (at ? staffTime(at) : <Muted>–</Muted>);
+const when = (at: Date | null) => (at ? staffTime(at) : <Muted>–</Muted>);
 
 /** A row's status and the way to it: a thread's kind, as it has no status; a letter's, under its mailing for one of PauseAI's. */
 function Status({ letter }: { letter: AnyLetter }) {

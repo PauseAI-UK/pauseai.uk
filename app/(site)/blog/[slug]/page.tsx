@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import JsonLd from "@/components/layout/JsonLd";
-import { BLOG, findPost, postJsonLd, postMetadata, posts } from "@/lib/content/blog";
+import { BLOG, findPost, posts } from "@/lib/content/blog";
+import { postJsonLd, postMetadata } from "@/lib/content/posts";
 import { found } from "@/lib/found";
 import PostBody from "@/components/posts/PostBody";
 import PostHeader from "@/components/posts/PostHeader";

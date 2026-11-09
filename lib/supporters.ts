@@ -32,8 +32,8 @@ export type SupporterSummary = {
   sources: SupporterSource[];
   /** Whether they're a contact of the Luma calendar now, as registering for an event or following it makes them, and unsubscribing undoes. */
   lumaContact: boolean;
-  firstSeenAt: string | null;
-  lastActiveAt: string | null;
+  firstSeenAt: Date | null;
+  lastActiveAt: Date | null;
   /** Events registered for, declined ones left out. */
   events: number;
   letters: number;
@@ -60,13 +60,13 @@ export type SupporterRow = SupporterSummary & {
   /** With the Event filter on, their registrations for the events it finds: each event's name and how it stands. */
   registrations?: { event: string; status: string }[];
   /** With the Campaign filter finding those who wrote, when they first wrote in it. */
-  wroteAt?: string;
+  wroteAt?: Date;
 };
 
 /** What a supporter did, from any source: `kind` says what, `title` and `detail` which and how. */
 export type SupporterActivity = {
   source: string;
-  at: string;
+  at: Date;
   kind:
     | "luma-contact"
     | "luma-registered"
@@ -90,16 +90,16 @@ export type SupporterActivity = {
   /** A letter's ID, for a link to it; null for every other kind. */
   letterId?: number | null;
   /** When the event starts, for a registration or hosting, where the supporter's page reads it; null for an event no longer copied. */
-  eventAt?: string | null;
+  eventAt?: Date | null;
 };
 
 /** A name and email one source gave, and when the person was first seen there. */
-export type SupporterIdentity = { source: SupporterSource; email: string; name: string; seenAt: string | null };
+export type SupporterIdentity = { source: SupporterSource; email: string; name: string; seenAt: Date | null };
 
 /** A phone, postcode, city or place one source gave, and when. */
 export type SupporterContact = {
   source: SupporterSource;
-  at: string;
+  at: Date;
   /** As phone_number() writes it. */
   phone: string | null;
   postcode: string | null;
@@ -114,7 +114,7 @@ export type SupporterMp = { id: number; name: string; constituency: string; part
 /** A letter a supporter wrote: which, when, to whom, in which campaign, and how it stands. */
 export type SupporterLetter = {
   id: number;
-  sentAt: string | null;
+  sentAt: Date | null;
   mpName: string;
   politicianId: number;
   isTest: boolean;

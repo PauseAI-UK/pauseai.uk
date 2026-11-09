@@ -7,8 +7,8 @@ export type Note = {
   id: number;
   body: string;
   writtenBy: string;
-  createdAt: string;
-  editedAt: string | null;
+  createdAt: Date;
+  editedAt: Date | null;
 };
 
 /** Who's looking: their email, and their permissions. */
@@ -19,7 +19,7 @@ export const NOTE_EDIT_HOURS = 24;
 
 /** Whether the note was written no more than NOTE_EDIT_HOURS before `at`. */
 function stillYoung(note: Pick<Note, "createdAt">, at: Date): boolean {
-  return at.getTime() - new Date(note.createdAt).getTime() <= NOTE_EDIT_HOURS * 60 * 60 * 1000;
+  return at.getTime() - note.createdAt.getTime() <= NOTE_EDIT_HOURS * 60 * 60 * 1000;
 }
 
 /** Whether `reader` may edit the note: its writer, while it's young enough. */

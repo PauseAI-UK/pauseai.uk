@@ -22,14 +22,14 @@ export const exampleLetter: LetterSummary = {
   answer: null,
   ownWords: 0.18,
   backend: "postmark",
-  createdAt: "2026-10-12T09:00:00Z",
-  sentAt: "2026-10-12T09:05:00Z",
+  createdAt: new Date("2026-10-12T09:00:00Z"),
+  sentAt: new Date("2026-10-12T09:05:00Z"),
   repliedAt: null,
   autoRepliedAt: null,
   supporterId: 7,
   events: [
-    { at: "2026-10-12T09:10:00Z", status: "bounced", details: { type: "HardBounce" } },
-    { at: "2026-10-12T09:00:00Z", status: "sending", details: {} },
+    { at: new Date("2026-10-12T09:10:00Z"), status: "bounced", details: { type: "HardBounce" } },
+    { at: new Date("2026-10-12T09:00:00Z"), status: "sending", details: {} },
   ],
 };
 
@@ -47,7 +47,11 @@ export const exampleSupporterLetterDetails: SupporterLetterDetails = {
   campaignAsk: null,
   events: [
     exampleLetter.events[0],
-    { at: "2026-10-12T09:05:00Z", status: "sent", details: { messageId: "0a1b2c3d-1111-2222-3333-444455556666" } },
+    {
+      at: new Date("2026-10-12T09:05:00Z"),
+      status: "sent",
+      details: { messageId: "0a1b2c3d-1111-2222-3333-444455556666" },
+    },
     exampleLetter.events[1],
   ],
   gmail: {
@@ -92,11 +96,11 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
   ...exampleSupporterLetterDetails,
   status: "sent",
   backend: "gmail",
-  repliedAt: "2026-10-13T09:00:00Z",
+  repliedAt: new Date("2026-10-13T09:00:00Z"),
   gmail: { mailbox: LETTERS_INBOX, search: "rfc822msgid:letter-1@pauseai.uk" },
   events: [
     {
-      at: "2026-10-13T10:00:00Z",
+      at: new Date("2026-10-13T10:00:00Z"),
       status: "relayed",
       details: {
         from: `"Jane Smith (via PauseAI)" <fixture-letters+jane.smith@pauseai.uk>`,
@@ -104,12 +108,12 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
       },
     },
     {
-      at: "2026-10-13T10:00:00Z",
+      at: new Date("2026-10-13T10:00:00Z"),
       status: "replied",
       details: { from: "jane@example.com", name: "Jane Smith", to: "fixture-letters+testy.mctestface.mp@pauseai.uk" },
     },
     {
-      at: "2026-10-13T09:00:00Z",
+      at: new Date("2026-10-13T09:00:00Z"),
       status: "relayed",
       details: {
         from: `"Testy McTestface MP (via PauseAI)" <fixture-letters+testy.mctestface.mp@pauseai.uk>`,
@@ -117,7 +121,7 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
       },
     },
     {
-      at: "2026-10-13T09:00:00Z",
+      at: new Date("2026-10-13T09:00:00Z"),
       status: "replied",
       details: {
         from: "testy.mctestface.mp@parliament.uk",
@@ -126,7 +130,7 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
       },
     },
     {
-      at: "2026-10-12T09:05:00Z",
+      at: new Date("2026-10-12T09:05:00Z"),
       status: "copy_sent",
       details: {
         from: `"Jane Smith (via PauseAI)" <fixture-letters+jane.smith@pauseai.uk>`,
@@ -135,7 +139,7 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
       },
     },
     {
-      at: "2026-10-12T09:05:00Z",
+      at: new Date("2026-10-12T09:05:00Z"),
       status: "sent",
       details: {
         from: `"Jane Smith (via PauseAI)" <fixture-letters+jane.smith@pauseai.uk>`,
@@ -147,7 +151,7 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
   messages: [
     {
       id: 1,
-      at: "2026-10-13T09:00:00Z",
+      at: new Date("2026-10-13T09:00:00Z"),
       fromName: "Testy McTestface MP",
       fromAddress: "testy.mctestface.mp@parliament.uk",
       fromUs: false,
@@ -161,7 +165,7 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
     },
     {
       id: 2,
-      at: "2026-10-13T10:00:00Z",
+      at: new Date("2026-10-13T10:00:00Z"),
       fromName: "Jane Smith",
       fromAddress: "jane@example.com",
       fromUs: false,
@@ -181,7 +185,7 @@ export const exampleAutoRepliedLetterDetails: SupporterLetterDetails = {
   messages: [
     {
       id: 3,
-      at: "2026-10-12T09:06:00Z",
+      at: new Date("2026-10-12T09:06:00Z"),
       fromName: "Testy McTestface MP",
       fromAddress: "testy.mctestface.mp@parliament.uk",
       fromUs: false,
@@ -199,7 +203,7 @@ export const exampleAutoRepliedLetterDetails: SupporterLetterDetails = {
     },
     {
       id: 4,
-      at: "2026-10-12T09:07:00Z",
+      at: new Date("2026-10-12T09:07:00Z"),
       fromName: "Jane Smith",
       fromAddress: "jane@example.com",
       fromUs: false,
@@ -225,11 +229,11 @@ const MP_ADDRESS = "testy.mctestface.mp@parliament.uk";
 export const exampleRepliedLetterDetails: SupporterLetterDetails = {
   ...exampleSupporterLetterDetails,
   status: "sent",
-  repliedAt: "2026-10-13T09:00:00Z",
-  autoRepliedAt: "2026-10-12T09:06:00Z",
+  repliedAt: new Date("2026-10-13T09:00:00Z"),
+  autoRepliedAt: new Date("2026-10-12T09:06:00Z"),
   events: [
     {
-      at: "2026-10-14T09:00:00Z",
+      at: new Date("2026-10-14T09:00:00Z"),
       status: "replied",
       details: {
         from: "jane@example.com",
@@ -243,7 +247,7 @@ export const exampleRepliedLetterDetails: SupporterLetterDetails = {
       },
     },
     {
-      at: "2026-10-13T09:00:00Z",
+      at: new Date("2026-10-13T09:00:00Z"),
       status: "replied",
       details: {
         from: MP_ADDRESS,
@@ -259,7 +263,7 @@ export const exampleRepliedLetterDetails: SupporterLetterDetails = {
       },
     },
     {
-      at: "2026-10-12T09:06:00Z",
+      at: new Date("2026-10-12T09:06:00Z"),
       status: "auto_reply",
       details: {
         from: MP_ADDRESS,
@@ -268,7 +272,7 @@ export const exampleRepliedLetterDetails: SupporterLetterDetails = {
       },
     },
     {
-      at: "2026-10-12T09:05:00Z",
+      at: new Date("2026-10-12T09:05:00Z"),
       status: "sent",
       details: {
         from: LETTER_ADDRESS,
@@ -277,7 +281,7 @@ export const exampleRepliedLetterDetails: SupporterLetterDetails = {
         messageId: "0a1b2c3d-1111-2222-3333-444455556666",
       },
     },
-    { at: "2026-10-12T09:00:00Z", status: "sending", details: {} },
+    { at: new Date("2026-10-12T09:00:00Z"), status: "sending", details: {} },
   ],
 };
 
@@ -293,9 +297,9 @@ export const exampleOlderRepliedLetterDetails: SupporterLetterDetails = {
     return { ...event, details };
   }),
   forwards: [
-    { at: "2026-10-13T09:00:01Z", address: "policy@pauseai.uk", outcome: "sent" },
-    { at: "2026-10-13T09:00:02Z", address: "jane@example.com", outcome: "refused" },
-    { at: "2026-10-14T09:00:01Z", address: "policy@pauseai.uk", outcome: "sent" },
+    { at: new Date("2026-10-13T09:00:01Z"), address: "policy@pauseai.uk", outcome: "sent" },
+    { at: new Date("2026-10-13T09:00:02Z"), address: "jane@example.com", outcome: "refused" },
+    { at: new Date("2026-10-14T09:00:01Z"), address: "policy@pauseai.uk", outcome: "sent" },
   ],
 };
 
@@ -304,8 +308,8 @@ export const examplePauseaiLetterDetails: PauseaiLetterDetails = {
   kind: "pauseai",
   id: 21,
   status: "sent",
-  createdAt: "2026-10-01T12:00:00Z",
-  sentAt: "2026-10-01T12:00:00Z",
+  createdAt: new Date("2026-10-01T12:00:00Z"),
+  sentAt: new Date("2026-10-01T12:00:00Z"),
   mpName: "Polly Placeholder",
   politicianId: 1,
   mpEmail: "polly.placeholder.mp@parliament.uk",

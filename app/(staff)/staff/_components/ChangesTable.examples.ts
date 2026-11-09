@@ -8,7 +8,7 @@ function change(
   details: Record<string, unknown>,
   about: Partial<LoggedChange> = {},
 ): LoggedChange {
-  const at = `2026-10-${id > 20 ? 11 : 12}T09:${String(60 - id).padStart(2, "0")}:00Z`;
+  const at = new Date(`2026-10-${id > 20 ? 11 : 12}T09:${String(60 - id).padStart(2, "0")}:00Z`);
   return { id, at, actor, action, details, politician: null, supporter: null, ...about };
 }
 

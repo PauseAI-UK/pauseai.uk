@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { FORM_VERSIONS } from "@/lib/content/pauseai-info-form";
 import { formVersionAt } from "@/lib/old-letters";
@@ -26,8 +27,8 @@ export type CampaignSummary = {
   /** How many politicians it wrote to, and supporters wrote. */
   politicians: number;
   supporters: number;
-  firstAt: string | null;
-  lastAt: string | null;
+  firstAt: Date | null;
+  lastAt: Date | null;
 };
 
 const SELECT_CAMPAIGNS = `
@@ -52,16 +53,18 @@ export async function listCampaignSummaries(): Promise<CampaignSummary[]> {
 }
 
 /** One campaign's counts, or undefined for none. */
-export async function getCampaignSummary(slug: string): Promise<CampaignSummary | undefined> {
+export const getCampaignSummary = cache(async function getCampaignSummary(
+  slug: string,
+): Promise<CampaignSummary | undefined> {
   const [campaign] = await query<CampaignSummary>(
     `${SELECT_CAMPAIGNS} WHERE c.slug = $1 GROUP BY c.slug, a.title, a.kind`,
     [slug],
   );
   return campaign;
-}
+});
 
 /** A version of a campaign's text, with how many letters were written from it. */
-export type CampaignVersion = { key: string; from: string | null; letters: number; subject: string; text: string };
+export type CampaignVersion = { key: string; from: Date | null; letters: number; subject: string; text: string };
 
 /** A campaign's versions, counted from its letters' dates, and how many of its letters changed the wording. */
 export async function campaignVersions(slug: string): Promise<{ versions: CampaignVersion[]; changed: number }> {
@@ -82,13 +85,13 @@ export async function campaignVersions(slug: string): Promise<{ versions: Campai
   }
   const counted = new Map<string, number>();
   for (const { at } of rows) {
-    const { commit } = formVersionAt(new Date(at));
+    const { commit } = formVersionAt(at);
     counted.set(commit, (counted.get(commit) ?? 0) + 1);
   }
   const versions = FORM_VERSIONS.filter((version) => counted.has(version.commit))
     .map((version) => ({
       key: version.commit,
-      from: version.committedAt,
+      from: new Date(version.committedAt),
       letters: counted.get(version.commit)!,
       subject: version.subject,
       text: version.text,

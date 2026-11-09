@@ -1,4 +1,5 @@
-import { BLOG, newestFirst, posts } from "@/lib/content/blog";
+import { BLOG, posts } from "@/lib/content/blog";
+import { newestFirst } from "@/lib/content/posts";
 import { postsFeed } from "@/lib/content/posts-feed";
 
 export const dynamic = "force-static";

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { windowStart } from "@/lib/staff-dashboard";
 import { now } from "@/lib/now";
 import type {
@@ -307,7 +308,7 @@ export async function listSupporters(
         )
       : [],
     filter.campaign && filter.wrote
-      ? query<{ id: number; at: string }>(
+      ? query<{ id: number; at: Date }>(
           `SELECT k.supporter_id::int AS id, min(f.created_at) AS at
            FROM supporter_links k JOIN letters_from_supporters l ON l.entry_id = k.form_entry_id
            JOIN form_entries f ON f.id = l.entry_id
@@ -333,7 +334,7 @@ export async function listSupporters(
 }
 
 /** A Luma event to filter supporters by: its ID, name and when it starts. */
-export type EventChoice = { id: string; name: string; startAt: string };
+export type EventChoice = { id: string; name: string; startAt: Date };
 
 /** An MP to filter supporters by: their politician ID, name and constituency. */
 export type MpChoice = { id: number; name: string; constituency: string };
@@ -350,7 +351,7 @@ export const MP_CHOICES = `SELECT n.id::int AS id, n.name, p.constituency FROM p
  * The Event filter's choices, newest first: our Luma events that we
  * manage, whose guests we know; and the MP filter's, by name.
  */
-export async function supporterChoices(): Promise<SupporterChoices> {
+export const supporterChoices = cache(async function supporterChoices(): Promise<SupporterChoices> {
   const [events, mps] = await Promise.all([
     query<EventChoice>(
       `SELECT id, name, start_at AS "startAt" FROM luma_events
@@ -359,13 +360,13 @@ export async function supporterChoices(): Promise<SupporterChoices> {
     query<MpChoice>(`SELECT * FROM (${MP_CHOICES}) p ORDER BY p.name, p.constituency`),
   ]);
   return { events, mps };
-}
+});
 
 /**
  * Everything the staff page shows about one supporter, or undefined if
  * there's no such one. An ID merged into another supporter finds them.
  */
-export async function getSupporter(given: number): Promise<SupporterDetails | undefined> {
+export const getSupporter = cache(async function getSupporter(given: number): Promise<SupporterDetails | undefined> {
   const [{ id }] = await query<{ id: number }>(
     "SELECT coalesce((SELECT into_id FROM supporter_merges WHERE from_id = $1), $1)::int AS id",
     [given],
@@ -421,4 +422,4 @@ export async function getSupporter(given: number): Promise<SupporterDetails | un
     ),
   ]);
   return { summary, letters, mp: mp ?? null, identities, contacts, activity, permissions };
-}
+});

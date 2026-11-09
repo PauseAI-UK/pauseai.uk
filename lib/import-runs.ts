@@ -83,7 +83,7 @@ export type Problem = { what: string; error?: string; told?: true };
 /** One run of a job: how it ended, what went wrong along the way, and the job's own account of what it found, unless it failed. */
 export type ImportRun<Job extends ImportJob, Result> = {
   id: number;
-  at: string;
+  at: Date;
   job: Job;
   problems: Problem[];
   /** NIGHTLY, a staff member's email, or null for a run kept before 16 Oct 2026, when this wasn't recorded. */

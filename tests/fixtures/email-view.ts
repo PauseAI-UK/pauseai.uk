@@ -1,10 +1,10 @@
-// An email from the outbox (tests/fixtures/outbox.ts) as a page, for the
+// An email from the outbox (lib/server/fixtures/outbox.ts) as a page, for the
 // storyboard to picture (emailFrame in tests/storyboard/frame.ts): its
 // headers, its body as a mail app shows it, and its attachments. A plain,
 // generic mail app, not Gmail or Outlook: it shows what was sent, not how
 // each app will draw it. Whether the HTML works in them is checked from its
 // code instead (lib/letter-format.test.ts).
-import type { OutboxEmail } from "./outbox";
+import type { OutboxEmail } from "@/lib/server/fixtures/outbox";
 
 const escape = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

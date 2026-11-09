@@ -14,7 +14,7 @@ export function askedLine(ask: Pick<Ask, "askedBy" | "kind">): string {
 
 /** Who asked and what, and when, if we know. */
 function askedAndWhen(ask: Pick<Ask, "askedBy" | "kind" | "date">): string {
-  return [askedLine(ask), ask.date && staffDate(ask.date)].filter(Boolean).join(" · ");
+  return [askedLine(ask), ask.date && staffDate(new Date(ask.date))].filter(Boolean).join(" · ");
 }
 
 /** The ask's title, leading to its page. */
@@ -49,7 +49,7 @@ export function AskPreview({ ask }: { ask: Ask }) {
         </div>
         <div className={styles.answer}>
           <AnswerWord status={ask.kind === "letter" ? "signed" : "going"} />
-          {ask.date && <span className={styles.askMeta}>{staffDate(ask.date)}</span>}
+          {ask.date && <span className={styles.askMeta}>{staffDate(new Date(ask.date))}</span>}
         </div>
       </div>
     </div>

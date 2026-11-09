@@ -17,9 +17,9 @@ export type StaffAccount = {
   permissions: Permission[];
   /** The admin who added it, or ADDED_BY_LOGIN. */
   addedBy: string;
-  addedAt: string;
-  lastLoginAt: string | null;
-  lastSeenAt: string | null;
+  addedAt: Date;
+  lastLoginAt: Date | null;
+  lastSeenAt: Date | null;
   /** Sessions not yet expired. */
   sessions: number;
 };

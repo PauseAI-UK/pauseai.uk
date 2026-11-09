@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { NOTIFICATION_INBOX } from "@/tests/fixture-env.mjs";
+import { NOTIFICATION_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { addStaffAccount, importLuma, logInAsStaff, newestEmail } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";

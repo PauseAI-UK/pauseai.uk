@@ -143,14 +143,14 @@ export const examplePolitician: Politician = {
       status: "declined",
       date: null,
       note: "",
-      updatedAt: "2026-10-03T10:00:00Z",
+      updatedAt: new Date("2026-10-03T10:00:00Z"),
       updatedBy: "airtable",
     },
     "frontier-ai-letter": {
       status: "signed",
       date: "2026-10-01",
       note: "",
-      updatedAt: "2026-10-02T10:00:00Z",
+      updatedAt: new Date("2026-10-02T10:00:00Z"),
       updatedBy: "jo@pauseai.uk",
     },
   },
@@ -214,21 +214,21 @@ export const examplePasted: PastedLine[] = [
 export const examplePoliticianHistory: PoliticianChange[] = [
   {
     id: 12,
-    at: "2026-10-14T09:30:00Z",
+    at: new Date("2026-10-14T09:30:00Z"),
     actor: "jo@pauseai.uk",
     action: "unblock address",
     details: { address: "polly.placeholder.mp@parliament.uk", note: "Fixed in Airtable" },
   },
   {
     id: 11,
-    at: "2026-10-12T09:10:00Z",
+    at: new Date("2026-10-12T09:10:00Z"),
     actor: "postmark",
     action: "block address",
     details: { address: "polly.placeholder.mp@parliament.uk", kind: "hard" },
   },
   {
     id: 10,
-    at: "2026-10-02T10:00:00Z",
+    at: new Date("2026-10-02T10:00:00Z"),
     actor: "jo@pauseai.uk",
     action: "set status",
     details: {
@@ -241,7 +241,7 @@ export const examplePoliticianHistory: PoliticianChange[] = [
   },
   {
     id: 9,
-    at: "2026-09-30T10:00:00Z",
+    at: new Date("2026-09-30T10:00:00Z"),
     actor: "samuel.whitlock@pauseai.uk",
     action: "edit politician",
     details: { id: 7, name: "Polly Placeholder", email: "polly.placeholder.mp@parliament.uk" },

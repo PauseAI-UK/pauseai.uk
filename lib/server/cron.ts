@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { timingSafeEqual } from "node:crypto";
 
 /**
@@ -6,7 +7,7 @@ import { timingSafeEqual } from "node:crypto";
  * which send CRON_SECRET as a bearer token. Without CRON_SECRET, nothing is.
  */
 export function isCronRequest(request: Request): boolean {
-  return hasSecret(request, process.env.CRON_SECRET);
+  return hasSecret(request, config.cronSecret);
 }
 
 /**
@@ -14,7 +15,7 @@ export function isCronRequest(request: Request): boolean {
  * BACKUP_SECRET as a bearer token. Without BACKUP_SECRET, nothing is.
  */
 export function isBackupRequest(request: Request): boolean {
-  return hasSecret(request, process.env.BACKUP_SECRET);
+  return hasSecret(request, config.backupSecret);
 }
 
 function hasSecret(request: Request, secret: string | undefined): boolean {

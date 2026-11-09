@@ -5,8 +5,8 @@ import { createHash } from "node:crypto";
 import { test as base, type BrowserContextOptions } from "@playwright/test";
 import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs";
 import { FLOW_DATABASES, LOCAL_URL, TEMPLATE_DATABASE } from "../checkout.mjs";
-import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "../fixture-env.mjs";
-import { historyIdNow } from "../fixtures/letters-inbox";
+import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
+import { historyIdNow } from "@/lib/server/fixtures/letters-inbox";
 
 export { expect } from "@playwright/test";
 export { emailFrame, frame, story } from "./frame";
@@ -33,7 +33,7 @@ export function flowStorageState(database: string): Exclude<BrowserContextOption
   };
 }
 
-/** Google Analytics and Tag Manager, which the fixture build loads (ANALYTICS=1, ../fixture-env.mjs). */
+/** Google Analytics and Tag Manager, which the fixture build loads (ANALYTICS=1, lib/server/fixtures/fixture-env.mjs). */
 export const ANALYTICS_URL = "**/www.googletagmanager.com/**";
 
 /** Stands in for pauseai.info's onboarding form, posting its height as the real embed does. */
@@ -65,7 +65,7 @@ export const test = base.extend<{ flowDatabase: string }>({
       // The fixed clock's now() first, before Postgres's own (global-setup.ts).
       runSql("postgres", `ALTER DATABASE "${name}" SET search_path = fixture, pg_catalog, public`);
       // The letters inbox read from now: the build's fake keeps a database's mail by its name, and
-      // this name's may have some from a run before (tests/fixtures/letters-inbox.ts).
+      // this name's may have some from a run before (lib/server/fixtures/letters-inbox.ts).
       runSql(name, `UPDATE staff_accounts SET gmail_history_id = '${historyIdNow()}' WHERE gmail_token IS NOT NULL`);
       await provide(name);
       dropDatabase(name);

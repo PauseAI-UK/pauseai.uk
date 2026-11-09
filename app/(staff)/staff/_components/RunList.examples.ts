@@ -44,7 +44,7 @@ export function exampleRun<Job extends ImportJob>(
 ): RunOf<Job> {
   return {
     id: 1,
-    at: "2026-10-15T02:00:00Z",
+    at: new Date("2026-10-15T02:00:00Z"),
     job,
     startedBy: NIGHTLY,
     decidedBy: null,
@@ -103,7 +103,7 @@ export const exampleHeldSync: PoliticianSync = exampleRun(
     statuses: { added: 3, changed: 1, removed: 0 },
     records: [{ politician: exampleSyncedMp(1), statuses: {} }],
   },
-  { id: 3, at: "2026-10-12T02:00:00Z", status: "held" },
+  { id: 3, at: new Date("2026-10-12T02:00:00Z"), status: "held" },
 );
 
 /** An MP sync someone applied, kept from before the sync read every body: one MP changed. */
@@ -116,7 +116,7 @@ export const exampleAppliedSync: PoliticianSync = exampleRun(
       changed: [{ airtableId: "rec4", name: "MP 4", constituency: "Seat 4", email: "a@parliament.uk" }],
     },
   } as unknown as PoliticianSyncResult,
-  { id: 2, at: "2026-10-11T02:00:00Z", status: "applied", decidedBy: "jo@pauseai.uk" },
+  { id: 2, at: new Date("2026-10-11T02:00:00Z"), status: "applied", decidedBy: "jo@pauseai.uk" },
 );
 
 /** What a run of the Emails sync did: one email held back for a mailing nobody has added, one with two boxes. */

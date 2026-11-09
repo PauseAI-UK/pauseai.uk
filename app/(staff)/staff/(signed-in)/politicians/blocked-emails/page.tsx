@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listBlocks, recentProblems } from "@/lib/server/email";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { emailsSearch, filtersPath } from "@/lib/staff-search";
 import { unblockAddress } from "../../../actions";
 import EmailBlockFilters from "../../../_components/EmailBlockFilters";
@@ -13,10 +13,9 @@ export const metadata: Metadata = { title: staffCopy.emails.titles.mps };
 
 /** Politicians' blocked addresses, and their bounces and complaints. The letters they name lead to them only with `supporters`. */
 export default async function MpEmailsPage({ searchParams }: { searchParams: Promise<{ q?: string; kind?: string }> }) {
-  const { permissions } = await requireStaff();
+  const letterLinks = canSeeSupporters(await requireStaff());
   const { q, kind, filter } = emailsSearch(await searchParams);
   const [blocks, problems] = await Promise.all([listBlocks("politicians", filter), recentProblems("politicians")]);
-  const letterLinks = permissions.includes("supporters");
   return (
     <>
       <h1>{staffCopy.emails.titles.mps}</h1>

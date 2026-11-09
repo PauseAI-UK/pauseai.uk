@@ -133,7 +133,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         // Each kept reply's message is there to read.
         for (const key of runSql(name, "SELECT blob_key FROM letter_replies")) {
           const file = key.replace(/^fixture\/(.+)\.gz$/, "$1");
-          expect(existsSync(join(process.cwd(), "tests/fixtures/letter-replies", file)), key).toBe(true);
+          expect(existsSync(join(process.cwd(), "lib/server/fixtures/letter-replies", file)), key).toBe(true);
         }
         // Every letter to Polly Placeholder that's replied to has its reply and its own text kept.
         expect(

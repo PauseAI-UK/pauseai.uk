@@ -193,6 +193,13 @@ That records 0001 to 0011 as applied, then applies the rest.
    the migration and what it does to the schema. A unit test fails while
    `schema.sql` is out of date.
 
+Once pushed, a migration can't change: Netlify applies it to the PR's
+preview database, and refuses it changed. CI's "Types, migrations" job
+fails if a migration on main or in the branch's last push has changed, and
+the pre-push hook (`npm run hooks:install`) stops such a push
+(`scripts/migrations-unchanged.mjs`). Change a pushed migration with a new
+one instead.
+
 ### Collation
 
 How Postgres sorts and compares text is the database's collation, fixed
@@ -238,18 +245,18 @@ npm run dev
 ```
 
 The example `.env.local` sets `DATA_FIXTURES=1`. With it, every call to an outside service gets a canned
-answer from `tests/fixtures/outside-services.ts` instead. Nothing leaves
+answer from `lib/server/fixtures/outside-services.ts` instead. Nothing leaves
 your machine. You need no keys:
 
-| Service                  | What the fixture does                                                                                                                                                                                                                                                                                                                                |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Luma                     | A few made-up events and guests, and every event's guest counts (1,234 going)                                                                                                                                                                                                                                                                        |
-| postcodes.io             | Knows only SW1A 1AA (Cities of London and Westminster); every other postcode is "not found". The test postcodes never ask it.                                                                                                                                                                                                                        |
-| Airtable                 | A politician of each body, one retired and one who left, with their statuses; PauseAI's emails to them; the old form's letters; Go to Parliament's meetings                                                                                                                                                                                          |
-| Parliament's Members API | The same two MPs, with an office email each. Polly Placeholder's differs from Airtable's, so the MP check has something to show.                                                                                                                                                                                                                     |
-| Turnstile                | Accepts every token                                                                                                                                                                                                                                                                                                                                  |
-| Postmark                 | Accepts every email, without needing a token, and writes each one to a mail file (`.eml`) in `OUTBOX_DIR`, or `tmp/outbox/` in the dev server.                                                                                                                                                                                                       |
-| Google (Gmail)           | Connects any account with no consent screen, naming it from its address (policy@ is "Policy"); sends nothing, writing each email to the outbox as Postmark's fake does; reads an empty mailbox, but for the letters inbox (`LETTERS_INBOX`), which keeps what it sends, and mail written to `LETTERS_INBOX_DIR` (`tests/fixtures/letters-inbox.ts`). |
+| Service                  | What the fixture does                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Luma                     | A few made-up events and guests, and every event's guest counts (1,234 going)                                                                                                                                                                                                                                                                             |
+| postcodes.io             | Knows only SW1A 1AA (Cities of London and Westminster); every other postcode is "not found". The test postcodes never ask it.                                                                                                                                                                                                                             |
+| Airtable                 | A politician of each body, one retired and one who left, with their statuses; PauseAI's emails to them; the old form's letters; Go to Parliament's meetings                                                                                                                                                                                               |
+| Parliament's Members API | The same two MPs, with an office email each. Polly Placeholder's differs from Airtable's, so the MP check has something to show.                                                                                                                                                                                                                          |
+| Turnstile                | Accepts every token                                                                                                                                                                                                                                                                                                                                       |
+| Postmark                 | Accepts every email, without needing a token, and writes each one to a mail file (`.eml`) in `OUTBOX_DIR`, or `tmp/outbox/` in the dev server.                                                                                                                                                                                                            |
+| Google (Gmail)           | Connects any account with no consent screen, naming it from its address (policy@ is "Policy"); sends nothing, writing each email to the outbox as Postmark's fake does; reads an empty mailbox, but for the letters inbox (`LETTERS_INBOX`), which keeps what it sends, and mail written to `LETTERS_INBOX_DIR` (`lib/server/fixtures/letters-inbox.ts`). |
 
 #### Send a letter to the test MP
 
@@ -409,7 +416,7 @@ both copies land in the outbox.
 **The letters inbox.** With fixtures, `npm run db:reset` connects the fake
 letters inbox (`LETTERS_INBOX`, with `GMAIL_TOKEN_KEY` set), so letters go
 from it and land in the outbox. Mail to it is kept by the dev server's fake
-Gmail in memory (`tests/fixtures/letters-inbox.ts`): a file in
+Gmail in memory (`lib/server/fixtures/letters-inbox.ts`): a file in
 `LETTERS_INBOX_DIR`, if set, is delivered to it the next time it's read, so
 to answer a letter as its MP, write the reply there as a mail file, to the
 supporter's proxy, with an `Authentication-Results: mx.google.com;

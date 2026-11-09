@@ -16,7 +16,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { MAIN_DATABASE, MAIN_OUTBOX_DIR, MAIN_URL, MAIN_WORKTREE } from "../tests/checkout.mjs";
-import { fixtureEnv } from "../tests/fixture-env.mjs";
+import { fixtureEnv } from "../lib/server/fixtures/fixture-env.mjs";
 import { testServerUrl } from "./fresh-database.mjs";
 
 function option(name, fallback) {

@@ -4,7 +4,7 @@ Size: M. Kind: architecture.
 
 ## Problem
 
-Every query's result type is written by hand: 459 `query<...>()` calls and about 230 `AS "camelCase"` aliases. Nothing ties them to the schema, so a changed column is found at runtime, or not at all. Timestamps already disagree: see `timestamp-types.md`.
+Every query's result type is written by hand: 459 `query<...>()` calls and about 230 `AS "camelCase"` aliases. Nothing ties them to the schema, so a changed column is found at runtime, or not at all. Timestamps were typed `string` in places where node-postgres gives a `Date`.
 
 ## Fix
 

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { ruleOwner } from "@/lib/event-owners";
 import { now } from "@/lib/now";
@@ -27,8 +28,8 @@ export type StaffEvent = {
   name: string;
   /** Its page on luma.com. */
   url: string;
-  /** When it starts, as an ISO string. */
-  startAt: string;
+  /** When it starts. */
+  startAt: Date;
   /** None for one online. */
   city: string | null;
   /** The calendar's tags on it in Luma: a local group, Big events, Online. */
@@ -65,10 +66,10 @@ const SELECT_EVENTS = `SELECT e.id, e.name, 'https://luma.com/' || e.url AS url,
 
 /**
  * Our events whose IDs are `ids`, or all of them, soonest first, each with
- * its start as an ISO string, and its hosts by name, those with none last,
+ * its hosts by name, those with none last,
  * and their emails; or, without `hosts`, none.
  */
-async function listEvents(ids?: string[], hosts = false): Promise<SearchedEvent[]> {
+const listEvents = cache(async function listEvents(ids?: string[], hosts = false): Promise<SearchedEvent[]> {
   const rows = await query<Omit<StaffEvent, "hosts"> & { hosts: (EventHost & { email: string })[] }>(
     `${SELECT_EVENTS} AND ($1::text[] IS NULL OR e.id = ANY($1)) ORDER BY e.start_at, e.id`,
     [ids ?? null],
@@ -77,12 +78,11 @@ async function listEvents(ids?: string[], hosts = false): Promise<SearchedEvent[
     const shown = hosts ? event.hosts : [];
     return {
       ...event,
-      startAt: new Date(event.startAt).toISOString(),
       hosts: shown.map(({ name, supporterId }) => ({ name, supporterId })),
       hostEmails: shown.map((host) => host.email),
     };
   });
-}
+});
 
 /** An event as the page has it: without its hosts' emails. */
 function withoutEmails({ hostEmails, ...event }: SearchedEvent): StaffEvent {
@@ -96,20 +96,20 @@ function withoutEmails({ hostEmails, ...event }: SearchedEvent): StaffEvent {
  * who can search by them, but never their emails; every staff account,
  * whom an event can be given to and the Owner filter offers; every tag and
  * city our events have, for the Tag and Place filters, in alphabetical
- * order; and now, as an ISO string.
+ * order; and now.
  */
 export async function eventsPage(
   filter: EventFilter,
   hosts: boolean,
-): Promise<EventsFound & { staff: string[]; tags: string[]; cities: string[]; now: string }> {
-  const iso = now().toISOString();
+): Promise<EventsFound & { staff: string[]; tags: string[]; cities: string[]; now: Date }> {
+  const at = now();
   const events = await listEvents(undefined, hosts);
-  const found = findEvents(events, filter, iso);
+  const found = findEvents(events, filter, at);
   return {
     ...found,
     events: found.events.map(withoutEmails),
     ...(await choicesOf(events)),
-    now: iso,
+    now: at,
   };
 }
 
@@ -118,16 +118,18 @@ export async function eventsPage(
  * first, not a page of them, and every staff account, whom one can be given to.
  */
 export async function eventsToCome(): Promise<{ events: StaffEvent[]; staff: string[] }> {
-  const iso = now().toISOString();
+  const at = now();
   const events = await listEvents();
   return {
-    events: events.filter((event) => !event.removed && stillToCome(event.startAt, iso)).map(withoutEmails),
+    events: events.filter((event) => !event.removed && stillToCome(event.startAt, at)).map(withoutEmails),
     staff: (await choicesOf(events)).staff,
   };
 }
 
 /** What the events list's filters offer, among `events`. */
-async function choicesOf(events: SearchedEvent[]): Promise<{ staff: string[]; tags: string[]; cities: string[] }> {
+const choicesOf = cache(async function choicesOf(
+  events: SearchedEvent[],
+): Promise<{ staff: string[]; tags: string[]; cities: string[] }> {
   const staff = await query<{ email: string }>("SELECT email FROM staff_accounts ORDER BY email");
   const sorted = (values: string[]) => [...new Set(values)].sort((a, b) => a.localeCompare(b));
   return {
@@ -135,7 +137,7 @@ async function choicesOf(events: SearchedEvent[]): Promise<{ staff: string[]; ta
     tags: sorted(events.flatMap((event) => event.tags)),
     cities: sorted(events.flatMap((event) => event.city ?? [])),
   };
-}
+});
 
 /** What the events list's filters offer: every staff account, and every tag and city our events have. */
 export async function eventChoices(): Promise<{ staff: string[]; tags: string[]; cities: string[] }> {

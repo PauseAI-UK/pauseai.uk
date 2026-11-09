@@ -3,7 +3,7 @@ import type { Dashboard, SeriesPoint, SourcePoint } from "@/lib/staff-dashboard"
 /** Counts as a sparkline's points, windows of `days`, the last ending at the example's `asOf`. */
 function windows(counts: number[], days = 7): SeriesPoint[] {
   return counts.map((count, i) => ({
-    from: new Date(Date.UTC(2026, 9, 21, 12) - (counts.length - i) * days * 24 * 60 * 60 * 1000).toISOString(),
+    from: new Date(Date.UTC(2026, 9, 21, 12) - (counts.length - i) * days * 24 * 60 * 60 * 1000),
     count,
   }));
 }
@@ -27,8 +27,8 @@ function bySource(counts: number[], days = 7): SourcePoint[] {
  */
 export const exampleDashboard: Dashboard = {
   days: 7,
-  asOf: "2026-10-21T12:00:00.000Z",
-  since: "2026-10-14T12:00:00.000Z",
+  asOf: new Date("2026-10-21T12:00:00.000Z"),
+  since: new Date("2026-10-14T12:00:00.000Z"),
   counts: {
     lettersSent: { current: 12, previous: 8 },
     lettersReplied: { current: 3, previous: 5 },
@@ -48,16 +48,21 @@ export const exampleDashboard: Dashboard = {
   },
   supportersBySource: bySource([37, 57, 168, 58, 157, 223, 437, 176]),
   actions: [
-    { kind: "held-sync", at: "2026-10-21T00:00:00.000Z", added: 0, removed: 21, changed: 3 },
+    { kind: "held-sync", at: new Date("2026-10-21T00:00:00.000Z"), added: 0, removed: 21, changed: 3 },
     {
       kind: "blocked-mp",
       politicianId: 7,
       name: "Bouncy McTestface MP",
       isTest: true,
-      at: "2026-10-19T09:30:00.000Z",
+      at: new Date("2026-10-19T09:30:00.000Z"),
     },
-    { kind: "failed-import", job: "import-controlai", at: "2026-10-21T02:00:00.000Z", error: "No PDF linked" },
-    { kind: "letters-inbox", inbox: "fixture-letters@pauseai.uk", count: 2, at: "2026-10-21T03:20:00.000Z" },
+    {
+      kind: "failed-import",
+      job: "import-controlai",
+      at: new Date("2026-10-21T02:00:00.000Z"),
+      error: "No PDF linked",
+    },
+    { kind: "letters-inbox", inbox: "fixture-letters@pauseai.uk", count: 2, at: new Date("2026-10-21T03:20:00.000Z") },
   ],
 };
 
@@ -65,7 +70,7 @@ export const exampleDashboard: Dashboard = {
 export const exampleQuietDashboard: Dashboard = {
   days: 30,
   asOf: exampleDashboard.asOf,
-  since: "2026-09-21T12:00:00.000Z",
+  since: new Date("2026-09-21T12:00:00.000Z"),
   counts: {
     lettersSent: { current: 0, previous: 0 },
     lettersReplied: { current: 0, previous: 1 },

@@ -1,3 +1,4 @@
+import { config } from "@/lib/server/config";
 import { pageMetadata } from "@/lib/metadata";
 import CampaignContext from "../_components/CampaignContext";
 import CampaignHero from "../_components/CampaignHero";
@@ -45,7 +46,7 @@ export default function Page() {
       <EmailYourMpSection
         campaignSlug="support-sobel-bill"
         // Outside production, letters only go to the test MPs, so say how to find them.
-        showTestMps={process.env.DEPLOY_CONTEXT !== "production"}
+        showTestMps={!config.production}
       />
     </main>
   );

@@ -46,7 +46,7 @@ export default function LetterChanges({
 }: {
   from: ReactNode;
   to: string;
-  at: string | null;
+  at: Date | null;
   subject: string;
   sent: string;
   draft: string | null;

@@ -12,7 +12,7 @@ where there's an npm script. Each file's opening comment has the details.
 | `db-schema.mjs`      | `npm run db:schema`                                          | Rewrites `netlify/database/schema.sql` by applying every migration to a throwaway database and dumping it with `pg_dump` 18. Run it with each new migration.                                 |
 | `fresh-database.mjs` | `node scripts/fresh-database.mjs <name> [--test-mp <email>]` | Makes an empty database with the migrations applied and prints its URL. The other database scripts, the tests (`tests/database.ts`) and the Playwright builds use its functions.             |
 
-`docs/development.md`, section 3, covers using them.
+`docs/development.md`, section 3, covers using them. `migrations-unchanged.mjs`, run by CI and the pre-push hook, fails if a migration already pushed has changed (`--main` for where the branch left origin/main, `--pushed` for the branch on origin, or a commit).
 
 ## Storyboard
 
@@ -52,6 +52,8 @@ where there's an npm script. Each file's opening comment has the details.
 ## Investments
 
 `investments.mjs`, run with `npm run investments`, lists the items in `investments/`, most hits first, with each one's size and kind (`investments/README.md`).
+
+`friction-sweep.mjs`, run with `npm run friction-sweep`, reads Claude Code's session logs for this repo on your machine (`~/.claude/projects/-pauseai-uk/`, the folder named after the main checkout's path) and writes to `tmp/friction-sweep.txt`, by week, how many sessions set `TEST_DATABASE_URL` by hand, ran the gate's checks by hand, set up a worktree by hand, killed a server on a port, read `storyboard.json` with a script, edited files with `sed -i` or inline Python, ran out of context, or had the Bash-first experiment on, and the rebase conflicts in each file. The logs hold private data, so it writes only counts and the paths of files in the repo. `--logs <folder>` reads another folder. It's for the monthly review (`investments/README.md`).
 
 ## Tests and types
 

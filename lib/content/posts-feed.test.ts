@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BLOG, type BlogPost } from "./blog";
+import { BLOG } from "./blog";
+import type { BlogPost } from "./posts";
 import { postsFeed } from "./posts-feed";
 
 const post: BlogPost = {

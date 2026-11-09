@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { listWindow, windowStart } from "@/lib/staff-dashboard";
 import { now } from "@/lib/now";
 import { AGREED_STATUSES, type AskStatus } from "@/lib/asks";
@@ -47,7 +48,7 @@ export type StatusRecord = {
   /** yyyy-mm-dd, if known. */
   date: string | null;
   note: string;
-  updatedAt: string;
+  updatedAt: Date;
   updatedBy: string;
 };
 
@@ -56,7 +57,7 @@ export type Politician = {
   /** Airtable's record ID, for those copied from it. Null for the test MPs, and anyone added by hand. */
   airtableId: string | null;
   /** When their record was no longer in Airtable. */
-  airtableRemovedAt: string | null;
+  airtableRemovedAt: Date | null;
   house: House;
   name: string;
   salutation: string;
@@ -75,8 +76,8 @@ export type Politician = {
   letters: number;
   replies: number;
   /** Their first and last activity with us: a letter to them, a reply, an answer to an ask (POLITICIAN_ACTIVITY). */
-  firstActivityAt: string | null;
-  lastActivityAt: string | null;
+  firstActivityAt: Date | null;
+  lastActivityAt: Date | null;
   /** Their answer to each ask, by the ask's slug. */
   statuses: Record<string, StatusRecord>;
 };
@@ -115,7 +116,10 @@ export async function statusesOf(politicianId: number): Promise<MpStatuses> {
   return Object.fromEntries(rows.map((row) => [row.ask, row.status]));
 }
 
-type Row = Omit<Politician, "statuses"> & { statuses: Record<string, StatusRecord> | null };
+/** As SELECT_POLITICIANS gives it: the statuses built with json_build_object, so their times as text. */
+type Row = Omit<Politician, "statuses"> & {
+  statuses: Record<string, Omit<StatusRecord, "updatedAt"> & { updatedAt: string }> | null;
+};
 
 /**
  * The first or last time a politician did something with us, or we with
@@ -144,7 +148,11 @@ const SELECT_POLITICIANS = `
   FROM ${POLITICIANS} LEFT JOIN ask_statuses s ON s.notable_person_id = n.id`;
 
 function toPolitician({ statuses, ...row }: Row): Politician {
-  return { ...row, statuses: statuses ?? {} };
+  const records = Object.entries(statuses ?? {}).map(([ask, record]) => [
+    ask,
+    { ...record, updatedAt: new Date(record.updatedAt) },
+  ]);
+  return { ...row, statuses: Object.fromEntries(records) };
 }
 
 /** The filters that repeat, which can leave out as well as find. */
@@ -667,17 +675,17 @@ export async function addPolitician(politician: NewPolitician, db: Queryable, te
 }
 
 /** Every party a politician is in, for the list's filter. */
-export async function listParties(): Promise<string[]> {
+export const listParties = cache(async function listParties(): Promise<string[]> {
   const rows = await query<{ party: string }>(
     "SELECT DISTINCT party FROM politicians WHERE party <> '' ORDER BY party",
   );
   return rows.map((row) => row.party);
-}
+});
 
-export async function getPolitician(id: number): Promise<Politician | undefined> {
+export const getPolitician = cache(async function getPolitician(id: number): Promise<Politician | undefined> {
   const [row] = await query<Row>(`${SELECT_POLITICIANS} WHERE n.id = $1 GROUP BY n.id, p.id`, [id]);
   return row && toPolitician(row);
-}
+});
 
 /**
  * Whether a politician can be deleted: their record has gone from Airtable

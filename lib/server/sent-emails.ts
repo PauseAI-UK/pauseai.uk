@@ -16,7 +16,7 @@ export type SentPerson = { name: string; href: string | null };
 
 export type SentEmail = {
   id: number;
-  at: string;
+  at: Date;
   purpose: string;
   imported: boolean;
   address: string;

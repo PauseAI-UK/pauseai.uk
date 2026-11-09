@@ -1,4 +1,6 @@
 import "server-only";
+import { cache } from "react";
+import { config } from "./config";
 import type { AskStatus } from "@/lib/asks";
 import type { Permission } from "@/lib/staff-permissions";
 import type { LetterBackend, LetterFilter } from "@/lib/staff-search";
@@ -19,7 +21,15 @@ import { FLAG_CONDITIONS } from "./politicians";
 
 // Letters, for the staff interface.
 
-export type LetterEvent = { at: string; status: string; details: Record<string, unknown> };
+export type LetterEvent = { at: Date; status: string; details: Record<string, unknown> };
+
+/** A list built with json_build_object, as it comes back: its times as text. */
+type AsJson<T extends { at: Date }> = Omit<T, "at"> & { at: string };
+
+/** Each item's `at` as a Date, as a column's would be. */
+function withDates<T extends { at: Date }>(list: AsJson<T>[]): T[] {
+  return list.map((item) => ({ ...item, at: new Date(item.at) }) as T);
+}
 
 /**
  * Why a reply was forwarded to someone or not, or why its forward failed:
@@ -44,7 +54,7 @@ export type ReplyHandling = {
 };
 
 /** A forward of a reply to a letter, as its send was logged: for the history of replies recorded before their handling was. */
-export type LetterForward = { at: string; address: string; outcome: string };
+export type LetterForward = { at: Date; address: string; outcome: string };
 
 export type LetterSummary = {
   id: number;
@@ -66,12 +76,12 @@ export type LetterSummary = {
   ownWords: number | null;
   /** What sent it; none for one of this site's never sent. */
   backend: LetterBackend | null;
-  createdAt: string;
-  sentAt: string | null;
+  createdAt: Date;
+  sentAt: Date | null;
   /** When a reply from anyone but the sender first reached us. */
-  repliedAt: string | null;
+  repliedAt: Date | null;
   /** When an automatic reply, such as an office's acknowledgement, first did. */
-  autoRepliedAt: string | null;
+  autoRepliedAt: Date | null;
   /** The supporter the sender is, once linked. */
   supporterId: number | null;
   events: LetterEvent[];
@@ -141,7 +151,7 @@ async function letterRows({
     .filter(Boolean)
     .map((condition) => `AND ${condition}`)
     .join(" ");
-  return query<LetterSummary & { total: number }>(
+  const rows = await query<Omit<LetterSummary, "events"> & { events: AsJson<LetterEvent>[]; total: number }>(
     `SELECT l.id::int AS id, s.campaign, c.title AS "campaignTitle", l.status, f.name AS "senderName", f.email AS "senderEmail",
        n.name AS "mpName", n.id::int AS "politicianId", p.is_test AS "isTest", p.constituency, p.party,
        (SELECT st.status FROM ask_statuses st WHERE st.notable_person_id = n.id AND st.ask = c.ask) AS answer, s.own_words AS "ownWords", ${BACKEND} AS backend, l.created_at AS "createdAt", l.sent_at AS "sentAt", l.replied_at AS "repliedAt",
@@ -185,6 +195,7 @@ async function letterRows({
       tab ?? null,
     ],
   );
+  return rows.map((row) => ({ ...row, events: withDates(row.events) }));
 }
 
 /** A letter of a mailing from PauseAI to a politician: when, which mailing, and whether it was personalised. */
@@ -194,7 +205,7 @@ export type PauseaiLetter = {
   mailing: string;
   status: string;
   /** When it was sent, or else made. */
-  at: string;
+  at: Date;
   personalised: boolean;
 };
 
@@ -232,8 +243,8 @@ export type PauseaiLetterDetails = {
   kind: "pauseai";
   id: number;
   status: string;
-  createdAt: string;
-  sentAt: string | null;
+  createdAt: Date;
+  sentAt: Date | null;
   mpName: string;
   politicianId: number;
   mpEmail: string | null;
@@ -282,8 +293,13 @@ function pauseaiGmail(
  * PauseAI's letter `id`, for its page under mailing `mailingId`, or
  * undefined if that mailing has no such letter.
  */
-export async function getPauseaiLetter(mailingId: number, id: number): Promise<PauseaiLetterDetails | undefined> {
-  const [row] = await query<Omit<PauseaiLetterDetails, "gmail"> & { inGmail: PauseaiInGmail }>(
+export const getPauseaiLetter = cache(async function getPauseaiLetter(
+  mailingId: number,
+  id: number,
+): Promise<PauseaiLetterDetails | undefined> {
+  const [row] = await query<
+    Omit<PauseaiLetterDetails, "gmail" | "events"> & { inGmail: PauseaiInGmail; events: AsJson<LetterEvent>[] }
+  >(
     `SELECT 'pauseai' AS kind, l.id::int AS id, l.status, l.created_at AS "createdAt", l.sent_at AS "sentAt",
        n.name AS "mpName", n.id::int AS "politicianId", n.email AS "mpEmail", m.id::int AS "mailingId",
        m.title AS mailing, m.ask AS "mailingAsk", p.personalised,
@@ -304,9 +320,9 @@ export async function getPauseaiLetter(mailingId: number, id: number): Promise<P
     [id, mailingId],
   );
   if (!row) return undefined;
-  const { inGmail, ...letter } = row;
-  return { ...letter, gmail: pauseaiGmail(letter, inGmail) };
-}
+  const { inGmail, events, ...letter } = row;
+  return { ...letter, events: withDates(events), gmail: pauseaiGmail(letter, inGmail) };
+});
 
 /**
  * Where to find a letter's copy Bcc'd to the policy inbox: by the Message-ID of
@@ -314,11 +330,11 @@ export async function getPauseaiLetter(mailingId: number, id: number): Promise<P
  * MP's address and when it went; in its members' mail for one sent while the
  * policy inbox was a Google Group (POLICY_GMAIL_SINCE).
  */
-function policyCopy(postmarkId: string | null, mpEmail: string | null, sentAt: string | null): GmailFind | null {
+function policyCopy(postmarkId: string | null, mpEmail: string | null, sentAt: Date | null): GmailFind | null {
   const search = postmarkId ? postmarkSearch(postmarkId) : sentAt && mpEmail && sentNearSearch(mpEmail, sentAt);
   if (!search) return null;
-  const group = sentAt !== null && new Date(sentAt) < POLICY_GMAIL_SINCE;
-  return { mailbox: process.env.POLICY_INBOX || null, search, ...(group ? { inPolicyGroup: true as const } : {}) };
+  const group = sentAt !== null && sentAt < POLICY_GMAIL_SINCE;
+  return { mailbox: config.policyInbox ?? null, search, ...(group ? { inPolicyGroup: true as const } : {}) };
 }
 
 /**
@@ -327,17 +343,19 @@ function policyCopy(postmarkId: string | null, mpEmail: string | null, sentAt: s
  * shows it, and is found by the Message-ID it went with where it has one, or
  * else by its copy in the policy inbox (policyCopy).
  */
-export async function getSupporterLetter(id: number): Promise<SupporterLetterDetails | undefined> {
+export const getSupporterLetter = cache(async function getSupporterLetter(
+  id: number,
+): Promise<SupporterLetterDetails | undefined> {
   const [letter] = await recentLetters({ letterId: id });
   if (!letter) return undefined;
-  const [{ subject, postmarkId, rfcId, sentBy, mpEmail, campaignAsk, forwards, doc, draft }] = await query<{
+  const [{ subject, postmarkId, rfcId, sentBy, mpEmail, campaignAsk, forwards: json, doc, draft }] = await query<{
     subject: string;
     postmarkId: string | null;
     rfcId: string | null;
     sentBy: string | null;
     mpEmail: string | null;
     campaignAsk: string | null;
-    forwards: LetterForward[];
+    forwards: AsJson<LetterForward>[];
     doc: unknown;
     draft: string | null;
   }>(
@@ -355,6 +373,7 @@ export async function getSupporterLetter(id: number): Promise<SupporterLetterDet
      WHERE s.id = $1`,
     [id],
   );
+  const forwards = withDates(json);
   const sentDoc = checkDoc(doc);
   const messages = await threadMessages(id);
   if (sentDoc) {
@@ -370,7 +389,7 @@ export async function getSupporterLetter(id: number): Promise<SupporterLetterDet
   }
   const gmail = policyCopy(postmarkId, mpEmail, letter.sentAt);
   return { ...letter, kind: "supporter", subject, mpEmail, campaignAsk, gmail, forwards, sent: null, messages };
-}
+});
 
 /** A letter on an MP's page for staff without `supporters`: what happened to it, and nothing of who wrote it. */
 export type UnsignedLetter = Pick<

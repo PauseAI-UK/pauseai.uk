@@ -9,7 +9,17 @@ import {
   useDatabaseUpTo,
   useTestDatabase,
 } from "@/tests/database";
-import { addAsk, askPageData, askToEdit, asksWithCounts, deleteAsk, editAsk, listAsks, listCampaigns } from "./asks";
+import {
+  addAsk,
+  askPageData,
+  askTitle,
+  askToEdit,
+  asksWithCounts,
+  deleteAsk,
+  editAsk,
+  listAsks,
+  listCampaigns,
+} from "./asks";
 import { query } from "./db";
 import { setStatus } from "./politicians";
 
@@ -91,6 +101,8 @@ describeWithDatabase("asks and campaigns", () => {
     expect(await askPageData("no-such-ask")).toBeUndefined();
     await addAsk({ title: "Ours", kind: "letter", date: null, url: null, askedBy: [] }, "jo@pauseai.uk");
     expect((await askPageData("ours"))!.fixed).toBe(false);
+    expect(await askTitle("ours")).toBe("Ours");
+    expect(await askTitle("no-such-ask")).toBeUndefined();
     await deleteAsk("ours", "jo@pauseai.uk");
   });
 

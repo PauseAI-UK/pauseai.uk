@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { MailingDoc } from "@/lib/mailing-doc";
 import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { stubLettersInboxEnv } from "@/tests/gmail-sends";
+import { allResults, atOnce } from "@/tests/at-once";
+import { recordGmail, stubLettersInboxEnv } from "@/tests/gmail-sends";
 import { query } from "./db";
 import { listRuns } from "./import-runs";
 import { runTidying } from "./log-retention";
@@ -38,7 +39,11 @@ describeWithDatabase("the sending and the tidying, as runs of the import log", (
     await addTestPolitician({ name: "Polly Placeholder", email: "polly@parliament.example" });
     await connectTestGmail(JO);
     const { id } = await createDraft(JO, { list: "politicians", params: {} }, { subject: "AI", body: LETTER });
-    const saved = await saveDraft(id, 1, { sentFrom: JO, fromName: "Jo Staff", dueAt: "2026-11-01T10:00:00Z" });
+    const saved = await saveDraft(id, 1, {
+      sentFrom: JO,
+      fromName: "Jo Staff",
+      dueAt: new Date("2026-11-01T10:00:00Z"),
+    });
     expect(await scheduleMailing(id, (saved as { version: number }).version, JO)).toEqual({ scheduled: true });
     vi.setSystemTime(new Date("2026-11-01T10:01:00Z"));
     const result = await runSending(JO);
@@ -53,7 +58,11 @@ describeWithDatabase("the sending and the tidying, as runs of the import log", (
     await addTestPolitician({ name: "Polly Placeholder", email: "polly@parliament.example" });
     await connectTestGmail(JO);
     const { id } = await createDraft(JO, { list: "politicians", params: {} }, { subject: "AI", body: LETTER });
-    const saved = await saveDraft(id, 1, { sentFrom: JO, fromName: "Jo Staff", dueAt: "2026-11-01T10:00:00Z" });
+    const saved = await saveDraft(id, 1, {
+      sentFrom: JO,
+      fromName: "Jo Staff",
+      dueAt: new Date("2026-11-01T10:00:00Z"),
+    });
     expect(await scheduleMailing(id, (saved as { version: number }).version, JO)).toEqual({ scheduled: true });
     // A run took its letter an hour ago, and stopped.
     await query(
@@ -69,6 +78,39 @@ describeWithDatabase("the sending and the tidying, as runs of the import log", (
         id,
       ]),
     ).toEqual([{ status: "uncertain" }]);
+  });
+
+  it("sends each letter of a mailing once when runs overlap, starting and finishing it once", async () => {
+    const politicians = ["polly", "dora", "morag", "joseph"];
+    for (const name of politicians)
+      await addTestPolitician({ airtableId: null, name, email: `${name}@parliament.example` });
+    await connectTestGmail(JO);
+    const { id } = await createDraft(JO, { list: "politicians", params: {} }, { subject: "AI", body: LETTER });
+    const saved = await saveDraft(id, 1, {
+      sentFrom: JO,
+      fromName: "Jo Staff",
+      dueAt: new Date("2026-11-01T10:00:00Z"),
+    });
+    expect(await scheduleMailing(id, (saved as { version: number }).version, JO)).toEqual({ scheduled: true });
+    vi.setSystemTime(new Date("2026-11-01T10:01:00Z"));
+    const gmail = recordGmail();
+    const runs = allResults(await atOnce(() => runSending("nightly")));
+    // Each politician's letter went once, between the runs.
+    expect(gmail.map((sent) => sent.headers.get("to")!.replace(/^.*<|>$/g, "")).sort()).toEqual(
+      politicians.map((name) => `${name}@parliament.example`).sort(),
+    );
+    expect(runs.reduce((sent, run) => sent + run.sent, 0)).toBe(politicians.length);
+    expect(await query("SELECT DISTINCT l.status FROM letters l JOIN letters_from_pauseai p USING (id)")).toEqual([
+      { status: "sent" },
+    ]);
+    expect(await query("SELECT count(*)::int AS sends FROM email_sends WHERE purpose = 'mailing'")).toEqual([
+      { sends: politicians.length },
+    ]);
+    expect(
+      await query("SELECT action FROM audit_log WHERE details->>'id' = $1 AND actor = 'send-mailings' ORDER BY id", [
+        String(id),
+      ]),
+    ).toEqual([{ action: "start mailing" }, { action: "finish mailing" }]);
   });
 
   it("keeps a night's tidying as a run: done when something went, unchanged when nothing did", async () => {

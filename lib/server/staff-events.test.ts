@@ -113,7 +113,7 @@ describeWithDatabase("staff events", () => {
     );
 
     const future = await eventsPage(eventsSearch({}).filter, false);
-    expect(future.now).toBe(NOW);
+    expect(future.now).toEqual(new Date(NOW));
     expect(future.staff).toEqual(["jo@pauseai.uk", "sean@pauseai.uk"]);
     // Every tag and city of our events, of either tab, for the filters.
     expect(future.tags).toEqual(["Big events", "London", "Oxford"]);
@@ -125,7 +125,7 @@ describeWithDatabase("staff events", () => {
         id: "evt-soon",
         name: "Event evt-soon",
         url: "https://luma.com/evt-soon",
-        startAt: "2026-11-10T18:00:00.000Z",
+        startAt: new Date("2026-11-10T18:00:00.000Z"),
         city: "London",
         tags: ["London"],
         removed: false,

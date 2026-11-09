@@ -1,7 +1,7 @@
 // Mail arriving at the letters inbox, for the tests and the storyboard to
-// deliver (tests/fixtures/letters-inbox.ts): written as a mail server
+// deliver (lib/server/fixtures/letters-inbox.ts): written as a mail server
 // would hand it to Gmail, with Google's own Authentication-Results.
-import { LETTERS_INBOX } from "../fixture-env.mjs";
+import { LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 
 export { LETTERS_INBOX };
 

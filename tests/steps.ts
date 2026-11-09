@@ -8,8 +8,8 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { DEV_LOGIN_PATH } from "@/lib/staff-session";
 import { TEST_MPS, type TestMp } from "@/lib/test-mps";
 import { OUTBOX_DIR } from "./checkout.mjs";
-import { FIXTURE_NOW } from "./fixture-env.mjs";
-import { type OutboxEmail, readOutbox } from "./fixtures/outbox";
+import { FIXTURE_NOW } from "@/lib/server/fixtures/fixture-env.mjs";
+import { type OutboxEmail, readOutbox } from "@/lib/server/fixtures/outbox";
 import { lumaPersonWebhook, lumaWebhookHeaders } from "./luma-webhooks";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
@@ -218,7 +218,7 @@ export async function logInAsStaff(page: Page, base: string, email = "staff@paus
 
 /**
  * Logs in on `base` as `email`, as staff do: asks for a link, takes it from
- * the build's outbox (tests/fixtures/outbox.ts), and opens it in the same
+ * the build's outbox (lib/server/fixtures/outbox.ts), and opens it in the same
  * browser. For an address that gets no link, stops at "check your inbox"
  * and returns false.
  */

@@ -1,5 +1,6 @@
 import { pageMetadata } from "@/lib/metadata";
-import { BLOG, feedLink, newestFirst, posts } from "@/lib/content/blog";
+import { BLOG, posts } from "@/lib/content/blog";
+import { feedLink, newestFirst } from "@/lib/content/posts";
 import { site } from "@/lib/content/site";
 import PostList from "@/components/posts/PostList";
 import PageHero from "@/components/ui/PageHero";

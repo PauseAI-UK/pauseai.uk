@@ -409,7 +409,7 @@ describeWithDatabase("listSupporters and getSupporter", () => {
           address: "jane@example.com",
           send: "yes",
           reason: "following",
-          at: "2026-01-01T00:00:00+00:00",
+          at: new Date("2026-01-01T00:00:00Z"),
           source: "luma",
         },
         {
@@ -418,7 +418,7 @@ describeWithDatabase("listSupporters and getSupporter", () => {
           address: "+447700900001",
           send: "yes",
           reason: "following",
-          at: "2026-01-01T00:00:00+00:00",
+          at: new Date("2026-01-01T00:00:00Z"),
           source: "luma",
         },
       ],

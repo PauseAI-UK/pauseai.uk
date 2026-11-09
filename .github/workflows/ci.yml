@@ -67,13 +67,22 @@ jobs:
   # The types, on their own, so a type error is one red job saying what's
   # wrong in seconds. The jobs that build the site wait for this one, as
   # `next build` checks types too, and show as skipped rather than failing
-  # with the same error at the end of a long log.
+  # with the same error at the end of a long log. It first checks that no
+  # migration already pushed has changed, which would fail the deploy.
   types:
-    name: Types
+    name: Types, migrations
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # The history, to compare the migrations with main's and with the push before.
+          fetch-depth: 0
+
+      - name: Check pushed migrations are unchanged
+        # `before` is the branch's last push (or main's last commit), all
+        # zeros on a first push, and missing when a pull request opens.
+        run: node scripts/migrations-unchanged.mjs --main "${{ github.event.before }}"
 
       - name: Set up Node
         id: node

@@ -10,7 +10,7 @@ import { exampleOldLettersResult } from "@/app/(staff)/staff/_components/Campaig
 import type { AnyImportRun } from "./import-runs";
 import { runLog, runShape, tabled } from "./run-log";
 
-const AT = "2026-11-03T12:00:00Z";
+const AT = new Date("2026-11-03T12:00:00Z");
 const routine = { ...exampleOldLettersResult, finished: false, unmatched: [], unreadable: [], formTexts: 0 };
 const letters = (id: number, extra = {}, at = AT) =>
   exampleRun("import-old-letters", { ...routine, ...extra }, { id, at });
@@ -83,7 +83,7 @@ describe("how a run shows", () => {
 describe("a job's page", () => {
   it("has the newest whole, tinted and current, then rows and lines gathered, under each day", () => {
     const days = runLog(
-      [letters(5), letters(4), letters(3), quietLuma(2), quietLuma(1, "2026-11-02T12:00:00Z")],
+      [letters(5), letters(4), letters(3), quietLuma(2), quietLuma(1, new Date("2026-11-02T12:00:00Z"))],
       false,
     );
     expect(shapes(days)).toEqual([

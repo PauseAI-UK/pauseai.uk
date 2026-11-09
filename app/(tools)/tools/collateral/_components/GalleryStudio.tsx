@@ -41,6 +41,7 @@ import {
 } from "@/lib/collateral/render";
 import { getTemplate, type Drawable } from "@/lib/collateral/templates";
 import { DEFAULT_THEME_ID, getTheme } from "@/lib/collateral/themes";
+import { count } from "@/lib/content/plural";
 import CharCount from "./CharCount";
 import CropControls from "./CropControls";
 import ProjectMenu from "./ProjectMenu";
@@ -352,7 +353,7 @@ export default function GalleryStudio() {
     if (failed || left) {
       setMessage(
         [
-          failed && `${failed} ${failed === 1 ? "image" : "images"} could not be read.`,
+          failed && `${count(failed, "image", "images")} could not be read.`,
           left && `${left} did not fit: a gallery holds ${MAX_SLIDES} slides.`,
         ]
           .filter(Boolean)

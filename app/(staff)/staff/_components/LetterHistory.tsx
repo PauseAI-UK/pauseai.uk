@@ -34,7 +34,7 @@ export type HistoryEntry = LetterEvent & {
 
 const wasSent = (event: LetterEvent) => event.status === "sent";
 const isReply = (event: LetterEvent) => event.status === "replied" || event.status === "auto_reply";
-const time = (at: string) => Date.parse(at);
+const time = (at: Date) => at.getTime();
 
 /**
  * What was done with each reply: as its event recorded it, or for one
@@ -51,7 +51,7 @@ function withHandling(events: HistoryEntry[], forwards: LetterForward[]): Histor
       .filter((f) => time(f.at) >= time(event.at) && time(f.at) < next)
       .map((f): ReplyHandling =>
         f.outcome === "sent"
-          ? { outcome: "forwarded", to: f.address, at: f.at }
+          ? { outcome: "forwarded", to: f.address, at: f.at.toISOString() }
           : { outcome: "failed", to: f.address, reason: f.outcome === "refused" ? "blocked" : "refused" },
       );
     return handling.length ? { ...event, handling } : event;
@@ -127,10 +127,10 @@ export function historyOf(letter: Details): HistoryEntry[] {
   if (!letter.sentAt || letter.events.some(wasSent)) return nested(events);
   const sent: HistoryEntry = { at: letter.sentAt, status: "sent", details: {}, tag };
   const written: HistoryEntry[] =
-    events.length === 0 && Date.parse(letter.createdAt) < Date.parse(letter.sentAt)
+    events.length === 0 && time(letter.createdAt) < time(letter.sentAt)
       ? [{ at: letter.createdAt, status: "created", label: copy.columns.created, details: {} }]
       : [];
-  return nested([...events, sent, ...written].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)));
+  return nested([...events, sent, ...written].sort((a, b) => time(b.at) - time(a.at)));
 }
 
 /** The kind of bounce or complaint Postmark gave that each status already says, so the history leaves it out. */
@@ -202,7 +202,7 @@ function Handling({ handling }: { handling: ReplyHandling[] }) {
         <Fragment key={i}>
           <dt>{h.outcome === "not_forwarded" && !h.to ? words.nowhere : words[h.outcome]}</dt>
           <dd>
-            {[h.to, h.at && staffTime(h.at)].filter(Boolean).join(" · ")}
+            {[h.to, h.at && staffTime(new Date(h.at))].filter(Boolean).join(" · ")}
             {h.to && h.reason && <br />}
             {h.reason && <Muted>{copy.detail.handlingReasons[h.reason]}</Muted>}
           </dd>

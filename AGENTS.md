@@ -48,7 +48,7 @@ Pushing a branch with an open PR makes a deploy preview, and Netlify applies its
 
 So don't push a migration early. If the branch has a migration that may still change, or you think it may need another, settle the schema first and push once it's settled: the first push of the branch waits for that, however far along the rest of the work is. Every migration on a pushed branch is final.
 
-Before changing a migration, `git fetch`, then check whether it's on the remote branch or main (`git log origin/<branch> origin/main -- netlify/database/migrations/<file>`, or `git show origin/<branch>:<path>` to see the version pushed). If it's there, add a new migration, numbered after the last, and leave the pushed file exactly as it was. If it's only local, edit it. Either way, `npm run db:schema` and commit `schema.sql` with it (`docs/development.md`, "Adding a migration").
+`scripts/migrations-unchanged.mjs` checks this: CI's "Types, migrations" job fails if a migration on main or in the branch's last push has changed, and the prek pre-push hook (`npm run hooks:install`) stops the push before it gets that far. Before changing a migration, `git fetch`, then check whether it's on the remote branch or main (`git log origin/<branch> origin/main -- netlify/database/migrations/<file>`, or `git show origin/<branch>:<path>` to see the version pushed). If it's there, add a new migration, numbered after the last, and leave the pushed file exactly as it was. If it's only local, edit it. Either way, `npm run db:schema` and commit `schema.sql` with it (`docs/development.md`, "Adding a migration").
 
 ## The storyboard
 

@@ -1,4 +1,4 @@
-import { formatPostDate } from "@/lib/content/blog";
+import { formatPostDate } from "@/lib/content/posts";
 import { toneStyle, type BriefingTone } from "./tone";
 import styles from "./WeekCalendar.module.css";
 

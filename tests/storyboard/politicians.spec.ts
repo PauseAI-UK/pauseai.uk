@@ -10,7 +10,7 @@ export const section: Section = { name: "Politicians", part: "Staff pages", orde
 
 // The politicians from Airtable: every body and their answers to the asks, as
 // the nightly sync copies them from the fixture Airtable
-// (tests/fixtures/airtable-*.json), with PauseAI's emails to them.
+// (lib/server/fixtures/airtable-*.json), with PauseAI's emails to them.
 
 const copy = staffCopy.politician;
 

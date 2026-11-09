@@ -5,7 +5,7 @@ import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db";
 import { docFromMarkup } from "@/lib/letter-format";
 import { addTestLetter, addTestMp, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { deliverToLettersInbox, lettersMailbox, resetLettersInbox } from "@/tests/fixtures/letters-inbox";
+import { deliverToLettersInbox, lettersMailbox, resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { LETTERS_INBOX, stubLettersInboxEnv, testMail, testProxy } from "@/tests/gmail-sends";
 import { readGmail } from "./gmail-reading";
 import { submitLetter } from "./mp-letters";

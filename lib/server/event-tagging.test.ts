@@ -95,7 +95,7 @@ describeWithDatabase("tagging upcoming events", () => {
     expect(unclear).toEqual([
       {
         name: "Kent flyering",
-        startAt: "2030-01-01T18:00:00.000Z",
+        startAt: new Date("2030-01-01T18:00:00.000Z"),
         city: "Tunbridge Wells",
         url: "https://luma.com/kent",
       },
@@ -176,11 +176,11 @@ describeWithDatabase("tagging upcoming events", () => {
     await unclearEventEmails([
       {
         name: "Kent flyering",
-        startAt: "2030-01-01T18:00:00.000Z",
+        startAt: new Date("2030-01-01T18:00:00.000Z"),
         city: "Tunbridge Wells",
         url: "https://luma.com/k",
       },
-      { name: "A mystery", startAt: "2030-01-02T18:00:00.000Z", city: null, url: "https://luma.com/m" },
+      { name: "A mystery", startAt: new Date("2030-01-02T18:00:00.000Z"), city: null, url: "https://luma.com/m" },
     ]);
     const copy = staffCopy.events.unclearTagEmail;
     expect(sent.map((email) => email.Subject)).toEqual([copy.subject("Kent flyering"), copy.subject("A mystery")]);

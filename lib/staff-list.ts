@@ -10,8 +10,8 @@ export function downloadFormat(format: string | null): DownloadFormat | undefine
   return DOWNLOAD_FORMATS.find((known) => known === format);
 }
 
-/** A value in a download: text, a number, yes or no, or nothing. */
-export type DownloadValue = string | number | boolean | null;
+/** A value in a download: text, a number, yes or no, a time, or nothing. */
+export type DownloadValue = string | number | boolean | Date | null;
 
 /**
  * One column of a list as a download: its key in JSON, its heading in CSV,

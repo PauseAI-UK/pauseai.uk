@@ -111,8 +111,8 @@ describeWithDatabase("dashboard", () => {
     const { real } = await fill();
     const result = await dashboard(7);
     expect(result.days).toBe(7);
-    expect(result.asOf).toBe("2026-10-21T12:00:00.000Z");
-    expect(result.since).toBe("2026-10-14T12:00:00.000Z");
+    expect(result.asOf).toEqual(new Date("2026-10-21T12:00:00.000Z"));
+    expect(result.since).toEqual(new Date("2026-10-14T12:00:00.000Z"));
     expect(result.counts).toEqual({
       lettersSent: { current: 1, previous: 1 },
       lettersReplied: { current: 1, previous: 0 },
@@ -134,19 +134,19 @@ describeWithDatabase("dashboard", () => {
     // New supporters once each, under their earliest source: the member who later joined Luma, and last week's on Luma.
     expect(result.supportersBySource.map((point) => point.count)).toEqual([0, 0, 0, 0, 0, 0, 1, 1]);
     expect(result.supportersBySource.slice(-2).map((point) => point.sources)).toEqual([{ luma: 1 }, { member: 1 }]);
-    expect(result.supportersBySource[7].from).toBe(result.since);
-    expect(result.series.eventRegistrations[0].from).toBe("2026-08-26T12:00:00.000Z");
-    expect(result.series.eventRegistrations[7].from).toBe(result.since);
+    expect(result.supportersBySource[7].from).toEqual(result.since);
+    expect(result.series.eventRegistrations[0].from).toEqual(new Date("2026-08-26T12:00:00.000Z"));
+    expect(result.series.eventRegistrations[7].from).toEqual(result.since);
     expect(result.actions).toEqual([
-      { kind: "held-sync", at: "2026-10-21T00:00:00.000Z", added: 0, removed: 2, changed: 0 },
+      { kind: "held-sync", at: new Date("2026-10-21T00:00:00.000Z"), added: 0, removed: 2, changed: 0 },
       {
         kind: "blocked-mp",
         politicianId: real,
         name: "Polly Placeholder",
         isTest: false,
-        at: "2026-10-19T09:30:00.000Z",
+        at: new Date("2026-10-19T09:30:00.000Z"),
       },
-      { kind: "failed-import", job: "import-luma", at: expect.any(String), error: "Luma answered 500" },
+      { kind: "failed-import", job: "import-luma", at: expect.any(Date), error: "Luma answered 500" },
     ]);
   });
 
@@ -154,13 +154,13 @@ describeWithDatabase("dashboard", () => {
     const { real } = await fill();
     const result = await dashboard(30);
     expect(result.days).toBe(30);
-    expect(result.since).toBe("2026-09-21T12:00:00.000Z");
+    expect(result.since).toEqual(new Date("2026-09-21T12:00:00.000Z"));
     expect(result.counts.eventsHeld).toEqual({ current: 2, previous: 0 });
     expect(result.counts.lettersSent).toEqual({ current: 2, previous: 1 });
     expect(result.counts.supportersAdded).toEqual({ current: 2, previous: 1 });
     expect(result.supportersBySource.map((point) => point.count)).toEqual([0, 0, 0, 0, 0, 0, 0, 2]);
     expect(result.supportersBySource[7].sources).toEqual({ luma: 1, member: 1 });
-    expect(result.supportersBySource[7].from).toBe(result.since);
+    expect(result.supportersBySource[7].from).toEqual(result.since);
     expect(result.agreedMp).toBe(real);
   });
 
@@ -191,13 +191,13 @@ describeWithDatabase("dashboard", () => {
       ],
     });
     expect((await dashboard(7)).actions).toEqual([
-      { kind: "letters-inbox", inbox: "letters@pauseai.uk", count: 2, at: expect.any(String) },
+      { kind: "letters-inbox", inbox: "letters@pauseai.uk", count: 2, at: expect.any(Date) },
     ]);
     await recordRun("read-gmail", "nightly", "ok", { accounts: [{ ...letters, notUnderstood: [] }] });
     expect((await dashboard(7)).actions).toEqual([]);
     await recordFailure("read-gmail", "nightly", new Error("Gmail down"));
     expect((await dashboard(7)).actions).toEqual([
-      { kind: "failed-import", job: "read-gmail", at: expect.any(String), error: "Gmail down" },
+      { kind: "failed-import", job: "read-gmail", at: expect.any(Date), error: "Gmail down" },
     ]);
   });
 });

@@ -8,7 +8,13 @@ import {
   runSql,
 } from "@/scripts/fresh-database.mjs";
 import { FLOW_DATABASES, foreignServer, LOCAL_URL, OUTBOX_DIR, OWN_URL, TEMPLATE_DATABASE } from "../checkout.mjs";
-import { CHECKOUT_HEADER, FIXTURE_NOW, fixtureEnv, LETTERS_INBOX, TEST_MP_EMAIL } from "../fixture-env.mjs";
+import {
+  CHECKOUT_HEADER,
+  FIXTURE_NOW,
+  fixtureEnv,
+  LETTERS_INBOX,
+  TEST_MP_EMAIL,
+} from "@/lib/server/fixtures/fixture-env.mjs";
 
 // Before the flows, the server on this checkout's own port, which Playwright
 // reuses whatever it is, must be this checkout's build: another checkout's,

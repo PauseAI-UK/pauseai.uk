@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { BLOG, newestFirst, posts, type BlogPost, type PostSection } from "@/lib/content/blog";
+import { BLOG, posts } from "@/lib/content/blog";
 import type { Person } from "@/lib/content/people";
+import { newestFirst, type BlogPost, type PostSection } from "@/lib/content/posts";
 import PostBody from "./PostBody";
 import PostCard from "./PostCard";
 import { examplePost } from "./PostCard.examples";

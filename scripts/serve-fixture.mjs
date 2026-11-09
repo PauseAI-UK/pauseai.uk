@@ -15,7 +15,7 @@
 // other job and the pre-commit hook already do.
 import { execFileSync, spawn } from "node:child_process";
 import { CHECKOUT_DIR, OUTBOX_DIR, OWN_URL, SERVER_DATABASE } from "../tests/checkout.mjs";
-import { fixtureEnv, TEST_MP_EMAIL } from "../tests/fixture-env.mjs";
+import { fixtureEnv, TEST_MP_EMAIL } from "../lib/server/fixtures/fixture-env.mjs";
 
 const at = process.argv.indexOf("--port");
 const port = at === -1 ? new URL(OWN_URL).port : process.argv[at + 1];

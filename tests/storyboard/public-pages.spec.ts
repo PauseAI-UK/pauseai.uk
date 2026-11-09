@@ -1,7 +1,8 @@
 import type { ConsoleMessage } from "@playwright/test";
 import { isStaffRoute } from "../../app/sitemap";
-import { BLOG, feedPath, posts } from "../../lib/content/blog";
+import { BLOG, posts } from "../../lib/content/blog";
 import { BRIEFINGS, briefings } from "../../lib/content/briefings";
+import { feedPath } from "../../lib/content/posts";
 import { ROUTES } from "../routes";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
@@ -46,7 +47,7 @@ const IGNORED = [
 
 const HYDRATION = /hydrat|did not match|server rendered HTML/i;
 
-// Text a page shows only when it really renders tests/fixtures rather than
+// Text a page shows only when it really renders lib/server/fixtures/ rather than
 // the live APIs, so the other flows are checking a known state.
 const FIXTURE_TEXT: Record<string, string> = {
   "/donate": "Ada Pemberton",

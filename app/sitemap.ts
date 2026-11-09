@@ -1,9 +1,10 @@
 import { readdirSync } from "fs";
 import { join } from "path";
 import type { MetadataRoute } from "next";
-import { BLOG, posts, type BlogPost, type PostSection } from "@/lib/content/blog";
+import { BLOG, posts } from "@/lib/content/blog";
 import { BRIEFINGS, briefings } from "@/lib/content/briefings";
 import { people, personSlug } from "@/lib/content/people";
+import type { BlogPost, PostSection } from "@/lib/content/posts";
 import { site } from "@/lib/content/site";
 
 // Walks app/ for page.tsx files, skipping api/ (not a page), dynamic

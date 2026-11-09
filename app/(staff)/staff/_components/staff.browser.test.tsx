@@ -255,16 +255,16 @@ describe("StaffSessions", () => {
           {
             id: "session-1",
             userAgent: "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0",
-            startedAt: "2026-10-22T09:00:00Z",
-            expiresAt: "2026-10-23T09:00:00Z",
+            startedAt: new Date("2026-10-22T09:00:00Z"),
+            expiresAt: new Date("2026-10-23T09:00:00Z"),
             remember: false,
             current: true,
           },
           {
             id: "session-2",
             userAgent: null,
-            startedAt: "2026-10-20T08:00:00Z",
-            expiresAt: "2026-11-21T08:00:00Z",
+            startedAt: new Date("2026-10-20T08:00:00Z"),
+            expiresAt: new Date("2026-11-21T08:00:00Z"),
             remember: true,
             current: false,
           },
@@ -695,16 +695,16 @@ describe("StaffAccountsTable", () => {
       email: "admin@pauseai.uk",
       permissions: ["admin"],
       addedBy: "migration",
-      addedAt: "2026-10-16T12:00:00Z",
-      lastLoginAt: "2026-10-22T08:00:00Z",
-      lastSeenAt: "2026-10-22T09:15:00Z",
+      addedAt: new Date("2026-10-16T12:00:00Z"),
+      lastLoginAt: new Date("2026-10-22T08:00:00Z"),
+      lastSeenAt: new Date("2026-10-22T09:15:00Z"),
       sessions: 2,
     },
     {
       email: "jo@pauseai.uk",
       permissions: ["supporters"],
       addedBy: "admin@pauseai.uk",
-      addedAt: "2026-10-20T09:00:00Z",
+      addedAt: new Date("2026-10-20T09:00:00Z"),
       lastLoginAt: null,
       lastSeenAt: null,
       sessions: 0,
@@ -713,9 +713,9 @@ describe("StaffAccountsTable", () => {
       email: "samuel.whitlock@pauseai.uk",
       permissions: [],
       addedBy: "login",
-      addedAt: "2026-10-21T10:30:00Z",
-      lastLoginAt: "2026-10-21T10:30:00Z",
-      lastSeenAt: "2026-10-21T11:00:00Z",
+      addedAt: new Date("2026-10-21T10:30:00Z"),
+      lastLoginAt: new Date("2026-10-21T10:30:00Z"),
+      lastSeenAt: new Date("2026-10-21T11:00:00Z"),
       sessions: 1,
     },
   ] satisfies StaffAccount[];
@@ -1709,7 +1709,7 @@ describe("PoliticianDetails", () => {
     }
     await render(
       <PoliticianDetails
-        politician={{ ...MP, airtableRemovedAt: "2026-10-20T03:00:00Z" }}
+        politician={{ ...MP, airtableRemovedAt: new Date("2026-10-20T03:00:00Z") }}
         unblock={vi.fn()}
         {...none}
       />,
@@ -1800,7 +1800,7 @@ describe("PoliticianDetails", () => {
     const kinds = staffCopy.allLetters.topicKinds;
     const region = () => page.getByRole("region", { name: words.title });
     const step = (at: string, who: ThreadStep["who"], fields: Partial<ThreadStep> = {}): ThreadStep => ({
-      at,
+      at: new Date(at),
       who,
       name: null,
       auto: false,
@@ -1819,7 +1819,7 @@ describe("PoliticianDetails", () => {
       id: 21,
       senderName: "Jane Smith",
       ownWords: 0.14,
-      createdAt: "2026-10-13T08:00:00Z",
+      createdAt: new Date("2026-10-13T08:00:00Z"),
       repliedAt: null,
     };
 
@@ -1837,11 +1837,17 @@ describe("PoliticianDetails", () => {
               mailing: "Example Mailing",
               status: "sent",
               personalised: false,
-              at: "2026-09-02T08:00:00Z",
+              at: new Date("2026-09-02T08:00:00Z"),
             },
           ]}
           oneOffs={[
-            { ...exampleOneOffs[0], id: 23, subject: "", someoneElse: false, latestAt: "2026-08-05T08:00:00Z" },
+            {
+              ...exampleOneOffs[0],
+              id: 23,
+              subject: "",
+              someoneElse: false,
+              latestAt: new Date("2026-08-05T08:00:00Z"),
+            },
           ]}
           messages={messages({
             letters: {
@@ -1894,7 +1900,7 @@ describe("PoliticianDetails", () => {
             kind: "oneOff" as const,
             title: `Thread ${i}`,
             href: `/staff/one-off/${i}`,
-            at: "2020-10-13T08:00:00.000Z",
+            at: new Date("2020-10-13T08:00:00.000Z"),
             sender: null,
             status: null,
             ownWords: 0.01,
@@ -2048,7 +2054,7 @@ describe("PoliticianDetails", () => {
                 campaign: pm.slug,
                 campaignTitle: pm.title,
                 status: "made-up",
-                createdAt: "2026-10-13T08:00:00Z",
+                createdAt: new Date("2026-10-13T08:00:00Z"),
                 repliedAt: null,
               },
               {
@@ -2056,12 +2062,12 @@ describe("PoliticianDetails", () => {
                 campaign: pm.slug,
                 campaignTitle: pm.title,
                 status: "sent",
-                createdAt: "2026-09-13T08:00:00Z",
+                createdAt: new Date("2026-09-13T08:00:00Z"),
                 repliedAt: null,
               },
             ],
           }}
-          oneOffs={[{ ...exampleHiddenOneOff, latestAt: "2026-01-01T08:00:00Z" }]}
+          oneOffs={[{ ...exampleHiddenOneOff, latestAt: new Date("2026-01-01T08:00:00Z") }]}
           messages={messages({ letters: { 21: [step("2026-10-14T09:00:00Z", "them", { name: "Polly" })] } })}
         />,
       );
@@ -2102,9 +2108,9 @@ describe("PoliticianDetails", () => {
       <PoliticianDetails
         {...none}
         pauseaiLetters={[
-          { ...fromPauseai, id: 11, at: "2026-10-03T08:00:00Z", personalised: true },
-          { ...fromPauseai, id: 12, at: "2026-09-02T08:00:00Z" },
-          { ...fromPauseai, id: 13, at: "2026-06-01T08:00:00Z", status: "made-up" },
+          { ...fromPauseai, id: 11, at: new Date("2026-10-03T08:00:00Z"), personalised: true },
+          { ...fromPauseai, id: 12, at: new Date("2026-09-02T08:00:00Z") },
+          { ...fromPauseai, id: 13, at: new Date("2026-06-01T08:00:00Z"), status: "made-up" },
         ]}
         politician={peer}
         unblock={vi.fn()}
@@ -2120,8 +2126,8 @@ describe("PoliticianDetails", () => {
               senderName: "Anon Writer",
               supporterId: null,
               status: "sent",
-              createdAt: "2026-10-13T08:00:00Z",
-              repliedAt: "2026-10-15T09:00:00Z",
+              createdAt: new Date("2026-10-13T08:00:00Z"),
+              repliedAt: new Date("2026-10-15T09:00:00Z"),
             },
             // A campaign and a status nobody knows any more, shown as they're stored.
             {
@@ -2134,7 +2140,7 @@ describe("PoliticianDetails", () => {
               campaign: "old-campaign",
               campaignTitle: "Old campaign, from pauseai.info",
               status: "mislaid",
-              createdAt: "2026-07-01T08:00:00Z",
+              createdAt: new Date("2026-07-01T08:00:00Z"),
               repliedAt: null,
             },
           ],
@@ -2144,43 +2150,43 @@ describe("PoliticianDetails", () => {
           // Statuses logged by campaign, before asks, and by an ask no longer listed.
           {
             id: 8,
-            at: "2026-09-01T10:00:00Z",
+            at: new Date("2026-09-01T10:00:00Z"),
             actor: "jo@pauseai.uk",
             action: "set status",
             details: { politicianId: 7, campaign: "gone", status: null, note: "" },
           },
           {
             id: 7,
-            at: "2026-08-15T10:00:00Z",
+            at: new Date("2026-08-15T10:00:00Z"),
             actor: "jo@pauseai.uk",
             action: "set status",
             details: { politicianId: 7, campaign: pm.slug, status: "odd", note: "" },
           },
           {
             id: 10,
-            at: "2026-08-12T10:00:00Z",
+            at: new Date("2026-08-12T10:00:00Z"),
             actor: "airtable",
             action: "set status",
             details: { politicianId: 7, ask: "an-old-ask", status: "signed", note: "" },
           },
           {
             id: 6,
-            at: "2026-08-10T10:00:00Z",
+            at: new Date("2026-08-10T10:00:00Z"),
             actor: "postmark",
             action: "block address",
             details: { address: "polly@example.org", kind: "weird" },
           },
-          { id: 5, at: "2026-08-01T10:00:00Z", actor: "x", action: "strange", details: {} },
+          { id: 5, at: new Date("2026-08-01T10:00:00Z"), actor: "x", action: "strange", details: {} },
           {
             id: 9,
-            at: "2026-07-20T10:00:00Z",
+            at: new Date("2026-07-20T10:00:00Z"),
             actor: "sync",
             action: "edit politician",
             details: { id: 7, name: "Polly Placeholder", changed: { party: ["Labour", "Labour (Co-op)"] } },
           },
           {
             id: 4,
-            at: "2026-07-15T10:00:00Z",
+            at: new Date("2026-07-15T10:00:00Z"),
             actor: "import",
             action: "add politician",
             details: { politicianId: 7, name: "Polly Placeholder" },
@@ -2265,7 +2271,7 @@ describe("PoliticianDetails", () => {
             mailing: "Example Mailing",
             status: "sent",
             personalised: false,
-            at: "2026-06-01T08:00:00Z",
+            at: new Date("2026-06-01T08:00:00Z"),
           },
           {
             id: 12,
@@ -2273,7 +2279,7 @@ describe("PoliticianDetails", () => {
             mailing: "Example Mailing",
             status: "made-up",
             personalised: false,
-            at: "2026-05-01T08:00:00Z",
+            at: new Date("2026-05-01T08:00:00Z"),
           },
         ]}
         politician={MP}
@@ -2286,15 +2292,15 @@ describe("PoliticianDetails", () => {
               campaign: pm.slug,
               campaignTitle: pm.title,
               status: "sent",
-              createdAt: "2026-10-13T08:00:00Z",
-              repliedAt: "2026-10-15T09:00:00Z",
+              createdAt: new Date("2026-10-13T08:00:00Z"),
+              repliedAt: new Date("2026-10-15T09:00:00Z"),
             },
             {
               id: 1,
               campaign: "old-campaign",
               campaignTitle: "Old campaign, from pauseai.info",
               status: "mislaid",
-              createdAt: "2026-07-01T08:00:00Z",
+              createdAt: new Date("2026-07-01T08:00:00Z"),
               repliedAt: null,
             },
           ],
@@ -2800,15 +2806,15 @@ describe("ImportOverview", () => {
   it("is a card per job, each a link to its page, with how its newest run ended, or that it never ran", async () => {
     const newest: (AnyImportRun | undefined)[] = [
       undefined,
-      ran("import-luma", { ...exampleLumaResult, stoppedBy: "time" }, { at: "2026-10-21T11:17:00Z" }),
-      ran("import-members", exampleMembersResult, { at: "2026-10-21T11:47:00Z" }),
-      ran("read-gmail", { accounts: [] }, { at: "2026-10-21T11:20:00Z", status: "unchanged" }),
+      ran("import-luma", { ...exampleLumaResult, stoppedBy: "time" }, { at: new Date("2026-10-21T11:17:00Z") }),
+      ran("import-members", exampleMembersResult, { at: new Date("2026-10-21T11:47:00Z") }),
+      ran("read-gmail", { accounts: [] }, { at: new Date("2026-10-21T11:20:00Z"), status: "unchanged" }),
       undefined,
       exampleHeldSync,
-      ran("sync-emails", exampleEmailsResult, { at: "2026-10-21T06:22:00Z" }),
-      ran("check-mps", { problems: [] }, { at: "2026-10-21T01:00:00Z", status: "ok" }),
-      failed("import-controlai", "No PDF linked", { at: "2026-10-21T02:00:00Z" }),
-      ran("import-web-form-letters", exampleWebFormResult, { at: "2026-10-20T09:00:00Z" }),
+      ran("sync-emails", exampleEmailsResult, { at: new Date("2026-10-21T06:22:00Z") }),
+      ran("check-mps", { problems: [] }, { at: new Date("2026-10-21T01:00:00Z"), status: "ok" }),
+      failed("import-controlai", "No PDF linked", { at: new Date("2026-10-21T02:00:00Z") }),
+      ran("import-web-form-letters", exampleWebFormResult, { at: new Date("2026-10-20T09:00:00Z") }),
       undefined,
       undefined,
     ];
@@ -2954,7 +2960,7 @@ describe("ImportOverview", () => {
 });
 
 /** A press of a job, still running. */
-const press = { startedBy: "jo@pauseai.uk", startedAt: "2026-10-21T11:47:00Z" };
+const press = { startedBy: "jo@pauseai.uk", startedAt: new Date("2026-10-21T11:47:00Z") };
 
 describe("ImportJobPage", () => {
   it("says when a press of it is still running", async () => {
@@ -2992,7 +2998,7 @@ describe("ImportJobPage", () => {
       ran(
         "sync-politicians",
         { changes: { added: [], removed: [], changed: [] } },
-        { id: 1, at: "2026-10-11T01:00:00Z", status: "unchanged" },
+        { id: 1, at: new Date("2026-10-11T01:00:00Z"), status: "unchanged" },
       ),
     ];
     const { rerender } = await render(
@@ -3182,7 +3188,7 @@ describe("PoliticianTable", () => {
             name: "Nora Nothing",
             statuses: {},
             personalConnection: true,
-            airtableRemovedAt: "2026-10-20T02:00:00Z",
+            airtableRemovedAt: new Date("2026-10-20T02:00:00Z"),
           },
         ]}
       />,
@@ -3371,7 +3377,7 @@ describe("RunList", () => {
 
   it("lays out a job that runs often as a table a day: rows, a row for quiet runs, and older rows folded", async () => {
     const letters = staffCopy.oldLetters.columns;
-    const minutes = (n: number) => `2026-11-03T12:${String(59 - n).padStart(2, "0")}:00Z`;
+    const minutes = (n: number) => new Date(`2026-11-03T12:${String(59 - n).padStart(2, "0")}:00Z`);
     const row = (id: number) =>
       ran(
         "import-old-letters",
@@ -3406,7 +3412,7 @@ describe("RunList", () => {
 
   it("puts a problem in the table as a tinted row of its counts with its words under them, a failure as one row", async () => {
     const luma = exampleLumaResult;
-    const at = (n: number) => `2026-11-03T12:${String(50 - n * 5).padStart(2, "0")}:00Z`;
+    const at = (n: number) => new Date(`2026-11-03T12:${String(50 - n * 5).padStart(2, "0")}:00Z`);
     await render(
       <RunList
         runs={[
@@ -3445,7 +3451,7 @@ describe("RunList", () => {
 
   it("tables an hourly job without counts under Time and what it found, saying who pressed it, and heads a day whose first rows are folded", async () => {
     const members = exampleMembersResult;
-    const at = (day: number, hour: number) => `2026-11-0${day}T${String(hour).padStart(2, "0")}:00:00Z`;
+    const at = (day: number, hour: number) => new Date(`2026-11-0${day}T${String(hour).padStart(2, "0")}:00:00Z`);
     const { rerender } = await render(
       <RunList
         runs={[
@@ -3467,7 +3473,7 @@ describe("RunList", () => {
     expect(pressed.element().className).toBe("");
 
     // Rows are counted across days, so a day can start with a folded stretch: the header goes on its first table shown.
-    const luma = (id: number, at: string) =>
+    const luma = (id: number, at: Date) =>
       ran("import-luma", exampleLumaResult, { id, at, status: id === 99 ? "unchanged" : "ok" });
     await rerender(
       <RunList
@@ -3559,7 +3565,7 @@ describe("RunList", () => {
   });
 
   it("unfolds only the newest runs, and while a press runs, not the newest one if it's long", async () => {
-    const sync = (id: number, added: number[], at = "2026-10-21T11:00:00Z"): PoliticianSync =>
+    const sync = (id: number, added: number[], at = new Date("2026-10-21T11:00:00Z")): PoliticianSync =>
       ran("sync-politicians", { changes: { added: added.map((n) => mp(n)), removed: [], changed: [] } }, { id, at });
     const opens = () =>
       page
@@ -3927,9 +3933,9 @@ describe("RunList", () => {
 
   it("heads each day's runs with its date, and says when there are none", async () => {
     const runs: AnyImportRun[] = [
-      ran("check-mps", { problems: [] }, { id: 7, at: "2026-11-03T01:00:00Z" }),
-      ran("check-mps", { problems: [] }, { id: 10, at: "2026-11-03T00:17:00Z" }),
-      ran("check-mps", { problems: [] }, { id: 8, at: "2026-11-02T02:00:00Z" }),
+      ran("check-mps", { problems: [] }, { id: 7, at: new Date("2026-11-03T01:00:00Z") }),
+      ran("check-mps", { problems: [] }, { id: 10, at: new Date("2026-11-03T00:17:00Z") }),
+      ran("check-mps", { problems: [] }, { id: 8, at: new Date("2026-11-02T02:00:00Z") }),
     ];
     const { rerender } = await render(<RunList runs={runs} none="None" />);
     expect(
@@ -3944,9 +3950,9 @@ describe("RunList", () => {
     const before = ran(
       "import-luma",
       { ...exampleLumaResult, stoppedBy: "time" },
-      { id: 1, at: "2026-10-21T11:00:00Z" },
+      { id: 1, at: new Date("2026-10-21T11:00:00Z") },
     );
-    const during = ran("import-luma", exampleLumaResult, { id: 2, at: "2026-10-21T11:48:00Z" });
+    const during = ran("import-luma", exampleLumaResult, { id: 2, at: new Date("2026-10-21T11:48:00Z") });
     await rerender(<RunList runs={[before, during]} none="Nothing here" press={press} />);
     expect(document.querySelector("section")!.parentElement!.className).not.toMatch(/amber/);
   });
@@ -3988,8 +3994,8 @@ describe("ChangesFilters", () => {
       name: "Sam's notes",
       params: { actor: "sam@pauseai.uk", action: ["add note", "edit event"], sort: "day" },
       createdBy: "jo@pauseai.uk",
-      createdAt: "2026-10-01T09:00:00Z",
-      changedAt: "2026-10-01T09:00:00Z",
+      createdAt: new Date("2026-10-01T09:00:00Z"),
+      changedAt: new Date("2026-10-01T09:00:00Z"),
     };
     await render(
       <ChangesFilters
@@ -4161,8 +4167,8 @@ describe("LettersTable", () => {
             backend: "airtable",
             ownWords: 0.624,
             sentAt: null,
-            repliedAt: "2026-10-13T09:00:00Z",
-            autoRepliedAt: "2026-10-12T10:00:00Z",
+            repliedAt: new Date("2026-10-13T09:00:00Z"),
+            autoRepliedAt: new Date("2026-10-12T10:00:00Z"),
             events: [{ at: letter.createdAt, status: "strange", details: {} }],
           },
         ]}
@@ -4204,7 +4210,7 @@ describe("LettersTable", () => {
   });
 
   it("says when only an automatic reply came, greyed, with when", async () => {
-    await render(<LettersTable letters={[{ ...letter, autoRepliedAt: "2026-10-12T11:00:00Z" }]} />);
+    await render(<LettersTable letters={[{ ...letter, autoRepliedAt: new Date("2026-10-12T11:00:00Z") }]} />);
     const muted = document.querySelector("tbody tr td:last-child span")!;
     expect(muted.textContent).toBe(`${staffCopy.letters.status.auto_reply}12 Oct 2026, 11:00`);
     expect(muted.querySelector("br")).not.toBeNull();
@@ -4239,9 +4245,17 @@ describe("LetterHistory", () => {
     await render(
       <LetterHistory
         events={[
-          { at: "2026-10-14T10:00:00Z", status: "queued", details: { reason: "daily_limit" } },
-          { at: "2026-10-13T10:00:00Z", status: "notice", details: { notice: "bounced", to: "jane@example.com" } },
-          { at: "2026-10-12T10:00:00Z", status: "replied", details: { uncertain: true, reason: "odd", notice: "odd" } },
+          { at: new Date("2026-10-14T10:00:00Z"), status: "queued", details: { reason: "daily_limit" } },
+          {
+            at: new Date("2026-10-13T10:00:00Z"),
+            status: "notice",
+            details: { notice: "bounced", to: "jane@example.com" },
+          },
+          {
+            at: new Date("2026-10-12T10:00:00Z"),
+            status: "replied",
+            details: { uncertain: true, reason: "odd", notice: "odd" },
+          },
         ]}
       />,
     );
@@ -4257,18 +4271,30 @@ describe("LetterHistory", () => {
       ...exampleSupporterLetterDetails,
       sentAt: null,
       events: [
-        { at: "2026-10-14T11:00:00Z", status: "relayed", details: { to: "jane@example.com", gmailMessageId: "m1" } },
-        { at: "2026-10-14T10:30:00Z", status: "relay_held", details: { reason: "blocked", gmailMessageId: "m1" } },
-        { at: "2026-10-14T10:00:00Z", status: "replied", details: { from: "mp@example.org", gmailMessageId: "m1" } },
-        { at: "2026-10-13T10:00:00Z", status: "bounced", details: { gmailMessageId: "bounce" } },
-        { at: "2026-10-12T10:00:00Z", status: "replied", details: { from: "mp@example.org" } },
-        { at: "2026-10-11T10:05:00Z", status: "copy_bounced", details: {} },
-        { at: "2026-10-11T10:00:00Z", status: "sent", details: {} },
+        {
+          at: new Date("2026-10-14T11:00:00Z"),
+          status: "relayed",
+          details: { to: "jane@example.com", gmailMessageId: "m1" },
+        },
+        {
+          at: new Date("2026-10-14T10:30:00Z"),
+          status: "relay_held",
+          details: { reason: "blocked", gmailMessageId: "m1" },
+        },
+        {
+          at: new Date("2026-10-14T10:00:00Z"),
+          status: "replied",
+          details: { from: "mp@example.org", gmailMessageId: "m1" },
+        },
+        { at: new Date("2026-10-13T10:00:00Z"), status: "bounced", details: { gmailMessageId: "bounce" } },
+        { at: new Date("2026-10-12T10:00:00Z"), status: "replied", details: { from: "mp@example.org" } },
+        { at: new Date("2026-10-11T10:05:00Z"), status: "copy_bounced", details: {} },
+        { at: new Date("2026-10-11T10:00:00Z"), status: "sent", details: {} },
         // Sent again after a bounce: a copy goes under the Sent before it.
-        { at: "2026-10-10T10:01:00Z", status: "copy_sent", details: {} },
-        { at: "2026-10-10T10:00:00Z", status: "sent", details: {} },
+        { at: new Date("2026-10-10T10:01:00Z"), status: "copy_sent", details: {} },
+        { at: new Date("2026-10-10T10:00:00Z"), status: "sent", details: {} },
         // Recorded a moment before its Sent: under the first.
-        { at: "2026-10-10T09:59:00Z", status: "copy_held", details: {} },
+        { at: new Date("2026-10-10T09:59:00Z"), status: "copy_held", details: {} },
       ],
     };
     await render(<LetterHistory events={historyOf(letter)} />);
@@ -4289,19 +4315,19 @@ describe("LetterHistory", () => {
     expect(under(items[4])).toEqual([copy.status.copy_sent, copy.status.copy_held]);
     // A notice to the supporter under what it tells of: the letter's bounce, a relay's (beside it, under its
     // reply), the letter or a relay gone again; one of nothing before it, or of something else, stays.
-    const notice = (at: string, kind: string) => ({ at, status: "notice", details: { notice: kind } });
+    const notice = (at: string, kind: string) => ({ at: new Date(at), status: "notice", details: { notice: kind } });
     const told = historyOf({
       ...letter,
       events: [
         notice("2026-10-16T10:01:00Z", "resent"),
-        { at: "2026-10-16T10:00:00Z", status: "relayed", details: { gmailMessageId: "m2" } },
+        { at: new Date("2026-10-16T10:00:00Z"), status: "relayed", details: { gmailMessageId: "m2" } },
         notice("2026-10-15T10:01:00Z", "bounced"),
-        { at: "2026-10-15T10:00:00Z", status: "relay_bounced", details: { gmailMessageId: "m2" } },
-        { at: "2026-10-14T10:00:00Z", status: "replied", details: { gmailMessageId: "m2" } },
+        { at: new Date("2026-10-15T10:00:00Z"), status: "relay_bounced", details: { gmailMessageId: "m2" } },
+        { at: new Date("2026-10-14T10:00:00Z"), status: "replied", details: { gmailMessageId: "m2" } },
         notice("2026-10-13T10:01:00Z", "resent"),
-        { at: "2026-10-13T10:00:00Z", status: "sent", details: {} },
+        { at: new Date("2026-10-13T10:00:00Z"), status: "sent", details: {} },
         notice("2026-10-12T10:01:00Z", "bounced"),
-        { at: "2026-10-12T10:00:00Z", status: "bounced", details: {} },
+        { at: new Date("2026-10-12T10:00:00Z"), status: "bounced", details: {} },
         notice("2026-10-11T10:00:00Z", "odd"),
         notice("2026-10-10T10:00:00Z", "bounced"),
       ],
@@ -4314,7 +4340,7 @@ describe("LetterHistory", () => {
       ["notice", undefined],
     ]);
     // With no Sent at all, a copy stays where it was.
-    const copyOnly = { at: "2026-10-10T10:00:00Z", status: "copy_held", details: {} };
+    const copyOnly = { at: new Date("2026-10-10T10:00:00Z"), status: "copy_held", details: {} };
     expect(historyOf({ ...letter, events: [copyOnly] })).toEqual([copyOnly]);
   });
 
@@ -4322,9 +4348,13 @@ describe("LetterHistory", () => {
     await render(
       <LetterHistory
         events={[
-          { at: "2026-10-14T10:00:00Z", status: "replied", details: { subject: "Thanks", spam: 0.1 } },
-          { at: "2026-10-12T10:00:00Z", status: "bounced", details: { type: "SoftBounce", email: "jo@example.org" } },
-          { at: "2026-10-12T09:00:00Z", status: "odd", details: {} },
+          { at: new Date("2026-10-14T10:00:00Z"), status: "replied", details: { subject: "Thanks", spam: 0.1 } },
+          {
+            at: new Date("2026-10-12T10:00:00Z"),
+            status: "bounced",
+            details: { type: "SoftBounce", email: "jo@example.org" },
+          },
+          { at: new Date("2026-10-12T09:00:00Z"), status: "odd", details: {} },
         ]}
       />,
     );
@@ -4415,7 +4445,7 @@ describe("LetterHistory", () => {
       replyTo: "r@example.com",
       from: "f@example.com",
     };
-    await render(<LetterHistory events={[{ at: "2026-10-14T10:00:00Z", status: "replied", details }]} />);
+    await render(<LetterHistory events={[{ at: new Date("2026-10-14T10:00:00Z"), status: "replied", details }]} />);
     const names = [...history().element().querySelectorAll("dt")].map((name) => name.textContent);
     const fields = copy.detail.fields;
     expect(names).toEqual([fields.from, fields.to, fields.cc, fields.replyTo, "spam"]);
@@ -4424,7 +4454,7 @@ describe("LetterHistory", () => {
   it("for a logged forward Postmark refused, says so", () => {
     const [, reply] = historyOf({
       ...exampleOlderRepliedLetterDetails,
-      forwards: [{ at: "2026-10-13T09:00:01Z", address: "policy@pauseai.uk", outcome: "failed" }],
+      forwards: [{ at: new Date("2026-10-13T09:00:01Z"), address: "policy@pauseai.uk", outcome: "failed" }],
     });
     expect(reply.handling).toEqual([{ outcome: "failed", to: "policy@pauseai.uk", reason: "refused" }]);
   });
@@ -4438,16 +4468,24 @@ describe("LetterHistory", () => {
 describe("historyOf", () => {
   const copy = staffCopy.letters;
   const airtable = { ...exampleSupporterLetterDetails, backend: "airtable" as const, events: [] };
-  const sentByGmail = { at: "2026-10-01T12:00:00Z", status: "sent", details: {} };
+  const sentByGmail = { at: new Date("2026-10-01T12:00:00Z"), status: "sent", details: {} };
 
   it("tags each email with what its own event recorded sent it, whatever sent the letter", () => {
     const events = [
-      { at: "2026-10-14T10:00:00Z", status: "relayed", details: { to: "jane@example.com", backend: "gmail" } },
-      { at: "2026-10-13T10:00:00Z", status: "notice", details: { to: "jane@example.com", backend: "postmark" } },
-      { at: "2026-10-12T10:00:00Z", status: "replied", details: { backend: "postmark" } },
+      {
+        at: new Date("2026-10-14T10:00:00Z"),
+        status: "relayed",
+        details: { to: "jane@example.com", backend: "gmail" },
+      },
+      {
+        at: new Date("2026-10-13T10:00:00Z"),
+        status: "notice",
+        details: { to: "jane@example.com", backend: "postmark" },
+      },
+      { at: new Date("2026-10-12T10:00:00Z"), status: "replied", details: { backend: "postmark" } },
       // A reply recorded before replies said what brought them: what the letter went by, which they came back through.
-      { at: "2026-10-11T10:00:00Z", status: "auto_reply", details: {} },
-      { at: "2026-10-10T10:00:00Z", status: "bounced", details: {} },
+      { at: new Date("2026-10-11T10:00:00Z"), status: "auto_reply", details: {} },
+      { at: new Date("2026-10-10T10:00:00Z"), status: "bounced", details: {} },
     ];
     expect(historyOf({ ...exampleSupporterLetterDetails, backend: "gmail", events }).map((e) => e.tag)).toEqual([
       copy.backends.gmail,
@@ -4470,7 +4508,7 @@ describe("historyOf", () => {
       sending,
     ]);
     // One of this site's never sent: no backend, no Sent.
-    const notSent = [{ at: "2026-10-12T09:00:00Z", status: "not_sent", details: {} }];
+    const notSent = [{ at: new Date("2026-10-12T09:00:00Z"), status: "not_sent", details: {} }];
     expect(historyOf({ ...airtable, backend: null, sentAt: null, events: notSent })).toEqual(notSent);
     // PauseAI's, sent from Gmail.
     expect(historyOf({ ...examplePauseaiLetterDetails, backend: "gmail", events: [sentByGmail] })).toEqual([
@@ -4481,25 +4519,26 @@ describe("historyOf", () => {
   });
 
   it("for one copied from Airtable: sent when it says, and written, if earlier and nothing's recorded", () => {
-    expect(historyOf({ ...airtable, createdAt: "2026-09-30T18:00:00Z", sentAt: "2026-09-30T18:02:00Z" })).toEqual([
-      { at: "2026-09-30T18:02:00Z", status: "sent", details: {}, tag: copy.backends.airtable },
-      { at: "2026-09-30T18:00:00Z", status: "created", label: copy.columns.created, details: {} },
+    expect(
+      historyOf({ ...airtable, createdAt: new Date("2026-09-30T18:00:00Z"), sentAt: new Date("2026-09-30T18:02:00Z") }),
+    ).toEqual([
+      { at: new Date("2026-09-30T18:02:00Z"), status: "sent", details: {}, tag: copy.backends.airtable },
+      { at: new Date("2026-09-30T18:00:00Z"), status: "created", label: copy.columns.created, details: {} },
     ]);
     // PauseAI's, from a mailing copied from Airtable, written and sent at once.
     const sent = { at: examplePauseaiLetterDetails.sentAt, status: "sent", details: {}, tag: copy.backends.airtable };
     expect(historyOf(examplePauseaiLetterDetails)).toEqual([sent]);
     // With something recorded later, it goes in its place, and when it was written isn't wanted.
-    const bounce = { at: "2026-10-02T09:00:00Z", status: "bounced", details: {} };
-    expect(historyOf({ ...examplePauseaiLetterDetails, createdAt: "2026-09-01T09:00:00Z", events: [bounce] })).toEqual([
-      bounce,
-      sent,
-    ]);
+    const bounce = { at: new Date("2026-10-02T09:00:00Z"), status: "bounced", details: {} };
+    expect(
+      historyOf({ ...examplePauseaiLetterDetails, createdAt: new Date("2026-09-01T09:00:00Z"), events: [bounce] }),
+    ).toEqual([bounce, sent]);
     // PauseAI's never sent: nothing.
     expect(historyOf({ ...examplePauseaiLetterDetails, backend: null, sentAt: null })).toEqual([]);
   });
 
   it("shows the label and the tag in its line", async () => {
-    await render(<LetterHistory events={historyOf({ ...airtable, createdAt: "2026-10-12T08:00:00Z" })} />);
+    await render(<LetterHistory events={historyOf({ ...airtable, createdAt: new Date("2026-10-12T08:00:00Z") })} />);
     const [sent, written] = page.getByRole("listitem").all();
     expect(sent.element().textContent).toContain(copy.status.sent);
     await expect.element(sent.getByText(copy.backends.airtable)).toBeVisible();
@@ -4668,7 +4707,7 @@ describe("SupportersTable", () => {
           { event: "Leeds meetup", status: "approved" },
           { event: "Oxford talk", status: "waitlist" },
         ],
-        wroteAt: "2026-10-03T09:00:00Z",
+        wroteAt: new Date("2026-10-03T09:00:00Z"),
       },
       sam,
     ];
@@ -4689,7 +4728,7 @@ describe("SupportersTable", () => {
       `Leeds meetup: ${copy.detail.registered}; Oxford talk: ${registrationStatus("waitlist")}`,
     );
     expect(text(columns, "registrations", rows[1])).toBe("");
-    expect(text(columns, "wrote", rows[0])).toBe("2026-10-03T09:00:00Z");
+    expect(text(columns, "wrote", rows[0])).toEqual(new Date("2026-10-03T09:00:00Z"));
     expect(text(columns, "wrote", rows[1])).toBeNull();
     // With one event, its status alone.
     expect(text(supporterColumns(supportersSearch({ event: "evt-1" })), "registrations", rows[0])).toBe(
@@ -4768,9 +4807,9 @@ describe("SupporterDetails", () => {
   it("lists their events by when each starts, latest first, one no longer copied last, undated", async () => {
     const [registered] = exampleSupporterDetails.activity.filter((a) => a.kind === "luma-registered");
     const activity = [
-      { ...registered, title: "Earlier", eventAt: "2026-09-01T18:00:00Z" },
+      { ...registered, title: "Earlier", eventAt: new Date("2026-09-01T18:00:00Z") },
       { ...registered, title: "Gone", eventAt: null },
-      { ...registered, title: "Later", eventAt: "2026-11-01T18:00:00Z" },
+      { ...registered, title: "Later", eventAt: new Date("2026-11-01T18:00:00Z") },
     ];
     await render(<SupporterDetails supporter={{ ...exampleSupporterDetails, activity }} />);
     const events = page.getByRole("region", { name: staffCopy.supporters.detail.eventsTitle, exact: false });
@@ -4881,7 +4920,7 @@ describe("SupporterDetails", () => {
           activity: [
             {
               source: "email-your-mp",
-              at: "2026-10-05T09:00:00Z",
+              at: new Date("2026-10-05T09:00:00Z"),
               kind: "letter",
               title: "old-campaign",
               campaignTitle: "Old campaign, from pauseai.info",
@@ -4916,7 +4955,7 @@ describe("SupporterDetails", () => {
           contacts: [
             {
               source: "email-your-mp",
-              at: "2026-10-05T09:00:00Z",
+              at: new Date("2026-10-05T09:00:00Z"),
               phone: null,
               postcode: "m11ae",
               latitude: null,
@@ -4925,7 +4964,7 @@ describe("SupporterDetails", () => {
             },
             {
               source: "luma",
-              at: "2026-09-20T10:00:00Z",
+              at: new Date("2026-09-20T10:00:00Z"),
               phone: null,
               postcode: "M1  1AE",
               latitude: null,
@@ -4988,7 +5027,7 @@ describe("SupporterDetails", () => {
           activity: [
             {
               source: "luma",
-              at: "2026-01-01T00:00:00Z",
+              at: new Date("2026-01-01T00:00:00Z"),
               kind: "luma-registered",
               title: "Thing",
               campaignTitle: null,
@@ -4998,7 +5037,7 @@ describe("SupporterDetails", () => {
             },
             {
               source: "luma",
-              at: "2026-01-01T00:00:00Z",
+              at: new Date("2026-01-01T00:00:00Z"),
               kind: "luma-registered",
               title: "Other",
               campaignTitle: null,
@@ -5008,7 +5047,7 @@ describe("SupporterDetails", () => {
             },
             {
               source: "luma",
-              at: "2026-01-01T00:00:00Z",
+              at: new Date("2026-01-01T00:00:00Z"),
               kind: "luma-registered",
               title: "Bare",
               campaignTitle: null,
@@ -5018,7 +5057,7 @@ describe("SupporterDetails", () => {
             },
             {
               source: "x",
-              at: "2026-01-02T00:00:00Z",
+              at: new Date("2026-01-02T00:00:00Z"),
               kind: "opted-out",
               title: "other-list",
               campaignTitle: null,
@@ -5028,7 +5067,7 @@ describe("SupporterDetails", () => {
             },
             {
               source: "x",
-              at: "2026-01-02T00:00:00Z",
+              at: new Date("2026-01-02T00:00:00Z"),
               kind: "resubscribed",
               title: null,
               campaignTitle: null,
@@ -5038,7 +5077,7 @@ describe("SupporterDetails", () => {
             },
             {
               source: "email-your-mp",
-              at: "2026-01-03T00:00:00Z",
+              at: new Date("2026-01-03T00:00:00Z"),
               kind: "letter",
               title: "gone-campaign",
               campaignTitle: "Gone campaign",
@@ -5048,7 +5087,7 @@ describe("SupporterDetails", () => {
             },
             {
               source: "email-your-mp",
-              at: "2026-01-03T00:00:00Z",
+              at: new Date("2026-01-03T00:00:00Z"),
               kind: "letter",
               title: null,
               campaignTitle: null,
@@ -5058,7 +5097,7 @@ describe("SupporterDetails", () => {
             },
             {
               source: "email-your-mp",
-              at: "2026-01-04T00:00:00Z",
+              at: new Date("2026-01-04T00:00:00Z"),
               kind: "letter-replied",
               title: null,
               campaignTitle: null,
@@ -5179,8 +5218,13 @@ describe("SupporterDetails", () => {
         supporter={{
           ...exampleSupporterDetails,
           identities: [
-            { source: "email-your-mp", email: "jane@example.com", name: "Jane", seenAt: "2026-10-05T09:00:00Z" },
-            { source: "luma", email: "jane@example.com", name: "", seenAt: "2026-03-01T10:00:00Z" },
+            {
+              source: "email-your-mp",
+              email: "jane@example.com",
+              name: "Jane",
+              seenAt: new Date("2026-10-05T09:00:00Z"),
+            },
+            { source: "luma", email: "jane@example.com", name: "", seenAt: new Date("2026-03-01T10:00:00Z") },
             { source: "luma", email: "jane@example.com", name: "", seenAt: null },
             { source: "email-your-mp", email: "old@example.com", name: "", seenAt: null },
           ],
@@ -5209,7 +5253,7 @@ describe("SupporterDetails, a march sign-up", () => {
   const copy = staffCopy.supporters;
   const entry = {
     source: "march-2026-11",
-    at: "2026-10-20T10:00:00Z",
+    at: new Date("2026-10-20T10:00:00Z"),
     kind: "form-entry" as const,
     title: "march-2026-11",
     campaignTitle: null,
@@ -5364,7 +5408,7 @@ describe("PermissionTiles", () => {
   });
 
   it("names the form whose box answered for our forms, or the newest form for one it has no name for", async () => {
-    const at = "2026-10-16T12:00:00Z";
+    const at = new Date("2026-10-16T12:00:00Z");
     const forms = (source: string | null, reason: "asked" | "declined" = "asked") => ({
       topic: "site-forms" as const,
       channel: "email" as const,
@@ -5448,7 +5492,7 @@ describe("PermissionTiles", () => {
         address: `${reason}-${i}@example.com`,
         topic: topic as Topic,
         reason: reason as Reason,
-        at: "2026-09-12T10:00:00Z",
+        at: new Date("2026-09-12T10:00:00Z"),
       })),
     );
     await render(<PermissionTiles permissions={permissions} />);
@@ -5513,7 +5557,11 @@ describe("each list's download values and contact cards", () => {
 
   it("politicians: every column, and as cards, with what they have", async () => {
     const rows = [
-      { ...examplePolitician, firstActivityAt: "2026-09-01T00:00:00Z", lastActivityAt: "2026-10-01T00:00:00Z" },
+      {
+        ...examplePolitician,
+        firstActivityAt: new Date("2026-09-01T00:00:00Z"),
+        lastActivityAt: new Date("2026-10-01T00:00:00Z"),
+      },
       {
         ...examplePolitician,
         id: 8,
@@ -5539,8 +5587,8 @@ describe("each list's download values and contact cards", () => {
       party: examplePolitician.party,
       status: staffCopy.personStatuses.in_office,
       constituency: examplePolitician.constituency,
-      first: "2026-09-01T00:00:00Z",
-      active: "2026-10-01T00:00:00Z",
+      first: new Date("2026-09-01T00:00:00Z"),
+      active: new Date("2026-10-01T00:00:00Z"),
     });
     // The markers in words, each one they have; none for one with none.
     const { flags } = staffCopy.politicians;
@@ -5548,7 +5596,7 @@ describe("each list's download values and contact cards", () => {
       ...rows[0],
       importantTarget: true,
       personalConnection: true,
-      airtableRemovedAt: "2026-10-20",
+      airtableRemovedAt: new Date("2026-10-20"),
       isTest: true,
     };
     expect(values(columns, marked).marked).toBe(
@@ -5868,8 +5916,8 @@ describe("the lists' filters in words, for their titles", () => {
 describe("SupporterFilters", () => {
   const copy = staffCopy.supporters;
   const events = [
-    { id: "evt-1", name: "Leeds social", startAt: "2026-10-20T18:00:00Z" },
-    { id: "evt-2", name: "Oxford talk", startAt: "2026-10-12T18:00:00Z" },
+    { id: "evt-1", name: "Leeds social", startAt: new Date("2026-10-20T18:00:00Z") },
+    { id: "evt-2", name: "Oxford talk", startAt: new Date("2026-10-12T18:00:00Z") },
   ];
   const mps = [{ id: 7, name: "Mo Manchester", constituency: "Manchester Central" }];
   const choices = { events, mps };

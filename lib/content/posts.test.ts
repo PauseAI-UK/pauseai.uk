@@ -1,21 +1,19 @@
 import Image from "next/image";
 import { createElement, Fragment } from "react";
 import { describe, expect, it } from "vitest";
+import { BLOG, findPost, posts } from "./blog";
 import {
   checkPostAuthors,
-  findPost,
   firstPostImage,
   formatPostDate,
   postAuthor,
   postImage,
   postJsonLd,
   postMetadata,
-  posts,
   newestFirst,
-  BLOG,
   type BlogPost,
   type PostSection,
-} from "./blog";
+} from "./posts";
 
 const base: Omit<BlogPost, "content"> = {
   slug: "test",

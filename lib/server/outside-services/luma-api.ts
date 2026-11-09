@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/lib/server/config";
 import { outsideFetch } from "./outside-fetch";
 
 // One page of a list from Luma's official API (LUMA_API_KEY, scoped to our
@@ -25,6 +26,12 @@ export class LumaRateLimited extends Error {
   }
 }
 
+/** LUMA_API_KEY, or throws without it. */
+function lumaKey(): string {
+  if (!config.lumaApiKey) throw new Error("LUMA_API_KEY is not set");
+  return config.lumaApiKey;
+}
+
 /**
  * Fetches `path` with `params`: its JSON, and the requests left in this
  * minute when Luma says. Uncached, unless `revalidate` says how many seconds
@@ -36,10 +43,8 @@ export async function lumaGet<T>(
   params: URLSearchParams,
   revalidate?: number,
 ): Promise<{ data: T; remaining?: number }> {
-  const key = process.env.LUMA_API_KEY;
-  if (!key) throw new Error("LUMA_API_KEY is not set");
   const res = await outsideFetch(`https://public-api.luma.com${path}?${params}`, {
-    headers: { "x-luma-api-key": key, accept: "application/json" },
+    headers: { "x-luma-api-key": lumaKey(), accept: "application/json" },
     ...(revalidate === undefined ? { cache: "no-store" } : { next: { revalidate } }),
   });
   if (res.status === 429) throw new LumaRateLimited(Number(res.headers.get("retry-after")) || 60);
@@ -67,11 +72,9 @@ export async function lumaList<T>(path: string, params: URLSearchParams, revalid
  * missing key, a 429 or any other answer that isn't ok.
  */
 export async function lumaPost<T>(path: string, body: unknown): Promise<T> {
-  const key = process.env.LUMA_API_KEY;
-  if (!key) throw new Error("LUMA_API_KEY is not set");
   const res = await outsideFetch(`https://public-api.luma.com${path}`, {
     method: "POST",
-    headers: { "x-luma-api-key": key, "content-type": "application/json", accept: "application/json" },
+    headers: { "x-luma-api-key": lumaKey(), "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify(body),
     cache: "no-store",
   });

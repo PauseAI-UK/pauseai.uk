@@ -1,5 +1,5 @@
 import "server-only";
-import { FLOW_DATABASE_COOKIE, FLOW_DATABASE_PREFIX } from "@/tests/fixture-env.mjs";
+import { FLOW_DATABASE_COOKIE, FLOW_DATABASE_PREFIX } from "@/lib/server/fixtures/fixture-env.mjs";
 
 // In a fixture build (DATA_FIXTURES=1), the storyboard gives each flow its
 // own database and names it in a cookie: db.ts queries it, and the fakes

@@ -1,4 +1,4 @@
-import { FIXTURE_NOW } from "../fixture-env.mjs";
+import { FIXTURE_NOW } from "@/lib/server/fixtures/fixture-env.mjs";
 import { campaigns } from "@/lib/content/email-your-mp";
 import type { Page } from "@playwright/test";
 import { marchSignupCopy } from "@/lib/content/march-signup";
@@ -20,7 +20,7 @@ import {
   sendLetter,
   syncPoliticians,
 } from "../steps";
-import { LETTERS_INBOX } from "../fixture-env.mjs";
+import { LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
@@ -133,7 +133,7 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7))).toBeVisible();
-  const march = copy.filters.eventChoice("PauseAI London March", staffDate("2026-02-14T12:00:00Z"));
+  const march = copy.filters.eventChoice("PauseAI London March", staffDate(new Date("2026-02-14T12:00:00Z")));
   await page.getByRole("button", { name: staffCopy.filters.except }).click();
   await expect(page.locator("[popover]:popover-open").getByText(staffCopy.filters.exceptHeading)).toBeVisible();
   await frame(page, "Except, open");

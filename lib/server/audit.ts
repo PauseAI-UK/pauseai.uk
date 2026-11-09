@@ -8,7 +8,7 @@ import { query, type Queryable } from "./db";
 // Who changed what: every change from the staff interface, and each sync.
 
 /** A row of the log as it's read: an action it may not know, with the details logged (lib/audit-events.ts says what each holds). */
-export type AuditEntry = { id: number; at: string; actor: string; action: string; details: Record<string, unknown> };
+export type AuditEntry = { id: number; at: Date; actor: string; action: string; details: Record<string, unknown> };
 
 /** An action and its details, as AuditDetails pairs them, and the transaction to log in, if any. */
 type LogArgs = { [A in keyof AuditDetails]: [action: A, details: AuditDetails[A], db?: Queryable] }[keyof AuditDetails];

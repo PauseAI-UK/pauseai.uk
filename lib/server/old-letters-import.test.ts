@@ -3,7 +3,7 @@ import { latestRun } from "./import-runs";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import webForm from "@/tests/fixtures/airtable-web-form.json";
+import webForm from "@/lib/server/fixtures/airtable-web-form.json";
 import {
   addTestLetter,
   addTestPolitician,
