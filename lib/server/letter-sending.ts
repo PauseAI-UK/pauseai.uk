@@ -128,7 +128,7 @@ async function requeue(letterId: number, reason: QueueReason): Promise<{ sent: f
  */
 export async function sendLetter(id: number): Promise<{ sent: true } | { sent: false; reason: QueueReason }> {
   const [taken] = await query(
-    "UPDATE letters SET status = 'sending' WHERE id = $1 AND status = 'queued' RETURNING id",
+    "UPDATE letters SET status = 'sending', taken_at = now() WHERE id = $1 AND status = 'queued' RETURNING id",
     [id],
   );
   if (!taken) return { sent: true };
@@ -181,7 +181,7 @@ async function sendTaken(id: number): Promise<{ sent: true } | { sent: false; re
  */
 export async function sendCopy(id: number): Promise<void> {
   const [taken] = await query(
-    `UPDATE letters_from_supporters s SET copy_state = 'sending' FROM letters l
+    `UPDATE letters_from_supporters s SET copy_state = 'sending', copy_taken_at = now() FROM letters l
      WHERE s.id = $1 AND l.id = s.id AND l.status = 'sent' AND s.copy_state = 'queued' RETURNING s.id`,
     [id],
   );
@@ -223,6 +223,30 @@ export async function sendCopy(id: number): Promise<void> {
     messageId: result.messageId,
     ...sentBy(result.backend),
   });
+}
+
+/**
+ * Marks as uncertain each letter, of a mailing or from the letters inbox,
+ * and each supporter's copy, that a run took to send and left sending, as
+ * it may have gone, or not: a person checks, as sending it again could
+ * send it twice. Only those left a while, so a run going now isn't caught.
+ * A mailing waits for none of them to finish.
+ */
+export async function uncertainLetters(): Promise<number> {
+  const letters = await query<{ id: number; to: string | null }>(
+    `UPDATE letters l SET status = 'uncertain' FROM notable_people n
+     WHERE n.id = l.notable_person_id AND l.status = 'sending' AND l.taken_at < now() - interval '15 minutes'
+     RETURNING l.id::int AS id, n.email AS to`,
+  );
+  const copies = await query<{ id: number; to: string }>(
+    `UPDATE letters_from_supporters s SET copy_state = 'uncertain' FROM form_entries f
+     WHERE f.id = s.entry_id AND s.copy_state = 'sending' AND s.copy_taken_at < now() - interval '15 minutes'
+     RETURNING s.id::int AS id, f.email AS to`,
+  );
+  // Who it may have gone to, as every email's change says.
+  for (const { id, to } of letters) await letterEvent(id, "uncertain", { to });
+  for (const { id, to } of copies) await letterEvent(id, "copy_uncertain", { to });
+  return letters.length + copies.length;
 }
 
 /**

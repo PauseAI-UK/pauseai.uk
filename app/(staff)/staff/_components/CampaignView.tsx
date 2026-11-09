@@ -23,10 +23,10 @@ import ExternalLink from "./ui/ExternalLink";
 const copy = staffCopy.campaigns;
 const words = staffCopy.letters;
 
-/** How a letter went, as a tag: its politician answered the ask, in green; failed, in red; else its status. */
+/** How a letter went, as a tag: its politician answered the ask, in green; failed, or uncertain whether it went, in red; else its status. */
 function Outcome({ letter }: { letter: LetterSummary }) {
   if (letter.answer) return <Tag tone="green">{staffCopy.mailings.columns.answered}</Tag>;
-  if (letter.status === "bounced" || letter.status === "not_sent") {
+  if (["bounced", "not_sent", "uncertain"].includes(letter.status)) {
     return <Tag tone="red">{words.status[letter.status]}</Tag>;
   }
   return (

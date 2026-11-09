@@ -11,7 +11,7 @@ import { query } from "./db";
 import { recordProblem, unblock } from "./email";
 import { handleDeliveryProblem } from "./delivery-problems";
 import { readGmail } from "./gmail-reading";
-import { noticeToSender, sendCopy, sendLetter, sendLetterQueue, threading } from "./letter-sending";
+import { noticeToSender, sendCopy, sendLetter, sendLetterQueue, threading, uncertainLetters } from "./letter-sending";
 import { submitLetter, type LetterForm } from "./mp-letters";
 import { relay, resendAfterFix, sendRelay, uncertainRelays } from "./relays";
 
@@ -403,6 +403,31 @@ describeWithDatabase("the letters inbox's queue", () => {
       [letterId, replyId],
     );
     expect(await uncertainRelays()).toBe(0);
+  });
+
+  it("marks a letter or copy a stopped run left sending as uncertain, not sending it again", async () => {
+    const id = await queued();
+    // A run took the letter, then stopped: one just taken is left, as a run may be sending it now.
+    await query("UPDATE letters SET status = 'sending', taken_at = now()");
+    expect(await uncertainLetters()).toBe(0);
+    await query("UPDATE letters SET taken_at = now() - interval '16 minutes'");
+    expect(await uncertainLetters()).toBe(1);
+    expect(await statusOf()).toBe("uncertain");
+    expect((await events()).at(-1)).toMatchObject({ status: "uncertain", details: { to: MP } });
+    const sent = recordGmail();
+    expect(await sendLetterQueue(Date.now() + 10_000)).toEqual({ sent: 0, left: 0 });
+    expect(await sendLetter(id)).toEqual({ sent: true });
+    expect(sent).toEqual([]);
+    // Sent, then a run took its copy and stopped.
+    await query("UPDATE letters SET status = 'sent'");
+    await query("UPDATE letters_from_supporters SET copy_state = 'sending', copy_taken_at = now()");
+    expect(await uncertainLetters()).toBe(0);
+    await query("UPDATE letters_from_supporters SET copy_taken_at = now() - interval '16 minutes'");
+    expect(await uncertainLetters()).toBe(1);
+    expect(await query("SELECT copy_state FROM letters_from_supporters")).toEqual([{ copy_state: "uncertain" }]);
+    expect((await events()).at(-1)).toMatchObject({ status: "copy_uncertain", details: { to: JANE } });
+    await sendCopy(id);
+    expect(sent).toEqual([]);
   });
 
   it("sends again what bounced to an MP once their address changes, and tells the supporter it's gone", async () => {

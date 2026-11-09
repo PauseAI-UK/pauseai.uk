@@ -55,7 +55,7 @@ type Letter = {
 /** Takes the next letter of a mailing to send, marking it sending, so no other run sends it too. */
 async function nextLetter(mailingId: number): Promise<Letter | undefined> {
   const [letter] = await query<Letter>(
-    `UPDATE letters l SET status = 'sending' FROM letters_from_pauseai p, notable_people n
+    `UPDATE letters l SET status = 'sending', taken_at = now() FROM letters_from_pauseai p, notable_people n
      WHERE l.id = (SELECT l2.id FROM letters l2 JOIN letters_from_pauseai p2 USING (id)
                    WHERE p2.mailing_id = $1 AND l2.status = 'scheduled' ORDER BY l2.id LIMIT 1 FOR UPDATE SKIP LOCKED)
        AND p.id = l.id AND n.id = l.notable_person_id

@@ -310,7 +310,7 @@ const EMAIL_CONDITIONS: Record<EmailState, string> = {
 const MAILED = (asks: string) => `EXISTS (SELECT 1 FROM letters l JOIN letters_from_pauseai lp USING (id)
   JOIN mailings m ON m.id = lp.mailing_id
   WHERE l.notable_person_id = n.id AND m.ask = ANY(${asks})
-    AND l.status IN ('scheduled', 'sending', 'sent', 'bounced', 'spam_complaint'))`;
+    AND l.status IN ('scheduled', 'sending', 'sent', 'uncertain', 'bounced', 'spam_complaint'))`;
 
 /** The conditions of the filters that repeat, those that are on: each finds those with any of its values. */
 function anyOf(filter: Pick<PoliticianWho, NegatablePoliticianFilter>, value: (v: unknown) => string): string[] {

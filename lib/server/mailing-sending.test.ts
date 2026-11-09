@@ -4,6 +4,7 @@ import type { MailingDoc } from "@/lib/mailing-doc";
 import { query } from "./db";
 import { recordProblem } from "./email";
 import type { ChannelMessage, MailingChannel } from "./mailing-channels";
+import { uncertainLetters } from "./letter-sending";
 import { createDraft, saveDraft, scheduleMailing } from "./mailing-drafts";
 import { sendDueLetters, startDueMailings } from "./mailing-sending";
 
@@ -257,5 +258,46 @@ describeWithDatabase("sending mailings", () => {
     expect(await query("SELECT backend, sender, purpose FROM email_sends")).toEqual([
       { backend: "gmail", sender: JO, purpose: "mailing" },
     ]);
+  });
+
+  it("finishes a mailing whose run stopped after a send, its letter uncertain rather than sent twice", async () => {
+    await addTestPolitician({ airtableId: null, name: "Polly", email: "polly@example.org" });
+    await addTestPolitician({ airtableId: null, name: "Dora", email: "dora@example.org" });
+    const id = await scheduled();
+    vi.setSystemTime(new Date("2026-11-01T10:00:00Z"));
+    await startDueMailings();
+    // The run stops once Gmail has taken the first letter, before it's marked sent.
+    const { sent, channel } = recording(() => {
+      throw new Error("The function timed out");
+    });
+    await expect(sendDueLetters({ until: Infinity, gap: 0, channel })).rejects.toThrow("timed out");
+    expect(sent.map((m) => m.to.name)).toEqual(["Dora"]);
+    // The next run sends the rest, and waits for the one left sending, as a run may be sending it now.
+    const next = recording(SENT);
+    expect(await uncertainLetters()).toBe(0);
+    expect(await sendDueLetters({ until: Infinity, gap: 0, channel: next.channel })).toMatchObject({
+      sent: 1,
+      left: 0,
+    });
+    expect(next.sent.map((m) => m.to.name)).toEqual(["Polly"]);
+    expect(await state(id)).toBe("sending");
+    // A while later, it's uncertain, and the mailing is done; it isn't sent again.
+    await query("UPDATE letters SET taken_at = now() - interval '16 minutes' WHERE status = 'sending'");
+    expect(await uncertainLetters()).toBe(1);
+    expect(await sendDueLetters({ until: Infinity, gap: 0, channel: next.channel })).toMatchObject({
+      sent: 0,
+      left: 0,
+    });
+    expect(next.sent).toHaveLength(1);
+    expect(await state(id)).toBe("sent");
+    expect(await letters()).toEqual([
+      { name: "Dora", status: "uncertain", skipReason: null, sentAt: false },
+      { name: "Polly", status: "sent", skipReason: null, sentAt: true },
+    ]);
+    expect(
+      await query(
+        "SELECT e.status, e.details FROM letter_events e JOIN letters l ON l.id = e.letter_id WHERE l.status = 'uncertain'",
+      ),
+    ).toEqual([{ status: "uncertain", details: { to: "dora@example.org" } }]);
   });
 });

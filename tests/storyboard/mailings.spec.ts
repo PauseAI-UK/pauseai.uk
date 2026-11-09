@@ -16,7 +16,9 @@ export const section: Section = { name: "Mailings", part: "Staff pages", order: 
 // changed from the list, and deleted; names pasted to tick; one sent
 // from your Gmail, connected from the page, scheduled and sent by the
 // hourly job; and the pages of mailings scheduled, sending and sent, made in
-// the database as scheduling would make them; letters of one bouncing.
+// the database as scheduling would make them; one whose run stopped while
+// sending, finished by the next with its letter uncertain; letters of one
+// bouncing.
 
 const copy = staffCopy.mailingPages;
 
@@ -367,6 +369,39 @@ test("Sending and sent", async ({ page, request, flowDatabase }) => {
   await expect(page).toHaveURL(new RegExp(`/staff/mailings/${sent}/letters/\\d+$`));
   await expect(page.getByRole("navigation").getByRole("link", { name: "Edinburgh follow-up" })).toBeVisible();
   await frame(page, "A failed letter's page");
+});
+
+test("A run stops while sending", async ({ page, request, flowDatabase }) => {
+  story(
+    "A mailing is sending when the run sending it stops, after Gmail has taken a letter but before it's marked sent. Two of its three letters went; the third may have gone.",
+  );
+  await syncPoliticians(request, BASE);
+  await logIn(page, flowDatabase);
+  const id = addMailing(flowDatabase, "Going out now", "sending", ["sent", "sending", "sent"]);
+  const [letter] = runSql(
+    flowDatabase,
+    `UPDATE letters l SET taken_at = now() - interval '1 hour' FROM letters_from_pauseai p
+     WHERE p.id = l.id AND p.mailing_id = ${id} AND l.status = 'sending' RETURNING l.id`,
+  );
+  await page.goto(`${BASE}/staff/mailings/${id}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Going out now");
+  await frame(page, "The mailing, still sending");
+  story(
+    "The next hourly run marks the letter uncertain rather than sending it again, as it may have gone, and the mailing is sent.",
+  );
+
+  const run = await request.post(`${BASE}/api/cron/send-mailings`, {
+    headers: { Authorization: "Bearer fixture-cron-secret" },
+  });
+  expect(await run.json()).toMatchObject({ started: [], sent: 0, left: 0 });
+  await page.reload();
+  await expect(page.getByText(staffCopy.letters.status.uncertain)).toBeVisible();
+  await frame(page, "The mailing sent, one letter uncertain");
+  story("The letter's page says so, and its history says when and to whom it may have gone, for someone to check.");
+
+  await page.goto(`${BASE}/staff/mailings/${id}/letters/${letter}`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(staffCopy.letters.fromPauseai);
+  await frame(page, "The uncertain letter's page");
 });
 
 test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
