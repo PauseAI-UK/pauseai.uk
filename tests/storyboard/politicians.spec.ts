@@ -4,6 +4,9 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, addStaffAccount, changeFilter, logInAsStaff, syncPoliticians } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { importEmails, PM_LETTER } from "./staff-steps";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
 
 // The politicians from Airtable: every body and their answers to the asks, as
 // the nightly sync copies them from the fixture Airtable

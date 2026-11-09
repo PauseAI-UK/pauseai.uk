@@ -1,5 +1,8 @@
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Sign-up form", part: "Public site", order: 90 };
 
 // The onboarding form embed on the home page
 // (app/(site)/_components/OnboardingFormEmbed.tsx): the two things about it

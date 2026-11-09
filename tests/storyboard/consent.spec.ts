@@ -1,5 +1,8 @@
 import type { Page } from "@playwright/test";
 import { ANALYTICS_URL, BASE, expect, frame, story, test } from "./fixtures";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Cookie consent", part: "Public site", order: 60 };
 
 // Cookie consent across pages. The banner itself, and what each button does on
 // the page, are tested in components/layout/layout.browser.test.tsx. This file

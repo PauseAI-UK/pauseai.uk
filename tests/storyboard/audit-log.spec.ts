@@ -4,6 +4,9 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, changeFilter } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { holdNextPage, logIn } from "./staff-steps";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Audit log", part: "Staff pages", order: 70 };
 
 // The audit log's search, filters and sorting, on a few entries of their own.
 

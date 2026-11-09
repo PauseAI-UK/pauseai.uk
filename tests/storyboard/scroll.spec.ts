@@ -1,6 +1,9 @@
 import type { Page } from "@playwright/test";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated, layoutSettled, scrollSettled } from "./settle";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Scrolling and links", part: "Public site", order: 80 };
 
 // In-page scrolling is deliberately all browser behaviour: `scroll-behavior`
 // in styles/base.css animates it, `scroll-padding-top` on the root keeps the

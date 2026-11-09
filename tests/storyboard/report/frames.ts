@@ -1,7 +1,8 @@
 // The storyboard's data: the frames one run of the suite recorded, and how
 // they pair up with another run's (main's), for the page (page.ts) and for an
 // agent (storyboard.json).
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import sharp from "sharp";
 
 export type FlowStatus = "passed" | "failed" | "timedOut" | "interrupted";
@@ -10,43 +11,68 @@ export type FlowStatus = "passed" | "failed" | "timedOut" | "interrupted";
 export const PARTS = ["Public site", "Staff pages", "Tools and checks"] as const;
 
 /**
- * The sections in the order the page shows them, each with its name on the
- * page and its part: the public site, what a visitor sees then what they do;
- * the staff pages; then the tools and the mechanics, the component gallery
- * last. A section not listed here goes after these, alphabetically, so a new
- * spec file still appears; frames.test.ts checks every spec file is listed,
- * so it's placed on purpose.
+ * A section as its spec file declares it, on a line of its own after the
+ * imports:
+ *
+ *   export const section: Section = { name: "Write to your MP", part: "Public site", order: 20 };
+ *
+ * `name` is its heading on the page, `part` the heading it goes under, and
+ * `order` its place in that part, smallest first: the public site, what a
+ * visitor sees then what they do; the staff pages; then the tools and the
+ * mechanics, the component gallery last. Orders go up in tens, so a new
+ * section fits between two. The report can't import a spec file, which
+ * calls Playwright's `test()` as it loads, so it reads the declaration from
+ * the file's text (parseSection).
  */
-export const SECTIONS: { id: string; name: string; part: (typeof PARTS)[number] }[] = [
-  { id: "public-pages", name: "Every public page", part: "Public site" },
-  { id: "campaigns", name: "Write to your MP", part: "Public site" },
-  { id: "briefings", name: "Briefings", part: "Public site" },
-  { id: "march-signup", name: "March sign-up", part: "Public site" },
-  { id: "home-events", name: "Events on the home page", part: "Public site" },
-  { id: "consent", name: "Cookie consent", part: "Public site" },
-  { id: "mobile-nav", name: "Phone menu", part: "Public site" },
-  { id: "scroll", name: "Scrolling and links", part: "Public site" },
-  { id: "onboarding-embed", name: "Sign-up form", part: "Public site" },
-  { id: "staff-login", name: "Logging in, and your account", part: "Staff pages" },
-  { id: "staff-navigation", name: "Dashboard and getting around", part: "Staff pages" },
-  { id: "politicians", name: "Politicians", part: "Staff pages" },
-  { id: "mailings", name: "Mailings", part: "Staff pages" },
-  { id: "supporters", name: "Supporters", part: "Staff pages" },
-  { id: "saved-filters", name: "Saved filters", part: "Staff pages" },
-  { id: "audit-log", name: "Audit log", part: "Staff pages" },
-  { id: "staff-campaigns", name: "Campaigns, asks and sent emails", part: "Staff pages" },
-  { id: "old-letters", name: "Old letters and one-off emails", part: "Staff pages" },
-  { id: "letters", name: "Letters and bounces", part: "Staff pages" },
-  { id: "replies", name: "Replies to letters", part: "Staff pages" },
-  { id: "events", name: "Events and their owners", part: "Staff pages" },
-  { id: "imports", name: "Imports", part: "Staff pages" },
-  { id: "permissions", name: "Permissions", part: "Staff pages" },
-  { id: "collateral", name: "Collateral maker", part: "Tools and checks" },
-  { id: "redirects", name: "Redirects", part: "Tools and checks" },
-  { id: "gallery", name: "Component gallery", part: "Tools and checks" },
-];
+export type Section = { name: string; part: (typeof PARTS)[number]; order: number };
 
-export const SECTION_ORDER = SECTIONS.map((section) => section.id);
+const DECLARATION = /^export const section: Section = (\{[^]*?\});$/m;
+
+/**
+ * The section a spec file's text declares, or undefined if it declares none,
+ * or one with a part not in PARTS.
+ */
+export function parseSection(source: string): Section | undefined {
+  const object = DECLARATION.exec(source)?.[1];
+  if (!object) return undefined;
+  const text = (field: string) => {
+    const quoted = new RegExp(`\\b${field}: ("(?:[^"\\\\]|\\\\.)*")`).exec(object)?.[1];
+    return quoted === undefined ? undefined : (JSON.parse(quoted) as string);
+  };
+  const name = text("name");
+  const part = PARTS.find((p) => p === text("part"));
+  const order = /\border: (\d+)/.exec(object)?.[1];
+  return name !== undefined && part && order ? { name, part, order: Number(order) } : undefined;
+}
+
+/**
+ * Every section that a spec file in `dir` declares, in the order the page
+ * shows them: by part, then order, then file name. A spec file that declares
+ * none is left out, and its flows go after these, alphabetically, so a new
+ * one still appears; frames.test.ts checks every spec file declares one.
+ */
+export function readSections(dir: string): ({ id: string } & Section)[] {
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".spec.ts"))
+    .flatMap((file) => {
+      const section = parseSection(readFileSync(join(dir, file), "utf8"));
+      return section ? [{ id: file.slice(0, -".spec.ts".length), ...section }] : [];
+    })
+    .sort((a, b) => PARTS.indexOf(a.part) - PARTS.indexOf(b.part) || a.order - b.order || a.id.localeCompare(b.id));
+}
+
+let read: ({ id: string } & Section)[] | undefined;
+
+/**
+ * The storyboard's sections, from its spec files, read the first time
+ * they're asked for. From the working directory, which is the repo's root
+ * for every command that makes a report: Playwright loads this file as
+ * CommonJS, for the reporter, where `import.meta` isn't allowed.
+ */
+export function sections() {
+  read ??= readSections(join("tests", "storyboard"));
+  return read;
+}
 
 /** A test as one run of the suite saw it, with its frames in order. */
 export type FlowRun = {
@@ -121,8 +147,8 @@ const key = (run: Pick<FlowRun, "section" | "flow" | "viewport">) =>
   `${run.section}\u0000${run.flow}\u0000${run.viewport}`;
 
 const sectionRank = (section: string) => {
-  const at = SECTION_ORDER.indexOf(section);
-  return at === -1 ? SECTION_ORDER.length : at;
+  const at = sections().findIndex((s) => s.id === section);
+  return at === -1 ? sections().length : at;
 };
 
 /** Section order, then the spec file's order, then the viewport: the workers finish flows in any order. */

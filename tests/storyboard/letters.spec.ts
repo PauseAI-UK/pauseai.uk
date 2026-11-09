@@ -15,6 +15,9 @@ import {
   postReply,
   sentLetterId,
 } from "./staff-steps";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Letters and bounces", part: "Staff pages", order: 100 };
 
 // Supporters' letters to MPs: the list filtered, by status and by what came
 // back to a letter, and a letter that bounces,

@@ -4,6 +4,9 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { NOTIFICATION_INBOX } from "@/tests/fixture-env.mjs";
 import { addStaffAccount, importLuma, logInAsStaff, newestEmail } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Events and their owners", part: "Staff pages", order: 120 };
 
 // The events page: our Luma events, to come and past, a table each, and
 // who on staff owns each. The Luma import gives events their owners by the rules, and
