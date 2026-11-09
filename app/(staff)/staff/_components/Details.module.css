@@ -140,11 +140,6 @@
 }
 
 /* Notes kept as they were written, a line each. */
-.notes {
-  margin: 0;
-  white-space: pre-line;
-}
-
 /* A row that has to be one element (a list's line, keyed). */
 .pair {
   display: contents;
@@ -405,6 +400,11 @@
 
 /* Under the card and tables, the page's full width: the history, then
    everything we hold, each folded, above the erase button. */
+/* At least a window tall, so the band's links can bring Correspondence and Asks up to the top of it. */
+.scrollRoom {
+  min-height: 100vh;
+}
+
 .foot {
   display: grid;
   /* As narrow as the window, a wide table scrolling inside its row, not widening the page. */

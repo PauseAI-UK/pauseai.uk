@@ -610,6 +610,7 @@ test("Old mailings", async ({ page, request, flowDatabase }) => {
   await frame(page, "The invitation's page");
 
   await page.getByRole("link", { name: "Polly Placeholder" }).click();
+  await page.locator("summary", { hasText: staffCopy.politician.historyTitle }).click();
   await page
     .getByRole("list", { name: staffCopy.politician.historyTitle })
     .getByRole("link", { name: invitation })

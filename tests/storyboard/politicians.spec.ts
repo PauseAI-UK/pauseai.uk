@@ -41,34 +41,94 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   // ControlAI's campaign statement and her answer to the conference, both from Airtable.
   await expect(asks.getByText(staffCopy.statuses.declined)).toBeVisible();
   await expect(asks.getByText(copy.fromImport.airtable).first()).toBeVisible();
-  // The conference's invitation, personalised.
-  await expect(page.getByText(copy.personalised, { exact: false }).first()).toBeVisible();
+  // The conference's invitation, personalised, in her folded history.
+  await expect(page.getByText(copy.personalised, { exact: false }).first()).toBeAttached();
   await frame(page, "Polly's page");
 });
 
+test("A politician's correspondence", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly has had PauseAI's emails and has answered one. Staff open her page, which lists each with who wrote and when.",
+  );
+  await syncPoliticians(request, BASE);
+  await logIn(page, flowDatabase);
+  await importEmails(page);
+  const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
+  runSql(
+    flowDatabase,
+    `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, at, from_us, blob_key, size)
+     SELECT id, 'policy@pauseai.uk', 'correspondence-reply', 'correspondence-thread', 'polly.placeholder.mp@parliament.uk', 'Polly Placeholder',
+       coalesce(sent_at, created_at) + interval '1 hour', false, 'correspondence-reply', 1
+     FROM letters WHERE notable_person_id = ${polly} AND kind = 'pauseai' ORDER BY id LIMIT 1`,
+  );
+  await openPolitician(page, "Polly Placeholder");
+  const words = copy.correspondence;
+  const correspondence = page.getByRole("region", { name: words.title });
+  const threads = correspondence.getByRole("listitem");
+  await expect(correspondence.getByText(words.noReply).first()).toBeVisible();
+  const all = await threads.count();
+  expect(all).toBeGreaterThan(1);
+  await frame(page, "Her correspondence, her reply in bold");
+
+  story(
+    "Replies only, at the card's top right, leaves just the emails she really answered, and keeps the list in view.",
+  );
+  await correspondence.getByRole("link", { name: words.repliesOnly }).click();
+  await expect(page).toHaveURL(/\?correspondence=replies#correspondence-title$/);
+  await expect(threads).toHaveCount(1);
+  await expect(correspondence.getByRole("link", { name: words.repliesOnly })).toHaveAttribute("aria-current", "page");
+  await frame(page, "Replies only", { of: correspondence });
+
+  story("All emails brings them all back.");
+  await correspondence.getByRole("link", { name: words.allEmails }).click();
+  await expect(threads).toHaveCount(all);
+
+  story("At the top, the count of emails from her does the same, and pressed again it shows them all.");
+  const fromThem = page.getByRole("link", { name: copy.band.emailsFromThem });
+  await fromThem.click();
+  await expect(threads).toHaveCount(1);
+  await expect(fromThem).toHaveAttribute("aria-current", "true");
+  await frame(page, "From the count of emails from her");
+  await fromThem.click();
+  await expect(threads).toHaveCount(all);
+
+  story("The count of emails to her leads down to her correspondence, and the asks she agreed to, to her asks.");
+  await page.getByRole("link", { name: copy.band.emailsToThem }).click();
+  await expect(page).toHaveURL(/#correspondence-title$/);
+  await expect(correspondence).toBeInViewport();
+  await page
+    .getByRole("link", { name: copy.band.asksAgreed(2) })
+    .or(page.getByRole("link", { name: copy.band.asksAgreed(1) }))
+    .click();
+  await expect(page).toHaveURL(/#asks-title$/);
+  await expect(page.getByRole("region", { name: copy.statusesTitle })).toBeInViewport();
+  await frame(page, "Down to her asks", { window: true });
+});
+
 test("A note on a politician", async ({ page, request, flowDatabase }) => {
-  story("Staff write a note on Polly's page, at the top of her history.");
+  story("Staff write a note on Polly's page, in the notes beside her correspondence.");
   await syncPoliticians(request, BASE);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
-  const history = page.getByRole("region", { name: copy.historyTitle });
-  await history.getByRole("button", { name: staffCopy.notes.write }).click();
-  const box = history.getByRole("textbox", { name: staffCopy.notes.note });
+  const notes = page.getByRole("region", { name: staffCopy.notes.title, exact: true });
+  await notes.getByRole("button", { name: staffCopy.notes.write }).click();
+  const box = notes.getByRole("textbox", { name: staffCopy.notes.note });
   await box.fill("Her office says write to www.example.org/contact");
-  // The history alone, as where focus leaves the window varies between runs.
-  await frame(page, "The note, written", { of: history });
+  // The card alone, as where focus leaves the window varies between runs.
+  await frame(page, "The note, written", { of: notes });
   story(
-    "Once added, the note is the newest thing in her history, and the web address in it is a link. Airtable's notes on her stay where they were, beside it.",
+    "Once added, the note is the newest in the card, and the web address in it is a link. Airtable's notes on her stay last.",
   );
-  await history.getByRole("button", { name: staffCopy.notes.add }).click();
-  const note = history.getByRole("listitem").filter({ hasText: "Her office says" });
+  await notes.getByRole("button", { name: staffCopy.notes.add }).click();
+  const note = notes.getByRole("listitem").filter({ hasText: "Her office says" });
   await expect(note.getByRole("link", { name: "www.example.org/contact" })).toHaveAttribute(
     "href",
     "https://www.example.org/contact",
   );
-  // Airtable's notes stay beside the history, the sync's to change.
-  await expect(page.getByRole("region", { name: copy.notes })).toContainText("Met at the example fair.");
-  await frame(page, "The note in Polly's history", { of: history });
+  // Airtable's notes stay as the last, the sync's to change.
+  await expect(notes.getByRole("listitem").last()).toContainText("Met at the example fair.");
+  await expect(notes.getByRole("listitem").last()).toContainText(copy.notes);
+  await frame(page, "The note in Polly's notes", { of: notes });
 });
 
 test("An answer to a new ask", async ({ page, request, flowDatabase }) => {
@@ -123,7 +183,9 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
   story("Once saved, the answer shows with its note under it, and goes into her history.");
   await row.getByRole("button", { name: copy.save }).click();
   await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffCopy.statuses.declined}`));
-  await expect(page.getByRole("region", { name: copy.historyTitle })).toContainText(staffCopy.statuses.declined);
+  await page.locator("summary", { hasText: copy.historyTitle }).click();
+  const history = page.getByRole("list", { name: copy.historyTitle });
+  await expect(history).toContainText(staffCopy.statuses.declined);
   await frame(page, "The letter, declined");
 
   story(
@@ -134,9 +196,9 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
   await row.getByLabel(copy.note).fill("Entered by mistake");
   await row.getByRole("button", { name: copy.save }).click();
   await expect(asks.getByRole("group", { name: PM_LETTER })).toHaveCount(0);
-  await expect(page.getByRole("region", { name: copy.historyTitle })).toContainText(copy.statusCleared.before);
-  await expect(page.getByRole("region", { name: copy.historyTitle })).toContainText("Entered by mistake");
-  await frame(page, "The answer, cleared");
+  await expect(history).toContainText(copy.statusCleared.before);
+  await expect(history).toContainText("Entered by mistake");
+  await frame(page, "The answer, cleared", { of: history });
 });
 
 test("Peers, MSPs and former MPs", async ({ page, request, flowDatabase }) => {

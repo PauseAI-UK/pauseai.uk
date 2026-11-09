@@ -7,49 +7,37 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { isSaveKey } from "@/lib/notes";
-import { staffTime } from "@/lib/staff-time";
 import { Card } from "./ui/Grid";
-import details from "./Details.module.css";
 import styles from "./Notes.module.css";
 
 const copy = staffCopy.notes;
 
 /**
- * A politician's history card, its lines (`children`, each an `li` of the
- * history) newest first, or `empty` when it has none. With `add`, Write a
- * note at its top right puts a draft at the top of the history, as the note
- * will be: the time, `at`, then the field, focused, and under it the label
+ * A politician's notes card, its notes (`children`, each an `li`) newest
+ * first, or a line saying there are none. With `add`, Write a note at its top
+ * right puts a draft at the top: the field, focused, and under it the label
  * and `writer`, with Add note and Cancel at their right. Ctrl+Enter, or
- * Cmd+Enter on a Mac, adds it too. Cancel takes the draft away; adding it
- * does too, for the page to show the note in its place. Without `add`,
- * there's no button, so no draft.
+ * Cmd+Enter on a Mac, adds it too. Cancel takes the draft away; adding it does
+ * too, for the page to show the note in its place. Without `add`, there's no
+ * button, so no draft.
  */
-export default function NoteHistory({
-  title,
-  id,
-  empty,
+export default function NotesCard({
   politicianId,
   writer,
-  at,
   add,
   children,
 }: {
-  title: string;
-  id: string;
-  empty: string;
   politicianId: number;
   writer: string;
-  at: string;
   add?: (form: FormData) => void | Promise<void>;
   children: ReactNode[];
 }) {
   const [drafting, setDrafting] = useState(false);
   return (
     <Card
-      span={3}
-      look="log"
-      title={title}
-      id={id}
+      look="aside"
+      title={copy.title}
+      id="notes-title"
       action={
         add &&
         !drafting && (
@@ -60,12 +48,11 @@ export default function NoteHistory({
       }
     >
       {children.length === 0 && !drafting ? (
-        <p className={details.none}>{empty}</p>
+        <p className={styles.none}>{copy.none}</p>
       ) : (
-        <ol className={details.history} aria-label={title}>
+        <ol className={styles.notes} aria-labelledby="notes-title">
           {drafting && (
             <li>
-              <span className={details.when}>{staffTime(at)}</span>
               <form
                 className={styles.note}
                 aria-label={copy.add}

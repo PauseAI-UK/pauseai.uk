@@ -13,17 +13,21 @@ import type { EmailBlock } from "@/lib/server/email";
 import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
 import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/server/letters";
 import type { Politician, PoliticianChange } from "@/lib/server/politicians";
+import { correspondenceThreads, hasReply, type ThreadMessages } from "@/lib/politician-correspondence";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import styles from "./Details.module.css";
 import Band, { BandFact } from "./ui/Band";
-import Counts from "./ui/Counts";
+import Counts, { type Count } from "./ui/Counts";
 import Grid, { Card, Column } from "./ui/Grid";
+import { ListTable, type ListColumn } from "./ui/ListFrame";
 import Strip from "./ui/Strip";
+import Tabs from "./ui/Tabs";
 import Withheld from "./ui/Withheld";
 import { NationShape, Rosette, StatusDot } from "./PoliticianIcons";
 import UnblockForm from "./UnblockForm";
-import NoteHistory from "./NoteHistory";
-import { NoteEntry, NoteText, type NotesProps } from "./Notes";
+import NotesCard from "./NotesCard";
+import { NoteEntry, NoteFrom, type NotesProps } from "./Notes";
+import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import TestTag from "./TestTag";
@@ -112,6 +116,10 @@ function letterEntries({ senders, letters }: PoliticianLetters): Entry[] {
       </>,
       <>
         {copy.history["letter-replied"]} <Sender letter={letter} />
+        <Muted>
+          {" · "}
+          <StaffLink href={`/staff/letters/${letter.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
+        </Muted>
       </>,
     ),
   );
@@ -211,16 +219,17 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
  * their record has gone from Airtable, and under it what they are; at its
  * top right, quietly, where their record came from, an Airtable MP's linked
  * to it there; then their party, whether they're in office, their nation
- * and how to write to them; and how many letters supporters wrote them,
- * leading to the history, and asks they agreed to (asksAgreed), to the asks.
+ * and how to write to them; and roughly how many emails went each way, when
+ * any did, each leading to All emails, and how many asks they agreed to
+ * (asksAgreed).
  */
 function PoliticianBand({
   politician,
-  letters,
+  emailCounts,
   airtableTable,
 }: {
   politician: Politician;
-  letters: number;
+  emailCounts: Count[];
   airtableTable: string;
 }) {
   const inOffice = politician.status === "in_office";
@@ -260,11 +269,12 @@ function PoliticianBand({
       aside={
         <Counts
           counts={[
-            { key: "letters", n: letters, label: copy.band.lettersCounted(letters) },
+            ...emailCounts,
             {
               key: "asks",
               n: asksAgreed(politician.statuses),
               label: copy.band.asksAgreed(asksAgreed(politician.statuses)),
+              href: `/staff/politicians/${politician.id}#asks-title`,
             },
           ]}
         />
@@ -303,16 +313,25 @@ function PoliticianBand({
   );
 }
 
+const NO_MESSAGES: ThreadMessages = { subjects: {}, letters: {}, oneOffs: {}, emailsToThem: 0, emailsFromThem: 0 };
+
+const changeColumns: ListColumn<PoliticianChange & { what: ReactNode }>[] = [
+  { key: "at", label: staffCopy.supporters.detail.held.columns.when, short: true, cell: (c) => staffTime(c.at) },
+  { key: "what", label: staffCopy.supporters.detail.held.columns.what, cell: (c) => c.what },
+  { key: "who", label: copy.recordWho, cell: (c) => c.actor },
+];
+
 /**
  * A politician's page, laid out like a supporter's: the band of who they
  * are (PoliticianBand); if their address is blocked, why, and a way to
- * unblock it; then their history, newest first: the letters written to
- * them, the replies, PauseAI's emails, staff's notes, and everything the
- * audit log says about them, the letters' senders only when it's given
- * them, with Write a note at its top right, which drafts one at the top
- * (NoteHistory); and beside it the card of
- * their answer to each ask, with the button to change one staff record,
- * and under that Airtable's notes on them, which are changed there.
+ * unblock it; then their correspondence (PoliticianCorrespondence); and
+ * beside it the card of their answer to each ask, with the button to change
+ * one staff record, and the card of staff's notes (NotesCard), with Airtable's
+ * notes on them, which are changed there, as the last. Under those, folded as a
+ * supporter's are, their history, newest first: the letters written to them,
+ * the replies, PauseAI's emails, one-off threads, staff's notes and their
+ * answers, the letters' senders only when it's given them; then what changed
+ * their record.
  */
 export default function PoliticianDetails({
   politician,
@@ -323,9 +342,11 @@ export default function PoliticianDetails({
   letters,
   pauseaiLetters = [],
   oneOffs = [],
+  messages = NO_MESSAGES,
   history,
   airtableTable,
   notes,
+  onlyReplies = false,
 }: {
   politician: Politician;
   /** Every ask, by the asks table's order. */
@@ -340,48 +361,95 @@ export default function PoliticianDetails({
   pauseaiLetters?: PauseaiLetter[];
   /** Their one-off emails. */
   oneOffs?: OneOffThreadRow[];
+  /** What's known of each letter's and thread's messages. */
+  messages?: ThreadMessages;
   history: PoliticianChange[];
   /** Airtable's table of MPs, which the server knows; an MP's record there is under it. */
   airtableTable: string;
-  /** Staff's notes on them, in the history, and what adding and changing them needs. */
+  /** Staff's notes on them, and what adding and changing them needs. */
   notes?: NotesProps;
+  /** Correspondence shows only the threads they've really replied on, as Emails from them leads to. */
+  onlyReplies?: boolean;
 }) {
   const entries: Entry[] = [
     ...letterEntries(letters),
     ...pauseaiEntries(pauseaiLetters),
-    ...oneOffs.map((thread) => ({
-      key: `one-off-${thread.id}`,
-      at: thread.latestAt,
-      what: (
-        <>
-          {staffCopy.oneOff.title}:{" "}
-          {thread.subject === null ? (
-            <Withheld>{staffCopy.oneOff.hidden}</Withheld>
-          ) : (
-            <StaffLink href={`/staff/one-off/${thread.id}`}>{thread.subject || staffCopy.oneOff.noSubject}</StaffLink>
-          )}
-        </>
-      ),
-    })),
+    ...oneOffs.map((thread) => {
+      const from = thread.someoneElse && messages.oneOffs[thread.id]?.find((step) => step.who === "other")?.name;
+      return {
+        key: `one-off-${thread.id}`,
+        at: thread.latestAt,
+        what: (
+          <>
+            {from ? copy.emailFrom(from) : staffCopy.oneOff.title}:{" "}
+            {thread.subject === null ? (
+              <Withheld>{staffCopy.oneOff.hidden}</Withheld>
+            ) : (
+              <>
+                {thread.subject || staffCopy.oneOff.noSubject}
+                <Muted>
+                  {" · "}
+                  <StaffLink href={`/staff/one-off/${thread.id}`}>{staffCopy.allLetters.theThread}</StaffLink>
+                </Muted>
+              </>
+            )}
+          </>
+        ),
+      };
+    }),
     ...(notes?.notes ?? []).map((note) => ({
       key: `note-${note.id}`,
       at: note.createdAt,
-      what: <NoteEntry note={note} {...notes!} label={copy.history.note} dated={false} />,
-    })),
-    ...history.map((change) => ({
-      key: `change-${change.id}`,
-      ...whenOf(change),
       what: (
         <>
-          {change.action !== "set status" && <>{copy.history[change.action] ?? change.action} </>}
-          <Detail change={change} asks={asks} /> <Muted>· {change.actor}</Muted>
+          {note.body}{" "}
+          <Muted>
+            · {copy.history.note} · {note.writtenBy}
+          </Muted>
         </>
       ),
     })),
+    ...history
+      .filter((change) => change.action === "set status")
+      .map((change) => ({
+        key: `change-${change.id}`,
+        ...whenOf(change),
+        what: (
+          <>
+            <Detail change={change} asks={asks} /> <Muted>· {change.actor}</Muted>
+          </>
+        ),
+      })),
   ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  const changes = history
+    .filter((change) => change.action !== "set status")
+    .map((change) => ({
+      ...change,
+      what: (
+        <>
+          {copy.history[change.action] ?? change.action} <Detail change={change} asks={asks} />
+        </>
+      ),
+    }));
+  const threads = correspondenceThreads({ letters, pauseaiLetters, oneOffs, messages });
+  const emailCounts: Count[] = [
+    {
+      key: "to-them",
+      n: messages.emailsToThem,
+      label: copy.band.emailsToThem,
+      href: `/staff/politicians/${politician.id}#correspondence-title`,
+    },
+    {
+      key: "from-them",
+      n: messages.emailsFromThem,
+      label: copy.band.emailsFromThem,
+      href: `/staff/politicians/${politician.id}${onlyReplies ? "" : "?correspondence=replies"}`,
+      current: onlyReplies,
+    },
+  ].filter((count) => count.n > 0);
   return (
     <>
-      <PoliticianBand politician={politician} letters={letters.letters.length} airtableTable={airtableTable} />
+      <PoliticianBand politician={politician} emailCounts={emailCounts} airtableTable={airtableTable} />
       {block && (
         <section className={styles.blocked} aria-labelledby="blocked-title">
           <Strip tone="red">
@@ -418,34 +486,87 @@ export default function PoliticianDetails({
         </section>
       )}
 
-      <Grid>
-        <NoteHistory
-          title={copy.historyTitle}
-          id="history-title"
-          empty={copy.noHistory}
-          politicianId={politician.id}
-          writer={notes?.reader.email ?? ""}
-          at={notes?.at ?? ""}
-          add={notes?.add}
-        >
-          {entries.map((entry) => (
-            <li key={entry.key}>
-              <span className={styles.when}>{entry.day ? staffDate(entry.at) : staffTime(entry.at)}</span>
-              <div>{entry.what}</div>
-            </li>
-          ))}
-        </NoteHistory>
-        <Column span={3}>
-          <Card look="aside" title={copy.statusesTitle} id="asks-title">
-            <PoliticianAsks politician={politician} asks={asks} setStatus={setStatus} />
+      <div className={styles.scrollRoom}>
+        <Grid>
+          <Card
+            span={4}
+            title={copy.correspondence.title}
+            id="correspondence-title"
+            action={
+              (onlyReplies || threads.some(hasReply)) && (
+                <Tabs
+                  label={copy.correspondence.title}
+                  current={onlyReplies ? "replies" : "all"}
+                  tabs={[
+                    {
+                      key: "all",
+                      label: copy.correspondence.allEmails,
+                      href: `/staff/politicians/${politician.id}#correspondence-title`,
+                    },
+                    {
+                      key: "replies",
+                      label: copy.correspondence.repliesOnly,
+                      href: `/staff/politicians/${politician.id}?correspondence=replies#correspondence-title`,
+                    },
+                  ]}
+                />
+              )
+            }
+          >
+            <PoliticianCorrespondence threads={onlyReplies ? threads.filter(hasReply) : threads} />
           </Card>
-          {politician.notes && (
-            <Card look="aside" title={copy.notes} id="airtable-notes-title">
-              <NoteText body={politician.notes} className={styles.notes} />
+          <Column span={2}>
+            <Card look="aside" title={copy.statusesTitle} id="asks-title">
+              <PoliticianAsks politician={politician} asks={asks} setStatus={setStatus} />
             </Card>
+            <NotesCard politicianId={politician.id} writer={notes?.reader.email ?? ""} add={notes?.add}>
+              {[
+                ...(notes?.notes ?? []).map((note) => (
+                  <li key={note.id}>
+                    <NoteEntry note={note} {...notes!} />
+                  </li>
+                )),
+                ...(politician.notes
+                  ? [
+                      <li key="airtable">
+                        <NoteFrom body={politician.notes} source={copy.notes} />
+                      </li>,
+                    ]
+                  : []),
+              ]}
+            </NotesCard>
+          </Column>
+        </Grid>
+        <div className={styles.foot}>
+          {entries.length === 0 ? (
+            <section aria-labelledby="history-title" className={styles.footRow}>
+              <h2 id="history-title">{copy.historyTitle}</h2> <span className={styles.none}>{copy.noHistory}</span>
+            </section>
+          ) : (
+            <details className={styles.footRow}>
+              <summary>
+                <h2 id="history-title">{copy.historyTitle}</h2> <span className={styles.count}>{entries.length}</span>
+              </summary>
+              <ol className={styles.history} aria-labelledby="history-title">
+                {entries.map((entry) => (
+                  <li key={entry.key}>
+                    <span className={styles.when}>{entry.day ? staffDate(entry.at) : staffTime(entry.at)}</span>
+                    <div>{entry.what}</div>
+                  </li>
+                ))}
+              </ol>
+            </details>
           )}
-        </Column>
-      </Grid>
+          {changes.length > 0 && (
+            <details className={styles.footRow}>
+              <summary>
+                <h2 id="record-changes">{copy.recordTitle}</h2> <span className={styles.count}>{changes.length}</span>
+              </summary>
+              <ListTable columns={changeColumns} rows={changes} rowKey={(change) => String(change.id)} />
+            </details>
+          )}
+        </div>
+      </div>
     </>
   );
 }

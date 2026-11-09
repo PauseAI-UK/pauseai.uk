@@ -2,6 +2,7 @@
 // supporter's details, notes and erasure, on fake supporters.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
+import { NoteFrom } from "@/app/(staff)/staff/_components/Notes";
 import EraseLink from "@/app/(staff)/staff/_components/EraseLink";
 import ErasedNotice from "@/app/(staff)/staff/_components/ErasedNotice";
 import SupporterBadges from "@/app/(staff)/staff/_components/SupporterBadges";
@@ -26,7 +27,7 @@ import {
   NoteChangesExample,
   NoteEntryExample,
   NoteFormExample,
-  NoteHistoryExample,
+  NotesCardExample,
   NoteTextExample,
 } from "./staff.client";
 
@@ -326,22 +327,39 @@ export const staffSupporters: Group = {
       ],
     },
     {
-      name: "NoteHistory",
-      file: "app/(staff)/staff/_components/NoteHistory.tsx",
+      name: "NoteFrom",
+      file: "app/(staff)/staff/_components/Notes.tsx",
+      variants: [
+        {
+          label: "A note kept somewhere else: its text, then where it's from",
+          render: () => (
+            <StaffPage as="div">
+              <NoteFrom
+                body={"Met at the example fair.\nRecommended by the local group."}
+                source="Notes from Airtable"
+              />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "NotesCard",
+      file: "app/(staff)/staff/_components/NotesCard.tsx",
       variants: [
         {
           label: "With Write a note, which drafts one at the top",
           render: () => (
             <StaffPage as="div">
-              <NoteHistoryExample />
+              <NotesCardExample />
             </StaffPage>
           ),
         },
         {
-          label: "Nothing yet",
+          label: "No notes yet",
           render: () => (
             <StaffPage as="div">
-              <NoteHistoryExample lines={false} />
+              <NotesCardExample lines={false} />
             </StaffPage>
           ),
         },
@@ -349,7 +367,7 @@ export const staffSupporters: Group = {
           label: "Without Write a note",
           render: () => (
             <StaffPage as="div">
-              <NoteHistoryExample writable={false} />
+              <NotesCardExample writable={false} />
             </StaffPage>
           ),
         },

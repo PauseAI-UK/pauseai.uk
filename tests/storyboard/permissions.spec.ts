@@ -137,10 +137,22 @@ test("No permissions", async ({ page, request, flowDatabase }) => {
     }
   }
 
-  story("The MP's page lists the letter written to them, without who wrote it.");
+  story(
+    "The MP's page lists the letter written to them in their correspondence, sealed where it would say who wrote it.",
+  );
   await page.goto(`${BASE}/staff/politicians/${testyId}`);
-  await expect(page.getByText(staffCopy.politician.history.unsignedLetter, { exact: false })).toBeVisible();
+  const correspondence = page.getByRole("region", { name: staffCopy.politician.correspondence.title });
+  await expect(correspondence.getByText(staffCopy.politician.history.unsignedLetter)).toBeVisible();
   await frame(page, "The MP's page");
+  story("Its history says the same, and neither has a link to the letter.");
+  await page.locator("summary", { hasText: staffCopy.politician.historyTitle }).click();
+  await expect(
+    page
+      .getByRole("list", { name: staffCopy.politician.historyTitle })
+      .getByText(staffCopy.politician.history.unsignedLetter),
+  ).toBeVisible();
+  await expect(page.locator(`a[href="/staff/letters/${letterId}"]`)).toHaveCount(0);
+  await frame(page, "The MP's history");
 });
 
 test("An admin without Supporters", async ({ page, request, flowDatabase }) => {

@@ -118,3 +118,12 @@
 .action:has(form) {
   flex-basis: 100%;
 }
+
+/* Tabs as the action: no taller than the title beside them, so a card's title stays level with its neighbour's. */
+.action > nav {
+  margin-bottom: 0;
+}
+
+.action > nav a {
+  padding-block: 0;
+}
