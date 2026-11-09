@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { staffCopy } from "./content/staff-interface";
 import { EMPTY_MAILING_DOC, type MailingDoc } from "./mailing-doc";
 import {
+  approvalProblems,
   firstWords,
   hasWords,
   MESSAGE_START,
@@ -205,6 +206,11 @@ describe("messageScheduleProblems", () => {
     expect(messageScheduleProblems({ ...good, channel: "text", subject: "", body: EMPTY_MAILING_DOC })).toEqual([
       "no-template",
     ]);
+  });
+
+  it("lets words go for approval with nothing stopping them but the approval and the time", () => {
+    expect(approvalProblems(["not-approved", "no-time", "time-passed"])).toEqual([]);
+    expect(approvalProblems(["no-recipients", "not-approved", "no-number"])).toEqual(["no-recipients", "no-number"]);
   });
 
   it("wants a text's words approved by WhatsApp, but not an email's", () => {

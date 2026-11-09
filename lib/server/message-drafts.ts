@@ -5,6 +5,7 @@ import { now } from "@/lib/now";
 import { storedFilter, type Params } from "@/lib/staff-search";
 import { staffCopy } from "@/lib/content/staff-interface";
 import {
+  approvalProblems,
   FIELDS_AS_WORDS,
   hasWords,
   messageTitle,
@@ -236,6 +237,28 @@ export type MessageScheduleResult =
   | { scheduled: false; problems: MessageScheduleProblem[] }
   | { scheduled: false; reason: "conflict" | "not-draft" | "gone" };
 
+/** What stops a message being scheduled, as it's stored, and how many it would go to now. */
+async function scheduleProblems(
+  message: WrittenMessage,
+): Promise<{ problems: MessageScheduleProblem[]; recipients: number }> {
+  const [audience, unknown, connected] = await Promise.all([
+    supporterAudience(message.filter, message),
+    filterProblems(message.filter),
+    message.sentFrom ? gmailAccount(message.sentFrom) : undefined,
+  ]);
+  const problems = messageScheduleProblems({
+    ...message,
+    recipients: audience.recipients.length,
+    unknown,
+    byGmail: message.channel === "email" && message.sentFrom !== MESSAGE_SENDER.email,
+    connected: Boolean(connected),
+    approved: message.template?.status === "approved",
+    numbered: Boolean(textSenderNumber()),
+    sends: Boolean(messageBackend()),
+  });
+  return { problems, recipients: audience.recipients.length };
+}
+
 /**
  * Schedules a draft message at `version`, if nothing stops it. Who it goes to
  * isn't fixed: sending finds them, a message each, keeping their name, place
@@ -253,21 +276,7 @@ export async function scheduleMessage(id: number, version: number, by: string): 
     if (locked.state !== "draft") return { scheduled: false, reason: "not-draft" };
     if (locked.version !== version) return { scheduled: false, reason: "conflict" };
     const message = (await getWrittenMessage(id))!;
-    const [audience, unknown, connected] = await Promise.all([
-      supporterAudience(message.filter, message),
-      filterProblems(message.filter),
-      message.sentFrom ? gmailAccount(message.sentFrom) : undefined,
-    ]);
-    const problems = messageScheduleProblems({
-      ...message,
-      recipients: audience.recipients.length,
-      unknown,
-      byGmail: message.channel === "email" && message.sentFrom !== MESSAGE_SENDER.email,
-      connected: Boolean(connected),
-      approved: message.template?.status === "approved",
-      numbered: Boolean(textSenderNumber()),
-      sends: Boolean(messageBackend()),
-    });
+    const { problems, recipients } = await scheduleProblems(message);
     if (problems.length) return { scheduled: false, problems };
     await query(
       "UPDATE mailings SET state = 'scheduled', from_name = coalesce(from_name, ''), version = version + 1, updated_at = now() WHERE id = $1",
@@ -275,7 +284,7 @@ export async function scheduleMessage(id: number, version: number, by: string): 
       db,
     );
     // Who it goes to isn't kept: sending finds them, so it reaches whoever the filters find then.
-    await logChange(by, "schedule message", { id, recipients: audience.recipients.length }, db);
+    await logChange(by, "schedule message", { id, recipients }, db);
     return { scheduled: true };
   });
 }
@@ -315,13 +324,15 @@ const templateWords = (body: MailingDoc): string => toText(letterFor(body, FIELD
 /** Where a draft text is, for a link in an email. */
 const draftLink = (id: number): string => staffLink(`/staff/messages/${id}`, undefined);
 
-export type TemplateSubmitResult = "submitted" | "no-words" | "already" | "not-text" | "not-draft" | "gone";
+export type TemplateSubmitResult =
+  "submitted" | "no-words" | "not-ready" | "already" | "not-text" | "not-draft" | "gone";
 
 /**
  * Sends a draft text's new words to WhatsApp for approval, as a new
  * template it then waits on: they can't be changed till WhatsApp decides,
  * or they're withdrawn. Emails who sent them and the notification inbox the
- * words. Not for words that are an approved template, or waiting already.
+ * words. Not for words that are an approved template, or waiting already, nor
+ * a text that anything but its time would stop being scheduled.
  */
 export async function submitTemplate(id: number, by: string): Promise<TemplateSubmitResult> {
   const result = await transaction(async (db) => {
@@ -336,6 +347,8 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
     if (message.channel !== "text") return "not-text" as const;
     if (message.template && message.template.status !== "rejected") return "already" as const;
     if (!hasWords({ subject: "", body: message.body, templateId: null })) return "no-words" as const;
+    // Only a text otherwise ready to schedule, so what WhatsApp approves is what goes.
+    if (approvalProblems((await scheduleProblems(message)).problems).length) return "not-ready" as const;
     const name = messageTitle(message.body, FIELD_WORDS);
     await query(
       `WITH t AS (INSERT INTO message_templates (name, body, status, created_by)

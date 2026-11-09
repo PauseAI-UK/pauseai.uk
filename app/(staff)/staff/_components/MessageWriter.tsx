@@ -34,6 +34,7 @@ import { filtersPath } from "@/lib/staff-search";
 import { earliestHour, fromLondon, londonClock, londonDayHour, londonWhen, sendsAt, staffTime } from "@/lib/staff-time";
 import { stateValue, type Channel } from "@/lib/contact-permissions";
 import {
+  approvalProblems,
   hasField,
   hasWords,
   MESSAGE_START,
@@ -708,7 +709,7 @@ export default function MessageWriter({
                   <Button
                     variant="ghost"
                     fit
-                    disabled={!written}
+                    disabled={!written || approvalProblems(problems).length > 0 || !data.sends}
                     pending={submitting}
                     onClick={async () => {
                       setSubmitting(true);

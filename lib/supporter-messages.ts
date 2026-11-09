@@ -215,6 +215,14 @@ export type SchedulingMessage = {
   sends: boolean;
 };
 
+/** What doesn't stop a text's new words going to WhatsApp for approval: that they aren't approved yet, and its time. */
+const LEFT_TILL_SCHEDULING: MessageScheduleProblem[] = ["not-approved", "no-time", "time-passed"];
+
+/** What stops a text's new words going for approval: everything that stops it being scheduled but its time and the approval itself. */
+export function approvalProblems(problems: MessageScheduleProblem[]): MessageScheduleProblem[] {
+  return problems.filter((problem) => !LEFT_TILL_SCHEDULING.includes(problem));
+}
+
 /**
  * What stops a message being scheduled: none, for one that can be. Unlike a
  * mailing to politicians, a field some recipients lack doesn't, as each has

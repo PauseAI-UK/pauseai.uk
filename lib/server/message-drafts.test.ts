@@ -25,7 +25,20 @@ import { supporterAudience } from "./message-recipients";
 import { FIELDS_AS_WORDS, TEXT_SENDER_NAME } from "@/lib/supporter-messages";
 import { toText } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { NOTIFICATIONS, notifications } from "@/tests/notifications";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { readOutbox } from "@/tests/fixtures/outbox";
+
+const NOTIFICATIONS = "notifications@example.org";
+
+/** Sends the fixture Postmark's emails to an outbox of their own, and gives what's in it, oldest first. */
+function outbox() {
+  const dir = mkdtempSync(join(tmpdir(), "outbox-"));
+  vi.stubEnv("OUTBOX_DIR", dir);
+  vi.stubEnv("NOTIFICATION_INBOX", NOTIFICATIONS);
+  return () => readOutbox(dir);
+}
 
 const JO = "jo@pauseai.uk";
 const FUTURE = "2099-01-01T09:18:00.000Z";
@@ -219,14 +232,11 @@ describeWithDatabase("messages to supporters", () => {
 
   it("sends new words for approval, emailing who sent them and the inbox, and locks them till WhatsApp decides", async () => {
     vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
-    const sent = notifications();
+    const sent = outbox();
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const id = await draftOf(TEXT_FILTER);
     const version = await readied(id, { body: EVENT_WORDS });
-    // The emails go to Postmark, which a test sees, not the fixture Postmark.
-    vi.stubEnv("DATA_FIXTURES", "");
     expect(await submitTemplate(id, JO)).toBe("submitted");
-    vi.stubEnv("DATA_FIXTURES", "1");
     const message = (await getWrittenMessage(id))!;
     expect(message.template).toMatchObject({
       status: "pending",
@@ -235,7 +245,7 @@ describeWithDatabase("messages to supporters", () => {
       body: EVENT_WORDS,
     });
     const words = staffCopy.notifications.templateSubmitted;
-    expect(sent).toEqual([
+    expect(sent()).toEqual([
       expect.objectContaining({
         To: NOTIFICATIONS,
         Cc: JO,
@@ -260,6 +270,12 @@ describeWithDatabase("messages to supporters", () => {
     expect(await submitTemplate(email, JO)).toBe("not-text");
     const empty = await draftOf(TEXT_FILTER);
     expect(await submitTemplate(empty, JO)).toBe("no-words");
+    // Not while anything but its time would stop it being scheduled, such as no number to send from.
+    const unready = await draftOf(TEXT_FILTER);
+    await readied(unready, { body: EVENT_WORDS, dueAt: null });
+    vi.stubEnv("WHATSAPP_NUMBER", "");
+    expect(await submitTemplate(unready, JO)).toBe("not-ready");
+    vi.stubEnv("WHATSAPP_NUMBER", "+447700900000");
     const onTemplate = await draftOf(TEXT_FILTER);
     await readied(onTemplate, { templateId: await addTemplate("March day") });
     expect(await submitTemplate(onTemplate, JO)).toBe("already");
@@ -301,13 +317,11 @@ describeWithDatabase("messages to supporters", () => {
     const version = await readied(id, { body: EVENT_WORDS });
     await submitTemplate(id, JO);
     const template = (await getWrittenMessage(id))!.template!.id;
-    const sent = notifications();
+    const sent = outbox();
     const link = `https://pauseai.uk/staff/messages/${id}`;
     const words = staffCopy.notifications;
-    vi.stubEnv("DATA_FIXTURES", "");
     expect(await reviewTemplate(template, { approved: true })).toBe(true);
-    vi.stubEnv("DATA_FIXTURES", "1");
-    expect(sent).toEqual([
+    expect(sent()).toEqual([
       expect.objectContaining({
         Cc: JO,
         Subject: words.templateApproved.subject("See you there."),
@@ -319,13 +333,12 @@ describeWithDatabase("messages to supporters", () => {
     expect(await reviewTemplate(template, { approved: false, reason: "Too late." })).toBe(false);
 
     const other = await addTemplate("Made in WhatsApp Manager", { status: "pending", createdBy: null });
-    vi.stubEnv("DATA_FIXTURES", "");
     expect(await reviewTemplate(other, { approved: false, reason: "It's too short." })).toBe(true);
-    expect(sent[1]).toMatchObject({
+    expect(sent()[1]).toMatchObject({
       Subject: words.templateRejected.subject("Made in WhatsApp Manager"),
       TextBody: words.templateRejected.body("It's too short.", SAID, []),
     });
-    expect("Cc" in sent[1]).toBe(false);
+    expect(sent()[1].Cc).toBeUndefined();
     expect(await query("SELECT status, rejected_reason FROM message_templates WHERE id = $1", [other])).toEqual([
       { status: "rejected", rejected_reason: "It's too short." },
     ]);

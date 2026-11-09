@@ -474,9 +474,33 @@ describe("MessageWriter, by text", () => {
     expect(navigation.refreshes).toBe(before);
   });
 
-  it("can't send words for approval before there are any", async () => {
+  it("can't send words for approval before there are any, or while anything but the time stops it", async () => {
     await renderWriter({ draft: exampleMessageText });
     await page.getByRole("tab", { name: copy.newTemplate }).click();
+    await expect.element(button(copy.submitTemplate)).toBeDisabled();
+  });
+
+  it("sends words for approval with no time chosen, but not with no number to send from, or nothing to send by", async () => {
+    const draft = { ...exampleMessageText, title: "Hi there", body: exampleTextWords, dueAt: null };
+    const { unmount } = await render(
+      <MessageWriter
+        data={exampleMessageData}
+        draft={draft}
+        who={<p>Who</p>}
+        actions={fakeActions() as unknown as MessageWriterActions}
+      />,
+    );
+    await expect.element(button(copy.submitTemplate)).toBeEnabled();
+    await unmount();
+    await renderWriter({ draft, data: { ...exampleMessageData, textNumber: null } });
+    await expect.element(button(copy.submitTemplate)).toBeDisabled();
+  });
+
+  it("sends nothing for approval where nothing can send", async () => {
+    await renderWriter({
+      draft: { ...exampleMessageText, body: exampleTextWords },
+      data: { ...exampleMessageData, sends: false },
+    });
     await expect.element(button(copy.submitTemplate)).toBeDisabled();
   });
 

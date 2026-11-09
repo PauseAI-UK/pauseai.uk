@@ -1084,7 +1084,7 @@ All events: ${link}`,
       email: (dollars: string) => `⁂ About $${dollars}.`,
       text: (pounds: string) => `About £${pounds}.`,
       // After it, smaller and grey: the rate it's worked out at, and since when, as it may have changed.
-      textRate: (pence: number, from: string) => `⁂ ${pence}p each delivered, Meta's rate from ${from}`,
+      textRate: (pence: number, from: string) => `${pence}p each, rate as at ${from}`,
     },
     summary: (n: number, channel: "email" | "text", from: string, when: string | null) =>
       channel === "email"
@@ -1093,7 +1093,7 @@ All events: ${link}`,
     schedule: (n: number, channel: "email" | "text") =>
       `Schedule ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"}`,
     // At the foot of a text on new words: sending them to WhatsApp, and while it reviews them.
-    submitTemplate: "⁂ Send for approval",
+    submitTemplate: "Send for approval",
     templatePending: "⁂ Waiting for WhatsApp to approve these words, so they can't be changed.",
     withdrawTemplate: "⁂ Withdraw them to make changes",
     problems: {
