@@ -198,6 +198,8 @@ the code should go instead. The rules below say which ones are enforced.
 - **Staff pages** each call `requireStaff()` (`lib/server/staff-auth.ts`)
   first, as does every staff route handler and Server Action
   (`tests/checks/staff-auth.test.ts`). `proxy.ts` only checks the cookie exists.
+  A page that shows more to staff who may see supporters asks
+  `canSeeSupporters(staff)`, beside `requireStaff()`.
 - **Scheduled jobs** are Netlify scheduled functions, each in its own folder
   in `netlify/functions/`, that POST to a route under `app/api/cron/` with
   `CRON_SECRET`. The work itself stays in the Next app. Every one is a job

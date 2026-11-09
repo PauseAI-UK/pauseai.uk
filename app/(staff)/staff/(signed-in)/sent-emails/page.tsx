@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listSentEmails } from "@/lib/server/sent-emails";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { sentEmailsSearch, type ParamValue, type SentEmailsSearch } from "@/lib/staff-search";
 import SentEmails from "../../_components/SentEmails";
 
@@ -13,8 +13,7 @@ export default async function SentEmailsPage({
 }: {
   searchParams: Promise<Partial<Record<keyof SentEmailsSearch, ParamValue>>>;
 }) {
-  const { permissions } = await requireStaff("admin");
+  const supporters = canSeeSupporters(await requireStaff("admin"));
   const { filter, ...search } = sentEmailsSearch(await searchParams);
-  const supporters = permissions.includes("supporters");
   return <SentEmails {...await listSentEmails(filter, supporters)} search={search} supporters={supporters} />;
 }

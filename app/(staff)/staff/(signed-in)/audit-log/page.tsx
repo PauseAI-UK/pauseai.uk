@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { changeChoices, recentChanges } from "@/lib/server/audit";
 import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
 import { savedFiltersState } from "@/lib/server/saved-filters";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { changesSearch, type ChangesSearch, type ParamValue } from "@/lib/staff-search";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
 import ChangesFilters, { changeWords } from "../../_components/ChangesFilters";
@@ -20,8 +20,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 /** The log, filtered. Whichever filter is on, entries about supporters show only to those who may see them. */
 export default async function ChangesPage({ searchParams }: Props) {
-  const { permissions } = await requireStaff("admin");
-  const supporters = permissions.includes("supporters");
+  const supporters = canSeeSupporters(await requireStaff("admin"));
   const saved = await savedFiltersState("audit-log", await searchParams);
   const { filter, ...search } = changesSearch(saved.params);
   const [log, choices] = await Promise.all([recentChanges(supporters, filter), changeChoices(supporters)]);
