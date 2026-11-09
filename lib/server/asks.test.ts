@@ -58,17 +58,19 @@ describeWithDatabase("asks and campaigns", () => {
     // With no answer chosen, a column each, and no page of answers.
     expect(ask!.groups.map((g) => [g.key, g.total, g.people.map((p) => p.politicianId)])).toEqual([
       ["signed", 1, [polly]],
+      ["other", 0, []],
       ["declined", 1, [dora]],
     ]);
     expect(ask).toMatchObject({ answers: [], answersTotal: 0, pages: 1 });
     expect(ask!.groups[0].people[0].lastWrittenTo).not.toBeNull();
-    expect(ask!.groups[1].people[0].lastWrittenTo).toBeNull();
+    expect(ask!.groups[2].people[0].lastWrittenTo).toBeNull();
     // With one chosen, a page of those who gave it, and the columns' counts without their people.
     const signed = (await askPageData("deepmind-letter", "signed"))!;
     expect(signed.answers.map((a) => a.politicianId)).toEqual([polly]);
     expect(signed).toMatchObject({ answersTotal: 1, pages: 1 });
     expect(signed.groups.map((g) => [g.key, g.total, g.people])).toEqual([
       ["signed", 1, []],
+      ["other", 0, []],
       ["declined", 1, []],
     ]);
     // An answer it has no column for finds nobody.

@@ -375,8 +375,10 @@ describeWithDatabase("syncPoliticians", () => {
       );
     const logged = () =>
       query(
-        `SELECT details->>'status' AS status, details->>'note' AS note FROM audit_log
-         WHERE action = 'set status' AND details->>'ask' = 'edinburgh-conference-2026' ORDER BY id DESC LIMIT 1`,
+        `SELECT l.details->>'status' AS status, l.details->>'note' AS note
+         FROM audit_log l JOIN notable_people n ON n.id = (l.details->>'politicianId')::bigint
+         WHERE l.action = 'set status' AND l.details->>'ask' = 'edinburgh-conference-2026' AND n.name = 'Ms Dora Dummy'
+         ORDER BY l.id DESC LIMIT 1`,
       );
     answering("Responded after event");
     await syncPoliticians(NIGHTLY);
