@@ -377,7 +377,7 @@ export const staffCopy = {
       },
       none: "Everyone from this upload has since been erased.",
       luma: {
-        added: "Registered",
+        added: "Registered on Luma",
         skipped: "Not registered: unsubscribed from our Luma calendar",
         "not-configured": "Not registered: Luma isn't set up",
         failed: "Not registered: Luma had an error. Upload the file again to retry.",

@@ -13,6 +13,7 @@ import {
 } from "@/lib/signup-upload";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
+import { startLumaImport } from "./outside-services/netlify-functions";
 import { addLumaGuests } from "./outside-services/luma-guests";
 import { refreshSupportersList } from "./supporter-facts";
 import { lookUpPlaces } from "./supporter-places";
@@ -211,6 +212,8 @@ export async function finishSignupUpload(
        FROM unnest($1::bigint[], $2::text[]) AS s(entry_id, status) WHERE u.entry_id = s.entry_id`,
       [said.map((row) => row.id), said.map((row) => row.status)],
     );
+    // Our copy of the event's guests, with those just registered, without waiting for the next run.
+    await startLumaImport();
   }
   // Their postcodes' places and MPs now, rather than at the next Luma import, which also looks up any left over.
   await lookUpPlaces();
