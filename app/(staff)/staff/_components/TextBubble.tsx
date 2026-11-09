@@ -1,6 +1,8 @@
 import { Fragment, type ReactNode } from "react";
-import type { Block, Inline, LetterDoc } from "@/lib/letter-format";
+import { FIELD_WORDS } from "@/lib/broadcasts";
+import type { MailingBlock, MailingInline } from "@/lib/mailing-doc";
 import { staffCopy } from "@/lib/content/staff-interface";
+import letter from "./MailingLetter.module.css";
 import styles from "./Broadcasts.module.css";
 
 const copy = staffCopy.broadcastPages;
@@ -58,11 +60,22 @@ export function ChatWall({ children }: { children: ReactNode }) {
   return <div className={styles.wall}>{children}</div>;
 }
 
+/**
+ * A text's words: as one person gets them, or as written, its fields still
+ * to fill in, each a chip as a mailing's letter shows it.
+ */
+export type TextDoc = { content: MailingBlock[] };
+
 /** A line's words as WhatsApp shows them: bold and italic, web addresses links, and nothing for a link's mark, which a text hasn't. */
-function Inlines({ content = [] }: { content?: Inline[] }) {
+function Inlines({ content = [] }: { content?: MailingInline[] }) {
   return content.map((node, i) => {
     if (node.type === "hardBreak") return <br key={i} />;
-    let words: ReactNode = <LinkedText text={node.text} />;
+    let words: ReactNode =
+      node.type === "field" ? (
+        <span className={letter.field}>{FIELD_WORDS[node.attrs.field]}</span>
+      ) : (
+        <LinkedText text={node.text} />
+      );
     for (const mark of node.marks ?? []) {
       if (mark.type === "bold") words = <strong>{words}</strong>;
       if (mark.type === "italic") words = <em>{words}</em>;
@@ -72,11 +85,11 @@ function Inlines({ content = [] }: { content?: Inline[] }) {
 }
 
 /** A text's lines, lists and quotes, as WhatsApp shows them: a bullet before each item, a bar beside a quote. */
-export function TextWords({ words }: { words: LetterDoc }) {
+export function TextWords({ words }: { words: TextDoc }) {
   return <div className={styles.words}>{<Blocks blocks={words.content} />}</div>;
 }
 
-function Blocks({ blocks }: { blocks: Block[] }) {
+function Blocks({ blocks }: { blocks: MailingBlock[] }) {
   return blocks.map((block, i) =>
     block.type === "paragraph" ? (
       <p key={i}>
@@ -103,7 +116,7 @@ function Blocks({ blocks }: { blocks: Block[] }) {
  * from us, on the left as it is on their phone, formatted as WhatsApp does,
  * with the time, and the Stop button under it.
  */
-export default function TextBubble({ from, words, time }: { from: string; words: LetterDoc; time: string }) {
+export default function TextBubble({ from, words, time }: { from: string; words: TextDoc; time: string }) {
   return (
     <div className={styles.phone}>
       <ChatWall>

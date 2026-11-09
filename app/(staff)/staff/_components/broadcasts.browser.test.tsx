@@ -805,13 +805,15 @@ describe("a broadcast's page", () => {
     },
   };
 
-  it("gives a text's read count, and the text as a bubble, its fields as words", async () => {
+  it("gives a text's read count, and the text as a bubble, its fields as chips", async () => {
     await render(<BroadcastView data={text} who={who} contact={null} {...actions} />);
     await expect.element(page.getByRole("link", { name: `240 ${copy.counts.read}` })).toBeVisible();
     await expect.element(page.getByText(copy.textTitle)).toBeVisible();
-    await expect
-      .element(page.getByText(`Hi {${copy.fieldWords.firstName}}, the march`, { exact: false }))
-      .toBeVisible();
+    const words = page
+      .getByText(/the march meets/)
+      .element()
+      .closest("p")!;
+    expect(words.querySelector("[class*=field]")!.textContent).toBe(copy.fieldWords.firstName);
     await expect.element(page.getByText(copy.stopButton, { exact: true })).toBeVisible();
     await expect.element(page.getByText(copy.skipReasons.unsubscribed.text)).toBeVisible();
   });

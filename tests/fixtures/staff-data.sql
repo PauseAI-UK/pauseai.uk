@@ -762,9 +762,9 @@ FROM seed_stopped WHERE status <> 'cancelled';
 -- one delivered, one that failed, one skipped as they'd unsubscribed since.
 INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state)
 SELECT 'Events this month', 'Events this month', 'supporters', 'email', 'luma-calendar',
-  '{"list": "supporters", "params": {"contact": "email:luma-calendar:yes"}}', b.body, 'jo@pauseai.uk', 'jo@pauseai.uk',
-  'PauseAI UK', now() - interval '4 days', 'sent'
-FROM seed_letter b;
+  '{"list": "supporters", "params": {"contact": "email:luma-calendar:yes"}}',
+  '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hi "}, {"type": "field", "attrs": {"field": "firstName"}}, {"type": "text", "text": ","}]}, {"type": "paragraph", "content": [{"type": "text", "text": "Here''s what''s on this month: a talk in Leeds on the 12th, and flyering in London on the 20th. Come along to either."}]}, {"type": "paragraph", "content": [{"type": "text", "text": "PauseAI UK"}]}]}',
+  'jo@pauseai.uk', 'jo@pauseai.uk', 'PauseAI UK', now() - interval '4 days', 'sent';
 
 -- ---------------------------------------------------------- import log
 

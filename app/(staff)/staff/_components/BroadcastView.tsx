@@ -2,13 +2,11 @@ import type { ReactNode } from "react";
 import Tag, { type TagTone } from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { letterFor } from "@/lib/mailing-doc";
 import type { WrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import type { BroadcastPageData, MessageRecipient, BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { filtersPath, pageParam } from "@/lib/staff-search";
 import { londonClock, londonWhen, sendsAt, staffDate } from "@/lib/staff-time";
 import {
-  FIELDS_AS_WORDS,
   FIELD_WORDS,
   hasField,
   MEMBER_CONDITION,
@@ -115,14 +113,14 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
   ];
 }
 
-/** The email as a mail app shows it, or the text as a bubble, with its fields as words. */
+/** The email as a mail app shows it, or the text as a bubble, with its fields as chips. */
 function BroadcastWords({ written }: { written: WrittenBroadcast }) {
   if (written.channel === "text") {
     return (
       <Card span={3} look="aside" title={copy.textTitle} id="words-title">
         <TextBubble
           from={written.fromName!}
-          words={letterFor(written.body, FIELDS_AS_WORDS)}
+          words={{ content: written.body.content.filter((block) => block.type !== "onlyFor") }}
           time={londonClock(sendsAt(written.dueAt!))}
         />
       </Card>
