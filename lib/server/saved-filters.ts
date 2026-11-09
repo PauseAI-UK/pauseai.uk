@@ -100,7 +100,7 @@ export async function createSavedFilter(list: SavedList, name: string, params: P
 
 /** Runs `sql` on a filter of `list`, with `values` after the list and the ID, and logs `action` if there is one. */
 async function change(
-  action: string,
+  action: "update filter" | "rename filter" | "delete filter",
   list: SavedList,
   id: number,
   by: string,

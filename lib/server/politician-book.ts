@@ -1,5 +1,6 @@
 import "server-only";
 import type { PoliticianBook } from "@/lib/one-off";
+import { auditActions } from "./audit";
 import { query } from "./db";
 import { gmailAccounts } from "./gmail-accounts";
 
@@ -13,7 +14,7 @@ export async function politicianBook(): Promise<PoliticianBook> {
        SELECT id::int AS id, lower(email) AS address FROM notable_people
        UNION
        SELECT (details->>'id')::int, lower(jsonb_array_elements_text(details->'changed'->'email'))
-         FROM audit_log WHERE action = 'edit politician' AND details->'changed' ? 'email'
+         FROM audit_log WHERE action = ${auditActions("edit politician")} AND details->'changed' ? 'email'
      ) every WHERE address LIKE '%@%'`,
   );
   const addresses = new Map<string, number[]>();

@@ -15,7 +15,7 @@ import {
   type PoliticianFlag,
 } from "@/lib/politician-filters";
 import { query, transaction, type Queryable } from "./db";
-import { type AuditEntry, logChange } from "./audit";
+import { auditActions, type AuditEntry, logChange } from "./audit";
 import { CLOSE_ENOUGH, closeness, contains, everyWord } from "./search";
 
 // Politicians, the notable people who are in a parliament or were, and
@@ -761,9 +761,9 @@ export type PoliticianChange = AuditEntry;
 export async function politicianHistory(id: number, email: string | null): Promise<PoliticianChange[]> {
   return query<PoliticianChange>(
     `SELECT id::int AS id, at, actor, action, details FROM audit_log
-     WHERE (action IN ('add politician', 'edit politician', 'remove politician') AND (details->>'id')::bigint = $1)
-        OR (action = 'set status' AND (details->>'politicianId')::bigint = $1)
-        OR (action IN ('block address', 'unblock address') AND $2::text IS NOT NULL AND details->>'address' = lower($2))
+     WHERE (action IN (${auditActions("add politician", "edit politician", "remove politician")}) AND (details->>'id')::bigint = $1)
+        OR (action = ${auditActions("set status")} AND (details->>'politicianId')::bigint = $1)
+        OR (action IN (${auditActions("block address", "unblock address")}) AND $2::text IS NOT NULL AND details->>'address' = lower($2))
      ORDER BY at DESC, id DESC`,
     [id, email],
   );

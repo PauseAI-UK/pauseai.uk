@@ -117,7 +117,7 @@ describeWithDatabase("filterProblems", () => {
       }),
     ).toEqual([]);
     expect(await filterProblems({ list: "politicians", params: { answer: "going" } })).toEqual([]);
-    await logChange("jo@pauseai.uk", "add note", { noteId: 1 });
+    await logChange("jo@pauseai.uk", "add note", { noteId: 1, politicianId: 1 });
     expect(
       await filterProblems({
         list: "audit-log",

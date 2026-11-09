@@ -1,4 +1,5 @@
 import "server-only";
+import type { AuditAction, AuditDetails } from "@/lib/audit-events";
 import type { ChangeSort } from "@/lib/change-sort";
 import { windowStart } from "@/lib/staff-dashboard";
 import type { SortSpec } from "@/lib/staff-sort";
@@ -6,15 +7,24 @@ import { query, type Queryable } from "./db";
 
 // Who changed what: every change from the staff interface, and each sync.
 
+/** A row of the log as it's read: an action it may not know, with the details logged (lib/audit-events.ts says what each holds). */
 export type AuditEntry = { id: number; at: string; actor: string; action: string; details: Record<string, unknown> };
 
+/** An action and its details, as AuditDetails pairs them, and the transaction to log in, if any. */
+type LogArgs = { [A in keyof AuditDetails]: [action: A, details: AuditDetails[A], db?: Queryable] }[keyof AuditDetails];
+
 /** `actor` is a staff email, or "sync". Pass `db` to log inside a transaction. */
-export async function logChange(actor: string, action: string, details: object, db?: Queryable): Promise<void> {
+export async function logChange(actor: string, ...[action, details, db]: LogArgs): Promise<void> {
   await query(
     "INSERT INTO audit_log (actor, action, details) VALUES ($1, $2, $3)",
     [actor, action, JSON.stringify(details)],
     db,
   );
+}
+
+/** Actions as a list of SQL strings, for `action IN (…)` or `ARRAY[…]`. */
+export function auditActions(...actions: AuditAction[]): string {
+  return actions.map((action) => `'${action}'`).join(", ");
 }
 
 /** Someone an entry is about, while they're still here: their ID, and their name if they have one. */
@@ -24,20 +34,20 @@ export type Named = { id: number; name: string | null };
 export type LoggedChange = AuditEntry & { politician: Named | null; supporter: Named | null };
 
 /** The ID of the politician an entry is about: by `id` in the details of these actions, by `politicianId` in others'. */
-const POLITICIAN_ID = `CASE WHEN a.action = ANY(ARRAY['add politician', 'edit politician', 'remove politician', 'delete politician'])
+const POLITICIAN_ID = `CASE WHEN a.action = ANY(ARRAY[${auditActions("add politician", "edit politician", "remove politician", "delete politician")}])
   THEN a.details->>'id' ELSE a.details->>'politicianId' END`;
 
 /** The ID of the supporter an entry is about. */
-const SUPPORTER_ID = `(CASE WHEN a.action = 'view supporter' THEN a.details->>'id' ELSE a.details->>'supporterId' END)::bigint`;
+const SUPPORTER_ID = `(CASE WHEN a.action = ${auditActions("view supporter")} THEN a.details->>'id' ELSE a.details->>'supporterId' END)::bigint`;
 
 /**
  * The entries staff without `supporters` see: not those about a supporter,
  * nor downloads, whose filters may name one, nor an address that isn't a politician's.
  */
 const WITHOUT_SUPPORTERS = `NOT (
-  action = ANY(ARRAY['view supporter', 'erase supporter', 'download supporters', 'download letters', 'download blocked emails'])
+  action = ANY(ARRAY[${auditActions("view supporter", "erase supporter", "download supporters", "download letters", "download blocked emails")}])
   OR details ? 'supporterId'
-  OR (action = ANY(ARRAY['block address', 'unblock address'])
+  OR (action = ANY(ARRAY[${auditActions("block address", "unblock address")}])
     AND NOT EXISTS (SELECT 1 FROM notable_people n WHERE lower(n.email) = lower(details->>'address')))
 )`;
 
