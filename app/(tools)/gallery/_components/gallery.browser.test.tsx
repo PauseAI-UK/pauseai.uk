@@ -11,7 +11,7 @@ import { Controlled, Logged } from "./wiring";
 // which fetch through the fixture services, which need Node's crypto. Those
 // render only on the page (their variants are `server`), so the browser
 // never fetches.
-vi.mock("@/tests/fixtures/outside-services", () => ({ fixtureResponse: () => null }));
+vi.mock("@/lib/server/fixtures/outside-services", () => ({ fixtureResponse: () => null }));
 
 describe("GalleryIndex", () => {
   it("has a card for each group, linking to its page, with what's in it", async () => {

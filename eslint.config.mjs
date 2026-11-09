@@ -27,7 +27,7 @@ const SITE_URL_RULE = {
 
 // Outside services are called only from their bindings in
 // lib/server/outside-services/, through outsideFetch, so a fixture build
-// answers from tests/fixtures instead. Nothing else imports outsideFetch,
+// answers from lib/server/fixtures/ instead. Nothing else imports outsideFetch,
 // and server code never calls fetch() itself.
 const OUTSIDE = "lib/server/outside-services";
 const OUTSIDE_FETCH_IMPORT = {
@@ -127,11 +127,13 @@ const NETWORK_IMPORTS = [
  * everything above, but for what the file is allowed. `service` may name
  * its own API; `fetch` may call fetch() (code that runs in the browser
  * fetches the site's own API); `outsideFetch` may import it; `sendEmail`
- * may use Postmark's binding to send. `staff` adds the staff pages' rule for
+ * may use Postmark's binding to send. `fakes` may name every service's API,
+ * as the fixtures answer for each. `staff` adds the staff pages' rule for
  * links that look like buttons.
  */
 function siteCodeRules({
   service,
+  fakes = false,
   siteUrl = false,
   database = false,
   fetch = false,
@@ -144,7 +146,7 @@ function siteCodeRules({
       "error",
       ...(database ? [] : [DATABASE_URL_RULE]),
       ...(siteUrl ? [] : [SITE_URL_RULE]),
-      ...SERVICES.filter((other) => other !== service).map(hostRule),
+      ...(fakes ? [] : SERVICES.filter((other) => other !== service).map(hostRule)),
       ...(fetch ? [] : [OUTSIDE_FETCH_RULE]),
       ...EXTERNAL_LINK_RULES,
       ...(staff ? STAFF_BUTTON_LINK_RULES : []),
@@ -260,6 +262,20 @@ const ROUTE_IMPORTS = [
       "That's another route's _components/. Share code between routes from components/ or lib/, or from a _components/ folder above both.",
   },
 ];
+// The site's code never imports tests/, which isn't part of the site: what a
+// fixture build answers with instead of the outside services is in
+// lib/server/fixtures/. The component gallery, a page of the site, is held
+// to it too.
+const TESTS_IMPORTS = [
+  {
+    group: ["@/tests", "@/tests/**"],
+    message: "The site's code doesn't import tests/. What a fixture build needs goes in lib/server/fixtures/.",
+  },
+  {
+    regex: "^(\\.\\./)+tests(/|$)",
+    message: "The site's code doesn't import tests/. What a fixture build needs goes in lib/server/fixtures/.",
+  },
+];
 const COMPONENT_IMPORTS = {
   group: ["@/components", "@/components/**"],
   message: "lib/ is logic and data, without React components. See LAYERS in eslint.config.mjs.",
@@ -286,11 +302,19 @@ const LAYERS = [
     paths: [STAFF_LINK_IMPORT],
   },
   { files: ["app/(staff)/**/page.tsx"], patterns: ROUTE_IMPORTS, paths: [PAGE_REDIRECT, STAFF_LINK_IMPORT] },
-].map(({ files, ignores = [], patterns, paths = [] }) => ({
-  files,
-  ignores: ["**/*.test.{ts,tsx}", "app/(tools)/gallery/**", ...ignores],
-  rules: { "@typescript-eslint/no-restricted-imports": ["error", { patterns, paths }] },
-}));
+]
+  .map(({ files, ignores = [], patterns, paths = [] }) => ({
+    files,
+    ignores: ["**/*.test.{ts,tsx}", "app/(tools)/gallery/**", ...ignores],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": ["error", { patterns: [...patterns, ...TESTS_IMPORTS], paths }],
+    },
+  }))
+  .concat({
+    files: ["app/(tools)/gallery/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}"],
+    rules: { "@typescript-eslint/no-restricted-imports": ["error", { patterns: TESTS_IMPORTS }] },
+  });
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -329,6 +353,7 @@ const eslintConfig = defineConfig([
     { files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "proxy.ts"], fetch: true },
     { files: ["app/(staff)/**/*.tsx"], fetch: true, staff: true },
     { files: ["lib/server/**/*.ts", "app/**/route.ts", "app/**/actions.ts"] },
+    { files: ["lib/server/fixtures/*.ts"], fakes: true },
     { files: [`${OUTSIDE}/*.ts`], outsideFetch: true },
     ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true })),
     { files: [`${OUTSIDE}/outside-fetch.ts`], fetch: true },

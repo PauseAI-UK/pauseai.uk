@@ -46,7 +46,7 @@ const IGNORED = [
 
 const HYDRATION = /hydrat|did not match|server rendered HTML/i;
 
-// Text a page shows only when it really renders tests/fixtures rather than
+// Text a page shows only when it really renders lib/server/fixtures/ rather than
 // the live APIs, so the other flows are checking a known state.
 const FIXTURE_TEXT: Record<string, string> = {
   "/donate": "Ada Pemberton",

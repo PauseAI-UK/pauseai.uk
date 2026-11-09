@@ -4,7 +4,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { importPath } from "@/lib/import-runs";
 import { connectLettersInbox, databaseUrl, runSql } from "@/scripts/fresh-database.mjs";
 import { OUTBOX_DIR } from "../checkout.mjs";
-import { fixtureEnv } from "../fixture-env.mjs";
+import { fixtureEnv } from "@/lib/server/fixtures/fixture-env.mjs";
 import { addStaffAccount, logInAsStaff, newestEmail, syncPoliticians } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { importEmails, logIn } from "./staff-steps";
@@ -14,7 +14,7 @@ export const section: Section = { name: "Old letters and one-off emails", part: 
 
 // The letters written before the site could send them, read from the policy
 // team's mailboxes, and every other thread with a politician. Each flow on its
-// own database, reading the fake mailboxes (tests/fixtures/old-letters-mailbox.ts).
+// own database, reading the fake mailboxes (lib/server/fixtures/old-letters-mailbox.ts).
 
 const words = staffCopy.oldLetters;
 const oneOff = staffCopy.oneOff;

@@ -1,10 +1,10 @@
 // For Vitest: what the site sends by the fake Gmail, as it went, and mail
-// arriving at the letters inbox (tests/fixtures/letters-inbox.ts).
+// arriving at the letters inbox (lib/server/fixtures/letters-inbox.ts).
 import { http } from "msw";
 import { vi } from "vitest";
 import { parseMime, firstOfType, partText, type MimePart } from "@/lib/email-parsing/mime";
 import { server } from "./fixtures/msw";
-import { fixtureResponse } from "./fixtures/outside-services";
+import { fixtureResponse } from "@/lib/server/fixtures/outside-services";
 
 const SEND = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
 

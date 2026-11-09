@@ -19,7 +19,7 @@ type EditorHandle = {
   chain: () => { focus: () => { deleteRange: (range: { from: number; to: number }) => { run: () => boolean } } };
 };
 import { FAILING_DIR } from "../checkout.mjs";
-import { failService } from "../fixtures/failing-services";
+import { failService } from "@/lib/server/fixtures/failing-services";
 import { BASE, emailFrame, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import {
   bounceOf,

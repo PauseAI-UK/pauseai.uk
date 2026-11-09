@@ -74,7 +74,7 @@ every test. It isn't the gate: `npm test` is, over every file.
 Mock only where the site calls an outside service. All such calls go
 through `outsideFetch`, from the bindings in `lib/server/outside-services/`
 (`docs/code-structure.md`, "Outside services"), and the canned responses
-live in one place: `tests/fixtures/outside-services.ts`.
+live in one place: `lib/server/fixtures/outside-services.ts`.
 
 - **Vitest Node:** MSW (`tests/fixtures/msw.ts`) answers every outside
   request from the fixtures. A request with no fixture fails the test. To
@@ -112,7 +112,7 @@ any other outside service.
   Cc, the text and the attachments (`lib/server/mp-letters.test.ts`).
 - **Playwright reads an outbox.** With `DATA_FIXTURES=1`, `sendEmail` also
   writes each outgoing email to a mail file (`.eml`) in `OUTBOX_DIR`
-  (`tests/fixtures/outbox.ts`). The flow test checks the letter in the
+  (`lib/server/fixtures/outbox.ts`). The flow test checks the letter in the
   newest email to the test MP. This is test-only plumbing, with no
   production route or table.
 - **The storyboard pictures the emails.** `emailFrame(page, email,
@@ -125,7 +125,7 @@ caption)` (`tests/storyboard/frame.ts`) shows an email from the outbox in
   the `Date` header is the fixed clock's, and a login link's token and a
   letter's reply address come from a seed (`randomId` in
   `lib/server/random-id.ts`). A fixture build knows the address it's served at
-  (`FIXTURE_ORIGIN`, from `tests/fixture-env.mjs`, which both fixture
+  (`FIXTURE_ORIGIN`, from `lib/server/fixtures/fixture-env.mjs`, which both fixture
   builds use), as the live site knows its own, so every link in an email
   is whole, whether or not the code that sent it had a request; the
   picture shows it at `pauseai.example.org`.
@@ -381,7 +381,7 @@ order, alongside the others:
   idle. Otherwise `NETLIFY_DB_URL`, as ever. Flows that need the fixture MPs
   sync them in with `syncPoliticians()` (`tests/steps.ts`). So the staff pages that
   list what's happened, like `/staff/campaigns`, are compared unmasked.
-- **A fixed clock.** `FIXTURE_NOW` (`tests/fixture-env.mjs`) is read by
+- **A fixed clock.** `FIXTURE_NOW` (`lib/server/fixtures/fixture-env.mjs`) is read by
   `now()` in `lib/now.ts`, which the server uses instead of `new Date()`;
   the database's `now()`, and the columns that default to it, are fixed to
   the same moment in each flow's database; and every page's clock is set to
@@ -459,7 +459,7 @@ flow that drives it or why nothing does.
 - `march-signup.spec.ts`: The march sign-up: its header over the hero and past it; how many have registered, in the hero and the form, asked for again on coming back to the page; registering, Luma failing, and an email the server won't take; the scroll cue; the share card, saying they're registered, and registering someone new, with the events sent to GA; the photo carousel on a phone.
 - `staff-login.spec.ts`: Login by emailed link (the email pictured; once, in one browser), and an address outside pauseai.uk getting none; the dev login; a link with Keep me signed in; the staff home after a first login, which makes an account with no permissions, and over 30 days, and as an admin adding an account from Add staff, editing its permissions in a bubble, and removing it, pressed twice, with the note of what that leaves them; every staff page turning a visitor without a session away, and the API changing nothing for them; your own page with your Gmail connected and disconnected, and a wrong Google account; log out, noindex.
 - `staff-navigation.spec.ts`: The sidebar folded to a rail of icons, each where it was, a name on hover, still folded on the next page. A sort's arrow turned at once and a line along the top while a sort or a search loads; another page marked in the sidebar at once while it loads (its table locked, `lockTable` in `tests/steps.ts`). The dashboard's tabs, kept on going back, its events held tile to those events and its supporter emails tile to theirs in all emails, and a bar pointed at. The politicians agreed tile, to the one politician who agreed and then to everyone who agreed, newest first; a politician's page and the list sorted by a heading; setting a status that shows on `/campaigns`, and the audit log; the "new" tag, on the sidebar and the folded rail, and gone after 3 days.
-- `imports.spec.ts`: The import page and each job's own page, the MP check run twice on its page, and the home's action for a held MP import; a held politician import, the notification inbox emailed, discarded and applied, and one held for a renamed record; the Luma import run twice from its page, and the members import, skipping an erased member; the logs of Luma, the Gmail reading and the members, a table a day, with the newest run's tinted row, rows, a row for quiet runs, a problem's tinted rows and a folded stretch; the connected Gmail read from its page; an import failing, and one with problems, postcodes.io being down, with Luma down for the flow (`tests/fixtures/failing-services.ts`), the notification inbox emailed once though it fails twice; a Gmail Google disconnects, the notification inbox emailed; the letters inbox's own page, back from connecting its Gmail; PauseAI's emails from Airtable, pressed; pauseai.info's letters, and Go to Parliament's meetings.
+- `imports.spec.ts`: The import page and each job's own page, the MP check run twice on its page, and the home's action for a held MP import; a held politician import, the notification inbox emailed, discarded and applied, and one held for a renamed record; the Luma import run twice from its page, and the members import, skipping an erased member; the logs of Luma, the Gmail reading and the members, a table a day, with the newest run's tinted row, rows, a row for quiet runs, a problem's tinted rows and a folded stretch; the connected Gmail read from its page; an import failing, and one with problems, postcodes.io being down, with Luma down for the flow (`lib/server/fixtures/failing-services.ts`), the notification inbox emailed once though it fails twice; a Gmail Google disconnects, the notification inbox emailed; the letters inbox's own page, back from connecting its Gmail; PauseAI's emails from Airtable, pressed; pauseai.info's letters, and Go to Parliament's meetings.
 - `staff-campaigns.spec.ts`: Campaigns: the list by the month of each one's last letter, a campaign's page with its versions, its counts choosing its letters, and `/staff/letters` redirecting; asks: the list under its months, each ask's answers, how it was asked and its counts, an ask's page, a letter's and an event's, its answers in columns, those of one answer by page under the columns' tops, the link to those who answered on the politicians list, and its form at `/edit`; a mailing's list and page naming its ask and who it's from; Sent emails, as an admin, searched and filtered, and closed without the permission; a new ask, changed and deleted.
 - `old-letters.spec.ts`: The import of old letters: a press, and pressing again; a press that fails; a press while one is running, on its page and the list of imports; its log and finishing, with its progress, the day's table, a refusal's tinted rows and a folded stretch; a letter of a template, one that keeps its own text, and August's approximate one; a form letter's diff from its form version; the one-off emails on All emails, a thread opened, an out-of-office in it folded and unfolded, and hidden from staff without `supporters`; a politician's and a supporter's lists; what your own page says when your mailbox is kept.
 - `letters.spec.ts`: All emails, a supporter's and a mailing's, those replied to, and the dashboard's tile; the letters list (one sent, one bounced), filtered by status, then by campaign, then either of two campaigns, then reset and sorted by sender; a letter with only an automatic reply and one with a written reply, in the Replied column, the Status filter's options, and the list filtered by what came back; a supporter's letter's page, with Copy Gmail search, and the MP's answer to its campaign's ask set from it; a bounce emailing staff and blocking the address, the home's action for it, and an MP whose address is blocked unblocked by staff.

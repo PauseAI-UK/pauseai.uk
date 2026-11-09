@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { saveToOutbox } from "@/tests/fixtures/outbox";
+import { saveToOutbox } from "@/lib/server/fixtures/outbox";
 import { outsideFetch } from "./outside-fetch";
 import { readJsonIfAny } from "../json";
 
@@ -58,7 +58,7 @@ export function notifyDomain(): string {
 /**
  * Sends one email on the transactional stream. Returns Postmark's MessageID.
  *
- * Emails that aren't really sent go to the outbox (tests/fixtures/outbox.ts)
+ * Emails that aren't really sent go to the outbox (lib/server/fixtures/outbox.ts)
  * instead, and the server log says which file: with DATA_FIXTURES=1, and in
  * the dev server without a real Postmark token. The outbox is OUTBOX_DIR, or
  * tmp/outbox in the dev server.

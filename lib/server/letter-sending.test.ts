@@ -3,7 +3,7 @@ import { HttpResponse } from "msw";
 import { copy } from "@/lib/content/email-your-mp";
 import { docFromMarkup } from "@/lib/letter-format";
 import { addTestMp, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { deliverToLettersInbox, resetLettersInbox } from "@/tests/fixtures/letters-inbox";
+import { deliverToLettersInbox, resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { LETTERS_INBOX, recordGmail, stubLettersInboxEnv, testMail, testProxy } from "@/tests/gmail-sends";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { notifications } from "@/tests/notifications";

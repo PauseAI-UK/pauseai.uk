@@ -23,6 +23,8 @@ const EXCEPTIONS = new Map([
   ["lib/server/db.ts  warnIfBehind", "the query that follows reports the database being unreachable"],
   // "Not JSON" is an answer, not a failure: the one place that swallows the parse error.
   ["lib/server/json.ts  parseJsonIfAny", "a body that isn't JSON is an answer the caller asked for"],
+  // The tests' reader of a fixture build's outbox: one not made yet holds no emails.
+  ["lib/server/fixtures/outbox.ts  readOutbox", "an outbox that isn't there yet has no emails in it"],
 ]);
 
 function codeFiles(dir: string): string[] {

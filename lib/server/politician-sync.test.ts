@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import fixture from "@/tests/fixtures/airtable-politicians.json";
+import fixture from "@/lib/server/fixtures/airtable-politicians.json";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "./db";
 import { type PoliticianSync, NIGHTLY } from "@/lib/import-runs";

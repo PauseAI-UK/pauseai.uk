@@ -41,6 +41,9 @@ lib/                      logic and data, no React state
                           `import "server-only"`
     outside-services/     one binding per outside service, the only
                           code that calls one (outsideFetch)
+    fixtures/             what a fixture build (DATA_FIXTURES=1) answers
+                          instead of the outside services: their canned
+                          answers, the outbox, the settings (fixture-env.mjs)
   content/                the site's content as typed data (people, blog,
                           briefings, ...)
   collateral/             the collateral tool's drawing engine
@@ -51,8 +54,8 @@ netlify/                  database migrations, scheduled functions
 backup/                   the nightly database backup: a Cloudflare Worker and
                           container, a package of its own (backup/README.md)
 proxy.ts                  turns away /staff requests without a session cookie
-tests/                    Playwright suites, the route list, fixtures,
-                          Vitest setup
+tests/                    Playwright suites, the route list, the fixtures
+                          only tests use, Vitest setup
   checks/                 tests that scan the whole repo (placeholder copy,
                           thin pages, staff auth and the rest)
 scripts/                  database, storyboard and data scripts
@@ -81,9 +84,10 @@ the code should go instead. The rules below say which ones are enforced.
   and the `_components/` folders above it, by a relative path, but never
   another route's folder or anything by `@/app/`. `components/` doesn't
   import routes, and `lib/` imports neither routes nor components, except
-  the content in `lib/content/`, which is partly JSX. Tests and the
-  component gallery may reach across. An ESLint rule enforces it (`LAYERS`
-  in `eslint.config.mjs`).
+  the content in `lib/content/`, which is partly JSX. Nothing in `app/`,
+  `components/` or `lib/` imports `tests/`: what a fixture build needs is
+  in `lib/server/fixtures/`. Tests and the component gallery may reach
+  across. An ESLint rule enforces it (`LAYERS` in `eslint.config.mjs`).
 - **Redirects are in `next.config.ts`.** A path that only sends people
   elsewhere is an entry in its `redirects()`, never a page that calls
   `redirect()`: on a click within the site, a page that redirects while
@@ -156,7 +160,7 @@ the code should go instead. The rules below say which ones are enforced.
   (`outside-fetch.ts` there), so tests and fixture builds can answer
   instead. The rest of the code calls the binding's functions. A new
   service gets a new binding there, and its canned answers in
-  `tests/fixtures/outside-services.ts` (`docs/testing.md`, "Mocking").
+  `lib/server/fixtures/outside-services.ts` (`docs/testing.md`, "Mocking").
   ESLint rules (`npm run lint`) fail on, in the site's code:
   - importing `outsideFetch` outside that folder, or calling `fetch()` in
     server code (`lib/server/`, route handlers, Server Actions);

@@ -13,7 +13,7 @@ import {
   useTestDatabase,
 } from "@/tests/database";
 import { LETTERS_INBOX, recordGmail, testProxy } from "@/tests/gmail-sends";
-import { resetLettersInbox } from "@/tests/fixtures/letters-inbox";
+import { resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { query } from "./db";
 import { recordProblem } from "./email";
 import { recentLetters } from "./letters";

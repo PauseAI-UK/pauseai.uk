@@ -1,5 +1,5 @@
 import "server-only";
-import { saveRawToOutbox, saveToOutbox } from "@/tests/fixtures/outbox";
+import { saveRawToOutbox, saveToOutbox } from "@/lib/server/fixtures/outbox";
 import { toMime, type MimeEmail } from "../mime";
 import { decodedText, messageIds } from "@/lib/email-parsing/mime";
 import { outsideFetch } from "./outside-fetch";
@@ -14,7 +14,7 @@ import { readJsonIfAny } from "../json";
 // it. GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are its OAuth client's.
 //
 // With DATA_FIXTURES=1, consent comes straight back to the site, and every
-// call is answered by tests/fixtures/outside-services.ts, which knows the
+// call is answered by lib/server/fixtures/outside-services.ts, which knows the
 // account from its token.
 
 const CONSENT_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -164,7 +164,7 @@ export async function gmailSendName(accessToken: string): Promise<string> {
 /**
  * Sends an email as the account: Gmail sends it from the account's own
  * address, and keeps it in Sent. Returns Gmail's ID for it and its thread.
- * With fixtures, it's written to the outbox too (tests/fixtures/outbox.ts).
+ * With fixtures, it's written to the outbox too (lib/server/fixtures/outbox.ts).
  */
 export async function sendGmail(accessToken: string, email: MimeEmail): Promise<{ id: string; threadId: string }> {
   const outbox = process.env.OUTBOX_DIR;

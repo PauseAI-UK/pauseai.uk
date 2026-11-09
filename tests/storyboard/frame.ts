@@ -1,7 +1,7 @@
 import { test, type Locator, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { emailView } from "../fixtures/email-view";
-import type { OutboxEmail } from "../fixtures/outbox";
+import type { OutboxEmail } from "@/lib/server/fixtures/outbox";
 import { LOCAL_URL } from "../checkout.mjs";
 import type { PlaceholderText } from "./report/frames";
 

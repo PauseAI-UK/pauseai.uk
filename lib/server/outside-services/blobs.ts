@@ -6,7 +6,7 @@ import { outsideFetch } from "./outside-fetch";
 // message kept whole, gzipped. Netlify gives a deployed function its
 // credentials in the environment. The client takes its fetch, so its
 // requests go through outsideFetch, and a fixture build's are answered by
-// tests/fixtures/outside-services.ts.
+// lib/server/fixtures/outside-services.ts.
 
 /** The store of the messages in our letters' threads. */
 const LETTER_REPLIES = "letter-replies";

@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import { EVENT_IMAGE_HOSTS } from "@/lib/event-image-hosts";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { march } from "@/lib/content/march";
-import { CHECKOUT_HEADER } from "@/tests/fixture-env.mjs";
+import { CHECKOUT_HEADER } from "@/lib/server/fixtures/fixture-env.mjs";
 
 // Third-party origins the site actually depends on. Kept here as one list so
 // adding an embed means updating the policy in the same place.
@@ -100,7 +100,7 @@ const nextConfig: NextConfig = {
     // This deploy's own address, from Netlify: in production the site's main
     // domain, pauseai.uk. Read only by siteUrl() (lib/site-url.ts), for every
     // link in an email and every redirect. A fixture build is told the
-    // address it's served at (FIXTURE_ORIGIN, tests/fixture-env.mjs), so its
+    // address it's served at (FIXTURE_ORIGIN, lib/server/fixtures/fixture-env.mjs), so its
     // links are whole as the live site's are; any other local build has none.
     SITE_ORIGIN:
       process.env.FIXTURE_ORIGIN ||

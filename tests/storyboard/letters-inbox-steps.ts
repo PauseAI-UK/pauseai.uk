@@ -1,14 +1,14 @@
 // What flows about the letters inbox share: mail arriving there, as a file
-// the build's fake Gmail picks up (tests/fixtures/letters-inbox.ts); the
+// the build's fake Gmail picks up (lib/server/fixtures/letters-inbox.ts); the
 // hourly jobs that read it and work through the queue, run through their
 // own routes; and the emails the build sent, found by the Message-ID each
 // went with.
 import { expect, type APIRequestContext } from "@playwright/test";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { LETTERS_INBOX_DIR } from "../checkout.mjs";
-import { deliverToLettersInbox } from "../fixtures/letters-inbox";
+import { deliverToLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { LETTERS_INBOX, testMail, testProxy, type TestMail } from "../fixtures/test-mail";
-import type { OutboxEmail } from "../fixtures/outbox";
+import type { OutboxEmail } from "@/lib/server/fixtures/outbox";
 import { newestEmail } from "../steps";
 import { BASE } from "./fixtures";
 

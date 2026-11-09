@@ -604,7 +604,7 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
     "Morag replies. Within the hour their Gmail is read, and her reply shows under the letter, without the letter she quotes.",
   );
 
-  // Morag answers, and the hourly read of your Gmail keeps her reply (tests/fixtures/letter-replies/).
+  // Morag answers, and the hourly read of your Gmail keeps her reply (lib/server/fixtures/letter-replies/).
   const letterId = page.url().split("/").at(-1);
   runSql(
     flowDatabase,

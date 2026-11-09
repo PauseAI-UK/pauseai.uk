@@ -1,4 +1,4 @@
-import { FIXTURE_NOW } from "../fixture-env.mjs";
+import { FIXTURE_NOW } from "@/lib/server/fixtures/fixture-env.mjs";
 import { campaigns } from "@/lib/content/email-your-mp";
 import type { Page } from "@playwright/test";
 import { marchSignupCopy } from "@/lib/content/march-signup";
@@ -20,7 +20,7 @@ import {
   sendLetter,
   syncPoliticians,
 } from "../steps";
-import { LETTERS_INBOX } from "../fixture-env.mjs";
+import { LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 

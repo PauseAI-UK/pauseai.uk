@@ -1,9 +1,9 @@
 import "server-only";
-import { fixtureResponse } from "@/tests/fixtures/outside-services";
+import { fixtureResponse } from "@/lib/server/fixtures/outside-services";
 
 /**
  * fetch() for calls to outside services (Luma, Airtable, postcodes.io, ...). With
- * DATA_FIXTURES=1 it answers from tests/fixtures instead, so a test build
+ * DATA_FIXTURES=1 it answers from lib/server/fixtures/ instead, so a test build
  * renders the same data every time and works offline (docs/testing.md).
  * The calling code still parses the response, so it is exercised either way.
  */

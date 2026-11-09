@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { closeDb, query, transaction, verifyFullUrl } from "./db";
 import { describeWithDatabase, MAKES_DATABASES, useTestDatabase, withDatabaseDown } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
-import { FLOW_DATABASE_COOKIE } from "@/tests/fixture-env.mjs";
+import { FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
 import { dropDatabase, freshDatabase, runSql } from "@/scripts/fresh-database.mjs";
 import { staffCopy } from "@/lib/content/staff-interface";
 

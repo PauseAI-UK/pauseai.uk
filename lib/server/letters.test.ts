@@ -1,5 +1,5 @@
 import { docFromMarkup } from "@/lib/letter-format";
-import { deliverToLettersInbox, resetLettersInbox } from "@/tests/fixtures/letters-inbox";
+import { deliverToLettersInbox, resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { LETTERS_INBOX, stubLettersInboxEnv, testMail, testProxy } from "@/tests/gmail-sends";
 import { readGmail } from "./gmail-reading";
 import { submitLetter } from "./mp-letters";
