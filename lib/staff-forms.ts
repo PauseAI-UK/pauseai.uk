@@ -18,7 +18,7 @@ export function idFrom(form: FormData, name = "id"): number | undefined {
 }
 
 /** When a form says something goes: its day, as YYYY-MM-DD, and hour, in London; undefined if either isn't one. */
-export function dueAtFrom(form: FormData): string | undefined {
+export function dueAtFrom(form: FormData): Date | undefined {
   const day = form.get("day");
   const hour = Number(form.get("hour"));
   if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day) || !(hour >= 0 && hour < 24)) return undefined;

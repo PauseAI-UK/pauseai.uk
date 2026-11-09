@@ -80,6 +80,10 @@ export const config = {
   get notifyMailDomain(): string {
     return value(process.env.NOTIFY_MAIL_DOMAIN) ?? "notify.pauseai.uk";
   },
+  /** The WhatsApp business account's number, which texts to supporters come from (lib/server/broadcast-channels.ts). */
+  get whatsappNumber(): string | undefined {
+    return value(process.env.WHATSAPP_NUMBER);
+  },
   /** Where an email that isn't really sent is written (lib/server/fixtures/outbox.ts). */
   get outboxDir(): string | undefined {
     return value(process.env.OUTBOX_DIR);

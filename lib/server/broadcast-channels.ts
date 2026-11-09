@@ -1,6 +1,6 @@
 import "server-only";
-import { fixturesEnabled } from "@/lib/fixtures-enabled";
 import type { BroadcastChannel } from "@/lib/broadcasts";
+import { config } from "./config";
 import type { ChannelResult } from "./mailing-channels";
 
 // What sends a message to a supporter once it's written: a real backend for
@@ -16,10 +16,10 @@ const fakeBackend: BroadcastBackend = { send: async ({ to }) => ({ sent: true, i
 
 /** What sends messages to supporters, if anything does yet. */
 export function broadcastBackend(): BroadcastBackend | undefined {
-  return fixturesEnabled() ? fakeBackend : undefined;
+  return config.fixtures ? fakeBackend : undefined;
 }
 
 /** The WhatsApp business account's number, as texts appear from it, if one is set. */
 export function textSenderNumber(): string | null {
-  return process.env.WHATSAPP_NUMBER || null;
+  return config.whatsappNumber ?? null;
 }

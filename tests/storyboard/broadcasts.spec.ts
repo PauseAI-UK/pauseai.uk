@@ -373,7 +373,7 @@ test("A text sent, and the conversation", async ({ page, request, flowDatabase }
     "Someone replied. Their copy shows the conversation, and a reply is free for 24 hours after their last message.",
   );
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
-  await expect(page.getByText(copy.replyWindow(staffTime("2026-10-17T09:30:00Z")))).toBeVisible();
+  await expect(page.getByText(copy.replyWindow(staffTime(new Date("2026-10-17T09:30:00Z"))))).toBeVisible();
   await frame(page, "The conversation");
   await page.getByLabel(copy.reply).fill("Yes, dogs are welcome.");
   await page.getByRole("button", { name: copy.sendReply.text }).click();

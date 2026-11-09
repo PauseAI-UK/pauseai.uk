@@ -711,7 +711,7 @@ describe("StaffAccountsTable", () => {
       lastLoginAt: null,
       lastSeenAt: null,
       sessions: 0,
-      gmailConnectedAt: "2026-10-21T09:00:00Z",
+      gmailConnectedAt: new Date("2026-10-21T09:00:00Z"),
     },
     {
       email: "samuel.whitlock@pauseai.uk",

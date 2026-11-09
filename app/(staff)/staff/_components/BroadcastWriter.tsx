@@ -49,7 +49,6 @@ import {
 import {
   DraftTitle,
   DueSection,
-  Numbered,
   ProblemList,
   ScheduleButton,
   TEST_NEEDS,
@@ -67,6 +66,7 @@ import TextBubble from "./TextBubble";
 import Grid, { Card } from "./ui/Grid";
 import NotIcon from "./ui/NotIcon";
 import Strip from "./ui/Strip";
+import Numbered from "./ui/Numbered";
 import styles from "./MailingWriter.module.css";
 import own from "./Broadcasts.module.css";
 
@@ -78,7 +78,7 @@ type Changes = {
   body: MailingDoc;
   sentFrom: string | null;
   fromName: string | null;
-  dueAt: string | null;
+  dueAt: Date | null;
   templateId: number | null;
   /** A text's, which has no subject to be one. */
   title: string;
@@ -199,7 +199,7 @@ function BroadcastPreview({
   gmail: string | null;
   /** What it still needs before there's something to test, as the Send section says it. */
   needs: string[];
-  dueAt: string | null;
+  dueAt: Date | null;
   sendTest: (meets: string[], to: string) => ReturnType<BroadcastWriterActions["sendTest"]>;
 }) {
   const email = draft.channel === "email";

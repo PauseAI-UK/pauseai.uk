@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { MAX_ATTACHMENT_BYTES } from "@/lib/mailing-attachments";
 import { earliestHour, fromLondon, londonDayHour } from "@/lib/staff-time";
@@ -30,18 +30,6 @@ export type DraftActions = {
   attach: (form: FormData) => Promise<AttachResult | undefined>;
   detach: (id: number, version: number, attachmentId: number) => Promise<AttachResult>;
 };
-
-/** A section's title: its number, then its name. */
-export function Numbered({ n, children }: { n: number; children: ReactNode }) {
-  return (
-    <>
-      <span className={styles.number} aria-hidden="true">
-        {n}
-      </span>
-      {children}
-    </>
-  );
-}
 
 /** Whether the draft is saved: saving, grey; saved, green; not saved, red. */
 function SaveStatePill({ state }: { state: SaveState }) {
@@ -98,7 +86,7 @@ export function DraftTitle({ title, saveState }: { title: string; saveState?: Sa
  * that becomes so while it's open, moves on to the first hour it can go at,
  * and that's saved.
  */
-export function useDraftWriter<Changes extends { dueAt: string | null }>({
+export function useDraftWriter<Changes extends { dueAt: Date | null }>({
   id,
   version: firstVersion,
   initial,
@@ -198,7 +186,7 @@ export function useDraftWriter<Changes extends { dueAt: string | null }>({
   useEffect(() => {
     const check = () => {
       const due = latest.current.dueAt;
-      if (due && Date.parse(due) < Date.parse(earliestHour())) change({ dueAt: earliestHour() } as Partial<Changes>);
+      if (due && due < earliestHour()) change({ dueAt: earliestHour() } as Partial<Changes>);
     };
     check();
     const timer = setInterval(check, CHECK_EVERY);
@@ -270,7 +258,7 @@ export function ProblemList({ problems }: { problems: string[] }) {
  * When a draft goes: London's day and hour. A day chosen without an hour is
  * kept, showing, till there's an hour too, which sets `dueAt`.
  */
-export function DueSection({ dueAt, onChange }: { dueAt: string | null; onChange: (dueAt: string) => void }) {
+export function DueSection({ dueAt, onChange }: { dueAt: Date | null; onChange: (dueAt: Date) => void }) {
   const [dayPicked, setDayPicked] = useState("");
   const when = dueAt ? londonDayHour(dueAt) : { day: dayPicked || londonDayHour(earliestHour()).day, hour: null };
   return (

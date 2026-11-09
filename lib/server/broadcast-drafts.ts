@@ -57,13 +57,13 @@ export type WhatsAppTemplate = {
   status: "pending" | "approved" | "rejected";
   /** Who made it, or none for one made in WhatsApp Manager. */
   createdBy: string | null;
-  approvedAt: string | null;
+  approvedAt: Date | null;
   /** When it was sent to WhatsApp for approval, or made in WhatsApp Manager. */
-  requestedAt: string;
-  rejectedAt: string | null;
+  requestedAt: Date;
+  rejectedAt: Date | null;
   rejectedReason: string | null;
   /** When it last went, and to how many; none if it never has. */
-  lastUsedAt: string | null;
+  lastUsedAt: Date | null;
   lastUsedTo: number;
 };
 

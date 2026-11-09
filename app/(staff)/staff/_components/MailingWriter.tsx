@@ -33,7 +33,6 @@ import type { PreviewRecipient, WriterData } from "@/lib/server/mailing-pages";
 import {
   DraftTitle,
   DueSection,
-  Numbered,
   ProblemList,
   ScheduleButton,
   TEST_NEEDS,

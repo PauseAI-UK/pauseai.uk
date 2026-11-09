@@ -29,7 +29,7 @@ vi.mock("next/cache", () => ({ revalidatePath }));
 const JO = "jo@pauseai.uk";
 const EMAIL = { contact: "email:luma-calendar:yes" };
 const TEXT = { contact: "phone:luma-calendar:yes" };
-const FUTURE = "2099-01-01T09:18:00.000Z";
+const FUTURE = new Date("2099-01-01T09:18:00.000Z");
 
 function form(fields: Record<string, string | string[] | File>) {
   const data = new FormData();

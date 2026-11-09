@@ -28,7 +28,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readOutbox } from "@/tests/fixtures/outbox";
+import { readOutbox } from "@/lib/server/fixtures/outbox";
 
 const NOTIFICATIONS = "notifications@example.org";
 
@@ -41,7 +41,7 @@ function outbox() {
 }
 
 const JO = "jo@pauseai.uk";
-const FUTURE = "2099-01-01T09:18:00.000Z";
+const FUTURE = new Date("2099-01-01T09:18:00.000Z");
 /** EVENT_WORDS as an email about a template says them, its fields as words. */
 const SAID = toText(letterFor(EVENT_WORDS, FIELDS_AS_WORDS));
 const EMAIL_FILTER = { contact: "email:luma-calendar:yes" };

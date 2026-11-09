@@ -485,7 +485,7 @@ export function StaffAccountsTableExample() {
               lastLoginAt: new Date("2026-10-22T08:00:00Z"),
               lastSeenAt: new Date("2026-10-22T09:15:00Z"),
               sessions: 2,
-              gmailConnectedAt: "2026-10-21T09:00:00Z",
+              gmailConnectedAt: new Date("2026-10-21T09:00:00Z"),
             },
             {
               email: "samuel.whitlock@pauseai.uk",

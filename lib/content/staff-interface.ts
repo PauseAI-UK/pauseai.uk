@@ -1124,7 +1124,7 @@ All events: ${link}`,
     none: "No broadcasts yet.",
     untitled: "Untitled draft",
     // In the supporters list's count row.
-    broadcastButton: (n: number) => `Broadcast to ${n} ${n === 1 ? "supporter" : "supporters"}`,
+    broadcastButton: (n: number) => `Broadcast to ${count(n, "supporter", "supporters")}`,
     // Change who: the supporters list choosing who a draft goes to.
     choosing: (title: string) => `Change who the broadcast “${title}” goes to`,
     choosingHow: "Change the filters. The broadcast goes to everyone they find at the time it is actually sent.",
@@ -1135,7 +1135,7 @@ All events: ${link}`,
     consentLocked: "⁂ Change the Consent in the broadcast",
     // The same, for a draft with nothing written yet, as from New broadcast.
     choosingNew: "Choose who the new broadcast goes to",
-    choosingCount: (n: number) => `${n} ${n === 1 ? "supporter" : "supporters"} found`,
+    choosingCount: (n: number) => `${count(n, "supporter", "supporters")} found`,
     choosingLabel: "⁂ Who the broadcast goes to",
     useThese: (n: number) => `Use these ${n}`,
     // A broadcast's channel, as a pill, a list's row and the band say it.
@@ -1167,7 +1167,7 @@ All events: ${link}`,
     // The numbered sections of a draft.
     sections: { who: "To", write: "Write", preview: "Preview", from: "From", when: "When", send: "Send" },
     willGet: (n: number, channel: "email" | "text") =>
-      `${n} ${n === 1 ? "supporter" : "supporters"} will be ${channel === "email" ? "emailed" : "texted"}.`,
+      `${count(n, "supporter", "supporters")} will be ${channel === "email" ? "emailed" : "texted"}.`,
     leftOut: (found: number, counts: { reason: string; n: number }[]) =>
       `⁂ Of ${found} the filters find, ${counts.reduce((all, one) => all + one.n, 0)} are left out: ${counts.map((one) => `${one.n} ${one.reason}`).join(", ")}.`,
     leftOutCounted: {
@@ -1195,7 +1195,7 @@ All events: ${link}`,
     templateMadeIn: "⁂ Made in WhatsApp Manager",
     templateBy: (name: string, approved: string, used: string) => `${name}, approved ${approved}, ${used}`,
     templateNeverUsed: "never used",
-    templateUsed: (at: string, n: number) => `last used ${at}, to ${n} ${n === 1 ? "person" : "people"}`,
+    templateUsed: (at: string, n: number) => `last used ${at}, to ${count(n, "person", "people")}`,
     newTemplateHint: "WhatsApp needs to approve the new template before it can go. This takes up to 24 hours.",
     rejected: (at: string, reason: string) =>
       `⁂ WhatsApp rejected the template on ${at}: ${reason} Change the words and send them for approval again.`,
@@ -1232,10 +1232,10 @@ All events: ${link}`,
     },
     summary: (n: number, channel: "email" | "text", from: string, when: string | null) =>
       channel === "email"
-        ? `⁂ ${n} ${n === 1 ? "email" : "emails"} from ${from}${when ? `, on ${when}` : ""}.`
-        : `${n} ${n === 1 ? "text" : "texts"} from ${from} on WhatsApp${when ? `, on ${when}` : ""}.`,
+        ? `⁂ ${count(n, "email", "emails")} from ${from}${when ? `, on ${when}` : ""}.`
+        : `${count(n, "text", "texts")} from ${from} on WhatsApp${when ? `, on ${when}` : ""}.`,
     schedule: (n: number, channel: "email" | "text") =>
-      `Schedule ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"}`,
+      `Schedule ${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")}`,
     // At the foot of a text on new words: sending them to WhatsApp, and while it reviews them.
     submitTemplate: "Send for approval",
     // Over new words, what they're called in the list of templates, and the heading over the words.
@@ -1266,7 +1266,7 @@ All events: ${link}`,
     } as Record<string, string>,
     // Its page.
     scheduledLine: (n: number, channel: "email" | "text", from: string) =>
-      `${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"} from ${from}.`,
+      `${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")} from ${from}.`,
     byBackend: { email: "by email", text: "by WhatsApp" },
     textTitle: "The text",
     emailTitle: "The email",
@@ -1285,7 +1285,7 @@ All events: ${link}`,
       replied: "⁂ Replied",
     } as Record<string, string>,
     recipientsTitle: "Recipients",
-    recipientsCount: (n: number) => `${n} ${n === 1 ? "recipient" : "recipients"}`,
+    recipientsCount: (n: number) => count(n, "recipient", "recipients"),
     noRecipients: "No recipients here.",
     // In place of the recipients of one scheduled, as sending finds them.
     recipientsNow: "Who it would go to if sent now. May change by the time it is sent.",
@@ -1309,7 +1309,7 @@ All events: ${link}`,
     threadLink: "Thread →",
     // Thread: one copy's page.
     copySubtitle: (title: string, channel: "email" | "text", n: number) =>
-      `⁂ ${title}, ${channel === "email" ? "an email" : "a text"} to ${n} ${n === 1 ? "supporter" : "supporters"}`,
+      `⁂ ${title}, ${channel === "email" ? "an email" : "a text"} to ${count(n, "supporter", "supporters")}`,
     copyTag: { replied: "⁂ Replied" },
     facts: {
       sent: "⁂ Sent",

@@ -52,7 +52,7 @@ const groups = mailingGroups(
         id: 4,
         state: "scheduled" as const,
         channel: "text" as const,
-        dueAt: "2026-11-07T07:18:00Z",
+        dueAt: new Date("2026-11-07T07:18:00Z"),
         title: "March day: where to meet",
         fromName: "PauseAI UK",
         sentFrom: "+447700900000",
@@ -61,7 +61,7 @@ const groups = mailingGroups(
         ...exampleBroadcastSummary,
         id: 6,
         state: "scheduled" as const,
-        dueAt: "2026-11-08T07:18:00Z",
+        dueAt: new Date("2026-11-08T07:18:00Z"),
         title: "Sunday's stall",
       },
     ],
@@ -251,20 +251,6 @@ export const staffBroadcasts: Group = {
       ],
     },
     {
-      name: "Numbered",
-      file: "app/(staff)/staff/_components/DraftWriter.tsx",
-      variants: [
-        {
-          label: "A section's title, as in the draft above",
-          render: () => (
-            <StaffPage as="div">
-              <DraftTitleExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
       name: "BroadcastsOverview",
       file: "app/(staff)/staff/_components/BroadcastsOverview.tsx",
       variants: [
@@ -445,9 +431,9 @@ export const staffBroadcasts: Group = {
                     channel: "text",
                     status: "delivered",
                     skipReason: null,
-                    sentAt: "2026-11-07T07:18:00Z",
+                    sentAt: new Date("2026-11-07T07:18:00Z"),
                     read: true,
-                    replies: [{ at: "2026-11-07T07:52:00Z", body: "Great, thanks." }],
+                    replies: [{ at: new Date("2026-11-07T07:52:00Z"), body: "Great, thanks." }],
                   },
                   {
                     copyId: 22,

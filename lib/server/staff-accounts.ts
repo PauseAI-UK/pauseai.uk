@@ -27,7 +27,7 @@ export type StaffAccount = {
    * accepting is disconnected as soon as the site next uses it, so a Gmail
    * still connected was working when last used.
    */
-  gmailConnectedAt: string | null;
+  gmailConnectedAt: Date | null;
 };
 
 /** The account for `email`, if it has one. */

@@ -1,13 +1,8 @@
 "use client";
 
 // The interactive examples of the pages of broadcasts to supporters.
-import {
-  DraftTitle,
-  DueSection,
-  Numbered,
-  ProblemList,
-  ScheduleButton,
-} from "@/app/(staff)/staff/_components/DraftWriter";
+import { DraftTitle, DueSection, ProblemList, ScheduleButton } from "@/app/(staff)/staff/_components/DraftWriter";
+import Numbered from "@/app/(staff)/staff/_components/ui/Numbered";
 import { MailingStanding } from "@/app/(staff)/staff/_components/MailingView";
 import MessageCopyView from "@/app/(staff)/staff/_components/MessageCopyView";
 import BroadcastFor, { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
@@ -79,7 +74,7 @@ export function BroadcastWriterExample({
                 template: {
                   ...exampleTemplates[0],
                   status: "rejected" as const,
-                  rejectedAt: "2026-11-05T14:02:00Z",
+                  rejectedAt: new Date("2026-11-05T14:02:00Z"),
                   rejectedReason: "The text ends with a merge field.",
                 },
               };
@@ -196,7 +191,7 @@ export function BroadcastViewExample({ kind }: { kind: "email" | "text" | "sched
               ...exampleBroadcastSent.written,
               ...text,
               state: "scheduled" as const,
-              dueAt: "2026-11-07T07:18:00Z",
+              dueAt: new Date("2026-11-07T07:18:00Z"),
             },
           };
   return (

@@ -86,7 +86,7 @@ export async function broadcastsPage(): Promise<{ groups: MailingGroup<Broadcast
       {
         drafts: counted.filter((m) => m.state === "draft"),
         comingUp: [...counted.filter((m) => m.state === "scheduled"), ...all.filter((m) => m.state === "sending")].sort(
-          (a, b) => Date.parse(a.dueAt!) - Date.parse(b.dueAt!),
+          (a, b) => a.dueAt!.getTime() - b.dueAt!.getTime(),
         ),
         sent: all.filter((m) => m.state !== "sending"),
       },
@@ -105,7 +105,7 @@ export type MessageRecipient = {
   place: string | null;
   status: string;
   skipReason: string | null;
-  sentAt: string | null;
+  sentAt: Date | null;
   read: boolean;
   replies: number;
 };
@@ -311,7 +311,7 @@ export async function broadcastTitle(id: number): Promise<string | undefined> {
 }
 
 /** What was said after a message: `sentBy` for a staff member's answer, none for the supporter's reply. */
-export type MessageReply = { id: number; at: string; body: string; sentBy: string | null };
+export type MessageReply = { id: number; at: Date; body: string; sentBy: string | null };
 
 /** One supporter's copy of a broadcast, and every reply, oldest first. */
 export type MessageCopy = {
@@ -332,15 +332,15 @@ export type MessageCopy = {
   merge: MailingRecipientValues | null;
   status: string;
   skipReason: string | null;
-  sentAt: string | null;
-  deliveredAt: string | null;
-  readAt: string | null;
+  sentAt: Date | null;
+  deliveredAt: Date | null;
+  readAt: Date | null;
   replies: MessageReply[];
   /** Until when a reply to a text can go; none until they've written. */
-  replyUntil: string | null;
+  replyUntil: Date | null;
   /** Whether a reply can be sent yet. */
   sends: boolean;
-  now: string;
+  now: Date;
 };
 
 /** One copy of a broadcast, by its broadcast's ID and its own; or undefined. */
@@ -362,14 +362,14 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
     `SELECT id::int AS id, at, body, sent_by AS "sentBy" FROM broadcast_replies WHERE message_id = $1 ORDER BY at, id`,
     [copyId],
   );
-  const fromThem = replies.filter((reply) => !reply.sentBy).map((reply) => new Date(reply.at).toISOString());
+  const fromThem = replies.filter((reply) => !reply.sentBy).map((reply) => reply.at);
   return {
     ...row,
     body: checkMailingDoc(row.body)!,
     replies,
     replyUntil: textReplyUntil(fromThem.at(-1) ?? null),
     sends: Boolean(broadcastBackend()),
-    now: now().toISOString(),
+    now: now(),
   };
 }
 
@@ -381,14 +381,14 @@ export type SupporterBroadcastRow = {
   channel: BroadcastChannel;
   status: string;
   skipReason: string | null;
-  sentAt: string | null;
+  sentAt: Date | null;
   read: boolean;
-  replies: { at: string; body: string }[];
+  replies: { at: Date; body: string }[];
 };
 
 /** The broadcasts a supporter was sent, newest first. */
 export async function broadcastsToSupporter(supporterId: number): Promise<SupporterBroadcastRow[]> {
-  return query<SupporterBroadcastRow>(
+  const rows = await query<Omit<SupporterBroadcastRow, "replies"> & { replies: { at: string; body: string }[] }>(
     `SELECT c.id::int AS "copyId", m.id::int AS "messageId", m.title, m.channel, c.status, c.skip_reason AS "skipReason",
        c.sent_at AS "sentAt", ${WAS_READ} AS read,
        coalesce((SELECT json_agg(json_build_object('at', r.at, 'body', r.body) ORDER BY r.at, r.id) FROM broadcast_replies r
@@ -397,6 +397,8 @@ export async function broadcastsToSupporter(supporterId: number): Promise<Suppor
      WHERE c.supporter_id = $1 ORDER BY c.sent_at DESC NULLS FIRST, c.id DESC`,
     [supporterId],
   );
+  // The replies come as JSON, their times as text.
+  return rows.map((row) => ({ ...row, replies: row.replies.map((reply) => ({ ...reply, at: new Date(reply.at) })) }));
 }
 
 /** The draft the supporters list is choosing who for. */

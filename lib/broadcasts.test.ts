@@ -44,11 +44,11 @@ describe("broadcastTerms", () => {
 
 describe("the fixed limits", () => {
   it("stops a text three days after its time", () => {
-    expect(textStopsAt("2026-11-12T09:18:00.000Z")).toBe("2026-11-15T09:18:00.000Z");
+    expect(textStopsAt(new Date("2026-11-12T09:18:00.000Z"))).toEqual(new Date("2026-11-15T09:18:00.000Z"));
   });
 
   it("keeps a reply free for a day after their last message, and none before they've written", () => {
-    expect(textReplyUntil("2026-11-07T08:52:00.000Z")).toBe("2026-11-08T08:52:00.000Z");
+    expect(textReplyUntil(new Date("2026-11-07T08:52:00.000Z"))).toEqual(new Date("2026-11-08T08:52:00.000Z"));
     expect(textReplyUntil(null)).toBeNull();
   });
 });
@@ -150,7 +150,7 @@ describe("broadcastScheduleProblems", () => {
     subject: "Hello",
     title: "Hello",
     body: WORDS,
-    dueAt: "2099-01-01T09:18:00Z",
+    dueAt: new Date("2099-01-01T09:18:00Z"),
     recipients: 3,
     unknown: [],
     byGmail: false,
@@ -226,7 +226,7 @@ describe("broadcastScheduleProblems", () => {
 
   it("won't send into the past", () => {
     vi.setSystemTime(new Date("2026-11-05T12:00:00Z"));
-    expect(broadcastScheduleProblems({ ...good, dueAt: "2026-11-05T11:00:00Z" })).toEqual(["time-passed"]);
+    expect(broadcastScheduleProblems({ ...good, dueAt: new Date("2026-11-05T11:00:00Z") })).toEqual(["time-passed"]);
     vi.useRealTimers();
   });
 });

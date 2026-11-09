@@ -128,16 +128,16 @@ export function textSender(name: string, number: string): string {
 const TEXT_SENDS_FOR_DAYS = 3;
 
 /** When a text due at `dueAt` stops sending, as an ISO string. */
-export function textStopsAt(dueAt: string): string {
-  return new Date(Date.parse(dueAt) + TEXT_SENDS_FOR_DAYS * 24 * 60 * 60 * 1000).toISOString();
+export function textStopsAt(dueAt: Date): Date {
+  return new Date(dueAt.getTime() + TEXT_SENDS_FOR_DAYS * 24 * 60 * 60 * 1000);
 }
 
 /** A reply to a text is free for this long after the person's last message. */
 export const TEXT_REPLY_HOURS = 24;
 
 /** Until when a reply to a text can go, as an ISO string: `TEXT_REPLY_HOURS` after their last message, or never with none. */
-export function textReplyUntil(lastFromThem: string | null): string | null {
-  return lastFromThem && new Date(Date.parse(lastFromThem) + TEXT_REPLY_HOURS * 60 * 60 * 1000).toISOString();
+export function textReplyUntil(lastFromThem: Date | null): Date | null {
+  return lastFromThem && new Date(lastFromThem.getTime() + TEXT_REPLY_HOURS * 60 * 60 * 1000);
 }
 
 /** What an email costs by Postmark's broadcast stream, in dollars (https://postmarkapp.com/pricing). */
@@ -153,7 +153,7 @@ const EMAIL_DOLLARS_EACH = 0.00125;
 const TEXT_PENCE_EACH = 4.58;
 
 /** When that rate came in, said beside it, as it may have changed since. */
-const TEXT_RATE_FROM = "2026-10-01";
+const TEXT_RATE_FROM = new Date("2026-10-01");
 
 /** What `n` messages by `channel` cost, in words, and for texts the rate it's worked out at and since when. */
 export function broadcastCost(channel: BroadcastChannel, n: number): { about: string; rate?: string } {
@@ -213,7 +213,7 @@ export type SchedulingBroadcast = {
   /** A text's, which new words are called by as a template. */
   title: string;
   body: MailingDoc;
-  dueAt: string | null;
+  dueAt: Date | null;
   /** How many it goes to. */
   recipients: number;
   /** The values of its filter the site no longer knows. */

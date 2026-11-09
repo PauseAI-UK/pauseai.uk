@@ -40,7 +40,7 @@ afterEach(() => leavePage.mockClear());
 const copy = staffCopy.broadcastPages;
 const WAIT = { timeout: 3000 };
 const nothing = async () => {};
-const stopsFor = (dueAt: string) => copy.stopsOn(londonWhen(textStopsAt(dueAt), "short"));
+const stopsFor = (dueAt: Date) => copy.stopsOn(londonWhen(textStopsAt(dueAt), "short"));
 
 function fakeActions() {
   let version = 4;
@@ -539,7 +539,7 @@ describe("BroadcastWriter, by text", () => {
     const template: WhatsAppTemplate = {
       ...exampleTemplates[0],
       status: "rejected",
-      rejectedAt: "2026-11-05T14:02:00Z",
+      rejectedAt: new Date("2026-11-05T14:02:00Z"),
       rejectedReason: "It ends with a merge field.",
     };
     await renderWriter({ draft: { ...exampleBroadcastText, body: exampleTextWords, template } });
@@ -799,10 +799,10 @@ describe("a broadcast's page", () => {
     const data = {
       ...text,
       summary: { ...text.summary, state: "scheduled" as const },
-      written: { ...text.written, state: "scheduled" as const, dueAt: "2026-11-07T07:18:00Z" },
+      written: { ...text.written, state: "scheduled" as const, dueAt: new Date("2026-11-07T07:18:00Z") },
     };
     await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
-    await expect.element(page.getByText(stopsFor("2026-11-07T07:18:00Z"))).toBeVisible();
+    await expect.element(page.getByText(stopsFor(new Date("2026-11-07T07:18:00Z")))).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.counts.delivered })).not.toBeInTheDocument();
     // Who the filters find now, as sending finds who it goes to.
     await expect.element(page.getByText(copy.recipientsNow)).toBeVisible();
@@ -828,7 +828,7 @@ describe("a broadcast's page", () => {
         ...exampleBroadcastSent.written,
         state: "scheduled" as const,
         fromName: "",
-        dueAt: "2026-11-07T07:18:00Z",
+        dueAt: new Date("2026-11-07T07:18:00Z"),
       },
     };
     await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
@@ -940,7 +940,10 @@ describe("MessageCopyView", () => {
 
   it("closes the box a day after their last message, or until they've written", async () => {
     await render(
-      <MessageCopyView one={{ ...exampleMessageCopy, replyUntil: "2026-11-07T08:00:00.000Z" }} reply={nothing} />,
+      <MessageCopyView
+        one={{ ...exampleMessageCopy, replyUntil: new Date("2026-11-07T08:00:00.000Z") }}
+        reply={nothing}
+      />,
     );
     await expect.element(page.getByText(copy.replyClosed)).toBeVisible();
     await expect.element(button(copy.sendReply.text)).toBeDisabled();
@@ -1017,9 +1020,9 @@ describe("SupporterBroadcasts", () => {
             channel: "text",
             status: "delivered",
             skipReason: null,
-            sentAt: "2026-11-07T07:18:00Z",
+            sentAt: new Date("2026-11-07T07:18:00Z"),
             read: true,
-            replies: [{ at: "2026-11-07T07:52:00Z", body: "Great, thanks." }],
+            replies: [{ at: new Date("2026-11-07T07:52:00Z"), body: "Great, thanks." }],
           },
           {
             copyId: 22,

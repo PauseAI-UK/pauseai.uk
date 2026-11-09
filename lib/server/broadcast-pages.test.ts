@@ -2,7 +2,7 @@ import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { LETTERS_INBOX } from "@/tests/fixture-env.mjs";
+import { LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/broadcast-fixtures";
 import { createBroadcastDraft, getWrittenBroadcast, saveBroadcastDraft, scheduleBroadcast } from "./broadcast-drafts";
 import {
@@ -18,7 +18,7 @@ import {
 } from "./broadcast-pages";
 
 const JO = "jo@pauseai.uk";
-const FUTURE = "2099-01-01T09:18:00.000Z";
+const FUTURE = new Date("2099-01-01T09:18:00.000Z");
 const EMAIL_FILTER = { contact: "email:luma-calendar:yes" };
 const TEXT_FILTER = { contact: "phone:luma-calendar:yes" };
 
@@ -272,7 +272,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
         { body: "Is it on?", sentBy: null },
         { body: "Yes", sentBy: JO },
       ],
-      replyUntil: "2026-10-21T09:00:00.000Z",
+      replyUntil: new Date("2026-10-21T09:00:00.000Z"),
     });
     // Erased, it keeps only that it was sent.
     await query("UPDATE broadcast_messages SET supporter_id = NULL, address = NULL, merge_values = NULL");

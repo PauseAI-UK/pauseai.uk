@@ -47,7 +47,7 @@ const COLUMNS: ListColumn<SupporterBroadcastRow>[] = [
     cell: (m) => (
       <ul className={styles.replies}>
         {m.replies.map((reply) => (
-          <li key={reply.at}>
+          <li key={reply.at.toISOString()}>
             {reply.body} <Muted>{staffDate(reply.at)}</Muted>
           </li>
         ))}
