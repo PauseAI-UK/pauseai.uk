@@ -73,6 +73,7 @@ export const staffCopy = {
     politicians: "Politicians",
     asks: "Asks",
     mailings: "Mailings",
+    broadcasts: "Broadcasts",
     events: "Events",
     import: "Import data",
     changes: "Audit log",
@@ -81,6 +82,7 @@ export const staffCopy = {
     sentEmails: "Sent emails",
     // Beside a page the staff member first saw in the last 3 days.
     newTag: "new",
+    draftTag: "draft",
     supporterEmails: "Blocked emails",
     signupUpload: "Import sign-ups",
     mpEmails: "Blocked emails",
@@ -423,7 +425,7 @@ export const staffCopy = {
       campaign: "Campaign",
       wrote: { "": "Wrote", no: "Didn't write" } as Record<string, string>,
       // The other filters are named after their columns.
-      // The Contact filter: its topics under their channel's heading, each named short, a phone's with how we'd
+      // The Consent filter: its topics under their channel's heading, each named short, a phone's with how we'd
       // contact them after it; then in its chip's second half, its answer, as a supporter's page words it.
       channels: { email: "Email", phone: "Phone" } as Record<Channel, string>,
       topics: {
@@ -441,7 +443,9 @@ export const staffCopy = {
       phone: "Phone",
       place: "Place",
       badges: "Activities",
-      subscriptions: "Contact",
+      subscriptions: "Consent",
+      // With the Consent filter: why each answer it finds is what it is.
+      consentReason: "Consent reason",
       firstSeen: "First sign-up",
       lastActive: "Last activity",
       events: "Luma events",
@@ -477,8 +481,6 @@ export const staffCopy = {
       } as Record<Channel, Record<string, string>>,
       // A yes that an unsubscribe we can't see may have undone.
       unsure: (topic: string) => `${topic} (?)`,
-      // Every address they have is blocked.
-      blocked: "Blocked",
     },
     sources: {
       luma: "Luma",
@@ -637,9 +639,7 @@ export const staffCopy = {
             },
           },
         } as Record<Channel, Record<string, { about: string; yes: string; no: string; caveat?: string }>>,
-        // One tile in place of the topics', when the address is blocked: in place of a topic, then the answer.
-        everyTopic: "Every topic",
-        blocked: "Can't email: blocked",
+        // Why a blocked address is a no, under each of its topics: what blocked it, then the link to the list.
         blockedBecause: {
           hard: (when: string) => `An email to it bounced, ${when}.`,
           complaint: (when: string) => `They marked an email as spam, ${when}.`,
@@ -758,7 +758,11 @@ export const staffCopy = {
       lastLogin: "Last login",
       lastSeen: "Last seen",
       sessions: "Sessions open",
+      gmail: "Gmail",
     },
+    // In the Gmail column: connected, before when; or not.
+    gmailConnected: "Connected",
+    gmailNot: "Not connected",
     // In the Added column, after when: who added the account, or that its first login did.
     addedBy: (who: string) => `by ${who}`,
     addedByLogin: "by login",
@@ -1011,7 +1015,7 @@ All events: ${link}`,
   },
   mailings: {
     title: "Mailings",
-    intro: "Emails PauseAI sends to many notable people at once.",
+    intro: "Emails PauseAI sends to many notable people at once",
     none: "No mailings yet.",
     // Over the list: how many there are.
     total: (n: number) => count(n, "mailing", "mailings"),
@@ -1111,6 +1115,237 @@ All events: ${link}`,
     } as Record<string, string>,
     answered: (words: string, ask: string) => `${words} ${ask}`,
   },
+  // The pages for broadcasts, emails and texts to supporters: from the supporters list, the writer, the list of them
+  // and each one's page; each supporter's copy of one is a message.
+  broadcastPages: {
+    title: "Broadcasts",
+    noBackend: "This is just the user interface to try it out, there is no backend for sending yet.",
+    intro: "Bulk emails and texts PauseAI sends to supporters",
+    none: "No broadcasts yet.",
+    untitled: "Untitled draft",
+    // In the supporters list's count row.
+    broadcastButton: (n: number) => `Broadcast to ${n} ${n === 1 ? "supporter" : "supporters"}`,
+    // Change who: the supporters list choosing who a draft goes to.
+    choosing: (title: string) => `Change who the broadcast “${title}” goes to`,
+    choosingHow: "Change the filters. The broadcast goes to everyone they find at the time it is actually sent.",
+    choosingCancel: "Cancel",
+    // Over the broadcast's first choice, by email or by text, before its topics.
+    consentChannel: "Email or text",
+    // Hovering the Consent's chip while choosing who a broadcast goes to, where it can't be changed.
+    consentLocked: "⁂ Change the Consent in the broadcast",
+    // The same, for a draft with nothing written yet, as from New broadcast.
+    choosingNew: "Choose who the new broadcast goes to",
+    choosingCount: (n: number) => `${n} ${n === 1 ? "supporter" : "supporters"} found`,
+    choosingLabel: "⁂ Who the broadcast goes to",
+    useThese: (n: number) => `Use these ${n}`,
+    // A broadcast's channel, as a pill, a list's row and the band say it.
+    channels: { email: "Email", text: "Text" },
+    newTitle: { email: "New broadcast", text: "New broadcast" },
+    // At the top right of the broadcasts page: to the supporters list, to choose who first.
+    newBroadcast: "New broadcast",
+    // What's filled in for those without a field, and the fields as the editor and the preview say them.
+    fallbacks: { firstName: "⁂ there", name: "⁂ friend", mp: "⁂ your MP" },
+    // Each field, as its lozenge in the editor, a template's row and a title say it.
+    fieldWords: { firstName: "⁂ First name", name: "⁂ Name", mp: "⁂ Their MP" },
+    greeting: "Hi",
+    // A new email's lines at its end, a few lines under the greeting.
+    signature: ["Best wishes,", "PauseAI UK"],
+    // What a part can be only for, as the editor's menus and the preview's case buttons say it.
+    conditions: {
+      mp: { label: "⁂ have an MP", group: "⁂ What we know", option: "⁂ Their MP" },
+      volunteer: { label: "⁂ volunteer", group: "⁂ Volunteering", option: "⁂ Volunteers" },
+      member: { label: "⁂ are members", group: "⁂ Membership", option: "⁂ Members" },
+    },
+    // The preview's buttons, of the one made-up recipient: each field they have, and each part they're in.
+    previewCases: {
+      "has:firstName": "⁂ has a first name",
+      "has:name": "⁂ has a name",
+      "has:mp": "⁂ has an MP",
+      "volunteer:yes": "⁂ volunteers",
+      "member:yes": "⁂ is a member",
+    } as Record<string, string>,
+    // The numbered sections of a draft.
+    sections: { who: "To", write: "Write", preview: "Preview", from: "From", when: "When", send: "Send" },
+    willGet: (n: number, channel: "email" | "text") =>
+      `${n} ${n === 1 ? "supporter" : "supporters"} will be ${channel === "email" ? "emailed" : "texted"}.`,
+    leftOut: (found: number, counts: { reason: string; n: number }[]) =>
+      `⁂ Of ${found} the filters find, ${counts.reduce((all, one) => all + one.n, 0)} are left out: ${counts.map((one) => `${one.n} ${one.reason}`).join(", ")}.`,
+    leftOutCounted: {
+      "no-permission": "⁂ haven't said yes to this",
+      stopped: "⁂ have asked us to stop",
+      blocked: "⁂ have addresses that are blocked",
+    },
+    leftOutReasons: {
+      "no-permission": "⁂ hasn't said yes to this",
+      stopped: "⁂ asked us to stop",
+      blocked: "⁂ address blocked",
+    },
+    cantSend:
+      "⁂ Broadcasts can't be sent yet, by email or text. You can write one, and test an email by sending it to yourself.",
+    // Write.
+    subject: "Subject",
+    emailLabel: "Email",
+    files: "Attachments",
+    // The dropdown of a text's words: its label, and its first choice till one's made.
+    templateLabel: "Template",
+    pickTemplate: "Choose a template",
+    // Over the approved ones in it, apart from New template under them.
+    approvedTemplates: "⁂ Approved templates",
+    newTemplate: "New template",
+    templateMadeIn: "⁂ Made in WhatsApp Manager",
+    templateBy: (name: string, approved: string, used: string) => `${name}, approved ${approved}, ${used}`,
+    templateNeverUsed: "never used",
+    templateUsed: (at: string, n: number) => `last used ${at}, to ${n} ${n === 1 ? "person" : "people"}`,
+    newTemplateHint: "WhatsApp needs to approve the new template before it can go. This takes up to 24 hours.",
+    rejected: (at: string, reason: string) =>
+      `⁂ WhatsApp rejected the template on ${at}: ${reason} Change the words and send them for approval again.`,
+    // Preview.
+    chooseTemplate: "⁂ Choose a template to see the text here.",
+    findRecipient: "Show a fake recipient who…",
+    // Under a text's preview.
+    stopButton: "Stop",
+    testTo: "Send a test copy to",
+    sendTest: "Send test",
+    testVia: {
+      email: (address: string) => `Sends from ${address} via Postmark.`,
+      emailGmail: (gmail: string) => `Sends from ${gmail}'s Gmail, so copies also show in Sent.`,
+      text: (number: string) => `Sends from ${number} via WhatsApp.`,
+      textNew: "A test copy can only be sent after WhatsApp has approved the template.",
+      textOff: "⁂ WhatsApp isn't connected yet, so a text can't be tested.",
+    },
+    testSent: (to: string) => `⁂ Sent to ${to}.`,
+    testFailed: "⁂ The test copy couldn't be sent.",
+    // From.
+    // Each address an email can go from, with what sends it: Postmark, or a staff member's Gmail.
+    fromOption: (address: string, backend: string) => `${address}, by ${backend}`,
+    fromAccount: "Sent from",
+    fromName: "Name",
+    noNumber: "No WhatsApp number is configured yet",
+    // When: under a text's time, the end of the days it may go in, as approval or WhatsApp's limits can hold it.
+    stopsOn: (when: string) => `⁂ Any texts not sent by ${when} won't be sent, so none arrive days late.`,
+    // Send.
+    cost: {
+      email: (dollars: string) => `⁂ About $${dollars}.`,
+      text: (pounds: string) => `About £${pounds}.`,
+      // After it, smaller and grey: the rate it's worked out at, and since when, as it may have changed.
+      textRate: (pence: number, from: string) => `${pence}p each, rate as at ${from}`,
+    },
+    summary: (n: number, channel: "email" | "text", from: string, when: string | null) =>
+      channel === "email"
+        ? `⁂ ${n} ${n === 1 ? "email" : "emails"} from ${from}${when ? `, on ${when}` : ""}.`
+        : `${n} ${n === 1 ? "text" : "texts"} from ${from} on WhatsApp${when ? `, on ${when}` : ""}.`,
+    schedule: (n: number, channel: "email" | "text") =>
+      `Schedule ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"}`,
+    // At the foot of a text on new words: sending them to WhatsApp, and while it reviews them.
+    submitTemplate: "Send for approval",
+    // Over new words, what they're called in the list of templates, and the heading over the words.
+    templateName: "Template name",
+    templateWords: "Message",
+    // Under the dropdown, for new words WhatsApp is reviewing: who sent them, and when, as an approved template's line says.
+    templatePending: (by: string, at: string) => `${by}, approval requested ${at}, withdraw request to change`,
+    // On the list of broadcasts, beside a draft's Draft, while WhatsApp reviews its words.
+    waitingTag: "Waiting for WhatsApp",
+    withdrawTemplate: "Withdraw approval request",
+    // The same, pressed once, asking for a second press.
+    withdrawSure: "Withdraw it",
+    problems: {
+      // Before a Consent by the channel picked is chosen, first of what stops it.
+      "no-consent": "⁂ Choose a consent reason.",
+      "unknown-filter": "⁂ The filter has values that have changed or are no longer supported.",
+      "no-recipients": "There's nobody to send to.",
+      "no-subject": "Fill in the subject.",
+      "no-letter": "Write the email.",
+      "no-template": "Choose a template.",
+      "no-name": "Give the template a name.",
+      "not-approved": "WhatsApp needs to approve the words first.",
+      "not-connected": "⁂ The Gmail you've chosen to send from isn't connected.",
+      "no-number": "No WhatsApp number is configured, so texts can't be sent.",
+      "no-time": "Choose what time it will be sent.",
+      "time-passed": "⁂ You can't send it into the past!",
+      "cannot-send": "⁂ Sending isn't built yet.",
+    } as Record<string, string>,
+    // Its page.
+    scheduledLine: (n: number, channel: "email" | "text", from: string) =>
+      `${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"} from ${from}.`,
+    byBackend: { email: "by email", text: "by WhatsApp" },
+    textTitle: "The text",
+    emailTitle: "The email",
+    counts: {
+      delivered: "delivered",
+      failed: "failed",
+      stopped: "stopped",
+      read: "read",
+      replied: "replied",
+    },
+    tabs: {
+      delivered: "⁂ Delivered",
+      failed: "⁂ Failed",
+      stopped: "⁂ Stopped",
+      read: "⁂ Read",
+      replied: "⁂ Replied",
+    } as Record<string, string>,
+    recipientsTitle: "Recipients",
+    recipientsCount: (n: number) => `${n} ${n === 1 ? "recipient" : "recipients"}`,
+    noRecipients: "No recipients here.",
+    // In place of the recipients of one scheduled, as sending finds them.
+    recipientsNow: "Who it would go to if sent now. May change by the time it is sent.",
+    columns: { who: "Supporter", status: "Status" },
+    erased: "⁂ Erased",
+    // How a copy stands.
+    statuses: {
+      scheduled: "Scheduled",
+      sent: "Sent",
+      delivered: "Delivered",
+      read: "Read",
+      failed: "Failed",
+      cancelled: "⁂ Stopped: the broadcast was stopped",
+    } as Record<string, string>,
+    skipReasons: {
+      blocked: "⁂ Skipped: address blocked",
+      unsubscribed: { email: "⁂ Stopped: asked us not to email", text: "⁂ Stopped: asked us not to text" },
+      "no-permission": "⁂ Skipped: no longer said yes",
+      "not-on-whatsapp": "⁂ Not on WhatsApp",
+    },
+    threadLink: "Thread →",
+    // Thread: one copy's page.
+    copySubtitle: (title: string, channel: "email" | "text", n: number) =>
+      `⁂ ${title}, ${channel === "email" ? "an email" : "a text"} to ${n} ${n === 1 ? "supporter" : "supporters"}`,
+    copyTag: { replied: "⁂ Replied" },
+    facts: {
+      sent: "⁂ Sent",
+      delivered: "⁂ Delivered",
+      read: "⁂ Read",
+      replies: "⁂ Replies",
+      supporter: "⁂ Supporter",
+      from: "From",
+      // What everyone a broadcast is to said yes to: its channel and topic, from the Consent filter.
+      saidYes: "Said yes to",
+    },
+    // In To, when Consent is the only filter.
+    everyoneWhoSaidYes: "Everyone who did",
+    lastAnswered: (by: string) => `⁂ last answered by ${by}`,
+    threadTitle: "Thread",
+    headers: { from: "From", to: "To", received: "⁂ Received" },
+    reply: "⁂ Reply",
+    sendReply: { email: "⁂ Send reply by email", text: "⁂ Send reply by text" },
+    replyWindow: (until: string) =>
+      `⁂ Free to reply until ${until}, 24 hours after their last message. After that only an approved template can be sent. Goes as PauseAI UK.`,
+    replyClosed: "⁂ It's over 24 hours since their last message, so only an approved template can be sent now.",
+    replyEmail: "⁂ Goes from hello@pauseai.uk as PauseAI UK.",
+    replyCantSend: "⁂ Replies can't be sent from here yet.",
+    standingTitle: "⁂ How it stands",
+    standing: {
+      email: (name: string) => `⁂ ${name} can unsubscribe from the link in the email, and we'd see it here.`,
+      text: (name: string) =>
+        `⁂ ${name} can stop at any time with the Stop button or by replying “stop”, and we'd see it here.`,
+    },
+    everythingElse: (name: string) => `⁂ Everything else we know about ${name} →`,
+    // A supporter's page.
+    supporterTitle: "Broadcasts",
+    supporterNone: "No broadcasts sent to them.",
+    supporterColumns: { message: "⁂ Broadcast", status: "⁂ Status", replies: "⁂ Their replies" },
+  },
+
   // The pages for writing a mailing, its own page once it's scheduled, and the list of them.
   mailingPages: {
     // Who a mailing is to, when its filter has nothing chosen.
@@ -1215,8 +1450,6 @@ All events: ${link}`,
         ? `Sends from ${gmail}'s Gmail, so copies also show in Sent.`
         : "Sends from our own mail service, so it won't be in any Gmail's Sent.",
     testSent: (address: string) => `Sent to ${address}.`,
-    // Under the test button, while the letter is empty or only its greeting.
-    testNeedsDraft: "Write something first!",
     testFailed: "It couldn't be sent. Try again in a minute.",
     // The first entry of a list while nothing in it is chosen.
     choose: "Choose…",
@@ -1239,7 +1472,7 @@ All events: ${link}`,
     // An hour overnight, when no mailing starts, that a mailing was due at already: the hour, and when it goes.
     goesAt: (hour: string, sends: string) => `${hour} (goes at ${sends})`,
     summary: (n: number, from: string | null, when: string | null) =>
-      `${count(n, "email", "emails")}, from ${from ? `${from}'s Gmail` : "no one yet"}, ${when ? `on ${when}` : "at a time not yet chosen"}.`,
+      `${count(n, "email", "emails")}, from ${from ? `${from}'s Gmail` : "no one yet"}${when ? `, on ${when}` : ""}.`,
     schedule: (n: number) => `Schedule ${count(n, "email", "emails")}`,
     // Why the schedule button can't be pressed.
     problems: {
@@ -1360,7 +1593,7 @@ All events: ${link}`,
   // The asks page: each ask, its kind and date, and how many gave each answer.
   asks: {
     title: "Asks",
-    intro: "What we ask notable people to do, either by writing to them or by meeting them.",
+    intro: "What we ask notable people to do, either by writing to them or by meeting them",
     edit: "Edit",
     // The form, adding an ask or editing one; the new one's title is the asks page's button to it, too.
     newTitle: "New ask",
@@ -1592,7 +1825,7 @@ All events: ${link}`,
       mps: "Politicians' blocked emails",
       supporters: "Supporters' blocked emails",
     },
-    intro: "Nothing is sent to these addresses until they're unblocked.",
+    intro: "Nothing is sent to these addresses until they're unblocked",
     // Over the list: how many are blocked, of those the filters find.
     count: (n: number) => `${n} blocked ${plural(n, "address", "addresses")}`,
     // Instead of the table, when no address is blocked, or none of the cause filtered for.
@@ -1798,6 +2031,23 @@ All events: ${link}`,
       body: (n: number, held: number, lines: string[], link: string) =>
         `${n} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${count(held, "reply is", "replies are")} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nSupporters' blocked emails: ${link}`,
     },
+    // A text's new words sent to WhatsApp for approval, to who sent them and the inbox: the words, and the text.
+    templateSubmitted: {
+      subject: (name: string) => `⁂ WhatsApp template sent for approval: ${name}`,
+      body: (by: string, words: string, link: string) =>
+        `⁂ ${by} sent these words to WhatsApp for approval as a new template. WhatsApp usually decides within 24 hours, and you'll be emailed when it does.\n\n${words}\n\nThe text: ${link}`,
+    },
+    // WhatsApp approved or rejected a template, to who sent it and the inbox: why, the words, and the texts on it.
+    templateApproved: {
+      subject: (name: string) => `⁂ WhatsApp approved the template: ${name}`,
+      body: (words: string, links: string[]) =>
+        `⁂ WhatsApp approved these words, so a text on them can be scheduled now.\n\n${words}\n\n${links.join("\n")}`,
+    },
+    templateRejected: {
+      subject: (name: string) => `⁂ WhatsApp rejected the template: ${name}`,
+      body: (reason: string, words: string, links: string[]) =>
+        `⁂ WhatsApp rejected these words: ${reason}\n\nChange them, and send them for approval again.\n\n${words}\n\n${links.join("\n")}`,
+    },
     // Letters to MPs have waited LATE_HOURS to go: how many, why, and the queued letters.
     lettersWaiting: {
       subject: (n: number, hours: number) => `${count(n, "letter", "letters")} to MPs waiting over ${hours} hours`,
@@ -1907,7 +2157,7 @@ All events: ${link}`,
   // The one-off import of the meetings for Go to Parliament.
   campaigns: {
     title: "Campaigns",
-    intro: "Letters supporters write to politicians, through a form on the site.",
+    intro: "Letters supporters write to politicians, through a form on the site",
     none: "No campaigns yet.",
     fromSupporters: "From supporters",
     noLetters: "No letters",

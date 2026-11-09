@@ -9,6 +9,9 @@
   padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-xl);
   background: var(--surface-2);
+
+  /* A plain lozenge on it is white, as its own colour is the band's. */
+  --tag-plain-bg: var(--surface);
 }
 
 .main {

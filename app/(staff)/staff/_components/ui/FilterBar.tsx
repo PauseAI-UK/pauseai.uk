@@ -11,6 +11,7 @@ import FormPending from "./FormPending";
 import ManyChoices, { NotWords } from "./ManyChoices";
 import StaffLink from "./StaffLink";
 import Menu from "./Menu";
+import LockIcon from "./LockIcon";
 import NotIcon from "./NotIcon";
 import SavedFilters, { SavedFilterGone, type SavedFiltersProps } from "./SavedFilters";
 import styles from "./FilterBar.module.css";
@@ -28,6 +29,8 @@ export type FilterOption = {
   group?: { label: string; icon: ReactNode };
   detail?: string;
   seconds?: FilterOption[];
+  /** A second part's kind, the same across choices, so changing the first keeps it where the new one has it. */
+  like?: string;
 };
 
 /**
@@ -57,6 +60,14 @@ export type Filter = {
   searchable?: boolean;
   place?: { within: string; distances: FilterOption[]; placeholder: string };
   linkedOnly?: boolean;
+  /** A filter that matters most: its own button, first, rather than a row in "+ Filter". */
+  own?: boolean;
+  /**
+   * A filter that can't be changed here, and why, said on hovering its chip:
+   * its chip is there but doesn't open, with a lock for its arrow, it's never
+   * offered, and Clear filters keeps it.
+   */
+  locked?: string;
 };
 
 const copy = staffCopy.filters;
@@ -89,16 +100,20 @@ function valueWords(filter: Filter, value: string, join: string): string {
 
 /**
  * The search and each filter that's on, in words, as their chips say them:
- * for a download's filename.
+ * for a download's filename. One that comes `after` another and doesn't
+ * repeat goes with it, as its chip's second half does, its default too.
  */
 export function filterWords(filters: Filter[], values: Params, search: string): string[] {
-  const words = values[search] ? [`${staffCopy.search} ${firstOf(values[search])}`] : [];
+  const words = values[search] ? [`${staffCopy.search}: ${firstOf(values[search])}`] : [];
   for (const filter of filters) {
+    if (filter.after && !filter.repeat) continue;
     const chosen = valuesOf(values[filter.name]).map(notValue);
     const [found, out] = [false, true].map((not) =>
       chosen.filter((one) => one.not === not).map((one) => choiceWords(filter, one.value)),
     );
-    if (found.length) words.push(`${filter.label} ${copy.anyOf(found)}`);
+    const next = filters.find((f) => f.after === filter.name && !f.repeat);
+    const then = next ? `, ${choiceWords(next, firstOf(values[next.name]) ?? "")}` : "";
+    if (found.length) words.push(`${filter.label}: ${copy.anyOf(found)}${then}`);
     if (out.length) words.push(copy.notChip(filter.label, copy.anyOf(out)));
   }
   return words;
@@ -179,7 +194,8 @@ function PlaceForm({
 
 /**
  * A staff list's filters (docs/style-guide.md, "Filters"): the search box,
- * with its button and an × that empties it; then a chip for each filter
+ * with its button and an × that empties it; then a filter that matters most
+ * (`own`) as its own button, its chip first once it's on; a chip for each filter
  * that's on, which opens its choices and a way to remove it (one with a
  * filter after it is a chip in two halves, a menu each; one that repeats, a
  * chip for all it finds and one for all it leaves out, marked so); "+
@@ -221,11 +237,22 @@ export default function FilterBar({
         ...filters.filter((f) => f.name === name && f.place).map((f) => f.place!.within),
       ].map((n) => [n, ""]),
     );
-  const on = filters.filter((filter) => chosen(filter.name).length > 0);
+  // Those on, a filter with its own button first, where its button was.
+  const on = filters
+    .filter((filter) => chosen(filter.name).length > 0)
+    .sort((a, b) => Number(Boolean(b.own)) - Number(Boolean(a.own)));
+  const ownButtons = filters.filter((filter) => filter.own && chosen(filter.name).length === 0);
   // Those "+ Filter" offers, each with the choices it offers: one not on, or one that repeats, its other
   // choices, found or left out; a place, its form. Except offers those that repeat.
   const offered = filters
-    .filter((filter) => !filter.after && !filter.linkedOnly && (filter.repeat || chosen(filter.name).length === 0))
+    .filter(
+      (filter) =>
+        !filter.after &&
+        !filter.own &&
+        !filter.linkedOnly &&
+        !filter.locked &&
+        (filter.repeat || chosen(filter.name).length === 0),
+    )
     .map((filter) => {
       const taken = chosen(filter.name).map((value) => {
         const plain = notValue(value).value;
@@ -238,7 +265,9 @@ export default function FilterBar({
   const hidden = Object.entries(values)
     .filter(([name]) => name !== search.name && name !== "page")
     .flatMap(([name, value]) => valuesOf(value).map((one) => [name, one] as const));
-  const kept = Object.fromEntries(keep.map((name) => [name, values[name] ?? ""]));
+  const kept = Object.fromEntries(
+    [...keep, ...filters.filter((f) => f.locked).map((f) => f.name)].map((name) => [name, values[name] ?? ""]),
+  );
   const label = (filter: Filter, value: string) =>
     filter.options.find((option) => option.value === value)?.label ?? value;
   // A place filter's chip: the words found, and how far.
@@ -251,7 +280,8 @@ export default function FilterBar({
   const othersThan = (filter: Filter) =>
     hidden.filter(([name]) => name !== filter.name && name !== filter.place!.within) as [string, string][];
   // A filter's chip, for `value` of it: its menu has its choices and, but in a chip's second half, a way to
-  // remove it. A choice in a first half or a chip of its own takes the filter's place; one in the second half of a
+  // remove it. A choice in a first half or a chip of its own takes the filter's place, with the second part it had,
+  // by its `like`, where the new choice has one the same, else the choice's own; one in the second half of a
   // choice in two parts, which offers its `seconds`, changes that one value, keeping it found or left out. More
   // than one value of a filter that doesn't repeat can only come from a link or a saved filter: each has its chip.
   const chip = (
@@ -263,10 +293,29 @@ export default function FilterBar({
   ) => {
     const { value: plain, not } = notValue(value);
     const others = chosen(filter.name).filter((v) => v !== value);
+    const like = parts(filter, plain).second?.like;
+    // The new choice's second part the same as the one it had, if there was one and it has it.
+    const same = (v: string) =>
+      (like && filter.options.find((o) => o.value === v)?.seconds?.find((o) => o.like === like)?.value) || v;
     const choose = (v: string) =>
       seconds
         ? href({ [filter.name]: [...others, not ? NOT + v : v] })
-        : href({ ...without(filter.name), [filter.name]: v });
+        : href({ ...without(filter.name), [filter.name]: same(v) });
+    if (filter.locked) {
+      // There, saying what it is and why it can't change, but not opening.
+      return (
+        <span
+          key={`${filter.name}-${value}${seconds ? "-2" : ""}`}
+          className={`${styles.chip} ${styles.locked}`}
+          title={filter.locked}
+        >
+          {not && <NotIcon />}
+          {text}
+          {/* At the end of the lozenge: in its second half, if it has two. */}
+          {(second || !parts(filter, plain).first?.seconds) && <LockIcon />}
+        </span>
+      );
+    }
     return (
       <Menu
         key={`${filter.name}-${value}${seconds ? "-2" : ""}`}
@@ -396,6 +445,21 @@ export default function FilterBar({
           <SavedFilters key={saved.version} {...saved} canSave={on.length > 0 || Boolean(values[search.name])} />
         )}
         <div className={styles.chips}>
+          {ownButtons.map((filter) => (
+            <Menu
+              key={filter.name}
+              id={`filter-${filter.name}`}
+              trigger={`${styles.add} ${styles.own}`}
+              label={filter.label}
+            >
+              <p className={styles.heading}>{filter.label}</p>
+              <Choices
+                options={filter.options.filter((option) => option.value)}
+                current={[]}
+                href={(v) => href({ [filter.name]: v })}
+              />
+            </Menu>
+          ))}
           {on
             .filter((filter) => !(filter.after && chosen(filter.after).length > 0))
             .flatMap((filter) => {

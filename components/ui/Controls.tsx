@@ -79,10 +79,28 @@ export function Checkbox({
 }
 
 /**
+ * A radio button, for a row whose own label holds it. `onChange` says it's
+ * been chosen; `checked`, if given, says whether it is.
+ */
+export function Radio({
+  name,
+  value,
+  checked,
+  onChange,
+}: {
+  name: string;
+  value: string | number;
+  checked?: boolean;
+  onChange: () => void;
+}) {
+  return <input type="radio" name={name} value={value} checked={checked} onChange={onChange} />;
+}
+
+/**
  * A row of mutually exclusive buttons, e.g. a QR code's size; each with an
  * icon before its words if it has one. One `quiet` is set apart from the
  * rest, dashed and grey, for a choice of nothing, such as no answer.
- * `disabled`, none can be picked.
+ * `disabled`, none can be picked; an option's own, just it.
  */
 export function Segmented<T extends string | boolean>({
   label,
@@ -92,7 +110,7 @@ export function Segmented<T extends string | boolean>({
   disabled = false,
 }: {
   label: string;
-  options: { value: T; label: string; icon?: ReactNode; quiet?: boolean }[];
+  options: { value: T; label: string; icon?: ReactNode; quiet?: boolean; disabled?: boolean }[];
   value: T;
   onChange: (value: T) => void;
   disabled?: boolean;
@@ -106,7 +124,7 @@ export function Segmented<T extends string | boolean>({
           role="radio"
           aria-checked={o.value === value}
           className={o.quiet ? `${styles.segment} ${styles.quiet}` : styles.segment}
-          disabled={disabled}
+          disabled={disabled || o.disabled}
           onClick={() => onChange(o.value)}
         >
           {o.icon}

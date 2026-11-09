@@ -9,7 +9,7 @@ import { menuItemArmedClass, menuItemDangerClass } from "./ui/Menu";
 import MenuSubmit from "./ui/MenuSubmit";
 
 /** How long a delete waits for its second press. */
-const ARMED_FOR = 4000;
+export const ARMED_FOR = 4000;
 
 /**
  * The button, inside its form: the ghost one naming what it deletes, or,

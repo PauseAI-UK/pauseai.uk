@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // The copy waiting for approval: one page showing each placeholder this
 // branch adds or changes since it left origin/main, committed or not, with
-// its file and line and the storyboard frames that picture it, cropped
-// around it and boxed. Placeholders no frame pictures are listed at the end.
+// its file and line and the storyboard frames that picture it, each the
+// whole page with the copy boxed. The sidebar lists the copy in clusters (its
+// file, or in lib/content/ the set of strings it's in); clicking one shows
+// its frames.
 //
 //   npm run copy                       # from the latest storyboard run, without running anything
 //   npm run copy -- <run>              # another run: its folder, or its name under runs/
@@ -474,17 +476,12 @@ export function findInFrames(groups, storyboard) {
   return seen;
 }
 
-/** Room around the copy in a crop, in CSS pixels, and the smallest and largest a crop is. */
-const MARGIN = { x: 48, y: 72 };
-const CROP = { minWidth: 640, minHeight: 200, maxHeight: 720 };
-const BOX_PADDING = 4;
-
 /**
- * The part of a picture `width` by `height` to show around `boxes` (each
- * [x, y, width, height]), and the box around them in it: undefined if none
- * is in the picture, as copy below the fold of a picture of the window.
+ * The boxes (each [x, y, width, height]) cut to a picture `width` by
+ * `height`: undefined if none is in it, as copy below the fold of a picture
+ * of the window.
  */
-export function cropAround(boxes, width, height) {
+export function boxesInside(boxes, width, height) {
   const inside = boxes
     .map(([x, y, w, h]) => {
       const left = Math.max(0, x);
@@ -492,48 +489,102 @@ export function cropAround(boxes, width, height) {
       return [left, top, Math.min(width, x + w) - left, Math.min(height, y + h) - top];
     })
     .filter(([, , w, h]) => w > 0 && h > 0);
-  if (inside.length === 0) return undefined;
-  const left = Math.min(...inside.map(([x]) => x));
-  const top = Math.min(...inside.map(([, y]) => y));
-  const right = Math.max(...inside.map(([x, , w]) => x + w));
-  const bottom = Math.max(...inside.map(([, y, , h]) => y + h));
-  const span = (from, to, margin, min, max, size) => {
-    const length = Math.min(size, max, Math.max(min, to - from + 2 * margin));
-    const centred = Math.round((from + to) / 2 - length / 2);
-    // A box taller than the crop shows its top.
-    const start = to - from + 2 * margin > length ? from - margin : centred;
-    return [Math.max(0, Math.min(size - length, start)), length];
-  };
-  const [cropLeft, cropWidth] = span(left, right, MARGIN.x, CROP.minWidth, Infinity, width);
-  const [cropTop, cropHeight] = span(top, bottom, MARGIN.y, CROP.minHeight, CROP.maxHeight, height);
-  return {
-    crop: { left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight },
-    box: {
-      x: Math.max(0, left - BOX_PADDING - cropLeft),
-      y: Math.max(0, top - BOX_PADDING - cropTop),
-      width: right - left + 2 * BOX_PADDING,
-      height: bottom - top + 2 * BOX_PADDING,
-    },
-  };
+  return inside.length ? inside : undefined;
 }
 
-/** A frame's picture cropped around the copy and boxed, as WebP, or undefined if the copy isn't in it. */
-export async function cropFrame(png, boxes) {
+/** Room between the copy and the box drawn around it, in CSS pixels. */
+const BOX_PADDING = 4;
+
+/** The tallest a WebP can be, in pixels: a taller page is scaled down to it. */
+const WEBP_MAX = 16383;
+
+/** A frame's whole picture, as WebP, with its size before any scaling, which its boxes are in. */
+export async function framePicture(png) {
   const image = sharp(png, { limitInputPixels: false });
   const { width, height } = await image.metadata();
-  const around = cropAround(boxes, width, height);
-  if (!around) return undefined;
-  const { crop, box } = around;
-  const outline = Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${crop.width}" height="${crop.height}">` +
-      `<rect x="${box.x + 1.5}" y="${box.y + 1.5}" width="${Math.max(0, box.width - 3)}" height="${Math.max(0, box.height - 3)}" rx="4" fill="none" stroke="#e5007d" stroke-width="3"/></svg>`,
-  );
-  return image
-    .extract(crop)
-    .composite([{ input: outline, left: 0, top: 0 }])
-    .webp({ quality: 88 })
-    .toBuffer();
+  const webp = await (height > WEBP_MAX ? image.resize({ height: WEBP_MAX }) : image).webp({ quality: 80 }).toBuffer();
+  return { webp, width, height };
 }
+
+/**
+ * Each frame's whole picture, once however many pieces of copy it shows (and
+ * once for frames that are the same picture), and each group's shots: a
+ * picture, the boxes of its copy in it, and the frames it's of.
+ */
+export async function picturesOf(groups, found, runDir, name = frameName) {
+  const images = [];
+  const byFrame = new Map();
+  const byHash = new Map();
+  const picture = async (frame) => {
+    if (!byFrame.has(frame.branch)) {
+      const { webp, width, height } = await framePicture(join(runDir, frame.branch));
+      const hash = createHash("sha1").update(webp).digest("hex");
+      if (!byHash.has(hash)) {
+        const image = {
+          id: `i${images.length + 1}`,
+          src: `data:image/webp;base64,${webp.toString("base64")}`,
+          width,
+          height,
+        };
+        images.push(image);
+        byHash.set(hash, image);
+      }
+      byFrame.set(frame.branch, byHash.get(hash));
+    }
+    return byFrame.get(frame.branch);
+  };
+  const shots = new Map();
+  for (const group of groups) {
+    const list = [];
+    const same = new Map();
+    for (const { frame, boxes } of found.get(group.key) ?? []) {
+      const image = await picture(frame);
+      const inside = boxesInside(boxes, image.width, image.height);
+      if (!inside) continue;
+      const key = `${image.id} ${JSON.stringify(inside)}`;
+      if (same.has(key)) {
+        same.get(key).where.push(name(frame));
+        continue;
+      }
+      const shot = { image: image.id, boxes: inside, where: [name(frame)] };
+      same.set(key, shot);
+      list.push(shot);
+    }
+    shots.set(group.key, list);
+  }
+  return { images, shots };
+}
+
+/** A key of the copy objects in lib/content/, at its top level: `  broadcastPages: {`. */
+const COPY_SET = /^ {2}["']?([\w$-]+)["']?\??\s*:/;
+
+/**
+ * The cluster a piece of copy is listed under: in lib/content/, its file and
+ * the set of strings it's in (the copy object's key at the top level);
+ * elsewhere, its file, which is its component or page.
+ */
+export function clusterOf(place, source) {
+  if (!place.file.startsWith("lib/content/")) return place.file;
+  const lines = source.split("\n").slice(0, place.line).reverse();
+  const top = lines.findIndex((line) => COPY_SET.test(line));
+  if (top === -1) return place.file;
+  // Within the set, the nearest heading a level in: the key of the object it's in, or the comment over its part.
+  const part = lines
+    .slice(0, top)
+    .map((line) => SET_PART.exec(line))
+    .find(Boolean);
+  const name = `${place.file} › ${COPY_SET.exec(lines[top])[1]}`;
+  return part ? `${name} › ${part[1] ?? shortHeading(part[2])}` : name;
+}
+
+/** A comment as a heading: its first clause, cut to a few words. */
+function shortHeading(comment) {
+  const clause = comment.split(/[:,.;(]/)[0].trim();
+  return clause.length > 40 ? `${clause.slice(0, 39).trimEnd()}…` : clause;
+}
+
+/** A line a level into a copy set that heads part of it: a key opening an object, or a comment. */
+const SET_PART = /^ {4}(?:["']?([\w$-]+)["']?\??\s*:\s*\{\s*$|\/\/\s*(.+?)\s*$)/;
 
 const escapeHtml = (text) =>
   String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -552,19 +603,36 @@ function copyHtml(parts) {
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/** A cluster's heading and, if it's a part of a copy set, the part: "file › set" and "part". */
+const splitCluster = (cluster) => {
+  const pieces = cluster.split(" › ");
+  return pieces.length > 2 ? [pieces.slice(0, -1).join(" › "), pieces.at(-1)] : [cluster, undefined];
+};
+
 /**
- * The page: a heading with what it's of and how fresh, the files with copy
- * in them, then each file's copy in its order, each with the frames that
- * show it, and last the copy no frame shows.
+ * The page: a sidebar listing every piece of copy under its cluster (clusterOf),
+ * and beside it the copy clicked, with its places and every frame that shows
+ * it, each the whole page with the copy boxed, scrolled to it. A frame's
+ * picture is in the page once, however many pieces of copy it shows; the
+ * script puts it in the shots of the copy shown.
  *
  * @param {{ branch: string, base: string, run?: { name: string, at: string }, warnings: string[],
- *   groups: { key: string, parts: Part[], places: Placeholder[], shots: { image: string, where: string[] }[] }[] }} data
+ *   images?: { id: string, src: string, width: number, height: number }[],
+ *   groups: { key: string, parts: Part[], places: Placeholder[], cluster?: string,
+ *     shots: { image: string, boxes: number[][], where: string[] }[] }[] }} data
  */
-export function renderCopyPage({ branch, base, run, warnings, groups }) {
+export function renderCopyPage({ branch, base, run, warnings, images = [], groups }) {
   const seen = groups.filter((g) => g.shots.length > 0);
-  const unseen = groups.filter((g) => g.shots.length === 0);
-  const files = [...new Set(seen.map((g) => g.places[0].file))];
-  const id = (file) => `file-${file.replace(/[^\w-]+/g, "-")}`;
+  const sizes = new Map(images.map((image) => [image.id, image]));
+  const clusterOfGroup = (group) => group.cluster ?? group.places[0].file;
+  const clusters = [...new Set(groups.map(clusterOfGroup))];
+  const cardId = (group) => `copy-${groups.indexOf(group) + 1}`;
+  // The copy in the sidebar, without its mark, each expression an ellipsis.
+  const link = (group) => {
+    const text = copyText(group.parts, () => "…").replace(/^\u2042\s*/, "");
+    const none = group.shots.length === 0;
+    return `<li${none ? ' class="none"' : ""}><a href="#${cardId(group)}" title="${escapeHtml(text)}${none ? " (in no frame)" : ""}">${escapeHtml(text)}</a></li>`;
+  };
   const places = (group) =>
     group.places
       .map(
@@ -572,31 +640,42 @@ export function renderCopyPage({ branch, base, run, warnings, groups }) {
           `<details class="place"><summary><code>${escapeHtml(p.file)}:${p.line}</code></summary><pre>${escapeHtml(p.source)}</pre></details>`,
       )
       .join("");
-  const card = (group) => `
-    <article class="copy">
-      <p class="text">${copyHtml(group.parts)}</p>
-      <div class="places">${places(group)}</div>
-      ${
-        group.shots.length
-          ? `<div class="shots">${group.shots
-              .map(
-                (shot) => `
+  const percent = (n, of) => `${Math.round((n / of) * 100000) / 1000}%`;
+  const box =
+    (image) =>
+    ([x, y, w, h]) =>
+      `<span class="box" style="left:${percent(x - BOX_PADDING, image.width)};top:${percent(y - BOX_PADDING, image.height)};width:${percent(w + 2 * BOX_PADDING, image.width)};height:${percent(h + 2 * BOX_PADDING, image.height)}"></span>`;
+  const shot = (s) => {
+    const image = sizes.get(s.image);
+    return `
         <figure>
-          <img src="${shot.image}" alt="">
-          <figcaption>${escapeHtml(shot.where[0])}${
-            shot.where.length > 1
-              ? `<details><summary>and ${plural(shot.where.length - 1, "more frame")} the same</summary><ul>${shot.where
+          <div class="frame"><div class="picture"><img data-image="${s.image}" width="${image.width}" height="${image.height}" alt="">${s.boxes.map(box(image)).join("")}</div></div>
+          <figcaption>${escapeHtml(s.where[0])}${
+            s.where.length > 1
+              ? `<details><summary>and ${plural(s.where.length - 1, "more frame")} the same</summary><ul>${s.where
                   .slice(1)
                   .map((w) => `<li>${escapeHtml(w)}</li>`)
                   .join("")}</ul></details>`
               : ""
           }</figcaption>
-        </figure>`,
-              )
-              .join("")}</div>`
-          : ""
+        </figure>`;
+  };
+  const card = (group) => `
+    <article class="copy" id="${cardId(group)}" hidden>
+      <p class="cluster">${escapeHtml(clusterOfGroup(group))}</p>
+      <p class="text">${copyHtml(group.parts)}</p>
+      <div class="places">${places(group)}</div>
+      ${
+        group.shots.length
+          ? `<p class="meta">${plural(group.shots.length, "frame")}.</p><div class="shots">${group.shots.map(shot).join("")}</div>`
+          : `<p class="meta">No storyboard frame shows this: it needs a flow that reaches it, or can't be reached.</p>`
       }
     </article>`;
+  // The pictures by id, for the script; `<` escaped so nothing in them closes the script.
+  const pictures = JSON.stringify(Object.fromEntries(images.map((image) => [image.id, image.src]))).replace(
+    /</g,
+    "\\u003c",
+  );
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -604,59 +683,112 @@ export function renderCopyPage({ branch, base, run, warnings, groups }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Copy to approve</title>
 <style>
-:root { color-scheme: light dark; --bg: #fafaf7; --card: #fff; --text: #1d1d1b; --muted: #66665f; --line: #deded6; --accent: #e5007d; --slot: #fde7f2; --warn: #fff4d6; }
-@media (prefers-color-scheme: dark) { :root { --bg: #161615; --card: #20201e; --text: #ececea; --muted: #a3a39c; --line: #3a3a36; --slot: #4a1a33; --warn: #3d3315; } }
+:root { color-scheme: light dark; --bg: #fafaf7; --card: #fff; --text: #1d1d1b; --muted: #66665f; --line: #deded6; --accent: #e5007d; --slot: #fde7f2; --warn: #fff4d6; --current: #fde7f2; }
+@media (prefers-color-scheme: dark) { :root { --bg: #161615; --card: #20201e; --text: #ececea; --muted: #a3a39c; --line: #3a3a36; --slot: #4a1a33; --warn: #3d3315; --current: #4a1a33; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
-main { max-width: 1400px; margin: 0 auto; padding: 24px 16px 64px; }
+.layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); }
+aside { position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 16px 12px 32px 16px; border-right: 1px solid var(--line); font-size: 13px; }
+aside h2 { margin: 16px 0 4px; font-size: 12px; font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+aside h2:first-of-type { margin-top: 8px; }
+aside h3 { margin: 8px 0 2px 8px; font-size: 12px; color: var(--muted); font-weight: 600; }
+aside .count { color: var(--muted); font-weight: 400; }
+aside ol { margin: 0; padding-left: 22px; color: var(--muted); }
+aside li a { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: inherit; text-decoration: none; padding: 1px 4px; border-radius: 4px; }
+aside li a:hover { color: var(--text); text-decoration: underline; }
+aside li.none a { font-style: italic; opacity: 0.7; }
+aside li a[aria-current] { background: var(--current); color: var(--text); font-weight: 600; }
+aside .help { color: var(--muted); margin: 0; }
+@media (max-width: 900px) { .layout { display: block; } aside { position: static; height: auto; max-height: 40vh; border-right: 0; border-bottom: 1px solid var(--line); } }
+main { padding: 24px 16px 64px; min-width: 0; }
 h1 { font-size: 24px; margin: 0 0 4px; }
-h2 { font-size: 15px; font-family: ui-monospace, monospace; margin: 40px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .meta { color: var(--muted); margin: 0 0 16px; }
 .warning { background: var(--warn); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
-nav ul { margin: 0; padding-left: 20px; columns: 2 320px; }
-nav a { color: inherit; }
-.copy { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin: 0 0 14px; }
-.text { font-size: 18px; margin: 0 0 6px; white-space: pre-wrap; }
+.copy { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.cluster { margin: 0; color: var(--muted); font: 12px ui-monospace, monospace; }
+.text { font-size: 20px; margin: 4px 0 6px; white-space: pre-wrap; }
 .slot { background: var(--slot); border-radius: 4px; padding: 0 4px; font-family: ui-monospace, monospace; font-size: 15px; }
-.places { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 13px; }
+.places { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 13px; margin-bottom: 8px; }
 .place pre { font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 8px; overflow-x: auto; color: var(--text); white-space: pre; }
 summary { cursor: pointer; }
-.shots { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; align-items: flex-start; }
+.shots { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
 figure { margin: 0; max-width: 100%; }
-figure img { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; }
+.frame { max-height: 85vh; overflow: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+.picture { position: relative; }
+.picture img { display: block; max-width: 100%; height: auto; }
+.box { position: absolute; border: 3px solid var(--accent); border-radius: 4px; pointer-events: none; }
 figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; max-width: 640px; }
 figcaption ul { margin: 2px 0 0; padding-left: 18px; }
-.unseen .copy { padding: 10px 16px; }
 </style>
 </head>
 <body>
+<div class="layout">
+<aside>
+<p class="help">Click a piece of copy to see every frame it's in. <kbd>j</kbd> and <kbd>k</kbd> go down and up.</p>
+${clusters
+  .map((cluster, i) => {
+    const inCluster = groups.filter((g) => clusterOfGroup(g) === cluster);
+    // A cluster in a copy set's part: the set its heading, once, and the part under it.
+    const [head, part] = splitCluster(cluster);
+    const inHead = groups.filter((g) => splitCluster(clusterOfGroup(g))[0] === head);
+    const heading =
+      i > 0 && splitCluster(clusters[i - 1])[0] === head
+        ? ""
+        : `<h2>${escapeHtml(head)} <span class="count">(${inHead.length})</span></h2>`;
+    return `${heading}${part ? `<h3>${escapeHtml(part)}</h3>` : ""}<ol>${inCluster.map(link).join("")}</ol>`;
+  })
+  .join("\n")}
+</aside>
 <main>
 <h1>Copy to approve</h1>
-<p class="meta">${plural(groups.length, "placeholder")} that <code>${escapeHtml(branch)}</code> adds or changes since it left main at <code>${escapeHtml(base)}</code>: ${seen.length} in frames, ${unseen.length} in none.${
+<p class="meta">${plural(groups.length, "placeholder")} that <code>${escapeHtml(branch)}</code> adds or changes since it left main at <code>${escapeHtml(base)}</code>: ${seen.length} in frames, ${groups.length - seen.length} in none.${
     run ? ` Frames from storyboard run ${escapeHtml(run.name)}, made ${escapeHtml(run.at)}.` : ""
   }</p>
 ${warnings.map((w) => `<p class="warning">${escapeHtml(w)}</p>`).join("\n")}
-<nav><ul>
-${files.map((f) => `<li><a href="#${id(f)}">${escapeHtml(f)}</a> (${seen.filter((g) => g.places[0].file === f).length})</li>`).join("\n")}
-${unseen.length ? `<li><a href="#unseen">In no frame</a> (${unseen.length})</li>` : ""}
-</ul></nav>
-${files
-  .map(
-    (f) =>
-      `<section><h2 id="${id(f)}">${escapeHtml(f)}</h2>${seen
-        .filter((g) => g.places[0].file === f)
-        .map(card)
-        .join("")}</section>`,
-  )
-  .join("\n")}
-${
-  unseen.length
-    ? `<section class="unseen"><h2 id="unseen">In no frame</h2><p class="meta">No storyboard frame shows these: each needs a flow that reaches it, or can't be reached.</p>${unseen
-        .map(card)
-        .join("")}</section>`
-    : ""
-}
+${groups.map(card).join("")}
 </main>
+</div>
+<script>
+const PICTURES = ${pictures};
+const links = [...document.querySelectorAll("aside li a")];
+// Scrolls a frame to the first of its boxes, a little above it.
+function toBox(frame) {
+  const box = frame.querySelector(".box");
+  if (box) frame.scrollTop = Math.max(0, box.offsetTop - 120);
+}
+function show(id) {
+  const card = document.getElementById(id) ?? document.querySelector("article.copy");
+  if (!card) return;
+  for (const other of document.querySelectorAll("article.copy")) other.hidden = other !== card;
+  for (const img of card.querySelectorAll("img[data-image]")) {
+    const frame = img.closest(".frame");
+    if (!img.src) {
+      img.addEventListener("load", () => toBox(frame), { once: true });
+      img.src = PICTURES[img.dataset.image];
+    } else toBox(frame);
+  }
+  for (const link of links) {
+    if (link.hash === "#" + card.id) {
+      link.setAttribute("aria-current", "true");
+      link.scrollIntoView({ block: "nearest" });
+    } else link.removeAttribute("aria-current");
+  }
+}
+const current = () => decodeURIComponent(location.hash.slice(1));
+addEventListener("hashchange", () => {
+  show(current());
+  scrollTo({ top: 0 });
+});
+addEventListener("keydown", (event) => {
+  if (event.target.closest("input, textarea") || event.metaKey || event.ctrlKey || event.altKey) return;
+  const step = { j: 1, k: -1 }[event.key];
+  if (!step) return;
+  const at = links.findIndex((link) => link.hasAttribute("aria-current"));
+  const next = links[at + step];
+  if (next) location.hash = next.hash;
+});
+show(current());
+</script>
 </body>
 </html>
 `;
@@ -665,28 +797,6 @@ ${
 /** A frame's name on the page: its viewport, section, flow and caption. */
 export function frameName(frame, names = new Map(sections().map((s) => [s.id, s.name]))) {
   return `${frame.viewport} › ${names.get(frame.section) ?? frame.section} › ${frame.flow} › ${frame.index}. ${frame.caption}`;
-}
-
-/**
- * Each group's pictures: a crop of every frame that shows it, the frames
- * whose crops are the same picture as one, under the first.
- */
-export async function shotsOf(found, runDir, name = frameName) {
-  const shots = [];
-  const byHash = new Map();
-  for (const { frame, boxes } of found) {
-    const image = await cropFrame(join(runDir, frame.branch), boxes);
-    if (!image) continue;
-    const hash = createHash("sha1").update(image).digest("hex");
-    if (byHash.has(hash)) {
-      byHash.get(hash).where.push(name(frame));
-      continue;
-    }
-    const shot = { image: `data:image/webp;base64,${image.toString("base64")}`, where: [name(frame)] };
-    byHash.set(hash, shot);
-    shots.push(shot);
-  }
-  return shots;
 }
 
 /**
@@ -735,14 +845,18 @@ export async function writeCopyPage({ runDir, out = PAGE, base = BASE, git: run 
       .map((file) => ({ file, mtime: statSync(file).mtimeMs }));
     warnings.push(...staleness(storyboard.generatedAt, git(["log", "-1", "--format=%cI"]), modified));
   }
-  const withShots = [];
-  for (const group of groups)
-    withShots.push({ ...group, shots: runDir ? await shotsOf(found.get(group.key), runDir) : [] });
+  const { images, shots } = runDir ? await picturesOf(groups, found, runDir) : { images: [], shots: new Map() };
+  const withShots = groups.map((group) => ({
+    ...group,
+    cluster: clusterOf(group.places[0], readFileSync(group.places[0].file, "utf8")),
+    shots: shots.get(group.key) ?? [],
+  }));
   const html = renderCopyPage({
     branch: git(["rev-parse", "--abbrev-ref", "HEAD"]),
     base: git(["rev-parse", "--short", git(["merge-base", base, "HEAD"])]),
     run: runDir && { name: basename(runDir), at: storyboard.generatedAt },
     warnings,
+    images,
     groups: withShots,
   });
   mkdirSync(dirname(out), { recursive: true });

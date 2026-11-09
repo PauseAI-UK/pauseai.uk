@@ -248,6 +248,55 @@ written to and kept.
   be passed on (`lib/server/held-replies.ts`). A soft bounce is only
   noted.
 
+### Broadcasts to supporters
+
+A broadcast is an email or a text to many supporters at once, and each
+supporter's copy of it is a message. A broadcast is a row of `mailings` with
+the audience `supporters`, but to staff it's apart from a mailing, in its own
+place: Broadcasts, at `/staff/broadcasts`, under Supporters, behind the
+`supporters` permission. Mailings to politicians are open to every staff
+member, so their pages, actions and the `send-mailings` job all leave
+broadcasts out. Each person's copy of a broadcast is a message
+(`broadcast_messages`).
+
+- **Channel and topic.** A broadcast has one of each, its Consent: one
+  topic, answered yes (`broadcastTerms` in `lib/broadcasts.ts`). "Not
+  sure" isn't enough. New broadcast (`/staff/broadcasts/new`) is the writer
+  with nothing yet but Said yes to: choosing a Consent there makes the
+  draft. The supporters list's Broadcast button, with its Consent filter
+  answered yes, makes one too. The writer's Said yes to changes it while
+  it's a draft, to the other channel only while it has no words of its own
+  (`hasWords`), starting it afresh. Staff choose email or text, never the
+  backend.
+- **Who.** The list's filter, kept as its URL parameters; there are no
+  ticks. With no other filters it's everyone who said yes. Change who opens
+  the list choosing for the draft, its Consent locked there, as it's the
+  draft's: a saved filter loaded keeps it. Scheduling
+  doesn't fix who it goes to: sending finds them when it starts, a row of
+  `broadcast_messages` each, from those `contact_permission()` says yes
+  for (`lib/server/broadcast-recipients.ts`), so it reaches whoever the filters
+  find then. Until it's sent, the list and its page count who they find now.
+- **Fields.** No field is everyone's, so each has a fallback, and a
+  broadcast can be scheduled with a field some lack, unlike a mailing to
+  politicians. Each field and part has a condition (`has:mp`), and the
+  preview has a case button for each.
+- **A text's words** are a WhatsApp template: one approved, chosen in the
+  writer and read-only, or new words, which staff send for approval from the
+  writer's foot (`whatsapp_templates`). Until WhatsApp decides they can't be
+  changed, only withdrawn, and the text can't be scheduled. Sending them, and
+  WhatsApp's decision, are emailed to whoever sent them and the notification
+  inbox, with the words. A template has no parts
+  only some get, as its words are the same for everyone. A text
+  stops sending a fixed three days after its time.
+- **Sending.** No backend sends broadcasts yet (`lib/server/broadcast-channels.ts`):
+  on the live site scheduling and replying are refused and the pages say so,
+  and only an email's test copy goes, by Postmark. A fixture build has
+  a fake backend, so its flows can be driven whole.
+- **Replies** are kept in `broadcast_replies`, each from the supporter or, with
+  `sent_by`, from staff, and shown on the message's page, Thread
+  (`/staff/broadcasts/<id>/<copy>`), and the supporter's. A reply to a text is
+  free within 24 hours of the person's last message, and refused after.
+
 ### Mailings to politicians
 
 A mailing written on the site goes from a staff member's own Gmail, as if
@@ -657,8 +706,8 @@ number about each topic, and why: `contact_permission()`
 reason is explained), read through the `email_permissions` and
 `phone_permissions` views and `contact_permissions`, both of them.
 Everything that asks reads those: the supporter's page and the list's
-Contact, Email and Phone columns, through `permissionsFor()` in
-`lib/server/contact-permissions.ts`; the list's Contact filter;
+Consent, Email and Phone columns, through `permissionsFor()` in
+`lib/server/contact-permissions.ts`; the list's Consent filter;
 and the staff home's count of Luma unsubscribes, through the
 `contact_unsubscribes` view. Nothing else
 reads `opt_outs` to answer it, and `tests/checks/opt-outs.test.ts` fails if
@@ -709,7 +758,7 @@ in force, by its channel, is no; then the topic's source.
 Unsure is a yes that an unsubscribe we can't see may have undone: every
 member on the updates, which CiviCRM sends. A topic the address or number
 has had nothing to do with has no row. The list shows an Email or Phone
-column only with the Contact filter by that channel, and in it the
+column only with the Consent filter by that channel, and in it the
 addresses or numbers whose answer the filter finds; a download, vCards
 too, has the same. The supporter's page shows every address and number,
 marking a number no topic lets us use.
@@ -979,7 +1028,7 @@ log entry.
 A new permission is a name in `PERMISSIONS` and the table's `CHECK`, and the
 pages it opens given it in `STAFF_SECTIONS`.
 
-A link in the navigation shows a "new" tag for 3 days after that person first
+A page to try out that can't do its job yet, such as Messages with no backend for sending, has a "draft" tag instead, for everyone. A link in the navigation shows a "new" tag for 3 days after that person first
 sees it (a dot on the folded rail), for any page added to `STAFF_SECTIONS`, with
 nothing else to do. `staff_nav_seen` has a row for each account and page, with
 when they first saw it; the signed-in layout adds those they have none for

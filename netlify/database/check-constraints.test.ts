@@ -12,6 +12,7 @@ import { GUEST_STATUSES, type ImportList } from "@/lib/server/luma-import";
 import type { mailingChannel } from "@/lib/server/mailing-channels";
 import type { MailingState } from "@/lib/server/mailing-drafts";
 import type { SkipReason } from "@/lib/server/mailings";
+import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
 import type { OptOutSource } from "@/lib/server/opt-outs";
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar";
 import { HOUSES, PERSON_STATUSES } from "@/lib/server/politicians";
@@ -65,6 +66,7 @@ const LISTED: Record<string, readonly string[]> = {
   "mailings.channel": every<Parameters<typeof mailingChannel>[0]>()(["email", "text", "whatsapp"]),
   "mailings.state": every<MailingState>()(["draft", "scheduled", "sending", "sent", "cancelled"]),
   "mailings.topic": TOPICS,
+  "whatsapp_templates.status": every<WhatsAppTemplate["status"]>()(["approved", "pending", "rejected"]),
   "notable_people.status": PERSON_STATUSES,
   "opt_outs.channel": CHANNELS,
   "opt_outs.list": every<OptOutList>()(["luma-calendar", "pauseai-updates"]),
@@ -85,15 +87,15 @@ const LISTED: Record<string, readonly string[]> = {
 
 /** The columns whose values TypeScript lists nowhere it can be read from, written only as SQL or as a function's own literals. */
 const UNLISTED = [
+  "broadcast_message_events.kind",
+  "broadcast_messages.skip_reason",
+  "broadcast_messages.status",
   "email_sends.outcome",
   "form_entries.form",
   "letter_relays.status",
   "letters.kind",
   "letters_from_supporters.copy_state",
   "mailings.audience",
-  "message_events.kind",
-  "messages_to_supporters.skip_reason",
-  "messages_to_supporters.status",
   "old_letters_mail.outcome",
   "old_letters_mail.source",
 ];

@@ -1,0 +1,202 @@
+/* The pieces only broadcasts to supporters have: a text as a messaging app
+   shows it, the words WhatsApp is reviewing, and who a text is from. */
+
+/* What everyone it's to said yes to, over the other filters' pills. */
+/* On New broadcast, all but the Consent: there, so what's to come shows,
+   but faint, as nothing can be done there till a Consent is chosen. */
+.locked {
+  display: contents;
+}
+
+.locked > * {
+  opacity: 0.45;
+}
+
+/* The channel in a list's row, before who it's from. */
+.channel {
+  margin-right: var(--space-2);
+}
+
+/* The wall a text's bubbles sit on. */
+.wall {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--chat-wall);
+}
+
+.bubble {
+  align-self: flex-start;
+  margin-right: var(--space-8);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border-top-left-radius: 0;
+  background: var(--surface);
+  box-shadow: 0 1px 1px var(--shadow);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ours {
+  align-self: flex-end;
+  margin-right: 0;
+  margin-left: var(--space-8);
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: 0;
+  background: var(--chat-ours);
+}
+
+.name {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--chat-their-name);
+  font-weight: 600;
+}
+
+.ourName {
+  color: var(--chat-our-name);
+}
+
+.time {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-align: right;
+}
+
+/* The Stop button under a marketing text. */
+.stop {
+  margin-right: var(--space-8);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: 0 1px 1px var(--shadow);
+  color: var(--chat-our-name);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Who a text appears from: the account's picture, then its name and number. */
+.account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.picture {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--pause-orange);
+  color: var(--surface);
+  font-size: var(--text-lg);
+  font-weight: 800;
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.replyForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+/* A recipient's cell: their name over where they are, or how it went over when. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+/* What they replied, on their page. */
+.replies {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The Consent: email or text, and under it that channel's topics, a field's gap apart. */
+.consent {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+/* A web address in a text, as WhatsApp shows one: its blue, underlined. */
+.textLink {
+  color: var(--chat-link);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+/* A text's preview, a phone's width, as it shows on theirs: an iPhone 15's
+   or 16's, 393px. */
+.phone {
+  max-width: 393px;
+}
+
+/* A text's words as WhatsApp lays them out: its lines a blank line apart, a
+   list's bullets set in, a quote with a bar beside it. */
+.words {
+  white-space: normal;
+}
+
+.words :is(p, ul, blockquote) {
+  margin: 0;
+}
+
+.words > :is(p, ul, blockquote) + :is(p, ul, blockquote) {
+  margin-top: 0.75em;
+}
+
+.words ul {
+  padding-left: 1.25em;
+}
+
+.words blockquote {
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+
+/* A text's rate after its cost, smaller and grey, as it may be out of date; wrapping as one. */
+.rate {
+  display: inline-block;
+  margin-left: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+/* A text's words: the template, and new words' name and editor, a field's gap apart. */
+.textWords {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* A phone number, kept on one line. */
+.number {
+  white-space: nowrap;
+}
+
+/* What words sent for approval were called, under its label, as the words are under theirs. */
+.sentValue {
+  margin: 0;
+}

@@ -1,9 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { TOPIC_REASONS, TOPIC_WAYS, contactState, stateValue, topicsOf, waysKey } from "./contact-permissions";
+import {
+  SENDS,
+  TOPIC_REASONS,
+  TOPIC_SENDS,
+  TOPIC_WAYS,
+  contactState,
+  sendsOf,
+  stateValue,
+  topicsOf,
+  waysKey,
+} from "./contact-permissions";
+
+describe("sendsOf", () => {
+  it("gives each topic's answers in SENDS's order, a no always among them, and only updates never a yes", () => {
+    for (const channel of ["email", "phone"] as const)
+      for (const topic of topicsOf(channel)) {
+        const sends = sendsOf(channel, topic);
+        expect(sends, topic).toEqual(SENDS.filter((send) => sends.includes(send)));
+        expect(sends, topic).toContain("no");
+      }
+    expect(sendsOf("email", "pauseai-updates")).toEqual(["unsure", "no"]);
+    expect(sendsOf("email", "luma-calendar")).toEqual(["yes", "no"]);
+    expect(sendsOf("phone", "volunteering")).toEqual(SENDS);
+    expect(Object.keys(TOPIC_SENDS.phone)).toEqual(Object.keys(TOPIC_REASONS.phone));
+  });
+});
 
 describe("contactState", () => {
-  it("reads a blocked email, or a reason its channel's topic can give, and nothing else", () => {
-    expect(contactState("email:blocked")).toEqual({ channel: "email", reason: "blocked" });
+  it("reads a reason its channel's topic can give, and nothing else", () => {
     expect(contactState("email:luma-calendar:unsubscribed")).toEqual({
       channel: "email",
       topic: "luma-calendar",
@@ -25,7 +49,8 @@ describe("contactState", () => {
     expect(contactState("phone:march-day")).toEqual({ channel: "phone", topic: "march-day" });
     expect(contactState("email:site-forms:unsure")).toEqual({ channel: "email", topic: "site-forms", send: "unsure" });
     expect(contactState("email:site-forms:asked:no")).toBeUndefined();
-    // Only an email address is blocked; and a topic and reason need their channel.
+    // Blocked alone is no state; and a topic and reason need their channel.
+    expect(contactState("email:blocked")).toBeUndefined();
     expect(contactState("phone:blocked")).toBeUndefined();
     expect(contactState("blocked")).toBeUndefined();
     expect(contactState("pauseai-updates:removed")).toBeUndefined();
@@ -35,7 +60,6 @@ describe("contactState", () => {
 
   it("writes a state as its form value", () => {
     for (const value of [
-      "email:blocked",
       "phone:volunteering",
       "email:luma-calendar:no",
       "email:site-forms:asked",

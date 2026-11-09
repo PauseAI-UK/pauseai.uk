@@ -320,7 +320,10 @@ describe("MailingWriter", () => {
     const to = preview().getByLabelText(copy.sendTestTo);
     await expect.element(to).toHaveValue("jo@pauseai.uk");
     await expect.element(test).toBeDisabled();
-    await expect.element(preview().getByText(copy.testNeedsDraft)).toBeVisible();
+    // What it needs first, as under Schedule: a subject, and a letter.
+    await expect.element(preview().getByText(copy.problems["no-subject"])).toBeVisible();
+    await expect.element(preview().getByText(copy.problems["no-letter"])).toBeVisible();
+    await subject().fill("Come along");
     // It goes from the Gmail chosen, which is connected.
     await expect.element(preview().getByText(copy.testVia("al@pauseai.uk"))).toBeVisible();
     await write("Come along.");
@@ -368,7 +371,7 @@ describe("MailingWriter", () => {
       await hour.selectOptions("14");
       await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
       expect(actions.save.mock.calls[0][2]).toEqual({ dueAt: new Date("2026-07-03T13:00:00.000Z") });
-      await expect.element(page.getByText(copy.summary(2, "jo@pauseai.uk", "Friday 3 July at 14:18"))).toBeVisible();
+      await expect.element(page.getByText(copy.summary(2, "jo@pauseai.uk", "Fri 3 Jul at 14:18"))).toBeVisible();
       // Back to today, an hour too soon moves on to the first it can go at; another keeps it.
       await hour.selectOptions("9");
       await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(2);
@@ -584,6 +587,6 @@ describe("MailingWriter", () => {
       content: [{ type: "bulletList", content: [{ type: "listItem", content: [{ type: "onlyFor", content: [] }] }] }],
     };
     await renderWriter({ draft: { ...exampleWrittenMailing, body: odd as never } });
-    await expect.element(page.getByText(copy.problems["no-letter"])).toBeVisible();
+    await expect.element(page.getByText(copy.problems["no-letter"]).last()).toBeVisible();
   });
 });

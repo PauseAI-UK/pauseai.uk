@@ -1,7 +1,7 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
-import { CHANNELS, SENDS, stateValue, waysKey, type Channel, type Topic } from "@/lib/contact-permissions";
+import { sendsOf, stateValue, waysKey, type Channel, type Topic } from "@/lib/contact-permissions";
 import { campaigns } from "@/lib/content/email-your-mp";
 import type { SupporterChoices, SupportersPage } from "@/lib/server/supporters";
 import { WINDOW_OPTIONS } from "@/lib/staff-dashboard";
@@ -40,8 +40,8 @@ function nearWords(text: string, near: SupportersPage["near"]): string {
  * on, in the columns' order: their nation and how near somewhere they
  * are, and their MP; their activities and subscriptions; the events they
  * registered for; and whether they wrote in a campaign; the events and MPs
- * from `choices`. A contact filter's
- * choices are each topic, then blocked, a topic chosen as those we can
+ * from `choices`. Consent, the contact filter, has its own button. Its
+ * choices are each topic, a topic chosen as those we can
  * contact about it and another answer in its chip's second half; one by
  * email or phone shows that column; and when they were first seen, last
  * registered for an event or unsubscribed, the lists the dashboard's tiles open,
@@ -91,30 +91,27 @@ function supporterFilters(
     {
       name: "contact",
       label: columns.subscriptions,
-      // Each topic under its channel's heading, chosen as those we can contact about it; then in its chip's second
-      // half, another answer. Blocked is last of email's.
-      options: CHANNELS.flatMap((channel) => [
-        ...SUBSCRIPTION_ORDER.filter(([c]) => c === channel).map(([, topic]) => {
-          const ways = waysKey(channel, topic);
-          const answers = staffCopy.supporters.detail.permissions.answers[ways];
-          return {
-            value: stateValue({ channel, topic, send: "yes" }),
-            label: copy.topics[topic],
-            group: { label: copy.channels[channel], icon: <ChannelIcon channel={channel} /> },
-            detail: copy.ways[ways],
-            seconds: SENDS.map((send) => ({ value: stateValue({ channel, topic, send }), label: answers[send] })),
-          };
-        }),
-        ...(channel === "email"
-          ? [
-              {
-                value: stateValue({ channel, reason: "blocked" }),
-                label: staffCopy.supporters.subscriptions.blocked,
-                group: { label: copy.channels.email, icon: <ChannelIcon channel="email" /> },
-              },
-            ]
-          : []),
-      ]),
+      // Who a message can go to, so its own button.
+      own: true,
+      // Each topic under its channel's heading, chosen with its best answer, those we can contact about it, or
+      // might; then in its chip's second half, another of the answers it can give. Changing the topic keeps the
+      // answer where the new one can give it.
+      options: SUBSCRIPTION_ORDER.map(([channel, topic]) => {
+        const ways = waysKey(channel, topic);
+        const answers = staffCopy.supporters.detail.permissions.answers[ways];
+        const sends = sendsOf(channel, topic);
+        return {
+          value: stateValue({ channel, topic, send: sends[0] }),
+          label: copy.topics[topic],
+          group: { label: copy.channels[channel], icon: <ChannelIcon channel={channel} /> },
+          detail: copy.ways[ways],
+          seconds: sends.map((send) => ({
+            value: stateValue({ channel, topic, send }),
+            label: answers[send],
+            like: send,
+          })),
+        };
+      }),
     },
     {
       name: "event",
@@ -152,24 +149,33 @@ export function supporterWords(
   return filterWords(supporterFilters(search, choices, near), supporterFiltersOf(search), "q");
 }
 
-/** Search and filter the supporters list, with its `saved` filters. The erased notice goes with any change. */
+/**
+ * Search and filter the supporters list, with its `saved` filters. The
+ * erased notice goes with any change. With `lockConsent`, while choosing who
+ * a broadcast goes to, the Consent is its own, there but not to be changed.
+ */
 export default function SupporterFilters({
   search,
   choices,
   near,
   saved,
+  lockConsent = false,
 }: {
   search: SupportersSearch;
   choices: SupporterChoices;
   near?: SupportersPage["near"];
   saved?: { state: SavedFiltersState; actions: SavedFilterActions };
+  lockConsent?: boolean;
 }) {
+  const filters = supporterFilters(search, choices, near).map((filter) =>
+    lockConsent && filter.name === "contact" ? { ...filter, locked: staffCopy.broadcastPages.consentLocked } : filter,
+  );
   return (
     <FilterBar
       path="/staff/supporters"
       values={{ ...search, erased: "" }}
       search={{ name: "q", label: staffCopy.supporters.filters.search }}
-      filters={supporterFilters(search, choices, near)}
+      filters={filters}
       saved={
         saved &&
         savedFiltersProps({

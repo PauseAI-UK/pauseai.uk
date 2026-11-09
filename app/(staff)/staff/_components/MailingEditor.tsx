@@ -20,14 +20,20 @@ type Props = {
   fields: MailingChoice[];
   /** Who a part can be only for, such as those who signed an ask, each with how many it covers. */
   conditions: MailingChoice[];
+  /**
+   * A WhatsApp template's words: the same for everyone, so no parts only some
+   * get, and WhatsApp's formatting, which has no links, as a web address
+   * shows as it is.
+   */
+  whatsApp?: boolean;
   /** How many recipients there are, to say how many all but some is. */
   recipients?: number;
   /** The ID of the label naming it. */
   labelledBy: string;
 };
 
-/** Whether every recipient has a value for a field, so it can be used. */
-const usable = (field: MailingChoice) => !field.lacking;
+/** Whether a field can be used: every recipient has a value for it, or those without get its fallback. */
+const usable = (field: MailingChoice) => !field.lacking || Boolean(field.fallback);
 
 /** A choice's label, or its ID when it has none, as for a field no longer offered. */
 function labelOf(choices: Record<string, string>, id: string): string {
@@ -110,9 +116,9 @@ const OnlyFor = Node.create<{ labels: Record<string, string> }>({
 /**
  * Bold, italic, links, bullets and quotes, and in a part for only some, the
  * button that makes it for everyone. Link opens the link bar under it, or
- * closes it.
+ * closes it; with no `onLink`, as in WhatsApp, there's no Link.
  */
-function Toolbar({ editor, onLink }: { editor: Editor; onLink: () => void }) {
+function Toolbar({ editor, onLink }: { editor: Editor; onLink?: () => void }) {
   const active = useEditorState({
     editor,
     selector: ({ editor }) => ({
@@ -137,17 +143,21 @@ function Toolbar({ editor, onLink }: { editor: Editor; onLink: () => void }) {
       pressed: active.italic,
       run: () => editor.chain().focus().toggleItalic().run(),
     },
-    {
-      title: copy.link,
-      label: (
-        <>
-          <LinkIcon />
-          {copy.linkLabel}
-        </>
-      ),
-      pressed: active.link,
-      run: onLink,
-    },
+    ...(onLink
+      ? [
+          {
+            title: copy.link,
+            label: (
+              <>
+                <LinkIcon />
+                {copy.linkLabel}
+              </>
+            ),
+            pressed: active.link,
+            run: onLink,
+          },
+        ]
+      : []),
     {
       title: copy.bulletList,
       label: "• List",
@@ -298,11 +308,13 @@ function Sidebar({
   editor,
   fields,
   conditions,
+  noParts,
   recipients,
 }: {
   editor: Editor;
   fields: MailingChoice[];
   conditions: MailingChoice[];
+  noParts?: boolean;
   recipients?: number;
 }) {
   const inBox = useEditorState({ editor, selector: ({ editor }) => editor.isActive("onlyFor") });
@@ -325,7 +337,7 @@ function Sidebar({
               tabIndex={0}
               className={styles.fieldLozenge}
               aria-disabled={!usable(field) || undefined}
-              title={usable(field) ? copy.dragHint : copy.lacking(field.lacking!)}
+              title={field.lacking ? copy.lacking(field.lacking) : copy.dragHint}
               draggable={usable(field)}
               onDragStart={(event) => {
                 event.dataTransfer.effectAllowed = "copy";
@@ -344,8 +356,8 @@ function Sidebar({
           </li>
         ))}
       </ul>
-      <p className={styles.sideHeading}>{copy.partsHeading}</p>
-      {conditions.length === 0 ? (
+      {!noParts && <p className={styles.sideHeading}>{copy.partsHeading}</p>}
+      {noParts ? null : conditions.length === 0 ? (
         <p className={styles.sideNote}>{copy.noConditions}</p>
       ) : (
         <div className={styles.partMenus}>
@@ -369,12 +381,20 @@ function Sidebar({
 }
 
 /**
- * A mailing's letter: bold, italic, links, bullets and quotes as in a supporter's letter,
+ * A mailing's letter, or a broadcast's (BroadcastWriter): bold, italic, links (none in WhatsApp), bullets and quotes as in a supporter's letter,
  * merge fields as chips, and parts in a box that only some recipients get,
  * with the fields and who a part can be for beside it. Typing { offers the
  * fields every recipient has at the cursor.
  */
-export default function MailingEditor({ initial, onChange, fields, conditions, recipients, labelledBy }: Props) {
+export default function MailingEditor({
+  initial,
+  onChange,
+  fields,
+  conditions,
+  whatsApp,
+  recipients,
+  labelledBy,
+}: Props) {
   const frame = useRef<HTMLDivElement>(null);
   // Where the { was typed, and where to show the menu of fields.
   const [picker, setPicker] = useState<{ from: number; to: number; top: number; left: number }>();
@@ -395,7 +415,7 @@ export default function MailingEditor({ initial, onChange, fields, conditions, r
     editorProps: {
       attributes: { role: "textbox", "aria-multiline": "true", "aria-labelledby": labelledBy, class: styles.editor },
       handleKeyDown: (_, event) => {
-        if (!isLinkKey(event)) return false;
+        if (whatsApp || !isLinkKey(event)) return false;
         setLinking(true);
         return true;
       },
@@ -423,11 +443,15 @@ export default function MailingEditor({ initial, onChange, fields, conditions, r
         {editor && (
           <Toolbar
             editor={editor}
-            onLink={() => {
-              // Shut, the cursor goes back to the letter, as the bar's own Cancel does.
-              if (linking) editor.commands.focus();
-              setLinking(!linking);
-            }}
+            onLink={
+              whatsApp
+                ? undefined
+                : () => {
+                    // Shut, the cursor goes back to the letter, as the bar's own Cancel does.
+                    if (linking) editor.commands.focus();
+                    setLinking(!linking);
+                  }
+            }
           />
         )}
         {editor && linking && <LinkBar editor={editor} words={copy.linkBar} onClose={() => setLinking(false)} />}
@@ -471,7 +495,9 @@ export default function MailingEditor({ initial, onChange, fields, conditions, r
           </div>
         )}
       </div>
-      {editor && <Sidebar editor={editor} fields={fields} conditions={conditions} recipients={recipients} />}
+      {editor && (
+        <Sidebar editor={editor} fields={fields} conditions={conditions} noParts={whatsApp} recipients={recipients} />
+      )}
     </div>
   );
 }
