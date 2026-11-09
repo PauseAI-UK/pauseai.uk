@@ -1,7 +1,7 @@
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addFilter, syncPoliticians } from "../steps";
+import { addFilter, recordAnswers, syncPoliticians } from "../steps";
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import { chooseDay, importEmails, logIn, sentLetterId } from "./staff-steps";
 import type { Section } from "./report/frames";
@@ -61,6 +61,7 @@ test("No answer yet", async ({ page, flowDatabase }) => {
 test("Asks", async ({ page, request, flowDatabase }) => {
   story("The asks page lists each ask as the mailings page does: who asked, what they answered, and how it stands.");
   await syncPoliticians(request, BASE);
+  recordAnswers(flowDatabase);
   await logIn(page, flowDatabase, ["supporters"]);
   await importEmails(page);
   await page.goto(`${BASE}/staff/asks`);
