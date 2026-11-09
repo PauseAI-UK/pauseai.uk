@@ -59,7 +59,10 @@ export function copyStatus(copyOf: Pick<MessageRecipient, "status" | "skipReason
   const { skipReason, status, read } = copyOf;
   if (skipReason) return { words: copy.skipReasons[skipReason as "blocked"], tone: "red" };
   if (read) return { words: copy.statuses.read, tone: "green" };
-  return { words: copy.statuses[status], tone: status === "failed" ? "red" : undefined };
+  return {
+    words: copy.statuses[status],
+    tone: status === "failed" ? "red" : status === "cancelled" ? "amber" : undefined,
+  };
 }
 
 /** Whether a copy went, so has a page of its own. */

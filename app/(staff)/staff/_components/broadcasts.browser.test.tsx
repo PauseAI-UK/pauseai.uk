@@ -875,6 +875,7 @@ describe("a broadcast's page", () => {
     expect(copyStatus(base).words).toBe(copy.statuses.delivered);
     expect(copyStatus({ ...base, read: true })).toEqual({ words: copy.statuses.read, tone: "green" });
     expect(copyStatus({ ...base, status: "failed" }).tone).toBe("red");
+    expect(copyStatus({ ...base, status: "cancelled" })).toEqual({ words: copy.statuses.cancelled, tone: "amber" });
     expect(copyStatus({ ...base, status: "skipped", skipReason: "not-on-whatsapp" }).words).toBe(
       copy.skipReasons["not-on-whatsapp"],
     );
