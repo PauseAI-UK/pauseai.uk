@@ -138,12 +138,19 @@ campaigns (policy, above). PauseAI UK is a civil society organisation
 that runs events and volunteering, as many nonprofits on WhatsApp do,
 and the application should say so consistently:
 
-- A verified Meta business portfolio for Safe AI Alliance Ltd. It needs
-  the certificate of incorporation, from Companies House, and a document
-  with the company's name and address, such as a bank statement, which
-  Joseph can provide. pauseai.uk already names the company. A verified
-  account can message 2,000 people a day, an unverified one 250
+- A verified Meta business portfolio for Safe AI Alliance Ltd. We have
+  a portfolio called PauseAI UK, which is unverified, has no legal name,
+  address or website filled in, and has no WhatsApp account yet.
+  Verifying needs the certificate of incorporation, from Companies
+  House, and a document with the company's name and address, such as a
+  bank statement, which Joseph can provide. pauseai.uk already names the
+  company. A verified account can message 2,000 people a day, an
+  unverified one 250
   ([limits](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits)).
+- Each admin logs in with a personal Facebook account, in their own name
+  ([portfolios](https://www.facebook.com/business/help/1710077379203657)).
+  Facebook doesn't allow accounts that aren't a real person, so
+  admin@pauseai.uk can't be one.
 - "PauseAI UK" as the display name
   ([display names](https://developers.facebook.com/documentation/business-messaging/whatsapp/display-names)),
   and a complete profile: what we do (events, volunteering, public
