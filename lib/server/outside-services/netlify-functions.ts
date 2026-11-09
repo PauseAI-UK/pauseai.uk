@@ -1,5 +1,7 @@
 import "server-only";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { config } from "@/lib/server/config";
+import { problem } from "@/lib/server/problems";
 import { siteUrlIfKnown } from "@/lib/site-url";
 import { outsideFetch } from "./outside-fetch";
 
@@ -15,11 +17,13 @@ export async function startLumaImport(): Promise<void> {
   const url = siteUrlIfKnown("/.netlify/functions/import-luma-background", undefined);
   if (config.localBuild || !config.cronSecret || !url) return;
   try {
-    await outsideFetch(url.toString(), {
+    const res = await outsideFetch(url.toString(), {
       method: "POST",
       headers: { Authorization: `Bearer ${config.cronSecret}` },
     });
+    // A background function answers 202 as it starts.
+    if (res.status !== 202) problem(staffCopy.problems.logs.lumaImportNotStarted, `It answered ${res.status}`);
   } catch (error) {
-    console.error("Couldn't start the Luma import:", error);
+    problem(staffCopy.problems.logs.lumaImportNotStarted, error);
   }
 }

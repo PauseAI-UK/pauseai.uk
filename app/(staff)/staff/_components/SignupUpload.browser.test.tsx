@@ -9,10 +9,10 @@ import SignupUploadForm from "./SignupUploadForm";
 import SignupUploadPreview, { SignupPlanView, type SignupUploadActions } from "./SignupUploadPreview";
 import SignupUploadResult, { SignupUploadsList } from "./SignupUploadResult";
 
-const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+const { push, refresh } = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", async (original) => ({
   ...(await original<typeof import("next/navigation")>()),
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, refresh }),
 }));
 
 const copy = staffCopy.signupUpload;
@@ -361,12 +361,32 @@ describe("SignupUploadResult", () => {
     ]);
   });
 
+  it("while Luma's being read, says so by a spinner, and asks for the page again every few seconds", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      const shown = await render(<SignupUploadResult upload={{ ...exampleSignupUploadPeople, lumaReading: true }} />);
+      await expect.element(page.getByRole("status")).toHaveTextContent(copy.result.lumaReading);
+      refresh.mockClear();
+      vi.advanceTimersByTime(10000);
+      expect(refresh).toHaveBeenCalledTimes(2);
+      await shown.unmount();
+      vi.advanceTimersByTime(10000);
+      expect(refresh).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("titles the page with the file's name", () => {
     expect(copy.result.title("flyering.csv")).toContain("flyering.csv");
   });
 
   it("says so when everyone's gone, with no event or note", async () => {
-    await render(<SignupUploadResult upload={{ ...exampleSignupUpload, eventName: null, note: null, people: [] }} />);
+    await render(
+      <SignupUploadResult
+        upload={{ ...exampleSignupUpload, eventName: null, note: null, people: [], lumaReading: false }}
+      />,
+    );
     await expect.element(page.getByText(copy.result.none)).toBeVisible();
   });
 });

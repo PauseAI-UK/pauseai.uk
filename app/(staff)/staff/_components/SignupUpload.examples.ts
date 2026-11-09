@@ -97,6 +97,7 @@ export const exampleSignupUpload: SignupUploadSummary = {
 /** An upload with someone in each case: Luma said each thing of one, one was going already, one said no. */
 export const exampleSignupUploadPeople: NonNullable<Awaited<ReturnType<typeof getSignupUpload>>> = {
   ...exampleSignupUpload,
+  lumaReading: false,
   people: (
     [
       { newEntry: true, known: null, luma: "added", supporterId: 1, phone: "07700 900123", postcode: "SE15" },

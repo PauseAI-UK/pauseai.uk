@@ -12,6 +12,7 @@ import {
   type SignupUploadInput,
 } from "@/lib/signup-upload";
 import { logChange } from "./audit";
+import { config } from "./config";
 import { query, transaction } from "./db";
 import { startLumaImport } from "./outside-services/netlify-functions";
 import { addLumaGuests } from "./outside-services/luma-guests";
@@ -212,7 +213,10 @@ export async function finishSignupUpload(
        FROM unnest($1::bigint[], $2::text[]) AS s(entry_id, status) WHERE u.entry_id = s.entry_id`,
       [said.map((row) => row.id), said.map((row) => row.status)],
     );
-    // Our copy of the event's guests, with those just registered, without waiting for the next run.
+    // Our copy of the event's guests, with those just registered, without waiting for the next run: its
+    // guests due to be read again however lately they were (eventsDueGuests in luma-import.ts), and a run
+    // started. One already going does nothing, and the next scheduled run reads them.
+    await query("UPDATE luma_events SET guests_synced_at = NULL WHERE id = $1", [input.eventId]);
     await startLumaImport();
   }
   // Their postcodes' places and MPs now, rather than at the next Luma import, which also looks up any left over.
@@ -267,10 +271,32 @@ export async function listSignupUploads(): Promise<SignupUploadSummary[]> {
   );
 }
 
+/** How long after an upload its page waits for the Luma import it started: longer than a run takes to start and go. */
+const LUMA_READING_FOR = "10 minutes";
+
+/**
+ * Whether the Luma import an upload started (startLumaImport) is still to
+ * read its event's guests: it registered someone, lately, on a build that can
+ * start a run, and the event's guests haven't been read since.
+ */
+async function lumaReading(id: number): Promise<boolean> {
+  if (config.localBuild || !config.cronSecret) return false;
+  const [row] = await query<{ reading: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1 FROM signup_uploads u JOIN luma_events e ON e.id = u.event_id
+       WHERE u.id = $1 AND u.uploaded_at > $2::timestamptz - interval '${LUMA_READING_FOR}'
+         AND (e.guests_synced_at IS NULL OR e.guests_synced_at < u.uploaded_at)
+         AND EXISTS (SELECT 1 FROM signup_upload_entries x WHERE x.upload_id = u.id AND x.luma = 'added')
+     ) AS reading`,
+    [id, now()],
+  );
+  return row.reading;
+}
+
 /** An upload and the people still in it, or undefined if there's no such upload. */
 export async function getSignupUpload(
   id: number,
-): Promise<(SignupUploadSummary & { people: SignupUploadPerson[] }) | undefined> {
+): Promise<(SignupUploadSummary & { people: SignupUploadPerson[]; lumaReading: boolean }) | undefined> {
   const [upload] = await query<SignupUploadSummary>(
     `SELECT ${UPLOAD_COLUMNS} FROM signup_uploads u LEFT JOIN luma_events e ON e.id = u.event_id WHERE u.id = $1`,
     [id],
@@ -284,5 +310,5 @@ export async function getSignupUpload(
      WHERE u.upload_id = $1 ORDER BY f.id`,
     [id],
   );
-  return { ...upload, people };
+  return { ...upload, people, lumaReading: await lumaReading(id) };
 }

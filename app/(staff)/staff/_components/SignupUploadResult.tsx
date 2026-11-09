@@ -9,6 +9,7 @@ import { monthsAndYears } from "@/lib/dated-groups";
 import Counts from "./ui/Counts";
 import Grid, { Card, spanClass } from "./ui/Grid";
 import ExternalLink from "./ui/ExternalLink";
+import { LumaReading } from "./SignupUploadPreview";
 import StaffLink from "./ui/StaffLink";
 import styles from "./SignupUpload.module.css";
 
@@ -63,6 +64,7 @@ export default function SignupUploadResult({
     <Grid>
       <Card span={6}>
         <UploadFacts upload={upload} />
+        {upload.lumaReading && <LumaReading />}
         {upload.people.length === 0 ? (
           <p>{words.none}</p>
         ) : (

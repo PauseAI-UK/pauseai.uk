@@ -114,13 +114,30 @@ export type SignupUploadActions = {
 type Outcome = SignupPlan | SignupUploadRefused | "failed";
 
 /** That the preview is being worked out: a spinner, and the words in italics. */
-function Working() {
+function Working({ children }: { children: React.ReactNode }) {
   return (
     <p className={styles.working} role="status">
       <span className={styles.spinner} aria-hidden="true" />
-      {words.loading}
+      {children}
     </p>
   );
+}
+
+/** How often an import's page asks again whether Luma's been read. */
+const READ_AGAIN_MS = 5000;
+
+/**
+ * On an import's page, while the Luma import it started is still to read its
+ * event's guests: a spinner, and the page asked for again every few seconds,
+ * which leaves this out once they're read.
+ */
+export function LumaReading() {
+  const router = useRouter();
+  useEffect(() => {
+    const timer = setInterval(() => router.refresh(), READ_AGAIN_MS);
+    return () => clearInterval(timer);
+  }, [router]);
+  return <Working>{copy.result.lumaReading}</Working>;
 }
 
 /**
@@ -185,7 +202,7 @@ export default function SignupUploadPreview({
   const shown = !input ? (
     <p>{words.needsFile}</p>
   ) : !outcome ? (
-    <Working />
+    <Working>{words.loading}</Working>
   ) : outcome.is === "failed" ? (
     <Strip tone="red">{words.failed}</Strip>
   ) : "ok" in outcome.is ? (
@@ -193,7 +210,7 @@ export default function SignupUploadPreview({
   ) : (
     <div className={styles.page}>
       {changed && <Strip tone="amber">{words.changed}</Strip>}
-      {stale && <Working />}
+      {stale && <Working>{words.loading}</Working>}
       <SignupPlanView plan={outcome.is} />
     </div>
   );

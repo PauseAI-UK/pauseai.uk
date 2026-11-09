@@ -5,6 +5,7 @@
 import { NoteFrom } from "@/app/(staff)/staff/_components/Notes";
 import EraseLink from "@/app/(staff)/staff/_components/EraseLink";
 import ErasedNotice from "@/app/(staff)/staff/_components/ErasedNotice";
+import { LumaReading } from "@/app/(staff)/staff/_components/SignupUploadPreview";
 import SupporterBadges from "@/app/(staff)/staff/_components/SupporterBadges";
 import SubscriptionBadges from "@/app/(staff)/staff/_components/SubscriptionBadges";
 import ChannelIcon from "@/app/(staff)/staff/_components/ChannelIcon";
@@ -420,6 +421,11 @@ export const staffSupporters: Group = {
       variants: [{ label: "Someone in every pile", render: () => <SignupPlanViewExample /> }],
     },
     {
+      name: "LumaReading",
+      file: "app/(staff)/staff/_components/SignupUploadPreview.tsx",
+      variants: [{ label: "On an import's page, while Luma's read", render: () => <LumaReading /> }],
+    },
+    {
       name: "SignupUploadPreview",
       file: "app/(staff)/staff/_components/SignupUploadPreview.tsx",
       variants: [{ label: "Worked out, with someone in every pile", render: () => <SignupUploadPreviewExample /> }],
@@ -433,9 +439,15 @@ export const staffSupporters: Group = {
           render: () => <SignupUploadResult upload={exampleSignupUploadPeople} />,
         },
         {
+          label: "Just imported, while the Luma import it started reads the event's guests",
+          render: () => <SignupUploadResult upload={{ ...exampleSignupUploadPeople, lumaReading: true }} />,
+        },
+        {
           label: "Everyone since erased, with no event or note",
           render: () => (
-            <SignupUploadResult upload={{ ...exampleSignupUpload, eventName: null, note: null, people: [] }} />
+            <SignupUploadResult
+              upload={{ ...exampleSignupUpload, eventName: null, note: null, people: [], lumaReading: false }}
+            />
           ),
         },
       ],

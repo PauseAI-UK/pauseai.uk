@@ -144,6 +144,7 @@ E,e@example.com,020 7946 0000`),
 
   it("imports form entries, supporters and the note, with Luma's answers, and says so", async () => {
     await event(EVENT);
+    await query("UPDATE luma_events SET guests_synced_at = now()");
     await guest("going@example.com");
     await query("INSERT INTO luma_people (user_id, email, name) VALUES ('other', 'other@example.com', 'Other')");
     let sent: unknown;
@@ -189,6 +190,11 @@ Bad,bad,,,,,Y`,
       ["skip@example.com", true, null, "skipped", true],
       ["not@example.com", true, null, null, true],
     ]);
+    // The event's guests read again at the next run, which it starts on Netlify.
+    const [synced] = await query<{ at: Date | null }>("SELECT guests_synced_at AS at FROM luma_events WHERE id = $1", [
+      EVENT,
+    ]);
+    expect(synced.at).toBeNull();
     const consents = await query<{ consent: boolean }>(
       "SELECT contact_consent AS consent FROM form_entries WHERE form = 'paper-signup' ORDER BY id",
     );
@@ -258,6 +264,24 @@ Bad,bad,,,,,Y`,
     const finished = await finishSignupUpload(upload, signature, BY);
     expect(finished).toMatchObject({ changed: { rows: [{ pile: "going" }] } });
     expect(await query("SELECT id FROM form_entries")).toEqual([]);
+  });
+
+  it("says Luma's being read after registering someone, where a run can start, till the event's guests are read", async () => {
+    vi.stubEnv("CRON_SECRET", "secret");
+    vi.stubEnv("SITE_ORIGIN", "");
+    await event(EVENT);
+    server.use(http.post(ADD, () => HttpResponse.json({ skipped: [] })));
+    const registered = await imported(
+      input("Name,Email,March\nJo,jo@example.com,Y", { eventId: EVENT, eventColumn: "March" }),
+    );
+    expect((await getSignupUpload(registered))!.lumaReading).toBe(true);
+    const none = await imported(input("Name,Email\nAl,al@example.com"));
+    expect((await getSignupUpload(none))!.lumaReading).toBe(false);
+    vi.stubEnv("DEPLOY_CONTEXT", "local");
+    expect((await getSignupUpload(registered))!.lumaReading).toBe(false);
+    vi.stubEnv("DEPLOY_CONTEXT", "deploy-preview");
+    await query("UPDATE luma_events SET guests_synced_at = now() + interval '1 minute'");
+    expect((await getSignupUpload(registered))!.lumaReading).toBe(false);
   });
 
   it("records Luma's answer for no one when no one's registering", async () => {
