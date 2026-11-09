@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 import type { Reporter, TestCase, TestResult } from "@playwright/test/reporter";
-import { carryRuns, type FlowRun, type RunManifest } from "./frames.ts";
+import { carryRuns, type FlowRun, type PlaceholderText, type RunManifest } from "./frames.ts";
 
 // Collects the frames (tests/storyboard/frame.ts) of every flow into
 // STORYBOARD_DIR/<side>/: their pictures, and `frames.json`, which
@@ -33,7 +33,13 @@ export default class StoryboardReporter implements Reporter {
     );
     rmSync(folder, { recursive: true, force: true });
     const pngs = new Map<string, string>();
+    // The placeholders each frame pictures (frame.ts), by its number.
+    const placeholders = new Map<number, PlaceholderText[]>();
     for (const a of result.attachments) {
+      if (a.name.startsWith("placeholders ") && a.body) {
+        placeholders.set(Number(a.name.slice("placeholders ".length)), JSON.parse(a.body.toString("utf8")));
+        continue;
+      }
       if (!a.name.startsWith("frame ") || !a.body) continue;
       const file = join(folder, `${a.name.split(":")[0].replace(" ", "-")}.png`);
       mkdirSync(folder, { recursive: true });
@@ -46,10 +52,12 @@ export default class StoryboardReporter implements Reporter {
     for (const a of test.annotations) {
       if (a.type === "story") story.push(a.description ?? "");
       if (a.type !== "frame") continue;
+      const seen = placeholders.get(frames.length + 1);
       frames.push({
         caption: a.description ?? "",
         png: pngs.get(`frame ${frames.length + 1}`),
         ...(story.length ? { story } : {}),
+        ...(seen ? { placeholders: seen } : {}),
       });
       story = [];
     }

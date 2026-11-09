@@ -271,6 +271,44 @@ Before them, the flows that failed, here or on main. The paths are the
 run's own folder, not `latest/`, so they stay right after another run.
 `npm run storyboard -- --changed` runs the review and then prints the same.
 
+**The copy to approve**, for the person who writes the copy: `npm run copy`
+(`scripts/copy.mjs`) writes `test-results/copy.html`, one page, with its
+pictures in it, of each placeholder (AGENTS.md, "Never write final copy")
+that this branch adds or changes since it left origin/main, committed or
+not. Each shows the copy as written, its file and line (and the source,
+folded), and every frame of the latest run that pictures it, cropped around
+it with the copy boxed; frames whose crops are the same picture are listed
+under one. It's grouped by file, in the diff's order, as the copy is
+written and changed there, and each piece has one place there but often
+many frames. The copy no frame pictures is listed last: it needs a flow, or
+can't be reached (an `aria-label`, a message shown only on an error). Copy
+with the same text in two places is shown once, with both.
+
+Each frame records the placeholder text it pictures and its boxes
+(`placeholdersOnPage` in `tests/storyboard/frame.ts`, kept in
+`storyboard.json` as each frame's `placeholders`): from the mark to the next
+or to the end of the block it's in, read from the page without changing it,
+so no picture changes. A field's placeholder or value and a select's option
+count; an emailed frame's text too, so an email's copy is matched where a
+flow frames the email. The script reads the copy from the source: a
+string to its end, a template with each `${…}` as anything, JSX text
+through inline elements (`<strong>`, `<a>`, `<Link>`) with each `{…}` as
+anything, and HTML in a string (an email's) to its first block. Whitespace
+is collapsed and entities decoded on both sides, and a frame's text matches
+copy that starts it, the longest match winning.
+
+```bash
+npm run copy                         # from the latest run, without running anything
+npm run copy -- <run>                # another run: its folder, or its name under runs/
+npm run copy -- --storyboard         # runs the storyboard first (the rest goes to it: --no-main, --desktop)
+```
+
+`--storyboard` runs the sections whose frames, in the latest run, showed
+all the changed copy, or the whole suite if some was in no frame, as it
+could be anywhere. Without it, the page says when the run is older than the
+branch's last commit, or than a file with changed copy, as its frames may
+not show the copy as it is.
+
 **Runs.** Each run has its own folder,
 `test-results/storyboard/runs/<when>/`, with every picture its page shows,
 so a page you have open is never changed by the next run. `latest` points
