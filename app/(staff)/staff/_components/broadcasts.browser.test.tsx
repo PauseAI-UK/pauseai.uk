@@ -14,7 +14,7 @@ import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
 import MessageCopyView from "./MessageCopyView";
 import BroadcastFor, { BroadcastContact, BroadcastWho } from "./BroadcastFor";
 import { ChoosingBroadcastFrame, BroadcastSupporters } from "./BroadcastSupporters";
-import BroadcastView, { copyStatus } from "./BroadcastView";
+import BroadcastView, { CopyStatus, copyStatus } from "./BroadcastView";
 import BroadcastWriter, { templateLine, type BroadcastWriterActions } from "./BroadcastWriter";
 import ChannelWriter from "./ChannelWriter";
 import {
@@ -871,14 +871,25 @@ describe("a broadcast's page", () => {
   });
 
   it("says each copy's status", () => {
-    const base = { status: "delivered", skipReason: null, read: false };
+    const base = { status: "delivered", skipReason: null, read: false, bounced: false };
     expect(copyStatus(base).words).toBe(copy.statuses.delivered);
+    expect(copyStatus({ ...base, status: "failed", bounced: true })).toEqual({
+      words: copy.events.bounced,
+      tone: "red",
+    });
     expect(copyStatus({ ...base, read: true })).toEqual({ words: copy.statuses.read, tone: "green" });
     expect(copyStatus({ ...base, status: "failed" }).tone).toBe("red");
     expect(copyStatus({ ...base, status: "cancelled" })).toEqual({ words: copy.statuses.cancelled, tone: "amber" });
     expect(copyStatus({ ...base, status: "skipped", skipReason: "not-on-whatsapp" }).words).toBe(
       copy.skipReasons["not-on-whatsapp"],
     );
+  });
+
+  it("tags one who asked us to stop after it arrived as stopped, beside delivered", async () => {
+    const delivered = { status: "delivered", skipReason: null, read: false, bounced: false };
+    await render(<CopyStatus copyOf={{ ...delivered, optedOut: true }} />);
+    await expect.element(page.getByText(copy.statuses.delivered)).toBeVisible();
+    await expect.element(page.getByText(copy.events["opted-out"], { exact: true })).toBeVisible();
   });
 });
 
@@ -1051,6 +1062,8 @@ describe("SupporterBroadcasts", () => {
             skipReason: null,
             sentAt: new Date("2026-11-07T07:18:00Z"),
             read: true,
+            bounced: false,
+            optedOut: false,
           },
           {
             copyId: 22,
@@ -1061,6 +1074,8 @@ describe("SupporterBroadcasts", () => {
             skipReason: null,
             sentAt: null,
             read: false,
+            bounced: false,
+            optedOut: false,
           },
           {
             copyId: 23,
@@ -1071,6 +1086,8 @@ describe("SupporterBroadcasts", () => {
             skipReason: null,
             sentAt: null,
             read: false,
+            bounced: false,
+            optedOut: false,
           },
         ]}
       />,

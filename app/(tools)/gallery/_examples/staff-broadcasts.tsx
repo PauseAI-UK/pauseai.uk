@@ -2,7 +2,7 @@
 // writer, the list of them, each one's page, and one copy as sent.
 import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
 import { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
-import { BroadcastChannelName } from "@/app/(staff)/staff/_components/BroadcastView";
+import { BroadcastChannelName, CopyStatus } from "@/app/(staff)/staff/_components/BroadcastView";
 import {
   exampleBroadcastData,
   exampleBroadcastSent,
@@ -288,6 +288,26 @@ export const staffBroadcasts: Group = {
       ],
     },
     {
+      name: "CopyStatus",
+      file: "app/(staff)/staff/_components/BroadcastView.tsx",
+      variants: [
+        {
+          label: "Read, bounced, stopped before it went, and asked us to stop after it arrived",
+          render: () => {
+            const went = { status: "delivered", skipReason: null, read: false, bounced: false, optedOut: false };
+            return (
+              <>
+                <CopyStatus copyOf={{ ...went, read: true }} />
+                <CopyStatus copyOf={{ ...went, status: "failed", bounced: true }} />
+                <CopyStatus copyOf={{ ...went, status: "cancelled" }} />
+                <CopyStatus copyOf={{ ...went, optedOut: true }} />
+              </>
+            );
+          },
+        },
+      ],
+    },
+    {
       name: "BroadcastView",
       file: "app/(staff)/staff/_components/BroadcastView.tsx",
       variants: [
@@ -433,6 +453,8 @@ export const staffBroadcasts: Group = {
                     skipReason: null,
                     sentAt: new Date("2026-11-07T07:18:00Z"),
                     read: true,
+                    bounced: false,
+                    optedOut: false,
                   },
                   {
                     copyId: 22,
@@ -443,6 +465,8 @@ export const staffBroadcasts: Group = {
                     skipReason: null,
                     sentAt: null,
                     read: false,
+                    bounced: false,
+                    optedOut: false,
                   },
                 ]}
               />

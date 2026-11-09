@@ -51,13 +51,27 @@ export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
   ];
 }
 
-/** How a copy went, in words and its tone: skipped with why, or its status, or read. */
-export function copyStatus(copyOf: Pick<MessageRecipient, "status" | "skipReason" | "read">): {
+type CopyState = Pick<MessageRecipient, "status" | "skipReason" | "read" | "bounced" | "optedOut">;
+
+/** How a copy went, as a tag; and an amber Stopped beside it for one who asked us to stop after it arrived. */
+export function CopyStatus({ copyOf }: { copyOf: CopyState }) {
+  const { words, tone } = copyStatus(copyOf);
+  return (
+    <span className={styles.tags}>
+      <Tag tone={tone}>{words}</Tag>
+      {copyOf.optedOut && <Tag tone="amber">{copy.events["opted-out"]}</Tag>}
+    </span>
+  );
+}
+
+/** How a copy went, in words and its tone: skipped with why, bounced, or its status, or read. */
+export function copyStatus(copyOf: Omit<CopyState, "optedOut">): {
   words: string;
   tone?: TagTone;
 } {
-  const { skipReason, status, read } = copyOf;
+  const { skipReason, status, read, bounced } = copyOf;
   if (skipReason) return { words: copy.skipReasons[skipReason as "blocked"], tone: "red" };
+  if (bounced) return { words: copy.events.bounced, tone: "red" };
   if (read) return { words: copy.statuses.read, tone: "green" };
   return {
     words: copy.statuses[status],
@@ -92,10 +106,9 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
       label: copy.columns.status,
       short: true,
       cell: (r) => {
-        const { words, tone } = copyStatus(r);
         return (
           <span className={styles.stack}>
-            <Tag tone={tone}>{words}</Tag>
+            <CopyStatus copyOf={r} />
             {r.sentAt && <Muted>{staffDate(r.sentAt)}</Muted>}
             {copyWent(r) && (
               <StaffLink href={`/staff/broadcasts/${broadcast.id}/${r.copyId}`}>{copy.threadLink}</StaffLink>

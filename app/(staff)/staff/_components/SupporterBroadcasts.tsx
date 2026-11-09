@@ -1,9 +1,8 @@
-import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { SupporterBroadcastRow } from "@/lib/server/broadcast-pages";
 import { staffDate } from "@/lib/staff-time";
-import { BroadcastChannelName, copyStatus, copyWent } from "./BroadcastView";
+import { BroadcastChannelName, CopyStatus, copyWent } from "./BroadcastView";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
 import details from "./Details.module.css";
@@ -30,10 +29,9 @@ const COLUMNS: ListColumn<SupporterBroadcastRow>[] = [
     label: copy.supporterColumns.status,
     short: true,
     cell: (m) => {
-      const { words, tone } = copyStatus(m);
       return (
         <span className={styles.stack}>
-          <Tag tone={tone}>{words}</Tag>
+          <CopyStatus copyOf={m} />
           {copyWent(m) && (
             <StaffLink href={`/staff/broadcasts/${m.messageId}/${m.copyId}`}>{copy.threadLink}</StaffLink>
           )}

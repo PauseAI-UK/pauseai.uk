@@ -110,6 +110,13 @@
   gap: var(--space-1);
 }
 
+/* How a copy went, and a stop after it beside it. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
 /* The Consent: email or text, and under it that channel's topics, a field's gap apart. */
 .consent {
   display: grid;

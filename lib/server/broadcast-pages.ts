@@ -40,11 +40,15 @@ export type BroadcastSummary = MailingSummary & {
   rejected: boolean;
 };
 
-// Stopped: never sent, as the broadcast was stopped, they asked us to stop, or their consent ended before it went.
-const STOPPED = "(c.status = 'cancelled' OR c.skip_reason IN ('unsubscribed', 'no-permission'))";
+const WAS_READ = "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'read')";
+const BOUNCED = "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'bounced')";
+const OPTED_OUT =
+  "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'opted-out')";
+// Stopped: never sent, as the broadcast was stopped, they asked us to stop, or their consent ended before it
+// went; or they asked us to stop after it arrived, so it counts as delivered too.
+const STOPPED = `(c.status = 'cancelled' OR c.skip_reason IN ('unsubscribed', 'no-permission') OR ${OPTED_OUT})`;
 const FAILED =
   "(c.status = 'failed' OR (c.status = 'skipped' AND c.skip_reason NOT IN ('unsubscribed', 'no-permission')))";
-const WAS_READ = "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'read')";
 
 const SELECT_BROADCASTS = `
   SELECT m.id::int AS id, m.title, m.ask, NULL AS "askTitle", false AS imported, m.state, m.created_by AS "createdBy",
@@ -111,6 +115,10 @@ export type MessageRecipient = {
   skipReason: string | null;
   sentAt: Date | null;
   read: boolean;
+  /** An email that failed as it bounced. */
+  bounced: boolean;
+  /** They asked us to stop after it reached them. */
+  optedOut: boolean;
 };
 
 /** Which of a broadcast's recipients its page lists. */
@@ -258,7 +266,7 @@ export async function broadcastPageData(
     query<MessageRecipient>(
       `SELECT c.id::int AS "copyId", c.supporter_id::int AS "supporterId", c.merge_values ->> 'name' AS name,
          c.merge_values ->> 'place' AS place, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
-         ${WAS_READ} AS read
+         ${WAS_READ} AS read, ${BOUNCED} AS bounced, ${OPTED_OUT} AS "optedOut"
        ${from} ORDER BY c.merge_values ->> 'name' NULLS LAST, c.id LIMIT $2 OFFSET $3`,
       [id, RECIPIENTS_PAGE_SIZE, (page - 1) * RECIPIENTS_PAGE_SIZE],
     ),
@@ -303,6 +311,8 @@ async function scheduledRecipients(
       skipReason: null,
       sentAt: null,
       read: false,
+      bounced: false,
+      optedOut: false,
     }));
   return { rows, total: recipients.length };
 }
@@ -372,13 +382,15 @@ export type SupporterBroadcastRow = {
   skipReason: string | null;
   sentAt: Date | null;
   read: boolean;
+  bounced: boolean;
+  optedOut: boolean;
 };
 
 /** The broadcasts a supporter was sent, newest first. */
 export async function broadcastsToSupporter(supporterId: number): Promise<SupporterBroadcastRow[]> {
   return query<SupporterBroadcastRow>(
     `SELECT c.id::int AS "copyId", m.id::int AS "messageId", m.title, m.channel, c.status, c.skip_reason AS "skipReason",
-       c.sent_at AS "sentAt", ${WAS_READ} AS read
+       c.sent_at AS "sentAt", ${WAS_READ} AS read, ${BOUNCED} AS bounced, ${OPTED_OUT} AS "optedOut"
      FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
      WHERE c.supporter_id = $1 ORDER BY c.sent_at DESC NULLS FIRST, c.id DESC`,
     [supporterId],

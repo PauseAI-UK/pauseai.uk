@@ -1,4 +1,3 @@
-import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { letterFor } from "@/lib/mailing-doc";
@@ -7,7 +6,7 @@ import type { MessageCopy } from "@/lib/server/broadcast-pages";
 import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import { MailingLetter } from "./MailingLetter";
-import { copyStatus } from "./BroadcastView";
+import { CopyStatus } from "./BroadcastView";
 import { ChatBubble, ChatWall, TextWords } from "./TextBubble";
 import { LetterHistory, type HistoryEntry } from "./LetterHistory";
 import { Thread } from "./LetterThread";
@@ -61,13 +60,12 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
  */
 export default function MessageCopyView({ one }: { one: MessageCopy }) {
   const name = one.name ?? (one.supporterId ? staffCopy.supporters.noName : copy.erased);
-  const read = one.events.some((event) => event.kind === "read");
-  const { words, tone } = copyStatus({ ...one, read });
+  const has = (kind: string) => one.events.some((event) => event.kind === kind);
   return (
     <>
       <div className={letter.heading}>
         <h1>{copy.copyTitle(one.channel, name)}</h1>
-        <Tag tone={tone}>{words}</Tag>
+        <CopyStatus copyOf={{ ...one, read: has("read"), bounced: has("bounced"), optedOut: has("opted-out") }} />
       </div>
       <p className={letter.about}>
         {one.supporterId ? <StaffLink href={`/staff/supporters/${one.supporterId}`}>{name}</StaffLink> : name}

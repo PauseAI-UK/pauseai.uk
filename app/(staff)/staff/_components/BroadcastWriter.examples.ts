@@ -269,6 +269,8 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       skipReason: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
       read: true,
+      bounced: false,
+      optedOut: false,
     },
     {
       copyId: 22,
@@ -279,6 +281,8 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       skipReason: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
       read: false,
+      bounced: false,
+      optedOut: false,
     },
     {
       copyId: 23,
@@ -289,6 +293,8 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       skipReason: "blocked",
       sentAt: null,
       read: false,
+      bounced: false,
+      optedOut: false,
     },
     {
       copyId: 24,
@@ -299,6 +305,8 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       skipReason: "unsubscribed",
       sentAt: null,
       read: false,
+      bounced: false,
+      optedOut: false,
     },
     {
       copyId: 25,
@@ -309,6 +317,8 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       skipReason: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
       read: false,
+      bounced: false,
+      optedOut: false,
     },
   ],
 };
