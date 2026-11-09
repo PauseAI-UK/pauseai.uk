@@ -48,7 +48,10 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   );
   await logIn(page, flowDatabase, ["supporters"]);
   await page.goto(`${BASE}/staff/supporters`);
-  await page.getByRole("link", { name: new RegExp(`^${staffCopy.nav.signupUpload}`) }).click();
+  // On a phone the navigation is behind the bar's menu.
+  const navLink = page.getByRole("link", { name: new RegExp(`^${staffCopy.nav.signupUpload}`) });
+  if (!(await navLink.first().isVisible())) await page.locator("nav details > summary").click();
+  await navLink.filter({ visible: true }).click();
   await expect(page.getByRole("heading", { name: copy.title, level: 1 })).toBeVisible();
   await frame(page, "Before a file: its four steps");
 
