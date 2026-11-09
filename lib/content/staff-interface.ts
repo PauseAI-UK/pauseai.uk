@@ -247,7 +247,7 @@ export const staffCopy = {
   },
   // Uploading a CSV of paper sign-ups (/staff/supporters/import).
   signupUpload: {
-    title: "Paper sign-ups",
+    title: "Import sign-ups",
     intro: "Import people from a spreadsheet from paper sign-up forms.",
     steps: { file: "Choose a file", check: "What will happen" },
     drop: {
@@ -316,7 +316,7 @@ export const staffCopy = {
     },
     preview: {
       title: "Preview import",
-      back: "Paper sign-ups",
+      back: "Import sign-ups",
       needsFile: "Choose a file for a preview of what will happen.",
       // Under the import button, each what stops it.
       blockers: {
@@ -361,7 +361,7 @@ export const staffCopy = {
     },
     result: {
       title: (filename: string) => `Import: ${filename}`,
-      back: "Paper sign-ups",
+      back: "Import sign-ups",
       summary: (imported: number, held: number) => `${imported} imported, ${held} were not.`,
       by: (who: string, when: string) => `Imported by ${who} on ${when}.`,
       signedOn: (day: string) => `Collected on ${day}.`,
@@ -372,7 +372,7 @@ export const staffCopy = {
         person: "Name",
         phone: "Phone",
         postcode: "Postcode",
-        happened: "⁂ What happened",
+        happened: "What happened",
       },
       none: "Everyone from this upload has since been erased.",
       luma: {

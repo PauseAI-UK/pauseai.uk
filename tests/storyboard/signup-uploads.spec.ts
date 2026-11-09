@@ -8,7 +8,7 @@ import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { logIn } from "./staff-steps";
 
-export const section: Section = { name: "Paper sign-ups", part: "Staff pages", order: 55 };
+export const section: Section = { name: "Import sign-ups", part: "Staff pages", order: 55 };
 
 // Uploading a CSV of paper sign-ups, on files written different ways
 // (tests/fixtures/signup-uploads/) and the fixture Luma calendar, whose five
@@ -49,7 +49,7 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   await expect(page.getByText(staffCopy.nav.newTag, { exact: true })).toBeVisible();
   await frame(page, "The Import sign-ups button");
 
-  story("It opens Paper sign-ups. Before any file, the page says what it needs.");
+  story("It opens Import sign-ups. Before any file, the page says what it needs.");
   await page.getByRole("link", { name: staffCopy.supporters.importSignups }).click();
   await expect(page.getByRole("heading", { name: copy.title, level: 1 })).toBeVisible();
   await frame(page, "Before a file: its four steps");

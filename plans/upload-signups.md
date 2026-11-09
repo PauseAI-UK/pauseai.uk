@@ -1,18 +1,13 @@
-# Paper sign-ups
+# Import sign-ups
 
-A staff page, Paper sign-ups, opened by Import sign-ups on the Supporters page. It takes a CSV
-of paper forms filled in while flyering. Built on the `upload-signups` branch, and
+A staff page, Import sign-ups, opened from the Supporters page. It takes a CSV
+of paper forms filled in while flyering. Built on the `upload-signups-2` branch, and
 described in `docs/domain-concepts.md`, "Form entries". This plan holds only what's
 left before it can merge.
 
 Designs: https://claude.ai/artifact/2LoKADT8Xw4zFXgVEbdJ4E (private to Francis).
 
 ## To settle before merging
-
-### The privacy policy's paper-form line (for Francis)
-
-Its last sentence is a ⁂ draft, now that everyone imported joins the mailing
-list.
 
 ### Is signing the form enough to email them? (legal)
 

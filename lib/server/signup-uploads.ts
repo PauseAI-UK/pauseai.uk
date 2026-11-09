@@ -15,6 +15,7 @@ import { logChange } from "./audit";
 import { query, transaction } from "./db";
 import { addLumaGuests } from "./outside-services/luma-guests";
 import { refreshSupportersList } from "./supporter-facts";
+import { lookUpPlaces } from "./supporter-places";
 import { linkSupporters } from "./supporters";
 
 // Uploading a CSV of paper sign-ups: what it would do, for the preview, and
@@ -196,6 +197,9 @@ export async function finishSignupUpload(
       [said.map((row) => row.id), input.eventId, said.map((row) => row.status)],
     );
   }
+  // Their postcodes' places and MPs now, rather than at the next Luma import, which also looks up any left over.
+  await lookUpPlaces();
+  await refreshSupportersList();
   return { uploadId };
 }
 

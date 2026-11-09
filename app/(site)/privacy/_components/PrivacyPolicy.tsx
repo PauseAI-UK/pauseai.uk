@@ -33,9 +33,9 @@ export default function PrivacyPolicy() {
         </li>
         <li>
           <strong>If you fill in a paper form for us</strong>, for example when we&apos;re out leafleting, PauseAI UK
-          keeps what you wrote: your name and email, and your phone number and postcode if you gave them. ⁂ We use this
-          to register you for any event you signed up for, through Luma, and to keep you updated on our campaigns by
-          email, and by phone if you gave a number. You can unsubscribe at any time.
+          keeps what you wrote: your name and email, and your phone number and postcode if you gave them. We use this to
+          register you for any event you signed up for, through Luma, and to keep you updated on our campaigns by email,
+          and by phone if you gave a number. You can unsubscribe at any time.
         </li>
       </ul>
       <p>

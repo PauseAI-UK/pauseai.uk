@@ -193,6 +193,9 @@ Bad,bad,,,,,Y`,
     );
     expect(consents.map((row) => row.consent)).toEqual([true, true, true, true]);
     expect(upload.people[1]).toMatchObject({ phone: "07700900333", postcode: "SE15" });
+    // Their postcode looked up at once, not left for the next Luma import.
+    const [looked] = await query<{ postcode: string }>("SELECT postcode FROM postcode_places WHERE postcode = 'SE15'");
+    expect(looked).toEqual({ postcode: "SE15" });
 
     const [entry] = await query<{ created_at: Date; city: string | null; form: string }>(
       "SELECT created_at, city, form FROM form_entries WHERE email = 'new@example.com'",
