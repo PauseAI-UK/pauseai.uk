@@ -8,7 +8,7 @@ node-postgres returns a `timestamptz` column as a `Date`, but as a string when i
 
 ## Fix
 
-One type parser in `db.ts` that returns every `timestamptz` as an ISO string, so the 54 annotations become true, and fix the 17 that say `Date`.
+`Date` everywhere: keep node-postgres's default for columns, turn the times inside the four `json_build_object`s into `Date`s where they're read, and correct the 54 annotations that say `string`, and what they're passed to. A `Date` keeps milliseconds where Postgres keeps microseconds. The one query given a time it read, the daily report of supporters' bounces (`held-replies.ts`, the bounces since the last report), could at worst count again a bounce from the same millisecond as that report, which doesn't matter; a query where it would should compare in SQL.
 
 ## Hits
 
