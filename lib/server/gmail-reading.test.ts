@@ -14,8 +14,9 @@ import {
   describeWithDatabase,
   useTestDatabase,
 } from "@/tests/database";
-import { query } from "./db";
-import { readBounce, readGmail } from "./gmail-reading";
+import { allResults, atOnce } from "@/tests/at-once";
+import { query, transaction } from "./db";
+import { noteAutoReply, readBounce, readGmail } from "./gmail-reading";
 import { listRuns, latestRun } from "./import-runs";
 import { letterReply } from "./outside-services/blobs";
 
@@ -538,5 +539,81 @@ describeWithDatabase("reading Gmail", () => {
       { status: "ok", startedBy: NIGHTLY, result: { accounts: [{ account: JO, replies: 1 }] } },
       { status: "unchanged", startedBy: JO, result: { accounts: [{ account: JO, replies: 0 }] } },
     ]);
+  });
+
+  it("reads each reply, automatic reply and bounce once when runs overlap, the runs started meanwhile stopping", async () => {
+    await connectTestGmail(JO);
+    const letter = await sentLetter();
+    mailbox({
+      history: ["r1", "ooo", "b1"],
+      messages: {
+        r1: { headers: { From: "polly@example.org", "In-Reply-To": "<letter-1@pauseai.uk>" }, raw: "Thanks." },
+        ooo: {
+          headers: {
+            From: "polly@example.org",
+            "Auto-Submitted": "auto-replied",
+            "In-Reply-To": "<letter-1@pauseai.uk>",
+          },
+        },
+        b1: {
+          headers: { From: "Mail Delivery Subsystem <mailer-daemon@googlemail.com>" },
+          raw: fixture("gmail-hard-bounce.eml"),
+        },
+      },
+    });
+    const runs = allResults(await atOnce(() => readGmail(NIGHTLY, REQUEST)));
+    const stopped = { accounts: [], stoppedBy: "running" };
+    expect(runs.filter((run) => run.stoppedBy)).toEqual([stopped, stopped]);
+    expect(runs.find((run) => !run.stoppedBy)).toEqual({
+      accounts: [{ account: JO, replies: 1, autoReplies: 1, bounces: 1 }],
+    });
+    expect(await replies()).toHaveLength(1);
+    expect((await events()).map((event) => [event.letterId, event.status])).toEqual([
+      [letter, "replied"],
+      [letter, "auto_reply"],
+      [letter, "bounced"],
+    ]);
+    expect(await query("SELECT address, gmail_message_id FROM email_problems")).toEqual([
+      { address: "gone@example.org", gmail_message_id: "b1" },
+    ]);
+    expect((await listRuns("read-gmail")).map((run) => run.status).sort()).toEqual(["ok", "unchanged", "unchanged"]);
+  });
+
+  it("notes an automatic reply once when two jobs come to it at once", async () => {
+    const letter = await sentLetter();
+    const message = {
+      id: "ooo",
+      threadId: "t-ooo",
+      labelIds: [],
+      internalDate: String(Date.parse("2026-10-20T09:00:00Z")),
+      headers: new Map([["from", "polly@example.org"]]),
+    };
+    expect((await Promise.all([noteAutoReply(letter, message), noteAutoReply(letter, message)])).sort()).toEqual([
+      false,
+      true,
+    ]);
+    expect((await events()).map((event) => event.status)).toEqual(["auto_reply"]);
+  });
+
+  it("tells the notification inbox once of an account it can't read, whatever runs stopped as it read", async () => {
+    const sent = notifications();
+    await connectTestGmail("al@pauseai.uk", "7");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mailbox({});
+    server.use(http.get(`${API}/history`, () => new HttpResponse(null, { status: 500 })));
+    await read();
+    // A run started while another holds the lock records that, and stops.
+    const stopped = await transaction(async (db) => {
+      await query("SELECT pg_advisory_xact_lock(hashtext('read-gmail'))", [], db);
+      return readGmail(JO);
+    });
+    expect(stopped).toEqual({ accounts: [], stoppedBy: "running" });
+    expect(await latestRun("read-gmail")).toMatchObject({
+      status: "unchanged",
+      startedBy: JO,
+      result: { accounts: [], stoppedBy: "running" },
+    });
+    await read();
+    expect(sent).toHaveLength(1);
   });
 });

@@ -11,7 +11,8 @@
 // with the usual PG* variables, and without PGHOST it finds the local
 // server's Unix socket: /var/run/postgresql on Debian and Ubuntu, /tmp on a
 // Mac (Postgres.app, Homebrew), else it tries localhost.
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { once } from "node:events";
 import { createCipheriv, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
@@ -106,6 +107,32 @@ export function runSql(name, sql) {
   return psql(databaseUrl(checkName(name)), "-At", "-F", "\t", "-c", sql)
     .split("\n")
     .filter((line) => line !== "");
+}
+
+/**
+ * Holds a job's advisory lock in database `name`, as a run of it does, from a
+ * psql of its own. Resolves once it's held, to a function that lets it go.
+ */
+export async function holdJobLock(name, job) {
+  if (!/^[a-z-]+$/.test(job)) throw new Error(`Bad job name: ${job}`);
+  const held = spawn("psql", ["-X", "-q", "-At", "-v", "ON_ERROR_STOP=1", "-d", databaseUrl(checkName(name))], {
+    stdio: ["pipe", "pipe", "inherit"],
+    env: { ...process.env, PGOPTIONS: "-c client_min_messages=warning" },
+  });
+  const exited = once(held, "exit");
+  held.stdin.write(`BEGIN;\nSELECT pg_advisory_xact_lock(hashtext('${job}'));\nSELECT 'held';\n`);
+  await new Promise((resolve, reject) => {
+    let printed = "";
+    held.stdout.on("data", (chunk) => {
+      printed += chunk;
+      if (printed.includes("held")) resolve(undefined);
+    });
+    exited.then(() => reject(new Error(`psql couldn't take the lock for ${job}`)));
+  });
+  return async () => {
+    held.stdin.end("COMMIT;\n");
+    await exited;
+  };
 }
 
 /** The names of the databases on the server that start with `prefix`. */

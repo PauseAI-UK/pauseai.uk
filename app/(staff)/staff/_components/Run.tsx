@@ -331,10 +331,14 @@ function MembersRun({ run, open, bare }: { run: MembersImport; open?: boolean; b
  * A read of Gmail: the totals, then each account's, with whether it
  * couldn't be read, or was disconnected; for the letters inbox, what it
  * relayed, and each message it couldn't account for, with a link to it in
- * Gmail.
+ * Gmail. One that stopped as another was reading says so, as the Luma
+ * import's does.
  */
 function GmailRun({ run, open, bare }: { run: GmailReading; open?: boolean; bare?: boolean }) {
   if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
+  if (run.result.stoppedBy) {
+    return <RunBox run={run} summary={staffCopy.luma.stoppedBy[run.result.stoppedBy]} open={open} bare={bare} />;
+  }
   const words = staffCopy.gmailReading;
   const inbox = staffCopy.lettersInbox;
   const { accounts } = run.result;
