@@ -31,3 +31,6 @@ FROM (VALUES
   ('passed_on', 'Passed on request')
 ) AS w (status, words)
 WHERE l.action = 'set status' AND l.details ->> 'status' = w.status;
+
+DELETE FROM ask_kind_statuses
+WHERE status NOT IN ('signed', 'going', 'other', 'declined');
