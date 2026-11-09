@@ -1229,7 +1229,7 @@ All events: ${link}`,
     templatePending: (by: string, at: string) => `${by}, approval requested ${at}, withdraw request to change`,
     // At the top of a draft whose words WhatsApp is reviewing, in amber, as the words are locked till it decides.
     awaitingApproval: (by: string, at: string) =>
-      `⁂ ${by} sent the message to WhatsApp for approval on ${at}. It can't be changed or scheduled until WhatsApp decides.`,
+      `${by} sent the template to WhatsApp for approval on ${at}. It can't be changed or scheduled until WhatsApp decides.`,
     // On the list of broadcasts, beside a draft's Draft, while WhatsApp reviews its words.
     waitingTag: "Waiting for WhatsApp",
     // On the list, a draft whose words WhatsApp rejected, until they're sent again or a template's chosen.
