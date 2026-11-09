@@ -1,3 +1,4 @@
+import type { LetterDoc } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { MailingDoc } from "@/lib/mailing-doc";
 import type { MessageTemplate, WrittenMessage } from "@/lib/server/message-drafts";
@@ -48,6 +49,44 @@ const exampleMessageWords: MailingDoc = {
 };
 
 /** A text's words, with only a first name. */
+/** A text's words with all WhatsApp's formatting: bold, italic, a web address, a list and a quote; and a link's mark, which a text doesn't show. */
+export const exampleWhatsAppWords: LetterDoc = {
+  type: "doc",
+  content: [
+    {
+      type: "paragraph",
+      content: [
+        { type: "text", text: "Hi Jane, the march meets at " },
+        { type: "text", text: "11:00", marks: [{ type: "bold" }] },
+        { type: "text", text: " at " },
+        { type: "text", text: "Parliament Square", marks: [{ type: "italic" }, { type: "bold" }] },
+        { type: "text", text: "." },
+        { type: "hardBreak" },
+        { type: "text", text: "Details: https://pauseai.uk/march" },
+      ],
+    },
+    {
+      type: "bulletList",
+      content: [
+        { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Bring water" }] }] },
+        {
+          type: "listItem",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "Wear orange", marks: [{ type: "link", attrs: { href: "https://pauseai.uk" } }] },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    { type: "blockquote", content: [{ type: "paragraph", content: [{ type: "text", text: "Pause AI now." }] }] },
+    { type: "paragraph" },
+  ],
+};
+
 export const exampleTextWords: MailingDoc = {
   type: "doc",
   content: [

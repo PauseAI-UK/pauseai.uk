@@ -27,11 +27,12 @@ import {
   exampleSupporterChoices,
   exampleTemplates,
   exampleTextWords,
+  exampleWhatsAppWords,
 } from "./MessageWriter.examples";
 import MessagesOverview from "./MessagesOverview";
 import SupporterMessages from "./SupporterMessages";
 import TemplatePicker from "./TemplatePicker";
-import { ChatBubble, LinkedText } from "./TextBubble";
+import TextBubble, { ChatBubble, LinkedText } from "./TextBubble";
 
 const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
 vi.mock("@/lib/leave-page", () => ({ leavePage }));
@@ -257,7 +258,6 @@ describe("MessageWriter, by email", () => {
     expect(document.body.textContent).not.toContain(GMAIL_DAILY_LIMIT.toLocaleString("en-GB"));
     await expect.element(page.getByText(copy.testVia.email)).toBeVisible();
     // An email's preview says nothing of how to stop; a text's does (below).
-    await expect.element(page.getByText(copy.howToStop)).not.toBeInTheDocument();
     await page.getByLabelText(copy.fromAccount, { exact: false }).selectOptions("jo@pauseai.uk");
     // The test goes the same way.
     await expect.element(page.getByText(copy.testVia.emailGmail("jo@pauseai.uk"))).toBeVisible();
@@ -387,7 +387,6 @@ describe("MessageWriter, by text", () => {
     await march.click();
     await expect.element(march).toBeChecked();
     await expect.element(page.getByText(copy.templateFixed, { exact: false })).toBeVisible();
-    await expect.element(page.getByText(copy.howToStop)).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "March day reminder", level: 1 })).toBeVisible();
     await vi.waitFor(() => expect(actions.save.mock.calls[0][2]).toMatchObject({ templateId: 1 }), WAIT);
     await expect.element(page.getByRole("group", { name: copy.templatesLabel })).toBeVisible();
@@ -487,6 +486,20 @@ describe("LinkedText", () => {
       .element(page.getByRole("link", { name: "www.example.org" }))
       .toHaveAttribute("href", "https://www.example.org");
     await expect.element(page.getByText(/, or not at all$/)).toBeVisible();
+  });
+});
+
+describe("TextBubble", () => {
+  it("shows a text as WhatsApp does: bold, italic, a list, a quote, web addresses linked and a link's mark not", async () => {
+    await render(<TextBubble from="PauseAI UK" words={exampleWhatsAppWords} time="07:18" />);
+    const bubble = page.getByText("PauseAI UK").element().parentElement!;
+    expect(bubble.querySelector("strong")?.textContent).toBe("11:00");
+    expect(bubble.querySelector("strong em")?.textContent).toBe("Parliament Square");
+    expect([...bubble.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Bring water", "Wear orange"]);
+    expect(bubble.querySelector("blockquote")?.textContent).toBe("Pause AI now.");
+    expect(bubble.querySelector("br")).not.toBeNull();
+    expect([...bubble.querySelectorAll("a")].map((a) => a.textContent)).toEqual(["https://pauseai.uk/march"]);
+    expect(bubble.textContent).not.toMatch(/[>*_]/);
   });
 });
 

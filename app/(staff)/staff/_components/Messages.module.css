@@ -203,3 +203,33 @@
   text-decoration: underline;
   overflow-wrap: anywhere;
 }
+
+/* A text's preview, a phone's width, as it shows on theirs: an iPhone 15's
+   or 16's, 393px. */
+.phone {
+  max-width: 393px;
+}
+
+/* A text's words as WhatsApp lays them out: its lines a blank line apart, a
+   list's bullets set in, a quote with a bar beside it. */
+.words {
+  white-space: normal;
+}
+
+.words :is(p, ul, blockquote) {
+  margin: 0;
+}
+
+.words > :is(p, ul, blockquote) + :is(p, ul, blockquote) {
+  margin-top: 0.75em;
+}
+
+.words ul {
+  padding-left: 1.25em;
+}
+
+.words blockquote {
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-secondary);
+}

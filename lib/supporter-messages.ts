@@ -112,8 +112,14 @@ export function textReplyUntil(lastFromThem: string | null): string | null {
 /** What an email costs by Postmark's broadcast stream, in dollars (https://postmarkapp.com/pricing). */
 const EMAIL_DOLLARS_EACH = 0.00125;
 
-/** What a text costs when delivered, in pence, for a marketing message to the UK (https://whatsappbusiness.com/products/platform-pricing/). */
-const TEXT_PENCE_EACH = 4.4;
+/**
+ * What a text costs when delivered, in pence: a marketing message to the UK,
+ * £0.0458 on Meta's GBP rate card effective 1 October 2026, checked 9
+ * November 2026 (the rate cards are linked from
+ * https://developers.facebook.com/docs/whatsapp/pricing#rate-cards-and-volume-tiers).
+ * Meta may change it on the first of any quarter.
+ */
+const TEXT_PENCE_EACH = 4.58;
 
 /** What `n` messages by `channel` cost, in words. */
 export function messageCost(channel: MessageChannel, n: number): string {

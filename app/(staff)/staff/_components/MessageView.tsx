@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import Tag, { type TagTone } from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { toText } from "@/lib/letter-format";
 import { letterFor } from "@/lib/mailing-doc";
 import type { WrittenMessage } from "@/lib/server/message-drafts";
 import type { MessagePageData, MessageRecipient, MessageSummary } from "@/lib/server/message-pages";
@@ -125,7 +124,7 @@ function MessageWords({ written }: { written: WrittenMessage }) {
       <Card span={3} look="aside" title={copy.textTitle} id="words-title">
         <TextBubble
           from={written.fromName!}
-          text={toText(letterFor(written.body, FIELDS_AS_WORDS))}
+          words={letterFor(written.body, FIELDS_AS_WORDS)}
           time={londonClock(sendsAt(written.dueAt!))}
         />
       </Card>

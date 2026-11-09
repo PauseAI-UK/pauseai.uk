@@ -8,10 +8,11 @@ import {
   exampleMessageSent,
   exampleMessageSummary,
   exampleSupporterChoices,
+  exampleWhatsAppWords,
 } from "@/app/(staff)/staff/_components/MessageWriter.examples";
 import MessagesOverview from "@/app/(staff)/staff/_components/MessagesOverview";
 import SupporterMessages from "@/app/(staff)/staff/_components/SupporterMessages";
-import TextBubble, { ChatBubble, ChatWall } from "@/app/(staff)/staff/_components/TextBubble";
+import TextBubble, { ChatBubble, ChatWall, LinkedText } from "@/app/(staff)/staff/_components/TextBubble";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import { mailingGroups } from "@/lib/mailing-groups";
 import type { Group } from "../_components/types";
@@ -427,7 +428,17 @@ export const staffMessages: Group = {
       variants: [
         {
           label: "A text with its Stop button",
-          render: () => <TextBubble from="PauseAI UK" text="Hi Jane, the march meets at 11:00." time="07:18" />,
+          render: () => <TextBubble from="PauseAI UK" words={exampleWhatsAppWords} time="07:18" />,
+        },
+      ],
+    },
+    {
+      name: "LinkedText",
+      file: "app/(staff)/staff/_components/TextBubble.tsx",
+      variants: [
+        {
+          label: "A text's words, each web address a link",
+          render: () => <LinkedText text="Sign up at https://pauseai.uk/join, or www.example.org." />,
         },
       ],
     },

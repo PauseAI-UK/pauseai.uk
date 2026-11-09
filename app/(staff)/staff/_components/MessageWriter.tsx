@@ -11,7 +11,6 @@ import { useLeaving } from "@/components/ui/useLeaving";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { leavePage } from "@/lib/leave-page";
-import { toText } from "@/lib/letter-format";
 import {
   checkMailingDoc,
   conditionsIn,
@@ -215,7 +214,7 @@ function MessagePreview({
           ) : (
             <TextBubble
               from={TEXT_SENDER_NAME}
-              text={toText(letterFor(body, recipient))}
+              words={letterFor(body, recipient)}
               time={londonClock(sendsAt(dueAt ?? earliestHour()))}
             />
           )}
@@ -223,7 +222,6 @@ function MessagePreview({
       ) : (
         <p className={styles.noEmail}>{copy.noOneMix}</p>
       )}
-      {!email && <Hint>{copy.howToStop}</Hint>}
       <div className={styles.test}>
         <div className={styles.testRow}>
           <label htmlFor={testId} className={styles.testLabel}>

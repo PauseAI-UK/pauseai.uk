@@ -54,7 +54,7 @@ describe("the fixed limits", () => {
 
 it("says what messages cost, by channel", () => {
   expect(messageCost("email", 400)).toBe(staffCopy.messagePages.cost.email("0.50"));
-  expect(messageCost("text", 100)).toBe(staffCopy.messagePages.cost.text("4.40", 4.4));
+  expect(messageCost("text", 100)).toBe(staffCopy.messagePages.cost.text("4.58", 4.58));
 });
 
 describe("a text's sender", () => {
