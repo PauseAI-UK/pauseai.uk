@@ -7,7 +7,7 @@ import { mailingGroups } from "@/lib/mailing-groups";
 import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
 import { supportersSearch } from "@/lib/staff-search";
 import { londonWhen, staffTime } from "@/lib/staff-time";
-import { textCost, textStopsAt } from "@/lib/broadcasts";
+import { textCost } from "@/lib/broadcasts";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { navigation } from "@/tests/browser/navigation";
 import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
@@ -40,7 +40,6 @@ afterEach(() => leavePage.mockClear());
 const copy = staffCopy.broadcastPages;
 const WAIT = { timeout: 3000 };
 const nothing = async () => {};
-const stopsFor = (dueAt: Date) => copy.stopsOn(londonWhen(textStopsAt(dueAt), "short"));
 
 function fakeActions() {
   let version = 4;
@@ -418,8 +417,6 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
     await expect.element(page.getByLabelText(copy.subject)).not.toBeInTheDocument();
     await expect.element(page.getByText("+44 7700 900000", { exact: true })).toBeVisible();
-    // When it stops sending is said once it's scheduled, not here.
-    expect(page.getByText(stopsFor(exampleBroadcastText.dueAt!)).query()).toBeNull();
   });
 
   it("offers only new words when there are no approved templates", async () => {
@@ -830,14 +827,16 @@ describe("a broadcast's page", () => {
     await expect.element(page.getByText(copy.skipReasons.unsubscribed)).toBeVisible();
   });
 
-  it("says one scheduled goes as it is, and when it stops, with no counts", async () => {
+  it("says one scheduled goes as it is, with no counts", async () => {
     const data = {
       ...text,
       summary: { ...text.summary, state: "scheduled" as const },
       written: { ...text.written, state: "scheduled" as const, dueAt: new Date("2026-11-07T07:18:00Z") },
     };
     await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
-    await expect.element(page.getByText(stopsFor(new Date("2026-11-07T07:18:00Z")))).toBeVisible();
+    await expect
+      .element(page.getByText(staffCopy.mailingPages.sends(londonWhen(new Date("2026-11-07T07:18:00Z"), "short"))))
+      .toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.counts.delivered })).not.toBeInTheDocument();
     // Who the filters find now, as sending finds who it goes to.
     await expect.element(page.getByText(copy.recipientsNow)).toBeVisible();

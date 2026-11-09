@@ -14,7 +14,6 @@ import {
   broadcastTerms,
   spacedNumber,
   textSender,
-  textStopsAt,
   type SchedulingBroadcast,
 } from "./broadcasts";
 
@@ -226,12 +225,6 @@ describe("broadcastTerms", () => {
     expect(broadcastTerms("email:pauseai-updates:unsure")).toBeUndefined();
     expect(broadcastTerms("email:pauseai-updates")).toBeUndefined();
     expect(broadcastTerms(["email:site-forms:yes", "email:luma-calendar:yes"])).toBeUndefined();
-  });
-});
-
-describe("the fixed limits", () => {
-  it("stops a text three days after its time", () => {
-    expect(textStopsAt(new Date("2026-11-12T09:18:00.000Z"))).toEqual(new Date("2026-11-15T09:18:00.000Z"));
   });
 });
 

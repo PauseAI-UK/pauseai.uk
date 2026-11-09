@@ -136,15 +136,12 @@ export function MailingStanding({
   stop,
   reschedule,
   line,
-  note,
 }: {
   mailing: Pick<Mailing, "ask" | "to" | "sent" | "failed" | "answered">;
   written?: WrittenMailing;
   stop: FormAction;
   reschedule: FormAction;
   line?: string;
-  /** Quietly under those, such as when a text stops sending. */
-  note?: ReactNode;
 }) {
   if (written?.state === "scheduled") {
     return (
@@ -154,7 +151,6 @@ export function MailingStanding({
             <div className={styles.due}>
               <strong>{copy.sends(londonWhen(written.dueAt!, "short"))}</strong>
               <span>{line ?? copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!)}</span>
-              {note}
             </div>
             <div className={styles.actions}>
               <ChangeTime mailing={written} action={reschedule} />

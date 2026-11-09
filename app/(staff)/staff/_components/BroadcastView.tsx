@@ -5,8 +5,8 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { WrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import type { BroadcastPageData, MessageRecipient, BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { filtersPath, pageParam } from "@/lib/staff-search";
-import { londonClock, londonWhen, sendsAt, staffDate } from "@/lib/staff-time";
-import { FIELD_WORDS, spacedNumber, textStopsAt, type BroadcastChannel } from "@/lib/broadcasts";
+import { londonClock, sendsAt, staffDate } from "@/lib/staff-time";
+import { FIELD_WORDS, spacedNumber, type BroadcastChannel } from "@/lib/broadcasts";
 import ChannelIcon from "./ChannelIcon";
 import IconText from "./ui/IconText";
 import MailEmail from "./MailEmail";
@@ -201,10 +201,6 @@ export default function BroadcastView({
         stop={stop}
         reschedule={reschedule}
         line={copy.scheduledLine(summary.to, written.channel, written.fromName || written.sentFrom!)}
-        note={
-          written.channel === "text" &&
-          scheduled && <Muted>{copy.stopsOn(londonWhen(textStopsAt(written.dueAt!), "short"))}</Muted>
-        }
       />
       <Grid>
         <BroadcastWords written={written} parts={data.parts} />

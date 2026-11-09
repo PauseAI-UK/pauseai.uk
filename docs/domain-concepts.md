@@ -290,8 +290,7 @@ broadcasts out. Each person's copy of a broadcast is a message
   changed, only withdrawn, and the text can't be scheduled. Sending them, and
   WhatsApp's decision, are emailed to whoever sent them and the notification
   inbox, with the words. A template has no parts
-  only some get, as its words are the same for everyone. A text
-  stops sending a fixed three days after its time.
+  only some get, as its words are the same for everyone.
 - **Sending.** No backend sends broadcasts yet (`lib/server/broadcast-channels.ts`):
   on the live site scheduling is refused and the pages say so, and only an
   email's test copy goes, by Postmark. A fixture build has a fake backend, so

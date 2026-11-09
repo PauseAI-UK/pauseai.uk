@@ -218,14 +218,6 @@ export function textSender(name: string, number: string): string {
   return `${name} (${spacedNumber(number)})`;
 }
 
-/** How long after its time a text may still go, a fixed limit nobody sets. */
-const TEXT_SENDS_FOR_DAYS = 3;
-
-/** When a text due at `dueAt` stops sending. */
-export function textStopsAt(dueAt: Date): Date {
-  return new Date(dueAt.getTime() + TEXT_SENDS_FOR_DAYS * 24 * 60 * 60 * 1000);
-}
-
 /**
  * What a text costs when delivered, in pence: a marketing message to the UK,
  * £0.0458 on Meta's GBP rate card effective 1 October 2026, checked 9

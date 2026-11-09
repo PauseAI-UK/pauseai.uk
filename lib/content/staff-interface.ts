@@ -1201,15 +1201,13 @@ All events: ${link}`,
       textOff: "You can't send test texts, as WhatsApp isn't configured yet.",
     },
     testSent: (to: string) => `Sent to ${to}.`,
-    testFailed: "⁂ The test copy couldn't be sent.",
+    testFailed: "Couldn't send the test copy.",
     // From.
     // Each address an email can go from, with what sends it: Postmark, or a staff member's Gmail.
     fromOption: (address: string, backend: string) => `${address}, by ${backend}`,
     fromAccount: "Sent from",
     fromName: "Name",
     noNumber: "No WhatsApp number is configured yet",
-    // When: under a text's time, the end of the days it may go in, as approval or WhatsApp's limits can hold it.
-    stopsOn: (when: string) => `⁂ Any texts not sent by ${when} won't be sent, so none arrive days late.`,
     // Send.
     cost: {
       text: (pounds: string) => `About £${pounds}.`,
@@ -1304,7 +1302,7 @@ All events: ${link}`,
       failed: "Failed",
       bounced: "Bounced",
       "opted-out": "Stopped",
-      replied: "⁂ Replied",
+      replied: "Replied",
     },
     facts: {
       from: "From",
