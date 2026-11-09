@@ -527,6 +527,10 @@ describe("BroadcastWriter, by text", () => {
     const actions = await renderWriter({ draft: { ...exampleBroadcastText, body: exampleTextWords, template } });
     // Who asked, and when, under the dropdown, as an approved template's line is; then its name and words, as sent, each under its label.
     await expect.element(page.getByText(copy.templatePending("jo@pauseai.uk", "19 Oct 2026"))).toBeVisible();
+    // And at the top, in amber, as the words are locked till WhatsApp decides.
+    await expect
+      .element(page.getByText(copy.awaitingApproval("jo@pauseai.uk", staffTime(template.requestedAt))))
+      .toBeVisible();
     await expect.element(page.getByText(copy.templateName, { exact: true })).toBeVisible();
     await expect.element(page.getByText("Hi there", { exact: true })).toBeVisible();
     expect(page.getByRole("textbox", { name: copy.templateWords }).query()).toBeNull();

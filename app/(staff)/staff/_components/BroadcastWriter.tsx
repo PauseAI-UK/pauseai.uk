@@ -481,6 +481,11 @@ export default function BroadcastWriter({
           {staffCopy.mailingPages.saveStates.conflict}
         </Strip>
       )}
+      {draft.template?.status === "pending" && (
+        <Strip tone="amber">
+          {copy.awaitingApproval(draft.template.createdBy!, staffTime(draft.template.requestedAt))}
+        </Strip>
+      )}
       {draft.template?.status === "rejected" && (
         <Strip tone="red">{copy.rejected(staffTime(draft.template.rejectedAt!), draft.template.rejectedReason!)}</Strip>
       )}
