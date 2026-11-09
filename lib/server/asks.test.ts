@@ -106,17 +106,17 @@ describeWithDatabase("asks and campaigns", () => {
     await deleteAsk("ours", "jo@pauseai.uk");
   });
 
-  it("sets an event's answers in its columns, the rarer ones together", async () => {
+  it("sets an event's answers in its columns, going, other and declined, each other with its note", async () => {
     const polly = await addTestPolitician();
     const dora = await addTestPolitician({ name: "Dora", email: "dora@parliament.uk", airtableId: "dora" });
     const edinburgh = "edinburgh-conference-2026";
-    await setStatus(polly, edinburgh, { status: "tentative", date: null, note: "" }, "test");
-    await setStatus(dora, edinburgh, { status: "declined_surgery", date: null, note: "" }, "test");
+    await setStatus(polly, edinburgh, { status: "other", date: null, note: "Tentative yes" }, "test");
+    await setStatus(dora, edinburgh, { status: "declined", date: null, note: "" }, "test");
     const ask = await askPageData(edinburgh);
-    expect(ask!.groups.map((g) => [g.key, g.total, g.people.map((p) => p.status)])).toEqual([
+    expect(ask!.groups.map((g) => [g.key, g.total, g.people.map((p) => [p.status, p.note])])).toEqual([
       ["going", 0, []],
-      ["other", 1, ["tentative"]],
-      ["declined", 1, ["declined_surgery"]],
+      ["other", 1, [["other", "Tentative yes"]]],
+      ["declined", 1, [["declined", ""]]],
     ]);
     const other = await askPageData(edinburgh, "other");
     expect(other!.answers.map((a) => a.politicianId)).toEqual([polly]);

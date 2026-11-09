@@ -116,7 +116,7 @@ describeWithDatabase("dashboard", () => {
     expect(result.counts).toEqual({
       lettersSent: { current: 1, previous: 1 },
       lettersReplied: { current: 1, previous: 0 },
-      // One MP, though they signed two letters and are going to an event; a tentative yes is no yes.
+      // One MP, though they signed two letters and are going to an event; another answer is no yes.
       politiciansAgreed: { current: 1, previous: 0 },
       eventRegistrations: { current: 2, previous: 0 },
       eventsHeld: { current: 1, previous: 1 },

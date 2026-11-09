@@ -20,8 +20,11 @@ export type SyncedPolitician = {
   personalConnection: boolean;
 };
 
+/** An answer to an ask as Airtable records it, with its note: for "other", Airtable's words for it. */
+export type RecordedAnswer = { status: AskStatus; note: string };
+
 /** One Airtable record: the politician, and their answer to each ask Airtable records, by the ask's slug. */
-export type PoliticianRecord = { politician: SyncedPolitician; statuses: Record<string, AskStatus> };
+export type PoliticianRecord = { politician: SyncedPolitician; statuses: Record<string, RecordedAnswer> };
 
 export type PoliticianChanges = {
   added: SyncedPolitician[];

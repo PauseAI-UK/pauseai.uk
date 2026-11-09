@@ -4,9 +4,13 @@
 // is a status (ask_statuses), and each kind of ask allows its own statuses,
 // as the table ask_kind_statuses does, so a new status needs a migration.
 
+/**
+ * Each kind's answers, in the order they're shown: a yes, "other", a no.
+ * What an "other" answer was is its note, such as "Tentative yes".
+ */
 export const ASK_STATUSES = {
-  letter: ["signed", "declined"],
-  event: ["going", "tentative", "meeting_staff", "tentative_staff", "declined", "declined_surgery", "passed_on"],
+  letter: ["signed", "other", "declined"],
+  event: ["going", "other", "declined"],
 } as const;
 
 export type AskKind = keyof typeof ASK_STATUSES;
@@ -20,27 +24,10 @@ export type AskStatuses = Partial<Record<string, AskStatus>>;
 
 /**
  * The answers that mean they agreed to what was asked: signed the letter, or
- * are going to the event. Nothing less counts, not a tentative yes nor staff
- * going in their place, wherever the site counts asks agreed.
+ * are going to the event. Nothing less counts, not an "other" such as a
+ * tentative yes, wherever the site counts asks agreed.
  */
 export const AGREED_STATUSES: readonly AskStatus[] = ["signed", "going"];
-
-/**
- * How an ask's page sets out its answers: a column each, the rarer answers an
- * event can have sharing one, with each person tagged with theirs. A column's
- * `key` is also how the page's address chooses it (`?answer=declined`).
- */
-export const ANSWER_GROUPS: Record<AskKind, readonly { key: string; statuses: readonly AskStatus[] }[]> = {
-  letter: [
-    { key: "signed", statuses: ["signed"] },
-    { key: "declined", statuses: ["declined"] },
-  ],
-  event: [
-    { key: "going", statuses: ["going"] },
-    { key: "other", statuses: ["tentative", "meeting_staff", "tentative_staff", "passed_on"] },
-    { key: "declined", statuses: ["declined", "declined_surgery"] },
-  ],
-};
 
 /** How many asks someone agreed to, by their answers (AGREED_STATUSES). */
 export function asksAgreed(statuses: Record<string, { status: AskStatus }>): number {

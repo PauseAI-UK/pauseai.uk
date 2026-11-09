@@ -64,7 +64,7 @@ const mailingWay: AskWay = {
 export const exampleAsksWithCounts: AskWithCounts[] = [
   {
     ...exampleAsks[0],
-    counts: { declined: 50, passed_on: 1, going: 3 },
+    counts: { declined: 50, other: 1, going: 3 },
     firstLetter: null,
     lastLetter: null,
     writtenTo: 186,
@@ -76,7 +76,7 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
   },
   {
     ...exampleAsks[1],
-    counts: { going: 2, tentative: 1, meeting_staff: 1, declined_surgery: 1 },
+    counts: { going: 2, other: 2, declined: 1 },
     firstLetter: null,
     lastLetter: null,
     writtenTo: 0,

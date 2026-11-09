@@ -425,26 +425,25 @@ export const staffPoliticians: Group = {
           ),
         },
         {
-          label: "An event, its rarer answers in a column together",
+          label: "An event, each other answer tagged with what it was",
           render: () => (
             <StaffPage as="div">
               <AskView
                 ask={{
                   ...exampleAskPage,
                   kind: "event",
-                  counts: { going: 1, tentative: 1, declined_surgery: 1 },
+                  counts: { going: 0, other: 2, declined: 1 },
                   groups: [
                     { key: "going", total: 0, people: [] },
                     {
                       key: "other",
-                      total: 1,
-                      people: [{ ...exampleAskPage.groups[0].people[0], status: "tentative" }],
+                      total: 2,
+                      people: [
+                        { ...exampleAskPage.groups[0].people[0], status: "other", note: "Tentative yes" },
+                        { ...exampleAskPage.groups[2].people[0], status: "other", note: "" },
+                      ],
                     },
-                    {
-                      key: "declined",
-                      total: 1,
-                      people: [{ ...exampleAskPage.groups[1].people[0], status: "declined_surgery" }],
-                    },
+                    { key: "declined", total: 1, people: exampleAskPage.groups[1].people },
                   ],
                   noAnswer: 0,
                 }}
@@ -494,8 +493,8 @@ export const staffPoliticians: Group = {
           render: () => (
             <div style={{ display: "grid" }}>
               <AnswerWord status="signed" />
-              <AnswerWord status="declined_surgery" />
-              <AnswerWord status="tentative" />
+              <AnswerWord status="declined" />
+              <AnswerWord status="other" />
               <AnswerWord status={null} />
             </div>
           ),

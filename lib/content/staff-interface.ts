@@ -803,16 +803,13 @@ export const staffCopy = {
     "ni-assembly": "Northern Ireland Assembly",
     other: "Other",
   } as Record<string, string>,
-  // A person's answer to an ask (lib/asks.ts): a letter's, then an event's.
+  // A person's answer to an ask (lib/asks.ts): a letter's yes, an event's yes, then either's other answer
+  // (what it was is in its note) and no.
   statuses: {
     signed: "Signed",
     going: "Going",
-    tentative: "Tentative going",
-    meeting_staff: "Staff meeting",
-    tentative_staff: "Staff tentative",
+    other: "⁂ Other",
     declined: "Declined",
-    declined_surgery: "Declined, surgery",
-    passed_on: "Passed on invite",
     // No answer to an ask, of any kind.
     noAnswer: "No answer",
   } as Record<string, string>,
@@ -1106,12 +1103,8 @@ All events: ${link}`,
     answerWords: {
       signed: "signed",
       going: "are going to",
-      tentative: "are tentatively going to",
-      meeting_staff: "are sending staff to meet us instead of",
-      tentative_staff: "may send staff to",
+      other: "⁂ gave another answer to",
       declined: "declined",
-      declined_surgery: "declined, offering a surgery instead of",
-      passed_on: "passed on",
     } as Record<string, string>,
     answered: (words: string, ask: string) => `${words} ${ask}`,
   },
@@ -1637,7 +1630,7 @@ All events: ${link}`,
       answersTitle: "Answers",
       // Pressing the answer chosen goes back to all its columns.
       showAll: "Show all the answers",
-      // The column of the rarer answers an event can have (ANSWER_GROUPS).
+      // The column of the "other" answers, each tagged with its note.
       otherAnswers: "Other answers",
       // At the foot of a column with more people than it shows.
       allOf: (n: number) => `All ${n.toLocaleString("en-GB")} →`,

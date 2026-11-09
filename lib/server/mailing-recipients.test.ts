@@ -73,7 +73,7 @@ describeWithDatabase("politicianAudience", () => {
     expect(signed).toMatchObject({ group: "Frontier AI letter to the Prime Minister", option: "Signed" });
     expect(signed.label).toContain("signed");
     // Every answer to every ask is offered, those no one gave too.
-    expect(audience.conditions.find((c) => c.id === "edinburgh-conference-2026:passed_on")).toMatchObject({
+    expect(audience.conditions.find((c) => c.id === "edinburgh-conference-2026:other")).toMatchObject({
       covers: 0,
     });
   });

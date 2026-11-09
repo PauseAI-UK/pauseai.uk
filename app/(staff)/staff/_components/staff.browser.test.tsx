@@ -2422,19 +2422,19 @@ describe("PoliticianDetails", () => {
 
   it("shows an answer neither yes nor no plainly, and an ask with no asker or date by its title alone", async () => {
     const bare = { ...ask("go-to-parliament-oct-2026"), askedBy: [], date: null };
-    const tentative = { ...MP.statuses["frontier-ai-letter"], status: "tentative" as const, date: null };
+    const other = { ...MP.statuses["frontier-ai-letter"], status: "other" as const, date: null };
     await render(
       <PoliticianDetails
         {...none}
         asks={[bare]}
-        politician={{ ...MP, statuses: { "go-to-parliament-oct-2026": tentative } }}
+        politician={{ ...MP, statuses: { "go-to-parliament-oct-2026": other } }}
         setStatus={vi.fn()}
         unblock={vi.fn()}
       />,
     );
     const row = page.getByRole("group", { name: bare.title });
     const answer = row.element().querySelector("[class*=answer]")!;
-    expect(answer.textContent).toBe(staffCopy.statuses.tentative);
+    expect(answer.textContent).toBe(staffCopy.statuses.other);
     expect(answer.firstElementChild!.className).not.toMatch(/yes/);
     await expect.element(row.getByRole("link")).toHaveAttribute("href", `/staff/asks/${bare.slug}`);
     await expect.element(row.getByText(staffCopy.politician.askedThem("", "event"), { exact: true })).toBeVisible();
@@ -3112,7 +3112,7 @@ describe("AsksList", () => {
     expect(first).toContain(`20 ${copy.page.replied}`);
     expect(first).toContain(`40 ${copy.page.lettersWord(40)}`);
     expect(first).toContain(
-      `${lozenge(staffCopy.statuses.going, 3)}${lozenge(staffCopy.statuses.declined, 50)}${lozenge(staffCopy.statuses.passed_on, 1)}`,
+      `${lozenge(staffCopy.statuses.going, 3)}${lozenge(staffCopy.statuses.other, 1)}${lozenge(staffCopy.statuses.declined, 50)}`,
     );
     expect(first).toContain("1 Nov 2026");
     expect(first).toContain(`186 ${copy.page.writtenTo}`);
@@ -3145,7 +3145,7 @@ describe("AsksList", () => {
     await expect
       .element(row(exampleAsks[0].title).getByRole("link", { name: exampleAsks[0].title }))
       .toHaveAttribute("href", `/staff/asks/${exampleAsks[0].slug}`);
-    expect(page.getByRole("link", { name: lozenge(staffCopy.statuses.passed_on, 1) }).query()).toBeNull();
+    expect(page.getByRole("link", { name: lozenge(staffCopy.statuses.other, 1) }).query()).toBeNull();
     expect(page.getByRole("link", { name: lozenge(staffCopy.statuses.noAnswer, 132) }).query()).toBeNull();
     expect(page.getByRole("status").query()).toBeNull();
   });

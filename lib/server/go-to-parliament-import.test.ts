@@ -14,7 +14,7 @@ const ASK = "go-to-parliament-oct-2026";
 
 const statuses = () =>
   query(
-    `SELECT n.name, s.status, s.updated_by AS by FROM ask_statuses s JOIN notable_people n ON n.id = s.notable_person_id
+    `SELECT n.name, s.status, s.note, s.updated_by AS by FROM ask_statuses s JOIN notable_people n ON n.id = s.notable_person_id
      WHERE s.ask = $1 ORDER BY n.name`,
     [ASK],
   );
@@ -43,10 +43,10 @@ describeWithDatabase("importGoToParliament", () => {
     await syncPoliticians(NIGHTLY);
     expect(await importGoToParliament(JO)).toEqual({ guests: 5, mps: 4, added: 3, changed: 0, notFound: 1 });
     expect(await statuses()).toEqual([
-      { name: "Gordon Gone", status: "declined_surgery", by: "airtable" },
-      { name: "Ms Dora Dummy", status: "going", by: "airtable" },
+      { name: "Gordon Gone", status: "other", note: "Declined but surgery appointment", by: "airtable" },
+      { name: "Ms Dora Dummy", status: "going", note: "", by: "airtable" },
       // "Meeting with staff" beats "Tentative meeting with staff".
-      { name: "Polly Placeholder", status: "meeting_staff", by: "airtable" },
+      { name: "Polly Placeholder", status: "other", note: "Meeting with staff", by: "airtable" },
     ]);
     expect(
       await query(
@@ -83,16 +83,27 @@ describeWithDatabase("importGoToParliament", () => {
     ]);
     expect(await importGoToParliament(JO)).toEqual({ guests: 7, mps: 4, added: 1, changed: 2, notFound: 0 });
     expect(await statuses()).toEqual([
-      { name: "Gordon Gone", status: "declined", by: "airtable" },
-      { name: "Morag Example", status: "declined_surgery", by: "airtable" },
-      { name: "Ms Dora Dummy", status: "declined", by: JO },
-      { name: "Polly Placeholder", status: "tentative", by: "airtable" },
+      { name: "Gordon Gone", status: "declined", note: "", by: "airtable" },
+      { name: "Morag Example", status: "other", note: "Declined but surgery appointment", by: "airtable" },
+      { name: "Ms Dora Dummy", status: "declined", note: "Rang us", by: JO },
+      // Another "other": only its words changed.
+      { name: "Polly Placeholder", status: "other", note: "Tentative yes", by: "airtable" },
     ]);
   });
 
-  it("refuses a meeting status it doesn't know", async () => {
-    guests([{ politicians: ["recDummy"], status: "Perhaps" }]);
-    await expect(importGoToParliament(JO)).rejects.toThrow('Unknown MP Meeting Status "Perhaps"');
-    expect(await listRuns("import-go-to-parliament")).toMatchObject([{ status: "failed" }]);
+  it("takes a meeting status it doesn't know as other, its words the note, below every one it knows", async () => {
+    await syncPoliticians(NIGHTLY);
+    guests([
+      { politicians: ["recDummy"], status: "Perhaps" },
+      { politicians: ["recDummy"], status: "Maybe" },
+      { politicians: ["recPlaceholder"], status: "Perhaps" },
+      { politicians: ["recPlaceholder"], status: "Tentative meeting with staff" },
+    ]);
+    expect(await importGoToParliament(JO)).toMatchObject({ added: 2, changed: 0 });
+    expect(await statuses()).toEqual([
+      { name: "Ms Dora Dummy", status: "other", note: "Perhaps", by: "airtable" },
+      { name: "Polly Placeholder", status: "other", note: "Tentative meeting with staff", by: "airtable" },
+    ]);
+    expect(await listRuns("import-go-to-parliament")).toMatchObject([{ status: "ok" }]);
   });
 });

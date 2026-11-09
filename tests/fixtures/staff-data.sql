@@ -157,21 +157,22 @@ INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date,
 SELECT id, 'controlai-letter', 'letter', 'signed', (now() - interval '3 days')::date, '', 'jo@pauseai.uk', now() - interval '3 days' FROM politicians WHERE test_postcode = 'ZZ99ZZ';
 INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, note, updated_by, updated_at)
 SELECT id, 'frontier-ai-letter', 'letter', 'signed', (now() - interval '1 day')::date, 'Confirmed by their office', 'jo@pauseai.uk', now() - interval '1 day' FROM politicians WHERE test_postcode = 'ZZ99ZH';
-INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, updated_by, updated_at)
-SELECT n.id, a.ask, a.kind, a.status, least(k.date, (now() - interval '20 days')::date), 'airtable', now() - interval '20 days'
+INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, note, status_date, updated_by, updated_at)
+SELECT n.id, a.ask, a.kind, a.status, a.note, least(k.date, (now() - interval '20 days')::date), 'airtable', now() - interval '20 days'
 FROM (VALUES
-  ('recPlaceholder', 'controlai-statement', 'letter', 'signed'),
-  ('recPlaceholder', 'edinburgh-conference-2026', 'event', 'declined'),
-  ('recPlaceholder', 'go-to-parliament-oct-2026', 'event', 'meeting_staff'),
-  ('recDummy', 'go-to-parliament-oct-2026', 'event', 'going'),
-  ('recDummy', 'edinburgh-conference-2026', 'event', 'tentative'),
-  ('recGone', 'go-to-parliament-oct-2026', 'event', 'declined_surgery'),
-  ('recRemoved', 'go-to-parliament-oct-2026', 'event', 'tentative_staff'),
-  ('recMorag', 'edinburgh-conference-2026', 'event', 'going'),
-  ('recDeparted', 'edinburgh-conference-2026', 'event', 'passed_on'),
-  ('recDeparted', 'deepmind-letter', 'letter', 'signed'),
-  ('recRetired', 'frontier-ai-letter', 'letter', 'signed')
-) AS a (airtable_id, ask, kind, status) JOIN notable_people n USING (airtable_id) JOIN asks k ON k.slug = a.ask;
+  ('recPlaceholder', 'controlai-statement', 'letter', 'signed', ''),
+  ('recPlaceholder', 'edinburgh-conference-2026', 'event', 'declined', ''),
+  ('recPlaceholder', 'go-to-parliament-oct-2026', 'event', 'other', 'Meeting with staff'),
+  ('recDummy', 'go-to-parliament-oct-2026', 'event', 'going', ''),
+  ('recDummy', 'edinburgh-conference-2026', 'event', 'other', 'Tentative yes'),
+  ('recGone', 'go-to-parliament-oct-2026', 'event', 'other', 'Declined but surgery appointment'),
+  ('recRemoved', 'go-to-parliament-oct-2026', 'event', 'other', 'Tentative meeting with staff'),
+  ('recMorag', 'edinburgh-conference-2026', 'event', 'going', ''),
+  ('recDeparted', 'edinburgh-conference-2026', 'event', 'other', 'Passed on request'),
+  ('recDeparted', 'deepmind-letter', 'letter', 'signed', ''),
+  ('recRetired', 'frontier-ai-letter', 'letter', 'signed', ''),
+  ('recMorag', 'deepmind-letter', 'letter', 'other', 'Wants to meet first')
+) AS a (airtable_id, ask, kind, status, note) JOIN notable_people n USING (airtable_id) JOIN asks k ON k.slug = a.ask;
 
 -- ----------------------------------------------------------------- luma
 

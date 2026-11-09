@@ -15,15 +15,12 @@ import styles from "./AsksList.module.css";
 
 const copy = staffCopy.asks;
 
-/** Each answer's colour: green for a yes, red for a no, amber for what's in between. */
+/** Each answer's colour: green for a yes, red for a no, amber for any other. */
 export const ANSWER_TONES: Record<string, TagTone | undefined> = {
   signed: "green",
   going: "green",
-  tentative: "amber",
-  meeting_staff: "amber",
-  tentative_staff: "amber",
+  other: "amber",
   declined: "red",
-  declined_surgery: "red",
 };
 
 /** The answers an ask's kind allows that some politicians gave. */
