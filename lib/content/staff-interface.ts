@@ -1179,7 +1179,7 @@ All events: ${link}`,
     pickTemplate: "Choose a template",
     // Under the approved ones, past a rule: new words, to send for approval.
     newTemplate: "New template",
-    templateMadeIn: "⁂ Made in WhatsApp Manager",
+    templateMadeIn: "Made in WhatsApp Manager",
     templateBy: (name: string, approved: string, used: string) => `${name}, approved ${approved}, ${used}`,
     templateNeverUsed: "never used",
     templateUsed: (at: string, n: number) => `last used ${at}, to ${count(n, "person", "people")}`,
