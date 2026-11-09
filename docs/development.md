@@ -31,8 +31,11 @@ Optionally, `npm run hooks:install` sets up a Git hook (with
 [prek](https://prek.j178.dev/)) that runs Prettier, ESLint and Stylelint
 on the files you commit, in a couple of seconds, and stops the commit if
 they fail. Prettier formats the files itself, so after it stops a commit,
-`git add` them and commit again. The hooks are in `.pre-commit-config.yaml`.
-CI runs all of them and more either way.
+`git add` them and commit again. After a checkout or a merge, another
+writes `investments/ranked.txt` again. The hooks are in
+`.pre-commit-config.yaml`. CI runs all of them and more either way. Git
+doesn't copy hooks with a clone, so each clone needs this once; its
+worktrees share them.
 
 ### Worktrees
 

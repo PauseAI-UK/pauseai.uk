@@ -1,7 +1,9 @@
 # Optional checks on the files you're committing, if you've run
 # `npm run hooks:install` (docs/development.md). Prettier formats the files
 # itself; then `git add` them and commit again. CI runs these and more
-# either way.
+# either way. After a checkout or merge, investments/ranked.txt is written
+# again (scripts/investments.mjs).
+default_install_hook_types: [pre-commit, post-checkout, post-merge]
 repos:
   - repo: local
     hooks:
@@ -20,3 +22,10 @@ repos:
         entry: npx stylelint --allow-empty-input
         language: system
         files: \.css$
+      - id: investments
+        name: investments/ranked.txt
+        entry: node scripts/investments.mjs --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [post-checkout, post-merge]
