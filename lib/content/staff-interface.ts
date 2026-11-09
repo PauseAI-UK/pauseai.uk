@@ -1186,7 +1186,7 @@ All events: ${link}`,
     templateUsed: (at: string, n: number) => `last used ${at}, to ${count(n, "person", "people")}`,
     newTemplateHint: "WhatsApp needs to approve the new template before it can go. This takes up to 24 hours.",
     rejected: (at: string, reason: string) =>
-      `WhatsApp rejected the template saying “${reason.replace(/\.+$/, "")}” on ${at}. Change the words and send for approval again.`,
+      `WhatsApp rejected the template saying “${reason.replace(/\.+$/, "")}” on ${at}. Change the message and send for approval again.`,
     // Preview.
     chooseTemplate: "Choose a template to see the text here.",
     findRecipient: "Show a fake recipient who…",
