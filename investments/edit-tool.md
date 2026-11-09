@@ -12,7 +12,7 @@ Anthropic hasn't said why. The docs, the changelog and the post on how auto mode
 
 ## Fix
 
-0. Turn the experiment off: `"env": { "CLAUDE_CODE_THRIFTY_SONIC": "0" }` in Claude Code's settings, the user's or a project `.claude/settings.json`. Found by users reading the binary (issue 88041 above), not documented, so it may stop working; check a session's instructions after setting it.
+0. Done: `.claude/settings.json` sets `CLAUDE_CODE_THRIFTY_SONIC=0`, and so do Francis's own settings. Tested on 9 November 2026: sessions with it got no Bash-first instruction, and those without it did. Undocumented, so it may stop working; a session's transcript shows whether it held (an `auto_mode` attachment means it didn't). Whether the share of script edits falls is for the next sweep to show.
 1. A rule in AGENTS.md, which Claude Code ranks above its own defaults: read files with Read and change them with Edit, or Write for a new file, even in auto mode. A script only for the same mechanical change across many files, checking each replacement before writing (`assert s.count(a) == 1`), then Prettier and ESLint on what it touched. Watch a few sessions to see whether it beats the stricter wording.
 2. Perhaps, if the rule doesn't hold: a project `.claude/settings.json` with a `Stop` hook that runs Prettier and ESLint on `git diff --name-only` at the end of each turn (https://code.claude.com/docs/en/hooks). A `PostToolUse` hook on Edit and Write doesn't see Bash's changes, and Bash's own list of changed files is a beta, "best effort". Whether reformatting after an Edit makes the next Edit fail with "modified since read" isn't known.
 

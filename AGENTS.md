@@ -10,6 +10,10 @@ Read `README.md` first. It links the docs in `docs/`, including the code structu
 
 A comment says what the code does and why, as it stands. It doesn't tell the code's history: not what it replaced, what changed or moved, what it used to do, or which plan or PR brought it. That belongs in the commit message. Write "Every field is the kit's", not "Fields now come from the kit instead of each form's own". The same goes for docs. The rest of the rules (no counts that go stale, explain once at the definition, what a test fixture's comment says) are in `docs/code-structure.md`, "Comments".
 
+## Claude Code's settings
+
+`.claude/settings.json` sets `CLAUDE_CODE_THRIFTY_SONIC=0`, which turns off an experiment in Claude Code's auto mode that tells agents to read with `cat` and edit with `sed` or scripts rather than the Read and Edit tools. Edit is safer: it needs the file read first and an exact match, and shows a diff. The variable isn't documented, so if a session's instructions still steer you to Bash, say so.
+
 ## Scratch files
 
 Put throwaway scripts, logs and screenshots in `tmp/` at the repo root (to screenshot the site, see "Screenshots" below). It's gitignored, and scripts there can import the project's `node_modules` (e.g. `@playwright/test`, `sharp`). Long-running checks, such as probing the site in Chromium, Firefox and WebKit, can run in the background and write their output there.
