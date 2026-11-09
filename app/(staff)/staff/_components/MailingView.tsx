@@ -26,6 +26,7 @@ import Strip from "./ui/Strip";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import Bubble from "./ui/Bubble";
 import AnswerWord from "./AnswerWord";
+import LetterStatus from "./LetterStatus";
 import styles from "./MailingView.module.css";
 import TestTag from "./TestTag";
 
@@ -48,22 +49,6 @@ function letterLabels(asks: Ask[]): { fields: Record<string, string>; conditions
     fields: Object.fromEntries(POLITICIAN_FIELDS.map((f) => [f, staffCopy.mailingEditor.fields[f]])),
     conditions: answerLabels(asks),
   };
-}
-
-/**
- * How a recipient's letter went, as a tag: in red, skipped with why,
- * refused, bounced, a spam complaint, though they answered its ask some
- * other way, or uncertain, as a run stopped while sending it; answered its ask, in green; else grey, as replied,
- * or its status.
- */
-function Outcome({ mailing, recipient }: { mailing: Mailing; recipient: MailingRecipient }) {
-  if (recipient.skipReason) return <Tag tone="red">{copy.skipReasons[recipient.skipReason]}</Tag>;
-  if (["not_sent", "bounced", "spam_complaint", "uncertain"].includes(recipient.status)) {
-    return <Tag tone="red">{staffCopy.letters.status[recipient.status]}</Tag>;
-  }
-  if (mailing.ask && recipient.answer) return <Tag tone="green">{staffCopy.mailings.columns.answered}</Tag>;
-  if (recipient.repliedAt) return <Tag>{copy.tabs.replied}</Tag>;
-  return <Tag>{staffCopy.letters.status[recipient.status] ?? recipient.status}</Tag>;
 }
 
 /**
@@ -101,7 +86,12 @@ function recipientColumns(mailing: Mailing): ListColumn<MailingRecipient>[] {
       short: true,
       cell: (r) => (
         <span className={styles.who}>
-          <Outcome mailing={mailing} recipient={r} />
+          <LetterStatus
+            status={r.status}
+            skipReason={r.skipReason}
+            answered={Boolean(mailing.ask && r.answer)}
+            replied={Boolean(r.repliedAt)}
+          />
           <Muted>{staffDate(r.repliedAt ?? r.sentAt ?? mailing.updatedAt)}</Muted>
           {!r.skipReason && (
             <StaffLink href={`/staff/mailings/${mailing.id}/letters/${r.letterId}`}>

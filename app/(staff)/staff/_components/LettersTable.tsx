@@ -6,11 +6,9 @@ import type { LetterSummary } from "@/lib/server/letters";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import { Muted } from "@/components/ui/Text";
 import TestTag from "./TestTag";
+import { statusOf } from "./LetterStatus";
 
 const copy = staffCopy.letters;
-
-/** A letter's status, in words. */
-const statusOf = (status: string) => copy.status[status] ?? status;
 
 /**
  * The letters list's columns, as every list's go (docs/style-guide.md):

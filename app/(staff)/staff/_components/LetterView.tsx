@@ -1,6 +1,5 @@
 import StaffLink from "./ui/StaffLink";
 import type { ReactNode } from "react";
-import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { Ask } from "@/lib/server/asks";
@@ -9,19 +8,13 @@ import type { Politician } from "@/lib/server/politicians";
 import AskRow, { AskRows } from "./AskRow";
 import Breadcrumb from "./Breadcrumb";
 import CampaignName from "./CampaignName";
-import { historyOf, LetterHistory, letterTitle, statusOf } from "./LetterHistory";
+import { historyOf, LetterHistory, letterTitle } from "./LetterHistory";
+import LetterStatus from "./LetterStatus";
 import Grid, { Card, Column, spanClass } from "./ui/Grid";
 import styles from "./LetterView.module.css";
 import TestTag from "./TestTag";
 
 type SetStatus = (form: FormData) => void | Promise<void>;
-
-/** A letter's status as its tag says it: answered the ask it makes, in green; bounced, or uncertain whether it went, in red; else grey. */
-function StatusTag({ status, answered }: { status: string; answered: boolean }) {
-  if (answered) return <Tag tone="green">{staffCopy.mailings.columns.answered}</Tag>;
-  const red = ["bounced", "spam_complaint", "uncertain"].includes(status);
-  return <Tag tone={red ? "red" : undefined}>{statusOf(status)}</Tag>;
-}
 
 /**
  * The card of what a letter asks: the ask, if it makes one, in the box a
@@ -100,7 +93,12 @@ export default function LetterView({
       <Breadcrumb href={back.href}>{back.label}</Breadcrumb>
       <div className={styles.heading}>
         <h1>{letterTitle(letter)}</h1>
-        <StatusTag status={letter.status} answered={Boolean(ask && politician.statuses[ask.slug])} />
+        <LetterStatus
+          status={letter.status}
+          skipReason={letter.kind === "pauseai" ? letter.skipReason : null}
+          answered={Boolean(ask && politician.statuses[ask.slug])}
+          replied={Boolean(letter.repliedAt)}
+        />
         <TestTag isTest={politician.isTest} />
       </div>
       <p className={styles.about}>

@@ -1351,10 +1351,11 @@ All events: ${link}`,
     // In a mailing's email, who it's to: each recipient, as it's a letter to many.
     toEach: "Each recipient, by name and address",
     emailTitle: "The email",
+    // A skipped letter's status tag, with why it was skipped.
     skipReasons: {
-      blocked: "Address blocked",
-      "left-office": "Left office",
-      "no-email": "No email address",
+      blocked: "Skipped: address blocked",
+      "left-office": "Skipped: left office",
+      "no-email": "Skipped: no email address",
     } as Record<string, string>,
   },
   // The asks page: each ask, its kind and date, and how many gave each answer.
@@ -2440,7 +2441,7 @@ All events: ${link}`,
       auto_reply: "Auto-reply",
       // PauseAI's letters of a mailing written here, before and instead of sending.
       scheduled: "Scheduled",
-      cancelled: "Stopped",
+      cancelled: "Cancelled: we stopped the mailing",
       skipped: "Skipped",
       // A supporter's letter from the letters inbox, waiting to go, and what's done with it and the messages both ways.
       queued: "Queued",

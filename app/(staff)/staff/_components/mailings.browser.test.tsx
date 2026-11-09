@@ -344,8 +344,8 @@ describe("MailingView", () => {
   it("once sent: its band, how many answered, the email, and its recipients", async () => {
     await view({});
     await expect.element(page.getByRole("heading", { level: 1 })).toMatchTextContent(mailing.title);
-    // With an ask, the bar says it's sent, not a tag.
-    expect(page.getByText(copy.states.sent, { exact: true }).all()).toHaveLength(1);
+    // With an ask, the bar says it's sent, not a tag: the one more is Polly's letter's.
+    expect(page.getByText(copy.states.sent, { exact: true }).all()).toHaveLength(2);
     await expect.element(page.getByText(copy.answeredBar(3, 12))).toBeVisible();
     await expect.element(page.getByRole("progressbar", { name: copy.counts.answered })).toHaveAttribute("value", "3");
     // The band: when, by whom, from where, the ask, and who it was for.
@@ -368,6 +368,7 @@ describe("MailingView", () => {
     await expect.element(recipient("Polly")).toMatchTextContent("Cities of London and Westminster · Labour (Co-op)");
     await expect.element(recipient("Polly")).toMatchTextContent(staffCopy.statuses.going);
     await expect.element(recipient("Polly")).toMatchTextContent(staffCopy.mailings.columns.answered);
+    await expect.element(recipient("Polly").getByText(staffCopy.letters.status.sent, { exact: true })).toBeVisible();
     await expect
       .element(recipient("Polly").getByRole("link", { name: copy.letterAndReplies(2) }))
       .toHaveAttribute("href", "/staff/mailings/4/letters/11");
@@ -399,7 +400,8 @@ describe("MailingView", () => {
       },
     });
     await expect.element(page.getByRole("progressbar")).not.toBeInTheDocument();
-    expect(page.getByText(copy.states.sent, { exact: true }).all()).toHaveLength(2);
+    // Sent as a tag, with Polly's letter's, beside her Replied, one more.
+    expect(page.getByText(copy.states.sent, { exact: true }).all()).toHaveLength(3);
     await expect.element(page.getByRole("heading", { name: copy.tabs.replied })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.showEveryone }))
@@ -598,9 +600,10 @@ describe("LetterView", () => {
       </LetterView>,
     );
 
-  it("answered: green, with the ask as the politician's page has it, beside the thread and history", async () => {
-    await view({});
+  it("answered: green, beside how it went, with the ask as the politician's page has it, beside the thread and history", async () => {
+    await view({ letter: { ...letter, status: "bounced" } });
     await expect.element(page.getByText(staffCopy.mailings.columns.answered, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(staffCopy.letters.status.bounced, { exact: true })).toBeVisible();
     await expect.element(page.getByRole("group", { name: exampleAsks[0]!.title })).toBeVisible();
     await expect.element(page.getByText("the thread")).toBeVisible();
     await expect.element(page.getByRole("heading", { name: staffCopy.letters.detail.historyTitle })).toBeVisible();
@@ -643,6 +646,19 @@ describe("LetterView", () => {
       </LetterView>,
     );
     await expect.element(page.getByText(staffCopy.letters.status.spam_complaint, { exact: true })).toBeVisible();
+    // Skipped, with why; replied to, beside it.
+    await rerender(
+      <LetterView
+        letter={{ ...letter, status: "skipped", skipReason: "no-email", repliedAt: new Date("2026-10-02T09:00:00Z") }}
+        politician={{ ...politician, statuses: {} }}
+        asks={exampleAsks}
+        setStatus={noAction}
+      >
+        <p>the thread</p>
+      </LetterView>,
+    );
+    await expect.element(page.getByText(staffCopy.mailingPages.skipReasons["no-email"], { exact: true })).toBeVisible();
+    await expect.element(page.getByText(staffCopy.letters.status.replied, { exact: true })).toBeVisible();
   });
 
   it("a supporter's: back to the letters, its campaign over its ask, tagged when it's to a test politician", async () => {

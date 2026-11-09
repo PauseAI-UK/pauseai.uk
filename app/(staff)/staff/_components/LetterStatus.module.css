@@ -1,0 +1,7 @@
+/* A letter's status tag, and beside it whether it was answered or replied to. */
+.tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+}
