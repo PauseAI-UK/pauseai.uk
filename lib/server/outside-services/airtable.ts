@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/lib/server/config";
 import {
   CONTROLAI_STATEMENT_ASK,
   DEEPMIND_LETTER_ASK,
@@ -33,7 +34,7 @@ export class AirtableRequestError extends Error {}
 
 /** AIRTABLE_TOKEN, or throws: without it, nothing can be read from Airtable. */
 export function airtableToken(): string {
-  const token = process.env.AIRTABLE_TOKEN;
+  const token = config.airtableToken;
   if (!token) throw new Error("AIRTABLE_TOKEN isn't set, so nothing can be read from Airtable");
   return token;
 }

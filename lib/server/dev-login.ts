@@ -1,6 +1,6 @@
 import "server-only";
+import { config } from "./config";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { fixturesEnabled } from "@/lib/fixtures-enabled";
 import { listStaffAccounts } from "./staff-accounts";
 
 /** A pauseai.uk address with no account yet, to see someone's first login. */
@@ -17,12 +17,9 @@ export type DevLoginChoice = { email: string; description: string };
 function sharedInboxes(): { email: string; role: string }[] {
   const copy = staffCopy.devLogin;
   return [
-    { email: process.env.LETTERS_INBOX, role: copy.lettersInbox },
-    { email: process.env.POLICY_INBOX, role: copy.policyInbox },
-  ].flatMap(({ email, role }) => {
-    const address = email?.trim().toLowerCase() ?? "";
-    return /@pauseai\.uk$/.test(address) ? [{ email: address, role }] : [];
-  });
+    { email: config.lettersInbox, role: copy.lettersInbox },
+    { email: config.policyInbox, role: copy.policyInbox },
+  ].flatMap(({ email, role }) => (email && /@pauseai\.uk$/.test(email) ? [{ email, role }] : []));
 }
 
 /**
@@ -32,7 +29,7 @@ function sharedInboxes(): { email: string; role: string }[] {
  * else, where there's no dev login.
  */
 export async function devLoginAccounts(): Promise<DevLoginChoice[] | undefined> {
-  if (!fixturesEnabled()) return undefined;
+  if (!config.fixtures) return undefined;
   const copy = staffCopy.devLogin;
   const shared = sharedInboxes();
   const roleOf = (email: string) => shared.find((inbox) => inbox.email === email)?.role;

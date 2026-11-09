@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { tagsForEvent, type EventToTag } from "@/lib/event-tags";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { londonStart } from "@/lib/staff-time";
@@ -22,7 +23,7 @@ export type EventTagging = { tagged: number; requests: number; unclear: UnclearE
 
 /** Whether this build may change the real calendar: not a preview's or a local one, which hold a copy of its events. */
 function mayTag(): boolean {
-  return process.env.DEPLOY_CONTEXT === "production" || process.env.DATA_FIXTURES === "1";
+  return config.production || config.fixtures;
 }
 
 /**

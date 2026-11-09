@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/lib/server/config";
 import { copy } from "@/lib/content/email-your-mp";
 import { outsideFetch } from "./outside-fetch";
 import { problem } from "../problems";
@@ -17,12 +18,12 @@ const TEST_SECRET = /^[123]x0{10}/;
 export type SpamCheck = { drop: true } | { drop: false; message?: string };
 
 function isDev(): boolean {
-  return process.env.NODE_ENV === "development";
+  return config.nodeEnv === "development";
 }
 
 async function verifyTurnstile(token: string | undefined): Promise<string | undefined> {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret && !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+  const secret = config.turnstileSecretKey;
+  if (!secret && !config.turnstileSiteKey) {
     if (!isDev()) console.warn("Turnstile keys are not set, so the spam check was skipped");
     return undefined;
   }

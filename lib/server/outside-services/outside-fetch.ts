@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/lib/server/config";
 import { fixtureResponse } from "@/lib/server/fixtures/outside-services";
 
 /**
@@ -8,7 +9,7 @@ import { fixtureResponse } from "@/lib/server/fixtures/outside-services";
  * The calling code still parses the response, so it is exercised either way.
  */
 export async function outsideFetch(url: string, init?: RequestInit): Promise<Response> {
-  if (process.env.DATA_FIXTURES === "1") {
+  if (config.fixtures) {
     // The storyboard flow's database, for the fakes that keep what they're sent, one set each flow.
     // Imported here, so a component that renders on fixture data in the browser doesn't load it.
     const { flowDatabase } = await import("../flow-database");

@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/lib/server/config";
 import { tallySources, type GuestEntry, type SourceCounts } from "@/lib/trackers";
 import { LUMA_PAGE_SIZE, lumaList, type LumaPage } from "./luma-api";
 import { outsideFetch } from "./outside-fetch";
@@ -107,7 +108,7 @@ const GUEST_COUNT_REVALIDATE = 60;
  * nothing rather than a misleading zero.
  */
 export async function getEventGuestCount(eventId: string): Promise<number | null> {
-  const key = process.env.LUMA_API_KEY;
+  const key = config.lumaApiKey;
   if (!key) return null;
   try {
     const res = await outsideFetch(
@@ -203,7 +204,7 @@ export async function addLumaGuest(
   guest: { name: string; email: string },
   timeoutMs = ADD_GUEST_TIMEOUT_MS,
 ): Promise<LumaAddGuestResult> {
-  const key = process.env.LUMA_API_KEY?.trim();
+  const key = config.lumaApiKey;
   if (!key) return { status: "not-configured" };
 
   try {

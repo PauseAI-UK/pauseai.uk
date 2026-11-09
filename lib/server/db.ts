@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import { flowDatabase } from "./flow-database";
 import { migrationsBehindMessage } from "./migrations-check";
@@ -20,7 +21,7 @@ const flowPools = new Map<string, Pool>();
 async function getPool(): Promise<Pool> {
   const connectionString = process.env.NETLIFY_DB_URL;
   if (!connectionString) throw new Error("NETLIFY_DB_URL is not set");
-  if (process.env.DATA_FIXTURES === "1") {
+  if (config.fixtures) {
     const name = await flowDatabase();
     if (name) return flowPool(connectionString, name);
   }
@@ -34,7 +35,7 @@ async function getPool(): Promise<Pool> {
   // The dev server says in its terminal when the database needs
   // npm run db:migrate, rather than a page failing on a missing table.
   // Netlify's own databases are migrated on deploy, so only in development.
-  if (process.env.NODE_ENV === "development") void warnIfBehind(pool);
+  if (config.nodeEnv === "development") void warnIfBehind(pool);
   return pool;
 }
 

@@ -1,3 +1,4 @@
+import { config } from "@/lib/server/config";
 import { pageMetadata } from "@/lib/metadata";
 import Signatories from "../_components/Signatories";
 import CampaignContext from "../_components/CampaignContext";
@@ -54,7 +55,7 @@ export default function Page() {
       <EmailYourMpSection
         campaignSlug="regulate-letter-pm"
         // Outside production, letters only go to the test MPs, so say how to find them.
-        showTestMps={process.env.DEPLOY_CONTEXT !== "production"}
+        showTestMps={!config.production}
       />
 
       <Signatories />

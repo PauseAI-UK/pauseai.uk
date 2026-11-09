@@ -2,6 +2,8 @@
 // comes from siteUrl(). ESLint keeps the other ways of finding the site's
 // address out of the rest of the code (SITE_URL_RULE in eslint.config.mjs).
 
+import { config } from "@/lib/server/config";
+
 /**
  * An absolute URL on this site, built from the deploy's own address, fixed at
  * build time (SITE_ORIGIN in next.config.ts): pauseai.uk in production. Never
@@ -19,6 +21,6 @@ export function siteUrl(path: string, request: Request | undefined): URL {
 
 /** The same, or undefined where this build can't say, for a link that can do without. */
 export function siteUrlIfKnown(path: string, request: Request | undefined): URL | undefined {
-  const origin = process.env.SITE_ORIGIN || (process.env.DEPLOY_CONTEXT === "local" ? request?.url : "");
+  const origin = config.siteOrigin || (config.localBuild ? request?.url : "");
   return origin ? new URL(path, origin) : undefined;
 }

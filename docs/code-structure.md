@@ -191,6 +191,13 @@ the code should go instead. The rules below say which ones are enforced.
   applied: a change is a new file. Each one is committed with
   `netlify/database/schema.sql` (`docs/development.md`, "Adding a
   migration"). Tables follow the SQL rules below.
+- **Settings** come from `config` (`lib/server/config.ts`), which reads
+  each environment variable and gives it one shape for every caller: an
+  address trimmed and lowercased, unset and empty alike undefined. Nothing
+  else in `app/`, `components/` or `lib/` reads `process.env` (an ESLint
+  rule, `PROCESS_ENV_RULE`), but `lib/server/db.ts` for its connection
+  string, `lib/now.ts`, which runs in the browser too, and the fakes in
+  `lib/server/fixtures/`, which the storyboard loads outside the site.
 - **Links to the site** in emails and redirects are built with
   `siteUrl(path, request)` (`lib/site-url.ts`), on the deploy's own address
   (`SITE_ORIGIN`, set in `next.config.ts` from Netlify's settings):

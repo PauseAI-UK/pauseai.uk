@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { docFromMarkup, toText } from "@/lib/letter-format";
 import type { MailingDoc } from "@/lib/mailing-doc";
 import { type ImportJob, type OldLettersImportResult, type OldLettersProgress } from "@/lib/import-runs";
@@ -924,7 +925,7 @@ async function readSome(startedBy: string, paceMs: number, readMs: number): Prom
  */
 export function importOldLetters(
   startedBy: string,
-  paceMs = process.env.DATA_FIXTURES === "1" ? 0 : PACE_MS,
+  paceMs = config.fixtures ? 0 : PACE_MS,
   readMs = READ_MS,
 ): Promise<OldLettersImportResult> {
   return keepingFailure(JOB, startedBy, () =>

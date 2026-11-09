@@ -10,13 +10,21 @@ const DATABASE_URL_RULE = {
 };
 const PG_IMPORT = { name: "pg", message: "Only lib/server/db.ts connects to the database. Query through it." };
 
+// The site's settings are read from the environment only in
+// lib/server/config.ts, which gives each one shape for every caller. The
+// database's connection string has its own rule, above.
+const PROCESS_ENV_RULE = {
+  selector: "MemberExpression[object.name='process'][property.name='env'][parent.property.name!='NETLIFY_DB_URL']",
+  message: "Read settings from config (lib/server/config.ts), which reads and normalises each environment variable.",
+};
+
 // The site's own address: every absolute URL on it, in an email or a
 // redirect, comes from siteUrl() in lib/site-url.ts, which uses the deploy's
 // address. A request's own URL or Host is the wrong one on Netlify
 // (main--pauseaiuk.netlify.app), and whoever sends the request can set it.
 const SITE_URL_RULE = {
   selector: [
-    "MemberExpression[property.name='SITE_ORIGIN']",
+    "MemberExpression[property.name=/^(SITE_ORIGIN|siteOrigin)$/]",
     "MemberExpression[property.name='url'][object.name=/^req(uest)?$/]",
     "MemberExpression[property.name=/^(origin|host|hostname)$/][object.property.name='nextUrl']",
     "CallExpression[callee.property.name='get'][arguments.0.value=/^(host|origin|x-forwarded-host)$/i]",
@@ -128,12 +136,13 @@ const NETWORK_IMPORTS = [
  * its own API; `fetch` may call fetch() (code that runs in the browser
  * fetches the site's own API); `outsideFetch` may import it; `sendEmail`
  * may use Postmark's binding to send. `fakes` may name every service's API,
- * as the fixtures answer for each. `staff` adds the staff pages' rule for
+ * as the fixtures answer for each. `env` may read process.env. `staff` adds the staff pages' rule for
  * links that look like buttons.
  */
 function siteCodeRules({
   service,
   fakes = false,
+  env = false,
   siteUrl = false,
   database = false,
   fetch = false,
@@ -145,6 +154,7 @@ function siteCodeRules({
     "no-restricted-syntax": [
       "error",
       ...(database ? [] : [DATABASE_URL_RULE]),
+      ...(env ? [] : [PROCESS_ENV_RULE]),
       ...(siteUrl ? [] : [SITE_URL_RULE]),
       ...(fakes ? [] : SERVICES.filter((other) => other !== service).map(hostRule)),
       ...(fetch ? [] : [OUTSIDE_FETCH_RULE]),
@@ -351,9 +361,13 @@ const eslintConfig = defineConfig([
   // earlier one's, so each file allowed one of these things comes after.
   ...[
     { files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "proxy.ts"], fetch: true },
+    // The server's clock runs in the browser too, where config can't go.
+    { files: ["lib/now.ts"], fetch: true, env: true },
     { files: ["app/(staff)/**/*.tsx"], fetch: true, staff: true },
     { files: ["lib/server/**/*.ts", "app/**/route.ts", "app/**/actions.ts"] },
-    { files: ["lib/server/fixtures/*.ts"], fakes: true },
+    // The fakes read the fixture build's own settings, as the storyboard loads them outside the site.
+    { files: ["lib/server/fixtures/*.ts"], fakes: true, env: true },
+    { files: ["lib/server/config.ts"], env: true, siteUrl: true },
     { files: [`${OUTSIDE}/*.ts`], outsideFetch: true },
     ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true })),
     { files: [`${OUTSIDE}/outside-fetch.ts`], fetch: true },

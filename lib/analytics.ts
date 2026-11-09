@@ -1,3 +1,5 @@
+import { config } from "@/lib/server/config";
+
 /**
  * Whether this build loads Google Analytics and Tag Manager
  * (components/layout/CookieConsent.tsx). Only the live site does, so a dev
@@ -7,5 +9,5 @@
  * (tests/storyboard/fixtures.ts).
  */
 export function analyticsEnabled(): boolean {
-  return process.env.DEPLOY_CONTEXT === "production" || process.env.ANALYTICS === "1";
+  return config.production || config.analytics;
 }

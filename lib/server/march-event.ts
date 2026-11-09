@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { getEventGuestCount } from "./outside-services/luma-guests";
 
 // The march's Luma event: the one the sign-up registers people for, and
@@ -16,7 +17,7 @@ const TEST_EVENT_ID = "evt-hfOj1RR5K1gBNEW";
 
 /** The event this deploy registers people for. DEPLOY_CONTEXT is Netlify's CONTEXT, fixed at build time by next.config.ts. */
 export function marchEventId(): string {
-  return process.env.DEPLOY_CONTEXT === "production" ? MARCH_EVENT_ID : TEST_EVENT_ID;
+  return config.production ? MARCH_EVENT_ID : TEST_EVENT_ID;
 }
 
 /**

@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 
 // The letters inbox: the Gmail account supporters' letters to MPs go from,
 // used for nothing else. Its address is LETTERS_INBOX, set only where the
@@ -11,7 +12,7 @@ export { LETTERS_DAILY_LIMIT } from "@/lib/gmail-connect";
 
 /** The letters inbox's own address, lowercased; undefined where it isn't set. */
 export function lettersInbox(): string | undefined {
-  return process.env.LETTERS_INBOX?.trim().toLowerCase() || undefined;
+  return config.lettersInbox;
 }
 
 /** The letters inbox's address split at its @. */

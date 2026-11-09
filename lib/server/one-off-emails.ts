@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { headerText } from "@/lib/email-parsing/mime";
 import { gzipSync } from "node:zlib";
 import { addressesIn, realSender } from "@/lib/email-parsing/addresses";
@@ -60,7 +61,7 @@ export const ONE_OFF_HEADERS = [
 
 /** The shared inbox one-off emails are copied to, as the page says: POLICY_INBOX, or else its usual address. */
 export function oneOffInbox(): string {
-  return process.env.POLICY_INBOX || "policy@pauseai.uk";
+  return config.policyInbox ?? "policy@pauseai.uk";
 }
 
 /** A message's Message-ID, if it has one. */

@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { now } from "@/lib/now";
 import { siteUrlIfKnown } from "@/lib/site-url";
 import { query } from "./db";
@@ -34,7 +35,7 @@ export async function notifyStaff(
   letterId: number | null = null,
   purpose: Extract<Purpose, "staff-alert" | "staff-report"> = "staff-alert",
 ): Promise<boolean> {
-  const inbox = process.env.NOTIFICATION_INBOX;
+  const inbox = config.notificationInbox;
   if (!inbox) {
     problem(staffCopy.problems.anywhere.noInbox);
     return false;

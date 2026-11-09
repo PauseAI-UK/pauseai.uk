@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import type { AskStatus } from "@/lib/asks";
 import type { Permission } from "@/lib/staff-permissions";
 import type { LetterBackend, LetterFilter } from "@/lib/staff-search";
@@ -318,7 +319,7 @@ function policyCopy(postmarkId: string | null, mpEmail: string | null, sentAt: s
   const search = postmarkId ? postmarkSearch(postmarkId) : sentAt && mpEmail && sentNearSearch(mpEmail, sentAt);
   if (!search) return null;
   const group = sentAt !== null && new Date(sentAt) < POLICY_GMAIL_SINCE;
-  return { mailbox: process.env.POLICY_INBOX || null, search, ...(group ? { inPolicyGroup: true as const } : {}) };
+  return { mailbox: config.policyInbox ?? null, search, ...(group ? { inPolicyGroup: true as const } : {}) };
 }
 
 /**

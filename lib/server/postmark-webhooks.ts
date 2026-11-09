@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { timingSafeEqual } from "node:crypto";
 import { copy } from "@/lib/content/email-your-mp";
@@ -16,8 +17,8 @@ import { nameLine } from "./proxies";
 
 /** Whether a webhook request carries our basic auth credentials. Without them set, none does. */
 export function isPostmark(request: Request): boolean {
-  const user = process.env.POSTMARK_WEBHOOK_USER;
-  const password = process.env.POSTMARK_WEBHOOK_PASSWORD;
+  const user = config.postmarkWebhookUser;
+  const password = config.postmarkWebhookPassword;
   if (!user || !password) return false;
   const given = Buffer.from(request.headers.get("authorization") ?? "");
   const expected = Buffer.from(`Basic ${Buffer.from(`${user}:${password}`).toString("base64")}`);
@@ -229,7 +230,7 @@ export async function forwardReply(email: InboundEmail): Promise<string[]> {
   const copied = [...(email.ToFull ?? []), ...(email.CcFull ?? [])].map((a) => a.Email?.toLowerCase());
   const plan = (
     [
-      [process.env.POLICY_INBOX, "policy_inbox"],
+      [config.policyInbox, "policy_inbox"],
       [letter.senderEmail, "sender"],
     ] as const
   )

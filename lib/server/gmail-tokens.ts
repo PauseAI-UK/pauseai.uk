@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "./config";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 // Gmail refresh tokens, encrypted with GMAIL_TOKEN_KEY before they're
@@ -11,7 +12,7 @@ const TAG_BYTES = 16;
 
 /** GMAIL_TOKEN_KEY: 32 random bytes, in base64. */
 function key(): Buffer {
-  const value = Buffer.from(process.env.GMAIL_TOKEN_KEY ?? "", "base64");
+  const value = Buffer.from(config.gmailTokenKey ?? "", "base64");
   if (value.length !== 32) throw new Error("GMAIL_TOKEN_KEY must be 32 bytes, in base64");
   return value;
 }

@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/lib/server/config";
 import { getStore } from "@netlify/blobs";
 import { outsideFetch } from "./outside-fetch";
 
@@ -15,7 +16,7 @@ const LETTER_REPLIES = "letter-replies";
 const FIXTURE_BLOBS_URL = "https://blobs.fixture.invalid";
 
 function store() {
-  const fixtures = process.env.DATA_FIXTURES === "1";
+  const fixtures = config.fixtures;
   return getStore({
     name: LETTER_REPLIES,
     // The client always asks with the URL as a string.
