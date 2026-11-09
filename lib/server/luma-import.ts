@@ -55,7 +55,7 @@ const FULL_EVENTS_HOURS = 20;
 /** The most pages of contacts a run reads. Passes over every contact follow one another, this many pages a run: it's how we see who left or came back. */
 const CONTACT_PAGES_PER_RUN = 10;
 
-type ImportList = "events" | "contacts";
+export type ImportList = "events" | "contacts";
 
 /** Whether no run has worked out the supporter facts and the list again in the last REFRESH_AT_LEAST. */
 async function refreshDue(db: Queryable): Promise<boolean> {
@@ -244,7 +244,7 @@ async function upsertPeople(guests: Pick<EventGuest, "userId" | "email" | "name"
 }
 
 /** The statuses a guest row can have: Luma's others (invited, or a ticket's) aren't registrations. */
-const GUEST_STATUSES = ["approved", "pending_approval", "waitlist", "declined"];
+export const GUEST_STATUSES = ["approved", "pending_approval", "waitlist", "declined"];
 
 /** Upserts a page of an event's guests; returns how many were new or different. */
 async function upsertGuests(eventId: string, guests: EventGuest[], db: Queryable): Promise<number> {

@@ -31,6 +31,16 @@ start`), so it is slower. Use it only for what Vitest can't see:
 `coverage/`. CI fails if it drops below the thresholds in
 `vitest.config.mts`.
 
+While writing tests, `npm run test:changed` is quicker: it runs only the
+tests for the files changed since `origin/main`, committed or not (Vitest's
+`--changed`), measures coverage of only the changed source files, and then
+lists each one's lines not run, functions not called and branches not
+taken. It reports coverage even when a test fails, such as
+`tests/checks/placeholder-copy.test.ts` while copy is a placeholder.
+Anything after `--` goes to Vitest (`npm run test:changed -- --project
+node`). A change to `package.json` or the Vitest config makes Vitest run
+every test. It isn't the gate: `npm test` is, over every file.
+
 - **Every file is held at 100%**: statements, branches, functions and
   lines, each file on its own (`perFile: true`).
 - **Code that needs a browser is tested in the browser project**, even when
@@ -509,8 +519,9 @@ not a mock.
 
 - **Each test file gets its own database.** Wrap the tests in
   `describeWithDatabase` and call `useTestDatabase()` (`tests/database.ts`).
-  It copies a template database, empties the tables before each test, and
-  drops the copy afterwards. The node project's global setup
+  It copies a template database, empties every table before each test but
+  those whose rows the migrations seed (`SEEDED` there), and drops the copy
+  afterwards: a new table needs nothing adding. The node project's global setup
   (`tests/vitest.global-setup.node.ts`) makes the template once for the run,
   applying the migrations with `psql` (`scripts/fresh-database.mjs`, the
   same way Netlify does), and drops it at the end. Postgres copies a
@@ -604,6 +615,7 @@ npm run gate              # the CI gate: the fast checks on the changed files, t
 npm run gate -- --fast    # the fast checks alone
 npm run typecheck         # types (also runs in npm run build)
 npm test                  # both Vitest projects, with the coverage gate (what CI runs)
+npm run test:changed      # the tests for the files changed since origin/main, and those files' uncovered lines and branches
 npm run test:node         # Vitest node project (also runs in npm run build)
 npm run lint              # ESLint, failing on warnings too (also runs in npm run build)
 npm run lint:css          # Stylelint (also runs in npm run build)

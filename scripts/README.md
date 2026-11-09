@@ -44,6 +44,10 @@ where there's an npm script. Each file's opening comment has the details.
 
 `worktree.mjs`, run with `npm run worktree -- <branch>`, fetches, adds `tmp/worktrees/<branch>` as a new branch from `origin/main`, runs `npm ci` in it and prints the ports its storyboard will serve on. `--ports` prints this checkout's. `docs/development.md`, "Worktrees", covers it.
 
+## Coverage
+
+`test-changed.mjs`, run with `npm run test:changed`, runs the Vitest tests for the files changed since origin/main, committed or not, and lists each changed source file's uncovered lines, functions and branches, even while a test fails. Anything after `--` goes to Vitest. `npm test` is still the gate (`docs/testing.md`, "Coverage").
+
 ## Investments
 
 `investments.mjs`, run with `npm run investments`, lists the items in `investments/`, most hits first, with each one's size and kind (`investments/README.md`).

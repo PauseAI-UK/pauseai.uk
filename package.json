@@ -21,6 +21,7 @@
     "test": "vitest run --coverage",
     "test:node": "vitest run --project node",
     "test:browser": "vitest run --project browser",
+    "test:changed": "node scripts/test-changed.mjs",
     "test:watch": "vitest",
     "test:storyboard": "playwright test",
     "storyboard": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/storyboard.mjs",
