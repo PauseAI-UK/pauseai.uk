@@ -10,7 +10,7 @@ import { ChoosingMessageFrame, MessageSupporters } from "@/app/(staff)/staff/_co
 import MessageView from "@/app/(staff)/staff/_components/MessageView";
 import MessageConsent from "@/app/(staff)/staff/_components/MessageConsent";
 import MessageWriter, { type MessageWriterActions } from "@/app/(staff)/staff/_components/MessageWriter";
-import NewMessageWriter from "@/app/(staff)/staff/_components/NewMessageWriter";
+import ChannelWriter from "@/app/(staff)/staff/_components/ChannelWriter";
 import {
   exampleMessageCopy,
   exampleMessageData,
@@ -43,10 +43,12 @@ function messageActions(log: (name: string) => (...args: unknown[]) => void): Me
     deleteDraft: log("deleteMessageDraft"),
     changeConsent: logged("changeMessageConsentNow", true),
     create: logged("newMessageWith", undefined),
+    submitTemplate: logged("submitTemplateNow", "submitted" as const),
+    withdrawTemplate: logged("withdrawTemplateNow", true),
   };
 }
 
-/** The writer: New broadcast before its Consent (NewMessageWriter); an email; or a text with no template, one chosen, new words, or rejected. */
+/** The writer: New broadcast before its Consent (ChannelWriter); an email; or a text with no template, one chosen, new words, or rejected. */
 export function MessageWriterExample({
   kind,
 }: {
@@ -82,7 +84,8 @@ export function MessageWriterExample({
     <Logged>
       {(log) =>
         kind === "blank" ? (
-          <NewMessageWriter
+          <ChannelWriter
+            fresh
             data={data}
             draft={draft}
             who={<Muted>PauseAI London March</Muted>}
@@ -151,7 +154,7 @@ export function ChoosingMessageFrameExample() {
 }
 
 /** A message's page: an email sent, a text sent, or a text scheduled, waiting for approval. */
-export function MessageViewExample({ kind }: { kind: "email" | "text" | "waiting" }) {
+export function MessageViewExample({ kind }: { kind: "email" | "text" | "scheduled" }) {
   const text = {
     channel: "text" as const,
     sentFrom: "+447700900000",
@@ -168,7 +171,7 @@ export function MessageViewExample({ kind }: { kind: "email" | "text" | "waiting
           }
         : {
             ...exampleMessageSent,
-            summary: { ...exampleMessageSummary, channel: "text" as const, state: "scheduled" as const, waiting: true },
+            summary: { ...exampleMessageSummary, channel: "text" as const, state: "scheduled" as const },
             written: {
               ...exampleMessageSent.written,
               ...text,

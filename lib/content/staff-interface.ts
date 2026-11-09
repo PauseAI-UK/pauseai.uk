@@ -1075,15 +1075,15 @@ All events: ${link}`,
     fromOption: (address: string, backend: string) => `${address}, by ${backend}`,
     fromAccount: "Sent from",
     fromName: "Name",
-    textFromNote:
-      "⁂ As we appear on WhatsApp: the business account's name, number and picture. Replies come to the supporter's page.",
     noNumber: "No WhatsApp number is configured yet",
     // When: under a text's time, the end of the days it may go in, as approval or WhatsApp's limits can hold it.
     stopsOn: (when: string) => `⁂ Any texts not sent by ${when} won't be sent, so none arrive days late.`,
     // Send.
     cost: {
       email: (dollars: string) => `⁂ About $${dollars}.`,
-      text: (pounds: string, pence: number) => `⁂ About £${pounds} (${pence}p each delivered).`,
+      text: (pounds: string) => `About £${pounds}.`,
+      // After it, smaller and grey: the rate it's worked out at, and since when, as it may have changed.
+      textRate: (pence: number, from: string) => `⁂ ${pence}p each delivered, Meta's rate from ${from}`,
     },
     summary: (n: number, channel: "email" | "text", from: string, when: string | null) =>
       channel === "email"
@@ -1091,14 +1091,19 @@ All events: ${link}`,
         : `${n} ${n === 1 ? "text" : "texts"} from ${from} on WhatsApp${when ? `, on ${when}` : ""}.`,
     schedule: (n: number, channel: "email" | "text") =>
       `Schedule ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"}`,
-    scheduleOnceApproved: (n: number) => `⁂ Schedule ${n} ${n === 1 ? "text" : "texts"}, once approved`,
-    mustApprove: "WhatsApp will need to approve the template before it is sent, but you can schedule it now.",
+    // At the foot of a text on new words: sending them to WhatsApp, and while it reviews them.
+    submitTemplate: "⁂ Send for approval",
+    templatePending: "⁂ Waiting for WhatsApp to approve these words, so they can't be changed.",
+    withdrawTemplate: "⁂ Withdraw them to make changes",
     problems: {
+      // Before a Consent by the channel picked is chosen, first of what stops it.
+      "no-consent": "⁂ Choose a consent reason.",
       "unknown-filter": "⁂ The filter has values that have changed or are no longer supported.",
       "no-recipients": "There's nobody to send to.",
       "no-subject": "Fill in the subject.",
       "no-letter": "Write the email.",
-      "no-template": "⁂ Choose a template.",
+      "no-template": "Choose a template.",
+      "not-approved": "WhatsApp needs to approve the words first.",
       "not-connected": "⁂ The Gmail you've chosen to send from isn't connected.",
       "no-number": "No WhatsApp number is configured, so texts can't be sent.",
       "no-time": "Choose what time it will be sent.",
@@ -1106,10 +1111,6 @@ All events: ${link}`,
       "cannot-send": "⁂ Sending isn't built yet.",
     } as Record<string, string>,
     // Its page.
-    waiting: "WhatsApp approving",
-    waitingStrip: "Waiting for WhatsApp to approve the template, which takes up to 24 hours.",
-    sendsOnceApproved: (when: string) =>
-      `⁂ Sends ${when} if WhatsApp has approved the template by then, or as soon as it does.`,
     scheduledLine: (n: number, channel: "email" | "text", from: string) =>
       `${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"} from ${from}.`,
     byBackend: { email: "by email", text: "by WhatsApp" },
@@ -1878,6 +1879,23 @@ All events: ${link}`,
       subject: (count: number) => `${count} supporters' ${count === 1 ? "address" : "addresses"} bounced`,
       body: (count: number, held: number, lines: string[], link: string) =>
         `${count} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${held} ${held === 1 ? "reply is" : "replies are"} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nSupporters' blocked emails: ${link}`,
+    },
+    // A text's new words sent to WhatsApp for approval, to who sent them and the inbox: the words, and the text.
+    templateSubmitted: {
+      subject: (name: string) => `⁂ WhatsApp template sent for approval: ${name}`,
+      body: (by: string, words: string, link: string) =>
+        `⁂ ${by} sent these words to WhatsApp for approval as a new template. WhatsApp usually decides within 24 hours, and you'll be emailed when it does.\n\n${words}\n\nThe text: ${link}`,
+    },
+    // WhatsApp approved or rejected a template, to who sent it and the inbox: why, the words, and the texts on it.
+    templateApproved: {
+      subject: (name: string) => `⁂ WhatsApp approved the template: ${name}`,
+      body: (words: string, links: string[]) =>
+        `⁂ WhatsApp approved these words, so a text on them can be scheduled now.\n\n${words}\n\n${links.join("\n")}`,
+    },
+    templateRejected: {
+      subject: (name: string) => `⁂ WhatsApp rejected the template: ${name}`,
+      body: (reason: string, words: string, links: string[]) =>
+        `⁂ WhatsApp rejected these words: ${reason}\n\nChange them, and send them for approval again.\n\n${words}\n\n${links.join("\n")}`,
     },
     // Letters to MPs have waited LATE_HOURS to go: how many, why, and the queued letters.
     lettersWaiting: {

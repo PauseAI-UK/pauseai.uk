@@ -47,7 +47,6 @@ export type OverviewLook<T extends MailingSummary> = {
   none: string;
   lead?: (mailing: T) => ReactNode;
   from?: (mailing: T) => string | undefined;
-  scheduledWords?: (mailing: T) => string | undefined;
 };
 
 /** How a list of mailings to politicians looks. */
@@ -89,9 +88,7 @@ function Standing<T extends MailingSummary>({
   if (mailing.state === "draft" || mailing.state === "scheduled") {
     return (
       <span className={styles.state}>
-        <Tag tone={mailing.state === "scheduled" ? "blue" : undefined}>
-          {look.scheduledWords?.(mailing) ?? copy.states[mailing.state]}
-        </Tag>
+        <Tag tone={mailing.state === "scheduled" ? "blue" : undefined}>{copy.states[mailing.state]}</Tag>
         {copy.toCount(mailing.to)}
       </span>
     );

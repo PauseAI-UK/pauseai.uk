@@ -19,7 +19,10 @@ import {
   scheduleMessage,
   sendMessageTest,
   stopMessage,
+  submitTemplate,
+  withdrawTemplate,
   type MessageScheduleResult,
+  type TemplateSubmitResult,
 } from "@/lib/server/message-drafts";
 import { supporterAudience } from "@/lib/server/message-recipients";
 import { requireStaff } from "@/lib/server/staff-auth";
@@ -134,6 +137,22 @@ export async function scheduleMessageNow(id: number, version: number): Promise<M
   const result = await scheduleMessage(id, version, email);
   revalidatePath(LIST);
   return result;
+}
+
+/** Sends draft text `id`'s new words to WhatsApp for approval, after what's typed is saved. */
+export async function submitTemplateNow(id: number): Promise<TemplateSubmitResult> {
+  const { email } = await requireStaff("supporters");
+  const result = await submitTemplate(id, email);
+  revalidatePath(`${LIST}/${id}`);
+  return result;
+}
+
+/** Takes draft text `id`'s words back from WhatsApp's review, so they can be changed; says whether it did. */
+export async function withdrawTemplateNow(id: number): Promise<boolean> {
+  const { email } = await requireStaff("supporters");
+  const withdrawn = await withdrawTemplate(id, email);
+  revalidatePath(`${LIST}/${id}`);
+  return withdrawn;
 }
 
 /** Deletes the form's draft, then goes to the list of messages. */

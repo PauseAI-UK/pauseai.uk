@@ -226,7 +226,6 @@ describe("the words of messages to supporters", () => {
         copy.willGet(n, "text"),
         copy.messageButton(n),
         copy.choosingCount(n),
-        copy.scheduleOnceApproved(n),
         copy.recipientsCount(n),
         copy.templateUsed("1 Oct 2026", n),
       ];

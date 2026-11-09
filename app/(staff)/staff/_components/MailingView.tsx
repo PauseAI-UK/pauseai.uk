@@ -135,7 +135,6 @@ export function MailingStanding({
   written,
   stop,
   reschedule,
-  sends,
   line,
   note,
 }: {
@@ -143,8 +142,6 @@ export function MailingStanding({
   written?: WrittenMailing;
   stop: FormAction;
   reschedule: FormAction;
-  /** When one scheduled sends, and how many from whom, when a message says them its own way. */
-  sends?: string;
   line?: string;
   /** Quietly under those, such as when a text stops sending. */
   note?: ReactNode;
@@ -155,7 +152,7 @@ export function MailingStanding({
         <Card span={6} as="div">
           <div className={styles.standing}>
             <div className={styles.due}>
-              <strong>{sends ?? copy.sends(londonWhen(written.dueAt!, "short"))}</strong>
+              <strong>{copy.sends(londonWhen(written.dueAt!, "short"))}</strong>
               <span>{line ?? copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!)}</span>
               {note}
             </div>

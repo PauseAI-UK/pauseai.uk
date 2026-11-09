@@ -15,7 +15,6 @@ const LOOK: OverviewLook<MessageSummary> = {
   lead: (message) => <MessageChannelName channel={message.channel} />,
   // A text's number, which isn't an address to put in <>.
   from: (message) => (message.channel === "text" ? textSender(message.fromName!, message.sentFrom!) : undefined),
-  scheduledWords: (message) => (message.waiting ? copy.waiting : undefined),
 };
 
 /** The list of messages, emails and texts together, as the list of mailings is, each row with its channel. */

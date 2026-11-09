@@ -53,8 +53,9 @@ describe("the fixed limits", () => {
 });
 
 it("says what messages cost, by channel", () => {
-  expect(messageCost("email", 400)).toBe(staffCopy.messagePages.cost.email("0.50"));
-  expect(messageCost("text", 100)).toBe(staffCopy.messagePages.cost.text("4.58", 4.58));
+  const cost = staffCopy.messagePages.cost;
+  expect(messageCost("email", 400)).toEqual({ about: cost.email("0.50") });
+  expect(messageCost("text", 100)).toEqual({ about: cost.text("4.58"), rate: cost.textRate(4.58, "1 Oct 2026") });
 });
 
 describe("a text's sender", () => {
@@ -176,6 +177,7 @@ describe("messageScheduleProblems", () => {
     unknown: [],
     byGmail: false,
     connected: false,
+    approved: true,
     numbered: true,
     sends: true,
   };
@@ -203,6 +205,11 @@ describe("messageScheduleProblems", () => {
     expect(messageScheduleProblems({ ...good, channel: "text", subject: "", body: EMPTY_MAILING_DOC })).toEqual([
       "no-template",
     ]);
+  });
+
+  it("wants a text's words approved by WhatsApp, but not an email's", () => {
+    expect(messageScheduleProblems({ ...good, channel: "text", approved: false })).toEqual(["not-approved"]);
+    expect(messageScheduleProblems({ ...good, approved: false })).toEqual([]);
   });
 
   it("wants a WhatsApp number for a text to come from, but not for an email", () => {

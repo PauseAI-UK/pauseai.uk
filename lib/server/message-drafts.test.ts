@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { query } from "@/lib/server/db";
-import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
+import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailing-doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/message-fixtures";
 import { getWrittenMailing, saveDraft } from "./mailing-drafts";
@@ -12,17 +12,25 @@ import {
   getWrittenMessage,
   messageChangesFrom,
   replyToMessage,
+  reviewTemplate,
   saveMessageDraft,
   sameTerms,
   scheduleMessage,
   sendMessageTest,
   stopMessage,
+  submitTemplate,
+  withdrawTemplate,
 } from "./message-drafts";
 import { supporterAudience } from "./message-recipients";
-import { TEXT_SENDER_NAME } from "@/lib/supporter-messages";
+import { FIELDS_AS_WORDS, TEXT_SENDER_NAME } from "@/lib/supporter-messages";
+import { toText } from "@/lib/letter-format";
+import { staffCopy } from "@/lib/content/staff-interface";
+import { NOTIFICATIONS, notifications } from "@/tests/notifications";
 
 const JO = "jo@pauseai.uk";
 const FUTURE = "2099-01-01T09:18:00.000Z";
+/** EVENT_WORDS as an email about a template says them, its fields as words. */
+const SAID = toText(letterFor(EVENT_WORDS, FIELDS_AS_WORDS));
 const EMAIL_FILTER = { contact: "email:luma-calendar:yes" };
 const TEXT_FILTER = { contact: "phone:luma-calendar:yes" };
 
@@ -194,7 +202,7 @@ describeWithDatabase("messages to supporters", () => {
     expect(await scheduleMessage(id, version, JO)).toEqual({ scheduled: true });
   });
 
-  it("schedules a text on an approved template as it is, and new words as a template waiting for approval", async () => {
+  it("schedules a text on an approved template, but not on new words till WhatsApp approves them", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const template = await addTemplate("March day");
     const on = await draftOf(TEXT_FILTER);
@@ -202,27 +210,125 @@ describeWithDatabase("messages to supporters", () => {
     expect((await getWrittenMessage(on))!.template).toMatchObject({ id: template, status: "approved" });
 
     const fresh = await draftOf(TEXT_FILTER);
-    expect(await scheduleMessage(fresh, await readied(fresh, { body: EVENT_WORDS }), JO)).toEqual({ scheduled: true });
-    expect((await getWrittenMessage(fresh))!.template).toMatchObject({
+    expect(await scheduleMessage(fresh, await readied(fresh, { body: EVENT_WORDS }), JO)).toEqual({
+      scheduled: false,
+      problems: ["not-approved"],
+    });
+    expect((await getWrittenMessage(fresh))!.template).toBeNull();
+  });
+
+  it("sends new words for approval, emailing who sent them and the inbox, and locks them till WhatsApp decides", async () => {
+    vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
+    const sent = notifications();
+    await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+    const id = await draftOf(TEXT_FILTER);
+    const version = await readied(id, { body: EVENT_WORDS });
+    // The emails go to Postmark, which a test sees, not the fixture Postmark.
+    vi.stubEnv("DATA_FIXTURES", "");
+    expect(await submitTemplate(id, JO)).toBe("submitted");
+    vi.stubEnv("DATA_FIXTURES", "1");
+    const message = (await getWrittenMessage(id))!;
+    expect(message.template).toMatchObject({
       status: "pending",
       createdBy: JO,
       name: "See you there.",
       body: EVENT_WORDS,
     });
+    const words = staffCopy.notifications.templateSubmitted;
+    expect(sent).toEqual([
+      expect.objectContaining({
+        To: NOTIFICATIONS,
+        Cc: JO,
+        Subject: words.subject("See you there."),
+        TextBody: words.body(JO, SAID, `https://pauseai.uk/staff/messages/${id}`),
+      }),
+    ]);
+    // Once only, and the words stay as sent.
+    expect(await submitTemplate(id, JO)).toBe("already");
+    expect(await saveMessageDraft(message, version, { body: EMPTY_MAILING_DOC })).toEqual({
+      saved: false,
+      reason: "conflict",
+    });
+    expect(await saveMessageDraft(message, version, { dueAt: FUTURE })).toMatchObject({ saved: true });
+    expect(await scheduleMessage(id, version + 1, JO)).toEqual({ scheduled: false, problems: ["not-approved"] });
+    expect(await query("SELECT action FROM audit_log WHERE action = 'submit message template'")).toHaveLength(1);
   });
 
-  it("makes a rejected text a new template when it's scheduled again", async () => {
+  it("sends nothing for approval but a draft text's own words", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+    const email = await draftOf(EMAIL_FILTER);
+    expect(await submitTemplate(email, JO)).toBe("not-text");
+    const empty = await draftOf(TEXT_FILTER);
+    expect(await submitTemplate(empty, JO)).toBe("no-words");
+    const onTemplate = await draftOf(TEXT_FILTER);
+    await readied(onTemplate, { templateId: await addTemplate("March day") });
+    expect(await submitTemplate(onTemplate, JO)).toBe("already");
+    await scheduleMessage(onTemplate, (await getWrittenMessage(onTemplate))!.version, JO);
+    expect(await submitTemplate(onTemplate, JO)).toBe("not-draft");
+    expect(await submitTemplate(999, JO)).toBe("gone");
+  });
+
+  it("sends a rejected text's words for approval again, as a new template", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const rejected = await addTemplate("Old words", { status: "rejected" });
     const id = await draftOf(TEXT_FILTER);
-    const version = await readied(id, { body: EVENT_WORDS, templateId: null });
+    await readied(id, { body: EVENT_WORDS, templateId: null });
     await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [id, rejected]);
     expect((await getWrittenMessage(id))!.template).toMatchObject({
       status: "rejected",
       rejectedReason: expect.any(String),
     });
-    expect(await scheduleMessage(id, version, JO)).toEqual({ scheduled: true });
+    expect(await submitTemplate(id, JO)).toBe("submitted");
     expect((await getWrittenMessage(id))!.template).toMatchObject({ status: "pending" });
+  });
+
+  it("takes words back from WhatsApp's review, so they can be changed", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+    const id = await draftOf(TEXT_FILTER);
+    await readied(id, { body: EVENT_WORDS });
+    expect(await withdrawTemplate(id, JO)).toBe(false);
+    await submitTemplate(id, JO);
+    expect(await withdrawTemplate(id, JO)).toBe(true);
+    expect(await getWrittenMessage(id)).toMatchObject({ template: null, body: EVENT_WORDS });
+    expect(await query("SELECT id FROM message_templates")).toEqual([]);
+    expect(await query("SELECT action FROM audit_log WHERE action = 'withdraw message template'")).toHaveLength(1);
+  });
+
+  it("records WhatsApp's decision, emailing who sent the words and the inbox, with the texts on them", async () => {
+    vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
+    await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+    const id = await draftOf(TEXT_FILTER);
+    const version = await readied(id, { body: EVENT_WORDS });
+    await submitTemplate(id, JO);
+    const template = (await getWrittenMessage(id))!.template!.id;
+    const sent = notifications();
+    const link = `https://pauseai.uk/staff/messages/${id}`;
+    const words = staffCopy.notifications;
+    vi.stubEnv("DATA_FIXTURES", "");
+    expect(await reviewTemplate(template, { approved: true })).toBe(true);
+    vi.stubEnv("DATA_FIXTURES", "1");
+    expect(sent).toEqual([
+      expect.objectContaining({
+        Cc: JO,
+        Subject: words.templateApproved.subject("See you there."),
+        TextBody: words.templateApproved.body(SAID, [link]),
+      }),
+    ]);
+    expect(await scheduleMessage(id, version, JO)).toEqual({ scheduled: true });
+    // Decided already: nothing to record.
+    expect(await reviewTemplate(template, { approved: false, reason: "Too late." })).toBe(false);
+
+    const other = await addTemplate("Made in WhatsApp Manager", { status: "pending", createdBy: null });
+    vi.stubEnv("DATA_FIXTURES", "");
+    expect(await reviewTemplate(other, { approved: false, reason: "It's too short." })).toBe(true);
+    expect(sent[1]).toMatchObject({
+      Subject: words.templateRejected.subject("Made in WhatsApp Manager"),
+      TextBody: words.templateRejected.body("It's too short.", SAID, []),
+    });
+    expect("Cc" in sent[1]).toBe(false);
+    expect(await query("SELECT status, rejected_reason FROM message_templates WHERE id = $1", [other])).toEqual([
+      { status: "rejected", rejected_reason: "It's too short." },
+    ]);
   });
 
   it("wants a template for a text, and a WhatsApp number for it to come from", async () => {
@@ -280,13 +386,12 @@ describeWithDatabase("messages to supporters", () => {
     expect(await query("SELECT action FROM audit_log WHERE action = 'change message consent'")).toHaveLength(2);
   });
 
-  it("makes a scheduled message a draft again, taking back any words sent for approval", async () => {
+  it("makes a scheduled message a draft again", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const id = await draftOf(TEXT_FILTER);
-    await scheduleMessage(id, await readied(id, { body: EVENT_WORDS }), JO);
+    await scheduleMessage(id, await readied(id, { templateId: await addTemplate("March day") }), JO);
     expect(await stopMessage(id, JO)).toBe(true);
-    expect(await getWrittenMessage(id)).toMatchObject({ state: "draft", template: null, body: EVENT_WORDS });
-    expect(await query("SELECT id FROM message_templates")).toEqual([]);
+    expect(await getWrittenMessage(id)).toMatchObject({ state: "draft" });
     expect(await stopMessage(id, JO)).toBe(false);
     expect(await stopMessage(999, JO)).toBe(false);
   });

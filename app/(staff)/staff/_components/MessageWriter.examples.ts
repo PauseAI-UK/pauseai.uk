@@ -256,7 +256,6 @@ const summary: MessageSummary = {
   channel: "email",
   delivered: 276,
   read: 0,
-  waiting: false,
 };
 
 /** A message as the list has it. */

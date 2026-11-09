@@ -50,13 +50,13 @@ it("draws the rest", async () => {
       <ChoosingMessageFrameExample />
       <MessageViewExample kind="email" />
       <MessageViewExample kind="text" />
-      <MessageViewExample kind="waiting" />
+      <MessageViewExample kind="scheduled" />
       <MessageForExample />
       <MessageCopyViewExample />
       <MessageCopyViewExample email />
     </>,
   );
-  await expect.element(page.getByText(copy.waitingStrip)).toBeVisible();
+  await expect.element(page.getByText(staffCopy.mailingPages.states.scheduled, { exact: true }).first()).toBeVisible();
 });
 
 it("does nothing when an action is pressed", async () => {

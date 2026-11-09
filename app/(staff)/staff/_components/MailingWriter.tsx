@@ -385,7 +385,11 @@ export default function MailingWriter({
 
         <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
           <p className={styles.count}>
-            {copy.summary(data.recipients.length, values.sentFrom, values.dueAt ? londonWhen(values.dueAt) : null)}
+            {copy.summary(
+              data.recipients.length,
+              values.sentFrom,
+              values.dueAt ? londonWhen(values.dueAt, "short") : null,
+            )}
           </p>
           <div className={styles.send}>
             <Button

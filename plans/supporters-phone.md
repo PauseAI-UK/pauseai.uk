@@ -156,10 +156,14 @@ An easy Stop button means people stop rather than block us.
 2. Templates. WhatsApp only sends approved templates, so a text uses
    one of the WhatsApp approved templates, picked in the writer, whose
    words show but can't be edited, or a new one, opened by the New
-   template button. Scheduling a text on a new template sends it for
-   approval and holds the text until Meta decides, usually within a
-   day: its page and the list say it's scheduled and waiting. What
-   happens then is under "Scheduling". Meta's reasons are codes, so the
+   template button. New words go for approval by a button at the foot
+   of the writer, kept apart from the words so it isn't pressed
+   lightly, and the text can be scheduled only once Meta has approved
+   them, usually within a day. Meanwhile the words are locked, or
+   withdrawn to change them. Sending them and Meta's decision are each
+   emailed to whoever sent them and the notification inbox, with the
+   words (`reviewTemplate` in `lib/server/message-drafts.ts`, which this
+   step's webhook and hourly check call). Meta's reasons are codes, so the
    page says the code's meaning in plain words, and what to do when
    Meta recommends something. The site submits new words to Meta as a
    template: the `marketing` category (a utility template must be non-promotional and about the
@@ -174,11 +178,11 @@ An easy Stop button means people stop rather than block us.
    The text then waits:
    - *Pending*: Meta decides within 24 hours. The site reads the status
      back hourly and by the `message_template_status_update` webhook.
-   - *Approved*: the text goes at its time. Meta may have changed the
+   - *Approved*: the text can be scheduled. Meta may have changed the
      category to marketing; the site records what it was approved as.
-   - *Rejected*: the text is a draft again, showing the reason in
-     plain words, and staff change the words and schedule it again, as
-     often as needed, or appeal with a sample, decided within 24 hours.
+   - *Rejected*: the draft shows the reason in plain words, and staff
+     change the words and send them again, as often as needed, or appeal
+     with a sample, decided within 24 hours.
    - *Paused* or *disabled*, after approval, on blocks, reports or
      low read rates: the text stops, and the words must change before
      it goes again.
@@ -213,19 +217,16 @@ An easy Stop button means people stop rather than block us.
 
 ### Scheduling
 
-Scheduling a text submits its template, so staff write, pick a
-time and leave it, rather than coming back once Meta has decided. From
-then on the site sends by itself for three days from its scheduled
-time, a fixed limit nobody sets. The writer and the scheduled page say
-so quietly, in grey, under the time: "Will automatically stop sending
-on Sun 15 Nov at 09:18". They say how many days the text
-takes at the account's daily limit when it's more than one. Who it goes
-to is found when sending starts, as for every broadcast, so a text held
-for approval reaches whoever the filters find once it's approved. Until
-then, every copy that can go, goes:
+A text is scheduled only on an approved template, so nothing waits on
+Meta once it's scheduled. From then on the site sends by itself for
+three days from its scheduled time, a fixed limit nobody sets. The
+scheduled page says so quietly, in grey, under the time: "Will
+automatically stop sending on Sun 15 Nov at 09:18". It says how many
+days the text takes at the account's daily limit when it's more than
+one. Who it goes to is found when sending starts, as for every
+broadcast. Until then, every copy that can go, goes:
 
-- at the scheduled time, if the template is approved by then;
-- as soon as approval arrives, if it comes later;
+- at the scheduled time;
 - the next day, for copies past the account's daily limit, and for
   people at WhatsApp's own limit (131049), which asks for a day's wait.
 
@@ -234,8 +235,7 @@ stopped by hand does: the unsent copies are cancelled and listed under
 Stopped with why, and the person who scheduled it gets an email saying
 how many went and how many didn't. A template paused or disabled
 before the time runs out stops the text the same way, at once, with
-Meta's reason in plain words. A template rejected is a draft again
-(step 2), as nothing has gone. Nothing is ever sent after a
+Meta's reason in plain words. Nothing is ever sent after a
 text has stopped. A stopped text's page offers to schedule it
 again to those it never reached, a new broadcast whose filter is "not
 sent this broadcast", so fixing the words or giving it more time
@@ -313,5 +313,4 @@ and a calling tool.
    to volunteer: Global's `volunteer_updates` list, our own join form,
    or something else?
 9. A `march-day` text is sent on the day ("Rules"), but a text keeps
-   sending for three days. Does a topic like that stop sooner, or do
-   staff unschedule it if approval comes too late?
+   sending for three days. Does a topic like that stop sooner?

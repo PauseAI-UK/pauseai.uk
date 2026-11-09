@@ -16,7 +16,7 @@ import MessageFor, { MessageContact, MessageWho } from "./MessageFor";
 import { ChoosingMessageFrame, MessageSupporters } from "./MessageSupporters";
 import MessageView, { copyStatus } from "./MessageView";
 import MessageWriter, { type MessageWriterActions } from "./MessageWriter";
-import NewMessageWriter from "./NewMessageWriter";
+import ChannelWriter from "./ChannelWriter";
 import {
   exampleMessageCopy,
   exampleMessageData,
@@ -42,7 +42,6 @@ const copy = staffCopy.messagePages;
 const WAIT = { timeout: 3000 };
 const nothing = async () => {};
 const stopsFor = (dueAt: string) => copy.stopsOn(londonWhen(textStopsAt(dueAt), "short"));
-const ONCE_APPROVED = copy.sendsOnceApproved(londonWhen("2026-11-07T07:18:00Z", "short"));
 
 function fakeActions() {
   let version = 4;
@@ -56,6 +55,8 @@ function fakeActions() {
     deleteDraft: vi.fn(async () => {}),
     changeConsent: action(() => true),
     create: vi.fn(async () => {}),
+    submitTemplate: action(() => "submitted"),
+    withdrawTemplate: action(() => true),
   };
 }
 
@@ -132,10 +133,38 @@ describe("MessageWriter's Consent", () => {
     expect(navigation.refreshes).toBe(before);
   });
 
+  it("on a draft, shows the other channel's form greyed till a Consent by it is chosen, which changes the draft", async () => {
+    const actions = fakeActions();
+    await render(
+      <ChannelWriter
+        data={exampleMessageData}
+        draft={{ ...exampleMessageEmail, subject: "", body: EMPTY_MAILING_DOC }}
+        who={<p>Who</p>}
+        actions={actions as unknown as MessageWriterActions}
+      />,
+    );
+    const subject = () => page.getByLabelText(copy.subject, { exact: true }).query();
+    expect(subject()).not.toBeNull();
+    expect(page.getByText(copy.problems["no-consent"]).query()).toBeNull();
+    await choose(copy.consentChannel, copy.channels.text);
+    await vi.waitFor(() => expect(subject()).toBeNull(), WAIT);
+    await expect.element(page.getByText(copy.problems["no-consent"])).toBeVisible();
+    expect(page.getByText("Who").element().closest("[inert]")).not.toBeNull();
+    // Back to its own channel: as it was.
+    await choose(copy.consentChannel, copy.channels.email);
+    await vi.waitFor(() => expect(subject()).not.toBeNull(), WAIT);
+    expect(page.getByText(copy.problems["no-consent"]).query()).toBeNull();
+    await choose(copy.consentChannel, copy.channels.text);
+    await choose(copy.facts.saidYes, topics.phone["luma-calendar"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "phone:luma-calendar:yes"), WAIT);
+    expect(actions.create).not.toHaveBeenCalled();
+  });
+
   it("on New broadcast, starts with neither channel chosen, everything after it greyed and still, and makes the draft", async () => {
     const actions = fakeActions();
     await render(
-      <NewMessageWriter
+      <ChannelWriter
+        fresh
         data={exampleMessageData}
         draft={{ ...exampleMessageEmail, subject: "", body: EMPTY_MAILING_DOC }}
         who={<p>Who</p>}
@@ -173,7 +202,7 @@ describe("MessageWriter, by email", () => {
     await expect.element(page.getByText(copy.willGet(412, "email"))).toBeVisible();
     await expect.element(page.getByText("Pat Example")).toBeInTheDocument();
     await expect.element(page.getByText(`1 ${copy.leftOutCounted.stopped}`, { exact: false })).toBeVisible();
-    await expect.element(page.getByText(messageCost("email", 412), { exact: false })).toBeVisible();
+    await expect.element(page.getByText(messageCost("email", 412).about, { exact: false })).toBeVisible();
     await button(copy.schedule(412, "email")).click();
     await vi.waitFor(() => expect(actions.schedule).toHaveBeenCalledWith(3, 4), WAIT);
     expect(navigation.refreshes).toBeGreaterThan(0);
@@ -378,7 +407,8 @@ describe("MessageWriter, by text", () => {
     await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
     await expect.element(page.getByLabelText(copy.subject)).not.toBeInTheDocument();
     await expect.element(page.getByText("+44 7700 900000", { exact: true })).toBeVisible();
-    await expect.element(page.getByText(stopsFor(exampleMessageText.dueAt!))).toBeVisible();
+    // When it stops sending is said once it's scheduled, not here.
+    expect(page.getByText(stopsFor(exampleMessageText.dueAt!)).query()).toBeNull();
   });
 
   it("keeps the list with the template chosen checked, its words read-only under it, and chooses another", async () => {
@@ -402,7 +432,6 @@ describe("MessageWriter, by text", () => {
     await newTab.click();
     await expect.element(newTab).toHaveAttribute("aria-selected", "true");
     await expect.element(page.getByText(copy.newTemplateHint)).toBeVisible();
-    await expect.element(page.getByText(copy.mustApprove)).toBeVisible();
     await expect.element(page.getByText(staffCopy.mailingEditor.partsHeading)).not.toBeInTheDocument();
     const words = page.getByRole("textbox", { name: copy.newTemplate });
     await words.fill("See you at the march");
@@ -423,12 +452,47 @@ describe("MessageWriter, by text", () => {
       .toHaveTextContent("See you at the march");
   });
 
-  it("opens on a draft's new words, titled by them, scheduled once approved", async () => {
-    await renderWriter({ draft: { ...exampleMessageText, title: "Hi there", body: exampleTextWords } });
+  it("opens on a draft's new words, titled by them, to send to WhatsApp before they can be scheduled", async () => {
+    const actions = await renderWriter({ draft: { ...exampleMessageText, title: "Hi there", body: exampleTextWords } });
     await expect.element(page.getByRole("heading", { name: "Hi there", level: 1 })).toBeVisible();
-    await expect.element(button(copy.scheduleOnceApproved(412))).toBeEnabled();
+    await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
+    await expect.element(page.getByText(copy.problems["not-approved"])).toBeVisible();
     await expect.element(page.getByText(copy.testVia.textNew)).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
+    const refreshes = navigation.refreshes;
+    await button(copy.submitTemplate).click();
+    await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledWith(4), WAIT);
+    await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
+    // Refused: nothing to show again.
+    actions.submitTemplate.mockResolvedValue("already");
+    const before = navigation.refreshes;
+    await button(copy.submitTemplate).click();
+    await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledTimes(2), WAIT);
+    expect(navigation.refreshes).toBe(before);
+  });
+
+  it("can't send words for approval before there are any", async () => {
+    await renderWriter({ draft: exampleMessageText });
+    await page.getByRole("tab", { name: copy.newTemplate }).click();
+    await expect.element(button(copy.submitTemplate)).toBeDisabled();
+  });
+
+  it("shows words WhatsApp is reviewing as they were sent, unchangeable, and takes them back", async () => {
+    const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null, name: "Hi there" };
+    const actions = await renderWriter({ draft: { ...exampleMessageText, body: exampleTextWords, template } });
+    await expect.element(page.getByText(copy.templatePending)).toBeVisible();
+    expect(page.getByRole("textbox", { name: copy.newTemplate }).query()).toBeNull();
+    expect(button(copy.submitTemplate).query()).toBeNull();
+    await expect.element(page.getByText(copy.problems["not-approved"])).toBeVisible();
+    const refreshes = navigation.refreshes;
+    await button(copy.withdrawTemplate).click();
+    await vi.waitFor(() => expect(actions.withdrawTemplate).toHaveBeenCalledWith(4), WAIT);
+    await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
+    actions.withdrawTemplate.mockResolvedValue(false);
+    const before = navigation.refreshes;
+    await button(copy.withdrawTemplate).click();
+    await vi.waitFor(() => expect(actions.withdrawTemplate).toHaveBeenCalledTimes(2), WAIT);
+    expect(navigation.refreshes).toBe(before);
   });
 
   it("titles a new text as new until it has words", async () => {
@@ -743,30 +807,15 @@ describe("a message's page", () => {
     await expect.element(page.getByText(copy.skipReasons.unsubscribed.text)).toBeVisible();
   });
 
-  it("says one scheduled is waiting for approval, and when it stops, with no counts", async () => {
-    const data = {
-      ...text,
-      summary: { ...text.summary, state: "scheduled" as const, waiting: true },
-      written: { ...text.written, state: "scheduled" as const, dueAt: "2026-11-07T07:18:00Z" },
-    };
-    await render(<MessageView data={data} who={who} contact={null} {...actions} />);
-    await expect.element(page.getByText(copy.waitingStrip)).toBeVisible();
-    await expect.element(page.getByText(copy.waiting, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(ONCE_APPROVED)).toBeVisible();
-    await expect.element(page.getByText(stopsFor("2026-11-07T07:18:00Z"))).toBeVisible();
-    await expect.element(page.getByRole("link", { name: copy.counts.delivered })).not.toBeInTheDocument();
-  });
-
-  it("says one scheduled on an approved template goes as it is", async () => {
+  it("says one scheduled goes as it is, and when it stops, with no counts", async () => {
     const data = {
       ...text,
       summary: { ...text.summary, state: "scheduled" as const },
       written: { ...text.written, state: "scheduled" as const, dueAt: "2026-11-07T07:18:00Z" },
     };
     await render(<MessageView data={data} who={who} contact={null} {...actions} />);
-    await expect.element(page.getByText(copy.waitingStrip)).not.toBeInTheDocument();
-    await expect.element(page.getByText(copy.waiting, { exact: true })).not.toBeInTheDocument();
-    await expect.element(page.getByText(ONCE_APPROVED)).not.toBeInTheDocument();
+    await expect.element(page.getByText(stopsFor("2026-11-07T07:18:00Z"))).toBeVisible();
+    await expect.element(page.getByRole("link", { name: copy.counts.delivered })).not.toBeInTheDocument();
     // No one listed yet, as sending finds who it goes to.
     await expect.element(page.getByText(copy.recipientsWhenSent)).toBeVisible();
     expect(page.getByRole("table").all()).toHaveLength(0);
@@ -851,13 +900,12 @@ describe("MessageFor", () => {
 describe("MessagesOverview", () => {
   const now = "2026-11-05T12:00:00Z";
 
-  it("lists emails and texts, each with its channel, leading to its page, saying one's waiting", async () => {
+  it("lists emails and texts, each with its channel, leading to its page", async () => {
     const waiting = {
       ...exampleMessageSummary,
       id: 4,
       state: "scheduled" as const,
       channel: "text" as const,
-      waiting: true,
       title: "Waiting",
     };
     const plain = { ...exampleMessageSummary, id: 6, state: "scheduled" as const, title: "Plain" };
@@ -871,9 +919,8 @@ describe("MessagesOverview", () => {
       />,
     );
     await expect.element(page.getByRole("link", { name: "Waiting" })).toHaveAttribute("href", "/staff/messages/4");
-    await expect.element(page.getByText(copy.waiting)).toBeVisible();
     await expect.element(page.getByText(copy.channels.text).first()).toBeVisible();
-    await expect.element(page.getByText(staffCopy.mailingPages.states.scheduled)).toBeVisible();
+    await expect.element(page.getByText(staffCopy.mailingPages.states.scheduled).first()).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.untitled }).first()).toBeVisible();
     await expect.element(page.getByText(new RegExp(copy.counts.delivered)).first()).toBeVisible();
   });

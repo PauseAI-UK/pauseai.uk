@@ -10,7 +10,7 @@ export const section: Section = { name: "Broadcasts to supporters", part: "Staff
 
 // Broadcasts to supporters: started from the supporters list's Consent filter,
 // by email or text; a text on a WhatsApp approved template, or on new words
-// held for approval; who it's to changed from the list; and the pages of those
+// sent for approval; who it's to changed from the list; and the pages of those
 // sent, with each copy's replies, made in the database as scheduling and
 // sending would make them.
 
@@ -212,16 +212,14 @@ test("A text on an approved template", async ({ page, request, flowDatabase }) =
   await expect(page.getByRole("radio", { name: /March day reminder/ })).toBeChecked();
   await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
   await frame(page, "A template chosen");
-  story("They choose the hour. Grey under it says when it would stop sending.");
+  story("They choose the hour.");
   await page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14");
-  await expect(page.getByText(copy.stopsOn("Mon 19 Oct at 14:18"))).toBeVisible();
   await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.scrollIntoViewIfNeeded();
   await frame(page, "When, and what it costs", { window: true });
   await send.getByRole("button", { name: copy.schedule(TEXTABLE, "text") }).click();
   await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
-  await expect(page.getByText(copy.waitingStrip)).toHaveCount(0);
   await frame(page, "The text, scheduled");
 });
 
@@ -240,25 +238,29 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
   await page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14");
   await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
-  await frame(page, "New words, and what they need");
-  story("Scheduling sends them for approval. The text holds, and says so on its page.");
   const send = page.getByRole("region", { name: copy.sections.send });
-  await send.getByRole("button", { name: copy.scheduleOnceApproved(TEXTABLE) }).click();
-  await expect(page.getByText(copy.waitingStrip)).toBeVisible();
-  await frame(page, "Scheduled, waiting for WhatsApp's approval");
-  story("And in the list.");
-  const id = new URL(page.url()).pathname.split("/").at(-1);
-  await page.goto(`${BASE}/staff/messages`);
-  await expect(page.getByText(copy.waiting)).toBeVisible();
-  await frame(page, "The list, one waiting");
+  await send.scrollIntoViewIfNeeded();
+  await expect(send.getByText(copy.problems["not-approved"])).toBeVisible();
+  await frame(page, "New words: WhatsApp approves them before they can be scheduled", { window: true });
   story(
-    "WhatsApp rejects them. The text is a draft again, with why in plain words, for staff to change and schedule again.",
+    "The button to send them to WhatsApp is at the foot, apart from the words, so it isn't pressed lightly. Sent, the words are locked till WhatsApp decides.",
   );
+  await send.getByRole("button", { name: copy.submitTemplate }).click();
+  await expect(page.getByText(copy.templatePending)).toBeVisible();
+  await page.getByText(copy.templatePending).scrollIntoViewIfNeeded();
+  await frame(page, "Sent for approval, the words locked", { window: true });
+  story("Whoever sent them, and the notification inbox, get the words by email.");
+  const sent = newestEmail((one) => one.Cc === staffEmail())!;
+  expect(sent.Subject).toBe(
+    staffCopy.notifications.templateSubmitted.subject("The march meets at 11:00 at Parliament Square."),
+  );
+  await emailFrame(page, sent, "The email saying they've gone for approval");
+  story("WhatsApp rejects them. The draft says why in plain words, and the words can be changed and sent again.");
+  const id = new URL(page.url()).pathname.split("/").at(-1);
   runSql(
     flowDatabase,
     `UPDATE message_templates SET status = 'rejected', rejected_at = '2026-10-16T11:00:00Z', rejected_reason = 'The text ends with a merge field.' WHERE status = 'pending'`,
   );
-  runSql(flowDatabase, `UPDATE mailings SET state = 'draft' WHERE id = ${id}`);
   await page.goto(`${BASE}/staff/messages/${id}`);
   await expect(page.getByText(/The text ends with a merge field/)).toBeVisible();
   await frame(page, "Rejected, and what to do");

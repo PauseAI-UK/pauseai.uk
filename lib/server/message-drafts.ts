@@ -3,7 +3,9 @@ import { checkMailingDoc, letterFor, type MailingDoc } from "@/lib/mailing-doc";
 import { toText } from "@/lib/letter-format";
 import { now } from "@/lib/now";
 import { storedFilter, type Params } from "@/lib/staff-search";
+import { staffCopy } from "@/lib/content/staff-interface";
 import {
+  FIELDS_AS_WORDS,
   hasWords,
   messageTitle,
   messageScheduleProblems,
@@ -32,14 +34,16 @@ import {
 } from "./mailing-drafts";
 import { messageBackend, textSenderNumber } from "./message-channels";
 import { supporterAudience, type SupporterRecipient } from "./message-recipients";
+import { notifyStaff, staffLink } from "./notifications";
 import { filterProblems } from "./stored-filters";
 import type { Topic } from "@/lib/contact-permissions";
 
 // A message to supporters written on the site: a mailing to the supporters
 // list's filter, with one channel and one topic, fixed when it's made from
 // the list's Consent filter. Saved as a mailing is (mailing-drafts.ts);
-// scheduling fixes who gets it, a message each. A text goes on a WhatsApp
-// template: one approved, or new words, which scheduling sends for approval.
+// sending finds who gets it, a message each. A text goes on a WhatsApp
+// template: one approved, or new words, which staff send for approval and
+// can schedule once WhatsApp has approved them.
 
 /** A text's words, as WhatsApp approves them. */
 export type MessageTemplate = {
@@ -209,6 +213,10 @@ export async function saveMessageDraft(
   changes: MailingChanges,
 ): Promise<SaveResult> {
   if (message.channel === "email") return saveDraft(message.id, version, changes);
+  // Words WhatsApp is reviewing stay as they were sent.
+  if (message.template?.status === "pending" && ("body" in changes || "templateId" in changes)) {
+    return { saved: false, reason: "conflict" };
+  }
   const template = changes.templateId
     ? (await approvedTemplates()).find((one) => one.id === changes.templateId)
     : undefined;
@@ -231,8 +239,8 @@ export type MessageScheduleResult =
 /**
  * Schedules a draft message at `version`, if nothing stops it. Who it goes to
  * isn't fixed: sending finds them, a message each, keeping their name, place
- * and merge values, which erasing them deletes. A text on new words sends
- * them for approval as a new template, and stays held until WhatsApp decides.
+ * and merge values, which erasing them deletes. A text goes only on a
+ * template WhatsApp has approved.
  */
 export async function scheduleMessage(id: number, version: number, by: string): Promise<MessageScheduleResult> {
   return transaction(async (db) => {
@@ -256,19 +264,11 @@ export async function scheduleMessage(id: number, version: number, by: string): 
       unknown,
       byGmail: message.channel === "email" && message.sentFrom !== MESSAGE_SENDER.email,
       connected: Boolean(connected),
+      approved: message.template?.status === "approved",
       numbered: Boolean(textSenderNumber()),
       sends: Boolean(messageBackend()),
     });
     if (problems.length) return { scheduled: false, problems };
-    if (message.channel === "text" && message.template?.status !== "approved") {
-      await query(
-        `WITH t AS (INSERT INTO message_templates (name, body, status, created_by)
-           VALUES ($2, $3, 'pending', $4) RETURNING id)
-         UPDATE mailings SET template_id = t.id FROM t WHERE mailings.id = $1`,
-        [id, messageTitle(message.body, FIELD_WORDS), JSON.stringify(message.body), by],
-        db,
-      );
-    }
     await query(
       "UPDATE mailings SET state = 'scheduled', from_name = coalesce(from_name, ''), version = version + 1, updated_at = now() WHERE id = $1",
       [id],
@@ -280,15 +280,11 @@ export async function scheduleMessage(id: number, version: number, by: string): 
   });
 }
 
-/**
- * Stops a message: a scheduled one becomes a draft again, any new words it
- * sent for approval taken back; one sending sends no more. Says whether it
- * stopped.
- */
+/** Stops a message: a scheduled one becomes a draft again; one sending sends no more. Says whether it stopped. */
 export async function stopMessage(id: number, by: string): Promise<boolean> {
   return transaction(async (db) => {
-    const [message] = await query<{ state: string; templateId: number | null }>(
-      `SELECT state, template_id AS "templateId" FROM mailings WHERE id = $1 AND audience = 'supporters' FOR UPDATE`,
+    const [message] = await query<{ state: string }>(
+      "SELECT state FROM mailings WHERE id = $1 AND audience = 'supporters' FOR UPDATE",
       [id],
       db,
     );
@@ -298,7 +294,6 @@ export async function stopMessage(id: number, by: string): Promise<boolean> {
         [id],
         db,
       );
-      await query("DELETE FROM message_templates WHERE id = $1 AND status = 'pending'", [message.templateId], db);
     } else if (message?.state === "sending") {
       await query(
         "UPDATE messages_to_supporters SET status = 'cancelled' WHERE status = 'scheduled' AND mailing_id = $1",
@@ -312,6 +307,105 @@ export async function stopMessage(id: number, by: string): Promise<boolean> {
     await logChange(by, "stop message", { id, was: message.state }, db);
     return true;
   });
+}
+
+/** A template's words for an email: its fields as words, such as {First name}. */
+const templateWords = (body: MailingDoc): string => toText(letterFor(body, FIELDS_AS_WORDS));
+
+/** Where a draft text is, for a link in an email. */
+const draftLink = (id: number): string => staffLink(`/staff/messages/${id}`, undefined);
+
+export type TemplateSubmitResult = "submitted" | "no-words" | "already" | "not-text" | "not-draft" | "gone";
+
+/**
+ * Sends a draft text's new words to WhatsApp for approval, as a new
+ * template it then waits on: they can't be changed till WhatsApp decides,
+ * or they're withdrawn. Emails who sent them and the notification inbox the
+ * words. Not for words that are an approved template, or waiting already.
+ */
+export async function submitTemplate(id: number, by: string): Promise<TemplateSubmitResult> {
+  const result = await transaction(async (db) => {
+    const [locked] = await query<{ state: string }>(
+      "SELECT state FROM mailings WHERE id = $1 AND audience = 'supporters' FOR UPDATE",
+      [id],
+      db,
+    );
+    if (!locked) return "gone" as const;
+    if (locked.state !== "draft") return "not-draft" as const;
+    const message = (await getWrittenMessage(id))!;
+    if (message.channel !== "text") return "not-text" as const;
+    if (message.template && message.template.status !== "rejected") return "already" as const;
+    if (!hasWords({ subject: "", body: message.body, templateId: null })) return "no-words" as const;
+    const name = messageTitle(message.body, FIELD_WORDS);
+    await query(
+      `WITH t AS (INSERT INTO message_templates (name, body, status, created_by)
+         VALUES ($2, $3, 'pending', $4) RETURNING id)
+       UPDATE mailings SET template_id = t.id, updated_at = now() FROM t WHERE mailings.id = $1`,
+      [id, name, JSON.stringify(message.body), by],
+      db,
+    );
+    await logChange(by, "submit message template", { id, name }, db);
+    return { name, body: message.body };
+  });
+  if (typeof result === "string") return result;
+  const email = staffCopy.notifications.templateSubmitted;
+  await notifyStaff(
+    email.subject(result.name),
+    email.body(by, templateWords(result.body), draftLink(id)),
+    null,
+    "staff-alert",
+    by,
+  );
+  return "submitted";
+}
+
+/** Takes back a draft text's words from WhatsApp's review, so they can be changed. Says whether it did. */
+export async function withdrawTemplate(id: number, by: string): Promise<boolean> {
+  return transaction(async (db) => {
+    const [message] = await query<{ templateId: number }>(
+      `SELECT m.template_id::int AS "templateId" FROM mailings m JOIN message_templates t ON t.id = m.template_id
+       WHERE m.id = $1 AND m.audience = 'supporters' AND m.state = 'draft' AND t.status = 'pending' FOR UPDATE OF m`,
+      [id],
+      db,
+    );
+    if (!message) return false;
+    await query("UPDATE mailings SET template_id = NULL, updated_at = now() WHERE id = $1", [id], db);
+    await query("DELETE FROM message_templates WHERE id = $1", [message.templateId], db);
+    await logChange(by, "withdraw message template", { id }, db);
+    return true;
+  });
+}
+
+/** What WhatsApp decided about a template: approved, or rejected and why. */
+export type TemplateReview = { approved: true } | { approved: false; reason: string };
+
+/**
+ * Records WhatsApp's decision on a template waiting for it, as its webhook
+ * or a check of its templates tells it, and emails whoever sent it and the
+ * notification inbox, with the words and the texts on them. An approved
+ * template can be scheduled; a rejected one's words can be changed and sent
+ * again. Says whether there was one waiting.
+ */
+export async function reviewTemplate(templateId: number, review: TemplateReview): Promise<boolean> {
+  const [template] = await query<{ name: string; body: MailingDoc; createdBy: string | null }>(
+    `UPDATE message_templates SET status = $2,
+       approved_at = CASE WHEN $2 = 'approved' THEN now() END,
+       rejected_at = CASE WHEN $2 = 'rejected' THEN now() END, rejected_reason = $3
+     WHERE id = $1 AND status = 'pending' RETURNING name, body, created_by AS "createdBy"`,
+    [templateId, review.approved ? "approved" : "rejected", review.approved ? null : review.reason],
+  );
+  if (!template) return false;
+  const texts = await query<{ id: number }>("SELECT id::int AS id FROM mailings WHERE template_id = $1 ORDER BY id", [
+    templateId,
+  ]);
+  const words = templateWords(template.body);
+  const links = texts.map((text) => draftLink(text.id));
+  const copy = staffCopy.notifications;
+  const [subject, body] = review.approved
+    ? [copy.templateApproved.subject(template.name), copy.templateApproved.body(words, links)]
+    : [copy.templateRejected.subject(template.name), copy.templateRejected.body(review.reason, words, links)];
+  await notifyStaff(subject, body, null, "staff-alert", template.createdBy ?? undefined);
+  return true;
 }
 
 /**

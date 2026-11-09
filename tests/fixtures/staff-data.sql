@@ -1114,8 +1114,8 @@ INSERT INTO job_presses (job, started_by) VALUES ('import-go-to-parliament', 'jo
 
 -- Messages to supporters, by email and by text, in each state a mailing has:
 -- a draft, one scheduled, one sending, one sent and one stopped. A text's
--- draft also comes with no template yet, an approved one, new words and
--- words WhatsApp rejected, and one scheduled waits for approval. Each copy
+-- draft also comes with no template yet, an approved one, new words, new
+-- words waiting for WhatsApp's approval, and words it rejected. Each copy
 -- keeps its supporter's real name, as sending does. After the rest, so no
 -- ID above moves.
 CREATE FUNCTION pg_temp.seed_words(words text) RETURNS jsonb LANGUAGE sql AS $$
@@ -1159,7 +1159,7 @@ SELECT nextval(pg_get_serial_sequence('mailings', 'id')) AS id, m.* FROM (VALUES
   ('Hi {first name}, the stall needs a hand on Saturday.', 'text', 'draft', NULL, NULL, 'the stall needs a hand on Saturday.'),
   ('Have you written to your MP?', 'text', 'draft', NULL, 'Have you written to your MP?', NULL),
   ('March day reminder', 'text', 'scheduled', interval '2 days', 'March day reminder', NULL),
-  ('Bring a coat on Saturday', 'text', 'scheduled', interval '3 days', 'Bring a coat on Saturday', NULL),
+  ('Bring a coat on Saturday', 'text', 'draft', interval '3 days', 'Bring a coat on Saturday', NULL),
   ('Event reminder', 'text', 'sending', interval '-1 hour', 'Event reminder', NULL),
   ('PauseCon room change', 'text', 'sent', interval '-3 days', 'PauseCon room change', NULL),
   ('Flyering this weekend', 'text', 'cancelled', interval '-6 days', 'Flyering this weekend', NULL)

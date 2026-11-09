@@ -23,7 +23,12 @@ import {
 } from "@/lib/mailing-doc";
 import { named } from "@/lib/email-parsing/addresses";
 import type { ChannelResult } from "@/lib/server/mailing-channels";
-import type { MessageScheduleResult, MessageTemplate, WrittenMessage } from "@/lib/server/message-drafts";
+import type {
+  MessageScheduleResult,
+  MessageTemplate,
+  TemplateSubmitResult,
+  WrittenMessage,
+} from "@/lib/server/message-drafts";
 import type { MessagePreviewRecipient, MessageWriterData } from "@/lib/server/message-pages";
 import { filtersPath } from "@/lib/staff-search";
 import { earliestHour, fromLondon, londonClock, londonDayHour, londonWhen, sendsAt, staffTime } from "@/lib/staff-time";
@@ -37,7 +42,6 @@ import {
   MESSAGE_SENDER,
   spacedNumber,
   textSender,
-  textStopsAt,
   TEXT_SENDER_NAME,
 } from "@/lib/supporter-messages";
 import { DraftTitle, Numbered, useDraftWriter, type DraftActions } from "./DraftWriter";
@@ -78,6 +82,10 @@ export type MessageWriterActions = DraftActions & {
   changeConsent: (id: number, consent: string) => Promise<boolean>;
   /** Makes a draft under a Consent, from New broadcast, and opens it. */
   create: (consent: string) => Promise<void>;
+  /** Sends a text's new words to WhatsApp for approval. */
+  submitTemplate: (id: number) => Promise<TemplateSubmitResult>;
+  /** Takes them back, so they can be changed; says whether it did. */
+  withdrawTemplate: (id: number) => Promise<boolean>;
 };
 
 /** How a draft's words stand: an email's own, or a text's template chosen, new words, or none yet. */
@@ -98,6 +106,34 @@ function TemplateChosen({ template }: { template: MessageTemplate }) {
           {templateLine(template)}. {copy.templateFixed}
         </Muted>
       </div>
+    </div>
+  );
+}
+
+/**
+ * New words WhatsApp is reviewing: as they were sent, which can't be changed
+ * while it does, and the button that takes them back to change them.
+ */
+function TemplatePending({ template, withdraw }: { template: MessageTemplate; withdraw: () => Promise<void> }) {
+  const fields = Object.fromEntries(Object.entries(copy.fieldWords));
+  const [withdrawing, setWithdrawing] = useState(false);
+  return (
+    <div className={own.chosen}>
+      <MailingLetter doc={template.body} fields={fields} />
+      <Muted>{copy.templatePending}</Muted>
+      <Button
+        variant="ghost"
+        size="small"
+        fit
+        pending={withdrawing}
+        onClick={async () => {
+          setWithdrawing(true);
+          await withdraw();
+          setWithdrawing(false);
+        }}
+      >
+        {copy.withdrawTemplate}
+      </Button>
     </div>
   );
 }
@@ -272,7 +308,8 @@ export default function MessageWriter({
   draft,
   who,
   blank = false,
-  chosen = "",
+  creating = false,
+  chosen,
   onChannel,
   actions,
 }: {
@@ -280,9 +317,11 @@ export default function MessageWriter({
   draft: WrittenMessage;
   /** Who else it's to, as pills (MessageWho). */
   who: ReactNode;
-  /** New broadcast, before its Consent is chosen: no draft yet, everything but the Consent greyed and still. */
+  /** Before a Consent by the channel picked is chosen: everything but the Consent greyed and still (ChannelWriter). */
   blank?: boolean;
-  /** On New broadcast, the channel already picked, and what's told when one is (NewMessageWriter). */
+  /** New broadcast, with no draft yet: choosing its Consent makes one. */
+  creating?: boolean;
+  /** The channel picked, and what's told when another is (ChannelWriter). */
   chosen?: Channel | "";
   onChannel?: (channel: Channel) => void;
   actions: MessageWriterActions;
@@ -294,7 +333,7 @@ export default function MessageWriter({
   const start = MESSAGE_START;
   const [picking, setPicking] = useState(false);
   // The channel whose Consents show: the draft's, or on New broadcast the one picked, if any.
-  const [shown, setShown] = useState<Channel | "">(blank ? chosen : email ? "email" : "phone");
+  const [shown, setShown] = useState<Channel | "">(chosen ?? (email ? "email" : "phone"));
   const show = (channel: Channel) => {
     setShown(channel);
     onChannel?.(channel);
@@ -321,6 +360,9 @@ export default function MessageWriter({
     });
   const [choosing, choose] = useLeaving();
   const [scheduling, setScheduling] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  // New words sent to WhatsApp, waiting for it to approve them.
+  const waiting = draft.template?.status === "pending" ? draft.template : undefined;
   const [dayPicked, setDayPicked] = useState("");
   // A text's words: an approved template's, or new ones, a tab each. New words
   // are kept while the other tab is open, so going back finds them.
@@ -348,13 +390,17 @@ export default function MessageWriter({
     unknown: data.unknown,
     byGmail,
     connected: Boolean(sender),
+    approved: words === "chosen",
     numbered: Boolean(data.textNumber),
     sends: data.sends,
   }).filter((problem) => problem !== "cannot-send");
+  // Greyed, before a Consent by the channel picked: that comes first.
+  const shownProblems = blank ? ["no-consent", ...problems] : problems;
   const fromName = email ? values.fromName || (byGmail ? sender?.name : MESSAGE_SENDER.name) : TEXT_SENDER_NAME;
   const fromLine = email ? named(fromName, values.sentFrom!) : TEXT_SENDER_NAME;
   // In the summary, a text's WhatsApp number too, once there is one, as an email's address.
   const summaryFrom = email || !data.textNumber ? fromLine : textSender(TEXT_SENDER_NAME, data.textNumber);
+  const cost = messageCost(draft.channel, data.count);
   const title = email
     ? values.subject.trim() || copy.newTitle.email
     : (template?.name ?? (draft.title || copy.newTitle.text));
@@ -364,14 +410,14 @@ export default function MessageWriter({
   const pickConsent = async (consent: string) => {
     setPicking(true);
     try {
-      if (blank) return await actions.create(consent);
+      if (creating) return await actions.create(consent);
       await saveNow();
       if (await actions.changeConsent(id, consent)) router.refresh();
     } finally {
       setPicking(false);
     }
   };
-  // On New broadcast, what's still to come: there, but greyed and out of reach.
+  // Before a Consent by the channel picked, what's still to come: there, but greyed and out of reach.
   const lockable = (children: ReactNode) =>
     blank ? (
       <div inert className={own.locked}>
@@ -520,8 +566,6 @@ export default function MessageWriter({
                   <p>
                     <strong>{TEXT_SENDER_NAME}</strong>{" "}
                     <Muted>{data.textNumber ? spacedNumber(data.textNumber) : copy.noNumber}</Muted>
-                    <br />
-                    <Muted>{copy.textFromNote}</Muted>
                   </p>
                 </div>
               )}
@@ -558,12 +602,20 @@ export default function MessageWriter({
                       />
                     )}
                     {template && <TemplateChosen template={template} />}
-                    {writingNew && (
-                      <>
-                        {wordsEditor(wordsTabs[1].id)}
-                        <Hint>{copy.newTemplateHint}</Hint>
-                      </>
-                    )}
+                    {writingNew &&
+                      (waiting ? (
+                        <TemplatePending
+                          template={waiting}
+                          withdraw={async () => {
+                            if (await actions.withdrawTemplate(id)) router.refresh();
+                          }}
+                        />
+                      ) : (
+                        <>
+                          {wordsEditor(wordsTabs[1].id)}
+                          <Hint>{copy.newTemplateHint}</Hint>
+                        </>
+                      ))}
                   </div>
                 </div>
               )}
@@ -613,19 +665,19 @@ export default function MessageWriter({
                   }}
                 />
               </div>
-              {!email && values.dueAt && (
-                <p>
-                  <Muted>{copy.stopsOn(londonWhen(textStopsAt(values.dueAt), "short"))}</Muted>
-                </p>
-              )}
             </Card>
 
             <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
               <p className={styles.count}>
-                {copy.summary(data.count, draft.channel, summaryFrom, values.dueAt ? londonWhen(values.dueAt) : null)}{" "}
-                {messageCost(draft.channel, data.count)}
+                {copy.summary(
+                  data.count,
+                  draft.channel,
+                  summaryFrom,
+                  values.dueAt ? londonWhen(values.dueAt, "short") : null,
+                )}{" "}
+                {cost.about}
+                {cost.rate && <span className={own.rate}>{cost.rate}</span>}
               </p>
-              {words === "new" && <p>{copy.mustApprove}</p>}
               <div className={styles.send}>
                 <Button
                   variant="primary"
@@ -646,13 +698,30 @@ export default function MessageWriter({
                     }
                   }}
                 >
-                  {words === "new" ? copy.scheduleOnceApproved(data.count) : copy.schedule(data.count, draft.channel)}
+                  {copy.schedule(data.count, draft.channel)}
                 </Button>
+                {/* New words go to WhatsApp from here, at the foot, once they're written. */}
+                {words === "new" && !waiting && (
+                  <Button
+                    variant="ghost"
+                    fit
+                    disabled={!written}
+                    pending={submitting}
+                    onClick={async () => {
+                      setSubmitting(true);
+                      await saveNow();
+                      if ((await actions.submitTemplate(id)) === "submitted") router.refresh();
+                      setSubmitting(false);
+                    }}
+                  >
+                    {copy.submitTemplate}
+                  </Button>
+                )}
                 <DeleteDraft id={id} action={actions.deleteDraft} />
               </div>
-              {problems.length > 0 && (
+              {shownProblems.length > 0 && (
                 <ul className={styles.problems}>
-                  {problems.map((problem) => (
+                  {shownProblems.map((problem) => (
                     <li key={problem}>{copy.problems[problem]}</li>
                   ))}
                 </ul>

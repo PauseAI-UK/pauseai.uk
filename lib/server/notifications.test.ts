@@ -29,6 +29,12 @@ describeWithDatabase("notifyStaff", () => {
     expect(await notifyStaff("Subject", "Body")).toBe(false);
     expect(sent).toHaveLength(1);
   });
+
+  it("copies a staff member it's about", async () => {
+    const sent = notifications();
+    await notifyStaff("Subject", "Body", null, "staff-alert", "jo@pauseai.uk");
+    expect(sent).toEqual([expect.objectContaining({ To: NOTIFICATIONS, Cc: "jo@pauseai.uk" })]);
+  });
 });
 
 describeWithDatabase("reportMailingBounces", () => {

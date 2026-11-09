@@ -77,7 +77,7 @@ describeWithDatabase("the pages of messages to supporters", () => {
     await addFollower("usr-3", "pat@example.com", "Pat", { phone: "07700 900003" });
     await addFollower("usr-4", "bob@example.com", "Bob", { phone: "07700 900004" });
     await createMessageDraft(JO, EMAIL_FILTER);
-    const waiting = await scheduled(TEXT_FILTER, { body: EVENT_WORDS });
+    const later = await scheduled(TEXT_FILTER, { templateId: await addTemplate("Event") });
     const onTemplate = await scheduled(TEXT_FILTER, {
       templateId: await addTemplate("March day"),
       dueAt: "2098-01-01T09:18:00.000Z",
@@ -94,10 +94,10 @@ describeWithDatabase("the pages of messages to supporters", () => {
     const { groups, now } = await messagesPage();
     expect(typeof now).toBe("string");
     const coming = groups[0].mailings;
-    expect(coming.map((m) => [m.id, m.state, m.waiting])).toEqual([
-      [onTemplate, "scheduled", false],
-      [waiting, "scheduled", true],
-      [expect.any(Number), "draft", false],
+    expect(coming.map((m) => [m.id, m.state])).toEqual([
+      [onTemplate, "scheduled"],
+      [later, "scheduled"],
+      [expect.any(Number), "draft"],
     ]);
     expect(coming[2].to).toBe(4);
     expect(groups[1].mailings[0]).toMatchObject({

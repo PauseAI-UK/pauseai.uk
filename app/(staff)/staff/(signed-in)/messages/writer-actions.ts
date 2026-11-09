@@ -9,6 +9,8 @@ import {
   scheduleMessageNow,
   sendMessageTestNow,
   stopMessageNow,
+  submitTemplateNow,
+  withdrawTemplateNow,
 } from "../../message-actions";
 
 /** The Server Actions a broadcast's pages give its writer and its view. */
@@ -21,6 +23,8 @@ export const messageWriterActions = {
   deleteDraft: deleteMessageDraft,
   changeConsent: changeMessageConsentNow,
   create: newMessageWith,
+  submitTemplate: submitTemplateNow,
+  withdrawTemplate: withdrawTemplateNow,
   stop: stopMessageNow,
   reschedule: rescheduleMessageNow,
 };

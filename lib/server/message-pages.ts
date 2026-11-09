@@ -29,8 +29,6 @@ export type MessageSummary = MailingSummary & {
   /** Copies its provider says arrived, of the `sent` that have gone. */
   delivered: number;
   read: number;
-  /** Scheduled on new words, which WhatsApp hasn't yet decided on. */
-  waiting: boolean;
 };
 
 const STOPPED = "(c.status = 'cancelled' OR c.skip_reason = 'unsubscribed')";
@@ -41,7 +39,7 @@ const REPLIED = "EXISTS (SELECT 1 FROM message_replies r WHERE r.message_id = c.
 const SELECT_MESSAGES = `
   SELECT m.id::int AS id, m.title, m.ask, NULL AS "askTitle", false AS imported, m.state, m.created_by AS "createdBy",
     coalesce(nullif(m.from_name, ''), m.sent_from) AS "fromName", m.sent_from AS "sentFrom", m.due_at AS "dueAt",
-    m.updated_at AS "updatedAt", m.channel, (m.state = 'scheduled' AND t.status IS NOT DISTINCT FROM 'pending') AS waiting,
+    m.updated_at AS "updatedAt", m.channel,
     min(c.sent_at) AS "sentAt",
     count(c.id)::int AS "to",
     count(c.id) FILTER (WHERE c.status IN ('sent', 'delivered'))::int AS sent,
@@ -51,8 +49,7 @@ const SELECT_MESSAGES = `
     count(c.id) FILTER (WHERE ${WAS_READ})::int AS read,
     count(c.id) FILTER (WHERE ${REPLIED})::int AS replied,
     0 AS answered
-  FROM mailings m LEFT JOIN message_templates t ON t.id = m.template_id
-    LEFT JOIN messages_to_supporters c ON c.mailing_id = m.id
+  FROM mailings m LEFT JOIN messages_to_supporters c ON c.mailing_id = m.id
   WHERE m.audience = 'supporters'`;
 
 /** The page of messages: what's coming up, and those sent under their months and years; and now, which says which year needn't be written. */
@@ -60,11 +57,11 @@ export async function messagesPage(): Promise<{ groups: MailingGroup<MessageSumm
   // A draft or one scheduled has no messages yet, so how many it goes to is who its filters find now.
   const [unsent, all] = await Promise.all([
     query<MessageSummary & { filter: unknown; topic: MessageTerms["topic"] }>(
-      `SELECT d.*, f.filter, f.topic FROM (${SELECT_MESSAGES} AND m.state IN ('draft', 'scheduled') GROUP BY m.id, t.status) d
+      `SELECT d.*, f.filter, f.topic FROM (${SELECT_MESSAGES} AND m.state IN ('draft', 'scheduled') GROUP BY m.id) d
        JOIN (SELECT id::int AS id, filter, topic FROM mailings) f USING (id) ORDER BY d."updatedAt" DESC, d.id DESC`,
     ),
     query<MessageSummary>(
-      `${SELECT_MESSAGES} AND m.state NOT IN ('draft', 'scheduled') GROUP BY m.id, t.status
+      `${SELECT_MESSAGES} AND m.state NOT IN ('draft', 'scheduled') GROUP BY m.id
        ORDER BY min(c.sent_at) DESC NULLS FIRST, m.id DESC`,
     ),
   ]);
@@ -256,7 +253,7 @@ export async function messagePageData(
   const page = pageNumber(firstOf(search.page));
   const from = `FROM messages_to_supporters c WHERE c.mailing_id = $1 AND ${TAB_CONDITIONS[tab]}`;
   const [[summary], recipients, [{ total }], choices] = await Promise.all([
-    query<MessageSummary>(`${SELECT_MESSAGES} AND m.id = $1 GROUP BY m.id, t.status`, [id]),
+    query<MessageSummary>(`${SELECT_MESSAGES} AND m.id = $1 GROUP BY m.id`, [id]),
     query<MessageRecipient>(
       `SELECT c.id::int AS "copyId", c.supporter_id::int AS "supporterId", c.merge_values ->> 'name' AS name,
          c.merge_values ->> 'place' AS place, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",

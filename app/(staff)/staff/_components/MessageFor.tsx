@@ -7,7 +7,8 @@ import { messageTerms } from "@/lib/supporter-messages";
 import ChannelIcon from "./ChannelIcon";
 import IconText from "./ui/IconText";
 import MessageView from "./MessageView";
-import MessageWriter, { type MessageWriterActions } from "./MessageWriter";
+import ChannelWriter from "./ChannelWriter";
+import type { MessageWriterActions } from "./MessageWriter";
 import { supporterWords } from "./SupporterFilters";
 import parts from "./MailingParts.module.css";
 
@@ -53,7 +54,7 @@ export default function MessageFor({
   if (data.kind === "draft") {
     const who = <MessageWho params={data.filter.params} choices={data.choices} />;
     // A new start on a change of channel, as an email's fields and a text's aren't the same.
-    return <MessageWriter key={data.draft.channel} data={data} draft={data.draft} who={who} actions={actions} />;
+    return <ChannelWriter key={data.draft.channel} data={data} draft={data.draft} who={who} actions={actions} />;
   }
   const who = <MessageWho params={data.written.filter.params} choices={data.choices} />;
   const contact = <MessageContact params={data.written.filter.params} />;

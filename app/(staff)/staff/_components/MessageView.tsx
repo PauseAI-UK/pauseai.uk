@@ -29,7 +29,6 @@ import Counts, { type Count } from "./ui/Counts";
 import Grid, { Card } from "./ui/Grid";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
-import Strip from "./ui/Strip";
 import view from "./MailingView.module.css";
 import styles from "./Messages.module.css";
 
@@ -185,16 +184,13 @@ export default function MessageView({
       title: current ? staffCopy.mailingPages.showEveryone : undefined,
     };
   });
-  const when = scheduled ? londonWhen(written.dueAt!, "short") : "";
   return (
     <div className={view.page}>
       <Band
         title={written.title || copy.untitled}
         tag={
           written.state === "sending" ? undefined : (
-            <Tag tone={scheduled ? "blue" : undefined}>
-              {summary.waiting ? copy.waiting : staffCopy.mailingPages.states[written.state]}
-            </Tag>
+            <Tag tone={scheduled ? "blue" : undefined}>{staffCopy.mailingPages.states[written.state]}</Tag>
           )
         }
         aside={!scheduled && <Counts counts={counts} />}
@@ -209,13 +205,11 @@ export default function MessageView({
         </BandFact>
         <MailingWhen mailing={summary} written={written} />
       </Band>
-      {summary.waiting && <Strip tone="amber">{copy.waitingStrip}</Strip>}
       <MailingStanding
         mailing={summary}
         written={written}
         stop={stop}
         reschedule={reschedule}
-        sends={summary.waiting ? copy.sendsOnceApproved(when) : undefined}
         line={copy.scheduledLine(summary.to, written.channel, written.fromName || written.sentFrom!)}
         note={
           written.channel === "text" &&

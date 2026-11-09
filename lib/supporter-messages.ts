@@ -2,6 +2,7 @@ import { contactState, type Topic } from "./contact-permissions";
 import { staffCopy } from "./content/staff-interface";
 import { greetingLetter, inlinesOf, isBlankMailing, type MailingDoc, type MailingRecipientValues } from "./mailing-doc";
 import { now } from "./now";
+import { staffDate } from "./staff-time";
 import { anyAndNone, valuesOf, type ParamValue } from "./staff-search";
 
 // The rules of messages to supporters, for the server to keep and the pages
@@ -121,12 +122,18 @@ const EMAIL_DOLLARS_EACH = 0.00125;
  */
 const TEXT_PENCE_EACH = 4.58;
 
-/** What `n` messages by `channel` cost, in words. */
-export function messageCost(channel: MessageChannel, n: number): string {
+/** When that rate came in, said beside it, as it may have changed since. */
+const TEXT_RATE_FROM = "2026-10-01";
+
+/** What `n` messages by `channel` cost, in words, and for texts the rate it's worked out at and since when. */
+export function messageCost(channel: MessageChannel, n: number): { about: string; rate?: string } {
   const copy = staffCopy.messagePages.cost;
   return channel === "email"
-    ? copy.email((n * EMAIL_DOLLARS_EACH).toFixed(2))
-    : copy.text(((n * TEXT_PENCE_EACH) / 100).toFixed(2), TEXT_PENCE_EACH);
+    ? { about: copy.email((n * EMAIL_DOLLARS_EACH).toFixed(2)) }
+    : {
+        about: copy.text(((n * TEXT_PENCE_EACH) / 100).toFixed(2)),
+        rate: copy.textRate(TEXT_PENCE_EACH, staffDate(TEXT_RATE_FROM)),
+      };
 }
 
 /** The most of a message's words its title and a template's row say. */
@@ -180,6 +187,7 @@ export type MessageScheduleProblem =
   | "no-subject"
   | "no-letter"
   | "no-template"
+  | "not-approved"
   | "not-connected"
   | "no-time"
   | "time-passed"
@@ -199,6 +207,8 @@ export type SchedulingMessage = {
   /** Whether it's from a staff member's Gmail, and whether that's connected. */
   byGmail: boolean;
   connected: boolean;
+  /** Whether a text's words are a template WhatsApp has approved. */
+  approved: boolean;
   /** Whether a WhatsApp number is configured for texts to come from. */
   numbered: boolean;
   /** Whether its channel sends yet. */
@@ -208,7 +218,8 @@ export type SchedulingMessage = {
 /**
  * What stops a message being scheduled: none, for one that can be. Unlike a
  * mailing to politicians, a field some recipients lack doesn't, as each has
- * a fallback. A text with no words has no template chosen yet.
+ * a fallback. A text with no words has no template chosen yet, and one
+ * with words goes only once they're a template WhatsApp has approved.
  */
 export function messageScheduleProblems(message: SchedulingMessage): MessageScheduleProblem[] {
   const blank = isBlankMailing(message.body);
@@ -220,6 +231,7 @@ export function messageScheduleProblems(message: SchedulingMessage): MessageSche
     ["no-subject", email && !message.subject.trim()],
     ["no-letter", email && blank],
     ["no-template", !email && blank],
+    ["not-approved", !email && !blank && !message.approved],
     ["not-connected", message.byGmail && !message.connected],
     ["no-number", !email && !message.numbered],
     ["no-time", !message.dueAt],

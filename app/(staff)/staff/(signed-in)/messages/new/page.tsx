@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { newMessagePageData } from "@/lib/server/message-pages";
 import { requireStaff } from "@/lib/server/staff-auth";
 import Breadcrumb from "../../../_components/Breadcrumb";
-import NewMessageWriter from "../../../_components/NewMessageWriter";
+import ChannelWriter from "../../../_components/ChannelWriter";
 import { MessageWho } from "../../../_components/MessageFor";
 import { messageWriterActions } from "../writer-actions";
 
@@ -20,7 +20,8 @@ export default async function NewMessagePage() {
   return (
     <>
       <Breadcrumb href="/staff/messages">{staffCopy.nav.messages}</Breadcrumb>
-      <NewMessageWriter
+      <ChannelWriter
+        fresh
         data={data}
         draft={draft}
         who={<MessageWho params={draft.filter.params} choices={data.choices} />}

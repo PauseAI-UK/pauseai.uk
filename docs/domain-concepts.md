@@ -281,8 +281,11 @@ broadcasts out. In the code a broadcast is a message (`message-drafts.ts`,
   politicians. Each field and part has a condition (`has:mp`), and the
   preview has a case button for each.
 - **A text's words** are a WhatsApp template: one approved, chosen in the
-  writer and read-only, or new words, sent for approval on scheduling and held
-  until WhatsApp decides (`message_templates`). A template has no parts
+  writer and read-only, or new words, which staff send for approval from the
+  writer's foot (`message_templates`). Until WhatsApp decides they can't be
+  changed, only withdrawn, and the text can't be scheduled. Sending them, and
+  WhatsApp's decision, are emailed to whoever sent them and the notification
+  inbox, with the words. A template has no parts
   only some get, as its words are the same for everyone. A text
   stops sending a fixed three days after its time.
 - **Sending.** No backend sends broadcasts yet (`lib/server/message-channels.ts`):

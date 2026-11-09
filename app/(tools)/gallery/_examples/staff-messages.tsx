@@ -39,7 +39,6 @@ const groups = mailingGroups(
         id: 4,
         state: "scheduled" as const,
         channel: "text" as const,
-        waiting: true,
         dueAt: "2026-11-07T07:18:00Z",
         title: "March day: where to meet",
         fromName: "PauseAI UK",
@@ -108,8 +107,8 @@ export const staffMessages: Group = {
       ],
     },
     {
-      name: "NewMessageWriter",
-      file: "app/(staff)/staff/_components/NewMessageWriter.tsx",
+      name: "ChannelWriter",
+      file: "app/(staff)/staff/_components/ChannelWriter.tsx",
       variants: [
         {
           label:
@@ -276,10 +275,10 @@ export const staffMessages: Group = {
           ),
         },
         {
-          label: "A text scheduled, waiting for WhatsApp's approval",
+          label: "A text scheduled",
           render: () => (
             <StaffPage as="div">
-              <MessageViewExample kind="waiting" />
+              <MessageViewExample kind="scheduled" />
             </StaffPage>
           ),
         },

@@ -233,3 +233,10 @@
   border-left: 3px solid var(--border-strong);
   color: var(--text-secondary);
 }
+
+/* A text's rate after its cost, smaller and grey, as it may be out of date. */
+.rate {
+  margin-left: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
