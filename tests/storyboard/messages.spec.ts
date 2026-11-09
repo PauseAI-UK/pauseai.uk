@@ -108,10 +108,14 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   const saidYes = page.getByRole("radiogroup", { name: copy.facts.saidYes });
   await expect(saidYes).toHaveCount(0);
   await frame(page, "New broadcast, email or text to choose");
-  story("Email shows the Consents someone can have said yes to by email.");
+  story("Text shows the Consents someone can have said yes to by text, and the greyed writer below becomes a text's.");
+  await channel.getByRole("radio", { name: copy.channels.text }).click();
+  await expect(saidYes.getByRole("radio")).toHaveCount(4);
+  await frame(page, "The Consents by text, and a text's writer");
+  story("Email does the same by email.");
   await channel.getByRole("radio", { name: copy.channels.email }).click();
   await expect(saidYes.getByRole("radio")).toHaveCount(2);
-  await frame(page, "The Consents by email");
+  await frame(page, "The Consents by email, and an email's writer");
   story("Choosing one makes the draft, to everyone who said yes. Change who can narrow them, but needn't.");
   await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["luma-calendar"] }).click();
   await expect(page).toHaveURL(/\/staff\/messages\/\d+$/);

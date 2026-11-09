@@ -10,6 +10,7 @@ import { ChoosingMessageFrame, MessageSupporters } from "@/app/(staff)/staff/_co
 import MessageView from "@/app/(staff)/staff/_components/MessageView";
 import MessageConsent from "@/app/(staff)/staff/_components/MessageConsent";
 import MessageWriter, { type MessageWriterActions } from "@/app/(staff)/staff/_components/MessageWriter";
+import NewMessageWriter from "@/app/(staff)/staff/_components/NewMessageWriter";
 import {
   exampleMessageCopy,
   exampleMessageData,
@@ -45,7 +46,7 @@ function messageActions(log: (name: string) => (...args: unknown[]) => void): Me
   };
 }
 
-/** The writer: New broadcast, before its Consent; an email; or a text with no template, one chosen, new words, or rejected. */
+/** The writer: New broadcast before its Consent (NewMessageWriter); an email; or a text with no template, one chosen, new words, or rejected. */
 export function MessageWriterExample({
   kind,
 }: {
@@ -79,15 +80,23 @@ export function MessageWriterExample({
   const data = kind === "off" ? { ...exampleMessageData, sends: false, textNumber: null } : exampleMessageData;
   return (
     <Logged>
-      {(log) => (
-        <MessageWriter
-          data={data}
-          draft={draft}
-          who={<Muted>PauseAI London March</Muted>}
-          blank={kind === "blank"}
-          actions={messageActions(log)}
-        />
-      )}
+      {(log) =>
+        kind === "blank" ? (
+          <NewMessageWriter
+            data={data}
+            draft={draft}
+            who={<Muted>PauseAI London March</Muted>}
+            actions={messageActions(log)}
+          />
+        ) : (
+          <MessageWriter
+            data={data}
+            draft={draft}
+            who={<Muted>PauseAI London March</Muted>}
+            actions={messageActions(log)}
+          />
+        )
+      }
     </Logged>
   );
 }
@@ -219,14 +228,39 @@ export function MessageCopyViewExample({ email = false }: { email?: boolean }) {
   return <MessageCopyView one={one} reply={nothing} />;
 }
 
-/** Said yes to: none chosen yet, as on New broadcast; and one with words of its own, so only by its channel. */
+/** The Consent: neither channel chosen yet, as on New broadcast; texts chosen, their topics to pick; and one with words of its own, so only by its channel. */
 export function MessageConsentExample() {
   return (
     <Logged>
       {(log) => (
         <>
-          <MessageConsent value="" channel="email" written={false} pending={false} pick={log("pick")} />
-          <MessageConsent value="email:site-forms:yes" channel="email" written pending={false} pick={log("pick")} />
+          <MessageConsent
+            value=""
+            channel="email"
+            written={false}
+            pending={false}
+            pick={log("pick")}
+            shown=""
+            show={log("show")}
+          />
+          <MessageConsent
+            value=""
+            channel="email"
+            written={false}
+            pending={false}
+            pick={log("pick")}
+            shown="phone"
+            show={log("show")}
+          />
+          <MessageConsent
+            value="email:site-forms:yes"
+            channel="email"
+            written
+            pending={false}
+            pick={log("pick")}
+            shown="email"
+            show={log("show")}
+          />
         </>
       )}
     </Logged>

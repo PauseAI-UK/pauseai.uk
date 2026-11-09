@@ -107,17 +107,24 @@ export const staffMessages: Group = {
       ],
     },
     {
-      name: "MessageWriter",
-      file: "app/(staff)/staff/_components/MessageWriter.tsx",
+      name: "NewMessageWriter",
+      file: "app/(staff)/staff/_components/NewMessageWriter.tsx",
       variants: [
         {
-          label: "New broadcast: its Consent to choose, all after it greyed",
+          label:
+            "New broadcast: email or text, then its Consent, to choose; all after it greyed, an email's or a text's",
           render: () => (
             <StaffPage as="div">
               <MessageWriterExample kind="blank" />
             </StaffPage>
           ),
         },
+      ],
+    },
+    {
+      name: "MessageWriter",
+      file: "app/(staff)/staff/_components/MessageWriter.tsx",
+      variants: [
         {
           label: "A draft email",
           render: () => (

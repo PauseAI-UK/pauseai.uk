@@ -16,6 +16,7 @@ import MessageFor, { MessageContact, MessageWho } from "./MessageFor";
 import { ChoosingMessageFrame, MessageSupporters } from "./MessageSupporters";
 import MessageView, { copyStatus } from "./MessageView";
 import MessageWriter, { type MessageWriterActions } from "./MessageWriter";
+import NewMessageWriter from "./NewMessageWriter";
 import {
   exampleMessageCopy,
   exampleMessageData,
@@ -131,10 +132,15 @@ describe("MessageWriter's Consent", () => {
   });
 
   it("on New broadcast, starts with neither channel chosen, everything after it greyed and still, and makes the draft", async () => {
-    const actions = await renderWriter({
-      blank: true,
-      draft: { ...exampleMessageEmail, subject: "", body: EMPTY_MAILING_DOC },
-    });
+    const actions = fakeActions();
+    await render(
+      <NewMessageWriter
+        data={exampleMessageData}
+        draft={{ ...exampleMessageEmail, subject: "", body: EMPTY_MAILING_DOC }}
+        who={<p>Who</p>}
+        actions={actions as unknown as MessageWriterActions}
+      />,
+    );
     expect(radios(copy.consentChannel).every(([, checked, disabled]) => !checked && !disabled)).toBe(true);
     expect(group(copy.facts.saidYes).query()).toBeNull();
     expect(page.getByText("Who").element().closest("[inert]")).not.toBeNull();
@@ -147,7 +153,12 @@ describe("MessageWriter's Consent", () => {
     expect(group(copy.consentChannel).element().closest("[inert]")).toBeNull();
     // Nothing saved, so no save state.
     expect(page.getByText(staffCopy.mailingPages.savePill.saved).query()).toBeNull();
+    // Text: its Consents, and the writer greyed below a text's, the choice kept.
+    const subject = () => page.getByLabelText(copy.subject, { exact: true }).query();
+    expect(subject()).not.toBeNull();
     await choose(copy.consentChannel, copy.channels.text);
+    await vi.waitFor(() => expect(subject()).toBeNull(), WAIT);
+    expect(radios(copy.consentChannel)[1]).toEqual([copy.channels.text, true, false]);
     await choose(copy.facts.saidYes, topics.phone["luma-calendar"]);
     await vi.waitFor(() => expect(actions.create).toHaveBeenCalledWith("phone:luma-calendar:yes"), WAIT);
     expect(actions.save).not.toHaveBeenCalled();

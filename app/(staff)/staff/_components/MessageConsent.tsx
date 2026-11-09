@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Segmented } from "@/components/ui/Controls";
 import { FieldSet } from "@/components/ui/Field";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -21,6 +20,7 @@ const CHANNELS: Channel[] = ["email", "phone"];
  * someone can have said yes to by it. `value` is the one chosen, as the
  * Consent filter writes it, or none yet. Once it has words of its own
  * (`written`), the other channel can't be chosen, so none are lost.
+ * `shown` is the channel whose topics show, and `show` shows another's.
  */
 export default function MessageConsent({
   value,
@@ -28,6 +28,8 @@ export default function MessageConsent({
   written,
   pending,
   pick,
+  shown,
+  show,
   className,
 }: {
   value: string;
@@ -35,14 +37,14 @@ export default function MessageConsent({
   written: boolean;
   pending: boolean;
   pick: (value: string) => void;
+  shown: Channel | "";
+  show: (channel: Channel) => void;
   className?: string;
 }) {
-  // The channel whose topics show: the broadcast's, or none on New broadcast until one is picked.
-  const [shown, setShown] = useState<Channel | "">(value ? channel : "");
   return (
     <div className={className}>
       <FieldSet label={copy.consentChannel}>
-        <Segmented<Channel | "">
+        <Segmented<Channel>
           label={copy.consentChannel}
           options={CHANNELS.map((one) => ({
             value: one,
@@ -50,8 +52,9 @@ export default function MessageConsent({
             icon: <ChannelIcon channel={one} />,
             disabled: written && one !== channel,
           }))}
-          value={shown}
-          onChange={setShown}
+          // None chosen yet matches no option, so none is checked.
+          value={shown as Channel}
+          onChange={show}
           disabled={pending}
         />
       </FieldSet>

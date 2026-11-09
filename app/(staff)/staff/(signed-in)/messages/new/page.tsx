@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { newMessagePageData } from "@/lib/server/message-pages";
 import { requireStaff } from "@/lib/server/staff-auth";
 import Breadcrumb from "../../../_components/Breadcrumb";
-import MessageWriter from "../../../_components/MessageWriter";
+import NewMessageWriter from "../../../_components/NewMessageWriter";
 import { MessageWho } from "../../../_components/MessageFor";
 import { messageWriterActions } from "../writer-actions";
 
@@ -11,7 +11,8 @@ export const metadata: Metadata = { title: staffCopy.messagePages.newMessage };
 
 /**
  * New broadcast: the writer, its Consent to choose first, which makes the
- * draft; everything after it greyed till then, to show what's to come.
+ * draft; everything after it greyed till then, to show what's to come,
+ * an email's or a text's as the channel is picked.
  */
 export default async function NewMessagePage() {
   const { email } = await requireStaff("supporters");
@@ -19,11 +20,10 @@ export default async function NewMessagePage() {
   return (
     <>
       <Breadcrumb href="/staff/messages">{staffCopy.nav.messages}</Breadcrumb>
-      <MessageWriter
+      <NewMessageWriter
         data={data}
         draft={draft}
         who={<MessageWho params={draft.filter.params} choices={data.choices} />}
-        blank
         actions={messageWriterActions}
       />
     </>

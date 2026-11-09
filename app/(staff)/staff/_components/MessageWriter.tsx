@@ -28,7 +28,7 @@ import type { MessageScheduleResult, MessageTemplate, WrittenMessage } from "@/l
 import type { MessagePreviewRecipient, MessageWriterData } from "@/lib/server/message-pages";
 import { filtersPath } from "@/lib/staff-search";
 import { earliestHour, fromLondon, londonClock, londonDayHour, londonWhen, sendsAt, staffTime } from "@/lib/staff-time";
-import { stateValue } from "@/lib/contact-permissions";
+import { stateValue, type Channel } from "@/lib/contact-permissions";
 import {
   hasField,
   hasWords,
@@ -273,6 +273,8 @@ export default function MessageWriter({
   draft,
   who,
   blank = false,
+  chosen = "",
+  onChannel,
   actions,
 }: {
   data: MessageWriterData;
@@ -281,6 +283,9 @@ export default function MessageWriter({
   who: ReactNode;
   /** New broadcast, before its Consent is chosen: no draft yet, everything but the Consent greyed and still. */
   blank?: boolean;
+  /** On New broadcast, the channel already picked, and what's told when one is (NewMessageWriter). */
+  chosen?: Channel | "";
+  onChannel?: (channel: Channel) => void;
   actions: MessageWriterActions;
 }) {
   const router = useRouter();
@@ -289,6 +294,12 @@ export default function MessageWriter({
   const { id } = draft;
   const start = MESSAGE_START;
   const [picking, setPicking] = useState(false);
+  // The channel whose Consents show: the draft's, or on New broadcast the one picked, if any.
+  const [shown, setShown] = useState<Channel | "">(blank ? chosen : email ? "email" : "phone");
+  const show = (channel: Channel) => {
+    setShown(channel);
+    onChannel?.(channel);
+  };
   // An email with nothing written yet starts with a greeting and a signature, saved with its first change.
   const [fresh] = useState<Partial<Changes>>(() =>
     email && !draft.subject && isBlankMailing(draft.body) ? { body: start } : {},
@@ -424,6 +435,8 @@ export default function MessageWriter({
             written={hasOwnWords}
             pending={picking}
             pick={pickConsent}
+            shown={shown}
+            show={show}
             className={own.consent}
           />
           {lockable(
