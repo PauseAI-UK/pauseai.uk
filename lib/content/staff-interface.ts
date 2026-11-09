@@ -2012,18 +2012,18 @@ All events: ${link}`,
     templateSubmitted: {
       subject: (name: string) => `⁂ WhatsApp template sent for approval: ${name}`,
       body: (by: string, words: string, link: string) =>
-        `⁂ ${by} sent these words to WhatsApp for approval as a new template. WhatsApp usually decides within 24 hours, and you'll be emailed when it does.\n\n${words}\n\nThe text: ${link}`,
+        `${by} sent this copy to WhatsApp for approval as a new template. WhatsApp usually decides within 24 hours, and you'll be emailed when it does.\n\n${words}\n\nThe text: ${link}`,
     },
     // WhatsApp approved or rejected a template, to who sent it and the inbox: why, the words, and the texts on it.
     templateApproved: {
       subject: (name: string) => `⁂ WhatsApp approved the template: ${name}`,
       body: (words: string, links: string[]) =>
-        `⁂ WhatsApp approved these words, so a text on them can be scheduled now.\n\n${words}\n\n${links.join("\n")}`,
+        `WhatsApp approved this copy, so a text on it can be scheduled now.\n\n${words}\n\n${links.join("\n")}`,
     },
     templateRejected: {
       subject: (name: string) => `⁂ WhatsApp rejected the template: ${name}`,
       body: (reason: string, words: string, links: string[]) =>
-        `⁂ WhatsApp rejected these words: ${reason}\n\nChange them, and send them for approval again.\n\n${words}\n\n${links.join("\n")}`,
+        `WhatsApp rejected this copy: ${reason}\n\nChange it, and send it for approval again.\n\n${words}\n\n${links.join("\n")}`,
     },
     // Letters to MPs have waited LATE_HOURS to go: how many, why, and the queued letters.
     lettersWaiting: {
