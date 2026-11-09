@@ -13,7 +13,6 @@ import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatab
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
   addNoteNow,
-  checkNow,
   deleteNoteNow,
   editNoteNow,
   deleteAskNow,
@@ -22,22 +21,12 @@ import {
   decideSync,
   deletePoliticianNow,
   eraseSupporterNow,
-  importControlAiNow,
-  importGoToParliamentNow,
-  importOldLettersNow,
-  importWebFormLettersNow,
-  syncEmailsNow,
-  importLumaNow,
-  importMembersNow,
-  readGmailNow,
-  sendNow,
-  tidyNow,
   endStaffSessionsNow,
   setAskStatus,
   saveEventNow,
   removeStaffAccountNow,
+  runJobNow,
   saveStaffAccountNow,
-  syncNow,
   unblockAddress,
 } from "./actions";
 
@@ -74,16 +63,9 @@ describeWithDatabase("staff Server Actions", () => {
     requestCookies.clear();
     const attempts = [
       () => setAskStatus(form({ politicianId: String(id), ask: PM, status: "signed" })),
-      () => importControlAiNow(),
-      () => syncNow(),
-      () => checkNow(),
+      () => runJobNow("check-mps"),
+      () => runJobNow("nothing"),
       () => decideSync(form({ id: "1", decision: "apply" })),
-      () => syncEmailsNow(),
-      () => importWebFormLettersNow(),
-      () => importGoToParliamentNow(),
-      () => importLumaNow(),
-      () => importMembersNow(),
-      () => readGmailNow(),
       () => removeStaffAccountNow(form({ email: "x@pauseai.uk" })),
       () => saveStaffAccountNow(form({ email: "jo@pauseai.uk", "permission:admin": "on" })),
       () => eraseSupporterNow(form({ id: "1", reference: "r", confirm: "on" })),
@@ -202,9 +184,9 @@ describeWithDatabase("staff Server Actions", () => {
     ]);
   });
 
-  it("importControlAiNow reads ControlAI's letter as the staff member, and keeps a failure rather than crashing the page", async () => {
+  it("a job's button runs it as the staff member, here ControlAI's letter, and keeps a failure rather than crashing the page", async () => {
     const id = await addTestPolitician();
-    await importControlAiNow();
+    await runJobNow("import-controlai");
     expect((await getPolitician(id))!.statuses["controlai-letter"]).toMatchObject({ updatedBy: "controlai" });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data");
     // Its own page, the overview, and the home page's actions.
@@ -213,7 +195,7 @@ describeWithDatabase("staff Server Actions", () => {
 
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(http.get("https://controlai.org/uk-pm-letter", () => new HttpResponse(null, { status: 500 })));
-    await importControlAiNow();
+    await runJobNow("import-controlai");
     // The failure, and that nobody could be emailed about it, as NOTIFICATION_INBOX isn't set here.
     expect(error).toHaveBeenCalledTimes(2);
     expect(error).toHaveBeenCalledWith(staffCopy.problems.anywhere.noInbox);
@@ -264,7 +246,7 @@ describeWithDatabase("staff Server Actions", () => {
     const erase = () => eraseSupporterNow(form({ id: "1", reference: "ICO-1", confirm: "on" }));
     expect(await expectRedirect(erase)).toBe("/staff");
     await saveStaffAccount("jo@pauseai.uk", ["supporters"], "a");
-    await importLumaNow();
+    await runJobNow("import-luma");
     expect(await expectRedirect(erase)).toBe("/staff/supporters?erased=1");
     expect(await query("SELECT 1 FROM supporters WHERE id = 1")).toEqual([]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff", "layout");
@@ -273,32 +255,32 @@ describeWithDatabase("staff Server Actions", () => {
     expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 6 }]);
   });
 
-  it("importLumaNow copies the Luma calendar as the staff member", async () => {
+  it("the Luma import's button copies the Luma calendar as the staff member", async () => {
     vi.stubEnv("LUMA_API_KEY", "k");
-    await importLumaNow();
+    await runJobNow("import-luma");
     expect(await runs()).toEqual([{ job: "import-luma", status: "ok", startedBy: "jo@pauseai.uk" }]);
     expect(await query("SELECT count(*)::int AS n FROM luma_events")).toEqual([{ n: 9 }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data");
   });
 
-  it("importMembersNow copies the members as the staff member", async () => {
-    await importMembersNow();
+  it("the members import's button copies the members as the staff member", async () => {
+    await runJobNow("import-members");
     expect(await runs()).toEqual([{ job: "import-members", status: "ok", startedBy: "jo@pauseai.uk" }]);
     expect(await query("SELECT count(*)::int AS n FROM members")).toEqual([{ n: 8 }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/members");
   });
 
-  it("readGmailNow reads the connected Gmail as the staff member", async () => {
-    await readGmailNow();
+  it("the Gmail reading's button reads the connected Gmail as the staff member", async () => {
+    await runJobNow("read-gmail");
     expect(await runs()).toEqual([{ job: "read-gmail", status: "unchanged", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/gmail");
   });
 
-  it("sendNow sends what's waiting, and tidyNow tidies the logs, each as the staff member", async () => {
-    await sendNow();
+  it("the sending's button sends what's waiting, and the tidying's tidies the logs, each as the staff member", async () => {
+    await runJobNow("send-mailings");
     expect(await runs()).toEqual([{ job: "send-mailings", status: "unchanged", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/sending");
-    await tidyNow();
+    await runJobNow("tidy-logs");
     expect(await runs()).toEqual([
       { job: "send-mailings", status: "unchanged", startedBy: "jo@pauseai.uk" },
       { job: "tidy-logs", status: "unchanged", startedBy: "jo@pauseai.uk" },
@@ -306,14 +288,14 @@ describeWithDatabase("staff Server Actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/tidying");
   });
 
-  it("checkNow checks the MPs against Parliament's", async () => {
-    await checkNow();
+  it("the check's button checks the MPs against Parliament's", async () => {
+    await runJobNow("check-mps");
     expect(await runs()).toEqual([{ job: "check-mps", status: "ok", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data");
   });
 
-  it("syncNow copies the politicians from Airtable, and keeps a failure rather than crashing the page", async () => {
-    await syncNow();
+  it("the sync's button copies the politicians from Airtable, and keeps a failure rather than crashing the page", async () => {
+    await runJobNow("sync-politicians");
     expect(await query("SELECT count(*)::int AS n FROM notable_people WHERE airtable_id IS NOT NULL")).toEqual([
       { n: 7 },
     ]);
@@ -321,7 +303,7 @@ describeWithDatabase("staff Server Actions", () => {
 
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(http.get("https://*.airtable.com/v0/*", () => new HttpResponse(null, { status: 500 })));
-    await syncNow();
+    await runJobNow("sync-politicians");
     // The failure, and that nobody could be emailed about it, as NOTIFICATION_INBOX isn't set here.
     expect(error).toHaveBeenCalledTimes(2);
     expect(error).toHaveBeenCalledWith(staffCopy.problems.anywhere.noInbox);
@@ -333,7 +315,7 @@ describeWithDatabase("staff Server Actions", () => {
 
   it("decideSync applies or discards a held sync, and ignores a bad form", async () => {
     for (let i = 1; i <= 25; i++) await addTestPolitician({ airtableId: `rec${10000 + i}`, constituency: `Seat ${i}` });
-    await syncNow();
+    await runJobNow("sync-politicians");
     const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM import_runs");
     await decideSync(form({ id: String(id), decision: "maybe" }));
     await decideSync(form({ id: "x", decision: "apply" }));
@@ -345,10 +327,10 @@ describeWithDatabase("staff Server Actions", () => {
   });
 
   it("runs the Emails sync and the one-off imports as the staff member, keeping a failure rather than crashing the page", async () => {
-    await syncNow();
-    await syncEmailsNow();
-    await importWebFormLettersNow();
-    await importGoToParliamentNow();
+    await runJobNow("sync-politicians");
+    await runJobNow("sync-emails");
+    await runJobNow("import-web-form-letters");
+    await runJobNow("import-go-to-parliament");
     expect((await runs()).slice(1)).toEqual([
       { job: "sync-emails", status: "ok", startedBy: "jo@pauseai.uk" },
       { job: "import-web-form-letters", status: "ok", startedBy: "jo@pauseai.uk" },
@@ -359,21 +341,29 @@ describeWithDatabase("staff Server Actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/go-to-parliament");
   });
 
+  it("runs nothing for a name that isn't a job's", async () => {
+    await runJobNow("nothing");
+    await runJobNow("toString");
+    expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);
+    expect(await query("SELECT 1 FROM job_presses")).toEqual([]);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("starts nothing while a press of the job is running, and takes over one older than any can run", async () => {
     const runs = () => query("SELECT 1 FROM import_runs WHERE job = 'sync-emails'");
     await query("INSERT INTO job_presses (job, started_by) VALUES ('sync-emails', 'sam@pauseai.uk')");
-    await syncEmailsNow();
+    await runJobNow("sync-emails");
     expect(await runs()).toHaveLength(0);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/emails");
     await query("UPDATE job_presses SET started_at = now() - interval '17 minutes'");
-    await syncEmailsNow();
+    await runJobNow("sync-emails");
     expect(await runs()).toHaveLength(1);
     expect(await query("SELECT 1 FROM job_presses")).toEqual([]);
   });
 
   it("keeps a failed press of the import of old letters as a failed run, rather than crashing", async () => {
     vi.stubEnv("DATA_FIXTURES", "1");
-    await expect(importOldLettersNow()).resolves.toBeUndefined();
+    await expect(runJobNow("import-old-letters")).resolves.toBeUndefined();
     expect(await query(`SELECT status, error FROM import_runs WHERE job = 'import-old-letters'`)).toEqual([
       { status: "failed", error: "joseph@pauseai.uk's Gmail isn't connected" },
     ]);
@@ -385,7 +375,7 @@ describeWithDatabase("staff Server Actions", () => {
     vi.stubEnv("DATA_FIXTURES", "1");
     await connectTestGmail("joseph@pauseai.uk");
     await connectTestGmail("policy@pauseai.uk");
-    await importOldLettersNow();
+    await runJobNow("import-old-letters");
     expect(await query("SELECT 1 FROM import_runs WHERE job = 'import-old-letters'")).toHaveLength(1);
     vi.stubEnv("DATA_FIXTURES", "");
   }, 30_000);

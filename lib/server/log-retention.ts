@@ -1,5 +1,5 @@
 import "server-only";
-import { IMPORT_JOBS, JOB_SCHEDULES, type ImportJob, type TidyingResult } from "@/lib/import-runs";
+import { IMPORT_JOBS, type JobSchedule, jobSchedule, type TidyingResult } from "@/lib/import-runs";
 import { auditActions } from "./audit";
 import { keepingFailure, recordRun } from "./import-runs";
 import { deleteForgottenDrafts } from "./mailing-drafts";
@@ -7,7 +7,7 @@ import { query } from "./db";
 
 // How long the import log and the audit log keep what they hold, so neither
 // grows for ever. Run once a day, by its own scheduled job
-// (app/api/cron/tidy-logs).
+// (/api/cron/tidy-logs).
 //
 // An import run is kept for a week if its job runs every 5 minutes or hourly, a month if it
 // runs nightly, and a one-off job keeps its last 50 runs. Every job keeps its
@@ -24,8 +24,7 @@ export const ONE_OFF_RUNS = 50;
 
 const JOB = "tidy-logs";
 
-const jobsThat = (schedule: (typeof JOB_SCHEDULES)[ImportJob]) =>
-  IMPORT_JOBS.filter((job) => JOB_SCHEDULES[job] === schedule);
+const jobsThat = (schedule: JobSchedule) => IMPORT_JOBS.filter((job) => jobSchedule(job) === schedule);
 
 /** An audit log entry `a` that's part of a politician's history, while they're here. */
 const POLITICIAN_HISTORY = `(

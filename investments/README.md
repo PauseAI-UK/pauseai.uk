@@ -31,7 +31,7 @@ The repo is public. A hit names no one and quotes no data, and says nothing abou
 
 ## Picking the next one
 
-`npm run investments` lists every item, most hits first, with its size and kind, and writes the list to `investments/ranked.txt`, which isn't committed, each line starting with the item's file name so an editor can open it (`gf` in Vim). The Git hooks write it again after each checkout or merge (`docs/development.md`). There's no list kept by hand: the files are the list.
+`npm run investments` lists every item, most hits first, with its size and kind, and writes the list to `investments/ranked.txt` (it ends by naming that file), which isn't committed, each line starting with the item's file name so an editor can open it (`gf` in Vim). The Git hooks write it again after each checkout or merge (`docs/development.md`). There's no list kept by hand: the files are the list.
 
 Hits are a guide, not the answer. A missing tool is hit in every session, so tools pile up hits fast. An architecture item is hit once per feature that runs into it, and each of those hits can cost hours. Operations items get no hits until the day something goes wrong unseen. So weigh hits against size, weigh an architecture item by the changes it would make easy, and an operations item by how bad the failure it prevents would be.
 

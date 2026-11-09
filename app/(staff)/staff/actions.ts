@@ -2,11 +2,11 @@
 
 // The staff interface's Server Actions. Each is a public endpoint, so each
 // calls requireStaff() before anything else (tests/checks/staff-auth.test.ts).
-import { importOldLetters } from "@/lib/server/old-letters-import";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { type ImportJob, importPath } from "@/lib/import-runs";
+import { type ImportJob, importPath, isImportJob } from "@/lib/import-runs";
 import { endPress, takePress } from "@/lib/server/import-runs";
+import { runJob } from "@/lib/server/jobs";
 import { now } from "@/lib/now";
 import { erasedPath, staffBack } from "@/lib/staff-search";
 import {
@@ -21,24 +21,14 @@ import {
   unblockFrom,
 } from "@/lib/staff-forms";
 import { addAsk, deleteAsk, editAsk } from "@/lib/server/asks";
-import { importControlAiLetter } from "@/lib/server/controlai-import";
 import { isPoliticianAddress, unblock } from "@/lib/server/email";
 import { disconnectGmail } from "@/lib/server/gmail-accounts";
-import { readGmail } from "@/lib/server/gmail-reading";
 import { eraseSupporter } from "@/lib/server/erasure";
-import { importLuma } from "@/lib/server/luma-import";
-import { importMembers } from "@/lib/server/members-import";
-import { checkMps } from "@/lib/server/mp-check";
-import { decideHeldSync, syncPoliticians } from "@/lib/server/politician-sync";
-import { syncEmails } from "@/lib/server/emails-sync";
-import { importGoToParliament } from "@/lib/server/go-to-parliament-import";
-import { importWebFormLetters } from "@/lib/server/web-form-import";
+import { decideHeldSync } from "@/lib/server/politician-sync";
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
 import { deletePolitician, setStatus } from "@/lib/server/politicians";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { type EventSaved, setEventDoc, setEventOwner } from "@/lib/server/staff-events";
-import { runSending } from "@/lib/server/sending-job";
-import { runTidying } from "@/lib/server/log-retention";
 import {
   type AccountChange,
   endStaffSessions,
@@ -130,14 +120,18 @@ function refreshImport(job: ImportJob): void {
 }
 
 /**
- * Runs an import or check, unless a press of it is still running, then
- * refreshes its pages. A failure is in the import log, shown on its page like
- * a nightly one, so it's logged rather than crashing the page.
+ * A job's button, bound to the job's name: runs it as the staff member
+ * (lib/server/jobs.ts), unless a press of it is still running, then
+ * refreshes its pages. Any staff member may run any job. A failure is in the
+ * import log, shown on its page like a scheduled one, so it's logged rather
+ * than crashing the page.
  */
-async function run(job: ImportJob, email: string, work: () => Promise<unknown>): Promise<void> {
+export async function runJobNow(job: string): Promise<void> {
+  const { email } = await requireStaff();
+  if (!isImportJob(job)) return;
   if (await takePress(job, email)) {
     try {
-      await work();
+      await runJob(job, email);
     } catch (error) {
       console.error(error);
     } finally {
@@ -145,66 +139,6 @@ async function run(job: ImportJob, email: string, work: () => Promise<unknown>):
     }
   }
   refreshImport(job);
-}
-
-export async function syncNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("sync-politicians", email, () => syncPoliticians(email));
-}
-
-export async function syncEmailsNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("sync-emails", email, () => syncEmails(email));
-}
-
-export async function importWebFormLettersNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("import-web-form-letters", email, () => importWebFormLetters(email));
-}
-
-export async function importGoToParliamentNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("import-go-to-parliament", email, () => importGoToParliament(email));
-}
-
-export async function importOldLettersNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("import-old-letters", email, () => importOldLetters(email));
-}
-
-export async function checkNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("check-mps", email, () => checkMps(email));
-}
-
-export async function importControlAiNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("import-controlai", email, () => importControlAiLetter(email));
-}
-
-export async function importLumaNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("import-luma", email, () => importLuma(email));
-}
-
-export async function importMembersNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("import-members", email, () => importMembers(email));
-}
-
-export async function sendNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("send-mailings", email, () => runSending(email));
-}
-
-export async function tidyNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("tidy-logs", email, () => runTidying(email));
-}
-
-export async function readGmailNow(): Promise<void> {
-  const { email } = await requireStaff();
-  await run("read-gmail", email, () => readGmail(email));
 }
 
 export async function decideSync(form: FormData): Promise<void> {

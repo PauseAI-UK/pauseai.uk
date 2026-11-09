@@ -1679,7 +1679,7 @@ All events: ${link}`,
     disconnected:
       "Google refused our access, so this account has been disconnected. Its owner can connect it again from their account page.",
   },
-  // The hourly sending (app/api/cron/send-mailings): the letters inbox's queue, then the mailings due.
+  // The hourly sending (/api/cron/send-mailings): the letters inbox's queue, then the mailings due.
   sending: {
     title: "Sending letters and mailings",
     intro: {
@@ -1704,7 +1704,7 @@ All events: ${link}`,
     }) =>
       `Started ${count(r.started.length, "mailing", "mailings")}; sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}, ${r.left} left. The queue: sent ${r.queue.sent}, ${r.queue.left} left.`,
   },
-  // The nightly tidying (app/api/cron/tidy-logs): this log, the audit log and forgotten drafts.
+  // The nightly tidying (/api/cron/tidy-logs): this log, the audit log and forgotten drafts.
   tidying: {
     title: "Tidying the logs",
     intro: {

@@ -1,25 +1,26 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readFileSync } from "node:fs";
+import { dirname, join, normalize } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
-// Every scheduled job runs as a run of the import log: inside
-// keepingFailure() (lib/server/import-runs.ts), so that a failure is kept
-// as a failed run and emailed about, and what it reports with problem() has
-// a run to go on. Without it, a failure reaches only Netlify's logs. This
-// fails on any route under app/api/cron whose lib/server imports include no
-// module that calls keepingFailure.
+// Every job runs as a run of the import log: inside keepingFailure()
+// (lib/server/import-runs.ts), so that a failure is kept as a failed run and
+// emailed about, and what it reports with problem() has a run to go on.
+// Without it, a failure reaches only Netlify's logs. Every job runs through
+// lib/server/jobs.ts, so this fails on any module it imports, other than the
+// import log's own, that doesn't call keepingFailure.
 
 const ROOT = join(__dirname, "..", "..");
-const CRON = join(ROOT, "app", "api", "cron");
+const JOBS = "lib/server/jobs.ts";
 
-/** The lib/server modules `source` imports, as paths from the root. */
-export function serverImports(source: ts.SourceFile): string[] {
+/** The lib/server modules `source`, at `file`, imports, as paths from the root. */
+export function serverImports(file: string, source: ts.SourceFile): string[] {
   const found: string[] = [];
   for (const statement of source.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
     const from = statement.moduleSpecifier.text;
-    if (from.startsWith("@/lib/server/")) found.push(`${from.slice(2)}.ts`);
+    const path = from.startsWith("@/") ? from.slice(2) : from.startsWith(".") ? join(dirname(file), from) : "";
+    if (normalize(path).startsWith("lib/server/")) found.push(`${normalize(path)}.ts`);
   }
   return found;
 }
@@ -28,25 +29,33 @@ function parse(file: string, text: string): ts.SourceFile {
   return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 }
 
-describe("cron routes", () => {
-  it("reads a route's lib/server imports", () => {
+describe("jobs", () => {
+  it("reads a module's lib/server imports, by alias or relative to it", () => {
     const code = `
+      import "server-only";
       import { NextResponse } from "next/server";
       import { isCronRequest } from "@/lib/server/cron";
-      import { importLuma } from "@/lib/server/luma-import";
-      import { NIGHTLY } from "@/lib/import-runs";`;
-    expect(serverImports(parse("route.ts", code))).toEqual(["lib/server/cron.ts", "lib/server/luma-import.ts"]);
+      import { importLuma } from "./luma-import";
+      import { NIGHTLY } from "@/lib/import-runs";
+      import { found } from "../found";`;
+    expect(serverImports("lib/server/jobs.ts", parse("jobs.ts", code))).toEqual([
+      "lib/server/cron.ts",
+      "lib/server/luma-import.ts",
+    ]);
   });
 
-  it("every cron route runs as a run of the import log", () => {
-    const routes = readdirSync(CRON).map((job) => join(CRON, job, "route.ts"));
-    const outside = routes.filter((path) => {
-      const imported = serverImports(parse(path, readFileSync(path, "utf8")));
-      return !imported.some((module) => readFileSync(join(ROOT, module), "utf8").includes("keepingFailure("));
-    });
-    expect(
-      outside.map((path) => relative(ROOT, path)),
-      "run the job inside keepingFailure(), so its failures and problems are kept",
-    ).toEqual([]);
+  it("the cron route runs its job through lib/server/jobs.ts", () => {
+    const route = "app/api/cron/[job]/route.ts";
+    expect(serverImports(route, parse(route, readFileSync(join(ROOT, route), "utf8")))).toContain(JOBS);
+  });
+
+  it("every job runs as a run of the import log", () => {
+    const modules = serverImports(JOBS, parse(JOBS, readFileSync(join(ROOT, JOBS), "utf8")));
+    expect(modules).toContain("lib/server/luma-import.ts");
+    const outside = modules.filter(
+      (module) =>
+        module !== "lib/server/import-runs.ts" && !readFileSync(join(ROOT, module), "utf8").includes("keepingFailure("),
+    );
+    expect(outside, "run the job inside keepingFailure(), so its failures and problems are kept").toEqual([]);
   });
 });

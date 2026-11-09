@@ -8,7 +8,7 @@ import { keepingFailure, recordRun } from "./import-runs";
 import { fetchLetter } from "./outside-services/controlai";
 
 // Copies the signatories of ControlAI's letter to the PM into the statuses
-// of its ask (CONTROLAI_LETTER_ASK), nightly (app/api/cron/import-controlai) or when staff ask, and
+// of its ask (CONTROLAI_LETTER_ASK), nightly (/api/cron/import-controlai) or when staff ask, and
 // keeps each run, failures included, in the import log (import-runs.ts, as
 // "import-controlai") for /staff/import-data.
 // The table is made to match the letter: statuses it set for names no

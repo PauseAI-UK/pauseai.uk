@@ -769,7 +769,7 @@ sync, the check against Parliament, the ControlAI letter, the Luma import,
 the members import, and the one-off imports of pauseai.info's web form
 letters, Go to Parliament's meetings and old letters; and the two jobs that
 don't import but run on a schedule all the same, the hourly sending and the
-nightly tidying (`IMPORT_JOBS` in `lib/import-runs.ts`). Whatever a scheduled
+nightly tidying (`JOBS` in `lib/import-runs.ts`). Whatever a scheduled
 job does, it goes here, despite the name (`docs/code-structure.md`). Each runs on a
 schedule or when staff press its button, and every run is recorded
 (`import_runs`): when, who started it (`nightly` or a staff email), how it
@@ -800,11 +800,13 @@ anything else, a failure above all, shows whole. How a page lays that out is in
 the style guide ("A job's log"). The import of old letters also says how far it
 has got.
 
-A new job is a name in `IMPORT_JOBS` and the `import_runs` CHECK, a result
-type, a function that runs it inside `keepingFailure()` and records its run,
-a slug in `IMPORT_SLUGS`, its icons (`ImportIcon.tsx`, where it reads from)
-and description in `ImportJob.tsx`, its button's Server Action in the job
-page, and a scheduled function if it runs on a schedule. A job that has more to do
+A new job is its name, page slug and schedule in `JOBS` (`lib/import-runs.ts`),
+its name in the `import_runs` CHECK, a result type and how a run shows
+(`Run.tsx`), a function that runs it inside `keepingFailure()` and records
+its run, named in `lib/server/jobs.ts`, its title (`jobTitles`), icon and
+description (`ImportJob.tsx`), and, if it runs on a schedule, a scheduled
+function in `netlify/functions/<job>/` (`netlify/scheduled.ts`), whose
+schedule a test checks against `JOBS`. A job that has more to do
 than a run allows, as the Luma import has, keeps its place and says in
 its result what's left.
 

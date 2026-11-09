@@ -25,7 +25,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 // our own events' hosts, and the calendar's contacts, and from them who has
 // left the calendar or come back (recordContactsPass); then where new supporters and events are
 // (supporter-places.ts), tags on Luma for upcoming events with none (event-tagging.ts), and owners for events
-// with none (staff-events.ts). Every 5 minutes (app/api/cron/import-luma) or when staff
+// with none (staff-events.ts). Every 5 minutes (/api/cron/import-luma) or when staff
 // ask, each run in the import log (import-runs.ts, as "import-luma").
 //
 // A run has about 20 seconds (Netlify's scheduled functions stop at 30) and
