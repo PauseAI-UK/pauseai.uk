@@ -416,15 +416,17 @@ describe("MessageWriter, by text", () => {
 
   it("keeps the list with the template chosen checked, its words read-only under it, and chooses another", async () => {
     const actions = await renderWriter({ draft: exampleMessageText });
-    const march = page.getByRole("radio", { name: /March day reminder/ });
+    const march = page.getByRole("radio", { name: /The march meets at 11:00/ });
     await march.click();
     await expect.element(march).toBeChecked();
     await expect.element(page.getByText(copy.templateFixed, { exact: false })).toBeVisible();
-    await expect.element(page.getByRole("heading", { name: "March day reminder", level: 1 })).toBeVisible();
+    await expect
+      .element(page.getByRole("heading", { name: "The march meets at 11:00 at Parliament Square.", level: 1 }))
+      .toBeVisible();
     await vi.waitFor(() => expect(actions.save.mock.calls[0][2]).toMatchObject({ templateId: 1 }), WAIT);
     await expect.element(page.getByRole("group", { name: copy.templatesLabel })).toBeVisible();
-    await page.getByRole("radio", { name: /Event reminder/ }).click();
-    await expect.element(page.getByRole("heading", { name: "Event reminder", level: 1 })).toBeVisible();
+    await page.getByRole("radio", { name: /Our next event/ }).click();
+    await expect.element(page.getByRole("heading", { name: "Our next event is on Saturday.", level: 1 })).toBeVisible();
     await expect.element(march).not.toBeChecked();
   });
 
@@ -436,7 +438,7 @@ describe("MessageWriter, by text", () => {
     await expect.element(newTab).toHaveAttribute("aria-selected", "true");
     await expect.element(page.getByText(copy.newTemplateHint)).toBeVisible();
     await expect.element(page.getByText(staffCopy.mailingEditor.partsHeading)).not.toBeInTheDocument();
-    const words = page.getByRole("textbox", { name: copy.newTemplate });
+    const words = page.getByRole("textbox", { name: copy.templateWords });
     await words.fill("See you at the march");
     // WhatsApp's formatting: bold, italic, lists and quotes, but no links, by button or by key.
     const editing = staffCopy.mailingEditor;
@@ -451,7 +453,7 @@ describe("MessageWriter, by text", () => {
     await expect.element(page.getByRole("group", { name: copy.templatesLabel })).toBeVisible();
     await newTab.click();
     await expect
-      .element(page.getByRole("textbox", { name: copy.newTemplate }))
+      .element(page.getByRole("textbox", { name: copy.templateWords }))
       .toHaveTextContent("See you at the march");
   });
 
@@ -464,7 +466,7 @@ describe("MessageWriter, by text", () => {
     await expect.element(button(copy.sendTest)).toBeDisabled();
     const refreshes = navigation.refreshes;
     await button(copy.submitTemplate).click();
-    await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledWith(4), WAIT);
+    await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledWith(4, "Hi there"), WAIT);
     await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
     // Refused: nothing to show again.
     actions.submitTemplate.mockResolvedValue("already");
@@ -508,7 +510,7 @@ describe("MessageWriter, by text", () => {
     const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null, name: "Hi there" };
     const actions = await renderWriter({ draft: { ...exampleMessageText, body: exampleTextWords, template } });
     await expect.element(page.getByText(copy.templatePending)).toBeVisible();
-    expect(page.getByRole("textbox", { name: copy.newTemplate }).query()).toBeNull();
+    expect(page.getByRole("textbox", { name: copy.templateWords }).query()).toBeNull();
     expect(button(copy.submitTemplate).query()).toBeNull();
     await expect.element(page.getByText(copy.problems["not-approved"])).toBeVisible();
     const refreshes = navigation.refreshes;
@@ -623,14 +625,18 @@ describe("TemplatePicker", () => {
 
   it("shows five, then all; says who made each and when it was used", async () => {
     renderPicker();
-    await expect.element(page.getByText("Write to your MP")).toBeVisible();
-    await expect.element(page.getByText("Thank you for coming")).not.toBeInTheDocument();
+    await expect.element(page.getByText("write_to_your_mp")).toBeVisible();
+    await expect.element(page.getByText("Thank you for coming.")).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.templateMadeIn, { exact: false })).toBeVisible();
     await expect
       .element(page.getByText(copy.templateUsed(staffDate("2026-11-02T08:00:00Z"), 318), { exact: false }))
       .toBeVisible();
+    // A field in the words is a lozenge, as the editor shows it.
+    expect(document.querySelector(`[class*="templateText"] [class*="field"]`)?.textContent).toBe(
+      copy.fieldWords.firstName,
+    );
     await button(copy.showAll(6)).click();
-    await expect.element(page.getByText("Thank you for coming")).toBeVisible();
+    await expect.element(page.getByText("Thank you for coming.")).toBeVisible();
     await expect.element(button(copy.showAll(6))).not.toBeInTheDocument();
   });
 
@@ -638,10 +644,10 @@ describe("TemplatePicker", () => {
     renderPicker();
     const search = page.getByLabelText(copy.searchTemplates);
     await search.fill("thank");
-    await expect.element(page.getByText("Thank you for coming")).toBeVisible();
-    await expect.element(page.getByText("Event reminder")).not.toBeInTheDocument();
+    await expect.element(page.getByText("Thank you for coming.")).toBeVisible();
+    await expect.element(page.getByText("Our next event is on Saturday.")).not.toBeInTheDocument();
     await search.fill("parliament square");
-    await expect.element(page.getByText("Event reminder")).toBeVisible();
+    await expect.element(page.getByText("Our next event is on Saturday.")).toBeVisible();
     await search.fill("nothing like this");
     await expect.element(page.getByText(copy.noTemplates)).toBeVisible();
   });
@@ -659,7 +665,7 @@ describe("TemplatePicker", () => {
 
   it("chooses one", async () => {
     const { onChoose } = renderPicker();
-    await page.getByRole("radio", { name: /Event reminder/ }).click();
+    await page.getByRole("radio", { name: /Our next event/ }).click();
     expect(onChoose).toHaveBeenCalledWith(exampleTemplates[2]);
   });
 

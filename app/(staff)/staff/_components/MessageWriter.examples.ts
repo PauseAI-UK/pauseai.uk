@@ -117,12 +117,15 @@ const template = (id: number, name: string, more: Partial<MessageTemplate> = {})
 
 /** More templates than show at first: one used, one made in WhatsApp Manager. */
 export const exampleTemplates: MessageTemplate[] = [
-  template(1, "March day reminder", { lastUsedAt: "2026-11-02T08:00:00Z", lastUsedTo: 318 }),
+  template(1, "The march meets at 11:00 at Parliament Square.", {
+    lastUsedAt: "2026-11-02T08:00:00Z",
+    lastUsedTo: 318,
+  }),
   template(2, "PauseCon room change", { createdBy: null }),
-  template(3, "Event reminder"),
+  template(3, "Our next event is on Saturday."),
   template(4, "Local group meetup"),
-  template(5, "Write to your MP"),
-  template(6, "Thank you for coming"),
+  template(5, "write_to_your_mp"),
+  template(6, "Thank you for coming."),
 ];
 
 export const exampleSupporterChoices: SupporterChoices = {

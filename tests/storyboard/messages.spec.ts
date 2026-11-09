@@ -39,15 +39,20 @@ async function startFromList(page: Page, filters: string, n: number) {
   await expect(page).toHaveURL(/\/staff\/messages\/\d+$/);
 }
 
-/** Templates WhatsApp has approved, more than show at first. */
+/**
+ * Templates WhatsApp has approved, more than show at first, named as they
+ * will be: most by their first sentence, two named by staff, and one made in
+ * WhatsApp Manager, named as Meta names them.
+ */
 function addTemplates(database: string) {
   runSql(
     database,
     `INSERT INTO message_templates (name, body, status, created_by, approved_at)
      SELECT name, '${WORDS}', 'approved', by, '2026-10-01T10:00:00Z'::timestamptz - n * interval '1 day'
-     FROM (VALUES ('March day reminder', 'jo@pauseai.uk', 1), ('PauseCon room change', 'sam@pauseai.uk', 2),
-       ('Event reminder', 'jo@pauseai.uk', 3), ('Local group meetup', 'jo@pauseai.uk', 4),
-       ('Write to your MP', NULL, 5), ('Thank you for coming', 'sam@pauseai.uk', 6)) t (name, by, n)`,
+     FROM (VALUES ('The march meets at 11:00 at Parliament Square.', 'jo@pauseai.uk', 1),
+       ('PauseCon room change', 'sam@pauseai.uk', 2), ('Our next event is on Saturday.', 'jo@pauseai.uk', 3),
+       ('Local group meetup', 'jo@pauseai.uk', 4), ('write_to_your_mp', NULL, 5),
+       ('Thank you for coming.', 'sam@pauseai.uk', 6)) t (name, by, n)`,
   );
 }
 
@@ -210,14 +215,14 @@ test("A text on an approved template", async ({ page, request, flowDatabase }) =
   await page.getByRole("button", { name: copy.showAll(6) }).click();
   await expect(page.getByText("Thank you for coming")).toBeVisible();
   await frame(page, "All the templates");
-  await page.getByLabel(copy.searchTemplates).fill("march day");
-  await expect(page.getByText("Event reminder")).toHaveCount(0);
+  await page.getByLabel(copy.searchTemplates).fill("room change");
+  await expect(page.getByText("Our next event is on Saturday.")).toHaveCount(0);
   await frame(page, "The templates, searched");
   story(
     "Choosing one checks it in the list, which stays, and shows its words in full under it. They can't be changed, and the preview shows the text as a bubble with its Stop button.",
   );
-  await page.getByRole("radio", { name: /March day reminder/ }).click();
-  await expect(page.getByRole("radio", { name: /March day reminder/ })).toBeChecked();
+  await page.getByRole("radio", { name: /PauseCon room change/ }).click();
+  await expect(page.getByRole("radio", { name: /PauseCon room change/ })).toBeChecked();
   await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
   await frame(page, "A template chosen");
   story("They choose the hour.");
@@ -240,7 +245,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
   await page.getByRole("tab", { name: copy.newTemplate }).click();
-  const words = page.getByRole("textbox", { name: copy.newTemplate });
+  const words = page.getByRole("textbox", { name: copy.templateWords });
   await words.click();
   await page.keyboard.type("The march meets at 11:00 at Parliament Square.");
   await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);

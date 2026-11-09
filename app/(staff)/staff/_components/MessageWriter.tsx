@@ -35,12 +35,14 @@ import { earliestHour, fromLondon, londonClock, londonDayHour, londonWhen, sends
 import { stateValue, type Channel } from "@/lib/contact-permissions";
 import {
   approvalProblems,
+  FIELD_WORDS,
   hasField,
   hasWords,
   MESSAGE_START,
   messageCost,
   messageScheduleProblems,
   MESSAGE_SENDER,
+  messageTitle,
   spacedNumber,
   textSender,
   TEXT_SENDER_NAME,
@@ -72,6 +74,8 @@ type Changes = {
   fromName: string | null;
   dueAt: string | null;
   templateId: number | null;
+  /** A text's, which has no subject to be one. */
+  title: string;
 };
 
 /** The message pages' Server Actions (app/(staff)/staff/message-actions.ts), which the page hands in. */
@@ -83,8 +87,8 @@ export type MessageWriterActions = DraftActions & {
   changeConsent: (id: number, consent: string) => Promise<boolean>;
   /** Makes a draft under a Consent, from New broadcast, and opens it. */
   create: (consent: string) => Promise<void>;
-  /** Sends a text's new words to WhatsApp for approval. */
-  submitTemplate: (id: number) => Promise<TemplateSubmitResult>;
+  /** Sends a text's new words to WhatsApp for approval, named. */
+  submitTemplate: (id: number, name: string) => Promise<TemplateSubmitResult>;
   /** Takes them back, so they can be changed; says whether it did. */
   withdrawTemplate: (id: number) => Promise<boolean>;
 };
@@ -356,6 +360,7 @@ export default function MessageWriter({
         fromName: draft.fromName || null,
         dueAt: draft.dueAt,
         templateId: draft.template?.status === "approved" ? draft.template.id : null,
+        title: draft.title,
       },
       fresh,
       attachments: draft.attachments,
@@ -404,6 +409,8 @@ export default function MessageWriter({
   // In the summary, a text's WhatsApp number too, once there is one, as an email's address.
   const summaryFrom = email || !data.textNumber ? fromLine : textSender(TEXT_SENDER_NAME, data.textNumber);
   const cost = messageCost(draft.channel, data.count);
+  // New words are called by their first sentence, till they're named otherwise.
+  const ownName = values.title !== messageTitle(body, FIELD_WORDS);
   const title = email
     ? values.subject.trim() || copy.newTitle.email
     : (template?.name ?? (draft.title || copy.newTitle.text));
@@ -446,7 +453,14 @@ export default function MessageWriter({
   const wordsEditor = (labelledBy: string) => (
     <MailingEditor
       initial={values.body as JSONContent}
-      onChange={(doc) => change({ body: doc as MailingDoc })}
+      // A text's new words name it by their first sentence, till it's named otherwise.
+      onChange={(doc) =>
+        change(
+          email || ownName
+            ? { body: doc as MailingDoc }
+            : { body: doc as MailingDoc, title: messageTitle(doc as MailingDoc, FIELD_WORDS) },
+        )
+      }
       fields={data.fields}
       conditions={data.conditions}
       whatsApp={!email}
@@ -602,7 +616,7 @@ export default function MessageWriter({
                       <TemplatePicker
                         templates={data.templates}
                         chosen={template?.id}
-                        onChoose={(one) => change({ templateId: one.id, body: one.body })}
+                        onChoose={(one) => change({ templateId: one.id, body: one.body, title: one.name })}
                       />
                     )}
                     {template && <TemplateChosen template={template} />}
@@ -616,7 +630,17 @@ export default function MessageWriter({
                         />
                       ) : (
                         <>
-                          {wordsEditor(wordsTabs[1].id)}
+                          {/* What they're called in the list of templates, once approved: their first sentence, till named otherwise. */}
+                          <Field label={copy.templateName} className={styles.sender}>
+                            <TextInput
+                              value={values.title}
+                              onChange={(event) => change({ title: event.target.value })}
+                            />
+                          </Field>
+                          <p id={`${tabsId}-words`} className={styles.label}>
+                            {copy.templateWords}
+                          </p>
+                          {wordsEditor(`${tabsId}-words`)}
                           <Hint>{copy.newTemplateHint}</Hint>
                         </>
                       ))}
@@ -714,7 +738,7 @@ export default function MessageWriter({
                     onClick={async () => {
                       setSubmitting(true);
                       await saveNow();
-                      if ((await actions.submitTemplate(id)) === "submitted") router.refresh();
+                      if ((await actions.submitTemplate(id, values.title)) === "submitted") router.refresh();
                       setSubmitting(false);
                     }}
                   >

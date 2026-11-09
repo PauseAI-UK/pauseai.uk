@@ -191,22 +191,26 @@ export function sameTerms(terms: MessageTerms | undefined, message: MessageTerms
 /**
  * A save's changes as the writer sends them, if each is what it should be
  * for the channel: a text has no subject, says who it's from by its account,
- * and may name a template, or null for none.
+ * may name a template, or null for none, and may have a title of its own, as
+ * it has no subject to be one.
  */
 export function messageChangesFrom(value: unknown, channel: MessageChannel): MailingChanges | undefined {
   if (typeof value !== "object" || value === null) return undefined;
-  const { templateId, ...rest } = value as Record<string, unknown>;
+  const { templateId, title, ...rest } = value as Record<string, unknown>;
   const changes = mailingChangesFrom(rest);
   if (!changes || "ask" in changes) return undefined;
-  if (channel === "email") return templateId === undefined ? changes : undefined;
+  if (channel === "email") return templateId === undefined && title === undefined ? changes : undefined;
   if ("subject" in changes || "sentFrom" in changes || "fromName" in changes) return undefined;
-  if (templateId === undefined) return changes;
-  return typeof templateId === "number" || templateId === null ? { ...changes, templateId } : undefined;
+  if (title !== undefined && typeof title !== "string") return undefined;
+  const titled = title === undefined ? changes : { ...changes, title };
+  if (templateId === undefined) return titled;
+  return typeof templateId === "number" || templateId === null ? { ...titled, templateId } : undefined;
 }
 
 /**
  * Saves changes to a draft message at `version`. Choosing a template takes
- * its words and name; a text's new words title it by its first words.
+ * its words and name; a text's new words title it by its first words; a
+ * title given goes before either.
  */
 export async function saveMessageDraft(
   message: WrittenMessage,
@@ -223,12 +227,18 @@ export async function saveMessageDraft(
     : undefined;
   if (changes.templateId && !template) return { saved: false, reason: "conflict" };
   if (template) {
-    return saveDraft(message.id, version, { ...changes, body: checkMailingDoc(template.body)!, title: template.name });
+    return saveDraft(message.id, version, {
+      ...changes,
+      body: checkMailingDoc(template.body)!,
+      title: changes.title ?? template.name,
+    });
   }
   return saveDraft(
     message.id,
     version,
-    changes.body ? { ...changes, title: messageTitle(changes.body, FIELD_WORDS) } : changes,
+    changes.body && changes.title === undefined
+      ? { ...changes, title: messageTitle(changes.body, FIELD_WORDS) }
+      : changes,
   );
 }
 
@@ -330,11 +340,12 @@ export type TemplateSubmitResult =
 /**
  * Sends a draft text's new words to WhatsApp for approval, as a new
  * template it then waits on: they can't be changed till WhatsApp decides,
- * or they're withdrawn. Emails who sent them and the notification inbox the
+ * or they're withdrawn. It's `named` as staff name it, or by its first
+ * words, as is the text. Emails who sent them and the notification inbox the
  * words. Not for words that are an approved template, or waiting already, nor
  * a text that anything but its time would stop being scheduled.
  */
-export async function submitTemplate(id: number, by: string): Promise<TemplateSubmitResult> {
+export async function submitTemplate(id: number, by: string, named = ""): Promise<TemplateSubmitResult> {
   const result = await transaction(async (db) => {
     const [locked] = await query<{ state: string }>(
       "SELECT state FROM mailings WHERE id = $1 AND audience = 'supporters' FOR UPDATE",
@@ -349,11 +360,12 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
     if (!hasWords({ subject: "", body: message.body, templateId: null })) return "no-words" as const;
     // Only a text otherwise ready to schedule, so what WhatsApp approves is what goes.
     if (approvalProblems((await scheduleProblems(message)).problems).length) return "not-ready" as const;
-    const name = messageTitle(message.body, FIELD_WORDS);
+    // As staff name it, or else by its first words.
+    const name = named.trim() || messageTitle(message.body, FIELD_WORDS);
     await query(
       `WITH t AS (INSERT INTO message_templates (name, body, status, created_by)
          VALUES ($2, $3, 'pending', $4) RETURNING id)
-       UPDATE mailings SET template_id = t.id, updated_at = now() FROM t WHERE mailings.id = $1`,
+       UPDATE mailings SET template_id = t.id, title = $2, updated_at = now() FROM t WHERE mailings.id = $1`,
       [id, name, JSON.stringify(message.body), by],
       db,
     );

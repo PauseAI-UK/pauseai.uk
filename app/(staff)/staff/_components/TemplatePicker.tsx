@@ -9,6 +9,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { MessageTemplate } from "@/lib/server/message-drafts";
 import { staffDate } from "@/lib/staff-time";
 import { FIELD_WORDS, firstWords } from "@/lib/supporter-messages";
+import letter from "./MailingLetter.module.css";
 import styles from "./Messages.module.css";
 
 const copy = staffCopy.messagePages;
@@ -24,6 +25,19 @@ export function templateLine(template: MessageTemplate): string {
     template.lastUsedAt
       ? copy.templateUsed(staffDate(template.lastUsedAt), template.lastUsedTo)
       : copy.templateNeverUsed,
+  );
+}
+
+/** A template's first words, each `{field}` in them a lozenge, as the editor shows it. */
+function WithFields({ words }: { words: string }) {
+  return words.split(/(\{[^}]+\})/).map((part, i) =>
+    part.startsWith("{") && part.endsWith("}") ? (
+      <span key={i} className={letter.field}>
+        {part.slice(1, -1)}
+      </span>
+    ) : (
+      part
+    ),
   );
 }
 
@@ -72,7 +86,9 @@ export default function TemplatePicker({
             <Radio name="template" value={one.id} checked={one.id === chosen} onChange={() => onChoose(one)} />
             <span className={styles.templateText}>
               <strong>{one.name}</strong>
-              <span>{firstWords(one.body, FIELD_WORDS)}</span>
+              <span>
+                <WithFields words={firstWords(one.body, FIELD_WORDS)} />
+              </span>
               <Muted>{templateLine(one)}</Muted>
             </span>
           </label>

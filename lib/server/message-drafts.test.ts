@@ -81,6 +81,14 @@ it("takes only what a message may change, by its channel", () => {
   expect(messageChangesFrom({ dueAt: FUTURE }, "text")).toEqual({ dueAt: FUTURE });
   expect(messageChangesFrom({ templateId: 3 }, "text")).toEqual({ templateId: 3 });
   expect(messageChangesFrom({ templateId: null }, "text")).toEqual({ templateId: null });
+  // A text's title of its own, but not an email's, whose subject is its title.
+  expect(messageChangesFrom({ title: "March day" }, "text")).toEqual({ title: "March day" });
+  expect(messageChangesFrom({ title: "March day", templateId: 3 }, "text")).toEqual({
+    title: "March day",
+    templateId: 3,
+  });
+  expect(messageChangesFrom({ title: 3 }, "text")).toBeUndefined();
+  expect(messageChangesFrom({ title: "March day" }, "email")).toBeUndefined();
 });
 
 it("says whether a filter's terms are a message's own", () => {
@@ -179,6 +187,11 @@ describeWithDatabase("messages to supporters", () => {
     // Only a time keeps them.
     await saveMessageDraft(message, 3, { dueAt: FUTURE });
     expect((await getWrittenMessage(id))!.title).toBe("See you there.");
+    // Named otherwise, with words or a template or alone, it keeps the name.
+    await saveMessageDraft(message, 4, { body: EVENT_WORDS, title: "March day" });
+    expect((await getWrittenMessage(id))!.title).toBe("March day");
+    await saveMessageDraft(message, 5, { templateId: template, title: "March day: London" });
+    expect((await getWrittenMessage(id))!.title).toBe("March day: London");
   });
 
   it("schedules an email, leaving who gets it for sending to find", async () => {
@@ -236,7 +249,7 @@ describeWithDatabase("messages to supporters", () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const id = await draftOf(TEXT_FILTER);
     const version = await readied(id, { body: EVENT_WORDS });
-    expect(await submitTemplate(id, JO)).toBe("submitted");
+    expect(await submitTemplate(id, JO, "  ")).toBe("submitted");
     const message = (await getWrittenMessage(id))!;
     expect(message.template).toMatchObject({
       status: "pending",
@@ -282,6 +295,14 @@ describeWithDatabase("messages to supporters", () => {
     await scheduleMessage(onTemplate, (await getWrittenMessage(onTemplate))!.version, JO);
     expect(await submitTemplate(onTemplate, JO)).toBe("not-draft");
     expect(await submitTemplate(999, JO)).toBe("gone");
+  });
+
+  it("names the template, and the text, as staff name them", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+    const id = await draftOf(TEXT_FILTER);
+    await readied(id, { body: EVENT_WORDS });
+    expect(await submitTemplate(id, JO, " March day ")).toBe("submitted");
+    expect(await getWrittenMessage(id)).toMatchObject({ title: "March day", template: { name: "March day" } });
   });
 
   it("sends a rejected text's words for approval again, as a new template", async () => {

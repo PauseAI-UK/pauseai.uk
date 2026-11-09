@@ -1137,14 +1137,14 @@ SELECT t.name, pg_temp.seed_words(t.words), t.status, t.by,
   CASE WHEN t.status = 'approved' THEN now() - t.ago END, CASE WHEN t.status = 'rejected' THEN now() - t.ago END,
   CASE WHEN t.status = 'rejected' THEN 'The message is too short for WhatsApp to tell what it is about.' END, now() - t.ago - interval '1 day'
 FROM (VALUES
-  ('March day reminder', 'the march meets at 11:00 at Parliament Square. Look for the orange flags.', 'approved', 'jo@pauseai.uk', interval '10 days'),
+  ('The march meets at 11:00 at Parliament Square.', 'the march meets at 11:00 at Parliament Square. Look for the orange flags.', 'approved', 'jo@pauseai.uk', interval '10 days'),
   ('PauseCon room change', 'PauseCon has moved to the Main Hall. Doors still open at 09:30.', 'approved', 'sam@pauseai.uk', interval '12 days'),
-  ('Event reminder', 'our next event is on Saturday. Hope to see you there.', 'approved', 'jo@pauseai.uk', interval '40 days'),
-  ('Flyering this weekend', 'we are flyering on Saturday. Could you spare an hour?', 'approved', 'jo@pauseai.uk', interval '50 days'),
+  ('Our next event is on Saturday.', 'our next event is on Saturday. Hope to see you there.', 'approved', 'jo@pauseai.uk', interval '40 days'),
+  ('We are flyering on Saturday.', 'we are flyering on Saturday. Could you spare an hour?', 'approved', 'jo@pauseai.uk', interval '50 days'),
   ('Local group meetup', 'your local group meets on Thursday. Everyone is welcome.', 'approved', 'jo@pauseai.uk', interval '60 days'),
-  ('Thank you for coming', 'thank you for coming. Here is what happens next.', 'approved', 'sam@pauseai.uk', interval '70 days'),
-  ('Write to your MP', 'the AI bill has its second reading next week. Could you write to your MP?', 'approved', NULL, interval '80 days'),
-  ('Bring a coat on Saturday', 'bring a coat on Saturday: rain is forecast for the afternoon.', 'pending', 'jo@pauseai.uk', interval '2 hours'),
+  ('Thank you for coming.', 'thank you for coming. Here is what happens next.', 'approved', 'sam@pauseai.uk', interval '70 days'),
+  ('write_to_your_mp', 'the AI bill has its second reading next week. Could you write to your MP?', 'approved', NULL, interval '80 days'),
+  ('Bring a coat on Saturday: rain is forecast for the afternoon.', 'bring a coat on Saturday: rain is forecast for the afternoon.', 'pending', 'jo@pauseai.uk', interval '2 hours'),
   ('Have you written to your MP?', 'have you written to your MP?', 'rejected', 'jo@pauseai.uk', interval '1 day')
 ) t (name, words, status, by, ago);
 
@@ -1156,13 +1156,13 @@ SELECT nextval(pg_get_serial_sequence('mailings', 'id')) AS id, m.* FROM (VALUES
   ('PauseCon: the recordings', 'email', 'cancelled', interval '-5 days', NULL, 'the recordings from PauseCon are up.'),
   ('', 'text', 'draft', NULL, NULL, NULL),
   ('Local group meetup', 'text', 'draft', NULL, 'Local group meetup', NULL),
-  ('Hi {first name}, the stall needs a hand on Saturday.', 'text', 'draft', NULL, NULL, 'the stall needs a hand on Saturday.'),
+  ('The stall needs a hand on Saturday.', 'text', 'draft', NULL, NULL, 'the stall needs a hand on Saturday.'),
   ('Have you written to your MP?', 'text', 'draft', NULL, 'Have you written to your MP?', NULL),
-  ('March day reminder', 'text', 'scheduled', interval '2 days', 'March day reminder', NULL),
-  ('Bring a coat on Saturday', 'text', 'draft', interval '3 days', 'Bring a coat on Saturday', NULL),
-  ('Event reminder', 'text', 'sending', interval '-1 hour', 'Event reminder', NULL),
+  ('The march meets at 11:00 at Parliament Square.', 'text', 'scheduled', interval '2 days', 'The march meets at 11:00 at Parliament Square.', NULL),
+  ('Bring a coat on Saturday: rain is forecast for the afternoon.', 'text', 'draft', interval '3 days', 'Bring a coat on Saturday: rain is forecast for the afternoon.', NULL),
+  ('Our next event is on Saturday.', 'text', 'sending', interval '-1 hour', 'Our next event is on Saturday.', NULL),
   ('PauseCon room change', 'text', 'sent', interval '-3 days', 'PauseCon room change', NULL),
-  ('Flyering this weekend', 'text', 'cancelled', interval '-6 days', 'Flyering this weekend', NULL)
+  ('We are flyering on Saturday.', 'text', 'cancelled', interval '-6 days', 'We are flyering on Saturday.', NULL)
 ) m (title, channel, state, due, template, words);
 INSERT INTO mailings (id, title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state, template_id, created_at, opened_at)
   OVERRIDING SYSTEM VALUE
@@ -1172,7 +1172,7 @@ SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 's
     jsonb_build_object('contact', CASE WHEN m.channel = 'email' THEN 'email' ELSE 'phone' END || ':luma-calendar:yes')
     || CASE m.title
          WHEN 'Stall on Saturday' THEN '{"near": "M1 1AE", "within": "5"}'::jsonb
-         WHEN 'Bring a coat on Saturday' THEN '{"campaign": "regulate-letter-pm", "wrote": "no"}'::jsonb
+         WHEN 'Bring a coat on Saturday: rain is forecast for the afternoon.' THEN '{"campaign": "regulate-letter-pm", "wrote": "no"}'::jsonb
          ELSE '{}'::jsonb
        END),
   CASE WHEN m.words IS NOT NULL THEN pg_temp.seed_words(m.words) ELSE coalesce(t.body, '{"type": "doc", "content": []}'::jsonb) END,
@@ -1196,18 +1196,18 @@ FROM (VALUES
   ('PauseCon: the recordings', 'email', 4, 'skipped', 'unsubscribed', false),
   ('PauseCon: the recordings', 'email', 5, 'skipped', 'no-permission', false),
   ('PauseCon: the recordings', 'email', 6, 'cancelled', NULL, false),
-  ('Event reminder', 'text', 1, 'delivered', NULL, true),
-  ('Event reminder', 'text', 2, 'delivered', NULL, false),
-  ('Event reminder', 'text', 3, 'scheduled', NULL, false),
+  ('Our next event is on Saturday.', 'text', 1, 'delivered', NULL, true),
+  ('Our next event is on Saturday.', 'text', 2, 'delivered', NULL, false),
+  ('Our next event is on Saturday.', 'text', 3, 'scheduled', NULL, false),
   ('PauseCon room change', 'text', 1, 'delivered', NULL, true),
   ('PauseCon room change', 'text', 2, 'delivered', NULL, true),
   ('PauseCon room change', 'text', 3, 'delivered', NULL, false),
   ('PauseCon room change', 'text', 4, 'failed', NULL, false),
   ('PauseCon room change', 'text', 5, 'skipped', 'not-on-whatsapp', false),
   ('PauseCon room change', 'text', 6, 'skipped', 'unsubscribed', false),
-  ('Flyering this weekend', 'text', 1, 'delivered', NULL, true),
-  ('Flyering this weekend', 'text', 2, 'failed', NULL, false),
-  ('Flyering this weekend', 'text', 3, 'cancelled', NULL, false)
+  ('We are flyering on Saturday.', 'text', 1, 'delivered', NULL, true),
+  ('We are flyering on Saturday.', 'text', 2, 'failed', NULL, false),
+  ('We are flyering on Saturday.', 'text', 3, 'cancelled', NULL, false)
 ) c (title, channel, person, status, reason, was_read)
 JOIN seed_messages m ON m.title = c.title AND m.channel = c.channel;
 INSERT INTO messages_to_supporters (id, mailing_id, supporter_id, address, status, merge_values, skip_reason, sent_at) OVERRIDING SYSTEM VALUE

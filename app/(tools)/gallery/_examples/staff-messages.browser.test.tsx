@@ -36,9 +36,11 @@ it("draws each kind of writer", async () => {
 
 it("shows the template chosen, checked", async () => {
   await render(<TemplatePickerExample />);
-  await page.getByRole("radio", { name: /March day reminder/ }).click();
-  await expect.element(page.getByText("March day reminder", { exact: true }).last()).toBeVisible();
-  await expect.element(page.getByRole("radio", { name: /March day reminder/ })).toBeChecked();
+  await page.getByRole("radio", { name: /The march meets at 11:00/ }).click();
+  await expect
+    .element(page.getByText("The march meets at 11:00 at Parliament Square.", { exact: true }).last())
+    .toBeVisible();
+  await expect.element(page.getByRole("radio", { name: /The march meets at 11:00/ })).toBeChecked();
 });
 
 it("draws the rest", async () => {

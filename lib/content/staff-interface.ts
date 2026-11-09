@@ -1094,6 +1094,9 @@ All events: ${link}`,
       `Schedule ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"}`,
     // At the foot of a text on new words: sending them to WhatsApp, and while it reviews them.
     submitTemplate: "Send for approval",
+    // Over new words, what they're called in the list of templates, and the heading over the words.
+    templateName: "⁂ Template name",
+    templateWords: "⁂ Message",
     templatePending: "⁂ Waiting for WhatsApp to approve these words, so they can't be changed.",
     withdrawTemplate: "⁂ Withdraw them to make changes",
     problems: {

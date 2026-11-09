@@ -139,10 +139,10 @@ export async function scheduleMessageNow(id: number, version: number): Promise<M
   return result;
 }
 
-/** Sends draft text `id`'s new words to WhatsApp for approval, after what's typed is saved. */
-export async function submitTemplateNow(id: number): Promise<TemplateSubmitResult> {
+/** Sends draft text `id`'s new words to WhatsApp for approval, `name`d, after what's typed is saved. */
+export async function submitTemplateNow(id: number, name: string): Promise<TemplateSubmitResult> {
   const { email } = await requireStaff("supporters");
-  const result = await submitTemplate(id, email);
+  const result = await submitTemplate(id, email, name);
   revalidatePath(`${LIST}/${id}`);
   return result;
 }
