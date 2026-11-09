@@ -2,7 +2,7 @@ import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { importLuma, lockTable, syncPoliticians } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { PM_LETTER, staffEmail, logIn, holdNextPage, loadingLine } from "./staff-steps";
+import { PM_LETTER, staffEmail, logIn, holdNextPage, loadingLine, settled } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Dashboard and getting around", part: "Staff pages", order: 20 };
@@ -86,6 +86,7 @@ test("Sorting and searching", async ({ page, flowDatabase }) => {
   await next.release();
   await expect(page).toHaveURL(/q=Testy/);
   await expect(page.getByRole("table").getByRole("row")).toHaveCount(2);
+  await settled(page);
   await frame(page, "The search's results");
 });
 

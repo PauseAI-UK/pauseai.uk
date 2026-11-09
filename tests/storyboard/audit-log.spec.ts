@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, changeFilter } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { holdNextPage, logIn } from "./staff-steps";
+import { holdNextPage, logIn, settled } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Audit log", part: "Staff pages", order: 70 };
@@ -168,6 +168,7 @@ test("Ticking quickly", async ({ page, flowDatabase }) => {
   await next.release();
   await expect(page).toHaveURL(new RegExp(`actor=${JO.replace("@", "(@|%40)")}$`));
   await expect(page.locator("tbody tr")).toHaveCount(2);
+  await settled(page);
   await frame(page, "Only Jo's: the newer tick won");
 });
 
