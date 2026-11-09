@@ -14,6 +14,10 @@ A comment says what the code does and why, as it stands. It doesn't tell the cod
 
 Put throwaway scripts, logs and screenshots in `tmp/` at the repo root (to screenshot the site, see "Screenshots" below). It's gitignored, and scripts there can import the project's `node_modules` (e.g. `@playwright/test`, `sharp`). Long-running checks, such as probing the site in Chromium, Firefox and WebKit, can run in the background and write their output there.
 
+## Worktrees
+
+`npm run worktree -- <branch>` starts a new branch from `origin/main` in `tmp/worktrees/<branch>`, with its dependencies installed, and prints the ports its storyboard serves on (`docs/development.md`, "Worktrees"). Each checkout's storyboard has its own ports and databases, so worktrees can run it at once.
+
 ## The CI gate
 
 Run the fast checks first, then the slow ones. Check exit codes, not a grep of the output: `npm test` can report every test passing and still fail on coverage.
@@ -85,7 +89,7 @@ npm run storyboard -- --no-main --no-open --paths public-pages -g '/donate$'   #
 npm run storyboard -- --no-main --no-open --paths --phone campaigns -g ZZ99ZZ   # a flow, every frame
 ```
 
-`--no-main` skips building main, which is the slow part (drop it to see main beside it), `--desktop` or `--phone` picks one viewport, and `--paths` prints each frame's caption and PNG path, to open with the Read tool. Each run gets its own folder, so the review someone has open is never changed, and a narrow run carries the rest of the latest review rather than clearing it. Main's frames are kept between runs, so after one full review a narrow one doesn't build main. Playwright reuses whatever is serving on port 3100, so check that it's this branch's fixture build, or stop it. If no flow reaches what you need, add a `frame()` to one, or a flow (see above), rather than a script in `tmp/`.
+`--no-main` skips building main, which is the slow part (drop it to see main beside it), `--desktop` or `--phone` picks one viewport, and `--paths` prints each frame's caption and PNG path, to open with the Read tool. Each run gets its own folder, so the review someone has open is never changed, and a narrow run carries the rest of the latest review rather than clearing it. Main's frames are kept between runs, so after one full review a narrow one doesn't build main. The fixture server's port comes from the checkout's path, and the storyboard refuses one built from another checkout, but it reuses this checkout's server however old its build: stop one left from before your last change. If no flow reaches what you need, add a `frame()` to one, or a flow (see above), rather than a script in `tmp/`.
 
 To see a component, use the component gallery (`/gallery`, fixture builds only; `docs/testing.md`, "The component gallery"). Every component has an example there, a page per group, and the gallery section pictures each group's page whole:
 

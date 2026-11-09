@@ -10,6 +10,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "start": "next start",
     "investments": "node scripts/investments.mjs",
+    "worktree": "node scripts/worktree.mjs",
     "lint": "eslint --max-warnings 0",
     "lint:css": "stylelint \"**/*.css\"",
     "lint:unused": "knip",

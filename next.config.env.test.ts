@@ -102,3 +102,17 @@ describe("SITE_ORIGIN, for staff login links", () => {
     expect(await siteOrigin({ CONTEXT: undefined, DEPLOY_PRIME_URL: undefined })).toBe("");
   });
 });
+
+describe("the checkout a storyboard build names", () => {
+  it("is on every response of a build from serve-fixture.mjs, and on no other build's", async () => {
+    vi.stubEnv("FIXTURE_CHECKOUT", "/home/jane/pauseai.uk");
+    const config = await loadConfig({});
+    expect(await config.headers!()).toContainEqual({
+      source: "/:path*",
+      headers: [{ key: "X-Fixture-Checkout", value: "/home/jane/pauseai.uk" }],
+    });
+    vi.stubEnv("FIXTURE_CHECKOUT", "");
+    const names = (await config.headers!()).flatMap((rule) => rule.headers.map((header) => header.key));
+    expect(names).not.toContain("X-Fixture-Checkout");
+  });
+});

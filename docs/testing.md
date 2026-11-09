@@ -263,8 +263,8 @@ Otherwise it runs main for just the flows that aren't
 (`playwright test --test-list`) and keeps the result. So a change to one
 spec file reruns only that section on main, and after one full review,
 every partial run against the same main is fast.
-It won't start main's server while something already answers on main's port
-(3001), such as a server left from an earlier review: stop it, or pass
+It won't start main's server while something already answers on main's port,
+such as a server left from an earlier review: stop it, or pass
 `--main-server=` to use it on purpose.
 `--fresh-main` runs main again regardless; with `--main-server` nothing is
 kept, as that server may not be the ref's commit.
@@ -517,8 +517,7 @@ not a mock.
   copy of a template database (above). Each checkout has its own: the
   names in `tests/checkout.mjs`, for the databases, the outboxes and main's
   worktree, end with a hash of the checkout's path, so worktrees can run
-  the storyboard at the same time. Not on the same port, though: give each
-  its own with `LOCAL_URL` and `--server`. Flows that need politicians call `syncPoliticians()`
+  the storyboard at the same time; so do the ports (below). Flows that need politicians call `syncPoliticians()`
   (`tests/steps.ts`), which runs the nightly sync's route against the
   Parliament fixture.
 - **Staff screens** are reached through the fixture build's dev login
@@ -595,9 +594,18 @@ npm run test:report       # open the last Playwright report
   then `next build`. Only the Node project, because Netlify's build has no
   browser. While any copy is a placeholder, `tests/checks/placeholder-copy.test.ts`
   fails, and so does the build: placeholders can't be deployed (AGENTS.md).
-- The storyboard builds and starts the site itself, or reuses a server
-  already on port 3100 (except in CI). That's not the dev server's port, so
-  a running `npm run dev` doesn't get in the way.
+- **Ports.** The storyboard builds and starts the site itself on this
+  checkout's own port, or reuses a server already there (except in CI). The
+  port, and main's beside it for the review, come from a hash of the
+  checkout's path (`checkoutPorts` in `tests/checkout.mjs`): between 3100
+  and 4999, so never the dev server's 3000, and each worktree has its own.
+  `npm run worktree` prints a new worktree's, and
+  `node scripts/worktree.mjs --ports` this checkout's. Every response from a
+  storyboard build names the checkout it was built from (the
+  `X-Fixture-Checkout` header, `next.config.ts`), and the storyboard's global
+  setup refuses a server on its port that doesn't name this one. It can't
+  tell a stale build of this checkout from a fresh one, though: after
+  changing code, stop a server you left running.
 - Run one section with `npm run test:storyboard -- staff`, one flow with
   `-g "login link"`, or point at another fixture build with `LOCAL_URL`.
 - Browser tests need Chromium: `npx playwright install chromium`.
@@ -622,7 +630,7 @@ file: a run whose output hasn't moved in minutes is stuck, so stop it and
 find out why, rather than waiting for the limit.
 
 Stopping a storyboard run can leave its fixture server (`next-server`)
-running on port 3100. Locally the storyboard reuses whatever answers
-there, so the next run waits on it, printing nothing. A request to
-`localhost:3100` that hangs rather than being refused is the sign: stop
+running on the checkout's port (above). Locally the storyboard reuses
+whatever answers there, so the next run waits on it, printing nothing. A
+request to that port that hangs rather than being refused is the sign: stop
 that `next-server` before running again.

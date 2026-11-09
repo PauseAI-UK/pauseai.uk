@@ -34,6 +34,22 @@ they fail. Prettier formats the files itself, so after it stops a commit,
 `git add` them and commit again. The hooks are in `.pre-commit-config.yaml`.
 CI runs all of them and more either way.
 
+### Worktrees
+
+To work on a branch beside another, give it a worktree of its own:
+
+```bash
+npm run worktree -- fix-footer
+```
+
+That fetches, adds `tmp/worktrees/fix-footer` under the main checkout (it's
+gitignored) as a new branch from `origin/main`, runs `npm ci` there, and
+prints the ports its storyboard will use. Each checkout has its own
+databases, outboxes and ports for the storyboard (`tests/checkout.mjs`), so
+worktrees can run it at the same time. The branch tracks nothing, so push it
+the first time with `git push -u origin fix-footer`. When it's merged,
+`git worktree remove tmp/worktrees/fix-footer` and `git branch -D fix-footer`.
+
 ## 3. Postgres
 
 Email your MP, the staff interface and the signatories list on `/campaigns`
@@ -437,13 +453,15 @@ What they need from your machine:
   `PG*` variables, or the local socket (section 3). Each test file copies
   its own database from a migrated template, made once for the run, and
   drops it afterwards.
-- **The storyboard** builds and starts the site itself on port 3100, unless
-  a server is already running there. Your dev server, on 3000, is left
-  alone. To skip rebuilding each run, start one yourself, as
-  `playwright.config.ts` does for its `webServer`, and leave it running:
+- **The storyboard** builds and starts the site itself on the checkout's
+  own port, unless this checkout's build is already running there
+  (`docs/testing.md`, "Commands", says how the port is chosen). Your dev
+  server, on 3000, is left alone. To skip rebuilding each run, start one
+  yourself, as `playwright.config.ts` does for its `webServer`, and leave it
+  running (stop and start it again after changing code):
 
   ```bash
-  node scripts/serve-fixture.mjs --port 3100
+  node scripts/serve-fixture.mjs
   # ...and in another terminal:
   npm run test:storyboard
   ```

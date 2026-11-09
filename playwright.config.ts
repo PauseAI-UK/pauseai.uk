@@ -1,6 +1,6 @@
 import os from "node:os";
 import { defineConfig, devices } from "@playwright/test";
-import { LOCAL_URL } from "./tests/fixture-env.mjs";
+import { LOCAL_URL } from "./tests/checkout.mjs";
 
 // The storyboard (tests/storyboard/, docs/testing.md): one suite that drives
 // the site's flows end to end on fixture data. Two ways to run it:
