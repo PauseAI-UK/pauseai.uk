@@ -122,6 +122,14 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await expect(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
   await expect(page.getByText(copy.willGet(EMAILABLE, "email"))).toBeVisible();
   await frame(page, "The new email, to everyone who said yes");
+  story(
+    "With nothing written yet, Text shows a text's form instead, greyed till a Consent by text is chosen. Email goes back to the draft as it was.",
+  );
+  await channel.getByRole("radio", { name: copy.channels.text }).click();
+  await expect(page.getByText(copy.problems["no-consent"])).toBeVisible();
+  await frame(page, "The draft switched to Text, greyed till a Consent is chosen");
+  await channel.getByRole("radio", { name: copy.channels.email }).click();
+  await expect(page.getByText(copy.problems["no-consent"])).toHaveCount(0);
   story("Its Consent can change while it's a draft, but, once it has words, only to another by email.");
   await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["site-forms"] }).click();
   await expect(
