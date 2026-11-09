@@ -55,9 +55,7 @@ const LISTED: Record<string, readonly string[]> = {
     "mailing-test",
   ]),
   "form_entry_luma.status": every<EntryLuma["status"]>()(["added", "skipped", "not-configured", "failed"]),
-  // The CHECK also allows import-signatories, a job the code no longer has,
-  // whose old runs the table may still hold.
-  "import_runs.job": [...IMPORT_JOBS, "import-signatories"],
+  "import_runs.job": IMPORT_JOBS,
   "import_runs.status": every<ImportRunStatus>()(["ok", "failed", "unchanged", "held", "applied", "discarded"]),
   "letters_from_pauseai.skip_reason": every<SkipReason>()(["blocked", "left-office", "no-email"]),
   "luma_events.access": every<CalendarEvent["access"]>()(["manage", "view"]),

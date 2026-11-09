@@ -224,7 +224,6 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "import-luma",
           "import-members",
           "import-old-letters",
-          "import-signatories",
           "import-web-form-letters",
           "read-gmail",
           "sync-emails",
