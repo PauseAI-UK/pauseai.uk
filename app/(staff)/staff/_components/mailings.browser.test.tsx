@@ -225,7 +225,7 @@ describe("MailingsOverview", () => {
     {
       drafts: [exampleDraft, { ...exampleDraft, id: 7, title: "" }],
       comingUp: [exampleScheduled, exampleSending],
-      sent: [...exampleMailings, { ...exampleMailings[1], id: 9, sentAt: "2025-07-09T10:00:00Z" }],
+      sent: [...exampleMailings, { ...exampleMailings[1], id: 9, sentAt: new Date("2025-07-09T10:00:00Z") }],
     },
     new Date(now),
   );
@@ -468,7 +468,7 @@ describe("MailingView", () => {
     vi.useFakeTimers({ now: new Date("2026-12-01T08:58:00Z"), toFake: ["Date", "setInterval", "clearInterval"] });
     onTestFinished(() => void vi.useRealTimers());
     await view({
-      written: { ...written, state: "scheduled", dueAt: "2026-12-03T03:00:00Z" },
+      written: { ...written, state: "scheduled", dueAt: new Date("2026-12-03T03:00:00Z") },
       reschedule: async () => {},
     });
     await page.getByRole("button", { name: copy.changeTime }).click();

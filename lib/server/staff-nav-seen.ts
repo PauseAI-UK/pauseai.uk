@@ -29,6 +29,6 @@ export async function newPagesFor(email: string, permissions: readonly Permissio
     [email, fresh, first],
   );
   const since = at.getTime() - NEW_FOR_DAYS * 24 * 60 * 60_000;
-  const recent = seen.filter((row) => new Date(row.at).getTime() > since).map((row) => row.page);
+  const recent = seen.filter((row) => row.at.getTime() > since).map((row) => row.page);
   return pages.filter((page) => recent.includes(page) || (seen.length > 0 && fresh.includes(page)));
 }

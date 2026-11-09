@@ -14,8 +14,8 @@ export const exampleSupporter: SupporterSummary = {
   postcode: "M1 1AE",
   sources: ["email-your-mp", "luma"],
   lumaContact: true,
-  firstSeenAt: "2026-03-01T10:00:00Z",
-  lastActiveAt: "2026-10-12T18:30:00Z",
+  firstSeenAt: new Date("2026-03-01T10:00:00Z"),
+  lastActiveAt: new Date("2026-10-12T18:30:00Z"),
   events: 2,
   letters: 1,
   member: false,
@@ -38,7 +38,7 @@ export const exampleSupporterDetails: SupporterDetails = {
   letters: [
     {
       id: 12,
-      sentAt: "2026-10-05T09:00:00Z",
+      sentAt: new Date("2026-10-05T09:00:00Z"),
       mpName: "Polly Placeholder",
       politicianId: 1,
       isTest: false,
@@ -48,13 +48,18 @@ export const exampleSupporterDetails: SupporterDetails = {
     },
   ],
   identities: [
-    { source: "luma", email: "jane@example.com", name: "Jane", seenAt: "2026-03-01T10:00:00Z" },
-    { source: "email-your-mp", email: "jane.e@example.org", name: "Jane Example", seenAt: "2026-10-05T09:00:00Z" },
+    { source: "luma", email: "jane@example.com", name: "Jane", seenAt: new Date("2026-03-01T10:00:00Z") },
+    {
+      source: "email-your-mp",
+      email: "jane.e@example.org",
+      name: "Jane Example",
+      seenAt: new Date("2026-10-05T09:00:00Z"),
+    },
   ],
   contacts: [
     {
       source: "email-your-mp",
-      at: "2026-10-05T09:00:00Z",
+      at: new Date("2026-10-05T09:00:00Z"),
       phone: null,
       postcode: "M1 1AE",
       latitude: null,
@@ -63,7 +68,7 @@ export const exampleSupporterDetails: SupporterDetails = {
     },
     {
       source: "luma",
-      at: "2026-09-20T10:00:00Z",
+      at: new Date("2026-09-20T10:00:00Z"),
       phone: "+447700900001",
       postcode: "M2 2BB",
       latitude: 53.4794,
@@ -74,7 +79,7 @@ export const exampleSupporterDetails: SupporterDetails = {
   activity: [
     {
       source: "luma-webhook",
-      at: "2026-10-12T18:30:00Z",
+      at: new Date("2026-10-12T18:30:00Z"),
       kind: "opted-out",
       title: "luma-calendar",
       campaignTitle: null,
@@ -84,7 +89,7 @@ export const exampleSupporterDetails: SupporterDetails = {
     },
     {
       source: "email-your-mp",
-      at: "2026-10-06T11:00:00Z",
+      at: new Date("2026-10-06T11:00:00Z"),
       kind: "letter-replied",
       title: "regulate-letter-pm",
       campaignTitle: "Regulate AI developers now",
@@ -94,7 +99,7 @@ export const exampleSupporterDetails: SupporterDetails = {
     },
     {
       source: "email-your-mp",
-      at: "2026-10-05T09:00:00Z",
+      at: new Date("2026-10-05T09:00:00Z"),
       kind: "letter",
       title: "regulate-letter-pm",
       campaignTitle: "Regulate AI developers now",
@@ -105,30 +110,30 @@ export const exampleSupporterDetails: SupporterDetails = {
     },
     {
       source: "luma",
-      at: "2026-09-20T10:00:00Z",
+      at: new Date("2026-09-20T10:00:00Z"),
       kind: "luma-registered",
       title: "PauseAI Manchester Social",
       campaignTitle: null,
       detail: "approved",
       href: "https://luma.com/fixture-manchester-social",
       status: null,
-      eventAt: "2026-10-01T18:30:00Z",
+      eventAt: new Date("2026-10-01T18:30:00Z"),
     },
     // She hosts it too, made on Luma before she registered: a row of its own, one event in her count.
     {
       source: "luma",
-      at: "2026-08-10T10:00:00Z",
+      at: new Date("2026-08-10T10:00:00Z"),
       kind: "luma-hosted",
       title: "PauseAI Manchester Social",
       campaignTitle: null,
       detail: null,
       href: "https://luma.com/fixture-manchester-social",
       status: null,
-      eventAt: "2026-10-01T18:30:00Z",
+      eventAt: new Date("2026-10-01T18:30:00Z"),
     },
     {
       source: "luma",
-      at: "2026-03-01T10:00:00Z",
+      at: new Date("2026-03-01T10:00:00Z"),
       kind: "luma-contact",
       title: null,
       campaignTitle: null,
@@ -144,7 +149,7 @@ export const exampleSupporterDetails: SupporterDetails = {
       address: "jane@example.com",
       send: "no",
       reason: "unsubscribed",
-      at: "2026-10-12T18:30:00Z",
+      at: new Date("2026-10-12T18:30:00Z"),
       source: "luma-webhook",
     },
     {
@@ -153,7 +158,7 @@ export const exampleSupporterDetails: SupporterDetails = {
       address: "jane@example.com",
       send: "yes",
       reason: "asked",
-      at: "2026-10-05T09:00:00Z",
+      at: new Date("2026-10-05T09:00:00Z"),
       source: "email-your-mp",
     },
     {
@@ -162,7 +167,7 @@ export const exampleSupporterDetails: SupporterDetails = {
       address: "+447700900001",
       send: "no",
       reason: "unsubscribed",
-      at: "2026-10-12T18:30:00Z",
+      at: new Date("2026-10-12T18:30:00Z"),
       source: "luma",
     },
   ],
@@ -185,11 +190,13 @@ export const exampleMemberDetails: SupporterDetails = {
     letters: 0,
     member: true,
   },
-  identities: [{ source: "member", email: "rhea@example.com", name: "Rhea Member", seenAt: "2026-07-10T00:00:00Z" }],
+  identities: [
+    { source: "member", email: "rhea@example.com", name: "Rhea Member", seenAt: new Date("2026-07-10T00:00:00Z") },
+  ],
   contacts: [
     {
       source: "member",
-      at: "2026-10-11T08:00:00Z",
+      at: new Date("2026-10-11T08:00:00Z"),
       phone: "+447700900002",
       postcode: null,
       latitude: null,
@@ -200,7 +207,7 @@ export const exampleMemberDetails: SupporterDetails = {
   activity: [
     {
       source: "member",
-      at: "2026-07-10T00:00:00Z",
+      at: new Date("2026-07-10T00:00:00Z"),
       kind: "member-joined",
       title: "Volunteer",
       campaignTitle: null,
@@ -225,7 +232,7 @@ export const exampleMemberDetails: SupporterDetails = {
       address: "rhea@example.com",
       send: "unsure",
       reason: "asked",
-      at: "2026-10-11T08:00:00Z",
+      at: new Date("2026-10-11T08:00:00Z"),
       source: "member",
     },
     {
@@ -234,7 +241,7 @@ export const exampleMemberDetails: SupporterDetails = {
       address: "+447700900002",
       send: "yes",
       reason: "volunteered",
-      at: "2026-07-10T00:00:00Z",
+      at: new Date("2026-07-10T00:00:00Z"),
       source: "member",
     },
   ],
@@ -248,7 +255,7 @@ export const exampleBlockedPermissions: ContactPermission[] = (["luma-calendar",
     address: "gus@example.com",
     send: "no",
     reason: "blocked",
-    at: "2026-10-05T12:00:00Z",
+    at: new Date("2026-10-05T12:00:00Z"),
     source: "complaint",
   }),
 );
@@ -274,7 +281,7 @@ export const exampleSupporterRows: SupporterRow[] = [
         address: "sam@example.com",
         send: "yes",
         reason: "following",
-        at: "2026-09-20T00:00:00Z",
+        at: new Date("2026-09-20T00:00:00Z"),
         source: "luma",
       },
       {
@@ -283,7 +290,7 @@ export const exampleSupporterRows: SupporterRow[] = [
         address: "sam@example.com",
         send: "unsure",
         reason: "asked",
-        at: "2026-09-12T00:00:00Z",
+        at: new Date("2026-09-12T00:00:00Z"),
         source: "member",
       },
       {
@@ -292,7 +299,7 @@ export const exampleSupporterRows: SupporterRow[] = [
         address: "+447700900003",
         send: "yes",
         reason: "volunteered",
-        at: "2026-09-12T00:00:00Z",
+        at: new Date("2026-09-12T00:00:00Z"),
         source: "member",
       },
     ],

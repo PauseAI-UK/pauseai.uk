@@ -118,7 +118,7 @@ async function alertIfNew(job: ImportJob, id: number): Promise<void> {
 const PRESS_LASTS = "16 minutes";
 
 /** A job's button pressed and not finished. */
-export type JobPress = { startedBy: string; startedAt: string };
+export type JobPress = { startedBy: string; startedAt: Date };
 
 /** The press of `job` that's still running, if any. */
 export async function currentPress(job: ImportJob): Promise<JobPress | undefined> {

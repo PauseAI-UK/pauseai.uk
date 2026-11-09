@@ -235,7 +235,7 @@ async function copyFormTexts(reader: Reader): Promise<void> {
     const row = waiting.get(letter.airtableId);
     if (!row || !letter.message.trim()) continue;
     const doc = docFromMarkup(letter.message.replace(/\r/g, ""));
-    const draft = formDraft(formVersionAt(new Date(row.at)), {
+    const draft = formDraft(formVersionAt(row.at), {
       salutation: row.salutation,
       constituency: row.constituency,
       name: row.name,

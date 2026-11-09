@@ -31,9 +31,9 @@ export const WINDOW_OPTIONS = DASHBOARD_WINDOWS.map((days) => ({
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** The start of a window ending now, ISO. */
-export function windowStart(days: number): string {
-  return new Date(now().getTime() - days * DAY_MS).toISOString();
+/** The start of a window ending now. */
+export function windowStart(days: number): Date {
+  return new Date(now().getTime() - days * DAY_MS);
 }
 
 /** How many windows a sparkline or a chart of bars shows, the current one last. */
@@ -59,10 +59,10 @@ export type SeriesMetric = (typeof WITH_SERIES)[number];
 /** One metric: how many in the window, and how many in the window before it. */
 export type Count = { current: number; previous: number };
 
-/** One point of a sparkline: the count in a window starting at `from`, ISO. */
-export type SeriesPoint = { from: string; count: number };
+/** One point of a sparkline: the count in a window starting at `from`. */
+export type SeriesPoint = { from: Date; count: number };
 
-/** One bar of new supporters: those first seen in a window starting at `from`, ISO, each under their earliest source. */
+/** One bar of new supporters: those first seen in a window starting at `from`, each under their earliest source. */
 export type SourcePoint = SeriesPoint & { sources: Partial<Record<SupporterSource, number>> };
 
 /**
@@ -93,18 +93,18 @@ export const METRIC_LINKS: Record<
 
 /** Something waiting for a person, with where its button goes. */
 export type DashboardAction =
-  | { kind: "held-sync"; at: string; added: number; removed: number; changed: number }
-  | { kind: "blocked-mp"; politicianId: number; name: string; isTest: boolean; at: string }
-  | { kind: "failed-import"; job: ImportJob; at: string; error: string }
-  | { kind: "letters-inbox"; inbox: string; count: number; at: string };
+  | { kind: "held-sync"; at: Date; added: number; removed: number; changed: number }
+  | { kind: "blocked-mp"; politicianId: number; name: string; isTest: boolean; at: Date }
+  | { kind: "failed-import"; job: ImportJob; at: Date; error: string }
+  | { kind: "letters-inbox"; inbox: string; count: number; at: Date };
 
 export type Dashboard = {
   /** The window's length in days. */
   days: DashboardWindow;
-  /** When the dashboard was drawn, ISO. */
-  asOf: string;
-  /** The start of the window, ISO. */
-  since: string;
+  /** When the dashboard was drawn. */
+  asOf: Date;
+  /** The start of the window. */
+  since: Date;
   counts: Record<DashboardMetric, Count>;
   /** The window's count by campaign slug, for the tiles with a bar. */
   byCampaign: Record<CampaignMetric, Record<string, number>>;

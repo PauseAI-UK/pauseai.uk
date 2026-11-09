@@ -38,7 +38,7 @@ export function CampaignAsk({ campaign }: { campaign: CampaignSummary }) {
  * The days a campaign's letters were written, first to last, or one day if
  * they're the same: a year is said only once, and not if it's `year`.
  */
-export function letterRange(first: string, last: string, year: string): string {
+export function letterRange(first: Date, last: Date, year: string): string {
   const [from, to] = [staffDate(first), staffDate(last)];
   const plain = (day: string, of: string) => (day.endsWith(of) ? day.slice(0, -5) : day);
   if (from === to) return plain(to, year);
@@ -86,7 +86,7 @@ export default function CampaignsOverview({ campaigns, now }: { campaigns: Campa
   }
   const at = new Date(now);
   const year = now.slice(0, 4);
-  const when = (campaign: CampaignSummary) => new Date(campaign.lastAt!).toISOString();
+  const when = (campaign: CampaignSummary) => campaign.lastAt!.toISOString();
   const none = campaigns.filter((campaign) => !campaign.lastAt);
   const written = campaigns.filter((campaign) => campaign.lastAt);
   return (

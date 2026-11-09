@@ -12,13 +12,13 @@ import {
   type EventList,
 } from "./staff-events-list";
 
-const NOW = "2026-11-02T12:00:00.000Z";
+const NOW = new Date("2026-11-02T12:00:00.000Z");
 
 const event = (id: string, more: Partial<SearchedEvent> = {}): SearchedEvent => ({
   id,
   name: `Event ${id}`,
   url: `https://luma.com/${id}`,
-  startAt: "2026-12-01T18:00:00.000Z",
+  startAt: new Date("2026-12-01T18:00:00.000Z"),
   city: "London",
   tags: [],
   removed: false,
@@ -33,18 +33,24 @@ const event = (id: string, more: Partial<SearchedEvent> = {}): SearchedEvent => 
 const events = [
   event("a", {
     name: "Banner making",
-    startAt: "2026-11-20T18:00:00.000Z",
+    startAt: new Date("2026-11-20T18:00:00.000Z"),
     city: "Oxford",
     going: 5,
     tags: ["Oxford"],
     hosts: [{ name: "Jane Smith", supporterId: 1 }],
     hostEmails: ["jane.host@example.com"],
   }),
-  event("b", { name: "alpha talk", startAt: "2026-11-10T18:00:00.000Z", city: null, going: 9, owner: "jo@pauseai.uk" }),
-  event("c", { startAt: "2026-11-10T18:00:00.000Z", doc: "https://docs.google.com/d", tags: ["Big"] }),
+  event("b", {
+    name: "alpha talk",
+    startAt: new Date("2026-11-10T18:00:00.000Z"),
+    city: null,
+    going: 9,
+    owner: "jo@pauseai.uk",
+  }),
+  event("c", { startAt: new Date("2026-11-10T18:00:00.000Z"), doc: "https://docs.google.com/d", tags: ["Big"] }),
   event("d", { name: "Cancelled picnic", removed: true }),
-  event("old", { startAt: "2025-01-01T18:00:00.000Z" }),
-  event("recent", { startAt: "2026-10-01T18:00:00.000Z", owner: "sean@pauseai.uk" }),
+  event("old", { startAt: new Date("2025-01-01T18:00:00.000Z") }),
+  event("recent", { startAt: new Date("2026-10-01T18:00:00.000Z"), owner: "sean@pauseai.uk" }),
 ];
 
 const future = (more: Partial<EventFilter> = {}): EventFilter => ({
@@ -59,11 +65,11 @@ const ids = (filter: EventFilter) => findEvents(events, filter, NOW).events.map(
 
 describe("findEvents", () => {
   it("finds those started in the last so many days", () => {
-    vi.stubEnv("FIXTURE_NOW", NOW);
+    vi.stubEnv("FIXTURE_NOW", NOW.toISOString());
     const held = [
-      event("this-week", { startAt: "2026-10-30T18:00:00.000Z" }),
-      event("this-month", { startAt: "2026-10-10T18:00:00.000Z" }),
-      event("to-come", { startAt: "2026-11-20T18:00:00.000Z" }),
+      event("this-week", { startAt: new Date("2026-10-30T18:00:00.000Z") }),
+      event("this-month", { startAt: new Date("2026-10-10T18:00:00.000Z") }),
+      event("to-come", { startAt: new Date("2026-11-20T18:00:00.000Z") }),
     ];
     const past = { ...future(), tab: "past" as const, sort: { key: "start" as const, dir: "desc" as const } };
     const found = (heldDays: number) => findEvents(held, { ...past, heldDays }, NOW).events.map((e) => e.id);
@@ -144,36 +150,36 @@ describe("findEvents", () => {
 
 describe("stillToCome", () => {
   it("is so until the end of its day in London, and not after", () => {
-    expect(stillToCome("2026-11-02T09:00:00.000Z", "2026-11-02T23:59:59.000Z")).toBe(true);
-    expect(stillToCome("2026-11-02T09:00:00.000Z", "2026-11-03T00:00:00.000Z")).toBe(false);
-    expect(stillToCome("2026-11-03T09:00:00.000Z", "2026-11-02T12:00:00.000Z")).toBe(true);
+    expect(stillToCome(new Date("2026-11-02T09:00:00.000Z"), new Date("2026-11-02T23:59:59.000Z"))).toBe(true);
+    expect(stillToCome(new Date("2026-11-02T09:00:00.000Z"), new Date("2026-11-03T00:00:00.000Z"))).toBe(false);
+    expect(stillToCome(new Date("2026-11-03T09:00:00.000Z"), new Date("2026-11-02T12:00:00.000Z"))).toBe(true);
   });
 
   it("ends at midnight by the clocks in summer, an hour before midnight UTC", () => {
-    expect(stillToCome("2026-07-01T09:00:00.000Z", "2026-07-01T22:59:59.000Z")).toBe(true);
-    expect(stillToCome("2026-07-01T09:00:00.000Z", "2026-07-01T23:00:00.000Z")).toBe(false);
+    expect(stillToCome(new Date("2026-07-01T09:00:00.000Z"), new Date("2026-07-01T22:59:59.000Z"))).toBe(true);
+    expect(stillToCome(new Date("2026-07-01T09:00:00.000Z"), new Date("2026-07-01T23:00:00.000Z"))).toBe(false);
     // 00:30 on 2 July in London, though still 1 July in UTC, is that day's.
-    expect(stillToCome("2026-07-01T23:30:00.000Z", "2026-07-02T22:59:59.000Z")).toBe(true);
+    expect(stillToCome(new Date("2026-07-01T23:30:00.000Z"), new Date("2026-07-02T22:59:59.000Z"))).toBe(true);
   });
 
   it("holds across the clocks going forward, on the day of 23 hours", () => {
-    expect(stillToCome("2026-03-28T23:30:00.000Z", "2026-03-28T23:59:59.000Z")).toBe(true);
-    expect(stillToCome("2026-03-28T23:30:00.000Z", "2026-03-29T00:00:00.000Z")).toBe(false);
-    expect(stillToCome("2026-03-29T22:30:00.000Z", "2026-03-29T22:59:59.000Z")).toBe(true);
-    expect(stillToCome("2026-03-29T22:30:00.000Z", "2026-03-29T23:00:00.000Z")).toBe(false);
+    expect(stillToCome(new Date("2026-03-28T23:30:00.000Z"), new Date("2026-03-28T23:59:59.000Z"))).toBe(true);
+    expect(stillToCome(new Date("2026-03-28T23:30:00.000Z"), new Date("2026-03-29T00:00:00.000Z"))).toBe(false);
+    expect(stillToCome(new Date("2026-03-29T22:30:00.000Z"), new Date("2026-03-29T22:59:59.000Z"))).toBe(true);
+    expect(stillToCome(new Date("2026-03-29T22:30:00.000Z"), new Date("2026-03-29T23:00:00.000Z"))).toBe(false);
   });
 
   it("holds across the clocks going back, on the day of 25 hours", () => {
-    expect(stillToCome("2026-10-24T22:30:00.000Z", "2026-10-24T22:59:59.000Z")).toBe(true);
-    expect(stillToCome("2026-10-24T22:30:00.000Z", "2026-10-24T23:00:00.000Z")).toBe(false);
-    expect(stillToCome("2026-10-25T00:30:00.000Z", "2026-10-25T23:59:59.000Z")).toBe(true);
-    expect(stillToCome("2026-10-25T00:30:00.000Z", "2026-10-26T00:00:00.000Z")).toBe(false);
+    expect(stillToCome(new Date("2026-10-24T22:30:00.000Z"), new Date("2026-10-24T22:59:59.000Z"))).toBe(true);
+    expect(stillToCome(new Date("2026-10-24T22:30:00.000Z"), new Date("2026-10-24T23:00:00.000Z"))).toBe(false);
+    expect(stillToCome(new Date("2026-10-25T00:30:00.000Z"), new Date("2026-10-25T23:59:59.000Z"))).toBe(true);
+    expect(stillToCome(new Date("2026-10-25T00:30:00.000Z"), new Date("2026-10-26T00:00:00.000Z"))).toBe(false);
   });
 });
 
 describe("findEvents around today", () => {
-  const today = event("earlier-today", { startAt: "2026-11-02T09:00:00.000Z" });
-  const yesterday = event("yesterday", { startAt: "2026-11-01T23:30:00.000Z" });
+  const today = event("earlier-today", { startAt: new Date("2026-11-02T09:00:00.000Z") });
+  const yesterday = event("yesterday", { startAt: new Date("2026-11-01T23:30:00.000Z") });
   const past = { ...future(), tab: "past" as const, sort: { key: "start" as const, dir: "desc" as const } };
 
   it("keeps an event earlier today on Future, and yesterday's on Past", () => {
@@ -183,8 +189,8 @@ describe("findEvents around today", () => {
   });
 
   it("counts it among those held, as the dashboard's tile does, once it's begun", () => {
-    vi.stubEnv("FIXTURE_NOW", NOW);
-    const later = event("later-today", { startAt: "2026-11-02T18:00:00.000Z" });
+    vi.stubEnv("FIXTURE_NOW", NOW.toISOString());
+    const later = event("later-today", { startAt: new Date("2026-11-02T18:00:00.000Z") });
     const found = findEvents([today, later, yesterday], { ...past, heldDays: 7 }, NOW).events.map((e) => e.id);
     expect(found).toEqual(["earlier-today", "yesterday"]);
     vi.unstubAllEnvs();

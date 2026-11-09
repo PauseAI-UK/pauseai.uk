@@ -36,17 +36,18 @@ import ExternalLink from "./ui/ExternalLink";
 const copy = staffCopy.politician;
 
 /** One line of the history: when, to the minute or, with `day`, only the day, and what, already in words. */
-type Entry = { key: string; at: string; day?: boolean; what: ReactNode };
+type Entry = { key: string; at: Date; day?: boolean; what: ReactNode };
 
 /**
  * When an entry of the audit log happened: an answer dated before it was
  * recorded, as those an import finds already there are, on that day; anything
  * else when it was logged.
  */
-function whenOf(change: PoliticianChange): { at: string; day: boolean } {
+function whenOf(change: PoliticianChange): { at: Date; day: boolean } {
   const date = change.action === "set status" && typeof change.details.date === "string" ? change.details.date : "";
-  const logged = new Date(change.at).toISOString();
-  return date && date < logged.slice(0, 10) ? { at: date, day: true } : { at: logged, day: false };
+  return date && date < change.at.toISOString().slice(0, 10)
+    ? { at: new Date(date), day: true }
+    : { at: change.at, day: false };
 }
 
 /** A letter: who wrote it, linked to their supporter once they're one, the campaign, and how it ended. */
@@ -420,7 +421,7 @@ export default function PoliticianDetails({
           </>
         ),
       })),
-  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  ].sort((a, b) => b.at.getTime() - a.at.getTime());
   const changes = history
     .filter((change) => change.action !== "set status")
     .map((change) => ({

@@ -91,7 +91,7 @@ const COUNTS = Object.entries(SOURCES)
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The window's count by campaign, as a map. */
-async function byCampaign(metric: CampaignMetric, since: string, until: string): Promise<Record<string, number>> {
+async function byCampaign(metric: CampaignMetric, since: Date, until: Date): Promise<Record<string, number>> {
   const { from, at, column } = CAMPAIGN_SOURCES[metric];
   const rows = await query<{ campaign: string; count: number }>(
     `SELECT ${column} AS campaign, count(*)::int AS count FROM ${from} AND ${at} >= $1 AND ${at} <= $2
@@ -112,12 +112,12 @@ async function series(metric: SeriesMetric, until: Date, days: DashboardWindow):
   const rows = await query<{ bucket: number; count: number }>(
     `SELECT floor(extract(epoch FROM ($2::timestamptz - ${at})) / $3)::int AS bucket, ${counted(metric)} AS count
      FROM ${from} AND ${at} >= $1 AND ${at} <= $2 GROUP BY bucket`,
-    [start.toISOString(), until.toISOString(), days * 24 * 60 * 60],
+    [start, until, days * 24 * 60 * 60],
   );
   const counts = new Map(rows.map((row) => [row.bucket, row.count]));
   return Array.from({ length: SERIES_POINTS }, (_, i) => {
     const bucket = SERIES_POINTS - 1 - i;
-    return { from: new Date(until.getTime() - (bucket + 1) * windowMs).toISOString(), count: counts.get(bucket) ?? 0 };
+    return { from: new Date(until.getTime() - (bucket + 1) * windowMs), count: counts.get(bucket) ?? 0 };
   });
 }
 
@@ -132,13 +132,13 @@ async function supportersBySource(until: Date, days: DashboardWindow): Promise<S
      CROSS JOIN LATERAL (SELECT i.source FROM supporter_identity i WHERE i.supporter_id = s.id
                          ORDER BY i.seen_at, i.source LIMIT 1) first
      WHERE s.first_seen_at >= $1 AND s.first_seen_at <= $2 GROUP BY bucket, first.source`,
-    [start.toISOString(), until.toISOString(), days * 24 * 60 * 60],
+    [start, until, days * 24 * 60 * 60],
   );
   return Array.from({ length: SERIES_POINTS }, (_, i) => {
     const bucket = SERIES_POINTS - 1 - i;
     const those = rows.filter((row) => row.bucket === bucket);
     return {
-      from: new Date(until.getTime() - (bucket + 1) * windowMs).toISOString(),
+      from: new Date(until.getTime() - (bucket + 1) * windowMs),
       count: those.reduce((sum, row) => sum + row.count, 0),
       sources: Object.fromEntries(those.map((row) => [row.source, row.count])),
     };
@@ -153,7 +153,7 @@ async function heldSyncs(): Promise<DashboardAction[]> {
             jsonb_array_length(result->'changes'->'changed')::int AS changed
      FROM import_runs WHERE job = 'sync-politicians' AND status = 'held' ORDER BY at, id`,
   );
-  return rows.map(({ at, ...counts }) => ({ kind: "held-sync", at: at.toISOString(), ...counts }));
+  return rows.map(({ at, ...counts }) => ({ kind: "held-sync", at, ...counts }));
 }
 
 /** Every politician in office whose address is blocked, with the problem that blocked it, oldest first. */
@@ -164,11 +164,11 @@ async function blockedMps(): Promise<DashboardAction[]> {
      LEFT JOIN politicians seat ON seat.id = p.id
      WHERE p.status = 'in_office' ORDER BY pr.at, p.id`,
   );
-  return rows.map(({ at, ...rest }) => ({ kind: "blocked-mp", at: at.toISOString(), ...rest }));
+  return rows.map(({ at, ...rest }) => ({ kind: "blocked-mp", at, ...rest }));
 }
 
 /** The politician who agreed in the window, if only one did. */
-async function agreedMp(since: string, until: string): Promise<number | null> {
+async function agreedMp(since: Date, until: Date): Promise<number | null> {
   const { from, at } = SOURCES.politiciansAgreed;
   const rows = await query<{ id: number }>(
     `SELECT DISTINCT p.id::int AS id FROM ${from} AND ${at} >= $1 AND ${at} <= $2 LIMIT 2`,
@@ -180,9 +180,9 @@ async function agreedMp(since: string, until: string): Promise<number | null> {
 /** The dashboard as of now: the last `days` days against the `days` before, and what's waiting. */
 export async function dashboard(days: DashboardWindow): Promise<Dashboard> {
   const at = now();
-  const until = at.toISOString();
-  const since = new Date(at.getTime() - days * DAY_MS).toISOString();
-  const before = new Date(at.getTime() - 2 * days * DAY_MS).toISOString();
+  const until = at;
+  const since = new Date(at.getTime() - days * DAY_MS);
+  const before = new Date(at.getTime() - 2 * days * DAY_MS);
   const [[row], [letterCampaigns, signedCampaigns], [registrations], bySource, signer, held, blocked, imports] =
     await Promise.all([
       query<Record<string, number>>(`SELECT ${COUNTS}`, [since, before, until]),
@@ -201,9 +201,7 @@ export async function dashboard(days: DashboardWindow): Promise<Dashboard> {
     ]),
   ) as Record<DashboardMetric, Count>;
   const failed: DashboardAction[] = imports.flatMap((run) =>
-    run?.status === "failed"
-      ? [{ kind: "failed-import", job: run.job, at: new Date(run.at).toISOString(), error: run.error }]
-      : [],
+    run?.status === "failed" ? [{ kind: "failed-import", job: run.job, at: run.at, error: run.error }] : [],
   );
   // Mail in the letters inbox a read couldn't handle, which waits there for a person.
   const inbox: DashboardAction[] = imports.flatMap((run) =>
@@ -215,7 +213,7 @@ export async function dashboard(days: DashboardWindow): Promise<Dashboard> {
                   kind: "letters-inbox" as const,
                   inbox: account.account,
                   count: account.notUnderstood.length,
-                  at: new Date(run.at).toISOString(),
+                  at: run.at,
                 },
               ]
             : [],

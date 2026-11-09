@@ -116,6 +116,6 @@ export type ContactPermission = {
   /** Yes, no, or unsure: a yes we can't be sure still holds, as an unsubscribe may not have reached us. */
   send: Send;
   reason: Reason;
-  at: string | null;
+  at: Date | null;
   source: string | null;
 };

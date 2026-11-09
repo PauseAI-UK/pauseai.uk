@@ -81,11 +81,17 @@ describe("CampaignsOverview", () => {
   });
 
   it("gives letters' days as a range, a year only once, and one day alone", () => {
-    expect(letterRange("2026-11-01T09:00:00Z", "2026-11-05T09:00:00Z", "2026")).toBe("1 Nov – 5 Nov");
-    expect(letterRange("2026-11-05T09:00:00Z", "2026-11-05T10:00:00Z", "2026")).toBe("5 Nov");
-    expect(letterRange("2025-07-23T09:00:00Z", "2025-09-30T09:00:00Z", "2026")).toBe("23 Jul – 30 Sept 2025");
-    expect(letterRange("2025-12-01T09:00:00Z", "2026-01-05T09:00:00Z", "2026")).toBe("1 Dec 2025 – 5 Jan");
-    expect(letterRange("2025-07-23T09:00:00Z", "2025-07-23T09:00:00Z", "2026")).toBe("23 Jul 2025");
+    expect(letterRange(new Date("2026-11-01T09:00:00Z"), new Date("2026-11-05T09:00:00Z"), "2026")).toBe(
+      "1 Nov – 5 Nov",
+    );
+    expect(letterRange(new Date("2026-11-05T09:00:00Z"), new Date("2026-11-05T10:00:00Z"), "2026")).toBe("5 Nov");
+    expect(letterRange(new Date("2025-07-23T09:00:00Z"), new Date("2025-09-30T09:00:00Z"), "2026")).toBe(
+      "23 Jul – 30 Sept 2025",
+    );
+    expect(letterRange(new Date("2025-12-01T09:00:00Z"), new Date("2026-01-05T09:00:00Z"), "2026")).toBe(
+      "1 Dec 2025 – 5 Jan",
+    );
+    expect(letterRange(new Date("2025-07-23T09:00:00Z"), new Date("2025-07-23T09:00:00Z"), "2026")).toBe("23 Jul 2025");
   });
 
   it("says an ask by its kind", async () => {
@@ -158,8 +164,8 @@ describe("CampaignView", () => {
   const letters = [
     exampleLetter,
     { ...exampleLetter, id: 2, status: "sent", answer: "signed" as const, constituency: null, party: "" },
-    { ...exampleLetter, id: 3, status: "sent", repliedAt: NOW, ownWords: null, supporterId: null },
-    { ...exampleLetter, id: 4, status: "sent", autoRepliedAt: NOW },
+    { ...exampleLetter, id: 3, status: "sent", repliedAt: new Date(NOW), ownWords: null, supporterId: null },
+    { ...exampleLetter, id: 4, status: "sent", autoRepliedAt: new Date(NOW) },
     { ...exampleLetter, id: 5, status: "unknown" },
     { ...exampleLetter, id: 6, status: "not_sent" },
   ];
@@ -709,7 +715,7 @@ describe("the rest", () => {
   });
 
   it("says when threads with politicians are kept from your Gmail", async () => {
-    const account = { email: "jo@pauseai.uk", name: "Jo", connectedAt: NOW, sentToday: 0, remaining: 1800 };
+    const account = { email: "jo@pauseai.uk", name: "Jo", connectedAt: new Date(NOW), sentToday: 0, remaining: 1800 };
     const props = { me: "jo@pauseai.uk", account, outcome: "", disconnect: () => {} };
     const { rerender } = await render(<MyGmail {...props} keepsThreads />);
     await says(staffCopy.oneOff.kept.before);

@@ -99,8 +99,7 @@ describeWithDatabase("permissionsFor", () => {
       ["jane@example.com", "pauseai-updates"],
       ["jane@example.com", "site-forms"],
     ]);
-    // Times come as text.
-    expect(typeof permissions[0].at).toBe("string");
+    expect(permissions[0].at).toBeInstanceOf(Date);
   });
 
   it("says no to every topic for a blocked address, whatever else it said", async () => {

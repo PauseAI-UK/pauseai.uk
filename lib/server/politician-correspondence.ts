@@ -7,7 +7,7 @@ import { query } from "./db";
 import { threadsWithSomeoneElse } from "./one-off-emails";
 import { politicianBook } from "./politician-book";
 
-type Message = { id: number; at: string; name: string; address: string; fromUs: boolean };
+type Message = { id: number; at: Date; name: string; address: string; fromUs: boolean };
 
 /**
  * What the database knows of a politician's messages, for their page: a
@@ -70,7 +70,7 @@ export async function politicianMessages(id: number, permissions: readonly Permi
   };
   for (const reply of replies) {
     const { fromUs, fromSupporter, auto } = reply;
-    const at = new Date(reply.at).toISOString();
+    const { at } = reply;
     if (fromUs) add(messages.letters, reply.id, { at, who: "us", name: null, auto: false });
     else if (fromSupporter) add(messages.letters, reply.id, { at, who: "supporter", name: null, auto: false });
     else {
@@ -80,7 +80,7 @@ export async function politicianMessages(id: number, permissions: readonly Permi
   }
   for (const message of oneOffs) {
     if (hidden.includes(message.id)) continue;
-    const at = new Date(message.at).toISOString();
+    const { at } = message;
     if (message.fromUs) add(messages.oneOffs, message.id, { at, who: "us", name: null, auto: false });
     else {
       add(messages.oneOffs, message.id, {

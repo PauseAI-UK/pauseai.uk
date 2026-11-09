@@ -307,7 +307,7 @@ export async function listSupporters(
         )
       : [],
     filter.campaign && filter.wrote
-      ? query<{ id: number; at: string }>(
+      ? query<{ id: number; at: Date }>(
           `SELECT k.supporter_id::int AS id, min(f.created_at) AS at
            FROM supporter_links k JOIN letters_from_supporters l ON l.entry_id = k.form_entry_id
            JOIN form_entries f ON f.id = l.entry_id
@@ -333,7 +333,7 @@ export async function listSupporters(
 }
 
 /** A Luma event to filter supporters by: its ID, name and when it starts. */
-export type EventChoice = { id: string; name: string; startAt: string };
+export type EventChoice = { id: string; name: string; startAt: Date };
 
 /** An MP to filter supporters by: their politician ID, name and constituency. */
 export type MpChoice = { id: number; name: string; constituency: string };

@@ -36,7 +36,7 @@ function pickedPills(data: FilterWordsData, picked: Picked): string[] {
     const group = filterPills(data, from.params);
     return [
       ...(group.length ? group : [copy.everyone]),
-      copy.pickedFrom(staffDate(from.at), from.found.length),
+      copy.pickedFrom(staffDate(new Date(from.at)), from.found.length),
       ...plus.map((id) => copy.pickedPlus(name(id))),
       ...except.map((id) => copy.pickedExcept(name(id))),
     ];

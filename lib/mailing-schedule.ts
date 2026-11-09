@@ -23,7 +23,7 @@ export type SchedulingMailing = {
   subject: string;
   body: MailingDoc;
   sentFrom: string | null;
-  dueAt: string | null;
+  dueAt: Date | null;
   /** How many it goes to. */
   recipients: number;
   /** The merge fields some of them have no value for. */
@@ -50,7 +50,7 @@ export function scheduleProblems(mailing: SchedulingMailing): ScheduleProblem[] 
     // One account sends at most a day's limit, so a mailing to more can't go.
     ["too-many", mailing.recipients > GMAIL_DAILY_LIMIT],
     ["no-time", !mailing.dueAt],
-    ["time-passed", Boolean(mailing.dueAt) && new Date(mailing.dueAt!) <= now()],
+    ["time-passed", Boolean(mailing.dueAt) && mailing.dueAt! <= now()],
     ["cannot-send", !mailing.sends],
   ];
   return checks.filter(([, fails]) => fails).map(([problem]) => problem);

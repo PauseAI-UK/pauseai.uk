@@ -113,7 +113,7 @@ export type AskAnswer = {
   /** Null for someone written to who hasn't answered. */
   status: AskStatus | null;
   /** When a campaign or mailing that put the ask last wrote to them; null if none has. */
-  lastWrittenTo: string | null;
+  lastWrittenTo: Date | null;
 };
 
 /** Who the campaigns and mailings that put ask $1 wrote to, and when they last did. */

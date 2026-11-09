@@ -26,8 +26,8 @@ export type CampaignSummary = {
   /** How many politicians it wrote to, and supporters wrote. */
   politicians: number;
   supporters: number;
-  firstAt: string | null;
-  lastAt: string | null;
+  firstAt: Date | null;
+  lastAt: Date | null;
 };
 
 const SELECT_CAMPAIGNS = `
@@ -61,7 +61,7 @@ export async function getCampaignSummary(slug: string): Promise<CampaignSummary 
 }
 
 /** A version of a campaign's text, with how many letters were written from it. */
-export type CampaignVersion = { key: string; from: string | null; letters: number; subject: string; text: string };
+export type CampaignVersion = { key: string; from: Date | null; letters: number; subject: string; text: string };
 
 /** A campaign's versions, counted from its letters' dates, and how many of its letters changed the wording. */
 export async function campaignVersions(slug: string): Promise<{ versions: CampaignVersion[]; changed: number }> {
@@ -82,13 +82,13 @@ export async function campaignVersions(slug: string): Promise<{ versions: Campai
   }
   const counted = new Map<string, number>();
   for (const { at } of rows) {
-    const { commit } = formVersionAt(new Date(at));
+    const { commit } = formVersionAt(at);
     counted.set(commit, (counted.get(commit) ?? 0) + 1);
   }
   const versions = FORM_VERSIONS.filter((version) => counted.has(version.commit))
     .map((version) => ({
       key: version.commit,
-      from: version.committedAt,
+      from: new Date(version.committedAt),
       letters: counted.get(version.commit)!,
       subject: version.subject,
       text: version.text,

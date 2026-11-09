@@ -70,7 +70,7 @@ function Thread({ thread }: { thread: CorrespondenceThread }) {
  */
 export default function PoliticianCorrespondence({ threads }: { threads: CorrespondenceThread[] }) {
   if (threads.length === 0) return <p className={styles.none}>{copy.none}</p>;
-  const when = (thread: CorrespondenceThread) => thread.at;
+  const when = (thread: CorrespondenceThread) => thread.at.toISOString();
   const today = now();
   const shown = monthsAndYears(threads.slice(0, SHOWN), when, today);
   const groups = (list: typeof shown, continued?: string): ReactNode =>

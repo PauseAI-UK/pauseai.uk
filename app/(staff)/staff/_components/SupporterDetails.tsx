@@ -25,7 +25,7 @@ import TestTag from "./TestTag";
 const copy = staffCopy.supporters;
 
 /** One thing we hold about them, a row of Everything we hold: what it is, its value, where it came from, and when. */
-type Held = { key: string; what: string; value: ReactNode; from: string; at: string | null };
+type Held = { key: string; what: string; value: ReactNode; from: string; at: Date | null };
 
 /**
  * Everything we hold about a supporter, as Everything we hold's rows:
@@ -36,8 +36,8 @@ type Held = { key: string; what: string; value: ReactNode; from: string; at: str
 function held(supporter: Details, usable: Set<string>): Held[] {
   const d = copy.detail;
   const from = (source: SupporterSource) => copy.sources[source];
-  const byTime = (a: { at: string | null }, b: { at: string | null }) =>
-    String(a.at ?? "").localeCompare(String(b.at ?? ""));
+  // A value with no time first.
+  const byTime = (a: { at: Date | null }, b: { at: Date | null }) => (a.at?.getTime() ?? 0) - (b.at?.getTime() ?? 0);
   const identities = [...supporter.identities].sort((a, b) => byTime({ at: a.seenAt }, { at: b.seenAt }));
   const names = identities
     .filter((i) => i.name)
@@ -160,8 +160,8 @@ function Subject({ item }: { item: SupporterActivity }) {
  * When we've known them: from when we first saw them to their last
  * activity, one day if they're the same; and the source they first came by.
  */
-function Active({ first, last, source }: { first: string | null; last: string | null; source?: SupporterSource }) {
-  const days = [...new Set([first, last].filter((at): at is string => Boolean(at)).map(staffDate))];
+function Active({ first, last, source }: { first: Date | null; last: Date | null; source?: SupporterSource }) {
+  const days = [...new Set([first, last].filter((at): at is Date => Boolean(at)).map((at) => staffDate(at)))];
   if (days.length === 0) return null;
   return (
     <BandFact label={copy.detail.active} detail={source && copy.detail.firstVia(copy.sources[source])}>
@@ -250,7 +250,7 @@ const eventColumns: ListColumn<SupporterActivity>[] = [
 
 /** Their events, the latest to start first; one whose start isn't known last. */
 function eventsByDate(activity: SupporterActivity[]): SupporterActivity[] {
-  const start = (a: SupporterActivity) => (a.eventAt ? new Date(a.eventAt).getTime() : -Infinity);
+  const start = (a: SupporterActivity) => (a.eventAt ? a.eventAt.getTime() : -Infinity);
   return eventsOf(activity).toSorted((a, b) => start(b) - start(a));
 }
 

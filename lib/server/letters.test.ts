@@ -290,8 +290,8 @@ describeWithDatabase("a letter for its page", () => {
     const letter = await getSupporterLetter(id);
     // Its replies' forwards, oldest first, for the history of replies recorded before their handling was.
     expect(letter!.forwards).toEqual([
-      { at: "2026-10-04T09:00:00+00:00", address: "policy@pauseai.uk", outcome: "sent" },
-      { at: "2026-10-05T09:00:00+00:00", address: "jane@example.com", outcome: "refused" },
+      { at: new Date("2026-10-04T09:00:00Z"), address: "policy@pauseai.uk", outcome: "sent" },
+      { at: new Date("2026-10-05T09:00:00Z"), address: "jane@example.com", outcome: "refused" },
     ]);
     expect(letter).toMatchObject({
       kind: "supporter",

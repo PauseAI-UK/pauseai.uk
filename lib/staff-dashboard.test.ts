@@ -43,7 +43,7 @@ describe("a list's date filter", () => {
 
   it("starts that many days before now", () => {
     vi.stubEnv("FIXTURE_NOW", "2026-10-21T12:00:00.000Z");
-    expect(windowStart(7)).toBe("2026-10-14T12:00:00.000Z");
+    expect(windowStart(7)).toEqual(new Date("2026-10-14T12:00:00.000Z"));
     vi.unstubAllEnvs();
   });
 

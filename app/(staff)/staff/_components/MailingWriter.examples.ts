@@ -98,14 +98,14 @@ export const exampleWriterData: WriterData = {
     {
       email: "al@pauseai.uk",
       name: "Al Example",
-      connectedAt: "2026-10-01T09:00:00Z",
+      connectedAt: new Date("2026-10-01T09:00:00Z"),
       sentToday: 0,
       remaining: 1800,
     },
     {
       email: "samuel.whitlock@pauseai.uk",
       name: "",
-      connectedAt: "2026-10-02T09:00:00Z",
+      connectedAt: new Date("2026-10-02T09:00:00Z"),
       sentToday: 120,
       remaining: 1680,
     },
@@ -124,7 +124,7 @@ export const exampleWrittenMailing: WrittenMailing = {
   createdBy: "jo@pauseai.uk",
   sentFrom: "jo@pauseai.uk",
   fromName: "Jo Example",
-  dueAt: "2026-12-01T09:00:00Z",
+  dueAt: new Date("2026-12-01T09:00:00Z"),
   state: "draft",
   version: 3,
   attachments: [

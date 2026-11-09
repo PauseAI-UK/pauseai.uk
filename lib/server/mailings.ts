@@ -36,12 +36,12 @@ export type MailingSummary = {
   /** The Gmail it goes, or went, from. */
   sentFrom: string | null;
   /** When it goes, or went. */
-  dueAt: string | null;
-  updatedAt: string;
+  dueAt: Date | null;
+  updatedAt: Date;
   /** How many it goes to: its letters, or for a draft, who its filter finds now. */
   to: number;
   /** The first of its letters sent, or none yet. */
-  sentAt: string | null;
+  sentAt: Date | null;
   /** Letters that arrived: sent, and not bounced. */
   sent: number;
   /** Letters that didn't: skipped, refused by Gmail, or bounced. */
@@ -65,8 +65,8 @@ export type MailingRecipient = {
   constituency: string | null;
   party: string | null;
   status: string;
-  sentAt: string | null;
-  repliedAt: string | null;
+  sentAt: Date | null;
+  repliedAt: Date | null;
   /** How many replies of theirs we keep; none for one recorded only as replied, as Airtable did. */
   replies: number;
   personalised: boolean;
@@ -159,7 +159,7 @@ export async function mailingsOverview(): Promise<{
   const coming = (m: MailingSummary) => m.state === "scheduled" || m.state === "sending";
   return {
     drafts: counted,
-    comingUp: all.filter(coming).sort((a, b) => Date.parse(a.dueAt!) - Date.parse(b.dueAt!)),
+    comingUp: all.filter(coming).sort((a, b) => a.dueAt!.getTime() - b.dueAt!.getTime()),
     sent: all.filter((m) => !coming(m)),
   };
 }

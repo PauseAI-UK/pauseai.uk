@@ -38,7 +38,11 @@ describeWithDatabase("the sending and the tidying, as runs of the import log", (
     await addTestPolitician({ name: "Polly Placeholder", email: "polly@parliament.example" });
     await connectTestGmail(JO);
     const { id } = await createDraft(JO, { list: "politicians", params: {} }, { subject: "AI", body: LETTER });
-    const saved = await saveDraft(id, 1, { sentFrom: JO, fromName: "Jo Staff", dueAt: "2026-11-01T10:00:00Z" });
+    const saved = await saveDraft(id, 1, {
+      sentFrom: JO,
+      fromName: "Jo Staff",
+      dueAt: new Date("2026-11-01T10:00:00Z"),
+    });
     expect(await scheduleMailing(id, (saved as { version: number }).version, JO)).toEqual({ scheduled: true });
     vi.setSystemTime(new Date("2026-11-01T10:01:00Z"));
     const result = await runSending(JO);
@@ -53,7 +57,11 @@ describeWithDatabase("the sending and the tidying, as runs of the import log", (
     await addTestPolitician({ name: "Polly Placeholder", email: "polly@parliament.example" });
     await connectTestGmail(JO);
     const { id } = await createDraft(JO, { list: "politicians", params: {} }, { subject: "AI", body: LETTER });
-    const saved = await saveDraft(id, 1, { sentFrom: JO, fromName: "Jo Staff", dueAt: "2026-11-01T10:00:00Z" });
+    const saved = await saveDraft(id, 1, {
+      sentFrom: JO,
+      fromName: "Jo Staff",
+      dueAt: new Date("2026-11-01T10:00:00Z"),
+    });
     expect(await scheduleMailing(id, (saved as { version: number }).version, JO)).toEqual({ scheduled: true });
     // A run took its letter an hour ago, and stopped.
     await query(

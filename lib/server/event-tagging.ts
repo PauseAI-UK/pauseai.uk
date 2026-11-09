@@ -17,7 +17,7 @@ import { problem } from "./problems";
 const EVENTS_PER_RUN = 10;
 
 /** An event left for a person to tag. */
-export type UnclearEvent = { name: string; startAt: string; city: string | null; url: string };
+export type UnclearEvent = { name: string; startAt: Date; city: string | null; url: string };
 
 export type EventTagging = { tagged: number; requests: number; unclear: UnclearEvent[] };
 
@@ -56,12 +56,7 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
   for (const event of events) {
     const tags = tagsForEvent(event, calendarTags);
     if (tags === null) {
-      done.unclear.push({
-        name: event.name,
-        startAt: new Date(event.startAt).toISOString(),
-        city: event.city,
-        url: event.url,
-      });
+      done.unclear.push({ name: event.name, startAt: event.startAt, city: event.city, url: event.url });
     } else {
       try {
         for (const tag of tags) {

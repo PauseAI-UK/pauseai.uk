@@ -413,11 +413,11 @@ export function ImportJobPageExample({ never = false, running = false }: { never
         ) : (
           <ImportJobPage
             job="check-mps"
-            press={running ? { startedBy: "jo@pauseai.uk", startedAt: "2026-11-04T09:00:00Z" } : undefined}
+            press={running ? { startedBy: "jo@pauseai.uk", startedAt: new Date("2026-11-04T09:00:00Z") } : undefined}
             runs={[
-              exampleRun("check-mps", { problems: [] }, { id: 7, at: "2026-11-03T01:00:00Z" }),
-              exampleFailedRun("check-mps", "Parliament answered 500", { id: 6, at: "2026-11-02T01:00:00Z" }),
-              exampleRun("check-mps", { problems: [] }, { id: 5, at: "2026-11-01T01:00:00Z" }),
+              exampleRun("check-mps", { problems: [] }, { id: 7, at: new Date("2026-11-03T01:00:00Z") }),
+              exampleFailedRun("check-mps", "Parliament answered 500", { id: 6, at: new Date("2026-11-02T01:00:00Z") }),
+              exampleRun("check-mps", { problems: [] }, { id: 5, at: new Date("2026-11-01T01:00:00Z") }),
             ]}
             run={log("run")}
             decide={log("decide")}
@@ -459,7 +459,7 @@ export function StaffAccountsTableExample() {
               email: "admin@pauseai.uk",
               permissions: ["admin"],
               addedBy: "migration",
-              addedAt: "2026-10-16T12:00:00Z",
+              addedAt: new Date("2026-10-16T12:00:00Z"),
               lastLoginAt: null,
               lastSeenAt: null,
               sessions: 0,
@@ -468,18 +468,18 @@ export function StaffAccountsTableExample() {
               email: "jo@pauseai.uk",
               permissions: ["admin"],
               addedBy: "admin@pauseai.uk",
-              addedAt: "2026-10-20T09:00:00Z",
-              lastLoginAt: "2026-10-22T08:00:00Z",
-              lastSeenAt: "2026-10-22T09:15:00Z",
+              addedAt: new Date("2026-10-20T09:00:00Z"),
+              lastLoginAt: new Date("2026-10-22T08:00:00Z"),
+              lastSeenAt: new Date("2026-10-22T09:15:00Z"),
               sessions: 2,
             },
             {
               email: "samuel.whitlock@pauseai.uk",
               permissions: [],
               addedBy: "login",
-              addedAt: "2026-10-21T10:30:00Z",
-              lastLoginAt: "2026-10-21T10:30:00Z",
-              lastSeenAt: "2026-10-21T11:00:00Z",
+              addedAt: new Date("2026-10-21T10:30:00Z"),
+              lastLoginAt: new Date("2026-10-21T10:30:00Z"),
+              lastSeenAt: new Date("2026-10-21T11:00:00Z"),
               sessions: 1,
             },
           ]}
@@ -653,7 +653,7 @@ export function MailingsOverviewExample({ empty = false }: { empty?: boolean }) 
         {
           drafts: [exampleDraft, { ...exampleDraft, id: 7, title: "" }],
           comingUp: [exampleScheduled, exampleSending],
-          sent: [...exampleMailings, { ...exampleMailings[1], id: 9, sentAt: "2025-07-09T10:00:00Z" }],
+          sent: [...exampleMailings, { ...exampleMailings[1], id: 9, sentAt: new Date("2025-07-09T10:00:00Z") }],
         },
         new Date(now),
       );
@@ -801,7 +801,7 @@ export function DueTimeFieldsExample() {
 export function ChangeTimeFormExample() {
   return (
     <Logged>
-      {(log) => <ChangeTimeForm id={5} dueAt="2027-01-15T09:00:00Z" action={log("rescheduleMailingNow")} />}
+      {(log) => <ChangeTimeForm id={5} dueAt={new Date("2027-01-15T09:00:00Z")} action={log("rescheduleMailingNow")} />}
     </Logged>
   );
 }
@@ -1017,8 +1017,8 @@ const SAVED_ROWS = [
     name: "A very long saved filter name that goes on past where the chip stops",
     params: { party: "Labour" },
     createdBy: "jane.smith@example.com",
-    createdAt: "2026-10-28T10:00:00Z",
-    changedAt: "2026-10-28T10:00:00Z",
+    createdAt: new Date("2026-10-28T10:00:00Z"),
+    changedAt: new Date("2026-10-28T10:00:00Z"),
   },
 ];
 

@@ -27,8 +27,8 @@ export type StaffEvent = {
   name: string;
   /** Its page on luma.com. */
   url: string;
-  /** When it starts, as an ISO string. */
-  startAt: string;
+  /** When it starts. */
+  startAt: Date;
   /** None for one online. */
   city: string | null;
   /** The calendar's tags on it in Luma: a local group, Big events, Online. */
@@ -65,7 +65,7 @@ const SELECT_EVENTS = `SELECT e.id, e.name, 'https://luma.com/' || e.url AS url,
 
 /**
  * Our events whose IDs are `ids`, or all of them, soonest first, each with
- * its start as an ISO string, and its hosts by name, those with none last,
+ * its hosts by name, those with none last,
  * and their emails; or, without `hosts`, none.
  */
 async function listEvents(ids?: string[], hosts = false): Promise<SearchedEvent[]> {
@@ -77,7 +77,6 @@ async function listEvents(ids?: string[], hosts = false): Promise<SearchedEvent[
     const shown = hosts ? event.hosts : [];
     return {
       ...event,
-      startAt: new Date(event.startAt).toISOString(),
       hosts: shown.map(({ name, supporterId }) => ({ name, supporterId })),
       hostEmails: shown.map((host) => host.email),
     };
@@ -96,20 +95,20 @@ function withoutEmails({ hostEmails, ...event }: SearchedEvent): StaffEvent {
  * who can search by them, but never their emails; every staff account,
  * whom an event can be given to and the Owner filter offers; every tag and
  * city our events have, for the Tag and Place filters, in alphabetical
- * order; and now, as an ISO string.
+ * order; and now.
  */
 export async function eventsPage(
   filter: EventFilter,
   hosts: boolean,
-): Promise<EventsFound & { staff: string[]; tags: string[]; cities: string[]; now: string }> {
-  const iso = now().toISOString();
+): Promise<EventsFound & { staff: string[]; tags: string[]; cities: string[]; now: Date }> {
+  const at = now();
   const events = await listEvents(undefined, hosts);
-  const found = findEvents(events, filter, iso);
+  const found = findEvents(events, filter, at);
   return {
     ...found,
     events: found.events.map(withoutEmails),
     ...(await choicesOf(events)),
-    now: iso,
+    now: at,
   };
 }
 
@@ -118,10 +117,10 @@ export async function eventsPage(
  * first, not a page of them, and every staff account, whom one can be given to.
  */
 export async function eventsToCome(): Promise<{ events: StaffEvent[]; staff: string[] }> {
-  const iso = now().toISOString();
+  const at = now();
   const events = await listEvents();
   return {
-    events: events.filter((event) => !event.removed && stillToCome(event.startAt, iso)).map(withoutEmails),
+    events: events.filter((event) => !event.removed && stillToCome(event.startAt, at)).map(withoutEmails),
     staff: (await choicesOf(events)).staff,
   };
 }

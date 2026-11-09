@@ -98,7 +98,7 @@ function sortValue(event: StaffEvent, key: EventSort): string | number {
   if (key === "place") return (event.city ?? "").toLowerCase();
   if (key === "owner") return event.owner ?? "";
   if (key === "doc") return event.doc ?? "";
-  return event.startAt;
+  return event.startAt.getTime();
 }
 
 /** Whether a search finds an event: in its name, its hosts' names or emails, or its owner's email. */
@@ -113,7 +113,7 @@ function searchFinds(event: SearchedEvent, search: string): boolean {
  * until the end of its day in London, so one on today stays on the Future tab,
  * however late it began, and moves to Past at midnight.
  */
-export function stillToCome(startAt: string, now: string): boolean {
+export function stillToCome(startAt: Date, now: Date): boolean {
   return londonDayHour(startAt).day >= londonDayHour(now).day;
 }
 
@@ -125,7 +125,7 @@ export function stillToCome(startAt: string, now: string): boolean {
 export function findEvents<E extends SearchedEvent>(
   events: readonly E[],
   filter: EventFilter,
-  now: string,
+  now: Date,
 ): Omit<EventsFound, "events"> & { events: E[] } {
   const search = filter.search?.toLowerCase();
   const heldSince = filter.heldDays && windowStart(filter.heldDays);
@@ -146,7 +146,7 @@ export function findEvents<E extends SearchedEvent>(
   found.sort(
     (a, b) =>
       order(sortValue(a, filter.sort.key), sortValue(b, filter.sort.key), filter.sort.dir) ||
-      order(a.startAt, b.startAt, startDir) ||
+      order(a.startAt.getTime(), b.startAt.getTime(), startDir) ||
       order(a.id, b.id, "asc"),
   );
   const pages = Math.max(1, Math.ceil(found.length / EVENTS_PAGE_SIZE));

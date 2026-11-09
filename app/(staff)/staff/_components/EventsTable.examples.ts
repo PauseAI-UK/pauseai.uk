@@ -8,7 +8,7 @@ import { eventsSearch } from "@/lib/staff-search";
 // three past, one taken off Luma.
 
 /** The moment the examples are seen at. */
-export const exampleEventsNow = "2026-11-02T12:00:00.000Z";
+export const exampleEventsNow = new Date("2026-11-02T12:00:00.000Z");
 
 export const exampleStaff = ["jo@pauseai.uk", "joseph@pauseai.uk", "sean@pauseai.uk"];
 
@@ -16,7 +16,7 @@ const event = (id: string, more: Partial<SearchedEvent>): SearchedEvent => ({
   id,
   name: "PauseAI London: Protest at Parliament",
   url: `https://luma.com/${id}`,
-  startAt: "2026-11-21T13:00:00.000Z",
+  startAt: new Date("2026-11-21T13:00:00.000Z"),
   city: "London",
   tags: ["Big events", "London"],
   removed: false,
@@ -40,7 +40,7 @@ export const exampleEvents: SearchedEvent[] = [
   }),
   event("evt-oxford-talk", {
     name: "AI risk talk",
-    startAt: "2026-12-02T19:00:00.000Z",
+    startAt: new Date("2026-12-02T19:00:00.000Z"),
     city: "Oxford",
     tags: ["Oxford"],
     going: 7,
@@ -48,7 +48,7 @@ export const exampleEvents: SearchedEvent[] = [
   }),
   event("evt-training", {
     name: "Lobbying your MP (online training)",
-    startAt: "2026-10-29T18:30:00.000Z",
+    startAt: new Date("2026-10-29T18:30:00.000Z"),
     city: null,
     tags: ["Online"],
     going: 18,
@@ -56,14 +56,14 @@ export const exampleEvents: SearchedEvent[] = [
   }),
   event("evt-social", {
     name: "PauseAI Manchester Social",
-    startAt: "2026-10-10T18:00:00.000Z",
+    startAt: new Date("2026-10-10T18:00:00.000Z"),
     city: "Manchester",
     tags: [],
     removed: true,
     going: 0,
     owner: null,
   }),
-  event("evt-march", { name: "PauseAI London March", startAt: "2025-02-14T12:00:00.000Z", going: 130 }),
+  event("evt-march", { name: "PauseAI London March", startAt: new Date("2025-02-14T12:00:00.000Z"), going: 130 }),
 ];
 
 /** The events list's search for a tab, its filters and sort as typed, and the events it finds of the examples. */
@@ -88,17 +88,21 @@ export const exampleEventsToCome: StaffEvent[] = [
   ].map((name, i) =>
     event(`evt-london-${i}`, {
       name,
-      startAt: `2026-11-0${i + 3}T18:00:00.000Z`,
+      startAt: new Date(`2026-11-0${i + 3}T18:00:00.000Z`),
       tags: ["London"],
       going: 10 + i,
       doc: i === 0 ? "https://docs.google.com/document/d/example-social-plan/edit" : null,
       owner: "joseph@pauseai.uk",
     }),
   ),
-  event("evt-march-to-come", { name: "March on Parliament", startAt: "2026-11-21T13:00:00.000Z", going: 120 }),
+  event("evt-march-to-come", {
+    name: "March on Parliament",
+    startAt: new Date("2026-11-21T13:00:00.000Z"),
+    going: 120,
+  }),
   event("evt-oxford-to-come", {
     name: "AI risk talk",
-    startAt: "2026-11-12T19:00:00.000Z",
+    startAt: new Date("2026-11-12T19:00:00.000Z"),
     city: "Oxford",
     tags: ["Oxford"],
     going: 7,
@@ -106,7 +110,7 @@ export const exampleEventsToCome: StaffEvent[] = [
   }),
   event("evt-scotland-call", {
     name: "Scotland organisers' call",
-    startAt: "2026-11-13T19:00:00.000Z",
+    startAt: new Date("2026-11-13T19:00:00.000Z"),
     city: null,
     tags: ["Online", "Scotland"],
     going: 6,
@@ -114,7 +118,7 @@ export const exampleEventsToCome: StaffEvent[] = [
   }),
   event("evt-untagged-online", {
     name: "New volunteers' welcome",
-    startAt: "2026-11-14T19:00:00.000Z",
+    startAt: new Date("2026-11-14T19:00:00.000Z"),
     city: null,
     tags: [],
     going: 4,
@@ -122,7 +126,7 @@ export const exampleEventsToCome: StaffEvent[] = [
   }),
   event("evt-untagged-place", {
     name: "Leeds first meet-up",
-    startAt: "2026-11-15T14:00:00.000Z",
+    startAt: new Date("2026-11-15T14:00:00.000Z"),
     city: "Leeds",
     tags: [],
     going: 3,

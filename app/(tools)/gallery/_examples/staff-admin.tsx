@@ -335,7 +335,7 @@ export const staffAdmin: Group = {
                     address: "nia@example.com",
                     send: "yes",
                     reason: "following",
-                    at: "2026-10-23T09:00:00Z",
+                    at: new Date("2026-10-23T09:00:00Z"),
                     source: "luma",
                   },
                   ...exampleMemberDetails.permissions.slice(1).map((p) => ({ ...p, address: "nia@example.com" })),
@@ -410,10 +410,10 @@ export const staffAdmin: Group = {
                   ]}
                   bars={exampleDashboard.supportersBySource.map((point) => ({
                     counts: point.sources,
-                    title: `From ${point.from.slice(0, 10)}: ${point.count}`,
+                    title: `From ${point.from.toISOString().slice(0, 10)}: ${point.count}`,
                   }))}
-                  from={exampleDashboard.supportersBySource[0].from.slice(0, 10)}
-                  to={exampleDashboard.asOf.slice(0, 10)}
+                  from={exampleDashboard.supportersBySource[0].from.toISOString().slice(0, 10)}
+                  to={exampleDashboard.asOf.toISOString().slice(0, 10)}
                 />
               </div>
             </StaffPage>
@@ -434,10 +434,10 @@ export const staffAdmin: Group = {
                   name="Event registrations, the last eight weeks"
                   values={exampleDashboard.series.eventRegistrations.map((point) => point.count)}
                   labels={exampleDashboard.series.eventRegistrations.map(
-                    (point) => `From ${point.from.slice(0, 10)}: ${point.count}`,
+                    (point) => `From ${point.from.toISOString().slice(0, 10)}: ${point.count}`,
                   )}
-                  from={exampleDashboard.series.eventRegistrations[0].from.slice(0, 10)}
-                  to={exampleDashboard.asOf.slice(0, 10)}
+                  from={exampleDashboard.series.eventRegistrations[0].from.toISOString().slice(0, 10)}
+                  to={exampleDashboard.asOf.toISOString().slice(0, 10)}
                 />
               </div>
             </StaffPage>
@@ -574,8 +574,8 @@ export const staffAdmin: Group = {
                     userAgent:
                       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15",
 
-                    startedAt: "2026-10-22T09:00:00Z",
-                    expiresAt: "2026-10-23T09:00:00Z",
+                    startedAt: new Date("2026-10-22T09:00:00Z"),
+                    expiresAt: new Date("2026-10-23T09:00:00Z"),
                     remember: false,
                     current: true,
                   },
@@ -584,8 +584,8 @@ export const staffAdmin: Group = {
                     userAgent:
                       "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.90 Mobile/15E148 Safari/604.1",
 
-                    startedAt: "2026-10-20T08:00:00Z",
-                    expiresAt: "2026-11-21T08:00:00Z",
+                    startedAt: new Date("2026-10-20T08:00:00Z"),
+                    expiresAt: new Date("2026-11-21T08:00:00Z"),
                     remember: true,
                     current: false,
                   },
@@ -593,8 +593,8 @@ export const staffAdmin: Group = {
                     id: "session-3",
                     userAgent: null,
 
-                    startedAt: "2026-10-19T18:30:00Z",
-                    expiresAt: "2026-10-20T18:30:00Z",
+                    startedAt: new Date("2026-10-19T18:30:00Z"),
+                    expiresAt: new Date("2026-10-20T18:30:00Z"),
                     remember: false,
                     current: false,
                   },
@@ -743,24 +743,24 @@ export const staffAdmin: Group = {
           render: () => (
             <StaffPage as="div">
               <ImportOverview
-                presses={[undefined, { startedBy: "jo@pauseai.uk", startedAt: "2026-10-21T11:47:00Z" }]}
+                presses={[undefined, { startedBy: "jo@pauseai.uk", startedAt: new Date("2026-10-21T11:47:00Z") }]}
                 newest={[
                   exampleRun(
                     "import-luma",
                     { ...exampleLumaResult, stoppedBy: "time" },
-                    { at: "2026-10-21T11:17:00Z" },
+                    { at: new Date("2026-10-21T11:17:00Z") },
                   ),
-                  exampleRun("import-members", exampleMembersResult, { at: "2026-10-21T11:47:00Z" }),
-                  exampleRun("read-gmail", exampleGmailResult, { at: "2026-10-21T11:20:00Z" }),
+                  exampleRun("import-members", exampleMembersResult, { at: new Date("2026-10-21T11:47:00Z") }),
+                  exampleRun("read-gmail", exampleGmailResult, { at: new Date("2026-10-21T11:20:00Z") }),
                   exampleRun(
                     "sync-politicians",
                     { changes: { added: [], removed: [exampleSyncedMp(2)], changed: [] }, records: [] },
-                    { at: "2026-10-21T00:00:00Z", status: "held" },
+                    { at: new Date("2026-10-21T00:00:00Z"), status: "held" },
                   ),
-                  exampleRun("sync-emails", exampleEmailsResult, { at: "2026-10-21T00:01:00Z" }),
-                  exampleRun("check-mps", { problems: [] }, { at: "2026-10-21T01:00:00Z" }),
-                  exampleFailedRun("import-controlai", "No PDF linked", { at: "2026-10-21T02:00:00Z" }),
-                  exampleRun("import-web-form-letters", exampleWebFormResult, { at: "2026-10-20T09:00:00Z" }),
+                  exampleRun("sync-emails", exampleEmailsResult, { at: new Date("2026-10-21T00:01:00Z") }),
+                  exampleRun("check-mps", { problems: [] }, { at: new Date("2026-10-21T01:00:00Z") }),
+                  exampleFailedRun("import-controlai", "No PDF linked", { at: new Date("2026-10-21T02:00:00Z") }),
+                  exampleRun("import-web-form-letters", exampleWebFormResult, { at: new Date("2026-10-20T09:00:00Z") }),
                   undefined,
                 ]}
                 airtableTable="https://airtable.com/"
@@ -1138,7 +1138,7 @@ export const staffAdmin: Group = {
                       exampleRun("import-luma", exampleLumaResult, { id: 24, status: "unchanged" }),
                       exampleRun("import-luma", exampleLumaResult, {
                         id: 25,
-                        at: "2026-10-15T01:55:00Z",
+                        at: new Date("2026-10-15T01:55:00Z"),
                         status: "unchanged",
                       }),
                     ],
@@ -1204,12 +1204,15 @@ export const staffAdmin: Group = {
               <RunList
                 none="None"
                 runs={[
-                  exampleRun("check-mps", { problems: [] }, { id: 7, at: "2026-11-03T01:00:00Z" }),
-                  exampleRun("import-controlai", exampleControlAiResult, { id: 8, at: "2026-11-02T02:00:00Z" }),
+                  exampleRun("check-mps", { problems: [] }, { id: 7, at: new Date("2026-11-03T01:00:00Z") }),
+                  exampleRun("import-controlai", exampleControlAiResult, {
+                    id: 8,
+                    at: new Date("2026-11-02T02:00:00Z"),
+                  }),
                   exampleRun(
                     "sync-politicians",
                     { changes: { added: [exampleSyncedMp(5)], removed: [], changed: [] } },
-                    { id: 6, at: "2026-11-02T00:30:00Z", status: "discarded", decidedBy: "jo@pauseai.uk" },
+                    { id: 6, at: new Date("2026-11-02T00:30:00Z"), status: "discarded", decidedBy: "jo@pauseai.uk" },
                   ),
                   exampleAppliedSync,
                 ]}

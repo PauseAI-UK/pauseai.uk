@@ -60,7 +60,7 @@ type Changes = {
   sentFrom: string | null;
   /** The name it's from; empty or null, the Gmail's own. */
   fromName: string | null;
-  dueAt: string | null;
+  dueAt: Date | null;
 };
 
 type AttachResult = (SaveResult | { saved: false; reason: "too-big" }) & { attachments: MailingAttachmentSummary[] };
@@ -281,7 +281,7 @@ export default function MailingWriter({
   useEffect(() => {
     const check = () => {
       const due = latest.current.dueAt;
-      if (due && Date.parse(due) < Date.parse(earliestHour())) change({ dueAt: earliestHour() });
+      if (due && due < earliestHour()) change({ dueAt: earliestHour() });
     };
     check();
     const timer = setInterval(check, CHECK_EVERY);

@@ -54,7 +54,7 @@ const SENDS: MailingChannel = {
   cost: () => 0,
   report: () => undefined,
 };
-const TOMORROW = "2026-11-02T10:00:00Z";
+const TOMORROW = new Date("2026-11-02T10:00:00Z");
 
 describeWithDatabase("mailing drafts", () => {
   useTestDatabase();
@@ -267,10 +267,10 @@ describeWithDatabase("mailing drafts", () => {
   it("changes when a scheduled mailing goes, but not to a time gone by, nor for a draft", async () => {
     await addTestPolitician();
     const { id, version } = await readyDraft();
-    expect(await rescheduleMailing(id, "2026-11-05T10:00:00Z", STAFF)).toBe(false);
+    expect(await rescheduleMailing(id, new Date("2026-11-05T10:00:00Z"), STAFF)).toBe(false);
     await scheduleMailing(id, version, STAFF, SENDS);
-    expect(await rescheduleMailing(id, "2026-10-01T10:00:00Z", STAFF)).toBe(false);
-    expect(await rescheduleMailing(id, "2026-11-05T10:00:00Z", STAFF)).toBe(true);
+    expect(await rescheduleMailing(id, new Date("2026-10-01T10:00:00Z"), STAFF)).toBe(false);
+    expect(await rescheduleMailing(id, new Date("2026-11-05T10:00:00Z"), STAFF)).toBe(true);
     expect((await getWrittenMailing(id))!.dueAt).toEqual(new Date("2026-11-05T10:00:00Z"));
   });
 
@@ -390,7 +390,7 @@ describe("mailingChangesFrom", () => {
         ask: "",
         sentFrom: "Jo@PauseAI.uk",
         fromName: "Jo",
-        dueAt: "2026-11-02T10:00:00Z",
+        dueAt: new Date("2026-11-02T10:00:00Z"),
       }),
     ).toEqual({
       subject: "Hi",
@@ -398,7 +398,7 @@ describe("mailingChangesFrom", () => {
       ask: null,
       sentFrom: STAFF,
       fromName: "Jo",
-      dueAt: "2026-11-02T10:00:00Z",
+      dueAt: new Date("2026-11-02T10:00:00Z"),
     });
     expect(mailingChangesFrom({ sentFrom: null, fromName: null, dueAt: null, ask: "frontier-ai-letter" })).toEqual({
       sentFrom: null,
@@ -415,8 +415,9 @@ describe("mailingChangesFrom", () => {
     ["a letter that isn't one", { body: { type: "doc", content: [{ type: "image" }] } }],
     ["an ask that isn't text", { ask: 1 }],
     ["a sender that isn't text", { sentFrom: 1 }],
-    ["a time that isn't one", { dueAt: "soon" }],
-    ["a time that isn't text", { dueAt: 5 }],
+    ["a time that isn't one", { dueAt: new Date("soon") }],
+    ["a time that's text", { dueAt: "2026-11-02T10:00:00Z" }],
+    ["a time that isn't a time", { dueAt: 5 }],
     ["the filter", { filter: {} }],
   ])("refuses %s", (_, value) => {
     expect(mailingChangesFrom(value)).toBeUndefined();

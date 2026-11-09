@@ -93,7 +93,7 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
 
   it("saves a draft's changes, and refuses what isn't a change", async () => {
     const { id } = await draft({ subject: "Hi", body: LETTER as MailingChanges["body"] });
-    expect(await saveMailing(id, 1, { sentFrom: "Jo@PauseAI.uk", dueAt: "2026-12-01T09:00:00Z" })).toEqual({
+    expect(await saveMailing(id, 1, { sentFrom: "Jo@PauseAI.uk", dueAt: new Date("2026-12-01T09:00:00Z") })).toEqual({
       saved: true,
       version: 2,
     });
@@ -211,7 +211,7 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
 
   it("stops a scheduled mailing and changes its time, in London's hours; a bad form changes nothing", async () => {
     const { id } = await draft({ subject: "Hi" });
-    await saveDraft(id, 1, { sentFrom: JO, fromName: "Jo", dueAt: "2099-01-01T09:00:00Z" });
+    await saveDraft(id, 1, { sentFrom: JO, fromName: "Jo", dueAt: new Date("2099-01-01T09:00:00Z") });
     await query("UPDATE mailings SET state = 'scheduled' WHERE id = $1", [id]);
     for (const bad of [
       { id: "x" },
