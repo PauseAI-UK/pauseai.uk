@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { EVENT_IMAGE_HOSTS } from "@/lib/event-image-hosts";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { march } from "@/lib/content/march";
+import { CHECKOUT_HEADER } from "@/tests/fixture-env.mjs";
 
 // Third-party origins the site actually depends on. Kept here as one list so
 // adding an embed means updating the policy in the same place.
@@ -129,6 +130,12 @@ const nextConfig: NextConfig = {
         source: "/",
         headers: [{ key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self), payment=()" }],
       },
+      // A storyboard build names the checkout it was built from
+      // (scripts/serve-fixture.mjs), so a run from another checkout refuses it
+      // (tests/storyboard/global-setup.ts).
+      ...(process.env.FIXTURE_CHECKOUT
+        ? [{ source: "/:path*", headers: [{ key: CHECKOUT_HEADER, value: process.env.FIXTURE_CHECKOUT }] }]
+        : []),
     ];
   },
   images: {

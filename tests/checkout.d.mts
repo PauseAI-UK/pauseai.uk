@@ -1,3 +1,9 @@
+export const CHECKOUT_DIR: string;
+export function checkoutPorts(dir: string): { local: number; main: number };
+export const OWN_URL: string;
+export const LOCAL_URL: string;
+export const MAIN_URL: string;
+export function foreignServer(served: string | null, dir?: string, url?: string): string | undefined;
 export const OUTBOX_DIR: string;
 export const MAIN_OUTBOX_DIR: string;
 export const LETTERS_INBOX_DIR: string;

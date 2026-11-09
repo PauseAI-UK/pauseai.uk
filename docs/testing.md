@@ -288,8 +288,8 @@ Otherwise it runs main for just the flows that aren't
 (`playwright test --test-list`) and keeps the result. So a change to one
 spec file reruns only that section on main, and after one full review,
 every partial run against the same main is fast.
-It won't start main's server while something already answers on main's port
-(3001), such as a server left from an earlier review: stop it, or pass
+It won't start main's server while something already answers on main's port,
+such as a server left from an earlier review: stop it, or pass
 `--main-server=` to use it on purpose.
 `--fresh-main` runs main again regardless; with `--main-server` nothing is
 kept, as that server may not be the ref's commit.
@@ -541,8 +541,7 @@ not a mock.
   copy of a template database (above). Each checkout has its own: the
   names in `tests/checkout.mjs`, for the databases, the outboxes and main's
   worktree, end with a hash of the checkout's path, so worktrees can run
-  the storyboard at the same time. Not on the same port, though: give each
-  its own with `LOCAL_URL` and `--server`. Flows that need politicians call `syncPoliticians()`
+  the storyboard at the same time; so do the ports (below). Flows that need politicians call `syncPoliticians()`
   (`tests/steps.ts`), which runs the nightly sync's route against the
   Parliament fixture.
 - **Staff screens** are reached through the fixture build's dev login
@@ -601,6 +600,8 @@ import("@/tests/next-headers"))` and put the session cookie in
 ## Commands
 
 ```bash
+npm run gate              # the CI gate: the fast checks on the changed files, then everything CI runs (below)
+npm run gate -- --fast    # the fast checks alone
 npm run typecheck         # types (also runs in npm run build)
 npm test                  # both Vitest projects, with the coverage gate (what CI runs)
 npm run test:node         # Vitest node project (also runs in npm run build)
@@ -619,12 +620,50 @@ npm run test:report       # open the last Playwright report
   then `next build`. Only the Node project, because Netlify's build has no
   browser. While any copy is a placeholder, `tests/checks/placeholder-copy.test.ts`
   fails, and so does the build: placeholders can't be deployed (AGENTS.md).
-- The storyboard builds and starts the site itself, or reuses a server
-  already on port 3100 (except in CI). That's not the dev server's port, so
-  a running `npm run dev` doesn't get in the way.
+- **Ports.** The storyboard builds and starts the site itself on this
+  checkout's own port, or reuses a server already there (except in CI). The
+  port, and main's beside it for the review, come from a hash of the
+  checkout's path (`checkoutPorts` in `tests/checkout.mjs`): between 3100
+  and 4999, so never the dev server's 3000, and each worktree has its own.
+  `npm run worktree` prints a new worktree's, and
+  `node scripts/worktree.mjs --ports` this checkout's. Every response from a
+  storyboard build names the checkout it was built from (the
+  `X-Fixture-Checkout` header, `next.config.ts`), and the storyboard's global
+  setup refuses a server on its port that doesn't name this one. It can't
+  tell a stale build of this checkout from a fresh one, though: after
+  changing code, stop a server you left running.
 - Run one section with `npm run test:storyboard -- staff`, one flow with
   `-g "login link"`, or point at another fixture build with `LOCAL_URL`.
 - Browser tests need Chromium: `npx playwright install chromium`.
+
+### `npm run gate`
+
+`scripts/gate.mjs` runs the gate as AGENTS.md describes it, in two parts.
+
+**The fast checks**, in seconds: Prettier writes the files changed since
+the branch left `origin/main` (the merge base, as a pull request compares;
+committed, uncommitted and untracked, and nothing is fetched), then `tsc
+--noEmit`, ESLint on the changed scripts and Stylelint on the changed CSS
+run at once. If one fails, the gate stops: the slow part would only wait
+on the same mistake. `--fast` stops after them anyway.
+
+**What CI runs**, in four lanes at once, as CI's jobs run: `npm run
+typecheck` then `npm run test:storyboard` (the storyboard waits for the
+types, as in CI, and both write `.next`); `npm test`; the four linters one
+after another; and the backup Worker's `npm ci`, tests and types. A lane
+stops at a failed `typecheck` or backup `npm ci`, as what follows needs it;
+the linters each run whatever came before. `--no-storyboard` leaves the
+storyboard out, while making changes. `npm run build` isn't run: it
+repeats the unit tests and linters, and the storyboard builds the site.
+
+Each command has a time limit, from three minutes for a linter to twenty
+for the storyboard, and its output goes to `tmp/gate/<command>.log`,
+emptied at the start of each run. A command stopped at its limit exits
+124, as `timeout` does. Once a minute the gate names the commands still
+running, and how long each one's log has been quiet once it's been two
+minutes, the sign of a run that's stuck (below). It ends with the last
+lines of each failed command's log, a table of every command's exit code,
+time and log, and exits 1 if any failed.
 
 ### Long runs in the background
 
@@ -634,6 +673,7 @@ gate once sat for an hour and a half, printing nothing, before anyone
 noticed. So give each a limit, and check on it when it's due:
 
 ```bash
+timeout 30m npm run gate > tmp/gate.out 2>&1          # its commands have limits of their own (above)
 timeout 15m npm test                                  # usually about 5 minutes
 timeout 15m npm run test:storyboard                   # usually a few minutes
 timeout 25m npm run storyboard -- --no-open           # builds main too: usually about 10
@@ -646,7 +686,7 @@ file: a run whose output hasn't moved in minutes is stuck, so stop it and
 find out why, rather than waiting for the limit.
 
 Stopping a storyboard run can leave its fixture server (`next-server`)
-running on port 3100. Locally the storyboard reuses whatever answers
-there, so the next run waits on it, printing nothing. A request to
-`localhost:3100` that hangs rather than being refused is the sign: stop
+running on the checkout's port (above). Locally the storyboard reuses
+whatever answers there, so the next run waits on it, printing nothing. A
+request to that port that hangs rather than being refused is the sign: stop
 that `next-server` before running again.

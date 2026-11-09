@@ -3,21 +3,28 @@
 // Playwright's webServer runs it (playwright.config.ts), and so can you, to
 // keep one server up between runs (docs/development.md).
 //
-//   node scripts/serve-fixture.mjs [--port 3100]
+//   node scripts/serve-fixture.mjs [--port <port>]
 //
+// By default on this checkout's own port (OWN_URL, tests/checkout.mjs). Every
+// response names the checkout it was built from (FIXTURE_CHECKOUT,
+// next.config.ts), so the storyboard can refuse another checkout's server.
 // The build gets a fresh database of its own, with the test MPs, for
 // requests that carry no flow's cookie (tests/storyboard/fixtures.ts). Never
 // the real one. `next build` directly, as scripts/serve-main.mjs builds main:
 // `npm run build` runs the unit tests and the linters first, which CI's
 // other job and the pre-commit hook already do.
 import { execFileSync, spawn } from "node:child_process";
-import { OUTBOX_DIR, SERVER_DATABASE } from "../tests/checkout.mjs";
+import { CHECKOUT_DIR, OUTBOX_DIR, OWN_URL, SERVER_DATABASE } from "../tests/checkout.mjs";
 import { fixtureEnv, TEST_MP_EMAIL } from "../tests/fixture-env.mjs";
 
 const at = process.argv.indexOf("--port");
-const port = at === -1 ? "3100" : process.argv[at + 1];
+const port = at === -1 ? new URL(OWN_URL).port : process.argv[at + 1];
 
-const env = { ...process.env, ...fixtureEnv({ outboxDir: OUTBOX_DIR, origin: `http://localhost:${port}` }) };
+const env = {
+  ...process.env,
+  ...fixtureEnv({ outboxDir: OUTBOX_DIR, origin: `http://localhost:${port}` }),
+  FIXTURE_CHECKOUT: CHECKOUT_DIR,
+};
 env.NETLIFY_DB_URL = execFileSync("node", ["scripts/fresh-database.mjs", SERVER_DATABASE, "--test-mp", TEST_MP_EMAIL], {
   encoding: "utf8",
 }).trim();

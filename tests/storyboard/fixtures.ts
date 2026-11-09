@@ -4,8 +4,8 @@
 import { createHash } from "node:crypto";
 import { test as base, type BrowserContextOptions } from "@playwright/test";
 import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs";
-import { FLOW_DATABASES, TEMPLATE_DATABASE } from "../checkout.mjs";
-import { FIXTURE_NOW, FLOW_DATABASE_COOKIE, LOCAL_URL } from "../fixture-env.mjs";
+import { FLOW_DATABASES, LOCAL_URL, TEMPLATE_DATABASE } from "../checkout.mjs";
+import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "../fixture-env.mjs";
 import { historyIdNow } from "../fixtures/letters-inbox";
 
 export { expect } from "@playwright/test";
