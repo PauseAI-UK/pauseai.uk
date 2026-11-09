@@ -4,7 +4,7 @@ import { createDraft, getWrittenMailing, saveDraft } from "@/lib/server/mailing-
 import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import { createSession } from "@/lib/server/staff-auth";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/broadcast-fixtures";
+import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/broadcast-fixtures";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
   attachToBroadcast,
@@ -14,7 +14,6 @@ import {
   newBroadcast,
   changeBroadcastConsentNow,
   newBroadcastWith,
-  replyToMessageNow,
   rescheduleBroadcastNow,
   saveBroadcast,
   scheduleBroadcastNow,
@@ -176,22 +175,6 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     await expectRedirect(() => deleteBroadcastDraft(form({ id: String(mailing) })));
     expect(await getWrittenMailing(mailing)).toBeDefined();
     await expectRedirect(() => deleteBroadcastDraft(form({})));
-  });
-
-  it("sends a reply from the form", async () => {
-    await addFollower("usr-1", "jane@example.com", "Jane");
-    const id = await draft();
-    await saveBroadcast(id, 1, { subject: "Hi", body: EVENT_WORDS, dueAt: FUTURE });
-    await scheduleBroadcastNow(id, 2);
-    await startSending(id, "sent");
-    const [{ copy }] = await query<{ copy: number }>("SELECT id::int AS copy FROM broadcast_messages");
-    await replyToMessageNow(form({ id: "", copy: String(copy), body: "No" }));
-    await replyToMessageNow(form({ id: String(id), copy: "", body: "No" }));
-    await replyToMessageNow(form({ id: String(id), copy: String(copy) }));
-    expect(await query("SELECT id FROM broadcast_replies")).toEqual([]);
-    await replyToMessageNow(form({ id: String(id), copy: String(copy), body: "Yes, do." }));
-    expect(await query("SELECT body, sent_by FROM broadcast_replies")).toEqual([{ body: "Yes, do.", sent_by: JO }]);
-    expect(revalidatePath).toHaveBeenCalledWith(`/staff/broadcasts/${id}/${copy}`);
   });
 
   it("leaves a mailing to politicians alone", async () => {

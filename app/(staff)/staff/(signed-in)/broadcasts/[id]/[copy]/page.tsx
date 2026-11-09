@@ -5,7 +5,6 @@ import { requireStaff } from "@/lib/server/staff-auth";
 import { mailingId } from "@/lib/staff-search";
 import Breadcrumb from "../../../../_components/Breadcrumb";
 import MessageCopyView from "../../../../_components/MessageCopyView";
-import { replyToMessageNow } from "../../../../broadcast-actions";
 
 type Params = { params: Promise<{ id: string; copy: string }> };
 
@@ -20,14 +19,14 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return { title: (await copyOf(params)).title };
 }
 
-/** Thread: one supporter's message of a broadcast, and every reply. */
+/** Thread: one supporter's message of a broadcast. */
 export default async function MessageCopyPage({ params }: Params) {
   await requireStaff("supporters");
   const one = await copyOf(params);
   return (
     <>
       <Breadcrumb href={`/staff/broadcasts/${one.messageId}`}>{one.title}</Breadcrumb>
-      <MessageCopyView one={one} reply={replyToMessageNow} />
+      <MessageCopyView one={one} />
     </>
   );
 }

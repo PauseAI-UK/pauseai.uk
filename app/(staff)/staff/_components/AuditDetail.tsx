@@ -258,8 +258,6 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "withdraw broadcast template": none,
   "schedule broadcast": none,
   "stop broadcast": none,
-  "reply to email": none,
-  "reply to message": none,
   "download supporters": none,
   "download blocked emails": none,
   "download letters": none,

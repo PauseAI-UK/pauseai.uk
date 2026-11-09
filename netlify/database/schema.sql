@@ -1128,33 +1128,6 @@ ALTER TABLE public.broadcast_messages ALTER COLUMN id ADD GENERATED ALWAYS AS ID
 );
 
 --
--- Name: broadcast_replies; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.broadcast_replies (
-    id bigint NOT NULL,
-    message_id bigint NOT NULL,
-    at timestamp with time zone DEFAULT now() NOT NULL,
-    body text NOT NULL,
-    sent_by text,
-    CONSTRAINT broadcast_replies_body_check CHECK ((body <> ''::text)),
-    CONSTRAINT broadcast_replies_sent_by_check CHECK ((sent_by = lower(sent_by)))
-);
-
---
--- Name: broadcast_replies_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-ALTER TABLE public.broadcast_replies ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME public.broadcast_replies_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
-
---
 -- Name: campaigns; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2224,13 +2197,6 @@ ALTER TABLE ONLY public.broadcast_messages
     ADD CONSTRAINT broadcast_messages_provider_message_id_key UNIQUE (provider_message_id);
 
 --
--- Name: broadcast_replies broadcast_replies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.broadcast_replies
-    ADD CONSTRAINT broadcast_replies_pkey PRIMARY KEY (id);
-
---
 -- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2791,12 +2757,6 @@ CREATE INDEX broadcast_message_events_message ON public.broadcast_message_events
 CREATE INDEX broadcast_messages_supporter ON public.broadcast_messages USING btree (supporter_id);
 
 --
--- Name: broadcast_replies_message; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX broadcast_replies_message ON public.broadcast_replies USING btree (message_id, at);
-
---
 -- Name: email_problems_address; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3191,13 +3151,6 @@ ALTER TABLE ONLY public.broadcast_messages
 
 ALTER TABLE ONLY public.broadcast_messages
     ADD CONSTRAINT broadcast_messages_supporter_id_fkey FOREIGN KEY (supporter_id) REFERENCES public.supporters(id) ON DELETE SET NULL;
-
---
--- Name: broadcast_replies broadcast_replies_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.broadcast_replies
-    ADD CONSTRAINT broadcast_replies_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.broadcast_messages(id) ON DELETE CASCADE;
 
 --
 -- Name: campaigns campaigns_ask_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

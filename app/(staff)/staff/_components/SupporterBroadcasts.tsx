@@ -41,22 +41,9 @@ const COLUMNS: ListColumn<SupporterBroadcastRow>[] = [
       );
     },
   },
-  {
-    key: "replies",
-    label: copy.supporterColumns.replies,
-    cell: (m) => (
-      <ul className={styles.replies}>
-        {m.replies.map((reply) => (
-          <li key={reply.at.toISOString()}>
-            {reply.body} <Muted>{staffDate(reply.at)}</Muted>
-          </li>
-        ))}
-      </ul>
-    ),
-  },
 ];
 
-/** The broadcasts a supporter was sent, newest first, with their replies: each name leads to the broadcast, and its link to this supporter's copy. */
+/** The broadcasts a supporter was sent, newest first: each name leads to the broadcast, and its link to this supporter's copy. */
 export default function SupporterBroadcasts({ broadcasts }: { broadcasts: SupporterBroadcastRow[] }) {
   return (
     <section aria-labelledby="broadcasts">

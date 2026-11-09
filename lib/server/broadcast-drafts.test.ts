@@ -11,7 +11,6 @@ import {
   createBroadcastDraft,
   getWrittenBroadcast,
   broadcastChangesFrom,
-  replyToMessage,
   reviewTemplate,
   saveBroadcastDraft,
   sameTerms,
@@ -471,73 +470,9 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await sendBroadcastTest(approved, textTo, "+447700900002")).toBeUndefined();
   });
 
-  describe_replies();
-});
-
-function describe_replies() {
-  /** A sent copy to Jane by `filter`; returns its ID. */
-  async function sentCopy(params: Record<string, string>, changes: object): Promise<number> {
-    await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
-    const id = await draftOf(params);
-    await scheduleBroadcast(id, await readied(id, changes), JO);
-    await startSending(id, "sent");
-    const [{ copy }] = await query<{ copy: number }>(
-      "UPDATE broadcast_messages SET status = 'sent' RETURNING id::int AS copy",
-    );
-    return copy;
-  }
-
-  it("sends a reply to an email, and keeps who sent it", async () => {
-    const copy = await sentCopy(EMAIL_FILTER, { subject: "Events", body: EVENT_WORDS });
-    expect(await replyToMessage(copy, "  ", JO)).toBe(false);
-    expect(await replyToMessage(copy, " Yes, do. ", JO)).toBe(true);
-    expect(await query("SELECT body, sent_by FROM broadcast_replies")).toEqual([{ body: "Yes, do.", sent_by: JO }]);
-    expect(await query("SELECT action FROM audit_log WHERE action LIKE 'reply to %'")).toEqual([
-      { action: "reply to email" },
-    ]);
-    expect(await replyToMessage(999, "Hello", JO)).toBe(false);
-  });
-
-  it("sends a reply to a text only within a day of their last message", async () => {
-    const copy = await sentCopy(TEXT_FILTER, { templateId: await addTemplate("March day") });
-    expect(await replyToMessage(copy, "Hello", JO)).toBe(false);
-    await query(
-      "INSERT INTO broadcast_replies (message_id, body, at) VALUES ($1, 'Is it on?', now() - interval '25 hours')",
-      [copy],
-    );
-    expect(await replyToMessage(copy, "Hello", JO)).toBe(false);
-    await query(
-      "INSERT INTO broadcast_replies (message_id, body, at) VALUES ($1, 'Well?', now() - interval '1 hour')",
-      [copy],
-    );
-    expect(await replyToMessage(copy, "Yes", JO)).toBe(true);
-    expect(await query("SELECT action FROM audit_log WHERE action LIKE 'reply to %'")).toEqual([
-      { action: "reply to message" },
-    ]);
-  });
-
-  it("sends no reply with nothing to send it by, or to someone erased", async () => {
-    const copy = await sentCopy(EMAIL_FILTER, { subject: "Events", body: EVENT_WORDS });
-    vi.stubEnv("DATA_FIXTURES", "");
-    expect(await replyToMessage(copy, "Hello", JO)).toBe(false);
-    vi.stubEnv("DATA_FIXTURES", "1");
-    await query("UPDATE broadcast_messages SET supporter_id = NULL, address = NULL, merge_values = NULL");
-    expect(await replyToMessage(copy, "Hello", JO)).toBe(false);
-  });
-
-  it("says when a reply couldn't be sent", async () => {
-    const copy = await sentCopy(EMAIL_FILTER, { subject: "Events", body: EVENT_WORDS });
-    const channels = await import("./broadcast-channels");
-    const spy = vi
-      .spyOn(channels, "broadcastBackend")
-      .mockReturnValue({ send: async () => ({ sent: false, reason: "failed" }) });
-    expect(await replyToMessage(copy, "Hello", JO)).toBe(false);
-    spy.mockRestore();
-  });
-
   it("leaves a saved draft's filter alone for saveDraft", async () => {
     const id = await draftOf(EMAIL_FILTER);
     await saveDraft(id, 1, { subject: "Hi" });
     expect((await getWrittenBroadcast(id))!.filter.params).toEqual(EMAIL_FILTER);
   });
-}
+});

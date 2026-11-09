@@ -1275,14 +1275,12 @@ All events: ${link}`,
       failed: "failed",
       stopped: "stopped",
       read: "read",
-      replied: "replied",
     },
     tabs: {
       delivered: "⁂ Delivered",
       failed: "⁂ Failed",
       stopped: "⁂ Stopped",
       read: "⁂ Read",
-      replied: "⁂ Replied",
     } as Record<string, string>,
     recipientsTitle: "Recipients",
     recipientsCount: (n: number) => count(n, "recipient", "recipients"),
@@ -1310,12 +1308,10 @@ All events: ${link}`,
     // Thread: one copy's page.
     copySubtitle: (title: string, channel: "email" | "text", n: number) =>
       `⁂ ${title}, ${channel === "email" ? "an email" : "a text"} to ${count(n, "supporter", "supporters")}`,
-    copyTag: { replied: "⁂ Replied" },
     facts: {
       sent: "⁂ Sent",
       delivered: "⁂ Delivered",
       read: "⁂ Read",
-      replies: "⁂ Replies",
       supporter: "⁂ Supporter",
       from: "From",
       // What everyone a broadcast is to said yes to: its channel and topic, from the Consent filter.
@@ -1323,16 +1319,8 @@ All events: ${link}`,
     },
     // In To, when Consent is the only filter.
     everyoneWhoSaidYes: "Everyone who did",
-    lastAnswered: (by: string) => `⁂ last answered by ${by}`,
     threadTitle: "Thread",
     headers: { from: "From", to: "To", received: "⁂ Received" },
-    reply: "⁂ Reply",
-    sendReply: { email: "⁂ Send reply by email", text: "⁂ Send reply by text" },
-    replyWindow: (until: string) =>
-      `⁂ Free to reply until ${until}, 24 hours after their last message. After that only an approved template can be sent. Goes as PauseAI UK.`,
-    replyClosed: "⁂ It's over 24 hours since their last message, so only an approved template can be sent now.",
-    replyEmail: "⁂ Goes from hello@pauseai.uk as PauseAI UK.",
-    replyCantSend: "⁂ Replies can't be sent from here yet.",
     standingTitle: "⁂ How it stands",
     standing: {
       email: (name: string) => `⁂ ${name} can unsubscribe from the link in the email, and we'd see it here.`,
@@ -1343,7 +1331,7 @@ All events: ${link}`,
     // A supporter's page.
     supporterTitle: "Broadcasts",
     supporterNone: "No broadcasts sent to them.",
-    supporterColumns: { message: "⁂ Broadcast", status: "⁂ Status", replies: "⁂ Their replies" },
+    supporterColumns: { message: "⁂ Broadcast", status: "⁂ Status" },
   },
 
   // The pages for writing a mailing, its own page once it's scheduled, and the list of them.

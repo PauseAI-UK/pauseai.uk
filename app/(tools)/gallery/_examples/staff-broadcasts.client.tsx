@@ -243,7 +243,7 @@ export function MessageCopyViewExample({ email = false }: { email?: boolean }) {
         readAt: null,
       }
     : exampleMessageCopy;
-  return <MessageCopyView one={one} reply={nothing} />;
+  return <MessageCopyView one={one} />;
 }
 
 /** The Consent: neither channel chosen yet, as on New broadcast; texts chosen, their topics to pick; and one with words of its own, so only by its channel. */

@@ -1,6 +1,5 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { staffTime } from "@/lib/staff-time";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addStaffAccount, importLuma, logInAsStaff, newestEmail } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
@@ -11,8 +10,8 @@ export const section: Section = { name: "Broadcasts to supporters", part: "Staff
 // Broadcasts to supporters: started from the supporters list's Consent filter,
 // by email or text; a text on a WhatsApp approved template, or on new words
 // sent for approval; who it's to changed from the list; and the pages of those
-// sent, with each copy's replies, made in the database as scheduling and
-// sending would make them.
+// sent, and each copy's, made in the database as scheduling and sending would
+// make them.
 
 const copy = staffCopy.broadcastPages;
 const mailingCopy = staffCopy.mailingPages;
@@ -97,10 +96,6 @@ function addSent(database: string, channel: "email" | "text", title: string): { 
     database,
     `INSERT INTO broadcast_message_events (message_id, kind, at) VALUES
        (${first}, 'delivered', '2026-10-15T08:19:00Z'), (${first}, 'read', '2026-10-15T09:00:00Z')`,
-  );
-  runSql(
-    database,
-    `INSERT INTO broadcast_replies (message_id, body, at) VALUES (${first}, 'Is it OK to bring my dog?', '2026-10-16T09:30:00Z')`,
   );
   return { id, copy: first };
 }
@@ -326,7 +321,7 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   await expect(page).toHaveURL(draft);
 });
 
-test("An email sent, and replying", async ({ page, request, flowDatabase }) => {
+test("An email sent", async ({ page, request, flowDatabase }) => {
   story(
     "An email has gone. The list says how it went, and its page has the counts, the email and everyone it went to.",
   );
@@ -343,25 +338,19 @@ test("An email sent, and replying", async ({ page, request, flowDatabase }) => {
   await page.getByRole("link", { name: new RegExp(copy.counts.stopped) }).click();
   await expect(page.getByRole("heading", { name: copy.tabs.stopped })).toBeVisible();
   await frame(page, "Those who stopped");
-  story(
-    "Each recipient leads to their copy: the email and their reply as the thread, with a box to answer from the site.",
-  );
+  story("Each recipient leads to their copy: the email as they got it, when it was sent, delivered and read.");
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
-  await expect(page.getByText("Is it OK to bring my dog?")).toBeVisible();
+  await expect(page.getByRole("heading", { name: copy.threadTitle })).toBeVisible();
   await frame(page, "The thread");
-  await page.getByLabel(copy.reply).fill("Yes, dogs are welcome.");
-  await page.getByRole("button", { name: copy.sendReply.email }).click();
-  await expect(page.getByText("Yes, dogs are welcome.")).toBeVisible();
-  await frame(page, "The reply sent");
-  story("The supporter's page lists the broadcast, with their reply.");
+  story("The supporter's page lists the broadcast.");
   const [supporter] = runSql(flowDatabase, `SELECT supporter_id FROM broadcast_messages WHERE id = ${sent.copy}`);
   await page.goto(`${BASE}/staff/supporters/${supporter}`);
-  await expect(page.getByRole("heading", { name: copy.supporterTitle })).toBeVisible();
-  await page.getByText("Is it OK to bring my dog?").scrollIntoViewIfNeeded();
+  const heading = page.getByRole("heading", { name: copy.supporterTitle });
+  await heading.scrollIntoViewIfNeeded();
   await frame(page, "On the supporter's page", { window: true });
 });
 
-test("A text sent, and the conversation", async ({ page, request, flowDatabase }) => {
+test("A text sent", async ({ page, request, flowDatabase }) => {
   story("A text has gone. Its page shows the bubble where an email's shows the email, and how many read it.");
   await importLuma(request, BASE);
   const sent = addSent(flowDatabase, "text", "March day: where to meet");
@@ -369,14 +358,8 @@ test("A text sent, and the conversation", async ({ page, request, flowDatabase }
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
   await expect(page.getByText(copy.textTitle)).toBeVisible();
   await frame(page, "The text's page");
-  story(
-    "Someone replied. Their copy shows the conversation, and a reply is free for 24 hours after their last message.",
-  );
+  story("Each recipient's copy shows the text as it reached them on WhatsApp.");
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
-  await expect(page.getByText(copy.replyWindow(staffTime(new Date("2026-10-17T09:30:00Z"))))).toBeVisible();
-  await frame(page, "The conversation");
-  await page.getByLabel(copy.reply).fill("Yes, dogs are welcome.");
-  await page.getByRole("button", { name: copy.sendReply.text }).click();
-  await expect(page.getByText("Yes, dogs are welcome.")).toBeVisible();
-  await frame(page, "The reply sent");
+  await expect(page.getByText(/the march meets at 11:00/)).toBeVisible();
+  await frame(page, "The text as they got it");
 });

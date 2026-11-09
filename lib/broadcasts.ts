@@ -127,17 +127,9 @@ export function textSender(name: string, number: string): string {
 /** How long after its time a text may still go, a fixed limit nobody sets. */
 const TEXT_SENDS_FOR_DAYS = 3;
 
-/** When a text due at `dueAt` stops sending, as an ISO string. */
+/** When a text due at `dueAt` stops sending. */
 export function textStopsAt(dueAt: Date): Date {
   return new Date(dueAt.getTime() + TEXT_SENDS_FOR_DAYS * 24 * 60 * 60 * 1000);
-}
-
-/** A reply to a text is free for this long after the person's last message. */
-export const TEXT_REPLY_HOURS = 24;
-
-/** Until when a reply to a text can go, as an ISO string: `TEXT_REPLY_HOURS` after their last message, or never with none. */
-export function textReplyUntil(lastFromThem: Date | null): Date | null {
-  return lastFromThem && new Date(lastFromThem.getTime() + TEXT_REPLY_HOURS * 60 * 60 * 1000);
 }
 
 /** What an email costs by Postmark's broadcast stream, in dollars (https://postmarkapp.com/pricing). */

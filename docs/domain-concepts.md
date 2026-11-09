@@ -289,13 +289,12 @@ broadcasts out. Each person's copy of a broadcast is a message
   only some get, as its words are the same for everyone. A text
   stops sending a fixed three days after its time.
 - **Sending.** No backend sends broadcasts yet (`lib/server/broadcast-channels.ts`):
-  on the live site scheduling and replying are refused and the pages say so,
-  and only an email's test copy goes, by Postmark. A fixture build has
-  a fake backend, so its flows can be driven whole.
-- **Replies** are kept in `broadcast_replies`, each from the supporter or, with
-  `sent_by`, from staff, and shown on the message's page, Thread
-  (`/staff/broadcasts/<id>/<copy>`), and the supporter's. A reply to a text is
-  free within 24 hours of the person's last message, and refused after.
+  on the live site scheduling is refused and the pages say so, and only an
+  email's test copy goes, by Postmark. A fixture build has a fake backend, so
+  its flows can be driven whole.
+- **A message's page**, Thread (`/staff/broadcasts/<id>/<copy>`), shows one
+  person's copy as they got it, and when it was sent, delivered and read.
+  Replies aren't kept yet.
 
 ### Mailings to politicians
 

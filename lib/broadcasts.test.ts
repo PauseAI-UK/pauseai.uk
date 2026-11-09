@@ -12,7 +12,6 @@ import {
   broadcastScheduleProblems,
   broadcastTerms,
   spacedNumber,
-  textReplyUntil,
   textSender,
   textStopsAt,
   type SchedulingBroadcast,
@@ -45,11 +44,6 @@ describe("broadcastTerms", () => {
 describe("the fixed limits", () => {
   it("stops a text three days after its time", () => {
     expect(textStopsAt(new Date("2026-11-12T09:18:00.000Z"))).toEqual(new Date("2026-11-15T09:18:00.000Z"));
-  });
-
-  it("keeps a reply free for a day after their last message, and none before they've written", () => {
-    expect(textReplyUntil(new Date("2026-11-07T08:52:00.000Z"))).toEqual(new Date("2026-11-08T08:52:00.000Z"));
-    expect(textReplyUntil(null)).toBeNull();
   });
 });
 

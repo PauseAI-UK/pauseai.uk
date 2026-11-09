@@ -1,7 +1,6 @@
 import "server-only";
 import { checkMailingDoc, letterFor, type MailingDoc } from "@/lib/mailing-doc";
 import { toText } from "@/lib/letter-format";
-import { now } from "@/lib/now";
 import { storedFilter, type Params } from "@/lib/staff-search";
 import { staffCopy } from "@/lib/content/staff-interface";
 import {
@@ -12,7 +11,6 @@ import {
   broadcastScheduleProblems,
   broadcastTerms,
   BROADCAST_SENDER,
-  TEXT_REPLY_HOURS,
   TEXT_SENDER_NAME,
   type BroadcastChannel,
   type BroadcastScheduleProblem,
@@ -438,44 +436,4 @@ export async function sendBroadcastTest(
     subject: broadcast.template.name,
     text: toText(letterFor(broadcast.body, recipient)),
   });
-}
-
-/** One copy of a broadcast, as replying to it needs it. */
-type CopyToReply = {
-  id: number;
-  address: string | null;
-  channel: BroadcastChannel;
-  subject: string;
-  lastFromThem: string | null;
-};
-
-/**
- * Sends a staff member's reply to a copy of a broadcast, and keeps it: by its
- * channel, a text only within the free window after the person's last
- * message. Says whether it went.
- */
-export async function replyToMessage(copyId: number, body: string, by: string): Promise<boolean> {
-  const words = body.trim();
-  const backend = broadcastBackend();
-  if (!words || !backend) return false;
-  const [one] = await query<CopyToReply>(
-    `SELECT c.id::int AS id, c.address, m.channel, m.subject,
-       (SELECT max(r.at) FROM broadcast_replies r WHERE r.message_id = c.id AND r.sent_by IS NULL) AS "lastFromThem"
-     FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id WHERE c.id = $1`,
-    [copyId],
-  );
-  if (!one?.address) return false;
-  const closes = one.lastFromThem ? new Date(one.lastFromThem).getTime() + TEXT_REPLY_HOURS * 60 * 60 * 1000 : 0;
-  if (one.channel === "text" && closes <= now().getTime()) return false;
-  const result = await backend.send({ channel: one.channel, to: one.address, subject: one.subject, text: words });
-  if (!result.sent) return false;
-  await transaction(async (db) => {
-    await query(
-      "INSERT INTO broadcast_replies (message_id, body, sent_by) VALUES ($1, $2, $3)",
-      [copyId, words, by],
-      db,
-    );
-    await logChange(by, one.channel === "email" ? "reply to email" : "reply to message", { id: copyId }, db);
-  });
-  return true;
 }

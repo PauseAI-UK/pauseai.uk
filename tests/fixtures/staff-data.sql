@@ -948,13 +948,6 @@ SELECT id, sent_at, 'sent' FROM messages WHERE status <> 'skipped'
 UNION ALL
 SELECT id, sent_at + interval '1 minute', CASE status WHEN 'delivered' THEN 'delivered' ELSE 'failed' END FROM messages WHERE status <> 'skipped';
 
--- The first supporter's reply to it, and our answer.
-INSERT INTO broadcast_replies (message_id, at, body, sent_by)
-SELECT id, sent_at + r.after, r.body, r.by FROM broadcast_messages, (VALUES
-  (interval '1 hour', 'Is the Leeds meetup on this month?', NULL::text),
-  (interval '2 hours', 'Yes, on the 29th.', 'jo@pauseai.uk')) r (after, body, by)
-WHERE status = 'delivered';
-
 -- A mailing to politicians sending, a third of the way: one of its three
 -- letters sent, two to go. It goes from Jo's Gmail, which isn't connected
 -- here, so the hourly job leaves it as it is. After every mailing a route's example names, so none of those IDs moves.
@@ -1233,15 +1226,3 @@ UNION ALL SELECT id, now() + due + interval '1 minute', 'delivered' FROM seed_co
 UNION ALL SELECT id, now() + due + interval '1 minute', CASE channel WHEN 'email' THEN 'bounced' ELSE 'failed' END FROM seed_copies WHERE status = 'failed'
 UNION ALL SELECT id, now() + due + interval '20 minutes', 'read' FROM seed_copies WHERE was_read
 UNION ALL SELECT id, now() + due, 'opted-out' FROM seed_copies WHERE reason = 'unsubscribed';
--- A text's replies: one conversation still in its free 24 hours, and one past them.
-INSERT INTO broadcast_replies (message_id, at, body, sent_by)
-SELECT c.id, now() - r.ago, r.body, r.by FROM seed_copies c JOIN seed_broadcasts m ON m.id = c.mailing_id, (VALUES
-  (1, interval '5 hours', 'Which door is the Main Hall?', NULL::text),
-  (1, interval '4 hours', 'The one on the north side, by the café.', 'jo@pauseai.uk'),
-  (1, interval '3 hours', 'Thanks, see you there.', NULL),
-  (2, interval '2 days', 'Can I bring a friend?', NULL)) r (person, ago, body, by)
-WHERE m.title = 'PauseCon room change' AND c.person = r.person;
--- An email's: someone answering the one that was stopped.
-INSERT INTO broadcast_replies (message_id, at, body, sent_by)
-SELECT c.id, now() - interval '4 days', 'Thanks, is there a transcript?', NULL
-FROM seed_copies c JOIN seed_broadcasts m ON m.id = c.mailing_id WHERE m.title = 'PauseCon: the recordings' AND c.person = 1;

@@ -90,7 +90,6 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       ["skipped", "blocked"],
     ]);
     await query("INSERT INTO broadcast_message_events (message_id, kind) VALUES ($1, 'read')", [copies[0]]);
-    await query("INSERT INTO broadcast_replies (message_id, body) VALUES ($1, 'Thanks')", [copies[0]]);
     const { groups, now } = await broadcastsPage();
     expect(typeof now).toBe("string");
     const coming = groups[0].mailings;
@@ -109,7 +108,6 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       failed: 2,
       stopped: 1,
       read: 1,
-      replied: 1,
     });
   });
 
@@ -198,16 +196,15 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       "SELECT id::int AS jane FROM broadcast_messages WHERE address = 'jane@example.com'",
     );
     await query("INSERT INTO broadcast_message_events (message_id, kind) VALUES ($1, 'read')", [jane]);
-    await query("INSERT INTO broadcast_replies (message_id, body) VALUES ($1, 'Thanks')", [jane]);
     const all = await broadcastPageData(id, {}, JO);
     expect(all).toMatchObject({ kind: "written", tab: "all", recipientsTotal: 2, page: 1, pages: 1, pageSize: 100 });
-    expect(all!.kind === "written" && all!.recipients[0]).toMatchObject({ name: "Jane Smith", read: true, replies: 1 });
+    expect(all!.kind === "written" && all!.recipients[0]).toMatchObject({ name: "Jane Smith", read: true });
     expect(await broadcastPageData(id, { tab: "failed", page: "1" }, JO)).toMatchObject({
       tab: "failed",
       recipientsTotal: 1,
     });
     expect(await broadcastPageData(id, { tab: "nonsense" }, JO)).toMatchObject({ tab: "all" });
-    for (const tab of ["delivered", "stopped", "read", "replied"]) {
+    for (const tab of ["delivered", "stopped", "read"]) {
       expect(await broadcastPageData(id, { tab }, JO)).toMatchObject({ tab });
     }
     expect(await choosingBroadcast(String(id))).toBeUndefined();
@@ -239,7 +236,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await broadcastPageData(id, { page: "2" }, JO)).toMatchObject({ recipients: [] });
   });
 
-  it("gives one copy with its replies, and until when a reply to a text is free", async () => {
+  it("gives one copy, with when it was delivered and read", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane Smith", { phone: "07700 900001" });
     const id = await scheduled(TEXT_FILTER, { templateId: await addTemplate("March day") });
     const [copy] = await sent(id, [["delivered", null]]);
@@ -249,45 +246,28 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       name: "Jane Smith",
       address: "+447700900001",
       merge: { values: { firstName: "Jane" } },
-      replies: [],
-      replyUntil: null,
       deliveredAt: null,
       readAt: null,
       to: 1,
-      sends: true,
     });
     await query(
       "INSERT INTO broadcast_message_events (message_id, kind, at) VALUES ($1, 'delivered', '2026-10-20T08:01:00Z'), ($1, 'read', '2026-10-20T08:02:00Z')",
       [copy],
     );
-    await query(
-      `INSERT INTO broadcast_replies (message_id, body, at, sent_by) VALUES
-       ($1, 'Is it on?', '2026-10-20T09:00:00Z', NULL), ($1, 'Yes', '2026-10-20T10:00:00Z', 'jo@pauseai.uk')`,
-      [copy],
-    );
     expect(await messageCopy(id, copy)).toMatchObject({
-      deliveredAt: expect.anything(),
-      readAt: expect.anything(),
-      replies: [
-        { body: "Is it on?", sentBy: null },
-        { body: "Yes", sentBy: JO },
-      ],
-      replyUntil: new Date("2026-10-21T09:00:00.000Z"),
+      deliveredAt: new Date("2026-10-20T08:01:00Z"),
+      readAt: new Date("2026-10-20T08:02:00Z"),
     });
     // Erased, it keeps only that it was sent.
     await query("UPDATE broadcast_messages SET supporter_id = NULL, address = NULL, merge_values = NULL");
     expect(await messageCopy(id, copy)).toMatchObject({ name: null, address: null, merge: null, supporterId: null });
   });
 
-  it("lists the broadcasts a supporter was sent, newest first, with their replies", async () => {
+  it("lists the broadcasts a supporter was sent, newest first", async () => {
     const jane = await addFollower("usr-1", "jane@example.com", "Jane");
     expect(await broadcastsToSupporter(jane)).toEqual([]);
     const id = await scheduled(EMAIL_FILTER, { subject: "Events", body: EVENT_WORDS });
     const [copy] = await sent(id, [["delivered", null]]);
-    await query(
-      `INSERT INTO broadcast_replies (message_id, body, sent_by) VALUES ($1, 'Thanks', NULL), ($1, 'Pleasure', 'jo@pauseai.uk')`,
-      [copy],
-    );
     expect(await broadcastsToSupporter(jane)).toMatchObject([
       {
         copyId: copy,
@@ -296,7 +276,6 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
         channel: "email",
         status: "delivered",
         read: false,
-        replies: [{ body: "Thanks" }],
       },
     ]);
   });

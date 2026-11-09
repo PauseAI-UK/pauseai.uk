@@ -15,7 +15,6 @@ import {
   createBroadcastDraft,
   getWrittenBroadcast,
   broadcastChangesFrom,
-  replyToMessage,
   saveBroadcastDraft,
   scheduleBroadcast,
   sendBroadcastTest,
@@ -182,15 +181,4 @@ export async function rescheduleBroadcastNow(form: FormData): Promise<void> {
   await rescheduleMailing(id, dueAt, email);
   revalidatePath(LIST);
   revalidatePath(`${LIST}/${id}`);
-}
-
-/** Sends the form's reply to one copy of a broadcast. */
-export async function replyToMessageNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff("supporters");
-  const id = idFrom(form);
-  const copy = idFrom(form, "copy");
-  const body = form.get("body");
-  if (!id || !copy || typeof body !== "string") return;
-  await replyToMessage(copy, body, email);
-  revalidatePath(`${LIST}/${id}/${copy}`);
 }

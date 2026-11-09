@@ -102,9 +102,6 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "withdraw broadcast template": { id: number };
   "schedule broadcast": { id: number; recipients: number };
   "stop broadcast": { id: number; was: MailingState };
-  // A reply from staff, by the copy it answers.
-  "reply to email": { id: number };
-  "reply to message": { id: number };
 };
 
 /** What rows logged earlier may hold beyond AuditDetails: actions no longer logged, and earlier details of some that are. */

@@ -6,7 +6,7 @@ import { mailingGroups, type MailingGroup } from "@/lib/mailing-groups";
 import { stateValue } from "@/lib/contact-permissions";
 import { now } from "@/lib/now";
 import { firstOf, pageNumber, storedFilter, type Params, type ParamValue, type StoredFilter } from "@/lib/staff-search";
-import { BROADCAST_SENDER, textReplyUntil, type BroadcastChannel, type BroadcastTerms } from "@/lib/broadcasts";
+import { BROADCAST_SENDER, type BroadcastChannel, type BroadcastTerms } from "@/lib/broadcasts";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "./db";
 import { gmailAccounts, type GmailAccount } from "./gmail-accounts";
@@ -24,8 +24,8 @@ import { checkStoredFilter, filterProblems } from "./stored-filters";
 import { supporterChoices, type SupporterChoices } from "./supporters";
 
 // What the pages of broadcasts to supporters show: the list of them, a draft
-// to write, one scheduled or sent with its recipients, and one copy with its
-// replies. To staff, broadcasts are apart from mailings, though both are rows
+// to write, one scheduled or sent with its recipients, and one copy as sent.
+// To staff, broadcasts are apart from mailings, though both are rows
 // of `mailings`, so this reads only those to supporters.
 
 /** A broadcast in the list: a mailing's summary, with what only a broadcast has. */
@@ -41,7 +41,6 @@ export type BroadcastSummary = MailingSummary & {
 const STOPPED = "(c.status = 'cancelled' OR c.skip_reason = 'unsubscribed')";
 const FAILED = "(c.status = 'failed' OR (c.status = 'skipped' AND c.skip_reason <> 'unsubscribed'))";
 const WAS_READ = "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'read')";
-const REPLIED = "EXISTS (SELECT 1 FROM broadcast_replies r WHERE r.message_id = c.id AND r.sent_by IS NULL)";
 
 const SELECT_BROADCASTS = `
   SELECT m.id::int AS id, m.title, m.ask, NULL AS "askTitle", false AS imported, m.state, m.created_by AS "createdBy",
@@ -55,7 +54,7 @@ const SELECT_BROADCASTS = `
     count(c.id) FILTER (WHERE ${FAILED})::int AS failed,
     count(c.id) FILTER (WHERE ${STOPPED})::int AS stopped,
     count(c.id) FILTER (WHERE ${WAS_READ})::int AS read,
-    count(c.id) FILTER (WHERE ${REPLIED})::int AS replied,
+    0 AS replied,
     0 AS answered
   FROM mailings m LEFT JOIN broadcast_messages c ON c.mailing_id = m.id
   WHERE m.audience = 'supporters'`;
@@ -107,11 +106,10 @@ export type MessageRecipient = {
   skipReason: string | null;
   sentAt: Date | null;
   read: boolean;
-  replies: number;
 };
 
 /** Which of a broadcast's recipients its page lists. */
-export const MESSAGE_TABS = ["all", "delivered", "failed", "stopped", "read", "replied"] as const;
+export const MESSAGE_TABS = ["all", "delivered", "failed", "stopped", "read"] as const;
 export type MessageTab = (typeof MESSAGE_TABS)[number];
 
 const TAB_CONDITIONS: Record<MessageTab, string> = {
@@ -120,7 +118,6 @@ const TAB_CONDITIONS: Record<MessageTab, string> = {
   failed: FAILED,
   stopped: STOPPED,
   read: WAS_READ,
-  replied: REPLIED,
 };
 
 const RECIPIENTS_PAGE_SIZE = 100;
@@ -252,8 +249,7 @@ export async function broadcastPageData(
     query<MessageRecipient>(
       `SELECT c.id::int AS "copyId", c.supporter_id::int AS "supporterId", c.merge_values ->> 'name' AS name,
          c.merge_values ->> 'place' AS place, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
-         ${WAS_READ} AS read,
-         (SELECT count(*)::int FROM broadcast_replies r WHERE r.message_id = c.id AND r.sent_by IS NULL) AS replies
+         ${WAS_READ} AS read
        ${from} ORDER BY c.merge_values ->> 'name' NULLS LAST, c.id LIMIT $2 OFFSET $3`,
       [id, RECIPIENTS_PAGE_SIZE, (page - 1) * RECIPIENTS_PAGE_SIZE],
     ),
@@ -296,7 +292,6 @@ async function scheduledRecipients(
       skipReason: null,
       sentAt: null,
       read: false,
-      replies: 0,
     }));
   return { rows, total: recipients.length };
 }
@@ -310,10 +305,7 @@ export async function broadcastTitle(id: number): Promise<string | undefined> {
   return broadcast && (broadcast.title || staffCopy.broadcastPages.untitled);
 }
 
-/** What was said after a message: `sentBy` for a staff member's answer, none for the supporter's reply. */
-export type MessageReply = { id: number; at: Date; body: string; sentBy: string | null };
-
-/** One supporter's copy of a broadcast, and every reply, oldest first. */
+/** One supporter's copy of a broadcast. */
 export type MessageCopy = {
   id: number;
   messageId: number;
@@ -335,17 +327,11 @@ export type MessageCopy = {
   sentAt: Date | null;
   deliveredAt: Date | null;
   readAt: Date | null;
-  replies: MessageReply[];
-  /** Until when a reply to a text can go; none until they've written. */
-  replyUntil: Date | null;
-  /** Whether a reply can be sent yet. */
-  sends: boolean;
-  now: Date;
 };
 
 /** One copy of a broadcast, by its broadcast's ID and its own; or undefined. */
 export async function messageCopy(broadcastId: number, copyId: number): Promise<MessageCopy | undefined> {
-  const [row] = await query<Omit<MessageCopy, "replies" | "replyUntil" | "sends" | "now">>(
+  const [row] = await query<MessageCopy>(
     `SELECT c.id::int AS id, m.id::int AS "messageId", m.title, m.channel, m.subject, m.body,
        m.from_name AS "fromName", m.sent_from AS "sentFrom", c.supporter_id::int AS "supporterId",
        c.merge_values ->> 'name' AS name, c.address,
@@ -357,23 +343,10 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
      WHERE c.id = $2 AND m.id = $1 AND m.audience = 'supporters'`,
     [broadcastId, copyId],
   );
-  if (!row) return undefined;
-  const replies = await query<MessageReply>(
-    `SELECT id::int AS id, at, body, sent_by AS "sentBy" FROM broadcast_replies WHERE message_id = $1 ORDER BY at, id`,
-    [copyId],
-  );
-  const fromThem = replies.filter((reply) => !reply.sentBy).map((reply) => reply.at);
-  return {
-    ...row,
-    body: checkMailingDoc(row.body)!,
-    replies,
-    replyUntil: textReplyUntil(fromThem.at(-1) ?? null),
-    sends: Boolean(broadcastBackend()),
-    now: now(),
-  };
+  return row && { ...row, body: checkMailingDoc(row.body)! };
 }
 
-/** A broadcast sent to a supporter, on their page, with their replies. */
+/** A broadcast sent to a supporter, on their page. */
 export type SupporterBroadcastRow = {
   copyId: number;
   messageId: number;
@@ -383,22 +356,17 @@ export type SupporterBroadcastRow = {
   skipReason: string | null;
   sentAt: Date | null;
   read: boolean;
-  replies: { at: Date; body: string }[];
 };
 
 /** The broadcasts a supporter was sent, newest first. */
 export async function broadcastsToSupporter(supporterId: number): Promise<SupporterBroadcastRow[]> {
-  const rows = await query<Omit<SupporterBroadcastRow, "replies"> & { replies: { at: string; body: string }[] }>(
+  return query<SupporterBroadcastRow>(
     `SELECT c.id::int AS "copyId", m.id::int AS "messageId", m.title, m.channel, c.status, c.skip_reason AS "skipReason",
-       c.sent_at AS "sentAt", ${WAS_READ} AS read,
-       coalesce((SELECT json_agg(json_build_object('at', r.at, 'body', r.body) ORDER BY r.at, r.id) FROM broadcast_replies r
-         WHERE r.message_id = c.id AND r.sent_by IS NULL), '[]') AS replies
+       c.sent_at AS "sentAt", ${WAS_READ} AS read
      FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
      WHERE c.supporter_id = $1 ORDER BY c.sent_at DESC NULLS FIRST, c.id DESC`,
     [supporterId],
   );
-  // The replies come as JSON, their times as text.
-  return rows.map((row) => ({ ...row, replies: row.replies.map((reply) => ({ ...reply, at: new Date(reply.at) })) }));
 }
 
 /** The draft the supporters list is choosing who for. */

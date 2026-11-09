@@ -7,7 +7,7 @@ import type { ChannelResult } from "./mailing-channels";
 // each channel is still to come, so on the live site nothing does, and the
 // pages say so. A fixture build has a fake, so its flows can be driven whole.
 
-/** One message or reply to one supporter, as a backend sends it. */
+/** One message to one supporter, as a backend sends it. */
 export type SupporterMessage = { channel: BroadcastChannel; to: string; subject: string; text: string };
 
 export type BroadcastBackend = { send(message: SupporterMessage): Promise<ChannelResult> };

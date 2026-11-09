@@ -49,8 +49,8 @@ export function BroadcastChannelName({ channel }: { channel: BroadcastChannel })
 
 /**
  * How a broadcast went, in the order it happens: what arrived, what didn't,
- * what never went as it was stopped, then what came back; read only for a
- * text, as an email's isn't reported.
+ * what never went as it was stopped, then what was read, only for a text, as
+ * an email's isn't reported.
  */
 export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
   return [
@@ -58,7 +58,6 @@ export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
     { key: "failed", n: broadcast.failed, label: copy.counts.failed, tone: "red" },
     { key: "stopped", n: broadcast.stopped, label: copy.counts.stopped },
     ...(broadcast.channel === "text" ? [{ key: "read", n: broadcast.read, label: copy.counts.read }] : []),
-    { key: "replied", n: broadcast.replied, label: copy.counts.replied },
   ];
 }
 
@@ -74,7 +73,7 @@ export function copyStatus(
   return { words: copy.statuses[status], tone: status === "failed" ? "red" : undefined };
 }
 
-/** Whether a copy went, so has a page of its own with its replies. */
+/** Whether a copy went, so has a page of its own. */
 export function copyWent(copyOf: Pick<MessageRecipient, "status" | "skipReason">): boolean {
   return !copyOf.skipReason && !["scheduled", "cancelled"].includes(copyOf.status);
 }

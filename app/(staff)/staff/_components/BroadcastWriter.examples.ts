@@ -243,7 +243,7 @@ const summary: BroadcastSummary = {
   sent: 276,
   failed: 6,
   stopped: 8,
-  replied: 11,
+  replied: 0,
   answered: 0,
   channel: "email",
   delivered: 276,
@@ -254,7 +254,7 @@ const summary: BroadcastSummary = {
 /** A broadcast as the list has it. */
 export const exampleBroadcastSummary = summary;
 
-/** A broadcast's page, sent: Jane read it and replied, Sam's failed, Pat's skipped, Tom stopped and someone's erased. */
+/** A broadcast's page, sent: Jane read it, Sam's failed, Pat's skipped, Tom stopped and someone's erased. */
 export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" }> = {
   kind: "written",
   written: { ...exampleBroadcastEmail, id: 5, title: summary.title, subject: summary.title, state: "sent" },
@@ -275,7 +275,6 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       skipReason: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
       read: true,
-      replies: 1,
     },
     {
       copyId: 22,
@@ -286,7 +285,6 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       skipReason: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
       read: false,
-      replies: 0,
     },
     {
       copyId: 23,
@@ -297,7 +295,6 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       skipReason: "blocked",
       sentAt: null,
       read: false,
-      replies: 0,
     },
     {
       copyId: 24,
@@ -308,7 +305,6 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       skipReason: "unsubscribed",
       sentAt: null,
       read: false,
-      replies: 0,
     },
     {
       copyId: 25,
@@ -319,12 +315,11 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       skipReason: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
       read: false,
-      replies: 0,
     },
   ],
 };
 
-/** A text sent to Jane, who answered, and we answered back. */
+/** A text sent to Jane, who read it. */
 export const exampleMessageCopy: MessageCopy = {
   id: 21,
   messageId: 5,
@@ -344,11 +339,4 @@ export const exampleMessageCopy: MessageCopy = {
   sentAt: new Date("2026-11-07T07:18:00Z"),
   deliveredAt: new Date("2026-11-07T07:18:30Z"),
   readAt: new Date("2026-11-07T07:40:00Z"),
-  replies: [
-    { id: 1, at: new Date("2026-11-07T07:52:00Z"), body: "Great, thanks. Is it OK to bring my dog?", sentBy: null },
-    { id: 2, at: new Date("2026-11-07T08:10:00Z"), body: "Yes, dogs are very welcome.", sentBy: "jo@pauseai.uk" },
-  ],
-  replyUntil: new Date("2026-11-08T07:52:00.000Z"),
-  sends: true,
-  now: new Date("2026-11-07T09:00:00.000Z"),
 };

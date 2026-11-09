@@ -1,19 +1,16 @@
--- Broadcasts' tables, named as the staff pages name them: a broadcast is
--- the set, each person's copy of it a message; and WhatsApp's templates as
--- WhatsApp's.
+-- What the staff pages for broadcasts need. A broadcast is an email or text
+-- to many supporters, each person's copy of it a message.
+
+-- The tables of messages to supporters, named as the pages name them, with
+-- their constraints, indexes and sequences.
 ALTER TABLE messages_to_supporters RENAME TO broadcast_messages;
 ALTER TABLE message_events RENAME TO broadcast_message_events;
-ALTER TABLE message_replies RENAME TO broadcast_replies;
-ALTER TABLE message_templates RENAME TO whatsapp_templates;
 
--- Their constraints, indexes and sequences, named after them too.
 DO $$
 DECLARE
   renames text[] := ARRAY[
     ['messages_to_supporters', 'broadcast_messages'],
-    ['message_events', 'broadcast_message_events'],
-    ['message_replies', 'broadcast_replies'],
-    ['message_templates', 'whatsapp_templates']
+    ['message_events', 'broadcast_message_events']
   ];
   pair text[];
   one record;
@@ -35,7 +32,47 @@ BEGIN
   END LOOP;
 END $$;
 
--- Merging supporters by phone moves their broadcasts' messages, by the table's new name.
+-- A text's words, as WhatsApp approves them: one made on the site, by
+-- whoever sent it for approval, or with no one named, in WhatsApp Manager.
+-- New words wait for approval; once approved a template is never edited;
+-- rejected, it says why in plain words.
+CREATE TABLE whatsapp_templates (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name text NOT NULL CHECK (name <> ''),
+  body jsonb NOT NULL,
+  status text NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_by text CHECK (created_by = lower(created_by)),
+  approved_at timestamptz,
+  rejected_at timestamptz,
+  rejected_reason text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK ((status = 'approved') = (approved_at IS NOT NULL)),
+  CHECK ((status = 'rejected') = (rejected_at IS NOT NULL)),
+  CHECK ((status = 'rejected') = (rejected_reason IS NOT NULL))
+);
+
+-- The template a text goes on. A draft with none is on new words, or none yet.
+ALTER TABLE mailings ADD COLUMN template_id bigint REFERENCES whatsapp_templates (id) ON DELETE SET NULL;
+ALTER TABLE mailings ADD CONSTRAINT mailings_template_for_texts CHECK (template_id IS NULL OR channel = 'text');
+CREATE INDEX mailings_template ON mailings (template_id) WHERE template_id IS NOT NULL;
+
+-- A message never sent, as its broadcast was stopped first; and one skipped
+-- as its number isn't on WhatsApp.
+ALTER TABLE broadcast_messages DROP CONSTRAINT broadcast_messages_status_check;
+ALTER TABLE broadcast_messages ADD CONSTRAINT broadcast_messages_status_check
+  CHECK (status IN ('scheduled', 'sent', 'delivered', 'failed', 'skipped', 'cancelled'));
+ALTER TABLE broadcast_messages DROP CONSTRAINT broadcast_messages_skip_reason_check;
+ALTER TABLE broadcast_messages ADD CONSTRAINT broadcast_messages_skip_reason_check
+  CHECK (skip_reason IN ('blocked', 'unsubscribed', 'no-permission', 'not-on-whatsapp'));
+-- A supporter's page lists the broadcasts they were sent.
+CREATE INDEX broadcast_messages_supporter ON broadcast_messages (supporter_id);
+
+-- A text's read receipt.
+ALTER TABLE broadcast_message_events DROP CONSTRAINT broadcast_message_events_kind_check;
+ALTER TABLE broadcast_message_events ADD CONSTRAINT broadcast_message_events_kind_check
+  CHECK (kind IN ('sent', 'delivered', 'read', 'failed', 'bounced', 'opted-out', 'replied'));
+
+-- Merging supporters by phone moves their messages, by the table's new name.
 CREATE OR REPLACE FUNCTION merge_supporters_by_phone(only_for bigint[] DEFAULT NULL::bigint[]) RETURNS SETOF bigint
     LANGUAGE plpgsql ROWS 10
     AS $_$

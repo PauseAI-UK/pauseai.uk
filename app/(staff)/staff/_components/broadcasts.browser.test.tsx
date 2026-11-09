@@ -926,36 +926,16 @@ describe("BroadcastsOverview", () => {
 });
 
 describe("MessageCopyView", () => {
-  it("shows a text as the conversation, with the free window, and when it was read", async () => {
-    await render(<MessageCopyView one={exampleMessageCopy} reply={nothing} />);
+  it("shows a text as they got it, and when it was delivered and read", async () => {
+    await render(<MessageCopyView one={exampleMessageCopy} />);
     await expect.element(page.getByRole("heading", { name: "Jane Example" })).toBeVisible();
-    await expect.element(page.getByText(copy.copyTag.replied)).toBeVisible();
-    await expect.element(page.getByText(/Is it OK to bring my dog/)).toBeVisible();
-    await expect.element(page.getByText(/dogs are very welcome/)).toBeVisible();
-    await expect.element(page.getByText(copy.replyWindow(staffTime(exampleMessageCopy.replyUntil!)))).toBeVisible();
-    await expect.element(page.getByText(copy.lastAnswered("jo@pauseai.uk"))).toBeVisible();
-    await expect.element(button(copy.sendReply.text)).toBeEnabled();
+    await expect.element(page.getByText(copy.statuses.read, { exact: true }).first()).toBeVisible();
+    await expect.element(page.getByText(staffTime(exampleMessageCopy.sentAt!))).toBeVisible();
     await expect.element(page.getByText(copy.facts.read)).toBeVisible();
+    await expect.element(page.getByRole("link", { name: copy.everythingElse("Jane Example") })).toBeVisible();
   });
 
-  it("closes the box a day after their last message, or until they've written", async () => {
-    await render(
-      <MessageCopyView
-        one={{ ...exampleMessageCopy, replyUntil: new Date("2026-11-07T08:00:00.000Z") }}
-        reply={nothing}
-      />,
-    );
-    await expect.element(page.getByText(copy.replyClosed)).toBeVisible();
-    await expect.element(button(copy.sendReply.text)).toBeDisabled();
-  });
-
-  it("closes the box before a text has been answered", async () => {
-    await render(<MessageCopyView one={{ ...exampleMessageCopy, replies: [], replyUntil: null }} reply={nothing} />);
-    await expect.element(page.getByText(copy.replyClosed)).toBeVisible();
-    await expect.element(page.getByText(copy.facts.replies)).not.toBeInTheDocument();
-  });
-
-  it("shows an email as the thread, from us and from them", async () => {
+  it("shows an email as the thread", async () => {
     const one = {
       ...exampleMessageCopy,
       channel: "email" as const,
@@ -964,17 +944,9 @@ describe("MessageCopyView", () => {
       address: "jane@example.com",
       readAt: null,
     };
-    await render(<MessageCopyView one={one} reply={nothing} />);
-    await expect.element(page.getByRole("article", { name: "Thank you" }).first()).toBeVisible();
-    await expect.element(page.getByText(copy.replyEmail)).toBeVisible();
-    await expect.element(button(copy.sendReply.email)).toBeEnabled();
+    await render(<MessageCopyView one={one} />);
+    await expect.element(page.getByRole("article", { name: "Thank you" })).toBeVisible();
     await expect.element(page.getByText(copy.standing.email("Jane Example"))).toBeVisible();
-  });
-
-  it("says a reply can't go yet", async () => {
-    await render(<MessageCopyView one={{ ...exampleMessageCopy, sends: false }} reply={nothing} />);
-    await expect.element(page.getByText(copy.replyCantSend)).toBeVisible();
-    await expect.element(button(copy.sendReply.text)).toBeDisabled();
   });
 
   it("keeps only that one was sent, once they're erased", async () => {
@@ -984,32 +956,26 @@ describe("MessageCopyView", () => {
       name: null,
       address: null,
       merge: null,
-      replies: [],
       status: "skipped",
       skipReason: "blocked",
       sentAt: null,
       deliveredAt: null,
       readAt: null,
     };
-    await render(<MessageCopyView one={one} reply={nothing} />);
+    await render(<MessageCopyView one={one} />);
     await expect.element(page.getByRole("heading", { name: copy.erased })).toBeVisible();
     await expect.element(page.getByText(`Hi {${copy.fieldWords.firstName}}`, { exact: false })).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.everythingElse(copy.erased) })).not.toBeInTheDocument();
   });
 
   it("names someone with none", async () => {
-    await render(
-      <MessageCopyView
-        one={{ ...exampleMessageCopy, name: null, channel: "email", address: null, replies: [] }}
-        reply={nothing}
-      />,
-    );
+    await render(<MessageCopyView one={{ ...exampleMessageCopy, name: null, channel: "email", address: null }} />);
     await expect.element(page.getByRole("heading", { name: staffCopy.supporters.noName })).toBeVisible();
   });
 });
 
 describe("SupporterBroadcasts", () => {
-  it("lists those they were sent, with their replies, leading to each", async () => {
+  it("lists those they were sent, leading to each", async () => {
     await render(
       <SupporterBroadcasts
         broadcasts={[
@@ -1022,7 +988,6 @@ describe("SupporterBroadcasts", () => {
             skipReason: null,
             sentAt: new Date("2026-11-07T07:18:00Z"),
             read: true,
-            replies: [{ at: new Date("2026-11-07T07:52:00Z"), body: "Great, thanks." }],
           },
           {
             copyId: 22,
@@ -1033,7 +998,6 @@ describe("SupporterBroadcasts", () => {
             skipReason: null,
             sentAt: null,
             read: false,
-            replies: [],
           },
           {
             copyId: 23,
@@ -1044,7 +1008,6 @@ describe("SupporterBroadcasts", () => {
             skipReason: null,
             sentAt: null,
             read: false,
-            replies: [],
           },
         ]}
       />,
@@ -1055,7 +1018,6 @@ describe("SupporterBroadcasts", () => {
       .toHaveAttribute("href", "/staff/broadcasts/5/21");
     // One went to each of the two that went; the one stopped has no page of its own.
     await expect.poll(() => page.getByRole("link", { name: copy.threadLink }).elements().length).toBe(2);
-    await expect.element(page.getByText(/Great, thanks/)).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.untitled })).toBeVisible();
   });
 

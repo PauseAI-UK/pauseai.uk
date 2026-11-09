@@ -1,5 +1,5 @@
 // The staff interface's broadcasts to supporters: from the supporters list, the
-// writer, the list of them, each one's page, and one copy with its replies.
+// writer, the list of them, each one's page, and one copy as sent.
 import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
 import { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
 import { BroadcastChannelName } from "@/app/(staff)/staff/_components/BroadcastView";
@@ -419,7 +419,7 @@ export const staffBroadcasts: Group = {
       file: "app/(staff)/staff/_components/SupporterBroadcasts.tsx",
       variants: [
         {
-          label: "Those they were sent, with their replies",
+          label: "Those they were sent",
           render: () => (
             <StaffPage as="div">
               <SupporterBroadcasts
@@ -433,7 +433,6 @@ export const staffBroadcasts: Group = {
                     skipReason: null,
                     sentAt: new Date("2026-11-07T07:18:00Z"),
                     read: true,
-                    replies: [{ at: new Date("2026-11-07T07:52:00Z"), body: "Great, thanks." }],
                   },
                   {
                     copyId: 22,
@@ -444,7 +443,6 @@ export const staffBroadcasts: Group = {
                     skipReason: null,
                     sentAt: null,
                     read: false,
-                    replies: [],
                   },
                 ]}
               />
