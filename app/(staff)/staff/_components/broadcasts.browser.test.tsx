@@ -930,7 +930,9 @@ describe("MessageCopyView", () => {
     await render(<MessageCopyView one={exampleMessageCopy} />);
     await expect.element(page.getByRole("heading", { name: "Jane Example" })).toBeVisible();
     await expect.element(page.getByText(copy.statuses.read, { exact: true }).first()).toBeVisible();
-    await expect.element(page.getByText(staffTime(exampleMessageCopy.sentAt!))).toBeVisible();
+    await expect
+      .element(page.getByLabelText(copy.threadTitle).getByText(staffTime(exampleMessageCopy.sentAt!)))
+      .toBeVisible();
     await expect.element(page.getByText(copy.facts.read)).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.everythingElse("Jane Example") })).toBeVisible();
   });
