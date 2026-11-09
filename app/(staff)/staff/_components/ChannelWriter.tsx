@@ -29,10 +29,13 @@ export default function ChannelWriter({
     body: EMPTY_MAILING_DOC,
     template: null,
   };
+  // To no one yet, as who it goes to depends on the Consent still to be chosen.
+  const data = { ...props.data, count: 0, recipients: [], leftOut: [] };
   return (
     <MessageWriter
       {...props}
       key={`blank-${draft.channel}`}
+      data={data}
       draft={draft}
       blank
       creating={fresh}

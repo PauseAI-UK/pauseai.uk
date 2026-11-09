@@ -513,7 +513,8 @@ export default function MessageWriter({
               {data.unknown.length > 0 && (
                 <Strip tone="amber">{staffCopy.mailingPages.unknownFilter(data.unknown.join(", "))}</Strip>
               )}
-              <p className={styles.count}>{copy.willGet(data.count, draft.channel)}</p>
+              {/* Greyed, it's to no one yet: who the Consent finds once it's chosen. */}
+              {!blank && <p className={styles.count}>{copy.willGet(data.count, draft.channel)}</p>}
               {data.leftOut.length > 0 && (
                 <details className={styles.leftOut}>
                   <summary>{copy.leftOut(data.count + data.leftOut.length, leftOutCounts)}</summary>

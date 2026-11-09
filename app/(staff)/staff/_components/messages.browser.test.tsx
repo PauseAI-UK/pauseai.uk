@@ -150,6 +150,9 @@ describe("MessageWriter's Consent", () => {
     await vi.waitFor(() => expect(subject()).toBeNull(), WAIT);
     await expect.element(page.getByText(copy.problems["no-consent"])).toBeVisible();
     expect(page.getByText("Who").element().closest("[inert]")).not.toBeNull();
+    // To no one yet: the count waits for the Consent.
+    expect(page.getByText(copy.willGet(412, "email")).query()).toBeNull();
+    expect(page.getByText(copy.willGet(0, "text")).query()).toBeNull();
     // Back to its own channel: as it was.
     await choose(copy.consentChannel, copy.channels.email);
     await vi.waitFor(() => expect(subject()).not.toBeNull(), WAIT);
@@ -176,7 +179,7 @@ describe("MessageWriter's Consent", () => {
     expect(page.getByText("Who").element().closest("[inert]")).not.toBeNull();
     expect(
       page
-        .getByRole("button", { name: copy.schedule(412, "email") })
+        .getByRole("button", { name: copy.schedule(0, "email") })
         .element()
         .closest("[inert]"),
     ).not.toBeNull();
@@ -617,6 +620,12 @@ describe("TemplatePicker", () => {
     await expect.element(page.getByText("Event reminder")).toBeVisible();
     await search.fill("nothing like this");
     await expect.element(page.getByText(copy.noTemplates)).toBeVisible();
+  });
+
+  it("says where to write words when there are no approved templates, with nothing to search", async () => {
+    await render(<TemplatePicker templates={[]} onChoose={() => {}} />);
+    await expect.element(page.getByText(copy.noTemplatesYet)).toBeVisible();
+    expect(page.getByLabelText(copy.searchTemplates).query()).toBeNull();
   });
 
   it("keeps the one chosen in the list, checked, though it's past the first five", async () => {

@@ -49,6 +49,14 @@ export default function TemplatePicker({
     (one) => !words || `${one.name} ${firstWords(one.body, FIELD_WORDS)}`.toLowerCase().includes(words),
   );
   const shown = all || words ? found : found.filter((one, i) => i < SHOWN_AT_FIRST || one.id === chosen);
+  // None at all: nothing to search, only where to write some.
+  if (templates.length === 0) {
+    return (
+      <p className={styles.templatesNone}>
+        <Muted>{copy.noTemplatesYet}</Muted>
+      </p>
+    );
+  }
   return (
     <fieldset className={styles.picker} aria-label={copy.templatesLabel}>
       <Field label={copy.searchTemplates}>
