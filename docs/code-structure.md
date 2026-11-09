@@ -60,6 +60,8 @@ scripts/                  database, storyboard and data scripts
 docs/
 plans/                    plans for work in progress, deleted when done;
                           nothing references them
+investments/              what would make working here faster or safer, and
+                          the friction logged against each; deleted when done
 ```
 
 Route groups like `(site)` don't appear in URLs. Folders starting with `_`

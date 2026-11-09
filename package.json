@@ -9,6 +9,7 @@
     "build": "npm run typecheck && vitest run --project node && npm run lint && npm run lint:css && next build",
     "typecheck": "next typegen && tsc --noEmit",
     "start": "next start",
+    "investments": "node scripts/investments.mjs",
     "lint": "eslint --max-warnings 0",
     "lint:css": "stylelint \"**/*.css\"",
     "lint:unused": "knip",
