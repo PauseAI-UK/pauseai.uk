@@ -126,11 +126,14 @@
   content: " ▾" / "";
 }
 
-/* A chip that can't be changed here: no arrow, as it doesn't open, but a
-   padlock (LockIcon), and the ordinary pointer. */
+/* A chip that can't be changed here: ghosted, grey on grey, with no arrow,
+   as it doesn't open, but a padlock (LockIcon), and the ordinary pointer. */
 .chip.locked {
   display: inline-flex;
   align-items: center;
+  border-color: var(--border);
+  background: var(--surface-2);
+  color: var(--text-secondary);
   cursor: default;
 }
 
