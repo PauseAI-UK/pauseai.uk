@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { constituencyForPostcode, placeFor, placeForPostcode, placeNamed, placesForPostcodes } from "./postcodes";
+import {
+  constituencyForPostcode,
+  placeFor,
+  placeForOutcode,
+  placeForPostcode,
+  placeNamed,
+  placesForPostcodes,
+} from "./postcodes";
 
 const POSTCODES = "https://api.postcodes.io/postcodes/:postcode";
 const OUTCODES = "https://api.postcodes.io/outcodes/:outcode";
@@ -240,5 +247,48 @@ describe("placeFor", () => {
       http.get("https://api.postcodes.io/places", () => new HttpResponse(null, { status: 500 })),
     );
     expect(await placeFor("Leeds")).toBe("failed");
+  });
+});
+
+describe("placeForOutcode", () => {
+  it("gives the middle of a postcode's first half, its first district and nation, and no constituency", async () => {
+    server.use(
+      http.get(OUTCODES, () =>
+        HttpResponse.json({
+          result: {
+            latitude: 51.47,
+            longitude: -0.06,
+            admin_district: ["Southwark", "Lewisham"],
+            country: ["England"],
+          },
+        }),
+      ),
+    );
+    expect(await placeForOutcode("SE15")).toEqual({
+      latitude: 51.47,
+      longitude: -0.06,
+      place: "Southwark",
+      country: "england",
+      constituency: null,
+    });
+  });
+
+  it("names the place after the code without a district", async () => {
+    server.use(http.get(OUTCODES, () => HttpResponse.json({ result: { latitude: 1, longitude: 2 } })));
+    expect(await placeForOutcode("AB1")).toMatchObject({ place: "AB1", country: null });
+  });
+
+  it("is null for one it doesn't know, or that has no point", async () => {
+    server.use(http.get(OUTCODES, () => new HttpResponse(null, { status: 404 })));
+    expect(await placeForOutcode("ZZ1")).toBeNull();
+    for (const result of [null, { latitude: 1 }, { longitude: 1 }]) {
+      server.use(http.get(OUTCODES, () => HttpResponse.json({ result })));
+      expect(await placeForOutcode("ZZ1")).toBeNull();
+    }
+  });
+
+  it("throws if the request fails", async () => {
+    server.use(http.get(OUTCODES, () => new HttpResponse(null, { status: 500 })));
+    await expect(placeForOutcode("SE15")).rejects.toThrow("postcodes.io returned 500");
   });
 });

@@ -7,7 +7,7 @@ import { exampleMp } from "@/app/(site)/campaigns/_components/draft.examples";
 import { Column, Notice } from "@/app/(site)/campaigns/_components/FormParts";
 import LetterStep from "@/app/(site)/campaigns/_components/LetterStep";
 import MpCard from "@/app/(site)/campaigns/_components/MpCard";
-import Required from "@/app/(site)/campaigns/_components/Required";
+import Required from "@/components/ui/Required";
 import type { Group } from "../_components/types";
 import {
   EmailYourMpToolExample,
@@ -266,7 +266,7 @@ export const campaignsLetter: Group = {
     },
     {
       name: "Required",
-      file: "app/(site)/campaigns/_components/Required.tsx",
+      file: "components/ui/Required.tsx",
       variants: [
         {
           label: "A label's words, with the asterisk",

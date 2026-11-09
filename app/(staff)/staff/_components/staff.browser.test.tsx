@@ -219,6 +219,7 @@ describe("StaffNav", () => {
       "/staff/supporters",
       "/staff/campaigns",
       "/staff/supporters/blocked-emails",
+      "/staff/supporters/import",
     ]);
   });
 });
@@ -4041,6 +4042,29 @@ describe("ChangesTable", () => {
     expect(await downloads()).toContain("/staff/audit-log/download?format=csv&actor=sync&sort=actor&dir=asc");
   });
 
+  it("links an import of sign-ups to its page, with what it imported and held back", async () => {
+    const edit = exampleChanges.find((one) => one.action === "edit politician")!;
+    const imported = {
+      ...edit,
+      action: "import sign-ups",
+      details: { uploadId: 3, imported: 5, heldBack: 2 },
+    } as const;
+    await render(
+      <ChangesTable
+        search={changesSearch({})}
+        log={log([imported as unknown as (typeof exampleChanges)[number]])}
+        page={1}
+        airtableTable="https://airtable.com/app/tbl"
+      />,
+    );
+    const cell = page.getByRole("row").nth(1).getByRole("cell").nth(4);
+    const copy = staffCopy.changes;
+    expect(cell.element().textContent).toBe(
+      `${staffCopy.signupUpload.uploads.title} · 5 ${copy.counts.imported(5)} · 2 ${copy.counts.heldBack(2)}`,
+    );
+    await expect.element(cell.getByRole("link")).toHaveAttribute("href", "/staff/supporters/import/previous/3");
+  });
+
   it("leaves a change of nothing out of an entry's fields", async () => {
     const edit = exampleChanges.find((one) => one.action === "edit politician")!;
     const empty = { ...edit, details: { ...edit.details, changed: {} } };
@@ -5274,6 +5298,7 @@ describe("SupporterDetails, a march sign-up", () => {
             { ...entry, detail: null },
             { ...entry, detail: null, status: null, title: "a-new-form" },
             { ...entry, detail: null, status: null, title: null },
+            { ...entry, detail: "Flyering", status: null, title: "paper-signup" },
           ],
         }}
       />,
@@ -5290,6 +5315,7 @@ describe("SupporterDetails, a march sign-up", () => {
       `${form} · ${copy.detail.luma.skipped}`,
       `${copy.detail.kinds["form-entry"]} a-new-form`,
       `${copy.detail.kinds["form-entry"]} `,
+      `${copy.detail.kinds["form-entry"]} ${copy.sources["paper-signup"]} · Flyering`,
     ]);
   });
 });

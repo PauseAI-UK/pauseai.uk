@@ -15,6 +15,7 @@ import type { SkipReason } from "@/lib/server/mailings";
 import type { OptOutSource } from "@/lib/server/opt-outs";
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar";
 import { HOUSES, PERSON_STATUSES } from "@/lib/server/politicians";
+import type { SignupUploadPerson } from "@/lib/server/signup-uploads";
 import { PERMISSIONS } from "@/lib/staff-permissions";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 
@@ -71,6 +72,14 @@ const LISTED: Record<string, readonly string[]> = {
   "politicians.country": COUNTRIES,
   "politicians.house": HOUSES,
   "saved_filters.list": SAVED_LISTS,
+  "signup_upload_entries.known": every<NonNullable<SignupUploadPerson["known"]>>()(["email", "mobile"]),
+  "signup_upload_entries.luma": every<NonNullable<SignupUploadPerson["luma"]>>()([
+    "going",
+    "added",
+    "skipped",
+    "failed",
+    "not-configured",
+  ]),
   "staff_accounts.permissions": PERMISSIONS,
 };
 

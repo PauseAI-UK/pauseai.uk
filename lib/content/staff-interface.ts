@@ -82,6 +82,7 @@ export const staffCopy = {
     // Beside a page the staff member first saw in the last 3 days.
     newTag: "new",
     supporterEmails: "Blocked emails",
+    signupUpload: "Import sign-ups",
     mpEmails: "Blocked emails",
     logout: "Log out",
   },
@@ -245,6 +246,154 @@ export const staffCopy = {
         days === 7 ? `Week beginning ${from}: ${n}` : `${days} days beginning ${from}: ${n}`,
     },
   },
+  // Uploading a CSV of paper sign-ups (/staff/supporters/import).
+  signupUpload: {
+    title: "Import sign-ups",
+    intro: "Import people from a spreadsheet from paper sign-up forms.",
+    steps: { file: "Choose a file", check: "What will happen" },
+    drop: {
+      title: "Drop a CSV file here",
+      or: "or click to choose one",
+      label: "CSV file",
+      another: "Choose a different file",
+      read: (rows: number, columns: number) => `${rows} rows, ${columns} columns.`,
+      tooBig: "This file is over 4 MB. Choose a smaller one.",
+      notCsv: (name: string) => `${name} isn't a CSV file. Save it as CSV from your spreadsheet and try again.`,
+    },
+    refused: {
+      empty: "This file is empty.",
+      missing: (fields: string, headings: string) => `This file has no ${fields} column. Its columns are: ${headings}.`,
+      clash: (field: string, headings: string) =>
+        `More than one column could be ${field}: ${headings}. Remove or rename one and try again.`,
+      badChoice: "The event or column you chose can't be used any more. Go back and choose again.",
+    },
+    help: {
+      title: "What the file needs",
+      short: [
+        "Fix any mistakes before you upload it",
+        "One row per person, with column names in the first row",
+        "Name and Email columns (required)",
+        "Phone and Postcode columns (optional)",
+        "A yes/no column for an event (optional)",
+        "Other columns are ignored",
+      ],
+      more: "All column names and values",
+      less: "Hide column names and values",
+      intro: "Columns can be in any order, and capitals, spaces and punctuation in their names don't matter.",
+      columns: { field: "Column", names: "Names it accepts", values: "Values" },
+      fields: {
+        name: { label: "Name", values: "Full name" },
+        email: { label: "Email", values: "Email address" },
+        phone: { label: "Phone", values: "Any format" },
+        postcode: {
+          label: "Postcode",
+          values:
+            "Full postcode, or just the first half (such as SE15). Partial is less good as can't find MP with it.",
+        },
+      } as Record<string, { label: string; values: string }>,
+      event: { label: "Event sign-up", names: "Any name. You choose it after uploading.", values: "yes" },
+      yes: (words: string) => `Yes: ${words}.`,
+      no: "No: blank, n, no, false or 0. Anything else holds the row back.",
+    },
+    columns: {
+      heading: "Column",
+      goes: "Imported as",
+      filled: "Rows filled in",
+      ignored: "Ignored",
+      event: "Event sign-up",
+    },
+    form: {
+      formsTitle: "About these forms",
+      eventTitle: "Event to sign up to",
+      event: "Event",
+      findEvent: "Find an event",
+      removeEvent: "Remove event",
+      eventColumn: "Column for event sign-up",
+      noColumn: "None",
+      noEventColumn: "This file has no yes/no column to use for the event.",
+      signedOn: "Date collected",
+      note: "Where collected",
+      noteHint: "Camden Town flyering",
+    },
+    preview: {
+      title: "Preview import",
+      back: "Import sign-ups",
+      needsFile: "Choose a file for a preview of what will happen.",
+      // Under the import button, each what stops it.
+      blockers: {
+        file: "Choose a file",
+        note: "Add where collected",
+        event: "Choose the event, or set the column to None",
+      },
+      loading: "Working out what will happen…",
+      failed: "Something went wrong and nothing was imported. Please try again.",
+      changed:
+        "Some details changed after the preview loaded, so nothing was imported. Check the updated preview below.",
+      summary: {
+        entries: (n: number) => `${n} people will be imported.`,
+        held: (n: number) => `${n} won't be imported.`,
+        supporters: (fresh: number, known: number) => `${fresh} new, ${known} already on the supporters list.`,
+        event: (name: string, n: number) =>
+          `${n} will be registered for "${name}". Luma will email them a confirmation.`,
+      },
+      table: { row: "Row", happens: "What will happen" },
+      happens: {
+        notImported: "Not imported",
+        alreadyImported: "Already imported",
+        known: { email: "Existing (same email)", mobile: "Existing (same mobile)" },
+        register: "Register on Luma",
+        going: "Already on Luma",
+        mailing: "Mailing list",
+        phone: "Calls and texts",
+      },
+      problems: {
+        "no-name": "No name",
+        "long-name": "Name too long",
+        "no-email": "No email",
+        "bad-email": "Invalid email",
+        "bad-phone": "Invalid phone number",
+        "same-email": "Email used on another row",
+        blocked: "Email blocked after a bounce or complaint",
+      } as Record<string, string>,
+      unread: (value: string, column: string) => `Unclear answer in ${column}: "${value}"`,
+      importNow: (people: number, luma: number) => `Import ${people} people and register ${luma} on Luma`,
+      importOnly: (people: number) => `Import ${people} people`,
+      nothing: "There's nothing new to import from this file.",
+    },
+    result: {
+      title: (filename: string) => `Import: ${filename}`,
+      back: "Import sign-ups",
+      summary: (imported: number, held: number) => `${imported} imported, ${held} were not.`,
+      by: (who: string, when: string) => `Imported by ${who} on ${when}.`,
+      signedOn: (day: string) => `Collected on ${day}.`,
+      // Before the event's name, which links to it on Luma.
+      event: "Event signed-up to:",
+      note: (note: string) => `Where collected: ${note}`,
+      columns: {
+        person: "Name",
+        phone: "Phone",
+        postcode: "Postcode",
+        happened: "What happened",
+      },
+      none: "Everyone from this upload has since been erased.",
+      // While the Luma import the upload started is still to copy its event's guests, by a spinner.
+      lumaReading: "Importing from Luma",
+      luma: {
+        added: "Registered on Luma",
+        skipped: "Not registered: unsubscribed from our Luma calendar",
+        "not-configured": "Not registered: Luma isn't set up",
+        failed: "Not registered: Luma had an error. Upload the file again to retry.",
+      } as Record<string, string>,
+    },
+    uploads: {
+      title: "Past imports",
+      see: "See past imports",
+      none: "No imports yet.",
+      imported: "imported",
+      heldBack: "held back",
+      by: (who: string) => `imported by ${who}`,
+    },
+  },
   // The supporters list (/staff/supporters) and a supporter's page.
   supporters: {
     title: "Supporters",
@@ -336,6 +485,7 @@ export const staffCopy = {
       "email-your-mp": "Letter",
       "web-form": "pauseai.info letter",
       "march-2026-11": "March sign-up",
+      "paper-signup": "Paper sign-up",
       member: "Member",
     } as Record<string, string>,
     lists: { "luma-calendar": "Luma calendar emails", "pauseai-updates": "PauseAI global updates" } as Record<
@@ -429,6 +579,7 @@ export const staffCopy = {
           "email-your-mp": "their letter to their MP",
           "web-form": "their pauseai.info letter",
           "march-2026-11": "the march sign-up",
+          "paper-signup": "a paper sign-up form",
         } as Record<string, string>,
         otherForm: "their newest form",
         // Behind a strip's "?": the topic, what it is, when it's a yes and when a no, and what we can't see, by
@@ -2079,6 +2230,8 @@ All events: ${link}`,
       lumaGuestsDown: "Luma couldn't be asked about an event's guests",
       // A page that lists events shows none.
       lumaEventsDown: "Luma couldn't be asked for the events, so the page shows none",
+      // An import of sign-ups registered people on Luma, and they're copied at the next scheduled run instead.
+      lumaImportNotStarted: "The Luma import couldn't be started after importing sign-ups",
       // A request from Postmark or the march form that isn't JSON, treated as empty.
       badBody: (from: string) => `${from} sent a body that isn't JSON`,
       // Nobody sees anything: a warning, as the next query carries on.
@@ -2484,6 +2637,8 @@ All events: ${link}`,
       removed: () => "removed",
       changed: () => "changed",
       matched: () => "matched",
+      imported: () => "imported",
+      heldBack: () => "held back",
       alreadySet: () => "already signed",
       problems: (n: number) => plural(n, "problem", "problems"),
       lumaUsers: (n: number) => plural(n, "Luma person", "Luma people"),

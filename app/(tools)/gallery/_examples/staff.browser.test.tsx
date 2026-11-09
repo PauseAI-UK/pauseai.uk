@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -23,13 +23,40 @@ import {
   PoliticianDetailsExample,
   PoliticianTableEmptyExample,
   PoliticianTableExample,
+  SignupPlanViewExample,
+  SignupUploadHelpExample,
+  SignupUploadPreviewExample,
 } from "./staff.client";
+
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", async (original) => ({
+  ...(await original<typeof import("next/navigation")>()),
+  useRouter: () => ({ push }),
+}));
 
 // The staff examples' Server Actions are logged, not sent: pressing each adds its line to the event log.
 const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listitem");
 const subject = () => page.getByLabelText(new RegExp(`^${staffCopy.mailingPages.subject}`));
 
 describe("the staff examples", () => {
+  it("opens and closes every column name under what the file needs", async () => {
+    await render(<SignupUploadHelpExample />);
+    const help = staffCopy.signupUpload.help;
+    await page.getByRole("button", { name: help.more }).click();
+    await expect.element(page.getByText(help.fields.postcode.values)).toBeVisible();
+    await page.getByRole("button", { name: help.less }).click();
+    expect(page.getByText(help.fields.postcode.values).elements()).toEqual([]);
+  });
+
+  it("previews and imports an upload, going to what it did", async () => {
+    await render(<SignupPlanViewExample />);
+    await render(<SignupUploadPreviewExample />);
+    const importNow = page.getByRole("button", { name: staffCopy.signupUpload.preview.importNow(3, 1) });
+    await expect.element(importNow).toBeEnabled();
+    await importNow.click();
+    await expect.poll(() => push.mock.calls).toEqual([["/staff/supporters/import/previous/6"]]);
+  });
+
   it("picks a mailing's hour, and logs Change the time's save", async () => {
     const { unmount } = await render(<DueTimeFieldsExample />);
     await page.getByRole("combobox").selectOptions("15");

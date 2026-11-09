@@ -232,3 +232,58 @@ export async function addLumaGuest(
     return { status: "failed", reason: `Request to Luma failed: ${err.message}` };
   }
 }
+
+/** How many guests go in one call to Luma, and how long the call may take. */
+const GUESTS_AT_ONCE = 100;
+const ADD_GUESTS_TIMEOUT_MS = 15000;
+
+/**
+ * Registers guests for an event, a batch at a time, with what became of each
+ * by their email, lower case. Luma emails each its confirmation. A batch that
+ * fails fails for all in it, the others going ahead. Never throws, as
+ * addLumaGuest.
+ */
+export async function addLumaGuests(
+  eventId: string,
+  guests: { name: string; email: string }[],
+): Promise<Map<string, LumaAddGuestResult["status"]>> {
+  const key = config.lumaApiKey;
+  const statuses = new Map<string, LumaAddGuestResult["status"]>();
+  for (let i = 0; i < guests.length; i += GUESTS_AT_ONCE) {
+    const batch = guests.slice(i, i + GUESTS_AT_ONCE);
+    const skipped = key ? await addBatch(eventId, batch, key) : "not-configured";
+    for (const { email } of batch) {
+      const lower = email.toLowerCase();
+      statuses.set(lower, typeof skipped === "string" ? skipped : skipped.has(lower) ? "skipped" : "added");
+    }
+  }
+  return statuses;
+}
+
+/** One call to add guests: the emails Luma skipped, lower case, or that it failed. */
+async function addBatch(
+  eventId: string,
+  guests: { name: string; email: string }[],
+  key: string,
+): Promise<Set<string> | "failed"> {
+  try {
+    const res = await outsideFetch("https://public-api.luma.com/v1/events/guests/add", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json", "x-luma-api-key": key },
+      body: JSON.stringify({ event_id: eventId, guests: guests.map(({ email, name }) => ({ email, name })) }),
+      signal: AbortSignal.timeout(ADD_GUESTS_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      problem(
+        staffCopy.problems.logs.lumaRefusedGuest,
+        `Luma responded ${res.status}: ${(await res.text()).slice(0, 300)}`,
+      );
+      return "failed";
+    }
+    const data = (await res.json()) as { skipped?: { email?: unknown }[] };
+    return new Set((data.skipped ?? []).flatMap((s) => (typeof s.email === "string" ? [s.email.toLowerCase()] : [])));
+  } catch (error) {
+    problem(staffCopy.problems.logs.lumaRefusedGuest, error);
+    return "failed";
+  }
+}

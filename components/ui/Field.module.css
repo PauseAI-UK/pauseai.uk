@@ -27,6 +27,11 @@
   padding: 0;
 }
 
+/* Controls waiting on another: greyed out, and not to be used, till then. */
+.fieldset:disabled {
+  opacity: 0.5;
+}
+
 /* A label on its own, over a control that follows it. */
 .standalone {
   display: block;

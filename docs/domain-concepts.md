@@ -430,6 +430,30 @@ pointing at `form_entries`, as `form_entry_luma` holds what Luma said to a
 form that registers people for an event. What a form's box said when
 someone ticked it is its wording in git at the entry's `created_at`.
 
+**Paper sign-ups** (`paper-signup`) come from a CSV staff import at
+`/staff/supporters/import`, of forms collected while flyering. The file itself
+isn't kept: the page reads it in the browser, and sends it to the server only to
+preview and import it. Each import is a row of `signup_uploads`: the file's name,
+the date collected, where collected (`note`), the event, and how many it imported
+and held back. `signup_upload_entries` ties each entry to its import, with what the import did
+for them as it did it (a new entry or one already there, how they were already a
+supporter, and already going or what Luma said), whose where
+collected is the entry's line in a supporter's history, and the import's own page
+is under Past imports. The
+reading is in `lib/signup-upload.ts`: liberal about separators, encodings, how a
+heading is spelt and ways of saying yes, and nothing else. A column whose heading
+isn't on its list is ignored, so a doubt in a file is settled before it's imported.
+The entry is dated midday on the date collected, which is also what makes an
+import safe to repeat: an email with a paper entry of that date gets no other.
+Every entry has its box ticked, as signing the paper form is joining the mailing
+list, so it's PauseAI UK by email, and calls and texts for a number given. The
+form has no mailing list box, and a file's column for one is ignored. Staff may link one column of yes and blank to
+one event to come, and a yes then registers them on Luma, who emails them, unless
+they're already going. A row with no name, a bad email or phone, a yes or no it
+can't read, a blocked email, or an email on another row of the file is held back,
+with nothing kept. The preview shows what each person will come to, and importing
+checks it's still so.
+
 ## Supporters
 
 One row per person we know of (`supporters`), tied to each record about
@@ -516,7 +540,8 @@ constituency: their newest postcode, else the newest city they gave
 themselves (never Luma's, whose cities are its events'), else the newest
 event they registered for that isn't a big day or online. Each postcode
 and town is looked up at postcodes.io once, at the end of each Luma
-import, and kept in `postcode_places` and `named_places`
+import, and kept in `postcode_places` and `named_places`. A postcode's first
+half alone ("SE15") says roughly where someone is but not their constituency, so it gives no MP
 (`lib/server/supporter-places.ts`); a big import catches up over a few
 runs. The list's Near filter and a supporter's MP read it, and the
 supporter's page shows the cities they gave (`givenPlaces()` in
@@ -878,6 +903,7 @@ blocked addresses. Nothing else about reading is logged.
 | `create mailing`, `schedule mailing`, `reschedule mailing`, `stop mailing`, `delete mailing`                  | staff                                | A mailing written on the site                                                                   | `id`, and `recipients`, `dueAt` or what it `was`             |
 | `start mailing`, `finish mailing`                                                                             | `send-mailings`                      | The hourly job starts a scheduled mailing, and sends its last letter                            | `id`                                                         |
 | `set event owner`, `set event doc`                                                                            | staff, `sync`                        | An event's owner or Google Doc set on the events page, or an owner given by the rules           | `eventId`, `owner` or `url`, `previous`                      |
+| `import sign-ups`                                                                                             | staff                                | A file of paper sign-ups imported                                                               | `uploadId`, `imported`, `heldBack`                           |
 | `block address`, `unblock address`                                                                            | `postmark`, staff                    | A bounce or complaint blocks an address; staff unblock it                                       | `address`, and the `kind` or the `note`                      |
 | `add staff account`, `set staff permissions`, `remove staff account`, `end staff sessions`                    | staff, or the address on first login | The accounts page, a first login, and sessions ended from the accounts page or `/staff/me`      | `email`, the permissions `from` and `to`, or `sessions`      |
 | `connect gmail`, `disconnect gmail`                                                                           | staff                                | A Gmail connected or disconnected on `/staff/me`, or by Google                                  | `email`, and `why`                                           |

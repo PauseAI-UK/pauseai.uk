@@ -237,7 +237,7 @@ CREATE TABLE public.form_entries (
     postcode text,
     contact_consent boolean NOT NULL,
     utm_source text,
-    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text])))
+    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'paper-signup'::text])))
 );
 
 --
@@ -465,6 +465,39 @@ CREATE TABLE public.postcode_places (
 );
 
 --
+-- Name: signup_upload_entries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.signup_upload_entries (
+    entry_id bigint NOT NULL,
+    upload_id bigint NOT NULL,
+    new_entry boolean NOT NULL,
+    known text,
+    luma text,
+    CONSTRAINT signup_upload_entries_known_check CHECK ((known = ANY (ARRAY['email'::text, 'mobile'::text]))),
+    CONSTRAINT signup_upload_entries_luma_check CHECK ((luma = ANY (ARRAY['going'::text, 'added'::text, 'skipped'::text, 'failed'::text, 'not-configured'::text])))
+);
+
+--
+-- Name: signup_uploads; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.signup_uploads (
+    id bigint NOT NULL,
+    filename text NOT NULL,
+    signed_on date NOT NULL,
+    note text,
+    event_id text,
+    imported integer NOT NULL,
+    held_back integer NOT NULL,
+    uploaded_by text NOT NULL,
+    uploaded_at timestamp with time zone NOT NULL,
+    CONSTRAINT signup_uploads_held_back_check CHECK ((held_back >= 0)),
+    CONSTRAINT signup_uploads_imported_check CHECK ((imported >= 0)),
+    CONSTRAINT signup_uploads_note_check CHECK ((btrim(note) <> ''::text))
+);
+
+--
 -- Name: supporter_activity_form; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -496,11 +529,13 @@ UNION ALL
     f.created_at AS at,
     'form-entry'::text AS kind,
     f.form AS title,
-    f.utm_source AS detail,
-    NULL::text AS href,
+    COALESCE(u.note, f.utm_source) AS detail,
+    ('/staff/supporters/import/previous/'::text || u.id) AS href,
     g.status
-   FROM (public.form_entries f
+   FROM (((public.form_entries f
      LEFT JOIN public.form_entry_luma g ON ((g.entry_id = f.id)))
+     LEFT JOIN public.signup_upload_entries e ON ((e.entry_id = f.id)))
+     LEFT JOIN public.signup_uploads u ON ((u.id = e.upload_id)))
   WHERE (NOT (EXISTS ( SELECT 1
            FROM public.letters_from_supporters s
           WHERE (s.entry_id = f.id))));
@@ -1868,6 +1903,19 @@ CREATE SEQUENCE public.saved_filters_id_seq
 ALTER SEQUENCE public.saved_filters_id_seq OWNED BY public.saved_filters.id;
 
 --
+-- Name: signup_uploads_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.signup_uploads ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.signup_uploads_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
 -- Name: staff_accounts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2532,6 +2580,20 @@ ALTER TABLE ONLY public.saved_filters
     ADD CONSTRAINT saved_filters_pkey PRIMARY KEY (id);
 
 --
+-- Name: signup_upload_entries signup_upload_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.signup_upload_entries
+    ADD CONSTRAINT signup_upload_entries_pkey PRIMARY KEY (entry_id);
+
+--
+-- Name: signup_uploads signup_uploads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.signup_uploads
+    ADD CONSTRAINT signup_uploads_pkey PRIMARY KEY (id);
+
+--
 -- Name: staff_accounts staff_accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2933,6 +2995,12 @@ CREATE INDEX politician_domains_person ON public.politician_domains USING btree 
 CREATE INDEX politicians_commons_constituency ON public.politicians USING btree (constituency) WHERE (house = 'commons'::text);
 
 --
+-- Name: signup_upload_entries_upload; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX signup_upload_entries_upload ON public.signup_upload_entries USING btree (upload_id);
+
+--
 -- Name: staff_login_links_email_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3258,6 +3326,27 @@ ALTER TABLE ONLY public.politicians
 
 ALTER TABLE ONLY public.proxies
     ADD CONSTRAINT proxies_notable_person_id_fkey FOREIGN KEY (notable_person_id) REFERENCES public.notable_people(id) ON DELETE CASCADE;
+
+--
+-- Name: signup_upload_entries signup_upload_entries_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.signup_upload_entries
+    ADD CONSTRAINT signup_upload_entries_entry_id_fkey FOREIGN KEY (entry_id) REFERENCES public.form_entries(id) ON DELETE CASCADE;
+
+--
+-- Name: signup_upload_entries signup_upload_entries_upload_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.signup_upload_entries
+    ADD CONSTRAINT signup_upload_entries_upload_id_fkey FOREIGN KEY (upload_id) REFERENCES public.signup_uploads(id) ON DELETE CASCADE;
+
+--
+-- Name: signup_uploads signup_uploads_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.signup_uploads
+    ADD CONSTRAINT signup_uploads_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.luma_events(id) ON DELETE SET NULL;
 
 --
 -- Name: staff_nav_seen staff_nav_seen_email_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

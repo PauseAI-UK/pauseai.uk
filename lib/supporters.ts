@@ -6,7 +6,14 @@ import type { ContactPermission, ContactState } from "./contact-permissions";
 import type { SortColumns, SortDirection } from "./staff-sort";
 
 /** Where a supporter came from: Luma, the members, or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, or the march sign-up. */
-export const SUPPORTER_SOURCES = ["luma", "member", "email-your-mp", "web-form", "march-2026-11"] as const;
+export const SUPPORTER_SOURCES = [
+  "luma",
+  "member",
+  "email-your-mp",
+  "web-form",
+  "march-2026-11",
+  "paper-signup",
+] as const;
 export type SupporterSource = (typeof SUPPORTER_SOURCES)[number];
 
 /** What a supporter_links row points at (lib/server/supporter-sources.ts): a Luma user, a form entry or a member. */
