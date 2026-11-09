@@ -825,10 +825,10 @@ describe("filterWords", () => {
       { name: "near", label: "Near", options: [] },
     ];
     expect(filterWords(filters, { q: ["jo", "x"], kind: ["a", "b", "!a"], near: "LS1" }, "q")).toEqual([
-      `${staffCopy.search} jo`,
-      `Kind ${staffCopy.filters.anyOf(["A", "b"])}`,
+      `${staffCopy.search}: jo`,
+      `Kind: ${staffCopy.filters.anyOf(["A", "b"])}`,
       staffCopy.filters.notChip("Kind", "A"),
-      "Near LS1",
+      "Near: LS1",
     ]);
   });
 });

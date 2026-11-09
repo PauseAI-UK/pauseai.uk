@@ -57,6 +57,8 @@ export type Filter = {
   searchable?: boolean;
   place?: { within: string; distances: FilterOption[]; placeholder: string };
   linkedOnly?: boolean;
+  /** A filter that matters most: its own button, first, rather than a row in "+ Filter". */
+  own?: boolean;
 };
 
 const copy = staffCopy.filters;
@@ -92,13 +94,13 @@ function valueWords(filter: Filter, value: string, join: string): string {
  * for a download's filename.
  */
 export function filterWords(filters: Filter[], values: Params, search: string): string[] {
-  const words = values[search] ? [`${staffCopy.search} ${firstOf(values[search])}`] : [];
+  const words = values[search] ? [`${staffCopy.search}: ${firstOf(values[search])}`] : [];
   for (const filter of filters) {
     const chosen = valuesOf(values[filter.name]).map(notValue);
     const [found, out] = [false, true].map((not) =>
       chosen.filter((one) => one.not === not).map((one) => choiceWords(filter, one.value)),
     );
-    if (found.length) words.push(`${filter.label} ${copy.anyOf(found)}`);
+    if (found.length) words.push(`${filter.label}: ${copy.anyOf(found)}`);
     if (out.length) words.push(copy.notChip(filter.label, copy.anyOf(out)));
   }
   return words;
@@ -179,7 +181,8 @@ function PlaceForm({
 
 /**
  * A staff list's filters (docs/style-guide.md, "Filters"): the search box,
- * with its button and an × that empties it; then a chip for each filter
+ * with its button and an × that empties it; then a filter that matters most
+ * (`own`) as its own button, its chip first once it's on; a chip for each filter
  * that's on, which opens its choices and a way to remove it (one with a
  * filter after it is a chip in two halves, a menu each; one that repeats, a
  * chip for all it finds and one for all it leaves out, marked so); "+
@@ -221,11 +224,18 @@ export default function FilterBar({
         ...filters.filter((f) => f.name === name && f.place).map((f) => f.place!.within),
       ].map((n) => [n, ""]),
     );
-  const on = filters.filter((filter) => chosen(filter.name).length > 0);
+  // Those on, a filter with its own button first, where its button was.
+  const on = filters
+    .filter((filter) => chosen(filter.name).length > 0)
+    .sort((a, b) => Number(Boolean(b.own)) - Number(Boolean(a.own)));
+  const ownButtons = filters.filter((filter) => filter.own && chosen(filter.name).length === 0);
   // Those "+ Filter" offers, each with the choices it offers: one not on, or one that repeats, its other
   // choices, found or left out; a place, its form. Except offers those that repeat.
   const offered = filters
-    .filter((filter) => !filter.after && !filter.linkedOnly && (filter.repeat || chosen(filter.name).length === 0))
+    .filter(
+      (filter) =>
+        !filter.after && !filter.own && !filter.linkedOnly && (filter.repeat || chosen(filter.name).length === 0),
+    )
     .map((filter) => {
       const taken = chosen(filter.name).map((value) => {
         const plain = notValue(value).value;
@@ -396,6 +406,16 @@ export default function FilterBar({
           <SavedFilters key={saved.version} {...saved} canSave={on.length > 0 || Boolean(values[search.name])} />
         )}
         <div className={styles.chips}>
+          {ownButtons.map((filter) => (
+            <Menu key={filter.name} id={`filter-${filter.name}`} trigger={styles.add} label={filter.label}>
+              <p className={styles.heading}>{filter.label}</p>
+              <Choices
+                options={filter.options.filter((option) => option.value)}
+                current={[]}
+                href={(v) => href({ [filter.name]: v })}
+              />
+            </Menu>
+          ))}
           {on
             .filter((filter) => !(filter.after && chosen(filter.after).length > 0))
             .flatMap((filter) => {

@@ -178,7 +178,10 @@ take whatever value they need:
   with its label's first line (`Controls.module.css`). Stylelint allows
   `em`, since it isn't a fixed size.
 - **Optical nudges**: a pixel or two to line an icon up with its text. Say
-  in a comment what it lines up.
+  in a comment what it lines up. A small icon before words in the staff
+  pages needs none: put them in `IconText` (`ui/IconText.tsx`), which
+  centres it on the words wherever they are, rather than a flex row of
+  your own, whose baseline is the icon's bottom edge.
 - **A size measured from something else**: the nav's height in
   `scroll-padding-top`, the heights reserved for the signup form while it
   loads (`OnboardingFormEmbed.module.css`). Say in a comment where the
@@ -384,7 +387,9 @@ is that thing's state: an import job's newest run, a campaign's status, a
 mailing list's answer. A strip that's an answer, not a warning, leaves out
 the icon (`icon={false}`). After something a person did, a strip says how
 it went: green when it worked, amber a warning, red an error, the amber
-and red with their icon.
+and red with their icon. A strip on the page itself, not in a card, is
+spaced from what's above and below it as the grid's cards are
+(`StaffPage.module.css`), so a page puts it there with no margin of its own.
 
 **Tables** (`components/ui/Table`). White, every other row tinted
 (`--table-stripe`), so the eye keeps to a row across. A cell's content sits at its top, so
@@ -520,11 +525,14 @@ are:
   `seconds`): "+ Filter" and Except offer the first, and its chip is in
   two halves, the second choosing among the first's. A choice list can
   have headings (an option's `group`, its icon once) and a quiet `detail`
-  after a choice. The Contact filter's topics come under Email and Phone;
-  chosen, a topic is those we can contact about it, "Contact: PauseAI UK |
+  after a choice. The Consent filter's topics come under Email and Phone;
+  chosen, a topic is those we can contact about it, "Consent: PauseAI UK |
   Can email", and its second half turns it to Not sure or Can't email.
   The first half changes the topic, and turns it the other way or removes
   it. Its value is one parameter: `contact=email:site-forms:yes`.
+- A filter that matters most has its own button (`own`), before "+ Filter",
+  which doesn't offer it; once it's on, its chip comes first. The
+  supporters list's Consent is one, as it's what a message needs.
 - Clear filters, last, while anything is on, empties the search and every
   filter, and the sort. A tab over the list, such as the politicians'
   houses, isn't a filter: Clear filters keeps it.

@@ -439,7 +439,12 @@ describe("renderCopyPage", () => {
     expect(html).toContain('<p class="warning">Old &amp; stale</p>');
     expect(html).toContain("2 placeholders that <code>my-branch</code>");
     expect(html).toContain("1 in frames, 1 in none. Frames from storyboard run 2026-11-09T10-00-00");
-    expect(html.indexOf("Nowhere")).toBeGreaterThan(html.indexOf('id="unseen"'));
+    expect(html.indexOf(`<p class="text">${M} Nowhere`)).toBeGreaterThan(html.indexOf('id="unseen"'));
+    // The sidebar: each piece of copy under its file, without its mark, linked to its card.
+    expect(html).toContain('<li><a href="#copy-1" title="Hi … &lt;you&gt;">Hi … &lt;you&gt;</a></li>');
+    expect(html).toContain('<li><a href="#copy-2" title="Nowhere">Nowhere</a></li>');
+    expect(html).toContain('<article class="copy" id="copy-1">');
+    expect(html.indexOf('href="#copy-2"')).toBeGreaterThan(html.indexOf('href="#unseen"'));
   });
 
   it("says so when there's no run, and leaves out the list of copy in no frame when there's none", () => {

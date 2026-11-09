@@ -37,7 +37,8 @@ export function mailingCounts(mailing: MailingSummary) {
 
 /**
  * How a list's rows differ for what it lists: where a row leads, how one
- * sent went, what comes before who it's from, and what one scheduled says.
+ * sent went, what comes before who it's from, who it's from when not as an
+ * email's sender is, and what one scheduled says.
  */
 export type OverviewLook<T extends MailingSummary> = {
   base: string;
@@ -45,6 +46,7 @@ export type OverviewLook<T extends MailingSummary> = {
   untitled: string;
   none: string;
   lead?: (mailing: T) => ReactNode;
+  from?: (mailing: T) => string | undefined;
   scheduledWords?: (mailing: T) => string | undefined;
 };
 
@@ -110,11 +112,13 @@ function Standing<T extends MailingSummary>({
 function Row<T extends MailingSummary>({ mailing, year, look }: { mailing: T; year: string; look: OverviewLook<T> }) {
   const href = `${look.base}/${mailing.id}`;
   // Its name, as a mail app shows it, before its address; with no name of its own, the address alone.
-  const from = mailing.imported
-    ? (mailing.sentFrom ??
-      mailing.fromName ??
-      (mailing.oldLetters ? staffCopy.mailings.notRecorded : staffCopy.mailings.imported))
-    : named(mailing.fromName === mailing.sentFrom ? null : mailing.fromName, mailing.sentFrom);
+  const from =
+    look.from?.(mailing) ??
+    (mailing.imported
+      ? (mailing.sentFrom ??
+        mailing.fromName ??
+        (mailing.oldLetters ? staffCopy.mailings.notRecorded : staffCopy.mailings.imported))
+      : named(mailing.fromName === mailing.sentFrom ? null : mailing.fromName, mailing.sentFrom));
   return (
     <li className={styles.row}>
       <span className={styles.when}>

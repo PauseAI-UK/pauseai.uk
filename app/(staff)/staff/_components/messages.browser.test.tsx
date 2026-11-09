@@ -10,7 +10,7 @@ import { messageCost, textStopsAt } from "@/lib/supporter-messages";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { navigation } from "@/tests/browser/navigation";
 import MessageCopyView from "./MessageCopyView";
-import MessageFor, { MessageWho } from "./MessageFor";
+import MessageFor, { MessageContact, MessageWho } from "./MessageFor";
 import { ChoosingMessageFrame, MessageSupporters, NeedsContactFilter } from "./MessageSupporters";
 import MessageView, { copyStatus } from "./MessageView";
 import MessageWriter, { type MessageWriterActions } from "./MessageWriter";
@@ -60,6 +60,7 @@ async function renderWriter(props: Partial<Parameters<typeof MessageWriter>[0]> 
       data={exampleMessageData}
       draft={exampleMessageEmail}
       who={<p>Who</p>}
+      contact={<span>Luma email</span>}
       actions={actions as unknown as MessageWriterActions}
       {...props}
     />,
@@ -73,7 +74,7 @@ describe("MessageWriter, by email", () => {
   it("shows the six sections, who's left out and why, what it'll cost, and schedules", async () => {
     const actions = await renderWriter();
     await expect.element(page.getByRole("heading", { name: exampleMessageEmail.subject, level: 1 })).toBeVisible();
-    await expect.element(page.getByText(copy.willGet(412))).toBeVisible();
+    await expect.element(page.getByText(copy.willGet(412, "email"))).toBeVisible();
     await expect.element(page.getByText("Pat Example")).toBeInTheDocument();
     await expect.element(page.getByText(`1 ${copy.leftOutCounted.stopped}`, { exact: false })).toBeVisible();
     await expect.element(page.getByText(messageCost("email", 412), { exact: false })).toBeVisible();
@@ -90,6 +91,7 @@ describe("MessageWriter, by email", () => {
         data={exampleMessageData}
         draft={exampleMessageEmail}
         who={null}
+        contact={null}
         actions={actions as unknown as MessageWriterActions}
       />,
     );
@@ -194,6 +196,7 @@ describe("MessageWriter, by email", () => {
         data={{ ...exampleMessageData, sends: false }}
         draft={exampleMessageEmail}
         who={null}
+        contact={null}
         actions={actions as unknown as MessageWriterActions}
       />,
     );
@@ -242,6 +245,7 @@ describe("MessageWriter, by email", () => {
         data={{ ...exampleMessageData, recipients }}
         draft={exampleMessageEmail}
         who={null}
+        contact={null}
         actions={actions as unknown as MessageWriterActions}
       />
     );
@@ -273,6 +277,8 @@ describe("MessageWriter, by text", () => {
   it("starts with the templates, no preview, and greyed", async () => {
     await renderWriter({ draft: exampleMessageText });
     await expect.element(page.getByRole("group", { name: copy.templatesLabel })).toBeVisible();
+    await expect.element(page.getByRole("tab", { name: copy.templatesLabel })).toHaveAttribute("aria-selected", "true");
+    await expect.element(page.getByText(copy.willGet(412, "text"))).toBeVisible();
     await expect.element(page.getByText(copy.chooseTemplate)).toBeVisible();
     await expect.element(page.getByText(copy.problems["no-template"])).toBeVisible();
     await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
@@ -281,26 +287,40 @@ describe("MessageWriter, by text", () => {
     await expect.element(page.getByText(stopsFor(exampleMessageText.dueAt!))).toBeVisible();
   });
 
-  it("collapses to the template chosen, its words read-only, and goes back with Change", async () => {
+  it("keeps the list with the template chosen checked, its words read-only under it, and chooses another", async () => {
     const actions = await renderWriter({ draft: exampleMessageText });
-    await page.getByRole("radio", { name: /March day reminder/ }).click();
+    const march = page.getByRole("radio", { name: /March day reminder/ });
+    await march.click();
+    await expect.element(march).toBeChecked();
     await expect.element(page.getByText(copy.templateFixed, { exact: false })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "March day reminder", level: 1 })).toBeVisible();
     await expect.element(page.getByText(copy.shownAs("Jane Example"), { exact: false })).toBeVisible();
     await vi.waitFor(() => expect(actions.save.mock.calls[0][2]).toMatchObject({ templateId: 1 }), WAIT);
-    await button(copy.changeTemplate).click();
     await expect.element(page.getByRole("group", { name: copy.templatesLabel })).toBeVisible();
+    await page.getByRole("radio", { name: /Event reminder/ }).click();
+    await expect.element(page.getByRole("heading", { name: "Event reminder", level: 1 })).toBeVisible();
+    await expect.element(march).not.toBeChecked();
   });
 
-  it("opens the editor for new words, with no parts, says they need approval, and goes back", async () => {
+  it("opens the editor for new words on their tab, with no parts, says they need approval, and keeps them", async () => {
     await renderWriter({ draft: exampleMessageText });
-    await page.getByRole("radio", { name: new RegExp(copy.newTemplate) }).click();
+    const newTab = page.getByRole("tab", { name: copy.newTemplate });
+    const approvedTab = page.getByRole("tab", { name: copy.templatesLabel });
+    await newTab.click();
+    await expect.element(newTab).toHaveAttribute("aria-selected", "true");
     await expect.element(page.getByText(copy.newTemplateHint)).toBeVisible();
     await expect.element(page.getByText(copy.mustApprove)).toBeVisible();
     await expect.element(page.getByText(staffCopy.mailingEditor.partsHeading)).not.toBeInTheDocument();
-    await expect.element(button(copy.backToTemplates)).toBeVisible();
-    await button(copy.backToTemplates).click();
+    const words = page.getByRole("textbox", { name: copy.newTemplate });
+    await words.fill("See you at the march");
+    // The tab already open does nothing; the other shows the templates; back again, the words are kept.
+    await newTab.click();
+    await approvedTab.click();
     await expect.element(page.getByRole("group", { name: copy.templatesLabel })).toBeVisible();
+    await newTab.click();
+    await expect
+      .element(page.getByRole("textbox", { name: copy.newTemplate }))
+      .toHaveTextContent("See you at the march");
   });
 
   it("opens on a draft's new words, titled by them, scheduled once approved", async () => {
@@ -371,12 +391,7 @@ describe("ChatBubble", () => {
 describe("TemplatePicker", () => {
   const renderPicker = () => {
     const onChoose = vi.fn();
-    const onNew = vi.fn();
-    return {
-      onChoose,
-      onNew,
-      view: render(<TemplatePicker templates={exampleTemplates} onChoose={onChoose} onNew={onNew} />),
-    };
+    return { onChoose, view: render(<TemplatePicker templates={exampleTemplates} onChoose={onChoose} />) };
   };
 
   it("shows five, then all; says who made each and when it was used", async () => {
@@ -404,18 +419,19 @@ describe("TemplatePicker", () => {
     await expect.element(page.getByText(copy.noTemplates)).toBeVisible();
   });
 
-  it("chooses one, or new words", async () => {
-    const { onChoose, onNew } = renderPicker();
+  it("keeps the one chosen in the list, checked, though it's past the first five", async () => {
+    await render(<TemplatePicker templates={exampleTemplates} chosen={exampleTemplates[5].id} onChoose={() => {}} />);
+    await expect.element(page.getByRole("radio", { name: new RegExp(exampleTemplates[5].name) })).toBeChecked();
+  });
+
+  it("chooses one", async () => {
+    const { onChoose } = renderPicker();
     await page.getByRole("radio", { name: /Event reminder/ }).click();
     expect(onChoose).toHaveBeenCalledWith(exampleTemplates[2]);
-    await page.getByRole("radio", { name: new RegExp(copy.newTemplate) }).click();
-    expect(onNew).toHaveBeenCalled();
   });
 
   it("names one person's use in the singular", async () => {
-    await render(
-      <TemplatePicker templates={[{ ...exampleTemplates[0], lastUsedTo: 1 }]} onChoose={() => {}} onNew={() => {}} />,
-    );
+    await render(<TemplatePicker templates={[{ ...exampleTemplates[0], lastUsedTo: 1 }]} onChoose={() => {}} />);
     await expect
       .element(page.getByText(copy.templateUsed(staffDate("2026-11-02T08:00:00Z"), 1), { exact: false }))
       .toBeVisible();
@@ -426,7 +442,7 @@ describe("the supporters list", () => {
   const yes = supportersSearch({ contact: "email:pauseai-updates:yes", near: "LS1" });
   const none = supportersSearch({ near: "LS1" });
 
-  it("messages those found with a Contact filter answered yes, keeping who they are", async () => {
+  it("messages those found with a Consent filter answered yes, keeping who they are", async () => {
     await render(<MessageSupporters search={yes} total={430} action={nothing} />);
     await expect.element(button(copy.messageButton(430))).toBeVisible();
     expect(document.querySelector<HTMLInputElement>('input[name="contact"]')!.value).toBe("email:pauseai-updates:yes");
@@ -506,7 +522,7 @@ describe("a message's page", () => {
   const who = <p>Who</p>;
 
   it("gives an email's counts, each leading to those recipients, its words and its recipients", async () => {
-    await render(<MessageView data={exampleMessageSent} who={who} {...actions} />);
+    await render(<MessageView data={exampleMessageSent} who={who} contact={null} {...actions} />);
     await expect.element(page.getByRole("heading", { name: exampleMessageSent.written.subject })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: `276 ${copy.counts.delivered}` }))
@@ -528,7 +544,9 @@ describe("a message's page", () => {
   });
 
   it("lists a tab, with its heading and the way back; pressing its count again shows everyone", async () => {
-    await render(<MessageView data={{ ...exampleMessageSent, tab: "failed", pages: 2 }} who={who} {...actions} />);
+    await render(
+      <MessageView data={{ ...exampleMessageSent, tab: "failed", pages: 2 }} who={who} contact={null} {...actions} />,
+    );
     await expect.element(page.getByRole("heading", { name: copy.tabs.failed })).toBeVisible();
     await expect.element(page.getByRole("link", { name: staffCopy.mailingPages.showEveryone }).first()).toBeVisible();
     await expect
@@ -542,13 +560,13 @@ describe("a message's page", () => {
       { ...one, copyId: 31, status: "scheduled", read: false, sentAt: null },
       { ...one, copyId: 32, status: "cancelled", read: false, sentAt: null },
     ];
-    await render(<MessageView data={{ ...exampleMessageSent, recipients }} who={who} {...actions} />);
+    await render(<MessageView data={{ ...exampleMessageSent, recipients }} who={who} contact={null} {...actions} />);
     await expect.element(page.getByText(copy.statuses.scheduled)).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.messageAndReply })).not.toBeInTheDocument();
   });
 
   it("goes through the pages of everyone", async () => {
-    await render(<MessageView data={{ ...exampleMessageSent, pages: 2 }} who={who} {...actions} />);
+    await render(<MessageView data={{ ...exampleMessageSent, pages: 2 }} who={who} contact={null} {...actions} />);
     await expect
       .element(page.getByRole("link", { name: staffCopy.paging.next }))
       .toHaveAttribute("href", "/staff/messages/5?page=2");
@@ -560,7 +578,7 @@ describe("a message's page", () => {
       fromName: "",
       attachments: [{ id: 1, filename: "Brief.pdf", contentType: "application/pdf", size: 10 }],
     };
-    await render(<MessageView data={{ ...exampleMessageSent, written }} who={who} {...actions} />);
+    await render(<MessageView data={{ ...exampleMessageSent, written }} who={who} contact={null} {...actions} />);
     await expect.element(page.getByText("Brief.pdf")).toBeVisible();
   });
 
@@ -576,7 +594,7 @@ describe("a message's page", () => {
   };
 
   it("gives a text's read count, and the text as a bubble, its fields as words", async () => {
-    await render(<MessageView data={text} who={who} {...actions} />);
+    await render(<MessageView data={text} who={who} contact={null} {...actions} />);
     await expect.element(page.getByRole("link", { name: `240 ${copy.counts.read}` })).toBeVisible();
     await expect.element(page.getByText(copy.textTitle)).toBeVisible();
     await expect
@@ -592,7 +610,7 @@ describe("a message's page", () => {
       summary: { ...text.summary, state: "scheduled" as const, waiting: true },
       written: { ...text.written, state: "scheduled" as const, dueAt: "2026-11-07T07:18:00Z" },
     };
-    await render(<MessageView data={data} who={who} {...actions} />);
+    await render(<MessageView data={data} who={who} contact={null} {...actions} />);
     await expect.element(page.getByText(copy.waitingStrip)).toBeVisible();
     await expect.element(page.getByText(copy.waiting, { exact: true })).toBeVisible();
     await expect.element(page.getByText(ONCE_APPROVED)).toBeVisible();
@@ -606,7 +624,7 @@ describe("a message's page", () => {
       summary: { ...text.summary, state: "scheduled" as const },
       written: { ...text.written, state: "scheduled" as const, dueAt: "2026-11-07T07:18:00Z" },
     };
-    await render(<MessageView data={data} who={who} {...actions} />);
+    await render(<MessageView data={data} who={who} contact={null} {...actions} />);
     await expect.element(page.getByText(copy.waitingStrip)).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.waiting, { exact: true })).not.toBeInTheDocument();
     await expect.element(page.getByText(ONCE_APPROVED)).not.toBeInTheDocument();
@@ -618,7 +636,7 @@ describe("a message's page", () => {
       summary: { ...exampleMessageSummary, state: "sending" as const },
       written: { ...exampleMessageSent.written, state: "sending" as const, title: "" },
     };
-    await render(<MessageView data={data} who={who} {...actions} />);
+    await render(<MessageView data={data} who={who} contact={null} {...actions} />);
     await expect.element(page.getByRole("heading", { name: copy.untitled })).toBeVisible();
     await expect.element(button(staffCopy.mailingPages.stopSending)).toBeVisible();
   });
@@ -634,7 +652,7 @@ describe("a message's page", () => {
         dueAt: "2026-11-07T07:18:00Z",
       },
     };
-    await render(<MessageView data={data} who={who} {...actions} />);
+    await render(<MessageView data={data} who={who} contact={null} {...actions} />);
     await expect.element(page.getByText(copy.scheduledLine(290, "email", "hello@pauseai.uk"))).toBeVisible();
   });
 
@@ -668,12 +686,23 @@ describe("MessageFor", () => {
     await expect.element(page.getByText(copy.recipientsTitle)).toBeVisible();
   });
 
-  it("says who a message is to, its channel first", async () => {
-    await render(
-      <MessageWho channel="text" params={{ contact: "phone:luma-calendar:yes" }} choices={exampleSupporterChoices} />,
+  it("says what they said yes to apart, and the other filters as pills, or everyone who did", async () => {
+    const supporters = staffCopy.supporters.subscriptions.topics;
+    const view = await render(
+      <>
+        <MessageContact params={{ contact: "phone:luma-calendar:yes" }} />
+        <MessageContact params={{ contact: "email:luma-calendar:yes" }} />
+        <MessageWho params={{ contact: "email:pauseai-updates:yes", near: "LS1" }} choices={exampleSupporterChoices} />
+      </>,
     );
+    await expect.element(page.getByText(supporters.phone["luma-calendar"])).toBeVisible();
+    await expect.element(page.getByText(supporters.email["luma-calendar"])).toBeVisible();
     const pills = page.getByRole("list", { name: staffCopy.mailingPages.whoLabel }).getByRole("listitem");
-    await expect.element(pills.first()).toHaveTextContent(copy.channels.text);
+    await expect.element(pills.first()).toBeVisible();
+    expect(pills.all().map((pill) => pill.element().textContent)).toHaveLength(1);
+    await view.unmount();
+    await render(<MessageWho params={{ contact: "phone:luma-calendar:yes" }} choices={exampleSupporterChoices} />);
+    await expect.element(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
   });
 });
 

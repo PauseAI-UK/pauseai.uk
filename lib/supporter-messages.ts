@@ -6,7 +6,7 @@ import { now } from "./now";
 import { anyAndNone, valuesOf, type ParamValue } from "./staff-search";
 
 // The rules of messages to supporters, for the server to keep and the pages
-// to say: how the Contact filter fixes a message's channel and topic, its
+// to say: how the Consent filter fixes a message's channel and topic, its
 // merge fields, what it costs, and what stops it being scheduled.
 
 /** How a message goes. Staff choose text, never the backend that sends it. */
@@ -16,7 +16,7 @@ export type MessageChannel = "email" | "text";
 export type MessageTerms = { channel: MessageChannel; topic: Topic };
 
 /**
- * A message's channel and topic, from the supporters list's Contact filter:
+ * A message's channel and topic, from the supporters list's Consent filter:
  * one topic, answered yes. Undefined for anything else, as "not sure" isn't
  * enough, and two topics wouldn't say which it's about. What the filter leaves
  * out doesn't count.
@@ -55,6 +55,24 @@ export const MESSAGE_SENDER = { name: "PauseAI UK", email: "hello@pauseai.uk" };
 
 /** The name a text appears from: the WhatsApp business account's. */
 export const TEXT_SENDER_NAME = "PauseAI UK";
+
+/**
+ * A phone number as people write it, from the international form a number
+ * is kept in: a UK one in its groups after +44, as "+44 7700 900000" or, in
+ * London, "+44 20 7946 0000"; any other as it is.
+ */
+export function spacedNumber(number: string): string {
+  const uk = /^\+44(\d{10})$/.exec(number)?.[1];
+  if (!uk) return number;
+  return uk.startsWith("2")
+    ? `+44 ${uk.slice(0, 2)} ${uk.slice(2, 6)} ${uk.slice(6)}`
+    : `+44 ${uk.slice(0, 4)} ${uk.slice(4)}`;
+}
+
+/** Who a text is from, on one line: the name, then its number in brackets. */
+export function textSender(name: string, number: string): string {
+  return `${name} (${spacedNumber(number)})`;
+}
 
 /** How long after its time a text may still go, a fixed limit nobody sets. */
 const TEXT_SENDS_FOR_DAYS = 3;

@@ -11,19 +11,31 @@
   white-space: nowrap;
 }
 
-.tabs a {
+.tabs a,
+.tabs button {
   padding: var(--space-2) 0;
   border-bottom: 2px solid transparent;
   color: var(--text-secondary);
   text-decoration: none;
 }
 
-.tabs a:hover {
+/* ButtonTabs' buttons, as plain as the links. */
+.tabs button {
+  border-top: 0;
+  border-inline: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tabs a:hover,
+.tabs button:hover {
   color: var(--text);
 }
 
 .tabs a[aria-current="page"],
-.tabs a[data-pending] {
+.tabs a[data-pending],
+.tabs button[aria-selected="true"] {
   border-bottom-color: var(--accent);
   color: var(--text);
   font-weight: 600;

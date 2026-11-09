@@ -72,7 +72,7 @@ export const staffCopy = {
     politicians: "Politicians",
     asks: "Asks",
     mailings: "Mailings",
-    messages: "⁂ Messages",
+    messages: "Bulk messages",
     events: "Events",
     import: "Import data",
     changes: "Audit log",
@@ -275,7 +275,7 @@ export const staffCopy = {
       campaign: "Campaign",
       wrote: { "": "Wrote", no: "Didn't write" } as Record<string, string>,
       // The other filters are named after their columns.
-      // The Contact filter: its topics under their channel's heading, each named short, a phone's with how we'd
+      // The Consent filter: its topics under their channel's heading, each named short, a phone's with how we'd
       // contact them after it; then in its chip's second half, its answer, as a supporter's page words it.
       channels: { email: "Email", phone: "Phone" } as Record<Channel, string>,
       topics: {
@@ -293,7 +293,7 @@ export const staffCopy = {
       phone: "Phone",
       place: "Place",
       badges: "Activities",
-      subscriptions: "Contact",
+      subscriptions: "Consent",
       firstSeen: "First sign-up",
       lastActive: "Last activity",
       events: "Luma events",
@@ -608,7 +608,11 @@ export const staffCopy = {
       lastLogin: "Last login",
       lastSeen: "Last seen",
       sessions: "Sessions open",
+      gmail: "Gmail",
     },
+    // In the Gmail column: connected, before when; or not.
+    gmailConnected: "Connected",
+    gmailNot: "Not connected",
     // In the Added column, after when: who added the account, or that its first login did.
     addedBy: (who: string) => `by ${who}`,
     addedByLogin: "by login",
@@ -963,15 +967,15 @@ All events: ${link}`,
   },
   // The pages for messages to supporters: from the supporters list, the writer, the list of them and each one's page.
   messagePages: {
-    title: "⁂ Messages",
+    title: "Bulk messages",
     noBackend: "This is just the user interface to try it out, there is no backend for sending yet.",
-    intro: "⁂ Emails and texts PauseAI sends to supporters who said yes to hearing from us",
-    none: "⁂ No messages yet.",
+    intro: "Bulk emails and texts to supporters",
+    none: "No messages yet.",
     untitled: "⁂ Untitled message",
     // In the supporters list's count row.
     messageButton: (n: number) => `⁂ Message ${n} ${n === 1 ? "supporter" : "supporters"}`,
     needsContact:
-      "⁂ To message supporters, add a Contact filter answered yes (Can email, Can text or Can call or text) for one topic. It chooses who, and whether by email or text.",
+      "⁂ To message supporters, add a Consent filter answered yes (Can email, Can text or Can call or text) for one topic. It chooses who, and whether by email or text.",
     // Change who: the supporters list choosing who a draft goes to.
     choosing: (title: string) => `⁂ Change who the message “${title}” goes to`,
     choosingHow: "⁂ Change the filters. The message goes to everyone they find when it's scheduled.",
@@ -979,11 +983,13 @@ All events: ${link}`,
     choosingCount: (n: number) => `⁂ ${n} ${n === 1 ? "supporter" : "supporters"}, who the filters find`,
     choosingLabel: "⁂ Who the message goes to",
     useThese: (n: number) => `⁂ Use these ${n} for the draft`,
-    keepContact: "⁂ Keep the Contact filter this message was made from: its channel and topic are fixed.",
+    keepContact: "⁂ Keep the Consent filter this message was made from: its channel and topic are fixed.",
     backToDraft: "⁂ Back to the draft",
     // A message's channel, as a pill, a list's row and the band say it.
     channels: { email: "Email", text: "Text" },
     newTitle: { email: "⁂ New email to supporters", text: "⁂ New text to supporters" },
+    // At the top right of the messages page: to the supporters list, to choose who first.
+    newMessage: "New message",
     // What's filled in for those without a field, and the fields as the editor and the preview say them.
     fallbacks: { firstName: "⁂ there", localGroup: "⁂ your local group", mp: "⁂ your MP" },
     fields: {
@@ -1007,8 +1013,9 @@ All events: ${link}`,
     },
     hasFirstName: "⁂ have a first name",
     // The numbered sections of a draft.
-    sections: { who: "⁂ To", write: "⁂ Write", preview: "⁂ Preview", from: "⁂ From", when: "⁂ When", send: "⁂ Send" },
-    willGet: (n: number) => `⁂ ${n} ${n === 1 ? "supporter" : "supporters"} will get it.`,
+    sections: { who: "To", write: "Write", preview: "Preview", from: "From", when: "When", send: "Send" },
+    willGet: (n: number, channel: "email" | "text") =>
+      `${n} ${n === 1 ? "supporter" : "supporters"} will be ${channel === "email" ? "emailed" : "texted"}.`,
     leftOut: (found: number, counts: { reason: string; n: number }[]) =>
       `⁂ Of ${found} the filters find, ${counts.reduce((all, one) => all + one.n, 0)} are left out: ${counts.map((one) => `${one.n} ${one.reason}`).join(", ")}.`,
     leftOutCounted: {
@@ -1033,15 +1040,12 @@ All events: ${link}`,
     noTemplates: "⁂ No template has those words.",
     showAll: (n: number) => `⁂ Show all ${n}`,
     newTemplate: "⁂ New template",
-    newTemplateHow: "⁂ Write new words. WhatsApp approves them before the text can go, usually within a day.",
     templateMadeIn: "⁂ Made in WhatsApp Manager",
     templateBy: (name: string, approved: string, used: string) => `⁂ ${name}, approved ${approved}, ${used}`,
     templateNeverUsed: "⁂ never used",
     templateUsed: (at: string, n: number) => `⁂ last used ${at}, to ${n} ${n === 1 ? "person" : "people"}`,
     templateFixed: "⁂ WhatsApp has approved these words, so they can't be changed here.",
-    changeTemplate: "⁂ Change",
-    newTemplateHint: "⁂ WhatsApp approves a new template before it can go, usually within a day.",
-    backToTemplates: "⁂ Back to WhatsApp approved templates",
+    newTemplateHint: "⁂ WhatsApp approves a new template before it can go, which takes up to 24 hours.",
     rejected: (at: string, reason: string) =>
       `⁂ WhatsApp rejected the template on ${at}: ${reason} Change the words and schedule it again, and it'll be sent for approval again.`,
     // Preview.
@@ -1092,7 +1096,7 @@ All events: ${link}`,
     schedule: (n: number, channel: "email" | "text") =>
       `⁂ Schedule ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"}`,
     scheduleOnceApproved: (n: number) => `⁂ Schedule ${n} ${n === 1 ? "text" : "texts"}, once approved`,
-    mustApprove: "⁂ WhatsApp must approve the template first, usually within a day.",
+    mustApprove: "⁂ WhatsApp must approve the template first, which takes up to 24 hours.",
     problems: {
       "unknown-filter": "⁂ The filter has values that have changed or are no longer supported.",
       "no-recipients": "⁂ There's nobody to send to.",
@@ -1107,13 +1111,13 @@ All events: ${link}`,
     } as Record<string, string>,
     // Its page.
     waiting: "WhatsApp approving",
-    waitingStrip: "⁂ Waiting for WhatsApp to approve the template, usually within a day.",
+    waitingStrip: "Waiting for WhatsApp to approve the template, which takes up to 24 hours.",
     sendsOnceApproved: (when: string) => `⁂ Sends ${when}, once approved`,
     scheduledLine: (n: number, channel: "email" | "text", from: string) =>
-      `⁂ ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"} from ${from}`,
-    byBackend: { email: "⁂ by email", text: "⁂ by WhatsApp" },
-    textTitle: "⁂ The text",
-    emailTitle: "⁂ The email",
+      `${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"} from ${from}.`,
+    byBackend: { email: "by email", text: "by WhatsApp" },
+    textTitle: "The text",
+    emailTitle: "The email",
     counts: {
       delivered: "delivered",
       failed: "failed",
@@ -1128,18 +1132,18 @@ All events: ${link}`,
       read: "⁂ Read",
       replied: "⁂ Replied",
     } as Record<string, string>,
-    recipientsTitle: "⁂ Recipients",
-    recipientsCount: (n: number) => `⁂ ${n} ${n === 1 ? "recipient" : "recipients"}`,
+    recipientsTitle: "Recipients",
+    recipientsCount: (n: number) => `${n} ${n === 1 ? "recipient" : "recipients"}`,
     noRecipients: "⁂ No recipients here.",
-    columns: { who: "⁂ Supporter", status: "⁂ Status" },
+    columns: { who: "Supporter", status: "Status" },
     erased: "⁂ Erased",
     // How a copy stands.
     statuses: {
-      scheduled: "⁂ Scheduled",
-      sent: "⁂ Sent",
-      delivered: "⁂ Delivered",
-      read: "⁂ Read",
-      failed: "⁂ Failed",
+      scheduled: "Scheduled",
+      sent: "Sent",
+      delivered: "Delivered",
+      read: "Read",
+      failed: "Failed",
       cancelled: "⁂ Stopped: the message was stopped",
     } as Record<string, string>,
     skipReasons: {
@@ -1159,8 +1163,12 @@ All events: ${link}`,
       read: "⁂ Read",
       replies: "⁂ Replies",
       supporter: "⁂ Supporter",
-      from: "⁂ From",
+      from: "From",
+      // What everyone a message is to said yes to: its channel and topic, from the Consent filter.
+      saidYes: "⁂ Said yes to",
     },
+    // In To, when Consent is the only filter.
+    everyoneWhoSaidYes: "⁂ Everyone who did",
     lastAnswered: (by: string) => `⁂ last answered by ${by}`,
     threadTitle: "⁂ Message and reply",
     headers: { from: "⁂ From", to: "⁂ To", received: "⁂ Received" },
@@ -1179,8 +1187,8 @@ All events: ${link}`,
     },
     everythingElse: (name: string) => `⁂ Everything else we know about ${name} →`,
     // A supporter's page.
-    supporterTitle: "⁂ Messages",
-    supporterNone: "⁂ No messages sent to them.",
+    supporterTitle: "Messages",
+    supporterNone: "No messages sent to them.",
     supporterColumns: { message: "⁂ Message", status: "⁂ Status", replies: "⁂ Their replies" },
   },
 

@@ -1,0 +1,14 @@
+/* Plain inline, not flex: a flex box takes its baseline from the icon's
+   bottom edge, which sits the icon on the words' baseline, too high. Inline,
+   `middle` centres the icon half the height of a lowercase letter above the
+   baseline, however big the words are. */
+.icon {
+  display: inline-block;
+  margin-right: var(--space-1);
+  line-height: 0;
+  vertical-align: middle;
+}
+
+.icon svg {
+  display: block;
+}

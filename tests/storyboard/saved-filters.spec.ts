@@ -50,7 +50,7 @@ test("Saving a filter", { tag: "@phone" }, async ({ page, request, flowDatabase 
   story("Save opens a small form, with a name filled in from the filters, ready to type over.");
   await save(page).click();
   const name = page.getByRole("textbox", { name: copy.name });
-  await expect(name).toHaveValue(`${politicians.title}: ${staffCopy.fields.party} Labour`);
+  await expect(name).toHaveValue(`${politicians.title}: ${staffCopy.fields.party}: Labour`);
   await frame(page, "Naming it");
 
   story("Saving loads it, and the chip is named for it, with nothing left to save.");

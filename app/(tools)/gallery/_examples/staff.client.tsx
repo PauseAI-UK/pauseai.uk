@@ -11,6 +11,7 @@ import FilterBar from "@/app/(staff)/staff/_components/ui/FilterBar";
 import Menu, { menuItemsClass } from "@/app/(staff)/staff/_components/ui/Menu";
 import MenuSubmit from "@/app/(staff)/staff/_components/ui/MenuSubmit";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
+import { ButtonTabs } from "@/app/(staff)/staff/_components/ui/Tabs";
 import { savedFiltersProps } from "@/app/(staff)/staff/_components/ui/SavedFilters";
 import {
   exampleBlock,
@@ -463,6 +464,7 @@ export function StaffAccountsTableExample() {
               lastLoginAt: null,
               lastSeenAt: null,
               sessions: 0,
+              gmailConnectedAt: null,
             },
             {
               email: "jo@pauseai.uk",
@@ -472,6 +474,7 @@ export function StaffAccountsTableExample() {
               lastLoginAt: "2026-10-22T08:00:00Z",
               lastSeenAt: "2026-10-22T09:15:00Z",
               sessions: 2,
+              gmailConnectedAt: "2026-10-21T09:00:00Z",
             },
             {
               email: "samuel.whitlock@pauseai.uk",
@@ -481,6 +484,7 @@ export function StaffAccountsTableExample() {
               lastLoginAt: "2026-10-21T10:30:00Z",
               lastSeenAt: "2026-10-21T11:00:00Z",
               sessions: 1,
+              gmailConnectedAt: null,
             },
           ]}
         />
@@ -1075,7 +1079,7 @@ export function SavedFilterExample({ state }: { state: keyof typeof SAVED_STATES
               },
               values,
               path: "/staff/politicians",
-              name: "Politicians: Party Labour",
+              name: "Politicians: Party: Labour",
               summary: (params) => [`Party ${params.party}`],
               actions: { save: log("save"), update: log("update"), rename: log("rename"), remove: log("remove") },
             })}
@@ -1089,4 +1093,21 @@ export function SavedFilterExample({ state }: { state: keyof typeof SAVED_STATES
 /** The same, with part of the filter gone, which the bar says under itself. */
 export function SavedFilterGoneExample() {
   return <SavedFilterExample state="gone" />;
+}
+
+/** Tabs that switch what's under them on the page, the second chosen, its panel under them. */
+export function ButtonTabsExample() {
+  const [tab, setTab] = useState("new");
+  const tabs = [
+    { key: "approved", label: "Approved templates", id: "example-tab-approved" },
+    { key: "new", label: "New template", id: "example-tab-new" },
+  ];
+  return (
+    <StaffPage as="div">
+      <ButtonTabs label="Words" tabs={tabs} current={tab} onChoose={setTab} />
+      <p role="tabpanel" aria-labelledby={tabs.find((one) => one.key === tab)!.id}>
+        {tab === "new" ? "New words, typed here." : "The templates, to choose from."}
+      </p>
+    </StaffPage>
+  );
 }

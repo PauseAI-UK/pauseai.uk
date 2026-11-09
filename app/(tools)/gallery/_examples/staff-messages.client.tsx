@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Numbered, DraftTitle } from "@/app/(staff)/staff/_components/DraftWriter";
 import { MailingStanding } from "@/app/(staff)/staff/_components/MailingView";
 import MessageCopyView from "@/app/(staff)/staff/_components/MessageCopyView";
-import MessageFor, { MessageWho } from "@/app/(staff)/staff/_components/MessageFor";
+import MessageFor, { MessageContact, MessageWho } from "@/app/(staff)/staff/_components/MessageFor";
 import { ChoosingMessageFrame, MessageSupporters } from "@/app/(staff)/staff/_components/MessageSupporters";
 import MessageView from "@/app/(staff)/staff/_components/MessageView";
 import MessageWriter, { type MessageWriterActions } from "@/app/(staff)/staff/_components/MessageWriter";
@@ -76,7 +76,12 @@ export function MessageWriterExample({ kind }: { kind: "email" | "choose" | "tem
         <MessageWriter
           data={data}
           draft={draft}
-          who={<Muted>Text · PauseAI London March</Muted>}
+          who={<Muted>PauseAI London March</Muted>}
+          contact={
+            <MessageContact
+              params={{ contact: kind === "email" ? "email:luma-calendar:yes" : "phone:luma-calendar:yes" }}
+            />
+          }
           actions={messageActions(log)}
         />
       )}
@@ -84,17 +89,13 @@ export function MessageWriterExample({ kind }: { kind: "email" | "choose" | "tem
   );
 }
 
-/** The templates, chosen one logged. */
+/** The templates, the one chosen checked and its name logged. */
 export function TemplatePickerExample() {
-  const [chosen, setChosen] = useState("");
+  const [chosen, setChosen] = useState<{ id: number; name: string }>();
   return (
     <>
-      <TemplatePicker
-        templates={exampleTemplates}
-        onChoose={(one) => setChosen(one.name)}
-        onNew={() => setChosen("new")}
-      />
-      <Muted>{chosen}</Muted>
+      <TemplatePicker templates={exampleTemplates} chosen={chosen?.id} onChoose={setChosen} />
+      <Muted>{chosen?.name}</Muted>
     </>
   );
 }
@@ -114,7 +115,7 @@ export function DraftTitleExample() {
 const nothing = async () => {};
 const yes = supportersSearch({ contact: "email:pauseai-updates:yes", near: "LS1" });
 
-/** Message N supporters with a Contact filter answered yes, then without one: dashed. */
+/** Message N supporters with a Consent filter answered yes, then without one: dashed. */
 export function MessageSupportersExample() {
   return (
     <>
@@ -167,13 +168,8 @@ export function MessageViewExample({ kind }: { kind: "email" | "text" | "waiting
   return (
     <MessageView
       data={data}
-      who={
-        <MessageWho
-          channel={data.written.channel}
-          params={exampleMessageData.filter.params}
-          choices={exampleSupporterChoices}
-        />
-      }
+      who={<MessageWho params={exampleMessageData.filter.params} choices={exampleSupporterChoices} />}
+      contact={<MessageContact params={data.written.filter.params} />}
       stop={nothing}
       reschedule={nothing}
     />

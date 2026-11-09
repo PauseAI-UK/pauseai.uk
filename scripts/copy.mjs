@@ -553,9 +553,10 @@ function copyHtml(parts) {
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /**
- * The page: a heading with what it's of and how fresh, the files with copy
- * in them, then each file's copy in its order, each with the frames that
- * show it, and last the copy no frame shows.
+ * The page: a sidebar listing every piece of copy under its file, each
+ * linked to its card; then a heading with what it's of and how fresh, each
+ * file's copy in its order, each with the frames that show it, and last the
+ * copy no frame shows.
  *
  * @param {{ branch: string, base: string, run?: { name: string, at: string }, warnings: string[],
  *   groups: { key: string, parts: Part[], places: Placeholder[], shots: { image: string, where: string[] }[] }[] }} data
@@ -565,6 +566,12 @@ export function renderCopyPage({ branch, base, run, warnings, groups }) {
   const unseen = groups.filter((g) => g.shots.length === 0);
   const files = [...new Set(seen.map((g) => g.places[0].file))];
   const id = (file) => `file-${file.replace(/[^\w-]+/g, "-")}`;
+  const cardId = (group) => `copy-${groups.indexOf(group) + 1}`;
+  // The copy in the sidebar, without its mark, each expression an ellipsis.
+  const link = (group) => {
+    const text = copyText(group.parts, () => "…").replace(/^\u2042\s*/, "");
+    return `<li><a href="#${cardId(group)}" title="${escapeHtml(text)}">${escapeHtml(text)}</a></li>`;
+  };
   const places = (group) =>
     group.places
       .map(
@@ -573,7 +580,7 @@ export function renderCopyPage({ branch, base, run, warnings, groups }) {
       )
       .join("");
   const card = (group) => `
-    <article class="copy">
+    <article class="copy" id="${cardId(group)}">
       <p class="text">${copyHtml(group.parts)}</p>
       <div class="places">${places(group)}</div>
       ${
@@ -608,13 +615,22 @@ export function renderCopyPage({ branch, base, run, warnings, groups }) {
 @media (prefers-color-scheme: dark) { :root { --bg: #161615; --card: #20201e; --text: #ececea; --muted: #a3a39c; --line: #3a3a36; --slot: #4a1a33; --warn: #3d3315; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
-main { max-width: 1400px; margin: 0 auto; padding: 24px 16px 64px; }
+.layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); }
+aside { position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 16px 12px 32px 16px; border-right: 1px solid var(--line); font-size: 13px; }
+aside h2 { margin: 16px 0 4px; padding: 0; border: 0; font-size: 12px; overflow-wrap: anywhere; }
+aside h2:first-child { margin-top: 0; }
+aside ol { margin: 0; padding-left: 22px; color: var(--muted); }
+aside li a { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: inherit; text-decoration: none; padding: 1px 0; }
+aside li a:hover { color: var(--text); text-decoration: underline; }
+@media (max-width: 900px) { .layout { display: block; } aside { position: static; height: auto; max-height: 50vh; border-right: 0; border-bottom: 1px solid var(--line); } }
+main { max-width: 1400px; padding: 24px 16px 64px; }
+.copy:target { outline: 2px solid var(--accent); }
+.copy { scroll-margin-top: 16px; }
 h1 { font-size: 24px; margin: 0 0 4px; }
 h2 { font-size: 15px; font-family: ui-monospace, monospace; margin: 40px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .meta { color: var(--muted); margin: 0 0 16px; }
 .warning { background: var(--warn); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
-nav ul { margin: 0; padding-left: 20px; columns: 2 320px; }
-nav a { color: inherit; }
+aside h2 a { color: inherit; }
 .copy { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin: 0 0 14px; }
 .text { font-size: 18px; margin: 0 0 6px; white-space: pre-wrap; }
 .slot { background: var(--slot); border-radius: 4px; padding: 0 4px; font-family: ui-monospace, monospace; font-size: 15px; }
@@ -630,16 +646,25 @@ figcaption ul { margin: 2px 0 0; padding-left: 18px; }
 </style>
 </head>
 <body>
+<div class="layout">
+<aside>
+${files
+  .map(
+    (f) =>
+      `<h2><a href="#${id(f)}">${escapeHtml(f)}</a> (${seen.filter((g) => g.places[0].file === f).length})</h2><ol>${seen
+        .filter((g) => g.places[0].file === f)
+        .map(link)
+        .join("")}</ol>`,
+  )
+  .join("\n")}
+${unseen.length ? `<h2><a href="#unseen">In no frame</a> (${unseen.length})</h2><ol>${unseen.map(link).join("")}</ol>` : ""}
+</aside>
 <main>
 <h1>Copy to approve</h1>
 <p class="meta">${plural(groups.length, "placeholder")} that <code>${escapeHtml(branch)}</code> adds or changes since it left main at <code>${escapeHtml(base)}</code>: ${seen.length} in frames, ${unseen.length} in none.${
     run ? ` Frames from storyboard run ${escapeHtml(run.name)}, made ${escapeHtml(run.at)}.` : ""
   }</p>
 ${warnings.map((w) => `<p class="warning">${escapeHtml(w)}</p>`).join("\n")}
-<nav><ul>
-${files.map((f) => `<li><a href="#${id(f)}">${escapeHtml(f)}</a> (${seen.filter((g) => g.places[0].file === f).length})</li>`).join("\n")}
-${unseen.length ? `<li><a href="#unseen">In no frame</a> (${unseen.length})</li>` : ""}
-</ul></nav>
 ${files
   .map(
     (f) =>
@@ -657,6 +682,7 @@ ${
     : ""
 }
 </main>
+</div>
 </body>
 </html>
 `;

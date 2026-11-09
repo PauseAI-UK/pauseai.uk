@@ -24,7 +24,7 @@ function WhoFields({ search }: { search: SupportersSearch }) {
 
 /**
  * Message N supporters, in the list's count row, counting everyone the
- * filters find. With a Contact filter answered yes, it makes a draft to them
+ * filters find. With a Consent filter answered yes, it makes a draft to them
  * and opens the writer. Without one it's dashed, and leads back to the list
  * saying which filter to add.
  */

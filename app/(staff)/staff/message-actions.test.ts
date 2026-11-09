@@ -57,7 +57,7 @@ describeWithDatabase("the message pages' Server Actions", () => {
     await expect(saveMessage(1, 1, {})).rejects.toThrow();
   });
 
-  it("makes a message from a Contact filter answered yes, and opens it", async () => {
+  it("makes a message from a Consent filter answered yes, and opens it", async () => {
     const to = await expectRedirect(() =>
       newMessage(form({ ...EMAIL, near: "LS1", page: "2", file: new File(["x"], "x.txt") })),
     );

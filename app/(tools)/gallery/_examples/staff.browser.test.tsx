@@ -4,6 +4,7 @@ import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { exampleLetter } from "@/app/(staff)/staff/_components/LettersTable.examples";
 import {
+  ButtonTabsExample,
   ChangeTimeFormExample,
   ChoosingListExample,
   DueTimeFieldsExample,
@@ -246,4 +247,13 @@ describe("the staff examples", () => {
     await render(<PoliticianTableEmptyExample />);
     await expect.element(page.getByText(staffCopy.politicians.none)).toBeVisible();
   });
+});
+
+it("switches the tabs' panel, each tab saying whether it's chosen", async () => {
+  await render(<ButtonTabsExample />);
+  await expect.element(page.getByRole("tabpanel")).toHaveTextContent("New words, typed here.");
+  await page.getByRole("tab", { name: "Approved templates" }).click();
+  await expect.element(page.getByRole("tab", { name: "Approved templates" })).toHaveAttribute("aria-selected", "true");
+  await expect.element(page.getByRole("tab", { name: "New template" })).toHaveAttribute("aria-selected", "false");
+  await expect.element(page.getByRole("tabpanel", { name: "Approved templates" })).toHaveTextContent("The templates");
 });

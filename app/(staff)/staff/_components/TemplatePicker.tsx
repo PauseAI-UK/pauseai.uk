@@ -9,7 +9,6 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { MessageTemplate } from "@/lib/server/message-drafts";
 import { staffDate } from "@/lib/staff-time";
 import { FIELD_WORDS, firstWords } from "@/lib/supporter-messages";
-import writer from "./MailingWriter.module.css";
 import styles from "./Messages.module.css";
 
 const copy = staffCopy.messagePages;
@@ -29,18 +28,19 @@ export function templateLine(template: MessageTemplate): string {
 }
 
 /**
- * The WhatsApp approved templates to choose from, none chosen, as radio
- * rows, as they're given, most recently used first: five, with a search and
- * Show all, as there may come to be dozens. The last row opens the editor.
+ * The WhatsApp approved templates to choose from, as radio rows, as they're
+ * given, most recently used first: five, with a search and Show all, as
+ * there may come to be dozens. The one `chosen` is checked, and stays in
+ * the list as another is chosen, whichever five show.
  */
 export default function TemplatePicker({
   templates,
+  chosen,
   onChoose,
-  onNew,
 }: {
   templates: MessageTemplate[];
+  chosen?: number;
   onChoose: (template: MessageTemplate) => void;
-  onNew: () => void;
 }) {
   const [search, setSearch] = useState("");
   const [all, setAll] = useState(false);
@@ -48,10 +48,9 @@ export default function TemplatePicker({
   const found = templates.filter(
     (one) => !words || `${one.name} ${firstWords(one.body, FIELD_WORDS)}`.toLowerCase().includes(words),
   );
-  const shown = all || words ? found : found.slice(0, SHOWN_AT_FIRST);
+  const shown = all || words ? found : found.filter((one, i) => i < SHOWN_AT_FIRST || one.id === chosen);
   return (
-    <fieldset className={styles.picker}>
-      <legend className={writer.label}>{copy.templatesLabel}</legend>
+    <fieldset className={styles.picker} aria-label={copy.templatesLabel}>
       <Field label={copy.searchTemplates}>
         <TextInput
           value={search}
@@ -62,7 +61,7 @@ export default function TemplatePicker({
       <div className={styles.templates}>
         {shown.map((one) => (
           <label key={one.id} className={styles.template}>
-            <Radio name="template" value={one.id} onChange={() => onChoose(one)} />
+            <Radio name="template" value={one.id} checked={one.id === chosen} onChange={() => onChoose(one)} />
             <span className={styles.templateText}>
               <strong>{one.name}</strong>
               <span>{firstWords(one.body, FIELD_WORDS)}</span>
@@ -82,13 +81,6 @@ export default function TemplatePicker({
             </Button>
           </div>
         )}
-        <label className={`${styles.template} ${styles.newTemplate}`}>
-          <Radio name="template" value="new" onChange={onNew} />
-          <span className={styles.templateText}>
-            <strong>{copy.newTemplate}</strong>
-            <Muted>{copy.newTemplateHow}</Muted>
-          </span>
-        </label>
       </div>
     </fieldset>
   );

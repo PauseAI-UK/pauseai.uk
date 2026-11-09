@@ -190,7 +190,7 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   // Jane's postcode is the one in Manchester Central.
   await expect(page.getByText(copy.total(1), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Jane Fixture" })).toBeVisible();
-  await expect(page).toHaveTitle(`${staffCopy.filters.pageTitle(copy.title, `${mp} ${mo}`)} - ${staffCopy.metaTitle}`);
+  await expect(page).toHaveTitle(`${staffCopy.filters.pageTitle(copy.title, `${mp}: ${mo}`)} - ${staffCopy.metaTitle}`);
   await frame(page, "Mo Example's constituents");
 });
 
@@ -495,7 +495,7 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
 
 test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   story(
-    "Jane Fixture has unsubscribed from the Luma calendar's emails. The supporters list has a Contact column: what each supporter gets, by topic.",
+    "Jane Fixture has unsubscribed from the Luma calendar's emails. The supporters list has a Consent column: what each supporter gets, by topic.",
   );
   await importLuma(request, BASE);
   await importMembers(request, BASE);
@@ -511,7 +511,13 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
 
   // A topic first, those we can email about it, then in the chip's second half, those we can't.
   const answers = copy.detail.permissions.answers;
-  await addFilter(page, copy.columns.subscriptions, copy.filters.topics["luma-calendar"]);
+  // Consent has its own button, as it's what lets a message go.
+  await page.getByRole("button", { name: copy.columns.subscriptions, exact: true }).click();
+  await page
+    .locator("[popover]:popover-open")
+    .getByRole("link", { name: copy.filters.topics["luma-calendar"] })
+    .first()
+    .click();
   await changeFilter(page, answers.email.yes, answers.email.no);
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toBeVisible();
   // Owen left Keep me informed unticked, which isn't an unsubscribe.

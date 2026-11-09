@@ -40,7 +40,7 @@ function whoFrom(form: FormData): Params {
 
 /**
  * Makes a draft to everyone the form's filter finds, and opens it; with no
- * Contact filter answered yes, back to the list, to say which to add.
+ * Consent filter answered yes, back to the list, to say which to add.
  */
 export async function newMessage(form: FormData): Promise<void> {
   const { email } = await requireStaff("supporters");

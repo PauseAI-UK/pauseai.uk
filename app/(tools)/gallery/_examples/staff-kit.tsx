@@ -16,6 +16,8 @@ import AlertIcon from "@/app/(staff)/staff/_components/AlertIcon";
 import StaffNav, { type StaffPage as StaffPageName } from "@/app/(staff)/staff/_components/StaffNav";
 import Breadcrumb from "@/app/(staff)/staff/_components/Breadcrumb";
 import NotIcon from "@/app/(staff)/staff/_components/ui/NotIcon";
+import IconText from "@/app/(staff)/staff/_components/ui/IconText";
+import ChannelIcon from "@/app/(staff)/staff/_components/ChannelIcon";
 import ListFrame, { ListTable, type ListColumn } from "@/app/(staff)/staff/_components/ui/ListFrame";
 import PageIntro from "@/app/(staff)/staff/_components/ui/PageIntro";
 import Withheld from "@/app/(staff)/staff/_components/ui/Withheld";
@@ -38,6 +40,7 @@ import PageTitle from "@/app/(staff)/staff/_components/ui/PageTitle";
 import Strip from "@/app/(staff)/staff/_components/ui/Strip";
 import Tabs from "@/app/(staff)/staff/_components/ui/Tabs";
 import Tag from "@/components/ui/Tag";
+import { Muted } from "@/components/ui/Text";
 import type { Group } from "../_components/types";
 import FilterBarLines from "@/app/(staff)/staff/_components/ui/FilterBarLines";
 import {
@@ -46,6 +49,7 @@ import {
   MenuSubmitExample,
   SavedFilterExample,
   SavedFilterGoneExample,
+  ButtonTabsExample,
 } from "./staff.client";
 
 /** A list's rows, for the list frame: a name, a place and a count, the place long enough to wrap. */
@@ -429,6 +433,16 @@ export const staffKit: Group = {
       ],
     },
     {
+      name: "ButtonTabs",
+      file: "app/(staff)/staff/_components/ui/Tabs.tsx",
+      variants: [
+        {
+          label: "Switching what's under them on the page, New template chosen",
+          render: () => <ButtonTabsExample />,
+        },
+      ],
+    },
+    {
       name: "PageTitle",
       file: "app/(staff)/staff/_components/ui/PageTitle.tsx",
       variants: [
@@ -803,6 +817,31 @@ export const staffKit: Group = {
                 rowKey={nameOf}
                 empty="Nothing found."
               />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "IconText",
+      file: "app/(staff)/staff/_components/ui/IconText.tsx",
+      variants: [
+        {
+          label: "An icon before words, centred on them: in a paragraph, small and muted, and in a heading",
+          render: () => (
+            <StaffPage as="div">
+              <p>
+                Sent by <IconText icon={<ChannelIcon channel="email" />}>Email</IconText> and{" "}
+                <IconText icon={<ChannelIcon channel="phone" />}>Text</IconText> today.
+              </p>
+              <p>
+                <Muted>
+                  <IconText icon={<ChannelIcon channel="phone" />}>Text</IconText>
+                </Muted>
+              </p>
+              <h3>
+                <IconText icon={<ChannelIcon channel="email" />}>Email</IconText>
+              </h3>
             </StaffPage>
           ),
         },

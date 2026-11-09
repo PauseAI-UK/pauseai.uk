@@ -67,7 +67,7 @@ it("says whether a filter's terms are a message's own", () => {
 describeWithDatabase("messages to supporters", () => {
   useTestDatabase();
 
-  it("makes a draft only from a Contact filter answered yes, from hello@ for an email and the account for a text", async () => {
+  it("makes a draft only from a Consent filter answered yes, from hello@ for an email and the account for a text", async () => {
     expect(await createMessageDraft(JO, { contact: "email:luma-calendar:unsure" })).toBeUndefined();
     const email = (await getWrittenMessage(await draftOf({ ...EMAIL_FILTER, near: "M1" })))!;
     expect(email).toMatchObject({

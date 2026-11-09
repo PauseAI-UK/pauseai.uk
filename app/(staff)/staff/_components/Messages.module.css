@@ -1,11 +1,13 @@
 /* The pieces only messages to supporters have: a text as a messaging app
    shows it, the WhatsApp templates to choose from, and who a text is from. */
 
+/* What everyone it's to said yes to, over the other filters' pills. */
+.saidYes {
+  margin: 0;
+}
+
 /* The channel in a list's row, before who it's from. */
 .channel {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-1);
   margin-right: var(--space-2);
 }
 
@@ -111,10 +113,6 @@
   min-width: 0;
 }
 
-.newTemplate {
-  background: var(--surface-2);
-}
-
 .templatesFoot {
   padding: var(--space-2) var(--space-4);
   border-top: 1px solid var(--border);
@@ -124,7 +122,7 @@
   padding: var(--space-3) var(--space-4);
 }
 
-/* The template chosen: its words, read-only, with Change. */
+/* The template chosen, under the list: its words in full, read-only. */
 .chosen {
   display: flex;
   flex-direction: column;
@@ -133,14 +131,6 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
-}
-
-.chosenHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
 }
 
 /* Who a text appears from: the account's picture, then its name and number. */

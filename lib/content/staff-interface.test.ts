@@ -223,7 +223,7 @@ describe("the words of messages to supporters", () => {
         for (const words of said) expect(words).toEqual(expect.any(String));
       }
       const others = [
-        copy.willGet(n),
+        copy.willGet(n, "text"),
         copy.messageButton(n),
         copy.choosingCount(n),
         copy.scheduleOnceApproved(n),
@@ -233,6 +233,7 @@ describe("the words of messages to supporters", () => {
       for (const words of others) expect(words).toContain(String(n));
     }
     expect(copy.schedule(1, "email")).not.toEqual(copy.schedule(2, "email"));
-    expect(copy.willGet(1)).toContain("1 supporter ");
+    expect(copy.willGet(1, "email")).toBe("1 supporter will be emailed.");
+    expect(copy.willGet(2, "text")).toBe("2 supporters will be texted.");
   });
 });

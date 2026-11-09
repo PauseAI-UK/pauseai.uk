@@ -257,7 +257,7 @@ open to every staff member, so their pages, actions and the `send-mailings`
 job all leave messages out.
 
 - **Channel and topic.** A message has one of each, fixed when it's made
-  from the supporters list's Contact filter: one topic, answered yes
+  from the supporters list's Consent filter: one topic, answered yes
   (`messageTerms` in `lib/supporter-messages.ts`). "Not sure" isn't enough.
   Staff choose email or text, never the backend.
 - **Who.** The list's filter, kept as its URL parameters; there are no
@@ -667,8 +667,8 @@ number about each topic, and why: `contact_permission()`
 reason is explained), read through the `email_permissions` and
 `phone_permissions` views and `contact_permissions`, both of them.
 Everything that asks reads those: the supporter's page and the list's
-Contact, Email and Phone columns, through `permissionsFor()` in
-`lib/server/contact-permissions.ts`; the list's Contact filter;
+Consent, Email and Phone columns, through `permissionsFor()` in
+`lib/server/contact-permissions.ts`; the list's Consent filter;
 and the staff home's count of Luma unsubscribes, through the
 `contact_unsubscribes` view. Nothing else
 reads `opt_outs` to answer it, and `tests/checks/opt-outs.test.ts` fails if
@@ -719,7 +719,7 @@ in force, by its channel, is no; then the topic's source.
 Unsure is a yes that an unsubscribe we can't see may have undone: every
 member on the updates, which CiviCRM sends. A topic the address or number
 has had nothing to do with has no row. The list shows an Email or Phone
-column only with the Contact filter by that channel, and in it the
+column only with the Consent filter by that channel, and in it the
 addresses or numbers whose answer the filter finds; a download, vCards
 too, has the same. The supporter's page shows every address and number,
 marking a number no topic lets us use.

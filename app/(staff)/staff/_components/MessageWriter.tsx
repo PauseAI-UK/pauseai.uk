@@ -2,7 +2,7 @@
 
 import type { JSONContent } from "@tiptap/react";
 import { useRouter } from "next/navigation";
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
 import { Field, Hint } from "@/components/ui/Field";
@@ -34,6 +34,7 @@ import {
   messageCost,
   messageScheduleProblems,
   MESSAGE_SENDER,
+  spacedNumber,
   textStopsAt,
   TEXT_SENDER_NAME,
 } from "@/lib/supporter-messages";
@@ -48,6 +49,7 @@ import TextBubble from "./TextBubble";
 import Grid, { Card } from "./ui/Grid";
 import NotIcon from "./ui/NotIcon";
 import Strip from "./ui/Strip";
+import { ButtonTabs } from "./ui/Tabs";
 import styles from "./MailingWriter.module.css";
 import own from "./Messages.module.css";
 
@@ -74,21 +76,15 @@ export type MessageWriterActions = DraftActions & {
 type Words = "email" | "chosen" | "new" | "none";
 
 /**
- * A text's template, chosen: its full words, which can't be edited, who made
- * it, and the way back to the list.
+ * A text's template, chosen, under the list it was chosen from: its full
+ * words, which can't be edited, and who made it.
  */
-function TemplateChosen({ template, onChange }: { template: MessageTemplate; onChange: () => void }) {
+function TemplateChosen({ template }: { template: MessageTemplate }) {
   const fields = Object.fromEntries(Object.entries(copy.fieldWords));
   return (
     <div className={styles.letter}>
-      <p className={styles.label}>{copy.templatesLabel}</p>
       <div className={own.chosen}>
-        <div className={own.chosenHead}>
-          <strong>{template.name}</strong>
-          <Button variant="ghost" size="small" fit type="button" onClick={onChange}>
-            {copy.changeTemplate}
-          </Button>
-        </div>
+        <strong>{template.name}</strong>
         <MailingLetter doc={template.body} fields={fields} />
         <Muted>
           {templateLine(template)}. {copy.templateFixed}
@@ -262,8 +258,8 @@ function MessagePreview({
 
 /**
  * A draft message to supporters, by email or text, on one page, in six
- * numbered sections: who it's to, as pills, with Change who, and who's left
- * out; writing it, an email's subject, words and files, or a text's template;
+ * numbered sections: who it's to, what they said yes to apart from the
+ * other filters' pills, with Change who, and who's left out; writing it, an email's subject, words and files, or a text's template;
  * a preview of each recipient's copy; who it appears from; when it goes,
  * and for a text when it stops; and what will go and cost, with the button to
  * schedule it, greyed with the reasons while anything stops it.
@@ -272,12 +268,15 @@ export default function MessageWriter({
   data,
   draft,
   who,
+  contact,
   actions,
 }: {
   data: MessageWriterData;
   draft: WrittenMessage;
-  /** Who it's to, as pills (MessageWho). */
+  /** Who else it's to, as pills (MessageWho). */
   who: ReactNode;
+  /** What they all said yes to (MessageContact). */
+  contact: ReactNode;
   actions: MessageWriterActions;
 }) {
   const router = useRouter();
@@ -308,10 +307,16 @@ export default function MessageWriter({
   const [choosing, choose] = useLeaving();
   const [scheduling, setScheduling] = useState(false);
   const [dayPicked, setDayPicked] = useState("");
-  const [writingNew, setWritingNew] = useState(() => !email && !isBlankMailing(draft.body));
+  // A text's words: an approved template's, or new ones, a tab each. New words
+  // are kept while the other tab is open, so going back finds them.
+  const [writingNew, setWritingNew] = useState(
+    () => !email && !isBlankMailing(draft.body) && draft.template?.status !== "approved",
+  );
+  const newWords = useRef<MailingDoc>(EMPTY_MAILING_DOC);
+  const tabsId = useId();
   const body = useMemo(() => checkMailingDoc(values.body) ?? EMPTY_MAILING_DOC, [values.body]);
   const template = data.templates.find((one) => one.id === values.templateId);
-  const words: Words = email ? "email" : template ? "chosen" : writingNew ? "new" : "none";
+  const words: Words = email ? "email" : writingNew ? "new" : template ? "chosen" : "none";
   const written = email
     ? !isBlankMailing(body) && JSON.stringify(body) !== JSON.stringify(start)
     : !isBlankMailing(body);
@@ -340,10 +345,31 @@ export default function MessageWriter({
     const n = data.leftOut.filter((one) => one.reason === reason).length;
     return n ? [{ reason: copy.leftOutCounted[reason], n }] : [];
   });
-  const backToTemplates = () => {
-    setWritingNew(false);
-    change({ templateId: null, body: EMPTY_MAILING_DOC });
+  const showTab = (key: string) => {
+    if ((key === "new") === writingNew) return;
+    if (key === "new") {
+      change({ templateId: null, body: newWords.current });
+    } else {
+      newWords.current = body;
+      change({ templateId: null, body: EMPTY_MAILING_DOC });
+    }
+    setWritingNew(key === "new");
   };
+  const wordsEditor = (labelledBy: string) => (
+    <MailingEditor
+      initial={values.body as JSONContent}
+      onChange={(doc) => change({ body: doc as MailingDoc })}
+      fields={data.fields}
+      conditions={data.conditions}
+      noParts={!email}
+      recipients={data.count}
+      labelledBy={labelledBy}
+    />
+  );
+  const wordsTabs = [
+    { key: "approved", label: copy.templatesLabel, id: `${tabsId}-approved` },
+    { key: "new", label: copy.newTemplate, id: `${tabsId}-new` },
+  ];
   return (
     <>
       <DraftTitle title={title} saveState={saveState} />
@@ -358,6 +384,9 @@ export default function MessageWriter({
       )}
       <Grid>
         <Card span={6} title={<Numbered n={1}>{copy.sections.who}</Numbered>} id="who-title">
+          <p className={own.saidYes}>
+            {copy.facts.saidYes} {contact}
+          </p>
           <div className={styles.who}>
             {who}
             <ButtonAnchor
@@ -380,7 +409,7 @@ export default function MessageWriter({
           {data.unknown.length > 0 && (
             <Strip tone="amber">{staffCopy.mailingPages.unknownFilter(data.unknown.join(", "))}</Strip>
           )}
-          <p className={styles.count}>{copy.willGet(data.count)}</p>
+          <p className={styles.count}>{copy.willGet(data.count, draft.channel)}</p>
           {data.leftOut.length > 0 && (
             <details className={styles.leftOut}>
               <summary>{copy.leftOut(data.count + data.leftOut.length, leftOutCounts)}</summary>
@@ -396,79 +425,7 @@ export default function MessageWriter({
           )}
         </Card>
 
-        <Card span={6} title={<Numbered n={2}>{copy.sections.write}</Numbered>} id="write-title">
-          {email && (
-            <Field label={copy.subject}>
-              <TextInput value={values.subject} onChange={(event) => change({ subject: event.target.value })} />
-            </Field>
-          )}
-          {words === "none" && (
-            <TemplatePicker
-              templates={data.templates}
-              onChoose={(one) => change({ templateId: one.id, body: one.body })}
-              onNew={() => setWritingNew(true)}
-            />
-          )}
-          {template && <TemplateChosen template={template} onChange={backToTemplates} />}
-          {(words === "email" || words === "new") && (
-            <div className={styles.letter}>
-              <p id={label} className={styles.label}>
-                {email ? copy.emailLabel : copy.newTemplate}
-              </p>
-              <MailingEditor
-                initial={values.body as JSONContent}
-                onChange={(doc) => change({ body: doc as MailingDoc })}
-                fields={data.fields}
-                conditions={data.conditions}
-                noParts={!email}
-                recipients={data.count}
-                labelledBy={label}
-              />
-              {!email && (
-                <>
-                  <Hint>{copy.newTemplateHint}</Hint>
-                  <div>
-                    <Button variant="ghost" size="small" fit type="button" onClick={backToTemplates}>
-                      {copy.backToTemplates}
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-          {email && (
-            <div>
-              <p className={styles.label}>{copy.files}</p>
-              <MailingFiles
-                files={attachments}
-                base={`/staff/messages/${id}/files`}
-                onAdd={attach}
-                onRemove={detach}
-                problem={fileProblem}
-              />
-            </div>
-          )}
-        </Card>
-
-        <Card span={6} title={<Numbered n={3}>{copy.sections.preview}</Numbered>} id="preview-title">
-          <MessagePreview
-            data={data}
-            draft={draft}
-            body={body}
-            words={words}
-            subject={values.subject}
-            from={fromLine}
-            written={written}
-            dueAt={values.dueAt}
-            sendTest={async (recipient, to) => {
-              // The test is of the draft as saved, so what's typed goes first.
-              await saveNow();
-              return actions.sendTest(id, recipient, to);
-            }}
-          />
-        </Card>
-
-        <Card span={6} title={<Numbered n={4}>{copy.sections.from}</Numbered>} id="from-title">
+        <Card span={6} title={<Numbered n={2}>{copy.sections.from}</Numbered>} id="from-title">
           {email ? (
             <div className={styles.from}>
               <p>
@@ -506,12 +463,85 @@ export default function MessageWriter({
                 {TEXT_SENDER_NAME[0]}
               </span>
               <p>
-                <strong>{TEXT_SENDER_NAME}</strong> <Muted>{data.textNumber ?? copy.noNumber}</Muted>
+                <strong>{TEXT_SENDER_NAME}</strong>{" "}
+                <Muted>{data.textNumber ? spacedNumber(data.textNumber) : copy.noNumber}</Muted>
                 <br />
                 <Muted>{copy.textFromNote}</Muted>
               </p>
             </div>
           )}
+        </Card>
+
+        <Card span={6} title={<Numbered n={3}>{copy.sections.write}</Numbered>} id="write-title">
+          {email && (
+            <Field label={copy.subject}>
+              <TextInput value={values.subject} onChange={(event) => change({ subject: event.target.value })} />
+            </Field>
+          )}
+          {words === "email" && (
+            <div className={styles.letter}>
+              <p id={label} className={styles.label}>
+                {copy.emailLabel}
+              </p>
+              {wordsEditor(label)}
+            </div>
+          )}
+          {!email && (
+            <div>
+              <ButtonTabs
+                label={copy.sections.write}
+                tabs={wordsTabs}
+                current={writingNew ? "new" : "approved"}
+                onChoose={showTab}
+              />
+              <div role="tabpanel" aria-labelledby={wordsTabs[writingNew ? 1 : 0].id} className={styles.letter}>
+                {!writingNew && (
+                  <TemplatePicker
+                    templates={data.templates}
+                    chosen={template?.id}
+                    onChoose={(one) => change({ templateId: one.id, body: one.body })}
+                  />
+                )}
+                {template && <TemplateChosen template={template} />}
+                {writingNew && (
+                  <>
+                    {wordsEditor(wordsTabs[1].id)}
+                    <Hint>{copy.newTemplateHint}</Hint>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          {email && (
+            <div>
+              <p className={styles.label}>{copy.files}</p>
+              <MailingFiles
+                files={attachments}
+                base={`/staff/messages/${id}/files`}
+                onAdd={attach}
+                onRemove={detach}
+                problem={fileProblem}
+              />
+            </div>
+          )}
+        </Card>
+
+        <Card span={6} title={<Numbered n={4}>{copy.sections.preview}</Numbered>} id="preview-title">
+          <MessagePreview
+            data={data}
+            draft={draft}
+            body={body}
+            words={words}
+            subject={values.subject}
+            from={fromLine}
+            written={written}
+            dueAt={values.dueAt}
+            sendTest={async (recipient, to) => {
+              // The test is of the draft as saved, so what's typed goes first.
+              await saveNow();
+              return actions.sendTest(id, recipient, to);
+            }}
+          />
         </Card>
 
         <Card span={6} title={<Numbered n={5}>{copy.sections.when}</Numbered>} id="when-title">

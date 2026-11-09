@@ -8,7 +8,7 @@ import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Messages to supporters", part: "Staff pages", order: 45 };
 
-// Messages to supporters: started from the supporters list's Contact filter,
+// Messages to supporters: started from the supporters list's Consent filter,
 // by email or text; a text on a WhatsApp approved template, or on new words
 // held for approval; who it's to changed from the list; and the pages of those
 // sent, with each copy's replies, made in the database as scheduling and
@@ -93,9 +93,25 @@ function addSent(database: string, channel: "email" | "text", title: string): { 
   return { id, copy: first };
 }
 
+test("New message, from the messages page", async ({ page, request, flowDatabase }) => {
+  story("Staff open the messages page. New message, at its top right, starts one.");
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/messages`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
+  await frame(page, "The messages page, with New message");
+  story(
+    "A message starts from the supporters list, as its Consent filter says how it goes, so New message opens the list saying which filter to add.",
+  );
+  await page.getByRole("link", { name: copy.newMessage }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/supporters?why=contact`);
+  await expect(page.getByText(copy.needsContact)).toBeVisible();
+  await frame(page, "The supporters list, saying which filter to add");
+});
+
 test("Messaging supporters by email", async ({ page, request, flowDatabase }) => {
   story(
-    "Staff open the supporters list. Message needs a Contact filter, as that says who said yes and how, so it's dashed.",
+    "Staff open the supporters list. Message needs a Consent filter, as that says who said yes and how, so it's dashed.",
   );
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
@@ -106,7 +122,7 @@ test("Messaging supporters by email", async ({ page, request, flowDatabase }) =>
   await expect(page.getByText(copy.needsContact)).toBeVisible();
   await frame(page, "It says which filter to add");
   story(
-    "With the Contact filter on those who can be emailed, answered yes, the button is live, counting who it finds.",
+    "With the Consent filter on those who can be emailed, answered yes, the button is live, counting who it finds.",
   );
   await page.goto(`${BASE}/staff/supporters?${EMAIL}`);
   await expect(page.getByRole("button", { name: copy.messageButton(EMAILABLE) })).toBeVisible();
@@ -178,10 +194,10 @@ test("A text on an approved template", async ({ page, request, flowDatabase }) =
   await expect(page.getByText("Event reminder")).toHaveCount(0);
   await frame(page, "The templates, searched");
   story(
-    "Choosing one collapses the list to it. Its words can't be changed, and the preview shows the text as a bubble with its Stop button.",
+    "Choosing one checks it in the list, which stays, and shows its words in full under it. They can't be changed, and the preview shows the text as a bubble with its Stop button.",
   );
   await page.getByRole("radio", { name: /March day reminder/ }).click();
-  await expect(page.getByRole("button", { name: copy.changeTemplate })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /March day reminder/ })).toBeChecked();
   await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
   await frame(page, "A template chosen");
   story("They choose the hour. Grey under it says when it would stop sending.");
@@ -199,13 +215,13 @@ test("A text on an approved template", async ({ page, request, flowDatabase }) =
 
 test("A text on new words", async ({ page, request, flowDatabase }) => {
   story(
-    "No template says it, so staff choose New template, the list's last row. There are fields, but no parts for only some, as WhatsApp's words are the same for everyone.",
+    "No template says it, so staff open the New template tab. There are fields, but no parts for only some, as WhatsApp's words are the same for everyone.",
   );
   await importLuma(request, BASE);
   addTemplates(flowDatabase);
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
-  await page.getByRole("radio", { name: new RegExp(copy.newTemplate) }).click();
+  await page.getByRole("tab", { name: copy.newTemplate }).click();
   const words = page.getByRole("textbox", { name: copy.newTemplate });
   await words.click();
   await page.keyboard.type("The march meets at 11:00 at Parliament Square.");
@@ -259,12 +275,12 @@ test("Changing who a message goes to", async ({ page, request, flowDatabase }) =
   await page.goto(url.toString());
   await expect(bar.getByRole("button", { name: copy.useThese(EMAILABLE) })).toBeVisible();
   await frame(page, "Narrowed", { window: true });
-  story("Take off the Contact filter and the bar says it's needed, as the message's channel and topic are fixed.");
+  story("Take off the Consent filter and the bar says it's needed, as the message's channel and topic are fixed.");
   const without = new URL(page.url());
   without.searchParams.delete("contact");
   await page.goto(without.toString());
   await expect(page.getByText(copy.keepContact)).toBeVisible();
-  await frame(page, "Without its Contact filter", { window: true });
+  await frame(page, "Without its Consent filter", { window: true });
   story("Back with the filter, the orange button keeps them for the draft.");
   await page.goto(url.toString());
   await bar.getByRole("button", { name: copy.useThese(EMAILABLE) }).click();

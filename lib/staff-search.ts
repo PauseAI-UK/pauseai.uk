@@ -371,7 +371,7 @@ export type SupportersSearch = {
   erased: string;
   /** The draft message the list is choosing who for, by ID. */
   message: string;
-  /** With `erased`, the codes above; or "contact" after Message was pressed with no Contact filter, to say which to add. */
+  /** With `erased`, the codes above; or "contact" after Message was pressed with no Consent filter, to say which to add. */
   why: string;
   /** The saved filter loaded, by ID. */
   saved: string;

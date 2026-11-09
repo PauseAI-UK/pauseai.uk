@@ -700,6 +700,7 @@ describe("StaffAccountsTable", () => {
       lastLoginAt: "2026-10-22T08:00:00Z",
       lastSeenAt: "2026-10-22T09:15:00Z",
       sessions: 2,
+      gmailConnectedAt: null,
     },
     {
       email: "jo@pauseai.uk",
@@ -709,6 +710,7 @@ describe("StaffAccountsTable", () => {
       lastLoginAt: null,
       lastSeenAt: null,
       sessions: 0,
+      gmailConnectedAt: "2026-10-21T09:00:00Z",
     },
     {
       email: "samuel.whitlock@pauseai.uk",
@@ -718,6 +720,7 @@ describe("StaffAccountsTable", () => {
       lastLoginAt: "2026-10-21T10:30:00Z",
       lastSeenAt: "2026-10-21T11:00:00Z",
       sessions: 1,
+      gmailConnectedAt: null,
     },
   ] satisfies StaffAccount[];
 
@@ -746,10 +749,11 @@ describe("StaffAccountsTable", () => {
     await expect.element(heading(copy.lastSeen)).toHaveAttribute("href", "/staff/accounts?sort=lastSeen&dir=asc");
     await expect.element(heading(copy.email)).toHaveAttribute("href", "/staff/accounts?sort=email&dir=asc");
     await expect.element(heading(copy.sessions)).toHaveAttribute("href", "/staff/accounts?sort=sessions&dir=desc");
+    await expect.element(heading(copy.gmail)).toHaveAttribute("href", "/staff/accounts?sort=gmail&dir=desc");
     await expect.element(heading(copy.permissions)).not.toBeInTheDocument();
   });
 
-  it("says when each was added and by whom, or by its login, when last logged in and seen, and its sessions open", async () => {
+  it("says when each was added and by whom, or by its login, when last logged in and seen, its sessions open, and its Gmail", async () => {
     await renderTable();
     const row = (email: string) =>
       page
@@ -759,17 +763,19 @@ describe("StaffAccountsTable", () => {
         .all()
         .map((cell) => cell.element().textContent);
     const copy = staffCopy.accounts;
-    expect(row("jo@pauseai.uk").slice(2, 6)).toEqual([
+    expect(row("jo@pauseai.uk").slice(2, 7)).toEqual([
       `20 Oct 2026, 09:00 ${copy.addedBy("admin@pauseai.uk")}`,
       copy.never,
       copy.never,
       "0",
+      `${copy.gmailConnected} 21 Oct 2026, 10:00`,
     ]);
-    expect(row("samuel.whitlock@pauseai.uk").slice(2, 6)).toEqual([
+    expect(row("samuel.whitlock@pauseai.uk").slice(2, 7)).toEqual([
       `21 Oct 2026, 10:30 ${copy.addedByLogin}`,
       "21 Oct 2026, 10:30",
       "21 Oct 2026, 11:00",
       `1${copy.endSessions}`,
+      copy.gmailNot,
     ]);
   });
 
@@ -3970,9 +3976,9 @@ describe("ChangesFilters", () => {
       staffCopy.filters.notChip("What", "add note"),
     ]);
     expect(changeWords(search)).toEqual([
-      `${staffCopy.search} polly`,
-      "When Last 30 days",
-      "Who jo@pauseai.uk or sync",
+      `${staffCopy.search}: polly`,
+      "When: Last 30 days",
+      "Who: jo@pauseai.uk or sync",
       staffCopy.filters.notChip("What", "add note"),
     ]);
     await page.getByRole("button", { name: "When: Last 30 days" }).click();
@@ -5823,7 +5829,7 @@ describe("the supporters list's Email and Phone columns", () => {
   const text = (columns: ReturnType<typeof supporterColumns>, key: string, row: SupporterRow) =>
     columns.find((c) => c.key === key)!.text!(row);
 
-  it("shows neither without the Contact filter, and with it, the addresses and numbers whose answer it finds", async () => {
+  it("shows neither without the Consent filter, and with it, the addresses and numbers whose answer it finds", async () => {
     expect(supporterColumns(search([])).map((c) => c.key)).not.toEqual(expect.arrayContaining(["email"]));
     expect(supporterColumns(search(["!email:site-forms:yes"])).map((c) => c.key)).not.toContain("email");
     // A value it can't read finds nothing to show.
@@ -5846,9 +5852,9 @@ describe("the lists' filters in words, for their titles", () => {
   it("says a supporters search's Near as typed when it wasn't looked up, and each filter by its chip's words", () => {
     const search = supportersSearch({ q: "jo", near: "LS1", activity: "member" });
     expect(supporterWords(search, { events: [], mps: [] })).toEqual([
-      `${staffCopy.search} jo`,
-      `${staffCopy.supporters.filters.near} LS1`,
-      `${staffCopy.supporters.columns.badges} ${staffCopy.supporters.badges.member}`,
+      `${staffCopy.search}: jo`,
+      `${staffCopy.supporters.filters.near}: LS1`,
+      `${staffCopy.supporters.columns.badges}: ${staffCopy.supporters.badges.member}`,
     ]);
   });
 
@@ -5856,7 +5862,7 @@ describe("the lists' filters in words, for their titles", () => {
     const parties = ["Labour"];
     expect(politicianWords({ ...emptyPoliticiansSearch, house: "lords", party: ["Labour"] }, parties, [])).toEqual([
       staffCopy.houses.lords,
-      `${staffCopy.fields.party} Labour`,
+      `${staffCopy.fields.party}: Labour`,
     ]);
     expect(politicianWords(emptyPoliticiansSearch, parties, [])).toEqual([""]);
   });
@@ -5897,7 +5903,7 @@ describe("SupporterFilters", () => {
       (b) => b.textContent === `${label}: ${topics["pauseai-updates"]}`,
     )!;
     expect(topicChip.querySelector("svg")).not.toBeNull();
-    // Contact doesn't repeat, so several can only come from an old link or saved filter: a chip each. The first
+    // Consent doesn't repeat, so several can only come from an old link or saved filter: a chip each. The first
     // half: each topic, choosing one takes the filter's place, finding those we can contact about it; then Remove,
     // taking off only that one; the erased notice goes.
     const others = "contact=%21phone%3Amarch-day%3Ayes&contact=email%3Ablocked&contact=email%3Asite-forms%3Aasked";
@@ -5932,7 +5938,7 @@ describe("SupporterFilters", () => {
     expect(add.map(([words]) => words)).not.toContain(`${topics.volunteering}${ways["call-or-text"]}`);
   });
 
-  it("offers every topic once in the Contact filter, email's then phone's, ours first", () => {
+  it("offers every topic once in the Consent filter, email's then phone's, ours first", () => {
     expect(SUBSCRIPTION_ORDER.map(([channel, topic]) => `${channel}:${topic}`).sort()).toEqual(
       CHANNELS.flatMap((channel) => topicsOf(channel).map((topic) => `${channel}:${topic}`)).sort(),
     );
@@ -5965,10 +5971,15 @@ describe("SupporterFilters", () => {
       copy.filters.near,
       staffCopy.politician.roles.commons,
       copy.columns.badges,
-      copy.columns.subscriptions,
       copy.filters.event,
       copy.filters.campaign,
       copy.filters.first,
+    ]);
+    // Consent isn't among them: it has its own button, first, its topics under their channels.
+    const consent = await menu(copy.columns.subscriptions);
+    expect(consent).toContainEqual([
+      copy.filters.topics["luma-calendar"],
+      "/staff/supporters?contact=email%3Aluma-calendar%3Ayes",
     ]);
     const links = await menu(staffCopy.filters.add);
     expect(links).toContainEqual([

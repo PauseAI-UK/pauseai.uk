@@ -7,7 +7,9 @@ import {
   messageCost,
   messageScheduleProblems,
   messageTerms,
+  spacedNumber,
   textReplyUntil,
+  textSender,
   textStopsAt,
   type SchedulingMessage,
 } from "./supporter-messages";
@@ -51,6 +53,19 @@ describe("the fixed limits", () => {
 it("says what messages cost, by channel", () => {
   expect(messageCost("email", 400)).toBe(staffCopy.messagePages.cost.email("0.50"));
   expect(messageCost("text", 100)).toBe(staffCopy.messagePages.cost.text("4.40", 4.4));
+});
+
+describe("a text's sender", () => {
+  it("spaces a UK number in its groups, London's apart, and leaves any other as it is", () => {
+    expect(spacedNumber("+447700900000")).toBe("+44 7700 900000");
+    expect(spacedNumber("+442079460000")).toBe("+44 20 7946 0000");
+    expect(spacedNumber("+15555550100")).toBe("+15555550100");
+    expect(spacedNumber("+44770090000")).toBe("+44770090000");
+  });
+
+  it("is the name, then the number in brackets", () => {
+    expect(textSender("PauseAI UK", "+447700900000")).toBe("PauseAI UK (+44 7700 900000)");
+  });
 });
 
 it("names the condition for having a field", () => {

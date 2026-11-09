@@ -1,6 +1,7 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { MailingGroup } from "@/lib/mailing-groups";
 import type { MessageSummary } from "@/lib/server/message-pages";
+import { textSender } from "@/lib/supporter-messages";
 import MailingsOverview, { type OverviewLook } from "./MailingsOverview";
 import { MessageChannelName, messageCounts } from "./MessageView";
 
@@ -12,6 +13,8 @@ const LOOK: OverviewLook<MessageSummary> = {
   untitled: copy.untitled,
   none: copy.none,
   lead: (message) => <MessageChannelName channel={message.channel} />,
+  // A text's number, which isn't an address to put in <>.
+  from: (message) => (message.channel === "text" ? textSender(message.fromName!, message.sentFrom!) : undefined),
   scheduledWords: (message) => (message.waiting ? copy.waiting : undefined),
 };
 

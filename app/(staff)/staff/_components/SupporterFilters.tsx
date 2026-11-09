@@ -40,7 +40,7 @@ function nearWords(text: string, near: SupportersPage["near"]): string {
  * on, in the columns' order: their nation and how near somewhere they
  * are, and their MP; their activities and subscriptions; the events they
  * registered for; and whether they wrote in a campaign; the events and MPs
- * from `choices`. A contact filter's
+ * from `choices`. Consent, the contact filter, has its own button. Its
  * choices are each topic, then blocked, a topic chosen as those we can
  * contact about it and another answer in its chip's second half; one by
  * email or phone shows that column; and when they were first seen, last
@@ -91,6 +91,8 @@ function supporterFilters(
     {
       name: "contact",
       label: columns.subscriptions,
+      // Who a message can go to, so its own button.
+      own: true,
       // Each topic under its channel's heading, chosen as those we can contact about it; then in its chip's second
       // half, another answer. Blocked is last of email's.
       options: CHANNELS.flatMap((channel) => [

@@ -423,9 +423,9 @@ describe("EventFilters", () => {
   it("says the search and filters that are on, in words", () => {
     const { search } = exampleEventsTab({ q: "talk", owner: "none", removed: "yes" });
     expect(eventWords(search, choices)).toEqual([
-      `${staffCopy.search} talk`,
-      `${copy.owner} ${copy.noOwner}`,
-      `${copy.removed} ${copy.filters.removed.yes}`,
+      `${staffCopy.search}: talk`,
+      `${copy.owner}: ${copy.noOwner}`,
+      `${copy.removed}: ${copy.filters.removed.yes}`,
     ]);
   });
 });

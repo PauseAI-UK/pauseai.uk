@@ -13,11 +13,13 @@ import {
   FIELD_WORDS,
   hasField,
   MEMBER_CONDITION,
+  spacedNumber,
   textStopsAt,
   VOLUNTEER_CONDITION,
   type MessageChannel,
 } from "@/lib/supporter-messages";
 import ChannelIcon from "./ChannelIcon";
+import IconText from "./ui/IconText";
 import MailEmail from "./MailEmail";
 import MailingFiles from "./MailingFiles";
 import { MailingLetter } from "./MailingLetter";
@@ -40,8 +42,9 @@ type FormAction = (form: FormData) => void | Promise<void>;
 export function MessageChannelName({ channel }: { channel: MessageChannel }) {
   return (
     <span className={styles.channel}>
-      <ChannelIcon channel={channel === "email" ? "email" : "phone"} />
-      {copy.channels[channel]}
+      <IconText icon={<ChannelIcon channel={channel === "email" ? "email" : "phone"} />}>
+        {copy.channels[channel]}
+      </IconText>
     </span>
   );
 }
@@ -159,12 +162,15 @@ function MessageWords({ written }: { written: WrittenMessage }) {
 export default function MessageView({
   data,
   who,
+  contact,
   stop,
   reschedule,
 }: {
   data: Extract<MessagePageData, { kind: "written" }>;
-  /** Who it was for, as pills (MessageWho). */
+  /** Who else it was for, as pills (MessageWho). */
   who: ReactNode;
+  /** What they all said yes to (MessageContact). */
+  contact: ReactNode;
   stop: FormAction;
   reschedule: FormAction;
 }) {
@@ -195,8 +201,11 @@ export default function MessageView({
         aside={!scheduled && <Counts counts={counts} />}
       >
         <BandFact label={copy.facts.from} detail={`${written.fromName}, ${copy.byBackend[written.channel]}`}>
-          {written.sentFrom}
+          <IconText icon={<ChannelIcon channel={written.channel === "email" ? "email" : "phone"} />}>
+            {spacedNumber(written.sentFrom!)}
+          </IconText>
         </BandFact>
+        <BandFact label={copy.facts.saidYes}>{contact}</BandFact>
         <BandFact label={staffCopy.mailingPages.to} detail={staffCopy.campaigns.supporters(summary.to)}>
           {who}
         </BandFact>

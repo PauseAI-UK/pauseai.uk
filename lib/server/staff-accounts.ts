@@ -22,6 +22,12 @@ export type StaffAccount = {
   lastSeenAt: string | null;
   /** Sessions not yet expired. */
   sessions: number;
+  /**
+   * When its Gmail was connected, or null if it isn't. One Google stops
+   * accepting is disconnected as soon as the site next uses it, so a Gmail
+   * still connected was working when last used.
+   */
+  gmailConnectedAt: string | null;
 };
 
 /** The account for `email`, if it has one. */
@@ -56,6 +62,7 @@ const SORT_COLUMNS: Record<AccountSort, string> = {
   lastLogin: "a.last_login_at",
   lastSeen: "a.last_seen_at",
   sessions: "coalesce(s.sessions, 0)",
+  gmail: "a.gmail_connected_at",
 };
 
 /** Every account, by address unless asked otherwise, with when it last logged in and was seen, and its sessions open. */
@@ -64,7 +71,8 @@ export async function listStaffAccounts(
 ): Promise<StaffAccount[]> {
   return query<StaffAccount>(
     `SELECT a.email, a.permissions, a.added_by AS "addedBy", a.added_at AS "addedAt",
-       a.last_login_at AS "lastLoginAt", a.last_seen_at AS "lastSeenAt", coalesce(s.sessions, 0) AS sessions
+       a.last_login_at AS "lastLoginAt", a.last_seen_at AS "lastSeenAt", coalesce(s.sessions, 0) AS sessions,
+       a.gmail_connected_at AS "gmailConnectedAt"
      FROM staff_accounts a
      LEFT JOIN (SELECT lower(email) AS email, count(*)::int AS sessions FROM staff_sessions
                 WHERE expires_at > now() GROUP BY lower(email)) s ON s.email = a.email

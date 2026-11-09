@@ -1151,7 +1151,14 @@ SELECT nextval(pg_get_serial_sequence('mailings', 'id')) AS id, m.* FROM (VALUES
 INSERT INTO mailings (id, title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state, template_id, created_at, opened_at)
   OVERRIDING SYSTEM VALUE
 SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 'supporters', m.channel, 'luma-calendar',
-  jsonb_build_object('list', 'supporters', 'params', jsonb_build_object('contact', CASE WHEN m.channel = 'email' THEN 'email' ELSE 'phone' END || ':luma-calendar:yes')),
+  -- Two with filters besides Consent: near a place, and those who didn't write in a campaign.
+  jsonb_build_object('list', 'supporters', 'params',
+    jsonb_build_object('contact', CASE WHEN m.channel = 'email' THEN 'email' ELSE 'phone' END || ':luma-calendar:yes')
+    || CASE m.title
+         WHEN 'Stall on Saturday' THEN '{"near": "M1 1AE", "within": "5"}'::jsonb
+         WHEN 'Bring a coat on Saturday' THEN '{"campaign": "regulate-letter-pm", "wrote": "no"}'::jsonb
+         ELSE '{}'::jsonb
+       END),
   CASE WHEN m.words IS NOT NULL THEN pg_temp.seed_words(m.words) ELSE coalesce(t.body, '{"type": "doc", "content": []}'::jsonb) END,
   'jo@pauseai.uk', CASE WHEN m.channel = 'email' THEN 'hello@pauseai.uk' ELSE '+447700900000' END, 'PauseAI UK',
   now() + m.due, m.state, t.id, coalesce(now() + m.due, now()) - interval '2 days', now() - interval '1 hour'

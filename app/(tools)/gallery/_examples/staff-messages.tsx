@@ -2,7 +2,7 @@
 // writer, the list of them, each one's page, and one copy with its replies.
 import { NeedsContactFilter } from "@/app/(staff)/staff/_components/MessageSupporters";
 import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
-import { MessageWho } from "@/app/(staff)/staff/_components/MessageFor";
+import { MessageContact, MessageWho } from "@/app/(staff)/staff/_components/MessageFor";
 import { MessageChannelName } from "@/app/(staff)/staff/_components/MessageView";
 import {
   exampleMessageData,
@@ -70,7 +70,7 @@ export const staffMessages: Group = {
       file: "app/(staff)/staff/_components/MessageSupporters.tsx",
       variants: [
         {
-          label: "With a Contact filter answered yes, then without one: dashed",
+          label: "With a Consent filter answered yes, then without one: dashed",
           render: () => (
             <StaffPage as="div">
               <MessageSupportersExample />
@@ -285,14 +285,33 @@ export const staffMessages: Group = {
       ],
     },
     {
+      name: "MessageContact",
+      file: "app/(staff)/staff/_components/MessageFor.tsx",
+      variants: [
+        {
+          label: "What they all said yes to: by email, then by text",
+          render: () => (
+            <StaffPage as="div">
+              <p>
+                <MessageContact params={{ contact: "email:luma-calendar:yes" }} />
+              </p>
+              <p>
+                <MessageContact params={{ contact: "phone:march-day:yes" }} />
+              </p>
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
       name: "MessageWho",
       file: "app/(staff)/staff/_components/MessageFor.tsx",
       variants: [
         {
-          label: "Its channel, then the filter's words",
+          label: "The filters but Consent, as pills",
           render: () => (
             <StaffPage as="div">
-              <MessageWho channel="email" params={exampleMessageData.filter.params} choices={exampleSupporterChoices} />
+              <MessageWho params={exampleMessageData.filter.params} choices={exampleSupporterChoices} />
             </StaffPage>
           ),
         },

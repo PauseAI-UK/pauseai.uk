@@ -78,9 +78,22 @@ export function Checkbox({
   );
 }
 
-/** A radio button, for a row whose own label holds it. `onChange` says it's been chosen. */
-export function Radio({ name, value, onChange }: { name: string; value: string | number; onChange: () => void }) {
-  return <input type="radio" name={name} value={value} onChange={onChange} />;
+/**
+ * A radio button, for a row whose own label holds it. `onChange` says it's
+ * been chosen; `checked`, if given, says whether it is.
+ */
+export function Radio({
+  name,
+  value,
+  checked,
+  onChange,
+}: {
+  name: string;
+  value: string | number;
+  checked?: boolean;
+  onChange: () => void;
+}) {
+  return <input type="radio" name={name} value={value} checked={checked} onChange={onChange} />;
 }
 
 /**

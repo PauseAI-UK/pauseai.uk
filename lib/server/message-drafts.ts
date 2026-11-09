@@ -36,7 +36,7 @@ import type { Topic } from "@/lib/contact-permissions";
 
 // A message to supporters written on the site: a mailing to the supporters
 // list's filter, with one channel and one topic, fixed when it's made from
-// the list's Contact filter. Saved as a mailing is (mailing-drafts.ts);
+// the list's Consent filter. Saved as a mailing is (mailing-drafts.ts);
 // scheduling fixes who gets it, a message each. A text goes on a WhatsApp
 // template: one approved, or new words, which scheduling sends for approval.
 
@@ -103,8 +103,8 @@ const senderOf = (channel: MessageChannel): { sentFrom: string; fromName: string
 
 /**
  * Makes a draft to those the supporters list's `params` find, by `by`, its
- * channel and topic from their Contact filter. Returns its ID; undefined
- * with no Contact filter answered yes.
+ * channel and topic from their Consent filter. Returns its ID; undefined
+ * with no Consent filter answered yes.
  */
 export async function createMessageDraft(by: string, params: Params): Promise<number | undefined> {
   const filter = storedFilter("supporters", params);
@@ -132,7 +132,7 @@ export async function createMessageDraft(by: string, params: Params): Promise<nu
 }
 
 /**
- * Keeps who a draft goes to: the list's `params`, while their Contact filter
+ * Keeps who a draft goes to: the list's `params`, while their Consent filter
  * still says its channel and topic, as they're fixed. Says whether it did.
  */
 export async function changeMessageFilter(id: number, params: Params): Promise<boolean> {
