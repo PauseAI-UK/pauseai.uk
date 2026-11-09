@@ -49,6 +49,28 @@ describeWithDatabase("the sending and the tidying, as runs of the import log", (
     ]);
   });
 
+  it("finishes a mailing whose only letter a stopped run left sending, marking it uncertain first", async () => {
+    await addTestPolitician({ name: "Polly Placeholder", email: "polly@parliament.example" });
+    await connectTestGmail(JO);
+    const { id } = await createDraft(JO, { list: "politicians", params: {} }, { subject: "AI", body: LETTER });
+    const saved = await saveDraft(id, 1, { sentFrom: JO, fromName: "Jo Staff", dueAt: "2026-11-01T10:00:00Z" });
+    expect(await scheduleMailing(id, (saved as { version: number }).version, JO)).toEqual({ scheduled: true });
+    // A run took its letter an hour ago, and stopped.
+    await query(
+      `UPDATE letters l SET status = 'sending', taken_at = now() - interval '1 hour' FROM letters_from_pauseai p
+       WHERE p.id = l.id AND p.mailing_id = $1`,
+      [id],
+    );
+    vi.setSystemTime(new Date("2026-11-01T10:01:00Z"));
+    expect(await runSending("nightly")).toMatchObject({ started: [id], sent: 0, left: 0 });
+    expect(await query("SELECT state FROM mailings WHERE id = $1", [id])).toEqual([{ state: "sent" }]);
+    expect(
+      await query("SELECT l.status FROM letters l JOIN letters_from_pauseai p USING (id) WHERE p.mailing_id = $1", [
+        id,
+      ]),
+    ).toEqual([{ status: "uncertain" }]);
+  });
+
   it("keeps a night's tidying as a run: done when something went, unchanged when nothing did", async () => {
     await query(
       "INSERT INTO import_runs (job, at, status) VALUES ('import-luma', now() - interval '8 days', 'ok'), ('import-luma', now(), 'ok')",

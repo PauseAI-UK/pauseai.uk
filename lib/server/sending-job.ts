@@ -1,7 +1,7 @@
 import "server-only";
 import type { SendingResult } from "@/lib/import-runs";
 import { keepingFailure, recordRun } from "./import-runs";
-import { sendLetterQueue } from "./letter-sending";
+import { sendLetterQueue, uncertainLetters } from "./letter-sending";
 import { sendDueLetters, startDueMailings } from "./mailing-sending";
 
 const JOB = "send-mailings";
@@ -14,7 +14,9 @@ const JOB = "send-mailings";
 const SENDING_MS = 8_000;
 
 /**
- * One run of the sending, kept in the import log: the letters inbox's queue
+ * One run of the sending, kept in the import log: first marking letters a
+ * stopped run left sending as uncertain (uncertainLetters), so a mailing
+ * with one can finish; then the letters inbox's queue
  * (letter-sending.ts), then the mailings due and their letters
  * (mailing-sending.ts), for a few seconds in all. `request` is the job's
  * call, for links in alerts; a staff member's run has none.
@@ -22,6 +24,7 @@ const SENDING_MS = 8_000;
 export function runSending(startedBy: string, request?: Request): Promise<SendingResult> {
   return keepingFailure(JOB, startedBy, async () => {
     const until = Date.now() + SENDING_MS;
+    await uncertainLetters();
     const queue = await sendLetterQueue(until, request);
     const started = await startDueMailings();
     const result: SendingResult = { started, ...(await sendDueLetters({ until })), queue };

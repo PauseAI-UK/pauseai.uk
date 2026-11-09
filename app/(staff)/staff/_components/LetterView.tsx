@@ -16,11 +16,11 @@ import TestTag from "./TestTag";
 
 type SetStatus = (form: FormData) => void | Promise<void>;
 
-/** A letter's status as its tag says it: answered the ask it makes, in green; bounced, in red; else grey. */
+/** A letter's status as its tag says it: answered the ask it makes, in green; bounced, or uncertain whether it went, in red; else grey. */
 function StatusTag({ status, answered }: { status: string; answered: boolean }) {
   if (answered) return <Tag tone="green">{staffCopy.mailings.columns.answered}</Tag>;
-  const bounced = status === "bounced" || status === "spam_complaint";
-  return <Tag tone={bounced ? "red" : undefined}>{statusOf(status)}</Tag>;
+  const red = ["bounced", "spam_complaint", "uncertain"].includes(status);
+  return <Tag tone={red ? "red" : undefined}>{statusOf(status)}</Tag>;
 }
 
 /**
