@@ -134,8 +134,8 @@ pauseai.info's old ones each commit of its form live when a letter was written
 ## Letters
 
 Every letter to a notable person (`letters`): its kind, the person, when it
-was made and sent, and its status (`sending`, `sent`, `not_sent`,
-`bounced` or `spam_complaint`; a supporter's can also be `queued`, and
+was made and sent, and its status (`sending`, `sent`, `uncertain`,
+`not_sent`, `bounced` or `spam_complaint`; a supporter's can also be `queued`, and
 PauseAI's `scheduled`, `cancelled` or `skipped`), with a log of everything
 that happened to it
 (`letter_events`), including replies and automatic replies. A child row
@@ -283,6 +283,15 @@ token is kept encrypted (`GMAIL_TOKEN_KEY`), and deleted on disconnecting.
   before it goes: a politician out of office, or whose address has been
   blocked since, is skipped, and the letter says why. An account at its
   limit, or no longer connected, waits.
+- **A run that stops while sending** (`uncertainLetters` in
+  `lib/server/letter-sending.ts`): a letter, of a mailing or from the
+  letters inbox, and a supporter's copy, is marked sending when a run
+  takes it (`taken_at`, `copy_taken_at`) and sent once it's gone. One left
+  sending for 15 minutes, by a run that stopped between the two, is marked
+  `uncertain` at the start of the next `send-mailings` run, as relays are,
+  and its history says to whom it may have gone. It isn't sent again, as
+  it may have gone; a person checks. A mailing waits for no uncertain
+  letter, so it finishes, and its page shows the letter in red.
 - **Message-IDs.** Every letter of a mailing goes with a Message-ID of ours,
   whichever backend sends it, so a reply is matched by the IDs it names.
   Gmail sends it with one of its own instead (`…@mail.gmail.com`), so

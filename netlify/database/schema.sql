@@ -263,8 +263,9 @@ CREATE TABLE public.letters (
     sent_at timestamp with time zone,
     replied_at timestamp with time zone,
     kind text NOT NULL,
+    taken_at timestamp with time zone,
     CONSTRAINT letters_kind_check CHECK ((kind = ANY (ARRAY['supporter'::text, 'pauseai'::text]))),
-    CONSTRAINT letters_status_check CHECK (((status = ANY (ARRAY['sending'::text, 'sent'::text, 'not_sent'::text, 'bounced'::text, 'spam_complaint'::text])) OR ((kind = 'pauseai'::text) AND (status = ANY (ARRAY['scheduled'::text, 'cancelled'::text, 'skipped'::text]))) OR ((kind = 'supporter'::text) AND (status = 'queued'::text))))
+    CONSTRAINT letters_status_check CHECK (((status = ANY (ARRAY['sending'::text, 'sent'::text, 'not_sent'::text, 'bounced'::text, 'spam_complaint'::text, 'uncertain'::text])) OR ((kind = 'pauseai'::text) AND (status = ANY (ARRAY['scheduled'::text, 'cancelled'::text, 'skipped'::text]))) OR ((kind = 'supporter'::text) AND (status = 'queued'::text))))
 );
 
 --
@@ -285,7 +286,8 @@ CREATE TABLE public.letters_from_supporters (
     draft_approximate boolean,
     own_words real,
     copy_state text,
-    CONSTRAINT letters_from_supporters_copy_state_check CHECK ((copy_state = ANY (ARRAY['queued'::text, 'sending'::text, 'sent'::text, 'held'::text]))),
+    copy_taken_at timestamp with time zone,
+    CONSTRAINT letters_from_supporters_copy_state_check CHECK ((copy_state = ANY (ARRAY['queued'::text, 'sending'::text, 'sent'::text, 'held'::text, 'uncertain'::text]))),
     CONSTRAINT letters_from_supporters_draft CHECK ((((draft IS NULL) = (draft_approximate IS NULL)) AND ((draft IS NULL) = (own_words IS NULL)))),
     CONSTRAINT letters_from_supporters_kind_check CHECK ((kind = 'supporter'::text)),
     CONSTRAINT letters_from_supporters_letter CHECK ((((proxy_id IS NULL) OR (letter IS NOT NULL)) AND ((proxy_id IS NULL) = (copy_state IS NULL)))),

@@ -2279,6 +2279,8 @@ All events: ${link}`,
     status: {
       sending: "Sending",
       sent: "Sent",
+      // Left sending by a run that stopped: it may have gone, or not, so it isn't sent again; a person checks.
+      uncertain: "Uncertain",
       not_sent: "Not sent",
       bounced: "Bounced",
       spam_complaint: "Spam complaint",
@@ -2294,6 +2296,8 @@ All events: ${link}`,
       copy_held: "Copy held",
       copy_bounced: "Copy bounced",
       copy_delayed: "Copy delayed",
+      // The supporter's copy, left sending by a run that stopped: it may have reached them, or not.
+      copy_uncertain: "Copy uncertain",
       relayed: "Relayed",
       relay_queued: "Relay queued",
       relay_held: "Relay held",
