@@ -31,6 +31,33 @@ export function ChatBubble({
   );
 }
 
+/** A web address in a text: http(s):// or www., up to a space, less any punctuation ending a sentence after it. */
+const URL = /\b(?:https?:\/\/|www\.)[^\s]*[^\s.,!?;:)'"]/g;
+
+/** A text's words with each web address a link, as WhatsApp shows them. */
+export function LinkedText({ text }: { text: string }) {
+  const parts: ReactNode[] = [];
+  let at = 0;
+  for (const match of text.matchAll(URL)) {
+    parts.push(text.slice(at, match.index));
+    const url = match[0];
+    parts.push(
+      <a
+        key={match.index}
+        className={styles.textLink}
+        href={url.startsWith("www.") ? `https://${url}` : url}
+        target="_blank"
+        rel="noreferrer"
+      >
+        {url}
+      </a>,
+    );
+    at = match.index + url.length;
+  }
+  parts.push(text.slice(at));
+  return <>{parts}</>;
+}
+
 /** The wall a text conversation's bubbles sit on. */
 export function ChatWall({ children }: { children: ReactNode }) {
   return <div className={styles.wall}>{children}</div>;
@@ -38,14 +65,15 @@ export function ChatWall({ children }: { children: ReactNode }) {
 
 /**
  * A text as a messaging app shows it: the words in a bubble from us, on the
- * left as it is on their phone, with the time, and the Stop button under it.
+ * left as it is on their phone, its web addresses links, with the time, and
+ * the Stop button under it.
  */
 export default function TextBubble({ from, text, time }: { from: string; text: string; time: string }) {
   return (
     <ChatWall>
       <div className={styles.bubble}>
         <span className={`${styles.name} ${styles.ourName}`}>{from}</span>
-        {text}
+        <LinkedText text={text} />
         <span className={styles.time}>{time}</span>
       </div>
       <div className={styles.stop}>{copy.stopButton}</div>

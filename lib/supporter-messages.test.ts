@@ -176,6 +176,7 @@ describe("messageScheduleProblems", () => {
     unknown: [],
     byGmail: false,
     connected: false,
+    numbered: true,
     sends: true,
   };
 
@@ -202,6 +203,11 @@ describe("messageScheduleProblems", () => {
     expect(messageScheduleProblems({ ...good, channel: "text", subject: "", body: EMPTY_MAILING_DOC })).toEqual([
       "no-template",
     ]);
+  });
+
+  it("wants a WhatsApp number for a text to come from, but not for an email", () => {
+    expect(messageScheduleProblems({ ...good, channel: "text", numbered: false })).toEqual(["no-number"]);
+    expect(messageScheduleProblems({ ...good, numbered: false })).toEqual([]);
   });
 
   it("holds a Gmail to being connected, but not to its daily limit, as the rest go the next day", () => {

@@ -201,7 +201,7 @@ async function writerData(draft: WrittenMessage, me: string): Promise<MessageWri
  * have, for its greyed sections to show what's to come. Nothing is saved.
  */
 export async function newMessagePageData(me: string): Promise<{ draft: WrittenMessage; data: MessageWriterData }> {
-  const [choices, senders] = await Promise.all([supporterChoices(), gmailAccounts()]);
+  const [choices, senders, templates] = await Promise.all([supporterChoices(), gmailAccounts(), approvedTemplates()]);
   const filter = storedFilter("supporters", {});
   return {
     draft: {
@@ -233,7 +233,7 @@ export async function newMessagePageData(me: string): Promise<{ draft: WrittenMe
       senders: senders.filter((sender) => !isLettersInboxAddress(sender.email)),
       me,
       sends: Boolean(messageBackend()),
-      templates: [],
+      templates,
       textNumber: textSenderNumber(),
     },
   };

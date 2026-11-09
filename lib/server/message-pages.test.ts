@@ -22,7 +22,10 @@ const FUTURE = "2099-01-01T09:18:00.000Z";
 const EMAIL_FILTER = { contact: "email:luma-calendar:yes" };
 const TEXT_FILTER = { contact: "phone:luma-calendar:yes" };
 
-beforeEach(() => vi.stubEnv("DATA_FIXTURES", "1"));
+beforeEach(() => {
+  vi.stubEnv("DATA_FIXTURES", "1");
+  vi.stubEnv("WHATSAPP_NUMBER", "+447700900000");
+});
 afterEach(() => vi.unstubAllEnvs());
 
 /** A message by `params`, scheduled with these changes; returns its ID. */

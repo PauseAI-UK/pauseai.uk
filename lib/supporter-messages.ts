@@ -177,6 +177,7 @@ export type MessageScheduleProblem =
   | "not-connected"
   | "no-time"
   | "time-passed"
+  | "no-number"
   | "cannot-send";
 
 /** A message as far as scheduling it goes. */
@@ -192,6 +193,8 @@ export type SchedulingMessage = {
   /** Whether it's from a staff member's Gmail, and whether that's connected. */
   byGmail: boolean;
   connected: boolean;
+  /** Whether a WhatsApp number is configured for texts to come from. */
+  numbered: boolean;
   /** Whether its channel sends yet. */
   sends: boolean;
 };
@@ -212,6 +215,7 @@ export function messageScheduleProblems(message: SchedulingMessage): MessageSche
     ["no-letter", email && blank],
     ["no-template", !email && blank],
     ["not-connected", message.byGmail && !message.connected],
+    ["no-number", !email && !message.numbered],
     ["no-time", !message.dueAt],
     ["time-passed", Boolean(message.dueAt) && new Date(message.dueAt!) <= now()],
     ["cannot-send", !message.sends],

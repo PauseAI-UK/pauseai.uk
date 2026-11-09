@@ -37,6 +37,7 @@ import {
   messageScheduleProblems,
   MESSAGE_SENDER,
   spacedNumber,
+  textSender,
   textStopsAt,
   TEXT_SENDER_NAME,
 } from "@/lib/supporter-messages";
@@ -349,10 +350,13 @@ export default function MessageWriter({
     unknown: data.unknown,
     byGmail,
     connected: Boolean(sender),
+    numbered: Boolean(data.textNumber),
     sends: data.sends,
   }).filter((problem) => problem !== "cannot-send");
   const fromName = email ? values.fromName || (byGmail ? sender?.name : MESSAGE_SENDER.name) : TEXT_SENDER_NAME;
   const fromLine = email ? named(fromName, values.sentFrom!) : TEXT_SENDER_NAME;
+  // In the summary, a text's WhatsApp number too, once there is one, as an email's address.
+  const summaryFrom = email || !data.textNumber ? fromLine : textSender(TEXT_SENDER_NAME, data.textNumber);
   const title = email
     ? values.subject.trim() || copy.newTitle.email
     : (template?.name ?? (draft.title || copy.newTitle.text));
@@ -398,7 +402,7 @@ export default function MessageWriter({
       onChange={(doc) => change({ body: doc as MailingDoc })}
       fields={data.fields}
       conditions={data.conditions}
-      noParts={!email}
+      whatsApp={!email}
       recipients={data.count}
       labelledBy={labelledBy}
     />
@@ -620,7 +624,7 @@ export default function MessageWriter({
 
             <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
               <p className={styles.count}>
-                {copy.summary(data.count, draft.channel, fromLine, values.dueAt ? londonWhen(values.dueAt) : null)}{" "}
+                {copy.summary(data.count, draft.channel, summaryFrom, values.dueAt ? londonWhen(values.dueAt) : null)}{" "}
                 {messageCost(draft.channel, data.count)}
               </p>
               {words === "new" && <p>{copy.mustApprove}</p>}

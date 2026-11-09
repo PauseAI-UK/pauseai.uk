@@ -31,7 +31,7 @@ import {
 import MessagesOverview from "./MessagesOverview";
 import SupporterMessages from "./SupporterMessages";
 import TemplatePicker from "./TemplatePicker";
-import { ChatBubble } from "./TextBubble";
+import { ChatBubble, LinkedText } from "./TextBubble";
 
 const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
 vi.mock("@/lib/leave-page", () => ({ leavePage }));
@@ -377,7 +377,7 @@ describe("MessageWriter, by text", () => {
     await expect.element(page.getByText(copy.problems["no-template"])).toBeVisible();
     await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
     await expect.element(page.getByLabelText(copy.subject)).not.toBeInTheDocument();
-    await expect.element(page.getByText("+44 7700 900000", { exact: false })).toBeVisible();
+    await expect.element(page.getByText("+44 7700 900000", { exact: true })).toBeVisible();
     await expect.element(page.getByText(stopsFor(exampleMessageText.dueAt!))).toBeVisible();
   });
 
@@ -407,6 +407,13 @@ describe("MessageWriter, by text", () => {
     await expect.element(page.getByText(staffCopy.mailingEditor.partsHeading)).not.toBeInTheDocument();
     const words = page.getByRole("textbox", { name: copy.newTemplate });
     await words.fill("See you at the march");
+    // WhatsApp's formatting: bold, italic, lists and quotes, but no links, by button or by key.
+    const editing = staffCopy.mailingEditor;
+    await expect.element(button(editing.bold)).toBeVisible();
+    await expect.element(button(editing.quote)).toBeVisible();
+    expect(button(editing.link).query()).toBeNull();
+    await userEvent.keyboard("{Control>}k{/Control}");
+    expect(page.getByRole("textbox", { name: editing.linkBar.address }).query()).toBeNull();
     // The tab already open does nothing; the other shows the templates; back again, the words are kept.
     await newTab.click();
     await approvedTab.click();
@@ -445,6 +452,8 @@ describe("MessageWriter, by text", () => {
     const actions = await renderWriter({ draft: onTemplate });
     await expect.element(page.getByText(copy.stopButton, { exact: true })).toBeVisible();
     await expect.element(page.getByText(/Hi Jane, the march meets/)).toBeVisible();
+    // The summary names the WhatsApp number it's from.
+    await expect.element(page.getByText(/texts from PauseAI UK \(\+44 7700 900000\) on WhatsApp/)).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
     await page.getByLabelText(copy.testTo).fill("+447700900002");
     await button(copy.sendTest).click();
@@ -458,6 +467,26 @@ describe("MessageWriter, by text", () => {
     });
     await expect.element(page.getByText(copy.testVia.textOff)).toBeVisible();
     await expect.element(page.getByText(copy.noNumber)).toBeVisible();
+    await expect.element(page.getByText(/texts from PauseAI UK on WhatsApp/)).toBeVisible();
+    // And it can't be scheduled till there's one.
+    await expect.element(page.getByText(copy.problems["no-number"])).toBeVisible();
+  });
+});
+
+describe("LinkedText", () => {
+  it("makes each web address a link, as WhatsApp does, leaving a sentence's end out of it", async () => {
+    await render(
+      <p>
+        <LinkedText text="Sign up at https://pauseai.uk/join. Or www.example.org, or not at all" />
+      </p>,
+    );
+    await expect
+      .element(page.getByRole("link", { name: "https://pauseai.uk/join" }))
+      .toHaveAttribute("href", "https://pauseai.uk/join");
+    await expect
+      .element(page.getByRole("link", { name: "www.example.org" }))
+      .toHaveAttribute("href", "https://www.example.org");
+    await expect.element(page.getByText(/, or not at all$/)).toBeVisible();
   });
 });
 

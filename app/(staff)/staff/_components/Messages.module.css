@@ -196,3 +196,10 @@
   gap: var(--space-3);
   justify-items: start;
 }
+
+/* A web address in a text, as WhatsApp shows one: its blue, underlined. */
+.textLink {
+  color: var(--chat-link);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}

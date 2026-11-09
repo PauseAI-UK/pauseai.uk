@@ -1037,7 +1037,7 @@ All events: ${link}`,
     subject: "Subject",
     emailLabel: "Email",
     files: "Attachments",
-    templatesLabel: "⁂ WhatsApp approved templates",
+    templatesLabel: "Approved templates",
     searchTemplates: "⁂ Search the templates",
     searchPlaceholder: "⁂ Name or words",
     noTemplates: "⁂ No template has those words.",
@@ -1078,7 +1078,7 @@ All events: ${link}`,
     fromName: "Name",
     textFromNote:
       "⁂ As we appear on WhatsApp: the business account's name, number and picture. Replies come to the supporter's page.",
-    noNumber: "⁂ No WhatsApp number yet",
+    noNumber: "No WhatsApp number is configured yet",
     // When: under a text's time, the end of the days it may go in, as approval or WhatsApp's limits can hold it.
     stopsOn: (when: string) => `⁂ Any texts not sent by ${when} won't be sent, so none arrive days late.`,
     // Send.
@@ -1087,11 +1087,13 @@ All events: ${link}`,
       text: (pounds: string, pence: number) => `⁂ About £${pounds} (${pence}p each delivered).`,
     },
     summary: (n: number, channel: "email" | "text", from: string, when: string | null) =>
-      `⁂ ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"} from ${from}${when ? `, on ${when}` : ""}.`,
+      channel === "email"
+        ? `⁂ ${n} ${n === 1 ? "email" : "emails"} from ${from}${when ? `, on ${when}` : ""}.`
+        : `${n} ${n === 1 ? "text" : "texts"} from ${from} on WhatsApp${when ? `, on ${when}` : ""}.`,
     schedule: (n: number, channel: "email" | "text") =>
       `Schedule ${n} ${channel === "email" ? (n === 1 ? "email" : "emails") : n === 1 ? "text" : "texts"}`,
     scheduleOnceApproved: (n: number) => `⁂ Schedule ${n} ${n === 1 ? "text" : "texts"}, once approved`,
-    mustApprove: "⁂ WhatsApp must approve the template first, which takes up to 24 hours.",
+    mustApprove: "WhatsApp will need to approve the template before it is sent, but you can schedule it now.",
     problems: {
       "unknown-filter": "⁂ The filter has values that have changed or are no longer supported.",
       "no-recipients": "There's nobody to send to.",
@@ -1099,6 +1101,7 @@ All events: ${link}`,
       "no-letter": "Write the email.",
       "no-template": "⁂ Choose a template.",
       "not-connected": "⁂ The Gmail you've chosen to send from isn't connected.",
+      "no-number": "⁂ No WhatsApp number is configured, so texts can't be sent.",
       "no-time": "Choose what time it will be sent.",
       "time-passed": "⁂ You can't send it into the past!",
       "cannot-send": "⁂ Sending isn't built yet.",
@@ -1317,7 +1320,7 @@ All events: ${link}`,
     // An hour overnight, when no mailing starts, that a mailing was due at already: the hour, and when it goes.
     goesAt: (hour: string, sends: string) => `${hour} (goes at ${sends})`,
     summary: (n: number, from: string | null, when: string | null) =>
-      `${n} ${n === 1 ? "email" : "emails"}, from ${from ? `${from}'s Gmail` : "no one yet"}, ${when ? `on ${when}` : "at a time not yet chosen"}.`,
+      `${n} ${n === 1 ? "email" : "emails"}, from ${from ? `${from}'s Gmail` : "no one yet"}${when ? `, on ${when}` : ""}.`,
     schedule: (n: number) => `Schedule ${n} ${n === 1 ? "email" : "emails"}`,
     // Why the schedule button can't be pressed.
     problems: {

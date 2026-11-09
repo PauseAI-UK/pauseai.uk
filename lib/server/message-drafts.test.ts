@@ -26,7 +26,10 @@ const FUTURE = "2099-01-01T09:18:00.000Z";
 const EMAIL_FILTER = { contact: "email:luma-calendar:yes" };
 const TEXT_FILTER = { contact: "phone:luma-calendar:yes" };
 
-beforeEach(() => vi.stubEnv("DATA_FIXTURES", "1"));
+beforeEach(() => {
+  vi.stubEnv("DATA_FIXTURES", "1");
+  vi.stubEnv("WHATSAPP_NUMBER", "+447700900000");
+});
 afterEach(() => vi.unstubAllEnvs());
 
 /** A draft to everyone with `params`, at version 1. */
@@ -222,11 +225,16 @@ describeWithDatabase("messages to supporters", () => {
     expect((await getWrittenMessage(id))!.template).toMatchObject({ status: "pending" });
   });
 
-  it("wants a template for a text", async () => {
+  it("wants a template for a text, and a WhatsApp number for it to come from", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const id = await draftOf(TEXT_FILTER);
     const version = await readied(id, { body: EMPTY_MAILING_DOC });
     expect(await scheduleMessage(id, version, JO)).toEqual({ scheduled: false, problems: ["no-template"] });
+    vi.stubEnv("WHATSAPP_NUMBER", "");
+    expect(await scheduleMessage(id, version, JO)).toEqual({
+      scheduled: false,
+      problems: ["no-template", "no-number"],
+    });
   });
 
   it("lists approved templates, most recently used first", async () => {

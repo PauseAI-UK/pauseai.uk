@@ -256,6 +256,7 @@ export async function scheduleMessage(id: number, version: number, by: string): 
       unknown,
       byGmail: message.channel === "email" && message.sentFrom !== MESSAGE_SENDER.email,
       connected: Boolean(connected),
+      numbered: Boolean(textSenderNumber()),
       sends: Boolean(messageBackend()),
     });
     if (problems.length) return { scheduled: false, problems };
