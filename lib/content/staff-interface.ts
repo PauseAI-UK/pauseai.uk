@@ -2006,7 +2006,7 @@ All events: ${link}`,
     },
     // A text's new words sent to WhatsApp for approval, to who sent them and the inbox: the words, and the text.
     templateSubmitted: {
-      subject: (name: string) => `⁂ WhatsApp template sent for approval: ${name}`,
+      subject: (name: string) => `WhatsApp template sent for approval: ${name}`,
       body: (by: string, words: string, link: string) =>
         `${by} sent this copy to WhatsApp for approval as a new template. WhatsApp usually decides within 24 hours, and you'll be emailed when it does.\n\n${words}\n\nThe text: ${link}`,
     },
