@@ -567,6 +567,11 @@ not a mock.
   migrations there are, where every file running them at once outlasted
   the hook timeout on a loaded CI runner.
   `addTestPolitician()` and `addTestMp()` add rows.
+- **Jobs that can overlap** (a scheduled run, its background twin and a
+  press on its page) are tested running at once: `atOnce()`
+  (`tests/at-once.ts`) starts several runs together on the test file's
+  database, and the test checks each letter, guest or message was handled
+  once (`lib/server/sending-job.test.ts`, `lib/server/luma-import.test.ts`).
 - **A data migration gets a test while its tables are still changing.** A
   migration that moves or reshapes rows, not only tables, is tested with
   `useDatabaseUpTo()`: a database up to the migration before it, filled
