@@ -1103,7 +1103,7 @@ All events: ${link}`,
     answerWords: {
       signed: "signed",
       going: "are going to",
-      other: "⁂ gave another answer to",
+      other: "gave another answer to",
       declined: "declined",
     } as Record<string, string>,
     answered: (words: string, ask: string) => `${words} ${ask}`,
