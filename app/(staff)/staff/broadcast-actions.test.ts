@@ -19,7 +19,10 @@ import {
   scheduleBroadcastNow,
   sendBroadcastTestNow,
   stopBroadcastNow,
+  submitTemplateNow,
+  withdrawTemplateNow,
 } from "./broadcast-actions";
+import { broadcastWriterActions } from "./(signed-in)/broadcasts/writer-actions";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
 const { revalidatePath } = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
@@ -175,6 +178,21 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     await expectRedirect(() => deleteBroadcastDraft(form({ id: String(mailing) })));
     expect(await getWrittenMailing(mailing)).toBeDefined();
     await expectRedirect(() => deleteBroadcastDraft(form({})));
+  });
+
+  it("sends new words for approval, and withdraws them, only for a text", async () => {
+    const id = await draft();
+    expect(await submitTemplateNow(id)).toBe("not-text");
+    expect(await withdrawTemplateNow(id)).toBe(false);
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/broadcasts/${id}`);
+  });
+
+  it("gives the writer each of its actions", () => {
+    expect(broadcastWriterActions).toMatchObject({
+      submitTemplate: submitTemplateNow,
+      withdrawTemplate: withdrawTemplateNow,
+      schedule: scheduleBroadcastNow,
+    });
   });
 
   it("leaves a mailing to politicians alone", async () => {

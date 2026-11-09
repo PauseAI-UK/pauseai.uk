@@ -162,6 +162,20 @@ describe("BroadcastWriter's Consent", () => {
     expect(actions.create).not.toHaveBeenCalled();
   });
 
+  it("on a text's draft, shows it as it is, by text", async () => {
+    const actions = fakeActions();
+    await render(
+      <ChannelWriter
+        data={exampleBroadcastData}
+        draft={exampleBroadcastText}
+        who={<p>Who</p>}
+        actions={actions as unknown as BroadcastWriterActions}
+      />,
+    );
+    expect(radios(copy.consentChannel)[1]).toEqual([copy.channels.text, true, false]);
+    expect(page.getByLabelText(copy.subject, { exact: true }).query()).toBeNull();
+  });
+
   it("on New broadcast, starts with neither channel chosen, everything after it greyed and still, and makes the draft", async () => {
     const actions = fakeActions();
     await render(
@@ -421,6 +435,13 @@ describe("BroadcastWriter, by text", () => {
     await vi.waitFor(() => expect(actions.save.mock.calls[0][2]).toMatchObject({ templateId: 1 }), WAIT);
     await pick("3");
     await expect.element(page.getByRole("heading", { name: "Our next event is on Saturday.", level: 1 })).toBeVisible();
+  });
+
+  it("says a template made in WhatsApp Manager was made there", async () => {
+    await renderWriter({ draft: exampleBroadcastText });
+    await pick("2");
+    await expect.element(page.getByText(templateLine(exampleTemplates[1]))).toBeVisible();
+    expect(templateLine(exampleTemplates[1])).toContain(copy.templateMadeIn);
   });
 
   it("opens the editor for new words, with no parts and WhatsApp's formatting, and keeps them and their name", async () => {

@@ -61,3 +61,10 @@ it("does nothing when an action is pressed", async () => {
   await page.getByRole("button", { name: staffCopy.mailingPages.stopSending }).click();
   await expect.element(page.getByRole("button", { name: staffCopy.mailingPages.stopSending })).toBeVisible();
 });
+
+it("leaves the draft's foot as it was when Schedule is refused", async () => {
+  await render(<DraftFootExample />);
+  const schedule = page.getByRole("button", { name: "Schedule 412 emails" }).first();
+  await schedule.click();
+  await expect.element(schedule).toBeEnabled();
+});

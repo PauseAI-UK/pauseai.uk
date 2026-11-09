@@ -390,7 +390,7 @@ export async function withChoosing(
   params: Params,
   broadcast: ParamValue | undefined,
 ): Promise<{ choosing?: ChoosingBroadcast; params: Params }> {
-  const choosing = await choosingBroadcast(firstOf(broadcast) ?? "");
+  const choosing = await choosingBroadcast(firstOf(broadcast));
   return { choosing, params: choosing ? { ...params, contact: choosingConsent(choosing) } : params };
 }
 

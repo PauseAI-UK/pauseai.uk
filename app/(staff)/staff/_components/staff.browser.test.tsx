@@ -6154,6 +6154,15 @@ describe("SupporterFilters", () => {
       .toHaveAttribute("href", "/staff/supporters?contact=email%3Asite-forms%3Ayes");
   });
 
+  it("marks a locked Consent that leaves people out as a not", async () => {
+    const { filter, ...search } = supportersSearch({ contact: "!email:site-forms:yes" });
+    void filter;
+    await render(<SupporterFilters search={search} choices={choices} lockConsent />);
+    const locked = document.querySelector("[class*=locked]")!;
+    expect(locked.querySelector("svg")).not.toBeNull();
+    expect(locked.querySelector("svg:first-child[class*=lockIcon]")).toBeNull();
+  });
+
   it("offers every topic once in the Consent filter, email's then phone's, ours first", () => {
     expect(SUBSCRIPTION_ORDER.map(([channel, topic]) => `${channel}:${topic}`).sort()).toEqual(
       CHANNELS.flatMap((channel) => topicsOf(channel).map((topic) => `${channel}:${topic}`)).sort(),

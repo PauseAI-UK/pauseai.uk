@@ -115,6 +115,9 @@ export function DraftTitleExample() {
   );
 }
 
+/** Scheduling, refused, as the server says when something stops it. */
+const refused = async () => ({ scheduled: false });
+
 /** A draft's foot: Schedule, enabled and refused, what stops it, and when it goes, its choice logged. */
 export function DraftFootExample() {
   return (
@@ -122,18 +125,8 @@ export function DraftFootExample() {
       {(log) => (
         <>
           <DueSection dueAt={null} onChange={log("dueAt")} />
-          <ScheduleButton
-            label="Schedule 412 emails"
-            disabled={false}
-            saveNow={async () => {}}
-            schedule={async () => ({ scheduled: false })}
-          />
-          <ScheduleButton
-            label="Schedule 412 emails"
-            disabled
-            saveNow={async () => {}}
-            schedule={async () => ({ scheduled: false })}
-          />
+          <ScheduleButton label="Schedule 412 emails" disabled={false} saveNow={nothing} schedule={refused} />
+          <ScheduleButton label="Schedule 412 emails" disabled saveNow={nothing} schedule={refused} />
           <ProblemList problems={["Fill in the subject.", "Choose what time it will be sent."]} />
           <ProblemList problems={[]} />
         </>
@@ -145,7 +138,7 @@ export function DraftFootExample() {
 const nothing = async () => {};
 const yes = supportersSearch({ contact: "email:site-forms:yes", near: "LS1" });
 
-/** Message N supporters with a Consent filter answered yes, then without one: dashed. */
+/** Broadcast to N supporters, with a Consent filter answered yes. */
 export function BroadcastSupportersExample() {
   return (
     <>

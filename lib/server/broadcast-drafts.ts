@@ -248,16 +248,18 @@ export type BroadcastScheduleResult =
 async function scheduleProblems(
   broadcast: WrittenBroadcast,
 ): Promise<{ problems: BroadcastScheduleProblem[]; recipients: number }> {
+  // From a staff member's Gmail, rather than by Postmark, it needs that Gmail connected.
+  const byGmail = broadcast.channel === "email" && broadcast.sentFrom !== BROADCAST_SENDER.email;
   const [audience, unknown, connected] = await Promise.all([
     supporterAudience(broadcast.filter, broadcast),
     filterProblems(broadcast.filter),
-    broadcast.sentFrom ? gmailAccount(broadcast.sentFrom) : undefined,
+    byGmail ? gmailAccount(broadcast.sentFrom!) : undefined,
   ]);
   const problems = broadcastScheduleProblems({
     ...broadcast,
     recipients: audience.recipients.length,
     unknown,
-    byGmail: broadcast.channel === "email" && broadcast.sentFrom !== BROADCAST_SENDER.email,
+    byGmail,
     connected: Boolean(connected),
     approved: broadcast.template?.status === "approved",
     numbered: Boolean(textSenderNumber()),

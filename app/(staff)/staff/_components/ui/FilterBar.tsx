@@ -112,7 +112,7 @@ export function filterWords(filters: Filter[], values: Params, search: string): 
       chosen.filter((one) => one.not === not).map((one) => choiceWords(filter, one.value)),
     );
     const next = filters.find((f) => f.after === filter.name && !f.repeat);
-    const then = next ? `, ${choiceWords(next, firstOf(values[next.name]) ?? "")}` : "";
+    const then = next ? `, ${choiceWords(next, firstOf(values[next.name]))}` : "";
     if (found.length) words.push(`${filter.label}: ${copy.anyOf(found)}${then}`);
     if (out.length) words.push(copy.notChip(filter.label, copy.anyOf(out)));
   }

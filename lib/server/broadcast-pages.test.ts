@@ -169,6 +169,9 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       blank: false,
     });
     expect(choosingConsent((await choosingBroadcast(String(id)))!)).toBe(EMAIL_FILTER.contact);
+    expect(choosingConsent({ id, channel: "text", topic: "luma-calendar", title: "", blank: true })).toBe(
+      "phone:luma-calendar:yes",
+    );
     // The list choosing for it keeps its Consent over another; with no draft, the filters as they are.
     const other = { contact: "email:site-forms:yes", near: "LS1" };
     expect(await withChoosing(other, String(id))).toMatchObject({
