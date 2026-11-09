@@ -86,11 +86,14 @@ function wentWrong(run: AnyImportRun | undefined): string[] {
  * Emails the notification inbox about run `id` if it went wrong in a way the
  * run before didn't: a failure, or a problem by its name. A job failing every
  * hour, or stuck on the same problem, says so once; it says so again once a
- * run has gone right, or when something new goes wrong.
+ * run has gone right, or when something new goes wrong. A run that stopped
+ * as another was going did nothing, so isn't the run before.
  */
 async function alertIfNew(job: ImportJob, id: number): Promise<void> {
   const [run, before] = await query<AnyImportRun>(
-    `SELECT ${COLUMNS} FROM import_runs WHERE job = $1 AND id <= $2 ORDER BY at DESC, id DESC LIMIT 2`,
+    `SELECT ${COLUMNS} FROM import_runs
+     WHERE job = $1 AND (id = $2 OR (id < $2 AND result->>'stoppedBy' IS DISTINCT FROM 'running'))
+     ORDER BY at DESC, id DESC LIMIT 2`,
     [job, id],
   );
   const wrong = wentWrong(run);

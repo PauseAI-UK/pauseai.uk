@@ -2,7 +2,7 @@ import { exampleLumaResult, exampleMembersResult } from "@/app/(staff)/staff/_co
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { type ImportJob, importPath } from "@/lib/import-runs";
 import { staffDate } from "@/lib/staff-time";
-import { runSql } from "@/scripts/fresh-database.mjs";
+import { holdJobLock, runSql } from "@/scripts/fresh-database.mjs";
 import { FIXTURE_NOW, LETTERS_INBOX, NOTIFICATION_INBOX } from "../fixture-env.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { failService } from "../fixtures/failing-services";
@@ -116,6 +116,20 @@ test("Reading Gmail", async ({ page, flowDatabase }) => {
   await expect(page.getByText(staffCopy.runs.status.unchanged)).toBeVisible();
   await page.getByRole("heading", { name: staffCopy.gmailReading.title }).scrollIntoViewIfNeeded();
   await frame(page, "Gmail, read");
+
+  story(
+    "They read it again while the scheduled read is still going. Only one reads at a time, so theirs stops at once, and says why.",
+  );
+  // The scheduled read, as far as the press can tell: its lock, held until the press is done.
+  const release = await holdJobLock(flowDatabase, "read-gmail");
+  try {
+    await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
+    await expect(page.getByText(staffCopy.luma.stoppedBy.running)).toBeVisible();
+  } finally {
+    await release();
+  }
+  await page.getByRole("heading", { name: staffCopy.gmailReading.title }).scrollIntoViewIfNeeded();
+  await frame(page, "A read that stopped, as another was going");
 });
 
 /** `count` of the job's runs on its schedule, `minutes` apart, the newest `from` before now. */

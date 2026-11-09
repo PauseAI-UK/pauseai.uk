@@ -10,6 +10,7 @@ import {
   defaultHost,
   dropDatabase,
   freshDatabase,
+  holdJobLock,
   isLocal,
   runSql,
   testServerUrl,
@@ -78,9 +79,9 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
   // timeout (tests/database.ts, which this file, testing what that one is
   // built on, doesn't import).
   it(
-    "makes a database with production's collation, copies it, runs SQL in the copy, lists and drops them, and refuses bad names",
+    "makes a database with production's collation, copies it, runs SQL in the copy, holds a job's lock, lists and drops them, and refuses bad names",
     { timeout: 30_000 },
-    () => {
+    async () => {
       try {
         freshDatabase(template);
         runSql(template, "INSERT INTO audit_log (actor, action) VALUES ('a', 'kept')");
@@ -94,6 +95,13 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           runSql(copy, "SELECT string_agg(x, ' ' ORDER BY x) FROM (VALUES ('apple'), ('Zack'), ('Émile')) v(x)"),
         ).toEqual(["Zack apple Émile"]);
         expect(runSql(copy, "SELECT 1 WHERE false")).toEqual([]);
+        // A job's lock, held from another session until it's let go.
+        const taken = "SELECT pg_try_advisory_xact_lock(hashtext('read-gmail'))";
+        const release = await holdJobLock(copy, "read-gmail");
+        expect(runSql(copy, taken)).toEqual(["f"]);
+        await release();
+        expect(runSql(copy, taken)).toEqual(["t"]);
+        await expect(holdJobLock(copy, "x'")).rejects.toThrow("Bad job name: x'");
         expect(databaseNames(`test_${process.pid}_`)).toEqual([copy, template]);
         expect(() => copyDatabase("bad name", template)).toThrow("Bad database name: bad name");
         expect(() => runSql("x;drop", "SELECT 1")).toThrow("Bad database name");
