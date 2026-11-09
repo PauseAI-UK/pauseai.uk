@@ -808,7 +808,7 @@ export const staffCopy = {
   statuses: {
     signed: "Signed",
     going: "Going",
-    other: "⁂ Other",
+    other: "Other",
     declined: "Declined",
     // No answer to an ask, of any kind.
     noAnswer: "No answer",
@@ -1666,7 +1666,7 @@ All events: ${link}`,
     // The form on an ask staff record: its name, the note's field and what it asks, and Save for an event's answer.
     setStatus: "Set status",
     note: "Note",
-    notePlaceholder: "How do you know?",
+    notePlaceholder: "What did they say?",
     // Under the answer to an ask staff record: opens the form to change it.
     edit: "Edit",
     save: "Save",

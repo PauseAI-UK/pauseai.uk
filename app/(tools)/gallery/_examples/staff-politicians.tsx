@@ -439,7 +439,7 @@ export const staffPoliticians: Group = {
                       key: "other",
                       total: 2,
                       people: [
-                        { ...exampleAskPage.groups[0].people[0], status: "other", note: "Tentative yes" },
+                        { ...exampleAskPage.groups[0].people[0], status: "other", note: "Tentatively said yes" },
                         { ...exampleAskPage.groups[2].people[0], status: "other", note: "" },
                       ],
                     },

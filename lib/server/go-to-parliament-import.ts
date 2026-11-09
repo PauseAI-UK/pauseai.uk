@@ -1,5 +1,5 @@
 import "server-only";
-import { GO_TO_PARLIAMENT_ASK, type AskStatus } from "@/lib/asks";
+import { airtableNote, GO_TO_PARLIAMENT_ASK, type AskStatus } from "@/lib/asks";
 import type { GoToParliamentImportResult } from "@/lib/import-runs";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
@@ -33,7 +33,7 @@ const MEETING_RANK = [
   "Tentative meeting with staff",
 ];
 
-/** The values that are a yes or a no; any other is "other", with the value as its note. */
+/** The values that are a yes or a no; any other is "other", its note from airtableNote. */
 const MEETING_STATUSES: Record<string, AskStatus> = { Secured: "going", Declined: "declined" };
 
 const rankOf = (value: string) => {
@@ -64,7 +64,7 @@ export async function importGoToParliament(startedBy: string): Promise<GoToParli
       const notFound: string[] = [];
       for (const [airtableId, value] of best) {
         const status = MEETING_STATUSES[value] ?? "other";
-        const note = status === "other" ? value : "";
+        const note = status === "other" ? airtableNote(value) : "";
         const [person] = await query<{ id: number }>(
           "SELECT id::int AS id FROM notable_people WHERE airtable_id = $1",
           [airtableId],

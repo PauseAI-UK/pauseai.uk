@@ -6,7 +6,7 @@
 
 /**
  * Each kind's answers, in the order they're shown: a yes, "other", a no.
- * What an "other" answer was is its note, such as "Tentative yes".
+ * What an "other" answer was is its note, such as "Tentatively said yes".
  */
 export const ASK_STATUSES = {
   letter: ["signed", "other", "declined"],
@@ -15,6 +15,23 @@ export const ASK_STATUSES = {
 
 export type AskKind = keyof typeof ASK_STATUSES;
 export type AskStatus = (typeof ASK_STATUSES)[AskKind][number];
+
+/**
+ * Airtable's words for answers that are neither a yes nor a no, each with
+ * the note an "other" answer gets for it. The migration that brought in
+ * "other" (0093_ask_statuses_other.sql) wrote the same notes, so the imports
+ * leave them as they are.
+ */
+const AIRTABLE_ANSWER_NOTES: Record<string, string> = {
+  "Tentative yes": "Tentatively said yes",
+  "Meeting with staff": "Meeting a member of their staff instead",
+  "Tentative meeting with staff": "Tentatively agreed to a meeting with a member of their staff",
+  "Declined but surgery appointment": "Declined, but offered a surgery appointment instead",
+  "Passed on request": "Passed the request on",
+};
+
+/** The note for an "other" answer Airtable gave as `value`: a fuller wording if there is one, else the value itself. */
+export const airtableNote = (value: string): string => AIRTABLE_ANSWER_NOTES[value] ?? value;
 
 /** Who asks it: supporters, in their letters or in person, PauseAI, in its own emails, or ControlAI. */
 export type Asker = "supporters" | "pauseai" | "controlai";

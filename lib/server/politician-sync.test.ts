@@ -386,8 +386,8 @@ describeWithDatabase("syncPoliticians", () => {
     expect(await logged()).toEqual([{ status: "other", note: "Responded after event" }]);
     answering("Passed on request");
     expect((await syncPoliticians(NIGHTLY)).statuses).toEqual({ added: 0, changed: 1, removed: 0 });
-    expect(await doras()).toEqual([{ status: "other", note: "Passed on request" }]);
-    expect(await logged()).toEqual([{ status: "other", note: "Passed on request" }]);
+    expect(await doras()).toEqual([{ status: "other", note: "Passed the request on" }]);
+    expect(await logged()).toEqual([{ status: "other", note: "Passed the request on" }]);
     expect((await syncPoliticians(NIGHTLY)).statuses).toEqual({ added: 0, changed: 0, removed: 0 });
   });
 

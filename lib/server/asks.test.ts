@@ -112,12 +112,12 @@ describeWithDatabase("asks and campaigns", () => {
     const polly = await addTestPolitician();
     const dora = await addTestPolitician({ name: "Dora", email: "dora@parliament.uk", airtableId: "dora" });
     const edinburgh = "edinburgh-conference-2026";
-    await setStatus(polly, edinburgh, { status: "other", date: null, note: "Tentative yes" }, "test");
+    await setStatus(polly, edinburgh, { status: "other", date: null, note: "Tentatively said yes" }, "test");
     await setStatus(dora, edinburgh, { status: "declined", date: null, note: "" }, "test");
     const ask = await askPageData(edinburgh);
     expect(ask!.groups.map((g) => [g.key, g.total, g.people.map((p) => [p.status, p.note])])).toEqual([
       ["going", 0, []],
-      ["other", 1, [["other", "Tentative yes"]]],
+      ["other", 1, [["other", "Tentatively said yes"]]],
       ["declined", 1, [["declined", ""]]],
     ]);
     const other = await askPageData(edinburgh, "other");

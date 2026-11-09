@@ -131,7 +131,7 @@ describe("fetchPoliticians", () => {
         "frontier-ai-letter": { status: "signed", note: "" },
         "deepmind-letter": { status: "signed", note: "" },
         "controlai-statement": { status: "signed", note: "" },
-        "edinburgh-conference-2026": { status: "other", note: "Passed on request" },
+        "edinburgh-conference-2026": { status: "other", note: "Passed the request on" },
       },
     });
     expect(by("recA")).toEqual({

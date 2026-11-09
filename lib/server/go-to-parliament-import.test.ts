@@ -43,10 +43,15 @@ describeWithDatabase("importGoToParliament", () => {
     await syncPoliticians(NIGHTLY);
     expect(await importGoToParliament(JO)).toEqual({ guests: 5, mps: 4, added: 3, changed: 0, notFound: 1 });
     expect(await statuses()).toEqual([
-      { name: "Gordon Gone", status: "other", note: "Declined but surgery appointment", by: "airtable" },
+      {
+        name: "Gordon Gone",
+        status: "other",
+        note: "Declined, but offered a surgery appointment instead",
+        by: "airtable",
+      },
       { name: "Ms Dora Dummy", status: "going", note: "", by: "airtable" },
       // "Meeting with staff" beats "Tentative meeting with staff".
-      { name: "Polly Placeholder", status: "other", note: "Meeting with staff", by: "airtable" },
+      { name: "Polly Placeholder", status: "other", note: "Meeting a member of their staff instead", by: "airtable" },
     ]);
     expect(
       await query(
@@ -84,10 +89,15 @@ describeWithDatabase("importGoToParliament", () => {
     expect(await importGoToParliament(JO)).toEqual({ guests: 7, mps: 4, added: 1, changed: 2, notFound: 0 });
     expect(await statuses()).toEqual([
       { name: "Gordon Gone", status: "declined", note: "", by: "airtable" },
-      { name: "Morag Example", status: "other", note: "Declined but surgery appointment", by: "airtable" },
+      {
+        name: "Morag Example",
+        status: "other",
+        note: "Declined, but offered a surgery appointment instead",
+        by: "airtable",
+      },
       { name: "Ms Dora Dummy", status: "declined", note: "Rang us", by: JO },
       // Another "other": only its words changed.
-      { name: "Polly Placeholder", status: "other", note: "Tentative yes", by: "airtable" },
+      { name: "Polly Placeholder", status: "other", note: "Tentatively said yes", by: "airtable" },
     ]);
   });
 
@@ -102,7 +112,12 @@ describeWithDatabase("importGoToParliament", () => {
     expect(await importGoToParliament(JO)).toMatchObject({ added: 2, changed: 0 });
     expect(await statuses()).toEqual([
       { name: "Ms Dora Dummy", status: "other", note: "Perhaps", by: "airtable" },
-      { name: "Polly Placeholder", status: "other", note: "Tentative meeting with staff", by: "airtable" },
+      {
+        name: "Polly Placeholder",
+        status: "other",
+        note: "Tentatively agreed to a meeting with a member of their staff",
+        by: "airtable",
+      },
     ]);
     expect(await listRuns("import-go-to-parliament")).toMatchObject([{ status: "ok" }]);
   });

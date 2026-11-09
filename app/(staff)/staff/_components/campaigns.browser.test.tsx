@@ -286,7 +286,7 @@ describe("AskView", () => {
               key: "other",
               total: 2,
               people: [
-                { ...exampleAskPage.groups[0].people[0], status: "other", note: "Tentative yes" },
+                { ...exampleAskPage.groups[0].people[0], status: "other", note: "Tentatively said yes" },
                 { ...exampleAskPage.groups[2].people[0], status: "other", note: "" },
               ],
             },
@@ -298,7 +298,7 @@ describe("AskView", () => {
     );
     // Other answers, each tagged with what it was, and none for one with no note.
     await says(`${words.otherAnswers} 2`);
-    await says("Tentative yes");
+    await says("Tentatively said yes");
     expect(page.getByText(staffCopy.statuses.other, { exact: true }).query()).toBeNull();
     // Nobody gave it: no link, and it says so.
     await says(`${staffCopy.statuses.going} 0`);

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { askSlug, asksAgreed } from "./asks";
+import { airtableNote, askSlug, asksAgreed } from "./asks";
+
+describe("airtableNote", () => {
+  it("words Airtable's answers more fully, and keeps any other as it is", () => {
+    expect(airtableNote("Passed on request")).toBe("Passed the request on");
+    expect(airtableNote("Responded after event")).toBe("Responded after event");
+  });
+});
 
 describe("askSlug", () => {
   it("makes a slug of the title's letters and digits, then the date's month and year", () => {

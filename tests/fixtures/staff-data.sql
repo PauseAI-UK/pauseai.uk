@@ -162,13 +162,13 @@ SELECT n.id, a.ask, a.kind, a.status, a.note, least(k.date, (now() - interval '2
 FROM (VALUES
   ('recPlaceholder', 'controlai-statement', 'letter', 'signed', ''),
   ('recPlaceholder', 'edinburgh-conference-2026', 'event', 'declined', ''),
-  ('recPlaceholder', 'go-to-parliament-oct-2026', 'event', 'other', 'Meeting with staff'),
+  ('recPlaceholder', 'go-to-parliament-oct-2026', 'event', 'other', 'Meeting a member of their staff instead'),
   ('recDummy', 'go-to-parliament-oct-2026', 'event', 'going', ''),
-  ('recDummy', 'edinburgh-conference-2026', 'event', 'other', 'Tentative yes'),
-  ('recGone', 'go-to-parliament-oct-2026', 'event', 'other', 'Declined but surgery appointment'),
-  ('recRemoved', 'go-to-parliament-oct-2026', 'event', 'other', 'Tentative meeting with staff'),
+  ('recDummy', 'edinburgh-conference-2026', 'event', 'other', 'Tentatively said yes'),
+  ('recGone', 'go-to-parliament-oct-2026', 'event', 'other', 'Declined, but offered a surgery appointment instead'),
+  ('recRemoved', 'go-to-parliament-oct-2026', 'event', 'other', 'Tentatively agreed to a meeting with a member of their staff'),
   ('recMorag', 'edinburgh-conference-2026', 'event', 'going', ''),
-  ('recDeparted', 'edinburgh-conference-2026', 'event', 'other', 'Passed on request'),
+  ('recDeparted', 'edinburgh-conference-2026', 'event', 'other', 'Passed the request on'),
   ('recDeparted', 'deepmind-letter', 'letter', 'signed', ''),
   ('recRetired', 'frontier-ai-letter', 'letter', 'signed', ''),
   ('recMorag', 'deepmind-letter', 'letter', 'other', 'Wants to meet first')

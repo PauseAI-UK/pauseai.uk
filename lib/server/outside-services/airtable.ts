@@ -1,6 +1,7 @@
 import "server-only";
 import { config } from "@/lib/server/config";
 import {
+  airtableNote,
   CONTROLAI_STATEMENT_ASK,
   DEEPMIND_LETTER_ASK,
   EDINBURGH_CONFERENCE_ASK,
@@ -89,8 +90,8 @@ export const POLITICIANS_FORMULA = "NOT({Test})";
 /**
  * The fields that record an answer to an ask (lib/asks.ts), each with the
  * ask and the status each of its values means: a tick box means what it's
- * called, and a select one of its answers. Any other value is "other", with
- * the value as its note. Of two fields for one ask, the later wins, so a
+ * called, and a select one of its answers. Any other value is "other", its
+ * note from airtableNote. Of two fields for one ask, the later wins, so a
  * signature outranks declining.
  */
 const ASK_FIELDS: Record<string, { ask: string; statuses: Record<string, AskStatus> }> = {
@@ -178,7 +179,7 @@ function statusesFrom(record: AirtableRecord): Record<string, RecordedAnswer> {
       const value = record.fields[field];
       if (value === undefined || value === false || value === "") return [];
       const status = statuses[String(value)];
-      return [[ask, status ? { status, note: "" } : { status: "other", note: String(value) }]];
+      return [[ask, status ? { status, note: "" } : { status: "other", note: airtableNote(String(value)) }]];
     }),
   );
 }

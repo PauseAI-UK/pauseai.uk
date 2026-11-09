@@ -89,8 +89,9 @@ person per ask, with a status, a date, a note, and who set it; no answer,
 no row. Each kind allows its own statuses (`ask_kind_statuses`, mirrored by
 `ASK_STATUSES`): a letter `signed`, `other` or `declined`; an event
 `going`, `other` or `declined`. An `other` answer's note says what it was,
-such as "Tentative yes": the imports put Airtable's words for any answer
-that isn't a yes or a no there. A foreign key on `(ask_kind, status)`
+such as "Tentatively said yes": the imports put there what Airtable's
+answer meant for any that isn't a yes or a no, worded more fully where
+`airtableNote` (`lib/asks.ts`) has a wording, else Airtable's own words. A foreign key on `(ask_kind, status)`
 refuses any status not in that table, and a new status is a row there.
 
 Who set a status decides who may change it. Staff set statuses by hand, with

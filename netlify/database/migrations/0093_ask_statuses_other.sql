@@ -4,17 +4,17 @@ INSERT INTO ask_kind_statuses (kind, status) VALUES
   ('letter', 'other'),
   ('event', 'other');
 
--- Every other event answer becomes "other", its note the words Airtable
--- uses for it, before any note it had. The audit log's record of setting
+-- Every other event answer becomes "other", its note what it meant, as
+-- airtableNote (lib/asks.ts) words it, before any note it had. The audit log's record of setting
 -- each answer says the same, so the history reads as the answers do.
 UPDATE ask_statuses s
 SET status = 'other', note = concat_ws(E'\n', w.words, nullif(s.note, ''))
 FROM (VALUES
-  ('tentative', 'Tentative yes'),
-  ('meeting_staff', 'Meeting with staff'),
-  ('tentative_staff', 'Tentative meeting with staff'),
-  ('declined_surgery', 'Declined but surgery appointment'),
-  ('passed_on', 'Passed on request')
+  ('tentative', 'Tentatively said yes'),
+  ('meeting_staff', 'Meeting a member of their staff instead'),
+  ('tentative_staff', 'Tentatively agreed to a meeting with a member of their staff'),
+  ('declined_surgery', 'Declined, but offered a surgery appointment instead'),
+  ('passed_on', 'Passed the request on')
 ) AS w (status, words)
 WHERE s.ask_kind = 'event' AND s.status = w.status;
 
@@ -24,11 +24,11 @@ SET details = l.details || jsonb_build_object(
   'note', concat_ws(E'\n', w.words, nullif(l.details ->> 'note', ''))
 )
 FROM (VALUES
-  ('tentative', 'Tentative yes'),
-  ('meeting_staff', 'Meeting with staff'),
-  ('tentative_staff', 'Tentative meeting with staff'),
-  ('declined_surgery', 'Declined but surgery appointment'),
-  ('passed_on', 'Passed on request')
+  ('tentative', 'Tentatively said yes'),
+  ('meeting_staff', 'Meeting a member of their staff instead'),
+  ('tentative_staff', 'Tentatively agreed to a meeting with a member of their staff'),
+  ('declined_surgery', 'Declined, but offered a surgery appointment instead'),
+  ('passed_on', 'Passed the request on')
 ) AS w (status, words)
 WHERE l.action = 'set status' AND l.details ->> 'status' = w.status;
 
