@@ -1,7 +1,7 @@
 import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { getSignupUpload, SignupUploadSummary } from "@/lib/server/signup-uploads";
+import type { getSignupUpload, SignupUploadPerson, SignupUploadSummary } from "@/lib/server/signup-uploads";
 import { signupUploadPath } from "@/lib/signup-upload";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { Muted } from "@/components/ui/Text";
@@ -15,13 +15,33 @@ import styles from "./SignupUpload.module.css";
 const copy = staffCopy.signupUpload;
 const words = copy.result;
 
+/**
+ * What an import did for a person, as the preview's lozenges said it would:
+ * what Luma said, or that they were already going, and their permission to
+ * contact them, which every import gives.
+ */
+function Happened({ person, event }: { person: SignupUploadPerson; event: boolean }) {
+  const said = copy.preview.happens;
+  return (
+    <span className={styles.lozenges}>
+      {person.lumaStatus ? (
+        <Tag tone={person.lumaStatus === "added" ? "green" : "red"}>{words.luma[person.lumaStatus]}</Tag>
+      ) : (
+        event && <Tag>{said.going}</Tag>
+      )}
+      <Tag tone="green">{said.mailing}</Tag>
+      {person.phone && <Tag tone="green">{said.phone}</Tag>}
+    </span>
+  );
+}
+
 /** The upload's own line: what came of it, who did it, and what it was. */
 function UploadFacts({ upload }: { upload: SignupUploadSummary }) {
   return (
     <ul className={styles.summary}>
       <li>{words.summary(upload.imported, upload.heldBack)}</li>
       <li>{words.by(upload.uploadedBy, staffTime(upload.uploadedAt))}</li>
-      <li>{words.signedOn(staffDate(upload.signedOn))}</li>
+      <li>{words.signedOn(staffDate(new Date(upload.signedOn)))}</li>
       {upload.eventName && (
         <li>
           {words.event} <ExternalLink href={upload.eventUrl!}>{upload.eventName}</ExternalLink>
@@ -49,10 +69,10 @@ export default function SignupUploadResult({
             <thead>
               <tr>
                 <th>{words.columns.person}</th>
+                <th>{copy.help.fields.email.label}</th>
                 <th>{words.columns.phone}</th>
                 <th>{words.columns.postcode}</th>
-                <th>{words.columns.permission}</th>
-                <th>{words.columns.luma}</th>
+                <th>{words.columns.happened}</th>
               </tr>
             </thead>
             <tbody>
@@ -64,18 +84,12 @@ export default function SignupUploadResult({
                     ) : (
                       person.name
                     )}
-                    <br />
-                    {person.email}
                   </td>
+                  <td className={styles.email}>{person.email}</td>
                   <td className={styles.nowrap}>{person.phone}</td>
                   <td>{person.postcode}</td>
-                  <td>{person.consent ? words.yes : words.no}</td>
-                  <td>
-                    {person.lumaStatus ? (
-                      <Tag tone={person.lumaStatus === "added" ? "green" : "red"}>{words.luma[person.lumaStatus]}</Tag>
-                    ) : (
-                      words.noLuma
-                    )}
+                  <td className={styles.happens}>
+                    <Happened person={person} event={upload.eventName !== null} />
                   </td>
                 </tr>
               ))}
@@ -89,7 +103,7 @@ export default function SignupUploadResult({
 
 /** An upload's date: the day and month, and the year too if it isn't this one's. */
 function UploadDay({ day, year }: { day: string; year: string }) {
-  const said = staffDate(day);
+  const said = staffDate(new Date(day));
   return <>{said.endsWith(year) ? said.slice(0, -5) : said}</>;
 }
 

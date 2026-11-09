@@ -1,6 +1,6 @@
 # Paper sign-ups
 
-A staff page, Paper sign-ups, in the navigation under Supporters. It takes a CSV
+A staff page, Paper sign-ups, opened by Import sign-ups on the Supporters page. It takes a CSV
 of paper forms filled in while flyering. Built on the `upload-signups` branch, and
 described in `docs/domain-concepts.md`, "Form entries". This plan holds only what's
 left before it can merge.
@@ -9,47 +9,17 @@ Designs: https://claude.ai/artifact/2LoKADT8Xw4zFXgVEbdJ4E (private to Francis).
 
 ## To settle before merging
 
-### 1. Is PauseAI UK the right permission? (for Reuben)
+### The privacy policy's paper-form line (for Francis)
 
-A mailing list tick is the form entry's box, so PauseAI UK by email, and calls and
-texts for a number given, the same as our other forms. That's the default Francis
-chose until Reuben answers. The newest entry's box wins, so a blank on paper turns
-an earlier yes on a web form into a no.
+Its last sentence is a ⁂ draft, now that everyone imported joins the mailing
+list.
 
-If the answers point elsewhere:
+### Is signing the form enough to email them? (legal)
 
-- **PauseAI global email,** if the tick means the newsletter or global's list. The
-  staff interface describes `pauseai-updates` as newsletters sent through CiviCRM
-  by either the global or the UK team. Nobody gets them until CiviCRM has their
-  details.
-- **A new topic, "Signed up at flyering", by email,** if it means neither.
-
-Either would be a new migration.
-
-### 2. Do people who ticked nothing get imported? (for Reuben)
-
-They are for now, with no permission to contact. 14 of the 105 in the example file
-said yes to neither the march nor the mailing list. It depends on what signing the
-form without ticking anything means.
-
-### To ask Reuben
-
-- What does each checkbox on the paper form say, on each version of it?
-- What do volunteers tell people about each box in the street?
-- Does a tick for the mailing list mean the newsletter, PauseAI UK's own news, or
-  global's?
-- Does it cover being passed to global?
-- What does signing the form without ticking anything mean: joining, or only
-  giving their details?
-- What does a march Y mean on the handwritten page, which has no tick box?
-
-### Pushing waits for those answers
-
-`0088_signup_uploads.sql` was pushed while every preview build failed on the
-placeholder check, so Netlify never applied it, and it has been edited since. The
-placeholders are gone, so the next push builds a preview and applies it, after
-which it can't change. If Reuben's answers move the permission, that change goes
-in 0088 before pushing, keeping one migration.
+The new forms have no mailing list box: signing one is joining, so every import
+gives PauseAI UK by email, and calls and texts for a number given. Whether
+what volunteers say in the street makes that consent is for whoever advises on
+data protection (`docs/data-protection.md`).
 
 ## Outside this feature
 
@@ -71,8 +41,7 @@ in 0088 before pushing, keeping one migration.
 - **Becoming members.** Francis has asked global about an API. `members` is a copy
   of Stichting PauseAI's Airtable base, and the import marks any row it didn't
   read as removed, so rows can't be added to it from here. `AIRTABLE_TOKEN` is
-  read-only. Other routes are a file for global to add by hand, for those who ticked
-  the mailing list, or an email with a link to join (https://pauseai.info/join),
+  read-only. Other routes are a file for global to add by hand, or an email with a link to join (https://pauseai.info/join),
   whose form asks for its own consents. Either way, the hourly import then makes
   them members by matching their email, if the share permission is set.
 - Photos of the paper forms, which would hang off the form entry.

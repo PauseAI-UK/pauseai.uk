@@ -1,7 +1,7 @@
 import type { getSignupUpload, SignupUploadSummary } from "@/lib/server/signup-uploads";
 import type { SignupPlan } from "@/lib/signup-upload";
 
-const person = { phone: null, postcode: null, mailingList: false, going: false, problem: null };
+const person = { phone: null, postcode: null, going: false, problem: null };
 
 /** A file with someone in every pile. */
 export const exampleSignupPlan: SignupPlan = {
@@ -22,7 +22,6 @@ export const exampleSignupPlan: SignupPlan = {
       name: "Jane Smith",
       email: "jane.smith@example.com",
       postcode: "SE15",
-      mailingList: true,
       going: true,
       pile: "register",
       known: null,
@@ -45,7 +44,6 @@ export const exampleSignupPlan: SignupPlan = {
       name: "Ben Wood",
       email: "ben.wood@example.com",
       phone: "07700 900456",
-      mailingList: true,
       pile: "none",
       known: "mobile",
       newEntry: true,
@@ -93,16 +91,16 @@ export const exampleSignupUpload: SignupUploadSummary = {
   imported: 4,
   heldBack: 2,
   uploadedBy: "jo@pauseai.uk",
-  uploadedAt: "2026-11-01T10:00:00Z",
+  uploadedAt: new Date("2026-11-01T10:00:00Z"),
 };
 
 /** An upload with someone Luma said each thing of. */
 export const exampleSignupUploadPeople: NonNullable<Awaited<ReturnType<typeof getSignupUpload>>> = {
   ...exampleSignupUpload,
   people: [
-    { lumaStatus: "added", supporterId: 1, consent: true, phone: "07700 900123", postcode: "SE15" },
-    { lumaStatus: "skipped", supporterId: 2, consent: false, phone: null, postcode: null },
-    { lumaStatus: "failed", supporterId: null, consent: false, phone: null, postcode: null },
-    { lumaStatus: null, supporterId: 3, consent: true, phone: null, postcode: "M1 1AE" },
+    { lumaStatus: "added", supporterId: 1, phone: "07700 900123", postcode: "SE15" },
+    { lumaStatus: "skipped", supporterId: 2, phone: null, postcode: null },
+    { lumaStatus: "failed", supporterId: null, phone: null, postcode: null },
+    { lumaStatus: null, supporterId: 3, phone: null, postcode: "M1 1AE" },
   ].map((person, i) => ({ ...person, entryId: i + 1, name: `Person ${i + 1}`, email: `person${i + 1}@example.com` })),
 } as NonNullable<Awaited<ReturnType<typeof getSignupUpload>>>;

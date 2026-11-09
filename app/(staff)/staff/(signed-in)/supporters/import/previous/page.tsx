@@ -16,7 +16,7 @@ export default async function PreviousSignupUploadsPage() {
   const uploads = await listSignupUploads();
   return (
     <>
-      <Breadcrumb href="/staff/supporters/upload">{copy.title}</Breadcrumb>
+      <Breadcrumb href="/staff/supporters/import">{copy.title}</Breadcrumb>
       <h1>{copy.uploads.title}</h1>
       <SignupUploadsList uploads={uploads} now={now().toISOString()} />
     </>

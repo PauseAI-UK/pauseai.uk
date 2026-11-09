@@ -108,16 +108,16 @@ describe("readSignupFile", () => {
 
 describe("signupEventColumns", () => {
   it("offers ignored columns mostly of yes and no, with a yes in them", () => {
-    const file = read(`Name,Email,Mailing list,March,Reason,Never,Blank
-a,a@example.com,y,Y,ticked,no,
-b,b@example.com,y,,scribble,no,
-c,c@example.com,y,x,scribble,,`);
+    const file = read(`Name,Email,March,Reason,Never,Blank
+a,a@example.com,Y,ticked,no,
+b,b@example.com,,scribble,no,
+c,c@example.com,x,scribble,,`);
     expect(signupEventColumns(file)).toEqual(["March"]);
   });
 });
 
 describe("signupRows", () => {
-  it("reads a person, with no event column or mailing list", () => {
+  it("reads a person, with no event column", () => {
     expect(rows("Name,Email\n Jane   Smith , jane@example.com")).toEqual([
       {
         line: 2,
@@ -125,7 +125,6 @@ describe("signupRows", () => {
         email: "jane@example.com",
         phone: null,
         postcode: null,
-        mailingList: false,
         going: false,
         problem: null,
       },
@@ -143,7 +142,6 @@ describe("signupRows", () => {
       email: "jo@example.com",
       phone: "07700900123",
       postcode: "SE15 1AA",
-      mailingList: true,
       going: true,
       problem: null,
     });
@@ -161,8 +159,8 @@ describe("signupRows", () => {
   });
 
   it("takes a row cut short as blank in its missing cells, yes or no included", () => {
-    const [person] = rows("Name,Email,March,Mailing list\na,a@example.com", "March");
-    expect(person).toMatchObject({ mailingList: false, going: false, problem: null });
+    const [person] = rows("Name,Email,March\na,a@example.com", "March");
+    expect(person).toMatchObject({ going: false, problem: null });
   });
 
   it("drops an optional cell too long to be what it says", () => {
@@ -173,20 +171,19 @@ describe("signupRows", () => {
   it("holds back each kind of row it can't use", () => {
     const long = "x".repeat(101);
     const problems = rows(
-      `Name,Email,Phone,Mailing list,March
-,noname@example.com,,,
-${long},long@example.com,,,
-Nomail,,,,
-Bad,notanemail,,,
-Bad,two@example.com;three@example.com,,,
-Long,${"m".repeat(250)}@example.com,,,
-Phone,phone@example.com,call me,,
-Short,short@example.com,123,,
-Twin,twin@example.com,,,
-Twin,TWIN@example.com,,,
-Mail,mail@example.com,,maybe,
-March,march@example.com,,,?
-Fine,fine@example.com,07700900123,n,no`,
+      `Name,Email,Phone,March
+,noname@example.com,,
+${long},long@example.com,,
+Nomail,,,
+Bad,notanemail,,
+Bad,two@example.com;three@example.com,,
+Long,${"m".repeat(250)}@example.com,,
+Phone,phone@example.com,call me,
+Short,short@example.com,123,
+Twin,twin@example.com,,
+Twin,TWIN@example.com,,
+March,march@example.com,,?
+Fine,fine@example.com,07700900123,no`,
       "March",
     ).map((p) => p.problem);
     expect(problems).toEqual([
@@ -200,7 +197,6 @@ Fine,fine@example.com,07700900123,n,no`,
       { kind: "bad-phone" },
       { kind: "same-email" },
       { kind: "same-email" },
-      { kind: "unread-yes-no", value: "maybe", column: "Mailing list" },
       { kind: "unread-yes-no", value: "?", column: "March" },
       null,
     ]);
@@ -225,7 +221,6 @@ const plan = (eventColumn: string | null, ...planRows: Partial<SignupPlanRow>[])
         email: "jo@example.com",
         phone: null,
         postcode: null,
-        mailingList: false,
         going: false,
         problem: null,
         pile: "held",

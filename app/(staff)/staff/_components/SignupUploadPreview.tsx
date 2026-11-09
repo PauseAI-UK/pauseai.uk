@@ -42,18 +42,14 @@ function Happens({ row }: { row: SignupPlanRow }) {
       </span>
     );
   }
-  const contact = row.newEntry && row.mailingList;
   return (
     <span className={styles.lozenges}>
-      {row.newEntry ? (
-        <Tag tone={row.known ? "blue" : "green"}>{row.known ? said.known[row.known] : said.fresh}</Tag>
-      ) : (
-        <Tag>{said.alreadyImported}</Tag>
-      )}
+      {!row.newEntry && <Tag>{said.alreadyImported}</Tag>}
+      {row.newEntry && row.known && <Tag tone="blue">{said.known[row.known]}</Tag>}
       {row.pile === "register" && <Tag tone="green">{said.register}</Tag>}
       {row.pile === "going" && <Tag>{said.going}</Tag>}
-      {contact && <Tag tone="green">{said.mailing}</Tag>}
-      {contact && row.phone && <Tag tone="green">{said.phone}</Tag>}
+      {row.newEntry && <Tag tone="green">{said.mailing}</Tag>}
+      {row.newEntry && row.phone && <Tag tone="green">{said.phone}</Tag>}
     </span>
   );
 }
@@ -64,7 +60,6 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
   const fresh = plan.rows.filter((row) => row.newEntry);
   const shown = [...plan.rows].sort((a, b) => SIGNUP_PILES.indexOf(a.pile) - SIGNUP_PILES.indexOf(b.pile));
   const summary = words.summary;
-  const permission = fresh.filter((row) => row.mailingList).length;
   const known = fresh.filter((row) => row.known).length;
 
   return (
@@ -74,7 +69,6 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
           {summary.entries(fresh.length)} {summary.supporters(fresh.length - known, known)}
         </li>
         {counts.held > 0 && <li>{summary.held(counts.held)}</li>}
-        <li>{summary.permission(permission)}</li>
         {plan.eventName && <li>{summary.event(plan.eventName, counts.register)}</li>}
       </ul>
 

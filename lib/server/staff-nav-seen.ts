@@ -32,3 +32,21 @@ export async function newPagesFor(email: string, permissions: readonly Permissio
   const recent = seen.filter((row) => row.at.getTime() > since).map((row) => row.page);
   return pages.filter((page) => recent.includes(page) || (seen.length > 0 && fresh.includes(page)));
 }
+
+/**
+ * Whether `email` first saw `item`, something new on a page rather than in
+ * the navigation (such as its Import sign-ups button), in the last few days,
+ * noting that they've seen it now if they hadn't.
+ */
+export async function newTo(email: string, item: string): Promise<boolean> {
+  await query(`INSERT INTO staff_nav_seen (email, page, first_seen_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`, [
+    email,
+    item,
+    now(),
+  ]);
+  const [{ at }] = await query<{ at: Date }>(
+    `SELECT first_seen_at AS at FROM staff_nav_seen WHERE email = $1 AND page = $2`,
+    [email, item],
+  );
+  return now().getTime() - at.getTime() < NEW_FOR_DAYS * 24 * 60 * 60_000;
+}

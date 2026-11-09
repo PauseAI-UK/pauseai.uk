@@ -4,7 +4,7 @@
 // what a column means beyond the names here: any other column is ignored.
 
 /** What a column of a file can go into. */
-export const SIGNUP_FIELDS = ["name", "email", "phone", "postcode", "mailingList"] as const;
+export const SIGNUP_FIELDS = ["name", "email", "phone", "postcode"] as const;
 export type SignupField = (typeof SIGNUP_FIELDS)[number];
 
 /** The headings each field goes by, as signupHeading() writes them. */
@@ -13,19 +13,6 @@ export const SIGNUP_FIELD_NAMES: Record<SignupField, readonly string[]> = {
   email: ["email", "email address", "e-mail", "e-mail address", "your email", "emails", "mail"],
   phone: ["phone", "phone number", "mobile", "mobile number", "telephone", "tel", "cell", "your phone"],
   postcode: ["postcode", "post code", "postal code", "zip", "zip code", "your postcode"],
-  mailingList: [
-    "mailing list",
-    "mailing",
-    "newsletter",
-    "consent",
-    "keep me informed",
-    "keep me in the loop",
-    "contact me",
-    "hear from us",
-    "email updates",
-    "updates",
-    "opt in",
-  ],
 };
 
 /** The ways of writing yes and no in a cell, as yesNoOf() writes them. A blank is no. */
@@ -264,7 +251,6 @@ export type SignupRow = {
   email: string;
   phone: string | null;
   postcode: string | null;
-  mailingList: boolean;
   /** A yes in the column linked to an event. */
   going: boolean;
   problem: SignupRowProblem | null;
@@ -286,7 +272,6 @@ function optional(cell: string): string | null {
 export function signupRows(file: Extract<SignupFileRead, { ok: true }>, eventColumn: string | null): SignupRow[] {
   const column = (field: SignupField) => file.columns.find((c) => c.field === field);
   const event = file.columns.find((c) => c.heading === eventColumn);
-  const mailing = column("mailingList");
   const emails = new Map<string, number>();
   const cleaned = file.rows.map((row) => {
     const cell = (field: SignupField) => {
@@ -308,10 +293,8 @@ export function signupRows(file: Extract<SignupFileRead, { ok: true }>, eventCol
       if (!name) return { kind: "no-name" };
       if (name.length > MAX_NAME_LENGTH) return { kind: "long-name" };
       if (phone === undefined) return { kind: "bad-phone" };
-      for (const from of [mailing, event]) {
-        if (from && yesNoOf(answer(from)) === "unread") {
-          return { kind: "unread-yes-no", value: answer(from), column: from.heading };
-        }
+      if (event && yesNoOf(answer(event)) === "unread") {
+        return { kind: "unread-yes-no", value: answer(event), column: event.heading };
       }
       return null;
     })();
@@ -321,7 +304,6 @@ export function signupRows(file: Extract<SignupFileRead, { ok: true }>, eventCol
       email,
       phone: phone ?? null,
       postcode: optional(cell("postcode"))?.replace(/\s+/g, " ").toUpperCase() ?? null,
-      mailingList: yesNoOf(answer(mailing)) === "yes",
       going: yesNoOf(answer(event)) === "yes",
       problem,
     };
@@ -340,7 +322,7 @@ export type SignupUploadInput = {
 };
 
 /** Where the uploads so far are listed, and each upload's own page, under that. */
-export const SIGNUP_UPLOADS_PATH = "/staff/supporters/upload/previous";
+export const SIGNUP_UPLOADS_PATH = "/staff/supporters/import/previous";
 export const signupUploadPath = (id: number) => `${SIGNUP_UPLOADS_PATH}/${id}`;
 
 /** What will happen to a person: one pile each. */

@@ -431,7 +431,7 @@ form that registers people for an event. What a form's box said when
 someone ticked it is its wording in git at the entry's `created_at`.
 
 **Paper sign-ups** (`paper-signup`) come from a CSV staff import at
-`/staff/supporters/upload`, of forms collected while flyering. The file itself
+`/staff/supporters/import`, of forms collected while flyering. The file itself
 isn't kept: the page reads it in the browser, and sends it to the server only to
 preview and import it. Each import is a row of `signup_uploads`: the file's name,
 the date collected, where collected (`note`), the event, and how many it imported
@@ -443,8 +443,9 @@ heading is spelt and ways of saying yes, and nothing else. A column whose headin
 isn't on its list is ignored, so a doubt in a file is settled before it's imported.
 The entry is dated midday on the date collected, which is also what makes an
 import safe to repeat: an email with a paper entry of that date gets no other.
-The mailing list column is the entry's box, so it's PauseAI UK by email, and
-calls and texts for a number given. Staff may link one column of yes and blank to
+Every entry has its box ticked, as signing the paper form is joining the mailing
+list, so it's PauseAI UK by email, and calls and texts for a number given. The
+form has no mailing list box, and a file's column for one is ignored. Staff may link one column of yes and blank to
 one event to come, and a yes then registers them on Luma, who emails them, unless
 they're already going. A row with no name, a bad email or phone, a yes or no it
 can't read, a blocked email, or an email on another row of the file is held back,

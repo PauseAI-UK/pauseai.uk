@@ -58,7 +58,7 @@ UNION ALL
     'form-entry'::text AS kind,
     f.form AS title,
     COALESCE(u.note, f.utm_source) AS detail,
-    ('/staff/supporters/upload/previous/'::text || u.id) AS href,
+    ('/staff/supporters/import/previous/'::text || u.id) AS href,
     g.status
    FROM ((((form_entries f
      LEFT JOIN form_entry_luma g ON ((g.entry_id = f.id)))

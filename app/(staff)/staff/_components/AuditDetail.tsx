@@ -6,6 +6,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { staffDate } from "@/lib/staff-time";
 import type { FieldChange } from "@/lib/field-changes";
 import { importPath } from "@/lib/import-runs";
+import { signupUploadPath } from "@/lib/signup-upload";
 import type { LoggedChange, Named } from "@/lib/server/audit";
 import CampaignName from "./CampaignName";
 import { DotParts } from "./Logged";
@@ -225,6 +226,14 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "import ControlAI letter": none,
   "import Go to Parliament": none,
   "import web form letters": none,
+  "import sign-ups": (details) => ({
+    parts: [
+      <StaffLink key="upload" href={signupUploadPath(details.uploadId)}>
+        {staffCopy.signupUpload.uploads.title}
+      </StaffLink>,
+    ],
+    fields: ["uploadId"],
+  }),
   "import signatories from Airtable": none,
   "copy PauseAI emails": none,
   "remove supports status": none,

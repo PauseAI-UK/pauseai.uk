@@ -21,7 +21,7 @@ const FILES = join(__dirname, "..", "fixtures", "signup-uploads");
 /** Opens the page, as a staff member with the supporters permission. */
 async function openUpload(page: Page, database: string) {
   await logIn(page, database, ["supporters"]);
-  await page.goto(`${BASE}/staff/supporters/upload`);
+  await page.goto(`${BASE}/staff/supporters/import`);
 }
 
 /** Chooses one of the fixture files, and gives the note any upload needs. */
@@ -43,8 +43,15 @@ async function chooseEvent(page: Page, column: string) {
 
 test("A flyering file, linked to an event", async ({ page, flowDatabase, request }) => {
   await importLuma(request, BASE);
-  story("Staff open Paper sign-ups, from the navigation. Before any file, the page says what it needs.");
-  await openUpload(page, flowDatabase);
+  story("On the Supporters page, a button imports sign-ups, tagged new for the first few days.");
+  await logIn(page, flowDatabase, ["supporters"]);
+  await page.goto(`${BASE}/staff/supporters`);
+  await expect(page.getByText(staffCopy.nav.newTag, { exact: true })).toBeVisible();
+  await frame(page, "The Import sign-ups button");
+
+  story("It opens Paper sign-ups. Before any file, the page says what it needs.");
+  await page.getByRole("link", { name: staffCopy.supporters.importSignups }).click();
+  await expect(page.getByRole("heading", { name: copy.title, level: 1 })).toBeVisible();
   await frame(page, "Before a file: its four steps");
 
   story("Every column name it understands, and the values each can hold, open in a section of their own.");
@@ -52,9 +59,7 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   await frame(page, "All column names and values");
   await page.getByRole("button", { name: copy.help.less }).click();
 
-  story(
-    "They drop in a file. Name, email, postcode, phone and mailing list are understood. Other columns are ignored.",
-  );
+  story("They drop in a file. Name, email, postcode and phone are understood. Other columns are ignored.");
   await chooseFile(page, "street-flyering.csv");
   await frame(page, "What each column will do");
 
@@ -81,7 +86,7 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   await frame(page, "On the supporter's page");
 
   story("The page links to every import so far, by the date on the forms.");
-  await page.goto(`${BASE}/staff/supporters/upload`);
+  await page.goto(`${BASE}/staff/supporters/import`);
   await page.getByRole("link", { name: copy.uploads.see }).click();
   await expect(page.getByRole("link", { name: "Flyering at Camden Town" })).toBeVisible();
   await frame(page, "Past imports");
@@ -144,25 +149,25 @@ test("Rows held back, fixed and uploaded again", async ({ page, flowDatabase }) 
   story("One row in this file is fine. Each of the others has something the site won't guess at.");
   await openUpload(page, flowDatabase);
   await chooseFile(page, "needs-fixing.csv");
-  await expect(page.getByText(copy.preview.unread("Maybe", "Mailing list"))).toBeVisible();
+  await expect(page.getByText(copy.preview.problems["bad-phone"])).toBeVisible();
   await frame(page, "Those held back, and why");
 
   story("Importing goes ahead with the one that's fine. The rest are fixed in the spreadsheet.");
   await page.getByRole("button", { name: copy.preview.importOnly(1) }).click();
   await expect(page.getByRole("heading", { name: copy.result.title("needs-fixing.csv") })).toBeVisible();
-  await frame(page, "One imported, eight held back");
+  await frame(page, "One imported, seven held back");
 
   story("Fixed, the whole file goes in again. The person already in isn't added twice.");
-  await page.goto(`${BASE}/staff/supporters/upload`);
+  await page.goto(`${BASE}/staff/supporters/import`);
   await chooseFile(page, "fixed.csv");
-  await expect(page.getByRole("button", { name: copy.preview.importOnly(6) })).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.preview.importOnly(5) })).toBeVisible();
   await expect(page.getByText(copy.preview.happens.alreadyImported)).toBeVisible();
   await frame(page, "The fixed file: one already imported");
 
   story("Uploaded a third time, there's nothing left to do.");
-  await page.getByRole("button", { name: copy.preview.importOnly(6) }).click();
+  await page.getByRole("button", { name: copy.preview.importOnly(5) }).click();
   await expect(page.getByRole("heading", { name: copy.result.title("fixed.csv") })).toBeVisible();
-  await page.goto(`${BASE}/staff/supporters/upload`);
+  await page.goto(`${BASE}/staff/supporters/import`);
   await chooseFile(page, "fixed.csv");
   await expect(page.getByText(copy.preview.nothing)).toBeVisible();
   await frame(page, "Nothing to import");
@@ -206,7 +211,7 @@ test("What Luma says", async ({ page, flowDatabase, request }) => {
   await frame(page, "Luma skips one");
 
   story("When Luma fails, the person is kept, and the page says to upload again to retry.");
-  await page.goto(`${BASE}/staff/supporters/upload`);
+  await page.goto(`${BASE}/staff/supporters/import`);
   await chooseFile(page, "luma-fails.csv");
   await chooseEvent(page, "Going");
   await page.getByRole("button", { name: copy.preview.importNow(1, 1) }).click();
@@ -214,7 +219,7 @@ test("What Luma says", async ({ page, flowDatabase, request }) => {
   await frame(page, "Luma fails");
 
   story("Uploading again tries Luma again, without adding them twice.");
-  await page.goto(`${BASE}/staff/supporters/upload`);
+  await page.goto(`${BASE}/staff/supporters/import`);
   await chooseFile(page, "luma-fails.csv");
   await chooseEvent(page, "Going");
   await expect(page.getByRole("button", { name: copy.preview.importNow(0, 1) })).toBeVisible();

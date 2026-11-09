@@ -65,6 +65,7 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "import ControlAI letter": { added: number; removed: number; problems: number };
   "import Go to Parliament": { added: number; changed: number };
   "import web form letters": { imported: number; skipped: number; alreadyHere: number; noPolitician: number };
+  "import sign-ups": { uploadId: number; imported: number; heldBack: number };
   "copy PauseAI emails": { added: number };
   "add ask": Ask;
   "edit ask": Ask;

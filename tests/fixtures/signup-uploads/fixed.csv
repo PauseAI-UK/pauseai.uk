@@ -1,8 +1,7 @@
-Name,Email,Mobile,Mailing list
-Fine Person,fine.person@example.com,,Y
-Nell Named,no.name@example.com,,Y
-Bad Email,bad.email@example.com,,Y
-Bad Phone,bad.phone@example.com,07700 900126,Y
-Tim Robson,tim.robson@example.com,,Y
-Emma Robson,emma.robson@example.com,,
-Unsure Person,unsure.person@example.com,,no
+Name,Email,Mobile
+Fine Person,fine.person@example.com,
+Nell Named,no.name@example.com,
+Bad Email,bad.email@example.com,
+Bad Phone,bad.phone@example.com,07700 900126
+Tim Robson,tim.robson@example.com,
+Emma Robson,emma.robson@example.com,

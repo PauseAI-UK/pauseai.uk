@@ -1128,7 +1128,7 @@ export function SignupUploadFormExample() {
         {
           id: "evt-march",
           name: "PauseAI London March",
-          startAt: "2026-11-21T12:00:00Z",
+          startAt: new Date("2026-11-21T12:00:00Z"),
           url: "https://luma.com/example",
         },
       ]}

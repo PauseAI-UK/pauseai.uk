@@ -43,9 +43,9 @@ describe("the staff examples", () => {
     await render(<SignupUploadHelpExample />);
     const help = staffCopy.signupUpload.help;
     await page.getByRole("button", { name: help.more }).click();
-    await expect.element(page.getByText(help.fields.mailingList.label)).toBeVisible();
+    await expect.element(page.getByText(help.fields.postcode.values)).toBeVisible();
     await page.getByRole("button", { name: help.less }).click();
-    expect(page.getByText(help.fields.mailingList.label).elements()).toEqual([]);
+    expect(page.getByText(help.fields.postcode.values).elements()).toEqual([]);
   });
 
   it("previews and imports an upload, going to what it did", async () => {
@@ -54,7 +54,7 @@ describe("the staff examples", () => {
     const importNow = page.getByRole("button", { name: staffCopy.signupUpload.preview.importNow(3, 1) });
     await expect.element(importNow).toBeEnabled();
     await importNow.click();
-    await expect.poll(() => push.mock.calls).toEqual([["/staff/supporters/upload/previous/6"]]);
+    await expect.poll(() => push.mock.calls).toEqual([["/staff/supporters/import/previous/6"]]);
   });
 
   it("picks a mailing's hour, and logs Change the time's save", async () => {

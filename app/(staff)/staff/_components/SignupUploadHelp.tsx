@@ -69,7 +69,7 @@ export function SignupColumnNames() {
                 )}
               </td>
               <td>{SIGNUP_FIELD_NAMES[field].join(", ")}</td>
-              <td>{field === "mailingList" ? yes : copy.fields[field].values}</td>
+              <td>{copy.fields[field].values}</td>
             </tr>
           ))}
           <tr>

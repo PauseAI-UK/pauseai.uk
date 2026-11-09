@@ -1,6 +1,6 @@
-Name,Email,Postcode,Phone,Saturday march,WhatsApp,Mailing list,March reason,Needs check
-Jane Fixture,jane.fixture@example.com,SW1A 1AA,,Y,,Y,Ticked,
-Sam Fixture,sam.fixture@example.com,se15,,Y,,,Handwritten page,
-Robin Newcomer,robin.newcomer@example.com,M1 1AE,07700 900123,Y,Y,Y,Ticked,
-Kit Passerby,kit.passerby@example.com,,,,,Y,,
-Ash Walker,ash.walker@example.com,LS1 4DY,,,,,,Surname unclear
+Name,Email,Postcode,Phone,Saturday march,WhatsApp,March reason,Needs check
+Jane Fixture,jane.fixture@example.com,SW1A 1AA,,Y,,Ticked,
+Sam Fixture,sam.fixture@example.com,se15,,Y,,Handwritten page,
+Robin Newcomer,robin.newcomer@example.com,M1 1AE,07700 900123,Y,Y,Ticked,
+Kit Passerby,kit.passerby@example.com,,,,,,
+Ash Walker,ash.walker@example.com,LS1 4DY,,,,,Surname unclear

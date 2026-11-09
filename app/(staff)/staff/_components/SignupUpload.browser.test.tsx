@@ -17,7 +17,9 @@ vi.mock("next/navigation", async (original) => ({
 
 const copy = staffCopy.signupUpload;
 const words = copy.preview;
-const EVENTS = [{ id: "evt-1", name: "The march", startAt: "2099-11-21T12:00:00Z", url: "https://luma.com/the-march" }];
+const EVENTS = [
+  { id: "evt-1", name: "The march", startAt: new Date("2099-11-21T12:00:00Z"), url: "https://luma.com/the-march" },
+];
 const CSV = "Name,Email,March,Colour,Mailing list\nJo,jo@example.com,Y,red,Y\n";
 
 const fileInput = () => document.querySelector<HTMLInputElement>('input[type="file"]')!;
@@ -76,7 +78,7 @@ describe("SignupUploadForm", () => {
     await showForm().view;
     await page.getByRole("button", { name: copy.help.more }).click();
     await expect.element(page.getByRole("heading", { name: copy.help.more })).toBeVisible();
-    await expect.element(page.getByText(copy.help.fields.mailingList.label)).toBeVisible();
+    await expect.element(page.getByText(copy.help.fields.postcode.values)).toBeVisible();
     await page.getByRole("button", { name: copy.help.less }).click();
     expect(page.getByRole("heading", { name: copy.help.more }).elements()).toEqual([]);
   });
@@ -102,7 +104,7 @@ describe("SignupUploadForm", () => {
       note: "Camden",
     });
     await importButton().click();
-    await expect.poll(() => push.mock.calls.at(-1)).toEqual(["/staff/supporters/upload/previous/9"]);
+    await expect.poll(() => push.mock.calls.at(-1)).toEqual(["/staff/supporters/import/previous/9"]);
     expect(finish).toHaveBeenCalled();
   });
 
@@ -211,7 +213,7 @@ describe("SignupPlanView", () => {
     expect(lines()[0]).toContain(words.problems["same-email"]);
     expect(lines()[1]).toContain(words.unread("Maybe", "March"));
     const said = words.happens;
-    expect(lines()[2]).toContain(`${said.fresh}${said.register}${said.mailing}`);
+    expect(lines()[2]).toContain(`${said.register}${said.mailing}`);
     expect(lines()[3]).toContain(`${said.known.email}${said.going}`);
     expect(lines()[3]).toContain("07700 900123");
     expect(lines()[4]).toContain(`${said.known.mobile}${said.mailing}${said.phone}`);
@@ -269,7 +271,7 @@ describe("SignupUploadPreview", () => {
     await expect.poll(() => preview.mock.calls.length).toBe(1);
     answer(exampleSignupPlan);
     await button().click();
-    await expect.poll(() => push.mock.calls.at(-1)).toEqual(["/staff/supporters/upload/previous/7"]);
+    await expect.poll(() => push.mock.calls.at(-1)).toEqual(["/staff/supporters/import/previous/7"]);
     expect(finish).toHaveBeenCalledWith(input, exampleSignupPlan.signature);
   });
 
@@ -347,10 +349,23 @@ describe("SignupUploadResult", () => {
       copy.result.luma.added,
       copy.result.luma.skipped,
       copy.result.luma.failed,
-      copy.result.noLuma,
+      copy.preview.happens.going,
     ]) {
       await expect.element(page.getByText(said)).toBeVisible();
     }
+    expect(page.getByText(copy.preview.happens.mailing, { exact: true }).elements()).toHaveLength(4);
+    expect(page.getByText(copy.preview.happens.phone, { exact: true }).elements()).toHaveLength(1);
+  });
+
+  it("says nothing of Luma for an import with no event", async () => {
+    const [person] = exampleSignupUploadPeople.people;
+    await render(
+      <SignupUploadResult
+        upload={{ ...exampleSignupUpload, eventName: null, people: [{ ...person, lumaStatus: null }] }}
+      />,
+    );
+    await expect.element(page.getByText(copy.preview.happens.mailing, { exact: true })).toBeVisible();
+    expect(page.getByText(copy.preview.happens.going).elements()).toEqual([]);
   });
 
   it("titles the page with the file's name", () => {
@@ -378,7 +393,7 @@ describe("SignupUploadsList", () => {
     await expect.element(page.getByRole("heading", { name: "2025" })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: "Flyering at Camden Town" }))
-      .toHaveAttribute("href", "/staff/supporters/upload/previous/1");
+      .toHaveAttribute("href", "/staff/supporters/import/previous/1");
     await expect.element(page.getByText("31 Oct", { exact: true })).toBeVisible();
     await expect.element(page.getByText("14 Jun 2025")).toBeVisible();
     await expect
@@ -386,7 +401,7 @@ describe("SignupUploadsList", () => {
       .toHaveAttribute("href", "https://luma.com/example");
     await expect
       .element(page.getByRole("link", { name: "flyering.csv" }))
-      .toHaveAttribute("href", "/staff/supporters/upload/previous/2");
+      .toHaveAttribute("href", "/staff/supporters/import/previous/2");
   });
 
   it("says there are none before the first", async () => {

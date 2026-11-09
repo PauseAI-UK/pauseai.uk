@@ -182,12 +182,16 @@ Bad,bad,,,,,Y`,
       heldBack: 1,
       uploadedBy: BY,
     });
-    expect(upload.people.map((p) => [p.email, p.lumaStatus, p.consent, p.supporterId !== null])).toEqual([
-      ["going@example.com", null, false, true],
-      ["new@example.com", "added", true, true],
-      ["skip@example.com", "skipped", false, true],
-      ["not@example.com", null, false, true],
+    expect(upload.people.map((p) => [p.email, p.lumaStatus, p.supporterId !== null])).toEqual([
+      ["going@example.com", null, true],
+      ["new@example.com", "added", true],
+      ["skip@example.com", "skipped", true],
+      ["not@example.com", null, true],
     ]);
+    const consents = await query<{ consent: boolean }>(
+      "SELECT contact_consent AS consent FROM form_entries WHERE form = 'paper-signup' ORDER BY id",
+    );
+    expect(consents.map((row) => row.consent)).toEqual([true, true, true, true]);
     expect(upload.people[1]).toMatchObject({ phone: "07700900333", postcode: "SE15" });
 
     const [entry] = await query<{ created_at: Date; city: string | null; form: string }>(
@@ -203,7 +207,7 @@ Bad,bad,,,,,Y`,
     );
     expect(line).toEqual({
       detail: "Camden",
-      href: `/staff/supporters/upload/previous/${id}`,
+      href: `/staff/supporters/import/previous/${id}`,
       status: "added",
       title: "paper-signup",
     });

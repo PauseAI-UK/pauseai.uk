@@ -70,7 +70,6 @@ export const staffCopy = {
       profile: "Your account",
     } as Record<string, string>,
     supporters: "Supporters",
-    signupUpload: "Paper sign-ups",
     politicians: "Politicians",
     asks: "Asks",
     mailings: "Mailings",
@@ -246,7 +245,7 @@ export const staffCopy = {
         days === 7 ? `Week beginning ${from}: ${n}` : `${days} days beginning ${from}: ${n}`,
     },
   },
-  // Uploading a CSV of paper sign-ups (/staff/supporters/upload).
+  // Uploading a CSV of paper sign-ups (/staff/supporters/import).
   signupUpload: {
     title: "Paper sign-ups",
     intro: "Import people from a spreadsheet from paper sign-up forms.",
@@ -273,7 +272,7 @@ export const staffCopy = {
         "Fix any mistakes before you upload it",
         "One row per person, with column names in the first row",
         "Name and Email columns (required)",
-        "Phone, Postcode and Mailing list columns (optional)",
+        "Phone and Postcode columns (optional)",
         "A yes/no column for an event (optional)",
         "Other columns are ignored",
       ],
@@ -290,7 +289,6 @@ export const staffCopy = {
           values:
             "Full postcode, or just the first half (such as SE15). Partial is less good as can't find MP with it.",
         },
-        mailingList: { label: "Mailing list", values: "yes" },
       } as Record<string, { label: string; values: string }>,
       event: { label: "Event sign-up", names: "Any name. You choose it after uploading.", values: "yes" },
       yes: (words: string) => `Yes: ${words}.`,
@@ -334,7 +332,6 @@ export const staffCopy = {
         entries: (n: number) => `${n} people will be imported.`,
         held: (n: number) => `${n} won't be imported.`,
         supporters: (fresh: number, known: number) => `${fresh} new, ${known} already on the supporters list.`,
-        permission: (n: number) => `${n} said yes to the mailing list.`,
         event: (name: string, n: number) =>
           `${n} will be registered for "${name}". Luma will email them a confirmation.`,
       },
@@ -342,7 +339,6 @@ export const staffCopy = {
       happens: {
         notImported: "Not imported",
         alreadyImported: "Already imported",
-        fresh: "New supporter",
         known: { email: "Existing (same email)", mobile: "Existing (same mobile)" },
         register: "Register on Luma",
         going: "Already on Luma",
@@ -376,19 +372,15 @@ export const staffCopy = {
         person: "Name",
         phone: "Phone",
         postcode: "Postcode",
-        permission: "Mailing list",
-        luma: "Luma",
+        happened: "⁂ What happened",
       },
       none: "Everyone from this upload has since been erased.",
-      yes: "Yes",
-      no: "No",
       luma: {
         added: "Registered",
         skipped: "Not registered: unsubscribed from our Luma calendar",
         "not-configured": "Not registered: Luma isn't set up",
         failed: "Not registered: Luma had an error. Upload the file again to retry.",
       } as Record<string, string>,
-      noLuma: "Not registered",
     },
     uploads: {
       title: "Past imports",
@@ -402,6 +394,8 @@ export const staffCopy = {
   // The supporters list (/staff/supporters) and a supporter's page.
   supporters: {
     title: "Supporters",
+    // The button at the top of the list to the page importing a CSV of paper sign-ups.
+    importSignups: "Import sign-ups",
     none: "Nobody found.",
     // Over the list: how many there are.
     total: (total: number) => count(total, "supporter", "supporters"),
@@ -2640,6 +2634,8 @@ All events: ${link}`,
       removed: () => "removed",
       changed: () => "changed",
       matched: () => "matched",
+      imported: () => "imported",
+      heldBack: () => "held back",
       alreadySet: () => "already signed",
       problems: (n: number) => plural(n, "problem", "problems"),
       lumaUsers: (n: number) => plural(n, "Luma person", "Luma people"),

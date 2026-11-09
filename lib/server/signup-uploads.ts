@@ -23,7 +23,7 @@ import { linkSupporters } from "./supporters";
 // docs/domain-concepts.md, "Form entries".
 
 /** An event a file can sign people up for: one to come, on a calendar we manage. */
-export type SignupEventChoice = { id: string; name: string; startAt: string; url: string };
+export type SignupEventChoice = { id: string; name: string; startAt: Date; url: string };
 
 /** The events a file can sign people up for, soonest first. */
 export async function signupEventChoices(): Promise<SignupEventChoice[]> {
@@ -150,7 +150,7 @@ export async function finishSignupUpload(
     );
     const added = await query<{ id: number; email: string }>(
       `INSERT INTO form_entries (form, created_at, name, email, phone, postcode, contact_consent)
-       SELECT 'paper-signup', $1, * FROM unnest($2::text[], $3::text[], $4::text[], $5::text[], $6::boolean[])
+       SELECT 'paper-signup', $1, *, true FROM unnest($2::text[], $3::text[], $4::text[], $5::text[])
        RETURNING id::int AS id, email`,
       [
         entryTime(input.signedOn),
@@ -158,7 +158,6 @@ export async function finishSignupUpload(
         fresh.map((row) => row.email),
         fresh.map((row) => row.phone),
         fresh.map((row) => row.postcode),
-        fresh.map((row) => row.mailingList),
       ],
       db,
     );
@@ -212,7 +211,7 @@ export type SignupUploadSummary = {
   imported: number;
   heldBack: number;
   uploadedBy: string;
-  uploadedAt: string;
+  uploadedAt: Date;
 };
 
 /** A person an upload added. */
@@ -222,7 +221,6 @@ export type SignupUploadPerson = {
   email: string;
   phone: string | null;
   postcode: string | null;
-  consent: boolean;
   lumaStatus: "added" | "skipped" | "not-configured" | "failed" | null;
   supporterId: number | null;
 };
@@ -252,7 +250,7 @@ export async function getSignupUpload(
   );
   if (!upload) return undefined;
   const people = await query<SignupUploadPerson>(
-    `SELECT f.id::int AS "entryId", f.name, f.email, f.phone, f.postcode, f.contact_consent AS consent,
+    `SELECT f.id::int AS "entryId", f.name, f.email, f.phone, f.postcode,
        l.status AS "lumaStatus", k.supporter_id::int AS "supporterId"
      FROM signup_upload_entries u JOIN form_entries f ON f.id = u.entry_id
        LEFT JOIN form_entry_luma l ON l.entry_id = f.id

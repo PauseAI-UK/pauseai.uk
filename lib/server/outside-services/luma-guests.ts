@@ -247,7 +247,7 @@ export async function addLumaGuests(
   eventId: string,
   guests: { name: string; email: string }[],
 ): Promise<Map<string, LumaAddGuestResult["status"]>> {
-  const key = process.env.LUMA_API_KEY?.trim();
+  const key = config.lumaApiKey;
   const statuses = new Map<string, LumaAddGuestResult["status"]>();
   for (let i = 0; i < guests.length; i += GUESTS_AT_ONCE) {
     const batch = guests.slice(i, i + GUESTS_AT_ONCE);
