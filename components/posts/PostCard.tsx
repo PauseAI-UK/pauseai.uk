@@ -8,7 +8,7 @@ import {
   postImage,
   type BlogPost,
   type PostSection,
-} from "@/lib/content/blog";
+} from "@/lib/content/posts";
 import { parseCssStyle } from "@/lib/storyRender";
 import styles from "./PostCard.module.css";
 

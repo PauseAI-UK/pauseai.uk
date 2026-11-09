@@ -1,5 +1,5 @@
-import { newestFirst } from "@/lib/content/blog";
 import { BRIEFINGS, briefings } from "@/lib/content/briefings";
+import { newestFirst } from "@/lib/content/posts";
 import { postsFeed } from "@/lib/content/posts-feed";
 
 export const dynamic = "force-static";

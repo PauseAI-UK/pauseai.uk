@@ -1,7 +1,8 @@
 import type { ConsoleMessage } from "@playwright/test";
 import { isStaffRoute } from "../../app/sitemap";
-import { BLOG, feedPath, posts } from "../../lib/content/blog";
+import { BLOG, posts } from "../../lib/content/blog";
 import { BRIEFINGS, briefings } from "../../lib/content/briefings";
+import { feedPath } from "../../lib/content/posts";
 import { ROUTES } from "../routes";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";

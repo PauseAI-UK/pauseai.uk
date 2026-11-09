@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { BRIEFINGS, briefings, findBriefing } from "./briefings";
+import { BRIEFINGS, briefings, findBriefing } from ".";
 
 /** All a briefing says: its key stories, then the rest. */
 const html = (briefing: (typeof briefings)[number]) =>

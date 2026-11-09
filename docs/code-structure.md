@@ -224,6 +224,11 @@ the code should go instead. The rules below say which ones are enforced.
 - **Content vs logic.** Data the site displays (people, posts, press, board)
   goes in `lib/content/`. Logic goes next to the feature it serves
   (`lib/events.ts`, `lib/collateral/`).
+- **A post a file.** Each blog post is `lib/content/blog/<slug>.tsx`, and
+  each weekly briefing `lib/content/briefings/<slug>.tsx`, listed newest
+  first in its folder's `index.ts`, so a new one is a new file and a line
+  there. What the two share, a post's fields, byline, images, metadata and
+  feed, is in `lib/content/posts.tsx`.
 - **Where the words go.** A page's own text is written in the page. A
   tool's words (labels, messages, errors, the emails it sends) go in one
   copy object in `lib/content/<feature>.ts`, such as `copy` in
@@ -445,12 +450,14 @@ only a variant. The look itself (colours, type, buttons, cards) is in
 page each week (`docs/style-guide.md`, "The briefings and the march"). It
 follows the rules above, with these particulars:
 
-- **A briefing is data and its kit.** `lib/content/briefings.tsx` gives each
-  briefing's week and key stories as data (its summary is the key stories'
-  headlines), and writes the rest with `components/briefings/`: `BriefingBox`,
+- **A briefing is data and its kit.** Each briefing's file,
+  `lib/content/briefings/<slug>.tsx`, gives its week and key stories as data
+  (its summary is the key stories' headlines, `defineBriefing` in
+  `define.tsx`), and writes the rest with `components/briefings/`: `BriefingBox`,
   `BriefingColumns`, `BriefingQuote`, `BriefingText`'s pieces, the charts,
   `BriefingSources`. A new week's briefing is the design's HTML page
-  rewritten with those, a new chart a new component there.
+  rewritten with those in a new file, listed first in the folder's
+  `index.ts`, a new chart a new component there.
 - **Colours by topic.** The `--briefing-*` tokens are the design's palette, one a
   topic. A box sets `--tone` on itself (`toneStyle` in `tone.ts`), and what's
   in it, its list markers, quote rules, headings' accents and charts, draws

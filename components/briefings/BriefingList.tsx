@@ -1,4 +1,4 @@
-import type { PostSection } from "@/lib/content/blog";
+import type { PostSection } from "@/lib/content/posts";
 import type { Briefing } from "@/lib/content/briefings";
 import BriefingCard from "./BriefingCard";
 import styles from "./BriefingList.module.css";

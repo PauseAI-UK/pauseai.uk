@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatPostDate, ORGANISATION_AVATAR, postAuthor, type BlogPost, type PostSection } from "@/lib/content/blog";
+import { formatPostDate, ORGANISATION_AVATAR, postAuthor, type BlogPost, type PostSection } from "@/lib/content/posts";
 import { parseCssStyle } from "@/lib/storyRender";
 import PageHero from "@/components/ui/PageHero";
 import styles from "./PostHeader.module.css";

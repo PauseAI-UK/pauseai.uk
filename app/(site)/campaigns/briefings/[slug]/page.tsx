@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Briefing from "@/components/briefings/Briefing";
 import JsonLd from "@/components/layout/JsonLd";
-import { postJsonLd, postMetadata } from "@/lib/content/blog";
 import { BRIEFINGS, briefings, findBriefing } from "@/lib/content/briefings";
+import { postJsonLd, postMetadata } from "@/lib/content/posts";
 import { found } from "@/lib/found";
 
 export function generateStaticParams() {

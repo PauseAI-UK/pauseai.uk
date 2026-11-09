@@ -1,4 +1,4 @@
-import type { BlogPost, PostSection } from "@/lib/content/blog";
+import type { BlogPost, PostSection } from "@/lib/content/posts";
 import PostCard from "./PostCard";
 import styles from "./PostList.module.css";
 

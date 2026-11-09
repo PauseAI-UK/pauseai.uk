@@ -1,4 +1,4 @@
-import type { BlogPost } from "@/lib/content/blog";
+import type { BlogPost } from "@/lib/content/posts";
 import styles from "./PostBody.module.css";
 
 // A post's TL;DR and text.

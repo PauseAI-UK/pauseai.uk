@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { formatPostDate, postAuthor } from "@/lib/content/blog";
+import { formatPostDate, postAuthor } from "@/lib/content/posts";
 import type { Briefing } from "@/lib/content/briefings";
 import WeekCalendar from "./WeekCalendar";
 import styles from "./BriefingMasthead.module.css";

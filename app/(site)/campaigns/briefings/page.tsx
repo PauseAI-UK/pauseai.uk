@@ -1,7 +1,7 @@
 import BriefingList from "@/components/briefings/BriefingList";
 import PageHero from "@/components/ui/PageHero";
-import { feedLink, newestFirst } from "@/lib/content/blog";
 import { BRIEFINGS, briefings } from "@/lib/content/briefings";
+import { feedLink, newestFirst } from "@/lib/content/posts";
 import { pageMetadata } from "@/lib/metadata";
 
 const page = pageMetadata({

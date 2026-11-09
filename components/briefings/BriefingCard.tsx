@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { PostSection } from "@/lib/content/blog";
+import type { PostSection } from "@/lib/content/posts";
 import type { Briefing } from "@/lib/content/briefings";
 import BriefingBox from "./BriefingBox";
 import BriefingMasthead from "./BriefingMasthead";

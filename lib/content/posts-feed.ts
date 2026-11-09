@@ -1,4 +1,4 @@
-import { feedPath, postAuthor, type BlogPost, type PostSection } from "./blog";
+import { feedPath, postAuthor, type BlogPost, type PostSection } from "./posts";
 import { site } from "./site";
 
 /** Text made safe inside an XML element or a quoted attribute. */
