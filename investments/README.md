@@ -35,7 +35,7 @@ The repo is public. A hit names no one and quotes no data, and says nothing abou
 
 Hits are a guide, not the answer. A missing tool is hit in every session, so tools pile up hits fast. An architecture item is hit once per feature that runs into it, and each of those hits can cost hours. Operations items get no hits until the day something goes wrong unseen. So weigh hits against size, weigh an architecture item by the changes it would make easy, and an operations item by how bad the failure it prevents would be.
 
-Once a month, add the month's hits (`friction-sweep.md`) and choose what's next. About one PR in five should be one of these, each in its own PR. The PR that finishes an item deletes its file. An architecture item done in steps keeps its file until the last step, with the Fix saying what's left.
+Once a month, add the month's hits and choose what's next. `npm run friction-sweep` counts, from Claude Code's session logs on Francis's machine, what sessions did by hand each week: set `TEST_DATABASE_URL`, ran the gate's checks, set up a worktree, killed a server, read `storyboard.json` with a script, edited with `sed -i` or inline Python, and rebase conflicts by file, sessions that ran out of context and those with the Bash-first experiment on (`scripts/README.md`). It writes only counts, to `tmp/friction-sweep.txt`; add each week's count to the item it bears on as a hit, such as "Week of 2026-11-09 (x6): sessions set TEST_DATABASE_URL by hand". About one PR in five should be one of these, each in its own PR. The PR that finishes an item deletes its file. An architecture item done in steps keeps its file until the last step, with the Fix saying what's left.
 
 ## Template
 
