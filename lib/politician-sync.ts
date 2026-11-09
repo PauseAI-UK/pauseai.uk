@@ -1,7 +1,6 @@
 // Politicians as the sync copies them from Airtable's UK Parliamentarians
 // (lib/server/outside-services/airtable.ts), and what a sync would change.
 import { changedFields } from "./field-changes";
-import type { AskStatus } from "./asks";
 
 /** A politician as we store them, by their Airtable record. */
 export type SyncedPolitician = {
@@ -20,11 +19,8 @@ export type SyncedPolitician = {
   personalConnection: boolean;
 };
 
-/** An answer to an ask as Airtable records it, with its note: for "other", Airtable's words for it. */
-export type RecordedAnswer = { status: AskStatus; note: string };
-
-/** One Airtable record: the politician, and their answer to each ask Airtable records, by the ask's slug. */
-export type PoliticianRecord = { politician: SyncedPolitician; statuses: Record<string, RecordedAnswer> };
+/** One Airtable record: the politician. */
+export type PoliticianRecord = { politician: SyncedPolitician };
 
 export type PoliticianChanges = {
   added: SyncedPolitician[];

@@ -32,7 +32,6 @@ export const JOBS = {
   "check-mps": { slug: "mp-check", schedule: "nightly" },
   "import-controlai": { slug: "controlai", schedule: "nightly" },
   "import-web-form-letters": { slug: "web-form-letters", schedule: "oneOff" },
-  "import-go-to-parliament": { slug: "go-to-parliament", schedule: "oneOff" },
   "tidy-logs": { slug: "tidying", schedule: "nightly" },
 } as const satisfies Record<string, { slug: string; schedule: JobSchedule; budgetMs?: number }>;
 
@@ -90,18 +89,14 @@ export type ImportRun<Job extends ImportJob, Result> = {
   | { status: Exclude<ImportRunStatus, "failed">; error: null; result: Result }
 );
 
-/** Statuses an import set, changed or took away. */
-export type StatusCounts = { added: number; changed: number; removed: number };
-
 /**
- * What a sync-politicians run keeps: what changed, the names among it, and
- * the statuses it set. A held one also keeps every record, to apply later.
- * Runs from before the sync read every body keep only the changes.
+ * What a sync-politicians run keeps: what changed, and the names among it.
+ * A held one also keeps every record, to apply later. Runs from before the
+ * sync read every body keep only the changes.
  */
 export type PoliticianSyncResult = {
   changes: PoliticianChanges;
   renamed?: Renamed[];
-  statuses?: StatusCounts;
   records?: PoliticianRecord[];
 };
 export type PoliticianSync = ImportRun<"sync-politicians", PoliticianSyncResult>;
@@ -237,19 +232,6 @@ export type WebFormImportResult = {
 };
 export type WebFormImport = ImportRun<"import-web-form-letters", WebFormImportResult>;
 
-/** What the one-off import of Go to Parliament's meetings did. */
-export type GoToParliamentImportResult = {
-  /** Guests with a meeting status, and the MPs they were to meet. */
-  guests: number;
-  mps: number;
-  /** Statuses set, and changed. */
-  added: number;
-  changed: number;
-  /** MPs who aren't here. */
-  notFound: number;
-};
-export type GoToParliamentImport = ImportRun<"import-go-to-parliament", GoToParliamentImportResult>;
-
 /** How far the import of old letters has got, over all its runs. */
 export type OldLettersProgress = {
   read: number;
@@ -334,7 +316,6 @@ export type AnyImportRun =
   | MembersImport
   | GmailReading
   | WebFormImport
-  | GoToParliamentImport
   | OldLettersImport
   | Sending
   | Tidying;

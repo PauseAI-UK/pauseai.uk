@@ -42,7 +42,6 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "sync-politicians": "airtable",
   "sync-emails": "airtable",
   "import-web-form-letters": "airtable",
-  "import-go-to-parliament": "airtable",
   "check-mps": "web",
   "import-controlai": "web",
   "import-members": "airtable",
@@ -103,12 +102,6 @@ const ABOUT: Record<
     href: "tblkzjrRHiZiqMDGR",
     button: staffCopy.webForm.importNow,
     none: staffCopy.webForm.never,
-  },
-  "import-go-to-parliament": {
-    intro: staffCopy.goToParliament.intro,
-    href: "tblminXS1xSuBbEjz",
-    button: staffCopy.goToParliament.importNow,
-    none: staffCopy.goToParliament.never,
   },
   "check-mps": {
     intro: staffCopy.check.intro,

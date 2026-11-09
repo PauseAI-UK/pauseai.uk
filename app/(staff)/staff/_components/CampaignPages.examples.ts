@@ -85,7 +85,6 @@ export const exampleAskPage: AskPageData = {
   replied: 5,
   campaigns: 1,
   mailings: 1,
-  fixed: false,
   noAnswer: 37,
   answersTotal: 3,
   page: 1,

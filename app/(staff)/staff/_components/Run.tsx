@@ -8,7 +8,6 @@ import {
   type MembersImport,
   type EmailSync,
   type GmailReading,
-  type GoToParliamentImport,
   type MpCheck,
   type OldLettersImport,
   type PoliticianSync,
@@ -89,7 +88,7 @@ function Decision({ id, decision, decide }: { id: number; decision: "apply" | "d
 
 /**
  * A copy of the politicians from Airtable: who was added, removed and
- * changed, whose names changed, and the statuses it set. A held one can be
+ * changed, and whose names changed. A held one can be
  * applied or discarded, given `decide`.
  */
 function SyncRun({
@@ -118,7 +117,6 @@ function SyncRun({
         <>
           {staffCopy.syncs.added} {added.length}, {staffCopy.syncs.removed} {removed.length}, {staffCopy.syncs.changed}{" "}
           {changed.length}
-          {run.result.statuses && <>. {staffCopy.syncs.statuses(run.result.statuses)}</>}
         </>
       }
       actions={
@@ -274,18 +272,6 @@ function WebFormRun({ run, open, bare }: { run: WebFormImport; open?: boolean; b
     <RunBox
       run={run}
       summary={run.status === "failed" ? null : staffCopy.webForm.result(run.result)}
-      open={open}
-      bare={bare}
-    />
-  );
-}
-
-/** The one-off copy of Go to Parliament's meetings: the counts. */
-function GoToParliamentRun({ run, open, bare }: { run: GoToParliamentImport; open?: boolean; bare?: boolean }) {
-  return (
-    <RunBox
-      run={run}
-      summary={run.status === "failed" ? null : staffCopy.goToParliament.result(run.result)}
       open={open}
       bare={bare}
     />
@@ -478,8 +464,6 @@ export default function Run({
       return <EmailsRun run={run} open={open} bare={bare} />;
     case "import-web-form-letters":
       return <WebFormRun run={run} open={open} bare={bare} />;
-    case "import-go-to-parliament":
-      return <GoToParliamentRun run={run} open={open} bare={bare} />;
     case "check-mps":
       return <CheckRun run={run} open={open} bare={bare} />;
     case "import-controlai":

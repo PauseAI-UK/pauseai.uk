@@ -64,7 +64,6 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "apply held politician sync": { id: number };
   "discard held politician sync": { id: number };
   "import ControlAI letter": { added: number; removed: number; problems: number };
-  "import Go to Parliament": { added: number; changed: number };
   "import web form letters": { imported: number; skipped: number; alreadyHere: number; noPolitician: number };
   "import sign-ups": { uploadId: number; imported: number; heldBack: number };
   "copy PauseAI emails": { added: number };

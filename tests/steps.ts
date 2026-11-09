@@ -40,7 +40,7 @@ export async function fakeTurnstile(page: Page) {
 }
 
 /**
- * Copies the politicians, with Airtable's statuses, and PauseAI's emails to
+ * Copies the politicians, and PauseAI's emails to
  * them into the flow's database through the nightly sync's own route (the
  * fixture Airtable: a politician of each body, one retired and one who
  * left), and refreshes the test MPs.

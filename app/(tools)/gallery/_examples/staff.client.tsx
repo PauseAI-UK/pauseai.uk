@@ -975,16 +975,17 @@ export function MyGmailExample({ connected, outcome = "" }: { connected: boolean
 }
 
 /** An ask's form: a new one, one staff added, one answered, or one the code names; saves and deletes logged. */
-export function AskFormExample({ ask, notice = "" }: { ask: "new" | "added" | "answered" | "fixed"; notice?: string }) {
+export function AskFormExample({ ask, notice = "" }: { ask: "new" | "added" | "answered" | "named"; notice?: string }) {
   const asks = {
     new: null,
     added: exampleEditableAsk,
     answered: { ...exampleEditableAsk, kindFixed: true, deletable: false },
-    fixed: {
+    named: {
       ...exampleEditableAsk,
       slug: "frontier-ai-letter",
       title: "Frontier AI letter",
-      fixed: true,
+      named: true,
+      kindFixed: true,
       deletable: false,
     },
   };

@@ -13,7 +13,7 @@ import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };
 
-// The imports staff run and watch: Luma's, the members', Gmail's, PauseAI's emails, pauseai.info's letters and Go to Parliament's meetings, each import's
+// The imports staff run and watch: Luma's, the members', Gmail's, PauseAI's emails and pauseai.info's letters, each import's
 // own page of its runs, an import failing, a Gmail Google disconnects, and a
 // politician import held for a person to decide. Each flow on its own database.
 
@@ -489,18 +489,4 @@ test("One-off imports", async ({ page, request, flowDatabase }) => {
   await page.getByRole("link", { name: "Dee Deepmind" }).first().click();
   await expect(page.getByText(staffCopy.supporters.sources["web-form"]).first()).toBeVisible();
   await frame(page, "Dee Deepmind's page");
-
-  story(
-    "Then they import the MPs' answers about meeting constituents at Go to Parliament. The asks page counts them: one MP is going, and two gave another answer, such as sending staff instead.",
-  );
-  await page.goto(`${BASE}/staff/import-data/go-to-parliament`);
-  await page.getByRole("button", { name: staffCopy.goToParliament.importNow }).click();
-  await expect(
-    page.getByText(staffCopy.goToParliament.result({ guests: 5, mps: 4, added: 3, changed: 0, notFound: 1 }), {
-      exact: false,
-    }),
-  ).toBeVisible();
-  await page.goto(`${BASE}/staff/asks`);
-  await expect(page.getByText(`${staffCopy.statuses.other} 2`).first()).toBeVisible();
-  await frame(page, "The asks page");
 });

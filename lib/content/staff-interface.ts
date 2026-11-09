@@ -11,7 +11,7 @@ import { count, plural } from "@/lib/content/plural";
  */
 const askLimits = {
   kindFixed: "Kind can't be changed now, as politicians have answered it.",
-  fixed: "Campaigns hard-coded on the site use this ask, so you can't change it here.",
+  named: "⁂ The site's own code uses this ask, so it can't be deleted.",
   notDeletable: "Asks can't be deleted while answers, campaigns or mailings refer to them.",
 };
 
@@ -1592,7 +1592,7 @@ All events: ${link}`,
     // Over an ask's slug, which doesn't change.
     slugLabel: "Identifier: ",
     kindFixed: askLimits.kindFixed,
-    fixed: askLimits.fixed,
+    named: askLimits.named,
     // Beside the form: the ask as it will show on a politician's page.
     previewTitle: "What the ask will look like on a politician's page",
     save: "Save ask",
@@ -1604,7 +1604,7 @@ All events: ${link}`,
       saved: "Ask saved.",
       deleted: "Ask deleted.",
       // The same as the form says, when a save or a delete is refused for it.
-      fixed: askLimits.fixed,
+      named: askLimits.named,
       "kind-in-use": askLimits.kindFixed,
       "in-use": askLimits.notDeletable,
       gone: "That ask has been deleted.",
@@ -2124,7 +2124,6 @@ All events: ${link}`,
     result: (r: { read: number; imported: number; skipped: number; alreadyHere: number; noPolitician: number }) =>
       `${r.read} letters read: ${r.imported} imported, ${r.skipped} spam, invalid or unsent, ${r.alreadyHere} already here, ${r.noPolitician} to a politician not here.`,
   },
-  // The one-off import of the meetings for Go to Parliament.
   campaigns: {
     title: "Campaigns",
     intro: "Letters supporters write to politicians, through a form on the site",
@@ -2308,18 +2307,6 @@ All events: ${link}`,
       more: (n: number) => `And ${n} more, in the next report.`,
     },
   },
-  goToParliament: {
-    title: "Go to Parliament event, 20 October 2026",
-    intro: {
-      before: "Stores in each MP's record their answer to “Constituent meetings at Parliament”. Reads from the ",
-      link: "Go to Parliament table in Airtable",
-      after: ".",
-    },
-    importNow: "Import the meetings",
-    never: "Not imported yet.",
-    result: (r: { guests: number; mps: number; added: number; changed: number; notFound: number }) =>
-      `${r.guests} guests with a meeting, with ${r.mps} MPs: ${r.added} statuses set, ${r.changed} changed, ${r.notFound} MPs not here.`,
-  },
   members: {
     title: "PauseAI members in the UK",
     intro: {
@@ -2344,10 +2331,10 @@ All events: ${link}`,
     title: "Politicians from Airtable",
     // With a link to the table in the middle.
     intro: {
-      before: "Every politician in every body is copied from the ",
+      before: "⁂ Every politician in every body is copied from the ",
       link: "UK Parliamentarians table in Airtable",
       after:
-        ", except the Airtable test MPs. Stores their answers in appropriate asks. Runs that change lots of data are held for checking.",
+        ", except the Airtable test MPs. Their answers to asks aren't copied: record them here. Runs that change lots of data are held for checking.",
     },
     /** The test MPs (lib/test-mps.json) aren't in Airtable; every import adds any that are missing. */
     testMps: "Adds our own test MPs if any are missing.",
@@ -2359,9 +2346,6 @@ All events: ${link}`,
     changed: "Changed",
     // A record whose name changed, which may be Airtable reusing it for someone new: from, to.
     renamed: "Renamed",
-    // The statuses it set from Airtable's tick boxes, after the counts of people.
-    statuses: (s: { added: number; changed: number; removed: number }) =>
-      `Statuses: ${s.added} set, ${s.changed} changed, ${s.removed} taken away.`,
     apply: "Apply",
     discard: "Discard",
   },
@@ -2398,8 +2382,6 @@ All events: ${link}`,
       politicianNotHere: "Emails to a politician we don't have yet, so weren't imported:",
       // The web form letters import: letters to a politician who isn't here. Their records follow.
       noPolitician: "Letters with no politician here, so weren't imported:",
-      // The Go to Parliament import: MPs in that table who aren't here, so their answers weren't stored. Their records follow.
-      mpNotFound: "MPs who aren't here, so their answers weren't stored:",
     },
     // Can happen in a job or not. In a job, staff see it on the job's page and in the email. Not in a job, such
     // as a visitor sending a letter, it only goes to Netlify's logs.
@@ -2877,7 +2859,6 @@ export const jobTitles: Record<ImportJob, string> = {
   "sync-politicians": staffCopy.syncs.title,
   "sync-emails": staffCopy.pauseaiEmails.title,
   "import-web-form-letters": staffCopy.webForm.title,
-  "import-go-to-parliament": staffCopy.goToParliament.title,
   "check-mps": staffCopy.check.title,
   "import-controlai": staffCopy.controlAi.title,
   "import-luma": staffCopy.luma.title,

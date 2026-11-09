@@ -7,9 +7,14 @@ import { isBlocked, recordProblem } from "@/lib/server/email";
 import { getPolitician } from "@/lib/server/politicians";
 import { createSession } from "@/lib/server/staff-auth";
 import { saveStaffAccount } from "@/lib/server/staff-accounts";
-import { FIXED_ASKS } from "@/lib/asks";
 import { gmailAccounts } from "@/lib/server/gmail-accounts";
-import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import {
+  addTestPolitician,
+  connectTestGmail,
+  describeWithDatabase,
+  MIGRATION_ASKS,
+  useTestDatabase,
+} from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
   addNoteNow,
@@ -330,15 +335,12 @@ describeWithDatabase("staff Server Actions", () => {
     await runJobNow("sync-politicians");
     await runJobNow("sync-emails");
     await runJobNow("import-web-form-letters");
-    await runJobNow("import-go-to-parliament");
     expect((await runs()).slice(1)).toEqual([
       { job: "sync-emails", status: "ok", startedBy: "jo@pauseai.uk" },
       { job: "import-web-form-letters", status: "ok", startedBy: "jo@pauseai.uk" },
-      { job: "import-go-to-parliament", status: "ok", startedBy: "jo@pauseai.uk" },
     ]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/emails");
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/web-form-letters");
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/go-to-parliament");
   });
 
   it("runs nothing for a name that isn't a job's", async () => {
@@ -449,7 +451,7 @@ describeWithDatabase("staff Server Actions", () => {
   });
 
   describe("asks", () => {
-    beforeEach(() => query("DELETE FROM asks WHERE slug <> ALL($1)", [FIXED_ASKS]));
+    beforeEach(() => query("DELETE FROM asks WHERE slug <> ALL($1)", [MIGRATION_ASKS]));
     const reception = (extra: Record<string, string> = {}) =>
       form({ title: "Winter reception", kind: "event", date: "2026-12-09", ...extra });
 

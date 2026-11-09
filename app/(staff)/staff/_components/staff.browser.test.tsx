@@ -60,7 +60,6 @@ import {
   exampleControlAiResult,
   exampleEmailsResult,
   exampleFailedRun,
-  exampleGoToParliamentResult,
   exampleHeldSync,
   exampleLumaResult,
   exampleDisconnectedGmail,
@@ -2877,7 +2876,6 @@ describe("ImportOverview", () => {
       "/staff/import-data/old-letters",
       "/staff/import-data/emails",
       "/staff/import-data/web-form-letters",
-      "/staff/import-data/go-to-parliament",
     ]);
     expect(cards.map((card) => card.querySelector("h3 a")!.textContent)).toEqual([
       jobTitles["import-luma"],
@@ -2891,7 +2889,6 @@ describe("ImportOverview", () => {
       jobTitles["import-old-letters"],
       jobTitles["sync-emails"],
       jobTitles["import-web-form-letters"],
-      jobTitles["import-go-to-parliament"],
     ]);
     // Under the name, how the newest run ended, tinted to match.
     const status = (i: number) => cards[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!;
@@ -2906,18 +2903,16 @@ describe("ImportOverview", () => {
       "green",
       "green",
     ]);
-    expect(status(11).textContent).toBe(staffCopy.goToParliament.never);
-    expect(status(11).className).not.toMatch(/green|amber|red/);
+    expect(status(3).className).not.toMatch(/green|amber|red/);
     expect(status(3).textContent).toBe(staffCopy.sending.never);
     expect(status(7).textContent).toBe(staffCopy.tidying.never);
     // The Airtable jobs link the table they read; the politicians' sync also says the test MPs stay.
     const link = (i: number) => cards[i].querySelector(":scope > p a")!.getAttribute("href");
     expect(link(4)).toBe("https://airtable.com/app/tblPoliticians");
     expect(cards[4].querySelector(":scope > p")!.textContent).toContain(staffCopy.syncs.testMps);
-    expect([9, 10, 11].map(link)).toEqual([
+    expect([9, 10].map(link)).toEqual([
       "https://airtable.com/app/tblp4nH5Jymq48rcm",
       "https://airtable.com/app/tblkzjrRHiZiqMDGR",
-      "https://airtable.com/app/tblminXS1xSuBbEjz",
     ]);
     expect(cards[5].querySelector(":scope > p")!.textContent).not.toContain(staffCopy.syncs.testMps);
     // The members come from the join form; Gmail's card leads to where it's connected; the sending's to the campaigns'
@@ -3382,12 +3377,9 @@ describe("RunList", () => {
     await expect.element(page.getByText("Seat 1: MP 1", { exact: true })).toBeVisible();
     await expect.element(page.getByText(`Seat 2: MP 2 (${staffCopy.politicians.noEmail})`)).toBeVisible();
     await expect.element(page.getByText(`${staffCopy.syncs.changed} (1)`).first()).toBeVisible();
-    // A peer by their house, a renamed record from and to, and the statuses it set.
+    // A peer by their house, and a renamed record from and to.
     await expect.element(page.getByText(`${staffCopy.houses.lords}: Lord Example`)).toBeVisible();
     await expect.element(page.getByText("MP 6 → Someone New")).toBeVisible();
-    await expect
-      .element(page.getByText(staffCopy.syncs.statuses({ added: 3, changed: 1, removed: 0 }), { exact: false }))
-      .toBeVisible();
     await expect.element(page.getByText(staffCopy.runs.decidedBy("jo@pauseai.uk"), { exact: false })).toBeVisible();
     expect(page.getByRole("button", { name: staffCopy.syncs.apply }).all()).toHaveLength(1);
 
@@ -3739,13 +3731,12 @@ describe("RunList", () => {
   it("says what each one-off import did, who ran it, or why it failed", async () => {
     const runs: AnyImportRun[] = [
       ran("import-web-form-letters", exampleWebFormResult, { id: 3, startedBy: "jo@pauseai.uk" }),
-      ran("import-go-to-parliament", exampleGoToParliamentResult, { id: 2, startedBy: "jo@pauseai.uk" }),
-      failed("import-go-to-parliament", "AIRTABLE_TOKEN isn't set", { id: 1, startedBy: null }),
+      ran("import-web-form-letters", exampleWebFormResult, { id: 2, startedBy: "jo@pauseai.uk" }),
+      failed("import-web-form-letters", "AIRTABLE_TOKEN isn't set", { id: 1, startedBy: null }),
     ];
     await render(<RunList runs={runs} none="None" />);
     for (const words of [
       staffCopy.webForm.result(exampleWebFormResult),
-      staffCopy.goToParliament.result(exampleGoToParliamentResult),
       staffCopy.runs.error("AIRTABLE_TOKEN isn't set"),
     ]) {
       await expect.element(page.getByText(words, { exact: false })).toBeVisible();

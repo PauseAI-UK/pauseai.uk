@@ -9,7 +9,6 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { notifications } from "@/tests/notifications";
 import { listRuns } from "./import-runs";
 import { decideHeldSync, mpsInOffice, syncPoliticians } from "./politician-sync";
-import { setStatus } from "./politicians";
 
 const recentSyncs = () => listRuns("sync-politicians") as Promise<PoliticianSync[]>;
 
@@ -39,18 +38,6 @@ const people = () =>
      FROM notable_people n JOIN politicians p ON p.id = n.id ORDER BY p.is_test, n.name`,
   );
 
-/** The date of each status Airtable set, by name and ask, and today's date as the database has it. */
-const dates = async () =>
-  Object.fromEntries(
-    (
-      await query<{ key: string; date: string }>(
-        `SELECT n.name || ' ' || s.ask AS key, s.status_date::text AS date
-         FROM ask_statuses s JOIN notable_people n ON n.id = s.notable_person_id WHERE s.updated_by = 'airtable'`,
-      )
-    ).map((row) => [row.key, row.date]),
-  );
-const today = async () => (await query<{ today: string }>("SELECT now()::date::text AS today"))[0].today;
-
 const statuses = () =>
   query<{ name: string; ask: string; status: string; by: string }>(
     `SELECT n.name, s.ask, s.status, s.updated_by AS by FROM ask_statuses s JOIN notable_people n ON n.id = s.notable_person_id
@@ -66,9 +53,9 @@ afterEach(() => vi.unstubAllEnvs());
 describeWithDatabase("syncPoliticians", () => {
   useTestDatabase();
 
-  it("fills an empty table from Airtable, every body, with Airtable's statuses and the test MPs, and records the sync", async () => {
+  it("fills an empty table from Airtable, every body, with the test MPs, and records the sync", async () => {
     const result = await syncPoliticians(NIGHTLY);
-    expect(result).toMatchObject({ status: "applied", renamed: [], statuses: { added: 5, changed: 0, removed: 0 } });
+    expect(result).toMatchObject({ status: "applied", renamed: [] });
     expect(result.changes.added).toHaveLength(7);
     expect((await people()).filter((p) => !p.isTest)).toEqual([
       {
@@ -135,22 +122,11 @@ describeWithDatabase("syncPoliticians", () => {
       "Signy McTestface MP",
       "Testy McTestface MP",
     ]);
+    // No answers from Airtable's records, though they have some: only the test MPs' own.
     expect(await statuses()).toEqual([
       { name: "Backy McTestface MP", ask: "controlai-letter", status: "signed", by: "sync" },
-      { name: "Lord Seedling of Example", ask: "deepmind-letter", status: "signed", by: "airtable" },
-      { name: "Morag Example", ask: "edinburgh-conference-2026", status: "going", by: "airtable" },
-      { name: "Polly Placeholder", ask: "controlai-statement", status: "signed", by: "airtable" },
-      { name: "Polly Placeholder", ask: "edinburgh-conference-2026", status: "declined", by: "airtable" },
-      { name: "Rita Retired", ask: "frontier-ai-letter", status: "signed", by: "airtable" },
       { name: "Signy McTestface MP", ask: "frontier-ai-letter", status: "signed", by: "sync" },
     ]);
-    // Airtable doesn't date them, so those there when an ask is first copied get its date, or today if that's to come.
-    expect(await dates()).toMatchObject({
-      "Lord Seedling of Example deepmind-letter": "2025-08-29",
-      "Polly Placeholder controlai-statement": "2025-02-06",
-      "Rita Retired frontier-ai-letter": "2026-06-18",
-    });
-    expect((await dates())["Morag Example edinburgh-conference-2026"]).toBe([await today(), "2026-11-01"].sort()[0]);
     // Everything the sync copies, for one of them.
     expect(
       await query(
@@ -256,7 +232,7 @@ describeWithDatabase("syncPoliticians", () => {
     ).toEqual([{ id: peer, airtable_id: "recSeedling" }]);
   });
 
-  it("holds a sync that changes too much, for staff to apply, with its statuses, or discard", async () => {
+  it("holds a sync that changes too much, for staff to apply or discard", async () => {
     const sent = notifications();
     airtableHas(many(3));
     await syncPoliticians(NIGHTLY);
@@ -270,14 +246,13 @@ describeWithDatabase("syncPoliticians", () => {
       [words.subject(28), words.body(28, "https://pauseai.uk/staff/import-data/politicians")],
     ]);
     expect(held.changes.added).toHaveLength(28);
-    // Nothing applied, but the statuses of those already here are set.
+    // Nothing applied.
     expect((await people()).filter((p) => !p.isTest)).toHaveLength(3);
     const [run] = await recentSyncs();
     expect(run.result.records).toHaveLength(31);
 
     expect(await decideHeldSync(run.id, "apply", JO)).toBe(true);
     expect((await people()).filter((p) => !p.isTest)).toHaveLength(31);
-    expect((await statuses()).filter((s) => s.by === "airtable")).toHaveLength(5);
     expect((await recentSyncs())[0]).toMatchObject({ status: "applied", decidedBy: JO });
     expect(await query("SELECT actor, action FROM audit_log ORDER BY id DESC LIMIT 1")).toEqual([
       { actor: JO, action: "apply held politician sync" },
@@ -300,95 +275,6 @@ describeWithDatabase("syncPoliticians", () => {
     expect(await decideHeldSync(run.id, "discard", JO)).toBe(true);
     expect((await people()).map((p) => p.name)).toContain("Ms Dora Dummy");
     expect((await recentSyncs())[0]).toMatchObject({ status: "discarded", decidedBy: JO });
-  });
-
-  it("sets only its own statuses: changes and takes away Airtable's, and leaves staff's and the other imports' alone", async () => {
-    await syncPoliticians(NIGHTLY);
-    const id = async (name: string) =>
-      (await query<{ id: number }>("SELECT id::int AS id FROM notable_people WHERE name = $1", [name]))[0].id;
-    // Staff marked Dora as having signed the letter to the PM; Airtable's Go to Parliament import set Rita's meeting.
-    await setStatus(await id("Ms Dora Dummy"), "frontier-ai-letter", { status: "signed", date: null, note: "" }, JO);
-    await setStatus(
-      await id("Rita Retired"),
-      "go-to-parliament-oct-2026",
-      { status: "going", date: null, note: "" },
-      "airtable",
-    );
-    // Staff took over Morag's answer to the conference.
-    await setStatus(
-      await id("Morag Example"),
-      "edinburgh-conference-2026",
-      { status: "other", date: null, note: "Maybe" },
-      JO,
-    );
-    const [dora, polly, seedling, morag, ...rest] = fixture.records;
-    airtableHas([
-      { ...dora, fields: { ...dora.fields, "Signed Frontier AI Letter": false } },
-      // Polly now goes to the conference, and no longer backs ControlAI's campaign statement.
-      {
-        ...polly,
-        fields: { ...polly.fields, "ControlAI Signatory": false, "Edinburgh Conference November 2026": "Going" },
-      },
-      // The peer signs the Frontier AI letter, after the sync first copied it.
-      { ...seedling, fields: { ...seedling.fields, "Signed Frontier AI Letter": true } },
-      { ...morag, fields: { ...morag.fields, "Edinburgh Conference November 2026": "Declined" } },
-      ...rest,
-    ]);
-    const result = await syncPoliticians(NIGHTLY);
-    expect(result).toMatchObject({ status: "applied", statuses: { added: 1, changed: 1, removed: 1 } });
-    // A status set or changed after an ask's first copy is dated the day it was.
-    expect(await dates()).toMatchObject({
-      "Lord Seedling of Example frontier-ai-letter": await today(),
-      "Polly Placeholder edinburgh-conference-2026": await today(),
-    });
-    expect(await statuses()).toEqual(
-      expect.arrayContaining([
-        { name: "Ms Dora Dummy", ask: "frontier-ai-letter", status: "signed", by: JO },
-        { name: "Morag Example", ask: "edinburgh-conference-2026", status: "other", by: JO },
-        { name: "Polly Placeholder", ask: "edinburgh-conference-2026", status: "going", by: "airtable" },
-        { name: "Rita Retired", ask: "go-to-parliament-oct-2026", status: "going", by: "airtable" },
-      ]),
-    );
-    expect((await statuses()).some((s) => s.name === "Polly Placeholder" && s.ask === "controlai-statement")).toBe(
-      false,
-    );
-    expect(
-      await query(
-        `SELECT details->>'ask' AS ask, details->>'status' AS status FROM audit_log
-         WHERE action = 'set status' AND actor = 'airtable' ORDER BY id DESC LIMIT 3`,
-      ),
-    ).toEqual([
-      { ask: "controlai-statement", status: null },
-      { ask: "edinburgh-conference-2026", status: "going" },
-      { ask: "frontier-ai-letter", status: "signed" },
-    ]);
-  });
-
-  it("sets an answer it doesn't know as other with Airtable's words, and changes it when only the words change", async () => {
-    const [dora, ...rest] = fixture.records;
-    const answering = (words: string) =>
-      airtableHas([{ ...dora, fields: { ...dora.fields, "Edinburgh Conference November 2026": words } }, ...rest]);
-    const doras = () =>
-      query(
-        `SELECT s.status, s.note FROM ask_statuses s JOIN notable_people n ON n.id = s.notable_person_id
-         WHERE n.name = 'Ms Dora Dummy' AND s.ask = 'edinburgh-conference-2026'`,
-      );
-    const logged = () =>
-      query(
-        `SELECT l.details->>'status' AS status, l.details->>'note' AS note
-         FROM audit_log l JOIN notable_people n ON n.id = (l.details->>'politicianId')::bigint
-         WHERE l.action = 'set status' AND l.details->>'ask' = 'edinburgh-conference-2026' AND n.name = 'Ms Dora Dummy'
-         ORDER BY l.id DESC LIMIT 1`,
-      );
-    answering("Responded after event");
-    await syncPoliticians(NIGHTLY);
-    expect(await doras()).toEqual([{ status: "other", note: "Responded after event" }]);
-    expect(await logged()).toEqual([{ status: "other", note: "Responded after event" }]);
-    answering("Passed on request");
-    expect((await syncPoliticians(NIGHTLY)).statuses).toEqual({ added: 0, changed: 1, removed: 0 });
-    expect(await doras()).toEqual([{ status: "other", note: "Passed the request on" }]);
-    expect(await logged()).toEqual([{ status: "other", note: "Passed the request on" }]);
-    expect((await syncPoliticians(NIGHTLY)).statuses).toEqual({ added: 0, changed: 0, removed: 0 });
   });
 
   it("gives the check against Parliament the MPs in office, by constituency", async () => {

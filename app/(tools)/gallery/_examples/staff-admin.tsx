@@ -25,7 +25,6 @@ import {
   exampleControlAiResult,
   exampleEmailsResult,
   exampleFailedRun,
-  exampleGoToParliamentResult,
   exampleLumaResult,
   exampleDisconnectedGmail,
   exampleGmailResult,
@@ -203,14 +202,6 @@ const RUNS: Record<ImportJob, Variant> = {
     render: () => (
       <StaffPage as="div">
         <Run run={exampleRun("import-web-form-letters", exampleWebFormResult, { startedBy: "jo@pauseai.uk" })} />
-      </StaffPage>
-    ),
-  },
-  "import-go-to-parliament": {
-    label: "Go to Parliament's meetings, imported by someone",
-    render: () => (
-      <StaffPage as="div">
-        <Run run={exampleRun("import-go-to-parliament", exampleGoToParliamentResult, { startedBy: "jo@pauseai.uk" })} />
       </StaffPage>
     ),
   },

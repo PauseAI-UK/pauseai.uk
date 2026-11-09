@@ -414,21 +414,24 @@ describe("AskForm", () => {
     expect((save.mock.calls[0][0] as FormData).get("kind")).toBe("event");
   });
 
-  it("one the code names: nothing can be changed, and there's no Save or Delete", async () => {
+  it("one the code names: it can be changed and saved, but never deleted, and says why", async () => {
+    const save = vi.fn();
     await render(
       <AskForm
-        ask={{ ...exampleEditableAsk, fixed: true, kindFixed: true, deletable: false }}
+        ask={{ ...exampleEditableAsk, named: true, deletable: false }}
         back="/staff/asks"
         notice="nonsense"
-        save={vi.fn()}
+        save={save}
         remove={vi.fn()}
       />,
     );
-    await expect.element(page.getByText(copy.fixed)).toBeVisible();
-    expect(page.getByRole("button", { name: copy.save }).query()).toBeNull();
-    expect(page.getByRole("button", { name: copy.delete }).query()).toBeNull();
-    expect(page.getByText(copy.kindFixed).query()).toBeNull();
+    await expect.element(page.getByText(copy.named)).toBeVisible();
     expect(page.getByText(copy.notDeletable).query()).toBeNull();
+    expect(page.getByRole("button", { name: copy.delete }).query()).toBeNull();
+    await page.getByLabelText(copy.byKind[exampleEditableAsk.kind].title).fill("A new name");
+    await page.getByRole("button", { name: copy.save }).click();
+    await expect.poll(() => save.mock.calls.length).toBe(1);
+    expect((save.mock.calls[0][0] as FormData).get("title")).toBe("A new name");
   });
 });
 

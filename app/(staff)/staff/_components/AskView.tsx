@@ -162,7 +162,7 @@ function ChosenAnswer({ ask, answer, path }: { ask: AskPageData; answer: string;
  * do, its date and where to read it; then its answers, a column each, or those
  * of the one chosen; a link to those who answered on the politicians list; and last how we asked, how many were written to, its letters and
  * who replied at its top right, and each campaign and mailing under its kind.
- * It has no letters of its own. An ask the code names can't be edited.
+ * It has no letters of its own.
  */
 export default function AskView({ ask, answer }: { ask: AskPageData; answer: string }) {
   const path = `/staff/asks/${ask.slug}`;
@@ -172,11 +172,9 @@ export default function AskView({ ask, answer }: { ask: AskPageData; answer: str
       <Band
         title={ask.title}
         corner={
-          !ask.fixed && (
-            <StaffLink className={buttonClass({ variant: "ghost", size: "small", fit: true })} href={`${path}/edit`}>
-              {copy.edit}
-            </StaffLink>
-          )
+          <StaffLink className={buttonClass({ variant: "ghost", size: "small", fit: true })} href={`${path}/edit`}>
+            {copy.edit}
+          </StaffLink>
         }
       >
         <BandFact label={page.asked}>

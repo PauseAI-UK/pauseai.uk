@@ -22,23 +22,6 @@ export const ANSWER_CHOICES: Record<AskKind, readonly AskStatus[]> = {
   event: ["going", "declined", "other"],
 };
 
-/**
- * Airtable's words for answers that are neither a yes nor a no, each with
- * the note an "other" answer gets for it. The migration that brought in
- * "other" (0094_ask_statuses_other.sql) wrote the same notes, so the imports
- * leave them as they are.
- */
-const AIRTABLE_ANSWER_NOTES: Record<string, string> = {
-  "Tentative yes": "Tentatively said yes",
-  "Meeting with staff": "Meeting a member of their staff instead",
-  "Tentative meeting with staff": "Tentatively agreed to a meeting with a member of their staff",
-  "Declined but surgery appointment": "Declined, but offered a surgery appointment instead",
-  "Passed on request": "Passed the request on",
-};
-
-/** The note for an "other" answer Airtable gave as `value`: a fuller wording if there is one, else the value itself. */
-export const airtableNote = (value: string): string => AIRTABLE_ANSWER_NOTES[value] ?? value;
-
 /** Who asks it: supporters, in their letters or in person, PauseAI, in its own emails, or ControlAI. */
 export type Asker = "supporters" | "pauseai" | "controlai";
 
@@ -62,26 +45,17 @@ export const askHref = (slug: string) => `/staff/asks/${slug}`;
 
 /** PauseAI's frontier AI letter to the Prime Minister. */
 export const FRONTIER_AI_LETTER_ASK = "frontier-ai-letter";
-/** PauseAI's 2025 letter to Sir Demis Hassabis of Google DeepMind. */
-export const DEEPMIND_LETTER_ASK = "deepmind-letter";
-/** ControlAI's campaign statement, which parliamentarians have signed since February 2025. */
-export const CONTROLAI_STATEMENT_ASK = "controlai-statement";
 /** ControlAI's letter to the Prime Minister backing the Artificial Superintelligence Bill. */
 export const CONTROLAI_LETTER_ASK = "controlai-letter";
-/** The conference in Edinburgh, November 2026. */
-export const EDINBURGH_CONFERENCE_ASK = "edinburgh-conference-2026";
-/** Go to Parliament, 20 October 2026. */
-export const GO_TO_PARLIAMENT_ASK = "go-to-parliament-oct-2026";
 
-/** The asks the code names, which staff can't edit or delete: imports and campaigns depend on them. */
-export const FIXED_ASKS: readonly string[] = [
-  FRONTIER_AI_LETTER_ASK,
-  DEEPMIND_LETTER_ASK,
-  CONTROLAI_STATEMENT_ASK,
-  CONTROLAI_LETTER_ASK,
-  EDINBURGH_CONFERENCE_ASK,
-  GO_TO_PARLIAMENT_ASK,
-];
+/**
+ * The asks the code names, by slug, which staff can edit but never delete:
+ * a campaign, the public list of signatories or an import depends on them.
+ */
+export const NAMED_ASKS: readonly string[] = [FRONTIER_AI_LETTER_ASK, CONTROLAI_LETTER_ASK];
+
+/** The asks an import answers, which staff can't: the ControlAI import's (lib/server/controlai-import.ts). */
+export const IMPORTED_ASKS: readonly string[] = [CONTROLAI_LETTER_ASK];
 
 export const ASKERS: readonly Asker[] = ["supporters", "pauseai", "controlai"];
 

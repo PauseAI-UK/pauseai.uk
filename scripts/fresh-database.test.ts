@@ -241,7 +241,6 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         expect(runSql(name, "SELECT DISTINCT job FROM import_runs ORDER BY 1")).toEqual([
           "check-mps",
           "import-controlai",
-          "import-go-to-parliament",
           "import-luma",
           "import-members",
           "import-old-letters",

@@ -19,7 +19,6 @@ import lumaContacts from "./luma-contacts.json";
 import airtablePoliticians from "./airtable-politicians.json";
 import airtableEmails from "./airtable-emails.json";
 import airtableWebForm from "./airtable-web-form.json";
-import airtableGoToParliament from "./airtable-go-to-parliament.json";
 import airtableMembers from "./airtable-members.json";
 import parliamentMembers from "./parliament-members.json";
 import controlaiLetter from "./controlai-letter.json";
@@ -221,13 +220,11 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
   // The UK Parliamentarians base's tables: a politician of each body, one
   // retired and one who left; PauseAI's emails to them, of each
   // mailing, one with no politician and one with no mailing we know; the
-  // web form's letters, with the senders and states the import skips; and
-  // Go to Parliament's meetings, one MP with two guests.
+  // web form's letters, with the senders and states the import skips.
   const airtable: Record<string, unknown> = {
     tblH3ks9wqQHLpYx3: airtablePoliticians,
     tblp4nH5Jymq48rcm: airtableEmails,
     tblkzjrRHiZiqMDGR: airtableWebForm,
-    tblminXS1xSuBbEjz: airtableGoToParliament,
   };
   const table = hostname.endsWith("airtable.com") && airtable[pathname.split("/").at(-1)!];
   if (table) return json(table);
