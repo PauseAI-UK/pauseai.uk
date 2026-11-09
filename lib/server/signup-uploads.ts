@@ -169,10 +169,20 @@ export async function finishSignupUpload(
       db,
     );
     const entries = [...added, ...earlier];
+    // What the preview said of each, kept as it was: Luma's answer is added once it's given.
+    const rowOf = new Map(plan.rows.map((row) => [row.email, row]));
     await query(
-      `INSERT INTO signup_upload_entries (entry_id, upload_id) SELECT unnest($1::bigint[]), $2
-       ON CONFLICT (entry_id) DO UPDATE SET upload_id = EXCLUDED.upload_id`,
-      [entries.map((entry) => entry.id), id],
+      `INSERT INTO signup_upload_entries (entry_id, upload_id, new_entry, known, luma)
+       SELECT unnest($1::bigint[]), $2, unnest($3::boolean[]), unnest($4::text[]), unnest($5::text[])
+       ON CONFLICT (entry_id) DO UPDATE SET upload_id = EXCLUDED.upload_id, new_entry = EXCLUDED.new_entry,
+         known = EXCLUDED.known, luma = EXCLUDED.luma`,
+      [
+        entries.map((entry) => entry.id),
+        id,
+        entries.map((entry) => rowOf.get(entry.email)!.newEntry),
+        entries.map((entry) => rowOf.get(entry.email)!.known),
+        entries.map((entry) => (rowOf.get(entry.email)!.pile === "going" ? "going" : null)),
+      ],
       db,
     );
     await linkSupporters(db);
@@ -195,6 +205,11 @@ export async function finishSignupUpload(
        SELECT unnest($1::bigint[]), $2, unnest($3::text[])
        ON CONFLICT (entry_id) DO UPDATE SET event_id = EXCLUDED.event_id, status = EXCLUDED.status`,
       [said.map((row) => row.id), input.eventId, said.map((row) => row.status)],
+    );
+    await query(
+      `UPDATE signup_upload_entries u SET luma = s.status
+       FROM unnest($1::bigint[], $2::text[]) AS s(entry_id, status) WHERE u.entry_id = s.entry_id`,
+      [said.map((row) => row.id), said.map((row) => row.status)],
     );
   }
   // Their postcodes' places and MPs now, rather than at the next Luma import, which also looks up any left over.
@@ -225,7 +240,12 @@ export type SignupUploadPerson = {
   email: string;
   phone: string | null;
   postcode: string | null;
-  lumaStatus: "added" | "skipped" | "not-configured" | "failed" | null;
+  /** Whether the upload made their form entry, rather than finding it there from an earlier one of the same day's forms. */
+  newEntry: boolean;
+  /** How they were already a supporter when it was imported, or null if they were new. */
+  known: "email" | "mobile" | null;
+  /** Already going to the upload's event, or what Luma said to registering them; null if neither. */
+  luma: "going" | "added" | "skipped" | "not-configured" | "failed" | null;
   supporterId: number | null;
 };
 
@@ -255,9 +275,8 @@ export async function getSignupUpload(
   if (!upload) return undefined;
   const people = await query<SignupUploadPerson>(
     `SELECT f.id::int AS "entryId", f.name, f.email, f.phone, f.postcode,
-       l.status AS "lumaStatus", k.supporter_id::int AS "supporterId"
+       u.new_entry AS "newEntry", u.known, u.luma, k.supporter_id::int AS "supporterId"
      FROM signup_upload_entries u JOIN form_entries f ON f.id = u.entry_id
-       LEFT JOIN form_entry_luma l ON l.entry_id = f.id
        LEFT JOIN supporter_links k ON k.form_entry_id = f.id
      WHERE u.upload_id = $1 ORDER BY f.id`,
     [id],

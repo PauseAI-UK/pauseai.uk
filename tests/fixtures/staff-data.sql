@@ -609,7 +609,7 @@ WITH entry AS (
   VALUES ('paper-signup', current_date - 5 + time '12:00', 'Robin Flyer', 'robin.flyer@example.com', 'SE15', true)
   RETURNING id
 )
-INSERT INTO signup_upload_entries (entry_id, upload_id) SELECT id, 1 FROM entry;
+INSERT INTO signup_upload_entries (entry_id, upload_id, new_entry) SELECT id, 1, true FROM entry;
 
 -- ---------------------------------------------------- march sign-ups
 

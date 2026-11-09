@@ -345,27 +345,20 @@ describe("SignupUploadResult", () => {
       .toHaveAttribute("href", "https://luma.com/example");
     await expect.element(page.getByRole("link", { name: "Person 1" })).toHaveAttribute("href", "/staff/supporters/1");
     expect(page.getByRole("link", { name: "Person 3" }).elements()).toEqual([]);
-    for (const said of [
-      copy.result.luma.added,
-      copy.result.luma.skipped,
-      copy.result.luma.failed,
-      copy.preview.happens.going,
-    ]) {
-      await expect.element(page.getByText(said)).toBeVisible();
-    }
-    expect(page.getByText(copy.preview.happens.mailing, { exact: true }).elements()).toHaveLength(4);
-    expect(page.getByText(copy.preview.happens.phone, { exact: true }).elements()).toHaveLength(1);
-  });
-
-  it("says nothing of Luma for an import with no event", async () => {
-    const [person] = exampleSignupUploadPeople.people;
-    await render(
-      <SignupUploadResult
-        upload={{ ...exampleSignupUpload, eventName: null, people: [{ ...person, lumaStatus: null }] }}
-      />,
-    );
-    await expect.element(page.getByText(copy.preview.happens.mailing, { exact: true })).toBeVisible();
-    expect(page.getByText(copy.preview.happens.going).elements()).toEqual([]);
+    const said = copy.preview.happens;
+    const luma = copy.result.luma;
+    const lines = page
+      .getByRole("row")
+      .all()
+      .slice(1)
+      .map((row) => row.element().lastElementChild!.textContent);
+    expect(lines).toEqual([
+      `${luma.added}${said.mailing}${said.phone}`,
+      `${said.known.email}${luma.skipped}${said.mailing}`,
+      `${said.alreadyImported}${luma.failed}`,
+      `${said.known.mobile}${said.going}${said.mailing}`,
+      said.mailing,
+    ]);
   });
 
   it("titles the page with the file's name", () => {

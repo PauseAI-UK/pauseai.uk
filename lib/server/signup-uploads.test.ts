@@ -182,11 +182,12 @@ Bad,bad,,,,,Y`,
       heldBack: 1,
       uploadedBy: BY,
     });
-    expect(upload.people.map((p) => [p.email, p.lumaStatus, p.supporterId !== null])).toEqual([
-      ["going@example.com", null, true],
-      ["new@example.com", "added", true],
-      ["skip@example.com", "skipped", true],
-      ["not@example.com", null, true],
+    // What it did for each, kept as it did it.
+    expect(upload.people.map((p) => [p.email, p.newEntry, p.known, p.luma, p.supporterId !== null])).toEqual([
+      ["going@example.com", true, null, "going", true],
+      ["new@example.com", true, null, "added", true],
+      ["skip@example.com", true, null, "skipped", true],
+      ["not@example.com", true, null, null, true],
     ]);
     const consents = await query<{ consent: boolean }>(
       "SELECT contact_consent AS consent FROM form_entries WHERE form = 'paper-signup' ORDER BY id",
@@ -232,14 +233,14 @@ Bad,bad,,,,,Y`,
     const upload = input("Name,Email,March\nJo,jo@example.com,Y", { eventId: EVENT, eventColumn: "March" });
     server.use(http.post(ADD, () => new HttpResponse("down", { status: 500 })));
     const first = await imported(upload);
-    expect((await getSignupUpload(first))!.people[0].lumaStatus).toBe("failed");
+    expect((await getSignupUpload(first))!.people[0]).toMatchObject({ newEntry: true, luma: "failed" });
 
     // Luma failed, so it's still to register, on the entry there already, which is now this upload's.
     const retry = await planOf(upload);
     expect(retry.rows[0]).toMatchObject({ pile: "register", newEntry: false });
     server.use(http.post(ADD, () => HttpResponse.json({ skipped: [] })));
     const second = await imported(upload);
-    expect((await getSignupUpload(second))!.people[0].lumaStatus).toBe("added");
+    expect((await getSignupUpload(second))!.people[0]).toMatchObject({ newEntry: false, luma: "added" });
     expect((await getSignupUpload(second))!.imported).toBe(0);
     expect((await getSignupUpload(first))!.people).toEqual([]);
 
@@ -261,7 +262,7 @@ Bad,bad,,,,,Y`,
 
   it("records Luma's answer for no one when no one's registering", async () => {
     const id = await imported(input("Name,Email\nJo,jo@example.com"));
-    expect((await getSignupUpload(id))!.people[0].lumaStatus).toBeNull();
+    expect((await getSignupUpload(id))!.people[0]).toMatchObject({ newEntry: true, luma: null });
     expect((await getSignupUpload(id))!.eventName).toBeNull();
   });
 

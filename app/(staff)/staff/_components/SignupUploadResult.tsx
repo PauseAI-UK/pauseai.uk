@@ -16,21 +16,22 @@ const copy = staffCopy.signupUpload;
 const words = copy.result;
 
 /**
- * What an import did for a person, as the preview's lozenges said it would:
- * what Luma said, or that they were already going, and their permission to
- * contact them, which every import gives.
+ * What an import did for a person, kept as it did it, in the preview's
+ * lozenges: already imported or already a supporter, what came of the event,
+ * and their permission to contact them, which a new entry gives.
  */
-function Happened({ person, event }: { person: SignupUploadPerson; event: boolean }) {
+function Happened({ person }: { person: SignupUploadPerson }) {
   const said = copy.preview.happens;
   return (
     <span className={styles.lozenges}>
-      {person.lumaStatus ? (
-        <Tag tone={person.lumaStatus === "added" ? "green" : "red"}>{words.luma[person.lumaStatus]}</Tag>
-      ) : (
-        event && <Tag>{said.going}</Tag>
+      {!person.newEntry && <Tag>{said.alreadyImported}</Tag>}
+      {person.newEntry && person.known && <Tag tone="blue">{said.known[person.known]}</Tag>}
+      {person.luma === "going" && <Tag>{said.going}</Tag>}
+      {person.luma && person.luma !== "going" && (
+        <Tag tone={person.luma === "added" ? "green" : "red"}>{words.luma[person.luma]}</Tag>
       )}
-      <Tag tone="green">{said.mailing}</Tag>
-      {person.phone && <Tag tone="green">{said.phone}</Tag>}
+      {person.newEntry && <Tag tone="green">{said.mailing}</Tag>}
+      {person.newEntry && person.phone && <Tag tone="green">{said.phone}</Tag>}
     </span>
   );
 }
@@ -89,7 +90,7 @@ export default function SignupUploadResult({
                   <td className={styles.nowrap}>{person.phone}</td>
                   <td>{person.postcode}</td>
                   <td className={styles.happens}>
-                    <Happened person={person} event={upload.eventName !== null} />
+                    <Happened person={person} />
                   </td>
                 </tr>
               ))}

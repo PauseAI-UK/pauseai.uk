@@ -1,4 +1,4 @@
-import type { getSignupUpload, SignupUploadSummary } from "@/lib/server/signup-uploads";
+import type { getSignupUpload, SignupUploadPerson, SignupUploadSummary } from "@/lib/server/signup-uploads";
 import type { SignupPlan } from "@/lib/signup-upload";
 
 const person = { phone: null, postcode: null, going: false, problem: null };
@@ -94,13 +94,16 @@ export const exampleSignupUpload: SignupUploadSummary = {
   uploadedAt: new Date("2026-11-01T10:00:00Z"),
 };
 
-/** An upload with someone Luma said each thing of. */
+/** An upload with someone in each case: Luma said each thing of one, one was going already, one said no. */
 export const exampleSignupUploadPeople: NonNullable<Awaited<ReturnType<typeof getSignupUpload>>> = {
   ...exampleSignupUpload,
-  people: [
-    { lumaStatus: "added", supporterId: 1, phone: "07700 900123", postcode: "SE15" },
-    { lumaStatus: "skipped", supporterId: 2, phone: null, postcode: null },
-    { lumaStatus: "failed", supporterId: null, phone: null, postcode: null },
-    { lumaStatus: null, supporterId: 3, phone: null, postcode: "M1 1AE" },
-  ].map((person, i) => ({ ...person, entryId: i + 1, name: `Person ${i + 1}`, email: `person${i + 1}@example.com` })),
-} as NonNullable<Awaited<ReturnType<typeof getSignupUpload>>>;
+  people: (
+    [
+      { newEntry: true, known: null, luma: "added", supporterId: 1, phone: "07700 900123", postcode: "SE15" },
+      { newEntry: true, known: "email", luma: "skipped", supporterId: 2, phone: null, postcode: null },
+      { newEntry: false, known: "email", luma: "failed", supporterId: null, phone: null, postcode: null },
+      { newEntry: true, known: "mobile", luma: "going", supporterId: 3, phone: null, postcode: "M1 1AE" },
+      { newEntry: true, known: null, luma: null, supporterId: 4, phone: null, postcode: null },
+    ] satisfies Omit<SignupUploadPerson, "entryId" | "name" | "email">[]
+  ).map((person, i) => ({ ...person, entryId: i + 1, name: `Person ${i + 1}`, email: `person${i + 1}@example.com` })),
+};

@@ -435,7 +435,9 @@ someone ticked it is its wording in git at the entry's `created_at`.
 isn't kept: the page reads it in the browser, and sends it to the server only to
 preview and import it. Each import is a row of `signup_uploads`: the file's name,
 the date collected, where collected (`note`), the event, and how many it imported
-and held back. `signup_upload_entries` ties each entry to its import, whose where
+and held back. `signup_upload_entries` ties each entry to its import, with what the import did
+for them as it did it (a new entry or one already there, how they were already a
+supporter, and already going or what Luma said), whose where
 collected is the entry's line in a supporter's history, and the import's own page
 is under Past imports. The
 reading is in `lib/signup-upload.ts`: liberal about separators, encodings, how a

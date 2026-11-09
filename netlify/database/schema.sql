@@ -470,7 +470,12 @@ CREATE TABLE public.postcode_places (
 
 CREATE TABLE public.signup_upload_entries (
     entry_id bigint NOT NULL,
-    upload_id bigint NOT NULL
+    upload_id bigint NOT NULL,
+    new_entry boolean NOT NULL,
+    known text,
+    luma text,
+    CONSTRAINT signup_upload_entries_known_check CHECK ((known = ANY (ARRAY['email'::text, 'mobile'::text]))),
+    CONSTRAINT signup_upload_entries_luma_check CHECK ((luma = ANY (ARRAY['going'::text, 'added'::text, 'skipped'::text, 'failed'::text, 'not-configured'::text])))
 );
 
 --
