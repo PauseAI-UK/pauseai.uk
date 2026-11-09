@@ -13,6 +13,8 @@ import DonationPolicies from "@/app/(site)/governance/_components/DonationPolici
 import { ClosedNotice, JobRole, Salary, SkillTags } from "@/app/(site)/jobs/_components/JobRole";
 import JobRoles from "@/app/(site)/jobs/_components/JobRoles";
 import JobsArticle from "@/app/(site)/jobs/_components/JobsArticle";
+import Lineup from "@/app/(site)/pausefest/_components/Lineup";
+import PauseFestHero from "@/app/(site)/pausefest/_components/PauseFestHero";
 import PersonHeader from "@/app/(site)/people/_components/PersonHeader";
 import PersonStory from "@/app/(site)/people/_components/PersonStory";
 import ShareYourStory from "@/app/(site)/people/_components/ShareYourStory";
@@ -23,6 +25,7 @@ import ChangeSteps from "@/app/(site)/theory-of-change/_components/ChangeSteps";
 import ChangeForeword from "@/app/(site)/theory-of-change/_components/Foreword";
 import About from "@/app/(site)/what-is-pauseai-uk/_components/About";
 import { people, personSlug, type Person } from "@/lib/content/people";
+import { pausefest } from "@/lib/content/pausefest";
 import type { Group } from "../_components/types";
 
 const WITH_PHOTO = people.find((p) => p.imageSrc)!;
@@ -251,6 +254,24 @@ export const pages: Group = {
       file: "app/(site)/campaigns/dear-sir-demis-2025/_components/DemisLetterHelp.tsx",
       variants: [
         { label: "The button to the campaign running now, and who to contact", render: () => <DemisLetterHelp /> },
+      ],
+    },
+    {
+      name: "PauseFestHero",
+      file: "app/(site)/pausefest/_components/PauseFestHero.tsx",
+      variants: [{ label: "The name, the dates and a ticket for each day", render: () => <PauseFestHero /> }],
+    },
+    {
+      name: "Lineup",
+      file: "app/(site)/pausefest/_components/Lineup.tsx",
+      variants: [
+        { label: "Every day, the march's wider", render: () => <Lineup days={pausefest.days} /> },
+        {
+          label: "Two days, neither featured",
+          render: () => (
+            <Lineup days={pausefest.days.filter((day) => day.events.every((event) => !event.featured)).slice(0, 2)} />
+          ),
+        },
       ],
     },
     {

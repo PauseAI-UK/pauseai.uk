@@ -1,0 +1,151 @@
+/* A festival lineup: a column a day, the main event's day two columns wide,
+   then two days to a row on a tablet and one on a phone. */
+.lineup {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-6) var(--space-4);
+  align-items: start;
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-9);
+}
+
+.day {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.day[data-featured] {
+  grid-column: span 2;
+}
+
+.dayHead {
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 6px solid var(--ink);
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(26px, 2.4vw, 34px);
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.day[data-featured] .dayHead {
+  border-top-color: var(--pause-orange);
+}
+
+.weekday {
+  color: var(--pause-orange);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+.card[data-featured] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--white);
+}
+
+.image {
+  position: relative;
+  aspect-ratio: 1;
+  background: var(--surface-2);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: var(--space-4);
+}
+
+.card[data-featured] .body {
+  padding: var(--space-5);
+}
+
+.time {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pause-orange);
+}
+
+.title {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.card[data-featured] .title {
+  font-size: clamp(30px, 3.2vw, 44px);
+  line-height: 1;
+}
+
+.place {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.blurb {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.card[data-featured] .blurb {
+  font-size: var(--text-md);
+  color: rgb(var(--white-rgb) / 0.8);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-top: auto;
+  padding-top: var(--space-4);
+}
+
+.extra {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.extra:hover {
+  color: var(--pause-orange);
+}
+
+@media (max-width: 1024px) {
+  .lineup {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .day[data-featured] {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .lineup {
+    grid-template-columns: 1fr;
+    padding-top: var(--space-7);
+    padding-bottom: var(--space-8);
+  }
+}

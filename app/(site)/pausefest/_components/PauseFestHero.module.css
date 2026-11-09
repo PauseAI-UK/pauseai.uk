@@ -1,0 +1,77 @@
+/* The flyer's orange band, with the days as black tickets along its foot. */
+.hero {
+  background: var(--pause-orange);
+  color: var(--ink);
+  padding: var(--space-9) 0 var(--space-8);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(64px, 12vw, 160px);
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+}
+
+.tagline {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(22px, 2.6vw, 34px);
+  line-height: 1.15;
+}
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-7);
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--ink);
+  color: var(--white);
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.day:hover {
+  color: var(--white);
+  transform: translateY(-3px);
+}
+
+.when {
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(22px, 2.2vw, 30px);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.weekday {
+  color: var(--pause-orange);
+}
+
+.what {
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: rgb(var(--white-rgb) / 0.8);
+}
+
+@media (max-width: 860px) {
+  .days {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .hero {
+    padding: var(--space-8) 0 var(--space-7);
+  }
+}
