@@ -68,6 +68,8 @@ export const COLOUR_TOKENS = [
   "--march-orange",
   "--march-orange-hot",
   "--march-orange-deep",
+  "--fest-orange",
+  "--fest-orange-light",
 ];
 
 export const SPACE_TOKENS = [
