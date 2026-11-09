@@ -8,7 +8,9 @@ import { isLinkKey, letterExtensions } from "@/lib/letter-extensions";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { NOT_CONDITION } from "@/lib/mailing-doc";
 import { partFor, type MailingChoice } from "@/lib/mailing-fields";
+import ChoiceSearch from "./ui/ChoiceSearch";
 import NotIcon from "./ui/NotIcon";
+import filterStyles from "./ui/FilterBar.module.css";
 import styles from "./MailingEditor.module.css";
 
 const copy = staffCopy.mailingEditor;
@@ -222,6 +224,8 @@ function ConditionMenu({
   const [ask, setAsk] = useState<string>();
   const menu = useRef<HTMLDivElement>(null);
   const asks = [...new Set(conditions.map((condition) => condition.group!))];
+  const inAsk = conditions.filter((condition) => condition.group === ask);
+  const searchable = inAsk.some((condition) => condition.searchable);
   // So the letter keeps its cursor while the menu is used.
   const keep = (event: React.MouseEvent) => event.preventDefault();
   return (
@@ -267,30 +271,32 @@ function ConditionMenu({
               {copy.backToAsks}
             </button>
             <p className={styles.askTitle}>{ask}</p>
-            <ul>
-              {conditions
-                .filter((condition) => condition.group === ask)
-                .map((condition) => {
-                  const n = not && recipients !== undefined ? recipients - condition.covers! : condition.covers!;
-                  return (
-                    <li key={condition.id}>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onMouseDown={keep}
-                        onClick={() => {
-                          // Not popoverTargetAction: by then the asks have replaced this button.
-                          menu.current?.hidePopover();
-                          setAsk(undefined);
-                          choose(`${not ? NOT_CONDITION : ""}${condition.id}`);
-                        }}
-                      >
-                        {condition.option}
-                        <span className={styles.covers}>{copy.covers(n)}</span>
-                      </button>
-                    </li>
-                  );
-                })}
+            {searchable && <ChoiceSearch label={staffCopy.filters.narrow} />}
+            <ul
+              className={searchable ? filterStyles.choices : undefined}
+              data-search={searchable ? "empty" : undefined}
+            >
+              {inAsk.map((condition) => {
+                const n = not && recipients !== undefined ? recipients - condition.covers! : condition.covers!;
+                return (
+                  <li key={condition.id} data-name={condition.option}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onMouseDown={keep}
+                      onClick={() => {
+                        // Not popoverTargetAction: by then the asks have replaced this button.
+                        menu.current?.hidePopover();
+                        setAsk(undefined);
+                        choose(`${not ? NOT_CONDITION : ""}${condition.id}`);
+                      }}
+                    >
+                      {condition.option}
+                      <span className={styles.covers}>{copy.covers(n)}</span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </>
         )}

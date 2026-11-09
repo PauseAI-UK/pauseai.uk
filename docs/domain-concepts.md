@@ -276,10 +276,14 @@ broadcasts out. Each person's copy of a broadcast is a message
   `broadcast_messages` each, from those `contact_permission()` says yes
   for (`lib/server/broadcast-recipients.ts`), so it reaches whoever the filters
   find then. Until it's sent, the list and its page count who they find now.
-- **Fields.** No field is everyone's, so each has a fallback, and a
-  broadcast can be scheduled with a field some lack, unlike a mailing to
-  politicians. Each field and part has a condition (`has:mp`), and the
-  preview has a case button for each.
+- **Fields and parts.** The fields are First name and Name. No field is
+  everyone's, so each has a fallback, and a broadcast can be scheduled with
+  a field some lack, unlike a mailing to politicians. A part of an email
+  can be only for, or for all but, those who wrote to their MP in a
+  campaign, or who registered for one of our events, past or to come
+  (`broadcastParts()`). Each field and part is a condition (`has:firstName`,
+  `wrote:<campaign>`, `event:<id>`), and the preview has a button for each
+  the words use.
 - **A text's words** are a WhatsApp template: one approved, chosen in the
   writer and read-only, or new words, which staff send for approval from the
   writer's foot (`whatsapp_templates`). Until WhatsApp decides they can't be

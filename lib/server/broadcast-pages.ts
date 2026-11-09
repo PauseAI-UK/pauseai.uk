@@ -18,7 +18,7 @@ import {
   type WhatsAppTemplate,
   type WrittenBroadcast,
 } from "./broadcast-drafts";
-import { broadcastChoices, supporterAudience, type BroadcastLeftOut } from "./broadcast-recipients";
+import { broadcastChoices, broadcastParts, supporterAudience, type BroadcastLeftOut } from "./broadcast-recipients";
 import type { MailingSummary } from "./mailings";
 import { checkStoredFilter, filterProblems } from "./stored-filters";
 import { supporterChoices, type SupporterChoices } from "./supporters";
@@ -150,6 +150,8 @@ export type BroadcastPageData =
       written: WrittenBroadcast;
       summary: BroadcastSummary;
       choices: SupporterChoices;
+      /** What each part its words can be only for says, as its box shows it. */
+      parts: Record<string, string>;
       tab: MessageTab;
       recipients: MessageRecipient[];
       recipientsTotal: number;
@@ -191,7 +193,12 @@ async function writerData(draft: WrittenBroadcast, me: string): Promise<Broadcas
 export async function newBroadcastPageData(
   me: string,
 ): Promise<{ draft: WrittenBroadcast; data: BroadcastWriterData }> {
-  const [choices, senders, templates] = await Promise.all([supporterChoices(), gmailAccounts(), approvedTemplates()]);
+  const [choices, senders, templates, parts] = await Promise.all([
+    supporterChoices(),
+    gmailAccounts(),
+    approvedTemplates(),
+    broadcastParts(),
+  ]);
   const filter = storedFilter("supporters", {});
   return {
     draft: {
@@ -218,7 +225,7 @@ export async function newBroadcastPageData(
       unknown: [],
       count: 0,
       leftOut: [],
-      ...broadcastChoices([]),
+      ...broadcastChoices([], parts),
       senders: senders.filter((sender) => !isLettersInboxAddress(sender.email)),
       me,
       sends: Boolean(broadcastBackend()),
@@ -244,7 +251,7 @@ export async function broadcastPageData(
   const tab = MESSAGE_TABS.find((one) => one === firstOf(search.tab)) ?? "all";
   const page = pageNumber(firstOf(search.page));
   const from = `FROM broadcast_messages c WHERE c.mailing_id = $1 AND ${TAB_CONDITIONS[tab]}`;
-  const [[summary], recipients, [{ total }], choices] = await Promise.all([
+  const [[summary], recipients, [{ total }], choices, parts] = await Promise.all([
     query<BroadcastSummary>(`${SELECT_BROADCASTS} AND m.id = $1 GROUP BY m.id`, [id]),
     query<MessageRecipient>(
       `SELECT c.id::int AS "copyId", c.supporter_id::int AS "supporterId", c.merge_values ->> 'name' AS name,
@@ -255,6 +262,7 @@ export async function broadcastPageData(
     ),
     query<{ total: number }>(`SELECT count(*)::int AS total ${from}`, [id]),
     supporterChoices(),
+    broadcastParts(),
   ]);
   // One scheduled has no messages yet: it goes to whoever its filters find when it's sent, so for now, who they
   // find, a page at a time, each yet to be sent.
@@ -265,6 +273,7 @@ export async function broadcastPageData(
     written,
     summary: { ...summary, to: now?.total ?? summary.to },
     choices,
+    parts: Object.fromEntries(parts.map((part) => [part.id, part.label])),
     tab,
     recipients: now?.rows ?? recipients,
     recipientsTotal: listed,

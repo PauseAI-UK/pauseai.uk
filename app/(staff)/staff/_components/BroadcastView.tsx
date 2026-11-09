@@ -6,14 +6,7 @@ import type { WrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import type { BroadcastPageData, MessageRecipient, BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { filtersPath, pageParam } from "@/lib/staff-search";
 import { londonClock, londonWhen, sendsAt, staffDate } from "@/lib/staff-time";
-import {
-  FIELD_WORDS,
-  MEMBER_CONDITION,
-  spacedNumber,
-  textStopsAt,
-  VOLUNTEER_CONDITION,
-  type BroadcastChannel,
-} from "@/lib/broadcasts";
+import { FIELD_WORDS, spacedNumber, textStopsAt, type BroadcastChannel } from "@/lib/broadcasts";
 import ChannelIcon from "./ChannelIcon";
 import IconText from "./ui/IconText";
 import MailEmail from "./MailEmail";
@@ -113,7 +106,7 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
 }
 
 /** The email as a mail app shows it, or the text as a bubble, with its fields as chips. */
-function BroadcastWords({ written }: { written: WrittenBroadcast }) {
+function BroadcastWords({ written, parts }: { written: WrittenBroadcast; parts: Record<string, string> }) {
   if (written.channel === "text") {
     return (
       <Card span={3} look="aside" title={copy.textTitle} id="words-title">
@@ -125,10 +118,6 @@ function BroadcastWords({ written }: { written: WrittenBroadcast }) {
       </Card>
     );
   }
-  const conditions = {
-    [VOLUNTEER_CONDITION]: copy.conditions.volunteer.label,
-    [MEMBER_CONDITION]: copy.conditions.member.label,
-  };
   return (
     <Card span={3} look="aside" title={copy.emailTitle} id="words-title">
       <MailEmail
@@ -136,7 +125,7 @@ function BroadcastWords({ written }: { written: WrittenBroadcast }) {
         to={<Muted>{staffCopy.mailingPages.toEach}</Muted>}
         subject={written.subject}
       >
-        <MailingLetter doc={written.body} fields={FIELD_WORDS} conditions={conditions} />
+        <MailingLetter doc={written.body} fields={FIELD_WORDS} conditions={parts} />
         {written.attachments.length > 0 && (
           <MailingFiles files={written.attachments} base={`/staff/broadcasts/${written.id}/files`} />
         )}
@@ -203,7 +192,7 @@ export default function BroadcastView({
         }
       />
       <Grid>
-        <BroadcastWords written={written} />
+        <BroadcastWords written={written} parts={data.parts} />
         <Card span={3} as="div">
           <div className={view.recipientsHead}>
             <h2>{tab === "all" ? copy.recipientsTitle : copy.tabs[tab]}</h2>

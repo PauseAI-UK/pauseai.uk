@@ -28,6 +28,8 @@ export type MailingChoice = {
   /** For a condition: the ask it's an answer to, and the answer, as a menu offers them, ask then answer. */
   group?: string;
   option?: string;
+  /** One of many, as events are: its group's menu has a search box over them, showing none until something's typed, as a searchable filter's has. */
+  searchable?: boolean;
 };
 
 /**

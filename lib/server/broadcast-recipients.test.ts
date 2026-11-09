@@ -1,7 +1,8 @@
 import { expect, it } from "vitest";
 import { query } from "@/lib/server/db";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { registeredFor, wroteIn } from "@/lib/broadcasts";
+import { addTestLetter, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower } from "@/tests/broadcast-fixtures";
 import { supporterAudience } from "./broadcast-recipients";
 import { refreshSupportersList } from "./supporter-facts";
@@ -30,7 +31,7 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
         firstName: "Jane",
         name: "Jane Smith",
       },
-      meets: ["has:firstName", "has:name"],
+      meets: ["has:firstName", "has:name", "event:evt-1"],
     });
     expect(recipients.find((one) => one.id === sam)).toMatchObject({
       name: staffCopy.supporters.noName,
@@ -40,19 +41,48 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
       { id: "firstName", lacking: 1, fallback: true },
       { id: "name", lacking: 1, fallback: true },
     ]);
-    expect(conditions.find((one) => one.id === "member:yes")?.covers).toBe(0);
+    expect(conditions.find((one) => one.id === "event:evt-1")?.covers).toBe(2);
   });
 
-  it("marks those who volunteer and members, for their own parts", async () => {
-    await query(
-      `INSERT INTO members (id, email, name, phone, joined_at, created_at, keep_informed, share_permission, intent, source_modified_at)
-       VALUES ('recJane', 'jane@example.com', 'Jane', '07700 900001', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', true, true, 'Volunteer', '2026-01-01T00:00:00Z')`,
-    );
+  it("puts those who wrote to their MP in a campaign, and who registered for an event, in its part", async () => {
+    const jane = await addFollower("usr-1", "jane@example.com", "Jane");
+    const sam = await addFollower("usr-2", "sam@example.com", "Sam");
+    await addTestLetter({
+      politicianId: await addTestPolitician(),
+      senderName: "Jane",
+      senderEmail: "jane@example.com",
+    });
+    // Sam declined the event, so isn't counted as registered for it.
+    await query("UPDATE luma_guests SET approval_status = 'declined' WHERE user_id = 'usr-2'");
     await linkSupporters();
     await refreshSupportersList();
-    const { recipients, conditions } = await supporterAudience(FILTER, { channel: "text", topic: "volunteering" });
-    expect(recipients[0].meets).toEqual(["has:firstName", "has:name", "volunteer:yes", "member:yes"]);
-    expect(conditions.find((one) => one.id === "volunteer:yes")?.covers).toBe(1);
+    const { recipients, conditions } = await supporterAudience(FILTER, EMAIL);
+    expect(recipients.find((one) => one.id === jane)!.meets).toEqual([
+      "has:firstName",
+      "has:name",
+      wroteIn("regulate-letter-pm"),
+      registeredFor("evt-1"),
+    ]);
+    expect(recipients.find((one) => one.id === sam)!.meets).toEqual(["has:firstName", "has:name"]);
+    expect(conditions.find((one) => one.id === wroteIn("regulate-letter-pm"))).toEqual({
+      id: "wrote:regulate-letter-pm",
+      label: copy.conditions.wrote("Regulate AI developers now"),
+      group: copy.conditions.wroteGroup,
+      option: "Regulate AI developers now",
+      covers: 1,
+    });
+    expect(conditions.find((one) => one.id === registeredFor("evt-1"))).toEqual({
+      id: "event:evt-1",
+      label: copy.conditions.registered("evt-1"),
+      group: copy.conditions.registeredGroup,
+      option: staffCopy.supporters.filters.eventChoice("evt-1", "1 Oct 2026"),
+      searchable: true,
+      covers: 1,
+    });
+    // Every campaign has its part, written in or not, by title.
+    expect(conditions.filter((one) => one.group === copy.conditions.wroteGroup).map((one) => one.covers)).toEqual([
+      0, 0, 1, 0, 0,
+    ]);
   });
 
   it("uses a number that said yes, for a text", async () => {

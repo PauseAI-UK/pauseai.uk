@@ -8,6 +8,7 @@ import type {
   BroadcastSummary,
   BroadcastWriterData,
 } from "@/lib/server/broadcast-pages";
+import type { BroadcastPart } from "@/lib/server/broadcast-recipients";
 import type { SupporterChoices } from "@/lib/server/supporters";
 
 /** An email with a first name, a part only for those with a local group, and their MP. */
@@ -25,8 +26,8 @@ const exampleBroadcastWords: MailingDoc = {
     { type: "paragraph", content: [{ type: "text", text: "Here's what's on near you this month." }] },
     {
       type: "onlyFor",
-      attrs: { condition: "!volunteer:yes" },
-      content: [{ type: "paragraph", content: [{ type: "text", text: "Could you volunteer?" }] }],
+      attrs: { condition: "!wrote:regulate-ai" },
+      content: [{ type: "paragraph", content: [{ type: "text", text: "Could you write to your MP?" }] }],
     },
     {
       type: "paragraph",
@@ -125,9 +126,36 @@ export const exampleSupporterChoices: SupporterChoices = {
   mps: [{ id: 7, name: "Alex Sobel", constituency: "Leeds Central and Headingley" }],
 };
 
+/** The parts a broadcast's words can be only for: a campaign, and two events, one past and one to come. */
+export const exampleParts: BroadcastPart[] = [
+  {
+    id: "wrote:regulate-ai",
+    label: staffCopy.broadcastPages.conditions.wrote("Regulate AI"),
+    group: staffCopy.broadcastPages.conditions.wroteGroup,
+    option: "Regulate AI",
+  },
+  {
+    id: "event:evt-pausecon",
+    label: staffCopy.broadcastPages.conditions.registered("PauseCon 2026"),
+    group: staffCopy.broadcastPages.conditions.registeredGroup,
+    option: "PauseCon 2026, 14 Feb 2026",
+    searchable: true,
+  },
+  {
+    id: "event:evt-leeds",
+    label: staffCopy.broadcastPages.conditions.registered("Leeds talk"),
+    group: staffCopy.broadcastPages.conditions.registeredGroup,
+    option: "Leeds talk, 12 Dec 2026",
+    searchable: true,
+  },
+];
+
+/** Those parts, as many of a broadcast's 412 recipients as each covers. */
+const examplePartsCovering = exampleParts.map((part, i) => ({ ...part, covers: [120, 85, 12][i] }));
+
 /**
- * Those a broadcast finds: Jane, with everything, a volunteer; Sam, with no
- * local group or MP. Pat said no and Gus is blocked, and Tom asked us to stop.
+ * Those a broadcast finds, 23 of them with no name; and those left out: Pat
+ * said no, Gus is blocked, and Tom asked us to stop.
  */
 export const exampleBroadcastData: BroadcastWriterData = {
   filter: { list: "supporters", params: { contact: "email:site-forms:yes", near: "LS1" } },
@@ -143,15 +171,7 @@ export const exampleBroadcastData: BroadcastWriterData = {
     { id: "firstName", label: "First name", lacking: 23, fallback: true },
     { id: "name", label: "Name", lacking: 23, fallback: true },
   ],
-  conditions: [
-    {
-      id: "volunteer:yes",
-      label: staffCopy.broadcastPages.conditions.volunteer.label,
-      covers: 120,
-      group: "Volunteering",
-      option: "Volunteers",
-    },
-  ],
+  conditions: examplePartsCovering,
   senders: [
     {
       email: "jo@pauseai.uk",
@@ -238,6 +258,7 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
   written: { ...exampleBroadcastEmail, id: 5, title: summary.title, subject: summary.title, state: "sent" },
   summary,
   choices: exampleSupporterChoices,
+  parts: Object.fromEntries(exampleParts.map((part) => [part.id, part.label])),
   tab: "all",
   recipientsTotal: 5,
   page: 1,

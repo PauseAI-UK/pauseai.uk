@@ -311,11 +311,11 @@ describe("hasWords", () => {
 
 describe("fakeRecipient", () => {
   it("is someone made up, with each field met theirs and each other the fallback, an address for the channel", () => {
-    const one = fakeRecipient(["has:firstName", "volunteer:yes"], "email");
+    const one = fakeRecipient(["has:firstName", "wrote:regulate-letter-pm"], "email");
     expect(one).toMatchObject({
       name: "Jane Smith",
       address: "jane.smith@example.com",
-      meets: ["has:firstName", "volunteer:yes"],
+      meets: ["has:firstName", "wrote:regulate-letter-pm"],
     });
     expect(one.values).toEqual({
       firstName: "Jane",

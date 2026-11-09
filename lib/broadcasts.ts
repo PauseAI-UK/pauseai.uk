@@ -184,9 +184,15 @@ export function fakeRecipient(meets: string[], channel: BroadcastChannel): FakeR
   };
 }
 
-/** The condition that someone volunteers, and that they're a member. */
-export const VOLUNTEER_CONDITION = "volunteer:yes";
-export const MEMBER_CONDITION = "member:yes";
+/** The condition that someone wrote to their MP in campaign `slug`. */
+export function wroteIn(slug: string): string {
+  return `wrote:${slug}`;
+}
+
+/** The condition that someone registered for Luma event `id`, past or to come, as the Event filter counts it: not declined. */
+export function registeredFor(id: string): string {
+  return `event:${id}`;
+}
 
 /** Who an email to supporters appears from, unless a connected Gmail is chosen. */
 export const BROADCAST_SENDER = { name: "PauseAI UK", email: "hello@pauseai.uk" };

@@ -268,13 +268,16 @@ describe("BroadcastWriter, by email", () => {
 
   it("shows someone made up, any mix of fields and parts a press away, each field's fallback when they lack it", async () => {
     await renderWriter();
-    const volunteers = button(copy.previewCases["volunteer:yes"]);
+    const wrote = button(copy.conditions.wrote("Regulate AI"));
     const named = button(copy.previewCases["has:name"]);
-    // Never a real supporter: the made-up one, with everything to start with.
+    // Never a real supporter: the made-up one, with everything to start with, so not asked to write.
     await expect.element(page.getByText("Jane Smith <jane.smith@example.com>")).toBeVisible();
-    await expect.element(volunteers).toHaveAttribute("aria-pressed", "true");
-    await volunteers.click();
-    await expect.element(volunteers).toHaveAttribute("aria-pressed", "false");
+    await expect.element(wrote).toHaveAttribute("aria-pressed", "true");
+    const preview = page.getByRole("region", { name: copy.sections.preview });
+    await expect.element(preview.getByText("Could you write to your MP?")).not.toBeInTheDocument();
+    await wrote.click();
+    await expect.element(wrote).toHaveAttribute("aria-pressed", "false");
+    await expect.element(preview.getByText("Could you write to your MP?")).toBeVisible();
     await named.click();
     await expect.element(page.getByText(`See you soon, ${copy.fallbacks.name}.`).first()).toBeVisible();
     await named.click();
