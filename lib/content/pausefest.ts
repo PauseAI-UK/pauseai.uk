@@ -20,10 +20,8 @@ export type FestEvent = {
 };
 
 export type FestDay = {
-  /** For a row: "Fri 20 Nov". */
+  /** As the poster gives it: "Fri 20 Nov". */
   short: string;
-  /** For a featured event's band: "Saturday 21 November". */
-  long: string;
   events: FestEvent[];
 };
 
@@ -34,7 +32,6 @@ export const pausefest: { name: string; path: string; tagline: string; days: Fes
   days: [
     {
       short: "Fri 20 Nov",
-      long: "Friday 20 November",
       events: [
         {
           title: "Sign-making",
@@ -47,7 +44,6 @@ export const pausefest: { name: string; path: string; tagline: string; days: Fes
     },
     {
       short: "Sat 21 Nov",
-      long: "Saturday 21 November",
       events: [
         {
           title: march.name,
@@ -65,7 +61,6 @@ export const pausefest: { name: string; path: string; tagline: string; days: Fes
     },
     {
       short: "Sun 22 Nov",
-      long: "Sunday 22 November",
       events: [
         {
           title: "Flyering for the next march",
@@ -78,7 +73,6 @@ export const pausefest: { name: string; path: string; tagline: string; days: Fes
     },
     {
       short: "Mon 23 Nov",
-      long: "Monday 23 November",
       events: [
         {
           title: "Conference in Parliament",

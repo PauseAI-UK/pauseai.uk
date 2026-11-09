@@ -1,19 +1,27 @@
-/* The flyer's lower half: a heading on orange, then a band an event, black
-   for the main ones and orange for the rest. */
+/* The poster's lower half: the heading in white on orange, lit in the
+   middle, then a band an event in three columns that line up from band to
+   band, black for the main events and a deeper orange for the rest. */
 .programme {
-  background: linear-gradient(90deg, var(--fest-orange) 0%, var(--fest-orange-light) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--fest-orange) 0%,
+    var(--fest-orange-light) 40%,
+    var(--fest-orange-light) 60%,
+    var(--fest-orange) 100%
+  );
 }
 
 .heading {
   margin: 0;
-  padding: var(--space-7) 0 var(--space-4);
+  padding: var(--space-8) 0 var(--space-6);
   font-family: var(--font-display), "Lato", system-ui, sans-serif;
   font-weight: 900;
   font-size: clamp(34px, 5.4vw, 72px);
   line-height: 1;
   letter-spacing: -0.01em;
   text-transform: uppercase;
-  color: var(--ink);
+  color: var(--white);
+  text-shadow: 0 3px 10px rgb(var(--ink-rgb) / 0.25);
 }
 
 .list {
@@ -22,21 +30,22 @@
   list-style: none;
 }
 
+.columns {
+  display: grid;
+  grid-template-columns: 220px 1fr auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-6);
+}
+
 /* ── Rows ─────────────────────────────────────────────────────────── */
 
 .row {
   padding: var(--space-4) 0;
+  background: rgb(var(--rust-rgb) / 0.14);
 }
 
 .row + .row {
-  border-top: 1px solid rgb(var(--ink-rgb) / 0.12);
-}
-
-.rowInner {
-  display: grid;
-  grid-template-columns: 170px 1fr auto;
-  align-items: center;
-  gap: var(--space-2) var(--space-5);
+  border-top: 1px solid rgb(var(--ink-rgb) / 0.1);
 }
 
 .rowDay {
@@ -52,7 +61,7 @@
   margin: 0;
   font-family: "Anton", "Arial Narrow", system-ui, sans-serif;
   font-weight: 400;
-  font-size: clamp(26px, 3vw, 36px);
+  font-size: clamp(26px, 3vw, 38px);
   line-height: 1.1;
   color: var(--white);
   text-shadow: 0 2px 4px rgb(var(--ink-rgb) / 0.35);
@@ -85,35 +94,29 @@
   color: var(--white);
 }
 
-.featuredInner {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: var(--space-6);
-}
-
 .featuredWhen {
   margin: 0;
   font-family: var(--font-display), "Lato", system-ui, sans-serif;
   font-weight: 700;
-  font-size: clamp(20px, 2.6vw, 34px);
-  line-height: 1.15;
+  font-size: clamp(20px, 2vw, 28px);
+  line-height: 1.2;
+  white-space: nowrap;
   color: var(--fest-orange);
 }
 
 .featuredTitle {
-  margin: var(--space-2) 0 0;
+  margin: 0;
   font-family: "Anton", "Arial Narrow", system-ui, sans-serif;
   font-weight: 400;
-  font-size: clamp(40px, 6vw, 80px);
-  line-height: 1.02;
+  font-size: clamp(34px, 4.2vw, 58px);
+  line-height: 1.05;
 }
 
 .featuredPlace {
   margin: var(--space-3) 0 0;
   font-family: var(--font-display), "Lato", system-ui, sans-serif;
   font-weight: 700;
-  font-size: clamp(18px, 2vw, 26px);
+  font-size: clamp(17px, 1.8vw, 22px);
 }
 
 .actions {
@@ -135,10 +138,10 @@
   color: var(--fest-orange);
 }
 
-/* The cover sits where the flyer has its QR code, on the same white card. */
+/* The cover sits where the poster has its QR code, on the same white card. */
 .cover {
   position: relative;
-  width: 220px;
+  width: 200px;
   aspect-ratio: 1;
   overflow: hidden;
   border: 8px solid var(--white);
@@ -147,26 +150,26 @@
 }
 
 @media (max-width: 860px) {
-  .rowInner {
+  .columns {
     grid-template-columns: 1fr auto;
   }
 
-  .rowDay {
+  .rowDay,
+  .featuredWhen {
     grid-column: 1 / -1;
+  }
+
+  .rowDay {
     font-size: 18px;
   }
 
   .cover {
-    width: 160px;
+    width: 150px;
   }
 }
 
 @media (max-width: 520px) {
-  .rowInner {
-    grid-template-columns: 1fr;
-  }
-
-  .featuredInner {
+  .columns {
     grid-template-columns: 1fr;
   }
 

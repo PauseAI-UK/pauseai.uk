@@ -1,23 +1,23 @@
-/* The flyer's top: an orange band, the name in Montserrat with the logo on a
-   black pill beside it, where and when along its foot, then the photo. */
+/* The poster's top: an orange band with the name in Montserrat, where and
+   when beside it, and the logo on a black pill; then the photo. */
 .band {
   background: linear-gradient(180deg, var(--fest-orange) 0%, var(--fest-orange-light) 100%);
   color: var(--ink);
-  padding: var(--space-8) 0 var(--space-6);
+  padding: var(--space-7) 0;
 }
 
 .inner {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
-  gap: var(--space-3) var(--space-5);
+  gap: var(--space-5);
 }
 
 .title {
   margin: 0;
   font-family: "Montserrat", var(--font-display), system-ui, sans-serif;
   font-weight: 800;
-  font-size: clamp(44px, 8.4vw, 118px);
+  font-size: clamp(44px, 8vw, 112px);
   line-height: 0.95;
   letter-spacing: -0.02em;
   text-transform: uppercase;
@@ -27,38 +27,44 @@
   color: var(--white);
 }
 
+.whereWhen {
+  margin: 0;
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(18px, 2.2vw, 30px);
+  line-height: 1.2;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--white);
+  text-shadow: 0 2px 6px rgb(var(--ink-rgb) / 0.25);
+}
+
+.whereWhen sup {
+  font-size: 0.55em;
+}
+
 .logo {
   box-sizing: content-box;
-  width: clamp(110px, 14vw, 190px);
+  width: clamp(110px, 12vw, 170px);
   height: auto;
   padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-pill);
   background: var(--ink);
 }
 
-.where,
-.when {
-  margin: 0;
-  font-family: var(--font-display), "Lato", system-ui, sans-serif;
-  font-weight: 900;
-  font-size: clamp(20px, 2.6vw, 36px);
-  line-height: 1.1;
-  color: var(--white);
-  text-shadow: 0 2px 6px rgb(var(--ink-rgb) / 0.25);
-}
-
-.when {
-  justify-self: end;
-  white-space: nowrap;
-}
-
-.when sup {
-  font-size: 0.5em;
-}
-
 .photo {
   position: relative;
-  height: clamp(280px, 48vw, 640px);
+  height: clamp(260px, 44vw, 600px);
+}
+
+@media (max-width: 860px) {
+  .inner {
+    grid-template-columns: 1fr auto;
+  }
+
+  .logo {
+    display: none;
+  }
 }
 
 @media (max-width: 520px) {
@@ -68,13 +74,10 @@
 
   .inner {
     grid-template-columns: 1fr;
+    gap: var(--space-3);
   }
 
-  .logo {
-    display: none;
-  }
-
-  .when {
-    justify-self: start;
+  .whereWhen {
+    text-align: left;
   }
 }
