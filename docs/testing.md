@@ -485,8 +485,9 @@ not a mock.
 
 - **Each test file gets its own database.** Wrap the tests in
   `describeWithDatabase` and call `useTestDatabase()` (`tests/database.ts`).
-  It copies a template database, empties the tables before each test, and
-  drops the copy afterwards. The node project's global setup
+  It copies a template database, empties every table before each test but
+  those whose rows the migrations seed (`SEEDED` there), and drops the copy
+  afterwards: a new table needs nothing adding. The node project's global setup
   (`tests/vitest.global-setup.node.ts`) makes the template once for the run,
   applying the migrations with `psql` (`scripts/fresh-database.mjs`, the
   same way Netlify does), and drops it at the end. Postgres copies a
