@@ -3,12 +3,12 @@ import { dirname, join, normalize } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
-// Every job runs as a run of the import log: inside keepingFailure()
+// Every job runs as a run of the import log: inside asRun()
 // (lib/server/import-runs.ts), so that a failure is kept as a failed run and
 // emailed about, and what it reports with problem() has a run to go on.
 // Without it, a failure reaches only Netlify's logs. Every job runs through
 // lib/server/jobs.ts, so this fails on any module it imports, other than the
-// import log's own, that doesn't call keepingFailure.
+// import log's own, that doesn't call asRun.
 
 const ROOT = join(__dirname, "..", "..");
 const JOBS = "lib/server/jobs.ts";
@@ -54,8 +54,8 @@ describe("jobs", () => {
     expect(modules).toContain("lib/server/luma-import.ts");
     const outside = modules.filter(
       (module) =>
-        module !== "lib/server/import-runs.ts" && !readFileSync(join(ROOT, module), "utf8").includes("keepingFailure("),
+        module !== "lib/server/import-runs.ts" && !readFileSync(join(ROOT, module), "utf8").includes("asRun("),
     );
-    expect(outside, "run the job inside keepingFailure(), so its failures and problems are kept").toEqual([]);
+    expect(outside, "run the job inside asRun(), so it, its failures and its problems are kept").toEqual([]);
   });
 });

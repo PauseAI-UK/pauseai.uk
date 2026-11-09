@@ -2,7 +2,7 @@ import "server-only";
 import type { EmailSyncResult } from "@/lib/import-runs";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun } from "./import-runs";
 import { airtableToken, fetchEmails, fetchTestPoliticianIds } from "./outside-services/airtable";
 import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -23,8 +23,8 @@ import { staffCopy } from "@/lib/content/staff-interface";
 const JOB = "sync-emails";
 
 /** Copies the emails not copied yet, keeping the run. `startedBy` is the staff member's email. */
-export function syncEmails(startedBy: string): Promise<EmailSyncResult> {
-  return keepingFailure(JOB, startedBy, async () => {
+export async function syncEmails(startedBy: string): Promise<EmailSyncResult> {
+  const { result } = await asRun(JOB, startedBy, async () => {
     const mailings = await query<{ id: number; field: string | null; from: Date | null; before: Date | null }>(
       `SELECT id::int AS id, airtable_field AS field,
          lower(airtable_sent_between) AS "from", upper(airtable_sent_between) AS "before"
@@ -102,8 +102,8 @@ export function syncEmails(startedBy: string): Promise<EmailSyncResult> {
       if (result.unplaced.length) {
         problem(words.heldBack, result.unplaced.map((u) => u.airtableId).join(", "));
       }
-      await recordRun(JOB, startedBy, result.added > 0 ? "ok" : "unchanged", result, db);
-      return result;
+      return { status: result.added > 0 ? "ok" : "unchanged", result } as const;
     });
   });
+  return result;
 }

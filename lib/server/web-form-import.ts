@@ -2,7 +2,7 @@ import "server-only";
 import type { WebFormImportResult } from "@/lib/import-runs";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun } from "./import-runs";
 import { airtableToken, fetchWebFormLetters } from "./outside-services/airtable";
 import { refreshSupportersList } from "./supporter-facts";
 import { linkSupporters } from "./supporters";
@@ -34,8 +34,8 @@ export const CAMPAIGNS: Record<string, string> = {
  * sender to the same politician for the same ask (or campaign, for one with
  * none). A Campaign it doesn't know is refused.
  */
-export function importWebFormLetters(startedBy: string): Promise<WebFormImportResult> {
-  return keepingFailure(JOB, startedBy, async () => {
+export async function importWebFormLetters(startedBy: string): Promise<WebFormImportResult> {
+  const { result } = await asRun(JOB, startedBy, async () => {
     const letters = await fetchWebFormLetters(airtableToken());
     const unknown = letters.find((letter) => letter.sentAt && !CAMPAIGNS[letter.campaign]);
     if (unknown) throw new Error(`Unknown Campaign "${unknown.campaign}" on ${unknown.airtableId}`);
@@ -112,8 +112,8 @@ export function importWebFormLetters(startedBy: string): Promise<WebFormImportRe
       if (withoutPolitician.length) {
         problem(staffCopy.problems.job.noPolitician, withoutPolitician.join(", "));
       }
-      await recordRun(JOB, startedBy, "ok", result, db);
-      return result;
+      return { status: "ok", result } as const;
     });
   });
+  return result;
 }

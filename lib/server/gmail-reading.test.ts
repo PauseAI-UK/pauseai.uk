@@ -15,9 +15,10 @@ import {
   useTestDatabase,
 } from "@/tests/database";
 import { allResults, atOnce } from "@/tests/at-once";
-import { query, transaction } from "./db";
+import { query } from "./db";
 import { noteAutoReply, readBounce, readGmail } from "./gmail-reading";
-import { listRuns, latestRun } from "./import-runs";
+import { listRuns, latestRun, startRunning, stopRunning } from "./import-runs";
+import { ANOTHER_RUNNING, runJob } from "./jobs";
 import { letterReply } from "./outside-services/blobs";
 
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
@@ -541,7 +542,7 @@ describeWithDatabase("reading Gmail", () => {
     ]);
   });
 
-  it("reads each reply, automatic reply and bounce once when runs overlap, the runs started meanwhile stopping", async () => {
+  it("reads each reply, automatic reply and bounce once when runs overlap, the runs started meanwhile not going", async () => {
     await connectTestGmail(JO);
     const letter = await sentLetter();
     mailbox({
@@ -561,10 +562,9 @@ describeWithDatabase("reading Gmail", () => {
         },
       },
     });
-    const runs = allResults(await atOnce(() => readGmail(NIGHTLY, REQUEST)));
-    const stopped = { accounts: [], stoppedBy: "running" };
-    expect(runs.filter((run) => run.stoppedBy)).toEqual([stopped, stopped]);
-    expect(runs.find((run) => !run.stoppedBy)).toEqual({
+    const runs = allResults(await atOnce(() => runJob("read-gmail", NIGHTLY, REQUEST)));
+    expect(runs.filter((run) => run === ANOTHER_RUNNING)).toHaveLength(2);
+    expect(runs.find((run) => run !== ANOTHER_RUNNING)).toEqual({
       accounts: [{ account: JO, replies: 1, autoReplies: 1, bounces: 1 }],
     });
     expect(await replies()).toHaveLength(1);
@@ -576,7 +576,7 @@ describeWithDatabase("reading Gmail", () => {
     expect(await query("SELECT address, gmail_message_id FROM email_problems")).toEqual([
       { address: "gone@example.org", gmail_message_id: "b1" },
     ]);
-    expect((await listRuns("read-gmail")).map((run) => run.status).sort()).toEqual(["ok", "unchanged", "unchanged"]);
+    expect((await listRuns("read-gmail")).map((run) => run.status)).toEqual(["ok"]);
   });
 
   it("notes an automatic reply once when two jobs come to it at once", async () => {
@@ -595,24 +595,18 @@ describeWithDatabase("reading Gmail", () => {
     expect((await events()).map((event) => event.status)).toEqual(["auto_reply"]);
   });
 
-  it("tells the notification inbox once of an account it can't read, whatever runs stopped as it read", async () => {
+  it("tells the notification inbox once of an account it can't read, whatever runs didn't go as it read", async () => {
     const sent = notifications();
     await connectTestGmail("al@pauseai.uk", "7");
     vi.spyOn(console, "error").mockImplementation(() => {});
     mailbox({});
     server.use(http.get(`${API}/history`, () => new HttpResponse(null, { status: 500 })));
     await read();
-    // A run started while another holds the lock records that, and stops.
-    const stopped = await transaction(async (db) => {
-      await query("SELECT pg_advisory_xact_lock(hashtext('read-gmail'))", [], db);
-      return readGmail(JO);
-    });
-    expect(stopped).toEqual({ accounts: [], stoppedBy: "running" });
-    expect(await latestRun("read-gmail")).toMatchObject({
-      status: "unchanged",
-      startedBy: JO,
-      result: { accounts: [], stoppedBy: "running" },
-    });
+    // A run started while another is going keeps nothing, and doesn't go.
+    await startRunning("read-gmail", NIGHTLY);
+    expect(await runJob("read-gmail", JO)).toBe(ANOTHER_RUNNING);
+    await stopRunning("read-gmail");
+    expect(await listRuns("read-gmail")).toHaveLength(1);
     await read();
     expect(sent).toHaveLength(1);
   });

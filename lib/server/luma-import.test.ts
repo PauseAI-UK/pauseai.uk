@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
-import { query, transaction } from "@/lib/server/db";
+import { query } from "@/lib/server/db";
 import { allResults, atOnce } from "@/tests/at-once";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
+import { startRunning } from "./import-runs";
+import { ANOTHER_RUNNING, runJob } from "./jobs";
 import { importLuma } from "./luma-import";
 
 const API = "https://public-api.luma.com/v1";
@@ -562,26 +564,26 @@ describeWithDatabase("importLuma", () => {
       guests: { "evt-1": [guest(1), guest(2)], "evt-2": [guest(2, { id: "gst-22" }), guest(3)] },
       contacts: [contact(1), contact(4)],
     });
-    const results = allResults(await atOnce(() => importLuma("nightly")));
-    // Between them the runs copied each once: those that ran at the same time as another stopped.
-    const total = (key: "events" | "guestsChanged" | "contacts" | "supportersAdded") =>
-      results.reduce((sum, result) => sum + result[key], 0);
-    expect([total("events"), total("guestsChanged"), total("contacts"), total("supportersAdded")]).toEqual([
-      2, 4, 2, 4,
-    ]);
+    const results = allResults(await atOnce(() => runJob("import-luma", "nightly")));
+    // One run copied each once: those started while it was going didn't go.
+    expect(results.filter((result) => result === ANOTHER_RUNNING)).toHaveLength(2);
+    expect(results.find((result) => result !== ANOTHER_RUNNING)).toMatchObject({
+      events: 2,
+      guestsChanged: 4,
+      contacts: 2,
+      supportersAdded: 4,
+    });
     expect((await guestRows()).map((row) => row.id)).toEqual(["gst-1", "gst-2", "gst-22", "gst-3"]);
     expect(await query("SELECT count(*)::int AS supporters FROM supporters")).toEqual([{ supporters: 4 }]);
-    expect(await runs()).toHaveLength(3);
+    expect(await runs()).toHaveLength(1);
   });
 
-  it("records a run started while another holds the lock, and stops", async () => {
-    fakeLuma({ events: [event("evt-1", days(1))] });
-    const result = await transaction(async (db) => {
-      await query("SELECT pg_advisory_xact_lock(hashtext('import-luma'))", [], db);
-      return importLuma("jo@pauseai.uk");
-    });
-    expect(result).toMatchObject({ events: 0, requests: 0, stoppedBy: "running" });
-    expect(await runs()).toMatchObject([{ status: "unchanged", result: { stoppedBy: "running" } }]);
+  it("doesn't go, keeping nothing, while a staff member's run is going", async () => {
+    const luma = fakeLuma({ events: [event("evt-1", days(1))] });
+    await startRunning("import-luma", "jo@pauseai.uk");
+    expect(await runJob("import-luma", "nightly")).toBe(ANOTHER_RUNNING);
+    expect(luma.requests).toEqual([]);
+    expect(await runs()).toEqual([]);
   });
 
   it("fails the run, keeping nothing, when Luma won't list the events", async () => {
@@ -677,8 +679,12 @@ describeWithDatabase("importLuma", () => {
     await query("INSERT INTO luma_import_state (list, cursor) VALUES ('contacts', 'stale')");
     await expect(importLuma("jo@pauseai.uk")).rejects.toThrow("Luma answered 500");
     expect(await query("SELECT cursor FROM luma_import_state WHERE list = 'contacts'")).toEqual([{ cursor: "" }]);
+    // The newest contacts it read before the cursor failed are kept.
+    const contactsKept = () =>
+      query("SELECT user_id FROM luma_people WHERE contact_since IS NOT NULL ORDER BY user_id");
+    expect(await contactsKept()).toEqual([{ user_id: "usr-1" }, { user_id: "usr-2" }]);
     luma.requests.length = 0;
-    expect((await importLuma("jo@pauseai.uk")).contacts).toBe(2);
+    expect(await importLuma("jo@pauseai.uk")).toMatchObject({ contacts: 0, contactPages: 2 });
     expect(luma.requests).toEqual(["events", "contacts", "contacts@1"]);
 
     // Reading the newest, ahead of the pass, a failure is just a failure: the pass's cursor is kept.

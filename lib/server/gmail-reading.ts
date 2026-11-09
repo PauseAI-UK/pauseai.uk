@@ -11,7 +11,7 @@ import { lettersInbox } from "./letters-inbox";
 import { readLettersInbox } from "./letters-inbox-reading";
 import { notifyStaff, staffLink } from "./notifications";
 import { gmailAccess, gmailReadingState, saveGmailName, saveHistoryId } from "./gmail-accounts";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun, type Ran } from "./import-runs";
 import { keepsPoliticianThreads } from "@/lib/one-off";
 import { keepIfPoliticianThread, reportUnmatchedMail } from "./one-off-emails";
 import {
@@ -406,29 +406,16 @@ async function alertNotUnderstood(accounts: GmailRead[], request: Request | unde
  * problem of the run, and the next is read all the same; it's read again from
  * where it got to next time, unless Google refused its access, which
  * disconnects it (gmailAccess). `request` is the job's call, for links in
- * alerts; a staff member's run has none. Only one runs at a time: a second
- * started meanwhile, a press during a scheduled run, records that and stops,
- * as two would each handle the same messages. The transaction only holds
- * that lock, so what's read stays kept whatever becomes of the run.
+ * alerts; a staff member's run has none. Two runs would each handle the same
+ * messages, so only one goes at a time (lib/server/jobs.ts).
  */
-export function readGmail(startedBy: string, request?: Request): Promise<GmailReadResult> {
-  return keepingFailure(JOB, startedBy, () =>
-    transaction(async (db) => {
-      const [{ locked }] = await query<{ locked: boolean }>(
-        "SELECT pg_try_advisory_xact_lock(hashtext($1)) AS locked",
-        [JOB],
-        db,
-      );
-      if (locked) return readAll(startedBy, request);
-      const result: GmailReadResult = { accounts: [], stoppedBy: "running" };
-      await recordRun(JOB, startedBy, "unchanged", result, db);
-      return result;
-    }),
-  );
+export async function readGmail(startedBy: string, request?: Request): Promise<GmailReadResult> {
+  const { result } = await asRun(JOB, startedBy, () => readAll(request));
+  return result;
 }
 
-/** A run of readGmail, holding its lock. */
-async function readAll(startedBy: string, request: Request | undefined): Promise<GmailReadResult> {
+/** A run of readGmail. */
+async function readAll(request: Request | undefined): Promise<Ran<GmailReadResult>> {
   const accounts: GmailRead[] = [];
   for (const { email, historyId } of await gmailReadingState()) {
     try {
@@ -463,7 +450,6 @@ async function readAll(startedBy: string, request: Request | undefined): Promise
       told: await alertNotUnderstood(accounts, request),
     });
   }
-  await recordRun(JOB, startedBy, found ? "ok" : "unchanged", { accounts });
   await reportUnmatchedMail(gmailAccess);
-  return { accounts };
+  return { status: found ? "ok" : "unchanged", result: { accounts } };
 }

@@ -3,7 +3,7 @@ import { jobTitles } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { jobBySlug } from "@/lib/import-runs";
 import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
-import { currentPress, listRuns } from "@/lib/server/import-runs";
+import { listRuns, runningNow } from "@/lib/server/import-runs";
 import { jobProgress } from "@/lib/server/old-letters-import";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { decideSync, runJobNow } from "../../../actions";
@@ -20,13 +20,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function ImportJobRoute({ params }: Params) {
   const staff = await requireStaff();
   const job = found(jobBySlug((await params).job));
-  const [runs, press, progress] = await Promise.all([listRuns(job), currentPress(job), jobProgress(job)]);
+  const [runs, running, progress] = await Promise.all([listRuns(job), runningNow(job), jobProgress(job)]);
   return (
     <>
       <ImportJobPage
         job={job}
         runs={runs}
-        press={press}
+        running={running}
         run={runJobNow.bind(null, job)}
         decide={decideSync}
         airtableTable={PARLIAMENTARIANS_TABLE_URL}

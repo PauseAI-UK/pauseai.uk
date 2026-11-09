@@ -13,17 +13,20 @@ export type JobSchedule = "frequent" | "hourly" | "nightly" | "oneOff";
 
 /**
  * Every job, by its name in the import log (`import_runs.job`): its page,
- * /staff/import-data/<slug>, and how often it runs. What runs it is
- * lib/server/jobs.ts; its title, icon and description are the staff
- * interface's (jobTitles, ImportJob.tsx). The overview lists them in this
- * order.
+ * /staff/import-data/<slug>, how often it runs, and, for one with more to
+ * do than a run can, how long a run works before it stops taking on more,
+ * leaving the rest for the next. Every run is a request to the site, which
+ * a Netlify function stops at 30 seconds, so a budget leaves room for the
+ * run's last steps. What runs a job is lib/server/jobs.ts; its title, icon
+ * and description are the staff interface's (jobTitles, ImportJob.tsx). The
+ * overview lists them in this order.
  */
 export const JOBS = {
-  "import-old-letters": { slug: "old-letters", schedule: "oneOff" },
-  "import-luma": { slug: "luma", schedule: "frequent" },
+  "import-old-letters": { slug: "old-letters", schedule: "oneOff", budgetMs: 20_000 },
+  "import-luma": { slug: "luma", schedule: "frequent", budgetMs: 20_000 },
   "import-members": { slug: "members", schedule: "hourly" },
   "read-gmail": { slug: "gmail", schedule: "frequent" },
-  "send-mailings": { slug: "sending", schedule: "hourly" },
+  "send-mailings": { slug: "sending", schedule: "hourly", budgetMs: 8_000 },
   "sync-politicians": { slug: "politicians", schedule: "nightly" },
   "sync-emails": { slug: "emails", schedule: "oneOff" },
   "check-mps": { slug: "mp-check", schedule: "nightly" },
@@ -31,7 +34,7 @@ export const JOBS = {
   "import-web-form-letters": { slug: "web-form-letters", schedule: "oneOff" },
   "import-go-to-parliament": { slug: "go-to-parliament", schedule: "oneOff" },
   "tidy-logs": { slug: "tidying", schedule: "nightly" },
-} as const satisfies Record<string, { slug: string; schedule: JobSchedule }>;
+} as const satisfies Record<string, { slug: string; schedule: JobSchedule; budgetMs?: number }>;
 
 export type ImportJob = keyof typeof JOBS;
 export const IMPORT_JOBS = Object.keys(JOBS) as ImportJob[];
@@ -148,7 +151,7 @@ export type LumaImportResult = {
   contactPages?: number;
   /** The postcodes and towns looked up at the end of the run (runs kept before this was recorded don't say). */
   places?: PlacesLookup;
-  /** Why the run stopped before it was done: its time was up, Luma's rate limit was near, or another run had the lock. */
+  /** Why the run stopped before it was done: its time was up, or Luma's rate limit was near; in a run kept from before one run went at a time, another had the lock. */
   stoppedBy?: "time" | "rate-limit" | "running";
   /** Whether it worked out every supporter's facts and the supporters list again: after a change, or at least hourly. */
   refreshed?: boolean;
@@ -202,7 +205,7 @@ export type NotUnderstoodReason = "unknown_proxy" | "no_proxy" | "stranger" | "n
 /** A message the letters inbox couldn't account for: its Gmail ID, for a link, who it's from, its subject and why. */
 export type NotUnderstood = { gmailMessageId: string; from: string; subject: string; reason: NotUnderstoodReason };
 
-/** What a run of reading Gmail found, account by account; or that another run was reading, so it read nothing. */
+/** What a run of reading Gmail found, account by account; or, in a run kept from before one run went at a time, that another was reading, so it read nothing. */
 export type GmailReadResult = { accounts: GmailRead[]; stoppedBy?: "running" };
 export type GmailReading = ImportRun<"read-gmail", GmailReadResult>;
 

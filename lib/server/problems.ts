@@ -17,8 +17,8 @@ import "server-only";
  */
 export type Problem = { what: string; error?: string; told?: true };
 
-/** A run in progress: its problems so far, and the ID of its row once recorded. */
-export type Run = { problems: Problem[]; recorded?: number };
+/** A run in progress: its problems so far. */
+export type Run = { problems: Problem[] };
 
 let findRun: () => Run | undefined = () => undefined;
 

@@ -2,7 +2,7 @@ import { exampleLumaResult, exampleMembersResult } from "@/app/(staff)/staff/_co
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { type ImportJob, importPath } from "@/lib/import-runs";
 import { staffDate } from "@/lib/staff-time";
-import { holdJobLock, runSql } from "@/scripts/fresh-database.mjs";
+import { runSql } from "@/scripts/fresh-database.mjs";
 import { FIXTURE_NOW, LETTERS_INBOX, NOTIFICATION_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { failService } from "@/lib/server/fixtures/failing-services";
@@ -118,18 +118,16 @@ test("Reading Gmail", async ({ page, flowDatabase }) => {
   await frame(page, "Gmail, read");
 
   story(
-    "They read it again while the scheduled read is still going. Only one reads at a time, so theirs stops at once, and says why.",
+    "They read it again while the scheduled read is going. Only one reads at a time, so theirs doesn't go, and the page says the scheduled one is reading.",
   );
-  // The scheduled read, as far as the press can tell: its lock, held until the press is done.
-  const release = await holdJobLock(flowDatabase, "read-gmail");
-  try {
-    await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
-    await expect(page.getByText(staffCopy.luma.stoppedBy.running)).toBeVisible();
-  } finally {
-    await release();
-  }
-  await page.getByRole("heading", { name: staffCopy.gmailReading.title }).scrollIntoViewIfNeeded();
-  await frame(page, "A read that stopped, as another was going");
+  // The scheduled read, as far as the press can tell: the job marked running on its schedule's behalf.
+  runSql(flowDatabase, "INSERT INTO job_presses (job, started_by) VALUES ('read-gmail', 'nightly')");
+  await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
+  // The words either side of the time it started.
+  const [before, after] = staffCopy.import.runningScheduled("\n").split("\n");
+  await expect(page.getByText(before, { exact: false })).toContainText(after);
+  expect(runSql(flowDatabase, "SELECT count(*) FROM import_runs WHERE job = 'read-gmail'")).toEqual(["1"]);
+  await frame(page, "A read that didn't go, as the scheduled one is going");
 });
 
 /** `count` of the job's runs on its schedule, `minutes` apart, the newest `from` before now. */

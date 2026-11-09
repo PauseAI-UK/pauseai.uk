@@ -1,5 +1,6 @@
 import { staffCopy } from "@/lib/content/staff-interface";
-import { latestRun } from "./import-runs";
+import { latestRun, startRunning } from "./import-runs";
+import { ANOTHER_RUNNING, runJob } from "./jobs";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
@@ -16,7 +17,7 @@ import {
 import { migrate } from "@/scripts/db-migrate.mjs";
 import { stubLettersInboxEnv } from "@/tests/gmail-sends";
 import { sentToday } from "./gmail-accounts";
-import { query, transaction } from "./db";
+import { query } from "./db";
 import { importOldLetters, jobProgress, pacer, politicianSearches } from "./old-letters-import";
 
 const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
@@ -939,12 +940,9 @@ describeWithDatabase("the import of old letters", () => {
     expect(await query("SELECT 1 FROM import_runs WHERE job = 'import-old-letters'")).toHaveLength(2);
   });
 
-  it("stops at once, leaving no record, while another run is going", async () => {
-    const result = await transaction(async (db) => {
-      await query("SELECT pg_advisory_xact_lock(hashtext('import-old-letters'))", [], db);
-      return importOldLetters("jo@pauseai.uk", 0);
-    });
-    expect(result).toMatchObject({ finished: false, read: 0 });
+  it("doesn't go, leaving no record, while another run is going", async () => {
+    await startRunning("import-old-letters", "sam@pauseai.uk");
+    expect(await runJob("import-old-letters", "jo@pauseai.uk")).toBe(ANOTHER_RUNNING);
     expect(await query("SELECT 1 FROM import_runs WHERE job = 'import-old-letters'")).toEqual([]);
   });
 

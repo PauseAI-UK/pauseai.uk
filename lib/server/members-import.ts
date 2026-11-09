@@ -1,7 +1,7 @@
 import "server-only";
 import type { MembersImportResult } from "@/lib/import-runs";
 import { query, transaction, type Queryable } from "./db";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun } from "./import-runs";
 import { airtableToken, fetchMembers, type MemberToImport } from "./outside-services/airtable";
 import { refreshSupporterFacts, refreshSupportersList } from "./supporter-facts";
 import { linkSupporters } from "./supporters";
@@ -72,8 +72,8 @@ async function markRemoved(ids: string[], db: Queryable): Promise<number> {
 }
 
 /** Runs the import, keeping the run. A failure, of Airtable's or the database's, rolls the run back. */
-export function importMembers(startedBy: string): Promise<MembersImportResult> {
-  return keepingFailure(JOB, startedBy, async () => {
+export async function importMembers(startedBy: string): Promise<MembersImportResult> {
+  const { result } = await asRun(JOB, startedBy, async () => {
     const members = await fetchMembers(airtableToken());
     return transaction(async (db) => {
       const { added, changed } = await upsertMembers(members, db);
@@ -91,8 +91,8 @@ export function importMembers(startedBy: string): Promise<MembersImportResult> {
       await refreshSupporterFacts(db);
       await refreshSupportersList(db);
       const anything = added + changed + result.removed + result.linked;
-      await recordRun(JOB, startedBy, anything > 0 ? "ok" : "unchanged", result, db);
-      return result;
+      return { status: anything > 0 ? "ok" : "unchanged", result } as const;
     });
   });
+  return result;
 }

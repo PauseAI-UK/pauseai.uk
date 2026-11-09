@@ -3,7 +3,7 @@ import { GO_TO_PARLIAMENT_ASK, type AskStatus } from "@/lib/asks";
 import type { GoToParliamentImportResult } from "@/lib/import-runs";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun } from "./import-runs";
 import { airtableToken, fetchGoToParliamentMeetings } from "./outside-services/airtable";
 import { AIRTABLE } from "./politician-sync";
 import { problem } from "./problems";
@@ -34,8 +34,8 @@ const MEETING_STATUSES: [string, AskStatus][] = [
 ];
 
 /** Sets each MP's status from their guests' meetings. A status it doesn't know is refused. */
-export function importGoToParliament(startedBy: string): Promise<GoToParliamentImportResult> {
-  return keepingFailure(JOB, startedBy, async () => {
+export async function importGoToParliament(startedBy: string): Promise<GoToParliamentImportResult> {
+  const { result } = await asRun(JOB, startedBy, async () => {
     const meetings = await fetchGoToParliamentMeetings(airtableToken());
     const rank = new Map(MEETING_STATUSES.map(([name], i) => [name, i]));
     const best = new Map<string, number>();
@@ -88,8 +88,8 @@ export function importGoToParliament(startedBy: string): Promise<GoToParliamentI
       }
       await logChange(startedBy, "import Go to Parliament", { added: result.added, changed: result.changed }, db);
       if (notFound.length) problem(staffCopy.problems.job.mpNotFound, notFound.join(", "));
-      await recordRun(JOB, startedBy, "ok", result, db);
-      return result;
+      return { status: "ok", result } as const;
     });
   });
+  return result;
 }

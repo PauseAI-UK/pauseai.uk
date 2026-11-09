@@ -1,7 +1,7 @@
 import "server-only";
-import type { LumaImportResult } from "@/lib/import-runs";
+import { JOBS, type LumaImportResult } from "@/lib/import-runs";
 import { query, transaction, type Queryable } from "./db";
-import { keepingFailure, recordRun } from "./import-runs";
+import { asRun, type Ran } from "./import-runs";
 import { recordContactsPass } from "./opt-outs";
 import { refreshSupporterFacts, refreshSupportersList } from "./supporter-facts";
 import { lookUpPlaces } from "./supporter-places";
@@ -28,7 +28,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 // with none (staff-events.ts). Every 5 minutes (/api/cron/import-luma) or when staff
 // ask, each run in the import log (import-runs.ts, as "import-luma").
 //
-// A run has about 20 seconds (Netlify's scheduled functions stop at 30) and
+// A run has its budget, 20 seconds (JOBS in lib/import-runs.ts), and
 // shares Luma's 200 requests a minute with the site, so it reads what's
 // changed first and backfills the rest over later runs. Every write is an
 // upsert on Luma's ID that touches a row only when a value differs, so a
@@ -36,8 +36,6 @@ import { staffCopy } from "@/lib/content/staff-interface";
 
 const JOB = "import-luma";
 
-/** How long a run may spend fetching before it stops choosing more work. */
-const BUDGET_MS = 20_000;
 /** Luma requests left in the minute that the run leaves for the site's own fetches. */
 const RATE_LIMIT_RESERVE = 50;
 /** An event is live from three days after it starts, when guests still register and drop out. */
@@ -58,7 +56,7 @@ const CONTACT_PAGES_PER_RUN = 10;
 export type ImportList = "events" | "contacts";
 
 /** Whether no run has worked out the supporter facts and the list again in the last REFRESH_AT_LEAST. */
-async function refreshDue(db: Queryable): Promise<boolean> {
+async function refreshDue(db?: Queryable): Promise<boolean> {
   const [{ due }] = await query<{ due: boolean }>(
     `SELECT NOT EXISTS (SELECT 1 FROM import_runs WHERE job = $1 AND (result->>'refreshed')::boolean
        AND at > now() - $2::interval) AS due`,
@@ -113,7 +111,7 @@ class Budget {
   }
 }
 
-async function fullPassDue(list: ImportList, interval: string, db: Queryable): Promise<boolean> {
+async function fullPassDue(list: ImportList, interval: string, db?: Queryable): Promise<boolean> {
   const [state] = await query<{ due: boolean }>(
     "SELECT full_pass_at IS NULL OR full_pass_at < now() - $2::interval AS due FROM luma_import_state WHERE list = $1",
     [list, interval],
@@ -132,7 +130,7 @@ async function saveState(list: ImportList, cursor: string, finished: boolean, db
 }
 
 /** Upserts an event, listed again if it was removed; returns whether anything was new or different. */
-async function upsertEvent(event: CalendarEvent, db: Queryable): Promise<boolean> {
+async function upsertEvent(event: CalendarEvent, db?: Queryable): Promise<boolean> {
   const rows = await query(
     `INSERT INTO luma_events (id, name, url, start_at, access, city, latitude, longitude, tags, created_at, location_type, region)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -168,8 +166,8 @@ async function upsertEvent(event: CalendarEvent, db: Queryable): Promise<boolean
  * calendar's list are marked removed. Their guests stay: the list leaves out
  * an event made private as well as one deleted.
  */
-async function importEvents(budget: Budget, db: Queryable): Promise<number> {
-  const full = await fullPassDue("events", `${FULL_EVENTS_HOURS} hours`, db);
+async function importEvents(budget: Budget): Promise<number> {
+  const full = await fullPassDue("events", `${FULL_EVENTS_HOURS} hours`);
   const seen: string[] = [];
   let changed = 0;
   let cursor: string | undefined;
@@ -178,7 +176,7 @@ async function importEvents(budget: Budget, db: Queryable): Promise<number> {
     if (!page) return changed;
     let changedOnPage = 0;
     for (const event of page.entries) {
-      if (await upsertEvent(event, db)) changedOnPage++;
+      if (await upsertEvent(event)) changedOnPage++;
       seen.push(event.id);
     }
     changed += changedOnPage;
@@ -186,14 +184,16 @@ async function importEvents(budget: Budget, db: Queryable): Promise<number> {
     if (!full && changedOnPage === 0) return changed;
   } while (cursor);
   if (full) {
-    const removed = await query(
-      `UPDATE luma_events SET removed_at = now(), changed_at = now()
-       WHERE removed_at IS NULL AND NOT (id = ANY($1::text[])) RETURNING id`,
-      [seen],
-      db,
-    );
-    changed += removed.length;
-    await saveState("events", "", true, db);
+    changed += await transaction(async (db) => {
+      const removed = await query(
+        `UPDATE luma_events SET removed_at = now(), changed_at = now()
+         WHERE removed_at IS NULL AND NOT (id = ANY($1::text[])) RETURNING id`,
+        [seen],
+        db,
+      );
+      await saveState("events", "", true, db);
+      return removed.length;
+    });
   }
   return changed;
 }
@@ -206,7 +206,7 @@ async function importEvents(budget: Budget, db: Queryable): Promise<number> {
  * guests for one another calendar runs, and a removed one's are kept as last
  * read.
  */
-async function eventsDueGuests(db: Queryable): Promise<string[]> {
+async function eventsDueGuests(db?: Queryable): Promise<string[]> {
   const rows = await query<{ id: string }>(
     `SELECT id FROM luma_events
      WHERE access = 'manage' AND removed_at IS NULL AND (
@@ -224,7 +224,7 @@ async function eventsDueGuests(db: Queryable): Promise<string[]> {
 }
 
 /** Upserts the people behind a page of guests, or an event's hosts; returns how many were new or different. */
-async function upsertPeople(guests: Pick<EventGuest, "userId" | "email" | "name">[], db: Queryable): Promise<number> {
+async function upsertPeople(guests: Pick<EventGuest, "userId" | "email" | "name">[], db?: Queryable): Promise<number> {
   const people = new Map(guests.map((guest) => [guest.userId, guest]));
   const rows = await query(
     `INSERT INTO luma_people (user_id, email, name)
@@ -247,7 +247,7 @@ async function upsertPeople(guests: Pick<EventGuest, "userId" | "email" | "name"
 export const GUEST_STATUSES = ["approved", "pending_approval", "waitlist", "declined"];
 
 /** Upserts a page of an event's guests; returns how many were new or different. */
-async function upsertGuests(eventId: string, guests: EventGuest[], db: Queryable): Promise<number> {
+async function upsertGuests(eventId: string, guests: EventGuest[], db?: Queryable): Promise<number> {
   const rows = await query(
     `INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, phone, postcode, utm_source)
      SELECT g.id, $1, g.user_id, g.approval_status, g.registered_at, g.phone, g.postcode, g.utm_source
@@ -283,7 +283,7 @@ type GuestCounts = { guests: number; people: number };
  * marked removed and the event is marked read; a failure is kept on the
  * event instead. Undefined when the budget ran out partway.
  */
-async function importGuests(eventId: string, budget: Budget, db: Queryable): Promise<GuestCounts | undefined> {
+async function importGuests(eventId: string, budget: Budget): Promise<GuestCounts | undefined> {
   const counts: GuestCounts = { guests: 0, people: 0 };
   const seen: string[] = [];
   let cursor: string | undefined;
@@ -296,24 +296,26 @@ async function importGuests(eventId: string, budget: Budget, db: Queryable): Pro
           GUEST_STATUSES.includes(guest.approvalStatus) && guest.registeredAt !== null,
       );
       const unique = [...new Map(guests.map((guest) => [guest.id, guest])).values()];
-      counts.people += await upsertPeople(unique, db);
-      counts.guests += await upsertGuests(eventId, unique, db);
+      counts.people += await upsertPeople(unique);
+      counts.guests += await upsertGuests(eventId, unique);
       seen.push(...unique.map((guest) => guest.id));
       cursor = page.nextCursor;
     } while (cursor);
   } catch (error) {
     problem(staffCopy.problems.job.eventGuests(eventId), error);
-    await query("UPDATE luma_events SET guests_error = $2 WHERE id = $1", [eventId, describeError(error)], db);
+    await query("UPDATE luma_events SET guests_error = $2 WHERE id = $1", [eventId, describeError(error)]);
     return counts;
   }
-  const removed = await query(
-    `UPDATE luma_guests SET removed_at = now(), changed_at = now()
-     WHERE event_id = $1 AND removed_at IS NULL AND NOT (id = ANY($2::text[])) RETURNING id`,
-    [eventId, seen],
-    db,
-  );
-  counts.guests += removed.length;
-  await query("UPDATE luma_events SET guests_synced_at = now(), guests_error = NULL WHERE id = $1", [eventId], db);
+  counts.guests += await transaction(async (db) => {
+    const removed = await query(
+      `UPDATE luma_guests SET removed_at = now(), changed_at = now()
+       WHERE event_id = $1 AND removed_at IS NULL AND NOT (id = ANY($2::text[])) RETURNING id`,
+      [eventId, seen],
+      db,
+    );
+    await query("UPDATE luma_events SET guests_synced_at = now(), guests_error = NULL WHERE id = $1", [eventId], db);
+    return removed.length;
+  });
   return counts;
 }
 
@@ -325,7 +327,7 @@ async function importGuests(eventId: string, budget: Budget, db: Queryable): Pro
  * read again. Those still to come first, then those never read, newest
  * first; one whose last read failed goes to the back.
  */
-async function eventsDueHosts(db: Queryable): Promise<string[]> {
+async function eventsDueHosts(db?: Queryable): Promise<string[]> {
   const rows = await query<{ id: string }>(
     `SELECT id FROM (
        SELECT id, start_at, hosts_synced_at, hosts_error,
@@ -347,7 +349,7 @@ type HostCounts = { hosts: number; people: number };
  * marked read. A failure is kept on the event instead. Undefined when the
  * budget ran out first.
  */
-async function importHosts(eventId: string, budget: Budget, db: Queryable): Promise<HostCounts | undefined> {
+async function importHosts(eventId: string, budget: Budget): Promise<HostCounts | undefined> {
   let hosts: EventHost[];
   try {
     const page = await budget.page(() => getEventHosts(eventId));
@@ -355,33 +357,35 @@ async function importHosts(eventId: string, budget: Budget, db: Queryable): Prom
     hosts = [...new Map(page.entries.map((host) => [host.userId, host])).values()];
   } catch (error) {
     problem(staffCopy.problems.job.eventHosts(eventId), error);
-    await query("UPDATE luma_events SET hosts_error = $2 WHERE id = $1", [eventId, describeError(error)], db);
+    await query("UPDATE luma_events SET hosts_error = $2 WHERE id = $1", [eventId, describeError(error)]);
     return { hosts: 0, people: 0 };
   }
-  const people = await upsertPeople(hosts, db);
-  const ids = hosts.map((host) => host.userId);
-  // A host on the event's first read may have been there since it was made, so has no date
-  // added; one found on a later read was added since the one before.
-  const added = await query(
-    `INSERT INTO luma_event_hosts (event_id, user_id, added_at)
+  return transaction(async (db) => {
+    const people = await upsertPeople(hosts, db);
+    const ids = hosts.map((host) => host.userId);
+    // A host on the event's first read may have been there since it was made, so has no date
+    // added; one found on a later read was added since the one before.
+    const added = await query(
+      `INSERT INTO luma_event_hosts (event_id, user_id, added_at)
      SELECT $1, user_id, CASE WHEN e.hosts_synced_at IS NULL THEN NULL ELSE now() END
      FROM unnest($2::text[]) AS h(user_id), luma_events e
      WHERE e.id = $1 AND user_id IN (SELECT user_id FROM luma_people) AND user_id NOT IN (SELECT user_id FROM luma_erased)
      ON CONFLICT DO NOTHING RETURNING user_id`,
-    [eventId, ids],
-    db,
-  );
-  const removed = await query(
-    "DELETE FROM luma_event_hosts WHERE event_id = $1 AND NOT (user_id = ANY($2::text[])) RETURNING user_id",
-    [eventId, ids],
-    db,
-  );
-  await query("UPDATE luma_events SET hosts_synced_at = now(), hosts_error = NULL WHERE id = $1", [eventId], db);
-  return { hosts: added.length + removed.length, people };
+      [eventId, ids],
+      db,
+    );
+    const removed = await query(
+      "DELETE FROM luma_event_hosts WHERE event_id = $1 AND NOT (user_id = ANY($2::text[])) RETURNING user_id",
+      [eventId, ids],
+      db,
+    );
+    await query("UPDATE luma_events SET hosts_synced_at = now(), hosts_error = NULL WHERE id = $1", [eventId], db);
+    return { hosts: added.length + removed.length, people };
+  });
 }
 
 /** Sets when each contact joined the calendar, and that they're listed now; returns how many the join was news for. */
-async function upsertContacts(contacts: CalendarContact[], db: Queryable): Promise<number> {
+async function upsertContacts(contacts: CalendarContact[], db?: Queryable): Promise<number> {
   const unique = [...new Map(contacts.map((contact) => [contact.userId, contact])).values()];
   const rows = await query(
     `INSERT INTO luma_people (user_id, email, name, contact_since)
@@ -408,7 +412,7 @@ async function upsertContacts(contacts: CalendarContact[], db: Queryable): Promi
 }
 
 /** Notes that a full pass over the contacts begins now, and returns when. */
-async function startContactsPass(db: Queryable): Promise<Date> {
+async function startContactsPass(db?: Queryable): Promise<Date> {
   const [state] = await query<{ pass_started_at: Date }>(
     `INSERT INTO luma_import_state (list, pass_started_at) VALUES ('contacts', now())
      ON CONFLICT (list) DO UPDATE SET pass_started_at = now() RETURNING pass_started_at`,
@@ -430,11 +434,10 @@ async function startContactsPass(db: Queryable): Promise<Date> {
  * again. Says how many contacts and opt-outs changed, and how many pages it
  * read.
  */
-async function importContacts(budget: Budget, db: Queryable): Promise<{ changed: number; pages: number }> {
+async function importContacts(budget: Budget): Promise<{ changed: number; pages: number }> {
   const [state] = await query<{ cursor: string; pass_started_at: Date | null }>(
     "SELECT cursor, pass_started_at FROM luma_import_state WHERE list = $1",
     ["contacts"],
-    db,
   );
   let cursor: string | undefined = state?.cursor || undefined;
   let changed = 0;
@@ -444,7 +447,7 @@ async function importContacts(budget: Budget, db: Queryable): Promise<{ changed:
     do {
       const page = await budget.page(() => listCalendarContacts(newest));
       if (!page) break;
-      const changedOnPage = await upsertContacts(page.entries, db);
+      const changedOnPage = await upsertContacts(page.entries);
       changed += changedOnPage;
       newest = page.nextCursor;
       pages++;
@@ -452,7 +455,7 @@ async function importContacts(budget: Budget, db: Queryable): Promise<{ changed:
     } while (newest && pages < CONTACT_PAGES_PER_RUN);
   }
   // A pass beginning now notes when; one going on has noted it.
-  const passStartedAt = cursor ? state.pass_started_at : await startContactsPass(db);
+  const passStartedAt = cursor ? state.pass_started_at : await startContactsPass();
   // Only reading the last page finishes a pass: a run out of budget before
   // its first page hasn't read any.
   let finished = false;
@@ -460,7 +463,7 @@ async function importContacts(budget: Budget, db: Queryable): Promise<{ changed:
     while (pages < CONTACT_PAGES_PER_RUN) {
       const page = await budget.page(() => listCalendarContacts(cursor));
       if (!page) break;
-      changed += await upsertContacts(page.entries, db);
+      changed += await upsertContacts(page.entries);
       cursor = page.nextCursor;
       pages++;
       if (cursor === undefined) {
@@ -471,111 +474,100 @@ async function importContacts(budget: Budget, db: Queryable): Promise<{ changed:
   } catch (error) {
     throw new ContactsPassFailed(error);
   }
-  await saveState("contacts", cursor ?? "", finished, db);
-  if (finished && passStartedAt) changed += await recordContactsPass(passStartedAt, db);
+  changed += await transaction(async (db) => {
+    await saveState("contacts", cursor ?? "", finished, db);
+    return finished && passStartedAt ? recordContactsPass(passStartedAt, db) : 0;
+  });
   return { changed, pages };
 }
 
 /**
- * Runs the import, within `budgetMs` of fetching, keeping the run. Only one
- * runs at a time: a second started meanwhile records that and stops. A
- * failure rolls the run back, so nothing is half done.
+ * Runs the import, within `budgetMs` of fetching, keeping the run. Each step
+ * keeps what it read as it goes, so a run that fails partway keeps what came
+ * before, and the next takes up the rest; only one goes at a time
+ * (lib/server/jobs.ts).
  */
-export function importLuma(startedBy: string, budgetMs = BUDGET_MS): Promise<LumaImportResult> {
-  return keepingFailure(JOB, startedBy, async () => {
+export async function importLuma(startedBy: string, budgetMs: number = JOBS[JOB].budgetMs): Promise<LumaImportResult> {
+  const { result } = await asRun(JOB, startedBy, async () => {
     try {
-      const { result, owners, unclear } = await run(startedBy, budgetMs);
-      // Once what the run gave them is kept.
+      const { owners, unclear, ...ran } = await run(budgetMs);
       await ownerEmails(owners);
       await unclearEventEmails(unclear);
-      return result;
+      return ran;
     } catch (error) {
       if (!(error instanceof ContactsPassFailed)) throw error;
       await saveState("contacts", "", false);
       throw error.cause;
     }
   });
+  return result;
 }
 
 /** A run: what it did, the owners the rules gave events to, to be told, and the events it couldn't tag, to be asked about. */
-function run(
-  startedBy: string,
+async function run(
   budgetMs: number,
-): Promise<{ result: LumaImportResult; owners: Map<string, string[]>; unclear: UnclearEvent[] }> {
-  return transaction(async (db) => {
-    const result: LumaImportResult = {
-      events: 0,
-      eventsSynced: 0,
-      eventsLeft: 0,
-      guestsChanged: 0,
-      hostsChanged: 0,
-      people: 0,
-      contacts: 0,
-      supportersAdded: 0,
-      linked: 0,
-      requests: 0,
-    };
-    const [{ locked }] = await query<{ locked: boolean }>(
-      "SELECT pg_try_advisory_xact_lock(hashtext($1)) AS locked",
-      [JOB],
-      db,
-    );
-    if (!locked) {
-      result.stoppedBy = "running";
-      await recordRun(JOB, startedBy, "unchanged", result, db);
-      return { result, owners: new Map(), unclear: [] };
-    }
-    const budget = new Budget(budgetMs);
-    result.events = await importEvents(budget, db);
-    const due = await eventsDueGuests(db);
-    for (const eventId of due) {
-      const counts = await importGuests(eventId, budget, db);
-      if (!counts) break;
-      result.eventsSynced++;
-      result.guestsChanged += counts.guests;
-      result.people += counts.people;
-    }
-    result.eventsLeft = due.length - result.eventsSynced;
-    for (const eventId of await eventsDueHosts(db)) {
-      const counts = await importHosts(eventId, budget, db);
-      if (!counts) break;
-      result.hostsChanged! += counts.hosts;
-      result.people += counts.people;
-    }
-    const contacts = await importContacts(budget, db);
-    result.contacts = contacts.changed;
-    result.contactPages = contacts.pages;
-    // Anyone new, from any source, gets their supporter; letters written since the last run too. A number given
-    // since a supporter was linked merges them with whoever else gave it.
-    const links = await linkSupporters(db, true);
-    result.supportersAdded = links.supportersAdded;
-    result.linked = links.linked;
-    result.places = await lookUpPlaces(db);
-    const tagging = await tagUpcomingEvents(db);
-    result.eventsTagged = tagging.tagged;
-    const changed =
-      result.events +
-        tagging.tagged +
-        result.guestsChanged +
-        result.hostsChanged! +
-        result.people +
-        result.contacts +
-        result.linked +
-        result.places.postcodes +
-        result.places.towns >
-      0;
-    // A record already linked may have changed, here or in another source, so everyone's facts, not only the
-    // newly linked, and the list; after a change, or else if they haven't been for a while, as they take seconds.
-    if (changed || (await refreshDue(db))) {
-      await refreshSupporterFacts(db);
-      await refreshSupportersList(db);
-      result.refreshed = true;
-    }
-    // New events, and any whose owner's account went, get their owners by the rules, which go by their tags too.
-    const owners = await assignRuleOwners(db);
-    result.requests = budget.requests + tagging.requests;
-    if (budget.stoppedBy) result.stoppedBy = budget.stoppedBy;
-    await recordRun(JOB, startedBy, changed ? "ok" : "unchanged", result, db);
-    return { result, owners, unclear: tagging.unclear };
-  });
+): Promise<Ran<LumaImportResult> & { owners: Map<string, string[]>; unclear: UnclearEvent[] }> {
+  const result: LumaImportResult = {
+    events: 0,
+    eventsSynced: 0,
+    eventsLeft: 0,
+    guestsChanged: 0,
+    hostsChanged: 0,
+    people: 0,
+    contacts: 0,
+    supportersAdded: 0,
+    linked: 0,
+    requests: 0,
+  };
+  const budget = new Budget(budgetMs);
+  result.events = await importEvents(budget);
+  const due = await eventsDueGuests();
+  for (const eventId of due) {
+    const counts = await importGuests(eventId, budget);
+    if (!counts) break;
+    result.eventsSynced++;
+    result.guestsChanged += counts.guests;
+    result.people += counts.people;
+  }
+  result.eventsLeft = due.length - result.eventsSynced;
+  for (const eventId of await eventsDueHosts()) {
+    const counts = await importHosts(eventId, budget);
+    if (!counts) break;
+    result.hostsChanged! += counts.hosts;
+    result.people += counts.people;
+  }
+  const contacts = await importContacts(budget);
+  result.contacts = contacts.changed;
+  result.contactPages = contacts.pages;
+  // Anyone new, from any source, gets their supporter; letters written since the last run too. A number given
+  // since a supporter was linked merges them with whoever else gave it.
+  const links = await linkSupporters(undefined, true);
+  result.supportersAdded = links.supportersAdded;
+  result.linked = links.linked;
+  result.places = await lookUpPlaces();
+  const tagging = await tagUpcomingEvents();
+  result.eventsTagged = tagging.tagged;
+  const changed =
+    result.events +
+      tagging.tagged +
+      result.guestsChanged +
+      result.hostsChanged! +
+      result.people +
+      result.contacts +
+      result.linked +
+      result.places.postcodes +
+      result.places.towns >
+    0;
+  // A record already linked may have changed, here or in another source, so everyone's facts, not only the
+  // newly linked, and the list; after a change, or else if they haven't been for a while, as they take seconds.
+  if (changed || (await refreshDue())) {
+    await refreshSupporterFacts();
+    await refreshSupportersList();
+    result.refreshed = true;
+  }
+  // New events, and any whose owner's account went, get their owners by the rules, which go by their tags too.
+  const owners = await transaction((db) => assignRuleOwners(db));
+  result.requests = budget.requests + tagging.requests;
+  if (budget.stoppedBy) result.stoppedBy = budget.stoppedBy;
+  return { status: changed ? "ok" : "unchanged", result, owners, unclear: tagging.unclear };
 }

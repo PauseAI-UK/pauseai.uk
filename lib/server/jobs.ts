@@ -4,6 +4,7 @@ import { importControlAiLetter } from "./controlai-import";
 import { syncEmails } from "./emails-sync";
 import { readGmail } from "./gmail-reading";
 import { importGoToParliament } from "./go-to-parliament-import";
+import { startRunning, stopRunning } from "./import-runs";
 import { runTidying } from "./log-retention";
 import { importLuma } from "./luma-import";
 import { importMembers } from "./members-import";
@@ -13,11 +14,12 @@ import { syncPoliticians } from "./politician-sync";
 import { runSending } from "./sending-job";
 import { importWebFormLetters } from "./web-form-import";
 
-// What runs each job (lib/import-runs.ts, JOBS), whoever starts it: a
-// function that runs it as a run of the import log, inside keepingFailure()
-// (tests/checks/cron-runs.test.ts). A scheduled run comes through
-// /api/cron/<job> (app/api/cron/[job]/route.ts), a staff member's through the
-// job's button (runJobNow in app/(staff)/staff/actions.ts).
+// What runs each job (lib/import-runs.ts, JOBS), whoever starts it, one run
+// of a job at a time: a function that does it as a run of the import log,
+// inside asRun() (tests/checks/cron-runs.test.ts), which keeps it. A
+// scheduled run comes through /api/cron/<job> (app/api/cron/[job]/route.ts),
+// a staff member's through the job's button (runJobNow in
+// app/(staff)/staff/actions.ts).
 
 /**
  * Runs a job. `startedBy` is NIGHTLY or the staff member's email, and
@@ -52,7 +54,19 @@ const RUNS: Record<ImportJob, RunJob> = {
   "tidy-logs": (by) => runTidying(by),
 };
 
-/** Runs a job, and says what the run did. A failure is kept as a failed run, then thrown on. */
-export function runJob(job: ImportJob, startedBy: string, request?: Request): Promise<unknown> {
-  return RUNS[job](startedBy, request);
+/** What a run says when another of its job was going, so it didn't: it keeps no run, as it did nothing. */
+export const ANOTHER_RUNNING = { stoppedBy: "running" } as const;
+
+/**
+ * Runs a job, unless a run of it is going, whoever started that, and says
+ * what the run did, or ANOTHER_RUNNING. A failure is kept as a failed run,
+ * then thrown on.
+ */
+export async function runJob(job: ImportJob, startedBy: string, request?: Request): Promise<unknown> {
+  if (!(await startRunning(job, startedBy))) return ANOTHER_RUNNING;
+  try {
+    return await RUNS[job](startedBy, request);
+  } finally {
+    await stopRunning(job);
+  }
 }

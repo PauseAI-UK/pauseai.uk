@@ -397,8 +397,15 @@ export function NoteTextExample() {
   return <NoteText body={exampleNotes[0].body + "\n" + exampleNotes[1].body} />;
 }
 
-/** A job's page, its button and any held sync's buttons logged: the MP check with three runs, or the web form import, never run. */
-export function ImportJobPageExample({ never = false, running = false }: { never?: boolean; running?: boolean }) {
+/** A job's page, its button and any held sync's buttons logged: the MP check with three runs, while a run started by a staff member or its schedule is going, or the web form import, never run. */
+export function ImportJobPageExample({
+  never = false,
+  running,
+}: {
+  never?: boolean;
+  /** Who started the run going now, if one is. */
+  running?: string;
+}) {
   return (
     <Logged>
       {(log) =>
@@ -413,7 +420,7 @@ export function ImportJobPageExample({ never = false, running = false }: { never
         ) : (
           <ImportJobPage
             job="check-mps"
-            press={running ? { startedBy: "jo@pauseai.uk", startedAt: new Date("2026-11-04T09:00:00Z") } : undefined}
+            running={running ? { startedBy: running, startedAt: new Date("2026-11-04T09:00:00Z") } : undefined}
             runs={[
               exampleRun("check-mps", { problems: [] }, { id: 7, at: new Date("2026-11-03T01:00:00Z") }),
               exampleFailedRun("check-mps", "Parliament answered 500", { id: 6, at: new Date("2026-11-02T01:00:00Z") }),

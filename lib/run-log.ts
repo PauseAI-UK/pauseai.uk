@@ -49,7 +49,7 @@ export type LogEntry = {
   shape: Shape;
   /** Newest first. */
   runs: AnyImportRun[];
-  /** The job's state now: the newest run, with no press running. */
+  /** The job's state now: the newest run, with none going. */
   current?: boolean;
   /** The tint of a run shown whole: how it ended, for the newest, or a problem. */
   tone?: "green" | "amber" | "red";
@@ -68,13 +68,13 @@ function problemTone(run: AnyImportRun): LogEntry["tone"] {
 /** A day of a job's page: its heading, and what's under it, newest first. */
 export type LogDay = { day: string; entries: LogEntry[] };
 
-/** A job's runs, newest first, laid out by day. While a press runs, that's the job's state, so the newest is treated as an older one. */
-export function runLog(runs: AnyImportRun[], pressing: boolean): LogDay[] {
+/** A job's runs, newest first, laid out by day. While a run is going, that's the job's state, so the newest is treated as an older one. */
+export function runLog(runs: AnyImportRun[], going: boolean): LogDay[] {
   const days: LogDay[] = [];
   let whole = 0;
   let rows = 0;
   runs.forEach((run, i) => {
-    const current = i === 0 && !pressing;
+    const current = i === 0 && !going;
     const shape = current ? "run" : runShape(run);
     const day = staffDate(run.at);
     if (days.at(-1)?.day !== day) days.push({ day, entries: [] });
