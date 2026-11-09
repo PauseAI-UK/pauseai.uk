@@ -653,7 +653,7 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
 
   await importMembers(request, BASE);
   await page.reload();
-  await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
+  await expect(page.getByText(copy.total(8), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Mara Member" })).toHaveCount(0);
   await frame(page, "The supporters list, after the members import");
 });
