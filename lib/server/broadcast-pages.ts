@@ -36,6 +36,8 @@ export type BroadcastSummary = MailingSummary & {
   read: number;
   /** A draft whose new words WhatsApp is reviewing. */
   waiting: boolean;
+  /** A draft whose new words WhatsApp rejected, until they're sent again or a template's chosen. */
+  rejected: boolean;
 };
 
 const STOPPED = "(c.status = 'cancelled' OR c.skip_reason = 'unsubscribed')";
@@ -47,6 +49,7 @@ const SELECT_BROADCASTS = `
     coalesce(nullif(m.from_name, ''), m.sent_from) AS "fromName", m.sent_from AS "sentFrom", m.due_at AS "dueAt",
     m.updated_at AS "updatedAt", m.channel,
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'pending') AS waiting,
+    EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'rejected') AS rejected,
     min(c.sent_at) AS "sentAt",
     count(c.id)::int AS "to",
     count(c.id) FILTER (WHERE c.status IN ('sent', 'delivered'))::int AS sent,

@@ -241,6 +241,7 @@ const summary: BroadcastSummary = {
   delivered: 276,
   read: 0,
   waiting: false,
+  rejected: false,
 };
 
 /** A broadcast as the list has it. */

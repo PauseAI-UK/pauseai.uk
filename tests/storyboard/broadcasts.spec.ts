@@ -280,6 +280,10 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
   await expect(page.getByText(/The text ends with a merge field/)).toBeVisible();
   await frame(page, "Rejected, and what to do");
+  story("The list says so too, until the words go for approval again or a template is chosen.");
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByText(copy.rejectedTag)).toBeVisible();
+  await frame(page, "The list, the draft WhatsApp rejected");
 });
 
 test("Changing who a broadcast goes to", async ({ page, request, flowDatabase }) => {

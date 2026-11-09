@@ -569,7 +569,11 @@ describe("BroadcastWriter, by text", () => {
       rejectedReason: "It ends with a merge field.",
     };
     await renderWriter({ draft: { ...exampleBroadcastText, body: exampleTextWords, template } });
-    await expect.element(page.getByText(/It ends with a merge field/)).toBeVisible();
+    // In quotes, its own full stop left off, as the note's sentence carries on.
+    await expect
+      .element(page.getByText(copy.rejected(staffTime(template.rejectedAt!), "It ends with a merge field")))
+      .toBeVisible();
+    await expect.element(page.getByText(/“It ends with a merge field” on/)).toBeVisible();
   });
 
   it("previews a bubble, and sends a test to a number only on an approved template", async () => {
@@ -929,10 +933,17 @@ describe("BroadcastsOverview", () => {
     };
     const plain = { ...exampleBroadcastSummary, id: 6, state: "scheduled" as const, title: "Plain" };
     const held = { ...exampleBroadcastSummary, id: 8, state: "draft" as const, title: "Held", waiting: true };
+    const turnedDown = {
+      ...exampleBroadcastSummary,
+      id: 9,
+      state: "draft" as const,
+      title: "Turned down",
+      rejected: true,
+    };
     await render(
       <BroadcastsOverview
         groups={mailingGroups(
-          { drafts: [held], comingUp: [waiting, plain], sent: [{ ...exampleBroadcastSummary, title: "" }] },
+          { drafts: [held, turnedDown], comingUp: [waiting, plain], sent: [{ ...exampleBroadcastSummary, title: "" }] },
           new Date(now),
         )}
         now={now}
@@ -942,6 +953,9 @@ describe("BroadcastsOverview", () => {
     await expect.element(page.getByText(copy.channels.text).first()).toBeVisible();
     // A draft whose words WhatsApp is reviewing says so beside its Draft.
     await expect.element(page.getByText(copy.waitingTag)).toBeVisible();
+    // And one whose words it rejected, till they're sent again.
+    await expect.element(page.getByText(copy.rejectedTag)).toBeVisible();
+    expect(page.getByText(copy.rejectedTag).all()).toHaveLength(1);
     await expect.element(page.getByText(staffCopy.mailingPages.states.scheduled).first()).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.untitled }).first()).toBeVisible();
     await expect.element(page.getByText(new RegExp(copy.counts.delivered)).first()).toBeVisible();

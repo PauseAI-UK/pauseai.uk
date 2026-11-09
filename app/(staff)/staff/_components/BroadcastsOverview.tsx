@@ -17,7 +17,13 @@ const LOOK: OverviewLook<BroadcastSummary> = {
   // A text's number, which isn't an address to put in <>.
   from: (broadcast) =>
     broadcast.channel === "text" ? textSender(broadcast.fromName!, broadcast.sentFrom!) : undefined,
-  holdUp: (broadcast) => broadcast.waiting && <Tag tone="amber">{copy.waitingTag}</Tag>,
+  // What WhatsApp is doing with a draft's new words: reviewing them, or rejected them.
+  holdUp: (broadcast) =>
+    broadcast.waiting ? (
+      <Tag tone="amber">{copy.waitingTag}</Tag>
+    ) : (
+      broadcast.rejected && <Tag tone="red">{copy.rejectedTag}</Tag>
+    ),
 };
 
 /** The list of broadcasts, emails and texts together, as the list of mailings is, each row with its channel. */

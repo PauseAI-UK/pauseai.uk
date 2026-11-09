@@ -1186,9 +1186,9 @@ All events: ${link}`,
     templateUsed: (at: string, n: number) => `last used ${at}, to ${count(n, "person", "people")}`,
     newTemplateHint: "WhatsApp needs to approve the new template before it can go. This takes up to 24 hours.",
     rejected: (at: string, reason: string) =>
-      `⁂ WhatsApp rejected the template on ${at}: ${reason} Change the words and send them for approval again.`,
+      `WhatsApp rejected the template saying “${reason.replace(/\.+$/, "")}” on ${at}. Change the words and send for approval again.`,
     // Preview.
-    chooseTemplate: "⁂ Choose a template to see the text here.",
+    chooseTemplate: "Choose a template to see the text here.",
     findRecipient: "Show a fake recipient who…",
     // Under a text's preview.
     stopButton: "Stop",
@@ -1233,6 +1233,8 @@ All events: ${link}`,
     templatePending: (by: string, at: string) => `${by}, approval requested ${at}, withdraw request to change`,
     // On the list of broadcasts, beside a draft's Draft, while WhatsApp reviews its words.
     waitingTag: "Waiting for WhatsApp",
+    // On the list, a draft whose words WhatsApp rejected, until they're sent again or a template's chosen.
+    rejectedTag: "WhatsApp rejected template",
     withdrawTemplate: "Withdraw approval request",
     // The same, pressed once, asking for a second press.
     withdrawSure: "Withdraw it",
