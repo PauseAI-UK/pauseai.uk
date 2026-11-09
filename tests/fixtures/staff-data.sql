@@ -1130,9 +1130,10 @@ $$;
 CREATE TEMP TABLE seed_people ON COMMIT DROP AS
 SELECT s.id, row_number() OVER (ORDER BY s.id) AS n,
   coalesce((SELECT nullif(i.name, '') FROM supporter_identity i WHERE i.supporter_id = s.id ORDER BY i.seen_at DESC NULLS LAST LIMIT 1), 'Supporter ' || s.id) AS name,
-  coalesce((SELECT i.email FROM supporter_identity i WHERE i.supporter_id = s.id ORDER BY i.seen_at DESC NULLS LAST LIMIT 1), 'supporter' || s.id || '@example.com') AS email
+  coalesce((SELECT i.email FROM supporter_identity i WHERE i.supporter_id = s.id ORDER BY i.seen_at DESC NULLS LAST LIMIT 1), 'supporter' || s.id || '@example.com') AS email,
+  (SELECT sp.place FROM supporter_place sp WHERE sp.supporter_id = s.id) AS place
 FROM supporters s;
-UPDATE broadcast_messages c SET merge_values = jsonb_build_object('name', p.name, 'place', NULL,
+UPDATE broadcast_messages c SET merge_values = jsonb_build_object('name', p.name, 'place', p.place,
   'values', jsonb_build_object('firstName', split_part(p.name, ' ', 1)), 'meets', '["has:firstName"]'::jsonb)
 FROM seed_people p WHERE p.id = c.supporter_id;
 
@@ -1217,7 +1218,7 @@ JOIN seed_broadcasts m ON m.title = c.title AND m.channel = c.channel;
 INSERT INTO broadcast_messages (id, mailing_id, supporter_id, address, status, merge_values, skip_reason, sent_at) OVERRIDING SYSTEM VALUE
 SELECT c.id, c.mailing_id, p.id,
   CASE WHEN c.channel = 'email' THEN p.email ELSE '+447700900' || lpad((100 + p.n)::text, 3, '0') END,
-  c.status, jsonb_build_object('name', p.name, 'place', NULL, 'values', jsonb_build_object('firstName', split_part(p.name, ' ', 1)), 'meets', '["has:firstName"]'::jsonb),
+  c.status, jsonb_build_object('name', p.name, 'place', p.place, 'values', jsonb_build_object('firstName', split_part(p.name, ' ', 1)), 'meets', '["has:firstName"]'::jsonb),
   c.reason, CASE WHEN c.status IN ('sent', 'delivered', 'failed') THEN now() + c.due END
 FROM seed_copies c JOIN seed_people p ON p.n = c.person;
 INSERT INTO broadcast_message_events (message_id, at, kind)
