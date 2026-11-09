@@ -127,7 +127,7 @@ export const exampleSupporterChoices: SupporterChoices = {
 };
 
 /** The parts a broadcast's words can be only for: a campaign, and two events, one past and one to come. */
-export const exampleParts: BroadcastPart[] = [
+const exampleParts: BroadcastPart[] = [
   {
     id: "wrote:regulate-ai",
     label: staffCopy.broadcastPages.conditions.wrote("Regulate AI"),

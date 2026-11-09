@@ -43,7 +43,8 @@ import { campaigns } from "@/lib/content/email-your-mp";
 import BounceReason from "@/app/(staff)/staff/_components/BounceReason";
 import LetterChanges from "@/app/(staff)/staff/_components/LetterChanges";
 import MailFold from "@/app/(staff)/staff/_components/MailFold";
-import { MessageText } from "@/app/(staff)/staff/_components/LetterThread";
+import { MessageText, Thread } from "@/app/(staff)/staff/_components/LetterThread";
+import { staffCopy } from "@/lib/content/staff-interface";
 import ThreadEmail from "@/app/(staff)/staff/_components/ThreadEmail";
 import LetterThread, { SupporterLetterThread } from "@/app/(staff)/staff/_components/LetterThread";
 import { exampleImportedThread, exampleThread } from "@/app/(staff)/staff/_components/LetterThread.examples";
@@ -149,6 +150,32 @@ export const staffLetters: Group = {
               </StaffPage>
             );
           },
+        },
+      ],
+    },
+    {
+      name: "Thread",
+      file: "app/(staff)/staff/_components/LetterThread.tsx",
+      variants: [
+        {
+          label: "A thread's section: its heading, a link at its right, over its messages",
+          render: () => (
+            <StaffPage as="div">
+              <Thread link={<a href="#">Open in Gmail</a>}>
+                <ThreadEmail {...EXAMPLE_EMAIL}>Dear Mr McTestface, thank you.</ThreadEmail>
+              </Thread>
+            </StaffPage>
+          ),
+        },
+        {
+          label: "Titled as a broadcast's message is",
+          render: () => (
+            <StaffPage as="div">
+              <Thread title={staffCopy.broadcastPages.threadTitle}>
+                <ThreadEmail {...EXAMPLE_EMAIL}>Hi Jane, the march meets at 11:00.</ThreadEmail>
+              </Thread>
+            </StaffPage>
+          ),
         },
       ],
     },
