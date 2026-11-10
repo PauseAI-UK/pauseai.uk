@@ -176,6 +176,8 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   await expect(noName).toHaveAttribute("aria-pressed", "true");
   await noName.click();
   await expect(noName).toHaveAttribute("aria-pressed", "false");
+  // A save still under way shows in the pill: it's back at Saved before the picture.
+  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
   await frame(page, "The preview, for someone with no first name", { window: true });
   await noName.click();
   story("Send test sends them a copy, by Postmark, as that supporter would get it.");
