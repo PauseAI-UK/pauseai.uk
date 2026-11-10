@@ -8,16 +8,22 @@ function linkProps(href: string) {
   return href.startsWith("/") ? { internal: true } : { internal: false, target: "_blank", rel: "noreferrer" };
 }
 
-/** A featured event's band: the date and time, its name large, where, and its cover where the flyer has a QR code. */
+/**
+ * A featured event's black band, in the rows' three columns: the day and
+ * time, the name large with where and the links under it, and the cover
+ * where the poster has a QR code.
+ */
 function Featured({ day, event }: { day: FestDay; event: FestEvent }) {
   const { internal, ...external } = linkProps(event.href);
   return (
     <li className={styles.featured}>
-      <div className={`container ${styles.featuredInner}`}>
+      <div className={`container ${styles.columns}`}>
+        <p className={styles.featuredWhen}>
+          {day.short}
+          <br />
+          {event.time}
+        </p>
         <div>
-          <p className={styles.featuredWhen}>
-            {day.long}, {event.time}
-          </p>
           <h3 className={styles.featuredTitle}>{event.title}</h3>
           <p className={styles.featuredPlace}>{event.place}</p>
           <div className={styles.actions}>
@@ -38,19 +44,19 @@ function Featured({ day, event }: { day: FestDay; event: FestEvent }) {
           </div>
         </div>
         <div className={styles.cover}>
-          <Image src={event.image} alt="" fill sizes="220px" style={{ objectFit: "cover" }} />
+          <Image src={event.image} alt="" fill sizes="200px" style={{ objectFit: "cover" }} />
         </div>
       </div>
     </li>
   );
 }
 
-/** Any other event: a row with its day, its name, when and where, and a link to register. */
+/** Any other event: an orange row with its day, its name, when and where, and a link to register. */
 function Row({ day, event }: { day: FestDay; event: FestEvent }) {
   const { internal, ...external } = linkProps(event.href);
   return (
     <li className={styles.row}>
-      <div className={`container ${styles.rowInner}`}>
+      <div className={`container ${styles.columns}`}>
         <p className={styles.rowDay}>{day.short}</p>
         <div>
           <h3 className={styles.rowTitle}>{event.title}</h3>
@@ -66,7 +72,7 @@ function Row({ day, event }: { day: FestDay; event: FestEvent }) {
   );
 }
 
-/** The festival's events in order, as its flyer lists them: the main ones in black bands, the rest in orange rows. */
+/** The festival's events in order, as its poster lists them: the main ones in black bands, the rest in orange rows. */
 export default function Programme({ days }: { days: FestDay[] }) {
   return (
     <section className={styles.programme} aria-labelledby="programme-heading">

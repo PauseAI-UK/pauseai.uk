@@ -10,13 +10,13 @@ describe("PauseFestHero", () => {
   it("names the festival, where and when", async () => {
     await render(<PauseFestHero />);
     await expect.element(page.getByRole("heading", { level: 1, name: "PauseFest" })).toBeVisible();
-    await expect.element(page.getByText("London 2026")).toBeVisible();
-    await expect.element(page.getByText(/20th – 23rd November/)).toBeVisible();
+    await expect.element(page.getByText(/London 2026/)).toBeVisible();
+    await expect.element(page.getByText(/20th – 23rd Nov/)).toBeVisible();
   });
 });
 
 describe("Programme", () => {
-  it("lists every event in order, the main ones with their full date", async () => {
+  it("lists every event in order, each with its day", async () => {
     await render(<Programme days={pausefest.days} />);
     const titles = page.getByRole("listitem").getByRole("heading", { level: 3 });
     expect(titles.elements().map((title) => title.textContent)).toEqual([
@@ -26,7 +26,9 @@ describe("Programme", () => {
       "Conference in Parliament",
       "Fireside chat with Siliconversations",
     ]);
-    await expect.element(page.getByText("Saturday 21 November, 12–3pm")).toBeVisible();
+    const marchBand = page.getByRole("listitem").filter({ hasText: "March Against AI Extinction" });
+    await expect.element(marchBand.getByText(/Sat 21 Nov/)).toBeVisible();
+    await expect.element(marchBand.getByText(/12–3pm/)).toBeVisible();
     await expect.element(page.getByText("Fri 20 Nov")).toBeVisible();
   });
 
@@ -58,7 +60,6 @@ describe("Programme", () => {
   it("links a row to a page of ours in the same tab", async () => {
     const day: FestDay = {
       short: "Tue 1 Jan",
-      long: "Tuesday 1 January",
       events: [
         {
           title: "An example event",
