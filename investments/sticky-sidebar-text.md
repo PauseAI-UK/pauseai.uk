@@ -13,3 +13,4 @@ Find what makes the link text snap differently, checking each idea with seven ru
 ## Hits
 
 - 2026-11-10: the storyboard review of list-kit-and-letter-lifecycle showed the frame as changed against main; six reruns on one build gave two versions
+- 2026-11-10: again in the review after the sql conversions (run 2026-11-10T10-03-01), the only changed frame
