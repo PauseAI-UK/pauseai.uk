@@ -303,15 +303,18 @@ describe("each list's saved filters", () => {
     expect(new FormData(form).get("back")).toBe("/staff/supporters?near=Leeds");
   });
 
-  it("on events, say the Past tab, and start named after the filters", async () => {
-    const search = eventsSearch({ q: "talk", page: "2" });
+  it("on events, say the Past tab and the grouping, and start named after them and the filters", async () => {
+    const search = eventsSearch({ q: "talk", group: "tag", page: "2" });
     await render(
       <EventFilters
         search={search}
         choices={{ staff: [], tags: ["Talk"], cities: [] }}
         saved={{
           state: {
-            rows: [row(1, "Old talks", { when: "past", tag: "Talk" }), row(2, "New talks", { tag: "Talk" })],
+            rows: [
+              row(1, "Old talks", { when: "past", group: "owner", tag: "Talk" }),
+              row(2, "New talks", { tag: "Talk" }),
+            ],
             params: {},
           },
           actions: actions(),
@@ -319,7 +322,10 @@ describe("each list's saved filters", () => {
       />,
     );
     await chip().click();
-    await says(/Old talks/, `${staffCopy.events.tabs.past} · ${staffCopy.events.filters.tag}: Talk`);
+    await says(
+      /Old talks/,
+      `${staffCopy.events.tabs.past} · ${staffCopy.events.group.owner} · ${staffCopy.events.filters.tag}: Talk`,
+    );
     expect(page.getByRole("link", { name: /New talks/ }).element().textContent).not.toContain(
       staffCopy.events.tabs.past,
     );
@@ -327,6 +333,6 @@ describe("each list's saved filters", () => {
     await page.getByRole("button", { name: copy.save, exact: true }).click();
     await expect
       .element(page.getByRole("textbox", { name: copy.name }))
-      .toHaveValue(`${staffCopy.events.title}: ${staffCopy.search}: talk`);
+      .toHaveValue(`${staffCopy.events.title}: ${staffCopy.events.group.tag}, ${staffCopy.search}: talk`);
   });
 });

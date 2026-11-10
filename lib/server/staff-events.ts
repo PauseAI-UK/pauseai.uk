@@ -3,7 +3,7 @@ import { cache } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { ruleOwner } from "@/lib/event-owners";
 import { now } from "@/lib/now";
-import { findEvents, stillToCome, type EventFilter, type EventsFound } from "@/lib/staff-events-list";
+import { findEvents, type EventFilter, type EventsFound } from "@/lib/staff-events-list";
 import { londonStart } from "@/lib/staff-time";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
@@ -91,8 +91,8 @@ function withoutEmails({ hostEmails, ...event }: SearchedEvent): StaffEvent {
 }
 
 /**
- * The events page: the events `filter` finds, a page of them
- * (findEvents), with their hosts for staff who see supporters (`hosts`),
+ * The events page: the events `filter` finds, a page of them, or all of
+ * them for lists by a grouping (findEvents), with their hosts for staff who see supporters (`hosts`),
  * who can search by them, but never their emails; every staff account,
  * whom an event can be given to and the Owner filter offers; every tag and
  * city our events have, for the Tag and Place filters, in alphabetical
@@ -110,19 +110,6 @@ export async function eventsPage(
     events: found.events.map(withoutEmails),
     ...(await choicesOf(events)),
     now: at,
-  };
-}
-
-/**
- * The By owner and By tag tabs: every event to come still on Luma, soonest
- * first, not a page of them, and every staff account, whom one can be given to.
- */
-export async function eventsToCome(): Promise<{ events: StaffEvent[]; staff: string[] }> {
-  const at = now();
-  const events = await listEvents();
-  return {
-    events: events.filter((event) => !event.removed && stillToCome(event.startAt, at)).map(withoutEmails),
-    staff: (await choicesOf(events)).staff,
   };
 }
 

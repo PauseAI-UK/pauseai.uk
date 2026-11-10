@@ -146,6 +146,13 @@ describe("findEvents", () => {
     expect(second.events.map((e) => e.id)).toEqual(["e100", "e101"]);
     expect(findEvents([], future(), NOW)).toEqual({ events: [], total: 0, pages: 1, removed: 0 });
   });
+
+  it("gives every one it finds, on one page, for lists by a grouping, whatever page the URL says", () => {
+    const many = Array.from({ length: EVENTS_PAGE_SIZE + 2 }, (_, i) => event(`e${String(i).padStart(3, "0")}`));
+    const grouped = findEvents(many, future({ group: "owner", page: 2 }), NOW);
+    expect(grouped).toMatchObject({ total: EVENTS_PAGE_SIZE + 2, pages: 1 });
+    expect(grouped.events).toHaveLength(EVENTS_PAGE_SIZE + 2);
+  });
 });
 
 describe("stillToCome", () => {

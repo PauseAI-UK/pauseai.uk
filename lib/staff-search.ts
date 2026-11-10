@@ -41,7 +41,7 @@ import {
   type SortOf,
 } from "@/lib/staff-lists";
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
-import { type EventGrouping, EVENT_SORTS, type EventFilter } from "@/lib/staff-events-list";
+import { EVENT_GROUPINGS, EVENT_SORTS, type EventFilter } from "@/lib/staff-events-list";
 import { isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters";
 
 /** Which of a campaign's letters its counts can show: those that arrived, failed, were replied to, whose politician answered its ask, or whose text was changed. */
@@ -377,17 +377,14 @@ export function allLettersSearch(params: Partial<Record<string, ParamValue>>): A
 export type EventsSearch = SearchOf<typeof EVENTS_LIST.params>;
 
 /**
- * What the events page's URL asks it to show: every event to come, by owner or
- * by tag (`view`), as a tab of its own, or a table. The Past tab is always a table.
+ * The events list's tab, filters, grouping and sort, each as typed and as
+ * applied. A grouping it doesn't have is none; `view` gives one too, as links
+ * with it were shared.
  */
-export function eventView(params: { when?: ParamValue; view?: ParamValue }): EventGrouping | "table" {
-  const view = firstOf(params.view);
-  return firstOf(params.when) !== "past" && (view === "owner" || view === "tag") ? view : "table";
-}
-
-/** The events list's tab, filters and sort, each as typed and as applied. */
 export function eventsSearch(params: Partial<Record<string, ParamValue>>): EventsSearch & { filter: EventFilter } {
-  const search = EVENTS_LIST.read(params);
+  const read = EVENTS_LIST.read(params);
+  const [group] = among([read.group || firstOf(params.view)], EVENT_GROUPINGS);
+  const search = { ...read, group: group ?? "" };
   const tab = search.when === "past" ? "past" : "future";
   const [owners, notOwners] = anyAndNone(search.owner, (values) => values);
   const [tags, notTags] = anyAndNone(search.tag, (values) => values);
@@ -401,6 +398,7 @@ export function eventsSearch(params: Partial<Record<string, ParamValue>>): Event
     removed: search.removed === "yes",
     heldDays: listWindow(search.held),
     not: notOf({ owner: notOwners, tag: notTags, place: notPlaces }),
+    group,
     sort: parseSort(EVENT_SORTS[tab], "start", search.sort, search.dir),
     page: pageNumber(search.page),
   };

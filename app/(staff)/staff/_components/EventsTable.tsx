@@ -8,8 +8,8 @@ import type { EventHost, StaffEvent } from "@/lib/server/staff-events";
 import {
   EVENT_SORTS,
   EVENTS_PAGE_SIZE,
-  stillToCome,
-  type EventGrouping,
+  EVENT_GROUPINGS,
+  ownerNeeded,
   type EventsFound,
   type EventSort,
   type EventTab,
@@ -55,24 +55,44 @@ export function eventFiltersOf(search: EventsSearch): Params {
   return rest;
 }
 
-/**
- * The tabs: Future and Past, keeping the filters, each in its own default
- * order; between them By owner and By tag, which have none, `grouping` being
- * the one it's on.
- */
-export function EventTabs({ search, grouping = null }: { search: EventsSearch; grouping?: EventGrouping | null }) {
+/** The tabs: Future and Past, keeping the filters and the grouping, each in its own default order. */
+export function EventTabs({ search }: { search: EventsSearch }) {
   const filters = { ...eventFiltersOf(search), sort: "", dir: "" };
   return (
     <Tabs
       label={copy.tabs.label}
       tabs={[
         { key: "future", label: copy.tabs.future, href: filtersPath(PATH, filters, { when: "" }) },
-        { key: "owner", label: copy.tabs.byOwner, href: filtersPath(PATH, { view: "owner" }) },
-        { key: "tag", label: copy.tabs.byTag, href: filtersPath(PATH, { view: "tag" }) },
         { key: "past", label: copy.tabs.past, href: filtersPath(PATH, filters, { when: "past" }) },
       ]}
-      current={grouping ?? eventTab(search)}
+      current={eventTab(search)}
     />
+  );
+}
+
+/**
+ * At the right of the count over what the tab and filters find: how it shows
+ * them, as a table or in lists by owner or by tag, the one it's in marked.
+ * Each keeps the tab and filters, in the tab's own order, from the first page.
+ */
+export function EventGroups({ search }: { search: EventsSearch }) {
+  const filters = { ...eventFiltersOf(search), sort: "", dir: "" };
+  const choices = [
+    { group: "", label: copy.group.table },
+    ...EVENT_GROUPINGS.map((group) => ({ group, label: copy.group[group] })),
+  ];
+  return (
+    <nav aria-label={copy.group.label} className={styles.groups}>
+      {choices.map(({ group, label }) => (
+        <StaffLink
+          key={group}
+          href={filtersPath(PATH, filters, { group })}
+          aria-current={search.group === group ? "true" : undefined}
+        >
+          {label}
+        </StaffLink>
+      ))}
+    </nav>
   );
 }
 
@@ -158,8 +178,7 @@ function eventColumns(
       {label}
     </SortHeading>
   );
-  // Still to come and on Luma, so an owner is needed.
-  const needed = (event: StaffEvent) => stillToCome(event.startAt, now) && !event.removed;
+  const needed = (event: StaffEvent) => ownerNeeded(event, now);
   return [
     {
       key: "start",
@@ -261,6 +280,7 @@ export default function EventsTable({
         pages={found.pages}
         pageSize={EVENTS_PAGE_SIZE}
         href={(n) => filtersPath(PATH, filters, pageParam(n))}
+        actions={<EventGroups search={search} />}
         align="middle"
         columns={eventColumns(search, { staff, now, save, hosts })}
         rows={found.events}

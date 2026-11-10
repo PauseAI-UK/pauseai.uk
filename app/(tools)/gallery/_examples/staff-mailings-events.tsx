@@ -4,7 +4,7 @@
 // login page.
 import { staffCopy } from "@/lib/content/staff-interface";
 import EventFilters from "@/app/(staff)/staff/_components/EventFilters";
-import { EventsSource, EventTabs, Missing } from "@/app/(staff)/staff/_components/EventsTable";
+import { EventGroups, EventsSource, EventTabs, Missing } from "@/app/(staff)/staff/_components/EventsTable";
 import { exampleEventsTab, exampleStaff } from "@/app/(staff)/staff/_components/EventsTable.examples";
 import { MailingLetter } from "@/app/(staff)/staff/_components/MailingLetter";
 import { FilterPills } from "@/app/(staff)/staff/_components/MailingParts";
@@ -26,6 +26,7 @@ import {
   MailingForExample,
   MailingsOverviewExample,
   EventColumnsExample,
+  EventsListExample,
   EventsTableExample,
   MailingViewExample,
   MailingWriterExample,
@@ -131,18 +132,54 @@ export const staffMailingsEvents: Group = {
       file: "app/(staff)/staff/_components/EventsTable.tsx",
       variants: [
         {
-          label: "On Past, with a filter on, which Future keeps too; By owner and By tag have none",
+          label: "On Past, with a filter on, which Future keeps too",
           render: () => (
             <StaffPage as="div">
               <EventTabs search={exampleEventsTab({ when: "past", tag: "London" }).search} />
             </StaffPage>
           ),
         },
+      ],
+    },
+    {
+      name: "EventGroups",
+      file: "app/(staff)/staff/_components/EventsTable.tsx",
+      variants: [
         {
-          label: "On By owner",
+          label: "As a table",
           render: () => (
             <StaffPage as="div">
-              <EventTabs search={exampleEventsTab().search} grouping="owner" />
+              <EventGroups search={exampleEventsTab().search} />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "In lists by owner",
+          render: () => (
+            <StaffPage as="div">
+              <EventGroups search={exampleEventsTab({ group: "owner" }).search} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "EventsList",
+      file: "app/(staff)/staff/_components/EventColumns.tsx",
+      variants: [
+        {
+          label: "Not online, by owner: what the filters find, in lists, the choice of how at the right of the count",
+          render: () => (
+            <StaffPage as="div">
+              <EventsListExample params={{ group: "owner", place: "!online" }} />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "Past, by tag: No owner isn't an error once an event's been held",
+          render: () => (
+            <StaffPage as="div">
+              <EventsListExample params={{ when: "past", group: "tag" }} />
             </StaffPage>
           ),
         },

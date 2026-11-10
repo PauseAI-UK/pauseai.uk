@@ -24,8 +24,9 @@ export type EventSort = "start" | "name" | "place" | "going" | "owner" | "doc";
 
 export const EVENTS_PAGE_SIZE = 100;
 
-/** The tabs that list every event to come in lists, rather than a table: by owner and by tag. */
-export type EventGrouping = "owner" | "tag";
+/** How the list can show what it finds in lists, rather than a table: by owner and by tag. */
+export const EVENT_GROUPINGS = ["owner", "tag"] as const;
+export type EventGrouping = (typeof EVENT_GROUPINGS)[number];
 
 /** One of those lists: its heading, and its events, soonest first. */
 export type EventList = { title: string; events: StaffEvent[] };
@@ -58,6 +59,8 @@ export type EventFilter = {
   heldDays?: number;
   /** Those with none of these, each a filter above that repeats. */
   not?: Pick<EventFilter, NegatableEventFilter>;
+  /** In lists by this, all of them, not a page; or, by default, a table. */
+  group?: EventGrouping;
   sort: SortSpec<EventSort>;
   page: number;
 };
@@ -117,10 +120,15 @@ export function stillToCome(startAt: Date, now: Date): boolean {
   return londonDayHour(startAt).day >= londonDayHour(now).day;
 }
 
+/** Whether an event needs an owner at `now`: it's still to come, and on Luma. */
+export function ownerNeeded(event: Pick<StaffEvent, "startAt" | "removed">, now: Date): boolean {
+  return stillToCome(event.startAt, now) && !event.removed;
+}
+
 /**
  * The events `filter` finds of `events`, its tab's, to come or past at
- * `now`, sorted, one page of them; any tie, by when it starts, in the
- * tab's own direction, then by ID.
+ * `now`, sorted, one page of them, or all of them for lists by a grouping;
+ * any tie, by when it starts, in the tab's own direction, then by ID.
  */
 export function findEvents<E extends SearchedEvent>(
   events: readonly E[],
@@ -149,9 +157,9 @@ export function findEvents<E extends SearchedEvent>(
       order(a.startAt.getTime(), b.startAt.getTime(), startDir) ||
       order(a.id, b.id, "asc"),
   );
-  const pages = Math.max(1, Math.ceil(found.length / EVENTS_PAGE_SIZE));
+  const pages = filter.group ? 1 : Math.max(1, Math.ceil(found.length / EVENTS_PAGE_SIZE));
   return {
-    events: found.slice((filter.page - 1) * EVENTS_PAGE_SIZE, filter.page * EVENTS_PAGE_SIZE),
+    events: filter.group ? found : found.slice((filter.page - 1) * EVENTS_PAGE_SIZE, filter.page * EVENTS_PAGE_SIZE),
     total: found.length,
     pages,
     removed: search && found.length === 0 && !filter.removed ? matching(true).length : 0,

@@ -89,7 +89,7 @@ import {
 } from "@/app/(staff)/staff/_components/MailingWriter.examples";
 import MailingsOverview from "@/app/(staff)/staff/_components/MailingsOverview";
 import Notice from "@/app/(staff)/staff/_components/ui/Notice";
-import EventColumns from "@/app/(staff)/staff/_components/EventColumns";
+import EventColumns, { EventsList } from "@/app/(staff)/staff/_components/EventColumns";
 import EventsTable from "@/app/(staff)/staff/_components/EventsTable";
 import {
   exampleEventsNow,
@@ -720,6 +720,29 @@ export function EventColumnsExample({ grouping, none = false }: { grouping: Even
           events={none ? [] : exampleEventsToCome}
           grouping={grouping}
           staff={exampleStaff}
+          now={exampleEventsNow}
+          save={async (form) => {
+            log("save")(form);
+            return { emailed: [], owner: null };
+          }}
+        />
+      )}
+    </Logged>
+  );
+}
+
+/** What the example events' tab and filters find (`params`), as a table or in lists by a grouping; saving an event's edit form is logged. */
+export function EventsListExample({ params = {} }: { params?: Parameters<typeof exampleEventsTab>[0] }) {
+  const { search, found } = exampleEventsTab(params);
+  return (
+    <Logged>
+      {(log) => (
+        <EventsList
+          found={found}
+          search={search}
+          staff={exampleStaff}
+          now={exampleEventsNow}
+          hosts
           save={async (form) => {
             log("save")(form);
             return { emailed: [], owner: null };

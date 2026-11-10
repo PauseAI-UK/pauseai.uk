@@ -172,7 +172,7 @@ test("Event hosts", async ({ page, request, flowDatabase }) => {
 
 /**
  * A busy calendar, all made up, on the fixed clock's 16 October 2026: every kind
- * of list By owner and By tag have, one owner past the fold, events with no owner
+ * of list by owner and by tag, one owner past the fold, events with no owner
  * and with no tag, a call in both Scotland and Online, one earlier today and
  * yesterday's.
  */
@@ -221,26 +221,26 @@ function busyCalendar(database: string) {
   );
 }
 
-/** The headings of the lists on the By owner or By tag tab, not the menu's. */
+/** The headings of the lists by owner or by tag, not the menu's. */
 const listHeadings = (page: Page) => page.locator("section:not(nav section) > h2");
 
-/** A list on the By owner or By tag tab, by its heading's words. */
+/** A list by owner or by tag, by its heading's words. */
 const eventList = (page: Page, title: string | RegExp) =>
   page.locator("section").filter({ has: page.getByRole("heading", { level: 2, name: title }) });
 
 test("Events by owner", async ({ page, flowDatabase }) => {
   story(
-    "The calendar is busy, and Future's table is long. By owner lists every event to come under who owns it, with the ones nobody owns first, in red.",
+    "The calendar is busy, and Future's table is long. By owner, at the right of the count, lists every event to come under who owns it, with the ones nobody owns first, in red.",
   );
   busyCalendar(flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/events`);
-  await page.getByRole("link", { name: copy.tabs.byOwner }).click();
-  await expect(page).toHaveURL(`${BASE}/staff/events?view=owner`);
+  await page.getByRole("link", { name: copy.group.owner }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/events?group=owner`);
   const noOwner = eventList(page, new RegExp(`^${copy.noOwner}`));
   await expect(noOwner.getByRole("link", { name: "Oxford AI risk talk" })).toBeVisible();
   await expect(listHeadings(page).first()).toContainText(copy.noOwner);
-  await expect(page.getByRole("searchbox")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: copy.tabs.future })).toHaveAttribute("aria-current", "page");
   await frame(page, "Every event to come, by owner");
 
   story("Joseph has more than five, so the rest fold. Opening them moves only what's under them in that column.");
@@ -284,8 +284,8 @@ test("Events by tag", async ({ page, flowDatabase }) => {
   busyCalendar(flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/events`);
-  await page.getByRole("link", { name: copy.tabs.byTag }).click();
-  await expect(page).toHaveURL(`${BASE}/staff/events?view=tag`);
+  await page.getByRole("link", { name: copy.group.tag }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/events?group=tag`);
   const titles = await listHeadings(page).allTextContents();
   expect(titles.map((title) => title.replace(/\d+$/, ""))).toEqual([
     "London",
@@ -317,25 +317,39 @@ test("Events by tag", async ({ page, flowDatabase }) => {
   await frame(page, "London's events, unfolded");
 });
 
-test("Filters are only on Future and Past", async ({ page, flowDatabase }) => {
-  story("Staff filter Future to Oxford, so its table has one event, and they can save that filter.");
+test("In-person events by owner", async ({ page, flowDatabase }) => {
+  story(
+    "Joseph wants to see who owns each event people travel to. He starts from the lists by owner, which have the same filters as the table.",
+  );
   busyCalendar(flowDatabase);
   await logIn(page, flowDatabase);
-  await page.goto(`${BASE}/staff/events?place=Oxford`);
-  await expect(page.locator("tbody tr")).toHaveCount(1);
-  await frame(page, "Future, filtered to Oxford");
+  await page.goto(`${BASE}/staff/events?group=owner`);
+  await expect(eventList(page, /^maya/).getByRole("link", { name: "Scotland organisers' call" })).toBeVisible();
+  await frame(page, "Every event to come, by owner");
 
-  story("By owner shows every event to come regardless, and has no filters to set.");
-  await page.getByRole("link", { name: copy.tabs.byOwner }).click();
-  await expect(page).toHaveURL(`${BASE}/staff/events?view=owner`);
-  await expect(page.getByRole("link", { name: "London film night", exact: true }).first()).toBeAttached();
-  await expect(page.getByRole("button", { name: staffCopy.filters.saved.chip, exact: true })).toHaveCount(0);
-  await frame(page, "By owner, with everything on it");
+  story("From Except, he leaves out Online. The calls and the welcome go, and the lists stay by owner.");
+  await page.getByRole("button", { name: staffCopy.filters.except }).click();
+  const place = page
+    .locator("[popover]:popover-open details")
+    .filter({ has: page.locator("summary", { hasText: new RegExp(`^${copy.filters.place}$`) }) });
+  await place.locator("summary").click();
+  await place.getByRole("link", { name: copy.online, exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: staffCopy.filters.notChip(copy.filters.place, copy.online) }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/group=owner/);
+  await expect(page.getByRole("link", { name: "Scotland organisers' call" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "New volunteers' welcome" })).toHaveCount(0);
+  await expect(eventList(page, /^maya/).getByRole("link", { name: "Edinburgh flyering" })).toBeVisible();
+  await frame(page, "By owner, without online events");
 
-  story("So does By tag, even if the address has a filter in it, from a link someone kept.");
-  await page.goto(`${BASE}/staff/events?view=tag&place=Oxford`);
-  await expect(page.getByRole("heading", { level: 2, name: /^London/ })).toBeVisible();
-  await frame(page, "By tag, its address naming Oxford");
+  story("Past keeps both, so he can see who ran the events already held. No owner isn't red there, as it's too late.");
+  await page.getByRole("link", { name: copy.tabs.past }).click();
+  await expect(eventList(page, /^joseph/).getByRole("link", { name: "Yesterday's pub social" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: staffCopy.filters.notChip(copy.filters.place, copy.online) }),
+  ).toBeVisible();
+  await frame(page, "Past, by owner, without online events");
 });
 
 test("An event stays on Future until the end of its day", async ({ page, flowDatabase }) => {
@@ -350,8 +364,8 @@ test("An event stays on Future until the end of its day", async ({ page, flowDat
   await expect(page.getByRole("row").filter({ hasText: "Yesterday's pub social" })).toHaveCount(0);
   await frame(page, "This morning's event, still on Future");
 
-  story("It's on By owner too, in the red list.");
-  await page.getByRole("link", { name: copy.tabs.byOwner }).click();
+  story("It's in the red list by owner too.");
+  await page.getByRole("link", { name: copy.group.owner }).click();
   await expect(
     eventList(page, new RegExp(`^${copy.noOwner}`)).getByRole("link", { name: "Breakfast with organisers" }),
   ).toBeVisible();
@@ -359,6 +373,9 @@ test("An event stays on Future until the end of its day", async ({ page, flowDat
 
   story("Yesterday's is on Past, and this morning's isn't yet.");
   await page.getByRole("link", { name: copy.tabs.past }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/events?when=past&group=owner`);
+  await page.getByRole("link", { name: copy.group.table }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/events?when=past`);
   await expect(page.getByRole("row").filter({ hasText: "Yesterday's pub social" })).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Breakfast with organisers" })).toHaveCount(0);
   await frame(page, "Past, with yesterday's event");

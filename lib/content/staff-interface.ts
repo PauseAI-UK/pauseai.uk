@@ -905,8 +905,11 @@ export const staffCopy = {
     none: "No events yet.",
     // The tabs over the list, and their name, for a screen reader: those still to come, soonest first, and those
     // past, latest first.
-    tabs: { label: "When", future: "Future", byOwner: "By owner", byTag: "By tag", past: "Past" },
-    // On the By owner and By tag tabs: the list of those with no tag; the other tags of an event listed under one;
+    tabs: { label: "When", future: "Future", past: "Past" },
+    // At the right of the count over the list: how it shows what the tab and filters find, its name, for a screen
+    // reader, then each choice: a table, or lists by owner or by tag. A saved filter's summary says the lists' too.
+    group: { label: "⁂ Show as", table: "⁂ Table", owner: "By owner", tag: "By tag" },
+    // In the lists by owner and by tag: the list of those with no tag; the other tags of an event listed under one;
     // the fold of a list's later events; and how many are going to an event.
     lists: {
       noTag: "No tag",
