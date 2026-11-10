@@ -136,7 +136,9 @@ reminders still go, needs testing.
 ### 3. The preferences page
 
 Anyone can enter their email address and be emailed a link to a page
-where they see and change what they get.
+where they see and change what they get. Asking for the link takes
+Turnstile, so the form can't be used to send our mail to anyone
+(`docs/domain-concepts.md`, "Form entries").
 Every unsubscribe link opens it too, and staff send it to anyone who
 asks them to change their emails. It says clearly and simply what we
 will and won't send them and why, whatever the source, CiviCRM's flags
@@ -336,6 +338,8 @@ as where to change your PauseAI UK email settings.
 ## Open questions
 
 1. Does removing someone from the Luma calendar stop organisers'
-   invites to them? Organisers send Luma invites to most events, often
-   to past guests, and how they pick them isn't known. Until we know,
+   invites to them? Luma says a removed contact is opted out of the
+   calendar's invites and newsletters, but organisers send invites to
+   most events, often to past guests, and how they pick them isn't
+   known: a pasted list may not be checked. Until we know,
    the preferences page says Luma's invites are separate.
