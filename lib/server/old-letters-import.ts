@@ -35,7 +35,7 @@ import {
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "./db";
 import { gmailAccess } from "./gmail-accounts";
-import { keepReply, noteAutoReply } from "./gmail-reading";
+import { keepReply, noteAutoReply } from "./letter-replies";
 import { asRun, type Ran } from "./import-runs";
 import { wholeTextOf } from "@/lib/email-parsing/mime";
 import { messageIds, parseMime } from "@/lib/email-parsing/mime";

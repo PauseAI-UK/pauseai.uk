@@ -150,6 +150,47 @@ describeWithDatabase("one-off emails", () => {
     expect(await query("SELECT 1 FROM one_off_messages")).toEqual([]);
   });
 
+  it("keeps a message in a letter's thread on the letter, and notes an automatic one there, not as one-offs", async () => {
+    const polly = await addTestPolitician();
+    const letter = await addTestLetter({ politicianId: polly, senderEmail: "wendy@example.com" });
+    await query(
+      `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address, at,
+         from_us, blob_key, size)
+       VALUES ($1, 'policy@pauseai.uk', 'r1', 'gt', 'r1@example.org', $2, now(), false, 'x', 1)`,
+      [letter, POLLY],
+    );
+    expect(
+      await keep({ id: "ours", from: "Joseph <joseph@pauseai.info>", inReplyTo: "r1@example.org" }),
+    ).toBeUndefined();
+    expect(await keep({ id: "away", from: POLLY, thread: "gt", subject: "Automatic reply: A thread" })).toBeUndefined();
+    expect(await query("SELECT 1 FROM one_off_messages")).toEqual([]);
+    expect(
+      await query<{ gmail: string; us: boolean }>(
+        "SELECT gmail_message_id AS gmail, from_us AS us FROM letter_replies WHERE letter_id = $1 ORDER BY id",
+        [letter],
+      ),
+    ).toEqual([
+      { gmail: "r1", us: false },
+      { gmail: "ours", us: true },
+    ]);
+    expect(await query("SELECT status FROM letter_events WHERE letter_id = $1 ORDER BY id", [letter])).toEqual([
+      { status: "auto_reply" },
+    ]);
+  });
+
+  it("doesn't keep an email Postmark sent for us, such as our forward of a reply", async () => {
+    await addTestPolitician();
+    await query(
+      `INSERT INTO email_sends (purpose, address, outcome, message_id, backend) VALUES ('forwarded-reply', 'x', 'sent', 'pm-fwd', 'postmark')`,
+    );
+    expect(await keep({ id: "fwd", from: POLLY, rfc: undefined })).toBeGreaterThan(0);
+    const forward = headers({ id: "fwd2", from: POLLY });
+    forward.headers.set("message-id", "<pm-fwd@mtasv.net>");
+    expect(
+      await keepOneOff("policy@pauseai.uk", forward, Buffer.from("x"), await politicianBook(), ["policy@pauseai.uk"]),
+    ).toBeUndefined();
+  });
+
   it("threads across mailboxes by what a message answers, and in one by its Gmail thread", async () => {
     await addTestPolitician();
     const first = await keep({ id: "a", from: POLLY, thread: "t1" });

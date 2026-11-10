@@ -6,6 +6,10 @@ import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from 
 import { query } from "./db";
 import { recordProblem } from "./email";
 import { forwardReply, isAutoReply, isPostmark, deliveryProblem } from "./postmark-webhooks";
+import { gunzipSync } from "node:zlib";
+import { letterReply } from "./outside-services/blobs";
+import { threadMessages } from "./letter-threads";
+import { stubBlobsEnv } from "@/tests/gmail-sends";
 
 const POSTMARK = "https://api.postmarkapp.com/email";
 const basic = (credentials: string) => `Basic ${Buffer.from(credentials).toString("base64")}`;
@@ -400,6 +404,100 @@ describeWithDatabase("forwardReply", () => {
     });
     expect(await forwardReply(both)).toEqual(["replies@pauseai.uk", "sam@example.com"]);
     expect(await query("SELECT letter_id::int AS id FROM letter_events WHERE status = 'replied'")).toEqual(sam);
+  });
+
+  describe("keeping the reply whole", () => {
+    beforeEach(stubBlobsEnv);
+    const kept = () =>
+      query<{
+        account: string;
+        gmail: string | null;
+        rfc: string | null;
+        from: string;
+        supporter: boolean;
+        key: string;
+      }>(
+        `SELECT account, gmail_message_id AS gmail, rfc_message_id AS rfc, from_address AS "from",
+           from_supporter AS supporter, blob_key AS key FROM letter_replies ORDER BY id`,
+      );
+    const raw = "Message-ID: <office-1@parliament.example>\r\nSubject: Re: S\r\n\r\nThanks for your letter.";
+    const withRaw = (mailbox: string, extra = {}) =>
+      reply(mailbox, {
+        RawEmail: raw,
+        Headers: [{ Name: "Message-ID", Value: "<office-1@parliament.example>" }],
+        ...extra,
+      });
+
+    it("keeps a person's reply on its letter, once, however often Postmark sends it", async () => {
+      const mailbox = await sentLetter();
+      postmark();
+      await forwardReply(withRaw(mailbox));
+      await forwardReply(withRaw(mailbox));
+      expect(await kept()).toEqual([
+        {
+          account: `${mailbox}@letters.pauseai.uk`,
+          gmail: null,
+          rfc: "office-1@parliament.example",
+          from: "test-mp@parliament.example",
+          supporter: false,
+          key: "postmark/inbound-1.eml.gz",
+        },
+      ]);
+      expect(gunzipSync((await letterReply("postmark/inbound-1.eml.gz"))!).toString()).toBe(raw);
+      expect(await threadMessages((await query<{ id: number }>("SELECT id::int AS id FROM letters"))[0].id)).toEqual([
+        expect.objectContaining({ fromAddress: "test-mp@parliament.example", text: "Thanks for your letter." }),
+      ]);
+    });
+
+    it("doesn't keep it again under another of Postmark's IDs, as when the letter has it from a mailbox", async () => {
+      const mailbox = await sentLetter();
+      postmark();
+      await forwardReply(withRaw(mailbox));
+      await forwardReply(withRaw(mailbox, { MessageID: "inbound-2" }));
+      expect(await kept()).toHaveLength(1);
+    });
+
+    it("keeps the sender's own follow-up as theirs, and one with no Message-ID or sender", async () => {
+      const mailbox = await sentLetter();
+      postmark();
+      await forwardReply(withRaw(mailbox, { FromFull: { Email: "JANE@example.com", Name: "Jane" } }));
+      await forwardReply({ OriginalRecipient: `${mailbox}@letters.pauseai.uk`, MessageID: "inbound-2", RawEmail: raw });
+      expect(await kept()).toEqual([
+        expect.objectContaining({ from: "jane@example.com", supporter: true }),
+        expect.objectContaining({ from: "", rfc: null, supporter: false, key: "postmark/inbound-2.eml.gz" }),
+      ]);
+    });
+
+    it("keeps nothing of an automatic reply, or without the whole message or Postmark's ID", async () => {
+      const mailbox = await sentLetter();
+      postmark();
+      await forwardReply(withRaw(mailbox, { Headers: [{ Name: "Auto-Submitted", Value: "auto-replied" }] }));
+      await forwardReply(reply(mailbox, { MessageID: "inbound-2" }));
+      await forwardReply(withRaw(mailbox, { MessageID: undefined }));
+      expect(await kept()).toEqual([]);
+    });
+
+    it("brings onto the letter a one-off kept from a mailbox that answers the letter", async () => {
+      const mailbox = await sentLetter();
+      const [{ id: letter }] = await query<{ id: number }>("SELECT id::int AS id FROM letters");
+      await query(
+        `INSERT INTO email_sends (purpose, letter_id, address, outcome, message_id) VALUES ('letter', $1, 'x', 'sent', 'pm-letter')`,
+        [letter],
+      );
+      const [{ id: thread }] = await query<{ id: number }>(
+        "INSERT INTO one_off_threads (subject, latest_at) VALUES ('Re: S', now()) RETURNING id::int AS id",
+      );
+      await query(
+        `INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, in_reply_to, from_address,
+           addresses, at, from_us, blob_key, size)
+         VALUES ($1, 'policy@pauseai.uk', 'g1', 'gt1', ARRAY['pm-letter@mtasv.net'], 'aide@parliament.example', '{}', now(), false, 'one-off/g1', 1)`,
+        [thread],
+      );
+      postmark();
+      await forwardReply(withRaw(mailbox));
+      expect((await kept()).map((row) => row.key)).toEqual(["postmark/inbound-1.eml.gz", "one-off/g1"]);
+      expect(await query("SELECT 1 FROM one_off_threads")).toEqual([]);
+    });
   });
 
   it("ignores mail for no letter, unknown letters, and our own mail coming back", async () => {

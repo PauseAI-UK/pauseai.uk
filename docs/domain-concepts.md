@@ -147,7 +147,11 @@ adds what its kind has, joined as notable people are:
   before it went by Postmark from an address of their own on
   `letters.pauseai.uk` (`postmark_mailbox`), with the sender on Cc, and a
   reply to that address is still forwarded to the sender and the policy
-  team (`forwardReply`, `lib/server/postmark-webhooks.ts`). The letters sent
+  team (`forwardReply`, `lib/server/postmark-webhooks.ts`). A person's reply
+  is also kept whole on the letter, as one read from Gmail is, from the whole
+  message Postmark's inbound webhook carries with the server's
+  `RawEmailEnabled` on: its account the letter's own address, with no Gmail
+  IDs. Our forward of it, read from policy@, isn't kept again. The letters sent
   through pauseai.info's old form were imported once from Airtable
   (`lib/server/web-form-import.ts`), keyed by the record, with neither. Both
   have their text in `letter` once the import of old letters has run, a form
@@ -358,7 +362,14 @@ token is kept encrypted (`GMAIL_TOKEN_KEY`), and deleted on disconnecting.
   are searched for too. An automatic reply is an event on the letter. Any
   other message in the thread, the politician's reply or our answer, is
   kept whole, gzipped, in Netlify Blobs, with a row in `letter_replies`;
-  the backup Worker copies them (`backup/README.md`). Each run is in the
+  the backup Worker copies them (`backup/README.md`). A copy of a message
+  the letter has, by its Message-ID, from another mailbox, isn't kept again.
+  A Gmail thread is in one place: once a message of it is on a letter, every
+  other message in it is the letter's too, whoever wrote it, and any kept as
+  a one-off email moves onto the letter (`claimOneOffs`,
+  `lib/server/letter-replies.ts`). Moving one adds nothing to the letter's
+  history, but for an automatic reply's event. An email a politician starts
+  afresh, answering no letter, is a one-off. Each run is in the
   import log, with what it found in each account, and staff can run it
   from its page under Import data.
 - **Threads.** Each PauseAI letter has a page with its whole thread
@@ -439,7 +450,9 @@ Staff without `supporters` don't see, there, supporters' letters or a thread wit
   message is kept once by its Message-ID, and threaded across mailboxes by
   In-Reply-To and References, as each has its own Gmail thread IDs. A thread that
   counts is kept whole, within the mailbox it was found in: what came before the
-  message that counts and what comes after, whoever wrote it.
+  message that counts and what comes after, whoever wrote it. A message in a
+  letter's thread is the letter's instead ("Mailings to politicians", above), and
+  one we sent, Postmark's included, isn't kept.
 - **Quotes.** The forwarded or quoted From, Sent, To and Cc also say a thread is
   with a politician. As volunteers forward their emails to us, policy@ and the
   group's archive, which are shared mail, are searched this way. Joseph's other

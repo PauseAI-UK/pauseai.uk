@@ -49,14 +49,19 @@ export function recordGmail(answer?: () => Response | undefined): GmailSend[] {
 
 export { LETTERS_INBOX, testMail, testProxy, type TestMail } from "./fixtures/test-mail";
 
-/** The settings reading and relaying need: Netlify Blobs, answered by the fixtures, and the site's own address, for links. */
-export function stubLettersInboxEnv(): void {
+/** Netlify Blobs, answered by the fixtures, for the messages kept whole. */
+export function stubBlobsEnv(): void {
   vi.stubEnv(
     "NETLIFY_BLOBS_CONTEXT",
     Buffer.from(JSON.stringify({ edgeURL: "https://blobs.fixture.invalid", siteID: "fixture", token: "t" })).toString(
       "base64",
     ),
   );
+}
+
+/** The settings reading and relaying need: Netlify Blobs, and the site's own address, for links. */
+export function stubLettersInboxEnv(): void {
+  stubBlobsEnv();
   vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
   vi.stubEnv("POLICY_INBOX", "policy@example.org");
   vi.stubEnv("NOTIFICATION_INBOX", "notifications@example.org");

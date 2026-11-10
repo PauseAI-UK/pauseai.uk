@@ -1,12 +1,10 @@
 import "server-only";
 import { config } from "./config";
-import { gzipSync } from "node:zlib";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { importPath, type GmailRead, type GmailReadResult } from "@/lib/import-runs";
 import { gmailMessageLink } from "@/lib/letter-links";
-import { query, transaction } from "./db";
+import { query } from "./db";
 import { handleDeliveryProblem } from "./delivery-problems";
-import { sentBy } from "./email";
 import { lettersInbox } from "./letters-inbox";
 import { readLettersInbox } from "./letters-inbox-reading";
 import { notifyStaff, staffLink } from "./notifications";
@@ -16,7 +14,6 @@ import { keepsPoliticianThreads } from "@/lib/one-off";
 import { keepIfPoliticianThread, reportUnmatchedMail } from "./one-off-emails";
 import {
   allParts,
-  decodeWords,
   fromAddress,
   messageIds,
   parseHeaders,
@@ -24,7 +21,6 @@ import {
   partText,
   type MimePart,
 } from "@/lib/email-parsing/mime";
-import { saveLetterReply } from "./outside-services/blobs";
 import {
   gmailHistory,
   gmailMessageHeaders,
@@ -36,7 +32,7 @@ import {
   searchGmail,
   type GmailMessageHeaders,
 } from "./outside-services/gmail";
-import type { ReplyHandling } from "./letters";
+import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "./letter-replies";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { describeError, problem } from "./problems";
 
@@ -87,151 +83,21 @@ const LETTERS_RESTART_SEARCH = "in:anywhere newer_than:3d";
 const isBounceSender = (address: string) => /^(mailer-daemon|postmaster)@/.test(address);
 
 /**
- * The letter a message is in the thread of: one whose Message-ID it
- * answers, or that a kept message it answers belongs to; or, in the mailbox
- * the letter went from, one in the same Gmail thread.
+ * Whether a message is one we sent: a letter, which the mailbox has in
+ * Sent, by its Message-ID, or in the mailbox it went from, by Gmail's own ID
+ * for it, as Gmail can send an email with a Message-ID of its own; or an
+ * email Postmark sent, such as our forward of a reply to a letter, whose
+ * reply is kept already from Postmark's own copy.
  */
-async function letterAnswered(account: string, message: GmailMessageHeaders): Promise<number | undefined> {
-  const refs = [...messageIds(message.headers.get("in-reply-to")), ...messageIds(message.headers.get("references"))];
-  const [row] = await query<{ letterId: number }>(
-    `SELECT letter_id::int AS "letterId" FROM (
-       SELECT letter_id, 1 AS rank FROM email_sends WHERE (purpose = 'mailing' OR imported) AND rfc_message_id = ANY($1)
-       UNION ALL SELECT letter_id, 2 FROM letter_replies WHERE rfc_message_id = ANY($1)
-       UNION ALL SELECT letter_id, 3 FROM email_sends WHERE (purpose = 'mailing' OR imported) AND sender = $2 AND gmail_thread_id = $3
-       UNION ALL SELECT letter_id, 4 FROM letter_replies WHERE account = $2 AND gmail_thread_id = $3
-     ) found WHERE letter_id IS NOT NULL ORDER BY rank LIMIT 1`,
-    [refs, account, message.threadId],
-  );
-  return row?.letterId;
-}
-
-/**
- * Whether a message is one we sent as a letter, which the mailbox has in
- * Sent: by its Message-ID, or in the mailbox it went from, by Gmail's own
- * ID for it, as Gmail can send an email with a Message-ID of its own.
- */
-async function isOurLetter(account: string, message: GmailMessageHeaders): Promise<boolean> {
+async function isOurs(account: string, message: GmailMessageHeaders): Promise<boolean> {
   const [id] = messageIds(message.headers.get("message-id"));
   const [row] = await query(
     `SELECT 1 FROM email_sends
-     WHERE rfc_message_id = $1 OR (backend = 'gmail' AND sender = $2 AND message_id = $3)`,
-    [id ?? null, account, message.id],
+     WHERE rfc_message_id = $1 OR (backend = 'gmail' AND sender = $2 AND message_id = $3)
+       OR (backend = 'postmark' AND message_id = $4)`,
+    [id ?? null, account, message.id, postmarkMessageId(id)],
   );
   return !!row;
-}
-
-/** What keepReply is told beyond the message, by a reader that knows more: see there. */
-type KeepReplyOptions = { raw?: Buffer; from?: { address: string; name: string }; fromUs?: boolean };
-
-/**
- * Keeps a message in a letter's thread whole, and marks the letter replied
- * to if the politician wrote it. `from` is who wrote it, if the From says
- * otherwise; `raw` the message, if it's been read already; `fromUs` whether
- * it's one of ours, by default if it's from the account. A supporter's own
- * message on their letter is kept as theirs, and doesn't mark it replied to.
- */
-export async function keepReply(
-  account: string,
-  token: string,
-  letterId: number,
-  message: GmailMessageHeaders,
-  {
-    raw: read,
-    from = fromAddress(message.headers.get("from")),
-    fromUs = from.address === account,
-  }: KeepReplyOptions = {},
-): Promise<void> {
-  const raw = read ?? (await gmailRawMessage(token, message.id));
-  const at = new Date(Number(message.internalDate));
-  const key = `${account}/${message.id}.eml.gz`;
-  await saveLetterReply(key, gzipSync(raw));
-  const [supporter] = await query(
-    `SELECT 1 FROM letters_from_supporters s
-       LEFT JOIN form_entries f ON f.id = s.entry_id LEFT JOIN proxies p ON p.id = s.proxy_id
-     WHERE s.id = $1 AND $2 IN (lower(f.email), p.supporter_email)`,
-    [letterId, from.address],
-  );
-  const [kept] = await query(
-    `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address,
-       from_name, subject, at, from_us, blob_key, size, from_supporter)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-     ON CONFLICT (account, gmail_message_id) DO NOTHING RETURNING id`,
-    [
-      letterId,
-      account,
-      message.id,
-      message.threadId,
-      messageIds(message.headers.get("message-id"))[0] ?? null,
-      from.address,
-      from.name,
-      message.headers.get("subject") ?? "",
-      at,
-      fromUs,
-      key,
-      raw.length,
-      !!supporter,
-    ],
-  );
-  if (!kept || fromUs) return;
-  // A supporter's own message on their letter isn't an answer to it.
-  if (!supporter) await query("UPDATE letters SET replied_at = coalesce(replied_at, $2) WHERE id = $1", [letterId, at]);
-  await query("INSERT INTO letter_events (letter_id, at, status, details) VALUES ($1, $2, 'replied', $3)", [
-    letterId,
-    at,
-    JSON.stringify({
-      from: from.address,
-      name: from.name,
-      ...addressed(message),
-      gmailMessageId: message.id,
-      // What received it, as every email's event says (sentBy in email.ts).
-      ...sentBy({ name: "gmail", account }),
-    }),
-  ]);
-}
-
-/**
- * Who a message read from Gmail was to, copied to and asked replies to go
- * to, a line each as it came, and that it went no further: it's already in
- * the mailbox, for whoever reads it.
- */
-function addressed(message: GmailMessageHeaders) {
-  const handling: ReplyHandling[] = [{ outcome: "not_forwarded", reason: "gmail" }];
-  const line = (name: string) => {
-    const value = message.headers.get(name);
-    return value === undefined ? undefined : decodeWords(value);
-  };
-  return { to: line("to"), cc: line("cc"), replyTo: line("reply-to"), handling };
-}
-
-/**
- * Notes an automatic reply on its letter, once, as of when it arrived. Says
- * whether it did. The message is locked while it's looked for, as both a read
- * of Gmail and the import of old letters may come to it at once.
- */
-export function noteAutoReply(letterId: number, message: GmailMessageHeaders): Promise<boolean> {
-  return transaction(async (db) => {
-    await query("SELECT pg_advisory_xact_lock(hashtext($1))", [`auto-reply ${message.id}`], db);
-    const [seen] = await query(
-      "SELECT 1 FROM letter_events WHERE letter_id = $1 AND status = 'auto_reply' AND details->>'gmailMessageId' = $2",
-      [letterId, message.id],
-      db,
-    );
-    if (seen) return false;
-    await query(
-      "INSERT INTO letter_events (letter_id, at, status, details) VALUES ($1, $2, 'auto_reply', $3)",
-      [
-        letterId,
-        new Date(Number(message.internalDate)),
-        JSON.stringify({
-          from: fromAddress(message.headers.get("from")).address,
-          ...addressed(message),
-          gmailMessageId: message.id,
-        }),
-      ],
-      db,
-    );
-    return true;
-  });
 }
 
 /** One address a bounce says failed: what happened, in the server's words and its status code. */
@@ -328,7 +194,7 @@ async function readMessage(account: string, token: string, id: string, read: Gma
     account,
     id,
   ]);
-  if (kept || (await isOurLetter(account, message))) return;
+  if (kept || (await isOurs(account, message))) return;
   const letterId = await letterAnswered(account, message);
   if (!letterId) {
     if (keepsPoliticianThreads(account))
