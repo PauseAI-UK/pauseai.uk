@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listSentEmails } from "@/lib/server/sent-emails";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
-import { sentEmailsSearch, type ParamValue, type SentEmailsSearch } from "@/lib/staff-search";
+import { sentEmailsSearch, type SentEmailsSearch } from "@/lib/staff-search";
+import { type ParamValue } from "@/lib/list-params";
 import SentEmails from "../../_components/SentEmails";
 
 export const metadata: Metadata = { title: staffCopy.nav.sentEmails };

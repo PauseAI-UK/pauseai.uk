@@ -4,7 +4,8 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
 import { query } from "./db";
 import { isBlocked, send, sentBy } from "./email";
-import { cannotSend, letterEvent, lettersBackend, outgoingLetter, threading } from "./letter-sending";
+import { letterEvent } from "./letter-lifecycle";
+import { cannotSend, lettersBackend, outgoingLetter, threading } from "./letter-sending";
 import { notifyStaff, staffLink } from "./notifications";
 import { mpName, nameLine, proxyLine } from "./proxies";
 

@@ -1,8 +1,10 @@
+import { EVENTS_LIST } from "@/lib/staff-lists";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { WINDOW_OPTIONS } from "@/lib/staff-dashboard";
 import { NO_OWNER, ONLINE } from "@/lib/staff-events-list";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
-import { eventsSearch, firstOf, type EventsSearch, type Params } from "@/lib/staff-search";
+import { eventsSearch, type EventsSearch } from "@/lib/staff-search";
+import { firstOf, type Params } from "@/lib/list-params";
 import { eventFiltersOf } from "./EventsTable";
 import FilterBar, { filteredName, filterWords, type Filter } from "./ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";
@@ -72,7 +74,7 @@ export default function EventFilters({
 }) {
   return (
     <FilterBar
-      path="/staff/events"
+      path={EVENTS_LIST.path}
       values={eventFiltersOf(search)}
       search={{ name: "q", label: staffCopy.events.filters.search }}
       filters={eventFilters(choices)}
@@ -83,7 +85,7 @@ export default function EventFilters({
           ...saved,
           list: "events",
           values: eventFiltersOf(search),
-          path: "/staff/events",
+          path: EVENTS_LIST.path,
           name: filteredName(staffCopy.events.title, eventWords(search, choices)),
           summary: (params) => savedEventWords(params, choices),
         })

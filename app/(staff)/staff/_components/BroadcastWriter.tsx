@@ -30,7 +30,7 @@ import type {
   WrittenBroadcast,
 } from "@/lib/server/broadcast-drafts";
 import type { BroadcastWriterData } from "@/lib/server/broadcast-pages";
-import { filtersPath } from "@/lib/staff-search";
+import { filtersPath } from "@/lib/list-params";
 import { earliestHour, londonClock, londonWhen, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
 import { stateValue, type Channel } from "@/lib/contact-permissions";
 import {

@@ -4,7 +4,8 @@ import { found } from "@/lib/found";
 import { campaignVersions, getCampaignSummary } from "@/lib/server/campaigns";
 import { listLetters } from "@/lib/server/letters";
 import { requireStaff } from "@/lib/server/staff-auth";
-import { lettersSearch, type LettersSearch, type ParamValue } from "@/lib/staff-search";
+import { lettersSearch, type LettersSearch } from "@/lib/staff-search";
+import { type ParamValue } from "@/lib/list-params";
 import Breadcrumb from "../../../_components/Breadcrumb";
 import CampaignView from "../../../_components/CampaignView";
 

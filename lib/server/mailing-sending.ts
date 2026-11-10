@@ -1,14 +1,17 @@
 import "server-only";
 import { checkMailingDoc, type MailingRecipientValues } from "@/lib/mailing-doc";
+import { IN_FLIGHT, statusIn } from "@/lib/letter-status";
 import { now } from "@/lib/now";
 import { SENDING } from "@/lib/staff-time";
 import { logChange } from "./audit";
 import { query } from "./db";
 import { isBlocked, sentBy } from "./email";
 import { gmailAccount } from "./gmail-accounts";
+import { transition } from "./letter-lifecycle";
 import { attachmentsOf, emailFor } from "./mailing-drafts";
 import { mailingChannel, type MailingChannel } from "./mailing-channels";
 import type { SkipReason } from "./mailings";
+import { sql } from "./sql";
 
 // Sending the mailings that are due: the send-mailings job starts each
 // scheduled one whose time has come, then sends its letters one at a
@@ -56,24 +59,26 @@ type Letter = {
 
 /** Takes the next letter of a mailing to send, marking it sending, so no other run sends it too. */
 async function nextLetter(mailingId: number): Promise<Letter | undefined> {
+  const [id] = await transition(
+    sql`SELECT l.id FROM letters l JOIN letters_from_pauseai p USING (id)
+        WHERE p.mailing_id = ${mailingId} AND l.status = 'scheduled' ORDER BY l.id LIMIT 1 FOR UPDATE SKIP LOCKED`,
+    ["scheduled"],
+    "sending",
+    { stamp: "taken_at" },
+  );
+  if (!id) return undefined;
   const [letter] = await query<Letter>(
-    `UPDATE letters l SET status = 'sending', taken_at = now() FROM letters_from_pauseai p, notable_people n
-     WHERE l.id = (SELECT l2.id FROM letters l2 JOIN letters_from_pauseai p2 USING (id)
-                   WHERE p2.mailing_id = $1 AND l2.status = 'scheduled' ORDER BY l2.id LIMIT 1 FOR UPDATE SKIP LOCKED)
-       AND p.id = l.id AND n.id = l.notable_person_id
-     RETURNING l.id::int AS id, n.name, n.email, n.status = 'in_office' AS "inOffice", p.merge_values AS "mergeValues"`,
-    [mailingId],
+    `SELECT l.id::int AS id, n.name, n.email, n.status = 'in_office' AS "inOffice", p.merge_values AS "mergeValues"
+     FROM letters l JOIN letters_from_pauseai p USING (id) JOIN notable_people n ON n.id = l.notable_person_id
+     WHERE l.id = $1`,
+    [id],
   );
   return letter;
 }
 
 async function skip(letterId: number, reason: SkipReason): Promise<void> {
-  await query("UPDATE letters SET status = 'skipped' WHERE id = $1", [letterId]);
   await query("UPDATE letters_from_pauseai SET skip_reason = $2 WHERE id = $1", [letterId, reason]);
-  await query("INSERT INTO letter_events (letter_id, status, details) VALUES ($1, 'skipped', $2)", [
-    letterId,
-    JSON.stringify({ reason }),
-  ]);
+  await transition(letterId, ["sending"], "skipped", { event: "skipped", details: { reason } });
 }
 
 /** Marks every mailing sending with no letter left to send as sent. */
@@ -81,7 +86,7 @@ async function finishMailings(): Promise<void> {
   const finished = await query<{ id: number }>(
     `UPDATE mailings m SET state = 'sent', updated_at = now() WHERE m.state = 'sending' AND m.audience = 'politicians' AND NOT EXISTS (
        SELECT 1 FROM letters_from_pauseai p JOIN letters l USING (id)
-       WHERE p.mailing_id = m.id AND l.status IN ('scheduled', 'sending'))
+       WHERE p.mailing_id = m.id AND ${statusIn("l.status", IN_FLIGHT)})
      RETURNING m.id::int AS id`,
   );
   for (const { id } of finished) await logChange(JOB, "finish mailing", { id });
@@ -153,25 +158,24 @@ export async function sendDueLetters({
         "mailing",
       );
       if (result.sent) {
-        await query("UPDATE letters SET status = 'sent', sent_at = now() WHERE id = $1", [letter.id]);
-        await query("INSERT INTO letter_events (letter_id, status, details) VALUES ($1, 'sent', $2)", [
-          letter.id,
-          JSON.stringify({
+        await transition(letter.id, ["sending"], "sent", {
+          event: "sent",
+          details: {
             from: mailing.sentFrom,
             to: letter.email,
             messageId: result.messageId,
             threadId: result.threadId,
             // A mailing's letter goes from its mailing's Gmail.
             ...sentBy({ name: "gmail", account: mailing.sentFrom }),
-          }),
-        ]);
+          },
+          stamp: "sent_at",
+        });
         run.sent++;
       } else if (result.reason === "blocked") {
         await skip(letter.id, "blocked");
         run.skipped++;
       } else {
-        await query("UPDATE letters SET status = 'not_sent' WHERE id = $1", [letter.id]);
-        await query("INSERT INTO letter_events (letter_id, status) VALUES ($1, 'failed')", [letter.id]);
+        await transition(letter.id, ["sending"], "not_sent", { event: "failed" });
         run.failed++;
       }
     }

@@ -15,11 +15,15 @@ import { now } from "@/lib/now";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
 import { gmailAccount } from "./gmail-accounts";
+import { transition } from "./letter-lifecycle";
 import { gmailEmail, mailingChannel, postmarkEmail, type ChannelResult } from "./mailing-channels";
 import { politicianAudience, type PoliticianRecipient } from "./mailing-recipients";
 import type { Attachment } from "./outside-services/postmark";
-import { mailingPoliticians, politiciansSearch } from "./politicians";
-import { storedFilter, type Params, type Picked, type StoredFilter } from "@/lib/staff-search";
+import { mailingPoliticians } from "./politicians";
+import { politiciansSearch } from "@/lib/staff-search";
+import { storedFilter, type Picked, type StoredFilter } from "@/lib/staff-search";
+import { type Params } from "@/lib/list-params";
+import { sql } from "./sql";
 import { checkStoredFilter, filterProblems } from "./stored-filters";
 
 // A mailing written on the site: a draft from the first change worth
@@ -444,10 +448,11 @@ export async function stopMailing(id: number, by: string): Promise<boolean> {
       );
       await markUnscheduled(id, db);
     } else if (mailing?.state === "sending") {
-      await query(
-        `UPDATE letters SET status = 'cancelled'
-         WHERE status = 'scheduled' AND id IN (SELECT id FROM letters_from_pauseai WHERE mailing_id = $1)`,
-        [id],
+      await transition(
+        sql`SELECT id FROM letters_from_pauseai WHERE mailing_id = ${id}`,
+        ["scheduled"],
+        "cancelled",
+        {},
         db,
       );
       await markCancelled(id, db);

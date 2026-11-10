@@ -1,3 +1,4 @@
+import { EVENTS_LIST } from "@/lib/staff-lists";
 import { Fragment } from "react";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
@@ -13,7 +14,8 @@ import {
   type EventSort,
   type EventTab,
 } from "@/lib/staff-events-list";
-import { filtersPath, pageParam, type EventsSearch, type Params } from "@/lib/staff-search";
+import { type EventsSearch } from "@/lib/staff-search";
+import { filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { parseSort, sortHref } from "@/lib/staff-sort";
 import { londonDate } from "@/lib/staff-time";
 import AlertIcon from "./AlertIcon";
@@ -25,7 +27,7 @@ import Tabs from "./ui/Tabs";
 import styles from "./EventsTable.module.css";
 import ExternalLink from "./ui/ExternalLink";
 
-const PATH = "/staff/events";
+const PATH = EVENTS_LIST.path;
 const copy = staffCopy.events;
 
 /**

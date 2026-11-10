@@ -1,10 +1,10 @@
 import "server-only";
 import { gunzipSync } from "node:zlib";
+import type { LetterEvent } from "@/lib/letter-status";
 import { query } from "./db";
 import { isBlocked, send, sentBy } from "./email";
 import {
   cannotSend,
-  letterEvent,
   lettersBackend,
   noticeToSender,
   outgoingLetter,
@@ -13,6 +13,7 @@ import {
   sentMessageId,
   type QueueReason,
 } from "./letter-sending";
+import { letterEvent, transition } from "./letter-lifecycle";
 import { isLettersInboxAddress } from "./letters-inbox";
 import { relayMime } from "./mime";
 import { letterReply } from "./outside-services/blobs";
@@ -39,7 +40,7 @@ export async function overRelayCap(letterId: number): Promise<boolean> {
 }
 
 /** A relay's history event: `status`, with whom it's to and the message it relays. */
-async function relayEvent(relayId: number, status: string, details: object = {}) {
+async function relayEvent(relayId: number, status: LetterEvent, details: object = {}) {
   const [relay] = await query<{ letterId: number; gmailMessageId: string }>(
     `SELECT r.letter_id::int AS "letterId", m.gmail_message_id AS "gmailMessageId"
      FROM letter_relays r JOIN letter_replies m ON m.id = r.reply_id WHERE r.id = $1`,
@@ -191,7 +192,7 @@ export async function resendAfterFix(fix: { address?: string; politicianId?: num
     params,
   );
   for (const letter of letters) {
-    await query("UPDATE letters SET status = 'queued' WHERE id = $1", [letter.id]);
+    await transition(letter.id, ["bounced", "queued"], "queued");
     const sent = await sendLetter(letter.id);
     if (sent.sent && letter.told) await noticeToSender(letter.id, "resent");
   }

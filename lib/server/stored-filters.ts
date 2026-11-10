@@ -9,15 +9,13 @@ import { DASHBOARD_WINDOWS } from "@/lib/staff-dashboard";
 import { NO_OWNER, ONLINE } from "@/lib/staff-events-list";
 import {
   FILTER_LISTS,
-  notValue,
   storedFilter,
-  valuesOf,
   WHO_PARAMS,
   type FilterList,
-  type Params,
   type Picked,
   type StoredFilter,
 } from "@/lib/staff-search";
+import { notValue, valuesOf, type Params } from "@/lib/list-params";
 import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters";
 import { changeChoices } from "./audit";
 import { query } from "./db";

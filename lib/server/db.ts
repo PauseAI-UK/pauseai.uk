@@ -4,6 +4,7 @@ import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import { flowDatabase } from "./flow-database";
 import { migrationsBehindMessage } from "./migrations-check";
 import { describeError } from "./problems";
+import { render, Sql } from "./sql";
 import { staffCopy } from "@/lib/content/staff-interface";
 
 // The only file that connects to the database (an ESLint rule bans "pg"
@@ -82,13 +83,22 @@ async function warnIfBehind(db: Queryable): Promise<void> {
 /** Something that runs a query: the pool, or a client inside a transaction. */
 export type Queryable = { query: PoolClient["query"] };
 
-/** Runs one query and returns its rows. */
+/** Runs one query, its text with $1-style parameters and their values, or a statement built with sql`…`, and returns its rows. */
 export async function query<Row extends QueryResultRow>(
   text: string,
-  values: unknown[] = [],
+  values?: unknown[],
+  db?: Queryable,
+): Promise<Row[]>;
+export async function query<Row extends QueryResultRow>(statement: Sql, db?: Queryable): Promise<Row[]>;
+export async function query<Row extends QueryResultRow>(
+  statement: string | Sql,
+  valuesOrDb?: unknown[] | Queryable,
   db?: Queryable,
 ): Promise<Row[]> {
-  return (await (db ?? (await getPool())).query<Row>(text, values)).rows;
+  const { text, values } =
+    statement instanceof Sql ? render(statement) : { text: statement, values: (valuesOrDb as unknown[]) ?? [] };
+  const on = statement instanceof Sql ? (valuesOrDb as Queryable | undefined) : db;
+  return (await (on ?? (await getPool())).query<Row>(text, values)).rows;
 }
 
 /** Runs `work` in a transaction, rolled back if it throws. */

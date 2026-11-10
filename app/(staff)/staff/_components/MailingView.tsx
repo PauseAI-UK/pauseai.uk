@@ -10,7 +10,7 @@ import { answerLabels, POLITICIAN_FIELDS } from "@/lib/mailing-fields";
 import type { Ask } from "@/lib/server/asks";
 import type { MailingState, WrittenMailing } from "@/lib/server/mailing-drafts";
 import type { Mailing, MailingRecipient } from "@/lib/server/mailings";
-import { filtersPath, pageParam } from "@/lib/staff-search";
+import { filtersPath, pageParam } from "@/lib/list-params";
 import { londonWhen, staffDate, staffTime } from "@/lib/staff-time";
 import { ChangeTimeForm } from "./DueTime";
 import { StopMailing } from "./MailingButtons";

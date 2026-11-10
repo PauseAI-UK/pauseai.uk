@@ -4,7 +4,7 @@ import { keepsPoliticianThreads } from "@/lib/one-off";
 import { gmailAccount } from "@/lib/server/gmail-accounts";
 import { isLettersInboxAddress } from "@/lib/server/letters-inbox";
 import { listSessions, requireStaff } from "@/lib/server/staff-auth";
-import { firstOf, type ParamValue } from "@/lib/staff-search";
+import { firstOf, type ParamValue } from "@/lib/list-params";
 import { disconnectMyGmail } from "../../actions";
 import AccountTitle from "../../_components/AccountTitle";
 import MyGmail from "../../_components/MyGmail";

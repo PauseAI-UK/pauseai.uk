@@ -4,7 +4,7 @@ import Tag from "@/components/ui/Tag";
 import { askPeriod } from "@/lib/ask-groups";
 import type { AskStatus } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { filtersPath, pageParam } from "@/lib/staff-search";
+import { filtersPath, pageParam } from "@/lib/list-params";
 import type { AskAnswer, AskAnswerGroup, AskPageData } from "@/lib/server/asks";
 import { staffDate } from "@/lib/staff-time";
 import { answeredOf, ANSWER_TONES, askCounts } from "./AsksList";

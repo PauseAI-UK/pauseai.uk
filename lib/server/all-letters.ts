@@ -5,6 +5,7 @@ import { isAtPauseai, PARLIAMENT_DOMAINS, politicianAddresses, type PoliticianBo
 import { windowStart } from "@/lib/staff-dashboard";
 import { ALL_LETTERS_PAGE_SIZE, type AllLettersFilter } from "@/lib/staff-search";
 import { query } from "./db";
+import { sql, type Sql } from "./sql";
 import { threadsWithSomeoneElse } from "./one-off-emails";
 import { politicianBook } from "./politician-book";
 
@@ -74,12 +75,17 @@ function recipientsOf(line: string, book: PoliticianBook, known: EmailPerson[]):
   ];
 }
 
-/** Whether an address is a politician's, its values the first three of the query's: as lib/one-off.ts tells, in SQL. */
-const FROM_POLITICIAN = (address: string) =>
-  `(${address} = ANY($1) OR split_part(${address}, '@', 2) = ANY($2) OR ${address} ~ $3)`;
+/** The politician book's addresses and domains, and parliaments', as values to put in a query once. */
+type BookValues = { addresses: Sql; domains: Sql; parliament: Sql };
+
+/** Whether an address is a politician's, by `book`: as lib/one-off.ts tells, in SQL. */
+const fromPolitician = (address: string, book: BookValues) => {
+  const column = sql.raw(address);
+  return sql`(${column} = ANY(${book.addresses}) OR split_part(${column}, '@', 2) = ANY(${book.domains}) OR ${column} ~ ${book.parliament})`;
+};
 
 /** A row's type, as EMAIL_TYPES. */
-const TYPE_OF = "CASE e.kind WHEN 'supporter' THEN 'campaign' WHEN 'pauseai' THEN 'mailing' ELSE 'one-off' END";
+const TYPE_OF = sql`CASE e.kind WHEN 'supporter' THEN 'campaign' WHEN 'pauseai' THEN 'mailing' ELSE 'one-off' END`;
 
 /** A politician the To filter offers. */
 export type EmailChoice = { id: number; name: string; constituency: string | null };
@@ -111,34 +117,32 @@ export async function emailPeople(supporters: boolean): Promise<EmailChoice[]> {
 export async function listAllLetters(filter: AllLettersFilter, supporters: boolean): Promise<AllLettersFound> {
   const book = await politicianBook();
   const hidden = supporters ? [] : await threadsWithSomeoneElse();
-  const values: unknown[] = [[...book.addresses.keys()], [...book.domains.keys()], PARLIAMENT_ADDRESS, hidden];
-  const add = (value: unknown) => {
-    values.push(value);
-    return `$${values.length}`;
+  const values: BookValues = {
+    addresses: sql`${[...book.addresses.keys()]}`,
+    domains: sql`${[...book.domains.keys()]}`,
+    parliament: sql`${PARLIAMENT_ADDRESS}`,
   };
-  const where = supporters ? [] : ["e.kind <> 'supporter' AND NOT e.someone_else"];
+  const where: Sql[] = supporters ? [] : [sql`e.kind <> 'supporter' AND NOT e.someone_else`];
   if (filter.search) {
-    const like = add(`%${filter.search}%`);
-    where.push(`(e.sender_name ILIKE ${like} OR e.sender_email ILIKE ${like} OR e.about ILIKE ${like}
-      OR EXISTS (SELECT 1 FROM json_array_elements(e.people) person WHERE person->>'name' ILIKE ${like}))`);
+    const like = sql`${`%${filter.search}%`}`;
+    where.push(sql`e.sender_name ILIKE ${like} OR e.sender_email ILIKE ${like} OR e.about ILIKE ${like}
+      OR EXISTS (SELECT 1 FROM json_array_elements(e.people) person WHERE person->>'name' ILIKE ${like})`);
   }
-  if (filter.from) where.push(`e.sender = ANY(${add(filter.from)})`);
-  if (filter.notFrom) where.push(`e.sender <> ALL(${add(filter.notFrom)})`);
-  if (filter.type) where.push(`${TYPE_OF} = ANY(${add(filter.type)})`);
-  if (filter.notType) where.push(`${TYPE_OF} <> ALL(${add(filter.notType)})`);
+  if (filter.from) where.push(sql`e.sender = ANY(${filter.from})`);
+  if (filter.notFrom) where.push(sql`e.sender <> ALL(${filter.notFrom})`);
+  if (filter.type) where.push(sql`${TYPE_OF} = ANY(${filter.type})`);
+  if (filter.notType) where.push(sql`${TYPE_OF} <> ALL(${filter.notType})`);
   const isWith = (ids: number[]) =>
-    `EXISTS (SELECT 1 FROM json_array_elements(e.people) person WHERE (person->>'id')::bigint = ANY(${add(ids)}))`;
+    sql`EXISTS (SELECT 1 FROM json_array_elements(e.people) person WHERE (person->>'id')::bigint = ANY(${ids}))`;
   if (filter.to) where.push(isWith(filter.to));
-  if (filter.notTo) where.push(`NOT ${isWith(filter.notTo)}`);
-  if (filter.sentDays) {
-    where.push(`e.sent_at >= ${add(windowStart(filter.sentDays))} AND e.sent_at <= ${add(now())}`);
-  }
-  if (filter.replied === "yes") where.push("e.replied_at IS NOT NULL");
-  else if (filter.replied === "no") where.push("e.replied_at IS NULL");
+  if (filter.notTo) where.push(sql`NOT ${isWith(filter.notTo)}`);
+  if (filter.sentDays) where.push(sql`e.sent_at >= ${windowStart(filter.sentDays)} AND e.sent_at <= ${now()}`);
+  if (filter.replied === "yes") where.push(sql`e.replied_at IS NOT NULL`);
+  else if (filter.replied === "no") where.push(sql`e.replied_at IS NULL`);
   else if (filter.replied) {
-    where.push(`e.replied_at >= ${add(windowStart(filter.replied))} AND e.replied_at <= ${add(now())}`);
+    where.push(sql`e.replied_at >= ${windowStart(filter.replied)} AND e.replied_at <= ${now()}`);
   }
-  const emails = `(
+  const emails = sql`(
     SELECT l.id, l.kind, l.status, l.sent_at, l.replied_at, false AS someone_else,
       json_build_array(json_build_object('id', n.id::int, 'name', n.name)) AS people,
       f.name AS sender_name, f.email AS sender_email, coalesce(c.title, m.title) AS about,
@@ -152,13 +156,13 @@ export async function listAllLetters(filter: AllLettersFilter, supporters: boole
     UNION ALL
     SELECT t.id, 'one-off', 'one-off', first.at,
       (SELECT min(m.at) FROM one_off_messages m WHERE m.thread_id = t.id AND m.at > first.at
-         AND ${FROM_POLITICIAN("m.from_address")}),
-      t.id = ANY($4::bigint[]),
+         AND ${fromPolitician("m.from_address", values)}),
+      t.id = ANY(${hidden}::bigint[]),
       coalesce((SELECT json_agg(json_build_object('id', n.id::int, 'name', n.name) ORDER BY n.name)
         FROM one_off_thread_people tp JOIN notable_people n ON n.id = tp.notable_person_id
         WHERE tp.thread_id = t.id), '[]'),
       first.from_name, first.from_address, t.subject, NULL, NULL, NULL, first.from_us,
-      CASE WHEN first.from_us THEN 'pauseai' WHEN ${FROM_POLITICIAN("first.from_address")} THEN 'politician'
+      CASE WHEN first.from_us THEN 'pauseai' WHEN ${fromPolitician("first.from_address", values)} THEN 'politician'
         WHEN EXISTS (SELECT 1 FROM supporter_identity i WHERE i.email = first.from_address) THEN 'supporter'
         ELSE 'other' END,
       first.to_line
@@ -168,16 +172,15 @@ export async function listAllLetters(filter: AllLettersFilter, supporters: boole
     WHERE NOT EXISTS (SELECT 1 FROM one_off_thread_people tp JOIN politicians p ON p.id = tp.notable_person_id
       WHERE tp.thread_id = t.id AND p.is_test)
   ) e`;
-  const found = `FROM ${emails} ${where.length ? `WHERE ${where.join(" AND ")}` : ""}`;
-  const [{ total }] = await query<{ total: number }>(`SELECT count(*)::int AS total ${found}`, values);
+  const found = sql`FROM ${emails} ${sql.where(where)}`;
+  const [{ total }] = await query<{ total: number }>(sql`SELECT count(*)::int AS total ${found}`);
   const rows = await query<AnyLetter & { toLine: string | null }>(
-    `SELECT e.id::int AS id, e.kind, e.status, e.sent_at AS "sentAt", e.replied_at AS "repliedAt", e.people,
+    sql`SELECT e.id::int AS id, e.kind, e.status, e.sent_at AS "sentAt", e.replied_at AS "repliedAt", e.people,
        e.sender_name AS "senderName", e.sender_email AS "senderEmail", e.campaign, e.about AS "campaignTitle",
        e.about AS "mailingTitle", e.about AS subject, e.supporter_id AS "supporterId", e.mailing_id::int AS "mailingId", e.from_us AS "fromUs", e.to_line AS "toLine"
      ${found}
      ORDER BY e.sent_at DESC NULLS LAST, e.id DESC
-     LIMIT ${add(ALL_LETTERS_PAGE_SIZE)} OFFSET ${add((filter.page - 1) * ALL_LETTERS_PAGE_SIZE)}`,
-    values,
+     LIMIT ${ALL_LETTERS_PAGE_SIZE} OFFSET ${(filter.page - 1) * ALL_LETTERS_PAGE_SIZE}`,
   );
   const letters = rows.map(({ toLine, ...row }) =>
     row.kind === "one-off" ? { ...row, recipients: recipientsOf(toLine!, book, row.people) } : row,

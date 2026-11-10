@@ -2,7 +2,7 @@
 // (undefined) rather than guessed at.
 import { ASK_STATUSES, ASKERS, type Asker, type AskKind, type AskStatus } from "@/lib/asks";
 import { answeredByHand } from "@/lib/email-your-mp";
-import { SAVED_LISTS, type SavedList } from "@/lib/saved-filters";
+import { SAVED, SAVED_LISTS, type SavedList } from "@/lib/saved-filters";
 import { PERMISSIONS, type Permission } from "@/lib/staff-permissions";
 import { fromLondon } from "@/lib/staff-time";
 
@@ -30,10 +30,10 @@ export function savedListFrom(form: FormData): SavedList | undefined {
   return SAVED_LISTS.find((list) => list === text(form, "list"));
 }
 
-/** What a staff member needs to change the saved filters of the list a form is for: its own permission. */
-export function savedFilterNeeds(form: FormData): "supporters" | "admin" | "account" {
+/** What a staff member needs to change the saved filters of the list a form is for: what the list needs; an account, for none. */
+export function savedFilterNeeds(form: FormData): Permission | "account" {
   const list = savedListFrom(form);
-  return list === "supporters" ? "supporters" : list === "audit-log" ? "admin" : "account";
+  return list ? SAVED[list].needs : "account";
 }
 
 /** A saved filter's name, as typed: one line, or blank. */

@@ -8,17 +8,11 @@ import { gmailAccounts, type GmailAccount } from "./gmail-accounts";
 import { mailingChannel } from "./mailing-channels";
 import { choosingFor, getWrittenMailing, openWrittenMailing, type WrittenMailing } from "./mailing-drafts";
 import { politicianAudience, type LeftOut } from "./mailing-recipients";
-import {
-  countPoliticians,
-  findPastedLines,
-  listParties,
-  politicianNames,
-  politiciansPage,
-  politiciansSearch,
-  type PoliticiansSearch,
-} from "./politicians";
-import type { ParamValue } from "@/lib/staff-search";
-import { firstOf, pageNumber, type StoredFilter } from "@/lib/staff-search";
+import { countPoliticians, findPastedLines, listParties, politicianNames, politiciansPage } from "./politicians";
+import { politiciansSearch, type PoliticiansSearch } from "@/lib/staff-search";
+import type { ParamValue } from "@/lib/list-params";
+import { type StoredFilter } from "@/lib/staff-search";
+import { firstOf, pageNumber } from "@/lib/list-params";
 import { filterProblems } from "./stored-filters";
 
 // What the mailing pages show, loaded in one place so each page stays a

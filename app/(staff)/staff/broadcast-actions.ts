@@ -27,7 +27,8 @@ import {
 import { requireStaff } from "@/lib/server/staff-auth";
 import type { SaveResult } from "@/lib/server/mailing-drafts";
 import { dueAtFrom, idFrom } from "@/lib/staff-forms";
-import { filtersPath, storedFilter, type Params } from "@/lib/staff-search";
+import { storedFilter } from "@/lib/staff-search";
+import { filtersPath, type Params } from "@/lib/list-params";
 
 const LIST = "/staff/broadcasts";
 

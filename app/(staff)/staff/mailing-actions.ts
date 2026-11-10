@@ -5,7 +5,7 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { dueAtFrom, idFrom } from "@/lib/staff-forms";
-import type { Params } from "@/lib/staff-search";
+import type { Params } from "@/lib/list-params";
 import {
   addAttachment,
   changePicks,
@@ -28,7 +28,8 @@ import { politicianAudience } from "@/lib/server/mailing-recipients";
 import { mailingAudience } from "@/lib/server/mailings";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { requireStaff } from "@/lib/server/staff-auth";
-import { filtersPath, staffBack, storedFilter } from "@/lib/staff-search";
+import { staffBack, storedFilter } from "@/lib/staff-search";
+import { filtersPath } from "@/lib/list-params";
 
 /**
  * Turns away a mailing to supporters: every staff member can use these

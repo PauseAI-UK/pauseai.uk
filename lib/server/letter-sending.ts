@@ -7,6 +7,7 @@ import { checkDoc, toHtml, toText } from "@/lib/letter-format";
 import { query } from "./db";
 import { isBlocked, send, sentBy, type Backend, type Purpose } from "./email";
 import { gmailAccount, sentToday } from "./gmail-accounts";
+import { letterEvent, transition } from "./letter-lifecycle";
 import { LETTERS_DAILY_LIMIT, lettersInbox } from "./letters-inbox";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { reportSupporterBounces, tellOfficesOfHeldReplies } from "./held-replies";
@@ -75,15 +76,6 @@ export async function cannotSend(count: number): Promise<QueueReason | undefined
   return undefined;
 }
 
-/** Adds an event to a letter's history. */
-export async function letterEvent(letterId: number, status: string, details: object = {}): Promise<void> {
-  await query("INSERT INTO letter_events (letter_id, status, details) VALUES ($1, $2, $3)", [
-    letterId,
-    status,
-    JSON.stringify(details),
-  ]);
-}
-
 /** The Message-ID a letter's email of `purpose` went with, if it went. */
 export async function sentMessageId(letterId: number, purpose: Purpose): Promise<string | undefined> {
   const [row] = await query<{ id: string }>(
@@ -112,12 +104,12 @@ async function attachments(campaignSlug: string) {
 
 /** Puts a letter back in the queue, saying why in its history unless it already said so last. */
 async function requeue(letterId: number, reason: QueueReason): Promise<{ sent: false; reason: QueueReason }> {
-  await query("UPDATE letters SET status = 'queued' WHERE id = $1", [letterId]);
   const [last] = await query<{ status: string; reason: string | null }>(
     `SELECT status, details->>'reason' AS reason FROM letter_events WHERE letter_id = $1 ORDER BY at DESC, id DESC LIMIT 1`,
     [letterId],
   );
-  if (last?.status !== "queued" || last.reason !== reason) await letterEvent(letterId, "queued", { reason });
+  const said = last?.status === "queued" && last.reason === reason;
+  await transition(letterId, ["sending"], "queued", said ? {} : { event: "queued", details: { reason } });
   return { sent: false, reason };
 }
 
@@ -127,10 +119,7 @@ async function requeue(letterId: number, reason: QueueReason): Promise<{ sent: f
  * a run that's sending it too doesn't. Says whether it went, or why not.
  */
 export async function sendLetter(id: number): Promise<{ sent: true } | { sent: false; reason: QueueReason }> {
-  const [taken] = await query(
-    "UPDATE letters SET status = 'sending', taken_at = now() WHERE id = $1 AND status = 'queued' RETURNING id",
-    [id],
-  );
+  const [taken] = await transition(id, ["queued"], "sending", { stamp: "taken_at" });
   if (!taken) return { sent: true };
   try {
     return await sendTaken(id);
@@ -165,8 +154,11 @@ async function sendTaken(id: number): Promise<{ sent: true } | { sent: false; re
   );
   // A block found only as it went is one the next try finds first.
   if (!result.sent) return requeue(id, "failed");
-  await query("UPDATE letters SET status = 'sent', sent_at = now() WHERE id = $1", [id]);
-  await letterEvent(id, "sent", { from, to: letter.mpEmail, messageId: result.messageId, ...sentBy(result.backend) });
+  await transition(id, ["sending"], "sent", {
+    event: "sent",
+    details: { from, to: letter.mpEmail, messageId: result.messageId, ...sentBy(result.backend) },
+    stamp: "sent_at",
+  });
   await sendCopy(id);
   return { sent: true };
 }
@@ -233,18 +225,20 @@ export async function sendCopy(id: number): Promise<void> {
  * A mailing waits for none of them to finish.
  */
 export async function uncertainLetters(): Promise<number> {
-  const letters = await query<{ id: number; to: string | null }>(
-    `UPDATE letters l SET status = 'uncertain' FROM notable_people n
-     WHERE n.id = l.notable_person_id AND l.status = 'sending' AND l.taken_at < now() - interval '15 minutes'
-     RETURNING l.id::int AS id, n.email AS to`,
+  const left = await query<{ id: number; to: string | null }>(
+    `SELECT l.id::int AS id, n.email AS to FROM letters l JOIN notable_people n ON n.id = l.notable_person_id
+     WHERE l.status = 'sending' AND l.taken_at < now() - interval '15 minutes' ORDER BY l.id`,
   );
+  // Who it may have gone to, as every email's change says; one a run finished meanwhile is left as it is.
+  const letters = [];
+  for (const { id, to } of left) {
+    letters.push(...(await transition(id, ["sending"], "uncertain", { event: "uncertain", details: { to } })));
+  }
   const copies = await query<{ id: number; to: string }>(
     `UPDATE letters_from_supporters s SET copy_state = 'uncertain' FROM form_entries f
      WHERE f.id = s.entry_id AND s.copy_state = 'sending' AND s.copy_taken_at < now() - interval '15 minutes'
      RETURNING s.id::int AS id, f.email AS to`,
   );
-  // Who it may have gone to, as every email's change says.
-  for (const { id, to } of letters) await letterEvent(id, "uncertain", { to });
   for (const { id, to } of copies) await letterEvent(id, "copy_uncertain", { to });
   return letters.length + copies.length;
 }

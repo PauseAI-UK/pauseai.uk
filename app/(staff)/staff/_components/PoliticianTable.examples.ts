@@ -1,7 +1,8 @@
 import type { Choosing } from "@/lib/server/mailing-drafts";
 import type { PastedLine } from "./PoliticiansList";
 import type { Ask, AskWay, AskWithCounts } from "@/lib/server/asks";
-import type { Politician, PoliticianChange, PoliticiansPage, PoliticiansSearch } from "@/lib/server/politicians";
+import type { Politician, PoliticianChange, PoliticiansPage } from "@/lib/server/politicians";
+import type { PoliticiansSearch } from "@/lib/staff-search";
 
 /** The asks, as the migrations add them, newest first: two events and two letters, one with no date or link, linked to our pages and others'. */
 export const exampleAsks: Ask[] = [

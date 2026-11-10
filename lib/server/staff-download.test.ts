@@ -5,7 +5,7 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { downloadAs } from "@/tests/staff-download";
 import { downloadResponse, staffDownload, type Download } from "./staff-download";
-import { valuesOf, type ParamValue } from "@/lib/staff-search";
+import { valuesOf, type ParamValue } from "@/lib/list-params";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
 

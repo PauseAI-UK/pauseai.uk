@@ -4,7 +4,8 @@ import { found } from "@/lib/found";
 import { mailingPageData } from "@/lib/server/mailing-pages";
 import { mailingTitle } from "@/lib/server/mailings";
 import { requireStaff } from "@/lib/server/staff-auth";
-import { mailingId, type ParamValue } from "@/lib/staff-search";
+import { mailingId } from "@/lib/staff-search";
+import { type ParamValue } from "@/lib/list-params";
 import Breadcrumb from "../../../_components/Breadcrumb";
 import MailingFor from "../../../_components/MailingFor";
 import {

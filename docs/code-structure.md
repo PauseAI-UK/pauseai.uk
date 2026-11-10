@@ -131,6 +131,17 @@ the code should go instead. The rules below say which ones are enforced.
   (`LoginForm`, `PoliticianDetails`).
   Repeated markup becomes a component for one item (`TimelineEntry`,
   `JobRole`); one-off prose can stay as JSX inside a section component.
+- **A staff list is defined once** (`defineStaffList` in
+  `lib/staff-lists.ts`): its page, the permission it needs, every
+  parameter its URL takes, which of them choose what it shows, and its
+  sortable columns. Its URL's types, its reading (`read`) and sort
+  (`sort`), its table's headings (`columns`), and what a saved filter
+  keeps come from that. Its parser (`lib/staff-search.ts`) says only what
+  each filter means. A list with saved filters is one of `SAVED`
+  (`lib/saved-filters.ts`), whose actions need the list's permission.
+  Adding one to `SAVED` also needs a migration widening `saved_filters`'s
+  `CHECK` on `list`. Each page still calls `requireStaff()` itself, first,
+  as `tests/checks/staff-auth.test.ts` reads it there.
 - **Metadata** comes from `pageMetadata()` (`lib/metadata.ts`), which fills in
   the social preview images, the "PauseAI UK | <title>" social title and the
   canonical path. A page's `generateMetadata` reuses its loader: the
@@ -189,7 +200,20 @@ the code should go instead. The rules below say which ones are enforced.
   `lib/server/outside-services/postmark.ts` (an ESLint rule).
 - **The database** is only reached through `lib/server/db.ts`, which is the
   only file that may import `pg` or read `NETLIFY_DB_URL` (an ESLint rule,
-  in `npm run lint`). Queries are plain SQL; no ORM.
+  in `npm run lint`). Queries are plain SQL; no ORM. A query built from
+  parts, such as a list's filters, is written with the `sql` tagged
+  template (`lib/server/sql.ts`): each `${value}` goes as a parameter, and
+  each `${sql`…`}` joins the text with its values, so conditions written
+  apart compose with `sql.and`, `sql.or` and `sql.where`, never by
+  counting `$n` by hand. Text that isn't a value, such as a column's name
+  or a condition in the code, goes in with `sql.raw`.
+- **A letter's status** changes only through `transition()`
+  (`lib/server/letter-lifecycle.ts`): one statement that moves letters from
+  the statuses it's allowed from and logs each one's event, so two runs
+  can't both take a letter and its status always matches its history. The
+  statuses, their named sets (such as `ARRIVED` or `NEVER_WENT`) and the
+  events are in `lib/letter-status.ts`; a query asks for a set with
+  `statusIn()`, never a list typed out.
   Schema changes are new files in `netlify/database/migrations/`, which
   Netlify applies before each production publish and to each preview's copy
   of the database. They must be backward compatible (expand, then contract)

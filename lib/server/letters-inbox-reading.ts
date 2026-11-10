@@ -6,7 +6,7 @@ import { query } from "./db";
 import { handleDeliveryProblem } from "./delivery-problems";
 import { sentBy } from "./email";
 import { readBounce } from "./gmail-reading";
-import { letterEvent } from "./letter-sending";
+import { letterEvent } from "./letter-lifecycle";
 import { isLettersInboxAddress, proxyTag } from "./letters-inbox";
 import { decodeWords, fromAddress, messageIds } from "@/lib/email-parsing/mime";
 import { saveLetterReply } from "./outside-services/blobs";

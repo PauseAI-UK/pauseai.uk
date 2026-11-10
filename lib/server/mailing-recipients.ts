@@ -4,7 +4,8 @@ import { ASK_STATUSES } from "@/lib/asks";
 import { answerCondition, POLITICIAN_FIELDS, type MailingChoice } from "@/lib/mailing-fields";
 import type { MailingRecipientValues } from "@/lib/mailing-doc";
 import { listAsks } from "./asks";
-import { mailingPoliticians, politiciansSearch, type MailingPolitician } from "./politicians";
+import { mailingPoliticians, type MailingPolitician } from "./politicians";
+import { politiciansSearch } from "@/lib/staff-search";
 import type { StoredFilter } from "@/lib/staff-search";
 
 // Who a mailing to politicians goes to: those ticked for it, or, for one

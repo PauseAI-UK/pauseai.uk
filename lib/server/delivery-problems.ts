@@ -1,7 +1,9 @@
 import "server-only";
+import { LETTER_STATUSES } from "@/lib/letter-status";
 import { query } from "./db";
 import { recordProblem, type DeliveryProblem, type Purpose } from "./email";
-import { letterEvent, noticeToSender } from "./letter-sending";
+import { letterEvent, transition } from "./letter-lifecycle";
+import { noticeToSender } from "./letter-sending";
 import { alertBouncedMp, alertIfPoliticianBlocked } from "./notifications";
 import { bareAddress } from "@/lib/email-parsing/addresses";
 import { relayBounced } from "./relays";
@@ -17,20 +19,22 @@ type Hook = (sent: Sent, problem: DeliveryProblem, request: Request | undefined)
 
 const nothing: Hook = async () => false;
 
-/** Marks a letter bounced or complained about, with an event saying why. Returns the politician's name. */
-async function markLetter(letterId: number | null, problem: DeliveryProblem): Promise<string | undefined> {
+/**
+ * Marks a letter bounced or complained about, with an event saying why,
+ * whatever its status: the email went, whatever has happened to the letter
+ * since. Returns the politician's name.
+ */
+async function markLetter(letterId: number, problem: DeliveryProblem): Promise<string | undefined> {
   const status = problem.kind === "complaint" ? "spam_complaint" : "bounced";
+  const [moved] = await transition(letterId, LETTER_STATUSES, status, {
+    event: status,
+    details: { ...problem.details, reason: problem.reason, email: problem.address },
+  });
+  if (!moved) return undefined;
   const [letter] = await query<{ mpName: string }>(
-    `UPDATE letters l SET status = $2 FROM notable_people p WHERE l.id = $1 AND p.id = l.notable_person_id
-     RETURNING p.name AS "mpName"`,
-    [letterId, status],
+    'SELECT p.name AS "mpName" FROM letters l JOIN notable_people p ON p.id = l.notable_person_id WHERE l.id = $1',
+    [moved],
   );
-  if (!letter) return undefined;
-  await query("INSERT INTO letter_events (letter_id, status, details) VALUES ($1, $2, $3)", [
-    letterId,
-    status,
-    JSON.stringify({ ...problem.details, reason: problem.reason, email: problem.address }),
-  ]);
   return letter.mpName;
 }
 
@@ -47,7 +51,7 @@ const letterProblem: Hook = async ({ letterId }, problem, request) => {
     [letterId, problem.address],
   );
   if (fromSender) return false;
-  const mpName = await markLetter(letterId, problem);
+  const mpName = await markLetter(letterId!, problem);
   if (!mpName || problem.kind === "soft") return false;
   // One from the letters inbox: its sender is told it hasn't reached their MP, in our own words, never the bounce.
   const [proxied] = await query("SELECT 1 FROM letters_from_supporters WHERE id = $1 AND proxy_id IS NOT NULL", [
@@ -97,7 +101,7 @@ const copyProblem: Hook = async ({ letterId }, problem) => {
  * the day's report (reportMailingBounces).
  */
 const mailingProblem: Hook = async ({ letterId }, problem) => {
-  await markLetter(letterId, problem);
+  await markLetter(letterId!, problem);
   return true;
 };
 

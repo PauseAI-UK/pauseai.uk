@@ -1,6 +1,7 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import { pickedWho } from "@/lib/mailing-picks";
-import { firstOf, type Params, type Picked } from "@/lib/staff-search";
+import { type Picked } from "@/lib/staff-search";
+import { firstOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import type { FilterWordsData } from "@/lib/server/mailing-pages";
 import { politicianFilters } from "./PoliticianFilters";

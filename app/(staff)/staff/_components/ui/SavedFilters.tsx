@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { carriedParams, savedFilterHref, type SavedList } from "@/lib/saved-filters";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
-import { filtersPath, type Params } from "@/lib/staff-search";
+import { filtersPath, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import Alert from "../Alert";
 import { DeleteTwice } from "../DeleteTwice";

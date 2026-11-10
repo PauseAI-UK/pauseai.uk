@@ -23,6 +23,7 @@ import { optedOutOfLuma } from "./opt-outs";
 import { refreshSupporterFacts, refreshSupportersList } from "./supporter-facts";
 import { SUPPORTER_SOURCES } from "./supporter-sources";
 import { contains, everyWord, phoneSearch } from "./search";
+import { sql, type Sql } from "./sql";
 import { placeFor, type FoundPlace } from "./outside-services/postcodes";
 
 // Supporters: one per person, tied to each record about them in a source
@@ -156,8 +157,8 @@ export type SupportersPage = {
 };
 
 /** Miles between a supporter's place and the point `lat`, `lon` (the haversine formula, on a round Earth). */
-const milesFrom = (lat: string, lon: string) =>
-  `3958.8 * 2 * asin(sqrt(power(sin(radians(s.latitude - ${lat}) / 2), 2)
+const milesFrom = (lat: number, lon: number) =>
+  sql`3958.8 * 2 * asin(sqrt(power(sin(radians(s.latitude - ${lat}) / 2), 2)
      + cos(radians(${lat})) * cos(radians(s.latitude)) * power(sin(radians(s.longitude - ${lon}) / 2), 2)))`;
 
 /**
@@ -167,47 +168,56 @@ const milesFrom = (lat: string, lon: string) =>
  * any of their numbers, by its channel: any for a topic, or one answer, or
  * one reason.
  */
-function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>, add: (value: unknown) => string): string[] {
-  const conditions: string[] = [];
-  if (filter.activity) conditions.push(filter.activity.map((badge) => BADGE_CONDITIONS[badge]).join(" OR "));
+function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>): Sql[] {
+  const conditions: Sql[] = [];
+  if (filter.activity) conditions.push(sql.or(filter.activity.map((badge) => sql.raw(BADGE_CONDITIONS[badge]))));
   if (filter.contact) {
     const states = (channel: Channel) =>
       filter
         .contact!.filter((state) => state.channel === channel)
-        .map(({ topic, send, reason }) => {
-          const parts = [
-            `p.topic = ${add(topic)}`,
-            send && `p.send = ${add(send)}`,
-            reason && `p.reason = ${add(reason)}`,
-          ];
-          return `(${parts.filter(Boolean).join(" AND ")})`;
-        });
+        .map(({ topic, send, reason }) =>
+          sql.and([
+            sql`p.topic = ${topic}`,
+            ...(send ? [sql`p.send = ${send}`] : []),
+            ...(reason ? [sql`p.reason = ${reason}`] : []),
+          ]),
+        );
     const [emails, phones] = [states("email"), states("phone")];
     const found = [
-      emails.length &&
-        `s.id IN (SELECT i.supporter_id FROM supporter_identity i
-           JOIN email_permissions p ON p.address = i.email WHERE ${emails.join(" OR ")})`,
-      phones.length &&
-        `s.id IN (SELECT c.supporter_id FROM supporter_contact c
-           JOIN phone_permissions p ON p.address = phone_number(c.phone) WHERE ${phones.join(" OR ")})`,
-    ].filter(Boolean);
-    conditions.push(found.join(" OR "));
+      ...(emails.length
+        ? [
+            sql`s.id IN (SELECT i.supporter_id FROM supporter_identity i
+               JOIN email_permissions p ON p.address = i.email WHERE ${sql.or(emails)})`,
+          ]
+        : []),
+      ...(phones.length
+        ? [
+            sql`s.id IN (SELECT c.supporter_id FROM supporter_contact c
+               JOIN phone_permissions p ON p.address = phone_number(c.phone) WHERE ${sql.or(phones)})`,
+          ]
+        : []),
+    ];
+    conditions.push(sql.or(found));
   }
   if (filter.event) {
     conditions.push(
-      `EXISTS (SELECT 1 FROM luma_guests g JOIN supporter_links k ON k.luma_user_id = g.user_id
-       WHERE k.supporter_id = s.id AND g.event_id = ANY(${add(filter.event)}) AND g.approval_status <> 'declined')`,
+      sql`EXISTS (SELECT 1 FROM luma_guests g JOIN supporter_links k ON k.luma_user_id = g.user_id
+       WHERE k.supporter_id = s.id AND g.event_id = ANY(${filter.event}) AND g.approval_status <> 'declined')`,
     );
   }
-  if (filter.country) conditions.push(`s.country = ANY(${add(filter.country)})`);
+  if (filter.country) conditions.push(sql`s.country = ANY(${filter.country})`);
   if (filter.mp) {
     conditions.push(
-      `s.basis = 'postcode' AND upper(replace(s.given, ' ', '')) IN (SELECT pp.postcode FROM postcode_places pp
-         JOIN (${MP_CHOICES}) p ON p.constituency = pp.constituency WHERE p.id = ANY(${add(filter.mp)}))`,
+      sql`s.basis = 'postcode' AND upper(replace(s.given, ' ', '')) IN (SELECT pp.postcode FROM postcode_places pp
+         JOIN (${sql.raw(MP_CHOICES)}) p ON p.constituency = pp.constituency WHERE p.id = ANY(${filter.mp}))`,
     );
   }
-  return conditions.map((condition) => `(${condition})`);
+  return conditions;
 }
+
+/** Those seen at `column` in the last `days` days, up to now. */
+const within = (column: string, days: number) =>
+  sql`${sql.raw(column)} >= ${windowStart(days)} AND ${sql.raw(column)} <= ${now()}`;
 
 /**
  * One page of the list, filtered and sorted; with a `limit` of null, every
@@ -221,56 +231,46 @@ export async function listSupporters(
   filter: SupporterFilter,
   limit: number | null = SUPPORTERS_PAGE_SIZE,
 ): Promise<SupportersPage> {
-  const where: string[] = [];
-  const values: unknown[] = [];
-  const add = (value: unknown) => {
-    values.push(value);
-    return `$${values.length}`;
-  };
+  const where: Sql[] = [];
   if (filter.search) {
     const words = everyWord(
       filter.search,
-      add,
       (like) =>
-        `${contains("s.name", like)} OR EXISTS (SELECT 1 FROM unnest(s.phones) n WHERE n ILIKE ${like})
+        sql`${contains("s.name", like)} OR EXISTS (SELECT 1 FROM unnest(s.phones) n WHERE n ILIKE ${like})
          OR EXISTS (SELECT 1 FROM unnest(s.emails) e WHERE e ILIKE ${like})`,
     );
     // A number typed as people write them, 07700 900001, is found among the numbers as they're stored, +447700900001.
     const phone = phoneSearch(filter.search);
     where.push(
-      phone ? `(${words} OR EXISTS (SELECT 1 FROM unnest(s.phones) n WHERE n LIKE ${add(`%${phone}%`)}))` : words,
+      phone ? sql.or([words, sql`EXISTS (SELECT 1 FROM unnest(s.phones) n WHERE n LIKE ${`%${phone}%`})`]) : words,
     );
   }
-  where.push(...anyOf(filter, add));
+  where.push(...anyOf(filter));
   // What's left out: a filter's condition not true, so one with no value, such as no nation, is kept.
-  if (filter.not) where.push(...anyOf(filter.not, add).map((condition) => `(${condition}) IS NOT TRUE`));
+  if (filter.not) where.push(...anyOf(filter.not).map((condition) => sql`(${condition}) IS NOT TRUE`));
   if (filter.campaign) {
     where.push(
-      `${filter.wrote ? "" : "NOT "}EXISTS (SELECT 1 FROM supporter_links k JOIN letters_from_supporters l ON l.entry_id = k.form_entry_id
-       WHERE k.supporter_id = s.id AND l.campaign = ${add(filter.campaign)})`,
+      sql`${sql.raw(filter.wrote ? "" : "NOT ")}EXISTS (SELECT 1 FROM supporter_links k JOIN letters_from_supporters l ON l.entry_id = k.form_entry_id
+       WHERE k.supporter_id = s.id AND l.campaign = ${filter.campaign})`,
     );
   }
-  if (filter.firstDays) {
-    where.push(`s.first_seen_at >= ${add(windowStart(filter.firstDays))} AND s.first_seen_at <= ${add(now())}`);
-  }
+  if (filter.firstDays) where.push(within("s.first_seen_at", filter.firstDays));
   if (filter.registeredDays) {
     where.push(
-      `s.id IN (SELECT k.supporter_id FROM luma_guests g JOIN supporter_links k ON k.luma_user_id = g.user_id
-       WHERE g.approval_status = 'approved' AND g.removed_at IS NULL
-         AND g.registered_at >= ${add(windowStart(filter.registeredDays))} AND g.registered_at <= ${add(now())})`,
+      sql`s.id IN (SELECT k.supporter_id FROM luma_guests g JOIN supporter_links k ON k.luma_user_id = g.user_id
+       WHERE g.approval_status = 'approved' AND g.removed_at IS NULL AND ${within("g.registered_at", filter.registeredDays)})`,
     );
   }
   if (filter.unsubscribedDays) {
     where.push(
-      `s.id IN (SELECT i.supporter_id FROM contact_unsubscribes u JOIN supporter_identity i ON i.email = u.address
-       WHERE u.channel = 'email' AND u.topic = 'luma-calendar'
-         AND u.at >= ${add(windowStart(filter.unsubscribedDays))} AND u.at <= ${add(now())})`,
+      sql`s.id IN (SELECT i.supporter_id FROM contact_unsubscribes u JOIN supporter_identity i ON i.email = u.address
+       WHERE u.channel = 'email' AND u.topic = 'luma-calendar' AND ${within("u.at", filter.unsubscribedDays)})`,
     );
   }
   // What the Near filter's words are: a place, null for none, "failed"; or undefined with no Near filter.
   const near = filter.near ? await placeFor(filter.near.text) : undefined;
-  if (near === null || near === "failed") where.push("false");
-  else if (near) where.push(`${milesFrom(add(near.latitude), add(near.longitude))} <= ${add(filter.near!.miles)}`);
+  if (near === null || near === "failed") where.push(sql`false`);
+  else if (near) where.push(sql`${milesFrom(near.latitude, near.longitude)} <= ${filter.near!.miles}`);
   const column = {
     active: "s.last_active_at",
     first: "s.first_seen_at",
@@ -279,15 +279,14 @@ export async function listSupporters(
     letters: "s.letters",
   }[filter.sort];
   const dir = filter.dir === "asc" ? "ASC" : "DESC";
-  const order = `${column} ${dir} NULLS LAST, s.last_active_at DESC NULLS LAST, s.id ${dir}`;
-  const filtered = `FROM supporters_listed s ${where.length ? `WHERE ${where.join(" AND ")}` : ""}`;
-  const counting = [...values];
+  const order = sql.raw(`${column} ${dir} NULLS LAST, s.last_active_at DESC NULLS LAST, s.id ${dir}`);
+  const filtered = sql`FROM supporters_listed s ${sql.where(where)}`;
   // The page's rows first, then their columns: worked out before the sort, the columns were for everyone.
-  const page = `SELECT ${SUMMARY_COLUMNS} FROM (SELECT s.* ${filtered}
-     ORDER BY ${order} LIMIT ${add(limit)} OFFSET ${add((filter.page - 1) * (limit ?? 0))}) s ORDER BY ${order}`;
+  const page = sql`SELECT ${sql.raw(SUMMARY_COLUMNS)} FROM (SELECT s.* ${filtered}
+     ORDER BY ${order} LIMIT ${limit} OFFSET ${(filter.page - 1) * (limit ?? 0)}) s ORDER BY ${order}`;
   const [rows, [{ total }]] = await Promise.all([
-    query<SupporterSummary>(page, values),
-    query<{ total: number }>(`SELECT count(*)::int AS total ${filtered}`, counting),
+    query<SupporterSummary>(page),
+    query<{ total: number }>(sql`SELECT count(*)::int AS total ${filtered}`),
   ]);
   const permissions = await permissionsFor(
     rows.flatMap((row) => row.emails),

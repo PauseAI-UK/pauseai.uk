@@ -1,9 +1,10 @@
 import "server-only";
+import { ARRIVED, DID_NOT_ARRIVE, statusIn } from "@/lib/letter-status";
 import { cache } from "react";
 import { config } from "./config";
 import type { AskStatus } from "@/lib/asks";
 import type { Permission } from "@/lib/staff-permissions";
-import type { LetterBackend, LetterFilter } from "@/lib/staff-search";
+import type { LetterBackend, LetterFilter, LetterTab } from "@/lib/staff-search";
 import {
   messageIdSearch,
   POLICY_GMAIL_SINCE,
@@ -11,10 +12,11 @@ import {
   sentNearSearch,
   type GmailFind,
 } from "@/lib/letter-links";
-import { AUTO_REPLIED_AT, LETTER_COLUMNS } from "@/lib/letter-sort";
+import type { LetterSort } from "@/lib/staff-lists";
 import type { PoliticianFlag } from "@/lib/politician-filters";
 import { checkDoc, toText } from "@/lib/letter-format";
 import { query } from "./db";
+import { sql, type Sql } from "./sql";
 import { threadMessages, type ThreadMessage } from "./letter-threads";
 import { lettersInbox } from "./letters-inbox";
 import type { SkipReason } from "./mailings";
@@ -88,6 +90,25 @@ export type LetterSummary = {
   events: LetterEvent[];
 };
 
+/** When a letter `l` first got an automatic reply, if it has. */
+const AUTO_REPLIED_AT = "(SELECT min(e.at) FROM letter_events e WHERE e.letter_id = l.id AND e.status = 'auto_reply')";
+
+/**
+ * Each sort's column in the query. The reply's is the date the list shows:
+ * a written reply's, or failing one an automatic reply's.
+ */
+const LETTER_COLUMNS: Record<LetterSort, string> = {
+  status: "l.status",
+  from: "f.name",
+  to: "n.name",
+  campaign: "c.title",
+  ownWords: "s.own_words",
+  backend: '"backend"',
+  created: "l.created_at",
+  sent: "l.sent_at",
+  replied: `coalesce(l.replied_at, ${AUTO_REPLIED_AT})`,
+};
+
 /** How many letters the letters page shows at once. */
 export const LETTERS_PAGE_SIZE = 100;
 
@@ -127,6 +148,15 @@ export async function recentLetters(filter: LetterFilter & { politicianId?: numb
 const BACKEND = `CASE WHEN s.airtable_id IS NOT NULL THEN 'airtable' ELSE (SELECT e.backend FROM email_sends e
   WHERE e.letter_id = s.id AND e.purpose = 'letter' AND e.outcome = 'sent' ORDER BY e.at DESC, e.id DESC LIMIT 1) END`;
 
+/** The letters each tab of a campaign's list shows. */
+const TAB_CONDITIONS: Record<LetterTab, string> = {
+  changed: "s.own_words > 0",
+  replied: "l.replied_at IS NOT NULL",
+  sent: statusIn("l.status", ARRIVED),
+  answered: "EXISTS (SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = n.id AND st.ask = c.ask)",
+  failed: statusIn("l.status", DID_NOT_ARRIVE),
+};
+
 /** Letters as recentLetters finds them, from `offset`, each with how many the filter finds in all. */
 async function letterRows({
   status,
@@ -147,13 +177,34 @@ async function letterRows({
   (LetterSummary & { total: number })[]
 > {
   // Each marker's condition is SQL of our own (FLAG_CONDITIONS), so it goes in the query as it is.
-  const marked = (flags: PoliticianFlag[]) => `(${flags.map((flag) => FLAG_CONDITIONS[flag]).join(" OR ")})`;
-  const flagConditions = [flags && marked(flags), not?.flags && `${marked(not.flags)} IS NOT TRUE`]
-    .filter(Boolean)
-    .map((condition) => `AND ${condition}`)
-    .join(" ");
+  const marked = (flags: PoliticianFlag[]) => sql.or(flags.map((flag) => sql.raw(FLAG_CONDITIONS[flag])));
+  const backendOf = sql.raw(BACKEND);
+  const conditions: Sql[] = [];
+  if (status != null) conditions.push(sql`l.status = ${status}`);
+  if (politicianId != null) conditions.push(sql`l.notable_person_id = ${politicianId}`);
+  if (search) {
+    const like = sql`${`%${search}%`}`;
+    conditions.push(sql`f.name ILIKE ${like} OR f.email ILIKE ${like} OR n.name ILIKE ${like}`);
+  }
+  if (answered != null) {
+    conditions.push(sql`CASE WHEN l.replied_at IS NOT NULL THEN 'yes'
+      WHEN ${sql.raw(AUTO_REPLIED_AT)} IS NOT NULL THEN 'auto' ELSE 'no' END = ${answered}`);
+  }
+  if (supporterId != null) {
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM supporter_links k WHERE k.form_entry_id = s.entry_id AND k.supporter_id = ${supporterId})`,
+    );
+  }
+  if (letterId != null) conditions.push(sql`l.id = ${letterId}`);
+  if (campaign) conditions.push(sql`s.campaign = ANY(${campaign})`);
+  if (not?.campaign) conditions.push(sql`s.campaign <> ALL(${not.campaign})`);
+  if (backend) conditions.push(sql`${backendOf} = ANY(${backend})`);
+  if (not?.backend) conditions.push(sql`(${backendOf} = ANY(${not.backend})) IS NOT TRUE`);
+  if (tab != null) conditions.push(sql.raw(TAB_CONDITIONS[tab]));
+  if (flags) conditions.push(marked(flags));
+  if (not?.flags) conditions.push(sql`(${marked(not.flags)}) IS NOT TRUE`);
   const rows = await query<Omit<LetterSummary, "events"> & { events: AsJson<LetterEvent>[]; total: number }>(
-    `SELECT l.id::int AS id, s.campaign, c.title AS "campaignTitle", l.status, f.name AS "senderName", f.email AS "senderEmail",
+    sql`${sql.raw(`SELECT l.id::int AS id, s.campaign, c.title AS "campaignTitle", l.status, f.name AS "senderName", f.email AS "senderEmail",
        n.name AS "mpName", n.id::int AS "politicianId", p.is_test AS "isTest", p.constituency, p.party,
        (SELECT st.status FROM ask_statuses st WHERE st.notable_person_id = n.id AND st.ask = c.ask) AS answer, s.own_words AS "ownWords", ${BACKEND} AS backend, l.created_at AS "createdAt", l.sent_at AS "sentAt", l.replied_at AS "repliedAt",
        ${AUTO_REPLIED_AT} AS "autoRepliedAt",
@@ -162,39 +213,10 @@ async function letterRows({
                  FROM letter_events e WHERE e.letter_id = l.id), '[]') AS events,
        count(*) OVER ()::int AS total
      FROM letters_from_supporters s JOIN letters l ON l.id = s.id JOIN form_entries f ON f.id = s.entry_id
-       JOIN campaigns c ON c.slug = s.campaign JOIN notable_people n ON n.id = l.notable_person_id JOIN politicians p ON p.id = n.id
-     WHERE ($1::text IS NULL OR l.status = $1)
-       AND ($3::bigint IS NULL OR l.notable_person_id = $3)
-       AND ($4::text IS NULL OR f.name ILIKE $4 OR f.email ILIKE $4 OR n.name ILIKE $4)
-       AND ($5::text IS NULL OR CASE WHEN l.replied_at IS NOT NULL THEN 'yes'
-         WHEN ${AUTO_REPLIED_AT} IS NOT NULL THEN 'auto' ELSE 'no' END = $5)
-       AND ($6::bigint IS NULL OR EXISTS (SELECT 1 FROM supporter_links k WHERE k.form_entry_id = s.entry_id AND k.supporter_id = $6))
-       AND ($7::bigint IS NULL OR l.id = $7)
-       AND ($8::text[] IS NULL OR s.campaign = ANY($8))
-       AND ($10::text[] IS NULL OR s.campaign <> ALL($10))
-       AND ($11::text[] IS NULL OR ${BACKEND} = ANY($11))
-       AND ($12::text[] IS NULL OR (${BACKEND} = ANY($12)) IS NOT TRUE)
-       AND ($13::text IS NULL OR CASE $13 WHEN 'changed' THEN s.own_words > 0 WHEN 'replied' THEN l.replied_at IS NOT NULL
-         WHEN 'sent' THEN l.status IN ('sent', 'spam_complaint')
-         WHEN 'answered' THEN EXISTS (SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = n.id AND st.ask = c.ask)
-         ELSE l.status IN ('not_sent', 'bounced') END) ${flagConditions}
-     ORDER BY ${LETTER_COLUMNS[sort.key]} ${sort.dir === "asc" ? "ASC" : "DESC"} NULLS LAST, l.created_at DESC, l.id DESC
-     LIMIT $2 OFFSET $9`,
-    [
-      status ?? null,
-      limit,
-      politicianId ?? null,
-      search ? `%${search}%` : null,
-      answered ?? null,
-      supporterId ?? null,
-      letterId ?? null,
-      campaign ?? null,
-      offset,
-      not?.campaign ?? null,
-      backend ?? null,
-      not?.backend ?? null,
-      tab ?? null,
-    ],
+       JOIN campaigns c ON c.slug = s.campaign JOIN notable_people n ON n.id = l.notable_person_id JOIN politicians p ON p.id = n.id`)}
+     ${sql.where(conditions)}
+     ORDER BY ${sql.raw(`${LETTER_COLUMNS[sort.key]} ${sort.dir === "asc" ? "ASC" : "DESC"}`)} NULLS LAST, l.created_at DESC, l.id DESC
+     LIMIT ${limit} OFFSET ${offset}`,
   );
   return rows.map((row) => ({ ...row, events: withDates(row.events) }));
 }

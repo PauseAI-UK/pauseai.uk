@@ -4,7 +4,7 @@ import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { WrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import type { BroadcastPageData, MessageRecipient, BroadcastSummary } from "@/lib/server/broadcast-pages";
-import { filtersPath, pageParam } from "@/lib/staff-search";
+import { filtersPath, pageParam } from "@/lib/list-params";
 import { londonClock, sendsAt, staffDate } from "@/lib/staff-time";
 import { FIELD_WORDS, spacedNumber, type BroadcastChannel } from "@/lib/broadcasts";
 import ChannelIcon from "./ChannelIcon";

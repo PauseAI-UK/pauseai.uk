@@ -1,4 +1,5 @@
 import "server-only";
+import { ARRIVED, DID_NOT_ARRIVE, statusIn } from "@/lib/letter-status";
 import { cache } from "react";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { FORM_VERSIONS } from "@/lib/content/pauseai-info-form";
@@ -8,8 +9,6 @@ import { query } from "./db";
 // A campaign is like a mailing, from supporters rather than PauseAI: its list
 // and its page's counts, and each version of its text with how many letters
 // were written from it (lib/campaign-versions.ts turns them into documents).
-
-const FAILED = "('not_sent', 'bounced')";
 
 export type CampaignSummary = {
   slug: string;
@@ -34,8 +33,8 @@ export type CampaignSummary = {
 const SELECT_CAMPAIGNS = `
   SELECT c.slug, c.title, c.ask, a.title AS "askTitle", a.kind AS "askKind", c.url,
     count(l.id)::int AS letters,
-    count(l.id) FILTER (WHERE l.status IN ('sent', 'spam_complaint'))::int AS sent,
-    count(l.id) FILTER (WHERE l.status IN ${FAILED})::int AS failed,
+    count(l.id) FILTER (WHERE ${statusIn("l.status", ARRIVED)})::int AS sent,
+    count(l.id) FILTER (WHERE ${statusIn("l.status", DID_NOT_ARRIVE)})::int AS failed,
     count(l.replied_at)::int AS replied,
     count(DISTINCT l.notable_person_id) FILTER (WHERE EXISTS (
       SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = l.notable_person_id AND st.ask = c.ask))::int AS answered,

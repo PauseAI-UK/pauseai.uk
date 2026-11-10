@@ -17,13 +17,10 @@ import {
   findMpInOffice,
   findTestMp,
   getPolitician,
-  isHouse,
-  isPersonStatus,
   listParties,
   listPoliticians,
   politicianHistory,
   politiciansPage,
-  politiciansSearch,
   setStatus,
   signatories,
   statusesOf,
@@ -34,7 +31,7 @@ import {
   pastedName,
   politicianNames,
 } from "./politicians";
-import { POLITICIAN_SORTS } from "@/lib/politician-sort";
+import { POLITICIANS_LIST } from "@/lib/staff-lists";
 import { recordProblem } from "./email";
 import { logChange } from "./audit";
 
@@ -51,140 +48,6 @@ const PEER = {
 };
 /** A peer, as the signatory import adds them. */
 const addPeer = () => addTestPolitician({ ...PEER, airtableId: null });
-
-describe("isHouse", () => {
-  it("knows the houses", () => {
-    expect(isHouse("senedd")).toBe(true);
-    expect(isHouse("hogwarts")).toBe(false);
-  });
-});
-
-describe("isPersonStatus", () => {
-  it("knows whether someone is in office", () => {
-    expect(isPersonStatus("retired")).toBe(true);
-    expect(isPersonStatus("sitting")).toBe(false);
-  });
-});
-
-describe("politiciansSearch", () => {
-  it("keeps what was typed, and filters by it, a repeated filter by any of its values and none of those marked !", () => {
-    const typed = {
-      q: "Jo",
-      house: "lords",
-      status: "retired",
-      party: ["Crossbench", "Labour", "!Reform UK"],
-      flag: ["important", "removed", "!connection"],
-      nation: ["wales", "!scotland"],
-      email: ["none", "blocked", "!yes"],
-      ask: BILL,
-      answer: ["signed"],
-      mailed: ["deepmind-letter", "!frontier-ai-letter"],
-      sort: "party",
-      dir: "desc",
-      page: "3",
-      mailing: "12",
-    };
-    expect(politiciansSearch(typed)).toEqual({
-      ...typed,
-      tab: "",
-      agreed: "",
-      pasted: [],
-      saved: "",
-      filter: {
-        search: "Jo",
-        house: "lords",
-        status: "retired",
-        party: ["Crossbench", "Labour"],
-        flags: ["important", "removed"],
-        country: ["wales"],
-        email: ["none", "blocked"],
-        mailed: ["deepmind-letter"],
-        ask: BILL,
-        answer: ["signed"],
-        not: {
-          party: ["Reform UK"],
-          flags: ["connection", "test"],
-          country: ["scotland"],
-          email: ["yes"],
-          mailed: ["frontier-ai-letter"],
-        },
-        sort: { key: "party", dir: "desc" },
-        page: 3,
-      },
-    });
-    // One of a filter that repeats, as the URL gives it, is a list of one; one that doesn't, given twice, its first.
-    const once = politiciansSearch({ party: "Green", q: ["a", "b"] });
-    expect(once.party).toEqual(["Green"]);
-    expect(once.filter).toMatchObject({ party: ["Green"], search: "a" });
-  });
-
-  it("filters by nothing that's blank, missing or unknown", () => {
-    const none = {
-      search: undefined,
-      house: undefined,
-      status: "in_office",
-      party: undefined,
-      flags: undefined,
-      country: undefined,
-      email: undefined,
-      mailed: undefined,
-      ask: undefined,
-      answer: undefined,
-      not: { flags: ["test"] },
-      sort: { key: "name", dir: "asc" },
-      page: 1,
-    };
-    const blank = {
-      q: "",
-      house: "",
-      status: "",
-      party: [],
-      flag: [],
-      nation: [],
-      email: [],
-      ask: "",
-      answer: [],
-      mailed: [],
-      agreed: "",
-      sort: "",
-      dir: "",
-      page: "",
-      mailing: "",
-      tab: "",
-      pasted: [],
-      saved: "",
-    };
-    expect(politiciansSearch({})).toEqual({ ...blank, filter: none });
-    // A draft's ID is a number; the ticked tab is "1"; the lines pasted are a list.
-    expect(politiciansSearch({ mailing: "12x", tab: "yes" })).toMatchObject({ mailing: "", tab: "" });
-    expect(politiciansSearch({ mailing: "12", tab: "ticked", pasted: ["Jo", "Al"] })).toMatchObject({
-      mailing: "12",
-      tab: "ticked",
-      pasted: ["Jo", "Al"],
-    });
-    const unknown = {
-      house: "hogwarts",
-      status: "sitting",
-      party: ["!"],
-      flag: ["other", "!other"],
-      nation: ["atlantis"],
-      email: ["maybe"],
-      sort: "age",
-    };
-    expect(politiciansSearch(unknown)).toEqual({ ...blank, ...unknown, filter: none });
-    expect(politiciansSearch({ q: "  " }).filter.search).toBeUndefined();
-  });
-
-  it("leaves out the test politicians, unless the Marked filter finds them", () => {
-    expect(politiciansSearch({ flag: "test" }).filter).toMatchObject({ flags: ["test"], not: undefined });
-    expect(politiciansSearch({ flag: ["important", "test"] }).filter.not).toBeUndefined();
-    expect(politiciansSearch({ flag: "!test" }).filter).toMatchObject({ flags: undefined, not: { flags: ["test"] } });
-  });
-
-  it("is everyone, in office or not, with any status", () => {
-    expect(politiciansSearch({ status: "any" }).filter.status).toBeUndefined();
-  });
-});
 
 describe("looksLikeName", () => {
   it("is two to four capitalised words with no digits", () => {
@@ -523,7 +386,7 @@ describeWithDatabase("politicians", () => {
       ["first", "firstActivityAt"],
       ["active", "lastActivityAt"],
     ] as const) {
-      const dir = POLITICIAN_SORTS[key];
+      const dir = POLITICIANS_LIST.columns[key];
       const times = (await listPoliticians({ sort: { key, dir } }))
         .filter((p) => !p.isTest)
         .map((p) => (p[field] ? new Date(p[field]!).getTime() : null));

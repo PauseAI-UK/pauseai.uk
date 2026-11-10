@@ -1,13 +1,15 @@
+import { AUDIT_LOG_LIST } from "@/lib/staff-lists";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { WINDOW_OPTIONS } from "@/lib/staff-dashboard";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
-import { changesSearch, type ChangesSearch, type Params } from "@/lib/staff-search";
+import { changesSearch, type ChangesSearch } from "@/lib/staff-search";
+import { type Params } from "@/lib/list-params";
 import { changeFiltersOf } from "./ChangesTable";
 import FilterBar, { filteredName, filterWords, type Filter } from "./ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";
 
 const copy = staffCopy.changes;
-const PATH = "/staff/audit-log";
+const PATH = AUDIT_LOG_LIST.path;
 
 /** The choices the log's filters offer: everyone in it, and everything they've done. */
 export type ChangeChoices = { actors: string[]; actions: string[] };
