@@ -1,20 +1,14 @@
 # Tests that find Postgres without help
 
-Size: M. Kind: tools.
+Size: S. Kind: tools.
 
 ## Problem
 
-Agents set `TEST_DATABASE_URL` by hand on nearly every test command, though the tests already find a local Postgres themselves: with no `TEST_DATABASE_URL`, `scripts/fresh-database.mjs` looks for its socket in `/var/run/postgresql` or `/tmp`. Three things defeat that in the container agents work in (a Docker container under OrbStack on Francis's Mac, with `/pauseai.uk` and `/home/dev` mounted from the Mac):
-
-- The shared checkout's `.env.local` belongs to Francis's Mac and sets `TEST_DATABASE_URL` to Docker's port 5433, which the container hasn't got. So in the shared checkout every test command must override it, and agents carry the habit into worktrees, where there's no `.env.local` and no need.
-- Postgres isn't running when the container starts.
-- When no socket is found, the tests fall back to TCP on localhost:5432 and fail with a raw `psql` error that doesn't say what to do.
+Agents set `TEST_DATABASE_URL` by hand on nearly every test command, though the tests find a local Postgres themselves: with no `TEST_DATABASE_URL`, `scripts/fresh-database.mjs` looks for its socket in `/var/run/postgresql` or `/tmp`. The habit came from an agent's note, now corrected, that the shared checkout's `.env.local` sends the tests to Docker's port 5433. That file is a symlink to Francis's Mac, and in the container it reaches a placeholder with no such line. What's left is that Postgres isn't running when the container starts, so the first test run of a session fails, now with a message saying to run `pg-start`.
 
 ## Fix
 
-In the container's setup (not this repo), either in `/home/dev/.bashrc` or in whatever starts the container: set `TEST_DATABASE_URL=postgresql://dev@localhost/postgres?host=/var/run/postgresql`, which wins over `.env.local`, and run `pg-start`. Then drop the advice to set it by hand from agents' notes.
-
-In this repo: when no server answers, the tests' global setup stops with a message saying where it looked and what to do (start Postgres, or set `TEST_DATABASE_URL`, `docs/testing.md`, "Where Postgres is").
+In the container's setup, not this repo: run `pg-start` when the container starts, or from `/home/dev/.bashrc`.
 
 ## Hits
 

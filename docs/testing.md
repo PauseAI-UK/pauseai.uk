@@ -594,8 +594,11 @@ not a mock.
 - **Where Postgres is.** `TEST_DATABASE_URL` (from the environment, or
   that one line of `.env.local`): `db-test` in `docker-compose.yml`, say.
   Without it, the usual `PG*` variables; without `PGHOST`, the local
-  server's socket in `/var/run/postgresql` or `/tmp`, else localhost. CI
-  runs a Postgres service.
+  server's socket in `/var/run/postgresql` or `/tmp`, else localhost. So
+  in the dev container, with Postgres started (`pg-start`), nothing needs
+  setting. When no server answers, the tests stop saying where they looked
+  and what to do (`noServer` in `scripts/fresh-database.mjs`). CI runs a
+  Postgres service.
 - **Netlify's build has no Postgres**, so `npm run build` skips these tests
   there (`NETLIFY=true`), and the global setup makes no template. CI runs
   them.
