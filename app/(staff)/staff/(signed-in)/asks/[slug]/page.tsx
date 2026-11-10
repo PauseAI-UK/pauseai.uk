@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { askPageData, askTitle } from "@/lib/server/asks";
 import { requireStaff } from "@/lib/server/staff-auth";
-import { firstOf, pageNumber, type ParamValue } from "@/lib/staff-search";
+import { firstOf, pageNumber, type ParamValue } from "@/lib/list-params";
 import AskView from "../../../_components/AskView";
 import Breadcrumb from "../../../_components/Breadcrumb";
 

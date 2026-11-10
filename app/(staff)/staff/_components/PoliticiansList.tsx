@@ -1,3 +1,4 @@
+import { POLITICIANS_LIST } from "@/lib/staff-lists";
 import type { ReactNode } from "react";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -5,8 +6,10 @@ import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { Ask } from "@/lib/server/asks";
 import type { Choosing } from "@/lib/server/mailing-drafts";
-import type { Pasted, Politician, PoliticiansPage, PoliticiansSearch } from "@/lib/server/politicians";
-import { filtersPath, pageParam, storedFilter, valuesOf, type Params } from "@/lib/staff-search";
+import type { Pasted, Politician, PoliticiansPage } from "@/lib/server/politicians";
+import type { PoliticiansSearch } from "@/lib/staff-search";
+import { storedFilter } from "@/lib/staff-search";
+import { filtersPath, pageParam, valuesOf, type Params } from "@/lib/list-params";
 import PasteForm from "./PasteForm";
 import PickBox from "./PickBox";
 import PoliticianTable, { politicianColumns } from "./PoliticianTable";
@@ -17,7 +20,7 @@ import Strip from "./ui/Strip";
 import Tabs from "./ui/Tabs";
 import StaffLink from "./ui/StaffLink";
 
-const PATH = "/staff/politicians";
+const PATH = POLITICIANS_LIST.path;
 const copy = staffCopy.politicians;
 const mailingCopy = staffCopy.mailingPages;
 

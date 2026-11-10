@@ -1,3 +1,4 @@
+import { SUPPORTERS_LIST } from "@/lib/staff-lists";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
@@ -172,7 +173,7 @@ export default function SupporterFilters({
   );
   return (
     <FilterBar
-      path="/staff/supporters"
+      path={SUPPORTERS_LIST.path}
       values={{ ...search, erased: "" }}
       search={{ name: "q", label: staffCopy.supporters.filters.search }}
       filters={filters}
@@ -182,7 +183,7 @@ export default function SupporterFilters({
           ...saved,
           list: "supporters",
           values: { ...search, erased: "" },
-          path: "/staff/supporters",
+          path: SUPPORTERS_LIST.path,
           name: filteredName(staffCopy.supporters.title, supporterWords(search, choices, near)),
           summary: (params) => supporterWords(supportersSearch(params), choices),
         })

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listAsks } from "@/lib/server/asks";
 import { politiciansPageData } from "@/lib/server/mailing-pages";
-import { listParties, politiciansSearch, type PoliticiansSearch } from "@/lib/server/politicians";
+import { listParties } from "@/lib/server/politicians";
+import { politiciansSearch, type PoliticiansSearch } from "@/lib/staff-search";
 import { savedFiltersState } from "@/lib/server/saved-filters";
 import { requireStaff } from "@/lib/server/staff-auth";
 import {

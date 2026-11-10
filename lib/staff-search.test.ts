@@ -12,15 +12,12 @@ import {
   letterId,
   mailingId,
   lettersSearch,
-  pageNumber,
-  pagePath,
-  filtersPath,
-  pageParam,
   politicianId,
   supporterId,
   supportersSearch,
   erasedPath,
   eraseLeftovers,
+  politiciansSearch,
 } from "./staff-search";
 
 describe("changesSearch", () => {
@@ -426,39 +423,6 @@ describe("accountsSearch", () => {
   });
 });
 
-describe("pageNumber", () => {
-  it("reads a page from 1, or the first page", () => {
-    expect(pageNumber("3")).toBe(3);
-    for (const page of ["0", "x", "", undefined]) expect(pageNumber(page)).toBe(1);
-  });
-});
-
-describe("pageParam", () => {
-  it("is the page's number in a list's URL, and nothing for the first", () => {
-    expect(pageParam(2)).toEqual({ page: "2" });
-    expect(pageParam(1)).toEqual({ page: "" });
-  });
-});
-
-describe("filtersPath", () => {
-  it("keeps the filters given, with the changes, and leaves out the blank ones", () => {
-    expect(filtersPath("/staff/politicians", { q: "jo", house: "lords", party: "" }, { house: "" })).toBe(
-      "/staff/politicians?q=jo",
-    );
-    expect(filtersPath("/staff/politicians", { q: "jo" }, { status: "any" })).toBe(
-      "/staff/politicians?q=jo&status=any",
-    );
-    expect(filtersPath("/staff/politicians", {})).toBe("/staff/politicians");
-  });
-});
-
-describe("pagePath", () => {
-  it("gives the first page at the list's own URL, and any other with its number", () => {
-    expect(pagePath("/staff/audit-log", 1)).toBe("/staff/audit-log");
-    expect(pagePath("/staff/audit-log", 2)).toBe("/staff/audit-log?page=2");
-  });
-});
-
 describe("letterId", () => {
   it("is a whole number from the URL", () => {
     expect(letterId("17")).toBe(17);
@@ -505,4 +469,127 @@ it("sends an erasure to the list saying so, with what couldn't be cleared, if an
 it("reads only the codes it knows from an erasure's address", () => {
   expect(eraseLeftovers("oneOffs,someone's words")).toEqual(["oneOffs"]);
   expect(eraseLeftovers("")).toEqual([]);
+});
+
+/** An ask, by its slug. */
+const BILL = "controlai-letter";
+
+describe("politiciansSearch", () => {
+  it("keeps what was typed, and filters by it, a repeated filter by any of its values and none of those marked !", () => {
+    const typed = {
+      q: "Jo",
+      house: "lords",
+      status: "retired",
+      party: ["Crossbench", "Labour", "!Reform UK"],
+      flag: ["important", "removed", "!connection"],
+      nation: ["wales", "!scotland"],
+      email: ["none", "blocked", "!yes"],
+      ask: BILL,
+      answer: ["signed"],
+      mailed: ["deepmind-letter", "!frontier-ai-letter"],
+      sort: "party",
+      dir: "desc",
+      page: "3",
+      mailing: "12",
+    };
+    expect(politiciansSearch(typed)).toEqual({
+      ...typed,
+      tab: "",
+      agreed: "",
+      pasted: [],
+      saved: "",
+      filter: {
+        search: "Jo",
+        house: "lords",
+        status: "retired",
+        party: ["Crossbench", "Labour"],
+        flags: ["important", "removed"],
+        country: ["wales"],
+        email: ["none", "blocked"],
+        mailed: ["deepmind-letter"],
+        ask: BILL,
+        answer: ["signed"],
+        not: {
+          party: ["Reform UK"],
+          flags: ["connection", "test"],
+          country: ["scotland"],
+          email: ["yes"],
+          mailed: ["frontier-ai-letter"],
+        },
+        sort: { key: "party", dir: "desc" },
+        page: 3,
+      },
+    });
+    // One of a filter that repeats, as the URL gives it, is a list of one; one that doesn't, given twice, its first.
+    const once = politiciansSearch({ party: "Green", q: ["a", "b"] });
+    expect(once.party).toEqual(["Green"]);
+    expect(once.filter).toMatchObject({ party: ["Green"], search: "a" });
+  });
+
+  it("filters by nothing that's blank, missing or unknown", () => {
+    const none = {
+      search: undefined,
+      house: undefined,
+      status: "in_office",
+      party: undefined,
+      flags: undefined,
+      country: undefined,
+      email: undefined,
+      mailed: undefined,
+      ask: undefined,
+      answer: undefined,
+      not: { flags: ["test"] },
+      sort: { key: "name", dir: "asc" },
+      page: 1,
+    };
+    const blank = {
+      q: "",
+      house: "",
+      status: "",
+      party: [],
+      flag: [],
+      nation: [],
+      email: [],
+      ask: "",
+      answer: [],
+      mailed: [],
+      agreed: "",
+      sort: "",
+      dir: "",
+      page: "",
+      mailing: "",
+      tab: "",
+      pasted: [],
+      saved: "",
+    };
+    expect(politiciansSearch({})).toEqual({ ...blank, filter: none });
+    // A draft's ID is a number; the ticked tab is "1"; the lines pasted are a list.
+    expect(politiciansSearch({ mailing: "12x", tab: "yes" })).toMatchObject({ mailing: "", tab: "" });
+    expect(politiciansSearch({ mailing: "12", tab: "ticked", pasted: ["Jo", "Al"] })).toMatchObject({
+      mailing: "12",
+      tab: "ticked",
+      pasted: ["Jo", "Al"],
+    });
+    const unknown = {
+      house: "hogwarts",
+      status: "sitting",
+      party: ["!"],
+      flag: ["other", "!other"],
+      nation: ["atlantis"],
+      email: ["maybe"],
+      sort: "age",
+    };
+    expect(politiciansSearch(unknown)).toEqual({ ...blank, ...unknown, filter: none });
+    expect(politiciansSearch({ q: "  " }).filter.search).toBeUndefined();
+  });
+
+  it("leaves out the test politicians, unless the Marked filter finds them", () => {
+    expect(politiciansSearch({ flag: "test" }).filter).toMatchObject({ flags: ["test"], not: undefined });
+    expect(politiciansSearch({ flag: ["important", "test"] }).filter.not).toBeUndefined();
+    expect(politiciansSearch({ flag: "!test" }).filter).toMatchObject({ flags: undefined, not: { flags: ["test"] } });
+  });
+
+  it("is everyone, in office or not, with any status", () => {
+    expect(politiciansSearch({ status: "any" }).filter.status).toBeUndefined();
+  });
 });

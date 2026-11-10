@@ -1,5 +1,5 @@
 import "server-only";
-import type { SentEmailSort } from "@/lib/sent-email-sort";
+import type { SentEmailSort } from "@/lib/staff-lists";
 import { SENT_EMAILS_WITHOUT_SUPPORTERS } from "@/lib/staff-search";
 import type { SortSpec } from "@/lib/staff-sort";
 import { query } from "./db";

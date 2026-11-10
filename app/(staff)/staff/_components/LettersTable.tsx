@@ -19,7 +19,7 @@ const copy = staffCopy.letters;
  * it; then when it was written, sent and when the MP replied, or failing
  * that, greyed, when an automatic reply came. A letter from the pauseai.info form is written
  * when its sender filled the form in, and sent later, when Airtable's
- * automation emailed it. Each is a sort (lib/letter-sort.ts), newest
+ * automation emailed it. Each is a sort (LETTERS_LIST in lib/staff-lists.ts), newest
  * written first unless another is chosen.
  */
 const columns: ListColumn<LetterSummary>[] = [

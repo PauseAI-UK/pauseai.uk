@@ -1,4 +1,5 @@
 import "server-only";
+import { sql, type Sql } from "./sql";
 
 // A search typed into a staff list. Every word typed must be somewhere in
 // the row, ignoring case and accents: "Tris Osborne" finds Tristan Osborne,
@@ -14,29 +15,22 @@ function searchPatterns(text: string): string[] {
     .map((word) => `%${word.replace(/[\\%_]/g, "\\$&")}%`);
 }
 
-/** Whether `column` holds `pattern`, a parameter, ignoring case and accents. */
-export function contains(column: string, pattern: string): string {
-  return `unaccent(${column}) ILIKE unaccent(${pattern})`;
+/** Whether `column` holds `pattern`, ignoring case and accents. */
+export function contains(column: string, pattern: string): Sql {
+  return sql`unaccent(${sql.raw(column)}) ILIKE unaccent(${pattern})`;
 }
 
 /**
  * SQL that's true when every word of `text`, which has at least one, is in
- * one of a row's fields. `anyField` is the condition for one word's
- * pattern, a parameter `add` makes.
+ * one of a row's fields. `anyField` is the condition for one word's pattern.
  */
-export function everyWord(
-  text: string,
-  add: (value: unknown) => string,
-  anyField: (pattern: string) => string,
-): string {
-  return searchPatterns(text)
-    .map((pattern) => `(${anyField(add(pattern))})`)
-    .join(" AND ");
+export function everyWord(text: string, anyField: (pattern: string) => Sql): Sql {
+  return sql.and(searchPatterns(text).map(anyField));
 }
 
-/** How close `column` is to `text`, a parameter, from 0 to 1: the best match of the typed text within it. */
-export function closeness(column: string, text: string): string {
-  return `word_similarity(unaccent(${text}), unaccent(coalesce(${column}, '')))`;
+/** How close `column` is to `text`, from 0 to 1: the best match of the typed text within it. */
+export function closeness(column: string, text: string): Sql {
+  return sql`word_similarity(unaccent(${text}), unaccent(coalesce(${sql.raw(column)}, '')))`;
 }
 
 /** The closeness below which a row isn't offered as near what was typed. */

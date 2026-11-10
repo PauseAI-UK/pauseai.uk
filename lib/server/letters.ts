@@ -1,4 +1,5 @@
 import "server-only";
+import { ARRIVED, DID_NOT_ARRIVE, statusIn } from "@/lib/letter-status";
 import { cache } from "react";
 import { config } from "./config";
 import type { AskStatus } from "@/lib/asks";
@@ -11,7 +12,7 @@ import {
   sentNearSearch,
   type GmailFind,
 } from "@/lib/letter-links";
-import { AUTO_REPLIED_AT, LETTER_COLUMNS } from "@/lib/letter-sort";
+import type { LetterSort } from "@/lib/staff-lists";
 import type { PoliticianFlag } from "@/lib/politician-filters";
 import { checkDoc, toText } from "@/lib/letter-format";
 import { query } from "./db";
@@ -86,6 +87,25 @@ export type LetterSummary = {
   /** The supporter the sender is, once linked. */
   supporterId: number | null;
   events: LetterEvent[];
+};
+
+/** When a letter `l` first got an automatic reply, if it has. */
+const AUTO_REPLIED_AT = "(SELECT min(e.at) FROM letter_events e WHERE e.letter_id = l.id AND e.status = 'auto_reply')";
+
+/**
+ * Each sort's column in the query. The reply's is the date the list shows:
+ * a written reply's, or failing one an automatic reply's.
+ */
+const LETTER_COLUMNS: Record<LetterSort, string> = {
+  status: "l.status",
+  from: "f.name",
+  to: "n.name",
+  campaign: "c.title",
+  ownWords: "s.own_words",
+  backend: '"backend"',
+  created: "l.created_at",
+  sent: "l.sent_at",
+  replied: `coalesce(l.replied_at, ${AUTO_REPLIED_AT})`,
 };
 
 /** How many letters the letters page shows at once. */
@@ -175,9 +195,9 @@ async function letterRows({
        AND ($11::text[] IS NULL OR ${BACKEND} = ANY($11))
        AND ($12::text[] IS NULL OR (${BACKEND} = ANY($12)) IS NOT TRUE)
        AND ($13::text IS NULL OR CASE $13 WHEN 'changed' THEN s.own_words > 0 WHEN 'replied' THEN l.replied_at IS NOT NULL
-         WHEN 'sent' THEN l.status IN ('sent', 'spam_complaint')
+         WHEN 'sent' THEN ${statusIn("l.status", ARRIVED)}
          WHEN 'answered' THEN EXISTS (SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = n.id AND st.ask = c.ask)
-         ELSE l.status IN ('not_sent', 'bounced') END) ${flagConditions}
+         ELSE ${statusIn("l.status", DID_NOT_ARRIVE)} END) ${flagConditions}
      ORDER BY ${LETTER_COLUMNS[sort.key]} ${sort.dir === "asc" ? "ASC" : "DESC"} NULLS LAST, l.created_at DESC, l.id DESC
      LIMIT $2 OFFSET $9`,
     [

@@ -1,23 +1,17 @@
 import "server-only";
 import { cache } from "react";
-import { listWindow, windowStart } from "@/lib/staff-dashboard";
+import { windowStart } from "@/lib/staff-dashboard";
 import { now } from "@/lib/now";
 import { AGREED_STATUSES, type AskStatus } from "@/lib/asks";
+import { MAILED, statusIn } from "@/lib/letter-status";
 import type { Mp, MpStatuses } from "@/lib/email-your-mp";
-import { parseSort, type SortSpec } from "@/lib/staff-sort";
-import { among, anyAndNone, firstOf, notOf, pageNumber, valuesOf, type ParamValue } from "@/lib/staff-search";
-import { POLITICIAN_COLUMNS, POLITICIAN_SORTS, type PoliticianSort } from "@/lib/politician-sort";
-import {
-  COUNTRIES,
-  EMAIL_STATES,
-  POLITICIAN_FLAGS,
-  type Country,
-  type EmailState,
-  type PoliticianFlag,
-} from "@/lib/politician-filters";
+import type { SortSpec } from "@/lib/staff-sort";
+import type { PoliticianSort } from "@/lib/staff-lists";
+import type { Country, EmailState, House, PersonStatus, PoliticianFlag } from "@/lib/politician-filters";
 import { query, transaction, type Queryable } from "./db";
 import { auditActions, type AuditEntry, logChange } from "./audit";
 import { CLOSE_ENOUGH, closeness, contains, everyWord } from "./search";
+import { sql, type Sql } from "./sql";
 
 // Politicians, the notable people who are in a parliament or were, and
 // their answer to each ask. A politician is a row of notable_people, with
@@ -25,23 +19,8 @@ import { CLOSE_ENOUGH, closeness, contains, everyWord } from "./search";
 // politicians have. They're copied from Airtable nightly
 // (politician-sync.ts), and staff set statuses in the staff interface.
 
-export const HOUSES = ["commons", "lords", "scottish-parliament", "senedd", "ni-assembly", "other"] as const;
-export type House = (typeof HOUSES)[number];
-
-export function isHouse(value: string): value is House {
-  return (HOUSES as readonly string[]).includes(value);
-}
-
-/** Whether they're in office. One who leaves is marked, never deleted. */
-export const PERSON_STATUSES = ["in_office", "died", "retired", "left_office"] as const;
-export type PersonStatus = (typeof PERSON_STATUSES)[number];
-
-export function isPersonStatus(value: string): value is PersonStatus {
-  return (PERSON_STATUSES as readonly string[]).includes(value);
-}
-
-export { COUNTRIES } from "@/lib/politician-filters";
-export type { Country, EmailState, PoliticianFlag } from "@/lib/politician-filters";
+export { COUNTRIES, HOUSES, isHouse, isPersonStatus, PERSON_STATUSES } from "@/lib/politician-filters";
+export type { Country, EmailState, House, PersonStatus, PoliticianFlag } from "@/lib/politician-filters";
 
 export type StatusRecord = {
   status: AskStatus;
@@ -147,6 +126,8 @@ const SELECT_POLITICIANS = `
     )) FILTER (WHERE s.ask IS NOT NULL) AS statuses
   FROM ${POLITICIANS} LEFT JOIN ask_statuses s ON s.notable_person_id = n.id`;
 
+const SELECT = sql.raw(SELECT_POLITICIANS);
+
 function toPolitician({ statuses, ...row }: Row): Politician {
   const records = Object.entries(statuses ?? {}).map(([ask, record]) => [
     ask,
@@ -196,104 +177,22 @@ export type PoliticianFilter = PoliticianWho & {
 
 const POLITICIANS_PAGE_SIZE = 100;
 
-/** The politicians page's filters, each as typed in its URL; those that repeat, a list. */
-export type PoliticiansSearch = {
-  q: string;
-  house: string;
-  /** Blank for those in office, "any" for everyone. */
-  status: string;
-  party: string[];
-  flag: string[];
-  /** Nations, as COUNTRIES. */
-  nation: string[];
-  email: string[];
-  ask: string;
-  answer: string[];
-  mailed: string[];
-  /** Those who agreed to an ask in the last so many days. */
-  agreed: string;
-  sort: string;
-  dir: string;
-  page: string;
-  /** Who the list is choosing for: a draft mailing's ID. Its rows can then be ticked, for the mailing. */
-  mailing: string;
-  /**
-   * While choosing, the tab after the houses: "ticked", only those ticked,
-   * in place of what the filters find; "pasted", the lines of names pasted
-   * and who each found. Blank for the list.
-   */
-  tab: string;
-  /** While choosing, the lines of names pasted, to show on the pasted tab. */
-  pasted: string[];
-  /** The saved filter loaded, by ID. */
-  saved: string;
-};
-
 /**
- * The politicians page's filter, from its URL: each field as typed, for the
- * form, and the filter they make, leaving out what's blank or unknown, but
- * for the status: those in office unless it's given. A filter that repeats
- * finds those with any of its values. The test politicians are left out,
- * unseen in the filters, unless the Marked filter finds them.
+ * Each sort's column in the query. The Asks column sorts by when their
+ * newest answer was recorded; first and last activity by the times
+ * POLITICIAN_ACTIVITY gives.
  */
-export function politiciansSearch(params: Partial<Record<keyof PoliticiansSearch, ParamValue>>): PoliticiansSearch & {
-  filter: PoliticianFilter;
-} {
-  const [q, house, status, ask, agreed, sort, dir, page, mailing, tab, saved] = (
-    ["q", "house", "status", "ask", "agreed", "sort", "dir", "page", "mailing", "tab", "saved"] as const
-  ).map((name) => firstOf(params[name]));
-  const [party, flag, nation, email, answer, mailed, pasted] = (
-    ["party", "flag", "nation", "email", "answer", "mailed", "pasted"] as const
-  ).map((name) => valuesOf(params[name]));
-  const [parties, notParties] = anyAndNone(party, (values) => values);
-  const [flags, notFlags] = anyAndNone(flag, (values) => among(values, POLITICIAN_FLAGS));
-  const [countries, notCountries] = anyAndNone(nation, (values) => among(values, COUNTRIES));
-  const [emails, notEmails] = anyAndNone(email, (values) => among(values, EMAIL_STATES));
-  const [mailedAbout, notMailedAbout] = anyAndNone(mailed, (values) => values);
-  const filter: PoliticianFilter = {
-    search: q.trim() || undefined,
-    house: isHouse(house) ? house : undefined,
-    status: isPersonStatus(status) ? status : status === "any" ? undefined : "in_office",
-    party: parties,
-    flags,
-    country: countries,
-    email: emails,
-    mailed: mailedAbout,
-    ask: ask || undefined,
-    answer: answer.length ? answer : undefined,
-    agreedDays: listWindow(agreed),
-    not: notOf({
-      party: notParties,
-      flags: flags?.includes("test") ? notFlags : [...new Set([...(notFlags ?? []), "test" as const])],
-      country: notCountries,
-      email: notEmails,
-      mailed: notMailedAbout,
-    }),
-    sort: parseSort(POLITICIAN_SORTS, "name", sort, dir),
-    page: pageNumber(page),
-  };
-  return {
-    q,
-    house,
-    status,
-    party,
-    flag,
-    nation,
-    email,
-    ask,
-    answer,
-    mailed,
-    agreed,
-    sort,
-    dir,
-    page,
-    mailing: /^\d+$/.test(mailing) ? mailing : "",
-    tab: tab === "ticked" || tab === "pasted" ? tab : "",
-    pasted,
-    saved,
-    filter,
-  };
-}
+const POLITICIAN_COLUMNS: Record<PoliticianSort, string> = {
+  name: "n.name",
+  house: "p.house",
+  constituency: "p.constituency",
+  party: "p.party",
+  letters: '"letters"',
+  replies: '"replies"',
+  asks: "(SELECT max(a.updated_at) FROM ask_statuses a WHERE a.notable_person_id = n.id)",
+  first: '"firstActivityAt"',
+  active: '"lastActivityAt"',
+};
 
 /** When a politician has each marker, `n` their notable_people row and `p` their politicians row. */
 export const FLAG_CONDITIONS: Record<PoliticianFlag, string> = {
@@ -315,74 +214,67 @@ const EMAIL_CONDITIONS: Record<EmailState, string> = {
  * Whether a mailing about one of `asks` went to a politician, or is going
  * to: one of its letters to them that wasn't stopped or skipped.
  */
-const MAILED = (asks: string) => `EXISTS (SELECT 1 FROM letters l JOIN letters_from_pauseai lp USING (id)
+const mailedAbout = (asks: string[]) => sql`EXISTS (SELECT 1 FROM letters l JOIN letters_from_pauseai lp USING (id)
   JOIN mailings m ON m.id = lp.mailing_id
   WHERE l.notable_person_id = n.id AND m.ask = ANY(${asks})
-    AND l.status IN ('scheduled', 'sending', 'sent', 'uncertain', 'bounced', 'spam_complaint'))`;
+    AND ${sql.raw(statusIn("l.status", MAILED))})`;
 
 /** The conditions of the filters that repeat, those that are on: each finds those with any of its values. */
-function anyOf(filter: Pick<PoliticianWho, NegatablePoliticianFilter>, value: (v: unknown) => string): string[] {
-  const conditions: string[] = [];
-  if (filter.party) conditions.push(`p.party = ANY(${value(filter.party)})`);
-  if (filter.flags) conditions.push(filter.flags.map((flag) => FLAG_CONDITIONS[flag]).join(" OR "));
-  if (filter.country) conditions.push(`p.country = ANY(${value(filter.country)})`);
-  if (filter.email) conditions.push(filter.email.map((state) => EMAIL_CONDITIONS[state]).join(" OR "));
-  if (filter.mailed) conditions.push(MAILED(value(filter.mailed)));
-  return conditions.map((condition) => `(${condition})`);
+function anyOf(filter: Pick<PoliticianWho, NegatablePoliticianFilter>): Sql[] {
+  const conditions: Sql[] = [];
+  if (filter.party) conditions.push(sql`p.party = ANY(${filter.party})`);
+  if (filter.flags) conditions.push(sql.or(filter.flags.map((flag) => sql.raw(FLAG_CONDITIONS[flag]))));
+  if (filter.country) conditions.push(sql`p.country = ANY(${filter.country})`);
+  if (filter.email) conditions.push(sql.or(filter.email.map((state) => sql.raw(EMAIL_CONDITIONS[state]))));
+  if (filter.mailed) conditions.push(mailedAbout(filter.mailed));
+  return conditions;
 }
 
-/**
- * The WHERE clause for `filter`, its values added with `value`. With
- * `closest`, the search is left out, for closestPoliticians to rank by.
- */
-function politicianWhere(filter: PoliticianWho, value: (v: unknown) => string, closest = false): string {
-  const where: string[] = [];
-  if (filter.ids) where.push(`n.id = ANY(${value(filter.ids)}::bigint[])`);
+/** Whether a politician gave an answer to an ask: `filter`'s, or any; one of its answers, or any. */
+function answered(filter: Pick<PoliticianWho, "ask" | "answer">): Sql {
+  const ask = filter.ask ? sql` AND a.ask = ${filter.ask}` : sql``;
+  const given = filter.answer?.filter((answer) => answer !== "none") ?? [];
+  const conditions: Sql[] = [];
+  if (filter.answer?.includes("none")) {
+    conditions.push(sql`NOT EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask})`);
+  }
+  if (given.length > 0 || !filter.answer) {
+    const answer = given.length > 0 ? sql` AND a.status = ANY(${given})` : sql``;
+    conditions.push(sql`EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask}${answer})`);
+  }
+  return sql.or(conditions);
+}
+
+/** The conditions `filter` makes. With `closest`, the search is left out, for closestPoliticians to rank by. */
+function politicianConditions(filter: PoliticianWho, closest = false): Sql[] {
+  const where: Sql[] = [];
+  if (filter.ids) where.push(sql`n.id = ANY(${filter.ids}::bigint[])`);
   if (filter.search && !closest) {
     where.push(
-      everyWord(filter.search, value, (like) =>
-        ["n.name", "p.constituency", "p.party", "n.email"].map((column) => contains(column, like)).join(" OR "),
+      everyWord(filter.search, (like) =>
+        sql.or(["n.name", "p.constituency", "p.party", "n.email"].map((column) => contains(column, like))),
       ),
     );
   }
-  if (filter.house) where.push(`p.house = ${value(filter.house)}`);
-  if (filter.status === "out") where.push("n.status <> 'in_office'");
-  else if (filter.status) where.push(`n.status = ${value(filter.status)}`);
-  where.push(...anyOf(filter, value));
+  if (filter.house) where.push(sql`p.house = ${filter.house}`);
+  if (filter.status === "out") where.push(sql`n.status <> 'in_office'`);
+  else if (filter.status) where.push(sql`n.status = ${filter.status}`);
+  where.push(...anyOf(filter));
   if (filter.agreedDays) {
     where.push(
-      `EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id AND a.status = ANY(${value(AGREED_STATUSES)}) AND a.updated_by <> 'airtable'
-         AND a.updated_at >= ${value(windowStart(filter.agreedDays))} AND a.updated_at <= ${value(now())})`,
+      sql`EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id AND a.status = ANY(${AGREED_STATUSES}) AND a.updated_by <> 'airtable'
+         AND a.updated_at >= ${windowStart(filter.agreedDays)} AND a.updated_at <= ${now()})`,
     );
   }
   // What's left out: a filter's condition not true, so one with no value, such as no party, is kept.
-  if (filter.not) where.push(...anyOf(filter.not, value).map((condition) => `${condition} IS NOT TRUE`));
-  if (filter.ask || filter.answer) {
-    const ask = filter.ask ? ` AND a.ask = ${value(filter.ask)}` : "";
-    const given = filter.answer?.filter((answer) => answer !== "none") ?? [];
-    const conditions: string[] = [];
-    if (filter.answer?.includes("none")) {
-      conditions.push(`NOT EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask})`);
-    }
-    if (given.length > 0 || !filter.answer) {
-      const answer = given.length > 0 ? ` AND a.status = ANY(${value(given)})` : "";
-      conditions.push(`EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask}${answer})`);
-    }
-    where.push(`(${conditions.join(" OR ")})`);
-  }
-  return where.length ? `WHERE ${where.join(" AND ")}` : "";
+  if (filter.not) where.push(...anyOf(filter.not).map((condition) => sql`(${condition}) IS NOT TRUE`));
+  if (filter.ask || filter.answer) where.push(answered(filter));
+  return where;
 }
 
-/** A query's values, and the function that adds one and gives its parameter. */
-function parameters(): [unknown[], (v: unknown) => string] {
-  const values: unknown[] = [];
-  return [
-    values,
-    (v) => {
-      values.push(v);
-      return `$${values.length}`;
-    },
-  ];
+/** The WHERE clause for `filter`. */
+function politicianWhere(filter: PoliticianWho): Sql {
+  return sql.where(politicianConditions(filter));
 }
 
 /**
@@ -394,13 +286,12 @@ export async function listPoliticians(
   filter: PoliticianFilter = {},
   limit: number | null = POLITICIANS_PAGE_SIZE,
 ): Promise<Politician[]> {
-  const [values, value] = parameters();
   const offset = ((filter.page ?? 1) - 1) * (limit ?? 0);
+  const order = sql.raw(
+    `${POLITICIAN_COLUMNS[filter.sort?.key ?? "name"]} ${filter.sort?.dir === "desc" ? "DESC" : "ASC"} NULLS LAST, n.name, n.id`,
+  );
   const rows = await query<Row>(
-    `${SELECT_POLITICIANS} ${politicianWhere(filter, value)}
-     GROUP BY n.id, p.id ORDER BY ${POLITICIAN_COLUMNS[filter.sort?.key ?? "name"]} ${filter.sort?.dir === "desc" ? "DESC" : "ASC"} NULLS LAST, n.name, n.id
-     LIMIT ${value(limit)} OFFSET ${value(offset)}`,
-    values,
+    sql`${SELECT} ${politicianWhere(filter)} GROUP BY n.id, p.id ORDER BY ${order} LIMIT ${limit} OFFSET ${offset}`,
   );
   return rows.map(toPolitician);
 }
@@ -442,10 +333,8 @@ export type PoliticiansPage = Awaited<ReturnType<typeof politiciansPage>>;
 
 /** How many politicians `filter` finds. */
 export async function countPoliticians(filter: PoliticianFilter): Promise<number> {
-  const [values, value] = parameters();
   const [{ count }] = await query<{ count: number }>(
-    `SELECT count(*)::int AS count FROM ${POLITICIANS} ${politicianWhere(filter, value)}`,
-    values,
+    sql`SELECT count(*)::int AS count FROM ${sql.raw(POLITICIANS)} ${politicianWhere(filter)}`,
   );
   return count;
 }
@@ -461,16 +350,13 @@ export async function closestPoliticians(
   enough = CLOSE_ENOUGH,
   namesOnly = false,
 ): Promise<Politician[]> {
-  const [values, value] = parameters();
-  const text = value(filter.search);
+  const text = filter.search;
   const near = namesOnly
     ? closeness("n.name", text)
-    : `greatest(${closeness("n.name", text)}, ${closeness("p.constituency", text)})`;
-  const where = politicianWhere(filter, value, true);
+    : sql`greatest(${closeness("n.name", text)}, ${closeness("p.constituency", text)})`;
+  const where = sql.where([...politicianConditions(filter, true), sql`${near} >= ${enough}`]);
   const rows = await query<Row>(
-    `${SELECT_POLITICIANS} ${where ? `${where} AND` : "WHERE"} ${near} >= ${value(enough)}
-     GROUP BY n.id, p.id ORDER BY ${near} DESC, n.name LIMIT ${value(limit)}`,
-    values,
+    sql`${SELECT} ${where} GROUP BY n.id, p.id ORDER BY ${near} DESC, n.name LIMIT ${limit}`,
   );
   return rows.map(toPolitician);
 }
@@ -529,7 +415,7 @@ function wordsOf(text: string): string {
 }
 
 /** SQL for text as its words alone, lowercase, without accents, a space either side, to find a name in as whole words. */
-const asWords = (sql: string) => `' ' || regexp_replace(lower(unaccent(${sql})), '[^a-z0-9]+', ' ', 'g') || ' '`;
+const asWords = (text: Sql) => sql`' ' || regexp_replace(lower(unaccent(${text})), '[^a-z0-9]+', ' ', 'g') || ' '`;
 
 /** How near a name must be to a line pasted to be offered for it: nearer than the list's search asks. */
 const PASTE_NEAR_ENOUGH = 0.55;
@@ -545,7 +431,7 @@ export function looksLikeName(text: string): boolean {
 }
 
 /** SQL for text as its words alone, without accents but keeping their case, a space either side. */
-const asCasedWords = (sql: string) => `' ' || regexp_replace(unaccent(${sql}), '[^A-Za-z0-9]+', ' ', 'g') || ' '`;
+const asCasedWords = (text: Sql) => sql`' ' || regexp_replace(unaccent(${text}), '[^A-Za-z0-9]+', ' ', 'g') || ' '`;
 
 /** Every email address in some text, lowercase. */
 export function emailsIn(text: string): string[] {
@@ -566,17 +452,13 @@ export function emailsIn(text: string): string[] {
 export async function findPasted(line: string): Promise<Pasted> {
   const text = pastedName(line);
   if (!text) return { matches: [], by: {}, choices: [] };
-  const [values, value] = parameters();
-  const lower = value(line);
-  const cased = value(line);
   const named = (
     await query<Row>(
-      `${SELECT_POLITICIANS} ${politicianWhere(PASTE_AMONG, value)}
-       AND (${asWords(lower)} LIKE '%' || ${asWords("n.name")} || '%'
-         OR (p.constituency <> '' AND ${asCasedWords(cased)} LIKE '%' || ${asCasedWords("p.constituency")} || '%')
-         OR lower(n.email) = ANY(${value(emailsIn(line))}::text[]))
+      sql`${SELECT} ${politicianWhere(PASTE_AMONG)}
+       AND (${asWords(sql`${line}`)} LIKE '%' || ${asWords(sql`n.name`)} || '%'
+         OR (p.constituency <> '' AND ${asCasedWords(sql`${line}`)} LIKE '%' || ${asCasedWords(sql`p.constituency`)} || '%')
+         OR lower(n.email) = ANY(${emailsIn(line)}::text[]))
        GROUP BY n.id, p.id ORDER BY n.name, n.id`,
-      values,
     )
   ).map(toPolitician);
   if (named.length) {
@@ -596,13 +478,11 @@ export async function findPasted(line: string): Promise<Pasted> {
     };
   }
   if (!looksLikeName(text)) return { matches: [], by: {}, choices: [] };
-  const [also, put] = parameters();
   const words = (
     await query<Row>(
-      `${SELECT_POLITICIANS} ${politicianWhere(PASTE_AMONG, put)}
-       AND ${everyWord(text, put, (like) => [contains("n.name", like), contains("p.constituency", like)].join(" OR "))}
-       GROUP BY n.id, p.id ORDER BY n.name, n.id LIMIT ${put(PASTE_CHOICES)}`,
-      also,
+      sql`${SELECT} ${politicianWhere(PASTE_AMONG)}
+       AND ${everyWord(text, (like) => sql.or([contains("n.name", like), contains("p.constituency", like)]))}
+       GROUP BY n.id, p.id ORDER BY n.name, n.id LIMIT ${PASTE_CHOICES}`,
     )
   ).map(toPolitician);
   if (words.length === 1) return { matches: words, by: { [words[0].id]: "words" }, choices: [] };
@@ -793,13 +673,11 @@ export type MailingPolitician = {
 
 /** Every politician `who` finds, by name, for a mailing to them. */
 export async function mailingPoliticians(who: PoliticianWho): Promise<MailingPolitician[]> {
-  const [values, value] = parameters();
   return query<MailingPolitician>(
-    `SELECT n.id::int AS id, n.name, n.salutation, p.constituency, p.party, p.house, n.email, ${BLOCKED} AS blocked,
+    sql`SELECT n.id::int AS id, n.name, n.salutation, p.constituency, p.party, p.house, n.email, ${sql.raw(BLOCKED)} AS blocked,
        coalesce(array_agg(s.ask || ':' || s.status ORDER BY s.ask) FILTER (WHERE s.ask IS NOT NULL), '{}') AS answers
-     FROM ${POLITICIANS} LEFT JOIN ask_statuses s ON s.notable_person_id = n.id
-     ${politicianWhere(who, value)}
+     FROM ${sql.raw(POLITICIANS)} LEFT JOIN ask_statuses s ON s.notable_person_id = n.id
+     ${politicianWhere(who)}
      GROUP BY n.id, p.id ORDER BY n.name, n.id`,
-    values,
   );
 }

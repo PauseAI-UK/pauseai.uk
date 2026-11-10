@@ -1,9 +1,10 @@
 // Supporters, as the staff pages show them: the shapes the server
 // (lib/server/supporters.ts) gives the components.
+import type { SupporterSort } from "./staff-lists";
 import { permanentRedirect } from "next/navigation";
 import { staffCopy } from "./content/staff-interface";
 import type { ContactPermission, ContactState } from "./contact-permissions";
-import type { SortColumns, SortDirection } from "./staff-sort";
+import type { SortDirection } from "./staff-sort";
 
 /** Where a supporter came from: Luma, the members, or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, or the march sign-up. */
 export const SUPPORTER_SOURCES = [
@@ -146,14 +147,6 @@ export type SupporterDetails = {
 };
 
 /** What the list can be sorted by, a column heading or the Sort by field, and which way a first click goes. */
-export const SUPPORTER_SORTS: SortColumns<"active" | "first" | "name" | "events" | "letters"> = {
-  active: "desc",
-  first: "asc",
-  name: "asc",
-  events: "desc",
-  letters: "desc",
-};
-export type SupporterSort = keyof typeof SUPPORTER_SORTS;
 
 /** How far from a place the Near filter reaches, in miles. */
 export const NEAR_MILES = [5, 10, 25, 50] as const;

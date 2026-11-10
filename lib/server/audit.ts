@@ -1,6 +1,6 @@
 import "server-only";
 import type { AuditAction, AuditDetails } from "@/lib/audit-events";
-import type { ChangeSort } from "@/lib/change-sort";
+import type { ChangeSort } from "@/lib/staff-lists";
 import { windowStart } from "@/lib/staff-dashboard";
 import type { SortSpec } from "@/lib/staff-sort";
 import { query, type Queryable } from "./db";

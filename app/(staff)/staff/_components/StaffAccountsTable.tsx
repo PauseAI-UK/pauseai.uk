@@ -6,7 +6,7 @@ import { Checkbox, TextInput } from "@/components/ui/Controls";
 import { FieldError } from "@/components/ui/Field";
 import Table from "@/components/ui/Table";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { ACCOUNT_SORTS, type AccountSort } from "@/lib/staff-account-sort";
+import { ACCOUNTS_LIST, type AccountSort } from "@/lib/staff-lists";
 import { ADDED_BY_LOGIN, isStaffEmail, PERMISSIONS, type Permission } from "@/lib/staff-permissions";
 import { sortHref, type SortSpec } from "@/lib/staff-sort";
 import type { StaffAccount } from "@/lib/server/staff-accounts";
@@ -19,8 +19,6 @@ import Bubble from "./ui/Bubble";
 import styles from "./StaffAccountsTable.module.css";
 
 type Action = (form: FormData) => void | Promise<void>;
-
-const PATH = "/staff/accounts";
 
 /** The form an account's permissions are saved with: whose, and "permission:<name>" for each ticked (lib/staff-forms.ts). */
 function accountForm(email: string, permissions: readonly Permission[]): FormData {
@@ -201,7 +199,7 @@ export default function StaffAccountsTable({
   const copy = staffCopy.accounts;
   const columns = copy.columns;
   const heading = (key: AccountSort, label: string) => (
-    <SortHeading sortKey={key} current={sort} href={sortHref(PATH, {}, ACCOUNT_SORTS, sort, key)}>
+    <SortHeading sortKey={key} current={sort} href={sortHref(ACCOUNTS_LIST.path, {}, ACCOUNTS_LIST.columns, sort, key)}>
       {label}
     </SortHeading>
   );

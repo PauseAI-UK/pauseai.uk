@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Checkbox } from "@/components/ui/Controls";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { chosenValues } from "@/lib/filter-choices";
-import { filtersPath, NOT, type Params } from "@/lib/staff-search";
+import { filtersPath, NOT, type Params } from "@/lib/list-params";
 import Choices from "./Choices";
 import type { FilterOption } from "./FilterBar";
 import { useBarHold } from "./FilterBarLines";

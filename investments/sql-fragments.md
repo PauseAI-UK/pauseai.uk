@@ -1,14 +1,14 @@
 # Composable SQL for lists
 
-Size: M. Kind: architecture.
+Size: S. Kind: architecture.
 
 ## Problem
 
-Three list queries build their SQL by hand, each with its own `values.push(...)` returning `$n`: `all-letters.ts`, `politicians.ts` (`parameters()`) and `supporters.ts`. "Any of" and "not" filters are written twice. Two others, `sent-emails.ts` and `audit.ts`, use the `($n IS NULL OR …)` style instead.
+Three list queries still filter with fixed parameters, each condition written `($n IS NULL OR …)` with its number by hand: `letters.ts` (a campaign's letters, to `$13`), `sent-emails.ts` and `audit.ts`. Adding a filter means renumbering, and the planner sees every condition, whether it's on or not.
 
 ## Fix
 
-A small `sql` tagged template in `db.ts` that returns `{ text, values }` and composes fragments (`sql.join`, `sql.and`). Still plain SQL, no ORM. It's the data half of `staff-list-definition.md`, and can be adopted one list at a time.
+Build them with the `sql` tagged template (`lib/server/sql.ts`), as `politicians.ts`, `supporters.ts` and `all-letters.ts` are: a condition only for each filter that's on, joined with `sql.where`. One list at a time.
 
 ## Hits
 

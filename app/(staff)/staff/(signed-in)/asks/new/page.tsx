@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { requireStaff } from "@/lib/server/staff-auth";
-import { askFormSearch, type ParamValue } from "@/lib/staff-search";
+import { askFormSearch } from "@/lib/staff-search";
+import { type ParamValue } from "@/lib/list-params";
 import { deleteAskNow, saveAskNow } from "../../../actions";
 import AskForm from "../../../_components/AskForm";
 import Breadcrumb from "../../../_components/Breadcrumb";

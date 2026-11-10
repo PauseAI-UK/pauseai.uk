@@ -1,12 +1,12 @@
 import { AskTitle } from "./AskLine";
 import StaffLink from "./ui/StaffLink";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { POLITICIAN_SORTS, type PoliticianSort } from "@/lib/politician-sort";
+import { POLITICIANS_LIST, type PoliticianSort } from "@/lib/staff-lists";
 import type { Ask } from "@/lib/server/asks";
 import type { Politician } from "@/lib/server/politicians";
-import { anyAndNone, firstOf, valuesOf, type Params } from "@/lib/staff-search";
+import { anyAndNone, firstOf, valuesOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
-import { parseSort, sortHref } from "@/lib/staff-sort";
+import { sortHref } from "@/lib/staff-sort";
 import SortHeading from "./SortHeading";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import type { Contact } from "@/lib/vcard";
@@ -74,13 +74,13 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
     status: firstOf(search.status ?? "any") === "any",
   };
   const { sort, dir, ...filters } = search;
-  const current = parseSort(POLITICIAN_SORTS, "name", firstOf(sort), firstOf(dir));
+  const current = POLITICIANS_LIST.sort({ sort: firstOf(sort), dir: firstOf(dir) });
   const heading = (key: PoliticianSort, label: string) => (
     <SortHeading
       key={key}
       sortKey={key}
       current={current}
-      href={sortHref("/staff/politicians", filters, POLITICIAN_SORTS, current, key)}
+      href={sortHref(POLITICIANS_LIST.path, filters, POLITICIANS_LIST.columns, current, key)}
     >
       {label}
     </SortHeading>

@@ -1,7 +1,8 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { BroadcastPageData } from "@/lib/server/broadcast-pages";
 import type { SupporterChoices } from "@/lib/server/supporters";
-import { supportersSearch, type Params } from "@/lib/staff-search";
+import { supportersSearch } from "@/lib/staff-search";
+import { type Params } from "@/lib/list-params";
 import { Muted } from "@/components/ui/Text";
 import { broadcastTerms } from "@/lib/broadcasts";
 import ChannelIcon from "./ChannelIcon";

@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { addTestLetter, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import type { SentEmailSort } from "@/lib/sent-email-sort";
+import type { SentEmailSort } from "@/lib/staff-lists";
 import { query } from "./db";
 import { send } from "./email";
 import { recordProblem } from "./email";

@@ -1,5 +1,5 @@
 // What a repeating filter's URL values become when one of its lozenges changes.
-import { NOT } from "@/lib/staff-search";
+import { NOT } from "@/lib/list-params";
 
 /**
  * A repeating filter's values once its lozenge for what it finds, or with

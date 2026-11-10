@@ -1,4 +1,5 @@
 import "server-only";
+import { ARRIVED, MAILING_FAILED, statusIn } from "@/lib/letter-status";
 import type { AskStatus } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mailingGroups, type MailingGroup } from "@/lib/mailing-groups";
@@ -80,19 +81,11 @@ export type MailingRecipient = {
 export const RECIPIENT_TABS = ["all", "sent", "failed", "stopped", "replied", "answered"] as const;
 export type RecipientTab = (typeof RECIPIENT_TABS)[number];
 
-/**
- * A letter that failed: skipped, refused when sent, or bounced, a failure
- * that only took longer to come. A spam complaint arrived, so it was sent.
- */
-const FAILED = "('skipped', 'not_sent', 'bounced')";
-/** A letter that arrived: sent, and not bounced, though perhaps complained of as spam. */
-const SENT = "('sent', 'spam_complaint')";
-
 const TAB_CONDITIONS: Record<RecipientTab, string> = {
   all: "true",
   replied: "l.replied_at IS NOT NULL",
-  sent: `l.status IN ${SENT}`,
-  failed: `l.status IN ${FAILED}`,
+  sent: statusIn("l.status", ARRIVED),
+  failed: statusIn("l.status", MAILING_FAILED),
   stopped: "l.status = 'cancelled'",
   answered: `EXISTS (SELECT 1 FROM ask_statuses s JOIN mailings asked ON asked.id = p.mailing_id
     WHERE s.notable_person_id = n.id AND s.ask = asked.ask)`,
@@ -117,8 +110,8 @@ const SELECT_MAILINGS = `
     m.updated_at AS "updatedAt",
     min(l.sent_at) AS "sentAt",
     count(l.id)::int AS "to",
-    count(l.id) FILTER (WHERE l.status IN ${SENT})::int AS sent,
-    count(l.id) FILTER (WHERE l.status IN ${FAILED})::int AS failed,
+    count(l.id) FILTER (WHERE ${statusIn("l.status", ARRIVED)})::int AS sent,
+    count(l.id) FILTER (WHERE ${statusIn("l.status", MAILING_FAILED)})::int AS failed,
     count(l.id) FILTER (WHERE l.status = 'cancelled')::int AS stopped,
     count(l.replied_at)::int AS replied,
     count(l.id) FILTER (WHERE EXISTS (SELECT 1 FROM ask_statuses s WHERE s.notable_person_id = l.notable_person_id AND s.ask = m.ask))::int AS answered

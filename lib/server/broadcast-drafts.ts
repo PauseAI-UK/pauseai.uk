@@ -1,7 +1,8 @@
 import "server-only";
 import { checkMailingDoc, letterFor, type MailingDoc } from "@/lib/mailing-doc";
 import { toText } from "@/lib/letter-format";
-import { storedFilter, type Params } from "@/lib/staff-search";
+import { storedFilter } from "@/lib/staff-search";
+import { type Params } from "@/lib/list-params";
 import { staffCopy } from "@/lib/content/staff-interface";
 import {
   approvalProblems,

@@ -11,17 +11,12 @@ import {
 } from "@/lib/contact-permissions";
 import type { SupportersPage } from "@/lib/server/supporters";
 import { campaignBySlug } from "@/lib/email-your-mp";
-import { anyAndNone, filtersPath, pageParam, valuesOf, type Params, type SupportersSearch } from "@/lib/staff-search";
+import { type SupportersSearch } from "@/lib/staff-search";
+import { anyAndNone, filtersPath, pageParam, valuesOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
-import { parseSort, sortHref } from "@/lib/staff-sort";
-import {
-  registrationStatus,
-  SUPPORTER_SORTS,
-  SUPPORTERS_PAGE_SIZE,
-  type SupporterPlaceName,
-  type SupporterRow,
-  type SupporterSort,
-} from "@/lib/supporters";
+import { sortHref } from "@/lib/staff-sort";
+import { SUPPORTERS_LIST, type SupporterSort } from "@/lib/staff-lists";
+import { registrationStatus, SUPPORTERS_PAGE_SIZE, type SupporterPlaceName, type SupporterRow } from "@/lib/supporters";
 import { permissionReason } from "./PermissionTiles";
 import SortHeading from "./SortHeading";
 import SubscriptionBadges, { subscriptionWords } from "./SubscriptionBadges";
@@ -30,7 +25,7 @@ import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import type { Contact } from "@/lib/vcard";
 import styles from "./SupportersTable.module.css";
 
-const PATH = "/staff/supporters";
+const PATH = SUPPORTERS_LIST.path;
 const copy = staffCopy.supporters;
 
 /** The list's filters as typed, the URL's, without the page or the notices. */
@@ -119,13 +114,13 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
   const states = contactStates(search);
   const named = (events?.length ?? 0) > 1;
   const wrote = Boolean(campaignBySlug(search.campaign)) && search.wrote !== "no";
-  const sort = parseSort(SUPPORTER_SORTS, "active", search.sort, search.dir);
+  const sort = SUPPORTERS_LIST.sort(search);
   const heading = (key: SupporterSort, label: string) => (
     <SortHeading
       key={key}
       sortKey={key}
       current={sort}
-      href={sortHref(PATH, supporterFiltersOf(search), SUPPORTER_SORTS, sort, key)}
+      href={sortHref(PATH, supporterFiltersOf(search), SUPPORTERS_LIST.columns, sort, key)}
     >
       {label}
     </SortHeading>

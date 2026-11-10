@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { chosenValues } from "@/lib/filter-choices";
-import { filtersPath, firstOf, NOT, notValue, valuesOf, type Params } from "@/lib/staff-search";
+import { filtersPath, firstOf, NOT, notValue, valuesOf, type Params } from "@/lib/list-params";
 import Choices from "./Choices";
 import FilterBarLines from "./FilterBarLines";
 import FormPending from "./FormPending";

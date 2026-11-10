@@ -1,5 +1,5 @@
 import "server-only";
-import type { AccountSort } from "@/lib/staff-account-sort";
+import type { AccountSort } from "@/lib/staff-lists";
 import { ADDED_BY_LOGIN, isStaffEmail, type Permission } from "@/lib/staff-permissions";
 import type { SortSpec } from "@/lib/staff-sort";
 import { logChange } from "./audit";

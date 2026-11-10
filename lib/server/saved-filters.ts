@@ -9,7 +9,7 @@ import {
   withoutValues,
   type SavedList,
 } from "@/lib/saved-filters";
-import { valuesOf, type ParamValue, type Params } from "@/lib/staff-search";
+import { valuesOf, type ParamValue, type Params } from "@/lib/list-params";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
 import { filterProblems } from "./stored-filters";

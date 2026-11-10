@@ -25,7 +25,7 @@ import { looksLikeEmail } from "@/lib/email-your-mp";
 import { named } from "@/lib/email-parsing/addresses";
 import { leavePage } from "@/lib/leave-page";
 import { scheduleProblems } from "@/lib/mailing-schedule";
-import { filtersPath } from "@/lib/staff-search";
+import { filtersPath } from "@/lib/list-params";
 import { londonWhen } from "@/lib/staff-time";
 import type { ChannelResult } from "@/lib/server/mailing-channels";
 import type { ScheduleResult, WrittenMailing } from "@/lib/server/mailing-drafts";

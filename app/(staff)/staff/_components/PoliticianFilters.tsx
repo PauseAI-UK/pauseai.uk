@@ -1,10 +1,11 @@
+import { POLITICIANS_LIST } from "@/lib/staff-lists";
 import { ASK_STATUSES } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { Ask } from "@/lib/server/asks";
 import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "@/lib/politician-filters";
-import type { PoliticiansSearch } from "@/lib/server/politicians";
+import type { PoliticiansSearch } from "@/lib/staff-search";
 import { WINDOW_OPTIONS } from "@/lib/staff-dashboard";
-import { firstOf, type Params } from "@/lib/staff-search";
+import { firstOf, type Params } from "@/lib/list-params";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
 import FilterBar, { filteredName, filterWords, type Filter } from "./ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";
@@ -129,7 +130,7 @@ export default function PoliticianFilters({
   if (hidden) return null;
   return (
     <FilterBar
-      path="/staff/politicians"
+      path={POLITICIANS_LIST.path}
       values={search}
       search={{ name: "q", label: copy.search }}
       filters={politicianFilters(search.ask, parties, asks)}
@@ -140,7 +141,7 @@ export default function PoliticianFilters({
           ...saved,
           list: "politicians",
           values: search,
-          path: "/staff/politicians",
+          path: POLITICIANS_LIST.path,
           name: filteredName(copy.title, politicianWords(search, parties, asks)),
           summary: (params) => wordsOf(params, parties, asks),
         })

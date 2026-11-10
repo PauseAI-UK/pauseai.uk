@@ -1,7 +1,8 @@
 import { staffCopy } from "@/lib/content/staff-interface";
-import { CHANGE_SORTS, type ChangeSort } from "@/lib/change-sort";
-import { filtersPath, pageParam, type ChangesSearch, type Params } from "@/lib/staff-search";
-import { parseSort, sortHref } from "@/lib/staff-sort";
+import { AUDIT_LOG_LIST, type ChangeSort } from "@/lib/staff-lists";
+import { type ChangesSearch } from "@/lib/staff-search";
+import { filtersPath, pageParam, type Params } from "@/lib/list-params";
+import { sortHref } from "@/lib/staff-sort";
 import { staffClock, staffDate } from "@/lib/staff-time";
 import type { ChangesPage, LoggedChange } from "@/lib/server/audit";
 import AuditDetail from "./AuditDetail";
@@ -69,9 +70,9 @@ export default function ChangesTable({
   airtableTable: string;
 }) {
   const kept = changeFiltersOf(search);
-  const current = parseSort(CHANGE_SORTS, "day", search.sort, search.dir);
+  const current = AUDIT_LOG_LIST.sort(search);
   const columns = changeColumns(airtableTable).map((column) =>
-    column.key in CHANGE_SORTS
+    column.key in AUDIT_LOG_LIST.columns
       ? {
           ...column,
           heading: (
@@ -79,7 +80,7 @@ export default function ChangesTable({
               key={column.key}
               sortKey={column.key as ChangeSort}
               current={current}
-              href={sortHref(PATH, kept, CHANGE_SORTS, current, column.key as ChangeSort)}
+              href={sortHref(AUDIT_LOG_LIST.path, kept, AUDIT_LOG_LIST.columns, current, column.key as ChangeSort)}
             >
               {column.label}
             </SortHeading>

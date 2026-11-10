@@ -1,5 +1,6 @@
 import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/server/letters";
 import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
+import { isIn, NEVER_WENT } from "@/lib/letter-status";
 
 // A politician's threads as their page lists them: a line of who wrote and
 // when, from what the database knows of each message, never its text.
@@ -42,9 +43,6 @@ export type CorrespondenceThread = {
   /** It went to them and nothing's come back from them but automatic replies. */
   noReply: boolean;
 };
-
-/** Letters that never went, which there's no correspondence about. */
-const NEVER_WENT = ["not_sent", "scheduled", "cancelled", "skipped", "queued"];
 
 const replied = (step: ThreadStep) => step.who === "them" && !step.auto;
 
@@ -154,7 +152,7 @@ export function correspondenceThreads({
   oneOffs: OneOffThreadRow[];
   messages: ThreadMessages;
 }): CorrespondenceThread[] {
-  const went = <T extends { status: string }>(list: readonly T[]) => list.filter((l) => !NEVER_WENT.includes(l.status));
+  const went = <T extends { status: string }>(list: readonly T[]) => list.filter((l) => !isIn(l.status, NEVER_WENT));
   return [
     ...went<LetterSummary | UnsignedLetter>(letters.letters).map((letter) =>
       supporterThread(letter, letters.senders, messages.letters[letter.id] ?? [], messages.subjects[letter.id]),

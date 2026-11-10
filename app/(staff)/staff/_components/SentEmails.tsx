@@ -2,15 +2,10 @@ import { Muted } from "@/components/ui/Text";
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { SentEmail, SentPerson } from "@/lib/server/sent-emails";
-import {
-  filtersPath,
-  pageParam,
-  SENT_EMAIL_LINKS,
-  SENT_EMAILS_WITHOUT_SUPPORTERS,
-  type SentEmailsSearch,
-} from "@/lib/staff-search";
-import { SENT_EMAIL_SORTS, type SentEmailSort } from "@/lib/sent-email-sort";
-import { parseSort, sortHref } from "@/lib/staff-sort";
+import { SENT_EMAIL_LINKS, SENT_EMAILS_WITHOUT_SUPPORTERS, type SentEmailsSearch } from "@/lib/staff-search";
+import { filtersPath, pageParam } from "@/lib/list-params";
+import { SENT_EMAILS_LIST, type SentEmailSort } from "@/lib/staff-lists";
+import { sortHref } from "@/lib/staff-sort";
 import { staffTime } from "@/lib/staff-time";
 import SortHeading from "./SortHeading";
 import FilterBar, { type Filter } from "./ui/FilterBar";
@@ -18,7 +13,7 @@ import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 
-const PATH = "/staff/sent-emails";
+const PATH = SENT_EMAILS_LIST.path;
 const copy = staffCopy.sentEmails;
 
 /** The filters, their kinds of email only those this staff member may see. */
@@ -143,7 +138,7 @@ export default function SentEmails({
 }) {
   const kept = { ...search, page: "" };
   const { sort, dir, ...filtering } = kept;
-  const current = parseSort(SENT_EMAIL_SORTS, "when", sort, dir);
+  const current = SENT_EMAILS_LIST.sort({ sort, dir });
   // Each heading sorts the list by its column, keeping the filters; Links has nothing to sort by.
   const sortable = columns.map((column) =>
     column.key === "links"
@@ -155,7 +150,7 @@ export default function SentEmails({
               key={column.key}
               sortKey={column.key}
               current={current}
-              href={sortHref(PATH, filtering, SENT_EMAIL_SORTS, current, column.key)}
+              href={sortHref(PATH, filtering, SENT_EMAILS_LIST.columns, current, column.key)}
             >
               {column.label}
             </SortHeading>

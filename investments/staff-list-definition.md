@@ -1,14 +1,20 @@
 # One definition per staff list
 
-Size: L. Kind: architecture.
+Size: M. Kind: architecture.
 
 ## Problem
 
-A staff list's filters, sorts, saved filters and URL parameters are defined in about eight places. Saved filters for the audit log (#243, 55 files) changed `lib/saved-filters.ts`, `lib/server/stored-filters.ts`, `lib/staff-forms.ts`, `lib/staff-search.ts`, `ChangesFilters.tsx`, `lib/change-sort.ts`, the storyboard's frame list and a migration that only widened a CHECK. The parameter names are typed by hand in five of those files. There are six `*-sort.ts` files and five `*Filters.tsx` files built from the same pattern, and one list's parser is in `lib/server/politicians.ts` while the rest are in `lib/staff-search.ts`.
+Each list is defined once (`defineStaffList` in `lib/staff-lists.ts`), and its URL's types, reading, sort, headings and saved filter's parameters come from that, but three things are still written per list:
+
+- **The filter bar's filters.** Each `*Filters.tsx` builds its `Filter[]` by hand: a label, whether it repeats and its options. Whether a filter repeats is already in the definition's `params`.
+- **A saved list needs a migration.** `saved_filters.list` has a `CHECK` naming each list in `SAVED`, so a new one widens it.
+- **The pages' titles and words.** Each list has its own `*Words()` for its title and its saved filters' summaries, and its page calls it in `generateMetadata` as well as in its component.
+
+Each page's `requireStaff()` stays on the page, as `tests/checks/staff-auth.test.ts` reads it there, so a helper that opens a list can't check the permission for it.
 
 ## Fix
 
-Define each list once, with `defineStaffList({ path, params, sorts, needs })`, and derive the parser, the saved and choosing parameters, the value checks, the `FilterBar` filters and the permission from it. A `staffListPage()` helper does the auth, saved filters, parsing and title that each list page repeats. This completes the existing kit (`FilterBar`, `parseSort`, `savedFiltersProps`) rather than replacing it.
+Give each param in the definition its label and its options' source, and build `Filter[]` from it, leaving each `*Filters.tsx` the choices that come from the database. Drop the `CHECK` on `saved_filters.list`, as `savedListFrom()` already refuses an unknown list. Then a helper after `requireStaff()` can load the saved filter and give the title.
 
 ## Hits
 

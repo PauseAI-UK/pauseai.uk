@@ -1,16 +1,11 @@
+import { ALL_EMAILS_LIST } from "@/lib/staff-lists";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { AllLettersFound, AnyLetter, EmailChoice } from "@/lib/server/all-letters";
 import { WINDOW_OPTIONS } from "@/lib/staff-dashboard";
-import {
-  ALL_LETTERS_PAGE_SIZE,
-  EMAIL_SENDERS,
-  EMAIL_TYPES,
-  filtersPath,
-  pageParam,
-  type AllLettersSearch,
-} from "@/lib/staff-search";
+import { ALL_LETTERS_PAGE_SIZE, EMAIL_SENDERS, EMAIL_TYPES, type AllLettersSearch } from "@/lib/staff-search";
+import { filtersPath, pageParam } from "@/lib/list-params";
 import { staffTime } from "@/lib/staff-time";
 import CampaignName from "./CampaignName";
 import FilterBar, { type Filter } from "./ui/FilterBar";
@@ -19,7 +14,7 @@ import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 import { statusOf } from "./LetterStatus";
 
-const PATH = "/staff/emails";
+const PATH = ALL_EMAILS_LIST.path;
 const copy = staffCopy.allLetters;
 const words = staffCopy.letters;
 

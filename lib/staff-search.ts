@@ -4,39 +4,52 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listWindow, type DashboardWindow } from "./staff-dashboard";
 import { contactState } from "@/lib/contact-permissions";
-import { CHANGE_SORTS } from "@/lib/change-sort";
 import type { ChangesFilter } from "@/lib/server/audit";
 import type { BlocksFilter } from "@/lib/server/email";
+import type { PoliticianFilter } from "@/lib/server/politicians";
 import type { SentEmailsFilter } from "@/lib/server/sent-emails";
 import { campaignBySlug } from "@/lib/email-your-mp";
-import { LETTER_SORTS, type LetterSort } from "@/lib/letter-sort";
-import { SENT_EMAIL_SORTS } from "@/lib/sent-email-sort";
-import { POLITICIAN_FLAGS, type PoliticianFlag } from "@/lib/politician-filters";
+import {
+  among,
+  anyAndNone,
+  firstOf,
+  notOf,
+  pageNumber,
+  valuesOf,
+  type ParamValue,
+  type Params,
+} from "@/lib/list-params";
+import { SUPPORTER_LETTER_STATUSES } from "@/lib/letter-status";
+import {
+  COUNTRIES,
+  EMAIL_STATES,
+  isHouse,
+  isPersonStatus,
+  POLITICIAN_FLAGS,
+  type PoliticianFlag,
+} from "@/lib/politician-filters";
+import {
+  ACCOUNTS_LIST,
+  ALL_EMAILS_LIST,
+  AUDIT_LOG_LIST,
+  EVENTS_LIST,
+  LETTERS_LIST,
+  POLITICIANS_LIST,
+  SENT_EMAILS_LIST,
+  SUPPORTERS_LIST,
+  type SearchOf,
+  type SortOf,
+} from "@/lib/staff-lists";
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
 import { type EventGrouping, EVENT_SORTS, type EventFilter } from "@/lib/staff-events-list";
-import { ACCOUNT_SORTS, type AccountSort } from "@/lib/staff-account-sort";
-import { isSupporterBadge, NEAR_MILES, SUPPORTER_SORTS, type SupporterFilter } from "@/lib/supporters";
+import { isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters";
 
 /** Which of a campaign's letters its counts can show: those that arrived, failed, were replied to, whose politician answered its ask, or whose text was changed. */
 export const LETTER_TABS = ["sent", "failed", "replied", "answered", "changed"] as const;
 export type LetterTab = (typeof LETTER_TABS)[number];
 
-export type LettersSearch = {
-  tab: string;
-  status: string;
-  q: string;
-  /** As LETTER_REPLIES. */
-  answered: string;
-  /** Campaigns' slugs. */
-  campaign: string[];
-  /** The MP's markers, as POLITICIAN_FLAGS. */
-  flag: string[];
-  /** What sent it, as LETTER_BACKENDS. */
-  backend: string[];
-  sort: string;
-  dir: string;
-  page: string;
-};
+/** A campaign's letters' URL, as typed. */
+export type LettersSearch = SearchOf<typeof LETTERS_LIST.params>;
 
 /**
  * What sent a letter: pauseai.info's old form, whose letters are copied
@@ -44,9 +57,6 @@ export type LettersSearch = {
  */
 export const LETTER_BACKENDS = ["airtable", "postmark", "gmail"] as const;
 export type LetterBackend = (typeof LETTER_BACKENDS)[number];
-
-/** Whether a letter was delivered: the statuses a supporter's letter can have. */
-const LETTER_STATUSES = ["queued", "sending", "sent", "uncertain", "not_sent", "bounced", "spam_complaint"] as const;
 
 /**
  * What came back to a letter: a written reply, only an automatic one (an
@@ -60,7 +70,7 @@ type NegatableLetterFilter = "campaign" | "flags" | "backend";
 
 /** Which letters the letters page lists (recentLetters in lib/server/letters.ts). */
 export type LetterFilter = {
-  /** A letter's status, as LETTER_STATUSES. */
+  /** A letter's status, as SUPPORTER_LETTER_STATUSES. */
   status?: string;
   /** Over the sender's name and email, and the MP's name. */
   search?: string;
@@ -80,53 +90,32 @@ export type LetterFilter = {
   letterId?: number;
   /** Those with none of these, each a filter above that repeats. */
   not?: Pick<LetterFilter, NegatableLetterFilter>;
-  sort?: SortSpec<LetterSort>;
+  sort?: SortSpec<SortOf<typeof LETTERS_LIST>>;
 };
 
 /** What a campaign's slug looks like, as the campaigns table checks it. */
 const isSlug = (value: string) => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(value);
 
-/** The values of `values` that are among `known`. */
-export function among<T extends string>(values: string[], known: readonly T[]): T[] {
-  return values.filter((value): value is T => (known as readonly string[]).includes(value));
-}
-
 /** The letters page's filters and sort, as the URL gives them and as the server applies them. */
 export function lettersSearch(
-  params: Partial<Record<keyof LettersSearch, ParamValue>>,
+  params: Partial<Record<string, ParamValue>>,
 ): LettersSearch & { filter: LetterFilter & { page: number } } {
-  const [tab, status, q, answered, sort, dir, page] = (
-    ["tab", "status", "q", "answered", "sort", "dir", "page"] as const
-  ).map((name) => firstOf(params[name]));
-  const [campaign, flag, backend] = (["campaign", "flag", "backend"] as const).map((name) => valuesOf(params[name]));
-  const [campaigns, notCampaigns] = anyAndNone(campaign, (values) => values.filter(isSlug));
-  const [flags, notFlags] = anyAndNone(flag, (values) => among(values, POLITICIAN_FLAGS));
-  const [backends, notBackends] = anyAndNone(backend, (values) => among(values, LETTER_BACKENDS));
-  const sorting = parseSort(LETTER_SORTS, "created", sort, dir);
+  const search = LETTERS_LIST.read(params);
+  const [campaigns, notCampaigns] = anyAndNone(search.campaign, (values) => values.filter(isSlug));
+  const [flags, notFlags] = anyAndNone(search.flag, (values) => among(values, POLITICIAN_FLAGS));
+  const [backends, notBackends] = anyAndNone(search.backend, (values) => among(values, LETTER_BACKENDS));
   const filter: LetterFilter = {
-    status: among([status], LETTER_STATUSES)[0],
-    search: q.trim() || undefined,
-    answered: among([answered], LETTER_REPLIES)[0],
-    tab: among([tab], LETTER_TABS)[0],
+    status: among([search.status], SUPPORTER_LETTER_STATUSES)[0],
+    search: search.q.trim() || undefined,
+    answered: among([search.answered], LETTER_REPLIES)[0],
+    tab: among([search.tab], LETTER_TABS)[0],
     campaign: campaigns,
     flags,
     backend: backends,
     not: notOf({ campaign: notCampaigns, flags: notFlags, backend: notBackends }),
-    sort: sorting,
+    sort: LETTERS_LIST.sort(search),
   };
-  return {
-    tab,
-    status,
-    q,
-    answered,
-    campaign,
-    flag,
-    backend,
-    sort,
-    dir,
-    page,
-    filter: { ...filter, page: pageNumber(page) },
-  };
+  return { ...search, filter: { ...filter, page: pageNumber(search.page) } };
 }
 
 /** What a sent email can lead to, which its Links filter finds. */
@@ -142,96 +131,101 @@ export const SENT_EMAILS_WITHOUT_SUPPORTERS: readonly string[] = [
 export const SENT_EMAIL_LINKS = ["letter", "campaign", "mailing"] as const;
 
 /** The sent emails' URL filters. */
-export type SentEmailsSearch = {
-  q: string;
-  purpose: string[];
-  outcome: string[];
-  backend: string[];
-  link: string[];
-  sort: string;
-  dir: string;
-  page: string;
-};
+export type SentEmailsSearch = SearchOf<typeof SENT_EMAILS_LIST.params>;
 
 /** Reads the sent emails' URL. */
-export function sentEmailsSearch(
-  params: Partial<Record<keyof SentEmailsSearch, ParamValue>>,
-): SentEmailsSearch & { filter: SentEmailsFilter } {
-  const q = firstOf(params.q);
-  const page = firstOf(params.page);
-  const [sort, dir] = [firstOf(params.sort), firstOf(params.dir)];
-  const [purpose, outcome, backend, link] = (["purpose", "outcome", "backend", "link"] as const).map((name) =>
-    valuesOf(params[name]),
-  );
-  const [purposes, notPurposes] = anyAndNone(purpose, (values) => values);
-  const [outcomes, notOutcomes] = anyAndNone(outcome, (values) => values);
-  const [backends, notBackends] = anyAndNone(backend, (values) => values);
-  const [links, notLinks] = anyAndNone(link, (values) => among(values, SENT_EMAIL_LINKS));
+export function sentEmailsSearch(params: Partial<Record<string, ParamValue>>): SentEmailsSearch & {
+  filter: SentEmailsFilter;
+} {
+  const search = SENT_EMAILS_LIST.read(params);
+  const [purposes, notPurposes] = anyAndNone(search.purpose, (values) => values);
+  const [outcomes, notOutcomes] = anyAndNone(search.outcome, (values) => values);
+  const [backends, notBackends] = anyAndNone(search.backend, (values) => values);
+  const [links, notLinks] = anyAndNone(search.link, (values) => among(values, SENT_EMAIL_LINKS));
   return {
-    q,
-    purpose,
-    outcome,
-    backend,
-    link,
-    sort,
-    dir,
-    page,
+    ...search,
     filter: {
-      search: q.trim() || undefined,
-      sort: parseSort(SENT_EMAIL_SORTS, "when", sort, dir),
+      search: search.q.trim() || undefined,
+      sort: SENT_EMAILS_LIST.sort(search),
       purpose: purposes,
       outcome: outcomes,
       backend: backends,
       link: links,
       not: notOf({ purpose: notPurposes, outcome: notOutcomes, backend: notBackends, link: notLinks }),
-      page: pageNumber(page),
+      page: pageNumber(search.page),
     },
   };
 }
 
-export type ChangesSearch = {
-  q: string;
-  /** Who did it: a staff email, or "sync". */
-  actor: string[];
-  /** What they did. */
-  action: string[];
-  /** Those of the last so many days. */
-  when: string;
-  sort: string;
-  dir: string;
-  page: string;
-  /** The saved filter loaded, by ID. */
-  saved: string;
-};
+/** The audit log's URL, as typed. */
+export type ChangesSearch = SearchOf<typeof AUDIT_LOG_LIST.params>;
 
 /** The audit log's filters and sort, each as typed and as applied. */
-export function changesSearch(
-  params: Partial<Record<keyof ChangesSearch, ParamValue>>,
-): ChangesSearch & { filter: ChangesFilter } {
-  const [q, when, sort, dir, page, saved] = (["q", "when", "sort", "dir", "page", "saved"] as const).map((name) =>
-    firstOf(params[name]),
-  );
-  const [actor, action] = (["actor", "action"] as const).map((name) => valuesOf(params[name]));
-  const [actors, notActors] = anyAndNone(actor, (values) => values);
-  const [actions, notActions] = anyAndNone(action, (values) => values);
+export function changesSearch(params: Partial<Record<string, ParamValue>>): ChangesSearch & { filter: ChangesFilter } {
+  const search = AUDIT_LOG_LIST.read(params);
+  const [actors, notActors] = anyAndNone(search.actor, (values) => values);
+  const [actions, notActions] = anyAndNone(search.action, (values) => values);
   return {
-    q,
-    actor,
-    action,
-    when,
-    sort,
-    dir,
-    page,
-    saved,
+    ...search,
     filter: {
-      search: q.trim() || undefined,
+      search: search.q.trim() || undefined,
       actor: actors,
       action: actions,
-      days: listWindow(when),
+      days: listWindow(search.when),
       not: notOf({ actor: notActors, action: notActions }),
-      sort: parseSort(CHANGE_SORTS, "day", sort, dir),
-      page: pageNumber(page),
+      sort: AUDIT_LOG_LIST.sort(search),
+      page: pageNumber(search.page),
     },
+  };
+}
+
+/** The politicians list's URL, as typed. */
+export type PoliticiansSearch = SearchOf<typeof POLITICIANS_LIST.params>;
+
+/**
+ * The politicians page's filter, from its URL: each field as typed, for the
+ * form, and the filter they make, leaving out what's blank or unknown, but
+ * for the status: those in office unless it's given. A filter that repeats
+ * finds those with any of its values. The test politicians are left out,
+ * unseen in the filters, unless the Marked filter finds them.
+ */
+export function politiciansSearch(params: Partial<Record<string, ParamValue>>): PoliticiansSearch & {
+  filter: PoliticianFilter;
+} {
+  const search = POLITICIANS_LIST.read(params);
+  const { house, status, ask } = search;
+  const [parties, notParties] = anyAndNone(search.party, (values) => values);
+  const [flags, notFlags] = anyAndNone(search.flag, (values) => among(values, POLITICIAN_FLAGS));
+  const [countries, notCountries] = anyAndNone(search.nation, (values) => among(values, COUNTRIES));
+  const [emails, notEmails] = anyAndNone(search.email, (values) => among(values, EMAIL_STATES));
+  const [mailedAbout, notMailedAbout] = anyAndNone(search.mailed, (values) => values);
+  const filter: PoliticianFilter = {
+    search: search.q.trim() || undefined,
+    house: isHouse(house) ? house : undefined,
+    status: isPersonStatus(status) ? status : status === "any" ? undefined : "in_office",
+    party: parties,
+    flags,
+    country: countries,
+    email: emails,
+    mailed: mailedAbout,
+    ask: ask || undefined,
+    answer: search.answer.length ? search.answer : undefined,
+    agreedDays: listWindow(search.agreed),
+    not: notOf({
+      party: notParties,
+      flags: flags?.includes("test") ? notFlags : [...new Set([...(notFlags ?? []), "test" as const])],
+      country: notCountries,
+      email: notEmails,
+      mailed: notMailedAbout,
+    }),
+    sort: POLITICIANS_LIST.sort(search),
+    page: pageNumber(search.page),
+  };
+  return {
+    ...search,
+    mailing: /^\d+$/.test(search.mailing) ? search.mailing : "",
+    tab: search.tab === "ticked" || search.tab === "pasted" ? search.tab : "",
+    filter,
   };
 }
 
@@ -258,81 +252,6 @@ export function emailsSearch({ q = "", kind = "" }: { q?: string; kind?: string 
   };
 }
 
-/** A list's page from its URL: a whole number from 1, or the first page. */
-export function pageNumber(page = ""): number {
-  return /^\d+$/.test(page) && Number(page) > 0 ? Number(page) : 1;
-}
-
-/** A list's URL at a page: the first page at the list's own, any other with `?page=`. */
-export function pagePath(path: string, page: number): string {
-  return page > 1 ? `${path}?page=${page}` : path;
-}
-
-/** A URL parameter's value: one, or a list, for a filter chosen more than once, its name repeated in the URL. */
-export type ParamValue = string | string[];
-
-/** A list's parameters, each as typed. */
-export type Params = Record<string, ParamValue>;
-
-/** Every value of a parameter, the blanks left out. */
-export function valuesOf(value: ParamValue | undefined): string[] {
-  return (Array.isArray(value) ? value : [value ?? ""]).filter(Boolean);
-}
-
-/** The mark before a value a filter leaves out, in its URL: `event=!evt-2` is those not at evt-2. */
-export const NOT = "!";
-
-/** A filter's value without its mark, and whether it's one the filter leaves out. */
-export function notValue(value: string): { value: string; not: boolean } {
-  return value.startsWith(NOT) ? { value: value.slice(NOT.length), not: true } : { value, not: false };
-}
-
-/**
- * A repeating filter's values, split: those it finds any of, then those it
- * leaves out, each read by `read`, which drops what it doesn't know; a
- * list with none is undefined.
- */
-export function anyAndNone<T>(values: string[], read: (values: string[]) => T[]): [T[] | undefined, T[] | undefined] {
-  const [any, none] = [false, true].map((not) =>
-    read(
-      values
-        .map(notValue)
-        .filter((one) => one.not === not && one.value)
-        .map((one) => one.value),
-    ),
-  );
-  return [any.length ? any : undefined, none.length ? none : undefined];
-}
-
-/** The fields of `fields` that are on, or undefined if none is: what a filter leaves out. */
-export function notOf<T extends object>(fields: T): Partial<T> | undefined {
-  const on = Object.entries(fields).filter(([, value]) => value !== undefined);
-  return on.length ? (Object.fromEntries(on) as Partial<T>) : undefined;
-}
-
-/** A parameter that takes one value: its first, or blank. */
-export function firstOf(value: ParamValue | undefined): string {
-  return valuesOf(value)[0] ?? "";
-}
-
-/**
- * A list's URL with its filters as typed, `changes` made to them, leaving
- * out the blank ones; a list's values each as the parameter again.
- */
-export function filtersPath(path: string, filters: Params, changes: Params = {}): string {
-  const params = new URLSearchParams();
-  for (const [name, value] of Object.entries({ ...filters, ...changes })) {
-    for (const one of valuesOf(value)) params.append(name, one);
-  }
-  const query = params.toString();
-  return query ? `${path}?${query}` : path;
-}
-
-/** The `page` of a list's URL at page `n`: none for the first. */
-export function pageParam(n: number): { page: string } {
-  return { page: n > 1 ? String(n) : "" };
-}
-
 /** A letter's ID from its page's URL: a whole number, or undefined. */
 export function letterId(id: string): number | undefined {
   return politicianId(id);
@@ -343,39 +262,8 @@ export function supporterId(id: string): number | undefined {
   return politicianId(id);
 }
 
-export type SupportersSearch = {
-  q: string;
-  activity: string[];
-  /** Each "<channel>:<topic>", with ":<answer>" or ":<reason>" after it, for one. */
-  contact: string[];
-  /** Luma event IDs. */
-  event: string[];
-  /** A campaign's slug; with `wrote` "no", those who didn't write in it. */
-  campaign: string;
-  wrote: string;
-  /** Nations, as staffCopy.countries keys. */
-  nation: string[];
-  /** MPs' politician IDs. */
-  mp: string[];
-  /** A postcode, the first half of one, or a town; and how many miles from it. */
-  near: string;
-  within: string;
-  /** Those first seen, registered for an event, or unsubscribed from Luma's emails in the last so many days. */
-  first: string;
-  registered: string;
-  unsubscribed: string;
-  sort: string;
-  dir: string;
-  page: string;
-  /** After an erasure: "1", or "partly" with what couldn't be cleared in `why`, as codes. */
-  erased: string;
-  /** The draft broadcast the list is choosing who for, by ID. */
-  broadcast: string;
-  /** With `erased`, the codes above. */
-  why: string;
-  /** The saved filter loaded, by ID. */
-  saved: string;
-};
+/** The supporters list's URL, as typed. */
+export type SupportersSearch = SearchOf<typeof SUPPORTERS_LIST.params>;
 
 /** What an erasure can leave behind when its clean-up fails. */
 export const ERASE_LEFTOVERS = ["mail", "oneOffs"] as const;
@@ -394,97 +282,41 @@ export function eraseLeftovers(why: string): EraseLeftover[] {
 }
 
 /** The supporters list's filters and sort, each as typed and as applied. */
-export function supportersSearch(
-  params: Partial<Record<keyof SupportersSearch, ParamValue>>,
-): SupportersSearch & { filter: SupporterFilter } {
-  const [
-    q,
-    campaign,
-    wrote,
-    near,
-    within,
-    first,
-    registered,
-    unsubscribed,
-    sort,
-    dir,
-    page,
-    erased,
-    broadcast,
-    why,
-    saved,
-  ] = (
-    [
-      "q",
-      "campaign",
-      "wrote",
-      "near",
-      "within",
-      "first",
-      "registered",
-      "unsubscribed",
-      "sort",
-      "dir",
-      "page",
-      "erased",
-      "broadcast",
-      "why",
-      "saved",
-    ] as const
-  ).map((name) => firstOf(params[name]));
-  const [activity, contact, event, nation, mp] = (["activity", "contact", "event", "nation", "mp"] as const).map(
-    (name) => valuesOf(params[name]),
+export function supportersSearch(params: Partial<Record<string, ParamValue>>): SupportersSearch & {
+  filter: SupporterFilter;
+} {
+  const search = SUPPORTERS_LIST.read(params);
+  const sorting = SUPPORTERS_LIST.sort(search);
+  const [badges, notBadges] = anyAndNone(search.activity, (values) => values.filter(isSupporterBadge));
+  const [states, notStates] = anyAndNone(search.contact, (values) =>
+    values.flatMap((value) => contactState(value) ?? []),
   );
-  const sorting = parseSort(SUPPORTER_SORTS, "active", sort, dir);
-  const [badges, notBadges] = anyAndNone(activity, (values) => values.filter(isSupporterBadge));
-  const [states, notStates] = anyAndNone(contact, (values) => values.flatMap((value) => contactState(value) ?? []));
-  const [events, notEvents] = anyAndNone(event, (values) => values);
-  const [countries, notCountries] = anyAndNone(nation, (values) =>
+  const [events, notEvents] = anyAndNone(search.event, (values) => values);
+  const [countries, notCountries] = anyAndNone(search.nation, (values) =>
     values.filter((value) => Object.hasOwn(staffCopy.countries, value)),
   );
-  const [mps, notMps] = anyAndNone(mp, (values) => values.flatMap((value) => politicianId(value) ?? []));
-  const miles = NEAR_MILES.find((n) => String(n) === within) ?? NEAR_MILES[1];
+  const [mps, notMps] = anyAndNone(search.mp, (values) => values.flatMap((value) => politicianId(value) ?? []));
+  const miles = NEAR_MILES.find((n) => String(n) === search.within) ?? NEAR_MILES[1];
+  const campaign = campaignBySlug(search.campaign);
   const filter: SupporterFilter = {
-    search: q.trim() || undefined,
+    search: search.q.trim() || undefined,
     activity: badges,
     contact: states,
     event: events,
-    campaign: campaignBySlug(campaign)?.slug,
-    wrote: campaignBySlug(campaign) ? wrote !== "no" : undefined,
+    campaign: campaign?.slug,
+    wrote: campaign ? search.wrote !== "no" : undefined,
     country: countries,
     mp: mps,
-    near: near.trim() ? { text: near.trim(), miles } : undefined,
-    firstDays: listWindow(first),
-    registeredDays: listWindow(registered),
-    unsubscribedDays: listWindow(unsubscribed),
+    near: search.near.trim() ? { text: search.near.trim(), miles } : undefined,
+    firstDays: listWindow(search.first),
+    registeredDays: listWindow(search.registered),
+    unsubscribedDays: listWindow(search.unsubscribed),
     not: notOf({ activity: notBadges, contact: notStates, event: notEvents, country: notCountries, mp: notMps }),
     sort: sorting.key,
     dir: sorting.dir,
-    page: pageNumber(page),
+    page: pageNumber(search.page),
   };
-  return {
-    q,
-    activity,
-    contact,
-    event,
-    campaign,
-    wrote,
-    nation,
-    mp,
-    near,
-    within,
-    first,
-    registered,
-    unsubscribed,
-    sort,
-    dir,
-    page,
-    erased,
-    broadcast,
-    why,
-    saved,
-    filter,
-  };
+  return { ...search, filter };
 }
 
 /** How many letters the all-letters page shows at once. */
@@ -499,20 +331,7 @@ export const EMAIL_TYPES = ["campaign", "mailing", "one-off"] as const;
 export type EmailType = (typeof EMAIL_TYPES)[number];
 
 /** The all emails page's filters, each as typed in its URL. */
-export type AllLettersSearch = {
-  q: string;
-  /** Senders, as EMAIL_SENDERS, those marked ! left out. */
-  from: string[];
-  /** Types, as EMAIL_TYPES, those marked ! left out. */
-  type: string[];
-  /** Politicians' IDs, those marked ! left out. */
-  to: string[];
-  /** Those sent in the last so many days. */
-  sent: string;
-  /** "yes" or "no", whether it got a written reply; or a number, one in the last so many days. */
-  replied: string;
-  page: string;
-};
+export type AllLettersSearch = SearchOf<typeof ALL_EMAILS_LIST.params>;
 
 /** Which emails the all emails page shows, and which page of them. */
 export type AllLettersFilter = {
@@ -529,56 +348,33 @@ export type AllLettersFilter = {
 };
 
 /** The all emails page's filters, as typed and as applied. */
-export function allLettersSearch(
-  params: Partial<Record<keyof AllLettersSearch, ParamValue>>,
-): AllLettersSearch & { filter: AllLettersFilter } {
-  const [q, sent, replied, page] = (["q", "sent", "replied", "page"] as const).map((name) => firstOf(params[name]));
-  const [from, type, to] = (["from", "type", "to"] as const).map((name) => valuesOf(params[name]));
-  const [types, notTypes] = anyAndNone(type, (values) => among(values, EMAIL_TYPES));
-  const [kinds, notKinds] = anyAndNone(from, (values) => among(values, EMAIL_SENDERS));
-  const [people, notPeople] = anyAndNone(to, (values) => values.flatMap((value) => politicianId(value) ?? []));
+export function allLettersSearch(params: Partial<Record<string, ParamValue>>): AllLettersSearch & {
+  filter: AllLettersFilter;
+} {
+  const search = ALL_EMAILS_LIST.read(params);
+  const [types, notTypes] = anyAndNone(search.type, (values) => among(values, EMAIL_TYPES));
+  const [kinds, notKinds] = anyAndNone(search.from, (values) => among(values, EMAIL_SENDERS));
+  const [people, notPeople] = anyAndNone(search.to, (values) => values.flatMap((value) => politicianId(value) ?? []));
+  const { replied } = search;
   return {
-    q,
-    from,
-    type,
-    to,
-    sent,
-    replied,
-    page,
+    ...search,
     filter: {
-      search: q.trim() || undefined,
+      search: search.q.trim() || undefined,
       from: kinds,
       notFrom: notKinds,
       type: types,
       notType: notTypes,
       to: people,
       notTo: notPeople,
-      sentDays: listWindow(sent),
+      sentDays: listWindow(search.sent),
       replied: replied === "yes" || replied === "no" ? replied : listWindow(replied),
-      page: pageNumber(page),
+      page: pageNumber(search.page),
     },
   };
 }
 
-export type EventsSearch = {
-  /** "past" for the Past tab; blank for Future. */
-  when: string;
-  q: string;
-  /** Staff emails, or NO_OWNER. */
-  owner: string[];
-  tag: string[];
-  /** Cities, or ONLINE. */
-  place: string[];
-  /** "yes" for only those taken off Luma; blank leaves them out. */
-  removed: string;
-  /** Those held in the last so many days. */
-  held: string;
-  sort: string;
-  dir: string;
-  page: string;
-  /** The saved filter loaded, by ID. */
-  saved: string;
-};
+/** The events list's URL, as typed. */
+export type EventsSearch = SearchOf<typeof EVENTS_LIST.params>;
 
 /**
  * What the events page's URL asks it to show: every event to come, by owner or
@@ -590,40 +386,36 @@ export function eventView(params: { when?: ParamValue; view?: ParamValue }): Eve
 }
 
 /** The events list's tab, filters and sort, each as typed and as applied. */
-export function eventsSearch(
-  params: Partial<Record<keyof EventsSearch, ParamValue>>,
-): EventsSearch & { filter: EventFilter } {
-  const [when, q, removed, held, sort, dir, page, saved] = (
-    ["when", "q", "removed", "held", "sort", "dir", "page", "saved"] as const
-  ).map((name) => firstOf(params[name]));
-  const [owner, tag, place] = (["owner", "tag", "place"] as const).map((name) => valuesOf(params[name]));
-  const tab = when === "past" ? "past" : "future";
-  const [owners, notOwners] = anyAndNone(owner, (values) => values);
-  const [tags, notTags] = anyAndNone(tag, (values) => values);
-  const [places, notPlaces] = anyAndNone(place, (values) => values);
+export function eventsSearch(params: Partial<Record<string, ParamValue>>): EventsSearch & { filter: EventFilter } {
+  const search = EVENTS_LIST.read(params);
+  const tab = search.when === "past" ? "past" : "future";
+  const [owners, notOwners] = anyAndNone(search.owner, (values) => values);
+  const [tags, notTags] = anyAndNone(search.tag, (values) => values);
+  const [places, notPlaces] = anyAndNone(search.place, (values) => values);
   const filter: EventFilter = {
     tab,
-    search: q.trim() || undefined,
+    search: search.q.trim() || undefined,
     owner: owners,
     tag: tags,
     place: places,
-    removed: removed === "yes",
-    heldDays: listWindow(held),
+    removed: search.removed === "yes",
+    heldDays: listWindow(search.held),
     not: notOf({ owner: notOwners, tag: notTags, place: notPlaces }),
-    sort: parseSort(EVENT_SORTS[tab], "start", sort, dir),
-    page: pageNumber(page),
+    sort: parseSort(EVENT_SORTS[tab], "start", search.sort, search.dir),
+    page: pageNumber(search.page),
   };
-  return { when, q, owner, tag, place, removed, held, sort, dir, page, saved, filter };
+  return { ...search, filter };
 }
 
 /** The accounts page's notice, after a refused change. */
-export function accountsSearch({ notice = "", sort, dir }: { notice?: string; sort?: string; dir?: string }): {
+export function accountsSearch(params: Partial<Record<string, ParamValue>>): {
   notice: string;
-  sort: SortSpec<AccountSort>;
+  sort: SortSpec<SortOf<typeof ACCOUNTS_LIST>>;
 } {
+  const search = ACCOUNTS_LIST.read(params);
   return {
-    notice: ["last-admin", "not-pauseai", "removed"].includes(notice) ? notice : "",
-    sort: parseSort(ACCOUNT_SORTS, "email", sort, dir),
+    notice: ["last-admin", "not-pauseai", "removed"].includes(search.notice) ? search.notice : "",
+    sort: ACCOUNTS_LIST.sort(search),
   };
 }
 
@@ -664,22 +456,8 @@ export type StoredFilter = { list: FilterList; params: Params; picked?: Picked }
 
 /** Each list's parameters that choose who it shows. */
 export const WHO_PARAMS: Record<FilterList, readonly string[]> = {
-  politicians: ["q", "house", "status", "party", "flag", "nation", "email", "ask", "answer", "mailed", "agreed"],
-  supporters: [
-    "q",
-    "activity",
-    "contact",
-    "event",
-    "campaign",
-    "wrote",
-    "nation",
-    "mp",
-    "near",
-    "within",
-    "first",
-    "registered",
-    "unsubscribed",
-  ],
+  politicians: POLITICIANS_LIST.choosing,
+  supporters: SUPPORTERS_LIST.choosing,
 };
 
 /** Who a list's URL parameters show, without the sort, the page or anything else, nor blanks. */

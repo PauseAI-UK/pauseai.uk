@@ -1,4 +1,4 @@
-import { filtersPath } from "@/lib/staff-search";
+import { filtersPath } from "@/lib/list-params";
 import StaffLink from "./StaffLink";
 import styles from "./Counts.module.css";
 

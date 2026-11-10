@@ -11,7 +11,7 @@ import {
   type DownloadColumn,
   type DownloadFormat,
 } from "@/lib/staff-list";
-import { firstOf, type ParamValue } from "@/lib/staff-search";
+import { firstOf, type ParamValue } from "@/lib/list-params";
 import { vcardCode, vcardFile, type Contact } from "@/lib/vcard";
 import { logChange } from "./audit";
 

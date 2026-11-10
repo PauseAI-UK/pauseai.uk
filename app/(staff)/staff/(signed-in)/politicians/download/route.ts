@@ -3,7 +3,8 @@ import { politicianWords } from "../../../_components/PoliticianFilters";
 import { politicianColumns, politicianContact } from "../../../_components/PoliticianTable";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listAsks } from "@/lib/server/asks";
-import { listParties, listPoliticians, politiciansSearch } from "@/lib/server/politicians";
+import { listParties, listPoliticians } from "@/lib/server/politicians";
+import { politiciansSearch } from "@/lib/staff-search";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { staffDownload } from "@/lib/server/staff-download";
 

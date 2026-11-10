@@ -1,4 +1,4 @@
-import type { AccountSort } from "@/lib/staff-account-sort";
+import type { AccountSort } from "@/lib/staff-lists";
 import type { SortDirection } from "@/lib/staff-sort";
 import { expect, it } from "vitest";
 import { query } from "@/lib/server/db";

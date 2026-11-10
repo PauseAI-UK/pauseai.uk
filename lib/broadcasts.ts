@@ -3,7 +3,7 @@ import { staffCopy } from "./content/staff-interface";
 import { greetingLetter, inlinesOf, isBlankMailing, type MailingDoc, type MailingRecipientValues } from "./mailing-doc";
 import { now } from "./now";
 import { staffDate } from "./staff-time";
-import { anyAndNone, valuesOf, type ParamValue } from "./staff-search";
+import { anyAndNone, valuesOf, type ParamValue } from "./list-params";
 
 // The rules of broadcasts to supporters, for the server to keep and the pages
 // to say: how the Consent filter fixes a broadcast's channel and topic, its
