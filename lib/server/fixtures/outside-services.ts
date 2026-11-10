@@ -166,6 +166,21 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
       },
     });
   }
+  if (hostname === "api.lu.ma" && pathname === "/event/get") {
+    // Any event as its page on luma.com loads it, as far as the site reads
+    // it: how many are going, and the guests Luma features, with no photo a
+    // fixture build would fetch: one with Luma's default, which next/image
+    // can't show, one with none, and one with no name.
+    return json({
+      guest_count: 1234,
+      featured_guests: [
+        { name: "Jane Fixture", avatar_url: "https://cdn.lu.ma/avatars-default/avatar_1.png" },
+        { name: "Sam Fixture", avatar_url: null },
+        { name: null, avatar_url: null },
+        null,
+      ],
+    });
+  }
   if (hostname === "public-api.luma.com" && pathname === "/v1/calendars/contacts/list") {
     return json(pageOf(lumaContacts.entries, searchParams.get("pagination_cursor"), 2));
   }
