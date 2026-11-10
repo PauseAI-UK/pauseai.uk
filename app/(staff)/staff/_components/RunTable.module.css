@@ -20,8 +20,10 @@
   color: var(--muted);
 }
 
-/* A run shown whole with counts: no rule between them and its words under them. */
-.lead td {
+/* A run shown whole with counts: no rule between them and its words under
+   them. More specific than ui/Table's rule under every cell, whichever
+   stylesheet comes first. */
+tr.lead td {
   border-bottom: 0;
 }
 
