@@ -86,9 +86,13 @@ export async function frame(
       // A sticky element (the staff sidebar) keeps the raster Chromium made
       // of it at the scroll before that, so its text could be a pixel up or
       // down between runs: hidden for a tick and shown again, it's painted
-      // afresh where it is now.
+      // afresh where it is now. Not one holding the focus or an open menu
+      // (the site header's), which hiding would close.
       const sticky = [...document.querySelectorAll<HTMLElement>("body *")].filter(
-        (el) => getComputedStyle(el).position === "sticky",
+        (el) =>
+          getComputedStyle(el).position === "sticky" &&
+          !el.contains(document.activeElement) &&
+          !el.querySelector(":popover-open"),
       );
       for (const el of sticky) el.style.visibility = "hidden";
       await tick();
