@@ -330,7 +330,9 @@ describe("MailingWriter", () => {
     await test.click();
     await expect.element(preview().getByText(copy.testSent("jo@pauseai.uk"))).toBeVisible();
     // What's written is saved first, as the test is of the draft as saved.
-    expect(actions.save).toHaveBeenCalledTimes(1);
+    // (The subject may have saved itself too, if the letter took a while to type.)
+    expect(JSON.stringify(actions.save.mock.calls.at(-1))).toContain("Come along.");
+    expect(actions.save.mock.invocationCallOrder.at(-1)).toBeLessThan(actions.sendTest.mock.invocationCallOrder[0]);
     expect(actions.sendTest).toHaveBeenCalledWith(12, 7, "jo@pauseai.uk");
     // Another address; one that isn't one can't be sent to.
     await to.fill("not an address");
