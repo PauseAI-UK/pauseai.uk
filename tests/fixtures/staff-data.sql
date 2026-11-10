@@ -292,8 +292,8 @@ INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at, resubs
 -- import log, below). Jane, Tom and Lee are also a Luma guest or a
 -- letter writer. Kit ticked "Keep me informed" when the form required it,
 -- Tom before it had the box, and Lee left it unticked then; Owen left it
--- unticked when it was a choice, so is opted out of the updates; Rhea did
--- too on an earlier record, and ticked it on re-joining, which lifted that.
+-- unticked when it was a choice, so is opted out of the updates; Rhea,
+-- who first joined in July, ticked it on the record she made last week.
 INSERT INTO members (id, email, name, phone, city, postcode, joined_at, created_at, keep_informed, share_permission, source_page, intent, source_modified_at, first_seen_at, changed_at, removed_at) VALUES
   ('recMemberJane', 'jane.fixture@example.com', 'Jane Fixture', NULL, 'Manchester', 'M1 1AE', '2026-09-12T10:00:00Z', '2026-09-12T10:00:00Z', true, true, 'pauseai.uk', 'Volunteer', '2026-09-12T10:00:00Z', '2026-09-12T10:05:00Z', '2026-09-12T10:05:00Z', NULL),
   ('recMemberMara', 'mara.member@example.com', 'Mara Member', '+447700900123', 'London', NULL, now() - interval '3 days 2 hours 30 minutes', now() - interval '3 days 2 hours 30 minutes', true, true, 'pauseai.info/join', 'Lead', now() - interval '3 days 2 hours 29 minutes', now() - interval '3 days 2 hours', now() - interval '3 days 2 hours', NULL),
@@ -449,6 +449,9 @@ UPDATE letters SET notable_person_id = (SELECT id FROM notable_people WHERE airt
 WHERE id IN (SELECT id FROM letters_from_supporters WHERE postmark_mailbox IN ('seed-prev-lee', 'seed-prev-li', 'seed-week-ben', 'seed-week-kwame', 'seed-week-noah'));
 UPDATE letters SET notable_person_id = (SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder')
 WHERE id IN (SELECT id FROM letters_from_supporters WHERE postmark_mailbox IN ('seed-prev-omar', 'seed-week-sam', 'seed-week-grace', 'seed-week-mia'));
+-- Gus's went to Rob Removed, who marked it as spam (below).
+UPDATE letters SET notable_person_id = (SELECT id FROM notable_people WHERE airtable_id = 'recRemoved')
+WHERE id IN (SELECT id FROM letters_from_supporters WHERE postmark_mailbox = 'seed-week-spam');
 -- The seed letters, with their handles.
 CREATE TEMP VIEW seed_letter_rows AS SELECT l.*, s.postmark_mailbox FROM letters l JOIN letters_from_supporters s USING (id) WHERE s.postmark_mailbox LIKE 'seed-%';
 
@@ -459,7 +462,7 @@ INSERT INTO letter_events (letter_id, at, status, details) SELECT id, created_at
 INSERT INTO letter_events (letter_id, at, status, details) SELECT id, replied_at, 'replied', jsonb_build_object('from', 'The office of ' || (SELECT name FROM notable_people WHERE id = notable_person_id), 'to', postmark_mailbox || '@letters.pauseai.uk', 'backend', 'postmark') FROM seed_letter_rows WHERE replied_at IS NOT NULL;
 INSERT INTO letter_events (letter_id, at, status, details) SELECT id, sent_at + interval '2 minutes', 'auto_reply', jsonb_build_object('from', 'Backy McTestface MP', 'to', postmark_mailbox || '@letters.pauseai.uk', 'subject', 'Out of office', 'backend', 'postmark') FROM seed_letter_rows WHERE postmark_mailbox IN ('seed-prev-ahmed', 'seed-week-mia');
 INSERT INTO letter_events (letter_id, at, status, details) SELECT id, sent_at + interval '1 minute', 'bounced', '{"type": "HardBounce", "description": "The address does not exist"}' FROM seed_letter_rows WHERE status = 'bounced';
-INSERT INTO letter_events (letter_id, at, status, details) SELECT id, sent_at + interval '3 hours', 'spam_complaint', '{"type": "SpamComplaint"}' FROM seed_letter_rows WHERE status = 'spam_complaint';
+INSERT INTO letter_events (letter_id, at, status, details) SELECT id, sent_at + interval '3 hours', 'spam_complaint', jsonb_build_object('type', 'SpamComplaint', 'reason', 'Marked as spam', 'email', (SELECT lower(email) FROM notable_people WHERE id = notable_person_id)) FROM seed_letter_rows WHERE status = 'spam_complaint';
 
 -- Replies kept whole, as the letters inbox keeps them: Polly Placeholder's to
 -- her three answered letters, whose text is kept too; and Dora Dummy's to one
@@ -490,8 +493,10 @@ INSERT INTO email_sends (at, purpose, letter_id, address, outcome, message_id) V
   (now() - interval '1 day', 'letter', NULL, 'no-such-mailbox@pauseai.uk', 'refused', NULL),
   (now() - interval '8 days', 'letter', NULL, 'polly.placeholder.mp@parliament.uk', 'failed', NULL);
 
--- Delivery problems: the bounces that blocked Bouncy's address, a complaint
--- that blocked the sender, a block from the week before last on an MP's
+-- Delivery problems: the bounces that blocked Bouncy's address, Rob
+-- Removed marking Gus's letter as spam, which blocked his address, as
+-- recordProblem() (lib/server/email.ts) blocks whoever complained; a block
+-- from the week before last on an MP's
 -- old address, bouncing an email the site has no record of sending, so of
 -- no type we know, and a bounce that blocked Polly's address until Jo
 -- unblocked it (the audit log).
@@ -499,19 +504,19 @@ INSERT INTO email_problems (id, at, address, message_id, kind, reason, can_reset
   (1, now() - interval '12 days' + interval '1 minute', 'no-such-mailbox@pauseai.uk', NULL, 'hard', 'The address does not exist', true, '{"type": "HardBounce"}'),
   (2, now() - interval '10 days' + interval '1 minute', 'no-such-mailbox@pauseai.uk', NULL, 'hard', 'The address does not exist', true, '{"type": "HardBounce"}'),
   (3, now() - interval '9 days', 'gordon.gone.mp@parliament.uk', 'not-sent-by-the-site', 'hard', 'Mailbox closed', true, '{"type": "HardBounce"}'),
-  (4, now() - interval '5 days' + interval '3 hours', 'grumpy@example.com', NULL, 'complaint', 'Marked as spam', false, '{"type": "SpamComplaint"}'),
+  (4, now() - interval '5 days' + interval '3 hours', 'rob.removed.mp@parliament.uk', NULL, 'complaint', 'Marked as spam', false, '{"type": "SpamComplaint"}'),
   (5, now() - interval '4 days', 'polly.placeholder.mp@parliament.uk', NULL, 'hard', 'Mailbox unavailable', true, '{"type": "HardBounce"}'),
   (6, now() - interval '3 days' + interval '1 minute', 'no-such-mailbox@pauseai.uk', NULL, 'hard', 'The address does not exist', true, '{"type": "HardBounce"}');
 UPDATE email_problems p SET message_id = 'seed-message-' || l.id FROM seed_letter_rows l WHERE l.postmark_mailbox = 'seed-prev-bounce-1' AND p.id = 1;
 UPDATE email_problems p SET message_id = 'seed-message-' || l.id FROM seed_letter_rows l WHERE l.postmark_mailbox = 'seed-prev-bounce-2' AND p.id = 2;
 UPDATE email_problems p SET message_id = 'seed-message-' || l.id FROM seed_letter_rows l WHERE l.postmark_mailbox = 'seed-week-spam' AND p.id = 4;
 UPDATE email_problems p SET message_id = 'seed-message-' || l.id FROM seed_letter_rows l WHERE l.postmark_mailbox = 'seed-week-bounce' AND p.id = 6;
--- Blocked: Bouncy's address by the first bounce, Gordon's by his, Gus by his
--- complaint; Polly's no longer.
+-- Blocked: Bouncy's address by the first bounce, Gordon's by his, Rob's by
+-- his complaint; Polly's no longer.
 INSERT INTO email_blocks (address, problem_id) VALUES
   ('no-such-mailbox@pauseai.uk', 1),
   ('gordon.gone.mp@parliament.uk', 3),
-  ('grumpy@example.com', 4);
+  ('rob.removed.mp@parliament.uk', 4);
 
 -- A letter from the letters inbox, long ago, so it counts in neither week:
 -- Pat's proxy and the test MP's; the letter as sent, and the draft it was
@@ -861,7 +866,7 @@ INSERT INTO audit_log (at, actor, action, details) VALUES
   (now() - interval '12 days' + interval '1 minute', 'postmark', 'block address', '{"address": "no-such-mailbox@pauseai.uk", "kind": "hard"}'),
   (now() - interval '9 days', 'postmark', 'block address', '{"address": "gordon.gone.mp@parliament.uk", "kind": "hard"}'),
   (now() - interval '6 days', 'admin@pauseai.uk', 'add staff account', '{"email": "policy@pauseai.uk", "to": []}'),
-  (now() - interval '5 days' + interval '3 hours', 'postmark', 'block address', '{"address": "grumpy@example.com", "kind": "complaint"}'),
+  (now() - interval '5 days' + interval '3 hours', 'postmark', 'block address', '{"address": "rob.removed.mp@parliament.uk", "kind": "complaint"}'),
   (now() - interval '4 days', 'admin@pauseai.uk', 'set staff permissions', '{"email": "samuel.whitlock@pauseai.uk", "from": [], "to": []}'),
   (now() - interval '3 days', 'jo@pauseai.uk', 'view supporter', '{"id": 1}'),
   (now() - interval '3 days', 'jo@pauseai.uk', 'set status', '{"politicianId": 0, "ask": "controlai-letter", "status": "signed", "date": null, "note": ""}'),
@@ -1189,7 +1194,7 @@ SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 's
   jsonb_build_object('list', 'supporters', 'params',
     jsonb_build_object('contact', CASE WHEN m.channel = 'email' THEN 'email' ELSE 'phone' END || ':luma-calendar:yes')
     || CASE m.title
-         WHEN 'Stall on Saturday' THEN '{"near": "Manchester", "within": "10"}'::jsonb
+         WHEN 'Stall on Saturday' THEN '{"near": "M1 1AE", "within": "5"}'::jsonb
          WHEN 'Rain on Saturday' THEN '{"campaign": "regulate-letter-pm", "wrote": "no"}'::jsonb
          ELSE '{}'::jsonb
        END),
