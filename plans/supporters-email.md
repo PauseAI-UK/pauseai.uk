@@ -113,7 +113,7 @@ following the calendar is their events yes. Whether removed contacts
 still appear in Luma's contacts list, and whether a registered guest's
 reminders still go, needs testing.
 
-### 3. Send the weekly from pauseai.uk
+### 3. Email broadcasts from pauseai.uk
 
 **Sending.** Postmark's broadcast stream
 ([streams](https://postmarkapp.com/message-streams)), on the site's
@@ -296,7 +296,7 @@ member records can reopen one.
 
 Record in `docs/data-protection.md`: the chapter contacts read from
 CiviCRM, kept after erasure; our stops sent to Global, a disclosure to
-a joint controller once the agreement is signed; the weekly, sent
+a joint controller once the agreement is signed; email broadcasts, sent
 through Postmark's broadcast stream; our join form as a new source; the
 yeses staff record, with who recorded each and how it was given; and
 every address and number we send to, from any source, sent to Global by
