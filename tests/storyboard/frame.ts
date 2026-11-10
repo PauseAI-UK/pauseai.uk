@@ -79,6 +79,10 @@ export async function frame(
         last = window.scrollY;
         await tick();
       }
+      // At a whole pixel: a fraction left by scrolling to an element is
+      // rounded differently for the sticky sidebar than for the page, so it
+      // lands a pixel off when anything above moves by less than one.
+      if (!Number.isInteger(window.scrollY)) window.scrollTo({ top: Math.round(window.scrollY), behavior: "instant" });
       return window.scrollY > 0 || document.querySelector(":popover-open, dialog:modal") !== null;
     })
     .catch(() => {
