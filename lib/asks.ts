@@ -19,7 +19,7 @@ export type AskStatus = (typeof ASK_STATUSES)[AskKind][number];
 /**
  * Airtable's words for answers that are neither a yes nor a no, each with
  * the note an "other" answer gets for it. The migration that brought in
- * "other" (0093_ask_statuses_other.sql) wrote the same notes, so the imports
+ * "other" (0094_ask_statuses_other.sql) wrote the same notes, so the imports
  * leave them as they are.
  */
 const AIRTABLE_ANSWER_NOTES: Record<string, string> = {
