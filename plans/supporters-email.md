@@ -3,7 +3,7 @@
 The UK weekly, and smaller broadcasts such as one to a local group, sent
 from pauseai.uk instead of CiviCRM, so each email can be personal, with
 events near the reader and their MP. It uses the Broadcasts pages at
-`/staff/broadcasts`, and comes in four phases, a pull request each.
+`/staff/broadcasts`, and comes in five phases, a pull request each.
 
 ## Now
 
@@ -243,6 +243,10 @@ over a stop.
 More filters and lozenges in Broadcasts, so an email can carry such
 things as events near the reader, the main events with how many have
 signed up, and their MP. Deliberately not specified yet.
+
+### 5. The weekly, scheduled each week
+
+The weekly is scheduled automatically each week.
 
 ## Opt-outs
 
