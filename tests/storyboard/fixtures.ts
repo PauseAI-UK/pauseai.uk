@@ -2,6 +2,8 @@
 // clock, and the cookie that tells the build which database it's on. Specs
 // import `test` and `expect` from here, never from @playwright/test.
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test as base, type BrowserContextOptions } from "@playwright/test";
 import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs";
 import { FLOW_DATABASES, LOCAL_URL, TEMPLATE_DATABASE } from "../checkout.mjs";
@@ -35,6 +37,15 @@ export function flowStorageState(database: string): Exclude<BrowserContextOption
 
 /** Google Analytics and Tag Manager, which the fixture build loads (ANALYTICS=1, lib/server/fixtures/fixture-env.mjs). */
 export const ANALYTICS_URL = "**/www.googletagmanager.com/**";
+
+/**
+ * A picture from another site, such as a Luma event cover, as the build
+ * resizes it (/_next/image of an outside URL). The build would fetch the real
+ * one over the internet, which can time out, and the picture can change, so
+ * every one is this.
+ */
+const OUTSIDE_IMAGE = /\/_next\/image\?url=https?%3A/;
+const OUTSIDE_IMAGE_STAND_IN = readFileSync(join(process.cwd(), "public/images/pausefest/march-placards.jpg"));
 
 /** Stands in for pauseai.info's onboarding form, posting its height as the real embed does. */
 const ONBOARDING_FORM_STAND_IN = `<!doctype html>
@@ -85,9 +96,13 @@ export const test = base.extend<{ flowDatabase: string }>({
   // between runs and nothing needs masking. The onboarding form, the one
   // outside page a fixture build still embeds, is a stand-in that reports a
   // fixed height: the real one's height, and so the page below it, varied
-  // between runs. Tally's story form doesn't load at all.
+  // between runs. Tally's story form doesn't load at all. Pictures from
+  // other sites are a local stand-in (OUTSIDE_IMAGE).
   page: async ({ page }, provide) => {
     await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+    await page.route(OUTSIDE_IMAGE, (route) =>
+      route.fulfill({ contentType: "image/jpeg", body: OUTSIDE_IMAGE_STAND_IN }),
+    );
     await page.route("https://pauseai.info/**", (route) =>
       route.fulfill({ contentType: "text/html", body: ONBOARDING_FORM_STAND_IN }),
     );

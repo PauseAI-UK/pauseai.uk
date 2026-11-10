@@ -91,7 +91,9 @@ live in one place: `lib/server/fixtures/outside-services.ts`.
   two embeds from other sites have stand-ins (`tests/storyboard/fixtures.ts`),
   since what they drew, and when, varied between runs: pauseai.info's
   signup form is a fixed-height box, and Tally's story form on /people
-  doesn't load.
+  doesn't load. Pictures from other sites, such as Luma's event covers, which
+  the build resizes after fetching them over the internet, are one local
+  picture, as fetching the real one can time out.
 
 Don't stub `fetch` globally, and don't mock our own modules to make a test
 pass. Mocking one of our modules is fine at an edge the test can't
