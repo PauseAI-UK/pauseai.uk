@@ -19,7 +19,7 @@ import { sql, type Sql } from "./sql";
 // politicians have. They're copied from Airtable nightly
 // (politician-sync.ts), and staff set statuses in the staff interface.
 
-export { COUNTRIES, HOUSES, isHouse, isPersonStatus, PERSON_STATUSES } from "@/lib/politician-filters";
+export { COUNTRIES, HOUSES, PERSON_STATUSES } from "@/lib/politician-filters";
 export type { Country, EmailState, House, PersonStatus, PoliticianFlag } from "@/lib/politician-filters";
 
 export type StatusRecord = {
