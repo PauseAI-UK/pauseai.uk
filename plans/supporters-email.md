@@ -3,7 +3,7 @@
 The UK weekly, and smaller broadcasts such as one to a local group, sent
 from pauseai.uk instead of CiviCRM, so each email can be personal, with
 events near the reader and their MP. It uses the Broadcasts pages at
-`/staff/broadcasts`, and comes in five phases, a pull request each.
+`/staff/broadcasts`, and comes in six phases, a pull request each.
 
 ## Now
 
@@ -29,12 +29,12 @@ events near the reader and their MP. It uses the Broadcasts pages at
 
 We send a broadcast to an address only if `contact_permission()` says
 yes for its topic (phase 1) and `checkSuppression` allows it just before
-sending (phase 3). If no pull has completed for 24 hours, nothing sends:
+sending (phase 4). If no pull has completed for 24 hours, nothing sends:
 a broadcast that has started stops, and whoever scheduled it is emailed
 why. Each broadcast goes once per address.
 
 We send through Postmark, not CiviCRM, as we also email people who
-aren't CRM contacts. Once phase 3 is done, UK staff stop sending from
+aren't CRM contacts. Once phase 4 is done, UK staff stop sending from
 CiviCRM, and all UK bulk email goes from pauseai.uk.
 
 ## Phases
@@ -88,6 +88,26 @@ each flag stops only its own. Unsubscribing from volunteering emails
 doesn't stop volunteering calls or texts, but the "Can I call this
 person?" check shows it, with its date.
 
+**The consents.** Today's topics (`luma-calendar`, `pauseai-updates`,
+`site-forms`, `volunteering` and `march-day`, by email or phone) are
+replaced by three that say what we'd send: the UK newsletter, which
+includes events; events only; and volunteering, each by email, text and
+call. `contact_permission()` answers those, and from this phase the
+supporter's page, the supporters list's filters, the staff home's
+counts and the "Consents" in Broadcasts show them, each yes or stop
+with where it came from, when, and the box's words. Where each yes
+comes from:
+
+| Source | Newsletter | Events only | Volunteering |
+|---|---|---|---|
+| March form | email, text | | |
+| Email your MP | email | | |
+| Paper sign-ups | email, and text with a number | through Luma | |
+| Join form's "Keep me informed" (CiviCRM `newsletter`) | email | | |
+| Join form's intent (CiviCRM `volunteer_updates` for email) | | | email, text, call |
+| Following the Luma calendar | | email | |
+| The preferences page (phase 3) | email, text, call | email, text, call | email, text, call |
+
 ### 2. Send our stops back
 
 Each new newsletter stop in `opt_outs`, and each spam complaint as
@@ -113,71 +133,10 @@ following the calendar is their events yes. Whether removed contacts
 still appear in Luma's contacts list, and whether a registered guest's
 reminders still go, needs testing.
 
-### 3. Email broadcasts from pauseai.uk
+### 3. The preferences page
 
-**Sending.** Postmark's broadcast stream
-([streams](https://postmarkapp.com/message-streams)), on the site's
-Postmark server but apart from its transactional stream, for about
-$200–300 a year ([pricing](https://postmarkapp.com/pricing)). Postmark
-reviews new broadcast senders, so apply early. It sends from
-`hello@pauseai.uk`, so pauseai.uk itself becomes a sending domain in
-Postmark, beside `letters.` and `notify.` (`docs/development.md`,
-"Postmark"). That needs two DNS records, neither of which exists yet:
-Postmark's DKIM key as a TXT record, and `pm-bounces.pauseai.uk` as a
-CNAME to `pm.mtasv.net` for the Return-Path. With both, DKIM and SPF
-align with the From address for DMARC. The SPF record needs no change.
-
-The broadcast stream has the webhooks the site's own emails have
-(`lib/server/postmark-webhooks.ts`): delivery, for the delivered count;
-a bounce, marking the message failed and, if hard, blocking the
-address; and a spam complaint, which is a stop (Opt-outs).
-
-Before the first send, set up Google Postmaster Tools and DMARC
-reports, so we can see our spam rate. pauseai.uk's DMARC is `p=none`,
-with no reports.
-
-**Replies.** `hello@pauseai.uk` is a Workspace account, so replies
-arrive in its inbox as now. It's connected as a staff Gmail is, and the
-site reads it (`read-gmail`): each reply is matched to its broadcast by
-`In-Reply-To` before the one-off emails see it, and kept whole on the
-message's page. Keeping only who and when, or forwarding the text to an
-inbox, isn't enough: the old letters' Postmark replies were kept that
-way, and their text is on no page. Someone looks at replies that may be
-stops within a few days.
-
-**Topics.** Three, the "Consents" in Broadcasts: the UK newsletter,
-which includes events; events only; and volunteering, each by email,
-text and call. A newsletter or events broadcast goes to newsletter,
-events or both, and one to both must be about events, which the writer
-says. Volunteering goes on its own. Each message records which yeses it
-went under, and its unsubscribe stops all of them. Where each yes comes
-from:
-
-| Source | Newsletter | Events only | Volunteering |
-|---|---|---|---|
-| March form | email, text | | |
-| Email your MP | email | | |
-| Paper sign-ups | email, and text with a number | through Luma | |
-| Join form's "Keep me informed" (CiviCRM `newsletter`) | email | | |
-| Join form's intent (CiviCRM `volunteer_updates` for email) | | | email, text, call |
-| Following the Luma calendar | | email | |
-| The preferences page | email, text, call | email, text, call | email, text, call |
-
-**Checking suppression.** `checkSuppression` runs just before every
-broadcast, on every address, including those from Luma or MP letters,
-as the joint controller agreement (2.6(f)) requires. It drops `all` and
-`bulk`, and each is kept as a block of ours. If CiviCRM doesn't answer,
-nothing is sent unchecked: the broadcast waits, retrying with a growing
-gap, staff are told once that it's waiting and why, and its page says
-it's waiting for CiviCRM, and since when. It sends by itself if CiviCRM
-answers within the broadcast's time to send; otherwise it stops as any
-broadcast does, listing who it didn't reach, and whoever scheduled it
-is emailed. Transactional emails, such as a login link or a letter's
-confirmation, don't check: they go even with "Do not email" set, so
-checking could only delay them.
-
-**The preferences page.** Anyone can enter their email address and be
-emailed a link to a page where they see and change what they get.
+Anyone can enter their email address and be emailed a link to a page
+where they see and change what they get.
 Every unsubscribe link opens it too, and staff send it to anyone who
 asks them to change their emails. It says clearly and simply what we
 will and won't send them and why, whatever the source, CiviCRM's flags
@@ -233,18 +192,69 @@ to them, and the preview of the email changes as it's typed. Anyone
 with "Do not email" is marked as not hearing from us. A repeated import
 sends nothing, as its entries are already there.
 
+### 4. Email broadcasts from pauseai.uk
+
+**Sending.** Postmark's broadcast stream
+([streams](https://postmarkapp.com/message-streams)), on the site's
+Postmark server but apart from its transactional stream, for about
+$200–300 a year ([pricing](https://postmarkapp.com/pricing)). Postmark
+reviews new broadcast senders, so apply early. It sends from
+`hello@pauseai.uk`, so pauseai.uk itself becomes a sending domain in
+Postmark, beside `letters.` and `notify.` (`docs/development.md`,
+"Postmark"). That needs two DNS records, neither of which exists yet:
+Postmark's DKIM key as a TXT record, and `pm-bounces.pauseai.uk` as a
+CNAME to `pm.mtasv.net` for the Return-Path. With both, DKIM and SPF
+align with the From address for DMARC. The SPF record needs no change.
+
+The broadcast stream has the webhooks the site's own emails have
+(`lib/server/postmark-webhooks.ts`): delivery, for the delivered count;
+a bounce, marking the message failed and, if hard, blocking the
+address; and a spam complaint, which is a stop (Opt-outs).
+
+Before the first send, set up Google Postmaster Tools and DMARC
+reports, so we can see our spam rate. pauseai.uk's DMARC is `p=none`,
+with no reports.
+
+**Replies.** `hello@pauseai.uk` is a Workspace account, so replies
+arrive in its inbox as now. It's connected as a staff Gmail is, and the
+site reads it (`read-gmail`): each reply is matched to its broadcast by
+`In-Reply-To` before the one-off emails see it, and kept whole on the
+message's page. Keeping only who and when, or forwarding the text to an
+inbox, isn't enough: the old letters' Postmark replies were kept that
+way, and their text is on no page. Someone looks at replies that may be
+stops within a few days.
+
+**Which consents a broadcast goes to** (phase 1). A newsletter or
+events broadcast goes to newsletter, events or both, and one to both
+must be about events, which the writer says. Volunteering goes on its
+own. Each message records which yeses it went under, and its
+unsubscribe stops all of them.
+
+**Checking suppression.** `checkSuppression` runs just before every
+broadcast, on every address, including those from Luma or MP letters,
+as the joint controller agreement (2.6(f)) requires. It drops `all` and
+`bulk`, and each is kept as a block of ours. If CiviCRM doesn't answer,
+nothing is sent unchecked: the broadcast waits, retrying with a growing
+gap, staff are told once that it's waiting and why, and its page says
+it's waiting for CiviCRM, and since when. It sends by itself if CiviCRM
+answers within the broadcast's time to send; otherwise it stops as any
+broadcast does, listing who it didn't reach, and whoever scheduled it
+is emailed. Transactional emails, such as a login link or a letter's
+confirmation, don't check: they go even with "Do not email" set, so
+checking could only delay them.
+
 **A yes given another way**, such as at an event or in an email. Staff
 record it on the supporter's page: which emails it's for, when and how
 it was given, and who recorded it. It's a yes from then on, but not
 over a stop.
 
-### 4. Personal broadcasts
+### 5. Personal broadcasts
 
 More filters and lozenges in Broadcasts, so an email can carry such
 things as events near the reader, the main events with how many have
 signed up, and their MP. Deliberately not specified yet.
 
-### 5. The weekly, scheduled each week
+### 6. The weekly, scheduled each week
 
 The weekly is scheduled automatically each week.
 
