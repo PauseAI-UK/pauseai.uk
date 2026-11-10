@@ -83,6 +83,17 @@ export async function frame(
       // rounded differently for the sticky sidebar than for the page, so it
       // lands a pixel off when anything above moves by less than one.
       if (!Number.isInteger(window.scrollY)) window.scrollTo({ top: Math.round(window.scrollY), behavior: "instant" });
+      // A sticky element (the staff sidebar) keeps the raster Chromium made
+      // of it at the scroll before that, so its text could be a pixel up or
+      // down between runs: hidden for a tick and shown again, it's painted
+      // afresh where it is now.
+      const sticky = [...document.querySelectorAll<HTMLElement>("body *")].filter(
+        (el) => getComputedStyle(el).position === "sticky",
+      );
+      for (const el of sticky) el.style.visibility = "hidden";
+      await tick();
+      for (const el of sticky) el.style.visibility = "";
+      await tick();
       return window.scrollY > 0 || document.querySelector(":popover-open, dialog:modal") !== null;
     })
     .catch(() => {
