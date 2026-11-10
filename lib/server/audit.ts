@@ -4,6 +4,7 @@ import type { ChangeSort } from "@/lib/staff-lists";
 import { windowStart } from "@/lib/staff-dashboard";
 import type { SortSpec } from "@/lib/staff-sort";
 import { query, type Queryable } from "./db";
+import { sql } from "./sql";
 
 // Who changed what: every change from the staff interface, and each sync.
 
@@ -100,34 +101,30 @@ export async function recentChanges(
   { search, actor, action, days, not, sort = { key: "day", dir: "desc" }, page = 1 }: ChangesFilter = {},
   limit: number | null = AUDIT_PAGE_SIZE,
 ): Promise<ChangesPage> {
-  const params = [
-    search ? `%${search}%` : null,
-    actor ?? null,
-    action ?? null,
-    not?.actor ?? null,
-    not?.action ?? null,
-    days ? windowStart(days) : null,
-  ];
-  const where = `${visibleTo(supporters)}
-    AND ($1::text IS NULL OR a.actor ILIKE $1 OR a.action ILIKE $1 OR a.details::text ILIKE $1
-      OR ${POLITICIAN_ID} IN (SELECT n.id::text FROM notable_people n WHERE n.name ILIKE $1)
-      OR ${SUPPORTER_ID} IN (SELECT s.id FROM supporters_listed s WHERE s.name ILIKE $1))
-    AND ($2::text[] IS NULL OR a.actor = ANY($2)) AND ($3::text[] IS NULL OR a.action = ANY($3))
-    AND ($4::text[] IS NULL OR a.actor <> ALL($4)) AND ($5::text[] IS NULL OR a.action <> ALL($5))
-    AND ($6::timestamptz IS NULL OR a.at >= $6)`;
-  const order = `${SORT_COLUMNS[sort.key]} ${sort.dir === "asc" ? "ASC" : "DESC"}, a.at DESC, a.id DESC`;
-  const [{ total }] = await query<{ total: number }>(
-    `SELECT count(*)::int AS total FROM audit_log a WHERE ${where}`,
-    params,
-  );
+  const conditions = [sql.raw(visibleTo(supporters))];
+  if (search) {
+    const like = sql`${`%${search}%`}`;
+    conditions.push(
+      sql`a.actor ILIKE ${like} OR a.action ILIKE ${like} OR a.details::text ILIKE ${like}
+        OR ${sql.raw(POLITICIAN_ID)} IN (SELECT n.id::text FROM notable_people n WHERE n.name ILIKE ${like})
+        OR ${sql.raw(SUPPORTER_ID)} IN (SELECT s.id FROM supporters_listed s WHERE s.name ILIKE ${like})`,
+    );
+  }
+  if (actor) conditions.push(sql`a.actor = ANY(${actor})`);
+  if (action) conditions.push(sql`a.action = ANY(${action})`);
+  if (not?.actor) conditions.push(sql`a.actor <> ALL(${not.actor})`);
+  if (not?.action) conditions.push(sql`a.action <> ALL(${not.action})`);
+  if (days) conditions.push(sql`a.at >= ${windowStart(days)}`);
+  const where = sql.where(conditions);
+  const order = sql.raw(`${SORT_COLUMNS[sort.key]} ${sort.dir === "asc" ? "ASC" : "DESC"}, a.at DESC, a.id DESC`);
+  const [{ total }] = await query<{ total: number }>(sql`SELECT count(*)::int AS total FROM audit_log a ${where}`);
   const changes = await query<LoggedChange>(
-    `SELECT a.id::int AS id, a.at, a.actor, a.action, a.details,
+    sql`SELECT a.id::int AS id, a.at, a.actor, a.action, a.details,
        (SELECT json_build_object('id', p.id, 'name', p.name) FROM notable_people p
-        WHERE p.id::text = ${POLITICIAN_ID}) AS politician,
+        WHERE p.id::text = ${sql.raw(POLITICIAN_ID)}) AS politician,
        (SELECT json_build_object('id', s.id, 'name', s.name) FROM supporters_listed s
-        WHERE s.id = ${SUPPORTER_ID}) AS supporter
-     FROM (SELECT a.* FROM audit_log a WHERE ${where} ORDER BY ${order} LIMIT $7 OFFSET $8) a ORDER BY ${order}`,
-    [...params, limit, (page - 1) * (limit ?? 0)],
+        WHERE s.id = ${sql.raw(SUPPORTER_ID)}) AS supporter
+     FROM (SELECT a.* FROM audit_log a ${where} ORDER BY ${order} LIMIT ${limit} OFFSET ${(page - 1) * (limit ?? 0)}) a ORDER BY ${order}`,
   );
   return { changes, total, pages: Math.max(1, Math.ceil(total / AUDIT_PAGE_SIZE)), pageSize: AUDIT_PAGE_SIZE };
 }

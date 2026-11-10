@@ -13,7 +13,7 @@ import {
   useTestDatabase,
 } from "@/tests/database";
 import { sentNearSearch } from "@/lib/letter-links";
-import type { LetterFilter } from "@/lib/staff-search";
+import type { LetterFilter, LetterTab } from "@/lib/staff-search";
 import { query } from "./db";
 import {
   getPauseaiLetter,
@@ -154,6 +154,29 @@ describeWithDatabase("recentLetters", () => {
     expect(await ids({ supporterId: 1 })).toEqual([1]);
     expect(await ids({ supporterId: 2 })).toEqual([]);
     expect(await ids({ letterId: 1 })).toEqual([1]);
+  });
+
+  it("shows a campaign's tabs: sent, failed, replied to, from a politician who's answered its ask, and in the sender's own words", async () => {
+    const polly = await addTestMp();
+    const dora = await addTestPolitician({ name: "Dora", email: "dora@parliament.uk", airtableId: "b" });
+    const campaign = "regulate-letter-pm";
+    await addTestLetter({ politicianId: polly, campaign, postmarkMailbox: "a", status: "sent" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "b", status: "bounced" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "c", status: "queued" });
+    await query("UPDATE letters SET replied_at = now() WHERE id = 3");
+    await query(
+      "UPDATE letters_from_supporters SET draft = 'x', draft_approximate = false, own_words = 0.2 WHERE id = 2",
+    );
+    await query(
+      "INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by) VALUES ($1, 'frontier-ai-letter', 'letter', 'signed', 'test')",
+      [polly],
+    );
+    const ids = async (tab: LetterTab) => (await recentLetters({ tab })).map((l) => l.id);
+    expect(await ids("sent")).toEqual([1]);
+    expect(await ids("failed")).toEqual([2]);
+    expect(await ids("replied")).toEqual([3]);
+    expect(await ids("answered")).toEqual([1]);
+    expect(await ids("changed")).toEqual([2]);
   });
 
   it("sorts by any column, either way, then newest written first", async () => {
