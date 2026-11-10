@@ -207,7 +207,7 @@ describe("findEvents around today", () => {
 describe("eventsByOwner", () => {
   const titles = (lists: EventList[]) => lists.map((list) => [list.title, list.events.map((e) => e.id)]);
 
-  it("lists by the part of the address before its @, alphabetically, those with no owner first", () => {
+  it("lists by the owner's address, alphabetically, those with no owner first", () => {
     const events = [
       event("a", { owner: "sean@pauseai.uk" }),
       event("b", { owner: "jo@pauseai.uk" }),
@@ -216,13 +216,13 @@ describe("eventsByOwner", () => {
     ];
     expect(titles(eventsByOwner(events))).toEqual([
       ["No owner", ["c"]],
-      ["jo", ["b"]],
-      ["sean", ["a", "d"]],
+      ["jo@pauseai.uk", ["b"]],
+      ["sean@pauseai.uk", ["a", "d"]],
     ]);
   });
 
   it("has no list of those with no owner when there are none", () => {
-    expect(titles(eventsByOwner([event("a", { owner: "jo@pauseai.uk" })]))).toEqual([["jo", ["a"]]]);
+    expect(titles(eventsByOwner([event("a", { owner: "jo@pauseai.uk" })]))).toEqual([["jo@pauseai.uk", ["a"]]]);
   });
 });
 

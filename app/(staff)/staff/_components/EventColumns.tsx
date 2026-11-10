@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { StaffEvent } from "@/lib/server/staff-events";
@@ -7,7 +6,6 @@ import {
   eventListColumns,
   eventsByOwner,
   eventsByTag,
-  ownerName,
   ownerNeeded,
   EVENT_GROUPINGS,
   type EventGrouping,
@@ -18,20 +16,13 @@ import { among } from "@/lib/list-params";
 import type { EventsSearch } from "@/lib/staff-search";
 import AlertIcon from "./AlertIcon";
 import { EventEdit, EventsEditing, type SaveEvent } from "./EventEdit";
-import EventsTable, { EventGroups, Missing } from "./EventsTable";
+import EventsTable, { Missing } from "./EventsTable";
 import ExternalLink from "./ui/ExternalLink";
 import Grid, { spanClass } from "./ui/Grid";
+import { londonDate } from "@/lib/staff-time";
 import styles from "./EventColumns.module.css";
 
 const copy = staffCopy.events;
-
-const inLondon = (at: Date) =>
-  at.toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: "Europe/London",
-  });
 
 /**
  * What a line says beyond its list's heading. By owner: its tags, or its city,
@@ -53,7 +44,7 @@ function Detail({
   const others = event.tags.filter((tag) => tag !== list);
   return (
     <>
-      {event.owner ? <strong>{ownerName(event.owner)}</strong> : <Missing needed={needed}>{copy.noOwner}</Missing>}
+      {event.owner ? <strong>{event.owner}</strong> : <Missing needed={needed}>{copy.noOwner}</Missing>}
       {others.length > 0 && <span>{copy.lists.also(others.join(", "))}</span>}
     </>
   );
@@ -84,7 +75,7 @@ function List({
 }) {
   const line = (event: StaffEvent) => (
     <li key={event.id} className={styles.line}>
-      <span className={styles.day}>{inLondon(event.startAt)}</span>
+      <span>{londonDate(event.startAt)}</span>
       <span className={styles.name}>
         <ExternalLink href={event.url}>{event.name}</ExternalLink>
         <span className={styles.detail}>
@@ -119,7 +110,7 @@ function List({
 /**
  * What the tab and filters find, `events`, in lists by owner or by tag, in the
  * tab's order, in two columns, each half the grid, one column below its
- * breakpoint, under how many there are and, at the right, `actions`. Any staff
+ * breakpoint, under how many there are. Any staff
  * member can change an event's owner and doc, from its Edit button. An event in
  * two lists is listed in full in each. An event to come on Luma with no owner,
  * at `now`, is an error.
@@ -130,26 +121,21 @@ export default function EventColumns({
   staff,
   now,
   save,
-  actions,
 }: {
   events: StaffEvent[];
   grouping: EventGrouping;
   staff: readonly string[];
   now: Date;
   save: SaveEvent;
-  actions?: ReactNode;
 }) {
   if (events.length === 0) return <Muted>{copy.noneFound}</Muted>;
   const lists = grouping === "owner" ? eventsByOwner(events) : eventsByTag(events);
   const needed = (event: StaffEvent) => ownerNeeded(event, now);
   return (
     <EventsEditing>
-      <div className={styles.bar}>
-        <p className={styles.found}>
-          <strong>{copy.total(events.length)}</strong>
-        </p>
-        {actions}
-      </div>
+      <p className={styles.found}>
+        <strong>{copy.total(events.length)}</strong>
+      </p>
       <Grid>
         {eventListColumns(lists).map((column, i) => (
           <div key={i} className={spanClass(3)}>
@@ -174,7 +160,7 @@ export default function EventColumns({
 
 /**
  * What the tab and filters find, as the URL asks: in lists by its grouping, or
- * a table (EventsTable), each with how to show them at the right of the count.
+ * a table (EventsTable).
  */
 export function EventsList(props: {
   found: EventsFound;
@@ -187,14 +173,5 @@ export function EventsList(props: {
   const { found, search, staff, now, save } = props;
   const grouping = among([search.group], EVENT_GROUPINGS)[0];
   if (!grouping) return <EventsTable {...props} />;
-  return (
-    <EventColumns
-      events={found.events}
-      grouping={grouping}
-      staff={staff}
-      now={now}
-      save={save}
-      actions={<EventGroups search={search} />}
-    />
-  );
+  return <EventColumns events={found.events} grouping={grouping} staff={staff} now={now} save={save} />;
 }

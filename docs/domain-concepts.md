@@ -639,10 +639,10 @@ the staff interface's events page (`/staff/events`) lists our own as a
 table, on a Future tab, soonest first, and a Past tab, latest first, with
 how many are going, sorted and filtered there (`lib/staff-events-list.ts`).
 An event is still to come until midnight in London on its day, however late
-it began (`stillToCome()`), so it's on Future all that day. At the right of
-the count, what either tab and its filters find can show in lists rather than
-the table (`group`, kept by saved filters and Clear filters): by the part of
-the owner's address before its @, those with no owner first, in red while one
+it began (`stillToCome()`), so it's on Future all that day. From Group by,
+a chip in the filter bar, what either tab and its filters find can show in
+lists rather than the table (`group`, kept by saved filters and Clear
+filters): by the owner's address, those with no owner first, in red while one
 still needs an owner; or in a list for each of its Luma tags, so one with two
 is in both, the places, then Big events, Online and those with no tag.
 Staff who see supporters see each event's hosts too, by name, each linked

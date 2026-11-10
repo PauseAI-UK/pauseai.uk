@@ -1,6 +1,21 @@
-/* A list of events, under its heading, apart from the next. */
+/* A list of events, under its heading, in a white tile as the dashboard's
+   are, apart from the next; inside, as a staff table (ui/Table): its heading
+   a header row, its lines rows, every other one tinted, edge to edge. Its
+   last line needs no rule under it. */
 .list {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: var(--table-font-size);
+}
+
+.line:nth-child(even) {
+  background: var(--table-stripe);
+}
+
+.line:last-child {
+  border-bottom: 0;
 }
 
 .list ul {
@@ -9,34 +24,30 @@
   list-style: none;
 }
 
+/* The fold of a list's later events, ruled off from the lines over it. */
 .list summary {
-  padding-block: var(--space-2);
+  padding: var(--table-cell-padding);
+  border-top: 1px solid var(--border);
   color: var(--text-secondary);
   font-size: var(--text-sm);
   cursor: pointer;
 }
 
-/* Events with no owner: an error. */
-.noOwner {
-  padding: var(--space-2);
-  border-radius: var(--radius-md);
-  background: var(--status-red-bg);
-}
-
+/* Events with no owner: an error, said in red, with a warning, in the heading. */
 .noOwner .title {
   color: var(--status-red);
 }
 
-/* A list's name, and how many, at the right, over a rule. */
+/* A list's name, and how many, at the right, as a table's header row. */
 .heading {
   display: flex;
   gap: var(--space-2);
   align-items: center;
   justify-content: space-between;
   margin: 0;
-  padding-bottom: var(--space-1);
-  border-bottom: 2px solid var(--border-strong);
-  font-size: var(--text-sm);
+  padding: var(--table-cell-padding);
+  border-bottom: 1px solid var(--border);
+  font-size: inherit;
   font-weight: 700;
 }
 
@@ -47,25 +58,24 @@
 }
 
 .count {
-  color: var(--muted);
+  color: var(--text);
   font-weight: 500;
 }
 
-/* A line: the day, the name with its detail stacked under it, then Edit. */
+/* A line: the date, as the table writes it, "5 Dec 2026"; the name with its
+   detail stacked under it; then Edit, compact, as the strip's buttons are
+   (ui/Strip), so it doesn't stand out. The date and Edit are centred beside
+   the name's two lines. */
 .line {
-  display: grid;
-  grid-template-columns: 5.5rem 1fr auto;
-  gap: var(--space-2);
-  align-items: start;
-  padding-block: var(--space-2);
-  border-bottom: 1px solid var(--border);
-  font-size: var(--text-sm);
-}
+  --button-padding: 4px 12px;
+  --button-font-size: var(--text-sm);
 
-.day {
-  color: var(--muted);
-  font-size: var(--text-xs);
-  line-height: 1.7;
+  display: grid;
+  grid-template-columns: 6.5rem 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--table-cell-padding);
+  border-bottom: 1px solid var(--border);
 }
 
 .name {
@@ -83,17 +93,7 @@
   font-weight: 400;
 }
 
-/* Over the lists, as over a table (ui/ListFrame): how many at the left, how
-   they show at the right, wrapping under it on a phone. */
-.bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
-
+/* Over the lists, as over a table (ui/ListFrame): how many. */
 .found {
-  margin: 0;
+  margin: 0 0 var(--space-2);
 }

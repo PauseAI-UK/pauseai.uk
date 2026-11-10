@@ -46,6 +46,12 @@
   white-space: nowrap;
 }
 
+/* Edit, compact, as the strip's buttons are (ui/Strip), so it doesn't stand out. */
+.edit {
+  --button-padding: 4px 12px;
+  --button-font-size: var(--text-sm);
+}
+
 /* The edit bubble's form: each label over its field, then Save and Cancel. */
 .editor {
   display: grid;
@@ -68,44 +74,4 @@
 
 .emailed:empty {
   display: none;
-}
-
-/* How the list shows what's found: its choices joined in one lozenge, small,
-   the one it's in filled with the accent's tint. A choice clicked (StaffLink)
-   is chosen at once, the one it was no longer, while the list loads. */
-.groups {
-  display: inline-flex;
-  overflow: hidden;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  font-size: var(--text-sm);
-  white-space: nowrap;
-}
-
-.groups a {
-  padding: var(--space-1) var(--space-3);
-  color: var(--text-secondary);
-  text-decoration: none;
-}
-
-.groups a + a {
-  border-left: 1px solid var(--border);
-}
-
-.groups a:hover {
-  color: var(--text);
-}
-
-.groups a[aria-current="true"],
-.groups a[data-pending] {
-  background: var(--accent-light);
-  color: var(--text);
-  font-weight: 600;
-}
-
-.groups:has(a[data-pending]) a[aria-current="true"]:not([data-pending]) {
-  background: none;
-  color: var(--text-secondary);
-  font-weight: inherit;
 }

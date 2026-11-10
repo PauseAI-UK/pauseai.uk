@@ -5,7 +5,7 @@ import { EVENT_GROUPINGS } from "@/lib/staff-events-list";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
 import { eventsSearch, type EventsSearch } from "@/lib/staff-search";
 import { among, type Params } from "@/lib/list-params";
-import { eventFiltersOf } from "./EventsTable";
+import { EventGroups, eventFiltersOf } from "./EventsTable";
 import FilterBar from "./ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";
 
@@ -28,7 +28,7 @@ function savedEventWords(params: Params, choices: EventChoices): string[] {
   return [...shownWords(search), ...eventWords(search, choices)];
 }
 
-/** Search and filter the events list, keeping its tab and grouping, with its `saved` filters. */
+/** Search and filter the events list, keeping its tab and grouping, with its `saved` filters and its Group by chip. */
 export default function EventFilters({
   search,
   choices,
@@ -56,6 +56,7 @@ export default function EventFilters({
           summary: (params) => savedEventWords(params, choices),
         })
       }
+      view={<EventGroups search={search} />}
     />
   );
 }

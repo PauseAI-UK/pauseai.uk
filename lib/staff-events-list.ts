@@ -181,15 +181,12 @@ function listsOf(
     .sort((a, b) => rank(a.title) - rank(b.title) || a.title.localeCompare(b.title));
 }
 
-/** An owner's address as a list's heading: the part before its @. */
-export const ownerName = (owner: string) => owner.split("@")[0];
-
-/** `events` in a list for each owner, by the part of their address before its @, those with none first. */
+/** `events` in a list for each owner, by their address, those with none first. */
 export function eventsByOwner(events: readonly StaffEvent[]): EventList[] {
   const none = staffCopy.events.noOwner;
   return listsOf(
     events,
-    (event) => [event.owner ? ownerName(event.owner) : none],
+    (event) => [event.owner ?? none],
     (title) => (title === none ? 0 : 1),
   );
 }

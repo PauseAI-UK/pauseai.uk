@@ -15,13 +15,16 @@ import {
   type EventTab,
 } from "@/lib/staff-events-list";
 import { type EventsSearch } from "@/lib/staff-search";
-import { filtersPath, pageParam, type Params } from "@/lib/list-params";
+import { among, filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { parseSort, sortHref } from "@/lib/staff-sort";
 import { londonDate } from "@/lib/staff-time";
 import AlertIcon from "./AlertIcon";
 import { EventEdit, EventsEditing, type SaveEvent } from "./EventEdit";
 import SortHeading from "./SortHeading";
+import { filterChipClass } from "./ui/FilterBar";
+import Choices from "./ui/Choices";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
+import Menu from "./ui/Menu";
 import StaffLink from "./ui/StaffLink";
 import Tabs from "./ui/Tabs";
 import styles from "./EventsTable.module.css";
@@ -71,28 +74,32 @@ export function EventTabs({ search }: { search: EventsSearch }) {
 }
 
 /**
- * At the right of the count over what the tab and filters find: how it shows
- * them, as a table or in lists by owner or by tag, the one it's in marked.
- * Each keeps the tab and filters, in the tab's own order, from the first page.
+ * In the filter bar, after + Filter, a chip as a filter's: Group by, and
+ * while the list is grouped, by which, filled; its menu, how the list shows
+ * what the tab and filters find, as a table (none) or in lists by owner or
+ * by tag, the one it's in marked. Each keeps the tab and filters, in the
+ * tab's own order, from the first page.
  */
 export function EventGroups({ search }: { search: EventsSearch }) {
   const filters = { ...eventFiltersOf(search), sort: "", dir: "" };
-  const choices = [
-    { group: "", label: copy.group.table },
-    ...EVENT_GROUPINGS.map((group) => ({ group, label: copy.group[group] })),
+  const [group] = among([search.group], EVENT_GROUPINGS);
+  const options = [
+    { value: "", label: copy.group.choices.table },
+    ...EVENT_GROUPINGS.map((value) => ({ value, label: copy.group.choices[value] })),
   ];
   return (
-    <nav aria-label={copy.group.label} className={styles.groups}>
-      {choices.map(({ group, label }) => (
-        <StaffLink
-          key={group}
-          href={filtersPath(PATH, filters, { group })}
-          aria-current={search.group === group ? "true" : undefined}
-        >
-          {label}
-        </StaffLink>
-      ))}
-    </nav>
+    <Menu
+      id="event-groups"
+      trigger={group ? filterChipClass.on : filterChipClass.off}
+      label={group ? `${copy.group.chip}: ${copy.group.choices[group]}` : copy.group.chip}
+    >
+      <p className={filterChipClass.heading}>{copy.group.chip}</p>
+      <Choices
+        options={options}
+        current={[group ?? ""]}
+        href={(value) => filtersPath(PATH, filters, { group: value })}
+      />
+    </Menu>
   );
 }
 
@@ -243,7 +250,11 @@ function eventColumns(
       key: "edit",
       label: "",
       end: true,
-      cell: (event) => <EventEdit event={event} staff={staff} save={save} />,
+      cell: (event) => (
+        <span className={styles.edit}>
+          <EventEdit event={event} staff={staff} save={save} />
+        </span>
+      ),
     },
   ];
 }
@@ -280,7 +291,6 @@ export default function EventsTable({
         pages={found.pages}
         pageSize={EVENTS_PAGE_SIZE}
         href={(n) => filtersPath(PATH, filters, pageParam(n))}
-        actions={<EventGroups search={search} />}
         align="middle"
         columns={eventColumns(search, { staff, now, save, hosts })}
         rows={found.events}

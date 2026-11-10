@@ -224,18 +224,27 @@ function busyCalendar(database: string) {
 /** The headings of the lists by owner or by tag, not the menu's. */
 const listHeadings = (page: Page) => page.locator("section:not(nav section) > h2");
 
+/** Shows what's found as `choice` says, from the Group by chip's menu. */
+async function groupBy(page: Page, choice: keyof typeof copy.group.choices) {
+  await page.getByRole("button", { name: new RegExp(`^${copy.group.chip}`) }).click();
+  await page
+    .locator("[popover]:popover-open")
+    .getByRole("link", { name: copy.group.choices[choice], exact: true })
+    .click();
+}
+
 /** A list by owner or by tag, by its heading's words. */
 const eventList = (page: Page, title: string | RegExp) =>
   page.locator("section").filter({ has: page.getByRole("heading", { level: 2, name: title }) });
 
 test("Events by owner", async ({ page, flowDatabase }) => {
   story(
-    "The calendar is busy, and Future's table is long. By owner, at the right of the count, lists every event to come under who owns it, with the ones nobody owns first, in red.",
+    "The calendar is busy, and Future's table is long. Group by owner, a chip after + Filter, lists every event to come under who owns it, with the ones nobody owns first, in red.",
   );
   busyCalendar(flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/events`);
-  await page.getByRole("link", { name: copy.group.owner }).click();
+  await groupBy(page, "owner");
   await expect(page).toHaveURL(`${BASE}/staff/events?group=owner`);
   const noOwner = eventList(page, new RegExp(`^${copy.noOwner}`));
   await expect(noOwner.getByRole("link", { name: "Oxford AI risk talk" })).toBeVisible();
@@ -284,7 +293,7 @@ test("Events by tag", async ({ page, flowDatabase }) => {
   busyCalendar(flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/events`);
-  await page.getByRole("link", { name: copy.group.tag }).click();
+  await groupBy(page, "tag");
   await expect(page).toHaveURL(`${BASE}/staff/events?group=tag`);
   const titles = await listHeadings(page).allTextContents();
   expect(titles.map((title) => title.replace(/\d+$/, ""))).toEqual([
@@ -365,7 +374,7 @@ test("An event stays on Future until the end of its day", async ({ page, flowDat
   await frame(page, "This morning's event, still on Future");
 
   story("It's in the red list by owner too.");
-  await page.getByRole("link", { name: copy.group.owner }).click();
+  await groupBy(page, "owner");
   await expect(
     eventList(page, new RegExp(`^${copy.noOwner}`)).getByRole("link", { name: "Breakfast with organisers" }),
   ).toBeVisible();
@@ -374,7 +383,7 @@ test("An event stays on Future until the end of its day", async ({ page, flowDat
   story("Yesterday's is on Past, and this morning's isn't yet.");
   await page.getByRole("link", { name: copy.tabs.past }).click();
   await expect(page).toHaveURL(`${BASE}/staff/events?when=past&group=owner`);
-  await page.getByRole("link", { name: copy.group.table }).click();
+  await groupBy(page, "table");
   await expect(page).toHaveURL(`${BASE}/staff/events?when=past`);
   await expect(page.getByRole("row").filter({ hasText: "Yesterday's pub social" })).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Breakfast with organisers" })).toHaveCount(0);
