@@ -321,6 +321,29 @@ http://localhost:3000/gallery is the component gallery: every component and
 its variants, a page per group, on fixture data. It's there only with
 `DATA_FIXTURES=1`. See `docs/testing.md`, "The component gallery".
 
+#### Serving a branch
+
+To click around a branch from another machine (the Mac a container runs
+on, say), on fake data:
+
+```bash
+npm run serve -- fix-footer   # or a PR's number; with neither, the worktree it's run in
+npm run serve -- fix-footer --stop
+```
+
+It serves the branch's worktree, making one under `tmp/worktrees/` if it has
+none, never the main checkout, whose dev server is yours. It runs `next dev`
+there with the fixture settings, so edits show as they're saved, on a fresh
+database with the test MPs and the fake data, where admin@pauseai.uk has
+every permission. In front of it is a proxy on this machine's network
+address, as the session cookie is `Secure` and a browser drops it over
+plain http from anywhere but localhost: the proxy strips that, and tells
+`next dev` each request came to localhost. It opens the link in Firefox,
+logs in with the dev login, then prints the link. Each checkout has its own
+ports, so branches can be served side by side. It keeps running until
+stopped. Its `next dev` shares `.next` with the checkout, so don't run a
+storyboard review in the same checkout meanwhile.
+
 ### With real outside services
 
 Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is explained there. Things to know:

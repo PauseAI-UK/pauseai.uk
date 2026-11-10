@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { query } from "@/lib/server/db";
-import { allResults, atOnce } from "@/tests/at-once";
+import { allResults, heldAtOnce } from "@/tests/at-once";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { startRunning } from "./import-runs";
@@ -564,7 +564,17 @@ describeWithDatabase("importLuma", () => {
       guests: { "evt-1": [guest(1), guest(2)], "evt-2": [guest(2, { id: "gst-22" }), guest(3)] },
       contacts: [contact(1), contact(4)],
     });
-    const results = allResults(await atOnce(() => runJob("import-luma", "nightly")));
+    // The run that goes waits at Luma until the other two have been turned away.
+    const { held, start } = heldAtOnce(
+      () => runJob("import-luma", "nightly"),
+      (run) => run === ANOTHER_RUNNING,
+    );
+    server.use(
+      http.get(`${API}/calendars/events/list`, async () => {
+        await held;
+      }),
+    );
+    const results = allResults(await start());
     // One run copied each once: those started while it was going didn't go.
     expect(results.filter((result) => result === ANOTHER_RUNNING)).toHaveLength(2);
     expect(results.find((result) => result !== ANOTHER_RUNNING)).toMatchObject({

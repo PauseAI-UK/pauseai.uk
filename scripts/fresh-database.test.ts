@@ -11,7 +11,10 @@ import {
   dropDatabase,
   freshDatabase,
   isLocal,
+  noServer,
+  resetDatabase,
   runSql,
+  serverSource,
   testServerUrl,
 } from "./fresh-database.mjs";
 
@@ -70,7 +73,37 @@ describe("testServerUrl", () => {
   });
 });
 
+describe("serverSource and noServer", () => {
+  it("say where the server was looked for, and what to do when none answers", () => {
+    const dir = mkdtempSync(join(tmpdir(), "env-"));
+    const file = join(dir, ".env.local");
+    try {
+      expect(serverSource({ TEST_DATABASE_URL: "postgresql://env/x" }, file)).toBe(
+        "TEST_DATABASE_URL in the environment",
+      );
+      writeFileSync(file, "TEST_DATABASE_URL=postgresql://localhost:5433/postgres\n");
+      expect(serverSource({}, file)).toBe(`TEST_DATABASE_URL in ${file}`);
+      rmSync(file);
+      expect(serverSource({ PGHOST: "/run/pg" }, file)).toBe("PGHOST, /run/pg");
+      expect(serverSource({}, file, [dir])).toBe("localhost, with no server's socket in /var/run/postgresql or /tmp");
+      writeFileSync(join(dir, ".s.PGSQL.5432"), "");
+      expect(serverSource({}, file, [dir])).toBe(`the socket in ${dir}`);
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+    const said = noServer("postgresql://u:secret@localhost:5433/postgres", "TEST_DATABASE_URL in the environment");
+    expect(said).toContain("No Postgres answered at postgresql://u@localhost:5433/postgres");
+    expect(said).not.toContain("secret");
+    expect(said).toContain("pg-start");
+    expect(noServer("postgresql://localhost/postgres")).toContain("(");
+  });
+});
+
 describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
+  it("says what to do when no server answers", () => {
+    expect(() => resetDatabase("postgresql://nobody@localhost:1/test_nowhere")).toThrow(/No Postgres answered at/);
+  });
+
   const template = `test_${process.pid}_template`;
   const copy = `test_${process.pid}_copy`;
 

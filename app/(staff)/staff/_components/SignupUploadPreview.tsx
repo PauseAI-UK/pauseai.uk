@@ -156,7 +156,11 @@ export default function SignupUploadPreview({
 }: SignupUploadActions & { input: SignupUploadInput | null; blockers: string[] }) {
   const router = useRouter();
   const [outcome, setOutcome] = useState<{ of: SignupUploadInput; is: Outcome } | null>(null);
-  const [changed, setChanged] = useState(false);
+  // The input that changed on the server before it went in: the notice stays
+  // until something else is chosen, however often the preview runs again
+  // (as it does when the page is refreshed after the import).
+  const [changedFor, setChangedFor] = useState<SignupUploadInput | null>(null);
+  const changed = changedFor !== null && changedFor === input;
   const [pending, start] = useTransition();
 
   useEffect(() => {
@@ -166,7 +170,6 @@ export default function SignupUploadPreview({
       preview(input).then(
         (result) => {
           if (gone) return;
-          setChanged(false);
           setOutcome({ of: input, is: result });
         },
         () => !gone && setOutcome({ of: input, is: "failed" }),
@@ -189,7 +192,7 @@ export default function SignupUploadPreview({
         const finished = await finish(plan!.input, plan!.signature);
         if ("uploadId" in finished) router.push(signupUploadPath(finished.uploadId));
         else if ("changed" in finished) {
-          setChanged(true);
+          setChangedFor(input);
           setOutcome({ of: input!, is: finished.changed });
         } else setOutcome({ of: input!, is: finished });
       } catch {

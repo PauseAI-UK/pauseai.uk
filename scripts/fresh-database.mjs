@@ -48,6 +48,28 @@ export function testServerUrl(env = process.env, envFile = ".env.local") {
   return line?.[1].replace(/^(["'])(.*)\1$/, "$2") || undefined;
 }
 
+/** Where databaseUrl finds the server, as a message says it. */
+export function serverSource(env = process.env, envFile = ".env.local", places = undefined) {
+  if (env.TEST_DATABASE_URL) return "TEST_DATABASE_URL in the environment";
+  if (testServerUrl({}, envFile)) return `TEST_DATABASE_URL in ${envFile}`;
+  if (env.PGHOST) return `PGHOST, ${env.PGHOST}`;
+  const host = defaultHost(env.PGPORT, places);
+  return host === "localhost"
+    ? "localhost, with no server's socket in /var/run/postgresql or /tmp"
+    : `the socket in ${host}`;
+}
+
+/** What to do when no server answers at `url`, found as serverSource says. */
+export function noServer(url, source = serverSource()) {
+  const shown = new URL(url);
+  shown.password = "";
+  return [
+    `No Postgres answered at ${shown} (${source}); psql's error is above.`,
+    "Start Postgres (pg-start, in the dev container), or set TEST_DATABASE_URL to a server that's running",
+    '(docs/testing.md, "Where Postgres is").',
+  ].join(" ");
+}
+
 /** The URL of database `name` on the configured server. */
 export function databaseUrl(name) {
   const server = testServerUrl();
@@ -144,7 +166,11 @@ export function resetDatabase(url, { singleTransaction = false, upTo } = {}) {
   // The same server, its "postgres" database, to drop and create from.
   const server = new URL(url);
   server.pathname = "/postgres";
-  psql(server.toString(), "-c", `DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
+  try {
+    psql(server.toString(), "-c", `DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
+  } catch (cause) {
+    throw new Error(noServer(server.toString()), { cause });
+  }
   psql(server.toString(), "-c", `CREATE DATABASE "${name}" ${PRODUCTION_LOCALE}`);
   // One psql for every file, in order, stopping at the first error: a
   // process each would make a fresh database slower with every migration,

@@ -354,6 +354,7 @@ const eslintConfig = defineConfig([
       "scripts/db-reset.mjs",
       "scripts/serve-fixture.mjs",
       "scripts/serve-main.mjs",
+      "scripts/serve.mjs",
     ],
     rules: { "no-restricted-imports": "off", "no-restricted-syntax": "off" },
   },
