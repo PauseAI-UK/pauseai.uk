@@ -52,6 +52,20 @@ async function focusEditor(page: Page, box = editor(page)) {
   await box.evaluate(() => new Promise((done) => setTimeout(done, 25)));
 }
 
+/** Puts the caret in the empty paragraph `index` (from 0) of the Tiptap editor `box`, such as a broadcast's line under its greeting. */
+export async function caretInEmpty(box: Locator, index: number) {
+  await focusEditor(box.page(), box);
+  await box.locator("p").nth(index).click();
+  await expect
+    .poll(() =>
+      box.evaluate((el) => {
+        const { $to } = (el as TiptapElement).editor.state.selection;
+        return $to.parent.content.size === 0;
+      }),
+    )
+    .toBe(true);
+}
+
 /** Puts the caret at the end of the letter in `box`, a Tiptap editor such as a mailing's, to write under what's there. */
 export async function caretAtEnd(box: Locator) {
   await focusEditor(box.page(), box);
