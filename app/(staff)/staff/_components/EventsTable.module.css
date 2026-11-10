@@ -46,6 +46,12 @@
   white-space: nowrap;
 }
 
+/* Edit, compact, as the strip's buttons are (ui/Strip), so it doesn't stand out. */
+.edit {
+  --button-padding: 4px 12px;
+  --button-font-size: var(--text-sm);
+}
+
 /* The edit bubble's form: each label over its field, then Save and Cancel. */
 .editor {
   display: grid;

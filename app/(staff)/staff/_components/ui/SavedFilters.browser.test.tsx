@@ -49,7 +49,7 @@ async function bar(values: Record<string, string | string[]>, state: Partial<Sav
         state: { rows: [], params: {}, ...state },
         values,
         path: "/staff/politicians",
-        name: filteredName("Politicians", ["House of Commons", "", "Party: Labour"]),
+        name: filteredName(["House of Commons", "", "Party: Labour"]),
         summary: (params) => [String(params.party), ""],
         actions: did,
       })}
@@ -106,7 +106,7 @@ describe("SavedFilters' chip", () => {
     const did = await bar({ party: "Labour", house: "commons" });
     await page.getByRole("button", { name: copy.save, exact: true }).click();
     const name = page.getByRole("textbox", { name: copy.name });
-    await expect.element(name).toHaveValue("Politicians: House of Commons, Party: Labour");
+    await expect.element(name).toHaveValue("House of Commons, Party: Labour");
     await expect.element(page.getByText(copy.shared)).toBeVisible();
     await name.fill("My own name");
     await page.getByRole("dialog").or(page.getByText(copy.saveTitle)).first().click();
@@ -279,7 +279,7 @@ describe("each list's saved filters", () => {
     await page.getByRole("button", { name: copy.save, exact: true }).click();
     await expect
       .element(page.getByRole("textbox", { name: copy.name }))
-      .toHaveValue(`${staffCopy.politicians.title}: ${staffCopy.houses.commons}, ${staffCopy.fields.party}: Labour`);
+      .toHaveValue(`${staffCopy.houses.commons}, ${staffCopy.fields.party}: Labour`);
   });
 
   it("on supporters, are said in its words, without its erased notice", async () => {
@@ -303,15 +303,18 @@ describe("each list's saved filters", () => {
     expect(new FormData(form).get("back")).toBe("/staff/supporters?near=Leeds");
   });
 
-  it("on events, say the Past tab, and start named after the filters", async () => {
-    const search = eventsSearch({ q: "talk", page: "2" });
+  it("on events, say the Past tab and the grouping, and start named after them and the filters", async () => {
+    const search = eventsSearch({ q: "talk", group: "tag", page: "2" });
     await render(
       <EventFilters
         search={search}
         choices={{ staff: [], tags: ["Talk"], cities: [] }}
         saved={{
           state: {
-            rows: [row(1, "Old talks", { when: "past", tag: "Talk" }), row(2, "New talks", { tag: "Talk" })],
+            rows: [
+              row(1, "Old talks", { when: "past", group: "owner", tag: "Talk" }),
+              row(2, "New talks", { tag: "Talk" }),
+            ],
             params: {},
           },
           actions: actions(),
@@ -319,7 +322,10 @@ describe("each list's saved filters", () => {
       />,
     );
     await chip().click();
-    await says(/Old talks/, `${staffCopy.events.tabs.past} · ${staffCopy.events.filters.tag}: Talk`);
+    await says(
+      /Old talks/,
+      `${staffCopy.events.tabs.past} · ${staffCopy.events.group.owner} · ${staffCopy.events.filters.tag}: Talk`,
+    );
     expect(page.getByRole("link", { name: /New talks/ }).element().textContent).not.toContain(
       staffCopy.events.tabs.past,
     );
@@ -327,6 +333,6 @@ describe("each list's saved filters", () => {
     await page.getByRole("button", { name: copy.save, exact: true }).click();
     await expect
       .element(page.getByRole("textbox", { name: copy.name }))
-      .toHaveValue(`${staffCopy.events.title}: ${staffCopy.search}: talk`);
+      .toHaveValue(`${staffCopy.events.group.tag}, ${staffCopy.search}: talk`);
   });
 });

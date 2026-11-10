@@ -57,7 +57,7 @@ export default function PoliticianFilters({
           list: "politicians",
           values: search,
           path: POLITICIANS_LIST.path,
-          name: filteredName(copy.title, politicianWords(search, parties, asks)),
+          name: filteredName(politicianWords(search, parties, asks)),
           summary: (params) => wordsOf(params, parties, asks),
         })
       }

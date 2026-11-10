@@ -19,6 +19,13 @@ import styles from "./FilterBar.module.css";
 
 const copy = staffCopy.filters;
 
+/**
+ * For a chip of the list's own (FilterBar's `view`), as a filter's look: on,
+ * filled with the accent's tint; off, plain, as a filter's own button; and
+ * the heading of its menu.
+ */
+export const filterChipClass = { on: styles.chip, off: `${styles.add} ${styles.own}`, heading: styles.heading };
+
 /** A filter's choices, without its blank one, its default. */
 const everyChoice = (filter: Filter) => filter.options.map((option) => option.value).filter(Boolean);
 
@@ -105,6 +112,7 @@ export default function FilterBar({
   filters,
   keep = [],
   saved,
+  view,
 }: {
   path: string;
   values: Params;
@@ -112,6 +120,8 @@ export default function FilterBar({
   filters: Filter[];
   keep?: string[];
   saved?: SavedFiltersProps;
+  /** A chip for how the list shows what's found, after + Filter (filterChipClass). */
+  view?: ReactNode;
 }) {
   const href = (changes: Params) => filtersPath(path, values, { ...changes, page: "" });
   const chosen = (name: string) => valuesOf(values[name]);
@@ -425,6 +435,7 @@ export default function FilterBar({
                 {groups(offered, false)}
               </Menu>
             ))}
+          {view}
           {(on.length > 0 || values[search.name] || saved?.loaded) && (
             <StaffLink href={filtersPath(path, kept)} className={styles.clearAll}>
               {staffCopy.resetFilters}

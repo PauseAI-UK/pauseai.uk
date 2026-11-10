@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
-import EventColumns from "./EventColumns";
+import EventColumns, { EventsList } from "./EventColumns";
 import type { SaveEvent } from "./EventEdit";
 import EventFilters, { eventWords } from "./EventFilters";
-import EventsTable, { EventsSource, EventTabs } from "./EventsTable";
+import EventsTable, { EventGroups, EventsSource, EventTabs } from "./EventsTable";
 import {
   exampleEvents,
   exampleEventsNow,
@@ -83,9 +83,10 @@ describe("EventsTable", () => {
     await expect
       .element(protest.getByRole("link", { name: copy.doc }))
       .toHaveAttribute("href", "https://docs.google.com/document/d/example-protest-plan/edit");
-    // The owner's address may break before its @, so the column takes little room.
-    const owner = protest.getByRole("cell").nth(5).element().querySelector("strong")!;
-    expect(owner.innerHTML).toBe("joseph<wbr>@pauseai.uk");
+    // The owner's address, not in bold, may break before its @, so the column takes little room.
+    const cell = protest.getByRole("cell").nth(5).element();
+    expect(cell.querySelector("strong")).toBeNull();
+    expect(cell.querySelector("span")!.innerHTML).toBe("joseph<wbr>@pauseai.uk");
     // To come with no owner: an error. With no doc: only a dash.
     await expect.element(row("AI risk talk").getByRole("cell").nth(5).getByText(copy.noOwner)).toHaveClass(/missing/);
     expect(cells("AI risk talk")[6]).toBe("–");
@@ -286,7 +287,15 @@ describe("EventsTable", () => {
 
 describe("EventColumns", () => {
   const renderColumns = (grouping: "owner" | "tag", save: SaveEvent = noAction) =>
-    render(<EventColumns events={exampleEventsToCome} grouping={grouping} staff={exampleStaff} save={save} />);
+    render(
+      <EventColumns
+        events={exampleEventsToCome}
+        grouping={grouping}
+        staff={exampleStaff}
+        now={exampleEventsNow}
+        save={save}
+      />,
+    );
   const headings = () => [...document.querySelectorAll("h2")].map((h2) => h2.textContent);
   /** A list, by its heading's words, which end in its count. */
   const list = (title: string) =>
@@ -299,15 +308,16 @@ describe("EventColumns", () => {
 
   it("lists by owner, No owner first in red, each with its count, and on each line its tags, or city, or Online", async () => {
     await renderColumns("owner");
-    expect(headings()).toEqual(["No owner2", "jo2", "joseph7"]);
+    expect(headings()).toEqual(["No owner2", "jo@pauseai.uk2", "joseph@pauseai.uk7"]);
     expect(list("No owner").querySelector("h2 svg")).not.toBeNull();
-    expect(list("joseph").querySelector("h2 svg")).toBeNull();
+    expect(list("joseph@pauseai.uk").querySelector("h2 svg")).toBeNull();
     expect(lineIn("No owner", "AI risk talk").textContent).toContain("Oxford");
     expect(lineIn("No owner", "Leeds first meet-up").textContent).toContain("Leeds");
-    expect(lineIn("jo", "New volunteers' welcome").textContent).toContain("Online");
-    expect(lineIn("jo", "Scotland organisers' call").textContent).toContain("Online, Scotland");
-    expect(lineIn("jo", "Scotland organisers' call").textContent).toContain("6 going");
-    const links = (name: string) => [...lineIn("joseph", name).querySelectorAll("a")].map((a) => a.textContent);
+    expect(lineIn("jo@pauseai.uk", "New volunteers' welcome").textContent).toContain("Online");
+    expect(lineIn("jo@pauseai.uk", "Scotland organisers' call").textContent).toContain("Online, Scotland");
+    expect(lineIn("jo@pauseai.uk", "Scotland organisers' call").textContent).toContain("6 going");
+    const links = (name: string) =>
+      [...lineIn("joseph@pauseai.uk", name).querySelectorAll("a")].map((a) => a.textContent);
     expect(links("London pub social")).toEqual(["London pub social", copy.doc]);
     expect(links("London stall")).toEqual(["London stall"]);
   });
@@ -316,7 +326,7 @@ describe("EventColumns", () => {
     await renderColumns("tag");
     expect(headings()).toEqual(["London7", "Oxford1", "Scotland1", "Big events1", "Online2", "No tag1"]);
     expect(lineIn("Scotland", "Scotland organisers' call").textContent).toContain("also Online");
-    expect(lineIn("Scotland", "Scotland organisers' call").querySelector("strong")!.textContent).toBe("jo");
+    expect(lineIn("Scotland", "Scotland organisers' call").querySelector("strong")!.textContent).toBe("jo@pauseai.uk");
     expect(lineIn("Online", "Scotland organisers' call").textContent).toContain("also Scotland");
     expect(lineIn("Oxford", "AI risk talk").textContent).toContain(copy.noOwner);
     expect(lineIn("Oxford", "AI risk talk").querySelector("svg")).not.toBeNull();
@@ -344,38 +354,123 @@ describe("EventColumns", () => {
 
   it("has no fold on a list of five or fewer", async () => {
     await render(
-      <EventColumns events={exampleEventsToCome.slice(0, 5)} grouping="owner" staff={exampleStaff} save={noAction} />,
+      <EventColumns
+        events={exampleEventsToCome.slice(0, 5)}
+        grouping="owner"
+        staff={exampleStaff}
+        now={exampleEventsNow}
+        save={noAction}
+      />,
     );
     expect(document.querySelector("details")).toBeNull();
   });
 
-  it("says so when there are none to come", async () => {
-    await render(<EventColumns events={[]} grouping="tag" staff={exampleStaff} save={noAction} />);
+  it("says so when there are none", async () => {
+    await render(
+      <EventColumns events={[]} grouping="tag" staff={exampleStaff} now={exampleEventsNow} save={noAction} />,
+    );
     await expect.element(page.getByText(copy.noneFound)).toBeVisible();
+  });
+
+  it("says how many over the lists", async () => {
+    await render(
+      <EventColumns
+        events={exampleEventsToCome}
+        grouping="tag"
+        staff={exampleStaff}
+        now={exampleEventsNow}
+        save={noAction}
+      />,
+    );
+    await expect.element(page.getByText(copy.total(exampleEventsToCome.length))).toBeVisible();
+  });
+
+  it("leaves No owner plain once its events have been held, as they no longer need one", async () => {
+    const after = new Date("2027-01-01T12:00:00.000Z");
+    await render(
+      <EventColumns events={exampleEventsToCome} grouping="owner" staff={exampleStaff} now={after} save={noAction} />,
+    );
+    expect(list("No owner").querySelector("h2 svg")).toBeNull();
+    document.body.innerHTML = "";
+    await render(
+      <EventColumns events={exampleEventsToCome} grouping="tag" staff={exampleStaff} now={after} save={noAction} />,
+    );
+    expect(lineIn("Oxford", "AI risk talk").textContent).toContain(copy.noOwner);
+    expect(lineIn("Oxford", "AI risk talk").querySelector("svg")).toBeNull();
+  });
+});
+
+describe("EventsList", () => {
+  const renderList = (params: Parameters<typeof exampleEventsTab>[0]) => {
+    const { search, found } = exampleEventsTab(params);
+    return render(
+      <EventsList
+        found={found}
+        search={search}
+        staff={exampleStaff}
+        now={exampleEventsNow}
+        save={noAction}
+        hosts={false}
+      />,
+    );
+  };
+
+  it("is a table with no grouping", async () => {
+    await renderList({});
+    expect(document.querySelector("table")).not.toBeNull();
+  });
+
+  it("is lists by the grouping, of what the tab and filters find", async () => {
+    await renderList({ group: "owner", place: "!online" });
+    expect(document.querySelector("table")).toBeNull();
+    expect([...document.querySelectorAll("h2")].map((h2) => h2.textContent)).toEqual([
+      "No owner1",
+      "joseph@pauseai.uk1",
+    ]);
+  });
+});
+
+describe("EventGroups", () => {
+  it("leads to the table and the lists by owner and by tag, keeping the tab and filters but the sort and page", async () => {
+    await render(
+      <EventGroups
+        search={exampleEventsTab({ when: "past", group: "tag", place: "!online", sort: "going", page: "2" }).search}
+      />,
+    );
+    await page.getByRole("button", { name: `${copy.group.chip}: ${copy.group.choices.tag}` }).click();
+    const link = (name: string) => page.getByRole("link", { name, exact: true });
+    const href = (name: string) => link(name).element().getAttribute("href");
+    expect([...document.querySelectorAll("[popover] a")].map((a) => a.textContent)).toEqual([
+      copy.group.choices.table,
+      copy.group.choices.owner,
+      copy.group.choices.tag,
+    ]);
+    expect(href(copy.group.choices.table)).toBe("/staff/events?when=past&place=%21online");
+    expect(href(copy.group.choices.owner)).toBe("/staff/events?when=past&place=%21online&group=owner");
+    expect(href(copy.group.choices.tag)).toBe("/staff/events?when=past&place=%21online&group=tag");
+    await expect.element(link(copy.group.choices.tag)).toHaveAttribute("aria-current", "true");
+    await expect.element(link(copy.group.choices.table)).not.toHaveAttribute("aria-current");
+  });
+
+  it("is plain, saying only Group by, with none marked, while the list is a table", async () => {
+    await render(<EventGroups search={exampleEventsTab().search} />);
+    await page.getByRole("button", { name: copy.group.chip, exact: true }).click();
+    await expect
+      .element(page.getByRole("link", { name: copy.group.choices.table, exact: true }))
+      .toHaveAttribute("aria-current", "true");
   });
 });
 
 describe("EventTabs", () => {
-  it("leads to By owner and By tag with no filters, between Future and Past", async () => {
-    await render(<EventTabs search={exampleEventsTab({ tag: "London" }).search} />);
-    await expect
-      .element(page.getByRole("link", { name: copy.tabs.byOwner }))
-      .toHaveAttribute("href", "/staff/events?view=owner");
-    await expect
-      .element(page.getByRole("link", { name: copy.tabs.byTag }))
-      .toHaveAttribute("href", "/staff/events?view=tag");
+  it("is Future and Past, each keeping the grouping", async () => {
+    await render(<EventTabs search={exampleEventsTab({ group: "tag" }).search} />);
     expect([...document.querySelectorAll("nav a")].map((a) => a.textContent)).toEqual([
       copy.tabs.future,
-      copy.tabs.byOwner,
-      copy.tabs.byTag,
       copy.tabs.past,
     ]);
-  });
-
-  it("marks By owner or By tag when on it, leading back to Future and Past", async () => {
-    await render(<EventTabs search={exampleEventsTab().search} grouping="tag" />);
-    await expect.element(page.getByRole("link", { name: copy.tabs.byTag })).toHaveAttribute("aria-current", "page");
-    await expect.element(page.getByRole("link", { name: copy.tabs.future })).toHaveAttribute("href", "/staff/events");
+    await expect
+      .element(page.getByRole("link", { name: copy.tabs.past }))
+      .toHaveAttribute("href", "/staff/events?when=past&group=tag");
   });
 
   it("leads to Future and Past, keeping the filters but the sort and page, the tab it's on marked", async () => {
@@ -399,8 +494,14 @@ describe("EventTabs", () => {
 describe("EventFilters", () => {
   const choices = { staff: exampleStaff, tags: ["Big events", "London"], cities: ["London", "Oxford"] };
 
-  it("offers a filter by place, tag, owner, and taken off Luma, each chosen as a chip, keeping the tab", async () => {
-    const { search } = exampleEventsTab({ when: "past", tag: "London", place: "!online", owner: "none" });
+  it("offers a filter by place, tag, owner, and taken off Luma, each chosen as a chip, keeping the tab and grouping", async () => {
+    const { search } = exampleEventsTab({
+      when: "past",
+      group: "owner",
+      tag: "London",
+      place: "!online",
+      owner: "none",
+    });
     await render(<EventFilters search={search} choices={choices} />);
     await expect.element(page.getByRole("searchbox", { name: copy.filters.search })).toBeVisible();
     // A chip each, by its words.
@@ -408,10 +509,10 @@ describe("EventFilters", () => {
     for (const words of ["London", staffCopy.filters.notChip(copy.filters.place, copy.online), copy.noOwner]) {
       expect(bar).toContain(words);
     }
-    // Clearing them keeps the tab.
+    // Clearing them keeps the tab and the grouping.
     await expect
       .element(page.getByRole("link", { name: staffCopy.resetFilters }))
-      .toHaveAttribute("href", "/staff/events?when=past");
+      .toHaveAttribute("href", "/staff/events?when=past&group=owner");
     // + Filter offers every one; a tag only those not chosen.
     const offered = document.getElementById("filter-add")!.textContent;
     for (const label of [copy.filters.place, copy.filters.tag, copy.owner, copy.removed]) {
@@ -426,6 +527,15 @@ describe("EventFilters", () => {
       `${staffCopy.search}: talk`,
       `${copy.owner}: ${copy.noOwner}`,
       `${copy.removed}: ${copy.filters.removed.yes}`,
+    ]);
+  });
+
+  it("says the Past tab and the grouping first, for the page's title and a saved filter's name", () => {
+    const { search } = exampleEventsTab({ when: "past", group: "owner", place: "!online" });
+    expect(eventWords(search, choices)).toEqual([
+      copy.tabs.past,
+      copy.group.owner,
+      staffCopy.filters.notChip(copy.filters.place, copy.online),
     ]);
   });
 });

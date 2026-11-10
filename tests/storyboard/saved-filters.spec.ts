@@ -12,7 +12,6 @@ export const section: Section = { name: "Saved filters", part: "Staff pages", or
 // finding one, and what happens when part of one has gone.
 
 const copy = staffCopy.filters.saved;
-const politicians = staffCopy.politicians;
 
 const POLITICIANS = `${BASE}/staff/politicians`;
 
@@ -50,7 +49,7 @@ test("Saving a filter", { tag: "@phone" }, async ({ page, request, flowDatabase 
   story("Save opens a small form, with a name filled in from the filters, ready to type over.");
   await save(page).click();
   const name = page.getByRole("textbox", { name: copy.name });
-  await expect(name).toHaveValue(`${politicians.title}: ${staffCopy.fields.party}: Labour`);
+  await expect(name).toHaveValue(`${staffCopy.fields.party}: Labour`);
   await frame(page, "Naming it");
 
   story("Saving loads it, and the chip is named for it, with nothing left to save.");

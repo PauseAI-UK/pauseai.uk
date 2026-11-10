@@ -43,7 +43,7 @@ export default function ChangesFilters({
           list: "audit-log",
           values,
           path: PATH,
-          name: filteredName(copy.title, changeWords(search)),
+          name: filteredName(changeWords(search)),
           summary: (params: Params) => changeWords(changesSearch(params)),
         })
       }

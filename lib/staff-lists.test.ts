@@ -51,8 +51,8 @@ describe("a staff list's definition", () => {
     expect(ALL_EMAILS_LIST.saved).toEqual(["sort", "dir"]);
   });
 
-  it("keeps the events list's tab in a saved filter, and the audit log's filters and sort", () => {
-    expect(EVENTS_LIST.saved[0]).toBe("when");
+  it("keeps the events list's tab and grouping in a saved filter, and the audit log's filters and sort", () => {
+    expect(EVENTS_LIST.saved.slice(0, 2)).toEqual(["when", "group"]);
     expect(AUDIT_LOG_LIST.saved).toEqual(["q", "actor", "action", "when", "sort", "dir"]);
   });
 });

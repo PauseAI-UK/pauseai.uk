@@ -7,7 +7,6 @@ import {
   askFormSearch,
   staffBack,
   emailsSearch,
-  eventView,
   eventsSearch,
   letterId,
   mailingId,
@@ -224,17 +223,6 @@ describe("emailsSearch", () => {
   });
 });
 
-describe("eventView", () => {
-  it("is the grouping the URL asks for, if it's one, or else the table, as on the Past tab always", () => {
-    expect(eventView({ view: "owner" })).toBe("owner");
-    expect(eventView({ view: "tag", place: "London" } as Parameters<typeof eventView>[0])).toBe("tag");
-    expect(eventView({ view: ["tag", "owner"] })).toBe("tag");
-    expect(eventView({})).toBe("table");
-    expect(eventView({ view: "city" })).toBe("table");
-    expect(eventView({ when: "past", view: "owner" })).toBe("table");
-  });
-});
-
 describe("eventsSearch", () => {
   const blank = {
     when: "",
@@ -244,6 +232,7 @@ describe("eventsSearch", () => {
     place: [],
     removed: "",
     held: "",
+    group: "",
     sort: "",
     dir: "",
     page: "",
@@ -286,6 +275,14 @@ describe("eventsSearch", () => {
     expect(eventsSearch({ when: "someday" }).filter.tab).toBe("future");
     // Only "yes" finds those taken off Luma.
     expect(eventsSearch({ removed: "no" }).filter.removed).toBe(false);
+  });
+
+  it("groups by owner or by tag, on either tab, from group or else view, and not by anything else", () => {
+    expect(eventsSearch({ group: "owner" })).toMatchObject({ group: "owner", filter: { group: "owner" } });
+    expect(eventsSearch({ when: "past", group: "tag" }).filter).toMatchObject({ tab: "past", group: "tag" });
+    expect(eventsSearch({ view: "tag" })).toMatchObject({ group: "tag", filter: { group: "tag" } });
+    expect(eventsSearch({ group: "owner", view: "tag" }).filter.group).toBe("owner");
+    expect(eventsSearch({ group: "city" })).toMatchObject({ group: "", filter: { group: undefined } });
   });
 
   it("reads each filter as typed and as applied, a repeated one as a list, its values marked ! left out", () => {

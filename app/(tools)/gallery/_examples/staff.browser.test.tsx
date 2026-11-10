@@ -8,6 +8,7 @@ import {
   ChoosingListExample,
   DueTimeFieldsExample,
   EventColumnsExample,
+  EventsListExample,
   EventsTableExample,
   HeldSyncExample,
   MailingWriterExample,
@@ -140,6 +141,19 @@ describe("the staff examples", () => {
     await unmount();
     await render(<EventColumnsExample grouping="tag" none />);
     await expect.element(page.getByText(staffCopy.events.noneFound)).toBeVisible();
+  });
+
+  it("logs an event's save in the lists of what the filters find", async () => {
+    await render(<EventsListExample params={{ group: "tag" }} />);
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: "AI risk talk" })
+      .getByRole("button", { name: staffCopy.events.edit })
+      .click();
+    const form = page.getByRole("form", { name: staffCopy.events.editLabel("AI risk talk") });
+    await form.getByLabelText(staffCopy.events.owner).selectOptions("sean@pauseai.uk");
+    await form.getByRole("button", { name: staffCopy.events.save }).click();
+    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^save\(/);
   });
 
   it("logs an event's save in the table", async () => {

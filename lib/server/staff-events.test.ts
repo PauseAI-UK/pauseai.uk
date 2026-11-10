@@ -8,7 +8,7 @@ import { query, transaction } from "./db";
 import { recordProblem } from "./email";
 import { EVENTS_PAGE_SIZE } from "@/lib/staff-events-list";
 import { eventsSearch } from "@/lib/staff-search";
-import { assignRuleOwners, eventsPage, eventsToCome, ownerEmails, setEventDoc, setEventOwner } from "./staff-events";
+import { assignRuleOwners, eventsPage, ownerEmails, setEventDoc, setEventOwner } from "./staff-events";
 
 type Sent = { From: string; To: string; Cc?: string; Subject: string; TextBody: string; Tag: string };
 
@@ -77,7 +77,7 @@ afterEach(() => vi.unstubAllEnvs());
 describeWithDatabase("staff events", () => {
   useTestDatabase();
 
-  it("gives every event to come, not a page, soonest first: on Luma, ours, and earlier today, but not yesterday's", async () => {
+  it("gives every event to come for lists by a grouping, not a page, soonest first: on Luma, ours, and earlier today, but not yesterday's", async () => {
     await addStaff("jo@pauseai.uk");
     const count = EVENTS_PAGE_SIZE + 1;
     for (let i = 0; i < count; i++)
@@ -86,8 +86,9 @@ describeWithDatabase("staff events", () => {
     await addEvent("evt-yesterday", new Date(Date.parse(NOW) - 86_400_000).toISOString());
     await addEvent("evt-removed", "2026-12-01T18:00:00Z", { removed: true });
     await addEvent("evt-theirs", "2026-12-01T18:00:00Z", { access: "view" });
-    const { events, staff } = await eventsToCome();
+    const { events, total, pages, staff } = await eventsPage(eventsSearch({ group: "owner" }).filter, false);
     expect(events).toHaveLength(count + 1);
+    expect([total, pages]).toEqual([count + 1, 1]);
     expect(events[0].id).toBe("evt-earlier-today");
     expect(events[0]).not.toHaveProperty("hostEmails");
     expect(events.map((event) => event.id)).not.toContain("evt-yesterday");

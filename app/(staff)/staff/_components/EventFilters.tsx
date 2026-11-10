@@ -1,25 +1,31 @@
 import { EVENTS_LIST } from "@/lib/staff-lists";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { filteredName, filterWords, EVENT_FILTERS, type EventChoices } from "@/lib/staff-list-filters";
+import { EVENT_GROUPINGS } from "@/lib/staff-events-list";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
 import { eventsSearch, type EventsSearch } from "@/lib/staff-search";
-import { firstOf, type Params } from "@/lib/list-params";
-import { eventFiltersOf } from "./EventsTable";
+import { among } from "@/lib/list-params";
+import { EventGroups, eventFiltersOf } from "./EventsTable";
 import FilterBar from "./ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";
 
-/** The events list's search and filters that are on, in words, as their chips say them. */
+/**
+ * What the events list shows, in words: the Past tab and the grouping, if
+ * they're on, then its search and filters, as their chips say them. The
+ * page's title and a saved filter's name and summary all say it so.
+ */
 export function eventWords(search: EventsSearch, choices: EventChoices): string[] {
-  return filterWords(EVENT_FILTERS(choices), eventFiltersOf(search), "q");
+  const copy = staffCopy.events;
+  const past = search.when === "past" ? [copy.tabs.past] : [];
+  const [group] = among([search.group], EVENT_GROUPINGS);
+  return [
+    ...past,
+    ...(group ? [copy.group[group]] : []),
+    ...filterWords(EVENT_FILTERS(choices), eventFiltersOf(search), "q"),
+  ];
 }
 
-/** A saved filter of the events list, in words: the Past tab, if it's on, and its search and filters. */
-function savedEventWords(params: Params, choices: EventChoices): string[] {
-  const past = firstOf(params.when) === "past" ? [staffCopy.events.tabs.past] : [];
-  return [...past, ...eventWords(eventsSearch(params), choices)];
-}
-
-/** Search and filter the events list, keeping its tab, with its `saved` filters. */
+/** Search and filter the events list, keeping its tab and grouping, with its `saved` filters and its Group by chip. */
 export default function EventFilters({
   search,
   choices,
@@ -35,7 +41,7 @@ export default function EventFilters({
       values={eventFiltersOf(search)}
       search={{ name: "q", label: staffCopy.events.filters.search }}
       filters={EVENT_FILTERS(choices)}
-      keep={["when"]}
+      keep={["when", "group"]}
       saved={
         saved &&
         savedFiltersProps({
@@ -43,10 +49,11 @@ export default function EventFilters({
           list: "events",
           values: eventFiltersOf(search),
           path: EVENTS_LIST.path,
-          name: filteredName(staffCopy.events.title, eventWords(search, choices)),
-          summary: (params) => savedEventWords(params, choices),
+          name: filteredName(eventWords(search, choices)),
+          summary: (params) => eventWords(eventsSearch(params), choices),
         })
       }
+      view={<EventGroups search={search} />}
     />
   );
 }

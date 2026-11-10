@@ -905,8 +905,17 @@ export const staffCopy = {
     none: "No events yet.",
     // The tabs over the list, and their name, for a screen reader: those still to come, soonest first, and those
     // past, latest first.
-    tabs: { label: "When", future: "Future", byOwner: "By owner", byTag: "By tag", past: "Past" },
-    // On the By owner and By tag tabs: the list of those with no tag; the other tags of an event listed under one;
+    tabs: { label: "When", future: "Future", past: "Past" },
+    // A chip in the filter bar, after + Filter: what it and its menu's heading say, and, after a colon while the
+    // list is grouped, which; then its menu's choices: none (a table), or lists by owner or by tag. A saved filter's
+    // summary names the lists as `owner` and `tag` say.
+    group: {
+      chip: "Group by",
+      choices: { table: "None", owner: "Owner", tag: "Tag" },
+      owner: "By owner",
+      tag: "By tag",
+    },
+    // In the lists by owner and by tag: the list of those with no tag; the other tags of an event listed under one;
     // the fold of a list's later events; and how many are going to an event.
     lists: {
       noTag: "No tag",
@@ -2714,8 +2723,7 @@ All events: ${link}`,
     narrow: "Search these",
     // A place filter's distance, for a screen reader.
     within: "Within",
-    // A list's page title, in the browser's tab, with its search and filters that are on, shortened;
-    // and a saved filter's name to start with, in full.
+    // A list's page title, in the browser's tab, with its search and filters that are on, shortened.
     pageTitle: (title: string, filters: string) => `${title}: ${filters}`,
     // The chip at the right of a list's filters: its saved filters, and saving what's on.
     saved: {

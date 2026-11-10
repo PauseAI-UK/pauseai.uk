@@ -201,6 +201,8 @@ export const EVENTS_LIST = defineStaffList({
     removed: "one",
     /** Those held in the last so many days. */
     held: "one",
+    /** "owner" or "tag", for what's found in lists by it; blank for a table. */
+    group: "one",
     sort: "one",
     dir: "one",
     page: "one",
@@ -208,7 +210,7 @@ export const EVENTS_LIST = defineStaffList({
     saved: "one",
   },
   choosing: ["q", "owner", "tag", "place", "removed", "held"],
-  kept: ["when"],
+  kept: ["when", "group"],
 });
 
 /** The audit log. It's newest first unless another sort is chosen. */

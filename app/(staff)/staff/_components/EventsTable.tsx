@@ -8,20 +8,23 @@ import type { EventHost, StaffEvent } from "@/lib/server/staff-events";
 import {
   EVENT_SORTS,
   EVENTS_PAGE_SIZE,
-  stillToCome,
-  type EventGrouping,
+  EVENT_GROUPINGS,
+  ownerNeeded,
   type EventsFound,
   type EventSort,
   type EventTab,
 } from "@/lib/staff-events-list";
 import { type EventsSearch } from "@/lib/staff-search";
-import { filtersPath, pageParam, type Params } from "@/lib/list-params";
+import { among, filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { parseSort, sortHref } from "@/lib/staff-sort";
 import { londonDate } from "@/lib/staff-time";
 import AlertIcon from "./AlertIcon";
 import { EventEdit, EventsEditing, type SaveEvent } from "./EventEdit";
 import SortHeading from "./SortHeading";
+import { filterChipClass } from "./ui/FilterBar";
+import Choices from "./ui/Choices";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
+import Menu from "./ui/Menu";
 import StaffLink from "./ui/StaffLink";
 import Tabs from "./ui/Tabs";
 import styles from "./EventsTable.module.css";
@@ -55,24 +58,48 @@ export function eventFiltersOf(search: EventsSearch): Params {
   return rest;
 }
 
-/**
- * The tabs: Future and Past, keeping the filters, each in its own default
- * order; between them By owner and By tag, which have none, `grouping` being
- * the one it's on.
- */
-export function EventTabs({ search, grouping = null }: { search: EventsSearch; grouping?: EventGrouping | null }) {
+/** The tabs: Future and Past, keeping the filters and the grouping, each in its own default order. */
+export function EventTabs({ search }: { search: EventsSearch }) {
   const filters = { ...eventFiltersOf(search), sort: "", dir: "" };
   return (
     <Tabs
       label={copy.tabs.label}
       tabs={[
         { key: "future", label: copy.tabs.future, href: filtersPath(PATH, filters, { when: "" }) },
-        { key: "owner", label: copy.tabs.byOwner, href: filtersPath(PATH, { view: "owner" }) },
-        { key: "tag", label: copy.tabs.byTag, href: filtersPath(PATH, { view: "tag" }) },
         { key: "past", label: copy.tabs.past, href: filtersPath(PATH, filters, { when: "past" }) },
       ]}
-      current={grouping ?? eventTab(search)}
+      current={eventTab(search)}
     />
+  );
+}
+
+/**
+ * In the filter bar, after + Filter, a chip as a filter's: Group by, and
+ * while the list is grouped, by which, filled; its menu, how the list shows
+ * what the tab and filters find, as a table (none) or in lists by owner or
+ * by tag, the one it's in marked. Each keeps the tab and filters, in the
+ * tab's own order, from the first page.
+ */
+export function EventGroups({ search }: { search: EventsSearch }) {
+  const filters = { ...eventFiltersOf(search), sort: "", dir: "" };
+  const [group] = among([search.group], EVENT_GROUPINGS);
+  const options = [
+    { value: "", label: copy.group.choices.table },
+    ...EVENT_GROUPINGS.map((value) => ({ value, label: copy.group.choices[value] })),
+  ];
+  return (
+    <Menu
+      id="event-groups"
+      trigger={group ? filterChipClass.on : filterChipClass.off}
+      label={group ? `${copy.group.chip}: ${copy.group.choices[group]}` : copy.group.chip}
+    >
+      <p className={filterChipClass.heading}>{copy.group.chip}</p>
+      <Choices
+        options={options}
+        current={[group ?? ""]}
+        href={(value) => filtersPath(PATH, filters, { group: value })}
+      />
+    </Menu>
   );
 }
 
@@ -92,18 +119,18 @@ export function Missing({ needed, children }: { needed: boolean; children: strin
 }
 
 /**
- * Who owns an event, by their address, in bold: free to break before its
- * @, so the column takes little room, leaving it to the hosts.
+ * Who owns an event, by their address: free to break before its @, so the
+ * column takes little room, leaving it to the hosts.
  */
 function Owner({ owner, needed }: { owner: string | null; needed: boolean }) {
   if (!owner) return <Missing needed={needed}>{copy.noOwner}</Missing>;
   const [name, domain] = owner.split(/(?=@)/);
   return (
-    <strong className={styles.owner}>
+    <span className={styles.owner}>
       {name}
       <wbr />
       {domain}
-    </strong>
+    </span>
   );
 }
 
@@ -158,8 +185,7 @@ function eventColumns(
       {label}
     </SortHeading>
   );
-  // Still to come and on Luma, so an owner is needed.
-  const needed = (event: StaffEvent) => stillToCome(event.startAt, now) && !event.removed;
+  const needed = (event: StaffEvent) => ownerNeeded(event, now);
   return [
     {
       key: "start",
@@ -224,7 +250,11 @@ function eventColumns(
       key: "edit",
       label: "",
       end: true,
-      cell: (event) => <EventEdit event={event} staff={staff} save={save} />,
+      cell: (event) => (
+        <span className={styles.edit}>
+          <EventEdit event={event} staff={staff} save={save} />
+        </span>
+      ),
     },
   ];
 }
