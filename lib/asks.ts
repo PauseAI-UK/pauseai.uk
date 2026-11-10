@@ -16,6 +16,12 @@ export const ASK_STATUSES = {
 export type AskKind = keyof typeof ASK_STATUSES;
 export type AskStatus = (typeof ASK_STATUSES)[AskKind][number];
 
+/** Each kind's answers in the order staff pick from them, on a politician's page: the yes, the no, then "other". */
+export const ANSWER_CHOICES: Record<AskKind, readonly AskStatus[]> = {
+  letter: ["signed", "declined", "other"],
+  event: ["going", "declined", "other"],
+};
+
 /**
  * Airtable's words for answers that are neither a yes nor a no, each with
  * the note an "other" answer gets for it. The migration that brought in

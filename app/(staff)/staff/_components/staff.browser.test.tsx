@@ -2412,8 +2412,8 @@ describe("PoliticianDetails", () => {
         .map((r) => r.element().textContent),
     ).toEqual([
       staffCopy.statuses.signed,
-      staffCopy.statuses.other,
       staffCopy.statuses.declined,
+      staffCopy.statuses.other,
       staffCopy.politician.clearAnswer,
     ]);
     const clear = choices.getByRole("radio", { name: staffCopy.politician.clearAnswer });
@@ -2463,7 +2463,7 @@ describe("PoliticianDetails", () => {
         .getByRole("radio")
         .all()
         .map((r) => r.element().textContent),
-    ).toEqual([staffCopy.statuses.signed, staffCopy.statuses.other, staffCopy.statuses.declined]);
+    ).toEqual([staffCopy.statuses.signed, staffCopy.statuses.declined, staffCopy.statuses.other]);
     const save = letter.getByRole("button", { name: staffCopy.politician.save });
     await expect.element(save).toBeDisabled();
     await choices.getByRole("radio", { name: staffCopy.statuses.declined }).click();

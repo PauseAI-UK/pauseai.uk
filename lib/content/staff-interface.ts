@@ -1671,7 +1671,7 @@ All events: ${link}`,
     edit: "Edit",
     save: "Save",
     // In the form's row of answers, set apart from them, once there's an answer: picked and saved, it clears it.
-    clearAnswer: "Clear answer",
+    clearAnswer: "No answer",
     // Under the asks, the small button whose menu lists the other asks staff record, to add one to the card.
     otherAsk: "Add another answer",
     // The fields of the box at the top.
