@@ -2,17 +2,16 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { eventsPage, eventsToCome } from "@/lib/server/staff-events";
-import { savedFiltersState } from "@/lib/server/saved-filters";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import type { EventGrouping } from "@/lib/staff-events-list";
 import { eventsSearch, eventView, type EventsSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { saveEventNow } from "../../actions";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
+import { openSavedList } from "../../saved-lists";
 import EventColumns from "../../_components/EventColumns";
 import EventFilters, { eventWords } from "../../_components/EventFilters";
 import EventsTable, { EventsSource, EventTabs } from "../../_components/EventsTable";
-import { filteredTitle } from "../../_components/ui/FilterBar";
 import PageTitle from "../../_components/ui/PageTitle";
 
 type Params = Partial<EventsSearch> & { view?: ParamValue };
@@ -20,8 +19,8 @@ type Props = { searchParams: Promise<Params> };
 
 /** The table's title, with its filters. */
 async function tableTitle(params: Params, hosts: boolean): Promise<string> {
-  const { filter, ...search } = eventsSearch((await savedFiltersState("events", params)).params);
-  return filteredTitle(staffCopy.events.title, eventWords(search, await eventsPage(filter, hosts)));
+  const list = await openSavedList("events", params);
+  return list.title(async (search) => eventWords(search, await eventsPage(search.filter, hosts)));
 }
 
 /** The By owner and By tag tabs' title: they have no filters, whatever the URL says. */
@@ -37,8 +36,10 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 /** Our events, to come or past, filtered, each with its owner and Google Doc, and its hosts for those who see supporters. */
 async function Table({ params, hosts }: { params: Params; hosts: boolean }) {
-  const saved = await savedFiltersState("events", params);
-  const { filter, ...search } = eventsSearch(saved.params);
+  const {
+    saved,
+    search: { filter, ...search },
+  } = await openSavedList("events", params);
   const { events, total, pages, removed, staff, tags, cities, now } = await eventsPage(filter, hosts);
   return (
     <>

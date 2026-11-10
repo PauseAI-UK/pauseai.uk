@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import type { FilterOption } from "./FilterBar";
+import type { FilterOption } from "@/lib/staff-list-filters";
 import ChoiceSearch from "./ChoiceSearch";
 import StaffLink from "./StaffLink";
 import styles from "./FilterBar.module.css";

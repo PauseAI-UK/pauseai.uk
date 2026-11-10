@@ -3,8 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { listAsks } from "@/lib/server/asks";
 import { politiciansPageData } from "@/lib/server/mailing-pages";
 import { listParties } from "@/lib/server/politicians";
-import { politiciansSearch, type PoliticiansSearch } from "@/lib/staff-search";
-import { savedFiltersState } from "@/lib/server/saved-filters";
+import type { PoliticiansSearch } from "@/lib/staff-search";
 import { requireStaff } from "@/lib/server/staff-auth";
 import {
   deleteMailingDraft,
@@ -16,24 +15,24 @@ import {
   untickAll,
 } from "../../mailing-actions";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
+import { openSavedList } from "../../saved-lists";
 import PoliticianFilters, { politicianWords } from "../../_components/PoliticianFilters";
 import PoliticiansList, { ChoosingHead, HouseTabs } from "../../_components/PoliticiansList";
-import { filteredTitle } from "../../_components/ui/FilterBar";
 
 type Props = { searchParams: Promise<Partial<PoliticiansSearch>> };
 
 /** The list's title, with its house and filters. */
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   await requireStaff();
-  const search = politiciansSearch((await savedFiltersState("politicians", await searchParams)).params);
+  const list = await openSavedList("politicians", await searchParams);
   const [asks, parties] = await Promise.all([listAsks(), listParties()]);
-  return { title: filteredTitle(staffCopy.politicians.title, politicianWords(search, parties, asks)) };
+  return { title: await list.title((search) => politicianWords(search, parties, asks)) };
 }
 
 /** The politicians list; while it's choosing who a draft is for, its tick boxes, ticked tab and names pasted. */
 export default async function PoliticiansPage({ searchParams }: Props) {
   await requireStaff();
-  const saved = await savedFiltersState("politicians", await searchParams);
+  const { saved } = await openSavedList("politicians", await searchParams);
   const { search, choosing, filtersHidden, list, asks, parties, tickedHere, pasted } = await politiciansPageData(
     saved.params,
   );

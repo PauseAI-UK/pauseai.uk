@@ -1,5 +1,6 @@
 import { staffCopy } from "@/lib/content/staff-interface";
-import FilterBar, { type Filter } from "./ui/FilterBar";
+import type { Filter } from "@/lib/staff-list-filters";
+import FilterBar from "./ui/FilterBar";
 
 /** The blocked addresses' filter: those that bounced, or complained. */
 export function emailBlockFilters(): Filter[] {

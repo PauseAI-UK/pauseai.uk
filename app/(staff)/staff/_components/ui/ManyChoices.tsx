@@ -7,7 +7,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { chosenValues } from "@/lib/filter-choices";
 import { filtersPath, NOT, type Params } from "@/lib/list-params";
 import Choices from "./Choices";
-import type { FilterOption } from "./FilterBar";
+import type { FilterOption } from "@/lib/staff-list-filters";
 import { useBarHold } from "./FilterBarLines";
 import Menu from "./Menu";
 import NotIcon from "./NotIcon";

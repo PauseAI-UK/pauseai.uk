@@ -3,7 +3,8 @@
 // From that come reading its URL (read), its sort (sort), what a saved
 // filter keeps (saved), and, for the lists with saved filters, which they
 // are and the permission they need (lib/saved-filters.ts). What each filter
-// means, and what it finds, is the list's own (lib/staff-search.ts).
+// means, and what it finds, is the list's own (lib/staff-search.ts), as are
+// its filter bar's words and choices (lib/staff-list-filters.ts).
 import { firstOf, valuesOf, type ParamValue } from "./list-params";
 import { parseSort, type SortColumns, type SortSpec } from "./staff-sort";
 import type { Permission } from "./staff-permissions";
@@ -12,7 +13,7 @@ import type { Permission } from "./staff-permissions";
 type Kind = "one" | "many";
 
 /** A list's parameters, each by its name in the URL. */
-type ParamKinds = Record<string, Kind>;
+export type ParamKinds = Record<string, Kind>;
 
 /** A list's URL, as typed: each parameter's value, blank if it's not there, or a list of them for one that repeats. */
 export type SearchOf<P extends ParamKinds> = { -readonly [K in keyof P]: P[K] extends "many" ? string[] : string };

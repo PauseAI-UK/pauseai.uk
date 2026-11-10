@@ -2,52 +2,20 @@ import { Muted } from "@/components/ui/Text";
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { SentEmail, SentPerson } from "@/lib/server/sent-emails";
-import { SENT_EMAIL_LINKS, SENT_EMAILS_WITHOUT_SUPPORTERS, type SentEmailsSearch } from "@/lib/staff-search";
+import type { SentEmailsSearch } from "@/lib/staff-search";
+import { SENT_EMAIL_FILTERS } from "@/lib/staff-list-filters";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { SENT_EMAILS_LIST, type SentEmailSort } from "@/lib/staff-lists";
 import { sortHref } from "@/lib/staff-sort";
 import { staffTime } from "@/lib/staff-time";
 import SortHeading from "./SortHeading";
-import FilterBar, { type Filter } from "./ui/FilterBar";
+import FilterBar from "./ui/FilterBar";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 
 const PATH = SENT_EMAILS_LIST.path;
 const copy = staffCopy.sentEmails;
-
-/** The filters, their kinds of email only those this staff member may see. */
-const filtersFor = (supporters: boolean): Filter[] => [
-  {
-    name: "purpose",
-    label: copy.filters.purpose,
-    repeat: true,
-    oneEach: true,
-    options: Object.entries(copy.purposes)
-      .filter(([value]) => supporters || SENT_EMAILS_WITHOUT_SUPPORTERS.includes(value))
-      .map(([value, label]) => ({ value, label })),
-  },
-  {
-    name: "backend",
-    label: copy.filters.backend,
-    repeat: true,
-    oneEach: true,
-    options: Object.entries(copy.backends).map(([value, label]) => ({ value, label })),
-  },
-  {
-    name: "outcome",
-    label: copy.filters.outcome,
-    repeat: true,
-    oneEach: true,
-    options: Object.entries(copy.outcomes).map(([value, label]) => ({ value, label })),
-  },
-  {
-    name: "link",
-    label: copy.columns.links,
-    repeat: true,
-    options: SENT_EMAIL_LINKS.map((value) => ({ value, label: copy.filters.links[value] })),
-  },
-];
 
 /** Someone an email is to or from: their name, linked if it can be, over their address; or the address alone. */
 function Person({ person, address }: { person: SentPerson | null; address: string | null }) {
@@ -169,7 +137,7 @@ export default function SentEmails({
         path={PATH}
         values={search}
         search={{ name: "q", label: copy.search }}
-        filters={filtersFor(supporters)}
+        filters={SENT_EMAIL_FILTERS({ supporters })}
       />
       <ListFrame
         count={copy.total(total)}

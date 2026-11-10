@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { withChoosing } from "@/lib/server/broadcast-pages";
-import { savedFiltersState } from "@/lib/server/saved-filters";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { listSupporters, supporterChoices } from "@/lib/server/supporters";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
@@ -10,16 +9,16 @@ import ErasedNotice from "../../_components/ErasedNotice";
 import { ChoosingBroadcastFrame, BroadcastSupporters } from "../../_components/BroadcastSupporters";
 import SupporterFilters, { supporterWords } from "../../_components/SupporterFilters";
 import SupportersTable from "../../_components/SupportersTable";
-import { filteredTitle } from "../../_components/ui/FilterBar";
 import { keepFilterForBroadcast, newBroadcast } from "../../broadcast-actions";
+import { openSavedList } from "../../saved-lists";
 
 type Props = { searchParams: Promise<Partial<SupportersSearch>> };
 
 /** The list's title, with its filters: the Near filter as typed, not looked up. */
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   await requireStaff("supporters");
-  const search = supportersSearch((await savedFiltersState("supporters", await searchParams)).params);
-  return { title: filteredTitle(staffCopy.supporters.title, supporterWords(search, await supporterChoices())) };
+  const list = await openSavedList("supporters", await searchParams);
+  return { title: await list.title(async (search) => supporterWords(search, await supporterChoices())) };
 }
 
 /**
@@ -30,7 +29,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default async function SupportersPage({ searchParams }: Props) {
   await requireStaff("supporters");
   const asked = await searchParams;
-  const saved = await savedFiltersState("supporters", asked);
+  const { saved } = await openSavedList("supporters", asked);
   const { choosing, params } = await withChoosing(saved.params, asked.broadcast);
   const { filter, ...search } = supportersSearch(params);
   const [page, choices] = await Promise.all([listSupporters(filter), supporterChoices()]);
