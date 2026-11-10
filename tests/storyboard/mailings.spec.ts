@@ -538,8 +538,9 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   // Yours connected, there's no link to connect it, and the name is the Gmail's, filled in.
   await expect(from.getByRole("link", { name: copy.connectOne })).toHaveCount(0);
   await expect(page.getByLabel(copy.fromNameLabel, { exact: false })).not.toHaveValue("");
-  // At the top, where Sent from shows whole, the same each run: out of the letter first, so its caret can't scroll the page back to it.
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  // At the top, where Sent from shows whole, the same each run. The page may still be in the smooth scroll
+  // typing the letter started, and an instant scroll then lands short of the top, so that ends first.
+  await scrollSettled(page);
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await scrollSettled(page);
   await frame(page, "Sent from their Gmail", {
