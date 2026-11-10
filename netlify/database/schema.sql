@@ -1426,7 +1426,8 @@ CREATE TABLE public.letter_events (
     letter_id bigint NOT NULL,
     at timestamp with time zone DEFAULT now() NOT NULL,
     status text NOT NULL,
-    details jsonb DEFAULT '{}'::jsonb NOT NULL
+    details jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT letter_events_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'sent'::text, 'uncertain'::text, 'failed'::text, 'skipped'::text, 'bounced'::text, 'spam_complaint'::text, 'copy_sent'::text, 'copy_held'::text, 'copy_uncertain'::text, 'copy_delayed'::text, 'copy_bounced'::text, 'replied'::text, 'auto_reply'::text, 'not_relayed'::text, 'relay_queued'::text, 'relay_held'::text, 'relayed'::text, 'relay_uncertain'::text, 'relay_delayed'::text, 'relay_bounced'::text, 'notice'::text, 'office_told'::text, 'sending'::text])))
 );
 
 --
