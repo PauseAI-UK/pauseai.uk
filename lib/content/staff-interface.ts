@@ -11,7 +11,7 @@ import { count, plural } from "@/lib/content/plural";
  */
 const askLimits = {
   kindFixed: "Kind can't be changed now, as politicians have answered it.",
-  named: "⁂ The site's own code uses this ask, so it can't be deleted.",
+  named: "The site's own code uses this ask, so it can't be deleted.",
   notDeletable: "Asks can't be deleted while answers, campaigns or mailings refer to them.",
 };
 
@@ -2331,10 +2331,10 @@ All events: ${link}`,
     title: "Politicians from Airtable",
     // With a link to the table in the middle.
     intro: {
-      before: "⁂ Every politician in every body is copied from the ",
+      before: "Every politician in every body is copied from the ",
       link: "UK Parliamentarians table in Airtable",
       after:
-        ", except the Airtable test MPs. Their answers to asks aren't copied: record them here. Runs that change lots of data are held for checking.",
+        ", except the Airtable test MPs. Whether they've signed a letter or attended an event is not copied. Runs that change lots of data are held for checking.",
     },
     /** The test MPs (lib/test-mps.json) aren't in Airtable; every import adds any that are missing. */
     testMps: "Adds our own test MPs if any are missing.",
