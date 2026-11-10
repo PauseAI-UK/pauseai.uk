@@ -1,6 +1,8 @@
 import "server-only";
 import { config } from "./config";
+import type { FeaturedGuest } from "@/lib/going";
 import { getEventGuestCount } from "./outside-services/luma-guests";
+import { getEventGoing } from "./outside-services/luma-public";
 
 // The march's Luma event: the one the sign-up registers people for, and
 // whose guests it counts.
@@ -27,4 +29,9 @@ export function marchEventId(): string {
  */
 export function getMarchSignupCount(): Promise<number | null> {
   return getEventGuestCount(MARCH_EVENT_ID);
+}
+
+/** The guests Luma features for the march, as its page on luma.com shows them: none when Luma can't say. */
+export async function getMarchGuests(): Promise<FeaturedGuest[]> {
+  return (await getEventGoing(MARCH_EVENT_ID))?.guests ?? [];
 }

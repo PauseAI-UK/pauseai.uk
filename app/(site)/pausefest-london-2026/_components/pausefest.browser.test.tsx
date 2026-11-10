@@ -3,6 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { march } from "@/lib/content/march";
 import { pausefest, type FestDay } from "@/lib/content/pausefest";
+import Going from "./Going";
 import PauseFestHero from "./PauseFestHero";
 import Programme from "./Programme";
 
@@ -57,6 +58,26 @@ describe("Programme", () => {
     await expect.element(signMaking).toHaveAttribute("target", "_blank");
   });
 
+  it("shows who's going to an event Luma could say about, and nothing for one it couldn't", async () => {
+    const march = pausefest.days[1].events[0];
+    const signMaking = pausefest.days[0].events[0];
+    await render(
+      <Programme
+        days={pausefest.days}
+        going={{
+          [march.lumaId]: { count: 1113, guests: [{ name: "Jane Smith", avatar: null }] },
+          [signMaking.lumaId]: { count: 3, guests: [] },
+          [pausefest.days[3].events[0].lumaId]: null,
+        }}
+      />,
+    );
+    const band = (title: string) => page.getByRole("listitem").filter({ hasText: title });
+    await expect.element(band("March Against AI Extinction").getByText(/1,113 going/)).toBeVisible();
+    await expect.element(band("Sign-making").getByText(/3 going/)).toBeVisible();
+    expect(band("Conference in Parliament").getByText(/going/).elements()).toHaveLength(0);
+    expect(band("Flyering for the next march").getByText(/going/).elements()).toHaveLength(0);
+  });
+
   it("links a row to a page of ours in the same tab", async () => {
     const day: FestDay = {
       short: "Tue 1 Jan",
@@ -66,6 +87,7 @@ describe("Programme", () => {
           time: "1–2pm",
           place: "An example place",
           href: "/events",
+          lumaId: "evt-example",
           image: "/images/march-nov-26/luma-cover.webp",
         },
       ],
@@ -74,5 +96,38 @@ describe("Programme", () => {
     const link = page.getByRole("link", { name: "Register →" });
     await expect.element(link).toHaveAttribute("href", "/events");
     await expect.element(link).not.toHaveAttribute("target");
+  });
+});
+
+describe("Going", () => {
+  const jane = { name: "Jane Smith", avatar: "/images/logos/PauseAI-Logo-Transparent.svg" };
+  const sam = { name: "Sam Jones", avatar: null };
+
+  it("shows each featured guest's photo, or their initial, and names the first two and how many others", async () => {
+    const { container } = await render(
+      <Going going={{ count: 1113, guests: [jane, sam, { name: "Alex Brown", avatar: null }] }} />,
+    );
+    const faces = [...container.querySelectorAll("li")];
+    expect(faces).toHaveLength(3);
+    expect(faces[0].querySelector("img")).not.toBeNull();
+    expect(faces[1].textContent).toBe("S");
+    await expect.element(page.getByText(/1,113 going/)).toBeVisible();
+    await expect.element(page.getByText(/Jane Smith, Sam Jones and .*1,111 others/)).toBeVisible();
+  });
+
+  it("says one other in the singular", async () => {
+    await render(<Going going={{ count: 2, guests: [jane] }} />);
+    await expect.element(page.getByText(/Jane Smith and .*1 other$/)).toBeVisible();
+  });
+
+  it("names everyone when Luma features everyone going", async () => {
+    await render(<Going going={{ count: 2, guests: [jane, sam] }} />);
+    await expect.element(page.getByText(/Jane Smith and Sam Jones$/)).toBeVisible();
+  });
+
+  it("gives just the count when Luma features no one", async () => {
+    const { container } = await render(<Going going={{ count: 0, guests: [] }} />);
+    expect(container.querySelector("ul")).toBeNull();
+    await expect.element(page.getByText(/0 going$/)).toBeVisible();
   });
 });

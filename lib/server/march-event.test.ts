@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { getMarchSignupCount, marchEventId } from "./march-event";
+import { getMarchGuests, getMarchSignupCount, marchEventId } from "./march-event";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -30,5 +30,24 @@ describe("getMarchSignupCount", () => {
     );
     expect(await getMarchSignupCount()).toBe(42);
     expect(asked).toBe("evt-1HKCXSHaJqGO3Bg");
+  });
+});
+
+describe("getMarchGuests", () => {
+  it("gives the guests Luma features for the march's own event", async () => {
+    let asked: string | null = null;
+    server.use(
+      http.get("https://api.lu.ma/event/get", ({ request }) => {
+        asked = new URL(request.url).searchParams.get("event_api_id");
+        return HttpResponse.json({ guest_count: 1, featured_guests: [{ name: "Jane Fixture", avatar_url: null }] });
+      }),
+    );
+    expect(await getMarchGuests()).toEqual([{ name: "Jane Fixture", avatar: null }]);
+    expect(asked).toBe("evt-1HKCXSHaJqGO3Bg");
+  });
+
+  it("gives none when Luma can't say", async () => {
+    server.use(http.get("https://api.lu.ma/event/get", () => new HttpResponse(null, { status: 500 })));
+    expect(await getMarchGuests()).toEqual([]);
   });
 });

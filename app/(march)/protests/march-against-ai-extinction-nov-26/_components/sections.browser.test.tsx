@@ -56,6 +56,24 @@ describe("the sign-up's sections", () => {
     expect(button.nextElementSibling).toBe(page.getByText(`1,234 ${copy.form.count}`).element());
   });
 
+  it("shows some who've registered under the button, with the count around it", async () => {
+    const guests = [
+      { name: "Jane Smith", avatar: null },
+      { name: "Sam Jones", avatar: null },
+    ];
+    await render(
+      <MarchSignups signups={1234}>
+        <SignupHero guests={guests} />
+      </MarchSignups>,
+    );
+    await expect.element(page.getByText(/^Jane Smith, Sam Jones and .*1,232/)).toBeVisible();
+  });
+
+  it("names no one when nothing around it says how many have registered", async () => {
+    await render(<SignupHero guests={[{ name: "Jane Smith", avatar: null }]} />);
+    expect(page.getByText(/Jane Smith/).query()).toBeNull();
+  });
+
   it("says what we want", async () => {
     await render(<SignupDemand />);
     await expect.element(page.getByRole("region", { name: "What we want" })).toBeVisible();

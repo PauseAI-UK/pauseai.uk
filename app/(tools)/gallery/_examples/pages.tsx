@@ -13,6 +13,7 @@ import DonationPolicies from "@/app/(site)/governance/_components/DonationPolici
 import { ClosedNotice, JobRole, Salary, SkillTags } from "@/app/(site)/jobs/_components/JobRole";
 import JobRoles from "@/app/(site)/jobs/_components/JobRoles";
 import JobsArticle from "@/app/(site)/jobs/_components/JobsArticle";
+import Going from "@/app/(site)/pausefest-london-2026/_components/Going";
 import PauseFestHero from "@/app/(site)/pausefest-london-2026/_components/PauseFestHero";
 import Programme from "@/app/(site)/pausefest-london-2026/_components/Programme";
 import PersonHeader from "@/app/(site)/people/_components/PersonHeader";
@@ -27,6 +28,12 @@ import About from "@/app/(site)/what-is-pauseai-uk/_components/About";
 import { people, personSlug, type Person } from "@/lib/content/people";
 import { pausefest } from "@/lib/content/pausefest";
 import type { Group } from "../_components/types";
+
+/** Who's going to an event, with Luma's featured guests made up and none with a photo, which a fixture build won't fetch. */
+const GOING = {
+  count: 1113,
+  guests: ["Jane Smith", "Sam Jones", "Alex Brown", "Priya Patel", "Tom Evans"].map((name) => ({ name, avatar: null })),
+};
 
 const WITH_PHOTO = people.find((p) => p.imageSrc)!;
 const WITH_INITIALS: Person = { name: "Example Person", paragraphs: ["A one-paragraph example story."] };
@@ -257,6 +264,17 @@ export const pages: Group = {
       ],
     },
     {
+      name: "Going",
+      file: "app/(site)/pausefest-london-2026/_components/Going.tsx",
+      variants: [
+        { label: "Featured guests, the count and the first two names", render: () => <Going going={GOING} /> },
+        {
+          label: "Just the count, when Luma features no one",
+          render: () => <Going going={{ count: 3, guests: [] }} />,
+        },
+      ],
+    },
+    {
       name: "PauseFestHero",
       file: "app/(site)/pausefest-london-2026/_components/PauseFestHero.tsx",
       variants: [{ label: "The name, where and when, over the photo", render: () => <PauseFestHero /> }],
@@ -268,6 +286,17 @@ export const pages: Group = {
         {
           label: "Every event: the main ones in bands, the rest in rows",
           render: () => <Programme days={pausefest.days} />,
+        },
+        {
+          label: "With who's going to each event",
+          render: () => (
+            <Programme
+              days={pausefest.days}
+              going={Object.fromEntries(
+                pausefest.days.flatMap((day) => day.events).map((event) => [event.lumaId, GOING]),
+              )}
+            />
+          ),
         },
       ],
     },

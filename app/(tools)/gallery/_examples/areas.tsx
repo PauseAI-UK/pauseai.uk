@@ -1,6 +1,7 @@
 // The events lists, local group pages, people's stories and the volunteer
 // tools' index (components/events/, local-groups/, people/ and tools/).
 import EventList from "@/components/events/EventList";
+import GoingFaces from "@/components/events/GoingFaces";
 import { exampleEvent } from "@/components/events/EventList.examples";
 import EventsSection from "@/components/events/EventsSection";
 import { Button } from "@/components/ui/Button";
@@ -67,6 +68,20 @@ export const areas: Group = {
             <EventsSection heading="Past events">
               <EventList events={EVENTS.slice(2, 4)} lumaUrl={site.social.luma} />
             </EventsSection>
+          ),
+        },
+      ],
+    },
+    {
+      name: "GoingFaces",
+      file: "components/events/GoingFaces.tsx",
+      variants: [
+        {
+          label: "Six of the guests Luma features, by their initials",
+          render: () => (
+            <GoingFaces
+              guests={["Jane", "Sam", "Alex", "Priya", "Tom", "Ruth", "Omar"].map((name) => ({ name, avatar: null }))}
+            />
           ),
         },
       ],

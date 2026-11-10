@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { ButtonAnchor, ButtonLink } from "@/components/ui/Button";
 import type { FestDay, FestEvent } from "@/lib/content/pausefest";
+import type { EventGoing } from "@/lib/going";
+import Going from "./Going";
 import styles from "./Programme.module.css";
 
 /** Where to register: the march's own sign-up, a page of ours, or Luma, in a new tab. */
@@ -13,7 +15,7 @@ function linkProps(href: string) {
  * time, the name large with where and the links under it, and the cover
  * where the poster has a QR code.
  */
-function Featured({ day, event }: { day: FestDay; event: FestEvent }) {
+function Featured({ day, event, going }: { day: FestDay; event: FestEvent; going?: EventGoing | null }) {
   const { internal, ...external } = linkProps(event.href);
   return (
     <li className={styles.featured}>
@@ -26,6 +28,7 @@ function Featured({ day, event }: { day: FestDay; event: FestEvent }) {
         <div>
           <h3 className={styles.featuredTitle}>{event.title}</h3>
           <p className={styles.featuredPlace}>{event.place}</p>
+          {going && <Going going={going} />}
           <div className={styles.actions}>
             {internal ? (
               <ButtonLink variant="primary" fit href={event.href}>
@@ -52,7 +55,7 @@ function Featured({ day, event }: { day: FestDay; event: FestEvent }) {
 }
 
 /** Any other event: an orange row with its day, its name, when and where, and a link to register. */
-function Row({ day, event }: { day: FestDay; event: FestEvent }) {
+function Row({ day, event, going }: { day: FestDay; event: FestEvent; going?: EventGoing | null }) {
   const { internal, ...external } = linkProps(event.href);
   return (
     <li className={styles.row}>
@@ -63,6 +66,7 @@ function Row({ day, event }: { day: FestDay; event: FestEvent }) {
           <p className={styles.rowMeta}>
             {event.time} · {event.place}
           </p>
+          {going && <Going going={going} />}
         </div>
         <a className={styles.rowLink} href={event.href} {...(internal ? {} : external)}>
           Register →
@@ -72,8 +76,18 @@ function Row({ day, event }: { day: FestDay; event: FestEvent }) {
   );
 }
 
-/** The festival's events in order, as its poster lists them: the main ones in black bands, the rest in orange rows. */
-export default function Programme({ days }: { days: FestDay[] }) {
+/**
+ * The festival's events in order, as its poster lists them: the main ones in
+ * black bands, the rest in orange rows, each with who's going, by its Luma ID,
+ * where Luma could say.
+ */
+export default function Programme({
+  days,
+  going = {},
+}: {
+  days: FestDay[];
+  going?: Record<string, EventGoing | null>;
+}) {
   return (
     <section className={styles.programme} aria-labelledby="programme-heading">
       <div className="container">
@@ -85,9 +99,9 @@ export default function Programme({ days }: { days: FestDay[] }) {
         {days.flatMap((day) =>
           day.events.map((event) =>
             event.featured ? (
-              <Featured key={event.href} day={day} event={event} />
+              <Featured key={event.href} day={day} event={event} going={going[event.lumaId]} />
             ) : (
-              <Row key={event.href} day={day} event={event} />
+              <Row key={event.href} day={day} event={event} going={going[event.lumaId]} />
             ),
           ),
         )}
