@@ -578,9 +578,9 @@ test("A member who said no to updates", async ({ page, request, flowDatabase }) 
 
 test("A member who re-joined", async ({ page, request, flowDatabase }) => {
   story(
-    "Rhea left Keep me informed unticked when she first joined, and ticked it when she joined again. The newest decides, so she gets the updates. Its details say how we know.",
+    "Rhea first joined in July, and joined again in October, ticking Keep me informed. Her record from October decides, so she gets the updates. Its details say how we know.",
   );
-  // Rhea left it unticked on an earlier record; the newest decides.
+  // Her one record joined in July and was made in October; the updates go by when it was made.
   await importMembers(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);

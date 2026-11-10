@@ -63,9 +63,19 @@ describe("fixtureResponse", () => {
     expect(members.records[0].id).toBe("recMemberJane");
   });
 
-  it("knows one postcode, and 404s the rest", async () => {
+  it("places each fixture postcode at its own point, with its constituency where it knows it, and 404s the rest", async () => {
     const found = await fixtureResponse("https://api.postcodes.io/postcodes/sw1a%201aa")!.json();
     expect(found.result.parliamentary_constituency).toBe("Cities of London and Westminster");
+    expect(found.result.admin_district).toBe("Westminster");
+    const manchester = await fixtureResponse("https://api.postcodes.io/postcodes/M1%201AE")!.json();
+    expect(manchester.result).toMatchObject({
+      parliamentary_constituency: "Manchester Central",
+      admin_district: "Manchester",
+      latitude: 53.4794,
+    });
+    const bristol = await fixtureResponse("https://api.postcodes.io/postcodes/BS11AA")!.json();
+    expect(bristol.result).toMatchObject({ admin_district: "Bristol, City of", latitude: 51.4545 });
+    expect(bristol.result.parliamentary_constituency).toBeUndefined();
     expect(fixtureResponse("https://api.postcodes.io/postcodes/XX11XX")!.status).toBe(404);
   });
 

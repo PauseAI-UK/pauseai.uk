@@ -327,6 +327,36 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "yes asked",
           "yes following",
         ]);
+        // Every way a broadcast's copy can go, and each agrees with its supporter's consent now: a copy still
+        // to send says yes; one skipped as blocked or unsubscribed, bounced, or stopped after it arrived says
+        // that no.
+        expect(
+          runSql(name, "SELECT DISTINCT status || ' ' || coalesce(skip_reason, '') FROM broadcast_messages ORDER BY 1"),
+        ).toEqual([
+          "cancelled ",
+          "delivered ",
+          "failed ",
+          "scheduled ",
+          "sent ",
+          "skipped blocked",
+          "skipped no-permission",
+          "skipped not-on-whatsapp",
+          "skipped unsubscribed",
+        ]);
+        expect(
+          runSql(
+            name,
+            `SELECT c.id || ' ' || p.send || ' ' || p.reason FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id,
+               contact_permission(m.topic, CASE m.channel WHEN 'email' THEN 'email' ELSE 'phone' END, c.address) p
+             WHERE CASE
+               WHEN c.status = 'scheduled' THEN p.send <> 'yes'
+               WHEN c.skip_reason IN ('blocked', 'unsubscribed') THEN p.reason <> c.skip_reason
+               WHEN c.skip_reason = 'no-permission' THEN p.send = 'yes'
+               WHEN EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'bounced') THEN p.reason <> 'blocked'
+               WHEN EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'opted-out') THEN p.reason <> 'unsubscribed'
+               ELSE false END`,
+          ),
+        ).toEqual([]);
         expect(runSql(name, "SELECT DISTINCT status FROM import_runs ORDER BY 1")).toEqual([
           "applied",
           "discarded",

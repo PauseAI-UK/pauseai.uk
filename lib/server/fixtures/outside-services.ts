@@ -252,18 +252,20 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
     return json({ status: 200, result: town ? [town] : [] });
   }
   if (hostname === "api.postcodes.io" && pathname.startsWith("/postcodes/")) {
+    // A postcode the fixture places, at its own point and in its own district, with its constituency where we know it.
     const postcode = decodeURIComponent(pathname.slice("/postcodes/".length)).replace(/\s+/g, "").toUpperCase();
+    const place = PLACES[postcode];
     const constituency = POSTCODES[postcode];
-    return constituency
+    return place
       ? json({
           status: 200,
           result: {
             postcode,
-            parliamentary_constituency: constituency.name,
-            codes: { parliamentary_constituency: constituency.code },
-            latitude: 51.501009,
-            longitude: -0.141588,
-            admin_district: "Westminster",
+            ...place,
+            ...(constituency && {
+              parliamentary_constituency: constituency.name,
+              codes: { parliamentary_constituency: constituency.code },
+            }),
           },
         })
       : new Response(JSON.stringify({ status: 404, error: "Postcode not found" }), { status: 404 });

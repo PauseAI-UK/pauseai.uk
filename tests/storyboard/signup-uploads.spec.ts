@@ -41,6 +41,19 @@ async function chooseEvent(page: Page, column: string) {
   await page.getByRole("button", { name: EVENT }).click();
 }
 
+/** Waits for the preview to finish working out what will happen, so a frame never catches it part-way. */
+async function previewWorkedOut(page: Page) {
+  await expect(page.getByText(copy.preview.loading)).toHaveCount(0);
+}
+
+/**
+ * The foot of the page, where the preview is: choosing an event leaves the
+ * window wherever the page's change in height put it, a different place each run.
+ */
+async function atFoot(page: Page) {
+  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+}
+
 test("A flyering file, linked to an event", async ({ page, flowDatabase, request }) => {
   await importLuma(request, BASE);
   story(
@@ -66,10 +79,14 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
 
   story("They choose the column saying who's going, then the event it's for.");
   await chooseEvent(page, "Saturday march");
+  await previewWorkedOut(page);
+  await atFoot(page);
   await frame(page, "The event, its column and a note");
 
   story("What will happen to everyone is worked out as soon as there's a file and a note, at the foot of the page.");
   await expect(page.getByRole("button", { name: copy.preview.importNow(5, 1) })).toBeVisible();
+  await previewWorkedOut(page);
+  await atFoot(page);
   await frame(page, "The preview: one long table");
 
   story("Importing adds the five, and registers the one who wasn't going yet.");
@@ -138,6 +155,7 @@ test("A file with a column it won't guess at", async ({ page, flowDatabase, requ
   await chooseFile(page, "volunteers.tsv");
   await expect(page.getByText(copy.form.noEventColumn)).toBeVisible();
   await expect(page.getByRole("searchbox", { name: copy.form.findEvent })).toBeDisabled();
+  await previewWorkedOut(page);
   await frame(page, "No column to link an event to");
 });
 
