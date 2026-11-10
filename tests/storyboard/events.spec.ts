@@ -253,11 +253,12 @@ test("Events by owner", async ({ page, flowDatabase }) => {
   await frame(page, "Every event to come, by owner");
 
   story("Joseph has more than five, so the rest fold. Opening them moves only what's under them in that column.");
-  const other = page.getByRole("heading", { level: 2, name: /^priya/ });
-  // Its place on the page, as a click can scroll the window.
+  const other = eventList(page, /^priya/);
+  // Its tile's place on the page, as a click can scroll the window: by the tile, as Joseph's is, so their columns
+  // compare.
   const place = () =>
-    other.evaluate((heading) => {
-      const { x, y } = heading.getBoundingClientRect();
+    other.evaluate((list) => {
+      const { x, y } = list.getBoundingClientRect();
       return { x, y: y + window.scrollY };
     });
   const before = await place();
