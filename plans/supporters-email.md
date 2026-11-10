@@ -315,11 +315,7 @@ to change your PauseAI UK email settings.
 
 ## Open questions
 
-1. What events mail will we send, to people with only an events yes
-   from Luma, and how do Luma's own emails fit our stops? Organisers
-   send Luma invites to most events: London's to a few hundred past
-   London guests, national ones to past guests anywhere, and new local
-   groups' to small lists of people who were mostly never guests. How
-   they pick them isn't known, so neither is whether removing someone
-   from the calendar keeps them out. Left for a separate discussion
-   with the organisers.
+1. Does removing someone from the Luma calendar stop organisers'
+   invites to them? Organisers send Luma invites to most events, often
+   to past guests, and how they pick them isn't known. Until we know,
+   the preferences page says Luma's invites are separate.
