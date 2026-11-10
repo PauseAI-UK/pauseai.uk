@@ -238,10 +238,11 @@ record it on the supporter's page: which emails it's for, when and how
 it was given, and who recorded it. It's a yes from then on, but not
 over a stop.
 
-### 4. A personal weekly
+### 4. Personal broadcasts
 
-The main events with how many have signed up, events near the reader,
-and their MP.
+More filters and lozenges in Broadcasts, so an email can carry such
+things as events near the reader, the main events with how many have
+signed up, and their MP. Deliberately not specified yet.
 
 ## Opt-outs
 
