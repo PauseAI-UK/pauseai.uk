@@ -32,11 +32,11 @@ function Featured({ day, event, going }: { day: FestDay; event: FestEvent; going
           <div className={styles.actions}>
             {internal ? (
               <ButtonLink variant="primary" fit href={event.href}>
-                Register
+                {event.button ?? "Register"}
               </ButtonLink>
             ) : (
               <ButtonAnchor variant="primary" fit href={event.href} {...external}>
-                Register
+                {event.button ?? "Register"}
               </ButtonAnchor>
             )}
             {event.extras?.map((extra) => (
@@ -99,9 +99,9 @@ export default function Programme({
         {days.flatMap((day) =>
           day.events.map((event) =>
             event.featured ? (
-              <Featured key={event.href} day={day} event={event} going={going[event.lumaId]} />
+              <Featured key={event.href} day={day} event={event} going={event.lumaId ? going[event.lumaId] : null} />
             ) : (
-              <Row key={event.href} day={day} event={event} going={going[event.lumaId]} />
+              <Row key={event.href} day={day} event={event} going={event.lumaId ? going[event.lumaId] : null} />
             ),
           ),
         )}

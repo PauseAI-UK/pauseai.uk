@@ -46,7 +46,7 @@ describe("Programme", () => {
     const conference = page
       .getByRole("listitem")
       .filter({ hasText: "Conference in Parliament" })
-      .getByRole("link", { name: "Register" });
+      .getByRole("link", { name: "Apply" });
     await expect.element(conference).toHaveAttribute("href", "https://luma.com/pauseai-conf-nov26");
     await expect.element(conference).toHaveAttribute("target", "_blank");
 
@@ -58,16 +58,17 @@ describe("Programme", () => {
     await expect.element(signMaking).toHaveAttribute("target", "_blank");
   });
 
-  it("shows who's going to an event Luma could say about, and nothing for one it couldn't", async () => {
-    const march = pausefest.days[1].events[0];
-    const signMaking = pausefest.days[0].events[0];
+  it("shows who's going to an event Luma could say about, and nothing for one it couldn't or whose guests aren't shown", async () => {
+    const going = { count: 3, guests: [] };
     await render(
       <Programme
         days={pausefest.days}
         going={{
-          [march.lumaId]: { count: 1113, guests: [{ name: "Jane Smith", avatar: null }] },
-          [signMaking.lumaId]: { count: 3, guests: [] },
-          [pausefest.days[3].events[0].lumaId]: null,
+          "evt-1HKCXSHaJqGO3Bg": { count: 1113, guests: [{ name: "Jane Smith", avatar: null }] },
+          "evt-uvhJhYEEPh6UM9Z": going,
+          "evt-EZYMdCaJRsMDDoy": null,
+          // The conference's, which it has no ID for.
+          undefined: going,
         }}
       />,
     );
