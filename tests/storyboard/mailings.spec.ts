@@ -538,7 +538,8 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   // Yours connected, there's no link to connect it, and the name is the Gmail's, filled in.
   await expect(from.getByRole("link", { name: copy.connectOne })).toHaveCount(0);
   await expect(page.getByLabel(copy.fromNameLabel, { exact: false })).not.toHaveValue("");
-  await from.scrollIntoViewIfNeeded();
+  // The same place each run, whatever scroll typing the letter left.
+  await from.evaluate((section) => section.scrollIntoView({ block: "center", behavior: "instant" }));
   await frame(page, "Sent from their Gmail", {
     window: true,
   });
@@ -552,7 +553,8 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
   const preview = page.getByRole("region", { name: copy.sections.preview });
   await expect(preview.getByText(`Sam Example, PauseAI UK <${staffEmail()}>`)).toBeVisible();
-  await from.scrollIntoViewIfNeeded();
+  // The same place each run, whatever scroll typing the letter left.
+  await from.evaluate((section) => section.scrollIntoView({ block: "center", behavior: "instant" }));
   await frame(page, "Sent from, with a name of its own", { window: true });
   story("They schedule it for the 14:00 hour. It will send at 14:18.");
 
