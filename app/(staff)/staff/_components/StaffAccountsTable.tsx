@@ -175,7 +175,8 @@ export function AddStaff({ accounts, add }: { accounts: StaffAccount[]; add: Act
 /**
  * Every account, sorted by any heading but its permissions: its permissions,
  * and Edit to change them; when and by whom it was added; when it last logged
- * in and was seen; its sessions open; and at the right, a button to end those
+ * in and was seen; its sessions open; whether its Gmail is connected, and
+ * since when; and at the right, a button to end those
  * sessions and one to remove it, pressed twice. Its last row is everyone else at pauseai.uk, who can
  * log in with no permissions, said across the row from Added on. Then, under its own heading, what each
  * permission opens.
@@ -215,6 +216,7 @@ export default function StaffAccountsTable({
             {heading("lastLogin", columns.lastLogin)}
             {heading("lastSeen", columns.lastSeen)}
             {heading("sessions", columns.sessions)}
+            {heading("gmail", columns.gmail)}
             <th />
           </tr>
         </thead>
@@ -238,6 +240,15 @@ export default function StaffAccountsTable({
                 </span>
               </td>
               <td>
+                {account.gmailConnectedAt ? (
+                  <>
+                    {copy.gmailConnected} <Muted>{staffTime(account.gmailConnectedAt)}</Muted>
+                  </>
+                ) : (
+                  <Muted>{copy.gmailNot}</Muted>
+                )}
+              </td>
+              <td>
                 <DeleteTwice name="email" value={account.email} label={copy.remove} short action={remove} />
               </td>
             </tr>
@@ -249,7 +260,7 @@ export default function StaffAccountsTable({
             <td>
               <Muted>–</Muted>
             </td>
-            <td colSpan={5}>
+            <td colSpan={6}>
               <Muted>{copy.everyoneNote}</Muted>
             </td>
           </tr>

@@ -46,9 +46,10 @@ function meetsCondition(recipient: MailingRecipientValues, condition: string): b
 
 /**
  * A new letter: `greeting`, then the first of `fields` that's offered, then a
- * comma, as "Dear <salutation>,"; then a line to write on.
+ * comma, as "Dear <salutation>,"; then a line to write on; and with
+ * `signature`, a few lines down, its lines.
  */
-export function greetingLetter(greeting: string, field: string | undefined): MailingDoc {
+export function greetingLetter(greeting: string, field: string | undefined, signature: string[] = []): MailingDoc {
   const opening: MailingInline[] = field
     ? [
         { type: "text", text: `${greeting} ` },
@@ -56,7 +57,18 @@ export function greetingLetter(greeting: string, field: string | undefined): Mai
         { type: "text", text: "," },
       ]
     : [{ type: "text", text: `${greeting},` }];
-  return { type: "doc", content: [{ type: "paragraph", content: opening }, { type: "paragraph" }] };
+  const signed: MailingBlock[] =
+    signature.length > 0
+      ? [
+          { type: "paragraph" },
+          { type: "paragraph" },
+          ...signature.map((line) => ({
+            type: "paragraph" as const,
+            content: [{ type: "text" as const, text: line }],
+          })),
+        ]
+      : [];
+  return { type: "doc", content: [{ type: "paragraph", content: opening }, { type: "paragraph" }, ...signed] };
 }
 
 /** What a recipient's letter is filled in with: their value for each field, and the conditions they meet. */
@@ -117,7 +129,7 @@ export function checkMailingDoc(value: unknown): MailingDoc | undefined {
   return blocks.every(Boolean) ? { type: "doc", content: blocks as MailingDoc["content"] } : undefined;
 }
 
-function inlinesOf(block: MailingBlock | OnlyForNode): MailingInline[] {
+export function inlinesOf(block: MailingBlock | OnlyForNode): MailingInline[] {
   if (block.type === "paragraph") return block.content ?? [];
   if (block.type === "onlyFor" || block.type === "blockquote") return block.content.flatMap(inlinesOf);
   return block.content.flatMap((item) => item.content.flatMap(inlinesOf));

@@ -178,7 +178,10 @@ take whatever value they need:
   with its label's first line (`Controls.module.css`). Stylelint allows
   `em`, since it isn't a fixed size.
 - **Optical nudges**: a pixel or two to line an icon up with its text. Say
-  in a comment what it lines up.
+  in a comment what it lines up. A small icon before words in the staff
+  pages needs none: put them in `IconText` (`ui/IconText.tsx`), which
+  centres it on the words wherever they are, rather than a flex row of
+  your own, whose baseline is the icon's bottom edge.
 - **A size measured from something else**: the nav's height in
   `scroll-padding-top`, the heights reserved for the signup form while it
   loads (`OnboardingFormEmbed.module.css`). Say in a comment where the
@@ -308,7 +311,7 @@ The page's own button for the same thing (New mailing, or Mail these) goes while
 choosing, so there's one way on. The person chooses with tools they
 already know. The top always says what they're doing and how to stop,
 and the foot always shows the result and the way on, however far they've
-scrolled. A new choosing mode, such as supporters for a message, uses
+scrolled. A new choosing mode, such as supporters for a broadcast, uses
 these two bars, not a design of its own. Both live with the politicians
 list now (`_components/PoliticiansList.tsx`); a second user moves them to
 `ui/`.
@@ -379,6 +382,16 @@ aren't one card, such as a letter's ask over its history, stack in a
 **No box under or beside a box** but a card or tile in the same grid. A
 card holds strips, rows and fields, never another card.
 
+**Drawing the eye.** When a page opens on something a person just did or
+picked, that one thing pulses once in the accent's tint (`--accent-light`,
+or the orange at 40%) and settles: one pulse of about a second and a half,
+starting just after the page appears, never repeated. It's a change of
+colour, not a movement, so it stays with motion turned off. Three do it:
+the ask a link picked out on an asks list (`AsksList.module.css`, which
+stays tinted), a notice that opens after something happened
+(`ui/Notice.module.css`, fading to plain), and the broadcast just sent for
+approval on the list of broadcasts (`MailingsOverview.module.css`).
+
 **Strips, not alerts.** Anything that needs a person is a red or amber
 strip, with its icon at the left and its button at the right: a strip
 each at the top of the home page, one at the top of an MP's page whose
@@ -387,7 +400,9 @@ is that thing's state: an import job's newest run, a campaign's status, a
 mailing list's answer. A strip that's an answer, not a warning, leaves out
 the icon (`icon={false}`). After something a person did, a strip says how
 it went: green when it worked, amber a warning, red an error, the amber
-and red with their icon.
+and red with their icon. A strip on the page itself, not in a card, is
+spaced from what's above and below it as the grid's cards are
+(`StaffPage.module.css`), so a page puts it there with no margin of its own.
 
 **Tables** (`components/ui/Table`). White, every other row tinted
 (`--table-stripe`), so the eye keeps to a row across. A cell's content sits at its top, so
@@ -523,11 +538,18 @@ are:
   `seconds`): "+ Filter" and Except offer the first, and its chip is in
   two halves, the second choosing among the first's. A choice list can
   have headings (an option's `group`, its icon once) and a quiet `detail`
-  after a choice. The Contact filter's topics come under Email and Phone;
-  chosen, a topic is those we can contact about it, "Contact: PauseAI UK |
+  after a choice. The Consent filter's topics come under Email and Phone;
+  chosen, a topic is those we can contact about it, "Consent: PauseAI UK |
   Can email", and its second half turns it to Not sure or Can't email.
   The first half changes the topic, and turns it the other way or removes
   it. Its value is one parameter: `contact=email:site-forms:yes`.
+- A filter that matters most has its own button (`own`), before "+ Filter",
+  which doesn't offer it; once it's on, its chip comes first. The
+  supporters list's Consent is one, as it's what a broadcast needs.
+- A filter that can't change in a mode is `locked`, with why: its chip is
+  there, with a padlock for its arrow, but doesn't open, "+ Filter" doesn't
+  offer it, and Clear filters keeps it. The Consent is, while the list is
+  choosing who a broadcast goes to, as the broadcast's writer changes it.
 - Clear filters, last, while anything is on, empties the search and every
   filter, and the sort. A tab over the list, such as the politicians'
   houses, isn't a filter: Clear filters keeps it.
@@ -614,6 +636,8 @@ opened by "Letter →", everywhere, and its status stays plain words beside it, 
 a status never looks like a link; a politician's answer in their history is plain too. A one-off thread has its subject as its name, so that's what opens it, but for All emails, where it's among letters and opened as they are, by "Thread →". Two exceptions: a name in a
 choice, such as a menu's option, picks it instead; and for staff who can't open
 the page, the name is plain.
+
+**A subheading** (`ui/PageIntro`) says in a grey line, close under the page's title, what the page is and who it's about. It's part of the title, so it has no full stop.
 
 **What a permission hides** (`ui/Withheld`). Words standing in for something
 a staff member's permissions keep from them must go in `Withheld`, a sealed

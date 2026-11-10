@@ -346,7 +346,7 @@ export function supporterId(id: string): number | undefined {
 export type SupportersSearch = {
   q: string;
   activity: string[];
-  /** Each "email:blocked", or "<channel>:<topic>", with ":<answer>" or ":<reason>" after it, for one. */
+  /** Each "<channel>:<topic>", with ":<answer>" or ":<reason>" after it, for one. */
   contact: string[];
   /** Luma event IDs. */
   event: string[];
@@ -369,6 +369,9 @@ export type SupportersSearch = {
   page: string;
   /** After an erasure: "1", or "partly" with what couldn't be cleared in `why`, as codes. */
   erased: string;
+  /** The draft broadcast the list is choosing who for, by ID. */
+  broadcast: string;
+  /** With `erased`, the codes above. */
   why: string;
   /** The saved filter loaded, by ID. */
   saved: string;
@@ -394,7 +397,23 @@ export function eraseLeftovers(why: string): EraseLeftover[] {
 export function supportersSearch(
   params: Partial<Record<keyof SupportersSearch, ParamValue>>,
 ): SupportersSearch & { filter: SupporterFilter } {
-  const [q, campaign, wrote, near, within, first, registered, unsubscribed, sort, dir, page, erased, why, saved] = (
+  const [
+    q,
+    campaign,
+    wrote,
+    near,
+    within,
+    first,
+    registered,
+    unsubscribed,
+    sort,
+    dir,
+    page,
+    erased,
+    broadcast,
+    why,
+    saved,
+  ] = (
     [
       "q",
       "campaign",
@@ -408,6 +427,7 @@ export function supportersSearch(
       "dir",
       "page",
       "erased",
+      "broadcast",
       "why",
       "saved",
     ] as const
@@ -460,6 +480,7 @@ export function supportersSearch(
     dir,
     page,
     erased,
+    broadcast,
     why,
     saved,
     filter,

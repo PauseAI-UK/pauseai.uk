@@ -31,7 +31,7 @@ export default function Strip({
 }) {
   const role = announce ? (tone === "red" ? "alert" : "status") : undefined;
   return (
-    <div className={tone === "plain" ? styles.strip : `${styles.strip} ${styles[tone]}`} role={role}>
+    <div className={tone === "plain" ? styles.strip : `${styles.strip} ${styles[tone]}`} role={role} data-strip>
       {icon && (tone === "amber" || tone === "red" || tone === "blue") && <AlertIcon tone={tone} />}
       <div className={styles.body}>{children}</div>
       {action && <div className={styles.action}>{action}</div>}

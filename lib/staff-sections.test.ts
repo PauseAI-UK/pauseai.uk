@@ -12,7 +12,7 @@ describe("sectionsFor", () => {
       ["admin", ["import"]],
     ]);
     expect(pages(["supporters"])).toEqual([
-      ["supporters", ["supporters", "campaigns", "supporterEmails", "signupUpload"]],
+      ["supporters", ["supporters", "broadcasts", "campaigns", "supporterEmails", "signupUpload"]],
       ["politicians", ["politicians", "asks", "mailings", "emails", "mpEmails"]],
       ["events", ["events"]],
       ["admin", ["import"]],
@@ -20,7 +20,7 @@ describe("sectionsFor", () => {
     expect(pages(["admin"])).toEqual([
       ["politicians", ["politicians", "asks", "mailings", "emails", "mpEmails"]],
       ["events", ["events"]],
-      ["admin", ["sentEmails", "import", "changes", "accounts"]],
+      ["admin", ["import", "sentEmails", "changes", "accounts"]],
     ]);
   });
 });

@@ -78,7 +78,7 @@ describeWithDatabase("POST /api/cron/<job>", () => {
   });
 
   it("copies the fixture members and says what it did", async () => {
-    expect(await answer("import-members")).toMatchObject({ members: 8, added: 8 });
+    expect(await answer("import-members")).toMatchObject({ members: 9, added: 9 });
   });
 
   it("reads each connected Gmail, says what it found, and keeps the run as the schedule's", async () => {

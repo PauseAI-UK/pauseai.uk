@@ -4,6 +4,7 @@
 // may still hold, as the log keeps a politician's history while they're here
 // and everything else for a month (lib/server/log-retention.ts).
 import type { AskStatus } from "./asks";
+import type { BroadcastTerms } from "./broadcasts";
 import type { FieldChange } from "./field-changes";
 import type { SyncedPolitician } from "./politician-sync";
 import type { SavedList } from "./saved-filters";
@@ -95,6 +96,12 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "delete mailing": { id: number };
   "start mailing": { id: number };
   "finish mailing": { id: number };
+  "create broadcast": { id: number } & BroadcastTerms;
+  "change broadcast consent": { id: number } & BroadcastTerms;
+  "submit broadcast template": { id: number; name: string };
+  "withdraw broadcast template": { id: number };
+  "schedule broadcast": { id: number; recipients: number };
+  "stop broadcast": { id: number; was: MailingState };
 };
 
 /** What rows logged earlier may hold beyond AuditDetails: actions no longer logged, and earlier details of some that are. */

@@ -73,14 +73,14 @@ test("The members import", async ({ page, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/import-data/members`);
   await page.getByRole("button", { name: staffCopy.members.importNow }).click();
-  // The fixture's eight members, one of them erased.
+  // The fixture's nine members, one of them erased.
   const first = {
-    members: 8,
-    added: 7,
+    members: 9,
+    added: 8,
     changed: 0,
     removed: 0,
-    supportersAdded: 7,
-    linked: 7,
+    supportersAdded: 8,
+    linked: 8,
   };
   await expect(page.getByText(staffCopy.members.result(first))).toBeVisible();
   await page.getByRole("heading", { name: staffCopy.members.title }).scrollIntoViewIfNeeded();

@@ -72,7 +72,7 @@ test("Filtering supporters", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
   // Five guests, a contact who never registered, and a host who never registered.
-  await expect(page.getByText(copy.total(7))).toBeVisible();
+  await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Fay Follower" })).toBeVisible();
   await frame(page, "The supporters list");
   story("They search for an address. Every supporter here has one at fixture@example, so all seven stay.");
@@ -82,7 +82,7 @@ test("Filtering supporters", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: staffCopy.search }).click();
   await expect(page).toHaveURL(/\/staff\/supporters\?q=fixture%40example$/);
   // Every one of them has an address at fixture@example.
-  await expect(page.getByText(copy.total(7))).toBeVisible();
+  await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   await frame(page, "The list, searched");
   story(
     "They filter to those with Luma events among their activities, and sort by name. Five registered for an event. The one with no name comes last.",
@@ -93,7 +93,7 @@ test("Filtering supporters", async ({ page, request, flowDatabase }) => {
   await expect(page).toHaveURL(/sort=name/);
   await expect(page.getByRole("link", { name: "Fay Follower" })).toHaveCount(0);
   // Five: the fifth guest declined every event; the host with no name never registered, but hosts one.
-  await expect(page.getByText(copy.total(5))).toBeVisible();
+  await expect(page.getByText(copy.total(5), { exact: true })).toBeVisible();
   const names = await page.locator("tbody").getByRole("link").allTextContents();
   // By name, the one with none last.
   const named = names.filter((name) => name !== copy.noName);
@@ -109,7 +109,7 @@ test("Filtering supporters", async ({ page, request, flowDatabase }) => {
   // Reset clears every filter, and the sort.
   await page.getByRole("link", { name: staffCopy.resetFilters }).click();
   await expect(page).toHaveURL(`${BASE}/staff/supporters`);
-  await expect(page.getByText(copy.total(7))).toBeVisible();
+  await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   await expect(page.getByRole("searchbox", { name: copy.filters.search })).toHaveValue("");
   await expect(page.getByRole("button", { name: `${copy.columns.badges}: ${copy.badges.letter}` })).toHaveCount(0);
   await frame(page, "The supporters list, cleared");
@@ -132,7 +132,7 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   await importLuma(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
-  await expect(page.getByText(copy.total(7))).toBeVisible();
+  await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   const march = copy.filters.eventChoice("PauseAI London March", staffDate(new Date("2026-02-14T12:00:00Z")));
   await page.getByRole("button", { name: staffCopy.filters.except }).click();
   await expect(page.locator("[popover]:popover-open").getByText(staffCopy.filters.exceptHeading)).toBeVisible();
@@ -148,7 +148,7 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   await expect(page).toHaveURL(/\/staff\/supporters\?event=%21/);
   // Four guests were approved for it; Dee declined, Fay follows the calendar but never registered, and the
   // protest's host with no name never registered either.
-  await expect(page.getByText(copy.total(3))).toBeVisible();
+  await expect(page.getByText(copy.total(3), { exact: true })).toBeVisible();
   expect(await page.locator("tbody").getByRole("link").allTextContents()).toEqual(
     expect.arrayContaining(["Dee Clined", "Fay Follower"]),
   );
@@ -161,7 +161,7 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   await frame(page, "The chip's menu");
   story("Now the list is the four guests approved for the march, with a column for each one's registration.");
   await page.locator("[popover]:popover-open").getByRole("link", { name: staffCopy.filters.onlyThis }).click();
-  await expect(page.getByText(copy.total(4))).toBeVisible();
+  await expect(page.getByText(copy.total(4), { exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: copy.columns.registrations })).toBeVisible();
   await expect(page.locator("tbody").getByText(copy.detail.registered).first()).toBeVisible();
   await frame(page, "Supporters at the London March");
@@ -175,7 +175,7 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   await syncPoliticians(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
-  await expect(page.getByText(copy.total(7))).toBeVisible();
+  await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   const mp = staffCopy.politician.roles.commons;
   const mo = copy.filters.mpChoice("Mo Example", "Manchester Central");
   await page.getByRole("button", { name: staffCopy.filters.add }).click();
@@ -188,9 +188,9 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   await page.locator("[popover]:popover-open").getByRole("link", { name: mo, exact: true }).click();
   await expect(page).toHaveURL(/\/staff\/supporters\?mp=\d+$/);
   // Jane's postcode is the one in Manchester Central.
-  await expect(page.getByText(copy.total(1))).toBeVisible();
+  await expect(page.getByText(copy.total(1), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Jane Fixture" })).toBeVisible();
-  await expect(page).toHaveTitle(`${staffCopy.filters.pageTitle(copy.title, `${mp} ${mo}`)} - ${staffCopy.metaTitle}`);
+  await expect(page).toHaveTitle(`${staffCopy.filters.pageTitle(copy.title, `${mp}: ${mo}`)} - ${staffCopy.metaTitle}`);
   await frame(page, "Mo Example's constituents");
 });
 
@@ -495,7 +495,7 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
 
 test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   story(
-    "Jane Fixture has unsubscribed from the Luma calendar's emails. The supporters list has a Contact column: what each supporter gets, by topic.",
+    "Jane Fixture has unsubscribed from the Luma calendar's emails. The supporters list has a Consent column: what each supporter gets, by topic.",
   );
   await importLuma(request, BASE);
   await importMembers(request, BASE);
@@ -511,7 +511,13 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
 
   // A topic first, those we can email about it, then in the chip's second half, those we can't.
   const answers = copy.detail.permissions.answers;
-  await addFilter(page, copy.columns.subscriptions, copy.filters.topics["luma-calendar"]);
+  // Consent has its own button, as it's what lets a message go.
+  await page.getByRole("button", { name: copy.columns.subscriptions, exact: true }).click();
+  await page
+    .locator("[popover]:popover-open")
+    .getByRole("link", { name: copy.filters.topics["luma-calendar"] })
+    .first()
+    .click();
   await changeFilter(page, answers.email.yes, answers.email.no);
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toBeVisible();
   // Owen left Keep me informed unticked, which isn't an unsubscribe.
@@ -519,13 +525,12 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await frame(page, "Those who can't be emailed about Luma");
   story("They change the topic to PauseAI global. Now Owen is there, and Jane isn't.");
 
-  // Another topic, from the chip's first half, then its answer.
+  // Another topic, from the chip's first half, keeping its answer.
   await changeFilter(
     page,
     `${copy.columns.subscriptions}: ${copy.filters.topics["luma-calendar"]}`,
     copy.filters.topics["pauseai-updates"],
   );
-  await changeFilter(page, answers.email.yes, answers.email.no);
   await expect(page).toHaveURL(/contact=email%3Apauseai-updates%3Ano/);
   await expect(page.getByRole("row").filter({ hasText: "Owen Member" })).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toHaveCount(0);
@@ -612,7 +617,7 @@ test("Erasing a supporter", async ({ page, request, flowDatabase }) => {
   await expect(page).toHaveURL(`${BASE}/staff/supporters?erased=1`);
   await expect(page.getByRole("status")).toHaveText(staffCopy.erase.done);
   await expect(page.getByRole("link", { name: "Sam Fixture" })).toHaveCount(0);
-  await expect(page.getByText(copy.total(6))).toBeVisible();
+  await expect(page.getByText(copy.total(6), { exact: true })).toBeVisible();
   await frame(page, "The supporters list, without Sam");
 
   story(
@@ -648,7 +653,7 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
 
   await importMembers(request, BASE);
   await page.reload();
-  await expect(page.getByText(copy.total(7))).toBeVisible();
+  await expect(page.getByText(copy.total(8), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Mara Member" })).toHaveCount(0);
   await frame(page, "The supporters list, after the members import");
 });

@@ -61,6 +61,14 @@
   padding: var(--space-6) var(--space-5) var(--space-8);
 }
 
+/* A strip on the page itself, not in a card, as a page's warnings are
+   between its title and its grid: as far from what's above and below it
+   as the grid's cards are from each other (ui/Grid). Two together are as
+   far apart, their margins meeting. */
+.content > [data-strip] {
+  margin-block: var(--space-5);
+}
+
 .content > :first-child {
   margin-top: 0;
 }

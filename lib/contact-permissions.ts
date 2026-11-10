@@ -79,19 +79,39 @@ export const SENDS = ["yes", "unsure", "no"] as const;
 export type Send = (typeof SENDS)[number];
 
 /**
- * What the Subscriptions filter finds: an answer for one topic by one
- * channel, any answer, one of yes, unsure or no (`send`), or one reason;
- * or an email address blocked, whatever the topic.
+ * The answers each channel's topic can give, in SENDS's order, as
+ * contact_permission() gives them: PauseAI's updates are never a sure
+ * yes, as we can't read CiviCRM's unsubscribes; a number given on the join
+ * form for anything but volunteering is unsure; the rest are yes or no.
  */
-export type ContactState = { channel: Channel; topic?: Topic; send?: Send; reason?: Reason };
+export const TOPIC_SENDS = {
+  email: { "luma-calendar": ["yes", "no"], "pauseai-updates": ["unsure", "no"], "site-forms": ["yes", "no"] },
+  phone: {
+    "luma-calendar": ["yes", "no"],
+    volunteering: ["yes", "unsure", "no"],
+    "site-forms": ["yes", "no"],
+    "march-day": ["yes", "no"],
+  },
+} as const satisfies { [C in Channel]: Record<keyof (typeof TOPIC_REASONS)[C], readonly Send[]> };
+
+/** The answers a channel's topic can give. */
+export function sendsOf(channel: Channel, topic: Topic): readonly Send[] {
+  const sends: Partial<Record<Topic, readonly Send[]>> = TOPIC_SENDS[channel];
+  return sends[topic]!;
+}
+
+/**
+ * What the Consent filter finds: an answer for one topic by one channel,
+ * any answer, one of yes, unsure or no (`send`), or one reason.
+ */
+export type ContactState = { channel: Channel; topic: Topic; send?: Send; reason?: Reason };
 
 /**
  * A state from its form value: "<channel>:<topic>" for any answer,
  * "<channel>:<topic>:<send>" for one answer, "<channel>:<topic>:<reason>"
- * for a reason the channel's topic can give, or "email:blocked".
+ * for a reason the channel's topic can give.
  */
 export function contactState(value: string): ContactState | undefined {
-  if (value === "email:blocked") return { channel: "email", reason: "blocked" };
   const [channel, topic, last, ...rest] = value.split(":");
   if (rest.length > 0 || !Object.hasOwn(TOPIC_REASONS, channel)) return undefined;
   const topics: Partial<Record<string, readonly string[]>> = TOPIC_REASONS[channel as Channel];
