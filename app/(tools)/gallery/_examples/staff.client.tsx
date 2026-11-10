@@ -1114,7 +1114,7 @@ export function SavedFilterExample({ state }: { state: keyof typeof SAVED_STATES
               },
               values,
               path: "/staff/politicians",
-              name: "Politicians: Party: Labour",
+              name: "Party: Labour",
               summary: (params) => [`Party ${params.party}`],
               actions: { save: log("save"), update: log("update"), rename: log("rename"), remove: log("remove") },
             })}

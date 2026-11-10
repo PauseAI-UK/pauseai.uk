@@ -2723,8 +2723,7 @@ All events: ${link}`,
     narrow: "Search these",
     // A place filter's distance, for a screen reader.
     within: "Within",
-    // A list's page title, in the browser's tab, with its search and filters that are on, shortened;
-    // and a saved filter's name to start with, in full.
+    // A list's page title, in the browser's tab, with its search and filters that are on, shortened.
     pageTitle: (title: string, filters: string) => `${title}: ${filters}`,
     // The chip at the right of a list's filters: its saved filters, and saving what's on.
     saved: {

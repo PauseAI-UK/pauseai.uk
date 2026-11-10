@@ -529,6 +529,15 @@ describe("EventFilters", () => {
       `${copy.removed}: ${copy.filters.removed.yes}`,
     ]);
   });
+
+  it("says the Past tab and the grouping first, for the page's title and a saved filter's name", () => {
+    const { search } = exampleEventsTab({ when: "past", group: "owner", place: "!online" });
+    expect(eventWords(search, choices)).toEqual([
+      copy.tabs.past,
+      copy.group.owner,
+      staffCopy.filters.notChip(copy.filters.place, copy.online),
+    ]);
+  });
 });
 
 describe("EventsSource", () => {

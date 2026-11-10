@@ -60,7 +60,7 @@ export default function SupporterFilters({
           list: "supporters",
           values: { ...search, erased: "" },
           path: SUPPORTERS_LIST.path,
-          name: filteredName(staffCopy.supporters.title, supporterWords(search, choices, near)),
+          name: filteredName(supporterWords(search, choices, near)),
           summary: (params) => supporterWords(supportersSearch(params), choices),
         })
       }

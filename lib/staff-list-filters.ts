@@ -156,9 +156,12 @@ export function filteredTitle(title: string, words: string[]): string {
   return staffCopy.filters.pageTitle(title, short);
 }
 
-/** A list's title with all the search and filters that are on, `words` (filterWords()): a saved filter's first name. */
-export function filteredName(title: string, words: string[]): string {
-  return staffCopy.filters.pageTitle(title, words.filter(Boolean).join(", "));
+/**
+ * All the search and filters that are on, `words` (filterWords()): a saved
+ * filter's first name. Not the list's title, as its Saved menu is the list's own.
+ */
+export function filteredName(words: string[]): string {
+  return words.filter(Boolean).join(", ");
 }
 
 /** Each choice of `labels`, by its key, in their order. */
