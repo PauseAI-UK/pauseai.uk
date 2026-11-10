@@ -13,6 +13,7 @@
     "investments": "node scripts/investments.mjs",
     "friction-sweep": "node scripts/friction-sweep.mjs",
     "worktree": "node scripts/worktree.mjs",
+    "serve": "node scripts/serve.mjs",
     "lint": "eslint --max-warnings 0",
     "lint:css": "stylelint \"**/*.css\"",
     "lint:unused": "knip",

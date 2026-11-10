@@ -22,6 +22,10 @@ Put throwaway scripts, logs and screenshots in `tmp/` at the repo root (to scree
 
 `npm run worktree -- <branch>` starts a new branch from `origin/main` in `tmp/worktrees/<branch>`, with its dependencies installed, and prints the ports its storyboard serves on (`docs/development.md`, "Worktrees"). Each checkout's storyboard has its own ports and databases, so worktrees can run it at once.
 
+## Serving a branch
+
+When Francis asks for a branch to be served, run `npm run serve -- <branch or PR number>` in the background and give him the link it prints, once it says it's serving: it checks the link in Firefox first (`docs/development.md`, "Serving a branch"). Leave it running until he's done with it, then `--stop` it.
+
 ## The CI gate
 
 ```bash
