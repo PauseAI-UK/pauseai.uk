@@ -271,13 +271,10 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         // Every answer to every kind of ask, and each import's and staff's.
         expect(runSql(name, "SELECT DISTINCT ask_kind || ' ' || status FROM ask_statuses ORDER BY 1")).toEqual([
           "event declined",
-          "event declined_surgery",
           "event going",
-          "event meeting_staff",
-          "event passed_on",
-          "event tentative",
-          "event tentative_staff",
+          "event other",
           "letter declined",
+          "letter other",
           "letter signed",
         ]);
         expect(

@@ -341,7 +341,7 @@ describeWithDatabase("politicians", () => {
     const before = await addTestPolitician({ name: "Old Placeholder", airtableId: "recOld" });
     const byAirtable = await addTestPolitician({ name: "Air Placeholder", airtableId: "recAir" });
     const going = await addTestPolitician({ name: "Going Placeholder", airtableId: "recGoing" });
-    const tentative = await addTestPolitician({ name: "Maybe Placeholder", airtableId: "recMaybe" });
+    const other = await addTestPolitician({ name: "Maybe Placeholder", airtableId: "recMaybe" });
     await query(
       `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by, updated_at) VALUES
          ($1, 'frontier-ai-letter', 'letter', 'signed', 'x', '2026-10-20T00:00:00Z'),
@@ -349,8 +349,8 @@ describeWithDatabase("politicians", () => {
          ($2, 'deepmind-letter', 'letter', 'signed', 'x', '2026-09-30T00:00:00Z'),
          ($3, 'deepmind-letter', 'letter', 'signed', 'airtable', '2026-10-20T00:00:00Z'),
          ($4, 'edinburgh-conference-2026', 'event', 'going', 'x', '2026-10-20T00:00:00Z'),
-         ($5, 'edinburgh-conference-2026', 'event', 'tentative', 'x', '2026-10-20T00:00:00Z')`,
-      [signer, before, byAirtable, going, tentative],
+         ($5, 'edinburgh-conference-2026', 'event', 'other', 'x', '2026-10-20T00:00:00Z')`,
+      [signer, before, byAirtable, going, other],
     );
     expect((await listPoliticians({ agreedDays: 7 })).map((p) => p.id).sort()).toEqual([signer, going].sort());
     expect((await listPoliticians({ agreedDays: 30 })).map((p) => p.id).sort()).toEqual([signer, before, going].sort());

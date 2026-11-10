@@ -87,10 +87,12 @@ campaigns depend on them.
 A person's answer to an ask is a status (`ask_statuses`): one row per
 person per ask, with a status, a date, a note, and who set it; no answer,
 no row. Each kind allows its own statuses (`ask_kind_statuses`, mirrored by
-`ASK_STATUSES`): a letter `signed`; an event `going`, `tentative`,
-`meeting_staff`, `tentative_staff`, `declined`, `declined_surgery` or
-`passed_on`. A foreign key on `(ask_kind, status)` refuses any other, and a
-new status is a row there.
+`ASK_STATUSES`): a letter `signed`, `other` or `declined`; an event
+`going`, `other` or `declined`. An `other` answer's note says what it was,
+such as "Tentatively said yes": the imports put there what Airtable's
+answer meant for any that isn't a yes or a no, worded more fully where
+`airtableNote` (`lib/asks.ts`) has a wording, else Airtable's own words. A foreign key on `(ask_kind, status)`
+refuses any status not in that table, and a new status is a row there.
 
 Who set a status decides who may change it. Staff set statuses by hand, with
 a note, for the asks of the campaigns they track (`trackedAsks`). An import

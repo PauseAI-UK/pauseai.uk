@@ -1,13 +1,14 @@
 import "server-only";
 import { config } from "@/lib/server/config";
 import {
+  airtableNote,
   CONTROLAI_STATEMENT_ASK,
   DEEPMIND_LETTER_ASK,
   EDINBURGH_CONFERENCE_ASK,
   FRONTIER_AI_LETTER_ASK,
   type AskStatus,
 } from "@/lib/asks";
-import type { PoliticianRecord, SyncedPolitician } from "@/lib/politician-sync";
+import type { PoliticianRecord, RecordedAnswer, SyncedPolitician } from "@/lib/politician-sync";
 import { outsideFetch } from "./outside-fetch";
 
 // Only file allowed to talk to api.airtable.com (enforced by the
@@ -89,8 +90,9 @@ export const POLITICIANS_FORMULA = "NOT({Test})";
 /**
  * The fields that record an answer to an ask (lib/asks.ts), each with the
  * ask and the status each of its values means: a tick box means what it's
- * called, and a select one of its answers. A value it doesn't know is refused.
- * Of two fields for one ask, the later wins, so a signature outranks declining.
+ * called, and a select one of its answers. Any other value is "other", its
+ * note from airtableNote. Of two fields for one ask, the later wins, so a
+ * signature outranks declining.
  */
 const ASK_FIELDS: Record<string, { ask: string; statuses: Record<string, AskStatus> }> = {
   "Signed Frontier AI Letter": { ask: FRONTIER_AI_LETTER_ASK, statuses: { true: "signed" } },
@@ -99,7 +101,7 @@ const ASK_FIELDS: Record<string, { ask: string; statuses: Record<string, AskStat
   "ControlAI Signatory": { ask: CONTROLAI_STATEMENT_ASK, statuses: { true: "signed" } },
   "Edinburgh Conference November 2026": {
     ask: EDINBURGH_CONFERENCE_ASK,
-    statuses: { Going: "going", Declined: "declined", "Passed on request": "passed_on" },
+    statuses: { Going: "going", Declined: "declined" },
   },
 };
 
@@ -171,14 +173,13 @@ function politicianFrom(record: AirtableRecord): SyncedPolitician {
 }
 
 /** A record's answers to the asks, by the ask's slug. */
-function statusesFrom(record: AirtableRecord): Record<string, AskStatus> {
+function statusesFrom(record: AirtableRecord): Record<string, RecordedAnswer> {
   return Object.fromEntries(
     Object.entries(ASK_FIELDS).flatMap(([field, { ask, statuses }]) => {
       const value = record.fields[field];
       if (value === undefined || value === false || value === "") return [];
       const status = statuses[String(value)];
-      if (!status) throw new AirtableRequestError(`Unknown ${field} "${String(value)}" on ${record.id}`);
-      return [[ask, status]];
+      return [[ask, status ? { status, note: "" } : { status: "other", note: airtableNote(String(value)) }]];
     }),
   );
 }

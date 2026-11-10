@@ -2,6 +2,7 @@ import { buttonClass } from "@/components/ui/Button";
 import { Muted } from "@/components/ui/Text";
 import Tag from "@/components/ui/Tag";
 import { askPeriod } from "@/lib/ask-groups";
+import type { AskStatus } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { filtersPath, pageParam } from "@/lib/staff-search";
 import type { AskAnswer, AskAnswerGroup, AskPageData } from "@/lib/server/asks";
@@ -28,8 +29,10 @@ function groupName(key: string): string {
   return staffCopy.statuses[key === "none" ? "noAnswer" : key];
 }
 
-/** The colour over each column: that of its answer, and amber for the rarer ones together. */
-const GROUP_TONES: Record<string, string | undefined> = { ...ANSWER_TONES, other: "amber" };
+/** An answer's tag: an "other" one says what it was, by its note. */
+function AnswerTag({ status, note }: { status: AskStatus; note: string }) {
+  return <Tag tone={ANSWER_TONES[status]}>{status === "other" && note ? note : staffCopy.statuses[status]}</Tag>;
+}
 
 const answerColumns: ListColumn<AskAnswer>[] = [
   {
@@ -50,11 +53,7 @@ const answerColumns: ListColumn<AskAnswer>[] = [
     label: page.answer,
     short: true,
     cell: (a) =>
-      a.status ? (
-        <Tag tone={ANSWER_TONES[a.status]}>{staffCopy.statuses[a.status]}</Tag>
-      ) : (
-        <Muted>{staffCopy.statuses.noAnswer}</Muted>
-      ),
+      a.status ? <AnswerTag status={a.status} note={a.note} /> : <Muted>{staffCopy.statuses.noAnswer}</Muted>,
   },
   {
     key: "lastWrittenTo",
@@ -93,13 +92,10 @@ function ColumnHead({ group, path, answer = "" }: { group: AskAnswerGroup; path:
   );
 }
 
-/**
- * One answer's column: its top, and the first few who gave it. Someone whose
- * answer differs from the column's name is tagged with theirs.
- */
+/** One answer's column: its top, and the first few who gave it, those in "other" each tagged with what it was. */
 function AnswerColumn({ group, path }: { group: AskAnswerGroup; path: string }) {
   return (
-    <section className={styles.column} data-tone={GROUP_TONES[group.key]}>
+    <section className={styles.column} data-tone={ANSWER_TONES[group.key]}>
       <ColumnHead group={group} path={path} />
       {group.people.length === 0 ? (
         <p className={styles.columnFoot}>
@@ -114,9 +110,7 @@ function AnswerColumn({ group, path }: { group: AskAnswerGroup; path: string }) 
                 <TestTag isTest={person.isTest} />
                 <Muted>{person.party}</Muted>
               </span>
-              {person.status && person.status !== group.key && (
-                <Tag tone={ANSWER_TONES[person.status]}>{staffCopy.statuses[person.status]}</Tag>
-              )}
+              {person.status === "other" && person.note && <AnswerTag status="other" note={person.note} />}
             </li>
           ))}
         </ul>
@@ -140,12 +134,12 @@ function ChosenAnswer({ ask, answer, path }: { ask: AskPageData; answer: string;
     <>
       <nav className={`${styles.columns} ${styles.heads}`} aria-label={page.answersTitle}>
         {ask.groups.map((group) => (
-          <div key={group.key} className={styles.column} data-tone={GROUP_TONES[group.key]}>
+          <div key={group.key} className={styles.column} data-tone={ANSWER_TONES[group.key]}>
             <ColumnHead group={group} path={path} answer={answer} />
           </div>
         ))}
       </nav>
-      <section className={styles.chosen} data-tone={GROUP_TONES[answer]} aria-label={page.answersTitle}>
+      <section className={styles.chosen} data-tone={ANSWER_TONES[answer]} aria-label={page.answersTitle}>
         <ListFrame
           count={staffCopy.campaigns.politicians(ask.answersTotal)}
           total={ask.answersTotal}

@@ -5,7 +5,7 @@ import { buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
-import { ASK_STATUSES } from "@/lib/asks";
+import { ANSWER_CHOICES } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { answeredByHand } from "@/lib/email-your-mp";
 import type { Ask } from "@/lib/server/asks";
@@ -24,7 +24,7 @@ type SetStatus = (form: FormData) => void | Promise<void>;
 
 /**
  * Setting their answer to an ask staff record, with a note: one of the
- * answers its kind allows (ASK_STATUSES), all of them in a row to pick from,
+ * answers its kind allows, all of them in a row to pick from (ANSWER_CHOICES),
  * and Save, which sends the one picked. Once there's an answer, no answer is
  * one to pick too, set apart from the rest, to clear it.
  */
@@ -39,7 +39,7 @@ function AnswerForm({ politician, ask, setStatus }: { politician: Politician; as
         <Segmented
           label={copy.status}
           options={[
-            ...ASK_STATUSES[ask.kind].map((value) => ({ value: value as string, label: staffCopy.statuses[value] })),
+            ...ANSWER_CHOICES[ask.kind].map((value) => ({ value: value as string, label: staffCopy.statuses[value] })),
             ...(current ? [{ value: "", label: copy.clearAnswer, quiet: true }] : []),
           ]}
           value={chosen}

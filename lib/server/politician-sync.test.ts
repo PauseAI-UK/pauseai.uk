@@ -318,7 +318,7 @@ describeWithDatabase("syncPoliticians", () => {
     await setStatus(
       await id("Morag Example"),
       "edinburgh-conference-2026",
-      { status: "tentative", date: null, note: "" },
+      { status: "other", date: null, note: "Maybe" },
       JO,
     );
     const [dora, polly, seedling, morag, ...rest] = fixture.records;
@@ -344,7 +344,7 @@ describeWithDatabase("syncPoliticians", () => {
     expect(await statuses()).toEqual(
       expect.arrayContaining([
         { name: "Ms Dora Dummy", ask: "frontier-ai-letter", status: "signed", by: JO },
-        { name: "Morag Example", ask: "edinburgh-conference-2026", status: "tentative", by: JO },
+        { name: "Morag Example", ask: "edinburgh-conference-2026", status: "other", by: JO },
         { name: "Polly Placeholder", ask: "edinburgh-conference-2026", status: "going", by: "airtable" },
         { name: "Rita Retired", ask: "go-to-parliament-oct-2026", status: "going", by: "airtable" },
       ]),
@@ -362,6 +362,33 @@ describeWithDatabase("syncPoliticians", () => {
       { ask: "edinburgh-conference-2026", status: "going" },
       { ask: "frontier-ai-letter", status: "signed" },
     ]);
+  });
+
+  it("sets an answer it doesn't know as other with Airtable's words, and changes it when only the words change", async () => {
+    const [dora, ...rest] = fixture.records;
+    const answering = (words: string) =>
+      airtableHas([{ ...dora, fields: { ...dora.fields, "Edinburgh Conference November 2026": words } }, ...rest]);
+    const doras = () =>
+      query(
+        `SELECT s.status, s.note FROM ask_statuses s JOIN notable_people n ON n.id = s.notable_person_id
+         WHERE n.name = 'Ms Dora Dummy' AND s.ask = 'edinburgh-conference-2026'`,
+      );
+    const logged = () =>
+      query(
+        `SELECT l.details->>'status' AS status, l.details->>'note' AS note
+         FROM audit_log l JOIN notable_people n ON n.id = (l.details->>'politicianId')::bigint
+         WHERE l.action = 'set status' AND l.details->>'ask' = 'edinburgh-conference-2026' AND n.name = 'Ms Dora Dummy'
+         ORDER BY l.id DESC LIMIT 1`,
+      );
+    answering("Responded after event");
+    await syncPoliticians(NIGHTLY);
+    expect(await doras()).toEqual([{ status: "other", note: "Responded after event" }]);
+    expect(await logged()).toEqual([{ status: "other", note: "Responded after event" }]);
+    answering("Passed on request");
+    expect((await syncPoliticians(NIGHTLY)).statuses).toEqual({ added: 0, changed: 1, removed: 0 });
+    expect(await doras()).toEqual([{ status: "other", note: "Passed the request on" }]);
+    expect(await logged()).toEqual([{ status: "other", note: "Passed the request on" }]);
+    expect((await syncPoliticians(NIGHTLY)).statuses).toEqual({ added: 0, changed: 0, removed: 0 });
   });
 
   it("gives the check against Parliament the MPs in office, by constituency", async () => {
