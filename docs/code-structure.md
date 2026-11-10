@@ -217,7 +217,11 @@ the code should go instead. The rules below say which ones are enforced.
   can't both take a letter and its status always matches its history. The
   statuses, their named sets (such as `ARRIVED` or `NEVER_WENT`) and the
   events are in `lib/letter-status.ts`; a query asks for a set with
-  `statusIn()`, never a list typed out.
+  `statusIn()`, never a list typed out. Every letter, a supporter's or a
+  mailing's, goes by `sendLetterVia(channel, letter)` there, with a
+  `MailingChannel` (`lib/server/mailing-channels.ts`): a new kind of
+  letter says what it sends and what becomes of one that can't go, and a
+  new way to send is a channel.
   Schema changes are new files in `netlify/database/migrations/`, which
   Netlify applies before each production publish and to each preview's copy
   of the database. They must be backward compatible (expand, then contract)

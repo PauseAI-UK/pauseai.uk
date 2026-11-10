@@ -6,9 +6,10 @@ import { campaignBySlug } from "@/lib/email-your-mp";
 import { checkDoc, toHtml, toText } from "@/lib/letter-format";
 import { query } from "./db";
 import { isBlocked, send, sentBy, type Backend, type Purpose } from "./email";
-import { gmailAccount, sentToday } from "./gmail-accounts";
-import { letterEvent, transition } from "./letter-lifecycle";
-import { LETTERS_DAILY_LIMIT, lettersInbox } from "./letters-inbox";
+import { gmailAccount } from "./gmail-accounts";
+import { letterEvent, sendLetterVia, transition } from "./letter-lifecycle";
+import { lettersInbox, proxyAddress } from "./letters-inbox";
+import { lettersInboxEmail } from "./mailing-channels";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { reportSupporterBounces, tellOfficesOfHeldReplies } from "./held-replies";
 import { notifyStaff, reportMailingBounces, staffLink } from "./notifications";
@@ -72,7 +73,7 @@ export function lettersBackend(): Backend {
 export async function cannotSend(count: number): Promise<QueueReason | undefined> {
   const inbox = lettersInbox();
   if (!inbox || !(await gmailAccount(inbox))) return "not_connected";
-  if ((await sentToday(inbox)) + count > LETTERS_DAILY_LIMIT) return "daily_limit";
+  if ((await lettersInboxEmail.remainingToday(inbox))! < count) return "daily_limit";
   return undefined;
 }
 
@@ -130,37 +131,45 @@ export async function sendLetter(id: number): Promise<{ sent: true } | { sent: f
   }
 }
 
-/** Sends a letter sendLetter has taken. */
+/**
+ * Sends a letter sendLetter has taken, from the supporter's proxy to the
+ * MP's address, by the letters inbox; once it's gone, their copy.
+ */
 async function sendTaken(id: number): Promise<{ sent: true } | { sent: false; reason: QueueReason }> {
   const letter = (await outgoingLetter(id))!;
-  if (!letter.mpEmail || (await isBlocked(letter.mpEmail))) return requeue(id, "blocked");
-  // Room for the copy too, so the two go together.
-  const full = await cannotSend(2);
-  if (full) return requeue(id, full);
-  const doc = checkDoc(letter.letter)!;
-  const from = proxyLine(letter.senderName, letter.supporterTag);
-  const result = await send(
-    {
-      From: from,
-      To: nameLine(mpName(letter.mpName), letter.mpEmail),
-      Subject: letter.subject,
-      TextBody: toText(doc),
-      HtmlBody: toHtml(doc),
-      Attachments: await attachments(letter.campaign),
-    },
-    "letter",
+  const to = letter.mpEmail;
+  const result = await sendLetterVia(lettersInboxEmail, {
     id,
-    { backend: lettersBackend() },
-  );
-  // A block found only as it went is one the next try finds first.
-  if (!result.sent) return requeue(id, "failed");
-  await transition(id, ["sending"], "sent", {
-    event: "sent",
-    details: { from, to: letter.mpEmail, messageId: result.messageId, ...sentBy(result.backend) },
-    stamp: "sent_at",
+    purpose: "letter",
+    held: async () => {
+      if (!to || (await isBlocked(to))) return requeue(id, "blocked");
+      // Room for the copy too, so the two go together.
+      const full = await cannotSend(2);
+      return full ? requeue(id, full) : undefined;
+    },
+    message: async () => {
+      const doc = checkDoc(letter.letter)!;
+      return {
+        from: { name: letter.senderName, address: proxyAddress(letter.supporterTag) },
+        to: { name: mpName(letter.mpName), address: to! },
+        subject: letter.subject,
+        text: toText(doc),
+        html: toHtml(doc),
+        attachments: await attachments(letter.campaign),
+        letterId: id,
+      };
+    },
+    sentDetails: (sent) => ({
+      from: proxyLine(letter.senderName, letter.supporterTag),
+      to,
+      messageId: sent.messageId,
+      ...sentBy(lettersBackend()),
+    }),
+    // A block found only as it went is one the next try finds first.
+    unsent: () => requeue(id, "failed"),
   });
-  await sendCopy(id);
-  return { sent: true };
+  if (result.sent) await sendCopy(id);
+  return result;
 }
 
 /**

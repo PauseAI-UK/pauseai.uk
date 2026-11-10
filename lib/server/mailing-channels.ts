@@ -1,10 +1,11 @@
 import "server-only";
 import { send, type Purpose } from "./email";
 import { GMAIL_DAILY_LIMIT, sentToday } from "./gmail-accounts";
+import { LETTERS_DAILY_LIMIT, lettersInbox } from "./letters-inbox";
 import { deliveryProblem, type PostmarkProblem } from "./postmark-webhooks";
 import { headerName, notifyDomain, type Attachment } from "./outside-services/postmark";
 
-// How a mailing's messages go out. A channel sends one message, says how
+// How a letter or a mailing's messages go out. A channel sends one message, says how
 // many more it can send today and what one costs, and turns its provider's
 // report on a message into an event. Each has a fake for fixture builds,
 // the dev server and tests, which writes each message to the outbox
@@ -96,6 +97,33 @@ export const gmailEmail: MailingChannel = {
       { backend: { name: "gmail", account: message.from.address } },
     ),
   remainingToday: async (from) => Math.max(0, GMAIL_DAILY_LIMIT - (await sentToday(from))),
+  cost: () => 0,
+  report: () => undefined,
+};
+
+/**
+ * Email by the letters inbox, for a supporter's letter to their MP: from
+ * the supporter's proxy, "Jane Smith (via PauseAI)", so the MP's reply
+ * comes back through us (letter-sending.ts). Its limit is the inbox's own,
+ * lower than Gmail's.
+ */
+export const lettersInboxEmail: MailingChannel = {
+  sendsMailings: false,
+  send: (message, purpose) =>
+    send(
+      {
+        From: `"${headerName(message.from.name)} (via PauseAI)" <${message.from.address}>`,
+        To: `"${headerName(message.to.name)}" <${message.to.address}>`,
+        Subject: message.subject,
+        TextBody: message.text,
+        HtmlBody: message.html,
+        Attachments: message.attachments,
+      },
+      purpose,
+      message.letterId ?? null,
+      { backend: { name: "gmail", account: lettersInbox()! } },
+    ),
+  remainingToday: async () => Math.max(0, LETTERS_DAILY_LIMIT - (await sentToday(lettersInbox()!))),
   cost: () => 0,
   report: () => undefined,
 };
