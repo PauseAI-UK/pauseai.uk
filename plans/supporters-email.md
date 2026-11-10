@@ -95,8 +95,9 @@ Each new newsletter stop in `opt_outs`, and each spam complaint as
 `no_bulk_email`, goes to `updateSubscriptions`, retried until it has a
 result. Our newsletter and CiviCRM's `newsletter` are one list, so a
 newsletter yes on our forms goes too, as `resubscribe` with the box's
-words: a tick on the march form or Email your MP, or a paper sign-up,
-where writing an email address down is asking for the newsletter.
+words: a tick on the march form, Email your MP or the preferences
+page (phase 3), or a paper sign-up, where writing an email address
+down is asking for the newsletter.
 CiviCRM refuses it for an address that isn't a UK chapter contact,
 which changes nothing on our side.
 
@@ -120,17 +121,27 @@ reminders still go, needs testing.
   ([streams](https://postmarkapp.com/message-streams)), separate from
   the site's own emails on its transactional stream, for about $200–300
   a year ([pricing](https://postmarkapp.com/pricing)). It sends from
-  `hello@pauseai.uk`, which needs that address as a sender signature in
-  Postmark. Postmark reviews new broadcast senders, so apply early. A
-  small local broadcast could go by Gmail instead, with those past its
-  daily limit going the next day, and the broadcast's page saying how
-  many days it takes.
+  `hello@pauseai.uk`, a Workspace account. Postmark reviews new
+  broadcast senders, so apply early. Setting it up:
+  - pauseai.uk itself as a sending domain in Postmark, beside
+    `letters.` and `notify.` (`docs/development.md`, "Postmark"): its
+    DKIM key as a TXT record, and a Return-Path, `pm-bounces.pauseai.uk`
+    as a CNAME to `pm.mtasv.net`, so both DKIM and SPF align with the
+    From address for DMARC. Neither exists yet. The SPF record, which
+    lists Google and MailerSend, needs no change.
+  - The broadcast stream on the site's Postmark server.
+  - DMARC reports and Google Postmaster Tools (below).
 - Postmark's webhooks on the broadcast stream, as for the site's own
   emails (`lib/server/postmark-webhooks.ts`): delivery, for the
   delivered count; a bounce, marking the message failed and, if hard,
-  blocking the address; and a spam complaint. Replies come by Postmark's
-  inbound webhook to the message's page, unless the site can read
-  `hello@pauseai.uk` (open question 2).
+  blocking the address; and a spam complaint.
+- Replies go to `hello@pauseai.uk`'s inbox as now. It's connected as a
+  staff Gmail is, and the site reads its replies (`read-gmail`),
+  matching each to its broadcast by `In-Reply-To` before the one-off
+  emails look at it, and keeps it whole on the message's page. Keeping
+  only who and when, or forwarding the text to an inbox, isn't enough:
+  the old letters' Postmark replies were kept that way, and their text
+  is on no page. Someone looks at stop-like replies within a few days.
 - Opt-outs, below.
 - Three topics, "Consents" in Broadcasts: the UK newsletter, which
   includes events; events only; and volunteering, by email, text and
@@ -171,13 +182,39 @@ reminders still go, needs testing.
   paper sign-up form or the Luma checkbox but has "No bulk emails" set,
   their entry is stored as usual, and we email them with a link to the
   preferences page to lift it, saying where they signed up. The site's
-  forms send it at once, the Luma import when it reads the tick; for
-  paper sign-ups, see open question 3. It isn't bulk email: it goes
+  forms send it at once, the Luma import when it reads the tick, and the
+  paper import on import (below). It isn't bulk email: it goes
   only because they just ticked the box, once per sign-up with no
   reminders, and says only what happened and how to settle it, as the
   ICO fined Flybe for emailing people who had opted out to ask them to
-  opt back in. Each of these flows, the page included, is in the
-  storyboard.
+  opt back in. Nobody with "Do not email" gets it. Each of these flows,
+  the page included, is in the storyboard.
+- The paper import always sends it, to each new entry with "No bulk
+  emails", as signing the form is joining the list; staff don't choose.
+  Its preview makes that very clear before Import: how many will get
+  it, each one's row marked, and the email itself as they'll see it.
+  The email says when and where they signed up, from the import's date
+  collected and "Where collected", so that field's hint says it's shown
+  to them, and the preview of the email changes as it's typed. Anyone
+  with "Do not email" is marked as not hearing from us. A repeated
+  import sends nothing, as its entries are already there.
+- Opting in on the preferences page. The page opens only from a link
+  emailed to the address, so a tick there is that address's owner
+  saying yes. Each tick is a yes of its own source, the preferences
+  page, with the topic and way, the date and the box's words, kept
+  beside the others, and the latest wins, so it reopens an older stop.
+  - A newsletter email yes goes to CiviCRM as `resubscribe` (phase 2).
+    A refusal, such as `not_opted_in`, changes nothing on our side, and
+    the page doesn't mention it.
+  - Lifting "No bulk emails" goes as `allow_bulk_email` with the box's
+    words, which turns Global's bulk email back on too, as the page
+    says.
+  - An events-only email yes is ours alone: our events broadcasts use
+    it, and it doesn't add them to the Luma calendar. Turning it off
+    removes them from the calendar.
+  - A volunteering yes is ours alone.
+  - A text or call yes is for a number the email link doesn't prove is
+    theirs.
 - Staff record a yes given another way, such as at an event or in an
   email, on the supporter's page: which emails it's for, when and how
   it was given, and who recorded it. It's a yes from then on, but not
@@ -278,16 +315,11 @@ to change your PauseAI UK email settings.
 
 ## Open questions
 
-1. Once the join form stops asking intent, the preferences page lets
-   anyone say yes to volunteering. How else do new people say yes? That
-   belongs to a separate discussion about onboarding
-   (`plans/supporters-phone.md`, open question 8).
-2. Is `hello@pauseai.uk` a mailbox the site can read, as it reads
-   connected Gmails for replies from politicians (`read-gmail`)? If
-   not, replies need another address or Postmark's inbound webhook.
-3. How does the paper sign-up import send the email to people who
-   have "No bulk emails" set? The import's page could say, before staff
-   confirm, how many will get it, perhaps with a choice to send it or
-   not. Either way, staff are told it will go before they import.
-4. What events mail will we send, to people with only an events yes
-   from Luma?
+1. What events mail will we send, to people with only an events yes
+   from Luma, and how do Luma's own emails fit our stops? Organisers
+   send Luma invites to most events: London's to a few hundred past
+   London guests, national ones to past guests anywhere, and new local
+   groups' to small lists of people who were mostly never guests. How
+   they pick them isn't known, so neither is whether removing someone
+   from the calendar keeps them out. Left for a separate discussion
+   with the organisers.
