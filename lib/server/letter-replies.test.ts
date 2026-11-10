@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stubBlobsEnv } from "@/tests/gmail-sends";
+import { allResults, atOnce } from "@/tests/at-once";
 import { gzipSync } from "node:zlib";
 import {
   addTestLetter,
@@ -155,6 +156,24 @@ describeWithDatabase("a letter's thread", () => {
     expect((await replies(id)).map((row) => row.gmail)).toEqual(["r1"]);
     expect(await query("SELECT 1 FROM one_off_messages")).toEqual([]);
     expect(await letterReply("one-off/joseph@pauseai.uk/o1.eml.gz")).toBeUndefined();
+  });
+
+  it("moves each message once when runs claim at once, keeping its blob", async () => {
+    const id = await letter();
+    await onLetter(id, { gmail: "r1", thread: "gt-shared" });
+    await oneOff({ gmail: "o1", gmailThread: "gt-shared", rfc: "o1@parliament.uk" });
+    expect(allResults(await atOnce(() => claimOneOffs(id))).reduce((a, b) => a + b)).toBe(1);
+    expect((await replies(id)).map((row) => row.gmail)).toEqual(["r1", "o1"]);
+    expect(await letterReply("one-off/joseph@pauseai.uk/o1.eml.gz")).toBeDefined();
+  });
+
+  it("keeps a copy's blob when a message on a letter is kept under the same key", async () => {
+    const id = await letter();
+    await onLetter(id, { gmail: "r1", thread: "gt-shared", rfc: "same@parliament.uk" });
+    await query("UPDATE letter_replies SET blob_key = 'one-off/joseph@pauseai.uk/o1.eml.gz'");
+    await oneOff({ gmail: "o1", gmailThread: "gt-shared", rfc: "same@parliament.uk" });
+    expect(await claimOneOffs(id)).toBe(0);
+    expect(await letterReply("one-off/joseph@pauseai.uk/o1.eml.gz")).toBeDefined();
   });
 
   it("drops one the letter has by its Gmail ID, under a blob of its own", async () => {

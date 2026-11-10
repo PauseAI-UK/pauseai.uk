@@ -229,8 +229,9 @@ const CLAIMED_THREADS = `
  * thread is in one place. Moving adds nothing to the letter's history, which
  * says what arrived when it arrived, but for an automatic reply's note, which
  * marks it as one on the letter's page. A copy of a message the letter has
- * goes, with its blob. Each message moves in one transaction, so one left by
- * a run that stopped moves next time. Says how many moved.
+ * goes, with its blob. Each message moves in one transaction, which takes it
+ * first, so two runs at once move it once, and one left by a run that stopped
+ * moves next time. Says how many moved.
  */
 export async function claimOneOffs(letterId: number): Promise<number> {
   const claimed = await query<Claimed>(
@@ -242,14 +243,19 @@ export async function claimOneOffs(letterId: number): Promise<number> {
   );
   let moved = 0;
   for (const message of claimed) {
-    if (await hasMessage(letterId, message.rfc)) {
-      await query("DELETE FROM one_off_messages WHERE id = $1", [message.id]);
-      await deleteLetterReply(message.blobKey);
-      continue;
-    }
     const { auto } = await messageContent(message.blobKey);
     const supporter = await isSupporter(letterId, message.fromAddress);
-    const kept = await transaction(async (db) => {
+    const outcome = await transaction(async (db): Promise<"moved" | "copy" | "gone"> => {
+      const [taken] = await query("DELETE FROM one_off_messages WHERE id = $1 RETURNING id", [message.id], db);
+      if (!taken) return "gone";
+      if (message.rfc) {
+        const [copy] = await query(
+          "SELECT 1 FROM letter_replies WHERE letter_id = $1 AND rfc_message_id = $2",
+          [letterId, message.rfc],
+          db,
+        );
+        if (copy) return "copy";
+      }
       const [kept] = await query(
         `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address,
            from_name, subject, at, from_us, blob_key, size, from_supporter)
@@ -272,8 +278,8 @@ export async function claimOneOffs(letterId: number): Promise<number> {
         ],
         db,
       );
-      await query("DELETE FROM one_off_messages WHERE id = $1", [message.id], db);
-      if (!kept) return false;
+      // The same Gmail message is on the letter already.
+      if (!kept) return "copy";
       if (auto) {
         const details = {
           from: message.fromAddress,
@@ -288,11 +294,14 @@ export async function claimOneOffs(letterId: number): Promise<number> {
           db,
         );
       }
-      return true;
+      return "moved";
     });
-    // The same Gmail message is on the letter already, under its own blob.
-    if (!kept) await deleteLetterReply(message.blobKey);
-    else moved++;
+    if (outcome === "moved") moved++;
+    // A copy's blob goes, unless a message on a letter is kept under the same key.
+    if (outcome === "copy") {
+      const [used] = await query("SELECT 1 FROM letter_replies WHERE blob_key = $1", [message.blobKey]);
+      if (!used) await deleteLetterReply(message.blobKey);
+    }
   }
   const threads = [...new Set(claimed.map((message) => message.threadId))];
   await query(
