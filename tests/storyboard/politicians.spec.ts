@@ -44,8 +44,9 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText("Met at the example fair.")).toBeVisible();
   const asks = page.getByRole("region", { name: copy.statusesTitle });
   // ControlAI's campaign statement and her answer to the conference, as staff recorded them.
-  await expect(asks.getByText(staffCopy.statuses.declined)).toBeVisible();
-  await expect(asks.getByText(staffCopy.statuses.signed)).toBeVisible();
+  const answer = (ask: RegExp) => asks.getByRole("group", { name: ask }).locator("[class*=answer]");
+  await expect(answer(/^Edinburgh/)).toHaveText(new RegExp(`^${staffCopy.statuses.declined}`));
+  await expect(answer(/^ControlAI's campaign statement/)).toHaveText(new RegExp(`^${staffCopy.statuses.signed}`));
   // The conference's invitation, personalised, in her folded history.
   await expect(page.getByText(copy.personalised, { exact: false }).first()).toBeAttached();
   await frame(page, "Polly's page");

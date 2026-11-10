@@ -57,7 +57,8 @@ export async function syncPoliticians(request: APIRequestContext, base: string) 
  * to the asks: Polly signed ControlAI's statement and declined the Edinburgh
  * conference, Morag is going to it, Lord Seedling signed the DeepMind letter
  * and Rita Retired the Frontier AI letter. Run after syncPoliticians, which
- * adds them.
+ * adds them. An answer they already have stays, as on a build whose sync
+ * set them.
  */
 export function recordAnswers(database: string) {
   runSql(
@@ -70,7 +71,8 @@ export function recordAnswers(database: string) {
                   ('recSeedling', 'deepmind-letter', 'signed'),
                   ('recRetired', 'frontier-ai-letter', 'signed')) AS v (record, ask, status)
      JOIN notable_people n ON n.airtable_id = v.record
-     JOIN asks a ON a.slug = v.ask`,
+     JOIN asks a ON a.slug = v.ask
+     ON CONFLICT DO NOTHING`,
   );
 }
 
