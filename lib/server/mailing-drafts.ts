@@ -13,7 +13,7 @@ import { toHtml, toText } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
 import { logChange } from "./audit";
-import { query, transaction } from "./db";
+import { query, transaction, type Queryable } from "./db";
 import { gmailAccount } from "./gmail-accounts";
 import { gmailEmail, mailingChannel, postmarkEmail, type ChannelResult } from "./mailing-channels";
 import { politicianAudience, type PoliticianRecipient } from "./mailing-recipients";
@@ -51,7 +51,12 @@ export type WrittenMailing = {
 
 /** What a save can change. */
 export type MailingChanges = Partial<
-  Pick<WrittenMailing, "filter" | "subject" | "body" | "ask" | "sentFrom" | "fromName" | "dueAt">
+  Pick<WrittenMailing, "filter" | "subject" | "body" | "ask" | "sentFrom" | "fromName" | "dueAt"> & {
+    /** A text's, which has no subject to be its title. */
+    title: string;
+    /** The WhatsApp template a text goes on. */
+    templateId: number | null;
+  }
 >;
 
 /** Each change, by its column. */
@@ -63,6 +68,8 @@ const COLUMNS: Record<keyof MailingChanges, string> = {
   sentFrom: "sent_from",
   fromName: "from_name",
   dueAt: "due_at",
+  title: "title",
+  templateId: "template_id",
 };
 
 /** A save, or why not: someone else saved since, it's no longer a draft, or it's gone. */
@@ -210,17 +217,23 @@ export async function choosingFor(mailing: string): Promise<Choosing | undefined
   };
 }
 
-/** A mailing written here, as stored; undefined for none, or one imported from Airtable. */
-export async function getWrittenMailing(id: number): Promise<WrittenMailing | undefined> {
-  const [row] = await query<WrittenMailing>(`${SELECT_WRITTEN} AND m.id = $1`, [id]);
+/** A mailing written here to `audience`, as stored; undefined for none, or one imported from Airtable. */
+export async function getWrittenMailing(
+  id: number,
+  audience: "politicians" | "supporters" = "politicians",
+): Promise<WrittenMailing | undefined> {
+  const [row] = await query<WrittenMailing>(`${SELECT_WRITTEN} AND m.id = $1 AND m.audience = $2`, [id, audience]);
   if (!row) return undefined;
   return { ...row, filter: checkStoredFilter(row.filter)!, body: checkMailingDoc(row.body)! };
 }
 
-/** A mailing written here, as someone opens it, which keeps it from being tidied away. */
-export async function openWrittenMailing(id: number): Promise<WrittenMailing | undefined> {
+/** A mailing written here to `audience`, as someone opens it, which keeps it from being tidied away. */
+export async function openWrittenMailing(
+  id: number,
+  audience: "politicians" | "supporters" = "politicians",
+): Promise<WrittenMailing | undefined> {
   await query("UPDATE mailings SET opened_at = now() WHERE id = $1 AND body IS NOT NULL", [id]);
-  return getWrittenMailing(id);
+  return getWrittenMailing(id, audience);
 }
 
 /** Why a save to `id` at a version didn't happen. */
@@ -285,10 +298,12 @@ export async function removeAttachment(id: number, version: number, attachmentId
 export async function attachmentFile(
   mailingId: number,
   attachmentId: number,
+  audience: "politicians" | "supporters" = "politicians",
 ): Promise<{ filename: string; contentType: string; content: Buffer } | undefined> {
   const [file] = await query<{ filename: string; contentType: string; content: Buffer }>(
-    `SELECT filename, content_type AS "contentType", content FROM mailing_attachments WHERE id = $2 AND mailing_id = $1`,
-    [mailingId, attachmentId],
+    `SELECT a.filename, a.content_type AS "contentType", a.content FROM mailing_attachments a
+     JOIN mailings m ON m.id = a.mailing_id WHERE a.id = $2 AND a.mailing_id = $1 AND m.audience = $3`,
+    [mailingId, attachmentId, audience],
   );
   return file;
 }
@@ -332,6 +347,44 @@ export type ScheduleResult =
   | { scheduled: false; problems: ScheduleProblem[] }
   | { scheduled: false; reason: "conflict" | "not-draft" | "gone" };
 
+/** Why draft `id` can't be scheduled at `version`, having locked it in `db`'s transaction; none if it can. */
+export async function lockDraft(
+  id: number,
+  version: number,
+  db: Queryable,
+  audience?: "supporters",
+): Promise<"gone" | "not-draft" | "conflict" | undefined> {
+  const [locked] = await query<{ state: MailingState; version: number }>(
+    `SELECT state, version FROM mailings WHERE id = $1 AND body IS NOT NULL${audience ? " AND audience = $2" : ""} FOR UPDATE`,
+    audience ? [id, audience] : [id],
+    db,
+  );
+  if (!locked) return "gone";
+  if (locked.state !== "draft") return "not-draft";
+  if (locked.version !== version) return "conflict";
+  return undefined;
+}
+
+/** Marks locked draft `id` scheduled: with no name of its own, it goes in the name its account has. */
+export async function markScheduled(id: number, db: Queryable): Promise<void> {
+  await query(
+    `UPDATE mailings SET state = 'scheduled', from_name = coalesce(from_name, ''), version = version + 1, updated_at = now()
+     WHERE id = $1`,
+    [id],
+    db,
+  );
+}
+
+/** Marks scheduled `id` a draft again, its own rows dealt with first. */
+export async function markUnscheduled(id: number, db: Queryable): Promise<void> {
+  await query("UPDATE mailings SET state = 'draft', version = version + 1, updated_at = now() WHERE id = $1", [id], db);
+}
+
+/** Marks `id`, stopped while sending, cancelled, its unsent rows dealt with first. */
+export async function markCancelled(id: number, db: Queryable): Promise<void> {
+  await query("UPDATE mailings SET state = 'cancelled', updated_at = now() WHERE id = $1", [id], db);
+}
+
 /**
  * Schedules a draft at `version`, if nothing stops it: its recipients are
  * fixed, a scheduled PauseAI letter each, keeping the values of its merge
@@ -344,14 +397,8 @@ export async function scheduleMailing(
   channel = mailingChannel("email"),
 ): Promise<ScheduleResult> {
   return transaction(async (db) => {
-    const [locked] = await query<{ state: MailingState; version: number }>(
-      "SELECT state, version FROM mailings WHERE id = $1 AND body IS NOT NULL FOR UPDATE",
-      [id],
-      db,
-    );
-    if (!locked) return { scheduled: false, reason: "gone" };
-    if (locked.state !== "draft") return { scheduled: false, reason: "not-draft" };
-    if (locked.version !== version) return { scheduled: false, reason: "conflict" };
+    const refused = await lockDraft(id, version, db);
+    if (refused) return { scheduled: false, reason: refused };
     const mailing = (await getWrittenMailing(id))!;
     const [audience, unknown] = await Promise.all([politicianAudience(mailing.filter), filterProblems(mailing.filter)]);
     const problems = scheduleProblems({
@@ -363,13 +410,7 @@ export async function scheduleMailing(
       connected: Boolean(mailing.sentFrom && (await gmailAccount(mailing.sentFrom))),
     });
     if (problems.length) return { scheduled: false, problems };
-    await query(
-      // With no name of its own, it goes in the name the Gmail account has.
-      `UPDATE mailings SET state = 'scheduled', from_name = coalesce(from_name, ''), version = version + 1, updated_at = now()
-       WHERE id = $1`,
-      [id],
-      db,
-    );
+    await markScheduled(id, db);
     await query(
       `WITH r AS (SELECT * FROM json_to_recordset($2::json) AS r (id bigint, "values" json, meets json)),
          l AS (INSERT INTO letters (kind, notable_person_id, status) SELECT 'pauseai', r.id, 'scheduled' FROM r
@@ -401,11 +442,7 @@ export async function stopMailing(id: number, by: string): Promise<boolean> {
         [id],
         db,
       );
-      await query(
-        "UPDATE mailings SET state = 'draft', version = version + 1, updated_at = now() WHERE id = $1",
-        [id],
-        db,
-      );
+      await markUnscheduled(id, db);
     } else if (mailing?.state === "sending") {
       await query(
         `UPDATE letters SET status = 'cancelled'
@@ -413,7 +450,7 @@ export async function stopMailing(id: number, by: string): Promise<boolean> {
         [id],
         db,
       );
-      await query("UPDATE mailings SET state = 'cancelled', updated_at = now() WHERE id = $1", [id], db);
+      await markCancelled(id, db);
     } else {
       return false;
     }
@@ -452,7 +489,7 @@ export function emailFor(mailing: Pick<WrittenMailing, "subject" | "body">, reci
  */
 export async function sendTestCopy(
   mailing: WrittenMailing,
-  recipient: PoliticianRecipient,
+  recipient: MailingRecipientValues & Pick<PoliticianRecipient, "name">,
   to: string,
 ): Promise<ChannelResult> {
   const email = emailFor(mailing, recipient);

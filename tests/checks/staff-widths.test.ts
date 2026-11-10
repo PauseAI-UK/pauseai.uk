@@ -24,6 +24,8 @@ const ALLOWED: Record<string, string> = {
   "MailingWriter.module.css .whoShown": "a field",
   "MailingWriter.module.css .testTo": "a field",
   "StaffNav.module.css .menu > div": "the menu's dropdown",
+  // A picture of a phone: a text's preview, as wide as theirs.
+  "Broadcasts.module.css .phone": "a phone's screen",
   // The login page: one card in the middle of the window, with no grid.
   "LoginCard.module.css .login": "the login page",
   "DevLogin.module.css .dev": "the login page",

@@ -34,6 +34,7 @@ const GROUPS = [
   "staff-letters",
   "staff-politicians",
   "staff-mailings-events",
+  "staff-broadcasts",
   "staff-admin",
 ];
 

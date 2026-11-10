@@ -10,6 +10,7 @@ import type { Permission } from "./staff-permissions";
 
 export type StaffPageId =
   | "supporters"
+  | "broadcasts"
   | "signupUpload"
   | "campaigns"
   | "events"
@@ -28,9 +29,9 @@ export type StaffSectionId = "supporters" | "events" | "politicians" | "admin";
 /**
  * A page in the navigation: which, where, and the permission it needs. The
  * paths `under` it too, besides its own: pages that belong with it but live
- * elsewhere.
+ * elsewhere. `draft`, for a page to try out that can't do its job yet, which says so in the navigation.
  */
-export type StaffPageLink = { id: StaffPageId; href: string; permission?: Permission; under?: string[] };
+export type StaffPageLink = { id: StaffPageId; href: string; permission?: Permission; under?: string[]; draft?: true };
 
 export type StaffSection = { id: StaffSectionId; pages: StaffPageLink[] };
 
@@ -40,6 +41,7 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
     pages: [
       // A supporter's letters are a page of the supporter's.
       { id: "supporters", href: "/staff/supporters", permission: "supporters", under: ["/staff/letters/supporter"] },
+      { id: "broadcasts", href: "/staff/broadcasts", permission: "supporters", draft: true },
       // A letter's page stays at /staff/letters/[id], and shows in Campaigns.
       { id: "campaigns", href: "/staff/campaigns", permission: "supporters", under: ["/staff/letters"] },
       { id: "supporterEmails", href: "/staff/supporters/blocked-emails", permission: "supporters" },
@@ -64,8 +66,8 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
   {
     id: "admin",
     pages: [
-      { id: "sentEmails", href: "/staff/sent-emails", permission: "admin" },
       { id: "import", href: "/staff/import-data" },
+      { id: "sentEmails", href: "/staff/sent-emails", permission: "admin" },
       { id: "changes", href: "/staff/audit-log", permission: "admin" },
       { id: "accounts", href: "/staff/accounts", permission: "admin" },
     ],

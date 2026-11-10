@@ -66,14 +66,19 @@
 }
 
 /* Hung from its button's bottom left, where the browser can anchor it;
-   flipped to the left, or above the button, where there isn't room. */
+   flipped to the left, or above the button, where there isn't room, or
+   to whichever side has more room when it fits neither, and no taller
+   than that side, its padding, border and gap from the button counted,
+   so its last choice can always be scrolled to on a short phone. */
 @supports (position-area: bottom) {
   .menu {
+    max-height: calc(100% - 2 * (var(--space-2) + var(--space-3) + 1px));
     margin: var(--space-2) 0;
     position-area: bottom span-right;
     position-try-fallbacks:
       flip-inline,
       flip-block,
       flip-block flip-inline;
+    position-try-order: most-height;
   }
 }

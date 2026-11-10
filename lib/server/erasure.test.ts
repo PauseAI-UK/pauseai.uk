@@ -78,7 +78,7 @@ describeWithDatabase("eraseSupporter", () => {
          INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state)
          VALUES ('Events', 'supporters', 'email', 'luma-calendar', '{}', '{}', 'jo@pauseai.uk', 'jo@pauseai.uk', 'PauseAI UK', now(), 'sent')
          RETURNING id)
-       INSERT INTO messages_to_supporters (mailing_id, supporter_id, address, status, merge_values, sent_at)
+       INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, merge_values, sent_at)
        SELECT id, $1, 'jane.fixture@example.com', 'delivered', '{"name": "Jane"}', now() FROM m`,
       [id],
     );
@@ -115,7 +115,7 @@ describeWithDatabase("eraseSupporter", () => {
     expect(await query("SELECT 1 FROM members WHERE email = 'jane.fixture@example.com'")).toEqual([]);
     expect(await query("SELECT id FROM members_erased")).toEqual([{ id: "recMemberJane" }]);
     // The message stays, as one delivered, without who to or what it said.
-    expect(await query("SELECT supporter_id, address, merge_values, status FROM messages_to_supporters")).toEqual([
+    expect(await query("SELECT supporter_id, address, merge_values, status FROM broadcast_messages")).toEqual([
       { supporter_id: null, address: null, merge_values: null, status: "delivered" },
     ]);
     expect(await query("SELECT actor, action, details FROM audit_log ORDER BY id DESC LIMIT 1")).toEqual([
@@ -136,14 +136,14 @@ describeWithDatabase("eraseSupporter", () => {
       },
     ]);
     // Everyone else is still there, and the next import doesn't bring Jane back.
-    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 13 }]);
+    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 14 }]);
     await query("UPDATE luma_events SET guests_synced_at = NULL, hosts_synced_at = NULL");
     await importLuma("test");
     await importMembers("test");
     expect(await query("SELECT 1 FROM luma_people WHERE user_id = 'usr-fixture-1'")).toEqual([]);
     expect(await query("SELECT 1 FROM luma_event_hosts WHERE user_id = 'usr-fixture-1'")).toEqual([]);
     expect(await query("SELECT 1 FROM members WHERE id = 'recMemberJane'")).toEqual([]);
-    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 13 }]);
+    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 14 }]);
   });
 
   describe("a letter from the letters inbox", () => {

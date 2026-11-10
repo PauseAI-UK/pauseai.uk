@@ -9,6 +9,7 @@ import { staffDate } from "@/lib/staff-time";
 import styles from "./PoliticianCorrespondence.module.css";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
+import { statusOf } from "./LetterStatus";
 
 const copy = staffCopy.politician.correspondence;
 
@@ -42,7 +43,7 @@ function Thread({ thread }: { thread: CorrespondenceThread }) {
     <li>
       {thread.href ? <StaffLink href={thread.href}>{title}</StaffLink> : title}{" "}
       <Tag>{staffCopy.allLetters.topicKinds[thread.kind]}</Tag>
-      {thread.status && <Muted> · {staffCopy.letters.status[thread.status] ?? thread.status}</Muted>}
+      {thread.status && <Muted> · {statusOf(thread.status)}</Muted>}
       {(thread.ownWords ?? 0) >= OWN_WORDS_WORTH_MARKING && (
         <span className={styles.ownWords}>
           <Tag tone="amber">

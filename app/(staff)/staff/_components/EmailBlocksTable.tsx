@@ -12,6 +12,9 @@ import TestTag from "./TestTag";
 
 const copy = staffCopy.emails;
 
+/** A supporter's name, or that they have none. */
+const supporterName = (s: EmailBlock["supporters"][number]) => s.name ?? staffCopy.supporters.noName;
+
 /** What the email that found an address out was, in words: a letter, by whom it was to, or what the site sent. */
 function sentWords(block: EmailBlock): string | null {
   if (block.letter) return `${copy.letterTo} ${block.letter.to}`;
@@ -20,7 +23,8 @@ function sentWords(block: EmailBlock): string | null {
 
 /**
  * The blocked addresses' columns, as every list's go (docs/style-guide.md):
- * the address and whose; why, and the email that found it out (a letter
+ * the address and whose, politicians' then supporters', each linked to
+ * their page; why, and the email that found it out (a letter
  * linked with `letterLinks`); how many emails haven't been sent since;
  * since when; and with `unblock`, a way to unblock each, which a download
  * leaves out.
@@ -34,15 +38,22 @@ export function blockColumns(
     {
       key: "whose",
       label: copy.columns.whose,
-      text: (b) => b.politicians.map((p) => p.name).join("; "),
-      cell: (b) =>
-        b.politicians.map((p, i) => (
-          <span key={p.id}>
+      text: (b) => [...b.politicians.map((p) => p.name), ...b.supporters.map(supporterName)].join("; "),
+      cell: (b) => [
+        ...b.politicians.map((p, i) => (
+          <span key={`p${p.id}`}>
             {i > 0 && ", "}
             <StaffLink href={`/staff/politicians/${p.id}`}>{p.name}</StaffLink>
             <TestTag isTest={p.isTest} />
           </span>
         )),
+        ...b.supporters.map((s, i) => (
+          <span key={`s${s.id}`}>
+            {(i > 0 || b.politicians.length > 0) && ", "}
+            <StaffLink href={`/staff/supporters/${s.id}`}>{supporterName(s)}</StaffLink>
+          </span>
+        )),
+      ],
     },
     {
       key: "kind",

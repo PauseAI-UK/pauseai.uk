@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { ANSWER_GROUPS, askSlug, FIXED_ASKS, type Asker, type AskKind, type AskStatus } from "@/lib/asks";
+import { ASK_STATUSES, askSlug, FIXED_ASKS, type Asker, type AskKind, type AskStatus } from "@/lib/asks";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
 
@@ -113,6 +113,8 @@ export type AskAnswer = {
   party: string | null;
   /** Null for someone written to who hasn't answered. */
   status: AskStatus | null;
+  /** What an answer of "other" was, and any other note on it; "" for none. */
+  note: string;
   /** When a campaign or mailing that put the ask last wrote to them; null if none has. */
   lastWrittenTo: Date | null;
 };
@@ -126,15 +128,15 @@ const WRITTEN_TO = `written AS (
   WHERE c.ask = $1 OR m.ask = $1 GROUP BY 1
 )`;
 
-/** Who gave the answer $2, from `written`: those with a status in $3, or with "none" those written to who haven't answered. */
+/** Who gave the answer $2, from `written`: those with that status, or with "none" those written to who haven't answered. */
 const ANSWERS_FROM = `FROM notable_people n
     LEFT JOIN politicians p ON p.id = n.id
     LEFT JOIN ask_statuses s ON s.notable_person_id = n.id AND s.ask = $1
     LEFT JOIN written w ON w.id = n.id
   WHERE CASE WHEN $2::text = 'none' THEN w.id IS NOT NULL AND s.status IS NULL
-    ELSE s.status = ANY($3::text[]) END`;
+    ELSE s.status = $2 END`;
 
-/** One column of an ask's answers (ANSWER_GROUPS, or "none"): how many gave it, and the first few of them. */
+/** One column of an ask's answers (an answer its kind allows, or "none"): how many gave it, and the first few of them. */
 export type AskAnswerGroup = { key: string; total: number; people: AskAnswer[] };
 
 /** An ask's own page: how it was put, its answers' columns, and, with an answer chosen, a page of those who gave it. */
@@ -156,14 +158,15 @@ const ANSWERS_PAGE_SIZE = 100;
 const ANSWER_COLUMN_SIZE = 5;
 
 /** Those who gave `answer` to an ask, by name, or for "none", whoever was written to longest ago first. */
-function answersGiven(slug: string, answer: string, statuses: readonly string[], limit: number, offset: number) {
+function answersGiven(slug: string, answer: string, limit: number, offset: number) {
   return query<AskAnswer>(
     `WITH ${WRITTEN_TO}
-     SELECT n.id::int AS "politicianId", n.name, p.is_test AS "isTest", p.constituency, p.party, s.status, w.at AS "lastWrittenTo"
+     SELECT n.id::int AS "politicianId", n.name, p.is_test AS "isTest", p.constituency, p.party, s.status,
+       coalesce(s.note, '') AS note, w.at AS "lastWrittenTo"
      ${ANSWERS_FROM}
      ORDER BY CASE WHEN $2::text = 'none' THEN w.at END, n.name
      LIMIT ${limit} OFFSET ${offset}`,
-    [slug, answer, statuses],
+    [slug, answer],
   );
 }
 
@@ -189,28 +192,22 @@ export async function askPageData(slug: string, answer = "", page = 1): Promise<
   );
   if (!ask) return undefined;
   const columns = [
-    ...ANSWER_GROUPS[ask.kind].map(({ key, statuses }) => ({
-      key,
-      statuses,
-      total: statuses.reduce((sum, status) => sum + (ask.counts[status] ?? 0), 0),
-    })),
-    ...(ask.noAnswer ? [{ key: "none", statuses: [], total: ask.noAnswer }] : []),
+    ...ASK_STATUSES[ask.kind].map((key) => ({ key, total: ask.counts[key] ?? 0 })),
+    ...(ask.noAnswer ? [{ key: "none", total: ask.noAnswer }] : []),
   ];
-  const chosen = columns.find((column) => column.key === answer)?.statuses ?? [];
   const [groups, answers, total] = await Promise.all([
     Promise.all(
-      columns.map(async ({ key, statuses, total: count }) => ({
+      columns.map(async ({ key, total: count }) => ({
         key,
         total: count,
-        people: answer ? [] : await answersGiven(slug, key, statuses, ANSWER_COLUMN_SIZE, 0),
+        people: answer ? [] : await answersGiven(slug, key, ANSWER_COLUMN_SIZE, 0),
       })),
     ),
-    answer ? answersGiven(slug, answer, chosen, ANSWERS_PAGE_SIZE, (page - 1) * ANSWERS_PAGE_SIZE) : [],
+    answer ? answersGiven(slug, answer, ANSWERS_PAGE_SIZE, (page - 1) * ANSWERS_PAGE_SIZE) : [],
     answer
       ? query<{ total: number }>(`WITH ${WRITTEN_TO} SELECT count(*)::int AS total ${ANSWERS_FROM}`, [
           slug,
           answer,
-          chosen,
         ]).then(([row]) => row.total)
       : 0,
   ]);

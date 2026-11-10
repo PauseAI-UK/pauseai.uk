@@ -125,7 +125,7 @@ export async function eraseSupporter(id: number, reference: string, by: string):
     await query("DELETE FROM members WHERE id = ANY($1::text[])", [members], db);
     // A message they were sent keeps only that it was.
     await query(
-      "UPDATE messages_to_supporters SET supporter_id = NULL, address = NULL, merge_values = NULL WHERE supporter_id = $1",
+      "UPDATE broadcast_messages SET supporter_id = NULL, address = NULL, merge_values = NULL WHERE supporter_id = $1",
       [id],
       db,
     );

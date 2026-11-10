@@ -147,6 +147,29 @@ describe("MailingEditor", () => {
     expect(last(onChange).content![0]).toMatchObject({ type: "paragraph" });
   });
 
+  it("searches a group of many, showing none till something's typed, then those with it", async () => {
+    const events = ["Leeds talk", "London social", "Leeds flyering"].map((name, i) => ({
+      id: `event:${i}`,
+      label: `went to ${name}`,
+      group: "Registered for",
+      option: name,
+      covers: 3,
+      searchable: true,
+    }));
+    const onChange = await renderEditor([paragraph(text("See you there."))], { fields, conditions: events });
+    await toEnd();
+    const only = page.getByRole("menu", { name: copy.addOnlyFor });
+    await page.getByRole("button", { name: copy.addOnlyFor }).click();
+    await only.getByRole("menuitem", { name: "Registered for" }).click();
+    expect(only.getByRole("menuitem", { name: /Leeds talk/ }).query()).toBeNull();
+    await only.getByRole("searchbox", { name: staffCopy.filters.narrow }).fill("leeds");
+    await expect.element(only.getByRole("menuitem", { name: /Leeds talk/ })).toBeVisible();
+    await expect.element(only.getByRole("menuitem", { name: /Leeds flyering/ })).toBeVisible();
+    expect(only.getByRole("menuitem", { name: /London social/ }).query()).toBeNull();
+    await only.getByRole("menuitem", { name: /Leeds flyering/ }).click();
+    expect(last(onChange).content![0]).toMatchObject({ type: "onlyFor", attrs: { condition: "event:2" } });
+  });
+
   it("counts those an except part leaves in, out of the recipients", async () => {
     await renderEditor([paragraph(text("Thank you."))], { fields, conditions }, 20);
     await page.getByRole("button", { name: copy.except }).click();

@@ -14,6 +14,7 @@ import MailEmail from "@/app/(staff)/staff/_components/MailEmail";
 import CampaignLetter from "@/app/(staff)/staff/_components/CampaignLetter";
 import CampaignsOverview, { CampaignAsk } from "@/app/(staff)/staff/_components/CampaignsOverview";
 import CampaignView from "@/app/(staff)/staff/_components/CampaignView";
+import LetterStatus from "@/app/(staff)/staff/_components/LetterStatus";
 import { OneOffTable } from "@/app/(staff)/staff/_components/OneOffList";
 import OneOffThreadView from "@/app/(staff)/staff/_components/OneOffThreadView";
 import {
@@ -43,7 +44,8 @@ import { campaigns } from "@/lib/content/email-your-mp";
 import BounceReason from "@/app/(staff)/staff/_components/BounceReason";
 import LetterChanges from "@/app/(staff)/staff/_components/LetterChanges";
 import MailFold from "@/app/(staff)/staff/_components/MailFold";
-import { MessageText } from "@/app/(staff)/staff/_components/LetterThread";
+import { MessageText, Thread } from "@/app/(staff)/staff/_components/LetterThread";
+import { staffCopy } from "@/lib/content/staff-interface";
 import ThreadEmail from "@/app/(staff)/staff/_components/ThreadEmail";
 import LetterThread, { SupporterLetterThread } from "@/app/(staff)/staff/_components/LetterThread";
 import { exampleImportedThread, exampleThread } from "@/app/(staff)/staff/_components/LetterThread.examples";
@@ -149,6 +151,32 @@ export const staffLetters: Group = {
               </StaffPage>
             );
           },
+        },
+      ],
+    },
+    {
+      name: "Thread",
+      file: "app/(staff)/staff/_components/LetterThread.tsx",
+      variants: [
+        {
+          label: "A thread's section: its heading, a link at its right, over its messages",
+          render: () => (
+            <StaffPage as="div">
+              <Thread link={<a href="#">Open in Gmail</a>}>
+                <ThreadEmail {...EXAMPLE_EMAIL}>Dear Mr McTestface, thank you.</ThreadEmail>
+              </Thread>
+            </StaffPage>
+          ),
+        },
+        {
+          label: "Titled as a broadcast's message is",
+          render: () => (
+            <StaffPage as="div">
+              <Thread title={staffCopy.broadcastPages.threadTitle}>
+                <ThreadEmail {...EXAMPLE_EMAIL}>Hi Jane, the march meets at 11:00.</ThreadEmail>
+              </Thread>
+            </StaffPage>
+          ),
         },
       ],
     },
@@ -667,6 +695,47 @@ export const staffLetters: Group = {
           render: () => (
             <StaffPage as="div">
               <SupporterLetterViewExample ask={false} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "LetterStatus",
+      file: "app/(staff)/staff/_components/LetterStatus.tsx",
+      variants: [
+        {
+          label: "Every status, every skip, and Answered or Replied beside one",
+          render: () => (
+            <StaffPage as="div">
+              <ul>
+                {[
+                  "scheduled",
+                  "sending",
+                  "sent",
+                  "queued",
+                  "not_sent",
+                  "bounced",
+                  "spam_complaint",
+                  "uncertain",
+                  "cancelled",
+                ].map((status) => (
+                  <li key={status}>
+                    <LetterStatus status={status} answered={false} replied={false} />
+                  </li>
+                ))}
+                {(["blocked", "left-office", "no-email"] as const).map((reason) => (
+                  <li key={reason}>
+                    <LetterStatus status="skipped" skipReason={reason} answered={false} replied={false} />
+                  </li>
+                ))}
+                <li>
+                  <LetterStatus status="sent" answered={false} replied />
+                </li>
+                <li>
+                  <LetterStatus status="bounced" answered replied />
+                </li>
+              </ul>
             </StaffPage>
           ),
         },

@@ -17,6 +17,7 @@ import FilterBar, { type Filter } from "./ui/FilterBar";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
+import { statusOf } from "./LetterStatus";
 
 const PATH = "/staff/emails";
 const copy = staffCopy.allLetters;
@@ -88,8 +89,7 @@ function Status({ letter }: { letter: AnyLetter }) {
       : `/staff/letters/${letter.id}`;
   return (
     <>
-      {words.status[letter.status] ?? letter.status} ·{" "}
-      <StaffLink href={href}>{staffCopy.mailingPages.theLetter}</StaffLink>
+      {statusOf(letter.status)} · <StaffLink href={href}>{staffCopy.mailingPages.theLetter}</StaffLink>
     </>
   );
 }

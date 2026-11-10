@@ -1,0 +1,372 @@
+import type { Page } from "@playwright/test";
+import { staffCopy } from "@/lib/content/staff-interface";
+import { runSql } from "@/scripts/fresh-database.mjs";
+import { addStaffAccount, importLuma, logInAsStaff, newestEmail } from "../steps";
+import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import type { Section } from "./report/frames";
+
+export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
+
+// Broadcasts to supporters: started from the supporters list's Consent filter,
+// by email or text; a text on a WhatsApp approved template, or on new words
+// sent for approval; who it's to changed from the list; and the pages of those
+// sent, and each copy's, made in the database as scheduling and sending would
+// make them.
+
+const copy = staffCopy.broadcastPages;
+const mailingCopy = staffCopy.mailingPages;
+const EMAIL = "contact=email%3Aluma-calendar%3Ayes";
+const TEXT = "contact=phone%3Aluma-calendar%3Ayes";
+/** How many of the fixture's supporters each filter finds. */
+const EMAILABLE = 3;
+const TEXTABLE = 1;
+const WORDS =
+  '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hi "}, {"type": "field", "attrs": {"field": "firstName"}}, {"type": "text", "text": ", the march meets at 11:00 at Parliament Square."}]}]}';
+
+/** This flow's own staff address: flows run alongside each other, and share the outbox. */
+const staffEmail = () => `msg-${test.info().testId.replace(/\W/g, "").slice(-8)}@pauseai.uk`;
+
+async function logIn(page: Page, database: string) {
+  addStaffAccount(database, staffEmail(), ["supporters"]);
+  return logInAsStaff(page, BASE, staffEmail());
+}
+
+/** Starts a broadcast from the supporters list, with these filters, and opens the writer. */
+async function startFromList(page: Page, filters: string, n: number) {
+  await page.goto(`${BASE}/staff/supporters?${filters}`);
+  await page.getByRole("button", { name: copy.broadcastButton(n) }).click();
+  await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
+}
+
+/**
+ * Templates WhatsApp has approved, each with its own words, named as they
+ * will be: most by staff, and one made in WhatsApp Manager, named as Meta
+ * names them.
+ */
+function addTemplates(database: string) {
+  runSql(
+    database,
+    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at)
+     SELECT name, jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph',
+         'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Hi '),
+           jsonb_build_object('type', 'field', 'attrs', jsonb_build_object('field', 'firstName')),
+           jsonb_build_object('type', 'text', 'text', ', ' || words))))),
+       'approved', by, '2026-10-01T10:00:00Z'::timestamptz - n * interval '1 day'
+     FROM (VALUES
+       ('The march meets at 11:00 at Parliament Square.', 'the march meets at 11:00 at Parliament Square. Look for the orange flags.', 'jo@pauseai.uk', 1),
+       ('PauseCon room change', 'PauseCon has moved to the Main Hall. Doors still open at 09:30.', 'sam@pauseai.uk', 2),
+       ('Our next event is on Saturday.', 'our next event is on Saturday. Hope to see you there.', 'jo@pauseai.uk', 3),
+       ('Local group meetup', 'your local group meets on Thursday. Everyone is welcome.', 'jo@pauseai.uk', 4),
+       ('write_to_your_mp', 'the AI bill has its second reading next week. Could you write to your MP?', NULL, 5),
+       ('Thank you for coming.', 'thank you for coming. Here is what happens next.', 'sam@pauseai.uk', 6)
+     ) t (name, words, by, n)`,
+  );
+}
+
+/**
+ * A broadcast that went, as sending leaves one: to everyone who said yes, the
+ * first delivered and read and answered, the next failed, the next skipped as
+ * they'd stopped. Returns its ID and the first's copy.
+ */
+function addSent(database: string, channel: "email" | "text", title: string): { id: string; copy: string } {
+  const contact = channel === "email" ? "email:luma-calendar:yes" : "phone:luma-calendar:yes";
+  const [id] = runSql(
+    database,
+    `INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state)
+     VALUES ('${title}', '${channel === "email" ? title : ""}', 'supporters', '${channel}', 'luma-calendar',
+       '{"list": "supporters", "params": {"contact": "${contact}"}}', '${WORDS}', 'jo@pauseai.uk',
+       '${channel === "email" ? "hello@pauseai.uk" : "+447700900000"}', 'PauseAI UK', '2026-10-15T08:18:00Z', 'sent')
+     RETURNING id`,
+  );
+  const [first] = runSql(
+    database,
+    `WITH people AS (
+       SELECT s.id, row_number() OVER (ORDER BY s.id) AS n FROM supporters s),
+     c AS (
+       INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, skip_reason, merge_values, sent_at)
+       SELECT ${id}, p.id, 'person' || p.n || '${channel === "email" ? "@example.com" : ""}',
+         (ARRAY['delivered', 'failed', 'skipped'])[least(p.n, 3)],
+         CASE WHEN p.n >= 3 THEN 'unsubscribed' END,
+         json_build_object('name', 'Person ' || p.n, 'place', 'Leeds', 'values', json_build_object('firstName', 'Person'), 'meets', '[]'::json),
+         CASE WHEN p.n < 3 THEN '2026-10-15T08:18:00Z'::timestamptz END
+       FROM people p WHERE p.n <= 4 RETURNING id, status)
+     SELECT min(id) FROM c`,
+  );
+  runSql(
+    database,
+    `INSERT INTO broadcast_message_events (message_id, kind, at) VALUES
+       (${first}, 'delivered', '2026-10-15T08:19:00Z'), (${first}, 'read', '2026-10-15T09:00:00Z')`,
+  );
+  return { id, copy: first };
+}
+
+test("New broadcast, from the Broadcasts page", async ({ page, request, flowDatabase }) => {
+  story("Staff open the Broadcasts page. New broadcast, at its top right, starts one.");
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
+  await frame(page, "The Broadcasts page, with New broadcast");
+  story(
+    "It opens the writer, asking first which Consent it goes under: by email or by text, then what about. The rest is there, greyed, till one's chosen.",
+  );
+  await page.getByRole("link", { name: copy.newBroadcast }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/broadcasts/new`);
+  const channel = page.getByRole("radiogroup", { name: copy.consentChannel });
+  const saidYes = page.getByRole("radiogroup", { name: copy.facts.saidYes });
+  await expect(saidYes).toHaveCount(0);
+  await frame(page, "New broadcast, email or text to choose");
+  story("Text shows the Consents someone can have said yes to by text, and the greyed writer below becomes a text's.");
+  await channel.getByRole("radio", { name: copy.channels.text }).click();
+  await expect(saidYes.getByRole("radio")).toHaveCount(4);
+  await frame(page, "The Consents by text, and a text's writer");
+  story("Email does the same by email.");
+  await channel.getByRole("radio", { name: copy.channels.email }).click();
+  await expect(saidYes.getByRole("radio")).toHaveCount(2);
+  await frame(page, "The Consents by email, and an email's writer");
+  story("Choosing one makes the draft, to everyone who said yes. Change who can narrow them, but needn't.");
+  await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["luma-calendar"] }).click();
+  await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
+  await expect(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
+  await expect(page.getByText(copy.willGet(EMAILABLE, "email"))).toBeVisible();
+  await frame(page, "The new email, to everyone who said yes");
+  story(
+    "With nothing written yet, Text shows a text's form instead, greyed till a Consent by text is chosen. Email goes back to the draft as it was.",
+  );
+  await channel.getByRole("radio", { name: copy.channels.text }).click();
+  await expect(page.getByText(copy.problems["no-consent"])).toBeVisible();
+  await frame(page, "The draft switched to Text, greyed till a Consent is chosen");
+  await channel.getByRole("radio", { name: copy.channels.email }).click();
+  await expect(page.getByText(copy.problems["no-consent"])).toHaveCount(0);
+  story("Its Consent can change while it's a draft, but, once it has words, only to another by email.");
+  await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["site-forms"] }).click();
+  await expect(
+    saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["site-forms"] }),
+  ).toBeChecked();
+  await frame(page, "Under another Consent");
+});
+
+test("A broadcast by email", async ({ page, request, flowDatabase }) => {
+  story(
+    "A broadcast can start from the supporters list too. With the Consent filter on those who can be emailed, answered yes, there's a button, counting who it finds.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters?${EMAIL}`);
+  await expect(page.getByRole("button", { name: copy.broadcastButton(EMAILABLE) })).toBeVisible();
+  await frame(page, "The list, ready to broadcast");
+  story("It makes a draft to them and opens the writer: by email, from PauseAI UK.");
+  await page.getByRole("button", { name: copy.broadcastButton(EMAILABLE) }).click();
+  await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.newTitle.email);
+  await frame(page, "The new email");
+  story("They write a subject and a line, and the preview shows it as one supporter will get it.");
+  await page.getByLabel(copy.subject).fill("Events near you this month");
+  const words = page.getByRole("textbox", { name: copy.emailLabel });
+  // On the empty line under the greeting, above the signature.
+  await words.locator("p").nth(1).click();
+  await page.keyboard.type("See you at the march.");
+  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await expect(preview.getByText("See you at the march.")).toBeVisible();
+  await preview.getByRole("button", { name: copy.sendTest }).scrollIntoViewIfNeeded();
+  await frame(page, "The email and its preview", { window: true });
+  story("The preview is of someone made up. A case button shows them without a first name, so with the fallback.");
+  const noName = preview.getByRole("button", { name: copy.previewCases["has:firstName"] });
+  await expect(noName).toHaveAttribute("aria-pressed", "true");
+  await noName.click();
+  await expect(noName).toHaveAttribute("aria-pressed", "false");
+  await frame(page, "The preview, for someone with no first name", { window: true });
+  await noName.click();
+  story("Send test sends them a copy, by Postmark, as that supporter would get it.");
+  await preview.getByRole("button", { name: copy.sendTest }).click();
+  await expect(preview.getByText(copy.testSent(staffEmail()))).toBeVisible();
+  const email = newestEmail((one) => one.To.includes(`<${staffEmail()}>`))!;
+  expect(email.Subject).toBe("Events near you this month");
+  await emailFrame(page, email, "The test copy");
+  story("They pick the 14:00 hour, and see what it'll send and cost, then schedule it.");
+  await page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14");
+  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.scrollIntoViewIfNeeded();
+  await frame(page, "What will go, and what it costs", { window: true });
+  await send.getByRole("button", { name: copy.schedule(EMAILABLE, "email") }).click();
+  await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
+  await frame(page, "The email, scheduled");
+  story("It's in the list of broadcasts, under Coming up.");
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByRole("link", { name: "Events near you this month" })).toBeVisible();
+  await frame(page, "The list of broadcasts");
+  story("Unschedule makes it a draft again.");
+  await page.getByRole("link", { name: "Events near you this month" }).click();
+  await page.getByRole("button", { name: mailingCopy.unschedule }).click();
+  await expect(page.getByLabel(copy.subject)).toHaveValue("Events near you this month");
+  await frame(page, "A draft again");
+});
+
+test("A text on an approved template", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff broadcast to those who can be texted. A text has no subject or files: its words are a template WhatsApp has approved.",
+  );
+  await importLuma(request, BASE);
+  addTemplates(flowDatabase);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  const words = page.getByLabel(copy.templateLabel).first();
+  await expect(words).toHaveValue("");
+  await frame(page, "The new text, its templates to choose from");
+  story(
+    "Choosing one from the dropdown names the text after it. Its words show once, in the preview, as a bubble with its Stop button, and can't be changed.",
+  );
+  await words.selectOption({ label: "PauseCon room change" });
+  await expect(page.getByRole("heading", { name: "PauseCon room change", level: 1 })).toBeVisible();
+  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  await frame(page, "A template chosen");
+  story("They choose the hour.");
+  await page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14");
+  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.scrollIntoViewIfNeeded();
+  await frame(page, "When, and what it costs", { window: true });
+  await send.getByRole("button", { name: copy.schedule(TEXTABLE, "text") }).click();
+  await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
+  await frame(page, "The text, scheduled");
+});
+
+test("A text on new words", async ({ page, request, flowDatabase }) => {
+  story(
+    "No template says it, so staff choose New template, the dropdown's last choice, and name it. There are fields, but no parts for only some, as WhatsApp's words are the same for everyone.",
+  );
+  await importLuma(request, BASE);
+  addTemplates(flowDatabase);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await page.getByLabel(copy.templateLabel).first().selectOption({ label: copy.newTemplate });
+  const words = page.getByRole("textbox", { name: copy.templateWords });
+  await words.click();
+  await page.keyboard.type("The march meets at 11:00 at Parliament Square.");
+  await page.getByLabel(copy.templateName).fill("March day: where to meet");
+  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  await page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14");
+  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.scrollIntoViewIfNeeded();
+  await expect(send.getByText(copy.problems["not-approved"])).toBeVisible();
+  await frame(page, "New words: WhatsApp approves them before they can be scheduled", { window: true });
+  story(
+    "The button to send them to WhatsApp is at the foot, apart from the words, in Schedule's place, as they can't be scheduled till WhatsApp approves them.",
+  );
+  const draftPage = page.url();
+  const id = new URL(draftPage).pathname.split("/").at(-1);
+  await send.getByRole("button", { name: copy.submitTemplate }).click();
+  story(
+    "Sent, it's back to the list of broadcasts, where the draft says it's waiting for WhatsApp, its row tinted to find it.",
+  );
+  await page.waitForURL(`${BASE}/staff/broadcasts?submitted=${id}`);
+  await expect(page.getByText(copy.waitingTag)).toBeVisible();
+  await frame(page, "Back on the list, the draft waiting for WhatsApp");
+  story("Whoever sent them, and the notification inbox, get the words by email.");
+  const sent = newestEmail((one) => one.Cc === staffEmail())!;
+  expect(sent.Subject).toBe(staffCopy.notifications.templateSubmitted.subject("March day: where to meet"));
+  await emailFrame(page, sent, "The email saying they've gone for approval");
+  story("On the draft, a strip at the top says they've gone, and the words are locked till WhatsApp decides.");
+  await page.goto(draftPage);
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  await frame(page, "The draft, sent for approval");
+  await page.getByLabel(copy.templateLabel).first().scrollIntoViewIfNeeded();
+  await frame(page, "Its words locked", { window: true });
+  story("WhatsApp rejects them. The draft says why in plain words, and the words can be changed and sent again.");
+  runSql(
+    flowDatabase,
+    `UPDATE whatsapp_templates SET status = 'rejected', rejected_at = '2026-10-16T11:00:00Z', rejected_reason = 'The text ends with a merge field.' WHERE status = 'pending'`,
+  );
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(page.getByText(/The text ends with a merge field/)).toBeVisible();
+  await frame(page, "Rejected, and what to do");
+  story("The list says so too, until the words go for approval again or a template is chosen.");
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByText(copy.rejectedTag)).toBeVisible();
+  await frame(page, "The list, the draft WhatsApp rejected");
+});
+
+test("Changing who a broadcast goes to", async ({ page, request, flowDatabase }) => {
+  story(
+    "On a draft, Change who opens the supporters list choosing for it: the dark strip at the top naming the draft, and the dark bar at the foot.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, EMAIL, EMAILABLE);
+  await page.getByLabel(copy.subject).fill("Change me");
+  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  const draft = page.url();
+  await page.getByRole("link", { name: mailingCopy.changeWho }).click();
+  await expect(page.getByText(copy.choosing("Change me"))).toBeVisible();
+  const bar = page.getByRole("region", { name: copy.choosingLabel });
+  await expect(bar).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.broadcastButton(EMAILABLE) })).toHaveCount(0);
+  await frame(page, "The list, choosing for the draft", { window: true });
+  story("There are no ticks: they narrow the filters, here to one search, and the bar counts who that finds.");
+  const url = new URL(page.url());
+  url.searchParams.set("q", "fixture");
+  await page.goto(url.toString());
+  await expect(bar.getByRole("button", { name: copy.useThese(EMAILABLE) })).toBeVisible();
+  await frame(page, "Narrowed", { window: true });
+  story(
+    "The Consent is the broadcast's own: its chip has a padlock and doesn't open, as it's changed in the broadcast.",
+  );
+  await expect(page.locator(`[title="${copy.consentLocked}"]`).first()).toBeVisible();
+  await page.locator(`[title="${copy.consentLocked}"]`).first().hover();
+  await frame(page, "The Consent, locked", { window: true });
+  story("The orange button keeps them for the draft.");
+  await bar.getByRole("button", { name: copy.useThese(EMAILABLE) }).click();
+  await expect(page).toHaveURL(draft);
+  await expect(page.getByRole("list", { name: staffCopy.mailingPages.whoLabel })).toContainText("fixture");
+  await frame(page, "The draft, to those found");
+  story("Cancel at the top goes back and changes nothing.");
+  await page.getByRole("link", { name: mailingCopy.changeWho }).click();
+  await page.getByRole("link", { name: copy.choosingCancel }).click();
+  await expect(page).toHaveURL(draft);
+});
+
+test("An email sent", async ({ page, request, flowDatabase }) => {
+  story(
+    "An email has gone. The list says how it went, and its page has the counts, the email and everyone it went to.",
+  );
+  await importLuma(request, BASE);
+  const sent = addSent(flowDatabase, "email", "Thank you for marching");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByText(copy.noBackend)).toBeVisible();
+  await frame(page, "The list, one sent");
+  await page.getByRole("link", { name: "Thank you for marching" }).first().click();
+  await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
+  await frame(page, "The email's page");
+  story("A count shows those it counts.");
+  await page.getByRole("link", { name: new RegExp(copy.counts.stopped) }).click();
+  await expect(page.getByRole("heading", { name: copy.tabs.stopped })).toBeVisible();
+  await frame(page, "Those who stopped");
+  story("Each recipient leads to their copy: the email as they got it, when it was sent, delivered and read.");
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByRole("heading", { name: copy.threadTitle })).toBeVisible();
+  await frame(page, "The thread");
+  story("The supporter's page lists the broadcast.");
+  const [supporter] = runSql(flowDatabase, `SELECT supporter_id FROM broadcast_messages WHERE id = ${sent.copy}`);
+  await page.goto(`${BASE}/staff/supporters/${supporter}`);
+  const heading = page.getByRole("heading", { name: copy.supporterTitle });
+  await heading.scrollIntoViewIfNeeded();
+  await frame(page, "On the supporter's page", { window: true });
+});
+
+test("A text sent", async ({ page, request, flowDatabase }) => {
+  story("A text has gone. Its page shows the bubble where an email's shows the email, and how many read it.");
+  await importLuma(request, BASE);
+  const sent = addSent(flowDatabase, "text", "March day: where to meet");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
+  await expect(page.getByText(copy.textTitle)).toBeVisible();
+  await frame(page, "The text's page");
+  story("Each recipient's copy shows the text as it reached them on WhatsApp.");
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText(/the march meets at 11:00/)).toBeVisible();
+  await frame(page, "The text as they got it");
+});

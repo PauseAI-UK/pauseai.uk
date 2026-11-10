@@ -475,6 +475,7 @@ export function StaffAccountsTableExample() {
               lastLoginAt: null,
               lastSeenAt: null,
               sessions: 0,
+              gmailConnectedAt: null,
             },
             {
               email: "jo@pauseai.uk",
@@ -484,6 +485,7 @@ export function StaffAccountsTableExample() {
               lastLoginAt: new Date("2026-10-22T08:00:00Z"),
               lastSeenAt: new Date("2026-10-22T09:15:00Z"),
               sessions: 2,
+              gmailConnectedAt: new Date("2026-10-21T09:00:00Z"),
             },
             {
               email: "samuel.whitlock@pauseai.uk",
@@ -493,6 +495,7 @@ export function StaffAccountsTableExample() {
               lastLoginAt: new Date("2026-10-21T10:30:00Z"),
               lastSeenAt: new Date("2026-10-21T11:00:00Z"),
               sessions: 1,
+              gmailConnectedAt: null,
             },
           ]}
         />
@@ -1087,7 +1090,7 @@ export function SavedFilterExample({ state }: { state: keyof typeof SAVED_STATES
               },
               values,
               path: "/staff/politicians",
-              name: "Politicians: Party Labour",
+              name: "Politicians: Party: Labour",
               summary: (params) => [`Party ${params.party}`],
               actions: { save: log("save"), update: log("update"), rename: log("rename"), remove: log("remove") },
             })}

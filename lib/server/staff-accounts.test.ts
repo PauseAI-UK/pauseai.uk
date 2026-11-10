@@ -89,7 +89,7 @@ describeWithDatabase("staff accounts", () => {
     );
     expect(await sessionEmail(jo)).toBe("jo@pauseai.uk");
     const [joRow, samRow] = await listStaffAccounts();
-    expect(joRow).toMatchObject({ email: "jo@pauseai.uk", addedBy: "login", sessions: 2 });
+    expect(joRow).toMatchObject({ email: "jo@pauseai.uk", addedBy: "login", sessions: 2, gmailConnectedAt: null });
     // Seen just now, through the session; logged in two hours ago.
     expect(Date.now() - new Date(joRow.lastSeenAt!).getTime()).toBeLessThan(60_000);
     expect(new Date(joRow.lastLoginAt!).getTime()).toBeLessThan(new Date(joRow.lastSeenAt!).getTime());

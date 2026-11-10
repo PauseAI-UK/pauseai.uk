@@ -13,7 +13,6 @@ import SupporterDetails from "@/app/(staff)/staff/_components/SupporterDetails";
 import SupporterFilters from "@/app/(staff)/staff/_components/SupporterFilters";
 import SupportersTable from "@/app/(staff)/staff/_components/SupportersTable";
 import {
-  exampleBlockedPermissions,
   exampleMemberDetails,
   exampleSupporter,
   exampleSupporterRows,
@@ -75,6 +74,18 @@ export const staffSupporters: Group = {
                   mps: [{ id: 7, name: "Alex Sobel", constituency: "Leeds Central and Headingley" }],
                 }}
                 near={{ latitude: 53.8, longitude: -1.55, place: "Leeds", country: "england" }}
+              />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "Choosing who a broadcast goes to: its Consent locked",
+          render: () => (
+            <StaffPage as="div">
+              <SupporterFilters
+                search={supportersSearch({ contact: "email:site-forms:yes", near: "LS1", broadcast: "3" })}
+                choices={{ events: exampleEventChoices, mps: [] }}
+                lockConsent
               />
             </StaffPage>
           ),
@@ -161,14 +172,6 @@ export const staffSupporters: Group = {
           render: () => (
             <StaffPage as="div">
               <SubscriptionBadges permissions={exampleSupporterRows[1].permissions} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Every address blocked",
-          render: () => (
-            <StaffPage as="div">
-              <SubscriptionBadges permissions={exampleBlockedPermissions} />
             </StaffPage>
           ),
         },

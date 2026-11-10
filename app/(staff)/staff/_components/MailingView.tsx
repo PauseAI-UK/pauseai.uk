@@ -19,13 +19,14 @@ import MailingFiles from "./MailingFiles";
 import { MailingLetter } from "./MailingLetter";
 import { mailingCounts } from "./MailingsOverview";
 import Band, { BandFact } from "./ui/Band";
-import Counts from "./ui/Counts";
+import Counts, { countsFiltering } from "./ui/Counts";
 import Grid, { Card } from "./ui/Grid";
 import Progress from "./ui/Progress";
 import Strip from "./ui/Strip";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import Bubble from "./ui/Bubble";
 import AnswerWord from "./AnswerWord";
+import LetterStatus from "./LetterStatus";
 import styles from "./MailingView.module.css";
 import TestTag from "./TestTag";
 
@@ -39,7 +40,8 @@ const STATE_TONES: Record<MailingState, TagTone | undefined> = {
   scheduled: "blue",
   sending: "blue",
   sent: undefined,
-  cancelled: undefined,
+  // Amber, as we stopped it, as its stopped letters are (docs/style-guide.md, "Status colours").
+  cancelled: "amber",
 };
 
 /** Each merge field's label, and each answer to an ask's, as a part only for them says it. */
@@ -48,22 +50,6 @@ function letterLabels(asks: Ask[]): { fields: Record<string, string>; conditions
     fields: Object.fromEntries(POLITICIAN_FIELDS.map((f) => [f, staffCopy.mailingEditor.fields[f]])),
     conditions: answerLabels(asks),
   };
-}
-
-/**
- * How a recipient's letter went, as a tag: in red, skipped with why,
- * refused, bounced, a spam complaint, though they answered its ask some
- * other way, or uncertain, as a run stopped while sending it; answered its ask, in green; else grey, as replied,
- * or its status.
- */
-function Outcome({ mailing, recipient }: { mailing: Mailing; recipient: MailingRecipient }) {
-  if (recipient.skipReason) return <Tag tone="red">{copy.skipReasons[recipient.skipReason]}</Tag>;
-  if (["not_sent", "bounced", "spam_complaint", "uncertain"].includes(recipient.status)) {
-    return <Tag tone="red">{staffCopy.letters.status[recipient.status]}</Tag>;
-  }
-  if (mailing.ask && recipient.answer) return <Tag tone="green">{staffCopy.mailings.columns.answered}</Tag>;
-  if (recipient.repliedAt) return <Tag>{copy.tabs.replied}</Tag>;
-  return <Tag>{staffCopy.letters.status[recipient.status] ?? recipient.status}</Tag>;
 }
 
 /**
@@ -101,7 +87,12 @@ function recipientColumns(mailing: Mailing): ListColumn<MailingRecipient>[] {
       short: true,
       cell: (r) => (
         <span className={styles.who}>
-          <Outcome mailing={mailing} recipient={r} />
+          <LetterStatus
+            status={r.status}
+            skipReason={r.skipReason}
+            answered={Boolean(mailing.ask && r.answer)}
+            replied={Boolean(r.repliedAt)}
+          />
           <Muted>{staffDate(r.repliedAt ?? r.sentAt ?? mailing.updatedAt)}</Muted>
           {!r.skipReason && (
             <StaffLink href={`/staff/mailings/${mailing.id}/letters/${r.letterId}`}>
@@ -130,16 +121,18 @@ function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: Form
  * sending; once sent, how many of everyone it went to have answered its ask.
  * Nothing for one with no ask.
  */
-function Standing({
+export function MailingStanding({
   mailing,
   written,
   stop,
   reschedule,
+  line,
 }: {
-  mailing: Mailing;
+  mailing: Pick<Mailing, "ask" | "to" | "sent" | "failed" | "answered">;
   written?: WrittenMailing;
   stop: FormAction;
   reschedule: FormAction;
+  line?: string;
 }) {
   if (written?.state === "scheduled") {
     return (
@@ -148,7 +141,7 @@ function Standing({
           <div className={styles.standing}>
             <div className={styles.due}>
               <strong>{copy.sends(londonWhen(written.dueAt!, "short"))}</strong>
-              <span>{copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!)}</span>
+              <span>{line ?? copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!)}</span>
             </div>
             <div className={styles.actions}>
               <ChangeTime mailing={written} action={reschedule} />
@@ -191,7 +184,13 @@ function Standing({
 }
 
 /** When it went, or goes, and who sent it, as the band's first fact says it. */
-function When({ mailing, written }: { mailing: Mailing; written?: WrittenMailing }) {
+export function MailingWhen({
+  mailing,
+  written,
+}: {
+  mailing: Pick<Mailing, "sentAt">;
+  written?: Pick<WrittenMailing, "createdBy" | "state" | "dueAt">;
+}) {
   const by = written?.createdBy && copy.by(written.createdBy);
   if (written?.state === "scheduled") {
     return (
@@ -236,7 +235,7 @@ function ImportedText({ mailing }: { mailing: Mailing }) {
 /**
  * A mailing's page, once scheduled: a band of its title, who from, who it was
  * for, its ask, and when it went and who sent it, with its counts, each
- * leading to those recipients; where it stands (Standing); then the email,
+ * leading to those recipients; where it stands (MailingStanding); then the email,
  * white on an aside, as a mail app shows it, beside its recipients, of all of them or those a count chose. One
  * imported from Airtable, with no `written`, has only what Airtable kept:
  * who got it and how it was written, but no text or filter.
@@ -258,16 +257,7 @@ export default function MailingView({
   reschedule: FormAction;
 }) {
   const path = `/staff/mailings/${mailing.id}`;
-  // Each count shows those it counts; pressed again, it shows everyone.
-  const counts = mailingCounts(mailing).map((count) => {
-    const current = count.key === mailing.tab;
-    return {
-      ...count,
-      href: filtersPath(path, { tab: current ? "" : count.key }),
-      current,
-      title: current ? copy.showEveryone : undefined,
-    };
-  });
+  const counts = countsFiltering(path, mailingCounts(mailing), mailing.tab, copy.showEveryone);
   const state = written?.state;
   // A mailing with a bar under its band says how it stands there, not in a tag.
   const barred = state === "sending" || (state !== "scheduled" && mailing.ask);
@@ -297,9 +287,9 @@ export default function MailingView({
         <BandFact label={mailing.askKind ? staffCopy.asks.askTo[mailing.askKind] : staffCopy.mailings.fields.ask}>
           {mailing.ask && <StaffLink href={askHref(mailing.ask)}>{mailing.askTitle}</StaffLink>}
         </BandFact>
-        <When mailing={mailing} written={written} />
+        <MailingWhen mailing={mailing} written={written} />
       </Band>
-      <Standing mailing={mailing} written={written} stop={stop} reschedule={reschedule} />
+      <MailingStanding mailing={mailing} written={written} stop={stop} reschedule={reschedule} />
       <Grid>
         {written ? (
           <Card span={3} look="aside" title={copy.emailTitle} id="email-title">

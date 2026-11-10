@@ -137,12 +137,32 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
                AND (s.letter IS NULL OR NOT EXISTS (SELECT 1 FROM letter_replies r WHERE r.letter_id = l.id AND r.at = l.replied_at))`,
           ),
         ).toEqual([]);
+        // Messages by email and by text, each in every state a mailing has.
+        expect(
+          runSql(
+            name,
+            "SELECT channel || ' ' || state FROM mailings WHERE audience = 'supporters' GROUP BY channel, state ORDER BY 1",
+          ),
+        ).toEqual(
+          ["email", "text"].flatMap((channel) =>
+            ["cancelled", "draft", "scheduled", "sending", "sent"].map((state) => `${channel} ${state}`),
+          ),
+        );
         // No two politicians share a name, so a list of them never shows the same row twice.
         expect(runSql(name, "SELECT name FROM notable_people GROUP BY name HAVING count(*) > 1")).toEqual([]);
-        // One supporter per email, with nothing left unlinked, and every kind of supporter among them.
+        // One supporter per email, but Dana and Robin, each two emails merged by a mobile, with nothing left
+        // unlinked, and every kind of supporter among them.
         expect(runSql(name, "SELECT count(*) FROM supporters")).toEqual(
-          runSql(name, "SELECT count(DISTINCT matched_value) FROM supporter_links"),
+          runSql(name, "SELECT count(DISTINCT supporter_id) FROM supporter_links"),
         );
+        expect(
+          runSql(
+            name,
+            `SELECT DISTINCT i.name FROM supporter_identity i WHERE i.supporter_id IN
+               (SELECT supporter_id FROM supporter_links GROUP BY supporter_id HAVING count(DISTINCT matched_value) > 1)
+             ORDER BY 1`,
+          ),
+        ).toEqual(["Dana Double", "Robin Rivers"]);
         expect(
           runSql(
             name,
@@ -251,13 +271,10 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         // Every answer to every kind of ask, and each import's and staff's.
         expect(runSql(name, "SELECT DISTINCT ask_kind || ' ' || status FROM ask_statuses ORDER BY 1")).toEqual([
           "event declined",
-          "event declined_surgery",
           "event going",
-          "event meeting_staff",
-          "event passed_on",
-          "event tentative",
-          "event tentative_staff",
+          "event other",
           "letter declined",
+          "letter other",
           "letter signed",
         ]);
         expect(
@@ -288,6 +305,10 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "politicians scheduled",
           "politicians sending",
           "politicians sent",
+          "supporters cancelled",
+          "supporters draft",
+          "supporters scheduled",
+          "supporters sending",
           "supporters sent",
         ]);
         // Opt-outs told by every source, and every answer to whether we'd email someone.

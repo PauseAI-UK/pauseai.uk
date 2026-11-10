@@ -159,7 +159,7 @@ describeWithDatabase("linkSupporters", () => {
          now(), 'sent' FROM unnest(ARRAY['Both', 'One']) title RETURNING id::int AS id`,
     );
     await query(
-      `INSERT INTO messages_to_supporters (mailing_id, supporter_id, address, status, merge_values) VALUES
+      `INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, merge_values) VALUES
        ($1, $3, 'jane@example.com', 'sent', '{}'), ($1, $4, 'jo@example.com', 'sent', '{}'),
        ($2, $4, 'jo@example.com', 'sent', '{}')`,
       [both.id, one.id, jane, other],
@@ -172,7 +172,7 @@ describeWithDatabase("linkSupporters", () => {
     expect(await supporterWith("jo@example.com")).toBe(jane);
     expect(
       await query(
-        `SELECT m.title, s.supporter_id::int AS supporter, s.address FROM messages_to_supporters s
+        `SELECT m.title, s.supporter_id::int AS supporter, s.address FROM broadcast_messages s
          JOIN mailings m ON m.id = s.mailing_id ORDER BY s.id`,
       ),
     ).toEqual([
@@ -502,12 +502,13 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ contact: [{ channel: "email", topic: "pauseai-updates", reason: "declined" }] })).toEqual([
       "Old",
     ]);
-    // A block is every topic's answer, and outranks the unsubscribe.
+    // A block is a no for each of the address's topics, and outranks the unsubscribe.
     await query(
       `WITH p AS (INSERT INTO email_problems (address, kind, at, can_reset) VALUES ('sam@example.com', 'hard', '2026-10-13T00:00:00Z', false) RETURNING id)
        INSERT INTO email_blocks (address, problem_id) SELECT 'sam@example.com', id FROM p`,
     );
-    expect(await names({ contact: [{ channel: "email", reason: "blocked" }] })).toEqual(["Sam"]);
+    expect(await names({ contact: [...unsubscribed] })).toEqual([]);
+    expect(await names({ contact: [{ channel: "email", topic: "luma-calendar", send: "no" }] })).toContain("Sam");
     // Any answer for a topic, and one answer.
     expect(await names({ contact: [{ channel: "email", topic: "pauseai-updates", send: "no" }] })).toEqual(["Old"]);
     expect(await names({ contact: [{ channel: "email", topic: "pauseai-updates" }] })).toEqual(

@@ -20,6 +20,19 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* The one just sent for approval, come back to from its page: one pulse of
+   the accent's tint as the page appears, then plain (docs/style-guide.md,
+   "Drawing the eye"). */
+.row[data-pulse] {
+  animation: row-pulse 1.4s 0.15s ease-in-out;
+}
+
+@keyframes row-pulse {
+  40% {
+    background: var(--accent-light);
+  }
+}
+
 .when {
   color: var(--text-secondary);
   font-size: var(--text-sm);

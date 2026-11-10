@@ -11,8 +11,16 @@ import styles from "./PermissionTiles.module.css";
 
 const copy = staffCopy.supporters.detail.permissions;
 
-/** The short reason for an answer, with when and, for our forms', which form; the reason itself where the copy has no words for it. */
-function reason(permission: ContactPermission): string {
+/**
+ * The short reason for an answer, with when and, for our forms', which form;
+ * the reason itself where the copy has no words for it. A blocked address's
+ * is what blocked it, or nothing for a cause the copy has no words for.
+ */
+export function permissionReason(permission: ContactPermission): string {
+  if (permission.reason === "blocked") {
+    const because = copy.blockedBecause[permission.source ?? ""];
+    return because ? because(staffDate(permission.at!)) : "";
+  }
   const words = copy.reasons[permission.topic]?.[permission.reason];
   const form = copy.forms[permission.source ?? ""] ?? copy.otherForm;
   return words ? words(permission.at ? staffDate(permission.at) : "", form) : permission.reason;
@@ -73,16 +81,29 @@ function Address({ channel, address, link }: { channel: Channel; address: string
   );
 }
 
+/** Why an answer is what it is; after a blocked address's, the link to the blocked emails. */
+function Reason({ words, blocked }: { words: string; blocked: boolean }) {
+  return (
+    <span className={styles.reason}>
+      {blocked && words ? `${words} ` : words}
+      {blocked && <StaffLink href="/staff/supporters/blocked-emails">{copy.seeBlocked}</StaffLink>}
+    </span>
+  );
+}
+
 /**
  * One topic, a row: its name and the "?" with how we know; then each
  * address or number it has an answer for, by email before phone, with that
  * answer in its words and colour; then why, once if every answer has the
- * same reason, else under each.
+ * same reason, else under each. A blocked address is a no like any other,
+ * its reason what blocked it.
  */
 function TopicRow({ topic, permissions }: { topic: Topic; permissions: ContactPermission[] }) {
   const id = `why-${topic}`;
   const name = copy.topics[permissions[0].channel][topic];
-  const reasons = permissions.map(reason);
+  const reasons = permissions.map(permissionReason);
+  const blocked = permissions.map((permission) => permission.reason === "blocked");
+  // A blocked address's reason is never another's, so those that share one are all blocked or none is.
   const shared = reasons.every((r) => r === reasons[0]);
   return (
     <li className={styles.item}>
@@ -98,31 +119,13 @@ function TopicRow({ topic, permissions }: { topic: Topic; permissions: ContactPe
             <Address channel={permission.channel} address={permission.address} link={permission.send !== "no"} />
             <Tag tone={TONES[permission.send]}>{copy.answers[waysKey(permission.channel, topic)][permission.send]}</Tag>
           </span>
-          {!shared && <span className={styles.reason}>{reasons[i]}</span>}
+          {!shared && <Reason words={reasons[i]} blocked={blocked[i]} />}
         </span>
       ))}
-      {shared && <span className={styles.reason}>{reasons[0]}</span>}
+      {shared && <Reason words={reasons[0]} blocked={blocked[0]} />}
       <BubbleBox id={id} className={styles.popover}>
         <TopicDetails topic={topic} channels={[...new Set(permissions.map((p) => p.channel))]} name={name} />
       </BubbleBox>
-    </li>
-  );
-}
-
-/** A blocked address: one row in place of its topics', its answer red, since nothing goes to it. */
-function Blocked({ permission }: { permission: ContactPermission }) {
-  const because = copy.blockedBecause[permission.source ?? ""];
-  return (
-    <li data-send="no" className={styles.item}>
-      <span className={styles.head}>
-        <span className={styles.topic}>{copy.everyTopic}</span>
-        <Tag tone="red">{copy.blocked}</Tag>
-      </span>
-      <Address channel="email" address={permission.address} link={false} />
-      <span className={styles.reason}>
-        {because && `${because(staffDate(permission.at!))} `}
-        <StaffLink href="/staff/supporters/blocked-emails">{copy.seeBlocked}</StaffLink>
-      </span>
     </li>
   );
 }
@@ -132,24 +135,17 @@ const ORDER: Topic[] = ["site-forms", "luma-calendar", "pauseai-updates", "volun
 
 /**
  * Whether we'd contact a supporter about each topic, a row each, every
- * address and number it has an answer for in it, email before phone; then
- * a row for each address that's blocked, which none of the topics' have.
+ * address and number it has an answer for in it, email before phone.
  */
 export default function PermissionTiles({ permissions }: { permissions: ContactPermission[] }) {
-  const blocked = permissions.filter((p) => p.reason === "blocked");
-  const out = new Set(blocked.map((p) => p.address));
-  const open = permissions.filter((p) => !(p.channel === "email" && out.has(p.address)));
   const byChannel = (a: ContactPermission, b: ContactPermission) =>
     CHANNELS.indexOf(a.channel) - CHANNELS.indexOf(b.channel);
   return (
     <ul className={styles.list}>
       {ORDER.flatMap((topic) => {
-        const own = open.filter((p) => p.topic === topic).sort(byChannel);
+        const own = permissions.filter((p) => p.topic === topic).sort(byChannel);
         return own.length > 0 ? [<TopicRow key={topic} topic={topic} permissions={own} />] : [];
       })}
-      {[...new Map(blocked.map((p) => [p.address, p])).values()].map((p) => (
-        <Blocked key={p.address} permission={p} />
-      ))}
     </ul>
   );
 }

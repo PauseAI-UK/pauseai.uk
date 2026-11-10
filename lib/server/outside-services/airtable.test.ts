@@ -128,10 +128,10 @@ describe("fetchPoliticians", () => {
         personalConnection: true,
       },
       statuses: {
-        "frontier-ai-letter": "signed",
-        "deepmind-letter": "signed",
-        "controlai-statement": "signed",
-        "edinburgh-conference-2026": "passed_on",
+        "frontier-ai-letter": { status: "signed", note: "" },
+        "deepmind-letter": { status: "signed", note: "" },
+        "controlai-statement": { status: "signed", note: "" },
+        "edinburgh-conference-2026": { status: "other", note: "Passed the request on" },
       },
     });
     expect(by("recA")).toEqual({
@@ -162,8 +162,11 @@ describe("fetchPoliticians", () => {
       ["recA", "lords", "died", ""],
       ["recZ", "scottish-parliament", "in_office", "Met once.\nRecommended"],
     ]);
-    expect(by("recD").statuses).toEqual({ "deepmind-letter": "declined", "edinburgh-conference-2026": "going" });
-    expect(by("recE").statuses).toEqual({ "edinburgh-conference-2026": "declined" });
+    expect(by("recD").statuses).toEqual({
+      "deepmind-letter": { status: "declined", note: "" },
+      "edinburgh-conference-2026": { status: "going", note: "" },
+    });
+    expect(by("recE").statuses).toEqual({ "edinburgh-conference-2026": { status: "declined", note: "" } });
     expect(by("recF").statuses).toEqual({});
     const url = new URL(requests[1].url);
     expect(url.hostname).toBe("api.airtable.com");
@@ -181,13 +184,20 @@ describe("fetchPoliticians", () => {
     ]);
   });
 
-  it("refuses a Status, Country or answer it doesn't know, rather than guess", async () => {
+  it("refuses a Status or Country it doesn't know, rather than guess", async () => {
     serve({ records: [record({ "Full name or Title": "X", Status: "Suspended" })] });
     await expect(fetchPoliticians("t")).rejects.toThrow('Unknown Status "Suspended" on rec1');
     serve({ records: [record({ "Full name or Title": "X", Country: "Cornwall" })] });
     await expect(fetchPoliticians("t")).rejects.toThrow('Unknown Country "Cornwall" on rec1');
-    serve({ records: [record({ "Full name or Title": "X", "Edinburgh Conference November 2026": "Maybe" })] });
-    await expect(fetchPoliticians("t")).rejects.toThrow('Unknown Edinburgh Conference November 2026 "Maybe" on rec1');
+  });
+
+  it("takes an answer it doesn't know as other, its words the note", async () => {
+    serve({
+      records: [record({ "Full name or Title": "X", "Edinburgh Conference November 2026": "Responded after event" })],
+    });
+    expect((await fetchPoliticians("t"))[0].statuses).toEqual({
+      "edinburgh-conference-2026": { status: "other", note: "Responded after event" },
+    });
   });
 
   it("copes with a page without records", async () => {

@@ -434,15 +434,14 @@ privacy policy and erasure.
 
 Phase 1 keeps and shows them. None of this is needed for that.
 
-- **Past and personal addresses:** a new `politician_addresses` table holds
-  them, in place of reading the audit log, and lets one person have several,
-  such as an office address.
+- **Past and personal addresses:** `plans/politician-editing.md`, "More addresses
+  for each politician".
 - **Quoted originals:** where a politician's message is only quoted, a thread's
   page shows it, marked "quoted, not received", from the quoted text of the
   messages it loads. It's worked out each time, so nothing new is stored, and
   it stops showing if the real one is kept.
-- **Casework:** a caseworker's address seen with an MP's in a thread is
-  recorded as theirs, so later threads link to that MP.
+- **Casework:** staff record a caseworker's address, in the same section of that
+  plan.
 
 ## Clean up at the end
 

@@ -73,14 +73,14 @@ test("The members import", async ({ page, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/import-data/members`);
   await page.getByRole("button", { name: staffCopy.members.importNow }).click();
-  // The fixture's eight members, one of them erased.
+  // The fixture's nine members, one of them erased.
   const first = {
-    members: 8,
-    added: 7,
+    members: 9,
+    added: 8,
     changed: 0,
     removed: 0,
-    supportersAdded: 7,
-    linked: 7,
+    supportersAdded: 8,
+    linked: 8,
   };
   await expect(page.getByText(staffCopy.members.result(first))).toBeVisible();
   await page.getByRole("heading", { name: staffCopy.members.title }).scrollIntoViewIfNeeded();
@@ -491,7 +491,7 @@ test("One-off imports", async ({ page, request, flowDatabase }) => {
   await frame(page, "Dee Deepmind's page");
 
   story(
-    "Then they import the MPs' answers about meeting constituents at Go to Parliament. The asks page counts them: one MP is sending staff instead.",
+    "Then they import the MPs' answers about meeting constituents at Go to Parliament. The asks page counts them: one MP is going, and two gave another answer, such as sending staff instead.",
   );
   await page.goto(`${BASE}/staff/import-data/go-to-parliament`);
   await page.getByRole("button", { name: staffCopy.goToParliament.importNow }).click();
@@ -501,6 +501,6 @@ test("One-off imports", async ({ page, request, flowDatabase }) => {
     }),
   ).toBeVisible();
   await page.goto(`${BASE}/staff/asks`);
-  await expect(page.getByText(`${staffCopy.statuses.meeting_staff} 1`)).toBeVisible();
+  await expect(page.getByText(`${staffCopy.statuses.other} 2`).first()).toBeVisible();
   await frame(page, "The asks page");
 });

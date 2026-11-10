@@ -1,5 +1,4 @@
 import { Muted } from "@/components/ui/Text";
-import Tag from "@/components/ui/Tag";
 import { askHref } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { campaignBySlug, campaignPath } from "@/lib/email-your-mp";
@@ -16,23 +15,13 @@ import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import Progress from "./ui/Progress";
 import StaffLink from "./ui/StaffLink";
 import AnswerWord from "./AnswerWord";
+import LetterStatus from "./LetterStatus";
 import styles from "./MailingView.module.css";
 import TestTag from "./TestTag";
 import ExternalLink from "./ui/ExternalLink";
 
 const copy = staffCopy.campaigns;
 const words = staffCopy.letters;
-
-/** How a letter went, as a tag: its politician answered the ask, in green; failed, or uncertain whether it went, in red; else its status. */
-function Outcome({ letter }: { letter: LetterSummary }) {
-  if (letter.answer) return <Tag tone="green">{staffCopy.mailings.columns.answered}</Tag>;
-  if (["bounced", "not_sent", "uncertain"].includes(letter.status)) {
-    return <Tag tone="red">{words.status[letter.status]}</Tag>;
-  }
-  return (
-    <Tag>{letter.repliedAt ? staffCopy.mailingPages.tabs.replied : (words.status[letter.status] ?? letter.status)}</Tag>
-  );
-}
 
 /** A campaign's letters' columns: the politician, with their seat, party and answer; who wrote it and when; how much was their own; how it went, leading to it. */
 const campaignLetterColumns: ListColumn<LetterSummary>[] = [
@@ -80,7 +69,7 @@ const campaignLetterColumns: ListColumn<LetterSummary>[] = [
     short: true,
     cell: (l) => (
       <span className={styles.who}>
-        <Outcome letter={l} />
+        <LetterStatus status={l.status} answered={Boolean(l.answer)} replied={Boolean(l.repliedAt)} />
         {!l.repliedAt && l.autoRepliedAt && <Muted>{words.status.auto_reply}</Muted>}
         <StaffLink href={`/staff/letters/${l.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
       </span>

@@ -26,14 +26,15 @@ export function staffLink(path: string, request: Request | undefined): string {
 
 /**
  * Emails the notification inbox `subject` and `text`, as a staff alert or
- * report (`purpose`), logged against `letterId` if it's about one letter.
- * Says whether it went.
+ * report (`purpose`), logged against `letterId` if it's about one letter,
+ * and copied to `cc`, a staff member it's about, if any. Says whether it went.
  */
 export async function notifyStaff(
   subject: string,
   text: string,
   letterId: number | null = null,
   purpose: Extract<Purpose, "staff-alert" | "staff-report"> = "staff-alert",
+  cc?: string,
 ): Promise<boolean> {
   const inbox = config.notificationInbox;
   if (!inbox) {
@@ -44,6 +45,7 @@ export async function notifyStaff(
     {
       From: `PauseAI UK <noreply@${notifyDomain()}>`,
       To: inbox,
+      ...(cc && { Cc: cc }),
       Subject: subject,
       TextBody: text,
       Tag: purpose,

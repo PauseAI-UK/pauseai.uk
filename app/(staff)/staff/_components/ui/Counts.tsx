@@ -24,6 +24,23 @@ export function countsOpening<T extends Count>(path: string, counts: T[]): T[] {
 }
 
 /**
+ * Counts over a list on `path`, each showing those it counts: the one the
+ * list is filtered to (`tab`) marked, and pressed again showing everyone, as
+ * its `title` (`showEveryone`) says.
+ */
+export function countsFiltering<T extends Count>(path: string, counts: T[], tab: string, showEveryone: string): T[] {
+  return counts.map((count) => {
+    const current = count.key === tab;
+    return {
+      ...count,
+      href: filtersPath(path, { tab: current ? "" : count.key }),
+      current,
+      title: current ? showEveryone : undefined,
+    };
+  });
+}
+
+/**
  * Numbers side by side in one white box, each over its label, a 0 or a
  * dash grey (a supporter's events and letters, how a mailing went). Each
  * leads where its `href` says. `small` in a list's row.

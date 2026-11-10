@@ -3,6 +3,7 @@ import {
   askFrom,
   eraseFrom,
   eventFrom,
+  dueAtFrom,
   idFrom,
   noteEditFrom,
   noteFrom,
@@ -19,6 +20,15 @@ function form(fields: Record<string, string | Blob>) {
   for (const [name, value] of Object.entries(fields)) data.set(name, value);
   return data;
 }
+
+describe("dueAtFrom", () => {
+  it("reads a day and an hour in London, and refuses anything else", () => {
+    expect(dueAtFrom(form({ day: "2026-07-03", hour: "14" }))).toEqual(new Date("2026-07-03T13:00:00.000Z"));
+    expect(dueAtFrom(form({ day: "3 July", hour: "14" }))).toBeUndefined();
+    expect(dueAtFrom(form({ day: "2026-07-03", hour: "24" }))).toBeUndefined();
+    expect(dueAtFrom(form({ hour: "14" }))).toBeUndefined();
+  });
+});
 
 describe("idFrom", () => {
   it("reads a positive whole number, and nothing else", () => {

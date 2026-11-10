@@ -1,7 +1,14 @@
+import type { ReactNode } from "react";
 import StaffLink from "./ui/StaffLink";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { contactState, type Channel, type ContactState } from "@/lib/contact-permissions";
+import {
+  CHANNELS,
+  contactState,
+  type Channel,
+  type ContactPermission,
+  type ContactState,
+} from "@/lib/contact-permissions";
 import type { SupportersPage } from "@/lib/server/supporters";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { anyAndNone, filtersPath, pageParam, valuesOf, type Params, type SupportersSearch } from "@/lib/staff-search";
@@ -15,6 +22,7 @@ import {
   type SupporterRow,
   type SupporterSort,
 } from "@/lib/supporters";
+import { permissionReason } from "./PermissionTiles";
 import SortHeading from "./SortHeading";
 import SubscriptionBadges, { subscriptionWords } from "./SubscriptionBadges";
 import SupporterBadges, { supporterBadgeWords } from "./SupporterBadges";
@@ -25,11 +33,12 @@ import styles from "./SupportersTable.module.css";
 const PATH = "/staff/supporters";
 const copy = staffCopy.supporters;
 
-/** The list's filters as typed, the URL's, without the page or the notice. */
+/** The list's filters as typed, the URL's, without the page or the notices. */
 export function supporterFiltersOf(search: SupportersSearch): Params {
-  const { page, erased, filter, ...rest } = search as SupportersSearch & { filter?: unknown };
+  const { page, erased, why, filter, ...rest } = search as SupportersSearch & { filter?: unknown };
   void page;
   void erased;
+  void why;
   void filter;
   return rest;
 }
@@ -39,28 +48,40 @@ function Place({ place }: { place: SupporterPlaceName }) {
   return place.basis === "event" ? <Muted>{place.name}</Muted> : place.name;
 }
 
-/** The answers the Contact filter finds, but those it leaves out. */
+/** The answers the Consent filter finds, but those it leaves out. */
 function contactStates(search: Pick<SupportersSearch, "contact">): ContactState[] {
   return anyAndNone(valuesOf(search.contact), (values) => values.flatMap((v) => contactState(v) ?? []))[0] ?? [];
 }
 
-/**
- * A supporter's addresses, or numbers, by `channel`, that have an answer
- * the Contact filter finds (`states`), each once.
- */
-function contactsFound(states: ContactState[], channel: Channel, s: SupporterRow): string[] {
-  const found = s.permissions.filter(
+/** A supporter's answers by `channel` that the Consent filter finds (`states`). */
+function answersFound(states: ContactState[], channel: Channel, s: SupporterRow): ContactPermission[] {
+  return s.permissions.filter(
     (p) =>
       p.channel === channel &&
       states.some(
         (state) =>
           state.channel === channel &&
-          (!state.topic || state.topic === p.topic) &&
+          state.topic === p.topic &&
           (!state.send || state.send === p.send) &&
           (!state.reason || state.reason === p.reason),
       ),
   );
-  return [...new Set(found.map((p) => p.address))];
+}
+
+/**
+ * A supporter's addresses, or numbers, by `channel`, that have an answer
+ * the Consent filter finds (`states`), each once.
+ */
+function contactsFound(states: ContactState[], channel: Channel, s: SupporterRow): string[] {
+  return [...new Set(answersFound(states, channel, s).map((p) => p.address))];
+}
+
+/**
+ * Why each answer the Consent filter finds (`states`) is what it is, an
+ * address's before a number's, in the order their columns list them.
+ */
+function reasonsFound(states: ContactState[], s: SupporterRow): string[] {
+  return CHANNELS.flatMap((channel) => answersFound(states, channel, s)).map(permissionReason);
 }
 
 /** The nation a supporter's place is in, in words, or null where we don't know it. */
@@ -73,11 +94,17 @@ function Addresses({ addresses }: { addresses: string[] }) {
   return addresses.map((address) => <div key={address}>{address}</div>);
 }
 
+/** Reasons in a cell, a line each. */
+function Reasons({ reasons }: { reasons: string[] }) {
+  return reasons.map((reason, i) => <div key={i}>{reason}</div>);
+}
+
 /**
  * The supporters list's columns: who they are (their name; with the
  * Subscriptions filter by email or phone, their addresses or numbers whose
  * answer it finds; where they are); what they are to us and what we'd
- * email them about, as lozenges;
+ * email them about, as lozenges; with the Consent filter, the reason for
+ * each answer it finds;
  * how many events and letters; and when we first saw them and last saw
  * them do something. The Nation filter, leaving some out or finding more
  * than one, adds the nation they're in, after where they are. The Event
@@ -158,6 +185,12 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
         </div>
       ),
     },
+    states.length > 0 && {
+      key: "consentReason",
+      label: copy.columns.consentReason,
+      text: (s) => reasonsFound(states, s).join("; "),
+      cell: (s) => <Reasons reasons={reasonsFound(states, s)} />,
+    },
     {
       key: "events",
       label: copy.columns.events,
@@ -221,7 +254,7 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
 
 /**
  * Supporters as contact cards (lib/vcard.ts), for the list's filters: a
- * supporter's name; the addresses and numbers the Contact filter
+ * supporter's name; the addresses and numbers the Consent filter
  * finds, as the columns, none without it; where they are; and in the note
  * what they are to us, what we'd email them about, when we first and last
  * saw them, and how many events and letters.
@@ -231,7 +264,7 @@ export function supporterContact(search: Pick<SupportersSearch, "contact">) {
   return (s: SupporterRow): Contact => contactCard(states, s);
 }
 
-/** A supporter's card, with the addresses and numbers the Contact filter finds (`states`), as the columns. */
+/** A supporter's card, with the addresses and numbers the Consent filter finds (`states`), as the columns. */
 function contactCard(states: ContactState[], s: SupporterRow): Contact {
   const emails = contactsFound(states, "email", s);
   const note = [
@@ -257,7 +290,16 @@ function contactCard(states: ContactState[], s: SupporterRow): Contact {
 }
 
 /** The supporters found, in the list frame: a row each, their downloads and the way through the pages. */
-export default function SupportersTable({ page, search }: { page: SupportersPage; search: SupportersSearch }) {
+export default function SupportersTable({
+  page,
+  search,
+  actions,
+}: {
+  page: SupportersPage;
+  search: SupportersSearch;
+  /** Buttons for what can be done with everyone the filters find, before Download. */
+  actions?: ReactNode;
+}) {
   const filters = supporterFiltersOf(search);
   return (
     <ListFrame
@@ -268,6 +310,7 @@ export default function SupportersTable({ page, search }: { page: SupportersPage
       pageSize={SUPPORTERS_PAGE_SIZE}
       href={(n) => filtersPath(PATH, filters, pageParam(n))}
       download={(format) => filtersPath(`${PATH}/download`, filters, { format })}
+      actions={actions}
       formats={["csv", "json", "vcf"]}
       columns={supporterColumns(search)}
       rows={page.supporters}

@@ -1,5 +1,5 @@
 import "server-only";
-import { GO_TO_PARLIAMENT_ASK, type AskStatus } from "@/lib/asks";
+import { airtableNote, GO_TO_PARLIAMENT_ASK, type AskStatus } from "@/lib/asks";
 import type { GoToParliamentImportResult } from "@/lib/import-runs";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
@@ -20,29 +20,38 @@ import { staffCopy } from "@/lib/content/staff-interface";
 const JOB = "import-go-to-parliament";
 
 /**
- * "MP Meeting Status", as statuses, firmest first: when an MP has two
- * guests, the firmer answer wins, and a firm one, yes or no, beats a
- * tentative one.
+ * "MP Meeting Status", firmest first: when an MP has two guests, the firmer
+ * answer wins, and a firm one, yes or no, beats a tentative one. Any value
+ * not here comes last.
  */
-const MEETING_STATUSES: [string, AskStatus][] = [
-  ["Secured", "going"],
-  ["Meeting with staff", "meeting_staff"],
-  ["Declined but surgery appointment", "declined_surgery"],
-  ["Declined", "declined"],
-  ["Tentative yes", "tentative"],
-  ["Tentative meeting with staff", "tentative_staff"],
+const MEETING_RANK = [
+  "Secured",
+  "Meeting with staff",
+  "Declined but surgery appointment",
+  "Declined",
+  "Tentative yes",
+  "Tentative meeting with staff",
 ];
 
-/** Sets each MP's status from their guests' meetings. A status it doesn't know is refused. */
+/** The values that are a yes or a no; any other is "other", its note from airtableNote. */
+const MEETING_STATUSES: Record<string, AskStatus> = { Secured: "going", Declined: "declined" };
+
+const rankOf = (value: string) => {
+  const i = MEETING_RANK.indexOf(value);
+  return i < 0 ? MEETING_RANK.length : i;
+};
+
+/** Sets each MP's status from their guests' meetings. */
 export async function importGoToParliament(startedBy: string): Promise<GoToParliamentImportResult> {
   const { result } = await asRun(JOB, startedBy, async () => {
     const meetings = await fetchGoToParliamentMeetings(airtableToken());
-    const rank = new Map(MEETING_STATUSES.map(([name], i) => [name, i]));
-    const best = new Map<string, number>();
+    // Each MP's firmest "MP Meeting Status".
+    const best = new Map<string, string>();
     for (const meeting of meetings) {
-      const i = rank.get(meeting.status);
-      if (i === undefined) throw new Error(`Unknown MP Meeting Status "${meeting.status}"`);
-      for (const mp of meeting.politicians) best.set(mp, Math.min(best.get(mp) ?? i, i));
+      for (const mp of meeting.politicians) {
+        const was = best.get(mp);
+        if (was === undefined || rankOf(meeting.status) < rankOf(was)) best.set(mp, meeting.status);
+      }
     }
     return transaction(async (db) => {
       const result: GoToParliamentImportResult = {
@@ -53,8 +62,9 @@ export async function importGoToParliament(startedBy: string): Promise<GoToParli
         notFound: 0,
       };
       const notFound: string[] = [];
-      for (const [airtableId, i] of best) {
-        const status = MEETING_STATUSES[i][1];
+      for (const [airtableId, value] of best) {
+        const status = MEETING_STATUSES[value] ?? "other";
+        const note = status === "other" ? airtableNote(value) : "";
         const [person] = await query<{ id: number }>(
           "SELECT id::int AS id FROM notable_people WHERE airtable_id = $1",
           [airtableId],
@@ -67,14 +77,14 @@ export async function importGoToParliament(startedBy: string): Promise<GoToParli
         }
         // Dated the event's day, which Airtable's sheet was made for, or today if that's still to come.
         const [set] = await query<{ added: boolean; date: string }>(
-          `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, updated_by)
-           VALUES ($1, $2, 'event', $3, least((SELECT date FROM asks WHERE slug = $2), now()::date), $4)
-           ON CONFLICT (notable_person_id, ask) DO UPDATE SET status = $3, status_date = EXCLUDED.status_date,
-             updated_at = now()
-           WHERE ask_statuses.updated_by = $4 AND ask_statuses.status <> $3
+          `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, note, status_date, updated_by)
+           VALUES ($1, $2, 'event', $3, $5, least((SELECT date FROM asks WHERE slug = $2), now()::date), $4)
+           ON CONFLICT (notable_person_id, ask) DO UPDATE SET status = $3, note = $5,
+             status_date = EXCLUDED.status_date, updated_at = now()
+           WHERE ask_statuses.updated_by = $4 AND (ask_statuses.status <> $3 OR ask_statuses.note <> $5)
            -- xmax is 0 on a row this statement inserted, not on one it updated.
            RETURNING xmax = 0 AS added, to_char(status_date, 'YYYY-MM-DD') AS date`,
-          [person.id, GO_TO_PARLIAMENT_ASK, status, AIRTABLE],
+          [person.id, GO_TO_PARLIAMENT_ASK, status, AIRTABLE, note],
           db,
         );
         if (!set) continue;
@@ -82,7 +92,7 @@ export async function importGoToParliament(startedBy: string): Promise<GoToParli
         await logChange(
           AIRTABLE,
           "set status",
-          { politicianId: person.id, ask: GO_TO_PARLIAMENT_ASK, status, date: set.date, note: "" },
+          { politicianId: person.id, ask: GO_TO_PARLIAMENT_ASK, status, date: set.date, note },
           db,
         );
       }

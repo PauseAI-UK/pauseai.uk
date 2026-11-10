@@ -216,16 +216,14 @@ describe("AnswerWord", () => {
         <AnswerWord status="signed" />
         <AnswerWord status="going" />
         <AnswerWord status="declined" />
-        <AnswerWord status="declined_surgery" />
-        <AnswerWord status="tentative" />
+        <AnswerWord status="other" />
         <AnswerWord status={null} />
       </>,
     );
     expect(mark(staffCopy.statuses.signed)).toContain("✓");
     expect(mark(staffCopy.statuses.going)).toContain("✓");
     expect(mark(staffCopy.statuses.declined)).toContain("✕");
-    expect(mark(staffCopy.statuses.declined_surgery)).toContain("✕");
-    expect(mark(staffCopy.statuses.tentative)).toBe("none");
+    expect(mark(staffCopy.statuses.other)).toBe("none");
     expect(mark(staffCopy.statuses.noAnswer)).toBe("none");
   });
 });
@@ -273,31 +271,35 @@ describe("AskView", () => {
     await expect.element(link(words.allOf(37))).toHaveAttribute("href", `${path}?answer=none`);
     await expect.element(link(words.allOf(2))).toHaveAttribute("href", `${path}?answer=signed`);
     expect(link(words.allOf(1)).query()).toBeNull();
-    // Each person's answer is only tagged when the column's name doesn't say it.
+    // Nobody in a yes or no column is tagged: the column's name says their answer.
     expect(page.getByText(staffCopy.statuses.signed, { exact: true }).all()).toHaveLength(1);
     await rerender(
       <AskView
         ask={{
           ...exampleAskPage,
           kind: "event",
-          counts: { tentative: 1, declined_surgery: 1 },
+          counts: { other: 2, declined: 1 },
           noAnswer: 0,
           groups: [
             { key: "going", total: 0, people: [] },
-            { key: "other", total: 1, people: [{ ...exampleAskPage.groups[0].people[0], status: "tentative" }] },
             {
-              key: "declined",
-              total: 1,
-              people: [{ ...exampleAskPage.groups[1].people[0], status: "declined_surgery" }],
+              key: "other",
+              total: 2,
+              people: [
+                { ...exampleAskPage.groups[0].people[0], status: "other", note: "Tentatively said yes" },
+                { ...exampleAskPage.groups[2].people[0], status: "other", note: "" },
+              ],
             },
+            { key: "declined", total: 1, people: exampleAskPage.groups[1].people },
           ],
         }}
         answer=""
       />,
     );
-    await says(`${words.otherAnswers} 1`);
-    await says(staffCopy.statuses.tentative);
-    await says(staffCopy.statuses.declined_surgery);
+    // Other answers, each tagged with what it was, and none for one with no note.
+    await says(`${words.otherAnswers} 2`);
+    await says("Tentatively said yes");
+    expect(page.getByText(staffCopy.statuses.other, { exact: true }).query()).toBeNull();
     // Nobody gave it: no link, and it says so.
     await says(`${staffCopy.statuses.going} 0`);
     expect(column(`${staffCopy.statuses.going} 0`).query()).toBeNull();
@@ -334,6 +336,21 @@ describe("AskView", () => {
     await expect.element(none()).toHaveAttribute("aria-current", "true");
     await says(staffCopy.statuses.noAnswer);
     expect(signed().query()).toBeNull();
+    // Other answers say what each was, or "other" for one with no note.
+    await rerender(
+      <AskView
+        ask={{
+          ...exampleAskPage,
+          answers: [
+            { ...exampleAskPage.answers[0], status: "other", note: "Responded after event" },
+            { ...exampleAskPage.answers[1], status: "other", note: "" },
+          ],
+        }}
+        answer="other"
+      />,
+    );
+    await says("Responded after event");
+    await says(staffCopy.statuses.other);
   });
 
   it("pages through the answers, keeping the answer chosen", async () => {
@@ -706,6 +723,14 @@ describe("the rest", () => {
     const tagged = [...document.querySelectorAll("nav a")].filter((a) => a.textContent?.endsWith(staffCopy.nav.newTag));
     expect(tagged.map((a) => a.getAttribute("href"))).toContain("/staff/campaigns");
     expect(tagged.map((a) => a.getAttribute("href"))).not.toContain("/staff/supporters");
+  });
+
+  it("marks a draft page as a draft, however new, with no dot", async () => {
+    await render(<StaffNav email="jo@pauseai.uk" permissions={["supporters"]} fresh={["broadcasts"]} />);
+    const link = document.querySelector('nav a[href="/staff/broadcasts"]')!;
+    expect(link.textContent).toContain(staffCopy.nav.draftTag);
+    expect(link.textContent).not.toContain(staffCopy.nav.newTag);
+    expect(link.querySelector("[aria-hidden='true'] + [aria-hidden='true']")).toBeNull();
   });
 
   it("says in a Gmail read how many one-off emails it kept", async () => {

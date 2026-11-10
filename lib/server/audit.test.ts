@@ -63,6 +63,10 @@ describeWithDatabase("the change log", () => {
     await addAuditEntry("postmark", "block address", { address: "jane@example.com" });
     await addAuditEntry("postmark", "block address", { address: email });
     await addAuditEntry("jo@pauseai.uk", "unblock address", { address: "jane@example.com", note: "Checked" });
+    await addAuditEntry("jo@pauseai.uk", "create broadcast", { id: 1, channel: "email", topic: "luma-calendar" });
+    await addAuditEntry("jo@pauseai.uk", "change broadcast consent", { id: 1, channel: "email", topic: "site-forms" });
+    await addAuditEntry("jo@pauseai.uk", "schedule broadcast", { id: 1, recipients: 3 });
+    await addAuditEntry("jo@pauseai.uk", "stop broadcast", { id: 1, was: "scheduled" });
     await query("DELETE FROM audit_log WHERE action = 'add politician'");
     const limited = await recentChanges(false);
     expect(limited.total).toBe(2);
@@ -70,7 +74,7 @@ describeWithDatabase("the change log", () => {
       ["block address", { address: email }],
       ["add note", { noteId: 2, politicianId: polly }],
     ]);
-    expect((await recentChanges(true)).total).toBe(8);
+    expect((await recentChanges(true)).total).toBe(12);
     expect(await changeChoices(false)).toEqual({
       actors: expect.arrayContaining(["jo@pauseai.uk", "postmark"]),
       actions: ["add note", "block address"],

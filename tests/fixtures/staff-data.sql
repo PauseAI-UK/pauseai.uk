@@ -157,21 +157,22 @@ INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date,
 SELECT id, 'controlai-letter', 'letter', 'signed', (now() - interval '3 days')::date, '', 'jo@pauseai.uk', now() - interval '3 days' FROM politicians WHERE test_postcode = 'ZZ99ZZ';
 INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, note, updated_by, updated_at)
 SELECT id, 'frontier-ai-letter', 'letter', 'signed', (now() - interval '1 day')::date, 'Confirmed by their office', 'jo@pauseai.uk', now() - interval '1 day' FROM politicians WHERE test_postcode = 'ZZ99ZH';
-INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, updated_by, updated_at)
-SELECT n.id, a.ask, a.kind, a.status, least(k.date, (now() - interval '20 days')::date), 'airtable', now() - interval '20 days'
+INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, note, status_date, updated_by, updated_at)
+SELECT n.id, a.ask, a.kind, a.status, a.note, least(k.date, (now() - interval '20 days')::date), 'airtable', now() - interval '20 days'
 FROM (VALUES
-  ('recPlaceholder', 'controlai-statement', 'letter', 'signed'),
-  ('recPlaceholder', 'edinburgh-conference-2026', 'event', 'declined'),
-  ('recPlaceholder', 'go-to-parliament-oct-2026', 'event', 'meeting_staff'),
-  ('recDummy', 'go-to-parliament-oct-2026', 'event', 'going'),
-  ('recDummy', 'edinburgh-conference-2026', 'event', 'tentative'),
-  ('recGone', 'go-to-parliament-oct-2026', 'event', 'declined_surgery'),
-  ('recRemoved', 'go-to-parliament-oct-2026', 'event', 'tentative_staff'),
-  ('recMorag', 'edinburgh-conference-2026', 'event', 'going'),
-  ('recDeparted', 'edinburgh-conference-2026', 'event', 'passed_on'),
-  ('recDeparted', 'deepmind-letter', 'letter', 'signed'),
-  ('recRetired', 'frontier-ai-letter', 'letter', 'signed')
-) AS a (airtable_id, ask, kind, status) JOIN notable_people n USING (airtable_id) JOIN asks k ON k.slug = a.ask;
+  ('recPlaceholder', 'controlai-statement', 'letter', 'signed', ''),
+  ('recPlaceholder', 'edinburgh-conference-2026', 'event', 'declined', ''),
+  ('recPlaceholder', 'go-to-parliament-oct-2026', 'event', 'other', 'Meeting a member of their staff instead'),
+  ('recDummy', 'go-to-parliament-oct-2026', 'event', 'going', ''),
+  ('recDummy', 'edinburgh-conference-2026', 'event', 'other', 'Tentatively said yes'),
+  ('recGone', 'go-to-parliament-oct-2026', 'event', 'other', 'Declined, but offered a surgery appointment instead'),
+  ('recRemoved', 'go-to-parliament-oct-2026', 'event', 'other', 'Tentatively agreed to a meeting with a member of their staff'),
+  ('recMorag', 'edinburgh-conference-2026', 'event', 'going', ''),
+  ('recDeparted', 'edinburgh-conference-2026', 'event', 'other', 'Passed the request on'),
+  ('recDeparted', 'deepmind-letter', 'letter', 'signed', ''),
+  ('recRetired', 'frontier-ai-letter', 'letter', 'signed', ''),
+  ('recMorag', 'deepmind-letter', 'letter', 'other', 'Wants to meet first')
+) AS a (airtable_id, ask, kind, status, note) JOIN notable_people n USING (airtable_id) JOIN asks k ON k.slug = a.ask;
 
 -- ----------------------------------------------------------------- luma
 
@@ -218,9 +219,10 @@ INSERT INTO luma_people (user_id, email, name, contact_since, changed_at) VALUES
   ('usr-seed-18', 'kwame.seed@example.com', 'Kwame Seed', now() - interval '6 days', now() - interval '1 day'),
   ('usr-seed-19', 'mia.seed@example.com', 'Mia Seed', NULL, now() - interval '1 day'),
   ('usr-seed-20', 'erased.seed@example.com', 'Erin Erased', now() - interval '70 days', now() - interval '1 day'),
-  -- Following since an hour ago: after Luma's webhook went live in a database
-  -- made now, so we'd email her (lib/email-permissions.ts); the others
-  -- followed before it, so we can't be sure.
+  -- Robin follows the calendar at one address and is a member at another
+  -- (recMemberRobin), one supporter by their mobile; this one is blocked further down.
+  ('usr-seed-22', 'robin.events@example.com', 'Robin Rivers', now() - interval '40 days', now() - interval '1 day'),
+  -- Following the calendar since an hour ago: the newest contact.
   ('usr-seed-21', 'nia.seed@example.com', 'Nia Seed', now() - interval '1 hour', now() - interval '1 hour');
 INSERT INTO luma_erased (user_id, erased_at) VALUES ('usr-seed-20', now() - interval '15 days');
 INSERT INTO luma_import_state (list, full_pass_at, cursor) VALUES
@@ -237,6 +239,7 @@ INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, 
   ('gst-3', 'evt-fixture-past-glasgow-stall', 'usr-fixture-3', 'approved', now() - interval '275 days', NULL, 'G1 1AA', 'brixton', NULL, now() - interval '30 days'),
   ('gst-seed-yuki-march', 'evt-fixture-past-london-march', 'usr-seed-15', 'approved', now() - interval '255 days', NULL, 'SE1 7PB', NULL, NULL, now() - interval '30 days'),
   ('gst-seed-erased-march', 'evt-fixture-past-london-march', 'usr-seed-20', 'approved', now() - interval '255 days', NULL, NULL, NULL, now() - interval '15 days', now() - interval '15 days'),
+  ('gst-seed-robin-march', 'evt-fixture-past-london-march', 'usr-seed-22', 'approved', now() - interval '254 days', '+447700900333', NULL, NULL, NULL, now() - interval '30 days'),
   -- the Manchester talk, 12 days ago: the week before last
   ('gst-seed-7-talk', 'evt-seed-manchester-talk', 'usr-seed-7', 'approved', now() - interval '13 days', '+447700900007', 'M4 1HQ', 'instagram', NULL, now() - interval '12 days'),
   ('gst-seed-8-talk', 'evt-seed-manchester-talk', 'usr-seed-8', 'approved', now() - interval '13 days', NULL, 'M20 2RN', 'instagram', NULL, now() - interval '12 days'),
@@ -288,6 +291,7 @@ INSERT INTO members (id, email, name, phone, city, postcode, joined_at, created_
   ('recMemberKit', 'kit.member@example.com', 'Kit Member', NULL, 'Oxford', 'OX1 1AA', '2026-03-03T18:00:00Z', '2026-03-03T18:00:00Z', true, false, NULL, 'Volunteer', '2026-08-29T17:33:10Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
   ('recMemberTom', 'tom.seed@example.com', 'Tom Seed', '+447700900456', 'London', NULL, '2024-11-03T00:00:00Z', '2025-06-06T06:18:44Z', true, false, NULL, NULL, '2026-08-29T17:33:12Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
   ('recMemberLee', 'lee.letter@example.com', 'Lee Letter', NULL, 'Bristol', 'BS1 1AA', '2025-11-29T21:06:16Z', '2025-11-29T21:06:16Z', false, false, NULL, 'None', '2026-08-29T17:33:13Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
+  ('recMemberRobin', 'robin.rivers@example.com', 'Robin Rivers', '+447700900333', 'Leeds', NULL, '2026-05-01T00:00:00Z', '2026-05-01T00:00:00Z', true, false, NULL, 'Keep informed', '2026-08-29T17:33:14Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
   ('recMemberGil', 'gil.member@example.com', 'Gil Member', NULL, 'Leeds', 'LS1 1AA', '2026-08-01T12:00:00Z', '2026-08-01T12:00:00Z', true, true, 'pauseai.uk', 'Act now', '2026-08-01T12:00:00Z', '2026-09-01T00:00:00Z', now() - interval '2 days', now() - interval '2 days');
 -- Erin, erased with her Luma user (the audit log's erasure), is still in
 -- Airtable's table: the import skips her.
@@ -613,13 +617,17 @@ INSERT INTO signup_upload_entries (entry_id, upload_id, new_entry) SELECT id, 1,
 
 -- ---------------------------------------------------- march sign-ups
 
--- Two sign-ups for the march, as the route keeps them: Ben, who also wrote
+-- Sign-ups for the march, as the route keeps them: Ben, who also wrote
 -- to his MP, came by the newsletter's link, ticked the box and is on Luma's
--- list; Mo came by no link, didn't tick it, and Luma skipped them.
+-- list; Mo came by no link, didn't tick it, and Luma skipped them. Dana
+-- signed up twice with one mobile, so is one supporter with two addresses,
+-- each ticking the box; her old one is blocked further down.
 WITH entries AS (
   INSERT INTO form_entries (form, created_at, name, email, phone, city, postcode, contact_consent, utm_source) VALUES
     ('march-2026-11', now() - interval '2 days', 'Ben Seed', 'ben.seed@example.com', '07700 900111', 'Bristol', 'BS1 1AA', true, 'nl'),
-    ('march-2026-11', now() - interval '1 day', 'Mo March', 'mo.march@example.com', NULL, 'Leeds', NULL, false, NULL)
+    ('march-2026-11', now() - interval '1 day', 'Mo March', 'mo.march@example.com', NULL, 'Leeds', NULL, false, NULL),
+    ('march-2026-11', now() - interval '4 days', 'Dana Double', 'dana.old@example.com', '07700 900222', 'Leeds', 'LS1 1AA', true, NULL),
+    ('march-2026-11', now() - interval '3 days', 'Dana Double', 'dana.double@example.com', '07700 900222', 'Leeds', 'LS1 1AA', true, NULL)
   RETURNING id, email
 )
 INSERT INTO form_entry_luma (entry_id, event_id, status)
@@ -755,9 +763,9 @@ FROM seed_stopped WHERE status <> 'cancelled';
 -- one delivered, one that failed, one skipped as they'd unsubscribed since.
 INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state)
 SELECT 'Events this month', 'Events this month', 'supporters', 'email', 'luma-calendar',
-  '{"list": "supporters", "params": {"contact": "email:luma-calendar:yes"}}', b.body, 'jo@pauseai.uk', 'jo@pauseai.uk',
-  'PauseAI UK', now() - interval '4 days', 'sent'
-FROM seed_letter b;
+  '{"list": "supporters", "params": {"contact": "email:luma-calendar:yes"}}',
+  '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hi "}, {"type": "field", "attrs": {"field": "firstName"}}, {"type": "text", "text": ","}]}, {"type": "paragraph", "content": [{"type": "text", "text": "Here''s what''s on this month: a talk in Leeds on the 12th, and flyering in London on the 20th. Come along to either."}]}, {"type": "paragraph", "content": [{"type": "text", "text": "PauseAI UK"}]}]}',
+  'jo@pauseai.uk', 'jo@pauseai.uk', 'PauseAI UK', now() - interval '4 days', 'sent';
 
 -- ---------------------------------------------------------- import log
 
@@ -929,21 +937,21 @@ FROM notable_people WHERE airtable_id = 'recPlaceholder';
 WITH m AS (SELECT id, due_at FROM mailings WHERE title = 'Events this month'),
   three AS (SELECT s.id, row_number() OVER (ORDER BY s.id) AS n FROM supporters s ORDER BY s.id LIMIT 3),
   messages AS (
-    INSERT INTO messages_to_supporters (mailing_id, supporter_id, address, status, provider_message_id, merge_values, skip_reason, sent_at)
+    INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, provider_message_id, merge_values, skip_reason, sent_at)
     SELECT m.id, t.id, 'supporter' || t.n || '@example.com',
       (ARRAY['delivered', 'failed', 'skipped'])[t.n], CASE WHEN t.n < 3 THEN 'seed-message-' || t.n END, '{}',
       CASE WHEN t.n = 3 THEN 'unsubscribed' END, CASE WHEN t.n < 3 THEN m.due_at END
     FROM m, three t
     RETURNING id, status, sent_at
   )
-INSERT INTO message_events (message_id, at, kind)
+INSERT INTO broadcast_message_events (message_id, at, kind)
 SELECT id, sent_at, 'sent' FROM messages WHERE status <> 'skipped'
 UNION ALL
 SELECT id, sent_at + interval '1 minute', CASE status WHEN 'delivered' THEN 'delivered' ELSE 'failed' END FROM messages WHERE status <> 'skipped';
 
 -- A mailing to politicians sending, a third of the way: one of its three
 -- letters sent, two to go. It goes from Jo's Gmail, which isn't connected
--- here, so the hourly job leaves it as it is. Last, so no ID above moves.
+-- here, so the hourly job leaves it as it is. After every mailing a route's example names, so none of those IDs moves.
 INSERT INTO mailings (title, subject, audience, channel, filter, body, created_by, sent_from, from_name, due_at, state, ask, created_at, opened_at)
 SELECT 'Edinburgh: last call', 'Edinburgh: last call', 'politicians', 'email', '{"list": "politicians", "params": {}}'::jsonb, b.body,
   'jo@pauseai.uk', 'jo@pauseai.uk', 'Jo Seed', now() - interval '2 hours', 'sending', 'edinburgh-conference-2026',
@@ -1087,6 +1095,15 @@ INSERT INTO email_sends (at, purpose, address, outcome, message_id, backend, sub
 INSERT INTO email_problems (at, address, message_id, kind, reason, can_reset) VALUES
   (now() - interval '7 hours', 'bouncing@example.com', 'seed-log-bounced', 'hard', 'No such mailbox', true),
   (now() - interval '8 hours', 'complaining@example.com', 'seed-log-complained', 'complaint', 'Marked as spam', false);
+-- Dana's old address bounced, so it's blocked; her other still says yes.
+-- Robin's calendar address bounced too; their member address isn't blocked.
+WITH bounced AS (
+  INSERT INTO email_problems (at, address, kind, reason, can_reset) VALUES
+    (now() - interval '2 days', 'dana.old@example.com', 'hard', 'No such mailbox', true),
+    (now() - interval '2 days', 'robin.events@example.com', 'hard', 'No such mailbox', true)
+  RETURNING id, address
+)
+INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM bounced;
 -- The new tag: the migration's pages for each account here, so only the pages it didn't name show as new.
 INSERT INTO staff_nav_seen (email, page, first_seen_at)
 SELECT a.email, p.page, '2000-01-01' FROM staff_accounts a CROSS JOIN unnest(ARRAY['supporters', 'supporterEmails', 'politicians', 'asks', 'mailings', 'mpEmails', 'events', 'import', 'accounts', 'changes']) AS p (page)
@@ -1099,3 +1116,117 @@ INSERT INTO import_runs (at, job, started_by, status, error, result) VALUES
 
 -- A press of a job still running, which its page says.
 INSERT INTO job_presses (job, started_by) VALUES ('import-go-to-parliament', 'jo@pauseai.uk');
+
+-- Broadcasts to supporters, by email and by text, in each state a mailing has:
+-- a draft, one scheduled, one sending, one sent and one stopped. A text's
+-- draft also comes with no template yet, an approved one, new words, new
+-- words waiting for WhatsApp's approval, and words it rejected. Each copy
+-- keeps its supporter's real name, as sending does. After the rest, so no
+-- ID above moves.
+CREATE FUNCTION pg_temp.seed_words(words text) RETURNS jsonb LANGUAGE sql AS $$
+  SELECT jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(
+    jsonb_build_object('type', 'text', 'text', 'Hi '), jsonb_build_object('type', 'field', 'attrs', jsonb_build_object('field', 'firstName')),
+    jsonb_build_object('type', 'text', 'text', ', ' || words)))))
+$$;
+CREATE TEMP TABLE seed_people ON COMMIT DROP AS
+SELECT s.id, row_number() OVER (ORDER BY s.id) AS n,
+  coalesce((SELECT nullif(i.name, '') FROM supporter_identity i WHERE i.supporter_id = s.id ORDER BY i.seen_at DESC NULLS LAST LIMIT 1), 'Supporter ' || s.id) AS name,
+  coalesce((SELECT i.email FROM supporter_identity i WHERE i.supporter_id = s.id ORDER BY i.seen_at DESC NULLS LAST LIMIT 1), 'supporter' || s.id || '@example.com') AS email,
+  (SELECT sp.place FROM supporter_place sp WHERE sp.supporter_id = s.id) AS place
+FROM supporters s;
+UPDATE broadcast_messages c SET merge_values = jsonb_build_object('name', p.name, 'place', p.place,
+  'values', jsonb_build_object('firstName', split_part(p.name, ' ', 1)), 'meets', '["has:firstName"]'::jsonb)
+FROM seed_people p WHERE p.id = c.supporter_id;
+
+INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason, created_at)
+SELECT t.name, pg_temp.seed_words(t.words), t.status, t.by,
+  CASE WHEN t.status = 'approved' THEN now() - t.ago END, CASE WHEN t.status = 'rejected' THEN now() - t.ago END,
+  CASE WHEN t.status = 'rejected' THEN 'The message is too short for WhatsApp to tell what it is about.' END, now() - t.ago - interval '1 day'
+FROM (VALUES
+  ('The march meets at 11:00 at Parliament Square.', 'the march meets at 11:00 at Parliament Square. Look for the orange flags.', 'approved', 'jo@pauseai.uk', interval '10 days'),
+  ('PauseCon room change', 'PauseCon has moved to the Main Hall. Doors still open at 09:30.', 'approved', 'sam@pauseai.uk', interval '12 days'),
+  ('Our next event is on Saturday.', 'our next event is on Saturday. Hope to see you there.', 'approved', 'jo@pauseai.uk', interval '40 days'),
+  ('We are flyering on Saturday.', 'we are flyering on Saturday. Could you spare an hour?', 'approved', 'jo@pauseai.uk', interval '50 days'),
+  ('Local group meetup', 'your local group meets on Thursday. Everyone is welcome.', 'approved', 'jo@pauseai.uk', interval '60 days'),
+  ('Thank you for coming.', 'thank you for coming. Here is what happens next.', 'approved', 'sam@pauseai.uk', interval '70 days'),
+  ('write_to_your_mp', 'the AI bill has its second reading next week. Could you write to your MP?', 'approved', NULL, interval '80 days'),
+  ('Rain on Saturday', 'bring a coat on Saturday: rain is forecast for the afternoon.', 'pending', 'jo@pauseai.uk', interval '2 hours'),
+  ('Have you written to your MP?', 'have you written to your MP?', 'rejected', 'jo@pauseai.uk', interval '1 day')
+) t (name, words, status, by, ago);
+
+CREATE TEMP TABLE seed_broadcasts ON COMMIT DROP AS
+SELECT nextval(pg_get_serial_sequence('mailings', 'id')) AS id, m.* FROM (VALUES
+  ('Events near you this month', 'email', 'draft', NULL::interval, NULL, 'here is what is on near you this month.'),
+  ('Stall on Saturday', 'email', 'scheduled', interval '3 days', NULL, 'we will be at the stall on Saturday. Come and say hello.'),
+  ('Thank you for marching', 'email', 'sending', interval '-2 hours', NULL, 'thank you for marching with us.'),
+  ('PauseCon: the recordings', 'email', 'cancelled', interval '-5 days', NULL, 'the recordings from PauseCon are up.'),
+  ('', 'text', 'draft', NULL, NULL, NULL),
+  ('Local group meetup', 'text', 'draft', NULL, 'Local group meetup', NULL),
+  ('The stall needs a hand on Saturday.', 'text', 'draft', NULL, NULL, 'the stall needs a hand on Saturday.'),
+  ('Have you written to your MP?', 'text', 'draft', NULL, 'Have you written to your MP?', NULL),
+  ('The march meets at 11:00 at Parliament Square.', 'text', 'scheduled', interval '2 days', 'The march meets at 11:00 at Parliament Square.', NULL),
+  ('Rain on Saturday', 'text', 'draft', interval '3 days', 'Rain on Saturday', NULL),
+  ('Our next event is on Saturday.', 'text', 'sending', interval '-1 hour', 'Our next event is on Saturday.', NULL),
+  ('PauseCon room change', 'text', 'sent', interval '-3 days', 'PauseCon room change', NULL),
+  ('We are flyering on Saturday.', 'text', 'cancelled', interval '-6 days', 'We are flyering on Saturday.', NULL)
+) m (title, channel, state, due, template, words);
+INSERT INTO mailings (id, title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state, template_id, created_at, opened_at)
+  OVERRIDING SYSTEM VALUE
+SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 'supporters', m.channel, 'luma-calendar',
+  -- Two with filters besides Consent: near a place, and those who didn't write in a campaign.
+  jsonb_build_object('list', 'supporters', 'params',
+    jsonb_build_object('contact', CASE WHEN m.channel = 'email' THEN 'email' ELSE 'phone' END || ':luma-calendar:yes')
+    || CASE m.title
+         WHEN 'Stall on Saturday' THEN '{"near": "M1 1AE", "within": "5"}'::jsonb
+         WHEN 'Rain on Saturday' THEN '{"campaign": "regulate-letter-pm", "wrote": "no"}'::jsonb
+         ELSE '{}'::jsonb
+       END),
+  CASE WHEN m.words IS NOT NULL THEN pg_temp.seed_words(m.words) ELSE coalesce(t.body, '{"type": "doc", "content": []}'::jsonb) END,
+  'jo@pauseai.uk', CASE WHEN m.channel = 'email' THEN 'hello@pauseai.uk' ELSE '+447700900000' END, 'PauseAI UK',
+  now() + m.due, m.state, t.id, coalesce(now() + m.due, now()) - interval '2 days', now() - interval '1 hour'
+FROM seed_broadcasts m LEFT JOIN whatsapp_templates t ON t.name = m.template;
+
+-- Each copy, by who it's to and how it stands: every way one can go, a text
+-- also read, or not on WhatsApp. Those scheduled have none, as sending finds
+-- who they go to.
+CREATE TEMP TABLE seed_copies ON COMMIT DROP AS
+SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, m.id AS mailing_id, m.channel, m.due, c.person, c.status, c.reason, c.was_read
+FROM (VALUES
+  ('Thank you for marching', 'email', 1, 'delivered', NULL, false),
+  ('Thank you for marching', 'email', 2, 'sent', NULL, false),
+  ('Thank you for marching', 'email', 3, 'scheduled', NULL, false),
+  ('Thank you for marching', 'email', 4, 'scheduled', NULL, false),
+  ('PauseCon: the recordings', 'email', 1, 'delivered', NULL, false),
+  ('PauseCon: the recordings', 'email', 2, 'failed', NULL, false),
+  ('PauseCon: the recordings', 'email', 3, 'skipped', 'blocked', false),
+  ('PauseCon: the recordings', 'email', 4, 'skipped', 'unsubscribed', false),
+  ('PauseCon: the recordings', 'email', 5, 'skipped', 'no-permission', false),
+  ('PauseCon: the recordings', 'email', 6, 'cancelled', NULL, false),
+  ('Our next event is on Saturday.', 'text', 1, 'delivered', NULL, true),
+  ('Our next event is on Saturday.', 'text', 2, 'delivered', NULL, false),
+  ('Our next event is on Saturday.', 'text', 3, 'scheduled', NULL, false),
+  ('PauseCon room change', 'text', 1, 'delivered', NULL, true),
+  ('PauseCon room change', 'text', 2, 'delivered', NULL, true),
+  ('PauseCon room change', 'text', 3, 'delivered', NULL, false),
+  ('PauseCon room change', 'text', 4, 'failed', NULL, false),
+  ('PauseCon room change', 'text', 5, 'skipped', 'not-on-whatsapp', false),
+  ('PauseCon room change', 'text', 6, 'skipped', 'unsubscribed', false),
+  ('We are flyering on Saturday.', 'text', 1, 'delivered', NULL, true),
+  ('We are flyering on Saturday.', 'text', 2, 'failed', NULL, false),
+  ('We are flyering on Saturday.', 'text', 3, 'cancelled', NULL, false)
+) c (title, channel, person, status, reason, was_read)
+JOIN seed_broadcasts m ON m.title = c.title AND m.channel = c.channel;
+INSERT INTO broadcast_messages (id, mailing_id, supporter_id, address, status, merge_values, skip_reason, sent_at) OVERRIDING SYSTEM VALUE
+SELECT c.id, c.mailing_id, p.id,
+  CASE WHEN c.channel = 'email' THEN p.email ELSE '+447700900' || lpad((100 + p.n)::text, 3, '0') END,
+  c.status, jsonb_build_object('name', p.name, 'place', p.place, 'values', jsonb_build_object('firstName', split_part(p.name, ' ', 1)), 'meets', '["has:firstName"]'::jsonb),
+  c.reason, CASE WHEN c.status IN ('sent', 'delivered', 'failed') THEN now() + c.due END
+FROM seed_copies c JOIN seed_people p ON p.n = c.person;
+INSERT INTO broadcast_message_events (message_id, at, kind)
+SELECT id, now() + due, 'sent' FROM seed_copies WHERE status IN ('sent', 'delivered', 'failed')
+UNION ALL SELECT id, now() + due + interval '1 minute', 'delivered' FROM seed_copies WHERE status = 'delivered'
+UNION ALL SELECT id, now() + due + interval '1 minute', CASE channel WHEN 'email' THEN 'bounced' ELSE 'failed' END FROM seed_copies WHERE status = 'failed'
+UNION ALL SELECT id, now() + due + interval '20 minutes', 'read' FROM seed_copies WHERE was_read
+-- One asked us to stop after PauseCon room change reached them.
+UNION ALL SELECT id, now() + due + interval '2 hours', 'opted-out' FROM seed_copies
+  WHERE channel = 'text' AND status = 'delivered' AND NOT was_read AND due = interval '-3 days';

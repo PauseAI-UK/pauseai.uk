@@ -15,7 +15,10 @@ import Alert from "@/app/(staff)/staff/_components/Alert";
 import AlertIcon from "@/app/(staff)/staff/_components/AlertIcon";
 import StaffNav, { type StaffPage as StaffPageName } from "@/app/(staff)/staff/_components/StaffNav";
 import Breadcrumb from "@/app/(staff)/staff/_components/Breadcrumb";
+import LockIcon from "@/app/(staff)/staff/_components/ui/LockIcon";
 import NotIcon from "@/app/(staff)/staff/_components/ui/NotIcon";
+import IconText from "@/app/(staff)/staff/_components/ui/IconText";
+import ChannelIcon from "@/app/(staff)/staff/_components/ChannelIcon";
 import ListFrame, { ListTable, type ListColumn } from "@/app/(staff)/staff/_components/ui/ListFrame";
 import PageIntro from "@/app/(staff)/staff/_components/ui/PageIntro";
 import Withheld from "@/app/(staff)/staff/_components/ui/Withheld";
@@ -39,6 +42,7 @@ import PageTitle from "@/app/(staff)/staff/_components/ui/PageTitle";
 import Strip from "@/app/(staff)/staff/_components/ui/Strip";
 import Tabs from "@/app/(staff)/staff/_components/ui/Tabs";
 import Tag from "@/components/ui/Tag";
+import { Muted } from "@/components/ui/Text";
 import type { Group } from "../_components/types";
 import FilterBarLines from "@/app/(staff)/staff/_components/ui/FilterBarLines";
 import {
@@ -98,6 +102,7 @@ const PAGES: Record<StaffPageName, true> = {
   supporters: true,
   signupUpload: true,
   campaigns: true,
+  broadcasts: true,
   sentEmails: true,
   events: true,
   supporterEmails: true,
@@ -825,6 +830,48 @@ export const staffKit: Group = {
                 rowKey={nameOf}
                 empty="Nothing found."
               />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "IconText",
+      file: "app/(staff)/staff/_components/ui/IconText.tsx",
+      variants: [
+        {
+          label: "An icon before words, centred on them: in a paragraph, small and muted, and in a heading",
+          render: () => (
+            <StaffPage as="div">
+              <p>
+                Sent by <IconText icon={<ChannelIcon channel="email" />}>Email</IconText> and{" "}
+                <IconText icon={<ChannelIcon channel="phone" />}>Text</IconText> today.
+              </p>
+              <p>
+                <Muted>
+                  <IconText icon={<ChannelIcon channel="phone" />}>Text</IconText>
+                </Muted>
+              </p>
+              <h3>
+                <IconText icon={<ChannelIcon channel="email" />}>Email</IconText>
+              </h3>
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "LockIcon",
+      file: "app/(staff)/staff/_components/ui/LockIcon.tsx",
+      variants: [
+        {
+          label: "After a locked chip's words, where its arrow would be",
+          render: () => (
+            <StaffPage as="div">
+              <p>
+                Consent: PauseAI UK
+                <LockIcon />
+              </p>
             </StaffPage>
           ),
         },

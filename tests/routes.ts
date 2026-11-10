@@ -30,6 +30,9 @@ export const DYNAMIC_EXAMPLES: Record<string, string> = {
   "/staff/mailings/[id]": "/staff/mailings/1",
   // Edinburgh follow-up's letter to Polly, which she answered (tests/fixtures/staff-data.sql).
   "/staff/mailings/[id]/letters/[letter]": "/staff/mailings/11/letters/35",
+  // The supporters mailing, and its first message (tests/fixtures/staff-data.sql).
+  "/staff/broadcasts/[id]": "/staff/broadcasts/13",
+  "/staff/broadcasts/[id]/[copy]": "/staff/broadcasts/13/1",
   "/staff/politicians/[id]": "/staff/politicians/1",
   "/staff/supporters/import/previous/[id]": "/staff/supporters/import/previous/1",
   "/staff/supporters/[id]": "/staff/supporters/1",

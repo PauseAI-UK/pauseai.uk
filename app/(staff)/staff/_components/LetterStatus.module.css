@@ -1,0 +1,17 @@
+/* A letter's status tag, and beside it whether it was answered or replied to. */
+.tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  max-width: 100%;
+}
+
+/*
+ * A tag too long for a narrow column, such as a stopped letter's, wraps
+ * rather than running out of it, though a table keeps tags whole (ui/Tag):
+ * [class] outweighs that rule's `td .tag`.
+ */
+.tags > [class] {
+  white-space: normal;
+}

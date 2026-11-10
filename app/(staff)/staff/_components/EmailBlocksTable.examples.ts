@@ -9,12 +9,13 @@ export const exampleBlock: EmailBlock = {
   canReset: true,
   foundInGmail: false,
   politicians: [{ id: 5, name: "Bouncy McTestface MP", isTest: true }],
+  supporters: [],
   letter: { id: 17, to: "Bouncy McTestface MP" },
   purpose: "letter",
   refused: 2,
 };
 
-/** An address blocked by a spam complaint about a forwarded reply, which can't be unblocked, and isn't a politician's. */
+/** A supporter's address, blocked by a spam complaint about a forwarded reply, which can't be unblocked. */
 export const exampleComplaint: EmailBlock = {
   address: "sender@example.org",
   kind: "complaint",
@@ -23,6 +24,7 @@ export const exampleComplaint: EmailBlock = {
   canReset: false,
   foundInGmail: false,
   politicians: [],
+  supporters: [{ id: 7, name: "Jane Example" }],
   letter: null,
   purpose: "forwarded-reply",
   refused: 0,
@@ -37,6 +39,7 @@ export const exampleGmailBlock: EmailBlock = {
   canReset: true,
   foundInGmail: true,
   politicians: [{ id: 6, name: "Polly Placeholder", isTest: false }],
+  supporters: [],
   letter: { id: 21, to: "Polly Placeholder" },
   purpose: "mailing",
   refused: 0,
