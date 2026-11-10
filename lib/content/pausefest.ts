@@ -11,8 +11,10 @@ export type FestEvent = {
   place: string;
   /** Where people register: the event on Luma, or the march's own sign-up. */
   href: string;
-  /** The event's ID on Luma, for who's going. */
-  lumaId: string;
+  /** The event's ID on Luma, for who's going; none for an event whose guests aren't shown. */
+  lumaId?: string;
+  /** What a featured event's button says, when not "Register". */
+  button?: string;
   /** The event's cover, square, shown beside a featured event. */
   image: string;
   /** One of the festival's main events, given a band of its own. */
@@ -89,7 +91,7 @@ export const pausefest: {
           time: "9.30am–1.30pm",
           place: "Palace of Westminster",
           href: "https://luma.com/pauseai-conf-nov26",
-          lumaId: "evt-p2EKwf3Bu0Zo5Xz",
+          button: "Apply",
           image: "https://images.lumacdn.com/uploads/t2/6f9c5a2e-8e76-41a6-9fc2-2627399cc8a2.png",
           featured: true,
         },
