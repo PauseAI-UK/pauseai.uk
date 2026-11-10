@@ -299,6 +299,24 @@ describe("SignupUploadPreview", () => {
     await expect.element(page.getByRole("button", { name: words.importNow(2, 0) })).toBeVisible();
   });
 
+  it("keeps saying things changed when the preview runs again, until something else is chosen", async () => {
+    const changed = { ...exampleSignupPlan, rows: exampleSignupPlan.rows.slice(1) };
+    const finish = async () => ({ changed });
+    const view = await show({ finish });
+    await button().click();
+    await expect.element(page.getByText(words.changed)).toBeVisible();
+    // The page refreshed after the import: new actions, the same file.
+    const again = vi.fn(async () => changed);
+    await view.rerender(<SignupUploadPreview input={input} blockers={[]} preview={again} finish={finish} />);
+    await expect.poll(() => again.mock.calls.length).toBe(1);
+    await expect.element(page.getByText(words.changed)).toBeVisible();
+    // Another file.
+    const other = { ...input, filename: "other.csv" };
+    await view.rerender(<SignupUploadPreview input={other} blockers={[]} preview={again} finish={finish} />);
+    await expect.poll(() => again.mock.calls.length).toBe(2);
+    await expect.element(page.getByText(words.changed)).not.toBeInTheDocument();
+  });
+
   it("says when the file can't go in, on previewing or importing", async () => {
     const refused = { ok: false, reason: "bad-choice" } as const;
     const view = await show({ preview: async () => refused });
