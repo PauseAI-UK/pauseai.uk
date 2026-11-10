@@ -117,7 +117,7 @@ export async function hasMessage(letterId: number, rfc: string | null): Promise<
 }
 
 /** Whether an address is the supporter's who wrote a letter: their form entry's, or their proxy's. */
-export async function isSupporter(letterId: number, address: string): Promise<boolean> {
+async function isSupporter(letterId: number, address: string): Promise<boolean> {
   const [row] = await query(
     `SELECT 1 FROM letters_from_supporters s
        LEFT JOIN form_entries f ON f.id = s.entry_id LEFT JOIN proxies p ON p.id = s.proxy_id
@@ -146,7 +146,7 @@ async function noteReplied(letterId: number, at: Date, supporter: boolean, detai
  * to, a line each as it came, and that it went no further: it's already in
  * the mailbox, for whoever reads it.
  */
-export function addressed(message: GmailMessageHeaders) {
+function addressed(message: GmailMessageHeaders) {
   const handling: ReplyHandling[] = [{ outcome: "not_forwarded", reason: "gmail" }];
   const line = (name: string) => {
     const value = message.headers.get(name);

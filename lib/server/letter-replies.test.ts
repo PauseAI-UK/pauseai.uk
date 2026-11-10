@@ -15,6 +15,13 @@ import { query } from "./db";
 import { claimOneOffs, hasMessage, keepReply, postmarkMessageId } from "./letter-replies";
 import { letterReply, saveLetterReply } from "./outside-services/blobs";
 import type { GmailMessageHeaders } from "./outside-services/gmail";
+import { messageContent } from "./letter-threads";
+
+// messageContent as it is, but that a test can run something first, as another run would meanwhile.
+vi.mock("./letter-threads", async (original) => {
+  const actual = await original<typeof import("./letter-threads")>();
+  return { ...actual, messageContent: vi.fn(actual.messageContent) };
+});
 
 describe("postmarkMessageId", () => {
   it("is Postmark's ID for an email it sent, by its Message-ID, and nothing for any other", () => {
@@ -164,6 +171,20 @@ describeWithDatabase("a letter's thread", () => {
     await oneOff({ gmail: "o1", gmailThread: "gt-shared", rfc: "o1@parliament.uk" });
     expect(allResults(await atOnce(() => claimOneOffs(id))).reduce((a, b) => a + b)).toBe(1);
     expect((await replies(id)).map((row) => row.gmail)).toEqual(["r1", "o1"]);
+    expect(await letterReply("one-off/joseph@pauseai.uk/o1.eml.gz")).toBeDefined();
+  });
+
+  it("leaves a message another run took after it was listed", async () => {
+    const id = await letter();
+    await onLetter(id, { gmail: "r1", thread: "gt-shared" });
+    await oneOff({ gmail: "o1", gmailThread: "gt-shared" });
+    const real = vi.mocked(messageContent).getMockImplementation()!;
+    vi.mocked(messageContent).mockImplementationOnce(async (key) => {
+      await query("DELETE FROM one_off_messages WHERE gmail_message_id = 'o1'");
+      return real(key);
+    });
+    expect(await claimOneOffs(id)).toBe(0);
+    expect((await replies(id)).map((row) => row.gmail)).toEqual(["r1"]);
     expect(await letterReply("one-off/joseph@pauseai.uk/o1.eml.gz")).toBeDefined();
   });
 
