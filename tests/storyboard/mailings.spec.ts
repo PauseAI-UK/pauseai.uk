@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addStaffAccount, logInAsStaff, newestEmail, recordAnswers, syncPoliticians, WEBHOOK_AUTH } from "../steps";
+import { caretAtEnd } from "./editor-steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { importEmails, NOTIFICATION_INBOX, stayOnPage } from "./staff-steps";
 import { runQueue } from "./letters-inbox-steps";
@@ -127,8 +128,7 @@ test("A new mailing", async ({ page, request, flowDatabase }) => {
   // The letter starts with its greeting; the rest is written under it.
   const letter = page.getByRole("textbox", { name: copy.letter });
   await expect(letter).toContainText(`${copy.greeting} ${staffCopy.mailingEditor.fields.salutation},`);
-  await letter.click();
-  await page.keyboard.press("Control+End");
+  await caretAtEnd(letter);
   await page.keyboard.type("We hope to see you there.");
   await expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
   await expect(page).toHaveURL(/\/staff\/mailings\/\d+$/);
@@ -529,8 +529,7 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText(staffCopy.gmail.outcomes.connected)).toBeVisible();
   await startFromList(page, "nation=scotland", 1);
   await page.getByLabel(copy.subject).fill("See you in Edinburgh");
-  await page.getByRole("textbox", { name: copy.letter }).click();
-  await page.keyboard.press("Control+End");
+  await caretAtEnd(page.getByRole("textbox", { name: copy.letter }));
   await page.keyboard.type("We hope to see you there.");
   await expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
   await expect(page).toHaveURL(/\/staff\/mailings\/\d+$/);

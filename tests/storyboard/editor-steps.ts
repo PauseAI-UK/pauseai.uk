@@ -1,6 +1,6 @@
 // Writing in the letter's editor, as a person does, for the flows that
-// edit a letter (campaigns, replies).
-import type { Page } from "@playwright/test";
+// edit a letter (campaigns, replies, mailings).
+import type { Locator, Page } from "@playwright/test";
 import { copy } from "@/lib/content/email-your-mp";
 import { expect } from "./fixtures";
 
@@ -10,7 +10,12 @@ export const editor = (page: Page) => page.getByRole("textbox", { name: copy.for
 /** The editor's element: Tiptap puts the editor on it, and so where it has the caret. */
 type TiptapElement = HTMLElement & {
   editor: {
-    state: { selection: { $to: { parentOffset: number; parent: { textContent: string; content: { size: number } } } } };
+    state: {
+      doc: { content: { size: number } };
+      selection: {
+        $to: { parentOffset: number; parent: { textContent: string; content: { size: number } }; after: () => number };
+      };
+    };
   };
 };
 
@@ -42,9 +47,24 @@ async function caretSettled(page: Page, text: string, at?: "start" | "end") {
  * focuses the editor can lose its caret to that, and land at the letter's
  * start. A timer due after ProseMirror's runs after it.
  */
-async function focusEditor(page: Page) {
-  await editor(page).focus();
-  await editor(page).evaluate(() => new Promise((done) => setTimeout(done, 25)));
+async function focusEditor(page: Page, box = editor(page)) {
+  await box.focus();
+  await box.evaluate(() => new Promise((done) => setTimeout(done, 25)));
+}
+
+/** Puts the caret at the end of the letter in `box`, a Tiptap editor such as a mailing's, to write under what's there. */
+export async function caretAtEnd(box: Locator) {
+  await focusEditor(box.page(), box);
+  await box.press("Control+End");
+  await expect
+    .poll(() =>
+      box.evaluate((el) => {
+        const { doc, selection } = (el as TiptapElement).editor.state;
+        const { $to } = selection;
+        return $to.parentOffset === $to.parent.content.size && $to.after() === doc.content.size;
+      }),
+    )
+    .toBe(true);
 }
 
 /**
