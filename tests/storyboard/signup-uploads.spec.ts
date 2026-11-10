@@ -247,6 +247,8 @@ test("What Luma says", async ({ page, flowDatabase, request }) => {
   await chooseFile(page, "luma-fails.csv");
   await chooseEvent(page, "Going");
   await expect(page.getByRole("button", { name: copy.preview.importNow(0, 1) })).toBeVisible();
+  await previewWorkedOut(page);
+  await atFoot(page);
   await frame(page, "Trying Luma again");
 });
 
@@ -268,5 +270,6 @@ test("Something changes before importing", async ({ page, flowDatabase, request 
   await before.click();
   await expect(page.getByText(copy.preview.changed)).toBeVisible();
   await expect(page.getByRole("button", { name: copy.preview.importNow(5, 0) })).toBeVisible();
+  await atFoot(page);
   await frame(page, "What would happen now");
 });

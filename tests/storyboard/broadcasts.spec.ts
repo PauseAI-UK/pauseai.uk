@@ -31,6 +31,30 @@ async function logIn(page: Page, database: string) {
   return logInAsStaff(page, BASE, staffEmail());
 }
 
+/**
+ * Makes `change` to the draft, and waits for it to be saved. The pill turns
+ * to Saving only once the save starts, a moment after the change, so it's
+ * watched for from before the change, then Saved after it.
+ */
+async function savedAfter(page: Page, change: () => Promise<unknown>) {
+  const saving = page.evaluate(
+    (words) =>
+      new Promise<void>((done) => {
+        const now = () => document.querySelector('[role="status"]')?.textContent === words;
+        const watch = new MutationObserver(() => {
+          if (!now()) return;
+          watch.disconnect();
+          done();
+        });
+        watch.observe(document.body, { subtree: true, childList: true, characterData: true });
+      }),
+    mailingCopy.savePill.saving,
+  );
+  await change();
+  await saving;
+  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+}
+
 /** Starts a broadcast from the supporters list, with these filters, and opens the writer. */
 async function startFromList(page: Page, filters: string, n: number) {
   await page.goto(`${BASE}/staff/supporters?${filters}`);
@@ -165,8 +189,7 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   const words = page.getByRole("textbox", { name: copy.emailLabel });
   // On the empty line under the greeting, above the signature.
   await words.locator("p").nth(1).click();
-  await page.keyboard.type("See you at the march.");
-  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  await savedAfter(page, () => page.keyboard.type("See you at the march."));
   const preview = page.getByRole("region", { name: copy.sections.preview });
   await expect(preview.getByText("See you at the march.")).toBeVisible();
   await preview.getByRole("button", { name: copy.sendTest }).scrollIntoViewIfNeeded();
@@ -187,8 +210,7 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   expect(email.Subject).toBe("Events near you this month");
   await emailFrame(page, email, "The test copy");
   story("They pick the 14:00 hour, and see what it'll send and cost, then schedule it.");
-  await page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14");
-  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.scrollIntoViewIfNeeded();
   await frame(page, "What will go, and what it costs", { window: true });
@@ -220,13 +242,11 @@ test("A text on an approved template", async ({ page, request, flowDatabase }) =
   story(
     "Choosing one from the dropdown names the text after it. Its words show once, in the preview, as a bubble with its Stop button, and can't be changed.",
   );
-  await words.selectOption({ label: "PauseCon room change" });
+  await savedAfter(page, () => words.selectOption({ label: "PauseCon room change" }));
   await expect(page.getByRole("heading", { name: "PauseCon room change", level: 1 })).toBeVisible();
-  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
   await frame(page, "A template chosen");
   story("They choose the hour.");
-  await page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14");
-  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.scrollIntoViewIfNeeded();
   await frame(page, "When, and what it costs", { window: true });
@@ -247,10 +267,8 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   const words = page.getByRole("textbox", { name: copy.templateWords });
   await words.click();
   await page.keyboard.type("The march meets at 11:00 at Parliament Square.");
-  await page.getByLabel(copy.templateName).fill("March day: where to meet");
-  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
-  await page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14");
-  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March day: where to meet"));
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.scrollIntoViewIfNeeded();
   await expect(send.getByText(copy.problems["not-approved"])).toBeVisible();
@@ -298,8 +316,7 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
   await startFromList(page, EMAIL, EMAILABLE);
-  await page.getByLabel(copy.subject).fill("Change me");
-  await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
+  await savedAfter(page, () => page.getByLabel(copy.subject).fill("Change me"));
   const draft = page.url();
   await page.getByRole("link", { name: mailingCopy.changeWho }).click();
   await expect(page.getByText(copy.choosing("Change me"))).toBeVisible();

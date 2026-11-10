@@ -15,3 +15,4 @@ Find what makes the link text snap differently, checking each idea with seven ru
 - 2026-11-10: the storyboard review of list-kit-and-letter-lifecycle showed the frame as changed against main; six reruns on one build gave two versions
 - 2026-11-10: again in the review after the sql conversions (run 2026-11-10T10-03-01), the only changed frame
 - 2026-11-10: `supporters › A supporter's page › 2` differed against main in the review of investigate (run 2026-11-10T10-47-39), the sidebar's link text a pixel off
+- 2026-11-10: the review of staff-list-filters-from-definition showed `supporters › Notes on a supporter › 2` and `A supporter's page › 2` changed against main, only the sidebar's link text; two reruns of one build gave both versions
