@@ -2,15 +2,12 @@ import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import {
-  AIRTABLE_ASKS,
   AirtableRequestError,
   EMAILS_FORMULA,
   fetchEmails,
-  fetchGoToParliamentMeetings,
   fetchMembers,
   fetchPoliticians,
   fetchWebFormLetters,
-  GO_TO_PARLIAMENT_FORMULA,
   MEMBER_FIELDS,
   MEMBERS_FORMULA,
   POLITICIAN_FIELDS,
@@ -68,7 +65,7 @@ describe("fetchPoliticians", () => {
         records: [
           // A peer: no Body, no constituency, only their title.
           record({ "Full name or Title": "Lord Ann", Status: "Died" }, "recA"),
-          // Someone with a constituency but no Body, and every answer to the conference.
+          // Someone with a constituency but no Body.
           record({ "Full name or Title": "Bea", Constituency: "Bury", Status: "Retired" }, "recB"),
           record({ "Full name or Title": "Cy", Body: "Welsh Parliament", Status: "No longer in office" }, "recC"),
           record(
@@ -127,12 +124,6 @@ describe("fetchPoliticians", () => {
         importantTarget: true,
         personalConnection: true,
       },
-      statuses: {
-        "frontier-ai-letter": { status: "signed", note: "" },
-        "deepmind-letter": { status: "signed", note: "" },
-        "controlai-statement": { status: "signed", note: "" },
-        "edinburgh-conference-2026": { status: "other", note: "Passed the request on" },
-      },
     });
     expect(by("recA")).toEqual({
       politician: {
@@ -149,7 +140,6 @@ describe("fetchPoliticians", () => {
         importantTarget: false,
         personalConnection: false,
       },
-      statuses: {},
     });
     expect(
       records.map((r) => [r.politician.airtableId, r.politician.house, r.politician.status, r.politician.notes]),
@@ -162,12 +152,6 @@ describe("fetchPoliticians", () => {
       ["recA", "lords", "died", ""],
       ["recZ", "scottish-parliament", "in_office", "Met once.\nRecommended"],
     ]);
-    expect(by("recD").statuses).toEqual({
-      "deepmind-letter": { status: "declined", note: "" },
-      "edinburgh-conference-2026": { status: "going", note: "" },
-    });
-    expect(by("recE").statuses).toEqual({ "edinburgh-conference-2026": { status: "declined", note: "" } });
-    expect(by("recF").statuses).toEqual({});
     const url = new URL(requests[1].url);
     expect(url.hostname).toBe("api.airtable.com");
     expect(url.pathname).toBe("/v0/appBInVvIm6opJ1Ob/tblH3ks9wqQHLpYx3");
@@ -176,12 +160,8 @@ describe("fetchPoliticians", () => {
     expect(POLITICIANS_FORMULA).toBe("NOT({Test})");
     expect(url.searchParams.getAll("fields[]")).toEqual([...POLITICIAN_FIELDS]);
     expect(requests[0].headers.get("Authorization")).toBe("Bearer test-token");
-    expect(AIRTABLE_ASKS).toEqual([
-      "frontier-ai-letter",
-      "deepmind-letter",
-      "controlai-statement",
-      "edinburgh-conference-2026",
-    ]);
+    // Answers to asks aren't read: they're kept only here.
+    expect(url.searchParams.getAll("fields[]")).not.toContain("Signed Frontier AI Letter");
   });
 
   it("refuses a Status or Country it doesn't know, rather than guess", async () => {
@@ -189,15 +169,6 @@ describe("fetchPoliticians", () => {
     await expect(fetchPoliticians("t")).rejects.toThrow('Unknown Status "Suspended" on rec1');
     serve({ records: [record({ "Full name or Title": "X", Country: "Cornwall" })] });
     await expect(fetchPoliticians("t")).rejects.toThrow('Unknown Country "Cornwall" on rec1');
-  });
-
-  it("takes an answer it doesn't know as other, its words the note", async () => {
-    serve({
-      records: [record({ "Full name or Title": "X", "Edinburgh Conference November 2026": "Responded after event" })],
-    });
-    expect((await fetchPoliticians("t"))[0].statuses).toEqual({
-      "edinburgh-conference-2026": { status: "other", note: "Responded after event" },
-    });
   });
 
   it("copes with a page without records", async () => {
@@ -328,19 +299,6 @@ describe("fetchWebFormLetters", () => {
     expect(url.pathname).toBe("/v0/appBInVvIm6opJ1Ob/tblkzjrRHiZiqMDGR");
     expect(url.searchParams.getAll("fields[]")).toContain("Message");
     expect(url.searchParams.getAll("fields[]")).not.toContain("Attending Parliament 23 June 2026");
-  });
-});
-
-describe("fetchGoToParliamentMeetings", () => {
-  it("reads only each guest's MP and their meeting's status, never the guest", async () => {
-    const requests = serve({
-      records: [record({ "UK Parliamentarians": ["recP"], "MP Meeting Status": "Secured", email: "no@example.com" })],
-    });
-    expect(await fetchGoToParliamentMeetings("t")).toEqual([{ politicians: ["recP"], status: "Secured" }]);
-    const url = new URL(requests[0].url);
-    expect(url.pathname).toBe("/v0/appBInVvIm6opJ1Ob/tblminXS1xSuBbEjz");
-    expect(url.searchParams.get("filterByFormula")).toBe(GO_TO_PARLIAMENT_FORMULA);
-    expect(url.searchParams.getAll("fields[]")).toEqual(["UK Parliamentarians", "MP Meeting Status"]);
   });
 });
 

@@ -7,9 +7,14 @@ import { isBlocked, recordProblem } from "@/lib/server/email";
 import { getPolitician } from "@/lib/server/politicians";
 import { createSession } from "@/lib/server/staff-auth";
 import { saveStaffAccount } from "@/lib/server/staff-accounts";
-import { FIXED_ASKS } from "@/lib/asks";
 import { gmailAccounts } from "@/lib/server/gmail-accounts";
-import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import {
+  addTestPolitician,
+  connectTestGmail,
+  describeWithDatabase,
+  MIGRATION_ASKS,
+  useTestDatabase,
+} from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
   addNoteNow,
@@ -330,15 +335,12 @@ describeWithDatabase("staff Server Actions", () => {
     await runJobNow("sync-politicians");
     await runJobNow("sync-emails");
     await runJobNow("import-web-form-letters");
-    await runJobNow("import-go-to-parliament");
     expect((await runs()).slice(1)).toEqual([
       { job: "sync-emails", status: "ok", startedBy: "jo@pauseai.uk" },
       { job: "import-web-form-letters", status: "ok", startedBy: "jo@pauseai.uk" },
-      { job: "import-go-to-parliament", status: "ok", startedBy: "jo@pauseai.uk" },
     ]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/emails");
     expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/web-form-letters");
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/go-to-parliament");
   });
 
   it("runs nothing for a name that isn't a job's", async () => {
@@ -449,7 +451,7 @@ describeWithDatabase("staff Server Actions", () => {
   });
 
   describe("asks", () => {
-    beforeEach(() => query("DELETE FROM asks WHERE slug <> ALL($1)", [FIXED_ASKS]));
+    beforeEach(() => query("DELETE FROM asks WHERE slug <> ALL($1)", [MIGRATION_ASKS]));
     const reception = (extra: Record<string, string> = {}) =>
       form({ title: "Winter reception", kind: "event", date: "2026-12-09", ...extra });
 
@@ -469,9 +471,16 @@ describeWithDatabase("staff Server Actions", () => {
       expect(
         await expectRedirect(() => saveAskNow(reception({ slug: "winter-reception-dec-2026", title: "Reception" }))),
       ).toBe("/staff/asks?notice=saved");
-      expect(await expectRedirect(() => saveAskNow(reception({ slug: "frontier-ai-letter" })))).toBe(
-        "/staff/asks/frontier-ai-letter/edit?notice=fixed&back=%2Fstaff%2Fasks",
+      // Answered, so its kind can't change.
+      const polly = await addTestPolitician();
+      await query(
+        `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by)
+         VALUES ($1, 'winter-reception-dec-2026', 'event', 'going', 'jo@pauseai.uk')`,
+        [polly],
       );
+      expect(
+        await expectRedirect(() => saveAskNow(reception({ slug: "winter-reception-dec-2026", kind: "letter" }))),
+      ).toBe("/staff/asks/winter-reception-dec-2026/edit?notice=kind-in-use&back=%2Fstaff%2Fasks");
       expect(await expectRedirect(() => saveAskNow(form({ title: "", kind: "event" })))).toBe(
         "/staff/asks/new?notice=invalid&back=%2Fstaff%2Fasks",
       );
@@ -480,7 +489,7 @@ describeWithDatabase("staff Server Actions", () => {
     it("deletes an ask, or goes back to its form saying why not, or to the asks if it's gone", async () => {
       await expectRedirect(() => saveAskNow(reception()));
       expect(await expectRedirect(() => deleteAskNow(form({ slug: "frontier-ai-letter" })))).toBe(
-        "/staff/asks/frontier-ai-letter/edit?notice=fixed&back=%2Fstaff%2Fasks",
+        "/staff/asks/frontier-ai-letter/edit?notice=named&back=%2Fstaff%2Fasks",
       );
       expect(await expectRedirect(() => deleteAskNow(form({ slug: "winter-reception-dec-2026" })))).toBe(
         "/staff/asks?notice=deleted",

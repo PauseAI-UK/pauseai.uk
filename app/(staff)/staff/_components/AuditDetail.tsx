@@ -224,7 +224,6 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "apply MP sync": none,
   "hold MP sync": none,
   "import ControlAI letter": none,
-  "import Go to Parliament": none,
   "import web form letters": none,
   "import sign-ups": (details) => ({
     parts: [

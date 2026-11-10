@@ -81,28 +81,24 @@ one. Staff add, change and delete them on `/staff/asks`, or from a
 mailing's Ask: the slug is made from the title and the date's month, and
 never changes; the kind is fixed once anyone has answered; an ask can be
 deleted only while no answer, campaign or mailing refers to it. The asks
-`lib/asks.ts` names (`FIXED_ASKS`) can't be changed there, as imports and
-campaigns depend on them.
+`lib/asks.ts` names (`NAMED_ASKS`: the Frontier AI letter and ControlAI's
+letter) can be changed there but never deleted, as campaigns, the public
+list of signatories and the ControlAI import depend on them.
 
 A person's answer to an ask is a status (`ask_statuses`): one row per
 person per ask, with a status, a date, a note, and who set it; no answer,
 no row. Each kind allows its own statuses (`ask_kind_statuses`, mirrored by
 `ASK_STATUSES`): a letter `signed`, `other` or `declined`; an event
 `going`, `other` or `declined`. An `other` answer's note says what it was,
-such as "Tentatively said yes": the imports put there what Airtable's
-answer meant for any that isn't a yes or a no, worded more fully where
-`airtableNote` (`lib/asks.ts`) has a wording, else Airtable's own words. A foreign key on `(ask_kind, status)`
+such as "Tentatively said yes". A foreign key on `(ask_kind, status)`
 refuses any status not in that table, and a new status is a row there.
 
-Who set a status decides who may change it. Staff set statuses by hand, with
-a note, for the asks of the campaigns they track (`trackedAsks`). An import
-owns the statuses it sets, and changes or removes only those, leaving alone
-a status set by staff or another import: the ControlAI import sets
-ControlAI's letter to the Prime Minister from its PDF (`updated_by`
-`controlai`, `lib/server/controlai-import.ts`); the politician sync sets the
-letters, ControlAI's campaign statement and the conference Airtable records (`airtable`, `AIRTABLE_ASKS`); the one-off
-Go to Parliament import its meetings (`airtable`,
-`lib/server/go-to-parliament-import.ts`). `/staff/asks` lists the asks, newest
+Staff set statuses by hand, with a note, for every ask but one: ControlAI's
+letter to the Prime Minister, which the ControlAI import sets from
+controlai.org (`IMPORTED_ASKS`, `updated_by` `controlai`,
+`lib/server/controlai-import.ts`). Statuses with `updated_by` `airtable`
+were copied from Airtable's records before the site kept answers itself;
+staff change them like any other. `/staff/asks` lists the asks, newest
 first, who asks each, how many gave each answer, how many were written to and
 how they were asked. An ask's own page (`/staff/asks/[slug]`) says what they
 were asked in a politician's page's words, then lists the campaigns and
@@ -845,7 +841,7 @@ opt-outs ("Opt-outs", above) as well as the blocks here.
 A job that copies data in from outside: the politician sync, the Emails
 sync, the check against Parliament, the ControlAI letter, the Luma import,
 the members import, and the one-off imports of pauseai.info's web form
-letters, Go to Parliament's meetings and old letters; and the two jobs that
+letters and old letters; and the two jobs that
 don't import but run on a schedule all the same, the hourly sending and the
 nightly tidying (`JOBS` in `lib/import-runs.ts`). Whatever a scheduled
 job does, it goes here, despite the name (`docs/code-structure.md`). Each runs on a
@@ -949,7 +945,7 @@ blocked addresses. Nothing else about reading is logged.
 | `set status`                                                                                                  | staff, `controlai`, `airtable`       | A status set or cleared, by hand or by an import                                                | `politicianId`, `ask`, `status`, `date`, `note`              |
 | `apply politician sync`, `hold politician sync`, `apply held politician sync`, `discard held politician sync` | `sync`, staff                        | Each sync's outcome, and each decision on a held one                                            | counts, or the run's `id`                                    |
 | `copy PauseAI emails`                                                                                         | `sync`                               | The Emails sync adds any                                                                        | `added`                                                      |
-| `import web form letters`, `import Go to Parliament`                                                          | staff                                | The one-off imports of pauseai.info's letters and of the meetings                               | counts                                                       |
+| `import web form letters`                                                                                     | staff                                | The one-off import of pauseai.info's letters                                                    | counts                                                       |
 | `import ControlAI letter`                                                                                     | `controlai`                          | A read of the letter that set or cleared any status                                             | counts                                                       |
 | `add ask`, `edit ask`, `delete ask`                                                                           | staff                                | The asks pages                                                                                  | `slug`, and the ask's fields                                 |
 | `add note`, `edit note`, `delete note`                                                                        | staff                                | A note on a politician or a supporter                                                           | `noteId`, and whose it is                                    |

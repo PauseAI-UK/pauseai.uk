@@ -146,10 +146,10 @@ WHERE rank <= 162;
 -- Statuses: Polly signed the letter to the PM last month; Dora this week;
 -- the peer backs the bill, from ControlAI's letter, the week before; Backy
 -- McTestface MP's bill status (lib/test-mps.json) was already there. Then
--- Airtable's, as the sync sets them: each letter and the statement, and every answer an event
--- allows, across the conference and Go to Parliament, all there when the
--- sync first copied each ask, 20 days ago, so dated the ask's day, or that
--- day if the ask's is still to come.
+-- answers from Airtable, as production has them: each letter and the statement, and every answer an event
+-- allows, across the conference and Go to Parliament, all copied with each
+-- ask, 20 days ago, so dated the ask's day, or that day if the ask's is still
+-- to come.
 INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, note, updated_by, updated_at)
 SELECT id, 'frontier-ai-letter', 'letter', 'signed', (now() - interval '35 days')::date, 'Told us at the march', 'jo@pauseai.uk', now() - interval '34 days' FROM notable_people WHERE airtable_id = 'recPlaceholder';
 INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, note, updated_by, updated_at)
@@ -810,7 +810,6 @@ INSERT INTO import_runs (at, job, started_by, status, error, result, decided_by)
   (now() - interval '1 day' + interval '1 hour' + interval '1 minute', 'sync-emails', 'jo@pauseai.uk', 'ok', NULL, '{"read": 6, "added": 4, "waiting": 0, "noPolitician": 1, "unplaced": [{"airtableId": "recEmailNewBox", "mailings": []}]}', NULL),
   (now() - interval '2 days' + interval '1 hour' + interval '1 minute', 'sync-emails', 'jo@pauseai.uk', 'unchanged', NULL, '{"read": 2, "added": 0, "waiting": 0, "noPolitician": 0, "unplaced": []}', NULL),
   (now() - interval '5 days', 'import-web-form-letters', 'admin@pauseai.uk', 'ok', NULL, '{"read": 8, "imported": 3, "skipped": 3, "alreadyHere": 1, "noPolitician": 1, "supportersAdded": 2, "linked": 3}', NULL),
-  (now() - interval '5 days' + interval '2 minutes', 'import-go-to-parliament', 'admin@pauseai.uk', 'ok', NULL, '{"guests": 5, "mps": 4, "added": 3, "changed": 0, "notFound": 1}', NULL),
   (now() - interval '1 hour' + interval '5 minutes', 'sync-politicians', 'nightly', 'held', NULL, jsonb_set('{"renamed": [{"airtableId": "recPlaceholder", "from": "Polly Placeholder", "to": "Pauline Placeholder"}], "statuses": {"added": 0, "changed": 0, "removed": 0}, "records": [], "changes": {"added": [{"airtableId": "recNew", "name": "Nina New", "salutation": "Ms New", "constituency": "New Seat", "party": "Green", "email": "nina.new.mp@parliament.uk"}], "removed": [], "changed": [{"airtableId": "recPlaceholder", "name": "Polly Placeholder", "salutation": "Ms Placeholder", "constituency": "Cities of London and Westminster", "party": "Labour (Co-op)", "email": "polly.placeholder@parliament.uk"}]}}'::jsonb, '{changes,removed}', (SELECT jsonb_agg(jsonb_build_object('airtableId', 'recSeedGone' || n, 'name', 'Gone McSeed ' || n || ' MP', 'salutation', '', 'constituency', 'Seed Seat ' || n, 'party', '', 'email', NULL) ORDER BY n) FROM generate_series(1, 22) n)), NULL),
   (now() - interval '2 days' + interval '1 hour', 'check-mps', 'nightly', 'ok', NULL, '{"problems": []}', NULL),
   (now() - interval '1 day' + interval '1 hour', 'check-mps', 'nightly', 'ok', NULL, '{"problems": [{"kind": "email", "constituency": "Cities of London and Westminster", "name": "Polly Placeholder", "airtable": "polly.placeholder.mp@parliament.uk", "parliament": ["polly.placeholder@parliament.uk"]}, {"kind": "missing", "constituency": "New Seat", "parliament": "Nina New"}]}', NULL),
@@ -883,7 +882,6 @@ INSERT INTO audit_log (at, actor, action, details) VALUES
   (now() - interval '20 days', 'airtable', 'set status', '{"politicianId": 0, "ask": "edinburgh-conference-2026", "status": "declined", "date": null, "note": ""}'),
   (now() - interval '20 days', 'airtable', 'set status', '{"politicianId": 0, "ask": "controlai-statement", "status": "signed", "date": "2025-02-06", "note": ""}'),
   (now() - interval '5 days', 'admin@pauseai.uk', 'import web form letters', '{"imported": 3, "skipped": 3, "alreadyHere": 1, "noPolitician": 1}'),
-  (now() - interval '5 days' + interval '2 minutes', 'admin@pauseai.uk', 'import Go to Parliament', '{"added": 3, "changed": 0}'),
   (now() - interval '1 day' + interval '1 hour' + interval '1 minute', 'sync', 'copy PauseAI emails', '{"added": 4}');
 -- The entries about a politician name their row.
 UPDATE audit_log a SET details = jsonb_set(a.details, '{id}', to_jsonb(p.id)) FROM notable_people p
@@ -1142,7 +1140,7 @@ INSERT INTO import_runs (at, job, started_by, status, error, result) VALUES
   (now() - interval '20 minutes', 'import-old-letters', 'admin@pauseai.uk', 'ok', NULL, '{"finished": true, "listed": 9, "read": 9, "left": 0, "requests": 14, "formTexts": 2, "postmarkTexts": 1, "titles": {"russell-speak": "Stuart Russell panel: invitation to speak", "deepmind-25": "DeepMind: join 25 of your colleagues", "deepmind-august": "DeepMind: August, from the personal Gmail", "regulate-letter-pm": "Regulate AI developers now"}, "joined": {"deepmind-25": 2, "regulate-letter-pm": 2}, "added": {"russell-speak": 1}, "notJoined": {"deepmind-august": 1}, "replies": 2, "autoReplies": 2, "oneOffs": 3, "unreadable": [], "unmatched": [{"from": "Neil Nobody <neil.nobody@example.com>", "subject": "Volunteering"}], "templates": 2, "ownText": 1, "repliedSet": 1}');
 
 -- A press of a job still running, which its page says.
-INSERT INTO job_presses (job, started_by) VALUES ('import-go-to-parliament', 'jo@pauseai.uk');
+INSERT INTO job_presses (job, started_by) VALUES ('tidy-logs', 'jo@pauseai.uk');
 
 -- Broadcasts to supporters, by email and by text, in each state a mailing has:
 -- a draft, one scheduled, one sending, one sent and one stopped. A text's

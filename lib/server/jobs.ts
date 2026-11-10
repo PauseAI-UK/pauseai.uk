@@ -3,7 +3,6 @@ import type { ImportJob } from "@/lib/import-runs";
 import { importControlAiLetter } from "./controlai-import";
 import { syncEmails } from "./emails-sync";
 import { readGmail } from "./gmail-reading";
-import { importGoToParliament } from "./go-to-parliament-import";
 import { startRunning, stopRunning } from "./import-runs";
 import { runTidying } from "./log-retention";
 import { importLuma } from "./luma-import";
@@ -36,21 +35,19 @@ const RUNS: Record<ImportJob, RunJob> = {
   "read-gmail": (by, request) => readGmail(by, request),
   "send-mailings": (by, request) => runSending(by, request),
   "sync-politicians": async (by) => {
-    const { status, changes, renamed, statuses } = await syncPoliticians(by);
+    const { status, changes, renamed } = await syncPoliticians(by);
     return {
       status,
       added: changes.added.length,
       removed: changes.removed.length,
       changed: changes.changed.length,
       renamed: renamed.length,
-      statuses,
     };
   },
   "sync-emails": (by) => syncEmails(by),
   "check-mps": async (by) => ({ problems: (await checkMps(by)).length }),
   "import-controlai": (by) => importControlAiLetter(by),
   "import-web-form-letters": (by) => importWebFormLetters(by),
-  "import-go-to-parliament": (by) => importGoToParliament(by),
   "tidy-logs": (by) => runTidying(by),
 };
 

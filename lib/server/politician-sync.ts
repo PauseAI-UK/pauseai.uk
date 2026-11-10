@@ -1,9 +1,8 @@
 import "server-only";
 import { config } from "./config";
-import type { AskStatus } from "@/lib/asks";
 import { changedFields } from "@/lib/field-changes";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { importPath, type PoliticianSyncResult, type StatusCounts } from "@/lib/import-runs";
+import { importPath, type PoliticianSyncResult } from "@/lib/import-runs";
 import type { AirtableMp } from "@/lib/mp-check";
 import {
   changeCount,
@@ -16,7 +15,7 @@ import {
   type SyncedPolitician,
 } from "@/lib/politician-sync";
 import { TEST_MPS } from "@/lib/test-mps";
-import { AIRTABLE_ASKS, airtableToken, fetchPoliticians } from "./outside-services/airtable";
+import { airtableToken, fetchPoliticians } from "./outside-services/airtable";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
 import { asRun } from "./import-runs";
@@ -25,23 +24,20 @@ import { addPolitician } from "./politicians";
 
 // Copies every politician from Airtable's UK Parliamentarians into the
 // database, nightly (/api/cron/sync-politicians) or when staff ask, keyed
-// by the record's ID, with their answers to the asks Airtable records. A
-// sync that would change more than MAX_UNCHECKED_CHANGES politicians, or
-// any one's name, is held for a person to check; the statuses are set
-// either way, for those already here. Every run goes in the import log
-// (import-runs.ts), as "sync-politicians".
+// by the record's ID. A sync that would change more than
+// MAX_UNCHECKED_CHANGES politicians, or any one's name, is held for a
+// person to check. Their answers to asks aren't Airtable's: staff set them
+// here, as do the ControlAI import for its letter. Every run goes in the
+// import log (import-runs.ts), as "sync-politicians".
 
 const JOB = "sync-politicians";
 /** The audit log's actor for the politicians the sync adds, changes and loses. */
 const SYNC = "sync";
-/** The audit log's actor, and `updated_by`, for the statuses the sync sets, which it alone changes. */
-export const AIRTABLE = "airtable";
 
 export type SyncResult = {
   status: "applied" | "held" | "unchanged";
   changes: PoliticianChanges;
   renamed: Renamed[];
-  statuses: StatusCounts;
 };
 
 const SYNCED_COLUMNS = `n.airtable_id AS "airtableId", n.name, n.salutation, n.email, n.status,
@@ -171,81 +167,12 @@ async function applyPoliticians(politicians: SyncedPolitician[], db: Queryable):
 }
 
 /**
- * Makes Airtable's statuses, with their notes, match its records, for the
- * politicians here: sets those it records, changes those it set, and takes away those it set
- * that it no longer records, for the asks the records answer
- * (AIRTABLE_ASKS). A status set by anyone else, staff or another import, is
- * left alone. Each change is logged against the politician. A status is
- * dated the day it's set or changed, except those already ticked when the
- * sync first copies an ask, which Airtable doesn't date: they get the ask's
- * own date, or today if that's still to come.
- */
-async function applyStatuses(records: PoliticianRecord[], db: Queryable): Promise<StatusCounts> {
-  const wanted = records.flatMap(({ politician, statuses }) =>
-    Object.entries(statuses).map(([ask, { status, note }]) => ({
-      airtableId: politician.airtableId,
-      ask,
-      status,
-      note,
-    })),
-  );
-  await query(
-    `CREATE TEMP TABLE airtable_statuses ON COMMIT DROP AS
-     SELECT n.id AS person, w.ask, a.kind, w.status, w.note
-     FROM json_to_recordset($1::json) AS w ("airtableId" text, ask text, status text, note text)
-       JOIN notable_people n ON n.airtable_id = w."airtableId" JOIN asks a ON a.slug = w.ask`,
-    [JSON.stringify(wanted)],
-    db,
-  );
-  type StatusSet = { politicianId: number; ask: string; status: AskStatus; date: string; note: string };
-  const added = await query<StatusSet>(
-    `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, note, status_date, updated_by)
-     SELECT w.person, w.ask, w.kind, w.status, w.note,
-       CASE WHEN EXISTS (SELECT 1 FROM ask_statuses s WHERE s.ask = w.ask AND s.updated_by = $1) THEN now()::date
-         ELSE least(a.date, now()::date) END,
-       $1
-     FROM airtable_statuses w JOIN asks a ON a.slug = w.ask
-     ON CONFLICT (notable_person_id, ask) DO NOTHING
-     RETURNING notable_person_id::int AS "politicianId", ask, status, note, to_char(status_date, 'YYYY-MM-DD') AS date`,
-    [AIRTABLE],
-    db,
-  );
-  // An "other" answer whose words changed in Airtable is a change too.
-  const changed = await query<StatusSet>(
-    `UPDATE ask_statuses s SET status = w.status, note = w.note, status_date = now()::date, updated_at = now()
-     FROM airtable_statuses w
-     WHERE s.notable_person_id = w.person AND s.ask = w.ask AND s.updated_by = $1
-       AND (s.status <> w.status OR s.note <> w.note)
-     RETURNING s.notable_person_id::int AS "politicianId", s.ask, s.status, s.note,
-       to_char(s.status_date, 'YYYY-MM-DD') AS date`,
-    [AIRTABLE],
-    db,
-  );
-  const removed = await query<{ politicianId: number; ask: string }>(
-    `DELETE FROM ask_statuses s WHERE s.updated_by = $1 AND s.ask = ANY($2::text[])
-       AND NOT EXISTS (SELECT 1 FROM airtable_statuses w WHERE w.person = s.notable_person_id AND w.ask = s.ask)
-     RETURNING s.notable_person_id::int AS "politicianId", s.ask`,
-    [AIRTABLE, AIRTABLE_ASKS],
-    db,
-  );
-  await query("DROP TABLE airtable_statuses", [], db);
-  for (const { politicianId, ask, status, date, note } of [...added, ...changed]) {
-    await logChange(AIRTABLE, "set status", { politicianId, ask, status, date, note }, db);
-  }
-  for (const { politicianId, ask } of removed) {
-    await logChange(AIRTABLE, "set status", { politicianId, ask, status: null, date: null, note: "" }, db);
-  }
-  return { added: added.length, changed: changed.length, removed: removed.length };
-}
-
-/**
  * Fetches the politicians from Airtable and applies them, or holds them if
- * too much has changed or a name has, keeping the run either way; then sets
- * Airtable's statuses for those here. `startedBy` is NIGHTLY or the staff
- * member's email.
+ * too much has changed or a name has, keeping the run either way.
+ * `startedBy` is NIGHTLY or the staff member's email.
  */
 export async function syncPoliticians(startedBy: string): Promise<SyncResult> {
-  const { status, result, renamed, statuses } = await asRun(JOB, startedBy, async () => {
+  const { status, result, renamed } = await asRun(JOB, startedBy, async () => {
     const records = await fetchPoliticians(airtableToken());
     const fetched = records.map((record) => record.politician);
     // Whether this run holds a sync when none was held before, to email about once it's kept.
@@ -259,10 +186,8 @@ export async function syncPoliticians(startedBy: string): Promise<SyncResult> {
       // The very first sync fills an empty table, so there's nothing to check it against.
       const held = (count > MAX_UNCHECKED_CHANGES && before.length > 0) || renamed.length > 0;
       if (count > 0 && !held) await applyPoliticians(fetched, db);
-      const statuses = await applyStatuses(records, db);
-      const changedStatuses = statuses.added + statuses.changed + statuses.removed;
-      const status: SyncResult["status"] = held ? "held" : count + changedStatuses > 0 ? "applied" : "unchanged";
-      const result: PoliticianSyncResult = { changes, renamed, statuses, ...(held ? { records } : {}) };
+      const status: SyncResult["status"] = held ? "held" : count > 0 ? "applied" : "unchanged";
+      const result: PoliticianSyncResult = { changes, renamed, ...(held ? { records } : {}) };
       const [heldBefore] = await query("SELECT 1 FROM import_runs WHERE job = $1 AND status = 'held'", [JOB], db);
       newlyHeld = held && !heldBefore;
       if (count > 0) {
@@ -273,7 +198,7 @@ export async function syncPoliticians(startedBy: string): Promise<SyncResult> {
           db,
         );
       }
-      return { status, result, renamed, statuses };
+      return { status, result, renamed };
     });
     if (newlyHeld) {
       const words = staffCopy.notifications.syncHeld;
@@ -282,10 +207,10 @@ export async function syncPoliticians(startedBy: string): Promise<SyncResult> {
     }
     return synced;
   });
-  return { status, changes: result.changes, renamed, statuses };
+  return { status, changes: result.changes, renamed };
 }
 
-/** Applies or discards a held sync, with its statuses. False if there's no held sync with that ID. */
+/** Applies or discards a held sync. False if there's no held sync with that ID. */
 export async function decideHeldSync(id: number, decision: "apply" | "discard", staff: string): Promise<boolean> {
   return transaction(async (db) => {
     const [held] = await query<{ records: PoliticianRecord[] }>(
@@ -299,7 +224,6 @@ export async function decideHeldSync(id: number, decision: "apply" | "discard", 
         held.records.map((record) => record.politician),
         db,
       );
-      await applyStatuses(held.records, db);
     }
     await query(
       "UPDATE import_runs SET status = $2, decided_by = $3, decided_at = now() WHERE id = $1",

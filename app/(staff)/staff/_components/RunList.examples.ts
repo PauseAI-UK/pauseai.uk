@@ -4,7 +4,6 @@ import {
   type EmailSyncResult,
   type GmailRead,
   type GmailReadResult,
-  type GoToParliamentImportResult,
   type ImportJob,
   type LumaImportResult,
   type MembersImportResult,
@@ -29,7 +28,6 @@ type Results = {
   "import-members": MembersImportResult;
   "read-gmail": GmailReadResult;
   "import-web-form-letters": WebFormImportResult;
-  "import-go-to-parliament": GoToParliamentImportResult;
   "import-old-letters": OldLettersImportResult;
   "send-mailings": SendingResult;
   "tidy-logs": TidyingResult;
@@ -89,7 +87,7 @@ const examplePeer: SyncedPolitician = {
 
 /**
  * A sync held for staff to apply or discard: one MP added, one gone from
- * Airtable, a peer added, and one renamed, with the statuses it set.
+ * Airtable, a peer added, and one renamed.
  */
 export const exampleHeldSync: PoliticianSync = exampleRun(
   "sync-politicians",
@@ -100,8 +98,7 @@ export const exampleHeldSync: PoliticianSync = exampleRun(
       changed: [{ ...exampleSyncedMp(6), name: "Someone New" }],
     },
     renamed: [{ airtableId: "rec6", from: "MP 6", to: "Someone New" }],
-    statuses: { added: 3, changed: 1, removed: 0 },
-    records: [{ politician: exampleSyncedMp(1), statuses: {} }],
+    records: [{ politician: exampleSyncedMp(1) }],
   },
   { id: 3, at: new Date("2026-10-12T02:00:00Z"), status: "held" },
 );
@@ -140,15 +137,6 @@ export const exampleWebFormResult: WebFormImportResult = {
   noPolitician: 0,
   supportersAdded: 600,
   linked: 716,
-};
-
-/** What the one-off import of Go to Parliament's meetings did. */
-export const exampleGoToParliamentResult: GoToParliamentImportResult = {
-  guests: 8,
-  mps: 6,
-  added: 6,
-  changed: 0,
-  notFound: 0,
 };
 
 /** What a run of the Luma import did: every event read, nothing left over. */

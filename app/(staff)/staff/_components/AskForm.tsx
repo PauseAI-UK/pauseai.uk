@@ -21,7 +21,7 @@ import forms from "./StaffForms.module.css";
 const copy = staffCopy.asks;
 
 /** An ask to edit, with whether the code names it, its kind can change, and it can be deleted. */
-export type EditableAsk = Ask & { fixed: boolean; kindFixed: boolean; deletable: boolean };
+export type EditableAsk = Ask & { named: boolean; kindFixed: boolean; deletable: boolean };
 
 type FormAction = (form: FormData) => void | Promise<void>;
 
@@ -31,9 +31,9 @@ type FormAction = (form: FormData) => void | Promise<void>;
  * rest is asked in its words: which letter or event, an example of how to
  * name it, when, and where to find it; then who asks. Under it, Save,
  * which goes back to `back`, and beside it Delete, pressed twice, only
- * while nothing refers to the ask. Its slug is said, not changed; its kind
- * is fixed once politicians have answered it, and an ask the code names
- * can't be changed at all. `notice` says how the last save or delete went.
+ * while nothing refers to the ask and the code doesn't name it. Its slug is
+ * said, not changed; its kind is fixed once politicians have answered it.
+ * `notice` says how the last save or delete went.
  */
 export default function AskForm({
   ask,
@@ -55,7 +55,6 @@ export default function AskForm({
   const [askedBy, setAskedBy] = useState<Asker[]>(ask?.askedBy ?? ["pauseai"]);
   // Save, pending while it saves: it's outside the form, so SubmitButton can't tell.
   const [saving, setSaving] = useOptimistic(false);
-  const fixed = Boolean(ask?.fixed);
   const words = copy.byKind[kind];
   // A link that isn't a whole one, which the server would refuse (askFrom).
   const badLink = Boolean(url) && !url.startsWith("https://");
@@ -66,7 +65,6 @@ export default function AskForm({
           {copy.notices[notice]}
         </Strip>
       )}
-      {fixed && <Strip tone="amber">{copy.fixed}</Strip>}
       <div className={styles.form}>
         <Grid>
           <Card span={3}>
@@ -89,11 +87,11 @@ export default function AskForm({
                   }))}
                   value={kind}
                   onChange={setKind}
-                  disabled={fixed || ask?.kindFixed}
+                  disabled={ask?.kindFixed}
                 />
               </Field>
               <input type="hidden" name="kind" value={kind} />
-              {ask?.kindFixed && !fixed && <Hint>{copy.kindFixed}</Hint>}
+              {ask?.kindFixed && <Hint>{copy.kindFixed}</Hint>}
               {/* The title, and under it the slug it gives a new ask, or an ask's own, which doesn't change. */}
               <div className={styles.titled}>
                 <Field label={words.title}>
@@ -103,7 +101,6 @@ export default function AskForm({
                     value={title}
                     placeholder={words.titleExample}
                     onChange={(event) => setTitle(event.target.value)}
-                    disabled={fixed}
                   />
                 </Field>
                 {(ask || title.trim()) && (
@@ -113,7 +110,7 @@ export default function AskForm({
                 )}
               </div>
               <Field label={words.date} className={forms.short}>
-                <DatePicker name="date" value={date} onChange={setDate} clearable disabled={fixed} />
+                <DatePicker name="date" value={date} onChange={setDate} clearable />
               </Field>
               <Field label={words.url}>
                 <TextInput
@@ -121,7 +118,6 @@ export default function AskForm({
                   value={url}
                   placeholder="https://"
                   onChange={(event) => setUrl(event.target.value)}
-                  disabled={fixed}
                   aria-invalid={badLink}
                   aria-describedby={badLink ? "ask-link-error" : undefined}
                 />
@@ -134,7 +130,6 @@ export default function AskForm({
                     name="askedBy"
                     value={asker}
                     checked={askedBy.includes(asker)}
-                    disabled={fixed}
                     onChange={(on) => setAskedBy(on ? [...askedBy, asker] : askedBy.filter((one) => one !== asker))}
                   >
                     {copy.askedBy[asker]}
@@ -142,22 +137,20 @@ export default function AskForm({
                 ))}
               </FieldSet>
             </FormStack>
-            {!fixed && (
-              <Actions>
-                <Button
-                  type="submit"
-                  form="ask-form"
-                  variant="primary"
-                  fit
-                  disabled={!title.trim() || !date || badLink}
-                  pending={saving}
-                >
-                  {copy.save}
-                </Button>
-                {ask?.deletable && <DeleteTwice name="slug" value={ask.slug} label={copy.delete} action={remove} />}
-              </Actions>
-            )}
-            {ask && !fixed && !ask.deletable && <Hint>{copy.notDeletable}</Hint>}
+            <Actions>
+              <Button
+                type="submit"
+                form="ask-form"
+                variant="primary"
+                fit
+                disabled={!title.trim() || !date || badLink}
+                pending={saving}
+              >
+                {copy.save}
+              </Button>
+              {ask?.deletable && <DeleteTwice name="slug" value={ask.slug} label={copy.delete} action={remove} />}
+            </Actions>
+            {ask && !ask.deletable && <Hint>{ask.named ? copy.named : copy.notDeletable}</Hint>}
           </Card>
           <Card span={3} look="aside" title={copy.previewTitle} id="ask-preview">
             <AskPreview

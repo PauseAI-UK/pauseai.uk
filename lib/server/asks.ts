@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { ASK_STATUSES, askSlug, FIXED_ASKS, type Asker, type AskKind, type AskStatus } from "@/lib/asks";
+import { ASK_STATUSES, askSlug, NAMED_ASKS, type Asker, type AskKind, type AskStatus } from "@/lib/asks";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
 
@@ -141,7 +141,6 @@ export type AskAnswerGroup = { key: string; total: number; people: AskAnswer[] }
 
 /** An ask's own page: how it was put, its answers' columns, and, with an answer chosen, a page of those who gave it. */
 export type AskPageData = AskWithCounts & {
-  fixed: boolean;
   /** Each answer its kind allows, then those with no answer if there are any. Without an answer chosen, its first few people. */
   groups: AskAnswerGroup[];
   answers: AskAnswer[];
@@ -213,7 +212,6 @@ export async function askPageData(slug: string, answer = "", page = 1): Promise<
   ]);
   return {
     ...ask,
-    fixed: FIXED_ASKS.includes(slug),
     groups,
     answers,
     answersTotal: total,
@@ -231,9 +229,9 @@ export async function listCampaigns(): Promise<CampaignRow[]> {
 /** What staff give for an ask: everything but its slug, which is made from its title and date. */
 export type AskInput = Omit<Ask, "slug">;
 
-/** Why an ask wasn't saved or deleted: one the code names, its kind while it has answers, or one in use. */
+/** Why an ask wasn't saved or deleted: its kind while it has answers, one the code names or one in use, deleted. */
 export type AskChange =
-  { saved: true; slug: string } | { saved: false; reason: "fixed" | "kind-in-use" | "in-use" | "gone" };
+  { saved: true; slug: string } | { saved: false; reason: "named" | "kind-in-use" | "in-use" | "gone" };
 
 /** What refers to an ask: answers to it, campaigns and mailings. */
 async function uses(slug: string, db?: Queryable): Promise<{ answers: number; others: number }> {
@@ -270,12 +268,8 @@ export async function addAsk(input: AskInput, by: string): Promise<AskChange> {
   });
 }
 
-/**
- * Changes an ask, as `by`, but for its slug; not one the code names, nor
- * its kind while anyone has an answer to it. Logs it.
- */
+/** Changes an ask, as `by`, but for its slug; not its kind while anyone has an answer to it. Logs it. */
 export async function editAsk(slug: string, input: AskInput, by: string): Promise<AskChange> {
-  if (FIXED_ASKS.includes(slug)) return { saved: false, reason: "fixed" };
   return transaction(async (db) => {
     const [ask] = await query<{ kind: string }>("SELECT kind FROM asks WHERE slug = $1 FOR UPDATE", [slug], db);
     if (!ask) return { saved: false, reason: "gone" };
@@ -290,9 +284,9 @@ export async function editAsk(slug: string, input: AskInput, by: string): Promis
   });
 }
 
-/** Deletes an ask, as `by`, while nothing refers to it; not one the code names. Logs it. */
+/** Deletes an ask, as `by`, while nothing refers to it; never one the code names. Logs it. */
 export async function deleteAsk(slug: string, by: string): Promise<AskChange> {
-  if (FIXED_ASKS.includes(slug)) return { saved: false, reason: "fixed" };
+  if (NAMED_ASKS.includes(slug)) return { saved: false, reason: "named" };
   return transaction(async (db) => {
     const [ask] = await query<Ask>(`SELECT ${ASK_COLUMNS} FROM asks a WHERE a.slug = $1 FOR UPDATE`, [slug], db);
     if (!ask) return { saved: false, reason: "gone" };
@@ -304,13 +298,13 @@ export async function deleteAsk(slug: string, by: string): Promise<AskChange> {
   });
 }
 
-/** One ask, if there is one, with whether staff can change it, its kind, or delete it. */
+/** One ask, if there is one, with whether the code names it, and whether staff can change its kind or delete it. */
 export const askToEdit = cache(async function askToEdit(
   slug: string,
-): Promise<(Ask & { fixed: boolean; kindFixed: boolean; deletable: boolean }) | undefined> {
+): Promise<(Ask & { named: boolean; kindFixed: boolean; deletable: boolean }) | undefined> {
   const [ask] = await query<Ask>(`SELECT ${ASK_COLUMNS} FROM asks a WHERE a.slug = $1`, [slug]);
   if (!ask) return undefined;
   const used = await uses(slug);
-  const fixed = FIXED_ASKS.includes(slug);
-  return { ...ask, fixed, kindFixed: used.answers > 0, deletable: !fixed && used.answers + used.others === 0 };
+  const named = NAMED_ASKS.includes(slug);
+  return { ...ask, named, kindFixed: used.answers > 0, deletable: !named && used.answers + used.others === 0 };
 });

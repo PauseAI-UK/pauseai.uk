@@ -252,7 +252,7 @@ your machine. You need no keys:
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Luma                     | A few made-up events and guests, and every event's guest counts (1,234 going)                                                                                                                                                                                                                                                                             |
 | postcodes.io             | Knows only SW1A 1AA (Cities of London and Westminster); every other postcode is "not found". The test postcodes never ask it.                                                                                                                                                                                                                             |
-| Airtable                 | A politician of each body, one retired and one who left, with their statuses; PauseAI's emails to them; the old form's letters; Go to Parliament's meetings                                                                                                                                                                                               |
+| Airtable                 | A politician of each body, one retired and one who left; PauseAI's emails to them; the old form's letters                                                                                                                                                                                                                                                 |
 | Parliament's Members API | The same two MPs, with an office email each. Polly Placeholder's differs from Airtable's, so the MP check has something to show.                                                                                                                                                                                                                          |
 | Turnstile                | Accepts every token                                                                                                                                                                                                                                                                                                                                       |
 | Postmark                 | Accepts every email, without needing a token, and writes each one to a mail file (`.eml`) in `OUTBOX_DIR`, or `tmp/outbox/` in the dev server.                                                                                                                                                                                                            |
@@ -350,8 +350,8 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   token it never arrives. Use fixtures to log in, or a real server token and
   your own pauseai.uk address.
 - **Airtable.** `AIRTABLE_TOKEN` needs read access to the UK
-  Parliamentarians base's "UK Parliamentarians", "Emails", "Web form
-  emails" and Go to Parliament tables, and to the members' base.
+  Parliamentarians base's "UK Parliamentarians", "Emails" and "Web form
+  emails" tables, and to the members' base.
   They're for the politician and Emails syncs, the members import and the
   two one-off imports at `/staff/import-data`.
 
@@ -515,7 +515,7 @@ Set up outside the code:
 - **The letters inbox:** a Gmail account of PauseAI UK's Workspace at pauseai.uk, used for nothing else, which supporters' letters to MPs go from (`docs/domain-concepts.md`, "Letters through the letters inbox"). Its address goes into Netlify as `LETTERS_INBOX`, and nowhere in the repo, which is public. It needs a staff account (`/staff/accounts`); someone logged in as it connects its Gmail on `/staff/me`, where it also asks for `gmail.modify`, to label and trash its mail. Until it's connected, letters are kept and wait in the queue.
 - **The notification inbox:** `NOTIFICATION_INBOX`, `notification@pauseai.uk` on the live site, where the site emails when something needs a person (`docs/domain-concepts.md`, "Email"). Unset, nothing is sent.
 - **Staff accounts:** every database starts with one account, `admin@pauseai.uk`, with the admin permission. Log in as it and add everyone else on `/staff/accounts`: an account alone opens the ordinary pages; the supporters permission opens the supporter pages, admin the accounts page and the audit log. Give admin to at least one other person; the last admin can't be removed. An erasure request is handled as `docs/data-protection.md` says.
-- **A new database:** run the politician sync from `/staff/import-data`, and apply it, then the Emails sync and the two one-off imports (the web form letters and Go to Parliament). Until the sync has run, Email your MP finds no MPs. The Luma import fills the supporter pages over its first few runs, and links every letter already written; run it from `/staff/import-data` to watch it.
+- **A new database:** run the politician sync from `/staff/import-data`, and apply it, then the Emails sync and the one-off import of the web form letters. Until the sync has run, Email your MP finds no MPs. The Luma import fills the supporter pages over its first few runs, and links every letter already written; run it from `/staff/import-data` to watch it.
 
 ### The scheduled jobs
 

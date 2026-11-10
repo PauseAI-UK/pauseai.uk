@@ -1,11 +1,11 @@
 import { beforeEach, expect, it } from "vitest";
-import { FIXED_ASKS } from "@/lib/asks";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { migrate } from "@/scripts/db-migrate.mjs";
 import {
   addTestPolitician,
   describeWithDatabase,
   MAKES_DATABASES,
+  MIGRATION_ASKS,
   useDatabaseUpTo,
   useTestDatabase,
 } from "@/tests/database";
@@ -41,7 +41,6 @@ describeWithDatabase("asks and campaigns", () => {
     );
     const ask = await askPageData("deepmind-letter");
     expect(ask).toMatchObject({
-      fixed: true,
       writtenTo: 1,
       replied: 0,
       noAnswer: 0,
@@ -102,7 +101,6 @@ describeWithDatabase("asks and campaigns", () => {
     expect((await askPageData("deepmind-letter"))!.groups.at(-1)).toMatchObject({ key: "none", total: 2 });
     expect(await askPageData("no-such-ask")).toBeUndefined();
     await addAsk({ title: "Ours", kind: "letter", date: null, url: null, askedBy: [] }, "jo@pauseai.uk");
-    expect((await askPageData("ours"))!.fixed).toBe(false);
     expect(await askTitle("ours")).toBe("Ours");
     expect(await askTitle("no-such-ask")).toBeUndefined();
     await deleteAsk("ours", "jo@pauseai.uk");
@@ -197,7 +195,7 @@ describeWithDatabase("asks and campaigns", () => {
 describeWithDatabase("staff's asks", () => {
   useTestDatabase();
   // The asks the migrations add stay; those a test added go.
-  beforeEach(() => query("DELETE FROM asks WHERE slug <> ALL($1)", [FIXED_ASKS]));
+  beforeEach(() => query("DELETE FROM asks WHERE slug <> ALL($1)", [MIGRATION_ASKS]));
   const JO = "jo@pauseai.uk";
   const RECEPTION = {
     title: "Winter reception",
@@ -215,7 +213,7 @@ describeWithDatabase("staff's asks", () => {
     expect(await askToEdit("winter-reception-dec-2026")).toEqual({
       slug: "winter-reception-dec-2026",
       ...RECEPTION,
-      fixed: false,
+      named: false,
       kindFixed: false,
       deletable: true,
     });
@@ -226,7 +224,7 @@ describeWithDatabase("staff's asks", () => {
     });
   });
 
-  it("changes an ask but its slug; its kind only while no one has answered it; never one the code names", async () => {
+  it("changes an ask but its slug, one the code names too; its kind only while no one has answered it", async () => {
     await addAsk(RECEPTION, JO);
     const slug = "winter-reception-dec-2026";
     expect(await editAsk(slug, { ...RECEPTION, title: "Reception", url: "https://luma.com/x" }, JO)).toEqual({
@@ -239,9 +237,12 @@ describeWithDatabase("staff's asks", () => {
     expect(await editAsk(slug, { ...RECEPTION, kind: "letter" }, JO)).toEqual({ saved: false, reason: "kind-in-use" });
     expect(await askToEdit(slug)).toMatchObject({ kindFixed: true, deletable: false });
     expect(await editAsk(slug, { ...RECEPTION, title: "Reception again" }, JO)).toMatchObject({ saved: true });
-    expect(await editAsk("frontier-ai-letter", RECEPTION, JO)).toEqual({ saved: false, reason: "fixed" });
+    expect(await editAsk("controlai-letter", { ...RECEPTION, kind: "letter", title: "Renamed" }, JO)).toEqual({
+      saved: true,
+      slug: "controlai-letter",
+    });
+    expect(await askToEdit("controlai-letter")).toMatchObject({ title: "Renamed", named: true, deletable: false });
     expect(await editAsk("nothing", RECEPTION, JO)).toEqual({ saved: false, reason: "gone" });
-    expect(await askToEdit("frontier-ai-letter")).toMatchObject({ fixed: true, deletable: false });
     expect(await askToEdit("nothing")).toBeUndefined();
   });
 
@@ -253,7 +254,7 @@ describeWithDatabase("staff's asks", () => {
        VALUES ('M', 'mailed-dec-2026', 'politicians', 'email', 'sent', '[2026-01-01,2026-01-02)')`,
     );
     expect(await deleteAsk("mailed-dec-2026", JO)).toEqual({ saved: false, reason: "in-use" });
-    expect(await deleteAsk("frontier-ai-letter", JO)).toEqual({ saved: false, reason: "fixed" });
+    expect(await deleteAsk("frontier-ai-letter", JO)).toEqual({ saved: false, reason: "named" });
     expect(await deleteAsk("nothing", JO)).toEqual({ saved: false, reason: "gone" });
     expect(await deleteAsk("winter-reception-dec-2026", JO)).toEqual({
       saved: true,

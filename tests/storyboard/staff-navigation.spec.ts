@@ -318,10 +318,10 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: staffCopy.controlAi.importNow }).click();
   await expect(page.getByText(/6 names/)).toBeVisible();
   await frame(page, "ControlAI's letter, imported");
-  story("The politicians list says she signed ControlAI's campaign statement.");
+  story("The politicians list says she signed ControlAI's letter.");
   await page.goto(`${BASE}/staff/politicians`);
   await expect(page.getByRole("row").filter({ hasText: "Polly Placeholder" })).toContainText(
-    "ControlAI's campaign statement",
+    "ControlAI's letter to the Prime Minister",
   );
   await frame(page, "The politicians list, with ControlAI's letter");
   story("The MP check finds Polly Placeholder has an email in Airtable that Parliament doesn't list.");

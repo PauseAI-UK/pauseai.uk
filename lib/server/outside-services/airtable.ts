@@ -1,14 +1,6 @@
 import "server-only";
 import { config } from "@/lib/server/config";
-import {
-  airtableNote,
-  CONTROLAI_STATEMENT_ASK,
-  DEEPMIND_LETTER_ASK,
-  EDINBURGH_CONFERENCE_ASK,
-  FRONTIER_AI_LETTER_ASK,
-  type AskStatus,
-} from "@/lib/asks";
-import type { PoliticianRecord, RecordedAnswer, SyncedPolitician } from "@/lib/politician-sync";
+import type { PoliticianRecord, SyncedPolitician } from "@/lib/politician-sync";
 import { outsideFetch } from "./outside-fetch";
 
 // Only file allowed to talk to api.airtable.com (enforced by the
@@ -16,9 +8,9 @@ import { outsideFetch } from "./outside-fetch";
 // whitelists below can't be bypassed by a new call site elsewhere. Read only.
 //
 // Airtable's "UK Parliamentarians" table is the source of truth for who the
-// politicians are, their emails, and their answers to the asks it records.
-// The site copies them nightly (lib/server/politician-sync.ts); staff set
-// the rest of the statuses in our database.
+// politicians are and their emails. The site copies them nightly
+// (lib/server/politician-sync.ts); their answers to asks are kept only in
+// our database.
 const BASE_ID = "appBInVvIm6opJ1Ob";
 const TABLE_ID = "tblH3ks9wqQHLpYx3";
 
@@ -87,24 +79,6 @@ function text(record: AirtableRecord, field: string): string {
 // MPs (lib/test-mps.json).
 export const POLITICIANS_FORMULA = "NOT({Test})";
 
-/**
- * The fields that record an answer to an ask (lib/asks.ts), each with the
- * ask and the status each of its values means: a tick box means what it's
- * called, and a select one of its answers. Any other value is "other", its
- * note from airtableNote. Of two fields for one ask, the later wins, so a
- * signature outranks declining.
- */
-const ASK_FIELDS: Record<string, { ask: string; statuses: Record<string, AskStatus> }> = {
-  "Signed Frontier AI Letter": { ask: FRONTIER_AI_LETTER_ASK, statuses: { true: "signed" } },
-  "Declined DeepMind Letter": { ask: DEEPMIND_LETTER_ASK, statuses: { true: "declined" } },
-  "Signed DeepMind Letter": { ask: DEEPMIND_LETTER_ASK, statuses: { true: "signed" } },
-  "ControlAI Signatory": { ask: CONTROLAI_STATEMENT_ASK, statuses: { true: "signed" } },
-  "Edinburgh Conference November 2026": {
-    ask: EDINBURGH_CONFERENCE_ASK,
-    statuses: { Going: "going", Declined: "declined" },
-  },
-};
-
 /** The only fields read from a politician's record. */
 export const POLITICIAN_FIELDS = [
   "Full name or Title",
@@ -119,7 +93,6 @@ export const POLITICIAN_FIELDS = [
   "Recommended",
   "Important target",
   "Personal connection",
-  ...Object.keys(ASK_FIELDS),
 ] as const;
 
 const STATUSES: Record<string, SyncedPolitician["status"]> = {
@@ -172,28 +145,13 @@ function politicianFrom(record: AirtableRecord): SyncedPolitician {
   };
 }
 
-/** A record's answers to the asks, by the ask's slug. */
-function statusesFrom(record: AirtableRecord): Record<string, RecordedAnswer> {
-  return Object.fromEntries(
-    Object.entries(ASK_FIELDS).flatMap(([field, { ask, statuses }]) => {
-      const value = record.fields[field];
-      if (value === undefined || value === false || value === "") return [];
-      const status = statuses[String(value)];
-      return [[ask, status ? { status, note: "" } : { status: "other", note: airtableNote(String(value)) }]];
-    }),
-  );
-}
-
-/** Every politician in UK Parliamentarians but the test records, with their answers to the asks, by name. */
+/** Every politician in UK Parliamentarians but the test records, by name. */
 export async function fetchPoliticians(token: string): Promise<PoliticianRecord[]> {
   const records = await fetchRecords(token, POLITICIANS_FORMULA, POLITICIAN_FIELDS);
   return records
-    .map((record) => ({ politician: politicianFrom(record), statuses: statusesFrom(record) }))
+    .map((record) => ({ politician: politicianFrom(record) }))
     .sort((a, b) => a.politician.name.localeCompare(b.politician.name));
 }
-
-/** The asks the politicians' records answer, which the sync alone sets from them. */
-export const AIRTABLE_ASKS = [...new Set(Object.values(ASK_FIELDS).map((field) => field.ask))];
 
 /** A link to records in another table: their IDs. */
 function links(record: AirtableRecord, field: string): string[] {
@@ -293,32 +251,6 @@ export async function fetchWebFormLetters(token: string): Promise<WebFormLetterT
     invalid: ticked(record, "Invalid, can't send"),
     consent: text(record, "Contact consent") === "Yes",
     message: text(record, "Message"),
-  }));
-}
-
-// Go to Parliament, 20 October 2026: a record per guest, with whether a
-// meeting with their MP was arranged. Only the MP and that are read.
-const GO_TO_PARLIAMENT_TABLE_ID = "tblminXS1xSuBbEjz";
-export const GO_TO_PARLIAMENT_FORMULA = "{MP Meeting Status}!=''";
-
-export type MeetingToImport = {
-  /** The MPs' Airtable record IDs. */
-  politicians: string[];
-  /** "MP Meeting Status": Secured, Tentative yes, Meeting with staff, and so on. */
-  status: string;
-};
-
-/** Every guest whose meeting with their MP has a status, by the MP. */
-export async function fetchGoToParliamentMeetings(token: string): Promise<MeetingToImport[]> {
-  const records = await fetchRecords(
-    token,
-    GO_TO_PARLIAMENT_FORMULA,
-    ["UK Parliamentarians", "MP Meeting Status"],
-    `${BASE_ID}/${GO_TO_PARLIAMENT_TABLE_ID}`,
-  );
-  return records.map((record) => ({
-    politicians: links(record, "UK Parliamentarians"),
-    status: text(record, "MP Meeting Status"),
   }));
 }
 

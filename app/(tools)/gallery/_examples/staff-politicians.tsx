@@ -403,10 +403,10 @@ export const staffPoliticians: Group = {
           ),
         },
         {
-          label: "One the site's code names, which can't be changed",
+          label: "One the site's code names, which can be changed but not deleted",
           render: () => (
             <StaffPage as="div">
-              <AskFormExample ask="fixed" />
+              <AskFormExample ask="named" />
             </StaffPage>
           ),
         },
@@ -461,7 +461,7 @@ export const staffPoliticians: Group = {
           ),
         },
         {
-          label: "An event the code names, with no answers and nothing that put it",
+          label: "An event with no answers and nothing that put it",
           render: () => (
             <StaffPage as="div">
               <AskView
@@ -469,7 +469,6 @@ export const staffPoliticians: Group = {
                   ...exampleAskPage,
                   kind: "event",
                   url: "/events",
-                  fixed: true,
                   counts: {},
                   writtenTo: 0,
                   noAnswer: 0,

@@ -30,7 +30,6 @@ describeWithDatabase("POST /api/cron/<job>", () => {
       removed: 0,
       changed: 0,
       renamed: 0,
-      statuses: { added: 5, changed: 0, removed: 0 },
     });
   });
 

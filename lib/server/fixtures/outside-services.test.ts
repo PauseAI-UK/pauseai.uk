@@ -52,7 +52,6 @@ describe("fixtureResponse", () => {
     expect(await records("tblH3ks9wqQHLpYx3")).toContain("recPlaceholder");
     expect(await records("tblp4nH5Jymq48rcm")).toContain("recEmailCsrb");
     expect(await records("tblkzjrRHiZiqMDGR")).toContain("recWebDee");
-    expect(await records("tblminXS1xSuBbEjz")).toContain("recGuest1");
     expect(fixtureResponse("https://eu.airtable.com/v0/appBInVvIm6opJ1Ob/tblOther")).toBeUndefined();
   });
 

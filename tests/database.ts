@@ -106,6 +106,16 @@ type MpRow = {
   status?: string;
 };
 
+/** The asks the migrations add, which tests leave in place while deleting those they added. */
+export const MIGRATION_ASKS = [
+  "frontier-ai-letter",
+  "deepmind-letter",
+  "controlai-statement",
+  "controlai-letter",
+  "edinburgh-conference-2026",
+  "go-to-parliament-oct-2026",
+];
+
 /** Adds a politician straight into the tables, and returns their ID. */
 export async function addTestPolitician(row: MpRow = {}): Promise<number> {
   const [{ id }] = await query<{ id: number }>(

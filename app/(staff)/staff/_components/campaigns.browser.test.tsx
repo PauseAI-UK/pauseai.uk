@@ -361,11 +361,9 @@ describe("AskView", () => {
       .toHaveAttribute("href", `${path}?answer=signed&page=2`);
   });
 
-  it("an event the code names: no Edit, a link on our site or another's, and when there's nothing", async () => {
-    const { rerender } = await render(
-      <AskView ask={{ ...exampleAskPage, kind: "event", fixed: true, url: "/events" }} answer="" />,
-    );
-    expect(link(staffCopy.asks.edit).query()).toBeNull();
+  it("an event: Edit, a link on our site or another's, and when there's nothing", async () => {
+    const { rerender } = await render(<AskView ask={{ ...exampleAskPage, kind: "event", url: "/events" }} answer="" />);
+    await expect.element(link(staffCopy.asks.edit)).toHaveAttribute("href", `${path}/edit`);
     await expect.element(link(words.theLink.event)).toHaveAttribute("href", "/events");
     await rerender(
       <AskView

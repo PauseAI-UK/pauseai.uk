@@ -77,7 +77,7 @@ export const exampleEditableAsk: EditableAsk = {
   date: "2026-12-09",
   url: null,
   askedBy: ["pauseai"],
-  fixed: false,
+  named: false,
   kindFixed: false,
   deletable: true,
 };
