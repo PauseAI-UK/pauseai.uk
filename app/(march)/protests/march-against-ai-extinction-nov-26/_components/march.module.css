@@ -505,6 +505,21 @@
   margin: 40px 0 0;
 }
 
+/* Under the button: the faces and names of some who've registered. */
+.hero-going {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 20px 0 0;
+}
+.hero-going-names {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--march-paper);
+}
+
 /* The scroll cue: sits in the hero's bottom padding, so it never meets the
    content above. */
 .hero-scroll {

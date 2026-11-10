@@ -2,17 +2,13 @@ import "server-only";
 import { isAllowedEventImage } from "@/lib/event-image-hosts";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { problem } from "../problems";
+import type { EventGoing } from "@/lib/going";
 import { outsideFetch } from "./outside-fetch";
 
 // Who's going to an event, as its page on luma.com shows anyone: how many,
 // and the few guests Luma features, from the data that page loads. Luma
 // leaves out of those anyone who has hidden themselves from guest lists,
 // which the official API, listing every guest, can't do.
-
-/** A guest Luma features: their name, and their photo if next/image may show it. */
-export type FeaturedGuest = { name: string; avatar: string | null };
-
-export type EventGoing = { count: number; guests: FeaturedGuest[] };
 
 type ApiGuest = { name?: string | null; avatar_url?: string | null } | null;
 

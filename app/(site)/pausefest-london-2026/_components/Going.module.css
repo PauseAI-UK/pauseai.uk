@@ -1,4 +1,4 @@
-/* The faces overlap, each ringed in white, as on Luma; text takes the colour
+/* Under an event's place: the faces, then the count and names, in the colour
    of the band or row it's in. */
 .going {
   display: flex;
@@ -6,32 +6,6 @@
   align-items: center;
   gap: var(--space-2) var(--space-3);
   margin-top: var(--space-3);
-}
-
-.faces {
-  display: flex;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.face {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  overflow: hidden;
-  border: 2px solid var(--white);
-  border-radius: 50%;
-  background: var(--fest-orange-light);
-  color: var(--ink);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.face + .face {
-  margin-left: -10px;
 }
 
 .text {

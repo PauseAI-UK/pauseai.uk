@@ -1,6 +1,7 @@
 import "server-only";
 import { pausefest } from "@/lib/content/pausefest";
-import { getEventGoing, type EventGoing } from "./outside-services/luma-public";
+import type { EventGoing } from "@/lib/going";
+import { getEventGoing } from "./outside-services/luma-public";
 
 /** Who's going to each of PauseFest's events, by its Luma ID, asked of Luma all at once. */
 export async function getPauseFestGoing(): Promise<Record<string, EventGoing | null>> {

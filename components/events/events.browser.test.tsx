@@ -5,6 +5,7 @@ import { site } from "@/lib/content/site";
 import EventList from "./EventList";
 import { exampleEvent } from "./EventList.examples";
 import EventsSection from "./EventsSection";
+import GoingFaces from "./GoingFaces";
 import LocalGroupEvents from "./LocalGroupEvents";
 import UpcomingEvents from "./UpcomingEvents";
 
@@ -214,5 +215,22 @@ describe("LocalGroupEvents", () => {
     await render(await LocalGroupEvents({ localGroupName: "Oxford" }));
     await expect.element(page.getByText(/Nothing is listed in Oxford just now/)).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Past events in Oxford" })).not.toBeInTheDocument();
+  });
+});
+
+describe("GoingFaces", () => {
+  it("shows the first six guests, each by their photo or their initial", async () => {
+    const { container } = await render(
+      <GoingFaces
+        guests={[
+          { name: "Jane Smith", avatar: "/images/logos/PauseAI-Logo-Transparent.svg" },
+          ...["Sam", "Alex", "Priya", "Tom", "Ruth", "Omar"].map((name) => ({ name, avatar: null })),
+        ]}
+      />,
+    );
+    const faces = [...container.querySelectorAll("li")];
+    expect(faces).toHaveLength(6);
+    expect(faces[0].querySelector("img")).not.toBeNull();
+    expect(faces[1].textContent).toBe("S");
   });
 });

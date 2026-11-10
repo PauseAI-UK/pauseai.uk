@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { ButtonAnchor, ButtonLink } from "@/components/ui/Button";
 import type { FestDay, FestEvent } from "@/lib/content/pausefest";
-import type { EventGoing } from "@/lib/server/outside-services/luma-public";
+import type { EventGoing } from "@/lib/going";
 import Going from "./Going";
 import styles from "./Programme.module.css";
 

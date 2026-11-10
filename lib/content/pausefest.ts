@@ -31,16 +31,9 @@ export const pausefest: {
   name: string;
   path: string;
   tagline: string;
-  going: { count: (count: string) => string; others: (count: string, one: boolean) => string };
   days: FestDay[];
 } = {
   name: "PauseFest",
-  // Who's going to an event, as Luma puts it: "1,113 going", and the guests
-  // it features, "Jane, Sam and 1,111 others".
-  going: {
-    count: (count) => `⁂ ${count} going`,
-    others: (count, one) => (one ? `⁂ ${count} other` : `⁂ ${count} others`),
-  },
   path: "/pausefest-london-2026",
   tagline: "Four days of action in London, 20–23 November",
   days: [

@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import GoingFaces from "@/components/events/GoingFaces";
 import { march } from "@/lib/content/march";
+import { goingNames, type FeaturedGuest } from "@/lib/going";
 import { m } from "./classes";
 import { useSignupHero } from "./MarchSignupFrame";
 import { useSignups } from "./MarchSignups";
@@ -11,9 +13,10 @@ import SignupHeroScroll from "./SignupHeroScroll";
 /**
  * The sign-up page's first screen: the march's name, when and where, and the
  * button to the form, with how many have registered beside it when the
- * MarchSignups around it can say.
+ * MarchSignups around it can say, and under it the faces and first names of
+ * the `guests` Luma features, as the march's Luma page shows them.
  */
-export default function SignupHero() {
+export default function SignupHero({ guests = [] }: { guests?: FeaturedGuest[] }) {
   const { setHero } = useSignupHero();
   const signups = useSignups();
   return (
@@ -71,6 +74,13 @@ export default function SignupHero() {
           </a>
           <SignupCount count={signups} onInk />
         </div>
+
+        {signups !== null && guests.length > 0 && (
+          <div className={m("hero-going")}>
+            <GoingFaces guests={guests} />
+            <p className={m("hero-going-names")}>{goingNames({ count: signups, guests })}</p>
+          </div>
+        )}
       </div>
       <SignupHeroScroll />
     </section>
