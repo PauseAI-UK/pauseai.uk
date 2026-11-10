@@ -21,6 +21,7 @@ import Grid, { Card, spanClass } from "./ui/Grid";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import styles from "./Details.module.css";
 import TestTag from "./TestTag";
+import { statusOf } from "./LetterStatus";
 
 const copy = staffCopy.supporters;
 
@@ -113,7 +114,7 @@ function Subject({ item }: { item: SupporterActivity }) {
           {item.status && (
             <>
               {" · "}
-              {staffCopy.letters.status[item.status] ?? item.status}
+              {statusOf(item.status)}
               {item.letterId && (
                 <>
                   {" · "}
@@ -262,8 +263,7 @@ const letterColumns: ListColumn<SupporterLetter>[] = [
     short: true,
     cell: (l) => (
       <>
-        {staffCopy.letters.status[l.status] ?? l.status} ·{" "}
-        <StaffLink href={`/staff/letters/${l.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
+        {statusOf(l.status)} · <StaffLink href={`/staff/letters/${l.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
       </>
     ),
   },

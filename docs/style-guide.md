@@ -370,10 +370,19 @@ alone is hidden ("Filters", below).
 over a thin bar: blue while it's going out, green for answers. In its
 own card under a band, and thin in a list's row.
 
-**Status colours.** A status is grey but for three: blue for what's going
-out or about to (Scheduled, Sending), green for the answer a thing was
-for (Answered), and red for what needs fixing (Bounced). Sent, Replied,
-Skipped, Draft and Waiting are grey, so the three stand out.
+**Status colours.** A status is grey but for four: red where it didn't
+arrive or we can't tell (Not sent, Bounced, Spam complaint, Uncertain,
+every skip), amber where we stopped it (Cancelled), green for good news,
+the answer a thing was for (Answered), and blue for what's going out or
+about to (Scheduled, Sending). Sent, Replied, Draft and Waiting are grey,
+so the four stand out. A skip or a stop says which in the tag, as
+"Status: variant": "Skipped: left office", "Cancelled: we stopped the
+mailing". A second fact about a record, such as answered, replied, or a
+supporter who asked us to stop after a message arrived, is a second tag
+beside its status, never in its place: a bounced letter that was answered
+shows Bounced and Answered. Each kind of record's status tags come from
+one function, used wherever it's shown, so a letter reads the same in a
+mailing's list as on its own page (`LetterStatus`).
 
 **A column of cards** (`ui/Grid`'s `Column`). Asides beside a record that
 aren't one card, such as a letter's ask over its history, stack in a

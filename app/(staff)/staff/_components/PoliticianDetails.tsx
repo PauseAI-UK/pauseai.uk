@@ -28,6 +28,7 @@ import UnblockForm from "./UnblockForm";
 import NotesCard from "./NotesCard";
 import { NoteEntry, NoteFrom, type NotesProps } from "./Notes";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
+import { statusOf } from "./LetterStatus";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import TestTag from "./TestTag";
@@ -73,7 +74,7 @@ function Unsigned({ letter, status }: { letter: UnsignedLetter; status: boolean 
     <Muted>
       {" · "}
       <CampaignName slug={letter.campaign} title={letter.campaignTitle} linked={false} />
-      {status && <> · {staffCopy.letters.status[letter.status] ?? letter.status}</>}
+      {status && <> · {statusOf(letter.status)}</>}
     </Muted>
   );
 }
@@ -110,7 +111,7 @@ function letterEntries({ senders, letters }: PoliticianLetters): Entry[] {
         {copy.history.letter} <Sender letter={letter} />
         <Muted>
           {" · "}
-          {staffCopy.letters.status[letter.status] ?? letter.status}
+          {statusOf(letter.status)}
           {" · "}
           <StaffLink href={`/staff/letters/${letter.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
         </Muted>
@@ -141,7 +142,7 @@ function pauseaiEntries(letters: PauseaiLetter[]): Entry[] {
         <Muted>
           {letter.personalised && ` · ${copy.personalised}`}
           {" · "}
-          {staffCopy.letters.status[letter.status] ?? letter.status}
+          {statusOf(letter.status)}
           {" · "}
           <StaffLink href={`/staff/mailings/${letter.mailingId}/letters/${letter.id}`}>
             {staffCopy.mailingPages.theLetter}

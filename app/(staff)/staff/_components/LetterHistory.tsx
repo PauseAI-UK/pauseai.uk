@@ -6,12 +6,10 @@ import { staffTime } from "@/lib/staff-time";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { LoggedJson } from "./Logged";
+import { statusOf } from "./LetterStatus";
 import styles from "./Details.module.css";
 
 const copy = staffCopy.letters;
-
-/** A letter's status, in words. */
-export const statusOf = (status: string) => copy.status[status] ?? status;
 
 /** A letter's page's title: who it's from, a supporter or PauseAI, and to whom. */
 export function letterTitle(letter: Details): string {

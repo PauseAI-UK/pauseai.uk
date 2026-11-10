@@ -14,6 +14,7 @@ import MailEmail from "@/app/(staff)/staff/_components/MailEmail";
 import CampaignLetter from "@/app/(staff)/staff/_components/CampaignLetter";
 import CampaignsOverview, { CampaignAsk } from "@/app/(staff)/staff/_components/CampaignsOverview";
 import CampaignView from "@/app/(staff)/staff/_components/CampaignView";
+import LetterStatus from "@/app/(staff)/staff/_components/LetterStatus";
 import { OneOffTable } from "@/app/(staff)/staff/_components/OneOffList";
 import OneOffThreadView from "@/app/(staff)/staff/_components/OneOffThreadView";
 import {
@@ -694,6 +695,47 @@ export const staffLetters: Group = {
           render: () => (
             <StaffPage as="div">
               <SupporterLetterViewExample ask={false} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "LetterStatus",
+      file: "app/(staff)/staff/_components/LetterStatus.tsx",
+      variants: [
+        {
+          label: "Every status, every skip, and Answered or Replied beside one",
+          render: () => (
+            <StaffPage as="div">
+              <ul>
+                {[
+                  "scheduled",
+                  "sending",
+                  "sent",
+                  "queued",
+                  "not_sent",
+                  "bounced",
+                  "spam_complaint",
+                  "uncertain",
+                  "cancelled",
+                ].map((status) => (
+                  <li key={status}>
+                    <LetterStatus status={status} answered={false} replied={false} />
+                  </li>
+                ))}
+                {(["blocked", "left-office", "no-email"] as const).map((reason) => (
+                  <li key={reason}>
+                    <LetterStatus status="skipped" skipReason={reason} answered={false} replied={false} />
+                  </li>
+                ))}
+                <li>
+                  <LetterStatus status="sent" answered={false} replied />
+                </li>
+                <li>
+                  <LetterStatus status="bounced" answered replied />
+                </li>
+              </ul>
             </StaffPage>
           ),
         },

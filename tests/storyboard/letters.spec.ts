@@ -170,7 +170,7 @@ test("A letter's page", async ({ page, flowDatabase }) => {
   // order that differs between runs: the frame is of the bubble, its note in the middle of the window.
   await note.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
   await frame(page, "Editing the MP's answer", { window: true });
-  story("Saved, the letter's tag says the MP answered.");
+  story("Saved, a tag beside the letter's status says the MP answered.");
   await page.getByRole("button", { name: staffCopy.politician.save }).click();
   const answered = page.getByText(staffCopy.mailings.columns.answered, { exact: true });
   await expect(answered).toBeVisible();

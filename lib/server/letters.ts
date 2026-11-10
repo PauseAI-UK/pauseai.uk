@@ -17,6 +17,7 @@ import { checkDoc, toText } from "@/lib/letter-format";
 import { query } from "./db";
 import { threadMessages, type ThreadMessage } from "./letter-threads";
 import { lettersInbox } from "./letters-inbox";
+import type { SkipReason } from "./mailings";
 import { FLAG_CONDITIONS } from "./politicians";
 
 // Letters, for the staff interface.
@@ -243,8 +244,12 @@ export type PauseaiLetterDetails = {
   kind: "pauseai";
   id: number;
   status: string;
+  /** Why it wasn't sent, for one skipped. */
+  skipReason: SkipReason | null;
   createdAt: Date;
   sentAt: Date | null;
+  /** When a reply from anyone but us first reached us. */
+  repliedAt: Date | null;
   mpName: string;
   politicianId: number;
   mpEmail: string | null;
@@ -300,7 +305,8 @@ export const getPauseaiLetter = cache(async function getPauseaiLetter(
   const [row] = await query<
     Omit<PauseaiLetterDetails, "gmail" | "events"> & { inGmail: PauseaiInGmail; events: AsJson<LetterEvent>[] }
   >(
-    `SELECT 'pauseai' AS kind, l.id::int AS id, l.status, l.created_at AS "createdAt", l.sent_at AS "sentAt",
+    `SELECT 'pauseai' AS kind, l.id::int AS id, l.status, p.skip_reason AS "skipReason", l.created_at AS "createdAt",
+       l.sent_at AS "sentAt", l.replied_at AS "repliedAt",
        n.name AS "mpName", n.id::int AS "politicianId", n.email AS "mpEmail", m.id::int AS "mailingId",
        m.title AS mailing, m.ask AS "mailingAsk", p.personalised,
        CASE WHEN p.airtable_id IS NOT NULL THEN 'airtable' WHEN l.sent_at IS NOT NULL THEN 'gmail' END AS backend,
