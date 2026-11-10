@@ -134,6 +134,7 @@ describe("MailingWriter", () => {
       () => new Promise((resolve) => (finish = () => resolve({ saved: true, version: 4 }))),
     );
     await subject().fill("One");
+    await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
     await expect.element(status()).toHaveTextContent(copy.savePill.saving);
     await field(copy.fromLegend).selectOptions("samuel.whitlock@pauseai.uk");
     await pause(1200);
@@ -455,7 +456,8 @@ describe("MailingWriter", () => {
       () => new Promise((resolve) => (finish = () => resolve({ saved: true, version: 9 }))),
     );
     await subject().fill("Two");
-    await expect.element(status()).toHaveTextContent(copy.savePill.saving);
+    // Its save under way, not waiting to start.
+    await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
     await page.getByRole("button", { name: copy.schedule(2) }).click();
     await pause(300);
     expect(actions.schedule).not.toHaveBeenCalled();

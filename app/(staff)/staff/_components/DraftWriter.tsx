@@ -153,6 +153,8 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     latest.current = { ...latest.current, ...changes };
     setValues(latest.current);
     pending.current = { ...pending.current, ...changes };
+    // Saving from the change, not only once its save starts, so Saved means nothing's waiting.
+    setSaveState("saving");
     later();
   }
 
