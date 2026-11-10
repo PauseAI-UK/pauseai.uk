@@ -7,7 +7,7 @@ import { logChange } from "./audit";
 import { query } from "./db";
 import { isBlocked, sentBy } from "./email";
 import { gmailAccount } from "./gmail-accounts";
-import { transition } from "./letter-lifecycle";
+import { sendLetterVia, transition } from "./letter-lifecycle";
 import { attachmentsOf, emailFor } from "./mailing-drafts";
 import { mailingChannel, type MailingChannel } from "./mailing-channels";
 import type { SkipReason } from "./mailings";
@@ -103,6 +103,28 @@ async function lettersLeft(): Promise<number> {
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** `channel`, each send at least `gap` ms after the one before, as Gmail's pace allows. */
+function paced(channel: MailingChannel, gap: number): MailingChannel {
+  let last = 0;
+  return {
+    ...channel,
+    async send(message, purpose) {
+      await wait(Math.max(0, last + gap - Date.now()));
+      last = Date.now();
+      return channel.send(message, purpose);
+    },
+  };
+}
+
+/** What became of a mailing's letter that didn't go: skipped, with its reason, or failed. */
+type Unsent = { sent: false; skipped: boolean };
+
+/** A letter skipped, with why. */
+async function skipped(letterId: number, reason: SkipReason): Promise<Unsent> {
+  await skip(letterId, reason);
+  return { sent: false, skipped: true };
+}
+
 /**
  * Sends the letters of the mailings being sent, oldest due first, one at a
  * time, `gap` apart, until there are none or it's `until` (a time in ms).
@@ -119,6 +141,7 @@ export async function sendDueLetters({
   channel?: MailingChannel;
 }): Promise<SendingRun> {
   const run: SendingRun = { sent: 0, skipped: 0, failed: 0, left: 0, waiting: [] };
+  const pacedChannel = paced(channel, gap);
   const mailings = await query<Mailing>(
     // In its From name, or with none the name its Gmail sends as, written into the From line: whether
     // Gmail would fill in a name left out isn't documented, so none is left to it.
@@ -127,7 +150,6 @@ export async function sendDueLetters({
      FROM mailings m LEFT JOIN staff_accounts a ON a.email = m.sent_from
      WHERE m.state = 'sending' AND m.audience = 'politicians' ORDER BY m.due_at, m.id`,
   );
-  let last = 0;
   for (const mailing of mailings) {
     if (run.waiting.includes(mailing.sentFrom)) continue;
     const body = checkMailingDoc(mailing.body)!;
@@ -140,44 +162,40 @@ export async function sendDueLetters({
       }
       const letter = await nextLetter(mailing.id);
       if (!letter) break;
-      if (!letter.inOffice || !letter.email || (await isBlocked(letter.email))) {
-        await skip(letter.id, !letter.inOffice ? "left-office" : !letter.email ? "no-email" : "blocked");
-        run.skipped++;
-        continue;
-      }
-      await wait(Math.max(0, last + gap - Date.now()));
-      last = Date.now();
-      const result = await channel.send(
-        {
+      const to = letter.email;
+      const result = await sendLetterVia<Unsent>(pacedChannel, {
+        id: letter.id,
+        purpose: "mailing",
+        held: async () => {
+          if (!letter.inOffice) return skipped(letter.id, "left-office");
+          if (!to) return skipped(letter.id, "no-email");
+          if (await isBlocked(to)) return skipped(letter.id, "blocked");
+          return undefined;
+        },
+        message: async () => ({
           from: { name: mailing.fromName, address: mailing.sentFrom },
-          to: { name: letter.name, address: letter.email },
+          to: { name: letter.name, address: to! },
           ...emailFor({ subject: mailing.subject, body }, letter.mergeValues),
           attachments,
           letterId: letter.id,
+        }),
+        sentDetails: (sent) => ({
+          from: mailing.sentFrom,
+          to,
+          messageId: sent.messageId,
+          threadId: sent.threadId,
+          // A mailing's letter goes from its mailing's Gmail.
+          ...sentBy({ name: "gmail", account: mailing.sentFrom }),
+        }),
+        unsent: async (reason) => {
+          if (reason === "blocked") return skipped(letter.id, "blocked");
+          await transition(letter.id, ["sending"], "not_sent", { event: "failed" });
+          return { sent: false, skipped: false };
         },
-        "mailing",
-      );
-      if (result.sent) {
-        await transition(letter.id, ["sending"], "sent", {
-          event: "sent",
-          details: {
-            from: mailing.sentFrom,
-            to: letter.email,
-            messageId: result.messageId,
-            threadId: result.threadId,
-            // A mailing's letter goes from its mailing's Gmail.
-            ...sentBy({ name: "gmail", account: mailing.sentFrom }),
-          },
-          stamp: "sent_at",
-        });
-        run.sent++;
-      } else if (result.reason === "blocked") {
-        await skip(letter.id, "blocked");
-        run.skipped++;
-      } else {
-        await transition(letter.id, ["sending"], "not_sent", { event: "failed" });
-        run.failed++;
-      }
+      });
+      if (result.sent) run.sent++;
+      else if (result.skipped) run.skipped++;
+      else run.failed++;
     }
   }
   await finishMailings();

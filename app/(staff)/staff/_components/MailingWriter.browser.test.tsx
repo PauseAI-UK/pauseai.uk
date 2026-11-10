@@ -134,6 +134,7 @@ describe("MailingWriter", () => {
       () => new Promise((resolve) => (finish = () => resolve({ saved: true, version: 4 }))),
     );
     await subject().fill("One");
+    await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
     await expect.element(status()).toHaveTextContent(copy.savePill.saving);
     await field(copy.fromLegend).selectOptions("samuel.whitlock@pauseai.uk");
     await pause(1200);
@@ -441,6 +442,28 @@ describe("MailingWriter", () => {
     expect(actions.schedule).toHaveBeenLastCalledWith(12, 3);
     // Pending still, till the scheduled mailing's page comes.
     await expect.element(schedule).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("schedules after a save under way, with the version it saved", async () => {
+    const ready = {
+      ...exampleWrittenMailing,
+      sentFrom: "samuel.whitlock@pauseai.uk",
+      dueAt: new Date("2099-12-01T09:00:00Z"),
+    };
+    const { actions } = await renderWriter({ data: { ...exampleWriterData, fields: [] }, draft: ready });
+    let finish = () => {};
+    actions.save.mockImplementationOnce(
+      () => new Promise((resolve) => (finish = () => resolve({ saved: true, version: 9 }))),
+    );
+    await subject().fill("Two");
+    // Its save under way, not waiting to start.
+    await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
+    await page.getByRole("button", { name: copy.schedule(2) }).click();
+    await pause(300);
+    expect(actions.schedule).not.toHaveBeenCalled();
+    finish();
+    await expect.poll(() => actions.schedule.mock.calls.length, WAIT).toBe(1);
+    expect(actions.schedule).toHaveBeenLastCalledWith(12, 9);
   });
 
   it("is sent from a connected Gmail, the first to start with, saying what each has left today; and the way to connect yours", async () => {

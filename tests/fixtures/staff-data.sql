@@ -459,7 +459,6 @@ CREATE TEMP VIEW seed_letter_rows AS SELECT l.*, s.postmark_mailbox FROM letters
 -- Their history: sending, then sent, then what followed.
 INSERT INTO letter_events (letter_id, at, status, details) SELECT id, created_at, 'sending', '{}' FROM seed_letter_rows WHERE true;
 INSERT INTO letter_events (letter_id, at, status, details) SELECT id, sent_at, 'sent', jsonb_build_object('to', (SELECT lower(email) FROM notable_people WHERE id = notable_person_id), 'messageId', 'seed-message-' || id) FROM seed_letter_rows WHERE sent_at IS NOT NULL;
-INSERT INTO letter_events (letter_id, at, status, details) SELECT id, created_at + interval '1 second', 'not_sent', '{"reason": "The MP has no email address"}' FROM seed_letter_rows WHERE status = 'not_sent';
 INSERT INTO letter_events (letter_id, at, status, details) SELECT id, replied_at, 'replied', jsonb_build_object('from', 'The office of ' || (SELECT name FROM notable_people WHERE id = notable_person_id), 'to', postmark_mailbox || '@letters.pauseai.uk', 'backend', 'postmark') FROM seed_letter_rows WHERE replied_at IS NOT NULL;
 INSERT INTO letter_events (letter_id, at, status, details) SELECT id, sent_at + interval '2 minutes', 'auto_reply', jsonb_build_object('from', 'Backy McTestface MP', 'to', postmark_mailbox || '@letters.pauseai.uk', 'subject', 'Out of office', 'backend', 'postmark') FROM seed_letter_rows WHERE postmark_mailbox IN ('seed-prev-ahmed', 'seed-week-mia');
 INSERT INTO letter_events (letter_id, at, status, details) SELECT id, sent_at + interval '1 minute', 'bounced', '{"type": "HardBounce", "description": "The address does not exist"}' FROM seed_letter_rows WHERE status = 'bounced';
@@ -731,10 +730,8 @@ INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_i
 SELECT w.id, 'jo@pauseai.uk', 'gmail-seed-reply', 'thread-seed-3', 'fixture-polly-thanks@example.org', lower(n.email), n.name,
   'Re: Edinburgh follow-up', w.due_at + interval '1 day', false, 'fixture/polly-thanks.eml.gz', 512
 FROM seed_written w JOIN notable_people n ON n.id = w.person WHERE w.state = 'sent' AND w.n = 3;
--- What happened to each, as sending and reading Jo's Gmail record it:
--- scheduled; then, in the mailing sent, sent, and the bounce and the reply.
-INSERT INTO letter_events (letter_id, at, status, details)
-SELECT id, created_at, 'scheduled', '{}' FROM seed_written;
+-- What happened to each, as sending and reading Jo's Gmail record it: in
+-- the mailing sent, sent, and the bounce and the reply.
 INSERT INTO letter_events (letter_id, at, status, details)
 SELECT id, due_at, 'sent', jsonb_build_object('from', 'jo@pauseai.uk', 'to', (SELECT lower(email) FROM letters l JOIN notable_people p ON p.id = l.notable_person_id WHERE l.id = seed_written.id), 'messageId', 'fixture-letter-' || n || '@pauseai.uk',
   'threadId', 'thread-seed-' || n)
@@ -772,8 +769,6 @@ FROM seed_stopped;
 INSERT INTO letters_from_pauseai (id, mailing_id, merge_values, skip_reason)
 SELECT s.id, m.id, json_build_object('values', json_build_object('salutation', s.salutation, 'name', s.name), 'meets', '[]'::json), s.reason
 FROM seed_stopped s JOIN mailings m ON m.title = 'Briefing on the bill';
-INSERT INTO letter_events (letter_id, at, status, details)
-SELECT id, now() - interval '6 days', 'scheduled', '{}' FROM seed_stopped;
 INSERT INTO letter_events (letter_id, at, status, details)
 SELECT id, now() - interval '4 days', CASE status WHEN 'not_sent' THEN 'failed' ELSE status END,
   CASE WHEN reason IS NULL THEN '{}' ELSE jsonb_build_object('reason', reason) END
@@ -982,8 +977,6 @@ FROM seed_sending s;
 INSERT INTO letters_from_pauseai (id, mailing_id, merge_values)
 SELECT s.id, s.mailing_id, json_build_object('values', json_build_object('salutation', s.salutation, 'name', s.name), 'meets', '[]'::json)
 FROM seed_sending s;
-INSERT INTO letter_events (letter_id, at, status, details)
-SELECT id, due_at - interval '1 day', 'scheduled', '{}' FROM seed_sending;
 INSERT INTO letter_events (letter_id, at, status, details)
 SELECT id, due_at, 'sent', jsonb_build_object('from', 'jo@pauseai.uk') FROM seed_sending WHERE n = 1;
 

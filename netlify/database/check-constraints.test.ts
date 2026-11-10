@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { ASK_STATUSES, ASKERS } from "@/lib/asks";
 import { CHANNELS, TOPICS } from "@/lib/contact-permissions";
 import { IMPORT_JOBS, type ImportRunStatus } from "@/lib/import-runs";
+import { RECORDED_LETTER_EVENTS } from "@/lib/letter-status";
 import type { OptOutList } from "@/lib/opt-outs";
 import { COUNTRIES } from "@/lib/politician-filters";
 import { query } from "@/lib/server/db";
@@ -58,6 +59,7 @@ const LISTED: Record<string, readonly string[]> = {
   "form_entry_luma.status": every<EntryLuma["status"]>()(["added", "skipped", "not-configured", "failed"]),
   "import_runs.job": IMPORT_JOBS,
   "import_runs.status": every<ImportRunStatus>()(["ok", "failed", "unchanged", "held", "applied", "discarded"]),
+  "letter_events.status": RECORDED_LETTER_EVENTS,
   "letters_from_pauseai.skip_reason": every<SkipReason>()(["blocked", "left-office", "no-email"]),
   "luma_events.access": every<CalendarEvent["access"]>()(["manage", "view"]),
   "luma_guests.approval_status": GUEST_STATUSES,

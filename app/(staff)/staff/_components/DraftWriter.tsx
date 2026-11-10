@@ -109,10 +109,20 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
   const [fileProblem, setFileProblem] = useState("");
   const pending = useRef<Partial<Changes>>(fresh);
   const saving = useRef(false);
+  /** The save under way, if any: what saveNow waits for before it saves the rest. */
+  const underway = useRef<Promise<void>>(Promise.resolve());
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  async function flush(): Promise<void> {
-    if (saving.current) return later();
+  function flush(): Promise<void> {
+    if (saving.current) {
+      later();
+      return underway.current;
+    }
+    underway.current = save();
+    return underway.current;
+  }
+
+  async function save(): Promise<void> {
     const changes = pending.current;
     pending.current = {};
     saving.current = true;
@@ -143,10 +153,15 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     latest.current = { ...latest.current, ...changes };
     setValues(latest.current);
     pending.current = { ...pending.current, ...changes };
+    // Saving from the change, not only once its save starts, so Saved means nothing's waiting.
+    setSaveState("saving");
     later();
   }
 
+  /** Saves what's not saved yet, after any save under way, so what follows has the latest version. */
   async function saveNow(): Promise<void> {
+    clearTimeout(timer.current);
+    await underway.current;
     clearTimeout(timer.current);
     if (Object.keys(pending.current).length) await flush();
   }

@@ -102,3 +102,10 @@ export const LETTER_EVENTS = [
   "office_told",
 ] as const;
 export type LetterEvent = (typeof LETTER_EVENTS)[number];
+
+/**
+ * Every event a letter's history may hold, letter_events.status's CHECK:
+ * those the code writes, and "sending", which nothing writes any more but
+ * older mailings' letters still have, when a run took each one.
+ */
+export const RECORDED_LETTER_EVENTS = [...LETTER_EVENTS, "sending"] as const;

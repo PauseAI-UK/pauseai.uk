@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addStaffAccount, importLuma, logInAsStaff, newestEmail } from "../steps";
+import { caretInEmpty } from "./editor-steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
@@ -33,8 +34,8 @@ async function logIn(page: Page, database: string) {
 
 /**
  * Makes `change` to the draft, and waits for it to be saved. The pill turns
- * to Saving only once the save starts, a moment after the change, so it's
- * watched for from before the change, then Saved after it.
+ * to Saving with the change, perhaps before `change` returns, so it's watched
+ * for from before the change, then Saved after it.
  */
 async function savedAfter(page: Page, change: () => Promise<unknown>) {
   const saving = page.evaluate(
@@ -188,7 +189,7 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   await page.getByLabel(copy.subject).fill("Events near you this month");
   const words = page.getByRole("textbox", { name: copy.emailLabel });
   // On the empty line under the greeting, above the signature.
-  await words.locator("p").nth(1).click();
+  await caretInEmpty(words, 1);
   await savedAfter(page, () => page.keyboard.type("See you at the march."));
   const preview = page.getByRole("region", { name: copy.sections.preview });
   await expect(preview.getByText("See you at the march.")).toBeVisible();

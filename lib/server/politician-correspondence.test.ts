@@ -63,6 +63,19 @@ describeWithDatabase("politicianMessages", () => {
     expect(held.emailsFromThem).toBe(1);
   });
 
+  it("counts as emails to them only the letters that went", async () => {
+    const polly = await addTestPolitician();
+    await addTestLetter({ politicianId: polly });
+    await addTestLetter({ politicianId: polly, status: "bounced" });
+    await addTestLetter({ politicianId: polly, status: "not_sent" });
+    // A mailing's letters that never went: one stopped, one skipped, one still to go.
+    await query(
+      "INSERT INTO letters (kind, notable_person_id, status) VALUES ('pauseai', $1, 'cancelled'), ('pauseai', $1, 'skipped'), ('pauseai', $1, 'scheduled')",
+      [polly],
+    );
+    expect((await politicianMessages(polly, ["supporters"])).emailsToThem).toBe(2);
+  });
+
   it("tells their office from anyone else on a one-off thread, and counts only their office", async () => {
     const polly = await addTestPolitician();
     const id = await thread(polly, "Coffee?", true);

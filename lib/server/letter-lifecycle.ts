@@ -1,13 +1,16 @@
 import "server-only";
 import type { LetterEvent, LetterStatus } from "@/lib/letter-status";
 import { query, type Queryable } from "./db";
+import type { Purpose } from "./email";
+import type { ChannelMessage, ChannelResult, MailingChannel } from "./mailing-channels";
 import { sql, type Sql } from "./sql";
 
 // Moving letters from one status to another (lib/letter-status.ts), the only
 // way letters.status changes once a letter is written. Each move is one
 // statement: it changes only letters in a status it's allowed from, so two
 // runs can't both take a letter, and logs its event for each letter it
-// moved, so a letter's status and its history can't disagree.
+// moved, so a letter's status and its history can't disagree. Sending one,
+// whatever kind it is and however it goes, is sendLetterVia's.
 
 /** The time a move stamps: when a letter was taken to send, or when it went. */
 type Stamp = "taken_at" | "sent_at";
@@ -39,6 +42,44 @@ export async function transition(
     db,
   );
   return rows.map((row) => row.id);
+}
+
+/**
+ * A letter taken to send (status sending), as sendLetterVia sends it: what
+ * it says, and what becomes of it when it can't go. `Unsent` is what each
+ * kind of letter says of one that didn't.
+ */
+export type TakenLetter<Unsent> = {
+  id: number;
+  purpose: Purpose;
+  /** Checked just before it goes: if it can't now, what's done with it instead, and what that says. */
+  held(): Promise<Unsent | undefined>;
+  message(): Promise<ChannelMessage>;
+  /** The details of the event logged when it went. */
+  sentDetails(result: Extract<ChannelResult, { sent: true }>): object;
+  /** What's done with it when the channel didn't send it, and what that says. */
+  unsent(reason: Extract<ChannelResult, { sent: false }>["reason"]): Promise<Unsent>;
+};
+
+/**
+ * Sends a letter a run has taken, by `channel`: unless it's held, sends it,
+ * and marks it sent, logging the event, or else leaves it as `unsent` says.
+ * Every kind of letter goes this way, each by its own channel.
+ */
+export async function sendLetterVia<Unsent>(
+  channel: MailingChannel,
+  letter: TakenLetter<Unsent>,
+): Promise<{ sent: true } | Unsent> {
+  const held = await letter.held();
+  if (held !== undefined) return held;
+  const result = await channel.send(await letter.message(), letter.purpose);
+  if (!result.sent) return letter.unsent(result.reason);
+  await transition(letter.id, ["sending"], "sent", {
+    event: "sent",
+    details: letter.sentDetails(result),
+    stamp: "sent_at",
+  });
+  return { sent: true };
 }
 
 /** Adds an event to a letter's history that doesn't change its status: its copy, a reply, a relay or a notice. */
