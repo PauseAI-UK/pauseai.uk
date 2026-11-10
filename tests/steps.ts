@@ -53,30 +53,6 @@ export async function syncPoliticians(request: APIRequestContext, base: string) 
 }
 
 /**
- * Records, as staff would on their pages, the fixture politicians' answers
- * to the asks: Polly signed ControlAI's statement and declined the Edinburgh
- * conference, Morag is going to it, Lord Seedling signed the DeepMind letter
- * and Rita Retired the Frontier AI letter. Run after syncPoliticians, which
- * adds them. An answer they already have stays, as on a build whose sync
- * set them.
- */
-export function recordAnswers(database: string) {
-  runSql(
-    database,
-    `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by)
-     SELECT n.id, a.slug, a.kind, v.status, 'staff@pauseai.uk'
-     FROM (VALUES ('recPlaceholder', 'controlai-statement', 'signed'),
-                  ('recPlaceholder', 'edinburgh-conference-2026', 'declined'),
-                  ('recMorag', 'edinburgh-conference-2026', 'going'),
-                  ('recSeedling', 'deepmind-letter', 'signed'),
-                  ('recRetired', 'frontier-ai-letter', 'signed')) AS v (record, ask, status)
-     JOIN notable_people n ON n.airtable_id = v.record
-     JOIN asks a ON a.slug = v.ask
-     ON CONFLICT DO NOTHING`,
-  );
-}
-
-/**
  * Gives `email` a staff account in a flow's database, with `permissions`,
  * as an admin would on /staff/accounts. Logging in without one makes one
  * with no permissions.

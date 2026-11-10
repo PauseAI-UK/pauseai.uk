@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addFilter, addStaffAccount, changeFilter, logInAsStaff, recordAnswers, syncPoliticians } from "../steps";
+import { addFilter, addStaffAccount, changeFilter, logInAsStaff, syncPoliticians } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { importEmails, PM_LETTER } from "./staff-steps";
 import type { Section } from "./report/frames";
@@ -10,8 +10,8 @@ export const section: Section = { name: "Politicians", part: "Staff pages", orde
 
 // The politicians from Airtable: every body, as the nightly sync copies them
 // from the fixture Airtable (lib/server/fixtures/airtable-*.json), with their
-// answers to the asks as staff recorded them (recordAnswers) and PauseAI's
-// emails to them.
+// answers to the asks (tests/fixtures/staff-data.sql) and PauseAI's emails to
+// them.
 
 const copy = staffCopy.politician;
 
@@ -35,7 +35,6 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
     "Staff open Polly Placeholder's page. It shows her markers, the notes kept on her in Airtable, her answers to the asks and the emails PauseAI has sent her.",
   );
   await syncPoliticians(request, BASE);
-  recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   await importEmails(page);
   await openPolitician(page, "Polly Placeholder");
@@ -43,10 +42,11 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText(copy.importantTarget, { exact: true })).toBeVisible();
   await expect(page.getByText("Met at the example fair.")).toBeVisible();
   const asks = page.getByRole("region", { name: copy.statusesTitle });
-  // ControlAI's campaign statement and her answer to the conference, as staff recorded them.
+  // ControlAI's campaign statement and her answer to the conference, both from Airtable.
   const answer = (ask: RegExp) => asks.getByRole("group", { name: ask }).locator("[class*=answer]");
   await expect(answer(/^Edinburgh/)).toHaveText(new RegExp(`^${staffCopy.statuses.declined}`));
   await expect(answer(/^ControlAI's campaign statement/)).toHaveText(new RegExp(`^${staffCopy.statuses.signed}`));
+  await expect(asks.getByText(copy.fromImport.airtable).first()).toBeVisible();
   // The conference's invitation, personalised, in her folded history.
   await expect(page.getByText(copy.personalised, { exact: false }).first()).toBeAttached();
   await frame(page, "Polly's page");
@@ -57,7 +57,6 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
     "Polly has had PauseAI's emails and has answered one. Staff open her page, which lists each with who wrote and when.",
   );
   await syncPoliticians(request, BASE);
-  recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   await importEmails(page);
   const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
@@ -210,10 +209,9 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
 
 test("Peers, MSPs and former MPs", async ({ page, request, flowDatabase }) => {
   story(
-    "Politicians come from every body, not only the Commons. Lord Seedling is a peer who signed the DeepMind letter.",
+    "Politicians come from every body, not only the Commons. Lord Seedling is a peer who signed ControlAI's letter.",
   );
   await syncPoliticians(request, BASE);
-  recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Lord Seedling of Example");
   await expect(page.getByText(copy.role(copy.roles.lords, null, true), { exact: true })).toBeVisible();
@@ -238,7 +236,6 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
     "The politicians list starts with those in office. + Filter offers the rest of the filters, and each applies as soon as it's chosen.",
   );
   await syncPoliticians(request, BASE);
-  recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians`);
   const filters = staffCopy.politicians;
@@ -295,7 +292,6 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
 test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {
   story("Staff want those going to the Edinburgh conference or who haven't answered, for a reminder.");
   await syncPoliticians(request, BASE);
-  recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   const filters = staffCopy.politicians;
   const rows = page.getByRole("row");

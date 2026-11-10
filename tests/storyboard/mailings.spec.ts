@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addStaffAccount, logInAsStaff, newestEmail, recordAnswers, syncPoliticians, WEBHOOK_AUTH } from "../steps";
+import { addStaffAccount, logInAsStaff, newestEmail, syncPoliticians, WEBHOOK_AUTH } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { importEmails, NOTIFICATION_INBOX, stayOnPage } from "./staff-steps";
 import { runQueue } from "./letters-inbox-steps";
@@ -660,7 +660,6 @@ test("Old mailings", async ({ page, request, flowDatabase }) => {
 test("From a mailing to its ask", async ({ page, request, flowDatabase }) => {
   story("The invitation names its ask. Following it opens the Edinburgh conference's page.");
   await syncPoliticians(request, BASE);
-  recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   await importEmails(page);
   await page.goto(`${BASE}/staff/mailings`);

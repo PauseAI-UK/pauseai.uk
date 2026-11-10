@@ -146,10 +146,10 @@ WHERE rank <= 162;
 -- Statuses: Polly signed the letter to the PM last month; Dora this week;
 -- the peer backs the bill, from ControlAI's letter, the week before; Backy
 -- McTestface MP's bill status (lib/test-mps.json) was already there. Then
--- Airtable's, as the sync sets them: each letter and the statement, and every answer an event
--- allows, across the conference and Go to Parliament, all there when the
--- sync first copied each ask, 20 days ago, so dated the ask's day, or that
--- day if the ask's is still to come.
+-- answers from Airtable, as production has them: each letter and the statement, and every answer an event
+-- allows, across the conference and Go to Parliament, all copied with each
+-- ask, 20 days ago, so dated the ask's day, or that day if the ask's is still
+-- to come.
 INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, note, updated_by, updated_at)
 SELECT id, 'frontier-ai-letter', 'letter', 'signed', (now() - interval '35 days')::date, 'Told us at the march', 'jo@pauseai.uk', now() - interval '34 days' FROM notable_people WHERE airtable_id = 'recPlaceholder';
 INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, note, updated_by, updated_at)
