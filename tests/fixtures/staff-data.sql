@@ -193,20 +193,22 @@ INSERT INTO luma_events (id, name, url, start_at, access, city, latitude, longit
   ('evt-seed-view-only', 'A partner''s event we can only view', 'seed-view-only', now() + interval '15 days', 'view', 'Leeds', 53.8008, -1.5491, now() - interval '30 days', now() - interval '5 days', now() - interval '1 hour', 'Luma answered 403: guests are not shared with viewers');
 
 -- The fixture's six people and fourteen more. Those with contact_since
--- follow the calendar's emails; one of them is also erased (luma_erased), so
--- the import skips them.
+-- follow the calendar's emails, Luma's texts too if they gave a number; one
+-- of them is also erased (luma_erased), so the import skips them. Pat, Tom
+-- and Yuki followed until they unsubscribed (opt_outs, below).
 INSERT INTO luma_people (user_id, email, name, contact_since, changed_at) VALUES
   ('usr-fixture-1', 'jane.fixture@example.com', 'Jane Fixture', now() - interval '31 days', now() - interval '1 day'),
   ('usr-fixture-2', 'sam.fixture@example.com', 'Sam Fixture', NULL, now() - interval '1 day'),
   ('usr-fixture-3', 'alex.fixture@example.com', 'Alex Fixture', now() - interval '20 days', now() - interval '1 day'),
   ('usr-fixture-4', 'declined.fixture@example.com', 'Dee Clined', NULL, now() - interval '1 day'),
-  ('usr-fixture-5', 'pat.fixture@example.com', 'Pat Fixture', NULL, now() - interval '1 day'),
+  -- Following since she registered for the protest.
+  ('usr-fixture-5', 'pat.fixture@example.com', 'Pat Fixture', now() - interval '5 days', now() - interval '1 day'),
   ('usr-fixture-6', 'follower.fixture@example.com', 'Fay Follower', now() - interval '80 days', now() - interval '1 day'),
   -- A host of the London protest, and nothing else: Luma has no name for them.
   ('usr-fixture-7', 'host.fixture@example.com', '', NULL, now() - interval '1 day'),
   ('usr-seed-7', 'omar.seed@example.com', 'Omar Seed', now() - interval '3 days', now() - interval '1 day'),
   ('usr-seed-8', 'priya.seed@example.com', 'Priya Seed', now() - interval '2 days', now() - interval '1 day'),
-  ('usr-seed-9', 'tom.seed@example.com', 'Tom Seed', NULL, now() - interval '1 day'),
+  ('usr-seed-9', 'tom.seed@example.com', 'Tom Seed', now() - interval '100 days', now() - interval '1 day'),
   ('usr-seed-10', 'li.seed@example.com', 'Li Seed', now() - interval '9 days', now() - interval '1 day'),
   ('usr-seed-11', 'grace.seed@example.com', 'Grace Seed', NULL, now() - interval '1 day'),
   ('usr-seed-12', 'ahmed.seed@example.com', 'Ahmed Seed', now() - interval '11 days', now() - interval '1 day'),
@@ -242,8 +244,8 @@ INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, 
   -- the Manchester talk, 12 days ago: the week before last
   ('gst-seed-7-talk', 'evt-seed-manchester-talk', 'usr-seed-7', 'approved', now() - interval '13 days', '+447700900007', 'M4 1HQ', 'instagram', NULL, now() - interval '12 days'),
   ('gst-seed-8-talk', 'evt-seed-manchester-talk', 'usr-seed-8', 'approved', now() - interval '13 days', NULL, 'M20 2RN', 'instagram', NULL, now() - interval '12 days'),
-  ('gst-seed-9-talk', 'evt-seed-manchester-talk', 'usr-seed-9', 'approved', now() - interval '12 days', NULL, NULL, NULL, NULL, now() - interval '12 days'),
-  ('gst-seed-10-talk', 'evt-seed-manchester-talk', 'usr-seed-10', 'approved', now() - interval '12 days', NULL, 'SK4 1AA', 'poster', NULL, now() - interval '12 days'),
+  ('gst-seed-9-talk', 'evt-seed-manchester-talk', 'usr-seed-9', 'approved', now() - interval '12 days', '+447700900456', NULL, NULL, NULL, now() - interval '12 days'),
+  ('gst-seed-10-talk', 'evt-seed-manchester-talk', 'usr-seed-10', 'approved', now() - interval '12 days', '+447700900010', 'SK4 1AA', 'poster', NULL, now() - interval '12 days'),
   ('gst-seed-11-talk', 'evt-seed-manchester-talk', 'usr-seed-11', 'approved', now() - interval '11 days', NULL, NULL, NULL, NULL, now() - interval '11 days'),
   ('gst-seed-12-talk', 'evt-seed-manchester-talk', 'usr-seed-12', 'approved', now() - interval '11 days', '+447700900012', 'M1 1AE', NULL, NULL, now() - interval '11 days'),
   ('gst-seed-13-training', 'evt-seed-online-training', 'usr-seed-13', 'approved', now() - interval '10 days', NULL, NULL, 'newsletter', NULL, now() - interval '10 days'),
@@ -263,10 +265,13 @@ INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, 
   ('gst-seed-11-protest', 'evt-fixture-london-protest', 'usr-seed-11', 'approved', now() - interval '4 days', NULL, NULL, NULL, now() - interval '2 days', now() - interval '2 days');
 
 -- Opt-outs: two in the last week, one the week before, one long ago; Sam
--- unsubscribed and then subscribed again.
+-- unsubscribed and then subscribed again. Each stops Luma's texts to the
+-- number its Luma account gave as well: Pat's two hours after the
+-- PauseCon room change text reached her, Tom's between broadcasts being
+-- written and sent, so they skipped him (the broadcasts, at the end).
 INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at, resubscribed_at) VALUES
-  ('pat.fixture@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-pat', now() - interval '2 days', NULL),
-  ('tom.seed@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-tom', now() - interval '5 days', NULL),
+  ('pat.fixture@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-pat', now() - interval '3 days' + interval '2 hours', NULL),
+  ('tom.seed@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-tom', now() - interval '6 days 12 hours', NULL),
   ('yuki.seed@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-yuki', now() - interval '10 days', NULL),
   ('erased.seed@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-erased', now() - interval '60 days', NULL),
   ('sam.fixture@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-sam', now() - interval '20 days', now() - interval '17 days'),
@@ -758,13 +763,13 @@ SELECT id, now() - interval '4 days', CASE status WHEN 'not_sent' THEN 'failed' 
   CASE WHEN reason IS NULL THEN '{}' ELSE jsonb_build_object('reason', reason) END
 FROM seed_stopped WHERE status <> 'cancelled';
 
--- A mailing to supporters, by email, to those following the calendar:
--- one delivered, one that failed, one skipped as they'd unsubscribed since.
-INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state)
+-- A broadcast to supporters, by email, to those following the calendar,
+-- sent last week. Its copies are with the other broadcasts', at the end.
+INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state, created_at)
 SELECT 'Events this month', 'Events this month', 'supporters', 'email', 'luma-calendar',
   '{"list": "supporters", "params": {"contact": "email:luma-calendar:yes"}}',
   '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hi "}, {"type": "field", "attrs": {"field": "firstName"}}, {"type": "text", "text": ","}]}, {"type": "paragraph", "content": [{"type": "text", "text": "Here''s what''s on this month: a talk in Leeds on the 12th, and flyering in London on the 20th. Come along to either."}]}, {"type": "paragraph", "content": [{"type": "text", "text": "PauseAI UK"}]}]}',
-  'jo@pauseai.uk', 'jo@pauseai.uk', 'PauseAI UK', now() - interval '4 days', 'sent';
+  'jo@pauseai.uk', 'hello@pauseai.uk', 'PauseAI UK', now() - interval '6 days 2 hours', 'sent', now() - interval '8 days 2 hours';
 
 -- ---------------------------------------------------------- import log
 
@@ -932,22 +937,6 @@ INSERT INTO notes (notable_person_id, body, written_by, created_at)
 SELECT id, 'Her office says write to www.example.org/contact', 'jo@pauseai.uk', now() - interval '8 days'
 FROM notable_people WHERE airtable_id = 'recPlaceholder';
 
--- The supporters mailing's messages, now there are supporters to send them to.
-WITH m AS (SELECT id, due_at FROM mailings WHERE title = 'Events this month'),
-  three AS (SELECT s.id, row_number() OVER (ORDER BY s.id) AS n FROM supporters s ORDER BY s.id LIMIT 3),
-  messages AS (
-    INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, provider_message_id, merge_values, skip_reason, sent_at)
-    SELECT m.id, t.id, 'supporter' || t.n || '@example.com',
-      (ARRAY['delivered', 'failed', 'skipped'])[t.n], CASE WHEN t.n < 3 THEN 'seed-message-' || t.n END, '{}',
-      CASE WHEN t.n = 3 THEN 'unsubscribed' END, CASE WHEN t.n < 3 THEN m.due_at END
-    FROM m, three t
-    RETURNING id, status, sent_at
-  )
-INSERT INTO broadcast_message_events (message_id, at, kind)
-SELECT id, sent_at, 'sent' FROM messages WHERE status <> 'skipped'
-UNION ALL
-SELECT id, sent_at + interval '1 minute', CASE status WHEN 'delivered' THEN 'delivered' ELSE 'failed' END FROM messages WHERE status <> 'skipped';
-
 -- A mailing to politicians sending, a third of the way: one of its three
 -- letters sent, two to go. It goes from Jo's Gmail, which isn't connected
 -- here, so the hourly job leaves it as it is. After every mailing a route's example names, so none of those IDs moves.
@@ -1095,11 +1084,10 @@ INSERT INTO email_problems (at, address, message_id, kind, reason, can_reset) VA
   (now() - interval '7 hours', 'bouncing@example.com', 'seed-log-bounced', 'hard', 'No such mailbox', true),
   (now() - interval '8 hours', 'complaining@example.com', 'seed-log-complained', 'complaint', 'Marked as spam', false);
 -- Dana's old address bounced, so it's blocked; her other still says yes.
--- Robin's calendar address bounced too; their member address isn't blocked.
+-- (Robin's calendar address bounced too, a broadcast to it, at the end.)
 WITH bounced AS (
   INSERT INTO email_problems (at, address, kind, reason, can_reset) VALUES
-    (now() - interval '2 days', 'dana.old@example.com', 'hard', 'No such mailbox', true),
-    (now() - interval '2 days', 'robin.events@example.com', 'hard', 'No such mailbox', true)
+    (now() - interval '2 days', 'dana.old@example.com', 'hard', 'No such mailbox', true)
   RETURNING id, address
 )
 INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM bounced;
@@ -1119,23 +1107,13 @@ INSERT INTO job_presses (job, started_by) VALUES ('import-go-to-parliament', 'jo
 -- Broadcasts to supporters, by email and by text, in each state a mailing has:
 -- a draft, one scheduled, one sending, one sent and one stopped. A text's
 -- draft also comes with no template yet, an approved one, new words, new
--- words waiting for WhatsApp's approval, and words it rejected. Each copy
--- keeps its supporter's real name, as sending does. After the rest, so no
--- ID above moves.
+-- words waiting for WhatsApp's approval, and words it rejected. After the
+-- rest, so no ID above moves.
 CREATE FUNCTION pg_temp.seed_words(words text) RETURNS jsonb LANGUAGE sql AS $$
   SELECT jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(
     jsonb_build_object('type', 'text', 'text', 'Hi '), jsonb_build_object('type', 'field', 'attrs', jsonb_build_object('field', 'firstName')),
     jsonb_build_object('type', 'text', 'text', ', ' || words)))))
 $$;
-CREATE TEMP TABLE seed_people ON COMMIT DROP AS
-SELECT s.id, row_number() OVER (ORDER BY s.id) AS n,
-  coalesce((SELECT nullif(i.name, '') FROM supporter_identity i WHERE i.supporter_id = s.id ORDER BY i.seen_at DESC NULLS LAST LIMIT 1), 'Supporter ' || s.id) AS name,
-  coalesce((SELECT i.email FROM supporter_identity i WHERE i.supporter_id = s.id ORDER BY i.seen_at DESC NULLS LAST LIMIT 1), 'supporter' || s.id || '@example.com') AS email,
-  (SELECT sp.place FROM supporter_place sp WHERE sp.supporter_id = s.id) AS place
-FROM supporters s;
-UPDATE broadcast_messages c SET merge_values = jsonb_build_object('name', p.name, 'place', p.place,
-  'values', jsonb_build_object('firstName', split_part(p.name, ' ', 1)), 'meets', '["has:firstName"]'::jsonb)
-FROM seed_people p WHERE p.id = c.supporter_id;
 
 INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason, created_at)
 SELECT t.name, pg_temp.seed_words(t.words), t.status, t.by,
@@ -1176,7 +1154,7 @@ SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 's
   jsonb_build_object('list', 'supporters', 'params',
     jsonb_build_object('contact', CASE WHEN m.channel = 'email' THEN 'email' ELSE 'phone' END || ':luma-calendar:yes')
     || CASE m.title
-         WHEN 'Stall on Saturday' THEN '{"near": "M1 1AE", "within": "5"}'::jsonb
+         WHEN 'Stall on Saturday' THEN '{"near": "Manchester", "within": "10"}'::jsonb
          WHEN 'Rain on Saturday' THEN '{"campaign": "regulate-letter-pm", "wrote": "no"}'::jsonb
          ELSE '{}'::jsonb
        END),
@@ -1185,47 +1163,93 @@ SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 's
   now() + m.due, m.state, t.id, coalesce(now() + m.due, now()) - interval '2 days', now() - interval '1 hour'
 FROM seed_broadcasts m LEFT JOIN whatsapp_templates t ON t.name = m.template;
 
--- Each copy, by who it's to and how it stands: every way one can go, a text
--- also read, or not on WhatsApp. Those scheduled have none, as sending finds
--- who they go to.
+-- Each copy of those sent, sending or stopped, as sending left it: one for
+-- each supporter the broadcast's Consent found when it went, at their
+-- address or number that said yes. Every way one can go: delivered, a text
+-- also read, sent with no word back yet, failed, bounced, skipped for each
+-- reason, and never sent, as the broadcast was stopped first. Each agrees
+-- with the supporter's own page: Robin's calendar address bounced on Events
+-- this month, which blocked it, so the PauseCon email skipped it; Tom
+-- unsubscribed after three broadcasts were written and before each went;
+-- Grace no longer follows the calendar; Li's number isn't on WhatsApp; and
+-- Pat, whom PauseCon room change reached, asked us to stop two hours later
+-- (opt_outs, above). Scheduled broadcasts have no copies, as sending finds
+-- who they go to. Events this month's first, so its first copy is 1.
 CREATE TEMP TABLE seed_copies ON COMMIT DROP AS
-SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, m.id AS mailing_id, m.channel, m.due, c.person, c.status, c.reason, c.was_read
-FROM (VALUES
-  ('Thank you for marching', 'email', 1, 'delivered', NULL, false),
-  ('Thank you for marching', 'email', 2, 'sent', NULL, false),
-  ('Thank you for marching', 'email', 3, 'scheduled', NULL, false),
-  ('Thank you for marching', 'email', 4, 'scheduled', NULL, false),
-  ('PauseCon: the recordings', 'email', 1, 'delivered', NULL, false),
-  ('PauseCon: the recordings', 'email', 2, 'failed', NULL, false),
-  ('PauseCon: the recordings', 'email', 3, 'skipped', 'blocked', false),
-  ('PauseCon: the recordings', 'email', 4, 'skipped', 'unsubscribed', false),
-  ('PauseCon: the recordings', 'email', 5, 'skipped', 'no-permission', false),
-  ('PauseCon: the recordings', 'email', 6, 'cancelled', NULL, false),
-  ('Our next event is on Saturday.', 'text', 1, 'delivered', NULL, true),
-  ('Our next event is on Saturday.', 'text', 2, 'delivered', NULL, false),
-  ('Our next event is on Saturday.', 'text', 3, 'scheduled', NULL, false),
-  ('PauseCon room change', 'text', 1, 'delivered', NULL, true),
-  ('PauseCon room change', 'text', 2, 'delivered', NULL, true),
-  ('PauseCon room change', 'text', 3, 'delivered', NULL, false),
-  ('PauseCon room change', 'text', 4, 'failed', NULL, false),
-  ('PauseCon room change', 'text', 5, 'skipped', 'not-on-whatsapp', false),
-  ('PauseCon room change', 'text', 6, 'skipped', 'unsubscribed', false),
-  ('We are flyering on Saturday.', 'text', 1, 'delivered', NULL, true),
-  ('We are flyering on Saturday.', 'text', 2, 'failed', NULL, false),
-  ('We are flyering on Saturday.', 'text', 3, 'cancelled', NULL, false)
-) c (title, channel, person, status, reason, was_read)
-JOIN seed_broadcasts m ON m.title = c.title AND m.channel = c.channel;
-INSERT INTO broadcast_messages (id, mailing_id, supporter_id, address, status, merge_values, skip_reason, sent_at) OVERRIDING SYSTEM VALUE
-SELECT c.id, c.mailing_id, p.id,
-  CASE WHEN c.channel = 'email' THEN p.email ELSE '+447700900' || lpad((100 + p.n)::text, 3, '0') END,
-  c.status, jsonb_build_object('name', p.name, 'place', p.place, 'values', jsonb_build_object('firstName', split_part(p.name, ' ', 1)), 'meets', '["has:firstName"]'::jsonb),
-  c.reason, CASE WHEN c.status IN ('sent', 'delivered', 'failed') THEN now() + c.due END
-FROM seed_copies c JOIN seed_people p ON p.n = c.person;
+SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FROM (
+  SELECT m.id AS mailing_id, m.channel, m.due_at, k.supporter_id, c.luma_user, c.status, c.reason, c.report, c.was_read, c.stopped
+  FROM (SELECT v.*, row_number() OVER () AS n FROM (VALUES
+    ('Events this month', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
+    ('Events this month', 'usr-fixture-3', 'delivered', NULL, 'delivered', false, false),
+    ('Events this month', 'usr-fixture-6', 'delivered', NULL, 'delivered', false, false),
+    ('Events this month', 'usr-seed-10', 'delivered', NULL, 'delivered', false, false),
+    ('Events this month', 'usr-seed-12', 'delivered', NULL, 'delivered', false, false),
+    ('Events this month', 'usr-seed-22', 'failed', NULL, 'bounced', false, false),
+    ('Events this month', 'usr-seed-9', 'skipped', 'unsubscribed', NULL, false, false),
+    ('Thank you for marching', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
+    ('Thank you for marching', 'usr-fixture-3', 'delivered', NULL, 'delivered', false, false),
+    ('Thank you for marching', 'usr-fixture-6', 'sent', NULL, NULL, false, false),
+    ('Thank you for marching', 'usr-seed-18', 'sent', NULL, NULL, false, false),
+    ('Thank you for marching', 'usr-seed-10', 'scheduled', NULL, NULL, false, false),
+    ('Thank you for marching', 'usr-seed-7', 'scheduled', NULL, NULL, false, false),
+    ('Thank you for marching', 'usr-seed-8', 'scheduled', NULL, NULL, false, false),
+    ('PauseCon: the recordings', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
+    ('PauseCon: the recordings', 'usr-fixture-3', 'delivered', NULL, 'delivered', false, false),
+    ('PauseCon: the recordings', 'usr-fixture-6', 'failed', NULL, 'failed', false, false),
+    ('PauseCon: the recordings', 'usr-seed-22', 'skipped', 'blocked', NULL, false, false),
+    ('PauseCon: the recordings', 'usr-seed-9', 'skipped', 'unsubscribed', NULL, false, false),
+    ('PauseCon: the recordings', 'usr-seed-11', 'skipped', 'no-permission', NULL, false, false),
+    ('PauseCon: the recordings', 'usr-seed-10', 'cancelled', NULL, NULL, false, false),
+    ('PauseCon: the recordings', 'usr-seed-12', 'cancelled', NULL, NULL, false, false),
+    ('PauseCon: the recordings', 'usr-seed-18', 'cancelled', NULL, NULL, false, false),
+    ('Our next event is on Saturday.', 'usr-fixture-1', 'delivered', NULL, 'delivered', true, false),
+    ('Our next event is on Saturday.', 'usr-seed-7', 'delivered', NULL, 'delivered', false, false),
+    ('Our next event is on Saturday.', 'usr-seed-22', 'scheduled', NULL, NULL, false, false),
+    ('Our next event is on Saturday.', 'usr-seed-10', 'scheduled', NULL, NULL, false, false),
+    ('PauseCon room change', 'usr-fixture-1', 'delivered', NULL, 'delivered', true, false),
+    ('PauseCon room change', 'usr-seed-22', 'delivered', NULL, 'delivered', true, false),
+    ('PauseCon room change', 'usr-fixture-5', 'delivered', NULL, 'delivered', false, true),
+    ('PauseCon room change', 'usr-seed-12', 'failed', NULL, 'failed', false, false),
+    ('PauseCon room change', 'usr-seed-10', 'skipped', 'not-on-whatsapp', NULL, false, false),
+    ('We are flyering on Saturday.', 'usr-fixture-1', 'delivered', NULL, 'delivered', true, false),
+    ('We are flyering on Saturday.', 'usr-seed-22', 'failed', NULL, 'failed', false, false),
+    ('We are flyering on Saturday.', 'usr-seed-9', 'skipped', 'unsubscribed', NULL, false, false),
+    ('We are flyering on Saturday.', 'usr-seed-10', 'cancelled', NULL, NULL, false, false),
+    ('We are flyering on Saturday.', 'usr-seed-12', 'cancelled', NULL, NULL, false, false)
+  ) v (title, luma_user, status, reason, report, was_read, stopped)) c
+  JOIN mailings m ON m.audience = 'supporters' AND m.title = c.title
+  JOIN supporter_links k ON k.luma_user_id = c.luma_user
+  ORDER BY c.n
+) c;
+-- Each with the merge values sending gives it (recipientValues in
+-- lib/server/broadcast-recipients.ts): their name and first name, and the
+-- campaigns they wrote in and events they registered for.
+INSERT INTO broadcast_messages (id, mailing_id, supporter_id, address, status, provider_message_id, merge_values, skip_reason, sent_at) OVERRIDING SYSTEM VALUE
+SELECT c.id, c.mailing_id, c.supporter_id,
+  CASE WHEN c.channel = 'email' THEN (SELECT email FROM luma_people WHERE user_id = c.luma_user)
+    ELSE (SELECT phone_number(g.phone) FROM luma_guests g WHERE g.user_id = c.luma_user AND g.phone IS NOT NULL ORDER BY g.registered_at DESC LIMIT 1) END,
+  c.status, CASE WHEN c.status IN ('sent', 'delivered', 'failed') THEN 'seed-broadcast-' || c.id END,
+  jsonb_build_object('name', s.name, 'place', (SELECT place FROM supporter_place WHERE supporter_id = c.supporter_id),
+    'values', jsonb_build_object('firstName', split_part(s.name, ' ', 1), 'name', s.name),
+    'meets', '["has:firstName", "has:name"]'::jsonb || coalesce((
+      SELECT jsonb_agg(part ORDER BY part DESC) FROM (
+        SELECT 'wrote:' || l.campaign AS part FROM supporter_links k JOIN letters_from_supporters l ON l.entry_id = k.form_entry_id WHERE k.supporter_id = c.supporter_id
+        UNION SELECT 'event:' || g.event_id FROM supporter_links k JOIN luma_guests g ON g.user_id = k.luma_user_id
+          WHERE k.supporter_id = c.supporter_id AND g.approval_status <> 'declined') parts), '[]'::jsonb)),
+  c.reason, CASE WHEN c.status IN ('sent', 'delivered', 'failed') THEN c.due_at END
+FROM seed_copies c JOIN supporters_summary s ON s.id = c.supporter_id;
+-- What each provider reported: delivered, failed or bounced a minute after
+-- sending, read twenty minutes after, and Pat's stop two hours after.
 INSERT INTO broadcast_message_events (message_id, at, kind)
-SELECT id, now() + due, 'sent' FROM seed_copies WHERE status IN ('sent', 'delivered', 'failed')
-UNION ALL SELECT id, now() + due + interval '1 minute', 'delivered' FROM seed_copies WHERE status = 'delivered'
-UNION ALL SELECT id, now() + due + interval '1 minute', CASE channel WHEN 'email' THEN 'bounced' ELSE 'failed' END FROM seed_copies WHERE status = 'failed'
-UNION ALL SELECT id, now() + due + interval '20 minutes', 'read' FROM seed_copies WHERE was_read
--- One asked us to stop after PauseCon room change reached them.
-UNION ALL SELECT id, now() + due + interval '2 hours', 'opted-out' FROM seed_copies
-  WHERE channel = 'text' AND status = 'delivered' AND NOT was_read AND due = interval '-3 days';
+SELECT id, due_at, 'sent' FROM seed_copies WHERE status IN ('sent', 'delivered', 'failed')
+UNION ALL SELECT id, due_at + interval '1 minute', report FROM seed_copies WHERE report IS NOT NULL
+UNION ALL SELECT id, due_at + interval '20 minutes', 'read' FROM seed_copies WHERE was_read
+UNION ALL SELECT id, due_at + interval '2 hours', 'opted-out' FROM seed_copies WHERE stopped;
+-- Robin's bounce, which blocked the address.
+WITH bounced AS (
+  INSERT INTO email_problems (at, address, message_id, kind, reason, can_reset, details)
+  SELECT s.due_at + interval '1 minute', c.address, c.provider_message_id, 'hard', 'No such mailbox', true, '{"type": "HardBounce"}'
+  FROM broadcast_messages c JOIN seed_copies s USING (id) WHERE s.report = 'bounced'
+  RETURNING id, address
+)
+INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM bounced;
