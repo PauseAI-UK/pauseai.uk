@@ -2,28 +2,29 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { changeChoices, recentChanges } from "@/lib/server/audit";
 import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
-import { savedFiltersState } from "@/lib/server/saved-filters";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
-import { changesSearch, type ChangesSearch } from "@/lib/staff-search";
+import type { ChangesSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
 import ChangesFilters, { changeWords } from "../../_components/ChangesFilters";
 import ChangesTable from "../../_components/ChangesTable";
-import { filteredTitle } from "../../_components/ui/FilterBar";
+import { openSavedList } from "../../saved-lists";
 
 type Props = { searchParams: Promise<Partial<Record<keyof ChangesSearch, ParamValue>>> };
 
 /** The log's title, with its filters. */
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   await requireStaff("admin");
-  return { title: filteredTitle(staffCopy.changes.title, changeWords(changesSearch(await searchParams))) };
+  return { title: await (await openSavedList("audit-log", await searchParams)).title(changeWords) };
 }
 
 /** The log, filtered. Whichever filter is on, entries about supporters show only to those who may see them. */
 export default async function ChangesPage({ searchParams }: Props) {
   const supporters = canSeeSupporters(await requireStaff("admin"));
-  const saved = await savedFiltersState("audit-log", await searchParams);
-  const { filter, ...search } = changesSearch(saved.params);
+  const {
+    saved,
+    search: { filter, ...search },
+  } = await openSavedList("audit-log", await searchParams);
   const [log, choices] = await Promise.all([recentChanges(supporters, filter), changeChoices(supporters)]);
   return (
     <>

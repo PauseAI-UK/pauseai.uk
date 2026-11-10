@@ -4,7 +4,6 @@ import { CHANNELS, TOPICS } from "@/lib/contact-permissions";
 import { IMPORT_JOBS, type ImportRunStatus } from "@/lib/import-runs";
 import type { OptOutList } from "@/lib/opt-outs";
 import { COUNTRIES } from "@/lib/politician-filters";
-import { SAVED_LISTS } from "@/lib/saved-filters";
 import { query } from "@/lib/server/db";
 import type { Backend, DeliveryProblem, Purpose } from "@/lib/server/email";
 import type { EntryLuma } from "@/lib/server/form-entries";
@@ -73,7 +72,6 @@ const LISTED: Record<string, readonly string[]> = {
   "opt_outs.source": every<OptOutSource>()(["luma-webhook", "luma-contacts"]),
   "politicians.country": COUNTRIES,
   "politicians.house": HOUSES,
-  "saved_filters.list": SAVED_LISTS,
   "signup_upload_entries.known": every<NonNullable<SignupUploadPerson["known"]>>()(["email", "mobile"]),
   "signup_upload_entries.luma": every<NonNullable<SignupUploadPerson["luma"]>>()([
     "going",

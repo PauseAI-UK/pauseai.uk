@@ -4,8 +4,7 @@ import { type Picked } from "@/lib/staff-search";
 import { firstOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import type { FilterWordsData } from "@/lib/server/mailing-pages";
-import { politicianFilters } from "./PoliticianFilters";
-import { filterWords } from "./ui/FilterBar";
+import { filterWords, POLITICIAN_FILTERS } from "@/lib/staff-list-filters";
 import styles from "./MailingParts.module.css";
 
 // Pieces of the mailing pages: who a mailing is to.
@@ -24,7 +23,11 @@ function filterPills(data: FilterWordsData, params: Params): string[] {
   return [
     ...(house ? [house] : []),
     ...(search ? [copy.searchPill(search)] : []),
-    ...filterWords(politicianFilters(firstOf(params.ask), data.parties, data.asks), { ...params, q: "" }, "q"),
+    ...filterWords(
+      POLITICIAN_FILTERS({ ask: firstOf(params.ask), parties: data.parties, asks: data.asks }),
+      { ...params, q: "" },
+      "q",
+    ),
   ];
 }
 

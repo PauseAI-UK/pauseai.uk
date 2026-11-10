@@ -137,11 +137,15 @@ the code should go instead. The rules below say which ones are enforced.
   sortable columns. Its URL's types, its reading (`read`) and sort
   (`sort`), its table's headings (`columns`), and what a saved filter
   keeps come from that. Its parser (`lib/staff-search.ts`) says only what
-  each filter means. A list with saved filters is one of `SAVED`
-  (`lib/saved-filters.ts`), whose actions need the list's permission.
-  Adding one to `SAVED` also needs a migration widening `saved_filters`'s
-  `CHECK` on `list`. Each page still calls `requireStaff()` itself, first,
-  as `tests/checks/staff-auth.test.ts` reads it there.
+  each filter means. Its filter bar's filters (`lib/staff-list-filters.ts`)
+  are named by its parameters, each with its label and choices, and repeat
+  where its parameter does; its component gives them only what comes from
+  the database. A list with saved filters is one of `SAVED`
+  (`lib/saved-filters.ts`), whose actions need the list's permission. Its
+  page calls `requireStaff()` itself, first, as
+  `tests/checks/staff-auth.test.ts` reads it there, then
+  `openSavedList()` (`app/(staff)/staff/saved-lists.ts`), for the saved
+  filter loaded, what it finds and the page's title.
 - **Metadata** comes from `pageMetadata()` (`lib/metadata.ts`), which fills in
   the social preview images, the "PauseAI UK | <title>" social title and the
   canonical path. A page's `generateMetadata` reuses its loader: the

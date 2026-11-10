@@ -5,7 +5,7 @@ import { FieldSet } from "@/components/ui/Field";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { sendsOf, stateValue, type Channel } from "@/lib/contact-permissions";
 import ChannelIcon from "./ChannelIcon";
-import { SUBSCRIPTION_ORDER } from "./SupporterFilters";
+import { SUBSCRIPTION_ORDER } from "@/lib/staff-list-filters";
 
 const copy = staffCopy.broadcastPages;
 

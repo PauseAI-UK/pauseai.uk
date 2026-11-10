@@ -99,7 +99,8 @@ import ErasedNotice from "./ErasedNotice";
 import SubscriptionBadges, { subscriptionWords } from "./SubscriptionBadges";
 import SupporterBadges, { supporterBadgeWords } from "./SupporterBadges";
 import SupporterDetails from "./SupporterDetails";
-import SupporterFilters, { SUBSCRIPTION_ORDER, supporterWords } from "./SupporterFilters";
+import { SUBSCRIPTION_ORDER } from "@/lib/staff-list-filters";
+import SupporterFilters, { supporterWords } from "./SupporterFilters";
 import SupportersTable, { supporterColumns, supporterContact } from "./SupportersTable";
 import {
   exampleBlockedPermissions,

@@ -4,7 +4,8 @@ import { page, userEvent } from "vitest/browser";
 import type { ComponentProps } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { navigation } from "@/tests/browser/navigation";
-import FilterBar, { type Filter } from "./FilterBar";
+import type { Filter } from "@/lib/staff-list-filters";
+import FilterBar from "./FilterBar";
 import ManyChoices from "./ManyChoices";
 
 // Outside Next's app router a Link is a plain link, and following it would

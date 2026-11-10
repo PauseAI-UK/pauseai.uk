@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { emailBlockFilters } from "../../../../_components/EmailBlockFilters";
 import { blockColumns } from "../../../../_components/EmailBlocksTable";
-import { filterWords } from "../../../../_components/ui/FilterBar";
+import { filterWords } from "@/lib/staff-list-filters";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listBlocks } from "@/lib/server/email";
 import { requireStaff } from "@/lib/server/staff-auth";

@@ -8,7 +8,8 @@ import PoliticianFilters from "../PoliticianFilters";
 import { emptyPoliticiansSearch } from "../PoliticianTable.examples";
 import SupporterFilters from "../SupporterFilters";
 import { eventsSearch, supportersSearch } from "@/lib/staff-search";
-import FilterBar, { filteredName } from "./FilterBar";
+import { filteredName } from "@/lib/staff-list-filters";
+import FilterBar from "./FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./SavedFilters";
 
 const copy = staffCopy.filters.saved;

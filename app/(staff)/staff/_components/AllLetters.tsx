@@ -3,12 +3,12 @@ import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { AllLettersFound, AnyLetter, EmailChoice } from "@/lib/server/all-letters";
-import { WINDOW_OPTIONS } from "@/lib/staff-dashboard";
-import { ALL_LETTERS_PAGE_SIZE, EMAIL_SENDERS, EMAIL_TYPES, type AllLettersSearch } from "@/lib/staff-search";
+import { ALL_EMAIL_FILTERS } from "@/lib/staff-list-filters";
+import { ALL_LETTERS_PAGE_SIZE, type AllLettersSearch } from "@/lib/staff-search";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { staffTime } from "@/lib/staff-time";
 import CampaignName from "./CampaignName";
-import FilterBar, { type Filter } from "./ui/FilterBar";
+import FilterBar from "./ui/FilterBar";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
@@ -17,54 +17,6 @@ import { statusOf } from "./LetterStatus";
 const PATH = ALL_EMAILS_LIST.path;
 const copy = staffCopy.allLetters;
 const words = staffCopy.letters;
-
-/** The filters, in the columns' order: who it's from and what it's about, for staff without `supporters` not supporters' or a campaign's; who it's to, searched for; when it was sent, and whether it got a reply. */
-function emailFilters(supporters: boolean, people: EmailChoice[]): Filter[] {
-  return [
-    {
-      name: "from",
-      label: copy.from,
-      repeat: true,
-      oneEach: true,
-      options: EMAIL_SENDERS.filter((kind) => supporters || kind !== "supporter").map((kind) => ({
-        value: kind,
-        label: copy.fromKinds[kind],
-      })),
-    },
-    {
-      name: "to",
-      label: words.columns.to,
-      repeat: true,
-      searchable: true,
-      options: people.map((person) => ({
-        value: String(person.id),
-        label: person.constituency
-          ? staffCopy.supporters.filters.mpChoice(person.name, person.constituency)
-          : person.name,
-      })),
-    },
-    {
-      name: "type",
-      label: copy.topic,
-      repeat: true,
-      oneEach: true,
-      options: EMAIL_TYPES.filter((type) => supporters || type !== "campaign").map((type) => ({
-        value: type,
-        label: copy.types[type],
-      })),
-    },
-    { name: "sent", label: copy.sent, options: WINDOW_OPTIONS },
-    {
-      name: "replied",
-      label: copy.replied,
-      options: [
-        { value: "yes", label: copy.repliedChoices.yes },
-        { value: "no", label: copy.repliedChoices.no },
-        ...WINDOW_OPTIONS,
-      ],
-    },
-  ];
-}
 
 /** When something happened, or a dash for what hasn't. */
 const when = (at: Date | null) => (at ? staffTime(at) : <Muted>–</Muted>);
@@ -195,7 +147,7 @@ export default function AllLetters({
         path={PATH}
         values={values}
         search={{ name: "q", label: copy.search }}
-        filters={emailFilters(supporters, people)}
+        filters={ALL_EMAIL_FILTERS({ supporters, people })}
       />
       {search.type.includes("one-off") && (
         <p>

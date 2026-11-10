@@ -1,105 +1,20 @@
 import { POLITICIANS_LIST } from "@/lib/staff-lists";
-import { ASK_STATUSES } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { Ask } from "@/lib/server/asks";
-import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "@/lib/politician-filters";
+import { filteredName, filterWords, POLITICIAN_FILTERS } from "@/lib/staff-list-filters";
 import type { PoliticiansSearch } from "@/lib/staff-search";
-import { WINDOW_OPTIONS } from "@/lib/staff-dashboard";
 import { firstOf, type Params } from "@/lib/list-params";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
-import FilterBar, { filteredName, filterWords, type Filter } from "./ui/FilterBar";
+import FilterBar from "./ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";
 
 const copy = staffCopy.politicians;
-
-/**
- * The politicians list's filters, among `parties` and `asks`, with the
- * answers of the ask chosen, `askSlug`: the table's
- * columns in its order, with the nation after the party and whether we can
- * email them after the status. Status is those in
- * office unless another is chosen. An answer is offered once there's an
- * ask, from those its kind allows, and goes with it. Party, nation, email,
- * the markers, the asks they've been mailed about and the answers can each be
- * chosen more than once, the first three having one value each; Except on the
- * asks finds those not yet mailed about it. How recently they agreed is only
- * from the dashboard's link.
- */
-export function politicianFilters(askSlug: string, parties: string[], asks: Ask[]): Filter[] {
-  const ask = asks.find((a) => a.slug === askSlug);
-  return [
-    {
-      name: "nation",
-      label: staffCopy.politician.country,
-      repeat: true,
-      oneEach: true,
-      options: COUNTRIES.map((country) => ({ value: country, label: staffCopy.countries[country] })),
-    },
-    {
-      name: "party",
-      label: staffCopy.fields.party,
-      repeat: true,
-      oneEach: true,
-      options: parties.map((party) => ({ value: party, label: party })),
-    },
-    {
-      name: "status",
-      label: copy.status,
-      options: [
-        { value: "", label: staffCopy.personStatuses.in_office },
-        ...Object.entries(staffCopy.personStatuses)
-          .filter(([value]) => value !== "in_office")
-          .map(([value, label]) => ({ value, label })),
-        { value: "any", label: copy.anyStatus },
-      ],
-    },
-    {
-      name: "email",
-      label: staffCopy.fields.email,
-      repeat: true,
-      oneEach: true,
-      options: EMAIL_STATES.map((state) => ({ value: state, label: copy.emailStates[state] })),
-    },
-    {
-      name: "flag",
-      label: copy.flag,
-      repeat: true,
-      options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: copy.flags[flag] })),
-    },
-    {
-      name: "ask",
-      label: copy.ask,
-      options: asks.map((a) => ({ value: a.slug, label: a.title })),
-    },
-    { name: "agreed", label: copy.agreedIn, options: WINDOW_OPTIONS, linkedOnly: true },
-    {
-      name: "mailed",
-      label: copy.mailed,
-      repeat: true,
-      options: asks.map((a) => ({ value: a.slug, label: a.title })),
-    },
-    {
-      name: "answer",
-      label: ask?.title ?? copy.answer,
-      after: "ask",
-      repeat: true,
-      options: [
-        { value: "", label: copy.anyAnswer },
-        // With no ask, as a link from the dashboard can have it, any ask's answers.
-        ...(ask ? ASK_STATUSES[ask.kind] : [...new Set(Object.values(ASK_STATUSES).flat())]).map((value) => ({
-          value,
-          label: staffCopy.statuses[value],
-        })),
-        { value: "none", label: copy.noAnswer },
-      ],
-    },
-  ];
-}
 
 /** The list's house, search and filters that are on in `values`, its URL's parameters, in words. */
 function wordsOf(values: Params, parties: string[], asks: Ask[]): string[] {
   return [
     staffCopy.houses[firstOf(values.house) as keyof typeof staffCopy.houses] ?? "",
-    ...filterWords(politicianFilters(firstOf(values.ask), parties, asks), values, "q"),
+    ...filterWords(POLITICIAN_FILTERS({ ask: firstOf(values.ask), parties, asks }), values, "q"),
   ];
 }
 
@@ -133,7 +48,7 @@ export default function PoliticianFilters({
       path={POLITICIANS_LIST.path}
       values={search}
       search={{ name: "q", label: copy.search }}
-      filters={politicianFilters(search.ask, parties, asks)}
+      filters={POLITICIAN_FILTERS({ ask: search.ask, parties, asks })}
       keep={["house"]}
       saved={
         saved &&

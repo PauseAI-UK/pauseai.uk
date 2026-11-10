@@ -5,6 +5,7 @@ import { Select, TextInput } from "@/components/ui/Controls";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { chosenValues } from "@/lib/filter-choices";
 import { filtersPath, firstOf, NOT, notValue, valuesOf, type Params } from "@/lib/list-params";
+import { choiceParts, valueWords, type Filter, type FilterOption } from "@/lib/staff-list-filters";
 import Choices from "./Choices";
 import FilterBarLines from "./FilterBarLines";
 import FormPending from "./FormPending";
@@ -16,124 +17,10 @@ import NotIcon from "./NotIcon";
 import SavedFilters, { SavedFilterGone, type SavedFiltersProps } from "./SavedFilters";
 import styles from "./FilterBar.module.css";
 
-/**
- * A choice. Choices in a `group` come under its heading, its icon once,
- * the group named on the chip too; a `detail` is said quietly after the
- * words. One with `seconds` is in two parts: chosen, its chip is in two
- * halves, the second offering `seconds`, the first of which is this choice
- * alone and the rest narrow it.
- */
-export type FilterOption = {
-  value: string;
-  label: string;
-  group?: { label: string; icon: ReactNode };
-  detail?: string;
-  seconds?: FilterOption[];
-  /** A second part's kind, the same across choices, so changing the first keeps it where the new one has it. */
-  like?: string;
-};
-
-/**
- * One of a list's filters: its URL parameter, its name, and its choices. A
- * choice whose value is blank is the filter's default, offered only to go
- * back to it. One `after` another is chosen in the second half of that
- * one's chip, and goes with it. One that can `repeat` can be chosen more
- * than once, one chip saying them all, and finds what has any of them; it can
- * leave out too, each marked with NOT, in a chip of its own, which finds what
- * has none of them, unless it's `after` another. `oneEach` on one where a record
- * has only one value, so that finding one and leaving out another can't both
- * be needed. A choice in two parts doesn't repeat. A `searchable`
- * one has a box over its choices, which show only once something's typed
- * in it, those that have it. A
- * `place` one takes words typed, a postcode or a town, and how far from it
- * (its parameter `place.within`), in a small form; its options give the
- * words found for what was typed. A `linkedOnly` one isn't offered by "+ Filter":
- * it's on only from a link to the list, a chip like any other once it is.
- */
-export type Filter = {
-  name: string;
-  label: string;
-  options: FilterOption[];
-  after?: string;
-  repeat?: boolean;
-  oneEach?: boolean;
-  searchable?: boolean;
-  place?: { within: string; distances: FilterOption[]; placeholder: string };
-  linkedOnly?: boolean;
-  /** A filter that matters most: its own button, first, rather than a row in "+ Filter". */
-  own?: boolean;
-  /**
-   * A filter that can't be changed here, and why, said on hovering its chip:
-   * its chip is there but doesn't open, with a lock for its arrow, it's never
-   * offered, and Clear filters keeps it.
-   */
-  locked?: string;
-};
-
 const copy = staffCopy.filters;
 
 /** A filter's choices, without its blank one, its default. */
 const everyChoice = (filter: Filter) => filter.options.map((option) => option.value).filter(Boolean);
-
-/** The choice of `filter` a value is, or whose second part it is, and that second part, if it narrows it. */
-function parts(filter: Filter, value: string): { first?: FilterOption; second?: FilterOption } {
-  for (const option of filter.options) {
-    if (option.value === value) return { first: option };
-    const second = option.seconds?.find((o) => o.value === value);
-    if (second) return { first: option, second };
-  }
-  return {};
-}
-
-/** A choice of `filter` in words: its group, its words and its second part; or as typed, when it has none. */
-function choiceWords(filter: Filter, plain: string): string {
-  const { first, second } = parts(filter, plain);
-  return first ? [first.group?.label, first.label, second?.label].filter(Boolean).join(", ") : plain;
-}
-
-/** A value of `filter` in words: its name and choice, joined by `join`, or that it's left out. */
-function valueWords(filter: Filter, value: string, join: string): string {
-  const { value: plain, not } = notValue(value);
-  const choice = choiceWords(filter, plain);
-  return not ? copy.notChip(filter.label, choice) : `${filter.label}${join}${choice}`;
-}
-
-/**
- * The search and each filter that's on, in words, as their chips say them:
- * for a download's filename. One that comes `after` another and doesn't
- * repeat goes with it, as its chip's second half does, its default too.
- */
-export function filterWords(filters: Filter[], values: Params, search: string): string[] {
-  const words = values[search] ? [`${staffCopy.search}: ${firstOf(values[search])}`] : [];
-  for (const filter of filters) {
-    if (filter.after && !filter.repeat) continue;
-    const chosen = valuesOf(values[filter.name]).map(notValue);
-    const [found, out] = [false, true].map((not) =>
-      chosen.filter((one) => one.not === not).map((one) => choiceWords(filter, one.value)),
-    );
-    const next = filters.find((f) => f.after === filter.name && !f.repeat);
-    const then = next ? `, ${choiceWords(next, firstOf(values[next.name]))}` : "";
-    if (found.length) words.push(`${filter.label}: ${copy.anyOf(found)}${then}`);
-    if (out.length) words.push(copy.notChip(filter.label, copy.anyOf(out)));
-  }
-  return words;
-}
-
-/** How long the filters in a list's page title get before they're cut short. */
-const TITLE_FILTERS = 60;
-
-/** A list's page title with the search and filters that are on, `words` (filterWords()), cut short if long. */
-export function filteredTitle(title: string, words: string[]): string {
-  const filters = words.filter(Boolean).join(", ");
-  if (!filters) return title;
-  const short = filters.length > TITLE_FILTERS ? `${filters.slice(0, TITLE_FILTERS - 1).trimEnd()}…` : filters;
-  return copy.pageTitle(title, short);
-}
-
-/** A list's title with all the search and filters that are on, `words` (filterWords()): a saved filter's first name. */
-export function filteredName(title: string, words: string[]): string {
-  return copy.pageTitle(title, words.filter(Boolean).join(", "));
-}
 
 /** The values a saved filter can no longer find, each "<parameter>=<value>", in words, as chips say them. */
 function goneWords(filters: Filter[], gone: string[]): string[] {
@@ -256,7 +143,7 @@ export default function FilterBar({
     .map((filter) => {
       const taken = chosen(filter.name).map((value) => {
         const plain = notValue(value).value;
-        return parts(filter, plain).first?.value ?? plain;
+        return choiceParts(filter, plain).first?.value ?? plain;
       });
       return { filter, options: filter.options.filter((option) => option.value && !taken.includes(option.value)) };
     })
@@ -293,7 +180,7 @@ export default function FilterBar({
   ) => {
     const { value: plain, not } = notValue(value);
     const others = chosen(filter.name).filter((v) => v !== value);
-    const like = parts(filter, plain).second?.like;
+    const like = choiceParts(filter, plain).second?.like;
     // The new choice's second part the same as the one it had, if there was one and it has it.
     const same = (v: string) =>
       (like && filter.options.find((o) => o.value === v)?.seconds?.find((o) => o.like === like)?.value) || v;
@@ -312,7 +199,7 @@ export default function FilterBar({
           {not && <NotIcon />}
           {text}
           {/* At the end of the lozenge: in its second half, if it has two. */}
-          {(second || !parts(filter, plain).first?.seconds) && <LockIcon />}
+          {(second || !choiceParts(filter, plain).first?.seconds) && <LockIcon />}
         </span>
       );
     }
@@ -334,7 +221,7 @@ export default function FilterBar({
         ) : (
           <Choices
             options={seconds?.options ?? filter.options}
-            current={[seconds?.current ?? parts(filter, plain).first?.value ?? plain]}
+            current={[seconds?.current ?? choiceParts(filter, plain).first?.value ?? plain]}
             href={choose}
             search={filter.searchable ? copy.narrow : undefined}
           />
@@ -373,7 +260,7 @@ export default function FilterBar({
         not={not}
         oneEach={Boolean(filter.oneEach)}
         options={[
-          ...here.filter((v) => !parts(filter, v).first).map((value) => ({ value, label: value })),
+          ...here.filter((v) => !choiceParts(filter, v).first).map((value) => ({ value, label: value })),
           ...filter.options.filter((o) => (o.value || filter.after) && !elsewhere.includes(o.value)),
         ]}
         every={everyChoice(filter)}
@@ -479,7 +366,7 @@ export default function FilterBar({
               if (filter.repeat) return [manyChip(filter, false), manyChip(filter, true)];
               return chosen(filter.name).map((one) => {
                 const { value: plain, not } = notValue(one);
-                const { first, second } = parts(filter, plain);
+                const { first, second } = choiceParts(filter, plain);
                 if (!first?.seconds) return chip(filter, one, valueWords(filter, one, ": "));
                 // A choice in two parts: one lozenge in two halves, the second narrowing the first.
                 // Its group's icon before its words, so "PauseAI UK" says which.
