@@ -190,17 +190,26 @@ question 1).
    them for its own emails (`lib/server/postmark-webhooks.ts`), each
    matched to its message by Postmark's message ID: delivery, for the
    delivered count; a bounce, marking the message failed and, if hard,
-   blocking the address; and a spam complaint (below). Replies come by
-   Postmark's inbound webhook to the message's page, unless the site can
-   read `hello@pauseai.uk` (open question 5).
-6. Opt-outs, as below: the link and header in every email, the page
+   blocking the address; and a spam complaint (below).
+6. Every reply is kept whole and shown on its message's page, whichever
+   way it comes: by Postmark's inbound webhook, or read from a Gmail by
+   `read-gmail` (open question 5). Both, as a broadcast may go by either
+   channel, and a supporter may answer from any address. Keeping only
+   who and when, or forwarding the text to an inbox, isn't enough: the
+   old letters' Postmark replies were kept that way, and their text is on
+   no page. By Postmark, the server's `RawEmailEnabled` must be on, so
+   the webhook has the whole message as `RawEmail`, kept as Gmail's are
+   ([Servers API](https://postmarkapp.com/developer/api/servers-api)).
+   By Gmail, a reply is matched to its message before the one-off emails
+   look at it, so it isn't kept as a thread with a politician instead.
+7. Opt-outs, as below: the link and header in every email, the page
    they lead to, the webhooks, and staff recording one by hand.
-7. Opt-ins: staff recording a yes given elsewhere, such as at an event
+8. Opt-ins: staff recording a yes given elsewhere, such as at an event
    or in an email, as for texts (`plans/supporters-phone.md`, step 2 of
    the groundwork), below.
-8. The weekly's sections: the main events with how many have signed up,
+9. The weekly's sections: the main events with how many have signed up,
    events near the reader, and their MP.
-9. Before the first send, set up Google Postmaster Tools and DMARC
+10. Before the first send, set up Google Postmaster Tools and DMARC
    reports, so we can see our spam rate; pauseai.uk's DMARC is
    `p=none`, with no reports. Google wants complaints below 0.1%
    ([sender guidelines](https://support.google.com/a/answer/81126)).
@@ -288,7 +297,8 @@ yes, and how to stop.
    CiviCRM, means creating our people as CRM contacts.
 5. Is `hello@pauseai.uk` a mailbox the site can read, as it reads
    connected Gmails for replies from politicians (`read-gmail`)? If not,
-   replies need another address or Postmark's inbound webhook.
+   replies need another address or Postmark's inbound webhook. Either
+   way, both routes keep replies (step 6).
 6. Should there be a preferences page anyone can reach, not only from an
    email's unsubscribe link? It would let someone sign up, choose their
    emails and resubscribe after a stop, ticking a box whose words are

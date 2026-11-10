@@ -74,7 +74,7 @@ All four give each member's name, party, constituency and email.
   requests with a 403.
 
 - Politicians' own domains, which show whose office a thread with an email
-  address on one is from (`plans/mp-correspondence.md`), come with each
+  address on one is from (`docs/domain-concepts.md`), come with each
   body's sync. A domain counts only if it belongs to one politician, and
   social media and party sites are skipped. The Scottish Parliament's
   `websites` and `emailaddresses` endpoints have them: up to 53 of its 129
