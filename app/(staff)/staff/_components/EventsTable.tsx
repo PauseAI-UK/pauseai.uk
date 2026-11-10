@@ -119,18 +119,18 @@ export function Missing({ needed, children }: { needed: boolean; children: strin
 }
 
 /**
- * Who owns an event, by their address, in bold: free to break before its
- * @, so the column takes little room, leaving it to the hosts.
+ * Who owns an event, by their address: free to break before its @, so the
+ * column takes little room, leaving it to the hosts.
  */
 function Owner({ owner, needed }: { owner: string | null; needed: boolean }) {
   if (!owner) return <Missing needed={needed}>{copy.noOwner}</Missing>;
   const [name, domain] = owner.split(/(?=@)/);
   return (
-    <strong className={styles.owner}>
+    <span className={styles.owner}>
       {name}
       <wbr />
       {domain}
-    </strong>
+    </span>
   );
 }
 

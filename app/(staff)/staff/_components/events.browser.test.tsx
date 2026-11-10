@@ -83,9 +83,10 @@ describe("EventsTable", () => {
     await expect
       .element(protest.getByRole("link", { name: copy.doc }))
       .toHaveAttribute("href", "https://docs.google.com/document/d/example-protest-plan/edit");
-    // The owner's address may break before its @, so the column takes little room.
-    const owner = protest.getByRole("cell").nth(5).element().querySelector("strong")!;
-    expect(owner.innerHTML).toBe("joseph<wbr>@pauseai.uk");
+    // The owner's address, not in bold, may break before its @, so the column takes little room.
+    const cell = protest.getByRole("cell").nth(5).element();
+    expect(cell.querySelector("strong")).toBeNull();
+    expect(cell.querySelector("span")!.innerHTML).toBe("joseph<wbr>@pauseai.uk");
     // To come with no owner: an error. With no doc: only a dash.
     await expect.element(row("AI risk talk").getByRole("cell").nth(5).getByText(copy.noOwner)).toHaveClass(/missing/);
     expect(cells("AI risk talk")[6]).toBe("–");
