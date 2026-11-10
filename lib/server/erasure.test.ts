@@ -218,17 +218,19 @@ describeWithDatabase("eraseSupporter", () => {
       [id],
     );
     await saveLetterReply("joseph@pauseai.uk/on-form.eml.gz", Buffer.from("x"));
+    await saveLetterReply("postmark/on-form.eml.gz", Buffer.from("x"));
     await query(
       `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address, at, from_us, blob_key, size)
-       VALUES ($1, 'joseph@pauseai.uk', 'on-form', 't', 'on-form@mail.gmail.com', 'joseph@pauseai.info', now(), true, 'joseph@pauseai.uk/on-form.eml.gz', 1)`,
+       VALUES ($1, 'joseph@pauseai.uk', 'on-form', 't', 'on-form@mail.gmail.com', 'joseph@pauseai.info', now(), true, 'joseph@pauseai.uk/on-form.eml.gz', 1),
+              ($1, 'jane.482913@letters.pauseai.uk', NULL, NULL, 'office@parliament.uk', 'mp@parliament.uk', now(), false, 'postmark/on-form.eml.gz', 1)`,
       [letter],
     );
     await eraseSupporter(id, "ICO-10", "jo@pauseai.uk");
     expect(await letterReply("joseph@pauseai.uk/on-form.eml.gz")).toBeUndefined();
+    // Kept from Postmark, it has no Gmail ID, so there's no reading of it to stop.
+    expect(await letterReply("postmark/on-form.eml.gz")).toBeUndefined();
     vi.unstubAllEnvs();
-    expect(await query("SELECT account FROM one_off_erased WHERE gmail_message_id = 'on-form'")).toEqual([
-      { account: "joseph@pauseai.uk" },
-    ]);
+    expect(await query("SELECT account FROM one_off_erased")).toEqual([{ account: "joseph@pauseai.uk" }]);
   });
 
   it("is done all the same when a one-off email's blob can't be deleted, saying so", async () => {

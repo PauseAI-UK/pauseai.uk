@@ -9,6 +9,10 @@ import { isBlocked, send, type DeliveryProblem } from "./email";
 import type { HandlingReason, ReplyHandling } from "./letters";
 import { lettersDomain, notifyDomain, type Attachment } from "./outside-services/postmark";
 import { nameLine } from "./proxies";
+import { gzipSync } from "node:zlib";
+import { messageIds } from "@/lib/email-parsing/mime";
+import { claimOneOffs, hasMessage } from "./letter-replies";
+import { saveLetterReply } from "./outside-services/blobs";
 
 // What Postmark tells us: bounces and spam complaints, and replies to
 // letters. Postmark doesn't sign webhooks, so each webhook URL carries a
@@ -144,6 +148,46 @@ async function recordReply(letter: { id: number; senderEmail: string }, email: I
   });
 }
 
+/**
+ * Keeps a reply whole on its letter, as one read from Gmail is
+ * (letter_replies, and the message in Netlify Blobs), once: Postmark tries
+ * again if forwarding fails, and a copy read from a mailbox may be kept
+ * already. Its account is the letter's own address, and it has no Gmail IDs.
+ * Without the whole message, which Postmark sends only with RawEmailEnabled
+ * on, nothing is kept.
+ */
+async function keepWhole(
+  letter: { id: number; senderEmail: string; mailbox: string },
+  email: InboundEmail,
+): Promise<void> {
+  if (!email.RawEmail || !email.MessageID) return;
+  const header = email.Headers?.find((h) => h.Name?.toLowerCase() === "message-id")?.Value;
+  const rfc = messageIds(header)[0] ?? null;
+  if (await hasMessage(letter.id, rfc)) return;
+  const raw = Buffer.from(email.RawEmail, "utf8");
+  const key = `postmark/${email.MessageID}.eml.gz`;
+  await saveLetterReply(key, gzipSync(raw));
+  const from = (email.FromFull?.Email ?? "").toLowerCase();
+  await query(
+    `INSERT INTO letter_replies (letter_id, account, rfc_message_id, from_address, from_name, subject, at, from_us,
+       blob_key, size, from_supporter)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10) ON CONFLICT (blob_key) DO NOTHING`,
+    [
+      letter.id,
+      `${letter.mailbox}@${lettersDomain()}`.toLowerCase(),
+      rfc,
+      from,
+      email.FromFull?.Name ?? "",
+      email.Subject ?? "",
+      now(),
+      key,
+      raw.length,
+      from === letter.senderEmail.toLowerCase(),
+    ],
+  );
+  await claimOneOffs(letter.id);
+}
+
 /** The addresses of a list of them, as a line: "a@example.com, b@example.com"; none for an empty list. */
 function addresses(list: Address[] | undefined): string | undefined {
   return (
@@ -176,6 +220,8 @@ export type InboundEmail = {
   ReplyTo?: string;
   TextBody?: string;
   Attachments?: Attachment[];
+  /** The whole message, as it came, which the server sends with RawEmailEnabled on. */
+  RawEmail?: string;
 };
 
 /**
@@ -197,8 +243,8 @@ function letterMailboxes(email: InboundEmail): string[] {
  * sender's own follow-up, sent to the MP and the letter's address from our
  * forward's Reply-To, goes to the shared inbox only. The shared inbox's copy
  * says when the sender wasn't sent one because they're copied in or their
- * address is blocked. Only when it came and who from is kept, not its text.
- * Returns who it went to.
+ * address is blocked. A person's reply is kept whole on the letter
+ * (keepWhole). Returns who it went to.
  */
 export async function forwardReply(email: InboundEmail): Promise<string[]> {
   const from = email.FromFull?.Email ?? "";
@@ -223,6 +269,7 @@ export async function forwardReply(email: InboundEmail): Promise<string[]> {
   );
   if (!letter) return [];
   const eventId = await recordReply(letter, email);
+  if (!isAutoReply(email)) await keepWhole(letter, email);
 
   // Who it might go to, and why: the shared inbox, then the sender, each
   // left out if they already have it, and the sender if they wrote it.

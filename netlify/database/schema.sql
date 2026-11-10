@@ -1481,8 +1481,8 @@ CREATE TABLE public.letter_replies (
     id bigint NOT NULL,
     letter_id bigint NOT NULL,
     account text NOT NULL,
-    gmail_message_id text NOT NULL,
-    gmail_thread_id text NOT NULL,
+    gmail_message_id text,
+    gmail_thread_id text,
     rfc_message_id text,
     from_address text NOT NULL,
     from_name text DEFAULT ''::text NOT NULL,
@@ -1494,6 +1494,7 @@ CREATE TABLE public.letter_replies (
     from_supporter boolean DEFAULT false NOT NULL,
     CONSTRAINT letter_replies_account_check CHECK ((account = lower(account))),
     CONSTRAINT letter_replies_from_address_check CHECK ((from_address = lower(from_address))),
+    CONSTRAINT letter_replies_gmail_ids CHECK (((gmail_message_id IS NULL) = (gmail_thread_id IS NULL))),
     CONSTRAINT letter_replies_size_check CHECK ((size >= 0))
 );
 

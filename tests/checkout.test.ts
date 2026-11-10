@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { checkoutPorts, foreignServer } from "./checkout.mjs";
+import { createHash } from "node:crypto";
+import { BLOCKED_PORTS, checkoutPorts, foreignServer } from "./checkout.mjs";
 
 describe("checkoutPorts", () => {
   it("gives each checkout the same pair every time, its own build's then main's, clear of the dev server's 3000", () => {
@@ -11,6 +12,22 @@ describe("checkoutPorts", () => {
       expect(local).toBeGreaterThanOrEqual(3100);
       expect(local + 1).toBeLessThanOrEqual(4999);
       expect(local % 2).toBe(0);
+    }
+  });
+
+  it("passes over a pair with a port that fetch refuses", () => {
+    // Paths whose hash lands on each blocked port's pair.
+    const landing = (port: number) => {
+      for (let i = 0; ; i++) {
+        const dir = `/home/jane/blocked-${i}`;
+        const hash = parseInt(createHash("sha256").update(dir).digest("hex").slice(0, 8), 16);
+        if (3100 + 2 * (hash % 950) === port - (port % 2)) return dir;
+      }
+    };
+    for (const port of BLOCKED_PORTS) {
+      const { local, main } = checkoutPorts(landing(port));
+      expect([local, main]).not.toContain(port);
+      expect(local).toBe(port - (port % 2) + 2);
     }
   });
 

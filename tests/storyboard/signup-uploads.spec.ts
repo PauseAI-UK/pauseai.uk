@@ -120,7 +120,10 @@ test("A big file", async ({ page, flowDatabase, request }) => {
   await chooseEvent(page, "5 Dec cheese vigil");
   const importNow = page.getByRole("button", { name: /^Import \d+ people and register \d+ on Luma/ });
   await expect(importNow).toBeEnabled();
-  await page.getByRole("heading", { name: copy.steps.check }).scrollIntoViewIfNeeded();
+  await previewWorkedOut(page);
+  await page
+    .getByRole("heading", { name: copy.steps.check })
+    .evaluate((heading) => heading.scrollIntoView({ block: "center", behavior: "instant" }));
   await frame(page, "What will happen, those held back first");
 
   story("Importing them all.");
@@ -135,6 +138,8 @@ test("A spreadsheet's own export, with no event", async ({ page, flowDatabase })
   );
   await openUpload(page, flowDatabase);
   await chooseFile(page, "stall-export.csv");
+  await expect(page.getByRole("button", { name: copy.preview.importOnly(3) })).toBeVisible();
+  await previewWorkedOut(page);
   await frame(page, "Its columns, read");
 
   story("With no event, nobody goes on Luma.");

@@ -549,7 +549,20 @@ test("A reply to an older letter", async ({ page, request, flowDatabase }) => {
   );
   const address = "jane.smith.482913@letters.pauseai.uk";
   const office = { Email: OFFICE_ADDRESS, Name: "Testy McTestface MP" };
-  expect(await inbound(request, address, { FromFull: office, MessageID: "old-reply-1", TextBody: MP_REPLY })).toBe(2);
+  // With the server's RawEmailEnabled on, Postmark sends the whole message too.
+  const raw = [
+    `From: ${office.Name} <${OFFICE_ADDRESS}>`,
+    `To: ${address}`,
+    "Subject: Re: Please back a pause",
+    "Date: Fri, 16 Oct 2026 13:00:00 +0100",
+    "Message-ID: <old-reply-1@parliament.example>",
+    "Content-Type: text/plain; charset=utf-8",
+    "",
+    MP_REPLY,
+  ].join("\r\n");
+  expect(
+    await inbound(request, address, { FromFull: office, MessageID: "old-reply-1", TextBody: MP_REPLY, RawEmail: raw }),
+  ).toBe(2);
   const forwarded = newestEmailTo(sender)!;
   expect(forwarded.TextBody).toContain(copy.forwardedReply.toSender(office.Name));
   expect(forwarded.ReplyTo).toBe(`${OFFICE_ADDRESS}, ${address}`);
@@ -564,6 +577,14 @@ test("A reply to an older letter", async ({ page, request, flowDatabase }) => {
   await expect(entries.first().getByText(staffCopy.letters.backends.postmark, { exact: true })).toBeVisible();
   await expect(entries.last().getByText(staffCopy.letters.backends.postmark, { exact: true })).toBeVisible();
   await frame(page, "The letter's history");
+  story("The reply itself is kept too, so its words are on the letter's page, below the letter.");
+  const thread = page.getByRole("region", { name: staffCopy.letterThread.title });
+  await expect(thread.getByRole("article")).toHaveCount(2);
+  await expect(thread.getByRole("article").last()).toContainText(
+    "Thank you for writing to me about the risks from frontier AI",
+  );
+  await thread.getByRole("article").last().scrollIntoViewIfNeeded();
+  await frame(page, "The reply, on the letter's page");
 });
 
 test("Erasing Jane when her mail can't be cleared", async ({ page, request, flowDatabase }) => {

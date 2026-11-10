@@ -24,16 +24,25 @@ function checkoutHash(dir) {
 const CHECKOUT = checkoutHash(CHECKOUT_DIR);
 
 /**
+ * The ports between 3100 and 4999 that fetch and browsers refuse to
+ * connect to, from the Fetch standard's bad ports
+ * (https://fetch.spec.whatwg.org/#bad-port): none of them is the last pair's.
+ */
+export const BLOCKED_PORTS = [3659, 4045, 4190];
+
+/**
  * The ports a checkout's storyboard serves on: its own build's, and main's
  * beside it, for the review. A pair between 3100 and 4999, from the hash of
  * its path, so the same checkout always gets the same, and the dev server's
- * 3000 is left alone. Two checkouts can still share a pair:
- * `npm run worktree` warns of it.
+ * 3000 is left alone. A pair with a port that fetch and browsers refuse
+ * (BLOCKED_PORTS) gives way to the next. Two checkouts can still share a
+ * pair: `npm run worktree` warns of it.
  *
  * @param {string} dir
  */
 export function checkoutPorts(dir) {
-  const local = 3100 + 2 * (parseInt(checkoutHash(dir), 16) % 950);
+  let local = 3100 + 2 * (parseInt(checkoutHash(dir), 16) % 950);
+  while (BLOCKED_PORTS.includes(local) || BLOCKED_PORTS.includes(local + 1)) local += 2;
   return { local, main: local + 1 };
 }
 

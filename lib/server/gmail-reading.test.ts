@@ -16,7 +16,8 @@ import {
 } from "@/tests/database";
 import { allResults, atOnce } from "@/tests/at-once";
 import { query } from "./db";
-import { noteAutoReply, readBounce, readGmail } from "./gmail-reading";
+import { readBounce, readGmail } from "./gmail-reading";
+import { noteAutoReply } from "./letter-replies";
 import { listRuns, latestRun, startRunning, stopRunning } from "./import-runs";
 import { ANOTHER_RUNNING, runJob } from "./jobs";
 import { letterReply } from "./outside-services/blobs";
@@ -320,6 +321,31 @@ describeWithDatabase("reading Gmail", () => {
         },
       },
     ]);
+    expect(await replies()).toEqual([]);
+    expect(fetched.filter((one) => one.endsWith(":raw"))).toEqual([]);
+  });
+
+  it("leaves alone our forward of a reply Postmark had, which is kept from Postmark's own copy", async () => {
+    await connectTestGmail(JO);
+    const letter = await sentLetter();
+    await query(
+      `INSERT INTO email_sends (purpose, letter_id, address, outcome, message_id, backend)
+       VALUES ('forwarded-reply', $1, $2, 'sent', 'pm-fwd', 'postmark')`,
+      [letter, JO],
+    );
+    const fetched = mailbox({
+      history: ["fwd"],
+      messages: {
+        fwd: {
+          headers: {
+            From: "PauseAI UK <noreply@notify.pauseai.uk>",
+            "Message-ID": "<pm-fwd@mtasv.net>",
+            "In-Reply-To": "<letter-1@pauseai.uk>",
+          },
+        },
+      },
+    });
+    expect(await read()).toMatchObject([{ replies: 0 }]);
     expect(await replies()).toEqual([]);
     expect(fetched.filter((one) => one.endsWith(":raw"))).toEqual([]);
   });

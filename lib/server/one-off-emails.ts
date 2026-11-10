@@ -34,6 +34,8 @@ import {
 } from "./outside-services/gmail";
 import { connectedAccounts, politicianBook } from "./politician-book";
 import { problem } from "./problems";
+import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "./letter-replies";
+import { isMachineReply } from "@/lib/email-parsing/subjects";
 
 // One-off emails: threads with a politician that aren't a letter of a campaign
 // or mailing, read from a mailbox and kept whole, in Netlify Blobs with a row
@@ -93,8 +95,9 @@ const RFC_HASH = (rfc: string) => `encode(sha256(convert_to(${rfc}, 'UTF8')), 'h
  * Keeps a message of a thread with a politician, once, in the thread it
  * answers, or that its Gmail thread is in, or a new one. Threads a message
  * joins together become one, and a thread has its earliest message's subject.
- * Gives what it kept, or nothing if it's kept, was and has been erased, or is a
- * letter's own.
+ * Gives what it kept, or nothing if it's kept, was and has been erased, or is
+ * one we sent. A message in a letter's thread is the letter's, so it's kept
+ * there instead, or noted there if a machine sent it, and gives nothing.
  */
 export async function keepOneOff(
   account: string,
@@ -109,10 +112,21 @@ export async function keepOneOff(
     `SELECT 1 FROM one_off_messages WHERE (account = $1 AND gmail_message_id = $2) OR rfc_message_id = $3::text
      UNION ALL SELECT 1 FROM one_off_erased WHERE (account = $1 AND gmail_message_id = $2) OR rfc_sha256 = ${RFC_HASH("$3::text")}
      UNION ALL SELECT 1 FROM letter_replies WHERE account = $1 AND gmail_message_id = $2
-     UNION ALL SELECT 1 FROM email_sends WHERE sender = $1 AND message_id = $2`,
-    [account, message.id, rfc],
+     UNION ALL SELECT 1 FROM email_sends WHERE (sender = $1 AND message_id = $2) OR (backend = 'postmark' AND message_id = $4)`,
+    [account, message.id, rfc, postmarkMessageId(rfc)],
   );
   if (kept) return undefined;
+  const letter = await letterAnswered(account, message);
+  if (letter) {
+    if (isMachineReply((name) => message.headers.get(name), headerText(message.headers, "subject"))) {
+      await noteAutoReply(letter, message);
+    } else {
+      const from = senderOf(message.headers);
+      // Read whole already, so no token is needed to fetch it.
+      await keepReply(account, "", letter, message, { raw, from, fromUs: isPauseaiAddress(from.address, connected) });
+    }
+    return undefined;
+  }
   const refs = [...messageIds(message.headers.get("in-reply-to")), ...messageIds(message.headers.get("references"))];
   const addresses = addressesOn(message.headers);
   const from = senderOf(message.headers);
@@ -514,8 +528,9 @@ export async function eraseOneOffs(supporterId: number, db: Queryable): Promise<
 
 /**
  * The blobs of the replies on these form entries' letters that no proxy holds,
- * read from a staff mailbox, as the letter's deletion takes only their rows.
- * Their IDs are kept in one_off_erased, so that reading their thread again
+ * read from a staff mailbox or kept from Postmark, as the letter's deletion
+ * takes only their rows. The Gmail IDs of those read from a mailbox are kept
+ * in one_off_erased, so that reading their thread again
  * doesn't keep them as one-offs.
  */
 export async function eraseRepliesToFormLetters(entries: number[], db: Queryable): Promise<string[]> {
@@ -526,7 +541,8 @@ export async function eraseRepliesToFormLetters(entries: number[], db: Queryable
        WHERE s.entry_id = ANY($1::bigint[]) AND s.proxy_id IS NULL
      ), noted AS (
        INSERT INTO one_off_erased (account, gmail_message_id, rfc_sha256)
-       SELECT account, gmail_message_id, ${RFC_HASH("rfc_message_id")} FROM gone ON CONFLICT DO NOTHING
+       SELECT account, gmail_message_id, ${RFC_HASH("rfc_message_id")} FROM gone
+       WHERE gmail_message_id IS NOT NULL ON CONFLICT DO NOTHING
      )
      SELECT blob_key AS "blobKey" FROM gone`,
     [entries],
