@@ -3,6 +3,7 @@ import type { Permission } from "@/lib/staff-permissions";
 import { onParliamentDomain, politiciansOf } from "@/lib/one-off";
 import type { ThreadMessages, ThreadStep } from "@/lib/politician-correspondence";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
+import { NEVER_WENT, statusIn } from "@/lib/letter-status";
 import { query } from "./db";
 import { threadsWithSomeoneElse } from "./one-off-emails";
 import { politicianBook } from "./politician-book";
@@ -38,7 +39,8 @@ export async function politicianMessages(id: number, permissions: readonly Permi
       [id],
     ),
     query<{ letters: number }>(
-      "SELECT count(*)::int AS letters FROM letters WHERE notable_person_id = $1 AND status <> 'not_sent'",
+      // Only those that went, as the thread shows.
+      `SELECT count(*)::int AS letters FROM letters WHERE notable_person_id = $1 AND NOT ${statusIn("status", NEVER_WENT)}`,
       [id],
     ),
     politicianBook(),

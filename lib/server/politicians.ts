@@ -3,7 +3,7 @@ import { cache } from "react";
 import { windowStart } from "@/lib/staff-dashboard";
 import { now } from "@/lib/now";
 import { AGREED_STATUSES, type AskStatus } from "@/lib/asks";
-import { MAILED, statusIn } from "@/lib/letter-status";
+import { MAILED, NEVER_WENT, statusIn } from "@/lib/letter-status";
 import type { Mp, MpStatuses } from "@/lib/email-your-mp";
 import type { SortSpec } from "@/lib/staff-sort";
 import type { PoliticianSort } from "@/lib/staff-lists";
@@ -117,7 +117,7 @@ const SELECT_POLITICIANS = `
     n.notes, n.important_target AS "importantTarget", n.personal_connection AS "personalConnection",
     p.is_test AS "isTest",
     EXISTS (SELECT 1 FROM email_blocks b WHERE b.address = lower(n.email)) AS "emailBlocked",
-    (SELECT count(*)::int FROM letters l WHERE l.notable_person_id = n.id AND l.status <> 'not_sent') AS "letters",
+    (SELECT count(*)::int FROM letters l WHERE l.notable_person_id = n.id AND NOT ${statusIn("l.status", NEVER_WENT)}) AS "letters",
     (SELECT count(*)::int FROM letters l WHERE l.notable_person_id = n.id AND l.replied_at IS NOT NULL) AS "replies",
     ${POLITICIAN_ACTIVITY("min")} AS "firstActivityAt", ${POLITICIAN_ACTIVITY("max")} AS "lastActivityAt",
     json_object_agg(s.ask, json_build_object(

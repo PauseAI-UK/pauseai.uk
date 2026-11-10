@@ -407,6 +407,11 @@ describeWithDatabase("politicians", () => {
     await addTestLetter({ politicianId: mp, repliedAt: new Date().toISOString() });
     await addTestLetter({ politicianId: mp, status: "bounced" });
     await addTestLetter({ politicianId: mp, status: "not_sent" });
+    // A mailing's letters that never went: one stopped, one skipped, one still to go.
+    await query(
+      "INSERT INTO letters (kind, notable_person_id, status) VALUES ('pauseai', $1, 'cancelled'), ('pauseai', $1, 'skipped'), ('pauseai', $1, 'scheduled')",
+      [mp],
+    );
     expect(await getPolitician(mp)).toMatchObject({ letters: 2, replies: 1 });
     expect((await listPoliticians({ sort: { key: "letters", dir: "desc" } }))[0].id).toBe(mp);
   });
