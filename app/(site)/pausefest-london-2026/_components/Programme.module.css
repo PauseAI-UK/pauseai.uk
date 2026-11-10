@@ -5,8 +5,8 @@
   background: linear-gradient(
     90deg,
     var(--fest-orange) 0%,
-    var(--fest-orange-light) 40%,
-    var(--fest-orange-light) 60%,
+    color-mix(in srgb, var(--fest-orange-light) 60%, var(--fest-orange)) 40%,
+    color-mix(in srgb, var(--fest-orange-light) 60%, var(--fest-orange)) 60%,
     var(--fest-orange) 100%
   );
 }
