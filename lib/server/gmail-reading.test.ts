@@ -14,7 +14,7 @@ import {
   describeWithDatabase,
   useTestDatabase,
 } from "@/tests/database";
-import { allResults, atOnce } from "@/tests/at-once";
+import { allResults, heldAtOnce } from "@/tests/at-once";
 import { query } from "./db";
 import { readBounce, readGmail } from "./gmail-reading";
 import { noteAutoReply } from "./letter-replies";
@@ -588,22 +588,17 @@ describeWithDatabase("reading Gmail", () => {
         },
       },
     });
-    // The run that goes waits at Gmail until the other two have been turned away, so the three overlap
-    // however slow the machine: else one could wait for a connection until the first had finished, and go too.
-    let release!: () => void;
-    const held = new Promise<void>((resolve) => (release = resolve));
+    // The run that goes waits at Gmail until the other two have been turned away.
+    const { held, start } = heldAtOnce(
+      () => runJob("read-gmail", NIGHTLY, REQUEST),
+      (run) => run === ANOTHER_RUNNING,
+    );
     server.use(
       http.get(`${API}/history`, async () => {
         await held;
       }),
     );
-    let turnedAway = 0;
-    const settled = atOnce(async () => {
-      const run = await runJob("read-gmail", NIGHTLY, REQUEST);
-      if (run === ANOTHER_RUNNING && ++turnedAway === 2) release();
-      return run;
-    });
-    const runs = allResults(await settled);
+    const runs = allResults(await start());
     expect(runs.filter((run) => run === ANOTHER_RUNNING)).toHaveLength(2);
     expect(runs.find((run) => run !== ANOTHER_RUNNING)).toEqual({
       accounts: [{ account: JO, replies: 1, autoReplies: 1, bounces: 1 }],
