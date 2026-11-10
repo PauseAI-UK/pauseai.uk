@@ -30,7 +30,7 @@ When Francis asks for a branch to be served, run `npm run serve -- <branch or PR
 
 ```bash
 npm run gate                      # the fast checks on the files you changed, then everything CI runs
-npm run gate -- --fast            # the fast checks alone: types, and Prettier, ESLint and Stylelint on the changed files
+npm run gate -- --fast            # the fast checks alone: types, Prettier, ESLint and Stylelint on the changed files, and the migrations' order
 npm run gate -- --no-storyboard   # everything but the storyboard
 ```
 
@@ -53,6 +53,8 @@ Pushing a branch with an open PR makes a deploy preview, and Netlify applies its
 So don't push a migration early. If the branch has a migration that may still change, or you think it may need another, settle the schema first and push once it's settled: the first push of the branch waits for that, however far along the rest of the work is. Every migration on a pushed branch is final.
 
 `scripts/migrations-unchanged.mjs` checks this: CI's "Types, migrations" job fails if a migration on main or in the branch's last push has changed, and the prek pre-push hook (`npm run hooks:install`) stops the push before it gets that far. Before changing a migration, `git fetch`, then check whether it's on the remote branch or main (`git log origin/<branch> origin/main -- netlify/database/migrations/<file>`, or `git show origin/<branch>:<path>` to see the version pushed). If it's there, add a new migration, numbered after the last, and leave the pushed file exactly as it was. If it's only local, edit it. Either way, `npm run db:schema` and commit `schema.sql` with it (`docs/development.md`, "Adding a migration").
+
+A new migration must be numbered after main's last when the branch merges, and no other open PR may take its number: Netlify refuses one out of order, failing the deploy. `scripts/migration-order.mjs` checks this in CI's "Types, migrations" job, the gate and the pre-push hook, and says the next free number, as `npm run worktree` does. If main has caught up with a migration you haven't pushed, renumber it; if you have, it needs a new branch and PR.
 
 ## The storyboard
 

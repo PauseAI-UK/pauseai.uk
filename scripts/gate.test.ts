@@ -64,13 +64,14 @@ describe("fastPlan", () => {
       ["tsc", ["tsc", "--noEmit"], undefined],
       ["eslint", ["eslint", "--max-warnings", "0", "--no-warn-ignored", "lib/a.ts", "scripts/b.mjs"], undefined],
       ["stylelint", ["stylelint", "--allow-empty-input", "styles/c.css"], undefined],
+      ["migration-order", ["scripts/migration-order.mjs", "--open-prs"], undefined],
     ]);
   });
 
-  it("skips the checks that have no files to look at, but not the types", () => {
+  it("skips the checks that have no files to look at, but not the types or the migrations' order", () => {
     const [[[prettier]], lanes] = fastPlan([]);
     expect(prettier.skip).toBe("no changed files");
-    expect(lanes.map(([step]) => step.skip)).toEqual([undefined, "no changed scripts", "no changed CSS"]);
+    expect(lanes.map(([step]) => step.skip)).toEqual([undefined, "no changed scripts", "no changed CSS", undefined]);
   });
 });
 

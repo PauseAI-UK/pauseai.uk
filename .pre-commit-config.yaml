@@ -3,7 +3,8 @@
 # itself; then `git add` them and commit again. CI runs these and more
 # either way. After a checkout or merge, investments/ranked.txt is written
 # again (scripts/investments.mjs). Before a push, it checks that no migration
-# already pushed has changed (scripts/migrations-unchanged.mjs).
+# already pushed has changed (scripts/migrations-unchanged.mjs), and that new
+# ones come after main's (scripts/migration-order.mjs).
 default_install_hook_types: [pre-commit, post-checkout, post-merge, pre-push]
 default_stages: [pre-commit]
 repos:
@@ -34,6 +35,13 @@ repos:
       - id: migrations-unchanged
         name: Pushed migrations unchanged
         entry: node scripts/migrations-unchanged.mjs --main --pushed
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: migration-order
+        name: New migrations after main's
+        entry: node scripts/migration-order.mjs --open-prs
         language: system
         pass_filenames: false
         always_run: true

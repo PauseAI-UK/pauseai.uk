@@ -7,7 +7,8 @@
 //
 // The fast checks look at the files changed since this branch left
 // origin/main, committed or not, and untracked ones: Prettier formats them,
-// then the types, ESLint and Stylelint check them. If one fails, the gate
+// then the types, ESLint and Stylelint check them, and new migrations are
+// checked to come after main's (scripts/migration-order.mjs). If one fails, the gate
 // stops there. Then what .github/workflows/ci.yml runs, in parallel lanes as
 // CI's jobs are: the types then the storyboard (CI's Storyboard job needs
 // Types, and both write .next), the tests with coverage, the linters one
@@ -112,6 +113,15 @@ export function fastPlan(files) {
           3,
           css.length ? undefined : "no changed CSS",
         ),
+      ],
+      [
+        {
+          id: "migration-order",
+          label: "node scripts/migration-order.mjs --open-prs",
+          command: "node",
+          args: ["scripts/migration-order.mjs", "--open-prs"],
+          minutes: 1,
+        },
       ],
     ],
   ];

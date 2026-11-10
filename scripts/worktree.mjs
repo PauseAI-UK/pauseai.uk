@@ -7,7 +7,8 @@
 // It fetches, adds the worktree under the main checkout's tmp/worktrees/
 // (wherever it's run from), installs the dependencies with `npm ci`, and
 // prints the ports the worktree's storyboard will serve on
-// (tests/checkout.mjs), warning if another worktree has the same.
+// (tests/checkout.mjs), warning if another worktree has the same, and the
+// number its first migration would take.
 //
 // The branch tracks nothing, so a plain `git push` can't push to main;
 // push it with `git push -u origin <branch>`.
@@ -16,6 +17,7 @@ import { existsSync, realpathSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkoutPorts, CHECKOUT_DIR } from "../tests/checkout.mjs";
+import { migrationsAt, nextFree, openPrs } from "./migration-order.mjs";
 
 /** Where the worktree for `branch` goes, under the main checkout at `root`. */
 export function worktreePath(root, branch) {
@@ -75,6 +77,9 @@ function main(args) {
   const from = git(["log", "-1", "--format=%h %s", "origin/main"]);
   console.log(`\n${relative(root, dir)}: ${branch}, from ${from}`);
   for (const line of portLines(real, worktrees)) console.log(line);
+  // After main's and every open pull request's (scripts/migration-order.mjs).
+  const main = migrationsAt("origin/main", real);
+  console.log(`A migration it adds is numbered ${nextFree(main, main, openPrs(real) ?? [])} or after.`);
   console.log(`cd ${real}`);
 }
 

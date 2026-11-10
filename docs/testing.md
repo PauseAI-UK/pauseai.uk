@@ -715,8 +715,9 @@ npm run test:report       # open the last Playwright report
 **The fast checks**, in seconds: Prettier writes the files changed since
 the branch left `origin/main` (the merge base, as a pull request compares;
 committed, uncommitted and untracked, and nothing is fetched), then `tsc
---noEmit`, ESLint on the changed scripts and Stylelint on the changed CSS
-run at once. If one fails, the gate stops: the slow part would only wait
+--noEmit`, ESLint on the changed scripts, Stylelint on the changed CSS
+and `scripts/migration-order.mjs` (new migrations after main's, and none
+sharing an open PR's number) run at once. If one fails, the gate stops: the slow part would only wait
 on the same mistake. `--fast` stops after them anyway.
 
 **What CI runs**, in four lanes at once, as CI's jobs run: `npm run

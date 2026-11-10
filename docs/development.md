@@ -200,6 +200,19 @@ the pre-push hook (`npm run hooks:install`) stops such a push
 (`scripts/migrations-unchanged.mjs`). Change a pushed migration with a new
 one instead.
 
+Netlify applies migrations in the order of their numbers, and refuses one
+numbered at or below the highest it has applied ("added out of order"),
+which fails the deploy. So a branch's migration must be numbered after main's
+last when it merges, not just when it began, and two open PRs mustn't take
+the same number: whichever merges second would need renumbering, which a
+pushed migration can't be.
+`scripts/migration-order.mjs` checks this. CI's "Types, migrations" job fails
+if a new migration doesn't come after main's (its checkout of a PR is the
+branch merged into main). The gate and the pre-push hook check the same
+against `origin/main` as last fetched, and warn of an open PR with the same
+number (from `gh`). `npm run worktree` says the next free number. Gaps in
+the numbers are fine.
+
 ### Collation
 
 How Postgres sorts and compares text is the database's collation, fixed
