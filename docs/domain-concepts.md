@@ -492,6 +492,17 @@ pointing at `form_entries`, as `form_entry_luma` holds what Luma said to a
 form that registers people for an event. What a form's box said when
 someone ticked it is its wording in git at the entry's `created_at`.
 
+A public form that takes an email address must check it's a person, with
+Turnstile as the letter form has
+(`lib/server/outside-services/turnstile.ts`), or that the address is
+theirs, with a link emailed to it that must be clicked before the entry
+counts. Otherwise a bot can sign up thousands of addresses, and every yes,
+email and Global `resubscribe` that follows is false. Only the emailed
+link stops a person signing up someone else. A form that
+emails the address it's given, such as one asking for a link, needs
+Turnstile as well, so it can't be used to send our mail to anyone. A
+honeypot alone isn't enough: the march sign-up has only that.
+
 **Paper sign-ups** (`paper-signup`) come from a CSV staff import at
 `/staff/supporters/import`, of forms collected while flyering. The file itself
 isn't kept: the page reads it in the browser, and sends it to the server only to

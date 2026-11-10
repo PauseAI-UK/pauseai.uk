@@ -354,6 +354,11 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   emails" tables, and to the members' base.
   They're for the politician and Emails syncs, the members import and the
   two one-off imports at `/staff/import-data`.
+- **Global's CiviCRM.** Its chapter contacts API, at
+  `https://crm.pauseai.info/`, is specified in
+  [PauseAI/pauseai-civicrm#1175](https://github.com/PauseAI/pauseai-civicrm/issues/1175).
+  That repo is private, so an agent can't read the spec: ask Francis to
+  paste it. The site doesn't call the API yet.
 
 ### The march sign-up and Luma
 

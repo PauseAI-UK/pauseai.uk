@@ -89,9 +89,8 @@ was given and when; and in the supporter's list of broadcasts, where
 that broadcast's row says "Stopped" rather than delivered or read.
 
 These stops don't cover calls, which have their own ("Calls"). Global
-doesn't call or text, so all of them are ours alone, though CiviCRM
-has "Do not phone" and "Do not SMS" flags and its chapter contacts API
-could carry phone stops later (`plans/supporters-email.md`).
+doesn't call or text, but CiviCRM has "Do not phone" and "Do not SMS"
+flags, and its chapter contacts API now carries them (open question 11).
 
 ## 1. Groundwork
 
@@ -138,12 +137,19 @@ campaigns (policy, above). PauseAI UK is a civil society organisation
 that runs events and volunteering, as many nonprofits on WhatsApp do,
 and the application should say so consistently:
 
-- A verified Meta business portfolio for Safe AI Alliance Ltd. It needs
-  the certificate of incorporation, from Companies House, and a document
-  with the company's name and address, such as a bank statement, which
-  Joseph can provide. pauseai.uk already names the company. A verified
-  account can message 2,000 people a day, an unverified one 250
+- A verified Meta business portfolio for Safe AI Alliance Ltd. We have
+  a portfolio called PauseAI UK, which is unverified, has no legal name,
+  address or website filled in, and has no WhatsApp account yet.
+  Verifying needs the certificate of incorporation, from Companies
+  House, and a document with the company's name and address, such as a
+  bank statement, which Joseph can provide. pauseai.uk already names the
+  company. A verified account can message 2,000 people a day, an
+  unverified one 250
   ([limits](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits)).
+- Each admin logs in with a personal Facebook account, in their own name
+  ([portfolios](https://www.facebook.com/business/help/1710077379203657)).
+  Facebook doesn't allow accounts that aren't a real person, so
+  admin@pauseai.uk can't be one.
 - "PauseAI UK" as the display name
   ([display names](https://developers.facebook.com/documentation/business-messaging/whatsapp/display-names)),
   and a complete profile: what we do (events, volunteering, public
@@ -304,6 +310,11 @@ for calls, which comes two ways:
 - **Asking not to be called**, usually on a call. The volunteer or staff
   record it, with how it was given. It's kept after erasure.
 
+Before anyone calls, a "Can I call this person?" check, on the
+supporter's page and on the numbers given out, runs our own stops, the
+TPS and CiviCRM's "Do not phone" by `checkSuppression` at that moment,
+and says yes or no, and why.
+
 ## Data protection
 
 Record in `docs/data-protection.md`: messaging numbers that said yes;
@@ -351,3 +362,9 @@ and a calling tool.
 10. Should the number also be in the WhatsApp Business app, by
     coexistence (step 5 of "2. The WhatsApp backend"), so staff can answer on a
     phone, at the cost of becoming a Tech Provider or using a partner?
+11. Do we use CiviCRM's phone flags
+    ([PauseAI/pauseai-civicrm#1175](https://github.com/PauseAI/pauseai-civicrm/issues/1175))?
+    That would mean checking every round's numbers with
+    `checkSuppression` first, treating "Do not SMS" as no WhatsApp too,
+    and sending our stops back as `do_not_sms` or `do_not_phone`. It
+    would also send Global numbers from our own sources.
