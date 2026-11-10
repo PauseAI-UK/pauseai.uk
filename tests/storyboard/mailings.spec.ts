@@ -185,6 +185,10 @@ test("Changing and deleting a draft", async ({ page, request, flowDatabase }) =>
   // The list kept from coming, so the button can be seen waiting for it.
   const list = await stayOnPage(page, /\/staff\/politicians/);
   const changeWho = page.getByRole("link", { name: copy.changeWho });
+  // From the top, where the button shows on a phone too, rather than wherever filling in the subject scrolled.
+  await scrollSettled(page);
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await scrollSettled(page);
   await changeWho.click();
   await expect(changeWho.locator("[aria-hidden]")).toBeVisible();
   await frame(page, "Change who, waiting", {
