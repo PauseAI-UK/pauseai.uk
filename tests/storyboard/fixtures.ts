@@ -45,7 +45,7 @@ export const ANALYTICS_URL = "**/www.googletagmanager.com/**";
  * every one is this.
  */
 const OUTSIDE_IMAGE = /\/_next\/image\?url=https?%3A/;
-const OUTSIDE_IMAGE_STAND_IN = readFileSync(join(process.cwd(), "public/images/pausefest/march-placards.jpg"));
+const OUTSIDE_IMAGE_STAND_IN = readFileSync(join(process.cwd(), "public/images/bristol-launch.jpeg"));
 
 /** Stands in for pauseai.info's onboarding form, posting its height as the real embed does. */
 const ONBOARDING_FORM_STAND_IN = `<!doctype html>
