@@ -1708,36 +1708,39 @@ All events: ${link}`,
       "remove politician": "No longer in Airtable",
       "block address": "Address blocked",
       "unblock address": "Address unblocked",
-      "add politician address": "⁂ Address added",
-      "remove politician address": "⁂ Address removed",
-      "unlink one-off": "⁂ Taken off a one-off email",
+      "add politician address": "⁂ Email address added",
+      "remove politician address": "⁂ Email address removed",
+      "unlink one-off": "⁂ Unlinked from a one-off email",
     } as Record<string, string>,
     // At the foot of their page, folded: every address and domain that says an
     // email is theirs, where each came from, and the form to add one by hand.
     aliases: {
       // After their email at the top of the page, leading down to the aliases.
       see: "See aliases",
-      title: "⁂ Aliases",
-      intro: "⁂ One-off emails show under them when an address on the email, or in what it quotes, is one of these.",
-      columns: { address: "⁂ Address", from: "⁂ Where from" },
+      title: "⁂ Email addresses",
+      intro: "⁂ One-off emails sent from, to or quoting any of these show on this page.",
+      columns: { address: "⁂ Address", from: "⁂ Source" },
       sources: {
-        email: "⁂ Their email, which letters go to",
-        past: "⁂ Their email before",
-        parliament: "⁂ Listed by Parliament",
-        office: "⁂ Their office's: seen only in emails with them",
-        domain: "⁂ Their own domain: any address at it",
-        form: "⁂ Made from their name or seat, and the same with mp run in, officeof before or casework after",
+        email: "⁂ Main address, used for letters",
+        past: "⁂ Previous main address",
+        parliament: "⁂ Listed on Parliament's website",
+        office: "⁂ Their office: only seen in emails with them",
+        domain: "⁂ Their own domain: any address ending in it",
+        form: "⁂ Parliament's usual format for their name or seat (variants such as …mp@ and officeof…@ also count)",
       },
       // An address staff added: who and when.
-      addedBy: (by: string, when: string) => `⁂ Added by ${by}, ${when}`,
+      addedBy: (by: string, when: string) => `⁂ Added by ${by} on ${when}`,
       remove: "⁂ Remove",
       // The form under the list.
-      address: "⁂ Email address",
-      add: "⁂ Add address",
-      added: (n: number) => `⁂ Added. ${count(n, "email", "emails")} with it kept from the mailboxes.`,
+      address: "⁂ Another address, such as a personal email",
+      add: "⁂ Add",
+      added: (n: number) =>
+        n
+          ? `⁂ Added. Found ${count(n, "earlier email", "earlier emails")} with it in policy@ and Joseph's inbox.`
+          : "⁂ Added. No earlier emails with it in policy@ or Joseph's inbox.",
       refused: {
-        invalid: "⁂ That isn't an email address.",
-        exists: "⁂ They have that address already.",
+        invalid: "⁂ That doesn't look like an email address.",
+        exists: "⁂ That address is already listed.",
       },
     },
     // At the foot of the page of one whose record has gone from Airtable, and who's had no letters.
@@ -2380,14 +2383,14 @@ All events: ${link}`,
     thread: "The thread",
     unreadable: "This message couldn't be read.",
     // A message rebuilt from a forward's quote of it, at the right of its subject: who forwarded it.
-    rebuilt: (forwarder: string) => `⁂ From ${forwarder}'s forward`,
+    rebuilt: (forwarder: string) => `⁂ Quoted in ${forwarder}'s forward`,
     // A forward with no note over what it carries.
-    forwardedAlone: "⁂ Forwarded with no note.",
+    forwardedAlone: "⁂ (Forwarded without a message)",
     // Beside the thread: the politicians it shows under, and the button that takes one off it.
     people: {
-      title: "⁂ Shows under",
-      none: "⁂ No politician",
-      unlink: "⁂ Not theirs",
+      title: "⁂ Linked politicians",
+      none: "⁂ None",
+      unlink: "⁂ Unlink",
     },
     // On a politician's and a supporter's page.
     onPageTitle: "One-off emails",
@@ -2617,9 +2620,9 @@ All events: ${link}`,
     // After the check, the one-off emails are linked again to the politicians
     // their addresses now match: what that did.
     relinked: (r: { read: number; unread: number; linked: number; unlinked: number; offices: number }) =>
-      `⁂ One-off emails relinked: ${count(r.linked, "politician", "politicians")} added to threads, ${r.unlinked} taken off; ${count(r.offices, "office address", "office addresses")} found.` +
+      `⁂ One-off emails: ${count(r.linked, "new link", "new links")} to politicians, ${r.unlinked} removed, ${count(r.offices, "office address", "office addresses")} found.` +
       (r.read || r.unread
-        ? ` ⁂ Read the quotes of ${count(r.read, "message", "messages")}, ${r.unread} still to read.`
+        ? ` ⁂ ${count(r.unread, "older email", "older emails")} still to check for quoted addresses.`
         : ""),
     columns: {
       constituency: "Constituency",
@@ -2978,7 +2981,7 @@ All events: ${link}`,
     // A held MP import decided, linked to the import's page.
     run: (id: string) => `Import run ${id}`,
     // A politician taken off a one-off email: the link to the email.
-    oneOffThread: "⁂ The email",
+    oneOffThread: "⁂ View the email",
     // After each number an import, a sync, an erasure or the end of sessions logged: what it counted, for one and for more.
     counts: {
       added: () => "added",

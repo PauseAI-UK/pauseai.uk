@@ -1218,6 +1218,7 @@ describe("AddAliasForm", () => {
     };
     await send("a@example.com");
     await expect.element(status).toHaveTextContent(words.added(2));
+    expect(words.added(0)).not.toBe(words.added(2));
     await send("b@example.com");
     await expect.element(status).toHaveTextContent(words.refused.invalid);
     await send("c@example.com");
