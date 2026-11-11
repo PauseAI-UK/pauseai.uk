@@ -2609,7 +2609,7 @@ All events: ${link}`,
       before: "Compares the MPs imported from Airtable with ",
       link: "Parliament's Members API",
       after:
-        ", and lists where they disagree. ⁂ Airtable isn't changed: fix problems there, and the next import will take the fix. ⁂ It also saves the email addresses Parliament lists for each MP, and links one-off emails to politicians again.",
+        ", and lists where they disagree. Airtable isn't changed, manually make updates there. It also saves the email addresses Parliament lists for each MP, and links one-off emails to politicians again.",
     },
     checkNow: "Check MPs now",
     never: "Never checked",
