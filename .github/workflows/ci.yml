@@ -141,14 +141,14 @@ jobs:
       # GitHub's runners fetch Ubuntu's packages from Azure's mirror
       # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
       # download, and at times the runners can't look up any ubuntu.com name.
-      # So apt tries Azure's first, the fastest from here, then mirrors outside
-      # ubuntu.com in turn; and every apt-get below, Playwright's too, gives up
-      # on a download that sends nothing for 20 seconds and tries it again, up
-      # to three times.
+      # So apt tries mirrors outside ubuntu.com in turn, and Azure's last, as
+      # a lookup that hangs costs every file apt fetches 20 seconds; and every
+      # apt-get below, Playwright's too, gives up on a download that sends
+      # nothing for 20 seconds and tries it again, up to three times.
       - name: Give apt mirrors to fall back on, and retry stalled downloads
         run: |
-          printf '%s\n' http://azure.archive.ubuntu.com/ubuntu/ http://mirrors.edge.kernel.org/ubuntu/ \
-            http://mirrors.mit.edu/ubuntu/ http://mirror.math.princeton.edu/pub/ubuntu/ \
+          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
+            http://mirror.math.princeton.edu/pub/ubuntu/ http://azure.archive.ubuntu.com/ubuntu/ \
             | sudo tee /etc/apt/apt-mirrors.txt
           echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
@@ -304,14 +304,14 @@ jobs:
       # GitHub's runners fetch Ubuntu's packages from Azure's mirror
       # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
       # download, and at times the runners can't look up any ubuntu.com name.
-      # So apt tries Azure's first, the fastest from here, then mirrors outside
-      # ubuntu.com in turn; and every apt-get below, Playwright's too, gives up
-      # on a download that sends nothing for 20 seconds and tries it again, up
-      # to three times.
+      # So apt tries mirrors outside ubuntu.com in turn, and Azure's last, as
+      # a lookup that hangs costs every file apt fetches 20 seconds; and every
+      # apt-get below, Playwright's too, gives up on a download that sends
+      # nothing for 20 seconds and tries it again, up to three times.
       - name: Give apt mirrors to fall back on, and retry stalled downloads
         run: |
-          printf '%s\n' http://azure.archive.ubuntu.com/ubuntu/ http://mirrors.edge.kernel.org/ubuntu/ \
-            http://mirrors.mit.edu/ubuntu/ http://mirror.math.princeton.edu/pub/ubuntu/ \
+          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
+            http://mirror.math.princeton.edu/pub/ubuntu/ http://azure.archive.ubuntu.com/ubuntu/ \
             | sudo tee /etc/apt/apt-mirrors.txt
           echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
@@ -458,14 +458,14 @@ jobs:
       # GitHub's runners fetch Ubuntu's packages from Azure's mirror
       # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
       # download, and at times the runners can't look up any ubuntu.com name.
-      # So apt tries Azure's first, the fastest from here, then mirrors outside
-      # ubuntu.com in turn; and every apt-get below, Playwright's too, gives up
-      # on a download that sends nothing for 20 seconds and tries it again, up
-      # to three times.
+      # So apt tries mirrors outside ubuntu.com in turn, and Azure's last, as
+      # a lookup that hangs costs every file apt fetches 20 seconds; and every
+      # apt-get below, Playwright's too, gives up on a download that sends
+      # nothing for 20 seconds and tries it again, up to three times.
       - name: Give apt mirrors to fall back on, and retry stalled downloads
         run: |
-          printf '%s\n' http://azure.archive.ubuntu.com/ubuntu/ http://mirrors.edge.kernel.org/ubuntu/ \
-            http://mirrors.mit.edu/ubuntu/ http://mirror.math.princeton.edu/pub/ubuntu/ \
+          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
+            http://mirror.math.princeton.edu/pub/ubuntu/ http://azure.archive.ubuntu.com/ubuntu/ \
             | sudo tee /etc/apt/apt-mirrors.txt
           echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
