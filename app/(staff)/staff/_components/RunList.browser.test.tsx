@@ -573,6 +573,9 @@ describe("RunList", () => {
     const waiting = { searched: 0, kept: 0, waiting: 2 };
     await rerender(<RunList runs={[ran("read-gmail", { accounts, searched: waiting }, { id: 1 })]} none="None" />);
     await expect.element(page.getByText(/2 still to search/)).toBeVisible();
+    expect(staffCopy.gmailReading.searched({ ...waiting, stopped: { by: "time" } })).not.toBe(
+      staffCopy.gmailReading.searched(waiting),
+    );
   });
 
   it("says a Gmail read stopped as another was reading, and no totals", async () => {

@@ -240,7 +240,9 @@ describeWithDatabase("problems reported outside a run", () => {
 
   it("are kept by their sentence, with the error's words, and emailed about", async () => {
     const sent = notifications();
+    // One after the other, as the latest words are those counted last, and two started together may be counted in either order.
     keepProblem("Letter 12 couldn't be sent, so it's gone back in the queue", "Gmail answered 503");
+    await Promise.all(held.work);
     keepProblem("Letter 13 couldn't be sent, so it's gone back in the queue", undefined);
     await Promise.all(held.work);
     expect(await rows()).toEqual([

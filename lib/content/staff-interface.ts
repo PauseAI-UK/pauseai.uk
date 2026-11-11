@@ -2,7 +2,7 @@
 
 import type { Reason, Topic, Way } from "@/lib/contact-permissions";
 import { letterEditorCopy } from "@/lib/content/letter-editor";
-import type { ImportJob } from "@/lib/import-runs";
+import type { AddressSearch, ImportJob } from "@/lib/import-runs";
 import { count, plural } from "@/lib/content/plural";
 
 /**
@@ -2033,9 +2033,10 @@ All events: ${link}`,
   gmailReading: {
     oneOffs: (n: number) => `${n} one-off ${plural(n, "email", "emails")} kept.`,
     // After the totals, in a run that searched for addresses staff added to politicians': what it found, and how many wait.
-    searched: (s: { searched: number; kept: number; waiting: number }) =>
+    searched: (s: AddressSearch) =>
       `Searched for ${count(s.searched, "added address", "added addresses")}, keeping ${count(s.kept, "earlier email", "earlier emails")}.` +
-      (s.waiting ? ` ${s.waiting} still to search.` : ""),
+      (s.waiting ? ` ${s.waiting} still to search.` : "") +
+      (s.stopped ? " Stopped as its time ran out." : ""),
     title: "Replies, bounces and one-off emails from Gmail",
     intro: {
       before: "Reads the replies to our letters, and their bounces, in each ",
@@ -2647,8 +2648,8 @@ All events: ${link}`,
     pageTitle: "Scheduled jobs",
     // Each import's icons, named for screen readers and on hover: where it's
     // from. Then how often it runs, the overview's headings and a lozenge on
-    // the job's page, and the lozenges after some jobs' names: the one that
-    // only checks, the one that sends, and the one that keeps the site tidy.
+    // the job's page, and the lozenges after some jobs' names: those that act
+    // outside the site, and the one that keeps the site tidy.
     airtable: "Airtable",
     web: "Web",
     database: "Database",
@@ -2662,7 +2663,6 @@ All events: ${link}`,
     frequent: "Every 5 minutes",
     hourly: "Hourly",
     oneOff: "One-off",
-    checkOnly: "Check only",
     takesAction: "Takes action",
     siteAdmin: "Site admin",
   },
