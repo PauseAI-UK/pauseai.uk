@@ -2483,7 +2483,7 @@ All events: ${link}`,
       couldntRead: (account: string) =>
         `Gmail gave errors or refused connection, or our internal error, for ${account}`,
       // The Gmail read: searching the mailboxes for an address staff added to a politician's failed, so its earlier mail may not be kept.
-      addressNotSearched: (address: string) => `⁂ Couldn't search policy@ and Joseph's inbox for ${address}`,
+      addressNotSearched: (address: string) => `Couldn't search policy@ and Joseph's inbox for ${address}`,
       // The Gmail read: the mailbox was read, but Gmail wouldn't give the account's name.
       nameUnknown: (account: string) => `Couldn't fetch name of ${account} from Gmail`,
       // The Gmail read: mail in the letters inbox that couldn't be matched to anything, so a person must look. How many follows.
