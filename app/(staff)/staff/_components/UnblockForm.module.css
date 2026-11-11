@@ -8,9 +8,9 @@
   flex-wrap: nowrap;
 }
 
-/* The field takes the room the button leaves, but never less than enough
-   to type in. */
+/* The field is short, as a note of why is a few words, but never less
+   than enough to type in; it doesn't grow into the room beside it. */
 .why {
-  flex: 1 1 9rem;
-  min-width: 9rem;
+  flex: 0 1 11rem;
+  min-width: 8rem;
 }
