@@ -736,6 +736,10 @@ that drives it or why nothing does.
   - what Luma says;
   - what changes before importing;
   - Past imports, and an import's page.
+- `errors.spec.ts`: What goes wrong outside an import:
+  - a staff page that throws: Next's error page in its place and Reload, the email to the notification inbox, once though it fails twice, the errors list and the error's own page;
+  - a page breaking in someone's browser, on the fixture build's page that breaks (`/broken`): the email that quotes none of it, and a click that throws, kept without an email;
+  - the spam check down for someone sending a letter, with Cloudflare down for the flow: what they're told, the email and the error's page;
 - `permissions.spec.ts`: What staff see by permission:
   - the accounts sorted by when last seen;
   - logged in with none: every staff page, as HTML and as its RSC payload, holding no supporter's name or email (the leak check);
@@ -780,6 +784,7 @@ that drives it or why nothing does.
   - `import-members`: `imports`: the Scheduled jobs page runs `importMembers()`, which the route calls.
 - `/api/backup/letter-replies`, `/api/backup/letter-replies/[id]`: Not driven: they are for the backup Worker, and show nothing. Vitest-tested.
 - `/api/csp-report`: Not driven: a browser posts to it only on a CSP violation. Vitest-tested.
+- `/api/browser-error`: `errors`: a page breaking in someone's browser, which the error page posts, and a button's click throwing, which the listener does.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `tests/steps.ts`), and the redelivery that changes nothing.
 - `/staff/api/login`, `/staff/api/callback`: `staff-login`: asking for a login link and opening it (`logInWithLink` in `tests/steps.ts`).
 - `/staff/api/logout`: `staff-login`: logging out, and the request without a session.

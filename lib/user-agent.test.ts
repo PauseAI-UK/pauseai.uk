@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { browserOf, systemOf } from "./user-agent";
+import { browserOf, browserVersionOf, systemOf } from "./user-agent";
 
 // Real User-Agent headers, as each browser sends them.
 const AGENTS: [string, string, string][] = [
@@ -63,5 +63,28 @@ describe("browserOf and systemOf", () => {
     expect(systemOf("curl/8.5.0")).toBeUndefined();
     expect(browserOf(null)).toBeUndefined();
     expect(systemOf(null)).toBeUndefined();
+  });
+});
+
+describe("browserVersionOf", () => {
+  it("names the browser with its version's first number, Safari's from Version", () => {
+    const versions = AGENTS.map(([agent]) => browserVersionOf(agent));
+    expect(versions).toEqual([
+      "Safari 18",
+      "Chrome 130",
+      "Edge 130",
+      "Firefox 131",
+      "Safari 18",
+      "Chrome 130",
+      "Firefox 131",
+      "Samsung Internet 26",
+      "Opera 115",
+      "Chrome 130",
+    ]);
+  });
+
+  it("names nothing it doesn't know, or no header", () => {
+    expect(browserVersionOf("curl/8.5.0")).toBeUndefined();
+    expect(browserVersionOf(null)).toBeUndefined();
   });
 });

@@ -1,0 +1,15 @@
+/* An error's words or stack trace as they were thrown: in a box, its long
+   lines wrapping so the page doesn't scroll sideways, and a tall one
+   scrolling inside it. */
+.thrown {
+  max-height: 60vh;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

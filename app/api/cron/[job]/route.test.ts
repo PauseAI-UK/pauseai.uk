@@ -124,7 +124,7 @@ describeWithDatabase("POST /api/cron/<job>", () => {
        VALUES ('', 'politicians', 'email', '{"list": "politicians", "params": {}}', '{"type": "doc", "content": []}',
          'jo@pauseai.uk', 'draft', now() - interval '2 days')`,
     );
-    expect(await answer("tidy-logs")).toEqual({ importRuns: 1, auditEntries: 0, drafts: 1 });
+    expect(await answer("tidy-logs")).toEqual({ importRuns: 1, auditEntries: 0, drafts: 1, errors: 0 });
   });
 
   it("runs no one-off job, nor one that isn't, running nothing", async () => {

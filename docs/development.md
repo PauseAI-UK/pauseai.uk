@@ -225,6 +225,8 @@ That records 0001 to 0011 as applied, then applies the rest.
 4. Commit the migration and `schema.sql` together. The PR then shows both
    the migration and what it does to the schema. A unit test fails while
    `schema.sql` is out of date.
+5. Give the PR the `migration` label, so the open PRs whose merge order
+   matters can be seen at a glance.
 
 Once pushed, a migration can't change. Netlify applies it to the PR's
 preview database, and then refuses it if it has changed. CI's "Types,
@@ -239,8 +241,15 @@ which fails the deploy. So:
 
 - a branch's migration must be numbered after main's last when it merges,
   not just when it began;
-- two open PRs mustn't take the same number. Whichever merges second would
-  need renumbering, and a pushed migration can't be renumbered.
+- a PR's migrations are consecutive. Its first takes the number after
+  main's and every open PR's; each one after follows its own last, even if
+  another open PR has since taken that number. Never skip over another
+  PR's number: the two PRs' migrations would interleave, so whichever
+  merged second would have some below main's last.
+- when two open PRs' migrations clash, whichever merges second has its
+  migrations renumbered to follow main's last. If they've been pushed,
+  that takes a new branch and a new PR, and the old PR is closed: a pushed
+  migration can't be renamed.
 
 `scripts/migration-order.mjs` checks this:
 
@@ -248,7 +257,7 @@ which fails the deploy. So:
   main's. Its checkout of a PR is the branch merged into main.
 - The gate and the pre-push hook check the same against `origin/main` as
   last fetched, and warn of an open PR with the same number (from `gh`).
-- `npm run worktree` says the next free number.
+- They and `npm run worktree` say the number to take next.
 
 Gaps in the numbers are fine.
 

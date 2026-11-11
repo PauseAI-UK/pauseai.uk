@@ -121,8 +121,9 @@ test("An email for an address", async ({ page }) => {
   const error = page.locator("p[role=alert]");
   await expect(error).toHaveText(copy.lookup.addressIsEmail);
   await expect(page).toHaveURL(PAGE);
-  // Below the button on a phone, so in view for the frame.
-  await error.scrollIntoViewIfNeeded();
+  // Below the button on a phone, so in view for the frame: in the middle of the window, so the frame
+  // doesn't depend on where filling in and clicking left the page scrolled.
+  await error.evaluate((alert) => alert.scrollIntoView({ block: "center" }));
   await frame(page, "Asked for her postal address");
 });
 

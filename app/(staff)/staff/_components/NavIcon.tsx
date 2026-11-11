@@ -89,6 +89,8 @@ const PATHS: Record<StaffPageId | "home" | "me" | "logout", ReactNode> = {
       <path d="M15.5 12v1.5a2.5 2.5 0 0 0 5 0V12a8.5 8.5 0 1 0-3.3 6.7" />
     </>
   ),
+  // A warning triangle.
+  errors: <path d="M12 4 2.5 20h19zM12 10v5M12 17.5v.5" />,
   // A door, and an arrow going out of it.
   logout: <path d="M14 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h8M10 12h11M17 8l4 4-4 4" />,
 };

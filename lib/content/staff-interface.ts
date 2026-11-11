@@ -80,6 +80,7 @@ export const staffCopy = {
     campaigns: "Campaigns",
     emails: "Correspondence",
     sentEmails: "Sent emails",
+    errors: "Errors",
     // Beside a page the staff member first saw in the last 3 days.
     newTag: "new",
     draftTag: "draft",
@@ -2046,23 +2047,28 @@ All events: ${link}`,
     }) =>
       `Started ${count(r.started.length, "mailing", "mailings")}; sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}, ${r.left} left. The queue: sent ${r.queue.sent}, ${r.queue.left} left.`,
   },
-  // The nightly tidying (/api/cron/tidy-logs): this log, the audit log and forgotten drafts.
+  // The nightly tidying (/api/cron/tidy-logs): this log, the audit log, forgotten drafts and old errors.
   tidying: {
     title: "Tidying the logs",
     intro: {
       before: "Deletes entries of the ",
       link: "audit log",
-      after: " over a month old (except politicians' history) and empty ",
+      after: " over a month old (except politicians' history), empty ",
     },
-    // The intro goes on, with a second link.
+    // The intro goes on, with a second link and a third.
     introThen: {
       link: "mailing drafts",
-      after: " unopened for a day.",
+      after: " unopened for a day, and ",
+    },
+    introLast: {
+      link: "errors",
+      after: " not seen for a month.",
     },
     tidyNow: "Tidy logs now",
     never: "Not tidied yet.",
-    result: (r: { importRuns: number; auditEntries: number; drafts: number }) =>
-      `Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")} and ${count(r.drafts, "draft", "drafts")}.`,
+    // A run kept from before errors were tidied counts none.
+    result: (r: { importRuns: number; auditEntries: number; drafts: number; errors?: number }) =>
+      `Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")}, ${count(r.drafts, "draft", "drafts")} and ${count(r.errors ?? 0, "error", "errors")}.`,
   },
   // The hourly copy of PauseAI's UK members (lib/server/members-import.ts),
   // on the Scheduled jobs page.
@@ -2183,6 +2189,84 @@ All events: ${link}`,
       outcome: "Outcome",
       backend: "Backend",
       links: { letter: "Has a letter", campaign: "Has a campaign", mailing: "Has a mailing" },
+    },
+  },
+  // What went wrong on the site outside a job's run (lib/server/errors-seen.ts): the admins' list at
+  // /staff/errors, one error's page, and the emails to the notification inbox.
+  errorsSeen: {
+    // Under the list's heading.
+    intro: "Server and browser errors",
+    total: (n: number) => count(n, "error", "errors"),
+    none: "No errors.",
+    columns: {
+      what: "Error message",
+      kind: "Kind",
+      // The route's pattern for the server's, the page's path for a browser's; nothing for a problem.
+      page: "Page or route",
+      first: "First seen",
+      last: "Last seen",
+      count: "Times",
+    },
+    // What was running: Next's four on the server, a problem our code reported, and the browser's two. Of
+    // the browser's, the first lost the visitor the page, which went to the error page; the second threw
+    // from a click or the like and left the page as it was.
+    kinds: {
+      render: "Page",
+      route: "Route handler",
+      action: "Server Action",
+      proxy: "Proxy",
+      problem: "Problem",
+      "browser-page": "Browser: page crashed",
+      "browser-other": "Browser: page carried on",
+    },
+    // One error's page: its heading, the way back to the list, then each thing known about it.
+    one: {
+      title: "Error",
+      back: "All errors",
+      kind: "Kind",
+      page: "Page or route",
+      className: "Class",
+      code: "Code",
+      browser: "Browser of the latest",
+      first: "First seen",
+      last: "Last seen",
+      count: "Times",
+      // Over everything under the header, which is the latest time's alone.
+      latest: "Details on most recent time",
+      // Over its message as it was thrown, numbers, addresses and all; then over its stack trace.
+      message: "Error message",
+      stack: "Stack trace",
+      noStack: "No stack trace.",
+    },
+    // The emails. `where` is the kind and the route; `words` the error's, with what varies taken out.
+    email: {
+      // An error on the server, or a problem.
+      server: {
+        subject: (words: string) => `Error on pauseai.uk server: ${words}`,
+        first: (where: string, words: string, link: string) =>
+          `Something new went wrong on pauseai.uk.\n\n${where}\n${words}\n\nYou'll be emailed about it again at most once a day. More info: ${link}`,
+        again: (where: string, words: string, since: number, total: number, link: string) =>
+          `This is still going wrong on pauseai.uk. ${count(since, "more time", "more times")} since the last email about it, ${total} in all.\n\n${where}\n${words}\n\nMore info: ${link}`,
+      },
+      // An error in a visitor's browser that lost them the page. Its words aren't quoted, as anyone can post them.
+      browser: {
+        subject: (page: string) => `Browser error on pauseai.uk: ${page}`,
+        first: (where: string, link: string) =>
+          `A page fell over in someone's browser, in a way that hasn't been seen in the last month.\n\n${where}\n\nYou'll be emailed about it again at most once a day. More info: ${link}`,
+        again: (where: string, since: number, total: number, link: string) =>
+          `A page is still falling over in people's browsers. ${count(since, "more time", "more times")} since the last email about it, ${total} in all.\n\n${where}\n\nMore info: ${link}`,
+      },
+      // In place of an hour's sixth email about the server's errors, or fourth about the browser's; then no more that hour.
+      many: {
+        subject: "Many new server errors on pauseai.uk",
+        body: (link: string) =>
+          `Several different things have gone wrong on the site in the last hour, so no more emails about new errors will be sent for now.\n\nMore info: ${link}`,
+      },
+      manyBrowser: {
+        subject: "Many new browser errors on pauseai.uk",
+        body: (link: string) =>
+          `Pages have fallen over in people's browsers in several different ways in the last hour, so no more emails about new ones will be sent for now.\n\nMore info: ${link}`,
+      },
     },
   },
   oldLetters: {
@@ -2386,7 +2470,8 @@ All events: ${link}`,
       civicrmLookupFailed: "Couldn't look up new members in CiviCRM",
     },
     // Can happen in a job or not. In a job, staff see it on the job's page and in the email. Not in a job, such
-    // as a visitor sending a letter, it only goes to Netlify's logs.
+    // as a visitor sending a letter, it's kept as an error (lib/server/errors-seen.ts): on the errors page, and
+    // emailed to staff.
     anywhere: {
       // An email didn't go, as Gmail or Postmark errored.
       sendFailed: (purpose: string) => `An email of type '${purpose}' couldn't be sent`,
@@ -2400,7 +2485,9 @@ All events: ${link}`,
       charsetUnknown: (charset: string) =>
         `An email's charset isn't one we know, so its text may be garbled: ${charset}`,
     },
-    // Only ever in Netlify's logs: no job reaches these. Each says what the person saw, if anything.
+    // No job reaches these: each is kept as an error (lib/server/errors-seen.ts), on the errors page and
+    // emailed to staff, but for connectionDropped and errorNotKept, which only reach Netlify's logs. Each
+    // says what the person saw, if anything.
     logs: {
       // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission.
       tokenNotRevoked: (account: string) => `${account}'s Gmail token couldn't be revoked at Google`,
@@ -2440,6 +2527,8 @@ All events: ${link}`,
       badBody: (from: string) => `${from} sent a body that isn't JSON`,
       // Nobody sees anything: a warning, as the next query carries on.
       connectionDropped: "A database connection was dropped while idle",
+      // An error, or a problem above, that couldn't be kept or emailed about, as the database or the email failed.
+      errorNotKept: "An error couldn't be kept or emailed about",
     },
   },
   // The line every run in the import log starts with (RunBox): how it

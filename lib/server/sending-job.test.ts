@@ -117,11 +117,20 @@ describeWithDatabase("the sending and the tidying, as runs of the import log", (
     await query(
       "INSERT INTO import_runs (job, at, status) VALUES ('import-luma', now() - interval '8 days', 'ok'), ('import-luma', now(), 'ok')",
     );
-    expect(await runTidying("nightly")).toEqual({ importRuns: 1, auditEntries: 0, drafts: 0 });
-    expect(await runTidying(JO)).toEqual({ importRuns: 0, auditEntries: 0, drafts: 0 });
+    expect(await runTidying("nightly")).toEqual({ importRuns: 1, auditEntries: 0, drafts: 0, errors: 0 });
+    expect(await runTidying(JO)).toEqual({ importRuns: 0, auditEntries: 0, drafts: 0, errors: 0 });
     expect(await listRuns("tidy-logs")).toMatchObject([
       { status: "unchanged", startedBy: JO },
       { status: "ok", startedBy: "nightly", result: { importRuns: 1 } },
     ]);
+  });
+
+  it("counts an old error alone as something tidied", async () => {
+    await query(
+      `INSERT INTO errors_seen (key, kind, route, name, words, latest_words, first_seen, last_seen)
+       VALUES ('k', 'route', '/api/thing', 'Error', 'Old', 'Old', now() - interval '3 months', now() - interval '2 months')`,
+    );
+    expect(await runTidying("nightly")).toEqual({ importRuns: 0, auditEntries: 0, drafts: 0, errors: 1 });
+    expect(await listRuns("tidy-logs")).toMatchObject([{ status: "ok", result: { errors: 1 } }]);
   });
 });

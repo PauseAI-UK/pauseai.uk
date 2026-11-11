@@ -1520,6 +1520,47 @@ ALTER TABLE public.email_sends ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY 
 );
 
 --
+-- Name: errors_seen; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.errors_seen (
+    id bigint NOT NULL,
+    key text NOT NULL,
+    kind text NOT NULL,
+    route text NOT NULL,
+    name text NOT NULL,
+    code text,
+    words text NOT NULL,
+    latest_words text NOT NULL,
+    latest_stack text,
+    latest_browser text,
+    first_seen timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen timestamp with time zone DEFAULT now() NOT NULL,
+    count integer DEFAULT 1 NOT NULL,
+    alerted_at timestamp with time zone,
+    alerted_count integer DEFAULT 0 NOT NULL,
+    CONSTRAINT errors_seen_check CHECK ((last_seen >= first_seen)),
+    CONSTRAINT errors_seen_check1 CHECK (((alerted_count >= 0) AND (alerted_count <= count))),
+    CONSTRAINT errors_seen_check2 CHECK (((alerted_at IS NULL) = (alerted_count = 0))),
+    CONSTRAINT errors_seen_check3 CHECK (((latest_browser IS NULL) OR (kind = ANY (ARRAY['browser-page'::text, 'browser-other'::text])))),
+    CONSTRAINT errors_seen_count_check CHECK ((count > 0)),
+    CONSTRAINT errors_seen_kind_check CHECK ((kind = ANY (ARRAY['render'::text, 'route'::text, 'action'::text, 'proxy'::text, 'problem'::text, 'browser-page'::text, 'browser-other'::text])))
+);
+
+--
+-- Name: errors_seen_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.errors_seen ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.errors_seen_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
 -- Name: event_docs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2428,6 +2469,20 @@ ALTER TABLE ONLY public.email_sends
     ADD CONSTRAINT email_sends_pkey PRIMARY KEY (id);
 
 --
+-- Name: errors_seen errors_seen_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.errors_seen
+    ADD CONSTRAINT errors_seen_key_key UNIQUE (key);
+
+--
+-- Name: errors_seen errors_seen_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.errors_seen
+    ADD CONSTRAINT errors_seen_pkey PRIMARY KEY (id);
+
+--
 -- Name: event_docs event_docs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3030,6 +3085,12 @@ CREATE INDEX email_sends_rfc_message_id ON public.email_sends USING btree (rfc_m
 --
 
 CREATE INDEX email_sends_sender ON public.email_sends USING btree (sender, at) WHERE (sender IS NOT NULL);
+
+--
+-- Name: errors_seen_last_seen; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX errors_seen_last_seen ON public.errors_seen USING btree (last_seen DESC, id DESC);
 
 --
 -- Name: event_owners_owner; Type: INDEX; Schema: public; Owner: -

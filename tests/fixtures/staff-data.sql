@@ -1348,3 +1348,30 @@ WITH bounced AS (
   RETURNING id, address
 )
 INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM bounced;
+
+-- --------------------------------------------------------------- errors
+
+-- What went wrong outside a job's run (lib/server/errors-seen.ts), one of
+-- each kind of thing: a Postgres error in a staff page, still happening; a
+-- problem our code reported, last week; a page that fell over in someone's
+-- browser; and something else a browser threw, which nobody is emailed
+-- about. Each was last due an email over a day ago, so none counts towards
+-- this hour's emails.
+INSERT INTO errors_seen (id, key, kind, route, name, code, words, latest_words, latest_stack, latest_browser, first_seen, last_seen, count, alerted_at, alerted_count)
+OVERRIDING SYSTEM VALUE VALUES
+  (1, 'seed-render', 'render', '/staff/politicians/[id]', 'error', '23505 notes_pkey',
+   'duplicate key value violates unique constraint <text>', 'duplicate key value violates unique constraint "notes_pkey"',
+   E'error: duplicate key value violates unique constraint "notes_pkey"\n    at async query (.next/server/chunks/ssr/lib_server_db_ts_4f2a._.js:1:2345)\n    at async addNote (.next/server/chunks/ssr/lib_server_notes_ts_9c1b._.js:1:678)',
+   NULL, now() - interval '8 days', now() - interval '2 hours', 12, now() - interval '26 hours', 9),
+  (2, 'seed-problem', 'problem', '', '', NULL,
+   'Turnstile couldn''t be reached', 'Turnstile couldn''t be reached: fetch failed (connect ETIMEDOUT 192.0.2.7:443)',
+   NULL, NULL, now() - interval '6 days', now() - interval '6 days', 7, now() - interval '6 days', 1),
+  (3, 'seed-browser-page', 'browser-page', '/campaigns/<id>/write', 'TypeError', NULL,
+   'can''t access property <text>, draft is undefined', 'can''t access property "content", draft is undefined',
+   E'LetterEditor@https://pauseai.example.org/_next/static/chunks/4f2a.js:1:2345\nrenderWithHooks@https://pauseai.example.org/_next/static/chunks/9c1b.js:1:678',
+   'Firefox 131', now() - interval '3 days', now() - interval '3 days', 1, now() - interval '3 days', 1),
+  (4, 'seed-browser-other', 'browser-other', '/', 'Error', NULL,
+   'ResizeObserver loop completed with undelivered notifications.', 'ResizeObserver loop completed with undelivered notifications.',
+   'onResize@https://pauseai.example.org/_next/static/chunks/77aa.js:1:91',
+   'Safari 18', now() - interval '20 days', now() - interval '4 days', 31, NULL, 0);
+SELECT setval(pg_get_serial_sequence('errors_seen', 'id'), (SELECT max(id) FROM errors_seen));
