@@ -1735,11 +1735,11 @@ All events: ${link}`,
       add: "Add",
       added: (n: number) =>
         n
-          ? `⁂ Added. Found ${count(n, "earlier email", "earlier emails")} with it in policy@ and Joseph's inbox.`
-          : "⁂ Added. No earlier emails with it in policy@ or Joseph's inbox.",
+          ? `Added. Found ${count(n, "earlier email", "earlier emails")} with it in policy@ and Joseph's inbox.`
+          : "Added. No earlier emails with it in policy@ or Joseph's inbox.",
       refused: {
-        invalid: "⁂ That doesn't look like an email address.",
-        exists: "⁂ That address is already listed.",
+        invalid: "That doesn't look like an email address.",
+        exists: "That address is already listed.",
       },
     },
     // At the foot of the page of one whose record has gone from Airtable, and who's had no letters.
