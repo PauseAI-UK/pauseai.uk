@@ -1732,8 +1732,8 @@ All events: ${link}`,
       addedBy: (by: string, when: string) => `Added by ${by} on ${when}`,
       remove: "Remove",
       // The form under the list.
-      address: "⁂ New address",
-      add: "⁂ Add",
+      address: "New address",
+      add: "Add",
       added: (n: number) =>
         n
           ? `⁂ Added. Found ${count(n, "earlier email", "earlier emails")} with it in policy@ and Joseph's inbox.`
