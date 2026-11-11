@@ -112,15 +112,8 @@ export async function keepOneOff(
   connected: readonly string[],
   extraPeople: number[] = [],
 ): Promise<number | undefined> {
+  if (await isHeld(account, message)) return undefined;
   const rfc = rfcIdOf(message.headers);
-  const [kept] = await query(
-    `SELECT 1 FROM one_off_messages WHERE (account = $1 AND gmail_message_id = $2) OR rfc_message_id = $3::text
-     UNION ALL SELECT 1 FROM one_off_erased WHERE (account = $1 AND gmail_message_id = $2) OR rfc_sha256 = ${RFC_HASH("$3::text")}
-     UNION ALL SELECT 1 FROM letter_replies WHERE account = $1 AND gmail_message_id = $2
-     UNION ALL SELECT 1 FROM email_sends WHERE (sender = $1 AND message_id = $2) OR (backend = 'postmark' AND message_id = $4)`,
-    [account, message.id, rfc, postmarkMessageId(rfc)],
-  );
-  if (kept) return undefined;
   const letter = await letterAnswered(account, message);
   if (letter) {
     if (isMachineReply((name) => message.headers.get(name), headerText(message.headers, "subject"))) {
@@ -189,6 +182,24 @@ export async function keepOneOff(
   return threadId;
 }
 
+/**
+ * Whether a message, by its headers, is one the site holds or won't keep: a
+ * one-off kept from this mailbox or another, by its Message-ID; one erased; a
+ * letter's reply; or one we sent. Asked before fetching it whole, as most a
+ * search finds are copies of what another mailbox gave us.
+ */
+export async function isHeld(account: string, message: GmailMessageHeaders): Promise<boolean> {
+  const rfc = rfcIdOf(message.headers);
+  const [held] = await query(
+    `SELECT 1 FROM one_off_messages WHERE (account = $1 AND gmail_message_id = $2) OR rfc_message_id = $3::text
+     UNION ALL SELECT 1 FROM one_off_erased WHERE (account = $1 AND gmail_message_id = $2) OR rfc_sha256 = ${RFC_HASH("$3::text")}
+     UNION ALL SELECT 1 FROM letter_replies WHERE account = $1 AND gmail_message_id = $2
+     UNION ALL SELECT 1 FROM email_sends WHERE (sender = $1 AND message_id = $2) OR (backend = 'postmark' AND message_id = $4)`,
+    [account, message.id, rfc, postmarkMessageId(rfc)],
+  );
+  return !!held;
+}
+
 async function newThread(subject: string, at: Date): Promise<number> {
   const [{ id }] = await query<{ id: number }>(
     "INSERT INTO one_off_threads (subject, latest_at) VALUES ($1, $2) RETURNING id::int AS id",
@@ -227,7 +238,8 @@ async function keepThreadMate(
 ): Promise<void> {
   try {
     const mate = await gmailMessageHeaders(token, id, ONE_OFF_HEADERS);
-    await keepOneOff(account, mate, await gmailRawMessage(token, id), book, connected);
+    if (!(await isHeld(account, mate)))
+      await keepOneOff(account, mate, await gmailRawMessage(token, id), book, connected);
   } catch (error) {
     if (error instanceof GmailError && error.status === 400) problem(staffCopy.problems.job.unreadable, id);
     else unlessGone(error);
