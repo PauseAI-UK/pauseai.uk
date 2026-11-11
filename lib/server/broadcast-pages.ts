@@ -268,7 +268,7 @@ export async function broadcastPageData(
       `SELECT c.id::int AS "copyId", c.supporter_id::int AS "supporterId", c.merge_values ->> 'name' AS name,
          c.merge_values ->> 'place' AS place, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
          ${WAS_READ} AS read, ${BOUNCED} AS bounced, ${OPTED_OUT} AS "optedOut"
-       ${from} ORDER BY c.merge_values ->> 'name' NULLS LAST, c.id LIMIT $2 OFFSET $3`,
+       ${from} ORDER BY (c.merge_values ->> 'name') COLLATE "en-GB-x-icu" NULLS LAST, c.id LIMIT $2 OFFSET $3`,
       [id, RECIPIENTS_PAGE_SIZE, (page - 1) * RECIPIENTS_PAGE_SIZE],
     ),
     query<{ total: number }>(`SELECT count(*)::int AS total ${from}`, [id]),

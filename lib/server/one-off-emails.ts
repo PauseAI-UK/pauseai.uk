@@ -385,7 +385,7 @@ export type OneOffThreadRow = {
   answered: boolean | null;
 };
 
-const PEOPLE = `coalesce((SELECT json_agg(json_build_object('id', n.id, 'name', n.name, 'isTest', coalesce(p.is_test, false)) ORDER BY n.name)
+const PEOPLE = `coalesce((SELECT json_agg(json_build_object('id', n.id, 'name', n.name, 'isTest', coalesce(p.is_test, false)) ORDER BY n.name COLLATE "en-GB-x-icu")
     FROM one_off_thread_people tp JOIN notable_people n ON n.id = tp.notable_person_id
     LEFT JOIN politicians p ON p.id = n.id WHERE tp.thread_id = t.id), '[]')`;
 

@@ -574,4 +574,13 @@ describeWithDatabase("politicians", () => {
     ]);
     expect(await signatories(BILL)).toEqual([]);
   });
+
+  it("sorts names in English order: accented letters among the plain, lower case among the capitals", async () => {
+    const names = ["Zoe Zed", "de Souza", "Áine Example", "Bea Bee"];
+    for (const [i, name] of names.entries()) {
+      const id = await addTestPolitician({ airtableId: `rec${i}`, name, constituency: `Seat ${i}` });
+      await setStatus(id, PM, { status: "signed", date: null, note: "" }, "jo@pauseai.uk");
+    }
+    expect((await signatories(PM)).map((one) => one.name)).toEqual(["Áine Example", "Bea Bee", "de Souza", "Zoe Zed"]);
+  });
 });

@@ -163,7 +163,7 @@ function answersGiven(slug: string, answer: string, limit: number, offset: numbe
      SELECT n.id::int AS "politicianId", n.name, p.is_test AS "isTest", p.constituency, p.party, s.status,
        coalesce(s.note, '') AS note, w.at AS "lastWrittenTo"
      ${ANSWERS_FROM}
-     ORDER BY CASE WHEN $2::text = 'none' THEN w.at END, n.name
+     ORDER BY CASE WHEN $2::text = 'none' THEN w.at END, n.name COLLATE "en-GB-x-icu"
      LIMIT ${limit} OFFSET ${offset}`,
     [slug, answer],
   );

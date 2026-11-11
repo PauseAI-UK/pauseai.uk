@@ -357,7 +357,7 @@ export async function closestPoliticians(
     : sql`greatest(${closeness("n.name", text)}, ${closeness("p.constituency", text)})`;
   const where = sql.where([...politicianConditions(filter, true), sql`${near} >= ${enough}`]);
   const rows = await query<Row>(
-    sql`${SELECT} ${where} GROUP BY n.id, p.id ORDER BY ${near} DESC, n.name LIMIT ${limit}`,
+    sql`${SELECT} ${where} GROUP BY n.id, p.id ORDER BY ${near} DESC, n.name COLLATE "en-GB-x-icu" LIMIT ${limit}`,
   );
   return rows.map(toPolitician);
 }
@@ -459,7 +459,7 @@ export async function findPasted(line: string): Promise<Pasted> {
        AND (${asWords(sql`${line}`)} LIKE '%' || ${asWords(sql`n.name`)} || '%'
          OR (p.constituency <> '' AND ${asCasedWords(sql`${line}`)} LIKE '%' || ${asCasedWords(sql`p.constituency`)} || '%')
          OR lower(n.email) = ANY(${emailsIn(line)}::text[]))
-       GROUP BY n.id, p.id ORDER BY n.name, n.id`,
+       GROUP BY n.id, p.id ORDER BY n.name COLLATE "en-GB-x-icu", n.id`,
     )
   ).map(toPolitician);
   if (named.length) {
@@ -483,7 +483,7 @@ export async function findPasted(line: string): Promise<Pasted> {
     await query<Row>(
       sql`${SELECT} ${politicianWhere(PASTE_AMONG)}
        AND ${everyWord(text, (like) => sql.or([contains("n.name", like), contains("p.constituency", like)]))}
-       GROUP BY n.id, p.id ORDER BY n.name, n.id LIMIT ${PASTE_CHOICES}`,
+       GROUP BY n.id, p.id ORDER BY n.name COLLATE "en-GB-x-icu", n.id LIMIT ${PASTE_CHOICES}`,
     )
   ).map(toPolitician);
   if (words.length === 1) return { matches: words, by: { [words[0].id]: "words" }, choices: [] };
@@ -633,7 +633,7 @@ export async function signatories(ask: string): Promise<Signatory[]> {
     `SELECT n.name, p.party, coalesce(p.constituency, '') AS constituency, p.house
      FROM ${POLITICIANS} JOIN ask_statuses s ON s.notable_person_id = n.id
      WHERE s.ask = $1 AND s.status = 'signed' AND NOT p.is_test
-     ORDER BY n.name`,
+     ORDER BY n.name COLLATE "en-GB-x-icu"`,
     [ask],
   );
 }
@@ -680,6 +680,6 @@ export async function mailingPoliticians(who: PoliticianWho): Promise<MailingPol
        coalesce(array_agg(s.ask || ':' || s.status ORDER BY s.ask) FILTER (WHERE s.ask IS NOT NULL), '{}') AS answers
      FROM ${sql.raw(POLITICIANS)} LEFT JOIN ask_statuses s ON s.notable_person_id = n.id
      ${politicianWhere(who)}
-     GROUP BY n.id, p.id ORDER BY n.name, n.id`,
+     GROUP BY n.id, p.id ORDER BY n.name COLLATE "en-GB-x-icu", n.id`,
   );
 }

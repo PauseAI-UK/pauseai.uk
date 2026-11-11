@@ -124,7 +124,7 @@ export async function emailPeople(supporters: boolean): Promise<EmailChoice[]> {
        EXISTS (SELECT 1 FROM letters l WHERE l.notable_person_id = n.id AND ($1 OR l.kind <> 'supporter'))
        OR EXISTS (SELECT 1 FROM one_off_thread_people tp JOIN one_off_threads t ON t.id = tp.thread_id
          WHERE tp.notable_person_id = n.id AND NOT t.id = ANY($2::bigint[])))
-     ORDER BY n.name, n.id`,
+     ORDER BY n.name COLLATE "en-GB-x-icu", n.id`,
     [supporters, hidden],
   );
 }
@@ -182,7 +182,7 @@ export async function listAllLetters(filter: AllLettersFilter, supporters: boole
       (SELECT min(m.at) FROM one_off_messages m WHERE m.thread_id = t.id AND m.at > first.at
          AND ${fromPolitician("m.from_address", values)}),
       t.id = ANY(${hidden}::bigint[]),
-      coalesce((SELECT json_agg(json_build_object('id', n.id::int, 'name', n.name) ORDER BY n.name)
+      coalesce((SELECT json_agg(json_build_object('id', n.id::int, 'name', n.name) ORDER BY n.name COLLATE "en-GB-x-icu")
         FROM one_off_thread_people tp JOIN notable_people n ON n.id = tp.notable_person_id
         WHERE tp.thread_id = t.id), '[]'),
       first.from_name, first.from_address, t.subject, NULL, NULL, NULL, first.from_us,

@@ -362,7 +362,7 @@ export const supporterChoices = cache(async function supporterChoices(): Promise
       `SELECT id, name, start_at AS "startAt" FROM luma_events
        WHERE access = 'manage' AND removed_at IS NULL ORDER BY start_at DESC, id`,
     ),
-    query<MpChoice>(`SELECT * FROM (${MP_CHOICES}) p ORDER BY p.name, p.constituency`),
+    query<MpChoice>(`SELECT * FROM (${MP_CHOICES}) p ORDER BY p.name COLLATE "en-GB-x-icu", p.constituency`),
   ]);
   return { events, mps };
 });

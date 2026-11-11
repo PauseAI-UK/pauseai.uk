@@ -405,6 +405,11 @@ lower(address))`) when our own code writes them, so equality is plain `=`.
 - **History tables are insert-only** (`audit_log`, `email_problems`,
   `letter_events`). The current state is derived from them, or kept in a
   second table written in the same transaction (`email_blocks`).
+- **Names sort in English order**: `ORDER BY n.name COLLATE "en-GB-x-icu"`.
+  The database's collation, `C.UTF-8`, puts capitals before lower case and
+  accented letters after z. Views use the name columns, so Postgres won't
+  change their collation, and each sort says it instead
+  (`tests/checks/name-sorts.test.ts` fails on one that doesn't).
 
 ### How fast a query has to be
 
