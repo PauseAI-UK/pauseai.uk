@@ -143,17 +143,16 @@ describe("replyText", () => {
     expect(replyText("Thanks.\n\n--")).toBe("Thanks.\n\n--");
   });
 
-  it("folds a politician's signature, from their name or title over their role, down", () => {
+  it("folds a politician's signature under their name, which stays, from their role down", () => {
     const signature = [
-      "Polly Placeholder MP",
       "Member of Parliament for Testshire North",
       "Pronouns: She/Her",
       "",
       "House of Commons, London, SW1A 1AA",
       "T: 020 7946 0000 | W: www.example.org",
     ].join("\n");
-    expect(replyParts(`Thank you for your email.\n\nBest wishes,\n${signature}`)).toEqual({
-      text: "Thank you for your email.\n\nBest wishes,",
+    expect(replyParts(`Thank you for your email.\n\nBest wishes,\nPolly Placeholder MP\n${signature}`)).toEqual({
+      text: "Thank you for your email.\n\nBest wishes,\nPolly Placeholder MP",
       quoted: signature,
     });
     // A blank line between each, up to three lines of names and titles, in bold, as HTML mail comes.
@@ -161,10 +160,10 @@ describe("replyText", () => {
       replyText(
         "Thanks.\n\nKind regards\n\nSam Example\n\nChief of Staff\n\n*Office of Polly Placeholder MSP*\n\n*Member of the Scottish Parliament for Testshire*",
       ),
-    ).toBe("Thanks.\n\nKind regards");
+    ).toBe("Thanks.\n\nKind regards\n\nSam Example");
     // However many blank lines, and a bold name that starts with a space, as a list's item would.
     expect(replyText("Thanks.\n\n*  Polly Placeholder MSP*\n\n\n\nMSP for Testshire – Ball airson Testshire")).toBe(
-      "Thanks.",
+      "Thanks.\n\n*  Polly Placeholder MSP*",
     );
     for (const role of [
       "MP for Testshire",
@@ -172,11 +171,11 @@ describe("replyText", () => {
       "Member of the Senedd for Testshire",
       "MLA for Testshire",
     ]) {
-      expect(replyText(`Thanks.\n\nPolly Placeholder\n${role}`)).toBe("Thanks.");
+      expect(replyText(`Thanks.\n\nPolly Placeholder\n${role}`)).toBe("Thanks.\n\nPolly Placeholder");
     }
   });
 
-  it("folds a member of staff's signature by their title, and PauseAI's own, keeping a first name signed over it", () => {
+  it("folds a member of staff's signature from their title, and PauseAI's own, keeping the name signed over it", () => {
     expect(
       replyText("Thanks.\n\nBest wishes,\nSam\n\nSam Example\nSenior Parliamentary Assistant\nHouse of Commons"),
     ).toBe("Thanks.\n\nBest wishes,\nSam");
@@ -196,7 +195,9 @@ describe("replyText", () => {
       "See you then.\n\nJoseph",
     );
     // Under a party, too.
-    expect(replyText("Thanks.\n\nSam Example\nScottish Labour Member of Parliament for Testshire")).toBe("Thanks.");
+    expect(replyText("Thanks.\n\nSam Example\nScottish Labour Member of Parliament for Testshire")).toBe(
+      "Thanks.\n\nSam Example",
+    );
   });
 
   it("keeps a title or role in what a message says: a sentence, a list's item, or lower case", () => {

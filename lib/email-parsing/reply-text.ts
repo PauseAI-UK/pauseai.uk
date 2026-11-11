@@ -78,16 +78,14 @@ function nameLike(line: string): boolean {
 
 /**
  * Whether a signature starts at a line: the first after a blank line or a
- * sign-off (or a first name signed under it), of up to three short lines, blank lines allowed between,
- * that are or lead to a politician's role under a name, or a line saying
- * who its writer works for or what as. The role ends no sentence, which
- * says it isn't one wrapped onto a line of its own.
+ * sign-off, of up to three short lines, blank lines allowed between, that
+ * are or lead to a politician's role under a name, or a line saying who its
+ * writer works for or what as. The role ends no sentence, which says it
+ * isn't one wrapped onto a line of its own.
  */
 function startsSignature(lines: string[], i: number): boolean {
   const before = lines[i - 1]?.trim() ?? "";
   if ((before !== "" && !before.endsWith(",") && !SIGN_OFF.test(before)) || !nameLike(lines[i]!)) return false;
-  // A first name signed on its own line, the signature after a blank line, stays with the message.
-  if (!/\s/.test(lines[i]!.trim()) && !lines[i + 1]?.trim()) return false;
   let names = 0;
   for (let j = i; j < lines.length; j++) {
     const line = lines[j]!;
@@ -97,6 +95,18 @@ function startsSignature(lines: string[], i: number): boolean {
     if (STAFF_LINE.test(line)) return true;
   }
   return false;
+}
+
+/**
+ * Whether a signature's fold starts at a line: the signature's first line,
+ * if that's a title, "Office of …"; otherwise the line after it, as its
+ * first is who wrote the message, which stays with what they said.
+ */
+function startsSignatureFold(lines: string[], i: number): boolean {
+  if (!lines[i]!.trim()) return false;
+  if (STAFF_LINE.test(lines[i]!) && startsSignature(lines, i)) return true;
+  const name = lines.slice(0, i).findLastIndex((line) => line.trim());
+  return name >= 0 && !STAFF_LINE.test(lines[name]!) && startsSignature(lines, name);
 }
 
 /** Whether "On … wrote:" starts at a line, over text with no quote marks: "> " lines have their own way out, as a reply may answer between them. */
@@ -112,7 +122,7 @@ function startsUnmarkedWrote(lines: string[], i: number): boolean {
 function startsFolded(lines: string[], i: number): boolean {
   const line = lines[i]!;
   if (QUOTE_LINE.test(line) || FOOTER_LINE.test(line) || startsUnmarkedWrote(lines, i)) return true;
-  if (startsSignature(lines, i) || RULE_LINE.test(line)) return true;
+  if (startsSignatureFold(lines, i) || RULE_LINE.test(line)) return true;
   if (SEPARATOR_LINE.test(line) && GROUP_FOOTER.test(lines[i + 1] ?? "")) return true;
   return FROM_LINE.test(line) && lines.slice(i + 1, i + 4).some((next) => SENT_LINE.test(next));
 }
