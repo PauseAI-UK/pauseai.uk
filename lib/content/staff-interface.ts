@@ -2509,6 +2509,7 @@ All events: ${link}`,
     web: "Web",
     database: "Database",
     luma: "Luma",
+    civicrm: "CiviCRM",
     gmail: "Gmail",
     nightly: "Nightly",
     // On a job's page, while a run of it is going: one a staff member started, or one of its schedule's.

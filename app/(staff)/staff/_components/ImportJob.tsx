@@ -46,7 +46,7 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "check-mps": "web",
   "import-controlai": "web",
   "import-members": "airtable",
-  "import-civicrm": "web",
+  "import-civicrm": "civicrm",
   "read-gmail": "gmail",
   "import-old-letters": "gmail",
   "send-mailings": "gmail",

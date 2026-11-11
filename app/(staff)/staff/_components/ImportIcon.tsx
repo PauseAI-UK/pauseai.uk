@@ -4,11 +4,12 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import styles from "./ImportIcon.module.css";
 
 /** Where an import reads from. */
-export type ImportSource = "airtable" | "luma" | "gmail" | "web" | "database";
+export type ImportSource = "airtable" | "luma" | "civicrm" | "gmail" | "web" | "database";
 
 // Each service's own mark, in its own colours: Airtable's three boxes (its
 // shape Simple Icons', https://simpleicons.org, CC0), Gmail's M, and Luma's
-// star, its own picture from luma.com, as it's shaded rather than flat.
+// star and CiviCRM's triangle, their own pictures from luma.com and
+// civicrm.org, as Luma's is shaded and CiviCRM's has no flat copy to hand.
 // The web, no one's, is a globe, and our own database a stack of discs.
 const MARKS: Record<ImportSource, ReactNode> = {
   airtable: (
@@ -37,6 +38,7 @@ const MARKS: Record<ImportSource, ReactNode> = {
     </svg>
   ),
   luma: <Image src="/images/logos/luma.png" alt="" width={36} height={36} />,
+  civicrm: <Image src="/images/logos/civicrm.png" alt="" width={36} height={35} />,
   web: (
     <svg viewBox="0 0 24 24" className={styles.line}>
       <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" />
