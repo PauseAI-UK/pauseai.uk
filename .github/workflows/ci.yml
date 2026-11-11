@@ -138,12 +138,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Azure's Ubuntu mirror sometimes stalls partway through a download, and
-      # apt waits on it for as long as the job may run. Every apt-get below,
-      # Playwright's too, gives up on one that sends nothing for 20 seconds and
-      # tries it again, up to three times.
-      - name: Make apt retry stalled downloads
-        run: echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
+      # GitHub's runners fetch Ubuntu's packages from Azure's mirror
+      # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
+      # download and sometimes can't be found at all. So apt uses Ubuntu's own
+      # archive instead, and every apt-get below, Playwright's too, gives up on
+      # a download that sends nothing for 20 seconds and tries it again, up to
+      # three times.
+      - name: Make apt use Ubuntu's archive and retry stalled downloads
+        run: |
+          echo 'http://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
         id: node
@@ -294,12 +298,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Azure's Ubuntu mirror sometimes stalls partway through a download, and
-      # apt waits on it for as long as the job may run. Every apt-get below,
-      # Playwright's too, gives up on one that sends nothing for 20 seconds and
-      # tries it again, up to three times.
-      - name: Make apt retry stalled downloads
-        run: echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
+      # GitHub's runners fetch Ubuntu's packages from Azure's mirror
+      # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
+      # download and sometimes can't be found at all. So apt uses Ubuntu's own
+      # archive instead, and every apt-get below, Playwright's too, gives up on
+      # a download that sends nothing for 20 seconds and tries it again, up to
+      # three times.
+      - name: Make apt use Ubuntu's archive and retry stalled downloads
+        run: |
+          echo 'http://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
         id: node
@@ -441,12 +449,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Azure's Ubuntu mirror sometimes stalls partway through a download, and
-      # apt waits on it for as long as the job may run. Every apt-get below,
-      # Playwright's too, gives up on one that sends nothing for 20 seconds and
-      # tries it again, up to three times.
-      - name: Make apt retry stalled downloads
-        run: echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
+      # GitHub's runners fetch Ubuntu's packages from Azure's mirror
+      # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
+      # download and sometimes can't be found at all. So apt uses Ubuntu's own
+      # archive instead, and every apt-get below, Playwright's too, gives up on
+      # a download that sends nothing for 20 seconds and tries it again, up to
+      # three times.
+      - name: Make apt use Ubuntu's archive and retry stalled downloads
+        run: |
+          echo 'http://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
         uses: actions/setup-node@v7
