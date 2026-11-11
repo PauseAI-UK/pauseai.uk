@@ -1,4 +1,3 @@
-import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { pagePath } from "@/lib/list-params";
 import type { ErrorSeen } from "@/lib/server/errors-seen";
@@ -18,16 +17,8 @@ const columns: ListColumn<ErrorSeen>[] = [
     label: copy.columns.what,
     cell: (error) => <StaffLink href={`${PATH}/${error.id}`}>{error.words}</StaffLink>,
   },
-  {
-    key: "where",
-    label: copy.columns.where,
-    cell: (error) => (
-      <>
-        <div>{copy.kinds[error.kind]}</div>
-        <Muted>{error.route}</Muted>
-      </>
-    ),
-  },
+  { key: "kind", label: copy.columns.kind, cell: (error) => copy.kinds[error.kind] },
+  { key: "page", label: copy.columns.page, cell: (error) => error.route },
   { key: "first", label: copy.columns.first, short: true, cell: (error) => staffTime(error.firstSeen) },
   { key: "count", label: copy.columns.count, short: true, cell: (error) => error.count },
 ];

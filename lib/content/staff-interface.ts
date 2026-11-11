@@ -86,7 +86,7 @@ export const staffCopy = {
     campaigns: "Campaigns",
     emails: "All emails",
     sentEmails: "Sent emails",
-    errors: "⁂ Errors",
+    errors: "Errors",
     // Beside a page the staff member first saw in the last 3 days.
     newTag: "new",
     draftTag: "draft",
@@ -2242,42 +2242,48 @@ All events: ${link}`,
   // /staff/errors, one error's page, and the emails to the notification inbox.
   errorsSeen: {
     // Under the list's heading.
-    intro:
-      "⁂ What has gone wrong on the site in the last month, apart from the imports, which keep their own. The newest first. One that stops happening is deleted a month after it was last seen.",
-    total: (n: number) => `⁂ ${count(n, "error", "errors")}`,
+    intro: "Server and browser errors",
+    total: (n: number) => count(n, "error", "errors"),
     none: "⁂ Nothing has gone wrong in the last month.",
     columns: {
-      what: "⁂ What went wrong",
-      where: "⁂ Where",
-      first: "⁂ First seen",
-      last: "⁂ Last seen",
-      count: "⁂ Times",
+      what: "Error message",
+      kind: "Kind",
+      // The route's pattern for the server's, the page's path for a browser's; nothing for a problem.
+      page: "Page or route",
+      first: "First seen",
+      last: "Last seen",
+      count: "Times",
     },
-    // What was running: Next's four on the server, a problem our code reported, and the browser's two.
+    // What was running: Next's four on the server, a problem our code reported, and the browser's two. Of
+    // the browser's, the first lost the visitor the page, which went to the error page; the second threw
+    // from a click or the like and left the page as it was.
     kinds: {
-      render: "⁂ Page",
+      render: "Page",
       route: "⁂ Route handler",
       action: "⁂ Server Action",
       proxy: "⁂ Proxy",
-      problem: "⁂ Problem",
-      "browser-page": "⁂ Browser, page lost",
-      "browser-other": "⁂ Browser",
+      problem: "Problem",
+      "browser-page": "Browser: page crashed",
+      "browser-other": "Browser: page carried on",
     },
     // One error's page: its heading, the way back to the list, then each thing known about it.
     one: {
       title: "⁂ Error",
-      back: "⁂ All errors",
-      where: "⁂ Where",
-      className: "⁂ Class",
-      code: "⁂ Code",
-      browser: "⁂ Browser of the latest",
-      first: "⁂ First seen",
-      last: "⁂ Last seen",
-      count: "⁂ Times",
-      // Over its words as they were thrown the last time, numbers, addresses and all.
-      latest: "⁂ The latest, as it was thrown",
-      stack: "⁂ Its stack trace",
-      noStack: "⁂ It came with no stack trace.",
+      back: "All errors",
+      kind: "Kind",
+      page: "Page or route",
+      className: "Class",
+      code: "Code",
+      browser: "Browser of the latest",
+      first: "First seen",
+      last: "Last seen",
+      count: "Times",
+      // Over everything under the header, which is the latest time's alone.
+      latest: "Details on most recent time",
+      // Over its message as it was thrown, numbers, addresses and all; then over its stack trace.
+      message: "Error message",
+      stack: "Stack trace",
+      noStack: "No stack trace.",
     },
     // The emails. `where` is the kind and the route; `words` the error's, with what varies taken out.
     email: {
