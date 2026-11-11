@@ -4,10 +4,13 @@ import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Component gallery", part: "Tools and checks", order: 30 };
 
-// The component gallery (app/(tools)/gallery):
-// its index, then each group's page pictured whole, so a change to any
-// component shows beside main's, even one no other flow reaches. Pressing
-// things is the other flows' job, and the examples' own Vitest tests'.
+// The component gallery (app/(tools)/gallery): its index, then a flow per
+// group with a frame of each component, so a change to any component shows
+// beside main's, even one no other flow reaches. A frame is one component's
+// section, not the group's whole page: a component that grows a line moves
+// every one below it, and a picture of the page would differ all the way
+// down. Pressing things is the other flows' job, and the examples' own
+// Vitest tests'.
 
 // Each group of the gallery, in its order. A new group fails the first test
 // until it's here.
@@ -81,6 +84,17 @@ for (const group of GROUPS) {
     await expect(page.locator(`[data-gallery-group="${group}"]`)).toBeVisible();
     // The attachments' example PDF isn't there to draw, so each ends as a sheet, a blank canvas until pdf.js has found that.
     if (group === "staff-mailings-events") await expect(page.locator("canvas")).toHaveCount(0);
-    await frame(page, group);
+    const sections = page.locator(`[data-gallery-group="${group}"] > section`);
+    // Each captioned with its component's name, and its file where two in the group share a name.
+    const headings = await sections
+      .locator("h2")
+      .evaluateAll((h2s) =>
+        h2s.map((h2) => ({ name: h2.firstChild!.textContent!.trim(), file: h2.querySelector("span")!.textContent! })),
+      );
+    expect(headings.length).toBeGreaterThan(0);
+    for (const [i, { name, file }] of headings.entries()) {
+      const shared = headings.filter((other) => other.name === name).length > 1;
+      await frame(page, shared ? `${name} (${file})` : name, { of: sections.nth(i) });
+    }
   });
 }

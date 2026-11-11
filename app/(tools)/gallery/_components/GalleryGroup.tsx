@@ -5,8 +5,8 @@ import styles from "./Gallery.module.css";
 
 /**
  * One group's page: a way back to the index, a link to each component, then
- * every component and its variants. The storyboard pictures it whole
- * (tests/storyboard/gallery.spec.ts).
+ * every component and its variants. The storyboard pictures each component's
+ * section (tests/storyboard/gallery.spec.ts).
  */
 export default function GalleryGroup({ group, browser = false }: { group: Group; browser?: boolean }) {
   return (
