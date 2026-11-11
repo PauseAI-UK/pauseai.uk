@@ -86,11 +86,12 @@ for (const group of GROUPS) {
     if (group === "staff-mailings-events") await expect(page.locator("canvas")).toHaveCount(0);
     const sections = page.locator(`[data-gallery-group="${group}"] > section`);
     // Each captioned with its component's name, and its file where two in the group share a name.
-    const headings = await sections
-      .locator("h2")
-      .evaluateAll((h2s) =>
-        h2s.map((h2) => ({ name: h2.firstChild!.textContent!.trim(), file: h2.querySelector("span")!.textContent! })),
-      );
+    const headings = await sections.evaluateAll((all) =>
+      all.map((section) => {
+        const h2 = section.querySelector(":scope > .container > h2")!;
+        return { name: h2.firstChild!.textContent!.trim(), file: h2.querySelector("span")!.textContent! };
+      }),
+    );
     expect(headings.length).toBeGreaterThan(0);
     for (const [i, { name, file }] of headings.entries()) {
       const shared = headings.filter((other) => other.name === name).length > 1;
