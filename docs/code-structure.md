@@ -119,6 +119,11 @@ the code should go instead. The rules below say which ones are enforced.
 - **A caught error is rethrown or reported.** Code that catches an error
   and carries on reports it with `problem()` (`lib/server/problems.ts`), in
   our words, with the error.
+  - Every way out of a catch reports first. An early `break`, `continue` or
+    `return` for one kind of error, such as "Gmail refused, try next time",
+    skips the report, and the error is lost however often it happens.
+    `tests/checks/caught-errors.test.ts` fails on one, but for the few it
+    lists as answers rather than failures, each with why.
   - During a run of a job (`asRun()` in `lib/server/import-runs.ts`), the
     problem is kept on the run, so the job's page shows it under the run's
     line. Staff are emailed about it once, and not again until a run has

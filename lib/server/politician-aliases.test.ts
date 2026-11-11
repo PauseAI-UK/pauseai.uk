@@ -166,6 +166,46 @@ describeWithDatabase("a politician's aliases", () => {
     expect(await searchAddedAddresses(LATER())).toEqual({ searched: 1, kept: 0, waiting: 0 });
   });
 
+  it("passes over what another mailbox gave us, by its headers, without fetching it whole", async () => {
+    const polly = await politician();
+    await connectTestGmail("joseph@pauseai.uk");
+    const searched: string[] = [];
+    mailbox(searched);
+    const [{ id: thread }] = await query<{ id: number }>(
+      "INSERT INTO one_off_threads (latest_at) VALUES (now()) RETURNING id::int AS id",
+    );
+    await query(
+      `INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address,
+         addresses, at, from_us, blob_key, size, quoted_addresses, quoted_names)
+       VALUES ($1, 'policy@pauseai.uk', 'p1', 'pt', 'm1@example.org', 'polly.personal@example.com', '{}', now(), false, 'k', 1, '{}', '{}')`,
+      [thread],
+    );
+    // Fetching m1 whole, or its thread, would fail the search.
+    server.use(
+      http.get(`${GMAIL}/messages/m1`, ({ request }) =>
+        new URL(request.url).searchParams.get("format") === "raw"
+          ? new HttpResponse("{}", { status: 500 })
+          : HttpResponse.json({
+              id: "m1",
+              threadId: "t-m1",
+              labelIds: ["INBOX"],
+              internalDate: "1790000000000",
+              payload: {
+                headers: [
+                  { name: "From", value: "Polly <polly.personal@example.com>" },
+                  { name: "Message-ID", value: "<m1@example.org>" },
+                ],
+              },
+            }),
+      ),
+    );
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    const error = vi.spyOn(console, "error");
+    expect(await searchAddedAddresses(LATER())).toEqual({ searched: 1, kept: 0, waiting: 0 });
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
+
   it("stops when Gmail refuses for now, as a problem of the run, and carries on next time", async () => {
     const polly = await politician();
     await connectTestGmail("policy@pauseai.uk");

@@ -4,7 +4,7 @@ import { auditActions, logChange } from "./audit";
 import { config } from "./config";
 import { query, transaction } from "./db";
 import { gmailAccess } from "./gmail-accounts";
-import { ONE_OFF_HEADERS, keepIfPoliticianThread } from "./one-off-emails";
+import { ONE_OFF_HEADERS, isHeld, keepIfPoliticianThread } from "./one-off-emails";
 import { relinkOneOffs } from "./one-off-relink";
 import { GmailError, gmailMessageHeaders, searchGmail, unlessGone } from "./outside-services/gmail";
 import { connectedAccounts, readPoliticianBook } from "./politician-book";
@@ -135,7 +135,9 @@ async function searchMailboxes(address: string, stop: number): Promise<boolean> 
     for (const id of found.filter((id) => !kept.some((row) => row.id === id))) {
       if (Date.now() >= stop) return false;
       const message = await gmailMessageHeaders(token, id, ONE_OFF_HEADERS).catch(unlessGone);
-      if (message) await keepIfPoliticianThread(account, token, message, account === config.policyInbox);
+      // Most it finds are copies of what another mailbox gave us: those are passed over by their headers alone.
+      if (message && !(await isHeld(account, message)))
+        await keepIfPoliticianThread(account, token, message, account === config.policyInbox);
     }
   }
   return true;

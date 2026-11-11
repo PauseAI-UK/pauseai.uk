@@ -390,6 +390,42 @@ describeWithDatabase("one-off emails", () => {
         expect(await query("SELECT gmail_message_id AS id FROM unmatched_mail")).toEqual([{ id: "m1" }]);
       });
 
+      it("passes over a message of the thread that another mailbox gave us, by its headers, without fetching it whole", async () => {
+        await addTestPolitician();
+        mailbox({ id: "m1", from: "friend@example.com", thread: "t" }, { id: "m2", from: POLLY, thread: "t" });
+        inThread("m1", "m2");
+        const [{ id: thread }] = await query<{ id: number }>(
+          "INSERT INTO one_off_threads (latest_at) VALUES (now()) RETURNING id::int AS id",
+        );
+        await query(
+          `INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address,
+             addresses, at, from_us, blob_key, size, quoted_addresses, quoted_names)
+           VALUES ($1, 'policy@pauseai.uk', 'p1', 'pt', 'm1@example.org', 'friend@example.com', '{}', now(), false, 'k', 1, '{}', '{}')`,
+          [thread],
+        );
+        // Fetching it whole would fail the read.
+        server.use(
+          http.get(`${GMAIL}/messages/m1`, ({ request }) =>
+            new URL(request.url).searchParams.get("format") === "raw"
+              ? new HttpResponse("{}", { status: 500 })
+              : HttpResponse.json({
+                  id: "m1",
+                  threadId: "t",
+                  labelIds: ["INBOX"],
+                  internalDate: "1790000000000",
+                  payload: {
+                    headers: [
+                      { name: "From", value: "friend@example.com" },
+                      { name: "Message-ID", value: "<m1@example.org>" },
+                    ],
+                  },
+                }),
+          ),
+        );
+        expect(await josephs("m2")).toBe("kept");
+        expect(await keptIds()).toEqual(["m2", "p1"]);
+      });
+
       it("reads only what isn't kept yet, picking up what a read that stopped partway left", async () => {
         await addTestPolitician();
         mailbox(
