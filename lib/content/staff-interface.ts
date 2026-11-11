@@ -2247,9 +2247,9 @@ All events: ${link}`,
       server: {
         subject: (words: string) => `⁂ Error on the site: ${words}`,
         first: (where: string, words: string, link: string) =>
-          `⁂ Something went wrong on the site that hasn't in the last month.\n\n${where}\n${words}\n\nYou'll be emailed about it again at most once a day while it goes on happening. The latest, with its stack trace: ${link}`,
+          `⁂ Something went wrong on the site that hasn't in the last month.\n\n${where}\n${words}\n\nYou'll be emailed about it again at most once a day while it goes on happening. The latest, as it happened: ${link}`,
         again: (where: string, words: string, since: number, total: number, link: string) =>
-          `⁂ This is still going wrong on the site: ${count(since, "more time", "more times")} since the last email about it, ${total} in all.\n\n${where}\n${words}\n\nThe latest, with its stack trace: ${link}`,
+          `⁂ This is still going wrong on the site: ${count(since, "more time", "more times")} since the last email about it, ${total} in all.\n\n${where}\n${words}\n\nThe latest, as it happened: ${link}`,
       },
       // An error in a visitor's browser that lost them the page. Its words aren't quoted, as anyone can post them.
       browser: {
