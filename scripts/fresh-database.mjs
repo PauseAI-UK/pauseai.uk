@@ -115,12 +115,23 @@ export function dropDatabase(name) {
 }
 
 /**
+ * Production's Postgres has no JIT, and CI's does: there, a query Postgres
+ * thinks costly, as one over the supporter views is, is compiled first,
+ * which on a loaded runner has taken over the 5 seconds a test is given. So
+ * every database made here has it off, to run its queries as production
+ * does. A copy doesn't keep its template's settings, so each is set.
+ */
+const NO_JIT = (name) => `ALTER DATABASE "${name}" SET jit = off`;
+
+/**
  * Makes database `name` as a copy of `template`, on the same server. Postgres
  * copies the files, so it takes tens of milliseconds, however many
  * migrations there are; nothing may be connected to the template.
  */
 export function copyDatabase(name, template) {
-  psql(databaseUrl("postgres"), "-c", `CREATE DATABASE "${checkName(name)}" TEMPLATE "${checkName(template)}"`);
+  const server = databaseUrl("postgres");
+  psql(server, "-c", `CREATE DATABASE "${checkName(name)}" TEMPLATE "${checkName(template)}"`);
+  psql(server, "-c", NO_JIT(checkName(name)));
 }
 
 /** Runs `sql` in database `name`, and returns the rows it printed, one per line, tab-separated. */
@@ -172,6 +183,7 @@ export function resetDatabase(url, { singleTransaction = false, upTo } = {}) {
     throw new Error(noServer(server.toString()), { cause });
   }
   psql(server.toString(), "-c", `CREATE DATABASE "${name}" ${PRODUCTION_LOCALE}`);
+  psql(server.toString(), "-c", NO_JIT(name));
   // One psql for every file, in order, stopping at the first error: a
   // process each would make a fresh database slower with every migration,
   // and much slower on a loaded machine. No migration sets anything for its

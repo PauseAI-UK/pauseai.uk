@@ -111,7 +111,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
   // timeout (tests/database.ts, which this file, testing what that one is
   // built on, doesn't import).
   it(
-    "makes a database with production's collation, copies it, runs SQL in the copy, holds a job's lock, lists and drops them, and refuses bad names",
+    "makes a database with production's collation and no JIT, copies it, runs SQL in the copy, holds a job's lock, lists and drops them, and refuses bad names",
     { timeout: 30_000 },
     async () => {
       try {
@@ -127,6 +127,8 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           runSql(copy, "SELECT string_agg(x, ' ' ORDER BY x) FROM (VALUES ('apple'), ('Zack'), ('Émile')) v(x)"),
         ).toEqual(["Zack apple Émile"]);
         expect(runSql(copy, "SELECT 1 WHERE false")).toEqual([]);
+        // No JIT, as production has none, in the database and its copy.
+        expect([...runSql(template, "SHOW jit"), ...runSql(copy, "SHOW jit")]).toEqual(["off", "off"]);
         expect(databaseNames(`test_${process.pid}_`)).toEqual([copy, template]);
         expect(() => copyDatabase("bad name", template)).toThrow("Bad database name: bad name");
         expect(() => runSql("x;drop", "SELECT 1")).toThrow("Bad database name");
