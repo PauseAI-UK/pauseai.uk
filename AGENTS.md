@@ -112,7 +112,7 @@ The fixture server's port comes from the checkout's path, and the storyboard ref
 
 If no flow reaches what you need, add a `frame()` to one, or add a flow (see above), rather than writing a script in `tmp/`.
 
-To see a component, use the component gallery (`/gallery`, fixture builds only; `docs/testing.md`, "The component gallery"). Every component has an example there, a page per group, and the gallery section pictures each group's page whole:
+To see a component, use the component gallery (`/gallery`, fixture builds only; `docs/testing.md`, "The component gallery"). Every component has an example there, a page per group, and the gallery section has a flow per group, with a frame of each component:
 
 ```bash
 npm run storyboard -- --no-main --no-open --paths gallery -g 'gallery: ui$'   # the UI kit, both viewports

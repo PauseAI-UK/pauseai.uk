@@ -20,10 +20,9 @@ import type { PlaceholderText } from "./report/frames";
  * placed against the window, and a full-page picture, which Chromium takes
  * by resizing the window, sometimes caught it placed against a passing size.
  *
- * `of` pictures one element, exactly (the component gallery's variants), with
+ * `of` pictures one element, exactly (a component in the gallery), with
  * the page at the top so the sticky header is never over it. `window`
- * pictures only the window, for a page too long to picture whole (the
- * gallery itself). `hover` puts the pointer over an element, and keeps it
+ * pictures only the window, for a page too long to picture whole. `hover` puts the pointer over an element, and keeps it
  * there for the picture, in place of moving it out of the way.
  *
  * Each frame also records the placeholders it pictures (placeholdersOnPage), for

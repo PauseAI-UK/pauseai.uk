@@ -757,7 +757,7 @@ that drives it or why nothing does.
 - `mobile-nav.spec.ts`: The burger menu on a phone: open, close, dropdowns, navigating, scroll lock released.
 - `onboarding-embed.spec.ts`: The home page's signup iframe: shows after slow hydration, ignores other origins.
 - `scroll.spec.ts`: Anchor links, deep links, the back button, keyboard focus, reduced motion, the footer's cookie link, the embed not scrolling the page.
-- `gallery.spec.ts`: The component gallery ("The component gallery", below): its index and a flow per group, one full-page frame of its page, each checked for noindex and console errors.
+- `gallery.spec.ts`: The component gallery ("The component gallery", below): its index and a flow per group, a frame of each component's section, each checked for noindex and console errors.
 - `redirects.spec.ts`: Every redirect in `next.config.ts`, over HTTP, and that each destination resolves.
 - `/api/email-your-mp/lookup`: `campaigns`: the postcode form (`lookUpTestMp` in `tests/steps.ts`).
 - `/api/email-your-mp/letters`: `campaigns`: sending the letter (`sendLetter`).
@@ -837,8 +837,8 @@ pages are noindex.
   Both are in `_components/wiring.tsx`.
 - **Example data is test data:** obviously fake names, addresses and
   text, as in the browser tests, not copy.
-- **To check a component by eye**, picture its group on both viewports and
-  open the PNGs (`--paths` prints them; an agent opens them with its file
+- **To check a component by eye**, picture its group on both viewports, a
+  frame per component, and open the PNGs (`--paths` prints them; an agent opens them with its file
   reader):
 
   ```bash
