@@ -169,7 +169,7 @@ function CheckRun({ run, open, bare }: { run: MpCheck; open?: boolean; bare?: bo
       open={open}
       bare={bare}
       lines={count}
-      summary={relinked ? `${checked} ${staffCopy.check.relinked(relinked)}` : checked}
+      summary={relinked ? `${checked.replace(/\.?$/, ".")} ${staffCopy.check.relinked(relinked)}` : checked}
     >
       {count > 0 && (
         <Table>

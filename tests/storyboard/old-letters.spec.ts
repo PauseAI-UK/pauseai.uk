@@ -374,6 +374,7 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   await fold.getByRole("button", { name: aliases.add }).click();
   await expect(fold.getByRole("status")).toHaveText(aliases.added(1));
   await expect(fold.getByText(POLLY_PERSONAL)).toBeVisible();
+  await fold.getByRole("status").scrollIntoViewIfNeeded();
   await frame(page, "Her Gmail added", { window: true });
   await page.goto(`${BASE}/staff/politicians/${polly}`);
   await expect(page.getByRole("link", { name: "From my own address" })).toBeVisible();
