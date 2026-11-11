@@ -64,13 +64,6 @@ jobs:
         if: ${{ !cancelled() }}
         run: npm run format:check
 
-      # Copy still waiting for a person to write it (AGENTS.md, "Never write
-      # final copy"). Here, not among the tests, so a branch whose copy
-      # waits still gets its coverage checked.
-      - name: Check no copy is a placeholder
-        if: ${{ !cancelled() }}
-        run: npm run placeholders
-
   # The types, on their own, so a type error is one red job saying what's
   # wrong in seconds. The jobs that build the site wait for this one, as
   # `next build` checks types too, and show as skipped rather than failing

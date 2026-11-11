@@ -11,8 +11,9 @@
 // checked to come after main's (scripts/migration-order.mjs). If one fails, the gate
 // stops there. Then what .github/workflows/ci.yml runs, in parallel lanes as
 // CI's jobs are: the types then the storyboard (CI's Storyboard job needs
-// Types, and both write .next), the tests with coverage, the linters and the
-// placeholder check one after another, and the backup Worker's package. Not `next build`: the
+// Types, and both write .next), the tests with coverage, the linters one
+// after another (with the placeholder check that `npm run lint` ends on as
+// a command of its own), and the backup Worker's package. Not `next build`: the
 // storyboard builds the site. Nothing is fetched; origin/main is as last
 // fetched.
 //
@@ -142,11 +143,13 @@ export function slowPlan({ storyboard }) {
       ],
       [npm("test", ["test"], 15)],
       [
-        npm("lint", ["run", "lint"], 5),
+        // The two halves of `npm run lint`, each with an exit code of its own:
+        // a branch whose copy waits for approval fails only the second.
+        npx("lint", "npx eslint --max-warnings 0", ["eslint", "--max-warnings", "0"], 5),
+        npm("placeholders", ["run", "placeholders"], 1),
         npm("lint-css", ["run", "lint:css"], 3),
         npm("lint-unused", ["run", "lint:unused"], 5),
         npm("format-check", ["run", "format:check"], 3),
-        npm("placeholders", ["run", "placeholders"], 1),
       ],
       [
         npm("backup-install", ["ci", "--no-audit", "--no-fund"], 5, { cwd: "backup", required: true }),

@@ -6,10 +6,11 @@
 // Agents never write final copy (AGENTS.md, "Never write final copy"). Where
 // code needs words that a person hasn't written yet, they put in a draft that
 // starts with the mark U+2042. This lists each line of the repo that has the
-// mark, as file:line, and exits 1 if there are any. CI, the gate and
-// `npm run build` run it. It's a command of its own, not a Vitest test, as a
-// failing test would stop `npm test` reporting coverage for as long as a
-// branch's copy waits for approval. `npm run copy` shows the copy waiting.
+// mark, as file:line, and exits 1 if there are any. `npm run lint` ends
+// with it, so CI's lint job and `npm run build` run it, and the gate runs it
+// as a command of its own. It isn't a Vitest test, as a failing test would
+// stop `npm test` reporting coverage for as long as a branch's copy waits
+// for approval. `npm run copy` shows the copy waiting.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
