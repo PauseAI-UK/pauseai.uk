@@ -1,10 +1,11 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { REFUSALS_BEFORE_EMAIL } from "@/lib/spam-check-runs";
 import { staffTime } from "@/lib/staff-time";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { notifications } from "@/tests/notifications";
 import { query } from "./db";
-import { countSpamCheck, REFUSALS_BEFORE_EMAIL } from "./spam-check-runs";
+import { countSpamCheck } from "./spam-check-runs";
 
 const words = staffCopy.notifications.lettersRefused;
 

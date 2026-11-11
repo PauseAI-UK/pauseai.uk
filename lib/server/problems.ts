@@ -32,11 +32,18 @@ export function registerRunStore(find: () => Run | undefined): void {
 /** What keeps a problem reported outside a run: its sentence, and the error's words if it had one. */
 type Keeper = (what: string, described: string | undefined) => void;
 
-let keeper: Keeper | undefined;
+/**
+ * Where the keeper is held: on the global object, not in this module. Next
+ * builds instrumentation.ts, which registers it, apart from the pages and
+ * routes, which report the problems, and each build has a copy of this
+ * module of its own.
+ */
+const KEEPER = Symbol.for("pauseai.uk problem keeper");
+const held = globalThis as { [KEEPER]?: Keeper };
 
 /** Tells problem() what keeps one reported outside a run: keepProblem (errors-seen.ts), as the server starts. */
 export function registerProblemKeeper(keep: Keeper | undefined): void {
-  keeper = keep;
+  held[KEEPER] = keep;
 }
 
 /**
@@ -50,7 +57,7 @@ export function problem(what: string, error?: unknown, { told = false } = {}): v
   console.error(what, ...(described === undefined ? [] : [described]));
   const run = findRun();
   if (!run) {
-    if (!told) keeper?.(what, described);
+    if (!told) held[KEEPER]?.(what, described);
     return;
   }
   run.problems.push({

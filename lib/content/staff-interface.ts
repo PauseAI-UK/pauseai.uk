@@ -2291,7 +2291,7 @@ All events: ${link}`,
       },
       // An error in a visitor's browser that lost them the page. Its words aren't quoted, as anyone can post them.
       browser: {
-        subject: (where: string) => `⁂ A page fell over in someone's browser: ${where}`,
+        subject: (page: string) => `⁂ A page fell over in someone's browser: ${page}`,
         first: (where: string, link: string) =>
           `⁂ A page fell over in someone's browser, in a way that hasn't been seen in the last month.\n\n${where}\n\nYou'll be emailed about it again at most once a day while it goes on happening. What their browser said: ${link}`,
         again: (where: string, since: number, total: number, link: string) =>

@@ -1,5 +1,6 @@
 import "server-only";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { REFUSALS_BEFORE_EMAIL, type SpamCheckedForm } from "@/lib/spam-check-runs";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { staffTime } from "@/lib/staff-time";
 import { config } from "./config";
@@ -13,12 +14,6 @@ import { problem } from "./problems";
 // through, and staff are emailed once when it has refused several in a row
 // (spam_check_runs). A bot's run of refusals looks the same, so the email
 // says to try the form, not that it's broken.
-
-/** The forms whose spam checks are counted. */
-export type SpamCheckedForm = "letter";
-
-/** How many refusals in a row, with none let through, before staff are emailed. */
-export const REFUSALS_BEFORE_EMAIL = 5;
 
 /**
  * Counts one submission of `form` that the spam check refused, or let
