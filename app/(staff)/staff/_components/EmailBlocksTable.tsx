@@ -80,7 +80,8 @@ export function blockColumns(
         ),
     },
     { key: "refused", label: copy.columns.refused, short: true, text: (b) => b.refused, cell: (b) => b.refused },
-    { key: "since", label: copy.columns.since, short: true, text: (b) => b.since, cell: (b) => staffTime(b.since) },
+    // Free to wrap, its date over its time, to leave Unblock its line.
+    { key: "since", label: copy.columns.since, text: (b) => b.since, cell: (b) => staffTime(b.since) },
   ];
   return unblock
     ? [...columns, { key: "unblock", label: "", cell: (b) => <UnblockForm block={b} action={unblock} /> }]

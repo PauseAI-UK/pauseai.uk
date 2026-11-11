@@ -2,7 +2,7 @@
    narrow, as a bounce's reason can be a long line from the mail server. */
 .reason {
   display: inline-block;
-  min-width: 11rem;
+  min-width: 10rem;
   max-width: 22rem;
 }
 
