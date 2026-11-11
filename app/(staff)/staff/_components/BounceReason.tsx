@@ -8,9 +8,27 @@ export function problemSource({ kind, foundInGmail }: { kind: string; foundInGma
 }
 
 /**
+ * A mail server's reason, cut to its first sentence, or null when there's
+ * nothing after it: without the status codes servers put before it and on
+ * each line ("550-5.1.1", "554 5.7.1"), and a bracketed tag at its start
+ * ("[HM08]").
+ */
+export function firstSentence(reason: string): string | null {
+  const words = reason
+    .replace(/\b[245]\d\d[ -](?:[245]\.\d{1,3}\.\d{1,3}\b)?/g, "")
+    .replace(/^\s*\[[^\]]*\]/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const first = /^.*?[.!?](?=\s)/.exec(words)?.[0];
+  return first ?? null;
+}
+
+/**
  * Why an address bounced or was blocked, in the words of whoever told us,
  * then who that was, as a lozenge; never squeezed narrower than a few words,
- * so on a phone its table scrolls sideways instead.
+ * so on a phone its table scrolls sideways instead. A reason longer than
+ * its first sentence shows that, and "…" in a small pill, which unfolds
+ * the whole of it, and folds it again; its lozenge just after, either way.
  */
 export default function BounceReason({
   reason,
@@ -21,9 +39,25 @@ export default function BounceReason({
   kind: string;
   foundInGmail: boolean;
 }) {
+  const short = firstSentence(reason);
+  const source = <Tag>{problemSource({ kind, foundInGmail })}</Tag>;
+  if (!short) {
+    return (
+      <span className={styles.reason}>
+        {reason} {source}
+      </span>
+    );
+  }
   return (
     <span className={styles.reason}>
-      {reason} <Tag>{problemSource({ kind, foundInGmail })}</Tag>
+      <details className={styles.fold}>
+        <summary>
+          <span className={styles.short}>
+            {short} <span className={styles.more}>…</span>
+          </span>
+          <span className={styles.whole}>{reason}</span> {source}
+        </summary>
+      </details>
     </span>
   );
 }

@@ -9,7 +9,7 @@ import { currentRun, inRun } from "./run-store";
 // One log of every run of every job (lib/import-runs.ts, JOBS). Each run is
 // a row: when, who started it, how it ended, why it failed, what went wrong
 // along the way (problems.ts), and the job's own account of what it found.
-// Failures are kept too, so each job's page under /staff/import-data can
+// Failures are kept too, so each job's page under /staff/scheduled-jobs can
 // say what went wrong, and so are runs that changed nothing, so it can say
 // when the job last ran. Each job's page lists all of its runs. The types
 // are in lib/import-runs.ts, for the components. What runs each job, one

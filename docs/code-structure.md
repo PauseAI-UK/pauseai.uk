@@ -281,7 +281,7 @@ the code should go instead. The rules below say which ones are enforced.
   `/api/cron/<job>` with `CRON_SECRET` (`netlify/scheduled.ts`).
   - The work itself stays in the Next app. `lib/server/jobs.ts` says what
     runs each job, for that route and for the job's button.
-  - Every one is a job on `/staff/import-data`, whether or not it imports
+  - Every one is a job on `/staff/scheduled-jobs`, whether or not it imports
     anything and despite the page's name, so that staff can see its runs
     and press its button (`docs/domain-concepts.md`, "Imports").
   - A scheduled function gets 30 seconds. A job that needs longer has a
@@ -454,6 +454,10 @@ few rows they hold. What brings the cost under the threshold:
 - For a few rows worked out from the views, a PL/pgSQL function that looks
   each up by ID in a loop, declared with a small `ROWS`, so the outer query
   is planned as if there are few (`supporters_added()`).
+- Finding whose an address is from `supporter_links.matched_value`, which
+  has an index, and their name from `supporters_list`, not from
+  `supporter_identity`, the union of every source (the blocked emails'
+  `BLOCK_SUPPORTERS`).
 
 Before each migration, `migrate()` (`scripts/db-migrate.mjs`) analyses
 every table Postgres hasn't analysed yet, as autovacuum has analysed a live

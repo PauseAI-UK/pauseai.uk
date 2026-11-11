@@ -10,7 +10,7 @@ import { fetchLetter } from "./outside-services/controlai";
 // Copies the signatories of ControlAI's letter to the PM into the statuses
 // of its ask (CONTROLAI_LETTER_ASK), nightly (/api/cron/import-controlai) or when staff ask, and
 // keeps each run, failures included, in the import log (import-runs.ts, as
-// "import-controlai") for /staff/import-data.
+// "import-controlai") for /staff/scheduled-jobs.
 // The table is made to match the letter: statuses it set for names no
 // longer there go. It never touches another ask's statuses, or one set by
 // anything else.

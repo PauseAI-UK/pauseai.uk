@@ -25,7 +25,7 @@ describe("StaffNav", () => {
     const current = nav.querySelector('a[aria-current="page"]')!;
     expect(current.textContent).toBe(staffCopy.nav.politicians);
     expect(current.getAttribute("href")).toBe("/staff/politicians");
-    expect(nav.querySelector('a[href="/staff/import-data"]')!.textContent).toBe(staffCopy.nav.import);
+    expect(nav.querySelector('a[href="/staff/scheduled-jobs"]')!.textContent).toBe(staffCopy.nav.import);
     expect(nav.querySelector('a[href="/staff/accounts"]')!.textContent).toBe(staffCopy.nav.accounts);
     expect(nav.querySelector('a[href="/staff/politicians/blocked-emails"]')!.textContent).toBe(staffCopy.nav.mpEmails);
     expect([...nav.querySelectorAll("h2")].map((h) => h.textContent).slice(0, 3)).toEqual(
@@ -40,7 +40,7 @@ describe("StaffNav", () => {
     await menu.getByText(staffCopy.nav.politicians, { exact: true }).first().click();
     await expect
       .element(menu.getByRole("link", { name: staffCopy.nav.import }))
-      .toHaveAttribute("href", "/staff/import-data");
+      .toHaveAttribute("href", "/staff/scheduled-jobs");
     await expect.element(menu.getByRole("link", { name: staffCopy.nav.import })).toBeVisible();
     await expect.element(menu.getByText("jo@pauseai.uk", { exact: false })).toBeVisible();
     const form = menu.getByRole("button", { name: staffCopy.nav.logout }).element().closest("form")!;
@@ -65,7 +65,7 @@ describe("StaffNav", () => {
     const nav = document.querySelector("nav")!;
     expect(nav.querySelector('a[href="/staff/accounts"]')).toBeNull();
     expect(nav.querySelector('a[href="/staff/audit-log"]')).toBeNull();
-    expect(nav.querySelector('a[href="/staff/import-data"]')).not.toBeNull();
+    expect(nav.querySelector('a[href="/staff/scheduled-jobs"]')).not.toBeNull();
     expect(nav.querySelector("summary")!.textContent).toBe(staffCopy.nav.home);
   });
 

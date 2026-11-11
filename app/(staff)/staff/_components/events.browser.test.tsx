@@ -546,6 +546,6 @@ describe("EventsSource", () => {
     await expect.element(page.getByText(`${copy.source.label} ${copy.source.link}`)).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.source.link }))
-      .toHaveAttribute("href", "/staff/import-data/luma");
+      .toHaveAttribute("href", "/staff/scheduled-jobs/luma");
   });
 });

@@ -6,7 +6,7 @@ import ImportIcon from "./ImportIcon";
 
 describe("ImportIcon", () => {
   it("shows each source's mark, named for screen readers and on hover", async () => {
-    const sources = ["airtable", "luma", "gmail", "web", "database"] as const;
+    const sources = ["airtable", "luma", "civicrm", "gmail", "web", "database"] as const;
     await render(
       <>
         {sources.map((source) => (

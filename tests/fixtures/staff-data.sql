@@ -540,7 +540,7 @@ INSERT INTO email_problems (id, at, address, message_id, kind, reason, can_reset
   (2, now() - interval '10 days' + interval '1 minute', 'no-such-mailbox@pauseai.uk', NULL, 'hard', 'The address does not exist', true, '{"type": "HardBounce"}'),
   (3, now() - interval '9 days', 'gordon.gone.mp@parliament.uk', 'not-sent-by-the-site', 'hard', 'Mailbox closed', true, '{"type": "HardBounce"}'),
   (4, now() - interval '5 days' + interval '3 hours', 'rob.removed.mp@parliament.uk', NULL, 'complaint', 'Marked as spam', false, '{"type": "SpamComplaint"}'),
-  (5, now() - interval '4 days', 'polly.placeholder.mp@parliament.uk', NULL, 'hard', 'Mailbox unavailable', true, '{"type": "HardBounce"}'),
+  (5, now() - interval '4 days', 'polly.placeholder.mp@parliament.uk', NULL, 'hard', '550 5.4.1 Recipient address rejected: Access denied. For more information see https://aka.ms/EXOSmtpErrors [AB1CDEF000123GH.eurprd01.prod.outlook.com 2026-10-12T09:14:03.232Z 08DE0000000000AA]', true, '{"type": "HardBounce"}'),
   (6, now() - interval '3 days' + interval '1 minute', 'no-such-mailbox@pauseai.uk', NULL, 'hard', 'The address does not exist', true, '{"type": "HardBounce"}');
 UPDATE email_problems p SET message_id = 'seed-message-' || l.id FROM seed_letter_rows l WHERE l.postmark_mailbox = 'seed-prev-bounce-1' AND p.id = 1;
 UPDATE email_problems p SET message_id = 'seed-message-' || l.id FROM seed_letter_rows l WHERE l.postmark_mailbox = 'seed-prev-bounce-2' AND p.id = 2;
@@ -1162,7 +1162,9 @@ INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM problems;
 -- (Robin's calendar address bounced too, a broadcast to it, at the end.)
 WITH bounced AS (
   INSERT INTO email_problems (at, address, kind, reason, can_reset) VALUES
-    (now() - interval '2 days', 'dana.old@example.com', 'hard', 'No such mailbox', true)
+    (now() - interval '2 days', 'dana.old@example.com', 'hard',
+     '550-5.1.1 The email account that you tried to reach does not exist. Please try 550-5.1.1 double-checking the recipient''s email address for typos or 550-5.1.1 unnecessary spaces. For more information, go to 550 5.1.1 https://support.google.com/mail/?p=NoSuchUser 9xyz1234a5b6c-7d890ef1234sor5678901e87.1 - gsmtp',
+     true)
   RETURNING id, address
 )
 INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM bounced;

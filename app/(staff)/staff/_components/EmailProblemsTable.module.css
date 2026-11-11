@@ -1,0 +1,5 @@
+/* A cell that's a few words, kept on one line, as the blocked addresses'
+   list keeps its short columns, so the reason takes the room left. */
+.short {
+  white-space: nowrap;
+}

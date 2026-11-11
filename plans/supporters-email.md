@@ -141,6 +141,9 @@ reason names CiviCRM. If it comes first, this phase is what it must cover.
 
 ### 2. Send our stops back
 
+Staff lifting a hold's block on the blocked addresses page lifts the hold
+in CiviCRM too, if the API gives a way to, so the two agree.
+
 Each new newsletter stop in `opt_outs`, and each spam complaint as
 `no_bulk_email`, goes to `updateSubscriptions`, retried until it has a
 result. Our newsletter and CiviCRM's `newsletter` are one list, so a

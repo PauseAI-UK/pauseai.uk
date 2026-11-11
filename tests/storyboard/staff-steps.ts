@@ -191,7 +191,7 @@ export async function chooseDay(page: Page, label: string, day: string) {
 
 /** Presses Import emails now on its page, as the staff member logged in, and waits for the run. */
 export async function importEmails(page: Page) {
-  await page.goto(`${BASE}/staff/import-data/emails`);
+  await page.goto(`${BASE}/staff/scheduled-jobs/emails`);
   await page.getByRole("button", { name: staffCopy.pauseaiEmails.importNow }).click();
   await expect(page.getByText(staffCopy.runs.status.problems).first()).toBeVisible();
 }

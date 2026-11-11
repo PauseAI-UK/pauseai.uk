@@ -13,7 +13,7 @@ export type JobSchedule = "frequent" | "hourly" | "nightly" | "oneOff";
 
 /**
  * Every job, by its name in the import log (`import_runs.job`): its page,
- * /staff/import-data/<slug>, how often it runs, and, for one with more to
+ * /staff/scheduled-jobs/<slug>, how often it runs, and, for one with more to
  * do than a run can, how long a run works before it stops taking on more,
  * leaving the rest for the next. Every run is a request to the site, which
  * a Netlify function stops at 30 seconds, so a budget leaves room for the
@@ -53,7 +53,7 @@ export const SCHEDULED_JOBS = IMPORT_JOBS.filter((job) => jobSchedule(job) !== "
 
 /** Where a job's page is. */
 export function importPath(job: ImportJob): string {
-  return `/staff/import-data/${JOBS[job].slug}`;
+  return `/staff/scheduled-jobs/${JOBS[job].slug}`;
 }
 
 /** The job a page's slug names, if any. */
@@ -183,6 +183,8 @@ export type CivicrmImportResult = {
   held?: true;
   optOuts: number;
   blocked: number;
+  /** Addresses whose hold CiviCRM lifted, unblocked; only when there were any. */
+  unblocked?: number;
   /** Supporters made for contacts whose address nobody had, and contacts linked to a supporter (runs kept before CiviCRM made supporters don't say). */
   supportersAdded?: number;
   linked?: number;

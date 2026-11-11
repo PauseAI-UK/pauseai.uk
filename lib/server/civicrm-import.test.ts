@@ -243,6 +243,32 @@ describeWithDatabase("importCivicrm", () => {
     expect(await importCivicrm("nightly")).toMatchObject({ blocked: 1 });
   });
 
+  it("unblocks an address when CiviCRM lifts its hold, unless another of its contacts is still on hold", async () => {
+    serve([
+      contact(1, "held@example.com", { on_hold: true }),
+      contact(2, "twice@example.com", { on_hold: true }),
+      contact(3, "twice@example.com", { on_hold: true }),
+    ]);
+    expect(await importCivicrm("nightly")).toMatchObject({ blocked: 2 });
+    expect(await importCivicrm("nightly")).not.toHaveProperty("unblocked");
+
+    // Both lift one hold; the address with another contact on hold stays blocked.
+    serve([
+      contact(1, "held@example.com"),
+      contact(2, "twice@example.com"),
+      contact(3, "twice@example.com", { on_hold: true }),
+    ]);
+    expect(await importCivicrm("nightly")).toMatchObject({ unblocked: 1 });
+    expect(await query("SELECT address FROM email_blocks ORDER BY 1")).toEqual([{ address: "twice@example.com" }]);
+    // The hold stays in the address's history.
+    expect(await query("SELECT kind FROM email_problems WHERE address = 'held@example.com'")).toEqual([
+      { kind: "hold" },
+    ]);
+    expect(
+      staffCopy.civicrm.result({ contacts: 3, added: 0, changed: 2, gone: 0, optOuts: 0, blocked: 0, unblocked: 1 }),
+    ).not.toBe(staffCopy.civicrm.result({ contacts: 3, added: 0, changed: 2, gone: 0, optOuts: 0, blocked: 0 }));
+  });
+
   it("fails the run when CiviCRM fails, keeping nothing", async () => {
     server.use(http.get(GET, () => new HttpResponse("Down", { status: 503 })));
     await expect(importCivicrm("nightly")).rejects.toThrow("CiviCRM request failed with status 503: Down");

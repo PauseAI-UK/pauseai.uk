@@ -4,7 +4,7 @@ import type { ParliamentMp } from "./parliament";
 
 // Where Airtable's MPs disagree with Parliament's Members API, or with the
 // official constituency names, for the policy team to look at
-// (/staff/import-data). Nothing is changed by it.
+// (/staff/scheduled-jobs). Nothing is changed by it.
 
 /** An MP in office, as copied from Airtable. */
 export type AirtableMp = { name: string; constituency: string; email: string | null };

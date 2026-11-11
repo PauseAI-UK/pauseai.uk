@@ -26,7 +26,7 @@ export default function UnblockForm({
       <span className={styles.why}>
         <TextInput name="note" required aria-label={staffCopy.emails.note} placeholder={staffCopy.emails.note} />
       </span>
-      <SubmitButton variant="primary" size="small">
+      <SubmitButton variant="ghost" size="small" fit>
         {staffCopy.emails.unblock}
       </SubmitButton>
     </FilterForm>

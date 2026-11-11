@@ -30,11 +30,12 @@ export const exampleComplaint: EmailBlock = {
   refused: 0,
 };
 
-/** A politician's address, blocked by a mailing's letter that bounced, found in the sender's Gmail. */
+/** A politician's address, blocked by a mailing's letter that bounced, found in the sender's Gmail, with Gmail's long reason, folded to its first sentence. */
 export const exampleGmailBlock: EmailBlock = {
   address: "old.office@parliament.uk",
   kind: "hard",
-  reason: "550 5.1.1 The email account that you tried to reach does not exist.",
+  reason:
+    "550-5.1.1 The email account that you tried to reach does not exist. Please try 550-5.1.1 double-checking the recipient's email address for typos or 550-5.1.1 unnecessary spaces. For more information, go to 550 5.1.1 https://support.google.com/mail/?p=NoSuchUser 9xyz1234a5b6c-7d890ef1234sor5678901e87.1 - gsmtp",
   since: new Date("2026-10-13T10:00:00Z"),
   canReset: true,
   foundInGmail: true,

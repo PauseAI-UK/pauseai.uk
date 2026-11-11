@@ -42,7 +42,7 @@ it("lists a job's newest run, or none", () => {
 });
 
 it("gives each job a page of its own, and finds the job from its page's slug", () => {
-  expect(importPath("check-mps")).toBe("/staff/import-data/mp-check");
+  expect(importPath("check-mps")).toBe("/staff/scheduled-jobs/mp-check");
   for (const job of IMPORT_JOBS) expect(jobBySlug(importPath(job).split("/").pop()!)).toBe(job);
   expect(jobBySlug("history")).toBeUndefined();
 });

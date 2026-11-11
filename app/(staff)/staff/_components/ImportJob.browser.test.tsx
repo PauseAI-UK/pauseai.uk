@@ -51,18 +51,18 @@ describe("ImportOverview", () => {
     ).toEqual([staffCopy.import.frequent, staffCopy.import.hourly, staffCopy.import.nightly, staffCopy.import.oneOff]);
     const cards = [...document.querySelectorAll("section")];
     expect(cards.map((card) => card.querySelector("h3 a")!.getAttribute("href"))).toEqual([
-      "/staff/import-data/luma",
-      "/staff/import-data/gmail",
-      "/staff/import-data/members",
-      "/staff/import-data/civicrm",
-      "/staff/import-data/sending",
-      "/staff/import-data/politicians",
-      "/staff/import-data/mp-check",
-      "/staff/import-data/controlai",
-      "/staff/import-data/tidying",
-      "/staff/import-data/old-letters",
-      "/staff/import-data/emails",
-      "/staff/import-data/web-form-letters",
+      "/staff/scheduled-jobs/luma",
+      "/staff/scheduled-jobs/gmail",
+      "/staff/scheduled-jobs/members",
+      "/staff/scheduled-jobs/civicrm",
+      "/staff/scheduled-jobs/sending",
+      "/staff/scheduled-jobs/politicians",
+      "/staff/scheduled-jobs/mp-check",
+      "/staff/scheduled-jobs/controlai",
+      "/staff/scheduled-jobs/tidying",
+      "/staff/scheduled-jobs/old-letters",
+      "/staff/scheduled-jobs/emails",
+      "/staff/scheduled-jobs/web-form-letters",
     ]);
     expect(cards.map((card) => card.querySelector("h3 a")!.textContent)).toEqual([
       jobTitles["import-luma"],
@@ -233,7 +233,7 @@ describe("ImportJobPage", () => {
     );
     await expect
       .element(page.getByRole("navigation", { name: staffCopy.import.pageTitle }).getByRole("link"))
-      .toHaveAttribute("href", "/staff/import-data");
+      .toHaveAttribute("href", "/staff/scheduled-jobs");
     expect(page.getByRole("heading", { level: 1 }).element().textContent).toBe(
       `${jobTitles["sync-politicians"]}${staffCopy.import.nightly}`,
     );

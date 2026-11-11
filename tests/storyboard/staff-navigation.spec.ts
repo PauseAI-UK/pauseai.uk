@@ -194,7 +194,7 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
   );
 
   // ControlAI's letter adds several: the tile is everyone who agreed anything, the latest recorded first.
-  await page.goto(`${BASE}/staff/import-data/controlai`);
+  await page.goto(`${BASE}/staff/scheduled-jobs/controlai`);
   await page.getByRole("button", { name: staffCopy.controlAi.importNow }).click();
   await expect(page.getByText(/6 names/)).toBeVisible();
   await page.goto(`${BASE}/staff`);
@@ -306,13 +306,13 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await frame(page, "What was logged", { window: true });
   await page.keyboard.press("Escape");
 
-  // The import page: a card per job; each opens the job's own page.
-  story("The Import data page has a card for each import.");
-  await page.goto(`${BASE}/staff/import-data`);
-  await frame(page, "The Import data page");
+  // The Scheduled jobs page: a card per job; each opens the job's own page.
+  story("The Scheduled jobs page has a card for each job.");
+  await page.goto(`${BASE}/staff/scheduled-jobs`);
+  await frame(page, "The Scheduled jobs page");
   story("ControlAI's import reads the signatures on their letter, which Polly Placeholder has signed.");
   await page.getByRole("link", { name: jobTitles["import-controlai"] }).click();
-  await expect(page).toHaveURL(`${BASE}/staff/import-data/controlai`);
+  await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs/controlai`);
 
   // The fixture ControlAI letter is signed by Polly Placeholder MP, so the bill's column says so.
   await page.getByRole("button", { name: staffCopy.controlAi.importNow }).click();
@@ -327,7 +327,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   story("The MP check finds Polly Placeholder has an email in Airtable that Parliament doesn't list.");
 
   // The fixture Airtable gives Polly Placeholder an email Parliament doesn't list.
-  await page.goto(`${BASE}/staff/import-data/mp-check`);
+  await page.goto(`${BASE}/staff/scheduled-jobs/mp-check`);
   await page.getByRole("button", { name: staffCopy.check.checkNow }).click();
   const blake = page.getByRole("row").filter({ hasText: "Cities of London and Westminster" });
   await expect(blake).toContainText(staffCopy.check.kinds.email);

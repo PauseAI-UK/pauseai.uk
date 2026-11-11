@@ -11,7 +11,7 @@ describe("ImportCard", () => {
       <ImportCards>
         <ImportCard
           title="An import"
-          href="/staff/import-data/luma"
+          href="/staff/scheduled-jobs/luma"
           icon={<ImportIcon source="luma" />}
           tags={<span>Check only</span>}
           intro={<a href="https://luma.com">Luma</a>}
@@ -28,7 +28,7 @@ describe("ImportCard", () => {
     await expect.element(heading).toBeVisible();
     await expect
       .element(heading.getByRole("link", { name: "An import" }))
-      .toHaveAttribute("href", "/staff/import-data/luma");
+      .toHaveAttribute("href", "/staff/scheduled-jobs/luma");
     await expect.element(page.getByRole("link", { name: "Luma" })).toHaveAttribute("href", "https://luma.com");
     await expect.element(page.getByText("Not imported yet.")).toBeVisible();
     // The title's link covers the card; the description's own link sits above it.

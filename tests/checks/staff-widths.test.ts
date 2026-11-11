@@ -37,6 +37,8 @@ const ALLOWED: Record<string, string> = {
   "SavedFilters.module.css .name": "a long name's longest, in the chip",
   "SavedFilters.module.css .chip": "in the filter bar's row, never wider than it",
   "StaffAccountsTable.module.css .add input": "a field",
+  // A table cell's words, which wrap before a long reason widens the table.
+  "BounceReason.module.css .reason": "a cell's text",
 };
 
 /** Each rule's selector and its max-width, from a stylesheet's text, at-rules' own selectors left out. */

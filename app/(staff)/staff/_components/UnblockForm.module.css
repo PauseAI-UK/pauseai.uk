@@ -5,9 +5,15 @@
   --button-font-size: 14px;
 }
 
-/* The note's field and Unblock on one line: the field takes the room the
-   button leaves, and the button wraps under it only when there's none. */
+/* The note's field and Unblock always on one line, over the kit's form,
+   which wraps (the class twice, so it wins whichever loads last). */
+.form.form {
+  flex-wrap: nowrap;
+}
+
+/* The field is short, as a note of why is a few words, but never less
+   than enough to type in; it doesn't grow into the room beside it. */
 .why {
-  flex: 1 1 10rem;
-  min-width: 0;
+  flex: 0 1 9rem;
+  min-width: 6rem;
 }

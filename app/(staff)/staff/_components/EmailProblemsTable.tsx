@@ -5,6 +5,7 @@ import type { ProblemSummary } from "@/lib/server/email";
 import { staffTime } from "@/lib/staff-time";
 import LetterLink from "./LetterLink";
 import Reason from "./BounceReason";
+import styles from "./EmailProblemsTable.module.css";
 
 /** The latest bounces and complaints, soft bounces too, and what each email was: a letter, linked to it with `letterLinks`. */
 export default function EmailProblemsTable({
@@ -32,7 +33,7 @@ export default function EmailProblemsTable({
           <tr key={problem.id}>
             <td>{staffTime(problem.at)}</td>
             <td>{problem.address}</td>
-            <td>{staffCopy.emails.kinds[problem.kind]}</td>
+            <td className={styles.short}>{staffCopy.emails.kinds[problem.kind]}</td>
             <td>
               <Reason reason={problem.reason} kind={problem.kind} foundInGmail={problem.foundInGmail} />
             </td>

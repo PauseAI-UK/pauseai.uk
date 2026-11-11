@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import styles from "./ImportCard.module.css";
 import Grid, { Card } from "./ui/Grid";
 
-/** The import page's cards, side by side where there's room. */
+/** The Scheduled jobs page's cards, side by side where there's room. */
 export function ImportCards({ children }: { children: ReactNode }) {
   return <Grid even>{children}</Grid>;
 }
@@ -23,7 +23,7 @@ type Props = {
 };
 
 /**
- * One import or check on the import page: a card with its icon, name and lozenges,
+ * One import or check on the Scheduled jobs page: a card with its icon, name and lozenges,
  * how its newest run ended, and what it does. The whole card opens the job's page;
  * the links in its description still open where it reads from.
  */

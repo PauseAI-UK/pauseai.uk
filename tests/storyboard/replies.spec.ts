@@ -294,7 +294,7 @@ test("Emails that aren't relayed", async ({ page, request, flowDatabase }) => {
   )!;
   await emailFrame(page, alert, "The email staff get");
   story("On the Gmail import's page, that run had problems, and lists the two emails.");
-  await page.goto(`${BASE}/staff/import-data/gmail`);
+  await page.goto(`${BASE}/staff/scheduled-jobs/gmail`);
   await expect(page.getByText(staffCopy.runs.status.problems, { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: staffCopy.lettersInbox.openInGmail })).toHaveCount(2);
   await frame(page, "The Gmail import's runs");

@@ -66,7 +66,7 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
   {
     id: "admin",
     pages: [
-      { id: "import", href: "/staff/import-data" },
+      { id: "import", href: "/staff/scheduled-jobs" },
       { id: "sentEmails", href: "/staff/sent-emails", permission: "admin" },
       { id: "changes", href: "/staff/audit-log", permission: "admin" },
       { id: "accounts", href: "/staff/accounts", permission: "admin" },

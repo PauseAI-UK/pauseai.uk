@@ -1089,7 +1089,7 @@ describe("PoliticianDetails", () => {
     await expect.element(notice.getByRole("heading", { name: copy.wrong.title })).toBeVisible();
     await expect
       .element(notice.getByRole("link", { name: copy.wrong.link }))
-      .toHaveAttribute("href", "/staff/import-data/politicians");
+      .toHaveAttribute("href", "/staff/scheduled-jobs/politicians");
     // The address is a link to write to it in the band, and under it in bold in the strip.
     expect(
       page

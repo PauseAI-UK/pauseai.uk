@@ -138,12 +138,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Azure's Ubuntu mirror sometimes stalls partway through a download, and
-      # apt waits on it for as long as the job may run. Every apt-get below,
-      # Playwright's too, gives up on one that sends nothing for 20 seconds and
-      # tries it again, up to three times.
-      - name: Make apt retry stalled downloads
-        run: echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
+      # GitHub's runners fetch Ubuntu's packages from Azure's mirror
+      # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
+      # download, and at times the runners can't look up any ubuntu.com name.
+      # So apt uses mirrors outside ubuntu.com, not Azure's at all: apt picks
+      # from the list for each file, and a lookup of Azure's that hangs costs
+      # every file it picks it for 20 seconds. And every apt-get below,
+      # Playwright's too, gives up on a download that sends nothing for 20
+      # seconds and tries it again, up to three times.
+      - name: Give apt mirrors outside ubuntu.com, and retry stalled downloads
+        run: |
+          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
+            http://mirror.math.princeton.edu/pub/ubuntu/ \
+            | sudo tee /etc/apt/apt-mirrors.txt
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
         id: node
@@ -294,12 +302,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Azure's Ubuntu mirror sometimes stalls partway through a download, and
-      # apt waits on it for as long as the job may run. Every apt-get below,
-      # Playwright's too, gives up on one that sends nothing for 20 seconds and
-      # tries it again, up to three times.
-      - name: Make apt retry stalled downloads
-        run: echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
+      # GitHub's runners fetch Ubuntu's packages from Azure's mirror
+      # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
+      # download, and at times the runners can't look up any ubuntu.com name.
+      # So apt uses mirrors outside ubuntu.com, not Azure's at all: apt picks
+      # from the list for each file, and a lookup of Azure's that hangs costs
+      # every file it picks it for 20 seconds. And every apt-get below,
+      # Playwright's too, gives up on a download that sends nothing for 20
+      # seconds and tries it again, up to three times.
+      - name: Give apt mirrors outside ubuntu.com, and retry stalled downloads
+        run: |
+          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
+            http://mirror.math.princeton.edu/pub/ubuntu/ \
+            | sudo tee /etc/apt/apt-mirrors.txt
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
         id: node
@@ -441,12 +457,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Azure's Ubuntu mirror sometimes stalls partway through a download, and
-      # apt waits on it for as long as the job may run. Every apt-get below,
-      # Playwright's too, gives up on one that sends nothing for 20 seconds and
-      # tries it again, up to three times.
-      - name: Make apt retry stalled downloads
-        run: echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
+      # GitHub's runners fetch Ubuntu's packages from Azure's mirror
+      # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
+      # download, and at times the runners can't look up any ubuntu.com name.
+      # So apt uses mirrors outside ubuntu.com, not Azure's at all: apt picks
+      # from the list for each file, and a lookup of Azure's that hangs costs
+      # every file it picks it for 20 seconds. And every apt-get below,
+      # Playwright's too, gives up on a download that sends nothing for 20
+      # seconds and tries it again, up to three times.
+      - name: Give apt mirrors outside ubuntu.com, and retry stalled downloads
+        run: |
+          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
+            http://mirror.math.princeton.edu/pub/ubuntu/ \
+            | sudo tee /etc/apt/apt-mirrors.txt
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
         uses: actions/setup-node@v7

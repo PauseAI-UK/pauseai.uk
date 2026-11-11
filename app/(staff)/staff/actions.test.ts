@@ -193,9 +193,9 @@ describeWithDatabase("staff Server Actions", () => {
     const id = await addTestPolitician();
     await runJobNow("import-controlai");
     expect((await getPolitician(id))!.statuses["controlai-letter"]).toMatchObject({ updatedBy: "controlai" });
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
     // Its own page, the overview, and the home page's actions.
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/controlai");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/controlai");
     expect(revalidatePath).toHaveBeenCalledWith("/staff");
 
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -265,38 +265,38 @@ describeWithDatabase("staff Server Actions", () => {
     await runJobNow("import-luma");
     expect(await runs()).toEqual([{ job: "import-luma", status: "ok", startedBy: "jo@pauseai.uk" }]);
     expect(await query("SELECT count(*)::int AS n FROM luma_events")).toEqual([{ n: 9 }]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
   });
 
   it("the members import's button copies the members as the staff member", async () => {
     await runJobNow("import-members");
     expect(await runs()).toEqual([{ job: "import-members", status: "ok", startedBy: "jo@pauseai.uk" }]);
     expect(await query("SELECT count(*)::int AS n FROM members")).toEqual([{ n: 9 }]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/members");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/members");
   });
 
   it("the Gmail reading's button reads the connected Gmail as the staff member", async () => {
     await runJobNow("read-gmail");
     expect(await runs()).toEqual([{ job: "read-gmail", status: "unchanged", startedBy: "jo@pauseai.uk" }]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/gmail");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/gmail");
   });
 
   it("the sending's button sends what's waiting, and the tidying's tidies the logs, each as the staff member", async () => {
     await runJobNow("send-mailings");
     expect(await runs()).toEqual([{ job: "send-mailings", status: "unchanged", startedBy: "jo@pauseai.uk" }]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/sending");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/sending");
     await runJobNow("tidy-logs");
     expect(await runs()).toEqual([
       { job: "send-mailings", status: "unchanged", startedBy: "jo@pauseai.uk" },
       { job: "tidy-logs", status: "unchanged", startedBy: "jo@pauseai.uk" },
     ]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/tidying");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/tidying");
   });
 
   it("the check's button checks the MPs against Parliament's", async () => {
     await runJobNow("check-mps");
     expect(await runs()).toEqual([{ job: "check-mps", status: "ok", startedBy: "jo@pauseai.uk" }]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
   });
 
   it("the sync's button copies the politicians from Airtable, and keeps a failure rather than crashing the page", async () => {
@@ -304,7 +304,7 @@ describeWithDatabase("staff Server Actions", () => {
     expect(await query("SELECT count(*)::int AS n FROM notable_people WHERE airtable_id IS NOT NULL")).toEqual([
       { n: 7 },
     ]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
 
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(http.get("https://*.airtable.com/v0/*", () => new HttpResponse(null, { status: 500 })));
@@ -339,8 +339,8 @@ describeWithDatabase("staff Server Actions", () => {
       { job: "sync-emails", status: "ok", startedBy: "jo@pauseai.uk" },
       { job: "import-web-form-letters", status: "ok", startedBy: "jo@pauseai.uk" },
     ]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/emails");
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/web-form-letters");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/emails");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/web-form-letters");
   });
 
   it("runs nothing for a name that isn't a job's", async () => {
@@ -356,7 +356,7 @@ describeWithDatabase("staff Server Actions", () => {
     await query("INSERT INTO job_presses (job, started_by) VALUES ('sync-emails', 'sam@pauseai.uk')");
     await runJobNow("sync-emails");
     expect(await runs()).toHaveLength(0);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/emails");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/emails");
     await query("UPDATE job_presses SET started_at = now() - interval '17 minutes'");
     await runJobNow("sync-emails");
     expect(await runs()).toHaveLength(1);
@@ -369,7 +369,7 @@ describeWithDatabase("staff Server Actions", () => {
     expect(await query(`SELECT status, error FROM import_runs WHERE job = 'import-old-letters'`)).toEqual([
       { status: "failed", error: "joseph@pauseai.uk's Gmail isn't connected" },
     ]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/import-data/old-letters");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/old-letters");
     vi.stubEnv("DATA_FIXTURES", "");
   });
 

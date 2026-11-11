@@ -243,7 +243,7 @@ describeWithDatabase("syncPoliticians", () => {
     expect(await syncPoliticians(NIGHTLY)).toMatchObject({ status: "held" });
     const words = staffCopy.notifications.syncHeld;
     expect(sent.map((email) => [email.Subject, email.TextBody])).toEqual([
-      [words.subject(28), words.body(28, "https://pauseai.uk/staff/import-data/politicians")],
+      [words.subject(28), words.body(28, "https://pauseai.uk/staff/scheduled-jobs/politicians")],
     ]);
     expect(held.changes.added).toHaveLength(28);
     // Nothing applied.

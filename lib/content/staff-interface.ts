@@ -75,7 +75,7 @@ export const staffCopy = {
     mailings: "Mailings",
     broadcasts: "Broadcasts",
     events: "Events",
-    import: "Import data",
+    import: "Scheduled jobs",
     changes: "Audit log",
     campaigns: "Campaigns",
     emails: "Correspondence",
@@ -1826,7 +1826,7 @@ All events: ${link}`,
         `An email to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's fixed in Airtable and unblocked here:\n${link}`,
     },
   },
-  // The web imports, after the Airtable ones on the import page: ControlAI's
+  // The web imports, after the Airtable ones on the Scheduled jobs page: ControlAI's
   // letter to the PM, copied nightly into the bill's statuses
   // (lib/server/controlai-import.ts).
   controlAi: {
@@ -1844,7 +1844,7 @@ All events: ${link}`,
     kinds: { nobody: "Nobody here", several: "Could be:" } as Record<string, string>,
   },
   // The copy every 5 minutes of the Luma calendar's events, guests and contacts
-  // (lib/server/luma-import.ts), on the import page.
+  // (lib/server/luma-import.ts), on the Scheduled jobs page.
   luma: {
     title: "Events and guests from Luma",
     intro: {
@@ -1997,7 +1997,7 @@ All events: ${link}`,
     },
   },
   // The read every 5 minutes of the connected Gmail accounts for replies to our
-  // letters and bounces (lib/server/gmail-reading.ts), on the import page.
+  // letters and bounces (lib/server/gmail-reading.ts), on the Scheduled jobs page.
   gmailReading: {
     oneOffs: (n: number) => `${n} one-off ${plural(n, "email", "emails")} kept.`,
     title: "Replies, bounces and one-off emails from Gmail",
@@ -2065,7 +2065,7 @@ All events: ${link}`,
       `Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")} and ${count(r.drafts, "draft", "drafts")}.`,
   },
   // The hourly copy of PauseAI's UK members (lib/server/members-import.ts),
-  // on the import page.
+  // on the Scheduled jobs page.
   // PauseAI's emails to politicians, from Airtable's Emails table.
   pauseaiEmails: {
     title: "PauseAI's emails to politicians",
@@ -2318,10 +2318,11 @@ All events: ${link}`,
       held?: true;
       optOuts: number;
       blocked: number;
+      unblocked?: number;
       supportersAdded?: number;
       linked?: number;
     }) =>
-      `${count(r.contacts, "contact", "contacts")} read: ${r.added} added, ${r.changed} changed, ${r.held ? "none marked gone, as too few came back" : `${r.gone} gone`}; ${count(r.optOuts, "unsubscribe", "unsubscribes")} changed, ${count(r.blocked, "address", "addresses")} blocked for a hold.${r.linked ? ` ${count(r.supportersAdded!, "new supporter", "new supporters")}, ${r.linked} linked.` : ""}`,
+      `${count(r.contacts, "contact", "contacts")} read: ${r.added} added, ${r.changed} changed, ${r.held ? "none marked gone, as too few came back" : `${r.gone} gone`}; ${count(r.optOuts, "unsubscribe", "unsubscribes")} changed, ${count(r.blocked, "address", "addresses")} blocked for a hold.${r.unblocked ? ` ${count(r.unblocked, "address", "addresses")} unblocked, as CiviCRM lifted the hold.` : ""}${r.linked ? ` ${count(r.supportersAdded!, "new supporter", "new supporters")}, ${r.linked} linked.` : ""}`,
   },
   syncs: {
     title: "Politicians from Airtable",
@@ -2498,9 +2499,10 @@ All events: ${link}`,
     noEmail: "None",
   },
   import: {
-    // The page, with every import: the politicians from Airtable, ControlAI's
-    // letter from the web, Luma and the members.
-    pageTitle: "Import data",
+    // The page with every scheduled job: the imports, the politicians from
+    // Airtable, ControlAI's letter from the web, Luma and the members, and
+    // the rest, such as reading Gmail, sending mailings and tidying the logs.
+    pageTitle: "Scheduled jobs",
     // Each import's icons, named for screen readers and on hover: where it's
     // from. Then how often it runs, the overview's headings and a lozenge on
     // the job's page, and the lozenges after some jobs' names: the one that
@@ -2509,6 +2511,7 @@ All events: ${link}`,
     web: "Web",
     database: "Database",
     luma: "Luma",
+    civicrm: "CiviCRM",
     gmail: "Gmail",
     nightly: "Nightly",
     // On a job's page, while a run of it is going: one a staff member started, or one of its schedule's.
@@ -2857,7 +2860,7 @@ All events: ${link}`,
   },
 };
 
-/** Each job in the import log, by the title of its card on the import page and of its own page. */
+/** Each job in the import log, by the title of its card on the Scheduled jobs page and of its own page. */
 export const jobTitles: Record<ImportJob, string> = {
   "sync-politicians": staffCopy.syncs.title,
   "sync-emails": staffCopy.pauseaiEmails.title,

@@ -25,16 +25,16 @@ describe("StaffDashboard", () => {
     ]);
     await expect
       .element(page.getByRole("link", { name: copy.actions.decide }))
-      .toHaveAttribute("href", "/staff/import-data/politicians");
+      .toHaveAttribute("href", "/staff/scheduled-jobs/politicians");
     await expect
       .element(page.getByRole("link", { name: copy.actions.openMp }))
       .toHaveAttribute("href", "/staff/politicians/7");
     await expect
       .element(page.getByRole("link", { name: copy.actions.seeRun }))
-      .toHaveAttribute("href", "/staff/import-data/controlai");
+      .toHaveAttribute("href", "/staff/scheduled-jobs/controlai");
     await expect
       .element(page.getByRole("link", { name: copy.actions.lettersInboxButton }))
-      .toHaveAttribute("href", "/staff/import-data/gmail");
+      .toHaveAttribute("href", "/staff/scheduled-jobs/gmail");
     // No heading: the strips speak for themselves. Each its icon first; the held import amber, the rest red.
     expect(page.getByRole("heading", { name: copy.actionsTitle }).all()).toHaveLength(0);
     const strips = items.map((item) => item.element().firstElementChild!);

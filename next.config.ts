@@ -161,6 +161,9 @@ const nextConfig: NextConfig = {
       { source: "/staff/sessions", destination: "/staff/me#sessions", permanent: true },
       { source: "/staff/letters", destination: "/staff/campaigns", permanent: true },
       { source: "/staff/one-off", destination: "/staff/emails?type=one-off", permanent: true },
+      // The jobs' pages, under their old name, which emails to staff linked to.
+      { source: "/staff/import-data", destination: "/staff/scheduled-jobs", permanent: true },
+      { source: "/staff/import-data/:job", destination: "/staff/scheduled-jobs/:job", permanent: true },
       // The Glasgow local group became the Scotland local group.
       { source: "/glasgow", destination: "/scotland", permanent: true },
       // There's no list of protests yet, so /protests goes to the current one.

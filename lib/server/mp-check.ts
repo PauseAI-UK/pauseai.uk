@@ -8,7 +8,7 @@ import type { ParliamentMp } from "@/lib/parliament";
 
 // Compares the MPs copied from Airtable with Parliament's, nightly
 // (/api/cron/check-mps) or when staff ask, and keeps what it finds in
-// the import log (import-runs.ts, as "check-mps") for /staff/import-data. It
+// the import log (import-runs.ts, as "check-mps") for /staff/scheduled-jobs. It
 // changes nothing else but politician_domains, the domains of their own
 // Parliament lists, which say whose a thread is (lib/server/one-off-emails.ts).
 

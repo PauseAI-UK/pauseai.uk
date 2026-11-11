@@ -63,6 +63,11 @@ describe("redirects", () => {
       expect(redirects).toContainEqual({ source, destination: "/staff/politicians/blocked-emails", permanent: true });
     }
     expect(redirects).toContainEqual({ source: "/glasgow", destination: "/scotland", permanent: true });
+    expect(redirects).toContainEqual({
+      source: "/staff/import-data/:job",
+      destination: "/staff/scheduled-jobs/:job",
+      permanent: true,
+    });
     expect(redirects.filter((r) => !r.permanent)).toEqual([
       { source: "/protests", destination: "/protests/march-against-ai-extinction-nov-26", permanent: false },
       { source: "/campaigns", destination: `/campaigns/${campaigns[0].slug}`, permanent: false },

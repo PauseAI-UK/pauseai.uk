@@ -28,7 +28,7 @@ import Tag from "@/components/ui/Tag";
 import Strip from "./ui/Strip";
 import ExternalLink from "./ui/ExternalLink";
 
-// Every import and check: the overview at /staff/import-data, a card each,
+// Every import and check: the overview at /staff/scheduled-jobs, a card each,
 // and each job's own page, with its button and every run it has made.
 
 const words = staffCopy.import;
@@ -46,7 +46,7 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "check-mps": "web",
   "import-controlai": "web",
   "import-members": "airtable",
-  "import-civicrm": "web",
+  "import-civicrm": "civicrm",
   "read-gmail": "gmail",
   "import-old-letters": "gmail",
   "send-mailings": "gmail",
@@ -204,7 +204,7 @@ function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | 
   );
 }
 
-/** /staff/import-data: a card per job, each a link to its page, with how its newest run ended. */
+/** /staff/scheduled-jobs: a card per job, each a link to its page, with how its newest run ended. */
 /** The overview's sections, each the jobs that run that often, in this order. */
 const SCHEDULES = ["frequent", "hourly", "nightly", "oneOff"] as const;
 
@@ -275,7 +275,7 @@ export function ImportJobPage({
 }): ReactNode {
   return (
     <>
-      <Breadcrumb href="/staff/import-data">{words.pageTitle}</Breadcrumb>
+      <Breadcrumb href="/staff/scheduled-jobs">{words.pageTitle}</Breadcrumb>
       <div className={styles.head}>
         <ImportIcon source={SOURCES[job]} />
         <h1 className={styles.heading}>
