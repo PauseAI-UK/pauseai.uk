@@ -13,8 +13,11 @@ import { connectedAccounts, readPoliticianBook } from "./politician-book";
 // theirs, and where each came from, for the foot of their page; and the
 // addresses staff add by hand, such as a personal Gmail.
 
-/** Where an address in politician_addresses came from: Parliament's list, the threads their office is in, or staff. */
-export type AddressSource = "parliament" | "office" | "staff";
+/**
+ * Where an address in politician_addresses came from: Parliament's list, the
+ * threads their office is in, or staff; or an office's that staff rejected.
+ */
+export type AddressSource = "parliament" | "office" | "staff" | "rejected";
 
 /** An address staff added: who and when. */
 export type AddedAddress = { address: string; addedBy: string; at: Date };
@@ -98,7 +101,10 @@ export async function politicianAliases(politician: {
       .filter((row) => row.source === "staff")
       .map(({ address, addedBy, at }) => ({ address, addedBy: addedBy!, at })),
     domains: domains.map((row) => row.domain),
-    forms: formExamples(book, politician),
+    // Only forms not already listed as one of theirs.
+    forms: formExamples(book, politician).filter(
+      (form) => form !== email && !listed.some((row) => row.address === form && row.source !== "rejected"),
+    ),
   };
 }
 
@@ -146,7 +152,14 @@ export async function addPoliticianAddress(politicianId: number, given: string, 
       [address, politicianId, by],
       db,
     );
-    if (rows.length) await logChange(by, "add politician address", { politicianId, address }, db);
+    if (rows.length) {
+      await query(
+        "DELETE FROM politician_addresses WHERE address = $1 AND notable_person_id = $2 AND source = 'rejected'",
+        [address, politicianId],
+        db,
+      );
+      await logChange(by, "add politician address", { politicianId, address }, db);
+    }
     return rows.length > 0;
   });
   if (!added) return { added: false, why: "exists" };
@@ -155,15 +168,28 @@ export async function addPoliticianAddress(politicianId: number, given: string, 
   return { added: true, kept };
 }
 
-/** Removes an address staff added to a politician's, logged, and relinks every thread. False if there was none. */
+/**
+ * Removes an address staff added to a politician's, or one guessed to be
+ * their office's, which is kept as rejected so that relinking doesn't guess
+ * it again; logged, then relinks every thread, so those it alone linked to
+ * them lose them. False if there was none.
+ */
 export async function removePoliticianAddress(politicianId: number, given: string, by: string): Promise<boolean> {
   const address = given.trim().toLowerCase();
   const removed = await transaction(async (db) => {
-    const rows = await query(
-      `DELETE FROM politician_addresses WHERE address = $1 AND notable_person_id = $2 AND source = 'staff' RETURNING 1`,
+    const rows = await query<{ source: AddressSource }>(
+      `DELETE FROM politician_addresses WHERE address = $1 AND notable_person_id = $2 AND source IN ('staff', 'office')
+       RETURNING source`,
       [address, politicianId],
       db,
     );
+    if (rows.some((row) => row.source === "office"))
+      await query(
+        `INSERT INTO politician_addresses (address, notable_person_id, source, added_by) VALUES ($1, $2, 'rejected', $3)
+         ON CONFLICT DO NOTHING`,
+        [address, politicianId, by],
+        db,
+      );
     if (rows.length) await logChange(by, "remove politician address", { politicianId, address }, db);
     return rows.length > 0;
   });

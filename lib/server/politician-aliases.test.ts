@@ -61,7 +61,8 @@ describeWithDatabase("a politician's aliases", () => {
     await query(
       `INSERT INTO politician_addresses (address, notable_person_id, source, added_by) VALUES
        ('polly.placeholder.mp@parliament.uk', $1, 'parliament', NULL), ('placeholderp@parliament.uk', $1, 'parliament', NULL),
-       ('jane.smith@parliament.uk', $1, 'office', NULL), ('polly@example.com', $1, 'staff', 'jo@pauseai.uk')`,
+       ('jane.smith@parliament.uk', $1, 'office', NULL), ('polly@example.com', $1, 'staff', 'jo@pauseai.uk'),
+       ('citiesoflondonandwestminster.mp@parliament.uk', $1, 'rejected', 'jo@pauseai.uk')`,
       [polly.id],
     );
     await query("INSERT INTO politician_domains (domain, notable_person_id) VALUES ('polly.example', $1)", [polly.id]);
@@ -72,7 +73,7 @@ describeWithDatabase("a politician's aliases", () => {
       office: ["jane.smith@parliament.uk"],
       added: [{ address: "polly@example.com", addedBy: "jo@pauseai.uk", at: expect.any(Date) }],
       domains: ["polly.example"],
-      forms: ["polly.placeholder.mp@parliament.uk", "citiesoflondonandwestminster.mp@parliament.uk"],
+      forms: ["citiesoflondonandwestminster.mp@parliament.uk"],
     });
     expect((await politicianAliases({ ...polly, email: null })).parliament).toHaveLength(2);
   });
@@ -157,6 +158,36 @@ describeWithDatabase("a politician's aliases", () => {
     expect(await removePoliticianAddress(polly.id, " Polly@Example.com", "jo@pauseai.uk")).toBe(true);
     expect(await query("SELECT address FROM politician_addresses")).toEqual([{ address: "listed@parliament.uk" }]);
     expect(await query("SELECT 1 FROM audit_log WHERE action = 'remove politician address'")).toHaveLength(1);
+  });
+
+  it("removes a guessed office address for good, unlinking what it alone linked, until staff add it back", async () => {
+    const polly = await politician();
+    const [{ id: thread }] = await query<{ id: number }>(
+      "INSERT INTO one_off_threads (latest_at) VALUES (now()) RETURNING id::int AS id",
+    );
+    await query(
+      `INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, from_address, addresses, at,
+         from_us, blob_key, size, quoted_addresses, quoted_names)
+       VALUES ($1, 'policy@pauseai.uk', 'g', 't', 'aaron.lukas@parliament.uk', '{aaron.lukas@parliament.uk}', now(),
+         false, 'x', 1, '{}', '{}')`,
+      [thread],
+    );
+    await query(
+      `INSERT INTO politician_addresses (address, notable_person_id, source) VALUES ('aaron.lukas@parliament.uk', $1, 'office')`,
+      [polly.id],
+    );
+    await query("INSERT INTO one_off_thread_people (thread_id, notable_person_id) VALUES ($1, $2)", [thread, polly.id]);
+    expect(await removePoliticianAddress(polly.id, "aaron.lukas@parliament.uk", "jo@pauseai.uk")).toBe(true);
+    expect(await query("SELECT source, added_by AS by FROM politician_addresses")).toEqual([
+      { source: "rejected", by: "jo@pauseai.uk" },
+    ]);
+    expect(await query("SELECT 1 FROM one_off_thread_people")).toEqual([]);
+    expect((await politicianAliases({ ...polly, email: null })).office).toEqual([]);
+    expect(await addPoliticianAddress(polly.id, "aaron.lukas@parliament.uk", "jo@pauseai.uk")).toMatchObject({
+      added: true,
+    });
+    expect(await query("SELECT source FROM politician_addresses")).toEqual([{ source: "staff" }]);
+    expect(await query("SELECT notable_person_id::int AS id FROM one_off_thread_people")).toEqual([{ id: polly.id }]);
   });
 
   it("takes a politician off a thread for good, logged, once", async () => {

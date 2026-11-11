@@ -78,7 +78,7 @@ const LISTED: Record<string, readonly string[]> = {
   "opt_outs.way": WAYS,
   "opt_outs.list": TOPICS,
   "opt_outs.source": every<OptOutSource>()(["luma-webhook", "luma-contacts", "civicrm"]),
-  "politician_addresses.source": every<AddressSource>()(["parliament", "office", "staff"]),
+  "politician_addresses.source": every<AddressSource>()(["parliament", "office", "staff", "rejected"]),
   "politicians.country": COUNTRIES,
   "politicians.house": HOUSES,
   "signup_upload_entries.known": every<NonNullable<SignupUploadPerson["known"]>>()(["email", "mobile"]),

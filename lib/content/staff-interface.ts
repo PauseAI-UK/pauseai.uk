@@ -1724,15 +1724,15 @@ All events: ${link}`,
         email: "Main address, we send email here",
         past: "⁂ Previous main address",
         parliament: "Listed on Parliament's website",
-        office: "⁂ Their office: only seen in emails with them",
-        domain: "⁂ Their own domain: any address ending in it",
-        form: "⁂ Parliament's usual format for their name or seat (variants such as …mp@ and officeof…@ also count)",
+        office: "Inferred as being a member of their staff as in emails with them",
+        domain: "Their own domain, taken from a list on Parliament website",
+        form: "Variant format Parliament often uses",
       },
       // An address staff added: who and when.
-      addedBy: (by: string, when: string) => `⁂ Added by ${by} on ${when}`,
-      remove: "⁂ Remove",
+      addedBy: (by: string, when: string) => `Added by ${by} on ${when}`,
+      remove: "Remove",
       // The form under the list.
-      address: "⁂ Another address, such as a personal email",
+      address: "⁂ New address",
       add: "⁂ Add",
       added: (n: number) =>
         n

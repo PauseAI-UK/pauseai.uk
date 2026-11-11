@@ -1,0 +1,22 @@
+/* The form under a politician's addresses, set apart from the list above. */
+.form {
+  margin-top: var(--space-4);
+}
+
+/* The address and Add on one line, over the kit's form, which wraps (the
+   class twice, so it wins whichever loads last). */
+.form.form {
+  flex-wrap: nowrap;
+}
+
+/* The field is short, as an address is a few words; it doesn't grow into
+   the room beside it. */
+.address {
+  flex: 0 1 16rem;
+  min-width: 10rem;
+}
+
+/* What the server said, under the form. */
+.result {
+  margin: var(--space-2) 0 0;
+}

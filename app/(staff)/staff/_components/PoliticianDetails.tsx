@@ -344,8 +344,9 @@ export type AliasActions = {
 /**
  * A politician's aliases, folded at the foot of their page, open when their
  * email's link led here: every address and domain that says an email is
- * theirs, with where each came from, those staff added with who added them
- * and a button to remove them; then the form to add one.
+ * theirs, with where each came from, those staff added with who added them;
+ * a button by each staff added or guessed was their office's, to remove it;
+ * then the form to add one.
  */
 function Aliases({
   politicianId,
@@ -361,27 +362,31 @@ function Aliases({
   const words = copy.aliases;
   const of = (key: string, addresses: string[], from: ReactNode): AliasRow[] =>
     addresses.map((address) => ({ key: `${key} ${address}`, address, from }));
+  /** A line staff can remove: where it came from, and its Remove button beside. */
+  const removable = (key: string, address: string, from: ReactNode): AliasRow => ({
+    key: `${key} ${address}`,
+    address,
+    from: (
+      <span className={styles.aliasAdded}>
+        {from}
+        <FilterForm action={actions.remove} aria-label={`${words.remove}: ${address}`}>
+          <input type="hidden" name="politicianId" value={politicianId} />
+          <input type="hidden" name="address" value={address} />
+          <SubmitButton variant="ghost" size="small" fit>
+            {words.remove}
+          </SubmitButton>
+        </FilterForm>
+      </span>
+    ),
+  });
   const rows: AliasRow[] = [
     ...of("email", aliases.email ? [aliases.email] : [], words.sources.email),
     ...of("past", aliases.past, words.sources.past),
     ...of("parliament", aliases.parliament, words.sources.parliament),
-    ...of("office", aliases.office, words.sources.office),
-    ...aliases.added.map(({ address, addedBy, at }) => ({
-      key: `added ${address}`,
-      address,
-      from: (
-        <span className={styles.aliasAdded}>
-          {words.addedBy(addedBy, staffDate(at))}
-          <FilterForm action={actions.remove} aria-label={`${words.remove}: ${address}`}>
-            <input type="hidden" name="politicianId" value={politicianId} />
-            <input type="hidden" name="address" value={address} />
-            <SubmitButton variant="ghost" size="small" fit>
-              {words.remove}
-            </SubmitButton>
-          </FilterForm>
-        </span>
-      ),
-    })),
+    ...aliases.office.map((address) => removable("office", address, words.sources.office)),
+    ...aliases.added.map(({ address, addedBy, at }) =>
+      removable("added", address, words.addedBy(addedBy, staffDate(at))),
+    ),
     ...of(
       "domain",
       aliases.domains.map((domain) => `@${domain}`),

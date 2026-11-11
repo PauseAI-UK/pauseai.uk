@@ -105,6 +105,18 @@ describeWithDatabase("relinking one-off threads", () => {
     expect(await query("SELECT notable_person_id::int AS id FROM politician_addresses")).toEqual([{ id: polly }]);
   });
 
+  it("doesn't guess an office's address staff rejected", async () => {
+    const polly = await addTestPolitician();
+    await keep("a", "aaron.lukas@parliament.uk", "Hi", "polly.placeholder.mp@parliament.uk");
+    await query(
+      `INSERT INTO politician_addresses (address, notable_person_id, source, added_by)
+       VALUES ('aaron.lukas@parliament.uk', $1, 'rejected', 'jo@pauseai.uk')`,
+      [polly],
+    );
+    expect(await relinkOneOffs(LATER())).toMatchObject({ offices: 0 });
+    expect(await query("SELECT source FROM politician_addresses")).toEqual([{ source: "rejected" }]);
+  });
+
   it("leaves a politician staff took off a thread off it", async () => {
     const polly = await addTestPolitician();
     const thread = await keep("a", "polly.placeholder.mp@parliament.uk");

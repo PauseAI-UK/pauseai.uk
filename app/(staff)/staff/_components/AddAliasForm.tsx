@@ -7,6 +7,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ErrorText, Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { AddResult } from "@/lib/server/politician-aliases";
+import styles from "./AddAliasForm.module.css";
 
 const copy = staffCopy.politician.aliases;
 
@@ -26,14 +27,16 @@ export default function AddAliasForm({
   const send = async (form: FormData) => setResult((await action(form)) ?? undefined);
   return (
     <>
-      <FilterForm action={send} aria-label={copy.add}>
+      <FilterForm action={send} aria-label={copy.add} className={styles.form}>
         <input type="hidden" name="politicianId" value={politicianId} />
-        <TextInput name="address" type="email" required aria-label={copy.address} placeholder={copy.address} />
+        <span className={styles.address}>
+          <TextInput name="address" type="email" required aria-label={copy.address} placeholder={copy.address} />
+        </span>
         <SubmitButton variant="ghost" size="small" fit>
           {copy.add}
         </SubmitButton>
       </FilterForm>
-      <p role="status">
+      <p role="status" className={styles.result}>
         {result &&
           (result.added ? <Muted>{copy.added(result.kept)}</Muted> : <ErrorText>{copy.refused[result.why]}</ErrorText>)}
       </p>

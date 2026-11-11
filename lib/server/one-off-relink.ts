@@ -106,7 +106,7 @@ export function officeAddresses(
 /**
  * Relinks every one-off thread: reads what it can of the quotes not yet
  * stored, until `until`; finds the offices' addresses, by the book without
- * them; and links each thread to the people the whole book finds in it, but
+ * them, but for those staff rejected; and links each thread to the people the whole book finds in it, but
  * for any staff took off it. A thread with a message whose quotes are still
  * unread gains people but loses none, as what it quotes may be why it has
  * them. Whether each thread has someone else in it (`someone_else`) is worked
@@ -114,7 +114,7 @@ export function officeAddresses(
  */
 export async function relinkOneOffs(until: number): Promise<Relinked> {
   const { read, unread } = await readQuotes(until);
-  const [direct, rows, linked, unlinked, connected] = await Promise.all([
+  const [direct, rows, linked, unlinked, rejected, connected] = await Promise.all([
     readPoliticianBook(false),
     query<Message & { from: string }>(
       `SELECT thread_id::int AS thread, from_address AS from, addresses, quoted_addresses AS quoted, quoted_names AS names
@@ -126,9 +126,17 @@ export async function relinkOneOffs(until: number): Promise<Relinked> {
     query<{ thread: number; id: number }>(
       `SELECT thread_id::int AS thread, notable_person_id::int AS id FROM one_off_unlinked`,
     ),
+    query<{ address: string; id: number }>(
+      "SELECT address, notable_person_id::int AS id FROM politician_addresses WHERE source = 'rejected'",
+    ),
     connectedAccounts(),
   ]);
-  const offices = officeAddresses(direct, rows, threadPeople(direct, rows));
+  const notTheirs = new Set(rejected.map(({ address, id }) => `${address} ${id}`));
+  const offices = new Map(
+    [...officeAddresses(direct, rows, threadPeople(direct, rows))].filter(
+      ([address, id]) => !notTheirs.has(`${address} ${id}`),
+    ),
+  );
   const book: PoliticianBook = { ...direct, addresses: new Map(direct.addresses) };
   for (const [address, id] of offices) book.addresses.set(address, [...(book.addresses.get(address) ?? []), id]);
   const people = threadPeople(book, rows);

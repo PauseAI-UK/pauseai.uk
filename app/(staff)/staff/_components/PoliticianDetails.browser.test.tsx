@@ -1164,13 +1164,19 @@ describe("PoliticianDetails", () => {
       "polly.placeholder.mp@parliament.uk",
       "citiesoflondonandwestminster.mp@parliament.uk",
     ]);
-    await expect.element(page.getByText(words.sources.office)).toBeVisible();
+    await expect.element(page.getByText(words.sources.office, { exact: false })).toBeVisible();
     await expect
       .element(page.getByText(words.addedBy("jo@pauseai.uk", staffDate(exampleAliases.added[0].at)), { exact: false }))
       .toBeVisible();
-    await page.getByRole("button", { name: words.remove }).click();
+    const removes = page.getByRole("button", { name: words.remove });
+    await expect.element(removes.nth(1)).toBeVisible();
+    await removes.nth(0).click();
+    await removes.nth(1).click();
     await vi.waitFor(() =>
-      expect(remove.sent).toEqual([{ politicianId: String(MP.id), address: "polly.placeholder@example.com" }]),
+      expect(remove.sent).toEqual([
+        { politicianId: String(MP.id), address: "jane.smith@parliament.uk" },
+        { politicianId: String(MP.id), address: "polly.placeholder@example.com" },
+      ]),
     );
     // With no email, the list starts at what they had before.
     await rerender(

@@ -614,8 +614,10 @@ else in it.
   hand: it's logged, and the site searches policy@ and joseph@ in Gmail for it
   (up to 50 messages each) and keeps what the regular read would have, as that
   read passed over it before the address was known. Staff can remove an address
-  they added, and take a politician off a thread that isn't theirs: neither
-  relinking nor a new message brings them back (`one_off_unlinked`).
+  they added, or one guessed to be their office's, which is then kept as
+  `rejected` so it isn't guessed again; either way, the threads it alone linked
+  lose them. Staff can also take a politician off a thread that isn't theirs:
+  neither relinking nor a new message brings them back (`one_off_unlinked`).
 
 - **Forwards.** A forward is shown as the messages it carries, each rebuilt from
   its quoted headers and marked so, oldest first, before the forward's own note

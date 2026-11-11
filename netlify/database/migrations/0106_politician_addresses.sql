@@ -5,15 +5,18 @@
 --   office: a parliament address that isn't a politician's own, seen only in
 --     threads with one politician, so their office's, worked out again each
 --     time one-off threads are relinked;
---   staff: added by hand, such as a personal Gmail, with who added it.
+--   staff: added by hand, such as a personal Gmail, with who added it;
+--   rejected: an office's address staff removed, as it isn't theirs, with who
+--     removed it, which relinking then doesn't find again. It says nothing of
+--     whose a message is.
 CREATE TABLE politician_addresses (
   address text NOT NULL CHECK (address = lower(address) AND address LIKE '_%@_%'),
   notable_person_id bigint NOT NULL REFERENCES notable_people (id) ON DELETE CASCADE,
-  source text NOT NULL CHECK (source IN ('parliament', 'office', 'staff')),
+  source text NOT NULL CHECK (source IN ('parliament', 'office', 'staff', 'rejected')),
   added_by text,
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (address, notable_person_id, source),
-  CHECK ((source = 'staff') = (added_by IS NOT NULL))
+  CHECK ((source IN ('staff', 'rejected')) = (added_by IS NOT NULL))
 );
 CREATE INDEX politician_addresses_person ON politician_addresses (notable_person_id);
 
