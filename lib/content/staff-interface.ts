@@ -2382,7 +2382,7 @@ All events: ${link}`,
     thread: "The thread",
     unreadable: "This message couldn't be read.",
     // A message rebuilt from a forward's quote of it, at the right of its subject: who forwarded it.
-    rebuilt: (forwarder: string) => `⁂ Quoted in ${forwarder}'s forward`,
+    rebuilt: (forwarder: string) => `Quoted in ${forwarder}'s forward`,
     // A forward with no note over what it carries.
     forwardedAlone: "(Forwarded without a message)",
     // Beside the thread: the politicians it's linked to.
