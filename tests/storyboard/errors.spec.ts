@@ -1,11 +1,11 @@
 import { copy } from "@/lib/content/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { failService } from "@/lib/server/fixtures/failing-services";
-import { REFUSALS_BEFORE_EMAIL } from "@/lib/server/spam-check-runs";
+import { REFUSALS_BEFORE_EMAIL } from "@/lib/spam-check-runs";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
-import { newestEmail, openLookup } from "../steps";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { fakeTurnstile, fillLetter, lookUpTestMp, newestEmail } from "../steps";
+import { BASE, emailFrame, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import { logIn, NOTIFICATION_INBOX, settled } from "./staff-steps";
 import type { Section } from "./report/frames";
 
@@ -60,8 +60,8 @@ test("A staff page breaks", async ({ page, flowDatabase }) => {
   await expect.poll(() => kept(flowDatabase, "render")).toEqual({ count: 2, alerted: true });
   expect((await notified(errors.email.server.subject(words))).MessageId).toBe(email.MessageId);
 
-  story("An admin opens Errors, from the menu. The error is first, as it's the one seen most recently.");
-  await page.getByRole("link", { name: staffCopy.nav.errors }).click();
+  story("An admin opens Errors. The error is first, as it's the one seen most recently.");
+  await page.goto(`${BASE}/staff/errors`);
   await expect(page.getByRole("heading", { level: 1, name: staffCopy.nav.errors })).toBeVisible();
   await settled(page);
   const row = page.getByRole("row").filter({ hasText: words });
@@ -88,8 +88,8 @@ test("A page breaks in someone's browser", async ({ page, flowDatabase }) => {
   story(
     "The notification inbox is emailed. The email says which page, but quotes nothing of the error, as anyone can post one.",
   );
-  const where = `${errors.kinds["browser-page"]} /gallery/broken`;
-  const email = await notified(errors.email.browser.subject(where));
+  const email = await notified(errors.email.browser.subject("/gallery/broken"));
+  expect(email.TextBody).toContain(`${errors.kinds["browser-page"]} /gallery/broken`);
   expect(email.TextBody).not.toContain("Asked to break");
   await emailFrame(page, email, "The email to the notification inbox");
 
@@ -109,22 +109,24 @@ test("A page breaks in someone's browser", async ({ page, flowDatabase }) => {
   await frame(page, "The errors");
 });
 
-test("Something fails outside an import", async ({ page, flowDatabase }) => {
+test("The spam check can't be reached", async ({ page, flowDatabase }) => {
   story(
-    "postcodes.io is down when a visitor looks up their MP. They're told something went wrong, and the site carries on. Nothing was thrown, but the failure is kept as an error.",
+    "Cloudflare's spam check is down when Jane sends her letter. She's told so, and her letter doesn't go. Nothing was thrown, but the failure is kept as an error.",
   );
-  failService(flowDatabase, "api.postcodes.io", FAILING_DIR);
-  await openLookup(page, BASE, "SW1A 2AA");
-  await page.getByRole("button", { name: copy.lookup.button }).click();
-  await expect(page.getByRole("alert").filter({ hasText: copy.lookup.failed })).toBeVisible();
-  await frame(page, "What the visitor is told");
+  failService(flowDatabase, "challenges.cloudflare.com", FAILING_DIR);
+  await fakeTurnstile(page);
+  await lookUpTestMp(page, BASE);
+  await fillLetter(page, madeUpAddress("Jane Smith", 44));
+  await page.getByRole("button", { name: copy.preview.send }).click();
+  await expect(page.getByText(copy.errors.spamUnreachable)).toBeVisible();
+  await frame(page, "What Jane is told");
 
   story("The notification inbox is emailed about it, once.");
-  const words = staffCopy.problems.logs.postcodesDown;
+  const words = staffCopy.problems.logs.turnstileDown;
   const email = await notified(errors.email.server.subject(words));
   await emailFrame(page, email, "The email to the notification inbox");
 
-  story("An admin opens it from Errors: what went wrong in our words, then what postcodes.io said.");
+  story("An admin opens it from Errors: what went wrong in our words, then the error behind it.");
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/errors`);
   await page.getByRole("link", { name: words }).click();

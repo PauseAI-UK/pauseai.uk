@@ -317,7 +317,7 @@ describeWithDatabase("errors from browsers", () => {
     const link = `https://pauseai.uk/staff/errors/${id}`;
     expect(sent).toEqual([
       expect.objectContaining({
-        Subject: copy.email.browser.subject(place),
+        Subject: copy.email.browser.subject("/staff/politicians/<n>"),
         TextBody: copy.email.browser.first(place, link),
       }),
     ]);

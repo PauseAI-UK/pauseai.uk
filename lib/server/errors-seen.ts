@@ -189,7 +189,7 @@ async function tell(id: number, happening: Happening): Promise<void> {
   const { words } = happening;
   if (browser) {
     const body = first ? copy.browser.first(where, link) : copy.browser.again(where, since, total, link);
-    await notifyStaff(copy.browser.subject(where), body);
+    await notifyStaff(copy.browser.subject(happening.route), body);
   } else {
     const body = first ? copy.server.first(where, words, link) : copy.server.again(where, words, since, total, link);
     await notifyStaff(copy.server.subject(words), body);
