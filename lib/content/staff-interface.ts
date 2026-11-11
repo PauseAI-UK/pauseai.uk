@@ -2385,12 +2385,12 @@ All events: ${link}`,
     // A message rebuilt from a forward's quote of it, at the right of its subject: who forwarded it.
     rebuilt: (forwarder: string) => `⁂ Quoted in ${forwarder}'s forward`,
     // A forward with no note over what it carries.
-    forwardedAlone: "⁂ (Forwarded without a message)",
+    forwardedAlone: "(Forwarded without a message)",
     // Beside the thread: the politicians it shows under, and the button that takes one off it.
     people: {
       title: "Linked politicians",
-      none: "⁂ None",
-      unlink: "⁂ Unlink",
+      none: "None",
+      unlink: "Unlink",
     },
     // On a politician's and a supporter's page.
     onPageTitle: "One-off emails",
@@ -2620,7 +2620,7 @@ All events: ${link}`,
     // After the check, the one-off emails are linked again to the politicians
     // their addresses now match: what that did.
     relinked: (r: { read: number; unread: number; linked: number; unlinked: number; offices: number }) =>
-      `⁂ One-off emails: ${count(r.linked, "new link", "new links")} to politicians, ${r.unlinked} removed, ${count(r.offices, "office address", "office addresses")} found.` +
+      `One-off emails: ${count(r.linked, "new link", "new links")} to politicians, ${r.unlinked} removed, ${count(r.offices, "office address", "office addresses")} found.` +
       (r.read || r.unread
         ? ` ⁂ ${count(r.unread, "older email", "older emails")} still to check for quoted addresses.`
         : ""),
