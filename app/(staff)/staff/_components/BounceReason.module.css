@@ -6,8 +6,9 @@
   max-width: 22rem;
 }
 
-/* A long reason, folded to its first sentence: inline, so the lozenge
-   follows it, and the whole of it unfolded in its place. */
+/* A long reason, folded to its first sentence, and the whole of it
+   unfolded in its place, the lozenge inside the fold so it follows the
+   words, as a browser lays a fold out as a block. */
 .fold {
   display: inline;
 }
