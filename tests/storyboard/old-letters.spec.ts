@@ -93,7 +93,7 @@ test("A second press", async ({ page, flowDatabase }) => {
   await expect(page.getByText(staffCopy.runs.status.failed)).toHaveCount(0);
   expect(runSql(flowDatabase, "SELECT count(*) FROM import_runs WHERE job = 'import-old-letters'")).toEqual(["1"]);
   await frame(page, "Already running");
-  await page.goto(`${BASE}/staff/import-data`);
+  await page.goto(`${BASE}/staff/scheduled-jobs`);
   await frame(page, "Running, on the list of imports");
 });
 
@@ -176,7 +176,7 @@ test("The import's log", async ({ page, flowDatabase }) => {
   await frame(page, "What it has joined, by mailing");
 
   story("It's listed with the one-off imports.");
-  await page.goto(`${BASE}/staff/import-data`);
+  await page.goto(`${BASE}/staff/scheduled-jobs`);
   await frame(page, "On the list of imports");
 });
 

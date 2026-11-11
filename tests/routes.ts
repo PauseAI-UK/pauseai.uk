@@ -24,7 +24,7 @@ export const DYNAMIC_EXAMPLES: Record<string, string> = {
   "/staff/asks/[slug]/edit": "/staff/asks/winter-reception-dec-2026/edit",
   "/staff/campaigns/[slug]": "/staff/campaigns/regulate-letter-pm",
   "/staff/one-off/[id]": "/staff/one-off/1",
-  "/staff/import-data/[job]": "/staff/import-data/luma",
+  "/staff/scheduled-jobs/[job]": "/staff/scheduled-jobs/luma",
   "/staff/letters/[id]": "/staff/letters/1",
   "/staff/letters/supporter/[id]": "/staff/letters/supporter/1",
   "/staff/mailings/[id]": "/staff/mailings/1",

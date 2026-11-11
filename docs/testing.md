@@ -608,7 +608,7 @@ that drives it or why nothing does.
   - setting a status that shows on `/campaigns`, and the audit log;
   - the "new" tag, on the sidebar and the folded rail, and gone after 3 days.
 - `imports.spec.ts`: The imports staff run and watch:
-  - the import page and each job's own page, with the MP check run twice on its page;
+  - the Scheduled jobs page and each job's own page, with the MP check run twice on its page;
   - a held politician import: the notification inbox is emailed, the home has an action for it, and it's discarded, then applied;
   - an import held for a renamed record;
   - the Luma import run twice from its page;
@@ -777,7 +777,7 @@ that drives it or why nothing does.
     - `imports`: the read that finds Google has disconnected a Gmail. The Gmail page's button runs the same `readGmail()`.
     - `mailings`: not through the route. A staff member's fixture Gmail has no messages to read, so the flow adds the reply that the read would keep.
   - `import-luma`: `supporters`: `importLuma()` in `tests/steps.ts` fills a flow's database from the fixture calendar; the `imports` page runs it too.
-  - `import-members`: `imports`: the import page runs `importMembers()`, which the route calls.
+  - `import-members`: `imports`: the Scheduled jobs page runs `importMembers()`, which the route calls.
 - `/api/backup/letter-replies`, `/api/backup/letter-replies/[id]`: Not driven: they are for the backup Worker, and show nothing. Vitest-tested.
 - `/api/csp-report`: Not driven: a browser posts to it only on a CSP violation. Vitest-tested.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `tests/steps.ts`), and the redelivery that changes nothing.

@@ -281,7 +281,7 @@ the code should go instead. The rules below say which ones are enforced.
   `/api/cron/<job>` with `CRON_SECRET` (`netlify/scheduled.ts`).
   - The work itself stays in the Next app. `lib/server/jobs.ts` says what
     runs each job, for that route and for the job's button.
-  - Every one is a job on `/staff/import-data`, whether or not it imports
+  - Every one is a job on `/staff/scheduled-jobs`, whether or not it imports
     anything and despite the page's name, so that staff can see its runs
     and press its button (`docs/domain-concepts.md`, "Imports").
   - A scheduled function gets 30 seconds. A job that needs longer has a

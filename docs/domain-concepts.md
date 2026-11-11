@@ -467,7 +467,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   letter's history, but for an automatic reply's event.
 
   Each run is in the import log, with what it found in each account, and
-  staff can run it from its page under Import data.
+  staff can run it from its page under Scheduled jobs.
 
 - **Threads.** Each PauseAI letter has a page with its whole thread
   (`/staff/mailings/<id>/letters/<letter>`), reached from the politician's
@@ -1148,8 +1148,8 @@ own, such as a Gmail account Google disconnected, is marked told, so the
 run's email leaves it out. A run can be held for staff to decide on, as a
 large politician sync is.
 
-`/staff/import-data` shows each job's newest run on a card. Each job's own
-page (`/staff/import-data/<slug>`, `importPath()` in `lib/import-runs.ts`)
+`/staff/scheduled-jobs` shows each job's newest run on a card. Each job's own
+page (`/staff/scheduled-jobs/<slug>`, `importPath()` in `lib/import-runs.ts`)
 has its button and every run it keeps (`lib/server/log-retention.ts`, run
 nightly):
 

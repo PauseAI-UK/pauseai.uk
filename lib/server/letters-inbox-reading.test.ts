@@ -479,7 +479,7 @@ describeWithDatabase("reading the letters inbox", () => {
     expect(emails[0].TextBody).toContain(
       `https://mail.google.com/mail/?authuser=${encodeURIComponent(LETTERS_INBOX)}#all/`,
     );
-    expect(emails[0].TextBody).toContain("https://pauseai.uk/staff/import-data/");
+    expect(emails[0].TextBody).toContain("https://pauseai.uk/staff/scheduled-jobs/");
     // A run with nothing to tell sends nothing.
     await read();
     expect(emails).toHaveLength(1);

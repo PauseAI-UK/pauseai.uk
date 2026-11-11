@@ -35,8 +35,8 @@ describeWithDatabase("the import log", () => {
     const words = staffCopy.notifications.importFailed;
     const luma = jobTitles["import-luma"];
     expect(sent.map((email) => [email.Subject, email.TextBody])).toEqual([
-      [words.subject(luma), words.body(luma, "Luma is down", "https://pauseai.uk/staff/import-data/luma")],
-      [words.subject(luma), words.body(luma, "Luma is down again", "https://pauseai.uk/staff/import-data/luma")],
+      [words.subject(luma), words.body(luma, "Luma is down", "https://pauseai.uk/staff/scheduled-jobs/luma")],
+      [words.subject(luma), words.body(luma, "Luma is down again", "https://pauseai.uk/staff/scheduled-jobs/luma")],
     ]);
   });
 
@@ -76,7 +76,7 @@ describeWithDatabase("the import log", () => {
     });
     const words = staffCopy.notifications.importProblems;
     const luma = jobTitles["import-luma"];
-    const link = "https://pauseai.uk/staff/import-data/luma";
+    const link = "https://pauseai.uk/staff/scheduled-jobs/luma";
     expect(sent.map((email) => [email.Subject, email.TextBody])).toEqual([
       [words.subject(luma), words.body(luma, ["- An event wouldn't load 503", "- Postcodes.io failed"], link)],
       [words.subject(luma), words.body(luma, ["- An event wouldn't load 503", "- A host wouldn't load 503"], link)],
@@ -109,7 +109,7 @@ describeWithDatabase("the import log", () => {
       staffCopy.notifications.importProblems.body(
         title,
         ["- Parliament was slow"],
-        "https://pauseai.uk/staff/import-data/mp-check",
+        "https://pauseai.uk/staff/scheduled-jobs/mp-check",
       ),
     ]);
     // Still on the run, for its page.

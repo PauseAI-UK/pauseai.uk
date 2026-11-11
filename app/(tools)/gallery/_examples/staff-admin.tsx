@@ -715,7 +715,7 @@ export const staffAdmin: Group = {
               <ImportCards>
                 <ImportCard
                   title="An import"
-                  href="/staff/import-data/signatories"
+                  href="/staff/scheduled-jobs/signatories"
                   icon={<ImportIcon source="web" />}
                   tags={<Tag>Check only</Tag>}
                   intro="What it copies, and from where."
@@ -726,7 +726,7 @@ export const staffAdmin: Group = {
                 </ImportCard>
                 <ImportCard
                   title="Another"
-                  href="/staff/import-data/luma"
+                  href="/staff/scheduled-jobs/luma"
                   icon={<ImportIcon source="luma" />}
                   intro="Never run."
                 >
@@ -748,7 +748,7 @@ export const staffAdmin: Group = {
             <StaffPage as="div">
               <ImportCard
                 title="An import"
-                href="/staff/import-data/luma"
+                href="/staff/scheduled-jobs/luma"
                 icon={<ImportIcon source="airtable" />}
                 intro="What it copies."
               >

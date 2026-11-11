@@ -114,7 +114,7 @@ export async function deleteNoteNow(form: FormData): Promise<boolean> {
 /** Refreshes the pages that show a job's runs: its own, the overview of every job, and the home page's actions. */
 function refreshImport(job: ImportJob): void {
   revalidatePath(importPath(job));
-  revalidatePath("/staff/import-data");
+  revalidatePath("/staff/scheduled-jobs");
   revalidatePath("/staff");
 }
 

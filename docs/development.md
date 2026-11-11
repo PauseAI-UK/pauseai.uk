@@ -449,7 +449,7 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   Parliamentarians base's "UK Parliamentarians", "Emails" and "Web form
   emails" tables, and to the members' base. Those are for the politician
   sync, the members import and two one-off imports at
-  `/staff/import-data`: the Emails sync and the web form letters.
+  `/staff/scheduled-jobs`: the Emails sync and the web form letters.
 - **Global's CiviCRM.** Its chapter contacts API, at
   `https://crm.pauseai.info/`, is specified in
   [PauseAI/pauseai-civicrm#1175](https://github.com/PauseAI/pauseai-civicrm/issues/1175).
@@ -665,15 +665,15 @@ Set up outside the code:
 
   Give admin to at least one other person, as the last admin can't be removed. An erasure request is handled as `docs/data-protection.md` says.
 
-- **A new database:** from `/staff/import-data`:
+- **A new database:** from `/staff/scheduled-jobs`:
   1. Run the politician sync. Until it has run, Email your MP finds no MPs.
   2. Run the Emails sync and the one-off import of the web form letters.
 
-  The Luma import fills the supporter pages over its first few runs, and links every letter already written. Run it from `/staff/import-data` too, to watch it.
+  The Luma import fills the supporter pages over its first few runs, and links every letter already written. Run it from `/staff/scheduled-jobs` too, to watch it.
 
 ### The scheduled jobs
 
-Each is a Netlify scheduled function in `netlify/functions/` that calls its route under `/api/cron/` (`docs/code-structure.md`, "Scheduled jobs"), and each has a page under `/staff/import-data` with its runs and a button (`docs/domain-concepts.md`, "Imports"). Times are UTC.
+Each is a Netlify scheduled function in `netlify/functions/` that calls its route under `/api/cron/` (`docs/code-structure.md`, "Scheduled jobs"), and each has a page under `/staff/scheduled-jobs` with its runs and a button (`docs/domain-concepts.md`, "Imports"). Times are UTC.
 
 | Job                                          | When                                  | Needs                                                                                                                                                                                                                                                                                              |
 | -------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
