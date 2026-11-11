@@ -2034,8 +2034,8 @@ All events: ${link}`,
     oneOffs: (n: number) => `${n} one-off ${plural(n, "email", "emails")} kept.`,
     // After the totals, in a run that searched for addresses staff added to politicians': what it found, and how many wait.
     searched: (s: { searched: number; kept: number; waiting: number }) =>
-      `⁂ Searched for ${count(s.searched, "added address", "added addresses")}, keeping ${count(s.kept, "earlier email", "earlier emails")}.` +
-      (s.waiting ? ` ⁂ ${s.waiting} still to search.` : ""),
+      `Searched for ${count(s.searched, "added address", "added addresses")}, keeping ${count(s.kept, "earlier email", "earlier emails")}.` +
+      (s.waiting ? ` ${s.waiting} still to search.` : ""),
     title: "Replies, bounces and one-off emails from Gmail",
     intro: {
       before: "Reads the replies to our letters, and their bounces, in each ",
