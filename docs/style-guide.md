@@ -5,21 +5,23 @@ How the site looks, and where that lives in the code.
 ## Start with the gallery
 
 The component gallery shows every component and its variants as the site
-renders them: `/gallery` on a fixture build (`DATA_FIXTURES=1`; with it in
-`.env.local`, http://localhost:3000/gallery under `npm run dev`). It is the
-reference for what exists. Before designing or building something, look
-there: the piece may already be there, or need only a variant.
-`docs/testing.md` ("The component gallery") says how to add to it and
-picture it.
+renders them. It's at `/gallery` on a fixture build (`DATA_FIXTURES=1`):
+with that in `.env.local`, `npm run dev` serves it at
+http://localhost:3000/gallery. It is the reference for what exists. Before
+designing or building something, look there: the piece may already be
+there, or need only a variant. `docs/testing.md` ("The component gallery")
+says how to add to it and picture it.
 
 The look lives in the components, not in this file. Each one owns its
-styles in a CSS module beside it, and the only global CSS is
-`styles/tokens.css` (the fonts; every colour, width, space, type size and
-corner as a variable; and the compact density) and
-`styles/base.css` (element defaults and `.container`). The rules for
-writing styles are in `docs/code-structure.md` ("Styling"). Where this
-guide and the code differ, the code is what visitors see; fix whichever is
-wrong.
+styles in a CSS module beside it. The only global CSS is two files:
+
+- `styles/tokens.css`: the fonts, every colour, width, space, type size
+  and corner as a variable, and the compact density;
+- `styles/base.css`: element defaults and `.container`.
+
+The rules for writing styles are in `docs/code-structure.md` ("Styling").
+Where this guide and the code differ, the code is what visitors see; fix
+whichever is wrong.
 
 ## The look: warm authority
 
@@ -101,7 +103,7 @@ legible at small sizes, and strong enough for subheadings.
 
 ### Type scale
 
-Set in the components that use them; these are the main ones.
+Sizes are set in the components that use them. These are the main ones.
 
 | Element         | Where             | Size                       | Weight |
 | --------------- | ----------------- | -------------------------- | ------ |
@@ -131,8 +133,9 @@ page (`/gallery/tokens`) draws them.
 
 In `components/ui/`, Stylelint refuses a raw `px` or `rem` in a margin,
 padding, gap, font size or corner: they're tokens there. The kit's files
-whose sizes aren't tokens yet are listed in `stylelint.config.mjs`, to be
-converted, not added to. Elsewhere, use the tokens where they fit.
+whose sizes aren't tokens yet are listed in `stylelint.config.mjs`. They
+are there to be converted, and the list isn't to be added to. Elsewhere,
+use the tokens where they fit.
 
 ### Using the spacing
 
@@ -157,7 +160,7 @@ other than the group is to what's around it.
   without anything else changing ("Density", below).
 - **Space things with the container's `gap`, not their margins.** A
   component sets its own padding, and the gaps between its own children,
-  but not a margin round itself: where it sits is its container's job,
+  but not a margin round itself. Where it sits is its container's job,
   through `gap` or a `className` for its place in a layout
   (`docs/code-structure.md`, "Styling"). The exceptions are the few that
   always come after something and bring the space above them: `Hint` and
@@ -179,19 +182,21 @@ take whatever value they need:
   `em`, since it isn't a fixed size.
 - **Optical nudges**: a pixel or two to line an icon up with its text. Say
   in a comment what it lines up. A small icon before words in the staff
-  pages needs none: put them in `IconText` (`ui/IconText.tsx`), which
-  centres it on the words wherever they are, rather than a flex row of
-  your own, whose baseline is the icon's bottom edge.
+  pages needs no nudge. Put the icon and the words in `IconText`
+  (`ui/IconText.tsx`), which centres the icon on the words wherever they
+  are. Don't use a flex row of your own, as its baseline is the icon's
+  bottom edge.
 - **A size measured from something else**: the nav's height in
   `scroll-padding-top`, the heights reserved for the signup form while it
   loads (`OnboardingFormEmbed.module.css`). Say in a comment where the
   number comes from.
 
 Outside `components/ui/`, an off-scale space or type size is allowed when
-nothing on the scale looks right, with a comment saying why. Inside it,
-Stylelint refuses one; for one of the cases above, use
+nothing on the scale looks right, with a comment saying why. Inside
+`components/ui/`, Stylelint refuses one. For one of the cases above, use
 `/* stylelint-disable-next-line declaration-property-value-disallowed-list -- why */`.
-Don't add a token for a one-off: a new token is for a value two or more
+
+Don't add a token for a one-off. A new token is for a value two or more
 components share, and it goes in `styles/tokens.css` with what it's for.
 
 A page's widths are tokens too: its reading column is `--measure-page`
@@ -206,48 +211,57 @@ Every field is the kit's, in `components/ui/`.
 `<textarea>` written anywhere else; the few exceptions are listed there,
 with why.
 
-- **Fields** (`Field.tsx`): `Field` is a label's words over the control
-  inside it; `Label` a label on its own, over a control elsewhere or a
-  group of buttons; `Hint` a note under a control; `FieldError` what's
-  wrong, in the danger colour with an orange rule beside it, read out
-  with `announce="alert"` when a form has just failed. `FieldGroup` keeps
-  a field and what's under it together; `FieldSet` is a field of several
-  controls, its label their legend.
+- **Fields** (`Field.tsx`):
+  - `Field` is a label's words over the control inside it.
+  - `Label` is a label on its own, over a control elsewhere or a group of
+    buttons.
+  - `Hint` is a note under a control.
+  - `FieldError` says what's wrong, in the danger colour with an orange
+    rule beside it. With `announce="alert"` it's read out, for a form that
+    has just failed.
+  - `FieldGroup` keeps a field and what's under it together.
+  - `FieldSet` is a field of several controls, with its label as their
+    legend.
 - **Controls** (`Controls.tsx`): `TextInput`, `Select`, `TextArea`,
   `FileInput`, `Checkbox` (its label beside it), `Radio` and `Segmented`
   (a row of choices). A day is a `DatePicker` (`DatePicker.tsx`), and two
-  of them a `DateRange`.
-- **Layout** (`Form.tsx`): `FormStack`, fields in a column; `FilterForm`,
-  a row of filters over a list, lined up along their bottoms.
-- **Focus**: every control and button has the same ring from the
-  keyboard, `--focus-ring` (2px of orange), `--focus-offset` outside it.
+  of them are a `DateRange`.
+- **Layout** (`Form.tsx`): `FormStack` is fields in a column. `FilterForm`
+  is a row of filters over a list, lined up along their bottoms.
+- **Focus**: every control and button has the same ring when it's focused
+  from the keyboard: `--focus-ring` (2px of orange), set `--focus-offset`
+  outside it.
 - **Errors**: a field that's wrong has `aria-invalid`, which gives it a
   danger-coloured border, and a `FieldError` under it.
 
 ## Density
 
-The same components come at two densities. **Comfortable** is the
-public site's: 48px fields, 16px labels. **Compact** is for screens of
-tables and filters that people work through, the staff interface: 36px
-fields (the small button's height, so a row of filters lines up), 14px
-labels and table text, tight table cells and tags. A container sets
-`data-density="compact"` on itself (`StaffPage` does), and everything
-inside it is compact; the components need no prop.
+The same components come at two densities:
+
+- **Comfortable** is the public site's: 48px fields, 16px labels.
+- **Compact** is for screens of tables and filters that people work
+  through, which is the staff interface. It has 36px fields (the small
+  button's height, so a row of filters lines up), 14px labels and table
+  text, and tight table cells and tags.
+
+A container sets `data-density="compact"` on itself (`StaffPage` does), and
+everything inside it is compact. The components need no prop.
 
 Density changes only sizes and spacing, never colour, behaviour, the
-focus ring or the look of an error, and there are only the two. A
-field's text stays 16px on a phone at either density, or iOS Safari zooms
-the page when it's focused. The tokens it sets are the `--control-*`,
-`--label-font-size`, `--note-font-size`, `--field-gap`, `--form-gap`,
-`--table-*` and `--tag-*` ones in `styles/tokens.css`. The gallery's forms
-page (`/gallery/forms`) shows every field, table and tag at both.
+focus ring or the look of an error. There are only the two densities. A
+field's text stays 16px on a phone at either density, because otherwise
+iOS Safari zooms the page when the field is focused. The tokens that
+density sets are the `--control-*`, `--label-font-size`,
+`--note-font-size`, `--field-gap`, `--form-gap`, `--table-*` and `--tag-*`
+ones in `styles/tokens.css`. The gallery's forms page (`/gallery/forms`)
+shows every field, table and tag at both densities.
 
 ## Staff pages
 
 Every staff page is laid out from the same few pieces, so a component added
 or removed doesn't bring a width, a box or an alert of its own. A
-component's look is its own; where it sits and how wide it is are the
-page's.
+component's look is its own. Where it sits and how wide it is belong to
+the page.
 
 **Where buttons that add go.** Where a button sits says what it adds
 to, so there are four places, one for each kind of adding:
@@ -264,12 +278,12 @@ to, so there are four places, one for each kind of adding:
   row of chips, and what it adds is a chip among them (`ui/FilterBar`).
 - **A part of the thing being written: in the section it belongs to.**
   "Add files" is in the attachments' box, where the files then show. The
-  letter's "+ Only for those who…" is beside the letter, with the fields,
-  the other things put into it.
+  letter's "+ Only for those who…" is beside the letter, next to the
+  fields, which are the other things put into a letter.
 - **A row of a short table kept in place: the page's main button, its
-  form in a bubble.** Staff accounts' Add staff, at the title's right,
-  opens the address field: type it, press Add, and the row is there, with
-  no page to go to.
+  form in a bubble.** On Staff accounts, Add staff is at the title's right
+  and opens a field for the address. Type the address and press Add, and
+  the row is there, with no page to go to.
 
 "+" marks a small control that adds to something already on the screen,
 a filter or a part of the letter, never a button that makes a new thing.
@@ -284,54 +298,66 @@ part needs a set of things chosen with another part's full tools: who a
 mailing goes to is chosen with the politicians list's tabs, search and
 filters. It doesn't get a lighter copy of those tools. The person is sent
 to the list itself, in a choosing mode, and comes back with what they
-chose. The mode is in the address (a draft's ID, `mailing=12`, on the
-politicians list), so the tabs, filters and pages all keep it. Each row
-has a tick box, saved as it's clicked, and the box over them ticks
+chose.
+
+The mode is in the address (a draft's ID, `mailing=12`, on the politicians
+list), so the tabs, filters and pages all keep it. Each row has a tick
+box, and a tick is saved as it's clicked. The box over the rows ticks
 everyone the filters find, on every page. A last tab shows only those
 ticked. What's ticked is what's chosen, never what the filters find, so
-the person can search for one, tick them, and search for the next. The
-page is as it always is, but for that, and two bars:
+the person can search for one, tick them, and search for the next.
 
-- **At the top, held there as the page scrolls** (`ChoosingHead`): a
-  dark strip, as the bar at the foot is, saying what's being chosen and what for (a new mailing, or
-  naming the draft), a line on how, and for a new one, at its right,
-  the way out (Cancel, which deletes it). It's
-  held alone, not the title under it, and inside a plain box around the
-  whole page: the router scrolls a new page's first element into view,
-  and a held one at the top would leave the page scrolled.
-- **At the foot of the window, held there** (`ChoosingBar`): a dark bar
-  with how many are ticked, light buttons to see them and to untick
-  everyone, Paste names, whose box opens above the bar, and, at its
-  right, the orange button on to what they're for ("Write to these 5").
-  Ticks are saved as they're made, so a draft's way back is this button
-  too, there even with no one ticked; a new mailing's is greyed until
-  someone is.
+Apart from the tick boxes and that tab, the page is as it always is, with
+two bars added:
 
-The page's own button for the same thing (New mailing, or Mail these) goes while it's
-choosing, so there's one way on. The person chooses with tools they
-already know. The top always says what they're doing and how to stop,
-and the foot always shows the result and the way on, however far they've
-scrolled.
+- **At the top, held there as the page scrolls** (`ChoosingHead`): a dark
+  strip, like the bar at the foot. It says what's being chosen and what
+  for (a new mailing, or the draft by its title), with a line on how. For
+  a new mailing it has the way out at its right: Cancel, which deletes the
+  mailing. Only the strip is held, not the title under it. The strip sits
+  inside a plain box around the whole page, because the router scrolls a
+  new page's first element into view, and if that element were the held
+  strip the page would be left scrolled.
+- **At the foot of the window, held there** (`ChoosingBar`): a dark bar.
+  It says how many are ticked, and has light buttons to see them and to
+  untick everyone, and Paste names, whose box opens above the bar. At its
+  right is the orange button on to what they're for ("Write to these 5").
+  Ticks are saved as they're made. So this button is also the way back
+  into a draft, and it shows even when no one is ticked. For a new
+  mailing, it's greyed until someone is ticked.
+
+While the list is choosing, the page's own button for the same thing (New
+mailing, or Mail these) is hidden, so there's one way on. The person
+chooses with tools they already know. The top always says what they're
+doing and how to stop, and the foot always shows the result and the way
+on, however far they've scrolled.
 
 The supporters list chooses who a broadcast goes to with the same two
-bars, but no ticks: there the filters say who, and the button at the foot
-keeps them for the draft (`ChoosingBroadcastFrame` in
+bars, but with no ticks. There the filters say who, and the button at the
+foot keeps the filters for the draft (`ChoosingBroadcastFrame` in
 `_components/BroadcastSupporters.tsx`). A new choosing mode uses these two
-bars too, not a design of its own. The mailing's are in
-`_components/PoliticiansList.tsx`, whose stylesheet the broadcast's share.
+bars too, not a design of its own. The mailing's bars are in
+`_components/PoliticiansList.tsx`, and the broadcast's bars share its
+stylesheet.
 
-**The grid** (`ui/Grid`). Six columns when it's at least 1,000px wide;
-below that, two. Everything boxed is an item of a grid and says how much
-of the row it takes: a sixth, a third, a half, two-thirds or all (`span`
-1, 2, 3, 4 or 6). On two columns, a sixth takes one and anything wider takes the row, so a phone has two of the dashboard's tiles a row and one card. Items are as
-tall as what's in them; a grid of things of one kind side by side (the
-dashboard's tiles, the import jobs) is `even`, each as tall as its row.
+**The grid** (`ui/Grid`). The grid has six columns when it's at least
+1,000px wide, and two below that. Everything boxed is an item of a grid
+and says how much of the row it takes: a sixth, a third, a half,
+two-thirds or all (`span` 1, 2, 3, 4 or 6). On two columns, a sixth takes
+one column and anything wider takes the row. So a phone shows the
+dashboard's tiles two to a row, and cards one to a row.
+
+Items are as tall as what's in them. A grid of things of one kind side by
+side (the dashboard's tiles, the import jobs) is `even`: each item is as
+tall as its row.
+
 On a page laid out on the grid, the content is never wider than 88rem, so
 the columns don't stretch on a big monitor. A new page is laid out on the
-grid, its sections cards the full six columns wide, even a short table. Only
-a list whose table needs the room, many columns with filters over them (the
-supporters, the politicians), takes the whole width, its filters as wide as
-its table.
+grid, and its sections are cards the full six columns wide, even a section
+that's a short table. The exception is a list whose table needs the room,
+because it has many columns with filters over them (the supporters, the
+politicians). That list takes the whole width, and its filters are as wide
+as its table.
 
 **Widths.** A component never sets its own `max-width` or `width`: the
 grid gives a box its width, and anything read line by line (a form, a
@@ -351,125 +377,169 @@ a field).
 | A tile                         | white, bordered, an item of an `even` grid                 | sets of like things: the dashboard's numbers                                                                                         |
 | A strip (`ui/Strip`)           | the tone's tint, no border, `--radius-md`                  | how something stands: green done or signed, amber waiting, red broken, blue going on now, plain neither; dark, a mode the page is in |
 
-Every card has the same edge, a `1px` `--border` and `--radius-lg`; only
-its fill changes, and only among those three, all warm. Colour stays for
-meaning: orange for what you can press, the status colours for state.
+Every card has the same edge, a `1px` `--border` and `--radius-lg`. Only
+its fill changes, and only among the three card looks in the table, all
+warm. Colour stays for meaning: orange for what you can press, the status
+colours for state.
 
 **The band** (`ui/Band`). A record whose page is about it alone (a
-supporter, a mailing) starts with a tinted band: its title and a tag, its
-facts (`BandFact`), each with a quiet line under it, and at their right
-its numbers in one white box (`ui/Counts`), each a link (`StaffLink`,
-below) to what it counts. When the list under them is a record's own,
-as a mailing's recipients are, each count is a filter that toggles: it
-shows only those it counts, underlined, and pressed again, everyone, with
-"Show everyone" as its tooltip. The same white box, small, is a row's in a
-list of such records (the mailings), the whole box leading to the record.
+supporter, a mailing) starts with a tinted band. The band has:
 
-**The dashboard's numbers** (`METRIC_LINKS`). A tile leads to a page showing the
-number it shows: a tile saying 12 opens a list of 12. So a tile counts what its
-list has a row for, a person or a politician once, and its link carries the
-window chosen. For staff whose permissions don't open that page, the tile is
-no link. A filter added for this alone is hidden ("Filters", below).
+- the record's title and a tag;
+- its facts (`BandFact`), each with a quiet line under it;
+- at the facts' right, its numbers in one white box (`ui/Counts`). Each
+  number is a link (`StaffLink`, below) to what it counts.
+
+When the list under the band is the record's own, as a mailing's
+recipients are, each count is a filter that toggles. Pressed, it shows
+only those it counts, and is underlined. While it's on, its tooltip is
+"Show everyone", and pressing it again shows everyone.
+
+A list of such records (the mailings) has the same white box, small, in
+each row, and the whole box leads to the record.
+
+**The dashboard's numbers** (`METRIC_LINKS`). A tile leads to a page that
+shows the same number: a tile saying 12 opens a list of 12. So a tile
+counts what its list has a row for, with a person or a politician counted
+once, and its link carries the window chosen. For staff whose permissions
+don't open that page, the tile isn't a link. A filter added only for a
+tile's link is hidden ("Filters", below).
 
 **Progress** (`ui/Progress`). How far something has got is a sentence
-over a thin bar: blue while it's going out, green for answers. In its
-own card under a band, and thin in a list's row.
+over a thin bar: blue while it's going out, green for answers. It goes in
+its own card under a band, and is thin in a list's row.
 
-**Status colours.** A status is grey but for four: red where it didn't
-arrive or we can't tell (Not sent, Bounced, Spam complaint, Uncertain,
-every skip), amber where we stopped it (Cancelled), green for good news,
-the answer a thing was for (Answered), and blue for what's going out or
-about to (Scheduled, Sending). Sent, Replied, Draft and Waiting are grey,
-so the four stand out. A skip or a stop says which in the tag, as
-"Status: variant": "Skipped: left office", "Cancelled: we stopped the
-mailing". A second fact about a record, such as answered, replied, or a
-supporter who asked us to stop after a message arrived, is a second tag
-beside its status, never in its place: a bounced letter that was answered
-shows Bounced and Answered. Each kind of record's status tags come from
-one function, used wherever it's shown, so a letter reads the same in a
-mailing's list as on its own page (`LetterStatus`).
+**Status colours.** A status is grey but for four:
 
-**A column of cards** (`ui/Grid`'s `Column`). Asides beside a record that
-aren't one card, such as a letter's ask over its history, stack in a
-`Column` taking the rest of the row, each card in it with no span.
+- red where it didn't arrive or we can't tell (Not sent, Bounced, Spam
+  complaint, Uncertain, every skip);
+- amber where we stopped it (Cancelled);
+- green for good news, the answer a thing was for (Answered);
+- blue for what's going out or about to (Scheduled, Sending).
 
-**No box under or beside a box** but a card or tile in the same grid. A
-card holds strips, rows and fields, never another card.
+Sent, Replied, Draft and Waiting are grey, so the four stand out.
+
+A skip or a stop says which kind it is in the tag, as "Status: variant":
+"Skipped: left office", "Cancelled: we stopped the mailing".
+
+A second fact about a record is a second tag beside its status, never in
+its place. Such a fact is that it was answered or replied to, or that a
+supporter asked us to stop after a message arrived. So a bounced letter
+that was answered shows Bounced and Answered.
+
+Each kind of record's status tags come from one function, used wherever
+the record is shown, so a letter reads the same in a mailing's list as on
+its own page (`LetterStatus`).
+
+**A column of cards** (`ui/Grid`'s `Column`). When the asides beside a
+record are more than one card, such as a letter's ask over its history,
+they stack in a `Column` that takes the rest of the row. The cards in it
+have no span.
+
+**No box under or beside a box**, except a card or tile in the same grid.
+A card holds strips, rows and fields, never another card.
 
 **Drawing the eye.** When a page opens on something a person just did or
 picked, that one thing pulses once in the accent's tint (`--accent-light`,
-or the orange at 40%) and settles: one pulse of about a second and a half,
-starting just after the page appears, never repeated. It's a change of
-colour, not a movement, so it stays with motion turned off. These do it:
-the ask a link picked out on an asks list (`AsksList.module.css`, which
-stays tinted), the broadcast just sent for approval on the list of
-broadcasts (`MailingsOverview.module.css`), and a notice that opens after
-something happened (`ui/Notice.module.css`), which starts lit and fades to
-plain over eight seconds.
+or the orange at 40%) and settles. The pulse lasts about a second and a
+half, starts just after the page appears, and never repeats. It's a change
+of colour, not a movement, so it stays with motion turned off. These do
+it:
 
-**Strips, not alerts.** Anything that needs a person is a red or amber
-strip, with its icon at the left and its button at the right: a strip
-each at the top of the home page, one at the top of an MP's page whose
-address is blocked, one for an error after a form. Inside a card, a strip
-is that thing's state: an import job's newest run, a campaign's status, a
-mailing list's answer. A strip that's an answer, not a warning, leaves out
-the icon (`icon={false}`). After something a person did, a strip says how
-it went: green when it worked, amber a warning, red an error, the amber
-and red with their icon. A strip on the page itself, not in a card, is
-spaced from what's above and below it as the grid's cards are
-(`StaffPage.module.css`), so a page puts it there with no margin of its own.
+- the ask a link picked out on an asks list (`AsksList.module.css`), which
+  stays tinted;
+- the broadcast just sent for approval, on the list of broadcasts
+  (`MailingsOverview.module.css`);
+- a notice that opens after something happened (`ui/Notice.module.css`),
+  which starts lit and fades to plain over eight seconds.
 
-**Tables** (`components/ui/Table`). White, every other row tinted
-(`--table-stripe`), so the eye keeps to a row across. A cell's content sits at its top, so
-the lines of text in a row start level, however many lines each cell
-wraps to. A table whose rows hold buttons, checkboxes or fields is
-`align="middle"`: a control is taller than a line of text, so at the top
-the text beside it sits higher than the button's label and the row looks
-uneven. Centred, the text lines up with the control's middle (the
-accounts table, your sessions).
+**Strips, not alerts.** A strip does one of these jobs:
+
+- On the page, anything that needs a person is a red or amber strip, with
+  its icon at the left and its button at the right. The home page has one
+  at its top for each such thing, an MP's page has one at its top when
+  their address is blocked, and a form has one for an error after it's
+  sent.
+- Inside a card, a strip is that thing's state: an import job's newest
+  run, a campaign's status, a mailing list's answer. A strip that's an
+  answer, not a warning, leaves out the icon (`icon={false}`).
+- After something a person did, a strip says how it went: green when it
+  worked, amber for a warning, red for an error. The amber and red ones
+  have their icon.
+
+A strip on the page itself, not in a card, is spaced from what's above and
+below it as the grid's cards are (`StaffPage.module.css`), so a page puts
+it there with no margin of its own.
+
+**Tables** (`components/ui/Table`). A table is white with every other row
+tinted (`--table-stripe`), so the eye keeps to a row across. A cell's
+content sits at the cell's top, so the lines of text in a row start level,
+however many lines each cell wraps to.
+
+A table whose rows hold buttons, checkboxes or fields is `align="middle"`
+(the accounts table, your sessions). A control is taller than a line of
+text. With everything at the top, the text beside a button would sit
+higher than the button's label, and the row would look uneven. Centred,
+the text lines up with the control's middle.
 
 **Lists** (`ui/ListFrame`). Every list is one frame, so no list designs
-its own table. A list says its columns once, as data (`ListColumn`): the
-heading, the cell, and the value in a download. The frame draws:
+its own table. A list says its columns once, as data (`ListColumn`): for
+each, the heading, the cell, and the value in a download. The frame draws:
 
-- over the table, ruled off: how many, "250 politicians", and which this
-  page shows, "· showing 101–200"; at the right, Download, whose menu has
-  CSV and JSON of every page the filters find, and vCard for a list of
-  people (each name starting "PauseAI <code> - ", the code one per file,
-  for finding a download's contacts on a phone);
-- the striped table. A short column (a house, a date, a count) never
-  wraps, so the long ones take the room. The frame is as wide as the
-  page's column, past the grid's 88rem on a page with one, so a list wraps less on a big
-  screen;
-- under it, with more than one page: "101–200 of 250", then Previous, the
-  first and last pages and two either side of this one, and Next; on a
-  phone, "Page 6 of 50" in place of the numbers.
+- Over the table, ruled off from it, a row for the count and Download. At
+  the left it says how many there are, "250 politicians", and which of
+  them this page shows, "· showing 101–200". At the right is Download. Its
+  menu has CSV and JSON of every page the filters find, and vCard for a
+  list of people. In a vCard file each name starts "PauseAI <code> - ",
+  with one code for the whole file, so a download's contacts can be found
+  on a phone.
+- The striped table. A short column (a house, a date, a count) never
+  wraps, so the long columns take the room. The frame is as wide as the
+  page's column, even past the 88rem that a page laid out on the grid
+  keeps to, so a list wraps less on a big screen.
+- Under the table, when there's more than one page, the paging: "101–200
+  of 250", then Previous, the page numbers (the first and last pages and
+  two either side of this one) and Next. On a phone, "Page 6 of 50" takes
+  the place of the numbers.
 
-A downloaded file is named for the list, its filters and when, in lower
-case with underscores: `politicians_party_labour_2026_10_27_1430.csv`.
-Downloads of supporters, their letters and their blocked addresses go in
-the audit log. A table that isn't a whole list, inside a card, is a
-`ListTable`, or a plain `Table`: striped, with no count or downloads.
+A downloaded file is named for the list, its filters and the time, in
+lower case with underscores:
+`politicians_party_labour_2026_10_27_1430.csv`. Downloads of supporters,
+their letters and their blocked addresses go in the audit log.
+
+A table that isn't a whole list, inside a card, is a `ListTable`, or a
+plain `Table`. It is striped, with no count or downloads.
 
 Columns go in the same order in every list: who it is, then how it
-stands, then counts, then when. The times that date a status, such as a
-letter's sent and replied, can sit beside it instead, read with it.
-What we add of our own to a record from elsewhere, our process rather
-than the thing itself, comes after what the record says: an event's
-owner and doc, after Luma's name, place, tags and who's going. What a
-row's Edit changes goes last, just before Edit, so it sits by the button
-that changes it: those, or an account's permissions.
+stands, then counts, then when. Some things move from that order:
 
-Where a row has a page of its own, the first column leads to it, so
-there's one place to click to open it: a supporter's or politician's
-name. A row with no name, such as a letter, starts with its status, then a
-link to it ("Letter →"), before who it's from and to. A list read by time
-starts with when instead. In a log, newest first, when is all there is
-to it: the audit log, an import's runs, a history. Something that
-happens on a day, such as an event, is named by its date as much as its
-name, so its name comes straight after, still leading to it: when, what,
-where, then the rest as usual. If people say the date when they mean the
-thing, the date goes first; otherwise it goes last.
+- The times that date a status, such as when a letter was sent and when
+  it was replied to, can sit beside the status instead, to be read with
+  it.
+- What we add of our own to a record from elsewhere (our process, not the
+  thing itself) comes after what the record says. An event's owner and
+  doc come after Luma's name, place, tags and who's going.
+- What a row's Edit changes goes last, just before Edit, so it sits by
+  the button that changes it: an event's owner and doc, or an account's
+  permissions.
+
+What the first column is depends on the row:
+
+- Where a row has a page of its own, the first column leads to it, so
+  there's one place to click to open it: a supporter's or politician's
+  name.
+- A row with no name, such as a letter, starts with its status, then a
+  link to it ("Letter →"), and then who it's from and to.
+- A list read by time starts with when instead. A log is read newest
+  first, and the time is all that identifies a row: the audit log, an
+  import's runs, a history.
+- Something that happens on a day, such as an event, is named by its date
+  as much as by its name. So its date comes first and its name straight
+  after, still leading to its page: when, what, where, then the rest as
+  usual.
+
+If people say the date when they mean the thing, the date goes first;
+otherwise it goes last.
 
 **Filters** (`ui/FilterBar`). Every list's filters are the same bar
 above it, and a list's own filters component only says what its filters
@@ -480,196 +550,275 @@ are:
   phone"), which is its accessible name too. A search waits for the button,
   or Enter, so the list doesn't change while someone types. While there's a
   search, an × in the box empties it.
-- Only the filters that are on show, each as a chip: the filter's name
-  and its choice, "Party: Labour". A chip opens its choices, one column,
-  a long list scrolling, and Remove.
-  A filter that isn't at its default is on, so a glance at the chips says
-  what the list is filtered by.
-- "+ Filter" lists every other filter, a row each, its choices opening
-  under it, one at a time; a choice applies at once. A filter has the
-  name of the column it filters, and they come in the columns' order. Not
-  every column gets one, only those someone will filter by. A filter with
-  no column of its own goes beside the column it's about: Near and MP by
-  Place, Event by Luma events.
-- A filter that only a dashboard tile needs, and that isn't useful on its own,
-  is hidden as a rule (`linkedOnly`): it isn't in "+ Filter", and is on only from
-  that link, a chip like any other.
+- Only the filters that are on are shown, each as a chip with the
+  filter's name and its choice: "Party: Labour". A filter is on when it
+  isn't at its default, so a glance at the chips says what the list is
+  filtered by. A chip opens a menu with its choices, in one column that
+  scrolls when it's long, and Remove.
+- "+ Filter" lists every other filter, a row each. A row opens its choices
+  under it, one row at a time, and a choice applies at once. A filter has
+  the name of the column it filters, and the filters come in the columns'
+  order. Not every column gets a filter, only those someone will filter
+  by. A filter with no column of its own goes beside the column it's
+  about: Near and MP by Place, Event by Luma events.
+- A filter that only a dashboard tile needs, and that isn't useful on its
+  own, is hidden as a rule (`linkedOnly`). It isn't in "+ Filter", and
+  it's on only when the tile's link turns it on. Then it's a chip like any
+  other.
 - A filter that makes sense more than once (`repeat`: a party, a nation,
-  an event) can be chosen again, and finds what has any of them; different
-  filters must all match. All it finds are on one chip, "Party: Labour or
-  Green", the "or" lighter. Its menu (`ui/ManyChoices`) has a row for each
-  choice: a click swaps to that one, and the menu closes. "+ Add", in the
-  menu's foot, turns the rows to boxes, with what it has ticked; "Just one", in
-  its place, turns them back, keeping the first ticked. Each tick changes the
-  list at once, replacing the URL so Back isn't full of them, and the menu stays
-  open; the newest tick wins. Clicking away or Escape just closes it. With
-  several chosen the menu opens as boxes, so a click on a row can't clear them.
-  Unticking everything takes the filter off the list at once; its chip goes when
-  the menu closes. While ticking, `ui/FilterBarLines` holds the bar as it is. A
-  filter that doesn't repeat has no "+ Add". A choice in two parts doesn't repeat.
-- A filter that repeats can leave out, too. "+ Filter" is cut in two,
-  "+ Filter | Except", and Except lists those filters to choose one to
-  leave out. All a filter leaves out are on a chip of their own among the
-  others, white with a dashed edge and a struck-through circle, and its words
-  say "not": "Party: not Labour or Green". The list has none of what's left
-  out and any of what's chosen. Each chip's menu, beside Remove, turns all it
-  has the other way: "Except this", or "Only this", or "these" for several.
-  Leaving out every choice removes the filter. In the URL a choice left out is
-  the same parameter, its value marked `!`: `event=!evt-2`.
-- Where a record has only one value of a filter (`oneEach`: a nation, a party,
-  who did it), finding one already leaves the others out, so it only ever has
-  one chip: adding a found choice drops those left out, and the other way
-  round. One from an old link or saved filter with both shows both until it
-  changes. Where a record can have several (a tag, an event), it keeps both.
-- Politicians, Supporters, Events and the audit log have saved filters (`ui/SavedFilters`,
-  FilterBar's `saved`, and "Saved filters" in `docs/domain-concepts.md`): a
-  white lozenge at the right of the bar's first row; on a phone it shares a
-  row with the search, which takes what it leaves, or on the narrowest has
-  its own row under it. If the search, the chips and this don't all
-  fit on one line, the chips start a line of their own (`ui/FilterBarLines`). Its bookmark is outlined, or filled in the accent with one
-  loaded, and it's named for that one, cut at about 17rem, the full name on
-  hover, "edited" after it never cut. Its second half is there only with
-  something to save: Save, with a filter or search on and none loaded,
-  opens a small form with the name filled in; Save ▾, once one's edited,
-  holds Update for all, Save as new and Undo my changes. The list is a
-  box that narrows by name, and rows of name, summary, creator and date,
-  each a link that loads it, with a menu to rename or delete
-  it without loading it. Clear filters unloads one too. A loaded one that
-  names something gone says so under the bar.
+  an event) can be chosen again. It finds what has any of its choices,
+  whereas different filters must all match. All it finds are on one chip,
+  "Party: Labour or Green", with the "or" lighter. Its menu
+  (`ui/ManyChoices`) works like this:
+  - It has a row for each choice. A click on a row swaps to that choice
+    alone, and the menu closes.
+  - "+ Add", in the menu's foot, turns the rows into tick boxes, with the
+    filter's choices ticked. "Just one" then takes its place, and turns
+    the boxes back into rows, keeping only the first choice ticked.
+  - Each tick changes the list at once, and the menu stays open. A tick
+    replaces the URL, so Back isn't full of them, and the newest tick
+    wins.
+  - Clicking away or pressing Escape just closes the menu.
+  - With several chosen, the menu opens as boxes, so a click on a row
+    can't clear them.
+  - Unticking everything takes the filter off the list at once. Its chip
+    goes when the menu closes.
+  - While someone is ticking, `ui/FilterBarLines` holds the bar as it is.
+
+  A filter that doesn't repeat has no "+ Add". A choice in two parts
+  doesn't repeat.
+
+- A filter that repeats can also leave choices out. "+ Filter" is then cut
+  in two, "+ Filter | Except", and Except lists the filters that repeat,
+  to choose something to leave out. All the choices a filter leaves out
+  are on a chip of their own among the others. That chip is white with a
+  dashed edge and a struck-through circle, and its words say "not":
+  "Party: not Labour or Green". The list then shows what has none of the
+  choices left out and any of the choices found. Each chip's menu has,
+  beside Remove, a link that turns all the chip's choices the other way:
+  "Except this" or "Only this", and "Except these" or "Only these" for
+  several. Leaving out every choice removes the filter. In the URL, a
+  choice left out is the same parameter with its value marked `!`:
+  `event=!evt-2`.
+- Where a record has only one value of a filter (`oneEach`: a nation, a
+  party, who did it), finding one value already leaves the others out. So
+  such a filter only ever has one chip: adding a choice to find drops the
+  choices left out, and adding a choice to leave out drops the choices
+  found. A filter from an old link or a saved filter that has both kinds
+  shows both chips until it changes. Where a record can have several
+  values (a tag, an event), the filter keeps both chips.
+- Politicians, Supporters, Events and the audit log have saved filters
+  (`ui/SavedFilters`, FilterBar's `saved`, and "Saved filters" in
+  `docs/domain-concepts.md`):
+  - Where it sits: the saved filters are a white lozenge at the right of
+    the bar's first row. On a phone the lozenge shares a row with the
+    search, which takes the room the lozenge leaves, or, where it doesn't
+    fit, has its own row under the search. If the search, the chips and
+    the lozenge don't all fit on one line, the chips start a line of their
+    own (`ui/FilterBarLines`).
+  - Its first half: the bookmark is outlined, or filled in the accent when
+    a saved filter is loaded. With one loaded, the lozenge is named for
+    it. A long name is cut at about 17rem, with the full name on hover.
+    "edited" comes after the name and is never cut.
+  - Its second half is there only when there's something to save. With a
+    filter or search on and no saved filter loaded, it's Save, which opens
+    a small form with the name filled in. Once a loaded one has been
+    edited, it's Save ▾, a menu with Update for all, Save as new and Undo
+    my changes.
+  - The list of saved filters has a box that narrows it by name. Each row
+    has a saved filter's name, summary, creator and date, and is a link
+    that loads it. Each row also has a menu to rename or delete the saved
+    filter without loading it.
+  - Clear filters unloads a saved filter too. A loaded one that names
+    something gone says so under the bar.
 - A filter with too many choices to read (`searchable`: the events) has a
-  box over them, and shows none until something's typed.
-- A place filter (`place`: Near) is a small form, words and how far, and
-  its chip says what it found: "Near: Leeds, 10 miles".
-- A filter can come after another (`after`): once that one is on, the
-  two are one chip in two halves, each opening its own choices, and it
-  goes when that one does. An ask's chip is "Edinburgh conference |
-  Declined", "Any answer" in the second half until one is chosen. On its
-  own, as from a link, it's an ordinary chip, "Answer: Signed".
-- A filter `after` another that repeats, as an ask's answers do, has "+ Add" in
-  the chip's second half: "Edinburgh conference | Going or Declined",
-  its blank choice, "Any answer", being what ticking none means. Changing the
-  first half clears it. It can't leave out.
-- A filter that repeats can have choices in two parts (an option's
-  `seconds`): "+ Filter" and Except offer the first, and its chip is in
-  two halves, the second choosing among the first's. A choice list can
-  have headings (an option's `group`, its icon once) and a quiet `detail`
-  after a choice. The Consent filter's topics come under Email and Phone;
-  chosen, a topic is those we can contact about it, "Consent: PauseAI UK |
-  Can email", and its second half turns it to Not sure or Can't email.
-  The first half changes the topic, and turns it the other way or removes
-  it. Its value is one parameter: `contact=email:site-forms:yes`.
-- A filter that matters most has its own button (`own`), before "+ Filter",
-  which doesn't offer it; once it's on, its chip comes first. The
-  supporters list's Consent is one, as it's what a broadcast needs.
-- A filter that can't change in a mode is `locked`, with why: its chip is
-  there, with a padlock for its arrow, but doesn't open, "+ Filter" doesn't
-  offer it, and Clear filters keeps it. The Consent is, while the list is
-  choosing who a broadcast goes to, as the broadcast's writer changes it.
-- Clear filters, last, while anything is on, empties the search and every
-  filter, and the sort. A tab over the list, such as the politicians'
-  houses, isn't a filter: Clear filters keeps it.
-- Every choice is a link, so the URL holds the filters; a new filter
+  search box over its choices, and shows none of them until something's
+  typed.
+- A place filter (`place`: Near) is a small form for a place in words and
+  how far from it. Its chip says what it found: "Near: Leeds, 10 miles".
+- A filter can come after another (`after`). Once the first filter is on,
+  the two are one chip in two halves, and each half opens its own choices.
+  The second filter goes when the first does. An ask's chip is "Edinburgh
+  conference | Declined", with "Any answer" in the second half until an
+  answer is chosen. When the second filter is on without the first, as it
+  can be from a link, it's an ordinary chip: "Answer: Signed".
+- When the filter that comes `after` another repeats, as an ask's answers
+  do, the menu of the chip's second half has "+ Add": "Edinburgh
+  conference | Going or Declined". Ticking nothing means its blank choice,
+  "Any answer". Changing the first half clears the second. A filter like
+  this can't leave choices out.
+- A filter can have choices in two parts (an option's `seconds`). Its chip
+  is then in two halves: the first half chooses among the choices, and the
+  second among the second parts of the one chosen. Such a filter doesn't
+  repeat. A choice list can have headings (an option's `group`, its icon
+  once) and a quiet `detail` after a choice. The Consent filter does all
+  of this. Its topics come under Email and Phone. A topic, when chosen,
+  finds those we can contact about it, "Consent: PauseAI UK | Can email",
+  and the chip's second half turns that to Not sure or Can't email. The
+  first half changes the topic, or removes the filter. Its value is one
+  parameter: `contact=email:site-forms:yes`.
+- A filter that matters most has its own button (`own`) before
+  "+ Filter", and "+ Filter" doesn't offer it. Once it's on, its chip
+  comes first. The supporters list's Consent is one, as it's what a
+  broadcast needs.
+- A filter that can't change in a mode is `locked`, and says why on hover.
+  Its chip is there, with a padlock in place of its arrow, but doesn't
+  open. "+ Filter" doesn't offer it, and Clear filters keeps it. Consent
+  is locked while the list is choosing who a broadcast goes to, because
+  the broadcast's writer is where it changes.
+- Clear filters comes last, and shows while anything is on. It empties the
+  search, every filter and the sort. A tab over the list, such as the
+  politicians' houses, isn't a filter, so Clear filters keeps it.
+- Every choice is a link, so the URL holds the filters. A new filter
   starts from the first page. A chip's menu is a popover (`ui/Menu`).
 
-**Tabs** (`ui/Tabs`). Views of one list, side by side over it, the chosen
-one underlined: the politicians' houses. A list has at most one row of
-tabs, for the one choice people make most.
+**Tabs** (`ui/Tabs`). Tabs are views of one list, side by side over it,
+with the chosen one underlined: the politicians' houses. A list has at
+most one row of tabs, for the one choice people make most.
 
-**Popovers, not modals.** Anything a button opens, a menu, a small form or
-a "?"'s few words, is a bubble hung from that button (`ui/Bubble`, or
-`ui/Menu` for a list of choices), so it opens where the person
-is looking and the page stays in view around it. Never a box in the middle
-of the window: it takes them away from what they were doing, and hides
-what they'd want to check against. A browser too old to anchor one shows
-it in the middle as a fallback; that's the only place it goes there. A
-choice that needs confirming is confirmed in place, as Delete draft is
-pressed twice.
+**Popovers, not modals.** Anything a button opens (a menu, a small form,
+or the few words behind a "?") is a bubble hung from that button
+(`ui/Bubble`, or `ui/Menu` for a list of choices). So it opens where the
+person is looking, and the page stays in view around it. It's never a box
+in the middle of the window, which takes people away from what they were
+doing and hides what they'd want to check against. The one exception is a
+browser too old to anchor a bubble, which shows it in the middle as a
+fallback. A choice that needs confirming is confirmed in place, as Delete
+draft is pressed twice.
 
 **A row of a table is edited in a bubble.** A row's Edit opens its form
 in a bubble hung from the button, over the table, with Save and Cancel
 (the events' owner and doc, an account's permissions). The row never
 turns into its form: the cells would change size, and the whole table
-jump. A small form that's always in its row, such as Unblock, moves
+would jump. A small form that's always in its row, such as Unblock, moves
 nothing and stays there.
 
 **A bubble you click open to work in or read has a pointer up to its
-button** (`ui/Bubble`). One that holds a form, or a few words on the
+button** (`ui/Bubble`). A bubble that holds a form, or a few words on the
 thing beside it, is a small dialog: an Edit, Add staff, Change the time, a
 "?", a {}. Its pointer says what it belongs to, which matters most where
-the same button is down every row, as {} is down a history. It points to
-its button's middle at any width, the bubble kept inside the window's
-margins, on a phone too. Anything that is a control opened out has none
+the same button is down every row, as {} is down a history. The pointer
+points to its button's middle at any width, on a phone too, while the
+bubble is kept inside the window's margins.
+
+Two things have no pointer. One is anything that is a control opened out
 (`ui/Menu`): a dropdown of choices, or a date picker's calendar, which is
-the field's own, not something about the thing beside it. Nor has a
-tooltip that comes and goes with the pointer. On staff pages that's the
-rule; on the public pages, which each have their own look, it's only a
-guide.
+the field's own and not something about the thing beside it. The other is
+a tooltip that comes and goes with the mouse.
+
+On staff pages that's the rule. On the public pages, which each have their
+own look, it's only a guide.
 
 **JSON from the database is shown in words** (`Logged.tsx`). A column of
-details stored as JSON, as the audit log's and a letter's history are,
-is never shown raw. Each field gets its label in bold from the copy, then
-its value in words: a status by its name, a date as a date, someone
+details stored as JSON, as the audit log's details and a letter's history
+are, is never shown raw. Each field gets its label in bold from the copy,
+then its value in words: a status by its name, a date as a date, someone
 linked to their page. The fields go between middle dots (`DotParts`). A
 field with no label in the copy shows its key as stored, so nothing
-logged is hidden. Beside it, a {} button (`LoggedJson`) opens the JSON
-exactly as stored, in a bubble by the button. That's the fallback, for
-checking exactly what was recorded or a field the words don't cover yet.
+logged is hidden.
 
-**A history** (`LetterHistory`). A letter's events, newest first, each
-with its fields in words and a {} for what it recorded. Every email in it
-says who it went to, and its tag says what sent or brought it, Postmark or
-Gmail (as its event recorded, or, for one recorded before events did,
-what the letter went by). A Sent with no event of its own comes from the
-letter's dates. What belongs to another entry goes under it, a size
-smaller:
+Beside the words, a {} button (`LoggedJson`) opens the JSON exactly as
+stored, in a bubble by the button. That's the fallback, for checking
+exactly what was recorded, or for a field the words don't cover yet.
 
-- under a reply, its relay: every entry naming the reply's message in
-  Gmail (relayed, waiting, held, bounced, uncertain, not relayed, and the
-  MP's office told it can't be passed on);
-- under Sent, the supporter's copy (sent, held, bounced, delayed): under
-  the last Sent before it, or the first if it was recorded a moment
-  earlier;
-- under what it tells of, a notice to the supporter: one that the letter
-  bounced under the last bounce before it, and one that it went again
-  under the last Sent; a relay's bounce or sending again is under its
-  reply, so the notice goes there, beside it.
+**A history** (`LetterHistory`). A history is a letter's events, newest
+first, each with its fields in words and a {} for what it recorded. Every
+email in it says who it went to, and its tag says what sent it or brought
+it in, Postmark or Gmail. The tag is what the email's event recorded or,
+for an event recorded before events kept that, what the letter went by. A
+Sent with no event of its own comes from the letter's dates.
 
-Anything else, and a notice with nothing before it to go under, stays in
-the list, in its place.
+An entry that belongs to another goes under it, a size smaller:
 
-**A job's log** (`RunList.tsx`). A job's runs go under a heading for each day, newest first. A nightly or one-off job shows each run whole, in its box (`RunBox`), the newest tinted by how it ended. A job that runs every 5 minutes or hourly has one table a day instead (`RunTable.tsx`, `lib/run-log.ts`), so the same number sits in the same place: the time first, then the job's counts (a Gmail read's over every account it read), or what each run found. A routine run is a row of counts; a stretch that found nothing is one muted row, its time range in the time column; anything shown whole is a row of its own words, with no box and without the time or the schedule, which the row and the page say, its detail folded. A run with counts and words has its counts in their columns and its words in a row under them, with no rule between. The newest run's rows are tinted by how it ended, and a problem's stay tinted further down. Rows too far down fold into a line between the day's tables, which opens into more of the table, headerless; the day's first table shown has the header. The table keeps a width for its counts and scrolls sideways on a phone (`ui/Table`, fixed layout).
+- A reply's relay goes under the reply: every entry naming the reply's
+  message in Gmail (relayed, waiting, held, bounced, uncertain, not
+  relayed, and the MP's office told it can't be passed on).
+- The supporter's copy (sent, held, bounced, delayed) goes under Sent: the
+  last Sent before the copy, or the first Sent if the copy was recorded a
+  moment earlier.
+- A notice to the supporter goes under what it tells of. A notice that the
+  letter bounced goes under the last bounce before it, and a notice that
+  it went again goes under the last Sent. When that bounce or sending
+  again was a relay's, it is under its reply, so the notice goes there
+  too, beside it.
+
+Anything else stays in the list, in its place. So does a notice with
+nothing before it to go under.
+
+**A job's log** (`RunList.tsx`). A job's runs go under a heading for each
+day, newest first. How a day's runs are laid out depends on how often the
+job runs.
+
+A nightly or one-off job shows each run whole, in its box (`RunBox`). The
+newest is tinted by how it ended.
+
+A job that runs every 5 minutes or hourly has one table a day instead
+(`RunTable.tsx`, `lib/run-log.ts`), so the same number sits in the same
+place. The time comes first, then the job's counts, or what each run
+found. A Gmail read's counts are over every account it read. In the
+table:
+
+- A routine run is a row of counts.
+- A stretch of runs that found nothing is one muted row, with its time
+  range in the time column.
+- Anything shown whole is a row of its own words, with its detail folded.
+  It has no box, and leaves out the time and the schedule, which the row
+  and the page already say.
+- A run with both counts and words has its counts in their columns and its
+  words in a row under them, with no rule between the two rows.
+- The newest run's rows are tinted by how it ended. A problem's rows stay
+  tinted further down.
+- Rows too far down fold into a line between the day's tables. The line
+  opens into more of the table, without a header. The first table shown
+  for the day has the header.
+
+The table keeps a width for its counts, and scrolls sideways on a phone
+(`ui/Table`, fixed layout).
 
 **The sidebar** (`StaffNav`). Each page has its icon (`NavIcon`) beside
-its name. A round button on its edge, at the top (`ui/NavFold`), folds it
-to a rail of the icons on wider screens, the sections a rule apart, each
-name showing beside its icon on hover or focus; the browser remembers it
-(`lib/staff-nav.ts`).
+its name. On wider screens, a round button at the top of the sidebar's
+edge (`ui/NavFold`) folds the sidebar to a rail of the icons. On the rail,
+a short rule stands for each section's heading, and a page's name shows
+beside its icon on hover or focus. The browser remembers whether the
+sidebar is folded (`lib/staff-nav.ts`).
 
-**A thing's name leads to it.** Wherever the name of something with a page of
-its own is shown, such as a campaign, an ask or a politician, it links to that
-page, so a thing that looks the same goes to the same place. A number can go
-elsewhere, to a filter or a list of what it counts. A link to somewhere else
-has words of its own ("See it", not the name). A letter or email with no name of its own is
-opened by "Letter →", everywhere, and its status stays plain words beside it, so
-a status never looks like a link; a politician's answer in their history is plain too. A one-off thread has its subject as its name, so that's what opens it, but for All emails, where it's among letters and opened as they are, by "Thread →". Two exceptions: a name in a
-choice, such as a menu's option, picks it instead; and for staff who can't open
-the page, the name is plain.
+**A thing's name leads to it.** Wherever the name of something with a page
+of its own is shown, such as a campaign, an ask or a politician, the name
+links to that page. So a thing that looks the same goes to the same place.
+These go with that rule:
+
+- A number can go elsewhere, to a filter or a list of what it counts.
+- A link to somewhere else has words of its own ("See it", not the name).
+- A letter or email with no name of its own is opened by "Letter →",
+  everywhere. Its status stays plain words beside the link, so a status
+  never looks like a link. A politician's answer in their history is plain
+  too.
+- A one-off thread has its subject as its name, so the subject is what
+  opens it. The exception is All emails, where the thread is among letters
+  and is opened as they are, by "Thread →".
+
+There are two exceptions to the rule. A name in a choice, such as a menu's
+option, picks the choice instead. And for staff who can't open the page,
+the name is plain.
 
 **A subheading** (`ui/PageIntro`) says in a grey line, close under the page's title, what the page is and who it's about. It's part of the title, so it has no full stop.
 
-**What a permission hides** (`ui/Withheld`). Words standing in for something
-a staff member's permissions keep from them must go in `Withheld`, a sealed
-envelope and muted italics, so it looks the same everywhere: a thread they
-can't read, a line of a politician's history with no sender. It's never a link,
-as there's nothing to open. Something simply left out, a missing column or a
-number that isn't linked, needs no words and no `Withheld`. Rows a list leaves
-out get one `Withheld` line over it, saying what isn't shown and why: sent emails
-and the audit log, for an admin without `supporters`.
+**What a permission hides** (`ui/Withheld`). Words standing in for
+something a staff member's permissions keep from them must go in
+`Withheld`, which shows a sealed envelope and muted italics, so it looks
+the same everywhere. Examples are a thread they can't read, and a line of
+a politician's history with no sender. `Withheld` is never a link, as
+there's nothing to open. Something simply left out, such as a missing
+column or a number that isn't linked, needs no words and no `Withheld`.
+When a list leaves rows out, one `Withheld` line over the list says what
+isn't shown and why: sent emails and the audit log do this for an admin
+without `supporters`.
 
-**Columns the filters fix** are left out: a house tab, one party found,
-one status (the politicians table). It's the filters that decide, never
-the rows on the page, which may agree by chance; a choice left out fixes
-nothing.
+**Columns the filters fix** are left out, as in the politicians table: the
+house column under a house tab, the party column with one party found, the
+status column with one status. It's the filters that decide, never the
+rows on the page, which may agree by chance. A choice that's left out
+fixes nothing.
 
 The gallery's staff groups show each piece and each page built from them.
 
@@ -679,10 +828,22 @@ Corners are the `--radius-*` tokens (above): buttons and fields
 `--radius-md`, cards `--radius-lg`, tags `--radius-pill`, avatars `50%`,
 images in cards none (full bleed).
 
-Cards have a `1px solid var(--border)` border. No heavy or coloured borders
-except for active and focus states, and the feature card's accent edge.
+Cards have a `1px solid var(--border)` border. There are no heavy or
+coloured borders, except for active and focus states and the feature
+card's accent edge.
 
-A box that shows a state says so with its tint: the background is the status colour's `-bg` token (`--status-red-bg`, `--status-amber-bg`, `--status-green-bg`), and the words can take the status colour. On staff pages that's a strip, with no border (above, "Staff pages"); a past run in a job's history keeps the ordinary border. Never a thick edge on one side: on a rounded corner it bends into a wedge. Only the current state is coloured. A history of past runs or events is plain, so the one thing in colour is the thing that's true now. The exception is a job that runs every 5 minutes: among hundreds of runs a failure or refusal would be lost, so it stays tinted (above, "A job's log").
+A box that shows a state says so with its tint. The background is the
+status colour's `-bg` token (`--status-red-bg`, `--status-amber-bg`,
+`--status-green-bg`), and the words can take the status colour. On staff
+pages that box is a strip, with no border (above, "Staff pages"), while a
+past run in a job's history keeps the ordinary border. Never a thick edge
+on one side: on a rounded corner it bends into a wedge.
+
+Only the current state is coloured. A history of past runs or events is
+plain, so the one thing in colour is the thing that's true now. The
+exception is a job that runs every 5 minutes: among hundreds of runs a
+failure or refusal would be lost, so it stays tinted (above, "A job's
+log").
 
 Shadows are warm-toned (brown-black, not blue-black), from the two shadow
 tokens:
@@ -698,10 +859,10 @@ tokens:
 Every button is `Button`, `ButtonLink` or `ButtonAnchor`
 (`components/ui/Button.tsx`), `IconButton` for the round ones, or
 `LinkButton` for one that reads as a link (Remove, Undo). Nothing else
-styles a button's look; a container that needs its buttons a different
+styles a button's look. A container that needs its buttons a different
 size sets `--button-padding` and `--button-font-size` on itself. A row of
-buttons after what they act on is `Actions`; centred under a section,
-`ButtonRow`.
+buttons after what they act on is `Actions`. A row centred under a section
+is `ButtonRow`.
 
 ### Which button
 
@@ -720,11 +881,11 @@ buttons after what they act on is `Actions`; centred under a section,
   where nothing changes and it isn't what the page is for: a row's name,
   to its own page; a count, to the list it counts; back to the list; a
   section of the page. Anything that does something, or opens a form to
-  do it, is a button, even when it goes to another page: Edit and New
+  do it, is a button, even when it goes to another page. So Edit and New
   ask look like buttons, not links (`ButtonLink`; in the staff pages a
-  `StaffLink` with `buttonClass`, below). `LinkButton` is the one exception, a
-  button that reads as a link for a small step in a line of text that's
-  easily undone (Remove, Undo).
+  `StaffLink` with `buttonClass`, below). `LinkButton` is the one
+  exception: a button that reads as a link, for a small step in a line of
+  text that's easily undone (Remove, Undo).
 
 ### Buttons that wait
 
@@ -776,10 +937,10 @@ consequence beyond its being gone: a draft, an ask nobody has answered,
 a politician gone from Airtable whom nobody has written to.
 
 Deleting that goes further is a page of its own, as erasing a supporter
-is (`EraseForm`): what will go, a box to tick before the red button does
-anything, and a field for why, such as the request's reference, kept in
-the audit log. Any feature that deletes a lot at once, or deletes what
-other records depend on, works that way.
+is (`EraseForm`). The page says what will go. It has a box to tick before
+the red button does anything, and a field for why, such as the request's
+reference, which is kept in the audit log. Any feature that deletes a lot
+at once, or deletes what other records depend on, works that way.
 
 Delete is offered only when the thing can be deleted. While something
 refers to it (an ask politicians have answered, a mailing that's been
@@ -822,9 +983,9 @@ menu over the page.
 
 ## Sections
 
-A page is a run of `Section` bands (`components/ui/Section.tsx`); its
-`tone` prop picks the background. A page's top is `PageHero`, and an
-introduction under it `Foreword`.
+A page is a run of `Section` bands (`components/ui/Section.tsx`), and a
+band's `tone` prop picks its background. A page's top is `PageHero`, and
+an introduction under it is `Foreword`.
 
 - **Default**: `var(--bg)`, warm cream, with `80px` above and below, less
   on a phone.
@@ -861,17 +1022,17 @@ march sign-up").
 - A link out of the site opens in a new tab and sends no referrer:
   `target="_blank" rel="noreferrer"`. On public pages it has no icon or
   other mark. On staff pages it's `ui/ExternalLink`, with an arrow after its
-  words (↗), as "→" is for a link within them. That's for a link to another
-  site, not a file of our own, or a link inside a letter's preview, which
-  shows the letter as it's sent. Links within the site, `mailto:` and
-  `#anchor` links open in place.
+  words (↗), as "→" marks a link within the staff pages. `ExternalLink` is
+  for a link to another site. It isn't for a file of our own, or for a
+  link inside a letter's preview, which shows the letter as it's sent.
+  Links within the site, `mailto:` and `#anchor` links open in place.
 
 ## Interface text
 
 - **Sentence case** for labels, buttons and headings: "Your name", "Find my MP", "Send email". Not "Your Name" or "Find My MP". Proper nouns keep their capitals: "MP", "PauseAI", "Airtable".
 - **Full stops** on messages that are sentences: errors, notices, hints and confirmations. "Please enter your name.", "Postcode not found."
 - **No full stops** on labels, buttons, headings, or a word or two of status: "Your email", "Preview", "Sending".
-- **Dates as people say them**: "23 Oct 2026", and with a time, "23 Oct 2026, 10:34", never "2026-10-23". The staff pages' are in UTC (`staffDate` and `staffTime` in `lib/staff-time.ts`). A download keeps the ISO form, for a spreadsheet to read.
+- **Dates as people say them**: "23 Oct 2026", and with a time, "23 Oct 2026, 10:34", never "2026-10-23". The staff pages' dates are in UTC (`staffDate` and `staffTime` in `lib/staff-time.ts`). A download keeps the ISO form, for a spreadsheet to read.
 
 ## Imagery
 

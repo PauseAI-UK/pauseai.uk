@@ -1,7 +1,7 @@
 # Real error types across the whole site
 
 A briefing for the agent doing this. It's high level on purpose: think hard about the design, and show
-Francis it, with a few converted call sites, before converting the rest. Read `AGENTS.md` and
+it to Francis, with a few converted call sites, before converting the rest. Read `AGENTS.md` and
 `docs/code-structure.md`, "Rules" first.
 
 ## The problem
@@ -27,8 +27,8 @@ Examples, not a complete list:
   compiler checks each is handled. Failures that callers tell apart are error classes with fields.
 - **Words only at the edge.** Whatever a person reads looks up its words from a code at that point. Nothing
   stores, compares, parses or passes our sentences around.
-- **`unknown` stops at the catch.** TypeScript forces it there. It becomes something typed at once, and no
-  further.
+- **`unknown` stops at the catch.** TypeScript forces it there. The caught value becomes something typed at
+  once, and `unknown` goes no further.
 - **What's stored is structured:** a code, its values, and an outside service's raw error text, if any.
 - **It stays enforced**, by types first and by checks in `tests/checks/` where types can't reach.
 

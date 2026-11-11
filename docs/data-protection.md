@@ -68,17 +68,17 @@ no disclosure outside the body without consent. It needs:
 - the privacy policy saying so.
 
 Naming a donor on `/donate` is disclosure to everyone, so it needs more
-than 9(2)(d): the donor's explicit consent, Article 9(2)(a). That is their
-answer at checkout to "Are you happy to be named on our wall of thanks?",
-which every donate link asks, with no answer chosen in advance. Each person's
-latest answer counts, and checkouts from before the question was asked (4
-June 2026) count as no.
+than 9(2)(d): the donor's explicit consent, Article 9(2)(a). That consent
+is their answer at checkout to "Are you happy to be named on our wall of
+thanks?". Every donate link asks it, with no answer chosen in advance. Each
+person's latest answer counts, and checkouts from before the question was
+asked (4 June 2026) count as no.
 
 ## "Keep me informed"
 
-The join form's box, stored as `members.keep_informed`, meant different
-things by when the record was made (the `email_permissions` view reads it
-so):
+The join form's box is stored as `members.keep_informed`. It meant
+different things depending on when the record was made, and the
+`email_permissions` view reads it that way:
 
 - before February 2026 there was no box, and every sign-up joined the
   mailing list;
@@ -94,11 +94,13 @@ so):
   campaign updates and ways to help."
 
 So a tick from 30 June 2026 by someone who shared their details is
-consent to news from PauseAI UK, and leaving it unticked then is a no to
-`pauseai-updates`. That no is read from the member's record
+consent to news from PauseAI UK. Leaving the box unticked from that date is
+a no to `pauseai-updates`. That no is read from the member's record
 (`contact_permission()`), not kept as a row of `opt_outs`, so it goes with
-the record when the member is erased. Airtable keeps the box as it was at
-signup: later unsubscribes are in CiviCRM, which the site doesn't read yet.
+the record when the member is erased.
+
+Airtable keeps the box as it was at signup. Later unsubscribes are in
+CiviCRM, which the site doesn't read yet.
 
 ## Processors
 
@@ -118,42 +120,53 @@ signup: later unsubscribes are in CiviCRM, which the site doesn't read yet.
 ## Erasure and access
 
 A request arrives by email, to the address in the privacy policy, and says
-who the person is by their email address. It's answered within a month. Staff with the `supporters`
-permission find the supporter by email and erase them from their page,
-giving the request's reference, which goes in the audit log without the
-name or address. That deletes what each source holds here ("Supporters" in
-`docs/domain-concepts.md`), and takes their exact details, ignoring case,
-out of saved filters; a misspelt or partial name there can't be caught. Then by hand:
+who the person is by their email address. It's answered within a month.
+
+Staff with the `supporters` permission find the supporter by email and
+erase them from their page, giving the request's reference. The reference
+goes in the audit log without the name or address. Erasing them does this
+by itself:
+
+- it deletes what each source holds here ("Supporters" in
+  `docs/domain-concepts.md`);
+- it takes their exact details, ignoring case, out of saved filters. A
+  misspelt or partial name there can't be caught;
+- it deletes the supporter's proxy, letters, drafts, kept messages and
+  their blobs, and moves their messages in the letters inbox to Trash,
+  which Gmail empties after 30 days. So the letters inbox needs nothing by
+  hand. Deleting the messages at once would need full access to the
+  mailbox, which the site doesn't ask for. Mail to an erased proxy is then
+  not understood, and staff are told of it.
+
+Then by hand:
 
 - in Luma, remove the person from the calendar's contacts, and ask Luma
   about its guest lists of past events (the API offers neither for us to
   do automatically; removal is documented but we keep that step a
   person's);
-- the copy of each letter and reply in the policy team's Gmail inbox, for
-  letters sent before the letters inbox, and of any one-off email in the
-  mailbox it was read from. The letters inbox needs nothing by
-  hand: erasure deletes the supporter's proxy, letters, drafts, kept
-  messages and their blobs, and moves their messages in the letters inbox
-  to Trash, which Gmail empties after 30 days (deleting at once would need
-  full access to the mailbox, which the site doesn't ask for). Mail to an
-  erased proxy is then not understood, and staff are told of it;
+- in the policy team's Gmail inbox, delete the copy of each letter and
+  reply, for letters sent before the letters inbox;
+- for any one-off email, delete its copy in the mailbox it was read from;
+- in Airtable, delete any letter they sent through the earlier form ("Web
+  form emails");
+- for a member, tell Stichting PauseAI, who hold the member database, if
+  the person wants to leave PauseAI as a whole, not only PauseAI UK.
+  Passing erasure requests between us and them isn't automated;
+- for a donor on the wall of thanks, go to the Stripe Dashboard and change
+  their answer to "Are you happy to be named on our wall of thanks?" to No
+  on each of their payments. They're off `/donate` within the hour.
+  Stripe's record of the donation stays, for the six years the financial
+  records need.
+
+Two things aren't erased with the supporter:
+
 - a politician's replies are kept, even when they mention a constituent
-  ("What we hold"); a supporter named in one asks us in writing, and a
+  ("What we hold"). A supporter named in one asks us in writing, and a
   person decides whether to delete it from `letter_replies`, Netlify Blobs
   and the sender's Gmail;
-- any letter they sent through the earlier form, in Airtable ("Web form
-  emails");
-- a member: tell Stichting PauseAI, who hold the member database, if the
-  person wants to leave PauseAI as a whole, not only PauseAI UK. Passing
-  erasure requests between us and them isn't automated;
-- a donor on the wall of thanks: in the Stripe Dashboard, change their
-  answer to "Are you happy to be named on our wall of thanks?" to No on
-  each of their payments. They're off `/donate` within the hour. Stripe's
-  record of the donation stays, for the six years the financial records
-  need;
-- the backups: Netlify's and ours expire by themselves (30 and 90 days),
-  which is what the policy says, and they're never restored except to
-  recover from a loss, after which the erasure would be repeated.
+- the backups, Netlify's and ours, expire by themselves (30 and 90 days),
+  which is what the policy says. They're never restored except to recover
+  from a loss, after which the erasure would be repeated.
 
 A request for a copy of someone's data is answered from the supporter's
 page, which shows everything held about them, plus the audit log's entries
@@ -161,39 +174,44 @@ for their ID.
 
 ## Assessment
 
-The impact assessment for the supporters data, as the ICO recommends when
-in doubt.
+This is the impact assessment for the supporters data. The ICO recommends
+one when in doubt.
 
 - **What and why.** One staff view of each person who registered for our
   events, wrote to their MP or joined PauseAI in the UK: name, contact
-  details, which events, which letters, how they joined. So that staff can see who is involved and, later, tell
-  people about events near them.
-- **Necessity.** The site already held the letters, Luma the
-  registrations and Stichting PauseAI's member database the members who
-  shared their details with us; the change is a copy of Luma's data and
-  of those members, and a link between them. Without it, staff export
+  details, which events, which letters, how they joined. It's so that
+  staff can see who is involved and, later, tell people about events near
+  them.
+- **Necessity.** The site already held the letters, Luma held the
+  registrations, and Stichting PauseAI's member database held the members
+  who shared their details with us. The change is a copy of Luma's data
+  and of those members, and a link between them. Without it, staff export
   guest lists and members by hand into spreadsheets, which is less secure
   and less erasable.
 - **Risks.**
-  - Disclosure of political opinions through a staff account:
-    met by the `supporters` permission on every page with supporter data, and
-    by admins without it seeing only the sent emails and audit log entries
-    with none; storyboard checks that, with no permissions, no staff page
-    holds a supporter's name or email, nor those two pages for an admin; login
-    by emailed link to a pauseai.uk address; sessions of a day, or 30 days
-    renewed on use; and the audit log of each download of supporters.
+  - Disclosure of political opinions through a staff account. It's met by:
+    - the `supporters` permission on every page with supporter data;
+    - admins without that permission seeing only the sent emails and audit
+      log entries that have no supporter data;
+    - storyboard checks that no staff page holds a supporter's name or
+      email for someone with no permissions, and that those two pages hold
+      none for an admin;
+    - login by emailed link to a pauseai.uk address;
+    - sessions of a day, or 30 days renewed on use;
+    - the audit log of each download of supporters.
   - Keeping data longer than needed: met by erasure on request and
     the backups' expiry.
   - Mailing someone who opted out: met by `opt_outs`
     being kept after erasure and checked by any future mailing.
-  - Mailing a member who unsubscribed after joining: Airtable doesn't know
-    of it, and CiviCRM, which does, isn't read yet; met by nothing mailing
-    members until it is, and by the supporter's page saying so.
+  - Mailing a member who unsubscribed after joining. Airtable doesn't know
+    of the unsubscribe, and CiviCRM, which does, isn't read yet. It's met
+    by nothing mailing members until CiviCRM is read, and by the
+    supporter's page saying so.
   - Inaccuracy: the data is Luma's and the member database's own, refreshed
     every 5 minutes from Luma and hourly from the member database.
-- **Rights.** Access and erasure as above; objection by unsubscribing in
-  Luma, which the webhook records, or by leaving "Keep me informed"
-  unticked when joining, which the members import records.
+- **Rights.** Access and erasure are as above. A person objects by
+  unsubscribing in Luma, which the webhook records, or by leaving "Keep me
+  informed" unticked when joining, which the members import records.
 - **Conclusion.** The processing is necessary and proportionate for a
   political not-for-profit's contact with its supporters, with the
-  measures above. Reviewed when a source or a use is added.
+  measures above. It's reviewed when a source or a use is added.

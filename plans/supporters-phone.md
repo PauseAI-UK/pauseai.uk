@@ -1,10 +1,11 @@
 # Texts to supporters
 
-Broadcasts to supporters by text, on the Broadcasts pages at
-`/staff/broadcasts`. A broadcast is by email or by text, and each
-supporter's copy is a message; a broadcast by text is a text for short.
-A text is sent by WhatsApp, and perhaps later by SMS to numbers not on WhatsApp.
-Two pull requests, and an optional third:
+This plan is for broadcasts to supporters by text, on the Broadcasts
+pages at `/staff/broadcasts`. A broadcast is by email or by text, and
+each supporter's copy is a message. A broadcast by text is called a text
+for short. A text is sent by WhatsApp, and perhaps later by SMS to
+numbers not on WhatsApp. The work is two pull requests, and an optional
+third:
 
 1. Groundwork: consent, opt-outs and replies.
 2. The WhatsApp backend, which comes next.
@@ -19,8 +20,8 @@ Two pull requests, and an optional third:
   28 October, whose box allows calls and texts.
 - `contact_permission()` answers for numbers, and `TOPIC_WAYS` in
   `lib/contact-permissions.ts` says which ways each topic allows: calls,
-  texts or both. A member's number since 30 June 2026 with no volunteering
-  intent is unsure.
+  texts or both. The number of a member who joined since 30 June 2026
+  with no volunteering intent is unsure.
 - `opt_outs` takes numbers, but only from Luma.
 - The site doesn't send texts. Our giffgaff number has the WhatsApp Business
   app on Reuben's phone, but its broadcast lists only reach people who
@@ -67,26 +68,32 @@ that person stop being delivered, and a number never delivered to is
 skipped after a few tries, as one not on WhatsApp is.
 
 Each stop is a row in `opt_outs` with a new source (`whatsapp-webhook`,
-`sms-provider`, `reply` or `staff`), so `contact_permission()` says no
-for every topic from then on and `contact_unsubscribes` lists it, and
-every text is checked just before it's sent, so one scheduled before
-the stop is skipped with the reason. It's kept
-after erasure. A resume in WhatsApp's settings closes the stop it
-made; a new yes, on a form or to staff, closes any.
+`sms-provider`, `reply` or `staff`). From then on:
+
+- `contact_permission()` says no for every topic;
+- `contact_unsubscribes` lists it;
+- every text is checked just before it's sent, so one scheduled before
+  the stop is skipped with the reason.
+
+A stop is kept after erasure. A resume in WhatsApp's settings closes
+the stop made there. A new yes, on a form or to staff, closes any stop.
 
 A stop by WhatsApp, whichever way it's given, stops every text to that
 number, of every topic, as WhatsApp's own setting and Stop button are
 for the whole number. Choosing less, such as no more march-day texts
-but still event reminders, is for the preferences page an email's
-unsubscribe link opens (`plans/supporters-email.md`, "Opt-outs"), where
-a supporter sets what they get by each channel and topic: the same
-page, with texts on it too, reached later by a link in a text.
+but still event reminders, is for the preferences page that an email's
+unsubscribe link opens (`plans/supporters-email.md`, "Opt-outs"). There
+a supporter sets what they get by each channel and topic. It's the same
+page, with texts on it too, and later a link in a text reaches it.
 
-Staff see a stop in three places: on the message it came from, as
-"Stopped" in its history (the provider's `opted-out` event); on the
-supporter's page, in their consent, as a no by that channel with how it
-was given and when; and in the supporter's list of broadcasts, where
-that broadcast's row says "Stopped" rather than delivered or read.
+Staff see a stop in three places:
+
+- on the message it came from, as "Stopped" in its history (the
+  provider's `opted-out` event);
+- on the supporter's page, in their consent, as a no by that channel
+  with how it was given and when;
+- in the supporter's list of broadcasts, where that broadcast's row
+  says "Stopped" rather than delivered or read.
 
 These stops don't cover calls, which have their own ("Calls"). Global
 doesn't call or text, but CiviCRM has "Do not phone" and "Do not SMS"
@@ -98,8 +105,8 @@ flags, and its chapter contacts API carries them (open question 11).
 
 Luma's phone field doesn't say what a number is for, and each event can
 make it off, optional or required. PauseCon required one and nearly
-everyone gave it; the march made it optional and about one in six did;
-most events don't ask. So a Luma number allows only that event's
+everyone gave it. The march made it optional and about one in six gave
+one. Most events don't ask. So a Luma number allows only that event's
 reminders.
 
 The proposal, to decide with Joseph, is to ask for a number on every
@@ -114,17 +121,21 @@ and event messages.
 
 1. Each message of a broadcast by text records which backend sent it.
    `mailings.channel` loses `whatsapp`, leaving `email` and `text`.
-2. Opt-ins: the Luma checkbox, which the import reads as it reads the
-   postcode question; and staff recording a yes given elsewhere, with
-   how it was given. Our forms' box already counts for a number they
-   ask (`site-forms`); Email your MP asks for none.
+2. Opt-ins:
+   - the Luma checkbox, which the import reads as it reads the postcode
+     question;
+   - staff recording a yes given elsewhere, with how it was given.
+
+   Our forms' box already counts for a number they ask (`site-forms`).
+   Email your MP asks for no number.
 3. Opt-outs, as above, including staff recording one by hand.
 4. Mark a number that isn't a mobile, or isn't on WhatsApp, and skip it
    from then on.
 5. A new source for `volunteering`, as a new member's number is unsure
    (open question 8).
-6. Replies, in a new `broadcast_replies` table with the message each
-   answers, shown on the supporter's page with a reply box. Anyone with
+6. Replies are kept in a new `broadcast_replies` table, each with the
+   message it answers, and shown on the supporter's page with a reply
+   box. Anyone with
    the `supporters` permission can reply, and each reply records who
    sent it.
 
@@ -174,51 +185,65 @@ An easy Stop button means people stop rather than block us.
    Meta charges for each delivered message, by category
    ([rate card](https://whatsappbusiness.com/products/platform-pricing/)).
 2. Templates. WhatsApp only sends approved templates, so a text uses
-   one of the WhatsApp approved templates, picked in the writer, whose
-   words show but can't be edited, or a new one, opened by the New
-   template button. New words go for approval by a button at the foot
-   of the writer, kept apart from the words so it isn't pressed
-   lightly, and the text can be scheduled only once Meta has approved
-   them, usually within a day. Meanwhile the words are locked, or
-   withdrawn to change them. Sending them and Meta's decision are each
-   emailed to whoever sent them and the notification inbox, with the
-   words (`reviewTemplate` in `lib/server/broadcast-drafts.ts`, which this
-   step's webhook and hourly check call). Meta's reasons are codes, so the
-   page says the code's meaning in plain words, and what to do when
-   Meta recommends something. The site submits new words to Meta as a
-   template: the `marketing` category (a utility template must be non-promotional and about the
-   person's own booking or account, and Meta approves anything else as
-   marketing anyway), `en_GB`, a body with named parameters for the
-   merge fields, each with an example value, a footer saying how to
-   stop, and a Stop quick-reply button, a common use Meta's docs give
-   for one. The body can't start or end with a parameter, and
-   one with the same body and footer as an existing template is
-   rejected as a duplicate
+   one of two:
+   - one of the WhatsApp approved templates, picked in the writer, whose
+     words show but can't be edited;
+   - a new one, opened by the New template button.
+
+   New words go for approval by a button at the foot of the writer,
+   kept apart from the words so it isn't pressed lightly. The text can
+   be scheduled only once Meta has approved them, usually within a day.
+   Meanwhile the words are locked. To change them, staff withdraw
+   them. Sending them and Meta's decision are each emailed to whoever
+   sent them and the notification inbox, with the words
+   (`reviewTemplate` in `lib/server/broadcast-drafts.ts`, which this
+   step's webhook and hourly check call). Meta's reasons are codes, so
+   the page says the code's meaning in plain words, and what to do when
+   Meta recommends something.
+
+   The site submits new words to Meta as a template with:
+   - the `marketing` category (a utility template must be
+     non-promotional and about the person's own booking or account, and
+     Meta approves anything else as marketing anyway);
+   - `en_GB`;
+   - a body with named parameters for the merge fields, each with an
+     example value;
+   - a footer saying how to stop;
+   - a Stop quick-reply button, a common use Meta's docs give for one.
+
+   The body can't start or end with a parameter, and a template with
+   the same body and footer as an existing template is rejected as a
+   duplicate
    ([review](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-review)).
+
    The text then waits:
    - *Pending*: Meta decides within 24 hours. The site reads the status
      back hourly and by the `message_template_status_update` webhook.
    - *Approved*: the text can be scheduled. Meta may have changed the
-     category to marketing; the site records what it was approved as.
-   - *Rejected*: the draft shows the reason in plain words, and staff
-     change the words and send them again, as often as needed, or appeal
-     with a sample, decided within 24 hours.
+     category to marketing. The site records what it was approved as.
+   - *Rejected*: the draft shows the reason in plain words. Staff
+     change the words and send them again, as often as needed, or
+     appeal with a sample, which is decided within 24 hours.
    - *Paused* or *disabled*, after approval, on blocks, reports or
      low read rates: the text stops, and the words must change before
      it goes again.
+
    A template can be reused: a text can pick an approved one and fill
-   its parameters, with no new review, which suits a weekly text
-   whose fixed words rarely change and whose events are a parameter.
-   A send names the template, not its ID, an edited template is reviewed
-   again, and Meta's docs don't say whether it can be sent meanwhile. So
-   the site never edits an approved template: new fixed words make a new
-   template, and the old one stays approved until the new one is
+   its parameters, with no new review. That suits a weekly text whose
+   fixed words rarely change and whose events are a parameter.
+
+   A send names the template, not its ID. An edited template is
+   reviewed again, and Meta's docs don't say whether it can be sent
+   meanwhile. So the site never edits an approved template: new fixed
+   words make a new template, and the old one stays approved until the
+   new one is approved
    ([management](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-management)).
+
    An account can create 100 templates an hour and hold 250, or 6,000
    once verified
    ([templates](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview)).
-   Without an SMS backend, a text skips numbers not on
-   WhatsApp.
+
+   Without an SMS backend, a text skips numbers not on WhatsApp.
 3. A webhook at `/api/whatsapp`, which checks `X-Hub-Signature-256`
    ([webhooks](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/create-webhook-endpoint.md))
    and:
@@ -238,11 +263,11 @@ An easy Stop button means people stop rather than block us.
    the webhook, and the site's pages show and answer them.
 5. Maybe, the same number in the WhatsApp Business app too, so staff can
    read and answer texts on a phone. Meta calls this coexistence
-   ([onboarding Business app users](https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users)):
-   a number already in the Business app is connected to the Cloud API
-   and keeps working there, and "WhatsApp keeps messaging history between
-   both apps in sync": one-to-one chats are mirrored both ways, and the
-   last six months can be imported. What it costs:
+   ([onboarding Business app users](https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users)).
+   A number already in the Business app is connected to the Cloud API
+   and keeps working in the app. "WhatsApp keeps messaging history
+   between both apps in sync": one-to-one chats are mirrored both ways,
+   and the last six months can be imported. What it costs:
    - it's set up through Embedded Signup, and "You must already be a
      Solution Partner or Tech Provider", so PauseAI would become a Tech
      Provider or go through a partner that offers it;
@@ -252,19 +277,20 @@ An easy Stop button means people stop rather than block us.
      be linked again (not WhatsApp for Windows);
    - texts sent from the app are free and outside the 24-hour window,
      and those by the API are charged as above.
+
    The page lists no countries it excludes. Whether to do it is an open
    question (below).
 
 ### Scheduling
 
 A text is scheduled only on an approved template, so nothing waits on
-Meta once it's scheduled. From then on the site sends by itself for
-three days from its scheduled time, a fixed limit nobody sets. The
-scheduled page says so quietly, in grey, under the time: "Will
-automatically stop sending on Sun 15 Nov at 09:18". It says how many
-days the text takes at the account's daily limit when it's more than
-one. Who it goes to is found when sending starts, as for every
-broadcast. Until then, every copy that can go, goes:
+Meta once it's scheduled. From then on the site sends by itself, for
+three days from the text's scheduled time. That limit is fixed: nobody
+sets it. The scheduled page says so quietly, in grey, under the time:
+"Will automatically stop sending on Sun 15 Nov at 09:18". It says how
+many days the text takes at the account's daily limit when it's more
+than one. Who it goes to is found when sending starts, as for every
+broadcast. Until the three days run out, every copy that can go, goes:
 
 - at the scheduled time;
 - the next day, for copies past the account's daily limit, and for
@@ -276,25 +302,27 @@ Stopped with why, and the person who scheduled it gets an email saying
 how many went and how many didn't. A template paused or disabled
 before the time runs out stops the text the same way, at once, with
 Meta's reason in plain words. Nothing is ever sent after a
-text has stopped. A stopped text's page offers to schedule it
-again to those it never reached, a new broadcast whose filter is "not
-sent this broadcast", so fixing the words or giving it more time
-doesn't text again the people it did reach.
+text has stopped.
+
+A stopped text's page offers to schedule it again to those it never
+reached. That makes a new broadcast whose filter is "not sent this
+broadcast", so fixing the words or giving it more time doesn't text
+again the people it did reach.
 
 ## 3. Optional: an SMS backend
 
-Only if WhatsApp leaves too many numbers out. An SMS provider would send
-a text's words as they are to numbers not on WhatsApp, from a
-real UK number so people can reply, ending with how to stop, such as
-"Reply STOP to stop". Each 160-character segment is charged, and so is
-each reply staff send.
+We build this only if WhatsApp leaves too many numbers out. An SMS
+provider would send a text's words as they are to numbers not on
+WhatsApp, from a real UK number so people can reply. Each SMS would end
+with how to stop, such as "Reply STOP to stop". Each 160-character
+segment is charged, and so is each reply staff send.
 
 Its webhook would record deliveries, failures, STOP as a stop, and other
 replies, as WhatsApp's does.
 
 ## Calls
 
-Not built here. Volunteers make calls, as local groups do now, from
+Calls aren't built here. Volunteers make calls, as local groups do now, from
 numbers staff give them. A number isn't given out when it has a stop
 for calls, which comes two ways:
 
@@ -310,18 +338,23 @@ for calls, which comes two ways:
 - **Asking not to be called**, usually on a call. The volunteer or staff
   record it, with how it was given. It's kept after erasure.
 
-Before anyone calls, a "Can I call this person?" check, on the
-supporter's page and on the numbers given out, runs our own stops, the
-TPS and CiviCRM's "Do not phone" by `checkSuppression` at that moment,
-and says yes or no, and why.
+Before anyone calls, there's a "Can I call this person?" check, on the
+supporter's page and on the numbers given out. At that moment it checks
+our own stops, the TPS, and CiviCRM's "Do not phone" by
+`checkSuppression`. It says yes or no, and why.
 
 ## Data protection
 
-Record in `docs/data-protection.md`: messaging numbers that said yes;
-the new opt-in sources; the SMS provider and Meta as processors of
-numbers, messages and delivery receipts; read receipts, which are new
-data about a person; stops kept after erasure; replies, shown to staff
-and deleted on erasure; and, with calls, the TPS checker as a processor.
+Record in `docs/data-protection.md`:
+
+- messaging numbers that said yes;
+- the new opt-in sources;
+- the SMS provider and Meta as processors of numbers, messages and
+  delivery receipts;
+- read receipts, which are new data about a person;
+- stops kept after erasure;
+- replies, shown to staff and deleted on erasure;
+- with calls, the TPS checker as a processor.
 
 ## Not in this plan
 

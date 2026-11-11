@@ -8,7 +8,7 @@ A full review has about 1,000 screenshots. A change to the header or a UI kit pi
 
 ## Fix
 
-Group changed frames by where and how much they changed, so the same change across 300 frames is one item to look at. A test that keeps flows to about ten frames, as AGENTS.md asks.
+Group changed frames by where and how much they changed, so the same change across 300 frames is one item to look at. Add a test that keeps flows to about ten frames, as AGENTS.md asks.
 
 ## Hits
 

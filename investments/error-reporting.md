@@ -4,7 +4,7 @@ Size: S. Kind: operations.
 
 ## Problem
 
-When a Server Action, route handler or page throws in production, nobody is told. The error is in Netlify's function logs, for as long as Netlify keeps them, until someone happens to look. There's no `instrumentation.ts` or `onRequestError`, no `app/global-error.tsx` and no `error.tsx`, and CSP reports also go only to the function logs (`app/api/csp-report/route.ts`).
+When a Server Action, route handler or page throws in production, nobody is told. The error is in Netlify's function logs, for as long as Netlify keeps them, until someone happens to look. There's no `instrumentation.ts` or `onRequestError`, no `app/global-error.tsx` and no `error.tsx`. CSP reports also go only to the function logs (`app/api/csp-report/route.ts`).
 
 ## Fix
 

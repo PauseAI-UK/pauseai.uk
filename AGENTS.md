@@ -24,7 +24,7 @@ Put throwaway scripts, logs and screenshots in `tmp/` at the repo root (to scree
 
 ## Serving a branch
 
-When Francis asks for a branch to be served, run `npm run serve -- <branch or PR number>` in the background and give him the link it prints, once it says it's serving: it checks the link in Firefox first (`docs/development.md`, "Serving a branch"). Leave it running until he's done with it, then `--stop` it.
+When Francis asks for a branch to be served, run `npm run serve -- <branch or PR number>` in the background. Once it says it's serving, give him the link it prints: by then it has checked the link in Firefox (`docs/development.md`, "Serving a branch"). Leave it running until he's done with it, then stop it with `--stop`.
 
 ## The CI gate
 
@@ -34,9 +34,18 @@ npm run gate -- --fast            # the fast checks alone: Prettier, ESLint and 
 npm run gate -- --no-storyboard   # everything but the storyboard
 ```
 
-The branch isn't done until `npm run gate` exits 0. It takes the files changed since the branch left `origin/main`, committed or not, formats them with Prettier and checks them, and stops there if a check fails. Then it runs what CI runs (`.github/workflows/ci.yml`) in parallel, as CI's jobs do: the types then the storyboard, `npm test` with the coverage gate, the four linters one after another, and the backup Worker's package. Each command has a time limit and a log in `tmp/gate/`, a line a minute says which are still running and whose log has gone quiet, and it ends with a table of exit codes and the end of each failed log. Go by those exit codes, not a grep of the output: `npm test` can report every test passing and still fail on coverage. It takes a few minutes, so run it in the background, its output to a file in `tmp/`, and look at that each minute (`docs/testing.md`, "`npm run gate`").
+The branch isn't done until `npm run gate` exits 0. It takes the files changed since the branch left `origin/main`, committed or not, formats them with Prettier and checks them, and stops there if a check fails. Then it runs what CI runs (`.github/workflows/ci.yml`) in parallel, as CI's jobs do:
 
-It leaves out `npm run build`, which repeats the unit tests and linters, as the storyboard builds the site. Never run two `next build`s at once in one checkout, as they share `.next`, so don't run the gate beside a storyboard review in the same checkout.
+- the types, then the storyboard;
+- `npm test`, with the coverage gate;
+- the four linters, one after another;
+- the backup Worker's package.
+
+Each command has a time limit and a log in `tmp/gate/`. While they run, a line a minute says which are still running and whose log has gone quiet. The gate ends with a table of exit codes and the end of each failed log. Go by those exit codes, not a grep of the output: `npm test` can report every test passing and still fail on coverage.
+
+It takes a few minutes, so run it in the background with its output going to a file in `tmp/`, and look at that file each minute (`docs/testing.md`, "`npm run gate`").
+
+It leaves out `npm run build`: that repeats the unit tests and linters, and the storyboard builds the site anyway. Two `next build`s in one checkout share `.next`, so never run two at once, and don't run the gate beside a storyboard review in the same checkout.
 
 If the prek Git hook is installed (`npm run hooks:install`), commits run Prettier, ESLint and Stylelint on the staged files first. Prettier rewrites them, so `git add` and commit again. That's only part of the gate.
 
@@ -44,7 +53,7 @@ Running one Vitest project (`npm run test:node`, `npm run test:browser`) or one 
 
 ## Pull request descriptions are short
 
-A title, then a bullet or two per change: what it does and why, in plain words. Leave out what the diff or the commits already say (file lists, how it was tested beyond "the CI gate passes") and anything left for later but a line saying so.
+A title, then a bullet or two per change: what it does and why, in plain words. Leave out what the diff or the commits already say: file lists, and how it was tested beyond "the CI gate passes". Anything left for later gets one line saying so, and no more.
 
 ## Migrations are fixed once pushed
 
@@ -52,13 +61,20 @@ Pushing a branch with an open PR makes a deploy preview, and Netlify applies its
 
 So don't push a migration early. If the branch has a migration that may still change, or you think it may need another, settle the schema first and push once it's settled: the first push of the branch waits for that, however far along the rest of the work is. Every migration on a pushed branch is final.
 
-`scripts/migrations-unchanged.mjs` checks this: CI's "Types, migrations" job fails if a migration on main or in the branch's last push has changed, and the prek pre-push hook (`npm run hooks:install`) stops the push before it gets that far. Before changing a migration, `git fetch`, then check whether it's on the remote branch or main (`git log origin/<branch> origin/main -- netlify/database/migrations/<file>`, or `git show origin/<branch>:<path>` to see the version pushed). If it's there, add a new migration, numbered after the last, and leave the pushed file exactly as it was. If it's only local, edit it. Either way, `npm run db:schema` and commit `schema.sql` with it (`docs/development.md`, "Adding a migration").
+`scripts/migrations-unchanged.mjs` checks this: CI's "Types, migrations" job fails if a migration on main or in the branch's last push has changed, and the prek pre-push hook (`npm run hooks:install`) stops the push before it gets that far.
 
-A new migration must be numbered after main's last when the branch merges, and no other open PR may take its number: Netlify refuses one out of order, failing the deploy. `scripts/migration-order.mjs` checks this in CI's "Types, migrations" job, the gate and the pre-push hook, and says the next free number, as `npm run worktree` does. If main has caught up with a migration you haven't pushed, renumber it; if you have, it needs a new branch and PR.
+Before changing a migration, `git fetch`, then check whether it's on the remote branch or main (`git log origin/<branch> origin/main -- netlify/database/migrations/<file>`, or `git show origin/<branch>:<path>` to see the version pushed):
+
+- If it's there, add a new migration, numbered after the last, and leave the pushed file exactly as it was.
+- If it's only local, edit it.
+
+Either way, run `npm run db:schema` and commit `schema.sql` with the migration (`docs/development.md`, "Adding a migration").
+
+A new migration must be numbered after main's last when the branch merges, and no other open PR may take its number: Netlify refuses one out of order, failing the deploy. `scripts/migration-order.mjs` checks this in CI's "Types, migrations" job, the gate and the pre-push hook, and says the next free number, as `npm run worktree` does. If main has caught up with a migration you haven't pushed, renumber it. If you have pushed it, it needs a new branch and PR.
 
 ## The storyboard
 
-`tests/storyboard/` is one Playwright suite that drives every flow on fixture data (`docs/testing.md`, "The storyboard"). A spec file is a section, a test a flow, and each `await frame(page, "caption")` a frame: a caption and, in the review, a screenshot (the whole page at the top, the window once scrolled or while a menu or dialog is open). A spec file declares its section's name and place on the review page (`export const section: Section = …`, after its imports). `docs/testing.md`, "What the storyboard covers", lists what each section drives; a new spec file or route handler needs a line there.
+`tests/storyboard/` is one Playwright suite that drives every flow on fixture data (`docs/testing.md`, "The storyboard"). A spec file is a section, a test is a flow, and each `await frame(page, "caption")` is a frame. A frame is a caption and, in the review, a screenshot: of the whole page when it's at the top, or of the window once it's scrolled or while a menu or dialog is open. A spec file declares its section's name and place on the review page (`export const section: Section = …`, after its imports). `docs/testing.md`, "What the storyboard covers", lists what each section drives; a new spec file or route handler needs a line there.
 
 - Every new interactive behaviour goes in a flow, existing or new, with a frame after each thing a person would see. A PR without it isn't done.
 - A flow is told in words anyone who has used the site would follow: its title just names it ("The letter bounces"), each caption says what its frame shows ("The email staff get"), and `story("…")` lines, at the start and between the frames, say what happens and why (`docs/testing.md`, "How a flow is told").
@@ -84,7 +100,15 @@ npm run storyboard -- --no-main --no-open --paths public-pages -g '/donate$'   #
 npm run storyboard -- --no-main --no-open --paths --phone campaigns -g ZZ99ZZ   # a flow, every frame
 ```
 
-`--no-main` skips building main, which is the slow part (drop it to see main beside it), `--desktop` or `--phone` picks one viewport, and `--paths` prints each frame's caption and PNG path, to open with the Read tool. Each run gets its own folder, so the review someone has open is never changed, and a narrow run carries the rest of the latest review rather than clearing it. Main's frames are kept between runs, so after one full review a narrow one doesn't build main. The fixture server's port comes from the checkout's path, and the storyboard refuses one built from another checkout, but it reuses this checkout's server however old its build: stop one left from before your last change. If no flow reaches what you need, add a `frame()` to one, or a flow (see above), rather than a script in `tmp/`.
+- `--no-main` skips building main, which is the slow part. Drop it to see main beside the branch.
+- `--desktop` or `--phone` picks one viewport.
+- `--paths` prints each frame's caption and PNG path, to open with the Read tool.
+
+Each run gets its own folder, so the review someone has open is never changed. A narrow run carries the rest of the latest review rather than clearing it. Main's frames are kept between runs, so after one full review a narrow run doesn't build main.
+
+The fixture server's port comes from the checkout's path, and the storyboard refuses a server built from another checkout. But it reuses this checkout's server however old its build is, so stop one left from before your last change.
+
+If no flow reaches what you need, add a `frame()` to one, or add a flow (see above), rather than writing a script in `tmp/`.
 
 To see a component, use the component gallery (`/gallery`, fixture builds only; `docs/testing.md`, "The component gallery"). Every component has an example there, a page per group, and the gallery section pictures each group's page whole:
 

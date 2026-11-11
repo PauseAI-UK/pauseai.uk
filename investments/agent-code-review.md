@@ -4,7 +4,7 @@ Size: S. Kind: ways of working.
 
 ## Problem
 
-Nobody reads the code in a PR: Francis reviews the result (frames, a served copy, the copy), and CI checks types, tests and lint. Problems in the design go unseen until they cost something: the architecture review on 9 November found a letter could be left stuck in `sending` for good, and a test table missing from the list that empties them.
+Nobody reads the code in a PR: Francis reviews the result (frames, a served copy, the copy), and CI checks types, tests and lint. So problems in the design go unseen until they cost something. The architecture review on 9 November found two: a letter could be left stuck in `sending` for good, and a table was missing from the list of tables the tests empty.
 
 ## Fix
 

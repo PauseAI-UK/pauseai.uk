@@ -4,7 +4,7 @@ Size: S. Kind: operations.
 
 ## Problem
 
-A scheduled job that fails emails staff, but only if it runs far enough to record the failure. A job that stops running altogether (its schedule lost in a deploy, a crash before it records anything, a Netlify outage) sends nothing. The only check of this kind is the backup's, that some import ran in the last 36 hours, while `read-gmail` runs every five minutes. Nothing checks that the site is up, and there's no health route.
+A scheduled job that fails emails staff, but only if it runs far enough to record the failure. A job that stops running altogether (its schedule lost in a deploy, a crash before it records anything, a Netlify outage) sends nothing. The only check of this kind is the backup's, which checks that some import ran in the last 36 hours, while `read-gmail` runs every five minutes. Nothing checks that the site is up, and there's no health route.
 
 ## Fix
 

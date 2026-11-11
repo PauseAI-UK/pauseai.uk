@@ -4,11 +4,17 @@ Size: S. Kind: ways of working.
 
 ## Problem
 
-When several PRs are open at once, each merge forces the others to rebase, run CI again and change their storyboard frames, so Francis looks again; two can take the same migration number; and an agent juggling them loses track. Francis finds one PR per piece of work quickest to review, as each needs a gate run, a served copy and its copy found, and a "master agent" fanning work out to several PRs at once made it worse.
+When several PRs are open at once:
+
+- each merge forces the others to rebase, run CI again and change their storyboard frames, so Francis looks again;
+- two can take the same migration number;
+- an agent juggling them loses track.
+
+Francis finds one PR per piece of work quickest to review, as each PR needs a gate run, a served copy and its copy found. A "master agent" fanning work out to several PRs at once made it worse.
 
 ## Fix
 
-One PR per piece of work, however many changes it holds, and one open at a time unless two touch nothing in common. No agent coordinating several PRs in parallel. AGENTS.md's PR section says so.
+One PR per piece of work, however many changes it holds, and one open at a time unless two touch nothing in common. No agent coordinates several PRs in parallel. AGENTS.md's PR section says so.
 
 ## Hits
 

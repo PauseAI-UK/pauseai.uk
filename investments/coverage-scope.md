@@ -4,7 +4,7 @@ Size: S. Kind: small fix.
 
 ## Problem
 
-`tests/fixtures/**`, the fakes in `lib/server/fixtures/` and the gallery are under the 100% coverage gate though they never run on the live site, so fixtures have tests of their own (`lib/server/fixtures/failing-services.test.ts`) and the gallery has about 1,000 lines of tests.
+`tests/fixtures/**`, the fakes in `lib/server/fixtures/` and the gallery are under the 100% coverage gate though they never run on the live site. So fixtures have tests of their own (`lib/server/fixtures/failing-services.test.ts`), and the gallery has about 1,000 lines of tests.
 
 ## Fix
 

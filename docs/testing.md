@@ -31,11 +31,15 @@ start`), so it is slower. Use it only for what Vitest can't see:
 `coverage/`. CI fails if it drops below the thresholds in
 `vitest.config.mts`.
 
-While writing tests, `npm run test:changed` is quicker: it runs only the
-tests for the files changed since `origin/main`, committed or not (Vitest's
-`--changed`), measures coverage of only the changed source files, and then
-lists each one's lines not run, functions not called and branches not
-taken. It reports coverage even when a test fails, such as
+While writing tests, `npm run test:changed` is quicker. It:
+
+- runs only the tests for the files changed since `origin/main`, committed
+  or not (Vitest's `--changed`);
+- measures coverage of only the changed source files;
+- lists each one's lines not run, functions not called and branches not
+  taken.
+
+It reports coverage even when a test fails, such as
 `tests/checks/placeholder-copy.test.ts` while copy is a placeholder.
 Anything after `--` goes to Vitest (`npm run test:changed -- --project
 node`). A change to `package.json` or the Vitest config makes Vitest run
@@ -63,11 +67,13 @@ every test. It isn't the gate: `npm test` is, over every file.
   `tests/checks/thin-pages.test.ts` parses every one and fails on `if`,
   `? :`, `&&`, `||`, `??`, `?.`, `switch`, a loop, `try` or a default
   value. A choice a page would make goes in a component or a `lib/`
-  helper, where the gate covers each way it can go: `found()`
-  (`lib/found.ts`) for the post, person or record a URL names, or a 404;
-  the staff pages' URL filters in `lib/staff-search.ts`; the login page's
-  states in `LoginForm`. The route smoke test then only has to show each
-  page renders.
+  helper, where the gate covers each way it can go:
+  - `found()` (`lib/found.ts`) gives the post, person or record a URL
+    names, or a 404;
+  - `lib/staff-search.ts` has the staff pages' URL filters;
+  - `LoginForm` has the login page's states.
+
+  The route smoke test then only has to show each page renders.
 
 ## Mocking
 
@@ -85,15 +91,17 @@ live in one place: `lib/server/fixtures/outside-services.ts`.
 - **Playwright:** the build runs with `DATA_FIXTURES=1`, so `outsideFetch`
   returns the fixtures instead of calling Luma or Airtable. Use `page.route`
   only for browser requests that mustn't really happen (form submits to
-  other sites). Analytics loads only on the live site (`lib/analytics.ts`);
-  the fixture build turns it on so the consent flow can be driven, and the
-  storyboard's fixtures block every request to Google for every flow. The
-  two embeds from other sites have stand-ins (`tests/storyboard/fixtures.ts`),
-  since what the real ones draw, and when, varies between runs: pauseai.info's
-  signup form is a fixed-height box, and Tally's story form on /people
-  doesn't load. Pictures from other sites, such as Luma's event covers, which
-  the build resizes after fetching them over the internet, are one local
-  picture, as fetching the real one can time out.
+  other sites). The storyboard's fixtures (`tests/storyboard/fixtures.ts`)
+  deal with what a page loads from other sites:
+  - Analytics loads only on the live site (`lib/analytics.ts`). The fixture
+    build turns it on so the consent flow can be driven, and the fixtures
+    block every request to Google for every flow.
+  - The two embeds from other sites have stand-ins, since what the real
+    ones draw, and when, varies between runs. pauseai.info's signup form is
+    a fixed-height box, and Tally's story form on /people doesn't load.
+  - Pictures from other sites, such as Luma's event covers, are one local
+    picture. The build resizes such a picture after fetching it over the
+    internet, and fetching the real one can time out.
 
 Don't stub `fetch` globally, and don't mock our own modules to make a test
 pass. Mocking one of our modules is fine at an edge the test can't
@@ -112,29 +120,35 @@ through `outsideFetch` like any other outside service.
   requests, which would bypass the fixtures in Playwright builds.
 - **Vitest checks what we sent.** The Postmark fixture just returns a
   `MessageID`, and the Gmail one its IDs. Tests read the request MSW
-  received: `recordGmail()` (`tests/gmail-sends.ts`) records what goes by
-  Gmail, so `lib/server/mp-letters.test.ts` checks a letter's From, To, text
-  and attachments, and `notifications()` (`tests/notifications.ts`) records
-  what Postmark is asked to send, for the emails to the notification inbox.
+  received:
+  - `recordGmail()` (`tests/gmail-sends.ts`) records what goes by Gmail.
+    `lib/server/mp-letters.test.ts` uses it to check a letter's From, To,
+    text and attachments.
+  - `notifications()` (`tests/notifications.ts`) records what Postmark is
+    asked to send, for the emails to the notification inbox.
 - **Playwright reads an outbox.** With `DATA_FIXTURES=1`, `sendEmail`,
   `sendGmail` and `sendRawGmail` also write each outgoing email to a mail
   file (`.eml`) in `OUTBOX_DIR` (`lib/server/fixtures/outbox.ts`). The flow
   test checks the letter in the newest email to the test MP. This is
   test-only plumbing, with no production route or table.
-- **The storyboard pictures the emails.** `emailFrame(page, email,
-caption)` (`tests/storyboard/frame.ts`) shows an email from the outbox in
-  a plain mail app's layout (`tests/fixtures/email-view.ts`): its headers,
-  its body (the HTML if it has one) and its attachments, as a frame. Every
-  email the site sends has one, such as the letter, a relayed reply and the
-  staff login link. It's what was sent, not how Gmail or Outlook draw it.
-  So the frames compare, the fixture build fills in what would be random:
-  the `Date` header is the fixed clock's, and a login link's token comes
-  from a seed (`randomId` in
-  `lib/server/random-id.ts`). A fixture build knows the address it's served at
-  (`FIXTURE_ORIGIN`, from `lib/server/fixtures/fixture-env.mjs`, which both fixture
-  builds use), as the live site knows its own, so every link in an email
-  is whole, whether or not the code that sent it had a request; the
-  picture shows it at `pauseai.example.org`.
+- **The storyboard pictures the emails.**
+  `emailFrame(page, email, caption)` (`tests/storyboard/frame.ts`) shows an
+  email from the outbox as a frame, in a plain mail app's layout
+  (`tests/fixtures/email-view.ts`): its headers, its body (the HTML if it
+  has one) and its attachments. Every email the site sends has one, such as
+  the letter, a relayed reply and the staff login link. It's what was sent,
+  not how Gmail or Outlook draw it.
+
+  So that the frames compare, the fixture build fills in what would be
+  random: the `Date` header is the fixed clock's, and a login link's token
+  comes from a seed (`randomId` in `lib/server/random-id.ts`).
+
+  A fixture build knows the address it's served at (`FIXTURE_ORIGIN`, from
+  `lib/server/fixtures/fixture-env.mjs`, which both fixture builds use), as
+  the live site knows its own. So every link in an email is whole, whether
+  or not the code that sent it had a request. The picture shows the link at
+  `pauseai.example.org`.
+
 - **Gmail and Outlook are checked from the HTML.** `lib/letter-format.test.ts`
   runs the letter's HTML through doiuse-email
   (`@jsx-email/doiuse-email`, the Can I email tables,
@@ -144,21 +158,23 @@ caption)` (`tests/storyboard/frame.ts`) shows an email from the outbox in
   in CI.
 - **Webhooks are posted directly.** Tests post bounce, spam complaint and
   inbound payloads, in Postmark's format, straight to our routes with test
-  basic auth credentials, and check that wrong or missing credentials are
-  refused, and that a reply is forwarded and logged, without its text.
+  basic auth credentials. They check that wrong or missing credentials are
+  refused, and that a reply is forwarded and logged without its text.
 - **No Mailpit or other mail catcher.** We send through Postmark's and
   Gmail's APIs, not SMTP, so a mail catcher would test a different path from
   production.
 - **Checking real sending by hand.** On previews and the live site, use the
   test MP (postcode ZZ99ZZ). Postmark's test token `POSTMARK_API_TEST`
-  accepts messages without delivering them. For a real bounce, write to
-  Bouncy McTestface MP (ZZ99ZH), whose address, `no-such-mailbox@pauseai.uk`,
-  doesn't exist: pauseai.uk's mail server refuses it, whichever service
-  sends the letter, and the letter shows as bounced on its campaign's page.
-  The site then blocks the address, so the next letter to it waits until
-  staff unblock it at `/staff/politicians/blocked-emails`. Postmark's own
-  addresses at `bounce-testing.postmarkapp.com`, such as `hardbounce@` and
-  `softbounce@`, also produce real bounce webhooks. None is used in CI.
+  accepts messages without delivering them.
+
+  For a real bounce, write to Bouncy McTestface MP (ZZ99ZH). Their address,
+  `no-such-mailbox@pauseai.uk`, doesn't exist, so pauseai.uk's mail server
+  refuses it, whichever service sends the letter. The letter shows as
+  bounced on its campaign's page. The site then blocks the address, so the
+  next letter to it waits until staff unblock it at
+  `/staff/politicians/blocked-emails`. Postmark's own addresses at
+  `bounce-testing.postmarkapp.com`, such as `hardbounce@` and `softbounce@`,
+  also produce real bounce webhooks. None is used in CI.
 
 ## The storyboard
 
@@ -195,10 +211,10 @@ words:
   page", "The email staff get".
 - **The story**, `story("…")` (`tests/storyboard/frame.ts`), says what
   happens and why, a line or two at a time: one at the start of the flow,
-  and more between the frames. The page shows each above the next frame;
-  one after the last frame ends the flow, and a flow with no frames is
-  told by its story alone. Write it where it happens in the spec, so the
-  code and the story read together.
+  and more between the frames. The page shows each line above the next
+  frame. A line after the last frame ends the flow, and a flow with no
+  frames is told by its story alone. Write each line where it happens in
+  the spec, so the code and the story read together.
 
 They're written from the point of view of the person using the site, a
 supporter or staff, in the words the site and the staff pages use
@@ -216,13 +232,14 @@ test("The letter bounces", async ({ page, request, flowDatabase }) => {
 ```
 
 A frame pictures the whole page when the page is at the top, so its layout
-can be looked over, and only the window once a person, or a step, has
-scrolled: where they are is then the point, and a full-page picture of a
-scrolled page puts the sticky header wherever the scroll was. The same
-while a menu or a dialog is open, as it's placed against the window, which
-a full-page picture resizes. A flow with
-no frames (the redirects, a scroll position, a header) says so on the page:
-"Passed. No frames: this flow only checks."
+can be looked over. Once a person, or a step, has scrolled, it pictures only
+the window: where they are is then the point, and a full-page picture of a
+scrolled page puts the sticky header wherever the scroll was. It also
+pictures only the window while a menu or a dialog is open, as that is
+placed against the window, which a full-page picture resizes.
+
+A flow with no frames (the redirects, a scroll position, a header) says so
+on the page: "Passed. No frames: this flow only checks."
 
 ```bash
 npm run test:storyboard   # the gate, here and in CI: desktop runs every flow, phone only those tagged @phone; no screenshots
@@ -233,79 +250,107 @@ npm run test:report       # Playwright's own report, with the trace of a failed 
 **The gate** is what CI runs. It fails only on a flow's checks, never on
 how a page looks. CI runs it in three parts at once, each a job of its own
 ("Storyboard (1 of 3)" and so on), and the Storyboard check passes when
-all three have; `.github/workflows/ci.yml` says why.
+all three have passed. `.github/workflows/ci.yml` says why.
 
-**The review** (`scripts/storyboard.mjs`) runs the suite against this
-branch with screenshots, and against main for the flows that took pictures
-(a flow without frames has nothing to compare), then pairs the frames by
-section, flow and caption, diffs them pixel by pixel, and opens the run's
-page (`test-results/storyboard/index.html` leads to the newest run's). Main is built
-and served by `scripts/serve-main.mjs`: a git worktree of where this branch
-left origin/main, the merge base a pull request compares with, kept in
-your temp folder with Next's cache and its own `npm ci` when its lockfile
-changes; nothing is fetched, and its output is `main-server.log` in the
-run's folder. The page shows:
+**The review** (`scripts/storyboard.mjs`):
 
-- the flows in sections, each frame captioned and pictured on desktop and
-  phone, with this branch's picture, main's and the diff, in a lightbox,
-  and a phone/desktop toggle that stays on the flow being looked at;
-- a control to show all the flows, only those with changed frames (just
-  those frames), only those that failed, or only those that failed on main
-  (a flow there has nothing fair to compare with, so isn't in Changed),
-  with the count of each; a box that filters flows by their section,
-  title, captions or story (`/` to start, Escape to clear); and a failed
-  flow's message under its last frame. The choice and the filter's words
-  are kept on a reload;
-- the sections under three headings, the public site, the staff pages, and
-  the tools and checks, each with the name, heading and place in it that
-  its spec file declares; the component gallery last; and the flows in
-  each in their spec file's order. The
-  sidebar follows the page: the section in view is open and the flow in
-  view marked, the rest folded, but a section opened or shut by hand stays
-  so.
+- runs the suite against this branch, with screenshots;
+- runs it against main for the flows that took pictures (a flow without
+  frames has nothing to compare);
+- pairs the frames by section, flow and caption, and diffs them pixel by
+  pixel;
+- opens the run's page (`test-results/storyboard/index.html` leads to the
+  newest run's).
+
+Main is built and served by `scripts/serve-main.mjs`, from a git worktree
+of where this branch left origin/main, the merge base a pull request
+compares with. The worktree is kept in your temp folder, with Next's cache,
+and runs its own `npm ci` when its lockfile changes. Nothing is fetched.
+Main's output is `main-server.log` in the run's folder.
+
+The page shows:
+
+- The flows, in sections. Each frame has its caption and, on desktop and
+  phone, this branch's picture, main's and the diff, which open in a
+  lightbox. A phone/desktop toggle stays on the flow being looked at.
+- A control to show all the flows, only those with changed frames (just
+  those frames), only those that failed, or only those that failed on main,
+  with the count of each. A flow that failed on main has nothing fair to
+  compare with, so it isn't in Changed.
+- A box that filters flows by their section, title, captions or story (`/`
+  to start, Escape to clear). The control's choice and the filter's words
+  are kept on a reload.
+- A failed flow's message, under its last frame.
+- The sections under three headings: the public site, the staff pages, and
+  the tools and checks. Each section has the name, the heading and the
+  place under it that its spec file declares. The component gallery is
+  last. The flows in each section are in their spec file's order.
+- A sidebar that follows the page. The section in view is open and the
+  flow in view is marked, and the rest are folded, but a section opened or
+  shut by hand stays so.
 
 The same data is in `test-results/storyboard/latest/storyboard.json`, for
-an agent. Both are local only and gitignored. A difference never fails;
-only this branch's checks do, and the exit code is theirs.
+an agent. Both are local only and gitignored. A difference never fails the
+review. Only this branch's checks do, and the exit code is theirs.
 
 **The changed frames**, for an agent: `npm run storyboard:changed`
-(`scripts/storyboard-changed.mjs`) prints the latest run's, without running
-anything, or another run's given its folder or name. They're the page's
-Changed: each frame that differs from main, is new, or is gone, with its
-viewport, section, flow and caption, how much of it differs, and the full
-paths of this branch's picture, main's and the diff, to open one by one.
-Before them, the flows that failed, here or on main. The paths are the
-run's own folder, not `latest/`, so they stay right after another run.
-`npm run storyboard -- --changed` runs the review and then prints the same.
+(`scripts/storyboard-changed.mjs`) prints the latest run's changed frames,
+without running anything. Given another run's folder or name, it prints
+that run's. They're the page's Changed: each frame that differs from main,
+is new, or is gone. For each one it prints:
+
+- its viewport, section, flow and caption;
+- how much of it differs;
+- the full paths of this branch's picture, main's and the diff, to open one
+  by one.
+
+Before the frames, it lists the flows that failed, here or on main. The
+paths are in the run's own folder, not `latest/`, so they stay right after
+another run. `npm run storyboard -- --changed` runs the review and then
+prints the same.
 
 **The copy to approve**, for the person who writes the copy: `npm run copy`
-(`scripts/copy.mjs`) writes `test-results/copy.html`, one page, with its
-pictures in it, of each placeholder (AGENTS.md, "Never write final copy")
-that this branch adds or changes since it left origin/main, committed or
-not. A sidebar lists every piece in clusters, in the diff's order: its
-file, or for `lib/content/` the set of strings it's in (the copy object's
-top-level key, such as `staff-interface.ts › broadcastPages`). Clicking one
-(or <kbd>j</kbd> and <kbd>k</kbd>) shows it alone: the copy as written, its
-file and line (and the source, folded), and every frame of the latest run
-that pictures it, each the whole page with the copy boxed, scrolled to it.
+(`scripts/copy.mjs`) writes `test-results/copy.html`. It's one page, with
+its pictures in it, of each placeholder (AGENTS.md, "Never write final
+copy") that this branch adds or changes since it left origin/main,
+committed or not.
+
+A sidebar lists every piece of copy in clusters, in the diff's order. A
+piece's cluster is its file, or for `lib/content/` the set of strings it's
+in (the copy object's top-level key, such as
+`staff-interface.ts › broadcastPages`). Clicking a piece (or <kbd>j</kbd>
+and <kbd>k</kbd>) shows it alone:
+
+- the copy as written;
+- its file and line, and the source, folded;
+- every frame of the latest run that pictures it, each the whole page with
+  the copy boxed, scrolled to it.
+
 Frames that are the same picture with the copy in the same place are listed
-under one, and each picture is in the page once, however many pieces it
-shows. Copy no frame pictures is in italics: it needs a flow, or can't be
-reached (an `aria-label`, a message shown only on an error). Copy with the
-same text in two places is shown once, with both.
+under one, and each picture is in the page once, however many pieces of
+copy it shows. Copy that no frame pictures is in italics: it needs a flow,
+or can't be reached (an `aria-label`, a message shown only on an error).
+Copy with the same text in two places is shown once, with both places.
 
 Each frame records the placeholder text it pictures and its boxes
 (`placeholdersOnPage` in `tests/storyboard/frame.ts`, kept in
-`storyboard.json` as each frame's `placeholders`): from the mark to the next
-or to the end of the block it's in, read from the page without changing it,
-so no picture changes. A field's placeholder or value and a select's chosen
-option count; an email frame's text too, so an email's copy is matched where
-a flow frames the email. The script reads the copy from the source: a
-string to its end, a template with each `${…}` as anything, JSX text
-through inline elements (`<strong>`, `<a>`, `<Link>`) with each `{…}` as
-anything, and HTML in a string (an email's) to its first block. Whitespace
-is collapsed and entities decoded on both sides, and a frame's text matches
-copy that starts it, the longest match winning.
+`storyboard.json` as each frame's `placeholders`). A placeholder runs from
+its mark to the next mark, or to the end of the block it's in. It's read
+from the page without changing it, so no picture changes. A field's
+placeholder or value counts, and so does a select's chosen option. So does
+the text of an email's frame, so an email's copy is matched where a flow
+frames the email.
+
+The script reads the copy from the source:
+
+- a string, to its end;
+- a template, with each `${…}` as anything;
+- JSX text, through inline elements (`<strong>`, `<a>`, `<Link>`), with
+  each `{…}` as anything;
+- HTML in a string (an email's), to its first block.
+
+Whitespace is collapsed and entities are decoded on both sides. A frame's
+text matches copy that starts it, and the longest match wins.
 
 ```bash
 npm run copy                         # from the latest run, without running anything
@@ -313,89 +358,117 @@ npm run copy -- <run>                # another run: its folder, or its name unde
 npm run copy -- --storyboard         # runs the storyboard first (the rest goes to it: --no-main, --desktop)
 ```
 
-`--storyboard` runs the sections whose frames, in the latest run, showed
-all the changed copy, or the whole suite if some was in no frame, as it
-could be anywhere. Without it, the page says when the run is older than the
-branch's last commit, or than a file with changed copy, as its frames may
-not show the copy as it is.
+`--storyboard` runs the sections whose frames showed the changed copy in
+the latest run, if they showed all of it. If some of the copy was in no
+frame, it runs the whole suite, as that copy could be anywhere. Without
+`--storyboard`, the page says when the run is older than the branch's last
+commit, or older than a file with changed copy, as its frames may not show
+the copy as it is.
 
 **Runs.** Each run has its own folder,
 `test-results/storyboard/runs/<when>/`, with every picture its page shows,
 so a page you have open is never changed by the next run. `latest` points
-at the newest that finished, and `index.html` beside it opens that run's
-page by name. The newest three runs are kept.
+at the newest run that finished, and `index.html` beside it opens that
+run's page by name. The newest three runs are kept.
 
-A partial run (one that selects less than the whole suite: a section, `-g`,
-`--desktop` or `--phone`) starts from the latest run's frames, as hard
-links, and replaces only the flows it runs, so the review stays whole. Each
-carried flow says when it was shot, and the summary line counts them. A flow
-that's gone from the suite, renamed or deleted, isn't carried, and a full
-run starts empty.
+A partial run is one that selects less than the whole suite: a section,
+`-g`, `--desktop` or `--phone`. It starts from the latest run's frames, as
+hard links, and replaces only the flows it runs, so the review stays whole.
+Each carried flow says when it was shot, and the summary line counts them.
+A flow that's gone from the suite, renamed or deleted, isn't carried. A
+full run starts empty.
 
 **Main is run once.** Main's frames are kept in
 `test-results/storyboard-main/`, under main's commit and a hash of what
-this branch's suite shares (`tests/` but for the spec files, Vitest's tests
-and the review page's code, `playwright.config.ts`, `lib/content/`, the
-pages' paths, `app/sitemap.ts`, the migrations, `scripts/fresh-database.mjs`,
-`scripts/serve-main.mjs` and Playwright's version: the suite drives main's
-server, so a change to it changes main's frames), and each flow's under a
-hash of its spec file. A run lists its flows first (`playwright test --list`,
-which builds nothing). After this branch's run, if main's frames of every
-flow that took pictures are kept, it doesn't build or run main at all.
-Otherwise it runs main for just the flows that aren't
-(`playwright test --test-list`) and keeps the result. So a change to one
+this branch's suite shares. The suite drives main's server, so a change to
+any of these changes main's frames:
+
+- `tests/`, but for the spec files, Vitest's tests and the review page's
+  code;
+- `playwright.config.ts`;
+- `lib/content/`;
+- the pages' paths, and `app/sitemap.ts`;
+- the migrations, and `scripts/fresh-database.mjs`;
+- `scripts/serve-main.mjs`;
+- Playwright's version.
+
+Each flow's frames are kept under a hash of its spec file too.
+
+A run lists its flows first (`playwright test --list`, which builds
+nothing). After this branch's run, if main's frames of every flow that took
+pictures are kept, it doesn't build or run main at all. Otherwise it runs
+main for just the flows whose frames aren't kept
+(`playwright test --test-list`), and keeps the result. So a change to one
 spec file reruns only that section on main, and after one full review,
 every partial run against the same main is fast.
-It won't start main's server while something already answers on main's port,
-such as a server left from an earlier review: stop it, or pass
-`--main-server=` to use it on purpose.
-`--fresh-main` runs main again regardless; with `--main-server` nothing is
-kept, as that server may not be the ref's commit.
+
+The review won't start main's server while something already answers on
+main's port, such as a server left from an earlier review. Stop that
+server, or pass `--main-server=` to use it on purpose. `--fresh-main` runs
+main again regardless. With `--main-server` nothing is kept, as that server
+may not be the ref's commit.
 
 **Noise.** A frame that differs from main's only by antialiasing isn't
 counted as changed, by the rule toucan's snapshot gallery uses
-(https://git.sr.ht/~frabcus/toucan, `platform/snapshots/png.ts`). A pixel
-differs when a colour channel moves by more than 4 levels. A frame has
-changed when its differing pixels' moves add up to more than 2,000, or more
-than 1,000 pixels differ. Every frame is pictured a pixel to a CSS pixel,
-the phone's too, though its screen is 3×: the layout is what a frame shows,
-and it's a ninth of the pixels to take, keep and compare. Antialiasing on a few glyphs comes to a few thousand; a
-line that moves by a pixel, millions. A frame under the limits reads "same
-as main, but for noise" and still shows its diff, so you can see what fell
-under them. The limits are `CHANNEL_NOISE`, `NOISE_TOTAL` and
-`NOISE_PIXELS` in `tests/storyboard/report/frames.ts`.
+(https://git.sr.ht/~frabcus/toucan, `platform/snapshots/png.ts`):
 
-Switches, after `--`: `--no-main` (this branch alone), `--main=<ref>`
-(another branch), `--desktop` or `--phone`, `--no-open`, `--paths` (print
-each frame's caption and picture), `--changed` (print only the changed
-frames, as above), `--server=URL` and `--main-server=URL`
-for servers you started. Anything else goes to `playwright test`: a file
-(`staff-login`), `-g login`, `--headed`.
+- a pixel differs when a colour channel moves by more than 4 levels;
+- a frame has changed when its differing pixels' moves add up to more than
+  2,000, or more than 1,000 pixels differ.
 
-So the review is also the way to get a screenshot while working: one page
+Antialiasing on a few glyphs comes to a few thousand, and a line that moves
+by a pixel comes to millions. A frame under the limits reads "same as main,
+but for noise" and still shows its diff, so you can see what fell under
+them. The limits are `CHANNEL_NOISE`, `NOISE_TOTAL` and `NOISE_PIXELS` in
+`tests/storyboard/report/frames.ts`.
+
+Every frame is pictured a pixel to a CSS pixel, on the phone too, though
+its screen is 3×. The layout is what a frame shows, and that way there's a
+ninth of the pixels to take, keep and compare.
+
+Switches, after `--`:
+
+- `--no-main`: this branch alone;
+- `--main=<ref>`: another branch;
+- `--desktop` or `--phone`: one viewport;
+- `--no-open`: the page left closed;
+- `--paths`: print each frame's caption and picture;
+- `--changed`: print only the changed frames, as above;
+- `--server=URL` and `--main-server=URL`: servers you started.
+
+Anything else goes to `playwright test`: a file (`staff-login`),
+`-g login`, `--headed`.
+
+So the review is also the way to get a screenshot while working. One page
 is `npm run storyboard -- --no-main --no-open --paths public-pages -g
-'/donate$'`, a few seconds on a warm build. `public-pages` names each test
-by its route. A narrow run carries the rest of the latest review, so it
-doesn't lose your last full one.
+'/donate$'`, which takes a few seconds on a warm build. `public-pages` names
+each test by its route. A narrow run carries the rest of the latest review,
+so it doesn't lose your last full one.
 
 **Every flow stands alone.** It passes on its own, and run twice, in any
 order, alongside the others:
 
 - **A database per flow.** `tests/storyboard/global-setup.ts` makes one
-  migrated template database with the test MPs; the `flowDatabase` fixture
+  migrated template database with the test MPs. The `flowDatabase` fixture
   (`tests/storyboard/fixtures.ts`) copies it for each flow
-  (`CREATE DATABASE … TEMPLATE`, tens of milliseconds), names it in a cookie
-  on the browser context and the `request` fixture, and drops it afterwards.
-  In a fixture build only, `lib/server/db.ts` reads that cookie and queries
-  the database it names, through one small pool per database, closed when
-  idle. Otherwise `NETLIFY_DB_URL`. Flows that need the fixture politicians
-  sync them in with `syncPoliticians()` (`tests/steps.ts`). So the staff pages that
-  list what's happened, like `/staff/campaigns`, are compared unmasked.
-- **A fixed clock.** `FIXTURE_NOW` (`lib/server/fixtures/fixture-env.mjs`) is read by
-  `now()` in `lib/now.ts`, which the server uses instead of `new Date()`;
-  the database's `now()`, and the columns that default to it, are fixed to
-  the same moment in each flow's database; and every page's clock is set to
-  it with `page.clock`. Nothing date-shaped is masked.
+  (`CREATE DATABASE … TEMPLATE`, tens of milliseconds), names the copy in a
+  cookie on the browser context and the `request` fixture, and drops it
+  afterwards. In a fixture build only, `lib/server/db.ts` reads that cookie
+  and queries the database it names, through one small pool per database,
+  closed when idle. Otherwise it queries the database `NETLIFY_DB_URL`
+  names. Flows that need the fixture politicians sync them in with
+  `syncPoliticians()` (`tests/steps.ts`). So the staff pages that list
+  what's happened, like `/staff/campaigns`, are compared unmasked.
+- **A fixed clock.** `FIXTURE_NOW` (`lib/server/fixtures/fixture-env.mjs`)
+  is the moment every clock is fixed to:
+  - the server's: `now()` in `lib/now.ts` reads it, and the server uses
+    `now()` instead of `new Date()`;
+  - the database's: its `now()`, and the columns that default to it, are
+    fixed to the same moment in each flow's database;
+  - every page's: its clock is set to that moment with `page.clock`.
+
+  Nothing date-shaped is masked.
+
 - **A seeded hero.** `lib/shuffle.ts` shuffles the same way every time in a
   fixture build, so the home page's hero is compared too.
 - **Seeded emails.** In a fixture build, a login link's token is made from
@@ -429,61 +502,244 @@ order, alongside the others:
   - Unique in its section: the review pairs a flow's frames with main's
     by section, title and caption. Both sides run this branch's spec
     files, so a renamed flow still pairs.
-- Tag a flow `@phone` to run it on the phone in the gate too; `@phone-only`
-  for one that only makes sense there (the mobile nav), `@desktop-only` for
-  the reverse. The review runs every other flow on both viewports.
+- Tag a flow `@phone` to run it on the phone in the gate too. Tag it
+  `@phone-only` if it only makes sense on the phone (the mobile nav), or
+  `@desktop-only` if it only makes sense on the desktop. The review runs
+  every other flow on both viewports.
 - Before saying a change is done, run `npm run storyboard` and look at
-  every changed frame on both viewports; say what changed in the PR. An
-  agent lists them with `npm run storyboard:changed` and opens each.
+  every changed frame on both viewports. Say what changed in the PR. An
+  agent lists the changed frames with `npm run storyboard:changed` and
+  opens each.
 - A flaky flow, or a frame that differs between two runs of the same
   build, is fixed at once, never retried, skipped or masked ("Rules for new
   code", below). `retries` stays 0.
-- No fixed waits. A flow waits for the thing it's waiting for:
-  `tests/storyboard/settle.ts` has `hydrated` (mounted, fonts in, console
-  quiet), `scrollSettled` (a smooth scroll at rest), `layoutSettled`
-  (images in, nothing moving) and `wholePage` (back at the top, and
-  staying there, for a frame after a click, typing or going back has left
-  the window somewhere that varies between runs). Playwright's own output (traces) is in
-  `test-results/playwright` (`test-results/playwright-storyboard-*` for a
-  review), emptied every run; the reviews beside it in
-  `test-results/storyboard` are kept, the newest three.
+- No fixed waits. A flow waits for the thing it's waiting for.
+  `tests/storyboard/settle.ts` has:
+  - `hydrated`: mounted, fonts in, console quiet;
+  - `scrollSettled`: a smooth scroll at rest;
+  - `layoutSettled`: images in, nothing moving;
+  - `wholePage`: back at the top, and staying there, for a frame after a
+    click, typing or going back has left the window somewhere that varies
+    between runs.
+- Playwright's own output (traces) is in `test-results/playwright`
+  (`test-results/playwright-storyboard-*` for a review), and is emptied
+  every run. The reviews beside it in `test-results/storyboard` are kept,
+  the newest three.
 - No stored baselines, and no gate on pixels. Main is the reference.
 
 ### What the storyboard covers
 
-Every page is loaded. `public-pages.spec.ts` opens each public route in
-`tests/routes.ts` (one example per dynamic route), except a campaign's
-write and preview pages, which show nothing without a postcode and a letter
-and are pictured by the `campaigns` flows instead, and the component
-gallery's, which `gallery.spec.ts` pictures. `staff-login.spec.ts`
-checks every staff page turns a visitor without a session away, and
-`permissions.spec.ts` loads each one logged in, with no permissions. The
-flows below drive the rest. `tests/storyboard/coverage.test.ts`
-fails if a spec file or a route handler (`route.ts`) is missing from this
-list, so a new one is placed here on purpose, on a line of its own, with the
-flow that drives it or why nothing does.
+Every page is loaded:
+
+- `public-pages.spec.ts` opens each public route in `tests/routes.ts` (one
+  example per dynamic route). It leaves out a campaign's write and preview
+  pages, which show nothing without a postcode and a letter and are
+  pictured by the `campaigns` flows instead. It also leaves out the
+  component gallery's pages, which `gallery.spec.ts` pictures.
+- `staff-login.spec.ts` checks every staff page turns a visitor without a
+  session away.
+- `permissions.spec.ts` loads each staff page logged in, with no
+  permissions.
+
+The flows below drive the rest. `tests/storyboard/coverage.test.ts` fails
+if a spec file or a route handler (`route.ts`) is missing from this list.
+So a new one is placed here on purpose, on a line of its own, with the flow
+that drives it or why nothing does.
 
 - `public-pages.spec.ts`: Every public route: 200, one `<h1>`, no console errors or hydration warnings, no broken same-site links, fixture text where a page shows data.
-- `campaigns.spec.ts`: Email your MP, end to end: postcode, letter, preview, sent, and the letter the MP gets; the editor's toolbar and a paste, as sent; the draft kept through Edit, back and reload; going back; a refused letter; the pages opened out of order; each campaign, and the nav's links to them; the campaign pages in search and the sitemap, and the old `/campaigns-v2` links redirecting; the special test MPs.
+- `campaigns.spec.ts`: Email your MP, end to end:
+  - the postcode, the letter, the preview and the sent page, and the letter the MP gets;
+  - the editor's toolbar and a paste, and the letter as sent;
+  - the draft kept through Edit, back and reload;
+  - going back;
+  - a refused letter;
+  - the pages opened out of order;
+  - each campaign, and the nav's links to them;
+  - the campaign pages in search and the sitemap, and the old `/campaigns-v2` links redirecting;
+  - the special test MPs.
 - `briefings.spec.ts`: The briefings: the Campaigns menu's link to them, the index of cards, a briefing on its sheet with its calendar, budget and signatories charts, a source from its mark, and back.
-- `replies.spec.ts`: Letters through the letters inbox, every email both ways pictured and the letter's history after each: sent, from the supporter's proxy, and her copy, to the MP's; the MP's reply relayed to her and her answer to the MP; a reply with HTML and an attachment relayed unchanged; automatic replies relayed both ways, and a loop stopped at the cap, staff emailed, then on the letter's page an automatic reply folded to its first paragraph, and unfolded; a stranger, a forged reply and spam, none relayed, the run failed listing them; the letter bouncing, staff alerted and the supporter told, then sent again once unblocked; the supporter's own address bouncing, so the next reply is held, the day's report of supporters' bounces to the notification inbox, and the MP's office told a day on; a letter over the daily limit, queued, the notification inbox emailed once it has waited three hours, then sent after a waiting relay; a letter with a paragraph of the supporter's own and a sentence cut, shown as only its changes, folded, and as sent; an old letter's reply through Postmark, forwarded as before, and kept whole on the letter's page; erasing Jane when her kept mail can't be cleared, which the list says.
-- `home-events.spec.ts`: The home page's events: in person near a postcode, or only online; a postcode not found; near the device's location, and nothing near; a local group's, venue set or not; the address bar saying which, and a link to a local group's or the online ones.
-- `march-signup.spec.ts`: The march sign-up: its header over the hero and past it; how many have registered, in the hero and the form, asked for again on coming back to the page; registering, Luma failing, and an email the server won't take; the scroll cue; the share card, saying they're registered, and registering someone new, with the events sent to GA; the photo carousel on a phone.
-- `staff-login.spec.ts`: Login by emailed link (the email pictured; once, in one browser), and an address outside pauseai.uk getting none; the dev login; a link with Keep me signed in; the staff home after a first login, which makes an account with no permissions, and over 30 days, and as an admin adding an account from Add staff, editing its permissions in a bubble, and removing it, pressed twice, with the note of what that leaves them; every staff page turning a visitor without a session away, and the API changing nothing for them; your own page with your Gmail connected and disconnected, and a wrong Google account; log out, noindex.
-- `staff-navigation.spec.ts`: The sidebar folded to a rail of icons, each where it was, a name on hover, still folded on the next page. A sort's arrow turned at once and a line along the top while a sort or a search loads; another page marked in the sidebar at once while it loads (its table locked, `lockTable` in `tests/steps.ts`). The dashboard's tabs, kept on going back, its events held tile to those events and its supporter emails tile to theirs in all emails, and a bar pointed at. The politicians agreed tile, to the one politician who agreed and then to everyone who agreed, newest first; a politician's page and the list sorted by a heading; setting a status that shows on `/campaigns`, and the audit log; the "new" tag, on the sidebar and the folded rail, and gone after 3 days.
-- `imports.spec.ts`: The import page and each job's own page, the MP check run twice on its page, and the home's action for a held MP import; a held politician import, the notification inbox emailed, discarded and applied, and one held for a renamed record; the Luma import run twice from its page, and the members import, skipping an erased member; the logs of Luma, the Gmail reading and the members, a table a day, with the newest run's tinted row, rows, a row for quiet runs, a problem's tinted rows and a folded stretch; the connected Gmail read from its page, and pressed again while the scheduled read is going; an import failing, and one with problems, postcodes.io being down, with Luma down for the flow (`lib/server/fixtures/failing-services.ts`), the notification inbox emailed once though it fails twice; a Gmail Google disconnects, the notification inbox emailed; the letters inbox's own page, back from connecting its Gmail; PauseAI's emails from Airtable, pressed; and pauseai.info's letters.
-- `staff-campaigns.spec.ts`: Campaigns: the list by the month of each one's last letter, a campaign's page with its versions, its counts choosing its letters, and `/staff/letters` redirecting; asks: the list under its months, each ask's answers, how it was asked and its counts, an ask's page, a letter's and an event's, its answers in columns, those of one answer by page under the columns' tops, the link to those who answered on the politicians list, and its form at `/edit`; a mailing's list and page naming its ask and who it's from; Sent emails, as an admin, searched and filtered, and closed without the permission; a new ask, changed and deleted.
-- `old-letters.spec.ts`: The import of old letters: a press, and pressing again; a press that fails; a press while one is running, on its page and the list of imports; its log and finishing, with its progress, the day's table, a refusal's tinted rows and a folded stretch; a letter of a template, one that keeps its own text, and August's approximate one; a form letter's diff from its form version; the one-off emails on All emails, a thread opened, an out-of-office in it folded and unfolded, and hidden from staff without `supporters`; a politician's and a supporter's lists; what your own page says when your mailbox is kept.
-- `letters.spec.ts`: All emails, a supporter's and a mailing's, those replied to, and the dashboard's tile; the letters list (one sent, one bounced), filtered by status, then by campaign, then either of two campaigns, then reset and sorted by sender; a letter with only an automatic reply and one with a written reply, in the Replied column, the Status filter's options, and the list filtered by what came back; a supporter's letter's page, with Copy Gmail search, and the MP's answer to its campaign's ask set from it; a bounce emailing staff and blocking the address, the home's action for it, and an MP whose address is blocked unblocked by staff.
-- `politicians.spec.ts`: The politicians from Airtable: one with markers, notes, answers and PauseAI's emails; her correspondence, its switch to replies only, the band's counts leading to it and to her asks; a note added on one, above Airtable's; an ask staff added, chosen from the button under a politician's asks and answered; a letter a politician declined, recorded from that button, then cleared; a peer, an MSP and an MP who left office; the list filtered by status, marker (then all but that marker, by its chip) and an answer, then reset; the house tabs; paging through many; searching by each word, for those not in office and the nearest to a typo; deleting one gone from Airtable; the politicians mailed about an ask, and those not yet; several answers to an ask, ticked in the chip's second half.
-- `mailings.spec.ts`: The mailings, one mailing's recipients and a politician's history leading back to it; a mailing's ask leading to its page. Mailings to politicians written on the site: New mailing, then who it's for ticked on the politicians list, with its strip and the bar at the foot; New mailing on the list with no filter, an empty draft with no one ticked; the new mailing written, previewed and sent to yourself as a test (the email pictured); Mail these on the list, everyone it found ticked, then Change who, back on the list's ticked tab, one more searched for and ticked, everyone unticked to start again and one ticked, the draft naming her, and deleted; names pasted from the bar's Paste names, its box opening above it, a row copied from the table found by the name in it, one by constituency and one near a typo, a row each on the Paste names tab, all ticked with the box over them, one unticked on the ticked tab, and the draft saying who it's to as the group found less one; a scheduled mailing given a new time, then unscheduled and a draft again; one sending, and one sent with its failed tab, leading to the bounced letter's page under the mailing; one whose run stopped while sending, finished by the next run with that letter uncertain, and the letter's page; a mailing's letters bouncing, the MPs on the dashboard and the day's report to the notification inbox; one stopped part-way, with every way a letter fails on its failed tab, its stopped tab, pressed again for everyone, and its sent tab; one sent from your Gmail in a From name of its own, by the hourly job, and the reply read from it.
-- `broadcasts.spec.ts`: Broadcasts to supporters: New broadcast on the Broadcasts page, the writer greyed till its Consent is chosen, which makes the draft to everyone who said yes, then its Consent changed; the list's Broadcast button with a Consent filter; an email written, previewed, sent as a test, scheduled and unscheduled; a text on an approved template, with the templates' search and Show all; a text on new words, sent for WhatsApp's approval, locked till it decides, then rejected; who it goes to changed from the list, its Consent locked there; and an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them
-- `events.spec.ts`: The Luma import giving events their owners by the rules, and the email to the owner; new events tagged on Luma, and the email asking about one it can't tell; the events page's Future tab, with the event whose owner by the rules has no account in red; its Edit bubble, an owner chosen and its Google Doc pasted, saved, and the email to the owner; the Past tab, latest first, sorted by how many went, and searched; for staff who see supporters, each event's hosts, searched by a host's name, and a host's supporter page with the events they host; on a busy calendar, the lists by owner, No owner first, a list's fold opened and an event given an owner from its line; by tag, an event in two lists, each its own Edit; by owner without online events, on Future then Past; and an event earlier today staying on Future and in the lists by owner, and yesterday's on Past.
-- `audit-log.spec.ts`: The audit log's filters: by who; a chip's row swapping; + Add, each tick changing the list with the menu open; by how recent and sorted; one left out, then the chip turned round; several chosen opening as boxes, Just one, and unticking the last; ticking quickly, an older answer held back; one lozenge where an entry has one value; leaving out every choice; its search, saved, and its download; without `supporters`, the filters and the saved filters, but no entries about supporters.
-- `saved-filters.spec.ts`: Saved filters on the staff lists: saving one, loading and editing it, finding one by name, renaming and deleting, none saved, part of one gone, on Events, who can see them and loading one while choosing for a mailing or a broadcast
-- `supporters.spec.ts`: The supporter pages: closed without the permission; notes on a supporter, added with a link, edited, and an admin with no Delete on a colleague's old note, and deleting one from today, in the audit log; the list after the Luma import, searched, filtered, reset and sorted; those not at an event, chosen by Except, who declined it or never registered, then by its chip only those at it; an MP's constituents, by the MP filter, named in the page's title; a supporter's page with their MP and an opt-out from the webhook, then subscribed again, and the audit log of the viewing; a supporter merged into another by their mobile number, whose old ID's page redirects to the one kept; a letter writer reached from the letters page; a march sign-up, with what they gave and the link they came by; the list's Subscriptions column, and its filter: to those who unsubscribed, which leaves out a member who declined the updates, then to those who declined; members: one who also wrote to their MP, one who declined the updates on joining, and one who asked for them on re-joining, with how we know from the ? on a subscription tile; erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next members import; an old link with two subscriptions.
-- `signup-uploads.spec.ts`: Import sign-ups: files written different ways, linked to an event or not, a hundred rows at once, rows held back then fixed and uploaded again, files it refuses, what Luma says, and what changes before importing; Past imports, and an import's page.
-- `permissions.spec.ts`: What staff see by permission: the accounts sorted by when last seen; logged in with none, every staff page, as HTML and as its RSC payload, holding no supporter's name or email (the leak check); an admin without `supporters`, sent emails, the audit log and its download holding none either, each saying so; an MP's letters without who wrote them; Letters and Supporters' blocked emails closed without `supporters`, and Politicians' blocked emails naming a letter without linking it; a supporter's bounced address on Supporters' blocked emails, unblocked; logged in on two browsers, your address in the sidebar to your account page, and logging out of both from there; an admin seeing each account's last login, last seen and sessions, and logging a colleague out everywhere.
+- `replies.spec.ts`: Letters through the letters inbox. Every email, both ways, is pictured, and the letter's history after each:
+  - the letter sent from the supporter's proxy, and her copy, a reply to which goes to the MP's proxy;
+  - the MP's reply relayed to her, and her answer relayed to the MP;
+  - a reply with HTML and an attachment, relayed unchanged;
+  - automatic replies relayed both ways, then a loop of them stopped at the cap, with staff emailed;
+  - on the letter's page, an automatic reply folded to its first paragraph, then unfolded;
+  - an email from a stranger, a forged reply and spam: none is relayed, and the run fails, listing them;
+  - the letter bouncing: staff are alerted and the supporter is told, then it's sent again once the address is unblocked;
+  - the supporter's own address bouncing: the next reply is held, the day's report of supporters' bounces goes to the notification inbox, and the MP's office is told a day on;
+  - a letter over the daily limit: it's queued, the notification inbox is emailed once it has waited three hours, and it's sent after a relay that was waiting;
+  - a letter with a paragraph of the supporter's own and a sentence cut, shown as only its changes, with the rest folded, and as sent;
+  - a reply to an old letter, through Postmark, forwarded and kept whole on the letter's page;
+  - erasing Jane when her kept mail can't be cleared, which the list says.
+- `home-events.spec.ts`: The home page's events:
+  - in person near a postcode, or only online;
+  - a postcode not found;
+  - near the device's location, and nothing near;
+  - a local group's events, with its venue set or not;
+  - the address bar saying which events are shown, and a link to a local group's events or the online ones.
+- `march-signup.spec.ts`: The march sign-up:
+  - its header over the hero and past it;
+  - how many have registered, in the hero and the form, asked for again on coming back to the page;
+  - registering, Luma failing, and an email the server won't take;
+  - the scroll cue;
+  - the share card, saying they're registered, and registering someone new, with the events sent to GA;
+  - the photo carousel on a phone.
+- `staff-login.spec.ts`: Logging in to the staff pages, and your own account:
+  - login by emailed link, with the email pictured: it works once, in the browser that asked for it;
+  - an address outside pauseai.uk getting no link;
+  - the dev login;
+  - a link with Keep me signed in;
+  - the staff home after a first login, which makes an account with no permissions, and its dashboard over 30 days;
+  - as an admin, adding an account from Add staff, editing its permissions in a bubble, and removing it with a second press, with the note of what that leaves them;
+  - every staff page turning a visitor without a session away, and the API changing nothing for them;
+  - your own page with your Gmail connected and disconnected, and a wrong Google account;
+  - logging out, and noindex.
+- `staff-navigation.spec.ts`: The dashboard, and getting around the staff pages:
+  - the sidebar folded to a rail of icons, each where it was, with a name on hover, and still folded on the next page;
+  - a sort's arrow turned at once, and a line along the top while a sort or a search loads;
+  - another page marked in the sidebar at once while it loads (its table locked, `lockTable` in `tests/steps.ts`);
+  - the dashboard's tabs, kept on going back, and a bar pointed at;
+  - the events held tile leading to those events, and the supporter emails tile leading to those emails in all emails;
+  - the politicians agreed tile, leading to the one politician who agreed and then to everyone who agreed, newest first;
+  - a politician's page, and the list sorted by a heading;
+  - setting a status that shows on `/campaigns`, and the audit log;
+  - the "new" tag, on the sidebar and the folded rail, and gone after 3 days.
+- `imports.spec.ts`: The imports staff run and watch:
+  - the import page and each job's own page, with the MP check run twice on its page;
+  - a held politician import: the notification inbox is emailed, the home has an action for it, and it's discarded, then applied;
+  - an import held for a renamed record;
+  - the Luma import run twice from its page;
+  - the members import, skipping an erased member;
+  - the logs of Luma, the Gmail reading and the members, a table a day, with the newest run's tinted row, rows, a row for quiet runs, a problem's tinted rows and a folded stretch;
+  - the connected Gmail read from its page, and the button pressed again while the scheduled read is going;
+  - an import failing, with Luma down for the flow (`lib/server/fixtures/failing-services.ts`), and one with problems, with postcodes.io down: the notification inbox is emailed once, though the import fails twice;
+  - a Gmail that Google disconnects, with the notification inbox emailed;
+  - the letters inbox's own page, back from connecting its Gmail;
+  - PauseAI's emails from Airtable, imported at a press;
+  - pauseai.info's letters.
+- `staff-campaigns.spec.ts`: Campaigns, asks and sent emails:
+  - campaigns: the list by the month of each one's last letter, a campaign's page with its versions, its counts choosing its letters, and `/staff/letters` redirecting;
+  - asks: the list under its months, with each ask's answers, how it was asked and its counts;
+  - an ask's page, for a letter and for an event: its answers in columns, those who gave one answer, by page, under the columns' tops, the link to those who answered on the politicians list, and its form at `/edit`;
+  - a mailing's list and page naming its ask and who it's from;
+  - Sent emails, as an admin, searched and filtered, and closed without the permission;
+  - a new ask, changed and deleted.
+- `old-letters.spec.ts`: The import of old letters:
+  - a press, and pressing again;
+  - a press that fails;
+  - a press while one is running, on its page and the list of imports;
+  - its log and its finishing, with its progress, the day's table, a refusal's tinted rows and a folded stretch;
+  - a letter of a template, one that keeps its own text, and August's approximate one;
+  - a form letter's diff from its form version;
+  - the one-off emails on All emails: a thread opened, an out-of-office in it folded and unfolded, and the thread hidden from staff without `supporters`;
+  - a politician's and a supporter's lists;
+  - what your own page says when your mailbox is kept.
+- `letters.spec.ts`: Letters and their bounces:
+  - All emails, a supporter's and a mailing's, those replied to, and the dashboard's tile;
+  - the letters list (one sent, one bounced), filtered by status, then by campaign, then either of two campaigns, then reset and sorted by sender;
+  - a letter with only an automatic reply and one with a written reply: the Replied column, the Status filter's options, and the list filtered by what came back;
+  - a supporter's letter's page, with Copy Gmail search, and the MP's answer to its campaign's ask set from it;
+  - a bounce emailing staff and blocking the address, and the home's action for it;
+  - an MP whose address is blocked, unblocked by staff.
+- `politicians.spec.ts`: The politicians from Airtable:
+  - one with markers, notes, answers and PauseAI's emails;
+  - her correspondence, its switch to replies only, and the band's counts leading to it and to her asks;
+  - a note added on one, above Airtable's;
+  - an ask staff added, chosen from the button under a politician's asks and answered;
+  - a letter a politician declined, recorded from that button, then cleared;
+  - a peer, an MSP and an MP who left office;
+  - the list filtered by status, marker (then all but that marker, by its chip) and an answer, then reset;
+  - the house tabs;
+  - paging through many;
+  - searching by each word, for those not in office and the nearest to a typo;
+  - deleting one gone from Airtable;
+  - the politicians mailed about an ask, and those not yet;
+  - several answers to an ask, ticked in the chip's second half.
+- `mailings.spec.ts`: Mailings to politicians, the old ones and those written on the site:
+  - the mailings, one mailing's recipients, and a politician's history leading back to it;
+  - a mailing's ask leading to its page;
+  - New mailing, then who it's for ticked on the politicians list, with its strip and the bar at the foot;
+  - New mailing on the list with no filter, which makes an empty draft with no one ticked;
+  - the new mailing written, previewed and sent to yourself as a test (the email pictured);
+  - Mail these on the list, with everyone it found ticked;
+  - Change who, back on the list's ticked tab, with one more searched for and ticked, then everyone unticked to start again and one ticked;
+  - the draft naming her, and the draft deleted;
+  - names pasted from the bar's Paste names, its box opening above it: a row copied from the table found by the name in it, one name found by constituency and one near a typo, a row each on the Paste names tab, and all ticked with the box over them;
+  - one unticked on the ticked tab, and the draft saying who it's to as the group found less one;
+  - a scheduled mailing given a new time, then unscheduled and a draft again;
+  - one sending, and one sent with its failed tab, leading to the bounced letter's page under the mailing;
+  - one whose run stopped while sending, finished by the next run with that letter uncertain, and the letter's page;
+  - a mailing's letters bouncing, the MPs on the dashboard and the day's report to the notification inbox;
+  - one stopped part-way, with every way a letter fails on its failed tab, its stopped tab, pressed again for everyone, and its sent tab;
+  - one sent from your Gmail in a From name of its own, by the hourly job, and the reply read from it.
+- `broadcasts.spec.ts`: Broadcasts to supporters:
+  - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed;
+  - the list's Broadcast button with a Consent filter;
+  - an email written, previewed, sent as a test, scheduled and unscheduled;
+  - a text on an approved template, with the templates' search and Show all;
+  - a text on new words, sent for WhatsApp's approval, locked till it decides, then rejected;
+  - who it goes to changed from the list, with its Consent locked there;
+  - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them.
+- `events.spec.ts`: Events and their owners:
+  - the Luma import giving events their owners by the rules, and the email to the owner;
+  - new events tagged on Luma, and the email asking about one it can't tell;
+  - the events page's Future tab, with the event whose owner by the rules has no account in red;
+  - its Edit bubble, with an owner chosen and its Google Doc pasted, saved, and the email to the owner;
+  - the Past tab, latest first, sorted by how many went, and searched;
+  - for staff who see supporters, each event's hosts, searched by a host's name, and a host's supporter page with the events they host;
+  - on a busy calendar, the lists by owner, No owner first, with a list's fold opened and an event given an owner from its line;
+  - the lists by tag, with an event in two lists, each with its own Edit;
+  - the lists by owner without online events, on Future then Past;
+  - an event earlier today staying on Future and in the lists by owner, and yesterday's on Past.
+- `audit-log.spec.ts`: The audit log's filters:
+  - by who;
+  - a chip's row swapping;
+  - the + Add menu, each tick changing the list while it's open;
+  - by how recent, and sorted;
+  - one left out, then the chip turned round;
+  - several chosen opening as boxes, Just one, and unticking the last;
+  - ticking quickly, with an older answer held back;
+  - one lozenge where an entry has one value;
+  - leaving out every choice;
+  - its search, saved, and its download;
+  - without `supporters`, the filters and the saved filters, but no entries about supporters.
+- `saved-filters.spec.ts`: Saved filters on the staff lists:
+  - saving one, loading and editing it, finding one by name, renaming and deleting;
+  - none saved, and part of one gone;
+  - a saved filter on Events;
+  - who can see them;
+  - loading one while choosing for a mailing or a broadcast.
+- `supporters.spec.ts`: The supporter pages:
+  - closed without the permission;
+  - notes on a supporter: one added with a link, then edited, an admin with no Delete on a colleague's old note, and one from today deleted, in the audit log;
+  - the list after the Luma import, searched, filtered, reset and sorted;
+  - those not at an event, chosen by Except, who declined it or never registered, then by its chip only those at it;
+  - an MP's constituents, by the MP filter, named in the page's title;
+  - a supporter's page with their MP and an opt-out from the webhook, then subscribed again, and the audit log, which records a download of the supporters but not a look at one's page;
+  - a supporter merged into another by their mobile number, whose old ID's page redirects to the one kept;
+  - a letter writer reached from the letters page;
+  - a march sign-up, with what they gave and the link they came by;
+  - the list's Subscriptions column, and its filter: to those who unsubscribed, which leaves out a member who declined the updates, then to those who declined;
+  - members: one who also wrote to their MP, one who declined the updates on joining, and one who asked for them on re-joining, with how we know from the ? on a subscription tile;
+  - erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next members import;
+  - an old link with two subscriptions.
+- `signup-uploads.spec.ts`: Import sign-ups:
+  - files written different ways, linked to an event or not;
+  - a hundred rows at once;
+  - rows held back, then fixed and uploaded again;
+  - files it refuses;
+  - what Luma says;
+  - what changes before importing;
+  - Past imports, and an import's page.
+- `permissions.spec.ts`: What staff see by permission:
+  - the accounts sorted by when last seen;
+  - logged in with none: every staff page, as HTML and as its RSC payload, holding no supporter's name or email (the leak check);
+  - an admin without `supporters`: sent emails, the audit log and its download holding none either, each saying so;
+  - an MP's letters without who wrote them;
+  - Letters and Supporters' blocked emails closed without `supporters`, and Politicians' blocked emails naming a letter without linking it;
+  - a supporter's bounced address on Supporters' blocked emails, unblocked;
+  - logged in on two browsers, your address in the sidebar leading to your account page, and logging out of both from there;
+  - an admin seeing each account's last login, last seen and sessions, and logging a colleague out everywhere.
 - `collateral.spec.ts`: The collateral maker, one flow per studio: a single image from a calendar event, a campaign pack, a gallery; each to its downloads.
 - `consent.spec.ts`: Cookie consent remembered across pages, analytics switched off and on, never on the tools.
 - `mobile-nav.spec.ts`: The burger menu on a phone: open, close, dropdowns, navigating, scroll lock released.
@@ -494,17 +750,27 @@ flow that drives it or why nothing does.
 - `/api/email-your-mp/lookup`: `campaigns`: the postcode form (`lookUpTestMp` in `tests/steps.ts`).
 - `/api/email-your-mp/letters`: `campaigns`: sending the letter (`sendLetter`).
 - `/api/events/place`: `home-events`: events near a postcode.
-- `/api/march/register`: `march-signup`: registering, Luma failing, and an email the server won't take; `supporters`: a sign-up kept, on the supporter's page.
+- `/api/march/register`:
+  - `march-signup`: registering, Luma failing, and an email the server won't take.
+  - `supporters`: a sign-up kept, on the supporter's page.
 - `/api/march/signups`: `march-signup`: the count asked for again when the page comes back into view. Vitest-tested beside it.
-- `/api/postmark/bounce`, `/api/postmark/inbound`: `campaigns`: a post without Postmark's credentials turned away by both, and a bounce for an email that isn't a letter changing nothing; `letters`, `mailings` and `permissions`: Postmark's bounce payloads, for a letter, a mailing's letters and an email we can't place; `replies`: a reply to an old letter's own address. Replies and bounces of the letters the letters inbox sends come through `read-gmail`, below.
+- `/api/postmark/bounce`, `/api/postmark/inbound`, Postmark's webhooks. Replies to the letters that the letters inbox sends, and their bounces, come through `read-gmail`, below.
+  - `campaigns`: both routes turn away a post without Postmark's credentials, and a bounce for an email that isn't a letter changes nothing.
+  - `letters`, `mailings` and `permissions`: Postmark's bounce payloads, for a letter, a mailing's letters and an email we can't place.
+  - `replies`: a reply to an old letter's own address.
 - `/api/signatories`: `staff-navigation`: setting a status, then reading the public list.
 - `/blog/feed.xml`, `/campaigns/briefings/feed.xml`: `public-pages`: each feed, its type and entries, and its link in the head of its section's index and a post's page.
 - `/api/cron/[job]`, each scheduled job's run (`lib/server/jobs.ts`), Vitest-tested beside it for every job:
   - `sync-politicians`: `syncPoliticians()` in `tests/steps.ts`, at the start of the staff flows that need politicians.
   - `check-mps`, `import-controlai`: Not driven. The `imports` page runs the same check and import through its buttons.
   - `tidy-logs`: Not driven: nothing a person sees changes but its run on its own page.
-  - `send-mailings`: `mailings`: a mailing scheduled from your Gmail, then started and sent by the job; `replies`: `runQueue()` in `tests/storyboard/letters-inbox-steps.ts`, for the letters the letters inbox has queued.
-  - `read-gmail`: `replies` and `letters`: `readInbox()` in `tests/storyboard/letters-inbox-steps.ts`, after a flow puts a reply or a bounce in the letters inbox; `imports`: the read that finds Google has disconnected a Gmail, and the Gmail page's button, which runs the same `readGmail()`. A staff member's fixture Gmail has no messages to read, so the `mailings` flow adds the reply it would keep.
+  - `send-mailings`:
+    - `mailings`: a mailing scheduled from your Gmail, then started and sent by the job.
+    - `replies`: `runQueue()` in `tests/storyboard/letters-inbox-steps.ts` runs it, for the letters the letters inbox has queued.
+  - `read-gmail`:
+    - `replies` and `letters`: `readInbox()` in `tests/storyboard/letters-inbox-steps.ts` runs it, after a flow puts a reply or a bounce in the letters inbox.
+    - `imports`: the read that finds Google has disconnected a Gmail. The Gmail page's button runs the same `readGmail()`.
+    - `mailings`: not through the route. A staff member's fixture Gmail has no messages to read, so the flow adds the reply that the read would keep.
   - `import-luma`: `supporters`: `importLuma()` in `tests/steps.ts` fills a flow's database from the fixture calendar; the `imports` page runs it too.
   - `import-members`: `imports`: the import page runs `importMembers()`, which the route calls.
 - `/api/backup/letter-replies`, `/api/backup/letter-replies/[id]`: Not driven: they are for the backup Worker, and show nothing. Vitest-tested.
@@ -512,11 +778,17 @@ flow that drives it or why nothing does.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `tests/steps.ts`), and the redelivery that changes nothing.
 - `/staff/api/login`, `/staff/api/callback`: `staff-login`: asking for a login link and opening it (`logInWithLink` in `tests/steps.ts`).
 - `/staff/api/logout`: `staff-login`: logging out, and the request without a session.
-- `/staff/api/gmail/connect`, `/staff/api/gmail/callback`: `staff-login`: your Gmail connected from your own page; `mailings`: the same, reached by the link in a mailing's Sent from.
-- `/staff/api/dev-login`: `staff-login`: the dev login, a fixture build's one-click sign-in as a seeded account; every other section logs in with it (`logInAsStaff` in `tests/steps.ts`).
+- `/staff/api/gmail/connect`, `/staff/api/gmail/callback`:
+  - `staff-login`: your Gmail connected from your own page.
+  - `mailings`: the same, reached by the link in a mailing's Sent from.
+- `/staff/api/dev-login`: `staff-login`: the dev login, a fixture build's one-click sign-in as a seeded account. Every other section logs in with it (`logInAsStaff` in `tests/steps.ts`).
 - `/staff/mailings/[id]/files/[file]`: Not driven: the mailings flows' files are drawn from it, but no flow opens one. Vitest-tested.
-- `/staff/broadcasts/[id]/files/[file]`: Not driven: a mailing's files' twin, tested in Vitest, as the broadcasts flows attach none.
-- `/staff/politicians/download`, `/staff/supporters/download`, `/staff/politicians/blocked-emails/download`, `/staff/supporters/blocked-emails/download`, `/staff/audit-log/download`: `politicians`: the list of 250 opens its Download menu and downloads the CSV, every page of it; `supporters`: the supporters as vCards, which the audit log records; `audit-log` and `permissions`: the audit log's download, holding what the search found, and nothing about supporters without `supporters`. The blocked emails' two aren't driven. Each route is Vitest-tested beside it.
+- `/staff/broadcasts/[id]/files/[file]`: Not driven, as the broadcasts flows attach no files. It's the twin of the mailings' route, and is Vitest-tested.
+- `/staff/politicians/download`, `/staff/supporters/download`, `/staff/politicians/blocked-emails/download`, `/staff/supporters/blocked-emails/download`, `/staff/audit-log/download`, the lists' downloads. Each route is Vitest-tested beside it.
+  - `politicians`: the list of 250 opens its Download menu and downloads the CSV, every page of it.
+  - `supporters`: the supporters as vCards, which the audit log records.
+  - `audit-log` and `permissions`: the audit log's download. It holds what the search found, and without `supporters` nothing about supporters.
+  - The two blocked emails downloads aren't driven.
 
 **Not compared:** the live site. A diff of the public pages against
 pauseai.uk would fail on every run, as live data changes under it (events,
@@ -525,14 +797,14 @@ Netlify, aren't caught here; check previews by hand.
 
 ## The component gallery
 
-Every component, and each of its major variants, rendered on fixture data,
-a page per group: `/gallery` lists the groups (the design tokens, the UI
-kit and its forms at both densities, the header and footer, each area of
-the site, the tools, and the staff interface in several), and
-`/gallery/<group>` (`/gallery/ui`, `/gallery/staff-letters`) shows that
-group's components, with a link to each at the top. It exists only in
-fixture builds (`DATA_FIXTURES=1`); production answers 404, and the pages
-are noindex.
+The gallery shows every component, and each of its major variants, rendered
+on fixture data, a page per group. `/gallery` lists the groups: the design
+tokens, the UI kit and its forms at both densities, the header and footer,
+each area of the site, the tools, and the staff interface in several
+groups. `/gallery/<group>` (`/gallery/ui`, `/gallery/staff-letters`) shows
+that group's components, with a link to each at the top. The gallery exists
+only in fixture builds (`DATA_FIXTURES=1`). Production answers 404, and the
+pages are noindex.
 
 - **Look there first.** Before making a component, find out whether one
   already does the job, and how the site's pieces look side by side. With
@@ -547,9 +819,9 @@ are noindex.
   using a page (open, submitted, an error) belong in the storyboard's
   flows, not here.
 - **Callbacks do something.** A controlled input sits in `<Controlled>`,
-  which holds its value and shows it; an action gets `log("onSave")` from
-  `<Logged>`, which lists each call and its arguments under the component
-  (`_components/wiring.tsx`).
+  which holds its value and shows it. An action gets `log("onSave")` from
+  `<Logged>`, which lists each call and its arguments under the component.
+  Both are in `_components/wiring.tsx`.
 - **Example data is test data:** obviously fake names, addresses and
   text, as in the browser tests, not copy.
 - **To check a component by eye**, picture its group on both viewports and
@@ -575,14 +847,17 @@ not a mock.
   `describeWithDatabase` and call `useTestDatabase()` (`tests/database.ts`).
   It copies a template database, empties every table before each test but
   those whose rows the migrations seed (`SEEDED` there), and drops the copy
-  afterwards: a new table needs nothing adding. The node project's global setup
-  (`tests/vitest.global-setup.node.ts`) makes the template once for the run,
-  applying the migrations with `psql` (`scripts/fresh-database.mjs`, the
-  same way Netlify does), and drops it at the end. Postgres copies a
-  database's files, so a copy takes tens of milliseconds however many
-  migrations there are, where every file running them at once outlasts
-  the hook timeout on a loaded CI runner.
-  `addTestPolitician()` and `addTestMp()` add rows.
+  afterwards. So a new table needs nothing adding. `addTestPolitician()`
+  and `addTestMp()` add rows.
+
+  The node project's global setup (`tests/vitest.global-setup.node.ts`)
+  makes the template once for the run, applying the migrations with `psql`
+  (`scripts/fresh-database.mjs`, the same way Netlify does), and drops it
+  at the end. Postgres copies a database's files, so a copy takes tens of
+  milliseconds however many migrations there are. Every file running the
+  migrations itself, all at once, outlasts the hook timeout on a loaded CI
+  runner.
+
 - **Jobs that can overlap** (a scheduled run, its background twin and a
   press on its page) are tested running at once: `atOnce()`
   (`tests/at-once.ts`) starts several runs together on the test file's
@@ -590,33 +865,42 @@ not a mock.
   once (`lib/server/sending-job.test.ts`, `lib/server/luma-import.test.ts`).
 - **A data migration gets a test while its tables are still changing.** A
   migration that moves or reshapes rows, not only tables, is tested with
-  `useDatabaseUpTo()`: a database up to the migration before it, filled
-  with rows the old way, then `migrate()`, which applies it and every
-  migration after it, and assertions on today's schema. So the test also
-  checks that later migrations, and today's code, cope with data shaped the
-  old way. It's slower with each migration added, so once production has
-  run the migration and nothing is changing the tables it touched, delete
-  its test. `netlify/database/migrations.test.ts` still applies every
-  migration to an empty database.
-- **Where Postgres is.** `TEST_DATABASE_URL` (from the environment, or
-  that one line of `.env.local`): `db-test` in `docker-compose.yml`, say.
-  Without it, the usual `PG*` variables; without `PGHOST`, the local
-  server's socket in `/var/run/postgresql` or `/tmp`, else localhost. So
-  in the dev container, with Postgres started (`pg-start`), nothing needs
-  setting. When no server answers, the tests stop saying where they looked
-  and what to do (`noServer` in `scripts/fresh-database.mjs`). CI runs a
-  Postgres service.
+  `useDatabaseUpTo()`:
+  1. it makes a database with the migrations up to the one before;
+  2. the test fills it with rows shaped the old way;
+  3. `migrate()` applies the migration and every migration after it;
+  4. the test asserts on today's schema.
+
+  So the test also checks that later migrations, and today's code, cope
+  with data shaped the old way. It's slower with each migration added, so
+  once production has run the migration and nothing is changing the tables
+  it touched, delete its test. `netlify/database/migrations.test.ts` still
+  applies every migration to an empty database.
+
+- **Where Postgres is.** The tests look for the server in this order:
+  - `TEST_DATABASE_URL`, from the environment or from that one line of
+    `.env.local`: `db-test` in `docker-compose.yml`, say;
+  - without it, the usual `PG*` variables;
+  - without `PGHOST`, the local server's socket in `/var/run/postgresql`
+    or `/tmp`, or else localhost.
+
+  So in the dev container, with Postgres started (`pg-start`), nothing
+  needs setting. When no server answers, the tests stop, saying where they
+  looked and what to do (`noServer` in `scripts/fresh-database.mjs`). CI
+  runs a Postgres service.
+
 - **Netlify's build has no Postgres**, so `npm run build` skips these tests
   there (`NETLIFY=true`), and the global setup makes no template. CI runs
   them.
 - **The storyboard** builds against its own database, made fresh by the
   `webServer` command (`scripts/serve-fixture.mjs`), and gives each flow a
-  copy of a template database (above). Each checkout has its own: the
-  names in `tests/checkout.mjs`, for the databases, the outboxes and main's
-  worktree, end with a hash of the checkout's path, so worktrees can run
-  the storyboard at the same time; so do the ports (below). Flows that need politicians call `syncPoliticians()`
-  (`tests/steps.ts`), which runs the nightly sync's route against the
-  Airtable fixture.
+  copy of a template database (above). Each checkout has its own
+  databases. The names in `tests/checkout.mjs`, for the databases, the
+  outboxes and main's worktree, end with a hash of the checkout's path, and
+  the ports come from that hash too (below). So worktrees can run the
+  storyboard at the same time. Flows that need politicians call
+  `syncPoliticians()` (`tests/steps.ts`), which runs the nightly sync's
+  route against the Airtable fixture.
 - **Staff screens** are reached through the fixture build's dev login
   (`logInAsStaff` in `tests/steps.ts`): one request for a session, as a
   login link's callback gives, then the staff home. The `staff-login`
@@ -628,9 +912,9 @@ import("@/tests/next-headers"))` and put the session cookie in
   `requestCookies`.
 - **React's `cache()`** memoizes only while React renders a request, so in
   Node tests it calls straight through. `tests/request-cache.ts` memoizes
-  as React does within one request, until `newRequest()`;
-  `lib/server/page-loaders.test.ts` uses it to show each staff page's
-  loaders query once for its metadata and the page both.
+  as React does within one request, until `newRequest()`.
+  `lib/server/page-loaders.test.ts` uses it to show that each staff page's
+  loaders query once for both its metadata and the page.
 
 ## Rules for new code
 
@@ -658,7 +942,7 @@ import("@/tests/next-headers"))` and put the session cookie in
   the attributes the markup has for its state (`aria-expanded`,
   `aria-pressed`, `data-active`). Where there's nothing semantic to find,
   such as a chart's parts, use a `data-testid`. Never select by a CSS
-  module's class (its name is hashed) or import one into a test; to check
+  module's class (its name is hashed) or import one into a test. To check
   something visual, read its computed style, since a component's module
   loads with it.
 - New logic in `lib/` ships with its `*.test.ts`.
@@ -704,8 +988,8 @@ npm run test:report       # open the last Playwright report
   port, and main's beside it for the review, come from a hash of the
   checkout's path (`checkoutPorts` in `tests/checkout.mjs`): between 3100
   and 4999, so never the dev server's 3000, and each worktree has its own.
-  `npm run worktree` prints a new worktree's, and
-  `node scripts/worktree.mjs --ports` this checkout's. Every response from a
+  `npm run worktree` prints a new worktree's ports, and
+  `node scripts/worktree.mjs --ports` prints this checkout's. Every response from a
   storyboard build names the checkout it was built from (the
   `X-Fixture-Checkout` header, `next.config.ts`), and the storyboard's global
   setup refuses a server on its port that doesn't name this one. It can't
@@ -720,30 +1004,43 @@ npm run test:report       # open the last Playwright report
 `scripts/gate.mjs` runs the gate as AGENTS.md describes it, in two parts.
 
 **The fast checks**, in seconds: Prettier writes the files changed since
-the branch left `origin/main` (the merge base, as a pull request compares;
-committed, uncommitted and untracked, and nothing is fetched), then `tsc
---noEmit`, ESLint on the changed scripts, Stylelint on the changed CSS
-and `scripts/migration-order.mjs` (new migrations after main's, and none
-sharing an open PR's number) run at once. If one fails, the gate stops: the slow part would only wait
-on the same mistake. `--fast` stops after them anyway.
+the branch left `origin/main`. That's since the merge base, as a pull
+request compares, and it takes in committed, uncommitted and untracked
+files. Nothing is fetched. Then these run at once:
 
-**What CI runs**, in four lanes at once, as CI's jobs run: `npm run
-typecheck` then `npm run test:storyboard` (the storyboard waits for the
-types, as in CI, and both write `.next`); `npm test`; the four linters one
-after another; and the backup Worker's `npm ci`, tests and types. A lane
-stops at a failed `typecheck` or backup `npm ci`, as what follows needs it;
-the linters each run whatever came before. `--no-storyboard` leaves the
-storyboard out, while making changes. `npm run build` isn't run: it
-repeats the unit tests and linters, and the storyboard builds the site.
+- `tsc --noEmit`;
+- ESLint on the changed scripts;
+- Stylelint on the changed CSS;
+- `scripts/migration-order.mjs` (new migrations after main's, and none
+  sharing an open PR's number).
+
+If one fails, the gate stops: the slow part would only wait on the same
+mistake. `--fast` stops after them anyway.
+
+**What CI runs**, in four lanes at once, as CI's jobs run:
+
+- `npm run typecheck`, then `npm run test:storyboard` (the storyboard waits
+  for the types, as in CI, and both write `.next`);
+- `npm test`;
+- the four linters, one after another;
+- the backup Worker's `npm ci`, tests and types.
+
+A lane stops at a failed `typecheck` or backup `npm ci`, as what follows
+needs it. Each linter runs whether or not the one before it passed.
+`--no-storyboard` leaves the storyboard out, for use while making changes.
+`npm run build` isn't run: it repeats the unit tests and linters, and the
+storyboard builds the site.
 
 Each command has a time limit, from a minute for the migrations' order to
-twenty for the storyboard, and its output goes to `tmp/gate/<command>.log`,
-emptied at the start of each run. A command stopped at its limit exits
-124, as `timeout` does. Once a minute the gate names the commands still
-running, and how long each one's log has been quiet once it's been two
-minutes, the sign of a run that's stuck (below). It ends with the last
-lines of each failed command's log, a table of every command's exit code,
-time and log, and exits 1 if any failed.
+twenty for the storyboard. Its output goes to `tmp/gate/<command>.log`, and
+that folder is emptied at the start of each run. A command stopped at its
+limit exits 124, as `timeout` does.
+
+Once a minute the gate names the commands still running. Once a command's
+log has been quiet for two minutes, the gate also says how long, as that's
+the sign of a run that's stuck (below). The gate ends with the last lines
+of each failed command's log, then a table of every command's exit code,
+time and log, and it exits 1 if any failed.
 
 ### Long runs in the background
 
@@ -758,14 +1055,14 @@ timeout 15m npm run test:storyboard                   # usually a few minutes
 timeout 25m npm run storyboard -- --no-open           # builds main too: usually about 10
 ```
 
-`timeout` stops it at the limit and exits 124, so a run that ends that way
-froze rather than failed. Write each one's output to a file and its exit
-code after it, and when the time it usually takes has passed, look at the
-file: a run whose output hasn't moved in minutes is stuck, so stop it and
+`timeout` stops the run at the limit and exits 124, so a run that ends that
+way froze rather than failed. Write each run's output to a file, and its
+exit code after it. When the time it usually takes has passed, look at the
+file. A run whose output hasn't moved in minutes is stuck, so stop it and
 find out why, rather than waiting for the limit.
 
 Stopping a storyboard run can leave its fixture server (`next-server`)
 running on the checkout's port (above). Locally the storyboard reuses
-whatever answers there, so the next run waits on it, printing nothing. A
-request to that port that hangs rather than being refused is the sign: stop
+whatever answers there, so the next run waits on it, printing nothing. The
+sign is a request to that port that hangs rather than being refused. Stop
 that `next-server` before running again.
