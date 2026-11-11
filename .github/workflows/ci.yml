@@ -141,12 +141,15 @@ jobs:
       # GitHub's runners fetch Ubuntu's packages from Azure's mirror
       # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
       # download, and at times the runners can't look up any ubuntu.com name.
-      # So apt uses kernel.org's copy of the archive, and every apt-get below,
-      # Playwright's too, gives up on a download that sends nothing for 20
-      # seconds and tries it again, up to three times.
-      - name: Make apt use kernel.org's mirror and retry stalled downloads
+      # So apt uses mirrors of the archive outside ubuntu.com, each in turn if
+      # one fails, and every apt-get below, Playwright's too, gives up on a
+      # download that sends nothing for 20 seconds and tries it again, up to
+      # three times.
+      - name: Make apt use other mirrors and retry stalled downloads
         run: |
-          echo 'http://mirrors.edge.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
+          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
+            http://mirror.math.princeton.edu/pub/ubuntu/ http://mirrors.ocf.berkeley.edu/ubuntu/ \
+            | sudo tee /etc/apt/apt-mirrors.txt
           echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
@@ -301,12 +304,15 @@ jobs:
       # GitHub's runners fetch Ubuntu's packages from Azure's mirror
       # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
       # download, and at times the runners can't look up any ubuntu.com name.
-      # So apt uses kernel.org's copy of the archive, and every apt-get below,
-      # Playwright's too, gives up on a download that sends nothing for 20
-      # seconds and tries it again, up to three times.
-      - name: Make apt use kernel.org's mirror and retry stalled downloads
+      # So apt uses mirrors of the archive outside ubuntu.com, each in turn if
+      # one fails, and every apt-get below, Playwright's too, gives up on a
+      # download that sends nothing for 20 seconds and tries it again, up to
+      # three times.
+      - name: Make apt use other mirrors and retry stalled downloads
         run: |
-          echo 'http://mirrors.edge.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
+          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
+            http://mirror.math.princeton.edu/pub/ubuntu/ http://mirrors.ocf.berkeley.edu/ubuntu/ \
+            | sudo tee /etc/apt/apt-mirrors.txt
           echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
@@ -452,12 +458,15 @@ jobs:
       # GitHub's runners fetch Ubuntu's packages from Azure's mirror
       # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
       # download, and at times the runners can't look up any ubuntu.com name.
-      # So apt uses kernel.org's copy of the archive, and every apt-get below,
-      # Playwright's too, gives up on a download that sends nothing for 20
-      # seconds and tries it again, up to three times.
-      - name: Make apt use kernel.org's mirror and retry stalled downloads
+      # So apt uses mirrors of the archive outside ubuntu.com, each in turn if
+      # one fails, and every apt-get below, Playwright's too, gives up on a
+      # download that sends nothing for 20 seconds and tries it again, up to
+      # three times.
+      - name: Make apt use other mirrors and retry stalled downloads
         run: |
-          echo 'http://mirrors.edge.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
+          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
+            http://mirror.math.princeton.edu/pub/ubuntu/ http://mirrors.ocf.berkeley.edu/ubuntu/ \
+            | sudo tee /etc/apt/apt-mirrors.txt
           echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
