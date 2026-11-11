@@ -1,5 +1,4 @@
 import { expect, it } from "vitest";
-import { exampleOldLettersResult } from "@/app/(staff)/staff/_components/CampaignPages.examples";
 import {
   asList,
   IMPORT_JOBS,
@@ -9,11 +8,9 @@ import {
   jobSchedule,
   runStatus,
   runTone,
-  SCHEDULED_JOBS,
 } from "./import-runs";
 import {
   exampleAppliedSync,
-  exampleEmailsResult,
   exampleFailedRun,
   exampleGmailResult,
   exampleHeldSync,
@@ -31,9 +28,8 @@ it("knows the jobs", () => {
 
 it("knows which jobs run on a schedule, and how often", () => {
   expect(jobSchedule("import-luma")).toBe("frequent");
-  expect(jobSchedule("sync-emails")).toBe("oneOff");
-  expect(SCHEDULED_JOBS).toContain("tidy-logs");
-  expect(SCHEDULED_JOBS).not.toContain("import-old-letters");
+  expect(jobSchedule("import-members")).toBe("hourly");
+  expect(jobSchedule("tidy-logs")).toBe("nightly");
 });
 
 it("lists a job's newest run, or none", () => {
@@ -48,14 +44,11 @@ it("gives each job a page of its own, and finds the job from its page's slug", (
 });
 
 it("says a run that left work for a later one is incomplete, in place of done or unchanged, but not failed", () => {
-  expect(runStatus(exampleRun("import-old-letters", exampleOldLettersResult))).toBe("incomplete");
-  expect(runStatus(exampleRun("import-old-letters", { ...exampleOldLettersResult, finished: true }))).toBe("ok");
   expect(runStatus(exampleRun("import-luma", { ...exampleLumaResult, stoppedBy: "time" }))).toBe("incomplete");
   expect(runStatus(exampleRun("import-luma", { ...exampleLumaResult, stoppedBy: "running" }))).toBe("incomplete");
   expect(runStatus(exampleRun("import-luma", { ...exampleLumaResult, stoppedBy: "rate-limit" }))).toBe("incomplete");
   expect(runStatus(exampleRun("import-luma", exampleLumaResult))).toBe("ok");
   expect(runStatus(exampleFailedRun("import-luma", "boom", {}))).toBe("failed");
-  expect(runStatus(exampleFailedRun("import-old-letters", "boom", {}))).toBe("failed");
   expect(runStatus(exampleHeldSync)).toBe("held");
 });
 
@@ -66,7 +59,7 @@ it("says a run that went wrong along the way had problems, whatever else it did,
     "problems",
   );
   expect(runStatus(exampleRun("import-luma", exampleLumaResult, { status: "unchanged", problems }))).toBe("problems");
-  expect(runStatus(exampleRun("sync-emails", exampleEmailsResult, { problems }))).toBe("problems");
+  expect(runStatus(exampleRun("check-mps", { problems: [] }, { problems }))).toBe("problems");
   expect(runStatus(exampleRun("read-gmail", exampleGmailResult, { problems }))).toBe("problems");
   expect(runStatus(exampleFailedRun("read-gmail", "boom", { problems }))).toBe("failed");
 });

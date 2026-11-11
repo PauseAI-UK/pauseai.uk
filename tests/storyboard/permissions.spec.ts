@@ -16,7 +16,7 @@ import {
   syncPoliticians,
   WEBHOOK_AUTH,
 } from "../steps";
-import { importEmails } from "./staff-steps";
+import { addPauseaiEmails } from "./staff-steps";
 import { BASE, expect, flowStorageState, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
@@ -85,19 +85,19 @@ test("No permissions", async ({ page, request, flowDatabase }) => {
   expect(secrets).toContain("Jane Fixture");
 
   await logIn(page, flowDatabase);
-  await importEmails(page);
+  addPauseaiEmails(flowDatabase);
   await page.goto(`${BASE}/staff`);
   await frame(page, "The dashboard");
   story("No staff page they can open shows any supporter's name or email address.");
   const testyId = politicianId(flowDatabase, testy.name);
   const letterId = runSql(flowDatabase, "SELECT id FROM letters")[0];
   const supporterId = runSql(flowDatabase, "SELECT id FROM supporters ORDER BY id")[0];
-  // One of PauseAI's letters, which Import emails copied, at its page under its mailing.
+  // One of PauseAI's letters, at its page under its mailing.
   const [pauseaiLetter] = runSql(
     flowDatabase,
     "SELECT '/staff/mailings/' || mailing_id || '/letters/' || id FROM letters_from_pauseai ORDER BY id LIMIT 1",
   );
-  // A one-off email Jane sent her MP, and mail matching nothing: their names and addresses stay hidden too.
+  // A one-off email Jane sent her MP: her name and address stay hidden too.
   const [thread] = runSql(
     flowDatabase,
     `INSERT INTO one_off_threads (subject, someone_else, latest_at) VALUES ('${sender}', true, now()) RETURNING id`,
@@ -106,9 +106,7 @@ test("No permissions", async ({ page, request, flowDatabase }) => {
     flowDatabase,
     `INSERT INTO one_off_thread_people (thread_id, notable_person_id) VALUES (${thread}, ${testyId});
      INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, addresses, subject, at, from_us, blob_key, size)
-     VALUES (${thread}, 'policy@pauseai.uk', 'leak-1', 't', '${sender}', 'Jane Smith', ARRAY['${sender}'], '${sender}', now(), false, 'fixture/one-off-volunteer.eml.gz', 1);
-     INSERT INTO import_runs (job, started_by, status, result) VALUES ('import-old-letters', 'x', 'ok',
-       '{"finished": true, "read": 1, "left": 0, "replies": 0, "autoReplies": 0, "oneOffs": 0, "formTexts": 0, "postmarkTexts": 0, "joined": {}, "added": {}, "notJoined": {}, "unreadable": [], "unmatched": [{"from": "${sender}", "subject": "x"}]}');`,
+     VALUES (${thread}, 'policy@pauseai.uk', 'leak-1', 't', '${sender}', 'Jane Smith', ARRAY['${sender}'], '${sender}', now(), false, 'fixture/one-off-volunteer.eml.gz', 1);`,
   );
   // The route list's examples of letters and asks are the fixture database's.
   const routes = [

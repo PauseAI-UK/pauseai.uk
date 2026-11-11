@@ -2031,6 +2031,12 @@ All events: ${link}`,
   // The read every 5 minutes of the connected Gmail accounts for replies to our
   // letters and bounces (lib/server/gmail-reading.ts), on the Scheduled jobs page.
   gmailReading: {
+    // The columns of the table of a day's reads.
+    columns: {
+      replies: "Replies",
+      autoReplies: "Automatic replies",
+      oneOffs: "One-off emails",
+    },
     oneOffs: (n: number) => `${n} one-off ${plural(n, "email", "emails")} kept.`,
     // After the totals, in a run that searched for addresses staff added to politicians': what it found, and how many wait.
     searched: (s: AddressSearch) =>
@@ -2105,37 +2111,6 @@ All events: ${link}`,
     // A run kept from before errors were tidied counts none.
     result: (r: { importRuns: number; auditEntries: number; drafts: number; errors?: number }) =>
       `Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")}, ${count(r.drafts, "draft", "drafts")} and ${count(r.errors ?? 0, "error", "errors")}.`,
-  },
-  // The hourly copy of PauseAI's UK members (lib/server/members-import.ts),
-  // on the Scheduled jobs page.
-  // PauseAI's emails to politicians, from Airtable's Emails table.
-  pauseaiEmails: {
-    title: "PauseAI's emails to politicians",
-    intro: {
-      before: "Copies each email that PauseAI has sent a politician, of every year, from the ",
-      link: "Emails table in Airtable",
-      after: ". Only transfers known ones, the import code needs updating if a new mailing is added.",
-    },
-    importNow: "Import emails now",
-    never: "Not imported yet.",
-    result: (r: { read: number; added: number; waiting: number; noPolitician: number; unplaced: unknown[] }) =>
-      `${r.read} emails read: ${r.added} added, ${r.waiting} waiting for their politician, ${r.noPolitician} with no politician, ${r.unplaced.length} with no mailing we know.`,
-    // The emails with no mailing we know, by their Airtable record, and the boxes they have ticked.
-    unplaced: "No mailing we know",
-    noBoxes: "no box ticked",
-  },
-  // The one-off import of the letters sent through pauseai.info's old form.
-  webForm: {
-    title: "Letters from pauseai.info's old write to MP form",
-    intro: {
-      before: "Transfer letters that supporters sent politicians through pauseai.info, reading from ",
-      link: "Web form emails table in Airtable",
-      after: ", making their senders become supporters. It doesn't copy the letters' text.",
-    },
-    importNow: "Import the letters",
-    never: "Not imported yet.",
-    result: (r: { read: number; imported: number; skipped: number; alreadyHere: number; noPolitician: number }) =>
-      `${r.read} letters read: ${r.imported} imported, ${r.skipped} spam, invalid or unsent, ${r.alreadyHere} already here, ${r.noPolitician} to a politician not here.`,
   },
   campaigns: {
     title: "Campaigns",
@@ -2305,66 +2280,6 @@ All events: ${link}`,
       },
     },
   },
-  oldLetters: {
-    title: "Old letters and threads with politicians",
-    intro: {
-      before:
-        "Reads old emails to politicians from Joseph's and policy@'s mail. Matches them to campaigns or mailings, or marks them as ",
-      link: "one-off emails",
-      after: ".",
-    },
-    importNow: "Import old letters",
-    never: "Not imported yet.",
-    // Each mailing the import makes or fills, by its key in lib/old-letters.ts.
-    mailingTitles: {
-      "deepmind-30-june": "DeepMind: by 30 June",
-      "deepmind-ten": "DeepMind: ten of your colleagues",
-      "deepmind-25": "DeepMind: join 25 of your colleagues",
-      "deepmind-40": "DeepMind: join 40 of your colleagues",
-      "deepmind-august": "DeepMind: August, from the personal Gmail",
-      "deepmind-others": "DeepMind letter: the others",
-      "documentary-signatories": "Documentary: invitation to signatories",
-      "documentary-reminder": "Documentary: reminder to signatories",
-      "russell-speak": "Stuart Russell panel: invitation to speak",
-      "russell-cohost": "Stuart Russell panel: invitation to co-host",
-      "conference-parliament": "Conference in Parliament",
-      "frontier-own": "Frontier AI letter: Joseph's own",
-    } as Record<string, string>,
-    result: (r: {
-      finished: boolean;
-      read: number;
-      left: number;
-      replies: number;
-      autoReplies: number;
-      oneOffs: number;
-      formTexts: number;
-      postmarkTexts: number;
-    }) =>
-      `Read ${r.read} messages, ${r.left} left${r.finished ? ", all done" : ""}: ${r.formTexts} form letters' and ${r.postmarkTexts} Postmark letters' text, ${r.replies} replies, ${r.autoReplies} automatic replies and ${r.oneOffs} one-off emails.`,
-    stoppedByGmail: "It stopped early because Gmail refused a request. The next run carries on.",
-    joined: "Joined to their sent emails",
-    added: "Added from sent emails",
-    notJoined: "No sent email found",
-    unmatched: "Mail matching nothing, in policy@ and the group's archive",
-    matchedNothing: (n: number) => `${n} messages matched nothing.`,
-    onlyWithSupporters: "Only staff who see supporters can see which.",
-    // How far it has got, over all its runs, above its log.
-    progress: {
-      label: "Messages read so far",
-      counts: (read: string, left: string) => `${read} read, ${left} left`,
-      totals: (p: { joined: string; replies: string; autoReplies: string; oneOffs: string }) =>
-        `So far: ${p.joined} joined, ${p.replies} replies, ${p.autoReplies} automatic replies, ${p.oneOffs} one-off emails`,
-      refusals: (n: number) => `Gmail refused ${count(n, "run", "runs")}.`,
-    },
-    columns: {
-      read: "Read",
-      left: "Left",
-      joined: "Joined",
-      replies: "Replies",
-      autoReplies: "Automatic replies",
-      oneOffs: "One-off emails",
-    },
-  },
   oneOff: {
     // The page's title, and a thread's way back.
     title: "One-off emails",
@@ -2489,9 +2404,8 @@ All events: ${link}`,
       nameUnknown: (account: string) => `Couldn't fetch name of ${account} from Gmail`,
       // The Gmail read: mail in the letters inbox that couldn't be matched to anything, so a person must look. How many follows.
       notUnderstood: "Messages in the letters inbox that couldn't be matched, so need a person to look at:",
-      // The old letters import, where they aren't tried again, and the Gmail read, for a one-off thread's other messages, where they're tried with each new one: messages Gmail wouldn't give, by ID, which follow.
+      // The Gmail read, for a one-off thread's other messages, where they're tried with each new one: messages Gmail wouldn't give, by ID, which follow.
       unreadable: "Messages that Gmail has but refused to give us:",
-      // The old letters import: messages that matched no campaign, mailing or politician. How many follows.
       // The Luma import: Luma errored on one event's guests. Its other events carry on.
       eventGuests: (event: string) => `Couldn't read the guests of an event: ${event}`,
       // The Luma import: Luma errored on one event's hosts. Its other events carry on.
@@ -2502,14 +2416,6 @@ All events: ${link}`,
       lumaTagsUnread: "Luma wouldn't list its event tags, so no events were tagged",
       // The Luma import's tag wouldn't go on one event; the next run tries again.
       lumaTagRefused: (event: string) => `Luma wouldn't tag ${event}`,
-      // The Emails sync: emails in Airtable that belong to no mailing here, or to several, so they weren't copied. Their records follow.
-      heldBack: "Emails we couldn't match to a mailing here, so weren't imported:",
-      // The Emails sync: emails in Airtable that don't name exactly one politician, so they weren't copied. Their records follow.
-      noOnePolitician: "Emails with no or more than one politician, so weren't imported:",
-      // The Emails sync: emails to a politician not imported yet, so they wait. Their records follow.
-      politicianNotHere: "Emails to a politician we don't have yet, so weren't imported:",
-      // The web form letters import: letters to a politician who isn't here. Their records follow.
-      noPolitician: "Letters with no politician here, so weren't imported:",
       // The CiviCRM import: a pull came back much shorter than the last, so nobody was taken as gone from the
       // chapter, in case it's CiviCRM's mistake. The counts follow; Global should be told.
       civicrmTooFew: "CiviCRM returned far fewer contacts than last time, so nobody was marked gone. Tell Global:",
@@ -2662,7 +2568,6 @@ All events: ${link}`,
     runningScheduled: (when: string) => `Running now, started at ${when}. Can only run one at a time.`,
     frequent: "Every 5 minutes",
     hourly: "Hourly",
-    oneOff: "One-off",
     takesAction: "Takes action",
     siteAdmin: "Site admin",
   },
@@ -3005,15 +2910,12 @@ All events: ${link}`,
 /** Each job in the import log, by the title of its card on the Scheduled jobs page and of its own page. */
 export const jobTitles: Record<ImportJob, string> = {
   "sync-politicians": staffCopy.syncs.title,
-  "sync-emails": staffCopy.pauseaiEmails.title,
-  "import-web-form-letters": staffCopy.webForm.title,
   "check-mps": staffCopy.check.title,
   "import-controlai": staffCopy.controlAi.title,
   "import-luma": staffCopy.luma.title,
   "import-members": staffCopy.members.title,
   "import-civicrm": staffCopy.civicrm.title,
   "read-gmail": staffCopy.gmailReading.title,
-  "import-old-letters": staffCopy.oldLetters.title,
   "send-mailings": staffCopy.sending.title,
   "tidy-logs": staffCopy.tidying.title,
 };

@@ -372,27 +372,6 @@ export async function gmailFullMessage(accessToken: string, id: string): Promise
   };
 }
 
-/** The IDs of every message a Gmail search finds, and their threads, oldest first, a page of 500 at a time. */
-export async function searchAllGmail(
-  accessToken: string,
-  q: string,
-  beforeEachPage: () => Promise<void> = async () => {},
-): Promise<{ id: string; threadId: string }[]> {
-  const found: { id: string; threadId: string }[] = [];
-  let pageToken: string | undefined;
-  do {
-    await beforeEachPage();
-    const params = new URLSearchParams({ q, maxResults: "500", ...(pageToken && { pageToken }) });
-    const page = await api<{ messages?: { id: string; threadId: string }[]; nextPageToken?: string }>(
-      accessToken,
-      `/messages?${params}`,
-    );
-    found.push(...(page.messages ?? []));
-    pageToken = page.nextPageToken;
-  } while (pageToken);
-  return found.reverse();
-}
-
 /** The IDs of every message in a thread. */
 export async function gmailThreadMessageIds(accessToken: string, threadId: string): Promise<string[]> {
   const thread = await api<{ messages?: { id: string }[] }>(accessToken, `/threads/${threadId}?format=minimal`);

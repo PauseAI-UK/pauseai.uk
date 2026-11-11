@@ -3,11 +3,8 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import {
   AirtableRequestError,
-  EMAILS_FORMULA,
-  fetchEmails,
   fetchMembers,
   fetchPoliticians,
-  fetchWebFormLetters,
   MEMBER_FIELDS,
   MEMBERS_FORMULA,
   POLITICIAN_FIELDS,
@@ -192,113 +189,6 @@ describe("fetchPoliticians", () => {
 
     server.use(http.get(AIRTABLE, () => HttpResponse.json({ records: [], offset: "again" })));
     await expect(fetchPoliticians("t")).rejects.toThrow("exceeded 100 pages");
-  });
-});
-
-describe("fetchEmails", () => {
-  it("reads every email with a time, with the tick boxes of the mailings it's given", async () => {
-    const requests = serve({
-      records: [
-        record(
-          {
-            Timestamp: "2026-10-01T10:00:00.000Z",
-            "UK Parliamentarian": ["recP", 5],
-            Personalized: true,
-            "Box A": true,
-            "Box B": false,
-          },
-          "recE1",
-        ),
-        record({ Timestamp: "2026-06-01T10:00:00.000Z", "UK Parliamentarian": "recP" }, "recE2"),
-      ],
-    });
-    expect(await fetchEmails("t", ["Box A", "Box B"])).toEqual([
-      {
-        airtableId: "recE1",
-        at: "2026-10-01T10:00:00.000Z",
-        politicians: ["recP"],
-        personalised: true,
-        mailings: ["Box A"],
-      },
-      {
-        airtableId: "recE2",
-        at: "2026-06-01T10:00:00.000Z",
-        politicians: [],
-        personalised: false,
-        mailings: [],
-      },
-    ]);
-    const url = new URL(requests[0].url);
-    expect(url.pathname).toBe("/v0/appBInVvIm6opJ1Ob/tblp4nH5Jymq48rcm");
-    expect(url.searchParams.get("filterByFormula")).toBe(EMAILS_FORMULA);
-    expect(url.searchParams.getAll("fields[]")).toEqual([
-      "Timestamp",
-      "UK Parliamentarian",
-      "Personalized",
-      "Box A",
-      "Box B",
-    ]);
-  });
-});
-
-describe("fetchWebFormLetters", () => {
-  it("reads every letter in the old form's table, and a blank or No consent as no", async () => {
-    const requests = serve({
-      records: [
-        record(
-          {
-            "Sender name": " Wendy ",
-            "Sender email": "wendy@example.com",
-            "Sender postcode": "EC1A 1BB",
-            Recipient: ["recP"],
-            Subject: "Please",
-            Campaign: "Frontier AI letter",
-            "Form Submitted Timestamp": "2026-09-25T09:00:00.000Z",
-            "Email Sent Time": "2026-09-25T09:01:00.000Z",
-            "Contact consent": "Yes",
-            Message: "Dear Ms Placeholder",
-          },
-          "recW1",
-        ),
-        record({ Spam: true, "Invalid, can't send": true, "Contact consent": "No" }, "recW2"),
-      ],
-    });
-    expect(await fetchWebFormLetters("t")).toEqual([
-      {
-        airtableId: "recW1",
-        senderName: "Wendy",
-        senderEmail: "wendy@example.com",
-        senderPostcode: "EC1A 1BB",
-        recipients: ["recP"],
-        subject: "Please",
-        campaign: "Frontier AI letter",
-        submittedAt: "2026-09-25T09:00:00.000Z",
-        sentAt: "2026-09-25T09:01:00.000Z",
-        spam: false,
-        invalid: false,
-        consent: true,
-        message: "Dear Ms Placeholder",
-      },
-      {
-        airtableId: "recW2",
-        senderName: "",
-        senderEmail: "",
-        senderPostcode: "",
-        recipients: [],
-        subject: "",
-        campaign: "",
-        submittedAt: null,
-        sentAt: null,
-        spam: true,
-        invalid: true,
-        consent: false,
-        message: "",
-      },
-    ]);
-    const url = new URL(requests[0].url);
-    expect(url.pathname).toBe("/v0/appBInVvIm6opJ1Ob/tblkzjrRHiZiqMDGR");
-    expect(url.searchParams.getAll("fields[]")).toContain("Message");
-    expect(url.searchParams.getAll("fields[]")).not.toContain("Attending Parliament 23 June 2026");
   });
 });
 

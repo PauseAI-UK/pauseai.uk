@@ -7,21 +7,16 @@ import {
   type LumaImport,
   type MembersImport,
   type CivicrmImport,
-  type EmailSync,
   type GmailReading,
   type MpCheck,
-  type OldLettersImport,
   type PoliticianSync,
   type Sending,
   type Tidying,
-  type WebFormImport,
 } from "@/lib/import-runs";
 import type { MpProblem } from "@/lib/mp-check";
 import { changeCount, type Renamed, type SyncedPolitician } from "@/lib/politician-sync";
-import CountsByMailing from "./CountsByMailing";
 import RunBox from "./RunBox";
 import { Muted } from "@/components/ui/Text";
-import Withheld from "./ui/Withheld";
 import Table from "@/components/ui/Table";
 import ExternalLink from "./ui/ExternalLink";
 
@@ -237,48 +232,6 @@ function ControlAiRun({ run, open, bare }: { run: ControlAiImport; open?: boolea
   );
 }
 
-/** A copy of PauseAI's emails from Airtable: the counts, and the emails held back for a mailing nobody has added. */
-function EmailsRun({ run, open, bare }: { run: EmailSync; open?: boolean; bare?: boolean }) {
-  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
-  const { unplaced } = run.result;
-  return (
-    <RunBox
-      run={run}
-      summary={staffCopy.pauseaiEmails.result(run.result)}
-      lines={unplaced.length}
-      open={open}
-      bare={bare}
-    >
-      {unplaced.length > 0 && (
-        <>
-          <h4>
-            {staffCopy.pauseaiEmails.unplaced} ({unplaced.length})
-          </h4>
-          <ul>
-            {unplaced.map((email) => (
-              <li key={email.airtableId}>
-                {email.airtableId}: {email.mailings.join(", ") || staffCopy.pauseaiEmails.noBoxes}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </RunBox>
-  );
-}
-
-/** The one-off copy of pauseai.info's web form letters: the counts. */
-function WebFormRun({ run, open, bare }: { run: WebFormImport; open?: boolean; bare?: boolean }) {
-  return (
-    <RunBox
-      run={run}
-      summary={run.status === "failed" ? null : staffCopy.webForm.result(run.result)}
-      open={open}
-      bare={bare}
-    />
-  );
-}
-
 /** A copy of the Luma calendar: the counts, the hosts changed, the places looked up, and why it stopped early if it did. */
 function LumaRun({ run, open, bare }: { run: LumaImport; open?: boolean; bare?: boolean }) {
   if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
@@ -384,57 +337,6 @@ function GmailRun({ run, open, bare }: { run: GmailReading; open?: boolean; bare
   );
 }
 
-/**
- * A press of the import of old letters: what it did and how much is left;
- * what it joined by mailing, and what it couldn't; and the mail that matched
- * nothing, by sender and subject, only to staff who see supporters, as its
- * senders are people.
- */
-function OldLettersRun({
-  run,
-  open,
-  people,
-  bare,
-}: {
-  run: OldLettersImport;
-  open?: boolean;
-  people?: boolean;
-  bare?: boolean;
-}) {
-  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
-  const words = staffCopy.oldLetters;
-  const { result } = run;
-  const lines =
-    Object.keys(result.joined).length +
-    Object.keys(result.added).length +
-    Object.keys(result.notJoined).length +
-    result.unmatched.length;
-  return (
-    <RunBox run={run} open={open} bare={bare} lines={lines} summary={<>{words.result(result)}</>}>
-      <CountsByMailing heading={words.joined} counts={result.joined} titles={result.titles} />
-      <CountsByMailing heading={words.added} counts={result.added} titles={result.titles} />
-      <CountsByMailing heading={words.notJoined} counts={result.notJoined} titles={result.titles} />
-      {result.unmatched.length > 0 &&
-        (people ? (
-          <>
-            <h4>{words.unmatched}</h4>
-            <ul>
-              {result.unmatched.map((mail, i) => (
-                <li key={i}>
-                  {mail.from}: {mail.subject}
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : (
-          <p>
-            {words.matchedNothing(result.unmatched.length)} <Withheld>{words.onlyWithSupporters}</Withheld>
-          </p>
-        ))}
-    </RunBox>
-  );
-}
-
 /** An hour's sending: the counts. */
 function SendingRun({ run, open, bare }: { run: Sending; open?: boolean; bare?: boolean }) {
   return (
@@ -462,29 +364,22 @@ function TidyingRun({ run, open, bare }: { run: Tidying; open?: boolean; bare?: 
 /**
  * One run from the import log, as its job's page shows it; `open` says
  * whether its detail starts unfolded, and left out, its length does.
- * `people`: who mail that matched nothing is from may show. `bare`: in a
- * row of a table, without the box (RunBox).
+ * `bare`: in a row of a table, without the box (RunBox).
  */
 export default function Run({
   run,
   decide,
   open,
-  people,
   bare,
 }: {
   run: AnyImportRun;
   decide?: Decide;
   open?: boolean;
-  people?: boolean;
   bare?: boolean;
 }) {
   switch (run.job) {
     case "sync-politicians":
       return <SyncRun run={run} decide={decide} open={open} bare={bare} />;
-    case "sync-emails":
-      return <EmailsRun run={run} open={open} bare={bare} />;
-    case "import-web-form-letters":
-      return <WebFormRun run={run} open={open} bare={bare} />;
     case "check-mps":
       return <CheckRun run={run} open={open} bare={bare} />;
     case "import-controlai":
@@ -497,8 +392,6 @@ export default function Run({
       return <CivicrmRun run={run} open={open} bare={bare} />;
     case "read-gmail":
       return <GmailRun run={run} open={open} bare={bare} />;
-    case "import-old-letters":
-      return <OldLettersRun run={run} open={open} people={people} bare={bare} />;
     case "send-mailings":
       return <SendingRun run={run} open={open} bare={bare} />;
     case "tidy-logs":

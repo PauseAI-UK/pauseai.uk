@@ -4,7 +4,7 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { addStaffAccount, logInAsStaff, newestEmail, recordAnswers, syncPoliticians, WEBHOOK_AUTH } from "../steps";
 import { caretAtEnd } from "./editor-steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
-import { importEmails, NOTIFICATION_INBOX, stayOnPage } from "./staff-steps";
+import { addPauseaiEmails, NOTIFICATION_INBOX, stayOnPage } from "./staff-steps";
 import { runQueue } from "./letters-inbox-steps";
 import { scrollSettled } from "./settle";
 import type { Section } from "./report/frames";
@@ -640,7 +640,7 @@ test("Old mailings", async ({ page, request, flowDatabase }) => {
   await syncPoliticians(request, BASE);
   await logIn(page, flowDatabase);
   const mailings = staffCopy.mailings;
-  await importEmails(page);
+  addPauseaiEmails(flowDatabase);
   await page.goto(`${BASE}/staff/mailings`);
   const invitation = "Edinburgh Conference Nov 26 Invitation";
   await expect(page.getByRole("listitem").filter({ hasText: invitation })).toContainText(mailings.imported);
@@ -671,7 +671,7 @@ test("From a mailing to its ask", async ({ page, request, flowDatabase }) => {
   await syncPoliticians(request, BASE);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
-  await importEmails(page);
+  addPauseaiEmails(flowDatabase);
   await page.goto(`${BASE}/staff/mailings`);
   await page
     .getByRole("listitem")

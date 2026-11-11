@@ -4,7 +4,7 @@ Size: M. Kind: tools.
 
 ## Problem
 
-CI's Test job is its longest: a passing run takes about five minutes, most of it `npm test` with coverage. CPU is the limit: the files' times add up to about 15 minutes, half of it the browser project. The slowest are `lib/server/old-letters-import.test.ts` (91s) and `MailingWriter.browser.test.tsx` (31s).
+CI's Test job is its longest: a passing run takes about five minutes, most of it `npm test` with coverage. CPU is the limit: the files' times add up to about 15 minutes, half of it the browser project. The slowest is `MailingWriter.browser.test.tsx` (31s).
 
 ## Fix
 

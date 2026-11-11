@@ -17,8 +17,6 @@ import lumaPast from "./luma-calendar-past.json";
 import lumaGuests from "./luma-guests.json";
 import lumaContacts from "./luma-contacts.json";
 import airtablePoliticians from "./airtable-politicians.json";
-import airtableEmails from "./airtable-emails.json";
-import airtableWebForm from "./airtable-web-form.json";
 import airtableMembers from "./airtable-members.json";
 import civicrmContacts from "./civicrm-contacts.json";
 import parliamentMembers from "./parliament-members.json";
@@ -27,7 +25,7 @@ import stripeCheckoutSessions from "./stripe-checkout-sessions.json";
 import stripePaymentIntents from "./stripe-payment-intents.json";
 import { failingResponse } from "./failing-services";
 import { historyIdOf, keepSent, lettersInboxResponse, lettersMailbox } from "./letters-inbox";
-import { oldMailResponse } from "./old-letters-mailbox";
+import { policyMailResponse } from "./policy-mailbox";
 
 /** A UUID-shaped id that depends only on `text`. */
 /** Every UUID in some text. */
@@ -229,17 +227,8 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
     }
     return json({ skipped: emails.filter((email) => email.startsWith("luma-skips@")).map((email) => ({ email })) });
   }
-  // The UK Parliamentarians base's tables: a politician of each body, one
-  // retired and one who left; PauseAI's emails to them, of each
-  // mailing, one with no politician and one with no mailing we know; the
-  // web form's letters, with the senders and states the import skips.
-  const airtable: Record<string, unknown> = {
-    tblH3ks9wqQHLpYx3: airtablePoliticians,
-    tblp4nH5Jymq48rcm: airtableEmails,
-    tblkzjrRHiZiqMDGR: airtableWebForm,
-  };
-  const table = hostname.endsWith("airtable.com") && airtable[pathname.split("/").at(-1)!];
-  if (table) return json(table);
+  // The UK Parliamentarians table: a politician of each body, one retired and one who left.
+  if (hostname.endsWith("airtable.com") && pathname.endsWith("/tblH3ks9wqQHLpYx3")) return json(airtablePoliticians);
   if (hostname === "api.postcodes.io" && pathname === "/postcodes" && init?.method === "POST") {
     // A bulk lookup: each postcode with its place, or null.
     const { postcodes } = JSON.parse(String(init.body)) as { postcodes: string[] };
@@ -351,7 +340,7 @@ const SENT_GMAIL = ((globalThis as { fixtureSentGmail?: Map<string, string> }).f
 // Google's OAuth and Gmail, for any account. A token names its account
 // (lib/server/outside-services/gmail.ts makes the code "fixture:<account>"),
 // so the profile says whose it is. A mailbox has no messages, but joseph@'s
-// and policy@'s (old-letters-mailbox.ts): the tests that read one give their own.
+// and policy@'s (policy-mailbox.ts): the tests that read one give their own.
 function googleResponse(
   hostname: string,
   pathname: string,
@@ -375,8 +364,8 @@ function googleResponse(
   const path = pathname.replace(/^\/gmail\/v1\/users\/me/, "");
   const inbox = letters && lettersInboxResponse(path, params, init, scope);
   if (inbox) return inbox;
-  const old = oldMailResponse(account, path, params);
-  if (old) return old;
+  const policy = policyMailResponse(account, path, params);
+  if (policy) return policy;
   if (pathname.endsWith("/profile")) {
     return json({ emailAddress: account, historyId: String(letters ? historyIdOf(lettersMailbox(scope)) : 1000) });
   }

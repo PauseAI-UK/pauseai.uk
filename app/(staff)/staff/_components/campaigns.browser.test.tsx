@@ -20,7 +20,6 @@ import {
   exampleCampaignEmpty,
   exampleCampaignNoAsk,
   exampleHiddenOneOff,
-  exampleOldLettersResult,
   exampleOneOffs,
   exampleOneOffThread,
   exampleForwardThread,
@@ -43,7 +42,7 @@ import PageIntro from "./ui/PageIntro";
 import Withheld from "./ui/Withheld";
 import Tabs from "./ui/Tabs";
 import Run from "./Run";
-import { exampleRun, exampleFailedRun } from "./RunList.examples";
+import { exampleRun } from "./RunList.examples";
 import SentEmails from "./SentEmails";
 import StaffNav from "./StaffNav";
 
@@ -580,62 +579,6 @@ describe("SentEmails", () => {
     );
     await says("new-purpose");
     await says("new-outcome");
-  });
-});
-
-describe("the import of old letters' run", () => {
-  it("says what it did and how much is left, by mailing, and who mail is from to those who may see", async () => {
-    const words = staffCopy.oldLetters;
-    const run = exampleRun("import-old-letters", exampleOldLettersResult);
-    const { rerender } = await render(<Run run={run} open people />);
-    await says(words.result(exampleOldLettersResult));
-    await expect.element(page.getByRole("heading", { name: words.joined })).toBeVisible();
-    await says(`${words.mailingTitles["deepmind-30-june"]}: 500`);
-    await says("form: 40");
-    await says("Jane Smith <jane@example.com>: A question");
-    // What went wrong is under the line, as the run's problems, not in the summary.
-    expect(document.body.textContent).not.toContain(staffCopy.problems.job.unreadable);
-    expect(document.body.textContent).not.toContain(words.stoppedByGmail);
-    await rerender(
-      <Run
-        run={exampleRun(
-          "import-old-letters",
-          { ...exampleOldLettersResult, stoppedBy: "gmail", unreadable: [] },
-          { problems: [{ what: words.stoppedByGmail, error: "Gmail answered 429 for /messages/0a02" }] },
-        )}
-        open
-      />,
-    );
-    expect(document.body.textContent).toContain(`${words.stoppedByGmail} Gmail answered 429 for /messages/0a02`);
-    expect(document.body.textContent).not.toContain("Jane Smith");
-    await says(`${words.matchedNothing(1)} ${words.onlyWithSupporters}`);
-    await rerender(
-      <Run
-        run={exampleRun("import-old-letters", {
-          ...exampleOldLettersResult,
-          joined: {},
-          added: {},
-          notJoined: { x: 0 },
-          unmatched: [],
-        })}
-        open
-      />,
-    );
-    expect(page.getByRole("heading", { name: words.joined }).query()).toBeNull();
-    await rerender(
-      <Run
-        run={exampleRun("import-old-letters", {
-          ...exampleOldLettersResult,
-          joined: { csrb: 2, unnamed: 1 },
-          titles: { csrb: "CSRB Iqbal Amendment" },
-        })}
-        open
-      />,
-    );
-    await says("CSRB Iqbal Amendment: 2");
-    await says("unnamed: 1");
-    await rerender(<Run run={exampleFailedRun("import-old-letters", "Gmail said no", {})} open />);
-    await says("Gmail said no");
   });
 });
 

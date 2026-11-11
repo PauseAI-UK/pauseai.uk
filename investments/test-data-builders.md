@@ -9,7 +9,7 @@ Tests make their rows by hand:
 - over 300 `INSERT INTO` statements in about 60 Vitest files;
 - about 60 more in the storyboard's specs;
 - `INSERT INTO letters` in about 20 files;
-- some files' own helpers, such as `seed()` in `lib/server/old-letters-import.test.ts`.
+- some files' own helpers.
 
 There are three other separate datasets:
 

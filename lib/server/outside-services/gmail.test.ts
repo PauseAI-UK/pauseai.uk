@@ -13,7 +13,6 @@ import {
   GmailError,
   gmailFullMessage,
   gmailThreadMessageIds,
-  searchAllGmail,
   gmailHistory,
   gmailMessageHeaders,
   gmailProfile,
@@ -192,27 +191,6 @@ describe("the Gmail API", () => {
       ),
     );
     expect((await gmailFullMessage("tok", "m1")).plain).toBe("Caf\u00e9");
-  });
-
-  it("lists every message a search finds, oldest first, page by page, waiting its turn for each", async () => {
-    server.use(
-      http.get(`${API}/messages`, ({ request }) => {
-        const token = new URL(request.url).searchParams.get("pageToken");
-        return HttpResponse.json(
-          token
-            ? { messages: [{ id: "b", threadId: "t" }] }
-            : { messages: [{ id: "c", threadId: "t" }], nextPageToken: "next" },
-        );
-      }),
-    );
-    let turns = 0;
-    const found = await searchAllGmail("tok", "x", async () => {
-      turns++;
-    });
-    expect(found.map((m) => m.id)).toEqual(["b", "c"]);
-    expect(turns).toBe(2);
-    server.use(http.get(`${API}/messages`, () => HttpResponse.json({})));
-    expect(await searchAllGmail("tok", "x")).toEqual([]);
   });
 
   it("lists a thread's messages", async () => {

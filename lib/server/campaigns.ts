@@ -2,8 +2,7 @@ import "server-only";
 import { ARRIVED, DID_NOT_ARRIVE, statusIn } from "@/lib/letter-status";
 import { cache } from "react";
 import { campaignBySlug } from "@/lib/email-your-mp";
-import { FORM_VERSIONS } from "@/lib/content/pauseai-info-form";
-import { formVersionAt } from "@/lib/old-letters";
+import { FORM_VERSIONS, formVersionAt } from "@/lib/content/pauseai-info-form";
 import { query } from "./db";
 
 // A campaign is like a mailing, from supporters rather than PauseAI: its list

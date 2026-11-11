@@ -1,7 +1,7 @@
 // The text pauseai.info's old UK letter form gave people, at each commit that
 // changed its words or subject (commits to the form that changed neither aren't versions): https://github.com/PauseAI/pauseai-website, UKMPEmailForm.svelte,
 // removed in b8d29de0. A letter sent through the form was written from the
-// version live then (formVersionAt in lib/old-letters.ts). Its names are
+// version live then (formVersionAt). Its names are
 // {salutation}, {constituency}, {name} and {postcode}.
 
 export type FormVersion = {
@@ -63,3 +63,12 @@ export const FORM_VERSIONS: readonly FormVersion[] = [
     text: "Dear {salutation}\n\nI’m a resident of {constituency} and a supporter of **PauseAI**, a civic movement focused on averting the risks of superhuman AI. I am very concerned that AI development is racing ahead without adequate protection for the public.\n\nAI now poses an extremely serious risk to our national security. Parliamentarians in the United Kingdom, and politicians around the globe are moving to answer the call from AI developers, Nobel Laureates and concerned citizens to regulate AI immediately.\n\n**The UK has no specific legal standards for frontier AI safety.** No regulator oversees frontier AI development. And UK law does not reliably hold developers liable for damage or deaths caused by their models, even when the danger is predictable, preventable and uniquely enabled by AI.\n\nPlease could you add your name to PauseAI's open letter (attached) in support of frontier AI legislation? And could we arrange a short meeting to discuss this important matter?\n\nThank you for your consideration,\n\n{name}\n\n{postcode}",
   },
 ];
+
+/** How long after a commit its version was live: Netlify's deploy of pauseai.info. */
+const DEPLOY_MS = 10 * 60_000;
+
+/** The form's version live at `at`; the first, for a letter before it. */
+export function formVersionAt(at: Date): FormVersion {
+  const live = FORM_VERSIONS.filter((v) => new Date(v.committedAt).getTime() + DEPLOY_MS <= at.getTime());
+  return live.at(-1) ?? FORM_VERSIONS[0];
+}

@@ -6,14 +6,20 @@ import {
   exampleMembersResult,
   exampleRun,
 } from "@/app/(staff)/staff/_components/RunList.examples";
-import { exampleOldLettersResult } from "@/app/(staff)/staff/_components/CampaignPages.examples";
 import type { AnyImportRun } from "./import-runs";
 import { runLog, runShape, tabled } from "./run-log";
 
 const AT = new Date("2026-11-03T12:00:00Z");
-const routine = { ...exampleOldLettersResult, finished: false, unmatched: [], unreadable: [], formTexts: 0 };
-const letters = (id: number, extra = {}, at = AT) =>
-  exampleRun("import-old-letters", { ...routine, ...extra }, { id, at });
+const luma = (id: number, extra = {}, at = AT) =>
+  exampleRun("import-luma", { ...exampleLumaResult, ...extra }, { id, at });
+const stopped = { stoppedBy: "time" as const };
+/** A read of Gmail: a row, or whole, and green, if it searched again. */
+const gmail = (id: number, a: object = {}) =>
+  exampleRun(
+    "read-gmail",
+    { accounts: [{ ...exampleGmailResult.accounts[0], error: undefined, notUnderstood: undefined, ...a }] },
+    { id, at: AT },
+  );
 const quietLuma = (id: number, at = AT) =>
   exampleRun("import-luma", exampleLumaResult, { id, at, status: "unchanged" });
 const flat = (days: ReturnType<typeof runLog>) => days.flatMap((d) => d.entries);
@@ -24,13 +30,13 @@ describe("how a run shows", () => {
     expect(tabled("import-luma")).toBe(true);
     expect(tabled("import-members")).toBe(true);
     expect(tabled("check-mps")).toBe(false);
-    expect(tabled("sync-emails")).toBe(false);
+    expect(tabled("tidy-logs")).toBe(false);
   });
 
   it("is whole for a job that runs rarely, whatever it did", () => {
     const check = exampleRun("check-mps", { problems: [] }, { status: "unchanged" });
     expect(runShape(check)).toBe("run");
-    expect(runShape(exampleFailedRun("import-web-form-letters", "boom", {}))).toBe("run");
+    expect(runShape(exampleFailedRun("tidy-logs", "boom", {}))).toBe("run");
   });
 
   it("is a line when a frequent or hourly job found nothing, unless it stopped short", () => {
@@ -49,41 +55,26 @@ describe("how a run shows", () => {
     expect(runShape(exampleRun("import-members", exampleMembersResult, {}))).toBe("run");
   });
 
-  it("is a row for the routine run of the import of old letters, and whole for one with something to read", () => {
-    expect(runShape(letters(1))).toBe("rows");
-    for (const extra of [
-      { finished: true },
-      { stoppedBy: "gmail" },
-      { unmatched: [{ from: "a", subject: "b" }] },
-      { unreadable: ["1"] },
-      { formTexts: 3 },
-    ]) {
-      expect(runShape(letters(1, extra))).toBe("run");
-    }
-  });
-
   it("is a row for Luma's ordinary run, and whole for one that stopped short", () => {
     expect(runShape(exampleRun("import-luma", exampleLumaResult, {}))).toBe("rows");
     expect(runShape(exampleRun("import-luma", { ...exampleLumaResult, stoppedBy: "time" as const }, {}))).toBe("run");
   });
 
   it("is a row for an ordinary read of Gmail, and whole for one with problems or that searched again", () => {
-    const read = (a: object) =>
-      exampleRun("read-gmail", { accounts: [{ ...exampleGmailResult.accounts[0], ...a }] }, {});
-    expect(runShape(read({ error: undefined, notUnderstood: undefined }))).toBe("rows");
+    expect(runShape(gmail(1))).toBe("rows");
     // An account it couldn't read is a problem of the run, which shows whole.
-    expect(runShape(read({ error: "403" }))).toBe("rows");
+    expect(runShape(gmail(1, { error: "403" }))).toBe("rows");
     expect(
       runShape(exampleRun("read-gmail", { accounts: [] }, { problems: [{ what: "al@pauseai.uk couldn't be read" }] })),
     ).toBe("run");
-    expect(runShape(read({ error: undefined, restarted: true }))).toBe("run");
+    expect(runShape(gmail(1, { restarted: true }))).toBe("run");
   });
 });
 
 describe("a job's page", () => {
   it("has the newest whole, tinted and current, then rows and lines gathered, under each day", () => {
     const days = runLog(
-      [letters(5), letters(4), letters(3), quietLuma(2), quietLuma(1, new Date("2026-11-02T12:00:00Z"))],
+      [luma(5, stopped), luma(4), luma(3), quietLuma(2), quietLuma(1, new Date("2026-11-02T12:00:00Z"))],
       false,
     );
     expect(shapes(days)).toEqual([
@@ -106,18 +97,18 @@ describe("a job's page", () => {
 
   it("keeps a frequent job's problems tinted further down, but not a rare job's or a good one", () => {
     const runs: AnyImportRun[] = [
-      letters(4),
-      letters(3, { stoppedBy: "gmail" }),
+      luma(4),
+      luma(3, stopped),
       exampleFailedRun("read-gmail", "boom", { id: 2 }),
-      letters(1, { finished: true }),
+      gmail(1, { restarted: true }),
     ];
-    expect(flat(runLog(runs, false)).map((e) => e.tone)).toEqual(["amber", "amber", "red", undefined]);
+    expect(flat(runLog(runs, false)).map((e) => e.tone)).toEqual(["green", "amber", "red", undefined]);
     const rare = [exampleRun("check-mps", { problems: [] }, {}), exampleFailedRun("check-mps", "boom", { id: 2 })];
     expect(flat(runLog(rare, false)).map((e) => e.tone)).toEqual(["green", undefined]);
   });
 
   it("treats the newest as an older one while a press runs", () => {
-    const [first, second] = flat(runLog([letters(2, { stoppedBy: "gmail" }), letters(1)], true));
+    const [first, second] = flat(runLog([luma(2, stopped), luma(1)], true));
     expect(first).toMatchObject({ shape: "run", tone: undefined, open: undefined });
     expect(first.current).toBeUndefined();
     expect(second.shape).toBe("rows");
@@ -133,7 +124,7 @@ describe("a job's page", () => {
       undefined,
       false,
     ]);
-    const rows = Array.from({ length: 20 }, (_, id) => letters(id));
+    const rows = Array.from({ length: 20 }, (_, id) => luma(id));
     const entries = runLog(rows, false);
     expect(shapes(entries)).toEqual([
       ["run", 1],
@@ -144,8 +135,7 @@ describe("a job's page", () => {
   });
 
   it("doesn't gather rows across a run shown whole, or of different jobs", () => {
-    const luma = exampleRun("import-luma", exampleLumaResult, { id: 9 });
-    const entries = runLog([letters(5), letters(4), letters(3, { finished: true }), letters(2), luma], false);
+    const entries = runLog([luma(5), luma(4), luma(3, stopped), luma(2), gmail(9)], false);
     expect(shapes(entries)).toEqual([
       ["run", 1],
       ["rows", 1],

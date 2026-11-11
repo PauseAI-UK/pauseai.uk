@@ -69,9 +69,7 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "apply held politician sync": { id: number };
   "discard held politician sync": { id: number };
   "import ControlAI letter": { added: number; removed: number; problems: number };
-  "import web form letters": { imported: number; skipped: number; alreadyHere: number; noPolitician: number };
   "import sign-ups": { uploadId: number; imported: number; heldBack: number };
-  "copy PauseAI emails": { added: number };
   "add ask": Ask;
   "edit ask": Ask;
   "delete ask": Ask;
@@ -129,6 +127,9 @@ type EarlierAuditDetails = {
   "apply held MP sync": { id: number };
   "discard held MP sync": { id: number };
   "import signatories from Airtable": { matched: number; added: number; alreadySet: number };
+  // From the one-off imports of pauseai.info's web form letters and PauseAI's emails from Airtable.
+  "import web form letters": { imported: number; skipped: number; alreadyHere: number; noPolitician: number };
+  "copy PauseAI emails": { added: number };
   // What a migration took away when "supports" stopped being a status.
   "remove supports status": {
     politicianId: number;

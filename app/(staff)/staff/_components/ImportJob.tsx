@@ -6,7 +6,6 @@ import type { RunningJob } from "@/lib/server/import-runs";
 import {
   type AnyImportRun,
   IMPORT_JOBS,
-  type OldLettersProgress,
   jobSchedule,
   type ImportJob,
   importPath,
@@ -22,7 +21,6 @@ import styles from "./ImportJob.module.css";
 import ImportCard, { ImportCards } from "./ImportCard";
 import ImportIcon, { type ImportSource } from "./ImportIcon";
 import JobActions from "./JobActions";
-import OldLettersProgressBar from "./OldLettersProgressBar";
 import type { Decide } from "./Run";
 import RunList from "./RunList";
 import Tag from "@/components/ui/Tag";
@@ -42,14 +40,11 @@ const CIVICRM = "https://crm.pauseai.info/";
 const SOURCES: Record<ImportJob, ImportSource> = {
   "import-luma": "luma",
   "sync-politicians": "airtable",
-  "sync-emails": "airtable",
-  "import-web-form-letters": "airtable",
   "check-mps": "web",
   "import-controlai": "web",
   "import-members": "airtable",
   "import-civicrm": "civicrm",
   "read-gmail": "gmail",
-  "import-old-letters": "gmail",
   "send-mailings": "gmail",
   "tidy-logs": "database",
 };
@@ -72,7 +67,7 @@ const ABOUT: Record<
   ImportJob,
   {
     intro: { before: string; link: string; after: string };
-    /** Where it reads from: a page, or another table of the same Airtable base, by its ID; the politicians' table when left out. */
+    /** Where it reads from: a page; the politicians' table in Airtable when left out. */
     href?: string;
     /** More of the intro, each part with a link of its own, for a job that works on more than one place. */
     then?: { link: string; after: string; href: string }[];
@@ -92,18 +87,6 @@ const ABOUT: Record<
     also: staffCopy.syncs.testMps,
     button: staffCopy.syncs.syncNow,
     none: staffCopy.syncs.none,
-  },
-  "sync-emails": {
-    intro: staffCopy.pauseaiEmails.intro,
-    href: "tblp4nH5Jymq48rcm",
-    button: staffCopy.pauseaiEmails.importNow,
-    none: staffCopy.pauseaiEmails.never,
-  },
-  "import-web-form-letters": {
-    intro: staffCopy.webForm.intro,
-    href: "tblkzjrRHiZiqMDGR",
-    button: staffCopy.webForm.importNow,
-    none: staffCopy.webForm.never,
   },
   "check-mps": {
     intro: staffCopy.check.intro,
@@ -135,12 +118,6 @@ const ABOUT: Record<
     button: staffCopy.gmailReading.readNow,
     none: staffCopy.gmailReading.never,
   },
-  "import-old-letters": {
-    intro: staffCopy.oldLetters.intro,
-    href: "/staff/emails",
-    button: staffCopy.oldLetters.importNow,
-    none: staffCopy.oldLetters.never,
-  },
   "send-mailings": {
     intro: staffCopy.sending.intro,
     href: "/staff/campaigns",
@@ -166,9 +143,7 @@ function Intro({ job, airtableTable }: { job: ImportJob; airtableTable: string }
   return (
     <>
       {intro.before}
-      <ExternalLink href={href?.startsWith("tbl") ? airtableTable.replace(/[^/]*$/, href) : (href ?? airtableTable)}>
-        {intro.link}
-      </ExternalLink>
+      <ExternalLink href={href ?? airtableTable}>{intro.link}</ExternalLink>
       {intro.after}
       {then?.map((part) => (
         <Fragment key={part.href}>
@@ -209,9 +184,9 @@ function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | 
 
 /** /staff/scheduled-jobs: a card per job, each a link to its page, with how its newest run ended. */
 /** The overview's sections, each the jobs that run that often, in this order. */
-const SCHEDULES = ["frequent", "hourly", "nightly", "oneOff"] as const;
+const SCHEDULES = ["frequent", "hourly", "nightly"] as const;
 
-/** Every job, a card each, under a heading for how often it runs: every 5 minutes, hourly, nightly, then the one-off imports. */
+/** Every job, a card each, under a heading for how often it runs: every 5 minutes, hourly, then nightly. */
 export function ImportOverview({
   newest,
   running,
@@ -259,8 +234,6 @@ export function ImportJobPage({
   run,
   decide,
   airtableTable,
-  people = false,
-  progress,
 }: {
   job: ImportJob;
   runs: AnyImportRun[];
@@ -271,10 +244,6 @@ export function ImportJobPage({
   /** Applies or discards a held politician sync. */
   decide: Decide;
   airtableTable: string;
-  /** Whether they may see who mail that matched nothing is from. */
-  people?: boolean;
-  /** How far the import of old letters has got, on its page. */
-  progress?: OldLettersProgress;
 }): ReactNode {
   return (
     <>
@@ -302,8 +271,7 @@ export function ImportJobPage({
         </div>
       )}
       <JobActions action={run} label={ABOUT[job].button} />
-      {progress && <OldLettersProgressBar progress={progress} />}
-      <RunList runs={runs} none={ABOUT[job].none} decide={decide} people={people} running={running} />
+      <RunList runs={runs} none={ABOUT[job].none} decide={decide} running={running} />
     </>
   );
 }

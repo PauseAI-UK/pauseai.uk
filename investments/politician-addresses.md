@@ -4,7 +4,7 @@ Size: M. Kind: architecture.
 
 ## Problem
 
-`politicianBook()` reads politicians' past email addresses out of `audit_log`'s JSON (`politician-book.ts`), for seven callers including matching one-off emails and the old letters import. So matching mail depends on the log-retention job keeping those entries (`POLITICIAN_HISTORY` in `log-retention.ts`) and on the shape of an audit entry's details.
+`politicianBook()` reads politicians' past email addresses out of `audit_log`'s JSON (`politician-book.ts`), for its callers, matching one-off emails among them. So matching mail depends on the log-retention job keeping those entries (`POLITICIAN_HISTORY` in `log-retention.ts`) and on the shape of an audit entry's details.
 
 ## Fix
 

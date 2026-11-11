@@ -1,5 +1,5 @@
 import SentEmails from "@/app/(staff)/staff/_components/SentEmails";
-import { exampleOldLettersResult, exampleSentEmails } from "@/app/(staff)/staff/_components/CampaignPages.examples";
+import { exampleSentEmails } from "@/app/(staff)/staff/_components/CampaignPages.examples";
 import ErrorSeenView from "@/app/(staff)/staff/_components/ErrorSeenView";
 import ErrorsSeen from "@/app/(staff)/staff/_components/ErrorsSeen";
 import { exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
@@ -19,14 +19,11 @@ import ResultBox, { OPEN_UP_TO } from "@/app/(staff)/staff/_components/ResultBox
 import Run from "@/app/(staff)/staff/_components/Run";
 import RunBox from "@/app/(staff)/staff/_components/RunBox";
 import { ImportOverview } from "@/app/(staff)/staff/_components/ImportJob";
-import CountsByMailing from "@/app/(staff)/staff/_components/CountsByMailing";
-import OldLettersProgressBar from "@/app/(staff)/staff/_components/OldLettersProgressBar";
 import RunList from "@/app/(staff)/staff/_components/RunList";
 import RunTable from "@/app/(staff)/staff/_components/RunTable";
 import {
   exampleAppliedSync,
   exampleControlAiResult,
-  exampleEmailsResult,
   exampleFailedRun,
   exampleLumaResult,
   exampleDisconnectedGmail,
@@ -38,7 +35,6 @@ import {
   exampleSendingResult,
   exampleSyncedMp,
   exampleTidyingResult,
-  exampleWebFormResult,
 } from "@/app/(staff)/staff/_components/RunList.examples";
 import AccountsNotice from "@/app/(staff)/staff/_components/AccountsNotice";
 import ImportCard, { ImportCards } from "@/app/(staff)/staff/_components/ImportCard";
@@ -219,14 +215,6 @@ const RUNS: Record<ImportJob, Variant> = {
       </StaffPage>
     ),
   },
-  "import-web-form-letters": {
-    label: "The web form letters, imported by someone",
-    render: () => (
-      <StaffPage as="div">
-        <Run run={exampleRun("import-web-form-letters", exampleWebFormResult, { startedBy: "jo@pauseai.uk" })} />
-      </StaffPage>
-    ),
-  },
   "send-mailings": {
     label: "An hour's sending",
     render: () => (
@@ -240,60 +228,6 @@ const RUNS: Record<ImportJob, Variant> = {
     render: () => (
       <StaffPage as="div">
         <Run run={exampleRun("tidy-logs", exampleTidyingResult)} open />
-      </StaffPage>
-    ),
-  },
-  "import-old-letters": {
-    label: "A press of the import of old letters, with more to read; one that Gmail stopped; hiding who mail is from",
-    render: () => (
-      <StaffPage as="div">
-        <Run
-          run={exampleRun("import-old-letters", exampleOldLettersResult, {
-            startedBy: "jo@pauseai.uk",
-            problems: [
-              { what: staffCopy.problems.job.unreadable, error: "18f0a" },
-              { what: staffCopy.problems.job.unreadable, error: "1" },
-            ],
-          })}
-          open
-          people
-        />
-        <Run
-          run={exampleRun(
-            "import-old-letters",
-            {
-              ...exampleOldLettersResult,
-              stoppedBy: "gmail",
-              stoppedWhy: "Gmail answered 403 for /messages/1a2b: Too many",
-            },
-            {
-              id: 2,
-              startedBy: "jo@pauseai.uk",
-              problems: [
-                { what: staffCopy.oldLetters.stoppedByGmail, error: "Gmail answered 403 for /messages/1a2b: Too many" },
-                { what: staffCopy.problems.job.unreadable, error: "18f0a" },
-                { what: staffCopy.problems.job.unreadable, error: "1" },
-              ],
-            },
-          )}
-          open
-        />
-      </StaffPage>
-    ),
-  },
-  "sync-emails": {
-    label: "PauseAI's emails, some held back",
-    render: () => (
-      <StaffPage as="div">
-        <Run
-          run={exampleRun("sync-emails", exampleEmailsResult, {
-            problems: [
-              { what: staffCopy.problems.job.noOnePolitician, error: "recEmail3" },
-              { what: staffCopy.problems.job.politicianNotHere, error: "recEmail4" },
-              { what: staffCopy.problems.job.heldBack, error: "recEmail1, recEmail2" },
-            ],
-          })}
-        />
       </StaffPage>
     ),
   },
@@ -831,16 +765,16 @@ export const staffAdmin: Group = {
                     { at: new Date("2026-10-21T11:17:00Z") },
                   ),
                   exampleRun("import-members", exampleMembersResult, { at: new Date("2026-10-21T11:47:00Z") }),
+                  undefined,
                   exampleRun("read-gmail", exampleGmailResult, { at: new Date("2026-10-21T11:20:00Z") }),
+                  undefined,
                   exampleRun(
                     "sync-politicians",
                     { changes: { added: [], removed: [exampleSyncedMp(2)], changed: [] }, records: [] },
                     { at: new Date("2026-10-21T00:00:00Z"), status: "held" },
                   ),
-                  exampleRun("sync-emails", exampleEmailsResult, { at: new Date("2026-10-21T00:01:00Z") }),
                   exampleRun("check-mps", { problems: [] }, { at: new Date("2026-10-21T01:00:00Z") }),
                   exampleFailedRun("import-controlai", "No PDF linked", { at: new Date("2026-10-21T02:00:00Z") }),
-                  exampleRun("import-web-form-letters", exampleWebFormResult, { at: new Date("2026-10-20T09:00:00Z") }),
                   undefined,
                 ]}
                 airtableTable="https://airtable.com/"
@@ -1112,7 +1046,7 @@ export const staffAdmin: Group = {
           label: "A run that failed",
           render: () => (
             <StaffPage as="div">
-              <Run run={exampleFailedRun("import-web-form-letters", "An example error", { id: 4 })} />
+              <Run run={exampleFailedRun("tidy-logs", "An example error", { id: 4 })} />
             </StaffPage>
           ),
         },
@@ -1147,66 +1081,9 @@ export const staffAdmin: Group = {
       ],
     },
     {
-      name: "CountsByMailing",
-      file: "app/(staff)/staff/_components/CountsByMailing.tsx",
-      variants: [
-        {
-          label: "What the import of old letters joined",
-          render: () => (
-            <StaffPage as="div">
-              <CountsByMailing
-                heading="An example heading"
-                counts={exampleOldLettersResult.joined}
-                titles={exampleOldLettersResult.titles}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "OldLettersProgressBar",
-      file: "app/(staff)/staff/_components/OldLettersProgressBar.tsx",
-      variants: [
-        {
-          label: "Partway",
-          render: () => (
-            <StaffPage as="div">
-              <OldLettersProgressBar
-                progress={{
-                  read: 2842,
-                  left: 6120,
-                  joined: 2510,
-                  replies: 212,
-                  autoReplies: 24,
-                  oneOffs: 96,
-                  refusals: 1,
-                  byMailing: { "deepmind-30-june": 2100, "deepmind-25": 410 },
-                  titles: exampleOldLettersResult.titles!,
-                }}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
       name: "RunTable",
       file: "app/(staff)/staff/_components/RunTable.tsx",
       variants: [
-        {
-          label: "The import of old letters",
-          render: () => (
-            <StaffPage as="div">
-              <RunTable
-                header
-                entries={[
-                  { shape: "rows", runs: [exampleRun("import-old-letters", exampleOldLettersResult, { id: 21 })] },
-                ]}
-              />
-            </StaffPage>
-          ),
-        },
         {
           label: "Luma: a run that stopped short, then a stretch that found nothing",
           render: () => (

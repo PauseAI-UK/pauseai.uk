@@ -7,9 +7,9 @@ import type { PoliticianChanges, PoliticianRecord, Renamed } from "./politician-
 /**
  * How often a job runs on its own: every 5 minutes, hourly or nightly, each
  * by a scheduled function in netlify/functions/<job>/ whose cron says the
- * same (netlify/scheduled.test.ts); or a one-off, which only staff run.
+ * same (netlify/scheduled.test.ts).
  */
-export type JobSchedule = "frequent" | "hourly" | "nightly" | "oneOff";
+export type JobSchedule = "frequent" | "hourly" | "nightly";
 
 /**
  * Every job, by its name in the import log (`import_runs.job`): its page,
@@ -22,17 +22,14 @@ export type JobSchedule = "frequent" | "hourly" | "nightly" | "oneOff";
  * overview lists them in this order.
  */
 export const JOBS = {
-  "import-old-letters": { slug: "old-letters", schedule: "oneOff", budgetMs: 20_000 },
   "import-luma": { slug: "luma", schedule: "frequent", budgetMs: 20_000 },
   "import-members": { slug: "members", schedule: "hourly" },
   "import-civicrm": { slug: "civicrm", schedule: "hourly" },
   "read-gmail": { slug: "gmail", schedule: "frequent" },
   "send-mailings": { slug: "sending", schedule: "hourly", budgetMs: 8_000 },
   "sync-politicians": { slug: "politicians", schedule: "nightly" },
-  "sync-emails": { slug: "emails", schedule: "oneOff" },
   "check-mps": { slug: "mp-check", schedule: "nightly" },
   "import-controlai": { slug: "controlai", schedule: "nightly" },
-  "import-web-form-letters": { slug: "web-form-letters", schedule: "oneOff" },
   "tidy-logs": { slug: "tidying", schedule: "nightly" },
 } as const satisfies Record<string, { slug: string; schedule: JobSchedule; budgetMs?: number }>;
 
@@ -47,9 +44,6 @@ export function isImportJob(value: string): value is ImportJob {
 export function jobSchedule(job: ImportJob): JobSchedule {
   return JOBS[job].schedule;
 }
-
-/** The jobs that run on a schedule, each called by its scheduled function at /api/cron/<job>. */
-export const SCHEDULED_JOBS = IMPORT_JOBS.filter((job) => jobSchedule(job) !== "oneOff");
 
 /** Where a job's page is. */
 export function importPath(job: ImportJob): string {
@@ -253,90 +247,6 @@ export type AddressSearch = {
 export type GmailReadResult = { accounts: GmailRead[]; searched?: AddressSearch; stoppedBy?: "running" };
 export type GmailReading = ImportRun<"read-gmail", GmailReadResult>;
 
-/** What a run of the Emails sync did: the emails read, those it added, and those it couldn't. */
-export type EmailSyncResult = {
-  read: number;
-  added: number;
-  /** Emails to a politician who isn't here yet, for a later run. */
-  waiting: number;
-  /** Emails linked to no politician, or several. */
-  noPolitician: number;
-  /** Emails with no known mailing's box ticked, or several: by record, with the boxes ticked. */
-  unplaced: { airtableId: string; mailings: string[] }[];
-};
-export type EmailSync = ImportRun<"sync-emails", EmailSyncResult>;
-
-/** What the one-off import of pauseai.info's web form letters did: the letters read, and what became of each. */
-export type WebFormImportResult = {
-  read: number;
-  imported: number;
-  /** Marked as spam, invalid, or never sent. */
-  skipped: number;
-  /** Already imported, or already here from the same sender to the same politician for the same ask. */
-  alreadyHere: number;
-  /** To a politician who isn't here, or to none or several. */
-  noPolitician: number;
-  supportersAdded: number;
-  linked: number;
-};
-export type WebFormImport = ImportRun<"import-web-form-letters", WebFormImportResult>;
-
-/** How far the import of old letters has got, over all its runs. */
-export type OldLettersProgress = {
-  read: number;
-  left: number;
-  joined: number;
-  replies: number;
-  autoReplies: number;
-  oneOffs: number;
-  /** Runs Gmail stopped, of those the log still has. */
-  refusals: number;
-  /** What's joined or added, by mailing or form letter's campaign, and what they're called. */
-  byMailing: Record<string, number>;
-  titles: Record<string, string>;
-};
-
-/** What a run of the import of old letters did: how far it got, and what it found. */
-export type OldLettersImportResult = {
-  /** It read everything listed, and did the last steps. */
-  finished: boolean;
-  /** Why it stopped short: Gmail refused a request. */
-  stoppedBy?: "gmail";
-  /** What Gmail said. */
-  stoppedWhy?: string;
-  /** How many of its searches it has listed: its place, between its calls. */
-  searchesDone?: number;
-  /** The first message of the last kept thread whose missing messages it has listed: its place, between its calls. */
-  threadsDone?: number;
-  /** Messages listed and read this run, and how many are left. */
-  listed: number;
-  read: number;
-  left: number;
-  requests: number;
-  /** Form letters' and Postmark letters' texts copied. */
-  formTexts: number;
-  postmarkTexts: number;
-  /** Letters joined to their sent emails, added from them, and not joined, by mailing, or for a form letter its campaign. */
-  joined: Record<string, number>;
-  added: Record<string, number>;
-  notJoined: Record<string, number>;
-  /** What those are called, by the key each is counted under. */
-  titles?: Record<string, string>;
-  replies: number;
-  autoReplies: number;
-  oneOffs: number;
-  /** Gmail IDs of messages Gmail wouldn't give. */
-  unreadable: string[];
-  /** Mail in policy@ and the group's archive that matched nothing, which only staff with supporters see. */
-  unmatched: { from: string; subject: string }[];
-  /** Mailings given a template, and letters that keep their own text as they don't fit theirs. */
-  templates: number;
-  ownText: number;
-  /** Letters with a person's reply newly marked. */
-  repliedSet: number;
-};
-export type OldLettersImport = ImportRun<"import-old-letters", OldLettersImportResult>;
-
 /** What an hour's sending did: the mailings it started, their letters, and the letters inbox's queue. */
 export type SendingResult = {
   /** The IDs of the mailings started this run. */
@@ -362,22 +272,18 @@ export type Tidying = ImportRun<"tidy-logs", TidyingResult>;
 
 export type AnyImportRun =
   | PoliticianSync
-  | EmailSync
   | MpCheck
   | ControlAiImport
   | LumaImport
   | MembersImport
   | CivicrmImport
   | GmailReading
-  | WebFormImport
-  | OldLettersImport
   | Sending
   | Tidying;
 
-/** Whether a run left work for later: a Luma import cut short, by its time, its rate limit or another run; the old letters import until it has read everything. */
+/** Whether a run left work for later: a Luma import cut short, by its time, its rate limit or another run. */
 function moreToDo(run: Exclude<AnyImportRun, { status: "failed" }>): boolean {
-  if (run.job === "import-luma") return run.result.stoppedBy !== undefined;
-  return run.job === "import-old-letters" && !run.result.finished;
+  return run.job === "import-luma" && run.result.stoppedBy !== undefined;
 }
 
 /**

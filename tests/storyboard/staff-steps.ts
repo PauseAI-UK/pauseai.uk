@@ -3,8 +3,9 @@ import { longDay } from "@/lib/calendar-days";
 import { DATE_PICKER_WORDS } from "@/lib/content/date-picker";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { TEST_MPS } from "@/lib/test-mps";
-import { staffCopy } from "@/lib/content/staff-interface";
-import { runSql } from "@/scripts/fresh-database.mjs";
+import { connectLettersInbox, databaseUrl, runSql } from "@/scripts/fresh-database.mjs";
+import { fixtureEnv } from "@/lib/server/fixtures/fixture-env.mjs";
+import { OUTBOX_DIR } from "../checkout.mjs";
 import { ROUTES } from "../routes";
 import {
   addStaffAccount,
@@ -189,9 +190,55 @@ export async function chooseDay(page: Page, label: string, day: string) {
   await target.click();
 }
 
-/** Presses Import emails now on its page, as the staff member logged in, and waits for the run. */
-export async function importEmails(page: Page) {
-  await page.goto(`${BASE}/staff/scheduled-jobs/emails`);
-  await page.getByRole("button", { name: staffCopy.pauseaiEmails.importNow }).click();
-  await expect(page.getByText(staffCopy.runs.status.problems).first()).toBeVisible();
+/**
+ * PauseAI's emails to politicians, as they were copied from Airtable's Emails
+ * table: one of each mailing, by its tick box, or the DeepMind letter's by
+ * when it went, to the politicians the sync copied. Needs the politicians.
+ */
+const PAUSEAI_EMAILS = [
+  { airtableId: "recEmailDeepMind", politician: "recPlaceholder", at: "2025-07-09T11:00:00Z", personalised: true },
+  { airtableId: "recEmailCsrb", politician: "recDummy", at: "2026-06-10T09:00:00Z", field: "CSRB Iqbal Amendment" },
+  {
+    airtableId: "recEmailEdinburghPolly",
+    politician: "recPlaceholder",
+    at: "2026-10-01T10:00:00Z",
+    field: "Edinburgh Conference Nov 26 Invitation",
+    personalised: true,
+  },
+  {
+    airtableId: "recEmailEdinburghMorag",
+    politician: "recMorag",
+    at: "2026-10-01T10:05:00Z",
+    field: "Edinburgh Conference Nov 26 Invitation",
+  },
+  {
+    airtableId: "recEmailBenLake",
+    politician: "recDummy",
+    at: "2026-10-15T08:30:00Z",
+    field: "Ben Lake October 2026 Debate",
+  },
+];
+
+/** Adds PauseAI's emails to politicians (PAUSEAI_EMAILS) to the flow's database. */
+export function addPauseaiEmails(database: string) {
+  for (const { airtableId, politician, at, field, personalised = false } of PAUSEAI_EMAILS) {
+    const [id] = runSql(
+      database,
+      `INSERT INTO letters (kind, notable_person_id, status, created_at, sent_at)
+       SELECT 'pauseai', id, 'sent', '${at}', '${at}' FROM notable_people WHERE airtable_id = '${politician}' RETURNING id`,
+    );
+    const mailing = field ? `airtable_field = '${field}'` : `airtable_sent_between @> '${at}'::timestamptz`;
+    runSql(
+      database,
+      `INSERT INTO letters_from_pauseai (id, mailing_id, airtable_id, personalised)
+       SELECT ${id}, id, '${airtableId}', ${personalised} FROM mailings WHERE ${mailing}`,
+    );
+  }
+}
+
+/** Connects Joseph's and policy@'s Gmail, the fake mailboxes of lib/server/fixtures/policy-mailbox.ts. */
+export function connectPolicyMailboxes(database: string) {
+  const key = fixtureEnv({ outboxDir: OUTBOX_DIR }).GMAIL_TOKEN_KEY;
+  for (const email of ["joseph@pauseai.uk", "policy@pauseai.uk"])
+    connectLettersInbox(databaseUrl(database), email, key);
 }
