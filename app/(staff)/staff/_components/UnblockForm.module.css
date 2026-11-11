@@ -1,16 +1,19 @@
 /* Unblock the kit's small button wherever the form is, a strip's lighter
-   buttons included, so it's as tall as the note's field beside it; and the
-   note's field and Unblock always on one line. */
+   buttons included, so it's as tall as the note's field beside it. */
 .form {
   --button-padding: 9px 14px;
   --button-font-size: 14px;
+}
 
+/* The note's field and Unblock always on one line, over the kit's form,
+   which wraps (the class twice, so it wins whichever loads last). */
+.form.form {
   flex-wrap: nowrap;
 }
 
 /* The field is short, as a note of why is a few words, but never less
    than enough to type in; it doesn't grow into the room beside it. */
 .why {
-  flex: 0 1 11rem;
-  min-width: 8rem;
+  flex: 0 1 9rem;
+  min-width: 6rem;
 }
