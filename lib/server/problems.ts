@@ -6,9 +6,11 @@ import "server-only";
 // it with problem(), which is the one way to do that (tests/checks). The
 // problem is logged, and if a run is in progress, kept on the run, so the
 // job's page shows it and staff are emailed about it (import-runs.ts).
-// Outside a run, as in a form or a webhook, it's only logged. The run in
-// progress comes from run-store.ts, which registers itself here, so this
-// module loads anywhere, the browser included.
+// Outside a run, as in a form or a webhook, it's kept as an error, which
+// the errors page shows and staff are emailed about (errors-seen.ts). The
+// run in progress comes from run-store.ts, and the keeping of errors from
+// instrumentation.ts, as the server starts; each registers itself here, so
+// this module loads anywhere, the browser included, where neither is.
 
 /**
  * One thing that went wrong during a run: what, and the error's own words,
@@ -27,16 +29,31 @@ export function registerRunStore(find: () => Run | undefined): void {
   findRun = find;
 }
 
+/** What keeps a problem reported outside a run: its sentence, and the error's words if it had one. */
+type Keeper = (what: string, described: string | undefined) => void;
+
+let keeper: Keeper | undefined;
+
+/** Tells problem() what keeps one reported outside a run: keepProblem (errors-seen.ts), as the server starts. */
+export function registerProblemKeeper(keep: Keeper | undefined): void {
+  keeper = keep;
+}
+
 /**
  * Reports something that went wrong without stopping the work: `what` in our
  * words, and the error, if there was one. `what` is how the run's email tells
  * a new problem from an old one, so a count or a list goes in `error`. `told` if staff have been emailed
- * about it already, by an alert of its own.
+ * about it already, by an alert of its own, which a run's email then leaves out; outside a run, it isn't kept.
  */
 export function problem(what: string, error?: unknown, { told = false } = {}): void {
   const described = error === undefined ? undefined : describeError(error);
   console.error(what, ...(described === undefined ? [] : [described]));
-  findRun()?.problems.push({
+  const run = findRun();
+  if (!run) {
+    if (!told) keeper?.(what, described);
+    return;
+  }
+  run.problems.push({
     what,
     ...(described !== undefined && { error: described }),
     ...(told && { told: true as const }),

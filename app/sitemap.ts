@@ -31,7 +31,8 @@ export function discoverStaticRoutes(dir: string, base = ""): string[] {
 
 // Real pages that should stay out of the sitemap: unlisted volunteer tools,
 // each campaign's write, preview and sent pages, which only make sense after
-// finding the MP, and the component gallery, which only fixture builds have.
+// finding the MP, and the component gallery and its page that breaks, which
+// only fixture builds have.
 export const HIDDEN_ROUTES = [
   "/campaigns/regulate-letter-pm/preview",
   "/campaigns/regulate-letter-pm/sent",
@@ -40,6 +41,7 @@ export const HIDDEN_ROUTES = [
   "/campaigns/support-sobel-bill/sent",
   "/campaigns/support-sobel-bill/write",
   "/gallery",
+  "/gallery/broken",
   "/tools",
   "/tools/collateral",
   "/tools/qr",

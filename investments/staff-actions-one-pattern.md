@@ -12,7 +12,7 @@ Staff Server Actions report back in five ways:
 - redirect with `?notice=` for the page to read;
 - take positional arguments and refresh by hand (`saveMailing`).
 
-Pending states are built three ways (`useFormStatus`, `useOptimistic` as a saving flag, `useTransition`). `useActionState`, which the Next.js docs recommend for this (`node_modules/next/dist/docs/01-app/01-getting-started/07-mutating-data.md`), isn't used at all. A thrown action ends on Next's default error page, as there's no `error.tsx`.
+Pending states are built three ways (`useFormStatus`, `useOptimistic` as a saving flag, `useTransition`). `useActionState`, which the Next.js docs recommend for this (`node_modules/next/dist/docs/01-app/01-getting-started/07-mutating-data.md`), isn't used at all. A thrown action ends on the staff pages' error page, in place of the form.
 
 ## Fix
 
@@ -20,7 +20,7 @@ Pending states are built three ways (`useFormStatus`, `useOptimistic` as a savin
 - One `useStaffAction` hook over `useActionState`, which gives the pending flag and the message.
 - A check in `tests/checks/` that every staff action returns the result type.
 
-Convert one form at a time, the silent ones first. The error boundaries are in `error-reporting.md`.
+Convert one form at a time, the silent ones first.
 
 ## Hits
 

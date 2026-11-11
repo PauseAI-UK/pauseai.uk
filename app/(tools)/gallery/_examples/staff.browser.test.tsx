@@ -27,6 +27,7 @@ import {
   SignupPlanViewExample,
   SignupUploadHelpExample,
   SignupUploadPreviewExample,
+  StaffErrorPageExample,
 } from "./staff.client";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
@@ -199,6 +200,12 @@ describe("the staff examples", () => {
     await expect.element(log().nth(0)).toHaveTextContent('decide({"id":"3","decision":"apply"})');
     await page.getByRole("button", { name: staffCopy.syncs.discard }).click();
     await expect.element(log().nth(1)).toHaveTextContent('decide({"id":"3","decision":"discard"})');
+  });
+
+  it("logs the staff error page's Try again", async () => {
+    await render(<StaffErrorPageExample />);
+    await page.getByRole("button", { name: staffCopy.errorPage.retry }).click();
+    await expect.element(log().nth(0)).toHaveTextContent("retry(event)");
   });
 
   it("logs clearing a politician's signature on their page", async () => {

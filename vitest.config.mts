@@ -123,6 +123,7 @@ export default defineConfig({
         "tests/fixtures/**/*.ts",
         "next.config.ts",
         "proxy.ts",
+        "instrumentation.ts",
         "netlify/functions/**/*.ts",
         "netlify/scheduled.ts",
       ],

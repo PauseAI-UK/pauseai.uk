@@ -4,6 +4,7 @@ import { Lato } from "next/font/google";
 import "@/styles/tokens.css";
 import "@/styles/base.css";
 import CookieConsent from "@/components/layout/CookieConsent";
+import ErrorReporter from "@/components/layout/ErrorReporter";
 import FooterYear from "@/components/layout/FooterYear";
 import JsonLd from "@/components/layout/JsonLd";
 import TagManagerNoscript from "@/components/layout/TagManagerNoscript";
@@ -87,6 +88,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </CookieConsent>
         <FooterYear />
+        <ErrorReporter />
       </body>
     </html>
   );

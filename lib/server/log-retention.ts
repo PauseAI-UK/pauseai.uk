@@ -1,13 +1,15 @@
 import "server-only";
 import { IMPORT_JOBS, type JobSchedule, jobSchedule, type TidyingResult } from "@/lib/import-runs";
 import { auditActions } from "./audit";
+import { tidyErrorsSeen } from "./errors-seen";
 import { asRun } from "./import-runs";
 import { deleteForgottenDrafts } from "./mailing-drafts";
 import { query } from "./db";
 
 // How long the import log and the audit log keep what they hold, so neither
 // grows for ever. Run once a day, by its own scheduled job
-// (/api/cron/tidy-logs).
+// (/api/cron/tidy-logs), which also deletes forgotten mailing drafts and
+// old errors.
 //
 // An import run is kept for a week if its job runs every 5 minutes or hourly, a month if it
 // runs nightly, and a one-off job keeps its last 50 runs. Every job keeps its
@@ -35,11 +37,16 @@ const POLITICIAN_HISTORY = `(
   OR (a.action IN (${auditActions("block address", "unblock address")})
     AND EXISTS (SELECT 1 FROM notable_people n WHERE lower(n.email) = a.details->>'address')))`;
 
-/** One run of the tidying, kept in the import log: the logs (below), and the mailing drafts nobody wrote anything in. */
+/**
+ * One run of the tidying, kept in the import log: the logs (below), the
+ * mailing drafts nobody wrote anything in, and the errors not seen for a
+ * month (errors-seen.ts).
+ */
 export async function runTidying(startedBy: string): Promise<TidyingResult> {
   const { result } = await asRun(JOB, startedBy, async () => {
-    const result: TidyingResult = { ...(await tidyLogs()), drafts: await deleteForgottenDrafts() };
-    const anything = result.importRuns + result.auditEntries + result.drafts > 0;
+    const errors = await tidyErrorsSeen();
+    const result: TidyingResult = { ...(await tidyLogs()), drafts: await deleteForgottenDrafts(), errors };
+    const anything = result.importRuns + result.auditEntries + result.drafts + errors > 0;
     return { status: anything ? "ok" : "unchanged", result } as const;
   });
   return result;

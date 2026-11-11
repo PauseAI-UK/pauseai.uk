@@ -17,6 +17,12 @@ describe("staff interface copy", () => {
     for (const n of ["12", "3", "4", "5", "6"]) expect(web).toContain(n);
   });
 
+  it("counts the errors a night's tidying deleted, none for a run kept from before it did", () => {
+    const counts = { importRuns: 12, auditEntries: 3, drafts: 4 };
+    expect(staffCopy.tidying.result({ ...counts, errors: 5 })).toContain("5 errors");
+    expect(staffCopy.tidying.result(counts)).toContain("0 errors");
+  });
+
   it("puts the number in each list's total", () => {
     const { letters, politicians, supporters, mailings, changes } = staffCopy;
     for (const list of [letters, politicians, supporters, mailings, changes]) expect(list.total(7)).toContain("7");

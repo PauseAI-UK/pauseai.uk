@@ -14,6 +14,10 @@ route next to that route.
 app/
   layout.tsx              root: fonts, metadata, cookie consent
   not-found.tsx
+  error.tsx, global-error.tsx
+                          in place of a page that threw; (site)/ and the
+                          staff pages have their own, inside their layouts
+                          (docs/domain-concepts.md, "Errors")
   (site)/                 public pages; layout.tsx renders <Nav> and <Footer>
   (tools)/                unlisted volunteer tools and trackers; layout.tsx
                           renders <Nav> and <Footer>, and turns analytics off
@@ -59,6 +63,8 @@ netlify/                  database migrations, scheduled functions
 backup/                   the nightly database backup: a Cloudflare Worker and
                           container, a package of its own (backup/README.md)
 proxy.ts                  turns away /staff requests without a session cookie
+instrumentation.ts        Next's hooks: keeps each error the server throws,
+                          and each problem reported outside a job's run
 tests/                    the route list, the fixtures only tests use, Vitest
                           setup
   storyboard/             the Playwright suite (docs/testing.md)
@@ -119,7 +125,11 @@ the code should go instead. The rules below say which ones are enforced.
     problem is kept on the run, so the job's page shows it under the run's
     line. Staff are emailed about it once, and not again until a run has
     gone right or something else goes wrong.
-  - Outside a run, as in a form or a webhook, the problem is logged.
+  - Outside a run, as in a form or a webhook, the problem is kept as an
+    error, as what the server throws is: on the admins' Errors page, and
+    emailed to staff when it's new (`lib/server/errors-seen.ts`;
+    `docs/domain-concepts.md`, "Errors"). So a thrown error needs no catch
+    to be noticed, and a caught one needs only `problem()`.
   - Nothing in `lib/server`, `app/api` or `netlify/functions` writes an
     error to the log by hand. `console.error` reaches only Netlify's logs.
     `String(error)` drops the error's cause, so a network failure reads

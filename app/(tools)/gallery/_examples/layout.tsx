@@ -1,6 +1,7 @@
 // The site's header, footer and banners (components/layout/).
 import Brand from "@/components/layout/Brand";
 import CookieConsent, { CookieSettingsLink } from "@/components/layout/CookieConsent";
+import ErrorReporter from "@/components/layout/ErrorReporter";
 import Footer from "@/components/layout/Footer";
 import FooterQr from "@/components/layout/FooterQr";
 import FooterYear from "@/components/layout/FooterYear";
@@ -12,6 +13,7 @@ import NoAnalytics from "@/components/layout/NoAnalytics";
 import { localGroups } from "@/lib/content/local-groups";
 import type { Group } from "../_components/types";
 import styles from "../_components/Gallery.module.css";
+import { ErrorPageExample } from "./layout.client";
 
 // A local group with its own logo, and one without.
 const WITH_LOGO = localGroups.find((group) => group.logo)!;
@@ -189,6 +191,34 @@ export const layout: Group = {
             <>
               <JsonLd data={{ "@context": "https://schema.org", "@type": "Event", name: "An example event" }} />
               <p className={styles.note}>Adds structured data for search engines to the page.</p>
+            </>
+          ),
+        },
+      ],
+    },
+    {
+      name: "ErrorPage",
+      file: "components/layout/ErrorPage.tsx",
+      variants: [
+        {
+          label: "In place of a page that threw an error",
+          render: () => <ErrorPageExample />,
+        },
+      ],
+    },
+    {
+      name: "ErrorReporter",
+      file: "components/layout/ErrorReporter.tsx",
+      variants: [
+        {
+          label: "Renders nothing visible: tells the site of errors in the browser",
+          render: () => (
+            <>
+              <ErrorReporter />
+              <p className={styles.note}>
+                Listens for what the page&rsquo;s own scripts throw that no error page catches, and posts it to the
+                site.
+              </p>
             </>
           ),
         },
