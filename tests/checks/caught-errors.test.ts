@@ -6,8 +6,10 @@ import { describe, expect, it } from "vitest";
 // An error that's caught is rethrown or reported with problem()
 // (lib/server/problems.ts), so that carrying on past it leaves a record on
 // the run, or at least in the log. This fails on any catch block, or
-// function passed to .catch(), that does neither, in the code where jobs and
-// requests run: lib/server, app/api and netlify/functions. A named handler
+// function passed to .catch(), that does neither, or has a way out (break,
+// continue, return) ahead of its report, as an early exit for one kind of
+// error skips it; in the code where jobs and requests run: lib/server, app/api
+// and netlify/functions. A named handler
 // passed to .catch() is read too, so one that rethrows all but one error
 // passes. The exceptions below are the few places that catch to answer a
 // question ("is there a request?") rather than to carry on past a failure.
@@ -27,7 +29,17 @@ const EXCEPTIONS = new Map([
   ["lib/server/fixtures/outbox.ts  readOutbox", "an outbox that isn't there yet has no emails in it"],
   // Asking Next to wait for work after the response throws outside a request: the work is already going.
   ["lib/server/errors-seen.ts  heldOpen", "outside a request there's nothing to hold open, and the work goes on"],
+  // Gmail's history of a mailbox expires: the read searches instead, and its run says it restarted.
+  ["lib/server/outside-services/gmail.ts  gmailHistory", "history gone is an answer: the read searches, and says so"],
+  // Postmark refusing a suppressed address is kept as that address blocked, which staff see.
+  ["lib/server/email.ts  send", "a suppressed address is recorded as blocked, its own report"],
 ]);
+
+/**
+ * Handlers passed to .catch() whose way out ahead of their throw is an
+ * answer, not a failure, with why: they rethrow all else.
+ */
+const ANSWERING_HANDLERS = new Map([["unlessGone", "a message deleted since is gone, not a failure"]]);
 
 function codeFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -37,11 +49,42 @@ function codeFiles(dir: string): string[] {
   });
 }
 
-/** Whether `node` has a throw, or a call to problem(), anywhere in it. */
-function handles(node: ts.Node): boolean {
+/** Whether `node` is, or has in it, a throw or a call to problem(). */
+function reports(node: ts.Node): boolean {
   if (ts.isThrowStatement(node)) return true;
   if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "problem") return true;
-  return ts.forEachChild(node, handles) ?? false;
+  return ts.forEachChild(node, reports) ?? false;
+}
+
+/**
+ * The ways out of a catch's block, or a handler's, that come before any report
+ * in it: a break, continue or return that doesn't report, ahead of the first
+ * throw or problem(). Those skip the report, as an early exit for one kind of
+ * error would. Nested functions are their own.
+ */
+function exitsBeforeReport(body: ts.Node): ts.Node[] {
+  let reported = false;
+  const exits: ts.Node[] = [];
+  const visit = (node: ts.Node) => {
+    if (reported || ts.isFunctionLike(node)) return;
+    if (ts.isBreakStatement(node) || ts.isContinueStatement(node) || ts.isReturnStatement(node)) {
+      if (reports(node)) reported = true;
+      else exits.push(node);
+      return;
+    }
+    if (ts.isThrowStatement(node) || (ts.isCallExpression(node) && reports(node) && !ts.forEachChild(node, reports))) {
+      reported = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(body, visit);
+  return exits;
+}
+
+/** Whether a catch's block, or a handler, rethrows or reports, with no way out ahead of it. */
+function handles(node: ts.Node): boolean {
+  return reports(node) && exitsBeforeReport(node).length === 0;
 }
 
 /** The name of the function `node` is in, for naming a hit. */
@@ -90,7 +133,9 @@ export function unhandledCatches(sources: ts.SourceFile[]): Hit[] {
       ) {
         const [handler] = node.arguments;
         const body = ts.isIdentifier(handler) ? named.get(handler.text) : handler;
-        if (!body || !handles(body)) hit(node, `.catch(${ts.isIdentifier(handler) ? handler.text : "…"})`);
+        const answers = ts.isIdentifier(handler) && ANSWERING_HANDLERS.has(handler.text);
+        if (!body || !(answers ? reports(body) : handles(body)))
+          hit(node, `.catch(${ts.isIdentifier(handler) ? handler.text : "…"})`);
       }
       ts.forEachChild(node, visit);
     };
@@ -113,6 +158,9 @@ describe("caught errors", () => {
         try { x(); } catch (e) { if (!(e instanceof Y)) throw e; }
         try { x(); } catch (e) { problem("It broke", e); }
         try { x(); } catch (e) { log(e); }
+        for (;;) { try { x(); } catch (e) { if (e.soon) break; problem("It broke", e); } }
+        try { x(); } catch (e) { problem("It broke", e); if (e.soon) return 2; }
+        try { x(); } catch (e) { if (e.gone) return problem("Gone", e); throw e; }
         await y().catch(unlessGone);
         await y().catch(swallows);
         await y().catch(() => null);
@@ -123,8 +171,9 @@ describe("caught errors", () => {
     expect(hits.map((h) => `${h.what}@${h.line} in ${h.fn}`)).toEqual([
       "catch@5 in a",
       "catch@8 in a",
-      ".catch(swallows)@10 in a",
-      ".catch(…)@11 in a",
+      "catch@9 in a",
+      ".catch(swallows)@13 in a",
+      ".catch(…)@14 in a",
     ]);
   });
 
