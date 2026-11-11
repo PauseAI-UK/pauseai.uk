@@ -162,6 +162,10 @@ describe("replyText", () => {
         "Thanks.\n\nKind regards\n\nSam Example\n\nChief of Staff\n\n*Office of Polly Placeholder MSP*\n\n*Member of the Scottish Parliament for Testshire*",
       ),
     ).toBe("Thanks.\n\nKind regards");
+    // However many blank lines, and a bold name that starts with a space, as a list's item would.
+    expect(replyText("Thanks.\n\n*  Polly Placeholder MSP*\n\n\n\nMSP for Testshire – Ball airson Testshire")).toBe(
+      "Thanks.",
+    );
     for (const role of [
       "MP for Testshire",
       "MSP for Testshire",
@@ -222,10 +226,7 @@ describe("replyText", () => {
     expect(replyText("Thanks.\n\nMember of Parliament for Testshire")).toBe(
       "Thanks.\n\nMember of Parliament for Testshire",
     );
-    // Two blank lines, or four lines over it, aren't a signature.
-    expect(replyText("Thanks.\n\nPolly Placeholder\n\n\nMP for Testshire")).toBe(
-      "Thanks.\n\nPolly Placeholder\n\n\nMP for Testshire",
-    );
+    // Four lines over it aren't a signature.
     expect(replyText("Thanks.\n\nA\nB\nC\nD\nMP for Testshire")).toBe("Thanks.\n\nA\nB\nC\nD\nMP for Testshire");
     // A long line over it, or nothing after the names, isn't either.
     const long = "Polly Placeholder, who has represented Testshire for many years and more";

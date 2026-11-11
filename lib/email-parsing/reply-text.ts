@@ -71,13 +71,14 @@ function nameLike(line: string): boolean {
     trimmed.length <= SIGNATURE.longest &&
     !/[,.;:!?]$/.test(trimmed) &&
     !SIGN_OFF.test(trimmed) &&
-    !KEEPS_ITS_LINE.test(trimmed)
+    // A list's item, but not a line in bold, "*  Name*", which can look like one.
+    (!KEEPS_ITS_LINE.test(trimmed) || /^\*.*\*$/.test(trimmed))
   );
 }
 
 /**
  * Whether a signature starts at a line: the first after a blank line or a
- * sign-off (or a first name signed under it), of up to three short lines, a blank line allowed between each,
+ * sign-off (or a first name signed under it), of up to three short lines, blank lines allowed between,
  * that are or lead to a politician's role under a name, or a line saying
  * who its writer works for or what as. The role ends no sentence, which
  * says it isn't one wrapped onto a line of its own.
@@ -90,10 +91,7 @@ function startsSignature(lines: string[], i: number): boolean {
   let names = 0;
   for (let j = i; j < lines.length; j++) {
     const line = lines[j]!;
-    if (!line.trim()) {
-      if (!lines[j - 1]!.trim()) return false;
-      continue;
-    }
+    if (!line.trim()) continue;
     if (ROLE_LINE.test(line)) return names > 0 && !/[.!?]\W*$/.test(line);
     if (!nameLike(line) || ++names > SIGNATURE.above) return false;
     if (STAFF_LINE.test(line)) return true;
