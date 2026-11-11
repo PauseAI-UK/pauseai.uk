@@ -614,9 +614,10 @@ else in it.
   hand: it's logged and every thread relinked at once. The next regular read of
   Gmail searches policy@ and joseph@ for it (up to 50 messages each) and keeps
   what it would have kept, as it passed over that mail before the address was
-  known (`searched_at`). That's done in the read, not while staff wait, so
-  Gmail's limit a minute can't cut it short: if Gmail refuses, or the read's
-  time runs out, the search carries on next time. Staff can remove an address
+  known (`searched_at`). That's done at the start of the read, before the
+  mailboxes, which can take most of a minute, and not while staff wait, so
+  Gmail's limit a minute can't cut it short: if Gmail refuses, or its few
+  seconds run out, the search carries on next time. Staff can remove an address
   they added, or one guessed to be their office's, which is then kept as
   `rejected` so it isn't guessed again; either way, the threads it alone linked
   lose them.

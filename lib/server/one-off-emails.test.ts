@@ -513,8 +513,15 @@ describeWithDatabase("one-off emails", () => {
       await connectTestGmail("policy@pauseai.uk");
       vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
       mailbox({ id: "m1", from: "Polly <polly.home@example.com>" });
+      // Reading each mailbox takes a minute, as reading them all can in production: the search comes first, so it still runs.
+      let later = 0;
+      const now = Date.now.bind(Date);
+      vi.spyOn(Date, "now").mockImplementation(() => now() + later);
       server.use(
-        http.get(`${GMAIL}/history`, () => HttpResponse.json({ historyId: "2", history: [] })),
+        http.get(`${GMAIL}/history`, () => {
+          later += 60_000;
+          return HttpResponse.json({ historyId: "2", history: [] });
+        }),
         http.get(`${GMAIL}/messages`, ({ request }) =>
           HttpResponse.json(
             new URL(request.url).searchParams.get("q") === '"polly.home@example.com"'
@@ -530,6 +537,7 @@ describeWithDatabase("one-off emails", () => {
       );
       expect((await readGmail("nightly")).searched).toEqual({ searched: 1, kept: 1, waiting: 0 });
       expect(await query("SELECT notable_person_id::int AS id FROM one_off_thread_people")).toEqual([{ id: polly }]);
+      vi.restoreAllMocks();
     });
   });
 
