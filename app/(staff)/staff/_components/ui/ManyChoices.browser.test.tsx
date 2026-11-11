@@ -310,6 +310,14 @@ describe("a repeating filter's lozenge's menu", () => {
     await page.getByRole("button", { name: "Tag: A or B" }).click();
     expect(rows()[0][0]).toBe("Aquiet");
   });
+
+  it("shows a choice's detail after its link, with one chosen", async () => {
+    await render(
+      bar([{ ...tag, options: [{ value: "a", label: "A", detail: "quiet" }, tag.options[1]] }], { tag: "a" }),
+    );
+    await page.getByRole("button", { name: "Tag: A" }).click();
+    expect(open().querySelector("a[aria-current]")!.textContent).toBe("Aquiet");
+  });
 });
 
 describe("ManyChoices outside a bar, as in the gallery", () => {

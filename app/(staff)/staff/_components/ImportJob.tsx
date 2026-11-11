@@ -35,6 +35,7 @@ const words = staffCopy.import;
 
 /** PauseAI's join form, where the members come from. */
 const JOIN_FORM = "https://pauseai.info/join";
+const CIVICRM = "https://crm.pauseai.info/";
 
 /** Where each job reads from, as its icon. */
 const SOURCES: Record<ImportJob, ImportSource> = {
@@ -45,6 +46,7 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "check-mps": "web",
   "import-controlai": "web",
   "import-members": "airtable",
+  "import-civicrm": "web",
   "read-gmail": "gmail",
   "import-old-letters": "gmail",
   "send-mailings": "gmail",
@@ -120,6 +122,12 @@ const ABOUT: Record<
     href: JOIN_FORM,
     button: staffCopy.members.importNow,
     none: staffCopy.members.never,
+  },
+  "import-civicrm": {
+    intro: staffCopy.civicrm.intro,
+    href: CIVICRM,
+    button: staffCopy.civicrm.importNow,
+    none: staffCopy.civicrm.never,
   },
   "read-gmail": {
     intro: staffCopy.gmailReading.intro,

@@ -42,14 +42,15 @@ describe("SUPPORTER_FILTERS", () => {
     expect(near(undefined, "")).toEqual([]);
   });
 
-  it("puts each topic of the Subscriptions filter under its channel, with the channel's icon when it's given one", () => {
+  it("puts each topic of the Consent filter under its way, with its channel's icon when it's given one", () => {
     const contact = (channelIcon?: (channel: string) => string) =>
       SUPPORTER_FILTERS({ events: [], mps: [], near: "", channelIcon }).find((filter) => filter.name === "contact")!;
-    expect(contact().options[0].group).toEqual({ label: copy.channels.email, icon: undefined });
-    expect(contact((channel) => `icon of ${channel}`).options[0].group).toEqual({
-      label: copy.channels.email,
-      icon: "icon of email",
-    });
+    expect(contact().options[0].group).toEqual({ label: copy.ways.email, icon: undefined });
+    expect(contact((channel) => `icon of ${channel}`).options.map((option) => option.group)).toEqual([
+      ...[1, 2, 3].map(() => ({ label: copy.ways.email, icon: "icon of email" })),
+      ...[1, 2, 3].map(() => ({ label: copy.ways.text, icon: "icon of text" })),
+      { label: copy.ways.call, icon: "icon of call" },
+    ]);
     expect(contact().repeat).toBeUndefined();
   });
 });

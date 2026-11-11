@@ -21,7 +21,7 @@ describeWithDatabase("GET /staff/broadcasts/[id]/files/[file]", () => {
   it("gives one of a broadcast's files, and none of a mailing to politicians", async () => {
     requestCookies.set("staff_session", await createSession("jo@pauseai.uk"));
     await query("UPDATE staff_accounts SET permissions = ARRAY['supporters'] WHERE email = 'jo@pauseai.uk'");
-    const id = (await createBroadcastDraft("jo@pauseai.uk", { contact: "email:site-forms:yes" }))!;
+    const id = (await createBroadcastDraft("jo@pauseai.uk", { contact: "email:newsletter:yes" }))!;
     const content = Buffer.from("%PDF-1.4");
     await addAttachment(id, 1, { filename: "Brief.pdf", contentType: "application/pdf", content });
     const res = await open(String(id), "1");

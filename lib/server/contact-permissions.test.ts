@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import type { Topic } from "@/lib/contact-permissions";
+import type { Topic, Way } from "@/lib/contact-permissions";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "./db";
 import { permissionsFor } from "./contact-permissions";
@@ -30,6 +30,42 @@ async function member(
   );
 }
 
+type Civicrm = {
+  airtableId?: string | null;
+  newsletter?: string;
+  volunteer?: string;
+  flags?: Partial<Record<"on_hold" | "no_bulk_email" | "do_not_email" | "do_not_phone" | "do_not_sms", boolean>>;
+  gone?: string | null;
+};
+
+let contactIds = 0;
+
+/** A CiviCRM contact with `email`, every value as of `since`: on neither list and no flags, unless told otherwise. */
+async function civicrm(email: string, since: string, contact: Civicrm = {}) {
+  const flags = { on_hold: false, no_bulk_email: false, do_not_email: false, do_not_phone: false, do_not_sms: false };
+  Object.assign(flags, contact.flags);
+  await query(
+    `INSERT INTO civicrm_contacts (contact_id, airtable_id, email, on_hold, on_hold_since, no_bulk_email, no_bulk_email_since,
+       do_not_email, do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since,
+       newsletter, newsletter_since, volunteer_updates, volunteer_updates_since, first_seen_at, gone_at)
+     VALUES ($1, $2, $3, $4, $11, $5, $11, $6, $11, $7, $11, $8, $11, $9, $11, $10, $11, $11, $12)`,
+    [
+      ++contactIds,
+      contact.airtableId ?? null,
+      email,
+      flags.on_hold,
+      flags.no_bulk_email,
+      flags.do_not_email,
+      flags.do_not_phone,
+      flags.do_not_sms,
+      contact.newsletter ?? "not_on_list",
+      contact.volunteer ?? "not_on_list",
+      since,
+      contact.gone ?? null,
+    ],
+  );
+}
+
 /** A registration for an event by `email`'s Luma account, giving `phone`. */
 async function lumaGuest(email: string, phone: string) {
   await query(
@@ -44,7 +80,7 @@ async function lumaGuest(email: string, phone: string) {
 }
 
 /** An entry on `form` from `email`, giving `phone`, with the consent box ticked or not. */
-async function formEntry(email: string, form: string, phone: string, consent: boolean, at: string) {
+async function formEntry(email: string, form: string, phone: string | null, consent: boolean, at: string) {
   await query(
     `INSERT INTO form_entries (form, created_at, name, email, phone, contact_consent) VALUES ($1, $2, 'X', $3, $4, $5)`,
     [form, at, email, phone, consent],
@@ -62,253 +98,377 @@ async function letter(mp: number, email: string, consent: boolean, at: string) {
   });
 }
 
-/** An opt-out from Luma's webhook, lifted at `resubscribedAt` if given. */
-async function lumaOptOut(address: string, at: string, resubscribedAt: string | null = null) {
+/** An opt-out of `list` by `way` from `source`, lifted at `resubscribedAt` if given. */
+async function optOut(
+  address: string,
+  at: string,
+  { list = "events", way = "email", source = "luma-webhook", resubscribedAt = null as string | null } = {},
+) {
   await query(
-    `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at, resubscribed_at)
-     VALUES ($1, 'luma-calendar', 'luma-webhook', $2, $3, $4)`,
-    [address, `w-${address}-${at}`, at, resubscribedAt],
+    `INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at, resubscribed_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [address, list, way, source, `w-${address}-${list}-${at}`, at, resubscribedAt],
   );
 }
 
-/** One address's answer for a topic, as [send, reason, at, source]; undefined when the topic doesn't apply. */
+/** A block on an address, from a problem of `kind`. */
+async function block(address: string, kind: string, at: string) {
+  await query(
+    `WITH p AS (INSERT INTO email_problems (at, address, kind, reason, can_reset) VALUES ($2, $1, $3, '', $3 <> 'complaint')
+       RETURNING id)
+     INSERT INTO email_blocks (address, problem_id) SELECT $1, id FROM p`,
+    [address, at, kind],
+  );
+}
+
+/** One address's answer for a topic by email, as [send, reason, at, source]; undefined when it has none. */
 async function answer(address: string, topic: Topic) {
   const found = (await permissionsFor([address])).find((p) => p.topic === topic);
   return found && [found.send, found.reason, found.at && new Date(found.at).toISOString(), found.source];
 }
 
-/** One number's answer for a topic, as [send, reason, at, source]; undefined when the topic doesn't apply. */
-async function phoneAnswer(number: string, topic: Topic) {
-  const found = (await permissionsFor([], [number])).find((p) => p.topic === topic);
+/** One number's answer for a topic by a way, as [send, reason, at, source]; undefined when it has none. */
+async function phoneAnswer(number: string, topic: Topic, way: Way = "text") {
+  const found = (await permissionsFor([], [number])).find((p) => p.topic === topic && p.way === way);
   return found && [found.send, found.reason, found.at && new Date(found.at).toISOString(), found.source];
 }
 
 describeWithDatabase("permissionsFor", () => {
   useTestDatabase();
 
-  it("answers each address in the order asked, a topic at a time, and only the topics it has had anything to do with", async () => {
-    const mp = await addTestMp();
-    await luma("jane@example.com", "2026-09-20T00:00:00Z");
-    await member("recJane", "jane@example.com", "2026-09-12T00:00:00Z", true);
-    await letter(mp, "Jane@Example.com ", true, "2026-10-05T00:00:00Z");
-    await letter(mp, "gus@example.com", true, "2026-10-05T00:00:00Z");
-    const permissions = await permissionsFor(["gus@example.com", " Jane@example.com", "nobody@example.com"]);
-    expect(permissions.map((p) => [p.address, p.topic])).toEqual([
-      ["gus@example.com", "site-forms"],
-      ["jane@example.com", "luma-calendar"],
-      ["jane@example.com", "pauseai-updates"],
-      ["jane@example.com", "site-forms"],
+  it("answers each address in the order asked, then each number, a topic at a time, text before call", async () => {
+    await luma("b@example.com", "2026-09-01T00:00:00Z");
+    await civicrm("a@example.com", "2026-11-01T00:00:00Z", { newsletter: "subscribed", volunteer: "subscribed" });
+    await member("recV", "v@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900030", "Volunteer");
+    expect(
+      (await permissionsFor([" A@Example.com", "b@example.com", "nobody@example.com"], ["+447700900030"])).map((p) => [
+        p.address,
+        p.topic,
+        p.way,
+        p.channel,
+        p.send,
+      ]),
+    ).toEqual([
+      ["a@example.com", "newsletter", "email", "email", "yes"],
+      ["a@example.com", "volunteering", "email", "email", "yes"],
+      ["b@example.com", "events", "email", "email", "yes"],
+      ["+447700900030", "volunteering", "text", "phone", "yes"],
+      ["+447700900030", "volunteering", "call", "phone", "yes"],
     ]);
-    expect(permissions[0].at).toBeInstanceOf(Date);
   });
 
-  it("says no to every topic for a blocked address, whatever else it said", async () => {
+  it("says yes to the newsletter by email for a box ticked on any of our forms or a paper sign-up, and the latest says", async () => {
     const mp = await addTestMp();
-    await luma("gus@example.com", "2026-10-22T09:00:00Z");
-    await member("recGus", "gus@example.com", "2026-09-12T00:00:00Z", true);
-    await letter(mp, "gus@example.com", true, "2026-10-05T00:00:00Z");
-    const [{ id }] = await query<{ id: number }>(
-      `INSERT INTO email_problems (address, kind, reason, can_reset, at)
-       VALUES ('gus@example.com', 'complaint', 'spam', false, '2026-10-06T00:00:00Z') RETURNING id::int AS id`,
-    );
-    await query("INSERT INTO email_blocks (address, problem_id) VALUES ('gus@example.com', $1)", [id]);
-    const blocked = ["no", "blocked", "2026-10-06T00:00:00.000Z", "complaint"];
-    expect(await answer("gus@example.com", "luma-calendar")).toEqual(blocked);
-    expect(await answer("gus@example.com", "pauseai-updates")).toEqual(blocked);
-    expect(await answer("gus@example.com", "site-forms")).toEqual(blocked);
+    await letter(mp, "asked@example.com", true, "2026-10-01T00:00:00Z");
+    expect(await answer("asked@example.com", "newsletter")).toEqual([
+      "yes",
+      "asked",
+      "2026-10-01T00:00:00.000Z",
+      "email-your-mp",
+    ]);
+    // A later box left unticked doesn't undo it, as it isn't a stop.
+    await letter(mp, "asked@example.com", false, "2026-10-20T00:00:00Z");
+    expect((await answer("asked@example.com", "newsletter"))?.slice(0, 2)).toEqual(["yes", "asked"]);
+    // Only boxes left unticked: why not.
+    await letter(mp, "declined@example.com", false, "2026-10-01T00:00:00Z");
+    expect(await answer("declined@example.com", "newsletter")).toEqual([
+      "no",
+      "declined",
+      "2026-10-01T00:00:00.000Z",
+      "email-your-mp",
+    ]);
+    await formEntry("paper@example.com", "paper-signup", null, true, "2026-11-01T12:00:00Z");
+    expect(await answer("paper@example.com", "newsletter")).toEqual([
+      "yes",
+      "signed-up",
+      "2026-11-01T12:00:00.000Z",
+      "paper-signup",
+    ]);
   });
 
-  it("emails the calendar's contacts, however long ago they joined, not those who unsubscribed or never were one", async () => {
-    await luma("new@example.com", "2026-10-22T09:00:00Z");
-    expect(await answer("new@example.com", "luma-calendar")).toEqual([
+  it("takes CiviCRM's newsletter list: on it a yes, unsubscribed a stop, never opted in or gone why not", async () => {
+    await civicrm("on@example.com", "2026-11-01T00:00:00Z", { newsletter: "subscribed" });
+    await civicrm("never@example.com", "2026-11-01T00:00:00Z", { newsletter: "not_opted_in" });
+    await civicrm("gone@example.com", "2026-11-01T00:00:00Z", {
+      newsletter: "subscribed",
+      gone: "2026-11-05T00:00:00Z",
+    });
+    await civicrm("off@example.com", "2026-11-01T00:00:00Z", { newsletter: "not_on_list" });
+    await optOut("off2@example.com", "2026-11-02T00:00:00Z", { list: "newsletter", source: "civicrm" });
+    expect(await answer("on@example.com", "newsletter")).toEqual([
       "yes",
-      "following",
-      "2026-10-22T09:00:00.000Z",
-      "luma",
+      "subscribed",
+      "2026-11-01T00:00:00.000Z",
+      "civicrm",
     ]);
-    // Luma's list leaves out anyone who unsubscribed, so a contact from long ago is still one.
-    await luma("old@example.com", "2026-09-20T00:00:00Z");
-    expect(await answer("old@example.com", "luma-calendar")).toEqual([
-      "yes",
-      "following",
-      "2026-09-20T00:00:00.000Z",
-      "luma",
+    expect(await answer("never@example.com", "newsletter")).toEqual([
+      "no",
+      "not-opted-in",
+      "2026-11-01T00:00:00.000Z",
+      "civicrm",
     ]);
-    await luma("left@example.com", "2026-09-20T00:00:00Z");
-    await lumaOptOut("left@example.com", "2026-10-23T00:00:00Z");
-    expect(await answer("left@example.com", "luma-calendar")).toEqual([
+    expect(await answer("gone@example.com", "newsletter")).toEqual([
+      "no",
+      "left",
+      "2026-11-05T00:00:00.000Z",
+      "civicrm",
+    ]);
+    expect(await answer("off@example.com", "newsletter")).toBeUndefined();
+    expect(await answer("off2@example.com", "newsletter")).toEqual([
       "no",
       "unsubscribed",
-      "2026-10-23T00:00:00.000Z",
+      "2026-11-02T00:00:00.000Z",
+      "civicrm",
+    ]);
+  });
+
+  it("weighs a stop against a yes by which came later, a stop winning a tie, while never opted in is no stop", async () => {
+    const mp = await addTestMp();
+    // Unsubscribed in CiviCRM after ticking a box, then ticked another.
+    await letter(mp, "kit@example.com", true, "2026-10-01T00:00:00Z");
+    await optOut("kit@example.com", "2026-10-10T00:00:00Z", { list: "newsletter", source: "civicrm" });
+    expect((await answer("kit@example.com", "newsletter"))?.slice(0, 2)).toEqual(["no", "unsubscribed"]);
+    await letter(mp, "kit@example.com", true, "2026-10-20T00:00:00Z");
+    expect((await answer("kit@example.com", "newsletter"))?.slice(0, 3)).toEqual([
+      "yes",
+      "asked",
+      "2026-10-20T00:00:00.000Z",
+    ]);
+    await optOut("tie@example.com", "2026-10-01T00:00:00Z", { list: "newsletter", source: "civicrm" });
+    await letter(mp, "tie@example.com", true, "2026-10-01T00:00:00Z");
+    expect((await answer("tie@example.com", "newsletter"))?.slice(0, 2)).toEqual(["no", "unsubscribed"]);
+    await civicrm("owen@example.com", "2026-11-01T00:00:00Z", { newsletter: "not_opted_in" });
+    await letter(mp, "owen@example.com", true, "2026-10-01T00:00:00Z");
+    expect((await answer("owen@example.com", "newsletter"))?.slice(0, 2)).toEqual(["yes", "asked"]);
+  });
+
+  it("stops every topic by email for a block, then CiviCRM's Do not email, then No bulk emails, whatever was said", async () => {
+    const mp = await addTestMp();
+    for (const address of ["blocked@example.com", "dne@example.com", "nbe@example.com"]) {
+      await letter(mp, address, true, "2026-10-01T00:00:00Z");
+      await luma(address, "2026-09-01T00:00:00Z");
+    }
+    await block("blocked@example.com", "complaint", "2026-10-05T00:00:00Z");
+    await civicrm("blocked@example.com", "2026-11-01T00:00:00Z", { flags: { do_not_email: true } });
+    // A flag on a contact that's gone still stops.
+    await civicrm("dne@example.com", "2026-11-01T00:00:00Z", {
+      flags: { do_not_email: true, no_bulk_email: true },
+      gone: "2026-11-02T00:00:00Z",
+    });
+    await civicrm("nbe@example.com", "2026-11-01T00:00:00Z", {
+      flags: { no_bulk_email: true },
+      newsletter: "subscribed",
+    });
+    for (const topic of ["newsletter", "events"] as const) {
+      expect(await answer("blocked@example.com", topic)).toEqual([
+        "no",
+        "blocked",
+        "2026-10-05T00:00:00.000Z",
+        "complaint",
+      ]);
+      expect(await answer("dne@example.com", topic)).toEqual([
+        "no",
+        "do-not-email",
+        "2026-11-01T00:00:00.000Z",
+        "civicrm",
+      ]);
+      expect(await answer("nbe@example.com", topic)).toEqual([
+        "no",
+        "no-bulk-email",
+        "2026-11-01T00:00:00.000Z",
+        "civicrm",
+      ]);
+    }
+  });
+
+  it("takes Keep me informed for a member CiviCRM has never returned, and nothing from one it no longer returns", async () => {
+    await member("recRobin", "robin@example.com", "2026-07-01T00:00:00Z", true);
+    await member("recLee", "lee@example.com", "2026-07-01T00:00:00Z", false);
+    // Before 30 June 2026 the box was required or not there, so a tick then says nothing.
+    await member("recKit", "kit@example.com", "2026-05-01T00:00:00Z", true);
+    await member("recJane", "jane@example.com", "2026-09-01T00:00:00Z", true);
+    await civicrm("jane@example.com", "2026-11-01T00:00:00Z", { airtableId: "recJane", newsletter: "unsubscribed" });
+    await optOut("jane@example.com", "2026-11-01T00:00:00Z", { list: "newsletter", source: "civicrm" });
+    await member("recGil", "gil@example.com", "2026-08-01T00:00:00Z", true);
+    await civicrm("gil@example.com", "2026-11-01T00:00:00Z", {
+      airtableId: "recGil",
+      newsletter: "subscribed",
+      gone: "2026-11-05T00:00:00Z",
+    });
+    await member("recOld", "old@example.com", "2026-08-01T00:00:00Z", true, true);
+    expect(await answer("robin@example.com", "newsletter")).toEqual([
+      "yes",
+      "asked",
+      "2026-07-01T00:00:00.000Z",
+      "member",
+    ]);
+    expect(await answer("lee@example.com", "newsletter")).toEqual([
+      "no",
+      "declined",
+      "2026-07-01T00:00:00.000Z",
+      "member",
+    ]);
+    expect(await answer("kit@example.com", "newsletter")).toEqual([
+      "no",
+      "not-opted-in",
+      "2026-05-01T00:00:00.000Z",
+      "member",
+    ]);
+    // CiviCRM returns Jane, so its list is the answer, not her record's box.
+    expect((await answer("jane@example.com", "newsletter"))?.slice(0, 2)).toEqual(["no", "unsubscribed"]);
+    expect(await answer("gil@example.com", "newsletter")).toEqual([
+      "no",
+      "left",
+      "2026-11-05T00:00:00.000Z",
+      "civicrm",
+    ]);
+    expect(await answer("old@example.com", "newsletter")).toEqual(["no", "left", "2026-08-01T00:00:00.000Z", "member"]);
+  });
+
+  it("emails about events the calendar's contacts, however long ago they joined, not those who unsubscribed or never were", async () => {
+    await luma("follower@example.com", "2026-09-01T00:00:00Z");
+    await luma("left@example.com", "2026-09-01T00:00:00Z");
+    await optOut("left@example.com", "2026-10-01T00:00:00Z");
+    await luma("back@example.com", "2026-09-01T00:00:00Z");
+    await optOut("back@example.com", "2026-10-01T00:00:00Z", { resubscribedAt: "2026-10-05T00:00:00Z" });
+    await luma("guest@example.com", null);
+    expect(await answer("follower@example.com", "events")).toEqual([
+      "yes",
+      "following",
+      "2026-09-01T00:00:00.000Z",
+      "luma",
+    ]);
+    expect(await answer("left@example.com", "events")).toEqual([
+      "no",
+      "unsubscribed",
+      "2026-10-01T00:00:00.000Z",
       "luma-webhook",
     ]);
-    // An opt-out that's been lifted no longer counts.
-    await luma("back@example.com", "2026-10-22T09:00:00Z");
-    await lumaOptOut("back@example.com", "2026-10-22T10:00:00Z", "2026-10-22T11:00:00Z");
-    expect(await answer("back@example.com", "luma-calendar")).toEqual(expect.arrayContaining(["yes", "following"]));
-    // Known from an event, but not a contact of the calendar.
-    await luma("guest@example.com", null);
-    expect(await answer("guest@example.com", "luma-calendar")).toEqual(["no", "not-following", null, null]);
-    // An unsubscribe can arrive before we know whose address it is.
-    await lumaOptOut("stranger@example.com", "2026-10-23T00:00:00Z");
-    expect(await answer("stranger@example.com", "luma-calendar")).toEqual(
-      expect.arrayContaining(["no", "unsubscribed"]),
-    );
-    // A block is its answer instead.
-    await lumaOptOut("blocked@example.com", "2026-10-23T00:00:00Z");
-    const [{ id }] = await query<{ id: number }>(
-      `INSERT INTO email_problems (address, kind, reason, can_reset, at)
-       VALUES ('blocked@example.com', 'hard', 'gone', true, '2026-10-24T00:00:00Z') RETURNING id::int AS id`,
-    );
-    await query("INSERT INTO email_blocks (address, problem_id) VALUES ('blocked@example.com', $1)", [id]);
-    // contact_unsubscribes is the views' unsubscribes, found from the opt-outs.
-    const unsubscribes = "SELECT channel, topic, address, send, reason, at, source FROM %s ORDER BY address";
-    const fromView = await query(unsubscribes.replace("%s", "contact_permissions WHERE reason = 'unsubscribed'"));
-    expect(fromView.map((row) => row.address)).toEqual(["left@example.com", "stranger@example.com"]);
-    expect(await query(unsubscribes.replace("%s", "contact_unsubscribes"))).toEqual(fromView);
+    expect((await answer("back@example.com", "events"))?.slice(0, 2)).toEqual(["yes", "following"]);
+    expect(await answer("guest@example.com", "events")).toEqual(["no", "not-following", null, "luma"]);
   });
 
-  it("is unsure of members who asked or joined before it was a choice, and says no to those who declined or left", async () => {
-    // Every yes is unsure: the updates come from CiviCRM, whose unsubscribes we don't read.
-    await member("recAsked", "asked@example.com", "2026-09-12T00:00:00Z", true);
-    expect(await answer("asked@example.com", "pauseai-updates")).toEqual([
-      "unsure",
-      "asked",
-      "2026-09-12T00:00:00.000Z",
-      "member",
-    ]);
-    await member("recDeclined", "declined@example.com", "2026-09-12T00:00:00Z", false);
-    expect(await answer("declined@example.com", "pauseai-updates")).toEqual([
-      "no",
-      "declined",
-      "2026-09-12T00:00:00.000Z",
-      "member",
-    ]);
-    // Before 30 June 2026 the form required the box, or had none: on the list either way.
-    await member("recTicked", "ticked@example.com", "2026-03-03T00:00:00Z", true);
-    await member("recUnticked", "unticked@example.com", "2025-11-29T00:00:00Z", false);
-    expect((await answer("ticked@example.com", "pauseai-updates"))?.slice(0, 2)).toEqual(["unsure", "joined"]);
-    expect((await answer("unticked@example.com", "pauseai-updates"))?.slice(0, 2)).toEqual(["unsure", "joined"]);
-    // No longer shared with us.
-    await member("recGone", "gone@example.com", "2026-09-12T00:00:00Z", true, true);
-    expect((await answer("gone@example.com", "pauseai-updates"))?.slice(0, 2)).toEqual(["no", "removed"]);
-    // The newest record decides, one still shared before one removed.
-    await member("recFirst", "twice@example.com", "2026-07-10T00:00:00Z", false);
-    await member("recSecond", "twice@example.com", "2026-09-01T00:00:00Z", true);
-    await member("recRemoved", "twice@example.com", "2026-10-01T00:00:00Z", false, true);
-    expect(await answer("twice@example.com", "pauseai-updates")).toEqual([
-      "unsure",
-      "asked",
-      "2026-09-01T00:00:00.000Z",
-      "member",
-    ]);
-  });
-
-  it("emails about our forms whoever agreed on the newest form they filled in", async () => {
-    const mp = await addTestMp();
-    await letter(mp, "agreed@example.com", false, "2026-10-01T00:00:00Z");
-    await letter(mp, "agreed@example.com", true, "2026-10-05T00:00:00Z");
-    expect(await answer("agreed@example.com", "site-forms")).toEqual([
-      "yes",
-      "asked",
-      "2026-10-05T00:00:00.000Z",
-      "email-your-mp",
-    ]);
-    await letter(mp, "changed@example.com", true, "2026-10-01T00:00:00Z");
-    await letter(mp, "changed@example.com", false, "2026-10-05T00:00:00Z");
-    expect(await answer("changed@example.com", "site-forms")).toEqual([
-      "no",
-      "declined",
-      "2026-10-05T00:00:00.000Z",
-      "email-your-mp",
-    ]);
-  });
-
-  it("answers each number by the sources that gave it, after the addresses", async () => {
-    await member("recVol", "vol@example.com", "2026-09-12T00:00:00Z", true, false, "07700 900123", "Volunteer");
-    await formEntry("site@example.com", "web-form", "+44 7700 900123", true, "2026-10-01T00:00:00Z");
-    const permissions = await permissionsFor(["vol@example.com"], ["+447700900123", "+447700900999"]);
-    expect(permissions.map((p) => [p.channel, p.address, p.topic])).toEqual([
-      ["email", "vol@example.com", "pauseai-updates"],
-      ["phone", "+447700900123", "site-forms"],
-      ["phone", "+447700900123", "volunteering"],
-    ]);
-  });
-
-  it("gives a Luma number its account's answer: yes while it follows the calendar, no once it unsubscribes", async () => {
+  it("gives a Luma number its account's answer for events by text, and texts the march's numbers until its day ends", async () => {
     await luma("pat@example.com", "2026-09-20T00:00:00Z");
-    await lumaGuest("pat@example.com", "+447700900001");
-    expect(await phoneAnswer("+447700900001", "luma-calendar")).toEqual([
+    await lumaGuest("pat@example.com", "07700 900020");
+    await luma("tom@example.com", "2026-09-20T00:00:00Z");
+    await lumaGuest("tom@example.com", "+447700900021");
+    await optOut("tom@example.com", "2026-10-23T00:00:00Z");
+    await luma("never@example.com", null);
+    await lumaGuest("never@example.com", "+447700900022");
+    expect(await phoneAnswer("+447700900020", "events")).toEqual([
       "yes",
       "following",
       "2026-09-20T00:00:00.000Z",
       "luma",
     ]);
-    await lumaOptOut("pat@example.com", "2026-10-23T00:00:00Z");
-    expect(await phoneAnswer("+447700900001", "luma-calendar")).toEqual([
+    expect(await phoneAnswer("+447700900021", "events")).toEqual([
       "no",
       "unsubscribed",
       "2026-10-23T00:00:00.000Z",
       "luma",
     ]);
-    // Another account that gave the same number and still follows is a yes.
-    await luma("pat2@example.com", "2026-10-01T00:00:00Z");
-    await lumaGuest("pat2@example.com", "+447700900001");
-    expect((await phoneAnswer("+447700900001", "luma-calendar"))?.slice(0, 2)).toEqual(["yes", "following"]);
-    // An account that registered but never followed.
-    await luma("drop@example.com", null);
-    await lumaGuest("drop@example.com", "+447700900002");
-    expect(await phoneAnswer("+447700900002", "luma-calendar")).toEqual(["no", "not-following", null, "luma"]);
-    // A Luma unsubscribe says nothing about the same number given elsewhere.
-    await lumaGuest("pat@example.com", "+447700900003");
-    await formEntry("pat@example.com", "web-form", "07700900003", true, "2026-10-01T00:00:00Z");
-    expect((await phoneAnswer("+447700900003", "site-forms"))?.slice(0, 2)).toEqual(["yes", "asked"]);
-  });
+    expect(await phoneAnswer("+447700900022", "events")).toEqual(["no", "not-following", null, "luma"]);
+    expect(await phoneAnswer("+447700900020", "events", "call")).toBeUndefined();
 
-  it("takes a volunteer's number as a yes, as one from before the form asked, another member's as unsure, and a removed member's as no", async () => {
-    await member("recV", "v@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900010", "Volunteer");
-    expect(await phoneAnswer("+447700900010", "volunteering")).toEqual([
-      "yes",
-      "volunteered",
-      "2026-09-12T00:00:00.000Z",
-      "member",
-    ]);
-    // The join form before it asked what they wanted to do: a volunteer's.
-    await member("recT", "t@example.com", "2025-06-06T00:00:00Z", true, false, "+447700900013", null);
-    expect((await phoneAnswer("+447700900013", "volunteering"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
-    // No intent on a record from after the Tally form didn't choose to volunteer.
-    await member("recN", "n@example.com", "2026-09-12T00:00:00Z", true, false, "+447700900014", null);
-    expect((await phoneAnswer("+447700900014", "volunteering"))?.slice(0, 2)).toEqual(["unsure", "gave-number"]);
-    await member("recO", "o@example.com", "2026-03-01T00:00:00Z", true, false, "+447700900011", "Act now");
-    expect((await phoneAnswer("+447700900011", "volunteering"))?.slice(0, 2)).toEqual(["unsure", "gave-number"]);
-    await member("recR", "r@example.com", "2026-09-12T00:00:00Z", true, true, "+447700900012", "Volunteer");
-    expect((await phoneAnswer("+447700900012", "volunteering"))?.slice(0, 2)).toEqual(["no", "removed"]);
-  });
-
-  it("texts on the march's day whoever gave a number on its form, until the day ends; after, only those who agreed", async () => {
-    await formEntry("m@example.com", "march-2026-11", "07700 900020", false, "2026-10-20T00:00:00Z");
-    await formEntry("a@example.com", "march-2026-11", "07700 900021", true, "2026-10-20T00:00:00Z");
-    await query("UPDATE day_texts SET ends_at = now() + interval '1 day'");
-    expect(await phoneAnswer("+447700900020", "march-day")).toEqual([
+    // A number for texts on the day, and the day over for another form.
+    await query("INSERT INTO day_texts (form, ends_at) VALUES ('paper-signup', now() - interval '1 day')");
+    await query("UPDATE day_texts SET ends_at = now() + interval '1 day' WHERE form = 'march-2026-11'");
+    await formEntry("m@example.com", "march-2026-11", "+447700900023", false, "2026-11-01T00:00:00Z");
+    await formEntry("p@example.com", "paper-signup", "+447700900024", false, "2026-11-01T00:00:00Z");
+    expect(await phoneAnswer("+447700900023", "events")).toEqual([
       "yes",
       "gave-number",
-      "2026-10-20T00:00:00.000Z",
+      "2026-11-01T00:00:00.000Z",
       "march-2026-11",
     ]);
-    expect((await phoneAnswer("+447700900020", "site-forms"))?.slice(0, 2)).toEqual(["no", "declined"]);
-    await query("UPDATE day_texts SET ends_at = now() - interval '1 day'");
-    expect((await phoneAnswer("+447700900020", "march-day"))?.slice(0, 2)).toEqual(["no", "ended"]);
-    expect((await phoneAnswer("+447700900021", "site-forms"))?.slice(0, 2)).toEqual(["yes", "asked"]);
-    // A number from another form has no march-day answer.
-    await formEntry("w@example.com", "web-form", "07700 900022", true, "2026-10-20T00:00:00Z");
-    expect(await phoneAnswer("+447700900022", "march-day")).toBeUndefined();
+    expect(await phoneAnswer("+447700900024", "events")).toEqual(["no", "ended", expect.any(String), "paper-signup"]);
   });
 
-  it("finds whether any topic lets us use a number", async () => {
-    await member("recV", "v@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900030", "Volunteer");
+  it("texts the newsletter to a number given with a ticked box on a form whose box covers texts", async () => {
+    await formEntry("m@example.com", "march-2026-11", "+447700900030", true, "2026-11-01T00:00:00Z");
+    await formEntry("d@example.com", "march-2026-11", "+447700900031", false, "2026-11-01T00:00:00Z");
+    await formEntry("l@example.com", "email-your-mp", "+447700900032", true, "2026-11-01T00:00:00Z");
+    expect(await phoneAnswer("+447700900030", "newsletter")).toEqual([
+      "yes",
+      "asked",
+      "2026-11-01T00:00:00.000Z",
+      "march-2026-11",
+    ]);
+    expect((await phoneAnswer("+447700900031", "newsletter"))?.slice(0, 2)).toEqual(["no", "declined"]);
+    expect(await phoneAnswer("+447700900032", "newsletter")).toBeUndefined();
+    expect(await phoneAnswer("+447700900030", "newsletter", "call")).toBeUndefined();
+  });
+
+  it("emails about volunteering CiviCRM's volunteer list, and texts and calls volunteers' numbers but for CiviCRM's flags", async () => {
+    await civicrm("jane@example.com", "2026-11-01T00:00:00Z", { volunteer: "subscribed" });
+    await civicrm("kit@example.com", "2026-11-01T00:00:00Z", { volunteer: "unsubscribed" });
+    await optOut("kit@example.com", "2026-11-01T00:00:00Z", { list: "volunteering", source: "civicrm" });
+    expect((await answer("jane@example.com", "volunteering"))?.slice(0, 2)).toEqual(["yes", "subscribed"]);
+    expect((await answer("kit@example.com", "volunteering"))?.slice(0, 2)).toEqual(["no", "unsubscribed"]);
+
+    await member("recV", "v@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900040", "Volunteer");
+    await member("recT", "t@example.com", "2025-06-06T00:00:00Z", false, false, "07700 900041", null);
+    await member("recL", "l@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900042", "Lead");
+    await member("recR", "r@example.com", "2026-09-12T00:00:00Z", false, true, "+447700900043", "Volunteer");
+    await member("recS", "s@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900044", "Volunteer");
+    await civicrm("s@example.com", "2026-11-01T00:00:00Z", { airtableId: "recS", flags: { do_not_sms: true } });
+    await member("recP", "p@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900045", "Volunteer");
+    await civicrm("p@example.com", "2026-11-01T00:00:00Z", { airtableId: "recP", flags: { do_not_phone: true } });
+    await member("recG", "g@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900046", "Volunteer");
+    await civicrm("g@example.com", "2026-11-01T00:00:00Z", { airtableId: "recG", gone: "2026-11-02T00:00:00Z" });
+    for (const way of ["text", "call"] as const) {
+      expect(await phoneAnswer("+447700900040", "volunteering", way)).toEqual([
+        "yes",
+        "volunteered",
+        "2026-09-12T00:00:00.000Z",
+        "member",
+      ]);
+      // Before the join form asked, no intent was the Tally form's volunteers.
+      expect((await phoneAnswer("+447700900041", "volunteering", way))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
+      expect((await phoneAnswer("+447700900042", "volunteering", way))?.slice(0, 2)).toEqual(["no", "not-volunteer"]);
+      expect(await phoneAnswer("+447700900043", "volunteering", way)).toEqual([
+        "no",
+        "left",
+        expect.any(String),
+        "member",
+      ]);
+      expect(await phoneAnswer("+447700900046", "volunteering", way)).toEqual([
+        "no",
+        "left",
+        "2026-11-02T00:00:00.000Z",
+        "civicrm",
+      ]);
+    }
+    // Do not SMS stops texts only, Do not phone calls only.
+    expect(await phoneAnswer("+447700900044", "volunteering", "text")).toEqual([
+      "no",
+      "do-not-sms",
+      "2026-11-01T00:00:00.000Z",
+      "civicrm",
+    ]);
+    expect((await phoneAnswer("+447700900044", "volunteering", "call"))?.slice(0, 1)).toEqual(["yes"]);
+    expect(await phoneAnswer("+447700900045", "volunteering", "call")).toEqual([
+      "no",
+      "do-not-phone",
+      "2026-11-01T00:00:00.000Z",
+      "civicrm",
+    ]);
+    expect((await phoneAnswer("+447700900045", "volunteering", "text"))?.slice(0, 1)).toEqual(["yes"]);
+  });
+
+  it("lists each opt-out that's the answer now, and finds whether any consent lets us use a number", async () => {
     await luma("gone@example.com", "2026-09-20T00:00:00Z");
     await lumaGuest("gone@example.com", "+447700900031");
-    await lumaOptOut("gone@example.com", "2026-10-23T00:00:00Z");
+    await optOut("gone@example.com", "2026-10-23T00:00:00Z");
+    await optOut("blocked@example.com", "2026-10-23T00:00:00Z");
+    await block("blocked@example.com", "hard", "2026-10-24T00:00:00Z");
+    await optOut("+447700900050", "2026-10-23T00:00:00Z", { list: "newsletter", way: "text", source: "civicrm" });
+    expect(await query("SELECT way, topic, address, source FROM contact_unsubscribes ORDER BY address")).toEqual([
+      { way: "text", topic: "newsletter", address: "+447700900050", source: "civicrm" },
+      { way: "email", topic: "events", address: "gone@example.com", source: "luma-webhook" },
+    ]);
+    await member("recV", "v@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900030", "Volunteer");
     const usable = async (number: string) =>
       (await query<{ ok: boolean }>("SELECT phone_usable($1) AS ok", [number]))[0].ok;
     expect(await usable("+447700900030")).toBe(true);

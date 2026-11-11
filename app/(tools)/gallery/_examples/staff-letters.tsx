@@ -252,17 +252,21 @@ export const staffLetters: Group = {
       file: "app/(staff)/staff/_components/BounceReason.tsx",
       variants: [
         {
-          label: "Postmark's, and one found in someone's Gmail",
+          label: "Postmark's, one found in someone's Gmail, and a hold in CiviCRM",
           render: () => (
             <StaffPage as="div">
               <p>
-                <BounceReason reason="Unknown user" foundInGmail={false} />
+                <BounceReason reason="Unknown user" kind="hard" foundInGmail={false} />
               </p>
               <p>
                 <BounceReason
                   reason="550 5.1.1 The email account that you tried to reach does not exist."
+                  kind="hard"
                   foundInGmail
                 />
+              </p>
+              <p>
+                <BounceReason reason="CiviCRM has the address on hold" kind="hold" foundInGmail={false} />
               </p>
             </StaffPage>
           ),

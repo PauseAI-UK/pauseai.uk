@@ -223,7 +223,7 @@ Bad,bad,,,,,Y`,
     });
 
     const [permission] = await query<{ send: string; source: string }>(
-      "SELECT send, source FROM contact_permission('site-forms', 'phone', '+447700900333')",
+      "SELECT send, source FROM contact_permission('newsletter', 'text', '+447700900333')",
     );
     expect(permission).toEqual({ send: "yes", source: "paper-signup" });
 

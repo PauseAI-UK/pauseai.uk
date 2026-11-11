@@ -1,49 +1,46 @@
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { CHANNELS, topicsOf, type Channel, type ContactPermission, type Topic } from "@/lib/contact-permissions";
-
-/** How much a send says we'd contact them, most first. */
-const RANK = { yes: 0, unsure: 1, no: 2 } as const;
-
-type Gets = { channel: Channel; topic: Topic; sure: boolean };
+import { CONSENTS, TOPICS, consentKey, type Consent, type ContactPermission } from "@/lib/contact-permissions";
+import ChannelIcon from "./ChannelIcon";
+import styles from "./SubscriptionBadges.module.css";
 
 /**
- * What a supporter gets: each topic we'd email them about at any of their
- * addresses, then each we'd contact them about at any of their numbers,
- * sure or not. An address that's blocked is a no, so gets nothing.
+ * What a supporter gets: each consent, a topic by a way, that any of their
+ * addresses or numbers says yes to. An address that's blocked is a no, so
+ * gets nothing.
  */
-function subscriptions(permissions: ContactPermission[]): Gets[] {
-  return CHANNELS.flatMap((channel) =>
-    topicsOf(channel).flatMap((topic) => {
-      const best = permissions
-        .filter((p) => p.channel === channel && p.topic === topic)
-        .map((p) => p.send)
-        .sort((a, b) => RANK[a] - RANK[b])[0];
-      return best === "yes" || best === "unsure" ? [{ channel, topic, sure: best === "yes" }] : [];
-    }),
+function subscriptions(permissions: ContactPermission[]): Consent[] {
+  return CONSENTS.filter((consent) =>
+    permissions.some((p) => p.topic === consent.topic && p.way === consent.way && p.send === "yes"),
   );
 }
 
-/** A topic's name in the list, by its channel. */
-function name({ channel, topic, sure }: Gets): string {
-  const copy = staffCopy.supporters.subscriptions;
-  const named = copy.topics[channel][topic];
-  return sure ? named : copy.unsure(named);
-}
-
-/** What a supporter gets, in words, as a download has it. */
+/** What a supporter gets, in words, as a download has it: a consent each. */
 export function subscriptionWords(permissions: ContactPermission[]): string {
-  return subscriptions(permissions).map(name).join("; ");
+  return subscriptions(permissions)
+    .map((consent) => staffCopy.supporters.subscriptions.consents[consentKey(consent)])
+    .join("; ");
 }
 
 /**
- * What a supporter gets, as lozenges: a topic we'd contact them about,
- * green, or amber when we can't be sure.
+ * What a supporter gets, as green lozenges, a topic each: the icon of each
+ * way it's a yes by, as the Consent filter and the supporter's page draw
+ * them, each named for a screen reader, then the topic's name.
  */
 export default function SubscriptionBadges({ permissions }: { permissions: ContactPermission[] }) {
-  return subscriptions(permissions).map((one) => (
-    <Tag key={`${one.channel}-${one.topic}`} tone={one.sure ? "green" : "amber"}>
-      {name(one)}
-    </Tag>
-  ));
+  const yes = subscriptions(permissions);
+  return TOPICS.flatMap((topic) => {
+    const ways = yes.filter((consent) => consent.topic === topic).map((consent) => consent.way);
+    if (ways.length === 0) return [];
+    return [
+      <Tag key={topic} tone="green">
+        <span className={styles.ways}>
+          {ways.map((way) => (
+            <ChannelIcon key={way} channel={way} label={staffCopy.supporters.filters.ways[way]} />
+          ))}
+        </span>
+        {staffCopy.supporters.filters.topics[topic]}
+      </Tag>,
+    ];
+  });
 }

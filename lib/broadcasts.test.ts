@@ -12,7 +12,6 @@ import {
   textCost,
   broadcastScheduleProblems,
   broadcastTerms,
-  spacedNumber,
   textSender,
   type SchedulingBroadcast,
 } from "./broadcasts";
@@ -208,23 +207,23 @@ const WORDS: MailingDoc = { type: "doc", content: [{ type: "paragraph", content:
 
 describe("broadcastTerms", () => {
   it("takes the channel and topic from one topic answered yes, a number's being by text", () => {
-    expect(broadcastTerms("email:pauseai-updates:yes")).toEqual({ channel: "email", topic: "pauseai-updates" });
-    expect(broadcastTerms(["phone:luma-calendar:yes"])).toEqual({ channel: "text", topic: "luma-calendar" });
+    expect(broadcastTerms("email:newsletter:yes")).toEqual({ channel: "email", topic: "newsletter" });
+    expect(broadcastTerms(["text:events:yes"])).toEqual({ channel: "text", topic: "events" });
   });
 
   it("ignores what the filter leaves out", () => {
-    expect(broadcastTerms(["email:site-forms:yes", "!email:luma-calendar:yes"])).toEqual({
+    expect(broadcastTerms(["email:newsletter:yes", "!email:events:yes"])).toEqual({
       channel: "email",
-      topic: "site-forms",
+      topic: "newsletter",
     });
   });
 
   it("gives none without one topic answered yes, as not sure isn't enough", () => {
     expect(broadcastTerms(undefined)).toBeUndefined();
     expect(broadcastTerms("nonsense")).toBeUndefined();
-    expect(broadcastTerms("email:pauseai-updates:unsure")).toBeUndefined();
-    expect(broadcastTerms("email:pauseai-updates")).toBeUndefined();
-    expect(broadcastTerms(["email:site-forms:yes", "email:luma-calendar:yes"])).toBeUndefined();
+    expect(broadcastTerms("email:newsletter:unsure")).toBeUndefined();
+    expect(broadcastTerms("email:newsletter")).toBeUndefined();
+    expect(broadcastTerms(["email:newsletter:yes", "email:events:yes"])).toBeUndefined();
   });
 });
 
@@ -234,15 +233,8 @@ it("says what texts cost, and at what rate", () => {
 });
 
 describe("a text's sender", () => {
-  it("spaces a UK number in its groups, London's apart, and leaves any other as it is", () => {
-    expect(spacedNumber("+447700900000")).toBe("+44 7700 900000");
-    expect(spacedNumber("+442079460000")).toBe("+44 20 7946 0000");
-    expect(spacedNumber("+15555550100")).toBe("+15555550100");
-    expect(spacedNumber("+44770090000")).toBe("+44770090000");
-  });
-
   it("is the name, then the number in brackets", () => {
-    expect(textSender("PauseAI UK", "+447700900000")).toBe("PauseAI UK (+44 7700 900000)");
+    expect(textSender("PauseAI UK", "+447700900000")).toBe("PauseAI UK (07700 900000)");
   });
 });
 

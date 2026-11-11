@@ -57,12 +57,15 @@ const SOURCES: Record<DashboardMetric, { from: string; at: string; count?: strin
   },
   eventsHeld: { from: "luma_events WHERE access = 'manage' AND removed_at IS NULL", at: "start_at" },
   supportersAdded: { from: "supporters WHERE true", at: "first_seen_at" },
-  // Only an address that's still a supporter's: an opt-out outlives its contact, so that they're never emailed.
+  // A stop of any consent, by a supporter's address or number: only one that's still a supporter's, as an opt-out
+  // outlives its contact, so that they're never contacted.
   unsubscribes: {
-    from: `contact_unsubscribes u JOIN supporter_identity i ON i.email = u.address
-      WHERE u.channel = 'email' AND u.topic = 'luma-calendar'`,
+    from: `(SELECT i.supporter_id, u.at FROM contact_unsubscribes u
+            JOIN supporter_identity i ON u.way = 'email' AND i.email = u.address
+          UNION SELECT c.supporter_id, u.at FROM contact_unsubscribes u
+            JOIN supporter_contact c ON u.way <> 'email' AND phone_number(c.phone) = u.address) u WHERE true`,
     at: "u.at",
-    count: "DISTINCT i.supporter_id",
+    count: "DISTINCT u.supporter_id",
   },
 };
 

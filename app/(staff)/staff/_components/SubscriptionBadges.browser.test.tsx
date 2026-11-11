@@ -6,20 +6,44 @@ import SubscriptionBadges from "./SubscriptionBadges";
 import { exampleBlockedPermissions, exampleSupporterRows } from "./SupportersTable.examples";
 
 describe("SubscriptionBadges", () => {
-  const copy = staffCopy.supporters.subscriptions;
+  const { topics, ways } = staffCopy.supporters.filters;
+  /** Each lozenge: the names of its ways' icons, then its topic. */
+  const badges = () =>
+    [...document.querySelectorAll("[class*=tag]")].map((tag) => [
+      [...tag.querySelectorAll("svg")].map((svg) => svg.getAttribute("aria-label")),
+      tag.textContent,
+    ]);
 
-  it("shows each topic we'd email them about, amber when we can't be sure, and nothing for a no", async () => {
+  it("shows a lozenge for each topic any of their addresses or numbers says yes to, its ways' icons first", async () => {
     const { rerender } = await render(<SubscriptionBadges permissions={exampleSupporterRows[0].permissions} />);
-    expect(document.body.textContent!.trim()).toBe(copy.topics.email["site-forms"]);
+    expect(badges()).toEqual([[[ways.email], topics.newsletter]]);
     await rerender(<SubscriptionBadges permissions={exampleSupporterRows[1].permissions} />);
-    await expect.element(page.getByText(copy.topics.email["luma-calendar"], { exact: true })).toBeVisible();
-    await expect.element(page.getByText(copy.unsure(copy.topics.email["pauseai-updates"]))).toBeVisible();
+    expect(badges()).toEqual([
+      [[ways.email], topics.newsletter],
+      [[ways.email], topics.events],
+      [[ways.text], topics.volunteering],
+    ]);
     await rerender(<SubscriptionBadges permissions={[]} />);
     expect(document.body.textContent!.trim()).toBe("");
   });
 
-  it("takes the best answer across their addresses, and shows nothing for one that's blocked", async () => {
-    const [jane] = exampleSupporterRows[0].permissions;
+  it("puts every way a topic is a yes by in its one lozenge", async () => {
+    const [, , volunteering] = exampleSupporterRows[1].permissions;
+    await render(
+      <SubscriptionBadges
+        permissions={[
+          { ...volunteering, way: "email", channel: "email", address: "sam@example.com" },
+          volunteering,
+          { ...volunteering, way: "call" },
+        ]}
+      />,
+    );
+    expect(badges()).toEqual([[[ways.email, ways.text, ways.call], topics.volunteering]]);
+    await expect.element(page.getByText(topics.volunteering)).toBeVisible();
+  });
+
+  it("takes a yes at any of their addresses, and shows nothing for one that's blocked", async () => {
+    const [, jane] = exampleSupporterRows[0].permissions;
     const { rerender } = await render(
       <SubscriptionBadges
         permissions={[
@@ -29,7 +53,7 @@ describe("SubscriptionBadges", () => {
         ]}
       />,
     );
-    expect(document.body.textContent!.trim()).toBe(copy.topics.email["luma-calendar"]);
+    expect(badges()).toEqual([[[ways.email], topics.events]]);
     await rerender(<SubscriptionBadges permissions={exampleBlockedPermissions} />);
     expect(document.body.textContent!.trim()).toBe("");
   });

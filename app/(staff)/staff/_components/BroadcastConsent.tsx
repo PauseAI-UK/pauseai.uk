@@ -3,21 +3,17 @@
 import { Segmented } from "@/components/ui/Controls";
 import { FieldSet } from "@/components/ui/Field";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { sendsOf, stateValue, type Channel } from "@/lib/contact-permissions";
+import { TOPICS, consentKey, stateValue, type Channel } from "@/lib/contact-permissions";
 import ChannelIcon from "./ChannelIcon";
-import { SUBSCRIPTION_ORDER } from "@/lib/staff-list-filters";
 
 const copy = staffCopy.broadcastPages;
-
-/** The Consents a broadcast can go under: each topic someone can be sure to have said yes to, as the Consent filter orders them. */
-const CONSENTS = SUBSCRIPTION_ORDER.filter(([channel, topic]) => sendsOf(channel, topic).includes("yes"));
 
 const CHANNELS: Channel[] = ["email", "phone"];
 
 /**
  * The Consent a broadcast goes under, which says whether it's an email or a
  * text and what it's about: first email or text, then, in a row, the topics
- * someone can have said yes to by it. `value` is the one chosen, as the
+ * by it, as the Consent filter orders them; a text goes under a yes by text. `value` is the one chosen, as the
  * Consent filter writes it, or none yet. Once it has words of its own
  * (`written`), the other channel can't be chosen, so none are lost.
  * `shown` is the channel whose topics show, and `show` shows another's.
@@ -49,7 +45,7 @@ export default function BroadcastConsent({
           options={CHANNELS.map((one) => ({
             value: one,
             label: copy.channels[one === "email" ? "email" : "text"],
-            icon: <ChannelIcon channel={one} />,
+            icon: <ChannelIcon channel={one === "email" ? "email" : "text"} />,
             disabled: written && one !== channel,
           }))}
           // None chosen yet matches no option, so none is checked.
@@ -62,10 +58,13 @@ export default function BroadcastConsent({
         <FieldSet label={copy.facts.saidYes}>
           <Segmented
             label={copy.facts.saidYes}
-            options={CONSENTS.filter(([one]) => one === shown).map(([one, topic]) => ({
-              value: stateValue({ channel: one, topic, send: "yes" }),
-              label: staffCopy.supporters.subscriptions.topics[one][topic],
-            }))}
+            options={TOPICS.map((topic) => {
+              const way = shown === "email" ? "email" : "text";
+              return {
+                value: stateValue({ way, topic, send: "yes" }),
+                label: staffCopy.supporters.subscriptions.consents[consentKey({ way, topic })],
+              };
+            })}
             value={value}
             onChange={(chosen) => chosen !== value && pick(chosen)}
             disabled={pending}

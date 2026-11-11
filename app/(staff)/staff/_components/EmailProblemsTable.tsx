@@ -34,7 +34,7 @@ export default function EmailProblemsTable({
             <td>{problem.address}</td>
             <td>{staffCopy.emails.kinds[problem.kind]}</td>
             <td>
-              <Reason reason={problem.reason} foundInGmail={problem.foundInGmail} />
+              <Reason reason={problem.reason} kind={problem.kind} foundInGmail={problem.foundInGmail} />
             </td>
             <td>
               {problem.letter ? (

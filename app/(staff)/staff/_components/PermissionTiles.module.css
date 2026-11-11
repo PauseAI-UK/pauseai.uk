@@ -58,18 +58,12 @@
   align-items: center;
 }
 
-/* In the "?" box, a channel's part, named with its icon. */
-.channel + .channel {
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border);
-}
-
-.channelName {
+/* A line's answers, side by side, or one under the other when there's no room. */
+.tags {
   display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  font-weight: 600;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-content: flex-end;
 }
 
 /* The address or number, small and fixed-width, after its icon. A long

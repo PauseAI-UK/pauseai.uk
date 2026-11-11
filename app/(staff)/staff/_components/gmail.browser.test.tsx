@@ -292,11 +292,13 @@ describe("SupporterLetterThread", () => {
 });
 
 describe("BounceReason", () => {
-  it("marks a bounce found in Gmail", async () => {
-    const { rerender } = await render(<BounceReason reason="Unknown user" foundInGmail={false} />);
-    expect(page.getByText(staffCopy.emails.foundInGmail).query()).toBeNull();
-    await rerender(<BounceReason reason="Unknown user" foundInGmail />);
-    await expect.element(page.getByText(staffCopy.emails.foundInGmail)).toBeVisible();
+  it("names who told us after the reason: Postmark, someone's Gmail, or CiviCRM for a hold", async () => {
+    const { rerender } = await render(<BounceReason reason="Unknown user" kind="hard" foundInGmail={false} />);
+    await expect.element(page.getByText(staffCopy.emails.from.postmark)).toBeVisible();
+    await rerender(<BounceReason reason="Unknown user" kind="hard" foundInGmail />);
+    await expect.element(page.getByText(staffCopy.emails.from.gmail)).toBeVisible();
+    await rerender(<BounceReason reason="On hold" kind="hold" foundInGmail={false} />);
+    await expect.element(page.getByText(staffCopy.emails.from.civicrm)).toBeVisible();
   });
 });
 

@@ -27,6 +27,7 @@ describe("ImportOverview", () => {
       undefined,
       ran("import-luma", { ...exampleLumaResult, stoppedBy: "time" }, { at: new Date("2026-10-21T11:17:00Z") }),
       ran("import-members", exampleMembersResult, { at: new Date("2026-10-21T11:47:00Z") }),
+      undefined,
       ran("read-gmail", { accounts: [] }, { at: new Date("2026-10-21T11:20:00Z"), status: "unchanged" }),
       undefined,
       exampleHeldSync,
@@ -53,6 +54,7 @@ describe("ImportOverview", () => {
       "/staff/import-data/luma",
       "/staff/import-data/gmail",
       "/staff/import-data/members",
+      "/staff/import-data/civicrm",
       "/staff/import-data/sending",
       "/staff/import-data/politicians",
       "/staff/import-data/mp-check",
@@ -66,6 +68,7 @@ describe("ImportOverview", () => {
       jobTitles["import-luma"],
       jobTitles["read-gmail"],
       jobTitles["import-members"],
+      jobTitles["import-civicrm"],
       jobTitles["send-mailings"],
       jobTitles["sync-politicians"],
       jobTitles["check-mps"],
@@ -78,7 +81,7 @@ describe("ImportOverview", () => {
     // Under the name, how the newest run ended, tinted to match.
     const status = (i: number) => cards[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!;
     expect(status(0).textContent).toBe(`${staffCopy.runs.status.incomplete}21 Oct 2026, 11:17`);
-    expect([0, 1, 2, 4, 5, 6, 9, 10].map((i) => status(i).className.match(/green|amber|red/)?.[0])).toEqual([
+    expect([0, 1, 2, 5, 6, 7, 10, 11].map((i) => status(i).className.match(/green|amber|red/)?.[0])).toEqual([
       "amber",
       "green",
       "green",
@@ -88,27 +91,29 @@ describe("ImportOverview", () => {
       "green",
       "green",
     ]);
-    expect(status(3).className).not.toMatch(/green|amber|red/);
-    expect(status(3).textContent).toBe(staffCopy.sending.never);
-    expect(status(7).textContent).toBe(staffCopy.tidying.never);
+    expect(status(4).className).not.toMatch(/green|amber|red/);
+    expect(status(3).textContent).toBe(staffCopy.civicrm.never);
+    expect(status(4).textContent).toBe(staffCopy.sending.never);
+    expect(status(8).textContent).toBe(staffCopy.tidying.never);
     // The Airtable jobs link the table they read; the politicians' sync also says the test MPs stay.
     const link = (i: number) => cards[i].querySelector(":scope > p a")!.getAttribute("href");
-    expect(link(4)).toBe("https://airtable.com/app/tblPoliticians");
-    expect(cards[4].querySelector(":scope > p")!.textContent).toContain(staffCopy.syncs.testMps);
-    expect([9, 10].map(link)).toEqual([
+    expect(link(5)).toBe("https://airtable.com/app/tblPoliticians");
+    expect(cards[5].querySelector(":scope > p")!.textContent).toContain(staffCopy.syncs.testMps);
+    expect([10, 11].map(link)).toEqual([
       "https://airtable.com/app/tblp4nH5Jymq48rcm",
       "https://airtable.com/app/tblkzjrRHiZiqMDGR",
     ]);
-    expect(cards[5].querySelector(":scope > p")!.textContent).not.toContain(staffCopy.syncs.testMps);
+    expect(cards[6].querySelector(":scope > p")!.textContent).not.toContain(staffCopy.syncs.testMps);
     // The members come from the join form; Gmail's card leads to where it's connected; the sending's to the campaigns'
     // letters and the mailings, the tidying's to the audit log and the mailings.
     expect(link(2)).toBe("https://pauseai.info/join");
+    expect(link(3)).toBe("https://crm.pauseai.info/");
     expect(link(1)).toBe("/staff/me");
-    expect([...cards[3].querySelectorAll(":scope > p a")].map((a) => a.getAttribute("href"))).toEqual([
+    expect([...cards[4].querySelectorAll(":scope > p a")].map((a) => a.getAttribute("href"))).toEqual([
       "/staff/campaigns",
       "/staff/mailings",
     ]);
-    expect(cards[3].querySelector(":scope > p")!.textContent).toBe(
+    expect(cards[4].querySelector(":scope > p")!.textContent).toBe(
       [
         staffCopy.sending.intro.before,
         staffCopy.sending.intro.link,
@@ -117,7 +122,7 @@ describe("ImportOverview", () => {
         staffCopy.sending.introThen.after,
       ].join(""),
     );
-    expect([...cards[7].querySelectorAll(":scope > p a")].map((a) => a.getAttribute("href"))).toEqual([
+    expect([...cards[8].querySelectorAll(":scope > p a")].map((a) => a.getAttribute("href"))).toEqual([
       "/staff/audit-log",
       "/staff/mailings",
     ]);
@@ -125,13 +130,15 @@ describe("ImportOverview", () => {
     expect(cards[0].querySelector("h3")!.textContent).toBe(
       `${jobTitles["import-luma"]}${staffCopy.import.takesAction}`,
     );
-    expect(cards[5].querySelector("h3")!.textContent).toBe(`${jobTitles["check-mps"]}${staffCopy.import.checkOnly}`);
-    expect(cards[3].querySelector("h3")!.textContent).toBe(
+    expect(cards[6].querySelector("h3")!.textContent).toBe(`${jobTitles["check-mps"]}${staffCopy.import.checkOnly}`);
+    expect(cards[4].querySelector("h3")!.textContent).toBe(
       `${jobTitles["send-mailings"]}${staffCopy.import.takesAction}`,
     );
-    expect(cards[7].querySelector("h3")!.textContent).toBe(`${jobTitles["tidy-logs"]}${staffCopy.import.siteAdmin}`);
+    expect(cards[8].querySelector("h3")!.textContent).toBe(`${jobTitles["tidy-logs"]}${staffCopy.import.siteAdmin}`);
     expect(cards[1].querySelector("h3")!.textContent).toBe(`${jobTitles["read-gmail"]}${staffCopy.import.takesAction}`);
-    expect(cards[9].querySelector("h3")!.textContent).toBe(jobTitles["sync-emails"]);
+    expect(cards[10].querySelector("h3")!.textContent).toBe(jobTitles["sync-emails"]);
+    // CiviCRM's pull only reads.
+    expect(cards[3].querySelector("h3")!.textContent).toBe(jobTitles["import-civicrm"]);
   });
 
   it("shows an applied run, and one that changed nothing, in green, and one discarded plainly", async () => {

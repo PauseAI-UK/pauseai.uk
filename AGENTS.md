@@ -130,7 +130,7 @@ People write the words visitors and recipients read: page text, letters, emails,
 
 `tests/checks/placeholder-copy.test.ts` fails while ⁂ appears anywhere in the repo outside this file. So placeholders can't be merged by accident.
 
-To show someone the copy waiting for approval, run `npm run copy` after a storyboard run: it writes one page, `test-results/copy.html`, with each placeholder the branch adds or changes, its file and line, and the frames that picture it (`docs/testing.md`, "The copy to approve").
+After every full storyboard review of a branch with placeholders, run `npm run copy` and give the person you're working with the page it writes, so they can see the copy waiting for approval: it writes one page, `test-results/copy.html`, with each placeholder the branch adds or changes, its file and line, and the frames that picture it (`docs/testing.md`, "The copy to approve").
 
 ## The repo is public
 

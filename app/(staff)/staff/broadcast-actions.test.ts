@@ -29,8 +29,8 @@ const { revalidatePath } = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath }));
 
 const JO = "jo@pauseai.uk";
-const EMAIL = { contact: "email:luma-calendar:yes" };
-const TEXT = { contact: "phone:luma-calendar:yes" };
+const EMAIL = { contact: "email:events:yes" };
+const TEXT = { contact: "text:events:yes" };
 const FUTURE = new Date("2099-01-01T09:18:00.000Z");
 
 function form(fields: Record<string, string | string[] | File>) {
@@ -86,15 +86,15 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
   });
 
   it("makes none without a Consent answered yes", async () => {
-    await newBroadcastWith("email:pauseai-updates:unsure");
+    await newBroadcastWith("email:newsletter:unsure");
     expect(await query("SELECT id FROM mailings WHERE body IS NOT NULL")).toEqual([]);
   });
 
   it("changes a draft's Consent, and says when it didn't", async () => {
     const id = await draft();
-    expect(await changeBroadcastConsentNow(id, "email:site-forms:yes")).toBe(true);
+    expect(await changeBroadcastConsentNow(id, "email:newsletter:yes")).toBe(true);
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/broadcasts/${id}`);
-    expect((await getWrittenBroadcast(id))!.topic).toBe("site-forms");
+    expect((await getWrittenBroadcast(id))!.topic).toBe("newsletter");
     vi.mocked(revalidatePath).mockClear();
     expect(await changeBroadcastConsentNow(id, "nonsense")).toBe(false);
     expect(revalidatePath).not.toHaveBeenCalled();

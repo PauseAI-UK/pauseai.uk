@@ -228,7 +228,7 @@ export async function newBroadcastPageData(
       attachments: [],
       title: "",
       channel: "email",
-      topic: "site-forms",
+      topic: "newsletter",
       template: null,
     },
     data: {
@@ -407,7 +407,7 @@ export type ChoosingBroadcast = Pick<WrittenBroadcast, "id" | "channel" | "topic
 
 /** The Consent a draft being chosen for goes under, as the list's Consent filter writes it. */
 export function choosingConsent(choosing: ChoosingBroadcast): string {
-  return stateValue({ channel: choosing.channel === "email" ? "email" : "phone", topic: choosing.topic, send: "yes" });
+  return stateValue({ way: choosing.channel === "email" ? "email" : "text", topic: choosing.topic, send: "yes" });
 }
 
 /**

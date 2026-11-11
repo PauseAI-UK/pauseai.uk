@@ -5,6 +5,7 @@ import { supportersSearch } from "@/lib/staff-search";
 import { type Params } from "@/lib/list-params";
 import { Muted } from "@/components/ui/Text";
 import { broadcastTerms } from "@/lib/broadcasts";
+import { consentKey } from "@/lib/contact-permissions";
 import ChannelIcon from "./ChannelIcon";
 import IconText from "./ui/IconText";
 import BroadcastView from "./BroadcastView";
@@ -17,15 +18,14 @@ type FormAction = (form: FormData) => void | Promise<void>;
 
 /**
  * What everyone a broadcast is to said yes to, from the list's Consent
- * filter: the channel's icon, then the topic as the list's lozenges name it
- * ("Luma texts"). Apart from the other filters, as it's what lets us send it.
+ * filter: the channel's icon, then the consent as the list's lozenges name it. Apart from the other filters, as it's what lets us send it.
  */
 export function BroadcastContact({ params }: { params: Params }) {
   const terms = broadcastTerms(params.contact)!;
-  const channel = terms.channel === "email" ? "email" : "phone";
+  const way = terms.channel === "email" ? "email" : "text";
   return (
-    <IconText icon={<ChannelIcon channel={channel} />}>
-      {staffCopy.supporters.subscriptions.topics[channel][terms.topic]}
+    <IconText icon={<ChannelIcon channel={way} />}>
+      {staffCopy.supporters.subscriptions.consents[consentKey({ way, topic: terms.topic })]}
     </IconText>
   );
 }

@@ -7,6 +7,7 @@ import {
   type ImportJob,
   type LumaImportResult,
   type MembersImportResult,
+  type CivicrmImportResult,
   type MpCheckResult,
   type OldLettersImportResult,
   NIGHTLY,
@@ -26,6 +27,7 @@ type Results = {
   "import-controlai": ControlAiImportResult;
   "import-luma": LumaImportResult;
   "import-members": MembersImportResult;
+  "import-civicrm": CivicrmImportResult;
   "read-gmail": GmailReadResult;
   "import-web-form-letters": WebFormImportResult;
   "import-old-letters": OldLettersImportResult;
@@ -160,6 +162,17 @@ export const exampleMembersResult: MembersImportResult = {
   removed: 0,
   supportersAdded: 2,
   linked: 3,
+  civicrm: 2,
+};
+
+/** What a pull from CiviCRM did: a few new contacts, a couple gone from the chapter, an unsubscribe and a hold. */
+export const exampleCivicrmResult: CivicrmImportResult = {
+  contacts: 1536,
+  added: 4,
+  changed: 3,
+  gone: 2,
+  optOuts: 1,
+  blocked: 1,
 };
 
 /** What a read of Gmail found: one account read, and one that couldn't be this time. */

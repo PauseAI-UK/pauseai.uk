@@ -20,6 +20,7 @@ import { Card } from "./ui/Grid";
 import Numbered from "./ui/Numbered";
 import Strip from "./ui/Strip";
 import styles from "./SignupUpload.module.css";
+import { phoneWords } from "@/lib/phone";
 
 const copy = staffCopy.signupUpload;
 const words = copy.preview;
@@ -89,7 +90,7 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
               <td>{row.line}</td>
               <td>{row.name}</td>
               <td className={styles.email}>{row.email}</td>
-              <td className={styles.nowrap}>{row.phone}</td>
+              <td className={styles.nowrap}>{row.phone && phoneWords(row.phone)}</td>
               <td className={styles.nowrap}>{row.postcode}</td>
               <td>
                 <Happens row={row} />

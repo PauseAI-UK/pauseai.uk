@@ -42,7 +42,6 @@ import {
   textCost,
   broadcastScheduleProblems,
   BROADCAST_SENDER,
-  spacedNumber,
   textSender,
   TEXT_SENDER_NAME,
 } from "@/lib/broadcasts";
@@ -67,6 +66,7 @@ import Grid, { Card } from "./ui/Grid";
 import NotIcon from "./ui/NotIcon";
 import Strip from "./ui/Strip";
 import Numbered from "./ui/Numbered";
+import { phoneWords } from "@/lib/phone";
 import styles from "./MailingWriter.module.css";
 import own from "./Broadcasts.module.css";
 
@@ -238,7 +238,7 @@ function BroadcastPreview({
     : !data.sends || !data.textNumber
       ? copy.testVia.textOff
       : words === "chosen"
-        ? copy.testVia.text(spacedNumber(data.textNumber))
+        ? copy.testVia.text(phoneWords(data.textNumber))
         : copy.testVia.textNew;
   return (
     <>
@@ -504,7 +504,7 @@ export default function BroadcastWriter({
               blank
                 ? ""
                 : stateValue({
-                    channel: draft.channel === "email" ? "email" : "phone",
+                    way: draft.channel === "email" ? "email" : "text",
                     topic: draft.topic,
                     send: "yes",
                   })
@@ -585,7 +585,7 @@ export default function BroadcastWriter({
                     <strong>{TEXT_SENDER_NAME}</strong>{" "}
                     <Muted>
                       {data.textNumber ? (
-                        <span className={own.number}>{spacedNumber(data.textNumber)}</span>
+                        <span className={own.number}>{phoneWords(data.textNumber)}</span>
                       ) : (
                         copy.noNumber
                       )}

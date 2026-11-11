@@ -75,13 +75,16 @@ describeWithDatabase("dashboard", () => {
          ('g5', 'e1', 'u3', 'approved', '2026-10-01T00:00:00Z', NULL);
        -- Unsubscribed: u1, whose block is its answer instead; u2, back again; u3, who counts.
        INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at, resubscribed_at) VALUES
-         ('u1@example.com', 'luma-calendar', 'luma-webhook', 'r1', '2026-10-20T00:00:00Z', NULL),
-         ('u2@example.com', 'luma-calendar', 'luma-webhook', 'r2', '2026-10-20T00:00:00Z', '2026-10-21T00:00:00Z'),
-         ('u3@example.com', 'luma-calendar', 'luma-webhook', 'r3', '2026-10-20T00:00:00Z', NULL),
-         ('deleted.contact@example.com', 'luma-calendar', 'luma-webhook', 'r4', '2026-10-20T00:00:00Z', NULL);
+         ('u1@example.com', 'events', 'luma-webhook', 'r1', '2026-10-20T00:00:00Z', NULL),
+         ('u2@example.com', 'events', 'luma-webhook', 'r2', '2026-10-20T00:00:00Z', '2026-10-21T00:00:00Z'),
+         ('u3@example.com', 'events', 'luma-webhook', 'r3', '2026-10-20T00:00:00Z', NULL),
+         ('deleted.contact@example.com', 'events', 'luma-webhook', 'r4', '2026-10-20T00:00:00Z', NULL);
+       -- u1's number stopped the newsletter by text, which counts though u1's address is blocked.
+       INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at) VALUES
+         ('+447700900001', 'newsletter', 'text', 'civicrm', 'r5', '2026-10-20T00:00:00Z');
        -- Sources: this week's supporter was a member before they were a Luma contact; last week's is on Luma; five weeks ago's has no record to say; u3 has an opt-out that counts.
-       INSERT INTO members (id, email, name, joined_at, created_at, keep_informed, share_permission, source_modified_at) VALUES
-         ('m1', 'u1@example.com', 'U1', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z', true, false, '2026-10-01T00:00:00Z');
+       INSERT INTO members (id, email, name, phone, joined_at, created_at, keep_informed, share_permission, source_modified_at) VALUES
+         ('m1', 'u1@example.com', 'U1', '+447700900001', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z', true, false, '2026-10-01T00:00:00Z');
        INSERT INTO supporter_links (supporter_id, luma_user_id, member_id, matched_by, matched_value) VALUES
          ((SELECT id FROM supporters WHERE first_seen_at = '2026-10-20T00:00:00Z'), 'u1', NULL, 'email', 'u1@example.com'),
          ((SELECT id FROM supporters WHERE first_seen_at = '2026-10-20T00:00:00Z'), NULL, 'm1', 'email', 'u1@example.com'),
@@ -121,7 +124,8 @@ describeWithDatabase("dashboard", () => {
       eventRegistrations: { current: 2, previous: 0 },
       eventsHeld: { current: 1, previous: 1 },
       supportersAdded: { current: 1, previous: 1 },
-      unsubscribes: { current: 1, previous: 0 },
+      // u3 by email and u1 by text; not u1 by email, whose block is its answer, nor u2, back again.
+      unsubscribes: { current: 2, previous: 0 },
     });
     expect(result.byCampaign).toEqual({
       lettersSent: { "regulate-letter-pm": 1 },

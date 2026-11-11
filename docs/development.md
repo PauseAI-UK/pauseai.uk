@@ -454,7 +454,11 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   `https://crm.pauseai.info/`, is specified in
   [PauseAI/pauseai-civicrm#1175](https://github.com/PauseAI/pauseai-civicrm/issues/1175).
   That repo is private, so an agent can't read the spec: ask Francis to
-  paste it. The site doesn't call the API yet.
+  paste it. The hourly CiviCRM import reads its `get` with the UK chapter's
+  key, `CIVICRM_CHAPTER_KEY`, in Netlify; nothing writes to CiviCRM yet.
+  Without the key, fixture builds answer from
+  `lib/server/fixtures/civicrm-contacts.json`, and the members import skips
+  looking up new members.
 
 ### The march sign-up and Luma
 
@@ -681,5 +685,6 @@ Each is a Netlify scheduled function in `netlify/functions/` that calls its rout
 | `read-gmail`                                 | every 5 minutes                       | The connected Gmail accounts                                                                                                                                                                                                                                                                       |
 | `send-mailings`                              | 18 past every hour                    | The connected Gmail accounts. Its background function sends what one call can't (`send-mailings-background`), which credit-based plans have (https://docs.netlify.com/build/functions/background-functions/). It starts no mailing between midnight and 06:18, so one due overnight goes at 06:18. |
 | `import-members`                             | 19 past every hour                    | `AIRTABLE_TOKEN`, with read access to Stichting PauseAI's "Members & Actions" base (`appWPTGqZmUcs3NWu`), which the global team grant. A run reads every UK member we may hold, which counts against the global team's Airtable plan's monthly API calls.                                          |
+| `import-civicrm`                             | 49 past every hour                    | `CIVICRM_CHAPTER_KEY`, our UK chapter's key to Global's chapter contacts API. A run reads every UK chapter contact, a page of 500 at a time.                                                                                                                                                       |
 
 The database sleeps after five minutes without a query, and is billed while it's awake: about 10 credits an hour at its smallest. The 5-minute jobs keep it awake all day.

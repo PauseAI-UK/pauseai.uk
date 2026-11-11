@@ -776,6 +776,10 @@ Where they come from:
   A member the import no longer reads is marked removed and kept, with
   their links, until erased. The summary's `member` is false for them, so
   they lose the Member badge.
+- **CiviCRM.** Global's UK chapter contacts, pulled hourly ("CiviCRM",
+  below). A contact gives only its address, so one whose address nobody
+  else has is a supporter with no name, and it has no contact details of
+  its own.
 
 **Where they are.** The `supporter_place` view gives each supporter's
 best-known place, with its coordinates and country. It's the first of these
@@ -885,130 +889,134 @@ who changed it.
 
 ## Opt-outs
 
-Each time an address opted out of a mailing list, and when it opted back
-in, if it has (`opt_outs`, `lib/server/opt-outs.ts`). Rows are keyed by
+Each time an address or number stopped a topic by a way, and when it
+opted back in, if it has (`opt_outs`, `lib/server/opt-outs.ts`). Keyed by
 address, not supporter, because an unsubscribe can arrive before we know
-whose address it is. The supporter pages join them to every address a
-supporter has. An address is opted out of a list while it has an open row,
-one at most per list. A list is named for what was opted out of, not for
-what told us, so an address has one opt-out in force per list whoever
-reported it.
-
-There are two lists. `luma-calendar` is the calendar's emails, which Luma
-sends to the calendar's contacts:
-
-- Unsubscribing from one, marking one as spam, or being removed or blocked
-  by us takes someone off that list.
-- Following the calendar again puts them back as they were, with the date
-  they first joined.
-- Unfollowing the calendar does neither.
-
-We checked this with a staff member's own Luma account against
-`/v1/calendars/contacts/list` in October 2026. Two things tell us of an
-opt-out:
+whose address it is; the supporter pages join it to every address a
+supporter has. An address is opted out of a topic by a way while it has an
+open row, one at most for each. A row is named for what was stopped, the
+topic and the way (the consents, below), not for what told us, so an
+address has one opt-out in force for each whoever reported it, and its
+source says who did. Three things tell us:
 
 - Luma's `calendar.person.unsubscribed` webhook (`/api/luma/webhook`,
-  `lib/server/luma-webhooks.ts`) tells us at once. It's keyed by Luma's
-  `Webhook-Id`, so a redelivery changes nothing. Luma doesn't say whether
-  it was an unsubscribe, a block or a spam report.
-  `calendar.person.subscribed` closes the row, but Luma sends it for a new
-  follower, not for one coming back.
-- The Luma import's full passes over the contacts tell us at the end of
-  each (`recordContactsPass`). The passes follow one another, ten pages a
-  run. A contact the pass doesn't list is opted out, as `luma-contacts`,
-  from when the pass noticed, unless they already are. An open opt-out that
-  began before the pass listed the contact again is closed. That catches
-  what the webhook doesn't: returns, removals, blocks, and anyone who left
-  before the webhook was set up on 22 Oct 2026.
+  `lib/server/luma-webhooks.ts`), at once, keyed by Luma's `Webhook-Id`
+  so a redelivery changes nothing: a stop to events by email, as the
+  calendar's emails are about events. Luma doesn't say whether it was an
+  unsubscribe, a block or a spam report. `calendar.person.subscribed`
+  closes the row, but Luma sends it for a new follower, not for one coming
+  back. Unsubscribing from one of the calendar's emails, marking one as
+  spam, or being removed or blocked by us takes someone off the calendar's
+  list; following it again puts them back as they were, with the date they
+  first joined. Unfollowing changes neither. We checked this with a staff
+  member's own Luma account against `/v1/calendars/contacts/list` in
+  October 2026.
+- The end of each of the Luma import's full passes over the calendar's
+  contacts, one after another, ten pages a run (`recordContactsPass`). A
+  contact it doesn't list is opted out, as `luma-contacts`, from when it
+  noticed, unless they already are; an open opt-out begun before it listed
+  them again is closed. That catches what the webhook doesn't: returns,
+  removals, blocks, and anyone who left before the webhook was set up on
+  22 Oct 2026. So someone who leaves, comes back and leaves again within a
+  pass has one opt-out, not two: the second unsubscribe finds the first
+  still open.
+- The CiviCRM import, hourly (`recordCivicrmLists`, "CiviCRM", below): a
+  contact `unsubscribed` from CiviCRM's `newsletter` or `volunteer_updates`
+  list is a stop to the newsletter or volunteering by email, as `civicrm`,
+  from when the pull saw it. On the list again later, which only the
+  person can do there, closes an opt-out begun before.
 
-So someone who leaves, comes back and leaves again within a pass has one
-opt-out, not two: the second unsubscribe finds the first still open.
+An opt-out is only ever a real stop, told us by its own sender. Leaving a
+box unticked isn't one, nor is CiviCRM's `not_opted_in`: neither undoes a
+yes from another source.
 
-An opt-out is only ever a real unsubscribe, told us by the list's own
-sender. `pauseai-updates`, the members' updates, has none yet, as the
-updates are sent from CiviCRM, which the site doesn't read. Leaving "Keep me
-informed" unticked on joining isn't an opt-out. The member record says it,
-and the email permissions read it there.
+A new source is a name in the `CHECK` on `source`, and whatever records it.
 
-A new list is a name in the `CHECK`s on `list` and `source`, and whatever
-records it.
+### CiviCRM
+
+Global's CRM, CiviCRM, is one of our sources (`civicrm_contacts`,
+`lib/server/civicrm-import.ts`): every UK chapter contact its chapter
+contacts API returns (`lib/server/outside-services/civicrm.ts`, with
+`CIVICRM_CHAPTER_KEY`; the spec is PauseAI/pauseai-civicrm#1175, which is
+private), as it told us. The hourly import pulls them all, 500 a page by
+contact ID, and keeps each one's contact ID, Airtable ID and address, its
+flags (`on_hold`, `no_bulk_email`, `do_not_email`, `do_not_phone`,
+`do_not_sms`) and its status on the two UK lists, `newsletter` and
+`volunteer_updates`. No name, number or postal address. CiviCRM gives no
+dates, so each value's `_since` is when a pull saw it change, and one the
+same as `first_seen_at` is as it was when we first saw the contact. A
+contact links to a supporter by its address, a new one if nobody has it,
+as every source does, and its answers reach a member by its Airtable ID.
+Between pulls, the members import looks up each new member's address
+(`lookUpNewMembers`), as someone who just joined isn't in the last pull.
+
+A contact a complete pull doesn't return has left the UK chapter, often by
+saying no to sharing with us: it's marked `gone_at`, and its lists stop
+counting, as do its member's records (below). If a pull returns more than
+5% fewer contacts than were there, nobody is marked gone, as that's more
+likely CiviCRM's mistake, and the run says so, to tell Global. A new hold
+blocks the address (`email_blocks`, "Email", below), as a problem of the
+kind `hold`, which staff can lift with a note on the blocked addresses page;
+only a new hold blocks it again. Nothing here writes to CiviCRM.
 
 ### Whether we'd contact someone
 
 One place decides whether we may contact an email address or a phone
-number about each topic, and why: `contact_permission()`
-(`netlify/database/migrations/0049_contact_permissions.sql`, where each
-reason is explained). It's read through three views: `email_permissions`,
-`phone_permissions`, and `contact_permissions`, which is both of them.
-Everything that asks reads those:
-
-- the supporter's page, and the list's Consent, Email and Phone columns,
-  through `permissionsFor()` in `lib/server/contact-permissions.ts`;
-- the list's Consent filter;
-- the staff home's count of Luma unsubscribes, through the
-  `contact_unsubscribes` view.
-
-Nothing else reads `opt_outs` to answer it, and
+number about each topic by each way, and why: `contact_permission()`
+(`netlify/database/migrations/0100_consents.sql`, where each reason is
+explained), read through the `email_permissions` and `phone_permissions`
+views and `contact_permissions`, both of them. Everything that asks reads
+those: the supporter's page and the list's Consent, Email and Phone
+columns, through `permissionsFor()` in `lib/server/contact-permissions.ts`;
+the list's Consent filter; and who a broadcast goes to. Their stops are
+read through the `contact_unsubscribes` view, by the list's Unsubscribed
+filter and the staff home's count of new opt-outs. Nothing else reads `opt_outs` to answer it, and
 `tests/checks/opt-outs.test.ts` fails if code outside
 `lib/server/opt-outs.ts` and erasure does.
 
 An address or a number does two jobs, kept apart. It says which records
 are one person, so every one is kept and shown, whatever its answers. And
-it's a way to reach someone, which needs a yes. The answer is for one
-topic, one channel and one address, so someone who gave Luma one number and
-the join form another has an answer for each number.
+it's a way to reach someone, which needs a yes: the answer is for one
+consent and one address, so someone who gave Luma one number and the join
+form another has an answer for each.
 
-The topics, and the channels each goes by (`TOPIC_REASONS` in
-`lib/contact-permissions.ts`):
+A consent is a topic, what we'd send, by a way (`CONSENTS` in
+`lib/contact-permissions.ts`): email to an address, or a text (WhatsApp too)
+or a call to a number. The topics:
 
-- **Luma calendar**, email and phone: being a contact of the calendar.
-  Registering for an event makes someone a contact, as following the
-  calendar does, whenever they joined (Luma's list leaves out anyone who
-  left). A number given at a registration was given by a Luma account, so
-  it has that account's answer: an unsubscribe from the calendar's emails
-  is a no for its number too. The same number given anywhere else has its
-  own answers.
-- **PauseAI updates**, email: the newest member record's "Keep me
-  informed" (a free choice from 30 June 2026; before, everyone who joined
-  was on the list).
-- **Site forms**, email and phone: the newest form entry's box, which on
-  the march's says "by email and phone".
-- **Volunteering**, phone: the join form asks for a number only of those
-  who choose to volunteer regularly, for volunteers' messages. Before 30
-  June 2026 it was a Tally form with no choice, taken to be the same, so a
-  number on a record from then with no intent is a yes too. A number on a
-  record with another intent, or with no intent on a later record, is
-  unsure.
-- **March day**, phone: a number given for "text updates on the day" is a
-  yes until the day ends (`day_texts`), and a no after it. A yes the box
-  gave to site forms stays.
+- **Newsletter**, the PauseAI UK newsletter, which includes events: a box
+  ticked on one of our forms, for email, and for texts on the march's,
+  which says "by email and phone"; a paper sign-up, where writing an address
+  or a number down is joining; CiviCRM's `newsletter` list, for email; and
+  a member's "Keep me informed", for one CiviCRM has never returned.
+- **Events only**: following the Luma calendar, which registering for an
+  event does too, for email. A number given at a Luma registration has the
+  answer of the account that gave it, for texts; a number given on a form
+  for "text updates on the day" is a yes for texts until the day ends
+  (`day_texts`).
+- **Volunteering**: CiviCRM's `volunteer_updates` list, for email; and a
+  member's number, for texts and calls, if they chose to volunteer when
+  joining, or joined before 30 June 2026 on the Tally form, which didn't ask.
 
-A number is one channel, but a topic says which ways of using it are
-allowed (`TOPIC_WAYS` in `lib/contact-permissions.ts`), from what people
-were told when they gave it. Luma's and the march day's numbers are for
-texts only. Site forms' and volunteering's are for calls as well as texts.
-Calling someone without their consent is allowed in the UK only to a number
-that isn't on the Telephone Preference Service, so a calling tool reads the
-ways, not just the answer.
+Each answer is yes or no, with a reason from a short list, when, and which
+source said so. First, whatever stops every topic by the way: a blocked
+address (`email_blocks`, below), then CiviCRM's "Do not email" and "No bulk
+emails" for email, "Do not SMS" for texts and "Do not phone" for calls, on
+any contact with the address, or of a member who gave the number. Then the
+latest thing the person said about the consent, a stop or a yes, a stop
+winning a tie, so a box ticked after an unsubscribe opens it again. Last,
+if they said nothing that counts, why not: a box left unticked, never
+opted in in CiviCRM, never followed the calendar, gone from the chapter.
+A consent the address or number has had nothing to do with has no row.
 
-Each answer is yes, no or unsure, with a reason from a short list, when,
-and which source said so. The first rule that matches wins:
-
-1. A blocked email address (`email_blocks`, below) is no to everything.
-2. An opt-out in force, by its channel, is no.
-3. Otherwise the topic's source decides.
-
-Unsure is a yes that an unsubscribe we can't see may have undone: every
-member on the updates, which CiviCRM sends. A topic the address or number
-has had nothing to do with has no row.
-
-The list shows an Email or Phone column only when the Consent filter is by
-that channel. The column has the addresses or numbers whose answer the
-filter finds, and a download, vCards too, has the same. The supporter's page
-shows every address and number, and marks a number no topic lets us use.
-
-Nothing sends by it yet: a broadcast finds who it's to by it, but no backend
-sends one ("Broadcasts to supporters", above).
+The supporter's page shows each yes or stop with where it came from and
+when. The list shows an Email or Phone column only
+with the Consent filter by that channel, and in it the addresses or
+numbers whose answer the filter finds; a download, vCards too, has the
+same. The supporter's page shows every address and number, marking a
+number no consent lets us use. Nothing sends by it yet; when the site
+mails supporters, `send()` asks it for the purpose's consent as it checks
+`email_blocks`.
 
 ## Email
 

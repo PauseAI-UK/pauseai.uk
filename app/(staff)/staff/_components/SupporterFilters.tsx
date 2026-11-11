@@ -1,5 +1,5 @@
 import { SUPPORTERS_LIST } from "@/lib/staff-lists";
-import type { Channel } from "@/lib/contact-permissions";
+import type { Way } from "@/lib/contact-permissions";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
@@ -11,7 +11,7 @@ import FilterBar from "./ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";
 
 /** A channel's icon, over its topics in the Subscriptions filter. */
-const channelIcon = (channel: Channel) => <ChannelIcon channel={channel} />;
+const channelIcon = (way: Way) => <ChannelIcon channel={way} />;
 
 /** The supporters list's search and filters that are on, in words, as their chips say them. */
 export function supporterWords(

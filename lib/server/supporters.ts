@@ -16,7 +16,7 @@ import type {
   SupporterSummary,
 } from "@/lib/supporters";
 import { SUPPORTERS_PAGE_SIZE } from "@/lib/supporters";
-import type { Channel } from "@/lib/contact-permissions";
+import { channelOf, type Channel } from "@/lib/contact-permissions";
 import { query, transaction, type Queryable } from "./db";
 import { permissionsFor } from "./contact-permissions";
 import { optedOutOfLuma } from "./opt-outs";
@@ -166,8 +166,7 @@ const milesFrom = (lat: number, lon: number) =>
  * The conditions of the filters that repeat, those that are on: each finds
  * those with any of its values. An event is one they registered for, but
  * for declined. A contact one is an answer for any of their addresses, or
- * any of their numbers, by its channel: any for a topic, or one answer, or
- * one reason.
+ * any of their numbers, for its consent: any answer, or one, or one reason.
  */
 function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>): Sql[] {
   const conditions: Sql[] = [];
@@ -175,10 +174,11 @@ function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>): Sql[] {
   if (filter.contact) {
     const states = (channel: Channel) =>
       filter
-        .contact!.filter((state) => state.channel === channel)
-        .map(({ topic, send, reason }) =>
+        .contact!.filter((state) => channelOf(state.way) === channel)
+        .map(({ topic, way, send, reason }) =>
           sql.and([
             sql`p.topic = ${topic}`,
+            ...(channel === "phone" ? [sql`p.way = ${way}`] : []),
             ...(send ? [sql`p.send = ${send}`] : []),
             ...(reason ? [sql`p.reason = ${reason}`] : []),
           ]),
@@ -263,9 +263,14 @@ export async function listSupporters(
     );
   }
   if (filter.unsubscribedDays) {
+    // From the consents the Consent filter names, or any.
+    const consents = (filter.contact ?? []).map(({ topic, way }) => sql`(u.topic = ${topic} AND u.way = ${way})`);
+    const which = consents.length ? sql.or(consents) : sql`true`;
     where.push(
       sql`s.id IN (SELECT i.supporter_id FROM contact_unsubscribes u JOIN supporter_identity i ON i.email = u.address
-       WHERE u.channel = 'email' AND u.topic = 'luma-calendar' AND ${within("u.at", filter.unsubscribedDays)})`,
+         WHERE u.way = 'email' AND ${which} AND ${within("u.at", filter.unsubscribedDays)}
+       UNION SELECT c.supporter_id FROM contact_unsubscribes u JOIN supporter_contact c ON phone_number(c.phone) = u.address
+         WHERE u.way <> 'email' AND ${which} AND ${within("u.at", filter.unsubscribedDays)})`,
     );
   }
   // What the Near filter's words are: a place, null for none, "failed"; or undefined with no Near filter.

@@ -2,6 +2,7 @@ import { contactState, type Topic } from "./contact-permissions";
 import { staffCopy } from "./content/staff-interface";
 import { greetingLetter, inlinesOf, isBlankMailing, type MailingDoc, type MailingRecipientValues } from "./mailing-doc";
 import { now } from "./now";
+import { phoneWords } from "./phone";
 import { staffDate } from "./staff-time";
 import { anyAndNone, valuesOf, type ParamValue } from "./list-params";
 
@@ -37,16 +38,16 @@ export function hasWords(broadcast: { subject: string; body: MailingDoc; templat
 
 /**
  * A broadcast's channel and topic, from the supporters list's Consent filter:
- * one topic, answered yes. Undefined for anything else, as "not sure" isn't
- * enough, and two topics wouldn't say which it's about. What the filter leaves
- * out doesn't count.
+ * one topic by email or text, answered yes. Undefined for anything else, as
+ * two topics wouldn't say which it's about, and calls aren't broadcast. What
+ * the filter leaves out doesn't count.
  */
 export function broadcastTerms(contact: ParamValue | undefined): BroadcastTerms | undefined {
   const [found] = anyAndNone(valuesOf(contact), (values) => values.flatMap((value) => contactState(value) ?? []));
   if (found?.length !== 1) return undefined;
-  const [{ channel, topic, send }] = found;
-  if (send !== "yes") return undefined;
-  return { channel: channel === "email" ? "email" : "text", topic };
+  const [{ way, topic, send }] = found;
+  if (send !== "yes" || way === "call") return undefined;
+  return { channel: way, topic };
 }
 
 /** The merge fields of a broadcast to supporters. No one has all of them, so each has a fallback. */
@@ -200,22 +201,9 @@ export const BROADCAST_SENDER = { name: "PauseAI UK", email: "hello@pauseai.uk" 
 /** The name a text appears from: the WhatsApp business account's. */
 export const TEXT_SENDER_NAME = "PauseAI UK";
 
-/**
- * A phone number as people write it, from the international form a number
- * is kept in: a UK one in its groups after +44, as "+44 7700 900000" or, in
- * London, "+44 20 7946 0000"; any other as it is.
- */
-export function spacedNumber(number: string): string {
-  const uk = /^\+44(\d{10})$/.exec(number)?.[1];
-  if (!uk) return number;
-  return uk.startsWith("2")
-    ? `+44 ${uk.slice(0, 2)} ${uk.slice(2, 6)} ${uk.slice(6)}`
-    : `+44 ${uk.slice(0, 4)} ${uk.slice(4)}`;
-}
-
 /** Who a text is from, on one line: the name, then its number in brackets. */
 export function textSender(name: string, number: string): string {
-  return `${name} (${spacedNumber(number)})`;
+  return `${name} (${phoneWords(number)})`;
 }
 
 /**

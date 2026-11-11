@@ -341,7 +341,7 @@ describe("supportersSearch", () => {
     const all = supportersSearch({
       q: " jane ",
       activity: ["registered", "member", "!letter"],
-      contact: ["email:luma-calendar:unsubscribed", "!email:site-forms:no"],
+      contact: ["email:events:unsubscribed", "!email:newsletter:no"],
       event: ["evt-1", "evt-2", "!evt-3"],
       campaign: "support-sobel-bill",
       wrote: "no",
@@ -356,7 +356,7 @@ describe("supportersSearch", () => {
     expect(all.filter).toEqual({
       search: "jane",
       activity: ["registered", "member"],
-      contact: [{ channel: "email", topic: "luma-calendar", reason: "unsubscribed" }],
+      contact: [{ way: "email", topic: "events", reason: "unsubscribed" }],
       event: ["evt-1", "evt-2"],
       campaign: "support-sobel-bill",
       wrote: false,
@@ -365,7 +365,7 @@ describe("supportersSearch", () => {
       near: { text: "Leeds", miles: 25 },
       not: {
         activity: ["letter"],
-        contact: [{ channel: "email", topic: "site-forms", send: "no" }],
+        contact: [{ way: "email", topic: "newsletter", send: "no" }],
         event: ["evt-3"],
         country: ["scotland"],
         mp: [8],
@@ -376,7 +376,7 @@ describe("supportersSearch", () => {
     });
     expect(all.q).toBe(" jane ");
     expect(all.activity).toEqual(["registered", "member", "!letter"]);
-    expect(all.contact).toEqual(["email:luma-calendar:unsubscribed", "!email:site-forms:no"]);
+    expect(all.contact).toEqual(["email:events:unsubscribed", "!email:newsletter:no"]);
     // A campaign alone is those who wrote in it; Near alone is within 10 miles.
     expect(supportersSearch({ campaign: "support-sobel-bill", near: "M1" }).filter).toMatchObject({
       wrote: true,

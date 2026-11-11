@@ -82,7 +82,7 @@ export const exampleSupporterDetails: SupporterDetails = {
       source: "luma-webhook",
       at: new Date("2026-10-12T18:30:00Z"),
       kind: "opted-out",
-      title: "luma-calendar",
+      title: "events",
       campaignTitle: null,
       detail: "jane@example.com",
       href: null,
@@ -145,7 +145,18 @@ export const exampleSupporterDetails: SupporterDetails = {
   ],
   permissions: [
     {
-      topic: "luma-calendar",
+      topic: "newsletter",
+      way: "email",
+      channel: "email",
+      address: "jane@example.com",
+      send: "yes",
+      reason: "asked",
+      at: new Date("2026-10-15T09:00:00Z"),
+      source: "email-your-mp",
+    },
+    {
+      topic: "events",
+      way: "email",
       channel: "email",
       address: "jane@example.com",
       send: "no",
@@ -154,16 +165,8 @@ export const exampleSupporterDetails: SupporterDetails = {
       source: "luma-webhook",
     },
     {
-      topic: "site-forms",
-      channel: "email",
-      address: "jane@example.com",
-      send: "yes",
-      reason: "asked",
-      at: new Date("2026-10-05T09:00:00Z"),
-      source: "email-your-mp",
-    },
-    {
-      topic: "luma-calendar",
+      topic: "events",
+      way: "text",
       channel: "phone",
       address: "+447700900001",
       send: "no",
@@ -174,7 +177,7 @@ export const exampleSupporterDetails: SupporterDetails = {
   ],
 };
 
-/** A member who joined through our site wanting to volunteer, opted out of the updates on joining, then re-joined asking for them; never a contact of the Luma calendar. */
+/** A member who joined through our site wanting to volunteer, and is on the newsletter in CiviCRM; never a contact of the Luma calendar. */
 export const exampleMemberDetails: SupporterDetails = {
   mp: null,
   letters: [],
@@ -219,49 +222,61 @@ export const exampleMemberDetails: SupporterDetails = {
   ],
   permissions: [
     {
-      topic: "luma-calendar",
+      topic: "newsletter",
+      way: "email",
+      channel: "email",
+      address: "rhea@example.com",
+      send: "yes",
+      reason: "subscribed",
+      at: new Date("2026-11-10T08:00:00Z"),
+      source: "civicrm",
+    },
+    {
+      topic: "events",
+      way: "email",
       channel: "email",
       address: "rhea@example.com",
       send: "no",
       reason: "not-following",
       at: null,
-      source: null,
-    },
-    {
-      topic: "pauseai-updates",
-      channel: "email",
-      address: "rhea@example.com",
-      send: "unsure",
-      reason: "asked",
-      at: new Date("2026-10-11T08:00:00Z"),
-      source: "member",
+      source: "luma",
     },
     {
       topic: "volunteering",
-      channel: "phone",
+      way: "email",
+      channel: "email",
+      address: "rhea@example.com",
+      send: "no",
+      reason: "no-bulk-email",
+      at: new Date("2026-11-10T08:00:00Z"),
+      source: "civicrm",
+    },
+    ...(["text", "call"] as const).map((way) => ({
+      topic: "volunteering" as const,
+      way,
+      channel: "phone" as const,
       address: "+447700900002",
-      send: "yes",
-      reason: "volunteered",
+      send: "yes" as const,
+      reason: "volunteered" as const,
       at: new Date("2026-07-10T00:00:00Z"),
       source: "member",
-    },
+    })),
   ],
 };
 
 /** A supporter whose only address is blocked: they marked a letter as spam. */
-export const exampleBlockedPermissions: ContactPermission[] = (["luma-calendar", "site-forms"] as const).map(
-  (topic) => ({
-    topic,
-    channel: "email",
-    address: "gus@example.com",
-    send: "no",
-    reason: "blocked",
-    at: new Date("2026-10-05T12:00:00Z"),
-    source: "complaint",
-  }),
-);
+export const exampleBlockedPermissions: ContactPermission[] = (["newsletter", "events"] as const).map((topic) => ({
+  topic,
+  way: "email",
+  channel: "email",
+  address: "gus@example.com",
+  send: "no",
+  reason: "blocked",
+  at: new Date("2026-10-05T12:00:00Z"),
+  source: "complaint",
+}));
 
-/** Rows of the list: Jane, unsubscribed from the calendar's emails but agreed on her letter; Sam, a member who volunteered with a phone and a contact of the calendar since before its webhook; Gus, blocked. */
+/** Rows of the list: Jane, unsubscribed from the calendar's emails but agreed on her letter; Sam, a member who volunteered with a phone, a contact of the calendar and on the newsletter in CiviCRM; Gus, blocked. */
 export const exampleSupporterRows: SupporterRow[] = [
   { ...exampleSupporter, permissions: exampleSupporterDetails.permissions },
   {
@@ -277,7 +292,18 @@ export const exampleSupporterRows: SupporterRow[] = [
     member: true,
     permissions: [
       {
-        topic: "luma-calendar",
+        topic: "newsletter",
+        way: "email",
+        channel: "email",
+        address: "sam@example.com",
+        send: "yes",
+        reason: "subscribed",
+        at: new Date("2026-11-10T00:00:00Z"),
+        source: "civicrm",
+      },
+      {
+        topic: "events",
+        way: "email",
         channel: "email",
         address: "sam@example.com",
         send: "yes",
@@ -286,16 +312,8 @@ export const exampleSupporterRows: SupporterRow[] = [
         source: "luma",
       },
       {
-        topic: "pauseai-updates",
-        channel: "email",
-        address: "sam@example.com",
-        send: "unsure",
-        reason: "asked",
-        at: new Date("2026-09-12T00:00:00Z"),
-        source: "member",
-      },
-      {
         topic: "volunteering",
+        way: "text",
         channel: "phone",
         address: "+447700900003",
         send: "yes",

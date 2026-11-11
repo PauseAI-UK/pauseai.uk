@@ -6,6 +6,7 @@ import { readGmail } from "./gmail-reading";
 import { startRunning, stopRunning } from "./import-runs";
 import { runTidying } from "./log-retention";
 import { importLuma } from "./luma-import";
+import { importCivicrm } from "./civicrm-import";
 import { importMembers } from "./members-import";
 import { checkMps } from "./mp-check";
 import { importOldLetters } from "./old-letters-import";
@@ -32,6 +33,7 @@ const RUNS: Record<ImportJob, RunJob> = {
   "import-old-letters": (by) => importOldLetters(by),
   "import-luma": (by) => importLuma(by),
   "import-members": (by) => importMembers(by),
+  "import-civicrm": (by) => importCivicrm(by),
   "read-gmail": (by, request) => readGmail(by, request),
   "send-mailings": (by, request) => runSending(by, request),
   "sync-politicians": async (by) => {

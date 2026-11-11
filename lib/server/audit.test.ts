@@ -63,8 +63,8 @@ describeWithDatabase("the change log", () => {
     await addAuditEntry("postmark", "block address", { address: "jane@example.com" });
     await addAuditEntry("postmark", "block address", { address: email });
     await addAuditEntry("jo@pauseai.uk", "unblock address", { address: "jane@example.com", note: "Checked" });
-    await addAuditEntry("jo@pauseai.uk", "create broadcast", { id: 1, channel: "email", topic: "luma-calendar" });
-    await addAuditEntry("jo@pauseai.uk", "change broadcast consent", { id: 1, channel: "email", topic: "site-forms" });
+    await addAuditEntry("jo@pauseai.uk", "create broadcast", { id: 1, channel: "email", topic: "events" });
+    await addAuditEntry("jo@pauseai.uk", "change broadcast consent", { id: 1, channel: "email", topic: "newsletter" });
     await addAuditEntry("jo@pauseai.uk", "schedule broadcast", { id: 1, recipients: 3 });
     await addAuditEntry("jo@pauseai.uk", "stop broadcast", { id: 1, was: "scheduled" });
     await query("DELETE FROM audit_log WHERE action = 'add politician'");

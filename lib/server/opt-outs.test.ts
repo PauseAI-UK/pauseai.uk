@@ -8,7 +8,7 @@ const LATER = new Date("2026-10-21T10:00:00Z");
 
 const jane = (sourceRef = "msg_1", address = "Jane@Example.com ") => ({
   address,
-  list: "luma-calendar" as const,
+  list: "events" as const,
   source: "luma-webhook" as const,
   sourceRef,
   unsubscribedAt: AT,
@@ -39,10 +39,10 @@ describeWithDatabase("opt-outs", () => {
   });
 
   it("closes the open opt-out when the address subscribes again, and a new opt-out opens another", async () => {
-    expect(await recordResubscribe("jane@example.com", "luma-calendar", LATER)).toBe(false);
+    expect(await recordResubscribe("jane@example.com", "events", LATER)).toBe(false);
     await recordOptOut(jane("msg_1"));
-    expect(await recordResubscribe("Jane@example.com", "luma-calendar", LATER)).toBe(true);
-    expect(await recordResubscribe("jane@example.com", "luma-calendar", LATER)).toBe(false);
+    expect(await recordResubscribe("Jane@example.com", "events", LATER)).toBe(true);
+    expect(await recordResubscribe("jane@example.com", "events", LATER)).toBe(false);
     expect(await recordOptOut(jane("msg_2"))).toBe(true);
     expect(await rows()).toEqual([
       { address: "jane@example.com", source_ref: "msg_1", resubscribed_at: LATER },

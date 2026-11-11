@@ -80,7 +80,9 @@ test("The members import", async ({ page, flowDatabase }) => {
     changed: 0,
     removed: 0,
     supportersAdded: 8,
-    linked: 8,
+    // The members, and the CiviCRM contacts of the new members it has, looked up as they're new.
+    linked: 13,
+    civicrm: 5,
   };
   await expect(page.getByText(staffCopy.members.result(first))).toBeVisible();
   await page.getByRole("heading", { name: staffCopy.members.title }).scrollIntoViewIfNeeded();
@@ -89,10 +91,44 @@ test("The members import", async ({ page, flowDatabase }) => {
   story("Run again, it finds nothing new.");
   await page.getByRole("button", { name: staffCopy.members.importNow }).click();
   await expect(
-    page.getByText(staffCopy.members.result({ ...first, added: 0, supportersAdded: 0, linked: 0 })),
+    page.getByText(staffCopy.members.result({ ...first, added: 0, supportersAdded: 0, linked: 0, civicrm: 0 })),
   ).toBeVisible();
   await expect(page.getByText(staffCopy.runs.status.unchanged)).toBeVisible();
   await page.getByRole("heading", { name: staffCopy.members.title }).scrollIntoViewIfNeeded();
+  await frame(page, "The second run");
+});
+
+test("The CiviCRM import", async ({ page, flowDatabase }) => {
+  story(
+    "Staff run the CiviCRM import, which copies everyone Global's CRM has in the UK chapter: their lists and their stops, but no names. Every contact is copied but one, who was erased.",
+  );
+  runSql(flowDatabase, "INSERT INTO civicrm_erased (contact_id) VALUES (199)");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}${importPath("import-civicrm")}`);
+  await page.getByRole("button", { name: staffCopy.civicrm.importNow }).click();
+  // The fixture's eight contacts, one erased; Kit's unsubscribe, and Casey's hold. With no members here yet, each
+  // contact is a new supporter.
+  const first = {
+    contacts: 8,
+    added: 7,
+    changed: 0,
+    gone: 0,
+    optOuts: 1,
+    blocked: 1,
+    supportersAdded: 7,
+    linked: 7,
+  };
+  await expect(page.getByText(staffCopy.civicrm.result(first))).toBeVisible();
+  await page.getByRole("heading", { name: staffCopy.civicrm.title }).scrollIntoViewIfNeeded();
+  await frame(page, "The first run");
+
+  story("Run again, it finds nothing new.");
+  await page.getByRole("button", { name: staffCopy.civicrm.importNow }).click();
+  await expect(
+    page.getByText(staffCopy.civicrm.result({ ...first, added: 0, optOuts: 0, blocked: 0, linked: 0 })),
+  ).toBeVisible();
+  await expect(page.getByText(staffCopy.runs.status.unchanged)).toBeVisible();
+  await page.getByRole("heading", { name: staffCopy.civicrm.title }).scrollIntoViewIfNeeded();
   await frame(page, "The second run");
 });
 

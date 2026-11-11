@@ -6,7 +6,7 @@ import { staffCopy } from "./content/staff-interface";
 import type { ContactPermission, ContactState } from "./contact-permissions";
 import type { SortDirection } from "./staff-sort";
 
-/** Where a supporter came from: Luma, the members, or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, or the march sign-up. */
+/** Where a supporter came from: Luma, the members, CiviCRM's UK chapter contacts, or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, or the march sign-up. */
 export const SUPPORTER_SOURCES = [
   "luma",
   "member",
@@ -14,11 +14,12 @@ export const SUPPORTER_SOURCES = [
   "web-form",
   "march-2026-11",
   "paper-signup",
+  "civicrm",
 ] as const;
 export type SupporterSource = (typeof SUPPORTER_SOURCES)[number];
 
-/** What a supporter_links row points at (lib/server/supporter-sources.ts): a Luma user, a form entry or a member. */
-export type SupporterLinkSource = "luma" | "form" | "member";
+/** What a supporter_links row points at (lib/server/supporter-sources.ts): a Luma user, a form entry, a member or a CiviCRM contact. */
+export type SupporterLinkSource = "luma" | "form" | "member" | "civicrm";
 
 /** The lozenges in the list's Activities column, in its order: a member, a contact of the Luma calendar, registered for events, wrote to their MP, signed up for the march. */
 export const SUPPORTER_BADGES = ["member", "lumaContact", "registered", "letter", "march"] as const;

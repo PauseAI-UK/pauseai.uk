@@ -221,8 +221,11 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
             'SELECT s FROM (SELECT DISTINCT sources::text AS s FROM supporters_summary) d ORDER BY s COLLATE "C"',
           ),
         ).toEqual([
+          "{civicrm,email-your-mp,luma,member}",
+          "{civicrm,luma,member}",
+          "{civicrm,member}",
+          "{civicrm}",
           "{email-your-mp,luma,march-2026-11}",
-          "{email-your-mp,luma,member}",
           "{email-your-mp,luma}",
           "{email-your-mp,member}",
           "{email-your-mp}",
@@ -261,6 +264,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         expect(runSql(name, "SELECT DISTINCT kind FROM email_problems ORDER BY 1")).toEqual([
           "complaint",
           "hard",
+          "hold",
           "soft",
         ]);
         expect(runSql(name, "SELECT DISTINCT outcome FROM email_sends ORDER BY 1")).toEqual([
@@ -271,6 +275,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         // Every job's run in every state.
         expect(runSql(name, "SELECT DISTINCT job FROM import_runs ORDER BY 1")).toEqual([
           "check-mps",
+          "import-civicrm",
           "import-controlai",
           "import-luma",
           "import-members",
@@ -343,19 +348,22 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         ]);
         // Opt-outs told by every source, and every answer to whether we'd email someone.
         expect(runSql(name, "SELECT DISTINCT list || ' ' || source FROM opt_outs ORDER BY 1")).toEqual([
-          "luma-calendar luma-contacts",
-          "luma-calendar luma-webhook",
+          "events luma-contacts",
+          "events luma-webhook",
+          "newsletter civicrm",
         ]);
         expect(runSql(name, "SELECT DISTINCT send || ' ' || reason FROM email_permissions ORDER BY 1")).toEqual([
           "no blocked",
           "no declined",
+          "no left",
+          "no no-bulk-email",
           "no not-following",
-          "no removed",
+          "no not-opted-in",
           "no unsubscribed",
-          "unsure asked",
-          "unsure joined",
           "yes asked",
           "yes following",
+          "yes signed-up",
+          "yes subscribed",
         ]);
         // Every way a broadcast's copy can go, and each agrees with its supporter's consent now: a copy still
         // to send says yes; one skipped as blocked or unsubscribed, bounced, or stopped after it arrived says
@@ -377,7 +385,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           runSql(
             name,
             `SELECT c.id || ' ' || p.send || ' ' || p.reason FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id,
-               contact_permission(m.topic, CASE m.channel WHEN 'email' THEN 'email' ELSE 'phone' END, c.address) p
+               contact_permission(m.topic, CASE m.channel WHEN 'email' THEN 'email' ELSE 'text' END, c.address) p
              WHERE CASE
                WHEN c.status = 'scheduled' THEN p.send <> 'yes'
                WHEN c.skip_reason IN ('blocked', 'unsubscribed') THEN p.reason <> c.skip_reason

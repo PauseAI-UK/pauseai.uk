@@ -180,11 +180,11 @@ describe("the supporters list's Email and Phone columns", () => {
 
   it("shows neither without the Consent filter, and with it, the addresses and numbers whose answer it finds", async () => {
     expect(supporterColumns(search([])).map((c) => c.key)).not.toEqual(expect.arrayContaining(["email"]));
-    expect(supporterColumns(search(["!email:site-forms:yes"])).map((c) => c.key)).not.toContain("email");
+    expect(supporterColumns(search(["!email:newsletter:yes"])).map((c) => c.key)).not.toContain("email");
     // A value it can't read finds nothing to show.
     expect(supporterColumns(search(["email:nonsense"])).map((c) => c.key)).not.toContain("email");
     // An answer, a topic's any answer, and a reason; each channel's column, of its own.
-    const contact = ["email:luma-calendar:no", "phone:luma-calendar", "email:site-forms:asked"];
+    const contact = ["email:events:no", "text:events", "email:newsletter:asked"];
     const columns = supporterColumns(search(contact));
     const [jane] = exampleSupporterRows;
     expect(text(columns, "email", jane)).toBe("jane@example.com");
@@ -193,7 +193,30 @@ describe("the supporters list's Email and Phone columns", () => {
     expect(text(columns, "phone", { ...jane, permissions: exampleBlockedPermissions })).toBe("");
     await render(<SupportersTable search={search(contact)} page={{ supporters: [jane], total: 1, pages: 1 }} />);
     await expect.element(page.getByRole("cell", { name: "jane@example.com" })).toBeVisible();
-    await expect.element(page.getByRole("cell", { name: "+447700900001" })).toBeVisible();
+    // A download keeps the number whole; the page shows it without the country code.
+    await expect.element(page.getByRole("cell", { name: "07700 900001" })).toBeVisible();
+  });
+
+  it("links a number by the way it's a yes by: to WhatsApp for texts, else to ring it", async () => {
+    const [, sam] = exampleSupporterRows;
+    const [, , text] = sam.permissions;
+    const row = (permissions: SupporterRow["permissions"]) => ({ ...sam, permissions });
+    const { rerender } = await render(
+      <SupportersTable
+        search={search(["text:volunteering", "call:volunteering"])}
+        page={{ supporters: [row([text, { ...text, way: "call" }])], total: 1, pages: 1 }}
+      />,
+    );
+    await expect
+      .element(page.getByRole("link", { name: "07700 900003" }))
+      .toHaveAttribute("href", "https://wa.me/447700900003");
+    await rerender(
+      <SupportersTable
+        search={search(["call:volunteering"])}
+        page={{ supporters: [row([{ ...text, way: "call" }])], total: 1, pages: 1 }}
+      />,
+    );
+    await expect.element(page.getByRole("link", { name: "07700 900003" })).toHaveAttribute("href", "tel:+447700900003");
   });
 });
 
@@ -204,29 +227,29 @@ describe("the supporters list's Consent reason column", () => {
 
   it("is there only with the Consent filter, finding some rather than leaving them out", () => {
     expect(column([])).toBeUndefined();
-    expect(column(["!email:luma-calendar:no"])).toBeUndefined();
+    expect(column(["!email:events:no"])).toBeUndefined();
     expect(column(["email:nonsense"])).toBeUndefined();
-    expect(column(["email:luma-calendar:no"])!.label).toBe(staffCopy.supporters.columns.consentReason);
-    expect(column(["phone:luma-calendar"])).toBeDefined();
+    expect(column(["email:events:no"])!.label).toBe(staffCopy.supporters.columns.consentReason);
+    expect(column(["text:events"])).toBeDefined();
   });
 
   it("says why for each answer the filter finds, an address's before a number's, a line each", async () => {
     const [jane] = exampleSupporterRows;
-    const contact = ["email:luma-calendar:no", "phone:luma-calendar:no"];
-    const unsubscribed = reasons.reasons["luma-calendar"].unsubscribed("12 Oct 2026");
+    const contact = ["email:events:no", "text:events:no"];
+    const unsubscribed = reasons.reasons.unsubscribed("12 Oct 2026", reasons.sources.luma);
     // Jane's address and her number, each unsubscribed from Luma's calendar; her yes for our forms isn't there.
     expect(column(contact)!.text!(jane)).toBe(`${unsubscribed}; ${unsubscribed}`);
-    expect(column(["email:luma-calendar:no"])!.text!(jane)).toBe(unsubscribed);
+    expect(column(["email:events:no"])!.text!(jane)).toBe(unsubscribed);
     // A yes has its reason too.
-    expect(column(["email:site-forms:yes"])!.text!(jane)).toBe(
-      reasons.reasons["site-forms"].asked("5 Oct 2026", reasons.forms["email-your-mp"]),
+    expect(column(["email:newsletter:yes"])!.text!(jane)).toBe(
+      reasons.reasons.asked("15 Oct 2026", reasons.sources["email-your-mp"]),
     );
     // A blocked address's: what blocked it.
     expect(column(contact)!.text!({ ...jane, permissions: exampleBlockedPermissions })).toBe(
       reasons.blockedBecause.complaint("5 Oct 2026"),
     );
     // The filter on another topic finds none of hers.
-    expect(column(["email:pauseai-updates:no"])!.text!(jane)).toBe("");
+    expect(column(["email:newsletter:no"])!.text!(jane)).toBe("");
     await render(<SupportersTable search={search(contact)} page={{ supporters: [jane], total: 1, pages: 1 }} />);
     await expect.element(page.getByText(staffCopy.supporters.columns.consentReason, { exact: true })).toBeVisible();
     expect(page.getByText(unsubscribed).all()).toHaveLength(2);

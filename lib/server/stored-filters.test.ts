@@ -26,9 +26,9 @@ describe("storedFilter", () => {
         other: "x",
       }),
     ).toEqual({ list: "politicians", params: { q: "dummy", party: ["Labour", "!Green"], flag: "important" } });
-    expect(storedFilter("supporters", { contact: "email:luma-calendar:yes", sort: "name" })).toEqual({
+    expect(storedFilter("supporters", { contact: "email:events:yes", sort: "name" })).toEqual({
       list: "supporters",
-      params: { contact: "email:luma-calendar:yes" },
+      params: { contact: "email:events:yes" },
     });
   });
 });
@@ -163,7 +163,7 @@ describeWithDatabase("filterProblems", () => {
         params: {
           q: "jane",
           activity: ["member", "!letter"],
-          contact: "email:luma-calendar:yes",
+          contact: "email:events:yes",
           event: ["evt-1", "!evt-1"],
           campaign: "support-sobel-bill",
           wrote: "no",
