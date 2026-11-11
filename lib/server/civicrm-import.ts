@@ -13,6 +13,7 @@ import {
 import { config } from "./config";
 import { recordCivicrmLists } from "./opt-outs";
 import { problem } from "./problems";
+import { resendAfterFix } from "./relays";
 import { refreshSupportersList } from "./supporter-facts";
 import { linkSupporters } from "./supporters";
 
@@ -103,12 +104,13 @@ async function upsertContacts(contacts: CivicrmContact[], db: Queryable): Promis
 
 /**
  * Brings the opt-outs and blocks into line with the contacts: what
- * CiviCRM's lists say, as opt-outs (recordCivicrmLists), and a hold seen in
- * this transaction blocks the address, unless it's blocked already.
- * Returns how many opt-outs it opened or closed, and how many addresses it
- * blocked.
+ * CiviCRM's lists say, as opt-outs (recordCivicrmLists); a hold seen in
+ * this transaction blocks the address, unless it's blocked already; and a
+ * hold lifted in it takes away the block a hold made, unless another of the
+ * address's contacts is still on hold. Returns how many opt-outs it opened
+ * or closed, how many addresses it blocked, and those it unblocked.
  */
-async function applyContacts(db: Queryable): Promise<{ optOuts: number; blocked: number }> {
+async function applyContacts(db: Queryable): Promise<{ optOuts: number; blocked: number; unblocked: string[] }> {
   const optOuts = await recordCivicrmLists(db);
   const holds = await query<{ email: string; contactId: string }>(
     `SELECT DISTINCT ON (email) email, contact_id::text AS "contactId" FROM civicrm_contacts
@@ -129,7 +131,17 @@ async function applyContacts(db: Queryable): Promise<{ optOuts: number; blocked:
     );
     blocked += made.length;
   }
-  return { optOuts, blocked };
+  const unblocked = await query<{ address: string }>(
+    `DELETE FROM email_blocks b USING email_problems p
+     WHERE p.id = b.problem_id AND p.kind = 'hold'
+       AND EXISTS (SELECT 1 FROM civicrm_contacts c
+                   WHERE c.email = b.address AND NOT c.on_hold AND c.on_hold_since = now() AND c.gone_at IS NULL)
+       AND NOT EXISTS (SELECT 1 FROM civicrm_contacts c WHERE c.email = b.address AND c.on_hold AND c.gone_at IS NULL)
+     RETURNING b.address`,
+    [],
+    db,
+  );
+  return { optOuts, blocked, unblocked: unblocked.map((row) => row.address) };
 }
 
 /**
@@ -154,6 +166,7 @@ async function markGone(pulled: number[], before: number, db: Queryable): Promis
 
 /** Runs the import, keeping the run. A failure, of CiviCRM's or the database's, rolls the run back. */
 export async function importCivicrm(startedBy: string): Promise<CivicrmImportResult> {
+  let unblocked: string[] = [];
   const { result } = await asRun(JOB, startedBy, async () => {
     const contacts = await pullContacts(civicrmKey());
     return transaction(async (db) => {
@@ -168,23 +181,29 @@ export async function importCivicrm(startedBy: string): Promise<CivicrmImportRes
         before,
         db,
       );
+      const applied = await applyContacts(db);
+      unblocked = applied.unblocked;
       const result: CivicrmImportResult = {
         contacts: contacts.length,
         added,
         changed,
         gone: gone ?? 0,
         ...(gone === null && { held: true }),
-        ...(await applyContacts(db)),
+        optOuts: applied.optOuts,
+        blocked: applied.blocked,
+        ...(unblocked.length > 0 && { unblocked: unblocked.length }),
       };
       const { supportersAdded, linked } = await linkSupporters(db);
       if (linked > 0) {
         await refreshSupportersList(db);
         Object.assign(result, { supportersAdded, linked });
       }
-      const anything = added + changed + result.gone + result.optOuts + result.blocked + linked;
+      const anything = added + changed + result.gone + result.optOuts + result.blocked + unblocked.length + linked;
       return { status: anything > 0 ? "ok" : "unchanged", result } as const;
     });
   });
+  // Once committed, as when staff unblock: what waited for an address goes.
+  for (const address of unblocked) await resendAfterFix({ address });
   return result;
 }
 

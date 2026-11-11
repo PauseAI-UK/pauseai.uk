@@ -957,7 +957,10 @@ counting, as do its member's records (below). If a pull returns more than
 likely CiviCRM's mistake, and the run says so, to tell Global. A new hold
 blocks the address (`email_blocks`, "Email", below), as a problem of the
 kind `hold`, which staff can lift with a note on the blocked addresses page;
-only a new hold blocks it again. Nothing here writes to CiviCRM.
+only a new hold blocks it again. CiviCRM lifting the hold lifts the block
+too, unless another contact with the address is still on hold, and what
+waited for the address goes, as when staff unblock it. Nothing here writes
+to CiviCRM, so staff lifting a block leaves the hold there.
 
 ### Whether we'd contact someone
 

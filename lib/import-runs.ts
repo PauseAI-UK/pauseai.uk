@@ -183,6 +183,8 @@ export type CivicrmImportResult = {
   held?: true;
   optOuts: number;
   blocked: number;
+  /** Addresses whose hold CiviCRM lifted, unblocked; only when there were any. */
+  unblocked?: number;
   /** Supporters made for contacts whose address nobody had, and contacts linked to a supporter (runs kept before CiviCRM made supporters don't say). */
   supportersAdded?: number;
   linked?: number;
