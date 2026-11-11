@@ -2,8 +2,8 @@
 
 When a page, a Server Action or a route handler throws on the live site,
 the site records it and emails the notification inbox, and admins can
-see what has gone wrong lately on a page of the staff interface. Three
-pull requests, one at a time:
+see what has gone wrong lately on a page of the staff interface. One
+pull request, built in this order:
 
 1. Record each error and email staff about it, and pages of our own for
    a visitor who meets one.
@@ -11,8 +11,9 @@ pull requests, one at a time:
 3. Failures that don't throw: a problem outside a run, and a run of
    refusals.
 
-Each passes the gate by itself, and nothing in an earlier one needs
-changing for a later one.
+The table serves all three, so its columns are settled for all three
+before the branch is first pushed: a pushed migration can't be edited
+(`AGENTS.md`, "Migrations are fixed once pushed").
 
 ## Now
 
@@ -110,10 +111,10 @@ services' errors.
 ### The table
 
 One migration, numbered after main's last when the branch is pushed
-(`npm run worktree` says the next free number), and not pushed until
-the columns are settled. A row per key:
+(`npm run worktree` says the next free number). A row per key:
 
-- the key, unique, and its parts (route, type, class, code);
+- the key, unique, and its parts (route, type, class, code), the type
+  being one of Next's four or a problem outside a run (part 3);
 - the words with their variable parts replaced;
 - the latest occurrence's words as thrown, and its stack;
 - first seen, last seen, and how many times;
@@ -134,7 +135,8 @@ seen, and overwrite the latest words and stack.
   Past that, one email says there are many, and no more go until the
   hour is up.
 - The email holds the route, the words with their variable parts
-  replaced, the count, and a link to the site. Not the words as thrown,
+  replaced, the count, and a link to its row on the staff page (part
+  2). Not the words as thrown,
   and not the stack: what's sent to Gmail can't be erased from here.
 - A short list in code of keys that are recorded but never emailed, for
   noise that isn't ours to fix, starting with the stale Server Action if
@@ -174,7 +176,6 @@ times. Opening a row shows the latest words as thrown and its stack.
 - The nightly tidying (`lib/server/log-retention.ts`) deletes a row not
   seen for a month, the audit log's term, so an error that's fixed drops
   off by itself.
-- The email's link goes to the row.
 - Left out: a "resolved" button, assigning, charts, grouping, search,
   request bodies and headers.
 
@@ -190,7 +191,7 @@ times. Opening a row shows the latest words as thrown and its stack.
   how often real senders are refused, which needs a look at the logs
   first.
 - The same shape may suit other refusals later (the march form, the
-  join form). Only letters in this step.
+  join form). Only letters in this pull request.
 
 ## Personal data
 
@@ -201,8 +202,8 @@ times. Opening a row shows the latest words as thrown and its stack.
   as that's what a fault is found from. Each occurrence overwrites them,
   and the row goes a month after it's last seen. Only admins see them.
 - Request paths, bodies and headers are never stored.
-- `docs/data-protection.md` gets a row for it in the PR that adds the
-  table: what it may hold, why, who sees it, how long.
+- `docs/data-protection.md` gets a row for it: what it may hold, why,
+  who sees it, how long.
 - Erasure can't find a person in it, as nothing is keyed by them. The
   month's limit is what removes it, as with the audit log.
 - The privacy policy doesn't change, as nothing new is collected on
@@ -224,7 +225,8 @@ times. Opening a row shows the latest words as thrown and its stack.
   inbox, and the staff page.
 - `docs/code-structure.md`: `instrumentation.ts`, and where an error's
   key is made.
-- The last PR deletes `investments/error-reporting.md` and this plan.
+- The pull request deletes `investments/error-reporting.md` and this
+  plan.
 
 ## Questions for Francis
 
