@@ -616,13 +616,21 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   );
   await page.reload();
   await expect(page.getByText("I look", { exact: false })).toBeVisible();
-  // The letter she quotes, which is above it already, is folded away.
+  // Her signature, and the letter she quotes, which is above it already, are folded away.
+  await expect(page.getByText("Member of the Scottish Parliament for", { exact: false })).toBeHidden();
   await expect(page.getByText("We'd love to see you", { exact: false })).toBeHidden();
   await frame(page, "Morag's reply");
-  story("The letter she quotes is folded under her reply, for anyone who wants to see what she was answering.");
+  story(
+    "Her signature and the letter she quotes are folded under her reply, for anyone who wants her details or what she was answering.",
+  );
   await page.getByText(staffCopy.letterThread.quoted).click();
+  const signature = page.getByText("Member of the Scottish Parliament for", { exact: false });
+  await expect(signature).toBeVisible();
   await expect(page.getByText("We'd love to see you", { exact: false }).last()).toBeVisible();
-  await frame(page, "The letter she quotes, unfolded");
+  // The fold opened, in view whatever the window's height.
+  await signature.evaluate((line) => line.scrollIntoView({ block: "start", behavior: "instant" }));
+  await scrollSettled(page);
+  await frame(page, "Her signature and the letter she quotes, unfolded");
 });
 
 test("Old mailings", async ({ page, request, flowDatabase }) => {
