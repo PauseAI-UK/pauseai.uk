@@ -255,19 +255,19 @@ export const staffLetters: Group = {
           label: "Postmark's, a long one found in someone's Gmail, folded to its first sentence, and a hold in CiviCRM",
           render: () => (
             <StaffPage as="div">
-              <p>
+              <div>
                 <BounceReason reason="Unknown user" kind="hard" foundInGmail={false} />
-              </p>
-              <p>
+              </div>
+              <div>
                 <BounceReason
                   reason="550-5.1.1 The email account that you tried to reach does not exist. Please try 550-5.1.1 double-checking the recipient's email address for typos. https://support.google.com/mail/?p=NoSuchUser - gsmtp"
                   kind="hard"
                   foundInGmail
                 />
-              </p>
-              <p>
+              </div>
+              <div>
                 <BounceReason reason="CiviCRM has the address on hold" kind="hold" foundInGmail={false} />
-              </p>
+              </div>
             </StaffPage>
           ),
         },
