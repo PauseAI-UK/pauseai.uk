@@ -44,14 +44,12 @@ describe("fixtureResponse", () => {
     expect(contacts.has_more).toBe(true);
   });
 
-  it("serves each of the UK Parliamentarians base's tables, and nothing for another", async () => {
+  it("serves the UK Parliamentarians table, and nothing for another", async () => {
     const records = async (table: string) =>
       (await fixtureResponse(`https://eu.airtable.com/v0/appBInVvIm6opJ1Ob/${table}?x=1`)!.json()).records.map(
         (r: { id: string }) => r.id,
       );
     expect(await records("tblH3ks9wqQHLpYx3")).toContain("recPlaceholder");
-    expect(await records("tblp4nH5Jymq48rcm")).toContain("recEmailCsrb");
-    expect(await records("tblkzjrRHiZiqMDGR")).toContain("recWebDee");
     expect(fixtureResponse("https://eu.airtable.com/v0/appBInVvIm6opJ1Ob/tblOther")).toBeUndefined();
   });
 

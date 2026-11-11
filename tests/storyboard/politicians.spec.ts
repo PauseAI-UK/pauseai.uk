@@ -3,7 +3,9 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, addStaffAccount, changeFilter, logInAsStaff, recordAnswers, syncPoliticians } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { importEmails, PM_LETTER } from "./staff-steps";
+import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
+import { importPath } from "@/lib/import-runs";
+import { addPauseaiEmails, connectPolicyMailboxes, PM_LETTER } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
@@ -37,7 +39,7 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   await syncPoliticians(request, BASE);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
-  await importEmails(page);
+  addPauseaiEmails(flowDatabase);
   await openPolitician(page, "Polly Placeholder");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Polly Placeholder");
   await expect(page.getByText(copy.importantTarget, { exact: true })).toBeVisible();
@@ -59,7 +61,7 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
   await syncPoliticians(request, BASE);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
-  await importEmails(page);
+  addPauseaiEmails(flowDatabase);
   const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
   runSql(
     flowDatabase,
@@ -502,7 +504,7 @@ test("Who has been mailed", async ({ page, request, flowDatabase }) => {
   story("Staff filter the politicians list by who was mailed about the Edinburgh conference.");
   await syncPoliticians(request, BASE);
   await logIn(page, flowDatabase);
-  await importEmails(page);
+  addPauseaiEmails(flowDatabase);
   await page.goto(`${BASE}/staff/politicians?mailed=edinburgh-conference-2026`);
   await expect(page.getByRole("row").filter({ hasText: "Polly Placeholder" })).toBeVisible();
   await frame(page, "Mailed about the conference");
@@ -510,4 +512,63 @@ test("Who has been mailed", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/politicians?mailed=!edinburgh-conference-2026`);
   await expect(page.getByRole("row").filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
   await frame(page, "Not mailed about the conference");
+});
+
+test("PauseAI's email to a politician", async ({ page, request, flowDatabase }) => {
+  story("Each email PauseAI sent a politician is in their history, and has its own page under its mailing.");
+  await syncPoliticians(request, BASE);
+  await logIn(page, flowDatabase);
+  addPauseaiEmails(flowDatabase);
+  await openPolitician(page, "Polly Placeholder");
+  await page.locator("summary", { hasText: copy.historyTitle }).click();
+  const history = page.getByRole("list", { name: copy.historyTitle });
+  await history.getByRole("link", { name: staffCopy.mailingPages.theLetter }).first().click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    staffCopy.letters.oneTitle(staffCopy.letters.fromPauseai, "Polly Placeholder"),
+  );
+  await expect(page).toHaveURL(/\/staff\/mailings\/\d+\/letters\/\d+$/);
+  await frame(page, "PauseAI's email to Polly");
+  story(
+    "Copy Gmail search copies a search for it by Polly's address and when it went. Airtable didn't say which mailbox sent it, so the page says to look in one that did.",
+  );
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: staffCopy.findInGmail.copy }).click();
+  await expect(page.getByRole("status")).toContainText(staffCopy.findInGmail.whereUnknown);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^to:polly\S+ after:\d+ before:\d+$/);
+  await frame(page, "The search, copied");
+});
+
+test("A politician's own address", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly wrote to policy@ from her own Gmail, which is on no list, so her email matched no one. Staff open her aliases from her email at the top of her page.",
+  );
+  await syncPoliticians(request, BASE);
+  connectPolicyMailboxes(flowDatabase);
+  await logIn(page, flowDatabase, ["supporters", "admin"]);
+  const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
+  await page.goto(`${BASE}/staff/politicians/${polly}`);
+  const aliases = copy.aliases;
+  await page.getByRole("link", { name: aliases.see }).click();
+  await expect(page).toHaveURL(/\?aliases=open#aliases$/);
+  const fold = page.locator("#aliases");
+  await expect(fold.getByText(aliases.sources.email)).toBeVisible();
+  await frame(page, "Her aliases", { window: true });
+
+  story("Staff add her Gmail. The page says her earlier emails will be found shortly.");
+  await fold.getByLabel(aliases.address).fill(POLLY_PERSONAL);
+  await fold.getByRole("button", { name: aliases.add }).click();
+  await expect(fold.getByRole("status")).toHaveText(aliases.added);
+  await expect(fold.getByText(POLLY_PERSONAL)).toBeVisible();
+  await fold.getByRole("status").scrollIntoViewIfNeeded();
+  await frame(page, "Her Gmail added", { window: true });
+
+  story("The next read of Gmail searches policy@ for her Gmail, and says so. Her email is kept, and shows under her.");
+  await page.goto(`${BASE}${importPath("read-gmail")}`);
+  await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
+  const read = staffCopy.gmailReading.searched({ searched: 1, kept: 0, waiting: 0 }).split(",")[0];
+  await expect(page.getByText(read, { exact: false }).first()).toBeVisible();
+  await frame(page, "The read of Gmail, having searched for it");
+  await page.goto(`${BASE}/staff/politicians/${polly}`);
+  await expect(page.getByRole("link", { name: "From my own address" })).toBeVisible();
+  await frame(page, "Her email from it, under her");
 });

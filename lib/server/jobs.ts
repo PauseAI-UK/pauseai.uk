@@ -1,7 +1,6 @@
 import "server-only";
 import type { ImportJob } from "@/lib/import-runs";
 import { importControlAiLetter } from "./controlai-import";
-import { syncEmails } from "./emails-sync";
 import { readGmail } from "./gmail-reading";
 import { startRunning, stopRunning } from "./import-runs";
 import { runTidying } from "./log-retention";
@@ -9,10 +8,8 @@ import { importLuma } from "./luma-import";
 import { importCivicrm } from "./civicrm-import";
 import { importMembers } from "./members-import";
 import { checkMps } from "./mp-check";
-import { importOldLetters } from "./old-letters-import";
 import { syncPoliticians } from "./politician-sync";
 import { runSending } from "./sending-job";
-import { importWebFormLetters } from "./web-form-import";
 
 // What runs each job (lib/import-runs.ts, JOBS), whoever starts it, one run
 // of a job at a time: a function that does it as a run of the import log,
@@ -30,7 +27,6 @@ import { importWebFormLetters } from "./web-form-import";
 type RunJob = (startedBy: string, request?: Request) => Promise<unknown>;
 
 const RUNS: Record<ImportJob, RunJob> = {
-  "import-old-letters": (by) => importOldLetters(by),
   "import-luma": (by) => importLuma(by),
   "import-members": (by) => importMembers(by),
   "import-civicrm": (by) => importCivicrm(by),
@@ -46,13 +42,11 @@ const RUNS: Record<ImportJob, RunJob> = {
       renamed: renamed.length,
     };
   },
-  "sync-emails": (by) => syncEmails(by),
   "check-mps": async (by) => {
     const { problems, relinked } = await checkMps(by);
     return { problems: problems.length, ...relinked };
   },
   "import-controlai": (by) => importControlAiLetter(by),
-  "import-web-form-letters": (by) => importWebFormLetters(by),
   "tidy-logs": (by) => runTidying(by),
 };
 

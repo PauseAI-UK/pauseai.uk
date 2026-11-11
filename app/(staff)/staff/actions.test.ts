@@ -335,18 +335,6 @@ describeWithDatabase("staff Server Actions", () => {
     ]);
   });
 
-  it("runs the Emails sync and the one-off imports as the staff member, keeping a failure rather than crashing the page", async () => {
-    await runJobNow("sync-politicians");
-    await runJobNow("sync-emails");
-    await runJobNow("import-web-form-letters");
-    expect((await runs()).slice(1)).toEqual([
-      { job: "sync-emails", status: "ok", startedBy: "jo@pauseai.uk" },
-      { job: "import-web-form-letters", status: "ok", startedBy: "jo@pauseai.uk" },
-    ]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/emails");
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/web-form-letters");
-  });
-
   it("runs nothing for a name that isn't a job's", async () => {
     await runJobNow("nothing");
     await runJobNow("toString");
@@ -356,35 +344,16 @@ describeWithDatabase("staff Server Actions", () => {
   });
 
   it("starts nothing while a press of the job is running, and takes over one older than any can run", async () => {
-    const runs = () => query("SELECT 1 FROM import_runs WHERE job = 'sync-emails'");
-    await query("INSERT INTO job_presses (job, started_by) VALUES ('sync-emails', 'sam@pauseai.uk')");
-    await runJobNow("sync-emails");
+    const runs = () => query("SELECT 1 FROM import_runs WHERE job = 'tidy-logs'");
+    await query("INSERT INTO job_presses (job, started_by) VALUES ('tidy-logs', 'sam@pauseai.uk')");
+    await runJobNow("tidy-logs");
     expect(await runs()).toHaveLength(0);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/emails");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/tidying");
     await query("UPDATE job_presses SET started_at = now() - interval '17 minutes'");
-    await runJobNow("sync-emails");
+    await runJobNow("tidy-logs");
     expect(await runs()).toHaveLength(1);
     expect(await query("SELECT 1 FROM job_presses")).toEqual([]);
   });
-
-  it("keeps a failed press of the import of old letters as a failed run, rather than crashing", async () => {
-    vi.stubEnv("DATA_FIXTURES", "1");
-    await expect(runJobNow("import-old-letters")).resolves.toBeUndefined();
-    expect(await query(`SELECT status, error FROM import_runs WHERE job = 'import-old-letters'`)).toEqual([
-      { status: "failed", error: "joseph@pauseai.uk's Gmail isn't connected" },
-    ]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/old-letters");
-    vi.stubEnv("DATA_FIXTURES", "");
-  });
-
-  it("presses the import of old letters", async () => {
-    vi.stubEnv("DATA_FIXTURES", "1");
-    await connectTestGmail("joseph@pauseai.uk");
-    await connectTestGmail("policy@pauseai.uk");
-    await runJobNow("import-old-letters");
-    expect(await query("SELECT 1 FROM import_runs WHERE job = 'import-old-letters'")).toHaveLength(1);
-    vi.stubEnv("DATA_FIXTURES", "");
-  }, 30_000);
 
   it("endStaffSessionsNow ends an account's sessions, as an admin, going back to the page", async () => {
     await createSession("samuel.whitlock@pauseai.uk");

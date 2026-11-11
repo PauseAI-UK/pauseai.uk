@@ -18,7 +18,7 @@ describeWithDatabase("each test's database", () => {
     expect(seeded.campaigns).toBeGreaterThan(0);
     expect(seeded.mailings).toBeGreaterThan(0);
     expect(seeded.presses).toBe(0);
-    await query("INSERT INTO job_presses (job, started_by) VALUES ('sync-emails', 'sam@pauseai.uk')");
+    await query("INSERT INTO job_presses (job, started_by) VALUES ('tidy-logs', 'sam@pauseai.uk')");
     await query(
       `INSERT INTO mailings (title, audience, channel, body, state)
        VALUES ('A test mailing', 'politicians', 'email', '{"type": "doc", "content": []}', 'draft')`,

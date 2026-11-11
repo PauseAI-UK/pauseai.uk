@@ -620,8 +620,8 @@ that drives it or why nothing does.
   - an import failing, with Luma down for the flow (`lib/server/fixtures/failing-services.ts`), and one with problems, with postcodes.io down: the notification inbox is emailed once, though the import fails twice;
   - a Gmail that Google disconnects, with the notification inbox emailed;
   - the letters inbox's own page, back from connecting its Gmail;
-  - PauseAI's emails from Airtable, imported at a press;
-  - pauseai.info's letters.
+  - what Joseph's own page says once his mailbox is connected and kept;
+  - the daily email to staff listing mail in policy@ that matched nothing.
 - `staff-campaigns.spec.ts`: Campaigns, asks and sent emails:
   - campaigns: the list by the month of each one's last letter, a campaign's page with its versions, its counts choosing its letters, and `/staff/letters` redirecting;
   - asks: the list under its months, with each ask's answers, how it was asked and its counts;
@@ -629,18 +629,6 @@ that drives it or why nothing does.
   - a mailing's list and page naming its ask and who it's from;
   - Sent emails, as an admin, searched and filtered, and closed without the permission;
   - a new ask, changed and deleted.
-- `old-letters.spec.ts`: The import of old letters:
-  - a press, and pressing again;
-  - a press that fails;
-  - a press while one is running, on its page and the list of imports;
-  - its log and its finishing, with its progress, the day's table, a refusal's tinted rows and a folded stretch;
-  - a letter of a template, one that keeps its own text, and August's approximate one;
-  - a form letter's diff from its form version;
-  - the one-off emails on Correspondence: a thread opened, an out-of-office in it folded and unfolded, and the thread hidden from staff without `supporters`;
-  - a forward's thread, the letter and answer it carries rebuilt before it, beside the politician it's linked to;
-  - a politician's aliases, opened from their email, and their own Gmail added, which keeps their email from it;
-  - a politician's and a supporter's lists;
-  - what your own page says when your mailbox is kept.
 - `letters.spec.ts`: Letters and their bounces:
   - Correspondence: a test MP's left out, then shown with Test politician chosen; a supporter's and a mailing's, one with its reply in its link; sorted by topic; those replied to; and the dashboard's tile;
   - the letters list (one sent, one bounced), filtered by status, then by campaign, then either of two campaigns, then reset and sorted by sender;
@@ -661,7 +649,9 @@ that drives it or why nothing does.
   - searching by each word, for those not in office and the nearest to a typo;
   - deleting one gone from Airtable;
   - the politicians mailed about an ask, and those not yet;
-  - several answers to an ask, ticked in the chip's second half.
+  - several answers to an ask, ticked in the chip's second half;
+  - PauseAI's email to one, from her history, and its Gmail search copied;
+  - her own Gmail added to her aliases, and the next Gmail read finding her email from it.
 - `mailings.spec.ts`: Mailings to politicians, the old ones and those written on the site:
   - the mailings, one mailing's recipients, and a politician's history leading back to it;
   - a mailing's ask leading to its page;

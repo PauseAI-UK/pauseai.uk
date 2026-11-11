@@ -1,7 +1,6 @@
 import {
   type AnyImportRun,
   type ControlAiImportResult,
-  type EmailSyncResult,
   type GmailRead,
   type GmailReadResult,
   type ImportJob,
@@ -9,11 +8,9 @@ import {
   type MembersImportResult,
   type CivicrmImportResult,
   type MpCheckResult,
-  type OldLettersImportResult,
   NIGHTLY,
   type PoliticianSync,
   type PoliticianSyncResult,
-  type WebFormImportResult,
   type Problem,
   type SendingResult,
   type TidyingResult,
@@ -22,15 +19,12 @@ import type { SyncedPolitician } from "@/lib/politician-sync";
 
 type Results = {
   "sync-politicians": PoliticianSyncResult;
-  "sync-emails": EmailSyncResult;
   "check-mps": MpCheckResult;
   "import-controlai": ControlAiImportResult;
   "import-luma": LumaImportResult;
   "import-members": MembersImportResult;
   "import-civicrm": CivicrmImportResult;
   "read-gmail": GmailReadResult;
-  "import-web-form-letters": WebFormImportResult;
-  "import-old-letters": OldLettersImportResult;
   "send-mailings": SendingResult;
   "tidy-logs": TidyingResult;
 };
@@ -117,29 +111,6 @@ export const exampleAppliedSync: PoliticianSync = exampleRun(
   } as unknown as PoliticianSyncResult,
   { id: 2, at: new Date("2026-10-11T02:00:00Z"), status: "applied", decidedBy: "jo@pauseai.uk" },
 );
-
-/** What a run of the Emails sync did: one email held back for a mailing nobody has added, one with two boxes. */
-export const exampleEmailsResult: EmailSyncResult = {
-  read: 270,
-  added: 12,
-  waiting: 1,
-  noPolitician: 1,
-  unplaced: [
-    { airtableId: "recEmail1", mailings: [] },
-    { airtableId: "recEmail2", mailings: ["CSRB Iqbal Amendment", "Ben Lake October 2026 Debate"] },
-  ],
-};
-
-/** What the one-off import of the web form letters did. */
-export const exampleWebFormResult: WebFormImportResult = {
-  read: 731,
-  imported: 716,
-  skipped: 13,
-  alreadyHere: 2,
-  noPolitician: 0,
-  supportersAdded: 600,
-  linked: 716,
-};
 
 /** What a run of the Luma import did: every event read, nothing left over. */
 export const exampleLumaResult: LumaImportResult = {

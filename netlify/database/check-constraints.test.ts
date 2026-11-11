@@ -103,8 +103,6 @@ const UNLISTED = [
   "letters.kind",
   "letters_from_supporters.copy_state",
   "mailings.audience",
-  "old_letters_mail.outcome",
-  "old_letters_mail.source",
 ];
 
 /** The values a CHECK lists for its column: `col = ANY (ARRAY[…])`, as Postgres writes `col IN (…)`, or `col <@ ARRAY[…]` for an array. */

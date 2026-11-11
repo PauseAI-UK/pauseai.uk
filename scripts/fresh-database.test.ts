@@ -279,10 +279,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "import-controlai",
           "import-luma",
           "import-members",
-          "import-old-letters",
-          "import-web-form-letters",
           "read-gmail",
-          "sync-emails",
           "sync-politicians",
         ]);
         // Politicians in every state and every body, and two whose records are gone from Airtable.
@@ -405,7 +402,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         ]);
         expect(
           runSql(name, "SELECT DISTINCT result->>'stoppedBy' FROM import_runs WHERE result ? 'stoppedBy' ORDER BY 1"),
-        ).toEqual(["gmail", "rate-limit", "running", "time"]);
+        ).toEqual(["rate-limit", "running", "time"]);
         // The audit log's entries about politicians name their rows.
         expect(
           runSql(

@@ -1726,7 +1726,7 @@ CREATE TABLE public.import_runs (
     decided_at timestamp with time zone,
     problems jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT import_runs_check CHECK (((status = 'failed'::text) = (error IS NOT NULL))),
-    CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['sync-politicians'::text, 'check-mps'::text, 'import-controlai'::text, 'import-luma'::text, 'import-members'::text, 'sync-emails'::text, 'import-web-form-letters'::text, 'read-gmail'::text, 'import-old-letters'::text, 'send-mailings'::text, 'tidy-logs'::text, 'import-civicrm'::text]))),
+    CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['sync-politicians'::text, 'check-mps'::text, 'import-controlai'::text, 'import-luma'::text, 'import-members'::text, 'read-gmail'::text, 'send-mailings'::text, 'tidy-logs'::text, 'import-civicrm'::text]))),
     CONSTRAINT import_runs_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unchanged'::text, 'held'::text, 'applied'::text, 'discarded'::text])))
 );
 
@@ -2025,24 +2025,6 @@ ALTER TABLE public.notes ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MINVALUE
     NO MAXVALUE
     CACHE 1
-);
-
---
--- Name: old_letters_mail; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.old_letters_mail (
-    account text NOT NULL,
-    gmail_message_id text NOT NULL,
-    source text NOT NULL,
-    gmail_thread_id text,
-    rfc_message_id text,
-    letter_id bigint,
-    mailing_key text,
-    outcome text,
-    CONSTRAINT old_letters_mail_account_check CHECK ((account = lower(account))),
-    CONSTRAINT old_letters_mail_outcome_check CHECK ((outcome = ANY (ARRAY['joined'::text, 'added'::text, 'reply'::text, 'auto_reply'::text, 'one_off'::text, 'unmatched'::text, 'skipped'::text, 'unreadable'::text]))),
-    CONSTRAINT old_letters_mail_source_check CHECK ((source = ANY (ARRAY['sent'::text, 'received'::text, 'group'::text, 'policy'::text, 'thread'::text])))
 );
 
 --
@@ -2867,13 +2849,6 @@ ALTER TABLE ONLY public.notes
     ADD CONSTRAINT notes_pkey PRIMARY KEY (id);
 
 --
--- Name: old_letters_mail old_letters_mail_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.old_letters_mail
-    ADD CONSTRAINT old_letters_mail_pkey PRIMARY KEY (account, gmail_message_id);
-
---
 -- Name: one_off_erased one_off_erased_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3381,30 +3356,6 @@ CREATE INDEX notes_notable_person ON public.notes USING btree (notable_person_id
 CREATE INDEX notes_supporter ON public.notes USING btree (supporter_id) WHERE (supporter_id IS NOT NULL);
 
 --
--- Name: old_letters_mail_letter; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX old_letters_mail_letter ON public.old_letters_mail USING btree (letter_id);
-
---
--- Name: old_letters_mail_rfc; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX old_letters_mail_rfc ON public.old_letters_mail USING btree (rfc_message_id) WHERE (letter_id IS NOT NULL);
-
---
--- Name: old_letters_mail_thread; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX old_letters_mail_thread ON public.old_letters_mail USING btree (account, gmail_thread_id) WHERE (letter_id IS NOT NULL);
-
---
--- Name: old_letters_mail_waiting; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX old_letters_mail_waiting ON public.old_letters_mail USING btree (source) WHERE (outcome IS NULL);
-
---
 -- Name: one_off_erased_rfc; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3766,13 +3717,6 @@ ALTER TABLE ONLY public.notes
 
 ALTER TABLE ONLY public.notes
     ADD CONSTRAINT notes_supporter_id_fkey FOREIGN KEY (supporter_id) REFERENCES public.supporters(id) ON DELETE CASCADE;
-
---
--- Name: old_letters_mail old_letters_mail_letter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.old_letters_mail
-    ADD CONSTRAINT old_letters_mail_letter_id_fkey FOREIGN KEY (letter_id) REFERENCES public.letters(id) ON DELETE SET NULL;
 
 --
 -- Name: one_off_messages one_off_messages_thread_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

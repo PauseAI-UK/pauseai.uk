@@ -1,9 +1,7 @@
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { AskPageData } from "@/lib/server/asks";
 import type { CampaignSummary, CampaignVersion } from "@/lib/server/campaigns";
 import type { OneOffThread, OneOffThreadRow } from "@/lib/server/one-off-emails";
 import type { SentEmail } from "@/lib/server/sent-emails";
-import type { OldLettersImportResult } from "@/lib/import-runs";
 import { exampleAsks } from "./PoliticianTable.examples";
 
 // Fake data for the pages of campaigns, asks, sent emails and one-off emails,
@@ -372,26 +370,3 @@ export const exampleSentEmails: SentEmail[] = [
     from: null,
   },
 ];
-
-/** A press of the import that has more to read, with mail that matched nothing, and one Gmail stopped. */
-export const exampleOldLettersResult: OldLettersImportResult = {
-  finished: false,
-  listed: 900,
-  read: 800,
-  left: 100,
-  requests: 1200,
-  formTexts: 7,
-  postmarkTexts: 2,
-  joined: { "deepmind-30-june": 500, form: 40 },
-  added: { "russell-speak": 3 },
-  notJoined: { "deepmind-august": 90, "pauseai-info-liability": 2 },
-  titles: staffCopy.oldLetters.mailingTitles,
-  replies: 40,
-  autoReplies: 200,
-  oneOffs: 12,
-  unreadable: ["18f0a"],
-  unmatched: [{ from: "Jane Smith <jane@example.com>", subject: "A question" }],
-  templates: 3,
-  ownText: 5,
-  repliedSet: 11,
-};

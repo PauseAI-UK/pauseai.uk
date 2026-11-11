@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, recordAnswers, syncPoliticians } from "../steps";
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
-import { chooseDay, importEmails, logIn, sentLetterId } from "./staff-steps";
+import { addPauseaiEmails, chooseDay, logIn, sentLetterId } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Campaigns, asks and sent emails", part: "Staff pages", order: 80 };
@@ -63,7 +63,7 @@ test("Asks", async ({ page, request, flowDatabase }) => {
   await syncPoliticians(request, BASE);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase, ["supporters"]);
-  await importEmails(page);
+  addPauseaiEmails(flowDatabase);
   await page.goto(`${BASE}/staff/asks`);
   await frame(page, "The asks");
 

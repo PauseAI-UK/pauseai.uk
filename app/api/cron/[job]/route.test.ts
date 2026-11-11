@@ -127,10 +127,9 @@ describeWithDatabase("POST /api/cron/<job>", () => {
     expect(await answer("tidy-logs")).toEqual({ importRuns: 1, auditEntries: 0, drafts: 1, errors: 0 });
   });
 
-  it("runs no one-off job, nor one that isn't, running nothing", async () => {
-    expect((await call("sync-emails")).status).toBe(404);
-    expect((await call("import-old-letters")).status).toBe(404);
+  it("runs no job that isn't one, running nothing", async () => {
     expect((await call("nothing")).status).toBe(404);
+    expect((await call("toString")).status).toBe(404);
     expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);
   });
 

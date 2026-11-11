@@ -428,7 +428,7 @@ export function NoteTextExample() {
   return <NoteText body={exampleNotes[0].body + "\n" + exampleNotes[1].body} />;
 }
 
-/** A job's page, its button and any held sync's buttons logged: the MP check with three runs, while a run started by a staff member or its schedule is going, or the web form import, never run. */
+/** A job's page, its button and any held sync's buttons logged: the MP check with three runs, while a run started by a staff member or its schedule is going, or the ControlAI import, never run. */
 export function ImportJobPageExample({
   never = false,
   running,
@@ -442,7 +442,7 @@ export function ImportJobPageExample({
       {(log) =>
         never ? (
           <ImportJobPage
-            job="import-web-form-letters"
+            job="import-controlai"
             runs={[]}
             run={log("run")}
             decide={log("decide")}

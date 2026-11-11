@@ -202,15 +202,15 @@ describeWithDatabase("the import log", () => {
   });
 
   it("lets one run of a job go at a time, until it ends or is older than any can be", async () => {
-    expect(await runningNow("sync-emails")).toBeUndefined();
-    expect(await startRunning("sync-emails", "nightly")).toBe(true);
-    expect(await runningNow("sync-emails")).toMatchObject({ startedBy: "nightly" });
-    expect(await startRunning("sync-emails", "sam@pauseai.uk")).toBe(false);
+    expect(await runningNow("tidy-logs")).toBeUndefined();
+    expect(await startRunning("tidy-logs", "nightly")).toBe(true);
+    expect(await runningNow("tidy-logs")).toMatchObject({ startedBy: "nightly" });
+    expect(await startRunning("tidy-logs", "sam@pauseai.uk")).toBe(false);
     expect(await startRunning("check-mps", "sam@pauseai.uk")).toBe(true);
-    await stopRunning("sync-emails");
-    expect(await startRunning("sync-emails", "sam@pauseai.uk")).toBe(true);
-    await query("UPDATE job_presses SET started_at = now() - interval '6 minutes' WHERE job = 'sync-emails'");
-    expect(await runningNow("sync-emails")).toBeUndefined();
-    expect(await startRunning("sync-emails", "jo@pauseai.uk")).toBe(true);
+    await stopRunning("tidy-logs");
+    expect(await startRunning("tidy-logs", "sam@pauseai.uk")).toBe(true);
+    await query("UPDATE job_presses SET started_at = now() - interval '6 minutes' WHERE job = 'tidy-logs'");
+    expect(await runningNow("tidy-logs")).toBeUndefined();
+    expect(await startRunning("tidy-logs", "jo@pauseai.uk")).toBe(true);
   });
 });

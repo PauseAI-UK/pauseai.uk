@@ -28,9 +28,9 @@ What a letter said is kept where we need it to do the job:
   They can show the supporter's political opinions and personal
   circumstances, so only staff with `supporters` see them, and erasure
   deletes them.
-- Letters sent before the letters inbox have their text too, once it's
-  imported from Airtable's copy or the one Bcc'd to the policy team ("The
-  import of old letters", below).
+- Letters sent before the letters inbox have their text too, copied once
+  from Airtable's copy or the one Bcc'd to the policy team ("Old letters",
+  below).
 - A letter PauseAI sends a politician, and their reply, are kept in full,
   since they're our own words and a public figure's answer in their public
   role.
@@ -188,12 +188,11 @@ row adds what its kind has, joined as notable people are:
     the server has `RawEmailEnabled` on. The kept reply's account is the
     letter's own address, and it has no Gmail IDs. Our forward of the reply,
     read from policy@, isn't kept again.
-  - **Letters sent through pauseai.info's old form**, imported once from
-    Airtable (`lib/server/web-form-import.ts`), each keyed by its record
-    (`airtable_id`).
+  - **Letters sent through pauseai.info's old form**, copied once from
+    Airtable, each keyed by its record (`airtable_id`).
 
-  Both kinds have their text in `letter` once the import of old letters has
-  run. A form letter also has, in `draft`, the form's text that was live
+  Both kinds have their text in `letter`, copied from the mail they went
+  as ("Old letters", below). A form letter also has, in `draft`, the form's text that was live
   when it was written. So its page shows what its writer changed, as the
   page of a letter through the letters inbox does.
 
@@ -201,14 +200,12 @@ row adds what its kind has, joined as notable people are:
   (`mailings`), which may make an ask. A mailing was either copied from
   Airtable or written on the site.
 
-  The letters sent before the site could send them are copied from
-  Airtable's Emails table when staff press its import
-  (`lib/server/emails-sync.ts`). A copied letter has who it was to, when it
-  went and whether it was personalised, but no text. Each mailing in
-  Airtable is a tick box, named by `mailings.airtable_field`, or with no
-  box, the dates it was sent in (`airtable_sent_between`). An email that
-  fits no mailing, or has several boxes ticked, is held back and reported
-  until a migration adds its mailing.
+  The letters sent before the site could send them were copied once from
+  Airtable's Emails table. A copied letter has who it was to, when it went
+  and whether it was personalised, and its text only if it was found in
+  the mail ("Old letters", below). Each mailing in Airtable was a tick box,
+  named by `mailings.airtable_field`, or with no box, the dates it was sent
+  in (`airtable_sent_between`).
 
   A mailing written on the site (`lib/server/mailing-drafts.ts`) is a
   draft from the moment New mailing is pressed. A draft holds:
@@ -487,49 +484,18 @@ logged-in staff member's own address. The refresh token is kept encrypted
   seen, a delegate's view included. It's a search because Gmail has no
   link into a delegated mailbox. A supporter's letter's page has the same. For a letter
   sent through the letters inbox, the search is for that inbox. For an
-  older one, it's for the mailbox the import of old letters read it from,
-  or else for its copy in `POLICY_INBOX`.
+  older one, it's for the mailbox its sent email was found in, or else for
+  its copy in `POLICY_INBOX`.
 
-### The import of old letters
+### Old letters
 
-A one-off job (`import-old-letters`, `lib/server/old-letters-import.ts`, its
-rules in `lib/old-letters.ts`) reads the letters written before the site could
-send them from Joseph's and policy@'s mail, so each one's text, diff and replies
-show on its page. It runs when its button is pressed, reading for 20 seconds each
-time.
+The letters written before the site could send them were read once from
+Joseph's and policy@'s mail, so each one's text, diff and replies show on its
+page. What was read was joined to the letters copied from Airtable, or added
+as letters of mailings made for it, each with a key in `old_letters_key`
+(DeepMind's sends, the documentary's, and others). Replies were kept on their
+letters, and the rest as one-off emails.
 
-It keeps its place in two things: `old_letters_mail`, which has the Gmail ID of
-each message it has listed and what became of it, and the last run's
-`searchesDone`. So each run carries on from the last and skips what's kept. Once a
-run finishes, a press goes through it all again. It makes at most two requests a
-second, as Gmail's limit is shared with the site, and stops the moment Gmail
-refuses. A mailbox's limit applies to all reading of it, the regular read's too.
-
-- **Mailings.** A send is a mailing, so the list shows it and its counts
-  (`OLD_MAILINGS`). DeepMind's sends are told apart by the phrases in their text,
-  and the documentary's by subject and text. A mailing the import makes has its
-  dates in `airtable_sent_between`, as the constraints need. The Emails sync
-  places a new record in the first dated mailing by ID, so it stays with the
-  first.
-- **Joining.** A letter joins a sent email that went to the politician's address
-  between 25 minutes before the letter's time in production and 5 seconds after it
-  (`joinSent`). A sent email with no letter goes by who sent it:
-  - One from PauseAI is a letter all the same if its subject says so
-    (`mailingOfNewLetter`).
-  - One from a supporter may be a form letter sent twice, though production keeps
-    one for each ask. It goes on their letter in the campaign that Airtable's
-    record of that send says (`formLetterRepeated`). With no such record, or one
-    marked spam or invalid, it's a one-off.
-
-  Shared mail counts if a politician is named in the headers of what it quotes or
-  forwards (`quotedHeaders`). The headers are read in either order, as Thunderbird
-  puts the Date over the From.
-
-- **Text.** Many of Joseph's sends kept only each character's low byte, whatever
-  charset they name. Bytes not valid in that charset are read one to a character
-  (`decodedText`), and the control characters that curly quotes and dashes became
-  are made whole (`restoreCutDown`). A character whose low byte is an ordinary
-  character's, such as an ellipsis, which became `&`, can't be told from it.
 - **What's stored.**
   - For a mailing: its template in `imported_text`, in `body`'s format, its
     subject and who it went from.
@@ -539,17 +505,6 @@ refuses. A mailbox's limit applies to all reading of it, the regular read's too.
     date, Message-ID and Gmail thread, so the site's regular read joins later
     replies and bounces to it. As the row keeps its date, it doesn't count against
     `GMAIL_DAILY_LIMIT`.
-- **Replies** (`placeReply`): the letter a reply answers is the first that one of
-  these finds:
-  1. its Gmail thread, or a Message-ID the letter's email has;
-  2. the politician, plus the letter's subject;
-  3. for an automatic reply, the time;
-  4. a form letter's sender, in the reply's text;
-  5. when stuck, the original the reply quotes.
-
-  A person's reply is kept whole, and an automatic one is an event on the letter.
-  Anything else is a one-off email.
-
 - **Letters whose text we can't read.** The August 2025 DeepMind letters went from
   Joseph's personal Gmail, which the site can't read. Their template is the "join
   40" mailing's, and each letter's own paragraph is that of the person's latest
@@ -640,10 +595,6 @@ else in it.
   and the group's archive, which are shared mail, are searched this way. Joseph's
   other mail isn't. It's found by its headers alone, so that the rest of his mail,
   apart from the threads found, stays private.
-- **Catching up.** As its last step, the import of old letters asks Gmail for
-  every thread kept in its two mailboxes, whichever read kept it, and keeps the
-  messages that are missing. A press of its button goes through all the threads
-  again.
 - **New threads.** The regular read keeps policy@'s and joseph@'s threads by the
   same rule (`keepsPoliticianThreads`). With each message it keeps, it fetches the
   rest of the Gmail thread. `/staff/me` says so once those mailboxes are connected.
@@ -653,8 +604,7 @@ else in it.
   site uses the ID to read the message's sender and subject again from Gmail, and
   lists them in an email to the notification inbox. That email goes at most once a
   day, whether or not the last try's email went (`tried_at`). It lists the oldest
-  100 at a time and says how many more wait. The import of old letters lists what
-  it finds on its results instead, for staff with `supporters`.
+  100 at a time and says how many more wait.
 - **Who sees what.** Staff without `supporters` see the name and text of a thread
   only if everyone on it, its senders and its To and Cc, is a politician, on a
   parliament's domain, or at PauseAI (`threadsWithSomeoneElse()`). Anyone else on
@@ -1203,13 +1153,11 @@ supporters", above).
 A job that copies data in from outside:
 
 - the politician sync;
-- the Emails sync;
 - the check against Parliament;
 - the ControlAI letter;
 - the Luma import;
 - the members import;
-- the Gmail reading;
-- the one-off imports of pauseai.info's web form letters and of old letters.
+- the Gmail reading.
 
 Two more jobs don't import but run on a schedule all the same: the hourly
 sending and the nightly tidying (`JOBS` in `lib/import-runs.ts`). Whatever a
@@ -1243,7 +1191,6 @@ nightly):
 - for a 5-minute or hourly job, a week of runs, and a month of those that
   failed or had problems;
 - for a nightly job, a month of runs;
-- for a one-off job, its last 50;
 - for every job, its newest run and a held run.
 
 One run of a job goes at a time, whoever starts it, its schedule or a staff
@@ -1261,12 +1208,10 @@ A job that runs every 5 minutes or hourly makes hundreds of runs a day,
 nearly all alike. So its page shows them in three ways:
 
 - runs that found nothing are gathered together;
-- routine runs (of the import of old letters, the Luma import and the Gmail
-  reading) are counts;
+- routine runs (of the Luma import and the Gmail reading) are counts;
 - anything else, a failure above all, shows whole.
 
-How a page lays that out is in the style guide ("A job's log"). The import
-of old letters also says how far it has got.
+How a page lays that out is in the style guide ("A job's log").
 
 A new job needs:
 
@@ -1424,8 +1369,6 @@ about reading is logged.
 | `remove politician`, `delete politician`                                                                      | `sync`, staff                        | The politician sync finds a record no longer in Airtable; staff delete one gone                 | `id`, `name`                                                 |
 | `set status`                                                                                                  | staff, `controlai`                   | A status set or cleared, by hand or by the ControlAI import                                     | `politicianId`, `ask`, `status`, `date`, `note`              |
 | `apply politician sync`, `hold politician sync`, `apply held politician sync`, `discard held politician sync` | `sync`, staff                        | Each sync's outcome, and each decision on a held one                                            | counts, or the run's `id`                                    |
-| `copy PauseAI emails`                                                                                         | `sync`                               | The Emails sync adds any                                                                        | `added`                                                      |
-| `import web form letters`                                                                                     | staff                                | The one-off import of pauseai.info's letters                                                    | counts                                                       |
 | `import ControlAI letter`                                                                                     | `controlai`                          | A read of the letter that set or cleared any status                                             | counts                                                       |
 | `add ask`, `edit ask`, `delete ask`                                                                           | staff                                | The asks pages                                                                                  | `slug`, and the ask's fields                                 |
 | `add note`, `edit note`, `delete note`                                                                        | staff                                | A note on a politician or a supporter                                                           | `noteId`, and whose it is                                    |
@@ -1448,6 +1391,9 @@ Earlier entries keep their own names (`EarlierAuditDetails` in
 - from before asks and the politician sync: a status set by `campaign`, or
   with `airtable` as its actor, `apply MP sync` and the rest, and
   `import signatories from Airtable`;
+- `import web form letters` and `copy PauseAI emails`, from the one-off
+  imports of pauseai.info's web form letters and of PauseAI's emails from
+  Airtable;
 - `view supporter` (`id`), from when each opening of a supporter's page was
   logged;
 - `download letters`, from when letters had a download of their own.

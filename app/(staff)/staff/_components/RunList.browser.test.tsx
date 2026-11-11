@@ -3,14 +3,11 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { type AnyImportRun, type ControlAiImport, type MpCheck, type PoliticianSync } from "@/lib/import-runs";
-import { exampleOldLettersResult } from "./CampaignPages.examples";
-import OldLettersProgressBar from "./OldLettersProgressBar";
 import RunList from "./RunList";
 import RunTable from "./RunTable";
 import {
   exampleAppliedSync,
   exampleControlAiResult,
-  exampleEmailsResult,
   exampleFailedRun,
   exampleHeldSync,
   exampleLumaResult,
@@ -23,7 +20,6 @@ import {
   exampleSendingResult,
   exampleSyncedMp,
   exampleTidyingResult,
-  exampleWebFormResult,
 } from "./RunList.examples";
 import { action, press } from "@/tests/browser/staff";
 
@@ -80,22 +76,23 @@ describe("RunList", () => {
   });
 
   it("lays out a job that runs often as a table a day: rows, a row for quiet runs, and older rows folded", async () => {
-    const letters = staffCopy.oldLetters.columns;
+    const columns = staffCopy.luma.columns;
     const minutes = (n: number) => new Date(`2026-11-03T12:${String(59 - n).padStart(2, "0")}:00Z`);
+    // The newest stopped short, so has more to do.
     const row = (id: number) =>
       ran(
-        "import-old-letters",
-        { ...exampleOldLettersResult, unmatched: [], unreadable: [], formTexts: 0, read: 100 + id },
+        "import-luma",
+        { ...exampleLumaResult, events: 100 + id, ...(id === 0 && { stoppedBy: "time" as const }) },
         { id, at: minutes(id) },
       );
     const quiet = (id: number) => ran("import-luma", exampleLumaResult, { id, at: minutes(id), status: "unchanged" });
     const { rerender } = await render(<RunList runs={Array.from({ length: 16 }, (_, i) => row(i))} none="None" />);
-    // The newest is a tinted row of the day's table, unfolded (amber: it has more to read); the rest are rows under one header.
+    // The newest is a tinted row of the day's table (amber: it has more to do), with nothing to fold; the rest are rows under one header.
     expect(document.querySelectorAll("section")).toHaveLength(1);
     expect(document.querySelector("section")!.closest("tr")!.className).toMatch(/amber/);
-    expect((document.querySelector("details") as HTMLDetailsElement).open).toBe(true);
+    expect(document.querySelector("section details")).toBeNull();
     const headings = () => [...document.querySelectorAll("th")].map((th) => th.textContent);
-    expect(headings().filter((h) => h === letters.joined)).toHaveLength(1);
+    expect(headings().filter((h) => h === columns.events)).toHaveLength(1);
     await expect.element(page.getByRole("cell", { name: "101", exact: true })).toBeVisible();
     const fold = page.getByText(`${staffCopy.runs.range("12:44", "12:46")}: ${staffCopy.runs.stretch(3)}`);
     await expect.element(fold).toBeVisible();
@@ -241,31 +238,6 @@ describe("RunList", () => {
       <RunTable header entries={[{ shape: "run", runs: [ran("import-members", exampleMembersResult, { id: 4 })] }]} />,
     );
     expect(getComputedStyle(table()).minWidth).toBe("0px");
-  });
-
-  it("says how far the import of old letters has got, or nothing before it has listed anything", async () => {
-    const words = staffCopy.oldLetters.progress;
-    const progress = {
-      read: 2842,
-      left: 6120,
-      joined: 2510,
-      replies: 212,
-      autoReplies: 24,
-      oneOffs: 96,
-      refusals: 0,
-      byMailing: { "deepmind-25": 2510 },
-      titles: { "deepmind-25": "The 25" },
-    };
-    const { rerender } = await render(<OldLettersProgressBar progress={{ ...progress, read: 0, left: 0 }} />);
-    expect(document.querySelector("progress")).toBeNull();
-    await rerender(<OldLettersProgressBar progress={progress} />);
-    await expect.element(page.getByText(words.counts("2,842", "6,120"))).toBeVisible();
-    expect(document.body.textContent).not.toContain(words.refusals(1));
-    const totals = words.totals({ joined: "2,510", replies: "212", autoReplies: "24", oneOffs: "96" });
-    await page.getByText(totals).click();
-    await expect.element(page.getByText("The 25: 2510")).toBeVisible();
-    await rerender(<OldLettersProgressBar progress={{ ...progress, refusals: 1 }} />);
-    expect(document.body.textContent).toContain(words.refusals(1));
   });
 
   it("unfolds only the newest runs, and while a press runs, not the newest one if it's long", async () => {
@@ -416,16 +388,13 @@ describe("RunList", () => {
     await expect.element(page.getByText("Lord Sample, Lord Sample of Elsewhere")).toBeVisible();
   });
 
-  it("says what each one-off import did, who ran it, or why it failed", async () => {
+  it("says what a run did, who ran it, or why it failed", async () => {
     const runs: AnyImportRun[] = [
-      ran("import-web-form-letters", exampleWebFormResult, { id: 3, startedBy: "jo@pauseai.uk" }),
-      failed("import-web-form-letters", "AIRTABLE_TOKEN isn't set", { id: 1, startedBy: null }),
+      ran("check-mps", { problems: [] }, { id: 3, startedBy: "jo@pauseai.uk" }),
+      failed("check-mps", "Parliament answered 503", { id: 1, startedBy: null }),
     ];
     await render(<RunList runs={runs} none="None" />);
-    for (const words of [
-      staffCopy.webForm.result(exampleWebFormResult),
-      staffCopy.runs.error("AIRTABLE_TOKEN isn't set"),
-    ]) {
+    for (const words of [staffCopy.check.allGood, staffCopy.runs.error("Parliament answered 503")]) {
       await expect.element(page.getByText(words, { exact: false })).toBeVisible();
     }
     expect(page.getByText(staffCopy.runs.by("jo@pauseai.uk"), { exact: false }).all()).toHaveLength(1);
@@ -451,33 +420,6 @@ describe("RunList", () => {
       .toBeVisible();
     await expect.element(page.getByText(staffCopy.runs.error("Postmark answered 500"), { exact: false })).toBeVisible();
     await expect.element(page.getByText(staffCopy.runs.error("Database down"), { exact: false })).toBeVisible();
-  });
-
-  it("lists the emails an Emails sync held back, with the boxes ticked, or says why it failed", async () => {
-    const heldBack = { what: staffCopy.problems.job.heldBack, error: "recEmail1, recEmail2" };
-    const { rerender } = await render(
-      <RunList
-        runs={[
-          ran("sync-emails", exampleEmailsResult, { id: 2, problems: [heldBack] }),
-          failed("sync-emails", "Airtable answered 503", { id: 1 }),
-        ]}
-        none="None"
-      />,
-    );
-    await expect.element(page.getByText(staffCopy.runs.status.problems)).toBeVisible();
-    await expect.element(page.getByText(heldBack.what, { exact: false })).toBeVisible();
-    await expect
-      .element(page.getByText(staffCopy.pauseaiEmails.result(exampleEmailsResult), { exact: false }))
-      .toBeVisible();
-    await expect.element(page.getByText(`recEmail1: ${staffCopy.pauseaiEmails.noBoxes}`)).toBeVisible();
-    await expect.element(page.getByText("recEmail2: CSRB Iqbal Amendment, Ben Lake October 2026 Debate")).toBeVisible();
-    await expect.element(page.getByText(/Airtable answered 503/)).toBeVisible();
-    // With every email placed, nothing to list, and nothing amber.
-    await rerender(
-      <RunList runs={[ran("sync-emails", { ...exampleEmailsResult, unplaced: [] }, { id: 3 })]} none="None" />,
-    );
-    await expect.element(page.getByText(/recEmail/)).not.toBeInTheDocument();
-    await expect.element(page.getByText(staffCopy.runs.status.ok)).toBeVisible();
   });
 
   it("shows a members import's counts, or its error", async () => {

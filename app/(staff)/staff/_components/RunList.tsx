@@ -14,18 +14,16 @@ type Props = {
   /** What to say when there are none. */
   none: string;
   decide?: Decide;
-  /** Whether they may see who mail that matched nothing is from. */
-  people?: boolean;
   /** The job's run going now. */
   running?: RunningJob;
 };
 
 /** A run shown whole, in its box, tinted by its tone. */
-function Whole({ entry, decide, people }: { entry: LogEntry } & Pick<Props, "decide" | "people">) {
+function Whole({ entry, decide }: { entry: LogEntry } & Pick<Props, "decide">) {
   const { runs, tone, open } = entry;
   return (
     <div className={tone && styles[tone]}>
-      <Run run={runs[0]} decide={decide} open={open} people={people} />
+      <Run run={runs[0]} decide={decide} open={open} />
     </div>
   );
 }
@@ -35,7 +33,7 @@ function Whole({ entry, decide, people }: { entry: LogEntry } & Pick<Props, "dec
  * it. Rows too far down to show are folded, a line each, and the table
  * carries on under it, headed only the first time.
  */
-function DayTable({ entries, decide, people }: { entries: LogEntry[] } & Pick<Props, "decide" | "people">) {
+function DayTable({ entries, decide }: { entries: LogEntry[] } & Pick<Props, "decide">) {
   const segments: LogEntry[][] = [];
   for (const entry of entries) {
     const last = segments.at(-1);
@@ -52,16 +50,10 @@ function DayTable({ entries, decide, people }: { entries: LogEntry[] } & Pick<Pr
               {staffCopy.runs.range(staffClock(segment[0].runs.at(-1)!.at), staffClock(segment[0].runs[0].at))}:{" "}
               {staffCopy.runs.stretch(segment[0].runs.length)}
             </summary>
-            <RunTable entries={segment} header={false} decide={decide} people={people} />
+            <RunTable entries={segment} header={false} decide={decide} />
           </details>
         ) : (
-          <RunTable
-            key={segment[0].runs[0].id}
-            entries={segment}
-            header={segment === firstShown}
-            decide={decide}
-            people={people}
-          />
+          <RunTable key={segment[0].runs[0].id} entries={segment} header={segment === firstShown} decide={decide} />
         ),
       )}
     </>
@@ -76,16 +68,16 @@ function DayTable({ entries, decide, people }: { entries: LogEntry[] } & Pick<Pr
  * has one table a day instead, the newest a tinted row of it. While a run
  * is going, that's the state instead, so the newest is treated as an older one.
  */
-export default function RunList({ runs, none, decide, people, running }: Props) {
+export default function RunList({ runs, none, decide, running }: Props) {
   if (runs.length === 0) return <p>{none}</p>;
   const table = tabled(runs[0].job);
   return runLog(runs, !!running).map(({ day, entries }) => (
     <Fragment key={day}>
       <h2>{day}</h2>
       {table ? (
-        <DayTable entries={entries} decide={decide} people={people} />
+        <DayTable entries={entries} decide={decide} />
       ) : (
-        entries.map((entry) => <Whole key={entry.runs[0].id} entry={entry} decide={decide} people={people} />)
+        entries.map((entry) => <Whole key={entry.runs[0].id} entry={entry} decide={decide} />)
       )}
     </Fragment>
   ));

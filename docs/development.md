@@ -455,10 +455,8 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   token it never arrives. Use fixtures to log in, or a real server token and
   your own pauseai.uk address.
 - **Airtable.** `AIRTABLE_TOKEN` needs read access to the UK
-  Parliamentarians base's "UK Parliamentarians", "Emails" and "Web form
-  emails" tables, and to the members' base. Those are for the politician
-  sync, the members import and two one-off imports at
-  `/staff/scheduled-jobs`: the Emails sync and the web form letters.
+  Parliamentarians base's "UK Parliamentarians" table, and to the members'
+  base. Those are for the politician sync and the members import.
 - **Global's CiviCRM.** Its chapter contacts API, at
   `https://crm.pauseai.info/`, is specified in
   [PauseAI/pauseai-civicrm#1175](https://github.com/PauseAI/pauseai-civicrm/issues/1175).
@@ -674,9 +672,7 @@ Set up outside the code:
 
   Give admin to at least one other person, as the last admin can't be removed. An erasure request is handled as `docs/data-protection.md` says.
 
-- **A new database:** from `/staff/scheduled-jobs`:
-  1. Run the politician sync. Until it has run, Email your MP finds no MPs.
-  2. Run the Emails sync and the one-off import of the web form letters.
+- **A new database:** from `/staff/scheduled-jobs`, run the politician sync. Until it has run, Email your MP finds no MPs.
 
   The Luma import fills the supporter pages over its first few runs, and links every letter already written. Run it from `/staff/scheduled-jobs` too, to watch it.
 

@@ -10,11 +10,7 @@ sends mailings from the site rather than Airtable.
 ## What replaces each Airtable field
 
 The nightly `sync-politicians` job copies the politicians from base
-`appBInVvIm6opJ1Ob` (`lib/server/politician-sync.ts`). Two one-off
-imports, each run by a button, also read that base
-(`lib/server/outside-services/airtable.ts`): `sync-emails`, of its
-Emails table (`lib/server/emails-sync.ts`), and
-`import-web-form-letters`.
+`appBInVvIm6opJ1Ob` (`lib/server/politician-sync.ts`).
 
 | Airtable                                                | Replaced by                                       |
 | ------------------------------------------------------- | ------------------------------------------------- |
@@ -125,8 +121,8 @@ All four give each member's name, party, constituency and email.
    Senedd links contain a name, so those are matched by name. If the
    page has too few names, nothing is changed, as with the letter.
 6. Switch off Airtable:
-   - Remove the syncs, the one-off imports, their rows on the Import
-     page and the token's access to the base. `AIRTABLE_TOKEN` stays, as
+   - Remove the syncs, their rows on the Import page and the token's
+     access to the base. `AIRTABLE_TOKEN` stays, as
      the members import reads its own base with it.
    - Politicians keep their `airtable_id`.
    - Each politician's Airtable notes become one note in their history,

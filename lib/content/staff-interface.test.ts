@@ -4,19 +4,6 @@ import { COUNTRIES, PERSON_STATUSES } from "@/lib/server/politicians";
 import { staffCopy } from "./staff-interface";
 
 describe("staff interface copy", () => {
-  it("puts the counts into each import's result", () => {
-    const emails = staffCopy.pauseaiEmails.result({
-      read: 12,
-      added: 3,
-      waiting: 4,
-      noPolitician: 5,
-      unplaced: [1, 2],
-    });
-    for (const n of ["12", "3", "4", "5", "2"]) expect(emails).toContain(n);
-    const web = staffCopy.webForm.result({ read: 12, imported: 3, skipped: 4, alreadyHere: 5, noPolitician: 6 });
-    for (const n of ["12", "3", "4", "5", "6"]) expect(web).toContain(n);
-  });
-
   it("counts the errors a night's tidying deleted, none for a run kept from before it did", () => {
     const counts = { importRuns: 12, auditEntries: 3, drafts: 4 };
     expect(staffCopy.tidying.result({ ...counts, errors: 5 })).toContain("5 errors");
@@ -75,19 +62,9 @@ describe("staff interface copy", () => {
 });
 
 it("words the runs' times, problems and results", () => {
-  const { oldLetters, runs } = staffCopy;
+  const { runs } = staffCopy;
   expect(runs.range("09:00", "09:00")).toBe("09:00");
   expect(runs.range("09:00", "09:05")).toBe("09:00–09:05");
-  const run = {
-    finished: true,
-    read: 1,
-    left: 0,
-    replies: 0,
-    autoReplies: 0,
-    oneOffs: 0,
-    formTexts: 0,
-    postmarkTexts: 0,
-  };
   const { job, anywhere, logs } = staffCopy.problems;
   for (const words of [job.couldntRead, job.nameUnknown, logs.tokenNotRevoked]) {
     expect(words("jo@pauseai.uk")).toContain("jo@pauseai.uk");
@@ -98,8 +75,6 @@ it("words the runs' times, problems and results", () => {
   expect(logs.badBody("Postmark")).toContain("Postmark");
   expect(anywhere.letterNotSent(7)).toContain("7");
   expect(anywhere.charsetUnknown("x-mac")).toContain("x-mac");
-  expect(oldLetters.result(run)).toContain("all done");
-  expect(oldLetters.result({ ...run, finished: false })).not.toContain("all done");
 });
 
 it("says which inbox the one-off emails are copied to", () => {

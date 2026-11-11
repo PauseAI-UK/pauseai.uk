@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { AnyImportRun, GmailRead, GmailReading, ImportJob, LumaImport, OldLettersImport } from "@/lib/import-runs";
+import type { AnyImportRun, GmailRead, GmailReading, ImportJob, LumaImport } from "@/lib/import-runs";
 import type { LogEntry } from "@/lib/run-log";
 import { staffClock } from "@/lib/staff-time";
 import Run, { type Decide } from "./Run";
@@ -8,20 +8,8 @@ import { Muted } from "@/components/ui/Text";
 import Table from "@/components/ui/Table";
 import styles from "./RunTable.module.css";
 
-const sum = (counts: Record<string, number>) => Object.values(counts).reduce((total, n) => total + n, 0);
-
 /** What a run's table has: a heading and a cell for each column. */
 type Column<Run> = { heading: string; cell: (run: Run) => string | number };
-
-const lettersWords = staffCopy.oldLetters.columns;
-const OLD_LETTERS: Column<OldLettersImport>[] = [
-  { heading: lettersWords.read, cell: (run) => run.result.read },
-  { heading: lettersWords.left, cell: (run) => run.result.left },
-  { heading: lettersWords.joined, cell: (run) => sum(run.result.joined) + sum(run.result.added) },
-  { heading: lettersWords.replies, cell: (run) => run.result.replies },
-  { heading: lettersWords.autoReplies, cell: (run) => run.result.autoReplies },
-  { heading: lettersWords.oneOffs, cell: (run) => run.result.oneOffs },
-];
 
 const lumaWords = staffCopy.luma.columns;
 const LUMA: Column<LumaImport>[] = [
@@ -36,11 +24,12 @@ const LUMA: Column<LumaImport>[] = [
 /** A count over every account a read of Gmail read. */
 const overAccounts = (run: GmailReading, count: (a: GmailRead) => number | undefined) =>
   run.result.accounts.reduce((total, a) => total + (count(a) ?? 0), 0);
+const gmailWords = staffCopy.gmailReading.columns;
 const GMAIL: Column<GmailReading>[] = [
-  { heading: lettersWords.replies, cell: (run) => overAccounts(run, (a) => a.replies) },
-  { heading: lettersWords.autoReplies, cell: (run) => overAccounts(run, (a) => a.autoReplies) },
+  { heading: gmailWords.replies, cell: (run) => overAccounts(run, (a) => a.replies) },
+  { heading: gmailWords.autoReplies, cell: (run) => overAccounts(run, (a) => a.autoReplies) },
   { heading: staffCopy.sentEmails.outcomes.bounced, cell: (run) => overAccounts(run, (a) => a.bounces) },
-  { heading: lettersWords.oneOffs, cell: (run) => overAccounts(run, (a) => a.oneOffs) },
+  { heading: gmailWords.oneOffs, cell: (run) => overAccounts(run, (a) => a.oneOffs) },
   { heading: staffCopy.lettersInbox.labels.relayed, cell: (run) => overAccounts(run, (a) => a.relayed) },
   { heading: staffCopy.lettersInbox.labels.spam, cell: (run) => overAccounts(run, (a) => a.spam) },
 ];
@@ -48,8 +37,6 @@ const GMAIL: Column<GmailReading>[] = [
 /** The columns of a job's table: the jobs with routine runs (lib/run-log.ts) have their counts, Gmail's over every account read; the rest have none, and a run's own words span the table. */
 function columnsOf(job: ImportJob): Column<never>[] {
   switch (job) {
-    case "import-old-letters":
-      return OLD_LETTERS as Column<never>[];
     case "import-luma":
       return LUMA as Column<never>[];
     case "read-gmail":
@@ -65,8 +52,6 @@ type Props = {
   /** Whether the columns are headed: a day's first table is, the rest line up under it. */
   header: boolean;
   decide?: Decide;
-  /** Whether they may see who mail that matched nothing is from. */
-  people?: boolean;
 };
 
 /** The rows of one entry: a run shown whole, a row per routine run, or one row for a stretch that found nothing. */
@@ -75,8 +60,7 @@ function Rows({
   columns,
   span,
   decide,
-  people,
-}: { entry: LogEntry; columns: Column<AnyImportRun>[]; span: number } & Pick<Props, "decide" | "people">) {
+}: { entry: LogEntry; columns: Column<AnyImportRun>[]; span: number } & Pick<Props, "decide">) {
   const { shape, runs, tone, open } = entry;
   if (shape === "quiet")
     return (
@@ -106,7 +90,7 @@ function Rows({
   // further down (lib/run-log.ts).
   const run = runs[0];
   const tinted = tone ? styles[tone] : "";
-  const words = <Run run={run} decide={decide} open={open} people={people} bare />;
+  const words = <Run run={run} decide={decide} open={open} bare />;
   if (columns.length > 1 && run.status !== "failed")
     return (
       <>
@@ -133,7 +117,7 @@ function Rows({
  * for each entry of the log (lib/run-log.ts), so the same number sits in the
  * same place. The time first, then the job's counts, or what each run found.
  */
-export default function RunTable({ entries, header, decide, people }: Props) {
+export default function RunTable({ entries, header, decide }: Props) {
   const columns = columnsOf(entries[0].runs[0].job) as Column<AnyImportRun>[];
   const headings = columns.length > 0 ? columns.map((c) => c.heading) : [staffCopy.runs.found];
   return (
@@ -152,7 +136,7 @@ export default function RunTable({ entries, header, decide, people }: Props) {
         <tbody>
           {entries.map((entry) => (
             <Fragment key={entry.runs[0].id}>
-              <Rows entry={entry} columns={columns} span={headings.length} decide={decide} people={people} />
+              <Rows entry={entry} columns={columns} span={headings.length} decide={decide} />
             </Fragment>
           ))}
         </tbody>

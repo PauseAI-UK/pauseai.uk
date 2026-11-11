@@ -7,13 +7,11 @@ import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { ImportJobPage, ImportOverview } from "./ImportJob";
 import {
   exampleAppliedSync,
-  exampleEmailsResult,
   exampleFailedRun,
   exampleHeldSync,
   exampleLumaResult,
   exampleMembersResult,
   exampleRun,
-  exampleWebFormResult,
 } from "./RunList.examples";
 import { action, press } from "@/tests/browser/staff";
 
@@ -24,18 +22,14 @@ const failed = exampleFailedRun;
 describe("ImportOverview", () => {
   it("is a card per job, each a link to its page, with how its newest run ended, or that it never ran", async () => {
     const newest: (AnyImportRun | undefined)[] = [
-      undefined,
       ran("import-luma", { ...exampleLumaResult, stoppedBy: "time" }, { at: new Date("2026-10-21T11:17:00Z") }),
       ran("import-members", exampleMembersResult, { at: new Date("2026-10-21T11:47:00Z") }),
       undefined,
       ran("read-gmail", { accounts: [] }, { at: new Date("2026-10-21T11:20:00Z"), status: "unchanged" }),
       undefined,
       exampleHeldSync,
-      ran("sync-emails", exampleEmailsResult, { at: new Date("2026-10-21T06:22:00Z") }),
       ran("check-mps", { problems: [] }, { at: new Date("2026-10-21T01:00:00Z"), status: "ok" }),
       failed("import-controlai", "No PDF linked", { at: new Date("2026-10-21T02:00:00Z") }),
-      ran("import-web-form-letters", exampleWebFormResult, { at: new Date("2026-10-20T09:00:00Z") }),
-      undefined,
       undefined,
     ];
     await render(
@@ -48,7 +42,7 @@ describe("ImportOverview", () => {
         .getByRole("heading", { level: 2 })
         .all()
         .map((h) => h.element().textContent),
-    ).toEqual([staffCopy.import.frequent, staffCopy.import.hourly, staffCopy.import.nightly, staffCopy.import.oneOff]);
+    ).toEqual([staffCopy.import.frequent, staffCopy.import.hourly, staffCopy.import.nightly]);
     const cards = [...document.querySelectorAll("section")];
     expect(cards.map((card) => card.querySelector("h3 a")!.getAttribute("href"))).toEqual([
       "/staff/scheduled-jobs/luma",
@@ -60,9 +54,6 @@ describe("ImportOverview", () => {
       "/staff/scheduled-jobs/mp-check",
       "/staff/scheduled-jobs/controlai",
       "/staff/scheduled-jobs/tidying",
-      "/staff/scheduled-jobs/old-letters",
-      "/staff/scheduled-jobs/emails",
-      "/staff/scheduled-jobs/web-form-letters",
     ]);
     expect(cards.map((card) => card.querySelector("h3 a")!.textContent)).toEqual([
       jobTitles["import-luma"],
@@ -74,35 +65,26 @@ describe("ImportOverview", () => {
       jobTitles["check-mps"],
       jobTitles["import-controlai"],
       jobTitles["tidy-logs"],
-      jobTitles["import-old-letters"],
-      jobTitles["sync-emails"],
-      jobTitles["import-web-form-letters"],
     ]);
     // Under the name, how the newest run ended, tinted to match.
     const status = (i: number) => cards[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!;
     expect(status(0).textContent).toBe(`${staffCopy.runs.status.incomplete}21 Oct 2026, 11:17`);
-    expect([0, 1, 2, 5, 6, 7, 10, 11].map((i) => status(i).className.match(/green|amber|red/)?.[0])).toEqual([
+    expect([0, 1, 2, 5, 6, 7].map((i) => status(i).className.match(/green|amber|red/)?.[0])).toEqual([
       "amber",
       "green",
       "green",
       "amber",
       "green",
       "red",
-      "green",
-      "green",
     ]);
     expect(status(4).className).not.toMatch(/green|amber|red/);
     expect(status(3).textContent).toBe(staffCopy.civicrm.never);
     expect(status(4).textContent).toBe(staffCopy.sending.never);
     expect(status(8).textContent).toBe(staffCopy.tidying.never);
-    // The Airtable jobs link the table they read; the politicians' sync also says the test MPs stay.
+    // The politicians' sync links the table it reads, and says the test MPs stay.
     const link = (i: number) => cards[i].querySelector(":scope > p a")!.getAttribute("href");
     expect(link(5)).toBe("https://airtable.com/app/tblPoliticians");
     expect(cards[5].querySelector(":scope > p")!.textContent).toContain(staffCopy.syncs.testMps);
-    expect([10, 11].map(link)).toEqual([
-      "https://airtable.com/app/tblp4nH5Jymq48rcm",
-      "https://airtable.com/app/tblkzjrRHiZiqMDGR",
-    ]);
     expect(cards[6].querySelector(":scope > p")!.textContent).not.toContain(staffCopy.syncs.testMps);
     // The members come from the join form; Gmail's card leads to where it's connected; the sending's to the campaigns'
     // letters and the mailings, the tidying's to the audit log, the mailings and the errors.
@@ -148,7 +130,6 @@ describe("ImportOverview", () => {
     );
     expect(cards[8].querySelector("h3")!.textContent).toBe(`${jobTitles["tidy-logs"]}${staffCopy.import.siteAdmin}`);
     expect(cards[1].querySelector("h3")!.textContent).toBe(`${jobTitles["read-gmail"]}${staffCopy.import.takesAction}`);
-    expect(cards[10].querySelector("h3")!.textContent).toBe(jobTitles["sync-emails"]);
     // CiviCRM's pull only reads.
     expect(cards[3].querySelector("h3")!.textContent).toBe(jobTitles["import-civicrm"]);
   });
@@ -163,7 +144,7 @@ describe("ImportOverview", () => {
     const { rerender } = await render(
       <ImportOverview
         running={[]}
-        newest={[undefined, unchanged, undefined, undefined, undefined, exampleAppliedSync, undefined, undefined]}
+        newest={[unchanged, undefined, undefined, undefined, exampleAppliedSync, undefined, undefined]}
         airtableTable="x"
       />,
     );
@@ -175,15 +156,15 @@ describe("ImportOverview", () => {
     await rerender(
       <ImportOverview
         running={[]}
-        newest={[undefined, undefined, undefined, undefined, undefined, discarded, undefined, undefined]}
+        newest={[undefined, undefined, undefined, undefined, discarded, undefined, undefined]}
         airtableTable="x"
       />,
     );
     expect(status(4)).not.toMatch(/green|amber|red/);
     await rerender(
       <ImportOverview
-        newest={[undefined, undefined, undefined, undefined, undefined, exampleAppliedSync, undefined, undefined]}
-        running={[undefined, undefined, undefined, undefined, undefined, press]}
+        newest={[undefined, undefined, undefined, undefined, exampleAppliedSync, undefined, undefined]}
+        running={[undefined, undefined, undefined, undefined, press]}
         airtableTable="x"
       />,
     );
@@ -195,31 +176,13 @@ describe("ImportOverview", () => {
 
 describe("ImportJobPage", () => {
   it("says when a run of it is going, a press or one of its schedule's", async () => {
-    const props = { job: "sync-emails" as const, runs: [], run: vi.fn(), decide: vi.fn(), airtableTable: "x" };
+    const props = { job: "check-mps" as const, runs: [], run: vi.fn(), decide: vi.fn(), airtableTable: "x" };
     const { rerender } = await render(<ImportJobPage {...props} running={{ ...press, startedBy: NIGHTLY }} />);
     expect(document.body.textContent).toContain(staffCopy.import.runningScheduled(staffTime(press.startedAt)));
     await rerender(<ImportJobPage {...props} running={press} />);
     expect(document.body.textContent).toContain(staffCopy.import.running(press.startedBy, staffTime(press.startedAt)));
     await rerender(<ImportJobPage {...props} />);
     expect(document.body.textContent).not.toContain(press.startedBy);
-    expect(document.querySelector("progress")).toBeNull();
-    await rerender(
-      <ImportJobPage
-        {...props}
-        progress={{
-          read: 1,
-          left: 2,
-          joined: 1,
-          replies: 0,
-          autoReplies: 0,
-          oneOffs: 0,
-          refusals: 0,
-          byMailing: {},
-          titles: {},
-        }}
-      />,
-    );
-    expect(document.querySelector("progress")).not.toBeNull();
   });
 
   it("leads back to the overview, names the job with its icons and schedule, runs it, and lists every run by day", async () => {

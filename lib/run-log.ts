@@ -15,8 +15,8 @@ const RECENT_ROWS = 12;
 /** A run shown whole, in a table's row, or as part of a line saying nothing happened. */
 type Shape = "run" | "rows" | "quiet";
 
-/** Whether a job makes many runs a day: one every 5 minutes, or the import of old letters, which did when it read its mail. */
-const runsOften = (job: ImportJob) => jobSchedule(job) === "frequent" || job === "import-old-letters";
+/** Whether a job makes many runs a day: one every 5 minutes. */
+const runsOften = (job: ImportJob) => jobSchedule(job) === "frequent";
 
 /** Whether a job's page lays its history out as a table of the day's runs: one that runs often, or hourly. */
 export function tabled(job: ImportJob): boolean {
@@ -30,11 +30,6 @@ export function runShape(run: AnyImportRun): Shape {
   if (status === "unchanged") return "quiet";
   if (run.status === "failed" || run.problems.length > 0) return "run";
   switch (run.job) {
-    case "import-old-letters": {
-      const { finished, stoppedBy, unmatched, unreadable, formTexts } = run.result;
-      const notable = finished || stoppedBy || unmatched.length > 0 || unreadable.length > 0 || formTexts > 0;
-      return notable ? "run" : "rows";
-    }
     case "import-luma":
       return status === "incomplete" ? "run" : "rows";
     case "read-gmail":

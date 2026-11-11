@@ -4,7 +4,7 @@ Size: L. Kind: architecture.
 
 ## Problem
 
-`letter_replies` and `one_off_messages` share about 12 identical columns (account, Gmail ids, from, when, blob key, size), and `politician-correspondence.ts` queries each and merges them in TypeScript. `unmatched_mail` and `old_letters_mail` are further variants.
+`letter_replies` and `one_off_messages` share about 12 identical columns (account, Gmail ids, from, when, blob key, size), and `politician-correspondence.ts` queries each and merges them in TypeScript. `unmatched_mail` is a further variant.
 
 ## Fix
 

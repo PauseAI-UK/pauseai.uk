@@ -749,7 +749,7 @@ nothing before it to go under.
 day, newest first. How a day's runs are laid out depends on how often the
 job runs.
 
-A nightly or one-off job shows each run whole, in its box (`RunBox`). The
+A nightly job shows each run whole, in its box (`RunBox`). The
 newest is tinted by how it ended.
 
 A job that runs every 5 minutes or hourly has one table a day instead
