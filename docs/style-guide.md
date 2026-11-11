@@ -14,8 +14,8 @@ picture it.
 
 The look lives in the components, not in this file. Each one owns its
 styles in a CSS module beside it, and the only global CSS is
-`styles/tokens.css` (every colour, font, width, space, type size and
-corner as a variable, and the compact density) and
+`styles/tokens.css` (the fonts; every colour, width, space, type size and
+corner as a variable; and the compact density) and
 `styles/base.css` (element defaults and `.container`). The rules for
 writing styles are in `docs/code-structure.md` ("Styling"). Where this
 guide and the code differ, the code is what visitors see; fix whichever is
@@ -193,14 +193,11 @@ Stylelint refuses one; for one of the cases above, use
 `/* stylelint-disable-next-line declaration-property-value-disallowed-list -- why */`.
 Don't add a token for a one-off: a new token is for a value two or more
 components share, and it goes in `styles/tokens.css` with what it's for.
-The files listed in `stylelint.config.mjs` aren't exceptions to copy: they're
-waiting to be converted.
 
-A page's band is `Section`, with 80px above and below, less on a phone.
-Widths are tokens too: `.container` is 1140px, a page's reading column
-`--measure-page` (880px), a page of cards `--measure-wide` (1080px). A
-component narrows the containers inside it by setting `--container-width`
-on its own root.
+A page's widths are tokens too: its reading column is `--measure-page`
+(880px), and a page of cards `--measure-wide` (1080px). `.container` is
+1140px, unless a component narrows the containers inside it by setting
+`--container-width` on its own root.
 
 ## Forms
 
@@ -214,10 +211,12 @@ with why.
   group of buttons; `Hint` a note under a control; `FieldError` what's
   wrong, in the danger colour with an orange rule beside it, read out
   with `announce="alert"` when a form has just failed. `FieldGroup` keeps
-  a field and what's under it together.
+  a field and what's under it together; `FieldSet` is a field of several
+  controls, its label their legend.
 - **Controls** (`Controls.tsx`): `TextInput`, `Select`, `TextArea`,
-  `FileInput`, `Checkbox` (its label beside it) and `Segmented` (a row of
-  choices).
+  `FileInput`, `Checkbox` (its label beside it), `Radio` and `Segmented`
+  (a row of choices). A day is a `DatePicker` (`DatePicker.tsx`), and two
+  of them a `DateRange`.
 - **Layout** (`Form.tsx`): `FormStack`, fields in a column; `FilterForm`,
   a row of filters over a list, lined up along their bottoms.
 - **Focus**: every control and button has the same ring from the
@@ -275,8 +274,8 @@ to, so there are four places, one for each kind of adding:
 "+" marks a small control that adds to something already on the screen,
 a filter or a part of the letter, never a button that makes a new thing.
 
-Buttons that act on what a list's filters found ("Mail these 42…", to
-them, Download) aren't adding. They sit over the table, in the list frame's
+Buttons that act on what a list's filters found ("Mail these 42…",
+Download) aren't adding. They sit over the table, in the list frame's
 count row. A page whose list isn't a table has Download (`ui/DownloadMenu`, the
 same button) beside its title's button instead.
 
@@ -300,21 +299,26 @@ page is as it always is, but for that, and two bars:
   held alone, not the title under it, and inside a plain box around the
   whole page: the router scrolls a new page's first element into view,
   and a held one at the top would leave the page scrolled.
-- **At the foot of the window, held there**: a dark bar with how many
-  are ticked, light buttons to see them and to untick everyone, and, at
-  its right, the one orange button on to what they're for ("Write to
-  these 5"). Ticks are saved as they're made, so a draft's way back is
-  this button too, there even with no one ticked; a new mailing's appears
-  once someone is.
+- **At the foot of the window, held there** (`ChoosingBar`): a dark bar
+  with how many are ticked, light buttons to see them and to untick
+  everyone, Paste names, whose box opens above the bar, and, at its
+  right, the orange button on to what they're for ("Write to these 5").
+  Ticks are saved as they're made, so a draft's way back is this button
+  too, there even with no one ticked; a new mailing's is greyed until
+  someone is.
 
 The page's own button for the same thing (New mailing, or Mail these) goes while it's
 choosing, so there's one way on. The person chooses with tools they
 already know. The top always says what they're doing and how to stop,
 and the foot always shows the result and the way on, however far they've
-scrolled. A new choosing mode, such as supporters for a broadcast, uses
-these two bars, not a design of its own. Both live with the politicians
-list now (`_components/PoliticiansList.tsx`); a second user moves them to
-`ui/`.
+scrolled.
+
+The supporters list chooses who a broadcast goes to with the same two
+bars, but no ticks: there the filters say who, and the button at the foot
+keeps them for the draft (`ChoosingBroadcastFrame` in
+`_components/BroadcastSupporters.tsx`). A new choosing mode uses these two
+bars too, not a design of its own. The mailing's are in
+`_components/PoliticiansList.tsx`, whose stylesheet the broadcast's share.
 
 **The grid** (`ui/Grid`). Six columns when it's at least 1,000px wide;
 below that, two. Everything boxed is an item of a grid and says how much
@@ -332,8 +336,9 @@ its table.
 **Widths.** A component never sets its own `max-width` or `width`: the
 grid gives a box its width, and anything read line by line (a form, a
 short list) takes the measure, `var(--staff-measure)`.
-`tests/checks/staff-widths.test.ts` fails otherwise, but for the few it
-lists with their reasons (a popover, the login page's card, a field).
+`tests/checks/staff-widths.test.ts` fails on any other `max-width`, but
+for the few it lists with their reasons (a popover, the login page's card,
+a field).
 
 **Surfaces.** Each one means one thing:
 
@@ -363,8 +368,8 @@ list of such records (the mailings), the whole box leading to the record.
 **The dashboard's numbers** (`METRIC_LINKS`). A tile leads to a page showing the
 number it shows: a tile saying 12 opens a list of 12. So a tile counts what its
 list has a row for, a person or a politician once, and its link carries the
-window chosen. A tile with no such page is no link. A filter added for this
-alone is hidden ("Filters", below).
+window chosen. For staff whose permissions don't open that page, the tile is
+no link. A filter added for this alone is hidden ("Filters", below).
 
 **Progress** (`ui/Progress`). How far something has got is a sentence
 over a thin bar: blue while it's going out, green for answers. In its
@@ -395,11 +400,12 @@ card holds strips, rows and fields, never another card.
 picked, that one thing pulses once in the accent's tint (`--accent-light`,
 or the orange at 40%) and settles: one pulse of about a second and a half,
 starting just after the page appears, never repeated. It's a change of
-colour, not a movement, so it stays with motion turned off. Three do it:
+colour, not a movement, so it stays with motion turned off. These do it:
 the ask a link picked out on an asks list (`AsksList.module.css`, which
-stays tinted), a notice that opens after something happened
-(`ui/Notice.module.css`, fading to plain), and the broadcast just sent for
-approval on the list of broadcasts (`MailingsOverview.module.css`).
+stays tinted), the broadcast just sent for approval on the list of
+broadcasts (`MailingsOverview.module.css`), and a notice that opens after
+something happened (`ui/Notice.module.css`), which starts lit and fades to
+plain over eight seconds.
 
 **Strips, not alerts.** Anything that needs a person is a red or amber
 strip, with its icon at the left and its button at the right: a strip
@@ -469,11 +475,11 @@ thing, the date goes first; otherwise it goes last.
 above it, and a list's own filters component only says what its filters
 are:
 
-- The search box comes first, the fields it searches in it until
-  something's typed ("Name, email or phone"), which is its accessible name
-  too, and its button, Search, beside it. A search waits for the button, or Enter, so the list
-  doesn't change while someone types. While there's a search, an × in the
-  box empties it.
+- The search box comes first, its button, Search, beside it. Until
+  something's typed, the box says what it searches ("Name, email or
+  phone"), which is its accessible name too. A search waits for the button,
+  or Enter, so the list doesn't change while someone types. While there's a
+  search, an × in the box empties it.
 - Only the filters that are on show, each as a chip: the filter's name
   and its choice, "Party: Labour". A chip opens its choices, one column,
   a long list scrolling, and Remove.
@@ -512,13 +518,9 @@ are:
   the same parameter, its value marked `!`: `event=!evt-2`.
 - Where a record has only one value of a filter (`oneEach`: a nation, a party,
   who did it), finding one already leaves the others out, so it only ever has
-  one lozenge: adding a found choice drops those left out, and the other way
+  one chip: adding a found choice drops those left out, and the other way
   round. One from an old link or saved filter with both shows both until it
   changes. Where a record can have several (a tag, an event), it keeps both.
-- A filter `after` another that repeats, as an ask's answers do, has "+ Add" in
-  the lozenge's second half: "Ask: Winter reception | Going or Tentative going",
-  its blank choice, "Any answer", being what ticking none means. Changing the
-  first half clears it. It can't leave out.
 - Politicians, Supporters, Events and the audit log have saved filters (`ui/SavedFilters`,
   FilterBar's `saved`, and "Saved filters" in `docs/domain-concepts.md`): a
   white lozenge at the right of the bar's first row; on a phone it shares a
@@ -529,7 +531,7 @@ are:
   hover, "edited" after it never cut. Its second half is there only with
   something to save: Save, with a filter or search on and none loaded,
   opens a small form with the name filled in; Save ▾, once one's edited,
-  holds Update for everyone, Save as new and Undo my changes. The list is a
+  holds Update for all, Save as new and Undo my changes. The list is a
   box that narrows by name, and rows of name, summary, creator and date,
   each a link that loads it, with a menu to rename or delete
   it without loading it. Clear filters unloads one too. A loaded one that
@@ -543,6 +545,10 @@ are:
   goes when that one does. An ask's chip is "Edinburgh conference |
   Declined", "Any answer" in the second half until one is chosen. On its
   own, as from a link, it's an ordinary chip, "Answer: Signed".
+- A filter `after` another that repeats, as an ask's answers do, has "+ Add" in
+  the chip's second half: "Edinburgh conference | Going or Declined",
+  its blank choice, "Any answer", being what ticking none means. Changing the
+  first half clears it. It can't leave out.
 - A filter that repeats can have choices in two parts (an option's
   `seconds`): "+ Filter" and Except offer the first, and its chip is in
   two halves, the second choosing among the first's. A choice list can
@@ -588,7 +594,7 @@ nothing and stays there.
 
 **A bubble you click open to work in or read has a pointer up to its
 button** (`ui/Bubble`). One that holds a form, or a few words on the
-thing beside it, is a small dialog: an Edit, Add staff, Change time, a
+thing beside it, is a small dialog: an Edit, Add staff, Change the time, a
 "?", a {}. Its pointer says what it belongs to, which matters most where
 the same button is down every row, as {} is down a history. It points to
 its button's middle at any width, the bubble kept inside the window's
@@ -631,10 +637,13 @@ smaller:
 Anything else, and a notice with nothing before it to go under, stays in
 the list, in its place.
 
+**A job's log** (`RunList.tsx`). A job's runs go under a heading for each day, newest first. A nightly or one-off job shows each run whole, in its box (`RunBox`), the newest tinted by how it ended. A job that runs every 5 minutes or hourly has one table a day instead (`RunTable.tsx`, `lib/run-log.ts`), so the same number sits in the same place: the time first, then the job's counts (a Gmail read's over every account it read), or what each run found. A routine run is a row of counts; a stretch that found nothing is one muted row, its time range in the time column; anything shown whole is a row of its own words, with no box and without the time or the schedule, which the row and the page say, its detail folded. A run with counts and words has its counts in their columns and its words in a row under them, with no rule between. The newest run's rows are tinted by how it ended, and a problem's stay tinted further down. Rows too far down fold into a line between the day's tables, which opens into more of the table, headerless; the day's first table shown has the header. The table keeps a width for its counts and scrolls sideways on a phone (`ui/Table`, fixed layout).
+
 **The sidebar** (`StaffNav`). Each page has its icon (`NavIcon`) beside
-its name. Fold, at its foot, folds it to a rail of the icons on wider
-screens, the sections a rule apart, each name showing beside its icon on
-hover or focus; the browser remembers it (`lib/staff-nav.ts`).
+its name. A round button on its edge, at the top (`ui/NavFold`), folds it
+to a rail of the icons on wider screens, the sections a rule apart, each
+name showing beside its icon on hover or focus; the browser remembers it
+(`lib/staff-nav.ts`).
 
 **A thing's name leads to it.** Wherever the name of something with a page of
 its own is shown, such as a campaign, an ask or a politician, it links to that
@@ -662,7 +671,7 @@ one status (the politicians table). It's the filters that decide, never
 the rows on the page, which may agree by chance; a choice left out fixes
 nothing.
 
-The gallery's staff group shows each piece and each page built from them.
+The gallery's staff groups show each piece and each page built from them.
 
 ## Borders and shadows
 
@@ -670,21 +679,19 @@ Corners are the `--radius-*` tokens (above): buttons and fields
 `--radius-md`, cards `--radius-lg`, tags `--radius-pill`, avatars `50%`,
 images in cards none (full bleed).
 
-Cards have a `1px solid var(--border)` border, `var(--border-strong)` on
-hover. No heavy or coloured borders except for active and focus states.
+Cards have a `1px solid var(--border)` border. No heavy or coloured borders
+except for active and focus states, and the feature card's accent edge.
 
-A box that shows a state says so with its tint: the background is the status colour's `-bg` token (`--status-red-bg`, `--status-amber-bg`, `--status-green-bg`), and the words can take the status colour. On staff pages that's a strip, with no border (above, "Staff pages"); a past run in a job's history keeps the ordinary border. Never a thick edge on one side: on a rounded corner it bends into a wedge. Only the current state is coloured. A history of past runs or events is plain, so the one thing in colour is the thing that's true now. The exception is a job that runs every 5 minutes: among hundreds of runs a failure or refusal would be lost, so it stays tinted (below, "A job's log").
-
-**A job's log** (`RunList.tsx`). A job's runs go under a heading for each day, newest first. A nightly or one-off job shows each run whole, in its box (`RunBox`), the newest tinted by how it ended. A job that runs every 5 minutes or hourly has one table a day instead (`RunTable.tsx`, `lib/run-log.ts`), so the same number sits in the same place: the time first, then the job's counts (a Gmail read's over every account it read), or what each run found. A routine run is a row of counts; a stretch that found nothing is one muted row, its time range in the time column; anything shown whole is a row of its own words, with no box and without the time or the schedule, which the row and the page say, its detail folded. A run with counts and words has its counts in their columns and its words in a row under them, with no rule between. The newest run's rows are tinted by how it ended, and a problem's stay tinted further down. Rows too far down fold into a line between the day's tables, which opens into more of the table, headerless; the day's first table shown has the header. The table keeps a width for its counts and scrolls sideways on a phone (`ui/Table`, fixed layout).
+A box that shows a state says so with its tint: the background is the status colour's `-bg` token (`--status-red-bg`, `--status-amber-bg`, `--status-green-bg`), and the words can take the status colour. On staff pages that's a strip, with no border (above, "Staff pages"); a past run in a job's history keeps the ordinary border. Never a thick edge on one side: on a rounded corner it bends into a wedge. Only the current state is coloured. A history of past runs or events is plain, so the one thing in colour is the thing that's true now. The exception is a job that runs every 5 minutes: among hundreds of runs a failure or refusal would be lost, so it stays tinted (above, "A job's log").
 
 Shadows are warm-toned (brown-black, not blue-black), from the two shadow
 tokens:
 
-| Level    | Value                             | Usage              |
-| -------- | --------------------------------- | ------------------ |
-| Subtle   | `0 1px 3px var(--shadow)`         | Default cards      |
-| Medium   | `0 4px 16px var(--shadow)`        | Hovered cards      |
-| Elevated | `0 8px 32px var(--shadow-strong)` | Hero image, modals |
+| Level    | Value                             | Usage                           |
+| -------- | --------------------------------- | ------------------------------- |
+| Subtle   | `0 1px 3px var(--shadow)`         | Default cards                   |
+| Medium   | `0 4px 16px var(--shadow)`        | Hovered cards                   |
+| Elevated | `0 8px 32px var(--shadow-strong)` | A hero image, the cookie banner |
 
 ## Buttons
 
@@ -699,7 +706,7 @@ buttons after what they act on is `Actions`; centred under a section,
 ### Which button
 
 - **Primary, orange** (`variant="primary"`): the one thing a form or a
-  page is for: Save, Schedule, Connect Gmail, Add an ask. One to an area,
+  page is for: Save, Schedule, Connect Gmail, New ask. One to an area,
   so it's plain what to press.
 - **Secondary, no colour** (`variant="ghost"`): anything else beside it:
   Change the time, Disconnect Gmail, a row's Edit, and the first press of
@@ -713,7 +720,7 @@ buttons after what they act on is `Actions`; centred under a section,
   where nothing changes and it isn't what the page is for: a row's name,
   to its own page; a count, to the list it counts; back to the list; a
   section of the page. Anything that does something, or opens a form to
-  do it, is a button, even when it goes to another page: Edit and Add an
+  do it, is a button, even when it goes to another page: Edit and New
   ask look like buttons, not links (`ButtonLink`; in the staff pages a
   `StaffLink` with `buttonClass`, below). `LinkButton` is the one exception, a
   button that reads as a link for a small step in a line of text that's
@@ -757,11 +764,12 @@ A button with a look of its own (the donate page's) puts its words in
 ### Deleting, pressed twice
 
 Delete is a ghost button naming what it deletes ("Delete ask"). Pressed
-once, it turns into a red "Delete it", which takes the focus; pressed
-again, it deletes. It goes back to how it was after a few seconds, or as
-soon as the focus leaves it, so a stray click deletes nothing
-(`DeleteTwice`). There's no dialog. While it deletes it stays red, with
-its spinner, as every button does while its work goes on.
+once, it turns into a red "Press again to delete it" ("Confirm?" where
+there's little room), which takes the focus; pressed again, it deletes.
+It goes back to how it was after a few seconds, or as soon as the focus
+leaves it, so a stray click deletes nothing (`DeleteTwice`). There's no
+dialog. While it deletes it stays red, with its spinner, as every button
+does while its work goes on.
 
 That's the standard way to delete one thing whose deleting has no
 consequence beyond its being gone: a draft, an ask nobody has answered,
@@ -788,6 +796,7 @@ corners, and Inter at `15px` (`--button-font-size`), weight 600.
   `var(--text)`; on hover the border and text turn `var(--accent)`.
 - **Light** (on a photo): `var(--white)` with `var(--ink)` text and an
   orange border; on hover an orange ring.
+- **Danger**: `var(--danger)`, solid, white text; on hover a dark ring.
 
 Sizes: `small` and `large` besides the default.
 
@@ -823,7 +832,8 @@ introduction under it `Foreword`.
   solid, for a clean break between sections.
 - **White** (`tone="white"`): `var(--accent-bg)`.
 
-A boxed message inside a section is `Callout`.
+Words with an action beside them (a button, a photo) inside a section are
+`Callout`.
 
 ## The briefings and the march
 

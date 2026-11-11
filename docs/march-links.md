@@ -5,8 +5,8 @@ redirects there, keeping the tags, so it's the one to give out. Every
 tracked link to the sign-up has one tag,
 utm_source, a short code saying where the link came from, and nothing else.
 Google Analytics counts visits, and registrations, by it; this page is the
-key. GA reads it from the page's address; the registration itself doesn't
-keep it.
+key. GA reads it from the page's address. The sign-up keeps it too, on the
+person's form entry (`form_entries.utm_source`), and doesn't pass it to Luma.
 
 With only a source, GA puts these visits in its Unassigned channel: find
 them by Session source.

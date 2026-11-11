@@ -4,7 +4,7 @@ Size: S. Kind: operations.
 
 ## Problem
 
-The main branch's ruleset requires the CI checks but not an up-to-date branch. Two PRs that each pass on their own can break main together, such as two that add the same migration number, and Netlify deploys main without waiting for CI.
+The main branch's ruleset requires the CI checks but not an up-to-date branch. Two PRs that each pass on their own can break main together, and Netlify deploys main without waiting for CI. Two that add the same migration number are one case: `scripts/migration-order.mjs` fails the second in CI only if its checks run again after the first has merged.
 
 ## Fix
 

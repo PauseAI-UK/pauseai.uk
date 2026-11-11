@@ -11,10 +11,12 @@ sends mailings from the site rather than Airtable.
 
 ## What replaces each Airtable field
 
-The nightly `sync-politicians` job copies two tables from base
-`appBInVvIm6opJ1Ob`: the politicians (`lib/server/politician-sync.ts`)
-and the Emails table (`lib/server/emails-sync.ts`). Two one-off imports
-also read that base (`lib/server/outside-services/airtable.ts`).
+The nightly `sync-politicians` job copies the politicians from base
+`appBInVvIm6opJ1Ob` (`lib/server/politician-sync.ts`). Two one-off
+imports, each run by a button, also read that base
+(`lib/server/outside-services/airtable.ts`): `sync-emails`, of its
+Emails table (`lib/server/emails-sync.ts`), and
+`import-web-form-letters`.
 
 | Airtable                                                | Replaced by                                       |
 | ------------------------------------------------------- | ------------------------------------------------- |
@@ -96,9 +98,9 @@ All four give each member's name, party, constituency and email.
    updates names, parties, constituencies and emails. Every address a
    body lists goes in `politician_addresses`, leaving out shared ones, and
    an address it stops listing stays there, as a past one. A large change is
-   held for someone to check, as now: it shows on the staff home page
-   and can be applied on the Import page. The site also emails
-   `POLICY_INBOX` about it, as it does for a bounce.
+   held for someone to check, as now: it shows on the staff home page,
+   the notification inbox is emailed about it, and it can be applied on
+   the Import page.
 3. Let staff edit a politician's salutation and markers (important
    target, personal connection), and add people who aren't in any
    official list (house `other`). A change of their office status needs
@@ -119,7 +121,9 @@ All four give each member's name, party, constituency and email.
    Senedd links contain a name, so those are matched by name. If the
    page has too few names, nothing is changed, as with the letter.
 6. Switch off Airtable: remove the syncs, the one-off imports, their
-   rows on the Import page and the base's token. Politicians keep their
+   rows on the Import page and the token's access to the base
+   (`AIRTABLE_TOKEN` stays, as the members import reads its own base
+   with it). Politicians keep their
    `airtable_id`. Each politician's Airtable notes, with a line saying
    Recommended if it was ticked, become one note in their history,
    written by "Airtable" and dated the day it's switched off; then
@@ -299,7 +303,7 @@ all politicians, 15 letters with no sent email fall within a day of a thread
 this would link.
 
 The wider book helps the import's matching, but moving those threads onto their
-letters is a separate pull request, as the import is now a one-off run by a
+letters is a separate pull request, as the import is a one-off run by a
 button.
 
 ## Open questions

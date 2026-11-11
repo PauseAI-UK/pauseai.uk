@@ -4,7 +4,7 @@ Size: L. Kind: architecture.
 
 ## Problem
 
-All the staff interface's words are in one object in `lib/content/staff-interface.ts`: 2,511 lines and 124 KB, referenced by 234 files and changed in 379 commits since October. It mixes three kinds of text: UI labels, email bodies such as `loginEmail.body`, and server problem and log messages, imported by about 45 files under `lib/server/`. 24 client components import it, and a bundler can't drop the unused parts of one object, so most of it probably ships to staff browsers (not yet measured). Reading a component means following keys like `copy.byKind[kind].title` into a file far away.
+All the staff interface's words are in one object in `lib/content/staff-interface.ts`: about 2,900 lines and 140 KB, referenced by over 300 files and changed in nearly 400 commits since October. It mixes three kinds of text: UI labels, email bodies such as `loginEmail.body`, and server problem and log messages, imported by about 40 files under `lib/server/`, tests aside. About 30 client components import it, and a bundler can't drop the unused parts of one object, so most of it probably ships to staff browsers (not yet measured). Reading a component means following keys like `copy.byKind[kind].title` into a file far away.
 
 `docs/code-structure.md`, "Where the words go", gives three reasons for one file: words can change without touching code, tests refer to text by name, and placeholders can be found. Only the second still pays: the same person changes words and code in the same PR, and the placeholder check scans the whole repo wherever copy lives.
 

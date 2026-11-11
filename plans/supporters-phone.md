@@ -90,7 +90,7 @@ that broadcast's row says "Stopped" rather than delivered or read.
 
 These stops don't cover calls, which have their own ("Calls"). Global
 doesn't call or text, but CiviCRM has "Do not phone" and "Do not SMS"
-flags, and its chapter contacts API now carries them (open question 11).
+flags, and its chapter contacts API carries them (open question 11).
 
 ## 1. Groundwork
 

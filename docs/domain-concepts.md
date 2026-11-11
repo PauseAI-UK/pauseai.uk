@@ -35,9 +35,9 @@ is every other thread with a politician in the policy team's mailboxes
 
 ## Notable people and politicians
 
-Everyone we campaign at is a notable person (`notable_people`): for now,
-only politicians, MPs, peers, MSPs, members of the Senedd and the Northern
-Ireland Assembly, and others (`HOUSES` in `lib/server/politicians.ts`). A
+Everyone we campaign at is a notable person (`notable_people`). For now
+they're all politicians: MPs, peers, MSPs, members of the Senedd and the Northern
+Ireland Assembly, and others (`HOUSES` in `lib/politician-filters.ts`). A
 notable person has what all kinds share: a name as they're known in public,
 with any title that's part of it ("Lord McFall of Alcluith"); a salutation,
 which follows "Dear" and is written by hand, as no rule makes it from the
@@ -60,8 +60,8 @@ Where they come from:
   (which may be Airtable reusing a record for someone new), is held for
   staff to apply or discard. A record gone from Airtable keeps its status
   and gets `airtable_removed_at`. A nightly check compares the MPs with
-  Parliament's Members API and reports differences, changing nothing
-  (`lib/server/mp-check.ts`).
+  Parliament's Members API and reports differences, changing nothing but
+  `politician_domains` ("One-off emails", below; `lib/server/mp-check.ts`).
 - **Test MPs** are fixed, each found by a test postcode (`lib/test-mps.json`,
   ZZ99Z\*) and each standing for one case: an ordinary MP, one who has
   signed, one with no email, one whose email bounces. A new case that a
@@ -78,7 +78,7 @@ a kind (`letter` or `event`), a date, a link to the letter or the
 event, and who asks it: supporters, in their letters or in person, PauseAI,
 in its own emails, ControlAI, for its own statement and letter, or more than
 one. Staff add, change and delete them on `/staff/asks`, or from a
-mailing's Ask: the slug is made from the title and the date's month, and
+mailing's Ask: the slug is made from the title and the date's month and year, and
 never changes; the kind is fixed once anyone has answered; an ask can be
 deleted only while no answer, campaign or mailing refers to it. The asks
 `lib/asks.ts` names (`NAMED_ASKS`: the Frontier AI letter and ControlAI's
@@ -143,27 +143,32 @@ adds what its kind has, joined as notable people are:
   and the form entry of the person who sent it (`entry_id`; "Form
   entries", below), which holds their name, email, address, postcode and
   consent. Each sender email can send one letter per campaign, except to a
-  test MP. See "Letters through the letters inbox", below. Letters sent
-  before it went by Postmark from an address of their own on
-  `letters.pauseai.uk` (`postmark_mailbox`), with the sender on Cc, and a
-  reply to that address is still forwarded to the sender and the policy
-  team (`forwardReply`, `lib/server/postmark-webhooks.ts`). A person's reply
-  is also kept whole on the letter, as one read from Gmail is, from the whole
-  message Postmark's inbound webhook carries with the server's
-  `RawEmailEnabled` on: its account the letter's own address, with no Gmail
-  IDs. Our forward of it, read from policy@, isn't kept again. The letters sent
-  through pauseai.info's old form were imported once from Airtable
-  (`lib/server/web-form-import.ts`), keyed by the record, with neither. Both
+  test MP. A letter goes through the letters inbox, and its row names the
+  supporter's proxy (`proxy_id`; "Letters through the letters inbox", below).
+  Two older kinds are kept, and nothing sends more of either. Both
   have their text in `letter` once the import of old letters has run, a form
   letter with the form's text live then in `draft`, so its page shows what its
   writer changed as a letter through the letters inbox does.
+  - **Letters sent by Postmark**, each from an address of its own on
+    `letters.pauseai.uk` (`postmark_mailbox`), with the sender on Cc. A
+    reply to that address is forwarded to the sender and the policy
+    team (`forwardReply`, `lib/server/postmark-webhooks.ts`). A person's reply
+    is also kept whole on the letter, as one read from Gmail is, from the whole
+    message Postmark's inbound webhook carries with the server's
+    `RawEmailEnabled` on. Its account is the letter's own address, and it has
+    no Gmail IDs. Our forward of it, read from policy@, isn't kept again.
+  - **Letters sent through pauseai.info's old form**, imported once from
+    Airtable (`lib/server/web-form-import.ts`), each keyed by its record
+    (`airtable_id`).
 - **PauseAI's letter** (`letters_from_pauseai`): one person's letter of a mailing
   (`mailings`), which may make an ask. Those sent before the site could send
   them are copied from Airtable's Emails table, when staff press its import
   (`lib/server/emails-sync.ts`): who, when, and whether it was
   personalised, but no text. Each mailing there is a
-  tick box, named by `mailings.airtable_field`; an email with no box we know
-  is held back and reported until a migration adds its mailing.
+  tick box, named by `mailings.airtable_field`, or with no box, the dates it
+  was sent in (`airtable_sent_between`). An email that fits no mailing, or
+  has several boxes ticked, is held back and reported until a migration adds
+  its mailing.
   A mailing written on the site (`lib/server/mailing-drafts.ts`) is a
   draft from the moment New mailing is pressed. It holds the politicians
   ticked for it on the politicians list, by ID (`StoredFilter`'s
@@ -253,13 +258,12 @@ written to and kept.
 ### Broadcasts to supporters
 
 A broadcast is an email or a text to many supporters at once, and each
-supporter's copy of it is a message. A broadcast is a row of `mailings` with
+supporter's copy of it is a message (`broadcast_messages`). A broadcast is a row of `mailings` with
 the audience `supporters`, but to staff it's apart from a mailing, in its own
 place: Broadcasts, at `/staff/broadcasts`, under Supporters, behind the
 `supporters` permission. Mailings to politicians are open to every staff
 member, so their pages, actions and the `send-mailings` job all leave
-broadcasts out. Each person's copy of a broadcast is a message
-(`broadcast_messages`).
+broadcasts out.
 
 - **Channel and topic.** A broadcast has one of each, its Consent: one
   topic, answered yes (`broadcastTerms` in `lib/broadcasts.ts`). "Not
@@ -347,7 +351,7 @@ token is kept encrypted (`GMAIL_TOKEN_KEY`), and deleted on disconnecting.
   letter, so it finishes, and its page shows the letter in red.
 - **Message-IDs.** Every letter of a mailing goes with a Message-ID of ours,
   whichever backend sends it, so a reply is matched by the IDs it names.
-  Gmail sends it with one of its own instead (`…@mail.gmail.com`), so
+  Gmail can send it with one of its own instead (`…@mail.gmail.com`), so
   after sending, the site asks Gmail which it went with and keeps that
   (`email_sends.rfc_message_id`). The letter's own copy in Sent is known
   by Gmail's ID for it too, and a bounce naming no letter we know is
@@ -378,7 +382,9 @@ token is kept encrypted (`GMAIL_TOKEN_KEY`), and deleted on disconnecting.
   (`lib/letter-links.ts`): a search for it by its Message-ID, to paste
   into Gmail where the mailbox it went from can be seen, a delegate's
   included. Gmail has no link into a delegated mailbox. A supporter's
-  letter's page has the same, for its copy in `POLICY_INBOX`.
+  letter's page has the same: for one sent through the letters inbox, in
+  that inbox; for an older one, in the mailbox the import of old letters
+  read it from, or else for its copy in `POLICY_INBOX`.
 
 ### The import of old letters
 
@@ -411,9 +417,7 @@ Gmail refuses; a mailbox's limit applies to all its reading, the regular read's 
   charset they name. Bytes not valid in that charset are read one to a character
   (`decodedText`), and the control characters that curly quotes and dashes became
   are made whole (`restoreCutDown`). Characters whose low byte is an ordinary one,
-  such as an ellipsis as `&`, can't be told apart. Letters whose paragraphs were
-  read as one are split again at the sentences their mailing's letters share
-  (`splitFlatLetters`), which needs only what's kept.
+  such as an ellipsis as `&`, can't be told apart.
 - **What's stored.** A mailing's template in `imported_text`, in `body`'s format,
   its subject and who it went from; each letter that fits it, its greeting and own
   paragraph in `merge_values`, and one that doesn't, its whole text in `own_text`.
@@ -481,7 +485,8 @@ Staff without `supporters` don't see, there, supporters' letters or a thread wit
 One person filling in one of our forms once (`form_entries`): their name,
 email, phone, address, city and postcode as they gave them, the box to hear
 from us (`contact_consent`), where they came from (`utm_source`) and when.
-`form` says which form: `email-your-mp`, `march-2026-11`, or
+`form` says which form: `email-your-mp`, `march-2026-11`, `paper-signup`
+("Paper sign-ups", below), or
 `web-form` for pauseai.info's old letter form. What only some forms make
 hangs off the entry, one to one: a letter's sender is the entry its
 `letters_from_supporters` row points at.
@@ -496,8 +501,8 @@ A public form that takes an email address must check it's a person, with
 Turnstile as the letter form has
 (`lib/server/outside-services/turnstile.ts`), or that the address is
 theirs, with a link emailed to it that must be clicked before the entry
-counts. Otherwise a bot can sign up thousands of addresses, and every yes,
-email and Global `resubscribe` that follows is false. Only the emailed
+counts. Otherwise a bot can sign up thousands of addresses, and every yes
+and every email that follows is false. Only the emailed
 link stops a person signing up someone else. A form that
 emails the address it's given, such as one asking for a link, needs
 Turnstile as well, so it can't be used to send our mail to anyone. A
@@ -509,22 +514,25 @@ isn't kept: the page reads it in the browser, and sends it to the server only to
 preview and import it. Each import is a row of `signup_uploads`: the file's name,
 the date collected, where collected (`note`), the event, and how many it imported
 and held back. `signup_upload_entries` ties each entry to its import, with what the import did
-for them as it did it (a new entry or one already there, how they were already a
-supporter, and already going or what Luma said), whose where
+for that person as it did it: a new entry or one already there, how they were already a
+supporter, and whether they were already going or what Luma said. The import's where
 collected is the entry's line in a supporter's history, and the import's own page
-is under Past imports. The
-reading is in `lib/signup-upload.ts`: liberal about separators, encodings, how a
+is under Past imports.
+
+The reading is in `lib/signup-upload.ts`: liberal about separators, encodings, how a
 heading is spelt and ways of saying yes, and nothing else. A column whose heading
 isn't on its list is ignored, so a doubt in a file is settled before it's imported.
+A row with no name, a bad email or phone, a yes or no it
+can't read, a blocked email, or an email on another row of the file is held back,
+with nothing kept.
+
 The entry is dated midday on the date collected, which is also what makes an
 import safe to repeat: an email with a paper entry of that date gets no other.
 Every entry has its box ticked, as signing the paper form is joining the mailing
 list, so it's PauseAI UK by email, and calls and texts for a number given. The
 form has no mailing list box, and a file's column for one is ignored. Staff may link one column of yes and blank to
 one event to come, and a yes then registers them on Luma, who emails them, unless
-they're already going. A row with no name, a bad email or phone, a yes or no it
-can't read, a blocked email, or an email on another row of the file is held back,
-with nothing kept. The preview shows what each person will come to, and importing
+they're already going. The preview shows what each person will come to, and importing
 checks it's still so.
 
 ## Supporters
@@ -539,7 +547,7 @@ only adds links, runs at the end of each Luma and members import and when
 a form entry is kept, and is set-based, so running it again does nothing.
 Then supporters who gave the same UK mobile number (`+447…` as
 `phone_number()` writes it) are one person, whatever their emails:
-`merge_supporters_by_phone()` moves the newer one's links and messages to
+`merge_supporters_by_phone()` moves the newer one's links, messages and notes to
 the older and deletes it, and `supporter_merges` keeps its ID, so its old
 page, `/staff/supporters/<id>`, redirects to the one it went into. Landlines and
 numbers abroad aren't matched, as households and offices share them.
@@ -553,18 +561,24 @@ history, and `supporter_contact_<name>` (`source_id`, `at`, `phone`,
 `supporter_identity`, `supporter_activity` and `supporter_contact` union
 them by supporter (Luma's activity is three arms of `supporter_activity`
 itself, as Postgres can't narrow a union inside a join to one supporter),
-and `supporters_summary` is one row per supporter. The list reads
+and `supporters_summary` is one row per supporter.
+
+The list reads
 `supporters_listed`: `supporters_list`, a materialized view of every
 supporter's summary and place, refreshed by `refreshSupportersList()` at
 the end of each import that links supporters and by an erasure, and anyone
 added since, worked out as it's read. So a supporter's counts, tags and
 place in the list are as of the last import, up to an hour old, but for whether they're a Luma contact: an opt-out from the
 calendar, or its end, is looked up as the list is read
-(`optedOutOfLuma()`). Their own page is always as they are now. When a supporter was first seen, the earliest `seen_at` of their
+(`optedOutOfLuma()`). Their own page is always as they are now.
+
+When a supporter was first seen, the earliest `seen_at` of their
 records (`supporter_first_seen`), is kept on the supporter
 (`supporters.first_seen_at`) by `refreshSupporterFacts()`
 (`lib/server/supporter-facts.ts`), which `linkSupporters()` runs, so the
-staff home counts new supporters by it without working it out each time. Only staff with the `supporters` permission see them
+staff home counts new supporters by it without working it out each time.
+
+Only staff with the `supporters` permission see supporters
 (`/staff/supporters`), and each download of a list of them (supporters,
 their blocked addresses) is an audit log entry.
 
@@ -579,7 +593,7 @@ Where they come from:
   its day is over) and every Luma user, guest, host or contact, into
   `luma_people`, with when they joined the calendar as a contact and when
   a read of the contacts last listed them. Luma's own IDs are the keys, and
-  only the import writes these tables. The site's events pages still read
+  only the import writes these tables. The public events pages read
   Luma live. A run fetches for about 20 seconds, reading what's changed
   first and backfilling the rest over later runs, and records how many
   events are still waiting, so the first copy of the calendar takes a few
@@ -608,15 +622,15 @@ Where they come from:
   Member badge.
 
 **Where they are.** The `supporter_place` view gives each supporter's
-best-known place, with its coordinates, country and the postcode's
-constituency: their newest postcode, else the newest city they gave
+best-known place, with its coordinates and country: their newest postcode, else the newest city they gave
 themselves (never Luma's, whose cities are its events'), else the newest
 event they registered for that isn't a big day or online. Each postcode
 and town is looked up at postcodes.io once, at the end of each Luma
-import, and kept in `postcode_places` and `named_places`. A postcode's first
+import, and kept in `postcode_places`, with the postcode's constituency, and `named_places`. A postcode's first
 half alone ("SE15") says roughly where someone is but not their constituency, so it gives no MP
 (`lib/server/supporter-places.ts`); a big import catches up over a few
-runs. The list's Near filter and a supporter's MP read it, and the
+runs. The list's Near filter reads the place, a supporter's MP is the one
+for their postcode's constituency, and the
 supporter's page shows the cities they gave (`givenPlaces()` in
 `lib/supporter-place.ts`).
 
@@ -656,12 +670,15 @@ lists rather than the table (`group`, kept by saved filters and Clear
 filters): by the owner's address, those with no owner first, in red while one
 still needs an owner; or in a list for each of its Luma tags, so one with two
 is in both, the places, then Big events, Online and those with no tag.
+
 Staff who see supporters see each event's hosts too, by name, each linked
 to their supporter, and can search by their names and emails; a host's
 supporter page lists the events they hosted, beside those they registered
 for, each dated when the import first found them a host of it, or, for a
-host since its first read, when it was made on Luma (Luma doesn't say when
-someone became a host). Each can have one owner on staff
+host found on the event's first read, when the event was made on Luma (Luma doesn't say when
+someone became a host).
+
+Each event can have one owner on staff
 (`event_owners`, `lib/server/staff-events.ts`), kept apart from
 `luma_events` as only the import writes that. Any staff member can make
 anyone with a staff account an event's owner, from the page, but can't
@@ -787,8 +804,8 @@ column only with the Consent filter by that channel, and in it the
 addresses or numbers whose answer the filter finds; a download, vCards
 too, has the same. The supporter's page shows every address and number,
 marking a number no topic lets us use.
-Nothing sends by it yet; when the site mails supporters, `send()` asks it
-for the purpose's topic as it checks `email_blocks`.
+Nothing sends by it yet: a broadcast finds who it's to by it, but no backend
+sends one ("Broadcasts to supporters", above).
 
 ## Email
 
@@ -801,10 +818,10 @@ backend sent it, Postmark or a connected Gmail, a staff member's or the
 letters inbox ("Mailings to politicians" and "Letters through the letters
 inbox", above), its subject and its From address. An `imported` row is a letter
 Joseph sent, read from his Sent mail. Admins read them at `/staff/sent-emails`
-(`lib/server/sent-emails.ts`), with no visible heading, as the menu names it:
-someone outside PauseAI as their name, linked to their page, through the row's
+(`lib/server/sent-emails.ts`), a page with no visible heading, as the menu names it.
+A row shows someone outside PauseAI by their name, linked to their page, found through the row's
 letter, or by the address if only one person has it; its outcome, bounced or a
-spam complaint from `email_problems`; a link to its letter and its campaign or
+spam complaint from `email_problems`; and a link to its letter and its campaign or
 mailing. A row never shows the email's text. An admin without `supporters` sees only
 the kinds with no supporter's details on them (`SENT_EMAILS_WITHOUT_SUPPORTERS`),
 and a line saying the rest aren't shown.
@@ -820,13 +837,16 @@ When something needs a person, the site emails the notification inbox,
 `NOTIFICATION_INBOX` (`notifyStaff` in `lib/server/notifications.ts`), once
 each time it happens, with a link to where to deal with it:
 
-- an MP's address bouncing a letter or relay (`lib/server/delivery-problems.ts`);
+- an MP's address bouncing a letter or relay, or anything else blocking the
+  address of a politician in office (`lib/server/delivery-problems.ts`);
+- once a day at most, the politicians in office whose addresses bounced a
+  mailing's letter, or complained of it, since the last (`reportMailingBounces`);
 - mail in the letters inbox it can't relay (`lib/server/gmail-reading.ts`);
-- an import failing, after a run of it that didn't (`recordFailure` in
-  `lib/server/import-runs.ts`);
+- a job failing, or having a problem, that its run before didn't (`alertIfNew` in
+  `lib/server/import-runs.ts`; "Imports", below);
 - a Gmail account the read every 5 minutes couldn't read, after a run that could
   (`lib/server/gmail-reading.ts`); one Google disconnected has its own;
-- the MP import held, when none was (`lib/server/politician-sync.ts`);
+- the politician sync held, when none was (`lib/server/politician-sync.ts`);
 - Google disconnecting a Gmail account (`lib/server/gmail-accounts.ts`);
 - letters to MPs waiting over three hours to go, until those it named
   have gone (`LATE_HOURS` in `lib/server/letter-sending.ts`);
@@ -835,7 +855,9 @@ each time it happens, with a link to where to deal with it:
   how many replies to them are held (`lib/server/held-replies.ts`), to
   see whether the form should check addresses harder.
 
-The backup Worker emails its own problems, to its `ALERT_TO` (`backup/README.md`).
+Others are told where they happen, above: an event to tag ("Supporters"),
+mail that matches nothing ("One-off emails") and a WhatsApp template sent or
+decided on ("Broadcasts to supporters"). The backup Worker emails its own problems, to its `ALERT_TO` (`backup/README.md`).
 
 When an email bounces or its recipient marks it as spam, the problem is
 recorded against the address (`email_problems`). A hard bounce or a
@@ -858,14 +880,16 @@ A new kind of email is a new purpose: add it to `Purpose` and to the
 anything. If the email is about one record, as a letter is, `email_sends`
 needs a column pointing at that kind of record, as `letter_id` does.
 
-Not covered yet: mail to supporters, which would have to honour their
-opt-outs ("Opt-outs", above) as well as the blocks here.
+Not covered yet: mail to supporters, which has to honour their
+opt-outs ("Whether we'd contact someone", above) as well as the blocks here.
+A broadcast can be written, but no backend sends one ("Broadcasts to
+supporters", above).
 
 ## Imports
 
 A job that copies data in from outside: the politician sync, the Emails
 sync, the check against Parliament, the ControlAI letter, the Luma import,
-the members import, and the one-off imports of pauseai.info's web form
+the members import, the Gmail reading, and the one-off imports of pauseai.info's web form
 letters and old letters; and the two jobs that
 don't import but run on a schedule all the same, the hourly sending and the
 nightly tidying (`JOBS` in `lib/import-runs.ts`). Whatever a scheduled
@@ -882,7 +906,8 @@ marked told, so the run's email leaves it out. A run can be held for staff
 to decide on, as a large politician sync is. `/staff/import-data` shows each job's newest run on a card, and each
 job's own page (`/staff/import-data/<slug>`, `importPath()` in
 `lib/import-runs.ts`) its button and every run it keeps: a week of a
-5-minute job's, a month of a nightly one's, a one-off job's last 50, and
+5-minute or hourly job's, and a month of those that failed or had problems;
+a month of a nightly one's; a one-off job's last 50; and
 always its newest and a held run (`lib/server/log-retention.ts`, run
 nightly).
 
@@ -926,7 +951,7 @@ parameters, which can name a supporter.
 
 It holds the list's URL parameters (`savedParams()`, `lib/saved-filters.ts`):
 the search and every filter, the tab and the sort, never the page or who a
-mailing is being chosen for. This isn't `FILTER_LISTS`, which is the lists a
+mailing or broadcast is being chosen for. This isn't `FILTER_LISTS`, which is the lists a
 mailing can be to.
 
 Filters live in the URL, so loading one is a link to its parameters and
@@ -945,10 +970,13 @@ parameters (`docs/data-protection.md`).
 
 Every change made by staff, or by something acting on its own, records who,
 what and the details (`audit_log`, `lib/server/audit.ts`). The actor is a
-staff email, or the name of what did it: `sync`, `controlai`, `postmark`.
-Staff read it at `/staff/audit-log`, searched and filtered by who, what and
+staff email, or the name of what did it: `sync`, `controlai`, `postmark`,
+`send-mailings`, `google`.
+Admins read it at `/staff/audit-log`, searched and filtered by who, what and
 how recent, and sorted by date, who or what. A new kind of change logs itself
-the same way, inside the same transaction as the change.
+the same way, inside the same transaction as the change. An entry is kept for
+a month, or, if it's part of a politician's history, while the politician is
+(`lib/server/log-retention.ts`).
 
 ### What is logged, and when
 
@@ -959,7 +987,7 @@ same transaction, so the record's own page can tell its history
 history comes from the records themselves). A job that changes many
 records logs one summary entry for the run, and one entry per record it
 changed. Reading is logged only where the data is personal and leaves the
-site: each download of a list of supporters, their letters or their
+site: each download of a list of supporters or their
 blocked addresses. Nothing else about reading is logged.
 
 | Action                                                                                                        | Actor                                | When                                                                                            | Details name                                                 |
@@ -967,28 +995,33 @@ blocked addresses. Nothing else about reading is logged.
 | `add politician`                                                                                              | `sync`                               | The politician sync adds a politician                                                           | `id`, and their details                                      |
 | `edit politician`                                                                                             | `sync`                               | The politician sync changes a politician's details, or their record is back                     | `id`, `name`, and each field `changed`, before and after     |
 | `remove politician`, `delete politician`                                                                      | `sync`, staff                        | The politician sync finds a record no longer in Airtable; staff delete one gone                 | `id`, `name`                                                 |
-| `set status`                                                                                                  | staff, `controlai`, `airtable`       | A status set or cleared, by hand or by an import                                                | `politicianId`, `ask`, `status`, `date`, `note`              |
+| `set status`                                                                                                  | staff, `controlai`                   | A status set or cleared, by hand or by the ControlAI import                                     | `politicianId`, `ask`, `status`, `date`, `note`              |
 | `apply politician sync`, `hold politician sync`, `apply held politician sync`, `discard held politician sync` | `sync`, staff                        | Each sync's outcome, and each decision on a held one                                            | counts, or the run's `id`                                    |
 | `copy PauseAI emails`                                                                                         | `sync`                               | The Emails sync adds any                                                                        | `added`                                                      |
 | `import web form letters`                                                                                     | staff                                | The one-off import of pauseai.info's letters                                                    | counts                                                       |
 | `import ControlAI letter`                                                                                     | `controlai`                          | A read of the letter that set or cleared any status                                             | counts                                                       |
 | `add ask`, `edit ask`, `delete ask`                                                                           | staff                                | The asks pages                                                                                  | `slug`, and the ask's fields                                 |
 | `add note`, `edit note`, `delete note`                                                                        | staff                                | A note on a politician or a supporter                                                           | `noteId`, and whose it is                                    |
+| `save filter`, `update filter`, `rename filter`, `delete filter`                                              | staff                                | A saved filter on a staff list                                                                  | `id`, `list`                                                 |
 | `create mailing`, `schedule mailing`, `reschedule mailing`, `stop mailing`, `delete mailing`                  | staff                                | A mailing written on the site                                                                   | `id`, and `recipients`, `dueAt` or what it `was`             |
 | `start mailing`, `finish mailing`                                                                             | `send-mailings`                      | The hourly job starts a scheduled mailing, and sends its last letter                            | `id`                                                         |
+| `create broadcast`, `change broadcast consent`, `schedule broadcast`, `stop broadcast`                        | staff                                | A broadcast to supporters                                                                       | `id`, and `channel`, `topic`, `recipients` or what it `was`  |
+| `submit broadcast template`, `withdraw broadcast template`                                                    | staff                                | A text's words sent to WhatsApp for approval, or taken back                                     | `id`, and the template's `name`                              |
 | `set event owner`, `set event doc`                                                                            | staff, `sync`                        | An event's owner or Google Doc set on the events page, or an owner given by the rules           | `eventId`, `owner` or `url`, `previous`                      |
 | `import sign-ups`                                                                                             | staff                                | A file of paper sign-ups imported                                                               | `uploadId`, `imported`, `heldBack`                           |
 | `block address`, `unblock address`                                                                            | `postmark`, staff                    | A bounce or complaint blocks an address; staff unblock it                                       | `address`, and the `kind` or the `note`                      |
 | `add staff account`, `set staff permissions`, `remove staff account`, `end staff sessions`                    | staff, or the address on first login | The accounts page, a first login, and sessions ended from the accounts page or `/staff/me`      | `email`, the permissions `from` and `to`, or `sessions`      |
-| `connect gmail`, `disconnect gmail`                                                                           | staff                                | A Gmail connected or disconnected on `/staff/me`, or by Google                                  | `email`, and `why`                                           |
+| `connect gmail`, `disconnect gmail`                                                                           | staff, `google`                      | A Gmail connected or disconnected on `/staff/me`, or by Google                                  | `email`, and `why`                                           |
 | `download supporters`, `download blocked emails`                                                              | staff                                | A list of supporters, or of blocked addresses with theirs, is downloaded, as CSV, JSON or vCard | the list's `filters` in words, the `format`, how many `rows` |
 | `erase supporter`                                                                                             | staff                                | A supporter is erased                                                                           | `id`, the request's `reference`, and what went               |
 
 Entries from before asks and the politician sync keep their own names: a
-status set by `campaign`, `apply MP sync` and the rest, and `import
+status set by `campaign`, or with `airtable` as its actor, `apply MP sync`
+and the rest, and `import
 signatories from Airtable`. So do `view supporter` entries, from when each
 opening of a supporter's page was logged (`id`), and `download letters`,
-from when letters had a download of their own.
+from when letters had a download of their own (`EarlierAuditDetails` in
+`lib/audit-events.ts`).
 
 Details don't name a supporter: one is given by `id`, and an erasure by its
 reference, so the log stays after the person is gone. A blocked address may be
@@ -996,7 +1029,7 @@ a supporter's, and a download's filters may name one. A politician's details
 are public, so theirs are logged in full.
 
 An admin without `supporters` sees the log, and its download, without the
-entries about a supporter, downloads, or addresses that aren't a politician's
+entries about a supporter or a broadcast, downloads, or addresses that aren't a politician's
 (`WITHOUT_SUPPORTERS` in `lib/server/audit.ts`), and a line saying so. A new kind
 of change that names a supporter's details needs adding there.
 
@@ -1021,14 +1054,16 @@ no permissions, added by `login`; admins give permissions on
 login. To limit someone who's staying, take away their permissions: after
 Remove, logging in again makes a new account with none.
 
-An account opens the pages about politicians and campaigns (politicians,
-an MP's page, Politicians' blocked emails, imports).
+An account opens the pages about politicians, events and imports (politicians,
+an MP's page, asks, mailings, All emails, Politicians' blocked emails, events, imports).
 Permissions open more (`lib/staff-permissions.ts`): `supporters` every page
-with a member of the public's details (supporters, letters, who wrote to
-which MP, Supporters' blocked emails), `admin` the accounts page and the
-audit log and the sent emails. `admin` doesn't include `supporters`. An MP's page is the one
-page that shows less without a permission: without `supporters`, its
-letters come from a query that doesn't select their senders, so none reach
+with a member of the public's details (supporters, broadcasts, campaigns and their letters, who wrote to
+which MP, Supporters' blocked emails, Import sign-ups), `admin` the accounts page and the
+audit log and the sent emails. `admin` doesn't include `supporters`. Some
+pages show less without `supporters`: the events page
+has no hosts, All emails hides a thread with someone else in it, and the
+sent emails and the audit log leave out what's about a supporter. On an MP's
+page, the letters come from a query that doesn't select their senders, so none reach
 the browser. `admin@pauseai.uk` starts with an account and the admin
 permission, as an ordinary row the migration adds. Removing an account ends
 its sessions; the last admin can't be removed or lose admin.
@@ -1053,7 +1088,7 @@ log entry.
 A new permission is a name in `PERMISSIONS` and the table's `CHECK`, and the
 pages it opens given it in `STAFF_SECTIONS`.
 
-A page to try out that can't do its job yet, such as Messages with no backend for sending, has a "draft" tag instead, for everyone. A link in the navigation shows a "new" tag for 3 days after that person first
+A page to try out that can't do its job yet, such as Broadcasts with no backend for sending, has a "draft" tag instead, for everyone. A link in the navigation shows a "new" tag for 3 days after that person first
 sees it (a dot on the folded rail), for any page added to `STAFF_SECTIONS`, with
 nothing else to do. `staff_nav_seen` has a row for each account and page, with
 when they first saw it; the signed-in layout adds those they have none for
@@ -1067,4 +1102,4 @@ The rest of the site is content more than data: people's stories, local
 groups and their pages, press coverage, blog posts, the board
 (`lib/content/`). Events are the exception: Luma's calendar is the source
 of truth, and the public pages read it live; the copy the import keeps is
-for the supporter pages, not for them.
+for the staff interface, not for them.

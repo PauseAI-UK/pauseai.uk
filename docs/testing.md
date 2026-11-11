@@ -6,7 +6,7 @@ How this site is tested, and the rules for new code.
 
 | Layer           | Tool                                            | Tests                                                                                                                                                | Files                                      |
 | --------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Logic           | Vitest, `node` project                          | `lib/`, `app/api/`, `sitemap.ts`, `next.config.ts`                                                                                                   | `*.test.ts` (or `.tsx`) next to the code   |
+| Logic           | Vitest, `node` project                          | `lib/`, the route handlers and Server Actions in `app/`, `netlify/`, `scripts/`, `next.config.ts`, `proxy.ts`, and the checks in `tests/checks/`     | `*.test.ts` (or `.tsx`) next to the code   |
 | Components      | Vitest, `browser` project (real Chromium)       | every component                                                                                                                                      | `*.browser.test.tsx` next to the component |
 | Pages and flows | Playwright, the storyboard (`desktop`, `phone`) | every route loads cleanly; every flow a person takes, end to end on fixture data; run with screenshots, the same flows pictured against main's build | `tests/storyboard/`                        |
 
@@ -18,8 +18,8 @@ Mode** renders a component on its own in real Chromium, so layout, canvas,
 start`), so it is slower. Use it only for what Vitest can't see:
 
 - `page.tsx` and `layout.tsx`: `tests/storyboard/public-pages.spec.ts` loads
-  every route (from `tests/routes.ts`) and checks it returns 200, logs no
-  console errors or hydration warnings, has one `<h1>` and has no broken
+  every public route (from `tests/routes.ts`) and checks it returns 200, logs
+  no console errors or hydration warnings, has one `<h1>` and has no broken
   same-site links.
 - Redirects, navigation, scrolling and hash links.
 - The onboarding iframe.
@@ -89,7 +89,7 @@ live in one place: `lib/server/fixtures/outside-services.ts`.
   the fixture build turns it on so the consent flow can be driven, and the
   storyboard's fixtures block every request to Google for every flow. The
   two embeds from other sites have stand-ins (`tests/storyboard/fixtures.ts`),
-  since what they drew, and when, varied between runs: pauseai.info's
+  since what the real ones draw, and when, varies between runs: pauseai.info's
   signup form is a fixed-height box, and Tally's story form on /people
   doesn't load. Pictures from other sites, such as Luma's event covers, which
   the build resizes after fetching them over the internet, are one local
@@ -103,29 +103,33 @@ Wrap the real module (`importActual`) and replace only that one function.
 
 ## Email
 
-Emails go through Postmark's HTTP API, from
-`lib/server/outside-services/postmark.ts` only, through `outsideFetch` like
-any other outside service.
+Emails go through Postmark's HTTP API
+(`lib/server/outside-services/postmark.ts`) or Gmail's (`gmail.ts` beside
+it), as the letters inbox or a staff member's connected account. Both go
+through `outsideFetch` like any other outside service.
 
 - **No Postmark library.** The `postmark` npm package makes its own HTTP
   requests, which would bypass the fixtures in Playwright builds.
 - **Vitest checks what we sent.** The Postmark fixture just returns a
-  `MessageID`. Tests read the request MSW received and check From,
-  Cc, the text and the attachments (`lib/server/mp-letters.test.ts`).
-- **Playwright reads an outbox.** With `DATA_FIXTURES=1`, `sendEmail` also
-  writes each outgoing email to a mail file (`.eml`) in `OUTBOX_DIR`
-  (`lib/server/fixtures/outbox.ts`). The flow test checks the letter in the
-  newest email to the test MP. This is test-only plumbing, with no
-  production route or table.
+  `MessageID`, and the Gmail one its IDs. Tests read the request MSW
+  received: `recordGmail()` (`tests/gmail-sends.ts`) records what goes by
+  Gmail, so `lib/server/mp-letters.test.ts` checks a letter's From, To, text
+  and attachments, and `notifications()` (`tests/notifications.ts`) records
+  what Postmark is asked to send, for the emails to the notification inbox.
+- **Playwright reads an outbox.** With `DATA_FIXTURES=1`, `sendEmail`,
+  `sendGmail` and `sendRawGmail` also write each outgoing email to a mail
+  file (`.eml`) in `OUTBOX_DIR` (`lib/server/fixtures/outbox.ts`). The flow
+  test checks the letter in the newest email to the test MP. This is
+  test-only plumbing, with no production route or table.
 - **The storyboard pictures the emails.** `emailFrame(page, email,
 caption)` (`tests/storyboard/frame.ts`) shows an email from the outbox in
   a plain mail app's layout (`tests/fixtures/email-view.ts`): its headers,
   its body (the HTML if it has one) and its attachments, as a frame. Every
-  email the site sends has one: the letter, the forwarded reply and the
+  email the site sends has one, such as the letter, a relayed reply and the
   staff login link. It's what was sent, not how Gmail or Outlook draw it.
   So the frames compare, the fixture build fills in what would be random:
-  the `Date` header is the fixed clock's, and a login link's token and a
-  letter's reply address come from a seed (`randomId` in
+  the `Date` header is the fixed clock's, and a login link's token comes
+  from a seed (`randomId` in
   `lib/server/random-id.ts`). A fixture build knows the address it's served at
   (`FIXTURE_ORIGIN`, from `lib/server/fixtures/fixture-env.mjs`, which both fixture
   builds use), as the live site knows its own, so every link in an email
@@ -142,16 +146,17 @@ caption)` (`tests/storyboard/frame.ts`) shows an email from the outbox in
   inbound payloads, in Postmark's format, straight to our routes with test
   basic auth credentials, and check that wrong or missing credentials are
   refused, and that a reply is forwarded and logged, without its text.
-- **No Mailpit or other mail catcher.** We send through Postmark's API, not
-  SMTP, so a mail catcher would test a different path from production.
+- **No Mailpit or other mail catcher.** We send through Postmark's and
+  Gmail's APIs, not SMTP, so a mail catcher would test a different path from
+  production.
 - **Checking real sending by hand.** On previews and the live site, use the
   test MP (postcode ZZ99ZZ). Postmark's test token `POSTMARK_API_TEST`
   accepts messages without delivering them. For a real bounce, write to
   Bouncy McTestface MP (ZZ99ZH), whose address, `no-such-mailbox@pauseai.uk`,
   doesn't exist: pauseai.uk's mail server refuses it, whichever service
   sends the letter, and the letter shows as bounced on its campaign's page.
-  Postmark then suppresses the address, so it refuses the next letter to it
-  until the address is reactivated in Postmark's suppressions list. Postmark's own
+  The site then blocks the address, so the next letter to it waits until
+  staff unblock it at `/staff/politicians/blocked-emails`. Postmark's own
   addresses at `bounce-testing.postmarkapp.com`, such as `hardbounce@` and
   `softbounce@`, also produce real bounce webhooks. None is used in CI.
 
@@ -233,8 +238,8 @@ all three have; `.github/workflows/ci.yml` says why.
 **The review** (`scripts/storyboard.mjs`) runs the suite against this
 branch with screenshots, and against main for the flows that took pictures
 (a flow without frames has nothing to compare), then pairs the frames by
-section, flow and caption, diffs them pixel by pixel, and opens
-`test-results/storyboard/index.html`, the newest run's page. Main is built
+section, flow and caption, diffs them pixel by pixel, and opens the run's
+page (`test-results/storyboard/index.html` leads to the newest run's). Main is built
 and served by `scripts/serve-main.mjs`: a git worktree of where this branch
 left origin/main, the merge base a pull request compares with, kept in
 your temp folder with Next's cache and its own `npm ci` when its lockfile
@@ -293,9 +298,9 @@ Each frame records the placeholder text it pictures and its boxes
 (`placeholdersOnPage` in `tests/storyboard/frame.ts`, kept in
 `storyboard.json` as each frame's `placeholders`): from the mark to the next
 or to the end of the block it's in, read from the page without changing it,
-so no picture changes. A field's placeholder or value and a select's option
-count; an emailed frame's text too, so an email's copy is matched where a
-flow frames the email. The script reads the copy from the source: a
+so no picture changes. A field's placeholder or value and a select's chosen
+option count; an email frame's text too, so an email's copy is matched where
+a flow frames the email. The script reads the copy from the source: a
 string to its end, a template with each `${…}` as anything, JSX text
 through inline elements (`<strong>`, `<a>`, `<Link>`) with each `{…}` as
 anything, and HTML in a string (an email's) to its first block. Whitespace
@@ -383,7 +388,7 @@ order, alongside the others:
   on the browser context and the `request` fixture, and drops it afterwards.
   In a fixture build only, `lib/server/db.ts` reads that cookie and queries
   the database it names, through one small pool per database, closed when
-  idle. Otherwise `NETLIFY_DB_URL`, as ever. Flows that need the fixture MPs
+  idle. Otherwise `NETLIFY_DB_URL`. Flows that need the fixture politicians
   sync them in with `syncPoliticians()` (`tests/steps.ts`). So the staff pages that
   list what's happened, like `/staff/campaigns`, are compared unmasked.
 - **A fixed clock.** `FIXTURE_NOW` (`lib/server/fixtures/fixture-env.mjs`) is read by
@@ -393,12 +398,14 @@ order, alongside the others:
   it with `page.clock`. Nothing date-shaped is masked.
 - **A seeded hero.** `lib/shuffle.ts` shuffles the same way every time in a
   fixture build, so the home page's hero is compared too.
-- **Seeded emails.** In a fixture build, a login link's token and a
-  letter's reply address are made from a seed, and an email's `Date` is
-  the fixed clock's, so the pictures of the emails are compared too
-  ("Email", above).
-- **Unique identifiers.** A flow's sender or login address includes its test
-  ID, so two flows never share a letter or a link.
+- **Seeded emails.** In a fixture build, a login link's token is made from
+  a seed, and an email's `Date` is the fixed clock's, so the pictures of the
+  emails are compared too ("Email", above).
+- **Unique identifiers.** A flow's staff login address includes its test ID
+  (`staffEmail` in `tests/storyboard/staff-steps.ts`), and each address it
+  makes up for a supporter has a number no other flow uses (`madeUpAddress`
+  in `tests/storyboard/fixtures.ts`), so two flows never share a letter or a
+  link.
 
 **Rules:**
 
@@ -429,9 +436,8 @@ order, alongside the others:
   every changed frame on both viewports; say what changed in the PR. An
   agent lists them with `npm run storyboard:changed` and opens each.
 - A flaky flow, or a frame that differs between two runs of the same
-  build, is fixed at once, in the branch that finds it, even when the
-  branch has nothing to do with it. Never retried, skipped or masked.
-  `retries` stays 0.
+  build, is fixed at once, never retried, skipped or masked ("Rules for new
+  code", below). `retries` stays 0.
 - No fixed waits. A flow waits for the thing it's waiting for:
   `tests/storyboard/settle.ts` has `hydrated` (mounted, fonts in, console
   quiet), `scrollSettled` (a smooth scroll at rest), `layoutSettled`
@@ -445,13 +451,14 @@ order, alongside the others:
 
 ### What the storyboard covers
 
-Every page is loaded: `public-pages.spec.ts` opens each route in
+Every page is loaded. `public-pages.spec.ts` opens each public route in
 `tests/routes.ts` (one example per dynamic route), except a campaign's
 write and preview pages, which show nothing without a postcode and a letter
 and are pictured by the `campaigns` flows instead, and the component
-gallery's, which `gallery.spec.ts` pictures; and `staff-login.spec.ts`
-checks every staff page turns a visitor without a session away, then opens
-them logged in. The flows below drive the rest. `tests/storyboard/coverage.test.ts`
+gallery's, which `gallery.spec.ts` pictures. `staff-login.spec.ts`
+checks every staff page turns a visitor without a session away, and
+`permissions.spec.ts` loads each one logged in, with no permissions. The
+flows below drive the rest. `tests/storyboard/coverage.test.ts`
 fails if a spec file or a route handler (`route.ts`) is missing from this
 list, so a new one is placed here on purpose, on a line of its own, with the
 flow that drives it or why nothing does.
@@ -489,15 +496,15 @@ flow that drives it or why nothing does.
 - `/api/events/place`: `home-events`: events near a postcode.
 - `/api/march/register`: `march-signup`: registering, Luma failing, and an email the server won't take; `supporters`: a sign-up kept, on the supporter's page.
 - `/api/march/signups`: `march-signup`: the count asked for again when the page comes back into view. Vitest-tested beside it.
-- `/api/postmark/bounce`, `/api/postmark/inbound`: `campaigns`, `letters` and `replies`: the webhook flows post Postmark's payloads, with and without credentials; a bounce for a sent letter, and one for an email we can't place; an MP office's written and automatic replies to letters.
+- `/api/postmark/bounce`, `/api/postmark/inbound`: `campaigns`: a post without Postmark's credentials turned away by both, and a bounce for an email that isn't a letter changing nothing; `letters`, `mailings` and `permissions`: Postmark's bounce payloads, for a letter, a mailing's letters and an email we can't place; `replies`: a reply to an old letter's own address. Replies and bounces of the letters the letters inbox sends come through `read-gmail`, below.
 - `/api/signatories`: `staff-navigation`: setting a status, then reading the public list.
 - `/blog/feed.xml`, `/campaigns/briefings/feed.xml`: `public-pages`: each feed, its type and entries, and its link in the head of its section's index and a post's page.
 - `/api/cron/[job]`, each scheduled job's run (`lib/server/jobs.ts`), Vitest-tested beside it for every job:
-  - `sync-politicians`: `syncPoliticians()` in `tests/steps.ts`, at the start of the staff and `campaigns` flows that need politicians; it copies the emails too.
+  - `sync-politicians`: `syncPoliticians()` in `tests/steps.ts`, at the start of the staff flows that need politicians.
   - `check-mps`, `import-controlai`: Not driven. The `imports` page runs the same check and import through its buttons.
   - `tidy-logs`: Not driven: nothing a person sees changes but its run on its own page.
-  - `send-mailings`: `mailings`: a mailing scheduled from your Gmail, then started and sent by the job.
-  - `read-gmail`: `imports`: the Gmail page runs `readGmail()`, which the route calls; the fixture Gmail has no messages to read, so a flow adds the reply it would keep.
+  - `send-mailings`: `mailings`: a mailing scheduled from your Gmail, then started and sent by the job; `replies`: `runQueue()` in `tests/storyboard/letters-inbox-steps.ts`, for the letters the letters inbox has queued.
+  - `read-gmail`: `replies` and `letters`: `readInbox()` in `tests/storyboard/letters-inbox-steps.ts`, after a flow puts a reply or a bounce in the letters inbox; `imports`: the read that finds Google has disconnected a Gmail, and the Gmail page's button, which runs the same `readGmail()`. A staff member's fixture Gmail has no messages to read, so the `mailings` flow adds the reply it would keep.
   - `import-luma`: `supporters`: `importLuma()` in `tests/steps.ts` fills a flow's database from the fixture calendar; the `imports` page runs it too.
   - `import-members`: `imports`: the import page runs `importMembers()`, which the route calls.
 - `/api/backup/letter-replies`, `/api/backup/letter-replies/[id]`: Not driven: they are for the backup Worker, and show nothing. Vitest-tested.
@@ -505,15 +512,15 @@ flow that drives it or why nothing does.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `tests/steps.ts`), and the redelivery that changes nothing.
 - `/staff/api/login`, `/staff/api/callback`: `staff-login`: asking for a login link and opening it (`logInWithLink` in `tests/steps.ts`).
 - `/staff/api/logout`: `staff-login`: logging out, and the request without a session.
-- `/staff/api/gmail/connect`, `/staff/api/gmail/callback`: `staff-login`: your Gmail connected from your own page; `mailings`: from there, sent to by a link in a mailing's Sent from.
+- `/staff/api/gmail/connect`, `/staff/api/gmail/callback`: `staff-login`: your Gmail connected from your own page; `mailings`: the same, reached by the link in a mailing's Sent from.
 - `/staff/api/dev-login`: `staff-login`: the dev login, a fixture build's one-click sign-in as a seeded account; every other section logs in with it (`logInAsStaff` in `tests/steps.ts`).
 - `/staff/mailings/[id]/files/[file]`: Not driven: the mailings flows' files are drawn from it, but no flow opens one. Vitest-tested.
 - `/staff/broadcasts/[id]/files/[file]`: Not driven: a mailing's files' twin, tested in Vitest, as the broadcasts flows attach none.
-- `/staff/politicians/download`, `/staff/supporters/download`, `/staff/politicians/blocked-emails/download`, `/staff/supporters/blocked-emails/download`, `/staff/audit-log/download`: `politicians`: the list of 250 opens its Download menu and downloads the CSV, every page of it. Each route is Vitest-tested beside it, vCards and the audit log included.
+- `/staff/politicians/download`, `/staff/supporters/download`, `/staff/politicians/blocked-emails/download`, `/staff/supporters/blocked-emails/download`, `/staff/audit-log/download`: `politicians`: the list of 250 opens its Download menu and downloads the CSV, every page of it; `supporters`: the supporters as vCards, which the audit log records; `audit-log` and `permissions`: the audit log's download, holding what the search found, and nothing about supporters without `supporters`. The blocked emails' two aren't driven. Each route is Vitest-tested beside it.
 
-**Not compared:** the live site. The old diff of the public pages against
-pauseai.uk failed on every run on live data (events, news, caches, the
-clock), so it went. Bugs only real data shows, and configuration drift on
+**Not compared:** the live site. A diff of the public pages against
+pauseai.uk would fail on every run, as live data changes under it (events,
+news, caches, the clock). Bugs only real data shows, and configuration drift on
 Netlify, aren't caught here; check previews by hand.
 
 ## The component gallery
@@ -573,7 +580,7 @@ not a mock.
   applying the migrations with `psql` (`scripts/fresh-database.mjs`, the
   same way Netlify does), and drops it at the end. Postgres copies a
   database's files, so a copy takes tens of milliseconds however many
-  migrations there are, where every file running them at once outlasted
+  migrations there are, where every file running them at once outlasts
   the hook timeout on a loaded CI runner.
   `addTestPolitician()` and `addTestMp()` add rows.
 - **Jobs that can overlap** (a scheduled run, its background twin and a
@@ -609,7 +616,7 @@ not a mock.
   worktree, end with a hash of the checkout's path, so worktrees can run
   the storyboard at the same time; so do the ports (below). Flows that need politicians call `syncPoliticians()`
   (`tests/steps.ts`), which runs the nightly sync's route against the
-  Parliament fixture.
+  Airtable fixture.
 - **Staff screens** are reached through the fixture build's dev login
   (`logInAsStaff` in `tests/steps.ts`): one request for a session, as a
   login link's callback gives, then the staff home. The `staff-login`
@@ -680,7 +687,7 @@ npm run test:node         # Vitest node project (also runs in npm run build)
 npm run lint              # ESLint, failing on warnings too (also runs in npm run build)
 npm run lint:css          # Stylelint (also runs in npm run build)
 npm run lint:unused       # Knip: unused files, exports and dependencies
-npm run format:check      # Prettier, on everything but plans/ (npm run format fixes it)
+npm run format:check      # Prettier, on everything .prettierignore doesn't list (npm run format fixes it)
 npm run test:browser      # Vitest browser project
 npm run test:watch        # Vitest in watch mode
 npm run test:storyboard   # Playwright: the storyboard's gate, on a fixture build
@@ -704,7 +711,7 @@ npm run test:report       # open the last Playwright report
   setup refuses a server on its port that doesn't name this one. It can't
   tell a stale build of this checkout from a fresh one, though: after
   changing code, stop a server you left running.
-- Run one section with `npm run test:storyboard -- staff`, one flow with
+- Run one section with `npm run test:storyboard -- staff-login`, one flow with
   `-g "login link"`, or point at another fixture build with `LOCAL_URL`.
 - Browser tests need Chromium: `npx playwright install chromium`.
 
@@ -729,8 +736,8 @@ the linters each run whatever came before. `--no-storyboard` leaves the
 storyboard out, while making changes. `npm run build` isn't run: it
 repeats the unit tests and linters, and the storyboard builds the site.
 
-Each command has a time limit, from three minutes for a linter to twenty
-for the storyboard, and its output goes to `tmp/gate/<command>.log`,
+Each command has a time limit, from a minute for the migrations' order to
+twenty for the storyboard, and its output goes to `tmp/gate/<command>.log`,
 emptied at the start of each run. A command stopped at its limit exits
 124, as `timeout` does. Once a minute the gate names the commands still
 running, and how long each one's log has been quiet once it's been two
@@ -741,9 +748,8 @@ time and log, and exits 1 if any failed.
 ### Long runs in the background
 
 A run left in the background (`npm test`, the storyboard) that freezes or
-dies without a last line can look like one still working: a storyboard
-gate once sat for an hour and a half, printing nothing, before anyone
-noticed. So give each a limit, and check on it when it's due:
+dies without a last line can look like one still working. So give each a
+limit, and check on it when it's due:
 
 ```bash
 timeout 30m npm run gate > tmp/gate.out 2>&1          # its commands have limits of their own (above)

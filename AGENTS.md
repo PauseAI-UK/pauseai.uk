@@ -30,7 +30,7 @@ When Francis asks for a branch to be served, run `npm run serve -- <branch or PR
 
 ```bash
 npm run gate                      # the fast checks on the files you changed, then everything CI runs
-npm run gate -- --fast            # the fast checks alone: types, Prettier, ESLint and Stylelint on the changed files, and the migrations' order
+npm run gate -- --fast            # the fast checks alone: Prettier, ESLint and Stylelint on the changed files, the types, and the migrations' order
 npm run gate -- --no-storyboard   # everything but the storyboard
 ```
 
@@ -63,18 +63,17 @@ A new migration must be numbered after main's last when the branch merges, and n
 - Every new interactive behaviour goes in a flow, existing or new, with a frame after each thing a person would see. A PR without it isn't done.
 - A flow is told in words anyone who has used the site would follow: its title just names it ("The letter bounces"), each caption says what its frame shows ("The email staff get"), and `story("…")` lines, at the start and between the frames, say what happens and why (`docs/testing.md`, "How a flow is told").
 - Flows stay small: one thing a person does, about ten frames at most. Every flow stands alone: its own database (the `flowDatabase` fixture), a fixed clock, unique identifiers.
-- Before saying a change is done, run the review and look at every changed frame on both viewports. It never fails on a difference, so it proves nothing until you've looked. Say in the commit or PR what changed. Make that full review, after the last change, the latest run, for a person to open and check too, and say which run it is.
+- Before saying a change is done, run the review and look at every changed frame on both viewports. It never fails on a difference, so it proves nothing until you've looked. Say in the commit or PR what changed. Finish on a full review, run after your last change, so the latest run is one a person can open and check too, and say which run it is.
+- A flaky flow, or a frame that differs between two runs of the same build, is fixed, never retried, skipped or masked. No stored baselines, no gate on pixels.
+- Any flaky test, Vitest or Playwright, is fixed at once, in whatever branch finds it, even when the branch has nothing to do with it (`docs/testing.md`, "Rules for new code").
 
 ```bash
-npm run storyboard                # both viewports, screenshots, against a build of where this branch left origin/main, then opens test-results/storyboard/index.html
+npm run storyboard                # both viewports, screenshots, against a build of where this branch left origin/main, then opens the run's page (test-results/storyboard/index.html leads to the newest)
 npm run storyboard -- --no-open   # the same, leaving the page closed
 npm run storyboard:changed        # the latest run's changed frames: new, gone or different from main's, with each one's caption and PNGs
 ```
 
 To review a run, list its changed frames with `npm run storyboard:changed` (or add `--changed` to the run) and open each one's PNGs with the Read tool, rather than reading `storyboard.json` with a script of your own.
-
-- A flaky flow, or a frame that differs between two runs of the same build, is fixed, never retried, skipped or masked. No stored baselines, no gate on pixels.
-- Any flaky test, Vitest or Playwright, is fixed at once, in whatever branch finds it, even when the branch has nothing to do with it (`docs/testing.md`, "Rules for new code").
 
 ## Screenshots
 
@@ -94,14 +93,6 @@ npm run storyboard -- --no-main --no-open --paths gallery -g 'gallery: ui$'   # 
 ```
 
 A new component gets its example in `app/(tools)/gallery/_examples/` (`tests/checks/gallery.test.ts` fails otherwise); look at it there before saying it's done. Check the gallery before writing a component or CSS, too: what you need may exist, or need only a variant (`docs/style-guide.md`).
-
-## Next.js version may be beyond your knowledge cutoff
-
-This project pins a Next.js version in `package.json` that may be newer than your training data (e.g. Next.js 16+). Do **not** assume APIs, defaults, or best practices from an older version you remember. When working with Next.js here:
-
-- Check the pinned version in `package.json` first.
-- Verify framework APIs against the installed version (`node_modules/next`) or official docs rather than memory.
-- Match the conventions already used in `app/` rather than introducing patterns from an earlier major version.
 
 ## Every change needs 100% test coverage
 

@@ -8,7 +8,7 @@ Every checkout and container shares one Playwright browser cache, `~/.cache/ms-p
 
 ## Fix
 
-Install with `PLAYWRIGHT_SKIP_BROWSER_GC=1`, which keeps what's already there: in `npm run worktree`, and wherever else the browsers are installed, with a line in `docs/development.md`. Or give each checkout its own cache with `PLAYWRIGHT_BROWSERS_PATH`.
+Install with `PLAYWRIGHT_SKIP_BROWSER_GC=1`, which keeps what's already there. No script installs the browsers, so it goes in the command `docs/development.md` and `docs/testing.md` give (`npx playwright install chromium`). Or give each checkout its own cache with `PLAYWRIGHT_BROWSERS_PATH`.
 
 ## Hits
 

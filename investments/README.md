@@ -1,12 +1,12 @@
 # Investments
 
-Work that makes the site easier to change, safer to run, or quicker to work on, as opposed to work on what it does for people. Each file here is one piece of it. They come in three sizes of ambition:
+Work that makes the site easier to change, safer to run, or quicker to work on, as opposed to work on what it does for people. Each file here is one piece of it. They come in three kinds:
 
-- **Architecture:** large refactors that change how a whole area is built, so that a kind of change that now touches ten files touches one. A letter's lifecycle defined once, one runner for every scheduled job, modules by domain. They take a week or more, and are done a step at a time.
+- **Architecture:** large refactors that change how a whole area is built, so that a kind of change that now touches ten files touches one. Copy beside its feature, row types made from the schema, modules by domain. They take a week or more, and are done a step at a time.
 - **Operations:** what keeps the live site working and tells us when it isn't. Error reporting, alerts when a job stops, checks that stop a bad deploy.
 - **Small fixes:** a wrong type, a list kept by hand, a helper that's missing. Each takes an hour or two, and is easiest done in passing by whoever is working nearby.
 
-Alongside them are the tools agents keep rebuilding for themselves, and changes to how we work.
+Two more kinds sit alongside them: the tools agents keep rebuilding for themselves, and changes to how we work.
 
 ## Logging a hit
 
@@ -31,11 +31,13 @@ The repo is public. A hit names no one and quotes no data, and says nothing abou
 
 ## Picking the next one
 
-`npm run investments` lists every item, most hits first, with its size and kind, and writes the list to `investments/ranked.txt` (it ends by naming that file), which isn't committed, each line starting with the item's file name so an editor can open it (`gf` in Vim). The Git hooks write it again after each checkout or merge (`docs/development.md`). There's no list kept by hand: the files are the list.
+`npm run investments` lists every item, most hits first, with its size and kind. It writes the same list to `investments/ranked.txt`, which isn't committed, and ends by naming that file. Each line starts with the item's file name, so an editor can open it (`gf` in Vim). The Git hooks write it again after each checkout or merge (`docs/development.md`). There's no list kept by hand: the files are the list.
 
 Hits are a guide, not the answer. A missing tool is hit in every session, so tools pile up hits fast. An architecture item is hit once per feature that runs into it, and each of those hits can cost hours. Operations items get no hits until the day something goes wrong unseen. So weigh hits against size, weigh an architecture item by the changes it would make easy, and an operations item by how bad the failure it prevents would be.
 
-Once a month, add the month's hits and choose what's next. `npm run friction-sweep` counts, from Claude Code's session logs on Francis's machine, what sessions did by hand each week: set `TEST_DATABASE_URL`, ran the gate's checks, set up a worktree, killed a server, read `storyboard.json` with a script, edited with `sed -i` or inline Python, and rebase conflicts by file, sessions that ran out of context and those with the Bash-first experiment on (`scripts/README.md`). It writes only counts, to `tmp/friction-sweep.txt`; add each week's count to the item it bears on as a hit, such as "Week of 2026-11-09 (x6): sessions set TEST_DATABASE_URL by hand". About one PR in five should be one of these, each in its own PR. The PR that finishes an item deletes its file. An architecture item done in steps keeps its file until the last step, with the Fix saying what's left.
+Once a month, add the month's hits and choose what's next. `npm run friction-sweep` counts, from Claude Code's session logs on Francis's machine, the sessions each week that did something by hand: set `TEST_DATABASE_URL`, ran the gate's checks, set up a worktree, killed a server, read `storyboard.json` with a script, or edited with `sed -i` or inline Python. It also counts the sessions that ran out of context, those with the Bash-first experiment on, and the rebase conflicts in each file (`scripts/README.md`). It writes only counts and the paths of files in the repo, to `tmp/friction-sweep.txt`; add each week's count to the item it bears on as a hit, such as "Week of 2026-11-09 (x6): sessions set TEST_DATABASE_URL by hand".
+
+About one PR in five should be one of these, each in its own PR. The PR that finishes an item deletes its file. An architecture item done in steps keeps its file until the last step, with the Fix saying what's left.
 
 ## Template
 

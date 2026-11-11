@@ -4,7 +4,7 @@ Size: M. Kind: architecture.
 
 ## Problem
 
-The gallery's examples are in a few big files by area under `app/(tools)/gallery/_examples/`: `staff-admin.tsx` is 1,231 lines, `staff-kit.tsx` 1,137, `staff.client.tsx` 1,092. A staff change edits a large shared file far from its component, and these files were touched in 209 commits since October. Example data already sits beside components, in 19 `*.examples.ts` files.
+The gallery's examples are in a few big files by area under `app/(tools)/gallery/_examples/`: `staff-admin.tsx`, `staff-kit.tsx` and `staff.client.tsx` are each about 1,200 lines. A staff change edits a large shared file far from its component, and these files were touched in over 200 commits since October. Example data already sits beside components, in about 20 `*.examples.ts` files.
 
 ## Fix
 

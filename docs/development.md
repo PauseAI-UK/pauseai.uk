@@ -10,7 +10,7 @@ the short version, and `.env.example` lists the environment variables.
   24.22.1 or later. `npm install` refuses anything else (`engines` in
   `package.json`, with `engine-strict` in `.npmrc`).
 - **Docker**, to run Postgres 18 from `docker-compose.yml`, matching
-  production: Netlify Database runs PostgreSQL 18.6, and CI uses 18 too. Or
+  production: Netlify Database runs PostgreSQL 18, and CI uses 18 too. Or
   a Postgres 18 installed natively (below).
 - **`psql`**, Postgres's command-line tool, on your path. The scripts use it
   to make databases and apply migrations.
@@ -32,8 +32,9 @@ Optionally, `npm run hooks:install` sets up a Git hook (with
 on the files you commit, in a couple of seconds, and stops the commit if
 they fail. Prettier formats the files itself, so after it stops a commit,
 `git add` them and commit again. After a checkout or a merge, another
-writes `investments/ranked.txt` again. The hooks are in
-`.pre-commit-config.yaml`. CI runs all of them and more either way. Git
+writes `investments/ranked.txt` again, and before a push two more check
+the migrations ("Adding a migration", below). The hooks are in
+`.pre-commit-config.yaml`. CI runs the checks and more either way. Git
 doesn't copy hooks with a clone, so each clone needs this once; its
 worktrees share them.
 
@@ -56,8 +57,9 @@ the first time with `git push -u origin fix-footer`. When it's merged,
 ## 3. Postgres
 
 Email your MP, the staff interface and the signatories list on `/campaigns`
-read and write a Postgres database. So do some unit tests. Every other page
-works without one.
+read and write a Postgres database. So do some unit tests. The march
+sign-up keeps each registration there, but registers people without one.
+Every other page works without one.
 
 ### Start it
 
@@ -114,7 +116,10 @@ databases: every test file makes its own.
 ### Make a database for the dev server
 
 Set `TEST_MP_EMAIL` in `.env.local` to your email, and keep the example's
-`DATA_FIXTURES=1` for fake supporters to look at. Then:
+`DATA_FIXTURES=1` for fake supporters to look at. Set `GMAIL_TOKEN_KEY`
+too, to the output of `openssl rand -base64 32`: with it, `db:reset`
+connects the fake letters inbox, and without it a letter you send waits,
+unsent. Then:
 
 ```bash
 npm run db:reset
@@ -136,17 +141,18 @@ This:
   `lib/test-mps.json`.
 - with `DATA_FIXTURES=1`, adds fake data (`tests/fixtures/staff-data.sql`)
   to every table, so every staff page has something on it and the home
-  page's dashboard a number in each tile: the fixture services' people,
-  events and politicians under their own IDs, so an import writes the same
-  rows rather than doubling them, plus made-up supporters, letters in every
-  state with their replies and bounces, statuses, every job's runs, and
-  staff accounts beside the migration's admin: jo@pauseai.uk (supporters,
-  with a kept session), samuel.whitlock@pauseai.uk and policy@pauseai.uk
-  (none). The file's own comments say what each part is for. Dates are
-  relative to when it runs. Without `TEST_MP_EMAIL`, the test MPs still go
-  in, with `test-mp@parliament.example`, since the letters go to the
-  fixture outbox anyway. The storyboard's flows start from an empty
-  database, without this.
+  page's dashboard a number in each tile. It has the fixture services'
+  people, events and politicians under their own IDs, so an import writes
+  the same rows rather than doubling them. The rest is made up: supporters,
+  letters in every state with their replies and bounces, statuses, every
+  job's runs, and staff accounts beside the migration's admin:
+  jo@pauseai.uk (supporters, with a kept session),
+  samuel.whitlock@pauseai.uk and policy@pauseai.uk (none). The file's own
+  comments say what each part is for. Dates are relative to when it runs.
+  Without `TEST_MP_EMAIL`, the test MPs still go in, with
+  `test-mp@parliament.example`, since the letters go to the fixture outbox
+  anyway. The storyboard's flows start without this, from a database with
+  only the test MPs.
 
 Run it again whenever you want a clean database. It wipes everything. It
 refuses a URL that isn't on your own machine, so it can't touch the live
@@ -225,11 +231,10 @@ repo makes has production's, whatever its server's default:
 `scripts/fresh-database.mjs` creates them with it (`PRODUCTION_LOCALE`),
 the dev database from `npm run db:reset` included, and CI's Postgres is
 started with it too (`POSTGRES_INITDB_ARGS` in `.github/workflows/ci.yml`).
-A database made before this keeps its own until `npm run db:reset`.
 
-So a test that sorts text gets what production gets. Nothing in the queries
-names a collation yet, so a list sorted by name is in code-point order live,
-not dictionary order.
+So a test that sorts text gets what production gets. No query names a
+collation, so a list sorted by name is in code-point order live, not
+dictionary order.
 
 To see a database's: `select datlocprovider, datcollate, datlocale from
 pg_database where datname = current_database();` gives `b`, `C.UTF-8`,
@@ -242,7 +247,7 @@ psql postgresql://postgres:postgres@localhost:5432/pauseai_dev   # your NETLIFY_
 ```
 
 ```sql
-select name, constituency, email from politicians where is_test;
+select n.name, p.constituency, n.email from politicians p join notable_people n using (id) where p.is_test;
 select l.id, l.status, f.email, l.created_at from letters l join letters_from_supporters s using (id) join form_entries f on f.id = s.entry_id order by l.id desc;
 select * from letter_events order by id desc limit 20;
 ```
@@ -258,15 +263,15 @@ npm run dev
 ```
 
 The example `.env.local` sets `DATA_FIXTURES=1`. With it, every call to an outside service gets a canned
-answer from `lib/server/fixtures/outside-services.ts` instead. Nothing leaves
+answer from `lib/server/fixtures/outside-services.ts`. Nothing leaves
 your machine. You need no keys:
 
 | Service                  | What the fixture does                                                                                                                                                                                                                                                                                                                                     |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Luma                     | A few made-up events and guests, and every event's guest counts (1,234 going)                                                                                                                                                                                                                                                                             |
-| postcodes.io             | Knows only SW1A 1AA (Cities of London and Westminster); every other postcode is "not found". The test postcodes never ask it.                                                                                                                                                                                                                             |
+| postcodes.io             | Places a few postcodes and towns, and knows the constituency of two: SW1A 1AA (Cities of London and Westminster) and M1 1AE (Manchester Central). Any other postcode is "not found". The test postcodes never ask it.                                                                                                                                     |
 | Airtable                 | A politician of each body, one retired and one who left; PauseAI's emails to them; the old form's letters                                                                                                                                                                                                                                                 |
-| Parliament's Members API | The same two MPs, with an office email each. Polly Placeholder's differs from Airtable's, so the MP check has something to show.                                                                                                                                                                                                                          |
+| Parliament's Members API | The Airtable fixture's three MPs in office, with an office email each. Polly Placeholder's differs from Airtable's, so the MP check has something to show.                                                                                                                                                                                                |
 | Turnstile                | Accepts every token                                                                                                                                                                                                                                                                                                                                       |
 | Postmark                 | Accepts every email, without needing a token, and writes each one to a mail file (`.eml`) in `OUTBOX_DIR`, or `tmp/outbox/` in the dev server.                                                                                                                                                                                                            |
 | Google (Gmail)           | Connects any account with no consent screen, naming it from its address (policy@ is "Policy"); sends nothing, writing each email to the outbox as Postmark's fake does; reads an empty mailbox, but for the letters inbox (`LETTERS_INBOX`), which keeps what it sends, and mail written to `LETTERS_INBOX_DIR` (`lib/server/fixtures/letters-inbox.ts`). |
@@ -293,18 +298,11 @@ production, the form lists the test postcodes under it.
 #### Write to a real MP
 
 Outside production, letters can only go to the test MP. That's checked
-both when the form is sent and when the letter is, so locally you can look
-real MPs up but not send to them. That's on purpose.
+when the letter is sent, so locally you can look real MPs up but not send
+to them. That's on purpose.
 
-To look them up with fixtures, add the fixture politicians first (with
-PauseAI's fixture emails to them):
-
-```bash
-# With CRON_SECRET=dev in .env.local (restart the dev server after editing it):
-curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/sync-politicians
-```
-
-Then postcode `SW1A 1AA` finds Polly Placeholder.
+With fixtures, the fake data from `npm run db:reset` has the fixture
+politicians, so postcode `SW1A 1AA` finds Polly Placeholder.
 
 #### Log in to the staff interface
 
@@ -312,21 +310,22 @@ Open http://localhost:3000/staff/login. In a fixture build the login card
 has a hatched purple box under it, the dev login: a button per account
 (admin@pauseai.uk, which every database starts with, and which
 `db:reset` gives the supporters permission as well as admin; and the fake
-data's jo@pauseai.uk, samuel.whitlock@pauseai.uk and policy@pauseai.uk)
-and one for nobody@pauseai.uk, which has no account, each signing you in
-at once, with no email.
+data's jo@pauseai.uk, samuel.whitlock@pauseai.uk and policy@pauseai.uk),
+one for the letters inbox (`LETTERS_INBOX`), and one for
+nobody@pauseai.uk, which has no account until you log in as it. Each
+signs you in at once, with no email.
 It exists only with `DATA_FIXTURES=1`; its route is a 404 anywhere else.
 
 To go through the real login instead:
 
 1. Type an address at pauseai.uk in the card. Any such address can log in,
-   but one without an account sees only a note saying whom to ask until an
-   admin adds it on `/staff/accounts`.
+   and gets an account with no permissions the first time. An admin gives
+   it permissions on `/staff/accounts`.
 2. The login email is the newest file in `tmp/outbox/`. Open the
    `/staff/api/callback?token=…` link in it, in the same browser.
 
 You're at `/staff`, logged in for a day, or for 30 days with "Keep me signed
-in" ticked. Only Postmark is a fixture.
+in" ticked. Of the fixtures, this uses only Postmark's.
 
 #### See every component
 
@@ -351,8 +350,9 @@ database with the test MPs and the fake data, where admin@pauseai.uk has
 every permission. In front of it is a proxy on this machine's network
 address, as the session cookie is `Secure` and a browser drops it over
 plain http from anywhere but localhost: the proxy strips that, and tells
-`next dev` each request came to localhost. It opens the link in Firefox,
-logs in with the dev login, then prints the link. Each checkout has its own
+`next dev` each request came to localhost. It opens the link in
+Playwright's Firefox (`npx playwright install firefox`), logs in with the
+dev login, then prints the link. Each checkout has its own
 ports, so branches can be served side by side. It keeps running until
 stopped. Its `next dev` shares `.next` with the checkout, so don't run a
 storyboard review in the same checkout meanwhile.
@@ -361,10 +361,10 @@ storyboard review in the same checkout meanwhile.
 
 Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is explained there. Things to know:
 
-- **Politicians.** The database starts with only the test MPs. With
-  `AIRTABLE_TOKEN` set, copy the real politicians from Airtable, and
-  PauseAI's emails to them, then check the MPs against Parliament
-  (about 650 lookups, which takes a minute):
+- **Politicians.** After `npm run db:reset` without `DATA_FIXTURES`, the
+  database has only the test MPs. With `AIRTABLE_TOKEN` set, copy the real
+  politicians from Airtable, then check the MPs against Parliament (about
+  650 lookups):
 
   ```bash
   # With CRON_SECRET=dev in .env.local:
@@ -375,7 +375,8 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   Then any real postcode finds its MP.
 
 - **Turnstile.** You can leave both keys out, and the check is skipped,
-  in any build. Set just one, and every letter is refused. To see the widget, use Cloudflare's test keys, which
+  in any build. Set just one, and every letter is refused, except in the
+  dev server with only the site key, where it's still skipped. To see the widget, use Cloudflare's test keys, which
   always pass: site key `1x00000000000000000000AA`, secret
   `1x0000000000000000000000000000000AA`. A production build refuses the
   test secret.
@@ -388,8 +389,8 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
 - **Airtable.** `AIRTABLE_TOKEN` needs read access to the UK
   Parliamentarians base's "UK Parliamentarians", "Emails" and "Web form
   emails" tables, and to the members' base.
-  They're for the politician and Emails syncs, the members import and the
-  two one-off imports at `/staff/import-data`.
+  They're for the politician sync, the members import and two one-off
+  imports at `/staff/import-data`: the Emails sync and the web form letters.
 - **Global's CiviCRM.** Its chapter contacts API, at
   `https://crm.pauseai.info/`, is specified in
   [PauseAI/pauseai-civicrm#1175](https://github.com/PauseAI/pauseai-civicrm/issues/1175).
@@ -406,7 +407,7 @@ is `MARCH_EVENT_ID` in `lib/server/march-event.ts`, its API ID (`evt-…`): on
 Luma, open the event's manage page, and it's in the address
 (`luma.com/event/manage/evt-…`). Other deploys register people for the test
 event beside it, but every deploy counts the march's own. When registering
-fails, the server logs a `[march]` line saying why. The
+fails, the server log says why. The
 count is Luma's, cached for a minute: the page is rendered with it, and an
 open page asks `/api/march/signups` again each minute. When Luma can't say,
 the page shows no count.
@@ -424,7 +425,7 @@ None of these run under `npm run dev` by themselves. Call them by hand.
 call these routes. Locally, with `CRON_SECRET=dev` in `.env.local`:
 
 ```bash
-curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/sync-politicians   # the politician sync, then the Emails sync
+curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/sync-politicians   # the politician sync
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/check-mps           # the MPs against Parliament
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/import-controlai    # ControlAI's letter's signatories
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/import-luma         # the Luma import; with fixtures, the fixture calendar
@@ -457,11 +458,12 @@ both copies land in the outbox.
 **The letters inbox.** With fixtures, `npm run db:reset` connects the fake
 letters inbox (`LETTERS_INBOX`, with `GMAIL_TOKEN_KEY` set), so letters go
 from it and land in the outbox. Mail to it is kept by the dev server's fake
-Gmail in memory (`lib/server/fixtures/letters-inbox.ts`): a file in
-`LETTERS_INBOX_DIR`, if set, is delivered to it the next time it's read, so
-to answer a letter as its MP, write the reply there as a mail file, to the
-supporter's proxy, with an `Authentication-Results: mx.google.com;
-dmarc=pass` header, then run `read-gmail` above.
+Gmail in memory (`lib/server/fixtures/letters-inbox.ts`). With
+`LETTERS_INBOX_DIR` set to a folder, a file in its `default/` subfolder is
+delivered to the inbox the next time it's read. So to answer a letter as
+its MP, write the reply there as a mail file, to the supporter's proxy,
+with an `Authentication-Results: mx.google.com; dmarc=pass` header, then
+run `read-gmail` above.
 
 **Luma's webhook.** Set `LUMA_WEBHOOK_SECRET=whsec_dev`, then post a
 payload in Luma's format, signed as Luma signs it: the `Webhook-Signature`
@@ -533,7 +535,7 @@ What they need from your machine:
 | `permission denied to create database`                    | Your Postgres user needs `CREATEDB`: `alter user <you> createdb;`.                                                                                                                                                                                                                 |
 | `relation "letters" does not exist`                       | The database is older than a migration: `npm run db:migrate` (section 3).                                                                                                                                                                                                          |
 | ZZ99ZZ says no MP found                                   | The database has no test MP. Set `TEST_MP_EMAIL` and run `npm run db:reset`, or run the politician sync.                                                                                                                                                                           |
-| The test MP shows "no email listed"                       | The test MP was added without an email. Set `TEST_MP_EMAIL` and run `npm run db:reset`.                                                                                                                                                                                            |
+| The test MP shows "No email found for your MP."           | The test MP was added without an email. Set `TEST_MP_EMAIL` and run `npm run db:reset`.                                                                                                                                                                                            |
 | Sending says it failed                                    | Without `DATA_FIXTURES`, check `POSTMARK_SERVER_TOKEN`.                                                                                                                                                                                                                            |
 | An email didn't arrive                                    | The server log says what happened to each email: sent through Postmark, with its MessageID, or written to which outbox file. The dev server doesn't send without a real token: with none, or Postmark's test token `POSTMARK_API_TEST`, it writes the email to the outbox instead. |
 | Letters to a real MP are refused                          | Expected: outside production, only the test MP.                                                                                                                                                                                                                                    |
@@ -549,14 +551,14 @@ night to Cloudflare by a Worker in `backup/`, deployed on its own
 
 Set up outside the code:
 
-- **Settings:** every environment variable is in [.env.example](../.env.example), with what it's for. Netlify needs the same ones.
-- **Postmark:** a server, and two sending domains, each with DKIM, Return-Path and DMARC. `letters.pauseai.uk` sends letters to representatives and is the inbound domain, with its MX pointing at `inbound.postmarkapp.com`. `notify.pauseai.uk` sends everything else, such as forwarded replies and staff emails. Its webhooks carry basic auth in the URL, e.g. `https://postmark:<password>@pauseai.uk/api/postmark/bounce`: Bounce and Spam complaint go to `/api/postmark/bounce`, Inbound to `/api/postmark/inbound`.
+- **Settings:** every environment variable is in [.env.example](../.env.example), with what it's for. Netlify needs the same ones, except those the file marks as local only, and `NETLIFY_DB_URL`, which it sets itself.
+- **Postmark:** a server, and two sending domains, each with DKIM, Return-Path and DMARC. `notify.pauseai.uk` sends the site's own email, such as forwarded replies and staff emails. `letters.pauseai.uk` is the inbound domain, with its MX pointing at `inbound.postmarkapp.com`: the letters sent before the letters inbox went from it, and replies to them come to it. Postmark's webhooks carry basic auth in the URL, e.g. `https://postmark:<password>@pauseai.uk/api/postmark/bounce`: Bounce and Spam complaint go to `/api/postmark/bounce`, Inbound to `/api/postmark/inbound`.
 - **Luma's webhook:** in Luma, the PauseAI UK calendar, Settings → Developer → Webhooks: a webhook for `https://pauseai.uk/api/luma/webhook` with the event types Calendar Person Unsubscribed and Calendar Person Subscribed. Its secret (`whsec_…`) goes into Netlify as `LUMA_WEBHOOK_SECRET`. Luma retries a delivery that isn't answered 2xx three more times, after 1, 2 and 4 minutes, and only sends unsubscribes that happen after the webhook exists. To check it works: unsubscribe a staff address from the calendar's emails and look for its row in `opt_outs`; follow the calendar again, and the next full pass over the contacts sets the row's `resubscribed_at`, as Luma's webhook doesn't say when someone comes back ([domain concepts](domain-concepts.md#opt-outs)).
 - **Gmail:** the PauseAI UK Google Cloud project, under the organisation of PauseAI's Google Workspace. That Workspace's primary domain is pauseai.info and pauseai.uk is in it too, and a Workspace has only one organisation (https://cloud.google.com/resource-manager/docs/creating-managing-organization). The project has the Gmail API turned on; the Internal user type, under Google Auth Platform → Audience, so any account in the Workspace can grant access and Google doesn't review the app (https://support.google.com/cloud/answer/15549945); the app asks for the `gmail.send`, `gmail.readonly` and `userinfo.profile` scopes when an account connects (the last for the account's name, when its address sends as none of its own); and a web application OAuth client whose redirect URI is `https://pauseai.uk/staff/api/gmail/callback`. Its ID and secret go into Netlify as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and `GMAIL_TOKEN_KEY` is 32 random bytes in base64. Previews have other addresses, so Gmail can be connected only on the live site. The replies read from Gmail are kept in Netlify Blobs, in the `letter-replies` store, which needs no setting; the backup Worker copies them with `BACKUP_SECRET`, which goes into Netlify and, as `SITE_BACKUP_SECRET`, the Worker (`backup/README.md`).
 - **The letters inbox:** a Gmail account of PauseAI UK's Workspace at pauseai.uk, used for nothing else, which supporters' letters to MPs go from (`docs/domain-concepts.md`, "Letters through the letters inbox"). Its address goes into Netlify as `LETTERS_INBOX`, and nowhere in the repo, which is public. It needs a staff account (`/staff/accounts`); someone logged in as it connects its Gmail on `/staff/me`, where it also asks for `gmail.modify`, to label and trash its mail. Until it's connected, letters are kept and wait in the queue.
 - **The notification inbox:** `NOTIFICATION_INBOX`, `notification@pauseai.uk` on the live site, where the site emails when something needs a person (`docs/domain-concepts.md`, "Email"). Unset, nothing is sent.
-- **Staff accounts:** every database starts with one account, `admin@pauseai.uk`, with the admin permission. Log in as it and add everyone else on `/staff/accounts`: an account alone opens the ordinary pages; the supporters permission opens the supporter pages, admin the accounts page and the audit log. Give admin to at least one other person; the last admin can't be removed. An erasure request is handled as `docs/data-protection.md` says.
-- **A new database:** run the politician sync from `/staff/import-data`, and apply it, then the Emails sync and the one-off import of the web form letters. Until the sync has run, Email your MP finds no MPs. The Luma import fills the supporter pages over its first few runs, and links every letter already written; run it from `/staff/import-data` to watch it.
+- **Staff accounts:** every database starts with one account, `admin@pauseai.uk`, with the admin permission. Anyone else at pauseai.uk gets an account with no permissions on their first login, or an admin adds them on `/staff/accounts`, where permissions are set. An account alone opens the ordinary pages; the supporters permission opens the supporter pages, admin the accounts page, the audit log and the sent emails. Give admin to at least one other person; the last admin can't be removed. An erasure request is handled as `docs/data-protection.md` says.
+- **A new database:** run the politician sync from `/staff/import-data`, then the Emails sync and the one-off import of the web form letters. Until the sync has run, Email your MP finds no MPs. The Luma import fills the supporter pages over its first few runs, and links every letter already written; run it from `/staff/import-data` to watch it.
 
 ### The scheduled jobs
 
@@ -564,7 +566,7 @@ Each is a Netlify scheduled function in `netlify/functions/` that calls its rout
 
 | Job                                          | When                                  | Needs                                                                                                                                                                                                                                                                                              |
 | -------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sync-politicians`, then the Emails sync     | 06:21 daily                           | `AIRTABLE_TOKEN`                                                                                                                                                                                                                                                                                   |
+| `sync-politicians`                           | 06:21 daily                           | `AIRTABLE_TOKEN`                                                                                                                                                                                                                                                                                   |
 | `check-mps`, the MPs against Parliament      | 06:23 daily                           | Nothing. About 650 requests to Parliament's Members API, which take some seconds; a scheduled function gets 30, so a check that starts timing out has outgrown it.                                                                                                                                 |
 | `import-controlai`, the letter's signatories | 06:25 daily                           | Nothing                                                                                                                                                                                                                                                                                            |
 | `tidy-logs`                                  | 06:27 daily                           | Nothing                                                                                                                                                                                                                                                                                            |

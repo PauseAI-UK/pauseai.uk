@@ -35,16 +35,15 @@ the backup before:
 
 - the dump hasn't shrunk by more than 20%
 - letters and letter events have no fewer rows than last time. They're
-  deleted only when a scheduled mailing is stopped, a letter to an MP
-  fails to send, or a supporter is erased, so fewer usually means data was
-  lost.
+  deleted only when a scheduled mailing is stopped or a supporter is
+  erased, so fewer usually means data was lost.
 - `import_runs` has a row from the last 36 hours. The nightly MP sync records
   a run every night, even when nothing changed, so this shows the backup
   has last night's data.
 - `politicians` has at least 600 rows
 
-Then it copies the replies to PauseAI's letters that the site has kept
-since the last run. The site keeps each whole, gzipped, in Netlify Blobs,
+Then it copies the replies to letters that the site has kept since the
+last run. The site keeps each whole, gzipped, in Netlify Blobs,
 outside the database, so the dump doesn't hold them; the Worker fetches the
 new ones through the site's read-only routes (`app/api/backup/letter-replies`),
 with the site's `BACKUP_SECRET`, and keeps the last it copied.
@@ -88,10 +87,12 @@ npm ci
 ```
 
 `setup.sh` logs in to Cloudflare, creates the bucket and its lifecycle rule,
-asks for the secrets and deploys. It prints a `curl` command that runs a
-backup at once and shows the report: try it, a few minutes after the first
-deploy, while the container gets ready. Run `setup.sh` again to change a
-secret, and `npm run deploy` to deploy changes to the code.
+asks for the secrets and deploys. The first time, it makes the Worker's
+`RUN_SECRET` and prints a `curl` command with it, which runs a backup at
+once and shows the report. Try it a few minutes after the first deploy,
+once the container is ready, and keep the secret somewhere safe. Run
+`setup.sh` again to change a secret, and `npm run deploy` to deploy changes
+to the code.
 
 The Worker's logs are in Cloudflare's dashboard: Workers & Pages >
 pauseai-uk-backup > Logs.
@@ -120,6 +121,9 @@ npm test            # with the 100% coverage gate, as the site's
 npm run typecheck
 ```
 
-The container's tests dump and restore real databases, on the Postgres the
-`PG*` variables or the local socket point to, as the site's tests do.
-CI runs both (`.github/workflows/ci.yml`).
+The container's tests dump and restore real databases. They make them on
+the Postgres the `PG*` variables or the local socket point to, and don't
+read the site's `TEST_DATABASE_URL`. Each dump is restored into a scratch
+server, so they need Postgres 18's server programs (`initdb`, `pg_ctl`) on
+your path as well as its client tools.
+CI runs both commands (`.github/workflows/ci.yml`).

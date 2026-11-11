@@ -203,15 +203,15 @@ $200–300 a year ([pricing](https://postmarkapp.com/pricing)). Postmark
 reviews new broadcast senders, so apply early. It sends from
 `hello@pauseai.uk`, so pauseai.uk itself becomes a sending domain in
 Postmark, beside `letters.` and `notify.` (`docs/development.md`,
-"Postmark"). That needs two DNS records, neither of which exists yet:
+"Deploying"). That needs two DNS records, neither of which exists yet:
 Postmark's DKIM key as a TXT record, and `pm-bounces.pauseai.uk` as a
 CNAME to `pm.mtasv.net` for the Return-Path. With both, DKIM and SPF
 align with the From address for DMARC. The SPF record needs no change.
 
 The broadcast stream has the webhooks the site's own emails have
-(`lib/server/postmark-webhooks.ts`): delivery, for the delivered count;
-a bounce, marking the message failed and, if hard, blocking the
-address; and a spam complaint, which is a stop (Opt-outs).
+(`lib/server/postmark-webhooks.ts`): a bounce, marking the message
+failed and, if hard, blocking the address; and a spam complaint, which
+is a stop (Opt-outs). It adds one for delivery, for the delivered count.
 
 Before the first send, set up Google Postmaster Tools and DMARC
 reports, so we can see our spam rate. pauseai.uk's DMARC is `p=none`,

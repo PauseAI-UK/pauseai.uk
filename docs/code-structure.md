@@ -16,7 +16,7 @@ app/
   not-found.tsx
   (site)/                 public pages; layout.tsx renders <Nav> and <Footer>
   (tools)/                unlisted volunteer tools and trackers; layout.tsx
-                          renders <Nav> and turns analytics off
+                          renders <Nav> and <Footer>, and turns analytics off
     gallery/              the component gallery: every component on fixture
                           data, fixture builds only (docs/testing.md)
   (staff)/staff/          the staff interface, behind email login; no <Nav>,
@@ -47,19 +47,25 @@ lib/                      logic and data, no React state
   content/                the site's content as typed data (people, blog,
                           briefings, ...)
   collateral/             the collateral tool's drawing engine
+  email-parsing/          reading email: addresses, MIME, subjects, quoted mail
   events.ts, trackers.ts  pure helpers for one feature each
   metadata.ts             pageMetadata()
 styles/                   global CSS: tokens and base styles
+public/                   files served as they are: images, fonts, PDFs,
+                          favicons, the maps' shapes
+data/                     the survey figures and signatories that two pages
+                          show, which lib/content/ imports
 netlify/                  database migrations, scheduled functions
 backup/                   the nightly database backup: a Cloudflare Worker and
                           container, a package of its own (backup/README.md)
 proxy.ts                  turns away /staff requests without a session cookie
-tests/                    Playwright suites, the route list, the fixtures
-                          only tests use, Vitest setup
+tests/                    the route list, the fixtures only tests use, Vitest
+                          setup
+  storyboard/             the Playwright suite (docs/testing.md)
   checks/                 tests that scan the whole repo (placeholder copy,
                           thin pages, staff auth and the rest)
-scripts/                  database, storyboard and data scripts
-                          (scripts/README.md)
+scripts/                  the gate, and database, storyboard, worktree and
+                          data scripts (scripts/README.md)
 docs/
 plans/                    plans for work in progress, deleted when done;
                           nothing references them
@@ -80,14 +86,16 @@ the code should go instead. The rules below say which ones are enforced.
 - **Where a component goes.** One used by two or more routes goes in
   `components/`. One used by a single route goes in that route's
   `_components/`.
-- **Which folders import which.** A route imports `components/`, `lib/`
-  and the `_components/` folders above it, by a relative path, but never
-  another route's folder or anything by `@/app/`. `components/` doesn't
-  import routes, and `lib/` imports neither routes nor components, except
-  the content in `lib/content/`, which is partly JSX. Nothing in `app/`,
-  `components/` or `lib/` imports `tests/`: what a fixture build needs is
-  in `lib/server/fixtures/`. Tests and the component gallery may reach
-  across. An ESLint rule enforces it (`LAYERS` in `eslint.config.mjs`).
+- **Which folders import which.** A route imports `components/` and
+  `lib/`, and the `_components/` folders above it by a relative path, but
+  never another route's folder or anything by `@/app/`. `components/`
+  doesn't import routes, and `lib/` imports neither routes nor components,
+  except that the content in `lib/content/`, which is partly JSX, may
+  import components. Nothing in `app/`, `components/` or `lib/` imports
+  `tests/`: what a fixture build needs is in `lib/server/fixtures/`. Tests
+  may reach across, and the component gallery imports every route's
+  components, though not `tests/`. An ESLint rule enforces it (`LAYERS` in
+  `eslint.config.mjs`).
 - **Redirects are in `next.config.ts`.** A path that only sends people
   elsewhere is an entry in its `redirects()`, never a page that calls
   `redirect()`: on a click within the site, a page that redirects while
@@ -103,7 +111,7 @@ the code should go instead. The rules below say which ones are enforced.
   layout.
 - **A caught error is rethrown or reported.** Code that catches an error
   and carries on reports it with `problem()` (`lib/server/problems.ts`): in
-  our words, with the error. During a run of a job (`keepingFailure()` in
+  our words, with the error. During a run of a job (`asRun()` in
   `lib/server/import-runs.ts`) the problem is kept on the run, so the job's
   page shows it under the run's line, and staff are emailed once, until a
   run goes right or something else goes wrong. Outside a run, as in a form
@@ -123,8 +131,8 @@ the code should go instead. The rules below say which ones are enforced.
   (calling `lib/`) and the order of its sections. Content and markup belong
   in components, and helper functions in `lib/`, where they can be tested.
   Pages and layouts are outside the coverage gate, so they have no
-  branches at all: no `if`, `? :`, `&&`, `||`, `??`, `?.`, loop or default
-  value (`tests/checks/thin-pages.test.ts`). A page that 404s on a missing
+  branches at all: no `if`, `? :`, `&&`, `||`, `??`, `?.`, `switch`, loop,
+  `try` or default value (`tests/checks/thin-pages.test.ts`). A page that 404s on a missing
   record calls `found(findPost(slug))` (`lib/found.ts`); one that reads a
   filter from its URL calls a parser (`lib/staff-search.ts`); one whose
   markup depends on state renders a component that takes it as props
@@ -166,7 +174,8 @@ the code should go instead. The rules below say which ones are enforced.
   context, and use a ref only for an element an effect has to measure or
   observe (the header's height, the timeline's entries). An ESLint rule
   (`npm run lint`) fails on the DOM calls in `app/` and `components/`; the
-  files written before it are listed there, to be converted, not added to.
+  files written before it are listed in `eslint.config.mjs`
+  (`UNCONVERTED_DOM_EDITS`), to be converted, not added to.
   A genuine exception gets an `eslint-disable-next-line` with the reason.
 - **Browsers.** The site is built for browsers up to about a year old. In
   older ones it may look a bit off (the mobile menu's scroll lock needs
@@ -201,7 +210,8 @@ the code should go instead. The rules below say which ones are enforced.
 - **Email** goes out only through `send()` (`lib/server/email.ts`), which
   skips blocked addresses and records each send (`docs/domain-concepts.md`).
   Only it may import `sendEmail` or `unsuppress` from Postmark's binding,
-  `lib/server/outside-services/postmark.ts` (an ESLint rule).
+  `lib/server/outside-services/postmark.ts`, or `sendGmail` from Gmail's,
+  `gmail.ts` there (an ESLint rule).
 - **The database** is only reached through `lib/server/db.ts`, which is the
   only file that may import `pg` or read `NETLIFY_DB_URL` (an ESLint rule,
   in `npm run lint`). Queries are plain SQL; no ORM. A query built from
@@ -211,17 +221,6 @@ the code should go instead. The rules below say which ones are enforced.
   apart compose with `sql.and`, `sql.or` and `sql.where`, never by
   counting `$n` by hand. Text that isn't a value, such as a column's name
   or a condition in the code, goes in with `sql.raw`.
-- **A letter's status** changes only through `transition()`
-  (`lib/server/letter-lifecycle.ts`): one statement that moves letters from
-  the statuses it's allowed from and logs each one's event, so two runs
-  can't both take a letter and its status always matches its history. The
-  statuses, their named sets (such as `ARRIVED` or `NEVER_WENT`) and the
-  events, which `letter_events`' CHECK holds to, are in `lib/letter-status.ts`; a query asks for a set with
-  `statusIn()`, never a list typed out. Every letter, a supporter's or a
-  mailing's, goes by `sendLetterVia(channel, letter)` there, with a
-  `MailingChannel` (`lib/server/mailing-channels.ts`): a new kind of
-  letter says what it sends and what becomes of one that can't go, and a
-  new way to send is a channel.
   Schema changes are new files in `netlify/database/migrations/`, which
   Netlify applies before each production publish and to each preview's copy
   of the database. They must be backward compatible (expand, then contract)
@@ -230,6 +229,17 @@ the code should go instead. The rules below say which ones are enforced.
   applied: a change is a new file. Each one is committed with
   `netlify/database/schema.sql` (`docs/development.md`, "Adding a
   migration"). Tables follow the SQL rules below.
+- **A letter's status** changes only through `transition()`
+  (`lib/server/letter-lifecycle.ts`): one statement that moves letters from
+  the statuses it's allowed from and logs each one's event, so two runs
+  can't both take a letter and its status always matches its history. The
+  statuses, their named sets (such as `ARRIVED` or `NEVER_WENT`) and the
+  events, which `letter_events`' CHECK holds to, are in `lib/letter-status.ts`; a query asks for a set with
+  `statusIn()`, never a list typed out. Every letter, a supporter's or a
+  mailing's, goes by `sendLetterVia(channel, letter)`, beside
+  `transition()`, with a `MailingChannel` (`lib/server/mailing-channels.ts`): a new kind of
+  letter says what it sends and what becomes of one that can't go, and a
+  new way to send is a channel.
 - **Settings** come from `config` (`lib/server/config.ts`), which reads
   each environment variable and gives it one shape for every caller: an
   address trimmed and lowercased, unset and empty alike undefined. Nothing
@@ -289,7 +299,7 @@ the code should go instead. The rules below say which ones are enforced.
   and statuses, so an exported name for one of them names it:
   `SOBEL_BILL_CAMPAIGN`, not `BILL_CAMPAIGN`; `CONTROLAI_LETTER_PAGE`, not
   `LETTER_PAGE`; `ControlAiImportResult`, not `ImportResult`. Generic
-  names (`Signatory`, `Problem`, `ImportResult`) are for the one thing
+  names (`Signatory`, `Problem`, `ImportRun`) are for the one thing
   shared by all of them, and two exports in the repo shouldn't share a
   name. Pass the data (an MP's statuses) rather than unpicking one case of
   it at the call site (`signedControlAiLetter`), so the next campaign
@@ -303,7 +313,9 @@ the code should go instead. The rules below say which ones are enforced.
   History is for commit messages. Nothing references `plans/`, which is
   temporary: a plan is deleted when it's done. The rest of the rules are
   under "Comments" below.
-- **Imports** use the `@/` alias for anything outside the current folder.
+- **Imports** use the `@/` alias for anything outside the current folder,
+  except inside `app/`, where nothing is imported by `@/app/` (above): a
+  route reaches the `_components/` folders above it by a relative path.
 - **Tests** sit next to the code they test (`*.test.ts`,
   `*.browser.test.tsx`); see `docs/testing.md`. Tests of the whole repo,
   rather than of one file, go in `tests/checks/`.
@@ -387,19 +399,23 @@ For either, check it before calling it done: fill a throwaway database to
 about the size the real data will reach in a year (`scripts/fresh-database.mjs`
 with the fixtures, then `generate_series` for the bulk), and run
 `EXPLAIN (ANALYZE)` on the query as the code builds it. It should read an
-index rather than scan the whole table, and take milliseconds. Also look at
-the planner's cost on a fresh, never-analysed database, as the tests' are:
+index rather than scan the whole table, and take milliseconds.
+
+Also look at the planner's cost on a fresh, never-analysed database, as the tests' are:
 above 100,000 (`jit_above_cost`), Postgres compiles the query first where it
 has JIT, as CI's image does, which can take seconds
-for a query that runs in milliseconds. This container's Postgres has no JIT
+for a query that runs in milliseconds. The dev container's Postgres has no JIT
 (`pg_jit_available()` is false), so a query too costly for CI still passes
-here; the cost is the only warning. To see every query's cost as the tests
-run it, those a PL/pgSQL function runs included, which it plans apart: `ALTER
+there; the cost is the only warning.
+
+To see the cost of every query the tests run, including those inside a
+PL/pgSQL function, which Postgres plans separately: `ALTER
 ROLE dev SET session_preload_libraries = 'auto_explain'`, with
 `auto_explain.log_min_duration = 0` and `auto_explain.log_nested_statements =
 on`, run the tests, read the plans in Postgres's log, and reset the three.
 
-The symptom is a test that times out in CI and passes here in milliseconds.
+The symptom is a test that times out in CI and passes in the dev container
+in milliseconds.
 The fix is a query the planner prices lower, not JIT turned off: Postgres
 prices views of views of unions in the millions however few rows they
 hold. What brings them under:
@@ -412,7 +428,7 @@ hold. What brings them under:
   each up by ID in a loop, declared with a small `ROWS`, so the outer query
   is planned as if there are few (`supporters_added()`).
 
-`migrate()` analyses every table Postgres hasn't yet before each migration,
+`migrate()` (`scripts/db-migrate.mjs`) analyses every table Postgres hasn't yet before each migration,
 as autovacuum has a live database's, so a migration that builds a view over
 the tables is planned as production plans it, and not priced in the
 hundreds of thousands on a fresh test database.
@@ -529,4 +545,5 @@ exceptions:
 - **Its own fields.** The form's controls are its own, in its style, not
   the kit's (`tests/checks/form-controls.test.ts`).
 - **Its own header.** Its layout renders `SignupHeader`, not `<Nav>`, and no
-  march banner; the site's footer comes from the root layout as everywhere.
+  march banner. It renders the site's `<Footer>` itself, as the other
+  layouts with one do.
