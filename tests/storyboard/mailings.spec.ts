@@ -598,17 +598,9 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     staffCopy.letters.oneTitle(staffCopy.letters.fromPauseai, "Morag Example"),
   );
+  // Its text is here, so there's no search for it in Gmail.
+  await expect(page.getByRole("button", { name: staffCopy.findInGmail.copy })).toHaveCount(0);
   await frame(page, "Morag's letter");
-  story(
-    "Copy Gmail search copies a search that finds the letter in Gmail, and says to paste it in an inbox that can see their mail.",
-  );
-
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  // Copy Gmail search copies the search for it by its Message-ID, and says to paste it where your mail is.
-  await page.getByRole("button", { name: staffCopy.findInGmail.copy }).click();
-  await expect(page.getByRole("status")).toContainText(staffCopy.findInGmail.where(staffEmail()));
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^rfc822msgid:\S+$/);
-  await frame(page, "The search copied");
   story(
     "Morag replies. Within the hour their Gmail is read, and her reply shows under the letter, without the letter she quotes.",
   );

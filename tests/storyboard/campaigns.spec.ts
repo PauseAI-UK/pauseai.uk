@@ -118,7 +118,7 @@ test("An email for an address", async ({ page }) => {
   await openLookup(page, BASE);
   await page.getByLabel(copy.lookup.addressLabel).fill("jane.smith@example.com");
   await page.getByRole("button", { name: copy.lookup.button }).click();
-  await expect(page.getByRole("alert")).toHaveText(copy.lookup.addressIsEmail);
+  await expect(page.locator("p[role=alert]")).toHaveText(copy.lookup.addressIsEmail);
   await expect(page).toHaveURL(PAGE);
   await frame(page, "Asked for her postal address");
 });
