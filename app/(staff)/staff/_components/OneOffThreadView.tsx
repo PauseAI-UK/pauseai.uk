@@ -45,7 +45,7 @@ function Mailboxes({ line, politicians }: { line: string; politicians: Politicia
  */
 function ThreadPeople({ thread, unlink }: { thread: OneOffThread; unlink: (form: FormData) => void | Promise<void> }) {
   return (
-    <Card look="aside" title={copy.people.title} id="thread-people" span={1}>
+    <Card look="aside" title={copy.people.title} id="thread-people" span={2}>
       {thread.people.length === 0 ? (
         <Muted>{copy.people.none}</Muted>
       ) : (
@@ -90,7 +90,7 @@ export default function OneOffThreadView({
         </p>
       ) : (
         <Grid>
-          <section aria-label={copy.thread} className={`${spanClass(3)} ${styles.thread}`}>
+          <section aria-label={copy.thread} className={`${spanClass(4)} ${styles.thread}`}>
             {thread.messages_.map((message) => (
               <Fragment key={message.id}>
                 {message.forwarded.map((rebuilt, i) => (

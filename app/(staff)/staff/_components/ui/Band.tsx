@@ -5,11 +5,25 @@ import styles from "./Band.module.css";
  * One fact in a Band: its label, its value, and a quiet line under it of
  * where it's from or what it adds. Nothing when there's no value.
  */
-export function BandFact({ label, detail, children }: { label: string; detail?: ReactNode; children: ReactNode }) {
+export function BandFact({
+  label,
+  link,
+  detail,
+  children,
+}: {
+  label: string;
+  /** A small link after the label, such as to more of the same. */
+  link?: ReactNode;
+  detail?: ReactNode;
+  children: ReactNode;
+}) {
   if (!children) return null;
   return (
     <div>
-      <dt>{label}</dt>
+      <dt>
+        {label}
+        {link && <span className={styles.labelLink}>{link}</span>}
+      </dt>
       <dd>{children}</dd>
       {detail && <dd className={styles.detail}>{detail}</dd>}
     </div>

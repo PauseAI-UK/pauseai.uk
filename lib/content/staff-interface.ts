@@ -1717,9 +1717,9 @@ All events: ${link}`,
     aliases: {
       // After their email at the top of the page, leading down to the aliases.
       see: "See aliases",
-      title: "⁂ Email addresses",
+      title: "Email addresses",
       intro: "⁂ One-off emails sent from, to or quoting any of these show on this page.",
-      columns: { address: "⁂ Address", from: "⁂ Source" },
+      columns: { address: "Address", from: "Source" },
       sources: {
         email: "⁂ Main address, used for letters",
         past: "⁂ Previous main address",

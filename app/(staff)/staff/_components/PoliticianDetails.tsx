@@ -311,17 +311,19 @@ function PoliticianBand({
           </span>
         )}
       </BandFact>
-      <BandFact label={staffCopy.fields.email} detail={politician.salutation}>
+      <BandFact
+        label={staffCopy.fields.email}
+        link={
+          aliases && (
+            <StaffLink href={`/staff/politicians/${politician.id}?aliases=open#aliases`}>{copy.aliases.see}</StaffLink>
+          )
+        }
+        detail={politician.salutation}
+      >
         {politician.email ? (
           <a href={`mailto:${politician.email}`}>{politician.email}</a>
         ) : (
           staffCopy.politicians.noEmail
-        )}
-        {aliases && (
-          <Muted>
-            {" · "}
-            <StaffLink href={`/staff/politicians/${politician.id}?aliases=open#aliases`}>{copy.aliases.see}</StaffLink>
-          </Muted>
         )}
       </BandFact>
     </Band>
