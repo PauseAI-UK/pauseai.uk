@@ -1733,7 +1733,7 @@ All events: ${link}`,
       // The form under the list.
       address: "New address",
       add: "Add",
-      added: "⁂ Added. Earlier emails with it in policy@ and Joseph's inbox will be found within a few minutes.",
+      added: "Added. Earlier threads referencing the mail in policy mailboxes will be found within a few minutes.",
       refused: {
         invalid: "That doesn't look like an email address.",
         exists: "That address is already listed.",
