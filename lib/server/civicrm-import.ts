@@ -20,8 +20,9 @@ import { linkSupporters } from "./supporters";
 // Copies Global's UK chapter contacts from CiviCRM into civicrm_contacts:
 // hourly (/api/cron/import-civicrm) or when staff ask, each run in the
 // import log as "import-civicrm". A run pulls every contact, a page at a
-// time, and keeps each as CiviCRM told it, with when we saw each flag and
-// list change. Each links to a supporter by its address, a new one if
+// time, and keeps each as CiviCRM told it: its member details, and its
+// flags and lists, with when we saw each change. A member is a contact a
+// pull returns. Each links to a supporter by its address, a new one if
 // nobody has it. contact_permission() reads them. What CiviCRM's lists say
 // becomes opt-outs from `civicrm`, and a new hold blocks the address. A
 // contact a complete pull doesn't return has left the UK chapter, and is
@@ -60,27 +61,33 @@ const FIELDS = [
   "volunteer_updates",
 ] as const;
 
+/** The columns a contact's member details are kept in, as CiviCRM gave them, with no `_since`. */
+const DETAILS = ["first_name", "last_name", "city", "postal_code", "joined_date", "intent", "phone"] as const;
+
 /**
  * Upserts the contacts, but none erased, each returned now: a new one with
- * every value from now, a changed one with each value that changed from
- * now, and one marked gone back. Returns how many were added and how many
- * changed.
+ * every value from now, a changed one with each flag or list that changed
+ * from now, and one marked gone back. Returns how many were added and how
+ * many changed.
  */
 async function upsertContacts(contacts: CivicrmContact[], db: Queryable): Promise<{ added: number; changed: number }> {
-  const sets = FIELDS.map(
-    (field) =>
-      `${field} = EXCLUDED.${field},
+  const sets = [
+    ...["airtable_id", "email", ...DETAILS].map((field) => `${field} = EXCLUDED.${field}`),
+    ...FIELDS.map(
+      (field) =>
+        `${field} = EXCLUDED.${field},
        ${field}_since = CASE WHEN c.${field} = EXCLUDED.${field} THEN c.${field}_since ELSE now() END`,
-  ).join(",\n");
-  const kept = ["airtable_id", "email", ...FIELDS];
+    ),
+  ].join(",\n");
+  const kept = ["airtable_id", "email", ...DETAILS, ...FIELDS];
   const rows = await query<{ added: boolean }>(
     `INSERT INTO civicrm_contacts AS c (contact_id, ${kept.join(", ")}, ${FIELDS.map((f) => `${f}_since`).join(", ")})
      SELECT u.*, ${FIELDS.map(() => "now()").join(", ")}
-     FROM unnest($1::bigint[], $2::text[], $3::text[], $4::boolean[], $5::boolean[], $6::boolean[], $7::boolean[],
-       $8::boolean[], $9::text[], $10::text[]) AS u (contact_id, ${kept.join(", ")})
+     FROM unnest($1::bigint[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[], $8::date[],
+       $9::text[], $10::text[], $11::boolean[], $12::boolean[], $13::boolean[], $14::boolean[], $15::boolean[],
+       $16::text[], $17::text[]) AS u (contact_id, ${kept.join(", ")})
      WHERE u.contact_id NOT IN (SELECT contact_id FROM civicrm_erased)
-     ON CONFLICT (contact_id) DO UPDATE SET airtable_id = EXCLUDED.airtable_id, email = EXCLUDED.email,
-       ${sets}, gone_at = NULL
+     ON CONFLICT (contact_id) DO UPDATE SET ${sets}, gone_at = NULL
      WHERE (${kept.map((f) => `c.${f}`).join(", ")}, c.gone_at)
        IS DISTINCT FROM (${kept.map((f) => `EXCLUDED.${f}`).join(", ")}, NULL)
      RETURNING xmax = 0 AS added`,
@@ -88,6 +95,13 @@ async function upsertContacts(contacts: CivicrmContact[], db: Queryable): Promis
       contacts.map((c) => c.contactId),
       contacts.map((c) => c.airtableId),
       contacts.map((c) => c.email),
+      contacts.map((c) => c.firstName),
+      contacts.map((c) => c.lastName),
+      contacts.map((c) => c.city),
+      contacts.map((c) => c.postalCode),
+      contacts.map((c) => c.joinedDate),
+      contacts.map((c) => c.intent),
+      contacts.map((c) => c.phone),
       contacts.map((c) => c.onHold),
       contacts.map((c) => c.noBulkEmail),
       contacts.map((c) => c.doNotEmail),
@@ -216,7 +230,7 @@ export async function importCivicrm(startedBy: string): Promise<CivicrmImportRes
  */
 export async function lookUpNewMembers(db: Queryable): Promise<number> {
   const rows = await query<{ email: string }>(
-    `SELECT DISTINCT m.email FROM members m
+    `SELECT DISTINCT m.email FROM airtable_members m
      WHERE m.removed_at IS NULL AND m.first_seen_at > now() - interval '1 day'
        AND NOT EXISTS (SELECT 1 FROM civicrm_contacts c WHERE c.airtable_id = m.id OR c.email = m.email)
      ORDER BY m.email`,

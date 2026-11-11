@@ -685,7 +685,8 @@ that's still so.
 
 One row per person we know of (`supporters`). `supporter_links` ties the
 supporter to each record about them in a source: a Luma user
-(`luma_user_id`), a form entry (`form_entry_id`) or a member (`member_id`).
+(`luma_user_id`), a form entry (`form_entry_id`), a member in Airtable
+(`airtable_member_id`) or a CiviCRM contact (`civicrm_contact_id`).
 Records are matched by trimmed, lowercased email and nothing more, so
 `jane+luma@` and `jane@` are two people. The supporter holds no
 name, email, phone or place of its own: those come from the linked
@@ -774,20 +775,24 @@ Where they come from:
   is activity of the entry that sent it. pauseai.info's old form got its
   consent box on 23 September 2026, so an entry from before then counts as
   a no.
-- **Members.** PauseAI's members in the UK whom we may hold: those who
-  ticked "Share your details with PauseAI UK" on the join form, or who
-  joined before the form asked, as it has since July 2026. The hourly
-  import (`lib/server/members-import.ts`) reads them from Stichting
-  PauseAI's "Members & Actions" Airtable base into `members`, keyed by the
-  Airtable record ID, which CiviCRM keeps too. The table's names say what
-  the rows are, not where they come from, so a move to CiviCRM keeps them.
-  A member the import no longer reads is marked removed and kept, with
-  their links, until erased. The summary's `member` is false for them, so
-  they lose the Member badge.
 - **CiviCRM.** Global's UK chapter contacts, pulled hourly ("CiviCRM",
-  below). A contact gives only its address, so one whose address nobody
-  else has is a supporter with no name, and it has no contact details of
-  its own.
+  below), are the members: a member is a contact the latest complete pull
+  returns. Each gives its name, city, postcode, number, the day it joined
+  PauseAI and what it said it wanted to do, which count over Airtable's
+  where both have them. A contact that's gone gives none of them, and its
+  history says when it left. Staff see the source as "Member".
+- **Airtable's members.** PauseAI's members in the UK whom we may hold:
+  those who ticked "Share your details with PauseAI UK" on the join form,
+  or who joined before the form asked, as it has since July 2026. The
+  hourly import (`lib/server/members-import.ts`) reads them from Stichting
+  PauseAI's "Members & Actions" Airtable base into `airtable_members`,
+  keyed by the Airtable record ID, which CiviCRM keeps too. They count
+  only for a member CiviCRM has never returned, as some members aren't:
+  their name, number, place, joining and "Keep me informed" are read from
+  here then, and the Member badge with them. For everyone CiviCRM returns,
+  the record only links them. A member the import no longer reads is
+  marked removed and kept, with their links, until erased, and isn't a
+  member. Staff see the source as "Airtable".
 
 **Where they are.** The `supporter_place` view gives each supporter's
 best-known place, with its coordinates and country. It's the first of these
@@ -828,7 +833,8 @@ doesn't come back:
 
 - The Luma user's ID goes in `luma_erased`, which the import skips. A new
   Luma account later is a new supporter.
-- A member's record ID goes in `members_erased`, in the same way.
+- A member's Airtable record ID goes in `airtable_members_erased`, and
+  their CiviCRM contact IDs in `civicrm_erased`, in the same way.
 - A one-off email's Gmail ID and hashed Message-ID go in `one_off_erased`,
   so that reading its thread again doesn't keep it again.
 
@@ -947,20 +953,26 @@ Global's CRM, CiviCRM, is one of our sources (`civicrm_contacts`,
 contacts API returns (`lib/server/outside-services/civicrm.ts`, with
 `CIVICRM_CHAPTER_KEY`; the spec is PauseAI/pauseai-civicrm#1175, which is
 private), as it told us. The hourly import pulls them all, 500 a page by
-contact ID, and keeps each one's contact ID, Airtable ID and address, its
-flags (`on_hold`, `no_bulk_email`, `do_not_email`, `do_not_phone`,
-`do_not_sms`) and its status on the two UK lists, `newsletter` and
-`volunteer_updates`. No name, number or postal address. CiviCRM gives no
-dates, so each value's `_since` is when a pull saw it change, and one the
-same as `first_seen_at` is as it was when we first saw the contact. A
+contact ID, and keeps each one's contact ID, Airtable ID and address; its
+member details (`first_name`, `last_name`, `city`, `postal_code`,
+`joined_date`, a day, `intent`, and `phone`, which Global shares for calls
+only), each null when CiviCRM has none; its flags (`on_hold`,
+`no_bulk_email`, `do_not_email`, `do_not_phone`, `do_not_sms`); and its
+status on the two UK lists, `newsletter` and `volunteer_updates`. CiviCRM
+gives no dates but the day they joined, so each flag's and list's `_since`
+is when a pull saw it change, and one the same as `first_seen_at` is as it
+was when we first saw the contact. A
 contact links to a supporter by its address, a new one if nobody has it,
 as every source does, and its answers reach a member by its Airtable ID.
 Between pulls, the members import looks up each new member's address
 (`lookUpNewMembers`), as someone who just joined isn't in the last pull.
 
 A contact a complete pull doesn't return has left the UK chapter, often by
-saying no to sharing with us: it's marked `gone_at`, and its lists stop
-counting, as do its member's records (below). If a pull returns more than
+saying no to sharing with us, though Global doesn't say why: it may have
+moved abroad, been deleted or been merged into another contact. It's marked
+`gone_at`, its details and lists stop counting, as do its member's records
+in Airtable (below), and its history says it left, unless another contact
+of the supporter's is still returned, as after a merge. If a pull returns more than
 5% fewer contacts than were there, nobody is marked gone, as that's more
 likely CiviCRM's mistake, and the run says so, to tell Global. A new hold
 blocks the address (`email_blocks`, "Email", below), as a problem of the
@@ -1006,14 +1018,17 @@ or a call to a number. The topics:
   for "text updates on the day" is a yes for texts until the day ends
   (`day_texts`).
 - **Volunteering**: CiviCRM's `volunteer_updates` list, for email; and a
-  member's number, for texts and calls, if they chose to volunteer when
-  joining, or joined before 30 June 2026 on the Tally form, which didn't ask.
+  member's number, for calls, if they chose to volunteer or lead when
+  joining, or joined before 30 June 2026 on the Tally form, which didn't
+  ask: a contact's number and intent from CiviCRM, or from Airtable for a
+  member CiviCRM has never returned. Never for texts, as no join form has
+  asked whether we may text them, and Global shares numbers for calls only.
 
 Each answer is yes or no, with a reason from a short list, when, and which
 source said so. First, whatever stops every topic by the way: a blocked
 address (`email_blocks`, below), then CiviCRM's "Do not email" and "No bulk
 emails" for email, "Do not SMS" for texts and "Do not phone" for calls, on
-any contact with the address, or of a member who gave the number. Then the
+any contact with the address or number, or of a member who gave the number. Then the
 latest thing the person said about the consent, a stop or a yes, a stop
 winning a tie, so a box ticked after an unsubscribe opens it again. Last,
 if they said nothing that counts, why not: a box left unticked, never

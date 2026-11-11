@@ -110,7 +110,7 @@ describe("StaffDashboard", () => {
     const sourceBars = page.getByRole("img", { name: copy.bySourceName(copy.metrics.supportersAdded(176), 7, 8) });
     await expect.element(sourceBars).toBeVisible();
     expect(supporters[0].element().textContent).toContain(`${staffCopy.supporters.sources.luma} · 115`);
-    expect(supporters[0].element().textContent).toContain(`${staffCopy.supporters.sources.member} · 44`);
+    expect(supporters[0].element().textContent).toContain(`${staffCopy.supporters.sources.civicrm} · 44`);
     expect(supporters[0].element().textContent).not.toContain(staffCopy.supporters.sources["web-form"]);
     expect(supporters[0].element().className).toBe(spanClass(3));
     // Pointing at a bar says its week's count and what it's made of.
@@ -123,7 +123,7 @@ describe("StaffDashboard", () => {
     await expect
       .element(page.getByRole("status"))
       .toHaveTextContent(
-        `${copy.seriesPoint(7, staffDate(exampleDashboard.supportersBySource[7].from), 176)} ${staffCopy.supporters.sources.luma}115 ${staffCopy.supporters.sources.member}44 ${staffCopy.supporters.sources["email-your-mp"]}17`,
+        `${copy.seriesPoint(7, staffDate(exampleDashboard.supportersBySource[7].from), 176)} ${staffCopy.supporters.sources.luma}115 ${staffCopy.supporters.sources.civicrm}44 ${staffCopy.supporters.sources["email-your-mp"]}17`,
       );
     sourceBars.element().dispatchEvent(new PointerEvent("pointerout", { bubbles: true, relatedTarget: document.body }));
     await expect.element(page.getByRole("status")).not.toBeInTheDocument();

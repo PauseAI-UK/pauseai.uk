@@ -6,20 +6,20 @@ import { staffCopy } from "./content/staff-interface";
 import type { ContactPermission, ContactState } from "./contact-permissions";
 import type { SortDirection } from "./staff-sort";
 
-/** Where a supporter came from: Luma, the members, CiviCRM's UK chapter contacts, or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, or the march sign-up. */
+/** Where a supporter came from: Luma, CiviCRM's UK chapter contacts (the members), the members in Airtable, or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, or the march sign-up. */
 export const SUPPORTER_SOURCES = [
   "luma",
-  "member",
+  "civicrm",
+  "airtable",
   "email-your-mp",
   "web-form",
   "march-2026-11",
   "paper-signup",
-  "civicrm",
 ] as const;
 export type SupporterSource = (typeof SUPPORTER_SOURCES)[number];
 
-/** What a supporter_links row points at (lib/server/supporter-sources.ts): a Luma user, a form entry, a member or a CiviCRM contact. */
-export type SupporterLinkSource = "luma" | "form" | "member" | "civicrm";
+/** What a supporter_links row points at (lib/server/supporter-sources.ts): a Luma user, a form entry, a member in Airtable or a CiviCRM contact. */
+export type SupporterLinkSource = "luma" | "form" | "airtable" | "civicrm";
 
 /** The lozenges in the list's Activities column, in its order: a member, a contact of the Luma calendar, registered for events, wrote to their MP, signed up for the march. */
 export const SUPPORTER_BADGES = ["member", "lumaContact", "registered", "letter", "march"] as const;
@@ -46,7 +46,7 @@ export type SupporterSummary = {
   /** Events registered for, declined ones left out. */
   events: number;
   letters: number;
-  /** Whether they're a PauseAI member now: a member's record we read at the last import. */
+  /** Whether they're a PauseAI member now: a UK chapter contact CiviCRM's last pull returned, or a member in Airtable whom CiviCRM has never returned. */
   member: boolean;
   /** Where they are, as best we know (the supporter_place view); null if we don't. */
   place?: SupporterPlaceName | null;
@@ -84,6 +84,7 @@ export type SupporterActivity = {
     | "letter-replied"
     | "form-entry"
     | "member-joined"
+    | "member-left"
     | "opted-out"
     | "resubscribed";
   /** The event's or form's name, or a letter's campaign's slug. */
@@ -91,7 +92,7 @@ export type SupporterActivity = {
   /** A letter's campaign's title, as the campaigns table has it; null for every other kind. */
   campaignTitle: string | null;
   /** Where an old campaign's letter can be read, as the campaigns table has it; null for one in code, one with none, and every other kind. */
-  /** Who or what it was with: the event's status, the MP's name, the site they joined on, or the address. */
+  /** Who or what it was with: the event's status, the MP's name, or the address. */
   detail: string | null;
   href: string | null;
   /** A letter's status; null for every other kind. */
@@ -101,6 +102,11 @@ export type SupporterActivity = {
   /** When the event starts, for a registration or hosting, where the supporter's page reads it; null for an event no longer copied. */
   eventAt?: Date | null;
 };
+
+/** Whether an activity is known only to the day: joining PauseAI, as CiviCRM gives it. */
+export function dayOnly(item: Pick<SupporterActivity, "source" | "kind">): boolean {
+  return item.source === "civicrm" && item.kind === "member-joined";
+}
 
 /** A name and email one source gave, and when the person was first seen there. */
 export type SupporterIdentity = { source: SupporterSource; email: string; name: string; seenAt: Date | null };

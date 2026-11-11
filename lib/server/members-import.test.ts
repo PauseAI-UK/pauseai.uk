@@ -50,7 +50,6 @@ describeWithDatabase("importMembers", () => {
       City: "Manchester",
       "Zip code": "M1 1AE",
       "Email subscription (old)": "Yes",
-      "Source page": "pauseai.uk",
       Intent: "Volunteer",
     };
     expect(Object.keys(fields).sort()).toEqual([...MEMBER_FIELDS].sort());
@@ -65,7 +64,7 @@ describeWithDatabase("importMembers", () => {
       linked: 1,
     });
     // Every column but the import's own bookkeeping holds what Airtable gave.
-    const [row] = await query<Record<string, unknown>>("SELECT * FROM members");
+    const [row] = await query<Record<string, unknown>>("SELECT * FROM airtable_members");
     const { removed_at, first_seen_at, changed_at, ...copied } = row;
     expect(removed_at).toBeNull();
     expect(first_seen_at).toBeInstanceOf(Date);
@@ -81,7 +80,6 @@ describeWithDatabase("importMembers", () => {
       created_at: new Date("2026-09-12T10:00:00.000Z"),
       keep_informed: true,
       share_permission: true,
-      source_page: "pauseai.uk",
       intent: "Volunteer",
       source_modified_at: new Date("2026-09-12T10:00:00.000Z"),
     });
@@ -104,10 +102,12 @@ describeWithDatabase("importMembers", () => {
     await importMembers("nightly");
     serve({ recA: member("a@example.com", "2026-09-01T00:00:00Z", { City: "Leeds" }) });
     expect(await importMembers("nightly")).toMatchObject({ added: 0, changed: 1, removed: 1 });
-    expect(await query("SELECT id, city, removed_at IS NOT NULL AS removed FROM members ORDER BY id")).toEqual([
-      { id: "recA", city: "Leeds", removed: false },
-      { id: "recB", city: null, removed: true },
-    ]);
+    expect(await query("SELECT id, city, removed_at IS NOT NULL AS removed FROM airtable_members ORDER BY id")).toEqual(
+      [
+        { id: "recA", city: "Leeds", removed: false },
+        { id: "recB", city: null, removed: true },
+      ],
+    );
     // Removed already: not counted again.
     expect((await importMembers("nightly")).removed).toBe(0);
     serve({
@@ -115,17 +115,17 @@ describeWithDatabase("importMembers", () => {
       recB: member("b@example.com", "2026-09-01T00:00:00Z"),
     });
     expect(await importMembers("nightly")).toMatchObject({ changed: 1, removed: 0 });
-    expect(await query("SELECT id FROM members WHERE removed_at IS NULL ORDER BY id")).toEqual([
+    expect(await query("SELECT id FROM airtable_members WHERE removed_at IS NULL ORDER BY id")).toEqual([
       { id: "recA" },
       { id: "recB" },
     ]);
   });
 
   it("never copies an erased member back", async () => {
-    await query("INSERT INTO members_erased (id) VALUES ('recGone')");
+    await query("INSERT INTO airtable_members_erased (id) VALUES ('recGone')");
     serve({ recGone: member("gone@example.com", "2026-09-01T00:00:00Z", { "Email subscription": false }) });
     expect(await importMembers("nightly")).toMatchObject({ members: 1, added: 0 });
-    expect(await query("SELECT id FROM members")).toEqual([]);
+    expect(await query("SELECT id FROM airtable_members")).toEqual([]);
   });
 
   it("keeps a failed run, rolling back the rest", async () => {

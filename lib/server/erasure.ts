@@ -20,7 +20,7 @@ import type { EraseLeftover } from "@/lib/staff-search";
 // Trash; a Luma user goes with their registrations and contact, and their
 // Luma ID is kept in
 // luma_erased so the import never copies them back; a member's record goes
-// the same way, its ID kept in members_erased, and their CiviCRM contacts,
+// the same way, its ID kept in airtable_members_erased, and their CiviCRM contacts,
 // their IDs kept in civicrm_erased; a message of a mailing
 // sent to them loses its address and merge values; a one-off email with their
 // address on it goes, with its blob, its IDs kept in one_off_erased so that
@@ -62,7 +62,7 @@ export async function eraseSupporter(id: number, reference: string, by: string):
     ).map((row) => row.userId);
     const members = (
       await query<{ id: string }>(
-        "SELECT member_id AS id FROM supporter_links WHERE supporter_id = $1 AND member_id IS NOT NULL",
+        "SELECT airtable_member_id AS id FROM supporter_links WHERE supporter_id = $1 AND airtable_member_id IS NOT NULL",
         [id],
         db,
       )
@@ -133,8 +133,12 @@ export async function eraseSupporter(id: number, reference: string, by: string):
     );
     await query("INSERT INTO luma_erased (user_id) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING", [lumaUsers], db);
     await query("DELETE FROM luma_people WHERE user_id = ANY($1::text[])", [lumaUsers], db);
-    await query("INSERT INTO members_erased (id) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING", [members], db);
-    await query("DELETE FROM members WHERE id = ANY($1::text[])", [members], db);
+    await query(
+      "INSERT INTO airtable_members_erased (id) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING",
+      [members],
+      db,
+    );
+    await query("DELETE FROM airtable_members WHERE id = ANY($1::text[])", [members], db);
     // A message they were sent keeps only that it was.
     await query(
       "UPDATE broadcast_messages SET supporter_id = NULL, address = NULL, merge_values = NULL WHERE supporter_id = $1",

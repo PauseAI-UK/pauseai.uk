@@ -14,7 +14,7 @@ import type { MailingState } from "@/lib/server/mailing-drafts";
 import type { SkipReason } from "@/lib/server/mailings";
 import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
 import type { OptOutSource } from "@/lib/server/opt-outs";
-import { LIST_STATUSES } from "@/lib/server/outside-services/civicrm";
+import { INTENTS, LIST_STATUSES } from "@/lib/server/outside-services/civicrm";
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar";
 import { HOUSES, PERSON_STATUSES } from "@/lib/server/politicians";
 import type { SignupUploadPerson } from "@/lib/server/signup-uploads";
@@ -43,6 +43,7 @@ const LISTED: Record<string, readonly string[]> = {
   "asks.asked_by": ASKERS,
   "asks.kind": Object.keys(ASK_STATUSES),
   "email_problems.kind": every<ProblemKind>()(["hard", "soft", "complaint", "hold"]),
+  "civicrm_contacts.intent": INTENTS,
   "civicrm_contacts.newsletter": LIST_STATUSES,
   "civicrm_contacts.volunteer_updates": LIST_STATUSES,
   "email_sends.backend": every<Backend["name"]>()(["postmark", "gmail"]),

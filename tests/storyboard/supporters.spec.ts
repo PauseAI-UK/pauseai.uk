@@ -578,9 +578,7 @@ test("A member who never opted in", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText(said("not-opted-in", "civicrm"), { exact: false })).toBeVisible();
   await expect(page.getByText(copy.detail.permissions.answers.email.no).first()).toBeVisible();
   await openHistory(page);
-  await expect(
-    page.getByText(`${copy.detail.joinedOn("pauseai.uk")}, ${copy.detail.intents["Act now"]}`),
-  ).toBeVisible();
+  await expect(page.getByText(copy.detail.intents.act_now)).toBeVisible();
   await frame(page, "Owen's page");
 });
 

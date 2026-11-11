@@ -112,8 +112,8 @@ describeWithDatabase("eraseSupporter", () => {
       { n: 1 },
     ]);
     expect(await query("SELECT user_id FROM luma_erased")).toEqual([{ user_id: "usr-fixture-1" }]);
-    expect(await query("SELECT 1 FROM members WHERE email = 'jane.fixture@example.com'")).toEqual([]);
-    expect(await query("SELECT id FROM members_erased")).toEqual([{ id: "recMemberJane" }]);
+    expect(await query("SELECT 1 FROM airtable_members WHERE email = 'jane.fixture@example.com'")).toEqual([]);
+    expect(await query("SELECT id FROM airtable_members_erased")).toEqual([{ id: "recMemberJane" }]);
     // The message stays, as one delivered, without who to or what it said.
     expect(await query("SELECT supporter_id, address, merge_values, status FROM broadcast_messages")).toEqual([
       { supporter_id: null, address: null, merge_values: null, status: "delivered" },
@@ -142,7 +142,7 @@ describeWithDatabase("eraseSupporter", () => {
     await importMembers("test");
     expect(await query("SELECT 1 FROM luma_people WHERE user_id = 'usr-fixture-1'")).toEqual([]);
     expect(await query("SELECT 1 FROM luma_event_hosts WHERE user_id = 'usr-fixture-1'")).toEqual([]);
-    expect(await query("SELECT 1 FROM members WHERE id = 'recMemberJane'")).toEqual([]);
+    expect(await query("SELECT 1 FROM airtable_members WHERE id = 'recMemberJane'")).toEqual([]);
     expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 14 }]);
   });
 

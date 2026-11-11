@@ -74,7 +74,7 @@ erasure does.
 | `newsletter` `not_opted_in` | no yes from CiviCRM, but not a stop: a yes from another source still counts. CiviCRM refuses our `resubscribe` for them, and only its own opt-in page lifts it. Signups before June 2026 move to it when Global's email-law note is approved |
 | `newsletter` `not_on_list` | nothing from CiviCRM |
 | `volunteer_updates` | the same, for volunteering by email |
-| no longer returned | nothing from CiviCRM. Our members come from our Airtable import, as now, and CiviCRM doesn't remove them |
+| no longer returned | nothing from CiviCRM, and they're no longer a member, so their Airtable record stops counting too |
 | `on_hold` | a block, shown as from CiviCRM, which staff can lift with a note; only a new hold blocks again |
 | `no_bulk_email` | no bulk email of any topic; transactional and one-to-one email still go. Only the person lifts it, on the preferences page |
 | `do_not_email` | no email at all but transactional; we never lift it |
@@ -105,39 +105,93 @@ comes from:
 | Email your MP | email | | |
 | Paper sign-ups | email, and text with a number | through Luma | |
 | Join form's "Keep me informed" (CiviCRM `newsletter`) | email | | |
-| Join form's intent (CiviCRM `volunteer_updates` for email) | | | email, text, call |
+| Join form's intent (CiviCRM `volunteer_updates` for email) | | | email, call (phase 1½) |
 | Following the Luma calendar | | email | |
 | The preferences page (phase 3) | email, text | email, text | email, text, call |
 
-### 1½. Tidy up
+### 1½. Members from CiviCRM
 
-Ask Global why some members aren't returned, then drop what only they
-need.
+Global is to stop keeping members in Airtable, and CiviCRM's `get` now
+gives each contact's member fields
+([pauseai-civicrm#1324](https://github.com/PauseAI/pauseai-civicrm/pull/1324)):
+`first_name`, `last_name`, `city`, `postal_code`, `joined_date` (a day)
+and `intent` (`act_now`, `volunteer`, `lead`, `none`, or `keep_informed`
+for a few old records), each null when CiviCRM has none. The current
+join form doesn't ask for intent, so its members have `none`. It gives
+`phone` too, the contact's primary number, for calls only
+([pauseai-civicrm#1325](https://github.com/PauseAI/pauseai-civicrm/pull/1325));
+texts wait for PauseAI/legal-pack#13. On 11 November every field matched
+Airtable's for each of the 1,625 contacts linked to a member, numbers
+included.
 
-Members are to come from CiviCRM rather than Airtable, in about two weeks
-(from mid-November 2026). That switch may do this phase's work: once every
-member is a CiviCRM contact, none is Airtable's alone, "Keep me informed"
-and the Airtable fields below go with the Airtable import, and the CiviCRM
-supporter source and the members source become one, as do the "Joined
-PauseAI" and "Shared with us by CiviCRM" history entries, and the "left"
-reason names CiviCRM. If it comes first, this phase is what it must cover.
+**What a member is.** A UK chapter contact that CiviCRM's latest complete
+pull returns, whether or not Airtable has them (2 on 11 November weren't
+in our Airtable import). For now, also a member in Airtable whom CiviCRM
+has never returned (64 on 10 November), read by the Airtable import as
+now. Someone whose contacts have all gone isn't a member, whatever
+Airtable says, as `contact_permission()`'s `members_kept` already has it.
 
-- Tell Global about the members CiviCRM doesn't return, in a comment on
-  PauseAI/pauseai-civicrm#1175 with their Airtable record IDs (private
-  there, never here): our members with no CiviCRM contact once the import
-  has run on production. On 10 November there were 64: all in the UK in
-  Airtable, agreed to chapter sharing, not excluded or merged, and joined
-  by the June 2026 onboarding flow between July and October, most in
-  September, while every newer member is returned.
-- Once CiviCRM returns them, a member's "Keep me informed" stops counting
-  for the newsletter, as CiviCRM's `newsletter` list answers for every
-  member, and `contact_permission()` loses that rule.
-- Stop reading the Airtable fields nothing then needs, and drop their
-  columns from `members`: "Email subscription" and "Email subscription
-  (old)" (`keep_informed`), "GDPR chapter share permission"
-  (`share_permission`, always true for those Airtable's filter returns,
-  and read by nothing now), and "Last Modified" (`source_modified_at`,
-  stored but never read).
+**This phase's pull request.**
+
+- The migration first renames what holds Airtable's members, so the
+  names say where the rows come from: `members` to `airtable_members`,
+  `members_erased` to `airtable_members_erased`,
+  `supporter_links.member_id` to `airtable_member_id`, and the
+  `supporter_*_member` views to `supporter_*_airtable`. Postgres renames
+  a table in views but not in a function's body, so it redefines
+  `contact_permission()` and `merge_supporters_by_phone()`, and renames
+  view columns named `member_id`; afterwards `schema.sql` has neither
+  old name. Running code may fail for the moment of the deploy, which
+  is fine.
+- `readContact()` reads the seven fields, and `civicrm_contacts` keeps
+  them as CiviCRM gave them, with no `_since`: `first_name`, `last_name`,
+  `city`, `postal_code`, `joined_date` (a date), `intent` (checked
+  against the five values) and `phone`. A value we don't know throws, as
+  a flag does.
+- CiviCRM wins where both sources have a value. The CiviCRM source's
+  name is its first and last names joined, as we only ever show it whole.
+  A new `supporter_contact_civicrm` gives its city and postcode, so
+  `supporter_place` and the supporter's MP use them. Its history entry
+  becomes "Joined PauseAI" on `joined_date`, a day with no time, with
+  what they want to do in plain words (none for `none`), in place of
+  "Shared with us by CiviCRM", which only said when our pull first saw
+  them. A contact's going adds an entry, "Stopped sharing their details
+  with PauseAI UK" on `gone_at`. Its number joins the supporter's
+  numbers, which still merge supporters and show on their page. The
+  Airtable views give a member's name, number, place and "Joined
+  PauseAI" only for one with no CiviCRM contact, so nobody shows two of
+  each. Nothing shows the page someone joined on, as CiviCRM doesn't
+  give it: the import stops reading Airtable's "Source page", and
+  `source_page` goes.
+- The Member badge (`supporters_summary.member`) is a CiviCRM contact
+  not gone, or a member in Airtable whom CiviCRM has never returned.
+- The supporter's page names each source as it is: CiviCRM's as
+  "Member", Airtable's as "Airtable", in the sources and in where a
+  consent's yes came from.
+- Volunteering by phone becomes calls only. The yes for a call is a
+  contact's number with the intent `volunteer` or `lead`, or a number and
+  intent ("Volunteer" or "Lead") from Airtable for a member CiviCRM has
+  never returned; Airtable's members from before 30 June 2026, whose form
+  didn't ask, count as now. The `volunteer_updates` list doesn't decide
+  it, as it's about email. There's no volunteering yes by text, as Global says texts
+  need a permission no join form has asked for; the consent stays, so a
+  later migration can bring it back once PauseAI/legal-pack#13 is
+  decided. The consent's explanation on the supporter's page changes
+  with it.
+- Every new or changed word on the staff pages and in the privacy policy
+  is a placeholder for approval.
+
+**Data protection.** In `docs/data-protection.md`, the row for UK chapter
+contacts in CiviCRM adds their name, city, postcode, when they joined,
+what they said they wanted to do, and their number, for calls only, for
+the purposes the members row gives, and loses "no name, number or postal
+address". The members row becomes Airtable's, used only for members
+CiviCRM doesn't return, until Global stops keeping them there. The privacy
+policy needs no change, as the same controller gives us the same data,
+from another of its systems; check that it names no system. Erasure is
+unchanged: deleting a supporter's `civicrm_contacts` rows takes the new
+fields with them, and `civicrm_erased` keeps the pull from copying them
+back.
 
 ### 2. Send our stops back
 
@@ -292,6 +346,27 @@ More filters and lozenges in Broadcasts, so an email can carry such
 things as events near the reader, the main events with how many have
 signed up, and their MP. Deliberately not specified yet.
 
+### 5½. Drop Airtable's members
+
+Once CiviCRM returns every member, drop the Airtable import.
+
+- Tell Global about the members CiviCRM doesn't return, in a comment on
+  PauseAI/pauseai-civicrm#1175 with their Airtable record IDs (private
+  there, never here): our members with no CiviCRM contact once the import
+  has run on production. On 10 November there were 64: all in the UK in
+  Airtable, agreed to chapter sharing, not excluded or merged, and joined
+  by the June 2026 onboarding flow between July and October, most in
+  September, while every newer member is returned.
+- Once CiviCRM returns them, a member's "Keep me informed" stops counting
+  for the newsletter, as CiviCRM's `newsletter` list answers for every
+  member, and `contact_permission()` loses that rule.
+- Then drop the import (`import-members`, `fetchMembers()`),
+  `airtable_members`, `airtable_members_erased`,
+  `supporter_links.airtable_member_id` and the Airtable views.
+  `civicrm_erased` keeps erased people out from then on. The CiviCRM
+  source is the member source, and the supporter's page no longer shows
+  "Airtable" as one.
+
 ### 6. The weekly, scheduled each week
 
 The weekly is scheduled automatically each week.
@@ -360,8 +435,9 @@ as where to change your PauseAI UK email settings.
 ## Later, optional
 
 - Delete members CiviCRM stops returning, as the API's spec asks: once a
-  week has passed since a complete pull first left them out, delete them
-  from `members` and have the Airtable import skip them. Phase 1 marks the
+  week has passed since a complete pull first left them out, delete their
+  `civicrm_contacts` rows, and while the Airtable import lasts, their
+  `members` rows, with the import skipping them. Phase 1 marks the
   contact gone, and their records stop counting at once.
 
 - Discuss erasure with Global. When Global erases someone, CiviCRM

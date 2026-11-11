@@ -48,9 +48,12 @@ const renamed = (rows: Row[]): Row[] =>
   rows.map((row) => ({
     ...row,
     ...(row.source === "letter" && { source: row.id === 2 ? "web-form" : "email-your-mp" }),
+    ...(row.source === "member" && { source: "airtable" }),
     ...(row.title === "luma-calendar" && { title: "events" }),
     ...(Array.isArray(row.sources) && {
-      sources: (row.sources as string[]).map((s) => (s === "letter" ? "email-your-mp" : s)).sort(),
+      sources: (row.sources as string[])
+        .map((s) => (s === "letter" ? "email-your-mp" : s === "member" ? "airtable" : s))
+        .sort(),
     }),
   }));
 
@@ -184,7 +187,8 @@ describeWithDatabase("migration 0043_form_entries", MAKES_DATABASES, () => {
     ).toEqual([]);
     expect(
       await query(
-        `SELECT supporter_id::int AS supporter, luma_user_id AS luma, form_entry_id::int AS entry, member_id AS member
+        `SELECT supporter_id::int AS supporter, luma_user_id AS luma, form_entry_id::int AS entry,
+           airtable_member_id AS member
          FROM supporter_links ORDER BY id`,
       ),
     ).toEqual([

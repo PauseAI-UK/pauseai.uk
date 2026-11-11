@@ -22,7 +22,7 @@ export function permissionReason(permission: ContactPermission): string {
   const when = permission.at ? staffDate(permission.at) : "";
   if (permission.reason === "blocked") return copy.blockedBecause[permission.source ?? ""]?.(when) ?? "";
   const source =
-    permission.reason === "left" && permission.source === "member"
+    permission.reason === "left" && permission.source === "airtable"
       ? copy.membersFrom
       : (copy.sources[permission.source ?? ""] ?? copy.otherSource);
   return copy.reasons[permission.reason](when, source, permission.topic);

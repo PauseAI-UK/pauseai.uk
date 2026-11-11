@@ -17,12 +17,25 @@ export const PAGE_SIZE = 500;
 export const LIST_STATUSES = ["subscribed", "unsubscribed", "not_opted_in", "not_on_list"] as const;
 export type ListStatus = (typeof LIST_STATUSES)[number];
 
-/** A UK chapter contact, as `get` gives it, its address trimmed and lowercased. */
+/** What a contact said on a join form they wanted to do, the last one recorded; `none` when they picked nothing, or weren't asked. */
+export const INTENTS = ["act_now", "volunteer", "lead", "none", "keep_informed"] as const;
+export type Intent = (typeof INTENTS)[number];
+
+/** A UK chapter contact, as `get` gives it, its address trimmed and lowercased; each member detail null when CiviCRM has none. */
 export type CivicrmContact = {
   contactId: number;
   /** Their Airtable Members record, which is a member's ID, or null. */
   airtableId: string | null;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
+  city: string | null;
+  postalCode: string | null;
+  /** The day they joined, YYYY-MM-DD. */
+  joinedDate: string | null;
+  intent: Intent | null;
+  /** Their primary number, which Global shares for calls only. */
+  phone: string | null;
   onHold: boolean;
   noBulkEmail: boolean;
   doNotEmail: boolean;
@@ -47,6 +60,33 @@ function flag(row: Record<string, unknown>, field: string): boolean {
   if (typeof value !== "boolean")
     throw new CivicrmRequestError(`CiviCRM gave a contact a ${field} that isn't true or false`);
   return value;
+}
+
+/** A field that's text or null; blank text is null. */
+function detail(row: Record<string, unknown>, field: string): string | null {
+  const value = row[field] ?? null;
+  if (value !== null && typeof value !== "string") {
+    throw new CivicrmRequestError(`CiviCRM gave a contact a ${field} that isn't text`);
+  }
+  return value?.trim() || null;
+}
+
+/** The day they joined, which must be YYYY-MM-DD, or null. */
+function joinedDate(row: Record<string, unknown>): string | null {
+  const value = detail(row, "joined_date");
+  if (value !== null && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new CivicrmRequestError(`CiviCRM gave a contact a joined_date that isn't a day: ${value}`);
+  }
+  return value;
+}
+
+/** What they wanted to do, which must be one we know, or null. */
+function intent(row: Record<string, unknown>): Intent | null {
+  const value = detail(row, "intent");
+  if (value !== null && !(INTENTS as readonly string[]).includes(value)) {
+    throw new CivicrmRequestError(`CiviCRM gave a contact an intent we don't know: ${value}`);
+  }
+  return value as Intent | null;
 }
 
 /** A list's status, which must be one we know. */
@@ -78,6 +118,13 @@ export function readContact(row: Record<string, unknown>): CivicrmContact {
     contactId: contactId as number,
     airtableId: airtableId || null,
     email: email.trim().toLowerCase(),
+    firstName: detail(row, "first_name"),
+    lastName: detail(row, "last_name"),
+    city: detail(row, "city"),
+    postalCode: detail(row, "postal_code"),
+    joinedDate: joinedDate(row),
+    intent: intent(row),
+    phone: detail(row, "phone"),
     onHold: flag(row, "on_hold"),
     noBulkEmail: flag(row, "no_bulk_email"),
     doNotEmail: flag(row, "do_not_email"),

@@ -24,7 +24,7 @@ async function member(
   intent: string | null = null,
 ) {
   await query(
-    `INSERT INTO members (id, email, name, joined_at, created_at, keep_informed, share_permission, source_modified_at, removed_at, phone, intent)
+    `INSERT INTO airtable_members (id, email, name, joined_at, created_at, keep_informed, share_permission, source_modified_at, removed_at, phone, intent)
      VALUES ($1, $2, 'X', $3, $3, $4, true, $3, $5, $6, $7)`,
     [id, email, createdAt, keepInformed, removed ? createdAt : null, phone, intent],
   );
@@ -32,6 +32,9 @@ async function member(
 
 type Civicrm = {
   airtableId?: string | null;
+  phone?: string | null;
+  intent?: string | null;
+  joined?: string | null;
   newsletter?: string;
   volunteer?: string;
   flags?: Partial<Record<"on_hold" | "no_bulk_email" | "do_not_email" | "do_not_phone" | "do_not_sms", boolean>>;
@@ -40,15 +43,16 @@ type Civicrm = {
 
 let contactIds = 0;
 
-/** A CiviCRM contact with `email`, every value as of `since`: on neither list and no flags, unless told otherwise. */
+/** A CiviCRM contact with `email`, every value as of `since`: on neither list, no flags and no details, unless told otherwise. */
 async function civicrm(email: string, since: string, contact: Civicrm = {}) {
   const flags = { on_hold: false, no_bulk_email: false, do_not_email: false, do_not_phone: false, do_not_sms: false };
   Object.assign(flags, contact.flags);
   await query(
     `INSERT INTO civicrm_contacts (contact_id, airtable_id, email, on_hold, on_hold_since, no_bulk_email, no_bulk_email_since,
        do_not_email, do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since,
-       newsletter, newsletter_since, volunteer_updates, volunteer_updates_since, first_seen_at, gone_at)
-     VALUES ($1, $2, $3, $4, $11, $5, $11, $6, $11, $7, $11, $8, $11, $9, $11, $10, $11, $11, $12)`,
+       newsletter, newsletter_since, volunteer_updates, volunteer_updates_since, first_seen_at, gone_at, phone, intent,
+       joined_date)
+     VALUES ($1, $2, $3, $4, $11, $5, $11, $6, $11, $7, $11, $8, $11, $9, $11, $10, $11, $11, $12, $13, $14, $15)`,
     [
       ++contactIds,
       contact.airtableId ?? null,
@@ -62,6 +66,9 @@ async function civicrm(email: string, since: string, contact: Civicrm = {}) {
       contact.volunteer ?? "not_on_list",
       since,
       contact.gone ?? null,
+      contact.phone ?? null,
+      contact.intent ?? null,
+      contact.joined ?? null,
     ],
   );
 }
@@ -152,7 +159,6 @@ describeWithDatabase("permissionsFor", () => {
       ["a@example.com", "newsletter", "email", "email", "yes"],
       ["a@example.com", "volunteering", "email", "email", "yes"],
       ["b@example.com", "events", "email", "email", "yes"],
-      ["+447700900030", "volunteering", "text", "phone", "yes"],
       ["+447700900030", "volunteering", "call", "phone", "yes"],
     ]);
   });
@@ -300,19 +306,19 @@ describeWithDatabase("permissionsFor", () => {
       "yes",
       "asked",
       "2026-07-01T00:00:00.000Z",
-      "member",
+      "airtable",
     ]);
     expect(await answer("lee@example.com", "newsletter")).toEqual([
       "no",
       "declined",
       "2026-07-01T00:00:00.000Z",
-      "member",
+      "airtable",
     ]);
     expect(await answer("kit@example.com", "newsletter")).toEqual([
       "no",
       "not-opted-in",
       "2026-05-01T00:00:00.000Z",
-      "member",
+      "airtable",
     ]);
     // CiviCRM returns Jane, so its list is the answer, not her record's box.
     expect((await answer("jane@example.com", "newsletter"))?.slice(0, 2)).toEqual(["no", "unsubscribed"]);
@@ -322,7 +328,12 @@ describeWithDatabase("permissionsFor", () => {
       "2026-11-05T00:00:00.000Z",
       "civicrm",
     ]);
-    expect(await answer("old@example.com", "newsletter")).toEqual(["no", "left", "2026-08-01T00:00:00.000Z", "member"]);
+    expect(await answer("old@example.com", "newsletter")).toEqual([
+      "no",
+      "left",
+      "2026-08-01T00:00:00.000Z",
+      "airtable",
+    ]);
   });
 
   it("emails about events the calendar's contacts, however long ago they joined, not those who unsubscribed or never were", async () => {
@@ -400,61 +411,116 @@ describeWithDatabase("permissionsFor", () => {
     expect(await phoneAnswer("+447700900030", "newsletter", "call")).toBeUndefined();
   });
 
-  it("emails about volunteering CiviCRM's volunteer list, and texts and calls volunteers' numbers but for CiviCRM's flags", async () => {
+  it("emails about volunteering CiviCRM's volunteer list, and calls volunteers' numbers but for CiviCRM's flags, never texts", async () => {
     await civicrm("jane@example.com", "2026-11-01T00:00:00Z", { volunteer: "subscribed" });
     await civicrm("kit@example.com", "2026-11-01T00:00:00Z", { volunteer: "unsubscribed" });
     await optOut("kit@example.com", "2026-11-01T00:00:00Z", { list: "volunteering", source: "civicrm" });
     expect((await answer("jane@example.com", "volunteering"))?.slice(0, 2)).toEqual(["yes", "subscribed"]);
     expect((await answer("kit@example.com", "volunteering"))?.slice(0, 2)).toEqual(["no", "unsubscribed"]);
 
-    await member("recV", "v@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900040", "Volunteer");
-    await member("recT", "t@example.com", "2025-06-06T00:00:00Z", false, false, "07700 900041", null);
-    await member("recL", "l@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900042", "Lead");
-    await member("recR", "r@example.com", "2026-09-12T00:00:00Z", false, true, "+447700900043", "Volunteer");
-    await member("recS", "s@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900044", "Volunteer");
-    await civicrm("s@example.com", "2026-11-01T00:00:00Z", { airtableId: "recS", flags: { do_not_sms: true } });
-    await member("recP", "p@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900045", "Volunteer");
-    await civicrm("p@example.com", "2026-11-01T00:00:00Z", { airtableId: "recP", flags: { do_not_phone: true } });
-    await member("recG", "g@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900046", "Volunteer");
-    await civicrm("g@example.com", "2026-11-01T00:00:00Z", { airtableId: "recG", gone: "2026-11-02T00:00:00Z" });
-    for (const way of ["text", "call"] as const) {
-      expect(await phoneAnswer("+447700900040", "volunteering", way)).toEqual([
-        "yes",
-        "volunteered",
-        "2026-09-12T00:00:00.000Z",
-        "member",
-      ]);
-      // Before the join form asked, no intent was the Tally form's volunteers.
-      expect((await phoneAnswer("+447700900041", "volunteering", way))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
-      expect((await phoneAnswer("+447700900042", "volunteering", way))?.slice(0, 2)).toEqual(["no", "not-volunteer"]);
-      expect(await phoneAnswer("+447700900043", "volunteering", way)).toEqual([
-        "no",
-        "left",
-        expect.any(String),
-        "member",
-      ]);
-      expect(await phoneAnswer("+447700900046", "volunteering", way)).toEqual([
-        "no",
-        "left",
-        "2026-11-02T00:00:00.000Z",
-        "civicrm",
-      ]);
-    }
-    // Do not SMS stops texts only, Do not phone calls only.
-    expect(await phoneAnswer("+447700900044", "volunteering", "text")).toEqual([
-      "no",
-      "do-not-sms",
-      "2026-11-01T00:00:00.000Z",
+    // Numbers CiviCRM gives, with what each contact said they wanted to do.
+    const contact = (email: string, phone: string, more: Civicrm = {}) =>
+      civicrm(email, "2026-11-01T00:00:00Z", { phone, intent: "volunteer", joined: "2026-09-12", ...more });
+    await contact("cv@example.com", "07700 900050");
+    await contact("cl@example.com", "+447700900051", { intent: "lead" });
+    await contact("ca@example.com", "+447700900052", { intent: "act_now" });
+    await contact("ct@example.com", "+447700900053", { intent: null, joined: "2025-06-06" });
+    await contact("cn@example.com", "+447700900054", { intent: null });
+    await contact("cg@example.com", "+447700900055", { gone: "2026-11-02T00:00:00Z" });
+    await contact("cs@example.com", "+447700900056", { flags: { do_not_sms: true } });
+    await contact("cp@example.com", "+447700900057", { flags: { do_not_phone: true } });
+    await contact("cx@example.com", "+447700900058", { intent: null, joined: null });
+    expect(await phoneAnswer("+447700900050", "volunteering", "call")).toEqual([
+      "yes",
+      "volunteered",
+      "2026-09-12T00:00:00.000Z",
       "civicrm",
     ]);
-    expect((await phoneAnswer("+447700900044", "volunteering", "call"))?.slice(0, 1)).toEqual(["yes"]);
-    expect(await phoneAnswer("+447700900045", "volunteering", "call")).toEqual([
+    expect((await phoneAnswer("+447700900051", "volunteering", "call"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
+    expect(await phoneAnswer("+447700900052", "volunteering", "call")).toEqual([
+      "no",
+      "not-volunteer",
+      "2026-09-12T00:00:00.000Z",
+      "civicrm",
+    ]);
+    // Before the join form asked, no intent was the Tally form's volunteers.
+    expect((await phoneAnswer("+447700900053", "volunteering", "call"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
+    expect((await phoneAnswer("+447700900054", "volunteering", "call"))?.slice(0, 2)).toEqual(["no", "not-volunteer"]);
+    expect(await phoneAnswer("+447700900055", "volunteering", "call")).toEqual([
+      "no",
+      "left",
+      "2026-11-02T00:00:00.000Z",
+      "civicrm",
+    ]);
+    // Do not SMS doesn't stop calls; Do not phone does.
+    expect((await phoneAnswer("+447700900056", "volunteering", "call"))?.slice(0, 1)).toEqual(["yes"]);
+    expect(await phoneAnswer("+447700900057", "volunteering", "call")).toEqual([
       "no",
       "do-not-phone",
       "2026-11-01T00:00:00.000Z",
       "civicrm",
     ]);
-    expect((await phoneAnswer("+447700900045", "volunteering", "text"))?.slice(0, 1)).toEqual(["yes"]);
+    // With no day they joined, it's when a pull first returned them.
+    expect(await phoneAnswer("+447700900058", "volunteering", "call")).toEqual([
+      "no",
+      "not-volunteer",
+      "2026-11-01T00:00:00.000Z",
+      "civicrm",
+    ]);
+
+    // Numbers from Airtable, for members CiviCRM has never returned.
+    await member("recV", "v@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900040", "Volunteer");
+    await member("recT", "t@example.com", "2025-06-06T00:00:00Z", false, false, "07700 900041", null);
+    await member("recL", "l@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900042", "Lead");
+    await member("recA", "a@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900043", "Act now");
+    await member("recR", "r@example.com", "2026-09-12T00:00:00Z", false, true, "+447700900044", "Volunteer");
+    expect(await phoneAnswer("+447700900040", "volunteering", "call")).toEqual([
+      "yes",
+      "volunteered",
+      "2026-09-12T00:00:00.000Z",
+      "airtable",
+    ]);
+    expect((await phoneAnswer("+447700900041", "volunteering", "call"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
+    expect((await phoneAnswer("+447700900042", "volunteering", "call"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
+    expect(await phoneAnswer("+447700900043", "volunteering", "call")).toEqual([
+      "no",
+      "not-volunteer",
+      "2026-09-12T00:00:00.000Z",
+      "airtable",
+    ]);
+    expect(await phoneAnswer("+447700900044", "volunteering", "call")).toEqual([
+      "no",
+      "left",
+      expect.any(String),
+      "airtable",
+    ]);
+
+    // A member CiviCRM returns has CiviCRM's answer, not Airtable's; one it no longer returns has none.
+    await member("recM", "m@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900045", "Volunteer");
+    await civicrm("m@example.com", "2026-11-01T00:00:00Z", {
+      airtableId: "recM",
+      phone: "+447700900045",
+      intent: "act_now",
+      joined: "2026-09-12",
+    });
+    await member("recG", "g@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900046", "Volunteer");
+    await civicrm("g@example.com", "2026-11-01T00:00:00Z", { airtableId: "recG", gone: "2026-11-02T00:00:00Z" });
+    // Their flags reach the number they gave Airtable, though CiviCRM has none.
+    await member("recP", "p@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900047", "Volunteer");
+    await civicrm("p@example.com", "2026-11-01T00:00:00Z", { airtableId: "recP", flags: { do_not_phone: true } });
+    expect((await phoneAnswer("+447700900045", "volunteering", "call"))?.slice(0, 2)).toEqual(["no", "not-volunteer"]);
+    expect(await phoneAnswer("+447700900046", "volunteering", "call")).toEqual([
+      "no",
+      "left",
+      "2026-11-02T00:00:00.000Z",
+      "civicrm",
+    ]);
+    expect((await phoneAnswer("+447700900047", "volunteering", "call"))?.slice(0, 2)).toEqual(["no", "do-not-phone"]);
+
+    // No number is asked about for volunteering texts.
+    for (const number of ["+447700900050", "+447700900040", "+447700900056"]) {
+      expect(await phoneAnswer(number, "volunteering", "text")).toBeUndefined();
+    }
   });
 
   it("lists each opt-out that's the answer now, and finds whether any consent lets us use a number", async () => {

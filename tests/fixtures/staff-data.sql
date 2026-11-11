@@ -295,19 +295,19 @@ INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at, resubs
 -- Tom before it had the box, and Lee left it unticked then; Owen left it
 -- unticked when it was a choice, so is opted out of the updates; Rhea,
 -- who first joined in July, ticked it on the record she made last week.
-INSERT INTO members (id, email, name, phone, city, postcode, joined_at, created_at, keep_informed, share_permission, source_page, intent, source_modified_at, first_seen_at, changed_at, removed_at) VALUES
-  ('recMemberJane', 'jane.fixture@example.com', 'Jane Fixture', NULL, 'Manchester', 'M1 1AE', '2026-09-12T10:00:00Z', '2026-09-12T10:00:00Z', true, true, 'pauseai.uk', 'Volunteer', '2026-09-12T10:00:00Z', '2026-09-12T10:05:00Z', '2026-09-12T10:05:00Z', NULL),
-  ('recMemberMara', 'mara.member@example.com', 'Mara Member', '+447700900123', 'London', NULL, now() - interval '3 days 2 hours 30 minutes', now() - interval '3 days 2 hours 30 minutes', true, true, 'pauseai.info/join', 'Lead', now() - interval '3 days 2 hours 29 minutes', now() - interval '3 days 2 hours', now() - interval '3 days 2 hours', NULL),
-  ('recMemberOwen', 'owen.member@example.com', 'Owen Member', NULL, 'Bristol', NULL, now() - interval '9 days 22 hours', now() - interval '9 days 22 hours', false, true, 'pauseai.uk', 'Act now', now() - interval '9 days 22 hours', now() - interval '9 days 21 hours', now() - interval '9 days 21 hours', NULL),
-  ('recMemberRhea', 'rhea.member@example.com', 'Rhea Member', NULL, 'Cardiff', NULL, '2026-07-10T00:00:00Z', now() - interval '5 days 4 hours', true, true, 'pauseai.info/subscribe', 'Keep informed', now() - interval '5 days 4 hours', now() - interval '5 days 3 hours', now() - interval '5 days 3 hours', NULL),
-  ('recMemberKit', 'kit.member@example.com', 'Kit Member', NULL, 'Oxford', 'OX1 1AA', '2026-03-03T18:00:00Z', '2026-03-03T18:00:00Z', true, false, NULL, 'Volunteer', '2026-08-29T17:33:10Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
-  ('recMemberTom', 'tom.seed@example.com', 'Tom Seed', '+447700900456', 'London', NULL, '2024-11-03T00:00:00Z', '2025-06-06T06:18:44Z', true, false, NULL, NULL, '2026-08-29T17:33:12Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
-  ('recMemberLee', 'lee.letter@example.com', 'Lee Letter', NULL, 'Bristol', 'BS1 1AA', '2025-11-29T21:06:16Z', '2025-11-29T21:06:16Z', false, false, NULL, 'None', '2026-08-29T17:33:13Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
-  ('recMemberRobin', 'robin.rivers@example.com', 'Robin Rivers', '+447700900333', 'Leeds', NULL, '2026-05-01T00:00:00Z', '2026-05-01T00:00:00Z', true, false, NULL, 'Keep informed', '2026-08-29T17:33:14Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
-  ('recMemberGil', 'gil.member@example.com', 'Gil Member', NULL, 'Leeds', 'LS1 1AA', '2026-08-01T12:00:00Z', '2026-08-01T12:00:00Z', true, true, 'pauseai.uk', 'Act now', '2026-08-01T12:00:00Z', '2026-09-01T00:00:00Z', now() - interval '3 days 2 hours', now() - interval '3 days 2 hours');
+INSERT INTO airtable_members (id, email, name, phone, city, postcode, joined_at, created_at, keep_informed, share_permission, intent, source_modified_at, first_seen_at, changed_at, removed_at) VALUES
+  ('recMemberJane', 'jane.fixture@example.com', 'Jane Fixture', NULL, 'Manchester', 'M1 1AE', '2026-09-12T10:00:00Z', '2026-09-12T10:00:00Z', true, true, 'Volunteer', '2026-09-12T10:00:00Z', '2026-09-12T10:05:00Z', '2026-09-12T10:05:00Z', NULL),
+  ('recMemberMara', 'mara.member@example.com', 'Mara Member', '+447700900123', 'London', NULL, now() - interval '3 days 2 hours 30 minutes', now() - interval '3 days 2 hours 30 minutes', true, true, 'Lead', now() - interval '3 days 2 hours 29 minutes', now() - interval '3 days 2 hours', now() - interval '3 days 2 hours', NULL),
+  ('recMemberOwen', 'owen.member@example.com', 'Owen Member', NULL, 'Bristol', NULL, now() - interval '9 days 22 hours', now() - interval '9 days 22 hours', false, true, 'Act now', now() - interval '9 days 22 hours', now() - interval '9 days 21 hours', now() - interval '9 days 21 hours', NULL),
+  ('recMemberRhea', 'rhea.member@example.com', 'Rhea Member', NULL, 'Cardiff', NULL, '2026-07-10T00:00:00Z', now() - interval '5 days 4 hours', true, true, 'Keep informed', now() - interval '5 days 4 hours', now() - interval '5 days 3 hours', now() - interval '5 days 3 hours', NULL),
+  ('recMemberKit', 'kit.member@example.com', 'Kit Member', NULL, 'Oxford', 'OX1 1AA', '2026-03-03T18:00:00Z', '2026-03-03T18:00:00Z', true, false, 'Volunteer', '2026-08-29T17:33:10Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
+  ('recMemberTom', 'tom.seed@example.com', 'Tom Seed', '+447700900456', 'London', NULL, '2024-11-03T00:00:00Z', '2025-06-06T06:18:44Z', true, false, NULL, '2026-08-29T17:33:12Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
+  ('recMemberLee', 'lee.letter@example.com', 'Lee Letter', NULL, 'Bristol', 'BS1 1AA', '2025-11-29T21:06:16Z', '2025-11-29T21:06:16Z', false, false, 'None', '2026-08-29T17:33:13Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
+  ('recMemberRobin', 'robin.rivers@example.com', 'Robin Rivers', '+447700900333', 'Leeds', NULL, '2026-05-01T00:00:00Z', '2026-05-01T00:00:00Z', true, false, 'Keep informed', '2026-08-29T17:33:14Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
+  ('recMemberGil', 'gil.member@example.com', 'Gil Member', NULL, 'Leeds', 'LS1 1AA', '2026-08-01T12:00:00Z', '2026-08-01T12:00:00Z', true, true, 'Act now', '2026-08-01T12:00:00Z', '2026-09-01T00:00:00Z', now() - interval '3 days 2 hours', now() - interval '3 days 2 hours');
 -- Erin, erased with her Luma user (the audit log's erasure), is still in
 -- Airtable's table: the import skips her.
-INSERT INTO members_erased (id, erased_at) VALUES ('recMemberErased', now() - interval '15 days');
+INSERT INTO airtable_members_erased (id, erased_at) VALUES ('recMemberErased', now() - interval '15 days');
 
 -- ------------------------------------------------------ CiviCRM contacts
 
@@ -319,25 +319,29 @@ INSERT INTO members_erased (id, erased_at) VALUES ('recMemberErased', now() - in
 -- Tom, who joined before June, never opted in, with "Do not phone" on their
 -- number; Gil, gone from the chapter since yesterday; and Casey, a contact
 -- with no member, on hold, which blocks the address; Sasha, a contact with
--- no member either, on the newsletter, whom only CiviCRM tells us of. Mara, Lee and Robin
+-- no member either, on the newsletter, whom only CiviCRM tells us of, a
+-- volunteer with a number. Each has the details their member in Airtable
+-- has, as CiviCRM and Airtable agree. Mara, Lee and Robin
 -- aren't returned, as some members aren't: Mara's "Keep me informed" still
 -- counts, but Robin's is from before it was a free choice. Erin's
 -- contact, erased with her, is skipped.
-INSERT INTO civicrm_contacts (contact_id, airtable_id, email, on_hold, on_hold_since, no_bulk_email, no_bulk_email_since,
+INSERT INTO civicrm_contacts (contact_id, airtable_id, email, first_name, last_name, city, postal_code, joined_date,
+  intent, phone, on_hold, on_hold_since, no_bulk_email, no_bulk_email_since,
   do_not_email, do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since,
   newsletter, newsletter_since, volunteer_updates, volunteer_updates_since, first_seen_at, gone_at)
-SELECT c.id, c.airtable_id, c.email, c.on_hold, f, c.no_bulk, f, false, f, c.no_phone, f, false, f,
+SELECT c.id, c.airtable_id, c.email, c.first_name, c.last_name, c.city, c.postal_code, c.joined_date::date, c.intent,
+  c.phone, c.on_hold, f, c.no_bulk, f, false, f, c.no_phone, f, false, f,
   c.newsletter, coalesce(now() - c.newsletter_ago, f), c.volunteer, f, f, now() - c.gone_ago
 FROM (VALUES
-  (101, 'recMemberJane', 'jane.fixture@example.com', false, false, false, 'subscribed', NULL::interval, 'subscribed', NULL::interval),
-  (103, 'recMemberOwen', 'owen.member@example.com', false, false, false, 'not_opted_in', NULL, 'not_on_list', NULL),
-  (104, 'recMemberRhea', 'rhea.member@example.com', false, true, false, 'subscribed', NULL, 'not_on_list', NULL),
-  (105, 'recMemberKit', 'kit.member@example.com', false, false, false, 'unsubscribed', interval '1 day', 'subscribed', NULL),
-  (106, 'recMemberTom', 'tom.seed@example.com', false, false, true, 'not_opted_in', NULL, 'not_on_list', NULL),
-  (107, 'recMemberGil', 'gil.member@example.com', false, false, false, 'subscribed', NULL, 'not_on_list', interval '1 day'),
-  (108, NULL, 'casey.chapter@example.com', true, false, false, 'subscribed', NULL, 'not_on_list', NULL),
-  (109, NULL, 'sasha.chapter@example.com', false, false, false, 'subscribed', NULL, 'not_on_list', NULL)
-) c (id, airtable_id, email, on_hold, no_bulk, no_phone, newsletter, newsletter_ago, volunteer, gone_ago)
+  (101, 'recMemberJane', 'jane.fixture@example.com', 'Jane', 'Fixture', 'Manchester', 'M1 1AE', '2026-09-12', 'volunteer', NULL, false, false, false, 'subscribed', NULL::interval, 'subscribed', NULL::interval),
+  (103, 'recMemberOwen', 'owen.member@example.com', 'Owen', 'Member', 'Bristol', NULL, '2026-10-06', 'act_now', NULL, false, false, false, 'not_opted_in', NULL, 'not_on_list', NULL),
+  (104, 'recMemberRhea', 'rhea.member@example.com', 'Rhea', 'Member', 'Cardiff', NULL, '2026-07-10', 'keep_informed', NULL, false, true, false, 'subscribed', NULL, 'not_on_list', NULL),
+  (105, 'recMemberKit', 'kit.member@example.com', 'Kit', 'Member', 'Oxford', 'OX1 1AA', '2026-03-03', 'volunteer', NULL, false, false, false, 'unsubscribed', interval '1 day', 'subscribed', NULL),
+  (106, 'recMemberTom', 'tom.seed@example.com', 'Tom', 'Seed', 'London', NULL, '2024-11-03', NULL, '+447700900456', false, false, true, 'not_opted_in', NULL, 'not_on_list', NULL),
+  (107, 'recMemberGil', 'gil.member@example.com', 'Gil', 'Member', 'Leeds', 'LS1 1AA', '2026-08-01', 'act_now', NULL, false, false, false, 'subscribed', NULL, 'not_on_list', interval '1 day'),
+  (108, NULL, 'casey.chapter@example.com', 'Casey', 'Chapter', 'Glasgow', 'G1 1AA', '2026-10-20', 'none', NULL, true, false, false, 'subscribed', NULL, 'not_on_list', NULL),
+  (109, NULL, 'sasha.chapter@example.com', 'Sasha', 'Chapter', 'Belfast', NULL, '2026-11-02', 'volunteer', '+447700900987', false, false, false, 'subscribed', NULL, 'not_on_list', NULL)
+) c (id, airtable_id, email, first_name, last_name, city, postal_code, joined_date, intent, phone, on_hold, no_bulk, no_phone, newsletter, newsletter_ago, volunteer, gone_ago)
 CROSS JOIN (SELECT now() - interval '2 days' AS f) first;
 INSERT INTO civicrm_erased (contact_id, erased_at) VALUES (199, now() - interval '15 days');
 INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at)
@@ -940,7 +944,7 @@ WITH emails AS (
   UNION ALL
   SELECT lower(trim(email)), created_at FROM form_entries
   UNION ALL
-  SELECT email, joined_at FROM members
+  SELECT email, joined_at FROM airtable_members
   UNION ALL
   SELECT email, first_seen_at FROM civicrm_contacts
 ), firsts AS (
@@ -954,8 +958,8 @@ WITH emails AS (
   INSERT INTO supporter_links (supporter_id, luma_user_id, matched_by, matched_value, linked_at)
   SELECT k.id, p.user_id, 'email', k.email, now() - interval '1 hour' FROM keyed k JOIN luma_people p ON p.email = k.email
 ), member_links AS (
-  INSERT INTO supporter_links (supporter_id, member_id, matched_by, matched_value, linked_at)
-  SELECT k.id, m.id, 'email', k.email, m.first_seen_at FROM keyed k JOIN members m ON m.email = k.email
+  INSERT INTO supporter_links (supporter_id, airtable_member_id, matched_by, matched_value, linked_at)
+  SELECT k.id, m.id, 'email', k.email, m.first_seen_at FROM keyed k JOIN airtable_members m ON m.email = k.email
 ), civicrm_links AS (
   INSERT INTO supporter_links (supporter_id, civicrm_contact_id, matched_by, matched_value, linked_at)
   SELECT k.id, c.contact_id, 'email', k.email, c.first_seen_at FROM keyed k JOIN civicrm_contacts c ON c.email = k.email

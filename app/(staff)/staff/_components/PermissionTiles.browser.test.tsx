@@ -125,7 +125,7 @@ describe("PermissionTiles", () => {
     await render(
       <PermissionTiles
         permissions={[
-          { ...newsletter, send: "no", reason: "left", source: "member" },
+          { ...newsletter, send: "no", reason: "left", source: "airtable" },
           { ...newsletter, address: "b@example.com", send: "no", reason: "left", source: "civicrm" },
         ]}
       />,
