@@ -193,7 +193,8 @@ describe("the supporters list's Email and Phone columns", () => {
     expect(text(columns, "phone", { ...jane, permissions: exampleBlockedPermissions })).toBe("");
     await render(<SupportersTable search={search(contact)} page={{ supporters: [jane], total: 1, pages: 1 }} />);
     await expect.element(page.getByRole("cell", { name: "jane@example.com" })).toBeVisible();
-    await expect.element(page.getByRole("cell", { name: "+447700900001" })).toBeVisible();
+    // A download keeps the number whole; the page shows it without the country code.
+    await expect.element(page.getByRole("cell", { name: "07700 900001" })).toBeVisible();
   });
 });
 

@@ -21,7 +21,8 @@ describe("PermissionTiles", () => {
     // The newsletter first; events with her email and her number in it, email first, each its own answer.
     expect(head(newsletter)).toBe(`${copy.topics.newsletter}?`);
     expect(lines(newsletter)).toEqual([`jane@example.com${copy.answers.email.yes}`]);
-    expect(lines(events)).toEqual([`jane@example.com${copy.answers.email.no}`, `+447700900001${copy.answers.text.no}`]);
+    // A UK number without its country code.
+    expect(lines(events)).toEqual([`jane@example.com${copy.answers.email.no}`, `07700 900001${copy.answers.text.no}`]);
     expect(answers(events).map((a) => (a as HTMLElement).dataset.send)).toEqual(["no", "no"]);
     // Why, where from and when, under each.
     expect(reasons(events)).toEqual([
@@ -86,14 +87,53 @@ describe("PermissionTiles", () => {
     await render(<PermissionTiles permissions={exampleMemberDetails.permissions} />);
     const [newsletter, events, volunteering] = rows();
     expect(lines(newsletter)).toEqual([`rhea@example.com${copy.answers.email.yes}`]);
-    expect(reasons(newsletter)).toEqual([copy.reasons.subscribed("10 Nov 2026", copy.sources.civicrm)]);
+    expect(reasons(newsletter)).toEqual([copy.reasons.subscribed("10 Nov 2026", copy.sources.civicrm, "newsletter")]);
     expect(reasons(events)).toEqual([copy.reasons["not-following"]("", copy.sources.luma)]);
+    // Her number's text and call answers are the same, so they share a line, a lozenge each, after a handset,
+    // and the link rings it.
     expect(lines(volunteering)).toEqual([
       `rhea@example.com${copy.answers.email.no}`,
-      `+447700900002${copy.answers.text.yes}`,
-      `+447700900002${copy.answers.call.yes}`,
+      `07700 900002${copy.answers.text.yes}${copy.answers.call.yes}`,
     ]);
+    expect(volunteering.querySelector("a[href='tel:+447700900002']")).not.toBeNull();
     expect(reasons(volunteering)[0]).toBe(copy.reasons["no-bulk-email"]("10 Nov 2026", copy.sources.civicrm));
+  });
+
+  it("gives a number's text and call answers a line each when they differ, a text's link to WhatsApp", async () => {
+    const [, , , text, call] = exampleMemberDetails.permissions;
+    await render(
+      <PermissionTiles
+        permissions={[
+          text,
+          { ...call, send: "no", reason: "do-not-phone" },
+          { ...text, address: "+447700900003", send: "no", reason: "do-not-sms" },
+        ]}
+      />,
+    );
+    const [volunteering] = rows();
+    expect(lines(volunteering)).toEqual([
+      `07700 900002${copy.answers.text.yes}`,
+      `07700 900003${copy.answers.text.no}`,
+      `07700 900002${copy.answers.call.no}`,
+    ]);
+    expect(volunteering.querySelector("a[href='https://wa.me/447700900002']")).not.toBeNull();
+    expect(volunteering.querySelectorAll("a")).toHaveLength(1);
+  });
+
+  it("says a member who's gone is gone from Airtable, and any other source by its name", async () => {
+    const [newsletter] = exampleMemberDetails.permissions;
+    await render(
+      <PermissionTiles
+        permissions={[
+          { ...newsletter, send: "no", reason: "left", source: "member" },
+          { ...newsletter, address: "b@example.com", send: "no", reason: "left", source: "civicrm" },
+        ]}
+      />,
+    );
+    expect(reasons(rows()[0])).toEqual([
+      copy.reasons.left("10 Nov 2026", copy.membersFrom),
+      copy.reasons.left("10 Nov 2026", copy.sources.civicrm),
+    ]);
   });
 
   it("says no for a blocked address under each of its topics, with what blocked it and the link to the blocked emails", async () => {

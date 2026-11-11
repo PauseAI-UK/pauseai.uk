@@ -25,7 +25,7 @@ export type Topic = (typeof TOPICS)[number];
 export type Consent = { topic: Topic; way: Way };
 
 /** The ways each topic goes by: a call only ever about volunteering, as a newsletter or an event isn't one. */
-export const TOPIC_WAYS = {
+const TOPIC_WAYS = {
   newsletter: ["email", "text"],
   events: ["email", "text"],
   volunteering: ["email", "text", "call"],

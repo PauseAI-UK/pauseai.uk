@@ -61,10 +61,10 @@ describe("SupporterDetails", () => {
       expect.arrayContaining([
         [copy.detail.postcode, "M1 1AE"],
         // Her number, given to Luma, is one we may not use since she unsubscribed: marked, and no link.
-        [copy.detail.phone, `+447700900001 ${copy.detail.unusable}`],
+        [copy.detail.phone, `07700 900001 ${copy.detail.unusable}`],
       ]),
     );
-    await expect.element(page.getByRole("link", { name: "+447700900001" })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: "07700 900001" })).not.toBeInTheDocument();
     // Beside the profile, her events and her letters, a table each.
     // The event she registered for and hosts is two rows, one event in the band.
     const events = page.getByRole("region", { name: copy.detail.eventsTitle, exact: false });

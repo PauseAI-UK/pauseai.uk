@@ -44,6 +44,7 @@ export const COLOUR_TOKENS = [
   "--status-blue",
   "--status-blue-bg",
   "--chart-teal",
+  "--chart-plum",
   "--briefing-headline",
   "--briefing-headline-strong",
   "--briefing-headline-text",

@@ -82,6 +82,7 @@ describeWithDatabase("importCivicrm", () => {
       ),
     ]);
 
+    // Nobody else has their addresses, so each is a new supporter.
     expect(await importCivicrm("jo@pauseai.uk")).toEqual({
       contacts: 501,
       added: 501,
@@ -89,6 +90,8 @@ describeWithDatabase("importCivicrm", () => {
       gone: 0,
       optOuts: 1,
       blocked: 0,
+      supportersAdded: 501,
+      linked: 501,
     });
     expect(asked).toEqual([
       { method: "GET", params: { limit: 500, after_contact_id: 0 } },

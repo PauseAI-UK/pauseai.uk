@@ -48,8 +48,8 @@ describe("SUPPORTER_FILTERS", () => {
     expect(contact().options[0].group).toEqual({ label: copy.ways.email, icon: undefined });
     expect(contact((channel) => `icon of ${channel}`).options.map((option) => option.group)).toEqual([
       ...[1, 2, 3].map(() => ({ label: copy.ways.email, icon: "icon of email" })),
-      ...[1, 2, 3].map(() => ({ label: copy.ways.text, icon: "icon of phone" })),
-      ...[1, 2, 3].map(() => ({ label: copy.ways.call, icon: "icon of phone" })),
+      ...[1, 2, 3].map(() => ({ label: copy.ways.text, icon: "icon of text" })),
+      { label: copy.ways.call, icon: "icon of call" },
     ]);
     expect(contact().repeat).toBeUndefined();
   });

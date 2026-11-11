@@ -116,10 +116,10 @@ describe("SupporterFilters", () => {
     expect(locked.querySelector("svg:first-child[class*=lockIcon]")).toBeNull();
   });
 
-  it("offers every consent once in the Consent filter, by email, then text, then call", () => {
+  it("offers every consent once in the Consent filter, by email, then text, then call, which is volunteering's alone", () => {
     expect(CONSENT_ORDER.map(consentKey).sort()).toEqual(CONSENTS.map(consentKey).sort());
     expect(CONSENT_ORDER.map((consent) => consent.way)).toEqual([
-      ...["email", "email", "email", "text", "text", "text", "call", "call", "call"],
+      ...["email", "email", "email", "text", "text", "text", "call"],
     ]);
     expect(CONSENT_ORDER[0]).toEqual({ topic: "newsletter", way: "email" });
   });

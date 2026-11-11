@@ -416,7 +416,7 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText(copy.problems["no-template"])).toBeVisible();
     await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
     await expect.element(page.getByLabelText(copy.subject)).not.toBeInTheDocument();
-    await expect.element(page.getByText("+44 7700 900000", { exact: true })).toBeVisible();
+    await expect.element(page.getByText("07700 900000", { exact: true })).toBeVisible();
   });
 
   it("offers only new words when there are no approved templates", async () => {
@@ -610,7 +610,7 @@ describe("BroadcastWriter, by text", () => {
     // What they'll cost, and the rate, as it may have changed.
     await expect.element(page.getByText(textCost(exampleBroadcastData.count).rate)).toBeVisible();
     // The summary names the WhatsApp number it's from.
-    await expect.element(page.getByText(/texts from PauseAI UK \(\+44 7700 900000\) on WhatsApp/)).toBeVisible();
+    await expect.element(page.getByText(/texts from PauseAI UK \(07700 900000\) on WhatsApp/)).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
     await page.getByLabelText(copy.testTo).fill("+447700900002");
     await button(copy.sendTest).click();

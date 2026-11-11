@@ -2,14 +2,12 @@ import { describe, expect, it } from "vitest";
 import { CONSENTS, channelOf, consentKey, contactState, stateValue } from "./contact-permissions";
 
 describe("consents", () => {
-  it("are every topic by every way, a topic at a time, each with its key", () => {
+  it("are each topic by its ways, a topic at a time, each with its key: calls only for volunteering", () => {
     expect(CONSENTS.map(consentKey)).toEqual([
       "email:newsletter",
       "text:newsletter",
-      "call:newsletter",
       "email:events",
       "text:events",
-      "call:events",
       "email:volunteering",
       "text:volunteering",
       "call:volunteering",

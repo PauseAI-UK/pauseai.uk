@@ -78,14 +78,16 @@ describeWithDatabase("POST /api/cron/<job>", () => {
   });
 
   it("copies the fixture's UK chapter contacts from CiviCRM and says what it did", async () => {
-    // Kit's unsubscribe, and Casey's hold.
+    // Kit's unsubscribe, and Casey's hold; with no members here, each contact is a new supporter.
     expect(await answer("import-civicrm")).toEqual({
-      contacts: 7,
-      added: 7,
+      contacts: 8,
+      added: 8,
       changed: 0,
       gone: 0,
       optOuts: 1,
       blocked: 1,
+      supportersAdded: 8,
+      linked: 8,
     });
   });
 

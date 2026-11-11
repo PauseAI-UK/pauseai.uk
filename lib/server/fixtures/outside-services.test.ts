@@ -61,8 +61,8 @@ describe("fixtureResponse", () => {
       ((await response!.json()).values as { contact_id: number }[]).map((c) => c.contact_id);
     const page = (params: object) => `${get}?${new URLSearchParams({ params: JSON.stringify(params) })}`;
     expect(await ids(fixtureResponse(page({ limit: 2, after_contact_id: 103 })))).toEqual([104, 105]);
-    expect(await ids(fixtureResponse(page({})))).toHaveLength(7);
-    expect(await ids(fixtureResponse(get))).toHaveLength(7);
+    expect(await ids(fixtureResponse(page({})))).toHaveLength(8);
+    expect(await ids(fixtureResponse(get))).toHaveLength(8);
     const body = new URLSearchParams({ params: JSON.stringify({ email: ["kit.member@example.com"] }) });
     expect(await ids(fixtureResponse(get, { method: "POST", body: body.toString() }))).toEqual([105]);
   });

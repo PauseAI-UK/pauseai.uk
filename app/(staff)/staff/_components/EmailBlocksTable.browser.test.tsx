@@ -36,7 +36,10 @@ describe("EmailBlocksTable", () => {
     );
     const bounced = page.getByRole("row").filter({ hasText: exampleBlock.address });
     await expect.element(bounced.getByText(staffCopy.emails.kinds.hard)).toBeVisible();
-    await expect.element(bounced.getByText(exampleBlock.reason)).toBeVisible();
+    // The reason, then who told us.
+    await expect
+      .element(bounced.getByRole("cell", { name: `${exampleBlock.reason} ${staffCopy.emails.from.postmark}` }))
+      .toBeVisible();
     // Whose it is, linked to their page; and the letter that found it out, by whom it was to, linked to it alone.
     await expect
       .element(bounced.getByRole("link", { name: "Bouncy McTestface MP", exact: true }))

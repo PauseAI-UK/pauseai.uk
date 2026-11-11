@@ -47,7 +47,7 @@ import StaffSessions from "@/app/(staff)/staff/_components/StaffSessions";
 import { exampleDashboard, exampleQuietDashboard } from "@/app/(staff)/staff/_components/StaffDashboard.examples";
 import Sparkline from "@/app/(staff)/staff/_components/Sparkline";
 import StackedBars from "@/app/(staff)/staff/_components/StackedBars";
-import PermissionTiles from "@/app/(staff)/staff/_components/PermissionTiles";
+import PermissionTiles, { ContactLink } from "@/app/(staff)/staff/_components/PermissionTiles";
 import {
   exampleBlockedPermissions,
   exampleMemberDetails,
@@ -360,6 +360,28 @@ export const staffAdmin: Group = {
           render: () => (
             <StaffPage as="div">
               <PermissionTiles permissions={exampleBlockedPermissions} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "ContactLink",
+      file: "app/(staff)/staff/_components/PermissionTiles.tsx",
+      variants: [
+        {
+          label: "An address to email, a number to text on WhatsApp, and one to call",
+          render: () => (
+            <StaffPage as="div">
+              <p>
+                <ContactLink address="jane.smith@example.com" way="email" />
+              </p>
+              <p>
+                <ContactLink address="+447700900123" way="text" />
+              </p>
+              <p>
+                <ContactLink address="+447700900123" way="call" />
+              </p>
             </StaffPage>
           ),
         },
