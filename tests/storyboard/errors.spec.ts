@@ -46,8 +46,11 @@ test("A staff page breaks", async ({ page, flowDatabase }) => {
   await logIn(page, flowDatabase, ["admin"]);
   runSql(flowDatabase, "ALTER TABLE notes RENAME TO notes_gone");
   await page.goto(`${BASE}/staff/politicians/1`);
-  await expect(page.getByRole("heading", { level: 1, name: COULDNT_LOAD })).toBeVisible();
-  await frame(page, "The page in place of the politician's");
+  const heading = page.getByRole("heading", { level: 1, name: COULDNT_LOAD });
+  await expect(heading).toBeVisible();
+  // Just the message: the error number under it is Next's digest of the
+  // error, whose stack names the build's files, so it differs every build.
+  await frame(page, "The page in place of the politician's", { of: heading.locator("..") });
 
   story(
     "The notification inbox is emailed, as it's an error that hasn't been seen before. The email gives the error without its numbers and names, and a link to it.",
