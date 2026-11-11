@@ -104,22 +104,41 @@ export function migrationsOnDisk(cwd = process.cwd()) {
   return existsSync(dir) ? readdirSync(dir).filter((name) => numberOf(name) !== undefined) : [];
 }
 
-/** The open pull requests and their files, from GitHub, or undefined if `gh` can't say. */
-export function openPrs(cwd = process.cwd()) {
+/** The most files `gh pr list` gives a pull request: a list that long may be cut short. */
+export const LISTED_FILES = 100;
+
+/**
+ * The open pull requests and their files, from GitHub, or undefined if `gh`
+ * can't say. `gh pr list` gives a pull request's first files only, in path
+ * order, which can leave out netlify/'s, so one at that limit has all its
+ * files read from the REST API (`run` stands in for gh in tests).
+ */
+export function openPrs(cwd = process.cwd(), run = gh) {
   try {
-    const out = execFileSync(
-      "gh",
-      ["pr", "list", "--state", "open", "--limit", "100", "--json", "number,headRefName,files"],
-      {
-        cwd,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      },
+    const prs = JSON.parse(
+      run(["pr", "list", "--state", "open", "--limit", "100", "--json", "number,headRefName,files"], cwd),
     );
-    return JSON.parse(out);
+    return prs.map((pr) =>
+      pr.files.length < LISTED_FILES
+        ? pr
+        : {
+            ...pr,
+            files: run(
+              ["api", "--paginate", `repos/{owner}/{repo}/pulls/${pr.number}/files`, "--jq", ".[].filename"],
+              cwd,
+            )
+              .split("\n")
+              .filter(Boolean)
+              .map((path) => ({ path })),
+          },
+    );
   } catch {
     return undefined;
   }
+}
+
+function gh(args, cwd) {
+  return execFileSync("gh", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
 }
 
 /**

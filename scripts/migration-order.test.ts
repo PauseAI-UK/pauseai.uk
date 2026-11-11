@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   check,
   highest,
+  LISTED_FILES,
   migrationsOnDisk,
+  openPrs,
   nextFree,
   numberOf,
   openPrClashes,
@@ -80,6 +82,36 @@ describe("openPrClashes and nextFree", () => {
     expect(nextFree(["0098_b.sql"], ["0098_b.sql"])).toBe("0099");
     expect(nextFree(["0098_b.sql"], ["0098_b.sql", "0099_mine.sql"])).toBe("0100");
     expect(nextFree(["0098_b.sql"], ["0098_b.sql"], prs)).toBe("0102");
+  });
+});
+
+describe("openPrs", () => {
+  it("reads every file of a pull request whose list gh cut short, and none again of one it didn't", () => {
+    const many = Array.from({ length: LISTED_FILES }, (_, i) => ({ path: `app/${i}.tsx` }));
+    const calls: string[][] = [];
+    const run = (args: string[]) => {
+      calls.push(args);
+      if (args[0] === "pr")
+        return JSON.stringify([
+          { number: 277, headRefName: "big", files: many },
+          { number: 279, headRefName: "small", files: [{ path: "scripts/a.mjs" }] },
+        ]);
+      return `app/0.tsx\n${M}/0099_hidden.sql\n`;
+    };
+    const prs = openPrs("/repo", run)!;
+    expect(prs[0].files).toEqual([{ path: "app/0.tsx" }, { path: `${M}/0099_hidden.sql` }]);
+    expect(prs[1].files).toEqual([{ path: "scripts/a.mjs" }]);
+    expect(calls.filter(([command]) => command === "api")).toEqual([
+      ["api", "--paginate", "repos/{owner}/{repo}/pulls/277/files", "--jq", ".[].filename"],
+    ]);
+  });
+
+  it("is undefined when gh can't say", () => {
+    expect(
+      openPrs("/repo", () => {
+        throw new Error("gh: not logged in");
+      }),
+    ).toBeUndefined();
   });
 });
 

@@ -9,5 +9,6 @@ export function openPrClashes(added: string[], prs: OpenPr[], branch: string): s
 export function nextFree(main: string[], own: string[], prs?: OpenPr[]): string;
 export function migrationsAt(ref: string, cwd?: string): string[];
 export function migrationsOnDisk(cwd?: string): string[];
-export function openPrs(cwd?: string): OpenPr[] | undefined;
+export const LISTED_FILES: number;
+export function openPrs(cwd?: string, run?: (args: string[], cwd: string) => string): OpenPr[] | undefined;
 export function check(options?: { cwd?: string; prs?: OpenPr[] | null }): { lines: string[]; ok: boolean };
