@@ -507,6 +507,30 @@ describeWithDatabase("one-off emails", () => {
       await readGmail("nightly");
       expect(await threads()).toHaveLength(0);
     });
+
+    it("searches in readGmail for an address staff added, keeping its earlier mail, and says so", async () => {
+      const polly = await addTestPolitician();
+      await connectTestGmail("policy@pauseai.uk");
+      vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
+      mailbox({ id: "m1", from: "Polly <polly.home@example.com>" });
+      server.use(
+        http.get(`${GMAIL}/history`, () => HttpResponse.json({ historyId: "2", history: [] })),
+        http.get(`${GMAIL}/messages`, ({ request }) =>
+          HttpResponse.json(
+            new URL(request.url).searchParams.get("q") === '"polly.home@example.com"'
+              ? { messages: [{ id: "m1" }] }
+              : {},
+          ),
+        ),
+      );
+      expect((await readGmail("nightly")).searched).toBeUndefined();
+      await query(
+        "INSERT INTO politician_addresses (address, notable_person_id, source, added_by) VALUES ('polly.home@example.com', $1, 'staff', 'jo@pauseai.uk')",
+        [polly],
+      );
+      expect((await readGmail("nightly")).searched).toEqual({ searched: 1, kept: 1, waiting: 0 });
+      expect(await query("SELECT notable_person_id::int AS id FROM one_off_thread_people")).toEqual([{ id: polly }]);
+    });
   });
 
   it("knows a politician by a past address, from the audit log, and their own domain", async () => {

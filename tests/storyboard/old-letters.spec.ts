@@ -369,13 +369,21 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   await expect(fold.getByText(aliases.sources.email)).toBeVisible();
   await frame(page, "Her aliases", { window: true });
 
-  story("Staff add her Gmail. The site finds her email in policy@, keeps it, and it shows under her.");
+  story("Staff add her Gmail. The page says her earlier emails will be found shortly.");
   await fold.getByLabel(aliases.address).fill(POLLY_PERSONAL);
   await fold.getByRole("button", { name: aliases.add }).click();
-  await expect(fold.getByRole("status")).toHaveText(aliases.added(1));
+  await expect(fold.getByRole("status")).toHaveText(aliases.added);
   await expect(fold.getByText(POLLY_PERSONAL)).toBeVisible();
   await fold.getByRole("status").scrollIntoViewIfNeeded();
   await frame(page, "Her Gmail added", { window: true });
+
+  story("The next read of Gmail searches policy@ for her Gmail, and says so. Her email is kept, and shows under her.");
+  await page.goto(`${BASE}${importPath("read-gmail")}`);
+  await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
+  // The read keeps her email by its new address, if it's new to the mailbox, or the search does.
+  const read = staffCopy.gmailReading.searched({ searched: 1, kept: 0, waiting: 0 }).split(",")[0];
+  await expect(page.getByText(read, { exact: false }).first()).toBeVisible();
+  await frame(page, "The read of Gmail, having searched for it");
   await page.goto(`${BASE}/staff/politicians/${polly}`);
   await expect(page.getByRole("link", { name: "From my own address" })).toBeVisible();
   await frame(page, "Her email from it, under her");

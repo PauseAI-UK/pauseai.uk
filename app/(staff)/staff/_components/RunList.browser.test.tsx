@@ -559,6 +559,22 @@ describe("RunList", () => {
     await expect.element(page.getByText(exampleDisconnectedGmail.error!, { exact: false })).not.toBeInTheDocument();
   });
 
+  it("says what a Gmail read's search for added addresses found, and how many wait", async () => {
+    const accounts = [exampleGmailResult.accounts[0]];
+    const searched = { searched: 1, kept: 3, waiting: 0 };
+    const { rerender } = await render(
+      <RunList runs={[ran("read-gmail", { accounts, searched }, { id: 1 })]} none="None" />,
+    );
+    const total = staffCopy.gmailReading.result(accounts).replace(/\.?$/, ".");
+    await expect
+      .element(page.getByText(`${total} ${staffCopy.gmailReading.searched(searched)}`, { exact: false }))
+      .toBeVisible();
+    expect(staffCopy.gmailReading.searched(searched)).not.toContain("still to search");
+    const waiting = { searched: 0, kept: 0, waiting: 2 };
+    await rerender(<RunList runs={[ran("read-gmail", { accounts, searched: waiting }, { id: 1 })]} none="None" />);
+    await expect.element(page.getByText(/2 still to search/)).toBeVisible();
+  });
+
   it("says a Gmail read stopped as another was reading, and no totals", async () => {
     const stopped = { accounts: [], stoppedBy: "running" as const };
     await render(<RunList runs={[ran("read-gmail", stopped, { status: "unchanged" })]} none="None" />);

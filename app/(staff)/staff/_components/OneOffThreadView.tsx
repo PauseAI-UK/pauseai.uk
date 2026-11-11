@@ -87,7 +87,7 @@ export default function OneOffThreadView({ thread }: { thread: OneOffThread }) {
                         politicians={rebuilt.politicians}
                       />
                     }
-                    to={<Mailboxes line={rebuilt.to} politicians={rebuilt.politicians} />}
+                    to={rebuilt.to ? <Mailboxes line={rebuilt.to} politicians={rebuilt.politicians} /> : null}
                     cc={rebuilt.cc ? <Mailboxes line={rebuilt.cc} politicians={rebuilt.politicians} /> : null}
                     at={null}
                     sent={rebuilt.sent}

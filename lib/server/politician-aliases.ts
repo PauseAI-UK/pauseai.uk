@@ -6,8 +6,11 @@ import { query, transaction } from "./db";
 import { gmailAccess } from "./gmail-accounts";
 import { ONE_OFF_HEADERS, keepIfPoliticianThread } from "./one-off-emails";
 import { relinkOneOffs } from "./one-off-relink";
-import { gmailMessageHeaders, searchGmail, unlessGone } from "./outside-services/gmail";
+import { GmailError, gmailMessageHeaders, searchGmail, unlessGone } from "./outside-services/gmail";
 import { connectedAccounts, readPoliticianBook } from "./politician-book";
+import type { AddressSearch } from "@/lib/import-runs";
+import { problem } from "./problems";
+import { staffCopy } from "@/lib/content/staff-interface";
 
 // A politician's aliases: every address and domain that says a message is
 // theirs, and where each came from, for the foot of their page; and the
@@ -108,17 +111,20 @@ export async function politicianAliases(politician: {
   };
 }
 
-/** How many messages the search for a new address keeps from each mailbox, at most, so that adding one ends inside a request. */
+/** How many messages the search for an address keeps from each mailbox, at most. */
 const SEARCH_AT_MOST = 50;
+
+/** Whether Gmail refused for now, as it does past its limit a minute: the search carries on next time. */
+const refusedForNow = (error: unknown) =>
+  error instanceof GmailError && (error.status === 429 || (error.status === 403 && /quota|rate/i.test(error.message)));
 
 /**
  * Keeps what the mailboxes we keep hold with an address in it, anywhere:
- * the messages the regular read passed over before the address was known.
- * Gives how many it kept that weren't kept already.
+ * the messages the regular read passed over before the address was known,
+ * but for those kept already. Stops at `stop` (a time from Date.now()),
+ * between messages; gives whether it got through them all.
  */
-async function searchMailboxes(address: string): Promise<number> {
-  const count = async () => (await query<{ n: number }>("SELECT count(*)::int AS n FROM one_off_messages"))[0].n;
-  const before = await count();
+async function searchMailboxes(address: string, stop: number): Promise<boolean> {
   for (const account of (await connectedAccounts()).filter(keepsPoliticianThreads)) {
     const token = await gmailAccess(account);
     const found = await searchGmail(token, `"${address}"`, SEARCH_AT_MOST);
@@ -127,20 +133,60 @@ async function searchMailboxes(address: string): Promise<number> {
       [account, found],
     );
     for (const id of found.filter((id) => !kept.some((row) => row.id === id))) {
+      if (Date.now() >= stop) return false;
       const message = await gmailMessageHeaders(token, id, ONE_OFF_HEADERS).catch(unlessGone);
       if (message) await keepIfPoliticianThread(account, token, message, account === config.policyInbox);
     }
   }
-  return (await count()) - before;
+  return true;
 }
 
-/** What adding an address did: kept, with how many messages the search kept; or why not. */
-export type AddResult = { added: true; kept: number } | { added: false; why: "invalid" | "exists" };
+/** How long past `until` the search for one address may go on, before it stops and carries on next time. */
+const FINISH_MS = 8_000;
 
 /**
- * Adds an address to a politician's by hand, logged, then keeps the mail
- * with it that the mailboxes hold and relinks every thread, so that it shows
- * on their page. Gives what happened.
+ * Searches the mailboxes for each address staff added and nobody has
+ * searched for yet, oldest first, starting on another until `until` (a time
+ * from Date.now()) and stopping partway through one a little after it: part
+ * of the regular read of Gmail. An address is marked searched once it's done.
+ * If it's stopped, or Gmail refuses for now, the address is searched again
+ * next time, passing over what's kept; any other failure is a problem of the run, and
+ * the address is marked searched all the same, so it isn't tried every five
+ * minutes, and staff can add it again.
+ */
+export async function searchAddedAddresses(until: number): Promise<AddressSearch> {
+  const waiting = await query<{ address: string; id: number }>(
+    `SELECT address, notable_person_id::int AS id FROM politician_addresses
+     WHERE source = 'staff' AND searched_at IS NULL ORDER BY created_at, address`,
+  );
+  const messages = async () => (await query<{ n: number }>("SELECT count(*)::int AS n FROM one_off_messages"))[0].n;
+  const before = await messages();
+  let searched = 0;
+  for (const { address, id } of waiting) {
+    if (Date.now() >= until) break;
+    try {
+      if (!(await searchMailboxes(address, until + FINISH_MS))) break;
+    } catch (error) {
+      if (refusedForNow(error)) break;
+      problem(staffCopy.problems.job.addressNotSearched(address), error);
+    }
+    await query(
+      "UPDATE politician_addresses SET searched_at = now() WHERE address = $1 AND notable_person_id = $2 AND source = 'staff'",
+      [address, id],
+    );
+    searched++;
+  }
+  return { searched, kept: (await messages()) - before, waiting: waiting.length - searched };
+}
+
+/** What adding an address did, or why it didn't. */
+export type AddResult = { added: true } | { added: false; why: "invalid" | "exists" };
+
+/**
+ * Adds an address to a politician's by hand, logged, and relinks every
+ * thread, so that those with it show on their page. The mailboxes are
+ * searched for its earlier mail by the regular read of Gmail
+ * (searchAddedAddresses), not while staff wait. Gives what happened.
  */
 export async function addPoliticianAddress(politicianId: number, given: string, by: string): Promise<AddResult> {
   const address = given.trim().toLowerCase();
@@ -163,9 +209,8 @@ export async function addPoliticianAddress(politicianId: number, given: string, 
     return rows.length > 0;
   });
   if (!added) return { added: false, why: "exists" };
-  const kept = await searchMailboxes(address);
   await relinkOneOffs(Date.now());
-  return { added: true, kept };
+  return { added: true };
 }
 
 /**
