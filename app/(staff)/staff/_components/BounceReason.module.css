@@ -22,13 +22,23 @@
   display: none;
 }
 
+/* The "…" that unfolds it, a small pill so it looks like something to press. */
 .more {
-  color: var(--accent);
+  display: inline-block;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-secondary);
   font-weight: 700;
+  line-height: 1.2;
+  vertical-align: 1px;
 }
 
-.fold summary:hover .more {
-  text-decoration: underline;
+.fold summary:hover .more,
+.fold summary:focus-visible .more {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .fold[open] .short,
