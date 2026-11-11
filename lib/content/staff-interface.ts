@@ -2036,8 +2036,8 @@ All events: ${link}`,
     searched: (s: AddressSearch) =>
       `Searched for ${count(s.searched, "added address", "added addresses")}, keeping ${count(s.kept, "earlier email", "earlier emails")}.` +
       (s.waiting ? ` ${s.waiting} still to search.` : "") +
-      (s.stopped?.by === "time" ? " ⁂ Stopped as its time ran out." : "") +
-      (s.stopped?.by === "gmail" ? ` ⁂ Stopped as Gmail refused: ${s.stopped.error}` : ""),
+      (s.stopped?.by === "time" ? " Stopped as its time ran out." : "") +
+      (s.stopped?.by === "gmail" ? ` Stopped as Gmail refused: ${s.stopped.error}` : ""),
     title: "Replies, bounces and one-off emails from Gmail",
     intro: {
       before: "Reads the replies to our letters, and their bounces, in each ",
