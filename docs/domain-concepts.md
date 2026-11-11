@@ -1046,8 +1046,9 @@ its own font, wrapped to its window, where it would show a text-only one in
 a fixed-width font or in lines broken at a set width. A letter, its copy and
 a mailing have HTML of their own, from the editor's document. For any other,
 written only as text (a notice, a login link, an alert), `send()` makes it
-from the text (`lib/plain-email-html.ts`): a paragraph for each run of
-lines, each web address a link. Postmark is told to leave those links as
+from the text (`lib/plain-email-html.ts`): a paragraph for each block of
+lines, a bulleted list of lines that start "- ", each web address a link.
+The text itself goes unchanged beside it. Postmark is told to leave those links as
 written (`TrackLinks`), so a login link never goes through Postmark's
 address. A relay is its sender's message, as it came.
 
