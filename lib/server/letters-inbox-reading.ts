@@ -116,27 +116,102 @@ const domainOf = (value: string) => value.slice(value.lastIndexOf("@") + 1).toLo
 const aligned = (a: string, b: string) => a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`);
 
 /**
- * Whether Google's servers found a message is from the domain of `from`:
- * by the Authentication-Results that mx.google.com added, it passed DMARC;
- * or, where the domain has no DMARC policy, SPF or DKIM aligned with it.
- * Any other server's results could be forged, so they're ignored.
+ * An Authentication-Results field's clauses, each as its words: split at
+ * every `;` and space that isn't in a comment or a quoted string, with the
+ * comments left out and a quoted string read as the text it holds (RFC
+ * 8601, section 2.2). Much of the field is the sender's to choose, such as
+ * the envelope sender Google repeats in a comment and in `smtp.mailfrom`,
+ * and read this way none of it is a clause of its own. Undefined if a
+ * comment or a quoted string never ends, or a comment ends that never began.
+ */
+function clauses(field: string): string[][] | undefined {
+  const all: string[][] = [[]];
+  let word = "";
+  let quoted = false;
+  let depth = 0;
+  const endWord = () => {
+    if (word) all.at(-1)!.push(word);
+    word = "";
+  };
+  for (let i = 0; i < field.length; i++) {
+    const char = field[i];
+    if (quoted) {
+      if (char === "\\") word += field.charAt(++i);
+      else if (char === '"') quoted = false;
+      else word += char;
+    } else if (depth) {
+      if (char === "\\") i++;
+      else depth += char === "(" ? 1 : char === ")" ? -1 : 0;
+    } else if (char === ")") {
+      return undefined;
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === "(" || char === ";" || /\s/.test(char)) {
+      endWord();
+      if (char === "(") depth = 1;
+      if (char === ";") all.push([]);
+    } else {
+      word += char;
+    }
+  }
+  if (quoted || depth) return undefined;
+  endWord();
+  return all;
+}
+
+/** What one method found of a message: `dmarc`, `pass`, and what it says it's about, such as `header.from`. */
+type Finding = { method: string; result: string; properties: Map<string, string> };
+
+/**
+ * What Google's servers found of a message: the clauses of the
+ * Authentication-Results field that mx.google.com added, which is the first
+ * in the message, as a server adds its own above all that came. One further
+ * down is the sender's own, whatever server it names, so it's never read.
+ * Each clause is a method and its result, then its properties, the first of
+ * each name. Undefined if the first field isn't mx.google.com's, or can't
+ * be read (clauses).
+ */
+function googleFound(raw: string): Finding[] | undefined {
+  const head = raw.slice(0, raw.search(/\r?\n\r?\n/)).replace(/\r?\n[ \t]+/g, " ");
+  const [server, ...rest] = clauses(/^Authentication-Results:(.*)$/im.exec(head)?.[1] ?? "") ?? [];
+  if (server?.[0]?.toLowerCase() !== "mx.google.com") return undefined;
+  return rest.flatMap(([first = "", ...words]) => {
+    const found = /^([a-z-]+)=(\w+)$/i.exec(first);
+    if (!found) return [];
+    const properties = words.flatMap((each): [string, string][] => {
+      const at = each.indexOf("=");
+      return at > 0 ? [[each.slice(0, at).toLowerCase(), each.slice(at + 1)]] : [];
+    });
+    return [
+      { method: found[1].toLowerCase(), result: found[2].toLowerCase(), properties: new Map(properties.reverse()) },
+    ];
+  });
+}
+
+/**
+ * Whether Google's servers found a message is from the domain of `from`
+ * (googleFound): it passed DMARC, for a From aligned with it; or, where
+ * the domain has no DMARC policy, SPF or DKIM passed for a domain aligned
+ * with it. Each result is read from its own clause, with the domain that
+ * clause names. Not if DMARC has two results, as Google gives one, so the
+ * other is someone's addition.
  */
 export function authenticated(raw: string, from: string): boolean {
-  const head = raw.slice(0, raw.search(/\r?\n\r?\n/));
-  const results = [...head.replace(/\r?\n[ \t]+/g, " ").matchAll(/^Authentication-Results:\s*(.*)$/gim)]
-    .map(([, value]) => value)
-    .filter((value) => /^mx\.google\.com\s*;/i.test(value));
+  const found = googleFound(raw);
+  if (!found) return false;
   const domain = domainOf(from);
-  return results.some((value) => {
-    const result = (method: string) => new RegExp(`\\b${method}=(\\w+)`, "i").exec(value)?.[1].toLowerCase();
-    const field = (name: string) => new RegExp(`\\b${name.replace(".", "\\.")}=([^\\s;]+)`, "i").exec(value)?.[1];
-    const dmarc = result("dmarc");
-    if (dmarc === "pass") return aligned(domainOf(field("header.from") ?? domain), domain);
-    if (dmarc !== undefined && dmarc !== "none") return false;
-    const spf = result("spf") === "pass" && aligned(domainOf(field("smtp.mailfrom") ?? ""), domain);
-    const dkim = result("dkim") === "pass" && aligned(domainOf(field("header.d") ?? field("header.i") ?? ""), domain);
-    return spf || dkim;
-  });
+  const of = (method: string) => found.filter((finding) => finding.method === method);
+  const passed = (finding: Finding, ...names: string[]) => {
+    const about = names.map((name) => finding.properties.get(name)).find(Boolean);
+    return finding.result === "pass" && !!about && aligned(domainOf(about), domain);
+  };
+  const dmarc = of("dmarc");
+  if (dmarc.length > 1) return false;
+  if (dmarc.length && dmarc[0].result !== "none") return passed(dmarc[0], "header.from");
+  const spf = of("spf");
+  return (
+    (spf.length === 1 && passed(spf[0], "smtp.mailfrom")) || of("dkim").some((d) => passed(d, "header.d", "header.i"))
+  );
 }
 
 /** Whether an address is the office's: an address of Parliament's, or the one the letter went to. */
@@ -311,7 +386,13 @@ async function isOurs(account: string, message: GmailMessageHeaders): Promise<bo
   return !!row;
 }
 
-/** Records each address a bounce of an email we sent says failed. Returns how many, or undefined for a bounce of nothing we sent. */
+/**
+ * Records that an email we sent bounced, if the bounce says the address it
+ * went to failed: anyone can write to the inbox as mailer-daemon, and a
+ * recorded bounce blocks its address, so no other address a bounce names
+ * is recorded. Returns how many it recorded, or undefined for a bounce of
+ * nothing we sent, or one that names only other addresses.
+ */
 async function bounce(
   account: string,
   raw: Buffer,
@@ -320,12 +401,14 @@ async function bounce(
   request: Request | undefined,
 ) {
   const { addresses, messageId } = readBounce(raw.toString("latin1"));
-  const [sent] = await query<{ messageId: string }>(
-    `SELECT message_id AS "messageId" FROM email_sends WHERE sender = $1 AND outcome = 'sent' AND rfc_message_id = $2`,
+  const [sent] = await query<{ messageId: string; address: string }>(
+    `SELECT message_id AS "messageId", address FROM email_sends
+     WHERE sender = $1 AND outcome = 'sent' AND rfc_message_id = $2`,
     [account, messageId ?? null],
   );
-  if (!sent) return undefined;
-  for (const failed of addresses) {
+  const failures = addresses.filter((failed) => failed.address === sent?.address);
+  if (!sent || (addresses.length && !failures.length)) return undefined;
+  for (const failed of failures) {
     await handleDeliveryProblem(
       {
         address: failed.address,
@@ -339,7 +422,7 @@ async function bounce(
       request,
     );
   }
-  return addresses.length;
+  return failures.length;
 }
 
 /** An account's line of the run, with the letters inbox's counts. */
