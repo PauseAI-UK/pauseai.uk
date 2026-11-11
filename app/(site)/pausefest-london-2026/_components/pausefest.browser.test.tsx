@@ -127,8 +127,13 @@ describe("Going", () => {
   });
 
   it("gives just the count when Luma features no one", async () => {
-    const { container } = await render(<Going going={{ count: 0, guests: [] }} />);
+    const { container } = await render(<Going going={{ count: 3, guests: [] }} />);
     expect(container.querySelector("ul")).toBeNull();
-    await expect.element(page.getByText(/0 going$/)).toBeVisible();
+    await expect.element(page.getByText(/3 going$/)).toBeVisible();
+  });
+
+  it("shows nothing while no one is going", async () => {
+    const { container } = await render(<Going going={{ count: 0, guests: [] }} />);
+    expect(container.textContent).toBe("");
   });
 });
