@@ -1721,7 +1721,7 @@ All events: ${link}`,
       intro: "Policy emails referencing these addresses will be linked to this politician.",
       columns: { address: "Address", from: "Source" },
       sources: {
-        email: "⁂ Main address, used for letters",
+        email: "Main address, we send email here",
         past: "⁂ Previous main address",
         parliament: "⁂ Listed on Parliament's website",
         office: "⁂ Their office: only seen in emails with them",
