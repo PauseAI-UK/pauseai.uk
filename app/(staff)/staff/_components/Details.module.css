@@ -392,8 +392,10 @@
 }
 
 /* Beside the profile: the events and letters tables, a heading over each. */
+/* One column no wider than the card's, so a wide table scrolls in its own box (components/ui/Table), not the page. */
 .tables {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--space-5);
 }
