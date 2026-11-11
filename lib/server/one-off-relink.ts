@@ -83,7 +83,7 @@ const PERSONAL = /^[a-z]+(?:[-'][a-z]+)*\.[a-z]+(?:[-'][a-z]+)*\d*@/;
  * no politician's, seen in threads with people that all have the same one,
  * by whose it is.
  */
-export function officeAddresses(
+function officeAddresses(
   book: PoliticianBook,
   messages: Message[],
   people: Map<number, Set<number>>,

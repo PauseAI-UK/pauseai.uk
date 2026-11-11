@@ -51,7 +51,7 @@ export function onParliamentDomain(address: string): boolean {
 export type FormPerson = { id: number; name: string; house: string; constituency: string | null; inOffice: boolean };
 
 /** A word's letters alone, lowercased, without accents: "Allin-Khan" is allinkhan. */
-export const letters = (word: string) =>
+const letters = (word: string) =>
   word
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
