@@ -2388,7 +2388,7 @@ All events: ${link}`,
     forwardedAlone: "⁂ (Forwarded without a message)",
     // Beside the thread: the politicians it shows under, and the button that takes one off it.
     people: {
-      title: "⁂ Linked politicians",
+      title: "Linked politicians",
       none: "⁂ None",
       unlink: "⁂ Unlink",
     },
