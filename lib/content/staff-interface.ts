@@ -1723,7 +1723,7 @@ All events: ${link}`,
       sources: {
         email: "Main address, we send email here",
         past: "⁂ Previous main address",
-        parliament: "⁂ Listed on Parliament's website",
+        parliament: "Listed on Parliament's website",
         office: "⁂ Their office: only seen in emails with them",
         domain: "⁂ Their own domain: any address ending in it",
         form: "⁂ Parliament's usual format for their name or seat (variants such as …mp@ and officeof…@ also count)",
