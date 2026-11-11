@@ -169,7 +169,7 @@ export const copy = {
     nameRequired: "Please enter your name.",
     addressRequired: "Please fill in your postal address.",
     // An email address typed in the address's first line.
-    addressIsEmail: "⁂ That's an email address. Please give the first line of your postal address.",
+    addressIsEmail: "Please give the first line of your postal address here.",
     postcodeRequired: "Please enter a postcode.",
     notFound: "Postcode not found.",
     noConstituency: "No parliamentary constituency found for this postcode.",
