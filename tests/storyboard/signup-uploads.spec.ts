@@ -75,6 +75,7 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
 
   story("They drop in a file. Name, email, postcode and phone are understood. Other columns are ignored.");
   await chooseFile(page, "street-flyering.csv");
+  await previewWorkedOut(page);
   await frame(page, "What each column will do");
 
   story("They choose the column saying who's going, then the event it's for.");
