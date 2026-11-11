@@ -173,7 +173,12 @@ describeWithDatabase("a politician's aliases", () => {
     mailbox([], "quota");
     await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
     await addPoliticianAddress(polly.id, "polly.other@example.com", "jo@pauseai.uk");
-    expect(await searchAddedAddresses(LATER())).toEqual({ searched: 0, kept: 1, waiting: 2 });
+    expect(await searchAddedAddresses(LATER())).toEqual({
+      searched: 0,
+      kept: 1,
+      waiting: 2,
+      stopped: { by: "gmail", error: expect.stringContaining("Quota exceeded") },
+    });
     expect(await searchedAt()).toEqual([{ at: null }, { at: null }]);
     mailbox([]);
     expect(await searchAddedAddresses(LATER())).toEqual({ searched: 2, kept: 0, waiting: 0 });
@@ -184,10 +189,15 @@ describeWithDatabase("a politician's aliases", () => {
     await connectTestGmail("policy@pauseai.uk");
     mailbox([]);
     await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
-    expect(await searchAddedAddresses(Date.now() - 1)).toEqual({ searched: 0, kept: 0, waiting: 1 });
+    expect(await searchAddedAddresses(Date.now() - 1)).toEqual({
+      searched: 0,
+      kept: 0,
+      waiting: 1,
+      stopped: { by: "time" },
+    });
     // Started in time, then past the time it may go on to before its first message.
     const now = vi.spyOn(Date, "now").mockReturnValueOnce(0).mockReturnValue(10_000_000_000_000);
-    expect(await searchAddedAddresses(1_000)).toEqual({ searched: 0, kept: 0, waiting: 1 });
+    expect(await searchAddedAddresses(1_000)).toEqual({ searched: 0, kept: 0, waiting: 1, stopped: { by: "time" } });
     now.mockRestore();
     expect(await searchedAt()).toEqual([{ at: null }]);
   });

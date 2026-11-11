@@ -2,7 +2,7 @@
 
 import type { Reason, Topic, Way } from "@/lib/contact-permissions";
 import { letterEditorCopy } from "@/lib/content/letter-editor";
-import type { ImportJob } from "@/lib/import-runs";
+import type { AddressSearch, ImportJob } from "@/lib/import-runs";
 import { count, plural } from "@/lib/content/plural";
 
 /**
@@ -2033,9 +2033,11 @@ All events: ${link}`,
   gmailReading: {
     oneOffs: (n: number) => `${n} one-off ${plural(n, "email", "emails")} kept.`,
     // After the totals, in a run that searched for addresses staff added to politicians': what it found, and how many wait.
-    searched: (s: { searched: number; kept: number; waiting: number }) =>
+    searched: (s: AddressSearch) =>
       `Searched for ${count(s.searched, "added address", "added addresses")}, keeping ${count(s.kept, "earlier email", "earlier emails")}.` +
-      (s.waiting ? ` ${s.waiting} still to search.` : ""),
+      (s.waiting ? ` ${s.waiting} still to search.` : "") +
+      (s.stopped?.by === "time" ? " ⁂ Stopped as its time ran out." : "") +
+      (s.stopped?.by === "gmail" ? ` ⁂ Stopped as Gmail refused: ${s.stopped.error}` : ""),
     title: "Replies, bounces and one-off emails from Gmail",
     intro: {
       before: "Reads the replies to our letters, and their bounces, in each ",

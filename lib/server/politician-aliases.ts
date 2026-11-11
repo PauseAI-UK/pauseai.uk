@@ -9,7 +9,7 @@ import { relinkOneOffs } from "./one-off-relink";
 import { GmailError, gmailMessageHeaders, searchGmail, unlessGone } from "./outside-services/gmail";
 import { connectedAccounts, readPoliticianBook } from "./politician-book";
 import type { AddressSearch } from "@/lib/import-runs";
-import { problem } from "./problems";
+import { describeError, problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
 
 // A politician's aliases: every address and domain that says a message is
@@ -150,7 +150,8 @@ const FINISH_MS = 8_000;
  * from Date.now()) and stopping partway through one a little after it: part
  * of the regular read of Gmail. An address is marked searched once it's done.
  * If it's stopped, or Gmail refuses for now, the address is searched again
- * next time, passing over what's kept; any other failure is a problem of the run, and
+ * next time, passing over what's kept, and the result says which, with
+ * Gmail's words; any other failure is a problem of the run, and
  * the address is marked searched all the same, so it isn't tried every five
  * minutes, and staff can add it again.
  */
@@ -162,12 +163,22 @@ export async function searchAddedAddresses(until: number): Promise<AddressSearch
   const messages = async () => (await query<{ n: number }>("SELECT count(*)::int AS n FROM one_off_messages"))[0].n;
   const before = await messages();
   let searched = 0;
+  let stopped: AddressSearch["stopped"];
   for (const { address, id } of waiting) {
-    if (Date.now() >= until) break;
+    if (Date.now() >= until) {
+      stopped = { by: "time" };
+      break;
+    }
     try {
-      if (!(await searchMailboxes(address, until + FINISH_MS))) break;
+      if (!(await searchMailboxes(address, until + FINISH_MS))) {
+        stopped = { by: "time" };
+        break;
+      }
     } catch (error) {
-      if (refusedForNow(error)) break;
+      if (refusedForNow(error)) {
+        stopped = { by: "gmail", error: describeError(error) };
+        break;
+      }
       problem(staffCopy.problems.job.addressNotSearched(address), error);
     }
     await query(
@@ -176,7 +187,12 @@ export async function searchAddedAddresses(until: number): Promise<AddressSearch
     );
     searched++;
   }
-  return { searched, kept: (await messages()) - before, waiting: waiting.length - searched };
+  return {
+    searched,
+    kept: (await messages()) - before,
+    waiting: waiting.length - searched,
+    ...(stopped && { stopped }),
+  };
 }
 
 /** What adding an address did, or why it didn't. */
