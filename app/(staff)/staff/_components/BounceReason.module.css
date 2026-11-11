@@ -5,3 +5,38 @@
   min-width: 10rem;
   max-width: 16rem;
 }
+
+/* A long reason, folded to its first sentence: inline, so the lozenge
+   follows it, and the whole of it unfolded in its place. */
+.fold {
+  display: inline;
+}
+
+.fold summary {
+  display: inline;
+  list-style: none;
+  cursor: pointer;
+}
+
+.fold summary::-webkit-details-marker {
+  display: none;
+}
+
+.more {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.fold summary:hover .more {
+  text-decoration: underline;
+}
+
+.fold[open] .short,
+.fold:not([open]) .whole {
+  display: none;
+}
+
+/* A server's reason holds long codes and links with no spaces. */
+.whole {
+  overflow-wrap: anywhere;
+}

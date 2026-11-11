@@ -252,7 +252,7 @@ export const staffLetters: Group = {
       file: "app/(staff)/staff/_components/BounceReason.tsx",
       variants: [
         {
-          label: "Postmark's, one found in someone's Gmail, and a hold in CiviCRM",
+          label: "Postmark's, a long one found in someone's Gmail, folded to its first sentence, and a hold in CiviCRM",
           render: () => (
             <StaffPage as="div">
               <p>
@@ -260,7 +260,7 @@ export const staffLetters: Group = {
               </p>
               <p>
                 <BounceReason
-                  reason="550 5.1.1 The email account that you tried to reach does not exist."
+                  reason="550-5.1.1 The email account that you tried to reach does not exist. Please try 550-5.1.1 double-checking the recipient's email address for typos. https://support.google.com/mail/?p=NoSuchUser - gsmtp"
                   kind="hard"
                   foundInGmail
                 />
