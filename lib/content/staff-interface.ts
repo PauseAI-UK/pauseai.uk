@@ -548,7 +548,7 @@ export const staffCopy = {
               : `On newsletter list in CiviCRM, ${when}`,
           following: (when: string) => `Follows the Luma calendar, since ${when}`,
           "gave-number": (when: string, source: string) => `Gave it on ${source} for texts on the day, ${when}`,
-          volunteered: (when: string) => `Gave it when joining as a volunteer, ${when}`,
+          volunteered: (when: string) => `Gave it when joining as a volunteer or lead, ${when}`,
           blocked: () => "",
           "do-not-email": (when: string) => `“Do not email” in CiviCRM, ${when}`,
           "no-bulk-email": (when: string) => `“No bulk emails” in CiviCRM, ${when}`,
