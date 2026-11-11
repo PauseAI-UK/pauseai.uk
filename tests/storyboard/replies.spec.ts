@@ -605,7 +605,7 @@ test("Erasing Jane when her mail can't be cleared", async ({ page, request, flow
   await page.getByRole("textbox", { name: staffCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
   await page.getByRole("checkbox", { name: staffCopy.erase.confirm }).check();
   await page.getByRole("button", { name: staffCopy.erase.button }).click();
-  // The blobs client tries a failing request again, a few seconds apart, before giving up.
+  // The blobs client tries a failing request again, a second apart (failing-services.ts), before giving up.
   await expect(page).toHaveURL(/\/staff\/supporters\?erased=partly&why=mail$/, { timeout: 60_000 });
   await expect(page.getByRole("status")).toContainText(staffCopy.erase.partly);
   await expect(page.getByRole("status")).toContainText(staffCopy.erase.notCleared.mail);

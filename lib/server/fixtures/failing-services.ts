@@ -30,5 +30,11 @@ export function failingResponse(hostname: string, scope?: string, dir = process.
         headers: { "Content-Type": "application/json" },
       },
     );
-  return new Response("Service Unavailable", { status: 503 });
+  // The Blobs client tries a failing request five times more, 5 seconds apart, unless a rate limit's reset
+  // says sooner: one long gone makes it the client's least, a second, so a flow waits seconds, not minutes.
+  const headers: HeadersInit = hostname === BLOBS_HOST ? { "X-RateLimit-Reset": "0" } : {};
+  return new Response("Service Unavailable", { status: 503, headers });
 }
+
+/** The fixture build's Blobs store (outside-services/blobs.ts). */
+const BLOBS_HOST = "blobs.fixture.invalid";
