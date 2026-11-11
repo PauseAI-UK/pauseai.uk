@@ -128,5 +128,4 @@ export const exampleChanges: LoggedChange[] = [
     { politician: POLLY },
   ),
   change(32, "jo@pauseai.uk", "remove politician address", { politicianId: 7, address: "polly@example.com" }),
-  change(33, "jo@pauseai.uk", "unlink one-off", { politicianId: 7, threadId: 12 }, { politician: POLLY }),
 ];

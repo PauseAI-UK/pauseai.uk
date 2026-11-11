@@ -676,24 +676,6 @@ describeWithDatabase("what one-off emails quote and forward", () => {
     ).toEqual([{ id: meg }]);
   });
 
-  it("doesn't link a politician staff took off the thread, nor bring them back when threads join", async () => {
-    const polly = await addTestPolitician();
-    const a = (await keep({ id: "a", from: POLLY }))!;
-    const b = (await keep({ id: "b", from: POLLY, at: 1790000005000 }))!;
-    await query("DELETE FROM one_off_thread_people WHERE thread_id = $1", [a]);
-    await query(
-      "INSERT INTO one_off_unlinked (thread_id, notable_person_id, unlinked_by) VALUES ($1, $2, 'jo@pauseai.uk')",
-      [a, polly],
-    );
-    await keep({ id: "c", from: POLLY, thread: "t-a" });
-    expect(await query("SELECT 1 FROM one_off_thread_people WHERE thread_id = $1", [a])).toEqual([]);
-    await keep({ id: "d", from: POLLY, thread: "t-a", inReplyTo: "b@example.org" });
-    expect(await threads()).toEqual([{ id: a }]);
-    expect(await query("SELECT 1 FROM one_off_thread_people")).toEqual([]);
-    expect(await query("SELECT thread_id::int AS id FROM one_off_unlinked")).toEqual([{ id: a }]);
-    expect(b).not.toBe(a);
-  });
-
   it("erases a message that quotes a supporter's address", async () => {
     await addFormEntry("march-2026-11", {
       name: "Vera Volunteer",

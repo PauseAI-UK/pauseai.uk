@@ -19,7 +19,6 @@ import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
   addAliasNow,
   removeAliasNow,
-  unlinkOneOffNow,
   addNoteNow,
   deleteNoteNow,
   editNoteNow,
@@ -86,7 +85,6 @@ describeWithDatabase("staff Server Actions", () => {
       () => saveEventNow(form({ eventId: "evt-1", owner: "jo@pauseai.uk", doc: "" })),
       () => addAliasNow(form({ politicianId: String(id), address: "a@example.com" })),
       () => removeAliasNow(form({ politicianId: String(id), address: "a@example.com" })),
-      () => unlinkOneOffNow(form({ threadId: "1", politicianId: String(id) })),
     ];
     for (const attempt of attempts) expect(await expectRedirect(attempt)).toBe("/staff/login");
     expect(await statusCount()).toBe(0);
@@ -474,21 +472,6 @@ describeWithDatabase("staff Server Actions", () => {
       { actor: "jo@pauseai.uk" },
       { actor: "jo@pauseai.uk" },
     ]);
-  });
-
-  it("unlinkOneOffNow takes a politician off a thread as the staff member, and ignores a bad form", async () => {
-    const id = await addTestPolitician();
-    const [{ thread }] = await query<{ thread: number }>(
-      "INSERT INTO one_off_threads (latest_at) VALUES (now()) RETURNING id::int AS thread",
-    );
-    await query("INSERT INTO one_off_thread_people (thread_id, notable_person_id) VALUES ($1, $2)", [thread, id]);
-    await unlinkOneOffNow(form({ threadId: "x", politicianId: String(id) }));
-    await unlinkOneOffNow(form({ threadId: String(thread), politicianId: "x" }));
-    await unlinkOneOffNow(form({ threadId: String(thread + 1), politicianId: String(id) }));
-    expect(revalidatePath).not.toHaveBeenCalled();
-    await unlinkOneOffNow(form({ threadId: String(thread), politicianId: String(id) }));
-    expect(revalidatePath).toHaveBeenCalledWith("/staff", "layout");
-    expect(await query("SELECT unlinked_by AS by FROM one_off_unlinked")).toEqual([{ by: "jo@pauseai.uk" }]);
   });
 
   it("disconnects your own Gmail", async () => {

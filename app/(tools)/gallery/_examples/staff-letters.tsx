@@ -16,6 +16,7 @@ import CampaignsOverview, { CampaignAsk } from "@/app/(staff)/staff/_components/
 import CampaignView from "@/app/(staff)/staff/_components/CampaignView";
 import LetterStatus from "@/app/(staff)/staff/_components/LetterStatus";
 import { OneOffTable } from "@/app/(staff)/staff/_components/OneOffList";
+import OneOffThreadView from "@/app/(staff)/staff/_components/OneOffThreadView";
 import {
   exampleChanged,
   exampleCampaign,
@@ -53,7 +54,6 @@ import type { Group } from "../_components/types";
 import {
   EmailBlocksTableExample,
   MailingLetterViewExample,
-  OneOffThreadViewExample,
   SupporterLetterViewExample,
   UnblockFormExample,
 } from "./staff.client";
@@ -517,15 +517,16 @@ export const staffLetters: Group = {
           label: "A thread of three: one unreadable, and an automatic reply folded to its first paragraph",
           render: () => (
             <StaffPage as="div">
-              <OneOffThreadViewExample thread={exampleOneOffThread} />
+              <OneOffThreadView thread={exampleOneOffThread} />
             </StaffPage>
           ),
         },
         {
-          label: "A forward: the letter and the MP's answer it carries rebuilt before it, under the MP it shows under",
+          label:
+            "A forward: the letter and the MP's answer it carries rebuilt before it, with the MP it's linked to beside it",
           render: () => (
             <StaffPage as="div">
-              <OneOffThreadViewExample thread={exampleForwardThread} />
+              <OneOffThreadView thread={exampleForwardThread} />
             </StaffPage>
           ),
         },
@@ -533,7 +534,7 @@ export const staffLetters: Group = {
           label: "Hidden from staff without supporters",
           render: () => (
             <StaffPage as="div">
-              <OneOffThreadViewExample thread={{ ...exampleHiddenOneOff, messages_: null }} />
+              <OneOffThreadView thread={{ ...exampleHiddenOneOff, messages_: null }} />
             </StaffPage>
           ),
         },

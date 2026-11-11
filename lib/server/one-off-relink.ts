@@ -106,15 +106,15 @@ export function officeAddresses(
 /**
  * Relinks every one-off thread: reads what it can of the quotes not yet
  * stored, until `until`; finds the offices' addresses, by the book without
- * them, but for those staff rejected; and links each thread to the people the whole book finds in it, but
- * for any staff took off it. A thread with a message whose quotes are still
+ * them, but for those staff rejected; and links each thread to the people
+ * the whole book finds in it. A thread with a message whose quotes are still
  * unread gains people but loses none, as what it quotes may be why it has
  * them. Whether each thread has someone else in it (`someone_else`) is worked
  * out again from its senders, as the book says who's a politician.
  */
 export async function relinkOneOffs(until: number): Promise<Relinked> {
   const { read, unread } = await readQuotes(until);
-  const [direct, rows, linked, unlinked, rejected, connected] = await Promise.all([
+  const [direct, rows, linked, rejected, connected] = await Promise.all([
     readPoliticianBook(false),
     query<Message & { from: string }>(
       `SELECT thread_id::int AS thread, from_address AS from, addresses, quoted_addresses AS quoted, quoted_names AS names
@@ -122,9 +122,6 @@ export async function relinkOneOffs(until: number): Promise<Relinked> {
     ),
     query<{ thread: number; id: number }>(
       `SELECT thread_id::int AS thread, notable_person_id::int AS id FROM one_off_thread_people`,
-    ),
-    query<{ thread: number; id: number }>(
-      `SELECT thread_id::int AS thread, notable_person_id::int AS id FROM one_off_unlinked`,
     ),
     query<{ address: string; id: number }>(
       "SELECT address, notable_person_id::int AS id FROM politician_addresses WHERE source = 'rejected'",
@@ -142,9 +139,8 @@ export async function relinkOneOffs(until: number): Promise<Relinked> {
   const people = threadPeople(book, rows);
   const unreadThreads = new Set(rows.filter((row) => row.quoted === null).map((row) => row.thread));
   const had = new Set(linked.map(({ thread, id }) => `${thread} ${id}`));
-  const off = new Set(unlinked.map(({ thread, id }) => `${thread} ${id}`));
   const add = [...people].flatMap(([thread, ids]) =>
-    [...ids].filter((id) => !had.has(`${thread} ${id}`) && !off.has(`${thread} ${id}`)).map((id) => [thread, id]),
+    [...ids].filter((id) => !had.has(`${thread} ${id}`)).map((id) => [thread, id]),
   );
   const remove = linked
     .filter(({ thread, id }) => !unreadThreads.has(thread) && !people.get(thread)?.has(id))

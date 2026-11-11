@@ -2133,17 +2133,6 @@ ALTER TABLE public.one_off_threads ALTER COLUMN id ADD GENERATED ALWAYS AS IDENT
 );
 
 --
--- Name: one_off_unlinked; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.one_off_unlinked (
-    thread_id bigint NOT NULL,
-    notable_person_id bigint NOT NULL,
-    unlinked_by text NOT NULL,
-    unlinked_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
---
 -- Name: opt_outs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -2923,13 +2912,6 @@ ALTER TABLE ONLY public.one_off_thread_people
 
 ALTER TABLE ONLY public.one_off_threads
     ADD CONSTRAINT one_off_threads_pkey PRIMARY KEY (id);
-
---
--- Name: one_off_unlinked one_off_unlinked_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.one_off_unlinked
-    ADD CONSTRAINT one_off_unlinked_pkey PRIMARY KEY (thread_id, notable_person_id);
 
 --
 -- Name: opt_outs opt_outs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -3810,20 +3792,6 @@ ALTER TABLE ONLY public.one_off_thread_people
 
 ALTER TABLE ONLY public.one_off_thread_people
     ADD CONSTRAINT one_off_thread_people_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.one_off_threads(id) ON DELETE CASCADE;
-
---
--- Name: one_off_unlinked one_off_unlinked_notable_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.one_off_unlinked
-    ADD CONSTRAINT one_off_unlinked_notable_person_id_fkey FOREIGN KEY (notable_person_id) REFERENCES public.notable_people(id) ON DELETE CASCADE;
-
---
--- Name: one_off_unlinked one_off_unlinked_thread_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.one_off_unlinked
-    ADD CONSTRAINT one_off_unlinked_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.one_off_threads(id) ON DELETE CASCADE;
 
 --
 -- Name: politician_addresses politician_addresses_notable_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

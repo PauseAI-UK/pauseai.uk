@@ -117,18 +117,6 @@ describeWithDatabase("relinking one-off threads", () => {
     expect(await query("SELECT source FROM politician_addresses")).toEqual([{ source: "rejected" }]);
   });
 
-  it("leaves a politician staff took off a thread off it", async () => {
-    const polly = await addTestPolitician();
-    const thread = await keep("a", "polly.placeholder.mp@parliament.uk");
-    await query("DELETE FROM one_off_thread_people");
-    await query(
-      "INSERT INTO one_off_unlinked (thread_id, notable_person_id, unlinked_by) VALUES ($1, $2, 'jo@pauseai.uk')",
-      [thread, polly],
-    );
-    expect(await relinkOneOffs(LATER())).toMatchObject({ linked: 0 });
-    expect(await linked()).toEqual([]);
-  });
-
   it("works out again whether a thread has someone else in it, as the book says who's a politician", async () => {
     const polly = await addTestPolitician();
     await keep("a", "polly.personal@example.com");

@@ -351,11 +351,7 @@ test("A forward, rebuilt", async ({ page, request, flowDatabase }) => {
   await expect(emails.nth(2)).toContainText("Look at this.");
   await frame(page, "Her letter and Polly's answer, rebuilt before the forward");
 
-  story("Beside the thread, the politician it shows under. Not theirs takes her off it for good.");
-  const people = page.getByRole("region", { name: oneOff.people.title });
-  await people.getByRole("button", { name: oneOff.people.unlink }).click();
-  await expect(people.getByText(oneOff.people.none)).toBeVisible();
-  await frame(page, "Taken off the thread");
+  await expect(page.getByRole("region", { name: oneOff.people.title })).toContainText("Polly Placeholder");
 });
 
 test("A politician's own address", async ({ page, request, flowDatabase }) => {

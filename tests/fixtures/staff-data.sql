@@ -1146,9 +1146,6 @@ SELECT address, n.id, source, added_by FROM (VALUES
   ('sam.office@parliament.uk', 'office', NULL),
   ('polly.placeholder.home@gmail.example', 'staff', 'jo@pauseai.uk')
 ) AS a (address, source, added_by) JOIN notable_people n ON n.airtable_id = 'recPlaceholder';
--- The room booking taken off a politician by staff, as it wasn't hers.
-INSERT INTO one_off_unlinked (thread_id, notable_person_id, unlinked_by)
-SELECT 3, id, 'jo@pauseai.uk' FROM notable_people WHERE airtable_id = 'recPlaceholder';
 -- Each thing the send log's list can show: a sign-in, an alert and a report;
 -- a refused and a failed send; a bounced email and a complained-of one.
 INSERT INTO email_sends (at, purpose, address, outcome, message_id, backend, subject, from_address) VALUES

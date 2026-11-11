@@ -6,7 +6,6 @@ import { requireStaff } from "@/lib/server/staff-auth";
 import { letterId } from "@/lib/staff-search";
 import Breadcrumb from "../../../_components/Breadcrumb";
 import OneOffThreadView from "../../../_components/OneOffThreadView";
-import { unlinkOneOffNow } from "../../../actions";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -19,7 +18,7 @@ export default async function OneOffThreadPage({ params }: Params) {
   return (
     <>
       <Breadcrumb href="/staff/emails">{staffCopy.nav.emails}</Breadcrumb>
-      <OneOffThreadView thread={thread} unlink={unlinkOneOffNow} />
+      <OneOffThreadView thread={thread} />
     </>
   );
 }

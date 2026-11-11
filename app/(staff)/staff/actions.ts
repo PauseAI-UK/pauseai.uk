@@ -26,12 +26,7 @@ import { eraseSupporter } from "@/lib/server/erasure";
 import { decideHeldSync } from "@/lib/server/politician-sync";
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
 import { deletePolitician, setStatus } from "@/lib/server/politicians";
-import {
-  type AddResult,
-  addPoliticianAddress,
-  removePoliticianAddress,
-  unlinkOneOff,
-} from "@/lib/server/politician-aliases";
+import { type AddResult, addPoliticianAddress, removePoliticianAddress } from "@/lib/server/politician-aliases";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { type EventSaved, setEventDoc, setEventOwner } from "@/lib/server/staff-events";
 import {
@@ -190,15 +185,6 @@ export async function removeAliasNow(form: FormData): Promise<void> {
   const { email } = await requireStaff();
   const politicianId = idFrom(form, "politicianId");
   if (politicianId && (await removePoliticianAddress(politicianId, String(form.get("address") ?? ""), email)))
-    revalidatePath("/staff", "layout");
-}
-
-/** The button by a politician on a one-off email: takes them off it for good. */
-export async function unlinkOneOffNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff();
-  const threadId = idFrom(form, "threadId");
-  const politicianId = idFrom(form, "politicianId");
-  if (threadId && politicianId && (await unlinkOneOff(threadId, politicianId, email)))
     revalidatePath("/staff", "layout");
 }
 

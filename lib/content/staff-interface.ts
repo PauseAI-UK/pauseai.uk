@@ -1710,7 +1710,6 @@ All events: ${link}`,
       "unblock address": "Address unblocked",
       "add politician address": "Email address added",
       "remove politician address": "Email address removed",
-      "unlink one-off": "⁂ Unlinked from a one-off email",
     } as Record<string, string>,
     // At the foot of their page, folded: every address and domain that says an
     // email is theirs, where each came from, and the form to add one by hand.
@@ -2386,11 +2385,10 @@ All events: ${link}`,
     rebuilt: (forwarder: string) => `⁂ Quoted in ${forwarder}'s forward`,
     // A forward with no note over what it carries.
     forwardedAlone: "(Forwarded without a message)",
-    // Beside the thread: the politicians it shows under, and the button that takes one off it.
+    // Beside the thread: the politicians it's linked to.
     people: {
       title: "Linked politicians",
       none: "None",
-      unlink: "Unlink",
     },
     // On a politician's and a supporter's page.
     onPageTitle: "One-off emails",
@@ -2980,8 +2978,6 @@ All events: ${link}`,
     savedFilter: (list: string, id: string) => `${list}, saved filter ${id}`,
     // A held MP import decided, linked to the import's page.
     run: (id: string) => `Import run ${id}`,
-    // A politician taken off a one-off email: the link to the email.
-    oneOffThread: "⁂ View the email",
     // After each number an import, a sync, an erasure or the end of sessions logged: what it counted, for one and for more.
     counts: {
       added: () => "added",

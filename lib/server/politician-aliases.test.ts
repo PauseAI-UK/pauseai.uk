@@ -5,13 +5,7 @@ import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatab
 import { stubLettersInboxEnv } from "@/tests/gmail-sends";
 import { addressForms } from "@/lib/one-off";
 import { query } from "./db";
-import {
-  addPoliticianAddress,
-  formExamples,
-  politicianAliases,
-  removePoliticianAddress,
-  unlinkOneOff,
-} from "./politician-aliases";
+import { addPoliticianAddress, formExamples, politicianAliases, removePoliticianAddress } from "./politician-aliases";
 
 const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
 
@@ -188,19 +182,5 @@ describeWithDatabase("a politician's aliases", () => {
     });
     expect(await query("SELECT source FROM politician_addresses")).toEqual([{ source: "staff" }]);
     expect(await query("SELECT notable_person_id::int AS id FROM one_off_thread_people")).toEqual([{ id: polly.id }]);
-  });
-
-  it("takes a politician off a thread for good, logged, once", async () => {
-    const polly = await politician();
-    const [{ id: thread }] = await query<{ id: number }>(
-      "INSERT INTO one_off_threads (latest_at) VALUES (now()) RETURNING id::int AS id",
-    );
-    await query("INSERT INTO one_off_thread_people (thread_id, notable_person_id) VALUES ($1, $2)", [thread, polly.id]);
-    expect(await unlinkOneOff(thread, polly.id, "jo@pauseai.uk")).toBe(true);
-    expect(await unlinkOneOff(thread, polly.id, "jo@pauseai.uk")).toBe(false);
-    expect(await query("SELECT unlinked_by AS by FROM one_off_unlinked")).toEqual([{ by: "jo@pauseai.uk" }]);
-    expect(await query("SELECT details FROM audit_log WHERE action = 'unlink one-off'")).toEqual([
-      { details: { politicianId: polly.id, threadId: thread } },
-    ]);
   });
 });

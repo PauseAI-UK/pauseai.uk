@@ -25,16 +25,6 @@ CREATE INDEX politician_addresses_person ON politician_addresses (notable_person
 -- given there with no address ("HILLIER, Meg", as Outlook writes a colleague
 -- in Parliament). Null until read, which keeping it does, or the relinking
 -- job for a message kept before.
--- A politician staff took off a one-off thread, as it isn't theirs: neither
--- relinking nor a new message in it links them again.
-CREATE TABLE one_off_unlinked (
-  thread_id bigint NOT NULL REFERENCES one_off_threads (id) ON DELETE CASCADE,
-  notable_person_id bigint NOT NULL REFERENCES notable_people (id) ON DELETE CASCADE,
-  unlinked_by text NOT NULL,
-  unlinked_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (thread_id, notable_person_id)
-);
-
 ALTER TABLE one_off_messages ADD COLUMN quoted_addresses text[], ADD COLUMN quoted_names text[];
 ALTER TABLE one_off_messages ADD CHECK ((quoted_addresses IS NULL) = (quoted_names IS NULL));
 CREATE INDEX one_off_messages_unquoted ON one_off_messages (id) WHERE quoted_addresses IS NULL;

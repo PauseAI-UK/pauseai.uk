@@ -177,10 +177,7 @@ export async function keepOneOff(
   );
   const { people } = politiciansIn(book, [...addresses, ...quoted.addresses]);
   await query(
-    `INSERT INTO one_off_thread_people (thread_id, notable_person_id)
-     SELECT $1, id FROM unnest($2::bigint[]) id
-     WHERE NOT EXISTS (SELECT 1 FROM one_off_unlinked u WHERE u.thread_id = $1 AND u.notable_person_id = id)
-     ON CONFLICT DO NOTHING`,
+    `INSERT INTO one_off_thread_people (thread_id, notable_person_id) SELECT $1, unnest($2::bigint[]) ON CONFLICT DO NOTHING`,
     [threadId, [...new Set([...people, ...politiciansNamed(book, quoted.names), ...extraPeople])]],
   );
   await query(
@@ -200,23 +197,13 @@ async function newThread(subject: string, at: Date): Promise<number> {
   return id;
 }
 
-/** Moves a thread's messages, people and those taken off it to another, and deletes it. One taken off either stays off. */
+/** Moves a thread's messages and people to another, and deletes it. */
 async function mergeThreads(into: number, other: number): Promise<void> {
   await query("UPDATE one_off_messages SET thread_id = $1 WHERE thread_id = $2", [into, other]);
-  await query(
-    `INSERT INTO one_off_unlinked (thread_id, notable_person_id, unlinked_by, unlinked_at)
-     SELECT $1, notable_person_id, unlinked_by, unlinked_at FROM one_off_unlinked WHERE thread_id = $2 ON CONFLICT DO NOTHING`,
-    [into, other],
-  );
   await query(
     `INSERT INTO one_off_thread_people (thread_id, notable_person_id)
      SELECT $1, notable_person_id FROM one_off_thread_people WHERE thread_id = $2 ON CONFLICT DO NOTHING`,
     [into, other],
-  );
-  await query(
-    `DELETE FROM one_off_thread_people p USING one_off_unlinked u
-     WHERE p.thread_id = $1 AND u.thread_id = $1 AND u.notable_person_id = p.notable_person_id`,
-    [into],
   );
   await query(
     `UPDATE one_off_threads t SET latest_at = greatest(t.latest_at, o.latest_at), someone_else = t.someone_else OR o.someone_else

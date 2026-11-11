@@ -1,6 +1,4 @@
 import { Fragment } from "react";
-import { FilterForm } from "@/components/ui/Form";
-import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mailboxes, named } from "@/lib/email-parsing/addresses";
@@ -39,27 +37,19 @@ function Mailboxes({ line, politicians }: { line: string; politicians: Politicia
 }
 
 /**
- * The politicians a thread shows under, each linked to their page, with a
- * button that takes them off it for good, as when an address made it look
- * theirs but it isn't.
+ * The politicians a thread is linked to, each linked to their page: also
+ * those it names only in what it quotes, which its headers don't show.
  */
-function ThreadPeople({ thread, unlink }: { thread: OneOffThread; unlink: (form: FormData) => void | Promise<void> }) {
+function ThreadPeople({ people }: { people: OneOffThread["people"] }) {
   return (
     <Card look="aside" title={copy.people.title} id="thread-people" span={2}>
-      {thread.people.length === 0 ? (
+      {people.length === 0 ? (
         <Muted>{copy.people.none}</Muted>
       ) : (
         <ul className={styles.people}>
-          {thread.people.map((person) => (
+          {people.map((person) => (
             <li key={person.id}>
               <StaffLink href={`/staff/politicians/${person.id}`}>{person.name}</StaffLink>
-              <FilterForm action={unlink} aria-label={`${copy.people.unlink}: ${person.name}`}>
-                <input type="hidden" name="threadId" value={thread.id} />
-                <input type="hidden" name="politicianId" value={person.id} />
-                <SubmitButton variant="ghost" size="small" fit>
-                  {copy.people.unlink}
-                </SubmitButton>
-              </FilterForm>
             </li>
           ))}
         </ul>
@@ -71,16 +61,10 @@ function ThreadPeople({ thread, unlink }: { thread: OneOffThread; unlink: (form:
 /**
  * A one-off thread's page: its subject, then each message as an email, a
  * forward's carried messages rebuilt before it, oldest first, each marked as
- * rebuilt; beside them, the politicians it shows under. For staff who can't
+ * rebuilt; beside them, the politicians it's linked to. For staff who can't
  * read it, that they can't.
  */
-export default function OneOffThreadView({
-  thread,
-  unlink,
-}: {
-  thread: OneOffThread;
-  unlink: (form: FormData) => void | Promise<void>;
-}) {
+export default function OneOffThreadView({ thread }: { thread: OneOffThread }) {
   return (
     <>
       <h1>{thread.subject === null ? copy.title : thread.subject || copy.noSubject}</h1>
@@ -133,7 +117,7 @@ export default function OneOffThreadView({
               </Fragment>
             ))}
           </section>
-          <ThreadPeople thread={thread} unlink={unlink} />
+          <ThreadPeople people={thread.people} />
         </Grid>
       )}
     </>

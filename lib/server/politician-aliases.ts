@@ -196,22 +196,3 @@ export async function removePoliticianAddress(politicianId: number, given: strin
   if (removed) await relinkOneOffs(Date.now());
   return removed;
 }
-
-/** Takes a politician off a one-off thread for good, logged. False if they weren't on it. */
-export async function unlinkOneOff(threadId: number, politicianId: number, by: string): Promise<boolean> {
-  return transaction(async (db) => {
-    const rows = await query(
-      "DELETE FROM one_off_thread_people WHERE thread_id = $1 AND notable_person_id = $2 RETURNING 1",
-      [threadId, politicianId],
-      db,
-    );
-    if (!rows.length) return false;
-    await query(
-      `INSERT INTO one_off_unlinked (thread_id, notable_person_id, unlinked_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-      [threadId, politicianId, by],
-      db,
-    );
-    await logChange(by, "unlink one-off", { politicianId, threadId }, db);
-    return true;
-  });
-}

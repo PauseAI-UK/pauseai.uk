@@ -27,8 +27,6 @@ import JobActions from "@/app/(staff)/staff/_components/JobActions";
 import PoliticianCorrespondence from "@/app/(staff)/staff/_components/PoliticianCorrespondence";
 import PoliticianDetails from "@/app/(staff)/staff/_components/PoliticianDetails";
 import AddAliasForm from "@/app/(staff)/staff/_components/AddAliasForm";
-import OneOffThreadView from "@/app/(staff)/staff/_components/OneOffThreadView";
-import type { OneOffThread } from "@/lib/server/one-off-emails";
 import type { AddResult } from "@/lib/server/politician-aliases";
 import { correspondenceThreads } from "@/lib/politician-correspondence";
 import PoliticianTable from "@/app/(staff)/staff/_components/PoliticianTable";
@@ -307,11 +305,6 @@ export function EmailBlocksTableExample({
   return (
     <Logged>{(log) => <EmailBlocksTable blocks={blocks} unblock={log("unblock")} letterLinks={letterLinks} />}</Logged>
   );
-}
-
-/** A one-off thread, its politicians' Not theirs buttons logged. */
-export function OneOffThreadViewExample({ thread }: { thread: OneOffThread }) {
-  return <Logged>{(log) => <OneOffThreadView thread={thread} unlink={log("unlink")} />}</Logged>;
 }
 
 /** The form that adds an address to a politician's, logged, answering with `result`. */

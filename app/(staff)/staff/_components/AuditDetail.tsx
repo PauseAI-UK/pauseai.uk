@@ -206,15 +206,6 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "delete politician": politician,
   "add politician address": politicianAddress,
   "remove politician address": politicianAddress,
-  "unlink one-off": (details, change) => ({
-    parts: [
-      <Who key="about" named={change.politician} href="/staff/politicians" name="" id={details.politicianId} />,
-      <StaffLink key="thread" href={`/staff/one-off/${details.threadId}`}>
-        {copy.oneOffThread}
-      </StaffLink>,
-    ],
-    fields: ["politicianId", "threadId"],
-  }),
   "view supporter": (details, change) => ({
     parts: [<Who key="about" named={change.supporter} href="/staff/supporters" name="" id={details.id} />],
     fields: ["id"],
