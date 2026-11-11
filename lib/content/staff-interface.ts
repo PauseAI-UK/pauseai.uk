@@ -2620,7 +2620,7 @@ All events: ${link}`,
     relinked: (r: { read: number; unread: number; linked: number; unlinked: number; offices: number }) =>
       `One-off emails: ${count(r.linked, "new link", "new links")} to politicians, ${r.unlinked} removed, ${count(r.offices, "office address", "office addresses")} found.` +
       (r.read || r.unread
-        ? ` ⁂ ${count(r.unread, "older email", "older emails")} still to check for quoted addresses.`
+        ? ` ${count(r.unread, "older email", "older emails")} still to check for quoted addresses.`
         : ""),
     columns: {
       constituency: "Constituency",
