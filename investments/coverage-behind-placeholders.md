@@ -13,3 +13,4 @@ Have `npm test` (and the gate) run the placeholder check apart from the coverage
 ## Hits
 
 - 2026-11-09: a feature branch's coverage had gone unchecked since its first asterism; nine files had gaps when the check was left out, ~40 min
+- 2026-11-11: the gate's `npm test` failed on the asterisms alone, which said nothing of coverage; ran the tests again without that check to see the coverage gate pass, ~5 min
