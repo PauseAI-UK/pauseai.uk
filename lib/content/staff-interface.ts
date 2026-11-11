@@ -2530,7 +2530,9 @@ All events: ${link}`,
     siteAdmin: "Site admin",
   },
   allLetters: {
-    title: "Correspondence with politicians",
+    title: "Correspondence",
+    // Under the title.
+    subtitle: "All emails to and from politicians",
     // Over the list: how many there are.
     total: (total: number) => count(total, "email", "emails"),
     search: "Sender, politician or topic",
@@ -2634,7 +2636,7 @@ All events: ${link}`,
         own_follow_up: "It's their own follow-up",
         bounce_address: "Came to the bounce address",
         // A reply that came to one of our Gmail inboxes, so isn't forwarded there again.
-        gmail: "⁂ It came to our Gmail inbox, so it's there already",
+        gmail: "Already in our Gmail inbox",
         refused: "Postmark refused it",
         blocked: "The address is blocked",
       },

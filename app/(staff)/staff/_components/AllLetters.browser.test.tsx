@@ -66,6 +66,7 @@ describe("AllLetters", () => {
   it("lists a supporter's letter, PauseAI's and a thread, each leading to its own pages", async () => {
     await render(<AllLetters {...PROPS} found={found([SUPPORTER, PAUSEAI, THREAD])} />);
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(copy.title);
+    await expect.element(page.getByText(copy.subtitle)).toBeVisible();
     expect(page.getByText(copy.intro("policy@example.org")).query()).toBeNull();
     const rows = page.getByRole("row");
     await expect
