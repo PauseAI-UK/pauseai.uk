@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { config } from "./config";
 import { headerText } from "@/lib/email-parsing/mime";
 import { gzipSync } from "node:zlib";
@@ -374,9 +375,10 @@ type Sender = { name: string; address: string };
  * The threads staff without `supporters` don't see: any with someone on one of
  * its messages, its sender or on its To or Cc, who's neither PauseAI nor a
  * politician, or that reading it marked so. Worked out as it's asked for, so it
- * follows who the politicians and our accounts are.
+ * follows who the politicians and our accounts are, once a page however many
+ * of its loaders ask (React's cache()).
  */
-export async function threadsWithSomeoneElse(): Promise<number[]> {
+export const threadsWithSomeoneElse = cache(async function threadsWithSomeoneElse(): Promise<number[]> {
   const [rows, book, connected] = await Promise.all([
     query<{ id: number; marked: boolean; addresses: string[] }>(
       `SELECT t.id::int AS id, t.someone_else AS marked, coalesce(array_agg(address) FILTER (WHERE address IS NOT NULL), '{}') AS addresses
@@ -393,7 +395,7 @@ export async function threadsWithSomeoneElse(): Promise<number[]> {
         marked || addresses.some((address) => !isAtPauseai(address) && isSomeoneElse(book, address, connected)),
     )
     .map(({ id }) => id);
-}
+});
 
 /** One-off threads, newest first, matching `where`: with permission, everything; otherwise, a thread with someone else in it shows only that it's there. */
 async function threadRows(where: string, params: unknown[], supporters: boolean, limit: number, offset: number) {
@@ -472,22 +474,28 @@ export type OneOffMessage = {
 /** A one-off thread, for its page: `messages` null for staff who can't see it. */
 export type OneOffThread = OneOffThreadRow & { messages_: OneOffMessage[] | null };
 
-/** One thread for its page, or undefined: staff without `supporters` see none of a thread with someone else in it but that it's there. */
+/**
+ * One thread for its page, or undefined: staff without `supporters` see none
+ * of a thread with someone else in it but that it's there. Its messages' rows
+ * are read beside the thread's, and left unread in the blob store if hidden.
+ */
 export async function getOneOffThread(
   id: number,
   permissions: readonly Permission[],
 ): Promise<OneOffThread | undefined> {
   const supporters = permissions.includes("supporters");
-  const [row] = await threadRows("t.id = $1", [id], supporters, 1, 0);
+  const [[row], rows, book] = await Promise.all([
+    threadRows("t.id = $1", [id], supporters, 1, 0),
+    query<Omit<OneOffMessage, "text" | "quoted" | "auto" | "politicians"> & { blobKey: string }>(
+      `SELECT id::int AS id, at, from_name AS "fromName", from_address AS "fromAddress", to_line AS "to", cc_line AS cc,
+         subject, account, blob_key AS "blobKey"
+       FROM one_off_messages WHERE thread_id = $1 ORDER BY at, id`,
+      [id],
+    ),
+    politicianBook(),
+  ]);
   if (!row) return undefined;
   if (row.someoneElse && !supporters) return { ...row, messages_: null };
-  const rows = await query<Omit<OneOffMessage, "text" | "quoted" | "auto" | "politicians"> & { blobKey: string }>(
-    `SELECT id::int AS id, at, from_name AS "fromName", from_address AS "fromAddress", to_line AS "to", cc_line AS cc,
-       subject, account, blob_key AS "blobKey"
-     FROM one_off_messages WHERE thread_id = $1 ORDER BY at, id`,
-    [id],
-  );
-  const book = await politicianBook();
   const messages = await Promise.all(
     rows.map(async ({ blobKey, ...message }) => {
       const { text, quoted, auto } = await messageContent(blobKey);

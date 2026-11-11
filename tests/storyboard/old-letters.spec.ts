@@ -305,9 +305,9 @@ test("One-off emails", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("link", { name: "Polly Placeholder" }).first()).toBeVisible();
   await frame(page, "A thread");
 
-  story("An out-of-office in the thread shows only its first paragraph, the rest folded under it.");
+  story("An out-of-office in the thread shows only its first paragraph, the rest and its quote in one fold under it.");
   const away = page.getByRole("article", { name: "Automatic reply: Coffee next week?" });
-  const rest = away.getByText(staffCopy.letterChanges.more(2));
+  const rest = away.getByText(staffCopy.letterThread.autoInFull);
   await rest.scrollIntoViewIfNeeded();
   await expect(away.getByText("working for everyone")).toBeHidden();
   await frame(page, "An out-of-office, folded");

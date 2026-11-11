@@ -13,6 +13,7 @@ const SUPPORTER: AnyLetter = {
   status: "sent",
   sentAt: new Date("2026-10-20T10:00:00Z"),
   repliedAt: new Date("2026-10-21T10:00:00Z"),
+  replies: 2,
   people: [{ id: 4, name: "Polly Placeholder" }],
   senderName: "Jane Smith",
   senderEmail: "jane.smith@example.com",
@@ -26,6 +27,7 @@ const PAUSEAI: AnyLetter = {
   status: "other",
   sentAt: null,
   repliedAt: null,
+  replies: 0,
   people: [{ id: 5, name: "Peter Placeholder" }],
   mailingId: 3,
   mailingTitle: "About the march",
@@ -36,6 +38,7 @@ const THREAD: AnyLetter = {
   status: "one-off",
   sentAt: new Date("2026-10-19T10:00:00Z"),
   repliedAt: null,
+  replies: 0,
   people: [
     { id: 4, name: "Polly Placeholder" },
     { id: 5, name: "Peter Placeholder" },
@@ -50,7 +53,7 @@ const THREAD: AnyLetter = {
   ],
   subject: "Coffee next week?",
 };
-const SEARCH = { q: "", from: [], type: [], to: [], sent: "", replied: "", page: "" };
+const SEARCH = { q: "", from: [], type: [], to: [], sent: "", replied: "", flag: [], sort: "", dir: "", page: "" };
 const PEOPLE = [
   { id: 4, name: "Polly Placeholder", constituency: "Testford" },
   { id: 5, name: "Lord Example", constituency: null },
@@ -66,7 +69,7 @@ describe("AllLetters", () => {
     expect(page.getByText(copy.intro("policy@example.org")).query()).toBeNull();
     const rows = page.getByRole("row");
     await expect
-      .element(rows.nth(1).getByRole("link", { name: staffCopy.mailingPages.theLetter }))
+      .element(rows.nth(1).getByRole("link", { name: staffCopy.mailingPages.letterAndReplies(2) }))
       .toHaveAttribute("href", "/staff/letters/1");
     await expect
       .element(rows.nth(2).getByRole("link", { name: staffCopy.mailingPages.theLetter }))
@@ -124,6 +127,25 @@ describe("AllLetters", () => {
     await expect
       .element(page.getByRole("link", { name: staffCopy.paging.next }))
       .toHaveAttribute("href", "/staff/emails?from=supporter&from=pauseai&sent=30&page=2");
+  });
+
+  it("sorts by each column's heading, keeping the filters, and keeps the sort across pages", async () => {
+    await render(
+      <AllLetters
+        {...PROPS}
+        found={{ letters: [SUPPORTER], total: 150, pages: 2 }}
+        search={{ ...SEARCH, replied: "yes", sort: "replied", dir: "desc", page: "1" }}
+      />,
+    );
+    await expect
+      .element(page.getByRole("link", { name: staffCopy.letters.columns.replied }))
+      .toHaveAttribute("href", "/staff/emails?replied=yes&sort=replied&dir=asc");
+    await expect
+      .element(page.getByRole("link", { name: copy.from, exact: true }))
+      .toHaveAttribute("href", "/staff/emails?replied=yes&sort=from&dir=asc");
+    await expect
+      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .toHaveAttribute("href", "/staff/emails?replied=yes&sort=replied&dir=desc&page=2");
   });
 
   it("finds who it's to by a box, an MP with their seat and a peer by name, a chip for one chosen", async () => {

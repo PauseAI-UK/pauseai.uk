@@ -20,7 +20,6 @@ import {
   sendLetter,
   syncPoliticians,
 } from "../steps";
-import { LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
@@ -388,19 +387,14 @@ test("A letter writer's page", async ({ page, request, flowDatabase }) => {
   await openEverything(page);
   await expect(page.getByText("ZZ9 9ZZ", { exact: false })).toBeVisible();
   await frame(page, "Jane's page");
-  story("Letter → opens her letter's page. Copy Gmail search copies a search that finds it in the letters inbox.");
+  story("Letter → opens her letter's page.");
 
-  // The letter's status leads to its page, found in the letters inbox, and back to her.
+  // The letter's status leads to its page, and back to her.
   await page.getByRole("link", { name: staffCopy.mailingPages.theLetter }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     staffCopy.letters.oneTitle("Jane Smith", "Testy McTestface MP"),
   );
   await frame(page, "Jane's letter");
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.getByRole("button", { name: staffCopy.findInGmail.copy }).click();
-  await expect(page.getByRole("status")).toContainText(staffCopy.findInGmail.where(LETTERS_INBOX));
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^rfc822msgid:[\w-]+@pauseai\.uk$/);
-  await frame(page, "Copy Gmail search, copied");
   story("Her name on the letter's page leads back to her page.");
   await page.getByRole("link", { name: "Jane Smith" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Jane Smith");

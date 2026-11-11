@@ -19,3 +19,4 @@ Log a `Server-Timing` header on each staff render and action (https://developer.
 - 2026-10-23: search on the supporters page was slow
 - 2026-10-27: staff buttons were reported to feel unresponsive
 - 2026-11-06: "Save filter" and other menus were slow
+- 2026-11-11: a one-off thread's page and a politician's page were slow: the same loaders ran several times a page, one after another, and a thread's page reads every message whole from Blobs to show its text

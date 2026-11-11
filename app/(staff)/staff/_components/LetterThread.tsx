@@ -27,22 +27,24 @@ function NoText({ note, link }: { note: string; link: ReactNode }) {
 
 /**
  * A message's text, then the mail it quotes and its footer, if any, folded
- * (MailFold). An automatic reply shows only its first paragraph, the rest
- * folded too, as it's rarely worth reading.
+ * (MailFold). An automatic reply shows only its first paragraph, and folds
+ * the rest of it, with what it quotes and its footer, in one, as it's rarely
+ * worth reading.
  */
 export function MessageText({ text, quoted, auto = false }: { text: string; quoted: string; auto?: boolean }) {
   const [first, ...rest] = auto ? text.split(/\n\s*\n/) : [text];
+  const folded = auto ? [...rest, quoted].filter(Boolean).join("\n\n") : "";
   return (
     <div className={styles.message}>
       <div className={styles.text}>
         <ThreadText text={first} />
       </div>
-      {rest.length > 0 && (
-        <MailFold summary={staffCopy.letterChanges.more(rest.length)}>
-          <ThreadText text={rest.join("\n\n")} />
+      {folded && (
+        <MailFold summary={copy.autoInFull}>
+          <ThreadText text={folded} />
         </MailFold>
       )}
-      {quoted && (
+      {!auto && quoted && (
         <MailFold summary={copy.quoted}>
           <ThreadText text={quoted} />
         </MailFold>
@@ -75,9 +77,9 @@ export function Thread({
 /**
  * One of PauseAI's letters' thread, beside its page's ask and history,
  * each message as an email: the letter as it went, from the Gmail it went
- * from, with `link`, the way to it in Gmail, at the right of the heading;
- * or, for an imported one, whose text isn't kept, a note saying so with
- * `link` beside it, in its place. Then each reply and answer, oldest first.
+ * from; or, for an imported one, whose text isn't kept, a note saying so
+ * with `link`, the way to it in Gmail, beside it, in its place. Then each
+ * reply and answer, oldest first.
  */
 export default function LetterThread({ thread, link }: { thread: Thread; link?: ReactNode }) {
   const politician = named(thread.to.name, thread.to.email);
@@ -86,7 +88,7 @@ export default function LetterThread({ thread, link }: { thread: Thread; link?: 
     : (thread.fromName ?? staffCopy.letters.fromPauseai);
   const kept = thread.letter !== null;
   return (
-    <Thread link={kept && link}>
+    <Thread>
       <ThreadEmail
         from={ours}
         to={politician}
@@ -136,10 +138,9 @@ export default function LetterThread({ thread, link }: { thread: Thread; link?: 
  * A supporter's letter as an email, in a thread as PauseAI's are: from
  * them, leading to their supporter page once they're linked to one, to
  * their MP, when it went, with its subject. One from the letters inbox
- * shows its text against the draft it was written from (LetterChanges),
- * with `link`, the way to it there, at the right of the heading. For another,
- * whose text the site doesn't have, a note saying so, with `link` in its
- * place. Then each message kept, both ways, oldest first.
+ * shows its text against the draft it was written from (LetterChanges).
+ * For another, whose text the site doesn't have, a note saying so, with
+ * `link`, the way to it in Gmail, in its place. Then each message kept, both ways, oldest first.
  */
 export function SupporterLetterThread({ letter, link }: { letter: SupporterLetterDetails; link?: ReactNode }) {
   const sender = named(letter.senderName, letter.senderEmail);
@@ -153,7 +154,7 @@ export function SupporterLetterThread({ letter, link }: { letter: SupporterLette
     );
   const email = { from, to: mp, at: letter.sentAt, subject: letter.subject || letter.campaignTitle };
   return (
-    <Thread link={sent && link}>
+    <Thread>
       {sent ? (
         <LetterChanges {...email} sent={sent.text} draft={sent.draft} />
       ) : (

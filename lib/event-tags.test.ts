@@ -20,6 +20,8 @@ describe("tagsForEvent", () => {
     expect(tagsForEvent(event({ city: "Bristol" }), TAGS)).toEqual(["West of England"]);
     expect(tagsForEvent(event({ name: "PauseAI Southwest Meetup" }), TAGS)).toEqual(["West of England"]);
     expect(tagsForEvent(event({ city: "Dundee", region: "Scotland" }), TAGS)).toEqual(["Scotland"]);
+    expect(tagsForEvent(event({ city: "Royal Tunbridge Wells" }), [...TAGS, "Kent"])).toEqual(["Kent"]);
+    expect(tagsForEvent(event({ city: "Tunbridge Wells" }), [...TAGS, "Kent"])).toEqual(["Kent"]);
   });
 
   it("goes by whole words, whatever the case", () => {
@@ -28,7 +30,7 @@ describe("tagsForEvent", () => {
   });
 
   it("isn't clear for a place with no tag, or none given", () => {
-    expect(tagsForEvent(event({ city: "Tunbridge Wells" }), TAGS)).toBeNull();
+    expect(tagsForEvent(event({ city: "Norwich" }), TAGS)).toBeNull();
     expect(tagsForEvent(event({}), TAGS)).toBeNull();
   });
 

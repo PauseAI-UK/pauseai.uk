@@ -23,11 +23,13 @@ export async function newPagesFor(email: string, permissions: readonly Permissio
   const known = new Set(seen.map((row) => row.page));
   const first = seen.length === 0 ? LONG_AGO : at.toISOString();
   const fresh = pages.filter((page) => !known.has(page));
-  await query(
-    `INSERT INTO staff_nav_seen (email, page, first_seen_at)
-     SELECT $1, unnest($2::text[]), $3 ON CONFLICT DO NOTHING`,
-    [email, fresh, first],
-  );
+  if (fresh.length) {
+    await query(
+      `INSERT INTO staff_nav_seen (email, page, first_seen_at)
+       SELECT $1, unnest($2::text[]), $3 ON CONFLICT DO NOTHING`,
+      [email, fresh, first],
+    );
+  }
   const since = at.getTime() - NEW_FOR_DAYS * 24 * 60 * 60_000;
   const recent = seen.filter((row) => row.at.getTime() > since).map((row) => row.page);
   return pages.filter((page) => recent.includes(page) || (seen.length > 0 && fresh.includes(page)));

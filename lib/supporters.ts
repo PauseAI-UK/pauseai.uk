@@ -131,6 +131,8 @@ export type SupporterLetter = {
   campaignTitle: string;
   /** Where an old campaign's letter can be read, as the campaigns table has it. */
   status: string;
+  /** How many replies the MP's office sent, at least one once it's marked replied; 0 if none. */
+  replies: number;
 };
 
 export type SupporterDetails = {

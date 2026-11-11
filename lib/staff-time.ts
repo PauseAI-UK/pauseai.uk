@@ -110,17 +110,19 @@ export function londonStart(at: Date): string {
   return `${part({ weekday: "short" })} ${part({ day: "numeric", month: "short", year: "numeric" })}, ${londonClock(at)}`;
 }
 
-/** How close to an hour is too close for a mailing to go on it. */
+/** How close to its hour's run of the sending is too close for a mailing to go on it. */
 const TOO_SOON = 5 * 60_000;
 
 /**
- * The first whole hour a mailing can go at: one at least TOO_SOON away.
- * London's hours start when UTC's do. By the site's clock (lib/now.ts), so
- * in a fixture build a page rendered ahead of time offers the hours the
- * browser does.
+ * The first whole hour a mailing can be due at: one whose run of the sending
+ * (sendsAt) is at least TOO_SOON away, so at 15:05 it's 15:00, which goes at
+ * 15:18. London's hours start when UTC's do. By the site's clock
+ * (lib/now.ts), so in a fixture build a page rendered ahead of time offers
+ * the hours the browser does.
  */
 export function earliestHour(): Date {
-  return new Date(Math.ceil((now().getTime() + TOO_SOON) / 3_600_000) * 3_600_000);
+  const hour = 3_600_000;
+  return new Date(Math.ceil((now().getTime() + TOO_SOON - SENDING.minute * 60_000) / hour) * hour);
 }
 
 /** `hour` on `day`, unless that's the first day a mailing can go and the hour is sooner than the first it can go at, when it's that. */

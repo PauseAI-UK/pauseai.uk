@@ -257,8 +257,7 @@ test("Automatic replies", async ({ page, request, flowDatabase }) => {
     "In the letter and its replies, each automatic reply of more than a paragraph is folded to its first, as the rest is rarely worth reading.",
   );
   const folded = page.getByRole("article", { name: "Automatic reply: Please back a pause" });
-  const changes = staffCopy.letterChanges;
-  const fold = folded.getByText(changes.more(2));
+  const fold = folded.getByText(staffCopy.letterThread.autoInFull);
   await fold.scrollIntoViewIfNeeded();
   await expect(folded.getByText("constituency office")).toBeHidden();
   await frame(page, "The acknowledgement, folded");

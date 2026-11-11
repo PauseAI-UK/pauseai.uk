@@ -552,6 +552,7 @@ that drives it or why nothing does.
   - the editor's toolbar and a paste, and the letter as sent;
   - the draft kept through Edit, back and reload;
   - going back;
+  - an email typed in the address's first line, refused;
   - a refused letter;
   - the pages opened out of order;
   - each campaign, and the nav's links to them;
@@ -599,7 +600,7 @@ that drives it or why nothing does.
   - a sort's arrow turned at once, and a line along the top while a sort or a search loads;
   - another page marked in the sidebar at once while it loads (its table locked, `lockTable` in `tests/steps.ts`);
   - the dashboard's tabs, kept on going back, and a bar pointed at;
-  - the events held tile leading to those events, and the supporter emails tile leading to those emails in all emails;
+  - the events held tile leading to those events, and the supporter emails tile leading to those emails in Correspondence;
   - the politicians agreed tile, leading to the one politician who agreed and then to everyone who agreed, newest first;
   - a politician's page, and the list sorted by a heading;
   - setting a status that shows on `/campaigns`, and the audit log;
@@ -631,14 +632,14 @@ that drives it or why nothing does.
   - its log and its finishing, with its progress, the day's table, a refusal's tinted rows and a folded stretch;
   - a letter of a template, one that keeps its own text, and August's approximate one;
   - a form letter's diff from its form version;
-  - the one-off emails on All emails: a thread opened, an out-of-office in it folded and unfolded, and the thread hidden from staff without `supporters`;
+  - the one-off emails on Correspondence: a thread opened, an out-of-office in it folded and unfolded, and the thread hidden from staff without `supporters`;
   - a politician's and a supporter's lists;
   - what your own page says when your mailbox is kept.
 - `letters.spec.ts`: Letters and their bounces:
-  - All emails, a supporter's and a mailing's, those replied to, and the dashboard's tile;
+  - Correspondence: a test MP's left out, then shown with Test politician chosen; a supporter's and a mailing's, one with its reply in its link; sorted by topic; those replied to; and the dashboard's tile;
   - the letters list (one sent, one bounced), filtered by status, then by campaign, then either of two campaigns, then reset and sorted by sender;
   - a letter with only an automatic reply and one with a written reply: the Replied column, the Status filter's options, and the list filtered by what came back;
-  - a supporter's letter's page, with Copy Gmail search, and the MP's answer to its campaign's ask set from it;
+  - a supporter's letter's page, with no Gmail search as its text is there, and the MP's answer to its campaign's ask set from it;
   - a bounce emailing staff and blocking the address, and the home's action for it;
   - an MP whose address is blocked, unblocked by staff.
 - `politicians.spec.ts`: The politicians from Airtable:

@@ -7,17 +7,24 @@ import { ALL_LETTERS_PAGE_SIZE, type AllLettersFilter } from "@/lib/staff-search
 import { query } from "./db";
 import { sql, type Sql } from "./sql";
 import { threadsWithSomeoneElse } from "./one-off-emails";
+import type { AllEmailsSort } from "@/lib/staff-lists";
+import type { PoliticianFlag } from "@/lib/politician-filters";
 import { politicianBook } from "./politician-book";
+import { FLAG_CONDITIONS } from "./politicians";
+import { REPLIES } from "./reply-count";
 
-// The all emails page: every email with a politician, a row for each letter, a
-// supporter's or from one of PauseAI's mailings, and for each one-off thread.
-// Those to test MPs are left out, as the dashboard's tiles leave them out too.
+// The correspondence page: every email with a politician, a row for each
+// letter, a supporter's or from one of PauseAI's mailings, and for each one-off
+// thread. Those with test MPs are left out, as the dashboard's tiles leave them
+// out too, unless the filter asks for test politicians.
 
 type AnyLetterBase = {
   id: number;
   status: string;
   sentAt: Date | null;
   repliedAt: Date | null;
+  /** A letter's replies from the politician's office, as reply-count.ts counts them; 0 for a one-off thread. */
+  replies: number;
 };
 
 /** One who a letter or thread is with. */
@@ -26,7 +33,7 @@ export type EmailPerson = { id: number; name: string };
 /** One a thread's first message was to. */
 export type EmailRecipient = { name: string; politicianId: number | null; pauseai: boolean };
 
-/** A row of the all emails page: a supporter's letter, with its campaign; PauseAI's, with its mailing; or a one-off thread. */
+/** A row of the correspondence page: a supporter's letter, with its campaign; PauseAI's, with its mailing; or a one-off thread. */
 export type AnyLetter = AnyLetterBase &
   (
     | {
@@ -84,6 +91,21 @@ const fromPolitician = (address: string, book: BookValues) => {
   return sql`(${column} = ANY(${book.addresses}) OR split_part(${column}, '@', 2) = ANY(${book.domains}) OR ${column} ~ ${book.parliament})`;
 };
 
+/** Each sort's column in the query: a row's politicians by the first's name. */
+const SORT_COLUMNS: Record<AllEmailsSort, string> = {
+  status: "e.status",
+  from: "lower(e.sender_name)",
+  to: "lower(e.people->0->>'name')",
+  topic: "lower(e.about)",
+  sent: "e.sent_at",
+  replied: "e.replied_at",
+};
+
+/** Whether one of a row's politicians has any of `flags` (FLAG_CONDITIONS, SQL of our own). */
+const anyMarked = (flags: PoliticianFlag[]) =>
+  sql`EXISTS (SELECT 1 FROM json_array_elements(e.people) person JOIN politicians p ON p.id = (person->>'id')::bigint
+    JOIN notable_people n ON n.id = p.id WHERE ${sql.or(flags.map((flag) => sql.raw(FLAG_CONDITIONS[flag])))})`;
+
 /** A row's type, as EMAIL_TYPES. */
 const TYPE_OF = sql`CASE e.kind WHEN 'supporter' THEN 'campaign' WHEN 'pauseai' THEN 'mailing' ELSE 'one-off' END`;
 
@@ -108,8 +130,8 @@ export async function emailPeople(supporters: boolean): Promise<EmailChoice[]> {
 }
 
 /**
- * One page of what `filter` finds, newest sent first with those not sent last,
- * and how many it finds in all. Without `supporters`, what would show a
+ * One page of what `filter` finds, in its sort, by default newest sent
+ * first, those with nothing to sort by last, and how many it finds in all. Without `supporters`, what would show a
  * supporter is left out unseen: their letters and one-off threads with someone
  * else on them (threadsWithSomeoneElse). A thread counts as sent, by whoever sent it, at its first message,
  * and replied to at the first message after that from a politician (lib/one-off.ts).
@@ -137,6 +159,9 @@ export async function listAllLetters(filter: AllLettersFilter, supporters: boole
   if (filter.to) where.push(isWith(filter.to));
   if (filter.notTo) where.push(sql`NOT ${isWith(filter.notTo)}`);
   if (filter.sentDays) where.push(sql`e.sent_at >= ${windowStart(filter.sentDays)} AND e.sent_at <= ${now()}`);
+  if (!filter.flags?.includes("test")) where.push(sql`NOT e.test`);
+  if (filter.flags) where.push(anyMarked(filter.flags));
+  if (filter.notFlags) where.push(sql`NOT ${anyMarked(filter.notFlags)}`);
   if (filter.replied === "yes") where.push(sql`e.replied_at IS NOT NULL`);
   else if (filter.replied === "no") where.push(sql`e.replied_at IS NULL`);
   else if (filter.replied) {
@@ -147,12 +172,11 @@ export async function listAllLetters(filter: AllLettersFilter, supporters: boole
       json_build_array(json_build_object('id', n.id::int, 'name', n.name)) AS people,
       f.name AS sender_name, f.email AS sender_email, coalesce(c.title, m.title) AS about,
       s.campaign, (SELECT k.supporter_id::int FROM supporter_links k WHERE k.form_entry_id = s.entry_id) AS supporter_id,
-      m.id AS mailing_id, false AS from_us, l.kind AS sender, NULL AS to_line
+      m.id AS mailing_id, false AS from_us, l.kind AS sender, NULL AS to_line, ${sql.raw(REPLIES)} AS replies, p.is_test AS test
     FROM letters l JOIN politicians p ON p.id = l.notable_person_id JOIN notable_people n ON n.id = p.id
       LEFT JOIN letters_from_supporters s ON s.id = l.id LEFT JOIN form_entries f ON f.id = s.entry_id
       LEFT JOIN campaigns c ON c.slug = s.campaign
       LEFT JOIN letters_from_pauseai lp ON lp.id = l.id LEFT JOIN mailings m ON m.id = lp.mailing_id
-    WHERE NOT p.is_test
     UNION ALL
     SELECT t.id, 'one-off', 'one-off', first.at,
       (SELECT min(m.at) FROM one_off_messages m WHERE m.thread_id = t.id AND m.at > first.at
@@ -165,21 +189,21 @@ export async function listAllLetters(filter: AllLettersFilter, supporters: boole
       CASE WHEN first.from_us THEN 'pauseai' WHEN ${fromPolitician("first.from_address", values)} THEN 'politician'
         WHEN EXISTS (SELECT 1 FROM supporter_identity i WHERE i.email = first.from_address) THEN 'supporter'
         ELSE 'other' END,
-      first.to_line
+      first.to_line, 0, EXISTS (SELECT 1 FROM one_off_thread_people tp JOIN politicians p ON p.id = tp.notable_person_id
+        WHERE tp.thread_id = t.id AND p.is_test)
     FROM one_off_threads t
       CROSS JOIN LATERAL (SELECT m.at, m.from_name, m.from_address, m.from_us, m.to_line FROM one_off_messages m
         WHERE m.thread_id = t.id ORDER BY m.at, m.id LIMIT 1) first
-    WHERE NOT EXISTS (SELECT 1 FROM one_off_thread_people tp JOIN politicians p ON p.id = tp.notable_person_id
-      WHERE tp.thread_id = t.id AND p.is_test)
   ) e`;
   const found = sql`FROM ${emails} ${sql.where(where)}`;
   const [{ total }] = await query<{ total: number }>(sql`SELECT count(*)::int AS total ${found}`);
   const rows = await query<AnyLetter & { toLine: string | null }>(
     sql`SELECT e.id::int AS id, e.kind, e.status, e.sent_at AS "sentAt", e.replied_at AS "repliedAt", e.people,
        e.sender_name AS "senderName", e.sender_email AS "senderEmail", e.campaign, e.about AS "campaignTitle",
-       e.about AS "mailingTitle", e.about AS subject, e.supporter_id AS "supporterId", e.mailing_id::int AS "mailingId", e.from_us AS "fromUs", e.to_line AS "toLine"
+       e.about AS "mailingTitle", e.about AS subject, e.supporter_id AS "supporterId", e.mailing_id::int AS "mailingId", e.from_us AS "fromUs", e.to_line AS "toLine", e.replies
      ${found}
-     ORDER BY e.sent_at DESC NULLS LAST, e.id DESC
+     ORDER BY ${sql.raw(`${SORT_COLUMNS[filter.sort.key]} ${filter.sort.dir === "asc" ? "ASC" : "DESC"}`)} NULLS LAST,
+       e.sent_at DESC NULLS LAST, e.id DESC
      LIMIT ${ALL_LETTERS_PAGE_SIZE} OFFSET ${(filter.page - 1) * ALL_LETTERS_PAGE_SIZE}`,
   );
   const letters = rows.map(({ toLine, ...row }) =>

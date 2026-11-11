@@ -322,18 +322,18 @@ export function supportersSearch(params: Partial<Record<string, ParamValue>>): S
 /** How many letters the all-letters page shows at once. */
 export const ALL_LETTERS_PAGE_SIZE = 100;
 
-/** Who sent an email on the all emails page, a one-off thread by its first message. */
+/** Who sent an email on the correspondence page, a one-off thread by its first message. */
 export const EMAIL_SENDERS = ["supporter", "pauseai", "politician", "other"] as const;
 export type EmailSender = (typeof EMAIL_SENDERS)[number];
 
-/** What a row of the all emails page is: a campaign's letter, a mailing's, or a one-off thread. */
+/** What a row of the correspondence page is: a campaign's letter, a mailing's, or a one-off thread. */
 export const EMAIL_TYPES = ["campaign", "mailing", "one-off"] as const;
 export type EmailType = (typeof EMAIL_TYPES)[number];
 
-/** The all emails page's filters, each as typed in its URL. */
+/** The correspondence page's filters, each as typed in its URL. */
 export type AllLettersSearch = SearchOf<typeof ALL_EMAILS_LIST.params>;
 
-/** Which emails the all emails page shows, and which page of them. */
+/** Which emails the correspondence page shows, and which page of them. */
 export type AllLettersFilter = {
   search?: string;
   from?: EmailSender[];
@@ -344,10 +344,14 @@ export type AllLettersFilter = {
   notTo?: number[];
   sentDays?: DashboardWindow;
   replied?: "yes" | "no" | DashboardWindow;
+  /** Politicians' markers: with any of them, or (`notFlags`) none. Test MPs are left out unless `flags` has "test". */
+  flags?: PoliticianFlag[];
+  notFlags?: PoliticianFlag[];
+  sort: SortSpec<SortOf<typeof ALL_EMAILS_LIST>>;
   page: number;
 };
 
-/** The all emails page's filters, as typed and as applied. */
+/** The correspondence page's filters, as typed and as applied. */
 export function allLettersSearch(params: Partial<Record<string, ParamValue>>): AllLettersSearch & {
   filter: AllLettersFilter;
 } {
@@ -355,6 +359,7 @@ export function allLettersSearch(params: Partial<Record<string, ParamValue>>): A
   const [types, notTypes] = anyAndNone(search.type, (values) => among(values, EMAIL_TYPES));
   const [kinds, notKinds] = anyAndNone(search.from, (values) => among(values, EMAIL_SENDERS));
   const [people, notPeople] = anyAndNone(search.to, (values) => values.flatMap((value) => politicianId(value) ?? []));
+  const [flags, notFlags] = anyAndNone(search.flag, (values) => among(values, POLITICIAN_FLAGS));
   const { replied } = search;
   return {
     ...search,
@@ -368,6 +373,9 @@ export function allLettersSearch(params: Partial<Record<string, ParamValue>>): A
       notTo: notPeople,
       sentDays: listWindow(search.sent),
       replied: replied === "yes" || replied === "no" ? replied : listWindow(replied),
+      flags,
+      notFlags,
+      sort: ALL_EMAILS_LIST.sort(search),
       page: pageNumber(search.page),
     },
   };

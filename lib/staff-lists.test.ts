@@ -46,7 +46,7 @@ describe("a staff list's definition", () => {
   });
 
   it("has no columns, nothing chosen and nothing kept, when its definition gives none", () => {
-    expect(ALL_EMAILS_LIST.columns).toEqual({});
+    expect(EVENTS_LIST.columns).toEqual({});
     expect(ALL_EMAILS_LIST.choosing).toEqual([]);
     expect(ALL_EMAILS_LIST.saved).toEqual(["sort", "dir"]);
   });

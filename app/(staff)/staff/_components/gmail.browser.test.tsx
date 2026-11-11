@@ -162,10 +162,10 @@ describe("LetterThread", () => {
     expect(page.getByText(copy.noReplies).query()).toBeNull();
   });
 
-  it("puts the way to it in Gmail at the right of the heading when it has the letter's text", async () => {
+  it("has no way to it in Gmail when it has the letter's text", async () => {
     await render(<LetterThread thread={exampleThread} link={<a href="#gmail">Gmail</a>} />);
-    await expect.element(page.getByRole("link", { name: "Gmail" })).toBeVisible();
-    expect(page.getByRole("article").first().getByRole("link", { name: "Gmail" }).all()).toHaveLength(0);
+    await expect.element(page.getByRole("article").first()).toBeVisible();
+    expect(page.getByRole("link", { name: "Gmail" }).all()).toHaveLength(0);
   });
 
   it("names someone with no name by their address", async () => {
@@ -228,13 +228,11 @@ describe("SupporterLetterThread", () => {
     await expect.element(page.getByText(copy.supporterNoText)).toBeVisible();
   });
 
-  it("one from the letters inbox: its changes to the draft, then each message both ways, any Cc, with Gmail at the heading", async () => {
+  it("one from the letters inbox: its changes to the draft, then each message both ways, any Cc, with no Gmail", async () => {
     await render(<SupporterLetterThread letter={exampleProxiedLetterDetails} link={<a href="#gmail">Gmail</a>} />);
-    // The way to it in Gmail at the heading, not in the letter's place.
-    await expect
-      .element(page.getByRole("article").first().getByRole("link", { name: "Gmail" }))
-      .not.toBeInTheDocument();
-    await expect.element(page.getByRole("link", { name: "Gmail" })).toBeVisible();
+    // Its text is here, so there's no way to it in Gmail.
+    await expect.element(page.getByRole("article").first()).toBeVisible();
+    expect(page.getByRole("link", { name: "Gmail" }).all()).toHaveLength(0);
     const [, reply, answer] = page.getByRole("article").all();
     await expect.element(reply.getByText("Thank you for writing to me.", { exact: false })).toBeVisible();
     // The office's reply is to Jane; her answer, to the MP.
@@ -249,13 +247,12 @@ describe("SupporterLetterThread", () => {
   });
 
   it("folds an automatic reply to its first paragraph, unfolded and folded again by a click", async () => {
-    const changes = staffCopy.letterChanges;
     await render(<SupporterLetterThread letter={exampleAutoRepliedLetterDetails} />);
     const [, acknowledgement, away] = page.getByRole("article").all();
     await expect.element(acknowledgement.getByText("Thank you for contacting me.", { exact: false })).toBeVisible();
     const office = acknowledgement.getByText("constituency office", { exact: false });
     await expect.element(office).not.toBeVisible();
-    const fold = acknowledgement.getByText(changes.more(3));
+    const fold = acknowledgement.getByText(copy.autoInFull);
     await fold.click();
     await expect.element(office).toBeVisible();
     await fold.click();
@@ -263,7 +260,6 @@ describe("SupporterLetterThread", () => {
     // One of a single paragraph, whole, with nothing to unfold.
     expect(away.element().textContent).toContain("I'm away until Monday.");
     expect(away.element().querySelector("details")).toBeNull();
-    expect(changes.more(1)).not.toBe(changes.more(2));
   });
 
   it("shows the replies kept of a letter whose own text isn't", async () => {

@@ -60,10 +60,20 @@ test("Letters by count", async ({ page, request, flowDatabase }) => {
   await frame(page, "All the letters again");
 });
 
-test("All emails", async ({ page, flowDatabase }) => {
-  story("Jane has written to her MP, who replied, and a mailing from PauseAI has gone to the same MP.");
+test("Correspondence", async ({ page, flowDatabase }) => {
+  story("Jane has written to her MP.");
   await sentLetterId(page, flowDatabase, madeUpAddress("Jane Smith", 13));
-  // The page leaves out letters to test MPs, and a flow's letters can only go to one.
+  story("A flow's letters can only go to a test MP, and the page leaves those out.");
+  await page.goto(`${BASE}/staff/emails`);
+  await expect(page.getByText(staffCopy.allLetters.noneFound)).toBeVisible();
+  await frame(page, "No emails, as hers is to a test MP");
+
+  story("With Test politician chosen in MP marked, her letter shows.");
+  await page.goto(`${BASE}/staff/emails?flag=test`);
+  await expect(page.getByRole("row")).toHaveCount(2);
+  await frame(page, "A test MP's emails");
+
+  story("Her MP made a real one, who replied, and a mailing gone to them too: both show, hers saying it has a reply.");
   runSql(
     flowDatabase,
     `UPDATE politicians SET is_test = false, test_postcode = NULL;
@@ -79,7 +89,19 @@ test("All emails", async ({ page, flowDatabase }) => {
   );
   await page.goto(`${BASE}/staff/emails`);
   await expect(page.getByRole("row")).toHaveCount(3);
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ hasText: "Jane Smith" })
+      .getByRole("link", { name: staffCopy.mailingPages.letterAndReplies(1) }),
+  ).toBeVisible();
   await frame(page, "Both emails");
+
+  story("Its Topic heading sorts them by topic, A to Z, so the mailing comes first.");
+  await page.getByRole("link", { name: staffCopy.allLetters.topic, exact: true }).click();
+  await expect(page).toHaveURL(/sort=topic&dir=asc/);
+  await expect(page.getByRole("row").nth(1)).toContainText("A letter about the march");
+  await frame(page, "Sorted by topic");
 
   story("Filtered to those replied to in the last 30 days, the mailing's letter goes, leaving Jane's.");
   await page.goto(`${BASE}/staff/emails?replied=30`);
@@ -148,14 +170,9 @@ test("A letter's page", async ({ page, flowDatabase }) => {
   await expect(letter).toContainText(sender);
   // Sent as the campaign drafted it, so its text is folded away.
   await expect(letter.getByText(/unchanged/)).toBeVisible();
+  // Its text is here, so there's no search for it in Gmail.
+  await expect(page.getByRole("button", { name: staffCopy.findInGmail.copy })).toHaveCount(0);
   await frame(page, "Jane's letter");
-  story("Copy Gmail search copies a search for the letter, and says where to paste it.");
-
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.getByRole("button", { name: staffCopy.findInGmail.copy }).click();
-  await expect(page.getByRole("status")).toContainText(staffCopy.findInGmail.next.stressed);
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^rfc822msgid:\S+@pauseai\.uk$/);
-  await frame(page, "Copy Gmail search, copied", { window: true });
   story(
     "The MP has signed the campaign's ask. From the letter's page, staff mark the MP as Signed, with a note of how they know.",
   );

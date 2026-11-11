@@ -72,6 +72,7 @@ export default function EmailYourMpTool({ campaignSlug, showTestMps }: Props) {
     event.preventDefault();
     if (!name.trim()) return setError(copy.lookup.nameRequired);
     if (!address.trim()) return setError(copy.lookup.addressRequired);
+    if (address.includes("@")) return setError(copy.lookup.addressIsEmail);
     if (!postcode.trim()) return setError(copy.lookup.postcodeRequired);
     setError("");
     setFound(null);

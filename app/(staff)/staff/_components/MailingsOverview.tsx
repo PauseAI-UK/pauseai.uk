@@ -108,7 +108,10 @@ function Standing<T extends MailingSummary>({
   return <Counts counts={countsOpening(href, look.counts(mailing))} small />;
 }
 
-/** One mailing, a row: when; its title, leading to it, over who it's from, name and address, and its ask; how it stands. */
+/**
+ * One mailing, a row: when; its title, leading to it, over who it's from,
+ * name and address, the staff member who wrote it, and its ask; how it stands.
+ */
 function Row<T extends MailingSummary>({
   mailing,
   year,
@@ -129,6 +132,8 @@ function Row<T extends MailingSummary>({
         mailing.fromName ??
         (mailing.oldLetters ? staffCopy.mailings.notRecorded : staffCopy.mailings.imported))
       : named(mailing.fromName === mailing.sentFrom ? null : mailing.fromName, mailing.sentFrom));
+  // Mostly the policy inbox, so also who wrote it, where the look has no From of its own.
+  const by = !look.from && mailing.createdBy ? copy.by(mailing.createdBy) : null;
   return (
     <li className={styles.row} data-pulse={pulse || undefined}>
       <span className={styles.when}>
@@ -141,9 +146,15 @@ function Row<T extends MailingSummary>({
         <Muted>
           {look.lead?.(mailing)}
           {from}
-          {mailing.ask && (
+          {by && (
             <>
               {from ? " · " : ""}
+              {by}
+            </>
+          )}
+          {mailing.ask && (
+            <>
+              {from || by ? " · " : ""}
               {staffCopy.asks.askTo[mailing.askKind!]}{" "}
               <StaffLink href={askHref(mailing.ask)}>{mailing.askTitle}</StaffLink>
             </>

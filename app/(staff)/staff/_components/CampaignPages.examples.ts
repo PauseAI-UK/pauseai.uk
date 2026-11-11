@@ -255,7 +255,7 @@ export const exampleOneOffThread: OneOffThread = {
       account: "joseph@pauseai.uk",
       politicians: { "polly.placeholder.mp@parliament.uk": 1 },
       text: "I'm away until Monday.\n\nThis email may be confidential.",
-      quoted: "",
+      quoted: "> Could we meet?",
       auto: true,
     },
   ],

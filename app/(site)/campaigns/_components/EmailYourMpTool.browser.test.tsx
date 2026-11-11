@@ -184,6 +184,8 @@ describe("EmailYourMpTool", () => {
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.lookup.addressRequired);
     await lookUp("Jane", "", "1 High St");
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.lookup.postcodeRequired);
+    await lookUp("Jane", "SW1A 1AA", "jane.smith@example.com");
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.lookup.addressIsEmail);
     expect(lookups).toEqual([]);
   });
 

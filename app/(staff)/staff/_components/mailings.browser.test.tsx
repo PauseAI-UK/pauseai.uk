@@ -283,7 +283,10 @@ describe("MailingsOverview", () => {
     await expect
       .element(row("Nov 26"))
       .toMatchTextContent(`${staffCopy.mailings.imported} · ${staffCopy.asks.askTo.event}`);
-    await expect.element(row("AI safety conference")).toMatchTextContent("Jo Example <jo@pauseai.uk> · ");
+    // And who wrote it, as most go from the policy inbox.
+    await expect
+      .element(row("AI safety conference"))
+      .toMatchTextContent(`Jo Example <jo@pauseai.uk> · ${copy.by("jo@pauseai.uk")} · `);
     // With no name of its own, its address alone.
     await expect.element(row("Edinburgh: one week to go")).toMatchTextContent("jo@pauseai.uk");
     await expect.element(row("Edinburgh: one week to go")).not.toMatchTextContent("<jo@pauseai.uk>");
@@ -310,6 +313,22 @@ describe("MailingsOverview", () => {
     );
     await expect.element(row("Ben Lake")).toMatchTextContent(`${staffCopy.asks.askTo.letter} Frontier AI letter`);
     await expect.element(row("Ben Lake")).not.toMatchTextContent(" · ");
+  });
+
+  it("says who wrote one with no sender, before its ask", async () => {
+    const lone = {
+      ...exampleMailings[1],
+      id: 11,
+      createdBy: "sam@pauseai.uk",
+      ask: "frontier-ai-letter",
+      askKind: "letter",
+    };
+    await render(
+      <MailingsOverview groups={mailingGroups({ drafts: [], comingUp: [], sent: [lone] }, new Date(now))} now={now} />,
+    );
+    await expect
+      .element(row("Ben Lake"))
+      .toMatchTextContent(`${copy.by("sam@pauseai.uk")} · ${staffCopy.asks.askTo.letter}`);
   });
 
   it("says when there are none", async () => {
@@ -495,20 +514,21 @@ describe("MailingView", () => {
     const option = (h: number) => page.getByRole("option", { name: `${String(h).padStart(2, "0")}:18` });
     // Each hour says when a mailing due then goes, and those overnight, when nothing is sent, aren't offered.
     expect(page.getByRole("option").all()[0].element().textContent).toBe("06:18");
-    // It goes at 09:00, five minutes from now in London: too soon, so 10:00, and the hours before it can't be.
+    // It's due at 09:00, whose run goes at 09:18, twenty minutes from now in London: it can still go then, and
+    // the hours before it can't be chosen.
     await expect.element(day).toMatchTextContent("Tue 1 Dec 2026");
-    await expect.element(hour).toHaveValue("10");
-    await expect.element(option(9)).toBeDisabled();
-    await expect.element(option(10)).not.toBeDisabled();
+    await expect.element(hour).toHaveValue("9");
+    await expect.element(option(8)).toBeDisabled();
+    await expect.element(option(9)).not.toBeDisabled();
     // Another day, any hour; back to today, one too soon moves on.
     await chooseDay(day, "2026-12-02");
     await hour.selectOptions("7");
     await expect.element(option(7)).not.toBeDisabled();
     await chooseDay(day, "2026-12-01");
+    await expect.element(hour).toHaveValue("9");
+    // At 09:14, the 09:18 run is too soon, so 10:00.
+    vi.advanceTimersByTime(16 * 60_000);
     await expect.element(hour).toHaveValue("10");
-    // An hour on, 10:00 is too soon too.
-    vi.advanceTimersByTime(58 * 60_000);
-    await expect.element(hour).toHaveValue("11");
     await page.getByRole("button", { name: copy.saveTime }).click();
     await expect
       .poll(() => forms.map((form) => [...form.entries()]))
@@ -516,7 +536,7 @@ describe("MailingView", () => {
         [
           ["id", "12"],
           ["day", "2026-12-01"],
-          ["hour", "11"],
+          ["hour", "10"],
         ],
       ]);
   });

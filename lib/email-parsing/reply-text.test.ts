@@ -131,6 +131,18 @@ describe("replyText", () => {
     expect(replyText("This email is about your letter.\nThanks.")).toBe("This email is about your letter.\nThanks.");
   });
 
+  it("folds the footer a Google Group adds, from its line of “--”, but keeps a “--” over anything else", () => {
+    const footer = [
+      "--",
+      'You received this message because you are subscribed to the Google Groups "PauseAI UK" group.',
+      "To unsubscribe from this group and stop receiving emails from it, send an email to policy+unsubscribe@pauseai.uk.",
+      "For more options, visit https://groups.google.com/a/pauseai.uk/d/optout.",
+    ].join("\n");
+    expect(replyParts(`Thanks.\n\n${footer}`)).toEqual({ text: "Thanks.", quoted: footer });
+    expect(replyText("Thanks.\n\n--\nJo Bloggs MP")).toBe("Thanks.\n\n--\nJo Bloggs MP");
+    expect(replyText("Thanks.\n\n--")).toBe("Thanks.\n\n--");
+  });
+
   it("undoes a mailer's wrapping, leaving lines their writer ended", () => {
     const wrapped = [
       "I am very glad to have received your letter about the safety of",

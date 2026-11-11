@@ -10,6 +10,8 @@
  */
 const PLACES_OF_TAGS: Readonly<Record<string, readonly string[]>> = {
   Oxford: ["Oxfordshire"],
+  // Luma gives its city as Tunbridge Wells or Royal Tunbridge Wells.
+  Kent: ["Tunbridge Wells"],
   "West of England": ["Bristol", "Southwest"],
   Scotland: ["Edinburgh", "Glasgow"],
 };

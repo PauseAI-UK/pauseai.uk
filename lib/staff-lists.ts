@@ -291,7 +291,7 @@ export const SENT_EMAILS_LIST = defineStaffList({
   },
 });
 
-/** Every email with a politician. It's newest sent first, with no other sort. */
+/** Every email with a politician. It's newest sent first unless another sort is chosen. */
 export const ALL_EMAILS_LIST = defineStaffList({
   path: "/staff/emails",
   needs: "account",
@@ -307,7 +307,15 @@ export const ALL_EMAILS_LIST = defineStaffList({
     sent: "one",
     /** "yes" or "no", whether it got a written reply; or a number, one in the last so many days. */
     replied: "one",
+    /** The politicians' markers, as POLITICIAN_FLAGS, those marked ! left out. */
+    flag: "many",
+    sort: "one",
+    dir: "one",
     page: "one",
+  },
+  sorts: {
+    columns: { status: "asc", from: "asc", to: "asc", topic: "asc", sent: "desc", replied: "desc" },
+    fallback: "sent",
   },
 });
 
@@ -328,3 +336,4 @@ export type ChangeSort = SortOf<typeof AUDIT_LOG_LIST>;
 export type LetterSort = SortOf<typeof LETTERS_LIST>;
 export type SentEmailSort = SortOf<typeof SENT_EMAILS_LIST>;
 export type AccountSort = SortOf<typeof ACCOUNTS_LIST>;
+export type AllEmailsSort = SortOf<typeof ALL_EMAILS_LIST>;

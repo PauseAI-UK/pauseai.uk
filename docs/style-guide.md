@@ -794,7 +794,7 @@ These go with that rule:
   never looks like a link. A politician's answer in their history is plain
   too.
 - A one-off thread has its subject as its name, so the subject is what
-  opens it. The exception is All emails, where the thread is among letters
+  opens it. The exception is Correspondence, where the thread is among letters
   and is opened as they are, by "Thread →".
 
 There are two exceptions to the rule. A name in a choice, such as a menu's
