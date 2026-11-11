@@ -106,15 +106,27 @@ test("The CiviCRM import", async ({ page, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}${importPath("import-civicrm")}`);
   await page.getByRole("button", { name: staffCopy.civicrm.importNow }).click();
-  // The fixture's seven contacts, one erased; Kit's unsubscribe, and Casey's hold.
-  const first = { contacts: 7, added: 6, changed: 0, gone: 0, optOuts: 1, blocked: 1 };
+  // The fixture's eight contacts, one erased; Kit's unsubscribe, and Casey's hold. With no members here yet, each
+  // contact is a new supporter.
+  const first = {
+    contacts: 8,
+    added: 7,
+    changed: 0,
+    gone: 0,
+    optOuts: 1,
+    blocked: 1,
+    supportersAdded: 7,
+    linked: 7,
+  };
   await expect(page.getByText(staffCopy.civicrm.result(first))).toBeVisible();
   await page.getByRole("heading", { name: staffCopy.civicrm.title }).scrollIntoViewIfNeeded();
   await frame(page, "The first run");
 
   story("Run again, it finds nothing new.");
   await page.getByRole("button", { name: staffCopy.civicrm.importNow }).click();
-  await expect(page.getByText(staffCopy.civicrm.result({ ...first, added: 0, optOuts: 0, blocked: 0 }))).toBeVisible();
+  await expect(
+    page.getByText(staffCopy.civicrm.result({ ...first, added: 0, optOuts: 0, blocked: 0, linked: 0 })),
+  ).toBeVisible();
   await expect(page.getByText(staffCopy.runs.status.unchanged)).toBeVisible();
   await page.getByRole("heading", { name: staffCopy.civicrm.title }).scrollIntoViewIfNeeded();
   await frame(page, "The second run");
