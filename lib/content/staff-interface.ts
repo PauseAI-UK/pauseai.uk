@@ -1722,7 +1722,7 @@ All events: ${link}`,
       columns: { address: "Address", from: "Source" },
       sources: {
         email: "Main address, we send email here",
-        past: "⁂ Previous main address",
+        past: "Previous main address",
         parliament: "Listed on Parliament's website",
         office: "Inferred as being a member of their staff as in emails with them",
         domain: "Their own domain, taken from a list on Parliament website",
