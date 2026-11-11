@@ -78,10 +78,14 @@ describe("openPrClashes and nextFree", () => {
     expect(openPrClashes(["0100_mine.sql"], prs, "this-branch")).toEqual([]);
   });
 
-  it("gives the number after main's, this checkout's and every open pull request's", () => {
+  it("gives a branch's first migration the number after main's and every open pull request's", () => {
     expect(nextFree(["0098_b.sql"], ["0098_b.sql"])).toBe("0099");
-    expect(nextFree(["0098_b.sql"], ["0098_b.sql", "0099_mine.sql"])).toBe("0100");
     expect(nextFree(["0098_b.sql"], ["0098_b.sql"], prs)).toBe("0102");
+  });
+
+  it("gives a branch's later migrations the number after its own last, skipping none another pull request has", () => {
+    expect(nextFree(["0098_b.sql"], ["0098_b.sql", "0099_mine.sql"])).toBe("0100");
+    expect(nextFree(["0098_b.sql"], ["0098_b.sql", "0099_mine.sql"], prs)).toBe("0100");
   });
 });
 

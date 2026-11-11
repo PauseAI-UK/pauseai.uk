@@ -70,7 +70,9 @@ Before changing a migration, `git fetch`, then check whether it's on the remote 
 
 Either way, run `npm run db:schema` and commit `schema.sql` with the migration (`docs/development.md`, "Adding a migration").
 
-A new migration must be numbered after main's last when the branch merges, and no other open PR may take its number: Netlify refuses one out of order, failing the deploy. `scripts/migration-order.mjs` checks this in CI's "Types, migrations" job, the gate and the pre-push hook, and says the next free number, as `npm run worktree` does. If main has caught up with a migration you haven't pushed, renumber it. If you have pushed it, it needs a new branch and PR.
+A new migration must be numbered after main's last when the branch merges: Netlify refuses one out of order, failing the deploy. A PR's migrations are consecutive numbers. Its first comes after main's and every open PR's. Each one after follows its own last, even if another open PR has taken that number since: never skip over another PR's number, as that interleaves the two PRs' migrations, and whichever merged second would fail. When two open PRs clash, or main catches up with a PR's migrations, they're renumbered to follow main's last (for a clash, the PR that merges second). If they've been pushed, that takes a new branch and a new PR: a pushed migration can't be renamed, and the old PR is closed. `scripts/migration-order.mjs` checks the order in CI's "Types, migrations" job, the gate and the pre-push hook, warns of a clash, and says the number to take next, as `npm run worktree` does.
+
+A PR with a migration carries the `migration` label, so the open PRs whose merge order matters can be seen at a glance: `gh pr create --label migration`, or `gh pr edit <number> --add-label migration` when a migration joins a PR that's already open.
 
 ## The storyboard
 

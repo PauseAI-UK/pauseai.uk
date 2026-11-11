@@ -76,8 +76,15 @@ export function openPrClashes(added, prs, branch) {
     );
 }
 
-/** The next free number: after main's, this checkout's and every open pull request's migrations. */
+/**
+ * The number this checkout's next migration takes. A branch's migrations
+ * are consecutive: once it adds one, the next follows its own last, never
+ * skipping a number another open pull request has taken, which would
+ * interleave the two so that whichever merged second would fail. Its first
+ * comes after main's and every open pull request's.
+ */
 export function nextFree(main, own, prs = []) {
+  if (own.some((name) => !main.includes(name))) return prefix(highest([...main, ...own]) + 1);
   const theirs = prs.flatMap((pr) =>
     pr.files
       .map((file) => file.path)
