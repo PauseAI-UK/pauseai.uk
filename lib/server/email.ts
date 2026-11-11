@@ -274,17 +274,18 @@ export type EmailBlock = {
 };
 
 /**
- * The supporters with an address, as the supporters list names them: the
- * newest name any of their records gives. Only on the lists of addresses
- * that aren't politicians', which only staff who may see supporters open.
+ * The supporters with an address, found by the address their records were
+ * linked on, and named as the supporters list names them: the newest name
+ * any of their records gives. Not from the identity view, a union of every
+ * source, which Postgres prices too high for a lookup per blocked address
+ * (docs/code-structure.md). Only on the lists of addresses that aren't
+ * politicians', which only staff who may see supporters open.
  */
 const BLOCK_SUPPORTERS = `
     (SELECT coalesce(json_agg(json_build_object('id', x.id, 'name', x.name) ORDER BY x.name NULLS LAST, x.id), '[]')
-     FROM (SELECT n.supporter_id::int AS id,
-             (array_agg(n.name ORDER BY n.seen_at DESC NULLS LAST, n.name) FILTER (WHERE n.name <> ''))[1] AS name
-           FROM supporter_identity n
-           WHERE n.supporter_id IN (SELECT i.supporter_id FROM supporter_identity i WHERE i.email = b.address)
-           GROUP BY n.supporter_id) x)`;
+     FROM (SELECT DISTINCT k.supporter_id::int AS id, l.name
+           FROM supporter_links k LEFT JOIN supporters_list l ON l.id = k.supporter_id
+           WHERE k.matched_by = 'email' AND k.matched_value = b.address) x)`;
 
 /** The blocked addresses' query, with whose they are: politicians' always, supporters' only `withSupporters`. */
 const selectBlocks = (withSupporters: boolean) => `

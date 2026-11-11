@@ -454,6 +454,10 @@ few rows they hold. What brings the cost under the threshold:
 - For a few rows worked out from the views, a PL/pgSQL function that looks
   each up by ID in a loop, declared with a small `ROWS`, so the outer query
   is planned as if there are few (`supporters_added()`).
+- Finding whose an address is from `supporter_links.matched_value`, which
+  has an index, and their name from `supporters_list`, not from
+  `supporter_identity`, the union of every source (the blocked emails'
+  `BLOCK_SUPPORTERS`).
 
 Before each migration, `migrate()` (`scripts/db-migrate.mjs`) analyses
 every table Postgres hasn't analysed yet, as autovacuum has analysed a live

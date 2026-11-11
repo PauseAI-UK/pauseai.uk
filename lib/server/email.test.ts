@@ -414,6 +414,8 @@ describeWithDatabase("listBlocks, blockOn and recentProblems", () => {
       `INSERT INTO supporter_links (supporter_id, member_id, matched_by, matched_value) VALUES ($1, 'recOther', 'email', 'other@example.org')`,
       [olly],
     );
+    // Linked, as the imports link: the kept supporters list made again.
+    await query("REFRESH MATERIALIZED VIEW supporters_list");
     expect((await listBlocks("others"))[0].supporters).toEqual([{ id: olly, name: "Olly Other" }]);
     expect(await listBlocks("politicians", { kind: "complaint" })).toEqual([]);
     expect((await listBlocks("others", { kind: "complaint" })).map((b) => b.address)).toEqual(["other@example.org"]);
