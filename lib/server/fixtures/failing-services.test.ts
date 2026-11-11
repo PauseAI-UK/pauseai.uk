@@ -13,6 +13,11 @@ describe("an outside service failing for one flow", () => {
     failService("flow_a", "api.airtable.com", dir);
     failService("flow_a", "oauth2.googleapis.com", dir);
     expect(failingResponse("api.airtable.com", "flow_a", dir)!.status).toBe(503);
+    expect(failingResponse("api.airtable.com", "flow_a", dir)!.headers.get("X-RateLimit-Reset")).toBeNull();
+    // Blobs, down, says to try again at once, so its client's retries are a second apart.
+    failService("flow_a", "blobs.fixture.invalid", dir);
+    const blobs = failingResponse("blobs.fixture.invalid", "flow_a", dir)!;
+    expect([blobs.status, blobs.headers.get("X-RateLimit-Reset")]).toEqual([503, "0"]);
     const google = failingResponse("oauth2.googleapis.com", "flow_a", dir)!;
     expect([google.status, (await google.json()).error]).toEqual([400, "invalid_grant"]);
     expect(failingResponse("api.airtable.com", "flow_b", dir)).toBeUndefined();

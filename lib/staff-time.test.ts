@@ -66,14 +66,16 @@ it("sends a mailing at its hour's run of the sending, or overnight at the mornin
 });
 
 describe("the first hour a mailing can go", () => {
-  it("is the next whole hour at least five minutes away", () => {
+  it("is the first whole hour whose run of the sending is at least five minutes away", () => {
     vi.useFakeTimers({ now: new Date("2026-07-01T10:30:00Z"), toFake: ["Date"] });
     try {
       expect(earliestHour()).toEqual(new Date("2026-07-01T11:00:00.000Z"));
-      vi.setSystemTime(new Date("2026-07-01T10:56:00Z"));
-      expect(earliestHour()).toEqual(new Date("2026-07-01T12:00:00.000Z"));
-      vi.setSystemTime(new Date("2026-07-01T10:55:00Z"));
+      vi.setSystemTime(new Date("2026-07-01T11:05:00Z"));
       expect(earliestHour()).toEqual(new Date("2026-07-01T11:00:00.000Z"));
+      vi.setSystemTime(new Date("2026-07-01T11:13:00Z"));
+      expect(earliestHour()).toEqual(new Date("2026-07-01T11:00:00.000Z"));
+      vi.setSystemTime(new Date("2026-07-01T11:14:00Z"));
+      expect(earliestHour()).toEqual(new Date("2026-07-01T12:00:00.000Z"));
     } finally {
       vi.useRealTimers();
     }

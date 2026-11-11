@@ -45,6 +45,7 @@ export const exampleSupporterDetails: SupporterDetails = {
       campaign: "regulate-letter-pm",
       campaignTitle: "Regulate AI developers now",
       status: "sent",
+      replies: 1,
     },
   ],
   identities: [

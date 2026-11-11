@@ -222,7 +222,7 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
  * top right, quietly, where their record came from, an Airtable MP's linked
  * to it there; then their party, whether they're in office, their nation
  * and how to write to them; and roughly how many emails went each way, when
- * any did, each leading to All emails, and how many asks they agreed to
+ * any did, each leading to Correspondence, and how many asks they agreed to
  * (asksAgreed).
  */
 function PoliticianBand({

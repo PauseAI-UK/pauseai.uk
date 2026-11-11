@@ -458,6 +458,11 @@ export const ALL_EMAIL_FILTERS = listFilters(
           ...WINDOW_OPTIONS,
         ],
       },
+      // Test MPs' emails show only with Test politician chosen.
+      flag: {
+        label: staffCopy.letters.mpFlag,
+        options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: staffCopy.politicians.flags[flag] })),
+      },
     };
   },
 );

@@ -471,11 +471,12 @@ logged-in staff member's own address. The refresh token is kept encrypted
 
 - **Threads.** Each PauseAI letter has a page with its whole thread
   (`/staff/mailings/<id>/letters/<letter>`), reached from the politician's
-  history and the mailing's recipients. The page has Copy Gmail search
-  (`lib/letter-links.ts`): a search for the letter by its Message-ID, to
-  paste into Gmail wherever the mailbox it went from can be seen, a
-  delegate's view included. It's a search because Gmail has no link into a
-  delegated mailbox. A supporter's letter's page has the same. For a letter
+  history and the mailing's recipients. A letter whose text the page
+  doesn't have, one copied from Airtable, has Copy Gmail search in its
+  place (`lib/letter-links.ts`): a search for the letter by its
+  Message-ID, to paste into Gmail wherever the mailbox it went from can be
+  seen, a delegate's view included. It's a search because Gmail has no
+  link into a delegated mailbox. A supporter's letter's page has the same. For a letter
   sent through the letters inbox, the search is for that inbox. For an
   older one, it's for the mailbox the import of old letters read it from,
   or else for its copy in `POLICY_INBOX`.
@@ -555,8 +556,8 @@ Threads with a politician that aren't a letter of a campaign or mailing: Joseph'
 own emails, a volunteer copying policy@, an MP writing to us.
 `lib/server/one-off-emails.ts` keeps each message whole, in Netlify Blobs with a
 row in `one_off_messages`, in its thread (`one_off_threads`). Staff read them, and
-can't change them, on All emails (`/staff/emails`), in the navigation under
-Politicians, and on the politician's and the supporter's pages. On All emails,
+can't change them, on Correspondence (`/staff/emails`), in the navigation under
+Politicians, and on the politician's and the supporter's pages. On Correspondence,
 staff without `supporters` don't see supporters' letters or a thread with someone
 else in it.
 
@@ -1318,7 +1319,7 @@ than removing the account: after Remove, logging in again makes a new
 account with none.
 
 An account opens the pages about politicians, events and imports
-(politicians, an MP's page, asks, mailings, All emails, Politicians' blocked
+(politicians, an MP's page, asks, mailings, Correspondence, Politicians' blocked
 emails, events, imports). Permissions open more
 (`lib/staff-permissions.ts`):
 
@@ -1331,7 +1332,7 @@ emails, events, imports). Permissions open more
 Some pages show less without `supporters`:
 
 - the events page has no hosts;
-- All emails hides a thread with someone else in it;
+- Correspondence hides a thread with someone else in it;
 - the sent emails and the audit log leave out what's about a supporter;
 - on an MP's page, the letters come from a query that doesn't select their
   senders, so none reach the browser.

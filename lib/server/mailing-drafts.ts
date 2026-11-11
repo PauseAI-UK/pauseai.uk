@@ -12,6 +12,7 @@ import { scheduleProblems, type ScheduleProblem } from "@/lib/mailing-schedule";
 import { toHtml, toText } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
+import { sendsAt } from "@/lib/staff-time";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
 import { gmailAccount } from "./gmail-accounts";
@@ -464,9 +465,9 @@ export async function stopMailing(id: number, by: string): Promise<boolean> {
   });
 }
 
-/** Changes when a scheduled mailing goes, to a time still to come. Says whether it did. */
+/** Changes when a scheduled mailing goes, to an hour whose run of the sending is still to come. Says whether it did. */
 export async function rescheduleMailing(id: number, dueAt: Date, by: string): Promise<boolean> {
-  if (dueAt <= now()) return false;
+  if (sendsAt(dueAt) <= now()) return false;
   return transaction(async (db) => {
     const changed = await query(
       "UPDATE mailings SET due_at = $2, updated_at = now() WHERE id = $1 AND state = 'scheduled' RETURNING id",

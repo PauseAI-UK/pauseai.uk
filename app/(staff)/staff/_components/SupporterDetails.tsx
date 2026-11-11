@@ -263,7 +263,10 @@ const letterColumns: ListColumn<SupporterLetter>[] = [
     short: true,
     cell: (l) => (
       <>
-        {statusOf(l.status)} · <StaffLink href={`/staff/letters/${l.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
+        {statusOf(l.status)} ·{" "}
+        <StaffLink href={`/staff/letters/${l.id}`}>
+          {l.replies ? staffCopy.mailingPages.letterAndReplies(l.replies) : staffCopy.mailingPages.theLetter}
+        </StaffLink>
       </>
     ),
   },

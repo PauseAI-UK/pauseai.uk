@@ -86,7 +86,7 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
   await expect(correspondence.getByRole("link", { name: words.repliesOnly })).toHaveAttribute("aria-current", "page");
   await frame(page, "Replies only", { of: correspondence });
 
-  story("All emails brings them all back.");
+  story("Correspondence brings them all back.");
   await correspondence.getByRole("link", { name: words.allEmails }).click();
   await expect(threads).toHaveCount(all);
 

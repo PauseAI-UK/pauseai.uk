@@ -210,11 +210,48 @@ describeWithDatabase("listAllLetters", () => {
     expect(await found({ from: "!pauseai" })).toEqual(["new@example.com", "old@example.com"]);
   });
 
-  it("leaves out a thread with a test MP", async () => {
-    vi.stubEnv("FIXTURE_NOW", NOW);
-    const test = await addTestMp();
+  it("leaves out a thread or letter with a test MP, unless test politicians are asked for", async () => {
+    await fill();
+    const test = (await query<{ id: number }>("SELECT id::int AS id FROM politicians WHERE is_test"))[0].id;
     await thread("With a test MP", [["jo@pauseai.uk", "2026-10-17T10:00:00Z"]], false, [test]);
-    expect(await found({})).toEqual([]);
+    expect(await found({})).toEqual(["new@example.com", "The March mailing", "old@example.com"]);
+    expect(await found({ flag: "test" })).toEqual(["test@example.com", "With a test MP"]);
+    expect(await found({ flag: "!test" })).toEqual(["new@example.com", "The March mailing", "old@example.com"]);
+  });
+
+  it("sorts by a column either way, those with nothing to sort by last", async () => {
+    await fill();
+    expect(await found({ sort: "replied", dir: "asc" })).toEqual([
+      "The March mailing",
+      "new@example.com",
+      "old@example.com",
+    ]);
+    expect(await found({ sort: "from", dir: "asc" })).toEqual([
+      "new@example.com",
+      "old@example.com",
+      "The March mailing",
+    ]);
+    expect(await found({ sort: "topic", dir: "desc" })).toEqual([
+      "The March mailing",
+      "new@example.com",
+      "old@example.com",
+    ]);
+    expect(await found({ sort: "to", dir: "asc" })).toHaveLength(3);
+    expect(await found({ sort: "status", dir: "asc" })).toHaveLength(3);
+  });
+
+  it("counts a letter's replies from the office, at least one once it's marked replied", async () => {
+    await fill();
+    const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM letters WHERE kind = 'pauseai'");
+    for (const [i, fromUs] of [false, false, true].entries()) {
+      await query(
+        `INSERT INTO letter_replies (letter_id, account, from_address, at, from_us, blob_key, size)
+         VALUES ($1, 'jo@pauseai.uk', 'polly@example.org', '2026-10-02T10:00:00Z', $2, $3, 1)`,
+        [id, fromUs, `reply-${i}`],
+      );
+    }
+    const { letters } = await listAllLetters(allLettersSearch({}).filter, true);
+    expect(letters.map((letter) => letter.replies)).toEqual([1, 2, 0]);
   });
 
   it("without supporters, leaves out their letters and threads with someone else, as if they weren't there", async () => {

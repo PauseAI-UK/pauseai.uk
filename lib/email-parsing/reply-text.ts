@@ -30,6 +30,10 @@ const WROTE_DATE = /\d{1,2}[:.]\d{2}|\b\d{4}\b/;
 const FOOTER_LINE =
   /^\s*(UK Parliament Disclaimer|Sent from (my|Outlook|Mail)\b|Get Outlook for\b|Anfonwyd o['’]\w*|DISCLAIMER\b|CONFIDENTIALITY( NOTICE)?\b|This (e-?mail|message)\b.{0,60}\b(confidential|intended|privileged)\b)/i;
 
+/** The footer a Google Group adds to each message it passes on, under a line of "--". */
+const SEPARATOR_LINE = /^--\s*$/;
+const GROUP_FOOTER = /^\s*You received this message because you are subscribed to the Google Groups\b/i;
+
 /** Whether "On … wrote:" starts at a line, over text with no quote marks: "> " lines have their own way out, as a reply may answer between them. */
 function startsUnmarkedWrote(lines: string[], i: number): boolean {
   if (!WROTE_STARTS.test(lines[i]!)) return false;
@@ -43,6 +47,7 @@ function startsUnmarkedWrote(lines: string[], i: number): boolean {
 function startsFolded(lines: string[], i: number): boolean {
   const line = lines[i]!;
   if (QUOTE_LINE.test(line) || FOOTER_LINE.test(line) || startsUnmarkedWrote(lines, i)) return true;
+  if (SEPARATOR_LINE.test(line) && GROUP_FOOTER.test(lines[i + 1] ?? "")) return true;
   return FROM_LINE.test(line) && lines.slice(i + 1, i + 4).some((next) => SENT_LINE.test(next));
 }
 

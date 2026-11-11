@@ -85,7 +85,7 @@ describe("SupporterDetails", () => {
       .element(letters.getByRole("link", { name: "Polly Placeholder" }))
       .toHaveAttribute("href", "/staff/politicians/1");
     await expect
-      .element(letters.getByRole("link", { name: staffCopy.mailingPages.theLetter }))
+      .element(letters.getByRole("link", { name: staffCopy.mailingPages.letterAndReplies(1) }))
       .toHaveAttribute("href", "/staff/letters/12");
     // So does the same letter in the history.
     expect(document.querySelector('a[href="/staff/letters/99"]')).not.toBeNull();
@@ -219,6 +219,7 @@ describe("SupporterDetails", () => {
               campaign: "gone-campaign",
               campaignTitle: "Gone campaign",
               status: "odd",
+              replies: 0,
             },
           ],
           summary: {

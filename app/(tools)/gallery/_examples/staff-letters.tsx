@@ -544,6 +544,7 @@ export const staffLetters: Group = {
                       status: "sent",
                       sentAt: new Date("2026-10-20T10:00:00Z"),
                       repliedAt: new Date("2026-10-21T10:00:00Z"),
+                      replies: 1,
                       people: [{ id: 1, name: "Polly Placeholder" }],
                       senderName: "Jane Smith",
                       senderEmail: "jane.smith@example.com",
@@ -557,6 +558,7 @@ export const staffLetters: Group = {
                       status: "scheduled",
                       sentAt: null,
                       repliedAt: null,
+                      replies: 0,
                       people: [{ id: 1, name: "Polly Placeholder" }],
                       mailingId: 3,
                       mailingTitle: "A letter about the march",
@@ -567,6 +569,7 @@ export const staffLetters: Group = {
                       status: "one-off",
                       sentAt: new Date("2026-10-19T10:00:00Z"),
                       repliedAt: null,
+                      replies: 0,
                       people: [{ id: 1, name: "Polly Placeholder" }],
                       senderName: "Sam Jones",
                       senderEmail: "sam@example.com",
@@ -578,7 +581,18 @@ export const staffLetters: Group = {
                   total: 3,
                   pages: 1,
                 }}
-                search={{ q: "", from: [], type: [], to: [], sent: "30", replied: "", page: "" }}
+                search={{
+                  q: "",
+                  from: [],
+                  type: [],
+                  to: [],
+                  sent: "30",
+                  replied: "",
+                  flag: [],
+                  sort: "",
+                  dir: "",
+                  page: "",
+                }}
                 people={[{ id: 1, name: "Polly Placeholder", constituency: "Cities of London and Westminster" }]}
                 supporters
                 inbox="policy@example.org"

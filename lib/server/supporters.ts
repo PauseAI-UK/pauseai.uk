@@ -25,6 +25,7 @@ import { SUPPORTER_SOURCES } from "./supporter-sources";
 import { contains, everyWord, phoneSearch } from "./search";
 import { sql, type Sql } from "./sql";
 import { placeFor, type FoundPlace } from "./outside-services/postcodes";
+import { REPLIES } from "./reply-count";
 
 // Supporters: one per person, tied to each record about them in a source
 // (supporter_links). Linking is by email, trimmed and lowercased and
@@ -412,7 +413,7 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
     query<SupporterLetter>(
       `SELECT l.id::int AS id, l.sent_at AS "sentAt", n.name AS "mpName", n.id::int AS "politicianId",
          coalesce((SELECT p.is_test FROM politicians p WHERE p.id = n.id), false) AS "isTest", s.campaign,
-         c.title AS "campaignTitle", l.status
+         c.title AS "campaignTitle", l.status, ${REPLIES} AS replies
        FROM supporter_links k JOIN letters_from_supporters s ON s.entry_id = k.form_entry_id
          JOIN campaigns c ON c.slug = s.campaign
          JOIN letters l ON l.id = s.id JOIN notable_people n ON n.id = l.notable_person_id

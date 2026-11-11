@@ -1,4 +1,4 @@
-import { ALL_EMAILS_LIST } from "@/lib/staff-lists";
+import { ALL_EMAILS_LIST, type AllEmailsSort } from "@/lib/staff-lists";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -6,10 +6,13 @@ import type { AllLettersFound, AnyLetter, EmailChoice } from "@/lib/server/all-l
 import { ALL_EMAIL_FILTERS } from "@/lib/staff-list-filters";
 import { ALL_LETTERS_PAGE_SIZE, type AllLettersSearch } from "@/lib/staff-search";
 import { filtersPath, pageParam } from "@/lib/list-params";
+import { sortHref } from "@/lib/staff-sort";
 import { staffTime } from "@/lib/staff-time";
 import CampaignName from "./CampaignName";
+import SortHeading from "./SortHeading";
 import FilterBar from "./ui/FilterBar";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
+import PageIntro from "./ui/PageIntro";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 import { statusOf } from "./LetterStatus";
@@ -36,7 +39,10 @@ function Status({ letter }: { letter: AnyLetter }) {
       : `/staff/letters/${letter.id}`;
   return (
     <>
-      {statusOf(letter.status)} · <StaffLink href={href}>{staffCopy.mailingPages.theLetter}</StaffLink>
+      {statusOf(letter.status)} ·{" "}
+      <StaffLink href={href}>
+        {letter.replies ? staffCopy.mailingPages.letterAndReplies(letter.replies) : staffCopy.mailingPages.theLetter}
+      </StaffLink>
     </>
   );
 }
@@ -103,7 +109,8 @@ function Topic({ letter }: { letter: AnyLetter }) {
 /**
  * The columns, as every list's go (docs/style-guide.md, "Lists"): how it
  * stands and the way to it; who it's from; the politicians it's with; its topic;
- * then when it was sent and first got a written reply.
+ * then when it was sent and first got a written reply. Each heading sorts
+ * the list by its column.
  */
 const COLUMNS: ListColumn<AnyLetter>[] = [
   { key: "status", label: words.columns.status, short: true, cell: (letter) => <Status letter={letter} /> },
@@ -135,9 +142,26 @@ export default function AllLetters({
   inbox: string;
 }) {
   const { page, ...values } = search;
+  const { sort, dir, ...filtering } = values;
+  const current = ALL_EMAILS_LIST.sort({ sort, dir });
+  // Each heading sorts the list by its column, keeping the filters, from the first page.
+  const columns = COLUMNS.map((column) => ({
+    ...column,
+    heading: (
+      <SortHeading
+        key={column.key}
+        sortKey={column.key}
+        current={current}
+        href={sortHref(PATH, filtering, ALL_EMAILS_LIST.columns, current, column.key as AllEmailsSort)}
+      >
+        {column.label}
+      </SortHeading>
+    ),
+  }));
   return (
     <>
       <h1>{copy.title}</h1>
+      <PageIntro>{copy.subtitle}</PageIntro>
       {!supporters && (
         <p>
           <Withheld>{copy.withheld}</Withheld>
@@ -161,7 +185,7 @@ export default function AllLetters({
         pages={found.pages}
         pageSize={ALL_LETTERS_PAGE_SIZE}
         href={(n) => filtersPath(PATH, values, pageParam(n))}
-        columns={COLUMNS}
+        columns={columns}
         rows={found.letters}
         rowKey={(letter) => `${letter.kind}-${letter.id}`}
         empty={<Muted>{copy.noneFound}</Muted>}

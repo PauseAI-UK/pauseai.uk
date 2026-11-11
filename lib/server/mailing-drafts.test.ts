@@ -264,12 +264,15 @@ describeWithDatabase("mailing drafts", () => {
     ]);
   });
 
-  it("changes when a scheduled mailing goes, but not to a time gone by, nor for a draft", async () => {
+  it("changes when a scheduled mailing goes, but not to an hour whose run has gone by, nor for a draft", async () => {
     await addTestPolitician();
     const { id, version } = await readyDraft();
     expect(await rescheduleMailing(id, new Date("2026-11-05T10:00:00Z"), STAFF)).toBe(false);
     await scheduleMailing(id, version, STAFF, SENDS);
     expect(await rescheduleMailing(id, new Date("2026-10-01T10:00:00Z"), STAFF)).toBe(false);
+    // At 09:00, the last hour's run went at 08:18, and this hour's goes at 09:18.
+    expect(await rescheduleMailing(id, new Date("2026-11-01T08:00:00Z"), STAFF)).toBe(false);
+    expect(await rescheduleMailing(id, new Date("2026-11-01T09:00:00Z"), STAFF)).toBe(true);
     expect(await rescheduleMailing(id, new Date("2026-11-05T10:00:00Z"), STAFF)).toBe(true);
     expect((await getWrittenMailing(id))!.dueAt).toEqual(new Date("2026-11-05T10:00:00Z"));
   });

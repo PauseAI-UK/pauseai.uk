@@ -78,7 +78,7 @@ export const staffCopy = {
     import: "Import data",
     changes: "Audit log",
     campaigns: "Campaigns",
-    emails: "All emails",
+    emails: "Correspondence",
     sentEmails: "Sent emails",
     // Beside a page the staff member first saw in the last 3 days.
     newTag: "new",
@@ -108,6 +108,8 @@ export const staffCopy = {
     title: "Letter and replies",
     // Folds the mail a message quotes and its footer, under its text.
     quoted: "Quoted mail and footer",
+    // Folds all of an automatic reply but its first paragraph: the rest, the mail it quotes and its footer.
+    autoInFull: "Automated reply in full",
     // An imported letter, whose text Airtable didn't keep.
     noText: "Text not available, as sent from Airtable.",
     // Over the text of a letter that's built from the send before it and the person's earlier letter.
@@ -1936,8 +1938,6 @@ All events: ${link}`,
     showChanges: "Show changes",
     // In place of paragraphs left as they were; a click unfolds them.
     folded: (n: number) => `${count(n, "paragraph", "paragraphs")} unchanged`,
-    // An automatic reply folded to its first paragraph: in place of the rest, which a click unfolds.
-    more: (n: number) => `${n} more ${plural(n, "paragraph", "paragraphs")}`,
   },
   // The letters inbox, which supporters' letters to MPs go from (lib/server/letters-inbox-reading.ts).
   lettersInbox: {
@@ -2530,7 +2530,9 @@ All events: ${link}`,
     siteAdmin: "Site admin",
   },
   allLetters: {
-    title: "All emails with politicians",
+    title: "Correspondence",
+    // Under the title.
+    subtitle: "All emails to and from politicians",
     // Over the list: how many there are.
     total: (total: number) => count(total, "email", "emails"),
     search: "Sender, politician or topic",
@@ -2633,7 +2635,8 @@ All events: ${link}`,
         copied: "Already in its To or Cc",
         own_follow_up: "It's their own follow-up",
         bounce_address: "Came to the bounce address",
-        gmail: "Read from Gmail, where it already is",
+        // A reply that came to one of our Gmail inboxes, so isn't forwarded there again.
+        gmail: "Already in our Gmail inbox",
         refused: "Postmark refused it",
         blocked: "The address is blocked",
       },

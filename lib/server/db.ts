@@ -27,8 +27,10 @@ async function getPool(): Promise<Pool> {
     if (name) return flowPool(connectionString, name);
   }
   if (pool) return pool;
-  // Serverless functions each hold their own pool, so keep it small.
-  pool = new Pool({ connectionString: verifyFullUrl(connectionString), max: 3 });
+  // Serverless functions each hold their own pool, so keep it small. A
+  // connection is kept a minute once idle, not pg's ten seconds, as opening
+  // one takes several round trips: a staff member's next click reuses it.
+  pool = new Pool({ connectionString: verifyFullUrl(connectionString), max: 3, idleTimeoutMillis: 60_000 });
   // A connection the server drops while idle comes here; without a listener
   // it would be an uncaught error. Only a warning, not a problem for a run,
   // as the pool opens another and the next query carries on.

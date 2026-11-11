@@ -111,6 +111,21 @@ test("Going back to the form", async ({ page }) => {
   await frame(page, "The form, as she left it");
 });
 
+test("An email for an address", async ({ page }) => {
+  story(
+    "Jane puts her email where the first line of her address goes. Find my MP asks for her postal address instead.",
+  );
+  await openLookup(page, BASE);
+  await page.getByLabel(copy.lookup.addressLabel).fill("jane.smith@example.com");
+  await page.getByRole("button", { name: copy.lookup.button }).click();
+  const error = page.locator("p[role=alert]");
+  await expect(error).toHaveText(copy.lookup.addressIsEmail);
+  await expect(page).toHaveURL(PAGE);
+  // Below the button on a phone, so in view for the frame.
+  await error.scrollIntoViewIfNeeded();
+  await frame(page, "Asked for her postal address");
+});
+
 test("Formatting the letter", async ({ page, flowDatabase }) => {
   story("Jane adds a line in bold and a bulleted list, from the toolbar.");
   const sender = madeUpAddress("Jane Smith", 22);
