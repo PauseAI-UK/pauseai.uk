@@ -598,9 +598,9 @@ export const staffCopy = {
         } as Record<Topic, { about: string; yes: string; no: string }>,
         // Why a blocked address is a no, under each of its topics: what blocked it, then the link to the list.
         blockedBecause: {
-          hard: (when: string) => `An email to it bounced, ${when}.`,
-          complaint: (when: string) => `They marked an email as spam, ${when}.`,
-          hold: (when: string) => `On hold in CiviCRM, ${when}.`,
+          hard: (when: string) => `An email to it bounced, ${when}`,
+          complaint: (when: string) => `They marked an email as spam, ${when}`,
+          hold: (when: string) => `On hold in CiviCRM, ${when}`,
         } as Record<string, (when: string) => string>,
         seeBlocked: "See blocked emails",
       },
@@ -2321,7 +2321,7 @@ All events: ${link}`,
       supportersAdded?: number;
       linked?: number;
     }) =>
-      `${r.contacts} contacts read: ${r.added} added, ${r.changed} changed, ${r.held ? "none marked gone, as too few came back" : `${r.gone} gone`}; ${r.optOuts} unsubscribes changed, ${r.blocked} addresses blocked for a hold.${r.linked ? ` ${r.supportersAdded} new supporters, ${r.linked} linked.` : ""}`,
+      `${count(r.contacts, "contact", "contacts")} read: ${r.added} added, ${r.changed} changed, ${r.held ? "none marked gone, as too few came back" : `${r.gone} gone`}; ${count(r.optOuts, "unsubscribe", "unsubscribes")} changed, ${count(r.blocked, "address", "addresses")} blocked for a hold.${r.linked ? ` ${count(r.supportersAdded!, "new supporter", "new supporters")}, ${r.linked} linked.` : ""}`,
   },
   syncs: {
     title: "Politicians from Airtable",

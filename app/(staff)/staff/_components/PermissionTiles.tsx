@@ -89,7 +89,7 @@ function Reason({ permission }: { permission: ContactPermission }) {
   const blocked = permission.reason === "blocked";
   return (
     <span className={styles.reason}>
-      {blocked && words ? `${words} ` : words}
+      {blocked && words ? `${words} · ` : words}
       {blocked && <StaffLink href="/staff/supporters/blocked-emails">{copy.seeBlocked}</StaffLink>}
     </span>
   );

@@ -141,7 +141,7 @@ describe("PermissionTiles", () => {
     expect(rows().map(head)).toEqual([`${copy.topics.newsletter}?`, `${copy.topics.events}?`]);
     for (const row of rows()) {
       expect(lines(row)).toEqual([`gus@example.com${copy.answers.email.no}`]);
-      expect(reasons(row)).toEqual([`${copy.blockedBecause.complaint("5 Oct 2026")} ${copy.seeBlocked}`]);
+      expect(reasons(row)).toEqual([`${copy.blockedBecause.complaint("5 Oct 2026")} · ${copy.seeBlocked}`]);
       expect(row.querySelector("[class*=green], [class*=amber], [class*=red]")).toBeNull();
       expect(row.querySelectorAll("[class*=address] a")).toHaveLength(0);
     }
@@ -177,9 +177,9 @@ describe("PermissionTiles", () => {
   it("says what blocked an address: a bounce, a hold, or only the link for a block it has no words for", async () => {
     const [blocked] = exampleBlockedPermissions;
     const { rerender } = await render(<PermissionTiles permissions={[{ ...blocked, source: "hard" }]} />);
-    expect(reasons(rows()[0])).toEqual([`${copy.blockedBecause.hard("5 Oct 2026")} ${copy.seeBlocked}`]);
+    expect(reasons(rows()[0])).toEqual([`${copy.blockedBecause.hard("5 Oct 2026")} · ${copy.seeBlocked}`]);
     await rerender(<PermissionTiles permissions={[{ ...blocked, source: "hold" }]} />);
-    expect(reasons(rows()[0])).toEqual([`${copy.blockedBecause.hold("5 Oct 2026")} ${copy.seeBlocked}`]);
+    expect(reasons(rows()[0])).toEqual([`${copy.blockedBecause.hold("5 Oct 2026")} · ${copy.seeBlocked}`]);
     await rerender(<PermissionTiles permissions={[{ ...blocked, source: null }]} />);
     expect(reasons(rows()[0])).toEqual([copy.seeBlocked]);
   });
