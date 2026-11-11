@@ -451,7 +451,6 @@ describeWithDatabase("staff Server Actions", () => {
     const id = await addTestPolitician();
     expect(await addAliasNow(form({ politicianId: String(id), address: "polly@example.com" }))).toEqual({
       added: true,
-      kept: 0,
     });
     expect(revalidatePath).toHaveBeenCalledWith("/staff", "layout");
     revalidatePath.mockClear();

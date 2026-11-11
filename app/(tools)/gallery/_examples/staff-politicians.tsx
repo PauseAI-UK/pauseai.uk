@@ -301,8 +301,8 @@ export const staffPoliticians: Group = {
       file: "app/(staff)/staff/_components/AddAliasForm.tsx",
       variants: [
         {
-          label: "Added: how many emails with it were kept",
-          render: () => <AddAliasFormExample result={{ added: true, kept: 2 }} />,
+          label: "Added: its earlier emails are found soon",
+          render: () => <AddAliasFormExample result={{ added: true }} />,
         },
         {
           label: "Not an email address",

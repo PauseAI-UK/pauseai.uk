@@ -12,6 +12,7 @@ import { gmailAccess, gmailReadingState, saveGmailName, saveHistoryId } from "./
 import { asRun, type Ran } from "./import-runs";
 import { keepsPoliticianThreads } from "@/lib/one-off";
 import { keepIfPoliticianThread, reportUnmatchedMail } from "./one-off-emails";
+import { searchAddedAddresses } from "./politician-aliases";
 import {
   allParts,
   fromAddress,
@@ -277,6 +278,13 @@ async function alertNotUnderstood(accounts: GmailRead[], request: Request | unde
 }
 
 /**
+ * How long into a run the search for addresses staff added may start on
+ * another, leaving the rest of a scheduled function's 30 seconds for the one
+ * it's on and the run's last steps.
+ */
+const SEARCH_UNTIL_MS = 15_000;
+
+/**
  * Reads every connected account, keeping the run. One that fails is a
  * problem of the run, and the next is read all the same; it's read again from
  * where it got to next time, unless Google refused its access, which
@@ -291,6 +299,7 @@ export async function readGmail(startedBy: string, request?: Request): Promise<G
 
 /** A run of readGmail. */
 async function readAll(request: Request | undefined): Promise<Ran<GmailReadResult>> {
+  const started = Date.now();
   const accounts: GmailRead[] = [];
   for (const { email, historyId } of await gmailReadingState()) {
     try {
@@ -326,5 +335,7 @@ async function readAll(request: Request | undefined): Promise<Ran<GmailReadResul
     });
   }
   await reportUnmatchedMail(gmailAccess);
-  return { status: found ? "ok" : "unchanged", result: { accounts } };
+  const search = await searchAddedAddresses(started + SEARCH_UNTIL_MS);
+  const searched = search.searched || search.waiting ? { searched: search } : {};
+  return { status: found || search.kept ? "ok" : "unchanged", result: { accounts, ...searched } };
 }

@@ -232,8 +232,19 @@ export type NotUnderstoodReason = "unknown_proxy" | "no_proxy" | "stranger" | "n
 /** A message the letters inbox couldn't account for: its Gmail ID, for a link, who it's from, its subject and why. */
 export type NotUnderstood = { gmailMessageId: string; from: string; subject: string; reason: NotUnderstoodReason };
 
-/** What a run of reading Gmail found, account by account; or, in a run kept from before one run went at a time, that another was reading, so it read nothing. */
-export type GmailReadResult = { accounts: GmailRead[]; stoppedBy?: "running" };
+/**
+ * What searching the mailboxes for addresses staff added to politicians' did
+ * (lib/server/politician-aliases.ts): how many it searched for, the messages
+ * it kept, and how many are left for the next run.
+ */
+export type AddressSearch = { searched: number; kept: number; waiting: number };
+
+/**
+ * What a run of reading Gmail found, account by account, and what its search
+ * for added addresses did, in a run that had any; or, in a run kept from
+ * before one run went at a time, that another was reading, so it read nothing.
+ */
+export type GmailReadResult = { accounts: GmailRead[]; searched?: AddressSearch; stoppedBy?: "running" };
 export type GmailReading = ImportRun<"read-gmail", GmailReadResult>;
 
 /** What a run of the Emails sync did: the emails read, those it added, and those it couldn't. */

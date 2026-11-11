@@ -1202,7 +1202,7 @@ describe("AddAliasForm", () => {
 
   it("sends the address, and says what happened", async () => {
     const results = [
-      { added: true as const, kept: 2 },
+      { added: true as const },
       { added: false as const, why: "invalid" as const },
       { added: false as const, why: "exists" as const },
       undefined,
@@ -1223,8 +1223,7 @@ describe("AddAliasForm", () => {
       await page.getByRole("button", { name: words.add }).click();
     };
     await send("a@example.com");
-    await expect.element(status).toHaveTextContent(words.added(2));
-    expect(words.added(0)).not.toBe(words.added(2));
+    await expect.element(status).toHaveTextContent(words.added);
     await send("b@example.com");
     await expect.element(status).toHaveTextContent(words.refused.invalid);
     await send("c@example.com");

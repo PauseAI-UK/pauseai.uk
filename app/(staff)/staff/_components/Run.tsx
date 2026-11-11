@@ -330,7 +330,8 @@ function CivicrmRun({ run, open, bare }: { run: CivicrmImport; open?: boolean; b
  * A read of Gmail: the totals, then each account's, with whether it
  * couldn't be read, or was disconnected; for the letters inbox, what it
  * relayed, and each message it couldn't account for, with a link to it in
- * Gmail. One that stopped as another was reading says so, as the Luma
+ * Gmail; and in its summary, what its search for addresses staff added
+ * found. One that stopped as another was reading says so, as the Luma
  * import's does.
  */
 function GmailRun({ run, open, bare }: { run: GmailReading; open?: boolean; bare?: boolean }) {
@@ -340,10 +341,17 @@ function GmailRun({ run, open, bare }: { run: GmailReading; open?: boolean; bare
   }
   const words = staffCopy.gmailReading;
   const inbox = staffCopy.lettersInbox;
-  const { accounts } = run.result;
+  const { accounts, searched } = run.result;
   const lines = accounts.reduce((n, a) => n + 1 + (a.notUnderstood?.length ?? 0), 0);
+  const summary = words.result(accounts);
   return (
-    <RunBox run={run} summary={words.result(accounts)} lines={lines} open={open} bare={bare}>
+    <RunBox
+      run={run}
+      summary={searched ? `${summary.replace(/\.?$/, ".")} ${words.searched(searched)}` : summary}
+      lines={lines}
+      open={open}
+      bare={bare}
+    >
       <ul>
         {accounts.map((a) => (
           <li key={a.account}>

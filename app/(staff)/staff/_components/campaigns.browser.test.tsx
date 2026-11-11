@@ -470,7 +470,11 @@ describe("the one-off emails", () => {
       "Fwd: my MP's answer",
     ]);
     const text = emails.map((email) => email.element().textContent);
-    expect(text[0]).toContain("15 October 2026 11:17");
+    expect(text[0]).toContain("15 Oct 2026, at 11:17");
+    // One rebuilt from an "On … wrote:" line says nothing of whom it was to, so it has no To.
+    const heads = (i: number) => [...emails[i].element().querySelectorAll("dt")].map((dt) => dt.textContent);
+    expect(heads(0)).not.toContain(staffCopy.letterThread.headers.to);
+    expect(heads(1)).toContain(staffCopy.letterThread.headers.to);
     expect(text[1]).toContain(staffCopy.oneOff.rebuilt("Jane Smith"));
     expect(text[2]).toContain(staffCopy.oneOff.forwardedAlone);
     await expect.element(link("pollyplaceholdermp@parliament.uk")).not.toBeInTheDocument();

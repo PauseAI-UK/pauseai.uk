@@ -13,8 +13,8 @@ const copy = staffCopy.politician.aliases;
 
 /**
  * The form under a politician's aliases: adds an address to theirs, such as
- * a personal Gmail. Once the server has it, says how many messages the
- * mailboxes held with it, or why it wasn't added.
+ * a personal Gmail. Once the server has it, says it's added and that its
+ * earlier mail will be found soon, or why it wasn't added.
  */
 export default function AddAliasForm({
   politicianId,
@@ -37,8 +37,7 @@ export default function AddAliasForm({
         </SubmitButton>
       </FilterForm>
       <p role="status" className={styles.result}>
-        {result &&
-          (result.added ? <Muted>{copy.added(result.kept)}</Muted> : <ErrorText>{copy.refused[result.why]}</ErrorText>)}
+        {result && (result.added ? <Muted>{copy.added}</Muted> : <ErrorText>{copy.refused[result.why]}</ErrorText>)}
       </p>
     </>
   );

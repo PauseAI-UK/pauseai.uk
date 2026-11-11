@@ -264,7 +264,11 @@ export const exampleOneOffThread: OneOffThread = {
   ],
 };
 
-/** A supporter's forward of their MP's answer to policy@: the letter and the answer rebuilt before it. */
+/**
+ * A supporter's forward of their MP's answer to policy@: the letter and the
+ * answer rebuilt before it, the letter from an "On … wrote:" line, which says
+ * nothing of whom it was to.
+ */
 export const exampleForwardThread: OneOffThread = {
   ...exampleOneOffs[1],
   people: [{ id: 1, name: "Polly Placeholder", isTest: false }],
@@ -286,11 +290,11 @@ export const exampleForwardThread: OneOffThread = {
         {
           fromName: "Jane Smith",
           fromAddress: "jane.smith@example.com",
-          to: "polly.placeholder.mp@parliament.uk",
+          to: "",
           cc: "",
-          sent: "15 October 2026 11:17",
+          sent: "15 Oct 2026, at 11:17",
           subject: "Can we meet?",
-          politicians: { "polly.placeholder.mp@parliament.uk": 1 },
+          politicians: {},
           text: "Dear Polly,\n\nI'm a constituent. Could we meet in Westminster Hall?",
           quoted: "",
         },

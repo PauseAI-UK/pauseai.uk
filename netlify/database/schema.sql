@@ -2155,8 +2155,10 @@ CREATE TABLE public.politician_addresses (
     source text NOT NULL,
     added_by text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    searched_at timestamp with time zone,
     CONSTRAINT politician_addresses_address_check CHECK (((address = lower(address)) AND (address ~~ '_%@_%'::text))),
     CONSTRAINT politician_addresses_check CHECK (((source = ANY (ARRAY['staff'::text, 'rejected'::text])) = (added_by IS NOT NULL))),
+    CONSTRAINT politician_addresses_check1 CHECK (((searched_at IS NULL) OR (source = 'staff'::text))),
     CONSTRAINT politician_addresses_source_check CHECK ((source = ANY (ARRAY['parliament'::text, 'office'::text, 'staff'::text, 'rejected'::text])))
 );
 

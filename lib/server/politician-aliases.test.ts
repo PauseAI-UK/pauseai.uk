@@ -5,7 +5,14 @@ import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatab
 import { stubLettersInboxEnv } from "@/tests/gmail-sends";
 import { addressForms } from "@/lib/one-off";
 import { query } from "./db";
-import { addPoliticianAddress, formExamples, politicianAliases, removePoliticianAddress } from "./politician-aliases";
+import {
+  addPoliticianAddress,
+  formExamples,
+  politicianAliases,
+  removePoliticianAddress,
+  searchAddedAddresses,
+} from "./politician-aliases";
+import { staffCopy } from "@/lib/content/staff-interface";
 
 const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
 
@@ -72,12 +79,8 @@ describeWithDatabase("a politician's aliases", () => {
     expect((await politicianAliases({ ...polly, email: null })).parliament).toHaveLength(2);
   });
 
-  it("adds an address by hand, logged, keeping the mail with it the mailboxes hold", async () => {
-    const polly = await politician();
-    await connectTestGmail("policy@pauseai.uk");
-    await connectTestGmail("jo@pauseai.uk");
-    vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
-    const searched: string[] = [];
+  /** The fake Gmail for policy@: searches find m1, from Polly's Gmail, one gone, and m2, from nobody; `refuse` answers a fetch of m2 as past the limit. */
+  function mailbox(searched: string[], refuse: "quota" | "error" | null = null) {
     server.use(
       http.get(`${GMAIL}/messages`, ({ request }) => {
         searched.push(new URL(request.url).searchParams.get("q")!);
@@ -85,6 +88,10 @@ describeWithDatabase("a politician's aliases", () => {
       }),
       http.get(`${GMAIL}/messages/gone`, () => new HttpResponse("{}", { status: 404 })),
       http.get(`${GMAIL}/messages/:id`, ({ request, params }) => {
+        if (refuse && params.id === "m2")
+          return refuse === "quota"
+            ? HttpResponse.json({ error: { message: "Quota exceeded for quota metric" } }, { status: 403 })
+            : HttpResponse.json({ error: { message: "Broken" } }, { status: 500 });
         const from = params.id === "m1" ? "Polly <polly.personal@example.com>" : "Nobody <nobody@example.com>";
         const headers = [
           { name: "From", value: from },
@@ -108,12 +115,28 @@ describeWithDatabase("a politician's aliases", () => {
         HttpResponse.json({ messages: [{ id: String(params.id).slice(2) }] }),
       ),
     );
+  }
+
+  const LATER = () => Date.now() + 60_000;
+  const searchedAt = () => query<{ at: Date | null }>("SELECT searched_at AS at FROM politician_addresses");
+
+  it("adds an address by hand, logged, linking what's kept with it, and leaves the search for later", async () => {
+    const polly = await politician();
+    const [{ id: thread }] = await query<{ id: number }>(
+      "INSERT INTO one_off_threads (latest_at) VALUES (now()) RETURNING id::int AS id",
+    );
+    await query(
+      `INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, from_address, addresses, at,
+         from_us, blob_key, size, quoted_addresses, quoted_names)
+       VALUES ($1, 'policy@pauseai.uk', 'g', 't', 'polly.personal@example.com', '{polly.personal@example.com}', now(),
+         false, 'x', 1, '{}', '{}')`,
+      [thread],
+    );
     expect(await addPoliticianAddress(polly.id, " Polly.Personal@Example.com ", "jo@pauseai.uk")).toEqual({
       added: true,
-      kept: 1,
     });
-    expect(searched).toEqual(['"polly.personal@example.com"']);
     expect(await query("SELECT notable_person_id::int AS id FROM one_off_thread_people")).toEqual([{ id: polly.id }]);
+    expect(await searchedAt()).toEqual([{ at: null }]);
     expect(await query("SELECT actor, details FROM audit_log WHERE action = 'add politician address'")).toEqual([
       { actor: "jo@pauseai.uk", details: { politicianId: polly.id, address: "polly.personal@example.com" } },
     ]);
@@ -121,12 +144,67 @@ describeWithDatabase("a politician's aliases", () => {
       added: false,
       why: "exists",
     });
-    // Added again, what it finds is kept already, so it keeps none.
+  });
+
+  it("searches the kept mailboxes for each added address once, keeping its earlier mail", async () => {
+    const polly = await politician();
+    await connectTestGmail("policy@pauseai.uk");
+    await connectTestGmail("jo@pauseai.uk");
+    vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
+    const searched: string[] = [];
+    mailbox(searched);
+    expect(await searchAddedAddresses(LATER())).toEqual({ searched: 0, kept: 0, waiting: 0 });
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    expect(await searchAddedAddresses(LATER())).toEqual({ searched: 1, kept: 1, waiting: 0 });
+    expect(searched).toEqual(['"polly.personal@example.com"']);
+    expect(await query("SELECT notable_person_id::int AS id FROM one_off_thread_people")).toEqual([{ id: polly.id }]);
+    expect((await searchedAt())[0].at).toBeInstanceOf(Date);
+    // Searched once; added again, it's searched again, passing over what's kept.
+    expect(await searchAddedAddresses(LATER())).toEqual({ searched: 0, kept: 0, waiting: 0 });
     await removePoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
-    expect(await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk")).toEqual({
-      added: true,
-      kept: 0,
-    });
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    expect(await searchAddedAddresses(LATER())).toEqual({ searched: 1, kept: 0, waiting: 0 });
+  });
+
+  it("stops when Gmail refuses for now, and carries on next time", async () => {
+    const polly = await politician();
+    await connectTestGmail("policy@pauseai.uk");
+    vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
+    mailbox([], "quota");
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    await addPoliticianAddress(polly.id, "polly.other@example.com", "jo@pauseai.uk");
+    expect(await searchAddedAddresses(LATER())).toEqual({ searched: 0, kept: 1, waiting: 2 });
+    expect(await searchedAt()).toEqual([{ at: null }, { at: null }]);
+    mailbox([]);
+    expect(await searchAddedAddresses(LATER())).toEqual({ searched: 2, kept: 0, waiting: 0 });
+  });
+
+  it("starts on none past its time, and stops partway through one a little after", async () => {
+    const polly = await politician();
+    await connectTestGmail("policy@pauseai.uk");
+    mailbox([]);
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    expect(await searchAddedAddresses(Date.now() - 1)).toEqual({ searched: 0, kept: 0, waiting: 1 });
+    // Started in time, then past the time it may go on to before its first message.
+    const now = vi.spyOn(Date, "now").mockReturnValueOnce(0).mockReturnValue(10_000_000_000_000);
+    expect(await searchAddedAddresses(1_000)).toEqual({ searched: 0, kept: 0, waiting: 1 });
+    now.mockRestore();
+    expect(await searchedAt()).toEqual([{ at: null }]);
+  });
+
+  it("marks an address searched after another failure, as a problem of the run", async () => {
+    const polly = await politician();
+    await connectTestGmail("policy@pauseai.uk");
+    vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
+    mailbox([], "error");
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await searchAddedAddresses(LATER())).toMatchObject({ searched: 1, waiting: 0 });
+    expect(error).toHaveBeenCalledWith(
+      staffCopy.problems.job.addressNotSearched("polly.personal@example.com"),
+      expect.anything(),
+    );
+    error.mockRestore();
   });
 
   it("refuses what isn't an email address, or a politician who isn't there", async () => {

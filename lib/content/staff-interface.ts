@@ -1733,10 +1733,7 @@ All events: ${link}`,
       // The form under the list.
       address: "New address",
       add: "Add",
-      added: (n: number) =>
-        n
-          ? `Added. Found ${count(n, "earlier email", "earlier emails")} with it in policy@ and Joseph's inbox.`
-          : "Added. No earlier emails with it in policy@ or Joseph's inbox.",
+      added: "⁂ Added. Earlier emails with it in policy@ and Joseph's inbox will be found within a few minutes.",
       refused: {
         invalid: "That doesn't look like an email address.",
         exists: "That address is already listed.",
@@ -2035,6 +2032,10 @@ All events: ${link}`,
   // letters and bounces (lib/server/gmail-reading.ts), on the Scheduled jobs page.
   gmailReading: {
     oneOffs: (n: number) => `${n} one-off ${plural(n, "email", "emails")} kept.`,
+    // After the totals, in a run that searched for addresses staff added to politicians': what it found, and how many wait.
+    searched: (s: { searched: number; kept: number; waiting: number }) =>
+      `⁂ Searched for ${count(s.searched, "added address", "added addresses")}, keeping ${count(s.kept, "earlier email", "earlier emails")}.` +
+      (s.waiting ? ` ⁂ ${s.waiting} still to search.` : ""),
     title: "Replies, bounces and one-off emails from Gmail",
     intro: {
       before: "Reads the replies to our letters, and their bounces, in each ",
@@ -2481,6 +2482,8 @@ All events: ${link}`,
       // The Gmail read: Gmail errored or refused for a connected account, so its new mail wasn't read this time.
       couldntRead: (account: string) =>
         `Gmail gave errors or refused connection, or our internal error, for ${account}`,
+      // The Gmail read: searching the mailboxes for an address staff added to a politician's failed, so its earlier mail may not be kept.
+      addressNotSearched: (address: string) => `⁂ Couldn't search policy@ and Joseph's inbox for ${address}`,
       // The Gmail read: the mailbox was read, but Gmail wouldn't give the account's name.
       nameUnknown: (account: string) => `Couldn't fetch name of ${account} from Gmail`,
       // The Gmail read: mail in the letters inbox that couldn't be matched to anything, so a person must look. How many follows.

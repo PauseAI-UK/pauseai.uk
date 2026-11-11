@@ -22,6 +22,7 @@ export default function ThreadEmail({
   children,
 }: {
   from: ReactNode;
+  /** Whom it was to; left out when not known, as for a message rebuilt from an "On … wrote:" line. */
   to: ReactNode;
   cc?: ReactNode;
   at: Date | null;
@@ -38,8 +39,12 @@ export default function ThreadEmail({
       <dl className={styles.headers}>
         <dt>{copy.headers.from}</dt>
         <dd>{from}</dd>
-        <dt>{copy.headers.to}</dt>
-        <dd>{to}</dd>
+        {to && (
+          <>
+            <dt>{copy.headers.to}</dt>
+            <dd>{to}</dd>
+          </>
+        )}
         {cc && (
           <>
             <dt>{copy.headers.cc}</dt>

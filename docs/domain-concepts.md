@@ -611,9 +611,12 @@ else in it.
 - **Aliases.** A politician's page lists, folded at its foot, every address and
   domain that's theirs and where each came from, with the forms their name and
   seat make; their email at the top leads there. Staff add an address there by
-  hand: it's logged, and the site searches policy@ and joseph@ in Gmail for it
-  (up to 50 messages each) and keeps what the regular read would have, as that
-  read passed over it before the address was known. Staff can remove an address
+  hand: it's logged and every thread relinked at once. The next regular read of
+  Gmail searches policy@ and joseph@ for it (up to 50 messages each) and keeps
+  what it would have kept, as it passed over that mail before the address was
+  known (`searched_at`). That's done in the read, not while staff wait, so
+  Gmail's limit a minute can't cut it short: if Gmail refuses, or the read's
+  time runs out, the search carries on next time. Staff can remove an address
   they added, or one guessed to be their office's, which is then kept as
   `rejected` so it isn't guessed again; either way, the threads it alone linked
   lose them.
