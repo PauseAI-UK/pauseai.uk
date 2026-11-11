@@ -164,6 +164,31 @@ describeWithDatabase("send", () => {
       { backend: "postmark", sender: "jo@pauseai.uk", rfc_message_id: "m@pauseai.uk" },
     ]);
   });
+
+  it("sends an email written only as text with its words as HTML too, its links as written", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post(POSTMARK, async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "msg-3" });
+      }),
+    );
+    const TextBody = "Follow this link:\n\nhttps://pauseai.uk/staff";
+    await send({ ...EMAIL, TextBody }, "staff-login");
+    expect(bodies[0]).toMatchObject({
+      TextBody,
+      HtmlBody: '<p>Follow this link:</p>\n<p><a href="https://pauseai.uk/staff">https://pauseai.uk/staff</a></p>',
+      TrackLinks: "None",
+    });
+
+    // One with HTML of its own, a letter or a mailing, goes as it's written; one with no words gets none.
+    await send({ ...EMAIL, HtmlBody: "<p><em>T</em></p>" }, "mailing");
+    expect(bodies[1]).toMatchObject({ TextBody: "T", HtmlBody: "<p><em>T</em></p>" });
+    expect(bodies[1]).not.toHaveProperty("TrackLinks");
+    await send({ ...EMAIL, TextBody: "" }, "relay");
+    expect(bodies[2]).not.toHaveProperty("HtmlBody");
+    expect(bodies[2]).not.toHaveProperty("TrackLinks");
+  });
 });
 
 describeWithDatabase("send by Gmail", () => {
@@ -174,13 +199,20 @@ describeWithDatabase("send by Gmail", () => {
   it("sends as the account, with a Message-ID of ours, and logs the backend, sender and thread", async () => {
     await connectTestGmail();
     let auth: string | null = null;
+    let message = "";
     server.use(
-      http.post(SEND, ({ request }) => {
+      http.post(SEND, async ({ request }) => {
         auth = request.headers.get("authorization");
+        message = Buffer.from(((await request.json()) as { raw: string }).raw, "base64url").toString();
         return HttpResponse.json({ id: "g1", threadId: "t1" });
       }),
     );
     const sent = await send({ ...EMAIL, Tag: "mailing" }, "mailing", null, { backend: GMAIL });
+    // Written only as text, so its words go as HTML too.
+    expect(message).toContain("Content-Type: text/plain; charset=utf-8");
+    expect(message).toContain(
+      `Content-Type: text/html; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${Buffer.from("<p>T</p>").toString("base64")}`,
+    );
     expect(sent).toEqual({
       sent: true,
       id: "g1",

@@ -153,7 +153,8 @@ through `outsideFetch` like any other outside service.
   runs the letter's HTML through doiuse-email
   (`@jsx-email/doiuse-email`, the Can I email tables,
   https://www.caniemail.com) for every Gmail and Outlook app, and fails on
-  anything they don't support. Paying a service to picture the real apps
+  anything they don't support. `lib/plain-email-html.test.ts` does the same
+  for the HTML made from a text email. Paying a service to picture the real apps
   (Litmus, Email on Acid) gives pictures that vary run to run, so it isn't
   in CI.
 - **Webhooks are posted directly.** Tests post bounce, spam complaint and

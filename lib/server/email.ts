@@ -9,6 +9,7 @@ import { GmailError, gmailMessageId, sendGmail, sendRawGmail } from "./outside-s
 import { PostmarkError, sendEmail, unsuppress, type Email } from "./outside-services/postmark";
 import { resendAfterFix } from "./relays";
 import { now } from "@/lib/now";
+import { plainAsHtml } from "@/lib/plain-email-html";
 import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
 
@@ -101,6 +102,19 @@ export async function isBlocked(address: string): Promise<boolean> {
 }
 
 /**
+ * An email written only as text, with its words as HTML too
+ * (lib/plain-email-html.ts), so a mail app shows it in its own font, wrapped
+ * to its window, as it shows a letter or a mailing. Its links stay as
+ * written, a login link among them: Postmark is told not to send them
+ * through its own address, whatever the server is set to. One with HTML of
+ * its own, or with no words, as a relay has, is left as it is.
+ */
+function withHtml(email: Email): Email {
+  if (email.HtmlBody || !email.TextBody) return email;
+  return { ...email, HtmlBody: plainAsHtml(email.TextBody), TrackLinks: "None" };
+}
+
+/**
  * Sends an email, unless its address is blocked. The provider refusing an
  * address it suppressed blocks it here too, and staff are told if it's a
  * politician's. Every try is logged in
@@ -108,11 +122,12 @@ export async function isBlocked(address: string): Promise<boolean> {
  * the provider: callers decide what to tell people.
  */
 export async function send(
-  email: Email,
+  written: Email,
   purpose: Purpose,
   letterId: number | null = null,
   { backend = { name: "postmark" }, sender, messageId, raw }: SendOptions = {},
 ): Promise<SendResult> {
+  const email = withHtml(written);
   const address = bareAddress(email.To);
   const from = backend.name === "gmail" ? backend.account : (sender ?? null);
   let rfcId = backend.name === "gmail" ? (messageId ?? newMessageId()) : (messageId ?? null);
