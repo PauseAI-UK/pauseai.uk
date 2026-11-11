@@ -1,6 +1,7 @@
 import "server-only";
 import type { MembersImportResult } from "@/lib/import-runs";
 import { query, transaction, type Queryable } from "./db";
+import { lookUpNewMembers } from "./civicrm-import";
 import { asRun } from "./import-runs";
 import { airtableToken, fetchMembers, type MemberToImport } from "./outside-services/airtable";
 import { refreshSupporterFacts, refreshSupportersList } from "./supporter-facts";
@@ -13,8 +14,10 @@ import { linkSupporters } from "./supporters";
 // row only when a value differs; a member no longer read is marked
 // removed, and kept, with their links, until they're erased.
 //
-// Whether a member asked for the updates, "Keep me informed", is read from
-// their record by the email_permissions view.
+// Whether a member asked for the newsletter, "Keep me informed", is read
+// from their record by contact_permission(), for one CiviCRM has never
+// returned. A new member's address is looked up in CiviCRM at the end of the
+// run, as the hourly pull may not have them yet.
 
 const JOB = "import-members";
 
@@ -90,7 +93,9 @@ export async function importMembers(startedBy: string): Promise<MembersImportRes
       // A record already linked may have changed, so everyone's facts, not only the newly linked.
       await refreshSupporterFacts(db);
       await refreshSupportersList(db);
-      const anything = added + changed + result.removed + result.linked;
+      const civicrm = await lookUpNewMembers(db);
+      if (civicrm > 0) result.civicrm = civicrm;
+      const anything = added + changed + result.removed + result.linked + civicrm;
       return { status: anything > 0 ? "ok" : "unchanged", result } as const;
     });
   });

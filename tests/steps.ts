@@ -119,6 +119,14 @@ export async function importMembers(request: APIRequestContext, base: string) {
   if (!res.ok()) throw new Error(`Members import on ${base} failed: ${res.status()} ${await res.text()}`);
 }
 
+/** Copies the fixture's UK chapter contacts from the fake CiviCRM into the flow's database through the hourly import's own route. */
+export async function importCivicrm(request: APIRequestContext, base: string) {
+  const res = await request.post(`${base}/api/cron/import-civicrm`, {
+    headers: { Authorization: "Bearer fixture-cron-secret" },
+  });
+  if (!res.ok()) throw new Error(`CiviCRM import on ${base} failed: ${res.status()} ${await res.text()}`);
+}
+
 /** Copies the fixture Luma calendar into the flow's database through the hourly import's own route. */
 export async function importLuma(request: APIRequestContext, base: string) {
   const res = await request.post(`${base}/api/cron/import-luma`, {

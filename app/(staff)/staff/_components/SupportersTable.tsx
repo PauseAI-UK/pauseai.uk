@@ -4,6 +4,7 @@ import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import {
   CHANNELS,
+  channelOf,
   contactState,
   type Channel,
   type ContactPermission,
@@ -13,11 +14,12 @@ import type { SupportersPage } from "@/lib/server/supporters";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { type SupportersSearch } from "@/lib/staff-search";
 import { anyAndNone, filtersPath, pageParam, valuesOf, type Params } from "@/lib/list-params";
+import { phoneWords } from "@/lib/phone";
 import { staffDate } from "@/lib/staff-time";
 import { sortHref } from "@/lib/staff-sort";
 import { SUPPORTERS_LIST, type SupporterSort } from "@/lib/staff-lists";
 import { registrationStatus, SUPPORTERS_PAGE_SIZE, type SupporterPlaceName, type SupporterRow } from "@/lib/supporters";
-import { permissionReason } from "./PermissionTiles";
+import { ContactLink, permissionReason } from "./PermissionTiles";
 import SortHeading from "./SortHeading";
 import SubscriptionBadges, { subscriptionWords } from "./SubscriptionBadges";
 import SupporterBadges, { supporterBadgeWords } from "./SupporterBadges";
@@ -55,7 +57,7 @@ function answersFound(states: ContactState[], channel: Channel, s: SupporterRow)
       p.channel === channel &&
       states.some(
         (state) =>
-          state.channel === channel &&
+          state.way === p.way &&
           state.topic === p.topic &&
           (!state.send || state.send === p.send) &&
           (!state.reason || state.reason === p.reason),
@@ -84,9 +86,20 @@ function nationOf(s: SupporterRow): string | null {
   return s.place?.country ? staffCopy.countries[s.place.country] : null;
 }
 
-/** Addresses or numbers in a cell, a line each. */
-function Addresses({ addresses }: { addresses: string[] }) {
-  return addresses.map((address) => <div key={address}>{address}</div>);
+/**
+ * A supporter's addresses, or numbers, by `channel`, whose answer the
+ * Consent filter finds (`states`), each once: a link to contact them by the
+ * way of an answer that's a yes, a WhatsApp link before a call's, and words
+ * where none is.
+ */
+function FoundAddresses({ states, channel, s }: { states: ContactState[]; channel: Channel; s: SupporterRow }) {
+  const found = answersFound(states, channel, s);
+  return contactsFound(states, channel, s).map((address) => {
+    const ways = found.filter((p) => p.address === address && p.send === "yes").map((p) => p.way);
+    const way = ways.includes("email") ? "email" : ways.includes("text") ? "text" : ways[0];
+    const words = channel === "email" ? address : phoneWords(address);
+    return <div key={address}>{way ? <ContactLink address={address} way={way} /> : words}</div>;
+  });
 }
 
 /** Reasons in a cell, a line each. */
@@ -133,18 +146,18 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
       text: (s) => s.name,
       cell: (s) => <StaffLink href={`${PATH}/${s.id}`}>{s.name ?? copy.noName}</StaffLink>,
     },
-    states.some((state) => state.channel === "email") && {
+    states.some((state) => channelOf(state.way) === "email") && {
       key: "email",
       label: copy.columns.email,
       text: (s) => contactsFound(states, "email", s).join("; "),
-      cell: (s) => <Addresses addresses={contactsFound(states, "email", s)} />,
+      cell: (s) => <FoundAddresses states={states} channel="email" s={s} />,
     },
-    states.some((state) => state.channel === "phone") && {
+    states.some((state) => channelOf(state.way) === "phone") && {
       key: "phone",
       label: copy.columns.phone,
       short: true,
       text: (s) => contactsFound(states, "phone", s).join("; "),
-      cell: (s) => <Addresses addresses={contactsFound(states, "phone", s)} />,
+      cell: (s) => <FoundAddresses states={states} channel="phone" s={s} />,
     },
     {
       key: "place",

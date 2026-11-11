@@ -6,7 +6,7 @@
 // such as the parties, the events, or who's in the log.
 import type { ReactNode } from "react";
 import { ASK_STATUSES } from "./asks";
-import { sendsOf, stateValue, waysKey, type Channel, type Topic } from "./contact-permissions";
+import { SENDS, TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "./contact-permissions";
 import { staffCopy } from "./content/staff-interface";
 import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, valuesOf, type Params } from "./list-params";
@@ -232,19 +232,13 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
 });
 
 /**
- * The Subscriptions filter's topics, in its order: email's, then phone's,
- * each ours first, then Luma's, then the rest, so the same one sits on the
- * same row under each heading.
+ * The Consent filter's consents, in its order: by email, then text, then
+ * call, each the topics that go by it in TOPICS's order, so the same one
+ * sits on the same row under each heading.
  */
-export const SUBSCRIPTION_ORDER: [Channel, Topic][] = [
-  ["email", "site-forms"],
-  ["email", "luma-calendar"],
-  ["email", "pauseai-updates"],
-  ["phone", "site-forms"],
-  ["phone", "luma-calendar"],
-  ["phone", "volunteering"],
-  ["phone", "march-day"],
-];
+export const CONSENT_ORDER: Consent[] = WAYS.flatMap((way) =>
+  TOPICS.filter((topic) => hasWay(topic, way)).map((topic) => ({ topic, way })),
+);
 
 /** The words in the Near chip: where it found, or that it couldn't; as typed, when it wasn't looked up. */
 function nearWords(text: string, found: SupportersPage["near"]): string {
@@ -262,7 +256,7 @@ function nearWords(text: string, found: SupportersPage["near"]): string {
 export type SupporterBarChoices = SupporterChoices & {
   near: string;
   found?: SupportersPage["near"];
-  channelIcon?: (channel: Channel) => ReactNode;
+  channelIcon?: (way: Way) => ReactNode;
 };
 
 /**
@@ -310,20 +304,16 @@ export const SUPPORTER_FILTERS = listFilters(
         own: true,
         // Chosen in two parts, not more than once.
         once: true,
-        // Each topic under its channel's heading, chosen with its best answer, those we can contact about it, or
-        // might; then in its chip's second half, another of the answers it can give. Changing the topic keeps the
-        // answer where the new one can give it.
-        options: SUBSCRIPTION_ORDER.map(([channel, topic]) => {
-          const ways = waysKey(channel, topic);
-          const answers = staffCopy.supporters.detail.permissions.answers[ways];
-          const sends = sendsOf(channel, topic);
+        // Each topic under its way's heading, chosen as those we can contact about it; then in its chip's second
+        // half, yes or no. Changing the topic keeps the answer.
+        options: CONSENT_ORDER.map(({ topic, way }) => {
+          const answers = staffCopy.supporters.detail.permissions.answers[way];
           return {
-            value: stateValue({ channel, topic, send: sends[0] }),
+            value: stateValue({ way, topic, send: "yes" }),
             label: copy.topics[topic],
-            group: { label: copy.channels[channel], icon: channelIcon?.(channel) },
-            detail: copy.ways[ways],
-            seconds: sends.map((send) => ({
-              value: stateValue({ channel, topic, send }),
+            group: { label: copy.ways[way], icon: channelIcon?.(way) },
+            seconds: SENDS.map((send) => ({
+              value: stateValue({ way, topic, send }),
               label: answers[send],
               like: send,
             })),

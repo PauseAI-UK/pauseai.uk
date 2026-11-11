@@ -1,0 +1,116 @@
+{
+  "values": [
+    {
+      "contact_id": 101,
+      "airtable_id": "recMemberJane",
+      "email": "jane.fixture@example.com",
+      "on_hold": false,
+      "no_bulk_email": false,
+      "do_not_email": false,
+      "do_not_phone": false,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "subscribed",
+        "volunteer_updates": "subscribed"
+      }
+    },
+    {
+      "contact_id": 103,
+      "airtable_id": "recMemberOwen",
+      "email": "owen.member@example.com",
+      "on_hold": false,
+      "no_bulk_email": false,
+      "do_not_email": false,
+      "do_not_phone": false,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "not_opted_in",
+        "volunteer_updates": "not_on_list"
+      }
+    },
+    {
+      "contact_id": 104,
+      "airtable_id": "recMemberRhea",
+      "email": "rhea.member@example.com",
+      "on_hold": false,
+      "no_bulk_email": true,
+      "do_not_email": false,
+      "do_not_phone": false,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "subscribed",
+        "volunteer_updates": "not_on_list"
+      }
+    },
+    {
+      "contact_id": 105,
+      "airtable_id": "recMemberKit",
+      "email": "kit.member@example.com",
+      "on_hold": false,
+      "no_bulk_email": false,
+      "do_not_email": false,
+      "do_not_phone": false,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "unsubscribed",
+        "volunteer_updates": "subscribed"
+      }
+    },
+    {
+      "contact_id": 106,
+      "airtable_id": "recMemberTom",
+      "email": "tom.seed@example.com",
+      "on_hold": false,
+      "no_bulk_email": false,
+      "do_not_email": false,
+      "do_not_phone": true,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "not_opted_in",
+        "volunteer_updates": "not_on_list"
+      }
+    },
+    {
+      "contact_id": 108,
+      "airtable_id": null,
+      "email": "casey.chapter@example.com",
+      "on_hold": true,
+      "no_bulk_email": false,
+      "do_not_email": false,
+      "do_not_phone": false,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "subscribed",
+        "volunteer_updates": "not_on_list"
+      }
+    },
+    {
+      "contact_id": 109,
+      "airtable_id": null,
+      "email": "sasha.chapter@example.com",
+      "on_hold": false,
+      "no_bulk_email": false,
+      "do_not_email": false,
+      "do_not_phone": false,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "subscribed",
+        "volunteer_updates": "not_on_list"
+      }
+    },
+    {
+      "contact_id": 199,
+      "airtable_id": "recMemberErased",
+      "email": "erased.seed@example.com",
+      "on_hold": false,
+      "no_bulk_email": false,
+      "do_not_email": false,
+      "do_not_phone": false,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "subscribed",
+        "volunteer_updates": "not_on_list"
+      }
+    }
+  ]
+}

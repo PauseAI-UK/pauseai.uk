@@ -6,7 +6,8 @@ import type { WrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import type { BroadcastPageData, MessageRecipient, BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { londonClock, sendsAt, staffDate } from "@/lib/staff-time";
-import { FIELD_WORDS, spacedNumber, type BroadcastChannel } from "@/lib/broadcasts";
+import { FIELD_WORDS, type BroadcastChannel } from "@/lib/broadcasts";
+import { phoneWords } from "@/lib/phone";
 import ChannelIcon from "./ChannelIcon";
 import IconText from "./ui/IconText";
 import MailEmail from "./MailEmail";
@@ -30,9 +31,7 @@ type FormAction = (form: FormData) => void | Promise<void>;
 export function BroadcastChannelName({ channel }: { channel: BroadcastChannel }) {
   return (
     <span className={styles.channel}>
-      <IconText icon={<ChannelIcon channel={channel === "email" ? "email" : "phone"} />}>
-        {copy.channels[channel]}
-      </IconText>
+      <IconText icon={<ChannelIcon channel={channel} />}>{copy.channels[channel]}</IconText>
     </span>
   );
 }
@@ -187,7 +186,7 @@ export default function BroadcastView({
       >
         {/* The channel's icon is Said yes to's, beside it. */}
         <BandFact label={copy.facts.from} detail={`${written.fromName}, ${copy.byBackend[written.channel]}`}>
-          {spacedNumber(written.sentFrom!)}
+          {phoneWords(written.sentFrom!)}
         </BandFact>
         <BandFact label={copy.facts.saidYes}>{contact}</BandFact>
         <BandFact label={staffCopy.mailingPages.to} detail={staffCopy.campaigns.supporters(summary.to)}>

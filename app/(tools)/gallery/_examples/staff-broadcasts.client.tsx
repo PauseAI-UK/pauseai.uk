@@ -136,7 +136,7 @@ export function DraftFootExample() {
 }
 
 const nothing = async () => {};
-const yes = supportersSearch({ contact: "email:site-forms:yes", near: "LS1" });
+const yes = supportersSearch({ contact: "email:newsletter:yes", near: "LS1" });
 
 /** Broadcast to N supporters, with a Consent filter answered yes. */
 export function BroadcastSupportersExample() {
@@ -151,7 +151,7 @@ export function BroadcastSupportersExample() {
 export function ChoosingBroadcastFrameExample() {
   return (
     <ChoosingBroadcastFrame
-      choosing={{ id: 3, title: "Events near you", channel: "email", topic: "site-forms", blank: false }}
+      choosing={{ id: 3, title: "Events near you", channel: "email", topic: "newsletter", blank: false }}
       search={yes}
       total={430}
       keep={nothing}
@@ -264,7 +264,7 @@ export function BroadcastConsentExample() {
             show={log("show")}
           />
           <BroadcastConsent
-            value="email:site-forms:yes"
+            value="email:newsletter:yes"
             channel="email"
             written
             pending={false}

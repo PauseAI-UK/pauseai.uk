@@ -1,0 +1,8 @@
+/* Before a topic's name in its lozenge, the icons of the ways it's a yes by,
+   a little apart from the name and each other, on the words' middle. */
+.ways {
+  display: inline-flex;
+  gap: var(--space-1);
+  margin-right: var(--space-1);
+  vertical-align: -1px;
+}

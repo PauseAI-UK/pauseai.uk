@@ -6,6 +6,7 @@ import {
   type ControlAiImport,
   type LumaImport,
   type MembersImport,
+  type CivicrmImport,
   type EmailSync,
   type GmailReading,
   type MpCheck,
@@ -313,6 +314,18 @@ function MembersRun({ run, open, bare }: { run: MembersImport; open?: boolean; b
   );
 }
 
+/** A pull from CiviCRM: the counts, and why nobody was marked gone, if no one was. */
+function CivicrmRun({ run, open, bare }: { run: CivicrmImport; open?: boolean; bare?: boolean }) {
+  return (
+    <RunBox
+      run={run}
+      summary={run.status === "failed" ? null : staffCopy.civicrm.result(run.result)}
+      open={open}
+      bare={bare}
+    />
+  );
+}
+
 /**
  * A read of Gmail: the totals, then each account's, with whether it
  * couldn't be read, or was disconnected; for the letters inbox, what it
@@ -472,6 +485,8 @@ export default function Run({
       return <LumaRun run={run} open={open} bare={bare} />;
     case "import-members":
       return <MembersRun run={run} open={open} bare={bare} />;
+    case "import-civicrm":
+      return <CivicrmRun run={run} open={open} bare={bare} />;
     case "read-gmail":
       return <GmailRun run={run} open={open} bare={bare} />;
     case "import-old-letters":

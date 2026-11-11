@@ -30,6 +30,7 @@ import {
   exampleGmailResult,
   exampleLettersInboxRead,
   exampleMembersResult,
+  exampleCivicrmResult,
   exampleRun,
   exampleSendingResult,
   exampleSyncedMp,
@@ -143,6 +144,24 @@ const RUNS: Record<ImportJob, Variant> = {
     render: () => (
       <StaffPage as="div">
         <Run run={exampleRun("import-members", exampleMembersResult)} />
+      </StaffPage>
+    ),
+  },
+  "import-civicrm": {
+    label: "A pull from CiviCRM, and one too short to mark anyone gone",
+    render: () => (
+      <StaffPage as="div">
+        <Run run={exampleRun("import-civicrm", exampleCivicrmResult)} />
+        <Run
+          run={exampleRun(
+            "import-civicrm",
+            { ...exampleCivicrmResult, contacts: 120, gone: 0, held: true },
+            {
+              id: 3,
+              problems: [{ what: staffCopy.problems.job.civicrmTooFew, error: "120 returned, 1536 before" }],
+            },
+          )}
+        />
       </StaffPage>
     ),
   },
@@ -315,22 +334,15 @@ export const staffAdmin: Group = {
           ),
         },
         {
-          label: "A contact of the calendar since its webhook, and don't know of the updates",
+          label: "A member from CiviCRM, with No bulk emails set there, who follows the Luma calendar",
           render: () => (
             <StaffPage as="div">
               <PermissionTiles
-                permissions={[
-                  {
-                    topic: "luma-calendar",
-                    channel: "email",
-                    address: "nia@example.com",
-                    send: "yes",
-                    reason: "following",
-                    at: new Date("2026-10-23T09:00:00Z"),
-                    source: "luma",
-                  },
-                  ...exampleMemberDetails.permissions.slice(1).map((p) => ({ ...p, address: "nia@example.com" })),
-                ]}
+                permissions={exampleMemberDetails.permissions.map((p) =>
+                  p.topic === "events"
+                    ? { ...p, send: "yes", reason: "following", at: new Date("2026-10-23T09:00:00Z") }
+                    : p,
+                )}
               />
             </StaffPage>
           ),
@@ -339,7 +351,7 @@ export const staffAdmin: Group = {
           label: "A volunteer's phone number",
           render: () => (
             <StaffPage as="div">
-              <PermissionTiles permissions={exampleMemberDetails.permissions.slice(2)} />
+              <PermissionTiles permissions={exampleMemberDetails.permissions.slice(3)} />
             </StaffPage>
           ),
         },

@@ -1,0 +1,341 @@
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { staffCopy } from "@/lib/content/staff-interface";
+import { query, transaction } from "@/lib/server/db";
+import { describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { server } from "@/tests/fixtures/msw";
+import { importCivicrm, lookUpNewMembers } from "./civicrm-import";
+import { unblock } from "./email";
+import { importMembers } from "./members-import";
+import { inRun } from "./run-store";
+
+const GET = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
+
+type Row = Record<string, unknown>;
+
+/** A contact as `get` gives it: on neither list, with no flags, unless told otherwise. */
+function contact(id: number, email: string, fields: Row = {}, lists: Row = {}): Row {
+  return {
+    contact_id: id,
+    airtable_id: null,
+    email,
+    on_hold: false,
+    no_bulk_email: false,
+    do_not_email: false,
+    do_not_phone: false,
+    do_not_sms: false,
+    ...fields,
+    lists: { newsletter: "not_on_list", volunteer_updates: "not_on_list", ...lists },
+  };
+}
+
+/** CiviCRM's `get` answering with `contacts`: a page of them after a contact ID, or those with some addresses; every request it got. */
+function serve(contacts: Row[]) {
+  const asked: { method: string; params: Row }[] = [];
+  server.use(
+    http.all(GET, async ({ request }) => {
+      const body =
+        request.method === "POST" ? new URLSearchParams(await request.text()) : new URL(request.url).searchParams;
+      const params = JSON.parse(body.get("params")!) as Row;
+      asked.push({ method: request.method, params });
+      const emails = params.email as string[] | undefined;
+      const found = emails
+        ? contacts.filter((c) => emails.includes(c.email as string))
+        : contacts.filter((c) => (c.contact_id as number) > (params.after_contact_id as number));
+      return HttpResponse.json({ values: found.slice(0, (params.limit as number | undefined) ?? found.length) });
+    }),
+  );
+  return asked;
+}
+
+/** Each contact as kept, by ID: its address, flags and lists, and whether it's gone. */
+async function kept() {
+  return query<Row>(
+    `SELECT contact_id::int AS id, airtable_id, email, on_hold, no_bulk_email, newsletter, volunteer_updates,
+       gone_at IS NOT NULL AS gone FROM civicrm_contacts ORDER BY contact_id`,
+  );
+}
+
+/** Every opt-out, oldest first: its address, topic and source, and whether it's still open. */
+async function optOuts() {
+  return query<Row>(
+    `SELECT address, list, way, source, resubscribed_at IS NULL AS open FROM opt_outs ORDER BY unsubscribed_at, id`,
+  );
+}
+
+beforeEach(() => vi.stubEnv("CIVICRM_CHAPTER_KEY", "k"));
+afterEach(() => vi.unstubAllEnvs());
+
+describeWithDatabase("importCivicrm", () => {
+  useTestDatabase();
+
+  it("pulls every page, keeps each contact as told, and a second run changes nothing", async () => {
+    // A full page, then one more: two requests, each after the last contact of the one before.
+    const many = Array.from({ length: 500 }, (_, i) => contact(1000 + i, `many${i}@example.com`));
+    const asked = serve([
+      ...many,
+      contact(
+        2000,
+        " Jane@Example.com ",
+        { airtable_id: "recJane", no_bulk_email: true },
+        { newsletter: "subscribed", volunteer_updates: "unsubscribed" },
+      ),
+    ]);
+
+    expect(await importCivicrm("jo@pauseai.uk")).toEqual({
+      contacts: 501,
+      added: 501,
+      changed: 0,
+      gone: 0,
+      optOuts: 1,
+      blocked: 0,
+    });
+    expect(asked).toEqual([
+      { method: "GET", params: { limit: 500, after_contact_id: 0 } },
+      { method: "GET", params: { limit: 500, after_contact_id: 1499 } },
+    ]);
+    expect((await kept()).at(-1)).toEqual({
+      id: 2000,
+      airtable_id: "recJane",
+      email: "jane@example.com",
+      on_hold: false,
+      no_bulk_email: true,
+      newsletter: "subscribed",
+      volunteer_updates: "unsubscribed",
+      gone: false,
+    });
+    // An unsubscribe from the volunteer list is an opt-out from volunteering by email.
+    expect(await optOuts()).toEqual([
+      { address: "jane@example.com", list: "volunteering", way: "email", source: "civicrm", open: true },
+    ]);
+    // Every value is from when we first saw the contact.
+    const [since] = await query<{ same: boolean }>(
+      `SELECT bool_and(first_seen_at = newsletter_since AND first_seen_at = no_bulk_email_since) AS same
+       FROM civicrm_contacts`,
+    );
+    expect(since.same).toBe(true);
+
+    expect(await importCivicrm("nightly")).toEqual({
+      contacts: 501,
+      added: 0,
+      changed: 0,
+      gone: 0,
+      optOuts: 0,
+      blocked: 0,
+    });
+    expect(await query("SELECT status, started_by FROM import_runs WHERE job = 'import-civicrm' ORDER BY id")).toEqual([
+      { status: "ok", started_by: "jo@pauseai.uk" },
+      { status: "unchanged", started_by: "nightly" },
+    ]);
+  });
+
+  it("keeps when each value changed, and a list joined again ends the opt-out it made", async () => {
+    serve([contact(1, "kit@example.com", {}, { newsletter: "unsubscribed" })]);
+    await importCivicrm("nightly");
+    expect(await optOuts()).toEqual([
+      { address: "kit@example.com", list: "newsletter", way: "email", source: "civicrm", open: true },
+    ]);
+    // A day later.
+    await query(
+      `UPDATE civicrm_contacts SET first_seen_at = first_seen_at - interval '1 day',
+         ${["on_hold", "no_bulk_email", "do_not_email", "do_not_phone", "do_not_sms", "newsletter", "volunteer_updates"]
+           .map((field) => `${field}_since = ${field}_since - interval '1 day'`)
+           .join(", ")}`,
+    );
+    await query("UPDATE opt_outs SET unsubscribed_at = unsubscribed_at - interval '1 day'");
+
+    serve([contact(1, "kit@example.com", { no_bulk_email: true }, { newsletter: "subscribed" })]);
+    expect(await importCivicrm("nightly")).toMatchObject({ changed: 1, optOuts: 1 });
+    const [row] = await query<{ newsletter: boolean; bulk: boolean; first: boolean }>(
+      `SELECT newsletter_since > first_seen_at AS newsletter, no_bulk_email_since > first_seen_at AS bulk,
+         do_not_email_since = first_seen_at AS first FROM civicrm_contacts`,
+    );
+    expect(row).toEqual({ newsletter: true, bulk: true, first: true });
+    expect(await optOuts()).toEqual([
+      { address: "kit@example.com", list: "newsletter", way: "email", source: "civicrm", open: false },
+    ]);
+  });
+
+  it("leaves an opt-out begun after the list was joined", async () => {
+    serve([contact(1, "kit@example.com", {}, { newsletter: "subscribed" })]);
+    await importCivicrm("nightly");
+    await query(
+      `INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at)
+       VALUES ('kit@example.com', 'newsletter', 'email', 'luma-webhook', 'later', now() + interval '1 minute')`,
+    );
+    expect(await importCivicrm("nightly")).toMatchObject({ optOuts: 0 });
+    expect(await optOuts()).toEqual([
+      { address: "kit@example.com", list: "newsletter", way: "email", source: "luma-webhook", open: true },
+    ]);
+  });
+
+  it("marks gone a contact a complete pull leaves out, and back when one returns it", async () => {
+    const all = Array.from({ length: 30 }, (_, i) => contact(i + 1, `c${i}@example.com`));
+    serve(all);
+    await importCivicrm("nightly");
+    serve(all.slice(1));
+    expect(await importCivicrm("nightly")).toMatchObject({ contacts: 29, gone: 1 });
+    expect((await kept())[0]).toMatchObject({ id: 1, gone: true });
+    serve(all);
+    expect(await importCivicrm("nightly")).toMatchObject({ changed: 1, gone: 0 });
+    expect((await kept())[0]).toMatchObject({ id: 1, gone: false });
+  });
+
+  it("marks nobody gone from a pull over 5% shorter than the last, and says so", async () => {
+    const all = Array.from({ length: 20 }, (_, i) => contact(i + 1, `c${i}@example.com`));
+    serve(all);
+    await importCivicrm("nightly");
+    serve(all.slice(2));
+    expect(await importCivicrm("nightly")).toMatchObject({ contacts: 18, gone: 0, held: true });
+    expect((await kept()).filter((c) => c.gone)).toEqual([]);
+    const [run] = await query<{ problems: unknown }>(
+      "SELECT problems FROM import_runs WHERE job = 'import-civicrm' ORDER BY id DESC LIMIT 1",
+    );
+    expect(run.problems).toEqual([{ what: staffCopy.problems.job.civicrmTooFew, error: "18 returned, 20 before" }]);
+    // Its log says why nobody went.
+    const held = { contacts: 18, added: 0, changed: 0, gone: 0, held: true as const, optOuts: 0, blocked: 0 };
+    expect(staffCopy.civicrm.result(held)).not.toBe(staffCopy.civicrm.result({ ...held, held: undefined }));
+  });
+
+  it("skips an erased contact", async () => {
+    await query("INSERT INTO civicrm_erased (contact_id) VALUES (7)");
+    serve([contact(7, "erin@example.com", {}, { newsletter: "subscribed" }), contact(8, "sam@example.com")]);
+    expect(await importCivicrm("nightly")).toMatchObject({ contacts: 2, added: 1 });
+    expect((await kept()).map((c) => c.id)).toEqual([8]);
+  });
+
+  it("blocks an address for a new hold, once, which staff can lift without Postmark, until a new hold", async () => {
+    serve([contact(1, "held@example.com", { on_hold: true }), contact(2, "also@example.com", { on_hold: true })]);
+    await query(
+      `WITH p AS (INSERT INTO email_problems (address, kind, reason, can_reset) VALUES ('also@example.com', 'complaint', 'spam', false) RETURNING id, address)
+       INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM p`,
+    );
+    // The other address is blocked already, by a complaint, which stays.
+    expect(await importCivicrm("nightly")).toMatchObject({ blocked: 1 });
+    expect(
+      await query(
+        "SELECT b.address, p.kind, p.can_reset FROM email_blocks b JOIN email_problems p ON p.id = b.problem_id ORDER BY 1",
+      ),
+    ).toEqual([
+      { address: "also@example.com", kind: "complaint", can_reset: false },
+      { address: "held@example.com", kind: "hold", can_reset: true },
+    ]);
+
+    expect(await unblock("held@example.com", "jo@pauseai.uk", "Global say it's fine")).toBe(true);
+    // The same hold doesn't block it again.
+    expect(await importCivicrm("nightly")).toMatchObject({ blocked: 0 });
+    expect(await query("SELECT 1 FROM email_blocks WHERE address = 'held@example.com'")).toEqual([]);
+
+    // A hold lifted, then set again, does.
+    serve([contact(1, "held@example.com"), contact(2, "also@example.com", { on_hold: true })]);
+    await importCivicrm("nightly");
+    serve([contact(1, "held@example.com", { on_hold: true }), contact(2, "also@example.com", { on_hold: true })]);
+    expect(await importCivicrm("nightly")).toMatchObject({ blocked: 1 });
+  });
+
+  it("fails the run when CiviCRM fails, keeping nothing", async () => {
+    server.use(http.get(GET, () => new HttpResponse("Down", { status: 503 })));
+    await expect(importCivicrm("nightly")).rejects.toThrow("CiviCRM request failed with status 503: Down");
+    expect(await kept()).toEqual([]);
+    expect(await query("SELECT status FROM import_runs")).toEqual([{ status: "failed" }]);
+  });
+
+  it("fails without the key", async () => {
+    vi.stubEnv("CIVICRM_CHAPTER_KEY", "");
+    await expect(importCivicrm("nightly")).rejects.toThrow("CIVICRM_CHAPTER_KEY isn't set");
+  });
+
+  it("stops a pull whose pages never come up short", async () => {
+    server.use(
+      http.get(GET, ({ request }) => {
+        const after = JSON.parse(new URL(request.url).searchParams.get("params")!).after_contact_id as number;
+        return HttpResponse.json({
+          values: Array.from({ length: 500 }, (_, i) => contact(after + i + 1, `c${after + i}@example.com`)),
+        });
+      }),
+    );
+    await expect(importCivicrm("nightly")).rejects.toThrow("CiviCRM's contacts ran past 100 pages");
+  });
+});
+
+describeWithDatabase("lookUpNewMembers", () => {
+  useTestDatabase();
+
+  /** A member, first seen `ago`, whom CiviCRM may or may not have. */
+  async function member(id: string, email: string, ago = "1 hour") {
+    await query(
+      `INSERT INTO members (id, email, joined_at, created_at, keep_informed, share_permission, source_modified_at, first_seen_at)
+       VALUES ($1, $2, now(), now(), true, true, now(), now() - $3::interval)`,
+      [id, email, ago],
+    );
+  }
+
+  it("looks up new members no pull has returned, by POST, and keeps those it finds", async () => {
+    await member("recNew", "new@example.com");
+    await member("recOld", "old@example.com", "2 days");
+    await member("recKnown", "known@example.com");
+    await query(
+      `INSERT INTO civicrm_contacts (contact_id, airtable_id, email, on_hold, on_hold_since, no_bulk_email, no_bulk_email_since,
+         do_not_email, do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since,
+         newsletter, newsletter_since, volunteer_updates, volunteer_updates_since)
+       VALUES (5, 'recKnown', 'known@example.com', false, now(), false, now(), false, now(), false, now(), false, now(),
+         'subscribed', now(), 'not_on_list', now())`,
+    );
+    const asked = serve([contact(9, "new@example.com", { airtable_id: "recNew" }, { newsletter: "unsubscribed" })]);
+    expect(await transaction((db) => lookUpNewMembers(db))).toBe(1);
+    expect(asked).toEqual([{ method: "POST", params: { email: ["new@example.com"] } }]);
+    expect((await kept()).map((c) => c.id)).toEqual([5, 9]);
+    expect(await optOuts()).toEqual([
+      { address: "new@example.com", list: "newsletter", way: "email", source: "civicrm", open: true },
+    ]);
+  });
+
+  it("asks nothing when there's no one new, or no key, and finds nothing for someone CiviCRM doesn't have", async () => {
+    const asked = serve([]);
+    expect(await transaction((db) => lookUpNewMembers(db))).toBe(0);
+    await member("recNew", "new@example.com");
+    vi.stubEnv("CIVICRM_CHAPTER_KEY", "");
+    expect(await transaction((db) => lookUpNewMembers(db))).toBe(0);
+    expect(asked).toEqual([]);
+    vi.stubEnv("CIVICRM_CHAPTER_KEY", "k");
+    expect(await transaction((db) => lookUpNewMembers(db))).toBe(0);
+    expect(asked).toHaveLength(1);
+  });
+
+  it("reports CiviCRM failing as a problem of the run it's in", async () => {
+    await member("recNew", "new@example.com");
+    server.use(http.post(GET, () => new HttpResponse("Down", { status: 500 })));
+    const problems = await inRun(async (run) => {
+      expect(await transaction((db) => lookUpNewMembers(db))).toBe(0);
+      return run.problems;
+    });
+    expect(problems).toEqual([
+      { what: staffCopy.problems.job.civicrmLookupFailed, error: "CiviCRM request failed with status 500: Down" },
+    ]);
+  });
+
+  it("runs at the end of the members import, which counts what it found", async () => {
+    vi.stubEnv("AIRTABLE_TOKEN", "t");
+    server.use(
+      http.get("https://api.airtable.com/v0/appWPTGqZmUcs3NWu/tblL1icZBhTV1gQ9o", () =>
+        HttpResponse.json({
+          records: [
+            {
+              id: "recNew",
+              fields: {
+                Email: "new@example.com",
+                "Joined Datetime": "2026-11-10",
+                "Created Datetime": "2026-11-10T10:00:00.000Z",
+                "Last Modified": "2026-11-10T10:00:00.000Z",
+                "Email subscription": true,
+                "GDPR chapter share permission": true,
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    serve([contact(9, "new@example.com", { airtable_id: "recNew" })]);
+    expect(await importMembers("nightly")).toMatchObject({ added: 1, civicrm: 1 });
+  });
+});

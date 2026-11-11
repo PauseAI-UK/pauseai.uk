@@ -11,7 +11,7 @@ import { listSupporters, supporterChoices } from "./supporters";
 
 // Who a broadcast to supporters goes to: everyone the supporters list's filter
 // finds, of whom those contact_permission() says yes for, by the broadcast's
-// channel and topic. The list and the permissions are read when asked, so a
+// channel's way and topic. The list and the permissions are read when asked, so a
 // stop made since the draft was opened counts.
 
 const copy = staffCopy.broadcastPages;
@@ -103,12 +103,12 @@ function recipientValues(row: SupporterRow, parts: string[]): MailingRecipientVa
 export async function supporterAudience(filter: StoredFilter, terms: BroadcastTerms): Promise<SupporterAudience> {
   const { supporters } = await listSupporters(supportersSearch(filter.params).filter, null);
   const [parts, inParts] = await Promise.all([broadcastParts(), partsOf(supporters.map((row) => row.id))]);
-  const channel = terms.channel === "email" ? "email" : "phone";
   const recipients: SupporterRecipient[] = [];
   for (const row of supporters) {
     const name = row.name || staffCopy.supporters.noName;
+    // A text goes to a number that said yes by text, never by call.
     const yes = row.permissions.find(
-      (one) => one.channel === channel && one.topic === terms.topic && one.send === "yes",
+      (one) => one.way === terms.channel && one.topic === terms.topic && one.send === "yes",
     );
     if (!yes) continue;
     const values = recipientValues(row, inParts.get(row.id) ?? []);

@@ -3,6 +3,7 @@ import { campaigns } from "@/lib/content/email-your-mp";
 import type { Page } from "@playwright/test";
 import { marchSignupCopy } from "@/lib/content/march-signup";
 import { staffCopy } from "@/lib/content/staff-interface";
+import type { Reason, Topic } from "@/lib/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
 import { TEST_MPS } from "@/lib/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
@@ -13,6 +14,7 @@ import {
   fakeTurnstile,
   fillLetter,
   importLuma,
+  importCivicrm,
   importMembers,
   logInAsStaff,
   lookUpTestMp,
@@ -38,6 +40,18 @@ async function logInWithSupporters(page: Page, database: string) {
 }
 
 const copy = staffCopy.supporters;
+
+/** Changes the Consent filter's topic, from its chip, to `topic` by email: the first of its ways in the menu. */
+async function changeTopic(page: Page, chip: string, topic: string) {
+  await page.getByRole("button", { name: chip }).click();
+  await page.locator("[popover]:popover-open").getByRole("link", { name: topic, exact: true }).first().click();
+}
+
+/** A reason's words on a supporter's page, from `source`, without its date, which a flow's fixture data moves. */
+function said(reason: Reason, source: string, topic?: Topic): string {
+  const { reasons, sources } = copy.detail.permissions;
+  return reasons[reason]("", sources[source], topic).replace(/[, ]*(by|since)?\s*$/, "");
+}
 
 /** Opens everything we hold of a supporter, folded at the foot of their page, with the erase button at its end. */
 async function openEverything(page: Page) {
@@ -223,8 +237,10 @@ test("A supporter's page", async ({ page, request, flowDatabase }) => {
   // Her postcode is in Manchester Central, whose MP the politicians sync brought.
   await expect(page.getByRole("link", { name: "Mo Example" })).toBeVisible();
   const reasons = copy.detail.permissions.reasons;
-  // Her email and her Luma number in one row, the reason they share once.
-  await expect(page.getByText(reasons["luma-calendar"].unsubscribed("16 Oct 2026"), { exact: false })).toHaveCount(1);
+  // Her email and her Luma number in one row, each with its reason.
+  await expect(
+    page.getByText(reasons.unsubscribed("16 Oct 2026", copy.detail.permissions.sources.luma), { exact: false }),
+  ).toHaveCount(2);
   await frame(page, "Jane's page");
   story("Her history, at the foot of the page, has the opt-out.");
   await openHistory(page);
@@ -240,8 +256,10 @@ test("A supporter's page", async ({ page, request, flowDatabase }) => {
     recorded: true,
   });
   await page.reload();
-  // A contact again, since before Luma's webhook, her email and number alike: the reason once.
-  await expect(page.getByText(reasons["luma-calendar"].following("20 Sept 2026"), { exact: false })).toHaveCount(1);
+  // A contact again, since before Luma's webhook, her email and number alike.
+  await expect(
+    page.getByText(reasons.following("20 Sept 2026", copy.detail.permissions.sources.luma), { exact: false }),
+  ).toHaveCount(2);
   await openHistory(page);
   await expect(history.getByText(copy.detail.kinds.resubscribed, { exact: false })).toBeVisible();
   await frame(page, "Jane's page, subscribed again");
@@ -432,16 +450,13 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
   await expect(page.getByText("+447700900123", { exact: false }).first()).toBeVisible();
   await openEverything(page);
   await expect(page.getByText("LS1 1AA", { exact: true })).toBeVisible();
-  // Her email and number in one row, the reason they share once.
+  // Her email and number in the newsletter's row, each with its reason.
   await expect(
     page.getByText(
-      copy.detail.permissions.reasons["site-forms"].asked(
-        "16 Oct 2026",
-        copy.detail.permissions.forms["march-2026-11"],
-      ),
+      copy.detail.permissions.reasons.asked("16 Oct 2026", copy.detail.permissions.sources["march-2026-11"]),
       { exact: false },
     ),
-  ).toHaveCount(1);
+  ).toHaveCount(2);
   await openHistory(page);
   const history = page.getByRole("list", { name: copy.detail.activityTitle });
   await expect(history.getByText(copy.detail.cameFrom("nl"), { exact: false })).toBeVisible();
@@ -459,6 +474,7 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   await sendLetter(page, TEST_MPS[0]);
   await importMembers(request, BASE);
 
+  await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   // The only member who wrote to their MP.
@@ -476,10 +492,8 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lee Letter");
   await expect(page.getByText(copy.detail.firstVia(copy.sources.member))).toBeVisible();
   await expect(page.getByText("29 Nov 2025", { exact: false }).first()).toBeVisible();
-  // Joined before "Keep me informed" was a choice: on the updates.
-  await expect(
-    page.getByText(copy.detail.permissions.reasons["pauseai-updates"].joined("29 Nov 2025"), { exact: false }),
-  ).toBeVisible();
+  // Left the box on their letter unticked, the newest thing they told us about the newsletter.
+  await expect(page.getByText(said("declined", "email-your-mp"), { exact: false })).toBeVisible();
   await openHistory(page);
   const history = page.getByRole("list", { name: copy.detail.activityTitle });
   await expect(history.getByText(copy.detail.kinds["member-joined"], { exact: false })).toBeVisible();
@@ -495,12 +509,13 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await importMembers(request, BASE);
   // Jane unsubscribed from the calendar's emails, and Luma told us.
   await postLumaWebhook(request, BASE, "calendar.person.unsubscribed", "jane.fixture@example.com", "msg_1");
+  await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByRole("columnheader", { name: copy.columns.subscriptions })).toBeVisible();
   await frame(page, "The supporters list");
   story(
-    "Staff filter to those they can't email about Luma. Jane is there. Owen, a member who left Keep me informed unticked, isn't.",
+    "Staff filter to those they can't email about events. Jane is there. Owen, a member who never opted in to chapter emails, isn't, as he never followed the calendar.",
   );
 
   // A topic first, those we can email about it, then in the chip's second half, those we can't.
@@ -509,26 +524,26 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: copy.columns.subscriptions, exact: true }).click();
   await page
     .locator("[popover]:popover-open")
-    .getByRole("link", { name: copy.filters.topics["luma-calendar"] })
+    .getByRole("link", { name: copy.filters.topics["events"] })
     .first()
     .click();
   await changeFilter(page, answers.email.yes, answers.email.no);
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toBeVisible();
-  // Owen left Keep me informed unticked, which isn't an unsubscribe.
+  // Owen has never had anything to do with the calendar.
   await expect(page.getByRole("row").filter({ hasText: "Owen Member" })).toHaveCount(0);
-  await frame(page, "Those who can't be emailed about Luma");
-  story("They change the topic to PauseAI global. Now Owen is there, and Jane isn't.");
+  await frame(page, "Those who can't be emailed about events");
+  story("They change the topic to the newsletter. Now Owen is there, and Jane, on the newsletter in CiviCRM, isn't.");
 
-  // Another topic, from the chip's first half, keeping its answer.
-  await changeFilter(
+  // Another topic, from the chip's first half, keeping its answer: the newsletter by email, the first of its three.
+  await changeTopic(
     page,
-    `${copy.columns.subscriptions}: ${copy.filters.topics["luma-calendar"]}`,
-    copy.filters.topics["pauseai-updates"],
+    `${copy.columns.subscriptions}: ${copy.filters.topics.events}`,
+    copy.filters.topics.newsletter,
   );
-  await expect(page).toHaveURL(/contact=email%3Apauseai-updates%3Ano/);
+  await expect(page).toHaveURL(/contact=email%3Anewsletter%3Ano/);
   await expect(page.getByRole("row").filter({ hasText: "Owen Member" })).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toHaveCount(0);
-  await frame(page, "Those who can't be emailed PauseAI global updates");
+  await frame(page, "Those who can't be emailed the newsletter");
 });
 
 test("An old link with two subscriptions", async ({ page, request, flowDatabase }) => {
@@ -537,31 +552,30 @@ test("An old link with two subscriptions", async ({ page, request, flowDatabase 
   );
   await importLuma(request, BASE);
   await logInWithSupporters(page, flowDatabase);
-  await page.goto(`${BASE}/staff/supporters?contact=email:luma-calendar:no&contact=email:pauseai-updates:no`);
+  await page.goto(`${BASE}/staff/supporters?contact=email:events:no&contact=email:volunteering:no`);
   const { topics } = copy.filters;
   const label = copy.columns.subscriptions;
-  await expect(page.getByRole("button", { name: `${label}: ${topics["luma-calendar"]}` })).toBeVisible();
-  await expect(page.getByRole("button", { name: `${label}: ${topics["pauseai-updates"]}` })).toBeVisible();
+  await expect(page.getByRole("button", { name: `${label}: ${topics.events}` })).toBeVisible();
+  await expect(page.getByRole("button", { name: `${label}: ${topics.volunteering}` })).toBeVisible();
   await frame(page, "Two chips");
 
   story("Choosing another topic in one takes the filter's place, leaving one chip.");
-  await changeFilter(page, `${label}: ${topics["luma-calendar"]}`, topics["site-forms"]);
-  await expect(page.getByRole("button", { name: `${label}: ${topics["site-forms"]}` })).toBeVisible();
-  await expect(page.getByRole("button", { name: `${label}: ${topics["pauseai-updates"]}` })).toHaveCount(0);
+  await changeTopic(page, `${label}: ${topics.events}`, topics.newsletter);
+  await expect(page.getByRole("button", { name: `${label}: ${topics.newsletter}` })).toBeVisible();
+  await expect(page.getByRole("button", { name: `${label}: ${topics.volunteering}` })).toHaveCount(0);
   await frame(page, "One chip");
 });
 
-test("A member who said no to updates", async ({ page, request, flowDatabase }) => {
+test("A member who never opted in", async ({ page, request, flowDatabase }) => {
   story(
-    "Owen joined as a member without ticking Keep me informed. His page says he declined the PauseAI global updates when he joined, so he isn't emailed them.",
+    "Owen joined as a member without ticking Keep me informed. CiviCRM says they never opted in to chapter emails, so their page says we won't send them the newsletter.",
   );
   await importMembers(request, BASE);
+  await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Owen Member" }).click();
-  await expect(
-    page.getByText(copy.detail.permissions.reasons["pauseai-updates"].declined("6 Oct 2026"), { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByText(said("not-opted-in", "civicrm"), { exact: false })).toBeVisible();
   await expect(page.getByText(copy.detail.permissions.answers.email.no).first()).toBeVisible();
   await openHistory(page);
   await expect(
@@ -570,22 +584,46 @@ test("A member who said no to updates", async ({ page, request, flowDatabase }) 
   await frame(page, "Owen's page");
 });
 
-test("A member who re-joined", async ({ page, request, flowDatabase }) => {
+test("A member with No bulk emails", async ({ page, request, flowDatabase }) => {
   story(
-    "Rhea first joined in July, and joined again in October, ticking Keep me informed. Her record from October decides, so she gets the updates. Its details say how we know.",
+    "Rhea is on the newsletter in CiviCRM, but has set No bulk emails there, so their page says we won't email them about anything. The ? by a topic says what it is.",
   );
-  // Her one record joined in July and was made in October; the updates go by when it was made.
   await importMembers(request, BASE);
+  await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Rhea Member" }).click();
-  // On the updates, as asked when re-joining. The ? by its name says how we know.
-  await expect(
-    page.getByText(copy.detail.permissions.reasons["pauseai-updates"].asked("11 Oct 2026"), { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByText(said("no-bulk-email", "civicrm"), { exact: false }).first()).toBeVisible();
   await page.getByRole("button", { name: copy.detail.permissions.why }).first().click();
-  await expect(page.getByText(copy.detail.permissions.details.email["pauseai-updates"].about)).toBeVisible();
+  await expect(page.getByText(copy.detail.permissions.details.newsletter.about)).toBeVisible();
   await frame(page, "Rhea's page");
+});
+
+test("A member who unsubscribed in CiviCRM", async ({ page, request, flowDatabase }) => {
+  story(
+    "Kit unsubscribed from the newsletter in CiviCRM, and the hourly pull from CiviCRM brought it here as a stop. They're still on the volunteer list there, so we may email them about volunteering.",
+  );
+  await importMembers(request, BASE);
+  await importCivicrm(request, BASE);
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters`);
+  await page.getByRole("link", { name: "Kit Member" }).click();
+  await expect(page.getByText(said("unsubscribed", "civicrm"), { exact: false })).toBeVisible();
+  await expect(page.getByText(said("subscribed", "civicrm", "volunteering"), { exact: false })).toBeVisible();
+  await frame(page, "Kit's page");
+});
+
+test("A member CiviCRM doesn't have", async ({ page, request, flowDatabase }) => {
+  story(
+    "CiviCRM doesn't return some members, Mara among them. Mara ticked Keep me informed on joining, so that's still a yes to the newsletter.",
+  );
+  await importMembers(request, BASE);
+  await importCivicrm(request, BASE);
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters`);
+  await page.getByRole("link", { name: "Mara Member" }).click();
+  await expect(page.getByText(said("asked", "member"), { exact: false })).toBeVisible();
+  await frame(page, "Mara's page");
 });
 
 test("Erasing a supporter", async ({ page, request, flowDatabase }) => {
@@ -650,4 +688,21 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText(copy.total(8), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Mara Member" })).toHaveCount(0);
   await frame(page, "The supporters list, after the members import");
+});
+
+test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
+  story(
+    "CiviCRM has Casey's address on hold, as its emails to it bounced. The CiviCRM import blocks it here too, and it's listed with the supporters' blocked emails.",
+  );
+  await importCivicrm(request, BASE);
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters/blocked-emails`);
+  const row = page.getByRole("table").first().getByRole("row").filter({ hasText: "casey.chapter@example.com" });
+  await expect(row).toContainText(staffCopy.emails.kinds.hold);
+  await frame(page, "Supporters' blocked emails");
+  story("Staff lift it, with a note. Only a new hold in CiviCRM blocks it again.");
+  await row.getByLabel(staffCopy.emails.note).fill("Global say the address works again");
+  await row.getByRole("button", { name: staffCopy.emails.unblock }).click();
+  await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
+  await frame(page, "Supporters' blocked emails, empty");
 });

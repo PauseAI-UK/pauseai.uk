@@ -8,18 +8,19 @@ import { exampleBlockedPermissions, exampleSupporterRows } from "./SupportersTab
 describe("SubscriptionBadges", () => {
   const copy = staffCopy.supporters.subscriptions;
 
-  it("shows each topic we'd email them about, amber when we can't be sure, and nothing for a no", async () => {
+  it("shows each consent any of their addresses or numbers says yes to, and nothing for a no", async () => {
     const { rerender } = await render(<SubscriptionBadges permissions={exampleSupporterRows[0].permissions} />);
-    expect(document.body.textContent!.trim()).toBe(copy.topics.email["site-forms"]);
+    expect(document.body.textContent!.trim()).toBe(copy.consents["email:newsletter"]);
     await rerender(<SubscriptionBadges permissions={exampleSupporterRows[1].permissions} />);
-    await expect.element(page.getByText(copy.topics.email["luma-calendar"], { exact: true })).toBeVisible();
-    await expect.element(page.getByText(copy.unsure(copy.topics.email["pauseai-updates"]))).toBeVisible();
+    for (const consent of ["email:newsletter", "email:events", "text:volunteering"] as const) {
+      await expect.element(page.getByText(copy.consents[consent], { exact: true })).toBeVisible();
+    }
     await rerender(<SubscriptionBadges permissions={[]} />);
     expect(document.body.textContent!.trim()).toBe("");
   });
 
-  it("takes the best answer across their addresses, and shows nothing for one that's blocked", async () => {
-    const [jane] = exampleSupporterRows[0].permissions;
+  it("takes a yes at any of their addresses, and shows nothing for one that's blocked", async () => {
+    const [, jane] = exampleSupporterRows[0].permissions;
     const { rerender } = await render(
       <SubscriptionBadges
         permissions={[
@@ -29,7 +30,7 @@ describe("SubscriptionBadges", () => {
         ]}
       />,
     );
-    expect(document.body.textContent!.trim()).toBe(copy.topics.email["luma-calendar"]);
+    expect(document.body.textContent!.trim()).toBe(copy.consents["email:events"]);
     await rerender(<SubscriptionBadges permissions={exampleBlockedPermissions} />);
     expect(document.body.textContent!.trim()).toBe("");
   });

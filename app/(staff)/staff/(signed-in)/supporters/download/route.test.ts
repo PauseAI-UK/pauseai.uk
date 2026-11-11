@@ -23,7 +23,7 @@ describeWithDatabase("GET /staff/supporters/download", () => {
     );
     await linkSupporters();
     // A volunteer's number.
-    const found = "contact=email%3Apauseai-updates%3Aunsure&contact=phone%3Avolunteering%3Ayes";
+    const found = "contact=email%3Anewsletter%3Ayes&contact=text%3Avolunteering%3Ayes";
     const csv = await downloadAs(GET, `https://pauseai.uk/staff/supporters/download?format=csv&${found}`, [
       "supporters",
     ]);

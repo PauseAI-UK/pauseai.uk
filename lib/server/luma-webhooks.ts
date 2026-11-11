@@ -55,12 +55,12 @@ export async function recordLumaWebhook(payload: LumaWebhook, webhookId: string,
   if (payload.type === "calendar.person.unsubscribed") {
     return recordOptOut({
       address,
-      list: "luma-calendar",
+      list: "events",
       source: "luma-webhook",
       sourceRef: webhookId,
       unsubscribedAt: at,
     });
   }
-  if (payload.type === "calendar.person.subscribed") return recordResubscribe(address, "luma-calendar", at);
+  if (payload.type === "calendar.person.subscribed") return recordResubscribe(address, "events", at);
   return false;
 }

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import StaffLink from "./ui/StaffLink";
 import { Muted } from "@/components/ui/Text";
+import { phoneWords } from "@/lib/phone";
 import Tag from "@/components/ui/Tag";
 import { displayPostcode } from "@/lib/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -61,10 +62,10 @@ function held(supporter: Details, usable: Set<string>): Held[] {
     ...emails,
     ...each(d.phone, (c) =>
       c.phone === null ? null : usable.has(c.phone) ? (
-        <a href={`tel:${c.phone}`}>{c.phone}</a>
+        <a href={`tel:${c.phone}`}>{phoneWords(c.phone)}</a>
       ) : (
         <>
-          {c.phone} <Tag>{d.unusable}</Tag>
+          {phoneWords(c.phone)} <Tag>{d.unusable}</Tag>
         </>
       ),
     ),

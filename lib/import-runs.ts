@@ -25,6 +25,7 @@ export const JOBS = {
   "import-old-letters": { slug: "old-letters", schedule: "oneOff", budgetMs: 20_000 },
   "import-luma": { slug: "luma", schedule: "frequent", budgetMs: 20_000 },
   "import-members": { slug: "members", schedule: "hourly" },
+  "import-civicrm": { slug: "civicrm", schedule: "hourly" },
   "read-gmail": { slug: "gmail", schedule: "frequent" },
   "send-mailings": { slug: "sending", schedule: "hourly", budgetMs: 8_000 },
   "sync-politicians": { slug: "politicians", schedule: "nightly" },
@@ -164,8 +165,29 @@ export type MembersImportResult = {
   /** Supporters made for people seen for the first time, and source records linked to a supporter. */
   supportersAdded: number;
   linked: number;
+  /** New members' contacts found by looking them up in CiviCRM, if any were. */
+  civicrm?: number;
 };
 export type MembersImport = ImportRun<"import-members", MembersImportResult>;
+
+/**
+ * What a run of the CiviCRM import did: contacts returned, added and
+ * changed, and marked gone, unless the pull was so short that it `held`
+ * them; opt-outs it opened or closed, and addresses it blocked for a hold.
+ */
+export type CivicrmImportResult = {
+  contacts: number;
+  added: number;
+  changed: number;
+  gone: number;
+  held?: true;
+  optOuts: number;
+  blocked: number;
+  /** Supporters made for contacts whose address nobody had, and contacts linked to a supporter (runs kept before CiviCRM made supporters don't say). */
+  supportersAdded?: number;
+  linked?: number;
+};
+export type CivicrmImport = ImportRun<"import-civicrm", CivicrmImportResult>;
 
 /** What reading one connected Gmail account found. */
 export type GmailRead = {
@@ -314,6 +336,7 @@ export type AnyImportRun =
   | ControlAiImport
   | LumaImport
   | MembersImport
+  | CivicrmImport
   | GmailReading
   | WebFormImport
   | OldLettersImport

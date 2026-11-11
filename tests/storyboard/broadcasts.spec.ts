@@ -16,8 +16,8 @@ export const section: Section = { name: "Broadcasts to supporters", part: "Staff
 
 const copy = staffCopy.broadcastPages;
 const mailingCopy = staffCopy.mailingPages;
-const EMAIL = "contact=email%3Aluma-calendar%3Ayes";
-const TEXT = "contact=phone%3Aluma-calendar%3Ayes";
+const EMAIL = "contact=email%3Aevents%3Ayes";
+const TEXT = "contact=text%3Aevents%3Ayes";
 /** How many of the fixture's supporters each filter finds. */
 const EMAILABLE = 3;
 const TEXTABLE = 1;
@@ -94,11 +94,11 @@ function addTemplates(database: string) {
  * they'd stopped. Returns its ID and the first's copy.
  */
 function addSent(database: string, channel: "email" | "text", title: string): { id: string; copy: string } {
-  const contact = channel === "email" ? "email:luma-calendar:yes" : "phone:luma-calendar:yes";
+  const contact = channel === "email" ? "email:events:yes" : "text:events:yes";
   const [id] = runSql(
     database,
     `INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state)
-     VALUES ('${title}', '${channel === "email" ? title : ""}', 'supporters', '${channel}', 'luma-calendar',
+     VALUES ('${title}', '${channel === "email" ? title : ""}', 'supporters', '${channel}', 'events',
        '{"list": "supporters", "params": {"contact": "${contact}"}}', '${WORDS}', 'jo@pauseai.uk',
        '${channel === "email" ? "hello@pauseai.uk" : "+447700900000"}', 'PauseAI UK', '2026-10-15T08:18:00Z', 'sent')
      RETURNING id`,
@@ -143,14 +143,14 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await frame(page, "New broadcast, email or text to choose");
   story("Text shows the Consents someone can have said yes to by text, and the greyed writer below becomes a text's.");
   await channel.getByRole("radio", { name: copy.channels.text }).click();
-  await expect(saidYes.getByRole("radio")).toHaveCount(4);
+  await expect(saidYes.getByRole("radio")).toHaveCount(3);
   await frame(page, "The Consents by text, and a text's writer");
   story("Email does the same by email.");
   await channel.getByRole("radio", { name: copy.channels.email }).click();
-  await expect(saidYes.getByRole("radio")).toHaveCount(2);
+  await expect(saidYes.getByRole("radio")).toHaveCount(3);
   await frame(page, "The Consents by email, and an email's writer");
   story("Choosing one makes the draft, to everyone who said yes. Change who can narrow them, but needn't.");
-  await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["luma-calendar"] }).click();
+  await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.consents["email:events"] }).click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
   await expect(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
   await expect(page.getByText(copy.willGet(EMAILABLE, "email"))).toBeVisible();
@@ -164,9 +164,9 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await channel.getByRole("radio", { name: copy.channels.email }).click();
   await expect(page.getByText(copy.problems["no-consent"])).toHaveCount(0);
   story("Its Consent can change while it's a draft, but, once it has words, only to another by email.");
-  await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["site-forms"] }).click();
+  await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.consents["email:newsletter"] }).click();
   await expect(
-    saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.topics.email["site-forms"] }),
+    saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.consents["email:newsletter"] }),
   ).toBeChecked();
   await frame(page, "Under another Consent");
 });

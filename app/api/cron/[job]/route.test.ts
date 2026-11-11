@@ -9,6 +9,7 @@ import { POST } from "./route";
 beforeEach(() => {
   vi.stubEnv("CRON_SECRET", "s3cret");
   vi.stubEnv("AIRTABLE_TOKEN", "token");
+  vi.stubEnv("CIVICRM_CHAPTER_KEY", "key");
   vi.stubEnv("LUMA_API_KEY", "k");
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -73,6 +74,18 @@ describeWithDatabase("POST /api/cron/<job>", () => {
       eventsLeft: 0,
       people: 6,
       contacts: 3,
+    });
+  });
+
+  it("copies the fixture's UK chapter contacts from CiviCRM and says what it did", async () => {
+    // Kit's unsubscribe, and Casey's hold.
+    expect(await answer("import-civicrm")).toEqual({
+      contacts: 7,
+      added: 7,
+      changed: 0,
+      gone: 0,
+      optOuts: 1,
+      blocked: 1,
     });
   });
 

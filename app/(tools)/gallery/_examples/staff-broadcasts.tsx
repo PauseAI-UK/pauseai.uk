@@ -360,10 +360,10 @@ export const staffBroadcasts: Group = {
           render: () => (
             <StaffPage as="div">
               <p>
-                <BroadcastContact params={{ contact: "email:luma-calendar:yes" }} />
+                <BroadcastContact params={{ contact: "email:events:yes" }} />
               </p>
               <p>
-                <BroadcastContact params={{ contact: "phone:march-day:yes" }} />
+                <BroadcastContact params={{ contact: "text:events:yes" }} />
               </p>
             </StaffPage>
           ),

@@ -309,8 +309,10 @@ paths are in the run's own folder, not `latest/`, so they stay right after
 another run. `npm run storyboard -- --changed` runs the review and then
 prints the same.
 
-**The copy to approve**, for the person who writes the copy: `npm run copy`
-(`scripts/copy.mjs`) writes `test-results/copy.html`. It's one page, with
+**The copy to approve**, for the person who writes the copy. After every
+full storyboard review of a branch with placeholders, run `npm run copy` and
+give that person the page's path. It (`scripts/copy.mjs`) writes
+`test-results/copy.html`. It's one page, with
 its pictures in it, of each placeholder (AGENTS.md, "Never write final
 copy") that this branch adds or changes since it left origin/main,
 committed or not.
@@ -610,7 +612,8 @@ that drives it or why nothing does.
   - a held politician import: the notification inbox is emailed, the home has an action for it, and it's discarded, then applied;
   - an import held for a renamed record;
   - the Luma import run twice from its page;
-  - the members import, skipping an erased member;
+  - the members import, skipping an erased member and looking up the new ones in CiviCRM;
+  - the CiviCRM import, skipping an erased contact;
   - the logs of Luma, the Gmail reading and the members, a table a day, with the newest run's tinted row, rows, a row for quiet runs, a problem's tinted rows and a folded stretch;
   - the connected Gmail read from its page, and the button pressed again while the scheduled read is going;
   - an import failing, with Luma down for the flow (`lib/server/fixtures/failing-services.ts`), and one with problems, with postcodes.io down: the notification inbox is emailed once, though the import fails twice;
@@ -720,8 +723,9 @@ that drives it or why nothing does.
   - a supporter merged into another by their mobile number, whose old ID's page redirects to the one kept;
   - a letter writer reached from the letters page;
   - a march sign-up, with what they gave and the link they came by;
-  - the list's Subscriptions column, and its filter: to those who unsubscribed, which leaves out a member who declined the updates, then to those who declined;
-  - members: one who also wrote to their MP, one who declined the updates on joining, and one who asked for them on re-joining, with how we know from the ? on a subscription tile;
+  - the list's Consent column, and its filter: those who can't be emailed about events, then the newsletter;
+  - members: one who also wrote to their MP, one CiviCRM says never opted in, one with "No bulk emails" there, with what a topic is from its ?, one who unsubscribed there, and one CiviCRM doesn't have;
+  - a hold in CiviCRM on the supporters' blocked emails, lifted with a note;
   - erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next members import;
   - an old link with two subscriptions.
 - `signup-uploads.spec.ts`: Import sign-ups:

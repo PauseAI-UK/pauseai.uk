@@ -12,6 +12,7 @@ import ExternalLink from "./ui/ExternalLink";
 import { LumaReading } from "./SignupUploadPreview";
 import StaffLink from "./ui/StaffLink";
 import styles from "./SignupUpload.module.css";
+import { phoneWords } from "@/lib/phone";
 
 const copy = staffCopy.signupUpload;
 const words = copy.result;
@@ -89,7 +90,7 @@ export default function SignupUploadResult({
                     )}
                   </td>
                   <td className={styles.email}>{person.email}</td>
-                  <td className={styles.nowrap}>{person.phone}</td>
+                  <td className={styles.nowrap}>{person.phone && phoneWords(person.phone)}</td>
                   <td>{person.postcode}</td>
                   <td className={styles.happens}>
                     <Happened person={person} />

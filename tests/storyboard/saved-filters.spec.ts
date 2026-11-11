@@ -276,8 +276,8 @@ test("Loading a saved filter while choosing who a broadcast goes to", async ({ p
   const broadcasts = staffCopy.broadcastPages;
   await importLuma(request, BASE);
   await logIn(page, flowDatabase, ["supporters"]);
-  addSaved(flowDatabase, "supporters", "Fixture emails", { contact: "email:luma-calendar:yes", q: "fixture" });
-  await page.goto(`${BASE}/staff/supporters?contact=email%3Aluma-calendar%3Ayes`);
+  addSaved(flowDatabase, "supporters", "Fixture emails", { contact: "email:events:yes", q: "fixture" });
+  await page.goto(`${BASE}/staff/supporters?contact=email%3Aevents%3Ayes`);
   await page.getByRole("button", { name: broadcasts.broadcastButton(3) }).click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
   await page.getByLabel(broadcasts.subject).fill("Saved for later");

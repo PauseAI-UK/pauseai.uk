@@ -65,6 +65,9 @@ export function sentBy(backend: Backend): { backend: Backend["name"]; account?: 
 }
 
 /** A bounce or spam complaint, as any provider reports it. */
+/** What can block an address: a provider's bounce or complaint, or a hold in CiviCRM (lib/server/civicrm-import.ts). */
+export type ProblemKind = DeliveryProblem["kind"] | "hold";
+
 export type DeliveryProblem = {
   address: string;
   /** The email it was about, if the provider said. */
@@ -222,7 +225,8 @@ export async function recordProblem(problem: DeliveryProblem): Promise<boolean> 
 }
 
 /**
- * Unblocks an address: asks the provider to send to it again, then deletes
+ * Unblocks an address: asks the provider to send to it again, but for a
+ * hold in CiviCRM, then deletes
  * its block, and logs who did it and why; then whatever the letters inbox
  * held for it goes (resendAfterFix). Refused without a note of why (the
  * audit log refuses one too), and for a complaint, which only the person
@@ -230,12 +234,14 @@ export async function recordProblem(problem: DeliveryProblem): Promise<boolean> 
  */
 export async function unblock(address: string, staff: string, note: string): Promise<boolean> {
   if (!note.trim()) return false;
-  const [block] = await query<{ canReset: boolean }>(
-    `SELECT p.can_reset AS "canReset" FROM email_blocks b JOIN email_problems p ON p.id = b.problem_id WHERE b.address = $1`,
+  const [block] = await query<{ canReset: boolean; kind: string }>(
+    `SELECT p.can_reset AS "canReset", p.kind FROM email_blocks b JOIN email_problems p ON p.id = b.problem_id
+     WHERE b.address = $1`,
     [address],
   );
   if (!block?.canReset) return false;
-  await unsuppress(address);
+  // A hold is CiviCRM's, which the provider never suppressed.
+  if (block.kind !== "hold") await unsuppress(address);
   const unblocked = await transaction(async (db) => {
     const deleted = await query("DELETE FROM email_blocks WHERE address = $1 RETURNING address", [address], db);
     if (deleted.length) await logChange(staff, "unblock address", { address, note }, db);
@@ -248,7 +254,7 @@ export async function unblock(address: string, staff: string, note: string): Pro
 /** A blocked address, for the staff interface. */
 export type EmailBlock = {
   address: string;
-  kind: "hard" | "complaint";
+  kind: "hard" | "complaint" | "hold";
   reason: string;
   /** When the problem that blocked it came. */
   since: Date;
@@ -312,8 +318,8 @@ export async function isPoliticianAddress(address: string): Promise<boolean> {
   return !!row;
 }
 
-/** Which blocked addresses to list: those blocked by a hard bounce or a complaint, and those with `search` in them. */
-export type BlocksFilter = { kind?: "hard" | "complaint"; search?: string };
+/** Which blocked addresses to list: those blocked by a hard bounce, a complaint or a hold, and those with `search` in them. */
+export type BlocksFilter = { kind?: "hard" | "complaint" | "hold"; search?: string };
 
 /** Every blocked address in `scope` that `filter` lets through, newest first. */
 export async function listBlocks(scope: EmailScope, filter: BlocksFilter = {}): Promise<EmailBlock[]> {

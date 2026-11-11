@@ -656,7 +656,7 @@ are:
   finds those we can contact about it, "Consent: PauseAI UK | Can email",
   and the chip's second half turns that to Not sure or Can't email. The
   first half changes the topic, or removes the filter. Its value is one
-  parameter: `contact=email:site-forms:yes`.
+  parameter: `contact=email:newsletter:yes`.
 - A filter that matters most has its own button (`own`) before
   "+ Filter", and "+ Filter" doesn't offer it. Once it's on, its chip
   comes first. The supporters list's Consent is one, as it's what a

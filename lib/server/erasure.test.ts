@@ -44,7 +44,7 @@ async function janeWithEverything(mp: number): Promise<number> {
     `INSERT INTO email_problems (address, kind, reason, can_reset) VALUES ('jane.fixture@example.com', 'hard', 'gone', true)`,
   );
   await query(
-    `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at) VALUES ('jane.fixture@example.com', 'luma-calendar', 'luma-webhook', 'w', now())`,
+    `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at) VALUES ('jane.fixture@example.com', 'events', 'luma-webhook', 'w', now())`,
   );
   // A march sign-up: an entry with no letter, and what Luma said.
   await query(
@@ -76,7 +76,7 @@ describeWithDatabase("eraseSupporter", () => {
     await query(
       `WITH m AS (
          INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state)
-         VALUES ('Events', 'supporters', 'email', 'luma-calendar', '{}', '{}', 'jo@pauseai.uk', 'jo@pauseai.uk', 'PauseAI UK', now(), 'sent')
+         VALUES ('Events', 'supporters', 'email', 'events', '{}', '{}', 'jo@pauseai.uk', 'jo@pauseai.uk', 'PauseAI UK', now(), 'sent')
          RETURNING id)
        INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, merge_values, sent_at)
        SELECT id, $1, 'jane.fixture@example.com', 'delivered', '{"name": "Jane"}', now() FROM m`,

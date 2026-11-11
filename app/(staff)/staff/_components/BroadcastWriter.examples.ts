@@ -157,7 +157,7 @@ const examplePartsCovering = exampleParts.map((part, i) => ({ ...part, covers: [
  * Those a broadcast finds, 23 of them with no name.
  */
 export const exampleBroadcastData: BroadcastWriterData = {
-  filter: { list: "supporters", params: { contact: "email:site-forms:yes", near: "LS1" } },
+  filter: { list: "supporters", params: { contact: "email:newsletter:yes", near: "LS1" } },
   choices: exampleSupporterChoices,
   unknown: [],
   count: 412,
@@ -197,7 +197,7 @@ export const exampleBroadcastEmail: WrittenBroadcast = {
   version: 4,
   attachments: [],
   channel: "email",
-  topic: "site-forms",
+  topic: "newsletter",
   template: null,
 };
 
@@ -210,8 +210,8 @@ export const exampleBroadcastText: WrittenBroadcast = {
   body: { type: "doc", content: [] },
   sentFrom: "+447700900000",
   channel: "text",
-  topic: "luma-calendar",
-  filter: { list: "supporters", params: { contact: "phone:luma-calendar:yes" } },
+  topic: "events",
+  filter: { list: "supporters", params: { contact: "text:events:yes" } },
 };
 
 const summary: BroadcastSummary = {

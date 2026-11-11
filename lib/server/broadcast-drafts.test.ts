@@ -43,8 +43,8 @@ const JO = "jo@pauseai.uk";
 const FUTURE = new Date("2099-01-01T09:18:00.000Z");
 /** EVENT_WORDS as an email about a template says them, its fields as words. */
 const SAID = toText(letterFor(EVENT_WORDS, FIELDS_AS_WORDS));
-const EMAIL_FILTER = { contact: "email:luma-calendar:yes" };
-const TEXT_FILTER = { contact: "phone:luma-calendar:yes" };
+const EMAIL_FILTER = { contact: "email:events:yes" };
+const TEXT_FILTER = { contact: "text:events:yes" };
 
 beforeEach(() => {
   vi.stubEnv("DATA_FIXTURES", "1");
@@ -91,9 +91,9 @@ it("takes only what a broadcast may change, by its channel", () => {
 });
 
 it("says whether a filter's terms are a broadcast's own", () => {
-  const own = { channel: "email" as const, topic: "site-forms" as const };
+  const own = { channel: "email" as const, topic: "newsletter" as const };
   expect(sameTerms(own, own)).toBe(true);
-  expect(sameTerms({ ...own, topic: "luma-calendar" }, own)).toBe(false);
+  expect(sameTerms({ ...own, topic: "events" }, own)).toBe(false);
   expect(sameTerms(undefined, own)).toBe(false);
 });
 
@@ -101,11 +101,11 @@ describeWithDatabase("broadcasts to supporters", () => {
   useTestDatabase();
 
   it("makes a draft only from a Consent filter answered yes, from hello@ for an email and the account for a text", async () => {
-    expect(await createBroadcastDraft(JO, { contact: "email:luma-calendar:unsure" })).toBeUndefined();
+    expect(await createBroadcastDraft(JO, { contact: "email:events:unsure" })).toBeUndefined();
     const email = (await getWrittenBroadcast(await draftOf({ ...EMAIL_FILTER, near: "M1" })))!;
     expect(email).toMatchObject({
       channel: "email",
-      topic: "luma-calendar",
+      topic: "events",
       sentFrom: "hello@pauseai.uk",
       fromName: "PauseAI UK",
       state: "draft",
@@ -149,7 +149,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await changeBroadcastFilter(id, { ...EMAIL_FILTER, near: "LS1" })).toBe(true);
     expect((await getWrittenBroadcast(id))!.filter.params).toEqual({ ...EMAIL_FILTER, near: "LS1" });
     expect(await changeBroadcastFilter(id, { near: "LS1" })).toBe(false);
-    expect(await changeBroadcastFilter(id, { contact: "email:site-forms:yes" })).toBe(false);
+    expect(await changeBroadcastFilter(id, { contact: "email:newsletter:yes" })).toBe(false);
     expect(await changeBroadcastFilter(id, TEXT_FILTER)).toBe(false);
     expect(await changeBroadcastFilter(999, EMAIL_FILTER)).toBe(false);
   });
@@ -397,23 +397,23 @@ describeWithDatabase("broadcasts to supporters", () => {
     const id = await draftOf({ ...EMAIL_FILTER, near: "LS1" });
     // By email still, keeping the rest of the filter and what's written.
     await readied(id, { subject: "Events", body: EVENT_WORDS });
-    expect(await changeBroadcastConsent(id, "email:site-forms:yes", JO)).toBe(true);
+    expect(await changeBroadcastConsent(id, "email:newsletter:yes", JO)).toBe(true);
     expect(await getWrittenBroadcast(id)).toMatchObject({
       channel: "email",
-      topic: "site-forms",
+      topic: "newsletter",
       subject: "Events",
-      filter: { params: { contact: "email:site-forms:yes", near: "LS1" } },
+      filter: { params: { contact: "email:newsletter:yes", near: "LS1" } },
     });
     // Not to a text while it has words, nor to what isn't a yes, nor once it's no draft.
     expect(await changeBroadcastConsent(id, TEXT_FILTER.contact, JO)).toBe(false);
-    expect(await changeBroadcastConsent(id, "email:pauseai-updates:unsure", JO)).toBe(false);
+    expect(await changeBroadcastConsent(id, "email:newsletter:unsure", JO)).toBe(false);
     expect(await changeBroadcastConsent(999, TEXT_FILTER.contact, JO)).toBe(false);
     // With none, to a text, starting afresh as one, from the business account.
     const blank = await draftOf(EMAIL_FILTER);
     expect(await changeBroadcastConsent(blank, TEXT_FILTER.contact, JO)).toBe(true);
     expect(await getWrittenBroadcast(blank)).toMatchObject({
       channel: "text",
-      topic: "luma-calendar",
+      topic: "events",
       subject: "",
       template: null,
       fromName: TEXT_SENDER_NAME,

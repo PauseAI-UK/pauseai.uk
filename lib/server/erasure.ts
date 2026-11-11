@@ -20,7 +20,8 @@ import type { EraseLeftover } from "@/lib/staff-search";
 // Trash; a Luma user goes with their registrations and contact, and their
 // Luma ID is kept in
 // luma_erased so the import never copies them back; a member's record goes
-// the same way, its ID kept in members_erased; a message of a mailing
+// the same way, its ID kept in members_erased, and their CiviCRM contacts,
+// their IDs kept in civicrm_erased; a message of a mailing
 // sent to them loses its address and merge values; a one-off email with their
 // address on it goes, with its blob, its IDs kept in one_off_erased so that
 // reading its thread again doesn't keep it again, as does a reply on a form letter
@@ -117,6 +118,17 @@ export async function eraseSupporter(id: number, reference: string, by: string):
       `DELETE FROM email_sends WHERE purpose = 'forwarded-reply' AND letter_id IS NULL
        AND address IN (SELECT lower(matched_value) FROM supporter_links WHERE supporter_id = $1)`,
       [id],
+      db,
+    );
+    // Their CiviCRM contacts, by any of their addresses or their member records, kept in civicrm_erased.
+    await query(
+      `WITH theirs AS (
+         DELETE FROM civicrm_contacts c
+         WHERE c.airtable_id = ANY($2::text[])
+           OR c.email IN (SELECT lower(matched_value) FROM supporter_links WHERE supporter_id = $1)
+         RETURNING contact_id)
+       INSERT INTO civicrm_erased (contact_id) SELECT contact_id FROM theirs ON CONFLICT DO NOTHING`,
+      [id, members],
       db,
     );
     await query("INSERT INTO luma_erased (user_id) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING", [lumaUsers], db);

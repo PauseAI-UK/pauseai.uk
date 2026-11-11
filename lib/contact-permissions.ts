@@ -1,141 +1,110 @@
-// Whether we may contact an address or a phone number about each topic,
-// and why: the answer the supporter pages show, the list filters on and the
-// staff home counts. The rules are contact_permission()'s
-// (netlify/database/migrations/0049_contact_permissions.sql), and
+// Whether we may contact an address or a phone number about each topic, by
+// each way, and why: the answer the supporter pages show, the list filters
+// on and the staff home counts. The rules are contact_permission()'s
+// (netlify/database/migrations/0100_consents.sql), and
 // lib/server/contact-permissions.ts reads them.
 
-/** How we'd reach someone. */
+/** What we'd reach someone at: an email address, or a phone number. */
 export const CHANNELS = ["email", "phone"] as const;
 export type Channel = (typeof CHANNELS)[number];
 
-/** What we might contact someone about. */
-export const TOPICS = ["luma-calendar", "pauseai-updates", "site-forms", "volunteering", "march-day"] as const;
+/** How we'd reach someone: by email, or at a number by text (WhatsApp too) or a call. */
+export const WAYS = ["email", "text", "call"] as const;
+export type Way = (typeof WAYS)[number];
+
+/** The channel a way reaches someone at. */
+export function channelOf(way: Way): Channel {
+  return way === "email" ? "email" : "phone";
+}
+
+/** What we'd send someone: the UK newsletter, which includes events; events only; or volunteering. */
+export const TOPICS = ["newsletter", "events", "volunteering"] as const;
 export type Topic = (typeof TOPICS)[number];
 
-/** Why we may or may not contact someone about a topic; the migration says what each means. */
-export type Reason =
-  | "blocked"
-  | "unsubscribed"
-  | "declined"
-  | "asked"
-  | "joined"
-  | "following"
-  | "not-following"
-  | "removed"
-  | "volunteered"
-  | "gave-number"
-  | "ended";
+/** A consent: a topic, by a way. */
+export type Consent = { topic: Topic; way: Way };
 
-/**
- * Each channel's topics, and the reasons each can give, in the order the
- * supporters list's filter offers them. Blocked is every email topic's.
- */
-export const TOPIC_REASONS = {
-  email: {
-    "luma-calendar": ["following", "unsubscribed", "not-following"],
-    "pauseai-updates": ["asked", "joined", "declined", "unsubscribed", "removed"],
-    "site-forms": ["asked", "declined"],
-  },
-  phone: {
-    "luma-calendar": ["following", "unsubscribed", "not-following"],
-    volunteering: ["volunteered", "gave-number", "removed"],
-    "site-forms": ["asked", "declined"],
-    "march-day": ["gave-number", "ended"],
-  },
-} as const satisfies Record<Channel, Partial<Record<Topic, readonly Reason[]>>>;
-
-/** How we'd reach someone at an address: by email, or at a number by calling or texting. */
-export type Way = "email" | "call" | "text";
-
-/**
- * The ways each channel's topics let us contact someone, as they were told
- * when they gave the address: the march sign-up asked for a number for
- * texts on the day, Luma for its own reminders; our forms' box and the join
- * form's volunteers are for calls as well.
- */
+/** The ways each topic goes by: a call only ever about volunteering, as a newsletter or an event isn't one. */
 export const TOPIC_WAYS = {
-  email: { "luma-calendar": ["email"], "pauseai-updates": ["email"], "site-forms": ["email"] },
-  phone: {
-    "luma-calendar": ["text"],
-    volunteering: ["call", "text"],
-    "site-forms": ["call", "text"],
-    "march-day": ["text"],
-  },
-} as const satisfies { [C in Channel]: Record<keyof (typeof TOPIC_REASONS)[C], readonly Way[]> };
+  newsletter: ["email", "text"],
+  events: ["email", "text"],
+  volunteering: ["email", "text", "call"],
+} as const satisfies Record<Topic, readonly Way[]>;
 
-/** The ways a channel's topic lets us contact someone, as one key for their words: "email", "text", "call-or-text". */
-export function waysKey(channel: Channel, topic: Topic): string {
-  const ways: Partial<Record<Topic, readonly Way[]>> = TOPIC_WAYS[channel];
-  return ways[topic]!.join("-or-");
+/** Every consent, a topic at a time, in the order the pages show them. */
+export const CONSENTS: Consent[] = TOPICS.flatMap((topic) => TOPIC_WAYS[topic].map((way) => ({ topic, way })));
+
+/** Whether a topic goes by a way. */
+export function hasWay(topic: Topic, way: Way): boolean {
+  return (TOPIC_WAYS[topic] as readonly Way[]).includes(way);
 }
 
-/** A channel's topics, in TOPIC_REASONS's order. */
-export function topicsOf(channel: Channel): Topic[] {
-  return Object.keys(TOPIC_REASONS[channel]) as Topic[];
+/** A consent's key, "<way>:<topic>", as a filter's value starts and the copy names it. */
+export function consentKey({ topic, way }: Consent): `${Way}:${Topic}` {
+  return `${way}:${topic}`;
 }
 
-/** Our answer for an address about a topic: we'd contact them, we don't know, or we wouldn't. */
-export const SENDS = ["yes", "unsure", "no"] as const;
+/** Our answer for an address about a consent: we'd contact them, or we wouldn't. */
+export const SENDS = ["yes", "no"] as const;
 export type Send = (typeof SENDS)[number];
 
+/** Why we may or may not contact someone about a consent; the migration says what each means. */
+export const REASONS = [
+  "asked",
+  "signed-up",
+  "subscribed",
+  "following",
+  "gave-number",
+  "volunteered",
+  "blocked",
+  "do-not-email",
+  "no-bulk-email",
+  "do-not-sms",
+  "do-not-phone",
+  "unsubscribed",
+  "declined",
+  "not-volunteer",
+  "not-opted-in",
+  "not-following",
+  "left",
+  "ended",
+] as const;
+export type Reason = (typeof REASONS)[number];
+
 /**
- * The answers each channel's topic can give, in SENDS's order, as
- * contact_permission() gives them: PauseAI's updates are never a sure
- * yes, as we can't read CiviCRM's unsubscribes; a number given on the join
- * form for anything but volunteering is unsure; the rest are yes or no.
+ * What the Consent filter finds: an answer for one consent, any answer, yes
+ * or no (`send`), or one reason.
  */
-export const TOPIC_SENDS = {
-  email: { "luma-calendar": ["yes", "no"], "pauseai-updates": ["unsure", "no"], "site-forms": ["yes", "no"] },
-  phone: {
-    "luma-calendar": ["yes", "no"],
-    volunteering: ["yes", "unsure", "no"],
-    "site-forms": ["yes", "no"],
-    "march-day": ["yes", "no"],
-  },
-} as const satisfies { [C in Channel]: Record<keyof (typeof TOPIC_REASONS)[C], readonly Send[]> };
-
-/** The answers a channel's topic can give. */
-export function sendsOf(channel: Channel, topic: Topic): readonly Send[] {
-  const sends: Partial<Record<Topic, readonly Send[]>> = TOPIC_SENDS[channel];
-  return sends[topic]!;
-}
+export type ContactState = Consent & { send?: Send; reason?: Reason };
 
 /**
- * What the Consent filter finds: an answer for one topic by one channel,
- * any answer, one of yes, unsure or no (`send`), or one reason.
- */
-export type ContactState = { channel: Channel; topic: Topic; send?: Send; reason?: Reason };
-
-/**
- * A state from its form value: "<channel>:<topic>" for any answer,
- * "<channel>:<topic>:<send>" for one answer, "<channel>:<topic>:<reason>"
- * for a reason the channel's topic can give.
+ * A state from its form value: "<way>:<topic>" for any answer,
+ * "<way>:<topic>:<send>" for one answer, "<way>:<topic>:<reason>" for one
+ * reason.
  */
 export function contactState(value: string): ContactState | undefined {
-  const [channel, topic, last, ...rest] = value.split(":");
-  if (rest.length > 0 || !Object.hasOwn(TOPIC_REASONS, channel)) return undefined;
-  const topics: Partial<Record<string, readonly string[]>> = TOPIC_REASONS[channel as Channel];
-  if (!Object.hasOwn(topics, topic)) return undefined;
-  const state = { channel: channel as Channel, topic: topic as Topic };
+  const [way, topic, last, ...rest] = value.split(":");
+  if (rest.length > 0 || !(WAYS as readonly string[]).includes(way)) return undefined;
+  if (!(TOPICS as readonly string[]).includes(topic)) return undefined;
+  const state = { way: way as Way, topic: topic as Topic };
   if (last === undefined) return state;
   if ((SENDS as readonly string[]).includes(last)) return { ...state, send: last as Send };
-  return topics[topic]!.includes(last) ? { ...state, reason: last as Reason } : undefined;
+  return (REASONS as readonly string[]).includes(last) ? { ...state, reason: last as Reason } : undefined;
 }
 
 /** A state's form value, which contactState reads back. */
 export function stateValue(state: ContactState): string {
-  return [state.channel, state.topic, state.send ?? state.reason].filter(Boolean).join(":");
+  return [state.way, state.topic, state.send ?? state.reason].filter(Boolean).join(":");
 }
 
-/** Whether we may contact `address` by `channel` about `topic`, why, since when, and which source told us. */
-export type ContactPermission = {
-  topic: Topic;
+/** Whether we may contact `address` by `way` about `topic`, why, since when, and which source told us. */
+export type ContactPermission = Consent & {
   channel: Channel;
   /** An email address, or a phone number as phone_number() writes it. */
   address: string;
-  /** Yes, no, or unsure: a yes we can't be sure still holds, as an unsubscribe may not have reached us. */
   send: Send;
   reason: Reason;
   at: Date | null;
+  /** A form, `member`, `luma`, `civicrm`, or the source of the block or opt-out. */
   source: string | null;
 };

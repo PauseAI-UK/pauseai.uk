@@ -95,6 +95,10 @@ export const config = {
   get airtableToken(): string | undefined {
     return value(process.env.AIRTABLE_TOKEN);
   },
+  /** Our UK chapter's key to Global's CiviCRM chapter contacts API (lib/server/outside-services/civicrm.ts). */
+  get civicrmChapterKey(): string | undefined {
+    return value(process.env.CIVICRM_CHAPTER_KEY);
+  },
   get lumaApiKey(): string | undefined {
     return value(process.env.LUMA_API_KEY?.trim());
   },

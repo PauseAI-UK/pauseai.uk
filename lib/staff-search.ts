@@ -239,7 +239,7 @@ export function politicianId(id: string): number | undefined {
   return /^\d+$/.test(id) ? Number(id) : undefined;
 }
 
-/** The blocked addresses page's filters: a search of the addresses, and blocked by a hard bounce, or a complaint. */
+/** The blocked addresses page's filters: a search of the addresses, and blocked by a hard bounce, a complaint or a hold. */
 export function emailsSearch({ q = "", kind = "" }: { q?: string; kind?: string }): {
   q: string;
   kind: string;
@@ -248,7 +248,10 @@ export function emailsSearch({ q = "", kind = "" }: { q?: string; kind?: string 
   return {
     q,
     kind,
-    filter: { kind: kind === "hard" || kind === "complaint" ? kind : undefined, search: q.trim() || undefined },
+    filter: {
+      kind: kind === "hard" || kind === "complaint" || kind === "hold" ? kind : undefined,
+      search: q.trim() || undefined,
+    },
   };
 }
 

@@ -734,7 +734,7 @@ describeWithDatabase("importLuma", () => {
     // Person 1 unsubscribes after this pass reads their page; Luma's webhook says so.
     await query(
       `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)
-       VALUES ('person1@example.com', 'luma-calendar', 'luma-webhook', 'msg_1', now() + interval '1 minute')`,
+       VALUES ('person1@example.com', 'events', 'luma-webhook', 'msg_1', now() + interval '1 minute')`,
     );
     // A second Luma account with person 2's address, no longer listed, while the first still is.
     await query(

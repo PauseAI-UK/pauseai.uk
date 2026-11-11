@@ -155,7 +155,7 @@ describeWithDatabase("linkSupporters", () => {
     const [jane, other] = await Promise.all(["jane@example.com", "jo@example.com"].map(supporterWith));
     const [both, one] = await query<{ id: number }>(
       `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state)
-       SELECT title, 'supporters', 'email', 'luma-calendar', '{}', '{}', 'jo@pauseai.uk', 'jo@pauseai.uk', 'PauseAI UK',
+       SELECT title, 'supporters', 'email', 'events', '{}', '{}', 'jo@pauseai.uk', 'jo@pauseai.uk', 'PauseAI UK',
          now(), 'sent' FROM unnest(ARRAY['Both', 'One']) title RETURNING id::int AS id`,
     );
     await query(
@@ -200,8 +200,8 @@ describeWithDatabase("linkSupporters", () => {
     });
     await query(
       `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at, resubscribed_at)
-       VALUES ('jane@example.com', 'luma-calendar', 'luma-webhook', 'w1', '2026-09-01T00:00:00Z', '2026-09-02T00:00:00Z'),
-              ('jane@example.com', 'luma-calendar', 'luma-webhook', 'w2', '2026-10-07T00:00:00Z', NULL)`,
+       VALUES ('jane@example.com', 'events', 'luma-webhook', 'w1', '2026-09-01T00:00:00Z', '2026-09-02T00:00:00Z'),
+              ('jane@example.com', 'events', 'luma-webhook', 'w2', '2026-10-07T00:00:00Z', NULL)`,
     );
     await linkSupporters();
 
@@ -232,7 +232,7 @@ describeWithDatabase("linkSupporters", () => {
       {
         source: "luma-webhook",
         kind: "opted-out",
-        title: "luma-calendar",
+        title: "events",
         detail: "jane@example.com",
         href: null,
         status: null,
@@ -240,7 +240,7 @@ describeWithDatabase("linkSupporters", () => {
       {
         source: "luma-webhook",
         kind: "resubscribed",
-        title: "luma-calendar",
+        title: "events",
         detail: "jane@example.com",
         href: null,
         status: null,
@@ -280,7 +280,7 @@ describeWithDatabase("linkSupporters", () => {
       {
         source: "luma-webhook",
         kind: "opted-out",
-        title: "luma-calendar",
+        title: "events",
         detail: "jane@example.com",
         href: null,
         status: null,
@@ -363,7 +363,7 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     await letter("pat@example.com", "Pat", mp, { createdAt: "2026-06-01T09:00:00Z" });
     await query(
       `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)
-       VALUES ('sam@example.com', 'luma-calendar', 'luma-webhook', 'w1', '2026-10-12T00:00:00Z')`,
+       VALUES ('sam@example.com', 'events', 'luma-webhook', 'w1', '2026-10-12T00:00:00Z')`,
     );
     await linkSupporters();
     await query("UPDATE luma_guests SET registered_at = '2024-01-10T10:00:00Z' WHERE user_id = 'usr-3'");
@@ -376,6 +376,9 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     vi.stubEnv("FIXTURE_NOW", "2026-10-15T00:00:00.000Z");
     expect(await names({ registeredDays: 7 })).toEqual(["Jane"]);
     expect(await names({ unsubscribedDays: 7 })).toEqual(["Sam"]);
+    // Of the consent the Consent filter names: Sam stopped events by email, not the newsletter.
+    expect(await names({ unsubscribedDays: 7, contact: [{ way: "email", topic: "events" }] })).toEqual(["Sam"]);
+    expect(await names({ unsubscribedDays: 7, contact: [{ way: "email", topic: "newsletter" }] })).toEqual([]);
     expect(await names({ firstDays: 7 })).toEqual([]);
     vi.stubEnv("FIXTURE_NOW", "2026-06-02T00:00:00.000Z");
     expect(await names({ firstDays: 7 })).toEqual(["Pat"]);
@@ -404,7 +407,8 @@ describeWithDatabase("listSupporters and getSupporter", () => {
       place: { name: "London", basis: "event", given: "evt-1", country: null, latitude: 51.5, longitude: -0.1 },
       permissions: [
         {
-          topic: "luma-calendar",
+          topic: "events",
+          way: "email",
           channel: "email",
           address: "jane@example.com",
           send: "yes",
@@ -413,7 +417,8 @@ describeWithDatabase("listSupporters and getSupporter", () => {
           source: "luma",
         },
         {
-          topic: "luma-calendar",
+          topic: "events",
+          way: "text",
           channel: "phone",
           address: "+447700900001",
           send: "yes",
@@ -457,7 +462,7 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await contacts()).toEqual(["Jane"]);
     await query(
       `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)
-       VALUES ('jane@example.com', 'luma-calendar', 'luma-webhook', 'w2', '2026-10-15T00:00:00Z')`,
+       VALUES ('jane@example.com', 'events', 'luma-webhook', 'w2', '2026-10-15T00:00:00Z')`,
     );
     expect(await contacts()).toEqual([]);
     expect(
@@ -484,39 +489,34 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ activity: ["lumaContact"] })).toEqual(["Jane"]);
     expect(await names({ activity: ["member"] })).toEqual([]);
     expect(await names({ activity: ["letter", "lumaContact"] })).toEqual(["Jane", "Pat"]);
-    const unsubscribed = [{ channel: "email", topic: "luma-calendar", reason: "unsubscribed" }] as const;
+    const unsubscribed = [{ way: "email", topic: "events", reason: "unsubscribed" }] as const;
     expect(await names({ contact: [...unsubscribed] })).toEqual(["Sam"]);
-    expect(await names({ contact: [{ channel: "email", topic: "luma-calendar", reason: "not-following" }] })).toEqual([
-      "Old",
-    ]);
-    expect(await names({ contact: [{ channel: "email", topic: "site-forms", reason: "asked" }] })).toEqual(["Pat"]);
-    expect(
-      await names({ contact: [...unsubscribed, { channel: "email", topic: "site-forms", reason: "asked" }] }),
-    ).toEqual(["Sam", "Pat"]);
+    expect(await names({ contact: [{ way: "email", topic: "events", reason: "not-following" }] })).toEqual(["Old"]);
+    expect(await names({ contact: [{ way: "email", topic: "newsletter", reason: "asked" }] })).toEqual(["Pat"]);
+    expect(await names({ contact: [...unsubscribed, { way: "email", topic: "newsletter", reason: "asked" }] })).toEqual(
+      ["Sam", "Pat"],
+    );
     // Leaving "Keep me informed" unticked isn't an unsubscribe.
     await query(
       `INSERT INTO members (id, email, name, joined_at, created_at, keep_informed, share_permission, source_modified_at)
        VALUES ('recOld', 'old@example.com', 'Old', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', false, true, '2026-09-01T00:00:00Z')`,
     );
     expect(await names({ contact: [...unsubscribed] })).toEqual(["Sam"]);
-    expect(await names({ contact: [{ channel: "email", topic: "pauseai-updates", reason: "declined" }] })).toEqual([
-      "Old",
-    ]);
+    expect(await names({ contact: [{ way: "email", topic: "newsletter", reason: "declined" }] })).toEqual(["Old"]);
     // A block is a no for each of the address's topics, and outranks the unsubscribe.
     await query(
       `WITH p AS (INSERT INTO email_problems (address, kind, at, can_reset) VALUES ('sam@example.com', 'hard', '2026-10-13T00:00:00Z', false) RETURNING id)
        INSERT INTO email_blocks (address, problem_id) SELECT 'sam@example.com', id FROM p`,
     );
     expect(await names({ contact: [...unsubscribed] })).toEqual([]);
-    expect(await names({ contact: [{ channel: "email", topic: "luma-calendar", send: "no" }] })).toContain("Sam");
+    expect(await names({ contact: [{ way: "email", topic: "events", send: "no" }] })).toContain("Sam");
     // Any answer for a topic, and one answer.
-    expect(await names({ contact: [{ channel: "email", topic: "pauseai-updates", send: "no" }] })).toEqual(["Old"]);
-    expect(await names({ contact: [{ channel: "email", topic: "pauseai-updates" }] })).toEqual(
+    expect(await names({ contact: [{ way: "email", topic: "newsletter", send: "no" }] })).toEqual(["Old"]);
+    expect(await names({ contact: [{ way: "email", topic: "newsletter" }] })).toEqual(
       await names({
         contact: [
-          { channel: "email", topic: "pauseai-updates", send: "yes" },
-          { channel: "email", topic: "pauseai-updates", send: "unsure" },
-          { channel: "email", topic: "pauseai-updates", send: "no" },
+          { way: "email", topic: "newsletter", send: "yes" },
+          { way: "email", topic: "newsletter", send: "no" },
         ],
       }),
     );
@@ -537,10 +537,10 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     // Jane gave Luma her number; once she unsubscribes from the calendar, it's one we may not use.
     await query(
       `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)
-       VALUES ('jane@example.com', 'luma-calendar', 'luma-webhook', 'w3', '2026-10-15T00:00:00Z')`,
+       VALUES ('jane@example.com', 'events', 'luma-webhook', 'w3', '2026-10-15T00:00:00Z')`,
     );
     expect(await jane()).toMatchObject({ phones: ["+447700900001"] });
-    const lumaPhone = { channel: "phone", topic: "luma-calendar" } as const;
+    const lumaPhone = { way: "text", topic: "events" } as const;
     expect(await names({ contact: [{ ...lumaPhone, reason: "unsubscribed" }] })).toEqual(["Jane"]);
     expect(await names({ contact: [{ ...lumaPhone, reason: "following" }] })).toEqual([]);
     // The same number given on joining as a volunteer is one we may use; a number found by email or phone.
@@ -551,17 +551,19 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     });
     await linkSupporters();
     expect(await jane()).toMatchObject({ phones: ["+447700900001"] });
-    const volunteered = { channel: "phone", topic: "volunteering", reason: "volunteered" } as const;
+    const volunteered = { way: "text", topic: "volunteering", reason: "volunteered" } as const;
     expect(await names({ contact: [volunteered] })).toEqual(["Jane"]);
-    expect(await names({ contact: [volunteered, { channel: "email", topic: "site-forms", reason: "asked" }] })).toEqual(
-      ["Jane", "Pat"],
-    );
+    expect(await names({ contact: [volunteered, { way: "email", topic: "newsletter", reason: "asked" }] })).toEqual([
+      "Jane",
+      "Pat",
+    ]);
     // Her page has each number once, as phone_number() writes it.
     const details = (await getSupporter((await jane()).id))!;
     expect([...new Set(details.contacts.map((c) => c.phone).filter(Boolean))]).toEqual(["+447700900001"]);
-    expect(details.permissions.filter((p) => p.channel === "phone").map((p) => [p.topic, p.send])).toEqual([
-      ["luma-calendar", "no"],
-      ["volunteering", "yes"],
+    expect(details.permissions.filter((p) => p.channel === "phone").map((p) => [p.topic, p.way, p.send])).toEqual([
+      ["events", "text", "no"],
+      ["volunteering", "text", "yes"],
+      ["volunteering", "call", "yes"],
     ]);
   });
 
@@ -639,7 +641,7 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ event: ["evt-1"], not: { event: ["evt-2"] } })).toEqual(["Sam", "Old"]);
     expect(await names({ event: ["evt-2"], not: { event: ["evt-2"] } })).toEqual([]);
     expect(await names({ not: { activity: ["letter", "lumaContact"] } })).toEqual(["Sam", "Old"]);
-    expect(await names({ not: { contact: [{ channel: "email", topic: "site-forms", reason: "asked" }] } })).toEqual([
+    expect(await names({ not: { contact: [{ way: "email", topic: "newsletter", reason: "asked" }] } })).toEqual([
       "Jane",
       "Sam",
       "Old",
@@ -707,14 +709,14 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     ]);
     expect(sam.activity.map((a) => a.kind)).toEqual(["opted-out", "luma-contact", "luma-registered"]);
     // Whether we'd contact each address and number about each topic (lib/server/contact-permissions.ts).
-    expect(sam.permissions.map((p) => [p.topic, p.send, p.reason])).toEqual([["luma-calendar", "no", "unsubscribed"]]);
+    expect(sam.permissions.map((p) => [p.topic, p.send, p.reason])).toEqual([["events", "no", "unsubscribed"]]);
 
     const [{ id: pat }] = await query<{ id: number }>(
       "SELECT supporter_id::int AS id FROM supporter_links WHERE form_entry_id IS NOT NULL",
     );
     const details = (await getSupporter(pat))!;
     expect(details.permissions.map((p) => [p.address, p.topic, p.send])).toEqual([
-      ["pat@example.com", "site-forms", "yes"],
+      ["pat@example.com", "newsletter", "yes"],
     ]);
     expect(details.contacts).toEqual([
       {
@@ -794,9 +796,11 @@ describeWithDatabase("members as supporters", () => {
       longitude: null,
       city: "Manchester",
     });
-    expect(jane.permissions.find((p) => p.topic === "pauseai-updates")).toMatchObject({
-      send: "unsure",
+    // Her letter's box, the newest yes; Keep me informed counts too, as CiviCRM hasn't returned her.
+    expect(jane.permissions.find((p) => p.topic === "newsletter")).toMatchObject({
+      send: "yes",
       reason: "asked",
+      source: "email-your-mp",
     });
     expect(jane.activity).toContainEqual({
       source: "member",
@@ -815,9 +819,14 @@ describeWithDatabase("members as supporters", () => {
     await query("UPDATE members SET removed_at = now()");
     const removed = (await getSupporter(await supporterWith("jane@example.com")))!;
     expect(removed.summary).toMatchObject({ member: false, sources: ["email-your-mp", "member"] });
-    expect(removed.permissions.find((p) => p.topic === "pauseai-updates")).toMatchObject({
+    // Her letter's yes holds; what came only from her membership doesn't.
+    expect(removed.permissions.find((p) => p.topic === "newsletter")).toMatchObject({
+      send: "yes",
+      source: "email-your-mp",
+    });
+    expect(removed.permissions.find((p) => p.topic === "volunteering")).toMatchObject({
       send: "no",
-      reason: "removed",
+      reason: "left",
     });
   });
 });

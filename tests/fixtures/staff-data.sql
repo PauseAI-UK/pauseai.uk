@@ -277,13 +277,13 @@ INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, 
 -- PauseCon room change text reached her, Tom's between broadcasts being
 -- written and sent, so they skipped him (the broadcasts, at the end).
 INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at, resubscribed_at) VALUES
-  ('pat.fixture@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-pat', now() - interval '3 days' + interval '2 hours', NULL),
-  ('tom.seed@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-tom', now() - interval '6 days 12 hours', NULL),
-  ('yuki.seed@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-yuki', now() - interval '10 days', NULL),
-  ('erased.seed@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-erased', now() - interval '60 days', NULL),
-  ('sam.fixture@example.com', 'luma-calendar', 'luma-webhook', 'seed-unsubscribe-sam', now() - interval '20 days', now() - interval '17 days'),
+  ('pat.fixture@example.com', 'events', 'luma-webhook', 'seed-unsubscribe-pat', now() - interval '3 days' + interval '2 hours', NULL),
+  ('tom.seed@example.com', 'events', 'luma-webhook', 'seed-unsubscribe-tom', now() - interval '6 days 12 hours', NULL),
+  ('yuki.seed@example.com', 'events', 'luma-webhook', 'seed-unsubscribe-yuki', now() - interval '10 days', NULL),
+  ('erased.seed@example.com', 'events', 'luma-webhook', 'seed-unsubscribe-erased', now() - interval '60 days', NULL),
+  ('sam.fixture@example.com', 'events', 'luma-webhook', 'seed-unsubscribe-sam', now() - interval '20 days', now() - interval '17 days'),
   -- Gone from Luma's list of contacts with no webhook, as after a removal: the contacts pass noticed.
-  ('ahmed.seed@example.com', 'luma-calendar', 'luma-contacts', 'usr-seed-12 seed-pass', now() - interval '1 day', NULL);
+  ('ahmed.seed@example.com', 'events', 'luma-contacts', 'usr-seed-12 seed-pass', now() - interval '1 day', NULL);
 
 -- -------------------------------------------------------------- members
 
@@ -308,6 +308,41 @@ INSERT INTO members (id, email, name, phone, city, postcode, joined_at, created_
 -- Erin, erased with her Luma user (the audit log's erasure), is still in
 -- Airtable's table: the import skips her.
 INSERT INTO members_erased (id, erased_at) VALUES ('recMemberErased', now() - interval '15 days');
+
+-- ------------------------------------------------------ CiviCRM contacts
+
+-- The UK chapter contacts civicrm-contacts.json holds, by the same IDs and
+-- values, so a pull there changes nothing, as first pulled two days ago:
+-- Jane on both lists; Owen never opted in, having left "Keep me informed"
+-- unticked; Rhea on the newsletter but with "No bulk emails";
+-- Kit unsubscribed from the newsletter yesterday, an opt-out from CiviCRM;
+-- Tom, who joined before June, never opted in, with "Do not phone" on their
+-- number; Gil, gone from the chapter since yesterday; and Casey, a contact
+-- with no member, on hold, which blocks the address; Sasha, a contact with
+-- no member either, on the newsletter, whom only CiviCRM tells us of. Mara, Lee and Robin
+-- aren't returned, as some members aren't: Mara's "Keep me informed" still
+-- counts, but Robin's is from before it was a free choice. Erin's
+-- contact, erased with her, is skipped.
+INSERT INTO civicrm_contacts (contact_id, airtable_id, email, on_hold, on_hold_since, no_bulk_email, no_bulk_email_since,
+  do_not_email, do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since,
+  newsletter, newsletter_since, volunteer_updates, volunteer_updates_since, first_seen_at, gone_at)
+SELECT c.id, c.airtable_id, c.email, c.on_hold, f, c.no_bulk, f, false, f, c.no_phone, f, false, f,
+  c.newsletter, coalesce(now() - c.newsletter_ago, f), c.volunteer, f, f, now() - c.gone_ago
+FROM (VALUES
+  (101, 'recMemberJane', 'jane.fixture@example.com', false, false, false, 'subscribed', NULL::interval, 'subscribed', NULL::interval),
+  (103, 'recMemberOwen', 'owen.member@example.com', false, false, false, 'not_opted_in', NULL, 'not_on_list', NULL),
+  (104, 'recMemberRhea', 'rhea.member@example.com', false, true, false, 'subscribed', NULL, 'not_on_list', NULL),
+  (105, 'recMemberKit', 'kit.member@example.com', false, false, false, 'unsubscribed', interval '1 day', 'subscribed', NULL),
+  (106, 'recMemberTom', 'tom.seed@example.com', false, false, true, 'not_opted_in', NULL, 'not_on_list', NULL),
+  (107, 'recMemberGil', 'gil.member@example.com', false, false, false, 'subscribed', NULL, 'not_on_list', interval '1 day'),
+  (108, NULL, 'casey.chapter@example.com', true, false, false, 'subscribed', NULL, 'not_on_list', NULL),
+  (109, NULL, 'sasha.chapter@example.com', false, false, false, 'subscribed', NULL, 'not_on_list', NULL)
+) c (id, airtable_id, email, on_hold, no_bulk, no_phone, newsletter, newsletter_ago, volunteer, gone_ago)
+CROSS JOIN (SELECT now() - interval '2 days' AS f) first;
+INSERT INTO civicrm_erased (contact_id, erased_at) VALUES (199, now() - interval '15 days');
+INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at)
+SELECT email, 'newsletter', 'email', 'civicrm', contact_id || ' newsletter ' || newsletter_since, newsletter_since
+FROM civicrm_contacts WHERE newsletter = 'unsubscribed';
 INSERT INTO one_off_erased (account, gmail_message_id, rfc_sha256, erased_at) VALUES ('policy@pauseai.uk', 'gmailErased', encode(sha256('erased@example.com'::bytea), 'hex'), now() - interval '15 days');
 
 -- --------------------------------------------------------------- places
@@ -777,8 +812,8 @@ FROM seed_stopped WHERE status <> 'cancelled';
 -- A broadcast to supporters, by email, to those following the calendar,
 -- sent last week. Its copies are with the other broadcasts', at the end.
 INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state, created_at)
-SELECT 'Events this month', 'Events this month', 'supporters', 'email', 'luma-calendar',
-  '{"list": "supporters", "params": {"contact": "email:luma-calendar:yes"}}',
+SELECT 'Events this month', 'Events this month', 'supporters', 'email', 'events',
+  '{"list": "supporters", "params": {"contact": "email:events:yes"}}',
   '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hi "}, {"type": "field", "attrs": {"field": "firstName"}}, {"type": "text", "text": ","}]}, {"type": "paragraph", "content": [{"type": "text", "text": "Here''s what''s on this month: a talk in Leeds on the 12th, and flyering in London on the 20th. Come along to either."}]}, {"type": "paragraph", "content": [{"type": "text", "text": "PauseAI UK"}]}]}',
   'jo@pauseai.uk', 'hello@pauseai.uk', 'PauseAI UK', now() - interval '6 days 2 hours', 'sent', now() - interval '8 days 2 hours';
 
@@ -813,6 +848,10 @@ INSERT INTO import_runs (at, job, started_by, status, error, result, decided_by)
   (now() - interval '1 day' + interval '47 minutes', 'import-members', 'nightly', 'failed', 'Airtable request failed with status 503: Service Unavailable', '{}', NULL),
   (now() - interval '3 days 2 hours', 'import-members', 'nightly', 'ok', NULL, '{"members": 8, "added": 1, "changed": 0, "removed": 1, "supportersAdded": 1, "linked": 1}', NULL),
   (now() - interval '1 hour' + interval '47 minutes', 'import-members', 'nightly', 'unchanged', NULL, '{"members": 8, "added": 0, "changed": 0, "removed": 0, "supportersAdded": 0, "linked": 0}', NULL),
+  -- CiviCRM's first pull, Kit's unsubscribe and Gil leaving the chapter the next day, then nothing new.
+  (now() - interval '2 days', 'import-civicrm', 'nightly', 'ok', NULL, '{"contacts": 8, "added": 8, "changed": 0, "gone": 0, "optOuts": 0, "blocked": 1}', NULL),
+  (now() - interval '1 day', 'import-civicrm', 'nightly', 'ok', NULL, '{"contacts": 7, "added": 0, "changed": 1, "gone": 1, "optOuts": 1, "blocked": 0}', NULL),
+  (now() - interval '1 hour' + interval '30 minutes', 'import-civicrm', 'nightly', 'unchanged', NULL, '{"contacts": 7, "added": 0, "changed": 0, "gone": 0, "optOuts": 0, "blocked": 0}', NULL),
   (now() - interval '2 hours' + interval '20 minutes', 'read-gmail', 'nightly', 'ok', NULL, '{"accounts": [{"account": "mailings@pauseai.uk", "replies": 1, "autoReplies": 2, "bounces": 0}]}', NULL),
   (now() - interval '1 hour' + interval '20 minutes', 'read-gmail', 'nightly', 'unchanged', NULL, '{"accounts": [{"account": "mailings@pauseai.uk", "replies": 0, "autoReplies": 0, "bounces": 0}]}', NULL),
   -- The newest read found mail in the letters inbox it couldn't handle, which the dashboard shows.
@@ -902,6 +941,8 @@ WITH emails AS (
   SELECT lower(trim(email)), created_at FROM form_entries
   UNION ALL
   SELECT email, joined_at FROM members
+  UNION ALL
+  SELECT email, first_seen_at FROM civicrm_contacts
 ), firsts AS (
   SELECT email, min(first_seen) AS first_seen FROM emails GROUP BY email
 ), made AS (
@@ -915,6 +956,9 @@ WITH emails AS (
 ), member_links AS (
   INSERT INTO supporter_links (supporter_id, member_id, matched_by, matched_value, linked_at)
   SELECT k.id, m.id, 'email', k.email, m.first_seen_at FROM keyed k JOIN members m ON m.email = k.email
+), civicrm_links AS (
+  INSERT INTO supporter_links (supporter_id, civicrm_contact_id, matched_by, matched_value, linked_at)
+  SELECT k.id, c.contact_id, 'email', k.email, c.first_seen_at FROM keyed k JOIN civicrm_contacts c ON c.email = k.email
 )
 INSERT INTO supporter_links (supporter_id, form_entry_id, matched_by, matched_value, linked_at)
 SELECT k.id, f.id, 'email', k.email, f.created_at FROM keyed k JOIN form_entries f ON lower(trim(f.email)) = k.email;
@@ -1122,6 +1166,14 @@ WITH bounced AS (
   RETURNING id, address
 )
 INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM bounced;
+-- Casey's address is on hold in CiviCRM, which the first pull found.
+WITH held AS (
+  INSERT INTO email_problems (at, address, kind, reason, can_reset, details) VALUES
+    (now() - interval '2 days', 'casey.chapter@example.com', 'hold',
+     'Usually as its emails to it bounced', true, '{"contactId": 108}')
+  RETURNING id, address
+)
+INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM held;
 -- The new tag: the migration's pages for each account here, so only the pages it didn't name show as new.
 INSERT INTO staff_nav_seen (email, page, first_seen_at)
 SELECT a.email, p.page, '2000-01-01' FROM staff_accounts a CROSS JOIN unnest(ARRAY['supporters', 'supporterEmails', 'politicians', 'asks', 'mailings', 'mpEmails', 'events', 'import', 'accounts', 'changes']) AS p (page)
@@ -1181,10 +1233,10 @@ SELECT nextval(pg_get_serial_sequence('mailings', 'id')) AS id, m.* FROM (VALUES
 ) m (title, channel, state, due, template, words);
 INSERT INTO mailings (id, title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state, template_id, created_at, opened_at)
   OVERRIDING SYSTEM VALUE
-SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 'supporters', m.channel, 'luma-calendar',
+SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 'supporters', m.channel, 'events',
   -- Two with filters besides Consent: near a place, and those who didn't write in a campaign.
   jsonb_build_object('list', 'supporters', 'params',
-    jsonb_build_object('contact', CASE WHEN m.channel = 'email' THEN 'email' ELSE 'phone' END || ':luma-calendar:yes')
+    jsonb_build_object('contact', m.channel || ':events:yes')
     || CASE m.title
          WHEN 'Stall on Saturday' THEN '{"near": "M1 1AE", "within": "5"}'::jsonb
          WHEN 'Rain on Saturday' THEN '{"campaign": "regulate-letter-pm", "wrote": "no"}'::jsonb

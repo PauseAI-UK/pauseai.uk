@@ -41,14 +41,14 @@ async function views() {
 type Row = Record<string, unknown>;
 
 /**
- * A view's rows as the migration should leave them: a letter's source is its form, and the consent topic has its
- * new name. Supporter 2 is Wendy, who wrote through the old form.
+ * A view's rows as the migrations should leave them: a letter's source is its form, and an opt-out from the
+ * calendar's emails is from events. Supporter 2 is Wendy, who wrote through the old form.
  */
 const renamed = (rows: Row[]): Row[] =>
   rows.map((row) => ({
     ...row,
     ...(row.source === "letter" && { source: row.id === 2 ? "web-form" : "email-your-mp" }),
-    ...(row.topic === "events-and-ways-to-help" && { topic: "site-forms" }),
+    ...(row.title === "luma-calendar" && { title: "events" }),
     ...(Array.isArray(row.sources) && {
       sources: (row.sources as string[]).map((s) => (s === "letter" ? "email-your-mp" : s)).sort(),
     }),
@@ -196,7 +196,7 @@ describeWithDatabase("migration 0043_form_entries", MAKES_DATABASES, () => {
     ]);
 
     // Every view says what it did, with each letter's source as its form, in history and contact details as in
-    // identity, and the consent topic renamed. Wendy's
+    // identity. Wendy's
     // blank postcode was a postcode of '' before; now there's none.
     const after = await views();
     const blankPostcode = (rows: Row[]) => rows.map((row) => (row.postcode === "" ? { ...row, postcode: null } : row));
@@ -206,26 +206,44 @@ describeWithDatabase("migration 0043_form_entries", MAKES_DATABASES, () => {
     expect(after.summary).toEqual(blankPostcode(renamed(before.summary)));
     expect(after.firstSeen).toEqual(before.firstSeen);
     expect(after.place).toEqual(before.place);
-    // Permissions are by address, not supporter, so Wendy's form is found by hers; and the renamed topic sorts
-    // in another place.
-    const byTopic = (rows: Row[]) =>
-      [...rows].sort((a, b) => `${a.topic} ${a.address}`.localeCompare(`${b.topic} ${b.address}`));
-    expect(byTopic(after.permissions)).toEqual(
-      byTopic(
-        renamed(before.permissions).map((row) =>
-          row.address === "wendy@example.com" && row.topic === "site-forms" ? { ...row, source: "web-form" } : row,
-        ),
-      ),
-    );
-    // The box on Jane's newer letter says no, as her letter did.
-    expect(after.permissions).toContainEqual({
-      topic: "site-forms",
-      address: "jane@example.com",
-      send: "no",
-      reason: "declined",
-      at: new Date("2026-10-05T10:00:00Z"),
-      source: "email-your-mp",
-    });
+    // Permissions are by address, not supporter, so each letter's box is found by its address, as its form, as
+    // the later migrations' consents have it: Jane ticked the box on her first letter, not her second, which
+    // doesn't undo it, and unsubscribed from the calendar; Wendy didn't tick it; Sam did.
+    expect(before.permissions.length).toBeGreaterThan(0);
+    expect(after.permissions).toEqual([
+      {
+        topic: "events",
+        address: "jane@example.com",
+        send: "no",
+        reason: "unsubscribed",
+        at: new Date("2026-10-02T00:00:00Z"),
+        source: "luma-webhook",
+      },
+      {
+        topic: "newsletter",
+        address: "jane@example.com",
+        send: "yes",
+        reason: "asked",
+        at: new Date("2026-10-01T10:00:00Z"),
+        source: "email-your-mp",
+      },
+      {
+        topic: "newsletter",
+        address: "sam@example.com",
+        send: "yes",
+        reason: "asked",
+        at: new Date("2026-10-06T10:00:00Z"),
+        source: "email-your-mp",
+      },
+      {
+        topic: "newsletter",
+        address: "wendy@example.com",
+        send: "no",
+        reason: "declined",
+        at: new Date("2025-07-20T09:00:00Z"),
+        source: "web-form",
+      },
+    ]);
 
     // Sam's entry is linked the next time the matcher runs, and nobody else is linked twice.
     expect(await linkSupporters()).toEqual({ supportersAdded: 1, linked: 1 });

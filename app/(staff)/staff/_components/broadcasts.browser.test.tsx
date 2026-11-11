@@ -75,7 +75,7 @@ async function renderWriter(props: Partial<Parameters<typeof BroadcastWriter>[0]
 const button = (name: string | RegExp) => page.getByRole("button", { name });
 
 describe("BroadcastWriter's Consent", () => {
-  const topics = staffCopy.supporters.subscriptions.topics;
+  const consents = staffCopy.supporters.subscriptions.consents;
   const group = (name: string) => page.getByRole("radiogroup", { name });
   const radios = (name: string) =>
     [...group(name).element().querySelectorAll("button")].map((b) => [
@@ -92,8 +92,9 @@ describe("BroadcastWriter's Consent", () => {
       [copy.channels.text, false, true],
     ]);
     expect(radios(copy.facts.saidYes)).toEqual([
-      [topics.email["site-forms"], true, false],
-      [topics.email["luma-calendar"], false, false],
+      [consents["email:newsletter"], true, false],
+      [consents["email:events"], false, false],
+      [consents["email:volunteering"], false, false],
     ]);
   });
 
@@ -103,10 +104,9 @@ describe("BroadcastWriter's Consent", () => {
     await vi.waitFor(
       () =>
         expect(radios(copy.facts.saidYes).map(([name]) => name)).toEqual([
-          topics.phone["site-forms"],
-          topics.phone["luma-calendar"],
-          topics.phone.volunteering,
-          topics.phone["march-day"],
+          consents["text:newsletter"],
+          consents["text:events"],
+          consents["text:volunteering"],
         ]),
       WAIT,
     );
@@ -118,15 +118,15 @@ describe("BroadcastWriter's Consent", () => {
     const actions = await renderWriter();
     const refreshes = navigation.refreshes;
     // The one it has already: nothing to change.
-    await choose(copy.facts.saidYes, topics.email["site-forms"]);
-    await choose(copy.facts.saidYes, topics.email["luma-calendar"]);
-    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:luma-calendar:yes"), WAIT);
+    await choose(copy.facts.saidYes, consents["email:newsletter"]);
+    await choose(copy.facts.saidYes, consents["email:events"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:events:yes"), WAIT);
     expect(actions.changeConsent).toHaveBeenCalledTimes(1);
     await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
     // Refused, nothing to show again.
     actions.changeConsent.mockResolvedValue(false);
     const before = navigation.refreshes;
-    await choose(copy.facts.saidYes, topics.email["luma-calendar"]);
+    await choose(copy.facts.saidYes, consents["email:events"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledTimes(2), WAIT);
     expect(navigation.refreshes).toBe(before);
   });
@@ -156,8 +156,8 @@ describe("BroadcastWriter's Consent", () => {
     await vi.waitFor(() => expect(subject()).not.toBeNull(), WAIT);
     expect(page.getByText(copy.problems["no-consent"]).query()).toBeNull();
     await choose(copy.consentChannel, copy.channels.text);
-    await choose(copy.facts.saidYes, topics.phone["luma-calendar"]);
-    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "phone:luma-calendar:yes"), WAIT);
+    await choose(copy.facts.saidYes, consents["text:events"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "text:events:yes"), WAIT);
     expect(actions.create).not.toHaveBeenCalled();
   });
 
@@ -204,8 +204,8 @@ describe("BroadcastWriter's Consent", () => {
     await choose(copy.consentChannel, copy.channels.text);
     await vi.waitFor(() => expect(subject()).toBeNull(), WAIT);
     expect(radios(copy.consentChannel)[1]).toEqual([copy.channels.text, true, false]);
-    await choose(copy.facts.saidYes, topics.phone["luma-calendar"]);
-    await vi.waitFor(() => expect(actions.create).toHaveBeenCalledWith("phone:luma-calendar:yes"), WAIT);
+    await choose(copy.facts.saidYes, consents["text:events"]);
+    await vi.waitFor(() => expect(actions.create).toHaveBeenCalledWith("text:events:yes"), WAIT);
     expect(actions.save).not.toHaveBeenCalled();
   });
 });
@@ -260,7 +260,7 @@ describe("BroadcastWriter, by email", () => {
     await renderWriter();
     await page.getByRole("link", { name: staffCopy.mailingPages.changeWho }).click();
     await vi.waitFor(() =>
-      expect(leavePage).toHaveBeenCalledWith("/staff/supporters?contact=email%3Asite-forms%3Ayes&near=LS1&broadcast=3"),
+      expect(leavePage).toHaveBeenCalledWith("/staff/supporters?contact=email%3Anewsletter%3Ayes&near=LS1&broadcast=3"),
     );
   });
 
@@ -679,13 +679,13 @@ describe("ChatBubble", () => {
 });
 
 describe("the supporters list", () => {
-  const yes = supportersSearch({ contact: "email:site-forms:yes", near: "LS1" });
+  const yes = supportersSearch({ contact: "email:newsletter:yes", near: "LS1" });
   const none = supportersSearch({ near: "LS1" });
 
   it("starts a broadcast to those found with a Consent filter answered yes, keeping who they are", async () => {
     await render(<BroadcastSupporters search={yes} total={430} action={nothing} />);
     await expect.element(button(copy.broadcastButton(430))).toBeVisible();
-    expect(document.querySelector<HTMLInputElement>('input[name="contact"]')!.value).toBe("email:site-forms:yes");
+    expect(document.querySelector<HTMLInputElement>('input[name="contact"]')!.value).toBe("email:newsletter:yes");
     expect(document.querySelector<HTMLInputElement>('input[name="near"]')!.value).toBe("LS1");
   });
 
@@ -703,7 +703,7 @@ describe("the supporters list", () => {
       id: 3,
       title: "Events",
       channel: "email" as const,
-      topic: "site-forms" as const,
+      topic: "newsletter" as const,
       blank: false,
     };
     await render(
@@ -719,7 +719,7 @@ describe("the supporters list", () => {
       id: 3,
       title: "Events",
       channel: "email" as const,
-      topic: "site-forms" as const,
+      topic: "newsletter" as const,
       blank: false,
     };
 
@@ -944,21 +944,21 @@ describe("BroadcastFor", () => {
   });
 
   it("says what they said yes to apart, and the other filters as pills, or everyone who did", async () => {
-    const supporters = staffCopy.supporters.subscriptions.topics;
+    const supporters = staffCopy.supporters.subscriptions.consents;
     const view = await render(
       <>
-        <BroadcastContact params={{ contact: "phone:luma-calendar:yes" }} />
-        <BroadcastContact params={{ contact: "email:luma-calendar:yes" }} />
-        <BroadcastWho params={{ contact: "email:site-forms:yes", near: "LS1" }} choices={exampleSupporterChoices} />
+        <BroadcastContact params={{ contact: "text:events:yes" }} />
+        <BroadcastContact params={{ contact: "email:events:yes" }} />
+        <BroadcastWho params={{ contact: "email:newsletter:yes", near: "LS1" }} choices={exampleSupporterChoices} />
       </>,
     );
-    await expect.element(page.getByText(supporters.phone["luma-calendar"])).toBeVisible();
-    await expect.element(page.getByText(supporters.email["luma-calendar"])).toBeVisible();
+    await expect.element(page.getByText(supporters["text:events"])).toBeVisible();
+    await expect.element(page.getByText(supporters["email:events"])).toBeVisible();
     const pills = page.getByRole("list", { name: staffCopy.mailingPages.whoLabel }).getByRole("listitem");
     await expect.element(pills.first()).toBeVisible();
     expect(pills.all().map((pill) => pill.element().textContent)).toHaveLength(1);
     await view.unmount();
-    await render(<BroadcastWho params={{ contact: "phone:luma-calendar:yes" }} choices={exampleSupporterChoices} />);
+    await render(<BroadcastWho params={{ contact: "text:events:yes" }} choices={exampleSupporterChoices} />);
     await expect.element(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
   });
 });

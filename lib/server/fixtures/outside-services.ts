@@ -20,6 +20,7 @@ import airtablePoliticians from "./airtable-politicians.json";
 import airtableEmails from "./airtable-emails.json";
 import airtableWebForm from "./airtable-web-form.json";
 import airtableMembers from "./airtable-members.json";
+import civicrmContacts from "./civicrm-contacts.json";
 import parliamentMembers from "./parliament-members.json";
 import controlaiLetter from "./controlai-letter.json";
 import stripeCheckoutSessions from "./stripe-checkout-sessions.json";
@@ -182,6 +183,17 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
   }
   if (hostname === "public-api.luma.com" && pathname === "/v1/calendars/contacts/list") {
     return json(pageOf(lumaContacts.entries, searchParams.get("pagination_cursor"), 2));
+  }
+  if (hostname === "crm.pauseai.info" && pathname === "/civicrm/ajax/api4/PauseaiChapterContact/get") {
+    // The UK chapter contacts staff-data.sql holds, and Erin's, erased there: a page after a contact ID, or those
+    // with some addresses.
+    const params = JSON.parse(
+      (init?.method === "POST" ? new URLSearchParams(String(init.body)) : searchParams).get("params") ?? "{}",
+    ) as { limit?: number; after_contact_id?: number; email?: string[] };
+    const values = civicrmContacts.values.filter((contact) =>
+      params.email ? params.email.includes(contact.email) : contact.contact_id > (params.after_contact_id ?? 0),
+    );
+    return json({ values: values.slice(0, params.limit ?? values.length) });
   }
   if (hostname.endsWith("airtable.com") && pathname.endsWith("/tblL1icZBhTV1gQ9o")) {
     // The global members' table: the members staff-data.sql holds, as of

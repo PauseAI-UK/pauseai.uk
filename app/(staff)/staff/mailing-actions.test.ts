@@ -234,7 +234,7 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
 
   it("turns away a message to supporters, whose own actions ask for the permission", async () => {
     requestCookies.set("staff_session", await createSession(JO));
-    const id = (await createBroadcastDraft(JO, { contact: "email:site-forms:yes" }))!;
+    const id = (await createBroadcastDraft(JO, { contact: "email:newsletter:yes" }))!;
     await expect(saveMailing(id, 1, { subject: "Mine" })).rejects.toThrow();
     expect((await getWrittenBroadcast(id))!.subject).toBe("");
   });

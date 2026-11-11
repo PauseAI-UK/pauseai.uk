@@ -93,11 +93,14 @@ describe("SupporterDetails", () => {
     const subscriptions = page.getByRole("region", { name: copy.detail.listsTitle });
     await expect
       .element(
-        subscriptions.getByText(copy.detail.permissions.reasons["luma-calendar"].unsubscribed("12 Oct 2026"), {
-          exact: false,
-        }),
+        subscriptions.getByText(
+          copy.detail.permissions.reasons.unsubscribed("12 Oct 2026", copy.detail.permissions.sources.luma),
+          {
+            exact: false,
+          },
+        ),
       )
-      .toHaveLength(1);
+      .toHaveLength(2);
     await expect.element(page.getByText("1 Mar 2026 – 12 Oct 2026", { exact: true })).toBeVisible();
     // The history, folded until opened: what, linked, with a status only when it isn't approved.
     const history = page.getByRole("list", { name: copy.detail.activityTitle });
@@ -117,7 +120,7 @@ describe("SupporterDetails", () => {
       `${copy.detail.kinds.letter} Polly Placeholder ${copy.detail.about} ${campaigns[0].title} · ${staffCopy.letters.status.sent}`,
     );
 
-    await expect.element(history.getByText(copy.lists["luma-calendar"], { exact: false })).toBeVisible();
+    await expect.element(history.getByText(copy.lists["events"], { exact: false })).toBeVisible();
     await expect.element(history.getByText(copy.detail.kinds["luma-contact"], { exact: false })).toBeVisible();
 
     // A letter for a campaign nobody runs any more, with no page to link: its name and status as stored.
@@ -507,7 +510,7 @@ describe("SupporterDetails, a member", () => {
   const copy = staffCopy.supporters;
   const joined = exampleMemberDetails.activity[0];
 
-  it("says their city, whether we'd email them about each topic, and how they joined in the history", async () => {
+  it("says their city, whether we'd contact them about each topic, and how they joined in the history", async () => {
     await render(<SupporterDetails supporter={exampleMemberDetails} />);
     openHistory();
     const held = [...document.getElementById("everything")!.closest("details")!.querySelectorAll("tbody tr")].map(
@@ -516,7 +519,12 @@ describe("SupporterDetails, a member", () => {
     expect(held).toContainEqual(["11 Oct 2026", copy.detail.city, "Cardiff", copy.sources.member]);
     await expect
       .element(
-        page.getByText(copy.detail.permissions.reasons["pauseai-updates"].asked("11 Oct 2026"), { exact: false }),
+        page.getByText(
+          copy.detail.permissions.reasons.subscribed("10 Nov 2026", copy.detail.permissions.sources.civicrm),
+          {
+            exact: false,
+          },
+        ),
       )
       .toBeVisible();
     const history = page.getByRole("list", { name: copy.detail.activityTitle });

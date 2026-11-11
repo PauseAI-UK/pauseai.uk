@@ -49,88 +49,166 @@ COMMENT ON EXTENSION unaccent IS 'text search dictionary that removes accents';
 -- Name: contact_permission(text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.contact_permission(for_topic text, for_channel text, for_address text) RETURNS TABLE(send text, reason text, at timestamp with time zone, source text)
+CREATE FUNCTION public.contact_permission(for_topic text, for_way text, for_address text) RETURNS TABLE(send text, reason text, at timestamp with time zone, source text)
     LANGUAGE sql STABLE
     AS $$
+WITH
+  -- The members with the address, or who gave the number.
+  theirs AS (
+    SELECT m.* FROM members m WHERE for_way = 'email' AND m.email = for_address
+    UNION ALL
+    SELECT m.* FROM members m WHERE for_way <> 'email' AND phone_number(m.phone) = for_address
+  ),
+  -- The CiviCRM contacts of the address, or of the members who gave the number.
+  civi AS (
+    SELECT c.* FROM civicrm_contacts c WHERE for_way = 'email' AND c.email = for_address
+    UNION ALL
+    SELECT c.* FROM civicrm_contacts c WHERE for_way <> 'email' AND c.airtable_id IN (SELECT id FROM theirs)
+  ),
+  -- Each of those members: whether CiviCRM has ever returned them, and when
+  -- every contact of theirs went, if all have.
+  their_members AS (
+    SELECT m.*,
+      NOT EXISTS (SELECT 1 FROM civicrm_contacts c WHERE c.airtable_id = m.id OR c.email = m.email) AS never_returned,
+      (SELECT max(c.gone_at) FROM civicrm_contacts c WHERE c.airtable_id = m.id
+       HAVING bool_and(c.gone_at IS NOT NULL)) AS gone_at
+    FROM theirs m
+  ),
+  -- Those whose records may still be used: shared by Airtable, and returned
+  -- by CiviCRM's latest pull, or never returned at all.
+  members_kept AS (
+    SELECT m.* FROM their_members m WHERE m.removed_at IS NULL AND m.gone_at IS NULL
+  ),
+  stops AS (
+    SELECT 1 AS rank, 'blocked' AS reason, p.at, p.kind AS source
+    FROM email_blocks b JOIN email_problems p ON p.id = b.problem_id
+    WHERE for_way = 'email' AND b.address = for_address
+    UNION ALL
+    SELECT 2, 'do-not-email', min(c.do_not_email_since), 'civicrm' FROM civi c
+    WHERE for_way = 'email' AND c.do_not_email HAVING count(*) > 0
+    UNION ALL
+    SELECT 3, 'no-bulk-email', min(c.no_bulk_email_since), 'civicrm' FROM civi c
+    WHERE for_way = 'email' AND c.no_bulk_email HAVING count(*) > 0
+    UNION ALL
+    SELECT 2, 'do-not-sms', min(c.do_not_sms_since), 'civicrm' FROM civi c
+    WHERE for_way = 'text' AND c.do_not_sms HAVING count(*) > 0
+    UNION ALL
+    SELECT 2, 'do-not-phone', min(c.do_not_phone_since), 'civicrm' FROM civi c
+    WHERE for_way = 'call' AND c.do_not_phone HAVING count(*) > 0
+  ),
+  said AS (
+    -- An opt-out in force.
+    SELECT 'no' AS send, 'unsubscribed' AS reason, o.unsubscribed_at AS at, o.source
+    FROM opt_outs o
+    WHERE o.way = for_way AND o.address = for_address AND o.list = for_topic AND o.resubscribed_at IS NULL
+    UNION ALL
+    -- A ticked box on one of our forms, or a paper sign-up.
+    SELECT 'yes', CASE WHEN f.form = 'paper-signup' THEN 'signed-up' ELSE 'asked' END, f.created_at, f.form
+    FROM form_entries f
+    WHERE for_topic = 'newsletter' AND f.contact_consent
+      AND ((for_way = 'email' AND lower(trim(f.email)) = for_address)
+        OR (for_way = 'text' AND phone_number(f.phone) = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
+    UNION ALL
+    -- On a CiviCRM list, while a pull returns the contact.
+    SELECT 'yes', 'subscribed', c.since, 'civicrm'
+    FROM (SELECT min(CASE WHEN for_topic = 'newsletter' THEN c.newsletter_since ELSE c.volunteer_updates_since END) AS since
+          FROM civi c
+          WHERE c.gone_at IS NULL AND CASE WHEN for_topic = 'newsletter' THEN c.newsletter ELSE c.volunteer_updates END = 'subscribed') c
+    WHERE for_way = 'email' AND for_topic IN ('newsletter', 'volunteering') AND c.since IS NOT NULL
+    UNION ALL
+    -- "Keep me informed", for a member CiviCRM has never returned, ticked
+    -- once it was a free choice.
+    SELECT 'yes', 'asked', m.created_at, 'member'
+    FROM members_kept m
+    WHERE for_way = 'email' AND for_topic = 'newsletter' AND m.email = for_address AND m.keep_informed
+      AND m.never_returned AND m.created_at >= '2026-06-30T00:00:00Z'
+    UNION ALL
+    -- Following the Luma calendar.
+    SELECT 'yes', 'following', f.since, 'luma'
+    FROM (SELECT min(l.contact_since) AS since FROM luma_people l WHERE l.email = for_address) f
+    WHERE for_way = 'email' AND for_topic = 'events' AND f.since IS NOT NULL
+    UNION ALL
+    -- A number given at a Luma registration has the answer of the account
+    -- that gave it: of several, one that says yes, else the newest.
+    SELECT a.send, a.reason, a.at, 'luma'
+    FROM (SELECT
+            CASE WHEN o.id IS NULL THEN 'yes' ELSE 'no' END AS send,
+            CASE WHEN o.id IS NULL THEN 'following' ELSE 'unsubscribed' END AS reason,
+            coalesce(o.unsubscribed_at, l.contact_since) AS at
+          FROM luma_people l
+            LEFT JOIN opt_outs o ON o.way = 'email' AND o.list = 'events' AND o.address = l.email
+              AND o.resubscribed_at IS NULL
+          WHERE l.contact_since IS NOT NULL
+            AND l.user_id IN (SELECT g.user_id FROM luma_guests g WHERE phone_number(g.phone) = for_address)
+          ORDER BY o.id IS NULL DESC, coalesce(o.unsubscribed_at, l.contact_since) DESC
+          LIMIT 1) a
+    WHERE for_way = 'text' AND for_topic = 'events'
+    UNION ALL
+    -- A number for text updates on a day still to end.
+    SELECT 'yes', 'gave-number', f.created_at, f.form
+    FROM form_entries f JOIN day_texts d ON d.form = f.form
+    WHERE for_way = 'text' AND for_topic = 'events' AND phone_number(f.phone) = for_address AND now() < d.ends_at
+    UNION ALL
+    -- A member who chose to volunteer gave the number.
+    SELECT 'yes', 'volunteered', m.created_at, 'member'
+    FROM members_kept m
+    WHERE for_way IN ('text', 'call') AND for_topic = 'volunteering' AND phone_number(m.phone) = for_address
+      AND (m.intent = 'Volunteer' OR (m.intent IS NULL AND m.created_at < '2026-06-30T00:00:00Z'))
+  ),
+  nothing AS (
+    SELECT 'declined' AS reason, f.created_at AS at, f.form AS source
+    FROM form_entries f
+    WHERE for_topic = 'newsletter' AND NOT f.contact_consent
+      AND ((for_way = 'email' AND lower(trim(f.email)) = for_address)
+        OR (for_way = 'text' AND phone_number(f.phone) = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
+    UNION ALL
+    SELECT CASE WHEN m.created_at < '2026-06-30T00:00:00Z' THEN 'not-opted-in' ELSE 'declined' END, m.created_at,
+      'member'
+    FROM members_kept m
+    WHERE for_way = 'email' AND for_topic = 'newsletter' AND m.email = for_address AND m.never_returned
+      AND (NOT m.keep_informed OR m.created_at < '2026-06-30T00:00:00Z')
+    UNION ALL
+    SELECT 'not-volunteer', m.created_at, 'member'
+    FROM members_kept m
+    WHERE for_way IN ('text', 'call') AND for_topic = 'volunteering' AND phone_number(m.phone) = for_address
+      AND NOT (m.intent = 'Volunteer' OR (m.intent IS NULL AND m.created_at < '2026-06-30T00:00:00Z'))
+    UNION ALL
+    SELECT 'not-opted-in', c.newsletter_since, 'civicrm'
+    FROM civi c
+    WHERE for_way = 'email' AND for_topic = 'newsletter' AND c.gone_at IS NULL AND c.newsletter = 'not_opted_in'
+    UNION ALL
+    SELECT 'left', coalesce(m.removed_at, m.gone_at), CASE WHEN m.removed_at IS NULL THEN 'civicrm' ELSE 'member' END
+    FROM their_members m
+    WHERE (m.removed_at IS NOT NULL OR m.gone_at IS NOT NULL)
+      AND ((for_way = 'email' AND for_topic = 'newsletter' AND m.email = for_address)
+        OR (for_way IN ('text', 'call') AND for_topic = 'volunteering' AND phone_number(m.phone) = for_address))
+    UNION ALL
+    SELECT 'left', c.gone_at, 'civicrm'
+    FROM civi c
+    WHERE for_way = 'email' AND for_topic IN ('newsletter', 'volunteering') AND c.gone_at IS NOT NULL
+      AND CASE WHEN for_topic = 'newsletter' THEN c.newsletter ELSE c.volunteer_updates END <> 'not_on_list'
+    UNION ALL
+    SELECT 'not-following', NULL, 'luma'
+    FROM luma_people l
+    WHERE for_way = 'email' AND for_topic = 'events' AND l.email = for_address
+    UNION ALL
+    SELECT 'not-following', NULL, 'luma'
+    FROM luma_guests g
+    WHERE for_way = 'text' AND for_topic = 'events' AND phone_number(g.phone) = for_address
+    UNION ALL
+    SELECT 'ended', d.ends_at, f.form
+    FROM form_entries f JOIN day_texts d ON d.form = f.form
+    WHERE for_way = 'text' AND for_topic = 'events' AND phone_number(f.phone) = for_address AND now() >= d.ends_at
+  )
 SELECT r.send, r.reason, r.at, r.source FROM (
-  -- A blocked address overrides everything.
-  SELECT 1, 'no', 'blocked', p.at, p.kind
-  FROM email_blocks b JOIN email_problems p ON p.id = b.problem_id
-  WHERE for_channel = 'email' AND b.address = for_address
+  (SELECT 1 AS tier, s.rank, 'no' AS send, s.reason, s.at, s.source FROM stops s ORDER BY s.rank LIMIT 1)
   UNION ALL
-  -- Then an opt-out in force.
-  SELECT 2, 'no', 'unsubscribed', o.unsubscribed_at, o.source
-  FROM opt_outs o
-  WHERE o.channel = for_channel AND o.address = for_address AND o.list = for_topic AND o.resubscribed_at IS NULL
+  (SELECT 2, 0, s.send, s.reason, s.at, s.source FROM said s ORDER BY s.at DESC, s.send = 'no' DESC LIMIT 1)
   UNION ALL
-  -- A contact of the calendar.
-  SELECT 3, 'yes', 'following', f.since, 'luma'
-  FROM (SELECT min(l.contact_since) AS since FROM luma_people l WHERE l.email = for_address) f
-  WHERE for_channel = 'email' AND for_topic = 'luma-calendar' AND f.since IS NOT NULL
-  UNION ALL
-  SELECT 4, 'no', 'not-following', NULL, NULL WHERE for_channel = 'email' AND for_topic = 'luma-calendar'
-  UNION ALL
-  -- The newest member record, one still shared before one removed. Every
-  -- yes is unsure: the updates are sent from CiviCRM, whose unsubscribes
-  -- we don't read.
-  SELECT 3,
-    CASE WHEN m.removed_at IS NOT NULL THEN 'no'
-      WHEN m.created_at < '2026-06-30T00:00:00Z' OR m.keep_informed THEN 'unsure' ELSE 'no' END,
-    CASE WHEN m.removed_at IS NOT NULL THEN 'removed'
-      WHEN m.created_at < '2026-06-30T00:00:00Z' THEN 'joined'
-      WHEN m.keep_informed THEN 'asked' ELSE 'declined' END,
-    m.created_at, 'member'
-  FROM (SELECT * FROM members m WHERE m.email = for_address
-        ORDER BY m.removed_at IS NOT NULL, m.created_at DESC, m.id LIMIT 1) m
-  WHERE for_channel = 'email' AND for_topic = 'pauseai-updates'
-  UNION ALL
-  -- The box on the newest form entry.
-  SELECT 3, CASE WHEN f.contact_consent THEN 'yes' ELSE 'no' END,
-    CASE WHEN f.contact_consent THEN 'asked' ELSE 'declined' END, f.created_at, f.form
-  FROM (SELECT * FROM form_entries f WHERE for_channel = 'email' AND lower(trim(f.email)) = for_address
-        UNION ALL
-        SELECT * FROM form_entries f WHERE for_channel = 'phone' AND phone_number(f.phone) = for_address
-        ORDER BY created_at DESC, id DESC LIMIT 1) f
-  WHERE for_topic = 'site-forms'
-  UNION ALL
-  -- The answer of the Luma account that gave the number.
-  SELECT 3, a.send, a.reason, a.at, 'luma'
-  FROM (SELECT
-          CASE WHEN o.id IS NULL AND l.contact_since IS NOT NULL THEN 'yes' ELSE 'no' END AS send,
-          CASE WHEN o.id IS NOT NULL THEN 'unsubscribed'
-            WHEN l.contact_since IS NOT NULL THEN 'following' ELSE 'not-following' END AS reason,
-          coalesce(o.unsubscribed_at, l.contact_since) AS at
-        FROM luma_people l
-          LEFT JOIN opt_outs o ON o.channel = 'email' AND o.list = 'luma-calendar' AND o.address = l.email
-            AND o.resubscribed_at IS NULL
-        WHERE l.user_id IN (SELECT g.user_id FROM luma_guests g WHERE phone_number(g.phone) = for_address)
-        ORDER BY o.id IS NULL AND l.contact_since IS NOT NULL DESC, coalesce(o.unsubscribed_at, l.contact_since) DESC NULLS LAST
-        LIMIT 1) a
-  WHERE for_channel = 'phone' AND for_topic = 'luma-calendar'
-  UNION ALL
-  -- The newest member record that gave the number, one still shared first.
-  -- No intent before 30 June 2026 is the Tally form, which didn't ask one,
-  -- taken as a volunteer's; no intent since is unsure.
-  SELECT 3,
-    CASE WHEN m.removed_at IS NOT NULL THEN 'no'
-      WHEN m.intent = 'Volunteer' OR (m.intent IS NULL AND m.created_at < '2026-06-30T00:00:00Z') THEN 'yes'
-      ELSE 'unsure' END,
-    CASE WHEN m.removed_at IS NOT NULL THEN 'removed'
-      WHEN m.intent = 'Volunteer' OR (m.intent IS NULL AND m.created_at < '2026-06-30T00:00:00Z') THEN 'volunteered'
-      ELSE 'gave-number' END,
-    m.created_at, 'member'
-  FROM (SELECT * FROM members m WHERE phone_number(m.phone) = for_address
-        ORDER BY m.removed_at IS NOT NULL, m.created_at DESC, m.id LIMIT 1) m
-  WHERE for_channel = 'phone' AND for_topic = 'volunteering'
-  UNION ALL
-  -- The newest entry on a form with texts on the day, until the day ends.
-  SELECT 3, CASE WHEN now() < f.ends_at THEN 'yes' ELSE 'no' END,
-    CASE WHEN now() < f.ends_at THEN 'gave-number' ELSE 'ended' END, f.created_at, f.form
-  FROM (SELECT f.*, d.ends_at FROM form_entries f JOIN day_texts d ON d.form = f.form
-        WHERE phone_number(f.phone) = for_address ORDER BY f.created_at DESC, f.id DESC LIMIT 1) f
-  WHERE for_channel = 'phone' AND for_topic = 'march-day'
-) r (rank, send, reason, at, source)
-ORDER BY r.rank LIMIT 1
+  (SELECT 3, 0, 'no', n.reason, n.at, n.source FROM nothing n ORDER BY n.at DESC NULLS LAST LIMIT 1)
+) r
+ORDER BY r.tier, r.rank
+LIMIT 1
 $$;
 
 --
@@ -212,14 +290,44 @@ CREATE FUNCTION public.phone_usable(number text) RETURNS boolean
     LANGUAGE sql STABLE
     AS $$
 SELECT EXISTS (
-  SELECT 1 FROM unnest(ARRAY['luma-calendar', 'site-forms', 'volunteering', 'march-day']) t (topic)
-    CROSS JOIN LATERAL contact_permission(t.topic, 'phone', number) d
-  WHERE d.send <> 'no')
+  SELECT 1 FROM unnest(ARRAY['newsletter', 'events', 'volunteering']) t (topic)
+    CROSS JOIN unnest(ARRAY['text', 'call']) w (way)
+    CROSS JOIN LATERAL contact_permission(t.topic, w.way, number) d
+  WHERE d.send = 'yes')
 $$;
 
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: civicrm_contacts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.civicrm_contacts (
+    contact_id bigint NOT NULL,
+    airtable_id text,
+    email text NOT NULL,
+    on_hold boolean NOT NULL,
+    on_hold_since timestamp with time zone NOT NULL,
+    no_bulk_email boolean NOT NULL,
+    no_bulk_email_since timestamp with time zone NOT NULL,
+    do_not_email boolean NOT NULL,
+    do_not_email_since timestamp with time zone NOT NULL,
+    do_not_phone boolean NOT NULL,
+    do_not_phone_since timestamp with time zone NOT NULL,
+    do_not_sms boolean NOT NULL,
+    do_not_sms_since timestamp with time zone NOT NULL,
+    newsletter text NOT NULL,
+    newsletter_since timestamp with time zone NOT NULL,
+    volunteer_updates text NOT NULL,
+    volunteer_updates_since timestamp with time zone NOT NULL,
+    first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    gone_at timestamp with time zone,
+    CONSTRAINT civicrm_contacts_email_check CHECK ((email = lower(email))),
+    CONSTRAINT civicrm_contacts_newsletter_check CHECK ((newsletter = ANY (ARRAY['subscribed'::text, 'unsubscribed'::text, 'not_opted_in'::text, 'not_on_list'::text]))),
+    CONSTRAINT civicrm_contacts_volunteer_updates_check CHECK ((volunteer_updates = ANY (ARRAY['subscribed'::text, 'unsubscribed'::text, 'not_opted_in'::text, 'not_on_list'::text])))
+);
 
 --
 -- Name: form_entries; Type: TABLE; Schema: public; Owner: -
@@ -440,11 +548,11 @@ CREATE TABLE public.opt_outs (
     source_ref text NOT NULL,
     unsubscribed_at timestamp with time zone NOT NULL,
     resubscribed_at timestamp with time zone,
-    channel text DEFAULT 'email'::text NOT NULL,
+    way text DEFAULT 'email'::text CONSTRAINT opt_outs_channel_not_null NOT NULL,
     CONSTRAINT opt_outs_address_check CHECK ((address = lower(address))),
-    CONSTRAINT opt_outs_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'phone'::text]))),
-    CONSTRAINT opt_outs_list_check CHECK ((list = ANY (ARRAY['luma-calendar'::text, 'pauseai-updates'::text]))),
-    CONSTRAINT opt_outs_source_check CHECK ((source = ANY (ARRAY['luma-webhook'::text, 'luma-contacts'::text])))
+    CONSTRAINT opt_outs_list_check CHECK ((list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text]))),
+    CONSTRAINT opt_outs_source_check CHECK ((source = ANY (ARRAY['luma-webhook'::text, 'luma-contacts'::text, 'civicrm'::text]))),
+    CONSTRAINT opt_outs_way_check CHECK ((way = ANY (ARRAY['email'::text, 'text'::text, 'call'::text])))
 );
 
 --
@@ -496,6 +604,20 @@ CREATE TABLE public.signup_uploads (
     CONSTRAINT signup_uploads_imported_check CHECK ((imported >= 0)),
     CONSTRAINT signup_uploads_note_check CHECK ((btrim(note) <> ''::text))
 );
+
+--
+-- Name: supporter_activity_civicrm; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.supporter_activity_civicrm AS
+ SELECT contact_id AS source_id,
+    first_seen_at AS at,
+    'civicrm-contact'::text AS kind,
+    NULL::text AS title,
+    NULL::text AS detail,
+    NULL::text AS href,
+    NULL::text AS status
+   FROM public.civicrm_contacts c;
 
 --
 -- Name: supporter_activity_form; Type: VIEW; Schema: public; Owner: -
@@ -567,7 +689,8 @@ CREATE TABLE public.supporter_links (
     linked_at timestamp with time zone DEFAULT now() NOT NULL,
     member_id text,
     form_entry_id bigint,
-    CONSTRAINT supporter_links_check CHECK ((num_nonnulls(luma_user_id, form_entry_id, member_id) = 1)),
+    civicrm_contact_id bigint,
+    CONSTRAINT supporter_links_check CHECK ((num_nonnulls(luma_user_id, form_entry_id, member_id, civicrm_contact_id) = 1)),
     CONSTRAINT supporter_links_matched_by_check CHECK ((matched_by = 'email'::text)),
     CONSTRAINT supporter_links_matched_value_check CHECK ((matched_value = lower(matched_value)))
 );
@@ -662,7 +785,18 @@ UNION ALL
     NULL::text AS status
    FROM ((public.luma_event_hosts h
      JOIN public.luma_events e ON ((e.id = h.event_id)))
-     JOIN public.supporter_links k ON ((k.luma_user_id = h.user_id)));
+     JOIN public.supporter_links k ON ((k.luma_user_id = h.user_id)))
+UNION ALL
+ SELECT k.supporter_id,
+    'civicrm'::text AS source,
+    a.at,
+    a.kind,
+    a.title,
+    a.detail,
+    a.href,
+    a.status
+   FROM (public.supporter_activity_civicrm a
+     JOIN public.supporter_links k ON ((k.civicrm_contact_id = a.source_id)));
 
 --
 -- Name: supporter_contact_form; Type: VIEW; Schema: public; Owner: -
@@ -747,6 +881,17 @@ UNION ALL
      JOIN public.supporter_links k ON ((k.member_id = c.source_id)));
 
 --
+-- Name: supporter_source_civicrm; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.supporter_source_civicrm AS
+ SELECT contact_id AS source_id,
+    email,
+    ''::text AS name,
+    first_seen_at AS seen_at
+   FROM public.civicrm_contacts c;
+
+--
 -- Name: supporter_source_form; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -809,7 +954,15 @@ UNION ALL
     s.name,
     s.seen_at
    FROM (public.supporter_source_member s
-     JOIN public.supporter_links k ON ((k.member_id = s.source_id)));
+     JOIN public.supporter_links k ON ((k.member_id = s.source_id)))
+UNION ALL
+ SELECT k.supporter_id,
+    'civicrm'::text AS source,
+    s.email,
+    s.name,
+    s.seen_at
+   FROM (public.supporter_source_civicrm s
+     JOIN public.supporter_links k ON ((k.civicrm_contact_id = s.source_id)));
 
 --
 -- Name: supporter_place; Type: VIEW; Schema: public; Owner: -
@@ -929,7 +1082,7 @@ CREATE VIEW public.supporters_summary AS
     ident.sources,
     (COALESCE(act.luma_contact, false) AND (NOT (EXISTS ( SELECT 1
            FROM public.opt_outs o
-          WHERE ((o.list = 'luma-calendar'::text) AND (o.resubscribed_at IS NULL) AND (o.address = ANY (ident.emails))))))) AS luma_contact,
+          WHERE ((o.list = 'events'::text) AND (o.way = 'email'::text) AND (o.resubscribed_at IS NULL) AND (o.address = ANY (ident.emails))))))) AS luma_contact,
     s.first_seen_at,
     act.last_active_at,
     COALESCE(act.events, 0) AS events,
@@ -1141,6 +1294,15 @@ CREATE TABLE public.campaigns (
 );
 
 --
+-- Name: civicrm_erased; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.civicrm_erased (
+    contact_id bigint NOT NULL,
+    erased_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
 -- Name: day_texts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1160,22 +1322,32 @@ CREATE VIEW public.email_permissions AS
     d.reason,
     d.at,
     d.source
-   FROM (( SELECT 'luma-calendar'::text AS topic,
-            luma_people.email AS address
-           FROM public.luma_people
+   FROM (( SELECT 'newsletter'::text AS topic,
+            lower(TRIM(BOTH FROM form_entries.email)) AS address
+           FROM public.form_entries
         UNION
-         SELECT 'pauseai-updates'::text,
+         SELECT 'newsletter'::text,
             members.email
            FROM public.members
         UNION
-         SELECT 'site-forms'::text,
-            lower(TRIM(BOTH FROM form_entries.email)) AS lower
-           FROM public.form_entries
+         SELECT 'newsletter'::text,
+            civicrm_contacts.email
+           FROM public.civicrm_contacts
+          WHERE (civicrm_contacts.newsletter <> 'not_on_list'::text)
+        UNION
+         SELECT 'events'::text,
+            luma_people.email
+           FROM public.luma_people
+        UNION
+         SELECT 'volunteering'::text,
+            civicrm_contacts.email
+           FROM public.civicrm_contacts
+          WHERE (civicrm_contacts.volunteer_updates <> 'not_on_list'::text)
         UNION
          SELECT opt_outs.list,
             opt_outs.address
            FROM public.opt_outs
-          WHERE ((opt_outs.channel = 'email'::text) AND (opt_outs.resubscribed_at IS NULL))) t
+          WHERE ((opt_outs.way = 'email'::text) AND (opt_outs.resubscribed_at IS NULL))) t
      CROSS JOIN LATERAL public.contact_permission(t.topic, 'email'::text, t.address) d(send, reason, at, source));
 
 --
@@ -1184,37 +1356,44 @@ CREATE VIEW public.email_permissions AS
 
 CREATE VIEW public.phone_permissions AS
  SELECT t.topic,
+    t.way,
     t.address,
     d.send,
     d.reason,
     d.at,
     d.source
-   FROM (( SELECT 'luma-calendar'::text AS topic,
-            public.phone_number(luma_guests.phone) AS address
+   FROM (( SELECT 'newsletter'::text AS topic,
+            'text'::text AS way,
+            public.phone_number(form_entries.phone) AS address
+           FROM public.form_entries
+          WHERE ((form_entries.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text])) AND (public.phone_number(form_entries.phone) IS NOT NULL))
+        UNION
+         SELECT 'events'::text,
+            'text'::text,
+            public.phone_number(luma_guests.phone) AS phone_number
            FROM public.luma_guests
           WHERE (public.phone_number(luma_guests.phone) IS NOT NULL)
         UNION
-         SELECT 'volunteering'::text,
-            public.phone_number(members.phone) AS phone_number
-           FROM public.members
-          WHERE (public.phone_number(members.phone) IS NOT NULL)
-        UNION
-         SELECT 'site-forms'::text,
-            public.phone_number(form_entries.phone) AS phone_number
-           FROM public.form_entries
-          WHERE (public.phone_number(form_entries.phone) IS NOT NULL)
-        UNION
-         SELECT 'march-day'::text,
+         SELECT 'events'::text,
+            'text'::text,
             public.phone_number(form_entries.phone) AS phone_number
            FROM public.form_entries
           WHERE ((form_entries.form IN ( SELECT day_texts.form
                    FROM public.day_texts)) AND (public.phone_number(form_entries.phone) IS NOT NULL))
         UNION
+         SELECT 'volunteering'::text,
+            w.way,
+            public.phone_number(m.phone) AS phone_number
+           FROM (public.members m
+             CROSS JOIN ( VALUES ('text'::text), ('call'::text)) w(way))
+          WHERE (public.phone_number(m.phone) IS NOT NULL)
+        UNION
          SELECT opt_outs.list,
+            opt_outs.way,
             opt_outs.address
            FROM public.opt_outs
-          WHERE ((opt_outs.channel = 'phone'::text) AND (opt_outs.resubscribed_at IS NULL))) t
-     CROSS JOIN LATERAL public.contact_permission(t.topic, 'phone'::text, t.address) d(send, reason, at, source));
+          WHERE ((opt_outs.way <> 'email'::text) AND (opt_outs.resubscribed_at IS NULL))) t
+     CROSS JOIN LATERAL public.contact_permission(t.topic, t.way, t.address) d(send, reason, at, source));
 
 --
 -- Name: contact_permissions; Type: VIEW; Schema: public; Owner: -
@@ -1222,6 +1401,7 @@ CREATE VIEW public.phone_permissions AS
 
 CREATE VIEW public.contact_permissions AS
  SELECT email_permissions.topic,
+    'email'::text AS way,
     'email'::text AS channel,
     email_permissions.address,
     email_permissions.send,
@@ -1231,6 +1411,7 @@ CREATE VIEW public.contact_permissions AS
    FROM public.email_permissions
 UNION ALL
  SELECT phone_permissions.topic,
+    phone_permissions.way,
     'phone'::text AS channel,
     phone_permissions.address,
     phone_permissions.send,
@@ -1244,7 +1425,7 @@ UNION ALL
 --
 
 CREATE VIEW public.contact_unsubscribes AS
- SELECT o.channel,
+ SELECT o.way,
     o.list AS topic,
     o.address,
     d.send,
@@ -1252,7 +1433,7 @@ CREATE VIEW public.contact_unsubscribes AS
     d.at,
     d.source
    FROM (public.opt_outs o
-     CROSS JOIN LATERAL public.contact_permission(o.list, o.channel, o.address) d(send, reason, at, source))
+     CROSS JOIN LATERAL public.contact_permission(o.list, o.way, o.address) d(send, reason, at, source))
   WHERE ((o.resubscribed_at IS NULL) AND (d.reason = 'unsubscribed'::text));
 
 --
@@ -1281,7 +1462,7 @@ CREATE TABLE public.email_problems (
     gmail_message_id text,
     CONSTRAINT email_problems_address_check CHECK ((address = lower(address))),
     CONSTRAINT email_problems_check CHECK (((kind <> 'complaint'::text) OR (NOT can_reset))),
-    CONSTRAINT email_problems_kind_check CHECK ((kind = ANY (ARRAY['hard'::text, 'soft'::text, 'complaint'::text])))
+    CONSTRAINT email_problems_kind_check CHECK ((kind = ANY (ARRAY['hard'::text, 'soft'::text, 'complaint'::text, 'hold'::text])))
 );
 
 --
@@ -1390,7 +1571,7 @@ CREATE TABLE public.import_runs (
     decided_at timestamp with time zone,
     problems jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT import_runs_check CHECK (((status = 'failed'::text) = (error IS NOT NULL))),
-    CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['sync-politicians'::text, 'check-mps'::text, 'import-controlai'::text, 'import-luma'::text, 'import-members'::text, 'sync-emails'::text, 'import-web-form-letters'::text, 'read-gmail'::text, 'import-old-letters'::text, 'send-mailings'::text, 'tidy-logs'::text]))),
+    CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['sync-politicians'::text, 'check-mps'::text, 'import-controlai'::text, 'import-luma'::text, 'import-members'::text, 'sync-emails'::text, 'import-web-form-letters'::text, 'read-gmail'::text, 'import-old-letters'::text, 'send-mailings'::text, 'tidy-logs'::text, 'import-civicrm'::text]))),
     CONSTRAINT import_runs_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unchanged'::text, 'held'::text, 'applied'::text, 'discarded'::text])))
 );
 
@@ -1632,7 +1813,7 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_sent_from_check CHECK ((sent_from = lower(sent_from))),
     CONSTRAINT mailings_state_check CHECK ((state = ANY (ARRAY['draft'::text, 'scheduled'::text, 'sending'::text, 'sent'::text, 'cancelled'::text]))),
     CONSTRAINT mailings_template_for_texts CHECK (((template_id IS NULL) OR (channel = 'text'::text))),
-    CONSTRAINT mailings_topic_check CHECK ((topic = ANY (ARRAY['luma-calendar'::text, 'pauseai-updates'::text, 'site-forms'::text, 'volunteering'::text, 'march-day'::text]))),
+    CONSTRAINT mailings_topic_check CHECK ((topic = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text]))),
     CONSTRAINT mailings_topic_for_supporters CHECK (((audience = 'supporters'::text) = (topic IS NOT NULL)))
 );
 
@@ -2205,6 +2386,20 @@ ALTER TABLE ONLY public.campaigns
     ADD CONSTRAINT campaigns_pkey PRIMARY KEY (slug);
 
 --
+-- Name: civicrm_contacts civicrm_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.civicrm_contacts
+    ADD CONSTRAINT civicrm_contacts_pkey PRIMARY KEY (contact_id);
+
+--
+-- Name: civicrm_erased civicrm_erased_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.civicrm_erased
+    ADD CONSTRAINT civicrm_erased_pkey PRIMARY KEY (contact_id);
+
+--
 -- Name: day_texts day_texts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2660,6 +2855,13 @@ ALTER TABLE ONLY public.staff_sessions
     ADD CONSTRAINT staff_sessions_pkey PRIMARY KEY (token_hash);
 
 --
+-- Name: supporter_links supporter_links_civicrm_contact_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_links
+    ADD CONSTRAINT supporter_links_civicrm_contact_id_key UNIQUE (civicrm_contact_id);
+
+--
 -- Name: supporter_links supporter_links_form_entry_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2756,6 +2958,18 @@ CREATE INDEX broadcast_message_events_message ON public.broadcast_message_events
 --
 
 CREATE INDEX broadcast_messages_supporter ON public.broadcast_messages USING btree (supporter_id);
+
+--
+-- Name: civicrm_contacts_airtable_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX civicrm_contacts_airtable_id ON public.civicrm_contacts USING btree (airtable_id);
+
+--
+-- Name: civicrm_contacts_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX civicrm_contacts_email ON public.civicrm_contacts USING btree (email);
 
 --
 -- Name: email_problems_address; Type: INDEX; Schema: public; Owner: -
@@ -3037,7 +3251,7 @@ CREATE INDEX one_off_threads_latest ON public.one_off_threads USING btree (lates
 -- Name: opt_outs_open; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX opt_outs_open ON public.opt_outs USING btree (channel, address, list) WHERE (resubscribed_at IS NULL);
+CREATE UNIQUE INDEX opt_outs_open ON public.opt_outs USING btree (way, address, list) WHERE (resubscribed_at IS NULL);
 
 --
 -- Name: politician_domains_person; Type: INDEX; Schema: public; Owner: -
@@ -3418,6 +3632,13 @@ ALTER TABLE ONLY public.signup_uploads
 
 ALTER TABLE ONLY public.staff_nav_seen
     ADD CONSTRAINT staff_nav_seen_email_fkey FOREIGN KEY (email) REFERENCES public.staff_accounts(email) ON DELETE CASCADE;
+
+--
+-- Name: supporter_links supporter_links_civicrm_contact_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_links
+    ADD CONSTRAINT supporter_links_civicrm_contact_id_fkey FOREIGN KEY (civicrm_contact_id) REFERENCES public.civicrm_contacts(contact_id) ON DELETE CASCADE;
 
 --
 -- Name: supporter_links supporter_links_form_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

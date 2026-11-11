@@ -1,6 +1,6 @@
 // Every word the staff interface (/staff) shows.
 
-import type { Channel } from "@/lib/contact-permissions";
+import type { Reason, Topic, Way } from "@/lib/contact-permissions";
 import { letterEditorCopy } from "@/lib/content/letter-editor";
 import type { ImportJob } from "@/lib/import-runs";
 import { count, plural } from "@/lib/content/plural";
@@ -224,7 +224,8 @@ export const staffCopy = {
           plural(n, "person registered for an event", "people registered for an event"),
         eventsHeld: (n: number) => plural(n, "event held", "events held"),
         supportersAdded: (n: number) => plural(n, "new supporter", "new supporters"),
-        unsubscribes: (n: number) => plural(n, "unsubscribe from Luma emails", "unsubscribes from Luma emails"),
+        // Supporters who stopped any consent: an unsubscribe, from Luma, CiviCRM or anywhere else.
+        unsubscribes: (n: number) => plural(n, "new opt-out", "new opt-outs"),
       } as Record<string, (n: number) => string>,
       // A count of nothing, instead of a 0.
       none: "No",
@@ -406,10 +407,10 @@ export const staffCopy = {
     total: (total: number) => count(total, "supporter", "supporters"),
     filters: {
       search: "Name, email or phone",
-      // The date filters: when they were first seen, last registered for an event, and unsubscribed from Luma's emails.
+      // The date filters: when they were first seen, last registered for an event, and opted out of any consent.
       first: "First seen",
       registered: "Registered for an event",
-      unsubscribed: "Unsubscribed from Luma",
+      unsubscribed: "Opted out",
       // Whether we have a phone number, or an email, for them.
       // The Near filter: a postcode or a town, and how far from it.
       near: "Near",
@@ -427,17 +428,14 @@ export const staffCopy = {
       campaign: "Campaign",
       wrote: { "": "Wrote", no: "Didn't write" } as Record<string, string>,
       // The other filters are named after their columns.
-      // The Consent filter: its topics under their channel's heading, each named short, a phone's with how we'd
-      // contact them after it; then in its chip's second half, its answer, as a supporter's page words it.
-      channels: { email: "Email", phone: "Phone" } as Record<Channel, string>,
+      // The Consent filter: its topics under their way's heading; then in its chip's second half, its answer, as a
+      // supporter's page words it.
+      ways: { email: "Email", text: "Text", call: "Call" } as Record<Way, string>,
       topics: {
-        "luma-calendar": "Luma",
-        "pauseai-updates": "PauseAI global",
-        "site-forms": "PauseAI UK",
+        newsletter: "Newsletter",
+        events: "Events only",
         volunteering: "Volunteering",
-        "march-day": "March day",
-      } as Record<string, string>,
-      ways: { text: "texts", "call-or-text": "calls & texts" } as Record<string, string>,
+      } as Record<Topic, string>,
     },
     columns: {
       name: "Name",
@@ -466,23 +464,17 @@ export const staffCopy = {
       member: "Member",
       march: "March sign-up",
     },
-    // In the list, a lozenge per topic we'd contact them about, by channel.
+    // In the list, a lozenge per consent we'd contact them by, a topic by a way.
     subscriptions: {
-      topics: {
-        email: {
-          "luma-calendar": "Luma email",
-          "pauseai-updates": "PauseAI global email",
-          "site-forms": "PauseAI UK email",
-        },
-        phone: {
-          "luma-calendar": "Luma texts",
-          volunteering: "Volunteer calls & texts",
-          "site-forms": "PauseAI UK calls & texts",
-          "march-day": "March day texts",
-        },
-      } as Record<Channel, Record<string, string>>,
-      // A yes that an unsubscribe we can't see may have undone.
-      unsure: (topic: string) => `${topic} (?)`,
+      consents: {
+        "email:newsletter": "Newsletter email",
+        "text:newsletter": "Newsletter texts",
+        "email:events": "Events email",
+        "text:events": "Events texts",
+        "email:volunteering": "Volunteering email",
+        "text:volunteering": "Volunteering texts",
+        "call:volunteering": "Volunteering calls",
+      } as Record<string, string>,
     },
     sources: {
       luma: "Luma",
@@ -491,11 +483,14 @@ export const staffCopy = {
       "march-2026-11": "March sign-up",
       "paper-signup": "Paper sign-up",
       member: "Member",
+      civicrm: "CiviCRM",
     } as Record<string, string>,
-    lists: { "luma-calendar": "Luma calendar emails", "pauseai-updates": "PauseAI global updates" } as Record<
-      string,
-      string
-    >,
+    // In a supporter's history, what an opt-out was from.
+    lists: {
+      newsletter: "the newsletter",
+      events: "events emails",
+      volunteering: "volunteering emails",
+    } as Record<string, string>,
     // A supporter's page: one box of what we know, then the history.
     detail: {
       emails: "Email",
@@ -524,127 +519,88 @@ export const staffCopy = {
         point: "Point",
       },
       permissions: {
-        // By channel: each topic's name, and the answers. Unsure is a yes that an unsubscribe we can't see may have undone.
+        // Each topic's name, a row each.
         topics: {
-          email: {
-            "luma-calendar": "Luma calendar",
-            "pauseai-updates": "PauseAI global updates",
-            "site-forms": "PauseAI UK updates",
-          },
-          phone: {
-            "luma-calendar": "Luma calendar",
-            volunteering: "Volunteering",
-            "site-forms": "PauseAI UK updates",
-            "march-day": "March day updates",
-          },
-        } as Record<Channel, Record<string, string>>,
-        // By the ways the topic lets us contact them (TOPIC_WAYS), so the answer says the channel. Unsure is a
-        // yes an unsubscribe we can't see may have undone.
+          newsletter: "PauseAI UK newsletter",
+          events: "Events only",
+          volunteering: "Volunteering",
+        } as Record<Topic, string>,
+        // By the way, so the answer says how.
         answers: {
-          email: { yes: "Can email", no: "Can't email", unsure: "Not sure" },
-          text: { yes: "Can text", no: "Can't text", unsure: "Not sure" },
-          "call-or-text": { yes: "Can call or text", no: "Can't call or text", unsure: "Not sure" },
-        } as Record<string, Record<"yes" | "no" | "unsure", string>>,
+          email: { yes: "Can email", no: "Can't email" },
+          text: { yes: "Can text", no: "Can't text" },
+          call: { yes: "Can call", no: "Can't call" },
+        } as Record<Way, Record<"yes" | "no", string>>,
         // By the address or number, so a screen reader says what it is.
         email: "Email",
         phone: "Phone",
         why: "details",
-        // The short reason under the answer, by topic and reason, with when.
+        // The short reason under the answer, with when, where it came from in the words of `sources` below, and its
+        // topic. CiviCRM gives no dates, so its are when we saw it, which is "by" then.
         reasons: {
-          "luma-calendar": {
-            following: (when: string) => `A contact of the calendar since ${when}`,
-            unsubscribed: (when: string) => `Unsubscribed ${when}, via Luma`,
-            "not-following": () => "Not a contact of the calendar",
-          },
-          "pauseai-updates": {
-            asked: (when: string) => `Asked for them when joining, ${when}`,
-            joined: (when: string) => `On the list since joining, ${when}`,
-            declined: (when: string) => `Left “Keep me informed” unticked when joining, ${when}`,
-            unsubscribed: (when: string) => `Unsubscribed ${when}`,
-            removed: () => "No longer shared with us",
-          },
-          // `form` is the form the box was on, in the words of `forms` below.
-          "site-forms": {
-            asked: (when: string, form?: string) => `Agreed on ${form}, ${when}`,
-            declined: (when: string, form?: string) => `Didn't agree on ${form}, ${when}`,
-          },
-          volunteering: {
-            volunteered: (when: string) => `Gave it when joining as a volunteer, ${when}`,
-            "gave-number": (when: string) => `Gave it when joining, not as a volunteer, ${when}`,
-            removed: () => "No longer shared with us",
-          },
-          "march-day": {
-            "gave-number": (when: string, form?: string) => `Gave it on ${form} for texts on the day, ${when}`,
-            ended: (_when: string, form?: string) => `Gave it on ${form} for texts on the day, which is over`,
-          },
-        } as Record<string, Record<string, (when: string, form?: string) => string>>,
-        // The form a box was on, by form_entries.form; one not here is "their newest form".
-        forms: {
+          asked: (when: string, source: string) => `Ticked the box on ${source}, ${when}`,
+          "signed-up": (when: string) => `Signed up on a paper form, ${when}`,
+          subscribed: (when: string, _source: string, topic?: Topic) =>
+            topic === "volunteering"
+              ? `On volunteer list in CiviCRM, ${when}`
+              : `On newsletter list in CiviCRM, ${when}`,
+          following: (when: string) => `Follows the Luma calendar, since ${when}`,
+          "gave-number": (when: string, source: string) => `Gave it on ${source} for texts on the day, ${when}`,
+          volunteered: (when: string) => `Gave it when joining as a volunteer, ${when}`,
+          blocked: () => "",
+          "do-not-email": (when: string) => `“Do not email” in CiviCRM, ${when}`,
+          "no-bulk-email": (when: string) => `“No bulk emails” in CiviCRM, ${when}`,
+          "do-not-sms": (when: string) => `“Do not SMS” is set in CiviCRM, by ${when}`,
+          "do-not-phone": (when: string) => `“Do not phone” is set in CiviCRM, by ${when}`,
+          unsubscribed: (when: string, source: string) => `Unsubscribed via ${source}, ${when}`,
+          declined: (when: string, source: string) => `Left the box unticked on ${source}, ${when}`,
+          "not-volunteer": (when: string) => `Gave it when joining, not as a volunteer, ${when}`,
+          "not-opted-in": (_when: string, source: string) => `Never opted in to chapter emails, from ${source}`,
+          "not-following": () => "Not a follower of the Luma calendar",
+          left: (when: string, source: string) => `No longer shared with us by ${source}, ${when}`,
+          ended: (_when: string, source: string) => `Gave it on ${source} for texts on the day, which is over`,
+        } as Record<Reason, (when: string, source: string, topic?: Topic) => string>,
+        // Where an answer came from, by its source: a form, the join form, Luma, its webhook or its list of the
+        // calendar's contacts, or CiviCRM.
+        sources: {
           "email-your-mp": "their letter to their MP",
           "web-form": "their pauseai.info letter",
           "march-2026-11": "the march sign-up",
           "paper-signup": "a paper sign-up form",
+          member: "the join form",
+          luma: "Luma",
+          "luma-webhook": "Luma",
+          "luma-contacts": "Luma",
+          civicrm: "CiviCRM",
         } as Record<string, string>,
-        otherForm: "their newest form",
-        // Behind a strip's "?": the topic, what it is, when it's a yes and when a no, and what we can't see, by
-        // channel and topic.
+        otherSource: "their newest form",
+        // Where a member who's gone came from, as the join form's records are read from Global's Airtable.
+        membersFrom: "Airtable",
+        // Behind a row's "?": the topic, what it is, and when it's a yes and when a no.
         topicTitle: (topic: string) => `Topic: ${topic}`,
-        // The labels over when it's a yes and when a no, in the words of the ways the topic allows (TOPIC_WAYS).
-        when: {
-          email: { yes: "Can email when", no: "Can't email when" },
-          text: { yes: "Can text when", no: "Can't text when" },
-          "call-or-text": { yes: "Can call or text when", no: "Can't call or text when" },
-        } as Record<string, { yes: string; no: string }>,
-        caveat: "Note",
+        when: { yes: "Yes when", no: "No when" },
         details: {
-          email: {
-            "luma-calendar": {
-              about: "Emails Luma sends to the calendar's contacts.",
-              yes: "They're a contact of the calendar: they registered for an event or followed it.",
-              no: "They unsubscribed from one of Luma's emails, or were never a contact.",
-              caveat:
-                "Unfollowing the calendar doesn't stop Luma's emails. Luma tells us of an unsubscribe straight away, but we only see someone resubscribe when we next check, a few hours later.",
-            },
-            "pauseai-updates": {
-              about: "PauseAI newsletters sent via CiviCRM, either by the global team or the UK team.",
-              yes: "They ticked “Keep me informed” when they joined, or joined before 30 June 2026, when everyone was signed up.",
-              no: "They left “Keep me informed” unticked, or the global team no longer shares their membership with us.",
-              caveat: "Unsubscribes are in CiviCRM, which we can't read, so even a yes shows as “Not sure” right now.",
-            },
-            "site-forms": {
-              about: "Emails from PauseAI UK.",
-              yes: "They ticked the contact box on the latest of our forms they filled in, such as Email your MP or the march sign-up.",
-              no: "They left that box unticked.",
-            },
+          newsletter: {
+            about: "Regular newsletter about campaigns, events and local groups. By email or text.",
+            yes: "They ticked a box asking for it on one of our forms or the global join form, signed up on paper, or are on the newsletter list in CiviCRM.",
+            no: "They unsubscribed, here or in CiviCRM, or never asked. A stop in CiviCRM, such as “No bulk emails”, stops it too.",
           },
-          phone: {
-            "luma-calendar": {
-              about: "Texts to a number given when registering for a Luma event. We text it, never call it.",
-              yes: "The Luma account that gave it is a contact of the calendar.",
-              no: "That account unsubscribed from Luma's emails, or was never a contact.",
-            },
-            "site-forms": {
-              about: "Calls and texts from PauseAI UK.",
-              yes: "They ticked the contact box on the latest of our forms that has this number. The march sign-up's box says “by email and phone”.",
-              no: "They left that box unticked.",
-            },
-            volunteering: {
-              about: "Calls and texts about volunteering.",
-              yes: "They gave the number on the PauseAI join form after choosing to volunteer regularly, the only choice it asks a number for, or on the Tally volunteer sign-up form the join page had before 30 June 2026.",
-              no: "The global team no longer shares their membership with us.",
-              caveat: "A number given with any other choice shows as “Not sure”.",
-            },
-            "march-day": {
-              about: "Texts on the day of the march.",
-              yes: "They gave a number on the march sign-up, which asks for one “for text updates on the day”, and the day isn't over yet.",
-              no: "The day is over. If they ticked the box on the sign-up, PauseAI UK updates still covers the number.",
-            },
+          events: {
+            about: "Emails and texts about our events only.",
+            yes: "They follow our Luma calendar, or gave a number for texts on the day of the march.",
+            no: "They unsubscribed from Luma's emails, or never followed our Luma calendar.",
           },
-        } as Record<Channel, Record<string, { about: string; yes: string; no: string; caveat?: string }>>,
+          volunteering: {
+            about: "Any contact about volunteering.",
+            yes: "By email, they're on the volunteer list in CiviCRM. By text or call, they gave the number on the join form after choosing to volunteer.",
+            no: "They unsubscribed, didn't choose to volunteer, or the global team no longer shares them with us.",
+          },
+        } as Record<Topic, { about: string; yes: string; no: string }>,
         // Why a blocked address is a no, under each of its topics: what blocked it, then the link to the list.
         blockedBecause: {
           hard: (when: string) => `An email to it bounced, ${when}.`,
           complaint: (when: string) => `They marked an email as spam, ${when}.`,
+          hold: (when: string) => `On hold in CiviCRM, ${when}.`,
         } as Record<string, (when: string) => string>,
         seeBlocked: "See blocked emails",
       },
@@ -693,6 +649,7 @@ export const staffCopy = {
         "letter-replied": "Letter answered by",
         "form-entry": "Filled in",
         "member-joined": "Joined PauseAI",
+        "civicrm-contact": "Shared with us by CiviCRM",
         "opted-out": "Unsubscribed from",
         resubscribed: "Subscribed again to",
       } as Record<string, string>,
@@ -1813,13 +1770,18 @@ All events: ${link}`,
     noBlocks: "No addresses are blocked.",
     // Instead of the history, when nothing has bounced or been complained about.
     noProblems: "Nothing has bounced or been marked as spam.",
-    // Beside a bounce read from someone's Gmail, rather than reported by Postmark.
-    foundInGmail: "found in Gmail",
+    // After a reason, as a lozenge, who told us: a bounce found in someone's Gmail, Postmark, or CiviCRM, for a hold.
+    from: { gmail: "Gmail", postmark: "Postmark", civicrm: "CiviCRM" },
+    // The Cause: what happened, whoever told us, as the lozenge after the reason says who. A hold is CiviCRM's, which
+    // gives no reason, though it's usually bounces.
     kinds: {
-      hard: "Bounced",
-      soft: "Soft bounce",
-      complaint: "Complaint",
+      hard: "Bounced, for good",
+      soft: "Bounced, for now",
+      complaint: "Marked as spam",
+      hold: "“On hold” in CiviCRM",
     } as Record<string, string>,
+    // The reason kept for a hold, as CiviCRM gives none.
+    holdReason: "Usually as its emails to it bounced",
     columns: {
       address: "Address",
       kind: "Cause",
@@ -2333,8 +2295,33 @@ All events: ${link}`,
       removed: number;
       supportersAdded: number;
       linked: number;
+      civicrm?: number;
     }) =>
-      `${r.members} members read: ${r.added} added, ${r.changed} changed, ${r.removed} removed; ${r.supportersAdded} new supporters, ${r.linked} linked.`,
+      `${r.members} members read: ${r.added} added, ${r.changed} changed, ${r.removed} removed; ${r.supportersAdded} new supporters, ${r.linked} linked.${r.civicrm ? ` ${r.civicrm} found in CiviCRM.` : ""}`,
+  },
+  // The hourly pull of Global's UK chapter contacts from CiviCRM (lib/server/civicrm-import.ts).
+  civicrm: {
+    title: "UK chapter contacts in CiviCRM",
+    intro: {
+      before: "Everyone Global's ",
+      link: "CRM",
+      after:
+        " has in the UK chapter. Whether they are subscribed to the UK newsletter and volunteer lists. Their “No bulk emails”, “Do not email”, “Do not phone”, “Do not SMS” and hold. No names or numbers.",
+    },
+    importNow: "Import contacts now",
+    never: "Not imported yet.",
+    result: (r: {
+      contacts: number;
+      added: number;
+      changed: number;
+      gone: number;
+      held?: true;
+      optOuts: number;
+      blocked: number;
+      supportersAdded?: number;
+      linked?: number;
+    }) =>
+      `${r.contacts} contacts read: ${r.added} added, ${r.changed} changed, ${r.held ? "none marked gone, as too few came back" : `${r.gone} gone`}; ${r.optOuts} unsubscribes changed, ${r.blocked} addresses blocked for a hold.${r.linked ? ` ${r.supportersAdded} new supporters, ${r.linked} linked.` : ""}`,
   },
   syncs: {
     title: "Politicians from Airtable",
@@ -2391,6 +2378,11 @@ All events: ${link}`,
       politicianNotHere: "Emails to a politician we don't have yet, so weren't imported:",
       // The web form letters import: letters to a politician who isn't here. Their records follow.
       noPolitician: "Letters with no politician here, so weren't imported:",
+      // The CiviCRM import: a pull came back much shorter than the last, so nobody was taken as gone from the
+      // chapter, in case it's CiviCRM's mistake. The counts follow; Global should be told.
+      civicrmTooFew: "CiviCRM returned far fewer contacts than last time, so nobody was marked gone. Tell Global:",
+      // The members import: looking up new members' addresses in CiviCRM failed. The next pull finds them.
+      civicrmLookupFailed: "Couldn't look up new members in CiviCRM",
     },
     // Can happen in a job or not. In a job, staff see it on the job's page and in the email. Not in a job, such
     // as a visitor sending a letter, it only goes to Netlify's logs.
@@ -2874,6 +2866,7 @@ export const jobTitles: Record<ImportJob, string> = {
   "import-controlai": staffCopy.controlAi.title,
   "import-luma": staffCopy.luma.title,
   "import-members": staffCopy.members.title,
+  "import-civicrm": staffCopy.civicrm.title,
   "read-gmail": staffCopy.gmailReading.title,
   "import-old-letters": staffCopy.oldLetters.title,
   "send-mailings": staffCopy.sending.title,

@@ -61,7 +61,7 @@ export const staffSupporters: Group = {
                 search={supportersSearch({
                   q: "jane",
                   activity: ["registered", "member"],
-                  contact: "email:luma-calendar:unsubscribed",
+                  contact: "email:events:unsubscribed",
                   campaign: "support-sobel-bill",
                   wrote: "no",
                   mp: "!7",
@@ -83,7 +83,7 @@ export const staffSupporters: Group = {
           render: () => (
             <StaffPage as="div">
               <SupporterFilters
-                search={supportersSearch({ contact: "email:site-forms:yes", near: "LS1", broadcast: "3" })}
+                search={supportersSearch({ contact: "email:newsletter:yes", near: "LS1", broadcast: "3" })}
                 choices={{ events: exampleEventChoices, mps: [] }}
                 lockConsent
               />

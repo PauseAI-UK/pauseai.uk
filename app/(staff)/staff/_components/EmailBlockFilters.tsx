@@ -2,7 +2,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { Filter } from "@/lib/staff-list-filters";
 import FilterBar from "./ui/FilterBar";
 
-/** The blocked addresses' filter: those that bounced, or complained. */
+/** The blocked addresses' filter: those that bounced, complained, or are on hold in CiviCRM. */
 export function emailBlockFilters(): Filter[] {
   const { columns, kinds } = staffCopy.emails;
   return [
@@ -12,6 +12,7 @@ export function emailBlockFilters(): Filter[] {
       options: [
         { value: "hard", label: kinds.hard },
         { value: "complaint", label: kinds.complaint },
+        { value: "hold", label: kinds.hold },
       ],
     },
   ];

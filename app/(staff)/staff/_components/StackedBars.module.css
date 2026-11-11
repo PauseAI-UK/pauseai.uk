@@ -66,6 +66,11 @@
   background: var(--chart-teal);
 }
 
+.part[data-part="6"],
+.swatch[data-part="6"] {
+  background: var(--chart-plum);
+}
+
 .ends {
   display: flex;
   justify-content: space-between;

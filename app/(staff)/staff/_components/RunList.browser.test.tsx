@@ -18,6 +18,7 @@ import {
   exampleGmailResult,
   exampleLettersInboxRead,
   exampleMembersResult,
+  exampleCivicrmResult,
   exampleRun,
   exampleSendingResult,
   exampleSyncedMp,
@@ -484,6 +485,30 @@ describe("RunList", () => {
     await expect
       .element(second)
       .toHaveTextContent(`${staffCopy.runs.status.failed} · ${staffCopy.runs.error("Airtable answered 503")}`);
+  });
+
+  it("shows a CiviCRM import's counts, the members it found there, or its error", async () => {
+    const quiet = { ...exampleMembersResult, civicrm: undefined };
+    await render(
+      <RunList
+        runs={[
+          ran("import-civicrm", exampleCivicrmResult, { id: 1 }),
+          failed("import-civicrm", "CiviCRM answered 503", { id: 2 }),
+        ]}
+        none="None"
+      />,
+    );
+    const [first, second] = page.getByRole("status").all();
+    await expect
+      .element(first)
+      .toHaveTextContent(`${staffCopy.runs.status.ok} · ${staffCopy.civicrm.result(exampleCivicrmResult)}`);
+    await expect
+      .element(second)
+      .toHaveTextContent(`${staffCopy.runs.status.failed} · ${staffCopy.runs.error("CiviCRM answered 503")}`);
+    // A members import that found no one in CiviCRM says nothing of it.
+    const found = staffCopy.members.result(exampleMembersResult);
+    expect(found.startsWith(staffCopy.members.result(quiet))).toBe(true);
+    expect(found).not.toBe(staffCopy.members.result(quiet));
   });
 
   it("shows a Gmail read's totals, then each account, with one searched afresh and one that couldn't be read", async () => {

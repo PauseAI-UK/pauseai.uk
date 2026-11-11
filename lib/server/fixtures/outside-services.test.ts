@@ -55,6 +55,18 @@ describe("fixtureResponse", () => {
     expect(fixtureResponse("https://eu.airtable.com/v0/appBInVvIm6opJ1Ob/tblOther")).toBeUndefined();
   });
 
+  it("serves CiviCRM's UK chapter contacts a page after a contact ID, or those with some addresses", async () => {
+    const get = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
+    const ids = async (response: Response | undefined) =>
+      ((await response!.json()).values as { contact_id: number }[]).map((c) => c.contact_id);
+    const page = (params: object) => `${get}?${new URLSearchParams({ params: JSON.stringify(params) })}`;
+    expect(await ids(fixtureResponse(page({ limit: 2, after_contact_id: 103 })))).toEqual([104, 105]);
+    expect(await ids(fixtureResponse(page({})))).toHaveLength(7);
+    expect(await ids(fixtureResponse(get))).toHaveLength(7);
+    const body = new URLSearchParams({ params: JSON.stringify({ email: ["kit.member@example.com"] }) });
+    expect(await ids(fixtureResponse(get, { method: "POST", body: body.toString() }))).toEqual([105]);
+  });
+
   it("serves Airtable's members from the members table", async () => {
     const members = await fixtureResponse(
       "https://api.airtable.com/v0/appWPTGqZmUcs3NWu/tblL1icZBhTV1gQ9o?x=1",

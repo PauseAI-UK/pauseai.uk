@@ -33,10 +33,10 @@ describe("each list's download values and contact cards", () => {
       staffCopy.supporters.noName,
     );
     expect(values(columns, { ...exampleComplaint, purpose: null }).sent).toBeNull();
-    // A bounce found in Gmail says so after its reason.
-    expect(values(columns, exampleBlock).reason).toBe(exampleBlock.reason);
+    // After its reason, in brackets, who told us.
+    expect(values(columns, exampleBlock).reason).toBe(`${exampleBlock.reason} (${staffCopy.emails.from.postmark})`);
     expect(values(columns, exampleGmailBlock).reason).toBe(
-      `${exampleGmailBlock.reason} (${staffCopy.emails.foundInGmail})`,
+      `${exampleGmailBlock.reason} (${staffCopy.emails.from.gmail})`,
     );
   });
 
@@ -117,7 +117,11 @@ describe("each list's download values and contact cards", () => {
         march: staffCopy.supporters.badges.march,
       }).join("; "),
     );
-    expect(subscriptionWords(sam.permissions)).toContain(staffCopy.supporters.subscriptions.unsure(""));
+    expect(subscriptionWords(sam.permissions)).toBe(
+      (["email:newsletter", "email:events", "text:volunteering"] as const)
+        .map((consent) => staffCopy.supporters.subscriptions.consents[consent])
+        .join("; "),
+    );
     expect(subscriptionWords(gus.permissions)).toBe("");
     const placed = {
       ...jane,

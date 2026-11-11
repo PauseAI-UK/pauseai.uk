@@ -19,8 +19,8 @@ import {
 
 const JO = "jo@pauseai.uk";
 const FUTURE = new Date("2099-01-01T09:18:00.000Z");
-const EMAIL_FILTER = { contact: "email:luma-calendar:yes" };
-const TEXT_FILTER = { contact: "phone:luma-calendar:yes" };
+const EMAIL_FILTER = { contact: "email:events:yes" };
+const TEXT_FILTER = { contact: "text:events:yes" };
 
 beforeEach(() => {
   vi.stubEnv("DATA_FIXTURES", "1");
@@ -132,7 +132,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     // No supporter's details: its preview is for someone made up.
     expect(data!.kind === "draft" && "recipients" in data!).toBe(false);
     await query(
-      `UPDATE mailings SET filter = '{"list": "supporters", "params": {"contact": "email:luma-calendar:yes", "event": "gone"}}' WHERE id = $1`,
+      `UPDATE mailings SET filter = '{"list": "supporters", "params": {"contact": "email:events:yes", "event": "gone"}}' WHERE id = $1`,
       [id],
     );
     expect(await broadcastPageData(id, {}, JO)).toMatchObject({ unknown: ["event=gone"], count: 0 });
@@ -168,16 +168,14 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await choosingBroadcast(String(id))).toEqual({
       id,
       channel: "email",
-      topic: "luma-calendar",
+      topic: "events",
       title: "Events",
       blank: false,
     });
     expect(choosingConsent((await choosingBroadcast(String(id)))!)).toBe(EMAIL_FILTER.contact);
-    expect(choosingConsent({ id, channel: "text", topic: "luma-calendar", title: "", blank: true })).toBe(
-      "phone:luma-calendar:yes",
-    );
+    expect(choosingConsent({ id, channel: "text", topic: "events", title: "", blank: true })).toBe("text:events:yes");
     // The list choosing for it keeps its Consent over another; with no draft, the filters as they are.
-    const other = { contact: "email:site-forms:yes", near: "LS1" };
+    const other = { contact: "email:newsletter:yes", near: "LS1" };
     expect(await withChoosing(other, String(id))).toMatchObject({
       choosing: { id },
       params: { ...other, contact: EMAIL_FILTER.contact },
