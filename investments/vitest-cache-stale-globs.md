@@ -13,3 +13,4 @@ Clear the cache when a glob's folder changes, or don't glob in tests: list the f
 ## Hits
 
 - 2026-11-11: the scheduled functions test failed only under `npm test` after a new function folder was added, ~20 min
+- 2026-11-11: the same, after a rebase brought in `import-civicrm`, ~10 min

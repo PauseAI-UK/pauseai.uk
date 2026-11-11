@@ -1,7 +1,6 @@
 import { copy } from "@/lib/content/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { failService } from "@/lib/server/fixtures/failing-services";
-import { REFUSALS_BEFORE_EMAIL } from "@/lib/spam-check-runs";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { fakeTurnstile, fillLetter, lookUpTestMp, newestEmail } from "../steps";
@@ -80,7 +79,7 @@ test("A page breaks in someone's browser", async ({ page, flowDatabase }) => {
   story(
     "A bug in a page's own script loses a visitor the page, after it has loaded. They see the site's page saying so, and their browser tells the site.",
   );
-  await page.goto(`${BASE}/gallery/broken`);
+  await page.goto(`${BASE}/broken`);
   await page.getByRole("button", { name: "Break while rendering" }).click();
   await expect(page.getByRole("button", { name: /Try again/ })).toBeVisible();
   await frame(page, "The page in place of the one that broke");
@@ -88,15 +87,15 @@ test("A page breaks in someone's browser", async ({ page, flowDatabase }) => {
   story(
     "The notification inbox is emailed. The email says which page, but quotes nothing of the error, as anyone can post one.",
   );
-  const email = await notified(errors.email.browser.subject("/gallery/broken"));
-  expect(email.TextBody).toContain(`${errors.kinds["browser-page"]} /gallery/broken`);
+  const email = await notified(errors.email.browser.subject("/broken"));
+  expect(email.TextBody).toContain(`${errors.kinds["browser-page"]} /broken`);
   expect(email.TextBody).not.toContain("Asked to break");
   await emailFrame(page, email, "The email to the notification inbox");
 
   story(
     "Another bug throws from a button's click. The page stays as it was, so nobody is emailed, but the error is kept.",
   );
-  await page.goto(`${BASE}/gallery/broken`);
+  await page.goto(`${BASE}/broken`);
   await page.getByRole("button", { name: "Break from a click" }).click();
   await expect.poll(() => kept(flowDatabase, "browser-other")).toEqual({ count: 1, alerted: false });
 
@@ -133,23 +132,4 @@ test("The spam check can't be reached", async ({ page, flowDatabase }) => {
   await expect(page.getByRole("heading", { level: 1, name: words })).toBeVisible();
   await expect(page.getByText(errors.one.noStack)).toBeVisible();
   await frame(page, "The error's own page");
-});
-
-test("The spam check refuses every letter", async ({ page, request, flowDatabase }) => {
-  story(
-    "The spam check on letters to MPs refuses one letter after another, as it would if its widget stopped loading. Each sender is told to try again, and nothing is thrown.",
-  );
-  const send = () => request.post(`${BASE}/api/email-your-mp/letters`, { data: { turnstileToken: "" } });
-  for (let n = 0; n < REFUSALS_BEFORE_EMAIL; n++) expect((await send()).status()).toBe(403);
-
-  story(
-    `After ${REFUSALS_BEFORE_EMAIL} refusals with no letter let through, the notification inbox is emailed, once, until one gets through.`,
-  );
-  const words = staffCopy.notifications.lettersRefused;
-  const email = await notified(words.subject(REFUSALS_BEFORE_EMAIL));
-  expect((await send()).status()).toBe(403);
-  expect(runSql(flowDatabase, "SELECT refused || ' ' || alerted FROM spam_check_runs")).toEqual([
-    `${REFUSALS_BEFORE_EMAIL + 1} true`,
-  ]);
-  await emailFrame(page, email, "The email to the notification inbox");
 });

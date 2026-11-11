@@ -105,7 +105,7 @@ describe("ImportOverview", () => {
     ]);
     expect(cards[6].querySelector(":scope > p")!.textContent).not.toContain(staffCopy.syncs.testMps);
     // The members come from the join form; Gmail's card leads to where it's connected; the sending's to the campaigns'
-    // letters and the mailings, the tidying's to the audit log and the mailings.
+    // letters and the mailings, the tidying's to the audit log, the mailings and the errors.
     expect(link(2)).toBe("https://pauseai.info/join");
     expect(link(3)).toBe("https://crm.pauseai.info/");
     expect(link(1)).toBe("/staff/me");
@@ -125,7 +125,19 @@ describe("ImportOverview", () => {
     expect([...cards[8].querySelectorAll(":scope > p a")].map((a) => a.getAttribute("href"))).toEqual([
       "/staff/audit-log",
       "/staff/mailings",
+      "/staff/errors",
     ]);
+    expect(cards[8].querySelector(":scope > p")!.textContent).toBe(
+      [
+        staffCopy.tidying.intro.before,
+        staffCopy.tidying.intro.link,
+        staffCopy.tidying.intro.after,
+        staffCopy.tidying.introThen.link,
+        staffCopy.tidying.introThen.after,
+        staffCopy.tidying.introLast.link,
+        staffCopy.tidying.introLast.after,
+      ].join(""),
+    );
     // After its name, the MP check says it changes nothing, the sending and the Luma import that they act, the tidying that it's housekeeping.
     expect(cards[0].querySelector("h3")!.textContent).toBe(
       `${jobTitles["import-luma"]}${staffCopy.import.takesAction}`,

@@ -738,9 +738,8 @@ that drives it or why nothing does.
   - Past imports, and an import's page.
 - `errors.spec.ts`: What goes wrong outside an import:
   - a staff page that throws: the page in its place and Try again, the email to the notification inbox, once though it fails twice, the errors list and the error's own page;
-  - a page breaking in someone's browser, on the fixture build's page that breaks (`/gallery/broken`): the email that quotes none of it, and a click that throws, kept without an email;
+  - a page breaking in someone's browser, on the fixture build's page that breaks (`/broken`), inside the site's header and footer: the email that quotes none of it, and a click that throws, kept without an email;
   - the spam check down for someone sending a letter, with Cloudflare down for the flow: what they're told, the email and the error's page;
-  - the spam check refusing letter after letter, and the email once it has.
 - `permissions.spec.ts`: What staff see by permission:
   - the accounts sorted by when last seen;
   - logged in with none: every staff page, as HTML and as its RSC payload, holding no supporter's name or email (the leak check);

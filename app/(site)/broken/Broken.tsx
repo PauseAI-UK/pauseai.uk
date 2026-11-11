@@ -12,7 +12,7 @@ export function breakNow(): never {
 
 /**
  * A page that breaks in the browser when asked, for the storyboard to show
- * what a visitor and staff see when one does: one button throws while the
+ * what a visitor sees when one does: one button throws while the
  * page renders, which loses the page to the error page; the other throws
  * from its click, which leaves the page as it was.
  */

@@ -15,6 +15,7 @@ import {
   runTone,
 } from "@/lib/import-runs";
 import { MEMBERS_API } from "@/lib/parliament";
+import { ERRORS_LIST } from "@/lib/staff-lists";
 import { staffTime } from "@/lib/staff-time";
 import Breadcrumb from "./Breadcrumb";
 import styles from "./ImportJob.module.css";
@@ -74,8 +75,8 @@ const ABOUT: Record<
     intro: { before: string; link: string; after: string };
     /** Where it reads from: a page, or another table of the same Airtable base, by its ID; the politicians' table when left out. */
     href?: string;
-    /** More of the intro, with a link of its own, for a job that works from two places. */
-    then?: { link: string; after: string; href: string };
+    /** More of the intro, each part with a link of its own, for a job that works on more than one place. */
+    then?: { link: string; after: string; href: string }[];
     also?: string;
     button: string;
     none: string;
@@ -144,14 +145,17 @@ const ABOUT: Record<
   "send-mailings": {
     intro: staffCopy.sending.intro,
     href: "/staff/campaigns",
-    then: { ...staffCopy.sending.introThen, href: "/staff/mailings" },
+    then: [{ ...staffCopy.sending.introThen, href: "/staff/mailings" }],
     button: staffCopy.sending.sendNow,
     none: staffCopy.sending.never,
   },
   "tidy-logs": {
     intro: staffCopy.tidying.intro,
     href: "/staff/audit-log",
-    then: { ...staffCopy.tidying.introThen, href: "/staff/mailings" },
+    then: [
+      { ...staffCopy.tidying.introThen, href: "/staff/mailings" },
+      { ...staffCopy.tidying.introLast, href: ERRORS_LIST.path },
+    ],
     button: staffCopy.tidying.tidyNow,
     none: staffCopy.tidying.never,
   },
@@ -167,12 +171,12 @@ function Intro({ job, airtableTable }: { job: ImportJob; airtableTable: string }
         {intro.link}
       </ExternalLink>
       {intro.after}
-      {then && (
-        <>
-          <ExternalLink href={then.href}>{then.link}</ExternalLink>
-          {then.after}
-        </>
-      )}
+      {then?.map((part) => (
+        <Fragment key={part.href}>
+          <ExternalLink href={part.href}>{part.link}</ExternalLink>
+          {part.after}
+        </Fragment>
+      ))}
       {also && ` ${also}`}
     </>
   );

@@ -2002,13 +2002,6 @@ All events: ${link}`,
       body: (n: number, hours: number, why: string, link: string) =>
         `${plural(n, "A letter", `${n} letters`)} to MPs ${plural(n, "has", "have")} waited over ${hours} hours to go. Why: ${why}.\n\nThe letters waiting: ${link}`,
     },
-    // The spam check has refused several letters to MPs in a row, letting none through: how many, since when, and
-    // the errors page.
-    lettersRefused: {
-      subject: (n: number) => `⁂ The spam check has refused the last ${n} letters to MPs`,
-      body: (n: number, since: string, link: string) =>
-        `⁂ The spam check has refused the last ${n} letters to MPs, since ${since}, and let none through. It may be refusing everyone. Try sending a letter to the test MP (postcode ZZ99ZZ) to see. You won't be emailed again until a letter gets through.\n\nErrors on the site: ${link}`,
-    },
   },
   // The read every 5 minutes of the connected Gmail accounts for replies to our
   // letters and bounces (lib/server/gmail-reading.ts), on the Scheduled jobs page.
@@ -2066,18 +2059,22 @@ All events: ${link}`,
     intro: {
       before: "Deletes entries of the ",
       link: "audit log",
-      after: " over a month old (except politicians' history) and empty ",
+      after: " over a month old (except politicians' history), empty ",
     },
-    // The intro goes on, with a second link.
+    // The intro goes on, with a second link and a third.
     introThen: {
       link: "mailing drafts",
-      after: " unopened for a day. ⁂ Also deletes errors not seen for a month.",
+      after: " unopened for a day, and ",
+    },
+    introLast: {
+      link: "errors",
+      after: " not seen for a month.",
     },
     tidyNow: "Tidy logs now",
     never: "Not tidied yet.",
     // A run kept from before errors were tidied counts none.
     result: (r: { importRuns: number; auditEntries: number; drafts: number; errors?: number }) =>
-      `⁂ Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")}, ${count(r.drafts, "draft", "drafts")} and ${count(r.errors ?? 0, "error", "errors")}.`,
+      `Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")}, ${count(r.drafts, "draft", "drafts")} and ${count(r.errors ?? 0, "error", "errors")}.`,
   },
   // The hourly copy of PauseAI's UK members (lib/server/members-import.ts),
   // on the Scheduled jobs page.
@@ -2221,16 +2218,16 @@ All events: ${link}`,
     // from a click or the like and left the page as it was.
     kinds: {
       render: "Page",
-      route: "⁂ Route handler",
-      action: "⁂ Server Action",
-      proxy: "⁂ Proxy",
+      route: "Route handler",
+      action: "Server Action",
+      proxy: "Proxy",
       problem: "Problem",
       "browser-page": "Browser: page crashed",
       "browser-other": "Browser: page carried on",
     },
     // One error's page: its heading, the way back to the list, then each thing known about it.
     one: {
-      title: "⁂ Error",
+      title: "Error",
       back: "All errors",
       kind: "Kind",
       page: "Page or route",
@@ -2251,30 +2248,30 @@ All events: ${link}`,
     email: {
       // An error on the server, or a problem.
       server: {
-        subject: (words: string) => `⁂ Error on the site: ${words}`,
+        subject: (words: string) => `Error on pauseai.uk server: ${words}`,
         first: (where: string, words: string, link: string) =>
-          `⁂ Something went wrong on the site that hasn't in the last month.\n\n${where}\n${words}\n\nYou'll be emailed about it again at most once a day while it goes on happening. The latest, as it happened: ${link}`,
+          `Something new went wrong on pauseai.uk.\n\n${where}\n${words}\n\nYou'll be emailed about it again at most once a day. More info: ${link}`,
         again: (where: string, words: string, since: number, total: number, link: string) =>
-          `⁂ This is still going wrong on the site: ${count(since, "more time", "more times")} since the last email about it, ${total} in all.\n\n${where}\n${words}\n\nThe latest, as it happened: ${link}`,
+          `This is still going wrong on pauseai.uk. ${count(since, "more time", "more times")} since the last email about it, ${total} in all.\n\n${where}\n${words}\n\nMore info: ${link}`,
       },
       // An error in a visitor's browser that lost them the page. Its words aren't quoted, as anyone can post them.
       browser: {
-        subject: (page: string) => `⁂ A page fell over in someone's browser: ${page}`,
+        subject: (page: string) => `Browser error on pauseai.uk: ${page}`,
         first: (where: string, link: string) =>
-          `⁂ A page fell over in someone's browser, in a way that hasn't been seen in the last month.\n\n${where}\n\nYou'll be emailed about it again at most once a day while it goes on happening. What their browser said: ${link}`,
+          `A page fell over in someone's browser, in a way that hasn't been seen in the last month.\n\n${where}\n\nYou'll be emailed about it again at most once a day. More info: ${link}`,
         again: (where: string, since: number, total: number, link: string) =>
-          `⁂ A page is still falling over in people's browsers: ${count(since, "more time", "more times")} since the last email about it, ${total} in all.\n\n${where}\n\nWhat the latest browser said: ${link}`,
+          `A page is still falling over in people's browsers. ${count(since, "more time", "more times")} since the last email about it, ${total} in all.\n\n${where}\n\nMore info: ${link}`,
       },
       // In place of an hour's sixth email about the server's errors, or fourth about the browser's; then no more that hour.
       many: {
-        subject: "⁂ Many new errors on the site",
+        subject: "Many new server errors on pauseai.uk",
         body: (link: string) =>
-          `⁂ Several different things have gone wrong on the site in the last hour, so no more emails about new errors will be sent for now.\n\nAll of them: ${link}`,
+          `Several different things have gone wrong on the site in the last hour, so no more emails about new errors will be sent for now.\n\nMore info: ${link}`,
       },
       manyBrowser: {
-        subject: "⁂ Many new errors in people's browsers",
+        subject: "Many new browser errors on pauseai.uk",
         body: (link: string) =>
-          `⁂ Pages have fallen over in people's browsers in several different ways in the last hour, so no more emails about new ones will be sent for now.\n\nAll of them: ${link}`,
+          `Pages have fallen over in people's browsers in several different ways in the last hour, so no more emails about new ones will be sent for now.\n\nMore info: ${link}`,
       },
     },
   },
@@ -2536,11 +2533,8 @@ All events: ${link}`,
       badBody: (from: string) => `${from} sent a body that isn't JSON`,
       // Nobody sees anything: a warning, as the next query carries on.
       connectionDropped: "A database connection was dropped while idle",
-      // A letter's spam check, refused or let through, that couldn't be counted (lib/server/spam-check-runs.ts).
-      // The letter carries on.
-      spamCheckNotCounted: "⁂ A spam check's answer couldn't be counted",
       // An error, or a problem above, that couldn't be kept or emailed about, as the database or the email failed.
-      errorNotKept: "⁂ An error couldn't be kept, so nobody was told about it",
+      errorNotKept: "An error couldn't be kept or emailed about",
     },
   },
   // The line every run in the import log starts with (RunBox): how it
