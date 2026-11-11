@@ -2206,7 +2206,7 @@ All events: ${link}`,
     // Under the list's heading.
     intro: "Server and browser errors",
     total: (n: number) => count(n, "error", "errors"),
-    none: "⁂ Nothing has gone wrong in the last month.",
+    none: "No errors.",
     columns: {
       what: "Error message",
       kind: "Kind",
