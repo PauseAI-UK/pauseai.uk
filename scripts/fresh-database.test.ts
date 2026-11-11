@@ -211,7 +211,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         expect(
           runSql(
             name,
-            "SELECT count(*) FROM members m WHERE NOT EXISTS (SELECT 1 FROM supporter_links l WHERE l.member_id = m.id)",
+            "SELECT count(*) FROM airtable_members m WHERE NOT EXISTS (SELECT 1 FROM supporter_links l WHERE l.airtable_member_id = m.id)",
           ),
         ).toEqual(["0"]);
         // Sorted byte by byte, so the order is the same whatever the database's collation.
@@ -221,18 +221,18 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
             'SELECT s FROM (SELECT DISTINCT sources::text AS s FROM supporters_summary) d ORDER BY s COLLATE "C"',
           ),
         ).toEqual([
-          "{civicrm,email-your-mp,luma,member}",
-          "{civicrm,luma,member}",
-          "{civicrm,member}",
+          "{airtable,civicrm,email-your-mp,luma}",
+          "{airtable,civicrm,luma}",
+          "{airtable,civicrm}",
+          "{airtable,email-your-mp}",
+          "{airtable,luma}",
+          "{airtable}",
           "{civicrm}",
           "{email-your-mp,luma,march-2026-11}",
           "{email-your-mp,luma}",
-          "{email-your-mp,member}",
           "{email-your-mp}",
-          "{luma,member}",
           "{luma}",
           "{march-2026-11}",
-          "{member}",
           "{paper-signup}",
           "{web-form}",
         ]);

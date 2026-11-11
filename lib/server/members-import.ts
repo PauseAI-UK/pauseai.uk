@@ -7,40 +7,41 @@ import { airtableToken, fetchMembers, type MemberToImport } from "./outside-serv
 import { refreshSupporterFacts, refreshSupportersList } from "./supporter-facts";
 import { linkSupporters } from "./supporters";
 
-// Copies PauseAI's UK members whom we may hold into `members`: hourly
-// (/api/cron/import-members) or when staff ask, each run in the import
-// log as "import-members". Every run reads every one of them, so a run is
-// whole and the next corrects anything the last missed. An upsert touches a
-// row only when a value differs; a member no longer read is marked
-// removed, and kept, with their links, until they're erased.
+// Copies PauseAI's UK members whom we may hold from Stichting PauseAI's
+// Airtable into `airtable_members`: hourly (/api/cron/import-members) or
+// when staff ask, each run in the import log as "import-members". Every run
+// reads every one of them, so a run is whole and the next corrects anything
+// the last missed. An upsert touches a row only when a value differs; a
+// member no longer read is marked removed, and kept, with their links,
+// until they're erased.
 //
-// Whether a member asked for the newsletter, "Keep me informed", is read
-// from their record by contact_permission(), for one CiviCRM has never
-// returned. A new member's address is looked up in CiviCRM at the end of the
-// run, as the hourly pull may not have them yet.
+// A member's details count only while CiviCRM, where members come from,
+// has never returned them: for those, their name, number, place, intent and
+// "Keep me informed" are read from here. A new member's address is looked
+// up in CiviCRM at the end of the run, as the hourly pull may not have them
+// yet.
 
 const JOB = "import-members";
 
 /** Upserts the members, but none erased; returns how many were added and how many changed. */
 async function upsertMembers(members: MemberToImport[], db: Queryable): Promise<{ added: number; changed: number }> {
   const rows = await query<{ added: boolean }>(
-    `INSERT INTO members (id, email, name, phone, city, postcode, joined_at, created_at, keep_informed,
-       share_permission, source_page, intent, source_modified_at)
+    `INSERT INTO airtable_members AS a (id, email, name, phone, city, postcode, joined_at, created_at, keep_informed,
+       share_permission, intent, source_modified_at)
      SELECT * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::timestamptz[],
-       $8::timestamptz[], $9::boolean[], $10::boolean[], $11::text[], $12::text[], $13::timestamptz[])
-       AS m(id, email, name, phone, city, postcode, joined_at, created_at, keep_informed, share_permission, source_page, intent, source_modified_at)
-     WHERE m.id NOT IN (SELECT id FROM members_erased)
+       $8::timestamptz[], $9::boolean[], $10::boolean[], $11::text[], $12::timestamptz[])
+       AS m(id, email, name, phone, city, postcode, joined_at, created_at, keep_informed, share_permission, intent, source_modified_at)
+     WHERE m.id NOT IN (SELECT id FROM airtable_members_erased)
      ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, phone = EXCLUDED.phone,
        city = EXCLUDED.city, postcode = EXCLUDED.postcode, joined_at = EXCLUDED.joined_at,
        created_at = EXCLUDED.created_at, keep_informed = EXCLUDED.keep_informed,
-       share_permission = EXCLUDED.share_permission, source_page = EXCLUDED.source_page, intent = EXCLUDED.intent,
+       share_permission = EXCLUDED.share_permission, intent = EXCLUDED.intent,
        source_modified_at = EXCLUDED.source_modified_at, removed_at = NULL, changed_at = now()
-     WHERE (members.email, members.name, members.phone, members.city, members.postcode, members.joined_at,
-         members.created_at, members.keep_informed, members.share_permission, members.source_page, members.intent,
-         members.source_modified_at, members.removed_at)
+     WHERE (a.email, a.name, a.phone, a.city, a.postcode, a.joined_at, a.created_at, a.keep_informed,
+         a.share_permission, a.intent, a.source_modified_at, a.removed_at)
        IS DISTINCT FROM (EXCLUDED.email, EXCLUDED.name, EXCLUDED.phone, EXCLUDED.city, EXCLUDED.postcode,
          EXCLUDED.joined_at, EXCLUDED.created_at, EXCLUDED.keep_informed, EXCLUDED.share_permission,
-         EXCLUDED.source_page, EXCLUDED.intent, EXCLUDED.source_modified_at, NULL)
+         EXCLUDED.intent, EXCLUDED.source_modified_at, NULL)
      RETURNING xmax = 0 AS added`,
     [
       members.map((m) => m.id),
@@ -53,7 +54,6 @@ async function upsertMembers(members: MemberToImport[], db: Queryable): Promise<
       members.map((m) => m.createdAt),
       members.map((m) => m.keepInformed),
       members.map((m) => m.sharePermission),
-      members.map((m) => m.sourcePage),
       members.map((m) => m.intent),
       members.map((m) => m.modifiedAt),
     ],
@@ -66,7 +66,7 @@ async function upsertMembers(members: MemberToImport[], db: Queryable): Promise<
 /** Marks removed every member not read this run; returns how many. */
 async function markRemoved(ids: string[], db: Queryable): Promise<number> {
   const rows = await query(
-    `UPDATE members SET removed_at = now(), changed_at = now()
+    `UPDATE airtable_members SET removed_at = now(), changed_at = now()
      WHERE removed_at IS NULL AND NOT (id = ANY($1::text[])) RETURNING id`,
     [ids],
     db,

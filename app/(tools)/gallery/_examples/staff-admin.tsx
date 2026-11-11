@@ -485,7 +485,7 @@ export const staffAdmin: Group = {
                   name="New supporters, the last eight weeks"
                   parts={[
                     { key: "luma", label: "Luma" },
-                    { key: "member", label: "Member" },
+                    { key: "civicrm", label: "Member" },
                     { key: "email-your-mp", label: "Letter" },
                   ]}
                   bars={exampleDashboard.supportersBySource.map((point) => ({

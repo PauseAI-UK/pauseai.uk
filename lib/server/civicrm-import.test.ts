@@ -300,7 +300,7 @@ describeWithDatabase("lookUpNewMembers", () => {
   /** A member, first seen `ago`, whom CiviCRM may or may not have. */
   async function member(id: string, email: string, ago = "1 hour") {
     await query(
-      `INSERT INTO members (id, email, joined_at, created_at, keep_informed, share_permission, source_modified_at, first_seen_at)
+      `INSERT INTO airtable_members (id, email, joined_at, created_at, keep_informed, share_permission, source_modified_at, first_seen_at)
        VALUES ($1, $2, now(), now(), true, true, now(), now() - $3::interval)`,
       [id, email, ago],
     );

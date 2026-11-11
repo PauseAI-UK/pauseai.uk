@@ -7,7 +7,7 @@ import { displayPostcode } from "@/lib/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { UK_MAP_HEIGHT, UK_MAP_WIDTH, ukMapPoint, ukOutline } from "@/lib/uk-map";
-import { eventsCounted, eventsOf, registrationStatus } from "@/lib/supporters";
+import { dayOnly, eventsCounted, eventsOf, registrationStatus } from "@/lib/supporters";
 import type {
   SupporterActivity,
   SupporterDetails as Details,
@@ -149,11 +149,9 @@ function Subject({ item }: { item: SupporterActivity }) {
     );
   }
   if (item.kind === "member-joined") {
-    // Where the join form was, and what they chose on it, if either says anything.
-    const said = [item.detail && copy.detail.joinedOn(item.detail), copy.detail.intents[item.title ?? ""]]
-      .filter(Boolean)
-      .join(", ");
-    return said ? <Muted>{said}</Muted> : null;
+    // What they chose on the join form, if it says anything.
+    const intent = copy.detail.intents[item.title ?? ""];
+    return intent ? <Muted>{intent}</Muted> : null;
   }
   return null;
 }
@@ -366,7 +364,7 @@ export default function SupporterDetails({
             <ol className={styles.history} aria-labelledby="history">
               {activity.map((item, i) => (
                 <li key={i}>
-                  <span className={styles.when}>{staffTime(item.at)}</span>
+                  <span className={styles.when}>{dayOnly(item) ? staffDate(item.at) : staffTime(item.at)}</span>
                   <span>
                     {copy.detail.kinds[item.kind]} <Subject item={item} />
                   </span>

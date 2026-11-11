@@ -69,7 +69,7 @@ test("The members import", async ({ page, flowDatabase }) => {
   story(
     "Staff run the members import, which copies PauseAI members in the UK from the global team's Airtable. Every member is copied but one, who was erased.",
   );
-  runSql(flowDatabase, "INSERT INTO members_erased (id) VALUES ('recMemberErased')");
+  runSql(flowDatabase, "INSERT INTO airtable_members_erased (id) VALUES ('recMemberErased')");
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/scheduled-jobs/members`);
   await page.getByRole("button", { name: staffCopy.members.importNow }).click();

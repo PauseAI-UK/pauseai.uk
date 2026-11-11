@@ -271,7 +271,7 @@ describeWithDatabase("staff Server Actions", () => {
   it("the members import's button copies the members as the staff member", async () => {
     await runJobNow("import-members");
     expect(await runs()).toEqual([{ job: "import-members", status: "ok", startedBy: "jo@pauseai.uk" }]);
-    expect(await query("SELECT count(*)::int AS n FROM members")).toEqual([{ n: 9 }]);
+    expect(await query("SELECT count(*)::int AS n FROM airtable_members")).toEqual([{ n: 9 }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/members");
   });
 

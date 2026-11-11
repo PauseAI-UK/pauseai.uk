@@ -15,7 +15,7 @@ function bySource(counts: number[], days = 7): SourcePoint[] {
     const letter = Math.floor(point.count / 10);
     return {
       ...point,
-      sources: point.count ? { luma: point.count - member - letter, member, "email-your-mp": letter } : {},
+      sources: point.count ? { luma: point.count - member - letter, civicrm: member, "email-your-mp": letter } : {},
     };
   });
 }

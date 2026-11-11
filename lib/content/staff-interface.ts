@@ -483,8 +483,8 @@ export const staffCopy = {
       "web-form": "pauseai.info letter",
       "march-2026-11": "March sign-up",
       "paper-signup": "Paper sign-up",
-      member: "Member",
-      civicrm: "CiviCRM",
+      airtable: "Airtable",
+      civicrm: "Member",
     } as Record<string, string>,
     // In a supporter's history, what an opt-out was from.
     lists: {
@@ -500,13 +500,14 @@ export const staffCopy = {
       unusable: "Don't use",
       postcode: "Postcode",
       city: "City",
-      /** Where the join form was: through our own site, or on another. */
-      joinedOn: (site: string) => (site === "pauseai.uk" ? `through ${site}` : `on ${site}`),
-      /** What they chose on the join form; "Keep informed" and "None" say nothing more. */
+      /** What they chose on the join form, as Airtable or CiviCRM says it; "Keep informed" and "None" say nothing more. */
       intents: {
         Volunteer: "wants to volunteer",
+        volunteer: "wants to volunteer",
         Lead: "wants to lead",
+        lead: "wants to lead",
         "Act now": "wants to act now",
+        act_now: "wants to act now",
       } as Record<string, string>,
       // From when we first saw them to their last activity.
       active: "Active",
@@ -547,7 +548,7 @@ export const staffCopy = {
               : `On newsletter list in CiviCRM, ${when}`,
           following: (when: string) => `Follows the Luma calendar, since ${when}`,
           "gave-number": (when: string, source: string) => `Gave it on ${source} for texts on the day, ${when}`,
-          volunteered: (when: string) => `Gave it when joining as a volunteer, ${when}`,
+          volunteered: (when: string) => `Gave it when joining as a volunteer or lead, ${when}`,
           blocked: () => "",
           "do-not-email": (when: string) => `“Do not email” in CiviCRM, ${when}`,
           "no-bulk-email": (when: string) => `“No bulk emails” in CiviCRM, ${when}`,
@@ -568,7 +569,7 @@ export const staffCopy = {
           "web-form": "their pauseai.info letter",
           "march-2026-11": "the march sign-up",
           "paper-signup": "a paper sign-up form",
-          member: "the join form",
+          airtable: "the join form",
           luma: "Luma",
           "luma-webhook": "Luma",
           "luma-contacts": "Luma",
@@ -593,7 +594,7 @@ export const staffCopy = {
           },
           volunteering: {
             about: "Any contact about volunteering.",
-            yes: "By email, they're on the volunteer list in CiviCRM. By text or call, they gave the number on the join form after choosing to volunteer.",
+            yes: "By email, they're on the volunteer list in CiviCRM. By call, they gave the number on the join form after choosing to volunteer or lead. Never by text yet, as the join form hasn't asked whether we can text them.",
             no: "They unsubscribed, didn't choose to volunteer, or the global team no longer shares them with us.",
           },
         } as Record<Topic, { about: string; yes: string; no: string }>,
@@ -650,7 +651,7 @@ export const staffCopy = {
         "letter-replied": "Letter answered by",
         "form-entry": "Filled in",
         "member-joined": "Joined PauseAI",
-        "civicrm-contact": "Shared with us by CiviCRM",
+        "member-left": "Left PauseAI UK",
         "opted-out": "Unsubscribed from",
         resubscribed: "Subscribed again to",
       } as Record<string, string>,

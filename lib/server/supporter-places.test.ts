@@ -30,7 +30,7 @@ async function guest(id: string, events: string[], postcode: string | null = nul
 /** A member who gave a city and maybe a postcode. */
 async function member(id: string, city: string, postcode: string | null = null) {
   await query(
-    `INSERT INTO members (id, email, name, city, postcode, joined_at, created_at, keep_informed, share_permission, source_modified_at)
+    `INSERT INTO airtable_members (id, email, name, city, postcode, joined_at, created_at, keep_informed, share_permission, source_modified_at)
      VALUES ($1, $2, $1, $3, $4, '2026-09-01', '2026-09-01', true, true, '2026-09-01')`,
     [id, `${id}@example.com`, city, postcode],
   );

@@ -483,14 +483,14 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   await expect(lee).toContainText(copy.badges.letter);
   await frame(page, "The supporters list");
   story(
-    "Lee's page has the name from the letter, the newest, and says Lee first came via the members. Lee joined before the join form asked about updates, so gets them. The history has the joining and the letter.",
+    "Lee's page has the name from the letter, the newest, and says Lee first came via Airtable's members, as CiviCRM doesn't return Lee. Lee joined before the join form asked about updates, so gets them. The history has the joining and the letter.",
   );
 
   await lee.getByRole("link").first().click();
   await expect(page).toHaveURL(/\/staff\/supporters\/\d+$/);
   // The letter's sender's name, as the newest; how they first came, as a member.
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lee Letter");
-  await expect(page.getByText(copy.detail.firstVia(copy.sources.member))).toBeVisible();
+  await expect(page.getByText(copy.detail.firstVia(copy.sources.airtable))).toBeVisible();
   await expect(page.getByText("29 Nov 2025", { exact: false }).first()).toBeVisible();
   // Left the box on their letter unticked, the newest thing they told us about the newsletter.
   await expect(page.getByText(said("declined", "email-your-mp"), { exact: false })).toBeVisible();
@@ -578,9 +578,7 @@ test("A member who never opted in", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText(said("not-opted-in", "civicrm"), { exact: false })).toBeVisible();
   await expect(page.getByText(copy.detail.permissions.answers.email.no).first()).toBeVisible();
   await openHistory(page);
-  await expect(
-    page.getByText(`${copy.detail.joinedOn("pauseai.uk")}, ${copy.detail.intents["Act now"]}`),
-  ).toBeVisible();
+  await expect(page.getByText(copy.detail.intents.act_now)).toBeVisible();
   await frame(page, "Owen's page");
 });
 
@@ -622,7 +620,7 @@ test("A member CiviCRM doesn't have", async ({ page, request, flowDatabase }) =>
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Mara Member" }).click();
-  await expect(page.getByText(said("asked", "member"), { exact: false })).toBeVisible();
+  await expect(page.getByText(said("asked", "airtable"), { exact: false })).toBeVisible();
   await frame(page, "Mara's page");
 });
 

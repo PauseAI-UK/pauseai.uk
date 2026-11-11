@@ -7,6 +7,13 @@ const ROW = {
   contact_id: 12345,
   airtable_id: "recJane",
   email: " Jane@Example.org ",
+  first_name: "Jane",
+  last_name: " Smith ",
+  city: "Bristol",
+  postal_code: "BS1 4DJ",
+  joined_date: "2025-03-14",
+  intent: "volunteer",
+  phone: "+447700900123",
   on_hold: false,
   no_bulk_email: true,
   do_not_email: false,
@@ -21,6 +28,13 @@ describe("readContact", () => {
       contactId: 12345,
       airtableId: "recJane",
       email: "jane@example.org",
+      firstName: "Jane",
+      lastName: "Smith",
+      city: "Bristol",
+      postalCode: "BS1 4DJ",
+      joinedDate: "2025-03-14",
+      intent: "volunteer",
+      phone: "+447700900123",
       onHold: false,
       noBulkEmail: true,
       doNotEmail: false,
@@ -33,6 +47,21 @@ describe("readContact", () => {
     expect(readContact({ ...ROW, airtable_id: "" }).airtableId).toBeNull();
   });
 
+  it("reads a member detail CiviCRM has no value for, or a blank one, as null", () => {
+    const { first_name, last_name, city, postal_code, joined_date, intent, phone, ...without } = ROW;
+    void [first_name, last_name, city, postal_code, joined_date, intent, phone];
+    expect(readContact(without)).toMatchObject({
+      firstName: null,
+      lastName: null,
+      city: null,
+      postalCode: null,
+      joinedDate: null,
+      intent: null,
+      phone: null,
+    });
+    expect(readContact({ ...ROW, city: null, phone: " " })).toMatchObject({ city: null, phone: null });
+  });
+
   it("refuses a row it can't be sure of, rather than keep a guess", () => {
     expect(() => readContact({ ...ROW, contact_id: "12345" })).toThrow("no contact ID");
     expect(() => readContact({ ...ROW, contact_id: 0 })).toThrow("no contact ID");
@@ -42,6 +71,11 @@ describe("readContact", () => {
     expect(() => readContact({ ...ROW, lists: null })).toThrow("no lists");
     expect(() => readContact({ ...ROW, lists: "subscribed" })).toThrow("no lists");
     expect(() => readContact({ ...ROW, on_hold: 1 })).toThrow("a on_hold that isn't true or false");
+    expect(() => readContact({ ...ROW, city: 5 })).toThrow("a city that isn't text");
+    expect(() => readContact({ ...ROW, joined_date: "14/03/2025" })).toThrow(
+      "a joined_date that isn't a day: 14/03/2025",
+    );
+    expect(() => readContact({ ...ROW, intent: "dance" })).toThrow("an intent we don't know: dance");
     expect(() => readContact({ ...ROW, lists: { ...ROW.lists, newsletter: "maybe" } })).toThrow(
       "a newsletter status we don't know: maybe",
     );

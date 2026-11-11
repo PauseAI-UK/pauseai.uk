@@ -260,7 +260,7 @@ export async function fetchWebFormLetters(token: string): Promise<WebFormLetterT
 export const MEMBERS_FORMULA =
   "AND({Country}='United Kingdom',OR({GDPR chapter share permission}=TRUE(),IS_BEFORE({Created Datetime},'2026-07-01')),{Merged into}=BLANK())";
 
-/** The only fields copied from a member's record: what the members table stores (docs/data-protection.md). */
+/** The only fields copied from a member's record: what airtable_members stores (docs/data-protection.md). */
 export const MEMBER_FIELDS = [
   "Full name",
   "Email",
@@ -273,7 +273,6 @@ export const MEMBER_FIELDS = [
   "Email subscription",
   "Email subscription (old)",
   "GDPR chapter share permission",
-  "Source page",
   "Intent",
 ] as const;
 
@@ -291,7 +290,6 @@ export type MemberToImport = {
   /** "Keep me informed": ticked, and not "No" in the older Yes/No field. */
   keepInformed: boolean;
   sharePermission: boolean;
-  sourcePage: string | null;
   intent: string | null;
   modifiedAt: string;
 };
@@ -319,7 +317,6 @@ export async function fetchMembers(token: string): Promise<MemberToImport[]> {
         createdAt,
         keepInformed: ticked(record, "Email subscription") && text(record, "Email subscription (old)") !== "No",
         sharePermission: ticked(record, "GDPR chapter share permission"),
-        sourcePage: text(record, "Source page") || null,
         intent: text(record, "Intent") || null,
         modifiedAt: text(record, "Last Modified"),
       };
