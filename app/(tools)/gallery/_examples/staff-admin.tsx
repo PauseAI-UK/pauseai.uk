@@ -1,5 +1,8 @@
 import SentEmails from "@/app/(staff)/staff/_components/SentEmails";
 import { exampleOldLettersResult, exampleSentEmails } from "@/app/(staff)/staff/_components/CampaignPages.examples";
+import ErrorSeenView from "@/app/(staff)/staff/_components/ErrorSeenView";
+import ErrorsSeen from "@/app/(staff)/staff/_components/ErrorsSeen";
+import { exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
 // The staff interface's dashboard, imports, audit log, accounts, login and
 // Gmail, on fake runs and changes.
 // Their links go to /staff pages, which send anyone without a session to the
@@ -68,6 +71,7 @@ import {
   AddStaffExample,
   MyGmailExample,
   ChangesFiltersExample,
+  StaffErrorPageExample,
 } from "./staff.client";
 
 // A run of each job, as its job's page shows it. A held politician sync, with its buttons, is in the client file.
@@ -297,6 +301,72 @@ export const staffAdmin: Group = {
                 pageSize={100}
                 search={{ q: "", purpose: [], outcome: [], backend: [], link: [], sort: "", dir: "", page: "" }}
               />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "ErrorsSeen",
+      file: "app/(staff)/staff/_components/ErrorsSeen.tsx",
+      variants: [
+        {
+          label: "A page's error, a problem, and two from browsers",
+          render: () => (
+            <StaffPage as="div">
+              <ErrorsSeen errors={exampleErrorsSeen} total={4} pages={1} page={1} pageSize={100} />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "Nothing has gone wrong",
+          render: () => (
+            <StaffPage as="div">
+              <ErrorsSeen errors={[]} total={0} pages={1} page={1} pageSize={100} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "ErrorSeenView",
+      file: "app/(staff)/staff/_components/ErrorSeenView.tsx",
+      variants: [
+        {
+          label: "A Postgres error in a page, with its stack trace",
+          render: () => (
+            <StaffPage as="div">
+              <ErrorSeenView error={exampleErrorsSeen[0]} />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A problem, which has no stack trace",
+          render: () => (
+            <StaffPage as="div">
+              <ErrorSeenView error={exampleErrorsSeen[1]} />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A page that fell over in a browser",
+          render: () => (
+            <StaffPage as="div">
+              <ErrorSeenView error={exampleErrorsSeen[2]} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "StaffErrorPage",
+      file: "app/(staff)/staff/_components/StaffErrorPage.tsx",
+      variants: [
+        {
+          label: "In place of a staff page that threw an error",
+          render: () => (
+            <StaffPage as="div">
+              <StaffErrorPageExample />
             </StaffPage>
           ),
         },

@@ -322,6 +322,13 @@ export const ACCOUNTS_LIST = defineStaffList({
   },
 });
 
+/** What has gone wrong on the site (lib/server/errors-seen.ts). It's the one seen most recently first, with no other sort. */
+export const ERRORS_LIST = defineStaffList({
+  path: "/staff/errors",
+  needs: "admin",
+  params: { page: "one" },
+});
+
 export type PoliticianSort = SortOf<typeof POLITICIANS_LIST>;
 export type SupporterSort = SortOf<typeof SUPPORTERS_LIST>;
 export type ChangeSort = SortOf<typeof AUDIT_LOG_LIST>;

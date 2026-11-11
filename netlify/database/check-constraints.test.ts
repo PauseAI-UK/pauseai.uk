@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { ASK_STATUSES, ASKERS } from "@/lib/asks";
 import { CHANNELS, TOPICS } from "@/lib/contact-permissions";
+import { ERROR_KINDS } from "@/lib/error-key";
 import { IMPORT_JOBS, type ImportRunStatus } from "@/lib/import-runs";
 import { RECORDED_LETTER_EVENTS } from "@/lib/letter-status";
 import type { OptOutList } from "@/lib/opt-outs";
@@ -56,6 +57,7 @@ const LISTED: Record<string, readonly string[]> = {
     "mailing",
     "mailing-test",
   ]),
+  "errors_seen.kind": ERROR_KINDS,
   "form_entry_luma.status": every<EntryLuma["status"]>()(["added", "skipped", "not-configured", "failed"]),
   "import_runs.job": IMPORT_JOBS,
   "import_runs.status": every<ImportRunStatus>()(["ok", "failed", "unchanged", "held", "applied", "discarded"]),

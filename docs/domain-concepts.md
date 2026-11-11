@@ -1061,7 +1061,10 @@ each time it happens, with a link to where to deal with it:
 - once a day at most, a report of the supporters' copies that bounced
   since the last, each address's domain and what its server said, and
   how many replies to them are held (`lib/server/held-replies.ts`), to
-  see whether the form should check addresses harder.
+  see whether the form should check addresses harder;
+- an error outside an import's run, when it's new and at most once a day
+  while it goes on, and a spam check refusing letter after letter
+  ("Errors", below).
 
 Others are told where they happen, above: an event to tag ("Supporters"),
 mail that matches nothing ("One-off emails") and a WhatsApp template sent or
@@ -1183,6 +1186,86 @@ A new job needs:
 
 A job that has more to do than a run allows, as the Luma import has, keeps
 its place and says in its result what's left.
+
+## Errors
+
+What goes wrong outside a job's run is kept, so that it reaches someone
+(`errors_seen`, `lib/server/errors-seen.ts`). A job's failures and problems
+are its run's ("Imports", above), not these. Three things are kept:
+
+- **An error the server throws** in a page, a route handler, a Server
+  Action or the proxy. Next hands each to `onRequestError`
+  (`instrumentation.ts`,
+  https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation).
+- **A problem reported outside a run**: code that catches an error and
+  carries on calls `problem()` (`lib/server/problems.ts`), which in a form
+  or a webhook has no run to keep it on. It's kept by its sentence, with
+  the error's words. One whose own alert has gone (`told`) isn't.
+- **An error in a visitor's browser**, which the server never sees. An
+  error page (`components/layout/ErrorPage.tsx`, in each `error.tsx`) posts
+  what lost the visitor the page, and a listener
+  (`components/layout/ErrorReporter.tsx`, in the root layout) anything else
+  thrown from our own scripts, to `/api/browser-error`
+  (`lib/browser-errors.ts`).
+
+**One row an error.** Two happenings are the same error when their key
+matches: what was running (its kind), where (the route's pattern, never
+the request's path, which can hold an ID or a token; for a browser's, the
+page's path with each part that's an ID or a number stood for), the
+error's class, and its words with what varies taken out, so "No politician
+4127" and "No politician 4128" are one (`lib/error-key.ts`). A Postgres
+error is known by its code and constraint, and nothing of its message,
+which can quote the value it refused. The key is coarse on purpose: two
+bugs sharing a row are found a day apart, but one bug making a row each
+time would fill the list and the inbox. A row counts its happenings, and
+keeps the newest as it was thrown, with its stack trace and, for a
+browser's, the browser's name and version.
+
+**Who's told.** The notification inbox is emailed about a new error, and
+at most once a day while it goes on, saying how many more times. The row
+is taken before the email is sent, so two requests failing at once send
+one. At most `SERVER_EMAILS_AN_HOUR` go in an hour, then one saying there
+are many, then none until the hour is up. An email holds the error's words
+with what varies taken out, never as thrown, as what's sent to Gmail can't
+be erased from here. What a browser throws that doesn't lose the page is
+kept and never emailed about, as much of it isn't ours (extensions, in-app
+browsers), unless its words have earned an email
+(`BROWSER_WORDS_EMAILED`). Nothing is kept in development, where the error
+is on the screen, and nothing is emailed where `NOTIFICATION_INBOX` isn't
+set. Next answers a missing page, a redirect, and a Server Action posted
+by a browser on an older deploy itself, without calling the hook, so none
+of those is kept.
+
+**What a browser posts is whatever anyone sends.** So the route takes
+only a page of the site's own (the browser's `Sec-Fetch-Site`), caps the
+body and cuts each field short; only `NEW_BROWSER_ERRORS_AN_HOUR` new
+errors from browsers are kept in an hour, though one already kept is still
+counted; their emails have an hour's limit of their own
+(`BROWSER_EMAILS_AN_HOUR`), so junk can't use up the server's and hide a
+real error; and an email about one says which page, and quotes none of it.
+A page tells of each error once, and of `REPORTS_A_PAGE` at most.
+
+**What people see.** Admins see every error at `/staff/errors`, the one
+seen most recently first, and each on its own page, with the latest as it
+was thrown. A visitor sees `ErrorPage` in place of a page that threw
+(`app/(site)/error.tsx` between the header and footer, `app/error.tsx` for
+the rest, `app/global-error.tsx` if the root layout itself threw), and
+staff `StaffErrorPage` inside the staff pages' frame. The nightly tidying
+deletes an error not seen for a month (`lib/server/log-retention.ts`), so
+one that's fixed drops off by itself.
+
+**A check that refuses everyone throws nothing.** The spam check on
+letters to MPs answers a refusal with a message, so one that refused every
+sender would look like none. Each letter it refuses is counted, until it
+lets one through (`spam_check_runs`, `lib/server/spam-check-runs.ts`), and
+the notification inbox is emailed once when it has refused
+`REFUSALS_BEFORE_EMAIL` in a row. A bot's run of refusals looks the same,
+so the email says to try the form. Another form's check would be another
+`form` there.
+
+Not covered yet: the site being down, or a scheduled job that stops
+running, which keep nothing and need a monitor outside the site; and
+mapping a browser's minified stack trace back to the source.
 
 ## Saved filters
 

@@ -209,14 +209,20 @@ describeWithDatabase("submitLetter", () => {
     expect(await submitLetter({ ...FORM, nickname: "bot" })).toEqual({ ok: true });
     expect(sent).toEqual([]);
     expect(await query("SELECT id FROM letters")).toEqual([]);
+    expect(await query("SELECT refused FROM spam_check_runs")).toEqual([]);
   });
 
-  it("refuses a letter that fails the spam check", async () => {
+  it("refuses a letter that fails the spam check, counted until one gets through", async () => {
+    const refusals = () => query("SELECT refused FROM spam_check_runs");
     expect(await submitLetter({ ...FORM, turnstileToken: "" })).toEqual({
       ok: false,
       status: 403,
       message: copy.errors.spamWait,
     });
+    expect(await refusals()).toEqual([{ refused: 1 }]);
+    // Past the spam check, though refused for something else.
+    expect(await submitLetter({ ...FORM, address: "" })).toMatchObject({ status: 400 });
+    expect(await refusals()).toEqual([{ refused: 0 }]);
   });
 
   it("refuses missing fields, a bad email, one of ours, and an unknown campaign", async () => {

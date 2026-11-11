@@ -34,6 +34,12 @@ export const staffCopy = {
   deleteIt: "Press again to delete it",
   // The same, short, where there's little room (a note's buttons).
   deleteItShort: "Confirm?",
+  // In place of a staff page that threw an error (StaffErrorPage).
+  errorPage: {
+    title: "⁂ Something went wrong",
+    body: "⁂ This page hit an error. It's been kept on the Errors page, which admins can see, and the notification inbox has been emailed if it's a new one. You could try again now.",
+    retry: "⁂ Try again",
+  },
   // The dev login's box under the login card, in a fixture build only.
   devLogin: {
     // Before what a shared inbox's address is, in the dev login.
@@ -80,6 +86,7 @@ export const staffCopy = {
     campaigns: "Campaigns",
     emails: "All emails",
     sentEmails: "Sent emails",
+    errors: "⁂ Errors",
     // Beside a page the staff member first saw in the last 3 days.
     newTag: "new",
     draftTag: "draft",
@@ -2033,6 +2040,13 @@ All events: ${link}`,
       body: (n: number, hours: number, why: string, link: string) =>
         `${plural(n, "A letter", `${n} letters`)} to MPs ${plural(n, "has", "have")} waited over ${hours} hours to go. Why: ${why}.\n\nThe letters waiting: ${link}`,
     },
+    // The spam check has refused several letters to MPs in a row, letting none through: how many, since when, and
+    // the errors page.
+    lettersRefused: {
+      subject: (n: number) => `⁂ The spam check has refused the last ${n} letters to MPs`,
+      body: (n: number, since: string, link: string) =>
+        `⁂ The spam check has refused the last ${n} letters to MPs, since ${since}, and let none through. It may be refusing everyone. Try sending a letter to the test MP (postcode ZZ99ZZ) to see. You won't be emailed again until a letter gets through.\n\nErrors on the site: ${link}`,
+    },
   },
   // The read every 5 minutes of the connected Gmail accounts for replies to our
   // letters and bounces (lib/server/gmail-reading.ts), on the import page.
@@ -2084,7 +2098,7 @@ All events: ${link}`,
     }) =>
       `Started ${count(r.started.length, "mailing", "mailings")}; sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}, ${r.left} left. The queue: sent ${r.queue.sent}, ${r.queue.left} left.`,
   },
-  // The nightly tidying (/api/cron/tidy-logs): this log, the audit log and forgotten drafts.
+  // The nightly tidying (/api/cron/tidy-logs): this log, the audit log, forgotten drafts and old errors.
   tidying: {
     title: "Tidying the logs",
     intro: {
@@ -2095,12 +2109,13 @@ All events: ${link}`,
     // The intro goes on, with a second link.
     introThen: {
       link: "mailing drafts",
-      after: " unopened for a day.",
+      after: " unopened for a day. ⁂ Also deletes errors not seen for a month.",
     },
     tidyNow: "Tidy logs now",
     never: "Not tidied yet.",
-    result: (r: { importRuns: number; auditEntries: number; drafts: number }) =>
-      `Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")} and ${count(r.drafts, "draft", "drafts")}.`,
+    // A run kept from before errors were tidied counts none.
+    result: (r: { importRuns: number; auditEntries: number; drafts: number; errors?: number }) =>
+      `⁂ Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")}, ${count(r.drafts, "draft", "drafts")} and ${count(r.errors ?? 0, "error", "errors")}.`,
   },
   // The hourly copy of PauseAI's UK members (lib/server/members-import.ts),
   // on the import page.
@@ -2221,6 +2236,78 @@ All events: ${link}`,
       outcome: "Outcome",
       backend: "Backend",
       links: { letter: "Has a letter", campaign: "Has a campaign", mailing: "Has a mailing" },
+    },
+  },
+  // What went wrong on the site outside a job's run (lib/server/errors-seen.ts): the admins' list at
+  // /staff/errors, one error's page, and the emails to the notification inbox.
+  errorsSeen: {
+    // Under the list's heading.
+    intro:
+      "⁂ What has gone wrong on the site in the last month, apart from the imports, which keep their own. The newest first. One that stops happening is deleted a month after it was last seen.",
+    total: (n: number) => `⁂ ${count(n, "error", "errors")}`,
+    none: "⁂ Nothing has gone wrong in the last month.",
+    columns: {
+      what: "⁂ What went wrong",
+      where: "⁂ Where",
+      first: "⁂ First seen",
+      last: "⁂ Last seen",
+      count: "⁂ Times",
+    },
+    // What was running: Next's four on the server, a problem our code reported, and the browser's two.
+    kinds: {
+      render: "⁂ Page",
+      route: "⁂ Route handler",
+      action: "⁂ Server Action",
+      proxy: "⁂ Proxy",
+      problem: "⁂ Problem",
+      "browser-page": "⁂ Browser, page lost",
+      "browser-other": "⁂ Browser",
+    },
+    // One error's page: its heading, the way back to the list, then each thing known about it.
+    one: {
+      title: "⁂ Error",
+      back: "⁂ All errors",
+      where: "⁂ Where",
+      className: "⁂ Class",
+      code: "⁂ Code",
+      browser: "⁂ Browser of the latest",
+      first: "⁂ First seen",
+      last: "⁂ Last seen",
+      count: "⁂ Times",
+      // Over its words as they were thrown the last time, numbers, addresses and all.
+      latest: "⁂ The latest, as it was thrown",
+      stack: "⁂ Its stack trace",
+      noStack: "⁂ It came with no stack trace.",
+    },
+    // The emails. `where` is the kind and the route; `words` the error's, with what varies taken out.
+    email: {
+      // An error on the server, or a problem.
+      server: {
+        subject: (words: string) => `⁂ Error on the site: ${words}`,
+        first: (where: string, words: string, link: string) =>
+          `⁂ Something went wrong on the site that hasn't in the last month.\n\n${where}\n${words}\n\nYou'll be emailed about it again at most once a day while it goes on happening. The latest, with its stack trace: ${link}`,
+        again: (where: string, words: string, since: number, total: number, link: string) =>
+          `⁂ This is still going wrong on the site: ${count(since, "more time", "more times")} since the last email about it, ${total} in all.\n\n${where}\n${words}\n\nThe latest, with its stack trace: ${link}`,
+      },
+      // An error in a visitor's browser that lost them the page. Its words aren't quoted, as anyone can post them.
+      browser: {
+        subject: (where: string) => `⁂ A page fell over in someone's browser: ${where}`,
+        first: (where: string, link: string) =>
+          `⁂ A page fell over in someone's browser, in a way that hasn't been seen in the last month.\n\n${where}\n\nYou'll be emailed about it again at most once a day while it goes on happening. What their browser said: ${link}`,
+        again: (where: string, since: number, total: number, link: string) =>
+          `⁂ A page is still falling over in people's browsers: ${count(since, "more time", "more times")} since the last email about it, ${total} in all.\n\n${where}\n\nWhat the latest browser said: ${link}`,
+      },
+      // In place of an hour's sixth email about the server's errors, or fourth about the browser's; then no more that hour.
+      many: {
+        subject: "⁂ Many new errors on the site",
+        body: (link: string) =>
+          `⁂ Several different things have gone wrong on the site in the last hour, so no more emails about new errors will be sent for now.\n\nAll of them: ${link}`,
+      },
+      manyBrowser: {
+        subject: "⁂ Many new errors in people's browsers",
+        body: (link: string) =>
+          `⁂ Pages have fallen over in people's browsers in several different ways in the last hour, so no more emails about new ones will be sent for now.\n\nAll of them: ${link}`,
+      },
     },
   },
   oldLetters: {
@@ -2393,7 +2480,8 @@ All events: ${link}`,
       noPolitician: "Letters with no politician here, so weren't imported:",
     },
     // Can happen in a job or not. In a job, staff see it on the job's page and in the email. Not in a job, such
-    // as a visitor sending a letter, it only goes to Netlify's logs.
+    // as a visitor sending a letter, it's kept as an error (lib/server/errors-seen.ts): on the errors page, and
+    // emailed to staff.
     anywhere: {
       // An email didn't go, as Gmail or Postmark errored.
       sendFailed: (purpose: string) => `An email of type '${purpose}' couldn't be sent`,
@@ -2407,7 +2495,9 @@ All events: ${link}`,
       charsetUnknown: (charset: string) =>
         `An email's charset isn't one we know, so its text may be garbled: ${charset}`,
     },
-    // Only ever in Netlify's logs: no job reaches these. Each says what the person saw, if anything.
+    // No job reaches these: each is kept as an error (lib/server/errors-seen.ts), on the errors page and
+    // emailed to staff, but for connectionDropped and errorNotKept, which only reach Netlify's logs. Each
+    // says what the person saw, if anything.
     logs: {
       // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission.
       tokenNotRevoked: (account: string) => `${account}'s Gmail token couldn't be revoked at Google`,
@@ -2447,6 +2537,11 @@ All events: ${link}`,
       badBody: (from: string) => `${from} sent a body that isn't JSON`,
       // Nobody sees anything: a warning, as the next query carries on.
       connectionDropped: "A database connection was dropped while idle",
+      // A letter's spam check, refused or let through, that couldn't be counted (lib/server/spam-check-runs.ts).
+      // The letter carries on.
+      spamCheckNotCounted: "⁂ A spam check's answer couldn't be counted",
+      // An error, or a problem above, that couldn't be kept or emailed about, as the database or the email failed.
+      errorNotKept: "⁂ An error couldn't be kept, so nobody was told about it",
     },
   },
   // The line every run in the import log starts with (RunBox): how it

@@ -23,7 +23,8 @@ export type StaffPageId =
   | "import"
   | "accounts"
   | "changes"
-  | "sentEmails";
+  | "sentEmails"
+  | "errors";
 export type StaffSectionId = "supporters" | "events" | "politicians" | "admin";
 
 /**
@@ -69,6 +70,7 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
       { id: "import", href: "/staff/import-data" },
       { id: "sentEmails", href: "/staff/sent-emails", permission: "admin" },
       { id: "changes", href: "/staff/audit-log", permission: "admin" },
+      { id: "errors", href: "/staff/errors", permission: "admin" },
       { id: "accounts", href: "/staff/accounts", permission: "admin" },
     ],
   },

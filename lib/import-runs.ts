@@ -303,8 +303,12 @@ export type SendingResult = {
 };
 export type Sending = ImportRun<"send-mailings", SendingResult>;
 
-/** What a night's tidying deleted: runs from this log, audit log entries, and forgotten mailing drafts. */
-export type TidyingResult = { importRuns: number; auditEntries: number; drafts: number };
+/**
+ * What a night's tidying deleted: runs from this log, audit log entries,
+ * forgotten mailing drafts, and errors not seen for a month, which a run
+ * kept from before they were tidied doesn't count.
+ */
+export type TidyingResult = { importRuns: number; auditEntries: number; drafts: number; errors?: number };
 export type Tidying = ImportRun<"tidy-logs", TidyingResult>;
 
 export type AnyImportRun =

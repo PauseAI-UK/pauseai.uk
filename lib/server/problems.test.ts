@@ -1,8 +1,25 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { describeError, problem } from "./problems";
+import { describeError, problem, registerProblemKeeper } from "./problems";
 import { currentRun, inRun } from "./run-store";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  registerProblemKeeper(undefined);
+});
+
+it("hands a problem outside a run to what keeps errors, but not one staff were told of already", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const kept: [string, string | undefined][] = [];
+  registerProblemKeeper((what, described) => kept.push([what, described]));
+  problem("A letter couldn't be kept", new Error("no database"));
+  problem("A note with no error");
+  problem("Told by an alert of its own", undefined, { told: true });
+  await inRun(async () => problem("The run keeps this one"));
+  expect(kept).toEqual([
+    ["A letter couldn't be kept", "no database"],
+    ["A note with no error", undefined],
+  ]);
+});
 
 it("describes an error with what caused it, a few deep, and anything else as it is", () => {
   const refused = new Error("connect ECONNREFUSED");

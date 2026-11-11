@@ -113,6 +113,7 @@ const PAGES: Record<StaffPageName, true> = {
   mpEmails: true,
   import: true,
   changes: true,
+  errors: true,
   accounts: true,
 };
 

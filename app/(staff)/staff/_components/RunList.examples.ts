@@ -223,4 +223,4 @@ export const exampleSendingResult: SendingResult = {
 };
 
 /** What a night's tidying deleted. */
-export const exampleTidyingResult: TidyingResult = { importRuns: 288, auditEntries: 12, drafts: 1 };
+export const exampleTidyingResult: TidyingResult = { importRuns: 288, auditEntries: 12, drafts: 1, errors: 3 };
