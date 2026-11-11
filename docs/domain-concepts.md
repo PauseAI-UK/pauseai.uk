@@ -285,7 +285,10 @@ time they're written to, and kept.
   A relay is the same message, byte for byte, with only the headers ours
   (`relayMime`), and nobody the office copied in gets it. Only mail that
   Google found passes DMARC (or, with no policy, aligned SPF or DKIM) is
-  relayed.
+  relayed. That's read from the first `Authentication-Results` field in the
+  message, which is Google's, each result from its own clause
+  (`authenticated`): the fields below it, and much of what Google's own
+  repeats, are the sender's to write.
 
   The letter a message is for is the first of these that gives one:
   1. the supporter's only letter to that MP;
@@ -303,7 +306,8 @@ time they're written to, and kept.
 
   Each message is labelled in Gmail and archived, but for mail the read
   can't account for: an unknown proxy, a stranger, a forgery, one over the
-  cap, or a bounce of nothing we sent. That mail is labelled "Not
+  cap, or a bounce of nothing we sent or of an address our email didn't go
+  to. That mail is labelled "Not
   understood" and left in the inbox. It's a problem of the run, which lists
   each message with a link to it in Gmail and emails the notification inbox
   once ("Email", below). Spam to no letter is only counted.
@@ -452,6 +456,10 @@ logged-in staff member's own address. The refresh token is kept encrypted
   - A bounce, from mailer-daemon or postmaster, is recorded as Postmark's
     are, marked found in Gmail. A bounce from another server may not be in
     the thread, so the last three days' bounces are searched for too.
+    Anyone can write to a mailbox as mailer-daemon, and a recorded bounce
+    blocks its address. So a bounce is recorded only for an address we sent
+    the email it names, or one in its Gmail thread; any other address it
+    names is left alone.
   - An automatic reply is an event on the letter.
   - Any other message in the thread, the politician's reply or our answer,
     is kept whole, gzipped, in Netlify Blobs, with a row in

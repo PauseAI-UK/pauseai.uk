@@ -350,13 +350,13 @@ describeWithDatabase("reading Gmail", () => {
     expect(fetched.filter((one) => one.endsWith(":raw"))).toEqual([]);
   });
 
-  it("records a bounce as Postmark's, on the letter it was, once; and finds another server's by searching", async () => {
+  it("records a bounce as Postmark's, on the letter it was, once; finds another server's by searching; and leaves alone any address we didn't send the email to", async () => {
     await connectTestGmail(JO);
     const letter = await sentLetter(1, "gone@example.org");
     await sentLetter(2, "full@example.net");
     mailbox({
       history: ["b1"],
-      search: { [BOUNCE_SEARCH]: ["b1", "b2", "b3"] },
+      search: { [BOUNCE_SEARCH]: ["b1", "b2", "b3", "b4"] },
       messages: {
         b1: {
           headers: { From: "Mail Delivery Subsystem <mailer-daemon@googlemail.com>" },
@@ -366,13 +366,19 @@ describeWithDatabase("reading Gmail", () => {
           headers: { From: "postmaster@example.net", Subject: "Undeliverable" },
           raw: fixture("other-server-delay.eml"),
         },
+        // Anyone can write as mailer-daemon: one that names no email of ours, and one that names ours but
+        // addresses it didn't go to.
         b3: {
           headers: { From: "MAILER-DAEMON@example.com" },
           raw: "Subject: x\r\nX-Failed-Recipients: c@example.com\r\n\r\n?",
         },
+        b4: {
+          headers: { From: "mailer-daemon@example.com", "In-Reply-To": "<letter-2@pauseai.uk>" },
+          raw: "Subject: x\r\nX-Failed-Recipients: mp@parliament.example, jo@pauseai.uk\r\nIn-Reply-To: <letter-2@pauseai.uk>\r\n\r\n?",
+        },
       },
     });
-    expect(await read()).toMatchObject([{ bounces: 3 }]);
+    expect(await read()).toMatchObject([{ bounces: 2 }]);
     expect(
       await query("SELECT address, message_id, kind, reason, gmail_message_id FROM email_problems ORDER BY id"),
     ).toEqual([
@@ -384,16 +390,12 @@ describeWithDatabase("reading Gmail", () => {
         gmail_message_id: "b1",
       },
       { address: "full@example.net", message_id: "g-letter-2", kind: "soft", reason: "4.2.2", gmail_message_id: "b2" },
-      { address: "c@example.com", message_id: null, kind: "hard", reason: "", gmail_message_id: "b3" },
     ]);
-    expect(await query("SELECT address FROM email_blocks ORDER BY address")).toEqual([
-      { address: "c@example.com" },
-      { address: "gone@example.org" },
-    ]);
+    expect(await query("SELECT address FROM email_blocks ORDER BY address")).toEqual([{ address: "gone@example.org" }]);
     expect(await query("SELECT status FROM letters WHERE id = $1", [letter])).toEqual([{ status: "bounced" }]);
     // The search finds them again tomorrow; they're recorded once.
     expect(await read()).toMatchObject([{ bounces: 0 }]);
-    expect(await query("SELECT 1 FROM email_problems")).toHaveLength(3);
+    expect(await query("SELECT 1 FROM email_problems")).toHaveLength(2);
   });
 
   it("knows our letter in Sent by Gmail's ID when Gmail sent it with a Message-ID of its own, and finds its bounce by its thread", async () => {
@@ -570,7 +572,8 @@ describeWithDatabase("reading Gmail", () => {
 
   it("reads each reply, automatic reply and bounce once when runs overlap, the runs started meanwhile not going", async () => {
     await connectTestGmail(JO);
-    const letter = await sentLetter();
+    // To the address the bounce says failed.
+    const letter = await sentLetter(1, "gone@example.org");
     mailbox({
       history: ["r1", "ooo", "b1"],
       messages: {
