@@ -278,17 +278,18 @@ async function alertNotUnderstood(accounts: GmailRead[], request: Request | unde
 }
 
 /**
- * How long into a run the search for addresses staff added may start on
- * another, leaving the rest of a scheduled function's 30 seconds for the one
- * it's on and the run's last steps.
+ * How long the search for addresses staff added may start on another, at
+ * the start of a run, so that reading the mailboxes, which can take most of
+ * a minute, follows soon after.
  */
-const SEARCH_UNTIL_MS = 15_000;
+const SEARCH_FOR_MS = 5_000;
 
 /**
- * Reads every connected account, keeping the run. One that fails is a
- * problem of the run, and the next is read all the same; it's read again from
- * where it got to next time, unless Google refused its access, which
- * disconnects it (gmailAccess). `request` is the job's call, for links in
+ * Searches the mailboxes for addresses staff added, if any wait
+ * (searchAddedAddresses), then reads every connected account, keeping the
+ * run. One that fails is a problem of the run, and the next is read all the
+ * same; it's read again from where it got to next time, unless Google
+ * refused its access, which disconnects it (gmailAccess). `request` is the job's call, for links in
  * alerts; a staff member's run has none. Two runs would each handle the same
  * messages, so only one goes at a time (lib/server/jobs.ts).
  */
@@ -299,7 +300,8 @@ export async function readGmail(startedBy: string, request?: Request): Promise<G
 
 /** A run of readGmail. */
 async function readAll(request: Request | undefined): Promise<Ran<GmailReadResult>> {
-  const started = Date.now();
+  // First, as reading the mailboxes takes most of a run, and the search is rare and brief.
+  const search = await searchAddedAddresses(Date.now() + SEARCH_FOR_MS);
   const accounts: GmailRead[] = [];
   for (const { email, historyId } of await gmailReadingState()) {
     try {
@@ -335,7 +337,6 @@ async function readAll(request: Request | undefined): Promise<Ran<GmailReadResul
     });
   }
   await reportUnmatchedMail(gmailAccess);
-  const search = await searchAddedAddresses(started + SEARCH_UNTIL_MS);
   const searched = search.searched || search.waiting ? { searched: search } : {};
   return { status: found || search.kept ? "ok" : "unchanged", result: { accounts, ...searched } };
 }
