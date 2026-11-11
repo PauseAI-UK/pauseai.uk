@@ -197,7 +197,7 @@ export async function getMailing(id: number, page = 1, tab: RecipientTab = "all"
          l.replied_at AS "repliedAt",
          (SELECT count(*)::int FROM letter_replies r WHERE r.letter_id = l.id AND NOT r.from_us) AS replies, p.personalised, p.skip_reason AS "skipReason",
          (SELECT s.status FROM ask_statuses s WHERE s.notable_person_id = n.id AND s.ask = $4) AS answer
-       ${from} ORDER BY n.name COLLATE "en-GB-x-icu", l.id LIMIT $2 OFFSET $3`,
+       ${from} ORDER BY n.name COLLATE english, l.id LIMIT $2 OFFSET $3`,
       [id, RECIPIENTS_PAGE_SIZE, (page - 1) * RECIPIENTS_PAGE_SIZE, mailing.ask],
     ),
     query<{ total: number }>(`SELECT count(*)::int AS total ${from}`, [id]),

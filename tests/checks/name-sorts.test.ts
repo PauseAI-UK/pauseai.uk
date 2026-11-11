@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 // Names sort in English order: Áine among the A names, de Souza among the
 // D names. The database's own collation, C.UTF-8, puts capitals before
 // lower case and every accented letter after z, so each sort by a name says
-// its collation. Postgres won't change the column's instead, as views use
-// notable_people.name. This fails on a sort key that sorts by a name (a
-// column called name, perhaps in lower(), or a JSON field called name)
-// without it.
-const COLLATED = 'COLLATE "en-GB-x-icu"';
+// COLLATE english (migration 0109). Postgres won't change the name columns'
+// collation instead, as views use notable_people.name. This fails on a sort
+// key that sorts by a name (a column called name, perhaps in lower(), or a
+// JSON field called name) without it.
+const COLLATED = "COLLATE english";
 const NAME_KEY = /(?:^|[\s(.])name\b(?!\s*(?:=|<>))|->>\s*'name'/;
 
 // The site's code; tests sort as they please.
