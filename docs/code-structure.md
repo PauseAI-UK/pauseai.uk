@@ -324,8 +324,8 @@ the code should go instead. The rules below say which ones are enforced.
   name (`staffCopy.syncs.syncNow`), so changing it breaks nothing. Words
   not written yet are placeholders: a draft in English, starting with the
   asterism (U+2042), so that it can't be mistaken for real copy.
-  `tests/checks/placeholder-copy.test.ts` fails while any placeholder is
-  left, which stops placeholders being deployed (AGENTS.md).
+  `npm run placeholders` fails while any placeholder is left, in CI and in
+  Netlify's build, which stops placeholders being deployed (AGENTS.md).
 - **Names say which one.** There will be many campaigns, letters, imports
   and statuses.
   - An exported name for one of them names it: `SOBEL_BILL_CAMPAIGN`, not

@@ -17,7 +17,6 @@ import {
   frameName,
   groupPlaceholders,
   kindOf,
-  MARK,
   openQuote,
   placeholdersIn,
   readCopy,
@@ -26,8 +25,9 @@ import {
   picturesOf,
   staleness,
 } from "./copy.mjs";
+import { MARK } from "./placeholders.mjs";
 
-// The mark, never written out: tests/checks/placeholder-copy.test.ts fails on any file that has it.
+// The mark, never written out: npm run placeholders fails on any file that has it.
 const M = MARK;
 
 const read = (source: string, kind: "jsx" | "js" | "text" = "js") => readCopy(source, source.indexOf(M), kind).parts;

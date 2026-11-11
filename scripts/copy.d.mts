@@ -7,7 +7,6 @@ export type Shot = { image: string; boxes: number[][]; where: string[] };
 export type Picture = { id: string; src: string; width: number; height: number };
 export type Found = Map<string, { frame: Frame; boxes: number[][] }[]>;
 
-export const MARK: string;
 export const PAGE: string;
 export function addedLines(diff: string): Map<string, Set<number>>;
 export function kindOf(file: string): "jsx" | "js" | "text";

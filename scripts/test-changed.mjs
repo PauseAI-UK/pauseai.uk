@@ -8,9 +8,9 @@
 //   npm run test:changed -- --project node   anything after -- goes to Vitest
 //
 // Vitest's --changed picks the tests: those that import a changed file, and
-// changed test files. A failing test, such as tests/checks/placeholder-copy.test.ts
-// while copy is a placeholder, still gets the coverage report. Exits as
-// Vitest did: non-zero if a test failed or a changed file is under 100%.
+// changed test files. A run with a failing test still gets the coverage
+// report. Exits as Vitest did: non-zero if a test failed or a changed file
+// is under 100%.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join, matchesGlob, relative } from "node:path";
