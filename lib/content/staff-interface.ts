@@ -34,12 +34,6 @@ export const staffCopy = {
   deleteIt: "Press again to delete it",
   // The same, short, where there's little room (a note's buttons).
   deleteItShort: "Confirm?",
-  // In place of a staff page that threw an error (StaffErrorPage).
-  errorPage: {
-    title: "⁂ Something went wrong",
-    body: "⁂ This page hit an error. It's been kept on the Errors page, which admins can see, and the notification inbox has been emailed if it's a new one. You could try again now.",
-    retry: "⁂ Try again",
-  },
   // The dev login's box under the login card, in a fixture build only.
   devLogin: {
     // Before what a shared inbox's address is, in the dev login.

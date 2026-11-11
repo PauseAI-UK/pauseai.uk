@@ -14,10 +14,8 @@ route next to that route.
 app/
   layout.tsx              root: fonts, metadata, cookie consent
   not-found.tsx
-  error.tsx, global-error.tsx
-                          in place of a page that threw; (site)/ and the
-                          staff pages have their own, inside their layouts
-                          (docs/domain-concepts.md, "Errors")
+  global-error.tsx        in place of any page that threw: Next's own error
+                          page (docs/domain-concepts.md, "Errors")
   (site)/                 public pages; layout.tsx renders <Nav> and <Footer>
   (tools)/                unlisted volunteer tools and trackers; layout.tsx
                           renders <Nav> and <Footer>, and turns analytics off

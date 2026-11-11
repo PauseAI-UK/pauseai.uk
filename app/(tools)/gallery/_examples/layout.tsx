@@ -13,7 +13,6 @@ import NoAnalytics from "@/components/layout/NoAnalytics";
 import { localGroups } from "@/lib/content/local-groups";
 import type { Group } from "../_components/types";
 import styles from "../_components/Gallery.module.css";
-import { ErrorPageExample } from "./layout.client";
 
 // A local group with its own logo, and one without.
 const WITH_LOGO = localGroups.find((group) => group.logo)!;
@@ -193,16 +192,6 @@ export const layout: Group = {
               <p className={styles.note}>Adds structured data for search engines to the page.</p>
             </>
           ),
-        },
-      ],
-    },
-    {
-      name: "ErrorPage",
-      file: "components/layout/ErrorPage.tsx",
-      variants: [
-        {
-          label: "In place of a page that threw an error",
-          render: () => <ErrorPageExample />,
         },
       ],
     },

@@ -1214,8 +1214,8 @@ are its run's ("Imports", above), not these. Three things are kept:
   or a webhook has no run to keep it on. It's kept by its sentence, with
   the error's words. One whose own alert has gone (`told`) isn't.
 - **An error in a visitor's browser**, which the server never sees. An
-  error page (`components/layout/ErrorPage.tsx`, in each `error.tsx`) posts
-  what lost the visitor the page, and a listener
+  error page (`app/global-error.tsx`, with `components/layout/useErrorTold.ts`)
+  posts what lost the visitor the page, and a listener
   (`components/layout/ErrorReporter.tsx`, in the root layout) anything else
   thrown from our own scripts, to `/api/browser-error`
   (`lib/browser-errors.ts`).
@@ -1259,10 +1259,11 @@ A page tells of each error once, and of `REPORTS_A_PAGE` at most.
 
 **What people see.** Admins see every error at `/staff/errors`, the one
 seen most recently first, and each on its own page, with the latest as it
-was thrown. A visitor sees `ErrorPage` in place of a page that threw
-(`app/(site)/error.tsx` between the header and footer, `app/error.tsx` for
-the rest, `app/global-error.tsx` if the root layout itself threw), and
-staff `StaffErrorPage` inside the staff pages' frame. The nightly tidying
+was thrown. Visitors and staff alike see Next's own error page in place of
+a page that threw, the one it shows when a site has none
+(`app/global-error.tsx`): it says only that the page couldn't load, and,
+for an error on the server, Next's digest of it, as Next keeps a server
+error's words from the browser. The nightly tidying
 deletes an error not seen for a month (`lib/server/log-retention.ts`), so
 one that's fixed drops off by itself.
 

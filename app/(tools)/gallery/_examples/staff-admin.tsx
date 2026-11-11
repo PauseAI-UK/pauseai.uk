@@ -72,7 +72,6 @@ import {
   AddStaffExample,
   MyGmailExample,
   ChangesFiltersExample,
-  StaffErrorPageExample,
 } from "./staff.client";
 
 // A run of each job, as its job's page shows it. A held politician sync, with its buttons, is in the client file.
@@ -372,20 +371,6 @@ export const staffAdmin: Group = {
           render: () => (
             <StaffPage as="div">
               <ErrorSeenView error={exampleErrorsSeen[2]} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "StaffErrorPage",
-      file: "app/(staff)/staff/_components/StaffErrorPage.tsx",
-      variants: [
-        {
-          label: "In place of a staff page that threw an error",
-          render: () => (
-            <StaffPage as="div">
-              <StaffErrorPageExample />
             </StaffPage>
           ),
         },

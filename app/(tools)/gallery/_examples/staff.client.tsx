@@ -111,10 +111,8 @@ import {
 } from "@/app/(staff)/staff/_components/MailingsTable.examples";
 import PasteForm from "@/app/(staff)/staff/_components/PasteForm";
 import PickBox from "@/app/(staff)/staff/_components/PickBox";
-import StaffErrorPage from "@/app/(staff)/staff/_components/StaffErrorPage";
 import PoliticiansList, { ChoosingHead, type ChoosingActions } from "@/app/(staff)/staff/_components/PoliticiansList";
 import { Controlled, Logged } from "../_components/wiring";
-import { tellNoOne } from "./layout.client";
 
 /** The table of politicians: one function for both examples. */
 function LoggedPoliticianTable({ politicians }: { politicians: Politician[] }) {
@@ -153,12 +151,6 @@ export function PoliticianTableEmptyExample() {
 /** An MP sync held for a decision: apply and discard log what they'd send. */
 export function HeldSyncExample() {
   return <Logged>{(log) => <Run run={exampleHeldSync} decide={log("decide")} />}</Logged>;
-}
-
-/** In place of a staff page that threw in the browser: Try again is logged, and the site is told of nothing. */
-export function StaffErrorPageExample() {
-  const [error] = useState(() => new TypeError("rows is undefined"));
-  return <Logged>{(log) => <StaffErrorPage error={error} retry={log("retry")} report={tellNoOne} />}</Logged>;
 }
 
 /**

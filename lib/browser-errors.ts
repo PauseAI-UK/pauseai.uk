@@ -2,8 +2,7 @@ import type { BrowserKind } from "./error-key";
 
 // An error in this browser, told to the site (/api/browser-error), which
 // keeps it beside the server's own (lib/server/errors-seen.ts). The error
-// pages tell of what lost them the page (components/layout/ErrorPage.tsx),
-// and a listener of anything else thrown from our own scripts
+// page tells of what lost it the page (app/global-error.tsx), and a listener of anything else thrown from our own scripts
 // (components/layout/ErrorReporter.tsx).
 
 /** Where a browser posts an error. */

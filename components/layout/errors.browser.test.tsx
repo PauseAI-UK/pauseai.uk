@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import { page } from "vitest/browser";
 import type { reportBrowserError } from "@/lib/browser-errors";
-import ErrorPage from "./ErrorPage";
 import ErrorReporter from "./ErrorReporter";
+import { useErrorTold } from "./useErrorTold";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -13,24 +12,21 @@ const reports = () => vi.fn<typeof reportBrowserError>();
 const fromServer = () =>
   Object.assign(new Error("An error occurred in the Server Components render."), { digest: "1234" });
 
-describe("ErrorPage", () => {
-  it("says sorry, with a button that tries again and the way home", async () => {
-    const retry = vi.fn();
-    await render(<ErrorPage error={fromServer()} retry={retry} report={reports()} />);
-    await expect.element(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect.element(page.getByRole("link", { name: /homepage/ })).toHaveAttribute("href", "/");
-    await page.getByRole("button", { name: /Try again/ }).click();
-    expect(retry).toHaveBeenCalledTimes(1);
-  });
+/** What the error page does with what it caught. */
+function Told({ error, report }: { error: unknown; report?: typeof reportBrowserError }) {
+  useErrorTold(error, report);
+  return null;
+}
 
+describe("useErrorTold", () => {
   it("tells the site of an error the browser threw, and not of one the server did", async () => {
     const report = reports();
     const thrown = new TypeError("rows is undefined");
-    const { rerender } = await render(<ErrorPage error={thrown} retry={() => {}} report={report} />);
+    const { rerender } = await render(<Told error={thrown} report={report} />);
     expect(report.mock.calls).toEqual([["browser-page", thrown]]);
-    await rerender(<ErrorPage error={fromServer()} retry={() => {}} report={report} />);
-    await rerender(<ErrorPage error="a string" retry={() => {}} report={report} />);
-    await rerender(<ErrorPage error={null} retry={() => {}} report={report} />);
+    await rerender(<Told error={fromServer()} report={report} />);
+    await rerender(<Told error="a string" report={report} />);
+    await rerender(<Told error={null} report={report} />);
     expect(report.mock.calls).toEqual([
       ["browser-page", thrown],
       ["browser-page", "a string"],
@@ -40,7 +36,7 @@ describe("ErrorPage", () => {
 
   it("tells the site itself when nothing else is given to", async () => {
     const fetch = vi.spyOn(window, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
-    await render(<ErrorPage error={new Error("Thrown in the browser")} retry={() => {}} />);
+    await render(<Told error={new Error("Thrown in the browser")} />);
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
