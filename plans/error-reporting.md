@@ -10,8 +10,9 @@ pull request, built in this order:
 2. The staff page that lists them.
 3. Failures that don't throw: a problem outside a run, and a run of
    refusals.
+4. Errors in the browser.
 
-The table serves all three, so its columns are settled for all three
+The table serves all four, so its columns are settled for all four
 before the branch is first pushed: a pushed migration can't be edited
 (`AGENTS.md`, "Migrations are fixed once pushed").
 
@@ -114,9 +115,12 @@ One migration, numbered after main's last when the branch is pushed
 (`npm run worktree` says the next free number). A row per key:
 
 - the key, unique, and its parts (route, type, class, code), the type
-  being one of Next's four or a problem outside a run (part 3);
+  being one of Next's four, a problem outside a run (part 3) or one of
+  the browser's two (part 4);
 - the words with their variable parts replaced;
 - the latest occurrence's words as thrown, and its stack;
+- for a browser's error, the latest report's browser, by name and
+  version;
 - first seen, last seen, and how many times;
 - when staff were last emailed about it.
 
@@ -151,7 +155,9 @@ seen, and overwrite the latest words and stack.
   own `<html>` and `<body>`
   ([Next docs](https://nextjs.org/docs/app/api-reference/file-conventions/error#global-error)).
 - An `error.tsx` for the public site and one for `/staff`, inside their
-  layouts, each with a button to try again.
+  layouts, each with a button to try again. In this version of Next the
+  page is given `error` and `retry`
+  (`node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/error.md`).
 
 Their words are placeholders. Check the gallery for what they can be
 built from before writing a component.
@@ -193,6 +199,70 @@ times. Opening a row shows the latest words as thrown and its stack.
 - The same shape may suit other refusals later (the march form, the
   join form). Only letters in this pull request.
 
+## 4. Errors in the browser
+
+The hook sees only what the server throws. The letter form, the letter
+editor and the broadcast writer do much of their work in the browser,
+where a bug could stop every letter with nothing thrown on the server.
+
+### What reports
+
+- **The error pages** (part 1). Each is handed the error it caught. One
+  from the server arrives in production with its words removed and a
+  `digest`, and the hook has recorded it already, so the page reports
+  nothing. One thrown in the browser, while a client component renders,
+  arrives whole, and the page posts it to the route below.
+- **A listener**, a small client component in the root layout, on the
+  browser's `error` and `unhandledrejection` events: an error in a
+  click, input or timer handler, or a promise that fails with nothing
+  catching it. It drops what has no frame from our own scripts in its
+  stack, which takes out extensions, in-app browsers' injected scripts
+  and other sites' "Script error.".
+
+To check: what a chunk from an old deploy failing to load looks like in
+each, as with many deploys a day it will be common.
+
+### The key
+
+As a server error's, with two types of its own, one for the error
+pages' and one for the listener's. The browser knows the page's real
+path, not the route's pattern, so the path has its variable parts
+replaced: `/staff/politicians/4127` becomes `/staff/politicians/<n>`.
+
+### The route
+
+One route handler takes a POST with the error's class, words and stack,
+the page's path and which of the two types it is. Anyone can post
+anything to it, so:
+
+- Each field is cut to a fixed length before anything is stored.
+- A request from another origin is refused.
+- At most a fixed number of new browser rows an hour, the number a
+  constant; past that, reports are dropped. A repeat of a known row
+  only raises its count. Not a limit for each address, which would mean
+  storing IP addresses.
+- The report is sent so that it survives the page closing (`keepalive`).
+- `docs/testing.md`, "What the storyboard covers", gets a line for the
+  route.
+
+### The emails
+
+- An error page's report emails as a server error does, as the visitor
+  has lost the page. The listener's are recorded and not emailed: they
+  show on the staff page with their counts, and a list in code names
+  the keys that have earned an email, empty to start with.
+- A browser error's email says which page, how many times, and links to
+  the row. It quotes none of the report, whose words are whatever was
+  posted.
+- Browser errors have an hourly cap of their own, so junk posted to the
+  route can't use up the server errors' cap and hide a real one.
+
+### Tests and storyboard
+
+The fixture-only page (part 1) can also throw in the browser, while
+rendering and from a click. The flow shows the error page, the email and
+both rows on the staff page.
+
 ## Personal data
 
 - An error's words can hold personal data by accident: an address in a
@@ -201,7 +271,10 @@ times. Opening a row shows the latest words as thrown and its stack.
 - The row's latest words as thrown and its stack are kept as they are,
   as that's what a fault is found from. Each occurrence overwrites them,
   and the row goes a month after it's last seen. Only admins see them.
-- Request paths, bodies and headers are never stored.
+- Request paths, bodies and headers are never stored. A browser's
+  report keeps the page's path with its variable parts replaced, and the
+  browser's name and version from the latest report, as a bug is often
+  in one browser only: no address, and not the whole User-Agent.
 - `docs/data-protection.md` gets a row for it: what it may hold, why,
   who sees it, how long.
 - Erasure can't find a person in it, as nothing is keyed by them. The
@@ -211,9 +284,9 @@ times. Opening a row shows the latest words as thrown and its stack.
 
 ## Not in this plan
 
-- Errors thrown in the browser. The hook sees the server's only. An
-  `error.tsx` could post them to a route, but an open route that makes
-  emails needs a limit of its own.
+- Mapping a browser's minified stack back to the source. The repo is
+  public, so Next's browser source maps would give nothing away, but
+  the staff page shows the stack as it came.
 - CSP reports, which stay in the function logs: browser extensions make
   too many.
 - A health route and an outside uptime monitor
