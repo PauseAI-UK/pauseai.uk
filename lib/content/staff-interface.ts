@@ -1708,7 +1708,40 @@ All events: ${link}`,
       "remove politician": "No longer in Airtable",
       "block address": "Address blocked",
       "unblock address": "Address unblocked",
+      "add politician address": "Email address added",
+      "remove politician address": "Email address removed",
     } as Record<string, string>,
+    // At the foot of their page, folded: every address and domain that says an
+    // email is theirs, where each came from, and the form to add one by hand.
+    aliases: {
+      // After their email at the top of the page, leading down to the aliases.
+      see: "See aliases",
+      title: "Email addresses",
+      intro: "Policy emails referencing these addresses will be linked to this politician.",
+      columns: { address: "Address", from: "Source" },
+      sources: {
+        email: "Main address, we send email here",
+        past: "Previous main address",
+        parliament: "Listed on Parliament's website",
+        office: "Inferred as being a member of their staff as in emails with them",
+        domain: "Their own domain, taken from a list on Parliament website",
+        form: "Variant format Parliament often uses",
+      },
+      // An address staff added: who and when.
+      addedBy: (by: string, when: string) => `Added by ${by} on ${when}`,
+      remove: "Remove",
+      // The form under the list.
+      address: "New address",
+      add: "Add",
+      added: (n: number) =>
+        n
+          ? `Added. Found ${count(n, "earlier email", "earlier emails")} with it in policy@ and Joseph's inbox.`
+          : "Added. No earlier emails with it in policy@ or Joseph's inbox.",
+      refused: {
+        invalid: "That doesn't look like an email address.",
+        exists: "That address is already listed.",
+      },
+    },
     // At the foot of the page of one whose record has gone from Airtable, and who's had no letters.
     delete: {
       button: "Delete politician",
@@ -2348,6 +2381,15 @@ All events: ${link}`,
     noSubject: "(no subject)",
     thread: "The thread",
     unreadable: "This message couldn't be read.",
+    // A message rebuilt from a forward's quote of it, at the right of its subject: who forwarded it.
+    rebuilt: (forwarder: string) => `Quoted in ${forwarder}'s forward`,
+    // A forward with no note over what it carries.
+    forwardedAlone: "(Forwarded without a message)",
+    // Beside the thread: the politicians it's linked to.
+    people: {
+      title: "Linked politicians",
+      none: "None",
+    },
     // On a politician's and a supporter's page.
     onPageTitle: "One-off emails",
     // On your own page, under your Gmail.
@@ -2567,12 +2609,19 @@ All events: ${link}`,
       before: "Compares the MPs imported from Airtable with ",
       link: "Parliament's Members API",
       after:
-        ", and lists where they disagree. Nothing is changed: fix problems in Airtable, and the next import will take the fix.",
+        ", and lists where they disagree. Airtable isn't changed, manually make updates there. It also saves the email addresses Parliament lists for each MP, and links one-off emails to politicians again.",
     },
     checkNow: "Check MPs now",
     never: "Never checked",
     allGood: "All good.",
     problems: (n: number) => count(n, "problem", "problems"),
+    // After the check, the one-off emails are linked again to the politicians
+    // their addresses now match: what that did.
+    relinked: (r: { read: number; unread: number; linked: number; unlinked: number; offices: number }) =>
+      `One-off emails: ${count(r.linked, "new link", "new links")} to politicians, ${r.unlinked} removed, ${count(r.offices, "office address", "office addresses")} found.` +
+      (r.read || r.unread
+        ? ` ${count(r.unread, "older email", "older emails")} still to check for quoted addresses.`
+        : ""),
     columns: {
       constituency: "Constituency",
       problem: "Problem",

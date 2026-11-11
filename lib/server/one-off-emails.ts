@@ -13,7 +13,9 @@ import {
   politicianAddresses,
   politicianAnswered,
   politiciansIn,
+  politiciansNamed,
   quotedAddresses,
+  quotedNames,
   type PoliticianBook,
 } from "@/lib/one-off";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -37,6 +39,8 @@ import { connectedAccounts, politicianBook } from "./politician-book";
 import { problem } from "./problems";
 import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "./letter-replies";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
+import { forwardedMessages } from "@/lib/email-parsing/forwards";
+import { replyParts } from "@/lib/email-parsing/reply-text";
 
 // One-off emails: threads with a politician that aren't a letter of a campaign
 // or mailing, read from a mailbox and kept whole, in Netlify Blobs with a row
@@ -134,6 +138,8 @@ export async function keepOneOff(
   const at = new Date(Number(message.internalDate));
   const subject = headerText(message.headers, "subject");
   const key = `one-off/${account}/${message.id}.eml.gz`;
+  const text = wholeTextOf(parseMime(raw.toString("latin1")));
+  const quoted = { addresses: quotedAddresses(text), names: quotedNames(text) };
   await saveLetterReply(key, gzipSync(raw));
   const threads = await query<{ id: number }>(
     `SELECT DISTINCT thread_id::int AS id FROM one_off_messages
@@ -146,8 +152,8 @@ export async function keepOneOff(
   for (const other of others) await mergeThreads(threadId, other);
   await query(
     `INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, in_reply_to,
-       from_address, from_name, to_line, cc_line, addresses, subject, at, from_us, blob_key, size)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+       from_address, from_name, to_line, cc_line, addresses, subject, at, from_us, blob_key, size, quoted_addresses, quoted_names)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
     [
       threadId,
       account,
@@ -165,12 +171,14 @@ export async function keepOneOff(
       isPauseaiAddress(from.address, connected),
       key,
       raw.length,
+      quoted.addresses,
+      quoted.names,
     ],
   );
-  const { people } = politiciansIn(book, addresses);
+  const { people } = politiciansIn(book, [...addresses, ...quoted.addresses]);
   await query(
     `INSERT INTO one_off_thread_people (thread_id, notable_person_id) SELECT $1, unnest($2::bigint[]) ON CONFLICT DO NOTHING`,
-    [threadId, [...new Set([...people, ...extraPeople])]],
+    [threadId, [...new Set([...people, ...politiciansNamed(book, quoted.names), ...extraPeople])]],
   );
   await query(
     `UPDATE one_off_threads SET latest_at = greatest(latest_at, $2), someone_else = someone_else OR $3,
@@ -469,7 +477,70 @@ export type OneOffMessage = {
   quoted: string;
   /** Sent by a machine, such as an out-of-office, by its kept mail's headers and subject. */
   auto: boolean;
+  /** For a forward, the messages it carries, oldest first, but for any the thread holds whole; its text is then the note over them. */
+  forwarded: RebuiltMessage[];
 };
+
+/** A message rebuilt from a forward's quote of it: its headers as quoted, and its text and what it quotes in turn. */
+export type RebuiltMessage = {
+  fromName: string;
+  fromAddress: string;
+  to: string;
+  cc: string;
+  /** When it was sent, as the quote says. */
+  sent: string;
+  subject: string;
+  politicians: Record<string, number>;
+  text: string;
+  quoted: string;
+};
+
+/** A text's first words, its spacing and quoting evened out, to tell one message's text from another's. */
+const opening = (text: string) =>
+  text
+    .replace(/[\s>]+/g, " ")
+    .trim()
+    .slice(0, 80)
+    .toLowerCase();
+
+/**
+ * A message's text, what it quotes, and, if it's a forward, the messages it
+ * carries, oldest first: each rebuilt from its quoted headers, unless
+ * `held`, the thread's kept messages, has it whole, by its sender and opening.
+ */
+function withForwards(
+  content: { text: string | null; quoted: string; whole: string | null },
+  subject: string,
+  book: PoliticianBook,
+  held: { fromAddress: string; text: string | null }[],
+): { text: string | null; quoted: string; forwarded: RebuiltMessage[] } {
+  const split = content.whole === null ? undefined : forwardedMessages(content.whole, subject);
+  if (!split) return { text: content.text, quoted: content.quoted, forwarded: [] };
+  const own = split.own ? replyParts(split.own) : { text: "", quoted: "" };
+  const forwarded = split.forwarded.map((message) => {
+    const from = fromAddress(message.from);
+    const parts = replyParts(message.body);
+    const addresses = [from.address, ...addressesIn(`${message.to} ${message.cc}`)];
+    return {
+      fromName: from.name,
+      fromAddress: from.address,
+      to: message.to,
+      cc: message.cc,
+      sent: message.sent,
+      subject: message.subject || subject,
+      politicians: politicianAddresses(book, addresses),
+      ...parts,
+    };
+  });
+  const kept = (message: RebuiltMessage) =>
+    held.some(
+      (other) =>
+        other.fromAddress === message.fromAddress &&
+        other.text !== null &&
+        opening(other.text).startsWith(opening(message.text)),
+    );
+  return { ...own, forwarded: forwarded.filter((message) => !kept(message)).reverse() };
+}
 
 /** A one-off thread, for its page: `messages` null for staff who can't see it. */
 export type OneOffThread = OneOffThreadRow & { messages_: OneOffMessage[] | null };
@@ -486,7 +557,7 @@ export async function getOneOffThread(
   const supporters = permissions.includes("supporters");
   const [[row], rows, book] = await Promise.all([
     threadRows("t.id = $1", [id], supporters, 1, 0),
-    query<Omit<OneOffMessage, "text" | "quoted" | "auto" | "politicians"> & { blobKey: string }>(
+    query<Omit<OneOffMessage, "text" | "quoted" | "auto" | "politicians" | "forwarded"> & { blobKey: string }>(
       `SELECT id::int AS id, at, from_name AS "fromName", from_address AS "fromAddress", to_line AS "to", cc_line AS cc,
          subject, account, blob_key AS "blobKey"
        FROM one_off_messages WHERE thread_id = $1 ORDER BY at, id`,
@@ -496,26 +567,38 @@ export async function getOneOffThread(
   ]);
   if (!row) return undefined;
   if (row.someoneElse && !supporters) return { ...row, messages_: null };
-  const messages = await Promise.all(
-    rows.map(async ({ blobKey, ...message }) => {
-      const { text, quoted, auto } = await messageContent(blobKey);
-      const addresses = [message.fromAddress, ...addressesIn(`${message.to} ${message.cc}`)];
-      return { ...message, politicians: politicianAddresses(book, addresses), text, quoted, auto };
-    }),
+  const kept = await Promise.all(
+    rows.map(async ({ blobKey, ...message }) => ({ message, content: await messageContent(blobKey) })),
   );
+  const contents = kept.map(({ content }) => content);
+  const held = kept.map(({ message, content }) => ({ fromAddress: message.fromAddress, text: content.text }));
+  const messages = kept.map(({ message }, i) => {
+    const addresses = [message.fromAddress, ...addressesIn(`${message.to} ${message.cc}`)];
+    return {
+      ...message,
+      politicians: politicianAddresses(book, addresses),
+      auto: contents[i].auto,
+      ...withForwards(
+        contents[i],
+        message.subject,
+        book,
+        held.filter((_, j) => j !== i),
+      ),
+    };
+  });
   return { ...row, messages_: messages };
 }
 
 /**
- * Deletes every one-off message with a supporter's address on it, for their
- * erasure, and any thread left empty, noting each in one_off_erased so that
+ * Deletes every one-off message with a supporter's address on it or in what
+ * it quotes, for their erasure, and any thread left empty, noting each in one_off_erased so that
  * reading its thread again doesn't keep it again. Gives the blobs to delete after.
  */
 export async function eraseOneOffs(supporterId: number, db: Queryable): Promise<string[]> {
   const gone = await query<{ blobKey: string; threadId: number }>(
     `WITH gone AS (
        DELETE FROM one_off_messages m USING supporter_links k
-       WHERE k.supporter_id = $1 AND k.matched_value = ANY(m.addresses)
+       WHERE k.supporter_id = $1 AND k.matched_value = ANY(m.addresses || coalesce(m.quoted_addresses, '{}'))
        RETURNING m.account, m.gmail_message_id, m.rfc_message_id, m.blob_key, m.thread_id
      ), noted AS (
        INSERT INTO one_off_erased (account, gmail_message_id, rfc_sha256)

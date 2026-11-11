@@ -72,6 +72,12 @@
   font-weight: 600;
 }
 
+/* A link after a fact's label, quieter than the label. */
+.labelLink {
+  margin-left: var(--space-2);
+  font-weight: 400;
+}
+
 .facts dd {
   margin: 0;
   overflow-wrap: anywhere;

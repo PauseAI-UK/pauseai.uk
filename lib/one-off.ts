@@ -28,8 +28,16 @@ export const PARLIAMENT_DOMAINS = [
  */
 const PAUSEAI_ALIASES: readonly string[] = ["joseph@pauseai.info", "info@pauseai.info"];
 
-/** What the site knows of politicians' addresses: each they have or have had, and each domain of one's own, with whose. */
-export type PoliticianBook = { addresses: Map<string, number[]>; domains: Map<string, number> };
+/**
+ * What the site knows of politicians' addresses: each they have or have had,
+ * each domain of one's own, and the forms of parliament address each one's
+ * name or seat makes (addressForms), with whose.
+ */
+export type PoliticianBook = {
+  addresses: Map<string, number[]>;
+  domains: Map<string, number>;
+  forms: Map<string, number>;
+};
 
 const domainOf = (address: string) => address.slice(address.lastIndexOf("@") + 1);
 
@@ -39,12 +47,113 @@ export function onParliamentDomain(address: string): boolean {
   return PARLIAMENT_DOMAINS.some((d) => domain === d || domain.endsWith(`.${d}`));
 }
 
-/** The politicians an address is, by name or by their own domain. */
+/** A politician as the book needs them to make their address forms. */
+export type FormPerson = { id: number; name: string; house: string; constituency: string | null; inOffice: boolean };
+
+/** A word's letters alone, lowercased, without accents: "Allin-Khan" is allinkhan. */
+const letters = (word: string) =>
+  word
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+
+const NAME_TITLES =
+  /^(?:the|rt\.?|right|hon\.?|honourable|mr|mrs|ms|miss|mx|dr|sir|dame|prof(?:essor)?|lord|lady|baroness|viscount|viscountess|earl|countess|marquess|duke|bishop|archbishop)\.?\s+/i;
+
+/**
+ * A name's first name and the ways its surname is written in an address:
+ * whole ("duncansmith") and its last word ("smith"). Undefined for a name of
+ * one word once its titles and honours are gone, such as a peer's.
+ */
+export function nameParts(name: string): { first: string; surnames: string[] } | undefined {
+  let plain = name.trim().replace(/\s+of\s+.*$/i, "");
+  plain = plain.replace(/(\s+(MP|MSP|MS|MLA|KC|QC|[KGDCO]?BE|CBE|OBE|MBE|PC|FRS))+$/, "");
+  while (NAME_TITLES.test(plain)) plain = plain.replace(NAME_TITLES, "");
+  const words = plain.split(/\s+/).map(letters).filter(Boolean);
+  if (words.length < 2) return undefined;
+  return { first: words[0], surnames: [...new Set([words.slice(1).join(""), words.at(-1)!])] };
+}
+
+/**
+ * The forms of parliament address each politician's name and seat make, by
+ * key, each held by only one of them, as a key two share says nothing:
+ *   name: first name and surname ("meghillier"), as in meg.hillier.mp@,
+ *         meghilliermp@, officeofmeghilliermp@ or meg.hillier.msp@;
+ *   seat: an MP's constituency ("romford"), as in romford.mp@, the office's.
+ */
+export function addressForms(people: FormPerson[]): Map<string, number> {
+  const holders = new Map<string, Set<number>>();
+  const hold = (key: string, id: number) => holders.set(key, (holders.get(key) ?? new Set()).add(id));
+  for (const person of people) {
+    const parts = nameParts(person.name);
+    for (const surname of parts?.surnames ?? []) hold(`name:${parts!.first}${surname}`, person.id);
+    if (person.house === "commons" && person.inOffice && person.constituency) {
+      hold(`seat:${letters(person.constituency)}`, person.id);
+    }
+  }
+  return new Map([...holders].filter(([, ids]) => ids.size === 1).map(([key, ids]) => [key, [...ids][0]]));
+}
+
+/** The words that mark an address as a politician's or their office's, after their name. */
+const MARKS = ["mp", "msp", "ms", "mla", "casework", "office", "private", "constituency"];
+
+/**
+ * Whose a parliament address is by its form (addressForms). At parliament.uk
+ * and parliament.scot a name or seat counts only with a mark (meg.hillier.mp@,
+ * meghilliermp@, officeofmeghillier@, carla.denyer.casework@, romford.mp@), as
+ * staff have first.last@ too; a name followed by its own seat
+ * (mel.stride.centraldevon@) is marked by it. At the Senedd and the Assembly,
+ * members have first.last@ alone.
+ */
+export function formOwner(forms: Map<string, number>, address: string): number | undefined {
+  if (!onParliamentDomain(address)) return undefined;
+  let marked = /(^|\.)(senedd\.(wales|cymru)|niassembly\.gov\.uk)$/.test(domainOf(address));
+  let words = address
+    .slice(0, address.lastIndexOf("@"))
+    .split(/[._-]+/)
+    .map(letters)
+    .filter(Boolean);
+  if (words[0]?.startsWith("officeof") && words[0].length > 8) {
+    words = [words[0].slice(8), ...words.slice(1)];
+    marked = true;
+  }
+  if (words.length > 1 && MARKS.includes(words.at(-1)!)) {
+    words = words.slice(0, -1);
+    marked = true;
+  }
+  let joined = words.join("");
+  const run = words.length === 1 ? /^(.+?)(msp|mp)$/.exec(joined)?.[1] : undefined;
+  if (run) {
+    joined = run;
+    marked = true;
+  }
+  const seat = words.length > 2 ? forms.get(`seat:${words.at(-1)}`) : undefined;
+  if (seat !== undefined && forms.get(`name:${words.slice(0, -1).join("")}`) === seat) return seat;
+  if (!marked) return undefined;
+  return forms.get(`name:${joined}`) ?? forms.get(`seat:${joined}`);
+}
+
+/** The politicians an address is: one of theirs, on their own domain, or by its form at a parliament. */
 export function politiciansOf(book: PoliticianBook, address: string): number[] {
   const known = book.addresses.get(address);
   if (known) return known;
-  const owner = book.domains.get(domainOf(address));
+  const owner = book.domains.get(domainOf(address)) ?? formOwner(book.forms, address);
   return owner === undefined ? [] : [owner];
+}
+
+/**
+ * The politicians named with no address on a quoted message's lines, as
+ * Outlook writes a colleague in Parliament: "HILLIER, Meg".
+ */
+export function politiciansNamed(book: PoliticianBook, names: string[]): number[] {
+  const ids = names.flatMap((name) => {
+    const [surname, given] = name.split(",").map((part) => part.trim());
+    const first = letters(given?.split(/\s+/)[0] ?? "");
+    const owner = first ? book.forms.get(`name:${first}${letters(surname)}`) : undefined;
+    return owner === undefined ? [] : [owner];
+  });
+  return [...new Set(ids)];
 }
 
 /** What a message's addresses say of it: whether it counts as a thread with a politician, and whose. */
@@ -55,7 +164,21 @@ export function politiciansIn(book: PoliticianBook, addresses: string[]): { coun
 
 /** The addresses in the blocks a message quotes or forwards: From, To and Cc. */
 export function quotedAddresses(text: string): string[] {
-  return quotedHeaders(text).flatMap((quote) => addressesIn(`${quote.from} ${quote.to} ${quote.cc}`));
+  return [...new Set(quotedHeaders(text).flatMap((quote) => addressesIn(`${quote.from} ${quote.to} ${quote.cc}`)))];
+}
+
+/**
+ * The names with no address in the blocks a message quotes or forwards, as
+ * Outlook writes someone in the same organisation, surname in capitals first:
+ * "HILLIER, Meg".
+ */
+export function quotedNames(text: string): string[] {
+  const entries = quotedHeaders(text).flatMap((quote) => `${quote.from};${quote.to};${quote.cc}`.split(";"));
+  const names = entries.flatMap((entry) => {
+    const match = /^\s*"?([A-Z][A-Z' -]*[A-Z]),\s*([A-Z][\p{L}'-]+)/u.exec(entry);
+    return match && !entry.includes("@") ? [`${match[1]}, ${match[2]}`] : [];
+  });
+  return [...new Set(names)];
 }
 
 /** Whether a politician or a parliament's address wrote after a thread's first message, given its senders in order. */

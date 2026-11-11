@@ -26,6 +26,8 @@ import { ImportJobPage } from "@/app/(staff)/staff/_components/ImportJob";
 import JobActions from "@/app/(staff)/staff/_components/JobActions";
 import PoliticianCorrespondence from "@/app/(staff)/staff/_components/PoliticianCorrespondence";
 import PoliticianDetails from "@/app/(staff)/staff/_components/PoliticianDetails";
+import AddAliasForm from "@/app/(staff)/staff/_components/AddAliasForm";
+import type { AddResult } from "@/lib/server/politician-aliases";
 import { correspondenceThreads } from "@/lib/politician-correspondence";
 import PoliticianTable from "@/app/(staff)/staff/_components/PoliticianTable";
 import {
@@ -35,6 +37,7 @@ import {
   examplePasted,
   examplePoliticiansPage,
   examplePolitician,
+  exampleAliases,
   examplePoliticianHistory,
 } from "@/app/(staff)/staff/_components/PoliticianTable.examples";
 import {
@@ -230,11 +233,14 @@ export function PoliticianDetailsExample({
   fromAirtable = false,
   blocked = false,
   senders = true,
+  aliases = false,
 }: {
   fromAirtable?: boolean;
   blocked?: boolean;
   /** Whether the letters say who wrote them, as for staff with the supporters permission. */
   senders?: boolean;
+  /** Whether their aliases are at the foot of the page, open. */
+  aliases?: boolean;
 }) {
   const letter = { ...exampleLetter, mpName: examplePolitician.name, politicianId: examplePolitician.id };
   return (
@@ -266,6 +272,9 @@ export function PoliticianDetailsExample({
           }
           history={examplePoliticianHistory}
           unblock={log("unblock")}
+          aliases={aliases ? exampleAliases : undefined}
+          aliasesOpen={aliases}
+          aliasActions={{ add: log("addAlias"), remove: log("removeAlias") }}
           airtableTable="https://airtable.com/appExample/tblExample"
           notes={
             fromAirtable
@@ -295,6 +304,23 @@ export function EmailBlocksTableExample({
 }) {
   return (
     <Logged>{(log) => <EmailBlocksTable blocks={blocks} unblock={log("unblock")} letterLinks={letterLinks} />}</Logged>
+  );
+}
+
+/** The form that adds an address to a politician's, logged, answering with `result`. */
+export function AddAliasFormExample({ result }: { result: AddResult }) {
+  return (
+    <Logged>
+      {(log) => (
+        <AddAliasForm
+          politicianId={examplePolitician.id}
+          action={(form) => {
+            log("addAlias")(form);
+            return result;
+          }}
+        />
+      )}
+    </Logged>
   );
 }
 

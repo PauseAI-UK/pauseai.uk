@@ -188,6 +188,15 @@ const address: LeadOf<"block address" | "unblock address"> = (details) => ({
   fields: ["address"],
 });
 
+/** About a politician, and the address added to or removed from theirs. */
+const politicianAddress: LeadOf<"add politician address" | "remove politician address"> = (details, change) => ({
+  parts: [
+    <Who key="about" named={change.politician} href="/staff/politicians" name="" id={details.politicianId} />,
+    details.address,
+  ],
+  fields: ["politicianId", "address"],
+});
+
 /** Each action's lead: whom or what it's about, linked where there's a page. */
 const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "set status": status,
@@ -195,6 +204,8 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "edit politician": politician,
   "remove politician": politician,
   "delete politician": politician,
+  "add politician address": politicianAddress,
+  "remove politician address": politicianAddress,
   "view supporter": (details, change) => ({
     parts: [<Who key="about" named={change.supporter} href="/staff/supporters" name="" id={details.id} />],
     fields: ["id"],

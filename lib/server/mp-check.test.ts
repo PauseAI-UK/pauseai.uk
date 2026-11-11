@@ -42,12 +42,40 @@ describeWithDatabase("checkMps", () => {
     expect(rows).toEqual([{ domain: "polly.example", name: "Polly Placeholder" }]);
   });
 
+  it("keeps the emails Parliament lists for each MP, and forgets one no longer listed", async () => {
+    await syncPoliticians(NIGHTLY);
+    const [{ id }] = await query<{ id: number }>(
+      "SELECT id::int AS id FROM notable_people WHERE name = 'Polly Placeholder'",
+    );
+    await query(
+      `INSERT INTO politician_addresses (address, notable_person_id, source, added_by)
+       VALUES ('old@parliament.uk', $1, 'parliament', NULL), ('kept@example.com', $1, 'staff', 'jo@pauseai.uk')`,
+      [id],
+    );
+    server.use(
+      http.get(`${MEMBERS_API}/Members/90002/Contact`, () =>
+        HttpResponse.json({ value: [{ email: "A@Parliament.uk " }, { email: "not an email" }] }),
+      ),
+    );
+    const { relinked } = await checkMps("jo@pauseai.uk");
+    expect(
+      await query("SELECT address, source FROM politician_addresses WHERE notable_person_id = $1 ORDER BY address", [
+        id,
+      ]),
+    ).toEqual([
+      { address: "a@parliament.uk", source: "parliament" },
+      { address: "kept@example.com", source: "staff" },
+    ]);
+    expect(relinked).toEqual({ read: 0, unread: 0, linked: 0, unlinked: 0, offices: 0 });
+    expect((await recentChecks())[0].result.relinked).toEqual(relinked);
+  });
+
   it("compares the MPs copied from Airtable with Parliament's, and keeps what it finds", async () => {
     await syncPoliticians(NIGHTLY);
     expect(await recentChecks()).toEqual([]);
 
     // The fixture Airtable gives Polly Placeholder an email Parliament doesn't list.
-    const problems = await checkMps("jo@pauseai.uk");
+    const { problems } = await checkMps("jo@pauseai.uk");
 
     const blake = {
       kind: "email",
@@ -58,7 +86,7 @@ describeWithDatabase("checkMps", () => {
     };
     expect(problems).toEqual([blake]);
     expect(await recentChecks()).toMatchObject([
-      { status: "ok", startedBy: "jo@pauseai.uk", result: { problems: [blake] } },
+      { status: "ok", startedBy: "jo@pauseai.uk", result: { problems: [blake], relinked: { linked: 0 } } },
     ]);
   });
 

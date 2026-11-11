@@ -648,3 +648,122 @@ describeWithDatabase("one-off emails", () => {
     });
   });
 });
+
+describeWithDatabase("what one-off emails quote and forward", () => {
+  useTestDatabase();
+  beforeEach(() => stubLettersInboxEnv());
+  afterEach(() => vi.unstubAllEnvs());
+
+  const QUOTE = [
+    "FYI",
+    "",
+    "From: Office <meghilliermp@parliament.uk>",
+    "Sent: 20 October 2026 19:57",
+    "To: HILLIER, Meg; Jane <jane.smith@example.com>",
+    "Subject: Re: The lobby",
+    "",
+    "Dear Jane,",
+  ].join("\n");
+
+  it("keeps what a message quotes, and links the politicians it names and quotes", async () => {
+    const meg = await addTestPolitician({ name: "Dame Meg Hillier", email: "meg.hillier.mp@parliament.uk" });
+    const thread = await keep({ id: "a", from: "Jane <jane.smith@example.com>", text: QUOTE });
+    expect(await query("SELECT quoted_addresses AS addresses, quoted_names AS names FROM one_off_messages")).toEqual([
+      { addresses: ["meghilliermp@parliament.uk", "jane.smith@example.com"], names: ["HILLIER, Meg"] },
+    ]);
+    expect(
+      await query("SELECT notable_person_id::int AS id FROM one_off_thread_people WHERE thread_id = $1", [thread]),
+    ).toEqual([{ id: meg }]);
+  });
+
+  it("erases a message that quotes a supporter's address", async () => {
+    await addFormEntry("march-2026-11", {
+      name: "Vera Volunteer",
+      email: "vera@example.com",
+      phone: null,
+      city: null,
+      postcode: null,
+      consent: false,
+      utmSource: null,
+    });
+    const [{ supporter }] = await query<{ supporter: number }>(
+      "SELECT supporter_id::int AS supporter FROM supporter_links LIMIT 1",
+    );
+    await addTestPolitician();
+    await keep({
+      id: "a",
+      from: POLLY,
+      text: "Fwd:\n\nFrom: vera@example.com\nSent: today\nTo: polly@example.com\n\nHello",
+    });
+    expect((await eraseSupporter(supporter, "ICO-1", "jo@pauseai.uk"))?.oneOffs).toBe(1);
+  });
+
+  it("rebuilds the messages a forward carries before it, but for one the thread holds whole", async () => {
+    await addTestPolitician();
+    const forward = [
+      "Sent from my phone",
+      "",
+      "Begin forwarded message:",
+      "",
+      `From: Polly Placeholder MP <${POLLY}>`,
+      "Date: 21 October 2026 at 12:13:11 BST",
+      "To: Jane Smith <jane.smith@example.com>",
+      "Subject: Re: Can we meet?",
+      "",
+      "Dear Jane, thank you.",
+      "",
+      "On 20 Oct 2026, at 02:49, Jane Smith <jane.smith@example.com> wrote:",
+      "",
+      "Dear Polly, could we meet?",
+    ].join("\n");
+    const thread = (await keep({
+      id: "f",
+      from: "Jane <jane.smith@example.com>",
+      subject: "Fwd: Re: Can we meet?",
+      text: forward,
+    }))!;
+    const [message] = (await getOneOffThread(thread, ["supporters"]))!.messages_!;
+    expect(message.text).toBe("Sent from my phone");
+    expect(
+      message.forwarded.map(({ fromAddress, sent, text, politicians }) => ({ fromAddress, sent, text, politicians })),
+    ).toEqual([
+      {
+        fromAddress: "jane.smith@example.com",
+        sent: "20 Oct 2026, at 02:49",
+        text: "Dear Polly, could we meet?",
+        politicians: {},
+      },
+      {
+        fromAddress: POLLY,
+        sent: "21 October 2026 at 12:13:11 BST",
+        text: "Dear Jane, thank you.",
+        politicians: { [POLLY]: expect.any(Number) },
+      },
+    ]);
+    await keep({ id: "held", from: POLLY, thread: "t-f", text: "Dear Jane, thank you." });
+    const again = (await getOneOffThread(thread, ["supporters"]))!.messages_!;
+    expect(again[0].forwarded.map((m) => m.fromAddress)).toEqual(["jane.smith@example.com"]);
+    expect(again[1].forwarded).toEqual([]);
+  });
+
+  it("rebuilds nothing from a message whose blob has gone", async () => {
+    await addTestPolitician();
+    const thread = (await keep({ id: "f", from: POLLY, subject: "Fwd: x" }))!;
+    await query("UPDATE one_off_messages SET blob_key = 'gone'");
+    const [message] = (await getOneOffThread(thread, ["supporters"]))!.messages_!;
+    expect(message).toMatchObject({ text: null, forwarded: [] });
+  });
+
+  it("shows a forward with nothing over what it carries as no note", async () => {
+    await addTestPolitician();
+    const thread = (await keep({
+      id: "f",
+      from: "Jane <jane.smith@example.com>",
+      subject: "Fwd: x",
+      text: `---------- Forwarded message ---------\nFrom: ${POLLY}\nDate: today\n\nHi`,
+    }))!;
+    const [message] = (await getOneOffThread(thread, ["supporters"]))!.messages_!;
+    expect(message).toMatchObject({ text: "", quoted: "" });
+    expect(message.forwarded).toHaveLength(1);
+  });
+});

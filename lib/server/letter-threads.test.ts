@@ -133,8 +133,14 @@ describeWithDatabase("letter threads", () => {
       messages: [{ text: null }],
     });
     await saveLetterReply("pdf.eml.gz", gzipSync("Content-Type: application/pdf\r\n\r\n%PDF"));
-    expect(await messageContent("pdf.eml.gz")).toEqual({ text: null, quoted: "", cc: null, auto: false });
-    expect(await messageContent("never-kept.eml.gz")).toEqual({ text: null, quoted: "", cc: null, auto: false });
+    expect(await messageContent("pdf.eml.gz")).toEqual({ text: null, quoted: "", cc: null, auto: false, whole: null });
+    expect(await messageContent("never-kept.eml.gz")).toEqual({
+      text: null,
+      quoted: "",
+      cc: null,
+      auto: false,
+      whole: null,
+    });
   });
 
   it("folds the mail a reply quotes, in plain text or in an HTML blockquote", async () => {
@@ -150,6 +156,7 @@ describeWithDatabase("letter threads", () => {
       quoted: "On Mon, Jo wrote:\n> Will you?",
       cc: "Casey Wörker <casey@parliament.uk>",
       auto: false,
+      whole: "Yes.\n\nOn Mon, Jo wrote:\n> Will you?",
     });
     await saveLetterReply(
       "html.eml.gz",

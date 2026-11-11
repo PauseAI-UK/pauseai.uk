@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type AirtableMp, checkAgainstParliament, domainOf, ownDomains, plainName } from "./mp-check";
+import { type AirtableMp, checkAgainstParliament, domainOf, isSharedDomain, ownDomains, plainName } from "./mp-check";
 import type { ParliamentMp } from "./parliament";
 
 const ours = (constituency: string, name: string, email: string | null): AirtableMp => ({ name, constituency, email });
@@ -105,6 +105,32 @@ describe("a politician's own domains", () => {
     expect(domainOf("nothing")).toBeUndefined();
   });
 
+  it("reads a web address with a handle in it as the site's, not the handle's", () => {
+    expect(domainOf("https://www.tiktok.com/@ben.maguire.mp")).toBe("tiktok.com");
+    expect(domainOf("youtube.com/@SteveBarclayMP")).toBe("youtube.com");
+  });
+
+  it("knows shared domains whatever their ending, and the public sector's", () => {
+    for (const shared of [
+      "sinnfein.ie",
+      "sinnfein.org",
+      "yahoo.co.uk",
+      "x.com",
+      "me.com",
+      "dcms.gov.uk",
+      "gov.scot",
+      "ox.ac.uk",
+      "harvard.edu",
+      "parliament.uk",
+      "mla.niassembly.gov.uk",
+    ]) {
+      expect(isSharedDomain(shared), shared).toBe(true);
+    }
+    for (const own of ["tulip.example", "jane.me.uk", "meghillier.com", "bayoalaba.substack.com"]) {
+      expect(isSharedDomain(own), own).toBe(false);
+    }
+  });
+
   it("keeps one held by one politician, leaving out parliaments, parties and social media", () => {
     const domains = ownDomains([
       {
@@ -114,6 +140,8 @@ describe("a politician's own domains", () => {
           "https://facebook.com/x",
           "b@parliament.uk",
           "https://www.labour.org.uk/a",
+          "https://www.tiktok.com/@lib.dem.olly",
+          "a@sinnfein.ie",
           "nothing",
         ],
       },

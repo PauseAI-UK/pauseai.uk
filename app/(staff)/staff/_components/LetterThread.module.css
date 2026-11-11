@@ -8,6 +8,15 @@
   margin: 0;
 }
 
+/* The politicians a one-off thread is linked to. */
+.people {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 /* The heading, and the way to read it in Gmail at the right, on its line. */
 .heading {
   display: flex;

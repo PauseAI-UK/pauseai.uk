@@ -15,6 +15,7 @@ export default function ThreadEmail({
   to,
   cc,
   at,
+  sent,
   subject,
   action,
   missing = false,
@@ -24,6 +25,8 @@ export default function ThreadEmail({
   to: ReactNode;
   cc?: ReactNode;
   at: Date | null;
+  /** When it was sent as a quote of it says, in its words, where there's no `at`. */
+  sent?: string;
   subject: string;
   action?: ReactNode;
   /** Its text isn't kept, so its body is a slot with a note in it, not words of the letter. */
@@ -43,10 +46,10 @@ export default function ThreadEmail({
             <dd>{cc}</dd>
           </>
         )}
-        {at && (
+        {(at || sent) && (
           <>
             <dt>{copy.headers.date}</dt>
-            <dd>{staffTime(at)}</dd>
+            <dd>{at ? staffTime(at) : sent}</dd>
           </>
         )}
         <dt>{copy.headers.subject}</dt>

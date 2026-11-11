@@ -25,6 +25,7 @@ import {
   exampleHiddenOneOff,
   exampleOneOffs,
   exampleOneOffThread,
+  exampleForwardThread,
   exampleVersions,
 } from "@/app/(staff)/staff/_components/CampaignPages.examples";
 import {
@@ -517,6 +518,15 @@ export const staffLetters: Group = {
           render: () => (
             <StaffPage as="div">
               <OneOffThreadView thread={exampleOneOffThread} />
+            </StaffPage>
+          ),
+        },
+        {
+          label:
+            "A forward: the letter and the MP's answer it carries rebuilt before it, with the MP it's linked to beside it",
+          render: () => (
+            <StaffPage as="div">
+              <OneOffThreadView thread={exampleForwardThread} />
             </StaffPage>
           ),
         },

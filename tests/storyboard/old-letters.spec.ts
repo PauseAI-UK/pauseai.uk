@@ -5,6 +5,7 @@ import { importPath } from "@/lib/import-runs";
 import { connectLettersInbox, databaseUrl, runSql } from "@/scripts/fresh-database.mjs";
 import { OUTBOX_DIR } from "../checkout.mjs";
 import { fixtureEnv } from "@/lib/server/fixtures/fixture-env.mjs";
+import { POLLY_PERSONAL } from "@/lib/server/fixtures/old-letters-mailbox";
 import { addStaffAccount, logInAsStaff, newestEmail, syncPoliticians } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { importEmails, logIn } from "./staff-steps";
@@ -332,6 +333,52 @@ test("One-off emails", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/one-off/${hidden}`);
   await expect(page.getByText(oneOff.hidden)).toBeVisible();
   await frame(page, "A thread they can't read");
+});
+
+test("A forward, rebuilt", async ({ page, request, flowDatabase }) => {
+  story(
+    "A volunteer forwarded her MP's answer to the group. Its page shows her letter and Polly's answer as the emails they were, before her forward.",
+  );
+  await ready(page, flowDatabase, request);
+  await press(page, flowDatabase);
+  const [thread] = runSql(flowDatabase, "SELECT id FROM one_off_threads WHERE subject = 'Fwd: My MP''s answer'");
+  await page.goto(`${BASE}/staff/one-off/${thread}`);
+  const emails = page.getByRole("article");
+  await expect(emails).toHaveCount(3);
+  await expect(emails.nth(0)).toContainText("Will you back a pause on frontier AI?");
+  await expect(emails.nth(1)).toContainText("I'll raise it with the minister.");
+  await expect(emails.nth(1)).toContainText(oneOff.rebuilt("Vera Volunteer"));
+  await expect(emails.nth(2)).toContainText("Look at this.");
+  await frame(page, "Her letter and Polly's answer, rebuilt before the forward");
+
+  await expect(page.getByRole("region", { name: oneOff.people.title })).toContainText("Polly Placeholder");
+});
+
+test("A politician's own address", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly wrote to policy@ from her own Gmail, which is on no list, so her email matched no one. Staff open her aliases from her email at the top of her page.",
+  );
+  await ready(page, flowDatabase, request);
+  await press(page, flowDatabase);
+  const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
+  await page.goto(`${BASE}/staff/politicians/${polly}`);
+  const aliases = staffCopy.politician.aliases;
+  await page.getByRole("link", { name: aliases.see }).click();
+  await expect(page).toHaveURL(/\?aliases=open#aliases$/);
+  const fold = page.locator("#aliases");
+  await expect(fold.getByText(aliases.sources.email)).toBeVisible();
+  await frame(page, "Her aliases", { window: true });
+
+  story("Staff add her Gmail. The site finds her email in policy@, keeps it, and it shows under her.");
+  await fold.getByLabel(aliases.address).fill(POLLY_PERSONAL);
+  await fold.getByRole("button", { name: aliases.add }).click();
+  await expect(fold.getByRole("status")).toHaveText(aliases.added(1));
+  await expect(fold.getByText(POLLY_PERSONAL)).toBeVisible();
+  await fold.getByRole("status").scrollIntoViewIfNeeded();
+  await frame(page, "Her Gmail added", { window: true });
+  await page.goto(`${BASE}/staff/politicians/${polly}`);
+  await expect(page.getByRole("link", { name: "From my own address" })).toBeVisible();
+  await frame(page, "Her email from it, under her");
 });
 
 test("Keeping Joseph's threads", async ({ page, flowDatabase }) => {

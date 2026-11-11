@@ -2,6 +2,7 @@ import type { Choosing } from "@/lib/server/mailing-drafts";
 import type { PastedLine } from "./PoliticiansList";
 import type { Ask, AskWay, AskWithCounts } from "@/lib/server/asks";
 import type { Politician, PoliticianChange, PoliticiansPage } from "@/lib/server/politicians";
+import type { PoliticianAliases } from "@/lib/server/politician-aliases";
 import type { PoliticiansSearch } from "@/lib/staff-search";
 
 /** The asks, as the migrations add them, newest first: two events and two letters, one with no date or link, linked to our pages and others'. */
@@ -116,6 +117,17 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
     ],
   },
 ];
+
+/** The example politician's aliases: one of each kind, a personal address staff added among them. */
+export const exampleAliases: PoliticianAliases = {
+  email: "polly.placeholder.mp@parliament.uk",
+  past: ["polly@oldexample.org.uk"],
+  parliament: ["placeholderp@parliament.uk"],
+  office: ["jane.smith@parliament.uk"],
+  added: [{ address: "polly.placeholder@example.com", addedBy: "jo@pauseai.uk", at: new Date("2026-11-10T10:00:00Z") }],
+  domains: ["pollyplaceholder.org.uk"],
+  forms: ["polly.placeholder.mp@parliament.uk", "citiesoflondonandwestminster.mp@parliament.uk"],
+};
 
 /** An MP in office who has signed the letter to the PM, and declined the conference, from Airtable. */
 export const examplePolitician: Politician = {

@@ -29,6 +29,7 @@ import {
   AskRowExample,
   PoliticianCorrespondenceExample,
   PoliticianDetailsExample,
+  AddAliasFormExample,
   PoliticianTableEmptyExample,
   PoliticianTableExample,
   DeletePoliticianExample,
@@ -284,6 +285,32 @@ export const staffPoliticians: Group = {
               <PoliticianDetailsExample fromAirtable senders={false} />
             </StaffPage>
           ),
+        },
+        {
+          label: "Their aliases open at the foot, as their email's See aliases leads to",
+          render: () => (
+            <StaffPage as="div">
+              <PoliticianDetailsExample fromAirtable aliases />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "AddAliasForm",
+      file: "app/(staff)/staff/_components/AddAliasForm.tsx",
+      variants: [
+        {
+          label: "Added: how many emails with it were kept",
+          render: () => <AddAliasFormExample result={{ added: true, kept: 2 }} />,
+        },
+        {
+          label: "Not an email address",
+          render: () => <AddAliasFormExample result={{ added: false, why: "invalid" }} />,
+        },
+        {
+          label: "An address they have already",
+          render: () => <AddAliasFormExample result={{ added: false, why: "exists" }} />,
         },
       ],
     },

@@ -17,6 +17,8 @@ import {
 } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
+  addAliasNow,
+  removeAliasNow,
   addNoteNow,
   deleteNoteNow,
   editNoteNow,
@@ -81,6 +83,8 @@ describeWithDatabase("staff Server Actions", () => {
       () => editNoteNow(form({ id: "1", body: "Hi" })),
       () => deleteNoteNow(form({ id: "1" })),
       () => saveEventNow(form({ eventId: "evt-1", owner: "jo@pauseai.uk", doc: "" })),
+      () => addAliasNow(form({ politicianId: String(id), address: "a@example.com" })),
+      () => removeAliasNow(form({ politicianId: String(id), address: "a@example.com" })),
     ];
     for (const attempt of attempts) expect(await expectRedirect(attempt)).toBe("/staff/login");
     expect(await statusCount()).toBe(0);
@@ -441,6 +445,33 @@ describeWithDatabase("staff Server Actions", () => {
     expect(await isBlocked("a@example.org")).toBe(true);
     expect(error).toHaveBeenCalled();
     error.mockRestore();
+  });
+
+  it("addAliasNow and removeAliasNow add and remove a politician's address as the staff member, refreshing the staff pages", async () => {
+    const id = await addTestPolitician();
+    expect(await addAliasNow(form({ politicianId: String(id), address: "polly@example.com" }))).toEqual({
+      added: true,
+      kept: 0,
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff", "layout");
+    revalidatePath.mockClear();
+    expect(await addAliasNow(form({ politicianId: String(id), address: "polly@example.com" }))).toEqual({
+      added: false,
+      why: "exists",
+    });
+    expect(await addAliasNow(form({ politicianId: String(id) }))).toEqual({ added: false, why: "invalid" });
+    expect(await addAliasNow(form({ politicianId: "x", address: "a@example.com" }))).toBeUndefined();
+    expect(revalidatePath).not.toHaveBeenCalled();
+    await removeAliasNow(form({ politicianId: "x", address: "polly@example.com" }));
+    await removeAliasNow(form({ politicianId: String(id) }));
+    expect(revalidatePath).not.toHaveBeenCalled();
+    await removeAliasNow(form({ politicianId: String(id), address: "polly@example.com" }));
+    expect(revalidatePath).toHaveBeenCalledWith("/staff", "layout");
+    expect(await query("SELECT 1 FROM politician_addresses")).toEqual([]);
+    expect(await query("SELECT actor FROM audit_log WHERE action LIKE '% politician address'")).toEqual([
+      { actor: "jo@pauseai.uk" },
+      { actor: "jo@pauseai.uk" },
+    ]);
   });
 
   it("disconnects your own Gmail", async () => {
