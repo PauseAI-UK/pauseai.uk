@@ -55,37 +55,84 @@ describe("authenticated", () => {
   const head = (results: string[]) =>
     `${results.map((r) => `Authentication-Results: ${r}`).join("\r\n")}\r\nFrom: a@example.org\r\n\r\nBody`;
 
-  it("trusts Google's own results: DMARC passing for the From's domain", () => {
-    expect(authenticated(head(["mx.google.com; dmarc=pass (p=REJECT) header.from=example.org"]), "a@example.org")).toBe(
-      true,
-    );
-    expect(authenticated(head(["mx.google.com; dmarc=pass header.from=other.org"]), "a@example.org")).toBe(false);
-    expect(authenticated(head(["mx.google.com; dmarc=pass"]), "a@example.org")).toBe(true);
-    expect(authenticated(head(["mx.google.com; dkim=pass header.i=@example.org; dmarc=fail"]), "a@example.org")).toBe(
-      false,
-    );
+  /** Whether a message from `from` is authenticated, when Google's field says `found` after "mx.google.com;". */
+  const google = (found: string, from = "a@example.org") => authenticated(head([`mx.google.com; ${found}`]), from);
+
+  it("trusts Google's own results: DMARC passing for a From aligned with the message's", () => {
+    expect(google("dmarc=pass (p=REJECT) header.from=example.org")).toBe(true);
+    expect(google("dmarc=pass header.from=other.org")).toBe(false);
+    // A pass that doesn't say what for.
+    expect(google("dmarc=pass")).toBe(false);
+    expect(google("dkim=pass header.i=@example.org; dmarc=fail header.from=example.org")).toBe(false);
+    // In any case, with a comment up against a word, and with clauses and words that aren't results or properties.
+    expect(authenticated(head(["MX.Google.com; DMARC=Pass Header.From=Example.ORG"]), "a@example.org")).toBe(true);
+    expect(google("dmarc=pass(p=NONE)header.from=example.org")).toBe(true);
+    expect(google("none;  dmarc=pass reason header.from=example.org;")).toBe(true);
   });
 
   it("with no DMARC policy, SPF or DKIM aligned with the From's domain", () => {
+    expect(google("spf=pass smtp.mailfrom=bounce.example.org; dmarc=none")).toBe(true);
+    expect(google("dkim=pass header.d=example.org", "a@mail.example.org")).toBe(true);
+    expect(google("dkim=pass header.i=@example.org")).toBe(true);
+    expect(google("spf=pass smtp.mailfrom=other.org; dkim=pass header.d=other.org")).toBe(false);
+    expect(google("spf=fail smtp.mailfrom=example.org")).toBe(false);
+    expect(google("spf=pass")).toBe(false);
+    expect(google("dkim=pass")).toBe(false);
+    // Any one of several signatures, each read with its own domain.
+    expect(google("dkim=pass header.i=@list.example; dkim=pass header.d=example.org")).toBe(true);
+    expect(google("dkim=pass header.i=@other.org; dkim=fail header.d=example.org")).toBe(false);
+    // SPF has one result, and a property is the first of its name.
+    expect(google("spf=pass smtp.mailfrom=example.org; spf=pass smtp.mailfrom=example.org")).toBe(false);
+    expect(google("spf=pass smtp.mailfrom=other.org smtp.mailfrom=example.org")).toBe(false);
+  });
+
+  it("reads nothing the sender chose as a result of its own", () => {
+    // An envelope sender of dmarc=pass@…, which Google repeats in SPF's comment and its mailfrom.
     expect(
-      authenticated(head(["mx.google.com; spf=pass smtp.mailfrom=bounce.example.org; dmarc=none"]), "a@example.org"),
-    ).toBe(true);
-    expect(authenticated(head(["mx.google.com; dkim=pass header.d=example.org"]), "a@mail.example.org")).toBe(true);
-    expect(authenticated(head(["mx.google.com; dkim=pass header.i=@example.org"]), "a@example.org")).toBe(true);
+      google(
+        "spf=pass (google.com: domain of dmarc=pass@attacker.example designates 203.0.113.9 as permitted sender) " +
+          "smtp.mailfrom=dmarc=pass@attacker.example; dmarc=fail (p=NONE sp=NONE dis=NONE) header.from=example.org",
+      ),
+    ).toBe(false);
+    // A quoted envelope sender, with clauses and a quote of its own inside it.
+    expect(
+      google('spf=pass smtp.mailfrom="x; dkim=pass header.d=example.org; \\" y"@attacker.example; dkim=none'),
+    ).toBe(false);
+    // What an earlier server said it found, which Google keeps in a comment.
+    expect(
+      google(
+        "arc=pass (i=1 spf=pass spfdomain=attacker.example dmarc=pass fromdomain=example.org); " +
+          "spf=pass smtp.mailfrom=attacker.example; dmarc=fail header.from=example.org",
+      ),
+    ).toBe(false);
+    // A comment within a comment, and a bracket in one that's only a character.
+    expect(google("spf=pass (a (b \\) dmarc=fail) c) smtp.mailfrom=example.org")).toBe(true);
+  });
+
+  it("refuses a field Google wouldn't have written", () => {
+    // Two DMARC results.
+    expect(google("dmarc=pass header.from=example.org; dmarc=fail header.from=example.org")).toBe(false);
+    // A comment or a quoted string that never ends, and a comment that ends without beginning.
+    expect(google("dmarc=pass header.from=example.org (p=NONE")).toBe(false);
+    expect(google('dmarc=pass header.from=example.org "x')).toBe(false);
+    expect(google('dmarc=pass header.from=example.org "x\\')).toBe(false);
+    expect(google("dmarc=pass header.from=example.org )")).toBe(false);
+  });
+
+  it("reads only the first field, which is Google's, and never one further down, which the sender could have written", () => {
     expect(
       authenticated(
-        head(["mx.google.com; spf=pass smtp.mailfrom=other.org; dkim=pass header.d=other.org"]),
+        head([
+          "mx.google.com; dmarc=fail header.from=example.org",
+          "mx.google.com; dmarc=pass header.from=example.org",
+        ]),
         "a@example.org",
       ),
     ).toBe(false);
-    expect(authenticated(head(["mx.google.com; spf=fail smtp.mailfrom=example.org"]), "a@example.org")).toBe(false);
-    expect(authenticated(head(["mx.google.com; spf=pass"]), "a@example.org")).toBe(false);
-    expect(authenticated(head(["mx.google.com; dkim=pass"]), "a@example.org")).toBe(false);
-  });
-
-  it("ignores any other server's results, which could be forged, and a message with none", () => {
+    // Another server's, a message with none, and a field with nothing in it.
     expect(authenticated(head(["evil.example; dmarc=pass header.from=example.org"]), "a@example.org")).toBe(false);
     expect(authenticated("From: a@example.org\r\n\r\nBody", "a@example.org")).toBe(false);
+    expect(authenticated(head([""]), "a@example.org")).toBe(false);
     // Folded over lines, as Google writes them.
     expect(
       authenticated(
@@ -567,5 +614,36 @@ describeWithDatabase("reading the letters inbox", () => {
       ),
     );
     expect((await read()).notUnderstood).toEqual([expect.objectContaining({ reason: "bounce" })]);
+  });
+
+  /** A bounce anyone could write, of the letter with Message-ID `letter`, saying `failed` couldn't be reached. */
+  const bounceOf = (letter: string, failed: string[]) =>
+    deliverToLettersInbox(
+      [
+        "From: mailer-daemon@elsewhere.example",
+        `To: ${LETTERS_INBOX}`,
+        "Subject: Undeliverable",
+        `In-Reply-To: <${letter}>`,
+        ...(failed.length ? [`X-Failed-Recipients: ${failed.join(", ")}`] : []),
+        "",
+        "No such user.",
+      ].join("\r\n"),
+    );
+
+  it("doesn't understand a bounce of our letter that names only addresses it didn't go to, and blocks none", async () => {
+    const letter = await write();
+    bounceOf(letter.letter, ["another-mp@parliament.example", "notification@pauseai.uk"]);
+    expect(await read()).toMatchObject({ bounces: 0, notUnderstood: [expect.objectContaining({ reason: "bounce" })] });
+    expect(await query("SELECT 1 FROM email_problems")).toEqual([]);
+    expect(await query("SELECT 1 FROM email_blocks")).toEqual([]);
+    expect(await query("SELECT status FROM letters")).toEqual([{ status: "sent" }]);
+  });
+
+  it("records only the address our letter went to, of those a bounce names; one that names none is noted", async () => {
+    const letter = await write();
+    bounceOf(letter.letter, ["another-mp@parliament.example", "test-mp@parliament.example"]);
+    bounceOf(letter.letter, []);
+    expect(await read()).toMatchObject({ bounces: 1, notUnderstood: [] });
+    expect(await query("SELECT address FROM email_blocks")).toEqual([{ address: "test-mp@parliament.example" }]);
   });
 });

@@ -530,8 +530,8 @@ delivered to the inbox the next time the inbox is read. So to answer a
 letter as its MP:
 
 1. Write the reply as a mail file in that subfolder. Address it to the
-   supporter's proxy, and give it an
-   `Authentication-Results: mx.google.com; dmarc=pass` header.
+   supporter's proxy, and give it, as its first such header,
+   `Authentication-Results: mx.google.com; dmarc=pass header.from=<the From's domain>`.
 2. Run `read-gmail` above.
 
 **Luma's webhook.** Set `LUMA_WEBHOOK_SECRET=whsec_dev`, then post a

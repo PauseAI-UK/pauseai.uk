@@ -31,6 +31,18 @@ describeWithDatabase("GET /staff/mailings/[id]/files/[file]", () => {
     expect((await open(String(id), "x")).status).toBe(404);
   });
 
+  it("gives a file that could carry script, such as a web page, only to save", async () => {
+    requestCookies.set("staff_session", await createSession("jo@pauseai.uk"));
+    const { id } = await createDraft("jo@pauseai.uk", { list: "politicians", params: {} }, {});
+    const content = Buffer.from("<script>alert(1)</script>");
+    await addAttachment(id, 1, { filename: "page.html", contentType: "text/html", content });
+    const res = await open(String(id), "1");
+    expect(res.headers.get("content-type")).toBe("application/octet-stream");
+    expect(res.headers.get("content-disposition")).toBe("attachment; filename*=UTF-8''page.html");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(Buffer.from(await res.arrayBuffer())).toEqual(content);
+  });
+
   it("turns away anyone not logged in", async () => {
     expect(await expectRedirect(() => open("1", "1"))).toMatch(/^\/staff\/login/);
   });

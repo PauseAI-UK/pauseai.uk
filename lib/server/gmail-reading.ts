@@ -146,7 +146,13 @@ export function readBounce(raw: string): { addresses: BouncedAddress[]; messageI
   return { addresses, messageId };
 }
 
-/** Records each address a bounce says failed, as Postmark's bounces are, once. Returns how many. */
+/**
+ * Records each address a bounce says failed, as Postmark's bounces are,
+ * once: only an address we sent the email it's a bounce of, as anyone can
+ * write to a mailbox as mailer-daemon, and a recorded bounce blocks its
+ * address. Any other address it names is left alone. Returns how many it
+ * recorded.
+ */
 async function recordBounce(
   account: string,
   token: string,
@@ -156,19 +162,21 @@ async function recordBounce(
   const [seen] = await query("SELECT 1 FROM email_problems WHERE gmail_message_id = $1", [message.id]);
   if (seen) return 0;
   const bounce = readBounce((await gmailRawMessage(token, message.id)).toString("latin1"));
-  // The email it names, or else ours in the same Gmail thread, where Gmail puts its own bounces.
-  const [sent] = await query<{ messageId: string }>(
-    `SELECT message_id AS "messageId" FROM email_sends
-     WHERE outcome = 'sent'
-       AND (rfc_message_id = $1 OR (backend = 'gmail' AND sender = $2 AND gmail_thread_id = $3))
-     ORDER BY rfc_message_id = $1 DESC NULLS LAST, at DESC LIMIT 1`,
-    [bounce.messageId ?? null, account, message.threadId],
-  );
+  let recorded = 0;
   for (const failed of bounce.addresses) {
+    // Our email to the address: the one the bounce names, or else one in the same Gmail thread, where Gmail puts its own bounces.
+    const [sent] = await query<{ messageId: string }>(
+      `SELECT message_id AS "messageId" FROM email_sends
+       WHERE outcome = 'sent' AND address = $4
+         AND (rfc_message_id = $1 OR (backend = 'gmail' AND sender = $2 AND gmail_thread_id = $3))
+       ORDER BY rfc_message_id = $1 DESC NULLS LAST, at DESC LIMIT 1`,
+      [bounce.messageId ?? null, account, message.threadId, failed.address],
+    );
+    if (!sent) continue;
     await handleDeliveryProblem(
       {
         address: failed.address,
-        messageId: sent?.messageId ?? null,
+        messageId: sent.messageId,
         kind: failed.delayed ? "soft" : "hard",
         reason: failed.reason || failed.status || message.headers.get("subject") || "",
         canReset: true,
@@ -177,8 +185,9 @@ async function recordBounce(
       },
       request,
     );
+    recorded++;
   }
-  return bounce.addresses.length;
+  return recorded;
 }
 
 /** Reads one message: a bounce, a reply to a letter, or something else, left alone; one gone since, skipped. */
