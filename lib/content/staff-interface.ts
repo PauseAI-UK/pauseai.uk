@@ -1718,7 +1718,7 @@ All events: ${link}`,
       // After their email at the top of the page, leading down to the aliases.
       see: "See aliases",
       title: "Email addresses",
-      intro: "⁂ One-off emails sent from, to or quoting any of these show on this page.",
+      intro: "Policy emails referencing these addresses will be linked to this politician.",
       columns: { address: "Address", from: "Source" },
       sources: {
         email: "⁂ Main address, used for letters",
