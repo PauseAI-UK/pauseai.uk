@@ -29,6 +29,12 @@ export type Email = {
   Subject: string;
   TextBody: string;
   HtmlBody?: string;
+  /**
+   * Which of its links Postmark sends through its own address to count the
+   * clicks, in place of the server's setting: "None" leaves every link as
+   * written. https://postmarkapp.com/developer/user-guide/tracking-links
+   */
+  TrackLinks?: "None" | "HtmlAndText" | "HtmlOnly" | "TextOnly";
   Attachments?: Attachment[];
   /** Shown in Postmark's activity log, and sent back with bounces. */
   Metadata?: Record<string, string>;
