@@ -2647,8 +2647,8 @@ All events: ${link}`,
     pageTitle: "Scheduled jobs",
     // Each import's icons, named for screen readers and on hover: where it's
     // from. Then how often it runs, the overview's headings and a lozenge on
-    // the job's page, and the lozenges after some jobs' names: the one that
-    // only checks, the one that sends, and the one that keeps the site tidy.
+    // the job's page, and the lozenges after some jobs' names: those that act
+    // outside the site, and the one that keeps the site tidy.
     airtable: "Airtable",
     web: "Web",
     database: "Database",
@@ -2662,7 +2662,6 @@ All events: ${link}`,
     frequent: "Every 5 minutes",
     hourly: "Hourly",
     oneOff: "One-off",
-    checkOnly: "Check only",
     takesAction: "Takes action",
     siteAdmin: "Site admin",
   },

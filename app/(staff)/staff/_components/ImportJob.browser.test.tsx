@@ -142,7 +142,7 @@ describe("ImportOverview", () => {
     expect(cards[0].querySelector("h3")!.textContent).toBe(
       `${jobTitles["import-luma"]}${staffCopy.import.takesAction}`,
     );
-    expect(cards[6].querySelector("h3")!.textContent).toBe(`${jobTitles["check-mps"]}${staffCopy.import.checkOnly}`);
+    expect(cards[6].querySelector("h3")!.textContent).toBe(jobTitles["check-mps"]);
     expect(cards[4].querySelector("h3")!.textContent).toBe(
       `${jobTitles["send-mailings"]}${staffCopy.import.takesAction}`,
     );
