@@ -235,14 +235,14 @@ export type NotUnderstood = { gmailMessageId: string; from: string; subject: str
 /**
  * What searching the mailboxes for addresses staff added to politicians' did
  * (lib/server/politician-aliases.ts): how many it searched for, the messages
- * it kept, how many are left for the next run, and, if it stopped before
- * them, why: its time ran out, or Gmail refused for now, in Gmail's words.
+ * it kept, how many are left for the next run, and whether it stopped as its
+ * time ran out. A failure is a problem of the run (problems.ts).
  */
 export type AddressSearch = {
   searched: number;
   kept: number;
   waiting: number;
-  stopped?: { by: "time" } | { by: "gmail"; error: string };
+  stopped?: { by: "time" };
 };
 
 /**

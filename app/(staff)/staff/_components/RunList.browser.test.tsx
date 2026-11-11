@@ -576,9 +576,6 @@ describe("RunList", () => {
     expect(staffCopy.gmailReading.searched({ ...waiting, stopped: { by: "time" } })).not.toBe(
       staffCopy.gmailReading.searched(waiting),
     );
-    const refused = { ...waiting, stopped: { by: "gmail" as const, error: "Quota exceeded" } };
-    await rerender(<RunList runs={[ran("read-gmail", { accounts, searched: refused }, { id: 1 })]} none="None" />);
-    await expect.element(page.getByText(/Quota exceeded/)).toBeVisible();
   });
 
   it("says a Gmail read stopped as another was reading, and no totals", async () => {

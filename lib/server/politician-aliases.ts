@@ -9,7 +9,7 @@ import { relinkOneOffs } from "./one-off-relink";
 import { GmailError, gmailMessageHeaders, searchGmail, unlessGone } from "./outside-services/gmail";
 import { connectedAccounts, readPoliticianBook } from "./politician-book";
 import type { AddressSearch } from "@/lib/import-runs";
-import { describeError, problem } from "./problems";
+import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
 
 // A politician's aliases: every address and domain that says a message is
@@ -149,11 +149,11 @@ const FINISH_MS = 8_000;
  * searched for yet, oldest first, starting on another until `until` (a time
  * from Date.now()) and stopping partway through one a little after it: part
  * of the regular read of Gmail. An address is marked searched once it's done.
- * If it's stopped, or Gmail refuses for now, the address is searched again
- * next time, passing over what's kept, and the result says which, with
- * Gmail's words; any other failure is a problem of the run, and
- * the address is marked searched all the same, so it isn't tried every five
- * minutes, and staff can add it again.
+ * Any failure is a problem of the run, with Gmail's words. If Gmail refused
+ * for now, or the time ran out, which the result says, the search stops and
+ * the address is searched again next time, passing over what's kept; after
+ * any other failure, the address is marked searched all the same, so it
+ * isn't tried every five minutes, and staff can add it again.
  */
 export async function searchAddedAddresses(until: number): Promise<AddressSearch> {
   const waiting = await query<{ address: string; id: number }>(
@@ -175,11 +175,8 @@ export async function searchAddedAddresses(until: number): Promise<AddressSearch
         break;
       }
     } catch (error) {
-      if (refusedForNow(error)) {
-        stopped = { by: "gmail", error: describeError(error) };
-        break;
-      }
       problem(staffCopy.problems.job.addressNotSearched(address), error);
+      if (refusedForNow(error)) break;
     }
     await query(
       "UPDATE politician_addresses SET searched_at = now() WHERE address = $1 AND notable_person_id = $2 AND source = 'staff'",
