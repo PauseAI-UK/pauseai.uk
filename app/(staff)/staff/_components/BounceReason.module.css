@@ -2,8 +2,8 @@
    narrow, as a bounce's reason can be a long line from the mail server. */
 .reason {
   display: inline-block;
-  min-width: 10rem;
-  max-width: 16rem;
+  min-width: 14rem;
+  max-width: 22rem;
 }
 
 /* A long reason, folded to its first sentence: inline, so the lozenge
