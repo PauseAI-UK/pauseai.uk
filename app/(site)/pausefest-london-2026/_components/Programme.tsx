@@ -17,6 +17,7 @@ function linkProps(href: string) {
  */
 function Featured({ day, event, going }: { day: FestDay; event: FestEvent; going?: EventGoing | null }) {
   const { internal, ...external } = linkProps(event.href);
+  const button = event.button ?? "Register";
   return (
     <li className={styles.featured}>
       <div className={`container ${styles.columns}`}>
@@ -32,11 +33,11 @@ function Featured({ day, event, going }: { day: FestDay; event: FestEvent; going
           <div className={styles.actions}>
             {internal ? (
               <ButtonLink variant="primary" fit href={event.href}>
-                Register
+                {button}
               </ButtonLink>
             ) : (
               <ButtonAnchor variant="primary" fit href={event.href} {...external}>
-                Register
+                {button}
               </ButtonAnchor>
             )}
             {event.extras?.map((extra) => (
@@ -97,13 +98,14 @@ export default function Programme({
       </div>
       <ol className={styles.list}>
         {days.flatMap((day) =>
-          day.events.map((event) =>
-            event.featured ? (
-              <Featured key={event.href} day={day} event={event} going={going[event.lumaId]} />
+          day.events.map((event) => {
+            const shown = event.lumaId ? going[event.lumaId] : null;
+            return event.featured ? (
+              <Featured key={event.href} day={day} event={event} going={shown} />
             ) : (
-              <Row key={event.href} day={day} event={event} going={going[event.lumaId]} />
-            ),
-          ),
+              <Row key={event.href} day={day} event={event} going={shown} />
+            );
+          }),
         )}
       </ol>
     </section>
