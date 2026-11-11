@@ -8,7 +8,7 @@ Size: L. Kind: architecture.
 
 ## Fix
 
-One `mail_messages` table, linked to a letter or a thread. Worth it only when a third use appears; work out what it means for erasure (`one_off_erased`) first.
+One `mail_messages` table, linked to a letter or a thread. It's worth it only when a third use appears. First work out what it means for erasure (`one_off_erased`).
 
 ## Hits
 

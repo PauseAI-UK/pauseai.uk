@@ -1,12 +1,14 @@
 # Links to the march sign-up
 
-The march sign-up is at pauseai.uk/protests/march-against-ai-extinction-nov-26. The short pauseai.uk/march
-redirects there, keeping the tags, so it's the one to give out. Every
-tracked link to the sign-up has one tag,
-utm_source, a short code saying where the link came from, and nothing else.
-Google Analytics counts visits, and registrations, by it; this page is the
-key. GA reads it from the page's address; the registration itself doesn't
-keep it.
+The march sign-up is at pauseai.uk/protests/march-against-ai-extinction-nov-26. The short link pauseai.uk/march
+redirects there and keeps the tags, so it's the one to give out.
+
+Every tracked link to the sign-up has one tag and nothing else: utm_source,
+a short code saying where the link came from. Google Analytics counts
+visits and registrations by that code, and this page is the key to the
+codes. GA reads the code from the page's address. The sign-up keeps it too,
+on the person's form entry (`form_entries.utm_source`), and doesn't pass it
+to Luma.
 
 With only a source, GA puts these visits in its Unassigned channel: find
 them by Session source.
@@ -17,13 +19,13 @@ them by Session source.
 | `in`       | Influencer outreach                            |
 | The rest   | PauseAI UK's own channels, below               |
 
-The share link is `shareUrl` in `lib/content/march-signup.ts`. Which app a share went
-to isn't in the link: the `march_share` event's `share_method` says (below).
+The share link is `shareUrl` in `lib/content/march-signup.ts`. The link doesn't say
+which app a share went to: the `march_share` event's `share_method` does (below).
 
 ## Our own channels
 
 Use the link for the place the post goes. A new place gets a new two-letter
-code, listed here, that isn't taken already.
+code that isn't taken already, and is listed here.
 
 | Where                                | utm_source | Link                                     |
 | ------------------------------------ | ---------- | ---------------------------------------- |
@@ -45,10 +47,15 @@ code, listed here, that isn't taken already.
 | Flyers (the QR code)                 | `fl`       | `https://pauseai.uk/march?utm_source=fl` |
 | The Luma event page                  | `lu`       | `https://pauseai.uk/march?utm_source=lu` |
 
-Where the link has to be typed, as printed on a poster or said aloud, the
-tag is lost: put the QR code on print, say "link in bio" in a caption, and
-print plain pauseai.uk/march as the words. Links from pauseai.uk's own pages
-to the sign-up have no tag: GA would start a new visit at them.
+Where the link has to be typed, as when it's printed on a poster or said
+aloud, the tag is lost. So:
+
+- put the QR code on print;
+- say "link in bio" in a caption;
+- print plain pauseai.uk/march as the words.
+
+Links from pauseai.uk's own pages to the sign-up have no tag: GA would
+start a new visit at them.
 
 ## Influencer outreach
 
@@ -59,8 +66,9 @@ the tag is lost, and the visit counts as untagged.
 ## The sign-up's events
 
 The sign-up sends two events straight to Google Analytics through gtag
-(`app/(march)/protests/march-against-ai-extinction-nov-26/_components/analytics.ts`), the way GA gets page views,
-with `gtag("config", "G-DLLRWZCYD7")` in `components/layout/CookieConsent.tsx`:
+(`app/(march)/protests/march-against-ai-extinction-nov-26/_components/analytics.ts`).
+GA gets page views the same way, set up by `gtag("config", "G-DLLRWZCYD7")`
+in `components/layout/CookieConsent.tsx`. The events:
 
 | Event          | When                                                                                     | Data                                                                                                                                  |
 | -------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -69,11 +77,16 @@ with `gtag("config", "G-DLLRWZCYD7")` in `components/layout/CookieConsent.tsx`:
 
 They don't go through Google Tag Manager (container GTM-K7P36Q7F), so
 nothing in GTM needs setting up. Don't add a GA4 event tag for them there:
-GA would count each one twice. They're sent only where GA is loaded: on the
-live site, for someone who hasn't declined analytics.
+GA would count each one twice.
 
-In GA, Admin, Events: mark `march_signup` as a key event. Admin, Custom
-definitions: a custom dimension, event-scoped, for `share_method`.
+They're sent only where GA is loaded: on the live site, for someone who
+hasn't declined analytics.
+
+In GA:
+
+- under Admin, Events, mark `march_signup` as a key event;
+- under Admin, Custom definitions, add an event-scoped custom dimension for
+  `share_method`.
 
 ## Seeing it in Google Analytics
 

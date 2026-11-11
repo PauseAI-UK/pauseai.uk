@@ -11,10 +11,12 @@ sends mailings from the site rather than Airtable.
 
 ## What replaces each Airtable field
 
-The nightly `sync-politicians` job copies two tables from base
-`appBInVvIm6opJ1Ob`: the politicians (`lib/server/politician-sync.ts`)
-and the Emails table (`lib/server/emails-sync.ts`). Two one-off imports
-also read that base (`lib/server/outside-services/airtable.ts`).
+The nightly `sync-politicians` job copies the politicians from base
+`appBInVvIm6opJ1Ob` (`lib/server/politician-sync.ts`). Two one-off
+imports, each run by a button, also read that base
+(`lib/server/outside-services/airtable.ts`): `sync-emails`, of its
+Emails table (`lib/server/emails-sync.ts`), and
+`import-web-form-letters`.
 
 | Airtable                                                | Replaced by                                       |
 | ------------------------------------------------------- | ------------------------------------------------- |
@@ -36,10 +38,11 @@ The members import reads a different base, Stichting PauseAI's
 
 Each politician stores the ID their legislature gives them, so someone
 who leaves and comes back, or moves from one house to another, stays
-one record. Alongside it, a column for each standard key that other
-sources use, so a politician can be matched to them without a name
-lookup: a Wikipedia article title, a TheyWorkForYou person ID, and
-whatever else turns up (Wikidata, Democracy Club). TheyWorkForYou's
+one record. Alongside the ID, there's a column for each standard key
+that other sources use: a Wikipedia article title, a TheyWorkForYou
+person ID, and whatever else turns up (Wikidata, Democracy Club). With
+those, a politician can be matched to the other sources without a name
+lookup. TheyWorkForYou's
 [people data](https://www.theyworkforyou.com/api/) already links its
 MPs, Lords, MSPs and MLAs to their Wikipedia articles and official IDs,
 so it can fill those columns in one pass.
@@ -73,14 +76,16 @@ All four give each member's name, party, constituency and email.
   their terms of office. It worked in a browser, but refused our
   requests with a 403.
 
-- Politicians' own domains, which show whose office a thread with an email
-  address on one is from (`docs/domain-concepts.md`), come with each
-  body's sync. A domain counts only if it belongs to one politician, and
-  social media and party sites are skipped. The Scottish Parliament's
-  `websites` and `emailaddresses` endpoints have them: up to 53 of its 129
-  current members list a site that isn't parliament.scot's, a count that
-  includes party sites, social media and malformed links. The Senedd's
-  `additionalcontactinfo` has few, mostly social media. The NI Assembly's contact details have only its own domains.
+- Politicians' own domains come with each body's sync. An email address
+  on one of those domains shows whose office a thread is from
+  (`docs/domain-concepts.md`). A domain counts only if it belongs to one
+  politician, and social media and party sites are skipped. The Scottish
+  Parliament's `websites` and `emailaddresses` endpoints have them. Up to
+  53 of its 129 current members list a site that isn't parliament.scot's,
+  and that count includes party sites, social media and malformed links.
+  The Senedd's `additionalcontactinfo` has few, and most of those are
+  social media. The NI Assembly's contact details have only its own
+  domains.
 
 ## Steps
 
@@ -91,21 +96,24 @@ All four give each member's name, party, constituency and email.
    match them by hand. Fill the standard keys from TheyWorkForYou's
    data, which links each person to their official ID.
 2. Replace the Airtable copy in `sync-politicians` with a nightly update
-   from the official sources, folding in the checks in `mp-check.ts`. It
-   adds new members, marks those who have left with the reason, and
-   updates names, parties, constituencies and emails. Every address a
-   body lists goes in `politician_addresses`, leaving out shared ones, and
-   an address it stops listing stays there, as a past one. A large change is
-   held for someone to check, as now: it shows on the staff home page
-   and can be applied on the Import page. The site also emails
-   `POLICY_INBOX` about it, as it does for a bounce.
+   from the official sources, folding in the checks in `mp-check.ts`.
+   - It adds new members, marks those who have left with the reason, and
+     updates names, parties, constituencies and emails.
+   - Every address a body lists goes in `politician_addresses`, except
+     shared ones. An address the body stops listing stays there, as a
+     past one.
+   - A large change is held for someone to check, as now: it shows on
+     the staff home page, the notification inbox is emailed about it,
+     and it can be applied on the Import page.
 3. Let staff edit a politician's salutation and markers (important
    target, personal connection), and add people who aren't in any
-   official list (house `other`). A change of their office status needs
-   the date it happened and a note. A new politician's salutation is
-   drafted by an LLM from their Wikipedia article, as Joseph's were in
-   Airtable, and marked as a draft until staff have checked it; without
-   an article, it's made from the name.
+   official list (house `other`).
+   - A change of a politician's office status needs the date it
+     happened and a note.
+   - A new politician's salutation is drafted by an LLM from their
+     Wikipedia article, as Joseph's were in Airtable, and marked as a
+     draft until staff have checked it. Without an article, the
+     salutation is made from the name.
 4. The asks page shows how many politicians received a letter about
    each ask, from a mailing or a campaign.
 5. Read ControlAI's statement every night from
@@ -118,12 +126,15 @@ All four give each member's name, party, constituency and email.
    `aims.niassembly.gov.uk` with a `per=` ID. The 14 Scottish and 5
    Senedd links contain a name, so those are matched by name. If the
    page has too few names, nothing is changed, as with the letter.
-6. Switch off Airtable: remove the syncs, the one-off imports, their
-   rows on the Import page and the base's token. Politicians keep their
-   `airtable_id`. Each politician's Airtable notes, with a line saying
-   Recommended if it was ticked, become one note in their history,
-   written by "Airtable" and dated the day it's switched off; then
-   `notable_people.notes` and the Notes from Airtable card go.
+6. Switch off Airtable:
+   - Remove the syncs, the one-off imports, their rows on the Import
+     page and the token's access to the base. `AIRTABLE_TOKEN` stays, as
+     the members import reads its own base with it.
+   - Politicians keep their `airtable_id`.
+   - Each politician's Airtable notes become one note in their history,
+     with a line saying Recommended if it was ticked. The note is
+     written by "Airtable" and dated the day Airtable is switched off.
+     Then `notable_people.notes` and the Notes from Airtable card go.
 
 ## More addresses for each politician
 
@@ -134,7 +145,8 @@ we hold. On 7 November 2026, 121 of the 277 one-off threads had no politician.
 For example, Dame Meg Hillier's record and Parliament's list both say
 `meg.hillier.mp@parliament.uk`, but her mail uses `meghilliermp@parliament.uk`.
 All 11 of her unlinked threads have that address. A thread on a parliament
-domain is kept without naming anyone, so they're kept but not filed under her.
+domain is kept without naming anyone, so her threads are kept but not filed
+under her.
 
 This comes first, in its own pull request, as it doesn't depend on the official
 sources or on Airtable. The official sources' sync then adds to the same table.
@@ -168,11 +180,12 @@ The 39 left:
    an address, as two sharing a member of staff do. `politicianBook` reads it in
    place of the audit log's edits, alongside `notable_people.email`. Letters
    still go only to `notable_people.email`, so nothing here changes who gets one.
-2. **Quoted addresses always count:** `keepIfPoliticianThread` only looks at
-   quotes when the headers don't count, and `keepThreadMate` not at all, so a
-   reply on a parliament domain quoting a letter to a known address isn't linked.
-   For example, a reply from Andrew Rosindell's `romford.mp@parliament.uk` quoting
-   his `andrew.rosindell.mp@parliament.uk`.
+2. **Quoted addresses always count:** today `keepIfPoliticianThread` only looks
+   at quotes when the headers don't count, and `keepThreadMate` doesn't look at
+   them at all. So a reply on a parliament domain that quotes a letter to a
+   known address isn't linked. For example, a reply from Andrew Rosindell's
+   `romford.mp@parliament.uk` quoting his `andrew.rosindell.mp@parliament.uk`
+   isn't.
 3. **The address pattern:** an address on a parliament's domain links, and is
    recorded, if its local part has a member's marker and names exactly one
    politician in office in that house:
@@ -194,20 +207,21 @@ The 39 left:
    the wrong person for none, and made no guess for 790.
 4. **The staff action:** on a thread, staff say an address is a politician's or
    their office's. That records it and links every thread with it. Staff can
-   also remove an address or a thread's link, for a wrong one. This covers
+   also remove an address or a thread's link, if it's wrong. This covers
    caseworkers: 28 threads rest on 4 staff addresses, for Iqbal Mohamed (20) and
    Lord Tarassenko (8). The politician's page lists their addresses. It needs a
    storyboard flow.
 5. **Linking old threads:** `read-gmail` only sees new mail, so adding an address
    links existing threads too. Header addresses are already in
    `one_off_messages.addresses`, so that's one query. Quoted addresses aren't
-   stored, so they get a column, set as a message is kept and filled once from
-   the kept mail in Blobs, with no Gmail reads. Three more things go with it:
+   stored, so they get a column. It's set as a message is kept, and filled once
+   for the mail already kept, from Blobs, with no Gmail reads. Three more things
+   go with it:
    - **The pattern over old threads:** it also runs once over every address
      already stored, headers and quotes. Otherwise Hillier's 11 threads stay
      unlinked, as no new address arrives for them.
-   - **`someone_else`:** this hides a thread from staff without `supporters`, and
-     is set as a message is kept. It's worked out again from the thread's senders
+   - **`someone_else`:** this hides a thread from staff without the `supporters`
+     permission, and is set as a message is kept. It's worked out again from the thread's senders
      whenever an address is added or removed, so a thread only shows once none of
      its senders is someone else, and hides again if one becomes so. Today it
      changes none of the 98 flagged threads: the pattern and staff addresses are
@@ -220,7 +234,8 @@ The 39 left:
    line on them.
 
 To check while building: whether replies to letters match through the book. The
-one-off pages and the old letters import do, so they widen with it.
+one-off pages and the old letters import do match through it, so what they
+match widens with the book.
 
 ### Rules we measured and left out
 
@@ -260,8 +275,8 @@ what those Lords' letters use, as letters would go to the shared inbox.
 ### Lords with a shared address
 
 We hold 380 Lords, none with this address. Linking the 14 threads needs those
-Lords on our list and a rule reading the name from the subject, as "For Baroness
-Verma: Request to co-sign…" does. All 14 have that form, but with those Lords not
+Lords on our list and a rule reading the name from a subject such as "For
+Baroness Verma: Request to co-sign…". All 14 have that form, but with those Lords not
 on our list, the rule hasn't been tested.
 
 ### Threads already linked
@@ -299,7 +314,7 @@ all politicians, 15 letters with no sent email fall within a day of a thread
 this would link.
 
 The wider book helps the import's matching, but moving those threads onto their
-letters is a separate pull request, as the import is now a one-off run by a
+letters is a separate pull request, as the import is a one-off run by a
 button.
 
 ## Open questions
