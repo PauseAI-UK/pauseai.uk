@@ -292,6 +292,32 @@ describeWithDatabase("importCivicrm", () => {
     );
     await expect(importCivicrm("nightly")).rejects.toThrow("CiviCRM's contacts ran past 100 pages");
   });
+
+  it("brings the supporters list up to date when a contact changes or goes, linking nobody", async () => {
+    const jane = { first_name: "Jane", last_name: "Smith", joined_date: "2026-09-12" };
+    const sam = { first_name: "Sam", last_name: "Jones", joined_date: "2026-09-13" };
+    // Enough others that one going is too few to hold back as CiviCRM's mistake.
+    const others = Array.from({ length: 30 }, (_, i) => contact(100 + i, `other${i}@example.com`));
+    serve([contact(1, "jane@example.com", jane), contact(2, "sam@example.com", sam), ...others]);
+    await importCivicrm("nightly");
+    const listed = () =>
+      query<Row>(
+        `SELECT name, member, first_seen_at FROM supporters_list
+         WHERE emails && '{jane@example.com,sam@example.com}' ORDER BY emails`,
+      );
+    expect(await listed()).toEqual([
+      { name: "Jane Smith", member: true, first_seen_at: new Date("2026-09-12T00:00:00Z") },
+      { name: "Sam Jones", member: true, first_seen_at: new Date("2026-09-13T00:00:00Z") },
+    ]);
+
+    // Jane's name and joining change; Sam is no longer returned.
+    serve([contact(1, "jane@example.com", { ...jane, last_name: "Brown", joined_date: "2026-09-01" }), ...others]);
+    expect(await importCivicrm("nightly")).toMatchObject({ changed: 1, gone: 1 });
+    expect(await listed()).toEqual([
+      { name: "Jane Brown", member: true, first_seen_at: new Date("2026-09-01T00:00:00Z") },
+      { name: null, member: false, first_seen_at: new Date("2026-09-13T00:00:00Z") },
+    ]);
+  });
 });
 
 describeWithDatabase("lookUpNewMembers", () => {

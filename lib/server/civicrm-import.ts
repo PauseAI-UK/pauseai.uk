@@ -14,7 +14,7 @@ import { config } from "./config";
 import { recordCivicrmLists } from "./opt-outs";
 import { problem } from "./problems";
 import { resendAfterFix } from "./relays";
-import { refreshSupportersList } from "./supporter-facts";
+import { refreshSupporterFacts, refreshSupportersList } from "./supporter-facts";
 import { linkSupporters } from "./supporters";
 
 // Copies Global's UK chapter contacts from CiviCRM into civicrm_contacts:
@@ -208,9 +208,13 @@ export async function importCivicrm(startedBy: string): Promise<CivicrmImportRes
         ...(unblocked.length > 0 && { unblocked: unblocked.length }),
       };
       const { supportersAdded, linked } = await linkSupporters(db);
-      if (linked > 0) {
+      if (linked > 0) Object.assign(result, { supportersAdded, linked });
+      // A contact added, changed or gone changes what the list shows of its
+      // supporter (a name, place, when they joined, the Member badge), as
+      // linking one does.
+      if (added + changed + result.gone + linked > 0) {
+        await refreshSupporterFacts(db);
         await refreshSupportersList(db);
-        Object.assign(result, { supportersAdded, linked });
       }
       const anything = added + changed + result.gone + result.optOuts + result.blocked + unblocked.length + linked;
       return { status: anything > 0 ? "ok" : "unchanged", result } as const;
