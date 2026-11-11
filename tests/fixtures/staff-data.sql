@@ -1375,6 +1375,3 @@ OVERRIDING SYSTEM VALUE VALUES
    'onResize@https://pauseai.example.org/_next/static/chunks/77aa.js:1:91',
    'Safari 18', now() - interval '20 days', now() - interval '4 days', 31, NULL, 0);
 SELECT setval(pg_get_serial_sequence('errors_seen', 'id'), (SELECT max(id) FROM errors_seen));
-
--- The spam check has let every letter through since it last refused one.
-INSERT INTO spam_check_runs (form, refused, since, alerted) VALUES ('letter', 0, NULL, false);

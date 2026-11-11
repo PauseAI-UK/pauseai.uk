@@ -2141,21 +2141,6 @@ ALTER TABLE public.signup_uploads ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTI
 );
 
 --
--- Name: spam_check_runs; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.spam_check_runs (
-    form text NOT NULL,
-    refused integer DEFAULT 0 NOT NULL,
-    since timestamp with time zone,
-    alerted boolean DEFAULT false NOT NULL,
-    CONSTRAINT spam_check_runs_check CHECK (((refused = 0) = (since IS NULL))),
-    CONSTRAINT spam_check_runs_check1 CHECK (((refused > 0) OR (NOT alerted))),
-    CONSTRAINT spam_check_runs_form_check CHECK ((form = 'letter'::text)),
-    CONSTRAINT spam_check_runs_refused_check CHECK ((refused >= 0))
-);
-
---
 -- Name: staff_accounts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2895,13 +2880,6 @@ ALTER TABLE ONLY public.signup_upload_entries
 
 ALTER TABLE ONLY public.signup_uploads
     ADD CONSTRAINT signup_uploads_pkey PRIMARY KEY (id);
-
---
--- Name: spam_check_runs spam_check_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.spam_check_runs
-    ADD CONSTRAINT spam_check_runs_pkey PRIMARY KEY (form);
 
 --
 -- Name: staff_accounts staff_accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: -

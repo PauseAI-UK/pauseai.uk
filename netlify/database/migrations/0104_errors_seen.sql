@@ -36,15 +36,3 @@ CREATE TABLE errors_seen (
 -- The staff page lists them newest first, and the nightly tidying deletes
 -- those not seen for a month.
 CREATE INDEX errors_seen_last_seen ON errors_seen (last_seen DESC, id DESC);
-
--- How many of a form's submissions the spam check has refused since it last
--- let one through (lib/server/spam-check-runs.ts), and whether staff have
--- been emailed about this run of them.
-CREATE TABLE spam_check_runs (
-  form text PRIMARY KEY CHECK (form IN ('letter')),
-  refused integer NOT NULL DEFAULT 0 CHECK (refused >= 0),
-  since timestamptz,
-  alerted boolean NOT NULL DEFAULT false,
-  CHECK ((refused = 0) = (since IS NULL)),
-  CHECK (refused > 0 OR NOT alerted)
-);

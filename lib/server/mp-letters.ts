@@ -11,7 +11,6 @@ import { isLettersInboxAddress } from "./letters-inbox";
 import { checkNotSpam } from "./outside-services/turnstile";
 import { statusesOf } from "./politicians";
 import { politicianProxy, supporterProxy } from "./proxies";
-import { countSpamCheck } from "./spam-check-runs";
 import { linkSupporters } from "./supporters";
 import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -84,14 +83,11 @@ function isOurAddress(email: string): boolean {
  * sender email gets one letter per campaign, except to the test MPs, so
  * they can be tried again and again. Once kept it's never deleted for
  * failing to send: what stops it waits in the queue, with its reason
- * (lib/server/letter-sending.ts), and the result says so. What the spam
- * check said of it is counted, so that one refusing everyone is noticed
- * (lib/server/spam-check-runs.ts).
+ * (lib/server/letter-sending.ts), and the result says so.
  */
 export async function submitLetter(form: LetterForm): Promise<SubmitResult> {
   const spam = await checkNotSpam(form);
   if (spam.drop) return { ok: true };
-  await countSpamCheck("letter", !spam.message);
   if (spam.message) return fail(403, spam.message);
 
   if (

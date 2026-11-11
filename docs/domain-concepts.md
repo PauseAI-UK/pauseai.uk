@@ -1266,17 +1266,10 @@ staff `StaffErrorPage` inside the staff pages' frame. The nightly tidying
 deletes an error not seen for a month (`lib/server/log-retention.ts`), so
 one that's fixed drops off by itself.
 
-**A check that refuses everyone throws nothing.** The spam check on
-letters to MPs answers a refusal with a message, so one that refused every
-sender would look like none. Each letter it refuses is counted, until it
-lets one through (`spam_check_runs`, `lib/server/spam-check-runs.ts`), and
-the notification inbox is emailed once when it has refused
-`REFUSALS_BEFORE_EMAIL` in a row. A bot's run of refusals looks the same,
-so the email says to try the form. Another form's check would be another
-`form` there.
-
 Not covered yet: the site being down, or a scheduled job that stops
-running, which keep nothing and need a monitor outside the site; and
+running, which keep nothing and need a monitor outside the site; a check
+that refuses everyone without throwing, such as a broken spam check on
+letters to MPs; and
 mapping a browser's minified stack trace back to the source.
 
 ## Saved filters
