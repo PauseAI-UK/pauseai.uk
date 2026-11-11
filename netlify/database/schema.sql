@@ -22,6 +22,12 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: english; Type: COLLATION; Schema: public; Owner: -
+--
+
+CREATE COLLATION public.english (provider = icu, locale = 'en-GB');
+
+--
 -- Name: pg_trgm; Type: EXTENSION; Schema: -; Owner: -
 --
 

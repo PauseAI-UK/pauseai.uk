@@ -297,7 +297,7 @@ export type EmailBlock = {
  * politicians', which only staff who may see supporters open.
  */
 const BLOCK_SUPPORTERS = `
-    (SELECT coalesce(json_agg(json_build_object('id', x.id, 'name', x.name) ORDER BY x.name NULLS LAST, x.id), '[]')
+    (SELECT coalesce(json_agg(json_build_object('id', x.id, 'name', x.name) ORDER BY x.name COLLATE english NULLS LAST, x.id), '[]')
      FROM (SELECT DISTINCT k.supporter_id::int AS id, l.name
            FROM supporter_links k LEFT JOIN supporters_list l ON l.id = k.supporter_id
            WHERE k.matched_by = 'email' AND k.matched_value = b.address) x)`;
@@ -307,7 +307,7 @@ const selectBlocks = (withSupporters: boolean) => `
   SELECT b.address, p.kind, p.reason, p.at AS since, p.can_reset AS "canReset",
     ${withSupporters ? BLOCK_SUPPORTERS : "'[]'::json"} AS supporters,
     p.gmail_message_id IS NOT NULL AS "foundInGmail",
-    coalesce((SELECT json_agg(json_build_object('id', pol.id, 'name', pol.name, 'isTest', coalesce(seat.is_test, false)) ORDER BY pol.name)
+    coalesce((SELECT json_agg(json_build_object('id', pol.id, 'name', pol.name, 'isTest', coalesce(seat.is_test, false)) ORDER BY pol.name COLLATE english)
               FROM notable_people pol LEFT JOIN politicians seat ON seat.id = pol.id WHERE lower(pol.email) = b.address), '[]') AS politicians,
     (SELECT json_build_object('id', l.id, 'to', pol.name)
      FROM email_sends s JOIN letters l ON l.id = s.letter_id JOIN notable_people pol ON pol.id = l.notable_person_id

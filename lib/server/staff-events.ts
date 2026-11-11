@@ -57,7 +57,7 @@ const SELECT_EVENTS = `SELECT e.id, e.name, 'https://luma.com/' || e.url AS url,
     (SELECT count(*)::int FROM luma_guests g WHERE g.event_id = e.id AND g.approval_status = 'approved' AND g.removed_at IS NULL) AS going,
     o.owner, d.url AS doc,
     (SELECT coalesce(json_agg(json_build_object('name', p.name, 'email', p.email, 'supporterId', k.supporter_id)
-        ORDER BY p.name = '', lower(p.name), p.email), '[]')
+        ORDER BY p.name = '', lower(p.name) COLLATE english, p.email), '[]')
       FROM luma_event_hosts h JOIN luma_people p ON p.user_id = h.user_id
         LEFT JOIN supporter_links k ON k.luma_user_id = h.user_id
       WHERE h.event_id = e.id) AS hosts

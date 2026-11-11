@@ -1,0 +1,15 @@
+# The gate's test suites share one Postgres
+
+Size: S. Kind: small fix.
+
+## Problem
+
+The gate runs `npm test` beside the backup Worker's tests, against the same Postgres. In CI they're separate jobs with their own services. `npm test` creates and drops a database for each test file that needs one, and each `DROP DATABASE … WITH (FORCE)` waits for a checkpoint, so dozens queue at once (`CheckpointDone` in `pg_stat_activity`). The backup Worker's `worker/rules.test.ts` makes a database from the whole schema, which takes about 7 seconds alone, and has timed out at 60 seconds in the gate. Timing its steps in a loop while `npm test` ran gave a stall of about 84 seconds in one run and nothing over 9 seconds in the next, so the cause isn't pinned down.
+
+## Fix
+
+Find what the backup test waits on during the stall, then either run the backup Worker's tests after `npm test` in the gate, or make `npm test` drop its databases without a checkpoint each.
+
+## Hits
+
+- 2026-11-11: `worker/rules.test.ts` timed out in the gate and passed alone; timing it under `npm test` reproduced a stall once in two runs, ~20 min
