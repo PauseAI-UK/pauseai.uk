@@ -26,6 +26,12 @@ import { eraseSupporter } from "@/lib/server/erasure";
 import { decideHeldSync } from "@/lib/server/politician-sync";
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
 import { deletePolitician, setStatus } from "@/lib/server/politicians";
+import {
+  type AddResult,
+  addPoliticianAddress,
+  removePoliticianAddress,
+  unlinkOneOff,
+} from "@/lib/server/politician-aliases";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { type EventSaved, setEventDoc, setEventOwner } from "@/lib/server/staff-events";
 import {
@@ -162,6 +168,38 @@ export async function unblockAddress(form: FormData): Promise<void> {
   }
   // The addresses page, the politicians list and their pages all show it.
   revalidatePath("/staff", "layout");
+}
+
+/**
+ * The form in a politician's aliases: adds an address to theirs, as the
+ * staff member, keeping the mail with it the mailboxes hold. Says what
+ * happened, for the form to show.
+ */
+export async function addAliasNow(form: FormData): Promise<AddResult | undefined> {
+  const { email } = await requireStaff();
+  const politicianId = idFrom(form, "politicianId");
+  if (!politicianId) return undefined;
+  const result = await addPoliticianAddress(politicianId, String(form.get("address") ?? ""), email);
+  // Their page, and any thread's, which can now show them.
+  if (result.added) revalidatePath("/staff", "layout");
+  return result;
+}
+
+/** The button by an address staff added to a politician's: removes it. */
+export async function removeAliasNow(form: FormData): Promise<void> {
+  const { email } = await requireStaff();
+  const politicianId = idFrom(form, "politicianId");
+  if (politicianId && (await removePoliticianAddress(politicianId, String(form.get("address") ?? ""), email)))
+    revalidatePath("/staff", "layout");
+}
+
+/** The button by a politician on a one-off email: takes them off it for good. */
+export async function unlinkOneOffNow(form: FormData): Promise<void> {
+  const { email } = await requireStaff();
+  const threadId = idFrom(form, "threadId");
+  const politicianId = idFrom(form, "politicianId");
+  if (threadId && politicianId && (await unlinkOneOff(threadId, politicianId, email)))
+    revalidatePath("/staff", "layout");
 }
 
 /** Where the accounts page goes after a change: back to itself, saying why if the change was refused. */

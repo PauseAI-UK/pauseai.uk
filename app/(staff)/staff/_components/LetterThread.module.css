@@ -8,6 +8,23 @@
   margin: 0;
 }
 
+/* The politicians a one-off thread shows under: each name, its button at the right. */
+.people {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
 /* The heading, and the way to read it in Gmail at the right, on its line. */
 .heading {
   display: flex;

@@ -47,7 +47,10 @@ const RUNS: Record<ImportJob, RunJob> = {
     };
   },
   "sync-emails": (by) => syncEmails(by),
-  "check-mps": async (by) => ({ problems: (await checkMps(by)).length }),
+  "check-mps": async (by) => {
+    const { problems, relinked } = await checkMps(by);
+    return { problems: problems.length, ...relinked };
+  },
   "import-controlai": (by) => importControlAiLetter(by),
   "import-web-form-letters": (by) => importWebFormLetters(by),
   "tidy-logs": (by) => runTidying(by),

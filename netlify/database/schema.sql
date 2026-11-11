@@ -2078,7 +2078,10 @@ CREATE TABLE public.one_off_messages (
     from_us boolean NOT NULL,
     blob_key text NOT NULL,
     size integer NOT NULL,
+    quoted_addresses text[],
+    quoted_names text[],
     CONSTRAINT one_off_messages_account_check CHECK ((account = lower(account))),
+    CONSTRAINT one_off_messages_check CHECK (((quoted_addresses IS NULL) = (quoted_names IS NULL))),
     CONSTRAINT one_off_messages_from_address_check CHECK ((from_address = lower(from_address))),
     CONSTRAINT one_off_messages_size_check CHECK ((size >= 0))
 );
@@ -2130,6 +2133,17 @@ ALTER TABLE public.one_off_threads ALTER COLUMN id ADD GENERATED ALWAYS AS IDENT
 );
 
 --
+-- Name: one_off_unlinked; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.one_off_unlinked (
+    thread_id bigint NOT NULL,
+    notable_person_id bigint NOT NULL,
+    unlinked_by text NOT NULL,
+    unlinked_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
 -- Name: opt_outs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -2140,6 +2154,21 @@ ALTER TABLE public.opt_outs ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MINVALUE
     NO MAXVALUE
     CACHE 1
+);
+
+--
+-- Name: politician_addresses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.politician_addresses (
+    address text NOT NULL,
+    notable_person_id bigint NOT NULL,
+    source text NOT NULL,
+    added_by text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT politician_addresses_address_check CHECK (((address = lower(address)) AND (address ~~ '_%@_%'::text))),
+    CONSTRAINT politician_addresses_check CHECK (((source = 'staff'::text) = (added_by IS NOT NULL))),
+    CONSTRAINT politician_addresses_source_check CHECK ((source = ANY (ARRAY['parliament'::text, 'office'::text, 'staff'::text])))
 );
 
 --
@@ -2896,6 +2925,13 @@ ALTER TABLE ONLY public.one_off_threads
     ADD CONSTRAINT one_off_threads_pkey PRIMARY KEY (id);
 
 --
+-- Name: one_off_unlinked one_off_unlinked_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.one_off_unlinked
+    ADD CONSTRAINT one_off_unlinked_pkey PRIMARY KEY (thread_id, notable_person_id);
+
+--
 -- Name: opt_outs opt_outs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2908,6 +2944,13 @@ ALTER TABLE ONLY public.opt_outs
 
 ALTER TABLE ONLY public.opt_outs
     ADD CONSTRAINT opt_outs_source_source_ref_key UNIQUE (source, source_ref);
+
+--
+-- Name: politician_addresses politician_addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.politician_addresses
+    ADD CONSTRAINT politician_addresses_pkey PRIMARY KEY (address, notable_person_id, source);
 
 --
 -- Name: politician_domains politician_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -3408,6 +3451,12 @@ CREATE UNIQUE INDEX one_off_messages_rfc ON public.one_off_messages USING btree 
 CREATE INDEX one_off_messages_thread ON public.one_off_messages USING btree (thread_id, at);
 
 --
+-- Name: one_off_messages_unquoted; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX one_off_messages_unquoted ON public.one_off_messages USING btree (id) WHERE (quoted_addresses IS NULL);
+
+--
 -- Name: one_off_thread_people_person; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3424,6 +3473,12 @@ CREATE INDEX one_off_threads_latest ON public.one_off_threads USING btree (lates
 --
 
 CREATE UNIQUE INDEX opt_outs_open ON public.opt_outs USING btree (way, address, list) WHERE (resubscribed_at IS NULL);
+
+--
+-- Name: politician_addresses_person; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX politician_addresses_person ON public.politician_addresses USING btree (notable_person_id);
 
 --
 -- Name: politician_domains_person; Type: INDEX; Schema: public; Owner: -
@@ -3755,6 +3810,27 @@ ALTER TABLE ONLY public.one_off_thread_people
 
 ALTER TABLE ONLY public.one_off_thread_people
     ADD CONSTRAINT one_off_thread_people_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.one_off_threads(id) ON DELETE CASCADE;
+
+--
+-- Name: one_off_unlinked one_off_unlinked_notable_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.one_off_unlinked
+    ADD CONSTRAINT one_off_unlinked_notable_person_id_fkey FOREIGN KEY (notable_person_id) REFERENCES public.notable_people(id) ON DELETE CASCADE;
+
+--
+-- Name: one_off_unlinked one_off_unlinked_thread_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.one_off_unlinked
+    ADD CONSTRAINT one_off_unlinked_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.one_off_threads(id) ON DELETE CASCADE;
+
+--
+-- Name: politician_addresses politician_addresses_notable_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.politician_addresses
+    ADD CONSTRAINT politician_addresses_notable_person_id_fkey FOREIGN KEY (notable_person_id) REFERENCES public.notable_people(id) ON DELETE CASCADE;
 
 --
 -- Name: politician_domains politician_domains_notable_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

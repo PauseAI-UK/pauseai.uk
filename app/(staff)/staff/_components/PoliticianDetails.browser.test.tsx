@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
-import { staffTime } from "@/lib/staff-time";
+import { staffDate, staffTime } from "@/lib/staff-time";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { exampleBlock } from "./EmailBlocksTable.examples";
 import { exampleLetter } from "./LettersTable.examples";
@@ -11,7 +11,8 @@ import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import PoliticianDetails from "./PoliticianDetails";
 import { type ThreadMessages, type ThreadStep } from "@/lib/politician-correspondence";
 import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "./Notes.examples";
-import { exampleAsks, examplePolitician, examplePoliticianHistory } from "./PoliticianTable.examples";
+import { exampleAliases, exampleAsks, examplePolitician, examplePoliticianHistory } from "./PoliticianTable.examples";
+import AddAliasForm from "./AddAliasForm";
 import { action } from "@/tests/browser/staff";
 
 const [pm] = campaigns;
@@ -1125,5 +1126,104 @@ describe("PoliticianDetails", () => {
     );
     expect(notice.element().textContent).not.toContain(copy.wrong.before);
     await expect.element(notice.getByText(staffCopy.emails.cantReset)).toBeVisible();
+  });
+
+  it("leads from their email to their aliases, folded at the foot, open when led there, with a way to remove one staff added", async () => {
+    const add = vi.fn();
+    const remove = action();
+    const aliases = { add, remove: remove.fn };
+    const words = staffCopy.politician.aliases;
+    const { rerender } = await render(
+      <PoliticianDetails politician={MP} unblock={vi.fn()} {...none} aliases={exampleAliases} aliasActions={aliases} />,
+    );
+    await expect
+      .element(page.getByRole("link", { name: words.see }))
+      .toHaveAttribute("href", `/staff/politicians/${MP.id}?aliases=open#aliases`);
+    const fold = document.getElementById("aliases") as HTMLDetailsElement;
+    expect(fold.open).toBe(false);
+    expect(fold.querySelector("summary")!.textContent).toBe(`${words.title} 8`);
+    await rerender(
+      <PoliticianDetails
+        politician={MP}
+        unblock={vi.fn()}
+        {...none}
+        aliases={exampleAliases}
+        aliasesOpen
+        aliasActions={aliases}
+      />,
+    );
+    expect(fold.open).toBe(true);
+    const rows = [...fold.querySelectorAll("tbody tr")].map((row) => row.querySelector("td")!.textContent);
+    expect(rows).toEqual([
+      "polly.placeholder.mp@parliament.uk",
+      "polly@oldexample.org.uk",
+      "placeholderp@parliament.uk",
+      "jane.smith@parliament.uk",
+      "polly.placeholder@example.com",
+      "@pollyplaceholder.org.uk",
+      "polly.placeholder.mp@parliament.uk",
+      "citiesoflondonandwestminster.mp@parliament.uk",
+    ]);
+    await expect.element(page.getByText(words.sources.office)).toBeVisible();
+    await expect
+      .element(page.getByText(words.addedBy("jo@pauseai.uk", staffDate(exampleAliases.added[0].at)), { exact: false }))
+      .toBeVisible();
+    await page.getByRole("button", { name: words.remove }).click();
+    await vi.waitFor(() =>
+      expect(remove.sent).toEqual([{ politicianId: String(MP.id), address: "polly.placeholder@example.com" }]),
+    );
+    // With no email, the list starts at what they had before.
+    await rerender(
+      <PoliticianDetails
+        politician={{ ...MP, email: null }}
+        unblock={vi.fn()}
+        {...none}
+        aliases={{ ...exampleAliases, email: null }}
+        aliasesOpen
+        aliasActions={aliases}
+      />,
+    );
+    expect(fold.querySelector("tbody td")!.textContent).toBe("polly@oldexample.org.uk");
+    // Without what changes them, no aliases at all.
+    await rerender(<PoliticianDetails politician={MP} unblock={vi.fn()} {...none} aliases={exampleAliases} />);
+    expect(document.getElementById("aliases")).toBeNull();
+    expect(page.getByRole("link", { name: words.see }).query()).toBeNull();
+  });
+});
+
+describe("AddAliasForm", () => {
+  const words = staffCopy.politician.aliases;
+
+  it("sends the address, and says what happened", async () => {
+    const results = [
+      { added: true as const, kept: 2 },
+      { added: false as const, why: "invalid" as const },
+      { added: false as const, why: "exists" as const },
+      undefined,
+    ];
+    const sent: string[] = [];
+    await render(
+      <AddAliasForm
+        politicianId={7}
+        action={(form) => {
+          sent.push(`${String(form.get("politicianId"))} ${String(form.get("address"))}`);
+          return results.shift();
+        }}
+      />,
+    );
+    const status = page.getByRole("status");
+    const send = async (address: string) => {
+      await page.getByLabelText(words.address).fill(address);
+      await page.getByRole("button", { name: words.add }).click();
+    };
+    await send("a@example.com");
+    await expect.element(status).toHaveTextContent(words.added(2));
+    await send("b@example.com");
+    await expect.element(status).toHaveTextContent(words.refused.invalid);
+    await send("c@example.com");
+    await expect.element(status).toHaveTextContent(words.refused.exists);
+    await send("d@example.com");
+    await expect.element(status).toHaveTextContent("");
+    expect(sent).toEqual(["7 a@example.com", "7 b@example.com", "7 c@example.com", "7 d@example.com"]);
   });
 });

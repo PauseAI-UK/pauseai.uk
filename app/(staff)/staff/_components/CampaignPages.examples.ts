@@ -229,6 +229,7 @@ export const exampleOneOffThread: OneOffThread = {
       text: "Dear Polly,\n\nCould we meet?",
       quoted: "",
       auto: false,
+      forwarded: [],
     },
     {
       id: 2,
@@ -243,6 +244,7 @@ export const exampleOneOffThread: OneOffThread = {
       text: null,
       quoted: "",
       auto: false,
+      forwarded: [],
     },
     {
       id: 3,
@@ -257,6 +259,53 @@ export const exampleOneOffThread: OneOffThread = {
       text: "I'm away until Monday.\n\nThis email may be confidential.",
       quoted: "> Could we meet?",
       auto: true,
+      forwarded: [],
+    },
+  ],
+};
+
+/** A supporter's forward of their MP's answer to policy@: the letter and the answer rebuilt before it. */
+export const exampleForwardThread: OneOffThread = {
+  ...exampleOneOffs[1],
+  people: [{ id: 1, name: "Polly Placeholder", isTest: false }],
+  messages_: [
+    {
+      id: 4,
+      at: new Date("2026-10-19T09:00:00Z"),
+      fromName: "Jane Smith",
+      fromAddress: "jane.smith@example.com",
+      to: "policy@pauseai.uk",
+      cc: "",
+      subject: "Fwd: my MP's answer",
+      account: "policy@pauseai.uk",
+      politicians: {},
+      text: "",
+      quoted: "",
+      auto: false,
+      forwarded: [
+        {
+          fromName: "Jane Smith",
+          fromAddress: "jane.smith@example.com",
+          to: "polly.placeholder.mp@parliament.uk",
+          cc: "",
+          sent: "15 October 2026 11:17",
+          subject: "Can we meet?",
+          politicians: { "polly.placeholder.mp@parliament.uk": 1 },
+          text: "Dear Polly,\n\nI'm a constituent. Could we meet in Westminster Hall?",
+          quoted: "",
+        },
+        {
+          fromName: "Polly Placeholder MP",
+          fromAddress: "pollyplaceholdermp@parliament.uk",
+          to: "Jane Smith <jane.smith@example.com>",
+          cc: "",
+          sent: "Fri, Oct 16, 2026 at 12:13 PM",
+          subject: "Re: Can we meet?",
+          politicians: { "pollyplaceholdermp@parliament.uk": 1 },
+          text: "Dear Jane,\n\nThank you for writing. I'm sorry I can't meet this week.\n\nPolly",
+          quoted: "UK Parliament Disclaimer: this e-mail is confidential to the intended recipient.",
+        },
+      ],
     },
   ],
 };

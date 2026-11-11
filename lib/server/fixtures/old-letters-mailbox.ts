@@ -10,6 +10,8 @@ const JOSEPH_MAILBOX = "joseph@pauseai.uk";
 const POLICY_MAILBOX = "policy@pauseai.uk";
 
 const POLLY = "polly.placeholder.mp@parliament.uk";
+/** Polly's own Gmail: on no list, so her mail from it matches nothing until staff add it to hers. */
+export const POLLY_PERSONAL = "polly.placeholder.home@gmail.example";
 const DORA = "mp90001.office@parliament.uk";
 const MO = "mp90003.office@parliament.uk";
 const MORAG = "morag.example.msp@parliament.example";
@@ -379,7 +381,30 @@ const OLD_MAIL: readonly OldMail[] = [
       "List-Id": "<policy.pauseai.uk>",
       "Message-ID": "<0a17@example.com>",
     },
-    `Look at this.\n\nFrom: Polly Placeholder <${POLLY}>\nSent: 2 October 2026 09:00\nTo: Vera Volunteer <vera.volunteer@example.com>\nSubject: Your email\n\nThank you for writing.`,
+    [
+      "Look at this.",
+      "",
+      "Begin forwarded message:",
+      "",
+      `From: Polly Placeholder <${POLLY}>`,
+      "Sent: 2 October 2026 09:00",
+      "To: Vera Volunteer <vera.volunteer@example.com>",
+      "Subject: Re: Your email",
+      "",
+      "Dear Vera,",
+      "",
+      "Thank you for writing. I'll raise it with the minister.",
+      "",
+      "Polly",
+      "",
+      "On 1 Oct 2026, at 18:20, Vera Volunteer <vera.volunteer@example.com> wrote:",
+      "",
+      "> Dear Polly,",
+      ">",
+      "> Will you back a pause on frontier AI?",
+      ">",
+      "> Vera",
+    ].join("\n"),
   ),
   // Mail in the group's archive about nothing to do with a politician.
   mail(
@@ -539,11 +564,29 @@ const OLD_MAIL: readonly OldMail[] = [
     },
     "Are you?",
   ),
+  // Polly writing from her own Gmail, which nothing knows is hers until staff add it.
+  mail(
+    POLICY_MAILBOX,
+    "0b11",
+    "t-personal",
+    ["INBOX"],
+    "2026-11-02T08:00:00.000Z",
+    {
+      From: `Polly Placeholder <${POLLY_PERSONAL}>`,
+      To: POLICY_MAILBOX,
+      Subject: "From my own address",
+      "Message-ID": "<0b11@example.com>",
+    },
+    "Please use this address for anything urgent.\n\nPolly",
+  ),
 ];
 
 /** What a search of a mailbox finds, as the import's searches ask. Mail labelled THREAD only a thread's listing finds. */
 function search(account: string, q: string): OldMail[] {
   const mine = OLD_MAIL.filter((m) => m.account === account && !m.labels.includes("THREAD"));
+  // A search for one address, as adding one to a politician's makes: the mail with it anywhere.
+  const one = /^"(.+)"$/.exec(q)?.[1];
+  if (one) return mine.filter((m) => m.raw.toLowerCase().includes(one));
   if (account === POLICY_MAILBOX) return mine;
   if (q.startsWith("list:")) return mine.filter((m) => /^List-Id:/im.test(m.raw));
   if (q.startsWith("in:sent"))

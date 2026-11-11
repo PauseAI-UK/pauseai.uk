@@ -72,8 +72,9 @@ Where they come from:
   for someone new). A record gone from Airtable keeps its status
   and gets `airtable_removed_at`. A nightly check compares the MPs with
   Parliament's Members API and reports the differences
-  (`lib/server/mp-check.ts`). It changes nothing but `politician_domains`
-  ("One-off emails", below).
+  (`lib/server/mp-check.ts`). It changes nothing but the emails and domains
+  Parliament lists for each MP, which say whose a one-off email is, and then
+  relinks the one-off emails ("One-off emails", below).
 - **Test MPs** are fixed, each found by a test postcode (`lib/test-mps.json`,
   ZZ99Z\*) and each standing for one case: an ordinary MP, one who has
   signed, one with no email, one whose email bounces. A new case that a
@@ -574,9 +575,53 @@ else in it.
   - an address on a politician's own domain; or
   - an address on a parliament's domain.
 
-  Politicians' own domains (`politician_domains`) come from the nightly check
-  against Parliament's Members API. The check saves each domain Parliament lists,
-  if only one politician has it and it isn't a party's or social media's.
+  Whose it is, the politicians a thread shows under, goes by the politician book
+  (`lib/server/politician-book.ts`). An address is a politician's if it's:
+  - their email, or one they had;
+  - one in `politician_addresses`: listed for them by Parliament's Members API,
+    added by staff (such as a personal Gmail), or their office's;
+  - on a domain of their own (`politician_domains`); or
+  - a parliament address in one of the forms their name or seat makes
+    (`addressForms`): `meg.hillier.mp@`, `meghilliermp@`, `officeofmeghillier@`,
+    `meg.hillier.casework@`, `mel.stride.centraldevon@`, `romford.mp@`,
+    `kate.forbes.msp@`, and plain `first.last@` at the Senedd and the Northern
+    Ireland Assembly. At parliament.uk and parliament.scot a name needs its mark,
+    as staff have `first.last@` too. A form two politicians make is no one's.
+
+  The nightly check against Parliament's Members API saves each MP's listed
+  emails, and each domain Parliament lists, if only one politician has it and
+  it isn't shared: a party's, social media's, a mail provider's or the public
+  sector's, whatever its ending. Its last step is relinking (below).
+
+  An office's address is a parliament address that's no politician's but reads
+  as a person's own (`first.last@`), seen only in threads with one politician,
+  such as their caseworker's. Relinking works these out again each time, by the
+  book without them.
+
+- **Relinking** (`lib/server/one-off-relink.ts`) works out every thread's
+  politicians afresh from its messages' addresses, the addresses and names they
+  quote, and the book as it is, and whether it has someone else in it. It runs
+  at the end of the nightly check (and its button), and when staff add or remove
+  an address. A message's quotes are stored as it's kept (`quoted_addresses`,
+  `quoted_names`); for one kept before, relinking reads them from its blob, as
+  many as it can in its time, and a thread with any still unread loses no one.
+  Outlook quotes a colleague in Parliament by name alone ("HILLIER, Meg"), so a
+  quoted name with no address links the politician it names.
+
+- **Aliases.** A politician's page lists, folded at its foot, every address and
+  domain that's theirs and where each came from, with the forms their name and
+  seat make; their email at the top leads there. Staff add an address there by
+  hand: it's logged, and the site searches policy@ and joseph@ in Gmail for it
+  (up to 50 messages each) and keeps what the regular read would have, as that
+  read passed over it before the address was known. Staff can remove an address
+  they added, and take a politician off a thread that isn't theirs: neither
+  relinking nor a new message brings them back (`one_off_unlinked`).
+
+- **Forwards.** A forward is shown as the messages it carries, each rebuilt from
+  its quoted headers and marked so, oldest first, before the forward's own note
+  (`lib/email-parsing/forwards.ts`). One the thread holds whole isn't rebuilt.
+  This is worked out as the page is shown, from the kept message, so every
+  forward gets better as the parser does.
 
   A message is kept once, by its Message-ID, and threaded across mailboxes by
   In-Reply-To and References, as each mailbox has its own Gmail thread IDs. A

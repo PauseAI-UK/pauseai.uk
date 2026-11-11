@@ -1,5 +1,6 @@
 import "server-only";
 import { IMPORT_JOBS, type JobSchedule, jobSchedule, type TidyingResult } from "@/lib/import-runs";
+import { ADDRESS_ACTIONS } from "@/lib/audit-events";
 import { auditActions } from "./audit";
 import { tidyErrorsSeen } from "./errors-seen";
 import { asRun } from "./import-runs";
@@ -32,7 +33,7 @@ const jobsThat = (schedule: JobSchedule) => IMPORT_JOBS.filter((job) => jobSched
 const POLITICIAN_HISTORY = `(
   (a.action IN (${auditActions("add politician", "edit politician", "remove politician")})
     AND EXISTS (SELECT 1 FROM notable_people n WHERE n.id::text = a.details->>'id'))
-  OR (a.action = ${auditActions("set status")}
+  OR (a.action IN (${auditActions("set status", ...ADDRESS_ACTIONS)})
     AND EXISTS (SELECT 1 FROM notable_people n WHERE n.id::text = a.details->>'politicianId'))
   OR (a.action IN (${auditActions("block address", "unblock address")})
     AND EXISTS (SELECT 1 FROM notable_people n WHERE lower(n.email) = a.details->>'address')))`;

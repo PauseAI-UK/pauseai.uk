@@ -59,7 +59,7 @@ describeWithDatabase("POST /api/cron/<job>", () => {
 
   it("checks the MPs against Parliament's, and says how many problems it found", async () => {
     // No MPs copied yet, so each of Parliament's is missing.
-    expect(await answer("check-mps")).toEqual({ problems: 3 });
+    expect(await answer("check-mps")).toEqual({ problems: 3, read: 0, unread: 0, linked: 0, unlinked: 0, offices: 0 });
   });
 
   it("reads ControlAI's letter and says what it did", async () => {

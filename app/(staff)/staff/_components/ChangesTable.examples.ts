@@ -120,4 +120,13 @@ export const exampleChanges: LoggedChange[] = [
   change(28, "jo@pauseai.uk", "update filter", { id: 3, list: "events" }),
   change(29, "jo@pauseai.uk", "rename filter", { id: 3, list: "events" }),
   change(30, "jo@pauseai.uk", "delete filter", { id: 3, list: "events" }),
+  change(
+    31,
+    "jo@pauseai.uk",
+    "add politician address",
+    { politicianId: 7, address: "polly@example.com" },
+    { politician: POLLY },
+  ),
+  change(32, "jo@pauseai.uk", "remove politician address", { politicianId: 7, address: "polly@example.com" }),
+  change(33, "jo@pauseai.uk", "unlink one-off", { politicianId: 7, threadId: 12 }, { politician: POLLY }),
 ];

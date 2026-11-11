@@ -102,7 +102,15 @@ export type PoliticianSyncResult = {
 };
 export type PoliticianSync = ImportRun<"sync-politicians", PoliticianSyncResult>;
 
-export type MpCheckResult = { problems: MpProblem[] };
+/**
+ * What relinking the one-off threads did (lib/server/one-off-relink.ts):
+ * messages whose quotes it read, those left to read, people linked to threads
+ * and unlinked from them, and the offices' addresses it found.
+ */
+export type Relinked = { read: number; unread: number; linked: number; unlinked: number; offices: number };
+
+/** A check's result; one from before relinking ran with the check has no `relinked`. */
+export type MpCheckResult = { problems: MpProblem[]; relinked?: Relinked };
 export type MpCheck = ImportRun<"check-mps", MpCheckResult>;
 
 export type ControlAiImportResult = {

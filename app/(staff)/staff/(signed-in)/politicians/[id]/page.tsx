@@ -10,11 +10,14 @@ import { canDeletePolitician, getPolitician, politicianHistory } from "@/lib/ser
 import { requireStaff } from "@/lib/server/staff-auth";
 import { now } from "@/lib/now";
 import { politicianId } from "@/lib/staff-search";
+import { politicianAliases } from "@/lib/server/politician-aliases";
 import {
+  addAliasNow,
   addNoteNow,
   deleteNoteNow,
   deletePoliticianNow,
   editNoteNow,
+  removeAliasNow,
   setAskStatus,
   unblockAddress,
 } from "../../../actions";
@@ -35,11 +38,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function PoliticianPage({
   params,
   searchParams,
-}: Params & { searchParams: Promise<{ correspondence?: string | string[] }> }) {
+}: Params & { searchParams: Promise<{ correspondence?: string | string[]; aliases?: string | string[] }> }) {
   const staff = await requireStaff();
   const { permissions } = staff;
   const politician = found(await getPolitician(found(politicianId((await params).id))));
-  const [asks, block, letters, fromPauseai, history, deletable, notes, oneOffs, messages] = await Promise.all([
+  const query = await searchParams;
+  const [asks, block, letters, fromPauseai, history, deletable, notes, oneOffs, messages, aliases] = await Promise.all([
     listAsks(),
     blockOn(politician.email),
     politicianLetters(politician.id, permissions),
@@ -49,6 +53,7 @@ export default async function PoliticianPage({
     notesOn({ politicianId: politician.id }),
     politicianOneOffs(politician.id, permissions),
     politicianMessages(politician.id, permissions),
+    politicianAliases(politician),
   ]);
   return (
     <>
@@ -63,7 +68,10 @@ export default async function PoliticianPage({
         pauseaiLetters={fromPauseai}
         oneOffs={oneOffs}
         messages={messages}
-        onlyReplies={(await searchParams).correspondence === "replies"}
+        onlyReplies={query.correspondence === "replies"}
+        aliases={aliases}
+        aliasesOpen={query.aliases === "open"}
+        aliasActions={{ add: addAliasNow, remove: removeAliasNow }}
         history={history}
         airtableTable={PARLIAMENTARIANS_TABLE_URL}
         notes={{

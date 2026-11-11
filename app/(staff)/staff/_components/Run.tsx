@@ -160,16 +160,16 @@ function sides(problem: MpProblem): [string, string] {
 /** A check of Airtable's MPs against Parliament's: where they disagree. */
 function CheckRun({ run, open, bare }: { run: MpCheck; open?: boolean; bare?: boolean }) {
   if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
-  const { problems } = run.result;
+  const { problems, relinked } = run.result;
   const count = problems.length;
+  const checked = count === 0 ? staffCopy.check.allGood : staffCopy.check.problems(count);
   return (
     <RunBox
       run={run}
       open={open}
       bare={bare}
-
       lines={count}
-      summary={count === 0 ? staffCopy.check.allGood : staffCopy.check.problems(count)}
+      summary={relinked ? `${checked} ${staffCopy.check.relinked(relinked)}` : checked}
     >
       {count > 0 && (
         <Table>

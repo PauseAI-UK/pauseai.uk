@@ -1,6 +1,6 @@
 import { campaigns } from "@/lib/content/email-your-mp";
 import type { CampaignSummary } from "@/lib/server/campaigns";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -23,6 +23,7 @@ import {
   exampleOldLettersResult,
   exampleOneOffs,
   exampleOneOffThread,
+  exampleForwardThread,
   exampleSentEmails,
   exampleVersions,
 } from "./CampaignPages.examples";
@@ -428,7 +429,7 @@ describe("the one-off emails", () => {
   });
 
   it("opens a thread's messages, and says when it can't", async () => {
-    const { rerender } = await render(<OneOffThreadView thread={exampleOneOffThread} />);
+    const { rerender } = await render(<OneOffThreadView thread={exampleOneOffThread} unlink={() => {}} />);
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(exampleOneOffThread.subject!);
     await says("Could we meet?");
     await says(staffCopy.oneOff.unreadable);
@@ -444,7 +445,7 @@ describe("the one-off emails", () => {
     await says("Jane Smith <jane.smith@example.com>");
     await says("someone@example.com");
     expect(link("Joseph Example").query()).toBeNull();
-    await rerender(<OneOffThreadView thread={{ ...exampleHiddenOneOff, messages_: null }} />);
+    await rerender(<OneOffThreadView thread={{ ...exampleHiddenOneOff, messages_: null }} unlink={() => {}} />);
     await says(staffCopy.oneOff.hidden);
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(staffCopy.oneOff.title);
     await rerender(
@@ -453,9 +454,57 @@ describe("the one-off emails", () => {
           ...exampleOneOffThread,
           subject: "",
         }}
+        unlink={() => {}}
       />,
     );
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(staffCopy.oneOff.noSubject);
+    await rerender(<OneOffThreadView thread={{ ...exampleOneOffThread, people: [] }} unlink={() => {}} />);
+    await says(staffCopy.oneOff.people.none);
+  });
+
+  it("rebuilds a forward's messages before it, oldest first, and takes a politician off the thread", async () => {
+    const unlink = vi.fn();
+    await render(<OneOffThreadView thread={exampleForwardThread} unlink={unlink} />);
+    const emails = page.getByRole("article").all();
+    expect(emails.map((email) => email.element().getAttribute("aria-label"))).toEqual([
+      "Can we meet?",
+      "Re: Can we meet?",
+      "Fwd: my MP's answer",
+    ]);
+    const text = emails.map((email) => email.element().textContent);
+    expect(text[0]).toContain("15 October 2026 11:17");
+    expect(text[1]).toContain(staffCopy.oneOff.rebuilt("Jane Smith"));
+    expect(text[2]).toContain(staffCopy.oneOff.forwardedAlone);
+    await expect.element(link("pollyplaceholdermp@parliament.uk")).not.toBeInTheDocument();
+    await expect.element(link("Polly Placeholder MP")).toHaveAttribute("href", "/staff/politicians/1");
+    await page.getByRole("button", { name: staffCopy.oneOff.people.unlink }).click();
+    await expect.poll(() => unlink.mock.calls.length).toBe(1);
+    const form = unlink.mock.calls[0][0] as FormData;
+    expect([form.get("threadId"), form.get("politicianId")]).toEqual(["2", "1"]);
+  });
+
+  it("shows a forward's note over what it carries, and a carried message copied to someone", async () => {
+    const [message] = exampleForwardThread.messages_!;
+    const [first, second] = message.forwarded;
+    await render(
+      <OneOffThreadView
+        thread={{
+          ...exampleForwardThread,
+          messages_: [
+            {
+              ...message,
+              fromName: "",
+              text: "See below.",
+              forwarded: [{ ...first, cc: "jo@example.com" }, second],
+            },
+          ],
+        }}
+        unlink={() => {}}
+      />,
+    );
+    await says("See below.");
+    await says("jo@example.com");
+    await expect.element(page.getByText(staffCopy.oneOff.rebuilt(message.fromAddress)).first()).toBeVisible();
   });
 });
 

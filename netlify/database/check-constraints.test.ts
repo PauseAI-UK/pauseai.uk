@@ -14,6 +14,7 @@ import type { MailingState } from "@/lib/server/mailing-drafts";
 import type { SkipReason } from "@/lib/server/mailings";
 import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
 import type { OptOutSource } from "@/lib/server/opt-outs";
+import type { AddressSource } from "@/lib/server/politician-aliases";
 import { INTENTS, LIST_STATUSES } from "@/lib/server/outside-services/civicrm";
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar";
 import { HOUSES, PERSON_STATUSES } from "@/lib/server/politicians";
@@ -77,6 +78,7 @@ const LISTED: Record<string, readonly string[]> = {
   "opt_outs.way": WAYS,
   "opt_outs.list": TOPICS,
   "opt_outs.source": every<OptOutSource>()(["luma-webhook", "luma-contacts", "civicrm"]),
+  "politician_addresses.source": every<AddressSource>()(["parliament", "office", "staff"]),
   "politicians.country": COUNTRIES,
   "politicians.house": HOUSES,
   "signup_upload_entries.known": every<NonNullable<SignupUploadPerson["known"]>>()(["email", "mobile"]),

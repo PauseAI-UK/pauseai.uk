@@ -10,6 +10,7 @@ import type { PoliticianSort } from "@/lib/staff-lists";
 import type { Country, EmailState, House, PersonStatus, PoliticianFlag } from "@/lib/politician-filters";
 import { query, transaction, type Queryable } from "./db";
 import { auditActions, type AuditEntry, logChange } from "./audit";
+import { ADDRESS_ACTIONS } from "@/lib/audit-events";
 import { CLOSE_ENOUGH, closeness, contains, everyWord } from "./search";
 import { sql, type Sql } from "./sql";
 
@@ -643,14 +644,15 @@ export type PoliticianChange = AuditEntry;
 /**
  * Everything the audit log holds about one politician, newest first: their
  * row added, their details edited, by staff or the sync, their record gone
- * from Airtable, their statuses set, by staff or an import, and their
- * address blocked or unblocked.
+ * from Airtable, their statuses set, by staff or an import, their address
+ * blocked or unblocked, addresses staff added or removed, and one-off emails
+ * staff took them off.
  */
 export async function politicianHistory(id: number, email: string | null): Promise<PoliticianChange[]> {
   return query<PoliticianChange>(
     `SELECT id::int AS id, at, actor, action, details FROM audit_log
      WHERE (action IN (${auditActions("add politician", "edit politician", "remove politician")}) AND (details->>'id')::bigint = $1)
-        OR (action = ${auditActions("set status")} AND (details->>'politicianId')::bigint = $1)
+        OR (action IN (${auditActions("set status", ...ADDRESS_ACTIONS)}) AND (details->>'politicianId')::bigint = $1)
         OR (action IN (${auditActions("block address", "unblock address")}) AND $2::text IS NOT NULL AND details->>'address' = lower($2))
      ORDER BY at DESC, id DESC`,
     [id, email],

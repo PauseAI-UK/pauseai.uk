@@ -637,6 +637,8 @@ that drives it or why nothing does.
   - a letter of a template, one that keeps its own text, and August's approximate one;
   - a form letter's diff from its form version;
   - the one-off emails on Correspondence: a thread opened, an out-of-office in it folded and unfolded, and the thread hidden from staff without `supporters`;
+  - a forward's thread, the letter and answer it carries rebuilt before it, and its politician taken off it;
+  - a politician's aliases, opened from their email, and their own Gmail added, which keeps their email from it;
   - a politician's and a supporter's lists;
   - what your own page says when your mailbox is kept.
 - `letters.spec.ts`: Letters and their bounces:

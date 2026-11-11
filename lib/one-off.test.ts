@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  addressForms,
+  formOwner,
+  type FormPerson,
+  nameParts,
+  politiciansNamed,
+  quotedNames,
   isPauseaiAddress,
   isRecognisedMail,
   isSomeoneElse,
@@ -14,13 +20,108 @@ import {
   type PoliticianBook,
 } from "./one-off";
 
+/** Five politicians: three MPs, one of them out of office and two sharing a name, an MS and a peer. */
+const people: FormPerson[] = [
+  { id: 5, name: "Dame Meg Hillier", house: "commons", constituency: "Hackney South and Shoreditch", inOffice: true },
+  {
+    id: 6,
+    name: "Sir Iain Duncan Smith MP",
+    house: "commons",
+    constituency: "Chingford and Woodford Green",
+    inOffice: true,
+  },
+  { id: 7, name: "Dr Rosena Allin-Khan", house: "commons", constituency: "Tooting", inOffice: false },
+  { id: 8, name: "Luke Fletcher", house: "senedd", constituency: "South Wales West", inOffice: true },
+  { id: 9, name: "Baroness Chakrabarti", house: "lords", constituency: null, inOffice: true },
+  { id: 10, name: "Mr John Smith", house: "commons", constituency: null, inOffice: true },
+  { id: 11, name: "John Smith", house: "scottish-parliament", constituency: null, inOffice: true },
+];
+
 const book: PoliticianBook = {
   addresses: new Map([
     ["polly@gmail.com", [1]],
     ["shared@parliament.uk", [2, 3]],
   ]),
   domains: new Map([["tulip.example", 4]]),
+  forms: addressForms(people),
 };
+
+describe("a politician's address forms", () => {
+  it("takes a name's first name and surnames, without titles, honours or a peer's place", () => {
+    expect(nameParts("Dame Meg Hillier")).toEqual({ first: "meg", surnames: ["hillier"] });
+    expect(nameParts("The Rt Hon Sir Iain Duncan Smith MP KC")).toEqual({
+      first: "iain",
+      surnames: ["duncansmith", "smith"],
+    });
+    expect(nameParts("Dr Rosena Allin-Khan")).toEqual({ first: "rosena", surnames: ["allinkhan"] });
+    expect(nameParts("Órfhlaith Begley")).toEqual({ first: "orfhlaith", surnames: ["begley"] });
+    expect(nameParts("Baroness Chakrabarti")).toBeUndefined();
+    expect(nameParts("Lord Jones of Penybont")).toBeUndefined();
+  });
+
+  it("makes each name's and MP's seat's key, leaving out one two share and a seat out of office", () => {
+    const forms = addressForms(people);
+    expect(forms.get("name:meghillier")).toBe(5);
+    expect(forms.get("name:iainduncansmith")).toBe(6);
+    expect(forms.get("name:iainsmith")).toBe(6);
+    expect(forms.get("seat:hackneysouthandshoreditch")).toBe(5);
+    expect(forms.get("name:rosenaallinkhan")).toBe(7);
+    expect(forms.has("seat:tooting")).toBe(false);
+    expect(forms.has("seat:southwaleswest")).toBe(false);
+    expect(forms.has("name:johnsmith")).toBe(false);
+  });
+
+  it("finds whose a parliament address is by a name or seat with a mark", () => {
+    const forms = book.forms;
+    for (const address of [
+      "meg.hillier.mp@parliament.uk",
+      "meghilliermp@parliament.uk",
+      "officeofmeghilliermp@parliament.uk",
+      "officeofmeghillier@parliament.uk",
+      "meg.hillier.casework@parliament.uk",
+      "meg.hillier.hackneysouthandshoreditch@parliament.uk",
+      "hackneysouthandshoreditch.mp@parliament.uk",
+      "hackneysouthandshoreditchmp@parliament.uk",
+    ]) {
+      expect(formOwner(forms, address), address).toBe(5);
+    }
+    expect(formOwner(forms, "iain.duncan.smith.mp@parliament.uk")).toBe(6);
+    expect(formOwner(forms, "luke.fletcher@senedd.wales")).toBe(8);
+  });
+
+  it("finds no one by a name without a mark, off a parliament's domain, or by a seat after someone else's name", () => {
+    const forms = book.forms;
+    expect(formOwner(forms, "meg.hillier@parliament.uk")).toBeUndefined();
+    expect(formOwner(forms, "meghillier@parliament.uk")).toBeUndefined();
+    expect(formOwner(forms, "meg.hillier.mp@example.com")).toBeUndefined();
+    expect(formOwner(forms, "officeof@parliament.uk")).toBeUndefined();
+    expect(formOwner(forms, "jane.smith.hackneysouthandshoreditch@parliament.uk")).toBeUndefined();
+    expect(formOwner(forms, "jane.smith.mp@parliament.uk")).toBeUndefined();
+    expect(formOwner(forms, "...@parliament.uk")).toBeUndefined();
+  });
+
+  it("counts a form as a politician's address", () => {
+    expect(politiciansOf(book, "meghilliermp@parliament.uk")).toEqual([5]);
+    expect(politiciansIn(book, ["staff.member@parliament.uk"])).toEqual({ counts: true, people: [] });
+  });
+
+  it("finds a politician named the way Outlook quotes a colleague", () => {
+    expect(politiciansNamed(book, ["HILLIER, Meg", "HILLIER, Meg", "SMITH, Jane", "NOBODY"])).toEqual([5]);
+  });
+
+  it("reads the names given with no address in what a message quotes", () => {
+    const text = [
+      "From: Callum <cal@example.com>",
+      "Sent: 20 October 2026 19:57",
+      "To: HILLIER, Meg; Jane <jane@example.com>",
+      'Cc: "DUNCAN SMITH, Iain"; policy@pauseai.uk',
+      "",
+      "From: HILLIER, Meg <meghilliermp@parliament.uk>",
+      "Sent: 21 October 2026 09:00",
+    ].join("\n");
+    expect(quotedNames(text)).toEqual(["HILLIER, Meg", "DUNCAN SMITH, Iain"]);
+  });
+});
 
 describe("what counts as a thread with a politician", () => {
   it("knows parliaments' domains and their subdomains", () => {
@@ -45,11 +146,9 @@ describe("what counts as a thread with a politician", () => {
   });
 
   it("reads the addresses in what a message quotes", () => {
-    expect(quotedAddresses("From: Polly <polly@gmail.com>\nSent: 1 Jan\nTo: Me <me@x.uk>\nCc: c@x.uk")).toEqual([
-      "polly@gmail.com",
-      "me@x.uk",
-      "c@x.uk",
-    ]);
+    expect(
+      quotedAddresses("From: Polly <polly@gmail.com>\nSent: 1 Jan\nTo: Me <me@x.uk>, polly@gmail.com\nCc: c@x.uk"),
+    ).toEqual(["polly@gmail.com", "me@x.uk", "c@x.uk"]);
   });
 });
 

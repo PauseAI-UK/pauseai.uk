@@ -370,6 +370,19 @@ describe("RunList", () => {
     await expect.element(page.getByText(staffCopy.check.problems(1), { exact: false })).toBeVisible();
   });
 
+  it("says what relinking the one-off emails did after a check, and the quotes it read and has still to read", async () => {
+    const relinked = { read: 0, unread: 0, linked: 3, unlinked: 1, offices: 2 };
+    const { rerender } = await render(<RunList none="None" runs={[ran("check-mps", { problems: [], relinked })]} />);
+    await expect
+      .element(page.getByText(`${staffCopy.check.allGood} ${staffCopy.check.relinked(relinked)}`, { exact: false }))
+      .toBeVisible();
+    expect(staffCopy.check.relinked(relinked)).not.toContain("still to read");
+    const reading = { ...relinked, read: 40, unread: 700 };
+    await rerender(<RunList none="None" runs={[ran("check-mps", { problems: [], relinked: reading })]} />);
+    await expect.element(page.getByText(/700 still to read/)).toBeVisible();
+    expect(staffCopy.check.relinked({ ...relinked, unread: 5 })).toContain("5 still to read");
+  });
+
   it("says what each ControlAI read did, and why one failed", async () => {
     const runs: ControlAiImport[] = [
       ran("import-controlai", controlAi, { id: 2 }),

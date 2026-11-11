@@ -56,20 +56,20 @@ export type LetterThread = {
  * A kept message's text and, apart, the mail it quotes and its footer: from
  * its plain text if it has one, else its HTML's; its text null if it has
  * neither. Whom it was copied to, as its Cc said, or null. And whether a
- * machine sent it, by its headers and subject. Null, empty and false if it's
- * gone.
+ * machine sent it, by its headers and subject. Its whole text, quotes and
+ * all, null as its text is. Null, empty and false if it's gone.
  */
 export async function messageContent(
   blobKey: string,
-): Promise<{ text: string | null; quoted: string; cc: string | null; auto: boolean }> {
+): Promise<{ text: string | null; quoted: string; cc: string | null; auto: boolean; whole: string | null }> {
   const gzipped = await letterReply(blobKey);
-  if (!gzipped) return { text: null, quoted: "", cc: null, auto: false };
+  if (!gzipped) return { text: null, quoted: "", cc: null, auto: false, whole: null };
   const message = parseMime(gunzipSync(gzipped).toString("latin1"));
   const cc = message.headers.get("cc");
   const whole = firstOfType(message, "text/plain") || firstOfType(message, "text/html") ? wholeTextOf(message) : null;
   const parts = whole === null ? { text: null, quoted: "" } : replyParts(whole);
   const auto = isMachineReply((name) => message.headers.get(name), decodeWords(message.headers.get("subject") ?? ""));
-  return { ...parts, cc: cc ? decodeWords(cc) : null, auto };
+  return { ...parts, cc: cc ? decodeWords(cc) : null, auto, whole };
 }
 
 /** One of a mailing's letters and its thread; undefined if the mailing has no such letter. */

@@ -60,6 +60,24 @@ describe("ChangesTable", () => {
     await expect.element(cell.getByRole("link")).toHaveAttribute("href", "/staff/supporters/import/previous/3");
   });
 
+  it("says whose address was added or removed, and links the one-off email a politician was taken off", async () => {
+    const entries = exampleChanges.filter((one) => /politician address|unlink one-off/.test(one.action));
+    await render(
+      <ChangesTable
+        search={changesSearch({})}
+        log={log(entries)}
+        page={1}
+        airtableTable="https://airtable.com/app/tbl"
+      />,
+    );
+    const details = (n: number) => page.getByRole("row").nth(n).getByRole("cell").nth(4);
+    expect(details(1).element().textContent).toBe("Polly Placeholder · polly@example.com");
+    expect(details(2).element().textContent).toBe(`${staffCopy.changes.gone("7")} · polly@example.com`);
+    await expect
+      .element(details(3).getByRole("link", { name: staffCopy.changes.oneOffThread }))
+      .toHaveAttribute("href", "/staff/one-off/12");
+  });
+
   it("leaves a change of nothing out of an entry's fields", async () => {
     const edit = exampleChanges.find((one) => one.action === "edit politician")!;
     const empty = { ...edit, details: { ...edit.details, changed: {} } };
@@ -134,6 +152,9 @@ describe("ChangesTable", () => {
       "Jane Example",
       copy.gone("6"),
       ...Array(4).fill(copy.savedFilter("events", "3")),
+      "Polly Placeholder · polly@example.com",
+      `${copy.gone("7")} · polly@example.com`,
+      `Polly Placeholder · ${copy.oneOffThread}`,
     ]);
     const href = (i: number) => rows[i].element().children[4].querySelector("a")?.getAttribute("href");
     expect([0, 1, 4, 7, 8, 14, 23, 24, 25].map(href)).toEqual([

@@ -1006,7 +1006,7 @@ it("searches parliaments' domains, a politician's own, and addresses on neither 
   const addresses = new Map(Array.from({ length: 31 }, (_, i): [string, number[]] => [`mp${i}@gmail.com`, [i]]));
   addresses.set("a@parliament.uk", [99]);
   addresses.set("b@x.parliament.uk", [99]);
-  const book = { addresses, domains: new Map([["tulip.example", 1]]) };
+  const book = { addresses, domains: new Map([["tulip.example", 1]]), forms: new Map() };
   const sent = politicianSearches(book, "sent");
   expect(sent).toHaveLength(3);
   expect(sent[0]).toContain("to:parliament.uk cc:parliament.uk");
@@ -1018,7 +1018,7 @@ it("searches parliaments' domains, a politician's own, and addresses on neither 
 
 it("splits the politicians' own domains over searches short enough for Gmail", () => {
   const domains = new Map(Array.from({ length: 100 }, (_, i) => [`a-rather-long-domain-${i}.example`, i]));
-  const searches = politicianSearches({ addresses: new Map(), domains }, "sent");
+  const searches = politicianSearches({ addresses: new Map(), domains, forms: new Map() }, "sent");
   expect(searches.length).toBeGreaterThan(1);
   for (const search of searches) expect(search.length).toBeLessThan(2500);
   for (const domain of domains.keys()) expect(searches.join(" ")).toContain(`to:${domain}`);

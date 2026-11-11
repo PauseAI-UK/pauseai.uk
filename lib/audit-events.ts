@@ -49,6 +49,9 @@ type SyncedMp = {
 /** What an edit changed, each field before and after, with whom it's about. */
 type PoliticianEdit = { id: number; name: string; changed: Record<string, FieldChange> };
 
+/** The actions on a politician's addresses and the one-off emails linked to them, by `politicianId`: part of their history. */
+export const ADDRESS_ACTIONS = ["add politician address", "remove politician address", "unlink one-off"] as const;
+
 /** What a list's download is logged as (staffDownload). */
 export type DownloadAction = "download supporters" | "download blocked emails";
 
@@ -59,6 +62,9 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "edit politician": PoliticianEdit & { airtableId: string };
   "remove politician": { id: number; name: string };
   "delete politician": { id: number; name: string; airtableId: string };
+  "add politician address": { politicianId: number; address: string };
+  "remove politician address": { politicianId: number; address: string };
+  "unlink one-off": { politicianId: number; threadId: number };
   "apply politician sync": SyncCounts;
   "hold politician sync": SyncCounts;
   "apply held politician sync": { id: number };

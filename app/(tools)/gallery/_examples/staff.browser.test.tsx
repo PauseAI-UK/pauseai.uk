@@ -4,6 +4,7 @@ import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { exampleLetter } from "@/app/(staff)/staff/_components/LettersTable.examples";
 import {
+  AddAliasFormExample,
   ChangeTimeFormExample,
   ChoosingListExample,
   DueTimeFieldsExample,
@@ -281,6 +282,16 @@ describe("the staff examples", () => {
   it("lists politicians with no buttons", async () => {
     await render(<PoliticianTableExample />);
     expect(page.getByRole("button").all()).toHaveLength(0);
+  });
+
+  it("logs an address added to a politician's, and says what the server answered", async () => {
+    await render(<AddAliasFormExample result={{ added: true, kept: 2 }} />);
+    await page.getByLabelText(staffCopy.politician.aliases.address).fill("polly@example.com");
+    await page.getByRole("button", { name: staffCopy.politician.aliases.add }).click();
+    await expect
+      .element(log().nth(0))
+      .toHaveTextContent('addAlias({"politicianId":"7","address":"polly@example.com"})');
+    await expect.element(page.getByRole("status")).toHaveTextContent(staffCopy.politician.aliases.added(2));
   });
 
   it("says when no politician matches", async () => {
