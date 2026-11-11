@@ -1,4 +1,7 @@
+/* A reason, and its lozenge of who told us, wrapping in a column kept
+   narrow, as a bounce's reason can be a long line from the mail server. */
 .reason {
   display: inline-block;
-  min-width: 12rem;
+  min-width: 10rem;
+  max-width: 16rem;
 }
