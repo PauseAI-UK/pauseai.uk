@@ -72,19 +72,19 @@ export function oneOffInbox(): string {
 }
 
 /** A message's Message-ID, if it has one. */
-export function rfcIdOf(headers: Map<string, string>): string | null {
+function rfcIdOf(headers: Map<string, string>): string | null {
   return messageIds(headers.get("message-id"))[0] ?? null;
 }
 
 /** Everyone on a message by its headers, lowercased, its real sender first. */
-export function addressesOn(headers: Map<string, string>): string[] {
+function addressesOn(headers: Map<string, string>): string[] {
   const sender = realSender(headerText(headers, "from"), headers.get("x-original-from"), headers.get("reply-to"));
   const lines = [sender, headers.get("from"), headers.get("reply-to"), headers.get("to"), headers.get("cc")];
   return [...new Set(addressesIn(decodeWords(lines.filter(Boolean).join(" "))))];
 }
 
 /** Who a message is from, the real sender where the group rewrote it. */
-export function senderOf(headers: Map<string, string>): { address: string; name: string } {
+function senderOf(headers: Map<string, string>): { address: string; name: string } {
   return fromAddress(realSender(headerText(headers, "from"), headers.get("x-original-from"), headers.get("reply-to")));
 }
 

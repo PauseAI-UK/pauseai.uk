@@ -204,8 +204,3 @@ export function wholeTextOf(message: MimePart): string {
   const html = firstOfType(message, "text/html");
   return html ? htmlText(partText(html)) : "";
 }
-
-/** Some HTML's text, as a message of only HTML is read. */
-export function htmlAsText(html: string): string {
-  return wholeTextOf(parseMime(`Content-Type: text/html; charset=utf-8\r\n\r\n${html}`));
-}
