@@ -164,6 +164,16 @@ describe("PermissionTiles", () => {
       expect(document.body.textContent, reason).toContain(copy.reasons[reason]("12 Sept 2026", copy.sources.civicrm));
   });
 
+  it("names the CiviCRM list a yes is from: the volunteer list for volunteering, else the newsletter", async () => {
+    const [newsletter] = exampleMemberDetails.permissions;
+    await render(<PermissionTiles permissions={[newsletter, { ...newsletter, topic: "volunteering" }]} />);
+    expect(rows().map((row) => reasons(row)[0])).toEqual([
+      copy.reasons.subscribed("10 Nov 2026", copy.sources.civicrm, "newsletter"),
+      copy.reasons.subscribed("10 Nov 2026", copy.sources.civicrm, "volunteering"),
+    ]);
+    expect(reasons(rows()[0])[0]).not.toBe(reasons(rows()[1])[0]);
+  });
+
   it("says what blocked an address: a bounce, a hold, or only the link for a block it has no words for", async () => {
     const [blocked] = exampleBlockedPermissions;
     const { rerender } = await render(<PermissionTiles permissions={[{ ...blocked, source: "hard" }]} />);

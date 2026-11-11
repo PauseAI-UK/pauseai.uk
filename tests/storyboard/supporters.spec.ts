@@ -233,7 +233,7 @@ test("A supporter's page", async ({ page, request, flowDatabase }) => {
   await jane.getByRole("link", { name: "Jane Fixture" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Jane Fixture");
   await expect(page.getByText(copy.detail.firstVia(copy.sources.luma))).toBeVisible();
-  await expect(page.getByText("+447700900001", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText("07700 900001", { exact: false }).first()).toBeVisible();
   // Her postcode is in Manchester Central, whose MP the politicians sync brought.
   await expect(page.getByRole("link", { name: "Mo Example" })).toBeVisible();
   const reasons = copy.detail.permissions.reasons;
@@ -446,8 +446,8 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
 
   await marta.getByRole("link").first().click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Marta Marcher");
-  // Her number as we compare numbers, a yes for texts on the march's day and, as she agreed, after.
-  await expect(page.getByText("+447700900123", { exact: false }).first()).toBeVisible();
+  // Her number, without the country code, a yes for texts on the march's day and, as she agreed, after.
+  await expect(page.getByText("07700 900123", { exact: false }).first()).toBeVisible();
   await openEverything(page);
   await expect(page.getByText("LS1 1AA", { exact: true })).toBeVisible();
   // Her email and number in the newsletter's row, each with its reason.

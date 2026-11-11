@@ -196,6 +196,28 @@ describe("the supporters list's Email and Phone columns", () => {
     // A download keeps the number whole; the page shows it without the country code.
     await expect.element(page.getByRole("cell", { name: "07700 900001" })).toBeVisible();
   });
+
+  it("links a number by the way it's a yes by: to WhatsApp for texts, else to ring it", async () => {
+    const [, sam] = exampleSupporterRows;
+    const [, , text] = sam.permissions;
+    const row = (permissions: SupporterRow["permissions"]) => ({ ...sam, permissions });
+    const { rerender } = await render(
+      <SupportersTable
+        search={search(["text:volunteering", "call:volunteering"])}
+        page={{ supporters: [row([text, { ...text, way: "call" }])], total: 1, pages: 1 }}
+      />,
+    );
+    await expect
+      .element(page.getByRole("link", { name: "07700 900003" }))
+      .toHaveAttribute("href", "https://wa.me/447700900003");
+    await rerender(
+      <SupportersTable
+        search={search(["call:volunteering"])}
+        page={{ supporters: [row([{ ...text, way: "call" }])], total: 1, pages: 1 }}
+      />,
+    );
+    await expect.element(page.getByRole("link", { name: "07700 900003" })).toHaveAttribute("href", "tel:+447700900003");
+  });
 });
 
 describe("the supporters list's Consent reason column", () => {

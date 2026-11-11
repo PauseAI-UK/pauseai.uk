@@ -80,20 +80,22 @@ export async function importMembers(startedBy: string): Promise<MembersImportRes
     const members = await fetchMembers(airtableToken());
     return transaction(async (db) => {
       const { added, changed } = await upsertMembers(members, db);
+      const removed = await markRemoved(
+        members.map((m) => m.id),
+        db,
+      );
+      // Before linking, so the contacts it finds link to their members in this run.
+      const civicrm = await lookUpNewMembers(db);
       const result: MembersImportResult = {
         members: members.length,
         added,
         changed,
-        removed: await markRemoved(
-          members.map((m) => m.id),
-          db,
-        ),
+        removed,
         ...(await linkSupporters(db, true)),
       };
       // A record already linked may have changed, so everyone's facts, not only the newly linked.
       await refreshSupporterFacts(db);
       await refreshSupportersList(db);
-      const civicrm = await lookUpNewMembers(db);
       if (civicrm > 0) result.civicrm = civicrm;
       const anything = added + changed + result.removed + result.linked + civicrm;
       return { status: anything > 0 ? "ok" : "unchanged", result } as const;

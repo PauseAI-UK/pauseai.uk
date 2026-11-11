@@ -198,6 +198,13 @@ describeWithDatabase("importCivicrm", () => {
     // Its log says why nobody went.
     const held = { contacts: 18, added: 0, changed: 0, gone: 0, held: true as const, optOuts: 0, blocked: 0 };
     expect(staffCopy.civicrm.result(held)).not.toBe(staffCopy.civicrm.result({ ...held, held: undefined }));
+    // And any new supporters, when it linked some.
+    expect(staffCopy.civicrm.result({ ...held, supportersAdded: 1, linked: 2 })).toContain(
+      staffCopy.civicrm.result(held),
+    );
+    expect(staffCopy.civicrm.result({ ...held, supportersAdded: 1, linked: 2 })).not.toBe(
+      staffCopy.civicrm.result(held),
+    );
   });
 
   it("skips an erased contact", async () => {

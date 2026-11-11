@@ -80,8 +80,8 @@ test("The members import", async ({ page, flowDatabase }) => {
     changed: 0,
     removed: 0,
     supportersAdded: 8,
-    linked: 8,
-    // The new members CiviCRM has, looked up as they're new.
+    // The members, and the CiviCRM contacts of the new members it has, looked up as they're new.
+    linked: 13,
     civicrm: 5,
   };
   await expect(page.getByText(staffCopy.members.result(first))).toBeVisible();
