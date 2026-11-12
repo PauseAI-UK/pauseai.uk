@@ -910,6 +910,10 @@ pages are noindex.
 
   Drop `--no-main` to see main's beside it. The full review pictures every
   group anyway, so a change to a shared component shows wherever it's used.
+  A component above it that changes height doesn't change its frame: each
+  is moved onto a whole pixel before it's pictured, as text is drawn a
+  shade differently at each fraction of one (`onWholePixels`,
+  `tests/storyboard/frame.ts`).
 
 - Knip leaves the gallery out (`knip.config.ts`): it imports every
   component, so they'd all look used.

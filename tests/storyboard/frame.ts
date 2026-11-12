@@ -21,7 +21,8 @@ import type { PlaceholderText } from "./report/frames";
  * by resizing the window, sometimes caught it placed against a passing size.
  *
  * `of` pictures one element, exactly (a component in the gallery), with
- * the page at the top so the sticky header is never over it. `window`
+ * the page at the top so the sticky header is never over it, and the
+ * element on a whole pixel (onWholePixels). `window`
  * pictures only the window, for a page too long to picture whole. `hover` puts the pointer over an element, and keeps it
  * there for the picture, in place of moving it out of the way.
  *
@@ -105,20 +106,51 @@ export async function frame(
     });
   if (of) {
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-    const box = (await of.boundingBox())!;
-    await attachPlaceholders(page, index, { x: -box.x, y: -box.y, scrolled: false });
-    const body = await page.screenshot({
-      fullPage: true,
-      ...SHOT,
-      clip: { x: box.x, y: box.y, width: box.width, height: box.height },
-    });
-    await info.attach(`frame ${index}: ${caption}`, { body, contentType: "image/png" });
+    const moved = await onWholePixels(of);
+    try {
+      const box = (await of.boundingBox())!;
+      await attachPlaceholders(page, index, { x: -box.x, y: -box.y, scrolled: false });
+      const body = await page.screenshot({
+        fullPage: true,
+        ...SHOT,
+        clip: { x: box.x, y: box.y, width: box.width, height: box.height },
+      });
+      await info.attach(`frame ${index}: ${caption}`, { body, contentType: "image/png" });
+    } finally {
+      if (moved) await of.evaluate((element: HTMLElement, style) => element.setAttribute("style", style), moved.style);
+    }
     return;
   }
   const windowShot = inWindow || windowOnly;
   await attachPlaceholders(page, index, { x: 0, y: 0, scrolled: !windowShot });
   const body = windowShot ? await page.screenshot(SHOT) : await wholePage(page);
   await info.attach(`frame ${index}: ${caption}`, { body, contentType: "image/png" });
+}
+
+/**
+ * Moves an element pictured alone down and right by less than a pixel, so it
+ * starts on a whole pixel of the page, and gives its style as it was, to put
+ * back; undefined if it was on one already. Text is drawn a shade differently
+ * at each fraction of a pixel, so an element pictured where the content above
+ * left it (a gallery component, below one that grew by half a pixel) differed
+ * from main's in every letter though nothing in it had changed. It's moved by
+ * `position: relative`, which leaves the layout around it as it was.
+ */
+async function onWholePixels(element: Locator): Promise<{ style: string } | undefined> {
+  return element.evaluate(async (el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    const x = Math.ceil(rect.left) - rect.left;
+    const y = Math.ceil(rect.top) - rect.top;
+    if (x < 0.01 && y < 0.01) return undefined;
+    // One placed already (sticky, absolute, relative) is pictured where it is.
+    if (getComputedStyle(el).position !== "static") return undefined;
+    const style = el.getAttribute("style") ?? "";
+    el.style.position = "relative";
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    await new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())));
+    return { style };
+  });
 }
 
 /**
