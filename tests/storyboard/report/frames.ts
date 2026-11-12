@@ -101,6 +101,16 @@ export type FlowRun = {
   end?: string[];
   /** When the run that shot it started: a partial run carries the flows it didn't run from the last one. */
   shotAt?: string;
+  /** The tree of the code it ran on (scripts/storyboard.mjs), which a carried flow keeps. */
+  tree?: string;
+  /** Which way of recording `opened` made it (RECORDING, scripts/storyboard-reach.mjs). */
+  recording?: number;
+  /** The tree a review last carried it at, having found that nothing changed since it ran could reach it (scripts/storyboard.mjs). */
+  seen?: string;
+  /** The dependencies installed when it ran, which the tree doesn't hold (scripts/storyboard.mjs, setupOf). */
+  setup?: string;
+  /** What it opened, by path (fixtures.ts), for working out which flows a change reaches (scripts/storyboard-reach.mjs). */
+  opened?: string[];
 };
 
 /** What one run of the suite wrote: `frames.json` in its output directory. */

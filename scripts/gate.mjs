@@ -16,6 +16,11 @@
 // `next build`: the storyboard builds the site. Nothing is fetched;
 // origin/main is as last fetched.
 //
+// The storyboard is the review (`npm run storyboard`), where CI runs the
+// flows without pictures: it runs the flows a change can reach, with
+// pictures, and carries the rest from the last run, so the gate and the
+// review are one run. CI runs every flow.
+//
 // Every command has a time limit and a log in tmp/gate/, emptied each run.
 // While they run, a line a minute says which are still going and how long
 // each one's log has been quiet. At the end, a table of each command's exit
@@ -152,7 +157,7 @@ export function slowPlan({ storyboard }) {
     [
       [
         npm("typecheck", ["run", "typecheck"], 5, { required: true }),
-        ...(storyboard ? [npm("storyboard", ["run", "test:storyboard"], 20)] : []),
+        ...(storyboard ? [npm("storyboard", ["run", "storyboard", "--", "--no-open"], 20)] : []),
       ],
       [npm("test", ["test"], 15)],
       [
@@ -247,7 +252,7 @@ export function groupState(states) {
 /**
  * The group a command is in: the two long ones each their own, and the
  * rest, quick, together. The gate's storyboard is "flows": it checks that
- * every flow works, where the review (`npm run storyboard`) pictures them.
+ * every flow works, through the review (`npm run storyboard`).
  *
  * @param {string} id
  */

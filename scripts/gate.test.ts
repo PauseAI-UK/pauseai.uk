@@ -81,7 +81,7 @@ describe("slowPlan", () => {
   it("runs CI's jobs as lanes at once: the types then the storyboard, the tests, the linters, and the backup Worker", () => {
     const [lanes] = slowPlan({ storyboard: true });
     expect(lanes.map((lane) => lane.map((step) => step.label))).toEqual([
-      ["npm run typecheck", "npm run test:storyboard"],
+      ["npm run typecheck", "npm run storyboard -- --no-open"],
       ["npm test"],
       ["npm run lint", "npm run lint:css", "npm run lint:unused", "npm run format:check", "npm run placeholders"],
       ["(backup) npm ci --no-audit --no-fund", "(backup) npm test", "(backup) npm run typecheck"],

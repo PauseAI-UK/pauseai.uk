@@ -88,21 +88,6 @@ export async function frame(
       // rounded differently for the sticky sidebar than for the page, so it
       // lands a pixel off when anything above moves by less than one.
       if (!Number.isInteger(window.scrollY)) window.scrollTo({ top: Math.round(window.scrollY), behavior: "instant" });
-      // A sticky element (the staff sidebar) keeps the raster Chromium made
-      // of it at the scroll before that, so its text could be a pixel up or
-      // down between runs: hidden for a tick and shown again, it's painted
-      // afresh where it is now. Not one holding the focus or an open menu
-      // (the site header's), which hiding would close.
-      const sticky = [...document.querySelectorAll<HTMLElement>("body *")].filter(
-        (el) =>
-          getComputedStyle(el).position === "sticky" &&
-          !el.contains(document.activeElement) &&
-          !el.querySelector(":popover-open"),
-      );
-      for (const el of sticky) el.style.visibility = "hidden";
-      await tick();
-      for (const el of sticky) el.style.visibility = "";
-      await tick();
       return window.scrollY > 0 || document.querySelector(":popover-open, dialog:modal") !== null;
     })
     .catch(() => {
@@ -112,6 +97,8 @@ export async function frame(
   if (of) {
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     const moved = await onWholePixels(of);
+    // After the scroll and the move: a sticky element in the one pictured (the march's header) is where it will be.
+    await repaintSticky(page);
     try {
       const box = (await of.boundingBox())!;
       await attachPlaceholders(page, index, { x: -box.x, y: -box.y, scrolled: false });
@@ -126,10 +113,38 @@ export async function frame(
     }
     return;
   }
+  await repaintSticky(page);
   const windowShot = inWindow || windowOnly;
   await attachPlaceholders(page, index, { x: 0, y: 0, scrolled: !windowShot });
   const body = windowShot ? await page.screenshot(SHOT) : await wholePage(page);
   await info.attach(`frame ${index}: ${caption}`, { body, contentType: "image/png" });
+}
+
+/**
+ * Paints the page's sticky elements afresh where they are now, once the
+ * page is where it will be pictured. A sticky element (the staff sidebar, a
+ * header) keeps the raster Chromium made of it at the scroll before, so its
+ * text and edges could be a pixel up or down between runs: hidden for a tick
+ * and shown again, it's painted where it is. Not one holding the focus or
+ * an open menu (the site header's), which hiding would close.
+ */
+async function repaintSticky(page: Page): Promise<void> {
+  await page
+    .evaluate(async () => {
+      const tick = () => new Promise<void>((done) => requestAnimationFrame(() => setTimeout(done, 50)));
+      const sticky = [...document.querySelectorAll<HTMLElement>("body *")].filter(
+        (el) =>
+          getComputedStyle(el).position === "sticky" &&
+          !el.contains(document.activeElement) &&
+          !el.querySelector(":popover-open"),
+      );
+      for (const el of sticky) el.style.visibility = "hidden";
+      await tick();
+      for (const el of sticky) el.style.visibility = "";
+      await tick();
+    })
+    // A page that navigated away: take the picture anyway.
+    .catch(() => {});
 }
 
 /**

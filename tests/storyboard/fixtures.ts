@@ -2,11 +2,19 @@
 // clock, and the cookie that tells the build which database it's on. Specs
 // import `test` and `expect` from here, never from @playwright/test.
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { test as base, type BrowserContextOptions } from "@playwright/test";
+import {
+  test as base,
+  type APIRequestContext,
+  type APIResponse,
+  type BrowserContext,
+  type BrowserContextOptions,
+  type Page,
+  type Request,
+} from "@playwright/test";
 import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs";
-import { FLOW_DATABASES, LOCAL_URL, TEMPLATE_DATABASE } from "../checkout.mjs";
+import { FLOW_DATABASES, LOCAL_URL, REQUESTS_DIR, TEMPLATE_DATABASE } from "../checkout.mjs";
 import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
 import { historyIdNow } from "@/lib/server/fixtures/letters-inbox";
 
@@ -63,7 +71,115 @@ const ONBOARDING_FORM_STAND_IN = `<!doctype html>
  */
 const TALLY_STAND_IN = "window.Tally = { loadEmbeds: () => {} };";
 
-export const test = base.extend<{ flowDatabase: string }>({
+/**
+ * The path a request to the build is recorded by in a flow's `opened`: a
+ * page's, an action's or an API route's own, and a picture the build resized
+ * by the picture's. The build's scripts and styles, and other sites, aren't.
+ */
+function openedPath(url: string, base: string): string | undefined {
+  const u = new URL(url);
+  if (u.origin !== new URL(base).origin || u.pathname.startsWith("/_next/static/")) return undefined;
+  const src = u.pathname === "/_next/image" ? u.searchParams.get("url")?.split("?")[0] : u.pathname;
+  if (!src?.startsWith("/")) return undefined;
+  try {
+    return decodeURIComponent(src);
+  } catch {
+    // Not an encoding of anything: as it was asked for.
+    return src;
+  }
+}
+
+/** How many errors the server has kept, and how many times it has seen them. */
+const ERRORS_KEPT = "SELECT count(*) || ' ' || coalesce(sum(count), 0) FROM errors_seen";
+
+const API_METHODS = ["get", "post", "put", "patch", "delete", "head", "fetch"] as const;
+
+/** The contexts recordContext is already recording. */
+const recorded = new WeakSet<BrowserContext>();
+
+/**
+ * Adds to `opened` the path of everything `context` asks the build for, and
+ * of each address its pages come to: a link followed to a page already
+ * prefetched fetches nothing. Next's prefetches themselves don't count.
+ */
+function recordContext(context: BrowserContext, opened: Set<string>) {
+  if (recorded.has(context)) return;
+  recorded.add(context);
+  context.on("request", (request) => {
+    if (request.headers()["next-router-prefetch"]) return;
+    const path = openedPath(request.url(), BASE);
+    if (path) opened.add(path);
+  });
+  const watch = (page: Page) =>
+    page.on("framenavigated", (frame) => {
+      const path = frame === page.mainFrame() ? openedPath(frame.url(), BASE) : undefined;
+      if (path) opened.add(path);
+    });
+  context.pages().forEach(watch);
+  context.on("page", watch);
+  recordCalls(context.request, opened);
+}
+
+/** Adds the path of each call `api` makes to `opened`. */
+function recordCalls(api: APIRequestContext, opened: Set<string>) {
+  for (const method of API_METHODS) {
+    const call = api[method].bind(api) as (url: string | Request, options?: object) => Promise<APIResponse>;
+    (api as unknown as Record<string, unknown>)[method] = (url: string | Request, options?: object) => {
+      const path = openedPath(typeof url === "string" ? new URL(url, BASE).href : url.url(), BASE);
+      if (path) opened.add(path);
+      return call(url, options);
+    };
+  }
+}
+
+export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
+  // What the flow opened: each page, action, API route and public file, by its path, attached to the
+  // test for the review to keep with the flow (report/reporter.ts). A change reruns the flows whose
+  // pages it can reach (scripts/storyboard-reach.mjs). Next's prefetches of the pages a link
+  // points to don't count: nothing of them is seen until the link is followed, which counts.
+  //
+  // A change to what's recorded here needs RECORDING (scripts/storyboard-reach.mjs) moved on, so flows
+  // recorded before it aren't carried.
+  //
+  // One entry isn't a path. When the server kept an error during the flow (a row of errors_seen added,
+  // or seen again), the flow ran what instrumentation.ts hands errors to, which no page imports: it's
+  // recorded as having opened that file.
+  opened: [
+    async ({ flowDatabase, browser }, provide, testInfo) => {
+      const opened = new Set<string>();
+      const [errorsBefore] = runSql(flowDatabase, ERRORS_KEPT);
+      // What the build's server keeps of the flow's requests (scripts/record-requests.mjs): a run before
+      // may have left some under the same name.
+      const requests = join(REQUESTS_DIR, `${flowDatabase}.txt`);
+      rmSync(requests, { force: true });
+      // Every context made while the flow runs: its own, and any it makes for another person's browser.
+      const newContext = browser.newContext;
+      browser.newContext = async (...options) => {
+        const context = await newContext.apply(browser, options);
+        recordContext(context, opened);
+        return context;
+      };
+      await provide(opened);
+      browser.newContext = newContext;
+      // Every request the server got from the flow: each step of a redirect that a request of its own
+      // followed, too, which nothing here sees.
+      const kept = existsSync(requests);
+      if (kept) {
+        for (const line of readFileSync(requests, "utf8").split("\n")) {
+          const path = line && openedPath(new URL(line, BASE).href, BASE);
+          if (path) opened.add(path);
+        }
+        rmSync(requests);
+      }
+      if (runSql(flowDatabase, ERRORS_KEPT)[0] !== errorsBefore) opened.add("instrumentation.ts");
+      // A flow that asked the build for something, of which the server kept nothing, is on a build started
+      // some other way (main's, for --this-suite-on-main), or one whose record failed: what it opened isn't
+      // known whole, so nothing is recorded, and a review never carries the flow.
+      if (!kept && opened.size > 0) return;
+      await testInfo.attach("opened", { body: JSON.stringify([...opened].sort()), contentType: "application/json" });
+    },
+    { auto: true },
+  ],
   // A copy of the template (global-setup.ts), made in tens of milliseconds,
   // for this flow alone, and dropped after it. Named after the test, so a
   // flow run twice, or alongside others, never shares one: a hash, as the
@@ -88,9 +204,15 @@ export const test = base.extend<{ flowDatabase: string }>({
   // No flow ever reaches Google: a test run is not a visit. consent.spec.ts
   // routes the same URLs on its page, which takes precedence, to record what
   // the page tried to load.
-  context: async ({ context }, provide) => {
+  // Recorded here too, in case it was made before `opened` began recording every context the flow makes.
+  context: async ({ context, opened }, provide) => {
+    recordContext(context, opened);
     await context.route(ANALYTICS_URL, (route) => route.abort());
     await provide(context);
+  },
+  request: async ({ request, opened }, provide) => {
+    recordCalls(request, opened);
+    await provide(request);
   },
   // The page's clock agrees with the server's (FIXTURE_NOW), so dates match
   // between runs and nothing needs masking. The onboarding form, the one

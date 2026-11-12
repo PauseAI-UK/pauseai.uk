@@ -11,8 +11,9 @@ const config: KnipConfig = {
   ignore: ["backup/**"],
   workspaces: {
     ".": {
-      // scripts/storyboard.mjs starts this with spawn(), which Knip can't follow.
-      entry: ["scripts/serve-main.mjs", "!app/[(]tools[)]/gallery/**"],
+      // scripts/storyboard.mjs starts the first with spawn(), and scripts/serve-fixture.mjs loads the second
+      // into the server with Node's --import, neither of which Knip can follow.
+      entry: ["scripts/serve-main.mjs", "scripts/record-requests.mjs", "!app/[(]tools[)]/gallery/**"],
       // The component gallery imports every component, so it would make them all
       // look used: it's left out of the graph altogether. tests/checks/gallery.test.ts
       // checks the other direction, that every component has an example there.

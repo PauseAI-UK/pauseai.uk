@@ -41,6 +41,9 @@ export function storeDir(root) {
 const treeFile = (store, tree, platform) => join(store, "trees", `${platform}-${tree}.json`);
 const pictureFile = (store, hash) => join(store, "pictures", hash.slice(0, 2), `${hash}.png`);
 
+/** Where the store keeps the picture `hash`. */
+export const picturePath = pictureFile;
+
 /** The folder a flow's pictures go in, as the reporter names it (tests/storyboard/report/reporter.ts). */
 export function flowFolder({ section, viewport, flow }) {
   return `${section}-${viewport}-${flow}`.replace(/[^\w.-]+/g, "-");
@@ -83,10 +86,15 @@ export function readTree(store, tree, platform = process.platform) {
 }
 
 /**
- * Adds `runs`, the flows a run of `tree` finished, to what's kept of it,
- * their pictures read from `runDir`, and returns the whole. Each replaces
- * its namesake, but a flow that passed is never replaced by a run of it
- * that didn't: the tree is the same, so the pass is the one to keep.
+ * Adds `runs`, the flows of a review of `tree`, to what's kept of it, their
+ * pictures read from `runDir`, and returns the whole. Each replaces its
+ * namesake, with two exceptions:
+ *
+ * - a flow that passed is never replaced by a run of it that didn't: the
+ *   tree is the same, so the pass is the one to keep;
+ * - a flow that ran on this tree and passed is never replaced by one
+ *   carried from another (ranElsewhere).
+ *
  * `flows`, if given, is the tree's whole suite (readTree).
  */
 export function keepRuns(store, tree, runDir, runs, flows, platform = process.platform) {
@@ -98,10 +106,54 @@ export function keepRuns(store, tree, runDir, runs, flows, platform = process.pl
         png ? { ...frame, picture: keepPicture(store, join(runDir, png)) } : frame,
       ),
     }));
+  return addRuns(store, tree, fresh, flows, platform);
+}
+
+/**
+ * Whether a flow kept under `tree` ran on another: carried there, as the
+ * change between the two can't reach it (scripts/storyboard-reach.mjs), so
+ * it looks the same on both. `run.tree` is the tree it ran on; a flow kept
+ * without one ran on the tree it's under.
+ */
+export function ranElsewhere(run, tree) {
+  return run.tree !== undefined && run.tree !== tree;
+}
+
+/** Adds `runs`, flows kept under other trees, to what's kept of `tree` (keepRuns says which replace what). */
+export function carryKept(store, tree, runs, platform = process.platform) {
+  return addRuns(store, tree, runs, undefined, platform);
+}
+
+/** The trees kept for `platform`, most recently used first. */
+export function keptTrees(store, platform = process.platform) {
+  const trees = join(store, "trees");
+  if (!existsSync(trees)) return [];
+  return readdirSync(trees)
+    .filter((name) => name.startsWith(`${platform}-`) && name.endsWith(".json"))
+    .map((name) => ({
+      tree: name.slice(platform.length + 1, -".json".length),
+      at: statSync(join(trees, name)).mtimeMs,
+    }))
+    .sort((a, b) => b.at - a.at)
+    .map(({ tree }) => tree);
+}
+
+/** Whether every picture of `run` is still in the store. */
+export function picturesKept(store, run) {
+  return run.frames.every((frame) => !frame.picture || existsSync(pictureFile(store, frame.picture)));
+}
+
+function addRuns(store, tree, fresh, flows, platform) {
   // Read now, after the pictures: another checkout may have added to it meanwhile.
   const kept = readTree(store, tree, platform);
   const passed = new Set(kept.frames.filter((run) => run.status === "passed").map(flowKey));
-  const added = fresh.filter((run) => run.status === "passed" || !passed.has(flowKey(run)));
+  const ranHere = new Set(
+    kept.frames.filter((run) => run.status === "passed" && !ranElsewhere(run, tree)).map(flowKey),
+  );
+  const added = fresh.filter(
+    (run) =>
+      (run.status === "passed" || !passed.has(flowKey(run))) && !(ranElsewhere(run, tree) && ranHere.has(flowKey(run))),
+  );
   const replaced = new Set(added.map(flowKey));
   const suite = flows ?? kept.flows;
   const whole = {
@@ -125,7 +177,7 @@ export function missingFlows(store, kept, needed) {
   const have = new Set(
     kept.frames
       .filter((run) => run.status === "passed")
-      .filter((run) => run.frames.every((frame) => !frame.picture || existsSync(pictureFile(store, frame.picture))))
+      .filter((run) => picturesKept(store, run))
       .map(flowKey),
   );
   return [...needed].filter((key) => !have.has(key));

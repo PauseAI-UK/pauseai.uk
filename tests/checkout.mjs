@@ -74,6 +74,8 @@ export const OUTBOX_DIR = process.env.OUTBOX_DIR ?? join(tmpdir(), `pauseai-stor
 export const LETTERS_INBOX_DIR = join(OUTBOX_DIR, "letters-inbox");
 /** Where a flow says which outside services fail for it (lib/server/fixtures/failing-services.ts). */
 export const FAILING_DIR = join(OUTBOX_DIR, "failing");
+/** Where the build under test keeps the address of each request a flow makes (scripts/record-requests.mjs), a file for each flow's database. */
+export const REQUESTS_DIR = join(OUTBOX_DIR, "requests");
 /** Where main's fixture build (scripts/serve-main.mjs) writes its emails. */
 export const MAIN_OUTBOX_DIR = join(tmpdir(), `pauseai-storyboard-main-outbox-${CHECKOUT}`);
 /** Main's checkout, kept between reviews (scripts/serve-main.mjs). */

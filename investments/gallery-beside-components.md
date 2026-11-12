@@ -12,4 +12,4 @@ A `Component.gallery.tsx` beside each component. The gallery pages collect them,
 
 ## Hits
 
-None yet.
+- 2026-11-12: every staff gallery group imports `staff.client.tsx`, so a change to one staff component re-pictures all six groups, about 45 seconds of a review (`storyboard-review-speed.md`)

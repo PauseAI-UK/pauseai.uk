@@ -26,3 +26,4 @@ A typed builder module, such as `tests/build.ts` with `build.letter({...})`, `bu
 ## Hits
 
 - 2026-10-28: renaming the letter tables (68906753) touched 27 files
+- 2026-11-12: `tests/fixtures/staff-data.sql` changed in 34 of the 311 commits and merged PRs looked at, and each change reruns every desktop flow of the storyboard, as one file of seed data reaches them all (`storyboard-review-speed.md`)

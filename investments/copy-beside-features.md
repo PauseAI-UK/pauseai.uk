@@ -27,4 +27,4 @@ Move one top-level key at a time, the most used first (`politician`, `mailingPag
 
 ## Hits
 
-None yet.
+- 2026-11-12: `staffCopy` is in two thirds of the commits whose change reaches over half of the storyboard's flows; even key by key, `politician` reaches 146 of 280 (`storyboard-review-speed.md`)

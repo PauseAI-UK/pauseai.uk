@@ -36,7 +36,7 @@ npm run gate -- --no-storyboard   # everything but the storyboard
 
 The branch isn't done until `npm run gate` exits 0. It takes the files changed since the branch left `origin/main`, committed or not, formats them with Prettier and checks them, and stops there if a check fails. Then it runs what CI runs (`.github/workflows/ci.yml`) in parallel, as CI's jobs do:
 
-- the types, then the storyboard;
+- the types, then the storyboard: the review (below), of the flows your change can reach, so the gate's run counts as a review and a review's as the gate's;
 - `npm test`, with the coverage gate;
 - the four linters, then the placeholder check, one after another;
 - the backup Worker's package.
@@ -45,7 +45,7 @@ Each command has a time limit and a log in `tmp/gate/`. While they run, a line a
 
 It takes a few minutes, so run it in the background with its output going to a file in `tmp/`, and look at that file each minute (`docs/testing.md`, "`npm run gate`").
 
-It leaves out `npm run build`: that repeats the unit tests and linters, and the storyboard builds the site anyway. Two `next build`s in one checkout share `.next`, so never run two at once, and don't run the gate beside a storyboard review in the same checkout.
+It leaves out `npm run build`: that repeats the unit tests and linters, and the storyboard builds the site anyway. Two `next build`s in one checkout share `.next`, so never run two at once, and don't run the gate beside a storyboard review in the same checkout. CI runs every flow, without pictures, as `npm run test:storyboard` does.
 
 If the prek Git hook is installed (`npm run hooks:install`), commits run Prettier, ESLint and Stylelint on the staged files first. Prettier rewrites them, so `git add` and commit again. That's only part of the gate.
 
@@ -81,13 +81,16 @@ A PR with a migration carries the `migration` label, so the open PRs whose merge
 - Every new interactive behaviour goes in a flow, existing or new, with a frame after each thing a person would see. A PR without it isn't done.
 - A flow is told in words anyone who has used the site would follow: its title just names it ("The letter bounces"), each caption says what its frame shows ("The email staff get"), and `story("…")` lines, at the start and between the frames, say what happens and why (`docs/testing.md`, "How a flow is told").
 - Flows stay small: one thing a person does, about ten frames at most. Every flow stands alone: its own database (the `flowDatabase` fixture), a fixed clock, unique identifiers.
-- Before saying a change is done, run the review and look at every changed frame on both viewports. It never fails on a difference, so it proves nothing until you've looked. Say in the commit or PR what changed. Finish on a full review, run after your last change, so the latest run is one a person can open and check too, and say which run it is.
+- Before saying a change is done, run the review and look at every changed frame on both viewports. It never fails on a difference, so it proves nothing until you've looked. Say in the commit or PR what changed. Finish on a review run after your last change, so the latest run is one a person can open and check too, and say which run it is.
+- `npm run storyboard` runs only the flows that the files changed since each flow's last run can reach, and those new or failed, and carries the rest, from the latest run or from frames another checkout kept; with nothing to run, it runs nothing (`docs/testing.md`, "Which flows a review runs"). A migration, the seed data or `package.json` reruns every desktop flow. Main's frames are carried the same way, so a rebase or a new commit of main runs main only for what changed. `--plan` says what a review would run, and why.
+- If a review says it ran every flow because it couldn't place a file, teach `scripts/storyboard-reach.mjs` what that kind of file reaches, or log a hit on `investments/storyboard-review-speed.md` naming it. If it says a server was already up, stop that server: its flows aren't recorded as this code's, so the next review runs them all again.
 - A flaky flow, or a frame that differs between two runs of the same build, is fixed, never retried, skipped or masked. No stored baselines, no gate on pixels.
 - Any flaky test, Vitest or Playwright, is fixed at once, in whatever branch finds it, even when the branch has nothing to do with it (`docs/testing.md`, "Rules for new code").
 
 ```bash
-npm run storyboard                # both viewports, screenshots, against main's frames (where this branch left origin/main), then opens the run's page (test-results/storyboard/index.html leads to the newest)
+npm run storyboard                # the flows a change can reach, both viewports, screenshots, against main's frames (where this branch left origin/main), then opens the run's page (test-results/storyboard/index.html leads to the newest)
 npm run storyboard -- --no-open   # the same, leaving the page closed
+npm run storyboard -- --plan      # which flows a review would run, and why, running none
 npm run storyboard:changed        # the latest run's changed frames: new, gone or different from main's, with each one's caption and PNGs
 ```
 
@@ -108,7 +111,7 @@ npm run storyboard -- --no-main --no-open --paths --phone campaigns -g ZZ99ZZ   
 
 Each run gets its own folder, so the review someone has open is never changed. A narrow run carries the rest of the latest review rather than clearing it.
 
-Main's frames are main's own: its suite, run on its build. They're kept by main's tree for every worktree, so main runs once for each commit of main, and `npm run worktree` starts that in the background (`docs/testing.md`, "Main's frames are main's own"). So a frame that differs shows everything the branch changes, a flow's steps as well as the site, and a flow or caption the branch renames shows as one gone and one new.
+Main's frames are main's own: its suite, run on its build. They're kept by main's tree for every worktree, so main runs once for each commit of main, only for the flows its change can reach, and `npm run worktree` starts that in the background (`docs/testing.md`, "Main's frames are main's own"). So a frame that differs shows everything the branch changes, a flow's steps as well as the site, and a flow or caption the branch renames shows as one gone and one new.
 
 The fixture server's port comes from the checkout's path, and the storyboard refuses a server built from another checkout. But it reuses this checkout's server however old its build is, so stop one left from before your last change.
 
@@ -134,7 +137,7 @@ People write the words visitors and recipients read: page text, letters, emails,
 
 `npm run placeholders` fails while ⁂ appears anywhere in the repo outside this file, and names each line. CI, the gate and Netlify's build run it, so placeholders can't be merged by accident. It isn't one of the tests, so while a branch's copy waits, `npm test` still checks its coverage: only the placeholder check's own row of the gate's table fails.
 
-After every full storyboard review of a branch with placeholders, run `npm run copy` and give the person you're working with the page it writes, so they can see the copy waiting for approval: it writes one page, `test-results/copy.html`, with each placeholder the branch adds or changes, its file and line, and the frames that picture it (`docs/testing.md`, "The copy to approve").
+After every storyboard review of a branch with placeholders, run `npm run copy` and give the person you're working with the page it writes, so they can see the copy waiting for approval: it writes one page, `test-results/copy.html`, with each placeholder the branch adds or changes, its file and line, and the frames that picture it (`docs/testing.md`, "The copy to approve").
 
 ## The repo is public
 
