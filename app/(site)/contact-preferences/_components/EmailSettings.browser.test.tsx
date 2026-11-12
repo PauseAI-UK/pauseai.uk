@@ -56,12 +56,15 @@ describe("EmailSettings", () => {
     await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.call })).toBeVisible();
     // No lozenge where the boxes say it all.
     await expect.element(page.getByText(copy.tags.paused)).not.toBeInTheDocument();
+    // Why, folded till asked; none where there's no reason to give.
     await expect
-      .element(
-        card("newsletter").getByText(`${copy.why.yes} ${copy.why.reasons.asked!(copy.sourceWords("march-2026-11"))}`),
-      )
+      .element(card("newsletter").getByText(copy.why.reasons.asked!(copy.sourceWords("march-2026-11"))))
+      .not.toBeVisible();
+    await card("newsletter").getByText(copy.why.ask).click();
+    await expect
+      .element(card("newsletter").getByText(copy.why.reasons.asked!(copy.sourceWords("march-2026-11"))))
       .toBeVisible();
-    await expect.element(card("volunteering").getByText(copy.why.nothing)).toBeVisible();
+    await expect.element(card("volunteering").getByText(copy.why.ask)).not.toBeInTheDocument();
     // Its numbers aren't named, as the link doesn't prove they're theirs.
     await expect.element(page.getByText("07700 900123", { exact: false })).not.toBeInTheDocument();
     await expect.element(page.getByRole("heading", { name: copy.global.title })).toBeVisible();
@@ -104,6 +107,7 @@ describe("EmailSettings", () => {
 
   it("says a yes from PauseAI Global's volunteering list was given on joining", async () => {
     await show(exampleVolunteer);
+    await card("volunteering").getByText(copy.why.ask).click();
     await expect
       .element(card("volunteering").getByText(copy.why.reasons.volunteered!(""), { exact: false }))
       .toBeVisible();
@@ -137,12 +141,9 @@ describe("EmailSettings", () => {
     await show(exampleDoNotEmail);
     await expect.element(page.getByRole("heading", { name: copy.doNotEmail.title })).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.noBulk.button })).not.toBeInTheDocument();
+    await card("newsletter").getByText(copy.why.ask).click();
     await expect
-      .element(
-        card("newsletter").getByText(
-          `${copy.why.yes} ${copy.why.reasons["signed-up"]!(copy.sourceWords("paper-signup"))}`,
-        ),
-      )
+      .element(card("newsletter").getByText(copy.why.reasons["signed-up"]!(copy.sourceWords("paper-signup"))))
       .toBeVisible();
     await show(exampleBlocked);
     await expect.element(page.getByRole("heading", { name: copy.blocked.title })).toBeVisible();
@@ -164,6 +165,7 @@ describe("EmailSettings", () => {
       ["kind", "copy"],
       ["token", "tok"],
     ]);
+    await card("newsletter").getByText(copy.why.ask).click();
     await expect
       .element(
         card("newsletter").getByText(
@@ -208,11 +210,13 @@ describe("EmailSettings", () => {
         { ...exampleSettings.answers[0], topic: "volunteering", send: "yes", reason: "left", source: "nowhere" },
       ],
     });
+    await card("newsletter").getByText(copy.why.ask).click();
     await expect
       .element(card("newsletter").getByText(copy.why.reasons.declined!(copy.sourceWords("march-2026-11"))))
       .toBeVisible();
-    await expect.element(card("events").getByText(copy.why.nothing)).toBeVisible();
-    await expect.element(card("volunteering").getByText(copy.why.yes)).toBeVisible();
+    // No answer, or a reason the page has no words for: nothing to open.
+    await expect.element(card("events").getByText(copy.why.ask)).not.toBeInTheDocument();
+    await expect.element(card("volunteering").getByText(copy.why.ask)).not.toBeInTheDocument();
   });
 });
 

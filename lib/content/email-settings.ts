@@ -115,7 +115,8 @@ export const emailSettingsCopy = {
   tags: { paused: "Email paused" },
   // Under a topic, why it's on or off, from its answer.
   why: {
-    yes: "Why:",
+    // What opens why a topic is on or off, under its boxes.
+    ask: "⁂ Why?",
     no: "Off since",
     reasons: {
       asked: (source: string) => `⁂ you ticked the box ${source}.`,
@@ -128,7 +129,6 @@ export const emailSettingsCopy = {
       unsubscribed: (source: string) => `you unsubscribed ${source}.`,
       declined: (source: string) => `you left the box unticked ${source}.`,
     } as Partial<Record<Reason, (source: string) => string>>,
-    nothing: "⁂ Turn this on if you'd like it.",
   },
   sourceWords: from,
   // The words kept beside a box ticked on the page, as what the person said yes to.

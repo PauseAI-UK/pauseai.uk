@@ -60,17 +60,10 @@ const reasonWords = (answer: ContactPermission): string => {
   return copy.why.reasons[reason]?.(copy.sourceWords(answer.source)) ?? "";
 };
 
-/** Why a topic is on, or since when it's off, in the person's words, its "Why:" or "Off since" in bold. */
+/** Why a topic is on, or since when it's off ("Off since" in bold), in the person's words; null where we can't say. */
 function why(answer: ContactPermission | null): ReactNode {
-  if (!answer) return copy.why.nothing;
+  if (!answer) return null;
   const reason = reasonWords(answer);
-  if (answer.send === "yes") {
-    return (
-      <>
-        <strong>{copy.why.yes}</strong> {reason}
-      </>
-    );
-  }
   if (answer.reason === "unsubscribed") {
     return (
       <>
@@ -81,7 +74,7 @@ function why(answer: ContactPermission | null): ReactNode {
       </>
     );
   }
-  return reason || copy.why.nothing;
+  return reason || null;
 }
 
 /**
@@ -102,6 +95,7 @@ type Saving = "saving" | "saved";
  */
 function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | null }) {
   const [boxes, setBoxes] = useState(topic.boxes);
+  const reason = why(topic.why);
   return (
     <fieldset className={styles.card}>
       <legend className={styles.topic}>
@@ -127,7 +121,13 @@ function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | n
           {saving && <SaveState state={saving}>{copy.settings[saving]}</SaveState>}
         </span>
       </div>
-      <p className={styles.why}>{why(topic.why)}</p>
+      {/* Folded, as most come to change something rather than to see why it's so. */}
+      {reason && (
+        <details className={styles.why}>
+          <summary>{copy.why.ask}</summary>
+          <p>{reason}</p>
+        </details>
+      )}
     </fieldset>
   );
 }
@@ -330,8 +330,11 @@ export default function EmailSettings({
               />
             ))}
           </FormStack>
-          <section className={styles.global} aria-labelledby="global">
-            <h2 id="global">{copy.global.title}</h2>
+          {/* Folded to its heading, as it's for reading rather than changing anything here. */}
+          <details className={styles.global}>
+            <summary>
+              <h2 id="global">{copy.global.title}</h2>
+            </summary>
             <p>{copy.global.intro}</p>
             <ul>
               {copy.global.lists.map((list) => (
@@ -342,7 +345,7 @@ export default function EmailSettings({
               {copy.global.howToStop}
               {!view.hold && ` ${copy.global.stopAll}`}
             </p>
-          </section>
+          </details>
           {!view.hold && (
             <section className={styles.stopAll} aria-labelledby="stop-all">
               <h2 id="stop-all">{copy.stopAll.title}</h2>
