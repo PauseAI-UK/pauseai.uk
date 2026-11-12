@@ -1,0 +1,71 @@
+name: Press survey
+
+# Once a week, finds the last week's coverage that mentions PauseAI and
+# opens a draft pull request adding what passes lib/content/press-coverage.ts's
+# rules, or adds to the one still open (scripts/press-survey.mjs). The pull
+# request is the check: a person reads each page, then marks it ready, which
+# runs CI, and merges. Nothing merges itself.
+#
+# It needs "Allow GitHub Actions to create and approve pull requests" on
+# (Settings, Actions, General). CLAUDE_CODE_OAUTH_TOKEN, a repository secret
+# made with `claude setup-token`, lets one `claude -p` call decide the
+# candidates; without it the survey still runs, adding only pages that name
+# PauseAI UK.
+on:
+  schedule:
+    # Mondays at 07:00 UTC, which is 07:00 in London in winter and 08:00 in summer.
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+# One run at a time, so two can't each open a pull request.
+concurrency:
+  group: press-survey
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  survey:
+    name: Survey
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Empty when the secret isn't set.
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # origin/main and the open survey branch, to compare and continue.
+          fetch-depth: 0
+
+      - name: Set up Node
+        id: node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+
+      # As CI's jobs do: node_modules, kept for each lockfile and Node version.
+      - name: Cache dependencies
+        id: node-modules
+        uses: actions/cache@v6
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ steps.node.outputs.node-version }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      # Pinned, as the survey relies on its flags (--tools, --json-schema).
+      - name: Install Claude Code
+        if: env.CLAUDE_CODE_OAUTH_TOKEN != ''
+        run: npm install --global @anthropic-ai/claude-code@2.1.322
+
+      - name: Survey
+        run: npm run press-survey
+        env:
+          GH_TOKEN: ${{ github.token }}
