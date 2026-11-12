@@ -118,9 +118,9 @@ export const emailSettingsCopy = {
     // The "?" beside a topic's name on a phone, which opens why in a bubble.
     ask: "Why?",
     reasons: {
-      asked: (source: string) => `⁂ you ticked the box ${source}.`,
+      asked: (source: string) => `you ticked the box ${source}.`,
       chose: () => "you turned it on here.",
-      "signed-up": (source: string) => `⁂ you gave us your details ${source}.`,
+      "signed-up": (source: string) => `you gave us your details ${source}.`,
       subscribed: () => "you're on PauseAI UK's list with PauseAI Global.",
       following: () => "you follow our calendar on Luma.",
       "gave-number": (source: string) => `you gave your number for texts on the day ${source}.`,
