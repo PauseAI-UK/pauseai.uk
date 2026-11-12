@@ -293,9 +293,11 @@ The page shows:
   phone, this branch's picture, main's and the diff, which open in a
   lightbox. A phone/desktop toggle stays on the flow being looked at.
 - A control to show all the flows, only those with changed frames (just
-  those frames), only those that failed, or only those that failed on main,
-  with the count of each. A flow that failed on main has nothing fair to
-  compare with, so it isn't in Changed.
+  those frames), only those that failed, or only those main is missing,
+  with the count of each. Main is missing a flow it hasn't run, such as one
+  new on this branch, or one whose run on main failed; each says which. Such
+  a flow has nothing fair to compare with, so it isn't in Changed, and every
+  one of its frames is there to look at.
 - A box that filters flows by their section, title, captions or story (`/`
   to start, Escape to clear). The control's choice and the filter's words
   are kept on a reload.
@@ -365,7 +367,9 @@ is new, or is gone. For each one it prints:
 - the full paths of this branch's picture, main's and the diff, to open one
   by one.
 
-Before the frames, it lists the flows that failed, here or on main. The
+Before the frames, it lists the flows that failed. After them come the
+page's Main missing: each flow main hasn't run or failed, saying which, with
+every frame it shot and its path, as none of them is in Changed. The
 paths are in the run's own folder, not `latest/`, so they stay right after
 another run. `npm run storyboard -- --changed` runs the review and then
 prints the same.

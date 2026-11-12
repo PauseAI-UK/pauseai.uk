@@ -91,10 +91,10 @@ A PR with a migration carries the `migration` label, so the open PRs whose merge
 npm run storyboard                # the flows a change can reach, both viewports, screenshots, against main's frames (where this branch left origin/main), then opens the run's page (test-results/storyboard/index.html leads to the newest)
 npm run storyboard -- --no-open   # the same, leaving the page closed
 npm run storyboard -- --plan      # which flows a review would run, and why, running none
-npm run storyboard:changed        # the latest run's changed frames: new, gone or different from main's, with each one's caption and PNGs
+npm run storyboard:changed        # the latest run's changed frames: new, gone or different from main's, with each one's caption and PNGs; then every frame of each flow main is missing (new here, or failed on main)
 ```
 
-To review a run, list its changed frames with `npm run storyboard:changed` (or add `--changed` to the run) and open each one's PNGs with the Read tool, rather than reading `storyboard.json` with a script of your own.
+To review a run, list its changed frames with `npm run storyboard:changed` (or add `--changed` to the run) and open each one's PNGs with the Read tool, those of the flows main is missing too, rather than reading `storyboard.json` with a script of your own.
 
 ## Screenshots
 

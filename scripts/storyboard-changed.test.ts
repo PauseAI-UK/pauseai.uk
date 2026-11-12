@@ -59,16 +59,17 @@ describe("changedFrames", () => {
     ]);
     expect(changed.noise).toBe(1);
     expect(changed.failed).toEqual([]);
-    expect(changed.failedOnMain).toEqual([]);
+    expect(changed.missing).toEqual([]);
   });
 
-  it("leaves out the frames of a flow that failed on main, and names the flows that failed", () => {
+  it("lists a flow main is missing apart, with every frame it shot, and names the flows that failed", () => {
     const onPhone = { ...differs, viewport: "phone" };
-    const failedOnMain = flow({ viewport: "phone", mainStatus: "failed" });
+    const goneOnPhone = { ...gone, viewport: "phone" };
+    const failedOnMain = flow({ viewport: "phone", mainStatus: "failed", mainMissing: "failed" });
     const failed = flow({ flow: "Automatic replies", status: "timedOut", mainStatus: undefined });
-    const changed = changedFrames(board([differs, onPhone], [flow({}), failedOnMain, failed]));
+    const changed = changedFrames(board([differs, onPhone, goneOnPhone], [flow({}), failedOnMain, failed]));
     expect(changed.frames.map((f) => f.frame.viewport)).toEqual(["desktop"]);
-    expect(changed.failedOnMain).toEqual([failedOnMain]);
+    expect(changed.missing).toEqual([{ flow: failedOnMain, frames: [onPhone] }]);
     expect(changed.failed).toEqual([failed]);
   });
 });
@@ -91,20 +92,28 @@ describe("describeChanged", () => {
     ]);
   });
 
-  it("says how many differ only by noise, and which flows failed, here and on main", () => {
+  it("says how many differ only by noise, which flows failed, and lists each flow main is missing, and why", () => {
     const flows = [
       flow({ status: "failed", error: "Timed out waiting for the list" }),
       flow({ flow: "Automatic replies", status: "interrupted" }),
-      flow({ flow: "Her answer", mainStatus: "failed" }),
+      flow({ flow: "Her answer", mainStatus: "failed", mainMissing: "failed" }),
+      flow({ flow: "His answer", mainStatus: undefined, mainMissing: "not-run" }),
     ];
-    expect(describeChanged(board([added, noise], flows), "/runs/r")).toEqual([
-      "Storyboard r: 1 changed frame of 2: 0 differ from main, 1 new, 0 gone; 1 more differs only by noise.",
+    const hers = frame({ flow: "Her answer", caption: "Her page", branch: "branch/h-1.png", changed: true });
+    const his = frame({ flow: "His answer", caption: "His page", branch: "branch/m-1.png", changed: true });
+    expect(describeChanged(board([added, noise, hers, his], flows), "/runs/r")).toEqual([
+      "Storyboard r: 1 changed frame of 4: 0 differ from main, 1 new, 0 gone; 1 more differs only by noise; 2 flows with main missing, every frame listed after.",
       "Failed: desktop › letters › The letter bounces: Timed out waiting for the list",
       "Failed: desktop › letters › Automatic replies",
-      "Failed on main, so not compared: desktop › letters › Her answer",
       "",
       "new: desktop › letters › The letter bounces › 2. Her copy",
       "  branch: /runs/r/branch/frames/a/frame-2.png",
+      "",
+      "Main missing (main failed): desktop › letters › Her answer",
+      "  1. Her page: /runs/r/branch/h-1.png",
+      "",
+      "Main missing (main hasn't run it): desktop › letters › His answer",
+      "  1. His page: /runs/r/branch/m-1.png",
     ]);
     expect(describeChanged(board([noise, noise]), "/runs/r")[0]).toBe(
       "Storyboard r: 0 changed frames of 2: 0 differ from main, 0 new, 0 gone; 2 more differ only by noise.",

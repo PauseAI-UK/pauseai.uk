@@ -5,7 +5,7 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { fakeTurnstile, fillLetter, lookUpTestMp, newestEmail } from "../steps";
 import { BASE, emailFrame, expect, frame, madeUpAddress, story, test } from "./fixtures";
-import { logIn, NOTIFICATION_INBOX, settled } from "./staff-steps";
+import { logIn, settled, TO_NOTIFICATIONS } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Errors", part: "Staff pages", order: 135 };
@@ -20,7 +20,7 @@ const errors = staffCopy.errorsSeen;
 
 /** The email to the notification inbox with this subject, once it's there. */
 async function notified(subject: string) {
-  const sent = () => newestEmail((email) => email.To === NOTIFICATION_INBOX && email.Subject === subject);
+  const sent = () => newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === subject);
   await expect.poll(sent).toBeTruthy();
   return sent()!;
 }

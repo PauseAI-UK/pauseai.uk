@@ -149,6 +149,11 @@ export type Flow = {
   error?: string;
   /** Main's status, when main ran the flow. */
   mainStatus?: FlowStatus;
+  /**
+   * Why main has nothing fair to compare it with, when there's a run of main:
+   * main's run of it failed, or main hasn't run it, as for a flow new here.
+   */
+  mainMissing?: "failed" | "not-run";
   frames: number;
   changed: number;
   /** The story's lines after the last frame (FlowRun's). */
@@ -161,7 +166,7 @@ export type Storyboard = {
   generatedAt: string;
   /** Whether there was a run of main to compare with. */
   withMain: boolean;
-  summary: { flows: number; failed: number; frames: number; changed: number; mainFailed: number };
+  summary: { flows: number; failed: number; frames: number; changed: number; mainMissing: number };
   flows: Flow[];
   frames: Frame[];
 };
@@ -308,10 +313,20 @@ export async function pairRuns(
   }
 
   await Promise.all(comparisons);
-  // A flow that failed on main has nothing fair to compare with, so none of its frames count as changed. It's
-  // told apart by its mainStatus, in Main failed on the page.
-  const failedOnMain = (flow: Flow) => flow.mainStatus !== undefined && flow.mainStatus !== "passed";
-  for (const { flow, frames } of flows) flow.changed = failedOnMain(flow) ? 0 : frames.filter((f) => f.changed).length;
+  // A flow main didn't run, or whose run on main failed, has nothing fair to compare with, so none of its
+  // frames count as changed: it's under Main missing on the page, saying which.
+  for (const { flow, frames } of flows) {
+    const missing =
+      main === undefined
+        ? undefined
+        : flow.mainStatus === undefined
+          ? "not-run"
+          : flow.mainStatus !== "passed"
+            ? "failed"
+            : undefined;
+    if (missing) flow.mainMissing = missing;
+    flow.changed = missing ? 0 : frames.filter((f) => f.changed).length;
+  }
   const frames = flows.flatMap((f) => f.frames);
   return {
     generatedAt: new Date().toISOString(),
@@ -321,7 +336,7 @@ export async function pairRuns(
       failed: flows.filter((f) => f.flow.status !== "passed").length,
       frames: frames.length,
       changed: flows.reduce((n, f) => n + f.flow.changed, 0),
-      mainFailed: flows.filter((f) => failedOnMain(f.flow)).length,
+      mainMissing: flows.filter((f) => f.flow.mainMissing).length,
     },
     flows: flows.map((f) => f.flow),
     frames,

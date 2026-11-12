@@ -3,12 +3,12 @@ import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { type ImportJob, importPath } from "@/lib/import-runs";
 import { staffDate } from "@/lib/staff-time";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { FIXTURE_NOW, LETTERS_INBOX, NOTIFICATION_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
+import { FIXTURE_NOW, LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { failService } from "@/lib/server/fixtures/failing-services";
 import { addStaffAccount, logInAsStaff, newestEmail, syncPoliticians } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
-import { connectPolicyMailboxes, logIn, staffEmail } from "./staff-steps";
+import { connectPolicyMailboxes, logIn, staffEmail, TO_NOTIFICATIONS } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };
@@ -19,7 +19,7 @@ export const section: Section = { name: "Imports", part: "Staff pages", order: 1
 
 /** The newest email to the notification inbox with `subject`. */
 const notified = (subject: string) =>
-  newestEmail((email) => email.To === NOTIFICATION_INBOX && email.Subject === subject);
+  newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === subject);
 
 test("The Luma import", async ({ page, flowDatabase }) => {
   story(

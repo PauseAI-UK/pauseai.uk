@@ -4,7 +4,7 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { addStaffAccount, logInAsStaff, newestEmail, recordAnswers, syncPoliticians, WEBHOOK_AUTH } from "../steps";
 import { caretAtEnd } from "./editor-steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
-import { addPauseaiEmails, NOTIFICATION_INBOX, stayOnPage } from "./staff-steps";
+import { addPauseaiEmails, stayOnPage, TO_NOTIFICATIONS } from "./staff-steps";
 import { runQueue } from "./letters-inbox-steps";
 import { scrollSettled } from "./settle";
 import type { Section } from "./report/frames";
@@ -446,7 +446,7 @@ test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
   }
   const [[, , name]] = letters;
   expect(
-    newestEmail((email) => email.To === NOTIFICATION_INBOX && email.Subject === staffCopy.alert.subject(name)),
+    newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.alert.subject(name)),
   ).toBeUndefined();
   story("The dashboard already shows both MPs, waiting for someone to fix their addresses.");
 
@@ -461,7 +461,7 @@ test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
   const words = staffCopy.notifications.mailingBounces;
   const report = newestEmail(
     (email) =>
-      email.To === NOTIFICATION_INBOX && email.Subject === words.subject(2) && email.TextBody.includes(`- ${name} (`),
+      email.To === TO_NOTIFICATIONS && email.Subject === words.subject(2) && email.TextBody.includes(`- ${name} (`),
   )!;
   await emailFrame(page, report, "The report to the notification inbox");
 });

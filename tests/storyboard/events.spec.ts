@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { site } from "@/lib/content/site";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { NOTIFICATION_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
+import { TO_NOTIFICATIONS } from "./staff-steps";
 import { addStaffAccount, importLuma, logInAsStaff, newestEmail } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
@@ -98,7 +98,7 @@ test("Tagging new events on Luma", async ({ page, request, flowDatabase }) => {
 
   story("It doesn't make a new tag for the other. The notification inbox is asked to look at it, once.");
   const asked = newestEmail((one) => one.Subject === copy.unclearTagEmail.subject(unclear))!;
-  expect(asked.To).toBe(NOTIFICATION_INBOX);
+  expect(asked.To).toBe(TO_NOTIFICATIONS);
   await emailFrame(page, asked, "The email asking about the other");
 });
 
