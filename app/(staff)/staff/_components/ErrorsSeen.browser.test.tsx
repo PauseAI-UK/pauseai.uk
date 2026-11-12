@@ -70,7 +70,13 @@ describe("ErrorsSeen", () => {
       .elements()
       .map((cell) => cell.textContent);
     expect(cells.slice(-2)).toEqual(["jane.smith@pauseai.uk", "9 Nov 2026, 12:00"]);
-    await expect.element(page.getByRole("columnheader", { name: copy.columns.doneBy })).toBeVisible();
+    const heads = page
+      .getByRole("row")
+      .first()
+      .getByRole("cell")
+      .elements()
+      .map((cell) => cell.textContent?.trim());
+    expect(heads.slice(-2)).toEqual([copy.columns.doneBy, copy.columns.doneAt]);
     await expect
       .element(page.getByRole("link", { name: staffCopy.paging.next }))
       .toHaveAttribute("href", "/staff/errors?done=yes&page=2");
