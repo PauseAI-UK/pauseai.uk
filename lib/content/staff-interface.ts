@@ -662,7 +662,7 @@ export const staffCopy = {
           global: "Email opt-outs go to PauseAI Global and Luma too. Only the supporter can opt back in.",
           record: "Record opt-out",
           cancel: "Cancel",
-          already: "⁂ They were already opted out of that.",
+          already: "They were already opted out of that.",
         },
       },
       activityTitle: "History",
@@ -717,10 +717,10 @@ export const staffCopy = {
       // After an opt-out staff recorded, in the history: who, and how the person told them, or that it was their reply.
       toldStaff: (by: string, how: string) => `recorded by ${by}: “${how}”`,
       // Before "their reply", which links to it.
-      fromReply: (by: string) => `⁂ recorded by ${by}, from `,
+      fromReply: (by: string) => `recorded by ${by}, from `,
       theirReply: "their reply",
       // After an opt-out from one of our broadcasts, in the history: a link to the email and what came of it.
-      theEmail: "⁂ the email",
+      theEmail: "the email",
       // After a form entry's form: the link they came by, and what Luma said if the form adds people to an event.
       cameFrom: (source: string) => `came by “${source}”`,
       luma: {
