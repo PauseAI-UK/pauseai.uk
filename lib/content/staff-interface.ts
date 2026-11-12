@@ -1916,7 +1916,7 @@ All events: ${link}`,
   // The copy every 5 minutes of the Luma calendar's events, guests and contacts
   // (lib/server/luma-import.ts), on the Scheduled jobs page.
   luma: {
-    title: "Events and guests from Luma",
+    title: "Events, guests and subscriptions from Luma",
     intro: {
       before: "Imports the public events on ",
       link: "our Luma calendar",
