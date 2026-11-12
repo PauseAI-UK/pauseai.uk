@@ -21,7 +21,7 @@ export function closure(graph: Graph, entries: Iterable<string>): Set<string>;
 export function folderPattern(folder: string, prefix?: boolean): RegExp;
 export function appRoutes(root: string): Route[];
 export function routeFiles(routes: Route[], path: string): string[];
-export function flowReach(run: Omit<Run, "key">, context: Context): Set<string>;
+export function flowReach(run: Omit<Run, "key">, context: Context, whole?: boolean): Set<string>;
 export function changedCopyKeys(diff: string, before: string, after: string): Set<string>;
 export function copyKeysRead(text: string): Set<string>;
 export function reachContext(root: string): Context;

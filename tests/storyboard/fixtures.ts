@@ -2,7 +2,7 @@
 // clock, and the cookie that tells the build which database it's on. Specs
 // import `test` and `expect` from here, never from @playwright/test.
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   test as base,
@@ -14,7 +14,7 @@ import {
   type Request,
 } from "@playwright/test";
 import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs";
-import { FLOW_DATABASES, LOCAL_URL, TEMPLATE_DATABASE } from "../checkout.mjs";
+import { FLOW_DATABASES, LOCAL_URL, REQUESTS_DIR, TEMPLATE_DATABASE } from "../checkout.mjs";
 import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
 import { historyIdNow } from "@/lib/server/fixtures/letters-inbox";
 
@@ -145,6 +145,10 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
     async ({ flowDatabase, browser }, provide, testInfo) => {
       const opened = new Set<string>();
       const [errorsBefore] = runSql(flowDatabase, ERRORS_KEPT);
+      // What the build's server keeps of the flow's requests (scripts/record-requests.mjs): a run before
+      // may have left some under the same name.
+      const requests = join(REQUESTS_DIR, `${flowDatabase}.txt`);
+      rmSync(requests, { force: true });
       // Every context made while the flow runs: its own, and any it makes for another person's browser.
       const newContext = browser.newContext;
       browser.newContext = async (...options) => {
@@ -154,6 +158,15 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
       };
       await provide(opened);
       browser.newContext = newContext;
+      // Every request the server got from the flow: each step of a redirect that a request of its own
+      // followed, too, which nothing here sees. Not there for a build started some other way.
+      if (existsSync(requests)) {
+        for (const line of readFileSync(requests, "utf8").split("\n")) {
+          const path = line && openedPath(new URL(line, BASE).href, BASE);
+          if (path) opened.add(path);
+        }
+        rmSync(requests);
+      }
       if (runSql(flowDatabase, ERRORS_KEPT)[0] !== errorsBefore) opened.add("instrumentation.ts");
       await testInfo.attach("opened", { body: JSON.stringify([...opened].sort()), contentType: "application/json" });
     },

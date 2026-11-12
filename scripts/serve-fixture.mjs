@@ -14,7 +14,8 @@
 // `npm run build` runs the unit tests and the linters first, which CI's
 // other job and the pre-commit hook already do.
 import { execFileSync, spawn } from "node:child_process";
-import { CHECKOUT_DIR, OUTBOX_DIR, OWN_URL, SERVER_DATABASE } from "../tests/checkout.mjs";
+import { pathToFileURL } from "node:url";
+import { CHECKOUT_DIR, OUTBOX_DIR, OWN_URL, REQUESTS_DIR, SERVER_DATABASE } from "../tests/checkout.mjs";
 import { fixtureEnv, TEST_MP_EMAIL } from "../lib/server/fixtures/fixture-env.mjs";
 
 const at = process.argv.indexOf("--port");
@@ -29,7 +30,14 @@ env.NETLIFY_DB_URL = execFileSync("node", ["scripts/fresh-database.mjs", SERVER_
   encoding: "utf8",
 }).trim();
 execFileSync("npx", ["next", "build"], { stdio: "inherit", env });
+// The server keeps the address of each request a flow makes (scripts/record-requests.mjs). Not the build,
+// which answers none.
+const serving = {
+  ...env,
+  STORYBOARD_REQUESTS_DIR: REQUESTS_DIR,
+  NODE_OPTIONS: `${env.NODE_OPTIONS ?? ""} --import=${pathToFileURL("scripts/record-requests.mjs").href}`.trim(),
+};
 // In this script's process group, which Playwright kills whole when the run
 // ends, as Ctrl-C in a terminal does.
-const server = spawn("node_modules/.bin/next", ["start", "--port", port], { env, stdio: "inherit" });
+const server = spawn("node_modules/.bin/next", ["start", "--port", port], { env: serving, stdio: "inherit" });
 server.on("exit", (code) => process.exit(code ?? 0));

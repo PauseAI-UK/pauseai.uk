@@ -29,7 +29,7 @@ const EVERYTHING = [
   /^tests\/fixtures\/.*\.sql$/,
   /^tests\/checkout\.mjs$/,
   /^tests\/storyboard\/global-(setup|teardown)\.ts$/,
-  /^scripts\/(fresh-database|serve-fixture)\.mjs$/,
+  /^scripts\/(fresh-database|serve-fixture|record-requests)\.mjs$/,
 ];
 
 /** Files no flow runs or reads: a change to only these reruns nothing. */
@@ -244,7 +244,10 @@ export function routeFiles(routes, path) {
  * from imports every group's: `gallery: forms` reaches `_examples/forms.tsx`
  * (and `forms.client.tsx`), not the staff screens'. A flow whose group has
  * no examples file of its name, such as the gallery's own index, reaches
- * them all.
+ * them all. The page still loads every group's code and styles, so this
+ * holds only for what can't act on a page it isn't used on: a plain
+ * stylesheet, which applies to every page that loads it, is reached through
+ * the imports as they are (`whole`).
  */
 const GALLERY_EXAMPLES = "app/(tools)/gallery/_examples/index.ts";
 
@@ -286,9 +289,9 @@ export const NAMED = [...ALWAYS, ERRORS_KEPT, GALLERY_EXAMPLES, "lib/content/sta
  * (tests/storyboard/fixtures.ts: `instrumentation.ts`, when the server kept
  * an error).
  */
-export function flowReach(run, { graph, routes, root, reaches }) {
+export function flowReach(run, { graph, routes, root, reaches }, whole = false) {
   // The same flow, having opened the same things, reaches the same files, whichever run it's from.
-  const cached = `${run.section}|${run.flow}|${(run.opened ?? []).join("|")}`;
+  const cached = `${whole}|${run.section}|${run.flow}|${(run.opened ?? []).join("|")}`;
   if (reaches?.has(cached)) return reaches.get(cached);
   const entries = [
     `tests/storyboard/${run.section}.spec.ts`,
@@ -301,7 +304,7 @@ export function flowReach(run, { graph, routes, root, reaches }) {
       files.add(`public${path}`);
     else entries.push(...routeFiles(routes, path));
   }
-  for (const path of closure(flowGraph(graph, run), entries)) files.add(path);
+  for (const path of closure(whole ? graph : flowGraph(graph, run), entries)) files.add(path);
   reaches?.set(cached, files);
   return files;
 }
@@ -421,9 +424,12 @@ export function reachContext(root) {
  */
 export function reachedFlows({ files, addedOrDeleted = [], runs, context, copyKeys }) {
   const { graph } = context;
-  const reach = new Map(runs.map((run) => [run.key, flowReach(run, context)]));
+  // A plain stylesheet applies wherever it's loaded, so it's reached through the imports as they are (flowReach).
+  const plainStyles = (path) => path.endsWith(".css") && !path.endsWith(".module.css");
   const flowsReaching = (paths) =>
-    runs.filter((run) => paths.some((p) => reach.get(run.key).has(p))).map((run) => run.key);
+    runs
+      .filter((run) => paths.some((path) => flowReach(run, context, plainStyles(path)).has(path)))
+      .map((run) => run.key);
   const flowsThatOpened = (matches) => runs.filter((run) => (run.opened ?? []).some(matches)).map((run) => run.key);
 
   const keys = new Set();

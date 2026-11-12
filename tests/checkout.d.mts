@@ -6,6 +6,7 @@ export const LOCAL_URL: string;
 export const MAIN_URL: string;
 export function foreignServer(served: string | null, dir?: string, url?: string): string | undefined;
 export const OUTBOX_DIR: string;
+export const REQUESTS_DIR: string;
 export const MAIN_OUTBOX_DIR: string;
 export const LETTERS_INBOX_DIR: string;
 export const FAILING_DIR: string;

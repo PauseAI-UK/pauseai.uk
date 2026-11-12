@@ -303,6 +303,23 @@ describe("flowReach", () => {
     expect(staff).not.toContain("components/Hero.tsx");
   });
 
+  it("reaches every group's files when asked for the imports as they are, as a plain stylesheet is", () => {
+    const context = reachContext(root);
+    expect(flowReach(galleryUi, context, true)).toContain("app/(tools)/gallery/_examples/staff.tsx");
+    expect(flowReach(galleryUi, context)).not.toContain("app/(tools)/gallery/_examples/staff.tsx");
+    const styled = {
+      ...context,
+      reaches: new Map(),
+      graph: new Map([
+        ...context.graph,
+        ["app/(tools)/gallery/_examples/staff.tsx", ["components/print.css", "components/Staff.module.css"]],
+      ]),
+    };
+    const reached = (file: string) => reachedFlows({ files: [file], runs, context: styled }).keys;
+    expect(reached("components/print.css")).toEqual(keysOf(galleryUi, galleryStaff, galleryIndex));
+    expect(reached("components/Staff.module.css")).toEqual(keysOf(galleryStaff, galleryIndex));
+  });
+
   it("takes a gallery flow with no examples file of its name, or a checkout without the gallery, to reach every example", () => {
     const index = flowReach(galleryIndex, reachContext(root));
     expect(index).toContain("app/(tools)/gallery/_examples/staff.tsx");
