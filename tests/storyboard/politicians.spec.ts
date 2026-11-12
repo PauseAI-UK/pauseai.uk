@@ -124,8 +124,10 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
     .getByRole("navigation", { name: staffCopy.breadcrumb })
     .getByRole("link", { name: staffCopy.nav.politicians })
     .click();
+  await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   const { columns } = staffCopy.politicians;
-  await page.getByRole("link", { name: columns.emailsFromThem }).click();
+  // The heading's link, not the count at the top of her page, which has the same words.
+  await page.getByRole("columnheader", { name: columns.emailsFromThem }).getByRole("link").click();
   await expect(page).toHaveURL(/sort=replies&dir=desc/);
   const first = page.getByRole("row").nth(1);
   await expect(first.getByRole("link", { name: "Polly Placeholder", exact: true })).toBeVisible();
