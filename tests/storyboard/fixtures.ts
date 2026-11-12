@@ -78,10 +78,18 @@ const TALLY_STAND_IN = "window.Tally = { loadEmbeds: () => {} };";
 function openedPath(url: string, base: string): string | undefined {
   const u = new URL(url);
   if (u.origin !== new URL(base).origin || u.pathname.startsWith("/_next/static/")) return undefined;
-  if (u.pathname !== "/_next/image") return decodeURIComponent(u.pathname);
-  const src = u.searchParams.get("url");
-  return src?.startsWith("/") ? decodeURIComponent(src.split("?")[0]) : undefined;
+  const src = u.pathname === "/_next/image" ? u.searchParams.get("url")?.split("?")[0] : u.pathname;
+  if (!src?.startsWith("/")) return undefined;
+  try {
+    return decodeURIComponent(src);
+  } catch {
+    // Not an encoding of anything: as it was asked for.
+    return src;
+  }
 }
+
+/** How many errors the server has kept, and how many times it has seen them. */
+const ERRORS_KEPT = "SELECT count(*) || ' ' || coalesce(sum(count), 0) FROM errors_seen";
 
 const API_METHODS = ["get", "post", "put", "patch", "delete", "head", "fetch"] as const;
 
@@ -102,10 +110,16 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
   // test for the review to keep with the flow (report/reporter.ts). A change reruns the flows whose
   // pages it can reach (scripts/storyboard-reach.mjs). Next's prefetches of the pages a link
   // points to don't count: nothing of them is seen until the link is followed, which counts.
+  //
+  // One entry isn't a path. When the server kept an error during the flow (a row of errors_seen added,
+  // or seen again), the flow ran what instrumentation.ts hands errors to, which no page imports: it's
+  // recorded as having opened that file.
   opened: [
-    async ({}, provide, testInfo) => {
+    async ({ flowDatabase }, provide, testInfo) => {
       const opened = new Set<string>();
+      const [errorsBefore] = runSql(flowDatabase, ERRORS_KEPT);
       await provide(opened);
+      if (runSql(flowDatabase, ERRORS_KEPT)[0] !== errorsBefore) opened.add("instrumentation.ts");
       await testInfo.attach("opened", { body: JSON.stringify([...opened].sort()), contentType: "application/json" });
     },
     { auto: true },

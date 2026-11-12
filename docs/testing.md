@@ -261,7 +261,7 @@ on the page: "Passed. No frames: this flow only checks."
 ```bash
 npm run test:storyboard   # CI's run: desktop runs every flow, phone only those tagged @phone; no screenshots
 npm run storyboard        # the review, and the gate's storyboard: the flows a change can reach, both viewports, screenshots, against main's frames (where this branch left origin/main), then opens the page
-npm run storyboard -- --full   # the review of every flow, as before a branch merges
+npm run storyboard -- --plan   # which flows the review would run, and why, running none
 npm run test:report       # Playwright's own report, with the trace of a failed flow
 ```
 
@@ -371,7 +371,7 @@ another run. `npm run storyboard -- --changed` runs the review and then
 prints the same.
 
 **The copy to approve**, for the person who writes the copy. After every
-full storyboard review of a branch with placeholders, run `npm run copy` and
+storyboard review of a branch with placeholders, run `npm run copy` and
 give that person the page's path. It (`scripts/copy.mjs`) writes
 `test-results/copy.html`. It's one page, with
 its pictures in it, of each placeholder (AGENTS.md, "Never write final
@@ -455,7 +455,8 @@ does. Given no selection of its own, `npm run storyboard` runs
   phone's tagged ones, as the gate needs.
 
 The rest are carried. With nothing to run, the review says so and stops,
-in seconds. Before a branch merges, run `npm run storyboard -- --full`.
+in seconds. `--plan` says which flows a review would run, and why, and runs
+none. `--full` runs every flow regardless.
 
 What a flow can reach: its spec file and what that imports, and for each
 page it opened, the files Next renders it with (its `page.tsx` or
@@ -466,10 +467,13 @@ differently:
 
 - **Every flow:** the migrations and `schema.sql`, the seed data
   (`tests/fixtures/*.sql`), `package.json`, `next.config.ts`, `proxy.ts`,
-  `instrumentation.ts`, `playwright.config.ts`, and the storyboard's set-up
-  (`EVERYTHING`). Data no import leads to can change any page.
-- **No flow:** docs, plans, investments, unit tests, scripts, and the
-  review page's own code (`NOTHING`).
+  `instrumentation.ts`, `playwright.config.ts`, the storyboard's set-up
+  (`EVERYTHING`), and any other file at the top of the repo that nothing
+  imports, such as a build tool's settings. Data no import leads to can
+  change any page.
+- **No flow:** docs, plans, investments, unit tests, scripts, the review
+  page's own code, and the settings of the tools that don't build the site
+  (`NOTHING`).
 - **`staffCopy`:** a change to `lib/content/staff-interface.ts` reaches the
   files that read the top-level keys it changed (`staffCopy.letters`, or
   `const { letters } = staffCopy`), not every file that imports it.
@@ -502,8 +506,8 @@ branch. Nothing of this branch's goes into them. So:
 branch or checkout it's in, so every flow a run finishes is kept under the
 hash of the tree it ran (`scripts/storyboard-store.mjs`), in the main
 checkout's `test-results/storyboard-frames/`, which every worktree shares:
-each picture once, by its contents, and the newest ten trees. Two things
-put frames there:
+each picture once, by its contents, and the thirty trees used most
+recently. These put frames there:
 
 - **A run of main.** The review looks for main's tree first. If every flow
   it needs is kept, it doesn't touch main's checkout at all. Otherwise it
@@ -512,13 +516,17 @@ put frames there:
   and keeps them. A flow that failed is kept too, to show as failed on
   main, and is tried again by the next review. So main runs once for each
   commit of main, for every branch and worktree off it.
-- **A full review of a branch.** Its frames are kept under the tree of the
-  checkout as it was, uncommitted files and all. When the branch merges,
-  main's tree is that tree if nothing else merged in between, and its
-  frames are there already. They're kept only if Playwright built the site
-  for that run (no server was already up, and no `--server`) and nothing
-  in the checkout changed while it ran, as only then is the build known to
-  be that tree's.
+- **A review of a branch.** Its frames, the flows it carried as well as
+  those it ran, are kept under the tree of the checkout as it was,
+  uncommitted files and all: each carried flow looks as it would on that
+  tree, or the review would have run it. When the branch merges, main's
+  tree is that tree if nothing else merged in between, and its frames are
+  there already. They're kept only if Playwright built the site for that
+  run (no server was already up, and no `--server`) and nothing in the
+  checkout changed while it ran, as only then is the build known to be that
+  tree's. A review with nothing to run keeps the latest run's frames under
+  its tree. A run narrowed by hand (a section, `-g`, one viewport) keeps
+  nothing, as the flows it didn't run weren't chosen as unchanged.
 - **Another kept tree.** Before running main for the flows not kept, the
   review looks for the kept tree nearest main's: of each, the flows that
   recorded their tree and what they opened, less those the change from it
@@ -656,7 +664,7 @@ order, alongside the others:
 - Before saying a change is done, run `npm run storyboard` and look at
   every changed frame on both viewports. Say what changed in the PR. An
   agent lists the changed frames with `npm run storyboard:changed` and
-  opens each. Before the PR is marked ready, run it with `--full`.
+  opens each.
 - A flaky flow, or a frame that differs between two runs of the same
   build, is fixed at once, never retried, skipped or masked ("Rules for new
   code", below). `retries` stays 0.

@@ -22,6 +22,7 @@ import {
   picturePath,
   picturesKept,
   pruneStore,
+  ranElsewhere,
   readTree,
   storeDir,
   touchTree,
@@ -136,25 +137,46 @@ describe("missingFlows", () => {
   });
 });
 
-describe("carryKept", () => {
-  it("adds another tree's kept flows to a tree, each saying where it came from, and a run of its own replaces one", () => {
-    const from = keepRuns(store, "t1", runDir, [run("log in", "one"), run("letters", "two")]);
-    const carried = carryKept(
-      store,
-      "t2",
-      from.frames.map((r) => ({ ...r, key: key(r.flow) })),
-      "t1",
-    );
-    expect(carried.frames.map((r) => [r.flow, r.carriedFrom])).toEqual([
+describe("carryKept and ranElsewhere", () => {
+  it("says a flow ran elsewhere when its tree isn't the one it's kept under, and not when it has none", () => {
+    expect(ranElsewhere({ tree: "t1" }, "t2")).toBe(true);
+    expect(ranElsewhere({ tree: "t2" }, "t2")).toBe(false);
+    expect(ranElsewhere({}, "t2")).toBe(false);
+  });
+
+  it("adds another tree's kept flows to a tree, and a run on the tree itself replaces one", () => {
+    const from = keepRuns(store, "t1", runDir, [
+      { ...run("log in", "one"), tree: "t1" },
+      { ...run("letters", "two"), tree: "t1" },
+    ]);
+    const carried = carryKept(store, "t2", from.frames);
+    expect(carried.frames.map((r) => [r.flow, r.tree])).toEqual([
       ["log in", "t1"],
       ["letters", "t1"],
     ]);
-    expect(carried.frames[0]).not.toHaveProperty("key");
     expect(missingFlows(store, carried, [key("log in"), key("letters")])).toEqual([]);
-    const ran = keepRuns(store, "t2", runDir, [run("log in", "three")]);
-    expect(ran.frames.map((r) => [r.flow, r.carriedFrom])).toEqual([
+    const ran = keepRuns(store, "t2", runDir, [{ ...run("log in", "three"), tree: "t2" }]);
+    expect(ran.frames.map((r) => [r.flow, r.tree])).toEqual([
       ["letters", "t1"],
-      ["log in", undefined],
+      ["log in", "t2"],
+    ]);
+  });
+
+  it("never replaces a flow that ran on the tree and passed with one carried from another", () => {
+    keepRuns(store, "t2", runDir, [
+      { ...run("log in", "here"), tree: "t2" },
+      run("letters", "here too"),
+      { ...run("events", "failed here", { status: "failed" }), tree: "t2" },
+    ]);
+    const whole = keepRuns(store, "t2", runDir, [
+      { ...run("log in", "elsewhere"), tree: "t1" },
+      { ...run("letters", "elsewhere"), tree: "t1" },
+      { ...run("events", "elsewhere"), tree: "t1" },
+    ]);
+    expect(whole.frames.map((r) => [r.flow, r.tree])).toEqual([
+      ["log in", "t2"],
+      ["letters", undefined],
+      ["events", "t1"],
     ]);
   });
 });

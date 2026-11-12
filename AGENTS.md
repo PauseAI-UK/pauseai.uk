@@ -81,15 +81,15 @@ A PR with a migration carries the `migration` label, so the open PRs whose merge
 - Every new interactive behaviour goes in a flow, existing or new, with a frame after each thing a person would see. A PR without it isn't done.
 - A flow is told in words anyone who has used the site would follow: its title just names it ("The letter bounces"), each caption says what its frame shows ("The email staff get"), and `story("…")` lines, at the start and between the frames, say what happens and why (`docs/testing.md`, "How a flow is told").
 - Flows stay small: one thing a person does, about ten frames at most. Every flow stands alone: its own database (the `flowDatabase` fixture), a fixed clock, unique identifiers.
-- Before saying a change is done, run the review and look at every changed frame on both viewports. It never fails on a difference, so it proves nothing until you've looked. Say in the commit or PR what changed. Finish on a full review (`--full`), run after your last change, so the latest run is one a person can open and check too, and say which run it is.
-- `npm run storyboard` runs only the flows that the files changed since each flow's last run can reach, and those new or failed, and carries the rest; with nothing to run, it says so in seconds (`docs/testing.md`, "Which flows a review runs"). A migration, the seed data or `package.json` reruns every desktop flow. Main's frames are carried the same way from the nearest kept tree, so a rebase or a new commit of main runs main only for what changed.
+- Before saying a change is done, run the review and look at every changed frame on both viewports. It never fails on a difference, so it proves nothing until you've looked. Say in the commit or PR what changed. Finish on a review run after your last change, so the latest run is one a person can open and check too, and say which run it is.
+- `npm run storyboard` runs only the flows that the files changed since each flow's last run can reach, and those new or failed, and carries the rest; with nothing to run, it says so in seconds (`docs/testing.md`, "Which flows a review runs"). A migration, the seed data or `package.json` reruns every desktop flow. Main's frames are carried the same way from the nearest kept tree, so a rebase or a new commit of main runs main only for what changed. `--plan` says what a review would run, and why; `--full` runs every flow, which nothing needs.
 - A flaky flow, or a frame that differs between two runs of the same build, is fixed, never retried, skipped or masked. No stored baselines, no gate on pixels.
 - Any flaky test, Vitest or Playwright, is fixed at once, in whatever branch finds it, even when the branch has nothing to do with it (`docs/testing.md`, "Rules for new code").
 
 ```bash
 npm run storyboard                # the flows a change can reach, both viewports, screenshots, against main's frames (where this branch left origin/main), then opens the run's page (test-results/storyboard/index.html leads to the newest)
 npm run storyboard -- --no-open   # the same, leaving the page closed
-npm run storyboard -- --full      # every flow, as before a PR is marked ready
+npm run storyboard -- --plan      # which flows a review would run, and why, running none
 npm run storyboard:changed        # the latest run's changed frames: new, gone or different from main's, with each one's caption and PNGs
 ```
 
@@ -136,7 +136,7 @@ People write the words visitors and recipients read: page text, letters, emails,
 
 `npm run placeholders` fails while ⁂ appears anywhere in the repo outside this file, and names each line. CI, the gate and Netlify's build run it, so placeholders can't be merged by accident. It isn't one of the tests, so while a branch's copy waits, `npm test` still checks its coverage: only the placeholder check's own row of the gate's table fails.
 
-After every full storyboard review of a branch with placeholders, run `npm run copy` and give the person you're working with the page it writes, so they can see the copy waiting for approval: it writes one page, `test-results/copy.html`, with each placeholder the branch adds or changes, its file and line, and the frames that picture it (`docs/testing.md`, "The copy to approve").
+After every storyboard review of a branch with placeholders, run `npm run copy` and give the person you're working with the page it writes, so they can see the copy waiting for approval: it writes one page, `test-results/copy.html`, with each placeholder the branch adds or changes, its file and line, and the frames that picture it (`docs/testing.md`, "The copy to approve").
 
 ## The repo is public
 

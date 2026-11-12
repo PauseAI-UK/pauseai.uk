@@ -86,10 +86,15 @@ export function readTree(store, tree, platform = process.platform) {
 }
 
 /**
- * Adds `runs`, the flows a run of `tree` finished, to what's kept of it,
- * their pictures read from `runDir`, and returns the whole. Each replaces
- * its namesake, but a flow that passed is never replaced by a run of it
- * that didn't: the tree is the same, so the pass is the one to keep.
+ * Adds `runs`, the flows of a review of `tree`, to what's kept of it, their
+ * pictures read from `runDir`, and returns the whole. Each replaces its
+ * namesake, with two exceptions:
+ *
+ * - a flow that passed is never replaced by a run of it that didn't: the
+ *   tree is the same, so the pass is the one to keep;
+ * - a flow that ran on this tree and passed is never replaced by one
+ *   carried from another (ranElsewhere).
+ *
  * `flows`, if given, is the tree's whole suite (readTree).
  */
 export function keepRuns(store, tree, runDir, runs, flows, platform = process.platform) {
@@ -105,18 +110,18 @@ export function keepRuns(store, tree, runDir, runs, flows, platform = process.pl
 }
 
 /**
- * Adds `runs`, kept flows of the tree `from`, to what's kept of `tree`,
- * each saying where it came from (`carriedFrom`): the flows a change from
- * `from` to `tree` can't reach (scripts/storyboard-reach.mjs) look the same
- * on both. A run of the flow on `tree` itself replaces it.
+ * Whether a flow kept under `tree` ran on another: carried there, as the
+ * change between the two can't reach it (scripts/storyboard-reach.mjs), so
+ * it looks the same on both. `run.tree` is the tree it ran on; a flow kept
+ * without one ran on the tree it's under.
  */
-export function carryKept(store, tree, runs, from, platform = process.platform) {
-  const carried = runs.map((run) => {
-    const { key, ...rest } = run;
-    void key;
-    return { ...rest, carriedFrom: from };
-  });
-  return addRuns(store, tree, carried, undefined, platform);
+export function ranElsewhere(run, tree) {
+  return run.tree !== undefined && run.tree !== tree;
+}
+
+/** Adds `runs`, flows kept under other trees, to what's kept of `tree` (keepRuns says which replace what). */
+export function carryKept(store, tree, runs, platform = process.platform) {
+  return addRuns(store, tree, runs, undefined, platform);
 }
 
 /** The trees kept for `platform`, most recently used first. */
@@ -142,7 +147,13 @@ function addRuns(store, tree, fresh, flows, platform) {
   // Read now, after the pictures: another checkout may have added to it meanwhile.
   const kept = readTree(store, tree, platform);
   const passed = new Set(kept.frames.filter((run) => run.status === "passed").map(flowKey));
-  const added = fresh.filter((run) => run.status === "passed" || !passed.has(flowKey(run)));
+  const ranHere = new Set(
+    kept.frames.filter((run) => run.status === "passed" && !ranElsewhere(run, tree)).map(flowKey),
+  );
+  const added = fresh.filter(
+    (run) =>
+      (run.status === "passed" || !passed.has(flowKey(run))) && !(ranElsewhere(run, tree) && ranHere.has(flowKey(run))),
+  );
   const replaced = new Set(added.map(flowKey));
   const suite = flows ?? kept.flows;
   const whole = {
