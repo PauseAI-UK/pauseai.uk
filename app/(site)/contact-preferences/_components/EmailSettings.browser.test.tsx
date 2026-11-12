@@ -166,6 +166,9 @@ describe("EmailSettings", () => {
       .toBeVisible();
     await show(exampleBlocked);
     await expect.element(page.getByRole("heading", { name: copy.blocked.title })).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: "hello@pauseai.uk" }))
+      .toHaveAttribute("href", "mailto:hello@pauseai.uk");
     // Texts and calls go unmentioned for someone without a number.
     await expect.element(page.getByText(copy.blocked.numbers)).not.toBeInTheDocument();
     await show({ ...exampleBlocked, numbers: ["+447700900123"] });

@@ -169,6 +169,8 @@ export const emailSettingsCopy = {
     body: "⁂ Our emails to it bounced or were marked as spam.",
     // Only for someone with a number.
     numbers: "⁂ It doesn't stop texts or calls.",
+    // Before our address, as a link to email it.
+    ask: "⁂ If it works now, email",
   },
   global: {
     title: "PauseAI Global's emails",

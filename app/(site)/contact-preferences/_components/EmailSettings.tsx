@@ -9,6 +9,7 @@ import Bubble from "@/components/ui/Bubble";
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import { iconButtonClass } from "@/components/ui/IconButton";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
+import { site } from "@/lib/content/site";
 import type { ContactPermission, Topic } from "@/lib/contact-permissions";
 import {
   choiceKey,
@@ -166,6 +167,12 @@ function Hold({
       <h2>{words.title}</h2>
       <p className={styles.boxText}>{words.body}</p>
       {hold.kind === "blocked" && view.numbers.length > 0 && <p className={styles.boxText}>{copy.blocked.numbers}</p>}
+      {/* Staff lift a block, so a blocked address asks them to. */}
+      {hold.kind === "blocked" && (
+        <p className={styles.boxText}>
+          {copy.blocked.ask} <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
+        </p>
+      )}
     </div>
   );
 }
