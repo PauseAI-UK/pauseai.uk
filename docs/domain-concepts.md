@@ -100,6 +100,14 @@ politician at once (`lib/server/politician-email-counts.ts`):
 The list sorts by them as `sort=letters` and `sort=replies`, the names its
 URLs and saved filters hold.
 
+The list's First activity and Last activity are the first and last time we
+did something with a politician, or they with us (`POLITICIAN_ACTIVITY` in
+`lib/server/politicians.ts`): a letter written to them, their reply to one,
+their answer to an ask, on the day it was given if we know it, or a one-off
+message that counts as an email to them or from them, above. So someone
+whose only contact is a one-off thread has both dates, and the sort by
+either finds them.
+
 ## Asks
 
 Something we ask notable people to do whose answer we record: sign a

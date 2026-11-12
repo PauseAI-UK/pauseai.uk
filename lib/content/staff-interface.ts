@@ -851,7 +851,7 @@ export const staffCopy = {
       status: "Status",
       // Their answer to each ask they've answered.
       asks: "Asks",
-      // The first and last letter to them, reply or answer to an ask.
+      // The first and last letter to them, reply, answer to an ask, or one-off email either way.
       first: "First activity",
       last: "Last activity",
     },

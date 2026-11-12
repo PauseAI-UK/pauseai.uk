@@ -56,7 +56,7 @@ export type Politician = {
   /** How many emails went to them, and came from them (politician-email-counts.ts). */
   emailsToThem: number;
   emailsFromThem: number;
-  /** Their first and last activity with us: a letter to them, a reply, an answer to an ask (POLITICIAN_ACTIVITY). */
+  /** Their first and last activity with us: a letter to them, a reply, an answer to an ask, a one-off email either way (POLITICIAN_ACTIVITY). */
   firstActivityAt: Date | null;
   lastActivityAt: Date | null;
   /** Their answer to each ask, by the ask's slug. */
@@ -104,24 +104,31 @@ type Row = Omit<Politician, "statuses"> & {
 
 /**
  * The first or last time a politician did something with us, or we with
- * them: a letter written to them, their reply, or their answer to an ask,
- * on the day it was given if we know it, else when we recorded it.
+ * them: a letter written to them, their reply, their answer to an ask, on
+ * the day it was given if we know it, else when we recorded it, or a
+ * one-off message that counts as an email to them or from them
+ * (EMAIL_COUNTS, whose join the statement has).
  */
-const POLITICIAN_ACTIVITY = (agg: "min" | "max") => `(SELECT ${agg}(x.at) FROM (
+const POLITICIAN_ACTIVITY = (which: "first" | "last") => {
+  const { agg, of, oneOff } = {
+    first: { agg: "min", of: "least", oneOff: EMAIL_COUNTS.firstOneOff },
+    last: { agg: "max", of: "greatest", oneOff: EMAIL_COUNTS.lastOneOff },
+  }[which];
+  return `${of}((SELECT ${agg}(x.at) FROM (
     SELECT l.created_at AS at FROM letters l WHERE l.notable_person_id = n.id
     UNION ALL SELECT l.replied_at FROM letters l WHERE l.notable_person_id = n.id
     UNION ALL SELECT coalesce(a.status_date::timestamptz, a.updated_at) FROM ask_statuses a WHERE a.notable_person_id = n.id
-  ) x)`;
+  ) x), ${oneOff})`;
+};
 
 const SELECT_POLITICIANS = `
-  WITH ${EMAIL_COUNTS.with}
   SELECT n.id::int AS id, n.airtable_id AS "airtableId", n.airtable_removed_at AS "airtableRemovedAt", p.house,
     n.name, n.salutation, p.constituency, p.party, p.country, n.email, n.status,
     n.notes, n.important_target AS "importantTarget", n.personal_connection AS "personalConnection",
     p.is_test AS "isTest",
     EXISTS (SELECT 1 FROM email_blocks b WHERE b.address = lower(n.email)) AS "emailBlocked",
     ${EMAIL_COUNTS.toThem} AS "emailsToThem", ${EMAIL_COUNTS.fromThem} AS "emailsFromThem",
-    ${POLITICIAN_ACTIVITY("min")} AS "firstActivityAt", ${POLITICIAN_ACTIVITY("max")} AS "lastActivityAt",
+    ${POLITICIAN_ACTIVITY("first")} AS "firstActivityAt", ${POLITICIAN_ACTIVITY("last")} AS "lastActivityAt",
     json_object_agg(s.ask, json_build_object(
       'status', s.status, 'date', to_char(s.status_date, 'YYYY-MM-DD'), 'note', s.note,
       'updatedAt', s.updated_at, 'updatedBy', s.updated_by

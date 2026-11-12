@@ -34,11 +34,19 @@ export async function addTestMessage(
   thread: number,
   id: string,
   from: string,
-  fields: { name?: string; us?: boolean; subject?: string } = {},
+  fields: { name?: string; us?: boolean; subject?: string; at?: string } = {},
 ): Promise<void> {
   await query(
     `INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, addresses, subject, at, from_us, blob_key, size)
-     VALUES ($1, 'policy@pauseai.uk', $2, 't', $3, $4, ARRAY[$3], $5, '2026-10-02T09:00:00Z', $6, $2, 1)`,
-    [thread, id, from, fields.name ?? "", fields.subject ?? "A thread", fields.us ?? false],
+     VALUES ($1, 'policy@pauseai.uk', $2, 't', $3, $4, ARRAY[$3], $5, $7, $6, $2, 1)`,
+    [
+      thread,
+      id,
+      from,
+      fields.name ?? "",
+      fields.subject ?? "A thread",
+      fields.us ?? false,
+      fields.at ?? "2026-10-02T09:00:00Z",
+    ],
   );
 }

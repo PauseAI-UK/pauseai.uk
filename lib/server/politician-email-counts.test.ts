@@ -159,6 +159,50 @@ describeWithDatabase("the emails to and from a politician", () => {
     expect(await sorted("replies", "asc")).toEqual([nora, peer, polly]);
   });
 
+  it("dates a politician's first and last activity by the one-off messages it counts, with their letters and answers", async () => {
+    // Nora's only contact is a one-off thread.
+    const nora = await addTestPolitician({ name: "Nora Nothing", airtableId: "recNora", email: "nora@example.org" });
+    const hers = await thread([nora], "Coffee?", false);
+    await message(hers, "ours", "policy@pauseai.uk", { us: true, at: "2026-03-01T09:00:00Z" });
+    await message(hers, "reply", "nora@example.org", { at: "2026-03-05T09:00:00Z" });
+    // Neither of these counts as an email either way, so neither is activity: her office's automatic reply, and
+    // one of ours from a parliament's address.
+    await message(hers, "away", "nora@example.org", { subject: "Out of office", at: "2026-03-09T09:00:00Z" });
+    await message(hers, "odd", "pauseai@parliament.uk", { us: true, at: "2026-01-01T09:00:00Z" });
+    expect(await getPolitician(nora)).toMatchObject({
+      emailsToThem: 1,
+      emailsFromThem: 1,
+      firstActivityAt: new Date("2026-03-01T09:00:00Z"),
+      lastActivityAt: new Date("2026-03-05T09:00:00Z"),
+    });
+
+    // Polly has a letter between two one-off messages; the peer a letter alone; Rita nothing.
+    const polly = await addTestPolitician();
+    await addTestLetter({ politicianId: polly, createdAt: "2026-02-01T09:00:00Z" });
+    const pollys = await thread([polly], "Hello", false);
+    await message(pollys, "early", "vera@example.com", { at: "2026-01-15T09:00:00Z" });
+    await message(pollys, "late", POLLY, { at: "2026-04-01T09:00:00Z" });
+    const peer = await addTestPolitician({ name: "Lord Example", house: "lords", airtableId: "recLord", email: null });
+    await addTestLetter({ politicianId: peer, createdAt: "2026-02-10T09:00:00Z" });
+    const rita = await addTestPolitician({ name: "Rita Retired", airtableId: "recRita", email: null });
+    expect(await getPolitician(polly)).toMatchObject({
+      firstActivityAt: new Date("2026-01-15T09:00:00Z"),
+      lastActivityAt: new Date("2026-04-01T09:00:00Z"),
+    });
+    expect(await getPolitician(peer)).toMatchObject({
+      firstActivityAt: new Date("2026-02-10T09:00:00Z"),
+      lastActivityAt: new Date("2026-02-10T09:00:00Z"),
+    });
+    expect(await getPolitician(rita)).toMatchObject({ firstActivityAt: null, lastActivityAt: null });
+
+    // The list has the same dates, and sorts by them, those with none last.
+    const sorted = async (key: "first" | "active", dir: "asc" | "desc") =>
+      (await listPoliticians({ sort: { key, dir } })).map((one) => one.id);
+    expect(await sorted("active", "desc")).toEqual([polly, nora, peer, rita]);
+    expect(await sorted("first", "asc")).toEqual([polly, peer, nora, rita]);
+    for (const one of await listPoliticians({})) expect(await getPolitician(one.id)).toEqual(one);
+  });
+
   it("reads a machine's subject in SQL as isMachineReply does", async () => {
     const machine = (subject: string) => isMachineReply(() => undefined, subject);
     const subjects = [
