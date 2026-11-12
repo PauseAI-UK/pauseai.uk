@@ -11,14 +11,7 @@ import { iconButtonClass } from "@/components/ui/IconButton";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
 import { site } from "@/lib/content/site";
 import type { ContactPermission, Topic } from "@/lib/contact-permissions";
-import {
-  choiceKey,
-  numberHolds,
-  settingsTopics,
-  stillGets,
-  type SettingsTopic,
-  type SettingsView,
-} from "@/lib/email-settings";
+import { choiceKey, numberHolds, settingsTopics, type SettingsTopic, type SettingsView } from "@/lib/email-settings";
 import styles from "./EmailSettings.module.css";
 
 /** What the page was opened by and for: kept in each form, so the server knows whose page it is. */
@@ -209,7 +202,16 @@ function NumberHolds({ view }: { view: SettingsView }) {
   );
 }
 
-/** The box an email's unsubscribe link opens the page with: one button, then what it did, and what they still get. */
+/** Whether the address already gets none of `topics` by email, as after the link's button, or a reload after it. */
+const offAlready = (view: SettingsView | null, topics: Topic[]): boolean =>
+  view !== null &&
+  topics.every((topic) => view.answers.some((a) => a.way === "email" && a.topic === topic && a.send === "no"));
+
+/**
+ * The box an email's unsubscribe link opens the page with: one button, then
+ * what it did, and what they still get; that straight away, where they get
+ * none of its topics already.
+ */
 function Unsubscribe({
   topics,
   view,
@@ -221,14 +223,15 @@ function Unsubscribe({
   opened: Opened;
   unsubscribe: (form: FormData) => Promise<void>;
 }) {
-  const [done, setDone] = useState(false);
+  // Pressed here, its words take the focus; found so on opening, they don't, as the page's title starts it.
+  const [done, setDone] = useState<"pressed" | "already" | null>(() => (offAlready(view, topics) ? "already" : null));
   if (!done) {
     return (
       <FormStack
         className={`${styles.unsubscribe} ${styles.buttonForm}`}
         action={async (form) => {
           await unsubscribe(form);
-          setDone(true);
+          setDone("pressed");
         }}
       >
         <OpenedBy opened={opened} />
@@ -239,16 +242,16 @@ function Unsubscribe({
       </FormStack>
     );
   }
-  const still = view ? stillGets(view, topics) : [];
   return (
     <div className={styles.unsubscribe} role="status">
-      <h2 ref={focusOnMount} tabIndex={-1}>
+      <h2 ref={done === "pressed" ? focusOnMount : undefined} tabIndex={-1}>
         {copy.unsubscribe.done(inWords(topics))}
       </h2>
-      <p>{copy.unsubscribe.doneBody}</p>
-      {still.map((answer) => (
-        <p key={answer.topic}>{copy.unsubscribe.still(copy.topics[answer.topic], reasonWords(answer))}</p>
-      ))}
+      {/* Pointing to the choices below, where the page has them: an old email's link offers a fresh link instead. */}
+      <p>
+        {copy.unsubscribe.doneBody}
+        {view && ` ${copy.unsubscribe.below}`}
+      </p>
     </div>
   );
 }

@@ -415,7 +415,16 @@ export const staffSupporters: Group = {
       variants: [
         {
           label: "At the foot of a supporter's consents, in a fixture build only",
-          render: () => <DevPreferences emails={["jane.smith@example.com", "jane@example.org"]} fixtures />,
+          render: () => (
+            <DevPreferences
+              emails={["jane.smith@example.com", "jane@example.org"]}
+              copies={[
+                { copyId: 2, channel: "email", topics: ["newsletter"], sentAt: new Date("2026-11-01T10:00:00Z") },
+                { copyId: 1, channel: "email", topics: ["events"], sentAt: new Date("2026-10-20T10:00:00Z") },
+              ]}
+              fixtures
+            />
+          ),
         },
       ],
     },

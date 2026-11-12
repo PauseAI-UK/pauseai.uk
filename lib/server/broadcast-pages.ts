@@ -431,6 +431,8 @@ export type SupporterBroadcastRow = {
   messageId: number;
   title: string;
   channel: BroadcastChannel;
+  /** The topics whose yes it went under, which its unsubscribe link opts out of. */
+  topics: Topic[];
   status: string;
   skipReason: string | null;
   sentAt: Date | null;
@@ -445,7 +447,8 @@ export type SupporterBroadcastRow = {
 /** The broadcasts a supporter was sent, newest first. */
 export async function broadcastsToSupporter(supporterId: number): Promise<SupporterBroadcastRow[]> {
   return query<SupporterBroadcastRow>(
-    `SELECT c.id::int AS "copyId", m.id::int AS "messageId", m.title, m.channel, c.status, c.skip_reason AS "skipReason",
+    `SELECT c.id::int AS "copyId", m.id::int AS "messageId", m.title, m.channel, c.topics, c.status,
+       c.skip_reason AS "skipReason",
        c.sent_at AS "sentAt", ${WAS_READ} AS read, ${BOUNCED} AS bounced, ${OPTED_OUT} AS "optedOut", ${REPLIED} AS replied,
        ${TO_LOOK_AT} AS "toLookAt"
      FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id

@@ -198,7 +198,7 @@ describe("EmailSettings", () => {
     await expect.element(page.getByRole("heading", { name: copy.doNotCall.title })).toBeVisible();
   });
 
-  it("from an email's link: its button first, then what it did and what they still get", async () => {
+  it("from an email's link: its button first, then what it did, and that the rest is below", async () => {
     const done = await show(exampleSettings, ["newsletter"], actions(exampleUnsubscribed));
     await expect
       .element(page.getByRole("heading", { name: copy.unsubscribe.title(copy.inSentence.newsletter) }))
@@ -207,14 +207,28 @@ describe("EmailSettings", () => {
     await expect
       .element(page.getByRole("heading", { name: copy.unsubscribe.done(copy.inSentence.newsletter) }))
       .toHaveFocus();
-    await expect
-      .element(page.getByText(copy.unsubscribe.still(copy.topics.events, copy.why.reasons.following!(""))))
-      .toBeVisible();
+    await expect.element(page.getByText(`${copy.unsubscribe.doneBody} ${copy.unsubscribe.below}`)).toBeVisible();
     expect(fields(done.unsubscribe.mock.calls[0][0])).toEqual([
       ["kind", "copy"],
       ["token", "tok"],
     ]);
     await expect.element(why("newsletter", copy.why.reasons.unsubscribed!(copy.sourceWords("link")))).toBeVisible();
+  });
+
+  it("from an email's link they've already used: what it did, with no button", async () => {
+    await show(exampleUnsubscribed, ["newsletter"]);
+    await expect
+      .element(page.getByRole("heading", { name: copy.unsubscribe.done(copy.inSentence.newsletter) }))
+      .toBeVisible();
+    await expect
+      .element(page.getByRole("heading", { name: copy.unsubscribe.done(copy.inSentence.newsletter) }))
+      .not.toHaveFocus();
+    await expect.element(page.getByRole("button", { name: copy.unsubscribe.button })).not.toBeInTheDocument();
+  });
+
+  it("from an email's link with a topic they still get: its button", async () => {
+    await show(exampleUnsubscribed, ["newsletter", "events"]);
+    await expect.element(page.getByRole("button", { name: copy.unsubscribe.button })).toBeVisible();
   });
 
   it("from an old email's link: its button still, a fresh link for the rest", async () => {

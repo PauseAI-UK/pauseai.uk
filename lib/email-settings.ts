@@ -95,8 +95,3 @@ export function settingsTopics(view: SettingsView): SettingsTopic[] {
     return { topic, boxes, why };
   });
 }
-
-/** The topics, of `topics`, the address still gets by email: what an unsubscribe leaves them with. */
-export function stillGets(view: SettingsView, topics: Topic[]): ContactPermission[] {
-  return view.answers.filter((a) => a.way === "email" && a.send === "yes" && !topics.includes(a.topic));
-}

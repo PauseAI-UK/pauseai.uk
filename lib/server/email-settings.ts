@@ -61,6 +61,20 @@ export async function newSettingsLink(address: string, db?: Queryable): Promise<
   return `/contact-preferences/${token}`;
 }
 
+/**
+ * A new unsubscribe link for a broadcast's copy, as its email carries one:
+ * its path; undefined for no such copy. Its old token stops working, so
+ * it's only for a fixture build (app/(staff)/staff/api/dev-contact-preferences).
+ */
+export async function newCopyLink(copyId: number): Promise<string | undefined> {
+  const token = randomBytes(18).toString("base64url");
+  const rows = await query("UPDATE broadcast_messages SET link_token_hash = $2 WHERE id = $1 RETURNING id", [
+    copyId,
+    hashOf(token),
+  ]);
+  return rows.length ? `/contact-preferences/m/${token}` : undefined;
+}
+
 /** Whether we have the address from anywhere: someone we know, or an opt-out of theirs. */
 async function known(address: string): Promise<boolean> {
   const [row] = await query(

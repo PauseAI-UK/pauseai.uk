@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { ContactPermission } from "./contact-permissions";
-import { choiceKey, hold, numberHolds, settingsTopics, stillGets, type SettingsView } from "./email-settings";
+import { choiceKey, hold, numberHolds, settingsTopics, type SettingsView } from "./email-settings";
 
 const AT = new Date("2026-11-02T10:00:00Z");
 const JANE = "jane@example.com";
@@ -92,13 +92,4 @@ it("finds the ways PauseAI Global stops to every number, and locks their boxes",
     { way: "text", on: false, locked: true },
     { way: "call", on: false, locked: false },
   ]);
-});
-
-it("says what an unsubscribe leaves them getting by email", () => {
-  const answers = [
-    answer({}),
-    answer({ topic: "events", reason: "following", source: "luma" }),
-    answer({ topic: "volunteering", send: "no" }),
-  ];
-  expect(stillGets(view(answers), ["newsletter"]).map((a) => a.topic)).toEqual(["events"]);
 });

@@ -610,7 +610,7 @@ test("Their contact preferences, from their page", async ({ page, request, flowD
   const dev = page.getByRole("region", { name: staffCopy.devPreferences.title });
   await dev.scrollIntoViewIfNeeded();
   await frame(page, "A link for each address", { window: true });
-  await dev.getByRole("link", { name: "tom.seed@example.com" }).click();
+  await dev.getByRole("link", { name: staffCopy.devPreferences.preferences("tom.seed@example.com") }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(emailSettingsCopy.settings.title);
   await frame(page, "Tom's contact preferences");
 });

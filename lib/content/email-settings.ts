@@ -185,7 +185,8 @@ export const emailSettingsCopy = {
     button: "⁂ Unsubscribe",
     done: (topics: string) => `⁂ You've unsubscribed from ${topics}`,
     doneBody: "⁂ You won't get it by email any more.",
-    still: (topic: string, why: string) => `⁂ You'll still get ${topic} emails, because ${why}`,
+    // After it, where the page shows their choices below.
+    below: "⁂ You can choose what else you get below.",
     and: "⁂ and",
   },
   // The page from an old email's unsubscribe link: the button still works, the rest doesn't.
