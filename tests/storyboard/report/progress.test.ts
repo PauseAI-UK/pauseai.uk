@@ -34,6 +34,7 @@ describe("the storyboard's progress", () => {
   it("says how many flows there are when the run starts, and whose run it is", () => {
     new ProgressReporter().onBegin(config, suite(3));
     expect(said()).toEqual({
+      kind: "flows",
       side: "branch",
       pid: process.pid,
       startedAt: "2026-11-12T10:00:00.000Z",
@@ -45,10 +46,11 @@ describe("the storyboard's progress", () => {
     });
   });
 
-  it("says it's main's flows that are running, when the review runs those", () => {
+  it("says it's the review, when the run takes pictures, and main's side of it, when the review runs that", () => {
+    vi.stubEnv("STORYBOARD_SHOTS", "1");
     vi.stubEnv("STORYBOARD_SIDE", "main-run");
     new ProgressReporter().onBegin(config, suite(3));
-    expect(said().side).toBe("main");
+    expect(said()).toMatchObject({ kind: "review", side: "main" });
     vi.stubEnv("STORYBOARD_SIDE", "branch");
     new ProgressReporter().onBegin(config, suite(3));
     expect(said().side).toBe("branch");

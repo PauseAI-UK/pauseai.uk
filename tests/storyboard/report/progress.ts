@@ -17,7 +17,9 @@ export const progressFile = () =>
   process.env.STORYBOARD_PROGRESS ?? join(process.cwd(), "test-results", "storyboard-progress.json");
 
 /**
- * What the file holds. `side` is which side of the review the run makes:
+ * What the file holds. `kind` is which run it is: "review", with pictures
+ * on both viewports (STORYBOARD_SHOTS), or "flows", the gate's lighter run
+ * that only checks they work. `side` is which side of the review the run makes:
  * "main" for the one whose frames this branch's are set beside
  * (STORYBOARD_SIDE "main-run"), and "branch" for any other run. `pid` is
  * the run's process, so a reader can tell a run that was killed, which
@@ -26,6 +28,7 @@ export const progressFile = () =>
  * pass. The times are ISO 8601.
  */
 export type Progress = {
+  kind: "review" | "flows";
   side: "branch" | "main";
   pid: number;
   startedAt: string;
@@ -39,6 +42,7 @@ export type Progress = {
 export default class ProgressReporter implements Reporter {
   private file = progressFile();
   private progress: Progress = {
+    kind: process.env.STORYBOARD_SHOTS === "1" ? "review" : "flows",
     side: process.env.STORYBOARD_SIDE === "main-run" ? "main" : "branch",
     pid: process.pid,
     startedAt: "",

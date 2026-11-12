@@ -244,19 +244,28 @@ export function groupState(states) {
   return "running";
 }
 
-/** The group a command is in: the two long ones each their own, and the rest, quick, together. @param {string} id */
-const groupOf = (id) => (id === "storyboard" || id === "test" ? id : "checks");
+/**
+ * The group a command is in: the two long ones each their own, and the
+ * rest, quick, together. The gate's storyboard is "flows": it checks that
+ * every flow works, where the review (`npm run storyboard`) pictures them.
+ *
+ * @param {string} id
+ */
+const groupOf = (id) => (id === "storyboard" ? "flows" : id === "test" ? "test" : "checks");
 
 /**
  * Keeps `file` saying how each of `steps` stands, and each group of them
- * (`groups`: checks, test and storyboard, those the gate is running): every
+ * (`groups`: checks, test and flows, those the gate is running): every
  * step waiting to begin with, then as `set` is told, and `ended` once `end`
- * is called. `pid` is the gate's process, so a reader can tell a gate that
- * was killed, which never says it ended, from one still going.
+ * is called. `commit` is the one the gate started on, so a reader can tell
+ * whether its result is of the code as it is now. `pid` is the gate's
+ * process, so a reader can tell a gate that was killed, which never says it
+ * ended, from one still going.
  *
  * @param {Step[]} steps
+ * @param {string} commit
  */
-export function statusWriter(steps, file = join(LOG_DIR, "status.json")) {
+export function statusWriter(steps, commit, file = join(LOG_DIR, "status.json")) {
   const startedAt = new Date().toISOString();
   /** @type {Record<string, State>} */
   const states = Object.fromEntries(steps.map((step) => [step.id, "waiting"]));
@@ -267,7 +276,15 @@ export function statusWriter(steps, file = join(LOG_DIR, "status.json")) {
     for (const group of new Set(steps.map((step) => groupOf(step.id)))) {
       groups[group] = groupState(steps.filter((step) => groupOf(step.id) === group).map((step) => states[step.id]));
     }
-    const status = { pid: process.pid, startedAt, updatedAt: new Date().toISOString(), ended, groups, steps: states };
+    const status = {
+      pid: process.pid,
+      commit,
+      startedAt,
+      updatedAt: new Date().toISOString(),
+      ended,
+      groups,
+      steps: states,
+    };
     writeFileSync(`${file}.${process.pid}`, `${JSON.stringify(status)}\n`);
     renameSync(`${file}.${process.pid}`, file);
   };
@@ -394,7 +411,7 @@ async function main(args) {
 
   const fast = fastPlan(files);
   const slow = options.fast ? [] : slowPlan(options);
-  const status = statusWriter([...fast, ...slow].flat(2));
+  const status = statusWriter([...fast, ...slow].flat(2), git("rev-parse", "HEAD").trim());
 
   console.log(`Gate: the fast checks, on ${files.length} files changed since origin/main`);
   const results = await runPlan(fast, LOG_DIR, console.log, status.set);

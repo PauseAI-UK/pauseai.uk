@@ -143,39 +143,40 @@ describe("groupState", () => {
 describe("statusWriter", () => {
   const steps = ["prettier", "typecheck", "storyboard", "test", "lint"].map((id) => node(id, ""));
 
-  it("keeps a file of how each command stands, and each group: the quick checks together, the tests and the storyboard apart", () => {
+  it("keeps a file of how each command stands, and each group: the quick checks together, the tests and the flows apart", () => {
     const dir = mkdtempSync(join(tmpdir(), "gate-"));
     const file = join(dir, "status.json");
     const said = () => JSON.parse(readFileSync(file, "utf8"));
-    const status = statusWriter(steps, file);
+    const status = statusWriter(steps, "abc123", file);
     expect(said()).toMatchObject({
       pid: process.pid,
+      commit: "abc123",
       ended: false,
-      groups: { checks: "waiting", storyboard: "waiting", test: "waiting" },
+      groups: { checks: "waiting", flows: "waiting", test: "waiting" },
       steps: { prettier: "waiting", typecheck: "waiting", storyboard: "waiting", test: "waiting", lint: "waiting" },
     });
     expect(new Date(said().startedAt).getTime()).toBeLessThanOrEqual(new Date(said().updatedAt).getTime());
     status.set(steps[0], "passed");
     status.set(steps[3], "running");
     expect(said()).toMatchObject({
-      groups: { checks: "running", storyboard: "waiting", test: "running" },
+      groups: { checks: "running", flows: "waiting", test: "running" },
       steps: { prettier: "passed", test: "running" },
     });
     status.set(steps[1], "passed");
     status.set(steps[4], "passed");
     status.set(steps[3], "failed");
     status.set(steps[2], "running");
-    expect(said().groups).toEqual({ checks: "passed", storyboard: "running", test: "failed" });
+    expect(said().groups).toEqual({ checks: "passed", flows: "running", test: "failed" });
     status.set(steps[2], "passed");
     status.end();
-    expect(said()).toMatchObject({ ended: true, groups: { checks: "passed", storyboard: "passed", test: "failed" } });
+    expect(said()).toMatchObject({ ended: true, groups: { checks: "passed", flows: "passed", test: "failed" } });
     // Each write is moved into place, and leaves nothing beside the file.
     expect(readdirSync(dir)).toEqual(["status.json"]);
   });
 
   it("has only the groups the gate is running", () => {
     const file = join(mkdtempSync(join(tmpdir(), "gate-")), "status.json");
-    statusWriter(steps.slice(0, 2), file);
+    statusWriter(steps.slice(0, 2), "abc123", file);
     expect(JSON.parse(readFileSync(file, "utf8")).groups).toEqual({ checks: "waiting" });
   });
 });

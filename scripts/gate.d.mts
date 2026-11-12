@@ -21,7 +21,7 @@ export function formatDuration(ms: number): string;
 export function formatTable(results: Result[]): string;
 export function tail(file: string, count: number): string;
 export function groupState(states: State[]): "waiting" | "running" | "passed" | "failed";
-export function statusWriter(steps: Step[], file?: string): { set: Changed; end: () => void };
+export function statusWriter(steps: Step[], commit: string, file?: string): { set: Changed; end: () => void };
 export function runStep(
   step: Step,
   logDir?: string,

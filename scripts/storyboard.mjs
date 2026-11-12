@@ -77,6 +77,8 @@ import { keepRuns, linkFlows, missingFlows, pruneStore, readTree, storeDir, touc
 const DIR = "test-results/storyboard";
 const RUNS = join(DIR, "runs");
 const LATEST = join(DIR, "latest");
+/** How the last full review went, and on which commit. */
+const REVIEW_RECORD = "test-results/storyboard-review.json";
 const RUNS_KEEP = 3;
 /** How many trees' frames the store keeps (scripts/storyboard-store.mjs). */
 const TREES_KEEP = 10;
@@ -446,6 +448,7 @@ const carriedMain = carried && existsSync(mainFrames) ? readJson(mainFrames) : u
 const full = !partial && passThrough.length === 0;
 const builtHere = !options.server && !(await answers(LOCAL_URL));
 const treeBefore = workingTree();
+const commitBefore = git("rev-parse", "HEAD");
 
 const code = runSuite("branch", options.server ?? LOCAL_URL);
 
@@ -493,6 +496,18 @@ if (existsSync(branchFrames)) {
       summary.mainFailed ? `, ${summary.mainFailed} failed on main` : ""
     }. ${join(runDir, "index.html")}\n`,
   );
+  // The last full review, and the commit it pictured, for anything that shows whether this commit has had one
+  // (docs/testing.md, "The storyboard's progress").
+  if (full) {
+    writeJson(REVIEW_RECORD, {
+      commit: commitBefore,
+      endedAt: new Date().toISOString(),
+      run: basename(runDir),
+      flows: summary.flows,
+      failed: summary.failed,
+      changed: withMain ? summary.changed : null,
+    });
+  }
 }
 
 const page = join(runDir, "index.html");
