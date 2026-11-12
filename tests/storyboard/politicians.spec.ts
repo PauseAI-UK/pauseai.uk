@@ -112,6 +112,29 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
   await expect(page).toHaveURL(/#asks-title$/);
   await expect(page.getByRole("region", { name: copy.statusesTitle })).toBeInViewport();
   await frame(page, "Down to her asks", { window: true });
+
+  story(
+    "The politicians list has the same two counts for everyone. Staff sort it by Emails from them, which puts Polly first, with the numbers at the top of her page.",
+  );
+  const counted = async (label: string) =>
+    Number.parseInt(await page.getByRole("link", { name: label }).innerText(), 10);
+  const onHerPage = [await counted(copy.band.emailsToThem), await counted(copy.band.emailsFromThem)];
+  expect(onHerPage[1]).toBe(1);
+  await page
+    .getByRole("navigation", { name: staffCopy.breadcrumb })
+    .getByRole("link", { name: staffCopy.nav.politicians })
+    .click();
+  const { columns } = staffCopy.politicians;
+  await page.getByRole("link", { name: columns.emailsFromThem }).click();
+  await expect(page).toHaveURL(/sort=replies&dir=desc/);
+  const first = page.getByRole("row").nth(1);
+  await expect(first.getByRole("link", { name: "Polly Placeholder", exact: true })).toBeVisible();
+  const headings = await page.getByRole("columnheader").allInnerTexts();
+  const under = (heading: string) =>
+    first.getByRole("cell").nth(headings.findIndex((text) => text.startsWith(heading)));
+  await expect(under(columns.emailsToThem)).toHaveText(String(onHerPage[0]));
+  await expect(under(columns.emailsFromThem)).toHaveText(String(onHerPage[1]));
+  await frame(page, "The list, by emails from them");
 });
 
 test("A note on a politician", async ({ page, request, flowDatabase }) => {

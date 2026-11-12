@@ -368,8 +368,8 @@ describeWithDatabase("politicians", () => {
       personalConnection: false,
       isTest: false,
       emailBlocked: false,
-      letters: 0,
-      replies: 0,
+      emailsToThem: 0,
+      emailsFromThem: 0,
       firstActivityAt: null,
       lastActivityAt: null,
       statuses: {},
@@ -400,20 +400,6 @@ describeWithDatabase("politicians", () => {
     await setStatus(peer, BILL, { status: "signed", date: null, note: "" }, "jo@pauseai.uk");
     const signed = await listPoliticians({ answer: ["signed"], sort: { key: "asks", dir: "desc" } });
     expect(signed.map((p) => p.id)).toEqual([peer, mp]);
-  });
-
-  it("counts the letters to each politician, leaving out those never sent, and how many were answered", async () => {
-    const mp = await addTestPolitician();
-    await addTestLetter({ politicianId: mp, repliedAt: new Date().toISOString() });
-    await addTestLetter({ politicianId: mp, status: "bounced" });
-    await addTestLetter({ politicianId: mp, status: "not_sent" });
-    // A mailing's letters that never went: one stopped, one skipped, one still to go.
-    await query(
-      "INSERT INTO letters (kind, notable_person_id, status) VALUES ('pauseai', $1, 'cancelled'), ('pauseai', $1, 'skipped'), ('pauseai', $1, 'scheduled')",
-      [mp],
-    );
-    expect(await getPolitician(mp)).toMatchObject({ letters: 2, replies: 1 });
-    expect((await listPoliticians({ sort: { key: "letters", dir: "desc" } }))[0].id).toBe(mp);
   });
 
   it("knows whose address is blocked, whatever its case, in the list too", async () => {

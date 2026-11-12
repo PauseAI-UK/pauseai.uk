@@ -15,8 +15,6 @@ const messages = (fields: Partial<ThreadMessages> = {}): ThreadMessages => ({
   subjects: {},
   letters: {},
   oneOffs: {},
-  emailsToThem: 0,
-  emailsFromThem: 0,
   ...fields,
 });
 const signed = (fields: Partial<LetterSummary> = {}) =>

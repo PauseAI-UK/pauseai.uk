@@ -330,7 +330,7 @@ function PoliticianBand({
   );
 }
 
-const NO_MESSAGES: ThreadMessages = { subjects: {}, letters: {}, oneOffs: {}, emailsToThem: 0, emailsFromThem: 0 };
+const NO_MESSAGES: ThreadMessages = { subjects: {}, letters: {}, oneOffs: {} };
 
 /** A line of a politician's aliases: an address or domain, and where it came from. */
 type AliasRow = { key: string; address: string; from: ReactNode };
@@ -539,13 +539,13 @@ export default function PoliticianDetails({
   const emailCounts: Count[] = [
     {
       key: "to-them",
-      n: messages.emailsToThem,
+      n: politician.emailsToThem,
       label: copy.band.emailsToThem,
       href: `/staff/politicians/${politician.id}#correspondence-title`,
     },
     {
       key: "from-them",
-      n: messages.emailsFromThem,
+      n: politician.emailsFromThem,
       label: copy.band.emailsFromThem,
       href: `/staff/politicians/${politician.id}${onlyReplies ? "" : "?correspondence=replies"}`,
       current: onlyReplies,

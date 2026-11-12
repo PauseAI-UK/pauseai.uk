@@ -109,9 +109,10 @@ export const POLITICIANS_LIST = defineStaffList({
   },
   choosing: ["q", "house", "status", "party", "flag", "nation", "email", "ask", "answer", "mailed", "agreed"],
   sorts: {
-    // The Asks column sorts by when their newest answer was recorded, newest first: the dashboard counts
-    // signatures by the same time. First and last activity sort by the times POLITICIAN_ACTIVITY in
-    // lib/server/politicians.ts gives.
+    // `letters` and `replies` sort by the emails to them and from them, under the names saved filters'
+    // URLs hold. The Asks column sorts by when their newest answer was recorded, newest first:
+    // the dashboard counts signatures by the same time. First and last activity sort by the times
+    // POLITICIAN_ACTIVITY in lib/server/politicians.ts gives.
     columns: {
       name: "asc",
       house: "asc",

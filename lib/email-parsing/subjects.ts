@@ -1,6 +1,17 @@
 // What a message's subject and headers say about it: which letter it answers, and whether a machine sent it.
 
-const AUTO_REPLY_SUBJECT = /^\s*(automatic reply|auto[- ]?reply|auto[- ]?response|out of (the )?office)\b/i;
+/**
+ * A subject that starts by saying a machine wrote it, as a pattern
+ * JavaScript and Postgres both read, and read alike, for a list that counts
+ * in SQL what a page marks in TypeScript. So it spells out white space
+ * (JavaScript's `\s`) and the end of the word (its `\b`), which Postgres
+ * takes to be other characters. Either matches it whatever the case.
+ */
+export const AUTO_REPLY_PATTERN =
+  "^[\\t\\n\\v\\f\\r \\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff]*" +
+  "(automatic reply|auto[- ]?reply|auto[- ]?response|out of (the )?office)(?![A-Za-z0-9_])";
+
+const AUTO_REPLY_SUBJECT = new RegExp(AUTO_REPLY_PATTERN, "i");
 
 /**
  * Whether an email was sent by a machine rather than a person: an office's

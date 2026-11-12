@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { addTestLetter, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { addTestMessage as message, addTestReply as reply, addTestThread as thread } from "@/tests/correspondence";
 import { query } from "./db";
 import { politicianMessages } from "./politician-correspondence";
 
@@ -8,41 +9,7 @@ const POLLY = "polly.placeholder.mp@parliament.uk";
 describeWithDatabase("politicianMessages", () => {
   useTestDatabase();
 
-  async function reply(
-    letterId: number,
-    id: string,
-    fields: { from: string; name?: string; us?: boolean; supporter?: boolean },
-  ) {
-    await query(
-      `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, at, from_us, from_supporter, blob_key, size)
-       VALUES ($1, 'policy@pauseai.uk', $2, 't', $3, $4, '2026-10-01T09:00:00Z', $5, $6, $2, 1)`,
-      [letterId, id, fields.from, fields.name ?? "", fields.us ?? false, fields.supporter ?? false],
-    );
-  }
-
-  async function thread(politician: number, subject: string, someoneElse: boolean) {
-    const [{ id }] = await query<{ id: number }>(
-      "INSERT INTO one_off_threads (subject, someone_else, latest_at) VALUES ($1, $2, now()) RETURNING id::int AS id",
-      [subject, someoneElse],
-    );
-    await query("INSERT INTO one_off_thread_people (thread_id, notable_person_id) VALUES ($1, $2)", [id, politician]);
-    return id;
-  }
-
-  async function message(
-    thread: number,
-    id: string,
-    from: string,
-    fields: { name?: string; us?: boolean; subject?: string } = {},
-  ) {
-    await query(
-      `INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, addresses, subject, at, from_us, blob_key, size)
-       VALUES ($1, 'policy@pauseai.uk', $2, 't', $3, $4, ARRAY[$3], $5, '2026-10-02T09:00:00Z', $6, $2, 1)`,
-      [thread, id, from, fields.name ?? "", fields.subject ?? "A thread", fields.us ?? false],
-    );
-  }
-
-  it("sorts a letter's messages by who, keeps automatic replies apart, and counts each way", async () => {
+  it("sorts a letter's messages by who, and keeps automatic replies apart", async () => {
     const polly = await addTestPolitician();
     const letter = await addTestLetter({ politicianId: polly });
     await reply(letter, "ours", { from: "policy@pauseai.uk", us: true });
@@ -60,25 +27,11 @@ describeWithDatabase("politicianMessages", () => {
       ["them", "Polly", false],
       ["them", null, true],
     ]);
-    expect(held.emailsFromThem).toBe(1);
   });
 
-  it("counts as emails to them only the letters that went", async () => {
+  it("tells their office from anyone else on a one-off thread", async () => {
     const polly = await addTestPolitician();
-    await addTestLetter({ politicianId: polly });
-    await addTestLetter({ politicianId: polly, status: "bounced" });
-    await addTestLetter({ politicianId: polly, status: "not_sent" });
-    // A mailing's letters that never went: one stopped, one skipped, one still to go.
-    await query(
-      "INSERT INTO letters (kind, notable_person_id, status) VALUES ('pauseai', $1, 'cancelled'), ('pauseai', $1, 'skipped'), ('pauseai', $1, 'scheduled')",
-      [polly],
-    );
-    expect((await politicianMessages(polly, ["supporters"])).emailsToThem).toBe(2);
-  });
-
-  it("tells their office from anyone else on a one-off thread, and counts only their office", async () => {
-    const polly = await addTestPolitician();
-    const id = await thread(polly, "Coffee?", true);
+    const id = await thread([polly], "Coffee?", true);
     await message(id, "a", "policy@pauseai.uk", { us: true });
     await message(id, "b", POLLY, { name: "Polly" });
     await message(id, "c", "vera@example.com");
@@ -90,18 +43,17 @@ describeWithDatabase("politicianMessages", () => {
       ["other", "vera@example.com", false],
       ["them", POLLY, true],
     ]);
-    expect(held).toMatchObject({ emailsToThem: 2, emailsFromThem: 1 });
   });
 
-  it("gives staff without the permission no supporter's message, name or hidden thread, only the counts", async () => {
+  it("gives staff without the permission no supporter's message, name or hidden thread", async () => {
     const polly = await addTestPolitician();
     const letter = await addTestLetter({ politicianId: polly });
     await reply(letter, "own", { from: "jane@example.com", name: "Jane Smith", supporter: true });
     await reply(letter, "office", { from: POLLY, name: "Polly" });
     await reply(letter, "elsewhere", { from: "aide@example.org", name: "An Aide" });
-    const hidden = await thread(polly, "Theirs", true);
+    const hidden = await thread([polly], "Theirs", true);
     await message(hidden, "h", "vera@example.com", { name: "Vera Volunteer" });
-    const open = await thread(polly, "Ours", false);
+    const open = await thread([polly], "Ours", false);
     await message(open, "o", POLLY, { name: "Polly" });
     const held = await politicianMessages(polly, []);
     expect(held.letters[letter].map(({ who, name }) => [who, name])).toEqual([
@@ -111,7 +63,6 @@ describeWithDatabase("politicianMessages", () => {
     expect(held.oneOffs[hidden]).toBeUndefined();
     expect(held.oneOffs[open]).toHaveLength(1);
     expect(JSON.stringify(held)).not.toMatch(/Jane|Vera|An Aide/);
-    expect(held.emailsFromThem).toBe(3);
   });
 
   it("gives a letter's subject to those who may see it, and a mailing's to anyone", async () => {

@@ -15,14 +15,12 @@ export type ThreadStep = {
   auto: boolean;
 };
 
-/** Each letter's and one-off thread's messages, oldest first, by ID, and roughly how many emails went each way. */
+/** Each letter's and one-off thread's messages, oldest first, by ID. */
 export type ThreadMessages = {
   /** Each letter's subject as sent, by its ID; blank where this staff member can't see it. */
   subjects: Record<number, string>;
   letters: Record<number, ThreadStep[]>;
   oneOffs: Record<number, ThreadStep[]>;
-  emailsToThem: number;
-  emailsFromThem: number;
 };
 
 /** A letter or a one-off thread: a null `title` is a thread this reader can't see, and a null `href` one they can't open. */

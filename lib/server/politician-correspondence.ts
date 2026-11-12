@@ -3,9 +3,9 @@ import type { Permission } from "@/lib/staff-permissions";
 import { onParliamentDomain, politiciansOf } from "@/lib/one-off";
 import type { ThreadMessages, ThreadStep } from "@/lib/politician-correspondence";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
-import { NEVER_WENT, statusIn } from "@/lib/letter-status";
 import { query } from "./db";
 import { threadsWithSomeoneElse } from "./one-off-emails";
+import { AUTO_REPLY } from "./politician-email-counts";
 import { politicianBook } from "./politician-book";
 
 type Message = { id: number; at: Date; name: string; address: string; fromUs: boolean };
@@ -16,18 +16,17 @@ type Message = { id: number; at: Date; name: string; address: string; fromUs: bo
  * message theirs only from their own address or a parliament's. Staff
  * without `supporters` get no supporter's or someone else's words or name:
  * a letter's messages from us and them, the name only off their office's
- * address, and nothing of a thread with someone else in it. The counts are
- * rough, as whether a one-off message was automatic is mostly in the message
- * itself, which isn't read here.
+ * address, and nothing of a thread with someone else in it. How many emails
+ * went each way is on the politician's own row, counted in SQL from the same
+ * messages (politician-email-counts.ts).
  */
 export async function politicianMessages(id: number, permissions: readonly Permission[]): Promise<ThreadMessages> {
   const supporters = permissions.includes("supporters");
-  const [replies, oneOffs, [{ letters }], book, hidden, subjects] = await Promise.all([
+  const [replies, oneOffs, book, hidden, subjects] = await Promise.all([
     query<Message & { fromSupporter: boolean; auto: boolean }>(
       `SELECT r.letter_id::int AS id, r.at, r.from_name AS name, r.from_address AS address, r.from_us AS "fromUs",
          r.from_supporter AS "fromSupporter",
-         EXISTS (SELECT 1 FROM letter_events e WHERE e.letter_id = r.letter_id AND e.status = 'auto_reply'
-           AND e.details->>'gmailMessageId' = r.gmail_message_id) AS auto
+         ${AUTO_REPLY} AS auto
        FROM letter_replies r JOIN letters l ON l.id = r.letter_id
        WHERE l.notable_person_id = $1 AND ($2 OR NOT r.from_supporter) ORDER BY r.at, r.id`,
       [id, supporters],
@@ -36,11 +35,6 @@ export async function politicianMessages(id: number, permissions: readonly Permi
       `SELECT m.thread_id::int AS id, m.at, m.from_name AS name, m.from_address AS address, m.from_us AS "fromUs", m.subject
        FROM one_off_messages m JOIN one_off_thread_people tp ON tp.thread_id = m.thread_id
        WHERE tp.notable_person_id = $1 ORDER BY m.at, m.id`,
-      [id],
-    ),
-    query<{ letters: number }>(
-      // Only those that went, as the thread shows.
-      `SELECT count(*)::int AS letters FROM letters WHERE notable_person_id = $1 AND NOT ${statusIn("status", NEVER_WENT)}`,
       [id],
     ),
     politicianBook(),
@@ -59,13 +53,6 @@ export async function politicianMessages(id: number, permissions: readonly Permi
     letters: {},
     oneOffs: {},
     subjects: Object.fromEntries(subjects.map((letter) => [letter.id, letter.subject])),
-    // One-off messages from anyone but their office: people copy policy@ into theirs to them.
-    emailsToThem: letters + oneOffs.filter((message) => !office(message.address)).length,
-    emailsFromThem:
-      replies.filter((reply) => !reply.fromUs && !reply.fromSupporter && !reply.auto).length +
-      oneOffs.filter(
-        (message) => !message.fromUs && office(message.address) && !isMachineReply(() => undefined, message.subject),
-      ).length,
   };
   const add = (to: Record<number, ThreadStep[]>, at: number, step: ThreadStep) => {
     (to[at] ??= []).push(step);

@@ -73,7 +73,7 @@ describe("PoliticianTable", () => {
         .getByRole("cell")
         .all()
         .map((c) => c.element().textContent);
-    // Whether they're in office, the counts of letters and replies, each heading a sort, and their answer to each
+    // Whether they're in office, the counts of emails to them and from them, each heading a sort, and their answer to each
     // ask they've answered, a line each, in the asks' order, the answer in bold first.
     const flags = staffCopy.politicians.flags;
     expect(cells("Polly Placeholder").slice(4, 6)).toEqual([staffCopy.personStatuses.in_office, flags.important]);
@@ -106,7 +106,11 @@ describe("PoliticianTable", () => {
       getComputedStyle(page.getByRole("cell", { name: staffCopy.personStatuses.retired }).first().element()).whiteSpace,
     ).toBe("nowrap");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.politicians.columns.replies }))
+      .element(page.getByRole("link", { name: staffCopy.politicians.columns.emailsToThem }))
+      .toHaveAttribute("href", "/staff/politicians?sort=letters&dir=desc");
+    // The sorts keep the names saved filters hold.
+    await expect
+      .element(page.getByRole("link", { name: staffCopy.politicians.columns.emailsFromThem }))
       .toHaveAttribute("href", "/staff/politicians?sort=replies&dir=desc");
     expect(page.getByRole("button").all()).toHaveLength(0);
   });
@@ -123,8 +127,8 @@ describe("PoliticianTable", () => {
     const after = [
       staffCopy.politicians.flag,
       columns.asks,
-      columns.letters,
-      columns.replies,
+      columns.emailsToThem,
+      columns.emailsFromThem,
       columns.first,
       columns.last,
     ];

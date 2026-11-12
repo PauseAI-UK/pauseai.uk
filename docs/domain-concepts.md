@@ -83,6 +83,23 @@ Where they come from:
 Only an MP in office in the Commons is found by postcode. Writing to anyone
 else would need a way to find them (a region for an MSP, a list for peers).
 
+The politicians list and the top of a politician's page count their emails
+each way. Both show the same two numbers, counted in SQL for every
+politician at once (`lib/server/politician-email-counts.ts`):
+
+- **Emails to them**: the letters to them that went, supporters' and
+  PauseAI's, and each message on their one-off threads ("One-off emails",
+  below) from anyone but their office.
+- **Emails from them**: each message kept on a letter's thread that isn't
+  ours, the supporter's or an automatic reply, and each one-off message from
+  their office that isn't ours or, going by its subject, automatic. Their
+  office is an address of theirs, one on a domain of their own, or any
+  parliament's address. A letter marked answered (`replied_at`) with no
+  message of the answer kept counts none.
+
+The list sorts by them as `sort=letters` and `sort=replies`, the names its
+URLs and saved filters hold.
+
 ## Asks
 
 Something we ask notable people to do whose answer we record: sign a

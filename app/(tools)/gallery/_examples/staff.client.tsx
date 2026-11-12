@@ -222,8 +222,6 @@ const exampleThreads = (count = 3) =>
         101: [{ at: exampleLetter.createdAt, who: "them", name: null, auto: true }],
       },
       oneOffs: {},
-      emailsToThem: 0,
-      emailsFromThem: 0,
     },
   });
 

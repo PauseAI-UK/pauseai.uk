@@ -17,7 +17,8 @@ import { action } from "@/tests/browser/staff";
 
 const [pm] = campaigns;
 
-const MP = examplePolitician;
+// No emails either way, so the band counts none but in the tests that give some.
+const MP = { ...examplePolitician, emailsToThem: 0, emailsFromThem: 0 };
 
 const ask = (slug: string) => exampleAsks.find((a) => a.slug === slug)!;
 
@@ -229,8 +230,6 @@ describe("PoliticianDetails", () => {
       subjects: {},
       letters: {},
       oneOffs: {},
-      emailsToThem: 0,
-      emailsFromThem: 0,
       ...fields,
     });
     const letter = {
@@ -346,13 +345,10 @@ describe("PoliticianDetails", () => {
     it("says when there's nothing, and shows the band's counts only when there are any, leading to All emails", async () => {
       const { rerender } = await render(<PoliticianDetails {...none} politician={MP} unblock={vi.fn()} />);
       await expect.element(region().getByText(words.none)).toBeVisible();
+      expect(page.getByRole("link", { name: staffCopy.politician.band.emailsToThem }).query()).toBeNull();
+      expect(page.getByRole("link", { name: staffCopy.politician.band.emailsFromThem }).query()).toBeNull();
       await rerender(
-        <PoliticianDetails
-          {...none}
-          politician={MP}
-          unblock={vi.fn()}
-          messages={messages({ emailsToThem: 3, emailsFromThem: 2 })}
-        />,
+        <PoliticianDetails {...none} politician={{ ...MP, emailsToThem: 3, emailsFromThem: 2 }} unblock={vi.fn()} />,
       );
       await expect
         .element(page.getByRole("link", { name: `3 ${staffCopy.politician.band.emailsToThem}` }))
@@ -368,11 +364,10 @@ describe("PoliticianDetails", () => {
     it("shows only the threads they've replied on, from Emails from them, which then leads back", async () => {
       const props = {
         ...none,
-        politician: MP,
+        politician: { ...MP, emailsFromThem: 1 },
         unblock: vi.fn(),
         letters: { senders: true as const, letters: [letter, { ...letter, id: 26 }] },
         messages: messages({
-          emailsFromThem: 1,
           subjects: { 21: "Answered one", 26: "Unanswered one" },
           letters: { 21: [step("2026-10-13T08:00:00Z", "supporter"), step("2026-10-14T09:00:00Z", "them")] },
         }),

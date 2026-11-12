@@ -149,8 +149,8 @@ export const examplePolitician: Politician = {
   emailBlocked: false,
   firstActivityAt: null,
   lastActivityAt: null,
-  letters: 4,
-  replies: 1,
+  emailsToThem: 4,
+  emailsFromThem: 1,
   statuses: {
     "edinburgh-conference-2026": {
       status: "declined",

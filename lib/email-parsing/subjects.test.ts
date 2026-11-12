@@ -18,6 +18,16 @@ describe("isMachineReply", () => {
     }
   });
 
+  it("takes any white space before those words, and nothing that carries the last word on after them", () => {
+    const characters = [...Array(0x10000).keys()].map((code) => String.fromCharCode(code));
+    expect(characters.filter((character) => reply({}, `${character}auto reply`))).toEqual(
+      characters.filter((character) => /\s/.test(character)),
+    );
+    expect(characters.filter((character) => !reply({}, `auto reply${character}`))).toEqual(
+      characters.filter((character) => /\w/.test(character)),
+    );
+  });
+
   it("takes a person's reply as a person's", () => {
     expect(reply({})).toBe(false);
     expect(reply({ "auto-submitted": "no", precedence: "list" })).toBe(false);

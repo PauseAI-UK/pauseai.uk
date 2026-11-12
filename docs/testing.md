@@ -709,7 +709,7 @@ that drives it or why nothing does.
   - an MP whose address is blocked, unblocked by staff.
 - `politicians.spec.ts`: The politicians from Airtable:
   - one with markers, notes, answers and PauseAI's emails;
-  - her correspondence, its switch to replies only, and the band's counts leading to it and to her asks;
+  - her correspondence, its switch to replies only, the band's counts leading to it and to her asks, and the list sorted by emails from them, with the same counts;
   - a note added on one, above Airtable's;
   - an ask staff added, chosen from the button under a politician's asks and answered;
   - a letter a politician declined, recorded from that button, then cleared;

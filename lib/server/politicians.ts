@@ -3,7 +3,7 @@ import { cache } from "react";
 import { windowStart } from "@/lib/staff-dashboard";
 import { now } from "@/lib/now";
 import { AGREED_STATUSES, type AskStatus } from "@/lib/asks";
-import { MAILED, NEVER_WENT, statusIn } from "@/lib/letter-status";
+import { MAILED, statusIn } from "@/lib/letter-status";
 import type { Mp, MpStatuses } from "@/lib/email-your-mp";
 import type { SortSpec } from "@/lib/staff-sort";
 import type { PoliticianSort } from "@/lib/staff-lists";
@@ -11,6 +11,7 @@ import type { Country, EmailState, House, PersonStatus, PoliticianFlag } from "@
 import { query, transaction, type Queryable } from "./db";
 import { auditActions, type AuditEntry, logChange } from "./audit";
 import { ADDRESS_ACTIONS } from "@/lib/audit-events";
+import { EMAIL_COUNTS } from "./politician-email-counts";
 import { CLOSE_ENOUGH, closeness, contains, everyWord } from "./search";
 import { sql, type Sql } from "./sql";
 
@@ -52,9 +53,9 @@ export type Politician = {
   isTest: boolean;
   /** Their address bounced or complained, so nothing is sent to it (lib/server/email.ts). */
   emailBlocked: boolean;
-  /** Letters written to them (bar those never sent), and how many of those got a reply. */
-  letters: number;
-  replies: number;
+  /** How many emails went to them, and came from them (politician-email-counts.ts). */
+  emailsToThem: number;
+  emailsFromThem: number;
   /** Their first and last activity with us: a letter to them, a reply, an answer to an ask (POLITICIAN_ACTIVITY). */
   firstActivityAt: Date | null;
   lastActivityAt: Date | null;
@@ -113,19 +114,19 @@ const POLITICIAN_ACTIVITY = (agg: "min" | "max") => `(SELECT ${agg}(x.at) FROM (
   ) x)`;
 
 const SELECT_POLITICIANS = `
+  WITH ${EMAIL_COUNTS.with}
   SELECT n.id::int AS id, n.airtable_id AS "airtableId", n.airtable_removed_at AS "airtableRemovedAt", p.house,
     n.name, n.salutation, p.constituency, p.party, p.country, n.email, n.status,
     n.notes, n.important_target AS "importantTarget", n.personal_connection AS "personalConnection",
     p.is_test AS "isTest",
     EXISTS (SELECT 1 FROM email_blocks b WHERE b.address = lower(n.email)) AS "emailBlocked",
-    (SELECT count(*)::int FROM letters l WHERE l.notable_person_id = n.id AND NOT ${statusIn("l.status", NEVER_WENT)}) AS "letters",
-    (SELECT count(*)::int FROM letters l WHERE l.notable_person_id = n.id AND l.replied_at IS NOT NULL) AS "replies",
+    ${EMAIL_COUNTS.toThem} AS "emailsToThem", ${EMAIL_COUNTS.fromThem} AS "emailsFromThem",
     ${POLITICIAN_ACTIVITY("min")} AS "firstActivityAt", ${POLITICIAN_ACTIVITY("max")} AS "lastActivityAt",
     json_object_agg(s.ask, json_build_object(
       'status', s.status, 'date', to_char(s.status_date, 'YYYY-MM-DD'), 'note', s.note,
       'updatedAt', s.updated_at, 'updatedBy', s.updated_by
     )) FILTER (WHERE s.ask IS NOT NULL) AS statuses
-  FROM ${POLITICIANS} LEFT JOIN ask_statuses s ON s.notable_person_id = n.id`;
+  FROM ${POLITICIANS} ${EMAIL_COUNTS.join} LEFT JOIN ask_statuses s ON s.notable_person_id = n.id`;
 
 const SELECT = sql.raw(SELECT_POLITICIANS);
 
@@ -179,17 +180,17 @@ export type PoliticianFilter = PoliticianWho & {
 const POLITICIANS_PAGE_SIZE = 100;
 
 /**
- * Each sort's column in the query. The Asks column sorts by when their
- * newest answer was recorded; first and last activity by the times
- * POLITICIAN_ACTIVITY gives.
+ * Each sort's column in the query, by its name in the list's URL
+ * (POLITICIANS_LIST). The Asks column sorts by when their newest answer was
+ * recorded; first and last activity by the times POLITICIAN_ACTIVITY gives.
  */
 const POLITICIAN_COLUMNS: Record<PoliticianSort, string> = {
   name: "n.name COLLATE english",
   house: "p.house",
   constituency: "p.constituency",
   party: "p.party",
-  letters: '"letters"',
-  replies: '"replies"',
+  letters: '"emailsToThem"',
+  replies: '"emailsFromThem"',
   asks: "(SELECT max(a.updated_at) FROM ask_statuses a WHERE a.notable_person_id = n.id)",
   first: '"firstActivityAt"',
   active: '"lastActivityAt"',
