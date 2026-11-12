@@ -2146,15 +2146,15 @@ All events: ${link}`,
     // A broadcast that can't go, as CiviCRM didn't answer its check or no pull has completed for a day, to whoever
     // scheduled it and the inbox, once: it goes by itself when it can, or stops at `stops`.
     broadcastWaiting: {
-      subject: (title: string) => `⁂ Broadcast waiting for CiviCRM: ${title}`,
+      subject: (title: string) => `⁂ Not sent yet: ${title}`,
       body: (title: string, reason: "civicrm" | "pull", stops: string, link: string) =>
-        `⁂ “${title}” hasn't gone yet: ${reason === "civicrm" ? "CiviCRM didn't answer the check of who mustn't be emailed" : "no import from CiviCRM has finished in the last day"}, and nothing goes unchecked.\n\nIt will go by itself once CiviCRM answers. If it still can't by ${stops}, it will stop, and you'll be told.\n\n${link}`,
+        `⁂ “${title}” was due to go, but hasn't been sent.\n\nWe check every address with CiviCRM before emailing it, and ${reason === "civicrm" ? "CiviCRM isn't answering" : "our import from CiviCRM hasn't worked for a day"}.\n\nYou don't need to do anything. It will send as soon as CiviCRM is back. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
     },
     // A broadcast that waited too long and stopped, to whoever scheduled it and the inbox: how many it didn't reach.
     broadcastGaveUp: {
-      subject: (title: string) => `⁂ Broadcast stopped: ${title}`,
+      subject: (title: string) => `⁂ Stopped after three days: ${title}`,
       body: (title: string, notReached: number, link: string) =>
-        `⁂ “${title}” waited for CiviCRM for too long, so it has stopped. ${count(notReached, "person wasn't", "people weren't")} sent it. To send it to them, write it again.\n\n${link}`,
+        `⁂ “${title}” has been stopped. CiviCRM couldn't be reached for three days, and we don't email anyone without checking with it first.\n\n${count(notReached, "person", "people")} didn't get it. It won't start again: if it's still worth sending, write a new broadcast.\n\n${link}`,
     },
     // A text's new words sent to WhatsApp for approval, to who sent them and the inbox: the words, and the text.
     templateSubmitted: {
