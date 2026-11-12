@@ -2172,7 +2172,7 @@ All events: ${link}`,
   },
   sentEmails: {
     // Under the title.
-    intro: "⁂ Every email the site has sent, and what became of it",
+    intro: "Every email the site has sent",
     // Over the list, for an admin without the supporters permission.
     withheld: "Emails to and from supporters are not shown, as you don't have the supporters permission.",
     search: "Address or subject",
