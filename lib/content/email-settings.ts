@@ -134,10 +134,10 @@ export const emailSettingsCopy = {
   wording: (topic: Topic, way: Way) => `⁂ PauseAI UK can send me its ${topicNames[topic]} by ${wayNames[way]}.`,
   // "No bulk emails" set, which the person can lift here.
   noBulk: {
-    title: "⁂ You've turned off bulk email",
-    body: "⁂ So no newsletters or event emails from PauseAI UK or PauseAI Global.",
+    title: "You've turned off bulk email",
+    body: "So no newsletters or event emails from PauseAI UK or PauseAI Global.",
     wording: "⁂ PauseAI UK and PauseAI Global can send me bulk email again.",
-    button: "⁂ Restart emails",
+    button: "Restart emails",
   },
   // "No bulk emails" as Stop everything set it, which its button undoes in full; the words kept beside that choice.
   stopped: {
