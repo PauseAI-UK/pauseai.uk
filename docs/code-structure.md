@@ -378,6 +378,14 @@ first time. It doesn't tell the code's history (above). Beyond that:
   what the page shows is a claim about that other place, and whichever
   side moves can break it. If they no longer match, the comment has the
   bug: fix it in the same change as the code, or delete it.
+- **A reference in the docs has to lead somewhere.**
+  `tests/checks/doc-references.test.ts` fails on a path in backticks, in
+  any Markdown file, that isn't in the repo, and on a doc cited by a
+  heading or bold lead-in it doesn't have (`docs/testing.md`, "Coverage"),
+  in Markdown or a comment. So name a file by its whole path from the top
+  of the repo, and cite a heading in its exact words. Plans and
+  investments may name files they propose. Names of functions and columns
+  aren't checked.
 
 Keep comments short. Readers skip a long comment whole, including the part
 that mattered, so cut until only what a reader couldn't work out from the
