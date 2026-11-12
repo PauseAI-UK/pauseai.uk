@@ -322,7 +322,7 @@ const storyOf = (lines, terms) => (lines ?? []).map((line) => el("p", { class: "
 function renderFrame(frame, terms) {
   const caption = el("div", { class: "caption" }, [el("span", { class: "n" }, [String(frame.index)]), ...marked(frame.caption, terms)]);
   if (frame.mismatch !== undefined) caption.append(el("span", { class: "mismatch" }, [frame.noise ? "same as main, but for noise: " + pct(frame.mismatch) + " of pixels differ slightly" : frame.mismatch ? pct(frame.mismatch) + " of pixels differ" : "identical to main"]));
-  else if (data.withMain) caption.append(el("span", { class: "mismatch" }, [frame.branch ? "new: main didn't get here" : "gone: only main has it"]));
+  else if (data.withMain) caption.append(el("span", { class: "mismatch" }, [frame.branch ? "new: main has no such frame" : "gone: only main has it"]));
   const thumbs = el("div", { class: "thumbs" });
   const sides = data.withMain ? ["branch", "main", "diff"] : ["branch"];
   for (const side of sides) {

@@ -10,10 +10,14 @@
 // (tests/checkout.mjs), warning if another worktree has the same, and the
 // number its first migration would take.
 //
+// It leaves the storyboard keeping main's frames in the background
+// (`npm run storyboard -- --only-main`), so the branch's first review
+// doesn't wait for main. That does nothing if they're kept already.
+//
 // The branch tracks nothing, so a plain `git push` can't push to main;
 // push it with `git push -u origin <branch>`.
-import { execFileSync } from "node:child_process";
-import { existsSync, realpathSync } from "node:fs";
+import { execFileSync, spawn } from "node:child_process";
+import { existsSync, mkdirSync, openSync, realpathSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkoutPorts, CHECKOUT_DIR } from "../tests/checkout.mjs";
@@ -80,6 +84,20 @@ function main(args) {
   // After main's and every open pull request's (scripts/migration-order.mjs).
   const main = migrationsAt("origin/main", real);
   console.log(`A migration it adds is numbered ${nextFree(main, main, openPrs(real) ?? [])} or after.`);
+
+  // Main's frames, for the reviews to come. This checkout's copy of the
+  // review, run in the worktree: it keeps what main's own suite pictures,
+  // whatever version of the script the worktree has.
+  mkdirSync(join(dir, "tmp"), { recursive: true });
+  const log = join(dir, "tmp", "storyboard-main.log");
+  const out = openSync(log, "w");
+  const review = fileURLToPath(new URL("./storyboard.mjs", import.meta.url));
+  spawn("node", ["--disable-warning=MODULE_TYPELESS_PACKAGE_JSON", review, "--only-main"], {
+    cwd: real,
+    stdio: ["ignore", out, out],
+    detached: true,
+  }).unref();
+  console.log(`The storyboard is keeping main's frames in the background, unless it has them: ${relative(root, log)}`);
   console.log(`cd ${real}`);
 }
 

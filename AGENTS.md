@@ -86,7 +86,7 @@ A PR with a migration carries the `migration` label, so the open PRs whose merge
 - Any flaky test, Vitest or Playwright, is fixed at once, in whatever branch finds it, even when the branch has nothing to do with it (`docs/testing.md`, "Rules for new code").
 
 ```bash
-npm run storyboard                # both viewports, screenshots, against a build of where this branch left origin/main, then opens the run's page (test-results/storyboard/index.html leads to the newest)
+npm run storyboard                # both viewports, screenshots, against main's frames (where this branch left origin/main), then opens the run's page (test-results/storyboard/index.html leads to the newest)
 npm run storyboard -- --no-open   # the same, leaving the page closed
 npm run storyboard:changed        # the latest run's changed frames: new, gone or different from main's, with each one's caption and PNGs
 ```
@@ -102,11 +102,13 @@ npm run storyboard -- --no-main --no-open --paths public-pages -g '/donate$'   #
 npm run storyboard -- --no-main --no-open --paths --phone campaigns -g ZZ99ZZ   # a flow, every frame
 ```
 
-- `--no-main` skips building main, which is the slow part. Drop it to see main beside the branch.
+- `--no-main` leaves main out: the branch's frames alone. Drop it to see main beside the branch.
 - `--desktop` or `--phone` picks one viewport.
 - `--paths` prints each frame's caption and PNG path, to open with the Read tool.
 
-Each run gets its own folder, so the review someone has open is never changed. A narrow run carries the rest of the latest review rather than clearing it. Main's frames are kept between runs, so after one full review a narrow run doesn't build main.
+Each run gets its own folder, so the review someone has open is never changed. A narrow run carries the rest of the latest review rather than clearing it.
+
+Main's frames are main's own: its suite, run on its build. They're kept by main's tree for every worktree, so main runs once for each commit of main, and `npm run worktree` starts that in the background (`docs/testing.md`, "Main's frames are main's own"). So a frame that differs shows everything the branch changes, a flow's steps as well as the site, and a flow or caption the branch renames shows as one gone and one new.
 
 The fixture server's port comes from the checkout's path, and the storyboard refuses a server built from another checkout. But it reuses this checkout's server however old its build is, so stop one left from before your last change.
 
