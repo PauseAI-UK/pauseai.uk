@@ -516,8 +516,9 @@ test("Answering a reply", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("button", { name: copy.replies.nothing })).toHaveCount(0);
   await frame(page, "The reply, answered");
   story("The email they get, from hello@, as an answer to theirs.");
+  // To them by name, as they're a supporter.
   const answer = () =>
-    newestEmail((one) => one.To === "person1@example.com" && one.Subject === "Re: Thank you for marching");
+    newestEmail((one) => one.To.endsWith("<person1@example.com>") && one.Subject === "Re: Thank you for marching");
   await expect.poll(answer).toBeTruthy();
   await emailFrame(page, answer()!, "The answer they get");
 });
