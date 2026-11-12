@@ -195,7 +195,7 @@ export const emailSettingsCopy = {
   },
   // The page from an old email's unsubscribe link: the button still works, the rest doesn't.
   pageExpired: {
-    title: "⁂ This email is too old to change your other choices",
-    body: "⁂ For your privacy, an email's link only opens your contact preferences for 30 days. We can email you a new one.",
+    title: "This email is too old to change your other choices",
+    body: "For your privacy, an email's link only opens your contact preferences for 30 days. We can email you a new one.",
   },
 };
