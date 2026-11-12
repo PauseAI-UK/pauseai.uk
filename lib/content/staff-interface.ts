@@ -2220,7 +2220,7 @@ All events: ${link}`,
   sending: {
     title: "Sending letters and mailings",
     intro: {
-      before: "⁂ Sends ",
+      before: "Sends ",
       link: "campaign",
       after: ", ",
     },
