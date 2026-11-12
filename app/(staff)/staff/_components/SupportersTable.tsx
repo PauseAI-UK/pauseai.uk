@@ -143,6 +143,7 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
       key: "name",
       label: copy.columns.name,
       heading: heading("name", copy.columns.name),
+      words: "name",
       text: (s) => s.name,
       cell: (s) => <StaffLink href={`${PATH}/${s.id}`}>{s.name ?? copy.noName}</StaffLink>,
     },
@@ -196,6 +197,7 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
     states.length > 0 && {
       key: "consentReason",
       label: copy.columns.consentReason,
+      words: "line",
       text: (s) => reasonsFound(states, s).join("; "),
       cell: (s) => <Reasons reasons={reasonsFound(states, s)} />,
     },

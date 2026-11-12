@@ -16,6 +16,8 @@ import { DeleteTwice } from "./DeleteTwice";
 import SortHeading from "./SortHeading";
 import Bubble from "./ui/Bubble";
 import When from "./ui/When";
+// A row's button, kept at the window's right edge as a list's is.
+import frame from "./ui/ListFrame.module.css";
 import styles from "./StaffAccountsTable.module.css";
 
 type Action = (form: FormData) => void | Promise<void>;
@@ -215,7 +217,7 @@ export default function StaffAccountsTable({
             {heading("lastSeen", columns.lastSeen)}
             {heading("sessions", columns.sessions)}
             {heading("gmail", columns.gmail)}
-            <th />
+            <th className={frame.end} />
           </tr>
         </thead>
         <tbody>
@@ -249,7 +251,7 @@ export default function StaffAccountsTable({
                   <Muted>{copy.gmailNot}</Muted>
                 )}
               </td>
-              <td>
+              <td className={frame.end}>
                 <DeleteTwice name="email" value={account.email} label={copy.remove} short action={remove} />
               </td>
             </tr>

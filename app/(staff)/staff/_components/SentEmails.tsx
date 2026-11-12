@@ -35,14 +35,16 @@ function Outcome({ outcome }: { outcome: string }) {
   return <Tag tone={outcome === "sent" ? undefined : "red"}>{copy.outcomes[outcome] ?? outcome}</Tag>;
 }
 
-/** How many characters of a subject a row shows. */
+/** How many characters of a long subject a row shows. */
 const SUBJECT_LENGTH = 40;
 
-/** An email's subject, a longer one cut short at a word, to unfold (ui/Shortened). */
+/** A subject no longer than this is shown whole: cutting it would hide a word or two, and save no line. */
+const SUBJECT_WHOLE = 55;
+
+/** An email's subject, a long one cut short at a word, to unfold (ui/Shortened). */
 function Subject({ subject }: { subject: string | null }) {
-  if (subject === null) return null;
-  const short = cutAtWord(subject, SUBJECT_LENGTH);
-  return short === null ? subject : <Shortened short={short} whole={subject} />;
+  if (subject === null || subject.length <= SUBJECT_WHOLE) return subject;
+  return <Shortened short={cutAtWord(subject, SUBJECT_LENGTH)!} whole={subject} />;
 }
 
 const columns: (ListColumn<SentEmail> & { key: SentEmailSort | "links" })[] = [

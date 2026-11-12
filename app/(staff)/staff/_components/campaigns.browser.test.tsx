@@ -579,15 +579,17 @@ describe("SentEmails", () => {
       .toHaveAttribute("href", "/staff/sent-emails?page=2");
   });
 
-  it("cuts a long subject short at a word, with … to unfold the whole of it; a short one is whole", async () => {
+  it("cuts a long subject short at a word, with … to unfold the whole of it; one a word or two over is whole", async () => {
     const long = "Please make the Millennium Dome into a giant pause button";
+    const nearly = "Request to co-sign letter on frontier AI risks";
     await render(
       <SentEmails
         emails={[
           { ...exampleSentEmails[3], id: 91, subject: long },
           { ...exampleSentEmails[3], id: 92, subject: "Confirm sign in" },
+          { ...exampleSentEmails[3], id: 93, subject: nearly },
         ]}
-        total={2}
+        total={3}
         pages={1}
         page={1}
         pageSize={100}
@@ -598,6 +600,7 @@ describe("SentEmails", () => {
     await expect.element(whole).not.toBeVisible();
     await expect.element(page.getByText("Please make the Millennium Dome into a …", { exact: true })).toBeVisible();
     await expect.element(page.getByRole("cell", { name: "Confirm sign in", exact: true })).toBeVisible();
+    await expect.element(page.getByRole("cell", { name: nearly, exact: true })).toBeVisible();
     await page.getByText("…", { exact: true }).click();
     await expect.element(whole).toBeVisible();
   });

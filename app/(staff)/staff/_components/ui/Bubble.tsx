@@ -22,7 +22,11 @@ const BUTTON_ROOM = 56;
  * pointer still at the button's middle: a row that should stay in view.
  * Opening where there's no room under it, the page scrolls as far as it
  * needs to show it whole, but no further than keeps `keep` in view, or
- * room above it for its button. `ref` is the bubble, to open it from a script.
+ * room above it for its button. A page that ends before it can scroll that
+ * far (a bubble opened from the last row of a short list, on a phone) is
+ * made longer by what's missing for as long as the bubble is open, as a
+ * bubble is over the page and adds nothing to its length. `ref` is the
+ * bubble, to open it from a script.
  */
 export function BubbleBox({
   id,
@@ -41,16 +45,32 @@ export function BubbleBox({
   const box = ref ?? own;
   useEffect(() => {
     const bubble = box.current!;
-    const opened = (event: Event) => {
-      if ((event as ToggleEvent).newState !== "open") return;
+    // Whether this bubble has lengthened the page, to scroll it into view.
+    let lengthened = false;
+    const shorten = () => {
+      if (lengthened) document.body.style.paddingBottom = "";
+      lengthened = false;
+    };
+    const toggled = (event: Event) => {
+      if ((event as ToggleEvent).newState !== "open") return shorten();
       const top = keep?.current
         ? keep.current.getBoundingClientRect().top
         : bubble.getBoundingClientRect().top - BUTTON_ROOM;
       const below = bubble.getBoundingClientRect().bottom + SCROLL_MARGIN - window.innerHeight;
-      if (below > 0) window.scrollBy(0, Math.min(below, top - SCROLL_MARGIN));
+      if (below <= 0) return;
+      const by = Math.min(below, top - SCROLL_MARGIN);
+      const left = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+      if (by > left) {
+        document.body.style.paddingBottom = `${by - left}px`;
+        lengthened = true;
+      }
+      window.scrollBy(0, by);
     };
-    bubble.addEventListener("toggle", opened);
-    return () => bubble.removeEventListener("toggle", opened);
+    bubble.addEventListener("toggle", toggled);
+    return () => {
+      bubble.removeEventListener("toggle", toggled);
+      shorten();
+    };
   }, [box, keep]);
   return (
     <div
