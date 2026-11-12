@@ -17,6 +17,7 @@ export function resolveImport(root: string, from: string, spec: string): string 
 export function importsOf(path: string, text: string): string[];
 export function importGraph(root: string): Graph;
 export function unresolvedImports(root: string, dirs: string[]): string[];
+export function handOvers(root: string, dirs: string[]): string[];
 export function closure(graph: Graph, entries: Iterable<string>): Set<string>;
 export function folderPattern(folder: string, prefix?: boolean): RegExp;
 export function appRoutes(root: string): Route[];

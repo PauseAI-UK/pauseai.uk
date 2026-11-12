@@ -118,7 +118,55 @@ export function importsOf(path, text) {
   return specs;
 }
 
-/** Every source file under `root`, each with the repo's files it imports. */
+/**
+ * Code handed to a module as another loads, which the first then calls
+ * without importing it: lib/server/problems.ts is told how to find the run
+ * in progress by run-store.ts, and what keeps an error by instrumentation.ts.
+ * A flow that reaches the module reaches what's handed to it, as if it were
+ * imported. handOvers finds the places in the site's code that could be
+ * another, and the tests check each is here or known not to be one.
+ */
+const HANDED_OVER = { "lib/server/problems.ts": ["lib/server/run-store.ts", "instrumentation.ts"] };
+
+/**
+ * Where the site's code (`dirs` under `root`) could hand code over without
+ * an import: a call, as a module loads, of a function it imported, which is
+ * how a module registers itself with another; and a use of `globalThis`.
+ * Each as "file: what".
+ */
+export function handOvers(root, dirs) {
+  const found = [];
+  for (const path of dirs.flatMap((dir) => walk(root, dir, []))) {
+    if (!/\.[cm]?[jt]sx?$/.test(path) || /\.test\.[cm]?[jt]sx?$/.test(path)) continue;
+    const text = readFileSync(join(root, path), "utf8");
+    const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const imported = new Set();
+    for (const statement of source.statements) {
+      const clause = ts.isImportDeclaration(statement) ? statement.importClause : undefined;
+      if (clause?.name) imported.add(clause.name.text);
+      const names = clause?.namedBindings;
+      if (names && ts.isNamedImports(names)) for (const name of names.elements) imported.add(name.name.text);
+      if (names && ts.isNamespaceImport(names)) imported.add(names.name.text);
+    }
+    for (const statement of source.statements) {
+      if (!ts.isExpressionStatement(statement)) continue;
+      const called = ts.isAwaitExpression(statement.expression)
+        ? statement.expression.expression
+        : statement.expression;
+      if (!ts.isCallExpression(called)) continue;
+      let callee = called.expression;
+      while (ts.isPropertyAccessExpression(callee)) callee = callee.expression;
+      if (ts.isIdentifier(callee) && imported.has(callee.text))
+        found.push(`${path}: calls ${callee.text}() as it loads`);
+    }
+    const globals = (node) =>
+      (ts.isIdentifier(node) && node.text === "globalThis") || ts.forEachChild(node, globals) || false;
+    if (globals(source)) found.push(`${path}: uses globalThis`);
+  }
+  return found;
+}
+
+/** Every source file under `root`, each with the repo's files it imports, and what's handed over to it (HANDED_OVER). */
 export function importGraph(root) {
   const graph = new Map();
   for (const path of walk(root, "", [])) {
@@ -131,6 +179,8 @@ export function importGraph(root) {
       ),
     ]);
   }
+  for (const [to, handed] of Object.entries(HANDED_OVER))
+    if (graph.has(to)) graph.set(to, [...graph.get(to), ...handed.filter((path) => graph.has(path))]);
   return graph;
 }
 
@@ -278,7 +328,13 @@ const ALWAYS_IF_THERE = ["instrumentation-client.ts"];
 const ERRORS_KEPT = "instrumentation.ts";
 
 /** The files this map names by their paths: if one moves, its rule here stops applying (the tests check they exist). */
-export const NAMED = [...ALWAYS, ERRORS_KEPT, GALLERY_EXAMPLES, "lib/content/staff-interface.ts"];
+export const NAMED = [
+  ...ALWAYS,
+  ERRORS_KEPT,
+  GALLERY_EXAMPLES,
+  "lib/content/staff-interface.ts",
+  ...Object.entries(HANDED_OVER).flat(2),
+];
 
 /**
  * The files a flow can reach: its spec file and what it imports; for each

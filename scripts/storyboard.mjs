@@ -44,6 +44,11 @@
 // kept under its tree. A changed file the map can't place runs every flow,
 // and the review says which file. `--full` runs every flow anyway.
 //
+// A review that carries flows also runs a few of them anyway (spotChecks),
+// and compares each with what it would have carried. If one looks
+// different, the map of what a change reaches has missed something: the
+// review says so, and runs every flow.
+//
 // Main's frames are main's own: its suite, run on its build, in its own
 // checkout (scripts/main-checkout.mjs). Nothing of this branch's goes into
 // them, so they're kept under main's tree for every branch and worktree
@@ -117,6 +122,8 @@ const LATEST = join(DIR, "latest");
 /** How the last full review went, and on which commit. */
 const REVIEW_RECORD = "test-results/storyboard-review.json";
 const RUNS_KEEP = 5;
+/** How many of the flows a review would carry it runs anyway, to check them against what's carried (spotChecks). */
+const SPOT_CHECKS = 6;
 /** How many trees' frames the store keeps (scripts/storyboard-store.mjs). */
 const TREES_KEEP = 30;
 
@@ -371,6 +378,65 @@ function withoutKey(run) {
   const { key, ...rest } = run;
   void key;
   return rest;
+}
+
+/**
+ * A few of the flows a review would carry, which it runs anyway: each with
+ * the frames it would have carried, their pictures by their files. Chosen
+ * by a hash of the tree and the flow, so the same review checks the same
+ * ones, and another tree's checks others.
+ */
+function spotChecks(chosen) {
+  const order = (key) => createHash("sha256").update(`${treeBefore} ${key}`).digest("hex");
+  const keys = [...suite.keys()]
+    .filter((key) => !chosen.run.has(key))
+    .sort((a, b) => order(a).localeCompare(order(b)))
+    .slice(0, SPOT_CHECKS);
+  const latest = chosen.source.latest && realpathSync(LATEST);
+  return keys.map((key) => {
+    const run = chosen.source.runs.find((carried) => carried.key === key);
+    const frames = run.frames.map((frame) => ({
+      caption: frame.caption,
+      file: latest ? frame.png && join(latest, frame.png) : frame.picture && picturePath(STORE, frame.picture),
+    }));
+    return { key, frames };
+  });
+}
+
+/**
+ * The spot checks that failed: flows that, run again, didn't pass, or have
+ * other frames than the ones the review would have carried, or a picture
+ * that differs past the review's noise (comparePngs).
+ */
+async function spotMisses(spot) {
+  const ran = new Map(readJson(branchFrames).frames.map((run) => [flowKey(run), run]));
+  const missed = [];
+  for (const { key, frames } of spot) {
+    const run = ran.get(key);
+    let same = run?.status === "passed" && run.frames.length === frames.length;
+    for (let at = 0; same && at < frames.length; at++) {
+      const now = run.frames[at];
+      same = now.caption === frames[at].caption && Boolean(now.png) === Boolean(frames[at].file);
+      if (same && now.png) {
+        const compared = await comparePngs(join(runDir, now.png), frames[at].file, join(runDir, "spot-check.png"));
+        same = compared.mismatch === 0 || compared.noise;
+      }
+    }
+    if (!same) missed.push(key);
+  }
+  rmSync(join(runDir, "spot-check.png"), { force: true });
+  return missed;
+}
+
+/** What to do about flows the map missed, said where it's found and again at the end. */
+function missedSummary(missed, changed) {
+  return [
+    `Storyboard: ${missed.length} of the flows this review would have carried look different run again:`,
+    ...missed.map((key) => `  ${key}`),
+    `  So the map of what a change reaches (scripts/storyboard-reach.mjs) missed something in the ${changed.length} files changed,`,
+    `  or a frame of theirs differs from run to run. Every flow has been run. Find which, and fix the map or the frame;`,
+    `  or add a hit to investments/storyboard-review-speed.md naming the flows.`,
+  ].join("\n");
 }
 
 /** What a review chosen by chooseFlows runs, and why. */
@@ -716,16 +782,24 @@ if (options.plan) {
 }
 /** Whether the review has chosen its flows and found none to run: it's then every flow carried, beside main as it is now. */
 const nothing = chosen?.run.size === 0;
+// The flows it would carry that it runs anyway, to check the map (spotChecks): none when it runs every flow.
+const spot = chosen && !nothing && chosen.unknown.length === 0 ? spotChecks(chosen) : [];
+/** A file for `playwright test --test-list` of the flows `keys`. */
+function testList(keys) {
+  const file = join(mkdtempSync(join(tmpdir(), "pauseai-storyboard-")), "tests.txt");
+  writeFileSync(file, keys.map((key) => suite.get(key)).join("\n"));
+  return `--test-list=${file}`;
+}
 // What this run selects of the suite: it's partial when it leaves some out, whatever did it.
 let wanted;
+/** The arguments that select the flows the review chose, if it chose. */
+let chosenArgs = [];
 if (chosen) {
   console.log(`\n▶ ${planSummary(chosen, suite.size)}${nothing ? "" : " --full runs every one."}\n`);
-  wanted = new Map([...suite].filter(([key]) => chosen.run.has(key)));
-  if (!nothing) {
-    const testList = join(mkdtempSync(join(tmpdir(), "pauseai-storyboard-")), "tests.txt");
-    writeFileSync(testList, [...wanted.values()].join("\n"));
-    passThrough.push(`--test-list=${testList}`);
-  }
+  if (spot.length > 0) console.log(`▶ Storyboard: and ${spot.length} of the rest, to check they look as carried.\n`);
+  const keys = [...chosen.run, ...spot.map((check) => check.key)];
+  wanted = new Map([...suite].filter(([key]) => keys.includes(key)));
+  if (!nothing) chosenArgs = [testList([...wanted.keys()])];
 } else {
   wanted = listFlows([...options.projects, ...passThrough]);
 }
@@ -768,12 +842,17 @@ if (!builtHere && !nothing)
   );
 
 // Each flow records the tree it ran on only when the build is that tree's.
-const code = nothing
-  ? 0
-  : runSuite("branch", options.server ?? LOCAL_URL, {
-      STORYBOARD_TREE: builtHere ? treeBefore : "",
-      STORYBOARD_SETUP: setupOf(process.cwd()),
-    });
+const stamps = { STORYBOARD_TREE: builtHere ? treeBefore : "", STORYBOARD_SETUP: setupOf(process.cwd()) };
+let code = nothing ? 0 : runSuite("branch", options.server ?? LOCAL_URL, stamps, chosenArgs);
+
+// The flows run only to check them: if one looks different from what would have been carried, the map
+// missed something, and every other flow runs too.
+const missed = spot.length > 0 && existsSync(branchFrames) ? await spotMisses(spot) : [];
+if (missed.length > 0) {
+  console.log(`\n▶ ${missedSummary(missed, chosen.changed)}\n`);
+  const rest = [...suite.keys()].filter((key) => !wanted.has(key));
+  code = runSuite("branch", options.server ?? LOCAL_URL, stamps, [testList(rest)]) || code;
+}
 
 // A review that stands for every flow keeps them all under the tree they picture, the carried ones too, as each
 // looks as it would on this tree: if the build was this tree's, and nothing in the checkout changed meanwhile.
@@ -832,6 +911,8 @@ if (existsSync(branchFrames)) {
       flows: summary.flows,
       failed: summary.failed,
       changed: withMain ? summary.changed : null,
+      // Flows the review would have carried that looked different run again (spotChecks).
+      ...(missed.length > 0 ? { missed } : {}),
     });
   }
 }
@@ -877,8 +958,10 @@ if (options.changed && existsSync(join(runDir, "storyboard.json"))) {
 if (mainError)
   console.error(`\nStoryboard: main's side failed, so nothing is compared with it. ${mainError.message}\n`);
 
-// Said again at the end, where it's read: every flow ran because a changed file couldn't be placed.
+// Said again at the end, where it's read: every flow ran because a changed file couldn't be placed, or
+// because a flow that would have been carried looked different.
 if (chosen?.unknown.length) console.log(`\n${planSummary(chosen, suite.size)}\n`);
+if (missed.length > 0) console.log(`\n${missedSummary(missed, chosen.changed)}\n`);
 
 if (options.open && existsSync(page)) {
   const opener = platform() === "darwin" ? "open" : platform() === "win32" ? "start" : "xdg-open";

@@ -490,8 +490,12 @@ What a flow can reach:
   and the fixture server's, and what they import.
 
 Imports of types alone (`import type`) don't count, as they're gone once
-compiled. A stylesheet's `@import` and `composes` do. A changed file
-reaches the flows whose reach has it, and some files reach more:
+compiled. A stylesheet's `@import` and `composes` do. So does code handed
+to a module without an import (`HANDED_OVER`): `lib/server/problems.ts` is
+told how to find the run in progress by `run-store.ts`, and what keeps an
+error by `instrumentation.ts`, so a flow that reaches the one reaches the
+others. A changed file reaches the flows whose reach has it, and some
+files reach more:
 
 - **Every flow:** the migrations and `schema.sql`, the seed data
   (`tests/fixtures/*.sql`), `package.json`, `next.config.ts`, `proxy.ts`,
@@ -525,12 +529,27 @@ imports (a build tool's settings), data that no file names, or a file Next
 serves at an address of its own (`opengraph-image`, `icon`). Teach
 `scripts/storyboard-reach.mjs` what such a file reaches, or log a hit on
 `investments/storyboard-review-speed.md` naming it. Its tests check, on
-the repo as it is, that every import in what the site and its flows run
-can be followed (none of a file that isn't there, none of anything but a
-plain string), and that the files the map names by their paths exist.
+the repo as it is:
+
+- that every import in what the site and its flows run can be followed
+  (none of a file that isn't there, none of anything but a plain string);
+- that the site's code hands no code over without an import but where the
+  map knows of it: no module calls an imported function as it loads, and
+  none uses `globalThis`, but those the test lists;
+- that the files the map names by their paths exist.
+
+**Spot checks.** A review that carries flows also runs six of them
+anyway, chosen by a hash of the tree and the flow, and compares each with
+what it would have carried, as the review compares a frame with main's. If
+one looks different, the map missed something in the files changed (or a
+frame differs from run to run): the review says which flows, at once and
+at its end, and runs every flow. Find what the map missed and fix it, or
+log a hit on `investments/storyboard-review-speed.md` naming the flows.
 
 The map can't see what isn't in the tree: an environment file, or the
-machine's fonts and browser. `investments/storyboard-review-speed.md` has
+machine's fonts and browser. And it takes a page that Next prefetched,
+which a flow never went on to open, to have changed nothing the flow
+shows: true while rendering a page writes nothing. `investments/storyboard-review-speed.md` has
 how it was checked against what runs in each flow, and
 `investments/narrow-imports.md` the imports that make a change reach many
 flows.

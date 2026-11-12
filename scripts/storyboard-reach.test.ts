@@ -10,6 +10,7 @@ import {
   flowReach,
   flowsToRun,
   folderPattern,
+  handOvers,
   importGraph,
   importsOf,
   NAMED,
@@ -68,7 +69,7 @@ const FILES: Record<string, string> = {
   "components/Letters.tsx": `import { type Letter, sortLetters } from "@/lib/letters";\nexport const Letters = sortLetters;`,
   "lib/letters.ts": `export type Letter = string;\nexport const sortLetters = () => require("./sort");`,
   "lib/sort.ts": `export default 1;`,
-  "lib/posts.ts": `export default 1;`,
+  "lib/posts.ts": `import "@/lib/server/problems";\nexport default 1;`,
   "lib/feed.ts": `export default 1;`,
   "lib/redirects.ts": `export default [];`,
   "lib/session.ts": `export default 1;`,
@@ -81,6 +82,9 @@ const FILES: Record<string, string> = {
   "public/pdfs/briefing.pdf": `pdf`,
   "lib/content/staff-interface.ts": COPY,
   "lib/server/errors.ts": `export const keep = 1;`,
+  "lib/server/problems.ts": `export const registerRunStore = (find: () => void) => find;\nconst held = globalThis;`,
+  "lib/server/run-store.ts": `import * as storage from "node:async_hooks";\nimport register, { registerRunStore } from "./problems";\nconst find = () => storage;\nregisterRunStore(find);\nawait register.late(find);\nfind();\nnew Map();`,
+  "lib/posts.test.ts": `import { check } from "./posts";\ncheck(globalThis);`,
   "lib/server/inbox.ts": `export const folder = "lib/server/replies/";`,
   "lib/server/replies/jane.eml": `From: jane.smith@example.com`,
   "styles/globals.css": `@import "./tokens.css";`,
@@ -187,6 +191,23 @@ describe("resolveImport and unresolvedImports", () => {
       "lib/broken.ts: (not a plain string)",
     ]);
     expect(unresolvedImports(root, ["components"])).toEqual([]);
+  });
+});
+
+describe("handOvers", () => {
+  it("finds where code could be handed over without an import: a call of an imported function as a module loads, and globalThis", () => {
+    expect(handOvers(root, ["lib", "components"])).toEqual([
+      "lib/server/problems.ts: uses globalThis",
+      "lib/server/run-store.ts: calls registerRunStore() as it loads",
+      "lib/server/run-store.ts: calls register() as it loads",
+    ]);
+  });
+
+  it("joins what's handed over to the module it's handed to, so a flow that reaches the one reaches the other", () => {
+    const graph = importGraph(root);
+    expect(graph.get("lib/server/problems.ts")).toEqual(["lib/server/run-store.ts", "instrumentation.ts"]);
+    expect(closure(graph, ["app/(site)/blog/[slug]/page.tsx"])).toContain("lib/server/errors.ts");
+    expect(importGraph(join(root, "components")).has("lib/server/problems.ts")).toBe(false);
   });
 });
 
@@ -388,10 +409,14 @@ describe("reachedFlows", () => {
     );
   });
 
-  it("reruns every flow for what the build's settings and the proxy import, and only the flows that kept an error for what handles one", () => {
+  it("reruns every flow for what the build's settings and the proxy import", () => {
     expect(reached(["lib/redirects.ts"]).keys).toEqual(everyRun);
     expect(reached(["lib/session.ts"]).keys).toEqual(everyRun);
-    expect(reached(["lib/server/errors.ts"]).keys).toEqual(keysOf(broken));
+  });
+
+  it("reruns, for what handles an error, the flows that kept one and those that reach where problems are reported", () => {
+    expect(reached(["lib/server/errors.ts"]).keys).toEqual(keysOf(post, broken));
+    expect(reached(["lib/server/run-store.ts"]).keys).toEqual(keysOf(post));
   });
 
   it("reruns the flows that fetched a public file, there or not, and none for one nothing fetches or names", () => {
@@ -635,6 +660,20 @@ describe("this repo", () => {
 
   it("has every file the map names by its path", () => {
     expect(NAMED.filter((path) => !existsSync(join(repo, path)))).toEqual([]);
+  });
+
+  it("has no code handed over without an import that the map doesn't know of", () => {
+    expect(handOvers(repo, ["app", "components", "lib"])).toEqual([
+      // Checks of the posts' authors as the lists load: no code is handed over.
+      "lib/content/blog/index.ts: calls checkPostAuthors() as it loads",
+      "lib/content/briefings/index.ts: calls checkPostAuthors() as it loads",
+      // The fakes' mail and answers, kept for each flow's database across the build's copies of a module: no code.
+      "lib/server/fixtures/letters-inbox.ts: uses globalThis",
+      "lib/server/fixtures/outside-services.ts: uses globalThis",
+      // Handed the keeper of errors by instrumentation.ts, and the run in progress by run-store.ts (HANDED_OVER).
+      "lib/server/problems.ts: uses globalThis",
+      "lib/server/run-store.ts: calls registerRunStore() as it loads",
+    ]);
   });
 
   it("has no import that the map can't follow, in what the site and its flows run", () => {
