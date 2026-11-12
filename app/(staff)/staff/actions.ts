@@ -149,7 +149,7 @@ export async function decideSync(form: FormData): Promise<void> {
 }
 
 /**
- * Unblocks an address, on either blocked emails page or a politician's.
+ * Unblocks an address, on either page of blocked addresses or a politician's.
  * Any address but a politician's needs `supporters`, as its page does. If
  * the provider can't be reached, it's logged and the address stays blocked.
  */

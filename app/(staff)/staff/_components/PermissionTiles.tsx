@@ -83,7 +83,7 @@ function Address({
   );
 }
 
-/** Why an answer is what it is; after a blocked address's, the link to the blocked emails. */
+/** Why an answer is what it is; after a blocked address's, the link to Bounces and complaints. */
 function Reason({ permission }: { permission: ContactPermission }) {
   const words = permissionReason(permission);
   const blocked = permission.reason === "blocked";

@@ -164,8 +164,8 @@ const ANSWER = "\u0000";
 /**
  * What an entry of the audit log about them says, beyond its kind: the
  * status, the note, the reason. An answer leads to everyone who gave it to
- * that ask, and the ask to the letter or event; a blocked address, to the
- * politicians' blocked emails, searched for it.
+ * that ask, and the ask to the letter or event; a blocked address, to
+ * Addresses to fix, searched for it.
  */
 function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
   const { details } = change;
