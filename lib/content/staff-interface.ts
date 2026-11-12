@@ -681,7 +681,7 @@ export const staffCopy = {
   erase: {
     title: "Erase this supporter",
     // The page's own step of the trail above it, after the supporter's name.
-    crumb: "⁂ Erase",
+    crumb: "Erase",
     // Beside the button, at the foot of the supporter's page.
     note: "If they've asked to be forgotten, for example a GDPR request.",
     intro:
