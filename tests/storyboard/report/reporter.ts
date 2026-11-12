@@ -18,6 +18,7 @@ export default class StoryboardReporter implements Reporter {
   private dir = process.env.STORYBOARD_DIR;
   private side = process.env.STORYBOARD_SIDE ?? "branch";
   private shotAt = process.env.STORYBOARD_RUN_AT;
+  private tree = process.env.STORYBOARD_TREE;
   private runs: FlowRun[] = [];
 
   onTestEnd(test: TestCase, result: TestResult) {
@@ -35,7 +36,12 @@ export default class StoryboardReporter implements Reporter {
     const pngs = new Map<string, string>();
     // The placeholders each frame pictures (frame.ts), by its number.
     const placeholders = new Map<number, PlaceholderText[]>();
+    let opened: string[] | undefined;
     for (const a of result.attachments) {
+      if (a.name === "opened" && a.body) {
+        opened = JSON.parse(a.body.toString("utf8"));
+        continue;
+      }
       if (a.name.startsWith("placeholders ") && a.body) {
         placeholders.set(Number(a.name.slice("placeholders ".length)), JSON.parse(a.body.toString("utf8")));
         continue;
@@ -71,6 +77,8 @@ export default class StoryboardReporter implements Reporter {
       frames,
       ...(story.length ? { end: story } : {}),
       shotAt: this.shotAt,
+      ...(this.tree ? { tree: this.tree } : {}),
+      ...(opened ? { opened } : {}),
     });
   }
 

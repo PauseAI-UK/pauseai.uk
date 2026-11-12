@@ -12,6 +12,7 @@
 //   npm run storyboard -- --no-open         # leave the page closed (an agent reads storyboard.json)
 //   npm run storyboard -- --paths           # print each frame's caption and picture, to open one directly
 //   npm run storyboard -- --changed         # print only the frames that changed against main (storyboard-changed.mjs)
+//   npm run storyboard -- --full            # every flow, not just those a change since their last run reaches (below)
 //   npm run storyboard -- --server=URL      # a server you started for this branch (default: Playwright builds one on this checkout's port)
 //   npm run storyboard -- --fresh-main      # run main again even if its frames are kept (below)
 //   npm run storyboard -- --only-main       # no review: just keep main's frames, for the reviews to come
@@ -30,6 +31,14 @@
 // replaces the flows it runs: the review stays whole, each flow saying when
 // it was shot. Flows gone from the suite aren't carried. A full run starts
 // empty.
+//
+// Given no selection of its own, a review runs only the flows that might
+// show something new (scripts/storyboard-reach.mjs, flowsToRun): those the
+// files changed since each flow's last run can reach, those that failed, and
+// those new to the suite. The rest are carried. With nothing to run, it says
+// so and stops. Such a review stands for every flow, as the gate's run of
+// the flows does (scripts/gate.mjs). `--full` runs every flow, as the review
+// before a branch merges must.
 //
 // Main's frames are main's own: its suite, run on its build, in its own
 // checkout (scripts/main-checkout.mjs). Nothing of this branch's goes into
@@ -71,7 +80,16 @@ import { writeStoryboard } from "../tests/storyboard/report/board.ts";
 import { testServerUrl } from "./fresh-database.mjs";
 import { checkOutMain, lockMain } from "./main-checkout.mjs";
 import { describeChanged } from "./storyboard-changed.mjs";
-import { carryable, carryFlows, listedFlows, picturedFlows, runFolder, selectFlows } from "./storyboard-main.mjs";
+import {
+  carryable,
+  carryFlows,
+  flowKey,
+  listedFlows,
+  picturedFlows,
+  runFolder,
+  selectFlows,
+} from "./storyboard-main.mjs";
+import { changedCopyKeys, flowsToRun, reachContext, STAFF_COPY } from "./storyboard-reach.mjs";
 import { keepRuns, linkFlows, missingFlows, pruneStore, readTree, storeDir, touchTree } from "./storyboard-store.mjs";
 
 const DIR = "test-results/storyboard";
@@ -92,6 +110,7 @@ const options = {
   server: undefined,
   mainServer: undefined,
   freshMain: false,
+  full: false,
   onlyMain: false,
   thisSuite: false,
 };
@@ -106,6 +125,7 @@ for (const arg of process.argv.slice(2)) {
   else if (arg.startsWith("--server=")) options.server = arg.slice("--server=".length);
   else if (arg.startsWith("--main-server=")) options.mainServer = arg.slice("--main-server=".length);
   else if (arg === "--fresh-main") options.freshMain = true;
+  else if (arg === "--full") options.full = true;
   else if (arg === "--only-main") options.onlyMain = true;
   else if (arg === "--this-suite-on-main") options.thisSuite = true;
   else passThrough.push(arg);
@@ -141,6 +161,7 @@ function runSuite(side, url, extraEnv = {}, extraArgs = []) {
         STORYBOARD_DIR: runDir,
         STORYBOARD_SIDE: side,
         STORYBOARD_RUN_AT: runAt,
+        STORYBOARD_TREE: treeBefore,
         ...extraEnv,
       },
     },
@@ -168,13 +189,16 @@ function linkTree(from, to) {
   }
 }
 
-/** The flows `playwright test --list` gives in `cwd`, by key (listedFlows): nothing is built. */
-function listFlows(args, cwd = process.cwd(), env = process.env) {
+/**
+ * The flows `playwright test --list` gives in `cwd`, by key (listedFlows): nothing is built. The
+ * review's, with every flow on both viewports; with `shots` "0", the gate's, the phone's only those tagged.
+ */
+function listFlows(args, cwd = process.cwd(), env = process.env, shots = "1") {
   const result = spawnSync("npx", ["playwright", "test", "--list", "--reporter=json", ...args], {
     cwd,
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
-    env: { ...env, STORYBOARD_SHOTS: "1" },
+    env: { ...env, STORYBOARD_SHOTS: shots },
   });
   if (result.status !== 0) throw new Error(`Couldn't list the flows in ${cwd}:\n${result.stderr}`);
   return listedFlows(JSON.parse(result.stdout));
@@ -195,6 +219,47 @@ function workingTree() {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+/**
+ * The flows this review runs (flowsToRun), against the latest run's, or
+ * undefined to run them all: there's no latest run, or its flows say
+ * nothing of the trees they ran on.
+ */
+function chooseFlows() {
+  const latest = join(LATEST, "branch", "frames.json");
+  if (!existsSync(latest)) return undefined;
+  const carried = readJson(latest).frames.map((run) => ({ ...run, key: flowKey(run) }));
+  if (!carried.some((run) => run.tree)) return undefined;
+  const known = (tree) => spawnSync("git", ["cat-file", "-e", `${tree}^{tree}`]).status === 0;
+  const changedSince = (tree) =>
+    known(tree)
+      ? git("diff", "--no-renames", "--name-only", tree, treeBefore).split("\n").filter(Boolean)
+      : ["package.json"];
+  const copyKeysSince = (tree) => {
+    if (!known(tree) || !changedSince(tree).includes(STAFF_COPY)) return undefined;
+    const show = (at) => spawnSync("git", ["show", `${at}:${STAFF_COPY}`], { encoding: "utf8" }).stdout ?? "";
+    return changedCopyKeys(git("diff", "-U0", tree, treeBefore, "--", STAFF_COPY), show(tree), show(treeBefore));
+  };
+  const phoneTagged = new Set([...listFlows(["--project=phone"], process.cwd(), process.env, "0").keys()]);
+  return flowsToRun({
+    suite: new Set(suite.keys()),
+    carried,
+    phoneTagged,
+    context: reachContext(process.cwd()),
+    changedSince,
+    copyKeysSince,
+  });
+}
+
+/**
+ * The last review that stands for every flow, and the tree and commit it
+ * pictured, for the gate and anything that shows whether this code has had
+ * one (docs/testing.md, "The storyboard's progress").
+ */
+function recordReview(result) {
+  mkdirSync(dirname(REVIEW_RECORD), { recursive: true });
+  writeJson(REVIEW_RECORD, { commit: commitBefore, tree: treeBefore, endedAt: new Date().toISOString(), ...result });
 }
 
 /** Drops all but the newest `keep` folders in `dir`, never `current`. */
@@ -420,6 +485,27 @@ for (const old of ["branch", "main", "main-run", "diff", "storyboard.json", "../
 // The whole suite, and what this run selects: a run is partial when it leaves
 // some of the suite out, whatever the arguments that did it.
 const suite = listFlows([]);
+const treeBefore = workingTree();
+const commitBefore = git("rev-parse", "HEAD");
+const chosen = options.full || options.projects.length > 0 || passThrough.length > 0 ? undefined : chooseFlows();
+if (chosen && chosen.run.size === 0) {
+  console.log(
+    `\n▶ Storyboard: nothing to run. ${chosen.changed.length} files changed since the latest run's flows, and none reaches one; every flow passed. ${LATEST}\n`,
+  );
+  recordReview({ complete: true, flows: suite.size, failed: 0, changed: null });
+  process.exit(0);
+}
+const testList = chosen ? join(mkdtempSync(join(tmpdir(), "pauseai-storyboard-")), "tests.txt") : undefined;
+if (chosen) {
+  writeFileSync(testList, [...chosen.run].map((key) => suite.get(key)).join("\n"));
+  passThrough.push(`--test-list=${testList}`);
+  const why = [
+    chosen.fresh && `${chosen.fresh} new, failed or never recorded`,
+    chosen.everything.length && `every desktop flow, as ${chosen.everything.slice(0, 3).join(", ")} changed`,
+    `those the ${chosen.changed.length} files changed since their last run reach`,
+  ].filter(Boolean);
+  console.log(`\n▶ Storyboard: ${chosen.run.size} of ${suite.size} flows: ${why.join("; ")}. --full runs every one.\n`);
+}
 const wanted = listFlows([...options.projects, ...passThrough]);
 const partial = [...suite.keys()].some((key) => !wanted.has(key));
 // Main's own frames, from the store: not with --no-main, nor when this branch's suite makes main's.
@@ -447,8 +533,6 @@ const carriedMain = carried && existsSync(mainFrames) ? readJson(mainFrames) : u
 // Playwright made it for this run, and nothing in the checkout changed meanwhile.
 const full = !partial && passThrough.length === 0;
 const builtHere = !options.server && !(await answers(LOCAL_URL));
-const treeBefore = workingTree();
-const commitBefore = git("rev-parse", "HEAD");
 
 const code = runSuite("branch", options.server ?? LOCAL_URL);
 
@@ -496,12 +580,11 @@ if (existsSync(branchFrames)) {
       summary.mainFailed ? `, ${summary.mainFailed} failed on main` : ""
     }. ${join(runDir, "index.html")}\n`,
   );
-  // The last full review, and the commit it pictured, for anything that shows whether this commit has had one
-  // (docs/testing.md, "The storyboard's progress").
-  if (full) {
-    writeJson(REVIEW_RECORD, {
-      commit: commitBefore,
-      endedAt: new Date().toISOString(),
+  // A review that stands for every flow: run whole, or of every flow that might show something new.
+  if (full || chosen) {
+    recordReview({
+      complete: true,
+      full,
       run: basename(runDir),
       flows: summary.flows,
       failed: summary.failed,

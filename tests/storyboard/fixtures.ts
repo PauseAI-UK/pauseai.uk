@@ -4,7 +4,14 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { test as base, type BrowserContextOptions } from "@playwright/test";
+import {
+  test as base,
+  type APIRequestContext,
+  type APIResponse,
+  type BrowserContextOptions,
+  type Page,
+  type Request,
+} from "@playwright/test";
 import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs";
 import { FLOW_DATABASES, LOCAL_URL, TEMPLATE_DATABASE } from "../checkout.mjs";
 import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
@@ -63,7 +70,46 @@ const ONBOARDING_FORM_STAND_IN = `<!doctype html>
  */
 const TALLY_STAND_IN = "window.Tally = { loadEmbeds: () => {} };";
 
-export const test = base.extend<{ flowDatabase: string }>({
+/**
+ * The path a request to the build is recorded by in a flow's `opened`: a
+ * page's, an action's or an API route's own, and a picture the build resized
+ * by the picture's. The build's scripts and styles, and other sites, aren't.
+ */
+export function openedPath(url: string, base: string): string | undefined {
+  const u = new URL(url);
+  if (u.origin !== new URL(base).origin || u.pathname.startsWith("/_next/static/")) return undefined;
+  if (u.pathname !== "/_next/image") return decodeURIComponent(u.pathname);
+  const src = u.searchParams.get("url");
+  return src?.startsWith("/") ? decodeURIComponent(src.split("?")[0]) : undefined;
+}
+
+const API_METHODS = ["get", "post", "put", "patch", "delete", "head", "fetch"] as const;
+
+/** Adds the path of each call `api` makes to `opened`. */
+function recordCalls(api: APIRequestContext, opened: Set<string>) {
+  for (const method of API_METHODS) {
+    const call = api[method].bind(api) as (url: string | Request, options?: object) => Promise<APIResponse>;
+    (api as unknown as Record<string, unknown>)[method] = (url: string | Request, options?: object) => {
+      const path = openedPath(typeof url === "string" ? new URL(url, BASE).href : url.url(), BASE);
+      if (path) opened.add(path);
+      return call(url, options);
+    };
+  }
+}
+
+export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
+  // What the flow opened: each page, action, API route and public file, by its path, attached to the
+  // test for the review to keep with the flow (report/reporter.ts). A change reruns the flows whose
+  // pages it can reach (scripts/storyboard-reach.mjs). Next's prefetches of the pages a link
+  // points to don't count: nothing of them is seen until the link is followed, which counts.
+  opened: [
+    async ({}, provide, testInfo) => {
+      const opened = new Set<string>();
+      await provide(opened);
+      await testInfo.attach("opened", { body: JSON.stringify([...opened].sort()), contentType: "application/json" });
+    },
+    { auto: true },
+  ],
   // A copy of the template (global-setup.ts), made in tens of milliseconds,
   // for this flow alone, and dropped after it. Named after the test, so a
   // flow run twice, or alongside others, never shares one: a hash, as the
@@ -88,9 +134,27 @@ export const test = base.extend<{ flowDatabase: string }>({
   // No flow ever reaches Google: a test run is not a visit. consent.spec.ts
   // routes the same URLs on its page, which takes precedence, to record what
   // the page tried to load.
-  context: async ({ context }, provide) => {
+  context: async ({ context, opened }, provide) => {
     await context.route(ANALYTICS_URL, (route) => route.abort());
+    context.on("request", (request) => {
+      if (request.headers()["next-router-prefetch"]) return;
+      const path = openedPath(request.url(), BASE);
+      if (path) opened.add(path);
+    });
+    // A link followed to a page already prefetched fetches nothing: the address it goes to counts.
+    const watch = (page: Page) =>
+      page.on("framenavigated", (frame) => {
+        const path = frame === page.mainFrame() ? openedPath(frame.url(), BASE) : undefined;
+        if (path) opened.add(path);
+      });
+    context.pages().forEach(watch);
+    context.on("page", watch);
+    recordCalls(context.request, opened);
     await provide(context);
+  },
+  request: async ({ request, opened }, provide) => {
+    recordCalls(request, opened);
+    await provide(request);
   },
   // The page's clock agrees with the server's (FIXTURE_NOW), so dates match
   // between runs and nothing needs masking. The onboarding form, the one
