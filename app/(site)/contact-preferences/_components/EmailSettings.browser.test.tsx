@@ -53,23 +53,33 @@ describe("EmailSettings", () => {
     await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.text })).toBeChecked();
     await expect.element(card("events").getByRole("checkbox", { name: copy.ways.text })).not.toBeChecked();
     await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.call })).toBeVisible();
-    await expect.element(card("newsletter").getByText(copy.tags.on)).toBeVisible();
-    await expect.element(card("volunteering").getByText(copy.tags.off)).toBeVisible();
+    // No lozenge where the boxes say it all.
+    await expect.element(page.getByText(copy.tags.paused)).not.toBeInTheDocument();
     await expect
       .element(
         card("newsletter").getByText(`${copy.why.yes} ${copy.why.reasons.asked!(copy.sourceWords("march-2026-11"))}`),
       )
       .toBeVisible();
     await expect.element(card("volunteering").getByText(copy.why.nothing)).toBeVisible();
-    await expect.element(page.getByText(copy.numbers("07700 900123"))).toBeVisible();
+    // Its numbers aren't named, as the link doesn't prove they're theirs.
+    await expect.element(page.getByText("07700 900123", { exact: false })).not.toBeInTheDocument();
     await expect.element(page.getByRole("heading", { name: copy.global.title })).toBeVisible();
   });
 
   it("saves what's ticked, with whose page it is, and says so", async () => {
     const done = await show(exampleSettings);
+    // Ghosted till a box differs from what was kept: pressed, it saves nothing; a box ticked and unticked ghosts it again.
+    const save = page.getByRole("button", { name: copy.settings.save });
+    await expect.element(save).toHaveAttribute("aria-disabled", "true");
+    // Forced, as a ghosted button takes a press but does nothing with it.
+    await save.click({ force: true });
+    await card("volunteering").getByRole("checkbox", { name: copy.ways.email }).click();
+    await expect.element(save).toHaveAttribute("aria-disabled", "false");
+    await card("volunteering").getByRole("checkbox", { name: copy.ways.email }).click();
+    await expect.element(save).toHaveAttribute("aria-disabled", "true");
+    expect(done.save).not.toHaveBeenCalled();
     await card("volunteering").getByRole("checkbox", { name: copy.ways.email }).click();
     await card("newsletter").getByRole("checkbox", { name: copy.ways.text }).click();
-    const save = page.getByRole("button", { name: copy.settings.save });
     await save.click();
     await expect.element(page.getByText(copy.settings.saved)).toBeVisible();
     // The button stays where the focus was, so the keyboard carries on from it.
@@ -97,7 +107,8 @@ describe("EmailSettings", () => {
     const done = await show(exampleNoBulk, null, actions(exampleSettings));
     await expect.element(page.getByText(copy.noBulk.body(exampleNoBulk.hold!.at))).toBeVisible();
     await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.email })).toBeDisabled();
-    await expect.element(card("newsletter").getByText(copy.tags.on)).toBeVisible();
+    // Email paused only where they get nothing else: the newsletter goes to them by text.
+    await expect.element(card("newsletter").getByText(copy.tags.paused)).not.toBeInTheDocument();
     await expect.element(card("events").getByText(copy.tags.paused)).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.stopAll.button })).not.toBeInTheDocument();
     await page.getByRole("button", { name: copy.noBulk.button }).click();

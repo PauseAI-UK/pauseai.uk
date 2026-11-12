@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Checkbox } from "@/components/ui/Controls";
 import { FormStack } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -15,7 +15,6 @@ import {
   type SettingsTopic,
   type SettingsView,
 } from "@/lib/email-settings";
-import { phoneWords } from "@/lib/phone";
 import styles from "./EmailSettings.module.css";
 
 /** What the page was opened by and for: kept in each form, so the server knows whose page it is. */
@@ -54,20 +53,37 @@ const inWords = (topics: Topic[]): string => topics.map((t) => copy.inSentence[t
 const reasonWords = (answer: ContactPermission): string =>
   copy.why.reasons[answer.reason]?.(copy.sourceWords(answer.source)) ?? "";
 
-/** Why a topic is on, or since when it's off, in the person's words. */
-function why(answer: ContactPermission | null): string {
+/** Why a topic is on, or since when it's off, in the person's words, its "Why:" or "Off since" in bold. */
+function why(answer: ContactPermission | null): ReactNode {
   if (!answer) return copy.why.nothing;
   const reason = reasonWords(answer);
-  if (answer.send === "yes") return `${copy.why.yes} ${reason}`;
-  if (answer.reason === "unsubscribed") return `${copy.why.no} ${settingsDate(answer.at)}: ${reason}`;
+  if (answer.send === "yes") {
+    return (
+      <>
+        <strong>{copy.why.yes}</strong> {reason}
+      </>
+    );
+  }
+  if (answer.reason === "unsubscribed") {
+    return (
+      <>
+        <strong>
+          {copy.why.no} {settingsDate(answer.at)}:
+        </strong>{" "}
+        {reason}
+      </>
+    );
+  }
   return reason || copy.why.nothing;
 }
 
-/** A topic's lozenge: they get it some way; or not, as all email is held; or it's off. */
+/**
+ * A topic's lozenge, only when they don't get it as all its email is held,
+ * which a ticked Email box doesn't say. Whether they get it otherwise, the
+ * lit boxes say.
+ */
 function TopicTag({ topic }: { topic: SettingsTopic }) {
-  if (getsTopic(topic)) return <Tag tone="green">{copy.tags.on}</Tag>;
-  if (topic.boxes.some((box) => box.locked)) return <Tag tone="amber">{copy.tags.paused}</Tag>;
-  return <Tag>{copy.tags.off}</Tag>;
+  return !getsTopic(topic) && topic.boxes.some((box) => box.locked) ? <Tag tone="amber">{copy.tags.paused}</Tag> : null;
 }
 
 /** One topic: its name, whether they get it, what it is, a box for each way, and why. */
@@ -87,6 +103,7 @@ function TopicCard({ topic }: { topic: SettingsTopic }) {
             value={choiceKey(topic.topic, box.way)}
             checked={box.on}
             disabled={box.locked}
+            boxed
             onChange={(on) => setBoxes(boxes.map((b, j) => (j === i ? { ...b, on } : b)))}
           >
             {copy.ways[box.way]}
@@ -209,9 +226,13 @@ function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["
   );
 }
 
+/** The boxes ticked in a form, to tell whether they've changed. */
+const ticked = (form: HTMLFormElement) => new FormData(form).getAll("choice").join(" ");
+
 /**
  * The contact preferences page: from an email's unsubscribe link, its box first;
  * then what PauseAI UK sends the address and its numbers, a topic a card,
+ * the numbers unnamed, as the link doesn't prove they're the person's;
  * with what holds all its email above them; Save; what PauseAI Global
  * sends; and Stop everything. Once its link has run out, an offer of a
  * fresh one in place of all but the box.
@@ -234,10 +255,21 @@ export default function EmailSettings({
   const [round, setRound] = useState(0);
   // Where the focus goes once a button's change is shown: the page's title after a lift, the hold after Stop everything.
   const [focus, setFocus] = useState<"title" | "hold" | null>(null);
+  // Whether the boxes differ from what was kept, which they're compared with each time one changes; Save is ghosted till then.
+  const [changed, setChanged] = useState(false);
+  const kept = useRef("");
+  // Which round's boxes those were; the boxes are read once a round, when they're new.
+  const keptRound = useRef(-1);
+  const keep = (form: HTMLFormElement | null) => {
+    if (!form || keptRound.current === round) return;
+    kept.current = ticked(form);
+    keptRound.current = round;
+  };
   const update = (next: SettingsView | null, then: typeof focus = null) => {
     setView(next);
     setRound((n) => n + 1);
     setFocus(then);
+    setChanged(false);
   };
   return (
     <>
@@ -266,6 +298,8 @@ export default function EmailSettings({
             />
           )}
           <FormStack
+            ref={keep}
+            onChange={(event) => setChanged(ticked(event.currentTarget) !== kept.current)}
             action={async (form) => {
               // Cleared first, so each save's "Saved" is news a screen reader reads.
               setSaved(false);
@@ -277,11 +311,16 @@ export default function EmailSettings({
             {settingsTopics(view).map((topic) => (
               <TopicCard key={`${topic.topic}-${round}`} topic={topic} />
             ))}
-            {view.numbers.length > 0 && (
-              <p className={styles.quiet}>{copy.numbers(view.numbers.map(phoneWords).join(", "))}</p>
-            )}
             <div className={styles.row}>
-              <SubmitButton variant="primary" fit>
+              {/* Ghosted, not disabled, so the focus stays on it after a save, as a disabled button drops it. */}
+              <SubmitButton
+                variant="primary"
+                fit
+                aria-disabled={!changed}
+                onClick={(event) => {
+                  if (!changed) event.preventDefault();
+                }}
+              >
                 {copy.settings.save}
               </SubmitButton>
               <span className={styles.quiet} role="status">

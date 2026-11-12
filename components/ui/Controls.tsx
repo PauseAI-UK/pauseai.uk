@@ -43,13 +43,20 @@ export function FileInput(props: Omit<InputProps, "type">) {
   return <input {...props} type="file" className={styles.file} />;
 }
 
-/** A checkbox with its label beside it. Controlled: `onChange` gets whether it's now ticked. A form sends `value` for it, ticked. */
+/**
+ * A checkbox with its label beside it. Controlled: `onChange` gets whether
+ * it's now ticked. A form sends `value` for it, ticked. `boxed`, the two sit
+ * in a box of their own, lit in the accent colour while ticked, for a few
+ * choices side by side that should stand out, such as a topic's ways on the
+ * contact preferences page.
+ */
 export function Checkbox({
   id,
   name,
   value,
   checked,
   disabled,
+  boxed = false,
   onChange,
   children,
 }: {
@@ -58,11 +65,12 @@ export function Checkbox({
   value?: string;
   checked: boolean;
   disabled?: boolean;
+  boxed?: boolean;
   onChange: (checked: boolean) => void;
   children: ReactNode;
 }) {
   return (
-    <label className={styles.checkboxLabel} htmlFor={id}>
+    <label className={boxed ? `${styles.checkboxLabel} ${styles.boxed}` : styles.checkboxLabel} htmlFor={id}>
       <input
         id={id}
         name={name}

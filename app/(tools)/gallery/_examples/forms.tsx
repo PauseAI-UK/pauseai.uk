@@ -251,7 +251,7 @@ export const forms: Group = {
       file: "components/ui/Controls.tsx",
       variants: [
         {
-          label: "Ticked, and with a label that wraps",
+          label: "Ticked, with a label that wraps, and boxed: ticked, not, and locked",
           render: () => <Densities>{() => <CheckboxExample />}</Densities>,
         },
       ],

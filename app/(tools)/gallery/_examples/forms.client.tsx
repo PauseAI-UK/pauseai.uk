@@ -23,6 +23,17 @@ export function CheckboxExample() {
           <Checkbox checked={!checked} onChange={(value) => set(!value)}>
             An example option with a long label, which runs on to a second line on a phone and lines up under the first.
           </Checkbox>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+            <Checkbox boxed checked={checked} onChange={set}>
+              Boxed
+            </Checkbox>
+            <Checkbox boxed checked={!checked} onChange={(value) => set(!value)}>
+              Boxed, unticked
+            </Checkbox>
+            <Checkbox boxed checked={false} disabled onChange={() => {}}>
+              Boxed, locked
+            </Checkbox>
+          </div>
         </div>
       )}
     </Controlled>

@@ -11,10 +11,11 @@ export function settingsDate(date: Date | null): string {
     : "";
 }
 
+// As the staff pages name them (staffCopy.supporters.detail.permissions.topics).
 const topicNames: Record<Topic, string> = {
-  newsletter: "⁂ UK newsletter",
-  events: "⁂ Events only",
-  volunteering: "⁂ Volunteering",
+  newsletter: "Newsletter",
+  events: "Events only",
+  volunteering: "Volunteering",
 };
 
 const wayNames: Record<Way, string> = { email: "⁂ Email", text: "⁂ Text", call: "⁂ Call" };
@@ -93,16 +94,16 @@ export const emailSettingsCopy = {
   settings: {
     title: "Contact preferences",
     lead: (address: string) =>
-      `⁂ How PauseAI UK can contact you at ${address}, and why. Change anything and press Save.`,
+      `View and change how PauseAI UK contacts you via your email ${address} and associated phone numbers.`,
     save: "⁂ Save",
-    saveNote: "⁂ Changes apply at once.",
+    saveNote: "Changes apply at once.",
     saved: "⁂ Saved.",
   },
   topics: topicNames,
   about: {
-    newsletter: "⁂ Our weekly news from the UK campaign, including events.",
-    events: "⁂ Invitations to events, and nothing else.",
-    volunteering: "⁂ Asks for help, from staff and local groups.",
+    newsletter: "Weekly news from the UK campaign, including events.",
+    events: "Invitations to events, and nothing else.",
+    volunteering: "More in depth contact from staff and local groups.",
   } as Record<Topic, string>,
   ways: wayNames,
   // A topic in a sentence, as an unsubscribe says what of.
@@ -111,23 +112,21 @@ export const emailSettingsCopy = {
     events: "⁂ our event emails",
     volunteering: "⁂ our volunteering emails",
   } as Record<Topic, string>,
-  numbers: (numbers: string) => `⁂ Texts and calls go to ${numbers}.`,
-  tags: { on: "⁂ You get this", off: "⁂ Off", paused: "⁂ Email paused" },
+  tags: { paused: "⁂ Email paused" },
   // Under a topic, why it's on or off, from its answer.
   why: {
-    yes: "⁂ Why:",
-    no: "⁂ Off since",
+    yes: "Why:",
+    no: "Off since",
     reasons: {
       asked: (source: string) => `⁂ you ticked the box ${source}.`,
-      chose: () => "⁂ you turned it on here.",
+      chose: () => "you turned it on here.",
       "signed-up": (source: string) => `⁂ you gave us your details ${source}.`,
-      subscribed: () => "⁂ you're on PauseAI UK's list with PauseAI Global.",
-      following: () =>
-        "⁂ you follow our calendar on Luma, which sends you its event emails. Turning this off takes you off the calendar.",
-      "gave-number": (source: string) => `⁂ you gave your number for texts on the day ${source}.`,
+      subscribed: () => "you're on PauseAI UK's list with PauseAI Global.",
+      following: () => "you follow our calendar on Luma.",
+      "gave-number": (source: string) => `you gave your number for texts on the day ${source}.`,
       volunteered: () => "⁂ you said you'd like to volunteer when you joined PauseAI.",
-      unsubscribed: (source: string) => `⁂ you unsubscribed ${source}.`,
-      declined: (source: string) => `⁂ you left the box unticked ${source}.`,
+      unsubscribed: (source: string) => `you unsubscribed ${source}.`,
+      declined: (source: string) => `you left the box unticked ${source}.`,
     } as Partial<Record<Reason, (source: string) => string>>,
     nothing: "⁂ Turn this on if you'd like it.",
   },
@@ -153,7 +152,7 @@ export const emailSettingsCopy = {
   },
   global: {
     title: "⁂ PauseAI Global's emails",
-    intro: "⁂ PauseAI Global, the international movement, sends its own emails:",
+    intro: "PauseAI Global, the international movement, can send its own emails:",
     lists: ["⁂ the PauseAI Newsletter", "⁂ Critical Alerts, when something urgent happens", "⁂ Local Invitations"],
     howToStop: "⁂ To stop one of them, use the unsubscribe link at the bottom of its emails.",
     // Only while Stop everything is offered, below.

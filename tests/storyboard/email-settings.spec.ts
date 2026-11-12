@@ -102,7 +102,7 @@ test("Changing what you get", async ({ page, request, flowDatabase }) => {
   await topicCard(page, "volunteering").getByRole("checkbox", { name: copy.ways.text }).check();
   await page.getByRole("button", { name: copy.settings.save }).click();
   await expect(page.getByText(copy.settings.saved)).toBeVisible();
-  await expect(topicCard(page, "volunteering").getByText(copy.tags.on)).toBeVisible();
+  await expect(topicCard(page, "volunteering").getByRole("checkbox", { name: copy.ways.text })).toBeChecked();
   await frame(page, "Saved");
   story("At the foot, what PauseAI Global sends, and how to stop everything.");
   // Global's box at the window's top, just below the site's sticky header.
