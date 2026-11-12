@@ -21,6 +21,8 @@ export const exampleErrorsSeen: ErrorSeen[] = [
     firstSeen: new Date("2026-11-03T09:12:00Z"),
     lastSeen: new Date("2026-11-10T16:40:00Z"),
     count: 12,
+    doneAt: null,
+    doneBy: null,
   },
   {
     id: 3,
@@ -35,6 +37,8 @@ export const exampleErrorsSeen: ErrorSeen[] = [
     firstSeen: new Date("2026-11-09T11:05:00Z"),
     lastSeen: new Date("2026-11-09T11:31:00Z"),
     count: 7,
+    doneAt: null,
+    doneBy: null,
   },
   {
     id: 2,
@@ -52,6 +56,8 @@ export const exampleErrorsSeen: ErrorSeen[] = [
     firstSeen: new Date("2026-11-08T19:22:00Z"),
     lastSeen: new Date("2026-11-08T19:22:00Z"),
     count: 1,
+    doneAt: null,
+    doneBy: null,
   },
   {
     id: 1,
@@ -66,5 +72,14 @@ export const exampleErrorsSeen: ErrorSeen[] = [
     firstSeen: new Date("2026-10-20T08:00:00Z"),
     lastSeen: new Date("2026-11-07T21:14:00Z"),
     count: 31,
+    doneAt: null,
+    doneBy: null,
   },
 ];
+
+/** The problem, marked done by an admin. */
+export const exampleErrorDone: ErrorSeen = {
+  ...exampleErrorsSeen[1],
+  doneAt: new Date("2026-11-09T12:00:00Z"),
+  doneBy: "jane.smith@pauseai.uk",
+};

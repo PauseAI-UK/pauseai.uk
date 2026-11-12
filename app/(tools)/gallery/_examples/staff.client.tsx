@@ -24,6 +24,8 @@ import {
 } from "@/app/(staff)/staff/_components/EmailBlocksTable.examples";
 import { ImportJobPage } from "@/app/(staff)/staff/_components/ImportJob";
 import JobActions from "@/app/(staff)/staff/_components/JobActions";
+import ErrorSeenView from "@/app/(staff)/staff/_components/ErrorSeenView";
+import { exampleErrorDone, exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
 import PoliticianCorrespondence from "@/app/(staff)/staff/_components/PoliticianCorrespondence";
 import PoliticianDetails from "@/app/(staff)/staff/_components/PoliticianDetails";
 import AddAliasForm from "@/app/(staff)/staff/_components/AddAliasForm";
@@ -470,6 +472,12 @@ export function ImportJobPageExample({
 /** An import's button, its runs logged. */
 export function JobActionsExample() {
   return <Logged>{(log) => <JobActions action={log("action")} label="Check now" />}</Logged>;
+}
+
+/** An error's page, its button logged: the examples' errors by their place in the list, or the one marked done. */
+export function ErrorSeenViewExample({ which }: { which: 0 | 1 | 2 | "done" }) {
+  const error = which === "done" ? exampleErrorDone : exampleErrorsSeen[which];
+  return <Logged>{(log) => <ErrorSeenView error={error} setDone={log("setDone")} />}</Logged>;
 }
 
 /** Add staff, at the accounts page's top right: its box adds someone, logged; jo@pauseai.uk is there already. */

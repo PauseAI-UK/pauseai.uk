@@ -1,6 +1,5 @@
 import SentEmails from "@/app/(staff)/staff/_components/SentEmails";
 import { exampleSentEmails } from "@/app/(staff)/staff/_components/CampaignPages.examples";
-import ErrorSeenView from "@/app/(staff)/staff/_components/ErrorSeenView";
 import ErrorsSeen from "@/app/(staff)/staff/_components/ErrorsSeen";
 import { exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
 // The staff interface's dashboard, imports, audit log, accounts, login and
@@ -64,6 +63,7 @@ import {
   HeldSyncExample,
   ImportJobPageExample,
   JobActionsExample,
+  ErrorSeenViewExample,
   StaffAccountsTableExample,
   AddStaffExample,
   MyGmailExample,
@@ -263,10 +263,10 @@ export const staffAdmin: Group = {
       file: "app/(staff)/staff/_components/ErrorsSeen.tsx",
       variants: [
         {
-          label: "A page's error, a problem, and two from browsers",
+          label: "To do: a page's error, a problem, and two from browsers",
           render: () => (
             <StaffPage as="div">
-              <ErrorsSeen errors={exampleErrorsSeen} total={4} pages={1} page={1} pageSize={100} />
+              <ErrorsSeen done={false} errors={exampleErrorsSeen} total={4} pages={1} page={1} pageSize={100} />
             </StaffPage>
           ),
         },
@@ -274,7 +274,15 @@ export const staffAdmin: Group = {
           label: "Nothing has gone wrong",
           render: () => (
             <StaffPage as="div">
-              <ErrorsSeen errors={[]} total={0} pages={1} page={1} pageSize={100} />
+              <ErrorsSeen done={false} errors={[]} total={0} pages={1} page={1} pageSize={100} />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "Done: none marked yet",
+          render: () => (
+            <StaffPage as="div">
+              <ErrorsSeen done errors={[]} total={0} pages={1} page={1} pageSize={100} />
             </StaffPage>
           ),
         },
@@ -288,7 +296,7 @@ export const staffAdmin: Group = {
           label: "A Postgres error in a page, with its stack trace",
           render: () => (
             <StaffPage as="div">
-              <ErrorSeenView error={exampleErrorsSeen[0]} />
+              <ErrorSeenViewExample which={0} />
             </StaffPage>
           ),
         },
@@ -296,7 +304,7 @@ export const staffAdmin: Group = {
           label: "A problem, which has no stack trace",
           render: () => (
             <StaffPage as="div">
-              <ErrorSeenView error={exampleErrorsSeen[1]} />
+              <ErrorSeenViewExample which={1} />
             </StaffPage>
           ),
         },
@@ -304,7 +312,15 @@ export const staffAdmin: Group = {
           label: "A page that fell over in a browser",
           render: () => (
             <StaffPage as="div">
-              <ErrorSeenView error={exampleErrorsSeen[2]} />
+              <ErrorSeenViewExample which={2} />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "Marked done",
+          render: () => (
+            <StaffPage as="div">
+              <ErrorSeenViewExample which="done" />
             </StaffPage>
           ),
         },

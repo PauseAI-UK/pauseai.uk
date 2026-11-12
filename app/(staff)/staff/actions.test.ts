@@ -34,6 +34,7 @@ import {
   removeStaffAccountNow,
   runJobNow,
   saveStaffAccountNow,
+  setErrorDoneNow,
   unblockAddress,
 } from "./actions";
 
@@ -372,6 +373,24 @@ describeWithDatabase("staff Server Actions", () => {
     expect(await query("SELECT actor, action FROM audit_log WHERE action = 'end staff sessions'")).toEqual([
       { actor: "jo@pauseai.uk", action: "end staff sessions" },
     ]);
+  });
+
+  it("setErrorDoneNow marks an error done as the admin, or to do again, refreshing the errors pages", async () => {
+    await query(
+      "INSERT INTO errors_seen (key, kind, route, name, words, latest_words) VALUES ('k', 'route', '/api', 'Error', 'W', 'W')",
+    );
+    const done = () => query('SELECT done_by AS "doneBy", done_at IS NOT NULL AS "done" FROM errors_seen');
+    // Without admin, nothing changes.
+    expect(await expectRedirect(() => setErrorDoneNow(form({ id: "1", done: "yes" })))).toBe("/staff");
+    await saveStaffAccount("jo@pauseai.uk", ["admin"], "test");
+    // A bad form does nothing.
+    await setErrorDoneNow(form({ id: "x", done: "yes" }));
+    expect(revalidatePath).not.toHaveBeenCalled();
+    await setErrorDoneNow(form({ id: "1", done: "yes" }));
+    expect(await done()).toEqual([{ doneBy: "jo@pauseai.uk", done: true }]);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/errors", "layout");
+    await setErrorDoneNow(form({ id: "1", done: "" }));
+    expect(await done()).toEqual([{ doneBy: null, done: false }]);
   });
 
   it("unblockAddress unblocks an address, with the note, and refreshes every staff page", async () => {

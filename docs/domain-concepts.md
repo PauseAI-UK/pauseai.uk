@@ -1288,7 +1288,10 @@ A page tells of each error once, and of `REPORTS_A_PAGE` at most.
 
 **What people see.** Admins see every error at `/staff/errors`, the one
 seen most recently first, and each on its own page, with the latest as it
-was thrown. Visitors and staff alike see Next's own error page in place of
+was thrown. An admin marks one done from its page, which moves it from the
+To do tab to Done, saying who and when; happening again moves it back.
+Emails about it go on as before: marking it done changes neither when the
+next is due nor what it says. Visitors and staff alike see Next's own error page in place of
 a page that threw, the one it shows when a site has none
 (`app/global-error.tsx`): it says only that the page couldn't load, and,
 for an error on the server, Next's digest of it, as Next keeps a server

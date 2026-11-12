@@ -765,6 +765,8 @@ that drives it or why nothing does.
   - a staff page that throws: Next's error page in its place and Reload, the email to the notification inbox, once though it fails twice, the errors list and the error's own page;
   - a page breaking in someone's browser, on the fixture build's page that breaks (`/broken`): the email that quotes none of it, and a click that throws, kept without an email;
   - the spam check down for someone sending a letter, with Cloudflare down for the flow: what they're told, the email and the error's page;
+  - an error marked done: its page's button, then the list's To do and Done tabs;
+  - an error done happening again: back with those to do;
 - `permissions.spec.ts`: What staff see by permission:
   - the accounts sorted by when last seen;
   - logged in with none: every staff page, as HTML and as its RSC payload, holding no supporter's name or email (the leak check);

@@ -334,7 +334,11 @@ export const ACCOUNTS_LIST = defineStaffList({
 export const ERRORS_LIST = defineStaffList({
   path: "/staff/errors",
   needs: "admin",
-  params: { page: "one" },
+  params: {
+    /** "yes" for the Done tab; blank for those to do. */
+    done: "one",
+    page: "one",
+  },
 });
 
 export type PoliticianSort = SortOf<typeof POLITICIANS_LIST>;
