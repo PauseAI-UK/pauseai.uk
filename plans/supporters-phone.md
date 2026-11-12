@@ -146,35 +146,100 @@ and event messages.
 Meta doesn't allow political parties, politicians or political
 campaigns (policy, above). PauseAI UK is a civil society organisation
 that runs events and volunteering, as many nonprofits on WhatsApp do,
-and the application should say so consistently:
+and the application should say so consistently.
 
-- A verified Meta business portfolio for Safe AI Alliance Ltd. We have
-  a portfolio called PauseAI UK, which is unverified, has no legal name,
-  address or website filled in, and has no WhatsApp account yet.
-  Verifying needs the certificate of incorporation, from Companies
-  House, and a document with the company's name and address, such as a
-  bank statement, which Joseph can provide. pauseai.uk already names the
-  company. A verified account can message 2,000 people a day, an
-  unverified one 250
+Done:
+
+- The Meta business portfolio, PauseAI UK, has Safe AI Alliance Ltd's
+  legal name, address, website and company number, and Meta verified it
+  on 11 November 2026. A verified account can message 2,000 people a
+  day, an unverified one 250
   ([limits](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits)).
-- Each admin logs in with a personal Facebook account, in their own name
+- A Meta app with the "Connect on WhatsApp" use case, and a WhatsApp
+  account with "PauseAI UK" as its display name
+  ([display names](https://developers.facebook.com/documentation/business-messaging/whatsapp/display-names)).
+  The name's status is `AVAILABLE_WITHOUT_REVIEW`: it's in use, but
+  Meta hasn't reviewed it. Until it's approved, the name shows in our
+  profile, and the number at the top of a chat.
+- The number is added, verified by SMS and registered. The App
+  Dashboard's "Register your WhatsApp phone number" step registers it
+  itself, though Meta's docs say only an API call can
+  ([registration](https://developers.facebook.com/documentation/business-messaging/whatsapp/business-phone-numbers/registration)).
+- A permanent access token. The App Dashboard's "Generate token" may
+  refuse with "Email verification is required", and send nothing. The
+  confirmation it wants pops up in Business Settings, on the System
+  users page: confirm it there, then generate the token again.
+- The profile, on the number's Profile tab in WhatsApp Manager: the
+  logo, what we do (events, volunteering, public awareness of AI risk),
+  the website, the address, hello@pauseai.uk, and the category nearest
+  to a non-profit, which the list calls Charity.
+- The backend's three settings are in Netlify ("Settings", below).
+
+Still to do:
+
+- Check there's a payment method, which the App Dashboard asks for "to
+  send business-initiated messages".
+- Raise the limit from 250 a day, which WhatsApp Manager still shows.
+  After verifying a business, Meta approves or denies the rise to
+  2,000 by the quality of our messages, and Business info says
+  "WhatsApp needs more information". WhatsApp Manager asks us to "Start
+  high-quality business-initiated conversations", and counts those
+  started with different people in the last seven days. So we send a
+  few small texts first, under 200 messages each, then go back to that
+  step and click it. For "needs more information" Meta's docs give two
+  other ways (limits, above): an admin confirms their identity with a
+  government ID, in the Security Centre
+  ([ID](https://www.facebook.com/business/help/587323819101032)), or
+  we send 2,000 delivered messages to different numbers in 30 days,
+  which is more numbers than we have. At 250 a day, a text to all 750
+  numbers takes the whole three days it may send for ("Scheduling").
+- Check Joseph is an admin of the portfolio, which requires two-factor
+  authentication of everyone. Each admin logs in with a personal
+  Facebook account, in their own name
   ([portfolios](https://www.facebook.com/business/help/1710077379203657)).
   Facebook doesn't allow accounts that aren't a real person, so
   admin@pauseai.uk can't be one.
-- "PauseAI UK" as the display name
-  ([display names](https://developers.facebook.com/documentation/business-messaging/whatsapp/display-names)),
-  and a complete profile: what we do (events, volunteering, public
-  awareness of AI risk), the website, an email address and the nonprofit
-  category.
-- Two-step verification, Francis and Joseph as admins, a system user
-  with a permanent access token, and a payment method.
+- Accept the Marketing Messages API's terms, in the App Dashboard's
+  WhatsApp Quickstart
+  ([get started](https://developers.facebook.com/documentation/business-messaging/whatsapp/marketing-messages/get-started)).
+- Publish the app. Until then, the App Dashboard says, it receives only
+  test webhooks sent from the dashboard, and no production data.
+- Set up the webhook, once `/api/whatsapp` is deployed: the callback URL
+  and verify token in the use case's "Configure Webhooks", then
+  "Subscribe webhooks" on the WhatsApp account.
 
-Then start gently: staff, then volunteers, then one local group. Keep
+Then start gently: staff, then volunteers, then one local group, each
+text under 200 messages until the limit has risen. Keep
 the first templates useful and expected, such as an event reminder, and
 watch their quality rating, which drops with blocks, reports and
 unread messages
 ([quality](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-quality)).
 An easy Stop button means people stop rather than block us.
+
+### Settings
+
+The backend reads three, the fewest Meta's API allows. They're set in
+Netlify for production alone, so a deploy preview can't send from the
+real number.
+
+| Variable              | What it is                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `WHATSAPP_TOKEN`      | The permanent access token. Secret.                                                                           |
+| `WHATSAPP_APP_SECRET` | The Meta app's secret, which signs each webhook (`X-Hub-Signature-256`). Secret.                              |
+| `WHATSAPP_ACCOUNT_ID` | The WhatsApp account's ID, which Meta calls the Messaging account ID. Templates are made and listed under it. |
+
+The account ID is on the App Dashboard's API Setup panel, and the app
+secret is in the app's basic settings. Each joins `.env.example` and
+`lib/server/config.ts` when the backend reads it.
+
+The rest comes from those:
+
+- The number and Meta's ID for it, which a send is posted to, are read
+  from the account's phone numbers (`GET /<account ID>/phone_numbers`)
+  and kept. `WHATSAPP_NUMBER`, which the site reads now, goes.
+- The webhook's verify token, which Meta sends back when the callback
+  URL is set, is worked out from the app secret. A script prints it for
+  whoever sets the webhook up.
 
 ### Steps
 
@@ -184,6 +249,8 @@ An easy Stop button means people stop rather than block us.
    ([overview](https://developers.facebook.com/documentation/business-messaging/whatsapp/marketing-messages/overview.md)).
    Meta charges for each delivered message, by category
    ([rate card](https://whatsappbusiness.com/products/platform-pricing/)).
+   A marketing message to a UK number is £0.0458, by the rates in pounds
+   of 1 October 2026, so a text to all 750 numbers is about £34.
 2. Templates. WhatsApp only sends approved templates, so a text uses
    one of two:
    - one of the WhatsApp approved templates, picked in the writer, whose
@@ -257,8 +324,9 @@ An easy Stop button means people stop rather than block us.
      `message_template_quality_update`);
    - stores replies.
 4. Staff can reply freely within 24 hours of the person's last message,
-   at no charge, and after that only with a template
-   ([pricing](https://developers.facebook.com/docs/whatsapp/pricing)).
+   and after that only with a template. The number's first 1,000 such
+   replies a month are free, and each one after is £0.0159
+   ([pricing](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing)).
    Meta has no inbox of its own for a Cloud API number: replies come to
    the webhook, and the site's pages show and answer them.
 5. Maybe, the same number in the WhatsApp Business app too, so staff can
@@ -363,11 +431,8 @@ and a calling tool.
 
 ## Open questions
 
-1. Which number for WhatsApp? The giffgaff number could go on the API
-   and stay in the app on Reuben's phone, through Meta's Coexistence
-   feature, which unlinks WhatsApp Web until it's linked again
-   ([Infobip](https://www.infobip.com/docs/whatsapp/manage-integration/coexistence)).
-   Or a new number just for the API.
+1. Settled: WhatsApp has a number of its own, registered for the API
+   ("Applying"). Whether it's in the Business app too is question 10.
 2. What should the checkbox say? A person writes it, and the same words
    go on Luma and our forms. It must name PauseAI UK and say messages
    and calls.
