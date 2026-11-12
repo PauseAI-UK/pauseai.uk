@@ -170,9 +170,9 @@ describe("EmailSettings", () => {
       .element(page.getByRole("link", { name: "hello@pauseai.uk" }))
       .toHaveAttribute("href", "mailto:hello@pauseai.uk");
     // Texts and calls go unmentioned for someone without a number.
-    await expect.element(page.getByText(copy.blocked.numbers)).not.toBeInTheDocument();
+    await expect.element(page.getByText(copy.blocked.numbers, { exact: false })).not.toBeInTheDocument();
     await show({ ...exampleBlocked, numbers: ["+447700900123"] });
-    await expect.element(page.getByText(copy.blocked.numbers)).toBeVisible();
+    await expect.element(page.getByText(copy.blocked.numbers, { exact: false })).toBeVisible();
   });
 
   it("locks texts and calls where PauseAI Global stops them to every number, and says so", async () => {

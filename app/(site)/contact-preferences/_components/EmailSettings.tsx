@@ -165,14 +165,17 @@ function Hold({
   return (
     <div className={styles.held}>
       <h2>{words.title}</h2>
-      <p className={styles.boxText}>{words.body}</p>
-      {hold.kind === "blocked" && view.numbers.length > 0 && <p className={styles.boxText}>{copy.blocked.numbers}</p>}
-      {/* Staff lift a block, so a blocked address asks them to. */}
-      {hold.kind === "blocked" && (
-        <p className={styles.boxText}>
-          {copy.blocked.ask} <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
-        </p>
-      )}
+      {/* One paragraph: what holds it, whether texts and calls still go, and, as staff lift a block, how to ask them to. */}
+      <p className={styles.boxText}>
+        {words.body}
+        {hold.kind === "blocked" && view.numbers.length > 0 && ` ${copy.blocked.numbers}`}
+        {hold.kind === "blocked" && (
+          <>
+            {" "}
+            {copy.blocked.ask} <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
+          </>
+        )}
+      </p>
     </div>
   );
 }
