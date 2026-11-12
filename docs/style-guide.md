@@ -286,7 +286,7 @@ same places on each, so a title is where the last page's was:
 
 - the title, with tags beside it for how the page's thing stands;
 - under it in grey, what the page is, in a line or two with no full stop,
-  then where what it shows comes from ("Source: Luma");
+  which can say where what it shows comes from, with a link there;
 - on an item's page, its facts in one line, each after a dot;
 - at the right, the page's buttons (below, "Where buttons that add go").
 

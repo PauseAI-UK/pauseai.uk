@@ -221,18 +221,11 @@ describe("PageHead", () => {
     expect(button.left).toBeGreaterThan(title.right);
   });
 
-  it("says where what the page shows comes from after what it is, or alone", async () => {
-    const { rerender } = await render(
-      <PageHead intro="Our events" source={<a href="/luma">Luma</a>}>
-        Events
-      </PageHead>,
-    );
-    const line = () => page.getByRole("banner").element().querySelector("p")!;
-    expect(line().textContent).toBe("Our events · Luma");
-    // Quieter than the page's text.
-    expect(getComputedStyle(line()).color).not.toBe(getComputedStyle(document.body).color);
-    await rerender(<PageHead source={<a href="/luma">Luma</a>}>Events</PageHead>);
-    expect(line().textContent).toBe("Luma");
+  it("says what the page is in a line quieter than the page's text", async () => {
+    await render(<PageHead intro="Our events">Events</PageHead>);
+    const line = page.getByRole("banner").element().querySelector("p")!;
+    expect(line.textContent).toBe("Our events");
+    expect(getComputedStyle(line).color).not.toBe(getComputedStyle(document.body).color);
   });
 
   it("leads the title with an icon, puts tags beside it, and its facts in a line, leaving out one that's nothing", async () => {

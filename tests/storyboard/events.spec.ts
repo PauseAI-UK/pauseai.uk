@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { site } from "@/lib/content/site";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { NOTIFICATION_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
@@ -43,10 +44,7 @@ test("Event owners", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/events`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
-  await expect(page.getByRole("link", { name: copy.source.link })).toHaveAttribute(
-    "href",
-    "/staff/scheduled-jobs/luma",
-  );
+  await expect(page.getByRole("link", { name: copy.intro.link })).toHaveAttribute("href", site.social.luma);
   const talk = page.getByRole("row").filter({ hasText: "AI risk talk" });
   await expect(talk.getByRole("cell").nth(5).getByText(copy.noOwner)).toBeVisible();
   await frame(page, "The events to come");

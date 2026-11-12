@@ -465,23 +465,6 @@ export const staffKit: Group = {
           ),
         },
         {
-          label: "With where what it shows comes from, after what it is",
-          render: () => (
-            <StaffPage as="div">
-              <PageHead
-                intro="Our events, and who on staff owns each"
-                source={
-                  <>
-                    Source: <a href="#">Luma</a>
-                  </>
-                }
-              >
-                Events
-              </PageHead>
-            </StaffPage>
-          ),
-        },
-        {
           label: "The title alone, with a quiet button to the page beside it",
           render: () => (
             <StaffPage as="div">

@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import { site } from "@/lib/content/site";
 import { staffCopy } from "@/lib/content/staff-interface";
 import EventColumns, { EventsList } from "./EventColumns";
 import type { SaveEvent } from "./EventEdit";
 import EventFilters, { eventWords } from "./EventFilters";
-import EventsTable, { EventGroups, EventsSource, EventTabs } from "./EventsTable";
+import EventsTable, { EventGroups, EventsIntro, EventTabs } from "./EventsTable";
 import {
   exampleEvents,
   exampleEventsNow,
@@ -540,12 +541,10 @@ describe("EventFilters", () => {
   });
 });
 
-describe("EventsSource", () => {
-  it("says the events come from Luma, leading to its import's page", async () => {
-    await render(<EventsSource />);
-    await expect.element(page.getByText(`${copy.source.label} ${copy.source.link}`)).toBeVisible();
-    await expect
-      .element(page.getByRole("link", { name: copy.source.link }))
-      .toHaveAttribute("href", "/staff/scheduled-jobs/luma");
+describe("EventsIntro", () => {
+  it("says what the page lists, and links to our calendar on Luma, where the events come from", async () => {
+    const { container } = await render(<EventsIntro />);
+    expect(container.textContent).toBe(`${copy.intro.before}${copy.intro.link}`);
+    await expect.element(page.getByRole("link", { name: copy.intro.link })).toHaveAttribute("href", site.social.luma);
   });
 });

@@ -871,10 +871,8 @@ export const staffCopy = {
   // The events page (/staff/events): our events on Luma, as the Luma import has them, and who on staff owns each.
   events: {
     title: "Events",
-    // Under the title.
-    intro: "⁂ Our events, and who on staff owns each",
-    // After it, on the same line: where the events come from, linking to the Luma import's page.
-    source: { label: "Source:", link: "Luma" },
+    // Under the title: what the page lists, ending in a link to our calendar on Luma.
+    intro: { before: "Events we're running taken from our ", link: "Luma calendar" },
     none: "No events yet.",
     // The tabs over the list, and their name, for a screen reader: those still to come, soonest first, and those
     // past, latest first.
@@ -2588,7 +2586,7 @@ All events: ${link}`,
     // the rest, such as reading Gmail, sending mailings and tidying the logs.
     pageTitle: "Scheduled jobs",
     // Under the title.
-    pageIntro: "⁂ What the site does by itself, how often, and how each job's last run went",
+    pageIntro: "Status of data syncing and email syncing",
     // Each import's icons, named for screen readers and on hover: where it's
     // from. Then how often it runs, the overview's headings and a lozenge on
     // the job's page, and the lozenges after some jobs' names: those that act

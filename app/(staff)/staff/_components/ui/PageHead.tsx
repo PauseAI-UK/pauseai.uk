@@ -8,7 +8,7 @@ import styles from "./PageHead.module.css";
  * - The title, with `lead` before it (a job's icon) and `tags` beside it,
  *   for how the page's thing stands.
  * - Under it in grey, `intro`: what the page is, in a line or two with no
- *   full stop; then `source`, where what it shows comes from.
+ *   full stop.
  * - Under that, `facts`: for a page about one lesser thing (a letter), what
  *   it is in a line, each fact after a dot. One that's nothing is left out.
  * - At the right, `action`: the page's main button, the one thing it's
@@ -23,7 +23,6 @@ export default function PageHead({
   lead,
   tags,
   intro,
-  source,
   facts = [],
   action,
   children,
@@ -31,7 +30,6 @@ export default function PageHead({
   lead?: ReactNode;
   tags?: ReactNode;
   intro?: ReactNode;
-  source?: ReactNode;
   facts?: ReactNode[];
   action?: ReactNode;
   children: ReactNode;
@@ -45,13 +43,7 @@ export default function PageHead({
           <h1>{children}</h1>
           {tags && <span className={styles.tags}>{tags}</span>}
         </div>
-        {(intro || source) && (
-          <p className={styles.intro}>
-            {intro}
-            {intro && source && " · "}
-            {source}
-          </p>
-        )}
+        {intro && <p className={styles.intro}>{intro}</p>}
         {said.length > 0 && (
           <p className={styles.facts}>
             {said.map((fact, i) => (
