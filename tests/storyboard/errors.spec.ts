@@ -148,7 +148,10 @@ test("An error marked done", async ({ page, flowDatabase }) => {
   await frame(page, "Marked done");
 
   story("It's gone from the errors to do, and is under Done, with the one marked done before.");
-  await page.getByRole("link", { name: errors.one.back }).click();
+  await page
+    .getByRole("navigation", { name: staffCopy.breadcrumb })
+    .getByRole("link", { name: staffCopy.nav.errors })
+    .click();
   await expect(page.getByRole("link", { name: words })).toHaveCount(0);
   await page.getByRole("link", { name: errors.tabs.done }).click();
   await expect(page.getByRole("link", { name: words })).toBeVisible();
