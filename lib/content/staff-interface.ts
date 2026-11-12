@@ -699,7 +699,7 @@ export const staffCopy = {
     // The field for what points back to their request, kept in the audit log's entry, and under it what to put.
     referenceLabel: "How and when did they ask?",
     referenceHint:
-      "⁂ For example “Email, 3 Nov 2026”. Don't put their name or address: this is kept after they're erased.",
+      "For example “Email to Joseph, 3 Nov 2026”. Don't put their name or address, as this reference is kept after they're erased.",
     confirm: "I'm sure this person asked to be erased",
     button: "Erase",
     cancel: "Cancel",
