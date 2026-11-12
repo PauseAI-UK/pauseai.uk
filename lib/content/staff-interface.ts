@@ -407,7 +407,7 @@ export const staffCopy = {
   supporters: {
     title: "Supporters",
     // Under the title.
-    intro: "⁂ Everyone who has signed up, come to an event or written to their MP",
+    intro: "Everyone who has signed up, come to an event or written to their MP",
     none: "Nobody found.",
     // Over the list: how many there are.
     total: (total: number) => count(total, "supporter", "supporters"),
