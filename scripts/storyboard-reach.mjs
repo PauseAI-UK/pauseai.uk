@@ -53,6 +53,11 @@ const NOTHING = [
   /^netlify\.toml$/,
 ];
 
+/** Whether `path` is one no flow runs or reads (NOTHING): a change to only such files needs no check of the map. */
+export function readByNoFlow(path) {
+  return NOTHING.some((re) => re.test(path));
+}
+
 /** Folders of no source: what's built, installed or thrown away. */
 const NOT_SOURCE = new Set(["node_modules", ".git", ".next", ".netlify", "tmp", "test-results", "playwright-report"]);
 const CODE = /\.(tsx?|mts|mjs|jsx?|css|json)$/;

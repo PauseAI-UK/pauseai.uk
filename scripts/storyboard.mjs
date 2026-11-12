@@ -100,7 +100,7 @@ import {
   runFolder,
   selectFlows,
 } from "./storyboard-main.mjs";
-import { changedCopyKeys, flowsToRun, reachContext, STAFF_COPY } from "./storyboard-reach.mjs";
+import { changedCopyKeys, flowsToRun, reachContext, readByNoFlow, STAFF_COPY } from "./storyboard-reach.mjs";
 import {
   carryKept,
   keepRuns,
@@ -449,7 +449,7 @@ function planSummary(chosen, total) {
       `  or add a hit to investments/storyboard-review-speed.md naming the file.`,
     ].join("\n");
   if (chosen.run.size === 0)
-    return `Storyboard: none of the ${total} flows to run: the ${chosen.changed.length} files changed since ${from} reach none.`;
+    return `Storyboard: none of the ${total} flows to carry afresh: the ${chosen.changed.length} files changed since ${from} reach none.`;
   if (chosen.run.size === total)
     return `Storyboard: every flow, ${total}: the ${chosen.changed.length} files changed since ${from} reach them all, or none of them has run on this code.`;
   const why = [
@@ -780,10 +780,12 @@ if (options.plan) {
   }
   process.exit(0);
 }
+// The flows it would carry that it runs anyway, to check the map (spotChecks): none when it runs every flow,
+// or when nothing changed but files no flow reads, as docs and unit tests.
+const spot =
+  chosen && chosen.unknown.length === 0 && chosen.changed.some((file) => !readByNoFlow(file)) ? spotChecks(chosen) : [];
 /** Whether the review has chosen its flows and found none to run: it's then every flow carried, beside main as it is now. */
-const nothing = chosen?.run.size === 0;
-// The flows it would carry that it runs anyway, to check the map (spotChecks): none when it runs every flow.
-const spot = chosen && !nothing && chosen.unknown.length === 0 ? spotChecks(chosen) : [];
+const nothing = chosen?.run.size === 0 && spot.length === 0;
 /** A file for `playwright test --test-list` of the flows `keys`. */
 function testList(keys) {
   const file = join(mkdtempSync(join(tmpdir(), "pauseai-storyboard-")), "tests.txt");

@@ -15,6 +15,7 @@ import {
   importsOf,
   NAMED,
   reachContext,
+  readByNoFlow,
   reachedFlows,
   resolveImport,
   routeFiles,
@@ -191,6 +192,13 @@ describe("resolveImport and unresolvedImports", () => {
       "lib/broken.ts: (not a plain string)",
     ]);
     expect(unresolvedImports(root, ["components"])).toEqual([]);
+  });
+});
+
+describe("readByNoFlow", () => {
+  it("says which files no flow runs or reads: docs and unit tests, not the site's code", () => {
+    expect(["docs/testing.md", "lib/x.test.ts", "AGENTS.md"].map(readByNoFlow)).toEqual([true, true, true]);
+    expect(["lib/x.ts", "scripts/storyboard.mjs", "package.json"].map(readByNoFlow)).toEqual([false, false, false]);
   });
 });
 

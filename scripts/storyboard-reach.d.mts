@@ -13,6 +13,7 @@ type CarriedRun = Run & { status: string; tree?: string; setup?: string };
 
 export const NAMED: string[];
 export const STAFF_COPY: string;
+export function readByNoFlow(path: string): boolean;
 export function resolveImport(root: string, from: string, spec: string): string | undefined;
 export function importsOf(path: string, text: string): string[];
 export function importGraph(root: string): Graph;
