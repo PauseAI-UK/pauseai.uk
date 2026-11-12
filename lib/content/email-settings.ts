@@ -78,9 +78,9 @@ export const emailSettingsCopy = {
   // To someone with "No bulk emails" who just ticked a box to hear from us: what happened and how to settle it, once,
   // and nothing more. `where` is where they signed up.
   bulkNotice: {
-    subject: "⁂ You asked to hear from PauseAI UK",
+    subject: "You asked to hear from PauseAI UK",
     body: (where: string, link: string, days: number) =>
-      `⁂ You ticked the box to hear from PauseAI UK on ${where}. But you've asked PauseAI not to send you bulk email, so we won't send you anything yet.\n\nIf you'd like our emails, you can change that here:\n\n${link}\n\nThe link works for ${days} days. If you'd rather not hear from us, do nothing: we won't email you about this again.`,
+      `You ticked the box to hear from PauseAI UK on ${where}. But you've asked PauseAI not to send you bulk email, so we won't send you anything yet.\n\nIf you'd like our emails, you can change that here:\n\n${link}\n\nThe link works for ${days} days. If you'd rather not hear from us, do nothing: we won't email you about this again.`,
     where: {
       "march-2026-11": "the March Against AI Extinction sign-up",
       "email-your-mp": "our Email your MP form",
