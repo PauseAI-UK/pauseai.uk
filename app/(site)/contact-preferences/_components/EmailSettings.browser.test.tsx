@@ -221,19 +221,21 @@ describe("EmailSettings", () => {
     await expect.element(page.getByText(copy.expired.body)).toBeVisible();
   });
 
-  it("explains an answer it has no words for by nothing, and a no it has words for as they are", async () => {
+  it("explains a no by its words, or as never asked where it has none, and a yes it has no words for by nothing", async () => {
     await show({
       ...exampleSettings,
       numbers: [],
       answers: [
         { ...exampleSettings.answers[0], send: "no", reason: "declined" },
+        { ...exampleSettings.answers[0], topic: "events", send: "no", reason: "not-opted-in", source: "civicrm" },
         { ...exampleSettings.answers[0], topic: "volunteering", send: "yes", reason: "left", source: "nowhere" },
       ],
     });
     await expect
       .element(why("newsletter", copy.why.reasons.declined!(copy.sourceWords("march-2026-11"))))
       .toBeVisible();
-    // A reason the page has no words for: no why, and nothing to open on a phone.
+    await expect.element(why("events", copy.why.unasked)).toBeVisible();
+    // A yes the page has no words for: no why, and nothing to open on a phone.
     await expect.element(card("volunteering").getByText(copy.why.yes)).not.toBeInTheDocument();
     await expect.element(card("volunteering").getByRole("button", { name: copy.why.ask })).not.toBeInTheDocument();
   });

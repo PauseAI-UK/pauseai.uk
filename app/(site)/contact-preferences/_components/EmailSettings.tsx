@@ -64,11 +64,12 @@ const reasonWords = (answer: ContactPermission): string => {
 
 /**
  * Why a topic is on or off, after a bold "Why:", in the person's words: that
- * they never asked, where there's no answer; null for a reason the page has
- * no words for.
+ * they never asked, where there's no answer or a no the page has no words
+ * for, such as CiviCRM's "not opted in"; null for a yes it has no words for.
  */
 function why(answer: ContactPermission | null): ReactNode {
-  const reason = answer ? reasonWords(answer) : copy.why.unasked;
+  const unasked = !answer || answer.send === "no" ? copy.why.unasked : "";
+  const reason = (answer && reasonWords(answer)) || unasked;
   if (!reason) return null;
   return (
     <>
