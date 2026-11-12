@@ -29,17 +29,19 @@ describe("StaffSessions", () => {
       />,
     );
     const copy = staffCopy.sessions;
-    const rows = page.getByRole("row").all().slice(1);
+    // A card, with what the sessions are over them.
+    const card = page.getByRole("region", { name: staffCopy.me.sessionsTitle });
+    await expect.element(card.getByText(copy.intro)).toBeVisible();
+    // A row each: its browser and system, or that they're not known; when it began and ends; and only one that's kept says so.
+    const rows = card.getByRole("list", { name: staffCopy.me.sessionsTitle }).getByRole("listitem").all();
     expect(rows.map((row) => row.element().textContent)).toEqual([
-      `FirefoxLinux22 Oct 2026, 09:0023 Oct 2026, 09:00${copy.kept.no}${copy.thisBrowser}${staffCopy.nav.logout}`,
-      `${copy.unknown}${copy.unknown}20 Oct 2026, 08:0021 Nov 2026, 08:00${copy.kept.yes}${staffCopy.nav.logout}`,
+      `Firefox · Linux${copy.thisBrowser}${copy.started} 22 Oct 2026, 09:00${copy.ends} 23 Oct 2026, 09:00${staffCopy.nav.logout}`,
+      `${copy.unknown}${copy.started} 20 Oct 2026, 08:00${copy.ends} 21 Nov 2026, 08:00${copy.kept}${staffCopy.nav.logout}`,
     ]);
     const form = page.getByRole("button", { name: copy.logOutEverywhere }).element().closest("form")!;
     expect(form.getAttribute("method")).toBe("post");
     expect(form.getAttribute("action")).toBe("/staff/api/logout");
     expect(new FormData(form).get("everywhere")).toBe("1");
-    // Its rows are centred, as they hold buttons.
-    expect(getComputedStyle(page.getByRole("cell", { name: copy.kept.yes }).element()).verticalAlign).toBe("middle");
     // Each row's Log out ends that one.
     const ones = page.getByRole("button", { name: staffCopy.nav.logout }).all();
     expect(ones.map((button) => new FormData(button.element().closest("form")!).get("session"))).toEqual([

@@ -1340,5 +1340,16 @@ describe("Rows", () => {
     expect(Math.round(change.right)).toBe(Math.round(rows[1].getBoundingClientRect().right));
     // A row of one line has nothing before or after it.
     expect(rows[2].children).toHaveLength(1);
+    // On a phone, what leads a row is over its words, which start where it does; what ends it stays beside both.
+    await page.viewport(400, 800);
+    try {
+      expect(box("Meet-up").left).toBe(box("7 Nov 2026").left);
+      expect(box("Meet-up").top).toBeGreaterThanOrEqual(box("7 Nov 2026").bottom);
+      const button = page.getByRole("button", { name: "Change it" }).element().getBoundingClientRect();
+      expect(button.left).toBeGreaterThan(box("Meet-up").right);
+      expect(button.top).toBeLessThan(box("Online").bottom);
+    } finally {
+      await page.viewport(1280, 800);
+    }
   });
 });

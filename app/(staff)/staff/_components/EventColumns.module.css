@@ -19,6 +19,13 @@
   font-weight: 500;
 }
 
+/* An event's day, with room for the longest, so the names start level from
+   one card to the next, whichever days each has. */
+.day {
+  display: inline-block;
+  min-width: 6.5rem;
+}
+
 /* Under an event's name: what else there is to say of it, each apart. */
 .detail {
   display: flex;

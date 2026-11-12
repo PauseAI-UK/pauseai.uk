@@ -177,18 +177,14 @@ export const staffCopy = {
   // Your sessions, on your own page (/staff/me): one row each, and a way to end them all.
   sessions: {
     intro: "You're logged into the PauseAI Staff pages on these devices.",
-    columns: {
-      browser: "Browser",
-      system: "System",
-      started: "Logged in",
-      ends: "Ends",
-      kept: "Kept signed in",
-    },
-    kept: { yes: "Yes", no: "No" } as Record<string, string>,
+    // Under a session's browser and system: each before its time, then, for one that is, that it's kept.
+    started: "Logged in",
+    ends: "Ends",
+    kept: "Kept signed in",
     // Beside the session of the browser looking.
     thisBrowser: "This browser",
-    // A browser or system we can't name from what the browser sent.
-    unknown: "Unknown",
+    // In place of the browser and system, when what the browser sent names neither.
+    unknown: "⁂ Unknown browser",
     logOutEverywhere: "Log out of all of them",
   },
   // The home page: the dashboard.

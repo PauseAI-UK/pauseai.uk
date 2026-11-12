@@ -62,5 +62,23 @@
 /* What ends a row, at its right. */
 .end {
   grid-column: 3;
+  grid-row: 1;
   padding-left: var(--space-4);
+}
+
+/* A phone: what leads a row goes over its words, so they have the row's
+   width but for what ends it, which stays beside them both. */
+@media (max-width: 720px) {
+  .lead,
+  .words {
+    grid-column: 1 / 3;
+  }
+
+  .lead {
+    padding-right: 0;
+  }
+
+  .end {
+    grid-row: 1 / span 2;
+  }
 }

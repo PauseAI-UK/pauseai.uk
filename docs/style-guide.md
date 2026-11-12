@@ -498,10 +498,12 @@ ruled from the next:
 
 What ends the rows lines up down the card. A thing named by its day has
 its date first, before the main line, and the dates line up too (the
-events in a list by owner). The card's title says what the rows share, and
-its action can be how many there are. A politician's asks are laid out the
-same way (`AskRow`). Something with more to say than this, or that's
-compared down a column, is a table in the card instead (`ListTable`).
+events in a list by owner). On a phone the date goes over the main line,
+so the words have the row's width. The card's title says what the rows
+share, and its action can be how many there are. Your sessions are rows
+too, and a politician's asks are laid out the same way (`AskRow`).
+Something that's compared down its columns, such as a supporter's events
+with their dates, is a table in the card instead (`ListTable`).
 
 **Nothing to show** (`ui/Empty`). That there's nothing is said one way:
 the page's own words, in grey, at the size of the text around them, where

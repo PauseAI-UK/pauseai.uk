@@ -1,4 +1,20 @@
-/* What the sessions are, over their table: spaced by the card, not itself. */
+/* What the sessions are, over their rows: spaced by the card, not itself. */
 .intro {
   margin: 0;
+}
+
+/* A session's browser and system, with this browser's mark after them. */
+.name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+}
+
+/* Under them: when it began, when it ends, and that it's kept, each apart,
+   a whole one going to the next line. */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
 }

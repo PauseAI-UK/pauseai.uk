@@ -78,7 +78,7 @@ function List({
   const line = (event: StaffEvent) => (
     <Row
       key={event.id}
-      lead={londonDate(event.startAt)}
+      lead={<span className={styles.day}>{londonDate(event.startAt)}</span>}
       second={
         <span className={styles.detail}>
           <Detail event={event} grouping={grouping} list={list.title} needed={needed(event)} />

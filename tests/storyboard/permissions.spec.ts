@@ -286,8 +286,9 @@ test("Logging out everywhere", async ({ page, browser, flowDatabase }) => {
   story("Their page lists where they're logged in, and marks this browser.");
   await link.click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.me.title);
-  await expect(page.getByRole("row")).toHaveCount(3);
-  await expect(page.getByRole("row").filter({ hasText: staffCopy.sessions.thisBrowser })).toHaveCount(1);
+  const sessions = page.getByRole("list", { name: staffCopy.me.sessionsTitle }).getByRole("listitem");
+  await expect(sessions).toHaveCount(2);
+  await expect(sessions.filter({ hasText: staffCopy.sessions.thisBrowser })).toHaveCount(1);
   await frame(page, "Where you're logged in");
 
   story("Log out of all of them logs the other browser out too.");
