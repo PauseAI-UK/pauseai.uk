@@ -31,7 +31,7 @@ const flow = (extra: Partial<Flow>): Flow => ({
 const board = (frames: Frame[], flows: Flow[] = [flow({})], withMain = true): Storyboard => ({
   generatedAt: "2026-11-09T10:00:00.000Z",
   withMain,
-  summary: { flows: flows.length, failed: 0, frames: frames.length, changed: 0, mainFailed: 0 },
+  summary: { flows: flows.length, failed: 0, frames: frames.length, changed: 0, mainMissing: 0 },
   flows,
   frames,
 });
