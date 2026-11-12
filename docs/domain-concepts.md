@@ -340,6 +340,12 @@ time they're written to, and kept.
   unblock the address, or the MP's address changes, what bounced goes again
   and the supporter is told (`resendAfterFix`).
 
+  That lasts a week (`RESEND_DAYS`), from when the letter was written, or
+  the relay came. Past it, what bounced never goes again, whatever happens
+  to the address, and the hourly run tells the supporter so, once
+  (`tellOfNotResent`): a letter months old would otherwise go the day
+  someone corrected an address.
+
   When the supporter's copy, or a relay to them, bounces, the site blocks
   their address and holds later relays to them, in case staff unblock it.
   A day on, if a relay is still held, the MP's office is told once that it

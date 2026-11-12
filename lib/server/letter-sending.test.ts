@@ -561,5 +561,65 @@ describeWithDatabase("the letters inbox's queue", () => {
       await bounce(id, MP);
       expect(sent.map((s) => s.headers.get("to"))).toEqual([JANE_LINE]);
     });
+
+    /** The MP's address works again, both ways: staff unblock it, then it changes; and the queue runs twice. */
+    async function fixAddress() {
+      expect(await unblock(MP, "staff@pauseai.uk", "Their office gave us the right address")).toBe(true);
+      await query("UPDATE notable_people SET email = 'new-office@parliament.example'");
+      await sendLetterQueue(Date.now() + 10_000);
+      await sendLetterQueue(Date.now() + 10_000);
+    }
+
+    it("a letter written over a week ago never goes again: the supporter is told so, once", async () => {
+      await submitLetter(FORM);
+      await bounce(await sentId("letter"), MP);
+      await query("UPDATE letters SET created_at = now() - interval '8 days'");
+      const sent = recordGmail();
+      await fixAddress();
+      expect(sent.map((s) => s.headers.get("to"))).toEqual([JANE_LINE]);
+      expect(sent[0].text).toBe(copy.notices.notResent("Testy McTestface MP"));
+      expect(await statusOf()).toBe("bounced");
+      const last = (await events()).at(-1)!;
+      expect(last).toMatchObject({ status: "notice", details: { to: JANE, notice: "notResent" } });
+      expect(last.details).not.toHaveProperty("gmailMessageId");
+    });
+
+    it("a relay to the MP from over a week ago never goes again either, and the supporter is told of it, once", async () => {
+      await replied();
+      deliverToLettersInbox(testMail({ from: JANE, to: testProxy("testy.mctestface.mp"), text: "Thanks\r\n" }));
+      await readGmail("test");
+      await bounce(await sentId("relay", MP), MP);
+      await query("UPDATE letter_relays SET created_at = now() - interval '8 days' WHERE NOT to_supporter");
+      const sent = recordGmail();
+      await fixAddress();
+      expect(sent.map((s) => s.headers.get("to"))).toEqual([JANE_LINE]);
+      expect(sent[0].text).toBe(copy.notices.notResent("Testy McTestface MP"));
+      expect(await query("SELECT status FROM letter_relays WHERE NOT to_supporter")).toEqual([{ status: "bounced" }]);
+      // Both notices name the message relayed, so the history puts them under it.
+      const notices = (await events()).filter((e) => e.status === "notice");
+      expect(notices.map((e) => e.details.notice)).toEqual(["bounced", "notResent"]);
+      expect(notices[1].details.gmailMessageId).toEqual(expect.any(String));
+      expect(notices[0].details.gmailMessageId).toBe(notices[1].details.gmailMessageId);
+    });
+
+    it("tells nobody it won't go again who wasn't told it bounced, or whose own address is blocked", async () => {
+      await submitLetter(FORM);
+      const id = await sentId("letter");
+      // A soft bounce marks the letter bounced, and tells nobody.
+      await bounce(id, MP, "soft");
+      await query("UPDATE letters SET created_at = now() - interval '8 days'");
+      const sent = recordGmail();
+      await sendLetterQueue(Date.now() + 10_000);
+      expect(sent).toEqual([]);
+      await bounce(id, MP);
+      await block(JANE);
+      sent.length = 0;
+      await sendLetterQueue(Date.now() + 10_000);
+      expect(sent).toEqual([]);
+      // Once her address works, she's told.
+      await unblock(JANE, "staff@pauseai.uk", "She fixed her mailbox");
+      await sendLetterQueue(Date.now() + 10_000);
+      expect(sent.map((s) => s.text)).toEqual([copy.notices.notResent("Testy McTestface MP")]);
+    });
   });
 });

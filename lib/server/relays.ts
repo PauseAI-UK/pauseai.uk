@@ -8,6 +8,7 @@ import {
   lettersBackend,
   noticeToSender,
   outgoingLetter,
+  RESEND_DAYS,
   sendCopy,
   sendLetter,
   sentMessageId,
@@ -39,13 +40,19 @@ export async function overRelayCap(letterId: number): Promise<boolean> {
   return hour >= RELAY_CAP.hour || day >= RELAY_CAP.day;
 }
 
-/** A relay's history event: `status`, with whom it's to and the message it relays. */
-async function relayEvent(relayId: number, status: LetterEvent, details: object = {}) {
+/** A relay's letter, and the message it relays, as Gmail knows it. */
+async function relayed(relayId: number): Promise<{ letterId: number; gmailMessageId: string }> {
   const [relay] = await query<{ letterId: number; gmailMessageId: string }>(
     `SELECT r.letter_id::int AS "letterId", m.gmail_message_id AS "gmailMessageId"
      FROM letter_relays r JOIN letter_replies m ON m.id = r.reply_id WHERE r.id = $1`,
     [relayId],
   );
+  return relay;
+}
+
+/** A relay's history event: `status`, with whom it's to and the message it relays. */
+async function relayEvent(relayId: number, status: LetterEvent, details: object = {}) {
+  const relay = await relayed(relayId);
   await letterEvent(relay.letterId, status, { ...details, gmailMessageId: relay.gmailMessageId });
 }
 
@@ -160,10 +167,10 @@ export async function uncertainRelays(): Promise<number> {
   return left.length;
 }
 
-/** After a bounce of relay `relayId` to the MP: marks it bounced, and tells the supporter. */
+/** After a bounce of relay `relayId` to the MP: marks it bounced, and tells the supporter, naming the message. */
 export async function relayBounced(relayId: number, letterId: number): Promise<void> {
   await setStatus(relayId, "bounced");
-  await noticeToSender(letterId, "bounced");
+  await noticeToSender(letterId, "bounced", (await relayed(relayId)).gmailMessageId);
 }
 
 /**
@@ -171,13 +178,15 @@ export async function relayBounced(relayId: number, letterId: number): Promise<v
  * every letter and relay to the MP at `address`, or to `politicianId`,
  * that bounced, or waits on the block, goes back in the queue and is sent,
  * to the address the MP has now; the supporter is told once it has gone,
- * if they were told it bounced. Copies and relays to a supporter at
- * `address` held for the block go too.
+ * if they were told it bounced. Not one that bounced and is past
+ * RESEND_DAYS, which never goes again (tellOfNotResent). Copies and relays
+ * to a supporter at `address` held for the block go too.
  */
 export async function resendAfterFix(fix: { address?: string; politicianId?: number }): Promise<void> {
   const params = [fix.address?.toLowerCase() ?? null, fix.politicianId ?? null];
   const toMp = "(lower(n.email) = $1 OR n.id = $2)";
   const toSupporter = "lower(btrim(f.email)) = $1";
+  const RESEND_SINCE = `now() - interval '${RESEND_DAYS} days'`;
   const FROM = `letters l JOIN letters_from_supporters s USING (id) JOIN notable_people n ON n.id = l.notable_person_id
     JOIN form_entries f ON f.id = s.entry_id`;
   await query(
@@ -188,7 +197,8 @@ export async function resendAfterFix(fix: { address?: string; politicianId?: num
   const letters = await query<{ id: number; told: boolean }>(
     `SELECT l.id::int AS id, EXISTS (SELECT 1 FROM letter_events e WHERE e.letter_id = l.id AND e.status = 'notice'
        AND e.details->>'notice' = 'bounced') AS told
-     FROM ${FROM} WHERE s.proxy_id IS NOT NULL AND l.status IN ('bounced', 'queued') AND ${toMp} ORDER BY l.id`,
+     FROM ${FROM} WHERE s.proxy_id IS NOT NULL AND ${toMp}
+       AND (l.status = 'queued' OR (l.status = 'bounced' AND l.created_at > ${RESEND_SINCE})) ORDER BY l.id`,
     params,
   );
   for (const letter of letters) {
@@ -204,7 +214,8 @@ export async function resendAfterFix(fix: { address?: string; politicianId?: num
   const relays = await query<{ id: number; letterId: number; status: string }>(
     `SELECT r.id::int AS id, r.letter_id::int AS "letterId", r.status
      FROM letter_relays r JOIN ${FROM} ON l.id = r.letter_id
-     WHERE r.status IN ('bounced', 'held') AND ((NOT r.to_supporter AND ${toMp}) OR (r.to_supporter AND ${toSupporter}))
+     WHERE (r.status = 'held' OR (r.status = 'bounced' AND r.created_at > ${RESEND_SINCE}))
+       AND ((NOT r.to_supporter AND ${toMp}) OR (r.to_supporter AND ${toSupporter}))
      ORDER BY r.id`,
     params,
   );

@@ -127,6 +127,17 @@ describe("LetterHistory", () => {
       ["notice", undefined],
       ["notice", undefined],
     ]);
+    // One saying it bounced too long ago to go again, under that bounce.
+    const notResent = historyOf({
+      ...letter,
+      events: [
+        notice("2026-10-19T10:00:00Z", "notResent"),
+        { at: new Date("2026-10-12T10:00:00Z"), status: "bounced", details: {} },
+      ],
+    });
+    expect(notResent.map((e) => [e.status, e.under?.map((u) => u.details.notice)])).toEqual([
+      ["bounced", ["notResent"]],
+    ]);
     // With no Sent at all, a copy stays where it was.
     const copyOnly = { at: new Date("2026-10-10T10:00:00Z"), status: "copy_held", details: {} };
     expect(historyOf({ ...letter, events: [copyOnly] })).toEqual([copyOnly]);

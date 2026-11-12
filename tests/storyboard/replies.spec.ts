@@ -341,6 +341,33 @@ test("Jane's letter bounces", async ({ page, request, flowDatabase }) => {
   await frame(page, "The letter's history");
 });
 
+test("A bounced letter isn't sent after a week", async ({ page, request, flowDatabase }) => {
+  story(
+    "Jane's letter bounces, and she's told it will go again once her MP's address works. A week after she wrote, the address still doesn't. Within the hour, Jane is told her letter wasn't sent, and won't be.",
+  );
+  const sender = madeUpAddress("Jane Smith", 45);
+  const id = await sentLetterId(page, flowDatabase, sender, bouncy);
+  deliver(flowDatabase, bounceOf(sentIds(flowDatabase, id, "letter")[0], BOUNCY_ADDRESS));
+  expect(await readInbox(request)).toMatchObject({ bounces: 1, notUnderstood: [] });
+  runSql(flowDatabase, `UPDATE letters SET created_at = now() - interval '8 days' WHERE id = ${id}`);
+  await runQueue(request);
+  const notice = sentEmail(flowDatabase, id, "supporter-notice");
+  expect(notice.TextBody).toBe(copy.notices.notResent(bouncy.name));
+  await emailFrame(page, notice, "The second email Jane gets");
+  story("Later, staff unblock the address. Her letter doesn't go to the MP, and its history says what Jane was told.");
+
+  await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
+  await page.getByRole("link", { name: bouncy.name, exact: true }).first().click();
+  await expect(page.getByRole("heading", { level: 1, name: bouncy.name })).toBeVisible();
+  await page.getByLabel(staffCopy.emails.note).fill("Their office gave us the right address");
+  await page.getByRole("button", { name: staffCopy.emails.unblock }).click();
+  await expect(page.getByLabel(staffCopy.emails.note)).not.toBeVisible();
+  expect(sentIds(flowDatabase, id, "letter")).toHaveLength(1);
+  const entries = await openLetter(page, id);
+  await expect(entries.first()).toContainText(history.notices.notResent);
+  await frame(page, "The letter's history");
+});
+
 test("Jane's address bounces", async ({ page, request, flowDatabase }) => {
   story(
     "Jane's copy of her letter bounces, so her address is blocked. When the MP replies, the reply is kept but not sent to her, in case staff unblock her address, and the letter's history says why.",
