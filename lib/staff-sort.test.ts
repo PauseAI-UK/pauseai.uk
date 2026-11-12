@@ -8,7 +8,11 @@ describe("parseSort", () => {
     expect(parseSort(columns, "name")).toEqual({ key: "name", dir: "asc" });
     expect(parseSort(columns, "name", "events")).toEqual({ key: "events", dir: "desc" });
     expect(parseSort(columns, "name", "events", "asc")).toEqual({ key: "events", dir: "asc" });
+    expect(parseSort(columns, "name", "events", "down")).toEqual({ key: "events", dir: "desc" });
     expect(parseSort(columns, "name", "age", "down")).toEqual({ key: "name", dir: "asc" });
+    // A direction counts only with a column the table has.
+    expect(parseSort(columns, "name", "age", "desc")).toEqual({ key: "name", dir: "asc" });
+    expect(parseSort(columns, "name", "", "desc")).toEqual({ key: "name", dir: "asc" });
   });
 });
 

@@ -140,7 +140,7 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
   const onHerPage = [await counted(copy.band.emailsToThem), await counted(copy.band.emailsFromThem)];
   expect(onHerPage[1]).toBe(1);
   const { columns } = staffCopy.politicians;
-  const { first, under } = await listSortedBy(page, columns.emailsFromThem, /sort=replies&dir=desc/);
+  const { first, under } = await listSortedBy(page, columns.emailsFromThem, /sort=emailsFromThem&dir=desc/);
   await expect(first.getByRole("link", { name: "Polly Placeholder", exact: true })).toBeVisible();
   await expect(under(columns.emailsToThem)).toHaveText(String(onHerPage[0]));
   await expect(under(columns.emailsFromThem)).toHaveText(String(onHerPage[1]));

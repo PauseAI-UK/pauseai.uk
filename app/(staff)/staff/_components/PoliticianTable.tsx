@@ -188,7 +188,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
     {
       key: "emailsToThem",
       label: staffCopy.politicians.columns.emailsToThem,
-      heading: heading("letters", staffCopy.politicians.columns.emailsToThem, true),
+      heading: heading("emailsToThem", staffCopy.politicians.columns.emailsToThem, true),
       breakOnce: true,
       short: true,
       className: styles.count,
@@ -198,7 +198,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
     {
       key: "emailsFromThem",
       label: staffCopy.politicians.columns.emailsFromThem,
-      heading: heading("replies", staffCopy.politicians.columns.emailsFromThem, true),
+      heading: heading("emailsFromThem", staffCopy.politicians.columns.emailsFromThem, true),
       breakOnce: true,
       short: true,
       className: styles.count,

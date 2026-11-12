@@ -8,15 +8,21 @@ export type SortSpec<Key extends string> = { key: Key; dir: SortDirection };
 /** A table's sortable columns, each with the direction a first click gives. */
 export type SortColumns<Key extends string> = Record<Key, SortDirection>;
 
-/** The sort from the URL: a known column and direction, or `fallback` in its natural direction. */
+/**
+ * The sort from the URL: a column the table has, in the URL's direction or
+ * its natural one. Any other name gives `fallback` in its natural
+ * direction, whatever direction came with it: a link or saved filter that
+ * names a sort the table doesn't have shows the table as it is by default.
+ */
 export function parseSort<Key extends string>(
   columns: SortColumns<Key>,
   fallback: Key,
   sort = "",
   dir = "",
 ): SortSpec<Key> {
-  const key = Object.hasOwn(columns, sort) ? (sort as Key) : fallback;
-  return { key, dir: dir === "asc" || dir === "desc" ? dir : columns[key] };
+  const known = Object.hasOwn(columns, sort);
+  const key = known ? (sort as Key) : fallback;
+  return { key, dir: known && (dir === "asc" || dir === "desc") ? dir : columns[key] };
 }
 
 /**

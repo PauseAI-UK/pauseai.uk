@@ -97,8 +97,7 @@ politician at once (`lib/server/politician-email-counts.ts`):
   parliament's address. A letter marked answered (`replied_at`) with no
   message of the answer kept counts none.
 
-The list sorts by them as `sort=letters` and `sort=replies`, the names its
-URLs and saved filters hold.
+The list sorts by them as `sort=emailsToThem` and `sort=emailsFromThem`.
 
 The list's First activity and Last activity are the first and last time we
 did something with a politician, or they with us (`POLITICIAN_ACTIVITY` in

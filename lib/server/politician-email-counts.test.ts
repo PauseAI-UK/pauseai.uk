@@ -152,11 +152,11 @@ describeWithDatabase("the emails to and from a politician", () => {
     expect((await politicianMessages(polly, [])).oneOffs).toEqual({});
 
     // Each heading's sort, by the name the list's URL has for it: the peer has had more, and Polly has sent more.
-    const sorted = async (key: "letters" | "replies", dir: "asc" | "desc") =>
+    const sorted = async (key: "emailsToThem" | "emailsFromThem", dir: "asc" | "desc") =>
       (await listPoliticians({ sort: { key, dir } })).map((one) => one.id);
-    expect(await sorted("letters", "desc")).toEqual([peer, polly, nora]);
-    expect(await sorted("replies", "desc")).toEqual([polly, peer, nora]);
-    expect(await sorted("replies", "asc")).toEqual([nora, peer, polly]);
+    expect(await sorted("emailsToThem", "desc")).toEqual([peer, polly, nora]);
+    expect(await sorted("emailsFromThem", "desc")).toEqual([polly, peer, nora]);
+    expect(await sorted("emailsFromThem", "asc")).toEqual([nora, peer, polly]);
   });
 
   it("dates a politician's first and last activity by the one-off messages it counts, with their letters and answers", async () => {
