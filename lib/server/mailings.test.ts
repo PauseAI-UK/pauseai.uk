@@ -3,7 +3,7 @@ import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/test
 import { query } from "./db";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { createDraft, saveDraft } from "./mailing-drafts";
-import { getMailing, listMailings, mailingsOverview, mailingsPage, mailingTitle } from "./mailings";
+import { getMailing, listMailings, mailingCrumb, mailingsOverview, mailingsPage, mailingTitle } from "./mailings";
 
 /** A PauseAI letter of the mailing titled `title`, to `politicianId`. */
 async function addLetter(
@@ -101,6 +101,10 @@ describeWithDatabase("mailings", () => {
     // A draft with no subject yet says so.
     const draft = await createDraft("jo@pauseai.uk", { list: "politicians", params: {} }, {});
     expect(await mailingTitle(draft.id)).toBe(staffCopy.mailingPages.untitled);
+    // In the trail above its page, a sent one is its title, and a draft, whose title changes as it's written, is a draft.
+    expect(await mailingCrumb(id)).toBe(EDINBURGH);
+    expect(await mailingCrumb(draft.id)).toBe(staffCopy.mailingPages.draftCrumb);
+    expect(await mailingCrumb(9999)).toBeUndefined();
   });
 
   it("lists a tab of the recipients: those who replied, whose letter failed or was stopped, with their answer to its ask", async () => {

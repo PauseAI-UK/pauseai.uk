@@ -228,8 +228,11 @@ test("A test MP's page", async ({ page, request, flowDatabase }) => {
     "The link above their name goes back to the politicians list. Clicking Constituency twice sorts the list by constituency, Z to A.",
   );
 
-  // The way back, above the name; then the list sorted by a heading, and reversed.
-  await page.getByRole("navigation", { name: staffCopy.nav.politicians }).getByRole("link").click();
+  // The trail above the name leads back; then the list sorted by a heading, and reversed.
+  await page
+    .getByRole("navigation", { name: staffCopy.breadcrumb })
+    .getByRole("link", { name: staffCopy.nav.politicians })
+    .click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   await page.getByRole("link", { name: staffCopy.fields.constituency }).click();
   await expect(page).toHaveURL(/sort=constituency&dir=asc/);

@@ -12,6 +12,7 @@ import {
   broadcastPageData,
   broadcastsPage,
   broadcastsToSupporter,
+  broadcastCrumb,
   broadcastTitle,
   newBroadcastPageData,
   withChoosing,
@@ -158,6 +159,18 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(data.conditions.length).toBeGreaterThan(0);
     expect(data.conditions.every((condition) => condition.covers === 0)).toBe(true);
     expect(data.senders.map((sender) => sender.email)).toEqual([JO]);
+  });
+
+  it("names a broadcast in the trail above its page: a draft as a draft, one sent by its title", async () => {
+    const id = (await createBroadcastDraft(JO, EMAIL_FILTER))!;
+    await query("UPDATE mailings SET title = 'Events' WHERE id = $1", [id]);
+    expect(await broadcastCrumb(id)).toBe(staffCopy.broadcastPages.draftCrumb);
+    await query("UPDATE mailings SET state = 'sent', due_at = now(), sent_from = $2, from_name = 'Jo' WHERE id = $1", [
+      id,
+      JO,
+    ]);
+    expect(await broadcastCrumb(id)).toBe("Events");
+    expect(await broadcastCrumb(999)).toBeUndefined();
   });
 
   it("titles a draft, or says it has none; a mailing to politicians is none", async () => {

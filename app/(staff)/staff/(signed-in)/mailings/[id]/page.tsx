@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { mailingPageData } from "@/lib/server/mailing-pages";
-import { mailingTitle } from "@/lib/server/mailings";
+import { mailingCrumb, mailingTitle } from "@/lib/server/mailings";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { mailingId } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
@@ -32,9 +32,9 @@ export async function generateMetadata({ params }: Pick<Params, "params">): Prom
 export default async function MailingPage({ params, searchParams }: Params) {
   const { email } = await requireStaff();
   const id = found(mailingId((await params).id));
-  const [data, title] = await Promise.all([mailingPageData(id, await searchParams, email), mailingTitle(id)]);
+  const [data, here] = await Promise.all([mailingPageData(id, await searchParams, email), mailingCrumb(id)]);
   return (
-    <Page kind="record" under="mailings" here={found(title)}>
+    <Page kind="record" under="mailings" here={found(here)}>
       <MailingFor
         data={found(data)}
         actions={{

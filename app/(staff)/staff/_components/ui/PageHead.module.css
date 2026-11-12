@@ -33,6 +33,14 @@
   line-height: 1.15;
 }
 
+/* Its tags, together: beside a short title, and under a long one as one row. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
 /* What the page is, and what its thing is: greyer than the page's text. */
 .intro,
 .facts {

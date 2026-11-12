@@ -317,7 +317,10 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
     "The Scheduled jobs page has a card for each job, showing its newest run. The check is done, and ControlAI's letter hasn't been read yet.",
   );
   // The Scheduled jobs page: each job's newest run on its card; the MP import's, from the start of the flow.
-  await page.getByRole("navigation", { name: staffCopy.import.pageTitle }).getByRole("link").click();
+  await page
+    .getByRole("navigation", { name: staffCopy.breadcrumb })
+    .getByRole("link", { name: staffCopy.import.pageTitle })
+    .click();
   await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs`);
   const card = (job: ImportJob) =>
     page.locator("section").filter({ has: page.getByRole("link", { name: jobTitles[job] }) });

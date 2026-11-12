@@ -210,7 +210,7 @@ describe("ImportJobPage", () => {
     expect(page.getByRole("heading", { level: 1 }).element().textContent).toBe(jobTitles["sync-politicians"]);
     await expect.element(page.getByRole("img", { name: staffCopy.import.airtable })).toBeVisible();
     // The schedule's lozenge is plain: only a run's ending is in colour.
-    const lozenges = [...head.querySelectorAll("h1 ~ span")];
+    const lozenges = [...head.querySelectorAll("h1 ~ span > span")];
     expect(lozenges.map((tag) => tag.textContent)).toEqual([staffCopy.import.nightly]);
     expect(lozenges.map((tag) => tag.className.match(/green|amber|red|blue/))).toEqual([null]);
     // No strip under the head: the newest run, in the history, carries the colour.

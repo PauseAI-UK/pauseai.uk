@@ -43,7 +43,7 @@ export default function PageHead({
         <div className={styles.heading}>
           {lead}
           <h1>{children}</h1>
-          {tags}
+          {tags && <span className={styles.tags}>{tags}</span>}
         </div>
         {(intro || source) && (
           <p className={styles.intro}>

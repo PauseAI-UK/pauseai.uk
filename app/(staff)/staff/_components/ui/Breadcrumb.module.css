@@ -14,9 +14,10 @@
   list-style: none;
 }
 
-/* Between two steps, a mark that the second is inside the first. */
-.trail li + li::before {
-  margin-right: var(--space-2);
+/* After each step but the last, a mark that the next is inside it: with
+   the step it follows, so a trail that wraps never starts a line with it. */
+.trail li:not(:last-child)::after {
+  margin-left: var(--space-2);
   color: var(--muted);
   content: "›";
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
-import { broadcastPageData, broadcastTitle } from "@/lib/server/broadcast-pages";
+import { broadcastCrumb, broadcastPageData, broadcastTitle } from "@/lib/server/broadcast-pages";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { mailingId } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
@@ -22,9 +22,9 @@ export async function generateMetadata({ params }: Pick<Params, "params">): Prom
 export default async function BroadcastPage({ params, searchParams }: Params) {
   const { email } = await requireStaff("supporters");
   const id = found(mailingId((await params).id));
-  const [data, title] = await Promise.all([broadcastPageData(id, await searchParams, email), broadcastTitle(id)]);
+  const [data, here] = await Promise.all([broadcastPageData(id, await searchParams, email), broadcastCrumb(id)]);
   return (
-    <Page kind="record" under="broadcasts" here={found(title)}>
+    <Page kind="record" under="broadcasts" here={found(here)}>
       <BroadcastFor data={found(data)} actions={broadcastWriterActions} />
     </Page>
   );
