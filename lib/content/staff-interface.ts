@@ -2656,7 +2656,7 @@ All events: ${link}`,
     oneTitle: (from: string, to: string) => `Letter from ${from} to ${to}`,
     fromTitle: (name: string) => `Letters from ${name}`,
     // A letter's own step of the trail above its page, after its campaign or mailing.
-    crumb: "⁂ Letter",
+    crumb: "Letter",
     // Who PauseAI's letters are from, in a letter's title.
     fromPauseai: "PauseAI UK",
     // A letter's own page: its facts beside the list's, and the way to read it as it was sent.
