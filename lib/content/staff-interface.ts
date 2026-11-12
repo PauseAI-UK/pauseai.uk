@@ -760,7 +760,7 @@ export const staffCopy = {
     notCleared: {
       mail: "their mail",
       oneOffs: "their one-off emails",
-      replies: "⁂ their replies to broadcasts",
+      replies: "their replies to broadcasts",
     },
   },
   // The accounts page (/staff/accounts), for admins: who may use the staff
