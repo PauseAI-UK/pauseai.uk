@@ -221,7 +221,7 @@ export function addFixtureData(url) {
 }
 
 /** The mailbox broadcasts go from and their replies come to (BROADCAST_SENDER in lib/broadcasts.ts). */
-export const BROADCAST_MAILBOX = "hello@pauseai.uk";
+const BROADCAST_MAILBOX = "hello@pauseai.uk";
 
 /**
  * Connects the fake Gmail of the broadcasts' mailbox, so answers to the fake

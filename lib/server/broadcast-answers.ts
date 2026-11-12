@@ -59,9 +59,11 @@ export async function answerReply(replyId: number, draftId: string, body: unknow
     rfcMessageId: string | null;
     copyMessageId: string | null;
     fromName: string | null;
+    toName: string | null;
   }>(
     `SELECT r.account, r.from_address AS to, r.subject, r.gmail_thread_id AS "threadId",
-       r.rfc_message_id AS "rfcMessageId", c.rfc_message_id AS "copyMessageId", m.from_name AS "fromName"
+       r.rfc_message_id AS "rfcMessageId", c.rfc_message_id AS "copyMessageId", m.from_name AS "fromName",
+       CASE WHEN c.address = r.from_address THEN c.merge_values ->> 'name' END AS "toName"
      FROM broadcast_replies r JOIN broadcast_messages c ON c.id = r.message_id JOIN mailings m ON m.id = c.mailing_id
      WHERE r.id = $1 AND NOT r.automatic`,
     [replyId],
@@ -80,7 +82,8 @@ export async function answerReply(replyId: number, draftId: string, body: unknow
   const result = await send(
     {
       From: named(reply.fromName, reply.account),
-      To: reply.to,
+      // Their name, as the copy to them had it, when it's from the address the copy went to.
+      To: named(reply.toName, reply.to),
       Subject: answerSubject(reply.subject),
       TextBody: toText(doc),
       HtmlBody: toHtml(doc),

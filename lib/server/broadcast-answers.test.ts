@@ -61,11 +61,13 @@ describeWithDatabase("answers to replies", () => {
     await connectTestGmail(HELLO);
     const sends = gmailTakes();
     const { copy, reply } = await replied();
+    await query(`UPDATE broadcast_messages SET merge_values = '{"name": "Jane Smith"}'`);
     expect(await answerReply(reply, DRAFT, words("Thanks, Jane."), "Jo@PauseAI.uk")).toEqual({ sent: true });
     expect(sends).toHaveLength(1);
     expect(sends[0].threadId).toBe("t-reply");
     expect(sends[0].raw).toContain("From: PauseAI UK <hello@pauseai.uk>");
-    expect(sends[0].raw).toContain("To: jane@example.com");
+    // To them by name, as their copy had it.
+    expect(sends[0].raw).toContain("To: Jane Smith <jane@example.com>");
     expect(sends[0].raw).toContain("Subject: Re: News");
     expect(sends[0].raw).toContain("In-Reply-To: <reply-1@mail.example.com>");
     expect(sends[0].raw).toContain("References: <copy-1@pauseai.uk> <reply-1@mail.example.com>");

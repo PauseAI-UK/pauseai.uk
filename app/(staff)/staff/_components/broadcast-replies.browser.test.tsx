@@ -34,6 +34,8 @@ describe("replies to broadcasts", () => {
     const deal = vi.fn();
     await render(<MessageCopyView one={emailCopy} actions={{ deal, answer: vi.fn() }} />);
     await expect.element(page.getByText("Could you take me off this list please?")).toBeVisible();
+    // Their name, as their copy had it.
+    await expect.element(page.getByText("Jane Example <jane@example.com>").first()).toBeVisible();
     await expect
       .element(page.getByText(copy.replies.nothingDone("jo@pauseai.uk", staffTime(new Date("2026-11-07T10:00:00Z")))))
       .toBeVisible();
@@ -61,7 +63,8 @@ describe("replies to broadcasts", () => {
         one={{
           ...emailCopy,
           replies: [
-            { ...exampleBroadcastReplies[0], text: null },
+            // From another address than the copy went to, so without the name the copy had.
+            { ...exampleBroadcastReplies[0], text: null, from: "j.smith@example.org" },
             { ...exampleBroadcastReplies[1], outcome: "opted-out", dealtBy: "sam@pauseai.uk" },
           ],
           answers: [{ ...exampleBroadcastAnswers[0], replyId: exampleBroadcastReplies[1].id, sentAt: null }],
@@ -69,6 +72,7 @@ describe("replies to broadcasts", () => {
       />,
     );
     await expect.element(page.getByText(copy.replies.noText)).toBeVisible();
+    await expect.element(page.getByText("j.smith@example.org", { exact: true })).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.replies.optOut })).not.toBeInTheDocument();
     await expect.element(page.getByRole("button", { name: copy.replies.reply })).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.replies.historyOptedOut("sam@pauseai.uk"))).toBeVisible();

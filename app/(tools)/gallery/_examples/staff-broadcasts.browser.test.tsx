@@ -72,9 +72,9 @@ it("logs an answer sent to a reply", async () => {
   await render(<AnswerableReplyExample opened />);
   await page.getByRole("textbox", { name: copy.replies.answerLabel }).fill("Thanks");
   await page.getByRole("button", { name: copy.replies.send }).click();
-  await expect
-    .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
-    .toHaveTextContent('answer(1, "');
+  const logged = page.getByRole("list", { name: "Event log" }).getByRole("listitem");
+  await expect.element(logged).toBeVisible();
+  expect(logged.element().textContent).toMatch(/^answer\(1, "[0-9a-f-]{36}", \{"type":"doc"/);
 });
 
 it("does nothing when an action is pressed", async () => {

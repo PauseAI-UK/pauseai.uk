@@ -91,12 +91,16 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
   ].sort((a, b) => b.at.getTime() - a.at.getTime());
 }
 
+/** Who a reply is from: their name as their copy had it, when it's from the address the copy went to. */
+const sender = (reply: BroadcastReply, one: MessageCopy) =>
+  named(reply.from === one.address ? one.name : null, reply.from);
+
 /** Our answer to a reply, in the thread after it: who sent it, or that it may not have gone. */
 function Answer({ answer, reply, one }: { answer: BroadcastAnswer; reply: BroadcastReply; one: MessageCopy }) {
   return (
     <ThreadEmail
       from={named(one.fromName, one.sentFrom)}
-      to={reply.from}
+      to={sender(reply, one)}
       at={answer.sentAt}
       subject={answerSubject(reply.subject)}
     >
@@ -117,7 +121,7 @@ function Reply({ reply, one, actions }: { reply: BroadcastReply; one: MessageCop
   const when = reply.dealtAt && staffTime(reply.dealtAt);
   const ours = named(one.fromName, one.sentFrom);
   const email = (
-    <ThreadEmail from={reply.from} to={ours} at={reply.receivedAt} subject={reply.subject}>
+    <ThreadEmail from={sender(reply, one)} to={ours} at={reply.receivedAt} subject={reply.subject}>
       {reply.text ? <p className={styles.text}>{reply.text}</p> : <Muted>{copy.replies.noText}</Muted>}
       {reply.automatic ? (
         <p className={styles.dealt}>{copy.replies.automatic}</p>
@@ -149,7 +153,7 @@ function Reply({ reply, one, actions }: { reply: BroadcastReply; one: MessageCop
     <AnswerableReply
       replyId={reply.id}
       from={ours}
-      to={reply.from}
+      to={sender(reply, one)}
       subject={reply.subject}
       answer={actions.answer}
       doNotEmail={reply.doNotEmail}
