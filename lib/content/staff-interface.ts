@@ -232,9 +232,9 @@ export const staffCopy = {
         // Its button, to the run's page, which lists each with why it wasn't relayed and a link to it in Gmail.
         lettersInboxButton: "See emails",
         // Replies to broadcasts that may be someone asking to stop, waiting for someone to look at them.
-        broadcastReplies: (n: number) => `⁂ ${count(n, "reply", "replies")} to a broadcast to look at`,
-        broadcastRepliesDetail: "⁂ Someone asking to stop must be recorded as an opt-out within a few days.",
-        broadcastRepliesButton: "⁂ See replies",
+        broadcastReplies: (n: number) => `${count(n, "reply", "replies")} to a broadcast to look at`,
+        broadcastRepliesDetail: "Someone asking to stop must be recorded as an opt-out within a few days.",
+        broadcastRepliesButton: "See replies",
       },
       // The windows: each a tab, its length in days; "Show" is the tabs' name, read out by a screen reader.
       window: (days: number) => `${days} days`,
