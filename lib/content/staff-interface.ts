@@ -1097,7 +1097,7 @@ All events: ${link}`,
     none: "No broadcasts yet.",
     untitled: "Untitled draft",
     // A draft's step of the trail above its page, as its title changes while it's written.
-    draftCrumb: "⁂ Draft",
+    draftCrumb: "Draft",
     // In the supporters list's count row.
     broadcastButton: (n: number) => `Broadcast to ${count(n, "supporter", "supporters")}`,
     // Change who: the supporters list choosing who a draft goes to.
@@ -1321,7 +1321,7 @@ All events: ${link}`,
     // A draft with no subject yet, in the list and as its page's title.
     untitled: "Untitled draft",
     // A draft's step of the trail above its page, as its title changes while it's written.
-    draftCrumb: "⁂ Draft",
+    draftCrumb: "Draft",
     // At the top of a new mailing, until a channel sends.
     cantSend: "Mailings can't be sent yet. Everything else should work, and you can send a test copy to yourself.",
     // Beside the title: whether the draft is saved.
