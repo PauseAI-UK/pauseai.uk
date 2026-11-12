@@ -155,8 +155,8 @@ export const emailSettingsCopy = {
   // What a hold on email doesn't stop, for someone with a number.
   numbersStill: "⁂ It doesn't stop texts or calls.",
   // PauseAI Global's "Do not SMS" and "Do not phone" on every number of theirs, under each onlyGlobal.
-  doNotText: { title: "⁂ You've asked PauseAI never to text you" },
-  doNotCall: { title: "⁂ You've asked PauseAI never to call you" },
+  doNotText: { title: "You've asked PauseAI never to text you" },
+  doNotCall: { title: "You've asked PauseAI never to call you" },
   // Both, in one box.
   doNotTextOrCall: { title: "You've asked PauseAI never to text or call you" },
   doNotEmail: { title: "You've asked PauseAI never to email you" },
