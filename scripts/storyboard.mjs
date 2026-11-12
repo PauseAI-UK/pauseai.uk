@@ -366,7 +366,10 @@ function carryFromNearest(tree, missing) {
   carryKept(
     STORE,
     tree,
-    best.source.runs.filter((run) => wanted.has(run.key) && !best.run.has(run.key)).map(withoutKey),
+    best.source.runs
+      .filter((run) => wanted.has(run.key) && !best.run.has(run.key))
+      // Known to look as it does at main's tree, so what's asked next is what changed since.
+      .map((run) => ({ ...withoutKey(run), seen: tree })),
   );
   return { run: [...best.run], from: best.source.tree };
 }
@@ -859,7 +862,12 @@ if (missed.length > 0) {
 // A review that stands for every flow keeps them all under the tree they picture, the carried ones too, as each
 // looks as it would on this tree: if the build was this tree's, and nothing in the checkout changed meanwhile.
 if (existsSync(branchFrames) && (full || chosen) && (nothing || (builtHere && workingTree() === treeBefore))) {
-  keepRuns(STORE, treeBefore, runDir, readJson(branchFrames).frames, Object.fromEntries(suite));
+  // Each flow the review carried is known to look as it does at this tree, so the next review asks only what
+  // changed since (flowsToRun).
+  const manifest = readJson(branchFrames);
+  for (const run of manifest.frames) if (run.tree && run.tree !== treeBefore) run.seen = treeBefore;
+  writeJson(branchFrames, manifest);
+  keepRuns(STORE, treeBefore, runDir, manifest.frames, Object.fromEntries(suite));
 }
 
 let mainError;

@@ -560,8 +560,10 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context, copyKe
  * - when the map can't place one of them (`unknown`: a file at the top
  *   that nothing imports, or one no code names): every flow.
  *
- * `changedSince(tree)` gives the files changed since `tree`, and those of
- * them added or deleted; `copyKeysSince(tree)`, the keys of staffCopy
+ * A flow a review carried says the tree it was carried at (`seen`): the
+ * files changed since then are what can have reached it since, as those
+ * before were found not to. `changedSince(tree)` gives the files changed
+ * since `tree`, and those of them added or deleted; `copyKeysSince(tree)`, the keys of staffCopy
  * changed since it, if its file changed. Returns the keys to run, and why,
  * for the run to say.
  */
@@ -572,11 +574,13 @@ export function flowsToRun({ suite, carried, phoneTagged, context, setup, change
     const last = byKey.get(key);
     if (!last || last.status !== "passed" || !last.tree || !last.opened || last.setup !== setup) run.add(key);
   }
+  // By the tree each was last known to look as it does: the one a review last carried it at (`seen`), or the one it ran on.
   const trees = new Map();
   for (const last of carried) {
     if (!suite.has(last.key) || run.has(last.key)) continue;
-    if (!trees.has(last.tree)) trees.set(last.tree, []);
-    trees.get(last.tree).push(last);
+    const tree = last.seen ?? last.tree;
+    if (!trees.has(tree)) trees.set(tree, []);
+    trees.get(tree).push(last);
   }
   const everything = new Set();
   const unknown = new Set();

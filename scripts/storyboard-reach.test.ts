@@ -650,6 +650,18 @@ describe("flowsToRun", () => {
     expect(chosen).toMatchObject({ fresh: 1, reached: 1 });
   });
 
+  it("asks what changed since a review last carried a flow, not since it ran", () => {
+    const asked: string[] = [];
+    choose(
+      (tree) => {
+        asked.push(tree);
+        return since([]);
+      },
+      [{ ...passed(home, "t1"), seen: "t5" }, passed(letters, "t1"), passed(events, "t5"), passed(phoneHome, "t5")],
+    );
+    expect(asked).toEqual(["t5", "t1"]);
+  });
+
   it("asks for the staff copy's changed keys by tree", () => {
     const chosen = flowsToRun({
       suite,

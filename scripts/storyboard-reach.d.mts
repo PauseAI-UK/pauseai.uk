@@ -9,7 +9,7 @@ type Context = {
 };
 type Changed = { files: string[]; addedOrDeleted: string[] };
 type Run = { key: string; section: string; flow: string; opened?: string[] };
-type CarriedRun = Run & { status: string; tree?: string; setup?: string };
+type CarriedRun = Run & { status: string; tree?: string; seen?: string; setup?: string };
 
 export const NAMED: string[];
 export const STAFF_COPY: string;
