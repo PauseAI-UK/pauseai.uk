@@ -13,6 +13,7 @@
 //   npm run storyboard -- --paths           # print each frame's caption and picture, to open one directly
 //   npm run storyboard -- --changed         # print only the frames that changed against main (storyboard-changed.mjs)
 //   npm run storyboard -- --full            # every flow, not just those a change since their last run reaches (below)
+//   npm run storyboard -- --plan            # say which flows a review would run, and why, and run none
 //   npm run storyboard -- --server=URL      # a server you started for this branch (default: Playwright builds one on this checkout's port)
 //   npm run storyboard -- --fresh-main      # run main again even if its frames are kept (below)
 //   npm run storyboard -- --only-main       # no review: just keep main's frames, for the reviews to come
@@ -124,6 +125,7 @@ const options = {
   mainServer: undefined,
   freshMain: false,
   full: false,
+  plan: false,
   onlyMain: false,
   thisSuite: false,
 };
@@ -139,6 +141,7 @@ for (const arg of process.argv.slice(2)) {
   else if (arg.startsWith("--main-server=")) options.mainServer = arg.slice("--main-server=".length);
   else if (arg === "--fresh-main") options.freshMain = true;
   else if (arg === "--full") options.full = true;
+  else if (arg === "--plan") options.plan = true;
   else if (arg === "--only-main") options.onlyMain = true;
   else if (arg === "--this-suite-on-main") options.thisSuite = true;
   else passThrough.push(arg);
@@ -307,6 +310,16 @@ function carryFromNearest(tree, missing) {
     best.from,
   );
   return { run: [...best.run], from: best.from };
+}
+
+/** What a review chosen by flowsToRun runs, and why, in a line. */
+function planSummary(chosen, total) {
+  const why = [
+    chosen.fresh && `${chosen.fresh} new, failed or never recorded`,
+    chosen.everything.length && `every desktop flow, as ${chosen.everything.slice(0, 3).join(", ")} changed`,
+    `those the ${chosen.changed.length} files changed since their last run reach`,
+  ].filter(Boolean);
+  return `Storyboard: ${chosen.run.size} of ${total} flows: ${why.join("; ")}.`;
 }
 
 /**
@@ -610,6 +623,17 @@ const suite = listFlows([]);
 const treeBefore = workingTree();
 const commitBefore = git("rev-parse", "HEAD");
 const chosen = options.full || options.projects.length > 0 || passThrough.length > 0 ? undefined : chooseFlows();
+if (options.plan) {
+  if (!chosen) {
+    console.log(
+      `Storyboard: every flow, ${suite.size}: ${options.full ? "--full" : "no latest run whose flows recorded their tree"}.`,
+    );
+  } else {
+    console.log(planSummary(chosen, suite.size));
+    for (const key of [...chosen.run].sort()) console.log(`  ${key}`);
+  }
+  process.exit(0);
+}
 if (chosen && chosen.run.size === 0) {
   console.log(
     `\n▶ Storyboard: nothing to run. ${chosen.changed.length} files changed since the latest run's flows, and none reaches one; every flow passed. ${LATEST}\n`,
@@ -621,12 +645,7 @@ const testList = chosen ? join(mkdtempSync(join(tmpdir(), "pauseai-storyboard-")
 if (chosen) {
   writeFileSync(testList, [...chosen.run].map((key) => suite.get(key)).join("\n"));
   passThrough.push(`--test-list=${testList}`);
-  const why = [
-    chosen.fresh && `${chosen.fresh} new, failed or never recorded`,
-    chosen.everything.length && `every desktop flow, as ${chosen.everything.slice(0, 3).join(", ")} changed`,
-    `those the ${chosen.changed.length} files changed since their last run reach`,
-  ].filter(Boolean);
-  console.log(`\n▶ Storyboard: ${chosen.run.size} of ${suite.size} flows: ${why.join("; ")}. --full runs every one.\n`);
+  console.log(`\n▶ ${planSummary(chosen, suite.size)} --full runs every one.\n`);
 }
 const wanted = listFlows([...options.projects, ...passThrough]);
 const partial = [...suite.keys()].some((key) => !wanted.has(key));
