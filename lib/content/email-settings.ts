@@ -20,6 +20,31 @@ const topicNames: Record<Topic, string> = {
 
 const wayNames: Record<Way, string> = { email: "Email", text: "Text", call: "Call" };
 
+// What each topic is, under its name on the page.
+const about: Record<Topic, string> = {
+  newsletter: "Weekly news from PauseAI UK",
+  events: "Event reminders, invitations and news.",
+  volunteering: "More in depth contact from staff and local groups.",
+};
+
+// "No bulk emails" set, which the person can lift on the page.
+const noBulk = {
+  title: "You've turned off bulk email",
+  body: "So no newsletters or event emails from PauseAI UK or PauseAI Global.",
+  button: "Restart emails",
+};
+
+// "No bulk emails" as Stop everything set it, which its button undoes in full.
+const stopped = {
+  title: "You've stopped everything",
+  body: "So no emails, texts or calls from PauseAI UK, and no bulk email from PauseAI Global.",
+  button: "Restart all emails, texts and calls",
+};
+
+/** A lift's box as the person saw it, and the button they pressed: what's kept as what they said yes to. */
+const pressed = (box: { title: string; body: string; button: string }): string =>
+  `${box.title}. ${box.body} [${box.button}]`;
+
 /** Where a yes or an opt-out came from, as the page tells the person: the form, or how they did it. */
 const sources: Record<string, string> = {
   "march-2026-11": "when you signed up for the March Against AI Extinction",
@@ -98,11 +123,7 @@ export const emailSettingsCopy = {
     saved: "Saved",
   },
   topics: topicNames,
-  about: {
-    newsletter: "Weekly news from PauseAI UK",
-    events: "Event reminders, invitations and news.",
-    volunteering: "More in depth contact from staff and local groups.",
-  } as Record<Topic, string>,
+  about,
   ways: wayNames,
   // A topic in a sentence, as an unsubscribe says what of.
   inSentence: {
@@ -130,22 +151,11 @@ export const emailSettingsCopy = {
     } as Partial<Record<Reason, (source: string) => string>>,
   },
   sourceWords: from,
-  // The words kept beside a box ticked on the page, as what the person said yes to.
-  wording: (topic: Topic, way: Way) => `⁂ PauseAI UK can send me its ${topicNames[topic]} by ${wayNames[way]}.`,
-  // "No bulk emails" set, which the person can lift here.
-  noBulk: {
-    title: "You've turned off bulk email",
-    body: "So no newsletters or event emails from PauseAI UK or PauseAI Global.",
-    wording: "⁂ PauseAI UK and PauseAI Global can send me bulk email again.",
-    button: "Restart emails",
-  },
-  // "No bulk emails" as Stop everything set it, which its button undoes in full; the words kept beside that choice.
-  stopped: {
-    title: "You've stopped everything",
-    body: "So no emails, texts or calls from PauseAI UK, and no bulk email from PauseAI Global.",
-    button: "Restart all emails, texts and calls",
-    wording: "⁂ PauseAI UK can email, text and call me as before, and PauseAI Global can send me bulk email again.",
-  },
+  // What's kept beside a box ticked on the page, as what the person said yes to: the topic as the page shows it, and the box.
+  wording: (topic: Topic, way: Way) => `${topicNames[topic]} (${about[topic]}): ${wayNames[way]}`,
+  // Each lift's box, and what's kept beside it: the box as they saw it and the button they pressed.
+  noBulk: { ...noBulk, wording: pressed(noBulk) },
+  stopped: { ...stopped, wording: pressed(stopped) },
   // Under what only PauseAI Global can lift, then a link to its contact page and a full stop.
   onlyGlobal: {
     body: "Only PauseAI Global can change that. Please",
