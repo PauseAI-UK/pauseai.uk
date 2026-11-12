@@ -92,8 +92,6 @@ function securityHeaders() {
 }
 
 const nextConfig: NextConfig = {
-  // Experiment: maps for the browser's coverage (tmp/affected/)
-  productionBrowserSourceMaps: process.env.FLOW_COVERAGE === "1",
   env: {
     // Netlify's deploy context ("production", "deploy-preview", ...), fixed
     // at build time. Outside production, letters go only to the test MP
