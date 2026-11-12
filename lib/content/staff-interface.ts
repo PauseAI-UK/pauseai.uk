@@ -1901,12 +1901,13 @@ All events: ${link}`,
   controlAi: {
     title: "ControlAI letter to the Prime Minister backing the Sobel bill",
     intro: {
-      before: "MPs and peers who signed ",
+      before: "⁂ Imports the MPs and peers who signed ",
       link: "the letter",
-      after: " are marked as having signed “ControlAI's letter to the Prime Minister”. This can't be changed by hand.",
+      after:
+        ", marking them as having signed “ControlAI's letter to the Prime Minister”. This can't be changed by hand.",
     },
     importNow: "Import ControlAI letter now",
-    never: "Not read yet.",
+    never: "Not imported yet.",
     result: (r: { signatories: number; matched: number; added: number; removed: number }) =>
       `${r.signatories} names, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
     columns: { name: "Name", problem: "Problem" },
@@ -2391,7 +2392,7 @@ All events: ${link}`,
   members: {
     title: "⁂ UK members in Airtable",
     intro: {
-      before: "⁂ Everyone in the UK in Global's Airtable who joined through ",
+      before: "⁂ Imports everyone in the UK in Global's Airtable who joined through ",
       link: "the join form",
       after:
         " and agreed to share their details with PauseAI UK, or joined before July 2026. Their name, email, phone, town and postcode, and whether they asked to be kept informed.",
@@ -2413,10 +2414,10 @@ All events: ${link}`,
   civicrm: {
     title: "UK chapter contacts in CiviCRM",
     intro: {
-      before: "⁂ Everyone in the UK chapter in Global's ",
+      before: "⁂ Imports everyone in the UK chapter in Global's ",
       link: "CiviCRM",
       after:
-        ". Whether they're subscribed to the UK newsletter and volunteer lists, and their “No bulk emails”, “Do not email”, “Do not phone”, “Do not SMS” and hold. No names or numbers.",
+        ": whether they're subscribed to the UK newsletter and volunteer lists, and their “No bulk emails”, “Do not email”, “Do not phone”, “Do not SMS” and hold. No names or numbers.",
     },
     importNow: "Import contacts now",
     never: "Not imported yet.",
@@ -2438,7 +2439,7 @@ All events: ${link}`,
     title: "Politicians from Airtable",
     // With a link to the table in the middle.
     intro: {
-      before: "Every politician in every body is copied from the ",
+      before: "⁂ Imports every politician in every body from the ",
       link: "UK Parliamentarians table in Airtable",
       after:
         ", except the Airtable test MPs. Whether they've signed a letter or attended an event is not copied. Runs that change lots of data are held for checking.",
@@ -2446,7 +2447,7 @@ All events: ${link}`,
     /** The test MPs (lib/test-mps.json) aren't in Airtable; every import adds any that are missing. */
     testMps: "Adds our own test MPs if any are missing.",
     syncNow: "Import politicians now",
-    none: "Not yet imported.",
+    none: "Not imported yet.",
     added: "Added",
     // Those whose record is no longer in Airtable.
     removed: "Gone from Airtable",
