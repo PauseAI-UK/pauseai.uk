@@ -3,6 +3,7 @@ import { query } from "@/lib/server/db";
 import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailing-doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/broadcast-fixtures";
+import { toNotifications } from "@/tests/notifications";
 import { getWrittenMailing, saveDraft } from "./mailing-drafts";
 import {
   approvedTemplates,
@@ -259,7 +260,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     const words = staffCopy.notifications.templateSubmitted;
     expect(sent()).toEqual([
       expect.objectContaining({
-        To: NOTIFICATIONS,
+        To: toNotifications(),
         Cc: JO,
         Subject: words.subject("See you there."),
         TextBody: words.body(JO, SAID, `https://pauseai.uk/staff/broadcasts/${id}`),

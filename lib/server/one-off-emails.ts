@@ -19,6 +19,7 @@ import {
   type PoliticianBook,
 } from "@/lib/one-off";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { gmailMessageLink } from "@/lib/letter-links";
 import { now } from "@/lib/now";
 import type { Permission } from "@/lib/staff-permissions";
 import { query, type Queryable } from "./db";
@@ -345,7 +346,11 @@ export async function reportUnmatchedMail(token: (account: string) => Promise<st
   const lines: string[] = [];
   for (const { account, id } of batch) {
     const message = await gmailMessageHeaders(await token(account), id, ["From", "Subject"]).catch(unlessGone);
-    if (message) lines.push(`- ${headerText(message.headers, "from")}: ${headerText(message.headers, "subject")}`);
+    if (message) {
+      lines.push(
+        `- ${headerText(message.headers, "from")}: ${headerText(message.headers, "subject")} ${gmailMessageLink(account, id)}`,
+      );
+    }
   }
   const words = staffCopy.oneOff.unmatchedAlert;
   const more = batch[0].waiting - batch.length;

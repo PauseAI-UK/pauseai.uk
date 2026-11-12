@@ -67,7 +67,7 @@ test("The Luma import", async ({ page, flowDatabase }) => {
 
 test("The members import", async ({ page, flowDatabase }) => {
   story(
-    "Staff run the members import, which copies PauseAI members in the UK from the global team's Airtable. Every member is copied but one, who was erased.",
+    "Staff run the members import, which copies the UK members in Global's Airtable. Every member is copied but one, who was erased.",
   );
   runSql(flowDatabase, "INSERT INTO airtable_members_erased (id) VALUES ('recMemberErased')");
   await logIn(page, flowDatabase);
@@ -478,7 +478,7 @@ test("Keeping Joseph's threads", async ({ page, flowDatabase }) => {
 
 test("Mail that matches nothing", async ({ page, request, flowDatabase }) => {
   story(
-    "Mail in policy@ that isn't about a politician isn't kept, but staff get a list of it, once a day, by sender and subject.",
+    "Mail in policy@ that isn't about a politician isn't kept, but staff get a list of it, once a day, by sender and subject, each with a link to it in policy@'s Gmail.",
   );
   await syncPoliticians(request, BASE);
   connectPolicyMailboxes(flowDatabase);
@@ -490,5 +490,6 @@ test("Mail that matches nothing", async ({ page, request, flowDatabase }) => {
   await expect.poll(() => newestEmail((email) => email.Subject === subject)).toBeTruthy();
   const report = newestEmail((email) => email.Subject === subject)!;
   expect(report.TextBody).toContain("Are you hiring?");
+  expect(report.TextBody).toContain("https://mail.google.com/mail/?authuser=policy%40pauseai.uk#all/0b02");
   await emailFrame(page, report, "The email staff get");
 });

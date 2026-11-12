@@ -3,6 +3,7 @@ import { config } from "./config";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { timingSafeEqual } from "node:crypto";
 import { copy } from "@/lib/content/email-your-mp";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
 import { query, transaction } from "./db";
 import { isBlocked, send, type DeliveryProblem } from "./email";
@@ -333,9 +334,15 @@ export async function forwardReply(email: InboundEmail): Promise<string[]> {
     const result = await send(
       {
         From: `PauseAI UK <noreply@${notifyDomain()}>`,
-        To: to === letter.senderEmail ? nameLine(letter.senderName, to) : to,
-        // Answering it reaches whoever wrote, and the letter's address, so it's kept with the letter.
-        ReplyTo: [from, `${letter.mailbox}@${lettersDomain()}`].filter(Boolean).join(", "),
+        To: nameLine(to === letter.senderEmail ? letter.senderName : staffCopy.inboxNames.policy, to),
+        // Answering it reaches whoever wrote, and the letter's address, so it's kept with the letter: each
+        // named, whoever wrote as their email named them, the letter's address as the letter's From did.
+        ReplyTo: [
+          from && (email.FromFull?.Name ? nameLine(email.FromFull.Name, from) : from),
+          nameLine(letter.senderName, `${letter.mailbox}@${lettersDomain()}`),
+        ]
+          .filter(Boolean)
+          .join(", "),
         Subject: email.Subject ?? "",
         TextBody: `${
           fromSender

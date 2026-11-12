@@ -7,6 +7,9 @@ import { send, type Purpose } from "./email";
 import { notifyDomain } from "./outside-services/postmark";
 import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { gmailMessageLink } from "@/lib/letter-links";
+import { nameLine } from "./proxies";
+import { staffAddressLine } from "./staff-address";
 
 // Emails to the notification inbox (NOTIFICATION_INBOX): something on the
 // site needs a person. An MP's address bouncing, mail in the letters inbox
@@ -44,8 +47,8 @@ export async function notifyStaff(
   const result = await send(
     {
       From: `PauseAI UK <noreply@${notifyDomain()}>`,
-      To: inbox,
-      ...(cc && { Cc: cc }),
+      To: nameLine(staffCopy.inboxNames.notifications, inbox),
+      ...(cc && { Cc: await staffAddressLine(cc) }),
       Subject: subject,
       TextBody: text,
       Tag: purpose,
@@ -62,21 +65,24 @@ export async function alertBouncedMp(
   address: string,
   reason: string,
   request: Request | undefined,
+  bounce?: string,
 ): Promise<void> {
   await notifyStaff(
     staffCopy.alert.subject(mpName),
-    staffCopy.alert.body(mpName, address, reason, staffLink("/staff/politicians/addresses-to-fix", request)),
+    staffCopy.alert.body(mpName, address, reason, staffLink("/staff/politicians/addresses-to-fix", request), bounce),
   );
 }
 
 /**
  * Tells the notification inbox of an address just blocked, if it's that of
  * a politician in office, whom the dashboard then shows as waiting on a person.
+ * `bounce` links to the bounce in Gmail, for one read from there.
  */
 export async function alertIfPoliticianBlocked(
   address: string,
   reason: string,
   request: Request | undefined,
+  bounce?: string,
 ): Promise<void> {
   const politicians = await query<{ name: string }>(
     "SELECT name FROM notable_people WHERE lower(email) = $1 AND status = 'in_office' ORDER BY id",
@@ -84,7 +90,9 @@ export async function alertIfPoliticianBlocked(
   );
   const words = staffCopy.alert.notALetter;
   const link = staffLink("/staff/politicians/addresses-to-fix", request);
-  for (const { name } of politicians) await notifyStaff(words.subject(name), words.body(name, address, reason, link));
+  for (const { name } of politicians) {
+    await notifyStaff(words.subject(name), words.body(name, address, reason, link, bounce));
+  }
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -104,8 +112,16 @@ export async function reportMailingBounces(request: Request | undefined): Promis
   );
   const dayAgo = new Date(at.getTime() - DAY);
   if (last && last > dayAgo) return;
-  const bounced = await query<{ id: number; name: string; address: string; reason: string }>(
-    `SELECT pr.id::int AS id, n.name, pr.address, pr.reason
+  const bounced = await query<{
+    id: number;
+    name: string;
+    address: string;
+    reason: string;
+    account: string | null;
+    gmailId: string | null;
+  }>(
+    `SELECT pr.id::int AS id, n.name, pr.address, pr.reason, pr.details->>'account' AS account,
+       pr.gmail_message_id AS "gmailId"
      FROM email_problems pr JOIN email_sends e ON e.message_id = pr.message_id AND e.purpose = 'mailing'
        JOIN letters l ON l.id = e.letter_id JOIN notable_people n ON n.id = l.notable_person_id
      WHERE pr.kind <> 'soft' AND n.status = 'in_office' AND pr.at > $1 AND pr.details->>'reportedAt' IS NULL
@@ -117,7 +133,11 @@ export async function reportMailingBounces(request: Request | undefined): Promis
   const told = await notifyStaff(
     words.subject(bounced.length),
     words.body(
-      bounced.map(({ name, address, reason }) => `- ${name} (${address}): ${reason}`),
+      // Each with a link to its bounce in the Gmail mailbox it came back to, when it came back to one.
+      bounced.map(
+        ({ name, address, reason, account, gmailId }) =>
+          `- ${name} (${address}): ${reason}${account && gmailId ? ` ${gmailMessageLink(account, gmailId)}` : ""}`,
+      ),
       staffLink("/staff/politicians/addresses-to-fix", request),
     ),
   );

@@ -6,7 +6,7 @@ import ImportIcon from "./ImportIcon";
 
 describe("ImportIcon", () => {
   it("shows each source's mark, named for screen readers and on hover", async () => {
-    const sources = ["airtable", "luma", "civicrm", "gmail", "web", "database"] as const;
+    const sources = ["airtable", "luma", "civicrm", "gmail", "parliament", "controlai", "database"] as const;
     await render(
       <>
         {sources.map((source) => (
@@ -19,10 +19,16 @@ describe("ImportIcon", () => {
       await expect.element(icon).toBeVisible();
       expect(icon.element().getAttribute("title")).toBe(staffCopy.import[source]);
     }
-    // Luma's is its own picture; Gmail's in its colours.
+    // Luma's and ControlAI's are their own pictures; Gmail's in its colours, Parliament's portcullis in the Commons' green.
     expect(page.getByRole("img", { name: staffCopy.import.luma }).element().querySelector("img")!.src).toContain(
       "luma.png",
     );
+    expect(page.getByRole("img", { name: staffCopy.import.controlai }).element().querySelector("img")!.src).toContain(
+      "controlai.png",
+    );
+    expect(
+      page.getByRole("img", { name: staffCopy.import.parliament }).element().querySelector("svg")!.getAttribute("fill"),
+    ).toBe("var(--brand-parliament-green)");
     expect(
       page.getByRole("img", { name: staffCopy.import.gmail }).element().querySelector("path")!.getAttribute("fill"),
     ).toBe("var(--brand-gmail-blue)");

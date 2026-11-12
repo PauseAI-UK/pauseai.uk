@@ -375,7 +375,7 @@ describeWithDatabase("staff Server Actions", () => {
     ]);
   });
 
-  it("setErrorDoneNow marks an error done as the admin, or to do again, refreshing the errors pages", async () => {
+  it("setErrorDoneNow marks an error done as the admin, back to the list, or to do again, staying, refreshing the errors pages", async () => {
     await query(
       "INSERT INTO errors_seen (key, kind, route, name, words, latest_words) VALUES ('k', 'route', '/api', 'Error', 'W', 'W')",
     );
@@ -386,7 +386,7 @@ describeWithDatabase("staff Server Actions", () => {
     // A bad form does nothing.
     await setErrorDoneNow(form({ id: "x", done: "yes" }));
     expect(revalidatePath).not.toHaveBeenCalled();
-    await setErrorDoneNow(form({ id: "1", done: "yes" }));
+    expect(await expectRedirect(() => setErrorDoneNow(form({ id: "1", done: "yes" })))).toBe("/staff/errors");
     expect(await done()).toEqual([{ doneBy: "jo@pauseai.uk", done: true }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/errors", "layout");
     await setErrorDoneNow(form({ id: "1", done: "" }));

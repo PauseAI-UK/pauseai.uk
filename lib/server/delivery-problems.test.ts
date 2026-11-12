@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
+import { toNotifications } from "@/tests/notifications";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "./db";
@@ -79,7 +80,12 @@ describeWithDatabase("handleDeliveryProblem", () => {
       if (purpose) await sentEmail(purpose);
       else await addTestMp();
       const sent = postmark();
-      await handleDeliveryProblem({ ...BOUNCE, address: `"Test" <${BOUNCE.address.toUpperCase()}>` }, REQUEST);
+      // Read from a Gmail mailbox, or, from Gmail but its mailbox not known, as Postmark's are.
+      const gmail = purpose ? { gmailMessageId: "g1", gmailAccount: "jo@pauseai.uk" } : { gmailMessageId: "g1" };
+      await handleDeliveryProblem(
+        { ...BOUNCE, ...gmail, address: `"Test" <${BOUNCE.address.toUpperCase()}>` },
+        REQUEST,
+      );
       const words = staffCopy.alert.notALetter;
       expect(sent).toMatchObject([{ Subject: words.subject("Testy McTestface MP") }]);
       expect(sent[0].TextBody).toBe(
@@ -88,8 +94,10 @@ describeWithDatabase("handleDeliveryProblem", () => {
           "test-mp@parliament.example",
           "Unknown user",
           "https://pauseai.uk/staff/politicians/addresses-to-fix",
+          purpose ? "https://mail.google.com/mail/?authuser=jo%40pauseai.uk#all/g1" : undefined,
         ),
       );
+      expect(sent[0].TextBody.includes("mail.google.com")).toBe(!!purpose);
     },
   );
 
@@ -116,7 +124,7 @@ describeWithDatabase("handleDeliveryProblem", () => {
     expect(await query("SELECT address FROM email_blocks")).toEqual([{ address: "test-mp@parliament.example" }]);
     expect(sent).toEqual([
       expect.objectContaining({
-        To: "notifications@pauseai.uk",
+        To: toNotifications("notifications@pauseai.uk"),
         Subject: staffCopy.alert.subject("Testy McTestface MP"),
         TextBody: staffCopy.alert.body(
           "Testy McTestface MP",

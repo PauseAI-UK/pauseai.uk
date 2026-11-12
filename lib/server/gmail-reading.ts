@@ -183,6 +183,7 @@ async function recordBounce(
         canReset: true,
         details: { status: failed.status, account },
         gmailMessageId: message.id,
+        gmailAccount: account,
       },
       request,
     );

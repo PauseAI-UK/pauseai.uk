@@ -40,8 +40,8 @@ const CIVICRM = "https://crm.pauseai.info/";
 const SOURCES: Record<ImportJob, ImportSource> = {
   "import-luma": "luma",
   "sync-politicians": "airtable",
-  "check-mps": "web",
-  "import-controlai": "web",
+  "check-mps": "parliament",
+  "import-controlai": "controlai",
   "import-members": "airtable",
   "import-civicrm": "civicrm",
   "read-gmail": "gmail",
@@ -49,17 +49,38 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "tidy-logs": "database",
 };
 
-/** What sets a job apart, in a lozenge after its name: the jobs that change things outside the site, sending mail to people or tagging events on Luma, the tidying that's the site's housekeeping. */
-const TAGS: Partial<Record<ImportJob, string>> = {
-  "send-mailings": words.takesAction,
-  "read-gmail": words.takesAction,
-  "import-luma": words.takesAction,
-  "tidy-logs": words.siteAdmin,
+/** What each job does, in a lozenge after its name. */
+const KINDS: Record<ImportJob, keyof typeof words.kinds> = {
+  "import-luma": "import",
+  "sync-politicians": "import",
+  "check-mps": "check",
+  "import-controlai": "import",
+  "import-members": "import",
+  "import-civicrm": "import",
+  "read-gmail": "read",
+  "send-mailings": "send",
+  "tidy-logs": "tidy",
 };
 
-function JobTag({ job }: { job: ImportJob }) {
-  const tag = TAGS[job];
-  return tag ? <Tag>{tag}</Tag> : null;
+/**
+ * After that, for a job that changes something outside the site, what: the
+ * Luma import tags Luma's events, and reading Gmail relays mail and emails
+ * staff. Sending mailings says so already.
+ */
+const OUTSIDE: Partial<Record<ImportJob, string>> = {
+  "import-luma": words.changesLuma,
+  "read-gmail": words.emails,
+};
+
+/** What a job does, and what it changes outside the site, if anything, as lozenges. */
+function JobTags({ job }: { job: ImportJob }) {
+  const outside = OUTSIDE[job];
+  return (
+    <>
+      <Tag>{words.kinds[KINDS[job]]}</Tag>
+      {outside && <Tag tone="amber">{outside}</Tag>}
+    </>
+  );
 }
 
 /** Each job's description, around a link to where it reads from, and its button and what to say before its first run. */
@@ -212,7 +233,7 @@ export function ImportOverview({
                   title={jobTitles[job]}
                   href={importPath(job)}
                   icon={<ImportIcon source={SOURCES[job]} />}
-                  tags={<JobTag job={job} />}
+                  tags={<JobTags job={job} />}
                   intro={<Intro job={job} airtableTable={airtableTable} />}
                 >
                   <NewestRun job={job} run={newest[i]} running={running[i]} />
@@ -226,7 +247,12 @@ export function ImportOverview({
   );
 }
 
-/** One job's page: its icon, name, how often it runs and what sets it apart, what it does and its button, then every run it has made, newest first. */
+/**
+ * One job's page: its icon, name, how often it runs and what it does as
+ * lozenges, and its button level with them; under them, what it does in
+ * words, as the page's first paragraph, and that it runs by itself, so what
+ * the button is for; then every run it has made, newest first.
+ */
 export function ImportJobPage({
   job,
   runs,
@@ -252,14 +278,19 @@ export function ImportJobPage({
         tags={
           <>
             <Tag>{words[jobSchedule(job)]}</Tag>
-            <JobTag job={job} />
+            <JobTags job={job} />
           </>
         }
-        intro={<Intro job={job} airtableTable={airtableTable} />}
         action={<JobActions action={run} label={ABOUT[job].button} />}
       >
         {jobTitles[job]}
       </PageHead>
+      <div className={styles.about}>
+        <p>
+          <Intro job={job} airtableTable={airtableTable} />
+        </p>
+        <p>{words.onItsOwn(words[jobSchedule(job)], ABOUT[job].button)}</p>
+      </div>
       {running && (
         <div className={styles.running}>
           <Strip tone="blue">

@@ -685,9 +685,11 @@ export const staffAdmin: Group = {
           render: () => (
             <StaffPage as="div">
               <div style={{ display: "flex", gap: "var(--space-3)" }}>
-                {(["airtable", "luma", "civicrm", "gmail", "web", "database"] as const).map((source) => (
-                  <ImportIcon key={source} source={source} />
-                ))}
+                {(["airtable", "luma", "civicrm", "gmail", "parliament", "controlai", "database"] as const).map(
+                  (source) => (
+                    <ImportIcon key={source} source={source} />
+                  ),
+                )}
               </div>
             </StaffPage>
           ),
@@ -706,7 +708,7 @@ export const staffAdmin: Group = {
                 <ImportCard
                   title="An import"
                   href="/staff/scheduled-jobs/signatories"
-                  icon={<ImportIcon source="web" />}
+                  icon={<ImportIcon source="parliament" />}
                   tags={<Tag>Check only</Tag>}
                   intro="What it copies, and from where."
                 >

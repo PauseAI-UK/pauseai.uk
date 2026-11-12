@@ -6,6 +6,7 @@ import { letterEvent, transition } from "./letter-lifecycle";
 import { noticeToSender } from "./letter-sending";
 import { alertBouncedMp, alertIfPoliticianBlocked } from "./notifications";
 import { bareAddress } from "@/lib/email-parsing/addresses";
+import { gmailMessageLink } from "@/lib/letter-links";
 import { relayBounced } from "./relays";
 
 // What happens when an email bounces or is complained about: the address is
@@ -18,6 +19,11 @@ type Sent = { purpose: Purpose; letterId: number | null; rfcMessageId: string | 
 type Hook = (sent: Sent, problem: DeliveryProblem, request: Request | undefined) => Promise<boolean>;
 
 const nothing: Hook = async () => false;
+
+/** A link to the bounce in the Gmail mailbox it came back to; none for one Postmark reported. */
+function bounceLink({ gmailAccount, gmailMessageId }: DeliveryProblem): string | undefined {
+  return gmailAccount && gmailMessageId ? gmailMessageLink(gmailAccount, gmailMessageId) : undefined;
+}
 
 /**
  * Marks a letter bounced or complained about, with an event saying why,
@@ -58,7 +64,7 @@ const letterProblem: Hook = async ({ letterId }, problem, request) => {
     letterId,
   ]);
   if (proxied && problem.kind === "hard") await noticeToSender(letterId!, "bounced");
-  await alertBouncedMp(mpName, problem.address, problem.reason, request);
+  await alertBouncedMp(mpName, problem.address, problem.reason, request, bounceLink(problem));
   return true;
 };
 
@@ -82,7 +88,7 @@ const relayProblem: Hook = async ({ letterId, rfcMessageId }, problem, request) 
   });
   if (!toMp || problem.kind === "soft") return false;
   await relayBounced(toMp.id, letterId!);
-  await alertBouncedMp(toMp.mpName, problem.address, problem.reason, request);
+  await alertBouncedMp(toMp.mpName, problem.address, problem.reason, request, bounceLink(problem));
   return true;
 };
 
@@ -135,5 +141,7 @@ export async function handleDeliveryProblem(problem: DeliveryProblem, request?: 
     [problem.messageId],
   );
   const told = sent ? await HOOKS[sent.purpose](sent, problem, request) : false;
-  if (blocked && !told) await alertIfPoliticianBlocked(bareAddress(problem.address), problem.reason, request);
+  if (blocked && !told) {
+    await alertIfPoliticianBlocked(bareAddress(problem.address), problem.reason, request, bounceLink(problem));
+  }
 }

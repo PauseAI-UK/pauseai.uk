@@ -7,6 +7,7 @@ import { query, transaction } from "./db";
 import { send } from "./email";
 import { notifyDomain } from "./outside-services/postmark";
 import { randomId } from "./random-id";
+import { staffAddressLine } from "./staff-address";
 import { isStaffEmail } from "@/lib/staff-permissions";
 
 // Logging in by email: a staff member types their pauseai.uk address and
@@ -87,7 +88,7 @@ export async function sendLoginLink(
   const result = await send(
     {
       From: `PauseAI UK staff login <noreply@${notifyDomain()}>`,
-      To: email,
+      To: await staffAddressLine(email),
       Subject: staffCopy.loginEmail.subject,
       TextBody: staffCopy.loginEmail.body(`${link.href}?token=${token}`, LINK_MINUTES),
       Tag: "staff-login",

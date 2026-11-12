@@ -10,6 +10,7 @@ import { query, transaction, type Queryable } from "./db";
 import { send } from "./email";
 import { notifyDomain } from "./outside-services/postmark";
 import { staffLink } from "./notifications";
+import { staffAddressLine } from "./staff-address";
 
 // Our events on Luma, as the Luma import has them (luma-import.ts), for
 // the staff interface's events page, and who on staff owns each
@@ -154,8 +155,8 @@ async function tellOwner(
   const result = await send(
     {
       From: `PauseAI UK <noreply@${notifyDomain()}>`,
-      To: to,
-      ...(cc ? { Cc: cc } : {}),
+      To: await staffAddressLine(to),
+      ...(cc ? { Cc: await staffAddressLine(cc) } : {}),
       Subject: copy.subject(events.length, events[0].name, owner),
       TextBody: copy.body({
         events: events.map((event) => ({ name: event.name, when: londonStart(event.startAt), url: event.url })),

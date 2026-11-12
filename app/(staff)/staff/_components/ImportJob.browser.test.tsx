@@ -120,18 +120,18 @@ describe("ImportOverview", () => {
         staffCopy.tidying.introLast.after,
       ].join(""),
     );
-    // After its name, the MP check says it changes nothing, the sending and the Luma import that they act, the tidying that it's housekeeping.
+    // After its name, what it does; then, for the Luma import and reading Gmail, what they change outside the site.
+    const kinds = staffCopy.import.kinds;
     expect(cards[0].querySelector("h3")!.textContent).toBe(
-      `${jobTitles["import-luma"]}${staffCopy.import.takesAction}`,
+      `${jobTitles["import-luma"]}${kinds.import}${staffCopy.import.changesLuma}`,
     );
-    expect(cards[6].querySelector("h3")!.textContent).toBe(jobTitles["check-mps"]);
-    expect(cards[4].querySelector("h3")!.textContent).toBe(
-      `${jobTitles["send-mailings"]}${staffCopy.import.takesAction}`,
+    expect(cards[1].querySelector("h3")!.textContent).toBe(
+      `${jobTitles["read-gmail"]}${kinds.read}${staffCopy.import.emails}`,
     );
-    expect(cards[8].querySelector("h3")!.textContent).toBe(`${jobTitles["tidy-logs"]}${staffCopy.import.siteAdmin}`);
-    expect(cards[1].querySelector("h3")!.textContent).toBe(`${jobTitles["read-gmail"]}${staffCopy.import.takesAction}`);
-    // CiviCRM's pull only reads.
-    expect(cards[3].querySelector("h3")!.textContent).toBe(jobTitles["import-civicrm"]);
+    expect(cards[3].querySelector("h3")!.textContent).toBe(`${jobTitles["import-civicrm"]}${kinds.import}`);
+    expect(cards[4].querySelector("h3")!.textContent).toBe(`${jobTitles["send-mailings"]}${kinds.send}`);
+    expect(cards[6].querySelector("h3")!.textContent).toBe(`${jobTitles["check-mps"]}${kinds.check}`);
+    expect(cards[8].querySelector("h3")!.textContent).toBe(`${jobTitles["tidy-logs"]}${kinds.tidy}`);
   });
 
   it("shows an applied run, and one that changed nothing, in green, and one discarded plainly", async () => {
@@ -209,12 +209,17 @@ describe("ImportJobPage", () => {
     const head = page.getByRole("banner").element();
     expect(page.getByRole("heading", { level: 1 }).element().textContent).toBe(jobTitles["sync-politicians"]);
     await expect.element(page.getByRole("img", { name: staffCopy.import.airtable })).toBeVisible();
-    // The schedule's lozenge is plain: only a run's ending is in colour.
+    // The schedule's and what it does are plain lozenges: only a run's ending is in colour.
     const lozenges = [...head.querySelectorAll("h1 ~ span > span")];
-    expect(lozenges.map((tag) => tag.textContent)).toEqual([staffCopy.import.nightly]);
-    expect(lozenges.map((tag) => tag.className.match(/green|amber|red|blue/))).toEqual([null]);
+    expect(lozenges.map((tag) => tag.textContent)).toEqual([staffCopy.import.nightly, staffCopy.import.kinds.import]);
+    expect(lozenges.map((tag) => tag.className.match(/green|amber|red|blue/))).toEqual([null, null]);
+    // Under the head, what it does, out of the head, and that it runs by itself, so what its button is for.
+    expect(head.textContent).not.toContain(staffCopy.syncs.intro.link);
+    await expect
+      .element(page.getByText(staffCopy.import.onItsOwn(staffCopy.import.nightly, staffCopy.syncs.syncNow)))
+      .toBeVisible();
     // No strip under the head: the newest run, in the history, carries the colour.
-    expect(head.nextElementSibling!.querySelector(":scope > [data-strip]")).toBeNull();
+    expect(head.nextElementSibling!.nextElementSibling!.querySelector(":scope > [data-strip]")).toBeNull();
     await page.getByRole("button", { name: staffCopy.syncs.syncNow }).click();
     await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
     expect(

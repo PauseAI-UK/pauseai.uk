@@ -190,14 +190,20 @@ export async function removeAliasNow(form: FormData): Promise<void> {
     revalidatePath("/staff", "layout");
 }
 
-/** The button on an error's page: marks it done, as the admin, with `done` "yes"; or to do again without. */
+/**
+ * The button on an error's page: marks it done, as the admin, with `done`
+ * "yes", and goes back to the list for the next; or to do again without,
+ * staying on its page.
+ */
 export async function setErrorDoneNow(form: FormData): Promise<void> {
   const { email } = await requireStaff("admin");
   const id = idFrom(form);
   if (!id) return;
-  await setErrorDone(id, form.get("done") === "yes" ? email : null);
+  const done = form.get("done") === "yes";
+  await setErrorDone(id, done ? email : null);
   // Its page, and both tabs of the list.
   revalidatePath(ERRORS_LIST.path, "layout");
+  if (done) redirect(ERRORS_LIST.path);
 }
 
 /** Where the accounts page goes after a change: back to itself, saying why if the change was refused. */
