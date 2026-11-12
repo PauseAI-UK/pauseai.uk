@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import StaffLink from "./ui/StaffLink";
 import type { SortSpec } from "@/lib/staff-sort";
 import styles from "./SortHeading.module.css";
@@ -7,7 +8,7 @@ type Props<Key extends string> = {
   current: SortSpec<Key>;
   /** The URL that sorts by this column (lib/staff-sort.ts's sortHref). */
   href: string;
-  children: string;
+  children: ReactNode;
 };
 
 /** The arrow for a direction: up for ascending, down for descending. */

@@ -123,6 +123,12 @@ describe("PoliticianTable", () => {
     await expect
       .element(page.getByRole("link", { name: staffCopy.politicians.columns.emailsFromThem }))
       .toHaveAttribute("href", "/staff/politicians?sort=replies&dir=desc");
+    // A count's heading breaks only after its first word, however narrow its column: the rest stays on one line.
+    for (const label of [staffCopy.politicians.columns.emailsToThem, staffCopy.politicians.columns.emailsFromThem]) {
+      const together = page.getByRole("link", { name: label }).element().querySelector("span")!;
+      expect(together.textContent).toBe(label.split(" ").slice(1).join(" "));
+      expect(getComputedStyle(together).whiteSpace).toBe("nowrap");
+    }
     expect(page.getByRole("button").all()).toHaveLength(0);
   });
 
