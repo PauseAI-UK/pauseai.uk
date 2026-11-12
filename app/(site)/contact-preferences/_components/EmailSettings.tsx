@@ -154,7 +154,6 @@ function Hold({
           {words.title}
         </h2>
         <p className={styles.boxText}>{words.body}</p>
-        <p className={styles.boxText}>{copy.noBulk.note}</p>
         <SubmitButton variant="ghost" fit>
           {words.button}
         </SubmitButton>
@@ -166,21 +165,22 @@ function Hold({
     <div className={styles.held}>
       <h2>{words.title}</h2>
       <p className={styles.boxText}>{words.body}</p>
+      {hold.kind === "blocked" && view.numbers.length > 0 && <p className={styles.boxText}>{copy.blocked.numbers}</p>}
     </div>
   );
 }
 
-/** What PauseAI Global stops to every number of theirs, texts or calls (numberHolds), a box each, as email's are. */
+/** What PauseAI Global stops to every number of theirs (numberHolds), texts, calls or both, in a box as email's are. */
 function NumberHolds({ view }: { view: SettingsView }) {
-  return numberHolds(view).map((way) => {
-    const words = way === "text" ? copy.doNotText : copy.doNotCall;
-    return (
-      <div className={styles.held} key={way}>
-        <h2>{words.title}</h2>
-        <p className={styles.boxText}>{words.body}</p>
-      </div>
-    );
-  });
+  const ways = numberHolds(view);
+  if (!ways.length) return null;
+  const words = ways.length === 2 ? copy.doNotTextOrCall : ways[0] === "text" ? copy.doNotText : copy.doNotCall;
+  return (
+    <div className={styles.held}>
+      <h2>{words.title}</h2>
+      <p className={styles.boxText}>{words.body}</p>
+    </div>
+  );
 }
 
 /** The box an email's unsubscribe link opens the page with: one button, then what it did, and what they still get. */

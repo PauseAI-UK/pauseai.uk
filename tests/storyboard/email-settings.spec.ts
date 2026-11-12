@@ -162,8 +162,7 @@ test("“Do not SMS” and “Do not phone”", async ({ page, request, flowData
   await importCivicrm(request, BASE);
   runSql(flowDatabase, `UPDATE civicrm_contacts SET do_not_sms = true WHERE email = '${TOM}'`);
   await open(page, link(flowDatabase, TOM));
-  await expect(page.getByRole("heading", { name: copy.doNotText.title })).toBeVisible();
-  await expect(page.getByRole("heading", { name: copy.doNotCall.title })).toBeVisible();
+  await expect(page.getByRole("heading", { name: copy.doNotTextOrCall.title })).toBeVisible();
   await frame(page, "Texts and calls locked");
 });
 

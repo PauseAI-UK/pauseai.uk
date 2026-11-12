@@ -166,15 +166,26 @@ describe("EmailSettings", () => {
       .toBeVisible();
     await show(exampleBlocked);
     await expect.element(page.getByRole("heading", { name: copy.blocked.title })).toBeVisible();
+    // Texts and calls go unmentioned for someone without a number.
+    await expect.element(page.getByText(copy.blocked.numbers)).not.toBeInTheDocument();
+    await show({ ...exampleBlocked, numbers: ["+447700900123"] });
+    await expect.element(page.getByText(copy.blocked.numbers)).toBeVisible();
   });
 
   it("locks texts and calls where PauseAI Global stops them to every number, and says so", async () => {
+    // Both, in one box.
     await show(exampleNumberHolds);
-    await expect.element(page.getByRole("heading", { name: copy.doNotText.title })).toBeVisible();
-    await expect.element(page.getByRole("heading", { name: copy.doNotCall.title })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: copy.doNotTextOrCall.title })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: copy.doNotText.title })).not.toBeInTheDocument();
     await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.text })).toBeDisabled();
     await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.call })).toBeDisabled();
     await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.email })).toBeEnabled();
+    // Each alone.
+    const [email, text, call] = exampleNumberHolds.answers;
+    await show({ ...exampleNumberHolds, answers: [email, text] });
+    await expect.element(page.getByRole("heading", { name: copy.doNotText.title })).toBeVisible();
+    await show({ ...exampleNumberHolds, answers: [email, call] });
+    await expect.element(page.getByRole("heading", { name: copy.doNotCall.title })).toBeVisible();
   });
 
   it("from an email's link: its button first, then what it did and what they still get", async () => {

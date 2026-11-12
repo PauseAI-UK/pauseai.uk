@@ -135,16 +135,15 @@ export const emailSettingsCopy = {
   // "No bulk emails" set, which the person can lift here.
   noBulk: {
     title: "⁂ You've turned off bulk email",
-    body: "⁂ So no newsletters or event emails from us or PauseAI Global.",
+    body: "⁂ So no newsletters or event emails from PauseAI UK or PauseAI Global.",
     wording: "⁂ PauseAI UK and PauseAI Global can send me bulk email again.",
     button: "⁂ Restart emails",
-    note: "⁂ This turns PauseAI Global's back on too.",
   },
   // "No bulk emails" as Stop everything set it, which its button undoes in full; the words kept beside that choice.
   stopped: {
-    title: "⁂ You've stopped everything",
-    body: "⁂ So no emails, texts or calls from us, and no bulk email from PauseAI Global.",
-    button: "⁂ Restart all emails, texts and calls",
+    title: "You've stopped everything",
+    body: "So no emails, texts or calls from PauseAI UK, and no bulk email from PauseAI Global.",
+    button: "Restart all emails, texts and calls",
     wording: "⁂ PauseAI UK can email, text and call me as before, and PauseAI Global can send me bulk email again.",
   },
   // PauseAI Global's "Do not SMS" and "Do not phone" on every number of theirs, which only Global can lift.
@@ -156,13 +155,20 @@ export const emailSettingsCopy = {
     title: "⁂ You've asked PauseAI never to call you",
     body: "⁂ Only PauseAI Global can change that.",
   },
+  // Both, in one box.
+  doNotTextOrCall: {
+    title: "⁂ You've asked PauseAI never to text or call you",
+    body: "⁂ Only PauseAI Global can change that.",
+  },
   doNotEmail: {
     title: "⁂ You've asked PauseAI never to email you",
     body: "⁂ Only PauseAI Global can change that. It doesn't stop texts or calls.",
   },
   blocked: {
     title: "⁂ We can't email this address",
-    body: "⁂ Our emails to it bounced or were marked as spam. It doesn't stop texts or calls.",
+    body: "⁂ Our emails to it bounced or were marked as spam.",
+    // Only for someone with a number.
+    numbers: "⁂ It doesn't stop texts or calls.",
   },
   global: {
     title: "PauseAI Global's emails",
