@@ -163,7 +163,7 @@ describe("LetterHistory", () => {
     ]);
     await expect
       .element(history().getByRole("link", { name: "jo@example.org" }))
-      .toHaveAttribute("href", "/staff/politicians/blocked-emails?q=jo%40example.org");
+      .toHaveAttribute("href", "/staff/politicians/addresses-to-fix?q=jo%40example.org");
     await expect.element(page.getByText("odd", { exact: true })).toBeVisible();
   });
 

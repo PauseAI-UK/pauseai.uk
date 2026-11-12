@@ -209,7 +209,7 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
       // An unblock has a note, and a block the kind of problem.
       return (
         <>
-          <StaffLink href={`/staff/politicians/blocked-emails?q=${encodeURIComponent(text("address"))}`}>
+          <StaffLink href={`/staff/politicians/addresses-to-fix?q=${encodeURIComponent(text("address"))}`}>
             {text("address")}
           </StaffLink>
           <Muted> · {kind || text("note")}</Muted>

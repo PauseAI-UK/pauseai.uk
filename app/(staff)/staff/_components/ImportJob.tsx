@@ -24,7 +24,6 @@ import type { Decide } from "./Run";
 import RunList from "./RunList";
 import Tag from "@/components/ui/Tag";
 import Strip from "./ui/Strip";
-import Empty from "./ui/Empty";
 import ExternalLink from "./ui/ExternalLink";
 import PageHead from "./ui/PageHead";
 
@@ -157,7 +156,7 @@ function Intro({ job, airtableTable }: { job: ImportJob; airtableTable: string }
   );
 }
 
-/** That a run of the job is going, or how its newest run ended, and when, in a strip tinted to match (ui/Strip); or, in grey, that it has never run. */
+/** That a run of the job is going, or how its newest run ended, and when, in a strip tinted to match (ui/Strip); or that it has never run. */
 function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | undefined; running?: RunningJob }) {
   if (running)
     return (
@@ -168,7 +167,11 @@ function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | 
         </span>
       </Strip>
     );
-  if (!run) return <Empty>{ABOUT[job].none}</Empty>;
+  if (!run)
+    return (
+      // A job that has never run: that's how it stands, so a strip, said plainly, not as a status in bold.
+      <Strip>{ABOUT[job].none}</Strip>
+    );
   return (
     <Strip tone={runTone(run) ?? "plain"} icon={false}>
       <span className={styles.line}>

@@ -35,8 +35,8 @@ describe("StaffSessions", () => {
     // A row each: its browser and system, or that they're not known; when it began and ends; and only one that's kept says so.
     const rows = card.getByRole("list", { name: staffCopy.me.sessionsTitle }).getByRole("listitem").all();
     expect(rows.map((row) => row.element().textContent)).toEqual([
-      `Firefox · Linux${copy.thisBrowser}${copy.started} 22 Oct 2026, 09:00${copy.ends} 23 Oct 2026, 09:00${staffCopy.nav.logout}`,
-      `${copy.unknown}${copy.started} 20 Oct 2026, 08:00${copy.ends} 21 Nov 2026, 08:00${copy.kept}${staffCopy.nav.logout}`,
+      `Firefox · Linux${copy.thisBrowser}${copy.started} 22 Oct 2026, 09:00 · ${copy.ends} 23 Oct 2026, 09:00${staffCopy.nav.logout}`,
+      `${copy.unknown}${copy.started} 20 Oct 2026, 08:00 · ${copy.ends} 21 Nov 2026, 08:00 · ${copy.kept}${staffCopy.nav.logout}`,
     ]);
     const form = page.getByRole("button", { name: copy.logOutEverywhere }).element().closest("form")!;
     expect(form.getAttribute("method")).toBe("post");

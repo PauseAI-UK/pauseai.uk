@@ -186,7 +186,7 @@ test("An admin without Supporters", async ({ page, request, flowDatabase }) => {
 
 test("Blocked addresses without Supporters", async ({ page, request, flowDatabase }) => {
   story(
-    "Jane writes to an MP whose address bounces her letter. Staff without the Supporters permission can't open her letter, or Bounces and complaints, the supporters' page.",
+    "Jane writes to an MP whose address bounces her letter. Staff without the Supporters permission can't open her letter, or Bounced emails, the supporters' page.",
   );
   await syncPoliticians(request, BASE);
   const bouncy = TEST_MPS.find((mp) => mp.postcode === "ZZ99ZH")!;
@@ -213,12 +213,12 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   expect(await bounce.json()).toEqual({ recorded: true });
 
   await logIn(page, flowDatabase);
-  for (const closed of ["/staff/campaigns", "/staff/supporters/blocked-emails"]) {
+  for (const closed of ["/staff/campaigns", "/staff/supporters/bounced-emails"]) {
     await page.goto(`${BASE}${closed}`);
     await expect(page).toHaveURL(`${BASE}/staff`);
   }
   story("Addresses to fix, the politicians' page, names the letter that bounced, but doesn't link to it.");
-  await page.goto(`${BASE}/staff/politicians/blocked-emails`);
+  await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.emails.titles.mps);
   const blocked = page.getByRole("table").first().getByRole("row").filter({ hasText: "no-such-mailbox@pauseai.uk" });
   await expect(blocked.getByText(`${staffCopy.emails.letterTo} ${bouncy.name}`)).toBeVisible();
@@ -245,16 +245,16 @@ test("Unblocking a supporter's address", async ({ page, request, flowDatabase })
   await postBounce(request, "jane.fixture@example.com");
   await logIn(page, flowDatabase, ["supporters"]);
 
-  await page.goto(`${BASE}/staff/politicians/blocked-emails`);
+  await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
   await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
   await frame(page, "Addresses to fix, empty");
 
-  story("Bounces and complaints lists her address.");
-  await page.goto(`${BASE}/staff/supporters/blocked-emails`);
+  story("Bounced emails lists her address.");
+  await page.goto(`${BASE}/staff/supporters/bounced-emails`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.emails.titles.supporters);
   const row = page.getByRole("table").first().getByRole("row").filter({ hasText: "jane.fixture@example.com" });
   await expect(row).toContainText(staffCopy.emails.kinds.hard);
-  await frame(page, "Bounces and complaints");
+  await frame(page, "Bounced emails");
 
   story("Staff unblock it. Its row's button asks why first, for the audit log.");
   await row.getByRole("button", { name: staffCopy.emails.unblockOpen }).click();
@@ -262,7 +262,7 @@ test("Unblocking a supporter's address", async ({ page, request, flowDatabase })
   await frame(page, "Why they're unblocking it");
   await row.getByRole("button", { name: staffCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
-  await frame(page, "Bounces and complaints, empty");
+  await frame(page, "Bounced emails, empty");
 });
 
 /** Logs `email` in in a browser of its own, on the flow's database, and returns its page. */

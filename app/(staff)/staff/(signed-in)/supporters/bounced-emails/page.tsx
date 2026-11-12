@@ -25,13 +25,13 @@ export default async function SupporterEmailsPage({
   return (
     <Page kind="list">
       <PageHead intro={staffCopy.emails.intros.supporters}>{staffCopy.emails.titles.supporters}</PageHead>
-      <EmailBlockFilters q={q} kind={kind} action="/staff/supporters/blocked-emails" />
+      <EmailBlockFilters q={q} kind={kind} action="/staff/supporters/bounced-emails" />
       <EmailBlocksTable
         blocks={blocks}
         unblock={unblockAddress}
         letterLinks
-        download={(format) => filtersPath("/staff/supporters/blocked-emails/download", { q, kind, format })}
-        clear={clearedTo("/staff/supporters/blocked-emails", { q, kind })}
+        download={(format) => filtersPath("/staff/supporters/bounced-emails/download", { q, kind, format })}
+        clear={clearedTo("/staff/supporters/bounced-emails", { q, kind })}
       />
       <h2>{staffCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks />

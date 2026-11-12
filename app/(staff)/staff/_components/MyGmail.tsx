@@ -29,7 +29,7 @@ function KeptNote({ keeps }: { keeps: boolean }) {
 }
 
 /**
- * Your Gmail, a card of your own page, a third of its grid, its title saying whether it's
+ * Your Gmail, a card of your own page, a third of its grid, tinted as what's beside your sessions, its title saying whether it's
  * connected, and for the letters inbox, that it sends supporters' letters: how connecting ended, if Google has just sent you back; then,
  * connected, since when and today's sends, whether threads with politicians
  * are kept from it, with Disconnect; or what
@@ -57,6 +57,7 @@ export default function MyGmail({
   return (
     <Card
       span={2}
+      look="aside"
       id="gmail"
       title={
         lettersInbox

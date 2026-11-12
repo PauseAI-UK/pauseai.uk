@@ -658,7 +658,7 @@ describe("PoliticianDetails", () => {
       .toHaveAttribute("href", "/staff/mailings/3");
     await expect
       .element(page.getByRole("link", { name: "polly@example.org" }))
-      .toHaveAttribute("href", "/staff/politicians/blocked-emails?q=polly%40example.org");
+      .toHaveAttribute("href", "/staff/politicians/addresses-to-fix?q=polly%40example.org");
     // Each letter's status leads to it alone on the letters page.
     await expect
       .element(historyList.getByRole("link", { name: staffCopy.mailingPages.theLetter }).nth(2))

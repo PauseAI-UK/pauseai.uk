@@ -227,11 +227,11 @@ test("A letter bounces", async ({ page, request, flowDatabase }) => {
   const alert = newestEmail(
     (email) => email.To === NOTIFICATION_INBOX && email.Subject === staffCopy.alert.subject(bouncy.name),
   );
-  expect(alert?.TextBody).toContain(`${BASE}/staff/politicians/blocked-emails`);
+  expect(alert?.TextBody).toContain(`${BASE}/staff/politicians/addresses-to-fix`);
   await emailFrame(page, alert!, "The email staff get");
   story("Addresses to fix lists the address, with the letter that found it out.");
 
-  await page.goto(`${BASE}/staff/politicians/blocked-emails`);
+  await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
   // The blocked addresses, above the recent problems.
   const blocked = page.getByRole("table").first().getByRole("row").filter({ hasText: BOUNCY_ADDRESS });
   await expect(blocked.getByRole("link", { name: bouncy.name, exact: true })).toBeVisible();
@@ -302,7 +302,7 @@ test("Unblocking an MP's address", async ({ page, request, flowDatabase }) => {
 
   story("Addresses to fix lists the address, and leads to the MP.");
   // The page lists them, and is the way to them.
-  await page.goto(`${BASE}/staff/politicians/blocked-emails`);
+  await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
   await expect(page.getByRole("row").filter({ hasText: bouncy.name })).toBeVisible();
   await frame(page, "Addresses to fix");
   story("The MP's page says letters to them aren't being sent, why, and what to check.");

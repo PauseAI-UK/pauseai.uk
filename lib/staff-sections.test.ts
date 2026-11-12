@@ -29,7 +29,7 @@ describe("staffPageOf", () => {
   it("finds the page a path is, or is under, by the longest whole segment", () => {
     expect(staffPageOf("/staff/supporters")?.id).toBe("supporters");
     expect(staffPageOf("/staff/supporters/[id]/erase")?.id).toBe("supporters");
-    expect(staffPageOf("/staff/supporters/blocked-emails")?.id).toBe("supporterEmails");
+    expect(staffPageOf("/staff/supporters/bounced-emails")?.id).toBe("supporterEmails");
     expect(staffPageOf("/staff/letters/supporter/[id]")?.id).toBe("supporters");
     expect(staffPageOf("/staff/letters/[id]")?.id).toBe("campaigns");
     expect(staffPageOf("/staff/campaigns/[slug]")?.id).toBe("campaigns");
@@ -45,6 +45,6 @@ describe("staffPageHref", () => {
   it("says where a page in the navigation is", () => {
     expect(staffPageHref("supporters")).toBe("/staff/supporters");
     expect(staffPageHref("import")).toBe("/staff/scheduled-jobs");
-    expect(staffPageHref("mpEmails")).toBe("/staff/politicians/blocked-emails");
+    expect(staffPageHref("mpEmails")).toBe("/staff/politicians/addresses-to-fix");
   });
 });

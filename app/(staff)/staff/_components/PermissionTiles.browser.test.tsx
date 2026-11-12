@@ -147,7 +147,7 @@ describe("PermissionTiles", () => {
     }
     await expect
       .element(page.getByRole("link", { name: copy.seeBlocked }).first())
-      .toHaveAttribute("href", "/staff/supporters/blocked-emails");
+      .toHaveAttribute("href", "/staff/supporters/bounced-emails");
   });
 
   it("words every reason it can give, with when", async () => {

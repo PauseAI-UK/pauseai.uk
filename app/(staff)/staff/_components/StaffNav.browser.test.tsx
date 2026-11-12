@@ -27,7 +27,9 @@ describe("StaffNav", () => {
     expect(current.getAttribute("href")).toBe("/staff/politicians");
     expect(nav.querySelector('a[href="/staff/scheduled-jobs"]')!.textContent).toBe(staffCopy.nav.import);
     expect(nav.querySelector('a[href="/staff/accounts"]')!.textContent).toBe(staffCopy.nav.accounts);
-    expect(nav.querySelector('a[href="/staff/politicians/blocked-emails"]')!.textContent).toBe(staffCopy.nav.mpEmails);
+    expect(nav.querySelector('a[href="/staff/politicians/addresses-to-fix"]')!.textContent).toBe(
+      staffCopy.nav.mpEmails,
+    );
     expect([...nav.querySelectorAll("h2")].map((h) => h.textContent).slice(0, 3)).toEqual(
       ["politicians", "events", "admin"].map((id) => staffCopy.nav.sections[id]),
     );
@@ -91,34 +93,33 @@ describe("StaffNav", () => {
       "/staff/supporters",
       "/staff/broadcasts",
       "/staff/campaigns",
-      "/staff/supporters/blocked-emails",
+      "/staff/supporters/bounced-emails",
       "/staff/supporters/import",
     ]);
   });
 });
 
 describe("StaffNav on a phone", () => {
-  it("keeps the page's name beside the title, a long one on two lines there", async () => {
-    // A phone's width, less the page's margins, which the bar has on a page.
-    await page.viewport(340, 800);
-    try {
-      const { rerender } = await render(
-        <StaffNav email="jo@pauseai.uk" permissions={["supporters"]} current="supporters" />,
-      );
-      const title = () => page.getByText(staffCopy.nav.title).element().getBoundingClientRect();
-      const name = () => document.querySelector("summary")!.getBoundingClientRect();
-      const oneLine = name().height;
-      expect(name().left).toBeGreaterThan(title().right);
-      await rerender(<StaffNav email="jo@pauseai.uk" permissions={["supporters"]} current="supporterEmails" />);
-      expect(document.querySelector("summary")!.textContent).toBe(staffCopy.nav.supporterEmails);
-      // Still beside the title, not under it, and taller, as it has wrapped.
-      expect(name().left).toBeGreaterThan(title().right);
-      expect(name().top).toBeLessThan(title().bottom);
-      expect(name().height).toBeGreaterThan(oneLine);
-      expect(Math.round(name().right)).toBeLessThanOrEqual(340);
-    } finally {
-      await page.viewport(414, 896);
-    }
+  it("keeps the page's name beside the title, on two lines there when there's no room for it on one", async () => {
+    // In a box of a width, as the bar is in the page's margins.
+    const nav = (width: number) => (
+      <div style={{ width }}>
+        <StaffNav email="jo@pauseai.uk" permissions={[]} current="mpEmails" />
+      </div>
+    );
+    const title = () => document.querySelector("nav a[href='/staff']")!.getBoundingClientRect();
+    const name = () => document.querySelector("summary")!.getBoundingClientRect();
+    await page.viewport(414, 896);
+    const { rerender } = await render(nav(380));
+    expect(document.querySelector("summary")!.textContent).toBe(staffCopy.nav.mpEmails);
+    const oneLine = name().height;
+    expect(name().left).toBeGreaterThan(title().right);
+    // Too narrow for the name beside the title: it wraps where it is, not under the title.
+    await rerender(nav(270));
+    expect(name().height).toBeGreaterThan(oneLine);
+    expect(name().left).toBeGreaterThanOrEqual(title().right);
+    expect(name().top).toBeLessThan(title().bottom);
+    expect(Math.round(name().right)).toBeLessThanOrEqual(Math.round(title().left) + 270);
   });
 });
 
@@ -141,7 +142,7 @@ describe("StaffNav in the signed-in pages' layout", () => {
   it("marks home at /staff and your own page at yours", async () => {
     expect(staffPageAt("/staff")).toBe("home");
     expect(staffPageAt("/staff/me")).toBe("me");
-    expect(staffPageAt("/staff/politicians/blocked-emails")).toBe("mpEmails");
+    expect(staffPageAt("/staff/politicians/addresses-to-fix")).toBe("mpEmails");
     expect(staffPageAt("/staff/login")).toBeUndefined();
   });
 });

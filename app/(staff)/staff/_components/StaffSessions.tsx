@@ -13,8 +13,9 @@ const copy = staffCopy.sessions;
 /**
  * Your own sessions, a card of your page, two-thirds of its grid: what they
  * are, then a row each (ui/Rows): the browser and system it began in, as
- * far as they're known, marked if it's this browser's; under them when it
- * began, when it ends and, if so, that it's kept signed in; and at its
+ * far as they're known, marked if it's this browser's; under them, a dot
+ * between each, when it began, when it ends and, if so, that it's kept
+ * signed in; and at its
  * right Log out, which ends that one. Under the rows, the button that ends
  * them all, this one included. Each is a POST to the logout route.
  */
@@ -27,15 +28,21 @@ export default function StaffSessions({ sessions }: { sessions: StaffSession[] }
           <Row
             key={session.id}
             second={
-              <span className={styles.facts}>
-                <span>
+              <>
+                <span className={styles.fact}>
                   {copy.started} <When at={session.startedAt} />
                 </span>
-                <span>
+                {" · "}
+                <span className={styles.fact}>
                   {copy.ends} <When at={session.expiresAt} />
                 </span>
-                {session.remember && <span>{copy.kept}</span>}
-              </span>
+                {session.remember && (
+                  <>
+                    {" · "}
+                    <span className={styles.fact}>{copy.kept}</span>
+                  </>
+                )}
+              </>
             }
             end={
               <form method="post" action="/staff/api/logout">

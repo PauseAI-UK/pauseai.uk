@@ -21,13 +21,13 @@ export default async function MpEmailsPage({ searchParams }: { searchParams: Pro
   return (
     <Page kind="list">
       <PageHead intro={staffCopy.emails.intros.mps}>{staffCopy.emails.titles.mps}</PageHead>
-      <EmailBlockFilters q={q} kind={kind} action="/staff/politicians/blocked-emails" />
+      <EmailBlockFilters q={q} kind={kind} action="/staff/politicians/addresses-to-fix" />
       <EmailBlocksTable
         blocks={blocks}
         unblock={unblockAddress}
         letterLinks={letterLinks}
-        download={(format) => filtersPath("/staff/politicians/blocked-emails/download", { q, kind, format })}
-        clear={clearedTo("/staff/politicians/blocked-emails", { q, kind })}
+        download={(format) => filtersPath("/staff/politicians/addresses-to-fix/download", { q, kind, format })}
+        clear={clearedTo("/staff/politicians/addresses-to-fix", { q, kind })}
       />
       <h2>{staffCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks={letterLinks} />

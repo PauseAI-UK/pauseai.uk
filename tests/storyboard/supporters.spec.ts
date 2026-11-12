@@ -694,18 +694,18 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
 
 test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
   story(
-    "CiviCRM has Casey's address on hold, as its emails to it bounced. The CiviCRM import blocks it here too, and it's listed in Bounces and complaints.",
+    "CiviCRM has Casey's address on hold, as its emails to it bounced. The CiviCRM import blocks it here too, and it's listed in Bounced emails.",
   );
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
-  await page.goto(`${BASE}/staff/supporters/blocked-emails`);
+  await page.goto(`${BASE}/staff/supporters/bounced-emails`);
   const row = page.getByRole("table").first().getByRole("row").filter({ hasText: "casey.chapter@example.com" });
   await expect(row).toContainText(staffCopy.emails.kinds.hold);
-  await frame(page, "Bounces and complaints");
+  await frame(page, "Bounced emails");
   story("Staff lift it, with a note. Only a new hold in CiviCRM blocks it again.");
   await row.getByRole("button", { name: staffCopy.emails.unblockOpen }).click();
   await row.getByLabel(staffCopy.emails.note).fill("Global say the address works again");
   await row.getByRole("button", { name: staffCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
-  await frame(page, "Bounces and complaints, empty");
+  await frame(page, "Bounced emails, empty");
 });

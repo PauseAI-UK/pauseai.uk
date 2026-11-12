@@ -89,7 +89,7 @@ export const staffCopy = {
     // Beside a page the staff member first saw in the last 3 days.
     newTag: "new",
     draftTag: "draft",
-    supporterEmails: "Bounces and complaints",
+    supporterEmails: "Bounced emails",
     signupUpload: "Import sign-ups",
     mpEmails: "Addresses to fix",
     logout: "Log out",
@@ -608,7 +608,7 @@ export const staffCopy = {
           complaint: (when: string) => `They marked an email as spam, ${when}`,
           hold: (when: string) => `On hold in CiviCRM, ${when}`,
         } as Record<string, (when: string) => string>,
-        seeBlocked: "See bounces and complaints",
+        seeBlocked: "See bounced emails",
       },
       activityTitle: "History",
       // Where they are, and what it's from: their postcode, a city they gave, or an event's place.
@@ -866,7 +866,7 @@ export const staffCopy = {
     // In that column, when they've answered none.
     noAsks: "None",
     noEmail: "No email",
-    // On a politician whose address is blocked (/staff/politicians/blocked-emails).
+    // On a politician whose address is blocked (/staff/politicians/addresses-to-fix).
     emailBlocked: "Email blocked",
     // The button on an ask staff record by hand.
   },
@@ -1813,13 +1813,13 @@ All events: ${link}`,
       },
     },
   },
-  // The pages of blocked addresses (/staff/politicians/blocked-emails and
-  // /staff/supporters/blocked-emails), and the bounces and complaints that blocked them.
+  // The pages of blocked addresses (/staff/politicians/addresses-to-fix and
+  // /staff/supporters/bounced-emails), and the bounces and complaints that blocked them.
   emails: {
     // The two pages, each titled as the navigation names it: politicians' addresses, and everyone else's.
     titles: {
       mps: "Addresses to fix",
-      supporters: "Bounces and complaints",
+      supporters: "Bounced emails",
     },
     // Under each title, what the page is.
     intros: {
@@ -2035,7 +2035,7 @@ All events: ${link}`,
     supporterBounces: {
       subject: (n: number) => `${n} supporters' ${plural(n, "address", "addresses")} bounced`,
       body: (n: number, held: number, lines: string[], link: string) =>
-        `${n} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${count(held, "reply is", "replies are")} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nBounces and complaints: ${link}`,
+        `${n} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${count(held, "reply is", "replies are")} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nBounced emails: ${link}`,
     },
     // A text's new words sent to WhatsApp for approval, to who sent them and the inbox: the words, and the text.
     templateSubmitted: {

@@ -96,7 +96,7 @@ export async function reportSupporterBounces(request: Request | undefined): Prom
       bounced.length,
       held,
       bounced.map(({ email, reason }) => `- ${domainOf(email)}: ${reason}`),
-      staffLink("/staff/supporters/blocked-emails", request),
+      staffLink("/staff/supporters/bounced-emails", request),
     ),
     null,
     "staff-report",

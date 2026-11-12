@@ -87,7 +87,7 @@ describeWithDatabase("handleDeliveryProblem", () => {
           "Testy McTestface MP",
           "test-mp@parliament.example",
           "Unknown user",
-          "https://pauseai.uk/staff/politicians/blocked-emails",
+          "https://pauseai.uk/staff/politicians/addresses-to-fix",
         ),
       );
     },
@@ -122,7 +122,7 @@ describeWithDatabase("handleDeliveryProblem", () => {
           "Testy McTestface MP",
           "test-mp@parliament.example",
           "Unknown user",
-          "https://pauseai.uk/staff/politicians/blocked-emails",
+          "https://pauseai.uk/staff/politicians/addresses-to-fix",
         ),
       }),
     ]);

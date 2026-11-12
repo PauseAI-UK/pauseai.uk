@@ -508,8 +508,10 @@ with their dates, is a table in the card instead (`ListTable`).
 **Nothing to show** (`ui/Empty`). That there's nothing is said one way:
 the page's own words, in grey, at the size of the text around them, where
 the content would start. In a card it's the card's one line. A list keeps
-its frame ("Lists", below). It's never a strip, which is for how something
-stands, nor small print, nor the page's ordinary text.
+its frame ("Lists", below). It's never small print, nor the page's
+ordinary text. A strip is for how something stands, so it isn't for an
+empty list. But where a card's strip is its thing's state, "not yet" is a
+state too, and stays a strip: a scheduled job that has never run.
 
 **A form in a card.** A form of one step is a card, two-thirds of the
 grid, with a card of help beside it, an aside: New ask has its preview
