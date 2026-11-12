@@ -17,6 +17,16 @@ const Below = ({ children }: { children: ReactNode }) => (
   </div>
 );
 
+/** Holds the page's fonts back, as still loading, until the function it returns is called. */
+function fontsHeldBack() {
+  let arrive!: () => void;
+  const ready = new Promise<FontFaceSet>((resolve) => {
+    arrive = () => resolve(document.fonts);
+  });
+  vi.spyOn(document.fonts, "ready", "get").mockReturnValue(ready);
+  return arrive;
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   scrollTo({ top: 0, behavior: "instant" });
@@ -48,6 +58,24 @@ describe("Marker", () => {
       return shape;
     };
     expect(await drawn()).toEqual(await drawn());
+  });
+
+  it("waits for the words' fonts before it draws, so the mark is where the words end up", async () => {
+    const arrive = fontsHeldBack();
+    await render(<Marker type="underline">Still loading</Marker>);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(document.querySelector("svg.rough-annotation")).toBeNull();
+    arrive();
+    await expect.poll(() => strokes().length).toBeGreaterThan(0);
+  });
+
+  it("draws nothing if it has gone before the fonts arrive", async () => {
+    const arrive = fontsHeldBack();
+    const { unmount } = await render(<Marker type="underline">Gone first</Marker>);
+    await unmount();
+    arrive();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(document.querySelector("svg.rough-annotation")).toBeNull();
   });
 
   it("highlights a heading once it scrolls into view, in one quick sweep that gathers speed", async () => {

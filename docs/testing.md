@@ -669,7 +669,7 @@ that drives it or why nothing does.
   - registering, Luma failing, and an email the server won't take;
   - See all details, to the day's details;
   - a heading highlighted as it comes into view;
-  - the share card, saying they're registered, and registering someone new, with the events sent to GA.
+  - the share card, saying they're registered, its apps all showing on a desktop and a row to swipe on a phone, and registering someone new, with the events sent to GA.
 - `staff-login.spec.ts`: Logging in to the staff pages, and your own account:
   - login by emailed link, with the email pictured: it works once, in the browser that asked for it;
   - an address outside pauseai.uk getting no link;

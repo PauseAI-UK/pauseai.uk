@@ -914,7 +914,7 @@ svg:has(+ .marked-highlight) path {
   mask-image: linear-gradient(to bottom, var(--black) calc(100% - 64px), transparent);
 }
 
-/* ─── The app row: scrolls sideways, on desktop too ─── */
+/* ─── The app row: swiped sideways on a touch screen, wrapped where there's a mouse ─── */
 .share-apps {
   --gap: 8px;
   --fade: 48px;
@@ -928,6 +928,15 @@ svg:has(+ .marked-highlight) path {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
+}
+/* A mouse can't swipe a row with no scrollbar, so there the apps wrap onto
+   as many lines as they need, and every one shows. */
+@media (hover: hover) {
+  .share-apps {
+    flex-wrap: wrap;
+    row-gap: 16px;
+    overflow-x: visible;
+  }
 }
 /* Whichever side has more icons off-screen fades out, so the row reads as
    scrollable even when the last visible icon isn't clipped. data-fade is set

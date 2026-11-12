@@ -136,10 +136,26 @@ describe("ShareCard", () => {
     expect(button.top).toBeGreaterThan(apps.bottom);
   });
 
-  it("fades the app row's end on a narrow screen, and its start once scrolled", async () => {
+  it("shows every app where there's a mouse, wrapped onto more lines on a narrow screen", async () => {
     await page.viewport(400, 800);
     await renderCard();
     const row = page.getByRole("list").element() as HTMLElement;
+    const box = row.getBoundingClientRect();
+    const apps = page.getByRole("list").getByRole("link").elements();
+    expect(apps).toHaveLength(9);
+    for (const app of apps) expect(app.getBoundingClientRect().right).toBeLessThanOrEqual(box.right);
+    expect(new Set(apps.map((app) => app.getBoundingClientRect().top)).size).toBeGreaterThan(1);
+    await expect.poll(() => row.dataset.fade).toBe("none");
+    await page.viewport(1280, 900);
+  });
+
+  it("fades the app row's end on a narrow touch screen, and its start once scrolled", async () => {
+    await page.viewport(400, 800);
+    await renderCard();
+    const row = page.getByRole("list").element() as HTMLElement;
+    // The test browser has a mouse, so the row is set as a touch screen has it: one line, swiped.
+    row.style.flexWrap = "nowrap";
+    row.style.overflowX = "auto";
     await expect.poll(() => row.dataset.fade).toBe("end");
     row.scrollLeft = 60;
     await expect.poll(() => row.dataset.fade).toBe("both");

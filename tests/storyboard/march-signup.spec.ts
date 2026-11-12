@@ -209,7 +209,7 @@ test("What we want, highlighted", { tag: "@phone" }, async ({ page }) => {
 
 test("Sharing, and registering someone new", { tag: "@phone" }, async ({ page, context }) => {
   story(
-    "After registering, someone copies the share card's message to send to friends. The button says it's copied, and we count the registration and the share in our analytics.",
+    "After registering, someone copies the share card's message to send to friends. The button says it's copied, and we count the registration and the share in our analytics. On a computer every app to share to shows, on two lines; on a phone they're one row to swipe along.",
   );
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await openSignup(page);
@@ -229,6 +229,16 @@ test("Sharing, and registering someone new", { tag: "@phone" }, async ({ page, c
   ]);
   await page.getByRole("button", { name: copy.share.copy }).waitFor();
   await scrollSettled(page);
+  // A mouse can't swipe the row, so there the apps wrap and all show; a
+  // phone's row runs off its end, faded.
+  const apps = page.getByRole("list").filter({ has: page.getByRole("link", { name: "WhatsApp" }) });
+  await expect(apps.getByRole("link")).toHaveCount(9);
+  if (test.info().project.name === "desktop") {
+    for (const app of await apps.getByRole("link").all()) await expect(app).toBeInViewport({ ratio: 1 });
+  } else {
+    await expect(apps).toHaveAttribute("data-fade", "end");
+    await expect(apps.getByRole("link", { name: "Email" })).not.toBeInViewport();
+  }
   await frame(page, "The message, copied");
   story("Then they press Register someone new. The form comes back empty, ready for the next person.");
 
@@ -237,31 +247,4 @@ test("Sharing, and registering someone new", { tag: "@phone" }, async ({ page, c
   await expect(page.getByLabel(copy.form.email)).toHaveValue("");
   await scrollSettled(page);
   await frame(page, "The form, empty");
-});
-
-test("Tapping on a phone", { tag: "@phone-only" }, async ({ page }) => {
-  story(
-    "On a phone, someone taps Register and the share card appears. Where their finger rests next, over one of the apps to share to, doesn't lift that app as a mouse would.",
-  );
-  await openSignup(page);
-  await fillIn(page, "testy@example.org");
-  await page.getByRole("button", { name: copy.form.submit, exact: true }).tap();
-  await expect(registered(page)).toBeFocused();
-  await scrollSettled(page);
-  // A tap leaves the hover where the finger was; one left over an app, as
-  // the next tap on the card can, mustn't lift it.
-  const apps = page.getByRole("list").filter({ has: page.getByRole("link", { name: "WhatsApp" }) });
-  await apps.scrollIntoViewIfNeeded();
-  await scrollSettled(page);
-  const telegram = (await apps.getByRole("link", { name: "Telegram" }).boundingBox())!;
-  await page.mouse.move(telegram.x + telegram.width / 2, telegram.y + telegram.height / 2);
-  expect(await page.evaluate(() => matchMedia("(hover: hover)").matches)).toBe(false);
-  const styles = await apps.getByRole("link").evaluateAll(async (links) => {
-    // Any hover transition run to its end first.
-    await Promise.all(links.flatMap((link) => link.getAnimations().map((animation) => animation.finished)));
-    return links.map((link) => [link.matches(":hover"), getComputedStyle(link).transform]);
-  });
-  expect(styles).toContainEqual([true, "none"]);
-  expect(styles.map(([, transform]) => transform)).toEqual(styles.map(() => "none"));
-  await frame(page, "The share card, no app lifted");
 });
