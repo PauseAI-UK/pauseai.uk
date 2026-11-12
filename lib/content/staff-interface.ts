@@ -343,8 +343,6 @@ export const staffCopy = {
       signedOn: "Date collected",
       note: "Where collected",
       noteHint: "Camden Town flyering",
-      // Under Where collected: it's in the email to anyone with "No bulk emails", which says where they signed up.
-      noteShown: "⁂ Shown to anyone with “No bulk emails”, in the email telling them how to lift it.",
     },
     preview: {
       title: "Preview import",

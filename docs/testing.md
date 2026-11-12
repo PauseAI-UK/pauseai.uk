@@ -875,7 +875,7 @@ that drives it or why nothing does.
 - `/staff/api/gmail/connect`, `/staff/api/gmail/callback`:
   - `staff-login`: your Gmail connected from your own page.
   - `mailings`: the same, reached by the link in a mailing's Sent from.
-- `/staff/api/dev-contact-preferences`: `supporters`: their contact preferences, from their page, a fixture build's link per address.
+- `/staff/api/dev-contact-preferences`: `supporters`: their contact preferences, from their page, a fixture build's link per address; its links to an email's unsubscribe page, per topic and for an old email, go to the page as `email-settings` pictures it.
 - `/staff/api/dev-login`: `staff-login`: the dev login, a fixture build's one-click sign-in as a seeded account. Every other section logs in with it (`logInAsStaff` in `tests/steps.ts`).
 - `/staff/mailings/[id]/files/[file]`: Not driven: the mailings flows' files are drawn from it, but no flow opens one. Vitest-tested.
 - `/staff/broadcasts/[id]/files/[file]`: Not driven, as the broadcasts flows attach no files. It's the twin of the mailings' route, and is Vitest-tested.

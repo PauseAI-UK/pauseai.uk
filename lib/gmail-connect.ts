@@ -5,14 +5,14 @@
 
 import { staffBack } from "./staff-search";
 
+/** The Gmail a new mailing is sent from when it's connected: the policy team's shared account. */
+export const DEFAULT_SENDER = "policy@pauseai.uk";
+
 /**
  * The most the site sends from one account in a day, counting every
  * mailing: under Gmail's 2,000 (https://support.google.com/a/answer/166852),
  * so the person's own email still goes.
  */
-/** The Gmail a new mailing is sent from when it's connected: the policy team's shared account. */
-export const DEFAULT_SENDER = "policy@pauseai.uk";
-
 export const GMAIL_DAILY_LIMIT = 1800;
 
 /**

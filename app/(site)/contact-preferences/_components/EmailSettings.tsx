@@ -209,8 +209,8 @@ const offAlready = (view: SettingsView | null, topics: Topic[]): boolean =>
 
 /**
  * The box an email's unsubscribe link opens the page with: one button, then
- * what it did, and what they still get; that straight away, where they get
- * none of its topics already.
+ * what it did; or, where they get none of its topics already, that they're
+ * not subscribed, with no button.
  */
 function Unsubscribe({
   topics,
@@ -314,13 +314,13 @@ function GlobalEmails({ held }: { held: boolean }) {
 }
 
 /**
- * The contact preferences page: from an email's unsubscribe link, its box first;
- * then what PauseAI UK sends the address and its numbers, a topic a card,
- * the numbers unnamed, as the link doesn't prove they're the person's;
- * each saved as it's changed, with what holds all its email above them;
- * what PauseAI Global
- * sends; and Stop everything. Once its link has run out, an offer of a
- * fresh one in place of all but the box.
+ * The contact preferences page: from an email's unsubscribe link, its box
+ * first, until anything below it changes; then what PauseAI UK sends the
+ * address and its numbers, a topic a card, the numbers unnamed, as the link
+ * doesn't prove they're the person's; each saved as it's changed, with what
+ * holds all its email or texts and calls above them; what PauseAI Global
+ * sends; and Stop everything. Once its link has run out, an offer of a fresh
+ * one in place of all but the box.
  */
 export default function EmailSettings({
   opened,

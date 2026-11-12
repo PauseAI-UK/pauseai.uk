@@ -3,7 +3,7 @@
 import { useMemo, useState, type DragEvent } from "react";
 import { FileInput, Select, TextInput } from "@/components/ui/Controls";
 import DatePicker from "@/components/ui/DatePicker";
-import { Field, FieldSet, Hint } from "@/components/ui/Field";
+import { Field, FieldSet } from "@/components/ui/Field";
 import LinkButton from "@/components/ui/LinkButton";
 import Required from "@/components/ui/Required";
 import Table from "@/components/ui/Table";
@@ -132,11 +132,9 @@ export default function SignupUploadForm({
               value={note}
               required
               placeholder={copy.form.noteHint}
-              aria-describedby="note-shown"
               onChange={(event) => setNote(event.target.value)}
             />
           </Field>
-          <Hint id="note-shown">{copy.form.noteShown}</Hint>
         </div>
       </Card>
       <Card
