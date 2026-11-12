@@ -115,7 +115,22 @@ test("A page breaks in someone's browser", async ({ page, flowDatabase }) => {
 });
 
 test("An error marked done", async ({ page, flowDatabase }) => {
-  story("An admin opens Errors. Those still to do are listed; one marked done before is under Done.");
+  story(
+    "Last week the spam check couldn't be reached, and a script in someone's browser threw, which an admin has since marked done.",
+  );
+  runSql(
+    flowDatabase,
+    `INSERT INTO errors_seen (key, kind, route, name, words, latest_words, first_seen, last_seen, count, done_at, done_by)
+     VALUES
+       ('flow-problem', 'problem', '', '', 'Turnstile couldn''t be reached',
+        'Turnstile couldn''t be reached: fetch failed (connect ETIMEDOUT 192.0.2.7:443)',
+        now() - interval '6 days', now() - interval '5 days', 7, NULL, NULL),
+       ('flow-browser', 'browser-other', '/', 'Error', 'ResizeObserver loop completed with undelivered notifications.',
+        'ResizeObserver loop completed with undelivered notifications.',
+        now() - interval '20 days', now() - interval '4 days', 31, now() - interval '3 days', 'jane.smith@pauseai.uk')`,
+  );
+
+  story("An admin opens Errors. The spam check's is to do; the other is under Done.");
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/errors`);
   await settled(page);
