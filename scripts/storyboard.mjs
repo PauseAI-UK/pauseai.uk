@@ -432,7 +432,7 @@ function missedSummary(missed, changed) {
     `Storyboard: ${missed.length} of the flows this review would have carried look different run again:`,
     ...missed.map((key) => `  ${key}`),
     `  So the map of what a change reaches (scripts/storyboard-reach.mjs) missed something in the ${changed.length} files changed,`,
-    `  or a frame of theirs differs from run to run. Every flow has been run. Find which, and fix the map or the frame;`,
+    `  or a frame of theirs differs from run to run. So every flow is run. Find which, and fix the map or the frame;`,
     `  or add a hit to investments/storyboard-review-speed.md naming the flows.`,
   ].join("\n");
 }
