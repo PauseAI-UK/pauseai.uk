@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,11 +7,13 @@ import {
   fastPlan,
   formatDuration,
   formatTable,
+  groupState,
   parseArgs,
   passed,
   runPlan,
   runStep,
   slowPlan,
+  statusWriter,
   tail,
 } from "./gate.mjs";
 
@@ -126,8 +128,69 @@ describe("tail", () => {
   });
 });
 
+describe("groupState", () => {
+  it("is failed if one has, running while any is or some wait their turn, passed once all have, and waiting before any starts", () => {
+    expect(groupState(["waiting", "waiting"])).toBe("waiting");
+    expect(groupState(["running", "waiting"])).toBe("running");
+    // Between two commands of a lane: one done, the next not started.
+    expect(groupState(["passed", "waiting"])).toBe("running");
+    expect(groupState(["passed", "skipped"])).toBe("passed");
+    expect(groupState(["passed", "failed", "running"])).toBe("failed");
+    expect(groupState(["failed", "skipped"])).toBe("failed");
+  });
+});
+
+describe("statusWriter", () => {
+  const steps = ["prettier", "typecheck", "storyboard", "test", "lint"].map((id) => node(id, ""));
+
+  it("keeps a file of how each command stands, and each group: the quick checks together, the tests and the storyboard apart", () => {
+    const dir = mkdtempSync(join(tmpdir(), "gate-"));
+    const file = join(dir, "status.json");
+    const said = () => JSON.parse(readFileSync(file, "utf8"));
+    const status = statusWriter(steps, file);
+    expect(said()).toMatchObject({
+      pid: process.pid,
+      ended: false,
+      groups: { checks: "waiting", storyboard: "waiting", test: "waiting" },
+      steps: { prettier: "waiting", typecheck: "waiting", storyboard: "waiting", test: "waiting", lint: "waiting" },
+    });
+    expect(new Date(said().startedAt).getTime()).toBeLessThanOrEqual(new Date(said().updatedAt).getTime());
+    status.set(steps[0], "passed");
+    status.set(steps[3], "running");
+    expect(said()).toMatchObject({
+      groups: { checks: "running", storyboard: "waiting", test: "running" },
+      steps: { prettier: "passed", test: "running" },
+    });
+    status.set(steps[1], "passed");
+    status.set(steps[4], "passed");
+    status.set(steps[3], "failed");
+    status.set(steps[2], "running");
+    expect(said().groups).toEqual({ checks: "passed", storyboard: "running", test: "failed" });
+    status.set(steps[2], "passed");
+    status.end();
+    expect(said()).toMatchObject({ ended: true, groups: { checks: "passed", storyboard: "passed", test: "failed" } });
+    // Each write is moved into place, and leaves nothing beside the file.
+    expect(readdirSync(dir)).toEqual(["status.json"]);
+  });
+
+  it("has only the groups the gate is running", () => {
+    const file = join(mkdtempSync(join(tmpdir(), "gate-")), "status.json");
+    statusWriter(steps.slice(0, 2), file);
+    expect(JSON.parse(readFileSync(file, "utf8")).groups).toEqual({ checks: "waiting" });
+  });
+});
+
 describe("runStep", () => {
   const logDir = () => mkdtempSync(join(tmpdir(), "gate-"));
+
+  it("says when a command starts running, and whether it passed, failed or was skipped", async () => {
+    const states: string[] = [];
+    const changed = (step: { id: string }, state: string) => states.push(`${step.id} ${state}`);
+    await runStep(node("ok", ""), logDir(), undefined, changed);
+    await runStep(node("fails", "process.exit(3)"), logDir(), undefined, changed);
+    await runStep({ ...node("stylelint", ""), skip: "no changed CSS" }, logDir(), undefined, changed);
+    expect(states).toEqual(["ok running", "ok passed", "fails running", "fails failed", "stylelint skipped"]);
+  });
 
   it("runs a command with its output in its log, and reports it starting and finishing", async () => {
     const dir = logDir();
@@ -193,5 +256,16 @@ describe("runPlan", () => {
     ]);
     expect(passed(results)).toBe(false);
     expect(passed(results.slice(3))).toBe(true);
+  });
+
+  it("says how each step stands as it goes, one left out after a failed required step as skipped", async () => {
+    const states: string[] = [];
+    await runPlan(
+      [[[node("types", "process.exit(2)", { required: true }), node("storyboard", "")]]],
+      mkdtempSync(join(tmpdir(), "gate-")),
+      undefined,
+      (step, state) => states.push(`${step.id} ${state}`),
+    );
+    expect(states).toEqual(["types running", "types failed", "storyboard skipped"]);
   });
 });

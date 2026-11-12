@@ -34,6 +34,7 @@ describe("the storyboard's progress", () => {
   it("says how many flows there are when the run starts, and whose run it is", () => {
     new ProgressReporter().onBegin(config, suite(3));
     expect(said()).toEqual({
+      side: "branch",
       pid: process.pid,
       startedAt: "2026-11-12T10:00:00.000Z",
       updatedAt: "2026-11-12T10:00:00.000Z",
@@ -42,6 +43,15 @@ describe("the storyboard's progress", () => {
       failed: 0,
       ended: false,
     });
+  });
+
+  it("says it's main's flows that are running, when the review runs those", () => {
+    vi.stubEnv("STORYBOARD_SIDE", "main-run");
+    new ProgressReporter().onBegin(config, suite(3));
+    expect(said().side).toBe("main");
+    vi.stubEnv("STORYBOARD_SIDE", "branch");
+    new ProgressReporter().onBegin(config, suite(3));
+    expect(said().side).toBe("branch");
   });
 
   it("counts each flow as it finishes, those that didn't pass apart, and says when the run has ended", () => {

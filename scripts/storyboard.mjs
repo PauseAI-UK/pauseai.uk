@@ -271,6 +271,9 @@ async function runMainSuite(workDir, lines) {
       STORYBOARD_DIR: resolve(workDir),
       STORYBOARD_SIDE: "main-run",
       STORYBOARD_RUN_AT: runAt,
+      // This checkout's file, so how far main's run is shows where the review was started
+      // (tests/storyboard/report/progress.ts).
+      STORYBOARD_PROGRESS: resolve("test-results", "storyboard-progress.json"),
     },
   });
   rmSync(testList);

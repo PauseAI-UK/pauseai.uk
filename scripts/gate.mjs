@@ -21,8 +21,22 @@
 // each one's log has been quiet. At the end, a table of each command's exit
 // code (124 for one stopped at its limit), the end of each failed one's log,
 // and the gate's own exit code: 1 if any failed.
+//
+// How each command stands is also in tmp/gate/status.json, for anything
+// outside the gate that wants to show it, such as a terminal's status line
+// (docs/testing.md, "The gate's status").
 import { execFileSync, spawn } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { constants } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -215,14 +229,75 @@ function stop(child) {
 }
 
 /**
+ * How a group of commands stands, from how each of them does: failed if one
+ * has; else running while any is, or while some are done and others wait
+ * their turn; passed once all have, or were skipped; waiting if none has
+ * started.
+ *
+ * @param {State[]} states
+ * @returns {"waiting" | "running" | "passed" | "failed"}
+ */
+export function groupState(states) {
+  if (states.includes("failed")) return "failed";
+  if (states.every((state) => state === "waiting")) return "waiting";
+  if (states.every((state) => state === "passed" || state === "skipped")) return "passed";
+  return "running";
+}
+
+/** The group a command is in: the two long ones each their own, and the rest, quick, together. @param {string} id */
+const groupOf = (id) => (id === "storyboard" || id === "test" ? id : "checks");
+
+/**
+ * Keeps `file` saying how each of `steps` stands, and each group of them
+ * (`groups`: checks, test and storyboard, those the gate is running): every
+ * step waiting to begin with, then as `set` is told, and `ended` once `end`
+ * is called. `pid` is the gate's process, so a reader can tell a gate that
+ * was killed, which never says it ended, from one still going.
+ *
+ * @param {Step[]} steps
+ */
+export function statusWriter(steps, file = join(LOG_DIR, "status.json")) {
+  const startedAt = new Date().toISOString();
+  /** @type {Record<string, State>} */
+  const states = Object.fromEntries(steps.map((step) => [step.id, "waiting"]));
+  let ended = false;
+  // Written beside the file and moved over it, so a reader never sees half of one.
+  const write = () => {
+    const groups = {};
+    for (const group of new Set(steps.map((step) => groupOf(step.id)))) {
+      groups[group] = groupState(steps.filter((step) => groupOf(step.id) === group).map((step) => states[step.id]));
+    }
+    const status = { pid: process.pid, startedAt, updatedAt: new Date().toISOString(), ended, groups, steps: states };
+    writeFileSync(`${file}.${process.pid}`, `${JSON.stringify(status)}\n`);
+    renameSync(`${file}.${process.pid}`, file);
+  };
+  write();
+  return {
+    /** @param {Step} step @param {State} state */
+    set(step, state) {
+      states[step.id] = state;
+      write();
+    },
+    end() {
+      ended = true;
+      write();
+    },
+  };
+}
+
+/**
  * Runs one step, its output to its log in `logDir`, in a process group of its
- * own so all it starts is stopped with it at its limit.
+ * own so all it starts is stopped with it at its limit. `changed` is told as
+ * it starts running, and how it ends: passed, failed or skipped.
  *
  * @param {Step} step
  * @returns {Promise<Result>}
  */
-export function runStep(step, logDir = LOG_DIR, report = () => {}) {
-  if (step.skip) return Promise.resolve({ step, code: null, ms: 0, note: step.skip });
+export function runStep(step, logDir = LOG_DIR, report = () => {}, changed = () => {}) {
+  if (step.skip) {
+    changed(step, "skipped");
+    return Promise.resolve({ step, code: null, ms: 0, note: step.skip });
+  }
   const log = join(logDir, `${step.id}.log`);
   const out = openSync(log, "w");
   const started = Date.now();
@@ -230,6 +305,7 @@ export function runStep(step, logDir = LOG_DIR, report = () => {}) {
   const child = spawn(step.command, step.args, { cwd: step.cwd, stdio: ["ignore", out, out], detached: true });
   closeSync(out);
   running.set(child, { step, log, started });
+  changed(step, "running");
   return new Promise((resolve) => {
     let timedOut = false;
     const timer = setTimeout(() => {
@@ -241,6 +317,7 @@ export function runStep(step, logDir = LOG_DIR, report = () => {}) {
       running.delete(child);
       const ms = Date.now() - started;
       report(`${code === 0 ? "✓" : "✗"} ${step.label}: ${code}${note ? `, ${note}` : ""}, ${formatDuration(ms)}`);
+      changed(step, code === 0 ? "passed" : "failed");
       resolve({ step, code, ms, log, note });
     };
     child.on("error", (error) => finish(127, error.message));
@@ -259,7 +336,7 @@ export function runStep(step, logDir = LOG_DIR, report = () => {}) {
  * @param {Step[][][]} phases
  * @returns {Promise<Result[]>}
  */
-export async function runPlan(phases, logDir = LOG_DIR, report = () => {}) {
+export async function runPlan(phases, logDir = LOG_DIR, report = () => {}, changed = () => {}) {
   const results = [];
   for (const lanes of phases) {
     const done = await Promise.all(
@@ -268,10 +345,11 @@ export async function runPlan(phases, logDir = LOG_DIR, report = () => {}) {
         let failed;
         for (const step of lane) {
           if (failed) {
+            changed(step, "skipped");
             laneResults.push({ step, code: null, ms: 0, note: `skipped: ${failed} failed` });
             continue;
           }
-          const result = await runStep(step, logDir, report);
+          const result = await runStep(step, logDir, report, changed);
           laneResults.push(result);
           if (step.required && result.code !== 0) failed = step.label;
         }
@@ -314,15 +392,20 @@ async function main(args) {
   }
   const beat = setInterval(heartbeat, MINUTE);
 
+  const fast = fastPlan(files);
+  const slow = options.fast ? [] : slowPlan(options);
+  const status = statusWriter([...fast, ...slow].flat(2));
+
   console.log(`Gate: the fast checks, on ${files.length} files changed since origin/main`);
-  const results = await runPlan(fastPlan(files), LOG_DIR, console.log);
+  const results = await runPlan(fast, LOG_DIR, console.log, status.set);
   if (!options.fast && passed(results)) {
     console.log(`\nGate: what CI runs${options.storyboard ? "" : ", but the storyboard"}`);
-    results.push(...(await runPlan(slowPlan(options), LOG_DIR, console.log)));
+    results.push(...(await runPlan(slow, LOG_DIR, console.log, status.set)));
   } else if (!options.fast) {
     console.log("\nGate: a fast check failed, so the rest didn't run.");
   }
   clearInterval(beat);
+  status.end();
 
   for (const { step, code, log } of results) {
     if (code === null || code === 0) continue;
