@@ -184,7 +184,7 @@ export const staffCopy = {
     // Beside the session of the browser looking.
     thisBrowser: "This browser",
     // In place of the browser and system, when what the browser sent names neither.
-    unknown: "⁂ Unknown browser",
+    unknown: "Unknown browser",
     logOutEverywhere: "Log out of all of them",
   },
   // The home page: the dashboard.
