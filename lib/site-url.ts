@@ -2,6 +2,7 @@
 // comes from siteUrl(). ESLint keeps the other ways of finding the site's
 // address out of the rest of the code (SITE_URL_RULE in eslint.config.mjs).
 
+import { headers } from "next/headers";
 import { config } from "@/lib/server/config";
 
 /**
@@ -23,4 +24,16 @@ export function siteUrl(path: string, request: Request | undefined): URL {
 export function siteUrlIfKnown(path: string, request: Request | undefined): URL | undefined {
   const origin = config.siteOrigin || (config.localBuild ? request?.url : "");
   return origin ? new URL(path, origin) : undefined;
+}
+
+/**
+ * For a Server Action, which has no request of its own: one standing for it
+ * on a local build, at the address it was called on, from its Host, so a link
+ * it emails can be built there as a route's is. Undefined anywhere else, where
+ * the deploy's own address is used and the Host is never trusted.
+ */
+export async function actionRequest(): Promise<Request | undefined> {
+  if (!config.localBuild) return undefined;
+  const host = (await headers()).get("host");
+  return host ? new Request(`http://${host}/`) : undefined;
 }

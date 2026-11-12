@@ -17,6 +17,7 @@ import {
   unsubscribeCopy,
   type SettingsKind,
 } from "@/lib/server/email-settings";
+import { actionRequest } from "@/lib/site-url";
 import { checkNotSpam } from "@/lib/server/outside-services/turnstile";
 
 const text = (form: FormData, name: string): string => String(form.get(name) ?? "");
@@ -31,14 +32,16 @@ export async function askForLinkNow(form: FormData): Promise<{ sent: string } | 
   const address = text(form, "email").trim();
   const spam = await checkNotSpam({ turnstileToken: text(form, "turnstileToken") });
   if (!spam.drop && spam.message) return { message: spam.message };
-  after(() => emailSettingsLink(address));
+  const request = await actionRequest();
+  after(() => emailSettingsLink(address, request));
   return { sent: address };
 }
 
 /** A page whose link has run out: emails its address a fresh one, after the answer, as askForLinkNow does. */
 export async function resendLinkNow(form: FormData): Promise<void> {
   const [kind, token] = [kindOf(form), text(form, "token")];
-  after(() => resendLink(kind, token));
+  const request = await actionRequest();
+  after(() => resendLink(kind, token, request));
 }
 
 /** Does `change` to the page's address while its link works, and gives the page afresh; null once it doesn't. */

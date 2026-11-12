@@ -45,9 +45,9 @@ export const emailSettingsCopy = {
   fromName: "PauseAI UK",
   // The email with a link to the page, which someone asked for.
   linkEmail: {
-    subject: "⁂ Your PauseAI UK contact preferences",
+    subject: "Set PauseAI UK contact preferences",
     body: (link: string, days: number) =>
-      `⁂ Here's the link to see and change how PauseAI UK contacts you:\n\n${link}\n\nIt works for ${days} days. If you didn't ask for it, you can ignore this email.`,
+      `Follow this link to see and change how PauseAI UK contacts you:\n\n${link}\n\nIt works for ${days} days. If you didn't ask for it, you can ignore this email.`,
   },
   // To someone with "No bulk emails" who just ticked a box to hear from us: what happened and how to settle it, once,
   // and nothing more. `where` is where they signed up.
@@ -64,34 +64,34 @@ export const emailSettingsCopy = {
   // At the foot of every copy of a broadcast, with its own link to the page, which opens with an Unsubscribe button.
   footer: {
     text: (link: string) =>
-      `⁂ You get this because you said PauseAI UK could email you. Unsubscribe or change what we send you: ${link}`,
+      `You get this because you said PauseAI UK could email you. Unsubscribe or change what we send you: ${link}`,
     html: (link: string) =>
-      `⁂ You get this because you said PauseAI UK could email you. <a href="${link}">Unsubscribe or change what we send you</a>.`,
+      `You get this because you said PauseAI UK could email you. <a href="${link}">Unsubscribe or change what we send you</a>.`,
   },
   // Asking for a link: the first page.
   start: {
-    title: "⁂ Your contact preferences",
-    lead: "⁂ See and change how PauseAI UK contacts you, by email, text or phone. We'll email you a link, so only you can.",
-    label: "⁂ Your email address",
-    button: "⁂ Email me a link",
-    also: "⁂ Or use the link at the bottom of any email we've sent you.",
-    description: "⁂ See and change how PauseAI UK contacts you: emails, texts and calls.",
+    title: "Contact preferences",
+    lead: "View and change how PauseAI UK contacts you, by email, text or phone.",
+    label: "Your email address",
+    button: "Email me a link",
+    also: "Or use the link at the bottom of any email we've sent you.",
+    description: "See and change how PauseAI UK contacts you, by emails, texts or phone.",
   },
   sent: {
-    title: "⁂ Check your email",
+    title: "Check your email",
     body: (address: string, days: number) =>
-      `⁂ If we have ${address}, we've sent it a link to your contact preferences. It works for ${days} days.`,
-    again: "⁂ Nothing come? Check your spam folder, or ask again in a few minutes.",
+      `If we have ${address} in our records, we've sent you a link to your contact preferences. It works for ${days} days.`,
+    again: "Nothing come? Check your spam folder, ask again in a few minutes, or try another email address.",
   },
   // A link that's run out.
   expired: {
-    title: "⁂ This link has run out",
-    body: "⁂ For your privacy, links to your contact preferences only work for a while. We can email you a new one.",
-    button: "⁂ Email me a new link",
-    sent: "⁂ We've emailed you a new link.",
+    title: "That link has run out",
+    body: "For your privacy, links to your contact preferences only work for a while. We can email you a new one.",
+    button: "Email me a new link",
+    sent: "We've emailed you a new link.",
   },
   settings: {
-    title: "⁂ Your contact preferences",
+    title: "Contact preferences",
     lead: (address: string) =>
       `⁂ How PauseAI UK can contact you at ${address}, and why. Change anything and press Save.`,
     save: "⁂ Save",

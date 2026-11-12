@@ -161,6 +161,10 @@ test("A link that's run out", async ({ page, request, flowDatabase }) => {
   await open(page, link(flowDatabase, OWEN, 10));
   await expect(page.getByRole("heading", { name: copy.expired.title })).toBeVisible();
   await frame(page, "A link run out");
+  story("They ask for a new one, which goes to the address the old link was for.");
+  await page.getByRole("button", { name: copy.expired.button }).click();
+  await expect(page.getByText(copy.expired.sent)).toBeVisible();
+  await frame(page, "A new link on its way");
 });
 
 test("“No bulk emails”, lifted", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {
