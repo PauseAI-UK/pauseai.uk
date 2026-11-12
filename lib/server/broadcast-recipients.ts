@@ -3,7 +3,16 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { MailingChoice } from "@/lib/mailing-fields";
 import type { MailingRecipientValues } from "@/lib/mailing-doc";
 import { supportersSearch, type StoredFilter } from "@/lib/staff-search";
-import { firstNameOf, hasField, BROADCAST_FIELDS, registeredFor, wroteIn, type BroadcastTerms } from "@/lib/broadcasts";
+import {
+  broadcastTopics,
+  firstNameOf,
+  hasField,
+  BROADCAST_FIELDS,
+  registeredFor,
+  wroteIn,
+  type BroadcastTerms,
+} from "@/lib/broadcasts";
+import type { Topic } from "@/lib/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
 import type { SupporterRow } from "@/lib/supporters";
 import { query } from "./db";
@@ -23,6 +32,8 @@ export type SupporterRecipient = MailingRecipientValues & {
   /** Their email address, or number, that said yes. */
   address: string;
   place: string | null;
+  /** The broadcast's topics it said yes to, which it goes under. */
+  topics: Topic[];
 };
 
 export type SupporterAudience = {
@@ -104,15 +115,18 @@ export async function supporterAudience(filter: StoredFilter, terms: BroadcastTe
   const { supporters } = await listSupporters(supportersSearch(filter.params).filter, null);
   const [parts, inParts] = await Promise.all([broadcastParts(), partsOf(supporters.map((row) => row.id))]);
   const recipients: SupporterRecipient[] = [];
+  const topics = broadcastTopics(terms);
   for (const row of supporters) {
     const name = row.name || staffCopy.supporters.noName;
-    // A text goes to a number that said yes by text, never by call.
-    const yes = row.permissions.find(
-      (one) => one.way === terms.channel && one.topic === terms.topic && one.send === "yes",
+    // A text goes to a number that said yes by text, never by call; of their yeses, the first address's.
+    const yeses = row.permissions.filter(
+      (one) => one.way === terms.channel && topics.includes(one.topic) && one.send === "yes",
     );
-    if (!yes) continue;
+    if (!yeses.length) continue;
+    const address = yeses[0].address;
     const values = recipientValues(row, inParts.get(row.id) ?? []);
-    recipients.push({ id: row.id, name, address: yes.address, place: row.place?.name ?? null, ...values });
+    const theirs = topics.filter((topic) => yeses.some((one) => one.address === address && one.topic === topic));
+    recipients.push({ id: row.id, name, address, place: row.place?.name ?? null, topics: theirs, ...values });
   }
   return { recipients, ...broadcastChoices(recipients, parts) };
 }

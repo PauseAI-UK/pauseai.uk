@@ -19,6 +19,10 @@ import {
   statusFrom,
   unblockFrom,
 } from "@/lib/staff-forms";
+import { chosen, optOutChoices } from "@/lib/opt-out-choices";
+import { offCalendarAfter } from "@/lib/server/email-settings";
+import { recordStaffOptOut } from "@/lib/server/opt-outs";
+import { getSupporter } from "@/lib/server/supporters";
 import { addAsk, deleteAsk, editAsk } from "@/lib/server/asks";
 import { isPoliticianAddress, unblock } from "@/lib/server/email";
 import { setErrorDone } from "@/lib/server/errors-seen";
@@ -80,6 +84,25 @@ export async function deletePoliticianNow(form: FormData): Promise<void> {
     revalidatePath("/staff/politicians");
     redirect("/staff/politicians");
   }
+}
+
+/**
+ * The form in a supporter's consents: records that they opted out of what
+ * staff chose, at one of their addresses or numbers, with how they said so;
+ * events by email, or every bulk email, takes them off our Luma calendar too.
+ * Says whether it was new; false for a choice not theirs, or no how.
+ */
+export async function recordOptOutNow(form: FormData): Promise<boolean> {
+  const { email } = await requireStaff("supporters");
+  const id = idFrom(form, "supporterId");
+  const how = String(form.get("how") ?? "").trim();
+  const supporter = id ? await getSupporter(id) : undefined;
+  const choice = supporter && chosen(form.get("choice"), optOutChoices(supporter.permissions));
+  if (!choice || !how) return false;
+  const recorded = await recordStaffOptOut(choice, email, { how });
+  if (recorded) await offCalendarAfter([{ ...choice, source: "staff" }]);
+  revalidatePath(`/staff/supporters/${id}`);
+  return recorded;
 }
 
 /** Refreshes the page of whom a note is about. */

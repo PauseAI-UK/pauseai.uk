@@ -190,8 +190,13 @@ export type CivicrmImportResult = {
   /** Supporters made for contacts whose address nobody had, and contacts linked to a supporter (runs kept before CiviCRM made supporters don't say). */
   supportersAdded?: number;
   linked?: number;
+  /** Our opt-outs, and lifts of "No bulk emails", sent to CiviCRM first; only when there were any. */
+  updates?: CivicrmUpdatesResult;
 };
 export type CivicrmImport = ImportRun<"import-civicrm", CivicrmImportResult>;
+
+/** What sending our updates to CiviCRM came to: applied, refused, or left to try again. */
+export type CivicrmUpdatesResult = { sent: number; refused: number; unanswered: number };
 
 /** What reading one connected Gmail account found. */
 export type GmailRead = {
@@ -259,6 +264,8 @@ export type SendingResult = {
   /** The mailings waiting for their send time or a person. */
   waiting: string[];
   queue: { sent: number; left: number };
+  /** Broadcasts to supporters started, their copies sent, skipped, failed and left, and broadcasts waiting for CiviCRM; runs kept before broadcasts were sent don't say. */
+  broadcasts?: { started: number[]; sent: number; skipped: number; failed: number; waiting: number; left: number };
 };
 export type Sending = ImportRun<"send-mailings", SendingResult>;
 

@@ -4,6 +4,9 @@
 import { DraftTitle, DueSection, ProblemList, ScheduleButton } from "@/app/(staff)/staff/_components/DraftWriter";
 import Numbered from "@/app/(staff)/staff/_components/ui/Numbered";
 import { MailingStanding } from "@/app/(staff)/staff/_components/MailingView";
+import AnswerableReply, { type AnswerAction } from "@/app/(staff)/staff/_components/AnswerableReply";
+import ThreadEmail from "@/app/(staff)/staff/_components/ThreadEmail";
+import ReplyActions from "@/app/(staff)/staff/_components/ReplyActions";
 import MessageCopyView from "@/app/(staff)/staff/_components/MessageCopyView";
 import BroadcastFor, { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
 import { ChoosingBroadcastFrame, BroadcastSupporters } from "@/app/(staff)/staff/_components/BroadcastSupporters";
@@ -12,6 +15,8 @@ import BroadcastConsent from "@/app/(staff)/staff/_components/BroadcastConsent";
 import BroadcastWriter, { type BroadcastWriterActions } from "@/app/(staff)/staff/_components/BroadcastWriter";
 import ChannelWriter from "@/app/(staff)/staff/_components/ChannelWriter";
 import {
+  exampleBroadcastAnswers,
+  exampleBroadcastReplies,
   exampleMessageCopy,
   exampleBroadcastData,
   exampleBroadcastEmail,
@@ -41,6 +46,7 @@ function broadcastActions(log: (name: string) => (...args: unknown[]) => void): 
     schedule: logged("scheduleBroadcastNow", { scheduled: false as const, problems: [] }),
     deleteDraft: log("deleteBroadcastDraft"),
     changeConsent: logged("changeBroadcastConsentNow", true),
+    setAboutEvents: logged("setAboutEventsNow", true),
     create: logged("newBroadcastWith", undefined),
     submitTemplate: logged("submitTemplateNow", "submitted" as const),
     withdrawTemplate: logged("withdrawTemplateNow", true),
@@ -224,8 +230,8 @@ export function MailingStandingExample() {
   );
 }
 
-/** Thread: a text as the conversation, or an email as the thread. */
-export function MessageCopyViewExample({ email = false }: { email?: boolean }) {
+/** Thread: a text as the conversation, or an email as the thread, with `replies` under it: one to look at, one dealt with, one answered, and an automatic one. */
+export function MessageCopyViewExample({ email = false, replies = false }: { email?: boolean; replies?: boolean }) {
   const one = email
     ? {
         ...exampleMessageCopy,
@@ -234,9 +240,52 @@ export function MessageCopyViewExample({ email = false }: { email?: boolean }) {
         sentFrom: "hello@pauseai.uk",
         address: "jane@example.com",
         readAt: null,
+        topics: ["newsletter" as const],
+        replies: replies ? exampleBroadcastReplies : [],
+        answers: replies ? exampleBroadcastAnswers : [],
       }
     : exampleMessageCopy;
-  return <MessageCopyView one={one} />;
+  return <Logged>{(log) => <MessageCopyView one={one} actions={{ deal: log("deal"), answer: sent(log) }} />}</Logged>;
+}
+
+/** What to record a reply as, under it. */
+export function ReplyActionsExample() {
+  return <Logged>{(log) => <ReplyActions replyId={1} topics={["newsletter", "events"]} deal={log("deal")} />}</Logged>;
+}
+
+/** An answer that logs what it'd send, and goes. */
+const sent =
+  (log: (name: string) => (...args: unknown[]) => void): AnswerAction =>
+  async (...args) => {
+    log("answer")(...args);
+    return { sent: true };
+  };
+
+/** A reply in the thread with the answer folded under it, and opened, being written. */
+export function AnswerableReplyExample({ opened = false }: { opened?: boolean }) {
+  return (
+    <Logged>
+      {(log) => (
+        <AnswerableReply
+          replyId={1}
+          from="PauseAI UK <hello@pauseai.uk>"
+          to="jane@example.com"
+          subject="Re: Thank you for marching"
+          answer={sent(log)}
+          opened={opened}
+        >
+          <ThreadEmail
+            from="jane@example.com"
+            to="PauseAI UK <hello@pauseai.uk>"
+            at={new Date("2026-11-07T09:30:00Z")}
+            subject="Re: Thank you for marching"
+          >
+            <p>Could you take me off this list please?</p>
+          </ThreadEmail>
+        </AnswerableReply>
+      )}
+    </Logged>
+  );
 }
 
 /** The Consent: neither channel chosen yet, as on New broadcast; texts chosen, their topics to pick; and one with words of its own, so only by its channel. */

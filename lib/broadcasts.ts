@@ -13,8 +13,17 @@ import { anyAndNone, valuesOf, type ParamValue } from "./list-params";
 /** How a broadcast goes. Staff choose text, never the backend that sends it. */
 export type BroadcastChannel = "email" | "text";
 
-/** What a broadcast is, fixed when it's made: its channel and its topic. */
-export type BroadcastTerms = { channel: BroadcastChannel; topic: Topic };
+/**
+ * What a broadcast is, fixed when it's made: its channel and its topic; or,
+ * `alsoEvents`, the newsletter's and events' yeses both, for a broadcast
+ * about our events, which suits either.
+ */
+export type BroadcastTerms = { channel: BroadcastChannel; topic: Topic; alsoEvents?: boolean };
+
+/** The topics whose yes a broadcast goes under. */
+export function broadcastTopics(terms: BroadcastTerms): Topic[] {
+  return terms.alsoEvents ? ["newsletter", "events"] : [terms.topic];
+}
 
 /** A new email's words: the greeting to their first name, a line to write on, and the signature. */
 export const BROADCAST_START: MailingDoc = greetingLetter(
@@ -38,16 +47,44 @@ export function hasWords(broadcast: { subject: string; body: MailingDoc; templat
 
 /**
  * A broadcast's channel and topic, from the supporters list's Consent filter:
- * one topic by email or text, answered yes. Undefined for anything else, as
- * two topics wouldn't say which it's about, and calls aren't broadcast. What
- * the filter leaves out doesn't count.
+ * one topic by email or text, answered yes; or the newsletter and events
+ * both, by the same one, which must be about our events. Undefined for
+ * anything else, as two other topics wouldn't suit both, and calls aren't
+ * broadcast. What the filter leaves out doesn't count.
  */
 export function broadcastTerms(contact: ParamValue | undefined): BroadcastTerms | undefined {
   const [found] = anyAndNone(valuesOf(contact), (values) => values.flatMap((value) => contactState(value) ?? []));
-  if (found?.length !== 1) return undefined;
+  if (!found?.length || found.length > 2) return undefined;
   const [{ way, topic, send }] = found;
-  if (send !== "yes" || way === "call") return undefined;
-  return { channel: way, topic };
+  if (found.some((state) => state.send !== "yes" || state.way !== way) || send !== "yes" || way === "call") {
+    return undefined;
+  }
+  if (found.length === 1) return { channel: way, topic };
+  const topics = found.map((state) => state.topic).sort();
+  return topics.join() === "events,newsletter" ? { channel: way, topic: "newsletter", alsoEvents: true } : undefined;
+}
+
+/** The Consent filter's values for a broadcast's terms, which broadcastTerms reads back. */
+export function termsValues(terms: BroadcastTerms): string[] {
+  return broadcastTopics(terms).map((topic) => `${terms.channel === "email" ? "email" : "text"}:${topic}:yes`);
+}
+
+/** A broadcast's terms as one choice in the writer, its Consent filter's values with a space between. */
+export function consentChoice(terms: BroadcastTerms): string {
+  return termsValues(terms).join(" ");
+}
+
+/** The terms of a choice in the writer, as consentChoice writes it. */
+export function choiceTerms(choice: string): BroadcastTerms | undefined {
+  return broadcastTerms(choice.split(" "));
+}
+
+/** How long after its time a broadcast waits for CiviCRM before it stops: for every broadcast, set by nobody. */
+const WAIT_DAYS = 3;
+
+/** When a broadcast that's waiting stops: WAIT_DAYS after its time. */
+export function stopsAt(dueAt: Date): Date {
+  return new Date(new Date(dueAt).getTime() + WAIT_DAYS * 24 * 60 * 60 * 1000);
 }
 
 /** The merge fields of a broadcast to supporters. No one has all of them, so each has a fallback. */
@@ -265,6 +302,7 @@ export type BroadcastScheduleProblem =
   | "no-time"
   | "time-passed"
   | "no-number"
+  | "not-about-events"
   | "cannot-send";
 
 /** A broadcast as far as scheduling it goes. */
@@ -286,6 +324,8 @@ export type SchedulingBroadcast = {
   approved: boolean;
   /** Whether a WhatsApp number is configured for texts to come from. */
   numbered: boolean;
+  /** Whether it's about our events, as one to the newsletter's and events' yeses both must be; true for any other. */
+  aboutEvents: boolean;
   /** Whether its channel sends yet. */
   sends: boolean;
 };
@@ -317,6 +357,7 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["no-name", !email && !blank && !broadcast.approved && !broadcast.title.trim()],
     ["not-connected", broadcast.byGmail && !broadcast.connected],
     ["no-number", !email && !broadcast.numbered],
+    ["not-about-events", !broadcast.aboutEvents],
     ["not-approved", !email && !blank && !broadcast.approved],
     ["no-time", !broadcast.dueAt],
     ["time-passed", Boolean(broadcast.dueAt) && new Date(broadcast.dueAt!) <= now()],

@@ -747,7 +747,19 @@ that drives it or why nothing does.
   - a text on an approved template, with the templates' search and Show all;
   - a text on new words, sent for WhatsApp's approval, locked till it decides, then rejected;
   - who it goes to changed from the list, with its Consent locked there;
-  - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them.
+  - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
+  - an email sent by the hourly sending, and a copy as the supporter gets it, with its unsubscribe link;
+  - one waiting for CiviCRM, with the email saying so and its page;
+  - a reply asking to stop, to look at on the email's page, recorded as an opt-out from its thread;
+  - a reply answered from its thread, by Gmail from hello@, and the email the person gets;
+  - one to the newsletter's and events' yeses both, ticked as about our events.
+- `email-settings.spec.ts`: The email settings page:
+  - asking for a link past Turnstile, the email with it, and the page it opens;
+  - changing what you get, and Stop everything;
+  - an email's unsubscribe link, fresh and two months old, with a fresh link emailed;
+  - a link that's run out;
+  - “No bulk emails” lifted, and “Do not email”, which only PauseAI Global can lift;
+  - the email to someone with “No bulk emails” who ticked the march's box.
 - `events.spec.ts`: Events and their owners:
   - the Luma import giving events their owners by the rules, and the email to the owner;
   - new events tagged on Luma, and the email asking about one it can't tell;
@@ -791,7 +803,8 @@ that drives it or why nothing does.
   - members: one who also wrote to their MP, one CiviCRM says never opted in, one with "No bulk emails" there, with what a topic is from its ?, one who unsubscribed there, and one CiviCRM doesn't have;
   - a hold in CiviCRM on the supporters' blocked emails, lifted with a note;
   - erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next members import;
-  - an old link with two subscriptions.
+  - an old link with two subscriptions;
+  - an opt-out told to staff, recorded under a supporter's consents with how it was given.
 - `signup-uploads.spec.ts`: Import sign-ups:
   - files written different ways, linked to an event or not;
   - a hundred rows at once;
@@ -799,7 +812,8 @@ that drives it or why nothing does.
   - files it refuses;
   - what Luma says;
   - what changes before importing;
-  - Past imports, and an import's page.
+  - Past imports, and an import's page;
+  - someone with "No bulk emails" marked in the preview, with the email they'll get, and someone with "Do not email".
 - `errors.spec.ts`: What goes wrong outside an import:
   - a staff page that throws: Next's error page in its place and Reload, the email to the notification inbox, once though it fails twice, the errors list and the error's own page;
   - a page breaking in someone's browser, on the fixture build's page that breaks (`/broken`): the email that quotes none of it, and a click that throws, kept without an email;
@@ -829,6 +843,7 @@ that drives it or why nothing does.
   - `march-signup`: registering, Luma failing, and an email the server won't take.
   - `supporters`: a sign-up kept, on the supporter's page.
 - `/api/march/signups`: `march-signup`: the count asked for again when the page comes back into view. Vitest-tested beside it.
+- `/api/unsubscribe/[token]`: a mail app's one-click Unsubscribe, which a person never sees, so no flow drives it; Vitest-tested with the page's actions (`app/(site)/email-settings/actions.test.ts`).
 - `/api/postmark/bounce`, `/api/postmark/inbound`, Postmark's webhooks. Replies to the letters that the letters inbox sends, and their bounces, come through `read-gmail`, below.
   - `campaigns`: both routes turn away a post without Postmark's credentials, and a bounce for an email that isn't a letter changes nothing.
   - `letters`, `mailings` and `permissions`: Postmark's bounce payloads, for a letter, a mailing's letters and an email we can't place.

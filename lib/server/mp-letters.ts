@@ -9,6 +9,8 @@ import { findMp } from "./find-mp";
 import { sendLetter, type QueueReason } from "./letter-sending";
 import { isLettersInboxAddress } from "./letters-inbox";
 import { checkNotSpam } from "./outside-services/turnstile";
+import { emailSettingsCopy } from "@/lib/content/email-settings";
+import { sendBulkNotice } from "./email-settings";
 import { statusesOf } from "./politicians";
 import { politicianProxy, supporterProxy } from "./proxies";
 import { linkSupporters } from "./supporters";
@@ -178,6 +180,11 @@ export async function submitLetter(form: LetterForm): Promise<SubmitResult> {
     return fail(500, copy.errors.failed);
   }
   if (id === undefined) return fail(409, copy.errors.alreadySent);
+  const [{ entryId }] = await query<{ entryId: number }>(
+    'SELECT entry_id::int AS "entryId" FROM letters_from_supporters WHERE id = $1',
+    [id],
+  );
+  await sendBulkNotice(entryId, emailSettingsCopy.bulkNotice.where["email-your-mp"]);
   const sent = await sendLetter(id);
   return sent.sent ? { ok: true } : { ok: true, queued: sent.reason };
 }

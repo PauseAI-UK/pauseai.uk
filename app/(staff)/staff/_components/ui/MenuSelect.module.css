@@ -1,0 +1,53 @@
+/* Its label over its box, as a Field's. */
+.field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* A field's box, as a select's (components/ui/Controls.module.css), with the filters' arrow at its right. */
+.trigger {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: var(--space-1) var(--control-padding-x);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--control-font-size);
+  text-align: left;
+  cursor: pointer;
+}
+
+.trigger::after {
+  content: "▾" / "";
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.trigger:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* The choice made, its group's icon before it. */
+.chosen {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chosen svg {
+  flex: none;
+}
+
+.placeholder {
+  color: var(--text-secondary);
+}

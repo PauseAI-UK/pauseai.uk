@@ -15,6 +15,7 @@ import {
   saveBroadcastDraft,
   sameTerms,
   scheduleBroadcast,
+  setAboutEvents,
   sendBroadcastTest,
   stopBroadcast,
   submitTemplate,
@@ -210,10 +211,19 @@ describeWithDatabase("broadcasts to supporters", () => {
       scheduled: false,
       problems: ["no-subject", "no-letter", "no-time"],
     });
-    // Nothing goes on the live site yet.
+    // An email goes on the live site too.
     const version = await readied(id, { subject: "Events", body: EVENT_WORDS });
     vi.stubEnv("DATA_FIXTURES", "");
-    expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: false, problems: ["cannot-send"] });
+    expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
+  });
+
+  it("holds one to the newsletter's and events' yeses both to its being about our events", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane");
+    const id = (await createBroadcastDraft(JO, { contact: ["email:newsletter:yes", "email:events:yes"] }))!;
+    const version = await readied(id, { subject: "Events", body: EVENT_WORDS });
+    expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: false, problems: ["not-about-events"] });
+    expect(await setAboutEvents(id, true)).toBe(true);
+    expect(await scheduleBroadcast(id, version + 1, JO)).toEqual({ scheduled: true });
   });
 
   it("holds an email from a Gmail to its being connected", async () => {

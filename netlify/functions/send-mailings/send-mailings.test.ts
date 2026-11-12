@@ -54,4 +54,13 @@ describe("moreToSend", () => {
     expect(moreToSend({ ...RUN, left: 2 })).toBe(false);
     expect(moreToSend({ ...RUN, sent: 3 })).toBe(false);
   });
+
+  it("is while broadcasts' copies are left too, and the last call got through some of anything", () => {
+    const broadcasts = { sent: 0, skipped: 0, failed: 0, left: 500 };
+    expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, sent: 500 } })).toBe(true);
+    expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, skipped: 1 } })).toBe(true);
+    expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, failed: 1 } })).toBe(true);
+    expect(moreToSend({ ...RUN, broadcasts })).toBe(false);
+    expect(moreToSend({ ...RUN, sent: 1, broadcasts })).toBe(true);
+  });
 });

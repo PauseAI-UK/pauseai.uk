@@ -1,3 +1,5 @@
+import type { BroadcastAnswer } from "@/lib/server/broadcast-answers";
+import type { BroadcastReply } from "@/lib/server/broadcast-replies";
 import type { LetterDoc } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { MailingDoc } from "@/lib/mailing-doc";
@@ -177,6 +179,7 @@ export const exampleBroadcastData: BroadcastWriterData = {
   ],
   me: "jo@pauseai.uk",
   sends: true,
+  textsSend: true,
   templates: exampleTemplates,
   textNumber: "+447700900000",
 };
@@ -199,6 +202,11 @@ export const exampleBroadcastEmail: WrittenBroadcast = {
   channel: "email",
   topic: "newsletter",
   template: null,
+  alsoEvents: false,
+  aboutEvents: false,
+  waitingSince: null,
+  waitReason: null,
+  gaveUp: false,
 };
 
 /** A draft text with nothing chosen. */
@@ -242,6 +250,7 @@ const summary: BroadcastSummary = {
   read: 0,
   waiting: false,
   rejected: false,
+  toLookAt: 0,
 };
 
 /** A broadcast as the list has it. */
@@ -271,6 +280,8 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       read: true,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     },
     {
       copyId: 22,
@@ -283,6 +294,8 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       read: false,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     },
     {
       copyId: 23,
@@ -295,6 +308,8 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       read: false,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     },
     {
       copyId: 24,
@@ -307,6 +322,8 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       read: false,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     },
     {
       copyId: 25,
@@ -319,6 +336,8 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       read: false,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     },
   ],
 };
@@ -346,4 +365,71 @@ export const exampleMessageCopy: MessageCopy = {
     { at: new Date("2026-11-07T07:18:30Z"), kind: "delivered", details: {} },
     { at: new Date("2026-11-07T07:18:00Z"), kind: "sent", details: { id: "wamid.example" } },
   ],
+  topics: ["events"],
+  replies: [],
+  answers: [],
 };
+
+/** Replies to an email, oldest first, as a thread shows them: an automatic reply; Jane's thanks, which Jo said needed nothing; her question, which Jo answered; and her asking to stop, waiting for staff. */
+export const exampleBroadcastReplies: BroadcastReply[] = [
+  {
+    id: 3,
+    receivedAt: new Date("2026-11-07T07:19:00Z"),
+    from: "jane@example.com",
+    subject: "Automatic reply: Thank you for marching",
+    text: "I'm away until Monday.",
+    automatic: true,
+    outcome: null,
+    dealtBy: null,
+    dealtAt: null,
+  },
+  {
+    id: 2,
+    receivedAt: new Date("2026-11-07T08:10:00Z"),
+    from: "jane@example.com",
+    subject: "Re: Thank you for marching",
+    text: "It was a great day.",
+    automatic: false,
+    outcome: "nothing",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T10:00:00Z"),
+  },
+  {
+    id: 4,
+    receivedAt: new Date("2026-11-07T08:40:00Z"),
+    from: "jane@example.com",
+    subject: "Re: Thank you for marching",
+    text: "When's the next one?",
+    automatic: false,
+    outcome: "answered",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T10:05:00Z"),
+  },
+  {
+    id: 1,
+    receivedAt: new Date("2026-11-07T09:30:00Z"),
+    from: "jane@example.com",
+    subject: "Re: Thank you for marching",
+    text: "Could you take me off this list please?",
+    automatic: false,
+    outcome: null,
+    dealtBy: null,
+    dealtAt: null,
+  },
+];
+
+/** Jo's answer to Jane's question (exampleBroadcastReplies). */
+export const exampleBroadcastAnswers: BroadcastAnswer[] = [
+  {
+    id: 1,
+    replyId: 4,
+    sentBy: "jo@pauseai.uk",
+    sentAt: new Date("2026-11-07T10:05:00Z"),
+    body: {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Hi Jane, it's on 6 December. See you there!" }] },
+      ],
+    },
+  },
+];

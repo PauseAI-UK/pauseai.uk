@@ -5,8 +5,9 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { WrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import type { BroadcastPageData, MessageRecipient, BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import { londonClock, sendsAt, staffDate } from "@/lib/staff-time";
-import { FIELD_WORDS, type BroadcastChannel } from "@/lib/broadcasts";
+import { londonClock, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
+import { FIELD_WORDS, stopsAt, type BroadcastChannel } from "@/lib/broadcasts";
+import Strip from "./ui/Strip";
 import { phoneWords } from "@/lib/phone";
 import ChannelIcon from "./ChannelIcon";
 import IconText from "./ui/IconText";
@@ -47,20 +48,53 @@ export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
     { key: "failed", n: broadcast.failed, label: copy.counts.failed, tone: "red" },
     { key: "stopped", n: broadcast.stopped, label: copy.counts.stopped },
     ...(broadcast.channel === "text" ? [{ key: "read", n: broadcast.read, label: copy.counts.read }] : []),
+    // Replies, read from the inbox an email went from, and those still to look at, in amber.
+    ...(broadcast.channel === "email"
+      ? [
+          { key: "replied", n: broadcast.replied, label: copy.counts.replied },
+          ...(broadcast.toLookAt
+            ? [{ key: "look", n: broadcast.toLookAt, label: copy.counts.look, tone: "amber" as const }]
+            : []),
+        ]
+      : []),
   ];
 }
 
-type CopyState = Pick<MessageRecipient, "status" | "skipReason" | "read" | "bounced" | "optedOut">;
+type CopyState = Pick<MessageRecipient, "status" | "skipReason" | "read" | "bounced" | "optedOut"> &
+  Partial<Pick<MessageRecipient, "replied" | "toLookAt">>;
 
-/** How a copy went, as a tag; and an amber Stopped beside it for one who asked us to stop after it arrived. */
+/**
+ * How a copy went, as a tag; an amber Stopped beside it for one who asked
+ * us to stop after it arrived; and whether they replied, in amber while
+ * the reply's still to look at.
+ */
 export function CopyStatus({ copyOf }: { copyOf: CopyState }) {
   const { words, tone } = copyStatus(copyOf);
   return (
     <span className={styles.tags}>
       <Tag tone={tone}>{words}</Tag>
       {copyOf.optedOut && <Tag tone="amber">{copy.events["opted-out"]}</Tag>}
+      {copyOf.toLookAt ? (
+        <Tag tone="amber">{copy.lookTag}</Tag>
+      ) : (
+        copyOf.replied && <Tag tone="green">{copy.repliedTag}</Tag>
+      )}
     </span>
   );
+}
+
+/**
+ * Whether a broadcast is waiting for CiviCRM, since when, why and when it
+ * stops; one scheduled, quietly, when it would; or that it stopped, as it
+ * waited too long.
+ */
+export function BroadcastWaiting({ written }: { written: WrittenBroadcast }) {
+  if (written.gaveUp) return <Strip tone="red">{copy.gaveUp}</Strip>;
+  const stops = written.dueAt && staffTime(stopsAt(written.dueAt));
+  if (written.waitingSince) {
+    return <Strip tone="amber">{copy.waiting(staffTime(written.waitingSince), written.waitReason!, stops!)}</Strip>;
+  }
+  return written.state === "scheduled" && written.channel === "email" ? <Muted>{copy.stopsBy(stops!)}</Muted> : null;
 }
 
 /** How a copy went, in words and its tone: skipped with why, bounced, or its status, or read. */
@@ -200,7 +234,9 @@ export default function BroadcastView({
         stop={stop}
         reschedule={reschedule}
         line={copy.scheduledLine(summary.to, written.channel, written.fromName || written.sentFrom!)}
+        due={written.waitingSince ? copy.waitingDue : undefined}
       />
+      <BroadcastWaiting written={written} />
       <Grid>
         <BroadcastWords written={written} parts={data.parts} />
         <Card span={3} as="div">

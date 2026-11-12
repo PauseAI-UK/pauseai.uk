@@ -53,6 +53,20 @@ export async function eraseSupporter(id: number, reference: string, by: string):
     const [supporter] = await query("SELECT 1 FROM supporters WHERE id = $1 FOR UPDATE", [id], db);
     if (!supporter) return undefined;
     await eraseFromSavedFilters(id, by, db);
+    // First, while their links say which addresses and numbers are theirs: their replies to broadcasts, with our
+    // answers to them, whose messages go after; their links and yeses on the email settings page; and what CiviCRM has answered of what
+    // we sent it for them. Not an opt-out, nor one still to go, which stay.
+    const theirs = `(SELECT lower(matched_value) FROM supporter_links WHERE supporter_id = $1
+                     UNION SELECT phone_number(matched_value) FROM supporter_links WHERE supporter_id = $1)`;
+    const replies = await query<{ blobKey: string }>(
+      `DELETE FROM broadcast_replies WHERE message_id IN (SELECT id FROM broadcast_messages WHERE supporter_id = $1)
+       RETURNING blob_key AS "blobKey"`,
+      [id],
+      db,
+    );
+    await query(`DELETE FROM preference_links WHERE address IN ${theirs}`, [id], db);
+    await query(`DELETE FROM preference_choices WHERE address IN ${theirs}`, [id], db);
+    await query(`DELETE FROM civicrm_updates WHERE status IS NOT NULL AND email IN ${theirs}`, [id], db);
     const lumaUsers = (
       await query<{ userId: string }>(
         `SELECT luma_user_id AS "userId" FROM supporter_links WHERE supporter_id = $1 AND luma_user_id IS NOT NULL`,
@@ -120,6 +134,14 @@ export async function eraseSupporter(id: number, reference: string, by: string):
       [id],
       db,
     );
+    // What we emailed them ourselves, by address or as a broadcast's copy, isn't kept in the log of sends.
+    await query(
+      `DELETE FROM email_sends WHERE purpose IN ('broadcast', 'preferences-link', 'bulk-notice', 'broadcast-answer')
+       AND (address IN (SELECT lower(matched_value) FROM supporter_links WHERE supporter_id = $1)
+         OR broadcast_message_id IN (SELECT id FROM broadcast_messages WHERE supporter_id = $1))`,
+      [id],
+      db,
+    );
     // Their CiviCRM contacts, by any of their addresses or their member records, kept in civicrm_erased.
     await query(
       `WITH theirs AS (
@@ -139,9 +161,12 @@ export async function eraseSupporter(id: number, reference: string, by: string):
       db,
     );
     await query("DELETE FROM airtable_members WHERE id = ANY($1::text[])", [members], db);
-    // A message they were sent keeps only that it was.
+    // A message they were sent keeps only that it was; one still to go won't, as they've no permission now.
     await query(
-      "UPDATE broadcast_messages SET supporter_id = NULL, address = NULL, merge_values = NULL WHERE supporter_id = $1",
+      `UPDATE broadcast_messages SET supporter_id = NULL, address = NULL, merge_values = NULL,
+         status = CASE status WHEN 'scheduled' THEN 'skipped' ELSE status END,
+         skip_reason = CASE status WHEN 'scheduled' THEN 'no-permission' ELSE skip_reason END
+       WHERE supporter_id = $1`,
       [id],
       db,
     );
@@ -158,12 +183,15 @@ export async function eraseSupporter(id: number, reference: string, by: string):
       oneOffs: oneOffs.length,
     };
     await logChange(by, "erase supporter", { id, reference, ...result }, db);
-    return { result, mail, blobs: [...oneOffs, ...formLetterReplies] };
+    return { result, mail, blobs: [...oneOffs, ...formLetterReplies], replies: replies.map((row) => row.blobKey) };
   }).then(async (erased) => {
     if (!erased) return undefined;
     const notCleared = [
       ...(await leftOver("mail", () => clearMail(erased.mail))),
       ...(await leftOver("oneOffs", () => deleteOneOffBlobs(erased.blobs))),
+      ...(await leftOver("replies", async () => {
+        for (const key of erased.replies) await deleteLetterReply(key);
+      })),
     ];
     return { ...erased.result, notCleared };
   });

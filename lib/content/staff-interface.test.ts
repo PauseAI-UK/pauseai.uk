@@ -88,7 +88,7 @@ describe("the words of messages to supporters", () => {
     for (const n of [1, 2]) {
       for (const channel of ["email", "text"] as const) {
         const said = [
-          copy.summary(n, channel, "PauseAI UK", null),
+          copy.sendFacts.count(n, channel),
           copy.schedule(n, channel),
           copy.scheduledLine(n, channel, "PauseAI UK"),
         ];

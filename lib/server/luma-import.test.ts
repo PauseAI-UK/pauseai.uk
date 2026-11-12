@@ -747,6 +747,28 @@ describeWithDatabase("importLuma", () => {
     ]);
   });
 
+  it("keeps an opt-out from our own pages though a pass still lists the address, and tries again to take it off the calendar", async () => {
+    const luma = fakeLuma({ contacts: [contact(1), contact(2)] });
+    await importLuma("jo@pauseai.uk");
+    // Person 2 turned events off on the email settings page, and Luma failed to take them off.
+    await query(
+      `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)
+       VALUES ('person2@example.com', 'events', 'preferences', 'p', now() - interval '1 minute')`,
+    );
+    const removed: unknown[] = [];
+    server.use(
+      http.post(`${API}/calendars/contacts/remove`, async ({ request }) => {
+        removed.push(await request.json());
+        return HttpResponse.json({});
+      }),
+    );
+    vi.stubEnv("DEPLOY_CONTEXT", "production");
+    luma.contacts = [contact(1), contact(2)];
+    await importLuma("jo@pauseai.uk");
+    expect(await optOuts()).toEqual([{ address: "person2@example.com", source: "preferences", resubscribed_at: null }]);
+    expect(removed).toEqual([{ email: "person2@example.com" }]);
+  });
+
   it("finishes a pass whose start wasn't noted without opting anyone out", async () => {
     fakeLuma({ contacts: [contact(1), contact(2)], pageSize: 1 });
     await query("INSERT INTO luma_import_state (list, cursor) VALUES ('contacts', '1')");

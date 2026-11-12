@@ -1,0 +1,132 @@
+/* The email settings page, in a reading column (ProsePage): asking for a link, and the settings. */
+
+.lead {
+  font-size: var(--text-lg);
+}
+
+/* Small grey words: what else to do, or what Save does. */
+.quiet {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+/* What else to do, under the card asking for a link. */
+.card + .quiet {
+  margin-top: var(--space-4);
+}
+
+.alert {
+  color: var(--status-red);
+  margin: 0;
+}
+
+/* A white card: a topic, the form to ask for a link, or an offer of a fresh one. */
+.card {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  min-width: 0;
+}
+
+/* A topic's name and its lozenge, as the card's legend, inside it. */
+.topic {
+  float: left;
+  width: 100%;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--text);
+}
+
+.topic + * {
+  clear: both;
+}
+
+/* Inside a card, over the prose page's margins for every paragraph. */
+.card .what {
+  margin: 0 0 var(--space-3);
+}
+
+/* Its boxes, a row that wraps. */
+.ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.card .why {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+}
+
+/* Save, and what it does beside it. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* What holds every email: a pale amber box above the topics, its heading and words evenly spaced. */
+.held {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-5);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: rgb(var(--amber-rgb) / 0.12);
+}
+
+/* Their first heading at the box's top, over the prose page's own margin. */
+.unsubscribe h2:first-of-type {
+  margin-top: 0;
+}
+
+/* A box whose grid's gap spaces its heading, words and button, so they have no margins of their own. */
+.held h2:first-of-type,
+.held .boxText,
+.offer h2:first-of-type,
+.offer .boxText {
+  margin: 0;
+}
+
+/* An offer of a fresh link, once a page's link has run out. */
+.offer {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+/* A form whose one button is as wide as its words. */
+.buttonForm {
+  justify-items: start;
+}
+
+/* An email's unsubscribe, first on its page. */
+.unsubscribe {
+  margin: 0 0 var(--space-6);
+  padding: var(--space-5);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+/* PauseAI Global's emails: a warm panel. */
+.global {
+  margin-top: var(--space-6);
+  padding: var(--space-1) var(--space-5) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+
+/* Stop everything, below a rule. */
+.stopAll {
+  margin-top: var(--space-6);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}

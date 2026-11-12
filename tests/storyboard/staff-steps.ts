@@ -236,9 +236,12 @@ export function addPauseaiEmails(database: string) {
   }
 }
 
+/** Connects `email`'s Gmail, as someone logged in as it would on /staff/me, so the site can send from it. */
+export function connectGmail(database: string, email: string) {
+  connectLettersInbox(databaseUrl(database), email, fixtureEnv({ outboxDir: OUTBOX_DIR }).GMAIL_TOKEN_KEY);
+}
+
 /** Connects Joseph's and policy@'s Gmail, the fake mailboxes of lib/server/fixtures/policy-mailbox.ts. */
 export function connectPolicyMailboxes(database: string) {
-  const key = fixtureEnv({ outboxDir: OUTBOX_DIR }).GMAIL_TOKEN_KEY;
-  for (const email of ["joseph@pauseai.uk", "policy@pauseai.uk"])
-    connectLettersInbox(databaseUrl(database), email, key);
+  for (const email of ["joseph@pauseai.uk", "policy@pauseai.uk"]) connectGmail(database, email);
 }

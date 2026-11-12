@@ -2,9 +2,10 @@
 // writer, the list of them, each one's page, and one copy as sent.
 import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
 import { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
-import { BroadcastChannelName, CopyStatus } from "@/app/(staff)/staff/_components/BroadcastView";
+import { BroadcastChannelName, BroadcastWaiting, CopyStatus } from "@/app/(staff)/staff/_components/BroadcastView";
 import {
   exampleBroadcastData,
+  exampleBroadcastEmail,
   exampleBroadcastSent,
   exampleBroadcastSummary,
   exampleSupporterChoices,
@@ -22,6 +23,8 @@ import {
   DraftTitleExample,
   MailingStandingExample,
   MessageCopyViewExample,
+  AnswerableReplyExample,
+  ReplyActionsExample,
   BroadcastForExample,
   BroadcastConsentExample,
   BroadcastSupportersExample,
@@ -292,7 +295,8 @@ export const staffBroadcasts: Group = {
       file: "app/(staff)/staff/_components/BroadcastView.tsx",
       variants: [
         {
-          label: "Read, bounced, stopped before it went, and asked us to stop after it arrived",
+          label:
+            "Read, bounced, stopped before it went, asked us to stop after it arrived, replied, a reply to look at, and dropped by PauseAI Global's check",
           render: () => {
             const went = { status: "delivered", skipReason: null, read: false, bounced: false, optedOut: false };
             return (
@@ -301,9 +305,38 @@ export const staffBroadcasts: Group = {
                 <CopyStatus copyOf={{ ...went, status: "failed", bounced: true }} />
                 <CopyStatus copyOf={{ ...went, status: "cancelled" }} />
                 <CopyStatus copyOf={{ ...went, optedOut: true }} />
+                <CopyStatus copyOf={{ ...went, replied: true }} />
+                <CopyStatus copyOf={{ ...went, replied: true, toLookAt: true }} />
+                <CopyStatus copyOf={{ ...went, status: "skipped", skipReason: "suppressed" }} />
               </>
             );
           },
+        },
+      ],
+    },
+    {
+      name: "BroadcastWaiting",
+      file: "app/(staff)/staff/_components/BroadcastView.tsx",
+      variants: [
+        {
+          label:
+            "Scheduled, when it would stop; waiting for CiviCRM, since when and why; and stopped, as it waited too long",
+          render: () => (
+            <StaffPage as="div">
+              <BroadcastWaiting written={{ ...exampleBroadcastEmail, state: "scheduled" }} />
+              <BroadcastWaiting
+                written={{
+                  ...exampleBroadcastEmail,
+                  state: "sending",
+                  waitingSince: new Date("2026-11-07T07:18:00Z"),
+                  waitReason: "civicrm",
+                }}
+              />
+              <BroadcastWaiting
+                written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason: "pull" }}
+              />
+            </StaffPage>
+          ),
         },
       ],
     },
@@ -432,6 +465,43 @@ export const staffBroadcasts: Group = {
             </StaffPage>
           ),
         },
+        {
+          label: "An email's replies: one to look at, one dealt with, and an automatic one",
+          render: () => (
+            <StaffPage as="div">
+              <MessageCopyViewExample email replies />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "ReplyActions",
+      file: "app/(staff)/staff/_components/ReplyActions.tsx",
+      variants: [
+        {
+          label: "What a reply is: an opt-out of what the email went under, or of all bulk email; or nothing to do",
+          render: () => (
+            <StaffPage as="div">
+              <ReplyActionsExample />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "AnswerableReply",
+      file: "app/(staff)/staff/_components/AnswerableReply.tsx",
+      variants: [
+        {
+          label: "A reply with its answer folded to one line under it, and opened, being written as it will be sent",
+          render: () => (
+            <StaffPage as="div">
+              <AnswerableReplyExample />
+              <AnswerableReplyExample opened />
+            </StaffPage>
+          ),
+        },
       ],
     },
     {
@@ -455,6 +525,7 @@ export const staffBroadcasts: Group = {
                     read: true,
                     bounced: false,
                     optedOut: false,
+                    replied: false,
                   },
                   {
                     copyId: 22,
@@ -467,6 +538,7 @@ export const staffBroadcasts: Group = {
                     read: false,
                     bounced: false,
                     optedOut: false,
+                    replied: false,
                   },
                 ]}
               />

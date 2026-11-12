@@ -34,6 +34,7 @@ import {
   NoteEntryExample,
   NoteFormExample,
   NotesCardExample,
+  OptOutFormExample,
   NoteTextExample,
   SignupPlanViewExample,
   SignupUploadFormExample,
@@ -397,6 +398,17 @@ export const staffSupporters: Group = {
       ],
     },
     {
+      name: "OptOutForm",
+      file: "app/(staff)/staff/_components/OptOutForm.tsx",
+      variants: [
+        { label: "Closed: the button that opens it", render: () => <OptOutFormExample /> },
+        {
+          label: "Opened: what of, at which address or number, and how they told us",
+          render: () => <OptOutFormExample opened />,
+        },
+      ],
+    },
+    {
       name: "NoteText",
       file: "app/(staff)/staff/_components/Notes.tsx",
       variants: [{ label: "With addresses, as links, on two lines", render: () => <NoteTextExample /> }],
@@ -424,7 +436,13 @@ export const staffSupporters: Group = {
     {
       name: "SignupPlanView",
       file: "app/(staff)/staff/_components/SignupUploadPreview.tsx",
-      variants: [{ label: "Someone in every pile", render: () => <SignupPlanViewExample /> }],
+      variants: [
+        {
+          label:
+            "Someone in every pile, one emailed how to lift “No bulk emails”, with the email they'll get, and one with “Do not email”",
+          render: () => <SignupPlanViewExample />,
+        },
+      ],
     },
     {
       name: "LumaReading",

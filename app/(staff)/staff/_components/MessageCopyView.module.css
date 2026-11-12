@@ -1,0 +1,15 @@
+/* A reply's words, its lines kept, a long address broken to fit. */
+.text {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* What staff made of a reply, under its words, apart from them. */
+.dealt {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}

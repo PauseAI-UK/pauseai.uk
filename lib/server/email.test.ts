@@ -20,12 +20,14 @@ import {
   recentProblems,
   recordProblem,
   send,
+  sendBroadcastCopies,
   sentBy,
   unblock,
 } from "./email";
+import { inRun } from "./run-store";
 
 const POSTMARK = "https://api.postmarkapp.com/email";
-const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/outbound/suppressions/delete";
+const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/:stream/suppressions/delete";
 const EMAIL = { From: "a@notify.pauseai.uk", To: '"Jo" <Jo@Example.org>', Subject: "S", TextBody: "T" };
 const BOUNCE: DeliveryProblem = {
   address: "Jo@Example.org",
@@ -300,6 +302,115 @@ describeWithDatabase("recordProblem", () => {
     expect(await recordProblem(BOUNCE)).toBe(false);
     expect(await recordProblem({ ...BOUNCE, kind: "complaint" })).toBe(false);
     expect(await listBlocks("others")).toMatchObject([{ kind: "complaint", canReset: false }]);
+  });
+
+  it("opts the address out of every bulk email for a complaint, from the copy of a broadcast it names, for CiviCRM", async () => {
+    const [{ id: mailing }] = await query<{ id: number }>(
+      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+       VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'staff@pauseai.uk', 'draft') RETURNING id::int AS id`,
+    );
+    const [{ id: copy }] = await query<{ id: number }>(
+      `INSERT INTO broadcast_messages (mailing_id, status, provider_message_id) VALUES ($1, 'sent', 'pm-1')
+       RETURNING id::int AS id`,
+      [mailing],
+    );
+    await recordProblem({ ...BOUNCE, kind: "complaint", messageId: "pm-1" });
+    await recordProblem({ ...BOUNCE, address: "sam@example.org", kind: "complaint", messageId: null });
+    expect(await query("SELECT address, list, source, message_id::int AS copy FROM opt_outs ORDER BY id")).toEqual([
+      { address: "jo@example.org", list: "bulk", source: "postmark-complaint", copy },
+      { address: "sam@example.org", list: "bulk", source: "postmark-complaint", copy: null },
+    ]);
+    expect(await query("SELECT email, change FROM civicrm_updates ORDER BY id")).toEqual([
+      { email: "jo@example.org", change: "no_bulk_email" },
+      { email: "sam@example.org", change: "no_bulk_email" },
+    ]);
+  });
+});
+
+describeWithDatabase("sendBroadcastCopies", () => {
+  useTestDatabase();
+  // The copies the emails are of, 1 to 5.
+  beforeEach(() =>
+    query(
+      `WITH m AS (INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+                  VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'jo@pauseai.uk', 'draft') RETURNING id)
+       INSERT INTO broadcast_messages (id, mailing_id, status) OVERRIDING SYSTEM VALUE
+       SELECT n, m.id, 'scheduled' FROM m, generate_series(1, 5) n`,
+    ),
+  );
+  const BATCH = "https://api.postmarkapp.com/email/batch";
+  const copy = (copyId: number, to: string) => ({
+    copyId,
+    rfcMessageId: `copy-${copyId}@pauseai.uk`,
+    email: { From: "PauseAI UK <hello@pauseai.uk>", To: to, Subject: "News", TextBody: "Hi" },
+  });
+
+  it("sends none to a blocked address, and says each went, failed, or was refused and blocks it", async () => {
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "token");
+    server.use(
+      http.post(BATCH, () =>
+        HttpResponse.json([
+          { ErrorCode: 0, MessageID: "pm-1" },
+          { ErrorCode: 406, Message: "Inactive" },
+          { ErrorCode: 300, Message: "Bad" },
+        ]),
+      ),
+    );
+    await recordProblem({ ...BOUNCE, address: "blocked@example.org" });
+    expect(await sendBroadcastCopies([copy(1, "blocked@example.org")])).toEqual([
+      { copyId: 1, sent: false, reason: "blocked" },
+    ]);
+    const { results, problems } = await inRun(async (run) => ({
+      results: await sendBroadcastCopies([
+        copy(2, "a@example.org"),
+        copy(3, "gone@example.org"),
+        copy(4, "c@example.org"),
+      ]),
+      problems: run.problems,
+    }));
+    expect(results).toEqual([
+      { copyId: 2, sent: true, id: "pm-1" },
+      { copyId: 3, sent: false, reason: "blocked" },
+      { copyId: 4, sent: false, reason: "failed" },
+    ]);
+    expect(problems).toEqual([{ what: staffCopy.problems.anywhere.sendFailed("broadcast"), error: "300 Bad" }]);
+    expect(await isBlocked("gone@example.org")).toBe(true);
+    expect(
+      await query(
+        "SELECT address, outcome, rfc_message_id, broadcast_message_id::int AS copy FROM email_sends ORDER BY id",
+      ),
+    ).toEqual([
+      { address: "blocked@example.org", outcome: "refused", rfc_message_id: null, copy: 1 },
+      { address: "a@example.org", outcome: "sent", rfc_message_id: "copy-2@pauseai.uk", copy: 2 },
+      { address: "gone@example.org", outcome: "refused", rfc_message_id: null, copy: 3 },
+      { address: "c@example.org", outcome: "failed", rfc_message_id: null, copy: 4 },
+    ]);
+  });
+
+  it("fails each copy of a batch Postmark won't take", async () => {
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "token");
+    server.use(http.post(BATCH, () => new HttpResponse("Down", { status: 500 })));
+    const { results, problems } = await inRun(async (run) => ({
+      results: await sendBroadcastCopies([copy(5, "a@example.org")]),
+      problems: run.problems,
+    }));
+    expect(results).toEqual([{ copyId: 5, sent: false, reason: "failed" }]);
+    expect(problems.map((p) => p.what)).toEqual([staffCopy.problems.anywhere.sendFailed("broadcast")]);
+  });
+});
+
+describeWithDatabase("send to an address with “Do not email”", () => {
+  useTestDatabase();
+
+  it("refuses all but what the person asked for or did", async () => {
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "token");
+    server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 0, MessageID: "m" })));
+    await query(
+      `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at) VALUES ('jo@example.org', 'all', 'civicrm-check', 'x', now())`,
+    );
+    const email = { From: "a@notify.pauseai.uk", To: "jo@example.org", Subject: "S", TextBody: "T" };
+    expect(await send(email, "mailing")).toEqual({ sent: false, reason: "blocked" });
+    expect(await send(email, "preferences-link")).toMatchObject({ sent: true });
   });
 });
 

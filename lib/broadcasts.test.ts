@@ -209,6 +209,12 @@ describe("broadcastTerms", () => {
   it("takes the channel and topic from one topic answered yes, a number's being by text", () => {
     expect(broadcastTerms("email:newsletter:yes")).toEqual({ channel: "email", topic: "newsletter" });
     expect(broadcastTerms(["text:events:yes"])).toEqual({ channel: "text", topic: "events" });
+    // The newsletter's and events' yeses both, by one channel, in either order.
+    expect(broadcastTerms(["email:events:yes", "email:newsletter:yes"])).toEqual({
+      channel: "email",
+      topic: "newsletter",
+      alsoEvents: true,
+    });
   });
 
   it("ignores what the filter leaves out", () => {
@@ -223,7 +229,10 @@ describe("broadcastTerms", () => {
     expect(broadcastTerms("nonsense")).toBeUndefined();
     expect(broadcastTerms("email:newsletter:unsure")).toBeUndefined();
     expect(broadcastTerms("email:newsletter")).toBeUndefined();
-    expect(broadcastTerms(["email:newsletter:yes", "email:events:yes"])).toBeUndefined();
+    expect(broadcastTerms(["email:newsletter:yes", "email:volunteering:yes"])).toBeUndefined();
+    expect(broadcastTerms(["email:newsletter:yes", "text:events:yes"])).toBeUndefined();
+    expect(broadcastTerms(["email:newsletter:yes", "email:events:no"])).toBeUndefined();
+    expect(broadcastTerms(["email:newsletter:yes", "email:events:yes", "email:volunteering:yes"])).toBeUndefined();
   });
 });
 
@@ -322,6 +331,7 @@ describe("broadcastScheduleProblems", () => {
     connected: false,
     approved: true,
     numbered: true,
+    aboutEvents: true,
     sends: true,
   };
 

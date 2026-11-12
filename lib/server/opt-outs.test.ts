@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { query } from "@/lib/server/db";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { normaliseAddress, recordOptOut, recordResubscribe } from "./opt-outs";
+import { normaliseAddress, recordOptOut, recordResubscribe, recordStaffOptOut } from "./opt-outs";
 
 const AT = new Date("2026-10-20T10:00:00Z");
 const LATER = new Date("2026-10-21T10:00:00Z");
@@ -30,6 +30,13 @@ describeWithDatabase("opt-outs", () => {
     expect(await recordOptOut(jane())).toBe(true);
     expect(await recordOptOut(jane())).toBe(false);
     expect(await rows()).toEqual([{ address: "jane@example.com", source_ref: "msg_1", resubscribed_at: null }]);
+  });
+
+  it("records a staff member's opt-out once, logging only the one that was new", async () => {
+    const choice = { address: "Jane@Example.com", way: "email" as const, list: "newsletter" as const };
+    expect(await recordStaffOptOut(choice, "jo@pauseai.uk", { how: "At the stall" })).toBe(true);
+    expect(await recordStaffOptOut(choice, "jo@pauseai.uk", { how: "Again" })).toBe(false);
+    expect(await query("SELECT count(*)::int AS n FROM audit_log WHERE action = 'record opt-out'")).toEqual([{ n: 1 }]);
   });
 
   it("keeps one open opt-out per address and list, whatever told us", async () => {

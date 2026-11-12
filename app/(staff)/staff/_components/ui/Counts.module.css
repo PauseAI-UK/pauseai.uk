@@ -48,6 +48,10 @@
   color: var(--status-red);
 }
 
+.count strong[data-tone="amber"] {
+  color: var(--status-amber);
+}
+
 .count strong[data-tone="green"] {
   color: var(--status-green);
 }

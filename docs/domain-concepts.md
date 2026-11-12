@@ -336,7 +336,10 @@ job all leave broadcasts out.
 
 - **Channel and topic.** A broadcast has one channel and one topic, which
   together are its Consent: one topic, answered yes (`broadcastTerms` in
-  `lib/broadcasts.ts`). "Not sure" isn't enough. A draft is made in two
+  `lib/broadcasts.ts`). "Not sure" isn't enough. One more choice goes to
+  the newsletter's and events' yeses both ("Newsletter or events only",
+  `alsoEvents`), as only an event invitation suits both: it can't be
+  scheduled until staff tick that it's about our events. A draft is made in two
   ways:
   - New broadcast (`/staff/broadcasts/new`) is the writer with nothing in
     it yet but Said yes to. Choosing a Consent there makes the draft.
@@ -377,13 +380,65 @@ job all leave broadcasts out.
   when WhatsApp decides, an email with the words goes to whoever sent them
   and to the notification inbox. A template has no parts that only some
   people get, as its words are the same for everyone.
-- **Sending.** No backend sends broadcasts yet
-  (`lib/server/broadcast-channels.ts`). On the live site, scheduling is
-  refused and the pages say so. Only an email's test copy goes, by Postmark.
-  A fixture build has a fake backend, so its flows can be driven whole.
+- **Sending** (`lib/server/broadcast-sending.ts`). The hourly
+  `send-mailings` run starts each broadcast that's due, as it does
+  mailings, none overnight: a copy for each it goes to then, once to each
+  address, with the topics whose yes it goes under and the Message-ID it
+  goes with. Copies go in batches, each copy checked just before: one whose
+  answer is now no is skipped with why, and every address is checked with
+  CiviCRM's `checkSuppression`, which drops anyone PauseAI mustn't bulk
+  email ("Opt-outs", below), but for "No bulk emails" lifted on the email
+  settings page and not yet sent to CiviCRM, which skips the copy without
+  an opt-out. A batch's copies are taken as `sending` before they go, with
+  each one's unsubscribe link token made then, only its hash kept; a copy a
+  stopped run left `sending` for half an hour is failed, not sent again, as
+  it may have gone. While copies are left, the run starts the background
+  function as letters do ("Mailings to politicians"). An email goes by
+  Postmark's broadcast stream (`BROADCAST_STREAM`), apart from the site's
+  transactional mail, from the address it's from, with its unsubscribe link
+  at its foot and in its `List-Unsubscribe` and `List-Unsubscribe-Post`
+  headers. A text goes by the fake backend a fixture build has, and on the
+  live site nothing sends one yet (`lib/server/broadcast-channels.ts`), so
+  scheduling one is refused and the pages say so.
+- **Waiting for CiviCRM.** Nothing goes unchecked. An email broadcast
+  waits while no CiviCRM pull has completed for a day, or CiviCRM doesn't
+  answer its check; whoever scheduled it and the notification inbox are
+  emailed once, and its page says since when and why. It goes by itself
+  when it can, unless it's still waiting three days after its time
+  (`WAIT_DAYS`), when it stops, its copies not yet gone cancelled, and they
+  are emailed how many it didn't reach. A scheduled one's page says quietly
+  when that would be.
+- **What Postmark reports.** Its delivery webhook marks a copy delivered;
+  a hard bounce marks it failed and blocks the address; a spam complaint is
+  an opt-out of every bulk email (`lib/server/delivery-problems.ts`).
+- **Replies** (`lib/server/broadcast-replies.ts`). The read of each
+  connected Gmail matches a reply to its copy by the Message-ID it went
+  with, before anything else in the mailbox sees it, and keeps it whole
+  (`broadcast_replies`, the message in Netlify Blobs). A person's reply
+  waits for staff, who record it as an opt-out, of what the copy went under
+  or of every bulk email, or as nothing to do; an automatic one never
+  waits. The broadcast's page counts replies, and those to look at in
+  amber, which come first among its recipients; the staff home says how
+  many wait. A message from the mailbox's own address in the thread is an
+  answer of ours sent from its Gmail, and isn't kept as a reply.
+- **Answers** (`lib/server/broadcast-answers.ts`). Staff answer a reply on
+  its Thread page, from a draft folded under it ("Write a reply…"), which
+  Send reply or Cmd+Enter (Ctrl+Enter off a Mac) sends. It goes by Gmail
+  from the mailbox the reply came to, as the broadcast's name, in the
+  reply's Gmail thread, with In-Reply-To and References naming the reply and
+  our email (purpose `broadcast-answer`), so it's in that mailbox's Sent and
+  the person's conversation. It's kept (`broadcast_answers`) with who sent
+  it, recorded as sending before it goes and sent after, once for each
+  draft, so pressing Send twice sends it once; one that fails is forgotten,
+  so it can be sent again. Sending one settles the reply as `answered`,
+  unless it's an opt-out, and an answered reply can still be recorded as
+  one. Reading the mailbox skips our answer, as an email we sent
+  (`email_sends`), and a reply to it joins the same copy, by its
+  Message-ID. It's transactional, as it answers what the person wrote.
 - **A message's page**, Thread (`/staff/broadcasts/<id>/<copy>`), shows one
-  person's copy as they got it, and when it was sent, delivered and read.
-  Replies aren't kept yet.
+  person's copy as they got it, and when it was sent, delivered and read,
+  with each reply under it and its buttons, our answers, and who dealt with
+  each.
 
 ### Mailings to politicians
 
@@ -928,8 +983,11 @@ source says who did. Three things tell us:
 - The end of each of the Luma import's full passes over the calendar's
   contacts, one after another, ten pages a run (`recordContactsPass`). A
   contact it doesn't list is opted out, as `luma-contacts`, from when it
-  noticed, unless they already are; an open opt-out begun before it listed
-  them again is closed. That catches what the webhook doesn't: returns,
+  noticed, unless they already are; an open opt-out of Luma's begun before
+  it listed them again is closed. One from our email settings page or an
+  email's unsubscribe link stays open, and the pass takes anyone it still
+  lists with one off the calendar again (`stillOnCalendar`), as taking them
+  off may have failed. That catches what the webhook doesn't: returns,
   removals, blocks, and anyone who left before the webhook was set up on
   22 Oct 2026. So someone who leaves, comes back and leaves again within a
   pass has one opt-out, not two: the second unsubscribe finds the first
@@ -939,12 +997,77 @@ source says who did. Three things tell us:
   list is a stop to the newsletter or volunteering by email, as `civicrm`,
   from when the pull saw it. On the list again later, which only the
   person can do there, closes an opt-out begun before.
+- A copy of a broadcast's unsubscribe link (`link`), and a mail app's own
+  Unsubscribe button, by the copy's `List-Unsubscribe-Post` header
+  (`list-unsubscribe`, `/api/unsubscribe/<token>`): an opt-out of what the
+  copy went under ("The email settings page", below).
+- A spam complaint (`postmark-complaint`), from anyone, about any email:
+  an opt-out of every bulk email, beside the block it makes ("Email",
+  below).
+- A reply staff record as one (`reply`), of what its copy went under or of
+  every bulk email ("Broadcasts to supporters", above), and anything else
+  a person tells staff, recorded under their consents on their page with
+  how they said it (`staff`). Both name who recorded it.
+- The email settings page (`preferences`).
+- CiviCRM's suppression check just before a broadcast (`civicrm-check`):
+  an address PauseAI mustn't bulk email, or email at all.
+
+An opt-out is of one topic by one way, or, by email, of every bulk email
+(`bulk`, as CiviCRM's "No bulk emails") or of all email but what the person
+just asked for (`all`, as its "Do not email"). Those two stop every topic
+of the address.
 
 An opt-out is only ever a real stop, told us by its own sender. Leaving a
 box unticked isn't one, nor is CiviCRM's `not_opted_in`: neither undoes a
 yes from another source.
 
+Each opt-out of ours that CiviCRM takes goes to its `updateSubscriptions`
+too (`lib/server/civicrm-updates.ts`), so Global's records and mail honour
+it: the newsletter by email as an unsubscribe from `newsletter`,
+volunteering by email from `volunteer_updates`, and every bulk email as
+`no_bulk_email`. One CiviCRM told us of doesn't go back, and events, or a
+topic by text or call, go nowhere. Each is queued with the opt-out, in
+`civicrm_updates`, and sent by the hourly CiviCRM import before it pulls,
+tried again each hour until CiviCRM answers it. Only opt-outs go, and the
+one opt-in the person makes themselves: lifting "No bulk emails" on the
+email settings page, as `allow_bulk_email`, beside its words. A yes on our
+side stays ours.
+
 A new source is a name in the `CHECK` on `source`, and whatever records it.
+
+### The email settings page
+
+`/email-settings` (`lib/server/email-settings.ts`) is where anyone sees and
+changes what PauseAI UK sends them, and why. Someone asks for a link by
+their address, past Turnstile; one goes only to an address we have, after
+the page has answered, and the page says the same either way, so neither
+its words nor how long it takes says whose addresses we hold. An address
+gets one link in 2 minutes and 5 in a day at most. A link works for 7 days. Every copy of a
+broadcast has its own link (`/email-settings/m/<token>`), which opens the
+page with one button that opts out of what the copy went under: following
+the link changes nothing, as mail scanners follow links nobody clicked. The
+button works forever; the rest of the page for 30 days after the copy went,
+then it offers a fresh link.
+
+The page opens only from a link emailed to the address, so a box ticked
+there is its owner saying yes: a yes from the page (`preference_choices`),
+with the words beside it, which wins over an older opt-out. An untick is
+an opt-out from the page. Texts and calls are for the numbers of whoever has
+the address: a box is ticked where any number says yes, ticking it is a yes
+for each number, unticking it an opt-out for each, and leaving it changes
+none. Turning off events by email, or every bulk email, takes the
+address off our Luma calendar too, on the live site. "No bulk emails" holds
+all of its email, which the person can lift there, beside a plain sentence
+of what that does; "Do not email" only Global can lift. Stop everything is
+an opt-out of every bulk email, and of each text and call the numbers had a
+yes for.
+
+Someone with "No bulk emails" who ticks a box to hear from us, on the march
+form, Email your MP or a paper sign-up form, is emailed how to lift it,
+saying where they signed up (`sendBulkNotice`): once a sign-up, and once
+in 30 days however many they make. Nobody with "Do not email" is. A notice
+that fails is reported, and the sign-up goes on. The paper import's preview marks who will be, and shows the
+email.
 
 ### CiviCRM
 
@@ -979,8 +1102,14 @@ blocks the address (`email_blocks`, "Email", below), as a problem of the
 kind `hold`, which staff can lift with a note on the blocked addresses page;
 only a new hold blocks it again. CiviCRM lifting the hold lifts the block
 too, unless another contact with the address is still on hold, and what
-waited for the address goes, as when staff unblock it. Nothing here writes
-to CiviCRM, so staff lifting a block leaves the hold there.
+waited for the address goes, as when staff unblock it. The chapter contacts
+API has no way to lift a hold, so staff lifting a block leaves the hold
+there.
+
+Two more of its actions are used: `updateSubscriptions`, for our opt-outs
+("Opt-outs", above), and `checkSuppression`, which says whether PauseAI may
+email each of some addresses at all, whoever has them, just before a
+broadcast's copies go ("Broadcasts to supporters", above).
 
 ### Whether we'd contact someone
 
@@ -1034,22 +1163,26 @@ winning a tie, so a box ticked after an unsubscribe opens it again. Last,
 if they said nothing that counts, why not: a box left unticked, never
 opted in in CiviCRM, never followed the calendar, gone from the chapter.
 A consent the address or number has had nothing to do with has no row.
+A box ticked on the email settings page is a yes (`chose`), and an opt-out
+of every bulk email or all email is the stop "No bulk emails" or "Do not
+email" is; CiviCRM's "No bulk emails" stops nothing once the person lifted
+it there since we saw it, unless CiviCRM refused the lift.
 
 The supporter's page shows each yes or stop with where it came from and
 when. The list shows an Email or Phone column only
 with the Consent filter by that channel, and in it the addresses or
 numbers whose answer the filter finds; a download, vCards too, has the
 same. The supporter's page shows every address and number, marking a
-number no consent lets us use. Nothing sends by it yet; when the site
-mails supporters, `send()` asks it for the purpose's consent as it checks
-`email_blocks`.
+number no consent lets us use. A broadcast's copies are checked by it just
+before they go.
 
 ## Email
 
 Everything the site sends, to anyone (`lib/server/email.ts`). Every email
 goes through `send()` with its purpose: `letter`, `letter-copy`, `relay`,
 `supporter-notice`, `office-notice`, `forwarded-reply`, `staff-login`,
-`staff-alert`, `staff-report`, `mailing` or `mailing-test`. Each try is
+`staff-alert`, `staff-report`, `mailing`, `mailing-test`, `broadcast`,
+`preferences-link`, `bulk-notice` or `broadcast-answer`. Each try is
 logged (`email_sends`): when, why, to whom, whether it went, its subject,
 its From address, and which backend sent it. The backend is Postmark or a
 connected Gmail, either a staff member's or the letters inbox ("Mailings to
@@ -1059,7 +1192,8 @@ row is a letter Joseph sent, read from his Sent mail.
 Every email has its words as HTML as well as text, so a mail app shows it in
 its own font, wrapped to its window, where it would show a text-only one in
 a fixed-width font or in lines broken at a set width. A letter, its copy and
-a mailing have HTML of their own, from the editor's document. For any other,
+a mailing, and an answer to a reply, have HTML of their own, from the
+editor's document. For any other,
 written only as text (a notice, a login link, an alert), `send()` makes it
 from the text (`lib/plain-email-html.ts`): a paragraph for each block of
 lines, a bulleted list of lines that start "- ", each web address a link.
@@ -1143,10 +1277,14 @@ A new kind of email is a new purpose: add it to `Purpose` and to the
 anything. If the email is about one record, as a letter is, `email_sends`
 needs a column pointing at that kind of record, as `letter_id` does.
 
-Not covered yet: mail to supporters, which has to honour their
-opt-outs ("Whether we'd contact someone", above) as well as the blocks here.
-A broadcast can be written, but no backend sends one ("Broadcasts to
-supporters", above).
+An address with "Do not email", in CiviCRM or as an opt-out of all email,
+gets only what the person just asked for or did: a login link, a link to
+the email settings page, a letter's copy and their MP's replies to it, which
+to them is mail from their MP that we pass on, and the like (`TRANSACTIONAL`
+in `lib/server/email.ts`); `send()` refuses any other. A broadcast's copies
+go by `sendBroadcastCopies` there, a batch on Postmark's broadcast stream,
+checked against the blocks the same way, each logged as `broadcast` with
+its copy ("Broadcasts to supporters", above).
 
 ## Imports
 

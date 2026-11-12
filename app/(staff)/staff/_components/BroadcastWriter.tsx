@@ -4,7 +4,7 @@ import type { JSONContent } from "@tiptap/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
-import { Select, TextInput } from "@/components/ui/Controls";
+import { Checkbox, Select, TextInput } from "@/components/ui/Controls";
 import { Field, Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { useLeaving } from "@/components/ui/useLeaving";
@@ -32,13 +32,14 @@ import type {
 import type { BroadcastWriterData } from "@/lib/server/broadcast-pages";
 import { filtersPath } from "@/lib/list-params";
 import { earliestHour, londonClock, londonWhen, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
-import { stateValue, type Channel } from "@/lib/contact-permissions";
+import type { Channel } from "@/lib/contact-permissions";
 import {
   approvalProblems,
   fakeRecipient,
   hasField,
   hasWords,
   BROADCAST_START,
+  consentChoice,
   textCost,
   broadcastScheduleProblems,
   BROADCAST_SENDER,
@@ -62,6 +63,7 @@ import MailingFiles from "./MailingFiles";
 import BroadcastConsent from "./BroadcastConsent";
 import { MailingLetter } from "./MailingLetter";
 import TextBubble from "./TextBubble";
+import { BandFact, Facts } from "./ui/Band";
 import Grid, { Card } from "./ui/Grid";
 import NotIcon from "./ui/NotIcon";
 import Strip from "./ui/Strip";
@@ -92,6 +94,8 @@ export type BroadcastWriterActions = DraftActions & {
   deleteDraft: (form: FormData) => void | Promise<void>;
   /** Changes the Consent a draft goes under; says whether it did. */
   changeConsent: (id: number, consent: string) => Promise<boolean>;
+  /** Says a draft to the newsletter's and events' yeses both is about our events, or isn't; says whether it took. */
+  setAboutEvents: (id: number, about: boolean) => Promise<boolean>;
   /** Makes a draft under a Consent, from New broadcast, and opens it. */
   create: (consent: string) => Promise<void>;
   /** Sends a text's new words to WhatsApp for approval, by the name they're given. */
@@ -411,6 +415,8 @@ export default function BroadcastWriter({
     : !isBlankMailing(body);
   const sender = data.senders.find((one) => one.email === values.sentFrom);
   const byGmail = email && values.sentFrom !== BROADCAST_SENDER.email;
+  // Ticked at once, then kept by the server, or unticked again if it wasn't.
+  const [aboutEvents, setAboutEvents] = useState(draft.aboutEvents);
   const problems = broadcastScheduleProblems({
     channel: draft.channel,
     subject: values.subject,
@@ -423,6 +429,7 @@ export default function BroadcastWriter({
     connected: Boolean(sender),
     approved: words === "chosen",
     numbered: Boolean(data.textNumber),
+    aboutEvents: !draft.alsoEvents || aboutEvents,
     sends: data.sends,
   }).filter((problem) => problem !== "cannot-send");
   // Greyed, before a Consent by the channel picked: that comes first.
@@ -500,15 +507,7 @@ export default function BroadcastWriter({
       <Grid>
         <Card span={6} title={<Numbered n={1}>{copy.sections.who}</Numbered>} id="who-title">
           <BroadcastConsent
-            value={
-              blank
-                ? ""
-                : stateValue({
-                    way: draft.channel === "email" ? "email" : "text",
-                    topic: draft.topic,
-                    send: "yes",
-                  })
-            }
+            value={blank ? "" : consentChoice(draft)}
             channel={draft.channel === "email" ? "email" : "phone"}
             written={hasOwnWords}
             pending={picking}
@@ -517,6 +516,21 @@ export default function BroadcastWriter({
             show={show}
             className={own.consent}
           />
+          {draft.alsoEvents && (
+            <div className={own.consent}>
+              <Checkbox
+                checked={aboutEvents}
+                onChange={async (about) => {
+                  setAboutEvents(about);
+                  if (await actions.setAboutEvents(id, about)) router.refresh();
+                  else setAboutEvents(!about);
+                }}
+              >
+                {copy.aboutEvents}
+              </Checkbox>
+              <Hint>{copy.aboutEventsHint}</Hint>
+            </div>
+          )}
           {lockable(
             <>
               <div className={styles.who}>
@@ -711,20 +725,20 @@ export default function BroadcastWriter({
             </Card>
 
             <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
-              <p className={styles.count}>
-                {copy.summary(
-                  data.count,
-                  draft.channel,
-                  summaryFrom,
-                  values.dueAt ? londonWhen(values.dueAt, "short") : null,
-                )}{" "}
+              <Facts>
+                <BandFact label={copy.sendFacts.what}>{copy.sendFacts.count(data.count, draft.channel)}</BandFact>
+                <BandFact label={copy.sendFacts.from} detail={copy.sendFacts.how(draft.channel)}>
+                  {summaryFrom}
+                </BandFact>
+                <BandFact label={copy.sendFacts.when}>
+                  {values.dueAt ? londonWhen(values.dueAt, "short") : copy.sendFacts.noTime}
+                </BandFact>
                 {!email && (
-                  <>
+                  <BandFact label={copy.sendFacts.cost} detail={textCost(data.count).rate}>
                     {textCost(data.count).about}
-                    <span className={own.rate}>{textCost(data.count).rate}</span>
-                  </>
+                  </BandFact>
                 )}
-              </p>
+              </Facts>
               <div className={styles.send}>
                 {/* New words go to WhatsApp from here, at the foot, once they're written, in Schedule's
                     place, as they can't be scheduled till WhatsApp approves them. */}

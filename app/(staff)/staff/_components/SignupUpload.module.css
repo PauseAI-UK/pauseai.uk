@@ -175,28 +175,7 @@
 }
 
 /* An event to choose, in the shared list of choices (ui/Choices), as one of its links looks. */
-.choice {
-  display: block;
-  width: 100%;
-  padding: 2px var(--space-2);
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.choice:hover {
-  background: var(--surface-2);
-}
-
-.choice:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
+/* An event to choose, a button in the filters' choices, which style it (FilterBar.module.css); its date quiet. */
 .choice span {
   color: var(--text-secondary);
   font-size: var(--text-xs);
@@ -245,4 +224,18 @@
 .email {
   min-width: 14rem;
   overflow-wrap: anywhere;
+}
+
+/* The email to those with "No bulk emails", as they'll see it: set apart, its lines kept. */
+.notice {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--border);
+  background: var(--surface-2);
+}
+
+.noticeBody {
+  white-space: pre-line;
 }

@@ -5,12 +5,15 @@
 // (tests/checks/staff-auth.test.ts), and asks for the supporters permission,
 // as a broadcast is to someone who said yes to it.
 import { revalidatePath } from "next/cache";
+import { dealWithReply, type ReplyDecision } from "@/lib/server/broadcast-replies";
+import { answerReply, type AnswerResult } from "@/lib/server/broadcast-answers";
 import { redirect } from "next/navigation";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { fakeRecipient } from "@/lib/broadcasts";
 import { addAttachment, deleteDraft, removeAttachment, rescheduleMailing } from "@/lib/server/mailing-drafts";
 import {
   changeBroadcastConsent,
+  setAboutEvents,
   changeBroadcastFilter,
   createBroadcastDraft,
   getWrittenBroadcast,
@@ -60,7 +63,7 @@ export async function newBroadcast(form: FormData): Promise<void> {
  */
 export async function newBroadcastWith(consent: string): Promise<void> {
   const { email } = await requireStaff("supporters");
-  const id = await createBroadcastDraft(email, { contact: consent });
+  const id = await createBroadcastDraft(email, { contact: consent.split(" ") });
   if (!id) return;
   revalidatePath(LIST);
   redirect(`${LIST}/${id}`);
@@ -72,6 +75,43 @@ export async function changeBroadcastConsentNow(id: number, consent: string): Pr
   const changed = await changeBroadcastConsent(id, consent, email);
   if (changed) revalidatePath(`${LIST}/${id}`);
   return changed;
+}
+
+/**
+ * A reply's buttons on its Thread: records it as an opt-out, of what its
+ * email went under or of all bulk email, or as nothing to do, as the staff
+ * member; then its page is shown afresh.
+ */
+export async function dealWithReplyNow(form: FormData): Promise<void> {
+  const { email } = await requireStaff("supporters");
+  const replyId = idFrom(form, "replyId");
+  const decision = String(form.get("decision"));
+  if (!replyId || !["topics", "bulk", "nothing"].includes(decision)) return;
+  if (await dealWithReply(replyId, decision as ReplyDecision, email)) revalidatePath(LIST, "layout");
+}
+
+/** A draft's own ID, as the page makes it: a UUID. */
+const DRAFT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Send reply on a reply's Thread: sends the staff member's answer, once for
+ * the page's `draftId`, and shows the page afresh once it's gone; says
+ * whether it went, or why not.
+ */
+export async function answerReplyNow(replyId: number, draftId: string, body: unknown): Promise<AnswerResult> {
+  const { email } = await requireStaff("supporters");
+  if (!Number.isSafeInteger(replyId) || !DRAFT_ID.test(draftId)) return { sent: false, reason: "gone" };
+  const result = await answerReply(replyId, draftId, body, email);
+  if (result.sent) revalidatePath(LIST, "layout");
+  return result;
+}
+
+/** The tick on a draft to the newsletter's and events' yeses both, that it's about our events; says whether it took. */
+export async function setAboutEventsNow(id: number, about: boolean): Promise<boolean> {
+  await requireStaff("supporters");
+  const set = await setAboutEvents(id, about);
+  if (set) revalidatePath(`${LIST}/${id}`);
+  return set;
 }
 
 /** Keeps the form's filter for draft `id`, and goes back to it. */

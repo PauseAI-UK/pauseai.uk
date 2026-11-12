@@ -14,9 +14,14 @@ export type BroadcastBackend = { send(message: SupporterMessage): Promise<Channe
 
 const fakeBackend: BroadcastBackend = { send: async ({ to }) => ({ sent: true, id: `fake-${to}` }) };
 
-/** What sends messages to supporters, if anything does yet. */
+/** What sends texts to supporters, if anything does yet. */
 export function broadcastBackend(): BroadcastBackend | undefined {
   return config.fixtures ? fakeBackend : undefined;
+}
+
+/** Whether a broadcast by `channel` can be sent: an email always, a text only with a backend. */
+export function channelSends(channel: BroadcastChannel): boolean {
+  return channel === "email" || Boolean(broadcastBackend());
 }
 
 /** The WhatsApp business account's number, as texts appear from it, if one is set. */

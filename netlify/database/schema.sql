@@ -115,6 +115,12 @@ WITH
     WHERE for_way = 'call' AND for_topic = 'volunteering' AND m.never_returned
       AND phone_number(m.phone) = for_address
   ),
+  -- The latest lift of "No bulk emails" on the email settings page that
+  -- CiviCRM hasn't refused.
+  lifted AS (
+    SELECT max(p.chosen_at) AS at FROM preference_choices p
+    WHERE for_way = 'email' AND p.address = for_address AND p.topic = 'bulk' AND p.refused_at IS NULL
+  ),
   stops AS (
     SELECT 1 AS rank, 'blocked' AS reason, p.at, p.kind AS source
     FROM email_blocks b JOIN email_problems p ON p.id = b.problem_id
@@ -123,8 +129,16 @@ WITH
     SELECT 2, 'do-not-email', min(c.do_not_email_since), 'civicrm' FROM civi c
     WHERE for_way = 'email' AND c.do_not_email HAVING count(*) > 0
     UNION ALL
+    SELECT 2, 'do-not-email', o.unsubscribed_at, o.source FROM opt_outs o
+    WHERE for_way = 'email' AND o.address = for_address AND o.list = 'all' AND o.resubscribed_at IS NULL
+    UNION ALL
     SELECT 3, 'no-bulk-email', min(c.no_bulk_email_since), 'civicrm' FROM civi c
-    WHERE for_way = 'email' AND c.no_bulk_email HAVING count(*) > 0
+    WHERE for_way = 'email' AND c.no_bulk_email
+      AND c.no_bulk_email_since > coalesce((SELECT l.at FROM lifted l), '-infinity')
+    HAVING count(*) > 0
+    UNION ALL
+    SELECT 3, 'no-bulk-email', o.unsubscribed_at, o.source FROM opt_outs o
+    WHERE for_way = 'email' AND o.address = for_address AND o.list = 'bulk' AND o.resubscribed_at IS NULL
     UNION ALL
     SELECT 2, 'do-not-sms', min(c.do_not_sms_since), 'civicrm' FROM civi c
     WHERE for_way = 'text' AND c.do_not_sms HAVING count(*) > 0
@@ -144,6 +158,11 @@ WITH
     WHERE for_topic = 'newsletter' AND f.contact_consent
       AND ((for_way = 'email' AND lower(trim(f.email)) = for_address)
         OR (for_way = 'text' AND phone_number(f.phone) = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
+    UNION ALL
+    -- A box ticked on the email settings page.
+    SELECT 'yes', 'chose', p.chosen_at, 'preferences'
+    FROM preference_choices p
+    WHERE p.address = for_address AND p.way = for_way AND p.topic = for_topic
     UNION ALL
     -- On a CiviCRM list, while a pull returns the contact.
     SELECT 'yes', 'subscribed', c.since, 'civicrm'
@@ -236,7 +255,7 @@ WITH
     WHERE for_way = 'text' AND for_topic = 'events' AND phone_number(f.phone) = for_address AND now() >= d.ends_at
   )
 SELECT r.send, r.reason, r.at, r.source FROM (
-  (SELECT 1 AS tier, s.rank, 'no' AS send, s.reason, s.at, s.source FROM stops s ORDER BY s.rank LIMIT 1)
+  (SELECT 1 AS tier, s.rank, 'no' AS send, s.reason, s.at, s.source FROM stops s ORDER BY s.rank, s.at LIMIT 1)
   UNION ALL
   (SELECT 2, 0, s.send, s.reason, s.at, s.source FROM said s ORDER BY s.at DESC, s.send = 'no' DESC LIMIT 1)
   UNION ALL
@@ -413,6 +432,7 @@ CREATE TABLE public.form_entries (
     postcode text,
     contact_consent boolean NOT NULL,
     utm_source text,
+    bulk_notice_at timestamp with time zone,
     CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'paper-signup'::text])))
 );
 
@@ -593,10 +613,17 @@ CREATE TABLE public.opt_outs (
     unsubscribed_at timestamp with time zone NOT NULL,
     resubscribed_at timestamp with time zone,
     way text DEFAULT 'email'::text CONSTRAINT opt_outs_channel_not_null NOT NULL,
+    recorded_by text,
+    how text,
+    message_id bigint,
     CONSTRAINT opt_outs_address_check CHECK ((address = lower(address))),
-    CONSTRAINT opt_outs_list_check CHECK ((list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text]))),
-    CONSTRAINT opt_outs_source_check CHECK ((source = ANY (ARRAY['luma-webhook'::text, 'luma-contacts'::text, 'civicrm'::text]))),
-    CONSTRAINT opt_outs_way_check CHECK ((way = ANY (ARRAY['email'::text, 'text'::text, 'call'::text])))
+    CONSTRAINT opt_outs_how CHECK (((source = 'staff'::text) = ((how IS NOT NULL) AND (how <> ''::text)))),
+    CONSTRAINT opt_outs_list_check CHECK ((list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text, 'bulk'::text, 'all'::text]))),
+    CONSTRAINT opt_outs_recorded_by CHECK (((source = ANY (ARRAY['staff'::text, 'reply'::text])) = (recorded_by IS NOT NULL))),
+    CONSTRAINT opt_outs_recorded_by_check CHECK ((recorded_by = lower(recorded_by))),
+    CONSTRAINT opt_outs_source_check CHECK ((source = ANY (ARRAY['luma-webhook'::text, 'luma-contacts'::text, 'civicrm'::text, 'link'::text, 'list-unsubscribe'::text, 'postmark-complaint'::text, 'reply'::text, 'staff'::text, 'preferences'::text, 'civicrm-check'::text]))),
+    CONSTRAINT opt_outs_way_check CHECK ((way = ANY (ARRAY['email'::text, 'text'::text, 'call'::text]))),
+    CONSTRAINT opt_outs_whole_email CHECK (((list <> ALL (ARRAY['bulk'::text, 'all'::text])) OR (way = 'email'::text)))
 );
 
 --
@@ -1337,6 +1364,39 @@ ALTER TABLE public.audit_log ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 );
 
 --
+-- Name: broadcast_answers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.broadcast_answers (
+    id bigint NOT NULL,
+    reply_id bigint NOT NULL,
+    draft_id uuid NOT NULL,
+    sent_by text NOT NULL,
+    body jsonb NOT NULL,
+    status text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    sent_at timestamp with time zone,
+    gmail_message_id text,
+    rfc_message_id text,
+    CONSTRAINT broadcast_answers_check CHECK (((status = 'sent'::text) = (sent_at IS NOT NULL))),
+    CONSTRAINT broadcast_answers_sent_by_check CHECK ((sent_by = lower(sent_by))),
+    CONSTRAINT broadcast_answers_status_check CHECK ((status = ANY (ARRAY['sending'::text, 'sent'::text])))
+);
+
+--
+-- Name: broadcast_answers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.broadcast_answers ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.broadcast_answers_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
 -- Name: broadcast_message_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1376,10 +1436,15 @@ CREATE TABLE public.broadcast_messages (
     merge_values jsonb,
     skip_reason text,
     sent_at timestamp with time zone,
+    link_token_hash text,
+    rfc_message_id text,
+    topics text[] DEFAULT '{}'::text[] NOT NULL,
+    sending_since timestamp with time zone,
     CONSTRAINT broadcast_messages_check CHECK (((status = 'skipped'::text) = (skip_reason IS NOT NULL))),
     CONSTRAINT broadcast_messages_check1 CHECK (((supporter_id IS NOT NULL) OR ((address IS NULL) AND (merge_values IS NULL)))),
-    CONSTRAINT broadcast_messages_skip_reason_check CHECK ((skip_reason = ANY (ARRAY['blocked'::text, 'unsubscribed'::text, 'no-permission'::text, 'not-on-whatsapp'::text]))),
-    CONSTRAINT broadcast_messages_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'sent'::text, 'delivered'::text, 'failed'::text, 'skipped'::text, 'cancelled'::text])))
+    CONSTRAINT broadcast_messages_check2 CHECK (((status = 'sending'::text) = (sending_since IS NOT NULL))),
+    CONSTRAINT broadcast_messages_skip_reason_check CHECK ((skip_reason = ANY (ARRAY['blocked'::text, 'unsubscribed'::text, 'no-permission'::text, 'not-on-whatsapp'::text, 'suppressed'::text]))),
+    CONSTRAINT broadcast_messages_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'sending'::text, 'sent'::text, 'delivered'::text, 'failed'::text, 'skipped'::text, 'cancelled'::text])))
 );
 
 --
@@ -1388,6 +1453,46 @@ CREATE TABLE public.broadcast_messages (
 
 ALTER TABLE public.broadcast_messages ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.broadcast_messages_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
+-- Name: broadcast_replies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.broadcast_replies (
+    id bigint NOT NULL,
+    message_id bigint NOT NULL,
+    received_at timestamp with time zone NOT NULL,
+    from_address text NOT NULL,
+    subject text NOT NULL,
+    account text NOT NULL,
+    gmail_message_id text NOT NULL,
+    gmail_thread_id text NOT NULL,
+    rfc_message_id text,
+    blob_key text NOT NULL,
+    automatic boolean NOT NULL,
+    outcome text,
+    dealt_by text,
+    dealt_at timestamp with time zone,
+    CONSTRAINT broadcast_replies_check CHECK (((outcome IS NULL) = (dealt_by IS NULL))),
+    CONSTRAINT broadcast_replies_check1 CHECK (((outcome IS NULL) = (dealt_at IS NULL))),
+    CONSTRAINT broadcast_replies_check2 CHECK ((NOT (automatic AND (outcome IS NOT NULL)))),
+    CONSTRAINT broadcast_replies_dealt_by_check CHECK ((dealt_by = lower(dealt_by))),
+    CONSTRAINT broadcast_replies_from_address_check CHECK ((from_address = lower(from_address))),
+    CONSTRAINT broadcast_replies_outcome_check CHECK ((outcome = ANY (ARRAY['opted-out'::text, 'nothing'::text, 'answered'::text])))
+);
+
+--
+-- Name: broadcast_replies_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.broadcast_replies ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.broadcast_replies_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1418,12 +1523,77 @@ CREATE TABLE public.civicrm_erased (
 );
 
 --
+-- Name: civicrm_updates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.civicrm_updates (
+    id bigint NOT NULL,
+    opt_out_id bigint,
+    choice_id bigint,
+    change text NOT NULL,
+    list text,
+    email text NOT NULL,
+    contact_id bigint,
+    occurred_at timestamp with time zone NOT NULL,
+    source text NOT NULL,
+    wording text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    tries integer DEFAULT 0 NOT NULL,
+    tried_at timestamp with time zone,
+    status text,
+    reason text,
+    answered_at timestamp with time zone,
+    CONSTRAINT civicrm_updates_change_check CHECK ((change = ANY (ARRAY['unsubscribe'::text, 'no_bulk_email'::text, 'allow_bulk_email'::text]))),
+    CONSTRAINT civicrm_updates_check CHECK ((num_nonnulls(opt_out_id, choice_id) = 1)),
+    CONSTRAINT civicrm_updates_check1 CHECK (((choice_id IS NOT NULL) = (change = 'allow_bulk_email'::text))),
+    CONSTRAINT civicrm_updates_check2 CHECK (((change = 'unsubscribe'::text) = (list IS NOT NULL))),
+    CONSTRAINT civicrm_updates_check3 CHECK (((change = 'allow_bulk_email'::text) = (wording IS NOT NULL))),
+    CONSTRAINT civicrm_updates_check4 CHECK (((status IS NULL) = (answered_at IS NULL))),
+    CONSTRAINT civicrm_updates_email_check CHECK ((email = lower(email))),
+    CONSTRAINT civicrm_updates_list_check CHECK ((list = ANY (ARRAY['newsletter'::text, 'volunteer_updates'::text]))),
+    CONSTRAINT civicrm_updates_status_check CHECK ((status = ANY (ARRAY['accepted'::text, 'refused'::text, 'invalid'::text])))
+);
+
+--
+-- Name: civicrm_updates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.civicrm_updates ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.civicrm_updates_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
 -- Name: day_texts; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.day_texts (
     form text NOT NULL,
     ends_at timestamp with time zone NOT NULL
+);
+
+--
+-- Name: preference_choices; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.preference_choices (
+    id bigint NOT NULL,
+    address text NOT NULL,
+    way text NOT NULL,
+    topic text NOT NULL,
+    wording text NOT NULL,
+    chosen_at timestamp with time zone DEFAULT now() NOT NULL,
+    refused_at timestamp with time zone,
+    CONSTRAINT preference_choices_check CHECK (((way <> 'email'::text) OR (address = lower(address)))),
+    CONSTRAINT preference_choices_check1 CHECK (((topic <> 'bulk'::text) OR (way = 'email'::text))),
+    CONSTRAINT preference_choices_check2 CHECK (((refused_at IS NULL) OR (topic = 'bulk'::text))),
+    CONSTRAINT preference_choices_topic_check CHECK ((topic = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text, 'bulk'::text]))),
+    CONSTRAINT preference_choices_way_check CHECK ((way = ANY (ARRAY['email'::text, 'text'::text, 'call'::text]))),
+    CONSTRAINT preference_choices_wording_check CHECK ((wording <> ''::text))
 );
 
 --
@@ -1462,7 +1632,12 @@ CREATE VIEW public.email_permissions AS
          SELECT opt_outs.list,
             opt_outs.address
            FROM public.opt_outs
-          WHERE ((opt_outs.way = 'email'::text) AND (opt_outs.resubscribed_at IS NULL))) t
+          WHERE ((opt_outs.way = 'email'::text) AND (opt_outs.resubscribed_at IS NULL) AND (opt_outs.list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])))
+        UNION
+         SELECT preference_choices.topic,
+            preference_choices.address
+           FROM public.preference_choices
+          WHERE ((preference_choices.way = 'email'::text) AND (preference_choices.topic <> 'bulk'::text))) t
      CROSS JOIN LATERAL public.contact_permission(t.topic, 'email'::text, t.address) d(send, reason, at, source));
 
 --
@@ -1512,7 +1687,13 @@ CREATE VIEW public.phone_permissions AS
             opt_outs.way,
             opt_outs.address
            FROM public.opt_outs
-          WHERE ((opt_outs.way <> 'email'::text) AND (opt_outs.resubscribed_at IS NULL))) t
+          WHERE ((opt_outs.way <> 'email'::text) AND (opt_outs.resubscribed_at IS NULL))
+        UNION
+         SELECT preference_choices.topic,
+            preference_choices.way,
+            preference_choices.address
+           FROM public.preference_choices
+          WHERE (preference_choices.way <> 'email'::text)) t
      CROSS JOIN LATERAL public.contact_permission(t.topic, t.way, t.address) d(send, reason, at, source));
 
 --
@@ -1554,7 +1735,7 @@ CREATE VIEW public.contact_unsubscribes AS
     d.source
    FROM (public.opt_outs o
      CROSS JOIN LATERAL public.contact_permission(o.list, o.way, o.address) d(send, reason, at, source))
-  WHERE ((o.resubscribed_at IS NULL) AND (d.reason = 'unsubscribed'::text));
+  WHERE ((o.resubscribed_at IS NULL) AND (d.reason = 'unsubscribed'::text) AND (o.list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])));
 
 --
 -- Name: email_blocks; Type: TABLE; Schema: public; Owner: -
@@ -1617,12 +1798,13 @@ CREATE TABLE public.email_sends (
     subject text,
     from_address text,
     imported boolean DEFAULT false NOT NULL,
+    broadcast_message_id bigint,
     CONSTRAINT email_sends_backend_check CHECK ((backend = ANY (ARRAY['postmark'::text, 'gmail'::text]))),
     CONSTRAINT email_sends_check CHECK (((outcome = 'sent'::text) = (message_id IS NOT NULL))),
     CONSTRAINT email_sends_from_address_check CHECK ((from_address = lower(from_address))),
     CONSTRAINT email_sends_gmail_sender CHECK (((backend = 'postmark'::text) OR (sender IS NOT NULL))),
     CONSTRAINT email_sends_outcome_check CHECK ((outcome = ANY (ARRAY['sent'::text, 'refused'::text, 'failed'::text]))),
-    CONSTRAINT email_sends_purpose_check CHECK ((purpose = ANY (ARRAY['letter'::text, 'forwarded-reply'::text, 'staff-login'::text, 'staff-alert'::text, 'mailing'::text, 'mailing-test'::text, 'letter-copy'::text, 'relay'::text, 'supporter-notice'::text, 'office-notice'::text, 'staff-report'::text]))),
+    CONSTRAINT email_sends_purpose_check CHECK ((purpose = ANY (ARRAY['letter'::text, 'forwarded-reply'::text, 'staff-login'::text, 'staff-alert'::text, 'mailing'::text, 'mailing-test'::text, 'letter-copy'::text, 'relay'::text, 'supporter-notice'::text, 'office-notice'::text, 'staff-report'::text, 'broadcast'::text, 'preferences-link'::text, 'bulk-notice'::text, 'broadcast-answer'::text]))),
     CONSTRAINT email_sends_sender_check CHECK ((sender = lower(sender)))
 );
 
@@ -1965,10 +2147,17 @@ CREATE TABLE public.mailings (
     imported_text_approximate boolean DEFAULT false NOT NULL,
     old_letters_key text,
     template_id bigint,
+    also_events boolean DEFAULT false NOT NULL,
+    about_events boolean DEFAULT false NOT NULL,
+    waiting_since timestamp with time zone,
+    wait_reason text,
+    gave_up boolean DEFAULT false NOT NULL,
+    CONSTRAINT mailings_also_events CHECK (((NOT also_events) OR (topic = 'newsletter'::text))),
     CONSTRAINT mailings_audience_check CHECK ((audience = ANY (ARRAY['politicians'::text, 'supporters'::text]))),
     CONSTRAINT mailings_box_or_dates CHECK (((airtable_field IS NULL) OR (airtable_sent_between IS NULL))),
     CONSTRAINT mailings_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'text'::text, 'whatsapp'::text]))),
     CONSTRAINT mailings_created_by_check CHECK ((created_by = lower(created_by))),
+    CONSTRAINT mailings_gave_up CHECK (((NOT gave_up) OR ((state = 'cancelled'::text) AND (wait_reason IS NOT NULL)))),
     CONSTRAINT mailings_imported_or_written CHECK ((((airtable_field IS NOT NULL) OR (airtable_sent_between IS NOT NULL)) = ((body IS NULL) AND (filter IS NULL) AND (created_by IS NULL)))),
     CONSTRAINT mailings_imported_sent CHECK (((body IS NOT NULL) OR (state = 'sent'::text))),
     CONSTRAINT mailings_imported_text CHECK (((imported_text IS NULL) OR (body IS NULL))),
@@ -1978,7 +2167,9 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_state_check CHECK ((state = ANY (ARRAY['draft'::text, 'scheduled'::text, 'sending'::text, 'sent'::text, 'cancelled'::text]))),
     CONSTRAINT mailings_template_for_texts CHECK (((template_id IS NULL) OR (channel = 'text'::text))),
     CONSTRAINT mailings_topic_check CHECK ((topic = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text]))),
-    CONSTRAINT mailings_topic_for_supporters CHECK (((audience = 'supporters'::text) = (topic IS NOT NULL)))
+    CONSTRAINT mailings_topic_for_supporters CHECK (((audience = 'supporters'::text) = (topic IS NOT NULL))),
+    CONSTRAINT mailings_wait_reason_check CHECK ((wait_reason = ANY (ARRAY['civicrm'::text, 'pull'::text]))),
+    CONSTRAINT mailings_waiting CHECK (((waiting_since IS NULL) = (wait_reason IS NULL)))
 );
 
 --
@@ -2181,6 +2372,31 @@ CREATE TABLE public.politicians (
     CONSTRAINT politicians_house_check CHECK ((house = ANY (ARRAY['commons'::text, 'lords'::text, 'scottish-parliament'::text, 'senedd'::text, 'ni-assembly'::text, 'other'::text]))),
     CONSTRAINT politicians_kind_check CHECK ((kind = 'politician'::text)),
     CONSTRAINT politicians_test_postcode CHECK ((is_test = (test_postcode IS NOT NULL)))
+);
+
+--
+-- Name: preference_choices_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.preference_choices ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.preference_choices_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
+-- Name: preference_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.preference_links (
+    token_hash text NOT NULL,
+    address text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT preference_links_address_check CHECK ((address = lower(address)))
 );
 
 --
@@ -2522,11 +2738,32 @@ ALTER TABLE public.audit_log
     ADD CONSTRAINT audit_log_unblock_note CHECK (((action <> 'unblock address'::text) OR (btrim(COALESCE((details ->> 'note'::text), ''::text)) <> ''::text))) NOT VALID;
 
 --
+-- Name: broadcast_answers broadcast_answers_draft_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_answers
+    ADD CONSTRAINT broadcast_answers_draft_id_key UNIQUE (draft_id);
+
+--
+-- Name: broadcast_answers broadcast_answers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_answers
+    ADD CONSTRAINT broadcast_answers_pkey PRIMARY KEY (id);
+
+--
 -- Name: broadcast_message_events broadcast_message_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.broadcast_message_events
     ADD CONSTRAINT broadcast_message_events_pkey PRIMARY KEY (id);
+
+--
+-- Name: broadcast_messages broadcast_messages_link_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_messages
+    ADD CONSTRAINT broadcast_messages_link_token_hash_key UNIQUE (link_token_hash);
 
 --
 -- Name: broadcast_messages broadcast_messages_mailing_id_supporter_id_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2550,6 +2787,27 @@ ALTER TABLE ONLY public.broadcast_messages
     ADD CONSTRAINT broadcast_messages_provider_message_id_key UNIQUE (provider_message_id);
 
 --
+-- Name: broadcast_messages broadcast_messages_rfc_message_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_messages
+    ADD CONSTRAINT broadcast_messages_rfc_message_id_key UNIQUE (rfc_message_id);
+
+--
+-- Name: broadcast_replies broadcast_replies_gmail_message_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_replies
+    ADD CONSTRAINT broadcast_replies_gmail_message_id_key UNIQUE (gmail_message_id);
+
+--
+-- Name: broadcast_replies broadcast_replies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_replies
+    ADD CONSTRAINT broadcast_replies_pkey PRIMARY KEY (id);
+
+--
 -- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2569,6 +2827,27 @@ ALTER TABLE ONLY public.civicrm_contacts
 
 ALTER TABLE ONLY public.civicrm_erased
     ADD CONSTRAINT civicrm_erased_pkey PRIMARY KEY (contact_id);
+
+--
+-- Name: civicrm_updates civicrm_updates_choice_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.civicrm_updates
+    ADD CONSTRAINT civicrm_updates_choice_id_key UNIQUE (choice_id);
+
+--
+-- Name: civicrm_updates civicrm_updates_opt_out_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.civicrm_updates
+    ADD CONSTRAINT civicrm_updates_opt_out_id_key UNIQUE (opt_out_id);
+
+--
+-- Name: civicrm_updates civicrm_updates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.civicrm_updates
+    ADD CONSTRAINT civicrm_updates_pkey PRIMARY KEY (id);
 
 --
 -- Name: day_texts day_texts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2949,6 +3228,20 @@ ALTER TABLE ONLY public.postcode_places
     ADD CONSTRAINT postcode_places_pkey PRIMARY KEY (postcode);
 
 --
+-- Name: preference_choices preference_choices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.preference_choices
+    ADD CONSTRAINT preference_choices_pkey PRIMARY KEY (id);
+
+--
+-- Name: preference_links preference_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.preference_links
+    ADD CONSTRAINT preference_links_pkey PRIMARY KEY (token_hash);
+
+--
 -- Name: proxies proxies_notable_person_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3131,16 +3424,46 @@ CREATE INDEX audit_log_politician_edits ON public.audit_log USING btree ((((deta
 CREATE INDEX audit_log_status_sets ON public.audit_log USING btree ((((details ->> 'politicianId'::text))::bigint)) WHERE (action = 'set status'::text);
 
 --
+-- Name: broadcast_answers_reply; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX broadcast_answers_reply ON public.broadcast_answers USING btree (reply_id);
+
+--
+-- Name: broadcast_answers_rfc; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX broadcast_answers_rfc ON public.broadcast_answers USING btree (rfc_message_id);
+
+--
 -- Name: broadcast_message_events_message; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX broadcast_message_events_message ON public.broadcast_message_events USING btree (message_id, at);
 
 --
+-- Name: broadcast_messages_once_an_address; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX broadcast_messages_once_an_address ON public.broadcast_messages USING btree (mailing_id, address) WHERE (address IS NOT NULL);
+
+--
 -- Name: broadcast_messages_supporter; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX broadcast_messages_supporter ON public.broadcast_messages USING btree (supporter_id);
+
+--
+-- Name: broadcast_replies_message; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX broadcast_replies_message ON public.broadcast_replies USING btree (message_id);
+
+--
+-- Name: broadcast_replies_waiting; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX broadcast_replies_waiting ON public.broadcast_replies USING btree (received_at) WHERE ((outcome IS NULL) AND (NOT automatic));
 
 --
 -- Name: civicrm_contacts_airtable_id; Type: INDEX; Schema: public; Owner: -
@@ -3159,6 +3482,18 @@ CREATE INDEX civicrm_contacts_email ON public.civicrm_contacts USING btree (emai
 --
 
 CREATE INDEX civicrm_contacts_phone ON public.civicrm_contacts USING btree (public.phone_number(phone));
+
+--
+-- Name: civicrm_updates_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX civicrm_updates_email ON public.civicrm_updates USING btree (email);
+
+--
+-- Name: civicrm_updates_unanswered; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX civicrm_updates_unanswered ON public.civicrm_updates USING btree (id) WHERE (status IS NULL);
 
 --
 -- Name: email_problems_address; Type: INDEX; Schema: public; Owner: -
@@ -3437,6 +3772,18 @@ CREATE INDEX politician_domains_person ON public.politician_domains USING btree 
 CREATE INDEX politicians_commons_constituency ON public.politicians USING btree (constituency) WHERE (house = 'commons'::text);
 
 --
+-- Name: preference_choices_address; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX preference_choices_address ON public.preference_choices USING btree (address);
+
+--
+-- Name: preference_links_address; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX preference_links_address ON public.preference_links USING btree (address);
+
+--
 -- Name: signup_upload_entries_upload; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3518,6 +3865,13 @@ ALTER TABLE ONLY public.ask_statuses
     ADD CONSTRAINT ask_statuses_notable_person_id_fkey FOREIGN KEY (notable_person_id) REFERENCES public.notable_people(id) ON DELETE CASCADE;
 
 --
+-- Name: broadcast_answers broadcast_answers_reply_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_answers
+    ADD CONSTRAINT broadcast_answers_reply_id_fkey FOREIGN KEY (reply_id) REFERENCES public.broadcast_replies(id) ON DELETE CASCADE;
+
+--
 -- Name: broadcast_message_events broadcast_message_events_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3539,6 +3893,13 @@ ALTER TABLE ONLY public.broadcast_messages
     ADD CONSTRAINT broadcast_messages_supporter_id_fkey FOREIGN KEY (supporter_id) REFERENCES public.supporters(id) ON DELETE SET NULL;
 
 --
+-- Name: broadcast_replies broadcast_replies_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_replies
+    ADD CONSTRAINT broadcast_replies_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.broadcast_messages(id) ON DELETE CASCADE;
+
+--
 -- Name: campaigns campaigns_ask_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3546,11 +3907,32 @@ ALTER TABLE ONLY public.campaigns
     ADD CONSTRAINT campaigns_ask_fkey FOREIGN KEY (ask) REFERENCES public.asks(slug);
 
 --
+-- Name: civicrm_updates civicrm_updates_choice_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.civicrm_updates
+    ADD CONSTRAINT civicrm_updates_choice_id_fkey FOREIGN KEY (choice_id) REFERENCES public.preference_choices(id) ON DELETE CASCADE;
+
+--
+-- Name: civicrm_updates civicrm_updates_opt_out_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.civicrm_updates
+    ADD CONSTRAINT civicrm_updates_opt_out_id_fkey FOREIGN KEY (opt_out_id) REFERENCES public.opt_outs(id) ON DELETE CASCADE;
+
+--
 -- Name: email_blocks email_blocks_problem_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.email_blocks
     ADD CONSTRAINT email_blocks_problem_id_fkey FOREIGN KEY (problem_id) REFERENCES public.email_problems(id);
+
+--
+-- Name: email_sends email_sends_broadcast_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_sends
+    ADD CONSTRAINT email_sends_broadcast_message_id_fkey FOREIGN KEY (broadcast_message_id) REFERENCES public.broadcast_messages(id) ON DELETE SET NULL;
 
 --
 -- Name: email_sends email_sends_letter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -3747,6 +4129,13 @@ ALTER TABLE ONLY public.one_off_thread_people
 
 ALTER TABLE ONLY public.one_off_thread_people
     ADD CONSTRAINT one_off_thread_people_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.one_off_threads(id) ON DELETE CASCADE;
+
+--
+-- Name: opt_outs opt_outs_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opt_outs
+    ADD CONSTRAINT opt_outs_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.broadcast_messages(id) ON DELETE SET NULL;
 
 --
 -- Name: politician_addresses politician_addresses_notable_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

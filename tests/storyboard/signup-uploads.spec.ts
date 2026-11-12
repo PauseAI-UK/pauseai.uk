@@ -3,8 +3,8 @@ import { join } from "node:path";
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { importLuma } from "../steps";
-import { BASE, expect, frame, story, test } from "./fixtures";
+import { importCivicrm, importLuma, newestEmail } from "../steps";
+import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { logIn } from "./staff-steps";
 
@@ -273,4 +273,27 @@ test("Something changes before importing", async ({ page, flowDatabase, request 
   await expect(page.getByRole("button", { name: copy.preview.importNow(5, 0) })).toBeVisible();
   await atFoot(page);
   await frame(page, "What would happen now");
+});
+
+test("Someone with “No bulk emails” signs up", async ({ page, flowDatabase, request }) => {
+  await importCivicrm(request, BASE);
+  runSql(flowDatabase, "UPDATE civicrm_contacts SET do_not_email = true WHERE email = 'owen.member@example.com'");
+  story(
+    "Signing a paper form is joining the list, but Rhea has “No bulk emails”, so the preview says she'll be emailed, once, how to lift it, and shows that email: where and when she signed, which change as they're typed. Owen has “Do not email”, so won't hear from us at all.",
+  );
+  await openUpload(page, flowDatabase);
+  await chooseFile(page, "no-bulk.csv", "Leeds Christmas market");
+  await expect(page.getByText(copy.preview.summary.notices(1))).toBeVisible();
+  await previewWorkedOut(page);
+  // On a phone the table scrolls sideways: across to what will happen, where the marks are.
+  await page.getByText(copy.preview.happens.notice).scrollIntoViewIfNeeded();
+  await atFoot(page);
+  await frame(page, "The preview, marking who's emailed");
+  story("Importing sends Rhea the email.");
+  await page.getByRole("button", { name: copy.preview.importOnly(3) }).click();
+  await expect(page.getByRole("heading", { name: copy.result.title("no-bulk.csv") })).toBeVisible();
+  const email = newestEmail(
+    (one) => one.To === "rhea.member@example.com" && /Leeds Christmas market/.test(one.TextBody),
+  )!;
+  await emailFrame(page, email, "The email to Rhea");
 });

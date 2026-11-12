@@ -119,7 +119,8 @@ function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: Form
  * when one scheduled sends, large and blue, as it's going out, with Change
  * the time and Unschedule; how far one sending has got, with Stop
  * sending; once sent, how many of everyone it went to have answered its ask.
- * Nothing for one with no ask.
+ * Nothing for one with no ask. `due` replaces when one scheduled sends, as
+ * for a broadcast past its time that waits.
  */
 export function MailingStanding({
   mailing,
@@ -127,12 +128,14 @@ export function MailingStanding({
   stop,
   reschedule,
   line,
+  due,
 }: {
   mailing: Pick<Mailing, "ask" | "to" | "sent" | "failed" | "answered">;
   written?: WrittenMailing;
   stop: FormAction;
   reschedule: FormAction;
   line?: string;
+  due?: string;
 }) {
   if (written?.state === "scheduled") {
     return (
@@ -140,7 +143,7 @@ export function MailingStanding({
         <Card span={6} as="div">
           <div className={styles.standing}>
             <div className={styles.due}>
-              <strong>{copy.sends(londonWhen(written.dueAt!, "short"))}</strong>
+              <strong>{due ?? copy.sends(londonWhen(written.dueAt!, "short"))}</strong>
               <span>{line ?? copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!)}</span>
             </div>
             <div className={styles.actions}>

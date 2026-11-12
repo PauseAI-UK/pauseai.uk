@@ -11,6 +11,13 @@ third:
 2. The WhatsApp backend, which comes next.
 3. Optional: an SMS backend, for numbers not on WhatsApp.
 
+Email comes first: phases 2 to 4 of `plans/supporters-email.md`, in one
+pull request, build pieces this plan then uses for texts:
+`broadcast_replies` and how staff see and deal with replies; staff
+recording a stop; the preferences page, with texts and calls on
+it; the three days a broadcast may send for; and "Newsletter or events
+only".
+
 ## Now
 
 - We have about 750 numbers. Roughly 470 are volunteers' from the join
@@ -76,7 +83,21 @@ Each stop is a row in `opt_outs` with a new source (`whatsapp-webhook`,
   the stop is skipped with the reason.
 
 A stop is kept after erasure. A resume in WhatsApp's settings closes
-the stop made there. A new yes, on a form or to staff, closes any stop.
+the stop made there. A new yes the person gives themselves, ticking a
+box on one of our forms or the preferences page, closes any stop.
+
+Before each round of texts, every number is checked with CiviCRM's
+`checkSuppression`, and one with "Do not SMS" anywhere in PauseAI is
+skipped, as Global's spec asks; "Do not SMS" counts as no WhatsApp too.
+Email broadcasts check addresses the same way.
+
+A stop of every text to a number, such as one by WhatsApp or "No texts
+at all" on the preferences page, goes to CiviCRM's `updateSubscriptions`
+as `do_not_sms` for that number, retried until it has a result, as email
+opt-outs are (`plans/supporters-email.md`, "2. Send our opt-outs back").
+"No calls at all" goes as `do_not_phone`. Both are blanket flags for the
+number across PauseAI, so a stop of one topic by text or call, such as
+march-day texts alone, stays ours and sends nothing.
 
 A stop by WhatsApp, whichever way it's given, stops every text to that
 number, of every topic, as WhatsApp's own setting and Stop button are
@@ -124,20 +145,21 @@ and event messages.
 2. Opt-ins:
    - the Luma checkbox, which the import reads as it reads the postcode
      question;
-   - staff recording a yes given elsewhere, with how it was given.
+   - the preferences page, which email builds, for a yes given
+     elsewhere: staff point the person to it rather than record a yes.
 
    Our forms' box already counts for a number they ask (`site-forms`).
    Email your MP asks for no number.
-3. Opt-outs, as above, including staff recording one by hand.
+3. Opt-outs, as above. Staff recording one by hand comes with email.
 4. Mark a number that isn't a mobile, or isn't on WhatsApp, and skip it
    from then on.
 5. A new source for `volunteering`, as a new member's number is unsure
    (open question 8).
-6. Replies are kept in a new `broadcast_replies` table, each with the
-   message it answers, and shown on the supporter's page with a reply
-   box. Anyone with
-   the `supporters` permission can reply, and each reply records who
-   sent it.
+6. Replies to texts join `broadcast_replies`, which email builds with
+   how staff see and deal with them (`plans/supporters-email.md`,
+   "Replies"). This adds a reply box on the Thread page. Anyone with the
+   `supporters` permission can reply, and each reply records who sent
+   it.
 
 ## 2. The WhatsApp backend
 
@@ -399,5 +421,5 @@ and a calling tool.
     ([PauseAI/pauseai-civicrm#1175](https://github.com/PauseAI/pauseai-civicrm/issues/1175))?
     That would mean checking every round's numbers with
     `checkSuppression` first, treating "Do not SMS" as no WhatsApp too,
-    and sending our stops back as `do_not_sms` or `do_not_phone`. It
-    would also send Global numbers from our own sources.
+    and sending our blanket stops back as `do_not_sms` or `do_not_phone`
+    ("Opt-outs"). It would also send Global numbers from our own sources.

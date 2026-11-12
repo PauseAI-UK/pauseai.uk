@@ -104,6 +104,9 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "withdraw broadcast template": { id: number };
   "schedule broadcast": { id: number; recipients: number };
   "stop broadcast": { id: number; was: MailingState };
+  "record opt-out": { address: string; list: string; way: string; how: string; replyId?: number };
+  "deal with reply": { replyId: number; outcome: "opted-out" | "nothing" };
+  "answer reply": { replyId: number; answerId: number };
 };
 
 /** What rows logged earlier may hold beyond AuditDetails: actions no longer logged, and earlier details of some that are. */

@@ -13,7 +13,7 @@ export type Count = {
   n: number | null;
   label: string;
   href?: string;
-  tone?: "red" | "green";
+  tone?: "red" | "amber" | "green";
   current?: boolean;
   title?: string;
 };

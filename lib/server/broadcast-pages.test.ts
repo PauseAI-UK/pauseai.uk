@@ -181,12 +181,16 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await choosingBroadcast(String(id))).toEqual({
       id,
       channel: "email",
+      alsoEvents: false,
       topic: "events",
       title: "Events",
       blank: false,
     });
     expect(choosingConsent((await choosingBroadcast(String(id)))!)).toBe(EMAIL_FILTER.contact);
     expect(choosingConsent({ id, channel: "text", topic: "events", title: "", blank: true })).toBe("text:events:yes");
+    expect(
+      choosingConsent({ id, channel: "email", topic: "newsletter", alsoEvents: true, title: "", blank: true }),
+    ).toEqual(["email:newsletter:yes", "email:events:yes"]);
     // The list choosing for it keeps its Consent over another; with no draft, the filters as they are.
     const other = { contact: "email:newsletter:yes", near: "LS1" };
     expect(await withChoosing(other, String(id))).toMatchObject({

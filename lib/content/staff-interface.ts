@@ -18,6 +18,10 @@ const askLimits = {
 /** What one supporter's copy of a broadcast is, by how it went: the first word of its page's title, and its step of the trail above it. */
 const copyKind = (channel: "email" | "text") => (channel === "email" ? "Email" : "Text");
 
+/** What a CiviCRM import run sent CiviCRM before it pulled, at the start of its line. */
+const sentToCivicrm = (u: { sent: number; refused: number; unanswered: number }): string =>
+  `⁂ ${count(u.sent, "opt-out", "opt-outs")} sent to CiviCRM${u.refused ? `, ${u.refused} refused` : ""}${u.unanswered ? `, ${u.unanswered} to try again` : ""}. `;
+
 export const staffCopy = {
   metaTitle: "PauseAI Staff",
   // The tooltip on a link out of the site, beside its arrow, which a screen reader reads as its description.
@@ -217,6 +221,10 @@ export const staffCopy = {
           `Open each in Gmail and deal with it by hand: forward it, answer it, or leave it. Found ${at}.`,
         // Its button, to the run's page, which lists each with why it wasn't relayed and a link to it in Gmail.
         lettersInboxButton: "See emails",
+        // Replies to broadcasts that may be someone asking to stop, waiting for someone to look at them.
+        broadcastReplies: (n: number) => `⁂ ${count(n, "reply", "replies")} to a broadcast to look at`,
+        broadcastRepliesDetail: "⁂ Someone asking to stop must be recorded as an opt-out within a few days.",
+        broadcastRepliesButton: "⁂ See replies",
       },
       // The windows: each a tab, its length in days; "Show" is the tabs' name, read out by a screen reader.
       window: (days: number) => `${days} days`,
@@ -325,6 +333,8 @@ export const staffCopy = {
       signedOn: "Date collected",
       note: "Where collected",
       noteHint: "Camden Town flyering",
+      // Under Where collected: it's in the email to anyone with "No bulk emails", which says where they signed up.
+      noteShown: "⁂ Shown to anyone with “No bulk emails”, in the email telling them how to lift it.",
     },
     preview: {
       title: "Preview import",
@@ -346,6 +356,14 @@ export const staffCopy = {
         supporters: (fresh: number, known: number) => `${fresh} new, ${known} already on the supporters list.`,
         event: (name: string, n: number) =>
           `${n} will be registered for "${name}". Luma will email them a confirmation.`,
+        // Signing the form is joining the list, but "No bulk emails" stops it, so each is emailed how to lift it,
+        // once, as below. "Do not email" stops even that.
+        notices: (n: number) =>
+          `⁂ ${count(n, "person has", "people have")} “No bulk emails”, so will get this email, once, saying how to lift it:`,
+        noEmail: (n: number) =>
+          `⁂ ${count(n, "person has", "people have")} “Do not email”, so won't hear from us at all.`,
+        // In the email as they'll see it, in place of their own link.
+        theirLink: "https://pauseai.uk/email-settings/…",
       },
       table: { row: "Row", happens: "What will happen" },
       happens: {
@@ -356,6 +374,8 @@ export const staffCopy = {
         going: "Already on Luma",
         mailing: "Mailing list",
         phone: "Calls and texts",
+        notice: "⁂ Emailed: “No bulk emails”",
+        noEmail: "⁂ “Do not email”",
       },
       problems: {
         "no-name": "No name",
@@ -531,7 +551,7 @@ export const staffCopy = {
       permissions: {
         // Each topic's name, a row each.
         topics: {
-          newsletter: "PauseAI UK newsletter",
+          newsletter: "Newsletter",
           events: "Events only",
           volunteering: "Volunteering",
         } as Record<Topic, string>,
@@ -557,9 +577,12 @@ export const staffCopy = {
           following: (when: string) => `Follows the Luma calendar, since ${when}`,
           "gave-number": (when: string, source: string) => `Gave it on ${source} for texts on the day, ${when}`,
           volunteered: (when: string) => `Gave it when joining as a volunteer or lead, ${when}`,
+          chose: (when: string) => `Chose it in their email settings, ${when}`,
           blocked: () => "",
-          "do-not-email": (when: string) => `“Do not email” in CiviCRM, ${when}`,
-          "no-bulk-email": (when: string) => `“No bulk emails” in CiviCRM, ${when}`,
+          "do-not-email": (when: string, source: string) =>
+            source === "CiviCRM" ? `“Do not email” in CiviCRM, ${when}` : `No email at all, via ${source}, ${when}`,
+          "no-bulk-email": (when: string, source: string) =>
+            source === "CiviCRM" ? `“No bulk emails” in CiviCRM, ${when}` : `No bulk email, via ${source}, ${when}`,
           "do-not-sms": (when: string) => `“Do not SMS” is set in CiviCRM, by ${when}`,
           "do-not-phone": (when: string) => `“Do not phone” is set in CiviCRM, by ${when}`,
           unsubscribed: (when: string, source: string) => `Unsubscribed via ${source}, ${when}`,
@@ -582,6 +605,13 @@ export const staffCopy = {
           "luma-webhook": "Luma",
           "luma-contacts": "Luma",
           civicrm: "CiviCRM",
+          link: "the link in our email",
+          "list-unsubscribe": "their mail app's Unsubscribe button",
+          "postmark-complaint": "marking our email as spam",
+          reply: "staff, from their reply to our email",
+          staff: "telling staff",
+          preferences: "our email settings page",
+          "civicrm-check": "PauseAI Global's records",
         } as Record<string, string>,
         otherSource: "their newest form",
         // Where a member who's gone came from, as the join form's records are read from Global's Airtable.
@@ -591,7 +621,7 @@ export const staffCopy = {
         when: { yes: "Yes when", no: "No when" },
         details: {
           newsletter: {
-            about: "Regular newsletter about campaigns, events and local groups. By email or text.",
+            about: "Regular UK newsletter about campaigns, events and local groups. By email or text.",
             yes: "They ticked a box asking for it on one of our forms or the global join form, signed up on paper, or are on the newsletter list in CiviCRM.",
             no: "They unsubscribed, here or in CiviCRM, or never asked. A stop in CiviCRM, such as “No bulk emails”, stops it too.",
           },
@@ -613,6 +643,21 @@ export const staffCopy = {
           hold: (when: string) => `On hold in CiviCRM, ${when}`,
         } as Record<string, (when: string) => string>,
         seeBlocked: "See blocked emails",
+        // Under the consents: staff record an opt-out the person told them of some way the site doesn't hear, what
+        // of, and how they said it. Nothing staff record can opt someone back in.
+        recordOptOut: {
+          open: "Record an opt-out",
+          what: "What they opted out of",
+          choose: "Choose…",
+          ways: { email: "email", text: "text", call: "call" } as Record<Way, string>,
+          bulk: "Every bulk email",
+          how: "How they told us",
+          howPlaceholder: "e.g. “at a stall”, “by phone”",
+          global: "Email opt-outs go to PauseAI Global and Luma too. Only the supporter can opt back in.",
+          record: "Record opt-out",
+          cancel: "Cancel",
+          already: "⁂ They were already opted out of that.",
+        },
       },
       activityTitle: "History",
       // Where they are, and what it's from: their postcode, a city they gave, or an event's place.
@@ -663,6 +708,13 @@ export const staffCopy = {
         "opted-out": "Unsubscribed from",
         resubscribed: "Subscribed again to",
       } as Record<string, string>,
+      // After an opt-out staff recorded, in the history: who, and how the person told them, or that it was their reply.
+      toldStaff: (by: string, how: string) => `recorded by ${by}: “${how}”`,
+      // Before "their reply", which links to it.
+      fromReply: (by: string) => `⁂ recorded by ${by}, from `,
+      theirReply: "their reply",
+      // After an opt-out from one of our broadcasts, in the history: a link to the email and what came of it.
+      theEmail: "⁂ the email",
       // After a form entry's form: the link they came by, and what Luma said if the form adds people to an event.
       cameFrom: (source: string) => `came by “${source}”`,
       luma: {
@@ -702,6 +754,7 @@ export const staffCopy = {
     notCleared: {
       mail: "their mail",
       oneOffs: "their one-off emails",
+      replies: "⁂ their replies to broadcasts",
     },
   },
   // The accounts page (/staff/accounts), for admins: who may use the staff
@@ -1095,7 +1148,6 @@ All events: ${link}`,
   // and each one's page; each supporter's copy of one is a message.
   broadcastPages: {
     title: "Broadcasts",
-    noBackend: "This is just the user interface to try it out, there is no backend for sending yet.",
     intro: "Bulk emails and texts PauseAI sends to supporters",
     none: "No broadcasts yet.",
     untitled: "Untitled draft",
@@ -1146,8 +1198,7 @@ All events: ${link}`,
     sections: { who: "To", write: "Write", preview: "Preview", from: "From", when: "When", send: "Send" },
     willGet: (n: number, channel: "email" | "text") =>
       `${count(n, "supporter", "supporters")} will be ${channel === "email" ? "emailed" : "texted"}.`,
-    cantSend:
-      "Broadcasts can't be sent yet, by email or text. You can write one, and test an email by sending it to yourself.",
+    cantSend: "⁂ Texts can't be sent yet: there's nothing to send them by. You can still write one.",
     // Write.
     subject: "Subject",
     emailLabel: "Email",
@@ -1192,10 +1243,17 @@ All events: ${link}`,
       // After it, smaller and grey: the rate it's worked out at, and since when, as it may have changed.
       textRate: (pence: number, from: string) => `${pence}p each, rate as at ${from}`,
     },
-    summary: (n: number, channel: "email" | "text", from: string, when: string | null) =>
-      channel === "email"
-        ? `${count(n, "email", "emails")} from ${from}${when ? `, on ${when}` : ""}.`
-        : `${count(n, "text", "texts")} from ${from} on WhatsApp${when ? `, on ${when}` : ""}.`,
+    // What will go, as facts with their labels: how many, from whom and how, when, and a text's cost.
+    sendFacts: {
+      what: "⁂ Sends",
+      count: (n: number, channel: "email" | "text") =>
+        channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts"),
+      from: "⁂ From",
+      how: (channel: "email" | "text") => (channel === "email" ? "⁂ by email" : "⁂ on WhatsApp"),
+      when: "⁂ When",
+      noTime: "⁂ No time chosen yet",
+      cost: "⁂ Cost",
+    },
     schedule: (n: number, channel: "email" | "text") =>
       `Schedule ${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")}`,
     // At the foot of a text on new words: sending them to WhatsApp, and while it reviews them.
@@ -1227,6 +1285,7 @@ All events: ${link}`,
       "not-approved": "WhatsApp needs to approve the words first. This can take 24 hours.",
       "not-connected": "The Gmail you've chosen to send from isn't connected.",
       "no-number": "No WhatsApp number is configured, so texts can't be sent.",
+      "not-about-events": "⁂ Tick that it's about our events, as it goes to those who said yes to events only too.",
       "no-time": "Choose what time it will be sent.",
       "time-passed": "You can't send it into the past!",
       "cannot-send": "Sending isn't built yet.",
@@ -1242,13 +1301,63 @@ All events: ${link}`,
       failed: "failed",
       stopped: "stopped",
       read: "read",
+      replied: "replied",
+      look: "⁂ to look at",
     },
     tabs: {
       delivered: "Delivered",
       failed: "Failed",
       stopped: "Stopped",
       read: "Read",
+      replied: "Replied",
+      look: "⁂ Replies to look at",
     } as Record<string, string>,
+    // A recipient who replied, and one whose reply staff have still to look at, which comes first.
+    repliedTag: "Replied",
+    lookTag: "⁂ Reply to look at",
+    // A reply under our email on its Thread: what staff can record it as, and what they did.
+    replies: {
+      automatic: "⁂ An automatic reply: nothing to do.",
+      topics: (topics: string) => `${topics} (this email)`,
+      bulk: "All bulk email",
+      nothing: "Nothing to do",
+      // The menu of what a reply is an opt-out of.
+      optOut: "Opt out",
+      // Answering a reply: the folded draft at the foot of the thread, the draft opened, and why one didn't go.
+      reply: "Write a reply…",
+      answerLabel: "⁂ Your reply",
+      send: "Send reply",
+      sending: "⁂ Sending…",
+      discard: "Discard",
+      // Over the draft, to someone with "Do not email": it goes all the same, as it answers them.
+      doNotEmail:
+        "⁂ They've asked PauseAI never to email them. A reply to what they wrote still goes, so keep it to answering that.",
+      notSent: {
+        blank: "⁂ Write something first.",
+        gone: "⁂ That reply isn't there any more, so this can't answer it.",
+        blocked: "⁂ Not sent: their address is blocked, as email to it bounced or they marked ours as spam.",
+        failed: "Error sending via Gmail. Try again, or reply in Gmail itself.",
+      },
+      // Our answer in the thread: who sent it; one whose sending never finished.
+      sentBy: (by: string) => `⁂ Sent by ${by}`,
+      stillSending: (account: string) =>
+        `⁂ This may not have gone: sending it didn't finish. Look in ${account}'s Sent in Gmail before sending it again.`,
+      optedOut: (by: string, when: string) => `Recorded as an opt-out by ${by}, ${when}`,
+      nothingDone: (by: string, when: string) => `⁂ Nothing to do, said ${by}, ${when}`,
+      // In its history.
+      historyOptedOut: (by: string) => `⁂ Reply recorded as an opt-out by ${by}`,
+      historyNothing: (by: string) => `⁂ Reply looked at by ${by}: nothing to do`,
+      historyAnswered: (by: string) => `⁂ Reply answered by ${by}`,
+      noText: "⁂ The reply has no words we can show. Open it in Gmail.",
+    },
+    // A broadcast that can't go yet, on its page: CiviCRM didn't answer its check, or no pull has finished for a day.
+    waiting: (since: string, reason: "civicrm" | "pull", stops: string) =>
+      `⁂ Waiting since ${since}: ${reason === "civicrm" ? "CiviCRM didn't answer the check of who mustn't be emailed" : "no import from CiviCRM has finished in the last day"}. It goes by itself once it can, or stops at ${stops}.`,
+    // Where a scheduled broadcast says when it sends, while it waits for CiviCRM, past its time.
+    waitingDue: "⁂ Waiting to go",
+    // On one scheduled, quietly: when it stops if CiviCRM can't be reached.
+    stopsBy: (stops: string) => `⁂ If CiviCRM can't be reached, it waits until ${stops}, then stops.`,
+    gaveUp: "⁂ Stopped: CiviCRM couldn't be reached for three days, so it went to nobody else.",
     recipientsTitle: "Recipients",
     recipientsCount: (n: number) => count(n, "recipient", "recipients"),
     noRecipients: "No recipients here.",
@@ -1270,6 +1379,7 @@ All events: ${link}`,
       unsubscribed: "Skipped: supporter asked us to stop",
       "no-permission": "Skipped: consent ended",
       "not-on-whatsapp": "Skipped: not on WhatsApp",
+      suppressed: "⁂ Skipped: PauseAI Global says not to email them",
     },
     threadLink: "Thread →",
     // Thread: one copy's page, titled as a letter's is.
@@ -1291,6 +1401,11 @@ All events: ${link}`,
       // What everyone a broadcast is to said yes to: its channel and topic, from the Consent filter.
       saidYes: "Said yes to",
     },
+    // The last choice of Said yes to: those who said yes to the newsletter, or to events only, by the channel.
+    newsletterOrEvents: "⁂ Newsletter or events only",
+    // Under Said yes to, for that choice, a tick it must have to be scheduled.
+    aboutEvents: "⁂ It's about our events",
+    aboutEventsHint: "⁂ Only an event invitation suits both: someone who said yes to events only wants nothing else.",
     // In To, when Consent is the only filter.
     everyoneWhoSaidYes: "Everyone who did",
     threadTitle: "Thread",
@@ -2022,6 +2137,19 @@ All events: ${link}`,
       body: (n: number, held: number, lines: string[], link: string) =>
         `${n} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${count(held, "reply is", "replies are")} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nSupporters' blocked emails: ${link}`,
     },
+    // A broadcast that can't go, as CiviCRM didn't answer its check or no pull has completed for a day, to whoever
+    // scheduled it and the inbox, once: it goes by itself when it can, or stops at `stops`.
+    broadcastWaiting: {
+      subject: (title: string) => `⁂ Broadcast waiting for CiviCRM: ${title}`,
+      body: (title: string, reason: "civicrm" | "pull", stops: string, link: string) =>
+        `⁂ “${title}” hasn't gone yet: ${reason === "civicrm" ? "CiviCRM didn't answer the check of who mustn't be emailed" : "no import from CiviCRM has finished in the last day"}, and nothing goes unchecked.\n\nIt will go by itself once CiviCRM answers. If it still can't by ${stops}, it will stop, and you'll be told.\n\n${link}`,
+    },
+    // A broadcast that waited too long and stopped, to whoever scheduled it and the inbox: how many it didn't reach.
+    broadcastGaveUp: {
+      subject: (title: string) => `⁂ Broadcast stopped: ${title}`,
+      body: (title: string, notReached: number, link: string) =>
+        `⁂ “${title}” waited for CiviCRM for too long, so it has stopped. ${count(notReached, "person wasn't", "people weren't")} sent it. To send it to them, write it again.\n\n${link}`,
+    },
     // A text's new words sent to WhatsApp for approval, to who sent them and the inbox: the words, and the text.
     templateSubmitted: {
       subject: (name: string) => `WhatsApp template sent for approval: ${name}`,
@@ -2104,8 +2232,9 @@ All events: ${link}`,
       failed: number;
       left: number;
       queue: { sent: number; left: number };
+      broadcasts?: { started: number[]; sent: number; skipped: number; failed: number; waiting: number };
     }) =>
-      `Started ${count(r.started.length, "mailing", "mailings")}; sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}, ${r.left} left. The queue: sent ${r.queue.sent}, ${r.queue.left} left.`,
+      `Started ${count(r.started.length, "mailing", "mailings")}; sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}, ${r.left} left. The queue: sent ${r.queue.sent}, ${r.queue.left} left.${r.broadcasts ? ` ⁂ Broadcasts: started ${r.broadcasts.started.length}; copies sent ${r.broadcasts.sent}, skipped ${r.broadcasts.skipped}, failed ${r.broadcasts.failed}; ${r.broadcasts.waiting} waiting for CiviCRM.` : ""}`,
   },
   // The nightly tidying (/api/cron/tidy-logs): this log, the audit log, forgotten drafts and old errors.
   tidying: {
@@ -2403,8 +2532,9 @@ All events: ${link}`,
       unblocked?: number;
       supportersAdded?: number;
       linked?: number;
+      updates?: { sent: number; refused: number; unanswered: number };
     }) =>
-      `${count(r.contacts, "contact", "contacts")} read: ${r.added} added, ${r.changed} changed, ${r.held ? "none marked gone, as too few came back" : `${r.gone} gone`}; ${count(r.optOuts, "unsubscribe", "unsubscribes")} changed, ${count(r.blocked, "address", "addresses")} blocked for a hold.${r.unblocked ? ` ${count(r.unblocked, "address", "addresses")} unblocked, as CiviCRM lifted the hold.` : ""}${r.linked ? ` ${count(r.supportersAdded!, "new supporter", "new supporters")}, ${r.linked} linked.` : ""}`,
+      `${r.updates ? sentToCivicrm(r.updates) : ""}${count(r.contacts, "contact", "contacts")} read: ${r.added} added, ${r.changed} changed, ${r.held ? "none marked gone, as too few came back" : `${r.gone} gone`}; ${count(r.optOuts, "unsubscribe", "unsubscribes")} changed, ${count(r.blocked, "address", "addresses")} blocked for a hold.${r.unblocked ? ` ${count(r.unblocked, "address", "addresses")} unblocked, as CiviCRM lifted the hold.` : ""}${r.linked ? ` ${count(r.supportersAdded!, "new supporter", "new supporters")}, ${r.linked} linked.` : ""}`,
   },
   syncs: {
     title: "Politicians from Airtable",
@@ -2459,6 +2589,15 @@ All events: ${link}`,
       civicrmTooFew: "CiviCRM returned far fewer contacts than last time, so nobody was marked gone. Tell Global:",
       // The members import: looking up new members' addresses in CiviCRM failed. The next pull finds them.
       civicrmLookupFailed: "Couldn't look up new members in CiviCRM",
+      // The CiviCRM import: sending our opt-outs to CiviCRM failed, or it didn't answer some, or said some were
+      // wrong. Each is tried again next hour, but a wrong one needs a developer.
+      // Sending a broadcast: CiviCRM didn't answer its check of the addresses, so it waits (staff are told by email).
+      civicrmCheckFailed: "⁂ CiviCRM didn't answer the check before a broadcast, so it's waiting",
+      civicrmUpdatesFailed: "⁂ Couldn't send our opt-outs to CiviCRM. They'll be tried again next hour",
+      civicrmUpdatesUnanswered: (n: number) =>
+        `⁂ CiviCRM didn't answer ${plural(n, "opt-out", "opt-outs")} we sent. They'll be tried again next hour`,
+      civicrmUpdatesInvalid: (n: number) =>
+        `⁂ CiviCRM said ${plural(n, "opt-out", "opt-outs")} we sent were wrong. A developer needs to look:`,
     },
     // Can happen in a job or not. In a job, staff see it on the job's page and in the email. Not in a job, such
     // as a visitor sending a letter, it's kept as an error (lib/server/errors-seen.ts): on the errors page, and
@@ -2480,6 +2619,9 @@ All events: ${link}`,
     // emailed to staff, but for connectionDropped and errorNotKept, which only reach Netlify's logs. Each
     // says what the person saw, if anything.
     logs: {
+      // Someone turned off events by email, or every bulk email, on the email settings page or an email's
+      // unsubscribe link, but Luma didn't take them off the calendar, which goes on emailing them.
+      lumaRemoveFailed: "⁂ Couldn't take someone off the Luma calendar after they opted out of event emails",
       // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission.
       tokenNotRevoked: (account: string) => `${account}'s Gmail token couldn't be revoked at Google`,
       // A visitor looking up their MP is told it failed.

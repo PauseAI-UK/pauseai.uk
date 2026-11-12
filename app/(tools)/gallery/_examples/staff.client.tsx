@@ -118,6 +118,9 @@ import PasteForm from "@/app/(staff)/staff/_components/PasteForm";
 import PickBox from "@/app/(staff)/staff/_components/PickBox";
 import PoliticiansList, { ChoosingHead, type ChoosingActions } from "@/app/(staff)/staff/_components/PoliticiansList";
 import { Controlled, Logged } from "../_components/wiring";
+import OptOutForm from "@/app/(staff)/staff/_components/OptOutForm";
+import { CONSENTS } from "@/lib/contact-permissions";
+import { optOutChoices } from "@/lib/opt-out-choices";
 
 /** The table of politicians: one function for both examples. */
 function LoggedPoliticianTable({ politicians }: { politicians: Politician[] }) {
@@ -423,6 +426,34 @@ export function NoteFormExample({
   opened?: boolean;
 }) {
   return <Logged>{(log) => <NoteForm target={{ name: on, value: 1 }} add={log("add")} opened={opened} />}</Logged>;
+}
+
+/** Record an opt-out, for a supporter with an address and a number. */
+export function OptOutFormExample({ opened = false }: { opened?: boolean }) {
+  const choices = optOutChoices([
+    ...CONSENTS.map((c) => ({
+      address: c.way === "email" ? "jane.smith@example.com" : "+447700900123",
+      channel: c.way === "email" ? ("email" as const) : ("phone" as const),
+      topic: c.topic,
+      way: c.way,
+      send: "yes" as const,
+    })),
+  ]);
+  return (
+    <Logged>
+      {(log) => (
+        <OptOutForm
+          supporterId={1}
+          choices={choices}
+          record={async (form) => {
+            log("record")(form);
+            return true;
+          }}
+          opened={opened}
+        />
+      )}
+    </Logged>
+  );
 }
 
 /** A note's text, its addresses links, and its lines kept. */

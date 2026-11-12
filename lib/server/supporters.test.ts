@@ -730,6 +730,21 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     ]);
     expect(await getSupporter(999)).toBeUndefined();
   });
+
+  it("has, for an opt-out staff recorded, who recorded it and how the person told them, and nothing for another", async () => {
+    await lumaUser("usr-7", "kim@example.com", "Kim", "evt-7");
+    await linkSupporters();
+    await query(
+      `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at, recorded_by, how)
+       VALUES ('kim@example.com', 'newsletter', 'staff', 's1', '2026-10-01T00:00:00Z', 'jo@pauseai.uk', 'At a stall'),
+              ('kim@example.com', 'events', 'luma-webhook', 'w1', '2026-10-02T00:00:00Z', NULL, NULL)`,
+    );
+    const { activity } = (await getSupporter(await supporterWith("kim@example.com")))!;
+    expect(activity.filter((a) => a.kind === "opted-out").map((a) => [a.title, a.how, a.recordedBy])).toEqual([
+      ["events", null, null],
+      ["newsletter", "At a stall", "jo@pauseai.uk"],
+    ]);
+  });
 });
 
 /** A member's record, joined on `created`, ticking "Keep me informed" unless told otherwise. */
@@ -810,6 +825,9 @@ describeWithDatabase("members as supporters", () => {
       status: null,
       eventAt: null,
       letterId: null,
+      how: null,
+      recordedBy: null,
+      thread: null,
     });
 
     // A member no longer read is no longer one, though what they gave stays.

@@ -6,7 +6,15 @@ import { gmailAccess } from "./gmail-accounts";
 import { newMessageId } from "./mime";
 import { alertIfPoliticianBlocked } from "./notifications";
 import { GmailError, gmailMessageId, sendGmail, sendRawGmail } from "./outside-services/gmail";
-import { PostmarkError, sendEmail, unsuppress, type Email } from "./outside-services/postmark";
+import {
+  PostmarkError,
+  sendBroadcastBatch,
+  sendEmail,
+  unsuppress,
+  type BatchResult,
+  type Email,
+} from "./outside-services/postmark";
+import { recordOptOut } from "./opt-outs";
 import { resendAfterFix } from "./relays";
 import { now } from "@/lib/now";
 import { plainAsHtml } from "@/lib/plain-email-html";
@@ -33,7 +41,11 @@ export type Purpose =
   | "staff-alert"
   | "staff-report"
   | "mailing"
-  | "mailing-test";
+  | "mailing-test"
+  | "broadcast"
+  | "preferences-link"
+  | "bulk-notice"
+  | "broadcast-answer";
 
 /** What sends an email: Postmark, or a staff member's connected Gmail, as that account. */
 export type Backend = { name: "postmark" } | { name: "gmail"; account: string };
@@ -50,6 +62,8 @@ export type SendOptions = {
    * (lib/server/relays.ts). The email's To still says whom it's to.
    */
   raw?: (messageId: string, date: Date) => Buffer;
+  /** By Gmail, the thread in the sending mailbox it joins, as an answer to a message there does. */
+  threadId?: string;
 };
 
 export type SendResult =
@@ -96,6 +110,39 @@ function inactiveAddresses(message: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * The emails that go even to an address with "Do not email": what the
+ * person just asked for, or that is about something they did, such as a
+ * login link, their letter's copy, or their MP's reply to it, which to them
+ * is mail from their MP that we pass on; and email to staff. Any other is
+ * refused for such an address.
+ */
+const TRANSACTIONAL: ReadonlySet<Purpose> = new Set([
+  "letter",
+  "letter-copy",
+  "relay",
+  "supporter-notice",
+  "office-notice",
+  "forwarded-reply",
+  "staff-login",
+  "staff-alert",
+  "staff-report",
+  "mailing-test",
+  "preferences-link",
+  "bulk-notice",
+  // An answer to what the person wrote to us.
+  "broadcast-answer",
+]);
+
+/** Whether the address has "Do not email", in CiviCRM or as an opt-out of ours of all email. */
+async function doesNotEmail(address: string): Promise<boolean> {
+  const [row] = await query(
+    `SELECT 1 FROM contact_permission('newsletter', 'email', $1) d WHERE d.reason = 'do-not-email'`,
+    [address],
+  );
+  return Boolean(row);
+}
+
 export async function isBlocked(address: string): Promise<boolean> {
   const [row] = await query("SELECT 1 FROM email_blocks WHERE address = $1", [bareAddress(address)]);
   return !!row;
@@ -125,7 +172,7 @@ export async function send(
   written: Email,
   purpose: Purpose,
   letterId: number | null = null,
-  { backend = { name: "postmark" }, sender, messageId, raw }: SendOptions = {},
+  { backend = { name: "postmark" }, sender, messageId, raw, threadId: joins }: SendOptions = {},
 ): Promise<SendResult> {
   const email = withHtml(written);
   const address = bareAddress(email.To);
@@ -149,7 +196,7 @@ export async function send(
         bareAddress(email.From),
       ],
     );
-  if (await isBlocked(address)) {
+  if ((await isBlocked(address)) || (!TRANSACTIONAL.has(purpose) && (await doesNotEmail(address)))) {
     await log("refused");
     return { sent: false, reason: "blocked" };
   }
@@ -160,7 +207,7 @@ export async function send(
       const token = await gmailAccess(backend.account);
       const sent = raw
         ? await sendRawGmail(token, raw(rfcId!, now()))
-        : await sendGmail(token, { ...email, MessageId: rfcId!, Date: now() });
+        : await sendGmail(token, { ...email, MessageId: rfcId!, Date: now() }, joins);
       id = sent.id;
       threadId = sent.threadId;
       // The Message-ID it went with, which replies and bounces name, if Gmail gave it one of its own.
@@ -202,10 +249,75 @@ export async function send(
   return { sent: true, id, messageId: rfcId, threadId, backend };
 }
 
+/** A copy of a broadcast, as sendBroadcastCopies takes it: the copy's ID, the Message-ID it goes with, and its email. */
+export type BroadcastCopyEmail = { copyId: number; rfcMessageId: string; email: Email };
+
+/** What became of a copy: sent, with Postmark's ID for it; refused, as its address is blocked; or failed. */
+export type BroadcastCopyResult =
+  { copyId: number; sent: true; id: string } | { copyId: number; sent: false; reason: "blocked" | "failed" };
+
+/**
+ * Sends copies of a broadcast, a batch on Postmark's broadcast stream, but
+ * none to a blocked address. An address Postmark says it suppressed is
+ * blocked here too, as send() does. Every try is logged in email_sends,
+ * naming its copy. Never throws for Postmark: a batch that fails, fails each
+ * copy in it, and is reported.
+ */
+export async function sendBroadcastCopies(copies: BroadcastCopyEmail[]): Promise<BroadcastCopyResult[]> {
+  const log = (copy: BroadcastCopyEmail, outcome: "sent" | "refused" | "failed", id: string | null = null) =>
+    query(
+      `INSERT INTO email_sends (purpose, address, outcome, message_id, backend, rfc_message_id, subject, from_address,
+         broadcast_message_id)
+       VALUES ('broadcast', $1, $2, $3, 'postmark', $4, $5, $6, $7)`,
+      [
+        bareAddress(copy.email.To),
+        outcome,
+        id,
+        outcome === "sent" ? copy.rfcMessageId : null,
+        copy.email.Subject,
+        bareAddress(copy.email.From),
+        copy.copyId,
+      ],
+    );
+  const results: BroadcastCopyResult[] = [];
+  const going: BroadcastCopyEmail[] = [];
+  for (const copy of copies) {
+    if (await isBlocked(copy.email.To)) {
+      await log(copy, "refused");
+      results.push({ copyId: copy.copyId, sent: false, reason: "blocked" });
+    } else going.push(copy);
+  }
+  if (going.length === 0) return results;
+  let answers: BatchResult[];
+  try {
+    answers = await sendBroadcastBatch(going.map((copy) => copy.email));
+  } catch (error) {
+    problem(staffCopy.problems.anywhere.sendFailed("broadcast"), error);
+    for (const copy of going) await log(copy, "failed");
+    return [...results, ...going.map((copy) => ({ copyId: copy.copyId, sent: false, reason: "failed" }) as const)];
+  }
+  for (const [i, copy] of going.entries()) {
+    const answer = answers[i];
+    if ("messageId" in answer) {
+      await log(copy, "sent", answer.messageId);
+      results.push({ copyId: copy.copyId, sent: true, id: answer.messageId });
+      continue;
+    }
+    const address = bareAddress(copy.email.To);
+    if (answer.inactive) {
+      await recordProblem({ address, messageId: null, kind: "hard", reason: answer.error, canReset: true });
+    } else problem(staffCopy.problems.anywhere.sendFailed("broadcast"), answer.error);
+    await log(copy, answer.inactive ? "refused" : "failed");
+    results.push({ copyId: copy.copyId, sent: false, reason: answer.inactive ? "blocked" : "failed" });
+  }
+  return results;
+}
+
 /**
  * Records a bounce or complaint. A hard bounce or complaint blocks the
  * address, or a complaint takes over a bounce's block, as it can't be reset;
- * the audit log says so. Returns whether it blocked the address.
+ * the audit log says so. A complaint opts the address out of every bulk
+ * email as well (opt-outs.ts). Returns whether it blocked the address.
  */
 export async function recordProblem(problem: DeliveryProblem): Promise<boolean> {
   const address = bareAddress(problem.address);
@@ -226,6 +338,25 @@ export async function recordProblem(problem: DeliveryProblem): Promise<boolean> 
       db,
     );
     if (problem.kind === "soft") return false;
+    // A complaint is an opt-out of every bulk email too, whoever made it, which CiviCRM is told of.
+    if (problem.kind === "complaint") {
+      const [copy] = await query<{ id: number }>(
+        "SELECT id::int AS id FROM broadcast_messages WHERE provider_message_id = $1",
+        [problem.messageId],
+        db,
+      );
+      await recordOptOut(
+        {
+          address,
+          list: "bulk",
+          source: "postmark-complaint",
+          sourceRef: String(id),
+          unsubscribedAt: now(),
+          messageId: copy?.id,
+        },
+        db,
+      );
+    }
     const blocked = await query(
       `INSERT INTO email_blocks (address, problem_id) VALUES ($1, $2)
        ON CONFLICT (address) DO UPDATE SET problem_id = EXCLUDED.problem_id

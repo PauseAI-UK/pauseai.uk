@@ -1,3 +1,4 @@
+import Link from "next/link";
 import ProsePage, { ProseMeta } from "@/components/ui/ProsePage";
 
 // The privacy policy for PauseAI UK (Safe AI Alliance Ltd).
@@ -140,6 +141,18 @@ export default function PrivacyPolicy() {
         copy it every hour: your name, email, phone, city and postcode, when you joined, what you said you wanted to do,
         and whether you asked for updates. We keep it with the rest of your record until you ask us to erase it.
         Stichting PauseAI keeps its own copy under its own policy.
+      </p>
+
+      <h2>⁂ Our emails to you</h2>
+      <p>
+        ⁂ We email you only about what you said yes to: our newsletter, events, or volunteering. Every email we send has
+        a link at the bottom to stop it or change what you get, and you can see and change it all on{" "}
+        <Link className="inline-link" href="/email-settings">
+          your email settings page
+        </Link>
+        . Before each email goes, we check your address with Stichting PauseAI, so nobody who asked PauseAI not to email
+        them hears from us; and when you unsubscribe, or stop all bulk email, we tell Stichting PauseAI too, so their
+        emails stop as well. If you reply, we keep your reply.
       </p>
 
       <h2>Who processes this data for us</h2>

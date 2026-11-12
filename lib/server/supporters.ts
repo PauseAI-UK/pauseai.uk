@@ -1,4 +1,5 @@
 import "server-only";
+import { OPT_OUT_RECORDED } from "./opt-outs";
 import { cache } from "react";
 import { windowStart } from "@/lib/staff-dashboard";
 import { now } from "@/lib/now";
@@ -392,7 +393,7 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
     ),
     query<SupporterActivity>(
       `SELECT a.source, a.at, a.kind, a.title, c.title AS "campaignTitle", a.detail, a.href, a.status,
-         e.start_at AS "eventAt",
+         e.start_at AS "eventAt", o.how, o.recorded_by AS "recordedBy", o.thread,
          -- The letter it's about: this campaign's to this MP, nearest in time, as a person may write twice.
          CASE WHEN a.kind IN ('letter', 'letter-replied') THEN (
            SELECT l.id::int FROM letters_from_supporters s JOIN letters l USING (id)
@@ -402,6 +403,7 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
          ) END AS "letterId"
        FROM supporter_activity a LEFT JOIN campaigns c ON a.kind IN ('letter', 'letter-replied') AND c.slug = a.title
          LEFT JOIN luma_events e ON a.kind IN ('luma-registered', 'luma-hosted') AND a.href = 'https://luma.com/' || e.url
+         LEFT JOIN LATERAL (${OPT_OUT_RECORDED}) o ON true
        WHERE a.supporter_id = $1 ORDER BY a.at DESC, a.kind`,
       [id],
     ),

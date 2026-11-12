@@ -1,11 +1,11 @@
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { readOutbox } from "@/lib/server/fixtures/outbox";
 import { server } from "@/tests/fixtures/msw";
-import { headerName, PostmarkError, sendEmail, unsuppress } from "./postmark";
+import { headerName, PostmarkError, sendBroadcastBatch, sendEmail, unsuppress } from "./postmark";
 
 const POSTMARK = "https://api.postmarkapp.com/email";
 const EMAIL = { From: "a@letters.pauseai.uk", To: "b@example.org", Subject: "S", TextBody: "T" };
@@ -125,20 +125,99 @@ describe("sendEmail", () => {
   });
 });
 
-describe("unsuppress", () => {
-  const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/outbound/suppressions/delete";
+describe("sendBroadcastBatch", () => {
+  const BATCH = "https://api.postmarkapp.com/email/batch";
 
-  it("asks Postmark to take the address off the transactional stream's suppression list", async () => {
-    let request: Request | undefined;
+  it("posts the emails to Postmark's broadcast stream, and gives what became of each", async () => {
+    let sent: unknown;
+    server.use(
+      http.post(BATCH, async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json([
+          { ErrorCode: 0, MessageID: "m-1" },
+          { ErrorCode: 406, Message: "Inactive" },
+          { ErrorCode: 300, Message: "Bad" },
+        ]);
+      }),
+    );
+    expect(await sendBroadcastBatch([EMAIL, EMAIL, EMAIL])).toEqual([
+      { messageId: "m-1" },
+      { error: "406 Inactive", inactive: true },
+      { error: "300 Bad", inactive: false },
+    ]);
+    expect(sent).toEqual(Array(3).fill({ ...EMAIL, MessageStream: "broadcast" }));
+  });
+
+  it("throws when Postmark refuses the batch, answers for too few, or there's no token", async () => {
+    server.use(http.post(BATCH, () => new HttpResponse("Down", { status: 500 })));
+    await expect(sendBroadcastBatch([EMAIL])).rejects.toThrow("Postmark refused the batch: 500");
+    server.use(http.post(BATCH, () => HttpResponse.json([])));
+    await expect(sendBroadcastBatch([EMAIL])).rejects.toThrow("Postmark refused the batch: 200 []");
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "");
+    await expect(sendBroadcastBatch([EMAIL])).rejects.toThrow("POSTMARK_SERVER_TOKEN is not set");
+  });
+
+  it("in the dev server without a real token, writes each to the outbox instead", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "outbox-"));
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("OUTBOX_DIR", dir);
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "POSTMARK_API_TEST");
+    server.use(http.post(BATCH, () => HttpResponse.error()));
+    try {
+      expect(await sendBroadcastBatch([EMAIL])).toEqual([{ messageId: expect.stringMatching(/^[0-9a-f-]{36}$/) }]);
+      vi.stubEnv("POSTMARK_SERVER_TOKEN", "");
+      await sendBroadcastBatch([EMAIL]);
+      expect(readOutbox(dir).map((e) => e.To)).toEqual(["b@example.org", "b@example.org"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("in the dev server, writes to tmp/outbox when OUTBOX_DIR isn't set", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("OUTBOX_DIR", "");
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "");
+    const outbox = join("tmp", "outbox");
+    const before = new Set(existsSync(outbox) ? readdirSync(outbox) : []);
+    await sendBroadcastBatch([EMAIL]);
+    const made = readdirSync(outbox).filter((file) => !before.has(file));
+    for (const file of made) rmSync(join(outbox, file), { force: true });
+    expect(made).toHaveLength(1);
+    expect(info.mock.calls[0][0]).toContain(`Written to ${outbox}`);
+  });
+
+  it("with fixtures on, writes each to the outbox if there is one", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "outbox-"));
+    vi.stubEnv("DATA_FIXTURES", "1");
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "");
+    try {
+      await sendBroadcastBatch([EMAIL]);
+      vi.stubEnv("OUTBOX_DIR", dir);
+      await sendBroadcastBatch([EMAIL]);
+      expect(readOutbox(dir).map((e) => e.Subject)).toEqual(["S"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("unsuppress", () => {
+  const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/:stream/suppressions/delete";
+
+  it("asks Postmark to take the address off both streams' suppression lists", async () => {
+    const requests: Request[] = [];
     server.use(
       http.post(UNSUPPRESS, ({ request: r }) => {
-        request = r.clone();
+        requests.push(r.clone());
         return HttpResponse.json({ Suppressions: [] });
       }),
     );
     await unsuppress("a@example.org");
-    expect(request!.headers.get("X-Postmark-Server-Token")).toBe("server-token");
-    expect(await request!.json()).toEqual({ Suppressions: [{ EmailAddress: "a@example.org" }] });
+    expect(requests.map((r) => new URL(r.url).pathname.split("/")[2])).toEqual(["outbound", "broadcast"]);
+    expect(requests[0].headers.get("X-Postmark-Server-Token")).toBe("server-token");
+    expect(await requests[1].json()).toEqual({ Suppressions: [{ EmailAddress: "a@example.org" }] });
   });
 
   it("works with the fixture Postmark, which needs no token", async () => {

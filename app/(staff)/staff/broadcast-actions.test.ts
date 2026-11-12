@@ -3,7 +3,7 @@ import { query } from "@/lib/server/db";
 import { createDraft, getWrittenMailing, saveDraft } from "@/lib/server/mailing-drafts";
 import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import { createSession } from "@/lib/server/staff-auth";
-import { describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/broadcast-fixtures";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
@@ -13,7 +13,10 @@ import {
   keepFilterForBroadcast,
   newBroadcast,
   changeBroadcastConsentNow,
+  dealWithReplyNow,
+  answerReplyNow,
   newBroadcastWith,
+  setAboutEventsNow,
   rescheduleBroadcastNow,
   saveBroadcast,
   scheduleBroadcastNow,
@@ -98,6 +101,70 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     vi.mocked(revalidatePath).mockClear();
     expect(await changeBroadcastConsentNow(id, "nonsense")).toBe(false);
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("changes a draft to the newsletter's and events' yeses both, and ticks that it's about our events", async () => {
+    const id = await draft();
+    expect(await setAboutEventsNow(id, true)).toBe(false);
+    expect(await changeBroadcastConsentNow(id, "email:newsletter:yes email:events:yes")).toBe(true);
+    expect(await getWrittenBroadcast(id)).toMatchObject({ topic: "newsletter", alsoEvents: true, aboutEvents: false });
+    vi.mocked(revalidatePath).mockClear();
+    expect(await setAboutEventsNow(id, true)).toBe(true);
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/broadcasts/${id}`);
+    expect((await getWrittenBroadcast(id))!.aboutEvents).toBe(true);
+    // Back to one topic, it's about whatever it likes.
+    expect(await changeBroadcastConsentNow(id, "email:events:yes")).toBe(true);
+    expect(await getWrittenBroadcast(id)).toMatchObject({ alsoEvents: false, aboutEvents: false });
+  });
+
+  it("records what a reply is, and nothing for a form that doesn't say", async () => {
+    const id = await draft();
+    const [{ copy }] = await query<{ copy: number }>(
+      "INSERT INTO broadcast_messages (mailing_id, status) VALUES ($1, 'sent') RETURNING id::int AS copy",
+      [id],
+    );
+    const [{ reply }] = await query<{ reply: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, blob_key, automatic)
+       VALUES ($1, now(), 'jane@example.com', 'Re', 'hello@pauseai.uk', 'g1', 't1', 'k', false) RETURNING id::int AS reply`,
+      [copy],
+    );
+    await dealWithReplyNow(form({ replyId: String(reply), decision: "maybe" }));
+    await dealWithReplyNow(form({ decision: "nothing" }));
+    expect(revalidatePath).not.toHaveBeenCalled();
+    await dealWithReplyNow(form({ replyId: String(reply), decision: "nothing" }));
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts", "layout");
+    vi.mocked(revalidatePath).mockClear();
+    await dealWithReplyNow(form({ replyId: String(reply), decision: "bulk" }));
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(await query("SELECT outcome FROM broadcast_replies")).toEqual([{ outcome: "nothing" }]);
+  });
+
+  it("sends an answer to a reply, showing the page afresh once it's gone, and nothing for a reply or draft it can't name", async () => {
+    await connectTestGmail("hello@pauseai.uk");
+    const id = await draft();
+    await query("UPDATE mailings SET sent_from = 'hello@pauseai.uk', from_name = 'PauseAI UK' WHERE id = $1", [id]);
+    const [{ copy }] = await query<{ copy: number }>(
+      "INSERT INTO broadcast_messages (mailing_id, status) VALUES ($1, 'sent') RETURNING id::int AS copy",
+      [id],
+    );
+    const [{ reply }] = await query<{ reply: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, blob_key, automatic)
+       VALUES ($1, now(), 'jane@example.com', 'Re', 'hello@pauseai.uk', 'g1', 't1', 'k', false) RETURNING id::int AS reply`,
+      [copy],
+    );
+    const body = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Thanks!" }] }] };
+    const DRAFT = "6f1c2a0e-5b7d-4c1e-9a3f-2d8e4b6c0a11";
+    expect(await answerReplyNow(reply, "not-a-uuid", body)).toEqual({ sent: false, reason: "gone" });
+    expect(await answerReplyNow(1.5, DRAFT, body)).toEqual({ sent: false, reason: "gone" });
+    expect(await answerReplyNow(reply, DRAFT, { type: "doc", content: [] })).toEqual({ sent: false, reason: "blank" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(await answerReplyNow(reply, DRAFT, body)).toEqual({ sent: true });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts", "layout");
+    expect(await query("SELECT outcome, dealt_by FROM broadcast_replies")).toEqual([
+      { outcome: "answered", dealt_by: JO },
+    ]);
   });
 
   it("keeps who it's to from the list, and goes back to the draft", async () => {

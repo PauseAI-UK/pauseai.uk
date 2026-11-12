@@ -52,6 +52,7 @@ function fakeActions() {
     schedule: action(() => ({ scheduled: true })),
     deleteDraft: vi.fn(async () => {}),
     changeConsent: action(() => true),
+    setAboutEvents: action(() => true),
     create: vi.fn(async () => {}),
     submitTemplate: action(() => "submitted"),
     withdrawTemplate: action(() => true),
@@ -95,7 +96,24 @@ describe("BroadcastWriter's Consent", () => {
       [consents["email:newsletter"], true, false],
       [consents["email:events"], false, false],
       [consents["email:volunteering"], false, false],
+      [copy.newsletterOrEvents, false, false],
     ]);
+    await expect.element(page.getByRole("checkbox", { name: copy.aboutEvents })).not.toBeInTheDocument();
+  });
+
+  it("offers the newsletter or events both, and to one going to both, the tick that it's about our events", async () => {
+    const actions = await renderWriter({ draft: { ...exampleBroadcastEmail, alsoEvents: true } });
+    expect(radios(copy.facts.saidYes).at(-1)).toEqual([copy.newsletterOrEvents, true, false]);
+    await expect.element(page.getByText(copy.problems["not-about-events"])).toBeVisible();
+    const refreshes = navigation.refreshes;
+    await page.getByRole("checkbox", { name: copy.aboutEvents }).click();
+    await vi.waitFor(() => expect(actions.setAboutEvents).toHaveBeenCalledWith(3, true), WAIT);
+    await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
+    actions.setAboutEvents.mockResolvedValue(false);
+    const before = navigation.refreshes;
+    await page.getByRole("checkbox", { name: copy.aboutEvents }).click();
+    await vi.waitFor(() => expect(actions.setAboutEvents).toHaveBeenCalledTimes(2), WAIT);
+    expect(navigation.refreshes).toBe(before);
   });
 
   it("offers either channel to one with no words of its own, showing the other's Consents without changing it", async () => {
@@ -107,6 +125,7 @@ describe("BroadcastWriter's Consent", () => {
           consents["text:newsletter"],
           consents["text:events"],
           consents["text:volunteering"],
+          copy.newsletterOrEvents,
         ]),
       WAIT,
     );
@@ -173,6 +192,23 @@ describe("BroadcastWriter's Consent", () => {
     );
     expect(radios(copy.consentChannel)[1]).toEqual([copy.channels.text, true, false]);
     expect(page.getByLabelText(copy.subject, { exact: true }).query()).toBeNull();
+  });
+
+  it("on New broadcast, says texts can't be sent yet once Text is picked, where nothing sends them", async () => {
+    await render(
+      <ChannelWriter
+        fresh
+        data={{ ...exampleBroadcastData, textsSend: false }}
+        draft={{ ...exampleBroadcastEmail, subject: "", body: EMPTY_MAILING_DOC }}
+        who={<p>Who</p>}
+        actions={fakeActions() as unknown as BroadcastWriterActions}
+      />,
+    );
+    await expect.element(page.getByText(copy.cantSend)).not.toBeInTheDocument();
+    await choose(copy.consentChannel, copy.channels.text);
+    await expect.element(page.getByText(copy.cantSend)).toBeVisible();
+    await choose(copy.consentChannel, copy.channels.email);
+    await expect.element(page.getByText(copy.cantSend)).not.toBeInTheDocument();
   });
 
   it("on New broadcast, starts with neither channel chosen, everything after it greyed and still, and makes the draft", async () => {
@@ -319,7 +355,9 @@ describe("BroadcastWriter, by email", () => {
 
   it("uses a connected Gmail's own name with none of its own, and won't go from one no longer connected", async () => {
     await renderWriter({ draft: { ...exampleBroadcastEmail, sentFrom: "jo@pauseai.uk", fromName: null } });
-    await expect.element(page.getByText("Jo Example <jo@pauseai.uk>")).toBeVisible();
+    await expect
+      .element(page.getByLabelText("6Send", { exact: false }).getByText("Jo Example <jo@pauseai.uk>"))
+      .toBeVisible();
     await page.getByLabelText(copy.fromAccount, { exact: false }).selectOptions("hello@pauseai.uk");
   });
 
@@ -609,8 +647,9 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText(/Hi Jane, the march meets/)).toBeVisible();
     // What they'll cost, and the rate, as it may have changed.
     await expect.element(page.getByText(textCost(exampleBroadcastData.count).rate)).toBeVisible();
-    // The summary names the WhatsApp number it's from.
-    await expect.element(page.getByText(/texts from PauseAI UK \(07700 900000\) on WhatsApp/)).toBeVisible();
+    // What will go names the WhatsApp number it's from.
+    await expect.element(page.getByText("PauseAI UK (07700 900000)")).toBeVisible();
+    await expect.element(page.getByText(copy.sendFacts.how("text"))).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
     await page.getByLabelText(copy.testTo).fill("+447700900002");
     await button(copy.sendTest).click();
@@ -624,7 +663,11 @@ describe("BroadcastWriter, by text", () => {
     });
     await expect.element(page.getByText(copy.testVia.textOff)).toBeVisible();
     await expect.element(page.getByText(copy.noNumber)).toBeVisible();
-    await expect.element(page.getByText(/texts from PauseAI UK on WhatsApp/)).toBeVisible();
+    // With no number, it's from the name alone, with no time yet.
+    await expect
+      .element(page.getByLabelText("6Send", { exact: false }).getByText("PauseAI UK", { exact: true }))
+      .toBeVisible();
+    await expect.element(page.getByText(copy.sendFacts.noTime)).toBeVisible();
     // And it can't be scheduled till there's one.
     await expect.element(page.getByText(copy.problems["no-number"])).toBeVisible();
   });
@@ -898,6 +941,26 @@ describe("a broadcast's page", () => {
     await expect.element(page.getByText(copy.scheduledLine(290, "email", "hello@pauseai.uk"))).toBeVisible();
   });
 
+  it("says one past its time that waits for CiviCRM is waiting to go, not when it sends", async () => {
+    const due = new Date("2026-11-07T07:18:00Z");
+    const data = {
+      ...exampleBroadcastSent,
+      summary: { ...exampleBroadcastSummary, state: "scheduled" as const },
+      written: {
+        ...exampleBroadcastSent.written,
+        state: "scheduled" as const,
+        dueAt: due,
+        waitingSince: due,
+        waitReason: "pull" as const,
+      },
+    };
+    await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
+    await expect.element(page.getByText(copy.waitingDue)).toBeVisible();
+    await expect
+      .element(page.getByText(staffCopy.mailingPages.sends(londonWhen(due, "short"))))
+      .not.toBeInTheDocument();
+  });
+
   it("says each copy's status", () => {
     const base = { status: "delivered", skipReason: null, read: false, bounced: false };
     expect(copyStatus(base).words).toBe(copy.statuses.delivered);
@@ -949,11 +1012,13 @@ describe("BroadcastFor", () => {
       <>
         <BroadcastContact params={{ contact: "text:events:yes" }} />
         <BroadcastContact params={{ contact: "email:events:yes" }} />
+        <BroadcastContact params={{ contact: ["email:newsletter:yes", "email:events:yes"] }} />
         <BroadcastWho params={{ contact: "email:newsletter:yes", near: "LS1" }} choices={exampleSupporterChoices} />
       </>,
     );
     await expect.element(page.getByText(supporters["text:events"])).toBeVisible();
     await expect.element(page.getByText(supporters["email:events"])).toBeVisible();
+    await expect.element(page.getByText(copy.newsletterOrEvents)).toBeVisible();
     const pills = page.getByRole("list", { name: staffCopy.mailingPages.whoLabel }).getByRole("listitem");
     await expect.element(pills.first()).toBeVisible();
     expect(pills.all().map((pill) => pill.element().textContent)).toHaveLength(1);
@@ -1092,6 +1157,7 @@ describe("SupporterBroadcasts", () => {
             read: true,
             bounced: false,
             optedOut: false,
+            replied: false,
           },
           {
             copyId: 22,
@@ -1104,6 +1170,7 @@ describe("SupporterBroadcasts", () => {
             read: false,
             bounced: false,
             optedOut: false,
+            replied: false,
           },
           {
             copyId: 23,
@@ -1116,6 +1183,7 @@ describe("SupporterBroadcasts", () => {
             read: false,
             bounced: false,
             optedOut: false,
+            replied: false,
           },
         ]}
       />,

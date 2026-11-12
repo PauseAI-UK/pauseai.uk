@@ -223,6 +223,13 @@ export async function dashboard(days: DashboardWindow): Promise<Dashboard> {
         )
       : [],
   );
+  // Replies to broadcasts that may be opt-outs, waiting for staff.
+  const [waiting] = await query<{ count: number; broadcastId: number }>(
+    `SELECT count(*)::int AS count, (array_agg(c.mailing_id ORDER BY r.received_at))[1]::int AS "broadcastId"
+     FROM broadcast_replies r JOIN broadcast_messages c ON c.id = r.message_id
+     WHERE r.outcome IS NULL AND NOT r.automatic HAVING count(*) > 0`,
+  );
+  const replies: DashboardAction[] = waiting ? [{ kind: "broadcast-replies", ...waiting }] : [];
   return {
     days,
     asOf: until,
@@ -232,6 +239,6 @@ export async function dashboard(days: DashboardWindow): Promise<Dashboard> {
     agreedMp: signer,
     series: { eventRegistrations: registrations },
     supportersBySource: bySource,
-    actions: [...held, ...blocked, ...failed, ...inbox],
+    actions: [...held, ...blocked, ...failed, ...inbox, ...replies],
   };
 }

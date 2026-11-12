@@ -11,7 +11,7 @@ import { campaignBySlug, campaignPath } from "@/lib/email-your-mp";
 import { toHtml } from "@/lib/letter-format";
 import AttachmentChips from "./AttachmentChips";
 import { markSent, readDraft, type Draft } from "./draft";
-import Turnstile from "./Turnstile";
+import Turnstile from "@/components/ui/Turnstile";
 import { Column } from "./FormParts";
 import styles from "./LetterPreview.module.css";
 

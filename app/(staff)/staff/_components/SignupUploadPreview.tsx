@@ -21,6 +21,8 @@ import Numbered from "./ui/Numbered";
 import Strip from "./ui/Strip";
 import styles from "./SignupUpload.module.css";
 import { phoneWords } from "@/lib/phone";
+import { emailSettingsCopy, settingsDate } from "@/lib/content/email-settings";
+import { LINK_DAYS } from "@/lib/email-settings";
 
 const copy = staffCopy.signupUpload;
 const words = copy.preview;
@@ -51,7 +53,25 @@ function Happens({ row }: { row: SignupPlanRow }) {
       {row.pile === "going" && <Tag>{said.going}</Tag>}
       {row.newEntry && <Tag tone="green">{said.mailing}</Tag>}
       {row.newEntry && row.phone && <Tag tone="green">{said.phone}</Tag>}
+      {row.notice === "bulk" && <Tag tone="amber">{said.notice}</Tag>}
+      {row.notice === "no-email" && <Tag tone="red">{said.noEmail}</Tag>}
     </span>
+  );
+}
+
+/**
+ * The email anyone with "No bulk emails" gets, as they'll see it: where and
+ * when the forms say they signed up, which change as they're typed, and a
+ * stand-in for their own link.
+ */
+function BulkNoticeView({ input }: { input: Pick<SignupUploadInput, "note" | "signedOn"> }) {
+  const notice = emailSettingsCopy.bulkNotice;
+  const where = notice.paper(input.note.trim(), settingsDate(new Date(`${input.signedOn}T12:00:00Z`)));
+  return (
+    <blockquote className={styles.notice}>
+      <strong>{notice.subject}</strong>
+      <span className={styles.noticeBody}>{notice.body(where, words.summary.theirLink, LINK_DAYS)}</span>
+    </blockquote>
   );
 }
 
@@ -62,6 +82,8 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
   const shown = [...plan.rows].sort((a, b) => SIGNUP_PILES.indexOf(a.pile) - SIGNUP_PILES.indexOf(b.pile));
   const summary = words.summary;
   const known = fresh.filter((row) => row.known).length;
+  const notices = plan.rows.filter((row) => row.notice === "bulk").length;
+  const noEmail = plan.rows.filter((row) => row.notice === "no-email").length;
 
   return (
     <div className={styles.page}>
@@ -71,7 +93,10 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
         </li>
         {counts.held > 0 && <li>{summary.held(counts.held)}</li>}
         {plan.eventName && <li>{summary.event(plan.eventName, counts.register)}</li>}
+        {noEmail > 0 && <li>{summary.noEmail(noEmail)}</li>}
+        {notices > 0 && <li>{summary.notices(notices)}</li>}
       </ul>
+      {notices > 0 && <BulkNoticeView input={plan.input} />}
 
       <Table>
         <thead>

@@ -15,6 +15,7 @@ import nextEnv from "@next/env";
 import {
   addFixtureData,
   addTestMps,
+  connectBroadcastMailbox,
   connectLettersInbox,
   giveAdminSupporters,
   isLocal,
@@ -49,5 +50,7 @@ if (fixtures) addFixtureData(url);
 const lettersInbox = process.env.LETTERS_INBOX?.trim().toLowerCase();
 if (fixtures && lettersInbox && process.env.GMAIL_TOKEN_KEY)
   connectLettersInbox(url, lettersInbox, process.env.GMAIL_TOKEN_KEY);
+// So answers to the fake replies to broadcasts go from hello@.
+if (fixtures && process.env.GMAIL_TOKEN_KEY) connectBroadcastMailbox(url, process.env.GMAIL_TOKEN_KEY);
 const mps = email ? `, with the test MPs (${email})` : ", without the test MPs: set TEST_MP_EMAIL to add them";
 console.log(`Made ${new URL(url).pathname.slice(1)}${mps}${fixtures ? " and the fake supporters" : ""}.`);

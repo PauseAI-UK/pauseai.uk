@@ -16,6 +16,7 @@ import {
   NoteChangesExample,
   NoteEntryExample,
   NoteFormExample,
+  OptOutFormExample,
   NotesCardExample,
   NotesExample,
   NoteTextExample,
@@ -126,6 +127,21 @@ describe("the staff examples", () => {
     await page.getByRole("textbox", { name: staffCopy.notes.note }).fill("Met them");
     await page.getByRole("button", { name: staffCopy.notes.add }).click();
     await expect.element(log().nth(0)).toHaveTextContent('add({"politicianId":"1","body":"Met them"})');
+  });
+
+  it("logs recording an opt-out", async () => {
+    await render(<OptOutFormExample opened />);
+    const words = staffCopy.supporters.detail.permissions.recordOptOut;
+    await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
+    const newsletter = staffCopy.supporters.detail.permissions.topics.newsletter;
+    await page.getByRole("button", { name: `${newsletter}, jane.smith@example.com (${words.ways.email})` }).click();
+    await page.getByRole("textbox", { name: words.how }).fill("At the stall");
+    await page.getByRole("button", { name: words.record }).click();
+    await expect
+      .element(log().nth(0))
+      .toHaveTextContent(
+        'record({"supporterId":"1","choice":"email|newsletter|jane.smith@example.com","how":"At the stall"})',
+      );
   });
 
   it("logs an event's save in the lists, or says there are none", async () => {

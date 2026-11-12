@@ -25,7 +25,9 @@ export function BroadcastContact({ params }: { params: Params }) {
   const way = terms.channel === "email" ? "email" : "text";
   return (
     <IconText icon={<ChannelIcon channel={way} />}>
-      {staffCopy.supporters.subscriptions.consents[consentKey({ way, topic: terms.topic })]}
+      {terms.alsoEvents
+        ? staffCopy.broadcastPages.newsletterOrEvents
+        : staffCopy.supporters.subscriptions.consents[consentKey({ way, topic: terms.topic })]}
     </IconText>
   );
 }

@@ -704,3 +704,35 @@ test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
   await frame(page, "Supporters' blocked emails, empty");
 });
+
+test("Recording an opt-out told to staff", async ({ page, request, flowDatabase }) => {
+  story(
+    "Jane tells someone at a stall she'd rather not hear about volunteering any more. Under her consents, staff record it, with how she told them; only Jane can opt back in.",
+  );
+  await importCivicrm(request, BASE);
+  await logInWithSupporters(page, flowDatabase);
+  const [jane] = runSql(
+    flowDatabase,
+    "SELECT supporter_id FROM supporter_links WHERE matched_value = 'jane.fixture@example.com'",
+  );
+  await page.goto(`${BASE}/staff/supporters/${jane}`);
+  const words = copy.detail.permissions.recordOptOut;
+  await page.getByRole("button", { name: words.open }).click();
+  // The box near the window's top, so its menu opens below it, as it does wherever it fits.
+  await page
+    .getByRole("button", { name: `${words.what}: ${words.choose}` })
+    .evaluate((box) => box.scrollIntoView({ block: "start", behavior: "instant" }));
+  await page.evaluate(() => window.scrollBy({ top: -80, behavior: "instant" }));
+  await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
+  await expect(page.getByRole("button", { name: /^Volunteering, jane\.fixture@example\.com/ })).toBeVisible();
+  await frame(page, "What they opted out of: under each address and number, by each way", { window: true });
+  await page.getByRole("button", { name: /^Volunteering, jane\.fixture@example\.com/ }).click();
+  await page.getByRole("textbox", { name: words.how }).fill("Asked at the Leeds stall");
+  await page.getByRole("button", { name: words.record }).scrollIntoViewIfNeeded();
+  await frame(page, "The form, filled in", { window: true });
+  await page.getByRole("button", { name: words.record }).click();
+  await expect(page.getByRole("button", { name: words.open })).toBeVisible();
+  await expect(page.getByText(said("unsubscribed", "staff"), { exact: false })).toBeVisible();
+  await page.getByRole("heading", { name: copy.detail.listsTitle }).scrollIntoViewIfNeeded();
+  await frame(page, "Her consents, volunteering by email off", { window: true });
+});

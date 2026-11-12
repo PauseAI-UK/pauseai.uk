@@ -193,6 +193,33 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
     );
     return json({ values: values.slice(0, params.limit ?? values.length) });
   }
+  if (hostname === "crm.pauseai.info" && pathname === "/civicrm/ajax/api4/PauseaiChapterContact/checkSuppression") {
+    // An address of a contact with "No bulk emails" is blocked from bulk email; any other, in CiviCRM or not, from
+    // none, as no fixture contact has "Do not email".
+    const { email = [] } = JSON.parse(new URLSearchParams(String(init?.body)).get("params") ?? "{}") as {
+      email?: string[];
+    };
+    return json({
+      values: email.map((address) => {
+        const contact = civicrmContacts.values.find((one) => one.email === address);
+        const block = contact?.no_bulk_email ? "bulk" : "none";
+        return { email: address, block };
+      }),
+    });
+  }
+  if (hostname === "crm.pauseai.info" && pathname === "/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions") {
+    // Every opt-out is accepted. A lift of "No bulk emails" is refused for an address that isn't a UK contact's.
+    const { events = [] } = JSON.parse(new URLSearchParams(String(init?.body)).get("params") ?? "{}") as {
+      events?: { event_id: string; email: string; change: string }[];
+    };
+    return json({
+      values: events.map((event) =>
+        event.change === "allow_bulk_email" && !civicrmContacts.values.some((one) => one.email === event.email)
+          ? { event_id: event.event_id, status: "refused", reason: "not_in_uk" }
+          : { event_id: event.event_id, status: "accepted" },
+      ),
+    });
+  }
   if (hostname.endsWith("airtable.com") && pathname.endsWith("/tblL1icZBhTV1gQ9o")) {
     // The global members' table: the members staff-data.sql holds, as of
     // FIXTURE_NOW, and one erased there.
@@ -212,6 +239,9 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
       ],
       has_more: false,
     });
+  }
+  if (hostname === "public-api.luma.com" && pathname === "/v1/calendars/contacts/remove") {
+    return json({});
   }
   if (hostname === "public-api.luma.com" && pathname === "/v1/calendars/event-tags/apply") {
     const { event_ids } = JSON.parse(String(init!.body)) as { event_ids: string[] };
@@ -317,6 +347,18 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
       Message: "OK",
     });
   }
+  // A batch on the broadcast stream: each taken, as /email takes one, but an address starting "suppressed-",
+  // which Postmark refuses as inactive.
+  if (hostname === "api.postmarkapp.com" && pathname === "/email/batch") {
+    const emails = JSON.parse(String(init?.body ?? "[]")) as { To: string }[];
+    return json(
+      emails.map((email) =>
+        /^"?[^<]*<?suppressed-/.test(email.To)
+          ? { ErrorCode: 406, Message: "You tried to send to recipient(s) that have been marked as inactive." }
+          : { ErrorCode: 0, Message: "OK", MessageID: fixtureUuid(JSON.stringify(email)), To: email.To },
+      ),
+    );
+  }
   const unsuppress =
     hostname === "api.postmarkapp.com" && pathname.match(/^\/message-streams\/[\w-]+\/suppressions\/delete$/);
   if (unsuppress) {
@@ -380,12 +422,14 @@ function googleResponse(
   // The same email gets the same IDs every run, as Postmark's MessageID: from what it says, not the UUIDs
   // each run makes afresh, its MIME boundaries and Message-IDs, and those it answers (lib/server/mime.ts).
   if (pathname.endsWith("/messages/send")) {
-    const raw = Buffer.from((JSON.parse(String(init!.body)) as { raw: string }).raw, "base64url").toString();
+    const sending = JSON.parse(String(init!.body)) as { raw: string; threadId?: string };
+    const raw = Buffer.from(sending.raw, "base64url").toString();
     const id = fixtureUuid(raw.replace(UUIDS, "uuid")).replace(/-/g, "").slice(0, 16);
     SENT_GMAIL.set(id, /^Message-ID: *(.+)$/im.exec(raw)?.[1].trim() ?? "");
     // The letters inbox keeps what it sent; mail to one of its own addresses, as the supporter's copy is, comes back to it.
     if (letters) keepSent(raw, id, toLettersInbox(raw), scope);
-    return json({ id, threadId: id, labelIds: ["SENT"] });
+    // In the thread it joins, as an answer to a message there is; else a thread of its own.
+    return json({ id, threadId: sending.threadId ?? id, labelIds: ["SENT"] });
   }
   // An email it sent, by its headers: the Message-ID it was sent with, kept as it was.
   const sent = /\/messages\/(\w+)$/.exec(pathname)?.[1];

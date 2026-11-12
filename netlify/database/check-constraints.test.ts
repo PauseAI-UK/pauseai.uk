@@ -1,6 +1,7 @@
+import type { AnswerStatus } from "@/lib/server/broadcast-answers";
 import { expect, it } from "vitest";
 import { ASK_STATUSES, ASKERS } from "@/lib/asks";
-import { TOPICS, WAYS } from "@/lib/contact-permissions";
+import { TOPICS, WAYS, type Topic } from "@/lib/contact-permissions";
 import { ERROR_KINDS } from "@/lib/error-key";
 import { IMPORT_JOBS, type ImportRunStatus } from "@/lib/import-runs";
 import { RECORDED_LETTER_EVENTS } from "@/lib/letter-status";
@@ -13,9 +14,16 @@ import type { mailingChannel } from "@/lib/server/mailing-channels";
 import type { MailingState } from "@/lib/server/mailing-drafts";
 import type { SkipReason } from "@/lib/server/mailings";
 import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
-import type { OptOutSource } from "@/lib/server/opt-outs";
 import type { AddressSource } from "@/lib/server/politician-aliases";
-import { INTENTS, LIST_STATUSES } from "@/lib/server/outside-services/civicrm";
+import type { OptOutList, OptOutSource } from "@/lib/server/opt-outs";
+import type { BroadcastReply } from "@/lib/server/broadcast-replies";
+import type { WaitReason } from "@/lib/server/broadcast-sending";
+import {
+  INTENTS,
+  LIST_STATUSES,
+  type SubscriptionEvent,
+  type SubscriptionResult,
+} from "@/lib/server/outside-services/civicrm";
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar";
 import { HOUSES, PERSON_STATUSES } from "@/lib/server/politicians";
 import type { SignupUploadPerson } from "@/lib/server/signup-uploads";
@@ -60,7 +68,13 @@ const LISTED: Record<string, readonly string[]> = {
     "staff-report",
     "mailing",
     "mailing-test",
+    "broadcast",
+    "preferences-link",
+    "bulk-notice",
+    "broadcast-answer",
   ]),
+  "preference_choices.way": WAYS,
+  "preference_choices.topic": every<Topic | "bulk">()(["newsletter", "events", "volunteering", "bulk"]),
   "errors_seen.kind": ERROR_KINDS,
   "form_entry_luma.status": every<EntryLuma["status"]>()(["added", "skipped", "not-configured", "failed"]),
   "import_runs.job": IMPORT_JOBS,
@@ -76,8 +90,25 @@ const LISTED: Record<string, readonly string[]> = {
   "whatsapp_templates.status": every<WhatsAppTemplate["status"]>()(["approved", "pending", "rejected"]),
   "notable_people.status": PERSON_STATUSES,
   "opt_outs.way": WAYS,
-  "opt_outs.list": TOPICS,
-  "opt_outs.source": every<OptOutSource>()(["luma-webhook", "luma-contacts", "civicrm"]),
+  "opt_outs.list": every<OptOutList>()(["newsletter", "events", "volunteering", "bulk", "all"]),
+  "opt_outs.source": every<OptOutSource>()([
+    "luma-webhook",
+    "luma-contacts",
+    "civicrm",
+    "link",
+    "list-unsubscribe",
+    "postmark-complaint",
+    "reply",
+    "staff",
+    "preferences",
+    "civicrm-check",
+  ]),
+  "broadcast_replies.outcome": every<NonNullable<BroadcastReply["outcome"]>>()(["opted-out", "nothing", "answered"]),
+  "broadcast_answers.status": every<AnswerStatus>()(["sending", "sent"]),
+  "mailings.wait_reason": every<WaitReason>()(["civicrm", "pull"]),
+  "civicrm_updates.change": every<SubscriptionEvent["change"]>()(["unsubscribe", "no_bulk_email", "allow_bulk_email"]),
+  "civicrm_updates.list": every<NonNullable<SubscriptionEvent["list"]>>()(["newsletter", "volunteer_updates"]),
+  "civicrm_updates.status": every<SubscriptionResult["status"]>()(["accepted", "refused", "invalid"]),
   "politician_addresses.source": every<AddressSource>()(["parliament", "office", "staff", "rejected"]),
   "politicians.country": COUNTRIES,
   "politicians.house": HOUSES,

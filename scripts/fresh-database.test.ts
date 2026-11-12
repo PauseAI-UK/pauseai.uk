@@ -348,6 +348,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "events luma-contacts",
           "events luma-webhook",
           "newsletter civicrm",
+          "newsletter link",
         ]);
         expect(runSql(name, "SELECT DISTINCT send || ' ' || reason FROM email_permissions ORDER BY 1")).toEqual([
           "no blocked",

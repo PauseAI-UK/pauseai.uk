@@ -7,6 +7,8 @@ import {
   DraftTitleExample,
   MailingStandingExample,
   MessageCopyViewExample,
+  ReplyActionsExample,
+  AnswerableReplyExample,
   BroadcastForExample,
   BroadcastConsentExample,
   BroadcastSupportersExample,
@@ -51,9 +53,28 @@ it("draws the rest", async () => {
       <BroadcastForExample />
       <MessageCopyViewExample />
       <MessageCopyViewExample email />
+      <MessageCopyViewExample email replies />
+      <ReplyActionsExample />
     </>,
   );
   await expect.element(page.getByText(staffCopy.mailingPages.states.scheduled, { exact: true }).first()).toBeVisible();
+});
+
+it("logs what a reply is recorded as", async () => {
+  await render(<ReplyActionsExample />);
+  await page.getByRole("button", { name: copy.replies.nothing }).click();
+  await expect
+    .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
+    .toHaveTextContent('deal({"replyId":"1","decision":"nothing"})');
+});
+
+it("logs an answer sent to a reply", async () => {
+  await render(<AnswerableReplyExample opened />);
+  await page.getByRole("textbox", { name: copy.replies.answerLabel }).fill("Thanks");
+  await page.getByRole("button", { name: copy.replies.send }).click();
+  await expect
+    .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
+    .toHaveTextContent(/^answer\(1, "[0-9a-f-]{36}", \{"type":"doc"/);
 });
 
 it("does nothing when an action is pressed", async () => {

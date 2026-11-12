@@ -3,6 +3,7 @@ import { JOBS, type SendingResult } from "@/lib/import-runs";
 import { asRun } from "./import-runs";
 import { sendLetterQueue, uncertainLetters } from "./letter-sending";
 import { sendDueLetters, startDueMailings } from "./mailing-sending";
+import { sendDueBroadcasts, startDueBroadcasts } from "./broadcast-sending";
 
 const JOB = "send-mailings";
 
@@ -11,7 +12,8 @@ const JOB = "send-mailings";
  * stopped run left sending as uncertain (uncertainLetters), so a mailing
  * with one can finish; then the letters inbox's queue
  * (letter-sending.ts), then the mailings due and their letters
- * (mailing-sending.ts), for its budget (JOBS) in all, short of what Netlify
+ * (mailing-sending.ts), then the broadcasts to supporters due and their
+ * copies (broadcast-sending.ts), for its budget (JOBS) in all, short of what Netlify
  * gives a function, so a slow last send still finishes. The background
  * function (netlify/functions/send-mailings-background) runs it again until
  * it's done. `request` is the job's call, for links in alerts; a staff
@@ -24,7 +26,10 @@ export async function runSending(startedBy: string, request?: Request): Promise<
     const queue = await sendLetterQueue(until, request);
     const started = await startDueMailings();
     const result: SendingResult = { started, ...(await sendDueLetters({ until })), queue };
-    const anything = started.length + result.sent + result.failed + queue.sent > 0;
+    const broadcasts = { started: await startDueBroadcasts(), ...(await sendDueBroadcasts(until)) };
+    result.broadcasts = broadcasts;
+    const anything =
+      started.length + result.sent + result.failed + queue.sent + broadcasts.started.length + broadcasts.sent > 0;
     return { status: anything ? "ok" : "unchanged", result } as const;
   });
   return result;

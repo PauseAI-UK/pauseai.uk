@@ -39,6 +39,10 @@ export const DYNAMIC_EXAMPLES: Record<string, string> = {
   "/staff/supporters/import/previous/[id]": "/staff/supporters/import/previous/1",
   "/staff/supporters/[id]": "/staff/supporters/1",
   "/staff/supporters/[id]/erase": "/staff/supporters/1/erase",
+  // Jane's email settings, by a link she asked for, and by her copy of a broadcast's unsubscribe link
+  // (tests/fixtures/staff-data.sql).
+  "/email-settings/[token]": "/email-settings/seed-settings-jane",
+  "/email-settings/m/[token]": "/email-settings/m/seed-unsubscribe-jane",
   // A group of the component gallery (fixture builds only).
   "/gallery/[group]": "/gallery/ui",
 };

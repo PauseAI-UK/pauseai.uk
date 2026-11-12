@@ -1,0 +1,23 @@
+import type { Metadata } from "next";
+import ProsePage from "@/components/ui/ProsePage";
+import { emailSettingsCopy } from "@/lib/content/email-settings";
+import { pageMetadata } from "@/lib/metadata";
+import { config } from "@/lib/server/config";
+import { LINK_DAYS } from "@/lib/email-settings";
+import { askForLinkNow } from "./actions";
+import SettingsStart from "./_components/SettingsStart";
+
+export const metadata: Metadata = pageMetadata({
+  title: emailSettingsCopy.start.title,
+  description: emailSettingsCopy.start.description,
+  path: "/email-settings",
+});
+
+/** Asking for a link to your email settings. */
+export default function EmailSettingsStartPage() {
+  return (
+    <ProsePage>
+      <SettingsStart ask={askForLinkNow} days={LINK_DAYS} turnstileSiteKey={config.turnstileSiteKey} />
+    </ProsePage>
+  );
+}

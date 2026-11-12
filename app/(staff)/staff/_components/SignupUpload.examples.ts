@@ -1,7 +1,7 @@
 import type { getSignupUpload, SignupUploadPerson, SignupUploadSummary } from "@/lib/server/signup-uploads";
 import type { SignupPlan } from "@/lib/signup-upload";
 
-const person = { phone: null, postcode: null, going: false, problem: null };
+const person = { phone: null, postcode: null, going: false, problem: null, notice: null };
 
 /** A file with someone in every pile. */
 export const exampleSignupPlan: SignupPlan = {
@@ -37,6 +37,7 @@ export const exampleSignupPlan: SignupPlan = {
       pile: "going",
       known: "email",
       newEntry: true,
+      notice: "bulk",
     },
     {
       ...person,
@@ -47,6 +48,7 @@ export const exampleSignupPlan: SignupPlan = {
       pile: "none",
       known: "mobile",
       newEntry: true,
+      notice: "no-email",
     },
     {
       ...person,

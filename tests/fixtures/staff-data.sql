@@ -1340,6 +1340,64 @@ WITH bounced AS (
 )
 INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM bounced;
 
+-- Each copy's unsubscribe link (its token's hash) and the Message-ID it went with, as sending
+-- gives them, and the topic it went under. Jane's copy of Thank you for
+-- marching has a link the public pages open (tests/routes.ts).
+UPDATE broadcast_messages c SET link_token_hash = encode(sha256(convert_to(CASE WHEN c.id = (
+    SELECT s.id FROM seed_copies s JOIN mailings m ON m.id = s.mailing_id
+    WHERE m.title = 'Thank you for marching' AND s.luma_user = 'usr-fixture-1')
+  THEN 'seed-unsubscribe-jane' ELSE 'seed-link-' || c.id END, 'UTF8')), 'hex'),
+  rfc_message_id = 'seed-copy-' || c.id || '@pauseai.uk', topics = ARRAY[m.topic]
+FROM mailings m WHERE m.id = c.mailing_id;
+-- Replies, read from hello@: Alex asking to stop, waiting for staff; Fay's
+-- automatic reply; and Jane's thanks, which Jo answered.
+INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+  gmail_thread_id, rfc_message_id, blob_key, automatic, outcome, dealt_by, dealt_at)
+SELECT s.id, s.due_at + r.after, l.email, r.subject, 'hello@pauseai.uk', r.gmail, r.gmail,
+  'fixture-' || r.file || '@example.com', 'fixture/' || r.file || '.eml.gz',
+  r.automatic, r.outcome, r.dealt_by, CASE WHEN r.outcome IS NOT NULL THEN s.due_at + r.after + interval '1 hour' END
+FROM (VALUES
+  ('Events this month', 'usr-fixture-3', interval '2 hours', 'Re: Events this month', 'seed-reply-stop', 'broadcast-reply-stop', false, NULL, NULL),
+  ('Events this month', 'usr-fixture-6', interval '1 minute', 'Automatic reply: Events this month', 'seed-reply-away', 'broadcast-reply-away', true, NULL, NULL),
+  ('Thank you for marching', 'usr-fixture-1', interval '50 minutes', 'Re: Thank you for marching', 'seed-reply-thanks', 'broadcast-reply-thanks', false, 'answered', 'jo@pauseai.uk')
+) r (title, luma_user, after, subject, gmail, file, automatic, outcome, dealt_by)
+JOIN mailings m ON m.audience = 'supporters' AND m.title = r.title
+JOIN seed_copies s ON s.mailing_id = m.id AND s.luma_user = r.luma_user
+JOIN luma_people l ON l.user_id = r.luma_user;
+INSERT INTO broadcast_message_events (message_id, at, kind)
+SELECT message_id, received_at, 'replied' FROM broadcast_replies WHERE NOT automatic;
+INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, created_at, sent_at, gmail_message_id,
+  rfc_message_id)
+SELECT id, '00000000-0000-4000-8000-000000000001', dealt_by,
+  '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Thank you for coming, Jane! The next march is on 6 December."}]}]}',
+  'sent', dealt_at, dealt_at, 'seed-answer-thanks', 'seed-answer-thanks@pauseai.uk'
+FROM broadcast_replies WHERE gmail_message_id = 'seed-reply-thanks';
+
+-- ------------------------------------------------------ email settings
+
+-- Someone who's no supporter unsubscribed from the newsletter by an old
+-- email's link, which CiviCRM accepted; and lifted "No bulk emails" on the
+-- email settings page, beside its words, which CiviCRM has still to answer.
+-- A link to Jane's settings, asked for an hour ago, which the public pages
+-- open (tests/routes.ts).
+WITH seed_out AS (
+  INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)
+  VALUES ('gone.seed@example.com', 'newsletter', 'link', 'seed-link-gone', now() - interval '4 days') RETURNING id, unsubscribed_at
+)
+INSERT INTO civicrm_updates (opt_out_id, change, list, email, occurred_at, source, tries, tried_at, status, answered_at)
+SELECT id, 'unsubscribe', 'newsletter', 'gone.seed@example.com', unsubscribed_at, 'pauseai.uk:link', 1,
+  unsubscribed_at + interval '1 hour', 'accepted', unsubscribed_at + interval '1 hour'
+FROM seed_out;
+WITH seed_lift AS (
+  INSERT INTO preference_choices (address, way, topic, wording, chosen_at)
+  VALUES ('lifted.seed@example.com', 'email', 'bulk', 'PauseAI UK and PauseAI Global can send me bulk email again.', now() - interval '20 minutes')
+  RETURNING id, chosen_at, wording
+)
+INSERT INTO civicrm_updates (choice_id, change, email, occurred_at, source, wording)
+SELECT id, 'allow_bulk_email', 'lifted.seed@example.com', chosen_at, 'pauseai.uk:preferences', wording FROM seed_lift;
+INSERT INTO preference_links (token_hash, address, created_at, expires_at)
+VALUES (encode(sha256('seed-settings-jane'::bytea), 'hex'), 'jane.fixture@example.com', now() - interval '1 hour', now() + interval '7 days' - interval '1 hour');
+
 -- --------------------------------------------------------------- errors
 
 -- What went wrong outside a job's run (lib/server/errors-seen.ts), one of

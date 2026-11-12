@@ -11,6 +11,7 @@ import FilterBarLines from "./FilterBarLines";
 import { filteredTitle, filterWords, type Filter } from "@/lib/staff-list-filters";
 import FilterBar from "./FilterBar";
 import Menu from "./Menu";
+import MenuSelect from "./MenuSelect";
 import Bubble, { BubbleBox } from "./Bubble";
 import { bubbleTrigger } from "./bubble-trigger";
 import ListFrame, { ListTable, type ListColumn } from "./ListFrame";
@@ -1114,5 +1115,29 @@ describe("Column", () => {
     );
     const top = (text: string) => page.getByText(text).element().getBoundingClientRect().top;
     expect(top("Second")).toBeGreaterThan(top("First"));
+  });
+});
+
+describe("MenuSelect", () => {
+  it("sends nothing till a choice is picked from its menu, then that one, named in its box", async () => {
+    const options = [
+      { value: "a", label: "Apples" },
+      { value: "p", label: "Pears", group: { label: "Fruit", icon: null } },
+    ];
+    const { container } = await render(
+      <form>
+        <MenuSelect id="fruit" name="fruit" label="Fruit" placeholder="Choose…" options={options} />
+      </form>,
+    );
+    const sent = () => new FormData(container.querySelector("form")!).get("fruit");
+    expect(sent()).toBe("");
+    await page.getByRole("button", { name: "Fruit: Choose…" }).click();
+    await page.getByRole("button", { name: "Apples" }).click();
+    expect(sent()).toBe("a");
+    await page.getByRole("button", { name: "Fruit: Apples" }).click();
+    await expect.element(page.getByRole("button", { name: "Apples" })).toHaveAttribute("aria-current", "true");
+    await page.getByRole("button", { name: "Pears, Fruit" }).click();
+    expect(sent()).toBe("p");
+    await expect.element(page.getByRole("button", { name: "Fruit: Pears, Fruit" })).toBeVisible();
   });
 });

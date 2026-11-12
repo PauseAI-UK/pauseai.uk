@@ -11,6 +11,8 @@ import {
   hasWords,
   broadcastScheduleProblems,
   broadcastTerms,
+  choiceTerms,
+  termsValues,
   BROADCAST_SENDER,
   TEXT_SENDER_NAME,
   type BroadcastChannel,
@@ -35,7 +37,7 @@ import {
   type SaveResult,
   type WrittenMailing,
 } from "./mailing-drafts";
-import { broadcastBackend, textSenderNumber } from "./broadcast-channels";
+import { broadcastBackend, channelSends, textSenderNumber } from "./broadcast-channels";
 import { supporterAudience } from "./broadcast-recipients";
 import { notifyStaff, staffLink } from "./notifications";
 import { filterProblems } from "./stored-filters";
@@ -71,7 +73,15 @@ export type WrittenBroadcast = WrittenMailing & {
   title: string;
   channel: BroadcastChannel;
   topic: Topic;
+  /** To the newsletter's and events' yeses both, which needs it to be about our events. */
+  alsoEvents: boolean;
+  /** Whether staff said it's about our events. */
+  aboutEvents: boolean;
   template: WhatsAppTemplate | null;
+  /** Since when it's waited for CiviCRM, and why; or that it stopped, as it waited too long. */
+  waitingSince: Date | null;
+  waitReason: "civicrm" | "pull" | null;
+  gaveUp: boolean;
 };
 
 const SELECT_TEMPLATES = `
@@ -93,16 +103,23 @@ export async function approvedTemplates(): Promise<WhatsAppTemplate[]> {
 export async function getWrittenBroadcast(id: number, opening = false): Promise<WrittenBroadcast | undefined> {
   const written = await (opening ? openWrittenMailing : getWrittenMailing)(id, "supporters");
   if (!written) return undefined;
-  const [{ title, channel, topic, templateId }] = await query<{
-    title: string;
-    channel: BroadcastChannel;
-    topic: Topic;
-    templateId: number | null;
-  }>(`SELECT title, channel, topic, template_id::int AS "templateId" FROM mailings WHERE id = $1`, [id]);
+  const [{ templateId, ...own }] = await query<
+    Pick<
+      WrittenBroadcast,
+      "title" | "channel" | "topic" | "alsoEvents" | "aboutEvents" | "waitingSince" | "waitReason" | "gaveUp"
+    > & {
+      templateId: number | null;
+    }
+  >(
+    `SELECT title, channel, topic, template_id::int AS "templateId", also_events AS "alsoEvents",
+       about_events AS "aboutEvents", waiting_since AS "waitingSince", wait_reason AS "waitReason", gave_up AS "gaveUp"
+     FROM mailings WHERE id = $1`,
+    [id],
+  );
   const [template] = templateId
     ? await query<WhatsAppTemplate>(`${SELECT_TEMPLATES} WHERE t.id = $1`, [templateId])
     : [];
-  return { ...written, title, channel, topic, template: template ?? null };
+  return { ...written, ...own, template: template ?? null };
 }
 
 /** Who a new broadcast appears from: for an email the address we write from; for a text the business account. */
@@ -123,8 +140,8 @@ export async function createBroadcastDraft(by: string, params: Params): Promise<
   const { sentFrom, fromName } = senderOf(terms.channel);
   return transaction(async (db) => {
     const [{ id }] = await query<{ id: number }>(
-      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, sent_from, from_name, state)
-       VALUES ('', 'supporters', $1, $2, $3, $4, $5, $6, $7, 'draft') RETURNING id::int AS id`,
+      `INSERT INTO mailings (title, audience, channel, topic, also_events, filter, body, created_by, sent_from, from_name, state)
+       VALUES ('', 'supporters', $1, $2, $8, $3, $4, $5, $6, $7, 'draft') RETURNING id::int AS id`,
       [
         terms.channel,
         terms.topic,
@@ -133,10 +150,11 @@ export async function createBroadcastDraft(by: string, params: Params): Promise<
         by,
         sentFrom,
         fromName,
+        Boolean(terms.alsoEvents),
       ],
       db,
     );
-    await logChange(by, "create broadcast", { id, channel: terms.channel, topic: terms.topic }, db);
+    await logChange(by, "create broadcast", { id, ...terms }, db);
     return id;
   });
 }
@@ -165,14 +183,15 @@ export async function changeBroadcastFilter(id: number, params: Params): Promise
  */
 export async function changeBroadcastConsent(id: number, value: string, by: string): Promise<boolean> {
   const broadcast = await getWrittenBroadcast(id);
-  const terms = broadcastTerms(value);
+  const terms = choiceTerms(value);
   if (broadcast?.state !== "draft" || !terms) return false;
   const moving = terms.channel !== broadcast.channel;
   if (moving && hasWords({ ...broadcast, templateId: broadcast.template?.id ?? null })) return false;
-  const filter = storedFilter("supporters", { ...broadcast.filter.params, contact: value });
+  const filter = storedFilter("supporters", { ...broadcast.filter.params, contact: termsValues(terms) });
   const sender = senderOf(terms.channel);
   await query(
-    `UPDATE mailings SET channel = $2, topic = $3, filter = $4,
+    `UPDATE mailings SET channel = $2, topic = $3, filter = $4, also_events = $8,
+       about_events = about_events AND $8,
        subject = CASE WHEN $5 THEN '' ELSE subject END,
        body = CASE WHEN $5 THEN '{"type": "doc", "content": []}'::jsonb ELSE body END,
        title = CASE WHEN $5 THEN '' ELSE title END,
@@ -181,15 +200,38 @@ export async function changeBroadcastConsent(id: number, value: string, by: stri
        from_name = CASE WHEN $5 THEN $7 ELSE from_name END,
        version = version + 1, updated_at = now()
      WHERE id = $1`,
-    [id, terms.channel, terms.topic, JSON.stringify(filter), moving, sender.sentFrom, sender.fromName],
+    [
+      id,
+      terms.channel,
+      terms.topic,
+      JSON.stringify(filter),
+      moving,
+      sender.sentFrom,
+      sender.fromName,
+      Boolean(terms.alsoEvents),
+    ],
   );
-  await logChange(by, "change broadcast consent", { id, channel: terms.channel, topic: terms.topic });
+  await logChange(by, "change broadcast consent", { id, ...terms });
   return true;
 }
 
 /** Whether a filter's terms are the broadcast's own. */
 export function sameTerms(terms: BroadcastTerms | undefined, broadcast: BroadcastTerms): boolean {
-  return terms?.channel === broadcast.channel && terms.topic === broadcast.topic;
+  return (
+    terms?.channel === broadcast.channel &&
+    terms.topic === broadcast.topic &&
+    Boolean(terms.alsoEvents) === Boolean(broadcast.alsoEvents)
+  );
+}
+
+/** Says, on a draft to the newsletter's and events' yeses both, whether it's about our events. Says whether it did. */
+export async function setAboutEvents(id: number, about: boolean): Promise<boolean> {
+  const rows = await query(
+    `UPDATE mailings SET about_events = $2, version = version + 1, updated_at = now()
+     WHERE id = $1 AND audience = 'supporters' AND state = 'draft' AND also_events RETURNING id`,
+    [id, about],
+  );
+  return rows.length > 0;
 }
 
 /**
@@ -263,8 +305,9 @@ async function scheduleProblems(
     byGmail,
     connected: Boolean(connected),
     approved: broadcast.template?.status === "approved",
+    aboutEvents: !broadcast.alsoEvents || broadcast.aboutEvents,
     numbered: Boolean(textSenderNumber()),
-    sends: Boolean(broadcastBackend()),
+    sends: channelSends(broadcast.channel),
   });
   return { problems, recipients: audience.recipients.length };
 }
