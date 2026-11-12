@@ -181,8 +181,8 @@ export const emailSettingsCopy = {
   },
   // The box at the top of the page an email's unsubscribe link opens.
   unsubscribe: {
-    title: (topics: string) => `⁂ Unsubscribe from ${topics}?`,
-    button: "⁂ Unsubscribe",
+    title: (topics: string) => `Unsubscribe from ${topics}?`,
+    button: "Unsubscribe",
     done: (topics: string) => `⁂ You've unsubscribed from ${topics}`,
     doneBody: "⁂ You won't get it by email any more.",
     // In place of the button, where they get none of its topics by email already, for whatever reason.
