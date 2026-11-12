@@ -272,11 +272,14 @@ describe("MailingsOverview", () => {
     // Sending: its bar, leading to it.
     await expect.element(page.getByRole("progressbar", { name: copy.sentLabel })).toHaveAttribute("value", "214");
     await expect.element(page.getByText(copy.sendingBar(209, 650))).toBeVisible();
-    // Sent: each count opens it with that tab chosen, the day without this year; answered only with an ask.
+    // Sent: each count opens it with that tab chosen, the day without this year; every count on every row,
+    // answered a dash leading nowhere without an ask.
     expect(document.querySelector('a[href="/staff/mailings/4?tab=failed"]')).not.toBeNull();
     await expect.element(row("AI safety conference")).toMatchTextContent("20 Oct");
     await expect.element(row("AI safety conference")).not.toMatchTextContent("20 Oct 2026");
-    await expect.element(row("Ben Lake").first()).not.toMatchTextContent(copy.counts.answered);
+    await expect.element(row("Ben Lake").first()).toMatchTextContent(`0 ${copy.counts.stopped}`);
+    await expect.element(row("Ben Lake").first()).toMatchTextContent(`– ${copy.counts.answered}`);
+    expect(row("Ben Lake").first().element().querySelector('a[href$="tab=answered"]')).toBeNull();
     // Last year's, with its year.
     await expect.element(row("Ben Lake").last()).toMatchTextContent("9 Jul 2025");
     // Who it's from, or Airtable, and its ask, leading to who answered it.
