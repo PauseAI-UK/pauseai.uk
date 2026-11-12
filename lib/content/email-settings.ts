@@ -146,31 +146,25 @@ export const emailSettingsCopy = {
     button: "Restart all emails, texts and calls",
     wording: "⁂ PauseAI UK can email, text and call me as before, and PauseAI Global can send me bulk email again.",
   },
-  // PauseAI Global's "Do not SMS" and "Do not phone" on every number of theirs, which only Global can lift.
-  doNotText: {
-    title: "⁂ You've asked PauseAI never to text you",
-    body: "⁂ Only PauseAI Global can change that.",
+  // Under what only PauseAI Global can lift, then a link to its contact page and a full stop.
+  onlyGlobal: {
+    body: "Only PauseAI Global can change that. Please",
+    link: "contact them",
+    url: "https://pauseai.info/contact",
   },
-  doNotCall: {
-    title: "⁂ You've asked PauseAI never to call you",
-    body: "⁂ Only PauseAI Global can change that.",
-  },
+  // What a hold on email doesn't stop, for someone with a number.
+  numbersStill: "⁂ It doesn't stop texts or calls.",
+  // PauseAI Global's "Do not SMS" and "Do not phone" on every number of theirs, under each onlyGlobal.
+  doNotText: { title: "⁂ You've asked PauseAI never to text you" },
+  doNotCall: { title: "⁂ You've asked PauseAI never to call you" },
   // Both, in one box.
-  doNotTextOrCall: {
-    title: "⁂ You've asked PauseAI never to text or call you",
-    body: "⁂ Only PauseAI Global can change that.",
-  },
-  doNotEmail: {
-    title: "⁂ You've asked PauseAI never to email you",
-    body: "⁂ Only PauseAI Global can change that. It doesn't stop texts or calls.",
-  },
+  doNotTextOrCall: { title: "You've asked PauseAI never to text or call you" },
+  doNotEmail: { title: "You've asked PauseAI never to email you" },
   blocked: {
-    title: "⁂ We can't email this address",
-    body: "⁂ Our emails to it bounced or were marked as spam.",
-    // Only for someone with a number.
-    numbers: "⁂ It doesn't stop texts or calls.",
+    title: "We can't email this address",
+    body: "Our emails to it bounced or were marked as spam.",
     // Before our address, as a link to email it.
-    ask: "⁂ If it works now, email",
+    ask: "If it works now, email",
   },
   global: {
     title: "PauseAI Global's emails",

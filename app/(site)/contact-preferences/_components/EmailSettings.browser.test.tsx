@@ -157,22 +157,29 @@ describe("EmailSettings", () => {
     expect(done.lift).toHaveBeenCalledOnce();
   });
 
-  it("says what holds it when only PauseAI Global can lift it, or it's blocked", async () => {
+  it("says what holds it when only PauseAI Global can lift it, and how to contact them", async () => {
     await show(exampleDoNotEmail);
     await expect.element(page.getByRole("heading", { name: copy.doNotEmail.title })).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.noBulk.button })).not.toBeInTheDocument();
     await expect
+      .element(page.getByRole("link", { name: copy.onlyGlobal.link }))
+      .toHaveAttribute("href", copy.onlyGlobal.url);
+    await expect.element(page.getByText(copy.numbersStill, { exact: false })).toBeVisible();
+    await expect
       .element(why("newsletter", copy.why.reasons["signed-up"]!(copy.sourceWords("paper-signup"))))
       .toBeVisible();
+  });
+
+  it("says an address is blocked, and how to ask us to lift it", async () => {
     await show(exampleBlocked);
     await expect.element(page.getByRole("heading", { name: copy.blocked.title })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: "hello@pauseai.uk" }))
       .toHaveAttribute("href", "mailto:hello@pauseai.uk");
     // Texts and calls go unmentioned for someone without a number.
-    await expect.element(page.getByText(copy.blocked.numbers, { exact: false })).not.toBeInTheDocument();
+    await expect.element(page.getByText(copy.numbersStill, { exact: false })).not.toBeInTheDocument();
     await show({ ...exampleBlocked, numbers: ["+447700900123"] });
-    await expect.element(page.getByText(copy.blocked.numbers, { exact: false })).toBeVisible();
+    await expect.element(page.getByText(copy.numbersStill, { exact: false })).toBeVisible();
   });
 
   it("locks texts and calls where PauseAI Global stops them to every number, and says so", async () => {

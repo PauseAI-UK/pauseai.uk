@@ -161,15 +161,19 @@ function Hold({
       </FormStack>
     );
   }
-  const words = hold.kind === "do-not-email" ? copy.doNotEmail : copy.blocked;
+  const blocked = hold.kind === "blocked";
   return (
     <div className={styles.held}>
-      <h2>{words.title}</h2>
-      {/* One paragraph: what holds it, whether texts and calls still go, and, as staff lift a block, how to ask them to. */}
+      <h2>{blocked ? copy.blocked.title : copy.doNotEmail.title}</h2>
+      {/*
+        One paragraph: what holds it, whether texts and calls still go, and
+        who can lift it: staff, for a block, whom they can email; PauseAI
+        Global, for "Do not email".
+      */}
       <p className={styles.boxText}>
-        {words.body}
-        {hold.kind === "blocked" && view.numbers.length > 0 && ` ${copy.blocked.numbers}`}
-        {hold.kind === "blocked" && (
+        {blocked ? copy.blocked.body : <OnlyGlobal />}
+        {view.numbers.length > 0 && ` ${copy.numbersStill}`}
+        {blocked && (
           <>
             {" "}
             {copy.blocked.ask} <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
@@ -177,6 +181,16 @@ function Hold({
         )}
       </p>
     </div>
+  );
+}
+
+/** That only PauseAI Global can lift it, and a link to its contact page. */
+function OnlyGlobal() {
+  const words = copy.onlyGlobal;
+  return (
+    <>
+      {words.body} <a href={words.url}>{words.link}</a>.
+    </>
   );
 }
 
@@ -188,7 +202,9 @@ function NumberHolds({ view }: { view: SettingsView }) {
   return (
     <div className={styles.held}>
       <h2>{words.title}</h2>
-      <p className={styles.boxText}>{words.body}</p>
+      <p className={styles.boxText}>
+        <OnlyGlobal />
+      </p>
     </div>
   );
 }
