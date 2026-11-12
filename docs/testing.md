@@ -296,6 +296,25 @@ The same data is in `test-results/storyboard/latest/storyboard.json`, for
 an agent. Both are local only and gitignored. A difference never fails the
 review. Only this branch's checks do, and the exit code is theirs.
 
+**The storyboard's progress.** Every run of the storyboard, the review's
+and the gate's alike, says how far through its flows it is in one file,
+always at the same place in its checkout
+(`tests/storyboard/report/progress.ts`):
+
+```
+test-results/storyboard-progress.json
+{"pid":4242,"startedAt":"2026-11-12T10:00:00.000Z","updatedAt":"2026-11-12T10:03:45.000Z","total":566,"done":347,"failed":0,"ended":false}
+```
+
+It's written when the run starts, after each flow and when the run ends.
+`done` counts every flow that has finished, and `failed` those of them
+that didn't pass. Anything that shows a run's progress, such as a
+terminal's status line, reads this file, not the run's output, which goes
+wherever whoever started it sent it. A run is going while `ended` is
+false and the process `pid` is alive: one that was killed never says it
+ended. The file says nothing of a run of main's flows, which is in main's
+own checkout.
+
 **The changed frames**, for an agent: `npm run storyboard:changed`
 (`scripts/storyboard-changed.mjs`) prints the latest run's changed frames,
 without running anything. Given another run's folder or name, it prints
