@@ -191,7 +191,7 @@ export const emailSettingsCopy = {
     offBelow: "You can choose what you get below.",
     // After it, where the page shows their choices below.
     below: "You can choose what else you get below.",
-    and: "⁂ and",
+    and: "and",
   },
   // The page from an old email's unsubscribe link: the button still works, the rest doesn't.
   pageExpired: "⁂ To see and change everything else, ask for a new link to your contact preferences.",
