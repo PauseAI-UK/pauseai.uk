@@ -73,6 +73,14 @@ export function filtersPath(path: string, filters: Params, changes: Params = {})
   return query ? `${path}?${query}` : path;
 }
 
+/**
+ * A list's own URL, with nothing on, while any of `values`, its search and
+ * filters as typed, is on: where clearing them leads. Nothing while none is.
+ */
+export function clearedTo(path: string, values: Params): string | undefined {
+  return Object.values(values).some((value) => valuesOf(value).length > 0) ? path : undefined;
+}
+
 /** The `page` of a list's URL at page `n`: none for the first. */
 export function pageParam(n: number): { page: string } {
   return { page: n > 1 ? String(n) : "" };

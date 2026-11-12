@@ -1822,9 +1822,8 @@ All events: ${link}`,
     },
     // Under each title, what the page is.
     intros: {
-      mps: "⁂ Politicians' addresses that bounced our email or complained about it. Nothing is sent to one until it's fixed in Airtable or unblocked here",
-      supporters:
-        "⁂ Supporters' addresses that bounced our email or marked it as spam. Nothing is sent to one until it's unblocked",
+      mps: "Politician's bad emails, fix them in Airtable or unblock them here",
+      supporters: "⁂ Supporter's bad emails, unblock them here",
     },
     // Over the list: how many are blocked, of those the filters find.
     count: (n: number) => `${n} blocked ${plural(n, "address", "addresses")}`,

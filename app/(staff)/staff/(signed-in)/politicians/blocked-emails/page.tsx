@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { listBlocks, recentProblems } from "@/lib/server/email";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { emailsSearch } from "@/lib/staff-search";
-import { filtersPath } from "@/lib/list-params";
+import { clearedTo, filtersPath } from "@/lib/list-params";
 import { unblockAddress } from "../../../actions";
 import EmailBlockFilters from "../../../_components/EmailBlockFilters";
 import EmailBlocksTable from "../../../_components/EmailBlocksTable";
@@ -27,7 +27,7 @@ export default async function MpEmailsPage({ searchParams }: { searchParams: Pro
         unblock={unblockAddress}
         letterLinks={letterLinks}
         download={(format) => filtersPath("/staff/politicians/blocked-emails/download", { q, kind, format })}
-        clear={q || kind ? "/staff/politicians/blocked-emails" : undefined}
+        clear={clearedTo("/staff/politicians/blocked-emails", { q, kind })}
       />
       <h2>{staffCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks={letterLinks} />
