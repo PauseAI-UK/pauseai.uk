@@ -357,8 +357,10 @@ doesn't count that as sharing, so CiviCRM leaves them out on purpose
 (Global, 11 November), and the import's formula leaves them out too
 (`MEMBERS_FORMULA`). On 12 November that dropped 65 and added none,
 leaving 1,634. Like any member
-no longer read, they're marked removed and kept until erased; they lose
-the Member badge, and their details count for nothing.
+no longer read, they're marked removed and kept until erased: they lose
+the Member badge and any yes from their membership, and their consents
+say "No longer shared with us by the join form", while staff still see their
+details.
 
 Then drop the Airtable import:
 
