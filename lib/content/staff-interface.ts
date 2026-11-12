@@ -2881,7 +2881,7 @@ All events: ${link}`,
     withheld: "Entries about supporters are not shown, as you don't have the supporters permission.",
     title: "Audit log",
     // Under the title.
-    intro: "⁂ Every change staff and the site have made to what we hold, newest first",
+    intro: "Every action taken by staff or by syncing",
     // Over the list: how many entries there are.
     total: (n: number) => count(n, "entry", "entries"),
     none: "No entries match.",
