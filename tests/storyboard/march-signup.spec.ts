@@ -99,6 +99,19 @@ async function messageMidWindow(page: Page): Promise<void> {
   await expect(alert).toBeInViewport();
 }
 
+/**
+ * The share card's Copy button, mid-window, the apps above it. Pressing it
+ * leaves the window wherever scrolling it into view put it: Playwright tries
+ * the middle of the window, then its foot, then its top, moving on each time
+ * a press doesn't land, so which it ends on varies between runs.
+ */
+async function copyMidWindow(page: Page): Promise<void> {
+  const button = page.getByRole("button", { name: copy.share.copy });
+  await button.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+  await scrollSettled(page);
+  await expect(button).toBeInViewport({ ratio: 1 });
+}
+
 test("Registering for the march", { tag: "@phone" }, async ({ page }) => {
   story(
     "Someone opens the march page, under the site's own header but without the march banner, as this is the page it points to. Headings and the march's demand are highlighted in orange, and key words underlined, as with a marker pen.",
@@ -185,6 +198,31 @@ test("How many have registered", { tag: "@phone" }, async ({ page }) => {
   await expect(hero).toContainText(going);
 });
 
+test("The march page in a wide window", { tag: "@desktop-only" }, async ({ page }) => {
+  story(
+    "Someone opens the march page in a window wider than the site's column, then makes it wider still. The hero's words start in line with the site's logo above them and the page below, and the photo keeps its place beside the words.",
+  );
+  const left = async (locator: Locator) => Math.round((await locator.boundingBox())!.x);
+  const hero = page.locator("section").filter({ has: page.getByRole("heading", { level: 1 }) });
+  /** How far the photo starts from the words, once the words are checked to be in line. */
+  const photoFromWords = async () => {
+    const words = await left(page.getByRole("heading", { level: 1 }));
+    expect(words).toBe(await left(header(page).getByRole("link", { name: "PauseAI UK" })));
+    expect(words).toBe(await left(page.getByRole("heading", { level: 2 }).first()));
+    return (await left(hero.getByRole("img").first())) - words;
+  };
+  await page.setViewportSize({ width: 1440, height: 800 });
+  await openSignup(page);
+  const beside = await photoFromWords();
+  await frame(page, "The top of the page, in a window 1440 pixels wide", { window: true });
+  story("They make the window wider.");
+
+  await page.setViewportSize({ width: 1920, height: 800 });
+  await layoutSettled(page, "main");
+  expect(await photoFromWords()).toBe(beside);
+  await frame(page, "The top of the page, in a window 1920 pixels wide", { window: true });
+});
+
 test("Seeing all the details", { tag: "@phone" }, async ({ page }) => {
   story("Someone presses See all details in the hero. The page moves down to what happens on the day.");
   await openSignup(page);
@@ -228,7 +266,7 @@ test("Sharing, and registering someone new", { tag: "@phone" }, async ({ page, c
     ["event", "march_share", { share_method: "copy" }],
   ]);
   await page.getByRole("button", { name: copy.share.copy }).waitFor();
-  await scrollSettled(page);
+  await copyMidWindow(page);
   // A mouse can't swipe the row, so there the apps wrap and all show; a
   // phone's row runs off its end, faded.
   const apps = page.getByRole("list").filter({ has: page.getByRole("link", { name: "WhatsApp" }) });

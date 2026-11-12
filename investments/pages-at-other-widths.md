@@ -13,3 +13,4 @@ A command that does it: `npm run widths -- /staff/politicians /staff/sent-emails
 ## Hits
 
 - 2026-11-12: wrote a script in tmp/ to picture 21 staff pages at seven widths and measure their tables, and ran it five times, ~40 min
+- 2026-11-12: the march page's hero left its words at the window's edge past 1440px, which neither width pictures; wrote a script in tmp/ to picture it at eight widths and measure where the words sat, ~15 min

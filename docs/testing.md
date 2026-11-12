@@ -819,6 +819,7 @@ that drives it or why nothing does.
 - `march-signup.spec.ts`: The march sign-up:
   - the page under the site's header, without the march banner, its marker-pen marks drawn;
   - how many have registered, in the hero and the form, asked for again on coming back to the page;
+  - the hero's words in line with the header and the page below, in a wide window;
   - registering, Luma failing, and an email the server won't take;
   - See all details, to the day's details;
   - a heading highlighted as it comes into view;

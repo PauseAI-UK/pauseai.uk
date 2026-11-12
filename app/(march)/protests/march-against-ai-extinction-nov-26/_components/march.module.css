@@ -234,8 +234,18 @@ svg:has(+ .marked-highlight) path {
 /* ── Hero ────────────────────────────────────────────────────────────── */
 
 /* The words at the foot of the first screen, over the photo, which darkens
-   towards them. */
+   towards them.
+
+   --hero-edge is where the words start: in line with the header and the
+   bands below, where the site's container has room at its sides, and
+   otherwise a share of the window in from its edge. The photo and the dark
+   over it are placed from the same edge, at distances that grow with the
+   window up to the design's 1440px and are fixed past it. So in a window
+   wide enough for the words at their full size, the words, the photo and
+   the dark keep their places beside one another, whatever its width. */
 .hero {
+  --hero-edge: max(clamp(24px, 5.56vw, 80px), (100% - var(--container-width, 1140px)) / 2 + 24px);
+
   position: relative;
   isolation: isolate;
   display: flex;
@@ -248,16 +258,18 @@ svg:has(+ .marked-highlight) path {
   color: var(--white);
 }
 /* The photo at the hero's full height, placed so the woman with the sign,
-   56% of the way across it, is in the middle of the window's right half.
-   Its left edge fades into the dark. */
+   56% of the way across it, is clear of the words: in a window with no room
+   beside the container, that's the middle of its right half. Its left edge
+   fades into the dark, and so does its right, which shows only in a window
+   too wide for the photo to reach the end of. */
 .hero-photo {
   position: absolute;
   inset-block: 0;
-  left: 75%;
+  left: calc(var(--hero-edge) + min(69.44%, 1000px));
   z-index: -2;
   aspect-ratio: 1524 / 716;
   transform: translateX(-56%);
-  mask-image: linear-gradient(90deg, transparent, var(--black) 25%);
+  mask-image: linear-gradient(90deg, transparent, var(--black) 25%, var(--black) 90%, transparent);
 }
 .hero-photo img {
   object-fit: cover;
@@ -270,9 +282,9 @@ svg:has(+ .marked-highlight) path {
   z-index: -1;
   background: linear-gradient(
     90deg,
-    rgb(var(--text-rgb) / 0.9) 38%,
-    rgb(var(--text-rgb) / 0.4) 64%,
-    rgb(var(--text-rgb) / 0) 86%
+    rgb(var(--text-rgb) / 0.9) calc(var(--hero-edge) + min(32.44%, 467px)),
+    rgb(var(--text-rgb) / 0.4) calc(var(--hero-edge) + min(58.44%, 842px)),
+    rgb(var(--text-rgb) / 0) calc(var(--hero-edge) + min(80.44%, 1158px))
   );
 }
 .hero-inner {
@@ -282,11 +294,10 @@ svg:has(+ .marked-highlight) path {
   gap: 24px;
   width: 100%;
 }
-/* Wider than the site's container: closer to the window's edge, so the
-   words keep clear of the photo's subject. */
+/* The container's sides are the hero's edge, not its own. */
 .hero .hero-inner {
   max-width: none;
-  padding-inline: clamp(24px, 5.56vw, 80px);
+  padding-inline: var(--hero-edge);
 }
 .hero-title {
   font-family: var(--font-display), "Lato", system-ui, sans-serif;
