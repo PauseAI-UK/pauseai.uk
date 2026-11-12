@@ -39,6 +39,8 @@ const ALLOWED: Record<string, string> = {
   "StaffAccountsTable.module.css .add input": "a field",
   // A table cell's words, which wrap before a long reason widens the table.
   "BounceReason.module.css .reason": "a cell's text",
+  // A table cell's small table of asks, whose titles are cut off with "…" before they widen the list.
+  "PoliticianTable.module.css .asks": "a cell's text",
 };
 
 /** Each rule's selector and its max-width, from a stylesheet's text, at-rules' own selectors left out. */

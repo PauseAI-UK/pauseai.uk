@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  datesHeldTogether,
   earliestHour,
   fromLondon,
   hourNotTooSoon,
@@ -24,6 +25,12 @@ it("names the day, in UTC", () => {
 it("is the day and the time to the minute, in UTC", () => {
   expect(staffTime(new Date("2026-10-16T10:34:56.789Z"))).toBe("16 Oct 2026, 10:34");
   expect(staffTime(new Date("2026-10-16T23:30:00+01:00"))).toBe("16 Oct 2026, 22:30");
+});
+
+it("holds each date in some words together with no-break spaces, the time with it, and leaves the rest", () => {
+  expect(datesHeldTogether("Unsubscribed on 20 Sept 2026, from Luma")).toBe("Unsubscribed on 20 Sept 2026, from Luma");
+  expect(datesHeldTogether("3 Nov 2026, 10:34 then 16 Oct 2026")).toBe("3 Nov 2026, 10:34 then 16 Oct 2026");
+  expect(datesHeldTogether("No date here, 2026")).toBe("No date here, 2026");
 });
 
 it("names the weekday, day and month, in UTC", () => {

@@ -35,8 +35,8 @@ Builds on the first PR.
 - One way to say there's nothing, and a filtered list that finds nobody keeps its frame.
 - Erase in a card, with what's erased and what's kept beside it.
 - The sidebar's two "Blocked emails" links are renamed: "Bounces and complaints" under Supporters, "Addresses to fix" under Politicians. They stay two pages, as different staff see each and the politicians' one is the more important.
-  - Still to decide: whether the two pages' titles ("Supporters' blocked emails", "Politicians' blocked emails") change to match their links.
-  - The line under both titles, "Nothing is sent to these addresses until they're unblocked", is shared and written for the old name. With the new names it's rewritten, one line for each page, saying what that page is: the supporters' a list of bounces and complaints, the politicians' a list of addresses to fix. A person writes them.
+  - The two pages' titles ("Supporters' blocked emails", "Politicians' blocked emails") change to match their links.
+  - The line under both titles, "Nothing is sent to these addresses until they're unblocked", is shared and written for the old name. It's rewritten too, one line for each page, saying what that page is: the supporters' a list of bounces and complaints, the politicians' a list of addresses to fix. A person writes them.
   - Anything else that names the pages is rewritten with them: the link "See blocked emails" on a supporter's page, the dashboard's line about an MP's bouncing address, and any other copy that says "blocked emails" meaning one of these pages.
 
 ## Left out
