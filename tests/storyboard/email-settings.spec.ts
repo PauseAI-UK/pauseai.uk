@@ -195,7 +195,7 @@ test("An old email's unsubscribe link", async ({ page, request, flowDatabase }) 
   );
   await importCivicrm(request, BASE);
   await open(page, copyLink(flowDatabase, JANE, "newsletter", 60));
-  await expect(page.getByRole("heading", { name: copy.pageExpired })).toBeVisible();
+  await expect(page.getByRole("heading", { name: copy.pageExpired.title })).toBeVisible();
   await frame(page, "The button, and an offer of a fresh link");
   await page.getByRole("button", { name: copy.expired.button }).click();
   await expect(page.getByText(copy.expired.sent)).toBeVisible();

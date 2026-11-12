@@ -268,10 +268,11 @@ function Unsubscribe({
 /** A page whose link has run out: an email's button still works, but for the rest, a fresh link. */
 function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["resend"] }) {
   const [sent, setSent] = useState(false);
+  const words = opened.kind === "copy" ? copy.pageExpired : copy.expired;
   return (
     <div className={`${styles.card} ${styles.offer}`}>
-      <h2>{opened.kind === "copy" ? copy.pageExpired : copy.expired.title}</h2>
-      {opened.kind === "link" && <p className={styles.boxText}>{copy.expired.body}</p>}
+      <h2>{words.title}</h2>
+      <p className={styles.boxText}>{words.body}</p>
       {sent ? (
         <p className={styles.boxText} role="status" ref={focusOnMount} tabIndex={-1}>
           {copy.expired.sent}

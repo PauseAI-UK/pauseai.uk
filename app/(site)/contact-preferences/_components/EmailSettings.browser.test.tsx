@@ -248,7 +248,7 @@ describe("EmailSettings", () => {
         }),
       )
       .toBeVisible();
-    await expect.element(page.getByRole("heading", { name: copy.pageExpired })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: copy.pageExpired.title })).toBeVisible();
     await page.getByRole("button", { name: copy.unsubscribe.button }).click();
     await expect.element(page.getByText(copy.unsubscribe.doneBody)).toBeVisible();
     await page.getByRole("button", { name: copy.expired.button }).click();
