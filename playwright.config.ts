@@ -9,9 +9,14 @@ import { LOCAL_URL } from "./tests/checkout.mjs";
 //   runs every flow, the phone project only those tagged @phone, and no
 //   screenshots are taken.
 // - `npm run storyboard` (scripts/storyboard.mjs), the review: both projects
-//   run every flow with screenshots (STORYBOARD_SHOTS=1), against main as
-//   well, and the reporter (tests/storyboard/report/) makes the page.
+//   run every flow with screenshots (STORYBOARD_SHOTS=1), and the reporter
+//   (tests/storyboard/report/) makes the page, each frame beside main's.
 const SHOTS = process.env.STORYBOARD_SHOTS === "1";
+
+// The review's `--this-suite-on-main` runs this branch's flows against
+// main's build (STORYBOARD_ON_MAIN=1), where a flow may press something
+// main doesn't have.
+const ON_MAIN = process.env.STORYBOARD_ON_MAIN === "1";
 
 // Set here, before the workers start, so the tests inherit it.
 process.env.LOCAL_URL = LOCAL_URL;
@@ -45,6 +50,11 @@ export default defineConfig({
   use: {
     // For `npm run test:report`, to step through a failed flow.
     trace: "retain-on-failure",
+    // On main's build, a press or a fill gives up after ten seconds, where
+    // it would otherwise wait out the flow's whole minute for something main
+    // lacks. The flows' long waits are checks with times of their own, which
+    // this leaves alone.
+    ...(ON_MAIN ? { actionTimeout: 10_000 } : {}),
     // Chrome takes shortcuts that make a frame depend on what it happened to
     // draw before, so a frame differed from run to run (the attachment
     // thumbnails on a phone). These turn them off, as Toucan does

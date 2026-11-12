@@ -1,23 +1,24 @@
 #!/usr/bin/env node
-// Builds and serves another version of the site on fixture data, for the
-// storyboard's comparison (scripts/storyboard.mjs): by default main as a pull
-// request sees it, where this branch started from (the merge base of
-// origin/main and HEAD). Nothing is fetched. Local only.
+// Builds and serves another version of the site on fixture data, for this
+// branch's suite to drive: the storyboard review's `--this-suite-on-main`
+// (scripts/storyboard.mjs). By default main as a pull request sees it, where
+// this branch started from (the merge base of origin/main and HEAD).
+// Nothing is fetched. Local only.
 //
 //   node scripts/serve-main.mjs [--ref <commit>] [--port <port>]
 //
-// It keeps one git worktree outside the repo, checked out at that commit
-// each time, installs that version's own dependencies when its
-// package-lock.json changes, gives it a fresh database if that version has
-// one, builds it with the same fixture settings as this branch's
-// test build, and serves it until stopped, by default on this checkout's
-// port for main (MAIN_URL, tests/checkout.mjs).
+// It checks that commit out in main's checkout (scripts/main-checkout.mjs),
+// gives it a fresh database if that version has one, builds it with the
+// same fixture settings as this branch's test build, and serves it until
+// stopped, by default on this checkout's port for main (MAIN_URL,
+// tests/checkout.mjs).
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { MAIN_DATABASE, MAIN_OUTBOX_DIR, MAIN_URL, MAIN_WORKTREE } from "../tests/checkout.mjs";
 import { fixtureEnv } from "../lib/server/fixtures/fixture-env.mjs";
 import { testServerUrl } from "./fresh-database.mjs";
+import { checkOutMain } from "./main-checkout.mjs";
 
 function option(name, fallback) {
   const at = process.argv.indexOf(`--${name}`);
@@ -30,35 +31,7 @@ const ref =
   option("ref", undefined) ?? execFileSync("git", ["merge-base", "origin/main", "HEAD"], { encoding: "utf8" }).trim();
 const dir = MAIN_WORKTREE;
 
-// The commit, in a worktree kept between runs so its node_modules can stay
-// inside it. One the repo no longer knows (pruned, or
-// the repo moved) is made again from scratch.
-if (existsSync(join(dir, ".git"))) {
-  try {
-    execFileSync("git", ["rev-parse", "--git-dir"], { cwd: dir, stdio: "ignore" });
-  } catch {
-    console.log(`${dir} is no longer a worktree of this repo: making it again.`);
-    rmSync(dir, { recursive: true, force: true });
-    run("git", ["worktree", "prune"]);
-  }
-}
-if (existsSync(join(dir, ".git"))) {
-  run("git", ["checkout", "--detach", "--force", ref], { cwd: dir });
-  // Not its dependencies, nor Next's cache: Turbopack's work, which the
-  // build checks against the sources, and the resized images, without which
-  // every picture on main's side waits on an image being resized.
-  run("git", ["clean", "-fdx", "-e", "node_modules", "-e", "/.next/cache"], { cwd: dir });
-} else {
-  run("git", ["worktree", "add", "--detach", "--force", dir, ref]);
-}
-
-// Its own dependencies, reinstalled only when its lockfile changes.
-const lock = readFileSync(join(dir, "package-lock.json"), "utf8");
-const stamp = join(dir, "node_modules", ".installed-lock");
-if (!existsSync(stamp) || readFileSync(stamp, "utf8") !== lock) {
-  run("npm", ["ci", "--no-audit", "--no-fund"], { cwd: dir });
-  writeFileSync(stamp, lock);
-}
+checkOutMain(ref, dir);
 
 const env = { ...process.env, ...fixtureEnv({ outboxDir: MAIN_OUTBOX_DIR, origin: `http://localhost:${port}` }) };
 // The same test Postgres as this branch's (`db-test`, say), which the

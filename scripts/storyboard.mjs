@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 // The storyboard review (docs/testing.md): runs the suite with screenshots,
-// on both viewports, on this branch and then on a build of main, and opens
-// the page that pairs every frame with main's. Main runs only the flows
-// that took pictures here: a flow without frames has nothing to compare. Main is where this
-// branch started from: the merge base of origin/main and HEAD, as a pull
-// request compares. Nothing is fetched; origin/main is as last fetched.
+// on both viewports, on this branch, and opens the page that pairs every
+// frame with main's. Main is where this branch started from: the merge base
+// of origin/main and HEAD, as a pull request compares. Nothing is fetched;
+// origin/main is as last fetched.
 //
 //   npm run storyboard                      # against main, both viewports, open the page
 //   npm run storyboard -- --no-main         # this branch alone: frames without a comparison
@@ -14,12 +13,14 @@
 //   npm run storyboard -- --paths           # print each frame's caption and picture, to open one directly
 //   npm run storyboard -- --changed         # print only the frames that changed against main (storyboard-changed.mjs)
 //   npm run storyboard -- --server=URL      # a server you started for this branch (default: Playwright builds one on this checkout's port)
-//   npm run storyboard -- --main-server=URL # a server you started for main
 //   npm run storyboard -- --fresh-main      # run main again even if its frames are kept (below)
+//   npm run storyboard -- --only-main       # no review: just keep main's frames, for the reviews to come
+//   npm run storyboard -- --this-suite-on-main   # main's frames from this branch's suite, not main's own (below)
+//   npm run storyboard -- --main-server=URL # the same, on a server you started for main
 //   npm run storyboard -- staff-login -g login    # anything else goes to `playwright test`
 //
 // Each run has its own folder, test-results/storyboard/runs/<when>/, with
-// every picture it shows in it (main's as hard links from the cache), so a
+// every picture it shows in it (main's as hard links from the store), so a
 // page you're looking at is never changed under you. When a run finishes,
 // test-results/storyboard/latest points at it, and index.html beside it
 // opens its page. The newest few runs are kept.
@@ -30,21 +31,30 @@
 // it was shot. Flows gone from the suite aren't carried. A full run starts
 // empty.
 //
-// Main's frames are kept in test-results/storyboard-main/, under main's
-// commit and a hash of the suite's shared files, each flow with a hash of
-// its spec file (scripts/storyboard-main.mjs): main runs only the flows that
-// aren't there, and a run whose flows all are doesn't build main. When it
-// will need main, it builds it while this branch's flows run, its output in
-// the run's folder (main-server.log).
+// Main's frames are main's own: its suite, run on its build, in its own
+// checkout (scripts/main-checkout.mjs). Nothing of this branch's goes into
+// them, so they're kept under main's tree for every branch and worktree
+// (scripts/storyboard-store.mjs), and main runs only the flows not kept
+// yet. A full review keeps this branch's frames there too, under its own
+// tree: they're main's once the branch has merged, if main's tree is then
+// the one reviewed.
+//
+// `--this-suite-on-main` runs this branch's suite against main's build
+// instead (scripts/serve-main.mjs, its output in the run's folder,
+// main-server.log), for the flows that took pictures here. It's for a
+// branch that changes how frames are pictured, where every frame would
+// otherwise differ from main's own. Nothing of it is kept.
 //
 // A difference never fails; only this branch's checks do, and the exit code
 // is theirs.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
+  copyFileSync,
   existsSync,
   linkSync,
   openSync,
   mkdirSync,
+  mkdtempSync,
   readdirSync,
   readFileSync,
   realpathSync,
@@ -54,32 +64,22 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { createHash } from "node:crypto";
-import { platform } from "node:os";
+import { platform, tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { LOCAL_URL, MAIN_OUTBOX_DIR, MAIN_URL } from "../tests/checkout.mjs";
+import { LOCAL_URL, MAIN_OUTBOX_DIR, MAIN_URL, MAIN_WORKTREE } from "../tests/checkout.mjs";
 import { writeStoryboard } from "../tests/storyboard/report/board.ts";
+import { testServerUrl } from "./fresh-database.mjs";
+import { checkOutMain, lockMain } from "./main-checkout.mjs";
 import { describeChanged } from "./storyboard-changed.mjs";
-import {
-  cacheKey,
-  carryable,
-  carryFlows,
-  flowKey,
-  listedFlows,
-  mergeRun,
-  missingFlows,
-  picturedFlows,
-  runFolder,
-  selectFlows,
-} from "./storyboard-main.mjs";
+import { carryable, carryFlows, listedFlows, picturedFlows, runFolder, selectFlows } from "./storyboard-main.mjs";
+import { keepRuns, linkFlows, missingFlows, pruneStore, readTree, storeDir, touchTree } from "./storyboard-store.mjs";
 
 const DIR = "test-results/storyboard";
 const RUNS = join(DIR, "runs");
 const LATEST = join(DIR, "latest");
 const RUNS_KEEP = 3;
-/** Main's kept frames, one folder per cache key; the newest few are kept. */
-const MAIN_CACHE = "test-results/storyboard-main";
-const MAIN_CACHE_KEEP = 3;
+/** How many trees' frames the store keeps (scripts/storyboard-store.mjs). */
+const TREES_KEEP = 10;
 
 const options = {
   main: "origin/main",
@@ -87,9 +87,11 @@ const options = {
   paths: false,
   changed: false,
   projects: [],
-  server: LOCAL_URL,
+  server: undefined,
   mainServer: undefined,
   freshMain: false,
+  onlyMain: false,
+  thisSuite: false,
 };
 const passThrough = [];
 for (const arg of process.argv.slice(2)) {
@@ -102,8 +104,15 @@ for (const arg of process.argv.slice(2)) {
   else if (arg.startsWith("--server=")) options.server = arg.slice("--server=".length);
   else if (arg.startsWith("--main-server=")) options.mainServer = arg.slice("--main-server=".length);
   else if (arg === "--fresh-main") options.freshMain = true;
+  else if (arg === "--only-main") options.onlyMain = true;
+  else if (arg === "--this-suite-on-main") options.thisSuite = true;
   else passThrough.push(arg);
 }
+// A server someone started for main is driven by this branch's suite: main's own runs on a build it makes itself.
+if (options.mainServer) options.thisSuite = true;
+
+// A signal ends the script through its exit handlers, which stop main's server and give back main's checkout.
+for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(130));
 
 const runAt = new Date().toISOString();
 const runDir = join(RUNS, runFolder(runAt));
@@ -145,6 +154,9 @@ const writeJson = (file, data) => {
   writeFileSync(file, JSON.stringify(data, null, 2));
 };
 
+/** The frames kept by tree, in the main checkout, which holds the repository: every worktree's reviews share them. */
+const STORE = storeDir(dirname(git("rev-parse", "--path-format=absolute", "--git-common-dir")));
+
 /** Copies a folder as hard links: instant, and no extra space. */
 function linkTree(from, to) {
   mkdirSync(to, { recursive: true });
@@ -154,62 +166,33 @@ function linkTree(from, to) {
   }
 }
 
-/** The flows Playwright would run with `args`, listed without building anything. */
-function listFlows(args) {
+/** The flows `playwright test --list` gives in `cwd`, by key (listedFlows): nothing is built. */
+function listFlows(args, cwd = process.cwd(), env = process.env) {
   const result = spawnSync("npx", ["playwright", "test", "--list", "--reporter=json", ...args], {
+    cwd,
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
-    env: { ...process.env, STORYBOARD_SHOTS: "1" },
+    env: { ...env, STORYBOARD_SHOTS: "1" },
   });
-  if (result.status !== 0) throw new Error(`Couldn't list the flows:\n${result.stderr}`);
+  if (result.status !== 0) throw new Error(`Couldn't list the flows in ${cwd}:\n${result.stderr}`);
   return listedFlows(JSON.parse(result.stdout));
 }
 
 /**
- * Where main's frames for this run are kept: main's commit (fetched first,
- * as serve-main.mjs does) and everything of this branch's that decides what
- * every flow does against it. The pages' paths count, not their code: the
- * route list comes from them. Each spec file is a flow's own, in
- * specHashes(), and Vitest's tests and the page the reporter's frames go
- * into decide nothing.
+ * The hash of this checkout's tree as it is now, with what's uncommitted
+ * and untracked: what a run of the suite here pictures.
  */
-function mainCacheDir(commit) {
-  const files = git(
-    "ls-files",
-    "-co",
-    "--exclude-standard",
-    "--",
-    "tests",
-    "playwright.config.ts",
-    "lib/content",
-    // Each flow's database, from this branch's migrations, and main's server.
-    "scripts/fresh-database.mjs",
-    "scripts/serve-main.mjs",
-    "netlify/database/migrations",
-    // The route list.
-    "app/sitemap.ts",
-  )
-    .split("\n")
-    .filter((path) => path && existsSync(path) && !SPEC.test(path) && !/\.test\.tsx?$/.test(path))
-    .filter((path) => !path.startsWith("tests/storyboard/report/") || path.endsWith("/reporter.ts"))
-    .map((path) => [path, readFileSync(path, "utf8")]);
-  const pages = git("ls-files", "-co", "--exclude-standard", "--", "app/**/page.tsx")
-    .split("\n")
-    .map((path) => [path, ""]);
-  const playwright = ["@playwright/test", readJson("node_modules/@playwright/test/package.json").version];
-  return join(MAIN_CACHE, cacheKey(commit, [...files, ...pages, playwright]));
-}
-
-const SPEC = /^tests\/storyboard\/[^/]+\.spec\.ts$/;
-
-/** Each section's spec file's hash, which a flow's kept frames of main are good for. */
-function specHashes() {
-  const specs = {};
-  for (const path of git("ls-files", "-co", "--exclude-standard", "--", "tests/storyboard").split("\n")) {
-    if (!SPEC.test(path) || !existsSync(path)) continue;
-    specs[basename(path, ".spec.ts")] = createHash("sha256").update(readFileSync(path)).digest("hex").slice(0, 12);
+function workingTree() {
+  const dir = mkdtempSync(join(tmpdir(), "pauseai-storyboard-index-"));
+  try {
+    const env = { ...process.env, GIT_INDEX_FILE: join(dir, "index") };
+    // From the checkout's own index, so git reads only the files that have changed.
+    copyFileSync(git("rev-parse", "--path-format=absolute", "--git-path", "index"), env.GIT_INDEX_FILE);
+    execFileSync("git", ["add", "--all"], { env });
+    return execFileSync("git", ["write-tree"], { env, encoding: "utf8" }).trim();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
-  return specs;
 }
 
 /** Drops all but the newest `keep` folders in `dir`, never `current`. */
@@ -219,25 +202,6 @@ function prune(dir, keep, current) {
     .filter((path) => path !== current)
     .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
   for (const folder of folders.slice(keep - 1)) rmSync(folder, { recursive: true, force: true });
-}
-
-/** Moves a fresh run of main (runDir/main-run) into the cache, replacing the flows it ran. */
-function keepMainRun(cacheDir, cached, specs) {
-  const run = join(runDir, "main-run");
-  const fresh = readJson(join(run, "frames.json"));
-  mkdirSync(join(cacheDir, "frames"), { recursive: true });
-  if (existsSync(join(run, "frames"))) {
-    for (const folder of readdirSync(join(run, "frames"))) {
-      const target = join(cacheDir, "frames", folder);
-      rmSync(target, { recursive: true, force: true });
-      renameSync(join(run, "frames", folder), target);
-    }
-  }
-  rmSync(run, { recursive: true, force: true });
-  // In the cache, pictures' paths are relative to its folder.
-  const merged = mergeRun(cached, fresh, "main-run/", "", specs);
-  writeJson(join(cacheDir, "frames.json"), merged);
-  return merged;
 }
 
 /** Whether a server at `url` answers. */
@@ -262,47 +226,109 @@ async function waitFor(url, child, timeoutMs) {
   throw new Error(`${url} didn't answer within ${timeoutMs / 1000}s`);
 }
 
-// The layout before runs had folders: one review, straight in DIR.
-for (const old of ["branch", "main", "main-run", "diff", "storyboard.json"]) {
-  rmSync(join(DIR, old), { recursive: true, force: true });
-}
-
-// The whole suite, and what this run selects: a run is partial when it leaves
-// some of the suite out, whatever the arguments that did it.
-const suite = listFlows([]);
-const wanted = listFlows([...options.projects, ...passThrough]);
-const partial = [...suite.keys()].some((key) => !wanted.has(key));
-// A server someone started for main may not be the ref's commit: no cache then.
-const usesCache = options.main !== undefined && !options.mainServer;
-
-mkdirSync(runDir, { recursive: true });
-const carried = partial && existsSync(join(LATEST, "branch")) ? LATEST : undefined;
-if (carried) {
-  console.log(`\n▶ Storyboard: a partial run; the other flows are carried from the latest run.\n`);
-  linkTree(join(carried, "branch"), join(runDir, "branch"));
-  if (existsSync(join(carried, "main"))) linkTree(join(carried, "main"), join(runDir, "main"));
-  // Main's pictures, when a --main-server run kept them in the run. Not into a run that uses the
-  // cache: they may not be the ref's, and everything in main-run/ is moved into the cache.
-  if (!usesCache && existsSync(join(carried, "main-run")))
-    linkTree(join(carried, "main-run"), join(runDir, "main-run"));
-  // Flows gone from the suite go from the review, and a run using the cache drops main frames it didn't link.
-  for (const [side, foreign] of [
-    ["branch", undefined],
-    ["main", usesCache ? "main-run/" : undefined],
-  ]) {
-    const file = join(runDir, side, "frames.json");
-    if (existsSync(file)) writeJson(file, carryable(readJson(file), suite, foreign));
-  }
-}
-
-// Main: where this branch left it, and which of its frames are kept.
+// Main: where this branch left it.
 const base = options.main !== undefined ? git("merge-base", options.main, "HEAD") : undefined;
-const cacheDir = usesCache ? mainCacheDir(base) : undefined;
-const cacheFile = cacheDir && join(cacheDir, "frames.json");
-let cached = !options.freshMain && cacheFile && existsSync(cacheFile) ? readJson(cacheFile) : { frames: [] };
-const specs = specHashes();
 
-/** Starts building and serving main on MAIN_URL, its output in the run's folder. */
+/**
+ * The environment for a command in main's checkout: this one's, but for
+ * what points this checkout's suite at a build, as main's finds its own.
+ */
+function mainEnv() {
+  const env = { ...process.env };
+  for (const name of ["LOCAL_URL", "MAIN_URL", "OUTBOX_DIR", "STORYBOARD_ON_MAIN"]) delete env[name];
+  // The same test Postgres as this branch's (`db-test`, say), which main's
+  // checkout can't find in our .env.local.
+  const testServer = testServerUrl();
+  if (testServer) env.TEST_DATABASE_URL = testServer;
+  return env;
+}
+
+/**
+ * Runs main's own suite, in its checkout, for the flows on `lines`
+ * (listedFlows), its frames going to `workDir`/main-run. Playwright builds
+ * main and serves it there, on the port of that checkout's own path.
+ */
+async function runMainSuite(workDir, lines) {
+  // Playwright would take whatever serves there for the build it has just been asked for.
+  const url = execFileSync(
+    "node",
+    ["--input-type=module", "-e", "import('./tests/checkout.mjs').then((checkout) => console.log(checkout.OWN_URL))"],
+    { cwd: MAIN_WORKTREE, env: mainEnv(), encoding: "utf8" },
+  ).trim();
+  if (await answers(url))
+    throw new Error(
+      `Something is already serving on ${url}, where main's checkout (${MAIN_WORKTREE}) serves. Stop it.`,
+    );
+  console.log(`\n▶ Storyboard: main's own suite (${MAIN_WORKTREE})\n`);
+  const testList = join(resolve(workDir), "main-tests.txt");
+  writeFileSync(testList, lines.join("\n"));
+  spawnSync("npx", ["playwright", "test", `--test-list=${testList}`], {
+    cwd: MAIN_WORKTREE,
+    stdio: "inherit",
+    env: {
+      ...mainEnv(),
+      STORYBOARD_SHOTS: "1",
+      STORYBOARD_DIR: resolve(workDir),
+      STORYBOARD_SIDE: "main-run",
+      STORYBOARD_RUN_AT: runAt,
+    },
+  });
+  rmSync(testList);
+}
+
+/**
+ * Main's frames from the store, once it has every flow of `wanted` (keys)
+ * that main has, or every flow of main's if `wanted` is undefined: main's
+ * suite is listed, and run for the flows not kept, only if the store
+ * doesn't have them. `workDir` is where a run of main puts its frames on
+ * their way there. Returns main's tree, what's kept of it, and the flows
+ * needed.
+ */
+async function mainFromStore(workDir, wanted) {
+  const tree = git("rev-parse", `${base}^{tree}`);
+  let kept = readTree(STORE, tree);
+  let needed, missing;
+  const lookAgain = () => {
+    kept = readTree(STORE, tree);
+    if (!kept.flows) return false;
+    needed = wanted ? wanted.filter((key) => key in kept.flows) : Object.keys(kept.flows);
+    missing = options.freshMain ? needed : missingFlows(STORE, kept, needed);
+    return missing.length === 0;
+  };
+  if (lookAgain()) {
+    console.log(`\n▶ Storyboard: main's frames of the ${needed.length} flows are kept; not running main.\n`);
+    return { tree, kept, needed };
+  }
+  const release = await lockMain();
+  try {
+    // Whoever had main's checkout may have been keeping these very frames.
+    if (!lookAgain() || options.freshMain) {
+      checkOutMain(base);
+      if (!kept.flows) {
+        keepRuns(STORE, tree, workDir, [], Object.fromEntries(listFlows([], MAIN_WORKTREE, mainEnv())));
+        lookAgain();
+      }
+      if (missing.length > 0) {
+        console.log(`\n▶ Storyboard: running main for the ${missing.length} flows whose frames aren't kept.\n`);
+        await runMainSuite(
+          workDir,
+          missing.map((key) => kept.flows[key]),
+        );
+        const ran = join(workDir, "main-run");
+        // Main may not have got as far as a flow: its build failing, say.
+        if (existsSync(join(ran, "frames.json")))
+          keepRuns(STORE, tree, workDir, readJson(join(ran, "frames.json")).frames);
+        rmSync(ran, { recursive: true, force: true });
+        kept = readTree(STORE, tree);
+      }
+    }
+  } finally {
+    release();
+  }
+  return { tree, kept, needed };
+}
+
+/** Starts building and serving main on MAIN_URL, for this branch's suite, its output in the run's folder. */
 async function startMain() {
   // Something already serving there would be taken for main: a server left from an earlier review.
   if (await answers(MAIN_URL))
@@ -317,7 +343,6 @@ async function startMain() {
     detached: true,
   });
   process.on("exit", () => stopMain(server));
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(130));
   return server;
 }
 
@@ -333,79 +358,126 @@ async function stopMain(server) {
   await exited;
 }
 
-// Main is built while this branch's flows run, when it looks as if it will be
-// needed: when the cache lacks a flow that pictured in the latest run, or
-// that the latest run didn't have. Which flows picture is only known once
-// they've run, so a guess; a wrong one builds main for nothing, or, the
-// other way, builds it afterwards, as it would have anyway.
-let mainServer;
-if (cacheDir) {
-  const latestFile = join(LATEST, "branch", "frames.json");
-  const latest = existsSync(latestFile) ? readJson(latestFile) : { frames: [] };
-  const known = new Set(latest.frames.map(flowKey));
-  const likely = [...picturedFlows(latest, wanted.keys()), ...[...wanted.keys()].filter((key) => !known.has(key))];
-  if (missingFlows(cached, likely, specs).length > 0) mainServer = await startMain();
-}
-
-const code = runSuite("branch", options.server);
-
-const branchFrames = join(runDir, "branch", "frames.json");
-if (options.main === undefined || !existsSync(branchFrames)) {
-  await stopMain(mainServer);
-} else {
-  const pictured = picturedFlows(readJson(branchFrames), wanted.keys());
-  console.log(`\n▶ Storyboard: main is ${git("log", "-1", "--format=%h %s", base)}\n`);
-  const missing = cacheDir ? missingFlows(cached, pictured, specs) : [...pictured];
-
-  if (missing.length === 0) {
-    await stopMain(mainServer);
-    console.log(`\n▶ Storyboard: main's frames of the ${pictured.size} pictured flows are kept; not running main.\n`);
-  } else {
-    console.log(`\n▶ Storyboard: running main for the ${missing.length} pictured flows it hasn't kept.\n`);
-    const testList = join(runDir, "main-tests.txt");
-    writeFileSync(testList, missing.map((key) => wanted.get(key)).join("\n"));
-    let mainUrl = options.mainServer;
-    if (!mainUrl) {
-      mainUrl = MAIN_URL;
-      mainServer ??= await startMain();
+/**
+ * Main's frames from this branch's suite, run against main's build for the
+ * flows of `pictured` (keys), each on its line of `lines`. They stay in the
+ * run's folder, main-run, where the reporter puts them.
+ */
+async function mainWithThisSuite(pictured, lines) {
+  if (pictured.size === 0) return { frames: [] };
+  console.log(
+    `\n▶ Storyboard: running this branch's suite on main for the ${pictured.size} flows that took pictures.\n`,
+  );
+  const testList = join(runDir, "main-tests.txt");
+  writeFileSync(testList, [...pictured].map((key) => lines.get(key)).join("\n"));
+  let server;
+  const release = options.mainServer ? () => {} : await lockMain();
+  try {
+    if (!options.mainServer) {
+      server = await startMain();
       // The first run installs main's dependencies as well as building it.
-      await waitFor(mainUrl, mainServer, 900_000);
+      await waitFor(MAIN_URL, server, 900_000);
     }
     // Main may lack a flow, or a step of one: its failures are missing frames, not ours.
-    runSuite("main-run", mainUrl, { OUTBOX_DIR: MAIN_OUTBOX_DIR }, [`--test-list=${testList}`]);
-    rmSync(testList);
-    await stopMain(mainServer);
-    if (cacheDir) {
-      cached = keepMainRun(cacheDir, cached, specs);
-      prune(MAIN_CACHE, MAIN_CACHE_KEEP, cacheDir);
-    } else {
-      // No cache: the pictures stay in this run's folder, where the reporter put them.
-      cached = readJson(join(runDir, "main-run", "frames.json"));
-    }
+    runSuite("main-run", options.mainServer ?? MAIN_URL, { OUTBOX_DIR: MAIN_OUTBOX_DIR, STORYBOARD_ON_MAIN: "1" }, [
+      `--test-list=${testList}`,
+    ]);
+  } finally {
+    rmSync(testList, { force: true });
+    await stopMain(server);
+    release();
   }
-  // What board.ts pairs this branch's frames with: this run's flows, and a carried run's main frames for the rest.
-  // Main's pictures are linked into the run, so every path stays inside its folder: latest/ works, and
-  // pruning the cache never breaks a run.
-  const selected = selectFlows(cached, pictured, cacheDir ? "main/" : "");
-  if (cacheDir) {
-    for (const run of selected.frames) {
-      for (const { png } of run.frames) {
-        if (!png) continue;
-        const to = join(runDir, png);
-        mkdirSync(dirname(to), { recursive: true });
-        rmSync(to, { force: true });
-        linkSync(join(cacheDir, png.slice("main/".length)), to);
-      }
-    }
-  }
-  // The carried main frames as filtered above, without the flows gone from the suite: not the last run's own file.
-  const carriedMain = carried && join(runDir, "main", "frames.json");
-  mkdirSync(join(runDir, "main"), { recursive: true });
-  writeJson(
-    join(runDir, "main", "frames.json"),
-    carriedMain && existsSync(carriedMain) ? carryFlows(readJson(carriedMain), selected) : selected,
-  );
+  return selectFlows(readJson(join(runDir, "main-run", "frames.json")), pictured);
 }
+
+if (options.onlyMain) {
+  if (base === undefined) throw new Error("--only-main keeps main's frames, so it needs a main: drop --no-main.");
+  console.log(`\n▶ Storyboard: main is ${git("log", "-1", "--format=%h %s", base)}\n`);
+  mkdirSync("test-results", { recursive: true });
+  // Beside the store when it can be, so the pictures go into it as hard links.
+  const workDir = mkdtempSync(join("test-results", "storyboard-only-main-"));
+  try {
+    const { tree } = await mainFromStore(workDir, undefined);
+    touchTree(STORE, tree);
+    pruneStore(STORE, TREES_KEEP);
+  } finally {
+    rmSync(workDir, { recursive: true, force: true });
+  }
+  process.exit(0);
+}
+
+// What reviews made in layouts this one doesn't use: one review straight in DIR, and main's frames kept in each checkout.
+for (const old of ["branch", "main", "main-run", "diff", "storyboard.json", "../storyboard-main"]) {
+  rmSync(join(DIR, old), { recursive: true, force: true });
+}
+
+// The whole suite, and what this run selects: a run is partial when it leaves
+// some of the suite out, whatever the arguments that did it.
+const suite = listFlows([]);
+const wanted = listFlows([...options.projects, ...passThrough]);
+const partial = [...suite.keys()].some((key) => !wanted.has(key));
+// Main's own frames, from the store: not with --no-main, nor when this branch's suite makes main's.
+const fromStore = options.main !== undefined && !options.thisSuite;
+
+mkdirSync(runDir, { recursive: true });
+const branchFrames = join(runDir, "branch", "frames.json");
+const mainFrames = join(runDir, "main", "frames.json");
+const carried = partial && existsSync(join(LATEST, "branch")) ? LATEST : undefined;
+if (carried) {
+  console.log(`\n▶ Storyboard: a partial run; the other flows are carried from the latest run.\n`);
+  linkTree(join(carried, "branch"), join(runDir, "branch"));
+  if (existsSync(join(carried, "main"))) linkTree(join(carried, "main"), join(runDir, "main"));
+  // Main's pictures from a run with --this-suite-on-main, which stay in the run. Not into a run that
+  // reads main's own from the store: its flows of those are dropped below.
+  if (!fromStore && existsSync(join(carried, "main-run")))
+    linkTree(join(carried, "main-run"), join(runDir, "main-run"));
+  // Flows gone from the suite go from the review.
+  writeJson(branchFrames, carryable(readJson(branchFrames), suite));
+}
+/** Main's flows carried from the latest run, for the flows this run doesn't replace. */
+const carriedMain = carried && existsSync(mainFrames) ? readJson(mainFrames) : undefined;
+
+// A full run's frames are kept under the tree they picture, if the build is known to be that tree's:
+// Playwright made it for this run, and nothing in the checkout changed meanwhile.
+const full = !partial && passThrough.length === 0;
+const builtHere = !options.server && !(await answers(LOCAL_URL));
+const treeBefore = workingTree();
+
+const code = runSuite("branch", options.server ?? LOCAL_URL);
+
+if (existsSync(branchFrames) && full && builtHere && workingTree() === treeBefore) {
+  keepRuns(STORE, treeBefore, runDir, readJson(branchFrames).frames, Object.fromEntries(suite));
+}
+
+let mainError;
+if (options.main === undefined || !existsSync(branchFrames)) {
+  if (carriedMain) writeJson(mainFrames, carryable(carriedMain, suite));
+} else {
+  console.log(`\n▶ Storyboard: main is ${git("log", "-1", "--format=%h %s", base)}\n`);
+  try {
+    let selected, mainSuite, foreign;
+    if (fromStore) {
+      const { tree, kept, needed } = await mainFromStore(runDir, partial ? [...wanted.keys()] : undefined);
+      touchTree(STORE, tree);
+      // Main's pictures are linked into the run, so every path stays inside its folder: latest/ works, and
+      // pruning the store never breaks a run.
+      selected = linkFlows(STORE, kept, new Set(needed), runDir);
+      // Carried: only flows main still has, and none shot by this branch's suite.
+      mainSuite = { has: (key) => key in kept.flows };
+      foreign = "main-run/";
+    } else {
+      selected = await mainWithThisSuite(picturedFlows(readJson(branchFrames), wanted.keys()), wanted);
+      mainSuite = suite;
+    }
+    mkdirSync(dirname(mainFrames), { recursive: true });
+    // What board.ts pairs this branch's frames with: this run's flows, and a carried run's main frames for the rest.
+    writeJson(mainFrames, carriedMain ? carryFlows(carryable(carriedMain, mainSuite, foreign), selected) : selected);
+  } catch (error) {
+    // The review of this branch's own frames is still written; the failure is reported at the end.
+    mainError = error;
+  }
+}
+pruneStore(STORE, TREES_KEEP);
 
 if (existsSync(branchFrames)) {
   const { summary, withMain } = await writeStoryboard(runDir);
@@ -456,8 +528,11 @@ if (options.changed && existsSync(join(runDir, "storyboard.json"))) {
   console.log(`\n${describeChanged(readJson(join(runDir, "storyboard.json")), realpathSync(runDir)).join("\n")}`);
 }
 
+if (mainError)
+  console.error(`\nStoryboard: main's side failed, so nothing is compared with it. ${mainError.message}\n`);
+
 if (options.open && existsSync(page)) {
   const opener = platform() === "darwin" ? "open" : platform() === "win32" ? "start" : "xdg-open";
   spawn(opener, [resolve(page)], { stdio: "ignore", detached: true, shell: platform() === "win32" }).unref();
 }
-process.exit(code);
+process.exit(code || (mainError ? 1 : 0));

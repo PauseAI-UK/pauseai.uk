@@ -23,12 +23,14 @@ Two more scripts check the migrations:
 
 | Script                   | Run with                             | What it does                                                                                                                                                                                                                                   |
 | ------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `storyboard.mjs`         | `npm run storyboard`                 | The storyboard review: runs the Playwright suite with screenshots on both viewports, for this branch and for main, and opens the page pairing them.                                                                                            |
+| `storyboard.mjs`         | `npm run storyboard`                 | The storyboard review: runs the Playwright suite with screenshots on both viewports for this branch, takes main's frames from the store (running main's own suite for any not there), and opens the page pairing them.                         |
 | `storyboard-changed.mjs` | `npm run storyboard:changed`         | Prints the frames of the latest run (or one named) that differ from main, are new or are gone, with each one's caption and the paths of its pictures. `npm run storyboard -- --changed` prints them after a run.                               |
 | `copy.mjs`               | `npm run copy`                       | Writes `test-results/copy.html`: each placeholder the branch adds or changes, with its file and line and the latest run's frames that picture it, the copy in a box, and those no frame pictures. `-- --storyboard` runs the storyboard first. |
-| `storyboard-main.mjs`    | imported by `storyboard.mjs`         | Keeps main's frames between runs, under main's commit and a hash of the suite's shared files, so a run builds and runs main only for the flows it hasn't got.                                                                                  |
+| `storyboard-store.mjs`   | imported by `storyboard.mjs`         | Keeps each run's frames under the tree it ran, in the main checkout's `test-results/storyboard-frames/`, for every worktree: main's frames come from there, and main runs only for the flows it hasn't got.                                    |
+| `storyboard-main.mjs`    | imported by `storyboard.mjs`         | Works out which flows the suite has, which a partial run carries from the last, and which took pictures.                                                                                                                                       |
+| `main-checkout.mjs`      | imported by `storyboard.mjs`         | Main's checkout, a git worktree in your temp folder: checks out where this branch left origin/main there, with its own dependencies, and lets one process use it at a time.                                                                    |
 | `serve-fixture.mjs`      | Playwright's `webServer`, or by hand | Builds this checkout on fixture data, with a fresh database of its own, and serves it on the checkout's own port (`tests/checkout.mjs`). Start it yourself to keep one server up between runs (`docs/development.md`, "Tests").                |
-| `serve-main.mjs`         | started by `storyboard.mjs`          | Builds and serves where this branch left origin/main (or `--ref`) on fixture data, from a git worktree in your temp folder, on the checkout's port for main, for the comparison.                                                               |
+| `serve-main.mjs`         | started by `storyboard.mjs`          | Builds and serves where this branch left origin/main (or `--ref`) on fixture data, from main's checkout, on this checkout's port for main: for `--this-suite-on-main`, which runs this branch's suite against it.                              |
 
 `docs/testing.md`, "The storyboard", covers them.
 
@@ -53,7 +55,7 @@ Each command has a time limit and a log in `tmp/gate/`, and the gate ends with a
 
 ## Worktrees
 
-`worktree.mjs`, run with `npm run worktree -- <branch>`, fetches, adds `tmp/worktrees/<branch>` as a new branch from `origin/main`, runs `npm ci` in it and prints the ports its storyboard will serve on. With `--ports` it only prints this checkout's ports. `docs/development.md`, "Worktrees", covers it.
+`worktree.mjs`, run with `npm run worktree -- <branch>`, fetches, adds `tmp/worktrees/<branch>` as a new branch from `origin/main`, runs `npm ci` in it and prints the ports its storyboard will serve on. It leaves the storyboard keeping main's frames in the background, for the branch's first review. With `--ports` it only prints this checkout's ports. `docs/development.md`, "Worktrees", covers it.
 
 `serve.mjs`, run with `npm run serve -- [<branch> | <PR number>]`, serves a branch's worktree on fixture data with `next dev`, making the worktree if need be. In front of `next dev` it puts a proxy on this machine's network address, which strips `Secure` from cookies. It checks the link in Firefox, then prints it. `--stop` stops it. `docs/development.md`, "Serving a branch", covers it.
 

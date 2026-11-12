@@ -244,7 +244,7 @@ on the page: "Passed. No frames: this flow only checks."
 
 ```bash
 npm run test:storyboard   # the gate, here and in CI: desktop runs every flow, phone only those tagged @phone; no screenshots
-npm run storyboard        # the review: both viewports, every flow, screenshots, against a build of main (where this branch left origin/main), then opens the page
+npm run storyboard        # the review: both viewports, every flow, screenshots, against main's frames (where this branch left origin/main), then opens the page
 npm run test:report       # Playwright's own report, with the trace of a failed flow
 ```
 
@@ -256,18 +256,15 @@ all three have passed. `.github/workflows/ci.yml` says why.
 **The review** (`scripts/storyboard.mjs`):
 
 - runs the suite against this branch, with screenshots;
-- runs it against main for the flows that took pictures (a flow without
-  frames has nothing to compare);
+- takes main's frames from where they're kept, running main's own suite
+  first for any that aren't ("Main's frames are main's own", below);
 - pairs the frames by section, flow and caption, and diffs them pixel by
   pixel;
 - opens the run's page (`test-results/storyboard/index.html` leads to the
   newest run's).
 
-Main is built and served by `scripts/serve-main.mjs`, from a git worktree
-of where this branch left origin/main, the merge base a pull request
-compares with. The worktree is kept in your temp folder, with Next's cache,
-and runs its own `npm ci` when its lockfile changes. Nothing is fetched.
-Main's output is `main-server.log` in the run's folder.
+Main is where this branch left origin/main, the merge base a pull request
+compares with. Nothing is fetched.
 
 The page shows:
 
@@ -381,35 +378,61 @@ Each carried flow says when it was shot, and the summary line counts them.
 A flow that's gone from the suite, renamed or deleted, isn't carried. A
 full run starts empty.
 
-**Main is run once.** Main's frames are kept in
-`test-results/storyboard-main/`, under main's commit and a hash of what
-this branch's suite shares. The suite drives main's server, so a change to
-any of these changes main's frames:
+**Main's frames are main's own.** They come from main's suite, run on
+main's build, in a checkout of main's own: a git worktree in your temp
+folder (`scripts/main-checkout.mjs`), kept with its `node_modules` and
+Next's cache, where Playwright builds main and serves it as it does a
+branch. Nothing of this branch's goes into them. So:
 
-- `tests/`, but for the spec files, Vitest's tests and the review page's
-  code;
-- `playwright.config.ts`;
-- `lib/content/`;
-- the pages' paths, and `app/sitemap.ts`;
-- the migrations, and `scripts/fresh-database.mjs`;
-- `scripts/serve-main.mjs`;
-- Playwright's version.
+- A frame that differs from main's shows everything the branch changes:
+  the site, and the flow's own steps too.
+- A flow or a caption the branch renames no longer pairs with main's: it
+  shows as one gone and one new.
+- A flow the branch adds has no frames on main, and all of its are new.
 
-Each flow's frames are kept under a hash of its spec file too.
+**They're kept by tree.** The same tree gives the same pictures, whatever
+branch or checkout it's in, so every flow a run finishes is kept under the
+hash of the tree it ran (`scripts/storyboard-store.mjs`), in the main
+checkout's `test-results/storyboard-frames/`, which every worktree shares:
+each picture once, by its contents, and the newest ten trees. Two things
+put frames there:
 
-A run lists its flows first (`playwright test --list`, which builds
-nothing). After this branch's run, if main's frames of every flow that took
-pictures are kept, it doesn't build or run main at all. Otherwise it runs
-main for just the flows whose frames aren't kept
-(`playwright test --test-list`), and keeps the result. So a change to one
-spec file reruns only that section on main, and after one full review,
-every partial run against the same main is fast.
+- **A run of main.** The review looks for main's tree first. If every flow
+  it needs is kept, it doesn't touch main's checkout at all. Otherwise it
+  lists main's flows (`playwright test --list`, which builds nothing),
+  runs main for just the flows not kept (`playwright test --test-list`),
+  and keeps them. A flow that failed is kept too, to show as failed on
+  main, and is tried again by the next review. So main runs once for each
+  commit of main, for every branch and worktree off it.
+- **A full review of a branch.** Its frames are kept under the tree of the
+  checkout as it was, uncommitted files and all. When the branch merges,
+  main's tree is that tree if nothing else merged in between, and its
+  frames are there already. They're kept only if Playwright built the site
+  for that run (no server was already up, and no `--server`) and nothing
+  in the checkout changed while it ran, as only then is the build known to
+  be that tree's.
 
-The review won't start main's server while something already answers on
-main's port, such as a server left from an earlier review. Stop that
-server, or pass `--main-server=` to use it on purpose. `--fresh-main` runs
-main again regardless. With `--main-server` nothing is kept, as that server
-may not be the ref's commit.
+A full review needs every flow of main's, and a partial one those of its
+own flows that main has. `npm run worktree` starts the same thing in the
+background as it makes a branch (`npm run storyboard -- --only-main`), so
+the first review needn't wait: a review started meanwhile waits for it to
+finish. `--fresh-main` runs main again regardless.
+
+Main's build is served on a port of its checkout's own, and the review
+won't run main while something already answers there, such as a server
+left from a run that was stopped: Playwright would take it for the build
+it had just been asked for. Stop that server.
+
+**`--this-suite-on-main`** runs this branch's suite against main's build
+instead, for the flows that took pictures here, as the frames then differ
+only by what the site does. It's for a branch that changes how frames are
+pictured (`frame.ts`, `playwright.config.ts`, Playwright's version), where
+every frame would otherwise differ from main's own. `scripts/serve-main.mjs`
+builds and serves main for it, its output in `main-server.log` in the
+run's folder, or `--main-server=URL` names a server you started. Nothing
+of it is kept, so main runs each time. A flow that asks main for something
+it doesn't have fails there within seconds: an action gives up after ten
+(`actionTimeout` in `playwright.config.ts`).
 
 **Noise.** A frame that differs from main's only by antialiasing isn't
 counted as changed, by the rule toucan's snapshot gallery uses
@@ -437,7 +460,9 @@ Switches, after `--`:
 - `--no-open`: the page left closed;
 - `--paths`: print each frame's caption and picture;
 - `--changed`: print only the changed frames, as above;
-- `--server=URL` and `--main-server=URL`: servers you started.
+- `--server=URL`: a server you started for this branch;
+- `--fresh-main`, `--only-main`, `--this-suite-on-main` and
+  `--main-server=URL`: as above.
 
 Anything else goes to `playwright test`: a file (`staff-login`),
 `-g login`, `--headed`.
@@ -503,8 +528,8 @@ order, alongside the others:
     "blocked emails", never "RSC payload", "Server Action" or
     "hydration".
   - Unique in its section: the review pairs a flow's frames with main's
-    by section, title and caption. Both sides run this branch's spec
-    files, so a renamed flow still pairs.
+    by section, title and caption. Main's are from main's own spec files,
+    so a renamed flow shows as one gone and one new.
 - Tag a flow `@phone` to run it on the phone in the gate too. Tag it
   `@phone-only` if it only makes sense on the phone (the mobile nav), or
   `@desktop-only` if it only makes sense on the desktop. The review runs
@@ -1055,7 +1080,7 @@ limit, and check on it when it's due:
 timeout 30m npm run gate > tmp/gate.out 2>&1          # its commands have limits of their own (above)
 timeout 15m npm test                                  # usually about 5 minutes
 timeout 15m npm run test:storyboard                   # usually a few minutes
-timeout 25m npm run storyboard -- --no-open           # builds main too: usually about 10
+timeout 25m npm run storyboard -- --no-open           # usually about 5, and as long again when it has to run main
 ```
 
 `timeout` stops the run at the limit and exits 124, so a run that ends that
