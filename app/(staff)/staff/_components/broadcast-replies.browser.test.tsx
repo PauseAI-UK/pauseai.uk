@@ -126,6 +126,10 @@ describe("replies to broadcasts", () => {
     await draft.getByRole("button", { name: copy.replies.send }).click();
     await expect.element(draft.getByRole("button", { name: copy.replies.sending })).toBeDisabled();
     await expect.element(draft.getByRole("button", { name: copy.replies.discard })).toBeDisabled();
+    // Its keys don't send it again meanwhile.
+    await editor.click();
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    expect(answer).toHaveBeenCalledOnce();
     went();
     await vi.waitFor(() => expect(answer).toHaveBeenCalledOnce());
     expect(answer.mock.calls[0]).toEqual([
@@ -152,12 +156,15 @@ describe("replies to broadcasts", () => {
         subject="Re: Thanks"
         answer={answer}
         opened
+        doNotEmail
       >
         <p>Their reply</p>
       </AnswerableReply>,
     );
     const draft = page.getByRole("article", { name: "Re: Thanks" });
     const editor = draft.getByRole("textbox", { name: copy.replies.answerLabel });
+    // To someone with "Do not email", it warns that it goes all the same.
+    await expect.element(page.getByText(copy.replies.doNotEmail)).toBeVisible();
     // Shown open, it leaves the cursor where it is.
     await expect.element(editor).not.toHaveFocus();
     // With no words, the keys send nothing; Enter alone is a new line.

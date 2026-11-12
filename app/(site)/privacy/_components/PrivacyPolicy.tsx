@@ -143,7 +143,7 @@ export default function PrivacyPolicy() {
         Stichting PauseAI keeps its own copy under its own policy.
       </p>
 
-      <h2>⁂ How we contact you</h2>
+      <h2>How we contact you</h2>
       <p>
         ⁂ We only email you about what you said yes to: our newsletter, events or volunteering. Every email has a link
         at the bottom to unsubscribe or change what you get, and you can change everything on your{" "}
