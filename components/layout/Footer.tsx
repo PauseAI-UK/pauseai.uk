@@ -24,7 +24,7 @@ export default function Footer() {
           <Link href="/press">Press</Link>
           <Link href="/privacy">Privacy</Link>
           <CookieSettingsLink />
-          <Link href="/email-settings">⁂ Email settings</Link>
+          <Link href="/contact-preferences">Contact preferences</Link>
         </div>
         <div className={styles.socialRow}>
           <div className={styles.social}>

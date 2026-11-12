@@ -1,6 +1,6 @@
 "use server";
 
-// The email settings page's Server Actions. Each is a public endpoint: those
+// The contact preferences page's Server Actions. Each is a public endpoint: those
 // that change anything take the token of the link the page was opened by,
 // and act only for its address, only while it works, but for an email's
 // unsubscribe button, which works forever.

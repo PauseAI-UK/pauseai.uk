@@ -145,15 +145,19 @@ export default function PrivacyPolicy() {
 
       <h2>⁂ Our emails to you</h2>
       <p>
-        ⁂ We email you only about what you said yes to: our newsletter, events, or volunteering. Every email we send has
-        a link at the bottom to stop it or change what you get, and you can see and change it all on{" "}
-        <Link className="inline-link" href="/email-settings">
-          your email settings page
-        </Link>
-        . Before each email goes, we check your address with Stichting PauseAI, so nobody who asked PauseAI not to email
-        them hears from us; and when you unsubscribe, or stop all bulk email, we tell Stichting PauseAI too, so their
-        emails stop as well. If you reply, we keep your reply.
+        ⁂ We only email you about what you said yes to: our newsletter, events or volunteering. Every email has a link
+        at the bottom to unsubscribe or change what you get, and you can change everything on your{" "}
+        <Link className="inline-link" href="/contact-preferences">
+          contact preferences
+        </Link>{" "}
+        page.
       </p>
+      <p>
+        ⁂ Before each email goes, we check your address against Stichting PauseAI&rsquo;s records, so if you&rsquo;ve
+        asked PauseAI not to email you, we won&rsquo;t. When you unsubscribe from us, we tell Stichting PauseAI. If you
+        stop all bulk email, their emails stop too.
+      </p>
+      <p>⁂ If you reply to one of our emails, we keep your reply.</p>
 
       <h2>Who processes this data for us</h2>
       <ul>

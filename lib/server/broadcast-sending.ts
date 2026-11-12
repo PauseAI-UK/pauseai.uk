@@ -257,7 +257,7 @@ function copyEmail(
     { subject: broadcast.subject, body: checkMailingDoc(broadcast.body)! },
     copy.mergeValues,
   );
-  const settings = siteUrl(`/email-settings/m/${copy.linkToken}`, undefined).toString();
+  const settings = siteUrl(`/contact-preferences/m/${copy.linkToken}`, undefined).toString();
   const oneClick = siteUrl(`/api/unsubscribe/${copy.linkToken}`, undefined).toString();
   const footer = emailSettingsCopy.footer;
   return {

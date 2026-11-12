@@ -1373,11 +1373,11 @@ SELECT id, '00000000-0000-4000-8000-000000000001', dealt_by,
   'sent', dealt_at, dealt_at, 'seed-answer-thanks', 'seed-answer-thanks@pauseai.uk'
 FROM broadcast_replies WHERE gmail_message_id = 'seed-reply-thanks';
 
--- ------------------------------------------------------ email settings
+-- ------------------------------------------------------ contact preferences
 
 -- Someone who's no supporter unsubscribed from the newsletter by an old
 -- email's link, which CiviCRM accepted; and lifted "No bulk emails" on the
--- email settings page, beside its words, which CiviCRM has still to answer.
+-- contact preferences page, beside its words, which CiviCRM has still to answer.
 -- A link to Jane's settings, asked for an hour ago, which the public pages
 -- open (tests/routes.ts).
 WITH seed_out AS (

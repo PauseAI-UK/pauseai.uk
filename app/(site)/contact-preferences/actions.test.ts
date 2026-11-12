@@ -65,7 +65,7 @@ const afterAnswers = async () => Promise.all(later.splice(0));
 
 afterEach(() => vi.unstubAllEnvs());
 
-describeWithDatabase("the email settings page's actions", () => {
+describeWithDatabase("the contact preferences page's actions", () => {
   useTestDatabase();
 
   it("emails a link to an address we have, past the spam check, saying the same whoever's it is", async () => {

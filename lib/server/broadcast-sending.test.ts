@@ -123,8 +123,8 @@ describeWithDatabase("sending broadcasts", () => {
       ],
     });
     expect(jane.TextBody).toContain("Hi Jane, see you there.");
-    expect(jane.TextBody).toContain(emailSettingsCopy.footer.text(`https://pauseai.uk/email-settings/m/${token}`));
-    expect(jane.HtmlBody).toContain(`href="https://pauseai.uk/email-settings/m/${token}"`);
+    expect(jane.TextBody).toContain(emailSettingsCopy.footer.text(`https://pauseai.uk/contact-preferences/m/${token}`));
+    expect(jane.HtmlBody).toContain(`href="https://pauseai.uk/contact-preferences/m/${token}"`);
     expect(await stateOf(id)).toEqual({ state: "sent", waiting: false, reason: null, gaveUp: false });
     expect(await query("SELECT kind FROM broadcast_message_events ORDER BY id")).toEqual([
       { kind: "sent" },

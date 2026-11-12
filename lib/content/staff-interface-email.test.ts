@@ -14,8 +14,8 @@ it("says what a CiviCRM run sent CiviCRM, refused and left to try again", () => 
 it("says where no bulk email, or no email, came from but CiviCRM", () => {
   const { reasons } = staffCopy.supporters.detail.permissions;
   expect(reasons["no-bulk-email"]("2 Nov", "CiviCRM")).toBe("“No bulk emails” in CiviCRM, 2 Nov");
-  expect(reasons["no-bulk-email"]("2 Nov", "their email settings")).toBe(
-    "No bulk email, via their email settings, 2 Nov",
+  expect(reasons["no-bulk-email"]("2 Nov", "their contact preferences")).toBe(
+    "No bulk email, via their contact preferences, 2 Nov",
   );
   expect(reasons["do-not-email"]("2 Nov", "CiviCRM")).toBe("“Do not email” in CiviCRM, 2 Nov");
   expect(reasons["do-not-email"]("2 Nov", "PauseAI Global's records")).toBe(

@@ -88,7 +88,7 @@ async function noBulkInCivicrm() {
 
 afterEach(() => vi.unstubAllEnvs());
 
-describeWithDatabase("the email settings page", () => {
+describeWithDatabase("the contact preferences page", () => {
   useTestDatabase();
 
   it("emails a link to an address we have, once in a few minutes, and nothing to one we don't", async () => {
@@ -100,7 +100,7 @@ describeWithDatabase("the email settings page", () => {
     await emailSettingsLink("not an address");
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ To: JANE, Subject: emailSettingsCopy.linkEmail.subject });
-    const link = /https:\/\/pauseai\.uk\/email-settings\/([\w-]+)/.exec(sent[0].TextBody)![1];
+    const link = /https:\/\/pauseai\.uk\/contact-preferences\/([\w-]+)/.exec(sent[0].TextBody)![1];
     expect(await query("SELECT purpose FROM email_sends")).toEqual([{ purpose: "preferences-link" }]);
     expect(await linkPage(link)).toMatchObject({ kind: "link", unsubscribe: null, view: { address: JANE } });
     expect(await openAddress("link", link)).toBe(JANE);
@@ -353,7 +353,7 @@ describeWithDatabase("the email settings page", () => {
       expect.objectContaining({
         To: JANE,
         Subject: emailSettingsCopy.bulkNotice.subject,
-        TextBody: expect.stringMatching(/the march[\s\S]*https:\/\/pauseai\.uk\/email-settings\/[\w-]+/),
+        TextBody: expect.stringMatching(/the march[\s\S]*https:\/\/pauseai\.uk\/contact-preferences\/[\w-]+/),
       }),
     ]);
     expect(await query("SELECT DISTINCT purpose FROM email_sends")).toEqual([{ purpose: "bulk-notice" }]);

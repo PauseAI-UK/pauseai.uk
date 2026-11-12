@@ -1,14 +1,14 @@
-// The email settings group's examples log what each action is sent, and give the page as it was.
+// The contact preferences group's examples log what each action is sent, and give the page as it was.
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
-import { exampleNoBulk, exampleSettings } from "@/app/(site)/email-settings/_components/EmailSettings.examples";
+import { exampleNoBulk, exampleSettings } from "@/app/(site)/contact-preferences/_components/EmailSettings.examples";
 import { EmailSettingsExample, SettingsStartExample } from "./email-settings.client";
 
 const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listitem");
 
-describe("the email settings group's examples", () => {
+describe("the contact preferences group's examples", () => {
   it("logs asking for a link", async () => {
     await render(<SettingsStartExample />);
     await page.getByRole("textbox", { name: copy.start.label }).fill("jane.smith@example.com");

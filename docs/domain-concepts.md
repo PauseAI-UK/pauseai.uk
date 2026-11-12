@@ -984,7 +984,7 @@ source says who did. Three things tell us:
   contacts, one after another, ten pages a run (`recordContactsPass`). A
   contact it doesn't list is opted out, as `luma-contacts`, from when it
   noticed, unless they already are; an open opt-out of Luma's begun before
-  it listed them again is closed. One from our email settings page or an
+  it listed them again is closed. One from our contact preferences page or an
   email's unsubscribe link stays open, and the pass takes anyone it still
   lists with one off the calendar again (`stillOnCalendar`), as taking them
   off may have failed. That catches what the webhook doesn't: returns,
@@ -1000,7 +1000,7 @@ source says who did. Three things tell us:
 - A copy of a broadcast's unsubscribe link (`link`), and a mail app's own
   Unsubscribe button, by the copy's `List-Unsubscribe-Post` header
   (`list-unsubscribe`, `/api/unsubscribe/<token>`): an opt-out of what the
-  copy went under ("The email settings page", below).
+  copy went under ("The contact preferences page", below).
 - A spam complaint (`postmark-complaint`), from anyone, about any email:
   an opt-out of every bulk email, beside the block it makes ("Email",
   below).
@@ -1008,7 +1008,7 @@ source says who did. Three things tell us:
   every bulk email ("Broadcasts to supporters", above), and anything else
   a person tells staff, recorded under their consents on their page with
   how they said it (`staff`). Both name who recorded it.
-- The email settings page (`preferences`).
+- The contact preferences page (`preferences`).
 - CiviCRM's suppression check just before a broadcast (`civicrm-check`):
   an address PauseAI mustn't bulk email, or email at all.
 
@@ -1030,20 +1030,20 @@ topic by text or call, go nowhere. Each is queued with the opt-out, in
 `civicrm_updates`, and sent by the hourly CiviCRM import before it pulls,
 tried again each hour until CiviCRM answers it. Only opt-outs go, and the
 one opt-in the person makes themselves: lifting "No bulk emails" on the
-email settings page, as `allow_bulk_email`, beside its words. A yes on our
+contact preferences page, as `allow_bulk_email`, beside its words. A yes on our
 side stays ours.
 
 A new source is a name in the `CHECK` on `source`, and whatever records it.
 
-### The email settings page
+### The contact preferences page
 
-`/email-settings` (`lib/server/email-settings.ts`) is where anyone sees and
+`/contact-preferences` (`lib/server/email-settings.ts`) is where anyone sees and
 changes what PauseAI UK sends them, and why. Someone asks for a link by
 their address, past Turnstile; one goes only to an address we have, after
 the page has answered, and the page says the same either way, so neither
 its words nor how long it takes says whose addresses we hold. An address
 gets one link in 2 minutes and 5 in a day at most. A link works for 7 days. Every copy of a
-broadcast has its own link (`/email-settings/m/<token>`), which opens the
+broadcast has its own link (`/contact-preferences/m/<token>`), which opens the
 page with one button that opts out of what the copy went under: following
 the link changes nothing, as mail scanners follow links nobody clicked. The
 button works forever; the rest of the page for 30 days after the copy went,
@@ -1163,7 +1163,7 @@ winning a tie, so a box ticked after an unsubscribe opens it again. Last,
 if they said nothing that counts, why not: a box left unticked, never
 opted in in CiviCRM, never followed the calendar, gone from the chapter.
 A consent the address or number has had nothing to do with has no row.
-A box ticked on the email settings page is a yes (`chose`), and an opt-out
+A box ticked on the contact preferences page is a yes (`chose`), and an opt-out
 of every bulk email or all email is the stop "No bulk emails" or "Do not
 email" is; CiviCRM's "No bulk emails" stops nothing once the person lifted
 it there since we saw it, unless CiviCRM refused the lift.
@@ -1279,7 +1279,7 @@ needs a column pointing at that kind of record, as `letter_id` does.
 
 An address with "Do not email", in CiviCRM or as an opt-out of all email,
 gets only what the person just asked for or did: a login link, a link to
-the email settings page, a letter's copy and their MP's replies to it, which
+the contact preferences page, a letter's copy and their MP's replies to it, which
 to them is mail from their MP that we pass on, and the like (`TRANSACTIONAL`
 in `lib/server/email.ts`); `send()` refuses any other. A broadcast's copies
 go by `sendBroadcastCopies` there, a batch on Postmark's broadcast stream,

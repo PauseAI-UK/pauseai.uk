@@ -1,6 +1,6 @@
 import { hasWay, TOPICS, type ContactPermission, type Topic, type Way } from "./contact-permissions";
 
-// What the email settings page shows for an address: each topic, with a box
+// What the contact preferences page shows for an address: each topic, with a box
 // for each way it goes by, ticked where we'd send it; why; and what holds
 // all of the address's email, which only that can lift, or nobody here can.
 

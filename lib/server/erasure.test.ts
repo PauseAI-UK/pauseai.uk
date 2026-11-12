@@ -265,7 +265,7 @@ describeWithDatabase("eraseSupporter", () => {
     expect(await query("SELECT 1 FROM one_off_threads")).toEqual([]);
   });
 
-  it("deletes their replies to broadcasts, their email settings links and yeses, and what CiviCRM has answered for them", async () => {
+  it("deletes their replies to broadcasts, their contact preferences links and yeses, and what CiviCRM has answered for them", async () => {
     stubLettersInboxEnv();
     const mp = await addTestMp();
     const id = await janeWithEverything(mp);

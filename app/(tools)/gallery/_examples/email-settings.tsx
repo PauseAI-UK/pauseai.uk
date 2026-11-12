@@ -1,4 +1,4 @@
-// The email settings page's pieces (app/(site)/email-settings/_components/).
+// The contact preferences page's pieces (app/(site)/contact-preferences/_components/).
 import ProsePage from "@/components/ui/ProsePage";
 import {
   exampleBlocked,
@@ -6,17 +6,17 @@ import {
   exampleNoBulk,
   exampleSettings,
   exampleUnsubscribed,
-} from "@/app/(site)/email-settings/_components/EmailSettings.examples";
+} from "@/app/(site)/contact-preferences/_components/EmailSettings.examples";
 import type { Group } from "../_components/types";
 import { EmailSettingsExample, SettingsStartExample } from "./email-settings.client";
 
 export const emailSettings: Group = {
   id: "email-settings",
-  title: "Email settings",
+  title: "Contact preferences",
   examples: [
     {
       name: "SettingsStart",
-      file: "app/(site)/email-settings/_components/SettingsStart.tsx",
+      file: "app/(site)/contact-preferences/_components/SettingsStart.tsx",
       variants: [
         {
           label: "Asking for a link, with no Turnstile",
@@ -30,7 +30,7 @@ export const emailSettings: Group = {
     },
     {
       name: "EmailSettings",
-      file: "app/(site)/email-settings/_components/EmailSettings.tsx",
+      file: "app/(site)/contact-preferences/_components/EmailSettings.tsx",
       variants: [
         {
           label: "The newsletter by email and text, events by following Luma",

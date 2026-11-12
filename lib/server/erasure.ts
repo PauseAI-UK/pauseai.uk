@@ -54,7 +54,7 @@ export async function eraseSupporter(id: number, reference: string, by: string):
     if (!supporter) return undefined;
     await eraseFromSavedFilters(id, by, db);
     // First, while their links say which addresses and numbers are theirs: their replies to broadcasts, with our
-    // answers to them, whose messages go after; their links and yeses on the email settings page; and what CiviCRM has answered of what
+    // answers to them, whose messages go after; their links and yeses on the contact preferences page; and what CiviCRM has answered of what
     // we sent it for them. Not an opt-out, nor one still to go, which stay.
     const theirs = `(SELECT lower(matched_value) FROM supporter_links WHERE supporter_id = $1
                      UNION SELECT phone_number(matched_value) FROM supporter_links WHERE supporter_id = $1)`;

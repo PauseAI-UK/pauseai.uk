@@ -32,8 +32,8 @@ const EMPTY_STEP = /^\/campaigns\/[^/]+\/(write|preview)$/;
 // The component gallery has its own section, gallery.spec.ts, which pictures
 // its index and every group's page and checks them the same way.
 const GALLERY = /^\/gallery(\/|$)/;
-// Someone's email settings open only from a link made for them: email-settings.spec.ts pictures them.
-const SETTINGS_LINK = /^\/email-settings\/./;
+// Someone's contact preferences open only from a link made for them: email-settings.spec.ts pictures them.
+const SETTINGS_LINK = /^\/contact-preferences\/./;
 const PUBLIC_ROUTES = ROUTES.filter(
   (route) => !isStaffRoute(route) && !EMPTY_STEP.test(route) && !GALLERY.test(route) && !SETTINGS_LINK.test(route),
 );
@@ -80,7 +80,7 @@ for (const route of PUBLIC_ROUTES) {
     });
     page.on("pageerror", (error) => problems.push(`[pageerror] ${String(error).slice(0, 300)}`));
 
-    // A page with a form behind Turnstile, as /email-settings is, gets the stand-in, as no flow can pass the real one.
+    // A page with a form behind Turnstile, as /contact-preferences is, gets the stand-in, as no flow can pass the real one.
     await fakeTurnstile(page);
     const response = await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded" });
     expect(response?.status(), "status").toBe(200);

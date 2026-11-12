@@ -1,4 +1,4 @@
-// Made-up email settings, as the page gets them, for the gallery and the tests.
+// Made-up contact preferences, as the page gets them, for the gallery and the tests.
 import type { ContactPermission } from "@/lib/contact-permissions";
 import { hold, type SettingsView } from "@/lib/email-settings";
 

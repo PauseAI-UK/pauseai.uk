@@ -232,7 +232,7 @@ someone from the calendar (phase 3).
 
 ### 3. The preferences page
 
-The designs are in the [email settings
+The designs are in the [contact preferences
 mockups](https://claude.ai/artifact/5cNFkmmGXHSy4fNfrUo1ni): asking for
 a link, the page, arriving from an unsubscribe link, and the page with
 "No bulk emails" or "Do not email" set.
@@ -512,7 +512,7 @@ opt-outs staff record, with who recorded each and how it was given; and
 every address and number we send to, from any source, sent to Global by
 `checkSuppression` to check. The privacy policy should say we email
 people who said yes, and how to stop, linking to the preferences page
-as where to change your PauseAI UK email settings.
+as where to change your PauseAI UK contact preferences.
 
 ## Later, optional
 

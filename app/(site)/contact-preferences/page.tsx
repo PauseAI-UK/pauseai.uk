@@ -10,10 +10,10 @@ import SettingsStart from "./_components/SettingsStart";
 export const metadata: Metadata = pageMetadata({
   title: emailSettingsCopy.start.title,
   description: emailSettingsCopy.start.description,
-  path: "/email-settings",
+  path: "/contact-preferences",
 });
 
-/** Asking for a link to your email settings. */
+/** Asking for a link to your contact preferences. */
 export default function EmailSettingsStartPage() {
   return (
     <ProsePage>

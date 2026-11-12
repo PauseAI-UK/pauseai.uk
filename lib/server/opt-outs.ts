@@ -18,7 +18,7 @@ import { query, transaction, type Queryable } from "./db";
  * What can record an opt-out: Luma's webhook, a full pass over the
  * calendar's contacts, or CiviCRM's lists; an email's unsubscribe link, or a
  * mail app's Unsubscribe button; a spam complaint; staff, for a reply or
- * anything else the person told them; the email settings page; or
+ * anything else the person told them; the contact preferences page; or
  * CiviCRM's suppression check before a broadcast.
  */
 export type OptOutSource =
@@ -130,7 +130,7 @@ export async function recordStaffOptOut(
 
 /**
  * What takes an address off our Luma calendar: an opt-out of events by
- * email, or of every bulk email, told us on the email settings page, by an
+ * email, or of every bulk email, told us on the contact preferences page, by an
  * email's links, or by staff. Not CiviCRM's or Luma's own, nor a complaint.
  * Every path that records one (offCalendarAfter) and the contacts pass's
  * retry (stillOnCalendar) go by these.

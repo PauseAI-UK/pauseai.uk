@@ -210,7 +210,7 @@ function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["
 }
 
 /**
- * The email settings page: from an email's unsubscribe link, its box first;
+ * The contact preferences page: from an email's unsubscribe link, its box first;
  * then what PauseAI UK sends the address and its numbers, a topic a card,
  * with what holds all its email above them; Save; what PauseAI Global
  * sends; and Stop everything. Once its link has run out, an offer of a

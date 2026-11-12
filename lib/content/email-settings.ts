@@ -1,4 +1,4 @@
-// Every word of the email settings page (/email-settings) and the emails
+// Every word of the contact preferences page (/contact-preferences) and the emails
 // that link to it: what PauseAI UK sends someone, why, and how to change
 // it. Plain and short: what each choice does, the truth of it, nothing more.
 
@@ -45,7 +45,7 @@ export const emailSettingsCopy = {
   fromName: "PauseAI UK",
   // The email with a link to the page, which someone asked for.
   linkEmail: {
-    subject: "⁂ Your PauseAI UK email settings",
+    subject: "⁂ Your PauseAI UK contact preferences",
     body: (link: string, days: number) =>
       `⁂ Here's the link to see and change what PauseAI UK sends you:\n\n${link}\n\nIt works for ${days} days. If you didn't ask for it, you can ignore this email.`,
   },
@@ -80,13 +80,13 @@ export const emailSettingsCopy = {
   sent: {
     title: "⁂ Check your email",
     body: (address: string, days: number) =>
-      `⁂ If we have ${address}, we've sent it a link to your settings. It works for ${days} days.`,
+      `⁂ If we have ${address}, we've sent it a link to your contact preferences. It works for ${days} days.`,
     again: "⁂ Nothing come? Check your spam folder, or ask again in a few minutes.",
   },
   // A link that's run out.
   expired: {
     title: "⁂ This link has run out",
-    body: "⁂ For your privacy, links to your settings only work for a while. We can email you a new one.",
+    body: "⁂ For your privacy, links to your contact preferences only work for a while. We can email you a new one.",
     button: "⁂ Email me a new link",
     sent: "⁂ We've emailed you a new link.",
   },

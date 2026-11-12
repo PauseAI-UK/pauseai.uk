@@ -363,7 +363,7 @@ export const staffCopy = {
         noEmail: (n: number) =>
           `⁂ ${count(n, "person has", "people have")} “Do not email”, so won't hear from us at all.`,
         // In the email as they'll see it, in place of their own link.
-        theirLink: "https://pauseai.uk/email-settings/…",
+        theirLink: "https://pauseai.uk/contact-preferences/…",
       },
       table: { row: "Row", happens: "What will happen" },
       happens: {
@@ -577,7 +577,7 @@ export const staffCopy = {
           following: (when: string) => `Follows the Luma calendar, since ${when}`,
           "gave-number": (when: string, source: string) => `Gave it on ${source} for texts on the day, ${when}`,
           volunteered: (when: string) => `Gave it when joining as a volunteer or lead, ${when}`,
-          chose: (when: string) => `Chose it in their email settings, ${when}`,
+          chose: (when: string) => `Chose it in their contact preferences, ${when}`,
           blocked: () => "",
           "do-not-email": (when: string, source: string) =>
             source === "CiviCRM" ? `“Do not email” in CiviCRM, ${when}` : `No email at all, via ${source}, ${when}`,
@@ -610,7 +610,7 @@ export const staffCopy = {
           "postmark-complaint": "marking our email as spam",
           reply: "staff, from their reply to our email",
           staff: "telling staff",
-          preferences: "our email settings page",
+          preferences: "our contact preferences page",
           "civicrm-check": "PauseAI Global's records",
         } as Record<string, string>,
         otherSource: "their newest form",
@@ -2619,7 +2619,7 @@ All events: ${link}`,
     // emailed to staff, but for connectionDropped and errorNotKept, which only reach Netlify's logs. Each
     // says what the person saw, if anything.
     logs: {
-      // Someone turned off events by email, or every bulk email, on the email settings page or an email's
+      // Someone turned off events by email, or every bulk email, on the contact preferences page or an email's
       // unsubscribe link, but Luma didn't take them off the calendar, which goes on emailing them.
       lumaRemoveFailed: "⁂ Couldn't take someone off the Luma calendar after they opted out of event emails",
       // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission.

@@ -51,7 +51,7 @@ export async function queueOptOut(
   return true;
 }
 
-/** Queues a lift of "No bulk emails", chosen on the email settings page beside `wording`. */
+/** Queues a lift of "No bulk emails", chosen on the contact preferences page beside `wording`. */
 export async function queueBulkLift(
   choice: { id: number; address: string; at: Date; wording: string },
   db?: Queryable,

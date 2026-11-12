@@ -753,7 +753,7 @@ that drives it or why nothing does.
   - a reply asking to stop, to look at on the email's page, recorded as an opt-out from its thread;
   - a reply answered from its thread, by Gmail from hello@, and the email the person gets;
   - one to the newsletter's and events' yeses both, ticked as about our events.
-- `email-settings.spec.ts`: The email settings page:
+- `email-settings.spec.ts`: The contact preferences page:
   - asking for a link past Turnstile, the email with it, and the page it opens;
   - changing what you get, and Stop everything;
   - an email's unsubscribe link, fresh and two months old, with a fresh link emailed;
@@ -843,7 +843,7 @@ that drives it or why nothing does.
   - `march-signup`: registering, Luma failing, and an email the server won't take.
   - `supporters`: a sign-up kept, on the supporter's page.
 - `/api/march/signups`: `march-signup`: the count asked for again when the page comes back into view. Vitest-tested beside it.
-- `/api/unsubscribe/[token]`: a mail app's one-click Unsubscribe, which a person never sees, so no flow drives it; Vitest-tested with the page's actions (`app/(site)/email-settings/actions.test.ts`).
+- `/api/unsubscribe/[token]`: a mail app's one-click Unsubscribe, which a person never sees, so no flow drives it; Vitest-tested with the page's actions (`app/(site)/contact-preferences/actions.test.ts`).
 - `/api/postmark/bounce`, `/api/postmark/inbound`, Postmark's webhooks. Replies to the letters that the letters inbox sends, and their bounces, come through `read-gmail`, below.
   - `campaigns`: both routes turn away a post without Postmark's credentials, and a bounce for an email that isn't a letter changes nothing.
   - `letters`, `mailings` and `permissions`: Postmark's bounce payloads, for a letter, a mailing's letters and an email we can't place.

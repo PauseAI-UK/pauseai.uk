@@ -7,9 +7,9 @@ import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
 import type { Section } from "./report/frames";
 
-export const section: Section = { name: "Email settings", part: "Public site", order: 55 };
+export const section: Section = { name: "Contact preferences", part: "Public site", order: 55 };
 
-// The email settings page (/email-settings), on the fixture CiviCRM's UK
+// The contact preferences page (/contact-preferences), on the fixture CiviCRM's UK
 // chapter contacts and the fixture Luma calendar, each flow on its own
 // database: asking for a link; changing what you get; an email's unsubscribe
 // link, fresh and old; "No bulk emails", lifted; "Do not email"; and the email
@@ -30,7 +30,7 @@ function link(database: string, address: string, daysAgo = 0): string {
      VALUES (encode(sha256('${token}'::bytea), 'hex'), '${address}', now() - interval '${daysAgo} days',
        now() - interval '${daysAgo} days' + interval '7 days')`,
   );
-  return `/email-settings/${token}`;
+  return `/contact-preferences/${token}`;
 }
 
 /** A copy of an events broadcast to `address`, sent `daysAgo`, under `topics`; its unsubscribe link's path. */
@@ -47,7 +47,7 @@ function copyLink(database: string, address: string, topics: string, daysAgo: nu
      SELECT m.id, (SELECT supporter_id FROM supporter_links WHERE matched_value = '${address}' LIMIT 1), '${address}',
        'delivered', encode(sha256(convert_to('${token}', 'UTF8')), 'hex'), '{${topics}}', now() - interval '${daysAgo} days' FROM m`,
   );
-  return `/email-settings/m/${token}`;
+  return `/contact-preferences/m/${token}`;
 }
 
 /** Opens a settings page, settled. */
@@ -59,13 +59,13 @@ async function open(page: Page, path: string) {
 const topicCard = (page: Page, topic: "newsletter" | "events" | "volunteering") =>
   page.getByRole("group", { name: copy.topics[topic], exact: false });
 
-test("Asking for a link to your email settings", { tag: "@phone" }, async ({ page, request }) => {
+test("Asking for a link to your contact preferences", { tag: "@phone" }, async ({ page, request }) => {
   story(
-    "Someone wants to change what PauseAI UK emails them. They open Email settings, give their address, and pass the spam check.",
+    "Someone wants to change what PauseAI UK emails them. They open Contact preferences, give their address, and pass the spam check.",
   );
   await importCivicrm(request, BASE);
   await fakeTurnstile(page);
-  await open(page, "/email-settings");
+  await open(page, "/contact-preferences");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.start.title);
   await frame(page, "Asking for a link");
   // Kit, as no other flow emails Kit a link, so the newest such email is this flow's.
@@ -82,10 +82,10 @@ test("Asking for a link to your email settings", { tag: "@phone" }, async ({ pag
   const email = linkEmail()!;
   await emailFrame(page, email, "The email with the link");
   story("The link opens their settings.");
-  const path = new URL(/https?:\/\/\S+\/email-settings\/[\w-]+/.exec(email.TextBody)![0]).pathname;
+  const path = new URL(/https?:\/\/\S+\/contact-preferences\/[\w-]+/.exec(email.TextBody)![0]).pathname;
   await open(page, path);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.settings.title);
-  await frame(page, "Their email settings");
+  await frame(page, "Their contact preferences");
 });
 
 test("Changing what you get", async ({ page, request, flowDatabase }) => {

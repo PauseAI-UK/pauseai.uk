@@ -24,7 +24,7 @@ import { removeCalendarContact } from "./outside-services/luma-calendar";
 import { notifyDomain } from "./outside-services/postmark";
 import { problem } from "./problems";
 
-// The email settings page (/email-settings), where anyone sees and changes
+// The contact preferences page (/contact-preferences), where anyone sees and changes
 // what PauseAI UK sends an address, and why. It opens only from a link
 // emailed to the address: one asked for on the page, which works for
 // LINK_DAYS, or the unsubscribe link in a copy of a broadcast, whose button
@@ -55,7 +55,7 @@ export async function newSettingsLink(address: string, db?: Queryable): Promise<
     [hashOf(token), normaliseAddress(address), LINK_DAYS],
     db,
   );
-  return `/email-settings/${token}`;
+  return `/contact-preferences/${token}`;
 }
 
 /** Whether we have the address from anywhere: someone we know, or an opt-out of theirs. */
