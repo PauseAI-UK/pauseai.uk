@@ -17,7 +17,7 @@ import { anyAndNone, filtersPath, pageParam, valuesOf, type Params } from "@/lib
 import { phoneWords } from "@/lib/phone";
 import { datesHeldTogether, staffDate } from "@/lib/staff-time";
 import { sortHref } from "@/lib/staff-sort";
-import { SUPPORTERS_LIST, type SupporterSort } from "@/lib/staff-lists";
+import { clearedPath, SUPPORTERS_LIST, type SupporterSort } from "@/lib/staff-lists";
 import { registrationStatus, SUPPORTERS_PAGE_SIZE, type SupporterPlaceName, type SupporterRow } from "@/lib/supporters";
 import { ContactLink, permissionReason } from "./PermissionTiles";
 import SortHeading from "./SortHeading";
@@ -326,6 +326,8 @@ export default function SupportersTable({
       rows={page.supporters}
       rowKey={(s) => s.id}
       empty={copy.none}
+      // Not while choosing who a broadcast goes to, whose Consent can't be cleared.
+      clear={search.broadcast ? undefined : clearedPath(SUPPORTERS_LIST, search)}
     />
   );
 }

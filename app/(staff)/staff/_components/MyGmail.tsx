@@ -4,6 +4,7 @@ import type { GmailAccount } from "@/lib/server/gmail-accounts";
 import { staffDate } from "@/lib/staff-time";
 import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";
 import styles from "./MyGmail.module.css";
+import { Card } from "./ui/Grid";
 import StaffLink from "./ui/StaffLink";
 
 const copy = staffCopy.gmail;
@@ -28,7 +29,7 @@ function KeptNote({ keeps }: { keeps: boolean }) {
 }
 
 /**
- * Your Gmail, on your own page, under a heading saying whether it's
+ * Your Gmail, a card of your own page, a third of its grid, its title saying whether it's
  * connected, and for the letters inbox, that it sends supporters' letters: how connecting ended, if Google has just sent you back; then,
  * connected, since when and today's sends, whether threads with politicians
  * are kept from it, with Disconnect; or what
@@ -54,16 +55,19 @@ export default function MyGmail({
   keepsThreads?: boolean;
 }) {
   return (
-    <>
-      <h2 id="gmail">
-        {lettersInbox
+    <Card
+      span={2}
+      id="gmail"
+      title={
+        lettersInbox
           ? account
             ? copy.lettersInboxConnectedTitle
             : copy.lettersInboxTitle
           : account
             ? copy.connectedTitle
-            : copy.title}
-      </h2>
+            : copy.title
+      }
+    >
       <div className={styles.body}>
         <GmailOutcome outcome={outcome} me={me} lettersInbox={lettersInbox} />
         {account ? (
@@ -83,6 +87,6 @@ export default function MyGmail({
           <GmailConnect back="/staff/me" lettersInbox={lettersInbox} />
         )}
       </div>
-    </>
+    </Card>
   );
 }

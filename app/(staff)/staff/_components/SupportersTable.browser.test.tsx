@@ -164,8 +164,19 @@ describe("SupportersTable", () => {
     await expect
       .element(page.getByRole("link", { name: staffCopy.paging.next }))
       .toHaveAttribute("href", "/staff/supporters?page=3");
-    await rerender(<SupportersTable search={supportersSearch({})} page={{ supporters: [], total: 0, pages: 1 }} />);
-    await expect.element(page.getByText(staffCopy.supporters.none)).toBeVisible();
+    const nobody = { supporters: [], total: 0, pages: 1 };
+    await rerender(<SupportersTable search={supportersSearch({})} page={nobody} />);
+    await expect.element(page.getByRole("table").getByText(staffCopy.supporters.none)).toBeVisible();
+    await expect.element(page.getByText(staffCopy.supporters.total(0))).toBeVisible();
+    // Nothing is on, so there's nothing to clear.
+    const clear = () => page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters });
+    expect(clear().all()).toHaveLength(0);
+    // A search that finds nobody has the way to clear it, in the row.
+    await rerender(<SupportersTable search={supportersSearch({ q: "nobody", sort: "name" })} page={nobody} />);
+    await expect.element(clear()).toHaveAttribute("href", "/staff/supporters");
+    // Not while choosing who a broadcast goes to, which the filters are for.
+    await rerender(<SupportersTable search={supportersSearch({ q: "nobody", broadcast: "5" })} page={nobody} />);
+    expect(clear().all()).toHaveLength(0);
   });
 });
 

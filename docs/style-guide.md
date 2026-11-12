@@ -483,7 +483,37 @@ they stack in a `Column` that takes the rest of the row. The cards in it
 have no span.
 
 **No box under or beside a box**, except a card or tile in the same grid.
-A card holds strips, rows and fields, never another card.
+A card holds strips, rows and fields, never another card. So every
+section of a page is a card, with its heading the card's title: a
+supporter's events and letters, an error's message, your sessions. A
+heading loose on the page is over several cards, never over one section's
+content.
+
+**Rows in a card** (`ui/Rows`). A card that lists things has rows, each
+ruled from the next:
+
+- the main line, which names the thing and leads to it;
+- under it, a quieter second line of what else there is to say;
+- at its right, something of the row's own: a button, or how it stands.
+
+What ends the rows lines up down the card. A thing named by its day has
+its date first, before the main line, and the dates line up too (the
+events in a list by owner). The card's title says what the rows share, and
+its action can be how many there are. A politician's asks are laid out the
+same way (`AskRow`). Something with more to say than this, or that's
+compared down a column, is a table in the card instead (`ListTable`).
+
+**Nothing to show** (`ui/Empty`). That there's nothing is said one way:
+the page's own words, in grey, at the size of the text around them, where
+the content would start. In a card it's the card's one line. A list keeps
+its frame ("Lists", below). It's never a strip, which is for how something
+stands, nor small print, nor the page's ordinary text.
+
+**A form in a card.** A form of one step is a card, two-thirds of the
+grid, with a card of help beside it, an aside: New ask has its preview
+there, and Erase what's erased and what's kept. A form in steps is
+numbered cards the full width (`ui/Numbered`). A form that can't be undone
+says so in a red strip at the top of its card, over its fields.
 
 **Drawing the eye.** When a page opens on something a person just did or
 picked, that one thing pulses once in the accent's tint (`--accent-light`,
@@ -567,6 +597,12 @@ each, the heading, the cell, and the value in a download. The frame draws:
   of 250", then Previous, the page numbers (the first and last pages and
   two either side of this one) and Next. On a phone, "Page 6 of 50" takes
   the place of the numbers.
+- A list with nothing in it keeps its frame, so a page doesn't change
+  shape when its filters find no one: the count, "0 supporters", the
+  headings, and under them one row with the list's words for it in grey.
+  When a search or a filter emptied it, the row has Clear filters too,
+  which leads where the filter bar's does (`clearedPath`). There are no
+  buttons over it, as there's nothing to act on or download.
 
 A downloaded file is named for the list, its filters and the time, in
 lower case with underscores:

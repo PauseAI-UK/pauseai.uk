@@ -18,6 +18,7 @@ import { staffDate, staffTime } from "@/lib/staff-time";
 import styles from "./Details.module.css";
 import Band, { BandFact } from "./ui/Band";
 import Counts, { type Count } from "./ui/Counts";
+import Empty from "./ui/Empty";
 import Grid, { Card, Column } from "./ui/Grid";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import Strip from "./ui/Strip";
@@ -628,7 +629,11 @@ export default function PoliticianDetails({
             <Card look="aside" title={copy.statusesTitle} id="asks-title">
               <PoliticianAsks politician={politician} asks={asks} setStatus={setStatus} />
             </Card>
-            <NotesCard politicianId={politician.id} writer={notes?.reader.email ?? ""} add={notes?.add}>
+            <NotesCard
+              target={{ name: "politicianId", value: politician.id }}
+              writer={notes?.reader.email ?? ""}
+              add={notes?.add}
+            >
               {[
                 ...(notes?.notes ?? []).map((note) => (
                   <li key={note.id}>
@@ -649,7 +654,7 @@ export default function PoliticianDetails({
         <div className={styles.foot}>
           {entries.length === 0 ? (
             <section aria-labelledby="history-title" className={styles.footRow}>
-              <h2 id="history-title">{copy.historyTitle}</h2> <span className={styles.none}>{copy.noHistory}</span>
+              <h2 id="history-title">{copy.historyTitle}</h2> <Empty inline>{copy.noHistory}</Empty>
             </section>
           ) : (
             <details className={styles.footRow}>

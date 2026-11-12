@@ -37,10 +37,10 @@ describe("ErrorsSeen", () => {
     expect(cells(problem.words).slice(2, 4)).toEqual([copy.kinds.problem, ""]);
   });
 
-  it("says so when nothing has gone wrong", async () => {
+  it("says so when nothing has gone wrong, in the list's frame", async () => {
     await render(<ErrorsSeen done={false} errors={[]} total={0} pages={1} page={1} pageSize={100} />);
-    await expect.element(page.getByText(copy.none)).toBeVisible();
-    expect(page.getByRole("table").elements()).toEqual([]);
+    await expect.element(page.getByText(copy.total(0))).toBeVisible();
+    await expect.element(page.getByRole("table").getByText(copy.none)).toBeVisible();
   });
 
   it("leads to the next page of a long list", async () => {
@@ -110,15 +110,19 @@ describe("ErrorSeenView", () => {
     expect(page.getByText(copy.one.page, { exact: true }).elements()).toEqual([]);
     expect(page.getByText(copy.one.className, { exact: true }).elements()).toEqual([]);
     expect(page.getByText(copy.one.code, { exact: true }).elements()).toEqual([]);
-    // The browser is the latest happening's alone, so it's under the header, with the message and the stack
-    // trace, all under one heading that says they're the latest time's.
+    // No stack trace is said in its card, where the trace would be.
+    await expect.element(page.getByRole("region", { name: copy.one.stack }).getByText(copy.one.noStack)).toBeVisible();
+    // The browser is the latest happening's alone, so it's in the message's card, over the message; the two
+    // cards are under one heading that says they're the latest time's.
     await rerender(<ErrorSeenView error={inBrowser} setDone={setDone} />);
-    await expect.element(page.getByText(`${copy.one.browser}: Firefox 131`)).toBeVisible();
+    const message = page.getByRole("region", { name: copy.one.message });
+    await expect.element(message.getByText(`${copy.one.browser}: Firefox 131`)).toBeVisible();
+    await expect.element(message.getByText(inBrowser.latestWords, { exact: true })).toBeVisible();
     const underHeader = [...container.querySelectorAll("h2, h3, p")].map((element) => element.textContent);
     expect(underHeader).toEqual([
       copy.one.latest,
-      `${copy.one.browser}: Firefox 131`,
       copy.one.message,
+      `${copy.one.browser}: Firefox 131`,
       copy.one.stack,
     ]);
   });

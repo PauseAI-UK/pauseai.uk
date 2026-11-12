@@ -1,4 +1,4 @@
-/* The way to end them all, apart from the table. */
-.actions {
-  margin-top: var(--space-5);
+/* What the sessions are, over their table: spaced by the card, not itself. */
+.intro {
+  margin: 0;
 }

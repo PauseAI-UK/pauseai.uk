@@ -3,9 +3,10 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { SupporterBroadcastRow } from "@/lib/server/broadcast-pages";
 import { staffDate } from "@/lib/staff-time";
 import { BroadcastChannelName, CopyStatus, copyWent } from "./BroadcastView";
+import Empty from "./ui/Empty";
+import { Card } from "./ui/Grid";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
-import details from "./Details.module.css";
 import styles from "./Broadcasts.module.css";
 
 const copy = staffCopy.broadcastPages;
@@ -41,16 +42,15 @@ const COLUMNS: ListColumn<SupporterBroadcastRow>[] = [
   },
 ];
 
-/** The broadcasts a supporter was sent, newest first: each name leads to the broadcast, and its link to this supporter's copy. */
+/** The broadcasts a supporter was sent, a card of their page, newest first: each name leads to the broadcast, and its link to this supporter's copy. */
 export default function SupporterBroadcasts({ broadcasts }: { broadcasts: SupporterBroadcastRow[] }) {
   return (
-    <section aria-labelledby="broadcasts">
-      <h2 id="broadcasts">{copy.supporterTitle}</h2>
+    <Card title={copy.supporterTitle} id="broadcasts">
       {broadcasts.length ? (
         <ListTable columns={COLUMNS} rows={broadcasts} rowKey={(m) => m.copyId} />
       ) : (
-        <p className={details.none}>{copy.supporterNone}</p>
+        <Empty>{copy.supporterNone}</Empty>
       )}
-    </section>
+    </Card>
   );
 }

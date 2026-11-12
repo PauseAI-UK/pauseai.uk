@@ -261,12 +261,6 @@
   padding-bottom: 0;
 }
 
-/* A card with nothing in it yet. */
-.none {
-  margin: 0;
-  color: var(--text-secondary);
-}
-
 .when {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -391,16 +385,7 @@
   stroke-width: 0.6;
 }
 
-/* Beside the profile: the events and letters tables, a heading over each. */
-/* One column no wider than the card's, so a wide table scrolls in its own box (components/ui/Table), not the page. */
-.tables {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: start;
-  gap: var(--space-5);
-}
-
-/* Under the card and tables, the page's full width: the history, then
+/* Under the cards, the page's full width: the history, then
    everything we hold, each folded, above the erase button. */
 /* At least a window tall, so the band's links can bring Correspondence and Asks up to the top of it. */
 .scrollRoom {
@@ -472,9 +457,4 @@
   color: var(--muted);
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
-}
-
-.tables h2 {
-  margin: 0 0 var(--space-2);
-  font-size: var(--text-lg);
 }

@@ -1,4 +1,4 @@
-import { EVENTS_LIST } from "@/lib/staff-lists";
+import { clearedPath, EVENTS_LIST } from "@/lib/staff-lists";
 import { Fragment } from "react";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
@@ -294,7 +294,8 @@ export default function EventsTable({
         columns={eventColumns(search, { staff, now, save, hosts })}
         rows={found.events}
         rowKey={(event) => event.id}
-        empty={<Muted>{copy.noneFound}</Muted>}
+        empty={copy.noneFound}
+        clear={clearedPath(EVENTS_LIST, search, ["when", "group"])}
       />
       {found.removed > 0 && (
         <p>

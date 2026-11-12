@@ -7,6 +7,7 @@ import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { LoggedJson } from "./Logged";
 import { statusOf } from "./LetterStatus";
+import Empty from "./ui/Empty";
 import styles from "./Details.module.css";
 
 const copy = staffCopy.letters;
@@ -241,7 +242,7 @@ function Entry({ event, id }: { event: HistoryEntry; id: string }) {
  * reply its relay, and under Sent the supporter's copy.
  */
 export function LetterHistory({ events }: { events: HistoryEntry[] }) {
-  if (events.length === 0) return <p className={styles.none}>{copy.detail.noHistory}</p>;
+  if (events.length === 0) return <Empty>{copy.detail.noHistory}</Empty>;
   return (
     <ol className={`${styles.history} ${styles.events}`} aria-label={copy.detail.historyTitle}>
       {events.map((event, i) => (

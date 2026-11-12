@@ -320,7 +320,7 @@ test("Jane's letter bounces", async ({ page, request, flowDatabase }) => {
   expect(notice.From).toBe(`"PauseAI" <${LETTERS_INBOX}>`);
   await emailFrame(page, notice, "The email Jane gets");
   story(
-    "Staff check the address with the MP's office, then unblock it on the blocked emails page, with a note. The letter goes again, and Jane is told.",
+    "Staff check the address with the MP's office, then unblock it, from Addresses to fix, with a note. The letter goes again, and Jane is told.",
   );
 
   await page.goto(`${BASE}/staff/politicians/blocked-emails`);

@@ -20,13 +20,14 @@ export default async function MpEmailsPage({ searchParams }: { searchParams: Pro
   const [blocks, problems] = await Promise.all([listBlocks("politicians", filter), recentProblems("politicians")]);
   return (
     <Page kind="list">
-      <PageHead intro={staffCopy.emails.intro}>{staffCopy.emails.titles.mps}</PageHead>
+      <PageHead intro={staffCopy.emails.intros.mps}>{staffCopy.emails.titles.mps}</PageHead>
       <EmailBlockFilters q={q} kind={kind} action="/staff/politicians/blocked-emails" />
       <EmailBlocksTable
         blocks={blocks}
         unblock={unblockAddress}
         letterLinks={letterLinks}
         download={(format) => filtersPath("/staff/politicians/blocked-emails/download", { q, kind, format })}
+        clear={q || kind ? "/staff/politicians/blocked-emails" : undefined}
       />
       <h2>{staffCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks={letterLinks} />

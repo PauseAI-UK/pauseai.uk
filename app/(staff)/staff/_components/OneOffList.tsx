@@ -2,6 +2,7 @@ import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
 import { staffTime } from "@/lib/staff-time";
+import { Card } from "./ui/Grid";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
@@ -53,13 +54,12 @@ const oneOffColumns: ListColumn<OneOffThreadRow>[] = [
   { key: "mailbox", label: copy.columns.mailbox, cell: (t) => t.mailboxes?.join(", ") ?? hidden },
 ];
 
-/** A politician's or supporter's one-off emails, on their page; nothing with none. */
+/** A supporter's one-off emails, a card of their page; nothing with none. */
 export function OneOffTable({ threads }: { threads: OneOffThreadRow[] }) {
   if (threads.length === 0) return null;
   return (
-    <>
-      <h2>{copy.onPageTitle}</h2>
+    <Card title={copy.onPageTitle} id="one-offs">
       <ListTable columns={oneOffColumns} rows={threads} rowKey={(t) => t.id} />
-    </>
+    </Card>
   );
 }

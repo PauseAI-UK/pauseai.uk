@@ -24,13 +24,14 @@ export default async function SupporterEmailsPage({
   const [blocks, problems] = await Promise.all([listBlocks("others", filter), recentProblems("others")]);
   return (
     <Page kind="list">
-      <PageHead intro={staffCopy.emails.intro}>{staffCopy.emails.titles.supporters}</PageHead>
+      <PageHead intro={staffCopy.emails.intros.supporters}>{staffCopy.emails.titles.supporters}</PageHead>
       <EmailBlockFilters q={q} kind={kind} action="/staff/supporters/blocked-emails" />
       <EmailBlocksTable
         blocks={blocks}
         unblock={unblockAddress}
         letterLinks
         download={(format) => filtersPath("/staff/supporters/blocked-emails/download", { q, kind, format })}
+        clear={q || kind ? "/staff/supporters/blocked-emails" : undefined}
       />
       <h2>{staffCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks />

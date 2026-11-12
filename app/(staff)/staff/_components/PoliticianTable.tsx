@@ -9,6 +9,7 @@ import { anyAndNone, firstOf, valuesOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import { sortHref } from "@/lib/staff-sort";
 import SortHeading from "./SortHeading";
+import Empty from "./ui/Empty";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import type { Contact } from "@/lib/vcard";
 import styles from "./PoliticianTable.module.css";
@@ -254,6 +255,6 @@ export function politicianContact(asks: Ask[]): (p: Politician) => Contact {
 
 /** Politicians, a row each, in the list's columns; or that there are none. */
 export default function PoliticianTable({ politicians, asks, search = {} }: Props) {
-  if (politicians.length === 0) return <p>{staffCopy.politicians.none}</p>;
+  if (politicians.length === 0) return <Empty>{staffCopy.politicians.none}</Empty>;
   return <ListTable columns={politicianColumns(asks, search)} rows={politicians} rowKey={(p) => p.id} />;
 }

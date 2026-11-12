@@ -1,0 +1,6 @@
+/* That there's nothing: grey, with no space of its own, so it sits where
+   the content would start. */
+.empty {
+  margin: 0;
+  color: var(--text-secondary);
+}

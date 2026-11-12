@@ -112,15 +112,19 @@ test("Filtering supporters", async ({ page, request, flowDatabase }) => {
   const named = names.filter((name) => name !== copy.noName);
   expect(names).toEqual([...named.sort(), copy.noName]);
   await frame(page, "The list, filtered and sorted by name");
-  story("They change the filter to those who wrote to their MP. Nobody has yet.");
+  story(
+    "They change the filter to those who wrote to their MP. Nobody has yet. The list is still there, with no supporters, and its one row says so.",
+  );
 
   await changeFilter(page, `${copy.columns.badges}: ${copy.badges.registered}`, copy.badges.letter);
-  await expect(page.getByText(copy.none)).toBeVisible();
+  await expect(page.getByText(copy.total(0), { exact: true })).toBeVisible();
+  await expect(page.getByRole("table").getByText(copy.none)).toBeVisible();
   await frame(page, "The list, with nobody in it");
 
-  story("Clear filters takes away the search, the filters and the sort.");
+  story("Clear filters, in that row as in the bar over the list, takes away the search, the filters and the sort.");
   // Reset clears every filter, and the sort.
-  await page.getByRole("link", { name: staffCopy.resetFilters }).click();
+  await expect(page.getByRole("link", { name: staffCopy.resetFilters })).toHaveCount(2);
+  await page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }).click();
   await expect(page).toHaveURL(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   await expect(page.getByRole("searchbox", { name: copy.filters.search })).toHaveValue("");
@@ -690,18 +694,18 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
 
 test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
   story(
-    "CiviCRM has Casey's address on hold, as its emails to it bounced. The CiviCRM import blocks it here too, and it's listed with the supporters' blocked emails.",
+    "CiviCRM has Casey's address on hold, as its emails to it bounced. The CiviCRM import blocks it here too, and it's listed in Bounces and complaints.",
   );
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters/blocked-emails`);
   const row = page.getByRole("table").first().getByRole("row").filter({ hasText: "casey.chapter@example.com" });
   await expect(row).toContainText(staffCopy.emails.kinds.hold);
-  await frame(page, "Supporters' blocked emails");
+  await frame(page, "Bounces and complaints");
   story("Staff lift it, with a note. Only a new hold in CiviCRM blocks it again.");
   await row.getByRole("button", { name: staffCopy.emails.unblockOpen }).click();
   await row.getByLabel(staffCopy.emails.note).fill("Global say the address works again");
   await row.getByRole("button", { name: staffCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
-  await frame(page, "Supporters' blocked emails, empty");
+  await frame(page, "Bounces and complaints, empty");
 });

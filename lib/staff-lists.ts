@@ -5,7 +5,7 @@
 // are and the permission they need (lib/saved-filters.ts). What each filter
 // means, and what it finds, is the list's own (lib/staff-search.ts), as are
 // its filter bar's words and choices (lib/staff-list-filters.ts).
-import { firstOf, valuesOf, type ParamValue } from "./list-params";
+import { filtersPath, firstOf, valuesOf, type ParamValue } from "./list-params";
 import { parseSort, type SortColumns, type SortSpec } from "./staff-sort";
 import type { Permission } from "./staff-permissions";
 
@@ -71,6 +71,21 @@ export function defineStaffList<const P extends ParamKinds, Key extends string =
       return parseSort(columns, fallback, sort, dir);
     },
   };
+}
+
+/**
+ * A list's URL with its search and filters off, as Clear filters leaves it:
+ * of `values`, its URL as typed, only `keep` stays, such as a tab. Nothing
+ * while no search, filter or saved filter is on, `keep` aside.
+ */
+export function clearedPath(
+  list: Pick<StaffList, "path" | "choosing">,
+  values: Partial<Record<string, ParamValue>>,
+  keep: readonly string[] = [],
+): string | undefined {
+  const on = [...list.choosing, "saved"].some((name) => !keep.includes(name) && valuesOf(values[name]).length > 0);
+  if (!on) return undefined;
+  return filtersPath(list.path, Object.fromEntries(keep.map((name) => [name, valuesOf(values[name])])));
 }
 
 export const POLITICIANS_LIST = defineStaffList({
@@ -285,6 +300,7 @@ export const SENT_EMAILS_LIST = defineStaffList({
     dir: "one",
     page: "one",
   },
+  choosing: ["q", "purpose", "outcome", "backend", "link"],
   sorts: {
     columns: { when: "desc", what: "asc", to: "asc", from: "asc", backend: "asc", subject: "asc", outcome: "asc" },
     fallback: "when",
@@ -313,6 +329,7 @@ export const ALL_EMAILS_LIST = defineStaffList({
     dir: "one",
     page: "one",
   },
+  choosing: ["q", "from", "type", "to", "sent", "replied", "flag"],
   sorts: {
     columns: { status: "asc", from: "asc", to: "asc", topic: "asc", sent: "desc", replied: "desc" },
     fallback: "sent",

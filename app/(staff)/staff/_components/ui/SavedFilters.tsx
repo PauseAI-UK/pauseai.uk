@@ -11,6 +11,7 @@ import Alert from "../Alert";
 import { DeleteTwice } from "../DeleteTwice";
 import Bubble from "./Bubble";
 import ChoiceSearch from "./ChoiceSearch";
+import Empty from "./Empty";
 import Menu, { menuItemClass, menuItemsClass } from "./Menu";
 import MenuSubmit from "./MenuSubmit";
 import StaffLink from "./StaffLink";
@@ -294,7 +295,7 @@ export default function SavedFilters({ canSave, ...props }: SavedFiltersProps & 
           <p className={styles.count}>{copy.count(rows.length)}</p>
         </>
       ) : (
-        <p className={styles.empty}>{copy.none}</p>
+        <Empty>{copy.none}</Empty>
       )}
     </Menu>
   );

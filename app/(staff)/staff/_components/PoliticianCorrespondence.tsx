@@ -7,6 +7,7 @@ import { now } from "@/lib/now";
 import type { CorrespondenceThread, ThreadStep } from "@/lib/politician-correspondence";
 import { staffDate } from "@/lib/staff-time";
 import styles from "./PoliticianCorrespondence.module.css";
+import Empty from "./ui/Empty";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 import { statusOf } from "./LetterStatus";
@@ -70,7 +71,7 @@ function Thread({ thread }: { thread: CorrespondenceThread }) {
  * in it says how much. Past the newest few, a fold opens the rest in place.
  */
 export default function PoliticianCorrespondence({ threads }: { threads: CorrespondenceThread[] }) {
-  if (threads.length === 0) return <p className={styles.none}>{copy.none}</p>;
+  if (threads.length === 0) return <Empty>{copy.none}</Empty>;
   const when = (thread: CorrespondenceThread) => thread.at.toISOString();
   const today = now();
   const shown = monthsAndYears(threads.slice(0, SHOWN), when, today);

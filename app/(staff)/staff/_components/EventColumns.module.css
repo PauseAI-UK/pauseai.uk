@@ -1,96 +1,47 @@
-/* A list of events, under its heading, in a white tile as the dashboard's
-   are, apart from the next; inside, as a staff table (ui/Table): its heading
-   a header row, its lines rows, every other one tinted, edge to edge. Its
-   last line needs no rule under it. */
-.list {
-  margin-bottom: var(--space-4);
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-size: var(--table-font-size);
+/* A list of events: a card (ui/Grid), its rows the card's own (ui/Rows). */
+
+/* The card's title, with a warning before it for events with no owner. */
+.title {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  overflow-wrap: anywhere;
 }
 
-.line:nth-child(even) {
-  background: var(--table-stripe);
+/* Events with no owner: an error, said in red. */
+.noOwner {
+  color: var(--status-red);
 }
 
-.line:last-child {
-  border-bottom: 0;
+/* How many, at the title's right. */
+.count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
-.list ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Under an event's name: what else there is to say of it, each apart. */
+.detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
 }
 
-/* The fold of a list's later events, ruled off from the lines over it. */
-.list summary {
-  padding: var(--table-cell-padding);
-  border-top: 1px solid var(--border);
+/* Edit, compact, as the strip's buttons are (ui/Strip), so it doesn't stand out. */
+.edit {
+  --button-padding: 4px 12px;
+  --button-font-size: var(--text-sm);
+}
+
+/* The fold of a list's later events: its summary quiet, and its rows,
+   once open, ruled off from those over them as a row is from the last. */
+.more > summary {
   color: var(--text-secondary);
   font-size: var(--text-sm);
   cursor: pointer;
 }
 
-/* Events with no owner: an error, said in red, with a warning, in the heading. */
-.noOwner .title {
-  color: var(--status-red);
-}
-
-/* A list's name, and how many, at the right, as a table's header row. */
-.heading {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  justify-content: space-between;
-  margin: 0;
-  padding: var(--table-cell-padding);
-  border-bottom: 1px solid var(--border);
-  font-size: inherit;
-  font-weight: 700;
-}
-
-.title {
-  display: flex;
-  gap: var(--space-1);
-  align-items: center;
-}
-
-.count {
-  color: var(--text);
-  font-weight: 500;
-}
-
-/* A line: the date, as the table writes it, "5 Dec 2026"; the name with its
-   detail stacked under it; then Edit, compact, as the strip's buttons are
-   (ui/Strip), so it doesn't stand out. The date and Edit are centred beside
-   the name's two lines. */
-.line {
-  --button-padding: 4px 12px;
-  --button-font-size: var(--text-sm);
-
-  display: grid;
-  grid-template-columns: 6.5rem 1fr auto;
-  gap: var(--space-2);
-  align-items: center;
-  padding: var(--table-cell-padding);
-  border-bottom: 1px solid var(--border);
-}
-
-.name {
-  display: grid;
-  gap: 2px;
-  font-weight: 600;
-}
-
-.detail {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--space-3);
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  font-weight: 400;
+.more[open] > summary {
+  margin-bottom: var(--space-3);
 }
 
 /* Over the lists, as over a table (ui/ListFrame): how many. */

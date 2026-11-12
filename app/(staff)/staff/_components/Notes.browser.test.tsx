@@ -4,7 +4,7 @@ import { page, userEvent } from "vitest/browser";
 import { buttonClass } from "@/components/ui/Button";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffTime } from "@/lib/staff-time";
-import NoteForm from "./NoteForm";
+import NotesCard from "./NotesCard";
 import Notes, { NoteEntry, NoteText } from "./Notes";
 import { exampleNoteAdmin, exampleNotes, exampleNotesAt, exampleNoteWriter } from "./Notes.examples";
 
@@ -19,8 +19,9 @@ async function renderNotes(reader = exampleNoteWriter, list = exampleNotes) {
 }
 
 describe("Notes", () => {
-  it("lists a supporter's notes, newest first, with who wrote each, when, and whether it was edited, their addresses links", async () => {
+  it("lists a supporter's notes in a card, newest first, with who wrote each, when, and whether it was edited, their addresses links", async () => {
     await renderNotes();
+    await expect.element(page.getByRole("region", { name: copy.title })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: copy.title })).toBeVisible();
     await expect.element(notes().nth(1)).toBeVisible();
     const text = (i: number) => notes().nth(i).element().textContent;
@@ -134,10 +135,17 @@ describe("NoteEntry", () => {
   });
 });
 
-describe("NoteForm", () => {
-  it("opens from Write a note, closes unsent on Cancel, and on a politician has no reminder under the field", async () => {
+describe("NotesCard", () => {
+  it("opens a draft from Write a note, closes it unsent on Cancel, and on a politician has no reminder under the field", async () => {
     const add = vi.fn();
-    await render(<NoteForm target={{ name: "politicianId", value: 7 }} add={add} />);
+    await render(
+      <NotesCard target={{ name: "politicianId", value: 7 }} writer="jo@pauseai.uk" add={add}>
+        {[]}
+      </NotesCard>,
+    );
+    // An aside, as beside a record, with nothing in it yet said in its place.
+    await expect.element(page.getByRole("region", { name: copy.title })).toBeVisible();
+    await expect.element(page.getByText(copy.none)).toBeVisible();
     await expect.element(page.getByRole("textbox")).not.toBeInTheDocument();
     await page.getByRole("button", { name: copy.write }).click();
     await page.getByRole("textbox", { name: copy.note }).fill("Never sent");

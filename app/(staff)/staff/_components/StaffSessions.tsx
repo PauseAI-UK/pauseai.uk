@@ -4,20 +4,23 @@ import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { StaffSession } from "@/lib/server/staff-auth";
 import { browserOf, systemOf } from "@/lib/user-agent";
+import { Card } from "./ui/Grid";
 import When from "./ui/When";
 import styles from "./StaffSessions.module.css";
 
 const copy = staffCopy.sessions;
 
 /**
- * Your own sessions, a row each: the browser and system it began in, when it began, when it ends, whether it's
+ * Your own sessions, a card of your page, two-thirds of its grid: what they
+ * are, then a row each: the browser and system it began in, when it began, when it ends, whether it's
  * kept signed in, which is this browser's, and Log out, which ends that one.
  * Under them, the button that ends them all, this one included. Each is a
  * POST to the logout route.
  */
 export default function StaffSessions({ sessions }: { sessions: StaffSession[] }) {
   return (
-    <>
+    <Card span={4} title={staffCopy.me.sessionsTitle} id="sessions">
+      <p className={styles.intro}>{copy.intro}</p>
       <Table align="middle">
         <thead>
           <tr>
@@ -55,12 +58,12 @@ export default function StaffSessions({ sessions }: { sessions: StaffSession[] }
           ))}
         </tbody>
       </Table>
-      <form method="post" action="/staff/api/logout" className={styles.actions}>
+      <form method="post" action="/staff/api/logout">
         <input type="hidden" name="everywhere" value="1" />
         <SubmitButton variant="ghost" size="small" fit>
           {copy.logOutEverywhere}
         </SubmitButton>
       </form>
-    </>
+    </Card>
   );
 }

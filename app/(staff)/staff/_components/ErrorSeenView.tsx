@@ -3,6 +3,8 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { ErrorSeen } from "@/lib/server/errors-seen";
 import { staffTime } from "@/lib/staff-time";
 import Band, { BandFact } from "./ui/Band";
+import Empty from "./ui/Empty";
+import Grid, { Card } from "./ui/Grid";
 import styles from "./ErrorSeenView.module.css";
 
 const copy = staffCopy.errorsSeen;
@@ -14,8 +16,9 @@ const copy = staffCopy.errorsSeen;
  * one that makes it to do again (`setDone`, given the form's `id`, and
  * `done` "yes" to mark it), and under them who marked it and when; then,
  * under one heading that says so, the
- * latest happening alone: its browser, if it came from one, its message as
- * thrown, and its stack trace if it came with one.
+ * latest happening alone, in two cards: its message as thrown, with its
+ * browser, if it came from one; and its stack trace, or that it came with
+ * none.
  */
 export default function ErrorSeenView({
   error,
@@ -48,15 +51,19 @@ export default function ErrorSeenView({
       </Band>
       {error.doneAt && <p className={styles.done}>{copy.one.doneBy(error.doneBy!, staffTime(error.doneAt))}</p>}
       <h2>{copy.one.latest}</h2>
-      {error.browser && (
-        <p>
-          {copy.one.browser}: {error.browser}
-        </p>
-      )}
-      <h3>{copy.one.message}</h3>
-      <pre className={styles.thrown}>{error.latestWords}</pre>
-      <h3>{copy.one.stack}</h3>
-      {error.stack ? <pre className={styles.thrown}>{error.stack}</pre> : <p>{copy.one.noStack}</p>}
+      <Grid>
+        <Card span={6} title={copy.one.message} id="error-message">
+          {error.browser && (
+            <p className={styles.browser}>
+              {copy.one.browser}: {error.browser}
+            </p>
+          )}
+          <pre className={styles.thrown}>{error.latestWords}</pre>
+        </Card>
+        <Card span={6} look="log" title={copy.one.stack} id="error-stack">
+          {error.stack ? <pre className={styles.thrown}>{error.stack}</pre> : <Empty>{copy.one.noStack}</Empty>}
+        </Card>
+      </Grid>
     </>
   );
 }

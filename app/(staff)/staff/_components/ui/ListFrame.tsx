@@ -6,6 +6,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { pageRange, type DownloadColumn, type DownloadFormat } from "@/lib/staff-list";
 import StaffLink from "./StaffLink";
 import DownloadMenu from "./DownloadMenu";
+import Empty from "./Empty";
 import styles from "./ListFrame.module.css";
 
 /**
@@ -51,18 +52,21 @@ export function brokenOnce(label: string, after?: ReactNode) {
 
 /**
  * Rows as a striped table, a column each; `align="middle"` when its rows
- * hold buttons (docs/style-guide.md, "Tables").
+ * hold buttons (docs/style-guide.md, "Tables"). With no rows, `none` is
+ * its one row, across every column, under the headings.
  */
 export function ListTable<Row>({
   columns,
   rows,
   rowKey,
   align,
+  none,
 }: {
   columns: ListColumn<Row>[];
   rows: Row[];
   rowKey: (row: Row) => string | number;
   align?: "top" | "middle";
+  none?: ReactNode;
 }) {
   const cellClass = (column: ListColumn<Row>) =>
     [column.short && styles.short, column.words && styles[column.words], column.end && styles.end, column.className]
@@ -83,6 +87,11 @@ export function ListTable<Row>({
         </tr>
       </thead>
       <tbody>
+        {rows.length === 0 && none && (
+          <tr>
+            <td colSpan={columns.length}>{none}</td>
+          </tr>
+        )}
         {rows.map((row) => (
           <tr key={rowKey(row)}>
             {columns.map((column) => (
@@ -167,8 +176,10 @@ type Props<Row> = {
   columns: ListColumn<Row>[];
   rows: Row[];
   rowKey: (row: Row) => string | number;
-  /** What a list with nothing in it says instead. */
+  /** What a list with nothing in it says, in the row under its headings. */
   empty: ReactNode;
+  /** The list's URL with its search and filters off, while any is on: the way out of a list they've emptied. */
+  clear?: string;
 };
 
 /**
@@ -176,7 +187,9 @@ type Props<Row> = {
  * many and which of them this page shows, any actions on them, and a
  * Download button whose menu has each format of every page; the striped table; and under it, which rows these are and the way
  * to the other pages. It's as wide as the window, past the content's
- * width, so a wide table wraps less.
+ * width, so a wide table wraps less. A list with nothing in it keeps its
+ * frame, so the page doesn't change shape: how many, the headings, and
+ * under them one row saying so, with Clear filters when filters emptied it.
  */
 export default function ListFrame<Row>({
   count,
@@ -192,9 +205,31 @@ export default function ListFrame<Row>({
   rows,
   rowKey,
   empty,
+  clear,
   align,
 }: Props<Row>) {
-  if (total === 0) return <p>{empty}</p>;
+  if (total === 0) {
+    return (
+      <div className={styles.frame}>
+        <div className={styles.bar}>
+          <p className={styles.count}>
+            <strong>{count}</strong>
+          </p>
+        </div>
+        <ListTable
+          columns={columns}
+          rows={[]}
+          rowKey={rowKey}
+          none={
+            <span className={styles.none}>
+              <Empty inline>{empty}</Empty>
+              {clear && <StaffLink href={clear}>{staffCopy.resetFilters}</StaffLink>}
+            </span>
+          }
+        />
+      </div>
+    );
+  }
   const copy = staffCopy.lists;
   const from = (page - 1) * pageSize + 1;
   const to = from + rows.length - 1;

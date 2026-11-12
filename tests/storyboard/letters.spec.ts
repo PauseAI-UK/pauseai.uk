@@ -217,7 +217,7 @@ test("A reply to a letter whose text isn't kept", async ({ page, flowDatabase })
 
 test("A letter bounces", async ({ page, request, flowDatabase }) => {
   story(
-    "Jane writes to an MP whose address bounces her letter. The address is blocked, and staff get an email with a link to the blocked emails.",
+    "Jane writes to an MP whose address bounces her letter. The address is blocked, and staff get an email with a link to Addresses to fix.",
   );
   const sender = madeUpAddress("Jane Smith", 13);
   const letterId = await sentLetterId(page, flowDatabase, sender, bouncy);
@@ -229,14 +229,14 @@ test("A letter bounces", async ({ page, request, flowDatabase }) => {
   );
   expect(alert?.TextBody).toContain(`${BASE}/staff/politicians/blocked-emails`);
   await emailFrame(page, alert!, "The email staff get");
-  story("Politicians' blocked emails lists the address, with the letter that found it out.");
+  story("Addresses to fix lists the address, with the letter that found it out.");
 
   await page.goto(`${BASE}/staff/politicians/blocked-emails`);
   // The blocked addresses, above the recent problems.
   const blocked = page.getByRole("table").first().getByRole("row").filter({ hasText: BOUNCY_ADDRESS });
   await expect(blocked.getByRole("link", { name: bouncy.name, exact: true })).toBeVisible();
   await expect(blocked).toContainText(staffCopy.emails.kinds.hard);
-  await frame(page, "Politicians' blocked emails");
+  await frame(page, "Addresses to fix");
   story("The letter leads to its own page, which says it bounced, and links to Jane as a supporter.");
 
   // The letter, by whom it was to, leads to its own page.
@@ -300,11 +300,11 @@ test("Unblocking an MP's address", async ({ page, request, flowDatabase }) => {
   await expect(bouncysRow).toContainText(staffCopy.politicians.emailBlocked);
   await frame(page, "The politicians list");
 
-  story("Politicians' blocked emails lists the address, and leads to the MP.");
-  // Politicians' blocked emails lists them, and is the way to them.
+  story("Addresses to fix lists the address, and leads to the MP.");
+  // The page lists them, and is the way to them.
   await page.goto(`${BASE}/staff/politicians/blocked-emails`);
   await expect(page.getByRole("row").filter({ hasText: bouncy.name })).toBeVisible();
-  await frame(page, "Politicians' blocked emails");
+  await frame(page, "Addresses to fix");
   story("The MP's page says letters to them aren't being sent, why, and what to check.");
 
   await page.getByRole("link", { name: bouncy.name }).click();

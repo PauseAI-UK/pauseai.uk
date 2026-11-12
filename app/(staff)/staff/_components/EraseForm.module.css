@@ -1,0 +1,20 @@
+/* The form, in its card: its fields no wider than reads well. */
+.form {
+  max-width: var(--staff-measure);
+}
+
+/* Beside it, what's erased and what's kept: each a small heading over its
+   words, spaced by the card. */
+.part {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.part h2 {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.part p {
+  margin: 0;
+}

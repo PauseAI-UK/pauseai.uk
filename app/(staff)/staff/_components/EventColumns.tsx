@@ -1,4 +1,3 @@
-import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { StaffEvent } from "@/lib/server/staff-events";
 import {
@@ -17,8 +16,10 @@ import type { EventsSearch } from "@/lib/staff-search";
 import AlertIcon from "./AlertIcon";
 import { EventEdit, EventsEditing, type SaveEvent } from "./EventEdit";
 import EventsTable, { Missing } from "./EventsTable";
+import Empty from "./ui/Empty";
 import ExternalLink from "./ui/ExternalLink";
-import Grid, { spanClass } from "./ui/Grid";
+import Grid, { Card, Column } from "./ui/Grid";
+import Rows, { Row } from "./ui/Rows";
 import { londonDate } from "@/lib/staff-time";
 import styles from "./EventColumns.module.css";
 
@@ -51,10 +52,11 @@ function Detail({
 }
 
 /**
- * A list of events under a heading with how many: its first few, the rest in a
- * fold. `noOwner` for the list of those with no owner, in red when one of them
- * still needs one (`needed`). `where` tells this list's Edit bubbles from those
- * of the same event in another.
+ * A list of events, a card: its title what they share, with how many at its
+ * right; a row each, its first few, the rest in a fold. `noOwner` for the list
+ * of those with no owner, in red when one of them still needs one (`needed`).
+ * `where` tells this list's Edit bubbles from those of the same event in
+ * another, and names its card.
  */
 function List({
   list,
@@ -74,42 +76,50 @@ function List({
   save: SaveEvent;
 }) {
   const line = (event: StaffEvent) => (
-    <li key={event.id} className={styles.line}>
-      <span>{londonDate(event.startAt)}</span>
-      <span className={styles.name}>
-        <ExternalLink href={event.url}>{event.name}</ExternalLink>
+    <Row
+      key={event.id}
+      lead={londonDate(event.startAt)}
+      second={
         <span className={styles.detail}>
           <Detail event={event} grouping={grouping} list={list.title} needed={needed(event)} />
           <span>{copy.lists.going(event.going)}</span>
           {event.doc && <ExternalLink href={event.doc}>{copy.doc}</ExternalLink>}
         </span>
-      </span>
-      <EventEdit event={event} staff={staff} save={save} where={where} />
-    </li>
+      }
+      end={
+        <span className={styles.edit}>
+          <EventEdit event={event} staff={staff} save={save} where={where} />
+        </span>
+      }
+    >
+      <ExternalLink href={event.url}>{event.name}</ExternalLink>
+    </Row>
   );
   return (
-    <section className={noOwner ? `${styles.list} ${styles.noOwner}` : styles.list}>
-      <h2 className={styles.heading}>
-        <span className={styles.title}>
+    <Card
+      id={`events-${where}title`}
+      title={
+        <span className={noOwner ? `${styles.title} ${styles.noOwner}` : styles.title}>
           {noOwner && <AlertIcon tone="red" />}
           {list.title}
         </span>
-        <span className={styles.count}>{list.events.length}</span>
-      </h2>
-      <ul>{list.events.slice(0, EVENT_LIST_SHOWS).map(line)}</ul>
+      }
+      action={<span className={styles.count}>{list.events.length}</span>}
+    >
+      <Rows>{list.events.slice(0, EVENT_LIST_SHOWS).map(line)}</Rows>
       {list.events.length > EVENT_LIST_SHOWS && (
-        <details>
+        <details className={styles.more}>
           <summary>{copy.lists.more(list.events.length - EVENT_LIST_SHOWS)}</summary>
-          <ul>{list.events.slice(EVENT_LIST_SHOWS).map(line)}</ul>
+          <Rows>{list.events.slice(EVENT_LIST_SHOWS).map(line)}</Rows>
         </details>
       )}
-    </section>
+    </Card>
   );
 }
 
 /**
- * What the tab and filters find, `events`, in lists by owner or by tag, in the
- * tab's order, in two columns, each half the grid, one column below its
+ * What the tab and filters find, `events`, in lists by owner or by tag, each a
+ * card, in the tab's order, in two columns, each half the grid, one column below its
  * breakpoint, under how many there are. Any staff
  * member can change an event's owner and doc, from its Edit button. An event in
  * two lists is listed in full in each. An event to come on Luma with no owner,
@@ -128,7 +138,7 @@ export default function EventColumns({
   now: Date;
   save: SaveEvent;
 }) {
-  if (events.length === 0) return <Muted>{copy.noneFound}</Muted>;
+  if (events.length === 0) return <Empty>{copy.noneFound}</Empty>;
   const lists = grouping === "owner" ? eventsByOwner(events) : eventsByTag(events);
   const needed = (event: StaffEvent) => ownerNeeded(event, now);
   return (
@@ -138,7 +148,7 @@ export default function EventColumns({
       </p>
       <Grid>
         {eventListColumns(lists).map((column, i) => (
-          <div key={i} className={spanClass(3)}>
+          <Column key={i} span={3}>
             {column.map((list) => (
               <List
                 key={list.title}
@@ -151,7 +161,7 @@ export default function EventColumns({
                 save={save}
               />
             ))}
-          </div>
+          </Column>
         ))}
       </Grid>
     </EventsEditing>

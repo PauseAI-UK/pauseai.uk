@@ -1,5 +1,5 @@
 import { staffCopy } from "@/lib/content/staff-interface";
-import { AUDIT_LOG_LIST, type ChangeSort } from "@/lib/staff-lists";
+import { AUDIT_LOG_LIST, clearedPath, type ChangeSort } from "@/lib/staff-lists";
 import { type ChangesSearch } from "@/lib/staff-search";
 import { filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { sortHref } from "@/lib/staff-sort";
@@ -107,6 +107,7 @@ export default function ChangesTable({
         rows={log.changes}
         rowKey={(c) => c.id}
         empty={copy.none}
+        clear={clearedPath(AUDIT_LOG_LIST, search)}
       />
     </>
   );

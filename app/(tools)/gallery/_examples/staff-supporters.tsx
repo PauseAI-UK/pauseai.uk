@@ -32,7 +32,6 @@ import {
   NotesExample,
   NoteChangesExample,
   NoteEntryExample,
-  NoteFormExample,
   NotesCardExample,
   NoteTextExample,
   SignupPlanViewExample,
@@ -299,7 +298,7 @@ export const staffSupporters: Group = {
       file: "app/(staff)/staff/_components/Notes.tsx",
       variants: [
         {
-          label: "A supporter's notes, as their writer sees them: her newest she can still change",
+          label: "A supporter's notes card, as their writer sees them: her newest she can still change",
           render: () => (
             <StaffPage as="div">
               <NotesExample />
@@ -385,15 +384,6 @@ export const staffSupporters: Group = {
             </StaffPage>
           ),
         },
-      ],
-    },
-    {
-      name: "NoteForm",
-      file: "app/(staff)/staff/_components/NoteForm.tsx",
-      variants: [
-        { label: "Closed: the button that opens it", render: () => <NoteFormExample /> },
-        { label: "Opened, on a supporter, with what a note should be", render: () => <NoteFormExample opened /> },
-        { label: "Opened, on a politician", render: () => <NoteFormExample on="politicianId" opened /> },
       ],
     },
     {

@@ -4,6 +4,7 @@ import {
   ACCOUNTS_LIST,
   ALL_EMAILS_LIST,
   AUDIT_LOG_LIST,
+  clearedPath,
   defineStaffList,
   EVENTS_LIST,
   LETTERS_LIST,
@@ -47,8 +48,20 @@ describe("a staff list's definition", () => {
 
   it("has no columns, nothing chosen and nothing kept, when its definition gives none", () => {
     expect(EVENTS_LIST.columns).toEqual({});
-    expect(ALL_EMAILS_LIST.choosing).toEqual([]);
-    expect(ALL_EMAILS_LIST.saved).toEqual(["sort", "dir"]);
+    expect(ACCOUNTS_LIST.choosing).toEqual([]);
+    expect(ACCOUNTS_LIST.saved).toEqual(["sort", "dir"]);
+  });
+
+  it("clears to its URL with only what's kept, and has nothing to clear with no search, filter or saved filter on", () => {
+    expect(clearedPath(list, { tab: "old", sort: "name", page: "2" }, ["tab"])).toBeUndefined();
+    expect(clearedPath(list, { q: "ann", tag: ["a", "b"], tab: "old", sort: "name" }, ["tab"])).toBe(
+      "/staff/things?tab=old",
+    );
+    expect(clearedPath(list, { tag: ["a"] })).toBe("/staff/things");
+    // A saved filter that's loaded is one to clear, even one that filters by nothing.
+    expect(clearedPath(list, { saved: "7" }, ["tab"])).toBe("/staff/things");
+    // What's kept isn't a filter that's on, though the list counts it as choosing what it shows.
+    expect(clearedPath({ path: "/staff/things", choosing: ["q", "tab"] }, { tab: "old" }, ["tab"])).toBeUndefined();
   });
 
   it("keeps the events list's tab and grouping in a saved filter, and the audit log's filters and sort", () => {

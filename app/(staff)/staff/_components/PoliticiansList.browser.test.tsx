@@ -448,7 +448,48 @@ describe("PoliticiansList", () => {
         actions={actions()}
       />,
     );
-    await expect.element(page.getByText(copy.none)).toBeVisible();
-    expect(page.getByRole("link").all()).toHaveLength(0);
+    // Nothing found, and no one close: the list's frame, saying so, with no one to mail, and the way to clear the search.
+    await expect.element(page.getByRole("table").getByText(copy.none)).toBeVisible();
+    await expect.element(page.getByText(copy.total(0))).toBeVisible();
+    expect(page.getByRole("button").all()).toHaveLength(0);
+    await expect
+      .element(page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }))
+      .toHaveAttribute("href", "/staff/politicians");
+    // With nothing on, there's nothing to clear.
+    await rerender(
+      <PoliticiansList
+        list={{ ...examplePoliticiansPage, politicians: [], total: 0 }}
+        search={emptyPoliticiansSearch}
+        asks={[]}
+        newMailing={vi.fn()}
+        actions={actions()}
+      />,
+    );
+    expect(page.getByRole("link", { name: staffCopy.resetFilters }).all()).toHaveLength(0);
+    // Emptied by a filter, the row's way to clear it keeps the house; but there's none while choosing.
+    const filtered = { ...emptyPoliticiansSearch, house: "lords", party: ["Green"] };
+    await rerender(
+      <PoliticiansList
+        list={{ ...examplePoliticiansPage, politicians: [], total: 0 }}
+        search={filtered}
+        asks={[]}
+        newMailing={vi.fn()}
+        actions={actions()}
+      />,
+    );
+    await expect
+      .element(page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }))
+      .toHaveAttribute("href", "/staff/politicians?house=lords");
+    await rerender(
+      <PoliticiansList
+        list={{ ...examplePoliticiansPage, politicians: [], total: 0 }}
+        search={{ ...filtered, mailing: "12" }}
+        asks={[]}
+        newMailing={vi.fn()}
+        choosing={{ ...exampleChoosing, ticked: [] }}
+        actions={actions()}
+      />,
+    );
+    expect(page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }).all()).toHaveLength(0);
   });
 });
