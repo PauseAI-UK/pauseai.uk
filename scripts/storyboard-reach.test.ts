@@ -686,7 +686,8 @@ describe("flowsToRun", () => {
   });
 });
 
-describe("this repo", () => {
+// Each reads the whole of the site's code, which takes a slow machine many seconds.
+describe("this repo", { timeout: 120_000 }, () => {
   const repo = join(import.meta.dirname, "..");
 
   it("has every file the map names by its path", () => {
