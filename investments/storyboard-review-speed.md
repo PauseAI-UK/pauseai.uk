@@ -24,7 +24,7 @@ In order of what each would save:
    - Commits inside a PR do better. With coverage, and with `staffCopy` followed key by key, the median commit reruns 33% of flows (imports alone: 71%). 53 of 231 need no flows at all (docs, unit tests), and 107 need a quarter or fewer.
    - The staff pages are why it's broad. Every staff flow signs in to the dashboard, which reads most of the staff code. The list registry, the nav and the one `staffCopy` object reach 150 to 250 flows each.
 
-   So the cheap parts are worth having now: no review at all for a change to docs or unit tests alone, and only a spec's own flows when only that spec changed. Choosing flows by coverage would make reviews quicker while a PR is being worked on, roughly halving the flows' 6.6 of the review's 9 minutes, but not the review before merging.
+   So the cheap parts are worth having now: no review at all for a change to docs or unit tests alone, and only a spec's own flows when only that spec changed. The flows are nearly all of a review: 6.6 minutes for both viewports, against 8 to 20 seconds for the fixture build. So a second review on a branch takes about as long as the share of flows it reruns: about 2.5 minutes for a typical commit with coverage, 5 with imports. The review before merging stays full.
 2. Have CI picture main on each push to it and keep the frames as an artifact, for a review to fetch. First compare one run of CI's with one made locally: fonts and the machine may make the pictures differ.
 3. Show the review as it fills: open the page at once, run the sections with changed spec files first, and add main's side as it arrives.
 
