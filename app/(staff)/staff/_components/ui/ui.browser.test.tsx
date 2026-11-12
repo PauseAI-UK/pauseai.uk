@@ -1301,6 +1301,7 @@ describe("Empty", () => {
 
 describe("Rows", () => {
   it("rules each row from the last, its second line quieter, and lines up what leads and ends the rows", async () => {
+    await page.viewport(1280, 800);
     await render(
       <StaffPage as="div">
         <div style={{ width: 320 }}>

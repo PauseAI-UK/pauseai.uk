@@ -97,6 +97,30 @@ describe("StaffNav", () => {
   });
 });
 
+describe("StaffNav on a phone", () => {
+  it("keeps the page's name beside the title, a long one on two lines there", async () => {
+    await page.viewport(390, 800);
+    try {
+      const { rerender } = await render(
+        <StaffNav email="jo@pauseai.uk" permissions={["supporters"]} current="supporters" />,
+      );
+      const title = () => page.getByText(staffCopy.nav.title).element().getBoundingClientRect();
+      const name = () => document.querySelector("summary")!.getBoundingClientRect();
+      const oneLine = name().height;
+      expect(name().left).toBeGreaterThan(title().right);
+      await rerender(<StaffNav email="jo@pauseai.uk" permissions={["supporters"]} current="supporterEmails" />);
+      expect(document.querySelector("summary")!.textContent).toBe(staffCopy.nav.supporterEmails);
+      // Still beside the title, not under it, and taller, as it has wrapped.
+      expect(name().left).toBeGreaterThan(title().right);
+      expect(name().top).toBeLessThan(title().bottom);
+      expect(name().height).toBeGreaterThan(oneLine);
+      expect(Math.round(name().right)).toBeLessThanOrEqual(390);
+    } finally {
+      await page.viewport(414, 896);
+    }
+  });
+});
+
 describe("StaffNav in the signed-in pages' layout", () => {
   it("marks the page the URL is, or is under, and closes the phone's menu when the page changes", async () => {
     navigation.pathname = "/staff/letters/supporter/3";

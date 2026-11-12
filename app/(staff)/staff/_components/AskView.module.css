@@ -124,6 +124,11 @@
   border-top: 1px solid var(--border);
 }
 
+/* The way to all of an answer, at the page's size, larger than the column's. */
+.columnFoot a {
+  font-size: var(--text-md);
+}
+
 .toPoliticians {
   margin: 0;
   font-size: var(--text-sm);

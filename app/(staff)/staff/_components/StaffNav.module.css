@@ -177,10 +177,17 @@ button.page:hover {
     display: none;
   }
 
-  /* The dropdown, at the right of the bar. */
+  /* The title and the dropdown stay side by side, whatever the page's name. */
+  .nav {
+    flex-wrap: nowrap;
+  }
+
+  /* The dropdown, at the right of the bar: a name too long for the room
+     beside the title goes on two lines there, not under the title. */
   .menu {
     display: block;
     position: relative;
+    min-width: 0;
     margin-left: auto;
   }
 
@@ -188,6 +195,7 @@ button.page:hover {
     cursor: pointer;
     list-style: none;
     font-weight: 700;
+    text-align: right;
   }
 
   .menu summary::-webkit-details-marker {
