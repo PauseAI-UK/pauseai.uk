@@ -12,4 +12,4 @@ Group changed frames by where and how much they changed, so the same change acro
 
 ## Hits
 
-None yet.
+- 2026-11-12: a change to the staff tables' columns changed 337 frames, then 382, nearly all the same dozen tables pictured again in other flows; looked at one of each table on each viewport and took the rest as read

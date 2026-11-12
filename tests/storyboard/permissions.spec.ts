@@ -256,9 +256,11 @@ test("Unblocking a supporter's address", async ({ page, request, flowDatabase })
   await expect(row).toContainText(staffCopy.emails.kinds.hard);
   await frame(page, "Supporters' blocked emails");
 
-  story("Staff unblock it, with a note.");
+  story("Staff unblock it. Its row's button asks why first, for the audit log.");
+  await row.getByRole("button", { name: staffCopy.emails.unblockOpen }).click();
   await row.getByLabel(staffCopy.emails.note).fill("She gave us a new one");
-  await row.getByRole("button", { name: staffCopy.emails.unblock }).click();
+  await frame(page, "Why they're unblocking it");
+  await row.getByRole("button", { name: staffCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
   await frame(page, "Supporters' blocked emails, empty");
 });

@@ -3,8 +3,8 @@ import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { StaffSession } from "@/lib/server/staff-auth";
-import { staffTime } from "@/lib/staff-time";
 import { browserOf, systemOf } from "@/lib/user-agent";
+import When from "./ui/When";
 import styles from "./StaffSessions.module.css";
 
 const copy = staffCopy.sessions;
@@ -35,8 +35,12 @@ export default function StaffSessions({ sessions }: { sessions: StaffSession[] }
             <tr key={session.id}>
               <td>{browserOf(session.userAgent) ?? copy.unknown}</td>
               <td>{systemOf(session.userAgent) ?? copy.unknown}</td>
-              <td>{staffTime(session.startedAt)}</td>
-              <td>{staffTime(session.expiresAt)}</td>
+              <td>
+                <When at={session.startedAt} />
+              </td>
+              <td>
+                <When at={session.expiresAt} />
+              </td>
               <td>{copy.kept[session.remember ? "yes" : "no"]}</td>
               <td>{session.current && <Tag>{copy.thisBrowser}</Tag>}</td>
               <td>

@@ -89,16 +89,27 @@ describe("PoliticianTable", () => {
         .all()
         .map((li) => li.element().textContent);
     expect(answers("Polly Placeholder")).toEqual([
-      `${staffCopy.statuses.declined} ${ask("edinburgh-conference-2026").title}`,
-      `${staffCopy.statuses.signed} ${ask("frontier-ai-letter").title}`,
+      `${ask("edinburgh-conference-2026").title} ${staffCopy.statuses.declined}`,
+      `${ask("frontier-ai-letter").title} ${staffCopy.statuses.signed}`,
     ]);
-    expect(
-      page.getByRole("row").filter({ hasText: "Polly Placeholder" }).getByText(staffCopy.statuses.declined).element()
-        .tagName,
-    ).toBe("STRONG");
+    // The answer in bold, a no crossed and a yes ticked in green, each at its ask's right and level with the other.
+    const pollys = page.getByRole("row").filter({ hasText: "Polly Placeholder" });
+    const declined = pollys.getByText(staffCopy.statuses.declined).element();
+    const signed = pollys.getByText(staffCopy.statuses.signed).element();
+    expect(declined.closest("strong")).not.toBeNull();
+    expect(getComputedStyle(declined, "::before").content).toContain("✕");
+    expect(getComputedStyle(signed, "::before").content).toContain("✓");
+    expect(getComputedStyle(signed).color).not.toBe(getComputedStyle(declined).color);
+    expect(signed.getBoundingClientRect().left).toBe(declined.getBoundingClientRect().left);
+    // The ask's title never wraps: a long one is cut off, and the whole of it is its tooltip.
+    const title = signed.closest("li")!.querySelector("[title]")!;
+    expect(title.getAttribute("title")).toBe(ask("frontier-ai-letter").title);
+    expect(title.getBoundingClientRect().right).toBeLessThanOrEqual(signed.getBoundingClientRect().left);
+    expect(getComputedStyle(title).whiteSpace).toBe("nowrap");
+    expect(getComputedStyle(title).textOverflow).toBe("ellipsis");
     expect(answers("Testy McTestface MP")).toEqual([
-      `${staffCopy.statuses.signed} ${ask("controlai-letter").title}`,
-      `${staffCopy.statuses.signed} ${ask("frontier-ai-letter").title}`,
+      `${ask("controlai-letter").title} ${staffCopy.statuses.signed}`,
+      `${ask("frontier-ai-letter").title} ${staffCopy.statuses.signed}`,
     ]);
     expect(cells("Testy McTestface MP")[4]).toBe(staffCopy.personStatuses.retired);
     expect(cells("Nora Nothing")[6]).toBe(staffCopy.politicians.noAsks);

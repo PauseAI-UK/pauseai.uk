@@ -20,4 +20,4 @@ In order of what each would save:
 
 ## Hits
 
-None yet.
+- 2026-11-12: three full reviews in a row on one branch, five minutes each with the build, as each turned up one failing phone flow and the fix to a shared piece (the bubble) needed every flow run again; the changes after the first touched four files, ~20 min waiting

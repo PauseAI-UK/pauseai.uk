@@ -543,6 +543,26 @@ each, the heading, the cell, and the value in a download. The frame draws:
   wraps, so the long columns take the room. The frame is as wide as the
   page's column, even past the 88rem that a page laid out on the grid
   keeps to, so a list wraps less on a big screen.
+- A table too wide for its window scrolls sideways, on a laptop as on a
+  phone. No column is hidden or moved under another to make it fit. Three
+  things keep it readable while it does:
+  - A column of words says so (`words`), and keeps room for a few of them
+    on a line: a `"name"` (a person's, a place's) two or three, a `"line"`
+    (a subject, a title, a sentence) four or five. Without it the browser
+    squeezes every wrapping column to its longest word before the table
+    scrolls, and a name stands four lines tall.
+  - A date never breaks across lines, nor a time with it. A column of
+    dates is a short one. A date beside or under other words in a cell is
+    a `When` (`ui/When`). The storyboard fails on a date on two lines
+    (`docs/testing.md`, "The storyboard").
+  - A row's buttons (an `end` column) stay at the window's right edge
+    while the table scrolls under them, except on a phone, where they'd
+    cover too much of the row.
+- Words too long for a row are cut short, with "…" in a small pill after
+  them that unfolds the whole in their place (`ui/Shortened`): a bounce's
+  reason to its first sentence, a sent email's subject at a word. Not
+  words that are the way to the row's page, nor a column whose whole text
+  is its point.
 - Under the table, when there's more than one page, the paging: "101–200
   of 250", then Previous, the page numbers (the first and last pages and
   two either side of this one) and Next. On a phone, "Page 6 of 50" takes
@@ -736,8 +756,9 @@ draft is pressed twice.
 in a bubble hung from the button, over the table, with Save and Cancel
 (the events' owner and doc, an account's permissions). The row never
 turns into its form: the cells would change size, and the whole table
-would jump. A small form that's always in its row, such as Unblock, moves
-nothing and stays there.
+would jump. A row holds no field of its own either, as a field takes a
+column's width from the words: a blocked address's "Unblock…" opens a
+bubble that asks why, with Unblock and Cancel.
 
 **A bubble you click open to work in or read has a pointer up to its
 button** (`ui/Bubble`). A bubble that holds a form, or a few words on the

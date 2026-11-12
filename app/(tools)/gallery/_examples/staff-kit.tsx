@@ -37,6 +37,8 @@ import DownloadMenu from "@/app/(staff)/staff/_components/ui/DownloadMenu";
 import Grid, { Card, Column } from "@/app/(staff)/staff/_components/ui/Grid";
 import Numbered from "@/app/(staff)/staff/_components/ui/Numbered";
 import Progress from "@/app/(staff)/staff/_components/ui/Progress";
+import Shortened, { cutAtWord } from "@/app/(staff)/staff/_components/ui/Shortened";
+import When from "@/app/(staff)/staff/_components/ui/When";
 import Page from "@/app/(staff)/staff/_components/ui/Page";
 import PageHead from "@/app/(staff)/staff/_components/ui/PageHead";
 import Strip from "@/app/(staff)/staff/_components/ui/Strip";
@@ -67,6 +69,16 @@ const exampleColumns: ListColumn<ExampleRow>[] = [
   { key: "count", label: "Letters", short: true, cell: (r) => r.count },
 ];
 const nameOf = (row: ExampleRow) => row.name;
+/** A subject too long for a row, and when the examples' rows happened. */
+const EXAMPLE_SUBJECT = "Please make the Millennium Dome into a giant pause button";
+const EXAMPLE_AT = new Date("2026-10-16T10:34:00Z");
+/** A list's columns that say what they hold: a name, a line of words, a date. */
+const narrowColumns: ListColumn<ExampleRow>[] = [
+  { key: "name", label: "Name", words: "name", cell: (r) => r.name },
+  { key: "subject", label: "Subject", words: "line", cell: () => EXAMPLE_SUBJECT },
+  { key: "when", label: "When", short: true, cell: () => <When at={EXAMPLE_AT} /> },
+  { key: "place", label: "Place", cell: (r) => r.place },
+];
 /** Where a page of the example list is. */
 const pageHref = (n: number) => `#page-${n}`;
 
@@ -414,6 +426,60 @@ export const staffKit: Group = {
           render: () => (
             <StaffPage as="div">
               <ListTable columns={exampleColumns} rows={exampleRows} rowKey={nameOf} />
+            </StaffPage>
+          ),
+        },
+        {
+          label:
+            "In a box too narrow for it: the columns of words keep room for a few, the date stays on one line, and the table scrolls sideways",
+          render: () => (
+            <StaffPage as="div">
+              <div style={{ width: "24rem" }}>
+                <ListTable columns={narrowColumns} rows={exampleRows} rowKey={nameOf} />
+              </div>
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "Shortened",
+      file: "app/(staff)/staff/_components/ui/Shortened.tsx",
+      variants: [
+        {
+          label: "A long subject cut at a word, and one with a lozenge after it; the … unfolds each",
+          render: () => (
+            <StaffPage as="div">
+              <div style={{ display: "grid", gap: "8px", maxWidth: "24rem" }}>
+                <div>
+                  <Shortened short={cutAtWord(EXAMPLE_SUBJECT, 40)!} whole={EXAMPLE_SUBJECT} />
+                </div>
+                <div>
+                  <Shortened
+                    short="The address does not exist."
+                    whole="The address does not exist. Please check it for typos."
+                  >
+                    <Tag>Gmail</Tag>
+                  </Shortened>
+                </div>
+              </div>
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "When",
+      file: "app/(staff)/staff/_components/ui/When.tsx",
+      variants: [
+        {
+          label: "The day and the time, and the day alone, on one line in a box too narrow for them",
+          render: () => (
+            <StaffPage as="div">
+              <div style={{ display: "grid", gap: "8px", width: "4rem" }}>
+                <When at={EXAMPLE_AT} />
+                <When at={EXAMPLE_AT} day />
+              </div>
             </StaffPage>
           ),
         },

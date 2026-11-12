@@ -1,3 +1,4 @@
+import AnswerWord from "./AnswerWord";
 import { AskTitle } from "./AskLine";
 import StaffLink from "./ui/StaffLink";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -51,7 +52,8 @@ const marks = (p: Politician) => {
 /**
  * The politicians list's columns: who they are (name, house, constituency
  * and party), how they stand (whether they're in office, Airtable's
- * markers, their answer to each ask they've answered, a line each), how
+ * markers, each ask they've answered and their answer beside it, a line
+ * each, a long title cut short), how
  * many letters they've had and answered, and when they first and last did
  * anything with us. Which show is the filters' doing, not the rows': a
  * column is left out only when the filters fix it for every row there
@@ -91,6 +93,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       key: "name",
       label: staffCopy.fields.name,
       heading: heading("name", staffCopy.fields.name),
+      words: "name",
       text: (p) => p.name,
       cell: (p) => (
         <>
@@ -111,6 +114,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       key: "constituency",
       label: staffCopy.fields.constituency,
       heading: heading("constituency", staffCopy.fields.constituency),
+      words: "name",
       text: (p) => p.constituency,
       cell: (p) => p.constituency,
     },
@@ -164,10 +168,12 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
           <ul className={styles.asks}>
             {answered(p).map((ask) => (
               <li key={ask.slug}>
-                <strong>{staffCopy.statuses[p.statuses[ask.slug].status]}</strong>{" "}
-                <span className={styles.ask}>
+                <span className={styles.ask} title={ask.title}>
                   <AskTitle ask={ask} />
-                </span>
+                </span>{" "}
+                <strong className={styles.answer}>
+                  <AnswerWord status={p.statuses[ask.slug].status} />
+                </strong>
               </li>
             ))}
           </ul>

@@ -1,0 +1,4 @@
+/* A date never breaks across lines, nor a time with it. */
+.when {
+  white-space: nowrap;
+}

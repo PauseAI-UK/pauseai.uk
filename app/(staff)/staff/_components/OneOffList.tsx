@@ -22,6 +22,7 @@ const oneOffColumns: ListColumn<OneOffThreadRow>[] = [
   {
     key: "subject",
     label: copy.columns.subject,
+    words: "line",
     cell: (t) =>
       t.subject === null ? (
         <Withheld>{copy.hidden}</Withheld>
@@ -32,6 +33,7 @@ const oneOffColumns: ListColumn<OneOffThreadRow>[] = [
   {
     key: "politician",
     label: copy.columns.politician,
+    words: "name",
     cell: (t) =>
       t.people.length === 0 ? (
         <Muted>{copy.noPolitician}</Muted>

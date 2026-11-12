@@ -16,6 +16,7 @@ const columns: ListColumn<ErrorSeen>[] = [
   {
     key: "what",
     label: copy.columns.what,
+    words: "line",
     cell: (error) => <StaffLink href={`${PATH}/${error.id}`}>{error.words}</StaffLink>,
   },
   { key: "kind", label: copy.columns.kind, cell: (error) => copy.kinds[error.kind] },

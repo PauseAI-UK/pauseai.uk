@@ -17,3 +17,27 @@
   flex: 0 1 9rem;
   min-width: 6rem;
 }
+
+/* Why a row has no button, where the button would be: a sentence, wrapping
+   in a few words' width, in a column that otherwise keeps to one line and
+   its right edge. */
+.cant {
+  display: inline-block;
+  min-width: 10rem;
+  text-align: left;
+  white-space: normal;
+}
+
+/* In a row's bubble: the question over its field, then Unblock and Cancel
+   side by side under them, as an event's Edit has its buttons. */
+.asking {
+  display: grid;
+  gap: var(--space-3);
+  width: 20rem;
+  max-width: 100%;
+}
+
+.buttons {
+  display: flex;
+  gap: var(--space-2);
+}

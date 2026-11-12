@@ -26,7 +26,7 @@ export function changeColumns(airtableTable: string): ListColumn<LoggedChange>[]
     { key: "day", label: copy.day, short: true, text: (c) => c.at, cell: (c) => staffDate(c.at) },
     { key: "at", label: copy.at, short: true, cell: (c) => staffClock(c.at) },
     { key: "actor", label: copy.actor, text: (c) => c.actor, cell: (c) => c.actor },
-    { key: "action", label: copy.action, text: (c) => c.action, cell: (c) => c.action },
+    { key: "action", label: copy.action, words: "name", text: (c) => c.action, cell: (c) => c.action },
     { key: "details", label: copy.details, cell: (c) => <AuditDetail change={c} airtableTable={airtableTable} /> },
     {
       key: "json",

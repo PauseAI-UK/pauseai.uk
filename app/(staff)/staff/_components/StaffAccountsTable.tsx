@@ -10,12 +10,14 @@ import { ACCOUNTS_LIST, type AccountSort } from "@/lib/staff-lists";
 import { ADDED_BY_LOGIN, isStaffEmail, PERMISSIONS, type Permission } from "@/lib/staff-permissions";
 import { sortHref, type SortSpec } from "@/lib/staff-sort";
 import type { StaffAccount } from "@/lib/server/staff-accounts";
-import { staffTime } from "@/lib/staff-time";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { DeleteTwice } from "./DeleteTwice";
 import SortHeading from "./SortHeading";
 import Bubble from "./ui/Bubble";
+import When from "./ui/When";
+// A row's button, kept at the window's right edge as a list's is.
+import frame from "./ui/ListFrame.module.css";
 import styles from "./StaffAccountsTable.module.css";
 
 type Action = (form: FormData) => void | Promise<void>;
@@ -114,7 +116,7 @@ function EndSessionsForm({ account, yours, end }: { account: StaffAccount; yours
 }
 
 /** When, or never. */
-const when = (at: Date | null) => (at ? staffTime(at) : staffCopy.accounts.never);
+const when = (at: Date | null) => (at ? <When at={at} /> : staffCopy.accounts.never);
 
 /** Why an address typed to add can't be: not at pauseai.uk, or already in the table. */
 type AddProblem = "not-pauseai" | "exists";
@@ -215,7 +217,7 @@ export default function StaffAccountsTable({
             {heading("lastSeen", columns.lastSeen)}
             {heading("sessions", columns.sessions)}
             {heading("gmail", columns.gmail)}
-            <th />
+            <th className={frame.end} />
           </tr>
         </thead>
         <tbody>
@@ -226,7 +228,7 @@ export default function StaffAccountsTable({
                 <Permissions account={account} save={save} />
               </td>
               <td>
-                {staffTime(account.addedAt)}{" "}
+                <When at={account.addedAt} />{" "}
                 <Muted>{account.addedBy === ADDED_BY_LOGIN ? copy.addedByLogin : copy.addedBy(account.addedBy)}</Muted>
               </td>
               <td>{when(account.lastLoginAt)}</td>
@@ -240,13 +242,16 @@ export default function StaffAccountsTable({
               <td>
                 {account.gmailConnectedAt ? (
                   <>
-                    {copy.gmailConnected} <Muted>{staffTime(account.gmailConnectedAt)}</Muted>
+                    {copy.gmailConnected}{" "}
+                    <Muted>
+                      <When at={account.gmailConnectedAt} />
+                    </Muted>
                   </>
                 ) : (
                   <Muted>{copy.gmailNot}</Muted>
                 )}
               </td>
-              <td>
+              <td className={frame.end}>
                 <DeleteTwice name="email" value={account.email} label={copy.remove} short action={remove} />
               </td>
             </tr>
