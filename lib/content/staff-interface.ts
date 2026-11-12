@@ -2602,12 +2602,12 @@ All events: ${link}`,
       // The CiviCRM import: sending our opt-outs to CiviCRM failed, or it didn't answer some, or said some were
       // wrong. Each is tried again next hour, but a wrong one needs a developer.
       // Sending a broadcast: CiviCRM didn't answer its check of the addresses, so it waits (staff are told by email).
-      civicrmCheckFailed: "⁂ CiviCRM didn't answer, so a broadcast is waiting to send",
-      civicrmUpdatesFailed: "⁂ Couldn't send opt-outs to CiviCRM. They'll go next hour",
+      civicrmCheckFailed: "CiviCRM didn't answer, so a broadcast is waiting to send",
+      civicrmUpdatesFailed: "Couldn't send opt-outs to CiviCRM. They'll go next hour",
       civicrmUpdatesUnanswered: (n: number) =>
-        `⁂ ${plural(n, "opt-out", "opt-outs")} got no answer from CiviCRM. They'll go again next hour`,
+        `${plural(n, "opt-out", "opt-outs")} got no answer from CiviCRM. They'll go again next hour`,
       civicrmUpdatesInvalid: (n: number) =>
-        `⁂ CiviCRM rejected ${plural(n, "opt-out", "opt-outs")}. A developer needs to look at them:`,
+        `CiviCRM rejected ${plural(n, "opt-out", "opt-outs")}. A developer needs to look at them:`,
     },
     // Can happen in a job or not. In a job, staff see it on the job's page and in the email. Not in a job, such
     // as a visitor sending a letter, it's kept as an error (lib/server/errors-seen.ts): on the errors page, and
@@ -2631,7 +2631,7 @@ All events: ${link}`,
     logs: {
       // Someone turned off events by email, or every bulk email, on the contact preferences page or an email's
       // unsubscribe link, but Luma didn't take them off the calendar, which goes on emailing them.
-      lumaRemoveFailed: "⁂ Someone opted out of event emails but is still on the Luma calendar, so Luma will keep emailing them",
+      lumaRemoveFailed: "Someone opted out of event emails but is still on the Luma calendar, so Luma will keep emailing them",
       // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission.
       tokenNotRevoked: (account: string) => `${account}'s Gmail token couldn't be revoked at Google`,
       // A visitor looking up their MP is told it failed.
