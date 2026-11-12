@@ -706,7 +706,7 @@ export const staffCopy = {
   accounts: {
     title: "Staff accounts",
     // Under the title.
-    intro: "⁂ Who can log in to these pages, and what each of them can see and do",
+    intro: "Who can log in and their permissions",
     // The table's last row: everyone else at pauseai.uk, who can log in with no permissions; and across the rest of
     // the row, in grey, what that means.
     everyone: "*@pauseai.uk",
