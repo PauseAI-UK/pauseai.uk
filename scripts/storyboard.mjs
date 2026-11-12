@@ -61,6 +61,7 @@
 // A difference never fails; only this branch's checks do, and the exit code
 // is theirs.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   copyFileSync,
   existsSync,
@@ -253,14 +254,40 @@ function once(fn) {
 /** Whether git has the tree `tree`: one written by a run in any checkout, until git prunes it. */
 const knownTree = once((tree) => spawnSync("git", ["cat-file", "-e", `${tree}^{tree}`]).status === 0);
 
-/** The files that differ between two trees, or undefined if git no longer has `from`. */
-const changedBetween = once((from, to) =>
-  knownTree(from) ? git("diff", "--no-renames", "--name-only", from, to).split("\n").filter(Boolean) : undefined,
-);
+/**
+ * The files that differ between two trees, and those of them only one has
+ * (added or deleted), or undefined if git no longer has `from`.
+ */
+const changedBetween = once((from, to) => {
+  if (!knownTree(from)) return undefined;
+  const lines = git("diff", "--no-renames", "--name-status", "-z", from, to).split("\0");
+  const files = [];
+  const addedOrDeleted = [];
+  // With -z, a status and then its path, each ended by a NUL.
+  for (let at = 0; at + 1 < lines.length; at += 2) {
+    files.push(lines[at + 1]);
+    if (lines[at] === "A" || lines[at] === "D") addedOrDeleted.push(lines[at + 1]);
+  }
+  return { files, addedOrDeleted };
+});
+
+/**
+ * What a flow ran on that its tree doesn't hold: the dependencies installed
+ * in the checkout at `dir` (npm's own record of them) and the Node running
+ * them. A flow that ran on others is run again (flowsToRun).
+ */
+function setupOf(dir) {
+  const installed = join(dir, "node_modules", ".package-lock.json");
+  return createHash("sha256")
+    .update(process.version)
+    .update(existsSync(installed) ? readFileSync(installed) : "")
+    .digest("hex")
+    .slice(0, 16);
+}
 
 /** The keys of staffCopy that differ between two trees, if its file does (changedCopyKeys). */
 const copyKeysBetween = once((from, to) => {
-  if (!changedBetween(from, to)?.includes(STAFF_COPY)) return undefined;
+  if (!changedBetween(from, to)?.files.includes(STAFF_COPY)) return undefined;
   const show = (at) =>
     spawnSync("git", ["show", `${at}:${STAFF_COPY}`], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).stdout;
   return changedCopyKeys(git("diff", "-U0", from, to, "--", STAFF_COPY), show(from), show(to));
@@ -294,6 +321,7 @@ function nearest(sources, suiteKeys, tree, context, phoneTagged) {
       carried: source.runs,
       phoneTagged,
       context,
+      setup: setupOf(context.root),
       changedSince: (at) => changedBetween(at, tree),
       copyKeysSince: (at) => copyKeysBetween(at, tree),
     });
@@ -459,6 +487,7 @@ async function runMainSuite(workDir, lines) {
       STORYBOARD_SIDE: "main-run",
       STORYBOARD_RUN_AT: runAt,
       STORYBOARD_TREE: git("rev-parse", `${base}^{tree}`),
+      STORYBOARD_SETUP: setupOf(MAIN_WORKTREE),
       // This checkout's file, so how far main's run is shows where the review was started
       // (tests/storyboard/report/progress.ts).
       STORYBOARD_PROGRESS: resolve("test-results", "storyboard-progress.json"),
@@ -741,7 +770,10 @@ if (!builtHere && !nothing)
 // Each flow records the tree it ran on only when the build is that tree's.
 const code = nothing
   ? 0
-  : runSuite("branch", options.server ?? LOCAL_URL, { STORYBOARD_TREE: builtHere ? treeBefore : "" });
+  : runSuite("branch", options.server ?? LOCAL_URL, {
+      STORYBOARD_TREE: builtHere ? treeBefore : "",
+      STORYBOARD_SETUP: setupOf(process.cwd()),
+    });
 
 // A review that stands for every flow keeps them all under the tree they picture, the carried ones too, as each
 // looks as it would on this tree: if the build was this tree's, and nothing in the checkout changed meanwhile.

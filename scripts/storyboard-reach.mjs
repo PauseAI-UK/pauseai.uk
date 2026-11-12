@@ -40,7 +40,8 @@ const NOTHING = [
   /^\.github\//,
   /^\.claude\//,
   /^backup\//,
-  /\.md$/,
+  /^[^/]+\.md$/,
+  /(^|\/)README\.md$/,
   /\.test\.[cm]?[jt]sx?$/,
   /\.d\.m?ts$/,
   /^tests\/checks\//,
@@ -55,6 +56,10 @@ const NOTHING = [
 /** Folders of no source: what's built, installed or thrown away. */
 const NOT_SOURCE = new Set(["node_modules", ".git", ".next", ".netlify", "tmp", "test-results", "playwright-report"]);
 const CODE = /\.(tsx?|mts|mjs|jsx?|css|json)$/;
+/** Code that's imported, never read as a file: the rest is data (JSON, pictures, fonts, emails, text). */
+const IMPORTED = /\.(tsx?|mts|mjs|jsx?|css)$/;
+/** What stands for an import() or require() of something other than a plain string, which can't be followed. */
+const NOT_PLAIN = "(not a plain string)";
 const RESOLVE = ["", ".ts", ".tsx", ".mts", ".mjs", ".js", ".jsx", ".json", "/index.ts", "/index.tsx", "/index.mjs"];
 
 function walk(root, dir, out) {
@@ -103,10 +108,9 @@ export function importsOf(path, text) {
       ts.isCallExpression(node) &&
       (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
         (ts.isIdentifier(node.expression) && node.expression.text === "require")) &&
-      node.arguments.length > 0 &&
-      ts.isStringLiteralLike(node.arguments[0])
+      node.arguments.length > 0
     ) {
-      specs.push(node.arguments[0].text);
+      specs.push(ts.isStringLiteralLike(node.arguments[0]) ? node.arguments[0].text : NOT_PLAIN);
     }
     ts.forEachChild(node, visit);
   };
@@ -131,14 +135,15 @@ export function importGraph(root) {
 }
 
 /**
- * The imports under `root` that name a file of the repo (`@/`, `./`) that
- * isn't there: each one is a file the map can't follow.
+ * The imports under `root`'s folders `dirs` that the map can't follow: one
+ * naming a file of the repo (`@/`, `./`) that isn't there, and an import()
+ * or require() of something other than a plain string.
  */
-export function unresolvedImports(root) {
+export function unresolvedImports(root, dirs) {
   const missing = [];
-  for (const path of walk(root, "", []))
+  for (const path of dirs.flatMap((dir) => walk(root, dir, [])))
     for (const spec of importsOf(path, readFileSync(join(root, path), "utf8")))
-      if ((spec.startsWith("@/") || spec.startsWith(".")) && !resolveImport(root, path, spec))
+      if (spec === NOT_PLAIN || ((spec.startsWith("@/") || spec.startsWith(".")) && !resolveImport(root, path, spec)))
         missing.push(`${path}: ${spec}`);
   return missing;
 }
@@ -157,7 +162,20 @@ export function closure(graph, entries) {
 }
 
 /** The files Next renders a route with, from its folder up: the folder's own and each above it. */
-const ROUTE_FILES = ["layout", "template", "loading", "error", "not-found", "default", "forbidden", "unauthorized"];
+const ROUTE_FILES = [
+  "layout",
+  "template",
+  "loading",
+  "error",
+  "global-error",
+  "not-found",
+  "global-not-found",
+  "default",
+  "forbidden",
+  "unauthorized",
+];
+/** Files Next serves from `app/` that this map doesn't match to an address: a change to one can't be placed. */
+const UNMATCHED_ROUTE_FILES = /^app\/(.*\/)?(opengraph-image|twitter-image|icon|apple-icon|favicon)\.[a-z]+$/;
 const LEAVES = ["page", "route"];
 const EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
 
@@ -250,6 +268,8 @@ const ALWAYS = [
   "tests/storyboard/global-teardown.ts",
   "scripts/serve-fixture.mjs",
 ];
+/** As ALWAYS, if the repo has it: what Next runs in every browser as a page starts. */
+const ALWAYS_IF_THERE = ["instrumentation-client.ts"];
 
 /** Where an error the server keeps is handed over (tests/storyboard/fixtures.ts records it as opened). */
 const ERRORS_KEPT = "instrumentation.ts";
@@ -270,7 +290,10 @@ export function flowReach(run, { graph, routes, root, reaches }) {
   // The same flow, having opened the same things, reaches the same files, whichever run it's from.
   const cached = `${run.section}|${run.flow}|${(run.opened ?? []).join("|")}`;
   if (reaches?.has(cached)) return reaches.get(cached);
-  const entries = [`tests/storyboard/${run.section}.spec.ts`, ...ALWAYS.filter((path) => graph.has(path))];
+  const entries = [
+    `tests/storyboard/${run.section}.spec.ts`,
+    ...[...ALWAYS, ...ALWAYS_IF_THERE].filter((path) => graph.has(path)),
+  ];
   const files = new Set();
   for (const path of run.opened ?? []) {
     if (!path.startsWith("/")) entries.push(path);
@@ -334,21 +357,45 @@ export function copyKeysRead(text) {
   return keys;
 }
 
+/** The text of a file of the checkout, read once for a context. */
+function textOf(context, file) {
+  context.texts ??= new Map();
+  if (!context.texts.has(file)) context.texts.set(file, readFileSync(join(context.root, file), "utf8"));
+  return context.texts.get(file);
+}
+
+/** Whether `text` names the folder `name` as somewhere to read from: a path's whole segment, ending a string or before a `${…}`. */
+function namesFolder(text, name) {
+  const folder = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(["'\`/])${folder}/?(["'\`]|\\$\\{)`).test(text);
+}
+
 /**
- * A file read while the site runs rather than imported (a fixture's email,
- * a CSV a flow uploads) reaches the flows that reach a file naming it, or the
- * folder it's read from.
+ * The files that may read `path` as the site or a flow runs, where it's
+ * data and not imported code (a fixture's email, a CSV a flow uploads, a
+ * font, a picture a flow stands in for another): those naming it, or naming
+ * the folder it's in as somewhere to read from.
  */
-function readers(root, graph, path) {
+function readers(context, path) {
   const name = path.split("/").at(-1);
   const folder = path.split("/").at(-2);
-  const out = [];
-  for (const file of graph.keys()) {
-    const text = readFileSync(join(root, file), "utf8");
-    if (text.includes(name) || (folder && (text.includes(`/${folder}/`) || text.includes(`"${folder}"`))))
-      out.push(file);
-  }
-  return out;
+  return [...context.graph.keys()].filter((file) => {
+    const text = textOf(context, file);
+    return text.includes(name) || (folder !== undefined && namesFolder(text, folder));
+  });
+}
+
+/**
+ * The files that list a folder `path` is in or under (the sitemap and the
+ * tests' list of routes walk `app/`): what they find changes when a file
+ * there is added or deleted.
+ */
+function listers(context, path) {
+  const folders = path.split("/").slice(0, -1);
+  return [...context.graph.keys()].filter((file) => {
+    const text = textOf(context, file);
+    return /\breaddir(Sync)?\(/.test(text) && folders.some((folder) => namesFolder(text, folder));
+  });
 }
 
 /** Whether a file of `graph` imports `path`. */
@@ -364,15 +411,16 @@ export function reachContext(root) {
 
 /**
  * The flows of `runs` (each with its key and `opened`) that changed `files`
- * can reach. `copyKeys`, if `staffCopy`'s file is one, are the keys of it
- * that changed (changedCopyKeys). Returns:
+ * can reach; `addedOrDeleted` are those of them added or deleted.
+ * `copyKeys`, if `staffCopy`'s file is one, are the keys of it that changed
+ * (changedCopyKeys). Returns:
  *
  * - `keys`, the flows reached;
  * - `everything`, the files that reach every flow, if any changed;
  * - `unknown`, the files the map can't place.
  */
-export function reachedFlows({ files, runs, context, copyKeys }) {
-  const { graph, root } = context;
+export function reachedFlows({ files, addedOrDeleted = [], runs, context, copyKeys }) {
+  const { graph } = context;
   const reach = new Map(runs.map((run) => [run.key, flowReach(run, context)]));
   const flowsReaching = (paths) =>
     runs.filter((run) => paths.some((p) => reach.get(run.key).has(p))).map((run) => run.key);
@@ -383,41 +431,48 @@ export function reachedFlows({ files, runs, context, copyKeys }) {
   const everything = [];
   const unknown = [];
   for (const path of files) {
-    if (EVERYTHING.some((re) => re.test(path))) {
-      everything.push(path);
-    } else if (NOTHING.some((re) => re.test(path))) {
-      continue;
-    } else if (path === STAFF_COPY && copyKeys && !copyKeys.has("*")) {
-      // Its readers of the keys changed. One that names no key uses the file some other way, so counts.
+    // Imported, whatever kind of file it is: the flows whose reach has it.
+    if (path === STAFF_COPY && copyKeys && !copyKeys.has("*")) {
+      // Of the staff copy, the readers of the keys changed. One that names no key uses the file some other way, so counts.
       const readersOfKeys = [...graph]
         .filter(([, imports]) => imports.includes(STAFF_COPY))
         .map(([file]) => file)
         .filter((file) => {
-          const read = copyKeysRead(readFileSync(join(root, file), "utf8"));
+          const read = copyKeysRead(textOf(context, file));
           return read.size === 0 || read.has("*") || [...copyKeys].some((key) => read.has(key));
         });
       add(flowsReaching(readersOfKeys));
-    } else if (path.startsWith("public/")) {
-      // Fetched by its address, or imported: there now or not.
-      add(flowsThatOpened((opened) => opened === path.slice("public".length)));
+    } else {
       add(flowsReaching([path]));
-    } else if (CODE.test(path)) {
+    }
+    if (EVERYTHING.some((re) => re.test(path))) {
+      everything.push(path);
+    } else if (NOTHING.some((re) => re.test(path))) {
+      continue;
+    } else if (IMPORTED.test(path)) {
       // A route's own file, added or deleted as well as changed: the flows that opened an address it serves, or one below it.
       const routeFile = /^(app(?:\/.*)?)\/([\w-]+)\.[jt]sx?$/.exec(path);
       if (routeFile && [...ROUTE_FILES, ...LEAVES].includes(routeFile[2])) {
         const pattern = folderPattern(routeFile[1], ROUTE_FILES.includes(routeFile[2]));
         add(flowsThatOpened((opened) => pattern.test(opened)));
       }
-      // A file at the top that nothing imports, such as a build tool's settings: what it changes isn't known.
-      if (!path.includes("/") && !graphImported(graph, path)) unknown.push(path);
-      add(flowsReaching([path]));
+      // One Next serves at an address this map doesn't work out, or a file at the top that nothing imports,
+      // such as a build tool's settings: what it changes isn't known.
+      if (UNMATCHED_ROUTE_FILES.test(path) || (!path.includes("/") && !graphImported(graph, path))) unknown.push(path);
     } else {
-      // Read as the site runs: the flows that reach a file naming it. With no such file, what reads it isn't known.
-      const found = readers(root, graph, path);
-      if (found.length === 0) unknown.push(path);
+      // Data. A public file is fetched by its address, there now or not.
+      const isPublic = path.startsWith("public/");
+      if (isPublic) add(flowsThatOpened((opened) => opened === path.slice("public".length)));
+      // Read as the site or a flow runs: the flows that reach a file naming it. If it isn't public, and nothing
+      // names or imports it, what reads it isn't known.
+      const found = readers(context, path);
       add(flowsReaching(found));
+      if (UNMATCHED_ROUTE_FILES.test(path) || (!isPublic && found.length === 0 && !graphImported(graph, path)))
+        unknown.push(path);
     }
   }
+  // What lists a folder finds something else when a file in it comes or goes.
+  for (const path of addedOrDeleted) add(flowsReaching(listers(context, path)));
   return { keys, everything, unknown };
 }
 
@@ -427,6 +482,8 @@ export function reachedFlows({ files, runs, context, copyKeys }) {
  *
  * - a flow with no run to carry, or one that didn't pass, or one that
  *   recorded no tree or nothing of what it opened (`fresh`);
+ * - a flow that ran on other installed dependencies than `setup`, which
+ *   the tree doesn't hold (`fresh` too);
  * - a flow whose tree git no longer has, so `changedSince(tree)` is
  *   undefined (`fresh` too);
  * - a flow that the files changed since its tree reach (`reached`);
@@ -436,15 +493,17 @@ export function reachedFlows({ files, runs, context, copyKeys }) {
  * - when the map can't place one of them (`unknown`: a file at the top
  *   that nothing imports, or one no code names): every flow.
  *
- * `copyKeysSince(tree)` gives the keys of staffCopy changed since `tree`,
- * if its file changed. Returns the keys to run, and why, for the run to say.
+ * `changedSince(tree)` gives the files changed since `tree`, and those of
+ * them added or deleted; `copyKeysSince(tree)`, the keys of staffCopy
+ * changed since it, if its file changed. Returns the keys to run, and why,
+ * for the run to say.
  */
-export function flowsToRun({ suite, carried, phoneTagged, context, changedSince, copyKeysSince }) {
+export function flowsToRun({ suite, carried, phoneTagged, context, setup, changedSince, copyKeysSince }) {
   const byKey = new Map(carried.map((run) => [run.key, run]));
   const run = new Set();
   for (const key of suite) {
     const last = byKey.get(key);
-    if (!last || last.status !== "passed" || !last.tree || !last.opened) run.add(key);
+    if (!last || last.status !== "passed" || !last.tree || !last.opened || last.setup !== setup) run.add(key);
   }
   const trees = new Map();
   for (const last of carried) {
@@ -458,14 +517,14 @@ export function flowsToRun({ suite, carried, phoneTagged, context, changedSince,
   const reached = new Set();
   const swept = new Set();
   for (const [tree, runs] of trees) {
-    const files = changedSince(tree);
-    if (!files) {
+    const since = changedSince(tree);
+    if (!since) {
       for (const { key } of runs) run.add(key);
       continue;
     }
-    for (const file of files) changed.add(file);
-    if (files.length === 0) continue;
-    const found = reachedFlows({ files, runs, context, copyKeys: copyKeysSince(tree) });
+    for (const file of since.files) changed.add(file);
+    if (since.files.length === 0) continue;
+    const found = reachedFlows({ ...since, runs, context, copyKeys: copyKeysSince(tree) });
     for (const file of found.everything) everything.add(file);
     for (const file of found.unknown) unknown.add(file);
     for (const key of found.keys) reached.add(key);

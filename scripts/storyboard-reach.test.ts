@@ -42,7 +42,7 @@ const COPY = [
 // A checkout of a few files: public pages, staff pages behind a layout, the gallery with two groups, the
 // specs that open them, and what the build and the server run whatever is opened.
 const FILES: Record<string, string> = {
-  "app/layout.tsx": `import "@/styles/globals.css";\nexport default function Root() {}`,
+  "app/layout.tsx": `import "@/styles/globals.css";\nimport "@/lib/font";\nexport default function Root() {}`,
   "app/not-found.tsx": `export default function NotFound() {}`,
   "app/(site)/page.tsx": `import { Hero } from "@/components/Hero";\nexport default Hero;`,
   "app/(site)/blog/[slug]/page.tsx": `import "@/lib/posts";\nexport default function Post() {}`,
@@ -50,10 +50,10 @@ const FILES: Record<string, string> = {
   "app/(site)/people/[[...name]]/page.tsx": `export default function People() {}`,
   "app/(site)/docs/[...path]/page.tsx": `export default function Docs() {}`,
   "app/(site)/_private/page.tsx": `export default function Hidden() {}`,
-  "app/sitemap.ts": `export default function sitemap() {}`,
+  "app/sitemap.ts": `export default function sitemap() {\n  return readdirSync(join(process.cwd(), "app"));\n}`,
   "app/(staff)/staff/layout.tsx": `import { Nav } from "../_nav";\nexport default Nav;`,
   "app/(staff)/_nav.tsx": `import { staffCopy } from "@/lib/content/staff-interface";\nexport const Nav = () => staffCopy.nav.title;`,
-  "app/(staff)/staff/letters/page.tsx": `import { Letters } from "@/components/Letters";\nexport default Letters;`,
+  "app/(staff)/staff/letters/page.tsx": `import { Letters } from "@/components/Letters";\nimport "@/lib/attach";\nexport default Letters;`,
   "app/(staff)/staff/events/page.tsx": `import { staffCopy } from "@/lib/content/staff-interface";\nconst { events, filters: f } = staffCopy;\nexport default () => events;`,
   "app/(staff)/staff/jobs/page.tsx": `import { jobTitles } from "@/lib/content/staff-interface";\nexport default () => jobTitles;`,
   "app/(tools)/gallery/page.tsx": `import { GROUPS } from "./_examples";\nexport default GROUPS;`,
@@ -72,7 +72,13 @@ const FILES: Record<string, string> = {
   "lib/feed.ts": `export default 1;`,
   "lib/redirects.ts": `export default [];`,
   "lib/session.ts": `export default 1;`,
-  "lib/broken.ts": `import "./nowhere";\nimport "react";`,
+  "lib/broken.ts": `import "./nowhere";\nimport "react";\nconst late = await import(name);`,
+  "lib/attach.ts": `export const briefing = (file: string) => join(process.cwd(), "public", "pdfs", file);`,
+  "lib/font.ts": `export const font = localFont({ src: "./fonts/inter.woff2" });`,
+  "lib/fonts/inter.woff2": `font`,
+  "lib/content/notes.md": `Read by nothing.`,
+  "lib/README.md": `About lib.`,
+  "public/pdfs/briefing.pdf": `pdf`,
   "lib/content/staff-interface.ts": COPY,
   "lib/server/errors.ts": `export const keep = 1;`,
   "lib/server/inbox.ts": `export const folder = "lib/server/replies/";`,
@@ -80,7 +86,8 @@ const FILES: Record<string, string> = {
   "styles/globals.css": `@import "./tokens.css";`,
   "styles/tokens.css": `:root {}`,
   "public/images/logo.svg": `<svg/>`,
-  "tests/storyboard/fixtures.ts": `export const test = 1;`,
+  "tests/storyboard/fixtures.ts": `export const test = 1;\nconst standIn = "public/images/stand-in.jpeg";`,
+  "public/images/stand-in.jpeg": `jpeg`,
   "tests/storyboard/home.spec.ts": `import { test } from "./fixtures";`,
   "tests/storyboard/staff.spec.ts": `import { test } from "./fixtures";\nimport { steps } from "./staff-steps";`,
   "tests/storyboard/staff-steps.ts": `export const steps = 1;`,
@@ -110,6 +117,7 @@ const run = (key: string, opened: string[] = []) => {
 };
 const home = run("desktop|home|The home page", ["/", "/images/logo.svg"]);
 const post = run("desktop|home|A post", ["/blog/a-post", "/images/gone.svg"]);
+const sitemap = run("desktop|home|The sitemap", ["/sitemap.xml"]);
 const letters = run("desktop|staff|The letters", ["/staff/letters"]);
 const events = run("desktop|staff|The events", ["/staff/events"]);
 const jobs = run("desktop|staff|The jobs", ["/staff/jobs"]);
@@ -119,7 +127,7 @@ const galleryStaff = run("desktop|gallery|gallery: staff", ["/gallery/staff"]);
 const galleryIndex = run("desktop|gallery|gallery: index", ["/gallery"]);
 const upload = run("desktop|uploads|Uploading a list", ["/staff/letters"]);
 const phoneHome = { ...home, key: "phone|home|The home page" };
-const runs = [home, post, letters, events, jobs, broken, galleryUi, galleryStaff, galleryIndex, upload];
+const runs = [home, post, sitemap, letters, events, jobs, broken, galleryUi, galleryStaff, galleryIndex, upload];
 const keysOf = (...some: { key: string }[]) => new Set(some.map((r) => r.key));
 const everyRun = keysOf(...runs);
 const staffRuns = keysOf(letters, events, jobs, broken, upload);
@@ -140,8 +148,19 @@ describe("importsOf", () => {
       `const l = require("./l");`,
       `const m = require(name);`,
       `import * as n from "./n";`,
+      `type O = import("./o").O;`,
     ].join("\n");
-    expect(importsOf("x.tsx", text)).toEqual(["./a", "./e", "./side-effect", "./g", "./j", "./k", "./l", "./n"]);
+    expect(importsOf("x.tsx", text)).toEqual([
+      "./a",
+      "./e",
+      "./side-effect",
+      "./g",
+      "./j",
+      "./k",
+      "./l",
+      "(not a plain string)",
+      "./n",
+    ]);
   });
 
   it("follows a stylesheet's @import and composes, and a JSON file imports nothing", () => {
@@ -162,8 +181,12 @@ describe("resolveImport and unresolvedImports", () => {
     expect(resolveImport(root, "x.ts", "./missing")).toBeUndefined();
   });
 
-  it("lists the imports of a repo file that isn't there, and not a package's", () => {
-    expect(unresolvedImports(root)).toEqual(["lib/broken.ts: ./nowhere"]);
+  it("lists the imports the map can't follow, in the folders asked for: a repo file that isn't there, and one that isn't a plain string", () => {
+    expect(unresolvedImports(root, ["lib", "components"])).toEqual([
+      "lib/broken.ts: ./nowhere",
+      "lib/broken.ts: (not a plain string)",
+    ]);
+    expect(unresolvedImports(root, ["components"])).toEqual([]);
   });
 });
 
@@ -337,6 +360,15 @@ describe("reachedFlows", () => {
     );
     expect(reached(["lib/server/inbox.ts"])).toEqual({ keys: new Set(), everything: [], unknown: [] });
     expect(reached(["components/box.module.css"]).keys).toEqual(keysOf(home, galleryUi, galleryIndex));
+    // Whatever kind of file: a test file that a spec imports is reached like any other.
+    const context = reachContext(root);
+    const imported = {
+      ...context,
+      graph: new Map([...context.graph, ["tests/storyboard/home.spec.ts", ["lib/x.test.ts"]]]),
+    };
+    expect(reachedFlows({ files: ["lib/x.test.ts"], runs, context: imported }).keys).toEqual(
+      keysOf(home, post, sitemap),
+    );
   });
 
   it("reruns every flow for what the build's settings and the proxy import, and only the flows that kept an error for what handles one", () => {
@@ -345,28 +377,58 @@ describe("reachedFlows", () => {
     expect(reached(["lib/server/errors.ts"]).keys).toEqual(keysOf(broken));
   });
 
-  it("reruns the flows that fetched a public file, there or not", () => {
+  it("reruns the flows that fetched a public file, there or not, and none for one nothing fetches or names", () => {
     expect(reached(["public/images/logo.svg"]).keys).toEqual(keysOf(home));
     expect(reached(["public/images/gone.svg"]).keys).toEqual(keysOf(post));
-    expect(reached(["public/images/unused.svg"]).keys).toEqual(new Set());
+    expect(reached(["public/images/unused.svg"])).toEqual({ keys: new Set(), everything: [], unknown: [] });
+  });
+
+  it("reruns the flows reaching a file that names a public file, or reads from its folder", () => {
+    expect(reached(["public/images/stand-in.jpeg"]).keys).toEqual(everyRun);
+    expect(reached(["public/pdfs/briefing.pdf"]).keys).toEqual(keysOf(letters, broken, upload));
+  });
+
+  it("reruns the flows reaching a file that names a font, a picture or other data beside the code", () => {
+    expect(reached(["lib/fonts/inter.woff2"]).keys).toEqual(everyRun);
   });
 
   it("says which files reach every flow, and reruns nothing for docs, tests, types and the review's own code", () => {
-    expect(reached(["netlify/database/migrations/0200_x.sql", ".nvmrc", "next.config.ts", "docs/testing.md"])).toEqual({
+    expect(reached(["netlify/database/migrations/0200_x.sql", ".nvmrc", "docs/testing.md"])).toEqual({
       keys: new Set(),
-      everything: ["netlify/database/migrations/0200_x.sql", ".nvmrc", "next.config.ts"],
+      everything: ["netlify/database/migrations/0200_x.sql", ".nvmrc"],
       unknown: [],
     });
+    expect(reached(["next.config.ts"])).toEqual({ keys: everyRun, everything: ["next.config.ts"], unknown: [] });
     expect(
-      reached(["docs/testing.md", "lib/x.test.ts", "tests/storyboard/report/page.ts", "next-env.d.ts", "netlify.toml"]),
+      reached([
+        "docs/testing.md",
+        "AGENTS.md",
+        "lib/README.md",
+        "lib/x.test.ts",
+        "tests/storyboard/report/page.ts",
+        "next-env.d.ts",
+        "netlify.toml",
+      ]),
     ).toEqual({ keys: new Set(), everything: [], unknown: [] });
   });
 
-  it("can't place a file at the top that nothing imports, or one that isn't code and that no file names", () => {
-    expect(reached(["postcss.config.mjs", "Makefile", "somewhere/else.txt"]).unknown).toEqual([
+  it("can't place a file at the top that nothing imports, data that no file names, or a file Next serves at an address of its own", () => {
+    expect(
+      reached([
+        "postcss.config.mjs",
+        "Makefile",
+        "somewhere/else.txt",
+        "lib/content/notes.md",
+        "app/(site)/opengraph-image.tsx",
+        "app/icon.png",
+      ]).unknown,
+    ).toEqual([
       "postcss.config.mjs",
       "Makefile",
       "somewhere/else.txt",
+      "lib/content/notes.md",
+      "app/(site)/opengraph-image.tsx",
+      "app/icon.png",
     ]);
     const context = reachContext(root);
     const imported = { ...context, graph: new Map([...context.graph, ["lib/x.ts", ["settings.ts"]]]) };
@@ -390,12 +452,21 @@ describe("reachedFlows", () => {
     expect(reached(["app/(staff)/staff/events/layout.tsx"]).keys).toEqual(keysOf(events));
     expect(reached(["app/(site)/blog/layout.tsx"]).keys).toEqual(keysOf(post));
     expect(reached(["app/error.tsx"]).keys).toEqual(everyRun);
+    expect(reached(["app/global-error.tsx"]).keys).toEqual(everyRun);
     const { opened, ...without } = letters;
     void opened;
     expect(
       reachedFlows({ files: ["app/(staff)/staff/letters/page.tsx"], runs: [without], context: reachContext(root) })
         .keys,
     ).toEqual(new Set());
+  });
+
+  it("reruns the flows reaching what lists a folder, when a file in or under it is added or deleted", () => {
+    const added = (files: string[], addedOrDeleted: string[]) =>
+      reachedFlows({ files, addedOrDeleted, runs, context: reachContext(root) }).keys;
+    expect(added(["app/(site)/new/page.tsx"], ["app/(site)/new/page.tsx"])).toEqual(keysOf(sitemap));
+    expect(added(["app/(site)/new/page.tsx"], [])).toEqual(new Set());
+    expect(added(["lib/new.ts"], ["lib/new.ts"])).toEqual(new Set());
   });
 
   it("reruns the flows reaching what reads a data file: a spec naming it, or code naming its folder", () => {
@@ -413,8 +484,9 @@ describe("flowsToRun", () => {
   const fresh = "desktop|home|A new flow";
   const suite = new Set([home.key, letters.key, events.key, phoneHome.key, fresh]);
   const carried = [passed(home), passed(letters), passed(events), passed(phoneHome)];
+  const since = (files: string[]) => ({ files, addedOrDeleted: [] });
   const choose = (
-    changedSince: (tree: string) => string[] | undefined,
+    changedSince: (tree: string) => { files: string[]; addedOrDeleted: string[] } | undefined,
     from: (ReturnType<typeof passed> | Record<string, unknown>)[] = carried,
     phoneTagged = new Set<string>(),
   ) =>
@@ -428,7 +500,7 @@ describe("flowsToRun", () => {
     });
 
   it("runs the flows new to the suite, and those a change since their tree reaches", () => {
-    const chosen = choose(() => ["components/Letters.tsx"]);
+    const chosen = choose(() => since(["components/Letters.tsx"]));
     expect(chosen.run).toEqual(new Set([fresh, letters.key]));
     expect(chosen).toMatchObject({
       fresh: 1,
@@ -442,7 +514,7 @@ describe("flowsToRun", () => {
 
   it("runs a flow that failed, or that recorded no tree or nothing opened, and carries the rest when nothing changed", () => {
     const chosen = choose(
-      () => [],
+      () => since([]),
       [
         { ...passed(home), status: "failed" },
         { ...passed(letters), tree: undefined },
@@ -456,7 +528,7 @@ describe("flowsToRun", () => {
 
   it("runs a flow whose tree git no longer has", () => {
     const chosen = choose(
-      (tree) => (tree === "gone" ? undefined : []),
+      (tree) => (tree === "gone" ? undefined : since([])),
       [passed(home, "gone"), passed(letters), passed(events), passed(phoneHome)],
     );
     expect(chosen.run).toEqual(new Set([home.key, fresh]));
@@ -470,7 +542,7 @@ describe("flowsToRun", () => {
       carried: [...carried, passed(untagged)],
       phoneTagged: new Set([phoneHome.key]),
       context: reachContext(root),
-      changedSince: () => ["netlify/database/schema.sql"],
+      changedSince: () => since(["netlify/database/schema.sql"]),
       copyKeysSince: () => undefined,
     });
     expect(chosen.run).toEqual(suite);
@@ -484,7 +556,7 @@ describe("flowsToRun", () => {
       carried: [...carried, passed(untagged)],
       phoneTagged: new Set(),
       context: reachContext(root),
-      changedSince: () => ["postcss.config.mjs"],
+      changedSince: () => since(["postcss.config.mjs"]),
       copyKeysSince: () => undefined,
     });
     expect(chosen.run).toEqual(new Set([...suite, untagged.key]));
@@ -496,7 +568,7 @@ describe("flowsToRun", () => {
     const chosen = choose(
       (tree) => {
         asked.push(tree);
-        return tree === "t2" ? ["components/Hero.tsx"] : [];
+        return since(tree === "t2" ? ["components/Hero.tsx"] : []);
       },
       [
         passed(home, "t1"),
@@ -510,13 +582,31 @@ describe("flowsToRun", () => {
     expect(chosen.run).toEqual(new Set([fresh]));
   });
 
+  it("runs a flow that ran on other installed dependencies, and passes on which files were added or deleted", () => {
+    const chosen = flowsToRun({
+      suite: new Set([home.key, sitemap.key, letters.key]),
+      carried: [
+        { ...passed(home), setup: "old" },
+        { ...passed(sitemap), setup: "now" },
+        { ...passed(letters), setup: "now" },
+      ],
+      phoneTagged: new Set(),
+      context: reachContext(root),
+      setup: "now",
+      changedSince: () => ({ files: ["app/(site)/new/page.tsx"], addedOrDeleted: ["app/(site)/new/page.tsx"] }),
+      copyKeysSince: () => undefined,
+    });
+    expect(chosen.run).toEqual(new Set([home.key, sitemap.key]));
+    expect(chosen).toMatchObject({ fresh: 1, reached: 1 });
+  });
+
   it("asks for the staff copy's changed keys by tree", () => {
     const chosen = flowsToRun({
       suite,
       carried,
       phoneTagged: new Set(),
       context: reachContext(root),
-      changedSince: () => [STAFF_COPY],
+      changedSince: () => since([STAFF_COPY]),
       copyKeysSince: (tree) => (tree === "t1" ? new Set(["events"]) : undefined),
     });
     expect(chosen.run).toEqual(new Set([fresh, events.key]));
@@ -530,7 +620,9 @@ describe("this repo", () => {
     expect(NAMED.filter((path) => !existsSync(join(repo, path)))).toEqual([]);
   });
 
-  it("has no import of a repo file that the map can't follow", () => {
-    expect(unresolvedImports(repo)).toEqual([]);
+  it("has no import that the map can't follow, in what the site and its flows run", () => {
+    expect(
+      unresolvedImports(repo, ["app", "components", "lib", "styles", "tests/storyboard", "tests/fixtures"]),
+    ).toEqual([]);
   });
 });

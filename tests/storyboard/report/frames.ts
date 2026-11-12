@@ -103,6 +103,8 @@ export type FlowRun = {
   shotAt?: string;
   /** The tree of the code it ran on (scripts/storyboard.mjs), which a carried flow keeps. */
   tree?: string;
+  /** The dependencies installed when it ran, which the tree doesn't hold (scripts/storyboard.mjs, setupOf). */
+  setup?: string;
   /** What it opened, by path (fixtures.ts), for working out which flows a change reaches (scripts/storyboard-reach.mjs). */
   opened?: string[];
 };

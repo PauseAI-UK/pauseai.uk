@@ -7,8 +7,9 @@ import { carryRuns, type FlowRun, type PlaceholderText, type RunManifest } from 
 // STORYBOARD_DIR/<side>/: their pictures, and `frames.json`, which
 // board.ts pairs with the other side's. scripts/storyboard.mjs sets
 // STORYBOARD_DIR (the run's folder), STORYBOARD_SIDE ("branch", or
-// "main-run") and STORYBOARD_RUN_AT; the gate sets none, and this reporter
-// then does nothing.
+// "main-run") and STORYBOARD_RUN_AT, and STORYBOARD_TREE and STORYBOARD_SETUP
+// when the build is known to be of that tree, on those installed
+// dependencies; CI's run sets none, and this reporter then does nothing.
 //
 // A partial run's branch folder starts as hard links to the last run's, so
 // the flows it doesn't run are carried. Every file is removed before it's
@@ -19,6 +20,7 @@ export default class StoryboardReporter implements Reporter {
   private side = process.env.STORYBOARD_SIDE ?? "branch";
   private shotAt = process.env.STORYBOARD_RUN_AT;
   private tree = process.env.STORYBOARD_TREE;
+  private setup = process.env.STORYBOARD_SETUP;
   private runs: FlowRun[] = [];
 
   onTestEnd(test: TestCase, result: TestResult) {
@@ -77,7 +79,7 @@ export default class StoryboardReporter implements Reporter {
       frames,
       ...(story.length ? { end: story } : {}),
       shotAt: this.shotAt,
-      ...(this.tree ? { tree: this.tree } : {}),
+      ...(this.tree ? { tree: this.tree, setup: this.setup } : {}),
       ...(opened ? { opened } : {}),
     });
   }

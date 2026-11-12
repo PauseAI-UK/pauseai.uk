@@ -8,6 +8,7 @@ import {
   test as base,
   type APIRequestContext,
   type APIResponse,
+  type BrowserContext,
   type BrowserContextOptions,
   type Page,
   type Request,
@@ -93,6 +94,32 @@ const ERRORS_KEPT = "SELECT count(*) || ' ' || coalesce(sum(count), 0) FROM erro
 
 const API_METHODS = ["get", "post", "put", "patch", "delete", "head", "fetch"] as const;
 
+/** The contexts recordContext is already recording. */
+const recorded = new WeakSet<BrowserContext>();
+
+/**
+ * Adds to `opened` the path of everything `context` asks the build for, and
+ * of each address its pages come to: a link followed to a page already
+ * prefetched fetches nothing. Next's prefetches themselves don't count.
+ */
+function recordContext(context: BrowserContext, opened: Set<string>) {
+  if (recorded.has(context)) return;
+  recorded.add(context);
+  context.on("request", (request) => {
+    if (request.headers()["next-router-prefetch"]) return;
+    const path = openedPath(request.url(), BASE);
+    if (path) opened.add(path);
+  });
+  const watch = (page: Page) =>
+    page.on("framenavigated", (frame) => {
+      const path = frame === page.mainFrame() ? openedPath(frame.url(), BASE) : undefined;
+      if (path) opened.add(path);
+    });
+  context.pages().forEach(watch);
+  context.on("page", watch);
+  recordCalls(context.request, opened);
+}
+
 /** Adds the path of each call `api` makes to `opened`. */
 function recordCalls(api: APIRequestContext, opened: Set<string>) {
   for (const method of API_METHODS) {
@@ -115,10 +142,18 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
   // or seen again), the flow ran what instrumentation.ts hands errors to, which no page imports: it's
   // recorded as having opened that file.
   opened: [
-    async ({ flowDatabase }, provide, testInfo) => {
+    async ({ flowDatabase, browser }, provide, testInfo) => {
       const opened = new Set<string>();
       const [errorsBefore] = runSql(flowDatabase, ERRORS_KEPT);
+      // Every context made while the flow runs: its own, and any it makes for another person's browser.
+      const newContext = browser.newContext;
+      browser.newContext = async (...options) => {
+        const context = await newContext.apply(browser, options);
+        recordContext(context, opened);
+        return context;
+      };
       await provide(opened);
+      browser.newContext = newContext;
       if (runSql(flowDatabase, ERRORS_KEPT)[0] !== errorsBefore) opened.add("instrumentation.ts");
       await testInfo.attach("opened", { body: JSON.stringify([...opened].sort()), contentType: "application/json" });
     },
@@ -148,22 +183,10 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
   // No flow ever reaches Google: a test run is not a visit. consent.spec.ts
   // routes the same URLs on its page, which takes precedence, to record what
   // the page tried to load.
+  // Recorded here too, in case it was made before `opened` began recording every context the flow makes.
   context: async ({ context, opened }, provide) => {
+    recordContext(context, opened);
     await context.route(ANALYTICS_URL, (route) => route.abort());
-    context.on("request", (request) => {
-      if (request.headers()["next-router-prefetch"]) return;
-      const path = openedPath(request.url(), BASE);
-      if (path) opened.add(path);
-    });
-    // A link followed to a page already prefetched fetches nothing: the address it goes to counts.
-    const watch = (page: Page) =>
-      page.on("framenavigated", (frame) => {
-        const path = frame === page.mainFrame() ? openedPath(frame.url(), BASE) : undefined;
-        if (path) opened.add(path);
-      });
-    context.pages().forEach(watch);
-    context.on("page", watch);
-    recordCalls(context.request, opened);
     await provide(context);
   },
   request: async ({ request, opened }, provide) => {
