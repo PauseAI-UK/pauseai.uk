@@ -405,6 +405,8 @@ describe("Bubble", () => {
     const scrolled = vi.spyOn(window, "scrollBy");
     await page.getByRole("button", { name: "Low" }).click();
     await expect.poll(() => scrolled.mock.calls.length).toBe(1);
+    // At once: a press on what's in the bubble mustn't land while the page is still moving.
+    expect(scrolled.mock.calls[0][0]).toMatchObject({ behavior: "instant" });
     await expect
       .poll(() => document.getElementById("low")!.getBoundingClientRect().bottom)
       .toBeLessThanOrEqual(window.innerHeight);
