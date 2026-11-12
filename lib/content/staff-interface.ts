@@ -2722,7 +2722,7 @@ All events: ${link}`,
       notices: {
         bounced: "Their message hasn't reached the MP",
         resent: "It has now gone",
-        notResent: "⁂ It didn't go again within a week, so it won't be sent",
+        notResent: "It wasn't sent within a week, and we gave up",
       } as Record<string, string>,
       // Under a reply, what was done with it: each line's name, before who to; "Not forwarded" when it went to no one.
       handling: {
