@@ -16,11 +16,10 @@
 }
 
 /* What a job does, and that it runs by itself, under its head: the page's
-   own paragraphs, in its text's colour, as wide as a line reads well. */
+   own paragraphs, in its text's colour, as wide as the page. */
 .about {
   display: grid;
   gap: var(--space-2);
-  max-width: var(--staff-measure);
   margin-block-end: var(--space-6);
 }
 
