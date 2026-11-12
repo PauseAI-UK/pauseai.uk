@@ -249,9 +249,9 @@ export function ImportOverview({
 
 /**
  * One job's page: its icon, name, how often it runs and what it does as
- * lozenges, and its button level with them; under them, what it does in
- * words, as the page's first paragraph, and that it runs by itself, so what
- * the button is for; then every run it has made, newest first.
+ * lozenges; under them, what it does in words, as the page's first
+ * paragraph, and under that, at the left, its button; then every run it has
+ * made, newest first.
  */
 export function ImportJobPage({
   job,
@@ -281,7 +281,6 @@ export function ImportJobPage({
             <JobTags job={job} />
           </>
         }
-        action={<JobActions action={run} label={ABOUT[job].button} />}
       >
         {jobTitles[job]}
       </PageHead>
@@ -289,7 +288,7 @@ export function ImportJobPage({
         <p>
           <Intro job={job} airtableTable={airtableTable} />
         </p>
-        <p>{words.onItsOwn(words[jobSchedule(job)], ABOUT[job].button)}</p>
+        <JobActions action={run} label={ABOUT[job].button} />
       </div>
       {running && (
         <div className={styles.running}>

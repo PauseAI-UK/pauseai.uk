@@ -2644,9 +2644,6 @@ All events: ${link}`,
     // Luma's events, or it emails people (relays, notices to staff).
     changesLuma: "⁂ Changes Luma",
     emails: "⁂ Sends email",
-    // On a job's page, after what it does: that it runs by itself, and what its button is for.
-    onItsOwn: (every: string, button: string) =>
-      `⁂ It runs by itself (${every.toLowerCase()}). Press ${button} to run it straight away.`,
     // On a job's page, while a run of it is going: one a staff member started, or one of its schedule's.
     running: (who: string, when: string) => `Running, started by ${who} at ${when}. Can only run one at a time.`,
     runningScheduled: (when: string) => `Running now, started at ${when}. Can only run one at a time.`,

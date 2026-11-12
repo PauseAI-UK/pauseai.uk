@@ -213,11 +213,9 @@ describe("ImportJobPage", () => {
     const lozenges = [...head.querySelectorAll("h1 ~ span > span")];
     expect(lozenges.map((tag) => tag.textContent)).toEqual([staffCopy.import.nightly, staffCopy.import.kinds.import]);
     expect(lozenges.map((tag) => tag.className.match(/green|amber|red|blue/))).toEqual([null, null]);
-    // Under the head, what it does, out of the head, and that it runs by itself, so what its button is for.
+    // What it does is under the head, not in it.
     expect(head.textContent).not.toContain(staffCopy.syncs.intro.link);
-    await expect
-      .element(page.getByText(staffCopy.import.onItsOwn(staffCopy.import.nightly, staffCopy.syncs.syncNow)))
-      .toBeVisible();
+    expect(head.nextElementSibling!.textContent).toContain(staffCopy.syncs.intro.link);
     // No strip under the head: the newest run, in the history, carries the colour.
     expect(head.nextElementSibling!.nextElementSibling!.querySelector(":scope > [data-strip]")).toBeNull();
     await page.getByRole("button", { name: staffCopy.syncs.syncNow }).click();

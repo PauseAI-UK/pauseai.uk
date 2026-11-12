@@ -15,11 +15,12 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* What a job does, and that it runs by itself, under its head: the page's
-   own paragraphs, in its text's colour, as wide as the page. */
+/* What a job does, under its head: the page's own paragraph, in its text's
+   colour, as wide as the page; under it, at the left, the job's button. */
 .about {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  justify-items: start;
   margin-block-end: var(--space-6);
 }
 
