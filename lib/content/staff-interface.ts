@@ -1823,8 +1823,8 @@ All events: ${link}`,
     },
     // Under each title, what the page is.
     intros: {
-      mps: "Politician's bad emails, fix them in Airtable or unblock them here",
-      supporters: "Supporter's bad emails, unblock them here",
+      mps: "Politicians' bad emails, fix them in Airtable or unblock them here",
+      supporters: "Supporters' bad emails, unblock them here",
     },
     // Over the list: how many are blocked, of those the filters find.
     count: (n: number) => `${n} blocked ${plural(n, "address", "addresses")}`,
