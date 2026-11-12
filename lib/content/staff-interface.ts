@@ -19,7 +19,7 @@ const askLimits = {
 const copyKind = (channel: "email" | "text") => (channel === "email" ? "Email" : "Text");
 
 /** After a bounce alert, for a bounce read from a Gmail mailbox: a link to it there; nothing for one Postmark reported. */
-const bounceLine = (link: string | undefined) => (link ? `\n\n⁂ The bounce, in Gmail:\n${link}` : "");
+const bounceLine = (link: string | undefined) => (link ? `\n\nThe bounce, in Gmail:\n${link}` : "");
 
 export const staffCopy = {
   metaTitle: "PauseAI Staff",
@@ -2004,8 +2004,8 @@ All events: ${link}`,
   // The names our own inboxes go by on the emails the site sends them: the
   // notification inbox, and the policy inbox an MP's reply is forwarded to.
   inboxNames: {
-    notifications: "⁂ PauseAI UK notifications",
-    policy: "⁂ PauseAI UK policy",
+    notifications: "PauseAI UK notifications",
+    policy: "PauseAI UK policy",
   },
   // The emails to the notification inbox (lib/server/notifications.ts) that
   // aren't above (alert, lettersInbox.alert): each a subject, and a body with
