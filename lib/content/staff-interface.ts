@@ -369,7 +369,7 @@ export const staffCopy = {
         // Signing the form is joining the list, but "No bulk emails" stops it, so each is emailed once, saying
         // where they signed (`where`, as the email says it) and how to lift it. "Do not email" stops even that.
         notices: (n: number, where: string) =>
-          `⁂ ${count(n, "person has", "people have")} “No bulk emails”, so will be emailed once, saying they signed up on ${where} and how to lift it.`,
+          `${count(n, "person has", "people have")} “No bulk emails”, so will be emailed once, saying they signed up on ${where} and how to lift it.`,
         noEmail: (n: number) =>
           `${count(n, "person has", "people have")} “Do not email”, so won't hear from us at all.`,
       },
