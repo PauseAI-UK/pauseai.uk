@@ -15,7 +15,7 @@ import { dirname, join } from "node:path";
 import ts from "typescript";
 
 /** Files no import leads to that every flow depends on: a change to one reruns everything. */
-export const EVERYTHING = [
+const EVERYTHING = [
   /^package(-lock)?\.json$/,
   /^tsconfig\.json$/,
   /^playwright\.config\.ts$/,
@@ -30,7 +30,7 @@ export const EVERYTHING = [
 ];
 
 /** Files no flow runs or reads: a change to only these reruns nothing. */
-export const NOTHING = [
+const NOTHING = [
   /^docs\//,
   /^plans\//,
   /^investments\//,

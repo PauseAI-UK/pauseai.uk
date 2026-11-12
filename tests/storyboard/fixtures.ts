@@ -75,7 +75,7 @@ const TALLY_STAND_IN = "window.Tally = { loadEmbeds: () => {} };";
  * page's, an action's or an API route's own, and a picture the build resized
  * by the picture's. The build's scripts and styles, and other sites, aren't.
  */
-export function openedPath(url: string, base: string): string | undefined {
+function openedPath(url: string, base: string): string | undefined {
   const u = new URL(url);
   if (u.origin !== new URL(base).origin || u.pathname.startsWith("/_next/static/")) return undefined;
   if (u.pathname !== "/_next/image") return decodeURIComponent(u.pathname);

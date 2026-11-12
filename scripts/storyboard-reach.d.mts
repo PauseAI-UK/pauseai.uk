@@ -4,8 +4,6 @@ type Context = { root: string; graph: Graph; routes: Route[]; specs: string[] };
 type Run = { key: string; section: string; flow: string; opened?: string[] };
 type CarriedRun = Run & { status: string; tree?: string };
 
-export const EVERYTHING: RegExp[];
-export const NOTHING: RegExp[];
 export const STAFF_COPY: string;
 export function resolveImport(root: string, from: string, spec: string): string | undefined;
 export function importsOf(path: string, text: string): string[];
