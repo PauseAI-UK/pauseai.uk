@@ -185,6 +185,19 @@ test("How many have registered", { tag: "@phone" }, async ({ page }) => {
   await expect(hero).toContainText(going);
 });
 
+test("The march page in a wide window", { tag: "@desktop-only" }, async ({ page }) => {
+  story(
+    "Someone opens the march page in a window much wider than the site's column. The hero's words start in line with the site's logo above them and the page below, not out at the window's edge.",
+  );
+  await page.setViewportSize({ width: 1920, height: 800 });
+  await openSignup(page);
+  const left = async (locator: Locator) => Math.round((await locator.boundingBox())!.x);
+  const words = await left(page.getByRole("heading", { level: 1 }));
+  expect(words).toBe(await left(header(page).getByRole("link", { name: "PauseAI UK" })));
+  expect(words).toBe(await left(page.getByRole("heading", { level: 2 }).first()));
+  await frame(page, "The top of the page, in a window 1920 pixels wide", { window: true });
+});
+
 test("Seeing all the details", { tag: "@phone" }, async ({ page }) => {
   story("Someone presses See all details in the hero. The page moves down to what happens on the day.");
   await openSignup(page);

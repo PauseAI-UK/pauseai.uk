@@ -283,10 +283,14 @@ svg:has(+ .marked-highlight) path {
   width: 100%;
 }
 /* Wider than the site's container: closer to the window's edge, so the
-   words keep clear of the photo's subject. */
+   words keep clear of the photo's subject. In a window wider than the
+   design's 1440px she moves right, three quarters as fast as the window
+   grows, and the words follow her at the same distance, until they reach
+   the container's edge. From there they stay in line with the header and
+   the bands below. */
 .hero .hero-inner {
   max-width: none;
-  padding-inline: clamp(24px, 5.56vw, 80px);
+  padding-inline: clamp(clamp(24px, 5.56vw, 80px), 75% - 1000px, (100% - var(--container-width, 1140px)) / 2 + 24px);
 }
 .hero-title {
   font-family: var(--font-display), "Lato", system-ui, sans-serif;
