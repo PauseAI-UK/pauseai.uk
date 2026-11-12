@@ -25,6 +25,7 @@ export function carryKept(
   platform?: string,
 ): Kept;
 export function keptTrees(store: string, platform?: string): string[];
+export function picturePath(store: string, hash: string): string;
 export function picturesKept(store: string, run: KeptRun): boolean;
 export function missingFlows(store: string, kept: Kept, needed: Iterable<string>): string[];
 export function linkFlows(

@@ -41,6 +41,9 @@ export function storeDir(root) {
 const treeFile = (store, tree, platform) => join(store, "trees", `${platform}-${tree}.json`);
 const pictureFile = (store, hash) => join(store, "pictures", hash.slice(0, 2), `${hash}.png`);
 
+/** Where the store keeps the picture `hash`. */
+export const picturePath = pictureFile;
+
 /** The folder a flow's pictures go in, as the reporter names it (tests/storyboard/report/reporter.ts). */
 export function flowFolder({ section, viewport, flow }) {
   return `${section}-${viewport}-${flow}`.replace(/[^\w.-]+/g, "-");

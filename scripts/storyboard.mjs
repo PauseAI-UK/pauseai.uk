@@ -77,6 +77,7 @@ import { platform, tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { LOCAL_URL, MAIN_OUTBOX_DIR, MAIN_URL, MAIN_WORKTREE } from "../tests/checkout.mjs";
 import { writeStoryboard } from "../tests/storyboard/report/board.ts";
+import { comparePngs } from "../tests/storyboard/report/frames.ts";
 import { testServerUrl } from "./fresh-database.mjs";
 import { checkOutMain, lockMain } from "./main-checkout.mjs";
 import { describeChanged } from "./storyboard-changed.mjs";
@@ -96,6 +97,7 @@ import {
   keptTrees,
   linkFlows,
   missingFlows,
+  picturePath,
   picturesKept,
   pruneStore,
   readTree,
@@ -458,7 +460,11 @@ async function mainFromStore(workDir, wanted) {
         const ran = join(workDir, "main-run");
         // Main may not have got as far as a flow: its build failing, say.
         if (existsSync(join(ran, "frames.json")))
-          reportMisses(carriedBefore, keepRuns(STORE, tree, workDir, readJson(join(ran, "frames.json")).frames));
+          await reportMisses(
+            carriedBefore,
+            keepRuns(STORE, tree, workDir, readJson(join(ran, "frames.json")).frames),
+            workDir,
+          );
         rmSync(ran, { recursive: true, force: true });
         kept = readTree(STORE, tree);
       }
@@ -471,18 +477,38 @@ async function mainFromStore(workDir, wanted) {
 
 /**
  * Says which of main's carried flows (`carriedBefore`) a run on their own
- * tree pictured differently: changes the map of what a flow reaches missed
+ * tree pictured differently, as the review counts a change (comparePngs, so
+ * not by noise): changes the map of what a flow reaches missed
  * (scripts/storyboard-reach.mjs).
  */
-function reportMisses(carriedBefore, whole) {
-  const pictures = (run) => JSON.stringify(run.frames.map((frame) => [frame.caption, frame.picture]));
-  const missed = whole.frames.filter(
-    (run) =>
-      carriedBefore.has(flowKey(run)) &&
-      !run.carriedFrom &&
-      pictures(run) !== pictures(carriedBefore.get(flowKey(run))),
-  );
+async function reportMisses(carriedBefore, whole, workDir) {
   if (carriedBefore.size === 0) return;
+  const missed = [];
+  for (const run of whole.frames) {
+    const before = carriedBefore.get(flowKey(run));
+    if (!before || run.carriedFrom) continue;
+    if (JSON.stringify(run.frames.map((f) => f.caption)) !== JSON.stringify(before.frames.map((f) => f.caption))) {
+      missed.push(run);
+      continue;
+    }
+    for (const [at, frame] of run.frames.entries()) {
+      const was = before.frames[at].picture;
+      if (frame.picture === was) continue;
+      if (!frame.picture || !was) {
+        missed.push(run);
+        break;
+      }
+      const compared = await comparePngs(
+        picturePath(STORE, frame.picture),
+        picturePath(STORE, was),
+        join(workDir, "carried-diff.png"),
+      );
+      if (!compared.noise) {
+        missed.push(run);
+        break;
+      }
+    }
+  }
   if (missed.length === 0) {
     console.log(`\n▶ Storyboard: the ${carriedBefore.size} carried flows look the same run afresh.\n`);
     return;

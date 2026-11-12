@@ -19,6 +19,7 @@ import {
   keptTrees,
   linkFlows,
   missingFlows,
+  picturePath,
   picturesKept,
   pruneStore,
   readTree,
@@ -168,7 +169,8 @@ describe("keptTrees and picturesKept", () => {
     expect(keptTrees(store, "linux")).toEqual(["t1", "t2"]);
   });
 
-  it("says whether every picture of a flow is still in the store", () => {
+  it("says where a picture is kept, and whether every picture of a flow still is", () => {
+    expect(picturePath(store, "ab12")).toBe(join(store, "pictures", "ab", "ab12.png"));
     const kept = keepRuns(store, "t1", runDir, [run("log in", "one"), run("blank")]);
     expect(kept.frames.map((r) => picturesKept(store, r))).toEqual([true, true]);
     rmSync(join(store, "pictures"), { recursive: true });
