@@ -686,14 +686,14 @@ export const staffCopy = {
     // Under the page's title: what erasing is for.
     intro: "For when someone asks to be forgotten, for example a GDPR erasure request",
     // In red, over the form.
-    warning: "⁂ This can't be undone.",
+    warning: "This can't be undone.",
     // Beside the form: what goes, and what stays.
     erased: {
-      title: "⁂ What's erased",
+      title: "What's erased",
       text: "Everything we hold about this person is deleted: letters, event registrations, their Luma contact, our copy of their PauseAI membership.",
     },
     kept: {
-      title: "⁂ What we keep",
+      title: "What we keep",
       text: "We keep references to them in blocked addresses and unsubscribes. The global team's own copy of their membership has to be erased by asking them.",
     },
     referenceLabel: "Request reference",
