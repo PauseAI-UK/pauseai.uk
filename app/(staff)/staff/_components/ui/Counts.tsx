@@ -18,18 +18,22 @@ export type Count = {
   title?: string;
 };
 
-/** Counts that each open `path` with their own tab already chosen. */
+/**
+ * Counts that each open `path` with their own tab already chosen; one that
+ * doesn't apply (`n` null) leads nowhere, as its tab would show no one.
+ */
 export function countsOpening<T extends Count>(path: string, counts: T[]): T[] {
-  return counts.map((count) => ({ ...count, href: filtersPath(path, { tab: count.key }) }));
+  return counts.map((count) => (count.n === null ? count : { ...count, href: filtersPath(path, { tab: count.key }) }));
 }
 
 /**
  * Counts over a list on `path`, each showing those it counts: the one the
  * list is filtered to (`tab`) marked, and pressed again showing everyone, as
- * its `title` (`showEveryone`) says.
+ * its `title` (`showEveryone`) says. One that doesn't apply leads nowhere.
  */
 export function countsFiltering<T extends Count>(path: string, counts: T[], tab: string, showEveryone: string): T[] {
   return counts.map((count) => {
+    if (count.n === null) return count;
     const current = count.key === tab;
     return {
       ...count,
@@ -42,8 +46,9 @@ export function countsFiltering<T extends Count>(path: string, counts: T[], tab:
 
 /**
  * Numbers side by side in one white box, each over its label, a 0 or a
- * dash grey (a supporter's events and letters, how a mailing went). Each
- * leads where its `href` says. `small` in a list's row.
+ * dash grey (a supporter's events and letters, how a mailing went), and a
+ * dash's label faded too, as the count doesn't apply. Each leads where its
+ * `href` says. `small` in a list's row.
  */
 export default function Counts({ counts, small = false }: { counts: Count[]; small?: boolean }) {
   const cells = counts.map((count) => {
@@ -66,7 +71,7 @@ export default function Counts({ counts, small = false }: { counts: Count[]; sma
         {inner}
       </StaffLink>
     ) : (
-      <span key={count.key} className={styles.count}>
+      <span key={count.key} className={styles.count} data-none={count.n === null || undefined}>
         {inner}
       </span>
     );

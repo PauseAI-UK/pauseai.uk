@@ -20,19 +20,16 @@ const copy = staffCopy.mailingPages;
 /**
  * How a mailing sent went, in the order it happens: what arrived, what
  * didn't, what was never sent as it was stopped, then what came back; the
- * same in the list and on its page.
+ * same in the list and on its page. Every mailing has every count, so they
+ * line up from row to row; answers are a dash for one with no ask.
  */
-export function mailingCounts(mailing: MailingSummary) {
+export function mailingCounts(mailing: MailingSummary): Count[] {
   return [
     { key: "sent", n: mailing.sent, label: copy.counts.sent },
-    { key: "failed", n: mailing.failed, label: copy.counts.failed, tone: "red" as const },
-    // Stopped only when it was.
-    ...(mailing.stopped ? [{ key: "stopped", n: mailing.stopped, label: copy.counts.stopped }] : []),
+    { key: "failed", n: mailing.failed, label: copy.counts.failed, tone: "red" },
+    { key: "stopped", n: mailing.stopped, label: copy.counts.stopped },
     { key: "replied", n: mailing.replied, label: copy.counts.replied },
-    // Answers only when it has an ask.
-    ...(mailing.ask
-      ? [{ key: "answered", n: mailing.answered, label: copy.counts.answered, tone: "green" as const }]
-      : []),
+    { key: "answered", n: mailing.ask ? mailing.answered : null, label: copy.counts.answered, tone: "green" },
   ];
 }
 
