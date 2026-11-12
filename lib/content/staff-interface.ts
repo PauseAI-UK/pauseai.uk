@@ -1339,7 +1339,7 @@ All events: ${link}`,
         failed: "Error sending via Gmail. Try again, or reply in Gmail itself.",
       },
       // Our answer in the thread: who sent it; one whose sending never finished.
-      sentBy: (by: string) => `⁂ Sent by ${by}`,
+      sentBy: (by: string) => `Sent by ${by}`,
       stillSending: (account: string) =>
         `⁂ This may not have gone: sending it didn't finish. Look in ${account}'s Sent in Gmail before sending it again.`,
       optedOut: (by: string, when: string) => `Recorded as an opt-out by ${by}, ${when}`,
