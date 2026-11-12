@@ -755,10 +755,12 @@ that drives it or why nothing does.
   - one to the newsletter's and events' yeses both, ticked as about our events.
 - `email-settings.spec.ts`: The contact preferences page:
   - asking for a link past Turnstile, the email with it, and the page it opens;
-  - changing what you get, and Stop everything;
+  - changing what you get, with why behind a “?” on a phone;
+  - Stop everything, and Restart undoing it, texts and calls too;
   - an email's unsubscribe link, fresh and two months old, with a fresh link emailed;
   - a link that's run out;
-  - “No bulk emails” lifted, and “Do not email”, which only PauseAI Global can lift;
+  - “No bulk emails” lifted, and “Do not email”, “Do not SMS” and “Do not phone”, which only PauseAI Global can lift;
+  - an address we can't email, as its emails bounced;
   - the email to someone with “No bulk emails” who ticked the march's box.
 - `events.spec.ts`: Events and their owners:
   - the Luma import giving events their owners by the rules, and the email to the owner;
@@ -804,7 +806,8 @@ that drives it or why nothing does.
   - a hold in CiviCRM on the supporters' blocked emails, lifted with a note;
   - erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next members import;
   - an old link with two subscriptions;
-  - an opt-out told to staff, recorded under a supporter's consents with how it was given.
+  - an opt-out told to staff, recorded under a supporter's consents with how it was given;
+  - in a fixture build, a supporter's contact preferences opened from their page.
 - `signup-uploads.spec.ts`: Import sign-ups:
   - files written different ways, linked to an event or not;
   - a hundred rows at once;
@@ -872,6 +875,7 @@ that drives it or why nothing does.
 - `/staff/api/gmail/connect`, `/staff/api/gmail/callback`:
   - `staff-login`: your Gmail connected from your own page.
   - `mailings`: the same, reached by the link in a mailing's Sent from.
+- `/staff/api/dev-contact-preferences`: `supporters`: their contact preferences, from their page, a fixture build's link per address.
 - `/staff/api/dev-login`: `staff-login`: the dev login, a fixture build's one-click sign-in as a seeded account. Every other section logs in with it (`logInAsStaff` in `tests/steps.ts`).
 - `/staff/mailings/[id]/files/[file]`: Not driven: the mailings flows' files are drawn from it, but no flow opens one. Vitest-tested.
 - `/staff/broadcasts/[id]/files/[file]`: Not driven, as the broadcasts flows attach no files. It's the twin of the mailings' route, and is Vitest-tested.

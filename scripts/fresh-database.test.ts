@@ -345,14 +345,17 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         ]);
         // Opt-outs told by every source, and every answer to whether we'd email someone.
         expect(runSql(name, "SELECT DISTINCT list || ' ' || source FROM opt_outs ORDER BY 1")).toEqual([
+          "bulk preferences",
           "events luma-contacts",
           "events luma-webhook",
           "newsletter civicrm",
           "newsletter link",
+          "volunteering preferences",
         ]);
         expect(runSql(name, "SELECT DISTINCT send || ' ' || reason FROM email_permissions ORDER BY 1")).toEqual([
           "no blocked",
           "no declined",
+          "no do-not-email",
           "no left",
           "no no-bulk-email",
           "no not-following",

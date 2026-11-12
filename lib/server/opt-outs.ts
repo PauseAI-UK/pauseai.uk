@@ -173,6 +173,35 @@ export async function recordBulkLift(address: string, db?: Queryable): Promise<v
 }
 
 /**
+ * The start of the source reference of each stop one Stop everything on the
+ * contact preferences page makes, followed by the group's own ID, which
+ * Restart finds them by.
+ */
+export const STOP_ALL = "preferences stop-all";
+
+/** The group (STOP_ALL and its ID) of the Stop everything whose "No bulk emails" holds the address now; null for none. */
+export async function stopAllGroup(address: string, db?: Queryable): Promise<string | null> {
+  const [row] = await query<{ ref: string }>(
+    `SELECT source_ref AS ref FROM opt_outs
+     WHERE address = $1 AND way = 'email' AND list = 'bulk' AND resubscribed_at IS NULL
+       AND source = 'preferences' AND source_ref LIKE $2`,
+    [normaliseAddress(address), `${STOP_ALL} %`],
+    db,
+  );
+  return row ? row.ref.split(" ").slice(0, 3).join(" ") : null;
+}
+
+/** Closes the stops of texts and calls a Stop everything's group made, as Restart undoes it. */
+export async function liftStopAllNumbers(group: string, db?: Queryable): Promise<void> {
+  await query(
+    `UPDATE opt_outs SET resubscribed_at = now()
+     WHERE source = 'preferences' AND source_ref LIKE $1 AND way <> 'email' AND resubscribed_at IS NULL`,
+    [`${group} %`],
+    db,
+  );
+}
+
+/**
  * For an activity row `a` that's an opt-out, as supporter_activity has
  * it: who recorded it and how the person told them, if staff did, and the
  * Thread of the email it came from, if any (how, recorded_by, thread). It

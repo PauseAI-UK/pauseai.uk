@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { ContactPermission } from "./contact-permissions";
-import { choiceKey, hold, settingsTopics, stillGets, type SettingsView } from "./email-settings";
+import { choiceKey, hold, numberHolds, settingsTopics, stillGets, type SettingsView } from "./email-settings";
 
 const AT = new Date("2026-11-02T10:00:00Z");
 const JANE = "jane@example.com";
@@ -32,6 +32,7 @@ it("finds what holds all an address's email: a block, “Do not email” or “N
     kind: "no-bulk",
     at: AT,
     source: "civicrm",
+    everything: false,
   });
   expect(hold([answer({ send: "no", reason: "do-not-email" })])?.kind).toBe("do-not-email");
   expect(hold([answer({ send: "no", reason: "blocked", source: "hard" })])?.kind).toBe("blocked");
@@ -74,6 +75,23 @@ it("explains a topic by its email's yes, else a number's yes, and locks email wh
   ]);
   expect(held[0].why).toMatchObject({ way: "text", send: "yes" });
   expect(choiceKey("events", "text")).toBe("events:text");
+});
+
+it("finds the ways PauseAI Global stops to every number, and locks their boxes", () => {
+  const OTHER = "+447700900456";
+  const noSms = (address: string) =>
+    answer({ way: "text", channel: "phone", address, send: "no", reason: "do-not-sms" });
+  const noPhone = answer({ way: "call", channel: "phone", address: PHONE, send: "no", reason: "do-not-phone" });
+  expect(numberHolds(view([noSms(PHONE)]))).toEqual([]);
+  expect(numberHolds(view([noSms(PHONE), noPhone], [PHONE]))).toEqual(["text", "call"]);
+  // A second number without it can still be texted.
+  expect(numberHolds(view([noSms(PHONE)], [PHONE, OTHER]))).toEqual([]);
+  expect(numberHolds(view([noSms(PHONE), noSms(OTHER)], [PHONE, OTHER]))).toEqual(["text"]);
+  expect(settingsTopics(view([noSms(PHONE)], [PHONE]))[2].boxes).toEqual([
+    { way: "email", on: false, locked: false },
+    { way: "text", on: false, locked: true },
+    { way: "call", on: false, locked: false },
+  ]);
 });
 
 it("says what an unsubscribe leaves them getting by email", () => {

@@ -10,11 +10,11 @@ const openPath = (address: string) => `/staff/api/dev-contact-preferences?addres
  * Development only, at the foot of a supporter's consents in a fixture
  * build: a box in the development colour, as the dev login's, with a link
  * per address that opens their contact preferences with a fresh link, as
- * one of our emails would; a link, so it can open in a new tab. Given no
- * addresses, as outside a fixture build, it's nothing.
+ * one of our emails would; a link, so it can open in a new tab. Outside a
+ * fixture build, or for someone with no address, it's nothing.
  */
-export default function DevPreferences({ emails }: { emails: string[] | undefined }) {
-  if (!emails?.length) return null;
+export default function DevPreferences({ emails, fixtures }: { emails: string[]; fixtures: boolean }) {
+  if (!fixtures || !emails.length) return null;
   return (
     <section className={styles.dev} aria-label={copy.title}>
       <h2 className={styles.title}>{copy.title}</h2>

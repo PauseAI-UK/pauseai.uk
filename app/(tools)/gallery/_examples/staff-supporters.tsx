@@ -3,6 +3,7 @@
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
 import { NoteFrom } from "@/app/(staff)/staff/_components/Notes";
+import DevPreferences from "@/app/(staff)/staff/_components/DevPreferences";
 import EraseLink from "@/app/(staff)/staff/_components/EraseLink";
 import ErasedNotice from "@/app/(staff)/staff/_components/ErasedNotice";
 import { LumaReading } from "@/app/(staff)/staff/_components/SignupUploadPreview";
@@ -405,6 +406,16 @@ export const staffSupporters: Group = {
         {
           label: "Opened: what of, at which address or number, and how they told us",
           render: () => <OptOutFormExample opened />,
+        },
+      ],
+    },
+    {
+      name: "DevPreferences",
+      file: "app/(staff)/staff/_components/DevPreferences.tsx",
+      variants: [
+        {
+          label: "At the foot of a supporter's consents, in a fixture build only",
+          render: () => <DevPreferences emails={["jane.smith@example.com", "jane@example.org"]} fixtures />,
         },
       ],
     },

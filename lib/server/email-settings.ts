@@ -12,11 +12,14 @@ import { query, transaction, type Queryable } from "./db";
 import { send } from "./email";
 import {
   hasOptedOut,
+  liftStopAllNumbers,
   recordBulkLift,
   recordOptOut,
   recordResubscribe,
   normaliseAddress,
   offCalendarFor,
+  STOP_ALL,
+  stopAllGroup,
   type CalendarOptOut,
   type OptOutSource,
 } from "./opt-outs";
@@ -159,22 +162,7 @@ export async function settingsFor(address: string): Promise<SettingsView> {
   const numbers = await numbersOf(to);
   const answers = await answersFor(to, numbers);
   const held = hold(answers);
-  return { address: to, numbers, answers, hold: held && { ...held, everything: (await stoppedAll(to)) !== null } };
-}
-
-/** The start of the source reference of each stop one Stop everything makes, which Restart finds them by. */
-const STOP_ALL = "preferences stop-all";
-
-/** The group of stops of the Stop everything whose "No bulk emails" holds the address now; null for none. */
-async function stoppedAll(address: string, db?: Queryable): Promise<string | null> {
-  const [row] = await query<{ ref: string }>(
-    `SELECT source_ref AS ref FROM opt_outs
-     WHERE address = $1 AND way = 'email' AND list = 'bulk' AND resubscribed_at IS NULL
-       AND source = 'preferences' AND source_ref LIKE $2`,
-    [address, `${STOP_ALL} %`],
-    db,
-  );
-  return row ? row.ref.split(" ").slice(0, 3).join(" ") : null;
+  return { address: to, numbers, answers, hold: held && { ...held, everything: (await stopAllGroup(to)) !== null } };
 }
 
 /** The live calendar, which only the live site changes; a fixture build's is fake. */
@@ -290,15 +278,8 @@ export async function liftNoBulk(address: string): Promise<boolean> {
   if (view.hold?.kind !== "no-bulk") return false;
   const wording = view.hold.everything ? copy.stopped.wording : copy.noBulk.wording;
   await transaction(async (db) => {
-    const group = await stoppedAll(view.address, db);
-    if (group) {
-      await query(
-        `UPDATE opt_outs SET resubscribed_at = now()
-         WHERE source = 'preferences' AND source_ref LIKE $1 AND way <> 'email' AND resubscribed_at IS NULL`,
-        [`${group} %`],
-        db,
-      );
-    }
+    const group = await stopAllGroup(view.address, db);
+    if (group) await liftStopAllNumbers(group, db);
     const [{ id }] = await query<{ id: number }>(
       `INSERT INTO preference_choices (address, way, topic, wording) VALUES ($1, 'email', 'bulk', $2)
        RETURNING id::int AS id`,

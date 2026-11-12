@@ -1,6 +1,7 @@
 import { FIXTURE_NOW } from "@/lib/server/fixtures/fixture-env.mjs";
 import { campaigns } from "@/lib/content/email-your-mp";
 import type { Page } from "@playwright/test";
+import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { marchSignupCopy } from "@/lib/content/march-signup";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { Reason, Topic } from "@/lib/contact-permissions";
@@ -595,6 +596,23 @@ test("A member with No bulk emails", async ({ page, request, flowDatabase }) => 
   await page.getByRole("button", { name: copy.detail.permissions.why }).first().click();
   await expect(page.getByText(copy.detail.permissions.details.newsletter.about)).toBeVisible();
   await frame(page, "Rhea's page");
+});
+
+test("Their contact preferences, from their page", async ({ page, request, flowDatabase }) => {
+  story(
+    "In a fixture build, a supporter's page has a link per address at the foot of Can we contact them?, which opens the contact preferences page as one of our emails' links would, to see what they'd see.",
+  );
+  await importMembers(request, BASE);
+  await importCivicrm(request, BASE);
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters`);
+  await page.getByRole("link", { name: "Tom Seed" }).click();
+  const dev = page.getByRole("region", { name: staffCopy.devPreferences.title });
+  await dev.scrollIntoViewIfNeeded();
+  await frame(page, "A link for each address", { window: true });
+  await dev.getByRole("link", { name: "tom.seed@example.com" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(emailSettingsCopy.settings.title);
+  await frame(page, "Tom's contact preferences");
 });
 
 test("A member who unsubscribed in CiviCRM", async ({ page, request, flowDatabase }) => {

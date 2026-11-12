@@ -1256,7 +1256,9 @@ FROM seed_broadcasts m LEFT JOIN whatsapp_templates t ON t.name = m.template;
 -- reason, and never sent, as the broadcast was stopped first. Each agrees
 -- with the supporter's own page: Robin's calendar address bounced on Events
 -- this month, which blocked it, so the PauseCon email skipped it; Tom
--- unsubscribed after three broadcasts were written and before each went;
+-- unsubscribed after two emails were written and before each went, and
+-- his number has PauseAI Global's "Do not SMS", so the flyering text
+-- skipped it;
 -- Grace no longer follows the calendar; Li's number isn't on WhatsApp; and
 -- Pat, whom PauseCon room change reached, asked us to stop two hours later
 -- (opt_outs, above), and Jane answered it. Erin had the summer social
@@ -1301,7 +1303,7 @@ SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FR
     ('PauseCon room change', 'usr-seed-10', 'skipped', 'not-on-whatsapp', NULL, false, false),
     ('We are flyering on Saturday.', 'usr-fixture-1', 'delivered', NULL, 'delivered', true, false),
     ('We are flyering on Saturday.', 'usr-seed-22', 'failed', NULL, 'failed', false, false),
-    ('We are flyering on Saturday.', 'usr-seed-9', 'skipped', 'unsubscribed', NULL, false, false),
+    ('We are flyering on Saturday.', 'usr-seed-9', 'skipped', 'no-permission', NULL, false, false),
     ('We are flyering on Saturday.', 'usr-seed-10', 'cancelled', NULL, NULL, false, false),
     ('We are flyering on Saturday.', 'usr-seed-12', 'cancelled', NULL, NULL, false, false),
     ('End of summer social', 'usr-fixture-6', 'delivered', NULL, 'delivered', false, false),

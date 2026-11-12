@@ -1,14 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { emailSettingsCopy as copy, settingsDate } from "@/lib/content/email-settings";
+import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
 import type { SettingsView } from "@/lib/email-settings";
 import EmailSettings, { type SettingsActions } from "./EmailSettings";
 import {
   exampleBlocked,
   exampleDoNotEmail,
   exampleNoBulk,
+  exampleNumberHolds,
   exampleSettings,
+  exampleStopped,
   exampleUnsubscribed,
   exampleVolunteer,
 } from "./EmailSettings.examples";
@@ -46,28 +48,48 @@ async function show(
 const card = (topic: "newsletter" | "events" | "volunteering") =>
   page.getByRole("group", { name: copy.topics[topic], exact: false });
 
+/** A topic's why: its bubble's, for a phone, first; then as a wide screen shows it under its boxes. */
+const whys = (topic: "newsletter" | "events" | "volunteering", reason: string) =>
+  card(topic).getByText(`${copy.why.yes} ${reason}`);
+const why = (topic: "newsletter" | "events" | "volunteering", reason: string) => whys(topic, reason).last();
+
+const wide = () => page.viewport(1280, 800);
+const phone = () => page.viewport(390, 800);
+
+beforeEach(wide);
+
 describe("EmailSettings", () => {
-  it("shows each topic with its boxes, whether they get it, and why", async () => {
+  it("shows each topic with its boxes, what it is, and why, and the address alone", async () => {
     await show(exampleSettings);
     await expect.element(page.getByRole("heading", { level: 1, name: copy.settings.title })).toBeVisible();
+    await expect.element(page.getByText(exampleSettings.address)).toBeVisible();
     await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.email })).toBeChecked();
     await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.text })).toBeChecked();
     await expect.element(card("events").getByRole("checkbox", { name: copy.ways.text })).not.toBeChecked();
     await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.call })).toBeVisible();
-    // No lozenge where the boxes say it all.
-    await expect.element(page.getByText(copy.tags.paused)).not.toBeInTheDocument();
-    // Why, folded till asked; none where there's no reason to give.
+    await expect.element(card("events").getByText(copy.about.events)).toBeVisible();
+    // Why, always under the boxes on a wide screen; that they never asked, where there's no answer.
+    await expect.element(why("newsletter", copy.why.reasons.asked!(copy.sourceWords("march-2026-11")))).toBeVisible();
+    await expect.element(why("volunteering", copy.why.unasked)).toBeVisible();
     await expect
-      .element(card("newsletter").getByText(copy.why.reasons.asked!(copy.sourceWords("march-2026-11"))))
+      .element(card("newsletter").getByRole("button", { name: copy.why.ask, includeHidden: true }))
       .not.toBeVisible();
-    await card("newsletter").getByText(copy.why.ask).click();
-    await expect
-      .element(card("newsletter").getByText(copy.why.reasons.asked!(copy.sourceWords("march-2026-11"))))
-      .toBeVisible();
-    await expect.element(card("volunteering").getByText(copy.why.ask)).not.toBeInTheDocument();
     // Its numbers aren't named, as the link doesn't prove they're theirs.
     await expect.element(page.getByText("07700 900123", { exact: false })).not.toBeInTheDocument();
-    await expect.element(page.getByRole("heading", { name: copy.global.title })).toBeVisible();
+    // PauseAI Global's emails open, with how to stop them all.
+    await expect.element(page.getByText(copy.global.stopAll, { exact: false }).first()).toBeVisible();
+  });
+
+  it("on a phone, gives why in a bubble its “?” opens, and folds PauseAI Global's emails", async () => {
+    await show(exampleSettings);
+    await phone();
+    const reason = copy.why.reasons.asked!(copy.sourceWords("march-2026-11"));
+    await expect.element(why("newsletter", reason)).not.toBeVisible();
+    await card("newsletter").getByRole("button", { name: copy.why.ask }).click();
+    await expect.element(whys("newsletter", reason).first()).toBeVisible();
+    await expect.element(page.getByText(copy.global.intro).first()).not.toBeVisible();
+    await page.getByText(copy.global.title).last().click();
+    await expect.element(page.getByText(copy.global.intro).last()).toBeVisible();
   });
 
   it("saves each box as it's changed, with whose page it is, and says so under its topic", async () => {
@@ -107,16 +129,14 @@ describe("EmailSettings", () => {
 
   it("says a yes from PauseAI Global's volunteering list was given on joining", async () => {
     await show(exampleVolunteer);
-    await card("volunteering").getByText(copy.why.ask).click();
-    await expect
-      .element(card("volunteering").getByText(copy.why.reasons.volunteered!(""), { exact: false }))
-      .toBeVisible();
+    await expect.element(why("volunteering", copy.why.reasons.volunteered!(""))).toBeVisible();
   });
 
   it("stops everything", async () => {
-    const done = await show(exampleSettings, null, actions(exampleNoBulk));
+    const done = await show(exampleSettings, null, actions(exampleStopped));
     await page.getByRole("button", { name: copy.stopAll.button }).click();
-    await expect.element(page.getByRole("heading", { name: copy.noBulk.title })).toHaveFocus();
+    await expect.element(page.getByRole("heading", { name: copy.stopped.title })).toHaveFocus();
+    await expect.element(page.getByRole("button", { name: copy.stopped.button })).toBeVisible();
     expect(fields(done.stopAll.mock.calls[0][0])).toEqual([
       ["kind", "link"],
       ["token", "tok"],
@@ -126,11 +146,11 @@ describe("EmailSettings", () => {
   it("holds email under “No bulk emails”, which they can lift, and offers no Stop everything", async () => {
     const done = await show(exampleNoBulk, null, actions(exampleSettings));
     await expect.element(page.getByText(copy.noBulk.body)).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: copy.noBulk.title })).not.toHaveFocus();
     await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.email })).toBeDisabled();
-    // Email paused only where they get nothing else: the newsletter goes to them by text.
-    await expect.element(card("newsletter").getByText(copy.tags.paused)).not.toBeInTheDocument();
-    await expect.element(card("events").getByText(copy.tags.paused)).toBeVisible();
+    await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.text })).toBeEnabled();
     await expect.element(page.getByRole("button", { name: copy.stopAll.button })).not.toBeInTheDocument();
+    await expect.element(page.getByText(copy.global.stopAll, { exact: false })).not.toBeInTheDocument();
     await page.getByRole("button", { name: copy.noBulk.button }).click();
     await expect.element(page.getByRole("heading", { name: copy.noBulk.title })).not.toBeInTheDocument();
     await expect.element(page.getByRole("heading", { level: 1, name: copy.settings.title })).toHaveFocus();
@@ -141,12 +161,20 @@ describe("EmailSettings", () => {
     await show(exampleDoNotEmail);
     await expect.element(page.getByRole("heading", { name: copy.doNotEmail.title })).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.noBulk.button })).not.toBeInTheDocument();
-    await card("newsletter").getByText(copy.why.ask).click();
     await expect
-      .element(card("newsletter").getByText(copy.why.reasons["signed-up"]!(copy.sourceWords("paper-signup"))))
+      .element(why("newsletter", copy.why.reasons["signed-up"]!(copy.sourceWords("paper-signup"))))
       .toBeVisible();
     await show(exampleBlocked);
     await expect.element(page.getByRole("heading", { name: copy.blocked.title })).toBeVisible();
+  });
+
+  it("locks texts and calls where PauseAI Global stops them to every number, and says so", async () => {
+    await show(exampleNumberHolds);
+    await expect.element(page.getByRole("heading", { name: copy.doNotText.title })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: copy.doNotCall.title })).toBeVisible();
+    await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.text })).toBeDisabled();
+    await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.call })).toBeDisabled();
+    await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.email })).toBeEnabled();
   });
 
   it("from an email's link: its button first, then what it did and what they still get", async () => {
@@ -165,14 +193,7 @@ describe("EmailSettings", () => {
       ["kind", "copy"],
       ["token", "tok"],
     ]);
-    await card("newsletter").getByText(copy.why.ask).click();
-    await expect
-      .element(
-        card("newsletter").getByText(
-          `${copy.why.no} ${settingsDate(exampleUnsubscribed.answers[0].at)}: ${copy.why.reasons.unsubscribed!(copy.sourceWords("link"))}`,
-        ),
-      )
-      .toBeVisible();
+    await expect.element(why("newsletter", copy.why.reasons.unsubscribed!(copy.sourceWords("link")))).toBeVisible();
   });
 
   it("from an old email's link: its button still, a fresh link for the rest", async () => {
@@ -206,17 +227,15 @@ describe("EmailSettings", () => {
       numbers: [],
       answers: [
         { ...exampleSettings.answers[0], send: "no", reason: "declined" },
-        { ...exampleSettings.answers[0], topic: "events", send: "no", reason: "not-following", source: null },
         { ...exampleSettings.answers[0], topic: "volunteering", send: "yes", reason: "left", source: "nowhere" },
       ],
     });
-    await card("newsletter").getByText(copy.why.ask).click();
     await expect
-      .element(card("newsletter").getByText(copy.why.reasons.declined!(copy.sourceWords("march-2026-11"))))
+      .element(why("newsletter", copy.why.reasons.declined!(copy.sourceWords("march-2026-11"))))
       .toBeVisible();
-    // No answer, or a reason the page has no words for: nothing to open.
-    await expect.element(card("events").getByText(copy.why.ask)).not.toBeInTheDocument();
-    await expect.element(card("volunteering").getByText(copy.why.ask)).not.toBeInTheDocument();
+    // A reason the page has no words for: no why, and nothing to open on a phone.
+    await expect.element(card("volunteering").getByText(copy.why.yes)).not.toBeInTheDocument();
+    await expect.element(card("volunteering").getByRole("button", { name: copy.why.ask })).not.toBeInTheDocument();
   });
 });
 

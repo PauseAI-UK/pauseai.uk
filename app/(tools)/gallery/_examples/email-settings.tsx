@@ -4,7 +4,9 @@ import {
   exampleBlocked,
   exampleDoNotEmail,
   exampleNoBulk,
+  exampleNumberHolds,
   exampleSettings,
+  exampleStopped,
   exampleUnsubscribed,
 } from "@/app/(site)/contact-preferences/_components/EmailSettings.examples";
 import type { Group } from "../_components/types";
@@ -53,6 +55,22 @@ export const emailSettings: Group = {
           render: () => (
             <ProsePage>
               <EmailSettingsExample view={exampleNoBulk} />
+            </ProsePage>
+          ),
+        },
+        {
+          label: "Stop everything pressed: Restart undoes it all",
+          render: () => (
+            <ProsePage>
+              <EmailSettingsExample view={exampleStopped} />
+            </ProsePage>
+          ),
+        },
+        {
+          label: "“Do not SMS” and “Do not phone”: texts and calls locked",
+          render: () => (
+            <ProsePage>
+              <EmailSettingsExample view={exampleNumberHolds} />
             </ProsePage>
           ),
         },

@@ -11,8 +11,10 @@ export const section: Section = { name: "Contact preferences", part: "Public sit
 
 // The contact preferences page (/contact-preferences), on the fixture CiviCRM's UK
 // chapter contacts and the fixture Luma calendar, each flow on its own
-// database: asking for a link; changing what you get; an email's unsubscribe
-// link, fresh and old; "No bulk emails", lifted; "Do not email"; and the email
+// database: asking for a link; changing what you get; Stop everything and
+// Restart; an email's unsubscribe link, fresh and old; "No bulk emails",
+// lifted; "Do not email", "Do not SMS" and "Do not phone"; a blocked
+// address; and the email
 // to someone with "No bulk emails" who just ticked a box. A link is made in the
 // flow's database with a token the flow knows, as an email would carry it.
 
@@ -20,6 +22,9 @@ const JANE = "jane.fixture@example.com";
 const RHEA = "rhea.member@example.com";
 const OWEN = "owen.member@example.com";
 const KIT = "kit.member@example.com";
+const SASHA = "sasha.chapter@example.com";
+const TOM = "tom.seed@example.com";
+const CASEY = "casey.chapter@example.com";
 
 /** A link to `address`'s settings, made `daysAgo`, with this flow's own token; its path. */
 function link(database: string, address: string, daysAgo = 0): string {
@@ -59,6 +64,9 @@ async function open(page: Page, path: string) {
 const topicCard = (page: Page, topic: "newsletter" | "events" | "volunteering") =>
   page.getByRole("group", { name: copy.topics[topic], exact: false });
 
+/** Whether the flow runs on the phone, where the page folds why and PauseAI Global's emails. */
+const onPhone = () => test.info().project.name === "phone";
+
 test("Asking for a link to your contact preferences", { tag: "@phone" }, async ({ page, request }) => {
   story(
     "Someone wants to change what PauseAI UK emails them. They open Contact preferences, give their address, and pass the spam check.",
@@ -97,22 +105,30 @@ test("Changing what you get", async ({ page, request, flowDatabase }) => {
   await open(page, link(flowDatabase, JANE));
   await expect(topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.email })).toBeChecked();
   await frame(page, "Jane's settings");
-  story("Under each topic's boxes, Why? opens why she gets it.");
-  await topicCard(page, "newsletter").getByText(copy.why.ask).click();
-  await expect(topicCard(page, "newsletter").getByText(copy.why.reasons.subscribed!(""))).toBeVisible();
-  await frame(page, "Why she gets the newsletter");
+  if (onPhone()) {
+    story("Each topic says why she gets it. On a phone, that's behind the “?” beside its name.");
+    await topicCard(page, "newsletter").getByRole("button", { name: copy.why.ask }).click();
+    await expect(topicCard(page, "newsletter").getByText(copy.why.reasons.subscribed!("")).first()).toBeVisible();
+    await frame(page, "Why she gets the newsletter");
+    await page.keyboard.press("Escape");
+  }
   story("She turns the newsletter off by email, and volunteering on by text. Each saves as she changes it.");
   await topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.email }).uncheck();
   await expect(topicCard(page, "newsletter").getByText(copy.settings.saved)).toBeVisible();
   await topicCard(page, "volunteering").getByRole("checkbox", { name: copy.ways.text }).check();
   await expect(topicCard(page, "volunteering").getByText(copy.settings.saved)).toBeVisible();
   await frame(page, "Saved");
-  story("At the foot, what PauseAI Global sends, folded till opened, and how to stop everything.");
-  await page.getByRole("heading", { name: copy.global.title }).click();
-  await expect(page.getByText(copy.global.intro)).toBeVisible();
+  if (onPhone()) {
+    story("At the foot, what PauseAI Global sends, folded on a phone till opened, and how to stop everything.");
+    await page.getByRole("heading", { name: copy.global.title }).click();
+  } else {
+    story("At the foot, what PauseAI Global sends, and how to stop everything.");
+  }
+  // The page has it twice, one for each width, only one shown.
+  await expect(page.getByText(copy.global.intro).filter({ visible: true })).toBeVisible();
   // Global's box at the window's top, just below the site's sticky header.
   await page.getByRole("heading", { name: copy.global.title }).evaluate((heading) => {
-    heading.closest("details")!.scrollIntoView({ block: "start", behavior: "instant" });
+    heading.closest("section, details")!.scrollIntoView({ block: "start", behavior: "instant" });
     window.scrollBy({
       top: -(document.querySelector("header")!.getBoundingClientRect().bottom + 16),
       behavior: "instant",
@@ -121,15 +137,40 @@ test("Changing what you get", async ({ page, request, flowDatabase }) => {
   await frame(page, "PauseAI Global's emails, and Stop everything", { window: true });
 });
 
-test("Stopping everything", async ({ page, request, flowDatabase }) => {
+test("Stopping everything, and restarting", async ({ page, request, flowDatabase }) => {
   story(
-    "Kit wants nothing more from PauseAI. Stop everything stops our newsletters, events and volunteering, and PauseAI Global's bulk email too, which goes to PauseAI Global.",
+    "Sasha wants nothing more from PauseAI. Stop everything stops our newsletters, events and volunteering, by email, text and phone, and PauseAI Global's bulk email too, which goes to PauseAI Global.",
   );
   await importCivicrm(request, BASE);
-  await open(page, link(flowDatabase, KIT));
+  await open(page, link(flowDatabase, SASHA));
+  await frame(page, "Sasha's settings");
   await page.getByRole("button", { name: copy.stopAll.button }).click();
-  await expect(page.getByRole("heading", { name: copy.noBulk.title })).toBeVisible();
+  await expect(page.getByRole("heading", { name: copy.stopped.title })).toBeVisible();
   await frame(page, "Everything stopped");
+  story("She changes her mind. Restarting undoes all that Stop everything did, texts and calls too.");
+  await page.getByRole("button", { name: copy.stopped.button }).click();
+  await expect(page.getByRole("heading", { name: copy.stopped.title })).toHaveCount(0);
+  await frame(page, "Restarted");
+});
+
+test("“Do not SMS” and “Do not phone”", async ({ page, request, flowDatabase }) => {
+  story(
+    "Tom asked PauseAI Global never to text or phone his number. His text and call boxes are locked, and the page says only PauseAI Global can change that.",
+  );
+  await importCivicrm(request, BASE);
+  runSql(flowDatabase, `UPDATE civicrm_contacts SET do_not_sms = true WHERE email = '${TOM}'`);
+  await open(page, link(flowDatabase, TOM));
+  await expect(page.getByRole("heading", { name: copy.doNotText.title })).toBeVisible();
+  await expect(page.getByRole("heading", { name: copy.doNotCall.title })).toBeVisible();
+  await frame(page, "Texts and calls locked");
+});
+
+test("An address we can't email", async ({ page, request, flowDatabase }) => {
+  story("CiviCRM has Casey's address on hold, as emails to it bounced. We send it nothing more, and the page says so.");
+  await importCivicrm(request, BASE);
+  await open(page, link(flowDatabase, CASEY));
+  await expect(page.getByRole("heading", { name: copy.blocked.title })).toBeVisible();
+  await frame(page, "Emails to it blocked");
 });
 
 test("An email's unsubscribe link", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {

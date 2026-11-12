@@ -160,7 +160,7 @@ describeWithDatabase("the contact preferences page", () => {
       "events:text:+447700900123",
     ]);
     await noBulkInCivicrm();
-    expect((await settingsFor(JANE)).hold).toMatchObject({ kind: "no-bulk", source: "civicrm" });
+    expect((await settingsFor(JANE)).hold).toMatchObject({ kind: "no-bulk", source: "civicrm", everything: false });
   });
 
   it("saves ticks as yeses with their words, and unticks as opt-outs, sending ours to CiviCRM", async () => {
@@ -325,7 +325,30 @@ describeWithDatabase("the contact preferences page", () => {
     ]);
     expect(await query("SELECT change FROM civicrm_updates")).toEqual([{ change: "no_bulk_email" }]);
     expect(removed).toEqual([{ email: JANE }]);
-    expect((await settingsFor(JANE)).hold).toMatchObject({ kind: "no-bulk", source: "preferences" });
+    expect((await settingsFor(JANE)).hold).toMatchObject({ kind: "no-bulk", source: "preferences", everything: true });
+  });
+
+  it("undoes Stop everything in full by Restart: bulk email, texts and calls, and no other opt-out", async () => {
+    lumaRemoves();
+    await jane();
+    // Her own untick of events by text, before she stopped everything, stays.
+    await saveSettings(JANE, new Set(["newsletter:email", "newsletter:text"]));
+    await stopEverything(JANE);
+    expect(await liftNoBulk(JANE)).toBe(true);
+    expect(await optOuts()).toEqual([
+      { address: "+447700900123", list: "events", way: "text", source: "preferences", open: true },
+      { address: JANE, list: "bulk", way: "email", source: "preferences", open: false },
+      { address: "+447700900123", list: "newsletter", way: "text", source: "preferences", open: false },
+    ]);
+    expect(await query("SELECT wording FROM preference_choices WHERE topic = 'bulk'")).toEqual([
+      { wording: emailSettingsCopy.stopped.wording },
+    ]);
+    const view = await settingsFor(JANE);
+    expect(view.hold).toBeNull();
+    expect(view.answers.filter((a) => a.send === "yes").map((a) => `${a.topic}:${a.way}`)).toEqual([
+      "newsletter:email",
+      "newsletter:text",
+    ]);
   });
 
   it("emails someone who ticked a box but has “No bulk emails” how to lift it, once, and nobody else", async () => {

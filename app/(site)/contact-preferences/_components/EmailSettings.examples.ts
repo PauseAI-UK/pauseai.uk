@@ -48,6 +48,19 @@ export const exampleNoBulk = view([
   answer({ way: "text", channel: "phone", address: PHONE }),
 ]);
 
+/** Stop everything pressed: "No bulk emails" that Restart undoes in full. */
+export const exampleStopped: SettingsView = {
+  ...exampleNoBulk,
+  hold: { ...exampleNoBulk.hold!, source: "preferences", everything: true },
+};
+
+/** "Do not SMS" and "Do not phone" in CiviCRM on their only number: texts and calls locked. */
+export const exampleNumberHolds = view([
+  answer({}),
+  answer({ way: "text", channel: "phone", address: PHONE, send: "no", reason: "do-not-sms", source: "civicrm" }),
+  answer({ way: "call", channel: "phone", address: PHONE, send: "no", reason: "do-not-phone", source: "civicrm" }),
+]);
+
 /** "Do not email" in CiviCRM. */
 export const exampleDoNotEmail = view([
   answer({ send: "no", reason: "do-not-email", source: "civicrm" }),
