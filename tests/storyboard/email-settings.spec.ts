@@ -142,6 +142,8 @@ test("Stopping everything, and restarting", async ({ page, request, flowDatabase
     "Sasha wants nothing more from PauseAI. Stop everything stops our newsletters, events and volunteering, by email, text and phone, and PauseAI Global's bulk email too, which goes to PauseAI Global.",
   );
   await importCivicrm(request, BASE);
+  // Joined before the fixture clock's today, as anyone pressing Stop everything has: the latest answer is what holds.
+  runSql(flowDatabase, `UPDATE civicrm_contacts SET joined_date = '2026-10-01' WHERE email = '${SASHA}'`);
   await open(page, link(flowDatabase, SASHA));
   await frame(page, "Sasha's settings");
   await page.getByRole("button", { name: copy.stopAll.button }).click();
