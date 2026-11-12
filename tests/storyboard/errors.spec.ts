@@ -127,7 +127,7 @@ test("An error marked done", async ({ page, flowDatabase }) => {
   await expect(page.getByRole("heading", { level: 1, name: words })).toBeVisible();
   await frame(page, "The error's own page");
 
-  story("They mark it done. The page says who did, and when, and that it comes back if it happens again.");
+  story("They mark it done. The page says who did, and when.");
   await page.getByRole("button", { name: errors.one.markDone }).click();
   await expect(page.getByRole("button", { name: errors.one.undo })).toBeVisible();
   await frame(page, "Marked done");

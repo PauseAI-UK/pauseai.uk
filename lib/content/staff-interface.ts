@@ -2255,8 +2255,8 @@ All events: ${link}`,
       // The button that takes it off the list to do until it happens again; then, once it's done, who marked
       // it and when, and the button that puts it back.
       markDone: "Mark as done",
-      doneBy: (by: string, at: string) => `⁂ Marked done by ${by}, ${at}. It comes back to To do if it happens again.`,
-      undo: "⁂ Not done",
+      doneBy: (by: string, at: string) => `⁂ Marked done by ${by}, ${at}.`,
+      undo: "Mark not done",
     },
     // The emails. `where` is the kind and the route; `words` the error's, with what varies taken out.
     email: {
