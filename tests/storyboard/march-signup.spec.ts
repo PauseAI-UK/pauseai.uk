@@ -6,9 +6,9 @@ import type { Section } from "./report/frames";
 
 export const section: Section = { name: "March sign-up", part: "Public site", order: 40 };
 
-// The march sign-up (app/(march)/): its own header, which drops in past the
-// hero; the form, which adds the person to the Luma event; and the cards it
-// turns into, in place: the share card.
+// The march sign-up (app/(march)/): the site's header, without the march
+// banner; the marks drawn in marker pen; the form, which adds the person to
+// the Luma event; and the card it turns into, in place: the share card.
 
 const header = (page: Page) => page.getByRole("banner");
 /** The share card's confirmation, where focus lands after registering. */
@@ -32,6 +32,22 @@ async function openSignup(page: Page) {
   await page.goto(`${BASE}/protests/march-against-ai-extinction-nov-26`);
   await hydrated(page);
   await layoutSettled(page, "main");
+}
+
+/**
+ * Every marker-pen mark drawn: each is drawn as its words scroll into view,
+ * so each is brought into view in turn until it has been, then the page goes
+ * back to the top.
+ */
+async function allMarked(page: Page) {
+  const marks = page.locator("svg.rough-annotation");
+  await expect(marks).toHaveCount(7);
+  for (const mark of await marks.all()) {
+    await mark.evaluate((svg) => svg.parentElement!.scrollIntoView({ block: "center", behavior: "instant" }));
+    await expect(mark.locator("path").first()).toBeAttached();
+  }
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await scrollSettled(page);
 }
 
 /** A new card's title, scrolled to the top of the window but clear of the header. */
@@ -85,19 +101,16 @@ async function messageMidWindow(page: Page): Promise<void> {
 
 test("Registering for the march", { tag: "@phone" }, async ({ page }) => {
   story(
-    "Someone opens the march page. Over the photos at the top there's no header, and the site's own menu isn't on this page at all.",
+    "Someone opens the march page, under the site's own header but without the march banner, as this is the page it points to. Headings and the march's demand are highlighted in orange, and key words underlined, as with a marker pen.",
   );
   await openSignup(page);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/March AgainstAI Extinction/);
-  // Over the hero the header is out of sight; the site's own nav isn't there at all.
-  await expect(header(page)).not.toBeInViewport();
-  await expect(page.locator("header")).toHaveCount(1);
-  await expect(page.locator("nav")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("March Against AI Extinction");
+  await expect(header(page)).toBeInViewport();
+  await expect(page.getByRole("complementary", { name: "March Against AI Extinction" })).toHaveCount(0);
   await expect(page.getByRole("contentinfo")).toBeVisible();
+  await allMarked(page);
   await frame(page, "The march page");
-  story(
-    "They press Register now, which takes them to the form at the foot of the page, and fill it in. The page's header has dropped in at the top.",
-  );
+  story("They press Register now, which takes them to the form at the foot of the page, and fill it in.");
 
   await fillIn(page, madeUpAddress("Testy McTestface", 43, "example.org"));
   await formAtTop(page);
@@ -145,13 +158,16 @@ test("An invalid email address", async ({ page }) => {
 });
 
 test("How many have registered", { tag: "@phone" }, async ({ page }) => {
-  story("The march page says how many people have registered so far, beside the Register now button.");
+  story("The march page says how many people have registered so far, under the Register now button.");
   await openSignup(page);
-  // The fixture event's approved guests, beside the hero's button too.
+  // The fixture event's approved guests, under the hero's buttons.
   const hero = page.locator("section").filter({ has: page.getByRole("heading", { level: 1 }) });
-  await expect(hero).toContainText(`1,234 ${copy.form.count}`);
-  await expect(hero.getByText(`1,234 ${copy.form.count}`)).toBeInViewport();
-  await frame(page, "The count beside the button");
+  const going = "Join 1,234+ people already registered";
+  // On a phone the photo takes the top of the screen, so the count is just below it.
+  await hero.getByText(going).scrollIntoViewIfNeeded();
+  await scrollSettled(page);
+  await expect(hero.getByText(going)).toBeInViewport();
+  await frame(page, "The count under the buttons", { window: true });
   story("The form shows the same count in its corner.");
 
   await page.getByRole("link", { name: "Register now" }).click();
@@ -166,19 +182,29 @@ test("How many have registered", { tag: "@phone" }, async ({ page }) => {
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   expect(await (await asked).json()).toEqual({ count: 1234 });
   await expect(form).toContainText(`1,234 ${copy.form.count}`);
-  await expect(hero).toContainText(`1,234 ${copy.form.count}`);
+  await expect(hero).toContainText(going);
 });
 
-test("The scroll-down button", async ({ page }) => {
+test("Seeing all the details", { tag: "@phone" }, async ({ page }) => {
+  story("Someone presses See all details in the hero. The page moves down to what happens on the day.");
+  await openSignup(page);
+  await page.getByRole("link", { name: "See all details" }).click();
+  await scrollSettled(page);
+  await expect(page.getByRole("heading", { name: "On the day" })).toBeInViewport();
+  await expect(page.getByRole("link", { name: "Downing Street" })).toBeInViewport();
+  await frame(page, "On the day");
+});
+
+test("What we want, highlighted", { tag: "@phone" }, async ({ page }) => {
   story(
-    "Someone presses the button to scroll down past the photos. The page moves to why we're marching, and the header drops in.",
+    "Someone scrolls down to what we want. As its heading comes into view, an orange highlighter sweeps in behind it, from the left.",
   );
   await openSignup(page);
-  await page.getByRole("button", { name: "Scroll down" }).click();
-  await expect(page.getByRole("heading", { name: /Why we.re marching/ })).toBeInViewport();
+  const heading = page.getByRole("heading", { name: "What we want" });
+  await heading.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
   await scrollSettled(page);
-  await expect(header(page)).toBeInViewport();
-  await frame(page, "Past the photos, with the header");
+  await expect(heading.locator("svg.rough-annotation path")).toHaveCount(1);
+  await frame(page, "What we want, highlighted", { window: true });
 });
 
 test("Sharing, and registering someone new", { tag: "@phone" }, async ({ page, context }) => {
@@ -213,20 +239,6 @@ test("Sharing, and registering someone new", { tag: "@phone" }, async ({ page, c
   await frame(page, "The form, empty");
 });
 
-test("The header's Register button", { tag: "@desktop-only" }, async ({ page }) => {
-  story("Pressing the Register button in the header pushes it down into its shadow, like a real button.");
-  await openSignup(page);
-  await page.getByRole("button", { name: "Scroll down" }).click();
-  await expect(header(page)).toBeInViewport();
-  const button = header(page).getByRole("link", { name: "Register" });
-  await button.hover();
-  await page.mouse.down();
-  await expect
-    .poll(() => button.evaluate((el) => [getComputedStyle(el).transform, getComputedStyle(el).boxShadow]))
-    .toEqual(["matrix(1, 0, 0, 1, 4, 4)", expect.stringMatching(/ 0px 0px 0px$/)]);
-  await page.mouse.up();
-});
-
 test("Tapping on a phone", { tag: "@phone-only" }, async ({ page }) => {
   story(
     "On a phone, someone taps Register and the share card appears. Where their finger rests next, over one of the apps to share to, doesn't lift that app as a mouse would.",
@@ -252,35 +264,4 @@ test("Tapping on a phone", { tag: "@phone-only" }, async ({ page }) => {
   expect(styles).toContainEqual([true, "none"]);
   expect(styles.map(([, transform]) => transform)).toEqual(styles.map(() => "none"));
   await frame(page, "The share card, no app lifted");
-});
-
-test("Swiping through the photos", { tag: "@phone-only" }, async ({ page }) => {
-  story("On a phone, the photos from past marches are a strip to swipe through. Dots show which photo is showing.");
-  await openSignup(page);
-  const strip = page.getByRole("region", { name: "Photos from previous marches" });
-  await strip.scrollIntoViewIfNeeded();
-  await scrollSettled(page);
-  await frame(page, "The first photo");
-  story(
-    "Each swipe, even one let go short, lands the next photo square with the edge of the screen, and fills its dot.",
-  );
-
-  // A swipe let go short of the next photo still lands it flush with the
-  // screen's left edge.
-  const track = strip.locator("div").first();
-  const swipeTo = async (photo: number, name: RegExp) => {
-    await track.evaluate(
-      (el, photo) => el.scrollTo({ left: el.clientWidth * (photo - 0.3), behavior: "instant" }),
-      photo,
-    );
-    const img = strip.getByRole("img", { name });
-    await expect(img).toBeInViewport({ ratio: 1 });
-    await expect.poll(async () => (await img.boundingBox())!.x).toBeCloseTo(0, 0);
-  };
-  await swipeTo(1, /No-one wins the race/);
-  await frame(page, "The second photo");
-  await swipeTo(2, /A crowd of marchers/);
-  await frame(page, "The third photo");
-  await swipeTo(3, /Commit to safety/);
-  await frame(page, "The last photo");
 });

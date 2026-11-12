@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, type ReactNode, useCallback, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useCallback, useState, useSyncExternalStore } from "react";
 import { AI_IMPACTS_SURVEY_URL, marchSignupCopy, type ShareSource } from "@/lib/content/march-signup";
 import { track } from "./analytics";
 import { cardMotionProps, type CardMotion } from "./card-motion";
@@ -13,7 +13,6 @@ type App = {
   id: ShareSource;
   label: string;
   brand: keyof typeof BRANDS;
-  color: string;
   href: string;
 };
 
@@ -22,14 +21,12 @@ const APPS: App[] = [
     id: "whatsapp",
     label: "WhatsApp",
     brand: "whatsapp",
-    color: "#25D366",
     href: `https://wa.me/?text=${enc(copy.message)}`,
   },
   {
     id: "telegram",
     label: "Telegram",
     brand: "telegram",
-    color: "#26A5E4",
     // t.me/share does nothing without a url parameter, but doesn't check it's
     // a URL, so the whole message goes there and Telegram inserts it as is.
     href: `https://t.me/share/url?url=${enc(copy.message)}`,
@@ -38,7 +35,6 @@ const APPS: App[] = [
     id: "x",
     label: "X",
     brand: "x",
-    color: "#0F0F0F",
     // No url parameter: X appends it to the text, which already has the link.
     href: `https://x.com/intent/post?text=${enc(copy.shortMessage)}`,
   },
@@ -46,42 +42,36 @@ const APPS: App[] = [
     id: "bluesky",
     label: "Bluesky",
     brand: "bluesky",
-    color: "#0285FF",
     href: `https://bsky.app/intent/compose?text=${enc(copy.shortMessage)}`,
   },
   {
     id: "facebook",
     label: "Facebook",
     brand: "facebook",
-    color: "#0866FF",
     href: `https://www.facebook.com/sharer/sharer.php?u=${enc(copy.url)}`,
   },
   {
     id: "threads",
     label: "Threads",
     brand: "threads",
-    color: "#0F0F0F",
     href: `https://www.threads.com/intent/post?text=${enc(copy.shortMessage)}`,
   },
   {
     id: "linkedin",
     label: "LinkedIn",
     brand: "linkedin",
-    color: "#0A66C2",
     href: `https://www.linkedin.com/sharing/share-offsite/?url=${enc(copy.url)}`,
   },
   {
     id: "reddit",
     label: "Reddit",
     brand: "reddit",
-    color: "#FF4500",
     href: `https://www.reddit.com/submit?url=${enc(copy.url)}&title=${enc(copy.emailSubject)}`,
   },
   {
     id: "email",
     label: "Email",
     brand: "email",
-    color: "#5C544A",
     href: `mailto:?subject=${enc(copy.emailSubject)}&body=${enc(copy.message)}`,
   },
 ];
@@ -189,10 +179,12 @@ export default function ShareCard({
         </span>
         <div>
           <p className={m("share-registered-title")}>{copy.registered}</p>
-          <p className={m("share-registered-detail")}>{copy.inTouch(email)}</p>
+          <p className={m("share-registered-detail")}>
+            {copy.inTouch(email)} <strong>{copy.seeYou}</strong>
+          </p>
         </div>
       </div>
-      <h2 className={m("h-md")}>{copy.title}</h2>
+      <h2 className={m("subheading")}>{copy.title}</h2>
       <p className={m("share-text")}>
         {copy.impact.before}
         <a className={m("inline-link")} href={AI_IMPACTS_SURVEY_URL} target="_blank" rel="noreferrer">
@@ -206,6 +198,10 @@ export default function ShareCard({
         {copy.plea.after}
       </p>
 
+      {/* The message the share options send, so it's clear what Copy message
+          copies: its start, the rest faded, all of it for a screen reader. */}
+      <blockquote className={m("share-message")}>{copy.message}</blockquote>
+
       <ul className={m("share-apps")} ref={appRowRef} data-fade={fade}>
         {APPS.map((app) => (
           <li key={app.id}>
@@ -214,7 +210,6 @@ export default function ShareCard({
               href={app.href}
               target="_blank"
               rel="noreferrer"
-              style={{ "--brand": app.color } as CSSProperties}
               onClick={() => shared(app.id)}
             >
               <span className={m("share-app-icon")}>
@@ -229,7 +224,7 @@ export default function ShareCard({
       <div className={m("share-main")}>
         {canNativeShare ? (
           <>
-            <button type="button" className={m("btn large share-primary")} onClick={handleNativeShare}>
+            <button type="button" className={m("btn share-primary")} onClick={handleNativeShare}>
               <Icon name="share" />
               <span>{copy.share}</span>
             </button>
@@ -239,14 +234,14 @@ export default function ShareCard({
           </>
         ) : (
           // No share sheet, so copying takes the main button.
-          <button type="button" className={m("btn large share-primary")} onClick={handleCopy}>
+          <button type="button" className={m("btn share-primary")} onClick={handleCopy}>
             {copyLabel}
           </button>
         )}
       </div>
 
       <div className={m("share-finish")}>
-        <button type="button" className={m("btn ghost")} onClick={onRegisterAnother}>
+        <button type="button" className={m("btn btn-light")} onClick={onRegisterAnother}>
           {copy.registerAnother}
         </button>
       </div>

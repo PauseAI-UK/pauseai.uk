@@ -3,13 +3,13 @@
 import type { ReactNode } from "react";
 import MarchSignupFrame from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/MarchSignupFrame";
 import MarchSignups from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/MarchSignups";
+import Marker from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/Marker";
 import SignupCount from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupCount";
 import SignupCase from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupCase";
 import SignupDay from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupDay";
 import SignupDemand from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupDemand";
-import SignupHeader from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupHeader";
+import SignupGoing from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupGoing";
 import SignupHero from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupHero";
-import SignupHeroScroll from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupHeroScroll";
 import SignupPhotos from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupPhotos";
 import SignupTurnout from "@/app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupTurnout";
 import type { Group } from "../_components/types";
@@ -26,16 +26,9 @@ export const marchSignup: Group = {
       file: "app/(march)/protests/march-against-ai-extinction-nov-26/_components/MarchSignupFrame.tsx",
       variants: [
         {
-          label: "The sub-site's frame: its paper, type and skip link",
+          label: "The sub-site's frame: its background and type",
           render: () => inFrame(<p>An example paragraph.</p>),
         },
-      ],
-    },
-    {
-      name: "SignupHeader",
-      file: "app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupHeader.tsx",
-      variants: [
-        { label: "The header, as it is past the hero", render: () => inFrame(<SignupHeader overHero={false} />) },
       ],
     },
     {
@@ -55,16 +48,42 @@ export const marchSignup: Group = {
       ],
     },
     {
-      name: "SignupHeroScroll",
-      file: "app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupHeroScroll.tsx",
+      name: "SignupGoing",
+      file: "app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupGoing.tsx",
       variants: [
         {
-          label: "The scroll cue, on its own on ink",
+          label: "How many have registered, as under the hero's buttons",
           render: () =>
             inFrame(
-              <div style={{ position: "relative", height: 96, background: "var(--march-ink)" }}>
-                <SignupHeroScroll />
+              <div style={{ padding: 24, background: "var(--text)", color: "var(--white)" }}>
+                <MarchSignups signups={1234}>
+                  <SignupGoing />
+                </MarchSignups>
               </div>,
+            ),
+        },
+      ],
+    },
+    {
+      name: "Marker",
+      file: "app/(march)/protests/march-against-ai-extinction-nov-26/_components/Marker.tsx",
+      variants: [
+        {
+          label: "Words underlined in marker pen",
+          render: () =>
+            inFrame(
+              <p style={{ padding: 24 }}>
+                An example sentence, <Marker type="underline">with its key words marked</Marker>.
+              </p>,
+            ),
+        },
+        {
+          label: "A figure circled",
+          render: () =>
+            inFrame(
+              <p style={{ padding: 32, fontSize: 44 }}>
+                <Marker type="circle">1,000</Marker>
+              </p>,
             ),
         },
       ],
@@ -82,12 +101,12 @@ export const marchSignup: Group = {
     {
       name: "SignupTurnout",
       file: "app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupTurnout.tsx",
-      variants: [{ label: "The turnouts and the press", render: () => inFrame(<SignupTurnout />) }],
+      variants: [{ label: "The turnouts, the goal circled", render: () => inFrame(<SignupTurnout />) }],
     },
     {
       name: "SignupPhotos",
       file: "app/(march)/protests/march-against-ai-extinction-nov-26/_components/SignupPhotos.tsx",
-      variants: [{ label: "Photos from earlier marches", render: () => inFrame(<SignupPhotos />) }],
+      variants: [{ label: "The photo staircase, and the press", render: () => inFrame(<SignupPhotos />) }],
     },
     {
       name: "SignupDay",
@@ -111,15 +130,6 @@ export const marchSignup: Group = {
         {
           label: "How many have registered, as in the form's corner",
           render: () => inFrame(<SignupCount count={1234} />),
-        },
-        {
-          label: "On ink, as beside the hero's button",
-          render: () =>
-            inFrame(
-              <div style={{ display: "flex", padding: 24, background: "var(--march-ink)" }}>
-                <SignupCount count={1234} onInk />
-              </div>,
-            ),
         },
       ],
     },

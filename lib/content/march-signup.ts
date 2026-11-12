@@ -31,11 +31,11 @@ export type ShareSource =
 /** The sign-up's address as every share option gives it out, tagged as a share. */
 const shareUrl = `${signupUrl}?utm_source=sh`;
 
-const emailSubject = `The biggest ever AI safety protest - ${march.city}, ${march.dateLong}`;
+const emailSubject = `The biggest ever demonstration for AI safety - ${march.city}, ${march.dateLong}`;
 
 /** The end of the share message, and the whole of it where posts are short. */
 const shortMessage =
-  `PauseAI UK is organising a march through Central London, expected to be the biggest ever AI safety protest.\n\n` +
+  `PauseAI UK is organising a march through Central London, expected to be the biggest ever demonstration for AI safety.\n\n` +
   `Saturday 21 November 2026, 12–3pm\n` +
   `Start: All Souls’ Place, London W1B 3DA\n` +
   `End: Downing Street, London SW1A 2AA\n\n` +
@@ -53,7 +53,7 @@ export const marchSignupCopy = {
   form: {
     head: "Count me in",
     /** After the number of people registered, in the form's corner. */
-    count: "so far",
+    count: "registered so far",
     name: "Full name",
     email: "Email address",
     phone: "Phone",
@@ -82,9 +82,11 @@ export const marchSignupCopy = {
   share: {
     /** At the top of the card, so it's clear the form went through. */
     registered: "You’re registered. Thank you!",
-    /** Under it: when and where, and what will arrive, at the address they gave, so they can spot a typo. */
+    /** Under it: what will arrive, at the address they gave, so they can spot a typo. */
     inTouch: (email: string) =>
-      `You should receive an email at ${email} shortly with a calendar invite. We’ll send an update with more info closer to the date. See you on ${march.dateLong} in ${march.city}.`,
+      `You should receive an email at ${email} shortly with a calendar invite. We’ll send an update with more information closer to the date.`,
+    /** Then, in bold, when and where. */
+    seeYou: `See you on ${march.dateLong} in ${march.city}!`,
     title: "Double your impact",
     /** "The average AI researcher puts an [18% chance] on …", the link to the survey that found it. */
     impact: {

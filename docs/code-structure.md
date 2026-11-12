@@ -24,8 +24,8 @@ app/
   (staff)/staff/          the staff interface, behind email login; no <Nav>,
                           no analytics, noindex
   (march)/protests/march-against-ai-extinction-nov-26/
-                          the march's sign-up, in its own style (Styling,
-                          below)
+                          the march's sign-up, with a stylesheet of its own
+                          (Styling, below)
   api/                    route handlers, only for things that need a URL
   sitemap.ts, robots.ts
 components/               React components used by more than one route
@@ -599,20 +599,24 @@ It follows the rules above, with these particulars:
 ### The march sign-up
 
 `/protests/march-against-ai-extinction-nov-26` (`app/(march)/protests/march-against-ai-extinction-nov-26/`)
-is a sub-site in its own poster style (`docs/style-guide.md`, "The
-briefings and the march"). It follows the rules above, with these
-exceptions:
+is a sub-site in the site's style, with a few looks of its own
+(`docs/style-guide.md`, "The briefings and the march"). It follows the
+rules above, with these exceptions:
 
 - **One stylesheet for the sub-site.** Its components share
   `_components/march.module.css`, which is written in the order its rules
   cascade. They take their classes through `m()`
   (`_components/classes.ts`). The stylesheet's element styles sit inside
   `:where(.frame)`. Every page of the sub-site is in that frame
-  (`MarchSignupFrame`), so the styles reach nothing outside it. Its
-  colours are the `--march-*` tokens in `styles/tokens.css`. Anton is
-  self-hosted, and declared there too.
-- **Its own fields.** The form's controls are its own, in its style, not
-  the kit's (`tests/checks/form-controls.test.ts`).
-- **Its own header.** Its layout renders `SignupHeader`, not `<Nav>`, and no
-  march banner. It renders the site's `<Footer>` itself, as the other
-  layouts with one do.
+  (`MarchSignupFrame`), so the styles reach nothing outside it. Its orange
+  is `--march-orange` in `styles/tokens.css`; the rest are the site's
+  tokens.
+- **Its own fields.** The form's controls are its own, drawn to match the
+  site's, not the kit's (`tests/checks/form-controls.test.ts`).
+- **No march banner.** Its layout renders the site's `<Nav>` and
+  `<Footer>`, but not the march banner, as this is the page the banner
+  points to. A skip link comes before the header.
+- **Marker pen.** `Marker` draws a hand-drawn underline, circle or
+  highlight in the orange with rough-notation. An underline is there from
+  the start; a circle or highlight draws in once its words are a third of
+  the way up the window.

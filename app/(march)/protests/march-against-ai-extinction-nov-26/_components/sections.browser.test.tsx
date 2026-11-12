@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { m } from "./classes";
-import { marchSignupCopy as copy } from "@/lib/content/march-signup";
 import MarchSignupFrame from "./MarchSignupFrame";
 import MarchSignups from "./MarchSignups";
 import SignupCase from "./SignupCase";
@@ -15,7 +14,7 @@ import SignupTurnout from "./SignupTurnout";
 
 describe("m", () => {
   it("gives the stylesheet's own names for its classes", () => {
-    expect(m("btn large").split(" ")).toHaveLength(2);
+    expect(m("btn btn-light").split(" ")).toHaveLength(2);
     expect(m("btn")).toMatch(/btn/);
   });
 
@@ -25,99 +24,85 @@ describe("m", () => {
 });
 
 describe("the sign-up's sections", () => {
-  it("sets the headings in Anton, on the frame's paper", async () => {
+  it("sets the headings in the site's heaviest weight, in the frame", async () => {
     await render(
       <MarchSignupFrame>
         <SignupCase />
       </MarchSignupFrame>,
     );
     const heading = page.getByRole("heading", { name: /Why we.re marching/ }).element();
-    expect(getComputedStyle(heading).fontFamily).toMatch(/^Anton/);
-    expect(getComputedStyle(heading).textTransform).toBe("uppercase");
-    await expect.element(page.getByRole("link", { name: "Skip to content" })).toHaveAttribute("href", "#main");
+    expect(getComputedStyle(heading).fontWeight).toBe("900");
+    expect(heading.closest(`.${m("frame")}`)).not.toBeNull();
   });
 
-  it("has the hero work outside the frame, with nothing watching it", async () => {
+  it("has the hero's buttons go to the form and the day's details", async () => {
     await render(<SignupHero />);
-    await expect.element(page.getByRole("heading", { level: 1, name: /March Against AI Extinction/ })).toBeVisible();
+    await expect.element(page.getByRole("heading", { level: 1, name: "March Against AI Extinction" })).toBeVisible();
     await expect.element(page.getByRole("link", { name: "Register now" })).toHaveAttribute("href", "#register");
+    await expect.element(page.getByRole("link", { name: "See all details" })).toHaveAttribute("href", "#on-the-day");
+    await expect.element(page.getByRole("img", { name: "to" })).toBeVisible();
     // Nothing around it says how many have registered, so it says nothing.
-    expect(page.getByText(copy.form.count).query()).toBeNull();
+    expect(page.getByText(/already registered/).query()).toBeNull();
   });
 
-  it("says how many have registered beside the hero's button", async () => {
-    await render(
-      <MarchSignups signups={1234}>
-        <SignupHero />
-      </MarchSignups>,
-    );
-    const button = page.getByRole("link", { name: "Register now" }).element();
-    await expect.element(page.getByText(`1,234 ${copy.form.count}`)).toBeVisible();
-    expect(button.nextElementSibling).toBe(page.getByText(`1,234 ${copy.form.count}`).element());
-  });
-
-  it("shows some who've registered under the button, with the count around it", async () => {
-    const guests = [
-      { name: "Jane Smith", avatar: null },
-      { name: "Sam Jones", avatar: null },
-    ];
-    await render(
+  it("says how many have registered under the buttons, with the first three faces", async () => {
+    const guests = ["Jane Smith", "Sam Jones", "Alex Brown", "Kim Lee"].map((name) => ({ name, avatar: null }));
+    const { container } = await render(
       <MarchSignups signups={1234}>
         <SignupHero guests={guests} />
       </MarchSignups>,
     );
-    await expect.element(page.getByText(/^Jane Smith, Sam Jones and .*1,232/)).toBeVisible();
+    await expect.element(page.getByText("Join 1,234+ people already registered")).toBeVisible();
+    expect(container.querySelectorAll(`.${m("hero-going")} li`)).toHaveLength(3);
   });
 
-  it("names no one when nothing around it says how many have registered", async () => {
-    await render(<SignupHero guests={[{ name: "Jane Smith", avatar: null }]} />);
-    expect(page.getByText(/Jane Smith/).query()).toBeNull();
+  it("shows no faces when Luma features no one", async () => {
+    const { container } = await render(
+      <MarchSignups signups={1234}>
+        <SignupHero />
+      </MarchSignups>,
+    );
+    await expect.element(page.getByText("Join 1,234+ people already registered")).toBeVisible();
+    expect(container.querySelector(`.${m("hero-going")} ul`)).toBeNull();
   });
 
-  it("says what we want", async () => {
+  it("marks the July incident's turn", async () => {
+    await render(<SignupCase />);
+    await expect.element(page.getByText("The agent had not been instructed to attack Hugging Face")).toBeVisible();
+  });
+
+  it("says what we want: a treaty, legislation, and the demand", async () => {
     await render(<SignupDemand />);
     await expect.element(page.getByRole("region", { name: "What we want" })).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: "See the full proposal" }))
+      .toHaveAttribute("href", "https://pauseai.info/proposal");
+    await expect.element(page.getByRole("heading", { name: "Frontier AI legislation" })).toBeVisible();
+    await expect.element(page.getByText(/^We call on the Prime Minister/)).toBeVisible();
   });
 
-  it("shows the turnouts, the goal last, and links to the press", async () => {
+  it("shows the turnouts, the goal last", async () => {
     await render(<SignupTurnout />);
-    await expect.element(page.getByText("1,000")).toBeVisible();
-    await expect.element(page.getByText("21 Nov 2026")).toBeVisible();
-    expect(page.getByRole("link").all()).toHaveLength(5);
-    await expect.element(page.getByRole("img", { name: "WIRED" })).toBeVisible();
+    const steps = page.getByRole("listitem").all();
+    expect(steps).toHaveLength(3);
+    await expect.element(steps[2]).toHaveTextContent("21st November 20261,000Our goal this time");
   });
 
-  it("shows four photos from earlier marches", async () => {
-    await page.viewport(1200, 800);
-    try {
-      await render(<SignupPhotos />);
-      expect(page.getByRole("img").all()).toHaveLength(4);
-      await expect.element(page.getByRole("img", { name: /Commit to safety/ })).toBeVisible();
-    } finally {
-      await page.viewport(414, 896);
-    }
-  });
-
-  it("has a phone swipe through the photos one at a time, the dots following", async () => {
+  it("hides the staircase's photos from screen readers, and links to the press", async () => {
     const { container } = await render(<SignupPhotos />);
-    const track = container.querySelector<HTMLElement>(`.${m("photo-track")}`)!;
-    const dots = [...container.querySelectorAll(`.${m("photo-dot")}`)];
-    const shown = () => dots.map((dot) => dot.classList.contains(m("photo-dot-shown")));
-    expect(page.getByRole("img").all()).toHaveLength(4);
-    expect(shown()).toEqual([true, false, false, false]);
-    await expect.element(page.getByRole("img", { name: /orange PauseAI banner/ })).toBeInViewport();
-    await expect.element(page.getByRole("img", { name: /A crowd of marchers/ })).not.toBeInViewport();
-
-    // A scroll that stops partway along snaps to the nearest photo.
-    track.scrollTo({ left: track.clientWidth * 1.8, behavior: "instant" });
-    await expect.poll(shown).toEqual([false, false, true, false]);
-    const crowd = page.getByRole("img", { name: /A crowd of marchers/ }).element();
-    await expect.poll(() => crowd.getBoundingClientRect().left - track.getBoundingClientRect().left).toBeCloseTo(0, 0);
-    await expect.element(page.getByRole("img", { name: /A crowd of marchers/ })).toBeInViewport({ ratio: 1 });
+    expect(container.querySelectorAll(`.${m("staircase-photo")}`)).toHaveLength(8);
+    // The photos are hidden, so the images left are the press's logos.
+    expect(page.getByRole("img").all()).toHaveLength(7);
+    expect(page.getByRole("link").all()).toHaveLength(7);
+    await expect.element(page.getByRole("img", { name: "WIRED" })).toBeVisible();
+    await expect
+      .element(page.getByRole("region", { name: /newspapers around the world cover our demonstrations/ }))
+      .toBeVisible();
   });
 
-  it("maps the route's start and end", async () => {
-    await render(<SignupDay />);
+  it("maps the route's start and end, where See all details goes", async () => {
+    const { container } = await render(<SignupDay />);
+    expect(container.querySelector("#on-the-day")).not.toBeNull();
     await expect
       .element(page.getByRole("link", { name: "All Souls' Place" }))
       .toHaveAttribute("href", expect.stringContaining("All%20Souls'%20Place%2C%20London%20W1B%203DA"));
@@ -135,7 +120,7 @@ describe("the sign-up's sections", () => {
     );
     await expect.element(page.getByRole("heading", { name: "Register for the march" })).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Register" })).toBeVisible();
-    await expect.element(page.getByText("1,234")).toBeVisible();
+    await expect.element(page.getByText("1,234 registered so far")).toBeVisible();
     // What to expect, in its order.
     const expectations = page
       .getByRole("listitem")

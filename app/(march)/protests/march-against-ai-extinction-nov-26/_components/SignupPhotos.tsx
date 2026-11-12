@@ -1,67 +1,133 @@
-"use client";
-
 import Image from "next/image";
-import { useState, type UIEvent } from "react";
+import type { CSSProperties } from "react";
 import { m } from "./classes";
 
-// The files are 1920 wide, enough for a full-width photo on a phone at 3x;
-// the placards' is 1350, a little soft on the widest phones.
-const PHOTOS = [
+/*
+ * The photo staircase, as on the roll-up banner: four columns of two photos
+ * from earlier protests, each column a step higher than the one before,
+ * rising across an orange band and running off both edges. They're there for
+ * the feel of the march, so they're hidden from screen readers. On a phone
+ * the last column goes, so the photos stay large enough to make out.
+ */
+const COLUMNS = [
+  ["staircase-june-2025-1.jpg", "staircase-june-2025-2.jpg"],
+  ["staircase-june-2025-3.jpg", "staircase-february-2026-1.jpg"],
+  ["staircase-september-2026-1.jpg", "staircase-september-2026-2.jpg"],
+  ["staircase-february-2026-2.jpg", "staircase-september-2026-3.jpg"],
+];
+
+/*
+ * Coverage of PauseAI's protests and of the movement: each outlet's wordmark
+ * in the body text's grey (public/images/march-signup/press, from Wikimedia
+ * Commons, The Independent's from English Wikipedia), linked to the story
+ * the march's Luma page cites. `h` is each logo's height, set by eye so wide
+ * and stacked marks weigh the same, and `phoneH` its height on a phone.
+ */
+const PRESS = [
   {
-    src: "/images/march-signup/protest-pauseai-banner.jpg",
-    alt: "Marchers behind an orange PauseAI banner, holding placards reading “Extinction = bad” and “Say no to AI”, at the February 2026 march in London.",
+    outlet: "BBC",
+    href: "https://youtu.be/-0CRojvk1FE?t=146",
+    logo: "bbc.svg",
+    width: 560,
+    height: 160,
+    h: 22,
+    phoneH: 18,
   },
   {
-    src: "/images/march-signup/protest-september.jpg",
-    alt: "Protesters in orange holding placards reading “No-one wins the race to AI” and “Don’t build what you can’t control”, September 2026.",
+    outlet: "The Guardian",
+    href: "https://www.theguardian.com/technology/2026/mar/06/uk-arts-must-not-be-sacrificed-for-speculative-ai-gains-peers-say",
+    logo: "the-guardian.svg",
+    width: 295,
+    height: 97,
+    h: 28,
+    phoneH: 23,
   },
   {
-    src: "/images/march-signup/protest-crowd.jpg",
-    alt: "A crowd of marchers with PauseAI placards filling a street of office blocks, February 2026.",
+    outlet: "MIT Technology Review",
+    href: "https://www.technologyreview.com/2026/03/02/1133814/i-checked-out-londons-biggest-ever-anti-ai-protest/",
+    logo: "mit-technology-review.svg",
+    width: 184,
+    height: 92,
+    h: 32,
+    phoneH: 26,
   },
   {
-    src: "/images/march-signup/protest-placards.jpg",
-    alt: "Protesters of a range of ages holding hand-made placards reading “Commit to safety” and “Let’s cooperate on safety”, June 2025.",
+    outlet: "WIRED",
+    href: "https://www.wired.it/article/movimenti-contro-intelligenza-artificiale-mappa-nomi-pauseai-stopai-controlai/",
+    logo: "wired.svg",
+    width: 125,
+    height: 25,
+    h: 20,
+    phoneH: 16,
+  },
+  {
+    outlet: "Business Insider",
+    href: "https://www.businessinsider.com/protesters-accuse-google-deepmind-breaking-promises-ai-safety-2025-6",
+    logo: "business-insider.svg",
+    width: 1365,
+    height: 120,
+    h: 12,
+    phoneH: 10,
+  },
+  {
+    outlet: "The Wall Street Journal",
+    href: "https://www.wsj.com/tech/ai/ai-companies-public-relations-ae312d79",
+    logo: "wsj.svg",
+    width: 797,
+    height: 68,
+    h: 13,
+    phoneH: 11,
+  },
+  {
+    outlet: "The Independent",
+    href: "https://www.the-independent.com/tech/ai-safety-declaration-steve-bannon-b2932570.html",
+    logo: "the-independent.svg",
+    width: 4909,
+    height: 351,
+    h: 15,
+    phoneH: 12,
   },
 ];
 
-/**
- * Four photos from earlier marches, full bleed. On a phone they're a carousel,
- * one full-width photo at a time, snapping from one to the next, with a dot
- * for each over their foot and the one in view filled. The dots only show
- * where you are, so they're hidden from screen readers, which have the
- * photos themselves.
- */
+/** The photo staircase, and in its corner the press that has covered our protests. */
 export default function SignupPhotos() {
-  const [shown, setShown] = useState(0);
-
-  // The track only scrolls on a phone, where it's one photo wide, so how far
-  // along it is says which photo is in view.
-  const onScroll = (e: UIEvent<HTMLDivElement>) => {
-    const track = e.currentTarget;
-    const along = track.scrollLeft / (track.scrollWidth - track.clientWidth);
-    setShown(Math.round(along * (PHOTOS.length - 1)));
-  };
-
   return (
-    <section className={m("photo-strip")} aria-label="Photos from previous marches">
-      <div className={m("photo-track")} onScroll={onScroll}>
-        {PHOTOS.map((photo) => (
-          <figure className={m("photo-item")} key={photo.src}>
-            <Image
-              src={photo.src}
-              alt={photo.alt}
-              width={900}
-              height={600}
-              sizes="(max-width: 620px) 100vw, (max-width: 860px) 50vw, 25vw"
-            />
-          </figure>
-        ))}
+    <section className={m("staircase-band")} aria-labelledby="press-title">
+      <div className={m("staircase")} aria-hidden="true">
+        <div className={m("staircase-stripe")} />
+        <div className={m("staircase-photos")}>
+          {COLUMNS.map((column) => (
+            <div className={m("staircase-column")} key={column[0]}>
+              {column.map((photo) => (
+                <div className={m("staircase-photo")} key={photo}>
+                  <Image src={`/images/march-signup/${photo}`} alt="" fill sizes="(max-width: 767px) 42vw, 30vw" />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
-      <div className={m("photo-dots")} aria-hidden="true">
-        {PHOTOS.map((photo, i) => (
-          <span className={m(i === shown ? "photo-dot photo-dot-shown" : "photo-dot")} key={photo.src} />
-        ))}
+
+      <div className={`container ${m("press")}`}>
+        <p className={m("press-line")} id="press-title">
+          When we march together, newspapers around the world cover our demonstrations
+        </p>
+        <ul className={m("press-logos")}>
+          {PRESS.map((item) => (
+            <li key={item.href}>
+              <a href={item.href} target="_blank" rel="noreferrer">
+                <Image
+                  className={m("press-logo")}
+                  src={`/images/march-signup/press/${item.logo}`}
+                  alt={item.outlet}
+                  width={item.width}
+                  height={item.height}
+                  style={{ "--logo-h": `${item.h}px`, "--logo-phone-h": `${item.phoneH}px` } as CSSProperties}
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

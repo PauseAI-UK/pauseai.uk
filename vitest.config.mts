@@ -92,6 +92,7 @@ export default defineConfig({
             "jszip",
             "qrcode-generator",
             "jsqr",
+            "rough-notation",
             "@tiptap/react",
             "@tiptap/starter-kit",
             "@tiptap/extension-blockquote",

@@ -13,7 +13,7 @@ import SignupTurnout from "./_components/SignupTurnout";
 
 export const metadata = pageMetadata({
   title: `${march.name} — ${march.dateShort}, ${march.city}`,
-  description: `Join the biggest ever march for AI safety. ${march.dateLong}, ${march.city} — organised by PauseAI UK.`,
+  description: `Join the biggest ever demonstration for AI safety. ${march.dateLong}, ${march.city} — organised by PauseAI UK.`,
   path: march.path,
   absoluteTitle: true,
   openGraph: { title: `${march.name} — ${march.dateLong}` },

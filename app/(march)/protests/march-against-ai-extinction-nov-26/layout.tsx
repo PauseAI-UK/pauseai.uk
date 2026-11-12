@@ -1,19 +1,19 @@
-import { preload } from "react-dom";
 import Footer from "@/components/layout/Footer";
+import Nav from "@/components/layout/Nav";
+import { m } from "./_components/classes";
 import MarchSignupFrame from "./_components/MarchSignupFrame";
-import SignupHeader from "./_components/SignupHeader";
 
-// The march sign-up: its own header, not the site's nav, and no march banner,
-// as this is what the banner points to, but the site's footer.
+// The march sign-up: the site's header and footer, but no march banner, as
+// this is what the banner points to. A skip link comes first, past the
+// header's links to the page.
 export default function MarchLayout({ children }: { children: React.ReactNode }) {
-  // The hero's headline is set in Anton, so it shouldn't wait for the stylesheet to find it.
-  preload("/fonts/anton-latin-400-normal.woff2", { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
   return (
     <>
-      <MarchSignupFrame>
-        <SignupHeader overHero />
-        {children}
-      </MarchSignupFrame>
+      <a className={m("skip-link")} href="#main">
+        Skip to content
+      </a>
+      <Nav />
+      <MarchSignupFrame>{children}</MarchSignupFrame>
       <Footer />
     </>
   );

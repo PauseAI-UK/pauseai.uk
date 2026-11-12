@@ -1,88 +1,108 @@
-"use client";
-
 import Image from "next/image";
 import GoingFaces from "@/components/events/GoingFaces";
 import { march } from "@/lib/content/march";
-import { goingNames, type FeaturedGuest } from "@/lib/going";
+import type { FeaturedGuest } from "@/lib/going";
 import { m } from "./classes";
-import { useSignupHero } from "./MarchSignupFrame";
-import { useSignups } from "./MarchSignups";
-import SignupCount from "./SignupCount";
-import SignupHeroScroll from "./SignupHeroScroll";
+import SignupGoing from "./SignupGoing";
+
+/** How many of Luma's featured guests the hero shows. */
+const FACES = 3;
 
 /**
- * The sign-up page's first screen: the march's name, when and where, and the
- * button to the form, with how many have registered beside it when the
- * MarchSignups around it can say, and under it the faces and first names of
- * the `guests` Luma features, as the march's Luma page shows them.
+ * The sign-up page's first screen: the march's name, when and where, the
+ * buttons to the form and to the day's details, and under them how many
+ * have registered, with the faces of the first `guests` Luma features. On a
+ * desktop the words sit over the photo's darker side; on a phone the photo
+ * is a block of its own at the top, fading into the words.
  */
 export default function SignupHero({ guests = [] }: { guests?: FeaturedGuest[] }) {
-  const { setHero } = useSignupHero();
-  const signups = useSignups();
   return (
-    <section ref={setHero} className={m("hero")}>
-      <Image className={m("hero-photo")} src="/images/march-signup/hero-march.jpg" alt="" fill sizes="100vw" priority />
-      <div className={m("hero-scrim")} aria-hidden="true" />
-
-      <div className={m("container hero-inner")}>
-        <Image
-          className={m("hero-logo")}
-          src="/images/logos/PauseAI-Logo-Transparent.svg"
-          alt="PauseAI UK"
-          width={178}
-          height={48}
-          priority
-        />
-
-        <h1 className={m("h-xl hero-title")}>
-          <span>March Against</span>
-          <span className={m("hero-title-hit")}>AI Extinction</span>
+    <section className={m("hero")}>
+      <div className={m("hero-photo")}>
+        <Image src="/images/march-signup/hero-march.jpg" alt="" fill sizes="100vw" priority />
+      </div>
+      <div className={`container ${m("hero-inner")}`}>
+        <h1 className={m("hero-title")}>
+          <span>March Against</span> <span className={m("hero-title-hit")}>AI Extinction</span>
         </h1>
 
-        <p className={m("hero-lede")}>Join us for the biggest ever AI safety protest.</p>
+        <p className={m("hero-lede")}>Join us for the biggest ever demonstration for AI safety</p>
 
         <div className={m("hero-facts")}>
           <div className={m("hero-fact")}>
-            <p className={m("hero-fact-label")}>When</p>
-            <p className={m("hero-fact-main")}>
+            <Icon name="calendar" />
+            <p>
               <time dateTime={march.dateIso}>{march.dateLong}</time>
+              <br />
+              {march.time}
             </p>
-            <p className={m("hero-fact-sub")}>{march.time}</p>
           </div>
           <div className={m("hero-fact")}>
-            <p className={m("hero-fact-label")}>Where</p>
-            <p className={m("hero-fact-main")}>{march.city}</p>
-            <p className={m("hero-fact-sub")}>
-              {march.start.name}
-              <svg className={m("route-arrow")} viewBox="0 0 24 24" role="img" aria-label="to">
-                <path
-                  d="M3 12h16M12 5l7 7-7 7"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3.5"
-                  strokeLinecap="square"
-                />
-              </svg>
-              {march.end.name}
+            <Icon name="map-pin" />
+            <p>
+              {march.city}
+              <br />
+              <span className={m("hero-route")}>
+                {march.start.name}
+                <Icon name="arrow-right" label="to" />
+                {march.end.name}
+              </span>
             </p>
           </div>
         </div>
 
         <div className={m("hero-cta")}>
-          <a className={m("btn large on-ink")} href="#register">
+          <a className={m("btn")} href="#register">
             Register now
           </a>
-          <SignupCount count={signups} onInk />
+          <a className={m("btn btn-light")} href="#on-the-day">
+            See all details
+          </a>
         </div>
 
-        {signups !== null && guests.length > 0 && (
-          <div className={m("hero-going")}>
-            <GoingFaces guests={guests} />
-            <p className={m("hero-going-names")}>{goingNames({ count: signups, guests })}</p>
-          </div>
-        )}
+        <SignupGoing>{guests.length > 0 && <GoingFaces guests={guests.slice(0, FACES)} />}</SignupGoing>
       </div>
-      <SignupHeroScroll />
     </section>
   );
 }
+
+/** Lucide's icons, as the site's own are: thin strokes in the text's colour. */
+function Icon({ name, label }: { name: keyof typeof ICONS; label?: string }) {
+  return (
+    <svg
+      className={m(name === "arrow-right" ? "hero-route-arrow" : "hero-icon")}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
+    >
+      {ICONS[name]}
+    </svg>
+  );
+}
+
+const ICONS = {
+  calendar: (
+    <>
+      <path d="M8 2v4" />
+      <path d="M16 2v4" />
+      <rect width="18" height="18" x="3" y="4" rx="2" />
+      <path d="M3 10h18" />
+    </>
+  ),
+  "map-pin": (
+    <>
+      <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+      <circle cx="12" cy="10" r="3" />
+    </>
+  ),
+  "arrow-right": (
+    <>
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
+    </>
+  ),
+};

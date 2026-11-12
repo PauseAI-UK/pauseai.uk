@@ -60,8 +60,10 @@ describe("ShareCard", () => {
     await renderCard();
     await expect.element(page.getByText(copy.registered)).toBeVisible();
     // When and where, and the address they gave.
-    await expect.element(page.getByText(copy.inTouch("testy@example.org"))).toBeVisible();
-    expect(copy.inTouch("testy@example.org")).toContain(march.dateLong);
+    await expect.element(page.getByText(copy.inTouch("testy@example.org"), { exact: false })).toBeVisible();
+    await expect.element(page.getByText(copy.seeYou)).toBeVisible();
+    expect(page.getByText(copy.seeYou).element().tagName).toBe("STRONG");
+    expect(copy.seeYou).toContain(march.dateLong);
     const first = page.getByText(copy.registered).element().closest("[data-focus-first]")!;
     expect(first.compareDocumentPosition(page.getByRole("heading").element())).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
@@ -121,7 +123,10 @@ describe("ShareCard", () => {
     expect(text("Telegram", "url")).toBe(copy.message);
     expect(text("Email", "body")).toBe(copy.message);
     expect(copy.message.endsWith(copy.shortMessage)).toBe(true);
-    expect([...copy.shortMessage].length).toBeLessThanOrEqual(280);
+    // X counts a link as 23 characters, whatever its length, to 280;
+    // Bluesky counts every character, to 300.
+    expect([...copy.shortMessage.replace(copy.url, "x".repeat(23))].length).toBeLessThanOrEqual(280);
+    expect([...copy.shortMessage].length).toBeLessThanOrEqual(300);
   });
 
   it("has the share button at the foot of the card, under the places to post", async () => {
