@@ -45,6 +45,19 @@ describe("backUp", () => {
     }
   });
 
+  it("restores an ICU collation, as the site's english, whatever the container's locale", async () => {
+    const db = await testDatabase(`
+      CREATE COLLATION english (provider = icu, locale = 'en-GB');
+      CREATE TABLE people (name text COLLATE english);
+      INSERT INTO people VALUES ('Émile');
+    `);
+    try {
+      expect((await backUp(db.url, join(dir, "collation.dump"), {})).tables).toEqual({ people: { rows: 1 } });
+    } finally {
+      await db.drop();
+    }
+  });
+
   it("reports an empty database as having no tables", async () => {
     const db = await testDatabase("SELECT 1");
     try {
