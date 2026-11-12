@@ -4,7 +4,7 @@ import type { ErrorSeen } from "@/lib/server/errors-seen";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { staffTime } from "@/lib/staff-time";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
-import PageIntro from "./ui/PageIntro";
+import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
 import Tabs from "./ui/Tabs";
 
@@ -55,8 +55,7 @@ export default function ErrorsSeen({
   const tab = { done: done ? "yes" : "" };
   return (
     <>
-      <h1>{staffCopy.nav.errors}</h1>
-      <PageIntro>{copy.intro}</PageIntro>
+      <PageHead intro={copy.intro}>{staffCopy.nav.errors}</PageHead>
       <Tabs
         label={copy.tabs.label}
         current={done ? "done" : "toDo"}

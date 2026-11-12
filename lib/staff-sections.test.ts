@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sectionsFor, staffPageOf } from "./staff-sections";
+import { sectionsFor, staffPageHref, staffPageOf } from "./staff-sections";
 
 const pages = (permissions: Parameters<typeof sectionsFor>[0]) =>
   sectionsFor(permissions).map((s) => [s.id, s.pages.map((p) => p.id)]);
@@ -38,5 +38,13 @@ describe("staffPageOf", () => {
     expect(staffPageOf("/staff/mailings/[id]")?.id).toBe("mailings");
     expect(staffPageOf("/staff/lettersx")).toBeUndefined();
     expect(staffPageOf("/staff")).toBeUndefined();
+  });
+});
+
+describe("staffPageHref", () => {
+  it("says where a page in the navigation is", () => {
+    expect(staffPageHref("supporters")).toBe("/staff/supporters");
+    expect(staffPageHref("import")).toBe("/staff/scheduled-jobs");
+    expect(staffPageHref("mpEmails")).toBe("/staff/politicians/blocked-emails");
   });
 });

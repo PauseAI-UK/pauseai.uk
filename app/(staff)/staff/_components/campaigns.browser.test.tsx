@@ -38,7 +38,6 @@ import MyGmail from "./MyGmail";
 import { OneOffTable } from "./OneOffList";
 import OneOffThreadView from "./OneOffThreadView";
 import ListFrame from "./ui/ListFrame";
-import PageIntro from "./ui/PageIntro";
 import Withheld from "./ui/Withheld";
 import Tabs from "./ui/Tabs";
 import Run from "./Run";
@@ -662,19 +661,6 @@ describe("Withheld", () => {
     await says("Kept back");
     expect(document.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
     expect(page.getByRole("link").query()).toBeNull();
-  });
-});
-
-describe("PageIntro", () => {
-  it("is quieter than the page's text", async () => {
-    await render(
-      <div>
-        <p>The page</p>
-        <PageIntro>What this page is</PageIntro>
-      </div>,
-    );
-    const colour = (text: string) => getComputedStyle(page.getByText(text).element()).color;
-    expect(colour("What this page is")).not.toBe(colour("The page"));
   });
 });
 

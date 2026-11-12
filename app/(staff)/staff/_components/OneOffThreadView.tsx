@@ -5,7 +5,9 @@ import { mailboxes, named } from "@/lib/email-parsing/addresses";
 import type { OneOffThread } from "@/lib/server/one-off-emails";
 import { MessageText } from "./LetterThread";
 import ThreadEmail from "./ThreadEmail";
+import { staffTime } from "@/lib/staff-time";
 import Grid, { Card, spanClass } from "./ui/Grid";
+import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 import styles from "./LetterThread.module.css";
@@ -59,7 +61,9 @@ function ThreadPeople({ people }: { people: OneOffThread["people"] }) {
 }
 
 /**
- * A one-off thread's page: its subject, then each message as an email, a
+ * A one-off thread's page: its subject, and under it what the list of
+ * threads says of it (who wrote in it, the mailbox it was read from, how
+ * many messages, when the last came); then each message as an email, a
  * forward's carried messages rebuilt before it, oldest first, each marked as
  * rebuilt; beside them, the politicians it's linked to. For staff who can't
  * read it, that they can't.
@@ -67,7 +71,16 @@ function ThreadPeople({ people }: { people: OneOffThread["people"] }) {
 export default function OneOffThreadView({ thread }: { thread: OneOffThread }) {
   return (
     <>
-      <h1>{thread.subject === null ? copy.title : thread.subject || copy.noSubject}</h1>
+      <PageHead
+        facts={[
+          thread.participants && copy.fact(copy.columns.participants, thread.participants.join(", ")),
+          thread.mailboxes && copy.fact(copy.columns.mailbox, thread.mailboxes.join(", ")),
+          copy.fact(copy.columns.messages, thread.messages),
+          copy.fact(copy.columns.when, staffTime(thread.latestAt)),
+        ]}
+      >
+        {thread.subject === null ? copy.title : thread.subject || copy.noSubject}
+      </PageHead>
       {thread.messages_ === null ? (
         <p>
           <Withheld>{copy.hidden}</Withheld>

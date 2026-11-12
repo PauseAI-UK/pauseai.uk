@@ -14,13 +14,12 @@ import CopyButton from "@/app/(staff)/staff/_components/ui/CopyButton";
 import Alert from "@/app/(staff)/staff/_components/Alert";
 import AlertIcon from "@/app/(staff)/staff/_components/AlertIcon";
 import StaffNav, { type StaffPage as StaffPageName } from "@/app/(staff)/staff/_components/StaffNav";
-import Breadcrumb from "@/app/(staff)/staff/_components/Breadcrumb";
+import Breadcrumb from "@/app/(staff)/staff/_components/ui/Breadcrumb";
 import LockIcon from "@/app/(staff)/staff/_components/ui/LockIcon";
 import NotIcon from "@/app/(staff)/staff/_components/ui/NotIcon";
 import IconText from "@/app/(staff)/staff/_components/ui/IconText";
 import ChannelIcon from "@/app/(staff)/staff/_components/ChannelIcon";
 import ListFrame, { ListTable, type ListColumn } from "@/app/(staff)/staff/_components/ui/ListFrame";
-import PageIntro from "@/app/(staff)/staff/_components/ui/PageIntro";
 import Withheld from "@/app/(staff)/staff/_components/ui/Withheld";
 import ChoiceSearch from "@/app/(staff)/staff/_components/ui/ChoiceSearch";
 import NavFold from "@/app/(staff)/staff/_components/ui/NavFold";
@@ -38,7 +37,8 @@ import DownloadMenu from "@/app/(staff)/staff/_components/ui/DownloadMenu";
 import Grid, { Card, Column } from "@/app/(staff)/staff/_components/ui/Grid";
 import Numbered from "@/app/(staff)/staff/_components/ui/Numbered";
 import Progress from "@/app/(staff)/staff/_components/ui/Progress";
-import PageTitle from "@/app/(staff)/staff/_components/ui/PageTitle";
+import Page from "@/app/(staff)/staff/_components/ui/Page";
+import PageHead from "@/app/(staff)/staff/_components/ui/PageHead";
 import Strip from "@/app/(staff)/staff/_components/ui/Strip";
 import Tabs from "@/app/(staff)/staff/_components/ui/Tabs";
 import Tag from "@/components/ui/Tag";
@@ -67,6 +67,8 @@ const exampleColumns: ListColumn<ExampleRow>[] = [
   { key: "count", label: "Letters", short: true, cell: (r) => r.count },
 ];
 const nameOf = (row: ExampleRow) => row.name;
+/** Where a page of the example list is. */
+const pageHref = (n: number) => `#page-${n}`;
 
 // A blocked address list's filter, for the filter bar's examples.
 const EXAMPLE_FILTERS = [
@@ -386,22 +388,6 @@ export const staffKit: Group = {
       ],
     },
     {
-      name: "PageIntro",
-      file: "app/(staff)/staff/_components/ui/PageIntro.tsx",
-      variants: [
-        {
-          label: "Under a page's title",
-          render: () => (
-            <StaffPage as="div">
-              <h1>A page</h1>
-              <PageIntro>What this page is, in a line or two.</PageIntro>
-              <p>The page itself.</p>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
       name: "ChoiceSearch",
       file: "app/(staff)/staff/_components/ui/ChoiceSearch.tsx",
       variants: [
@@ -457,14 +443,15 @@ export const staffKit: Group = {
       ],
     },
     {
-      name: "PageTitle",
-      file: "app/(staff)/staff/_components/ui/PageTitle.tsx",
+      name: "PageHead",
+      file: "app/(staff)/staff/_components/ui/PageHead.tsx",
       variants: [
         {
-          label: "The title, with the page's main button at the right",
+          label: "A page the navigation leads to: its title, what it is, and its main button at the right",
           render: () => (
             <StaffPage as="div">
-              <PageTitle
+              <PageHead
+                intro="Emails PauseAI sends to many notable people at once"
                 action={
                   <ButtonLink variant="primary" fit href="#">
                     New mailing
@@ -472,24 +459,225 @@ export const staffKit: Group = {
                 }
               >
                 Mailings
-              </PageTitle>
+              </PageHead>
+              <p>The page itself, after the space that belongs to the head.</p>
             </StaffPage>
           ),
         },
         {
-          label: "With a subheading right under the title, the button beside them both",
+          label: "With where what it shows comes from, after what it is",
           render: () => (
             <StaffPage as="div">
-              <PageTitle
-                intro="Emails PauseAI sends to many notable people at once."
+              <PageHead
+                intro="Our events, and who on staff owns each"
+                source={
+                  <>
+                    Source: <a href="#">Luma</a>
+                  </>
+                }
+              >
+                Events
+              </PageHead>
+            </StaffPage>
+          ),
+        },
+        {
+          label: "The title alone, with a quiet button to the page beside it",
+          render: () => (
+            <StaffPage as="div">
+              <PageHead
                 action={
-                  <ButtonLink variant="primary" fit href="#">
-                    New mailing
+                  <ButtonLink variant="ghost" fit href="#">
+                    See past imports
                   </ButtonLink>
                 }
               >
-                Mailings
-              </PageTitle>
+                Import sign-ups
+              </PageHead>
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A lesser thing's page: tags by its title, and its facts in a line, one that's nothing left out",
+          render: () => (
+            <StaffPage as="div">
+              <PageHead
+                tags={
+                  <>
+                    <Tag tone="green">Sent</Tag>
+                    <Tag>Test politician</Tag>
+                  </>
+                }
+                facts={[
+                  <a key="to" href="#">
+                    Jane Example MP
+                  </a>,
+                  "Example North",
+                  null,
+                  "Example Party",
+                ]}
+              >
+                Letter from Sam Sample to Jane Example MP
+              </PageHead>
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A job's: its icon leading the title, what it does, and its button",
+          render: () => (
+            <StaffPage as="div">
+              <PageHead
+                lead={<NavIcon id="import" />}
+                tags={<Tag>Every 5 minutes</Tag>}
+                intro="Reads our calendar, and everyone who has registered for each event, then adds any who are new as supporters."
+                action={
+                  <Button variant="primary" size="small">
+                    Import now
+                  </Button>
+                }
+              >
+                Events and guests
+              </PageHead>
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "Page",
+      file: "app/(staff)/staff/_components/ui/Page.tsx",
+      variants: [
+        {
+          label: "A list: its head, then the list frame, the window's width, under the filter bar",
+          render: () => (
+            <StaffPage as="div">
+              <Page kind="list">
+                <PageHead intro="What the list holds">A list</PageHead>
+                <ListFrame
+                  count="4 rows"
+                  total={4}
+                  page={1}
+                  pages={1}
+                  pageSize={100}
+                  href={pageHref}
+                  columns={exampleColumns}
+                  rows={exampleRows}
+                  rowKey={nameOf}
+                  empty="Nothing found."
+                />
+              </Page>
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A list by month: its head, with the button for a new one, then each month's rows",
+          render: () => (
+            <StaffPage as="div">
+              <Page kind="month-list">
+                <PageHead
+                  intro="Things we made, newest first"
+                  action={
+                    <ButtonLink variant="primary" fit href="#">
+                      New thing
+                    </ButtonLink>
+                  }
+                >
+                  A list by month
+                </PageHead>
+                <Grid>
+                  <Column span={6}>
+                    <h2>October 2026</h2>
+                    <ListTable columns={exampleColumns} rows={exampleRows.slice(0, 2)} rowKey={nameOf} />
+                    <h2>September 2026</h2>
+                    <ListTable columns={exampleColumns} rows={exampleRows.slice(2)} rowKey={nameOf} />
+                  </Column>
+                </Grid>
+              </Page>
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A record: the trail to it, its band, then its cards on the grid",
+          render: () => (
+            <StaffPage as="div">
+              <Page kind="record" under="supporters" here="Jane Example">
+                <Band title="Jane Example" tag={<Tag>Member</Tag>}>
+                  <BandFact label="Place">Manchester, England</BandFact>
+                  <BandFact label="Signed up">29 Oct 2026</BandFact>
+                </Band>
+                <Grid>
+                  <Card span={4} title="The main thing" id="kind-record-main">
+                    What the record is for.
+                  </Card>
+                  <Card span={2} look="aside" title="Beside it" id="kind-record-aside">
+                    What sits beside it.
+                  </Card>
+                </Grid>
+              </Page>
+            </StaffPage>
+          ),
+        },
+        {
+          label: "An item, a lesser thing: the trail through the record it belongs to, the plain head with its facts",
+          render: () => (
+            <StaffPage as="div">
+              <Page
+                kind="item"
+                under="campaigns"
+                via={[{ href: "#campaign", label: "An example campaign" }]}
+                here="Letter"
+              >
+                <PageHead tags={<Tag tone="green">Sent</Tag>} facts={["Jane Example MP", "Example North"]}>
+                  Letter from Sam Sample to Jane Example MP
+                </PageHead>
+                <Grid>
+                  <Card span={3} title="The thing itself" id="kind-item-main">
+                    The letter, as it went.
+                  </Card>
+                  <Card span={3} look="log" title="History" id="kind-item-log">
+                    What happened to it.
+                  </Card>
+                </Grid>
+              </Page>
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A form: the trail, its title, then what to fill in, in a card, with help beside it",
+          render: () => (
+            <StaffPage as="div">
+              <Page kind="form" under="asks" here="New ask">
+                <PageHead>New ask</PageHead>
+                <Grid>
+                  <Card span={4} title="What to fill in" id="kind-form-main">
+                    The fields, and the button.
+                  </Card>
+                  <Card span={2} look="aside" title="Help" id="kind-form-aside">
+                    What the fields mean.
+                  </Card>
+                </Grid>
+              </Page>
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A board: its head, then cards or tiles of a kind on the grid, each as tall as its row",
+          render: () => (
+            <StaffPage as="div">
+              <Page kind="board">
+                <PageHead intro="Things of a kind, side by side">A board</PageHead>
+                <Grid even>
+                  <Card span={2} title="One" id="kind-board-one">
+                    A thing.
+                  </Card>
+                  <Card span={2} title="Two" id="kind-board-two">
+                    Another, with more to say than the first, which makes it taller.
+                  </Card>
+                  <Card span={2} title="Three" id="kind-board-three">
+                    A third.
+                  </Card>
+                </Grid>
+              </Page>
             </StaffPage>
           ),
         },
@@ -761,14 +949,20 @@ export const staffKit: Group = {
     },
     {
       name: "Breadcrumb",
-      file: "app/(staff)/staff/_components/Breadcrumb.tsx",
+      file: "app/(staff)/staff/_components/ui/Breadcrumb.tsx",
       variants: [
         {
-          label: "Above a supporter's name: the way back to the list",
+          label: "Above a letter's head: the navigation's page, the campaign it's of, then the letter itself",
           render: () => (
             <StaffPage as="div">
-              <Breadcrumb href="/staff/supporters">Supporters</Breadcrumb>
-              <h1>Jane Example</h1>
+              <Breadcrumb
+                steps={[
+                  { href: "/staff/campaigns", label: "Campaigns" },
+                  { href: "/staff/campaigns/example", label: "An example campaign" },
+                ]}
+                here="Letter"
+              />
+              <PageHead>Letter from Sam Sample to Jane Example MP</PageHead>
             </StaffPage>
           ),
         },
@@ -788,7 +982,7 @@ export const staffKit: Group = {
                 page={6}
                 pages={50}
                 pageSize={100}
-                href={(n) => `#page-${n}`}
+                href={pageHref}
                 download={(format) => `#download-${format}`}
                 columns={exampleColumns}
                 rows={exampleRows}

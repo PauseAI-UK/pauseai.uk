@@ -1,0 +1,36 @@
+/* The trail, small, just above the page's head. */
+.trail {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* Its steps in a line, which wraps on a narrow screen. */
+.trail ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Between two steps, a mark that the second is inside the first. */
+.trail li + li::before {
+  margin-right: var(--space-2);
+  color: var(--muted);
+  content: "›";
+}
+
+.trail a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.trail a:hover {
+  text-decoration: underline;
+}
+
+/* This page: not a link, and the one step in bold. */
+.trail [aria-current] {
+  font-weight: 600;
+}

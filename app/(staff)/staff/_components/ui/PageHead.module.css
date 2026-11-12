@@ -1,0 +1,54 @@
+/* The title's words and the page's buttons, at either end of a row, level
+   with each other's middles. The space under it is the head's, the same on
+   every page. */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+/* The title and its lines: they take what room the buttons leave, and the
+   buttons wrap under them once that's too narrow to read. */
+.words {
+  display: grid;
+  flex: 1 1 12rem;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* The title, with what leads it and its tags beside it. */
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+}
+
+/* Its lines close, as a long title wraps on a phone. */
+.heading h1 {
+  margin: 0;
+  line-height: 1.15;
+}
+
+/* What the page is, and what its thing is: greyer than the page's text. */
+.intro,
+.facts {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Read line by line, so no wider than the measure, however long it runs. */
+.intro {
+  max-width: var(--staff-measure);
+}
+
+/* The page's buttons, together at the right. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}

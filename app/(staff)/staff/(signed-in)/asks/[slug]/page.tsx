@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { askPageData, askTitle } from "@/lib/server/asks";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { firstOf, pageNumber, type ParamValue } from "@/lib/list-params";
 import AskView from "../../../_components/AskView";
-import Breadcrumb from "../../../_components/Breadcrumb";
+import Page from "../../../_components/ui/Page";
 
 type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ answer?: ParamValue; page?: ParamValue }> };
 
@@ -21,9 +20,8 @@ export default async function AskPage({ params, searchParams }: Params) {
   const answer = firstOf(chosen);
   const ask = found(await askPageData((await params).slug, answer, pageNumber(firstOf(page))));
   return (
-    <>
-      <Breadcrumb href="/staff/asks">{staffCopy.asks.title}</Breadcrumb>
+    <Page kind="record" under="asks" here={ask.title}>
       <AskView ask={ask} answer={answer} />
-    </>
+    </Page>
   );
 }

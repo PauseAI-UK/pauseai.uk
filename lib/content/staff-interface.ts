@@ -19,6 +19,8 @@ export const staffCopy = {
   metaTitle: "PauseAI Staff",
   // The tooltip on a link out of the site, beside its arrow, which a screen reader reads as its description.
   opensInNewTab: "(opens in a new tab)",
+  // The trail above a page's head, as a screen reader names it.
+  breadcrumb: "⁂ Where this page is",
   login: {
     title: "Staff log in",
     intro: "Enter your staff email to sign in on this browser.",
@@ -369,9 +371,10 @@ export const staffCopy = {
     result: {
       title: (filename: string) => `Import: ${filename}`,
       back: "Import sign-ups",
-      summary: (imported: number, held: number) => `${imported} imported, ${held} were not.`,
-      by: (who: string, when: string) => `Imported by ${who} on ${when}.`,
-      signedOn: (day: string) => `Collected on ${day}.`,
+      // Under the title, a fact each, on one line with a dot between them.
+      summary: (imported: number, held: number) => `${imported} imported, ${held} were not`,
+      by: (who: string, when: string) => `Imported by ${who} on ${when}`,
+      signedOn: (day: string) => `Collected on ${day}`,
       // Before the event's name, which links to it on Luma.
       event: "Event signed-up to:",
       note: (note: string) => `Where collected: ${note}`,
@@ -403,6 +406,8 @@ export const staffCopy = {
   // The supporters list (/staff/supporters) and a supporter's page.
   supporters: {
     title: "Supporters",
+    // Under the title.
+    intro: "⁂ Everyone who has signed up, come to an event or written to their MP",
     none: "Nobody found.",
     // Over the list: how many there are.
     total: (total: number) => count(total, "supporter", "supporters"),
@@ -675,6 +680,8 @@ export const staffCopy = {
   // page it goes to, with the form; then the list's notice afterwards.
   erase: {
     title: "Erase this supporter",
+    // The page's own step of the trail above it, after the supporter's name.
+    crumb: "⁂ Erase",
     // Beside the button, at the foot of the supporter's page.
     note: "If they've asked to be forgotten, for example a GDPR request.",
     intro:
@@ -698,6 +705,8 @@ export const staffCopy = {
   // pages, and what each may do.
   accounts: {
     title: "Staff accounts",
+    // Under the title.
+    intro: "⁂ Who can log in to these pages, and what each of them can see and do",
     // The table's last row: everyone else at pauseai.uk, who can log in with no permissions; and across the rest of
     // the row, in grey, what that means.
     everyone: "*@pauseai.uk",
@@ -789,6 +798,8 @@ export const staffCopy = {
   } as Record<string, string>,
   politicians: {
     title: "Politicians",
+    // Under the title.
+    intro: "⁂ MPs, Lords and other notable people we write to and meet",
     // The search box's label: what it searches.
     search: "Name, constituency, party or email",
     allHouses: "All houses",
@@ -860,8 +871,9 @@ export const staffCopy = {
   // The events page (/staff/events): our events on Luma, as the Luma import has them, and who on staff owns each.
   events: {
     title: "Events",
-    // At the page's top right, in small grey print, as on a politician's page: where the events come from, linking to
-    // the Luma import's page.
+    // Under the title.
+    intro: "⁂ Our events, and who on staff owns each",
+    // After it, on the same line: where the events come from, linking to the Luma import's page.
     source: { label: "Source:", link: "Luma" },
     none: "No events yet.",
     // The tabs over the list, and their name, for a screen reader: those still to come, soonest first, and those
@@ -1260,6 +1272,8 @@ All events: ${link}`,
     // Thread: one copy's page, titled as a letter's is.
     copyTitle: (channel: "email" | "text", to: string) =>
       `${channel === "email" ? "Email" : "Text"} from PauseAI UK to ${to}`,
+    // Its own step of the trail above its page, after the broadcast.
+    copyCrumb: "⁂ One supporter's copy",
     // Its history: each thing its provider reported.
     events: {
       sent: "Sent",
@@ -2155,6 +2169,8 @@ All events: ${link}`,
     noText: "We've lost the text.",
   },
   sentEmails: {
+    // Under the title.
+    intro: "⁂ Every email the site has sent, and what became of it",
     // Over the list, for an admin without the supporters permission.
     withheld: "Emails to and from supporters are not shown, as you don't have the supporters permission.",
     search: "Address or subject",
@@ -2237,10 +2253,9 @@ All events: ${link}`,
       "browser-page": "Browser: page crashed",
       "browser-other": "Browser: page carried on",
     },
-    // One error's page: its heading, the way back to the list, then each thing known about it.
+    // One error's page: its title, and its step of the trail above it, then each thing known about it.
     one: {
       title: "Error",
-      back: "All errors",
       kind: "Kind",
       page: "Page or route",
       className: "Class",
@@ -2309,6 +2324,10 @@ All events: ${link}`,
     noPolitician: "Parliament address",
     noSubject: "(no subject)",
     thread: "The thread",
+    // A thread's own step of the trail above its page.
+    crumb: "⁂ One-off thread",
+    // Under a thread's subject, a fact each: a label, then what the list's column of that name shows.
+    fact: (label: string, value: string | number) => `${label}: ${value}`,
     unreadable: "This message couldn't be read.",
     // A message rebuilt from a forward's quote of it, at the right of its subject: who forwarded it.
     rebuilt: (forwarder: string) => `Quoted in ${forwarder}'s forward`,
@@ -2564,6 +2583,8 @@ All events: ${link}`,
     // Airtable, ControlAI's letter from the web, Luma and the members, and
     // the rest, such as reading Gmail, sending mailings and tidying the logs.
     pageTitle: "Scheduled jobs",
+    // Under the title.
+    pageIntro: "⁂ What the site does by itself, how often, and how each job's last run went",
     // Each import's icons, named for screen readers and on hover: where it's
     // from. Then how often it runs, the overview's headings and a lozenge on
     // the job's page, and the lozenges after some jobs' names: those that act
@@ -2630,6 +2651,8 @@ All events: ${link}`,
     // The titles of a letter's own page, and of a supporter's letters' page.
     oneTitle: (from: string, to: string) => `Letter from ${from} to ${to}`,
     fromTitle: (name: string) => `Letters from ${name}`,
+    // A letter's own step of the trail above its page, after its campaign or mailing.
+    crumb: "⁂ Letter",
     // Who PauseAI's letters are from, in a letter's title.
     fromPauseai: "PauseAI UK",
     // A letter's own page: its facts beside the list's, and the way to read it as it was sent.
@@ -2855,6 +2878,8 @@ All events: ${link}`,
     // Over the list, for an admin without the supporters permission.
     withheld: "Entries about supporters are not shown, as you don't have the supporters permission.",
     title: "Audit log",
+    // Under the title.
+    intro: "⁂ Every change staff and the site have made to what we hold, newest first",
     // Over the list: how many entries there are.
     total: (n: number) => count(n, "entry", "entries"),
     none: "No entries match.",

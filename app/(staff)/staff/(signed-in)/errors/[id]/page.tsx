@@ -5,11 +5,16 @@ import { errorSeen } from "@/lib/server/errors-seen";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { setErrorDoneNow } from "../../../actions";
 import ErrorSeenView from "../../../_components/ErrorSeenView";
+import Page from "../../../_components/ui/Page";
 
 export const metadata: Metadata = { title: staffCopy.errorsSeen.one.title };
 
 /** One error: what it is, whether it's done, and its latest happening as it was thrown. */
 export default async function ErrorSeenPage({ params }: { params: Promise<{ id: string }> }) {
   await requireStaff("admin");
-  return <ErrorSeenView error={found(await errorSeen((await params).id))} setDone={setErrorDoneNow} />;
+  return (
+    <Page kind="record" under="errors" here={staffCopy.errorsSeen.one.title}>
+      <ErrorSeenView error={found(await errorSeen((await params).id))} setDone={setErrorDoneNow} />
+    </Page>
+  );
 }

@@ -19,7 +19,10 @@ import {
   exampleSupporterDetails,
 } from "@/app/(staff)/staff/_components/SupportersTable.examples";
 import { SignupColumnNames } from "@/app/(staff)/staff/_components/SignupUploadHelp";
-import SignupUploadResult, { SignupUploadsList } from "@/app/(staff)/staff/_components/SignupUploadResult";
+import SignupUploadResult, {
+  SignupUploadHead,
+  SignupUploadsList,
+} from "@/app/(staff)/staff/_components/SignupUploadResult";
 import { exampleSignupUpload, exampleSignupUploadPeople } from "@/app/(staff)/staff/_components/SignupUpload.examples";
 import { supportersSearch } from "@/lib/staff-search";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
@@ -451,6 +454,28 @@ export const staffSupporters: Group = {
             <SignupUploadResult
               upload={{ ...exampleSignupUpload, eventName: null, note: null, people: [], lumaReading: false }}
             />
+          ),
+        },
+      ],
+    },
+    {
+      name: "SignupUploadHead",
+      file: "app/(staff)/staff/_components/SignupUploadResult.tsx",
+      variants: [
+        {
+          label: "An upload's file, and under it what came of it, with its event and where it was collected",
+          render: () => (
+            <StaffPage as="div">
+              <SignupUploadHead upload={exampleSignupUpload} />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "With no event or note",
+          render: () => (
+            <StaffPage as="div">
+              <SignupUploadHead upload={{ ...exampleSignupUpload, eventName: null, note: null }} />
+            </StaffPage>
           ),
         },
       ],

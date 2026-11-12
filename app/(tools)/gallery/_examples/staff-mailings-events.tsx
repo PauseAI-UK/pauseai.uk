@@ -15,7 +15,7 @@ import {
   exampleWriterData,
 } from "@/app/(staff)/staff/_components/MailingWriter.examples";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
-import PageTitle from "@/app/(staff)/staff/_components/ui/PageTitle";
+import PageHead from "@/app/(staff)/staff/_components/ui/PageHead";
 import type { Group } from "../_components/types";
 import {
   MailingEditorExample,
@@ -295,10 +295,12 @@ export const staffMailingsEvents: Group = {
       file: "app/(staff)/staff/_components/EventsTable.tsx",
       variants: [
         {
-          label: "At the events page's title's right",
+          label: "In the events page's head, after what the page is",
           render: () => (
             <StaffPage as="div">
-              <PageTitle action={<EventsSource />}>Events</PageTitle>
+              <PageHead intro="Our events, and who on staff owns each" source={<EventsSource />}>
+                Events
+              </PageHead>
             </StaffPage>
           ),
         },

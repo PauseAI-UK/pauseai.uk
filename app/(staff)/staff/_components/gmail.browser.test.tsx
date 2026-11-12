@@ -6,7 +6,6 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import AskForm from "./AskForm";
 import BounceReason, { firstSentence } from "./BounceReason";
 import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";
-import AccountTitle from "./AccountTitle";
 import LetterChanges from "./LetterChanges";
 import LetterThread, { SupporterLetterThread } from "./LetterThread";
 import {
@@ -113,14 +112,6 @@ describe("MyGmail", () => {
     );
     await expect.element(page.getByRole("heading", { level: 2, name: gmail.lettersInboxConnectedTitle })).toBeVisible();
     await expect.element(page.getByRole("status")).toHaveTextContent(gmail.outcomes.connectedLettersInbox);
-  });
-});
-
-describe("AccountTitle", () => {
-  it("titles your own page, with your address under it", async () => {
-    await render(<AccountTitle email="jo@pauseai.uk" />);
-    await expect.element(page.getByRole("heading", { level: 1, name: staffCopy.me.title })).toBeVisible();
-    await expect.element(page.getByText("jo@pauseai.uk")).toBeVisible();
   });
 });
 

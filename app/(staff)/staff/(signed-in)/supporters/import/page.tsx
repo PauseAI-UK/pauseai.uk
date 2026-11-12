@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { buttonClass } from "@/components/ui/Button";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
 import { signupEventChoices } from "@/lib/server/signup-uploads";
 import { SIGNUP_UPLOADS_PATH } from "@/lib/signup-upload";
 import { requireStaff } from "@/lib/server/staff-auth";
 import SignupUploadForm from "../../../_components/SignupUploadForm";
-import PageTitle from "../../../_components/ui/PageTitle";
+import Page from "../../../_components/ui/Page";
+import PageHead from "../../../_components/ui/PageHead";
 import StaffLink from "../../../_components/ui/StaffLink";
 import { importSignupUpload, previewSignupUpload } from "../../../signup-upload-actions";
 
@@ -18,15 +20,22 @@ export default async function SignupUploadPage() {
   await requireStaff("supporters");
   const events = await signupEventChoices();
   return (
-    <>
-      <PageTitle intro={copy.intro} action={<StaffLink href={SIGNUP_UPLOADS_PATH}>{copy.uploads.see}</StaffLink>}>
+    <Page kind="form">
+      <PageHead
+        intro={copy.intro}
+        action={
+          <StaffLink className={buttonClass({ variant: "ghost", fit: true })} href={SIGNUP_UPLOADS_PATH}>
+            {copy.uploads.see}
+          </StaffLink>
+        }
+      >
         {copy.title}
-      </PageTitle>
+      </PageHead>
       <SignupUploadForm
         events={events}
         today={now().toISOString().slice(0, 10)}
         actions={{ preview: previewSignupUpload, finish: importSignupUpload }}
       />
-    </>
+    </Page>
   );
 }

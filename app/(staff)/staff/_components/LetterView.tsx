@@ -1,16 +1,15 @@
 import StaffLink from "./ui/StaffLink";
 import type { ReactNode } from "react";
-import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { Ask } from "@/lib/server/asks";
 import type { LetterDetails } from "@/lib/server/letters";
 import type { Politician } from "@/lib/server/politicians";
 import AskRow, { AskRows } from "./AskRow";
-import Breadcrumb from "./Breadcrumb";
 import CampaignName from "./CampaignName";
 import { historyOf, LetterHistory, letterTitle } from "./LetterHistory";
 import LetterStatus from "./LetterStatus";
 import Grid, { Card, Column, spanClass } from "./ui/Grid";
+import PageHead from "./ui/PageHead";
 import styles from "./LetterView.module.css";
 import TestTag from "./TestTag";
 
@@ -63,8 +62,7 @@ function AskCard({
  * `children`, the letter as an email and its replies (LetterThread), beside
  * what it asks (AskCard), as wide as a politician's page has it, and what
  * happened to it. The thread says who it's from and to and when, so nothing
- * repeats it. A supporter's goes back to its campaign, PauseAI's to its
- * mailing.
+ * repeats it.
  */
 export default function LetterView({
   letter,
@@ -82,29 +80,32 @@ export default function LetterView({
 }) {
   const slug = letter.kind === "supporter" ? letter.campaignAsk : letter.mailingAsk;
   const ask = asks.find((one) => one.slug === slug);
-  const back =
-    letter.kind === "supporter"
-      ? { href: `/staff/campaigns/${letter.campaign}`, label: letter.campaignTitle }
-      : { href: `/staff/mailings/${letter.mailingId}`, label: letter.mailing };
   const personalised = letter.kind === "pauseai" && letter.personalised && staffCopy.mailings.personalised;
-  const about = [politician.constituency, politician.party, personalised];
   return (
     <>
-      <Breadcrumb href={back.href}>{back.label}</Breadcrumb>
-      <div className={styles.heading}>
-        <h1>{letterTitle(letter)}</h1>
-        <LetterStatus
-          status={letter.status}
-          skipReason={letter.kind === "pauseai" ? letter.skipReason : null}
-          answered={Boolean(ask && politician.statuses[ask.slug])}
-          replied={Boolean(letter.repliedAt)}
-        />
-        <TestTag isTest={politician.isTest} />
-      </div>
-      <p className={styles.about}>
-        <StaffLink href={`/staff/politicians/${letter.politicianId}`}>{letter.mpName}</StaffLink>
-        <Muted>{about.filter(Boolean).map((part) => ` · ${part}`)}</Muted>
-      </p>
+      <PageHead
+        tags={
+          <>
+            <LetterStatus
+              status={letter.status}
+              skipReason={letter.kind === "pauseai" ? letter.skipReason : null}
+              answered={Boolean(ask && politician.statuses[ask.slug])}
+              replied={Boolean(letter.repliedAt)}
+            />
+            <TestTag isTest={politician.isTest} />
+          </>
+        }
+        facts={[
+          <StaffLink key="politician" href={`/staff/politicians/${letter.politicianId}`}>
+            {letter.mpName}
+          </StaffLink>,
+          politician.constituency,
+          politician.party,
+          personalised,
+        ]}
+      >
+        {letterTitle(letter)}
+      </PageHead>
       <Grid>
         <div className={spanClass(3)}>{children}</div>
         <Column span={3}>

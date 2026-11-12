@@ -185,7 +185,7 @@ describe("ImportJobPage", () => {
     expect(document.body.textContent).not.toContain(press.startedBy);
   });
 
-  it("leads back to the overview, names the job with its icons and schedule, runs it, and lists every run by day", async () => {
+  it("names the job with its icons and schedule, runs it, and lists every run by day", async () => {
     const run = vi.fn();
     const { fn, sent } = action();
     const runs: AnyImportRun[] = [
@@ -206,20 +206,15 @@ describe("ImportJobPage", () => {
         airtableTable="https://airtable.com/table"
       />,
     );
-    await expect
-      .element(page.getByRole("navigation", { name: staffCopy.import.pageTitle }).getByRole("link"))
-      .toHaveAttribute("href", "/staff/scheduled-jobs");
-    expect(page.getByRole("heading", { level: 1 }).element().textContent).toBe(
-      `${jobTitles["sync-politicians"]}${staffCopy.import.nightly}`,
-    );
+    const head = page.getByRole("banner").element();
+    expect(page.getByRole("heading", { level: 1 }).element().textContent).toBe(jobTitles["sync-politicians"]);
     await expect.element(page.getByRole("img", { name: staffCopy.import.airtable })).toBeVisible();
     // The schedule's lozenge is plain: only a run's ending is in colour.
-    const lozenges = [...page.getByRole("heading", { level: 1 }).element().querySelectorAll("span")];
+    const lozenges = [...head.querySelectorAll("h1 ~ span")];
+    expect(lozenges.map((tag) => tag.textContent)).toEqual([staffCopy.import.nightly]);
     expect(lozenges.map((tag) => tag.className.match(/green|amber|red|blue/))).toEqual([null]);
-    // No strip under the title: the newest run, in the history, carries the colour.
-    const after = page.getByRole("heading", { level: 1 }).element().parentElement!.nextElementSibling!;
-    expect(after.tagName).toBe("P");
-    expect(after.className).toBe("");
+    // No strip under the head: the newest run, in the history, carries the colour.
+    expect(head.nextElementSibling!.querySelector(":scope > [data-strip]")).toBeNull();
     await page.getByRole("button", { name: staffCopy.syncs.syncNow }).click();
     await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
     expect(

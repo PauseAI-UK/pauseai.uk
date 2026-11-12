@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { letterThread } from "@/lib/server/letter-threads";
 import { listAsks } from "@/lib/server/asks";
@@ -10,6 +11,7 @@ import FindInGmail from "../../../../../_components/FindInGmail";
 import { letterTitle } from "../../../../../_components/LetterHistory";
 import LetterView from "../../../../../_components/LetterView";
 import LetterThread from "../../../../../_components/LetterThread";
+import Page from "../../../../../_components/ui/Page";
 import { setAskStatus } from "../../../../../actions";
 
 type Params = { params: Promise<{ id: string; letter: string }> };
@@ -37,8 +39,15 @@ export default async function MailingLetterPage({ params }: Params) {
   const letter = found(pauseaiLetter);
   const politician = found(await getPolitician(letter.politicianId));
   return (
-    <LetterView letter={letter} politician={politician} asks={asks} setStatus={setAskStatus}>
-      <LetterThread thread={found(thread)} link={<FindInGmail find={letter.gmail} />} />
-    </LetterView>
+    <Page
+      kind="item"
+      under="mailings"
+      via={[{ href: `/staff/mailings/${letter.mailingId}`, label: letter.mailing }]}
+      here={staffCopy.letters.crumb}
+    >
+      <LetterView letter={letter} politician={politician} asks={asks} setStatus={setAskStatus}>
+        <LetterThread thread={found(thread)} link={<FindInGmail find={letter.gmail} />} />
+      </LetterView>
+    </Page>
   );
 }

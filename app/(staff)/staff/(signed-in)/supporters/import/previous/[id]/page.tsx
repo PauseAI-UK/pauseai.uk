@@ -5,8 +5,8 @@ import { getSignupUpload } from "@/lib/server/signup-uploads";
 import { SIGNUP_UPLOADS_PATH } from "@/lib/signup-upload";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { supporterId } from "@/lib/staff-search";
-import Breadcrumb from "../../../../../_components/Breadcrumb";
-import SignupUploadResult from "../../../../../_components/SignupUploadResult";
+import SignupUploadResult, { SignupUploadHead } from "../../../../../_components/SignupUploadResult";
+import Page from "../../../../../_components/ui/Page";
 
 const copy = staffCopy.signupUpload.result;
 
@@ -26,10 +26,14 @@ export default async function SignupUploadResultPage(props: Params) {
   await requireStaff("supporters");
   const upload = await theUpload(props);
   return (
-    <>
-      <Breadcrumb href={SIGNUP_UPLOADS_PATH}>{staffCopy.signupUpload.uploads.title}</Breadcrumb>
-      <h1>{copy.title(upload.filename)}</h1>
+    <Page
+      kind="item"
+      under="signupUpload"
+      via={[{ href: SIGNUP_UPLOADS_PATH, label: staffCopy.signupUpload.uploads.title }]}
+      here={upload.filename}
+    >
+      <SignupUploadHead upload={upload} />
       <SignupUploadResult upload={upload} />
-    </>
+    </Page>
   );
 }

@@ -6,9 +6,10 @@ import { emailsSearch } from "@/lib/staff-search";
 import { filtersPath } from "@/lib/list-params";
 import { unblockAddress } from "../../../actions";
 import EmailBlockFilters from "../../../_components/EmailBlockFilters";
-import PageIntro from "../../../_components/ui/PageIntro";
 import EmailBlocksTable from "../../../_components/EmailBlocksTable";
 import EmailProblemsTable from "../../../_components/EmailProblemsTable";
+import Page from "../../../_components/ui/Page";
+import PageHead from "../../../_components/ui/PageHead";
 
 export const metadata: Metadata = { title: staffCopy.emails.titles.mps };
 
@@ -18,9 +19,8 @@ export default async function MpEmailsPage({ searchParams }: { searchParams: Pro
   const { q, kind, filter } = emailsSearch(await searchParams);
   const [blocks, problems] = await Promise.all([listBlocks("politicians", filter), recentProblems("politicians")]);
   return (
-    <>
-      <h1>{staffCopy.emails.titles.mps}</h1>
-      <PageIntro>{staffCopy.emails.intro}</PageIntro>
+    <Page kind="list">
+      <PageHead intro={staffCopy.emails.intro}>{staffCopy.emails.titles.mps}</PageHead>
       <EmailBlockFilters q={q} kind={kind} action="/staff/politicians/blocked-emails" />
       <EmailBlocksTable
         blocks={blocks}
@@ -30,6 +30,6 @@ export default async function MpEmailsPage({ searchParams }: { searchParams: Pro
       />
       <h2>{staffCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks={letterLinks} />
-    </>
+    </Page>
   );
 }

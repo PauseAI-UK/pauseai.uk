@@ -1,5 +1,6 @@
 "use client";
 
+import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
 import Actions from "@/components/ui/Actions";
 import { useState } from "react";
@@ -28,9 +29,9 @@ export default function EraseForm({
   const supporterId = supporter.id;
   return (
     <>
-      <h1>
+      <PageHead>
         {copy.title}: {supporter.name ?? staffCopy.supporters.noName}
-      </h1>
+      </PageHead>
       <p>{copy.intro}</p>
       <FormStack action={action} className={styles.form}>
         <input type="hidden" name="id" value={supporterId} />

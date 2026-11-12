@@ -4,6 +4,7 @@ import { requireStaff } from "@/lib/server/staff-auth";
 import { dashboard } from "@/lib/server/staff-dashboard";
 import { dashboardWindow } from "@/lib/staff-dashboard";
 import StaffHome from "../_components/StaffHome";
+import Page from "../_components/ui/Page";
 
 export const metadata: Metadata = { title: staffCopy.home.title };
 
@@ -12,8 +13,8 @@ export default async function StaffHomePage({ searchParams }: { searchParams: Pr
   const { permissions } = await requireStaff();
   const { days } = await searchParams;
   return (
-    <>
+    <Page kind="board">
       <StaffHome permissions={permissions} dashboard={await dashboard(dashboardWindow(days))} />
-    </>
+    </Page>
   );
 }

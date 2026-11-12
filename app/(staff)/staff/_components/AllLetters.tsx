@@ -12,7 +12,7 @@ import CampaignName from "./CampaignName";
 import SortHeading from "./SortHeading";
 import FilterBar from "./ui/FilterBar";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
-import PageIntro from "./ui/PageIntro";
+import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 import { statusOf } from "./LetterStatus";
@@ -160,8 +160,7 @@ export default function AllLetters({
   }));
   return (
     <>
-      <h1>{copy.title}</h1>
-      <PageIntro>{copy.subtitle}</PageIntro>
+      <PageHead intro={copy.subtitle}>{copy.title}</PageHead>
       {!supporters && (
         <p>
           <Withheld>{copy.withheld}</Withheld>

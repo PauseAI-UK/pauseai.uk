@@ -7,6 +7,7 @@ import { listRuns, runningNow } from "@/lib/server/import-runs";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { decideSync, runJobNow } from "../../../actions";
 import { ImportJobPage } from "../../../_components/ImportJob";
+import Page from "../../../_components/ui/Page";
 
 type Params = { params: Promise<{ job: string }> };
 
@@ -21,7 +22,7 @@ export default async function ImportJobRoute({ params }: Params) {
   const job = found(jobBySlug((await params).job));
   const [runs, running] = await Promise.all([listRuns(job), runningNow(job)]);
   return (
-    <>
+    <Page kind="item" under="import" here={jobTitles[job]}>
       <ImportJobPage
         job={job}
         runs={runs}
@@ -30,6 +31,6 @@ export default async function ImportJobRoute({ params }: Params) {
         decide={decideSync}
         airtableTable={PARLIAMENTARIANS_TABLE_URL}
       />
-    </>
+    </Page>
   );
 }

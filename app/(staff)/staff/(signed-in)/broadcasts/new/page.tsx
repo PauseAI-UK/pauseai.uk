@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { newBroadcastPageData } from "@/lib/server/broadcast-pages";
 import { requireStaff } from "@/lib/server/staff-auth";
-import Breadcrumb from "../../../_components/Breadcrumb";
 import ChannelWriter from "../../../_components/ChannelWriter";
+import Page from "../../../_components/ui/Page";
 import { BroadcastWho } from "../../../_components/BroadcastFor";
 import { broadcastWriterActions } from "../writer-actions";
 
@@ -18,8 +18,7 @@ export default async function NewBroadcastPage() {
   const { email } = await requireStaff("supporters");
   const { draft, data } = await newBroadcastPageData(email);
   return (
-    <>
-      <Breadcrumb href="/staff/broadcasts">{staffCopy.nav.broadcasts}</Breadcrumb>
+    <Page kind="form" under="broadcasts" here={staffCopy.broadcastPages.newBroadcast}>
       <ChannelWriter
         fresh
         data={data}
@@ -27,6 +26,6 @@ export default async function NewBroadcastPage() {
         who={<BroadcastWho params={draft.filter.params} choices={data.choices} />}
         actions={broadcastWriterActions}
       />
-    </>
+    </Page>
   );
 }

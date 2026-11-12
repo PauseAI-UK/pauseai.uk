@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { now } from "@/lib/now";
 import { broadcastsToSupporter } from "@/lib/server/broadcast-pages";
@@ -15,7 +14,7 @@ import SupporterBroadcasts from "../../../_components/SupporterBroadcasts";
 import SupporterDetails from "../../../_components/SupporterDetails";
 import { supporterOneOffs } from "@/lib/server/one-off-emails";
 import { OneOffTable } from "../../../_components/OneOffList";
-import Breadcrumb from "../../../_components/Breadcrumb";
+import Page from "../../../_components/ui/Page";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -41,8 +40,7 @@ export default async function SupporterPage({ params }: Params) {
     broadcastsToSupporter(supporter.summary.id),
   ]);
   return (
-    <>
-      <Breadcrumb href="/staff/supporters">{staffCopy.nav.supporters}</Breadcrumb>
+    <Page kind="record" under="supporters" here={supporterTitle(supporter.summary)}>
       <SupporterDetails
         supporter={supporter}
         erase={<EraseLink supporterId={supporter.summary.id} />}
@@ -60,6 +58,6 @@ export default async function SupporterPage({ params }: Params) {
           />
         }
       />
-    </>
+    </Page>
   );
 }

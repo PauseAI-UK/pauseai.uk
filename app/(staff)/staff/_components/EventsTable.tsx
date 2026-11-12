@@ -33,15 +33,12 @@ import ExternalLink from "./ui/ExternalLink";
 const PATH = EVENTS_LIST.path;
 const copy = staffCopy.events;
 
-/**
- * At the page's top right, quietly, as on a politician's page: where the
- * events come from, Luma, leading to its import's page.
- */
+/** In the page's head, after what the page is: where the events come from, Luma, leading to its import's page. */
 export function EventsSource() {
   return (
-    <p className={styles.source}>
+    <>
       {copy.source.label} <StaffLink href={importPath("import-luma")}>{copy.source.link}</StaffLink>
-    </p>
+    </>
   );
 }
 

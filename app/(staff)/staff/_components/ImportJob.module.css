@@ -15,19 +15,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* A job's page: its icons at the left of its name. */
-.head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.heading {
-  margin: 0;
-}
-
-/* A press still running, set off from the job's box and button under it. */
+/* A press still running, set off from the job's runs under it. */
 .running {
   margin-block-end: var(--space-4);
 }

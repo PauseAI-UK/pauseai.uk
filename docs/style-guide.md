@@ -263,10 +263,56 @@ or removed doesn't bring a width, a box or an alert of its own. A
 component's look is its own. Where it sits and how wide it is belong to
 the page.
 
+**Kinds of page.** Every staff page is one of these kinds, and says which:
+its `page.tsx` returns `ui/Page` with its `kind`
+(`lib/staff-page-kinds.ts`). A page's kind is how it starts and how it's
+laid out, so a new page starts from the kind it is, not from a design of
+its own. The gallery's staff kit has a skeleton of each.
+
+| Kind         | What it is                                                 | It starts with                                 | Then                                                                     | Such as                                          |
+| ------------ | ---------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------ |
+| `list`       | Everything of a kind, to search and filter                 | the head                                       | tabs if it has views, the filter bar, the list frame, the window's width | Supporters, Politicians, Sent emails             |
+| `month-list` | Things we made, newest first under their months            | the head, with the button for a new one        | a row for each, with its counts                                          | Mailings, Campaigns, Asks, Past imports          |
+| `record`     | A main thing, which other pages lead to and count          | the trail, then the band                       | cards on the grid                                                        | a supporter, a politician, a mailing, an ask     |
+| `item`       | A lesser thing, a part of a record or one run of something | the trail, then the head with a line of facts  | cards on the grid                                                        | a letter, a one-off thread, a scheduled job      |
+| `form`       | Something to fill in                                       | the trail, if it's under a page; then the head | one card with help beside it, or numbered cards for steps                | New ask, a draft mailing, Import sign-ups, Erase |
+| `board`      | Cards or tiles of a kind, side by side                     | the head                                       | an `even` grid                                                           | the dashboard, Scheduled jobs, Your account      |
+
+A draft mailing or broadcast is at its record's address, so its page says
+`record`, and is laid out as a form until it's sent.
+
+**The head** (`ui/PageHead`) starts every page but a record's, with the
+same places on each, so a title is where the last page's was:
+
+- the title, with tags beside it for how the page's thing stands;
+- under it in grey, what the page is, in a line or two with no full stop,
+  then where what it shows comes from ("Source: Luma");
+- on an item's page, its facts in one line, each after a dot;
+- at the right, the page's buttons (below, "Where buttons that add go").
+
+Every page the navigation leads to says what it is under its title. A
+strip for the whole page goes under the head, never over it. The space
+under the head is the head's own, the same on every page.
+
+A record's page starts with the band instead (below, "The band"). No
+other component writes an `<h1>`.
+
+**The trail** (`ui/Breadcrumb`). A page the navigation doesn't lead to
+starts with the trail to it, above its head or band: "Supporters › Jane
+Smith › Erase". Its first step is the navigation's own name for the page
+it's under, the one the sidebar marks, so the two agree. Then come the
+pages it's reached through, each a link, and last the page itself, which
+isn't one. The page says these to `ui/Page` (`under`, `via`, `here`),
+which draws the trail.
+
+`tests/checks/staff-page-kinds.test.ts` fails on a page that doesn't say
+its kind, on a trail that's missing or disagrees with the sidebar, and on
+an `<h1>` outside the two heads.
+
 **Where buttons that add go.** Where a button sits says what it adds
 to, so there are four places, one for each kind of adding:
 
-- **A new thing of the page's kind: at the top right** (`ui/PageTitle`).
+- **A new thing of the page's kind: at the top right** (`ui/PageHead`).
   A page where people make new things of its kind (Mailings, Asks) has
   one button for it, at the right of the page's title. It's the first
   thing seen, and it stays in the same place however long the list under
@@ -800,8 +846,6 @@ These go with that rule:
 There are two exceptions to the rule. A name in a choice, such as a menu's
 option, picks the choice instead. And for staff who can't open the page,
 the name is plain.
-
-**A subheading** (`ui/PageIntro`) says in a grey line, close under the page's title, what the page is and who it's about. It's part of the title, so it has no full stop.
 
 **What a permission hides** (`ui/Withheld`). Words standing in for
 something a staff member's permissions keep from them must go in

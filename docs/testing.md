@@ -990,6 +990,10 @@ import("@/tests/next-headers"))` and put the session cookie in
 - A staff component sets no width of its own: the page's grid and the
   measure do (`docs/style-guide.md`, "Staff pages"), or
   `tests/checks/staff-widths.test.ts` fails.
+- A new staff page says which kind of page it is, and where it is under
+  the navigation's pages, and its title is one of the two heads'
+  (`docs/style-guide.md`, "Kinds of page"), or
+  `tests/checks/staff-page-kinds.test.ts` fails.
 - A new page needs nothing extra: the route list picks it up. A new dynamic
   route (`[slug]`) needs an example in `tests/routes.ts`, or
   `tests/routes.test.ts` fails.

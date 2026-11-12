@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { messageCopy } from "@/lib/server/broadcast-pages";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { mailingId } from "@/lib/staff-search";
-import Breadcrumb from "../../../../_components/Breadcrumb";
 import MessageCopyView from "../../../../_components/MessageCopyView";
+import Page from "../../../../_components/ui/Page";
 
 type Params = { params: Promise<{ id: string; copy: string }> };
 
@@ -24,9 +25,13 @@ export default async function MessageCopyPage({ params }: Params) {
   await requireStaff("supporters");
   const one = await copyOf(params);
   return (
-    <>
-      <Breadcrumb href={`/staff/broadcasts/${one.messageId}`}>{one.title}</Breadcrumb>
+    <Page
+      kind="item"
+      under="broadcasts"
+      via={[{ href: `/staff/broadcasts/${one.messageId}`, label: one.title }]}
+      here={staffCopy.broadcastPages.copyCrumb}
+    >
       <MessageCopyView one={one} />
-    </>
+    </Page>
   );
 }

@@ -6,8 +6,9 @@ import { requireStaff } from "@/lib/server/staff-auth";
 import { getSupporter } from "@/lib/server/supporters";
 import { supporterId } from "@/lib/staff-search";
 import { supporterTitle } from "@/lib/supporters";
-import Breadcrumb from "../../../../_components/Breadcrumb";
 import LettersTable from "../../../../_components/LettersTable";
+import Page from "../../../../_components/ui/Page";
+import PageHead from "../../../../_components/ui/PageHead";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -28,10 +29,14 @@ export default async function SupporterLettersPage({ params }: Params) {
   const name = supporterTitle(summary);
   const letters = await recentLetters({ supporterId: summary.id });
   return (
-    <>
-      <Breadcrumb href={`/staff/supporters/${summary.id}`}>{name}</Breadcrumb>
-      <h1>{staffCopy.letters.fromTitle(name)}</h1>
+    <Page
+      kind="list"
+      under="supporters"
+      via={[{ href: `/staff/supporters/${summary.id}`, label: name }]}
+      here={staffCopy.letters.title}
+    >
+      <PageHead>{staffCopy.letters.fromTitle(name)}</PageHead>
       <LettersTable letters={letters} />
-    </>
+    </Page>
   );
 }

@@ -5,6 +5,7 @@ import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtab
 import { latestRun, runningNow } from "@/lib/server/import-runs";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { ImportOverview } from "../../_components/ImportJob";
+import Page from "../../_components/ui/Page";
 
 export const metadata: Metadata = { title: staffCopy.import.pageTitle };
 
@@ -16,8 +17,8 @@ export default async function ImportPage() {
     Promise.all(IMPORT_JOBS.map((job) => runningNow(job))),
   ]);
   return (
-    <>
+    <Page kind="board">
       <ImportOverview newest={newest} running={running} airtableTable={PARLIAMENTARIANS_TABLE_URL} />
-    </>
+    </Page>
   );
 }
