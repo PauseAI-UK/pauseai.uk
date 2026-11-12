@@ -8,7 +8,9 @@ import { describe, expect, it } from "vitest";
 // COLLATE english (migration 0109). Postgres won't change the name columns'
 // collation instead, as views use notable_people.name. This fails on a sort
 // key that sorts by a name (a column called name, perhaps in lower(), or a
-// JSON field called name) without it.
+// JSON field called name) without it: one written in an ORDER BY, or one a
+// sortable list's map of columns gives, such as `name: "n.name"`, which the
+// list's query puts in its ORDER BY.
 const COLLATED = "COLLATE english";
 const NAME_KEY = /(?:^|[\s(.])name\b(?!\s*(?:=|<>))|->>\s*'name'/;
 
@@ -47,7 +49,13 @@ function sortKeys(code: string): string[] {
   return keys;
 }
 
-const uncollated = (code: string) => sortKeys(code).filter((key) => NAME_KEY.test(key) && !key.includes(COLLATED));
+/** Each string an object gives for a key that's a column with its table's alias (`name: "n.name"`): a sort map's columns. */
+function mappedColumns(code: string): string[] {
+  return [...code.matchAll(/\b\w+:\s*(["'`])([^"'`\n$]*\b[a-z]\w*\.\w+[^"'`\n$]*)\1/g)].map((match) => match[2]);
+}
+
+const uncollated = (code: string) =>
+  [...sortKeys(code), ...mappedColumns(code)].filter((key) => NAME_KEY.test(key) && !key.includes(COLLATED));
 
 function unsorted(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -71,11 +79,15 @@ describe("name sorts", () => {
       "c.merge_values ->> 'name' NULLS LAST",
     ]);
     expect(uncollated("ORDER BY ${near} DESC, n.name\nLIMIT 3")).toEqual(["n.name"]);
+    expect(uncollated('const COLUMNS = { name: "n.name", house: "p.house" };')).toEqual(["n.name"]);
+    expect(uncollated("{ from: 'lower(f.name)' }")).toEqual(["lower(f.name)"]);
   });
 
   it("passes a sort by a name in English order, or by something else", () => {
     expect(uncollated(`ORDER BY n.name ${COLLATED}, n.id`)).toEqual([]);
     expect(uncollated(`ORDER BY (c.merge_values ->> 'name') ${COLLATED} NULLS LAST`)).toEqual([]);
     expect(uncollated("ORDER BY m.from_name, first.at, surname")).toEqual([]);
+    expect(uncollated(`{ name: "n.name ${COLLATED}", party: "p.party", key: "name" }`)).toEqual([]);
+    expect(uncollated("{ title: `${march.name} in ${march.city}` }")).toEqual([]);
   });
 });

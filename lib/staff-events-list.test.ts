@@ -139,6 +139,15 @@ describe("findEvents", () => {
     ).toEqual(["recent", "old"]);
   });
 
+  it("sorts names in English order, accented letters among the plain ones", () => {
+    const named = ["Zine fair", "Éire meetup", "Ealing walk"].map((name) => event(name, { name }));
+    expect(findEvents(named, future({ sort: { key: "name", dir: "asc" } }), NOW).events.map((e) => e.name)).toEqual([
+      "Ealing walk",
+      "Éire meetup",
+      "Zine fair",
+    ]);
+  });
+
   it("gives a page at a time", () => {
     const many = Array.from({ length: EVENTS_PAGE_SIZE + 2 }, (_, i) => event(`e${String(i).padStart(3, "0")}`));
     const second = findEvents(many, future({ page: 2 }), NOW);

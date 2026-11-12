@@ -409,8 +409,11 @@ lower(address))`) when our own code writes them, so equality is plain `=`.
   collation of ICU's British English (migration 0109). The database's
   collation, `C.UTF-8`, puts capitals before lower case and accented
   letters after z. Views use the name columns, so Postgres won't
-  change their collation, and each sort says it instead
-  (`tests/checks/name-sorts.test.ts` fails on one that doesn't).
+  change their collation, and each sort says it instead, in the query or
+  in a sortable list's map of columns (`name: "n.name COLLATE english"`).
+  `tests/checks/name-sorts.test.ts` fails on one that doesn't. A list
+  sorted in TypeScript compares text with `Intl.Collator("en-GB")`, not `<`,
+  which also sorts by character code; the check can't see those.
 
 ### How fast a query has to be
 

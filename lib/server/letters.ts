@@ -99,8 +99,8 @@ const AUTO_REPLIED_AT = "(SELECT min(e.at) FROM letter_events e WHERE e.letter_i
  */
 const LETTER_COLUMNS: Record<LetterSort, string> = {
   status: "l.status",
-  from: "f.name",
-  to: "n.name",
+  from: "f.name COLLATE english",
+  to: "n.name COLLATE english",
   campaign: "c.title",
   ownWords: "s.own_words",
   backend: '"backend"',
