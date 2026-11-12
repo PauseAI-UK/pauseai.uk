@@ -61,25 +61,26 @@ function ThreadPeople({ people }: { people: OneOffThread["people"] }) {
 }
 
 /**
- * A one-off thread's page: its subject, and under it what the list of
- * threads says of it (who wrote in it, the mailbox it was read from, how
- * many messages, when the last came); then each message as an email, a
- * forward's carried messages rebuilt before it, oldest first, each marked as
- * rebuilt; beside them, the politicians it's linked to. For staff who can't
- * read it, that they can't.
+ * A one-off thread's page: titled with who wrote in it, as a letter's page
+ * is with who it's from and to, and under that what the list of threads
+ * says of it (its subject, the mailbox it was read from, how many messages,
+ * when the last came); then each message as an email, a forward's carried
+ * messages rebuilt before it, oldest first, each marked as rebuilt; beside
+ * them, the politicians it's linked to. For staff who can't read it, that
+ * they can't, under the one-offs' own name.
  */
 export default function OneOffThreadView({ thread }: { thread: OneOffThread }) {
   return (
     <>
       <PageHead
         facts={[
-          thread.participants && copy.fact(copy.columns.participants, thread.participants.join(", ")),
+          thread.subject !== null && copy.fact(copy.columns.subject, thread.subject || copy.noSubject),
           thread.mailboxes && copy.fact(copy.columns.mailbox, thread.mailboxes.join(", ")),
           copy.fact(copy.columns.messages, thread.messages),
           copy.fact(copy.columns.when, staffTime(thread.latestAt)),
         ]}
       >
-        {thread.subject === null ? copy.title : thread.subject || copy.noSubject}
+        {thread.participants ? copy.between(thread.participants) : copy.title}
       </PageHead>
       {thread.messages_ === null ? (
         <p>

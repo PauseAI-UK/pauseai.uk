@@ -15,6 +15,9 @@ const askLimits = {
   notDeletable: "Asks can't be deleted while answers, campaigns or mailings refer to them.",
 };
 
+/** What one supporter's copy of a broadcast is, by how it went: the first word of its page's title, and its step of the trail above it. */
+const copyKind = (channel: "email" | "text") => (channel === "email" ? "Email" : "Text");
+
 export const staffCopy = {
   metaTitle: "PauseAI Staff",
   // The tooltip on a link out of the site, beside its arrow, which a screen reader reads as its description.
@@ -1270,10 +1273,9 @@ All events: ${link}`,
     },
     threadLink: "Thread →",
     // Thread: one copy's page, titled as a letter's is.
-    copyTitle: (channel: "email" | "text", to: string) =>
-      `${channel === "email" ? "Email" : "Text"} from PauseAI UK to ${to}`,
-    // Its own step of the trail above its page, after the broadcast.
-    copyCrumb: "⁂ One supporter's copy",
+    copyTitle: (channel: "email" | "text", to: string) => `${copyKind(channel)} from PauseAI UK to ${to}`,
+    // Its own step of the trail above its page, after the broadcast: the title's first word.
+    copyCrumb: copyKind,
     // Its history: each thing its provider reported.
     events: {
       sent: "Sent",
@@ -2326,8 +2328,11 @@ All events: ${link}`,
     noPolitician: "Parliament address",
     noSubject: "(no subject)",
     thread: "The thread",
-    // A thread's own step of the trail above its page.
-    crumb: "⁂ One-off thread",
+    // A thread's page's title: who wrote in it, "with" the one when only one did.
+    between: (who: string[]) =>
+      who.length === 1 ? `Thread with ${who[0]}` : `Thread between ${new Intl.ListFormat("en-GB").format(who)}`,
+    // A thread's own step of the trail above its page: the title's first word.
+    crumb: "Thread",
     // Under a thread's subject, a fact each: a label, then what the list's column of that name shows.
     fact: (label: string, value: string | number) => `${label}: ${value}`,
     unreadable: "This message couldn't be read.",

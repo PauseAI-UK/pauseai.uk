@@ -428,7 +428,17 @@ describe("the one-off emails", () => {
 
   it("opens a thread's messages, and says when it can't", async () => {
     const { rerender } = await render(<OneOffThreadView thread={exampleOneOffThread} />);
-    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(exampleOneOffThread.subject!);
+    const title = page.getByRole("heading", { level: 1 });
+    const facts = () => page.getByRole("banner").element().querySelector("p")!.textContent;
+    await expect.element(title).toHaveTextContent("Thread between Joseph Example and Polly Placeholder");
+    expect(facts()).toBe(
+      [
+        staffCopy.oneOff.fact(staffCopy.oneOff.columns.subject, exampleOneOffThread.subject!),
+        staffCopy.oneOff.fact(staffCopy.oneOff.columns.mailbox, exampleOneOffThread.mailboxes!.join(", ")),
+        staffCopy.oneOff.fact(staffCopy.oneOff.columns.messages, exampleOneOffThread.messages),
+        staffCopy.oneOff.fact(staffCopy.oneOff.columns.when, staffTime(exampleOneOffThread.latestAt)),
+      ].join(" · "),
+    );
     await says("Could we meet?");
     await says(staffCopy.oneOff.unreadable);
     // The out-of-office shows its first paragraph, the rest and its quote in one fold.
@@ -445,7 +455,10 @@ describe("the one-off emails", () => {
     expect(link("Joseph Example").query()).toBeNull();
     await rerender(<OneOffThreadView thread={{ ...exampleHiddenOneOff, messages_: null }} />);
     await says(staffCopy.oneOff.hidden);
-    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(staffCopy.oneOff.title);
+    // One that's hidden says neither who wrote in it nor its subject.
+    await expect.element(title).toHaveTextContent(staffCopy.oneOff.title);
+    expect(facts()).not.toContain(staffCopy.oneOff.columns.subject);
+    expect(facts()).not.toContain(staffCopy.oneOff.columns.mailbox);
     await rerender(
       <OneOffThreadView
         thread={{
@@ -454,7 +467,10 @@ describe("the one-off emails", () => {
         }}
       />,
     );
-    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(staffCopy.oneOff.noSubject);
+    expect(facts()).toContain(staffCopy.oneOff.fact(staffCopy.oneOff.columns.subject, staffCopy.oneOff.noSubject));
+    // Only one person wrote in it: the thread is with them.
+    await rerender(<OneOffThreadView thread={{ ...exampleOneOffThread, participants: ["Jane Smith"] }} />);
+    await expect.element(title).toHaveTextContent("Thread with Jane Smith");
     await rerender(<OneOffThreadView thread={{ ...exampleOneOffThread, people: [] }} />);
     await says(staffCopy.oneOff.people.none);
   });

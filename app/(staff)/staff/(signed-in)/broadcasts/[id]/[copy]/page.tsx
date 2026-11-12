@@ -29,7 +29,7 @@ export default async function MessageCopyPage({ params }: Params) {
       kind="item"
       under="broadcasts"
       via={[{ href: `/staff/broadcasts/${one.messageId}`, label: one.title }]}
-      here={staffCopy.broadcastPages.copyCrumb}
+      here={staffCopy.broadcastPages.copyCrumb(one.channel)}
     >
       <MessageCopyView one={one} />
     </Page>
