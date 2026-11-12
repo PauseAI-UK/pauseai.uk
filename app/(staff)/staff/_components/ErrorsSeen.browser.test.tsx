@@ -62,6 +62,15 @@ describe("ErrorsSeen", () => {
 
     await rerender(<ErrorsSeen done errors={[exampleErrorDone]} total={250} pages={3} page={1} pageSize={100} />);
     await expect.element(tab(copy.tabs.done)).toHaveAttribute("aria-current", "page");
+    // Who marked it done, and when, after the rest.
+    const cells = page
+      .getByRole("row")
+      .filter({ hasText: exampleErrorDone.words })
+      .getByRole("cell")
+      .elements()
+      .map((cell) => cell.textContent);
+    expect(cells.slice(-2)).toEqual(["jane.smith@pauseai.uk", "9 Nov 2026, 12:00"]);
+    await expect.element(page.getByRole("columnheader", { name: copy.columns.doneBy })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: staffCopy.paging.next }))
       .toHaveAttribute("href", "/staff/errors?done=yes&page=2");

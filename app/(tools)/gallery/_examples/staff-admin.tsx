@@ -1,7 +1,7 @@
 import SentEmails from "@/app/(staff)/staff/_components/SentEmails";
 import { exampleSentEmails } from "@/app/(staff)/staff/_components/CampaignPages.examples";
 import ErrorsSeen from "@/app/(staff)/staff/_components/ErrorsSeen";
-import { exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
+import { exampleErrorDone, exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
 // The staff interface's dashboard, imports, audit log, accounts, login and
 // Gmail, on fake runs and changes.
 // Their links go to /staff pages, which send anyone without a session to the
@@ -279,10 +279,10 @@ export const staffAdmin: Group = {
           ),
         },
         {
-          label: "Done: none marked yet",
+          label: "Done: who marked each, and when",
           render: () => (
             <StaffPage as="div">
-              <ErrorsSeen done errors={[]} total={0} pages={1} page={1} pageSize={100} />
+              <ErrorsSeen done errors={[exampleErrorDone]} total={1} pages={1} page={1} pageSize={100} />
             </StaffPage>
           ),
         },

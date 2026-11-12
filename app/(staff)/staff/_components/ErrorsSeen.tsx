@@ -24,6 +24,13 @@ const columns: ListColumn<ErrorSeen>[] = [
   { key: "count", label: copy.columns.count, short: true, cell: (error) => error.count },
 ];
 
+/** The Done tab's: who marked each done, and when, after the rest. */
+const doneColumns: ListColumn<ErrorSeen>[] = [
+  ...columns,
+  { key: "doneBy", label: copy.columns.doneBy, cell: (error) => error.doneBy },
+  { key: "doneAt", label: copy.columns.doneAt, short: true, cell: (error) => staffTime(error.doneAt!) },
+];
+
 /**
  * What has gone wrong on the site outside a job's run, for admins
  * (lib/server/errors-seen.ts): in two tabs, those to do and those marked
@@ -65,7 +72,7 @@ export default function ErrorsSeen({
         pages={pages}
         pageSize={pageSize}
         href={(n) => filtersPath(PATH, tab, pageParam(n))}
-        columns={columns}
+        columns={done ? doneColumns : columns}
         rows={errors}
         rowKey={(error) => error.id}
         empty={done ? copy.noneDone : copy.none}
