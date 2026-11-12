@@ -3,6 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, changeFilter } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
+import { hydrated } from "./settle";
 import { holdNextPage, logIn, settled } from "./staff-steps";
 import type { Section } from "./report/frames";
 
@@ -139,6 +140,9 @@ test("Back to one on a chip, and none", async ({ page, flowDatabase }) => {
   await frame(page, "Only Sam's");
 
   story("Unticking the last one takes the filter off the list at once. The chip stays while the menu's open.");
+  // Following the row sometimes loads the page whole, and until that page's
+  // scripts have taken over the chip's menu opens but + Add does nothing.
+  await hydrated(page);
   await page.getByRole("button", { name: sam }).click();
   await menu(page).getByRole("button", { name: filters.addChoice }).click();
   await menu(page).getByRole("checkbox", { name: SAM }).uncheck();

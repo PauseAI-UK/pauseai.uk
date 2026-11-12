@@ -99,6 +99,19 @@ async function messageMidWindow(page: Page): Promise<void> {
   await expect(alert).toBeInViewport();
 }
 
+/**
+ * The share card's Copy button, mid-window, the apps above it. Pressing it
+ * leaves the window wherever scrolling it into view put it: Playwright tries
+ * the middle of the window, then its foot, then its top, moving on each time
+ * a press doesn't land, so which it ends on varies between runs.
+ */
+async function copyMidWindow(page: Page): Promise<void> {
+  const button = page.getByRole("button", { name: copy.share.copy });
+  await button.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+  await scrollSettled(page);
+  await expect(button).toBeInViewport({ ratio: 1 });
+}
+
 test("Registering for the march", { tag: "@phone" }, async ({ page }) => {
   story(
     "Someone opens the march page, under the site's own header but without the march banner, as this is the page it points to. Headings and the march's demand are highlighted in orange, and key words underlined, as with a marker pen.",
@@ -253,7 +266,7 @@ test("Sharing, and registering someone new", { tag: "@phone" }, async ({ page, c
     ["event", "march_share", { share_method: "copy" }],
   ]);
   await page.getByRole("button", { name: copy.share.copy }).waitFor();
-  await scrollSettled(page);
+  await copyMidWindow(page);
   // A mouse can't swipe the row, so there the apps wrap and all show; a
   // phone's row runs off its end, faded.
   const apps = page.getByRole("list").filter({ has: page.getByRole("link", { name: "WhatsApp" }) });
