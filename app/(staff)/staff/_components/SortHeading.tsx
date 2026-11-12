@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import StaffLink from "./ui/StaffLink";
 import type { SortSpec } from "@/lib/staff-sort";
 import styles from "./SortHeading.module.css";
@@ -8,7 +7,13 @@ type Props<Key extends string> = {
   current: SortSpec<Key>;
   /** The URL that sorts by this column (lib/staff-sort.ts's sortHref). */
   href: string;
-  children: ReactNode;
+  /**
+   * For a column only as wide as its heading, such as a count's: the
+   * heading breaks after its first word and nowhere else, so its other
+   * words and its arrow stay on one line ("Emails", then "from them ▼").
+   */
+  breakOnce?: boolean;
+  children: string;
 };
 
 /** The arrow for a direction: up for ascending, down for descending. */
@@ -20,21 +25,45 @@ const arrow = (dir: string | null) => (dir === "asc" ? " ▲" : " ▼");
  * way. Clicked, it shows the arrow its link sorts by at once, and the
  * heading it was sorted by loses its own, while the list loads (StaffLink).
  */
-export default function SortHeading<Key extends string>({ sortKey, current, href, children }: Props<Key>) {
+export default function SortHeading<Key extends string>({
+  sortKey,
+  current,
+  href,
+  breakOnce = false,
+  children,
+}: Props<Key>) {
   const active = current.key === sortKey;
   const next = new URLSearchParams(href.slice(href.indexOf("?"))).get("dir");
+  const arrows = (
+    <>
+      {active && (
+        <span aria-hidden="true" className={styles.now}>
+          {arrow(current.dir)}
+        </span>
+      )}
+      <span aria-hidden="true" className={styles.next}>
+        {arrow(next)}
+      </span>
+    </>
+  );
+  const [first, ...rest] = children.split(" ");
   return (
     <th aria-sort={active ? (current.dir === "asc" ? "ascending" : "descending") : undefined}>
       <StaffLink href={href} className={styles.heading}>
-        {children}
-        {active && (
-          <span aria-hidden="true" className={styles.now}>
-            {arrow(current.dir)}
-          </span>
+        {breakOnce ? (
+          <>
+            {first}{" "}
+            <span className={styles.together}>
+              {rest.join(" ")}
+              {arrows}
+            </span>
+          </>
+        ) : (
+          <>
+            {children}
+            {arrows}
+          </>
         )}
-        <span aria-hidden="true" className={styles.next}>
-          {arrow(next)}
-        </span>
       </StaffLink>
     </th>
   );

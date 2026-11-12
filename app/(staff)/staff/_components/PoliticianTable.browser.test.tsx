@@ -126,9 +126,11 @@ describe("PoliticianTable", () => {
     // A count's heading breaks only after its first word, however narrow its column: the rest stays on one line.
     for (const label of [staffCopy.politicians.columns.emailsToThem, staffCopy.politicians.columns.emailsFromThem]) {
       const together = page.getByRole("link", { name: label }).element().querySelector("span")!;
-      expect(together.textContent).toBe(label.split(" ").slice(1).join(" "));
+      expect(together.firstChild!.textContent).toBe(label.split(" ").slice(1).join(" "));
       expect(getComputedStyle(together).whiteSpace).toBe("nowrap");
     }
+    // The other headings break where they like.
+    expect(page.getByRole("link", { name: staffCopy.politicians.columns.first }).element().children).toHaveLength(1);
     expect(page.getByRole("button").all()).toHaveLength(0);
   });
 

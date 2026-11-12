@@ -8,6 +8,12 @@
   text-decoration: underline;
 }
 
+/* A heading that breaks once: its words after the first, and its arrow, on
+   one line. */
+.together {
+  white-space: nowrap;
+}
+
 /* The arrow its link sorts by: shown once it's clicked, while the list
    loads, in place of the arrow it had; and the heading the list was sorted
    by loses its arrow then. */

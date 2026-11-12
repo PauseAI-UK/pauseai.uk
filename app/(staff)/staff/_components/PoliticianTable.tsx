@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import AnswerWord from "./AnswerWord";
 import { AskTitle } from "./AskLine";
 import StaffLink from "./ui/StaffLink";
@@ -51,20 +50,6 @@ const marks = (p: Politician) => {
 };
 
 /**
- * A count's heading, its words after the first kept on one line ("Emails",
- * then "to them"). The column is as narrow as its figures, so its heading
- * would otherwise break at every word.
- */
-function countHeading(label: string) {
-  const [first, ...rest] = label.split(" ");
-  return (
-    <>
-      {first} <span className={styles.together}>{rest.join(" ")}</span>
-    </>
-  );
-}
-
-/**
  * The politicians list's columns: who they are (name, house, constituency
  * and party), how they stand (whether they're in office, Airtable's
  * markers, each ask they've answered and their answer beside it, a line
@@ -93,12 +78,14 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
   };
   const { sort, dir, ...filters } = search;
   const current = POLITICIANS_LIST.sort({ sort: firstOf(sort), dir: firstOf(dir) });
-  const heading = (key: PoliticianSort, label: ReactNode) => (
+  // A count's column is as narrow as its figures, so its heading breaks once, not at every word.
+  const heading = (key: PoliticianSort, label: string, count = false) => (
     <SortHeading
       key={key}
       sortKey={key}
       current={current}
       href={sortHref(POLITICIANS_LIST.path, filters, POLITICIANS_LIST.columns, current, key)}
+      breakOnce={count}
     >
       {label}
     </SortHeading>
@@ -200,7 +187,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
     {
       key: "emailsToThem",
       label: staffCopy.politicians.columns.emailsToThem,
-      heading: heading("letters", countHeading(staffCopy.politicians.columns.emailsToThem)),
+      heading: heading("letters", staffCopy.politicians.columns.emailsToThem, true),
       short: true,
       className: styles.count,
       text: (p) => p.emailsToThem,
@@ -209,7 +196,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
     {
       key: "emailsFromThem",
       label: staffCopy.politicians.columns.emailsFromThem,
-      heading: heading("replies", countHeading(staffCopy.politicians.columns.emailsFromThem)),
+      heading: heading("replies", staffCopy.politicians.columns.emailsFromThem, true),
       short: true,
       className: styles.count,
       text: (p) => p.emailsFromThem,
