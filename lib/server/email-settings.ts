@@ -61,28 +61,38 @@ export async function newSettingsLink(address: string, db?: Queryable): Promise<
   return `/contact-preferences/${token}`;
 }
 
-/** The title of the broadcast a fixture build makes a copy under, for an address that was sent none under `topic`. */
-export const devBroadcastTitle = (topic: Topic): string => `Dev: ${topic} unsubscribe link`;
+/**
+ * The title of the broadcast a fixture build makes a copy under, for an
+ * address that was sent none under `topic`; `old`, one sent too long ago for
+ * more than its button, as a supporter has one copy of each broadcast.
+ */
+export const devBroadcastTitle = (topic: Topic, old = false): string =>
+  `Dev: ${topic} unsubscribe link${old ? ", old" : ""}`;
+
+/** How long before now a copy made for an old email's link went: past PAGE_DAYS, so only its button works. */
+const OLD_DAYS = PAGE_DAYS + 10;
 
 /**
  * A new unsubscribe link for the latest copy of an email broadcast to
- * `address` under `topic`, as its email carries one: its path. With no such
- * copy, it makes one, sent now, under a broadcast for the purpose
+ * `address` under `topic`, or, `old`, for one sent more than PAGE_DAYS ago,
+ * as its email carries one: its path. With no such copy, it makes one, sent
+ * now or OLD_DAYS ago, under a broadcast for the purpose
  * (devBroadcastTitle), once for each topic; undefined for an address no
  * supporter has. Its copy's old token stops working, so it's only for a
  * fixture build (app/(staff)/staff/api/dev-contact-preferences).
  */
-export async function newTopicLink(address: string, topic: Topic): Promise<string | undefined> {
+export async function newTopicLink(address: string, topic: Topic, old = false): Promise<string | undefined> {
   const to = normaliseAddress(address);
   return transaction(async (db) => {
     const [found] = await query<{ id: number }>(
       `SELECT c.id::int AS id FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
        WHERE c.address = $1 AND m.channel = 'email' AND $2 = ANY (c.topics) AND c.sent_at IS NOT NULL
+         AND (NOT $3 OR c.sent_at < now() - make_interval(days => $4))
        ORDER BY c.sent_at DESC, c.id DESC LIMIT 1`,
-      [to, topic],
+      [to, topic, old, PAGE_DAYS],
       db,
     );
-    const id = found?.id ?? (await devCopy(to, topic, db));
+    const id = found?.id ?? (await devCopy(to, topic, old, db));
     if (id === undefined) return undefined;
     const token = randomBytes(18).toString("base64url");
     await query("UPDATE broadcast_messages SET link_token_hash = $2 WHERE id = $1", [id, hashOf(token)], db);
@@ -90,15 +100,19 @@ export async function newTopicLink(address: string, topic: Topic): Promise<strin
   });
 }
 
-/** A copy sent now to `address` under the dev broadcast for `topic`, made if there's none yet; undefined for an address no supporter has. */
-async function devCopy(address: string, topic: Topic, db: Queryable): Promise<number | undefined> {
+/**
+ * A copy sent to `address` under the dev broadcast for `topic`, now or,
+ * `old`, OLD_DAYS ago, made if there's none yet; undefined for an address
+ * no supporter has.
+ */
+async function devCopy(address: string, topic: Topic, old: boolean, db: Queryable): Promise<number | undefined> {
   const [supporter] = await query<{ id: number }>(
     "SELECT supporter_id::int AS id FROM supporter_links WHERE matched_by = 'email' AND matched_value = $1 LIMIT 1",
     [address],
     db,
   );
   if (!supporter) return undefined;
-  const title = devBroadcastTitle(topic);
+  const title = devBroadcastTitle(topic, old);
   const [made] = await query<{ id: number }>(
     `WITH found AS (SELECT id FROM mailings WHERE audience = 'supporters' AND title = $1),
      made AS (
@@ -108,9 +122,10 @@ async function devCopy(address: string, topic: Topic, db: Queryable): Promise<nu
          'dev@pauseai.uk', 'hello@pauseai.uk', 'PauseAI UK', now(), 'sent'
        WHERE NOT EXISTS (SELECT 1 FROM found) RETURNING id)
      INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, topics, sent_at)
-     SELECT id, $3, $4, 'sent', ARRAY[$2], now() FROM (SELECT id FROM found UNION ALL SELECT id FROM made) m
+     SELECT id, $3, $4, 'sent', ARRAY[$2], now() - make_interval(days => $5)
+     FROM (SELECT id FROM found UNION ALL SELECT id FROM made) m
      RETURNING id::int AS id`,
-    [title, topic, supporter.id, address],
+    [title, topic, supporter.id, address, old ? OLD_DAYS : 0],
     db,
   );
   return made.id;

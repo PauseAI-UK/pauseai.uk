@@ -14,7 +14,8 @@ const ROUTE = "/staff/api/dev-contact-preferences";
  * per address that opens their contact preferences with a fresh link, as
  * one of our emails would; and below them a link per topic they get by
  * email, which opens the unsubscribe page of their latest email under it,
- * one made for it if there's none. Links, so they can open in a new tab.
+ * one made for it if there's none; and one for an email of the first of
+ * those too old for more than its button. Links, so they can open in a new tab.
  * Outside a fixture build, or for someone with no address, it's nothing.
  */
 export default function DevPreferences({
@@ -47,6 +48,13 @@ export default function DevPreferences({
             </a>
           </li>
         ))}
+        {yeses[0] && (
+          <li>
+            <a href={`${ROUTE}?${new URLSearchParams({ address: yeses[0].address, topic: yeses[0].topic, old: "1" })}`}>
+              {copy.oldUnsubscribe}
+            </a>
+          </li>
+        )}
       </ul>
     </section>
   );

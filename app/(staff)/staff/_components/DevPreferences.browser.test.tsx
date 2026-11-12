@@ -29,7 +29,18 @@ describe("DevPreferences", () => {
         "/staff/api/dev-contact-preferences?address=jane.smith%40example.com&topic=volunteering",
       );
     await expect.element(page.getByRole("link", { name: copy.unsubscribe("Events only") })).not.toBeInTheDocument();
-    await expect.element(page.getByRole("link")).toHaveLength(4);
+    await expect
+      .element(page.getByRole("link", { name: copy.oldUnsubscribe }))
+      .toHaveAttribute(
+        "href",
+        "/staff/api/dev-contact-preferences?address=jane.smith%40example.com&topic=newsletter&old=1",
+      );
+    await expect.element(page.getByRole("link")).toHaveLength(5);
+  });
+
+  it("links no unsubscribe page for someone who gets nothing by email", async () => {
+    await render(<DevPreferences emails={[JANE]} permissions={[PERMISSIONS[1], PERMISSIONS[2]]} fixtures />);
+    await expect.element(page.getByRole("link")).toHaveLength(1);
   });
 
   it("is nothing outside a fixture build, or for someone with no address", async () => {

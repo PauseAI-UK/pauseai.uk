@@ -51,6 +51,8 @@ export const staffCopy = {
     preferences: (address: string) => `Contact preferences: ${address}`,
     // The unsubscribe page of the latest broadcast email of theirs under these topics.
     unsubscribe: (topics: string) => `Unsubscribe page: their latest ${topics} email`,
+    // The same, for an email too old for the page to show more than its button.
+    oldUnsubscribe: "Unsubscribe page: an email over 30 days old",
   },
   devLogin: {
     // Before what a shared inbox's address is, in the dev login.

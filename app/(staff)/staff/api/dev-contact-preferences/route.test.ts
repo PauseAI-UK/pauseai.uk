@@ -39,8 +39,10 @@ describeWithDatabase("GET /staff/api/dev-contact-preferences", () => {
       consent: true,
       utmSource: null,
     });
-    const open = async (topic: string) => {
-      const res = await downloadAs(GET, `${URL}?address=${encodeURIComponent(JANE)}&topic=${topic}`, ["supporters"]);
+    const open = async (topic: string, old = "") => {
+      const res = await downloadAs(GET, `${URL}?address=${encodeURIComponent(JANE)}&topic=${topic}${old}`, [
+        "supporters",
+      ]);
       expect(res.status).toBe(303);
       return /^https:\/\/pauseai\.uk\/contact-preferences\/m\/([\w-]+)$/.exec(res.headers.get("location")!)![1];
     };
@@ -61,6 +63,13 @@ describeWithDatabase("GET /staff/api/dev-contact-preferences", () => {
       [devBroadcastTitle("newsletter"), true],
       [devBroadcastTitle("events"), false],
     ]);
+    // An old email's: none of hers is, so one made, past the days its page works for, then the same again.
+    const old = await open("newsletter", "&old=1");
+    const olds = () =>
+      query(`SELECT link_token_hash AS hash FROM broadcast_messages WHERE sent_at < now() - interval '30 days'`);
+    expect(await olds()).toEqual([{ hash: hashOf(old) }]);
+    const oldAgain = await open("newsletter", "&old=1");
+    expect(await olds()).toEqual([{ hash: hashOf(oldAgain) }]);
     // An address no supporter has, or a topic there's no such thing as.
     expect((await downloadAs(GET, `${URL}?address=nobody%40example.com&topic=newsletter`, ["supporters"])).status).toBe(
       404,
