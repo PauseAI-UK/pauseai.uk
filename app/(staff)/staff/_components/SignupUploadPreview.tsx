@@ -58,9 +58,40 @@ function Happens({ row }: { row: SignupPlanRow }) {
   );
 }
 
-/** Where and when the forms say they signed up, as the email to anyone with "No bulk emails" says it: as typed. */
-const signedWhere = (input: Pick<SignupUploadInput, "note" | "signedOn">): string =>
-  emailSettingsCopy.bulkNotice.paper(input.note.trim(), settingsDate(new Date(`${input.signedOn}T12:00:00Z`)));
+/** A copy function's words around where `fill` goes, split there: before it, and after. */
+const around = (words: (fill: string) => string): [string, string] => {
+  const [before, after] = words("\0").split("\0");
+  return [before, after];
+};
+
+/**
+ * Where and when the forms say they signed up, as the email to anyone with
+ * "No bulk emails" says it, as typed: where in bold and quoted, as it's
+ * what staff typed.
+ */
+function SignedWhere({ input }: { input: Pick<SignupUploadInput, "note" | "signedOn"> }) {
+  const date = settingsDate(new Date(`${input.signedOn}T12:00:00Z`));
+  const [before, after] = around((where) => emailSettingsCopy.bulkNotice.paper(where, date));
+  return (
+    <>
+      {before}
+      <strong>“{input.note.trim()}”</strong>
+      {after}
+    </>
+  );
+}
+
+/** How many have "No bulk emails", so will be emailed, and where the email will say they signed. */
+function NoticesLine({ n, input }: { n: number; input: Pick<SignupUploadInput, "note" | "signedOn"> }) {
+  const [before, after] = around((where) => words.summary.notices(n, where));
+  return (
+    <li>
+      {before}
+      <SignedWhere input={input} />
+      {after}
+    </li>
+  );
+}
 
 /** The people, each with what will happen to them, those held back first, as they're what needs doing. */
 export function SignupPlanView({ plan }: { plan: SignupPlan }) {
@@ -81,7 +112,7 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
         {counts.held > 0 && <li>{summary.held(counts.held)}</li>}
         {plan.eventName && <li>{summary.event(plan.eventName, counts.register)}</li>}
         {noEmail > 0 && <li>{summary.noEmail(noEmail)}</li>}
-        {notices > 0 && <li>{summary.notices(notices, signedWhere(plan.input))}</li>}
+        {notices > 0 && <NoticesLine n={notices} input={plan.input} />}
       </ul>
 
       <Table>

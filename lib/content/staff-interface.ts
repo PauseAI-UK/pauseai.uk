@@ -382,8 +382,8 @@ export const staffCopy = {
         going: "Already on Luma",
         mailing: "Mailing list",
         phone: "Calls and texts",
-        notice: "⁂ Emailed: “No bulk emails”",
-        noEmail: "⁂ “Do not email”",
+        notice: "Emailed: “No bulk emails”",
+        noEmail: "“Do not email”",
       },
       problems: {
         "no-name": "No name",
