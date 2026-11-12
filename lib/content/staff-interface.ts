@@ -257,7 +257,7 @@ export const staffCopy = {
   // Uploading a CSV of paper sign-ups (/staff/supporters/import).
   signupUpload: {
     title: "Import sign-ups",
-    intro: "Import people from a spreadsheet from paper sign-up forms.",
+    intro: "Import people from a spreadsheet from paper sign-up forms",
     steps: { file: "Choose a file", check: "What will happen" },
     drop: {
       title: "Drop a CSV file here",
@@ -799,7 +799,7 @@ export const staffCopy = {
   politicians: {
     title: "Politicians",
     // Under the title.
-    intro: "⁂ MPs, Lords and other notable people we write to and meet",
+    intro: "MPs, Lords and other notable people we write to and meet",
     // The search box's label: what it searches.
     search: "Name, constituency, party or email",
     allHouses: "All houses",
