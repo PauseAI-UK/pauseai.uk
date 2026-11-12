@@ -319,6 +319,9 @@ test("Unblocking an MP's address", async ({ page, request, flowDatabase }) => {
   await page.getByLabel(staffCopy.emails.note).fill("Checked with their office");
   await page.getByRole("button", { name: staffCopy.emails.unblock }).click();
   await expect(page.getByLabel(staffCopy.emails.note)).not.toBeVisible();
+  // The blocked box goes from above where the button was, and where that leaves the window varied
+  // between runs: at the top, the frame is of the whole page.
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await frame(page, "The MP's page, unblocked");
 
   story("The audit log has the unblocking, with the note.");

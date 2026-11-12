@@ -90,7 +90,18 @@ import {
   selectFlows,
 } from "./storyboard-main.mjs";
 import { changedCopyKeys, flowsToRun, reachContext, STAFF_COPY } from "./storyboard-reach.mjs";
-import { keepRuns, linkFlows, missingFlows, pruneStore, readTree, storeDir, touchTree } from "./storyboard-store.mjs";
+import {
+  carryKept,
+  keepRuns,
+  keptTrees,
+  linkFlows,
+  missingFlows,
+  picturesKept,
+  pruneStore,
+  readTree,
+  storeDir,
+  touchTree,
+} from "./storyboard-store.mjs";
 
 const DIR = "test-results/storyboard";
 const RUNS = join(DIR, "runs");
@@ -231,25 +242,69 @@ function chooseFlows() {
   if (!existsSync(latest)) return undefined;
   const carried = readJson(latest).frames.map((run) => ({ ...run, key: flowKey(run) }));
   if (!carried.some((run) => run.tree)) return undefined;
-  const known = (tree) => spawnSync("git", ["cat-file", "-e", `${tree}^{tree}`]).status === 0;
-  const changedSince = (tree) =>
-    known(tree)
-      ? git("diff", "--no-renames", "--name-only", tree, treeBefore).split("\n").filter(Boolean)
-      : ["package.json"];
-  const copyKeysSince = (tree) => {
-    if (!known(tree) || !changedSince(tree).includes(STAFF_COPY)) return undefined;
-    const show = (at) => spawnSync("git", ["show", `${at}:${STAFF_COPY}`], { encoding: "utf8" }).stdout ?? "";
-    return changedCopyKeys(git("diff", "-U0", tree, treeBefore, "--", STAFF_COPY), show(tree), show(treeBefore));
-  };
   const phoneTagged = new Set([...listFlows(["--project=phone"], process.cwd(), process.env, "0").keys()]);
   return flowsToRun({
     suite: new Set(suite.keys()),
     carried,
     phoneTagged,
     context: reachContext(process.cwd()),
-    changedSince,
-    copyKeysSince,
+    changedSince: (tree) => changedBetween(tree, treeBefore),
+    copyKeysSince: (tree) => copyKeysBetween(tree, treeBefore),
   });
+}
+
+/** Whether git has the tree `tree`: one written by a run in any checkout, until git prunes it. */
+const knownTree = (tree) => spawnSync("git", ["cat-file", "-e", `${tree}^{tree}`]).status === 0;
+
+/** The files that differ between two trees; package.json, which reaches every flow, if git no longer has `from`. */
+function changedBetween(from, to) {
+  if (!knownTree(from)) return ["package.json"];
+  return git("diff", "--no-renames", "--name-only", from, to).split("\n").filter(Boolean);
+}
+
+/** The keys of staffCopy that differ between two trees, if its file does (changedCopyKeys). */
+function copyKeysBetween(from, to) {
+  if (!changedBetween(from, to).includes(STAFF_COPY)) return undefined;
+  const show = (at) => spawnSync("git", ["show", `${at}:${STAFF_COPY}`], { encoding: "utf8" }).stdout;
+  return changedCopyKeys(git("diff", "-U0", from, to, "--", STAFF_COPY), show(from), show(to));
+}
+
+/**
+ * Carries into main's `tree` the flows of `missing` (keys) that a kept tree
+ * near it can give: of each tree kept, the flows that passed and recorded
+ * what they opened, less those the change from it reaches (flowsToRun),
+ * worked out on main's checkout. The tree that leaves fewest to run is used.
+ * Returns the flows main still has to run, and the tree carried from.
+ */
+function carryFromNearest(tree, missing) {
+  const context = reachContext(MAIN_WORKTREE);
+  const phoneTagged = new Set([...listFlows(["--project=phone"], MAIN_WORKTREE, mainEnv(), "0").keys()]);
+  let best;
+  for (const from of keptTrees(STORE)) {
+    if (from === tree || !knownTree(from)) continue;
+    const carried = readTree(STORE, from)
+      .frames.filter((run) => run.status === "passed" && run.opened && run.tree && picturesKept(STORE, run))
+      .map((run) => ({ ...run, key: flowKey(run) }));
+    if (carried.length === 0) continue;
+    const chosen = flowsToRun({
+      suite: new Set(missing),
+      carried,
+      phoneTagged,
+      context,
+      changedSince: (at) => changedBetween(at, tree),
+      copyKeysSince: (at) => copyKeysBetween(at, tree),
+    });
+    if (!best || chosen.run.size < best.run.size) best = { from, carried, run: chosen.run };
+  }
+  if (!best || best.run.size >= missing.length) return { run: missing };
+  const wanted = new Set(missing);
+  carryKept(
+    STORE,
+    tree,
+    best.carried.filter((run) => wanted.has(run.key) && !best.run.has(run.key)),
+    best.from,
+  );
+  return { run: [...best.run], from: best.from };
 }
 
 /**
@@ -338,6 +393,7 @@ async function runMainSuite(workDir, lines) {
       STORYBOARD_DIR: resolve(workDir),
       STORYBOARD_SIDE: "main-run",
       STORYBOARD_RUN_AT: runAt,
+      STORYBOARD_TREE: git("rev-parse", `${base}^{tree}`),
       // This checkout's file, so how far main's run is shows where the review was started
       // (tests/storyboard/report/progress.ts).
       STORYBOARD_PROGRESS: resolve("test-results", "storyboard-progress.json"),
@@ -377,9 +433,24 @@ async function mainFromStore(workDir, wanted) {
         keepRuns(STORE, tree, workDir, [], Object.fromEntries(listFlows([], MAIN_WORKTREE, mainEnv())));
         lookAgain();
       }
+      if (missing.length > 0 && !options.freshMain) {
+        const near = carryFromNearest(tree, missing);
+        if (near.from) {
+          console.log(
+            `\n▶ Storyboard: main's frames of ${missing.length - near.run.length} flows carried from the kept tree ${near.from.slice(0, 12)}, as the change from it can't reach them.\n`,
+          );
+          missing = near.run;
+        }
+      }
       if (missing.length > 0) {
         const why = options.freshMain ? "afresh, as asked" : "whose frames aren't kept";
         console.log(`\n▶ Storyboard: running main for ${missing.length} flows, ${why}.\n`);
+        // The carried flows, to see whether running them afresh pictures them the same.
+        const carriedBefore = new Map(
+          readTree(STORE, tree)
+            .frames.filter((run) => run.carriedFrom)
+            .map((run) => [flowKey(run), run]),
+        );
         await runMainSuite(
           workDir,
           missing.map((key) => kept.flows[key]),
@@ -387,7 +458,7 @@ async function mainFromStore(workDir, wanted) {
         const ran = join(workDir, "main-run");
         // Main may not have got as far as a flow: its build failing, say.
         if (existsSync(join(ran, "frames.json")))
-          keepRuns(STORE, tree, workDir, readJson(join(ran, "frames.json")).frames);
+          reportMisses(carriedBefore, keepRuns(STORE, tree, workDir, readJson(join(ran, "frames.json")).frames));
         rmSync(ran, { recursive: true, force: true });
         kept = readTree(STORE, tree);
       }
@@ -396,6 +467,31 @@ async function mainFromStore(workDir, wanted) {
     release();
   }
   return { tree, kept };
+}
+
+/**
+ * Says which of main's carried flows (`carriedBefore`) a run on their own
+ * tree pictured differently: changes the map of what a flow reaches missed
+ * (scripts/storyboard-reach.mjs).
+ */
+function reportMisses(carriedBefore, whole) {
+  const pictures = (run) => JSON.stringify(run.frames.map((frame) => [frame.caption, frame.picture]));
+  const missed = whole.frames.filter(
+    (run) =>
+      carriedBefore.has(flowKey(run)) &&
+      !run.carriedFrom &&
+      pictures(run) !== pictures(carriedBefore.get(flowKey(run))),
+  );
+  if (carriedBefore.size === 0) return;
+  if (missed.length === 0) {
+    console.log(`\n▶ Storyboard: the ${carriedBefore.size} carried flows look the same run afresh.\n`);
+    return;
+  }
+  console.log(
+    `\n▶ Storyboard: carried flows that look different run afresh, which the map of what a flow reaches missed:`,
+  );
+  for (const run of missed)
+    console.log(`  ${flowKey(run)}, carried from ${carriedBefore.get(flowKey(run)).carriedFrom}`);
 }
 
 /** Starts building and serving main on MAIN_URL, for this branch's suite, its output in the run's folder. */

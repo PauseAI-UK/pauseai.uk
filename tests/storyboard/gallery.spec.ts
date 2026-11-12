@@ -80,6 +80,9 @@ test("gallery: index", async ({ page }) => {
 
 for (const group of GROUPS) {
   test(`gallery: ${group}`, async ({ page }) => {
+    // A picture of each component: the staff kit's eighty took over half the minute a flow has, and
+    // past it on a busy machine.
+    test.slow();
     await open(page, `/gallery/${group}`);
     await expect(page.locator(`[data-gallery-group="${group}"]`)).toBeVisible();
     // The attachments' example PDF isn't there to draw, so each ends as a sheet, a blank canvas until pdf.js has found that.

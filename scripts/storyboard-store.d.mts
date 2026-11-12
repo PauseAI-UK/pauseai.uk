@@ -3,7 +3,7 @@ type Flow = { section: string; flow: string; viewport: string; line: number; sta
 /** A flow as a run's frames.json has it: each picture a file, by its path in the run's folder. */
 type Run = Flow & { frames: { caption: string; png?: string }[] };
 /** A flow as the store keeps it: each picture by its hash. */
-type KeptRun = Flow & { frames: { caption: string; picture?: string }[] };
+type KeptRun = Flow & { frames: { caption: string; picture?: string }[]; carriedFrom?: string };
 type Kept = { flows?: Record<string, string>; frames: KeptRun[] };
 
 export function storeDir(root: string): string;
@@ -17,6 +17,15 @@ export function keepRuns(
   flows?: Record<string, string>,
   platform?: string,
 ): Kept;
+export function carryKept(
+  store: string,
+  tree: string,
+  runs: (KeptRun & { key?: string })[],
+  from: string,
+  platform?: string,
+): Kept;
+export function keptTrees(store: string, platform?: string): string[];
+export function picturesKept(store: string, run: KeptRun): boolean;
 export function missingFlows(store: string, kept: Kept, needed: Iterable<string>): string[];
 export function linkFlows(
   store: string,

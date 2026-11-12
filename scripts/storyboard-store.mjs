@@ -98,6 +98,44 @@ export function keepRuns(store, tree, runDir, runs, flows, platform = process.pl
         png ? { ...frame, picture: keepPicture(store, join(runDir, png)) } : frame,
       ),
     }));
+  return addRuns(store, tree, fresh, flows, platform);
+}
+
+/**
+ * Adds `runs`, kept flows of the tree `from`, to what's kept of `tree`,
+ * each saying where it came from (`carriedFrom`): the flows a change from
+ * `from` to `tree` can't reach (scripts/storyboard-reach.mjs) look the same
+ * on both. A run of the flow on `tree` itself replaces it.
+ */
+export function carryKept(store, tree, runs, from, platform = process.platform) {
+  const carried = runs.map((run) => {
+    const { key, ...rest } = run;
+    void key;
+    return { ...rest, carriedFrom: from };
+  });
+  return addRuns(store, tree, carried, undefined, platform);
+}
+
+/** The trees kept for `platform`, most recently used first. */
+export function keptTrees(store, platform = process.platform) {
+  const trees = join(store, "trees");
+  if (!existsSync(trees)) return [];
+  return readdirSync(trees)
+    .filter((name) => name.startsWith(`${platform}-`) && name.endsWith(".json"))
+    .map((name) => ({
+      tree: name.slice(platform.length + 1, -".json".length),
+      at: statSync(join(trees, name)).mtimeMs,
+    }))
+    .sort((a, b) => b.at - a.at)
+    .map(({ tree }) => tree);
+}
+
+/** Whether every picture of `run` is still in the store. */
+export function picturesKept(store, run) {
+  return run.frames.every((frame) => !frame.picture || existsSync(pictureFile(store, frame.picture)));
+}
+
+function addRuns(store, tree, fresh, flows, platform) {
   // Read now, after the pictures: another checkout may have added to it meanwhile.
   const kept = readTree(store, tree, platform);
   const passed = new Set(kept.frames.filter((run) => run.status === "passed").map(flowKey));
@@ -125,7 +163,7 @@ export function missingFlows(store, kept, needed) {
   const have = new Set(
     kept.frames
       .filter((run) => run.status === "passed")
-      .filter((run) => run.frames.every((frame) => !frame.picture || existsSync(pictureFile(store, frame.picture))))
+      .filter((run) => picturesKept(store, run))
       .map(flowKey),
   );
   return [...needed].filter((key) => !have.has(key));

@@ -13,10 +13,13 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  carryKept,
   flowFolder,
   keepRuns,
+  keptTrees,
   linkFlows,
   missingFlows,
+  picturesKept,
   pruneStore,
   readTree,
   storeDir,
@@ -129,6 +132,47 @@ describe("missingFlows", () => {
     const kept = keepRuns(store, "t1", runDir, [run("log in", "one"), run("blank")]);
     rmSync(join(store, "pictures"), { recursive: true });
     expect(missingFlows(store, kept, [key("log in"), key("blank")])).toEqual([key("log in")]);
+  });
+});
+
+describe("carryKept", () => {
+  it("adds another tree's kept flows to a tree, each saying where it came from, and a run of its own replaces one", () => {
+    const from = keepRuns(store, "t1", runDir, [run("log in", "one"), run("letters", "two")]);
+    const carried = carryKept(
+      store,
+      "t2",
+      from.frames.map((r) => ({ ...r, key: key(r.flow) })),
+      "t1",
+    );
+    expect(carried.frames.map((r) => [r.flow, r.carriedFrom])).toEqual([
+      ["log in", "t1"],
+      ["letters", "t1"],
+    ]);
+    expect(carried.frames[0]).not.toHaveProperty("key");
+    expect(missingFlows(store, carried, [key("log in"), key("letters")])).toEqual([]);
+    const ran = keepRuns(store, "t2", runDir, [run("log in", "three")]);
+    expect(ran.frames.map((r) => [r.flow, r.carriedFrom])).toEqual([
+      ["letters", "t1"],
+      ["log in", undefined],
+    ]);
+  });
+});
+
+describe("keptTrees and picturesKept", () => {
+  it("lists a platform's kept trees, most recently used first, and none for a store not there", () => {
+    expect(keptTrees(store)).toEqual([]);
+    keepRuns(store, "t1", runDir, [run("log in", "one")], undefined, "linux");
+    keepRuns(store, "t2", runDir, [run("log in", "one")], undefined, "linux");
+    keepRuns(store, "t3", runDir, [run("log in", "one")], undefined, "darwin");
+    touchTree(store, "t1", new Date(Date.now() + 60_000), "linux");
+    expect(keptTrees(store, "linux")).toEqual(["t1", "t2"]);
+  });
+
+  it("says whether every picture of a flow is still in the store", () => {
+    const kept = keepRuns(store, "t1", runDir, [run("log in", "one"), run("blank")]);
+    expect(kept.frames.map((r) => picturesKept(store, r))).toEqual([true, true]);
+    rmSync(join(store, "pictures"), { recursive: true });
+    expect(kept.frames.map((r) => picturesKept(store, r))).toEqual([false, true]);
   });
 });
 
