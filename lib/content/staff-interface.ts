@@ -2154,7 +2154,7 @@ All events: ${link}`,
     broadcastGaveUp: {
       subject: (title: string) => `Stopped after three days: ${title}`,
       body: (title: string, notReached: number, link: string) =>
-        `⁂ “${title}” has been stopped. CiviCRM couldn't be reached for three days, and we don't email anyone without checking with it first.\n\n${count(notReached, "person", "people")} didn't get it. To send it to them, write a new broadcast.\n\n${link}`,
+        `“${title}” has been stopped. CiviCRM couldn't be reached for three days, and we don't email anyone without checking with it first.\n\n${count(notReached, "person", "people")} didn't get it. To send it to them, write a new broadcast.\n\n${link}`,
     },
     // A text's new words sent to WhatsApp for approval, to who sent them and the inbox: the words, and the text.
     templateSubmitted: {
