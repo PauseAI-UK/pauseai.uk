@@ -258,7 +258,7 @@ function Unsubscribe({
       </h2>
       {/* Pointing to the choices below, where the page has them: an old email's link offers a fresh link instead. */}
       <p>
-        {copy.unsubscribe.doneBody}
+        {copy.unsubscribe.doneBody(topics)}
         {view && ` ${copy.unsubscribe.below}`}
       </p>
     </div>

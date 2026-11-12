@@ -194,7 +194,8 @@ export const emailSettingsCopy = {
     title: (topics: string) => `Unsubscribe from ${topics}?`,
     button: "Unsubscribe",
     done: (topics: string) => `You've unsubscribed from ${topics}`,
-    doneBody: "You won't get them by email any more.",
+    // "it" for the newsletter alone, the one topic named as one thing (inSentence); "them" for any other, or two.
+    doneBody: (topics: Topic[]) => `You won't get ${topics.join() === "newsletter" ? "it" : "them"} by email any more.`,
     // In place of the button, where they get none of its topics by email already, for whatever reason.
     off: (topics: string) => `You're not subscribed to ${topics}`,
     // Under that, as nothing's changed.

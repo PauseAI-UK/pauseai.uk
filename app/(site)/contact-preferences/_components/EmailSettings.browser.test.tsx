@@ -207,7 +207,9 @@ describe("EmailSettings", () => {
     await expect
       .element(page.getByRole("heading", { name: copy.unsubscribe.done(copy.inSentence.newsletter) }))
       .toHaveFocus();
-    await expect.element(page.getByText(`${copy.unsubscribe.doneBody} ${copy.unsubscribe.below}`)).toBeVisible();
+    await expect
+      .element(page.getByText(`${copy.unsubscribe.doneBody(["newsletter"])} ${copy.unsubscribe.below}`))
+      .toBeVisible();
     expect(fields(done.unsubscribe.mock.calls[0][0])).toEqual([
       ["kind", "copy"],
       ["token", "tok"],
@@ -250,7 +252,7 @@ describe("EmailSettings", () => {
       .toBeVisible();
     await expect.element(page.getByRole("heading", { name: copy.pageExpired.title })).toBeVisible();
     await page.getByRole("button", { name: copy.unsubscribe.button }).click();
-    await expect.element(page.getByText(copy.unsubscribe.doneBody)).toBeVisible();
+    await expect.element(page.getByText(copy.unsubscribe.doneBody(["newsletter", "events"]))).toBeVisible();
     await page.getByRole("button", { name: copy.expired.button }).click();
     await expect.element(page.getByText(copy.expired.sent)).toHaveFocus();
     expect(done.resend).toHaveBeenCalledOnce();
