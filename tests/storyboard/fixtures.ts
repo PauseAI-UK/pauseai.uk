@@ -159,8 +159,9 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
       await provide(opened);
       browser.newContext = newContext;
       // Every request the server got from the flow: each step of a redirect that a request of its own
-      // followed, too, which nothing here sees. Not there for a build started some other way.
-      if (existsSync(requests)) {
+      // followed, too, which nothing here sees.
+      const kept = existsSync(requests);
+      if (kept) {
         for (const line of readFileSync(requests, "utf8").split("\n")) {
           const path = line && openedPath(new URL(line, BASE).href, BASE);
           if (path) opened.add(path);
@@ -168,6 +169,10 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
         rmSync(requests);
       }
       if (runSql(flowDatabase, ERRORS_KEPT)[0] !== errorsBefore) opened.add("instrumentation.ts");
+      // A flow that asked the build for something, of which the server kept nothing, is on a build started
+      // some other way (main's, for --this-suite-on-main), or one whose record failed: what it opened isn't
+      // known whole, so nothing is recorded, and a review never carries the flow.
+      if (!kept && opened.size > 0) return;
       await testInfo.attach("opened", { body: JSON.stringify([...opened].sort()), contentType: "application/json" });
     },
     { auto: true },

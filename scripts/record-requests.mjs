@@ -18,14 +18,28 @@ import { FLOW_DATABASE_COOKIE, FLOW_DATABASE_PREFIX } from "../lib/server/fixtur
 
 const dir = process.env.STORYBOARD_REQUESTS_DIR;
 if (dir) {
-  mkdirSync(dir, { recursive: true });
   const flowOf = new RegExp(`(?:^|;\\s*)${FLOW_DATABASE_COOKIE}=(${FLOW_DATABASE_PREFIX}\\w+)`);
+  /** Adds a request's address to its flow's file. The folder is made as needed: a run empties the one it's in as it starts. */
+  const keep = (flow, address) => {
+    const file = join(dir, `${flow}.txt`);
+    try {
+      appendFileSync(file, `${address}\n`);
+    } catch {
+      mkdirSync(dir, { recursive: true });
+      appendFileSync(file, `${address}\n`);
+    }
+  };
   const emit = http.Server.prototype.emit;
   http.Server.prototype.emit = function (event, request, ...rest) {
     if (event === "request") {
-      const flow = flowOf.exec(request.headers.cookie ?? "")?.[1];
-      if (flow && !request.headers["next-router-prefetch"])
-        appendFileSync(join(dir, `${flow}.txt`), `${request.url}\n`);
+      // Whatever goes wrong here, the request is still answered. A flow that finds none of its requests kept
+      // records nothing of what it opened, so it's never carried (tests/storyboard/fixtures.ts).
+      try {
+        const flow = flowOf.exec(request.headers.cookie ?? "")?.[1];
+        if (flow && !request.headers["next-router-prefetch"]) keep(flow, request.url);
+      } catch (error) {
+        console.error("Couldn't keep a flow's request:", error);
+      }
     }
     return emit.call(this, event, request, ...rest);
   };
