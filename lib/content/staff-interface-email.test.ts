@@ -4,10 +4,10 @@ import { staffCopy } from "./staff-interface";
 it("says what a CiviCRM run sent CiviCRM, refused and left to try again", () => {
   const run = { contacts: 1, added: 0, changed: 0, gone: 0, optOuts: 0, blocked: 0 };
   expect(staffCopy.civicrm.result({ ...run, updates: { sent: 2, refused: 0, unanswered: 0 } })).toMatch(
-    /^⁂ 2 opt-outs sent to CiviCRM\. /,
+    /^2 opt-outs sent to CiviCRM\. /,
   );
   expect(staffCopy.civicrm.result({ ...run, updates: { sent: 1, refused: 1, unanswered: 3 } })).toMatch(
-    /^⁂ 1 opt-out sent to CiviCRM, 1 refused, 3 to try again\. /,
+    /^1 opt-out sent to CiviCRM, 1 refused, 3 to try again\. /,
   );
 });
 
@@ -28,9 +28,9 @@ it("says what a sending run did with broadcasts, when it has them, and why one w
   expect(staffCopy.sending.result(run)).not.toContain("Broadcasts");
   expect(
     staffCopy.sending.result({ ...run, broadcasts: { started: [4], sent: 3, skipped: 1, failed: 0, waiting: 0 } }),
-  ).toContain("⁂ Broadcasts: started 1; copies sent 3, skipped 1, failed 0; 0 waiting for CiviCRM.");
+  ).toContain(" Broadcasts: started 1; copies sent 3, skipped 1, failed 0; 0 waiting for CiviCRM.");
   const waiting = staffCopy.notifications.broadcastWaiting;
-  expect(waiting.body("Hi", "civicrm", "3 Nov", "link")).toContain("CiviCRM didn't answer");
-  expect(waiting.body("Hi", "pull", "3 Nov", "link")).toContain("no import from CiviCRM");
+  expect(waiting.body("Hi", "civicrm", "3 Nov", "link")).toContain("CiviCRM isn't answering");
+  expect(waiting.body("Hi", "pull", "3 Nov", "link")).toContain("our import from CiviCRM hasn't worked");
   expect(staffCopy.broadcastPages.waiting("2 Nov", "civicrm", "5 Nov")).toContain("CiviCRM didn't answer");
 });

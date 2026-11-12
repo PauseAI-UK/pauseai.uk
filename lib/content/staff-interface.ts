@@ -2631,7 +2631,8 @@ All events: ${link}`,
     logs: {
       // Someone turned off events by email, or every bulk email, on the contact preferences page or an email's
       // unsubscribe link, but Luma didn't take them off the calendar, which goes on emailing them.
-      lumaRemoveFailed: "Someone opted out of event emails but is still on the Luma calendar, so Luma will keep emailing them",
+      lumaRemoveFailed:
+        "Someone opted out of event emails but is still on the Luma calendar, so Luma will keep emailing them",
       // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission.
       tokenNotRevoked: (account: string) => `${account}'s Gmail token couldn't be revoked at Google`,
       // A visitor looking up their MP is told it failed.
