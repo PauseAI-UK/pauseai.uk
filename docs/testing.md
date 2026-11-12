@@ -804,6 +804,7 @@ that drives it or why nothing does.
   - on the letter's page, an automatic reply folded to its first paragraph, then unfolded;
   - an email from a stranger, a forged reply and spam: none is relayed, and the run fails, listing them;
   - the letter bouncing: staff are alerted and the supporter is told, then it's sent again once the address is unblocked;
+  - a bounced letter a week on: the supporter is told it won't be sent, and unblocking the address sends nothing;
   - the supporter's own address bouncing: the next reply is held, the day's report of supporters' bounces goes to the notification inbox, and the MP's office is told a day on;
   - a letter over the daily limit: it's queued, the notification inbox is emailed once it has waited three hours, and it's sent after a relay that was waiting;
   - a letter with a paragraph of the supporter's own and a sentence cut, shown as only its changes, with the rest folded, and as sent;

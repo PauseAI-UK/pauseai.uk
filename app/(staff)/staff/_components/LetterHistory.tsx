@@ -59,9 +59,12 @@ function withHandling(events: HistoryEntry[], forwards: LetterForward[]): Histor
 
 const isCopy = (event: LetterEvent) => event.status.startsWith("copy_");
 
-/** What a notice to the supporter says happened: the email bounced, or went again. */
+const isBounce = (event: LetterEvent) => event.status === "bounced" || event.status === "relay_bounced";
+
+/** What a notice to the supporter says happened: the email bounced, went again, or bounced too long ago to. */
 const NOTICE_OF: Record<string, (event: LetterEvent) => boolean> = {
-  bounced: (event) => event.status === "bounced" || event.status === "relay_bounced",
+  bounced: isBounce,
+  notResent: isBounce,
   // The letter, or a relay to the MP, gone again.
   resent: (event) => wasSent(event) || event.status === "relayed",
 };

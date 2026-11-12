@@ -253,11 +253,24 @@ export async function uncertainLetters(): Promise<number> {
 }
 
 /**
+ * How many days after it was written a letter that bounced, or after it
+ * came a relay to the MP that bounced, still goes again once the MP's
+ * address works. Past that it never goes, and its sender is told so
+ * (tellOfNotResent).
+ */
+export const RESEND_DAYS = 7;
+
+/**
  * Our own short email to a letter's sender, `notice` of copy.notices, from
  * the letters inbox's own address as "PauseAI", in the thread of their
- * copy. Says whether it went.
+ * copy. `about` is the message in Gmail it's about, when that's a relay
+ * and not the letter. Says whether it went.
  */
-export async function noticeToSender(letterId: number, notice: "bounced" | "resent"): Promise<boolean> {
+export async function noticeToSender(
+  letterId: number,
+  notice: "bounced" | "resent" | "notResent",
+  about?: string,
+): Promise<boolean> {
   const letter = await outgoingLetter(letterId);
   if (!letter || (await cannotSend(1))) return false;
   const result = await send(
@@ -272,25 +285,65 @@ export async function noticeToSender(letterId: number, notice: "bounced" | "rese
     letterId,
     { backend: lettersBackend() },
   );
-  if (result.sent) await letterEvent(letterId, "notice", { to: letter.senderEmail, notice, ...sentBy(result.backend) });
+  if (result.sent) {
+    await letterEvent(letterId, "notice", {
+      to: letter.senderEmail,
+      notice,
+      ...(about ? { gmailMessageId: about } : {}),
+      ...sentBy(result.backend),
+    });
+  }
   return result.sent;
 }
 
 /**
  * Sends again what bounced to an MP whose address has changed since: each
- * letter or relay to them that bounced, once their address is one that
- * isn't blocked and isn't the one it bounced from (resendAfterFix).
+ * letter or relay to them that bounced, and isn't past RESEND_DAYS, once
+ * their address is one that isn't blocked and isn't the one it bounced
+ * from (resendAfterFix).
  */
 async function resendToChangedAddresses(): Promise<void> {
   const changed = await query<{ id: number }>(
     `SELECT DISTINCT n.id::int AS id FROM notable_people n JOIN letters l ON l.notable_person_id = n.id
      WHERE n.email IS NOT NULL AND NOT EXISTS (SELECT 1 FROM email_blocks b WHERE b.address = lower(n.email))
        AND (EXISTS (SELECT 1 FROM letters_from_supporters s JOIN email_sends e ON e.letter_id = s.id AND e.purpose = 'letter'
-                    WHERE s.id = l.id AND s.proxy_id IS NOT NULL AND l.status = 'bounced' AND e.address <> lower(n.email))
+                    WHERE s.id = l.id AND s.proxy_id IS NOT NULL AND l.status = 'bounced' AND e.address <> lower(n.email)
+                      AND l.created_at > now() - interval '${RESEND_DAYS} days')
          OR EXISTS (SELECT 1 FROM letter_relays r JOIN email_sends e ON e.rfc_message_id = r.rfc_message_id
-                    WHERE r.letter_id = l.id AND r.status = 'bounced' AND NOT r.to_supporter AND e.address <> lower(n.email)))`,
+                    WHERE r.letter_id = l.id AND r.status = 'bounced' AND NOT r.to_supporter AND e.address <> lower(n.email)
+                      AND r.created_at > now() - interval '${RESEND_DAYS} days'))`,
   );
   for (const { id } of changed) await resendAfterFix({ politicianId: id });
+}
+
+/**
+ * Tells the sender of each letter, and each relay to the MP, that bounced
+ * and is past RESEND_DAYS, that it wasn't sent and won't be: once each. A
+ * letter's only if they were told it bounced, and so that it would go
+ * again: a soft bounce marks a letter bounced too, and tells nobody. None
+ * while the sender's own address is blocked, or the letters inbox can't
+ * send, when a later run tells them.
+ */
+async function tellOfNotResent(): Promise<void> {
+  const told = (notice: string, about: string) =>
+    `EXISTS (SELECT 1 FROM letter_events e WHERE e.letter_id = l.id AND e.status = 'notice'
+       AND e.details->>'notice' = '${notice}' AND e.details->>'gmailMessageId' ${about})`;
+  const past = (column: string) => `${column} <= now() - interval '${RESEND_DAYS} days'`;
+  const stale = await query<{ id: number; about: string | null }>(
+    `SELECT x.id, x.about FROM (
+       SELECT l.id::int AS id, NULL AS about FROM letters l JOIN letters_from_supporters s USING (id)
+       WHERE s.proxy_id IS NOT NULL AND l.status = 'bounced' AND ${past("l.created_at")}
+         AND ${told("bounced", "IS NULL")} AND NOT ${told("notResent", "IS NULL")}
+       UNION ALL
+       SELECT l.id::int, m.gmail_message_id FROM letter_relays r JOIN letters l ON l.id = r.letter_id
+         JOIN letter_replies m ON m.id = r.reply_id
+       WHERE r.status = 'bounced' AND NOT r.to_supporter AND ${past("r.created_at")}
+         AND NOT ${told("notResent", "= m.gmail_message_id")}) x
+       JOIN letters_from_supporters s ON s.id = x.id JOIN form_entries f ON f.id = s.entry_id
+     WHERE NOT EXISTS (SELECT 1 FROM email_blocks b WHERE b.address = lower(btrim(f.email)))
+     ORDER BY x.id, x.about NULLS FIRST`,
+  );
+  for (const { id, about } of stale) await noticeToSender(id, "notResent", about ?? undefined);
 }
 
 /**
@@ -349,6 +402,7 @@ export type LetterQueueRun = { sent: number; left: number };
  * whose MP's address is still blocked is passed over. Stops when the
  * letters inbox can't send. Then tells the notification inbox if letters
  * have waited too long (tellOfLateLetters), linking from `request`'s site;
+ * tells senders of what bounced too long ago to go again (tellOfNotResent);
  * tells MPs' offices of replies held a day for a supporter's bouncing
  * address; and, once a day, reports how often that happens (held-replies.ts)
  * and which MPs' addresses bounced a mailing (reportMailingBounces).
@@ -371,6 +425,7 @@ export async function sendLetterQueue(until: number, request?: Request): Promise
        + (SELECT count(*) FROM letters_from_supporters s JOIN letters l USING (id) WHERE s.copy_state = 'queued' AND l.status = 'sent') AS left`,
   );
   await tellOfLateLetters(request);
+  await tellOfNotResent();
   await tellOfficesOfHeldReplies();
   await reportSupporterBounces(request);
   await reportMailingBounces(request);

@@ -2719,7 +2719,11 @@ All events: ${link}`,
         over_cap: "Over the letter's limit on relays, in case of a loop",
       } as Record<string, string>,
       // What a notice to the supporter said.
-      notices: { bounced: "Their message hasn't reached the MP", resent: "It has now gone" } as Record<string, string>,
+      notices: {
+        bounced: "Their message hasn't reached the MP",
+        resent: "It has now gone",
+        notResent: "⁂ It didn't go again within a week, so it won't be sent",
+      } as Record<string, string>,
       // Under a reply, what was done with it: each line's name, before who to; "Not forwarded" when it went to no one.
       handling: {
         forwarded: "Forwarded to",

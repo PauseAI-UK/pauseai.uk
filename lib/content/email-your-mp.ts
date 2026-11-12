@@ -249,6 +249,9 @@ export const copy = {
       `Your message hasn't reached ${mpName}. Their office's email address isn't working. We're looking into it, and will send it again once it works.`,
     // It went again once the address worked.
     resent: (mpName: string) => `Your message has now been sent to ${mpName}.`,
+    // It bounced, and RESEND_DAYS on the address still didn't work, so it never goes.
+    notResent: (mpName: string) =>
+      `⁂ We haven't been able to get a working email address for ${mpName} in the week since you wrote, so your message wasn't sent, and we won't send it now. If you still want to write to them, please write again from our website.`,
     // To the MP's office, from the sender's proxy, in the thread of their reply, once it's waited a day:
     // the sender's address bounces, so we can't pass their reply on.
     office: (senderName: string) =>
