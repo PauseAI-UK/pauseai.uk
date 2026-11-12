@@ -67,13 +67,7 @@ export const COLOUR_TOKENS = [
   "--brand-gmail-yellow",
   "--brand-gmail-red",
   "--brand-gmail-dark-red",
-  "--march-ink",
-  "--march-paper",
-  "--march-paper-2",
-  "--march-on-paper-soft",
   "--march-orange",
-  "--march-orange-hot",
-  "--march-orange-deep",
   "--fest-orange",
   "--fest-orange-light",
 ];

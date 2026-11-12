@@ -1114,10 +1114,14 @@ march sign-up").
   sizes are the design's, scaled so the text is 16px, and the topic
   colours are the `--briefing-*` tokens.
 - **The march sign-up** (`/protests/march-against-ai-extinction-nov-26`)
-  is a poster, deliberately unlike the rest of the site: ink and paper, a
-  hotter orange (the `--march-*` tokens), Anton for headings, square
-  corners and hard shadows, with a header of its own and the site's
-  footer.
+  uses the site's header, footer, type, colours and buttons, with three
+  looks of its own, from the march's roll-up banner and flyers:
+  PauseAI's own orange, `--march-orange` (#FF9416), brighter than the
+  site's, which takes dark text, never white; the banner's photo
+  staircase, photos tinted orange climbing an orange band; and a marker
+  pen: an orange highlighter streak behind four of the headings and the
+  march's demand, a hand-drawn underline under the July incident's key
+  line, and a loop around the march's goal.
 
 ## Links
 

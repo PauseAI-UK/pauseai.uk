@@ -147,7 +147,7 @@ export default function SignupForm({
         )}
       </div>
 
-      <button className={m("btn large signup-submit")} type="submit" disabled={submitting}>
+      <button className={m("btn signup-submit")} type="submit" disabled={submitting}>
         {submitting ? copy.submitting : copy.submit}
       </button>
 

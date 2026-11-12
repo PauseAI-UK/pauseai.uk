@@ -8,8 +8,8 @@
 //   npm run march:preview            # or: node scripts/march-preview.mjs <base url>
 //
 // It loads the page in headless Chromium at 1200×630, hides what only works on
-// the page (the Register button, the scroll cue, the header, the cookie banner
-// and Next's dev badge), and writes public/images/march-signup/
+// the page (the buttons, the count of those registered, the header, the
+// cookie banner and Next's dev badge), and writes public/images/march-signup/
 // open-graph-1200-630.jpg (Open Graph) and open-graph-1600-840.jpg (X), the
 // same layout at 4/3 the pixels. app/(march)/protests/march-against-ai-extinction-nov-26/page.tsx names them.
 import { chromium } from "@playwright/test";
@@ -19,11 +19,11 @@ const base = process.argv[2] ?? "http://localhost:3000";
 const out = "public/images/march-signup";
 
 const css = `
-  [class*="hero-cta"], [class*="hero-scroll"], header, [role="dialog"],
+  [class*="hero-cta"], [class*="hero-going"], header, [role="dialog"],
   [class*="consent" i], [class*="cookie" i], nextjs-portal { display: none !important; }
   section:has(> [class*="hero-inner"]) {
-    min-height: 0 !important; height: 630px !important;
-    display: flex !important; align-items: center !important;
+    min-height: 0 !important; height: 630px !important; padding: 0 !important;
+    justify-content: center !important;
   }
   [class*="hero-inner"] { padding-inline: 60px !important; }
 `;
@@ -39,7 +39,7 @@ try {
     await page.addStyleTag({ content: css });
     await page.evaluate(() => document.fonts.ready);
     const hero = page.locator("section:has(> [class*='hero-inner'])");
-    // The photo and logo are next/images: wait until they've drawn.
+    // The photo is a next/image: wait until it's drawn.
     await hero.evaluate((el) => Promise.all([...el.querySelectorAll("img")].map((img) => img.decode())));
     const png = await hero.screenshot({ animations: "disabled" });
     const file = `${out}/open-graph-${name}.jpg`;

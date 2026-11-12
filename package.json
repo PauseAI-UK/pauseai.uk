@@ -54,6 +54,7 @@
     "qrcode-generator": "^2.0.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "rough-notation": "^0.5.1",
     "server-only": "^0.0.1",
     "topojson-client": "^3.1.0",
     "unpdf": "^2.1.0"

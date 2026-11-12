@@ -1037,9 +1037,9 @@ or a call to a number. The topics:
 
 - **Newsletter**, the PauseAI UK newsletter, which includes events: a box
   ticked on one of our forms, for email, and for texts on the march's,
-  which says "by email and phone"; a paper sign-up, where writing an address
-  or a number down is joining; CiviCRM's `newsletter` list, for email; and
-  a member's "Keep me informed", for one CiviCRM has never returned.
+  which says "by email, text and phone"; a paper sign-up, where writing an
+  address or a number down is joining; CiviCRM's `newsletter` list, for
+  email; and a member's "Keep me informed", for one CiviCRM has never returned.
 - **Events only**: following the Luma calendar, which registering for an
   event does too, for email. A number given at a Luma registration has the
   answer of the account that gave it, for texts; a number given on a form

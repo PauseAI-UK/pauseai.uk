@@ -60,8 +60,10 @@ describe("ShareCard", () => {
     await renderCard();
     await expect.element(page.getByText(copy.registered)).toBeVisible();
     // When and where, and the address they gave.
-    await expect.element(page.getByText(copy.inTouch("testy@example.org"))).toBeVisible();
-    expect(copy.inTouch("testy@example.org")).toContain(march.dateLong);
+    await expect.element(page.getByText(copy.inTouch("testy@example.org"), { exact: false })).toBeVisible();
+    await expect.element(page.getByText(copy.seeYou)).toBeVisible();
+    expect(page.getByText(copy.seeYou).element().tagName).toBe("STRONG");
+    expect(copy.seeYou).toContain(march.dateLong);
     const first = page.getByText(copy.registered).element().closest("[data-focus-first]")!;
     expect(first.compareDocumentPosition(page.getByRole("heading").element())).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
@@ -121,7 +123,10 @@ describe("ShareCard", () => {
     expect(text("Telegram", "url")).toBe(copy.message);
     expect(text("Email", "body")).toBe(copy.message);
     expect(copy.message.endsWith(copy.shortMessage)).toBe(true);
-    expect([...copy.shortMessage].length).toBeLessThanOrEqual(280);
+    // X counts a link as 23 characters, whatever its length, to 280;
+    // Bluesky counts every character, to 300.
+    expect([...copy.shortMessage.replace(copy.url, "x".repeat(23))].length).toBeLessThanOrEqual(280);
+    expect([...copy.shortMessage].length).toBeLessThanOrEqual(300);
   });
 
   it("has the share button at the foot of the card, under the places to post", async () => {
@@ -131,10 +136,26 @@ describe("ShareCard", () => {
     expect(button.top).toBeGreaterThan(apps.bottom);
   });
 
-  it("fades the app row's end on a narrow screen, and its start once scrolled", async () => {
+  it("shows every app where there's a mouse, wrapped onto more lines on a narrow screen", async () => {
     await page.viewport(400, 800);
     await renderCard();
     const row = page.getByRole("list").element() as HTMLElement;
+    const box = row.getBoundingClientRect();
+    const apps = page.getByRole("list").getByRole("link").elements();
+    expect(apps).toHaveLength(9);
+    for (const app of apps) expect(app.getBoundingClientRect().right).toBeLessThanOrEqual(box.right);
+    expect(new Set(apps.map((app) => app.getBoundingClientRect().top)).size).toBeGreaterThan(1);
+    await expect.poll(() => row.dataset.fade).toBe("none");
+    await page.viewport(1280, 900);
+  });
+
+  it("fades the app row's end on a narrow touch screen, and its start once scrolled", async () => {
+    await page.viewport(400, 800);
+    await renderCard();
+    const row = page.getByRole("list").element() as HTMLElement;
+    // The test browser has a mouse, so the row is set as a touch screen has it: one line, swiped.
+    row.style.flexWrap = "nowrap";
+    row.style.overflowX = "auto";
     await expect.poll(() => row.dataset.fade).toBe("end");
     row.scrollLeft = 60;
     await expect.poll(() => row.dataset.fade).toBe("both");

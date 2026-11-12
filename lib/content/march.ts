@@ -29,13 +29,13 @@ export const march = {
     postcode: "SW1A 2AA",
   },
   /** The date and place as the sign-up shows them. */
-  dateLong: "Saturday 21 Nov 2026",
+  dateLong: "Saturday 21st November, 2026",
   dateShort: "Sat 21 Nov 2026",
-  /** For tight labels, such as the turnout figures. */
-  dateCompact: "21 Nov 2026",
+  /** Written out, as the turnout figures' dates are. */
+  dateWritten: "21st November 2026",
   /** For <time dateTime>. */
   dateIso: "2026-11-21",
-  time: "12:00 – 15:00",
+  time: "12:00 PM - 3:00 PM",
   city: "Central London",
   /** The Luma event's cover photo. */
   image: { src: "/images/march-nov-26/luma-cover.webp", width: 1016, height: 1016 },

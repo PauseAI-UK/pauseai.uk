@@ -664,12 +664,12 @@ that drives it or why nothing does.
   - a local group's events, with its venue set or not;
   - the address bar saying which events are shown, and a link to a local group's events or the online ones.
 - `march-signup.spec.ts`: The march sign-up:
-  - its header over the hero and past it;
+  - the page under the site's header, without the march banner, its marker-pen marks drawn;
   - how many have registered, in the hero and the form, asked for again on coming back to the page;
   - registering, Luma failing, and an email the server won't take;
-  - the scroll cue;
-  - the share card, saying they're registered, and registering someone new, with the events sent to GA;
-  - the photo carousel on a phone.
+  - See all details, to the day's details;
+  - a heading highlighted as it comes into view;
+  - the share card, saying they're registered, its apps all showing on a desktop and a row to swipe on a phone, and registering someone new, with the events sent to GA.
 - `staff-login.spec.ts`: Logging in to the staff pages, and your own account:
   - login by emailed link, with the email pictured: it works once, in the browser that asked for it;
   - an address outside pauseai.uk getting no link;

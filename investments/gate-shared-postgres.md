@@ -15,3 +15,4 @@ Find what the backup test waits on during the stall, then either run the backup 
 - 2026-11-11: `worker/rules.test.ts` timed out in the gate and passed alone; timing it under `npm test` reproduced a stall once in two runs, ~20 min
 - 2026-11-12: `lib/server/db.test.ts` timed out at 30s in the gate (the file took 78s) beside the backup tests, and took 4s alone in three runs, ~5 min
 - 2026-11-12: `scripts/fresh-database.test.ts` timed out at 30s in the gate (48s) with the load average at 73, and passed alone in 20s, ~5 min
+- 2026-11-12: `scripts/fresh-database.test.ts` timed out at 30s in the gate again (39s), the load average at 42, and `npm test` passed alone straight after, ~5 min

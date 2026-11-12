@@ -1,31 +1,15 @@
 /* The march sign-up's one stylesheet (docs/code-structure.md, "The march
    sign-up"), in the order its rules cascade: the frame and its shared pieces
-   (type, buttons, bands, header), then the page, then its cards. */
+   (type, buttons, bands, layouts), then the page's sections, then its cards.
+   The type is the site's: Lato for headings and leads, Inter for the rest.
+   Sizes run from a phone's to a desktop's with the window. */
 
 .frame {
-  --march-on-ink: var(--white);
-  /* Body copy on ink sits a step back from the white headings, without going
-     grey enough to fail contrast. */
-  --march-on-ink-soft: rgb(var(--white-rgb) / 0.78);
-  --march-on-ink-faint: rgb(var(--white-rgb) / 0.55);
-  --march-on-paper: var(--march-ink);
-  --march-line: var(--march-ink);
-  /* Border and shadow weight, stated once so the whole sub-site thickens or
-     thins together. */
-  --march-stroke: 3px;
-  --march-container: 1200px;
-  --march-display: "Anton", "Arial Narrow", system-ui, sans-serif;
-  /* The unit of the text measures below: half an em, the width CSS gives
-     "ch" when the font has no zero to measure. Inter's zero is wider, so ch
-     would widen every column. */
-  --march-ch: 0.5em;
-
   flex: 1 0 auto;
-  background: var(--march-paper);
-  color: var(--march-on-paper);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
   font-size: 17px;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -38,1093 +22,739 @@
   }
 }
 
-/* Links take their colour from their context, as the classes below set it,
-   without the site's link colour and its fade. */
-:where(.frame) a {
-  color: inherit;
-  transition: none;
-}
-
-.frame ::selection {
-  background: var(--march-orange);
-  color: var(--white);
-}
-
 :where(.frame) :focus-visible {
-  outline: 3px solid var(--march-orange);
-  outline-offset: 3px;
-}
-/* On the ink bands an orange ring is too close in value to read as focus. */
-.container {
-  width: 100%;
-  max-width: var(--march-container);
-  margin: 0 auto;
-  padding: 0 28px;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
-/* Visible only to screen readers, and to anyone who tabs onto it. */
+:where(.frame) p,
+:where(.frame) h1,
+:where(.frame) h2,
+:where(.frame) h3,
+:where(.frame) blockquote {
+  margin: 0;
+}
+
+/* Visible only to screen readers, and to anyone who tabs onto it: the first
+   thing on the page, before the site's header. */
 .skip-link {
   position: absolute;
   left: -9999px;
   top: 0;
   z-index: 50;
-  padding: 14px 20px;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
   background: var(--march-orange);
-  color: var(--white);
-  font-weight: 800;
-  text-transform: uppercase;
+  color: var(--text);
+  font-weight: 600;
   text-decoration: none;
 }
 .skip-link:hover {
-  color: var(--white);
+  color: var(--text);
 }
 .skip-link:focus {
   left: 12px;
   top: 12px;
 }
 
-/* ── Type ──────────────────────────────────────────────────────────────
-   Anton for anything that shouts, Inter for anything that explains. Anton
-   ships one weight and is drawn condensed and tight, so it takes negative
-   tracking and very large sizes without falling apart. */
+/* ── Type ────────────────────────────────────────────────────────────── */
 
-:where(.frame) h1,
-:where(.frame) h2,
-:where(.frame) h3 {
-  font-family: var(--march-display);
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: -0.015em;
-  line-height: 0.92;
-  margin: 0;
+.heading {
+  color: var(--text);
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(28px, 3.05vw, 44px);
+  line-height: 1.15;
 }
 
-/* Anton's caps have no descenders to speak of, so lines can sit far tighter
-   than the body font's. */
-.h-xl {
-  font-size: clamp(48px, 9.6vw, 124px);
-}
-.h-lg {
-  font-size: clamp(38px, 6vw, 76px);
-  line-height: 0.95;
-}
-.h-md {
-  font-size: clamp(28px, 3.6vw, 44px);
-  line-height: 0.98;
-}
-.h-sm {
-  font-size: clamp(21px, 2.2vw, 28px);
-  line-height: 1.05;
+.subheading {
+  color: var(--text);
+  font-size: clamp(17px, 1.39vw, 20px);
+  font-weight: 600;
+  line-height: 1.3;
 }
 
-.lede {
-  font-size: clamp(18px, 1.5vw, 21px);
-  line-height: 1.5;
-  font-weight: 500;
+.lead {
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-size: clamp(20px, 1.67vw, 24px);
+  line-height: 1.3;
 }
 
-/* ── Buttons ───────────────────────────────────────────────────────────
-   Pressing pushes the button into its own shadow. */
+/* Body copy: a step back from the headings, with the words that matter in
+   the text's own colour. */
+.prose {
+  color: var(--text-secondary);
+}
+.prose strong,
+.prose b {
+  color: var(--text);
+  font-weight: 600;
+}
 
+/* A link in the text: the text's colour, underlined. */
+.text-link,
+.inline-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: none;
+}
+.text-link:hover,
+.inline-link:hover {
+  color: var(--text);
+  text-decoration-thickness: 2px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+
+/* The orange takes dark text: white on it is too faint to read. */
 .btn {
-  --btn-shadow: var(--march-ink);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 17px 30px;
-  border: var(--march-stroke) solid var(--march-line);
+  gap: 8px;
+  padding: 16px 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   background: var(--march-orange);
-  color: var(--white);
-  font-family: var(--font-inter), system-ui, sans-serif;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.15;
   text-decoration: none;
   cursor: pointer;
-  box-shadow: 6px 6px 0 var(--btn-shadow);
-  transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    background 0.12s ease;
+  transition: transform 0.15s ease;
 }
 .btn:hover {
-  color: var(--white);
-  background: var(--march-orange-hot);
-  transform: translate(-2px, -2px);
-  box-shadow: 8px 8px 0 var(--btn-shadow);
+  color: var(--text);
+  transform: translateY(-1px);
 }
-.btn:active {
-  transform: translate(6px, 6px);
-  box-shadow: 0 0 0 var(--btn-shadow);
-}
-.btn.large {
-  padding: 21px 40px;
-  font-size: 17px;
-}
-/* On an ink band the ink shadow disappears, so the shadow flips to the
-   accent and the outline goes white. */
-.btn.on-ink {
-  --btn-shadow: var(--march-orange-deep);
-  border-color: var(--white);
-}
-.btn.ghost {
-  background: transparent;
-  color: var(--march-on-paper);
-}
-.btn.ghost:hover {
-  background: var(--march-paper-2);
+.btn-light {
+  border-color: var(--border-strong);
+  background: var(--surface);
 }
 .btn[disabled] {
-  opacity: 0.65;
-  cursor: default;
+  cursor: progress;
+  opacity: 0.7;
   transform: none;
 }
 
-/* ── Bands ─────────────────────────────────────────────────────────────
-   Every section is a full-bleed band of either ink or paper, separated by a
-   hard rule rather than by whitespace. */
+/* ── Marker pen (Marker.tsx) ─────────────────────────────────────────── */
+
+/* rough-notation draws each mark in an SVG beside its words: a circle's
+   after them, a highlight's before. A circle is tilted a few degrees, as a
+   loop drawn quickly by hand is. */
+.marked-circle + svg path {
+  transform-box: fill-box;
+  transform-origin: center;
+  rotate: -6deg;
+}
+/* A highlight runs on a little either side of its words, on every line, as
+   a highlighter swiped by hand does: rough-notation draws it to the words'
+   own box, so the box is padded out, and the margin takes the padding back
+   so the words stay where they are. */
+.marked-highlight {
+  padding-inline: 0.2em;
+  margin-inline: -0.2em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+/* A highlight sweeps in gathering speed, and stops dead at the end of the
+   words, as a highlighter does; rough-notation eases its marks out. */
+svg:has(+ .marked-highlight) path {
+  animation-timing-function: ease-in !important;
+}
+
+/* ── Bands and layouts ───────────────────────────────────────────────── */
 
 .band {
-  padding: 92px 0;
+  padding-block: clamp(48px, 5.56vw, 80px);
+  background: var(--bg);
 }
-.band-ink {
-  background: var(--march-ink);
-  color: var(--march-on-ink-soft);
-}
-.band-ink h1,
-.band-ink h2,
-.band-ink h3,
-.band-ink strong {
-  color: var(--march-on-ink);
-}
-.band-paper {
-  background: var(--march-paper);
-}
-/* Ink against paper needs no rule between them — the colour change is the
-   rule. Paper following ink does, or the two paper bands either side of an
-   ink one appear to run together. */
-.band-ink + .band-paper {
-  border-top: var(--march-stroke) solid var(--march-line);
+.band-white {
+  background: var(--surface);
 }
 
-.inline-link {
-  color: var(--march-orange);
-  font-weight: 700;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
+/* Two columns, the right the wider; even for Why we're marching. */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 80px;
+  align-items: start;
 }
-.inline-link:hover {
-  color: var(--march-orange-hot);
+.split-even {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 64px;
 }
-.band-ink .inline-link {
-  color: var(--march-orange-hot);
-}
-
-/* ── Header ────────────────────────────────────────────────────────────
-   The PauseAI logo, the march's name and the register button. */
-
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--march-ink);
-  border-bottom: var(--march-stroke) solid var(--march-orange);
-  color: var(--white);
+/* Two blocks side by side, as the treaty and the legislation are. */
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 64px;
 }
 
-/* Over the sign-up page's hero, the bar starts lifted out of sight and out of
-   flow, so the hero begins at the very top of the page with nothing above
-   it; it drops back in once the hero has scrolled past (SignupHeader.tsx).
-   Without a hero, as in the component gallery, it's a plain sticky one, visible
-   from the first paint. */
-.site-header[data-over-hero] {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  transform: translateY(-100%);
-  transition: transform 0.28s ease;
-}
-.site-header[data-over-hero][data-visible] {
-  transform: translateY(0);
-}
-
-.site-header .container {
+.stack,
+.stack-tight,
+.stack-loose,
+.stack-wide {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding-top: 12px;
-  padding-bottom: 12px;
+  flex-direction: column;
+  gap: 24px;
 }
-.site-brand {
-  display: flex;
-  align-items: center;
-  gap: 36px;
+.stack-tight {
+  gap: 12px;
 }
-/* The logo's anchor must be a flex box of its own. Left inline, it sits on
-   the text baseline and carries descender space below the image, so centring
-   the anchor leaves the artwork inside it a few pixels high. (Not applied to
-   the wordmark: as a flex box it would drop the space before its span.) */
-.site-brand-logo {
-  display: inline-flex;
+.stack-loose {
+  gap: 32px;
 }
-.site-brand img {
-  height: 38px;
-  width: auto;
-}
-/* The hero headline, shrunk to a single line: same face, same tight
-   tracking, same orange on the second half. */
-.site-wordmark {
-  font-family: var(--march-display);
-  font-size: 27px;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  text-transform: uppercase;
-  color: var(--white);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.site-wordmark:hover {
-  color: var(--white);
-}
-.site-wordmark-hit {
-  color: var(--march-orange);
-}
-.header-cta {
-  padding: 12px 22px;
-  font-size: 13px;
-  box-shadow: 4px 4px 0 var(--march-orange-deep);
-}
-.header-cta:hover {
-  box-shadow: 6px 6px 0 var(--march-orange-deep);
-}
-/* Pressed into its own shadow, which is thinner than other buttons'. */
-.header-cta:active {
-  transform: translate(4px, 4px);
-  box-shadow: 0 0 0 var(--march-orange-deep);
+.stack-wide {
+  gap: 64px;
 }
 
-@media (max-width: 720px) {
-  /* No room for both the logo and the name beside the CTA, so phones get
-     the name, stacked on two lines like the hero headline. */
-  .site-brand-logo {
-    display: none;
+@media (max-width: 899px) {
+  .split,
+  .split-even {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
   }
-  .site-wordmark {
-    font-size: 21px;
-    line-height: 0.95;
-    white-space: normal;
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
   }
-  .site-wordmark:hover {
-    color: var(--white);
+  .stack-loose {
+    gap: 24px;
   }
-  .site-wordmark-hit {
-    display: block;
-  }
-  .header-cta {
-    padding: 11px 16px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 620px) {
-  .frame {
-    font-size: 16px;
-  }
-  .container {
-    padding: 0 20px;
-  }
-  .band {
-    padding: 60px 0;
-  }
-  .btn,
-  .btn.large {
-    width: 100%;
-    padding: 18px 20px;
-    font-size: 15px;
-  }
-  /* The header button sits beside the logo, so it keeps its own compact size
-     rather than taking the full-width treatment above. */
-  .header-cta,
-  .header-cta.large {
-    width: auto;
-    padding: 11px 16px;
-    font-size: 12px;
+  .stack-wide {
+    gap: 24px;
   }
 }
 
 /* ── Hero ────────────────────────────────────────────────────────────── */
 
+/* The words at the foot of the first screen, over the photo, which darkens
+   towards them. */
 .hero {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
-  background: var(--march-ink);
-  color: var(--march-on-ink-soft);
-  padding: 104px 0 96px;
-  /* Fill the first screen so the next band never peeks in below it on tall
-     displays; svh so phone URL bars showing and hiding don't resize it. */
-  min-height: 100vh;
-  min-height: 100svh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
+  min-height: clamp(600px, calc(100svh - var(--site-header-h, 77px)), 780px);
+  padding-block: 120px 96px;
+  overflow: hidden;
+  background: var(--text);
+  color: var(--white);
 }
+/* The photo at the hero's full height, placed so the woman with the sign,
+   56% of the way across it, is in the middle of the window's right half.
+   Its left edge fades into the dark. */
 .hero-photo {
-  object-fit: cover;
-  object-position: center 42%;
-  filter: grayscale(0.45) contrast(1.1);
+  position: absolute;
+  inset-block: 0;
+  left: 75%;
   z-index: -2;
+  aspect-ratio: 1524 / 716;
+  transform: translateX(-56%);
+  mask-image: linear-gradient(90deg, transparent, var(--black) 25%);
 }
-/* The horizontal gradient darkens the left column for the copy, the vertical
-   one the foot of the band behind the scroll cue. */
-.hero-scrim {
+.hero-photo img {
+  object-fit: cover;
+}
+/* The words' side darkens, so they read over the photo. */
+.hero::after {
+  content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  background:
-    linear-gradient(
-      90deg,
-      rgb(var(--march-ink-rgb) / 0.92) 0%,
-      rgb(var(--march-ink-rgb) / 0.8) 34%,
-      rgb(var(--march-ink-rgb) / 0.3) 68%,
-      rgb(var(--march-ink-rgb) / 0.12) 100%
-    ),
-    linear-gradient(
-      180deg,
-      rgb(var(--march-ink-rgb) / 0.2) 0%,
-      rgb(var(--march-ink-rgb) / 0.25) 55%,
-      rgb(var(--march-ink-rgb) / 0.85) 100%
-    );
+  background: linear-gradient(
+    90deg,
+    rgb(var(--text-rgb) / 0.9) 38%,
+    rgb(var(--text-rgb) / 0.4) 64%,
+    rgb(var(--text-rgb) / 0) 86%
+  );
 }
 .hero-inner {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+  width: 100%;
 }
-.hero-logo {
-  display: block;
-  height: 44px;
-  width: auto;
-  margin-bottom: 24px;
+/* Wider than the site's container: closer to the window's edge, so the
+   words keep clear of the photo's subject. */
+.hero .hero-inner {
+  max-width: none;
+  padding-inline: clamp(24px, 5.56vw, 80px);
 }
 .hero-title {
-  color: var(--white);
-  /* The orange slab under "Protest" hangs below the text: this is its depth
-     plus the gap. */
-  margin: 0 0 34px;
-  /* Anton is already condensed; a touch more negative tracking at poster
-     sizes closes the gaps the caps leave. */
-  letter-spacing: -0.025em;
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(44px, 5.83vw, 84px);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
 }
 .hero-title span {
   display: block;
 }
-.hero-title-hit {
+.hero-title .hero-title-hit {
   color: var(--march-orange);
-  /* A hard slab under the second line, the width of the word, so the
-     headline sits on something. */
-  box-shadow: 0 0.07em 0 var(--march-orange);
-  width: fit-content;
 }
-/* One short line carrying the whole argument, so it is set as a statement
-   rather than as body copy: heavier, larger and in full white. Capped near
-   26ch so it breaks to two balanced lines instead of one long thin one. */
 .hero-lede {
-  /* One line where it fits; where it can't, balance the two lines. */
-  text-wrap: balance;
-  margin: 0;
-  font-size: clamp(21px, 2.1vw, 29px);
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-  color: var(--white);
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-size: clamp(20px, 1.67vw, 24px);
+  line-height: 1.3;
 }
-
-/* Two blocks of fact, each with its label reversed out into a solid bar. */
+/* When and where, each under its icon: the first line in bold, all in a
+   warm light neutral, a step back from the white headline. */
 .hero-facts {
   display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  margin: 38px 0 0;
+  gap: 48px;
+  margin-top: 8px;
+  color: var(--border);
 }
 .hero-fact {
-  flex: 0 1 auto;
-  min-width: 250px;
-  border: var(--march-stroke) solid var(--white);
-  /* A flat fill rather than a backdrop blur: it carries the text over a busy
-     crowd photo just as well, and does it identically in every browser
-     rather than depending on backdrop-filter support. */
-  background: rgb(var(--march-ink-rgb) / 0.72);
-  padding: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: clamp(17px, 1.39vw, 20px);
+  line-height: 1.3;
 }
-.hero-fact-label {
-  margin: 0 0 14px;
-  padding: 6px 14px;
-  background: var(--white);
-  color: var(--march-ink);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-.hero-fact-main {
-  margin: 0;
-  padding: 0 14px;
-  font-family: var(--march-display);
-  font-size: clamp(24px, 2.5vw, 32px);
-  line-height: 1;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  color: var(--white);
-}
-.hero-fact-sub {
-  margin: 8px 0 0;
-  padding: 0 14px;
-  font-size: 15px;
+.hero-fact p::first-line {
   font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--march-orange-hot);
 }
-.route-arrow {
-  width: 1.1em;
-  height: 1.1em;
-  margin: 0 6px;
-  vertical-align: -0.2em;
+.hero-icon {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
 }
-
-/* The button, with how many have registered beside it, as tall as the
-   button, clear of its shadow. */
+.hero-route {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hero-route-arrow {
+  width: 18px;
+  height: 18px;
+}
 .hero-cta {
   display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 24px;
-  margin: 40px 0 0;
+  gap: 16px;
+  margin-top: 16px;
 }
-
-/* Under the button: the faces and names of some who've registered. */
+/* Some of those going, and how many. */
 .hero-going {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-  margin: 20px 0 0;
+  gap: 10px;
+  margin-top: -8px;
+  font-size: 14px;
+  line-height: 1.4;
 }
-.hero-going-names {
-  margin: 0;
-  font-size: 15px;
+.hero-going strong {
   font-weight: 600;
-  color: var(--march-paper);
 }
 
-/* The scroll cue: sits in the hero's bottom padding, so it never meets the
-   content above. */
-.hero-scroll {
-  position: absolute;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  display: block;
-  padding: 8px;
-  border: 0;
-  background: none;
-  line-height: 0;
-  color: var(--march-on-ink-soft);
-  cursor: pointer;
-}
-.hero-scroll:hover {
-  color: var(--march-orange-hot);
-}
-.hero-scroll svg {
-  width: 32px;
-  height: 32px;
-  animation: hero-scroll-bob 1.8s ease-in-out infinite;
-}
-@keyframes hero-scroll-bob {
-  0%,
-  100% {
-    transform: translateY(0);
+/* On a phone the photo is a block of its own at the top, fading into the
+   words below it. */
+@media (max-width: 767px) {
+  .hero {
+    --photo-h: min(444px, 114vw);
+    min-height: 0;
+    padding-block: calc(var(--photo-h) - 72px) 40px;
   }
-  50% {
-    transform: translateY(6px);
+  .hero-photo {
+    inset: 0 0 auto;
+    height: var(--photo-h);
+    aspect-ratio: auto;
+    transform: none;
+    mask-image: none;
+  }
+  .hero-photo img {
+    object-position: 60% 100%;
+  }
+  .hero::after {
+    bottom: auto;
+    height: var(--photo-h);
+    background: linear-gradient(
+      180deg,
+      rgb(var(--text-rgb) / 0.1) 0%,
+      rgb(var(--text-rgb) / 0.2) 72%,
+      var(--text) 100%
+    );
+  }
+  .hero-inner {
+    gap: 20px;
+  }
+  .hero-facts {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .hero-fact {
+    flex-direction: row;
+    gap: 12px;
+  }
+  .hero-cta {
+    align-self: stretch;
+  }
+  .hero-cta .btn {
+    flex: 1 1 0;
+    padding-inline: 16px;
+  }
+  .hero-going {
+    margin-top: -4px;
   }
 }
 
-/* ── The case ──────────────────────────────────────────────────────────
-   Heading in one column, argument in the other. */
+/* ── Why we're marching ──────────────────────────────────────────────── */
 
-.case-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.5fr);
-  gap: 56px;
-}
-.case-head {
-  align-self: start;
-}
-.case-head h2 {
-  position: relative;
-  padding-bottom: 18px;
-}
-.case-head h2::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 96px;
-  height: 10px;
-  background: var(--march-orange);
-}
-.case-lead {
-  margin: 0 0 22px;
-  max-width: calc(60 * var(--march-ch));
-  font-size: clamp(21px, 2.1vw, 27px);
-  line-height: 1.35;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--march-on-paper);
-}
-.case-body p {
-  max-width: calc(62 * var(--march-ch));
-  margin: 0 0 20px;
-  color: var(--march-on-paper-soft);
-}
-
-/* The July incident. Plain prose on a heavy accent rule, a step up from the
-   body copy, so it stands out without being boxed off from the argument it
-   belongs to. */
+/* The July incident, set apart in bold. */
 .case-incident {
-  margin: 34px 0;
-  padding: 2px 0 2px 28px;
-  border-left: 10px solid var(--march-orange);
-}
-.case-incident p {
-  font-size: clamp(17px, 1.5vw, 19px);
-  color: var(--march-on-paper);
-}
-/* The clause the incident turns on: bold, on a highlighter stroke. */
-.case-incident-key {
-  font-weight: 800;
-  background: linear-gradient(transparent 55%, rgb(var(--march-orange-rgb) / 0.4) 55%);
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-}
-.case-body p:last-child {
-  margin-bottom: 0;
+  color: var(--text);
+  font-weight: 600;
 }
 
-/* ── The demand ────────────────────────────────────────────────────────
-   The march's one ask, on a solid band of the accent. Ink on orange rather
-   than white: white on this orange is too weak for body copy. */
+/* ── What we want ────────────────────────────────────────────────────── */
 
-.demand {
-  padding: 92px 0;
-  background: var(--march-orange);
-  color: var(--march-ink);
-  border-top: var(--march-stroke) solid var(--march-line);
-  border-bottom: var(--march-stroke) solid var(--march-line);
+/* The demand: loud, the two sentences a line apart. */
+.statement {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15em;
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(24px, 2.22vw, 32px);
+  /* Room between the lines, so each line's highlight stands apart. */
+  line-height: 1.3;
 }
-/* Laid out like the case above it: heading in one column, the argument in
-   the other, closing on the call in display type. */
-.demand-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.5fr);
-  gap: 56px;
-}
-.demand-title {
-  position: relative;
-  align-self: start;
-  padding-bottom: 18px;
-  color: var(--march-ink);
-}
-.demand-title::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 96px;
-  height: 10px;
-  background: var(--march-ink);
-}
-/* The leading sentence, set like .case-lead in the band above. */
-.demand-lead {
-  max-width: calc(60 * var(--march-ch));
-  margin: 0 0 22px;
-  text-wrap: pretty;
-  font-size: clamp(21px, 2.1vw, 27px);
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-}
-/* Body text, set like the paragraphs in the band above but in ink. */
-.demand-text {
-  max-width: calc(62 * var(--march-ch));
-  margin: 0;
-}
-.demand-call {
-  max-width: 20ch;
-  margin: 48px 0 0;
-  padding-top: 40px;
-  border-top: var(--march-stroke) solid var(--march-ink);
-  font-family: var(--march-display);
-  font-size: clamp(30px, 3.8vw, 54px);
-  line-height: 1;
-  letter-spacing: -0.015em;
-  text-transform: uppercase;
-  text-wrap: balance;
-}
-/* ── Turnout ───────────────────────────────────────────────────────────
-   The last number is the goal, so it alone is in the accent. */
 
-.turnout-head {
-  margin: 0 0 20px;
+/* ── Our protests are growing ────────────────────────────────────────── */
+
+/* The staircase follows straight on, its band rising from the turnout's foot. */
+.band-turnout {
+  padding-bottom: 0;
 }
 .turnout-intro {
-  max-width: calc(58 * var(--march-ch));
-  margin: 0 0 48px;
-  font-size: clamp(17px, 1.4vw, 19px);
-  line-height: 1.55;
+  max-width: 620px;
+  color: var(--text-secondary);
 }
-.turnout-grid {
+.turnout-intro strong {
+  font-weight: 700;
+}
+.turnout {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 28px;
+  gap: 40px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.turnout-step {
-  border-top: 6px solid rgb(var(--white-rgb) / 0.3);
-  padding: 20px 0 0;
+.turnout li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  color: var(--text-secondary);
 }
-.turnout-step.is-target {
-  border-top-color: var(--march-orange);
+/* The body's grey: the lighter --muted is too faint on the cream for text this size. */
+.turnout-date {
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
 }
 .turnout-figure {
-  margin: 0;
-  font-family: var(--march-display);
-  font-size: clamp(52px, 8vw, 104px);
-  line-height: 0.85;
-  letter-spacing: -0.03em;
-  color: var(--white);
-}
-.turnout-step.is-target .turnout-figure {
-  color: var(--march-orange);
-}
-.turnout-label {
-  margin: 14px 0 0;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--march-orange-hot);
-}
-.turnout-note {
-  margin: 6px 0 0;
-  font-size: 15px;
-  color: var(--march-on-ink-faint);
-}
-.turnout-foot {
-  margin: 38px 0 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--march-on-ink-soft);
+  color: var(--text);
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(28px, 3.05vw, 44px);
+  line-height: 1.15;
 }
 
-/* ── Press ─────────────────────────────────────────────────────────────
-   The coverage behind "newspapers will publish photos of it": one row of
-   outlet wordmarks, white on ink, with no rules between them. `--logo-h` is
-   set per logo (in SignupTurnout.tsx) so stacked and wide marks weigh the same. */
+@media (max-width: 767px) {
+  .turnout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+}
 
+/* ── The photo staircase and the press ───────────────────────────────── */
+
+/* As on the roll-up banner: four columns of photos, each a step up from the
+   last, rising across an orange band and running off both edges, each
+   photo tinted towards the orange. Its sizes are the band's width (cqw), so
+   it keeps its shape at any width. */
+.staircase-band {
+  position: relative;
+  container-type: inline-size;
+  overflow: hidden;
+  background: var(--bg);
+}
+.staircase {
+  position: relative;
+  height: 60cqw;
+}
+.staircase-stripe {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 58.23cqw;
+  background: var(--march-orange);
+  clip-path: polygon(0 31.13%, 100% 0, 100% 69.05%, 0 100%);
+}
+.staircase-photos {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.67cqw;
+  width: 121.67cqw;
+  margin-left: -10.83cqw;
+  padding-top: 1.53cqw;
+}
+.staircase-column {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 1.67cqw;
+}
+.staircase-column:nth-child(1) {
+  padding-top: 14.58cqw;
+}
+.staircase-column:nth-child(2) {
+  padding-top: 9.72cqw;
+}
+.staircase-column:nth-child(3) {
+  padding-top: 4.86cqw;
+}
+.staircase-photo {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+.staircase-photo img {
+  object-fit: cover;
+}
+.staircase-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--march-orange);
+  mix-blend-mode: color;
+  opacity: 0.35;
+}
+
+/* The press, under the staircase, and from a wide desktop in the corner it
+   leaves at the bottom right. */
 .press {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 40px;
-  max-width: 1080px;
-  margin: 36px 0 0;
+  gap: 24px;
+  padding-bottom: 64px;
+  text-align: center;
+}
+.press-line {
+  max-width: 400px;
+}
+.press-logos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 24px 40px;
+  max-width: 560px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
-.press li {
-  display: flex;
-  min-width: 0;
-}
-.press-link {
+/* Each link is taller than its logo, for a finger, without moving it. */
+.press-logos a {
   display: block;
-  padding: 6px 0;
+  margin-block: -8px;
+  padding-block: 8px;
+  transition: opacity 0.15s ease;
+}
+.press-logos a:hover {
+  opacity: 0.7;
 }
 .press-logo {
   display: block;
   width: auto;
   height: var(--logo-h);
-  max-width: 100%;
-  object-fit: contain;
-  opacity: 0.72;
-  transition: opacity 0.12s ease;
-}
-.press-link:hover .press-logo,
-.press-link:focus-visible .press-logo {
-  opacity: 1;
 }
 
-/* ── Photo strip ───────────────────────────────────────────────────────
-   Four frames, full bleed, separated by the same hard rules as everything
-   else; on a phone, a carousel of them, one at a time. */
-
-.photo-strip {
-  position: relative;
-  border-top: var(--march-stroke) solid var(--march-line);
-  border-bottom: var(--march-stroke) solid var(--march-line);
-}
-.photo-track {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--march-stroke);
-  background: var(--march-line);
-}
-.photo-item {
-  margin: 0;
-  overflow: hidden;
-  background: var(--march-ink);
-}
-.photo-item img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  aspect-ratio: 3 / 2;
-  object-fit: cover;
-}
-/* The carousel's dots, a phone's only: one per photo, the one in view
-   filled orange. */
-.photo-dots {
-  display: none;
-  position: absolute;
-  right: 0;
-  bottom: 14px;
-  left: 0;
-  justify-content: center;
-  gap: 10px;
-  pointer-events: none;
-}
-.photo-dot {
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--march-ink);
-  border-radius: 50%;
-  background: var(--march-paper);
-  transition: background-color 0.15s ease;
-}
-.photo-dot-shown {
-  background: var(--march-orange);
+@media (min-width: 1200px) {
+  .staircase {
+    height: 68.75cqw;
+  }
+  .press {
+    position: absolute;
+    right: max(24px, calc((100% - 1140px) / 2 + 24px));
+    bottom: 4.24cqw;
+    width: 560px;
+    padding: 0;
+  }
 }
 
-/* ── On the day ────────────────────────────────────────────────────────
-   The route on a card; what to bring and how to help beside it, split by a
-   rule. */
-
-.day-title {
-  margin: 0 0 44px;
-}
-.day-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-  gap: 56px;
-  align-items: start;
-}
-.day-card {
-  padding: 26px 26px 28px;
-  background: var(--white);
-  border: var(--march-stroke) solid var(--march-line);
-  box-shadow: 6px 6px 0 var(--march-ink);
-}
-.day-card p {
-  margin: 0 0 12px;
-  color: var(--march-on-paper-soft);
-}
-.day-card p:last-child {
-  margin-bottom: 0;
-}
-.day-note p {
-  max-width: calc(52 * var(--march-ch));
-  margin: 0 0 12px;
-  color: var(--march-on-paper-soft);
-}
-.day-note p:last-child {
-  margin-bottom: 0;
-}
-.day-note + .day-note {
-  margin-top: 30px;
-  padding-top: 30px;
-  border-top: var(--march-stroke) solid var(--march-line);
-}
-.day-note-title {
-  margin: 0 0 12px;
-}
-
-/* Two stops joined by a rule, start and end each marked with a square. The
-   rule hangs from every stop but the last, down to the next one's marker. */
-.route-stops {
-  margin: 0 0 20px;
-  padding: 0;
-  list-style: none;
-}
-.route-stops li:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  left: 6px;
-  top: 15px;
-  bottom: -25px;
-  width: 3px;
-  background: var(--march-line);
-}
-.route-stops li {
-  position: relative;
-  padding: 0 0 0 32px;
-  margin: 0 0 22px;
-}
-.route-stops li:last-child {
-  margin-bottom: 0;
-}
-.route-stops li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 3px;
-  width: 15px;
-  height: 15px;
-  background: var(--march-orange);
-  border: var(--march-stroke) solid var(--march-line);
-  box-sizing: border-box;
-}
-.route-stop-kind {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--march-on-paper-soft);
-}
-.route-stop-place {
-  font-family: var(--march-display);
-  font-size: clamp(22px, 2.2vw, 28px);
-  line-height: 1.05;
-  text-transform: uppercase;
-  color: var(--march-on-paper);
-  text-decoration: none;
-}
-.route-stop-area {
-  display: block;
-  margin-top: 4px;
-  font-size: 14px;
-  color: var(--march-on-paper-soft);
-}
-.route-stop-place:hover {
-  color: var(--march-orange);
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-}
-.day-card .day-card-foot {
-  padding-top: 16px;
-  border-top: 1px solid rgb(var(--march-ink-rgb) / 0.15);
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--march-on-paper);
+/* On a phone, three columns, so each photo stays large enough to make out,
+   and the press below, from the left. */
+@media (max-width: 767px) {
+  .staircase {
+    height: 88.72cqw;
+  }
+  .staircase-stripe {
+    top: 5.13cqw;
+    height: 78.46cqw;
+    clip-path: polygon(0 27.45%, 100% 0, 100% 72.88%, 0 100%);
+  }
+  .staircase-photos {
+    gap: 2.05cqw;
+    width: 127.18cqw;
+    margin-left: -13.59cqw;
+    padding-top: 8.21cqw;
+  }
+  .staircase-column {
+    gap: 2.05cqw;
+  }
+  .staircase-column:nth-child(1) {
+    padding-top: 15.38cqw;
+  }
+  .staircase-column:nth-child(2) {
+    padding-top: 7.69cqw;
+  }
+  .staircase-column:nth-child(3) {
+    padding-top: 0;
+  }
+  .staircase-column:nth-child(4) {
+    display: none;
+  }
+  .staircase-photo {
+    border-radius: var(--radius-sm);
+  }
+  .press {
+    align-items: flex-start;
+    padding-block: 24px 48px;
+    text-align: left;
+  }
+  .press-logos {
+    justify-content: flex-start;
+    gap: 20px 24px;
+  }
+  .press-logo {
+    height: var(--logo-phone-h);
+  }
 }
 
-/* ── Register ──────────────────────────────────────────────────────────── */
+/* ── On the day ──────────────────────────────────────────────────────── */
 
-.register-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-  gap: 64px;
-  align-items: start;
-}
-.register-intro h2 {
-  margin-bottom: 22px;
-}
-.register-lede {
-  max-width: calc(44 * var(--march-ch));
-  margin: 0 0 36px;
-  color: var(--march-on-ink-soft);
-}
-.register-subhead {
-  margin: 0 0 18px;
-}
-.register-list {
-  counter-reset: expect;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  max-width: calc(46 * var(--march-ch));
-}
-.register-list li {
-  counter-increment: expect;
-  position: relative;
-  padding: 0 0 0 52px;
-  margin: 0 0 18px;
-  font-size: 16px;
-  line-height: 1.55;
-  color: var(--march-on-ink-soft);
-}
-.register-list li::before {
-  content: counter(expect, decimal-leading-zero);
-  position: absolute;
-  left: 0;
-  top: 1px;
-  font-family: var(--font-inter), system-ui, sans-serif;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  font-size: 20px;
-  line-height: 1;
-  color: var(--march-orange);
-}
-.register-list li:last-child {
-  margin-bottom: 0;
-}
-
-/* The form is the one piece of paper on an ink band, thrown forward by a
-   solid accent shadow rather than a soft one. */
-.signup {
-  --panel-shadow: 12px;
-  background: var(--march-paper);
-  color: var(--march-on-paper);
-  border: var(--march-stroke) solid var(--march-ink);
-  padding: 32px;
-  box-shadow: var(--panel-shadow) var(--panel-shadow) 0 var(--march-orange);
-}
-/* The form's title, with the count of those registered in the corner across
-   from it. */
-.signup-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin: 0 0 24px;
-}
-.signup-head {
-  margin: 0;
-  font-family: var(--march-display);
-  font-size: clamp(28px, 3vw, 38px);
-  line-height: 1;
-  letter-spacing: -0.015em;
-  text-transform: uppercase;
-}
-/* A block of ink, like a stamp on the paper: the number in the display
-   face, what it counts under it. */
-.signup-count {
+/* When, then from and to, at the body's size, the when in the text's colour. */
+.route {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  flex: 0 0 auto;
-  gap: 4px;
+  gap: 8px;
+}
+.route-when {
+  color: var(--text);
+}
+
+/* ── Register ────────────────────────────────────────────────────────── */
+
+.register .stack {
+  gap: 20px;
+}
+.register-expect {
+  margin-top: 12px;
+  gap: 8px;
+}
+.register-list {
   margin: 0;
-  padding: 8px 12px;
+  padding-left: 26px;
+}
+
+/* The form: a white card. */
+.signup {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 32px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+/* Its title, with how many have registered across from it. */
+.signup-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.signup-head {
+  font-size: clamp(17px, 1.39vw, 20px);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.signup-count {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
   text-align: right;
-  color: var(--march-paper);
-  background: var(--march-ink);
-}
-.signup-count-figure {
-  font-family: var(--march-display);
-  font-size: clamp(24px, 2.4vw, 30px);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  color: var(--march-orange-hot);
-}
-/* Beside the hero's button: its number and label to the left, by the
-   button, and centred down it. */
-.signup-count-on-ink {
-  justify-content: center;
-  align-items: flex-start;
-  text-align: left;
-  padding: 8px 14px;
-}
-/* Narrow, so a longer label wraps under the number rather than widening the
-   block until it squeezes the form's title onto two lines on a phone. */
-.signup-count-label {
-  max-width: 10em;
-  font-size: 11px; /* the size of the fields' Optional tags */
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 .signup-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
 }
 .field {
-  margin: 0 0 18px;
-}
-.signup-row .field {
-  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .field label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 8px;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: var(--text);
 }
+/* "Phone (optional)": the word the copy gives, as the label goes on. */
 .optional {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--white);
-  background: var(--march-on-paper-soft);
-  padding: 2px 6px;
+  text-transform: lowercase;
+}
+.optional::before {
+  content: "(";
+}
+.optional::after {
+  content: ")";
 }
 .field input {
   width: 100%;
-  padding: 13px 14px;
+  height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   font-size: 16px; /* iOS zooms the page on focus below 16px */
-  font-weight: 600;
-  color: var(--march-on-paper);
-  background: var(--white);
-  border: 2px solid var(--march-line);
-  border-radius: 0;
-  transition:
-    box-shadow 0.12s ease,
-    border-color 0.12s ease;
 }
 .field input:focus {
-  outline: none;
   border-color: var(--march-orange);
-  box-shadow: 5px 5px 0 var(--march-orange);
+  outline: 1px solid var(--march-orange);
+  outline-offset: 0;
 }
 .hint {
-  margin: 7px 0 0;
-  font-size: 13px;
+  color: var(--text-secondary);
+  font-size: 14px;
   line-height: 1.4;
-  color: var(--march-on-paper-soft);
 }
 .check {
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  margin: 24px 0 0;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--march-on-paper-soft);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 .check input {
   flex: 0 0 auto;
   width: 20px;
   height: 20px;
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   accent-color: var(--march-orange);
 }
 .signup-hp {
@@ -1135,199 +765,42 @@
   overflow: hidden;
 }
 .signup-error {
-  margin: 24px 0 0;
   padding: 10px 14px;
-  font-size: 15px;
+  border-left: 3px solid var(--danger);
+  color: var(--text);
   font-weight: 600;
-  line-height: 1.4;
-  color: var(--march-on-paper);
-  border-left: var(--march-stroke) solid var(--march-orange-deep);
 }
 .signup-error[hidden] {
   display: none;
-}
-.signup-error p {
-  margin: 0;
 }
 .signup-error p + p {
   margin-top: 8px;
 }
 .signup-submit {
   width: 100%;
-  margin: 26px 0 0;
 }
 .signup-privacy {
-  margin: 16px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--march-on-paper-soft);
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
 }
 
-/* ── Mobile ────────────────────────────────────────────────────────────── */
-
-@media (max-width: 980px) {
-  .case-grid,
-  .demand-grid,
-  .register-grid {
-    grid-template-columns: 1fr;
-    gap: 36px;
-  }
-  .day-grid {
-    gap: 40px;
-  }
-  .signup,
-  .share-panel {
-    --panel-shadow: 8px;
-  }
-}
-
-@media (max-width: 860px) {
-  .photo-track {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 620px) {
-  /* Thinner rules on phones: at full weight they outweigh the smaller type. */
-  .case-head h2,
-  .demand-title {
-    padding-bottom: 14px;
-  }
-  .case-head h2::after,
-  .demand-title::after {
-    width: 64px;
-    height: 6px;
-  }
-  .turnout-step {
-    border-top-width: 3px;
-    padding-top: 14px;
-  }
-  /* Tighter, so the whole hero, Register button included, fits a phone's
-     first screen with the URL bar showing. The bottom padding keeps the
-     scroll cue clear of the button's shadow. */
-  .hero {
-    padding: 24px 0 64px;
-  }
-  .hero-logo {
-    height: 36px;
-    margin-bottom: 18px;
-  }
-  .hero-title {
-    margin-bottom: 24px;
-  }
-  .hero-lede {
-    font-size: 19px;
-  }
-  /* On a narrow screen the copy sits over the middle of the photo rather
-     than its darkest edge, so the scrim goes flat instead of angled. */
-  .hero-scrim {
-    background: linear-gradient(180deg, rgb(var(--march-ink-rgb) / 0.72) 0%, rgb(var(--march-ink-rgb) / 0.94) 88%);
-  }
-  .hero-facts {
-    gap: 12px;
-    margin-top: 24px;
-  }
-  .hero-fact {
-    min-width: 0;
-    width: 100%;
-    padding-bottom: 12px;
-  }
-  .hero-fact-label {
-    margin-bottom: 10px;
-  }
-  /* The button fills what the count leaves of the row rather than the whole
-     width, so the count stays beside it on the first screen; on a screen
-     too narrow for both, the count goes under it. */
-  .hero-cta {
-    gap: 16px;
-    margin-top: 24px;
-  }
-  .hero-cta .btn {
-    flex: 1 0 auto;
-    width: auto;
-    white-space: nowrap;
-  }
-  .hero-scroll {
-    bottom: 8px;
-  }
-  .hero-scroll svg {
-    width: 28px;
-    height: 28px;
-  }
-  .turnout-grid {
-    grid-template-columns: 1fr;
-    gap: 22px;
-  }
-  /* Three over two, each row centred: the three compact marks (MIT
-     Technology Review, The Guardian, WIRED) share the first row in thirds,
-     the two wide ones the second in halves, so neither row needs to shrink
-     its logos much. Page order is arranged to match. */
-  .press {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    justify-items: center;
-    gap: 26px 12px;
-    max-width: none;
-  }
-  .press li {
-    grid-column: span 2;
-  }
-  .press li:nth-child(n + 4) {
-    grid-column: span 3;
-  }
-  .press-logo {
-    height: calc(var(--logo-h) * 0.76);
-  }
-  .demand {
-    padding: 60px 0;
-  }
-  .demand-call {
-    margin-top: 36px;
-    padding-top: 30px;
-  }
-  .case-incident {
-    padding-left: 20px;
-    border-left-width: 8px;
-  }
-  .day-grid {
-    grid-template-columns: 1fr;
-    gap: 40px;
-  }
-  /* A phone shows one photo at a time, full width, in a carousel that
-     snaps to each in turn: a swipe moves one photo, never past the next. */
-  .photo-track {
-    display: flex;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-  }
-  .photo-item {
-    flex: 0 0 100%;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-  .photo-dots {
-    display: flex;
-  }
+@media (max-width: 767px) {
   .signup {
-    --panel-shadow: 6px;
-    padding: 22px;
+    padding: 20px;
   }
-  /* Stacked, the row's gap spaces its fields as the form's margins space the
-     rest. */
   .signup-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
   }
 }
 
-/* ── The register band's cards ─────────────────────────────────────────
-   The form, then the share card, then the thank-you card, each swapped for
-   the next in place (SignupFlow.tsx). */
+/* ── The register band's cards ───────────────────────────────────────────
+   The form, then the share card, each swapped for the next in place
+   (SignupFlow.tsx). */
 
-/* What's scrolled to after a swap: the card itself is mid-animation then,
-   offset by its shadow. The margin is added to the header's clearance, so
-   the card lands with a little space above it. */
+/* What's scrolled to after a swap. The margin is added to the header's
+   clearance, so the card lands with a little space above it. */
 .card-wrap {
   scroll-margin-top: 16px;
   /* A grid item, which would otherwise widen to fit the share card's app
@@ -1335,19 +808,16 @@
   min-width: 0;
 }
 
-/* Paper on a hard accent shadow, like the form. */
 .share-panel {
-  --panel-shadow: 12px;
-  max-width: 780px;
-  background: var(--march-paper);
-  color: var(--march-on-paper);
-  border: var(--march-stroke) solid var(--march-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
   padding: 32px;
-  box-shadow: var(--panel-shadow) var(--panel-shadow) 0 var(--march-orange);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
 }
 
-/* The swap: the card going presses flat into its shadow and is wiped away
-   downwards; the next is wiped on flat, then lifts off its shadow. Under
+/* The swap: the card going fades down and out, the next fades up in. Under
    reduced motion SignupFlow swaps them at once. */
 .signup[data-motion="leaving"],
 .share-panel[data-motion="leaving"] {
@@ -1358,107 +828,22 @@
   animation: card-in 300ms ease-out;
 }
 @keyframes card-out {
-  0% {
-    transform: none;
-    box-shadow: var(--panel-shadow) var(--panel-shadow) 0 var(--march-orange);
-    clip-path: inset(0 calc(-1 * var(--panel-shadow)) calc(-1 * var(--panel-shadow)) 0);
-  }
-  45% {
-    transform: translate(var(--panel-shadow), var(--panel-shadow));
-    box-shadow: 0 0 0 var(--march-orange);
-    clip-path: inset(0);
-  }
-  100% {
-    transform: translate(var(--panel-shadow), var(--panel-shadow));
-    box-shadow: 0 0 0 var(--march-orange);
-    clip-path: inset(100% 0 0 0);
+  to {
+    opacity: 0;
+    transform: translateY(12px);
   }
 }
 @keyframes card-in {
-  0% {
-    transform: translate(var(--panel-shadow), var(--panel-shadow));
-    box-shadow: 0 0 0 var(--march-orange);
-    clip-path: inset(0 0 100% 0);
-  }
-  55% {
-    transform: translate(var(--panel-shadow), var(--panel-shadow));
-    box-shadow: 0 0 0 var(--march-orange);
-    clip-path: inset(0);
-  }
-  100% {
-    transform: none;
-    box-shadow: var(--panel-shadow) var(--panel-shadow) 0 var(--march-orange);
-    clip-path: inset(0 calc(-1 * var(--panel-shadow)) calc(-1 * var(--panel-shadow)) 0);
+  from {
+    opacity: 0;
+    transform: translateY(12px);
   }
 }
 
-/* Focus lands on a card's heading, or the share card's confirmation, after
-   a swap, so screen readers announce it; it isn't interactive, so it doesn't
-   need a ring. */
-.share-panel h2:focus,
+/* Focus lands on the share card's confirmation after a swap, so screen
+   readers announce it; it isn't interactive, so it doesn't need a ring. */
 .share-registered:focus {
   outline: none;
-}
-/* The cards sit on the ink band, whose headings are white. */
-.share-panel h2 {
-  color: var(--march-on-paper);
-}
-.share-text {
-  max-width: calc(58 * var(--march-ch));
-  margin: 18px 0 0;
-  color: var(--march-on-paper-soft);
-}
-.share-text strong {
-  color: var(--march-on-paper);
-}
-/* Links as they are on paper, not as the ink band around the card has them. */
-.share-panel .inline-link {
-  color: var(--march-orange);
-}
-.share-panel .inline-link:hover {
-  color: var(--march-orange-hot);
-}
-
-/* ─── The main action ─── */
-.share-main {
-  margin: 24px 0 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-.share-primary .share-icon {
-  width: 1.15em;
-  height: 1.15em;
-}
-.share-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 8px 12px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--march-on-paper-soft);
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 4px;
-}
-.share-secondary:hover {
-  color: var(--march-orange);
-}
-.share-secondary .share-icon {
-  width: 16px;
-  height: 16px;
-}
-.share-icon {
-  flex: 0 0 auto;
 }
 
 /* ─── That they're registered, above the ask ─── */
@@ -1466,54 +851,92 @@
   display: flex;
   gap: 14px;
   align-items: flex-start;
-  margin: 0 0 24px;
-  padding: 0 0 20px;
-  border-bottom: var(--march-stroke) solid var(--march-ink);
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
 }
 .share-registered-mark {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  background: var(--march-orange);
-  color: var(--march-ink);
-  border: var(--march-stroke) solid var(--march-ink);
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--march-orange);
+  border-radius: 50%;
+  color: var(--march-orange);
 }
 .share-registered-mark .share-icon {
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
 }
-.share-panel p.share-registered-title {
-  margin: 0;
-  font-family: var(--march-display);
-  font-size: 26px;
-  line-height: 1.1;
-  text-transform: uppercase;
-  color: var(--march-on-paper);
+.share-registered-title {
+  font-size: clamp(17px, 1.39vw, 20px);
+  font-weight: 600;
+  line-height: 1.3;
 }
-.share-panel p.share-registered-detail {
-  margin: 4px 0 0;
+.share-registered-detail {
+  margin-top: 4px;
   overflow-wrap: anywhere;
-  color: var(--march-on-paper-soft);
+  color: var(--text-secondary);
+}
+.share-registered-detail strong {
+  font-weight: 700;
 }
 
-/* ─── The app row: scrolls sideways, on desktop too ─── */
+/* ─── Why to share ─── */
+.share-panel h2 {
+  font-size: clamp(17px, 1.39vw, 20px);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.share-text {
+  color: var(--text-secondary);
+}
+.share-text strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.share-panel h2 + .share-text,
+.share-text + .share-text {
+  margin-top: -12px;
+}
+
+/* The message the share options send, on an orange rule: its start, the
+   rest fading out. */
+.share-message {
+  max-height: 176px;
+  overflow: hidden;
+  padding: 4px 0 4px 20px;
+  border-left: 4px solid var(--march-orange);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.43;
+  white-space: pre-line;
+  mask-image: linear-gradient(to bottom, var(--black) calc(100% - 64px), transparent);
+}
+
+/* ─── The app row: swiped sideways on a touch screen, wrapped where there's a mouse ─── */
 .share-apps {
   --gap: 8px;
-  --fade: 52px;
+  --fade: 48px;
   display: flex;
   gap: var(--gap);
-  margin: 14px 0 0;
+  margin: 0;
   /* overflow-x: auto makes overflow-y compute to auto as well, so the row
-     clips vertically: the padding is room for the tiles' hover rise and
-     focus ring. */
-  padding: 10px 0 12px;
+     clips vertically: the padding is room for the focus ring. */
+  padding: 4px 2px;
   list-style: none;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--march-line) transparent;
+  scrollbar-width: none;
+}
+/* A mouse can't swipe a row with no scrollbar, so there the apps wrap onto
+   as many lines as they need, and every one shows. */
+@media (hover: hover) {
+  .share-apps {
+    flex-wrap: wrap;
+    row-gap: 16px;
+    overflow-x: visible;
+  }
 }
 /* Whichever side has more icons off-screen fades out, so the row reads as
    scrollable even when the last visible icon isn't clipped. data-fade is set
@@ -1533,15 +956,6 @@
     transparent
   );
 }
-.share-apps::-webkit-scrollbar {
-  height: 8px;
-}
-.share-apps::-webkit-scrollbar-track {
-  background: var(--march-paper-2);
-}
-.share-apps::-webkit-scrollbar-thumb {
-  background: var(--march-line);
-}
 .share-apps > li {
   flex: 0 0 auto;
 }
@@ -1549,98 +963,81 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: 84px;
-  padding: 14px 4px 12px;
+  gap: 8px;
+  width: 76px;
+  color: var(--text);
   text-decoration: none;
-  border: 2px solid transparent;
-  transition:
-    background 0.12s ease,
-    border-color 0.12s ease,
-    transform 0.12s ease;
+}
+.share-app-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  transition: background 0.15s ease;
 }
 /* Only where there's a pointer to hover with: a touch screen keeps the hover
    on whatever was last tapped, which after the swap from the form is an icon
    that happened to land under the finger. */
 @media (hover: hover) {
-  .share-app:hover {
-    background: var(--white);
-    border-color: var(--march-line);
-    transform: translateY(-3px);
+  .share-app:hover .share-app-icon {
+    background: var(--surface-2);
   }
-}
-.share-app-icon {
-  display: grid;
-  place-items: center;
-  width: 50px;
-  height: 50px;
-  border: 2px solid var(--march-line);
-  color: var(--white);
-  background: var(--brand);
 }
 .share-app-icon svg {
   width: 24px;
   height: 24px;
 }
 .share-app-label {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--march-on-paper);
+  font-size: 14px;
+  line-height: 1.4;
 }
 
-/* Both actions run full width while the panel is narrow, then settle at the
-   same fixed width from the mobile breakpoint up. */
-@media (min-width: 621px) {
-  .share-primary,
-  .share-finish .btn {
-    width: 300px;
-  }
+/* ─── The main action ─── */
+.share-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.share-primary {
+  width: 100%;
+}
+.share-icon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+/* Copying, under the share button on a phone: a link-like button. */
+.share-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 
 .share-finish {
   display: flex;
   justify-content: center;
-  margin: 34px 0 0;
-  padding: 26px 0 0;
-  border-top: var(--march-stroke) solid var(--march-line);
-}
-.share-finish .btn {
-  font-size: 12px;
-  padding: 14px 20px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
 }
 
-/* ─── Mobile ─── */
-@media (max-width: 620px) {
+@media (max-width: 767px) {
   .share-panel {
-    --panel-shadow: 6px;
-    padding: 22px;
+    padding: 20px;
   }
-  /* Let the row bleed to the panel edge so it's obvious there's more to the
-     right of it. */
-  .share-apps {
-    --fade: 40px;
-    margin-inline: -22px;
-    padding-inline: 22px;
-  }
-  /* Roughly four icons to a screen, whatever the screen is. The icon the edge
-     cuts through is what actually says "this scrolls" — the fade alone can't,
-     because where the last icon stops short of the edge it's paper fading
-     into paper. The fractions are picked so the edge lands near the middle of
-     an icon rather than in the space between two. */
-  .share-apps > li {
-    flex: 0 0 calc((100% - 4 * var(--gap)) / 4.2);
-  }
-  .share-app {
-    width: 100%;
-  }
-}
-
-/* Narrow phones: one fewer icon on screen, and the fraction retuned so the
-   edge still cuts through an icon rather than between them. */
-@media (max-width: 379px) {
-  .share-apps > li {
-    flex: 0 0 calc((100% - 3 * var(--gap)) / 3.2);
+  .share-message {
+    max-height: 216px;
   }
 }
