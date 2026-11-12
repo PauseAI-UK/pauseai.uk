@@ -697,10 +697,10 @@ export const staffCopy = {
       text: "We keep references to them in blocked addresses and unsubscribes. The global team's own copy of their membership has to be erased by asking them.",
     },
     // The field for what points back to their request, kept in the audit log's entry, and under it what to put.
-    referenceLabel: "⁂ How and when did they ask?",
+    referenceLabel: "How and when did they ask?",
     referenceHint:
       "⁂ For example “Email, 3 Nov 2026”. Don't put their name or address: this is kept after they're erased.",
-    confirm: "I'm sure: this person asked to be erased.",
+    confirm: "I'm sure this person asked to be erased",
     button: "Erase",
     cancel: "Cancel",
     done: "Erased. We've kept only their blocked addresses and unsubscribes, so we never contact them again.",
