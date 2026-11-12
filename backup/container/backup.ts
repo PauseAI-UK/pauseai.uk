@@ -84,7 +84,20 @@ async function restoreAndCount(dumpPath: string, timestamps: TimestampColumns): 
   const dir = await mkdtemp(join(tmpdir(), "restore-"));
   const data = join(dir, "data");
   try {
-    await run("initdb", ["--pgdata", data, "--auth=trust", "--username=postgres", "--no-sync"]);
+    // Production's encoding and collation (docs/development.md, "Collation"),
+    // not initdb's default from the environment's locale: the container sets
+    // none, which gets SQL_ASCII, and the site's ICU collation needs UTF8.
+    await run("initdb", [
+      "--pgdata",
+      data,
+      "--auth=trust",
+      "--username=postgres",
+      "--no-sync",
+      "--encoding=UTF8",
+      "--locale-provider=builtin",
+      "--builtin-locale=C.UTF-8",
+      "--locale=C.UTF-8",
+    ]);
     await run("pg_ctl", [
       "--pgdata",
       data,
