@@ -187,6 +187,8 @@ export const emailSettingsCopy = {
     doneBody: "⁂ You won't get it by email any more.",
     // In place of the button, where they get none of its topics by email already, for whatever reason.
     off: (topics: string) => `⁂ You're not subscribed to ${topics}`,
+    // Under that, as nothing's changed.
+    offBelow: "⁂ You can choose what you get below.",
     // After it, where the page shows their choices below.
     below: "⁂ You can choose what else you get below.",
     and: "⁂ and",

@@ -247,7 +247,7 @@ function Unsubscribe({
     return (
       <div className={styles.unsubscribe}>
         <h2>{copy.unsubscribe.off(inWords(topics))}</h2>
-        <p>{copy.unsubscribe.below}</p>
+        <p>{copy.unsubscribe.offBelow}</p>
       </div>
     );
   }

@@ -220,7 +220,7 @@ describe("EmailSettings", () => {
     await expect
       .element(page.getByRole("heading", { name: copy.unsubscribe.off(copy.inSentence.newsletter) }))
       .not.toHaveFocus();
-    await expect.element(page.getByText(copy.unsubscribe.below)).toBeVisible();
+    await expect.element(page.getByText(copy.unsubscribe.offBelow)).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.unsubscribe.button })).not.toBeInTheDocument();
   });
 
