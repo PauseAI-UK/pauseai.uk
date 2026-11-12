@@ -187,14 +187,26 @@ test("How many have registered", { tag: "@phone" }, async ({ page }) => {
 
 test("The march page in a wide window", { tag: "@desktop-only" }, async ({ page }) => {
   story(
-    "Someone opens the march page in a window much wider than the site's column. The hero's words start in line with the site's logo above them and the page below, not out at the window's edge.",
+    "Someone opens the march page in a window wider than the site's column, then makes it wider still. The hero's words start in line with the site's logo above them and the page below, and the photo keeps its place beside the words.",
   );
-  await page.setViewportSize({ width: 1920, height: 800 });
-  await openSignup(page);
   const left = async (locator: Locator) => Math.round((await locator.boundingBox())!.x);
-  const words = await left(page.getByRole("heading", { level: 1 }));
-  expect(words).toBe(await left(header(page).getByRole("link", { name: "PauseAI UK" })));
-  expect(words).toBe(await left(page.getByRole("heading", { level: 2 }).first()));
+  const hero = page.locator("section").filter({ has: page.getByRole("heading", { level: 1 }) });
+  /** How far the photo starts from the words, once the words are checked to be in line. */
+  const photoFromWords = async () => {
+    const words = await left(page.getByRole("heading", { level: 1 }));
+    expect(words).toBe(await left(header(page).getByRole("link", { name: "PauseAI UK" })));
+    expect(words).toBe(await left(page.getByRole("heading", { level: 2 }).first()));
+    return (await left(hero.getByRole("img").first())) - words;
+  };
+  await page.setViewportSize({ width: 1440, height: 800 });
+  await openSignup(page);
+  const beside = await photoFromWords();
+  await frame(page, "The top of the page, in a window 1440 pixels wide", { window: true });
+  story("They make the window wider.");
+
+  await page.setViewportSize({ width: 1920, height: 800 });
+  await layoutSettled(page, "main");
+  expect(await photoFromWords()).toBe(beside);
   await frame(page, "The top of the page, in a window 1920 pixels wide", { window: true });
 });
 
