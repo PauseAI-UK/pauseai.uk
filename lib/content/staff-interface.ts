@@ -1327,7 +1327,7 @@ All events: ${link}`,
       reply: "Write a reply…",
       answerLabel: "⁂ Your reply",
       send: "Send reply",
-      sending: "⁂ Sending…",
+      sending: "Sending…",
       discard: "Discard",
       // Over the draft, to someone with "Do not email": it goes all the same, as it answers them.
       doNotEmail:

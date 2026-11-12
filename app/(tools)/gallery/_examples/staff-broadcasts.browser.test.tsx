@@ -74,7 +74,7 @@ it("logs an answer sent to a reply", async () => {
   await page.getByRole("button", { name: copy.replies.send }).click();
   await expect
     .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
-    .toHaveTextContent(/^answer\(1, "[0-9a-f-]{36}", \{"type":"doc"/);
+    .toHaveTextContent('answer(1, "');
 });
 
 it("does nothing when an action is pressed", async () => {

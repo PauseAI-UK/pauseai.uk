@@ -382,6 +382,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     outcome: null,
     dealtBy: null,
     dealtAt: null,
+    doNotEmail: false,
   },
   {
     id: 2,
@@ -393,6 +394,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     outcome: "nothing",
     dealtBy: "jo@pauseai.uk",
     dealtAt: new Date("2026-11-07T10:00:00Z"),
+    doNotEmail: false,
   },
   {
     id: 4,
@@ -404,6 +406,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     outcome: "answered",
     dealtBy: "jo@pauseai.uk",
     dealtAt: new Date("2026-11-07T10:05:00Z"),
+    doNotEmail: false,
   },
   {
     id: 1,
@@ -415,6 +418,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     outcome: null,
     dealtBy: null,
     dealtAt: null,
+    doNotEmail: false,
   },
 ];
 

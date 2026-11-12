@@ -1,6 +1,6 @@
 // Every word of the contact preferences page (/contact-preferences) and the emails
-// that link to it: what PauseAI UK sends someone, why, and how to change
-// it. Plain and short: what each choice does, the truth of it, nothing more.
+// that link to it: how PauseAI UK contacts someone, by email, text or call,
+// why, and how to change it. Plain and short: what each choice does, the truth of it, nothing more.
 
 import type { Reason, Topic, Way } from "../contact-permissions";
 
@@ -47,7 +47,7 @@ export const emailSettingsCopy = {
   linkEmail: {
     subject: "⁂ Your PauseAI UK contact preferences",
     body: (link: string, days: number) =>
-      `⁂ Here's the link to see and change what PauseAI UK sends you:\n\n${link}\n\nIt works for ${days} days. If you didn't ask for it, you can ignore this email.`,
+      `⁂ Here's the link to see and change how PauseAI UK contacts you:\n\n${link}\n\nIt works for ${days} days. If you didn't ask for it, you can ignore this email.`,
   },
   // To someone with "No bulk emails" who just ticked a box to hear from us: what happened and how to settle it, once,
   // and nothing more. `where` is where they signed up.
@@ -70,12 +70,12 @@ export const emailSettingsCopy = {
   },
   // Asking for a link: the first page.
   start: {
-    title: "⁂ Your PauseAI UK emails",
-    lead: "⁂ See what we send you and change it. We'll email you a link, so only you can.",
+    title: "⁂ Your contact preferences",
+    lead: "⁂ See and change how PauseAI UK contacts you, by email, text or phone. We'll email you a link, so only you can.",
     label: "⁂ Your email address",
     button: "⁂ Email me a link",
     also: "⁂ Or use the link at the bottom of any email we've sent you.",
-    description: "⁂ See and change the emails and texts PauseAI UK sends you.",
+    description: "⁂ See and change how PauseAI UK contacts you: emails, texts and calls.",
   },
   sent: {
     title: "⁂ Check your email",
@@ -91,8 +91,9 @@ export const emailSettingsCopy = {
     sent: "⁂ We've emailed you a new link.",
   },
   settings: {
-    title: "⁂ Your emails and texts",
-    lead: (address: string) => `⁂ What PauseAI UK sends to ${address}, and why. Change anything and press Save.`,
+    title: "⁂ Your contact preferences",
+    lead: (address: string) =>
+      `⁂ How PauseAI UK can contact you at ${address}, and why. Change anything and press Save.`,
     save: "⁂ Save",
     saveNote: "⁂ Changes apply at once.",
     saved: "⁂ Saved.",
@@ -160,8 +161,8 @@ export const emailSettingsCopy = {
   },
   stopAll: {
     title: "⁂ Stop everything",
-    body: "⁂ No more newsletters, events or volunteering messages from PauseAI UK, and no bulk email from PauseAI Global either. We'll still email you about something you've just done, such as a link you asked for.",
-    button: "⁂ Stop all emails and texts",
+    body: "⁂ No more newsletters, event invitations or volunteering asks from PauseAI UK, by email, text or phone, and no bulk email from PauseAI Global either. We'll still email you about something you've just done, such as a link you asked for.",
+    button: "⁂ Stop all emails, texts and calls",
   },
   // The box at the top of the page an email's unsubscribe link opens.
   unsubscribe: {
@@ -173,5 +174,5 @@ export const emailSettingsCopy = {
     and: "⁂ and",
   },
   // The page from an old email's unsubscribe link: the button still works, the rest doesn't.
-  pageExpired: "⁂ To see and change everything else we send you, ask for a new link.",
+  pageExpired: "⁂ To see and change everything else, ask for a new link to your contact preferences.",
 };
