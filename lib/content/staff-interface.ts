@@ -20,7 +20,7 @@ export const staffCopy = {
   // The tooltip on a link out of the site, beside its arrow, which a screen reader reads as its description.
   opensInNewTab: "(opens in a new tab)",
   // The trail above a page's head, as a screen reader names it.
-  breadcrumb: "⁂ Where this page is",
+  breadcrumb: "Where this page is",
   login: {
     title: "Staff log in",
     intro: "Enter your staff email to sign in on this browser.",
