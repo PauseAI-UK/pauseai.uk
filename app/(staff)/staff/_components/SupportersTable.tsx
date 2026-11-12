@@ -15,7 +15,7 @@ import { campaignBySlug } from "@/lib/email-your-mp";
 import { type SupportersSearch } from "@/lib/staff-search";
 import { anyAndNone, filtersPath, pageParam, valuesOf, type Params } from "@/lib/list-params";
 import { phoneWords } from "@/lib/phone";
-import { staffDate } from "@/lib/staff-time";
+import { datesHeldTogether, staffDate } from "@/lib/staff-time";
 import { sortHref } from "@/lib/staff-sort";
 import { SUPPORTERS_LIST, type SupporterSort } from "@/lib/staff-lists";
 import { registrationStatus, SUPPORTERS_PAGE_SIZE, type SupporterPlaceName, type SupporterRow } from "@/lib/supporters";
@@ -102,9 +102,9 @@ function FoundAddresses({ states, channel, s }: { states: ContactState[]; channe
   });
 }
 
-/** Reasons in a cell, a line each. */
+/** Reasons in a cell, a line each, the date in each held together where the line wraps. */
 function Reasons({ reasons }: { reasons: string[] }) {
-  return reasons.map((reason, i) => <div key={i}>{reason}</div>);
+  return reasons.map((reason, i) => <div key={i}>{datesHeldTogether(reason)}</div>);
 }
 
 /**
@@ -143,6 +143,7 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
       key: "name",
       label: copy.columns.name,
       heading: heading("name", copy.columns.name),
+      words: "name",
       text: (s) => s.name,
       cell: (s) => <StaffLink href={`${PATH}/${s.id}`}>{s.name ?? copy.noName}</StaffLink>,
     },
@@ -196,6 +197,7 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
     states.length > 0 && {
       key: "consentReason",
       label: copy.columns.consentReason,
+      words: "line",
       text: (s) => reasonsFound(states, s).join("; "),
       cell: (s) => <Reasons reasons={reasonsFound(states, s)} />,
     },

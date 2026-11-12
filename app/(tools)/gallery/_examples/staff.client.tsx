@@ -53,7 +53,7 @@ import EraseForm from "@/app/(staff)/staff/_components/EraseForm";
 import DeletePolitician from "@/app/(staff)/staff/_components/DeletePolitician";
 import StaffAccountsTable, { AddStaff } from "@/app/(staff)/staff/_components/StaffAccountsTable";
 import type { StaffAccount } from "@/lib/server/staff-accounts";
-import UnblockForm from "@/app/(staff)/staff/_components/UnblockForm";
+import UnblockForm, { UnblockBubble } from "@/app/(staff)/staff/_components/UnblockForm";
 import NoteChanges from "@/app/(staff)/staff/_components/NoteChanges";
 import NoteForm from "@/app/(staff)/staff/_components/NoteForm";
 import NotesCard from "@/app/(staff)/staff/_components/NotesCard";
@@ -332,6 +332,24 @@ export function UnblockFormExample() {
         <>
           <UnblockForm block={exampleBlock} action={log("unblock")} />
           <UnblockForm block={exampleComplaint} action={log("unblock")} />
+        </>
+      )}
+    </Logged>
+  );
+}
+
+/**
+ * A row's button that opens the bubble asking why, its form logged, and what
+ * shows for a complaint instead. Its address is its own, as the bubble's ID
+ * is made from it, and the table's example is on the same page.
+ */
+export function UnblockBubbleExample() {
+  return (
+    <Logged>
+      {(log) => (
+        <>
+          <UnblockBubble block={{ address: "bounced@parliament.example", canReset: true }} action={log("unblock")} />
+          <UnblockBubble block={exampleComplaint} action={log("unblock")} />
         </>
       )}
     </Logged>

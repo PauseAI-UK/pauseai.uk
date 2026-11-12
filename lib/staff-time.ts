@@ -10,6 +10,19 @@ export function staffTime(at: Date): string {
   return `${staffDate(at)}, ${staffClock(at)}`;
 }
 
+/** A date as staffDate or staffTime writes it, wherever it is in some words. */
+const DATE_IN_WORDS = /\d{1,2} [A-Z][a-z]+ \d{4}(?:, \d{2}:\d{2})?/g;
+
+/**
+ * Words with each date in them held together, so a line that wraps never
+ * breaks inside one: the date's spaces are no-break spaces. For a date in
+ * a sentence in a table's cell; a date on its own there is a When
+ * (ui/When.tsx).
+ */
+export function datesHeldTogether(words: string): string {
+  return words.replace(DATE_IN_WORDS, (date) => date.replaceAll(" ", " "));
+}
+
 /** The time of day, to the minute, in UTC, for a row under a heading that gives the day. "10:34". */
 export function staffClock(at: Date): string {
   return new Date(at).toISOString().slice(11, 16);

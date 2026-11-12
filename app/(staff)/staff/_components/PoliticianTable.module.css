@@ -12,16 +12,37 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Their answer to each ask they've answered: a line each, the answer in
-   bold, then the ask in the secondary colour, which wraps under it. */
+/* The asks they've answered, as a small table in the cell: each ask's
+   title, in the secondary colour, and at its right their answer, in bold,
+   ticked or crossed. The answers' column is as wide as the longest of
+   them, "✕ Declined", so they start level with each other down the whole
+   list. Never wider than a title needs. */
 .asks {
   display: grid;
-  gap: var(--space-1);
+  grid-template-columns: minmax(7rem, 1fr) 5.5rem;
+  gap: var(--space-1) var(--space-2);
+  max-width: 19rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.asks li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+/* A title never wraps: one longer than its room is cut off with "…", so
+   it doesn't widen the list or make its row taller. The whole of it is its
+   tooltip, and it's the way to the ask. */
 .ask {
+  overflow: hidden;
   color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.answer {
+  white-space: nowrap;
 }

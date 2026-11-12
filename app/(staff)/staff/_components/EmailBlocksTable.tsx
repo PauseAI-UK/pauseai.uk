@@ -6,7 +6,7 @@ import type { DownloadFormat } from "@/lib/staff-list";
 import { staffTime } from "@/lib/staff-time";
 import Reason, { problemSource } from "./BounceReason";
 import LetterLink from "./LetterLink";
-import UnblockForm from "./UnblockForm";
+import { UnblockBubble } from "./UnblockForm";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import TestTag from "./TestTag";
 
@@ -26,8 +26,8 @@ function sentWords(block: EmailBlock): string | null {
  * the address and whose, politicians' then supporters', each linked to
  * their page; why, and the email that found it out (a letter
  * linked with `letterLinks`); how many emails haven't been sent since;
- * since when; and with `unblock`, a way to unblock each, which a download
- * leaves out.
+ * since when; and with `unblock`, a button that opens the way to unblock
+ * each, which a download leaves out.
  */
 export function blockColumns(
   letterLinks: boolean,
@@ -38,6 +38,7 @@ export function blockColumns(
     {
       key: "whose",
       label: copy.columns.whose,
+      words: "name",
       text: (b) => [...b.politicians.map((p) => p.name), ...b.supporters.map(supporterName)].join("; "),
       cell: (b) => [
         ...b.politicians.map((p, i) => (
@@ -71,6 +72,7 @@ export function blockColumns(
     {
       key: "sent",
       label: copy.columns.sent,
+      words: "name",
       text: sentWords,
       cell: (b) =>
         b.letter ? (
@@ -80,11 +82,10 @@ export function blockColumns(
         ),
     },
     { key: "refused", label: copy.columns.refused, short: true, text: (b) => b.refused, cell: (b) => b.refused },
-    // Free to wrap, its date over its time, to leave Unblock its line.
-    { key: "since", label: copy.columns.since, text: (b) => b.since, cell: (b) => staffTime(b.since) },
+    { key: "since", label: copy.columns.since, short: true, text: (b) => b.since, cell: (b) => staffTime(b.since) },
   ];
   return unblock
-    ? [...columns, { key: "unblock", label: "", cell: (b) => <UnblockForm block={b} action={unblock} /> }]
+    ? [...columns, { key: "unblock", label: "", end: true, cell: (b) => <UnblockBubble block={b} action={unblock} /> }]
     : columns;
 }
 

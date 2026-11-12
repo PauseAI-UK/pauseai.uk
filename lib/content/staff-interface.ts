@@ -1857,9 +1857,12 @@ All events: ${link}`,
     } as Record<string, string>,
     // A complaint can't be undone by staff, only by the person.
     cantReset: "Can't be unblocked: they marked our email as spam.",
-    // In the unblock form's field, and its name: the note for the audit log.
+    // In the unblock form's field, and its name: the note for the audit log. In a row's bubble, the label over the field.
     note: "Why unblock it?",
     unblock: "Unblock",
+    // A row's button in a list of blocked addresses, which opens the bubble that asks why; and the button that closes it.
+    unblockOpen: "Unblock…",
+    cancel: "Cancel",
     problemsTitle: "History",
   },
   // The email staff get when a letter hard-bounces or is complained about.

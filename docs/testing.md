@@ -190,6 +190,17 @@ each `await frame(page, "caption")` a **frame**: a caption and, when
 screenshots are on, a screenshot. The checks go between the frames. The
 tests know nothing about main.
 
+A frame makes one check of its own, the storyboard's only check of
+layout. On the desktop, a frame of a staff page fails its flow if a date
+in one of the page's tables is on two lines
+(`tests/storyboard/table-dates.ts`): "16 Oct 2026" or "16 Oct 2026,
+10:34", broken anywhere within it. It runs with screenshots on or off, so
+the gate fails on it too. It reads where the browser drew each date, so a
+flow has only to visit a list for its dates to be checked. Phones are left
+out, as a phone's tables scroll sideways. The fix is in the table, not the
+flow: a column of dates is a short one, and a date among other words is a
+`When` (`docs/style-guide.md`, "Lists").
+
 Each spec file declares its section after its imports: its name on the
 review page, the heading it goes under, and its place there, in tens, so a
 new one fits between two:
@@ -1037,6 +1048,8 @@ import("@/tests/next-headers"))` and put the session cookie in
   the navigation's pages, and its title is one of the two heads'
   (`docs/style-guide.md`, "Kinds of page"), or
   `tests/checks/staff-page-kinds.test.ts` fails.
+- A date in a staff table stays on one line, or the flows that picture
+  the table fail ("The storyboard", above).
 - A new page needs nothing extra: the route list picks it up. A new dynamic
   route (`[slug]`) needs an example in `tests/routes.ts`, or
   `tests/routes.test.ts` fails.

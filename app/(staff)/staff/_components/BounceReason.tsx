@@ -1,5 +1,6 @@
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
+import Shortened from "./ui/Shortened";
 import styles from "./BounceReason.module.css";
 
 /** Where a problem came from: a hold, from CiviCRM; a bounce found in someone's Gmail; else Postmark, which told us. */
@@ -27,8 +28,8 @@ export function firstSentence(reason: string): string | null {
  * Why an address bounced or was blocked, in the words of whoever told us,
  * then who that was, as a lozenge; never squeezed narrower than a few words,
  * so on a phone its table scrolls sideways instead. A reason longer than
- * its first sentence shows that, and "…" in a small pill, which unfolds
- * the whole of it, and folds it again; its lozenge just after, either way.
+ * its first sentence shows that, and unfolds to the whole of it
+ * (ui/Shortened); its lozenge just after, either way.
  */
 export default function BounceReason({
   reason,
@@ -50,14 +51,9 @@ export default function BounceReason({
   }
   return (
     <span className={styles.reason}>
-      <details className={styles.fold}>
-        <summary>
-          <span className={styles.short}>
-            {short} <span className={styles.more}>…</span>
-          </span>
-          <span className={styles.whole}>{reason}</span> {source}
-        </summary>
-      </details>
+      <Shortened short={short} whole={reason}>
+        {source}
+      </Shortened>
     </span>
   );
 }

@@ -196,6 +196,7 @@ function eventColumns(
       key: "name",
       label: copy.columns.name,
       heading: heading("name", copy.columns.name),
+      words: "name",
       cell: (event) => (
         <span className={styles.name}>
           <ExternalLink href={event.url}>{event.name}</ExternalLink>

@@ -699,8 +699,9 @@ test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
   await expect(row).toContainText(staffCopy.emails.kinds.hold);
   await frame(page, "Supporters' blocked emails");
   story("Staff lift it, with a note. Only a new hold in CiviCRM blocks it again.");
+  await row.getByRole("button", { name: staffCopy.emails.unblockOpen }).click();
   await row.getByLabel(staffCopy.emails.note).fill("Global say the address works again");
-  await row.getByRole("button", { name: staffCopy.emails.unblock }).click();
+  await row.getByRole("button", { name: staffCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
   await frame(page, "Supporters' blocked emails, empty");
 });

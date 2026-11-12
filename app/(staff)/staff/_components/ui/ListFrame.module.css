@@ -36,11 +36,40 @@
   white-space: nowrap;
 }
 
+/* A column of words keeps room for a few of them on a line. A table too
+   wide for its window scrolls sideways (Table), but the browser first
+   squeezes every column that wraps to its longest word, leaving a name or
+   a subject as a column of single words. A name's room is two or three
+   words, a line's four or five: enough to read, and no more, as each rem
+   of it is one more the table scrolls by. */
+.name {
+  min-width: 9rem;
+}
+
+.line {
+  min-width: 13rem;
+}
+
 /* A row's buttons, at the right edge. */
 .end {
   width: 1%;
   text-align: right;
   white-space: nowrap;
+}
+
+/* Wider than a phone, they stay at the window's right edge while a table
+   too wide for it scrolls under them, so a row's button is always in
+   reach. On a phone they'd cover too much of the row. The cell is filled,
+   as an odd row's cells aren't, so what scrolls under doesn't show through
+   (the class twice, to win over Table's cells but not its stripes), and
+   ruled off at its left. */
+@media (min-width: 721px) {
+  .end.end {
+    position: sticky;
+    right: 0;
+    background: var(--row-bg, var(--surface));
+    box-shadow: -1px 0 0 var(--border);
+  }
 }
 
 /* Previous, the page numbers and Next, in a row. */

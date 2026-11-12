@@ -4,6 +4,7 @@ import { emailView } from "../fixtures/email-view";
 import type { OutboxEmail } from "@/lib/server/fixtures/outbox";
 import { LOCAL_URL } from "../checkout.mjs";
 import type { PlaceholderText } from "./report/frames";
+import { tableDatesOnOneLine } from "./table-dates";
 
 /**
  * A frame of the storyboard: a caption, saying what the picture shows, and, when the run takes screenshots
@@ -28,6 +29,9 @@ import type { PlaceholderText } from "./report/frames";
  *
  * Each frame also records the placeholders it pictures (placeholdersOnPage), for
  * `npm run copy` to show the copy waiting for approval where it appears.
+ *
+ * Every frame of a staff page on the desktop, pictured or not, fails the
+ * flow if a date in one of its tables is on two lines (table-dates.ts).
  */
 export async function frame(
   page: Page,
@@ -37,6 +41,7 @@ export async function frame(
   const info = test.info();
   const index = info.annotations.filter((a) => a.type === "frame").length + 1;
   info.annotations.push({ type: "frame", description: caption });
+  await tableDatesOnOneLine(page);
   if (process.env.STORYBOARD_SHOTS !== "1") return;
 
   // The pointer is wherever the last click left it, which, as the page

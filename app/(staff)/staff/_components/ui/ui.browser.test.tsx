@@ -23,6 +23,8 @@ import DownloadMenu from "./DownloadMenu";
 import Grid, { Card, Column } from "./Grid";
 import Progress from "./Progress";
 import CopyButton from "./CopyButton";
+import Shortened, { cutAtWord } from "./Shortened";
+import When from "./When";
 
 import { renderToString } from "react-dom/server";
 import { NAV_FOLD_KEY } from "@/lib/staff-nav";
@@ -403,11 +405,38 @@ describe("Bubble", () => {
     const scrolled = vi.spyOn(window, "scrollBy");
     await page.getByRole("button", { name: "Low" }).click();
     await expect.poll(() => scrolled.mock.calls.length).toBe(1);
+    // At once: a press on what's in the bubble mustn't land while the page is still moving.
+    expect(scrolled.mock.calls[0][0]).toMatchObject({ behavior: "instant" });
     await expect
       .poll(() => document.getElementById("low")!.getBoundingClientRect().bottom)
       .toBeLessThanOrEqual(window.innerHeight);
     expect(page.getByRole("button", { name: "Low" }).element().getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+    // The page was long enough to scroll that far, so it's left as long as it was.
+    expect(document.body.style.paddingBottom).toBe("");
     scrolled.mockRestore();
+  });
+
+  it("at the foot of a page too short to scroll it into view, lengthens the page while it's open", async () => {
+    const low = (
+      <>
+        <div style={{ height: `${window.innerHeight - 40}px` }} />
+        <Bubble id="foot" label="Foot">
+          <p style={{ height: "200px" }}>Tall words</p>
+        </Bubble>
+      </>
+    );
+    const { unmount } = await render(low);
+    const bottom = () => document.getElementById("foot")!.getBoundingClientRect().bottom;
+    await page.getByRole("button", { name: "Foot" }).click();
+    await expect.poll(bottom).toBeLessThanOrEqual(window.innerHeight);
+    expect(parseFloat(document.body.style.paddingBottom)).toBeGreaterThan(0);
+    // Closed, the page is as long as it was; and so it is when the bubble goes while it's open.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.body.style.paddingBottom).toBe("");
+    await page.getByRole("button", { name: "Foot" }).click();
+    await expect.poll(() => parseFloat(document.body.style.paddingBottom)).toBeGreaterThan(0);
+    await unmount();
+    expect(document.body.style.paddingBottom).toBe("");
   });
 
   it("has a box alone for a button of its own, taking a class for its width", async () => {
@@ -831,6 +860,85 @@ describe("ListTable", () => {
     await render(<ListTable columns={columns} rows={rows} rowKey={(r) => r.name} />);
     await expect.element(page.getByRole("cell", { name: "Bob" })).toBeVisible();
     expect(document.querySelector("th")!.textContent).toBe("Name");
+  });
+
+  it("keeps a column of words room for a few of them in a box too narrow for the table", async () => {
+    const words = "Request to co-sign the letter on frontier AI risks";
+    await render(
+      <div style={{ width: 200 }}>
+        <ListTable
+          columns={[
+            { key: "who", label: "Who", words: "name", cell: () => words },
+            { key: "subject", label: "Subject", words: "line", cell: () => words },
+            { key: "other", label: "Other", cell: () => words },
+          ]}
+          rows={[{ name: "Ann", count: 1 }]}
+          rowKey={(r) => r.name}
+        />
+      </div>,
+    );
+    const widths = [...document.querySelectorAll("td")].map((cell) => cell.getBoundingClientRect().width);
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    expect(widths[0]).toBeGreaterThanOrEqual(9 * rem);
+    expect(widths[1]).toBeGreaterThanOrEqual(13 * rem);
+    // One that doesn't say is squeezed to its longest word.
+    expect(widths[2]).toBeLessThan(9 * rem);
+  });
+});
+
+describe("Shortened", () => {
+  it("shows the start and …, which unfolds the whole in its place, and folds it again; what follows stays", async () => {
+    await render(
+      <Shortened short="Please make the" whole="Please make the Millennium Dome into a giant pause button">
+        <Tag>Postmark</Tag>
+      </Shortened>,
+    );
+    const more = page.getByText("…", { exact: true });
+    const whole = page.getByText("Please make the Millennium Dome into a giant pause button", { exact: true });
+    await expect.element(more).toBeVisible();
+    await expect.element(whole).not.toBeVisible();
+    await more.click();
+    await expect.element(whole).toBeVisible();
+    await expect.element(more).not.toBeVisible();
+    await expect.element(page.getByText("Postmark")).toBeVisible();
+    await whole.click();
+    await expect.element(more).toBeVisible();
+    await expect.element(page.getByText("Postmark")).toBeVisible();
+  });
+});
+
+describe("cutAtWord", () => {
+  it.each([
+    ["Please make the Millennium Dome into a giant pause button", 40, "Please make the Millennium Dome into a"],
+    // A space just past the limit ends a word that fits whole.
+    ["An import was held today", 19, "An import was held"],
+    // One word longer than the limit is cut where it reaches it.
+    ["Supercalifragilisticexpialidocious", 10, "Supercalif"],
+  ])("cuts %s at %i characters to %s", (text, max, short) => {
+    expect(cutAtWord(text, max)).toBe(short);
+  });
+
+  it("has nothing to cut from words that fit", () => {
+    expect(cutAtWord("An import was held", 18)).toBeNull();
+    expect(cutAtWord("", 40)).toBeNull();
+  });
+});
+
+describe("When", () => {
+  it("says the day and the time, or the day alone, in UTC, and never breaks across lines", async () => {
+    const at = new Date("2026-10-16T10:34:00Z");
+    await render(
+      <div style={{ width: 30 }}>
+        <When at={at} />
+        <When at={at} day />
+      </div>,
+    );
+    const [time, day] = [...document.querySelectorAll("time")];
+    expect(time.textContent).toBe("16 Oct 2026, 10:34");
+    expect(day.textContent).toBe("16 Oct 2026");
+    expect(time.dateTime).toBe("2026-10-16T10:34:00.000Z");
+    expect(time.getClientRects()).toHaveLength(1);
+    expect(day.getClientRects()).toHaveLength(1);
   });
 });
 
