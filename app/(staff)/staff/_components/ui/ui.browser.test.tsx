@@ -884,6 +884,30 @@ describe("ListTable", () => {
     // One that doesn't say is squeezed to its longest word.
     expect(widths[2]).toBeLessThan(9 * rem);
   });
+
+  it("breaks a heading once, after its first word, when its column says so, however narrow the table", async () => {
+    await render(
+      <div style={{ width: 1 }}>
+        <ListTable
+          columns={[
+            { key: "to", label: "Emails to them", breakOnce: true, cell: () => 1 },
+            { key: "from", label: "Emails from them", cell: () => 2 },
+          ]}
+          rows={[{ name: "Ann", count: 1 }]}
+          rowKey={(r) => r.name}
+        />
+      </div>,
+    );
+    const lines = (heading: Element) => {
+      const range = document.createRange();
+      range.selectNodeContents(heading);
+      return new Set([...range.getClientRects()].map((box) => box.top)).size;
+    };
+    const [once, everyWord] = document.querySelectorAll("th");
+    expect(once.textContent).toBe("Emails to them");
+    expect(lines(once)).toBe(2);
+    expect(lines(everyWord)).toBe(3);
+  });
 });
 
 describe("Shortened", () => {

@@ -1183,9 +1183,6 @@ export const staffKit: Group = {
                 <Table>
                   <thead>
                     <tr>
-                      <SortHeading sortKey="name" current={{ key: "from", dir: "desc" }} href="?sort=name&dir=asc">
-                        Name
-                      </SortHeading>
                       <SortHeading
                         sortKey="from"
                         current={{ key: "from", dir: "desc" }}
@@ -1201,7 +1198,6 @@ export const staffKit: Group = {
                   </thead>
                   <tbody>
                     <tr>
-                      <td>Polly Placeholder</td>
                       <td>1</td>
                       <td>2</td>
                     </tr>

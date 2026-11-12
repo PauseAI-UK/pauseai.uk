@@ -78,7 +78,8 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
   };
   const { sort, dir, ...filters } = search;
   const current = POLITICIANS_LIST.sort({ sort: firstOf(sort), dir: firstOf(dir) });
-  // A count's column is as narrow as its figures, so its heading breaks once, not at every word.
+  // A count's column is as narrow as its figures, so its heading breaks once, not at every word: with its
+  // sort, and without it (`breakOnce` on the column), as the tab of pasted names has it.
   const heading = (key: PoliticianSort, label: string, count = false) => (
     <SortHeading
       key={key}
@@ -188,6 +189,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       key: "emailsToThem",
       label: staffCopy.politicians.columns.emailsToThem,
       heading: heading("letters", staffCopy.politicians.columns.emailsToThem, true),
+      breakOnce: true,
       short: true,
       className: styles.count,
       text: (p) => p.emailsToThem,
@@ -197,6 +199,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       key: "emailsFromThem",
       label: staffCopy.politicians.columns.emailsFromThem,
       heading: heading("replies", staffCopy.politicians.columns.emailsFromThem, true),
+      breakOnce: true,
       short: true,
       className: styles.count,
       text: (p) => p.emailsFromThem,

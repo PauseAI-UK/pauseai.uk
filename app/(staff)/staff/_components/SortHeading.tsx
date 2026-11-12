@@ -1,4 +1,5 @@
 import StaffLink from "./ui/StaffLink";
+import { brokenOnce } from "./ui/ListFrame";
 import type { SortSpec } from "@/lib/staff-sort";
 import styles from "./SortHeading.module.css";
 
@@ -7,11 +8,7 @@ type Props<Key extends string> = {
   current: SortSpec<Key>;
   /** The URL that sorts by this column (lib/staff-sort.ts's sortHref). */
   href: string;
-  /**
-   * For a column only as wide as its heading, such as a count's: the
-   * heading breaks after its first word and nowhere else, so its other
-   * words and its arrow stay on one line ("Emails", then "from them ▼").
-   */
+  /** The heading breaks after its first word only, its arrow beside its last (brokenOnce). */
   breakOnce?: boolean;
   children: string;
 };
@@ -46,18 +43,11 @@ export default function SortHeading<Key extends string>({
       </span>
     </>
   );
-  const [first, ...rest] = children.split(" ");
   return (
     <th aria-sort={active ? (current.dir === "asc" ? "ascending" : "descending") : undefined}>
       <StaffLink href={href} className={styles.heading}>
         {breakOnce ? (
-          <>
-            {first}{" "}
-            <span className={styles.together}>
-              {rest.join(" ")}
-              {arrows}
-            </span>
-          </>
+          brokenOnce(children, arrows)
         ) : (
           <>
             {children}
