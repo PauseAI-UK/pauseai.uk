@@ -413,7 +413,9 @@ put frames there:
   be that tree's.
 
 A full review needs every flow of main's, and a partial one those of its
-own flows that main has. `npm run worktree` starts the same thing in the
+own flows that main has. Either shows main's frames of every flow that's
+kept, so the flows a partial review carries are beside main as it is now.
+`npm run worktree` starts the same thing in the
 background as it makes a branch (`npm run storyboard -- --only-main`), so
 the first review needn't wait: a review started meanwhile waits for it to
 finish. `--fresh-main` runs main again regardless.

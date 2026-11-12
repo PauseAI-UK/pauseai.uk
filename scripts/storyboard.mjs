@@ -281,8 +281,7 @@ async function runMainSuite(workDir, lines) {
  * that main has, or every flow of main's if `wanted` is undefined: main's
  * suite is listed, and run for the flows not kept, only if the store
  * doesn't have them. `workDir` is where a run of main puts its frames on
- * their way there. Returns main's tree, what's kept of it, and the flows
- * needed.
+ * their way there. Returns main's tree and what's kept of it.
  */
 async function mainFromStore(workDir, wanted) {
   const tree = git("rev-parse", `${base}^{tree}`);
@@ -297,19 +296,20 @@ async function mainFromStore(workDir, wanted) {
   };
   if (lookAgain()) {
     console.log(`\n▶ Storyboard: main's frames of the ${needed.length} flows are kept; not running main.\n`);
-    return { tree, kept, needed };
+    return { tree, kept };
   }
   const release = await lockMain();
   try {
     // Whoever had main's checkout may have been keeping these very frames.
-    if (!lookAgain() || options.freshMain) {
+    if (!lookAgain()) {
       checkOutMain(base);
       if (!kept.flows) {
         keepRuns(STORE, tree, workDir, [], Object.fromEntries(listFlows([], MAIN_WORKTREE, mainEnv())));
         lookAgain();
       }
       if (missing.length > 0) {
-        console.log(`\n▶ Storyboard: running main for the ${missing.length} flows whose frames aren't kept.\n`);
+        const why = options.freshMain ? "afresh, as asked" : "whose frames aren't kept";
+        console.log(`\n▶ Storyboard: running main for ${missing.length} flows, ${why}.\n`);
         await runMainSuite(
           workDir,
           missing.map((key) => kept.flows[key]),
@@ -325,7 +325,7 @@ async function mainFromStore(workDir, wanted) {
   } finally {
     release();
   }
-  return { tree, kept, needed };
+  return { tree, kept };
 }
 
 /** Starts building and serving main on MAIN_URL, for this branch's suite, its output in the run's folder. */
@@ -406,7 +406,8 @@ if (options.onlyMain) {
   process.exit(0);
 }
 
-// What reviews made in layouts this one doesn't use: one review straight in DIR, and main's frames kept in each checkout.
+// Folders nothing here reads, which a checkout may have from reviews laid out another way: one review
+// straight in DIR, and main's frames kept in the checkout itself.
 for (const old of ["branch", "main", "main-run", "diff", "storyboard.json", "../storyboard-main"]) {
   rmSync(join(DIR, old), { recursive: true, force: true });
 }
@@ -457,12 +458,13 @@ if (options.main === undefined || !existsSync(branchFrames)) {
   try {
     let selected, mainSuite, foreign;
     if (fromStore) {
-      const { tree, kept, needed } = await mainFromStore(runDir, partial ? [...wanted.keys()] : undefined);
+      const { tree, kept } = await mainFromStore(runDir, partial ? [...wanted.keys()] : undefined);
       touchTree(STORE, tree);
-      // Main's pictures are linked into the run, so every path stays inside its folder: latest/ works, and
-      // pruning the store never breaks a run.
-      selected = linkFlows(STORE, kept, new Set(needed), runDir);
-      // Carried: only flows main still has, and none shot by this branch's suite.
+      // Every flow of main's that's kept, not just this run's: a partial run's carried flows are then
+      // beside main as it is now. The pictures are linked into the run, so every path stays inside its
+      // folder: latest/ works, and pruning the store never breaks a run.
+      selected = linkFlows(STORE, kept, { has: () => true }, runDir);
+      // Carried, for what isn't kept: only flows main still has, and none shot by this branch's suite.
       mainSuite = { has: (key) => key in kept.flows };
       foreign = "main-run/";
     } else {
