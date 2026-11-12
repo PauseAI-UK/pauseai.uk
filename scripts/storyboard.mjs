@@ -648,11 +648,12 @@ async function mainFromStore(workDir, wanted) {
  * (scripts/storyboard-reach.mjs).
  */
 async function reportMisses(carriedBefore, whole, tree, workDir) {
-  if (carriedBefore.size === 0) return;
   const missed = [];
+  let again = 0;
   for (const run of whole.frames) {
     const before = carriedBefore.get(flowKey(run));
     if (!before || ranElsewhere(run, tree)) continue;
+    again++;
     if (JSON.stringify(run.frames.map((f) => f.caption)) !== JSON.stringify(before.frames.map((f) => f.caption))) {
       missed.push(run);
       continue;
@@ -675,8 +676,9 @@ async function reportMisses(carriedBefore, whole, tree, workDir) {
       }
     }
   }
+  if (again === 0) return;
   if (missed.length === 0) {
-    console.log(`\n▶ Storyboard: the ${carriedBefore.size} carried flows look the same run afresh.\n`);
+    console.log(`\n▶ Storyboard: the ${again} flows that had been carried look the same run afresh.\n`);
     return;
   }
   console.log(
