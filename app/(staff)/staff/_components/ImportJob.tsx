@@ -49,14 +49,12 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "tidy-logs": "database",
 };
 
-/** What each job does, in a lozenge after its name. */
-const KINDS: Record<ImportJob, keyof typeof words.kinds> = {
-  "import-luma": "import",
-  "sync-politicians": "import",
+/**
+ * What a job that isn't an import does, in a lozenge after its name. An
+ * import has none: its description starts by saying it imports.
+ */
+const KINDS: Partial<Record<ImportJob, keyof typeof words.kinds>> = {
   "check-mps": "check",
-  "import-controlai": "import",
-  "import-members": "import",
-  "import-civicrm": "import",
   "read-gmail": "read",
   "send-mailings": "send",
   "tidy-logs": "tidy",
@@ -69,16 +67,17 @@ const KINDS: Record<ImportJob, keyof typeof words.kinds> = {
  */
 const OUTSIDE: Partial<Record<ImportJob, string>> = {
   "import-luma": words.changesLuma,
-  "read-gmail": words.emails,
+  "read-gmail": words.kinds.send,
 };
 
 /** What a job does, and what it changes outside the site, if anything, as lozenges. */
 function JobTags({ job }: { job: ImportJob }) {
+  const kind = KINDS[job];
   const outside = OUTSIDE[job];
   return (
     <>
-      <Tag>{words.kinds[KINDS[job]]}</Tag>
-      {outside && <Tag tone="amber">{outside}</Tag>}
+      {kind && <Tag>{words.kinds[kind]}</Tag>}
+      {outside && <Tag>{outside}</Tag>}
     </>
   );
 }

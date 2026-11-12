@@ -120,15 +120,19 @@ describe("ImportOverview", () => {
         staffCopy.tidying.introLast.after,
       ].join(""),
     );
-    // After its name, what it does; then, for the Luma import and reading Gmail, what they change outside the site.
+    // After its name, what it does, unless it's an import; then, for the Luma import and reading Gmail, what they
+    // change outside the site. Every lozenge plain.
     const kinds = staffCopy.import.kinds;
     expect(cards[0].querySelector("h3")!.textContent).toBe(
-      `${jobTitles["import-luma"]}${kinds.import}${staffCopy.import.changesLuma}`,
+      `${jobTitles["import-luma"]}${staffCopy.import.changesLuma}`,
     );
-    expect(cards[1].querySelector("h3")!.textContent).toBe(
-      `${jobTitles["read-gmail"]}${kinds.read}${staffCopy.import.emails}`,
-    );
-    expect(cards[3].querySelector("h3")!.textContent).toBe(`${jobTitles["import-civicrm"]}${kinds.import}`);
+    expect(cards[1].querySelector("h3")!.textContent).toBe(`${jobTitles["read-gmail"]}${kinds.read}${kinds.send}`);
+    expect(cards[3].querySelector("h3")!.textContent).toBe(jobTitles["import-civicrm"]);
+    expect(
+      cards
+        .flatMap((card) => [...card.querySelectorAll("h3 > span")])
+        .some((tag) => /green|amber|red|blue/.test(tag.className)),
+    ).toBe(false);
     expect(cards[4].querySelector("h3")!.textContent).toBe(`${jobTitles["send-mailings"]}${kinds.send}`);
     expect(cards[6].querySelector("h3")!.textContent).toBe(`${jobTitles["check-mps"]}${kinds.check}`);
     expect(cards[8].querySelector("h3")!.textContent).toBe(`${jobTitles["tidy-logs"]}${kinds.tidy}`);
@@ -209,10 +213,11 @@ describe("ImportJobPage", () => {
     const head = page.getByRole("banner").element();
     expect(page.getByRole("heading", { level: 1 }).element().textContent).toBe(jobTitles["sync-politicians"]);
     await expect.element(page.getByRole("img", { name: staffCopy.import.airtable })).toBeVisible();
-    // The schedule's and what it does are plain lozenges: only a run's ending is in colour.
+    // The schedule's lozenge is plain, and alone, as an import has none for what it does: only a run's ending is in
+    // colour.
     const lozenges = [...head.querySelectorAll("h1 ~ span > span")];
-    expect(lozenges.map((tag) => tag.textContent)).toEqual([staffCopy.import.nightly, staffCopy.import.kinds.import]);
-    expect(lozenges.map((tag) => tag.className.match(/green|amber|red|blue/))).toEqual([null, null]);
+    expect(lozenges.map((tag) => tag.textContent)).toEqual([staffCopy.import.nightly]);
+    expect(lozenges.map((tag) => tag.className.match(/green|amber|red|blue/))).toEqual([null]);
     // What it does is under the head, not in it.
     expect(head.textContent).not.toContain(staffCopy.syncs.intro.link);
     expect(head.nextElementSibling!.textContent).toContain(staffCopy.syncs.intro.link);

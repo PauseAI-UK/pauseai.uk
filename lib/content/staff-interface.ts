@@ -2632,19 +2632,17 @@ All events: ${link}`,
     civicrm: "CiviCRM",
     gmail: "Gmail",
     nightly: "Nightly",
-    // What each job does, a lozenge after its name: copies data in, compares
+    // What a job that isn't an import does, a lozenge after its name: compares
     // with another list, reads mail, sends mail, or keeps the site tidy.
     kinds: {
-      import: "Import",
       check: "Check",
       read: "Reads mail",
       send: "Sends mail",
       tidy: "Tidy",
     },
-    // After that, for the jobs that change something outside the site: it tags
-    // Luma's events, or it emails people (relays, notices to staff).
+    // After that, for the Luma import, which tags Luma's events. Reading Gmail,
+    // which relays mail and emails staff, has "Sends mail" (kinds.send).
     changesLuma: "Changes Luma",
-    emails: "Sends email",
     // On a job's page, while a run of it is going: one a staff member started, or one of its schedule's.
     running: (who: string, when: string) => `Running, started by ${who} at ${when}. Can only run one at a time.`,
     runningScheduled: (when: string) => `Running now, started at ${when}. Can only run one at a time.`,
