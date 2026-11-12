@@ -22,7 +22,6 @@ import Strip from "./ui/Strip";
 import styles from "./SignupUpload.module.css";
 import { phoneWords } from "@/lib/phone";
 import { emailSettingsCopy, settingsDate } from "@/lib/content/email-settings";
-import { LINK_DAYS } from "@/lib/email-settings";
 
 const copy = staffCopy.signupUpload;
 const words = copy.preview;
@@ -59,21 +58,9 @@ function Happens({ row }: { row: SignupPlanRow }) {
   );
 }
 
-/**
- * The email anyone with "No bulk emails" gets, as they'll see it: where and
- * when the forms say they signed up, which change as they're typed, and a
- * stand-in for their own link.
- */
-function BulkNoticeView({ input }: { input: Pick<SignupUploadInput, "note" | "signedOn"> }) {
-  const notice = emailSettingsCopy.bulkNotice;
-  const where = notice.paper(input.note.trim(), settingsDate(new Date(`${input.signedOn}T12:00:00Z`)));
-  return (
-    <blockquote className={styles.notice}>
-      <strong>{notice.subject}</strong>
-      <span className={styles.noticeBody}>{notice.body(where, words.summary.theirLink, LINK_DAYS)}</span>
-    </blockquote>
-  );
-}
+/** Where and when the forms say they signed up, as the email to anyone with "No bulk emails" says it: as typed. */
+const signedWhere = (input: Pick<SignupUploadInput, "note" | "signedOn">): string =>
+  emailSettingsCopy.bulkNotice.paper(input.note.trim(), settingsDate(new Date(`${input.signedOn}T12:00:00Z`)));
 
 /** The people, each with what will happen to them, those held back first, as they're what needs doing. */
 export function SignupPlanView({ plan }: { plan: SignupPlan }) {
@@ -94,9 +81,8 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
         {counts.held > 0 && <li>{summary.held(counts.held)}</li>}
         {plan.eventName && <li>{summary.event(plan.eventName, counts.register)}</li>}
         {noEmail > 0 && <li>{summary.noEmail(noEmail)}</li>}
-        {notices > 0 && <li>{summary.notices(notices)}</li>}
+        {notices > 0 && <li>{summary.notices(notices, signedWhere(plan.input))}</li>}
       </ul>
-      {notices > 0 && <BulkNoticeView input={plan.input} />}
 
       <Table>
         <thead>

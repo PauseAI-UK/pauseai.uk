@@ -366,14 +366,12 @@ export const staffCopy = {
         supporters: (fresh: number, known: number) => `${fresh} new, ${known} already on the supporters list.`,
         event: (name: string, n: number) =>
           `${n} will be registered for "${name}". Luma will email them a confirmation.`,
-        // Signing the form is joining the list, but "No bulk emails" stops it, so each is emailed how to lift it,
-        // once, as below. "Do not email" stops even that.
-        notices: (n: number) =>
-          `⁂ ${count(n, "person has", "people have")} “No bulk emails”, so will get this email, once, saying how to lift it:`,
+        // Signing the form is joining the list, but "No bulk emails" stops it, so each is emailed once, saying
+        // where they signed (`where`, as the email says it) and how to lift it. "Do not email" stops even that.
+        notices: (n: number, where: string) =>
+          `⁂ ${count(n, "person has", "people have")} “No bulk emails”, so will be emailed once, saying they signed up on ${where} and how to lift it.`,
         noEmail: (n: number) =>
-          `⁂ ${count(n, "person has", "people have")} “Do not email”, so won't hear from us at all.`,
-        // In the email as they'll see it, in place of their own link.
-        theirLink: "https://pauseai.uk/contact-preferences/…",
+          `${count(n, "person has", "people have")} “Do not email”, so won't hear from us at all.`,
       },
       table: { row: "Row", happens: "What will happen" },
       happens: {

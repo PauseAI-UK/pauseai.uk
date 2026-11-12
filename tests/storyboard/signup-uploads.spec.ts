@@ -279,11 +279,13 @@ test("Someone with “No bulk emails” signs up", async ({ page, flowDatabase, 
   await importCivicrm(request, BASE);
   runSql(flowDatabase, "UPDATE civicrm_contacts SET do_not_email = true WHERE email = 'owen.member@example.com'");
   story(
-    "Signing a paper form is joining the list, but Rhea has “No bulk emails”, so the preview says she'll be emailed, once, how to lift it, and shows that email: where and when she signed, which change as they're typed. Owen has “Do not email”, so won't hear from us at all.",
+    "Signing a paper form is joining the list, but Rhea has “No bulk emails”, so the preview says she'll be emailed, once, how to lift it, and where and when the email will say she signed, which change as they're typed. Owen has “Do not email”, so won't hear from us at all.",
   );
   await openUpload(page, flowDatabase);
   await chooseFile(page, "no-bulk.csv", "Leeds Christmas market");
-  await expect(page.getByText(copy.preview.summary.notices(1))).toBeVisible();
+  // The line up to where she signed, which the form's date fills in.
+  const notices = copy.preview.summary.notices(1, "\0").split("\0")[0];
+  await expect(page.getByText(notices, { exact: false })).toBeVisible();
   await previewWorkedOut(page);
   // On a phone the table scrolls sideways: across to what will happen, where the marks are.
   await page.getByText(copy.preview.happens.notice).scrollIntoViewIfNeeded();
