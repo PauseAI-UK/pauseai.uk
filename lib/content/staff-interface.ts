@@ -1901,7 +1901,7 @@ All events: ${link}`,
   controlAi: {
     title: "ControlAI letter to the Prime Minister backing the Sobel bill",
     intro: {
-      before: "⁂ Imports the MPs and peers who signed ",
+      before: "Imports the MPs and peers who signed ",
       link: "the letter",
       after:
         ", marking them as having signed “ControlAI's letter to the Prime Minister”. This can't be changed by hand.",
@@ -2390,9 +2390,9 @@ All events: ${link}`,
   // The hourly pull of Global's UK members from its Airtable (lib/server/members-import.ts), said as the
   // CiviCRM import below is, as the two are read side by side.
   members: {
-    title: "⁂ UK members in Airtable",
+    title: "UK members in Airtable",
     intro: {
-      before: "⁂ Imports everyone in the UK in Global's Airtable who joined through ",
+      before: "Imports everyone in the UK in Global's Airtable who joined through ",
       link: "the join form",
       after:
         " and agreed to share their details with PauseAI UK, or joined before July 2026. Their name, email, phone, town and postcode, and whether they asked to be kept informed.",
@@ -2414,7 +2414,7 @@ All events: ${link}`,
   civicrm: {
     title: "UK chapter contacts in CiviCRM",
     intro: {
-      before: "⁂ Imports everyone in the UK chapter in Global's ",
+      before: "Imports everyone in the UK chapter in Global's ",
       link: "CiviCRM",
       after:
         ": whether they're subscribed to the UK newsletter and volunteer lists, and their “No bulk emails”, “Do not email”, “Do not phone”, “Do not SMS” and hold. No names or numbers.",
@@ -2439,7 +2439,7 @@ All events: ${link}`,
     title: "Politicians from Airtable",
     // With a link to the table in the middle.
     intro: {
-      before: "⁂ Imports every politician in every body from the ",
+      before: "Imports every politician in every body from the ",
       link: "UK Parliamentarians table in Airtable",
       after:
         ", except the Airtable test MPs. Whether they've signed a letter or attended an event is not copied. Runs that change lots of data are held for checking.",
@@ -2620,7 +2620,7 @@ All events: ${link}`,
     // the rest, such as reading Gmail, sending mailings and tidying the logs.
     pageTitle: "Scheduled jobs",
     // Under the title.
-    pageIntro: "⁂ What the site does by itself, how often, and how each last went",
+    pageIntro: "Imports, mail and tidying that run on a timer",
     // Each job's icon, named for screen readers and on hover: where it reads
     // from or works on. Then how often it runs, the overview's headings and a
     // lozenge on the job's page.
@@ -2635,16 +2635,16 @@ All events: ${link}`,
     // What each job does, a lozenge after its name: copies data in, compares
     // with another list, reads mail, sends mail, or keeps the site tidy.
     kinds: {
-      import: "⁂ Import",
-      check: "⁂ Check",
-      read: "⁂ Reads mail",
-      send: "⁂ Sends mail",
-      tidy: "⁂ Tidy",
+      import: "Import",
+      check: "Check",
+      read: "Reads mail",
+      send: "Sends mail",
+      tidy: "Tidy",
     },
     // After that, for the jobs that change something outside the site: it tags
     // Luma's events, or it emails people (relays, notices to staff).
-    changesLuma: "⁂ Changes Luma",
-    emails: "⁂ Sends email",
+    changesLuma: "Changes Luma",
+    emails: "Sends email",
     // On a job's page, while a run of it is going: one a staff member started, or one of its schedule's.
     running: (who: string, when: string) => `Running, started by ${who} at ${when}. Can only run one at a time.`,
     runningScheduled: (when: string) => `Running now, started at ${when}. Can only run one at a time.`,
