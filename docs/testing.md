@@ -259,19 +259,24 @@ A flow with no frames (the redirects, a scroll position, a header) says so
 on the page: "Passed. No frames: this flow only checks."
 
 ```bash
-npm run test:storyboard   # the gate, here and in CI: desktop runs every flow, phone only those tagged @phone; no screenshots
-npm run storyboard        # the review: both viewports, every flow, screenshots, against main's frames (where this branch left origin/main), then opens the page
+npm run test:storyboard   # CI's run: desktop runs every flow, phone only those tagged @phone; no screenshots
+npm run storyboard        # the review, and the gate's storyboard: the flows a change can reach, both viewports, screenshots, against main's frames (where this branch left origin/main), then opens the page
+npm run storyboard -- --full   # the review of every flow, as before a branch merges
 npm run test:report       # Playwright's own report, with the trace of a failed flow
 ```
 
-**The gate** is what CI runs. It fails only on a flow's checks, never on
-how a page looks. CI runs it in three parts at once, each a job of its own
+**CI's run** fails only on a flow's checks, never on how a page looks. CI
+runs every flow, in three parts at once, each a job of its own
 ("Storyboard (1 of 3)" and so on), and the Storyboard check passes when
-all three have passed. `.github/workflows/ci.yml` says why.
+all three have passed. `.github/workflows/ci.yml` says why. Locally, the
+gate's storyboard is the review (`npm run gate`, below), so one run checks
+the flows and pictures them.
 
 **The review** (`scripts/storyboard.mjs`):
 
-- runs the suite against this branch, with screenshots;
+- works out which flows might show something new since the latest run
+  ("Which flows a review runs", below), and carries the rest;
+- runs those against this branch, with screenshots;
 - takes main's frames from where they're kept, running main's own suite
   first for any that aren't ("Main's frames are main's own", below);
 - pairs the frames by section, flow and caption, and diffs them pixel by
@@ -332,19 +337,22 @@ and it takes as long as the branch's. That run writes to the same file,
 the one in the checkout the review was started in, with `side` "main", so
 one place says how far the review is and which half it's on.
 
-When a full review ends, it records how it went and the commit it
-pictured (`scripts/storyboard.mjs`):
+When a review that stands for every flow ends, it records how it went, and
+the commit and tree it pictured (`scripts/storyboard.mjs`):
 
 ```
 test-results/storyboard-review.json
-{"commit":"8fbe0082…","endedAt":"2026-11-12T11:24:30.000Z","run":"2026-11-12T11-18-17","flows":566,"failed":0,"changed":1077}
+{"commit":"8fbe0082…","tree":"3c1d…","endedAt":"2026-11-12T11:24:30.000Z","complete":true,"full":false,"run":"2026-11-12T11-18-17","flows":566,"failed":0,"changed":1077}
 ```
 
-So a reader can say whether the commit it's looking at has had its review:
-it has if `commit` is that commit. A partial run, of a section or one
-viewport, doesn't write it. `changed` is null for a review with no run of
-main to compare with. The gate's status has the same `commit`, for its
-flows (below, "The gate's status").
+A review stands for every flow when it ran them all (`full`), or chose
+which to run itself, as every flow it didn't run would look as it did. So a
+reader can say whether the code it's looking at has had its review: it has
+if `tree` is that code's, uncommitted files and all. A run narrowed by
+hand, to a section, `-g` or one viewport, doesn't write it. `changed` is
+null for a review with no run of main to compare with, or one that found
+nothing to run. The gate's status has the same `commit`, for its flows
+(below, "The gate's status").
 
 **The changed frames**, for an agent: `npm run storyboard:changed`
 (`scripts/storyboard-changed.mjs`) prints the latest run's changed frames,
@@ -427,11 +435,56 @@ at the newest run that finished, and `index.html` beside it opens that
 run's page by name. The newest three runs are kept.
 
 A partial run is one that selects less than the whole suite: a section,
-`-g`, `--desktop` or `--phone`. It starts from the latest run's frames, as
-hard links, and replaces only the flows it runs, so the review stays whole.
-Each carried flow says when it was shot, and the summary line counts them.
-A flow that's gone from the suite, renamed or deleted, isn't carried. A
-full run starts empty.
+`-g`, `--desktop` or `--phone`, or the flows the review chose. It starts
+from the latest run's frames, as hard links, and replaces only the flows it
+runs, so the review stays whole. Each carried flow says when it was shot,
+and the summary line counts them. A flow that's gone from the suite,
+renamed or deleted, isn't carried. A full run starts empty.
+
+**Which flows a review runs.** Each flow keeps, with its frames, the tree of the code it ran on and what
+it opened: each page, action, API route and public file, by its path
+(`opened` in `tests/storyboard/fixtures.ts`, kept in `frames.json`). Next's
+prefetches of the pages a link points to don't count; following the link
+does. Given no selection of its own, `npm run storyboard` runs
+(`scripts/storyboard-reach.mjs`, `flowsToRun`):
+
+- each flow with nothing to carry: new to the suite, failed last time, or
+  recorded before flows kept their tree;
+- each flow that the files changed since its tree can reach;
+- when one of those files reaches every flow, every desktop flow, and the
+  phone's tagged ones, as the gate needs.
+
+The rest are carried. With nothing to run, the review says so and stops,
+in seconds. Before a branch merges, run `npm run storyboard -- --full`.
+
+What a flow can reach: its spec file and what that imports, and for each
+page it opened, the files Next renders it with (its `page.tsx` or
+`route.ts`, and each `layout.tsx`, `error.tsx` and the like from its
+folder up) and what they import. Imports of types alone (`import type`)
+don't count, as they're gone once compiled. Some files are read
+differently:
+
+- **Every flow:** the migrations and `schema.sql`, the seed data
+  (`tests/fixtures/*.sql`), `package.json`, `next.config.ts`, `proxy.ts`,
+  `instrumentation.ts`, `playwright.config.ts`, and the storyboard's set-up
+  (`EVERYTHING`). Data no import leads to can change any page.
+- **No flow:** docs, plans, investments, unit tests, scripts, and the
+  review page's own code (`NOTHING`).
+- **`staffCopy`:** a change to `lib/content/staff-interface.ts` reaches the
+  files that read the top-level keys it changed (`staffCopy.letters`, or
+  `const { letters } = staffCopy`), not every file that imports it.
+- **The gallery:** each group's flow reaches its own examples
+  (`_examples/forms.tsx` and `forms.client.tsx`), though the index it picks
+  them from imports every group's.
+- **A file read as the site runs** (a fixture's email, a CSV a flow
+  uploads) reaches the flows that reach a file naming it, or naming the
+  folder it's read from.
+- **A route's own file**, added or deleted as well as changed, reaches the
+  flows that opened a URL it serves (a layout's, any below it).
+
+`investments/storyboard-review-speed.md` has how this was checked against
+real changes, and `investments/narrow-imports.md` the imports that make a
+change reach many flows.
 
 **Main's frames are main's own.** They come from main's suite, run on
 main's build, in a checkout of main's own: a git worktree in your temp
@@ -466,6 +519,15 @@ put frames there:
   for that run (no server was already up, and no `--server`) and nothing
   in the checkout changed while it ran, as only then is the build known to
   be that tree's.
+- **Another kept tree.** Before running main for the flows not kept, the
+  review looks for the kept tree nearest main's: of each, the flows that
+  recorded their tree and what they opened, less those the change from it
+  to main's can reach ("Which flows a review runs"). From the one that
+  leaves fewest to run, it carries the rest into main's tree, each saying
+  where it came from (`carriedFrom`), and runs main for what's left. After a
+  merge or a rebase, that's usually what the last PR changed.
+  `--fresh-main` runs main whole, replacing what was carried, and lists any
+  carried flow that looks different run afresh: a change the map missed.
 
 A full review needs every flow of main's, and a partial one those of its
 own flows that main has. Either shows main's frames of every flow that's
@@ -594,7 +656,7 @@ order, alongside the others:
 - Before saying a change is done, run `npm run storyboard` and look at
   every changed frame on both viewports. Say what changed in the PR. An
   agent lists the changed frames with `npm run storyboard:changed` and
-  opens each.
+  opens each. Before the PR is marked ready, run it with `--full`.
 - A flaky flow, or a frame that differs between two runs of the same
   build, is fixed at once, never retried, skipped or masked ("Rules for new
   code", below). `retries` stays 0.
@@ -1072,8 +1134,8 @@ npm run format:check      # Prettier, on everything .prettierignore doesn't list
 npm run placeholders      # fails on placeholder copy, naming each line (also runs in npm run build)
 npm run test:browser      # Vitest browser project
 npm run test:watch        # Vitest in watch mode
-npm run test:storyboard   # Playwright: the storyboard's gate, on a fixture build
-npm run storyboard        # Playwright: the storyboard with screenshots, against main
+npm run test:storyboard   # Playwright: every flow, without screenshots, as CI runs them
+npm run storyboard        # Playwright: the flows a change can reach, with screenshots, against main (--full: every flow)
 npm run test:report       # open the last Playwright report
 ```
 
@@ -1118,8 +1180,11 @@ mistake. `--fast` stops after them anyway.
 
 **What CI runs**, in four lanes at once, as CI's jobs run:
 
-- `npm run typecheck`, then `npm run test:storyboard` (the storyboard waits
-  for the types, as in CI, and both write `.next`);
+- `npm run typecheck`, then `npm run storyboard -- --no-open` (the
+  storyboard waits for the types, as in CI, and both write `.next`). It's
+  the review, of the flows a change can reach ("Which flows a review
+  runs"), so it counts for the review too, and finds nothing to run if one
+  has already run on the same code;
 - `npm test`;
 - the four linters, then `npm run placeholders`, one after another;
 - the backup Worker's `npm ci`, tests and types.
@@ -1176,7 +1241,7 @@ limit, and check on it when it's due:
 timeout 30m npm run gate > tmp/gate.out 2>&1          # its commands have limits of their own (above)
 timeout 15m npm test                                  # usually about 5 minutes
 timeout 15m npm run test:storyboard                   # usually a few minutes
-timeout 25m npm run storyboard -- --no-open           # usually about 5, and as long again when it has to run main
+timeout 25m npm run storyboard -- --no-open           # seconds to 7 minutes, by how many flows a change reaches, and longer when it has to run main
 ```
 
 `timeout` stops the run at the limit and exits 124, so a run that ends that
