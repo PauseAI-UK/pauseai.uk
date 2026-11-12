@@ -93,6 +93,9 @@ for (const group of GROUPS) {
       }),
     );
     expect(headings.length).toBeGreaterThan(0);
+    // A frame per component, so a group's flow takes as long as the group is big: the staff kit has fifty. Its
+    // time limit grows with it, as a flat one is passed on a busy machine by the biggest group alone.
+    test.setTimeout(60_000 + headings.length * 3_000);
     for (const [i, { name, file }] of headings.entries()) {
       const shared = headings.filter((other) => other.name === name).length > 1;
       await frame(page, shared ? `${name} (${file})` : name, { of: sections.nth(i) });
