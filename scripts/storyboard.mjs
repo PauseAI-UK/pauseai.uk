@@ -350,9 +350,7 @@ function chooseFlows() {
   sources.push(...keptSources());
   if (sources.length === 0) return undefined;
   const phoneTagged = new Set([...listFlows(["--project=phone"], process.cwd(), process.env, "0").keys()]);
-  const best = nearest(sources, new Set(suite.keys()), treeBefore, reachContext(process.cwd()), phoneTagged);
-  // Every flow, and no file to say why: a run of the whole suite, as with nothing to carry from.
-  return best.run.size === suite.size && best.unknown.length === 0 ? undefined : best;
+  return nearest(sources, new Set(suite.keys()), treeBefore, reachContext(process.cwd()), phoneTagged);
 }
 
 /**
@@ -452,6 +450,8 @@ function planSummary(chosen, total) {
     ].join("\n");
   if (chosen.run.size === 0)
     return `Storyboard: none of the ${total} flows to run: the ${chosen.changed.length} files changed since ${from} reach none.`;
+  if (chosen.run.size === total)
+    return `Storyboard: every flow, ${total}: the ${chosen.changed.length} files changed since ${from} reach them all, or none of them has run on this code.`;
   const why = [
     chosen.reached && `${chosen.reached} that the ${chosen.changed.length} files changed since they last ran can reach`,
     chosen.swept && `every desktop flow, as ${chosen.everything.slice(0, 3).join(", ")} changed`,
