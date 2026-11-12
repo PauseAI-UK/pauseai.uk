@@ -7,7 +7,7 @@
   gap: var(--space-1);
 }
 
-/* The counts of letters and replies: figures that line up. */
+/* The counts of emails to them and from them: figures that line up. */
 .count {
   font-variant-numeric: tabular-nums;
 }

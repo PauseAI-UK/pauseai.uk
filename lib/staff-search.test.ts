@@ -577,6 +577,14 @@ describe("politiciansSearch", () => {
       sort: "age",
     };
     expect(politiciansSearch(unknown)).toEqual({ ...blank, ...unknown, filter: none });
+    // A sort the list doesn't have, with a direction, gives the list by name, A to Z.
+    for (const sort of ["letters", "replies"]) {
+      expect(politiciansSearch({ sort, dir: "desc" }).filter.sort).toEqual({ key: "name", dir: "asc" });
+    }
+    expect(politiciansSearch({ sort: "emailsFromThem", dir: "asc" }).filter.sort).toEqual({
+      key: "emailsFromThem",
+      dir: "asc",
+    });
     expect(politiciansSearch({ q: "  " }).filter.search).toBeUndefined();
   });
 

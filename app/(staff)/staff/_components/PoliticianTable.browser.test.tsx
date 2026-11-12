@@ -21,6 +21,16 @@ describe("PoliticianTable headings", () => {
       .element(page.getByRole("link", { name: staffCopy.fields.name }))
       .toHaveAttribute("href", "/staff/politicians?q=x&sort=name&dir=asc");
   });
+
+  it.each(["letters", "replies"])("show the list by name, A to Z, for a sort it doesn't have (%s)", async (sort) => {
+    await render(<PoliticianTable politicians={[MP]} asks={exampleAsks} search={{ sort, dir: "desc" }} />);
+    const name = page.getByRole("link", { name: staffCopy.fields.name });
+    expect(name.element().closest("th")!.getAttribute("aria-sort")).toBe("ascending");
+    expect(document.querySelectorAll("[aria-sort]")).toHaveLength(1);
+    await expect
+      .element(page.getByRole("link", { name: staffCopy.politicians.columns.emailsToThem }))
+      .toHaveAttribute("href", "/staff/politicians?sort=emailsToThem&dir=desc");
+  });
 });
 
 describe("PoliticianTable", () => {
@@ -73,7 +83,7 @@ describe("PoliticianTable", () => {
         .getByRole("cell")
         .all()
         .map((c) => c.element().textContent);
-    // Whether they're in office, the counts of letters and replies, each heading a sort, and their answer to each
+    // Whether they're in office, the counts of emails to them and from them, each heading a sort, and their answer to each
     // ask they've answered, a line each, in the asks' order, the answer in bold first.
     const flags = staffCopy.politicians.flags;
     expect(cells("Polly Placeholder").slice(4, 6)).toEqual([staffCopy.personStatuses.in_office, flags.important]);
@@ -117,8 +127,19 @@ describe("PoliticianTable", () => {
       getComputedStyle(page.getByRole("cell", { name: staffCopy.personStatuses.retired }).first().element()).whiteSpace,
     ).toBe("nowrap");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.politicians.columns.replies }))
-      .toHaveAttribute("href", "/staff/politicians?sort=replies&dir=desc");
+      .element(page.getByRole("link", { name: staffCopy.politicians.columns.emailsToThem }))
+      .toHaveAttribute("href", "/staff/politicians?sort=emailsToThem&dir=desc");
+    await expect
+      .element(page.getByRole("link", { name: staffCopy.politicians.columns.emailsFromThem }))
+      .toHaveAttribute("href", "/staff/politicians?sort=emailsFromThem&dir=desc");
+    // A count's heading breaks only after its first word, however narrow its column: the rest stays on one line.
+    for (const label of [staffCopy.politicians.columns.emailsToThem, staffCopy.politicians.columns.emailsFromThem]) {
+      const together = page.getByRole("link", { name: label }).element().querySelector("span")!;
+      expect(together.firstChild!.textContent).toBe(label.split(" ").slice(1).join(" "));
+      expect(getComputedStyle(together).whiteSpace).toBe("nowrap");
+    }
+    // The other headings break where they like.
+    expect(page.getByRole("link", { name: staffCopy.politicians.columns.first }).element().children).toHaveLength(1);
     expect(page.getByRole("button").all()).toHaveLength(0);
   });
 
@@ -134,8 +155,8 @@ describe("PoliticianTable", () => {
     const after = [
       staffCopy.politicians.flag,
       columns.asks,
-      columns.letters,
-      columns.replies,
+      columns.emailsToThem,
+      columns.emailsFromThem,
       columns.first,
       columns.last,
     ];

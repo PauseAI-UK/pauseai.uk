@@ -10,25 +10,28 @@ import { gmailAccounts } from "./gmail-accounts";
 // message is to or from one, and whose thread it is.
 
 /**
- * The book, read now: current addresses, past ones from the audit log's
- * edits, those Parliament lists, staff added, and, with `offices`, their
- * offices' (politician_addresses, but for those staff rejected); their own
- * domains; and their address forms.
+ * SQL for the book's addresses, a row for each with whose it is (`id`,
+ * `address`): current addresses, past ones from the audit log's edits, those
+ * Parliament lists, staff added, and, where `offices` (SQL) is true, their
+ * offices' (politician_addresses, but for those staff rejected).
+ */
+export const bookAddresses = (offices: string) => `SELECT id, address FROM (
+    SELECT id::int AS id, lower(email) AS address FROM notable_people
+    UNION
+    SELECT (details->>'id')::int, lower(jsonb_array_elements_text(details->'changed'->'email'))
+      FROM audit_log WHERE action = ${auditActions("edit politician")} AND details->'changed' ? 'email'
+    UNION
+    SELECT notable_person_id::int, address FROM politician_addresses
+      WHERE source <> 'rejected' AND (${offices} OR source <> 'office')
+  ) every WHERE address LIKE '%@%'`;
+
+/**
+ * The book, read now: its addresses (bookAddresses), with their offices'
+ * only with `offices`; their own domains; and their address forms.
  */
 export async function readPoliticianBook(offices: boolean): Promise<PoliticianBook> {
   const [rows, owned, people] = await Promise.all([
-    query<{ id: number; address: string }>(
-      `SELECT id, address FROM (
-       SELECT id::int AS id, lower(email) AS address FROM notable_people
-       UNION
-       SELECT (details->>'id')::int, lower(jsonb_array_elements_text(details->'changed'->'email'))
-         FROM audit_log WHERE action = ${auditActions("edit politician")} AND details->'changed' ? 'email'
-       UNION
-       SELECT notable_person_id::int, address FROM politician_addresses
-         WHERE source <> 'rejected' AND ($1 OR source <> 'office')
-     ) every WHERE address LIKE '%@%'`,
-      [offices],
-    ),
+    query<{ id: number; address: string }>(bookAddresses("$1"), [offices]),
     query<{ domain: string; id: number }>(`SELECT domain, notable_person_id::int AS id FROM politician_domains`),
     query<FormPerson>(
       `SELECT n.id::int AS id, n.name, p.house, p.constituency, n.status = 'in_office' AS "inOffice"

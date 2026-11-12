@@ -844,14 +844,14 @@ export const staffCopy = {
     tests: (n: number) => `${count(n, "match", "matches")} found for test politicians`,
     // Over the nearest names, when a search finds no one.
     closest: "No one matches exactly. These are close matches:",
-    // The counts in the list: letters written to them, and how many of those got a reply.
+    // The counts in the list, as their page's band has them: the emails that went to them, and those that came from them.
     columns: {
-      letters: "Letters",
-      replies: "Letters answered",
+      emailsToThem: "Emails to them",
+      emailsFromThem: "Emails from them",
       status: "Status",
       // Their answer to each ask they've answered.
       asks: "Asks",
-      // The first and last letter to them, reply or answer to an ask.
+      // The first and last letter to them, reply, answer to an ask, or one-off email either way.
       first: "First activity",
       last: "Last activity",
     },

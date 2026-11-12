@@ -16,7 +16,9 @@ import styles from "./ListFrame.module.css";
  * but keeps room for a few of them on a line however narrow the window: a
  * "name" (a person's, a place's) or a "line" (a subject, a title, a
  * sentence). An `end` column, a row's buttons, sits at the right edge,
- * and stays at the window's while a table too wide for it scrolls.
+ * and stays at the window's while a table too wide for it scrolls. A
+ * `breakOnce` column's heading breaks after its first word only
+ * (brokenOnce).
  */
 export type ListColumn<Row> = DownloadColumn<Row> & {
   cell: (row: Row) => ReactNode;
@@ -24,8 +26,28 @@ export type ListColumn<Row> = DownloadColumn<Row> & {
   short?: boolean;
   words?: "name" | "line";
   end?: boolean;
+  breakOnce?: boolean;
   className?: string;
 };
+
+/**
+ * A heading's words, broken after the first and nowhere else: the rest,
+ * and `after` them a sort's arrow, stay on one line ("Emails", then "from
+ * them ▼"). For a column only as wide as its heading, such as a count's,
+ * which in a table squeezed for room would break at every word.
+ */
+export function brokenOnce(label: string, after?: ReactNode) {
+  const [first, ...rest] = label.split(" ");
+  return (
+    <>
+      {first}{" "}
+      <span className={styles.together}>
+        {rest.join(" ")}
+        {after}
+      </span>
+    </>
+  );
+}
 
 /**
  * Rows as a striped table, a column each; `align="middle"` when its rows
@@ -54,7 +76,7 @@ export function ListTable<Row>({
             (column) =>
               column.heading ?? (
                 <th key={column.key} className={column.end ? styles.end : undefined}>
-                  {column.label}
+                  {column.breakOnce ? brokenOnce(column.label) : column.label}
                 </th>
               ),
           )}

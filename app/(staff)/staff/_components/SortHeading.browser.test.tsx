@@ -28,4 +28,36 @@ describe("SortHeading", () => {
     await expect.element(party).toHaveAttribute("href", "/x?sort=party&dir=asc");
     expect(party.element().closest("th")!.getAttribute("aria-sort")).toBeNull();
   });
+
+  it("breaks once, after its first word, with its other words and its arrow on one line", async () => {
+    // In a box with no room, so each column is as narrow as its heading lets it be.
+    await render(
+      <div style={{ width: "1px" }}>
+        <Table>
+          <thead>
+            <tr>
+              <SortHeading sortKey="from" current={{ key: "from", dir: "desc" }} href="/x?sort=from&dir=asc" breakOnce>
+                Emails from them
+              </SortHeading>
+              <SortHeading sortKey="to" current={{ key: "from", dir: "desc" }} href="/x?sort=to&dir=desc">
+                Emails to them
+              </SortHeading>
+            </tr>
+          </thead>
+          <tbody />
+        </Table>
+      </div>,
+    );
+    const link = page.getByRole("link", { name: "Emails from them" }).element();
+    expect(link.textContent).toMatch(/^Emails from them ▼/);
+    const [together] = link.children;
+    expect(together.firstChild!.textContent).toBe("from them");
+    expect(getComputedStyle(together).whiteSpace).toBe("nowrap");
+    // The arrow is in with those words, so it never takes a line of its own.
+    expect(together.querySelector("[aria-hidden]")!.textContent).toBe(" ▼");
+    // So it takes two lines, where a heading that isn't told to breaks at every word.
+    const lines = (heading: Element) => new Set([...heading.getClientRects()].map((box) => box.top)).size;
+    expect(lines(link)).toBe(2);
+    expect(lines(page.getByRole("link", { name: "Emails to them" }).element())).toBe(3);
+  });
 });

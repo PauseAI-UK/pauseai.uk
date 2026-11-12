@@ -12,4 +12,4 @@ A `politician_addresses (person, address, from, until)` table, written in the sa
 
 ## Hits
 
-None yet.
+- 2026-11-12: the politicians list's email counts look addresses up in the book in SQL, so each view of the list now reads the past addresses out of `audit_log`'s JSON too

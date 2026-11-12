@@ -36,6 +36,12 @@
   white-space: nowrap;
 }
 
+/* A heading that breaks once: its words after the first, and its sort's
+   arrow, on one line. */
+.together {
+  white-space: nowrap;
+}
+
 /* A column of words keeps room for a few of them on a line. A table too
    wide for its window scrolls sideways (Table), but the browser first
    squeezes every column that wraps to its longest word, leaving a name or

@@ -72,6 +72,8 @@ describe("each list's download values and contact cards", () => {
       party: examplePolitician.party,
       status: staffCopy.personStatuses.in_office,
       constituency: examplePolitician.constituency,
+      emailsToThem: 4,
+      emailsFromThem: 1,
       first: new Date("2026-09-01T00:00:00Z"),
       active: new Date("2026-10-01T00:00:00Z"),
     });
@@ -95,6 +97,8 @@ describe("each list's download values and contact cards", () => {
     expect(String(values(columns, rows[0]).asks)).toContain(": ");
     const card = politicianContact(exampleAsks);
     expect(card(rows[0])).toMatchObject({ emails: [examplePolitician.email], title: examplePolitician.party });
+    const { emailsToThem, emailsFromThem } = staffCopy.politicians.columns;
+    expect(card(rows[0]).note).toEqual(expect.arrayContaining([`${emailsToThem}: 4`, `${emailsFromThem}: 1`]));
     expect(card(rows[1])).toMatchObject({ emails: [], title: null, address: { country: null } });
   });
 

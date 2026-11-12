@@ -1174,6 +1174,39 @@ export const staffKit: Group = {
             </StaffPage>
           ),
         },
+        {
+          label:
+            "In a box too narrow for them: a count's heading that breaks once, its arrow beside its last words, and one that breaks at every word",
+          render: () => (
+            <StaffPage as="div">
+              <div style={{ width: "12rem" }}>
+                <Table>
+                  <thead>
+                    <tr>
+                      <SortHeading
+                        sortKey="from"
+                        current={{ key: "from", dir: "desc" }}
+                        href="?sort=from&dir=asc"
+                        breakOnce
+                      >
+                        Emails from them
+                      </SortHeading>
+                      <SortHeading sortKey="first" current={{ key: "from", dir: "desc" }} href="?sort=first&dir=asc">
+                        First time seen
+                      </SortHeading>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>1</td>
+                      <td>2</td>
+                    </tr>
+                  </tbody>
+                </Table>
+              </div>
+            </StaffPage>
+          ),
+        },
       ],
     },
     {

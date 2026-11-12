@@ -54,8 +54,9 @@ const marks = (p: Politician) => {
  * and party), how they stand (whether they're in office, Airtable's
  * markers, each ask they've answered and their answer beside it, a line
  * each, a long title cut short), how
- * many letters they've had and answered, and when they first and last did
- * anything with us. Which show is the filters' doing, not the rows': a
+ * many emails went to them and came from them, and when they first and
+ * last did anything with us. Which show is the filters' doing, not the
+ * rows': a
  * column is left out only when the filters fix it for every row there
  * could be. That's a house (and for peers, the constituency they don't
  * have), one party found (one left out doesn't fix it), or one status,
@@ -77,12 +78,15 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
   };
   const { sort, dir, ...filters } = search;
   const current = POLITICIANS_LIST.sort({ sort: firstOf(sort), dir: firstOf(dir) });
-  const heading = (key: PoliticianSort, label: string) => (
+  // A count's column is as narrow as its figures, so its heading breaks once, not at every word: with its
+  // sort, and without it (`breakOnce` on the column), as the tab of pasted names has it.
+  const heading = (key: PoliticianSort, label: string, count = false) => (
     <SortHeading
       key={key}
       sortKey={key}
       current={current}
       href={sortHref(POLITICIANS_LIST.path, filters, POLITICIANS_LIST.columns, current, key)}
+      breakOnce={count}
     >
       {label}
     </SortHeading>
@@ -182,22 +186,24 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
         ),
     },
     {
-      key: "letters",
-      label: staffCopy.politicians.columns.letters,
-      heading: heading("letters", staffCopy.politicians.columns.letters),
+      key: "emailsToThem",
+      label: staffCopy.politicians.columns.emailsToThem,
+      heading: heading("emailsToThem", staffCopy.politicians.columns.emailsToThem, true),
+      breakOnce: true,
       short: true,
       className: styles.count,
-      text: (p) => p.letters,
-      cell: (p) => p.letters,
+      text: (p) => p.emailsToThem,
+      cell: (p) => p.emailsToThem,
     },
     {
-      key: "replies",
-      label: staffCopy.politicians.columns.replies,
-      heading: heading("replies", staffCopy.politicians.columns.replies),
+      key: "emailsFromThem",
+      label: staffCopy.politicians.columns.emailsFromThem,
+      heading: heading("emailsFromThem", staffCopy.politicians.columns.emailsFromThem, true),
+      breakOnce: true,
       short: true,
       className: styles.count,
-      text: (p) => p.replies,
-      cell: (p) => p.replies,
+      text: (p) => p.emailsFromThem,
+      cell: (p) => p.emailsFromThem,
     },
     {
       key: "first",
@@ -222,8 +228,8 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
 /**
  * A politician as a contact card (lib/vcard.ts): their name and email,
  * their house and party, their constituency and nation, and in the note
- * whether they're in office, Airtable's markers, their letters and replies,
- * and their answer to each ask.
+ * whether they're in office, Airtable's markers, how many emails went to
+ * them and came from them, and their answer to each ask.
  */
 export function politicianContact(asks: Ask[]): (p: Politician) => Contact {
   return (p) => ({
@@ -236,8 +242,8 @@ export function politicianContact(asks: Ask[]): (p: Politician) => Contact {
     note: [
       staffCopy.personStatuses[p.status],
       marks(p),
-      `${staffCopy.politicians.columns.letters}: ${p.letters}`,
-      `${staffCopy.politicians.columns.replies}: ${p.replies}`,
+      `${staffCopy.politicians.columns.emailsToThem}: ${p.emailsToThem}`,
+      `${staffCopy.politicians.columns.emailsFromThem}: ${p.emailsFromThem}`,
       ...asks
         .filter((ask) => p.statuses[ask.slug])
         .map((ask) => `${staffCopy.statuses[p.statuses[ask.slug].status]}: ${ask.title}`),

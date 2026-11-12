@@ -720,7 +720,7 @@ that drives it or why nothing does.
   - an MP whose address is blocked, unblocked by staff.
 - `politicians.spec.ts`: The politicians from Airtable:
   - one with markers, notes, answers and PauseAI's emails;
-  - her correspondence, its switch to replies only, and the band's counts leading to it and to her asks;
+  - her correspondence, its switch to replies only, the band's counts leading to it and to her asks, and the list sorted by emails from them, with the same counts;
   - a note added on one, above Airtable's;
   - an ask staff added, chosen from the button under a politician's asks and answered;
   - a letter a politician declined, recorded from that button, then cleared;
@@ -733,7 +733,7 @@ that drives it or why nothing does.
   - the politicians mailed about an ask, and those not yet;
   - several answers to an ask, ticked in the chip's second half;
   - PauseAI's email to one, from her history, and its Gmail search copied;
-  - her own Gmail added to her aliases, and the next Gmail read finding her email from it.
+  - her own Gmail added to her aliases, the next Gmail read finding her email from it, and the list sorted by last activity, which that email dates.
 - `mailings.spec.ts`: Mailings to politicians, the old ones and those written on the site:
   - the mailings, one mailing's recipients, and a politician's history leading back to it;
   - a mailing's ask leading to its page;
