@@ -455,8 +455,10 @@ function planSummary(chosen, total) {
     return `Storyboard: none of the ${total} flows to run: nothing has changed since ${from}.`;
   if (chosen.run.size === 0)
     return `Storyboard: none of the ${total} flows to run: the ${chosen.changed.length} files changed since ${from} reach none.`;
+  if (chosen.fresh === total)
+    return `Storyboard: every flow, ${total}: none has a record to carry it by, as each was recorded another way, on other dependencies, or not at all.`;
   if (chosen.run.size === total)
-    return `Storyboard: every flow, ${total}: the ${chosen.changed.length} files changed since ${from} reach them all, or none of them has run on this code.`;
+    return `Storyboard: every flow, ${total}: the ${chosen.changed.length} files changed since ${from} reach them all.`;
   const why = [
     chosen.reached && `${chosen.reached} that the ${chosen.changed.length} files changed since they last ran can reach`,
     chosen.swept && `every desktop flow, as ${chosen.everything.slice(0, 3).join(", ")} changed`,
