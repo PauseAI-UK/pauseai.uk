@@ -2611,7 +2611,7 @@ All events: ${link}`,
   allLetters: {
     title: "Correspondence",
     // Under the title.
-    subtitle: "All emails to and from politicians",
+    subtitle: "All emails to and from notable people",
     // Over the list: how many there are.
     total: (total: number) => count(total, "email", "emails"),
     search: "Sender, politician or topic",
