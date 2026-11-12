@@ -94,6 +94,7 @@ describe("ImportOverview", () => {
     expect([...cards[4].querySelectorAll(":scope > p a")].map((a) => a.getAttribute("href"))).toEqual([
       "/staff/campaigns",
       "/staff/mailings",
+      "/staff/broadcasts",
     ]);
     expect(cards[4].querySelector(":scope > p")!.textContent).toBe(
       [
@@ -102,6 +103,8 @@ describe("ImportOverview", () => {
         staffCopy.sending.intro.after,
         staffCopy.sending.introThen.link,
         staffCopy.sending.introThen.after,
+        staffCopy.sending.introLast.link,
+        staffCopy.sending.introLast.after,
       ].join(""),
     );
     expect([...cards[8].querySelectorAll(":scope > p a")].map((a) => a.getAttribute("href"))).toEqual([

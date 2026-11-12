@@ -20,7 +20,7 @@ const copyKind = (channel: "email" | "text") => (channel === "email" ? "Email" :
 
 /** What a CiviCRM import run sent CiviCRM before it pulled, at the start of its line. */
 const sentToCivicrm = (u: { sent: number; refused: number; unanswered: number }): string =>
-  `⁂ ${count(u.sent, "opt-out", "opt-outs")} sent to CiviCRM${u.refused ? `, ${u.refused} refused` : ""}${u.unanswered ? `, ${u.unanswered} to try again` : ""}. `;
+  `${count(u.sent, "opt-out", "opt-outs")} sent to CiviCRM${u.refused ? `, ${u.refused} refused` : ""}${u.unanswered ? `, ${u.unanswered} to try again` : ""}. `;
 
 export const staffCopy = {
   metaTitle: "PauseAI Staff",
@@ -2220,13 +2220,17 @@ All events: ${link}`,
   sending: {
     title: "Sending letters and mailings",
     intro: {
-      before: "Sends ",
+      before: "⁂ Sends ",
       link: "campaign",
-      after: " and ",
+      after: ", ",
     },
-    // The intro goes on, with a second link.
+    // The intro goes on, with a second link, then a third.
     introThen: {
       link: "mailing",
+      after: " and ",
+    },
+    introLast: {
+      link: "broadcast",
       after: " messages that are ready to send.",
     },
     sendNow: "Send emails now",
@@ -2240,7 +2244,7 @@ All events: ${link}`,
       queue: { sent: number; left: number };
       broadcasts?: { started: number[]; sent: number; skipped: number; failed: number; waiting: number };
     }) =>
-      `Started ${count(r.started.length, "mailing", "mailings")}; sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}, ${r.left} left. The queue: sent ${r.queue.sent}, ${r.queue.left} left.${r.broadcasts ? ` ⁂ Broadcasts: started ${r.broadcasts.started.length}; copies sent ${r.broadcasts.sent}, skipped ${r.broadcasts.skipped}, failed ${r.broadcasts.failed}; ${r.broadcasts.waiting} waiting for CiviCRM.` : ""}`,
+      `Started ${count(r.started.length, "mailing", "mailings")}; sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}, ${r.left} left. The queue: sent ${r.queue.sent}, ${r.queue.left} left.${r.broadcasts ? ` Broadcasts: started ${r.broadcasts.started.length}; copies sent ${r.broadcasts.sent}, skipped ${r.broadcasts.skipped}, failed ${r.broadcasts.failed}; ${r.broadcasts.waiting} waiting for CiviCRM.` : ""}`,
   },
   // The nightly tidying (/api/cron/tidy-logs): this log, the audit log, forgotten drafts and old errors.
   tidying: {

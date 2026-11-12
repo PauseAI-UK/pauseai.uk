@@ -121,7 +121,10 @@ const ABOUT: Record<
   "send-mailings": {
     intro: staffCopy.sending.intro,
     href: "/staff/campaigns",
-    then: [{ ...staffCopy.sending.introThen, href: "/staff/mailings" }],
+    then: [
+      { ...staffCopy.sending.introThen, href: "/staff/mailings" },
+      { ...staffCopy.sending.introLast, href: "/staff/broadcasts" },
+    ],
     button: staffCopy.sending.sendNow,
     none: staffCopy.sending.never,
   },
