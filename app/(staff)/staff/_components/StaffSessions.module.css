@@ -1,4 +1,18 @@
-/* The way to end them all, apart from the table. */
-.actions {
-  margin-top: var(--space-5);
+/* What the sessions are, over their rows: spaced by the card, not itself. */
+.intro {
+  margin: 0;
+}
+
+/* A session's browser and system, with this browser's mark after them. */
+.name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+}
+
+/* Under them, each of when it began, when it ends and that it's kept: whole
+   on a line, so the line breaks only at a dot between two. */
+.fact {
+  white-space: nowrap;
 }

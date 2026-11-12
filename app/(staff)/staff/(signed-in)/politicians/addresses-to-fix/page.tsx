@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { listBlocks, recentProblems } from "@/lib/server/email";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { emailsSearch } from "@/lib/staff-search";
-import { filtersPath } from "@/lib/list-params";
+import { clearedTo, filtersPath } from "@/lib/list-params";
 import { unblockAddress } from "../../../actions";
 import EmailBlockFilters from "../../../_components/EmailBlockFilters";
 import EmailBlocksTable from "../../../_components/EmailBlocksTable";
@@ -20,13 +20,14 @@ export default async function MpEmailsPage({ searchParams }: { searchParams: Pro
   const [blocks, problems] = await Promise.all([listBlocks("politicians", filter), recentProblems("politicians")]);
   return (
     <Page kind="list">
-      <PageHead intro={staffCopy.emails.intro}>{staffCopy.emails.titles.mps}</PageHead>
-      <EmailBlockFilters q={q} kind={kind} action="/staff/politicians/blocked-emails" />
+      <PageHead intro={staffCopy.emails.intros.mps}>{staffCopy.emails.titles.mps}</PageHead>
+      <EmailBlockFilters q={q} kind={kind} action="/staff/politicians/addresses-to-fix" />
       <EmailBlocksTable
         blocks={blocks}
         unblock={unblockAddress}
         letterLinks={letterLinks}
-        download={(format) => filtersPath("/staff/politicians/blocked-emails/download", { q, kind, format })}
+        download={(format) => filtersPath("/staff/politicians/addresses-to-fix/download", { q, kind, format })}
+        clear={clearedTo("/staff/politicians/addresses-to-fix", { q, kind })}
       />
       <h2>{staffCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks={letterLinks} />

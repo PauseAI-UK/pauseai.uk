@@ -18,7 +18,8 @@ import CampaignName from "./CampaignName";
 import PermissionTiles from "./PermissionTiles";
 import Band, { BandFact } from "./ui/Band";
 import Counts from "./ui/Counts";
-import Grid, { Card, spanClass } from "./ui/Grid";
+import Empty from "./ui/Empty";
+import Grid, { Card, Column } from "./ui/Grid";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import styles from "./Details.module.css";
 import TestTag from "./TestTag";
@@ -293,10 +294,11 @@ const letterColumns: ListColumn<SupporterLetter>[] = [
 ];
 
 /**
- * A supporter's page: the band of what we've worked out about them, with
- * their name; a card of whether we'd contact them, a row per topic; beside
- * it, tables of the events they registered for and their letters, and
- * under those `notes`; then a
+ * A supporter's page, laid out like a politician's: the band of what we've
+ * worked out about them, with their name; then what they did, a card each:
+ * the events they registered for, their letters, `messages` and `oneOffs`;
+ * and beside those, the card of whether we'd contact them, a row per topic,
+ * over `notes`; then a
  * quiet foot, each row folded: everything they did, newest first, and
  * everything we hold, `erase` (the button to erase them) at its end.
  */
@@ -309,11 +311,11 @@ export default function SupporterDetails({
 }: {
   supporter: Details;
   erase?: ReactNode;
-  /** The messages they were sent (SupporterBroadcasts), under their letters. */
+  /** The card of the messages they were sent (SupporterBroadcasts), under their letters. */
   messages?: ReactNode;
-  /** The notes card (Notes), under their letters. */
+  /** The notes card (Notes), under whether we'd contact them. */
   notes?: ReactNode;
-  /** Their one-off emails (OneOffTable). */
+  /** The card of their one-off emails (OneOffTable). */
   oneOffs?: ReactNode;
 }) {
   const { activity, permissions, letters } = supporter;
@@ -325,36 +327,35 @@ export default function SupporterDetails({
       <SupporterBand supporter={supporter} events={eventsCounted(activity)} letters={letters.length} />
 
       <Grid>
-        <Card span={2} title={copy.detail.listsTitle} id="subscriptions">
-          <PermissionTiles permissions={permissions} />
-        </Card>
-        <div className={`${spanClass(4)} ${styles.tables}`}>
-          <section aria-labelledby="events">
-            <h2 id="events">{copy.detail.eventsTitle}</h2>
+        <Column span={4}>
+          <Card title={copy.detail.eventsTitle} id="events">
             {events.length ? (
               <ListTable columns={eventColumns} rows={events} rowKey={(a) => `${a.kind}${a.at}${a.title}`} />
             ) : (
-              <p className={styles.none}>{copy.detail.noEvents}</p>
+              <Empty>{copy.detail.noEvents}</Empty>
             )}
-          </section>
-          <section aria-labelledby="letters">
-            <h2 id="letters">{copy.detail.lettersTitle}</h2>
+          </Card>
+          <Card title={copy.detail.lettersTitle} id="letters">
             {letters.length ? (
               <ListTable columns={letterColumns} rows={letters} rowKey={(l) => l.id} />
             ) : (
-              <p className={styles.none}>{copy.detail.noLetters}</p>
+              <Empty>{copy.detail.noLetters}</Empty>
             )}
-          </section>
+          </Card>
           {messages}
           {oneOffs}
+        </Column>
+        <Column span={2}>
+          <Card look="aside" title={copy.detail.listsTitle} id="subscriptions">
+            <PermissionTiles permissions={permissions} />
+          </Card>
           {notes}
-        </div>
+        </Column>
       </Grid>
       <div className={styles.foot}>
         {activity.length === 0 ? (
           <section aria-labelledby="history" className={styles.footRow}>
-            <h2 id="history">{copy.detail.activityTitle}</h2>{" "}
-            <span className={styles.none}>{copy.detail.noActivity}</span>
+            <h2 id="history">{copy.detail.activityTitle}</h2> <Empty inline>{copy.detail.noActivity}</Empty>
           </section>
         ) : (
           <details className={styles.footRow}>

@@ -3,6 +3,7 @@ import CampaignName from "./CampaignName";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffTime } from "@/lib/staff-time";
 import type { LetterSummary } from "@/lib/server/letters";
+import Empty from "./ui/Empty";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import { Muted } from "@/components/ui/Text";
 import TestTag from "./TestTag";
@@ -109,6 +110,6 @@ const columns: ListColumn<LetterSummary>[] = [
 
 /** Letters, a row each, in the list's columns; or that there are none. */
 export default function LettersTable({ letters }: { letters: LetterSummary[] }) {
-  if (letters.length === 0) return <p>{copy.none}</p>;
+  if (letters.length === 0) return <Empty>{copy.none}</Empty>;
   return <ListTable columns={columns} rows={letters} rowKey={(l) => l.id} />;
 }

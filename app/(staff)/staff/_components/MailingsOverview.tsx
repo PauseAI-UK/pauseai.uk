@@ -10,6 +10,7 @@ import type { MailingSummary } from "@/lib/server/mailings";
 import { named } from "@/lib/email-parsing/addresses";
 import { londonWhenShort, staffDate } from "@/lib/staff-time";
 import Counts, { countsOpening, type Count } from "./ui/Counts";
+import Empty from "./ui/Empty";
 import Grid, { spanClass } from "./ui/Grid";
 import Progress from "./ui/Progress";
 import styles from "./MailingsOverview.module.css";
@@ -187,13 +188,7 @@ export default function MailingsOverview<T extends MailingSummary = MailingSumma
   /** The one to draw the eye to, just changed on its own page. */
   pulse?: number;
 }) {
-  if (groups.length === 0) {
-    return (
-      <p>
-        <Muted>{look.none}</Muted>
-      </p>
-    );
-  }
+  if (groups.length === 0) return <Empty>{look.none}</Empty>;
   const year = now.slice(0, 4);
   // On the grid, all of its row, so the page is no wider than the grid's six columns.
   return (

@@ -1,4 +1,4 @@
-import { POLITICIANS_LIST } from "@/lib/staff-lists";
+import { clearedPath, POLITICIANS_LIST } from "@/lib/staff-lists";
 import type { ReactNode } from "react";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -432,6 +432,8 @@ export default function PoliticiansList({
           rows={list.politicians}
           rowKey={(p) => p.id}
           empty={search.tab === "ticked" ? mailingCopy.pickedNone : copy.none}
+          // Not while choosing who a mailing is for, which the list's URL says too.
+          clear={choosing ? undefined : clearedPath(POLITICIANS_LIST, search, ["house"])}
         />
       )}
       {list.otherHouses > 0 && (

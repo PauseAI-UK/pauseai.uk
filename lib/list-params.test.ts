@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filtersPath, pageNumber, pageParam, pagePath } from "./list-params";
+import { clearedTo, filtersPath, pageNumber, pageParam, pagePath } from "./list-params";
 
 describe("pageNumber", () => {
   it("reads a page from 1, or the first page", () => {
@@ -24,6 +24,15 @@ describe("filtersPath", () => {
       "/staff/politicians?q=jo&status=any",
     );
     expect(filtersPath("/staff/politicians", {})).toBe("/staff/politicians");
+  });
+});
+
+describe("clearedTo", () => {
+  it("is the list's own URL while a search or filter is on, and nothing while none is", () => {
+    expect(clearedTo("/staff/things", { q: "", kind: "" })).toBeUndefined();
+    expect(clearedTo("/staff/things", { q: "ann", kind: "" })).toBe("/staff/things");
+    expect(clearedTo("/staff/things", { q: "", kind: ["hard"] })).toBe("/staff/things");
+    expect(clearedTo("/staff/things", { kind: [] })).toBeUndefined();
   });
 });
 

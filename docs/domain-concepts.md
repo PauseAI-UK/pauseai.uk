@@ -1153,10 +1153,14 @@ complaint blocks the address (`email_blocks`), and `send()` won't send to a
 blocked address, for any purpose. Staff see blocked addresses on two pages
 over the same tables, split by whether the address is a politician's now:
 
-- politicians' blocked addresses, at `/staff/politicians/blocked-emails`,
-  and on the politician's page;
-- every other (supporters', staff's and unknown ones), at
-  `/staff/supporters/blocked-emails`, for staff with `supporters`.
+- politicians' blocked addresses, on Addresses to fix
+  (`/staff/politicians/addresses-to-fix`), and on the politician's page;
+- every other (supporters', staff's and unknown ones), on Bounced emails
+  (`/staff/supporters/bounced-emails`), for staff with `supporters`.
+
+The two pages' first addresses, `/staff/politicians/blocked-emails` and
+`/staff/supporters/blocked-emails`, redirect to them, as emails to staff
+linked there (`next.config.ts`).
 
 Staff can unblock an address that bounced, which asks Postmark to send to it
 again. A complaint can't be unblocked.
@@ -1474,7 +1478,7 @@ emails, events, imports). Permissions open more
 
 - `supporters` opens every page with a member of the public's details
   (supporters, broadcasts, campaigns and their letters, who wrote to which
-  MP, Supporters' blocked emails, Import sign-ups).
+  MP, Bounced emails, Import sign-ups).
 - `admin` opens the accounts page, the audit log and the sent emails. It
   doesn't include `supporters`.
 

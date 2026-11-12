@@ -34,7 +34,9 @@ import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import Band, { BandFact } from "@/app/(staff)/staff/_components/ui/Band";
 import Counts, { countsOpening } from "@/app/(staff)/staff/_components/ui/Counts";
 import DownloadMenu from "@/app/(staff)/staff/_components/ui/DownloadMenu";
+import Empty from "@/app/(staff)/staff/_components/ui/Empty";
 import Grid, { Card, Column } from "@/app/(staff)/staff/_components/ui/Grid";
+import Rows, { Row } from "@/app/(staff)/staff/_components/ui/Rows";
 import Numbered from "@/app/(staff)/staff/_components/ui/Numbered";
 import Progress from "@/app/(staff)/staff/_components/ui/Progress";
 import Shortened, { cutAtWord } from "@/app/(staff)/staff/_components/ui/Shortened";
@@ -1060,7 +1062,25 @@ export const staffKit: Group = {
           ),
         },
         {
-          label: "Nothing found",
+          label: "Nothing in it: the frame stays, with how many, the headings and a row saying so",
+          render: () => (
+            <StaffPage as="div">
+              <ListFrame
+                count="0 rows"
+                total={0}
+                page={1}
+                pages={1}
+                pageSize={100}
+                columns={exampleColumns}
+                rows={[]}
+                rowKey={nameOf}
+                empty="Nothing here yet."
+              />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "Nothing found by its filters: the way to clear them, in the row",
           render: () => (
             <StaffPage as="div">
               <ListFrame
@@ -1073,7 +1093,98 @@ export const staffKit: Group = {
                 rows={[]}
                 rowKey={nameOf}
                 empty="Nothing found."
+                clear="#cleared"
               />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "Empty",
+      file: "app/(staff)/staff/_components/ui/Empty.tsx",
+      variants: [
+        {
+          label: "In a card, where its content would start; and in a line, beside a heading",
+          render: () => (
+            <StaffPage as="div">
+              <Grid>
+                <Card span={3} title="Letters to MPs" id="empty-letters">
+                  <Empty>No letters.</Empty>
+                </Card>
+                <Card span={3} look="aside" title="Notes" id="empty-notes">
+                  <Empty>No notes yet.</Empty>
+                </Card>
+              </Grid>
+              <p>
+                <strong>History</strong> <Empty inline>Nothing yet.</Empty>
+              </p>
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "Rows",
+      file: "app/(staff)/staff/_components/ui/Rows.tsx",
+      variants: [
+        {
+          label: "In a card: each row's main line, its second line and what ends it, the ends lined up",
+          render: () => (
+            <StaffPage as="div">
+              <Grid>
+                <Card span={3} title="Asks" id="rows-asks">
+                  <Rows>
+                    <Row second="Asked on 1 Nov 2026 · set by staff@example.org" end={<strong>Signed</strong>}>
+                      <StaffLink href="#statement">The example statement</StaffLink>
+                    </Row>
+                    <Row second="Asked on 6 Feb 2026" end={<strong>Declined</strong>}>
+                      <StaffLink href="#conference">The example conference in Exampleton next spring</StaffLink>
+                    </Row>
+                    <Row>A row of one line</Row>
+                  </Rows>
+                </Card>
+              </Grid>
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "Row",
+      file: "app/(staff)/staff/_components/ui/Rows.tsx",
+      variants: [
+        {
+          label:
+            "Led by a date, for things named by their day; in a box too narrow, the words wrap, the date and button don't",
+          render: () => (
+            <StaffPage as="div">
+              <div style={{ width: "20rem" }}>
+                <Rows label="Example events">
+                  <Row
+                    lead="16 Oct 2026"
+                    second="Exampleton · 9 going"
+                    end={
+                      <Button variant="ghost" size="small" fit>
+                        Edit
+                      </Button>
+                    }
+                  >
+                    <StaffLink href="#breakfast">Breakfast with the example organisers</StaffLink>
+                  </Row>
+                  <Row
+                    lead="7 Nov 2026"
+                    second="Online · 14 going"
+                    end={
+                      <Button variant="ghost" size="small" fit>
+                        Edit
+                      </Button>
+                    }
+                  >
+                    <StaffLink href="#meetup">First meet-up</StaffLink>
+                  </Row>
+                </Rows>
+              </div>
             </StaffPage>
           ),
         },

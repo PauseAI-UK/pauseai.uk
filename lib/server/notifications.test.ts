@@ -40,7 +40,7 @@ describeWithDatabase("notifyStaff", () => {
 describeWithDatabase("reportMailingBounces", () => {
   useTestDatabase();
 
-  const LINK = "https://pauseai.uk/staff/politicians/blocked-emails";
+  const LINK = "https://pauseai.uk/staff/politicians/addresses-to-fix";
   const words = staffCopy.notifications.mailingBounces;
   const ADDRESS = "test-mp@parliament.example";
   const NAME = "Testy McTestface MP";

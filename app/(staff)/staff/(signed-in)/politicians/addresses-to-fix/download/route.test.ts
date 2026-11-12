@@ -7,7 +7,7 @@ import { GET } from "./route";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
 
-describeWithDatabase("GET /staff/supporters/blocked-emails/download", () => {
+describeWithDatabase("GET /staff/politicians/addresses-to-fix/download", () => {
   useTestDatabase();
   beforeEach(() => {
     requestCookies.clear();
@@ -25,8 +25,8 @@ describeWithDatabase("GET /staff/supporters/blocked-emails/download", () => {
     });
     const res = await downloadAs(
       GET,
-      "https://pauseai.uk/staff/supporters/blocked-emails/download?format=json&kind=hard",
-      ["supporters"],
+      "https://pauseai.uk/staff/politicians/addresses-to-fix/download?format=json&kind=hard",
+      [],
     );
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Disposition")).toMatch(/_bounced_/);

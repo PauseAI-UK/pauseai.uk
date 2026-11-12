@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { listBlocks, recentProblems } from "@/lib/server/email";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { emailsSearch } from "@/lib/staff-search";
-import { filtersPath } from "@/lib/list-params";
+import { clearedTo, filtersPath } from "@/lib/list-params";
 import { unblockAddress } from "../../../actions";
 import EmailBlockFilters from "../../../_components/EmailBlockFilters";
 import EmailBlocksTable from "../../../_components/EmailBlocksTable";
@@ -24,13 +24,14 @@ export default async function SupporterEmailsPage({
   const [blocks, problems] = await Promise.all([listBlocks("others", filter), recentProblems("others")]);
   return (
     <Page kind="list">
-      <PageHead intro={staffCopy.emails.intro}>{staffCopy.emails.titles.supporters}</PageHead>
-      <EmailBlockFilters q={q} kind={kind} action="/staff/supporters/blocked-emails" />
+      <PageHead intro={staffCopy.emails.intros.supporters}>{staffCopy.emails.titles.supporters}</PageHead>
+      <EmailBlockFilters q={q} kind={kind} action="/staff/supporters/bounced-emails" />
       <EmailBlocksTable
         blocks={blocks}
         unblock={unblockAddress}
         letterLinks
-        download={(format) => filtersPath("/staff/supporters/blocked-emails/download", { q, kind, format })}
+        download={(format) => filtersPath("/staff/supporters/bounced-emails/download", { q, kind, format })}
+        clear={clearedTo("/staff/supporters/bounced-emails", { q, kind })}
       />
       <h2>{staffCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks />

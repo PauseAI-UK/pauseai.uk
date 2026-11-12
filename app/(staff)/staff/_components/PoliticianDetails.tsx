@@ -18,6 +18,7 @@ import { staffDate, staffTime } from "@/lib/staff-time";
 import styles from "./Details.module.css";
 import Band, { BandFact } from "./ui/Band";
 import Counts, { type Count } from "./ui/Counts";
+import Empty from "./ui/Empty";
 import Grid, { Card, Column } from "./ui/Grid";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import Strip from "./ui/Strip";
@@ -163,8 +164,8 @@ const ANSWER = "\u0000";
 /**
  * What an entry of the audit log about them says, beyond its kind: the
  * status, the note, the reason. An answer leads to everyone who gave it to
- * that ask, and the ask to the letter or event; a blocked address, to the
- * politicians' blocked emails, searched for it.
+ * that ask, and the ask to the letter or event; a blocked address, to
+ * Addresses to fix, searched for it.
  */
 function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
   const { details } = change;
@@ -208,7 +209,7 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
       // An unblock has a note, and a block the kind of problem.
       return (
         <>
-          <StaffLink href={`/staff/politicians/blocked-emails?q=${encodeURIComponent(text("address"))}`}>
+          <StaffLink href={`/staff/politicians/addresses-to-fix?q=${encodeURIComponent(text("address"))}`}>
             {text("address")}
           </StaffLink>
           <Muted> · {kind || text("note")}</Muted>
@@ -628,7 +629,11 @@ export default function PoliticianDetails({
             <Card look="aside" title={copy.statusesTitle} id="asks-title">
               <PoliticianAsks politician={politician} asks={asks} setStatus={setStatus} />
             </Card>
-            <NotesCard politicianId={politician.id} writer={notes?.reader.email ?? ""} add={notes?.add}>
+            <NotesCard
+              target={{ name: "politicianId", value: politician.id }}
+              writer={notes?.reader.email ?? ""}
+              add={notes?.add}
+            >
               {[
                 ...(notes?.notes ?? []).map((note) => (
                   <li key={note.id}>
@@ -649,7 +654,7 @@ export default function PoliticianDetails({
         <div className={styles.foot}>
           {entries.length === 0 ? (
             <section aria-labelledby="history-title" className={styles.footRow}>
-              <h2 id="history-title">{copy.historyTitle}</h2> <span className={styles.none}>{copy.noHistory}</span>
+              <h2 id="history-title">{copy.historyTitle}</h2> <Empty inline>{copy.noHistory}</Empty>
             </section>
           ) : (
             <details className={styles.footRow}>

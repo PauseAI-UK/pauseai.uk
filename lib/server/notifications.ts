@@ -65,7 +65,7 @@ export async function alertBouncedMp(
 ): Promise<void> {
   await notifyStaff(
     staffCopy.alert.subject(mpName),
-    staffCopy.alert.body(mpName, address, reason, staffLink("/staff/politicians/blocked-emails", request)),
+    staffCopy.alert.body(mpName, address, reason, staffLink("/staff/politicians/addresses-to-fix", request)),
   );
 }
 
@@ -83,7 +83,7 @@ export async function alertIfPoliticianBlocked(
     [address],
   );
   const words = staffCopy.alert.notALetter;
-  const link = staffLink("/staff/politicians/blocked-emails", request);
+  const link = staffLink("/staff/politicians/addresses-to-fix", request);
   for (const { name } of politicians) await notifyStaff(words.subject(name), words.body(name, address, reason, link));
 }
 
@@ -118,7 +118,7 @@ export async function reportMailingBounces(request: Request | undefined): Promis
     words.subject(bounced.length),
     words.body(
       bounced.map(({ name, address, reason }) => `- ${name} (${address}): ${reason}`),
-      staffLink("/staff/politicians/blocked-emails", request),
+      staffLink("/staff/politicians/addresses-to-fix", request),
     ),
   );
   if (told) {

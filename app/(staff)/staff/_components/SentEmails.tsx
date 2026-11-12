@@ -5,7 +5,7 @@ import type { SentEmail, SentPerson } from "@/lib/server/sent-emails";
 import type { SentEmailsSearch } from "@/lib/staff-search";
 import { SENT_EMAIL_FILTERS } from "@/lib/staff-list-filters";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import { SENT_EMAILS_LIST, type SentEmailSort } from "@/lib/staff-lists";
+import { clearedPath, SENT_EMAILS_LIST, type SentEmailSort } from "@/lib/staff-lists";
 import { sortHref } from "@/lib/staff-sort";
 import { staffTime } from "@/lib/staff-time";
 import SortHeading from "./SortHeading";
@@ -164,6 +164,7 @@ export default function SentEmails({
         rows={emails}
         rowKey={(e) => e.id}
         empty={copy.none}
+        clear={clearedPath(SENT_EMAILS_LIST, search)}
       />
     </>
   );

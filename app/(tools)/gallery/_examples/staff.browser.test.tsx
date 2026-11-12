@@ -15,7 +15,6 @@ import {
   MailingWriterExample,
   NoteChangesExample,
   NoteEntryExample,
-  NoteFormExample,
   NotesCardExample,
   NotesExample,
   NoteTextExample,
@@ -114,18 +113,12 @@ describe("the staff examples", () => {
     await expect.element(page.getByRole("button", { name: staffCopy.notes.edit })).not.toBeInTheDocument();
   });
 
-  it("shows a note in a history, its own or another's, and logs the form on a politician", async () => {
+  it("shows a note in a history, its own or another's", async () => {
     const { unmount } = await render(<NoteEntryExample />);
     await expect.element(page.getByRole("button", { name: staffCopy.notes.edit })).toBeVisible();
     await unmount();
-    const other = await render(<NoteEntryExample own={false} />);
+    await render(<NoteEntryExample own={false} />);
     await expect.element(page.getByText(staffCopy.notes.edited, { exact: false })).toBeVisible();
-    await other.unmount();
-    await render(<NoteFormExample on="politicianId" opened />);
-    await expect.element(page.getByRole("textbox", { name: staffCopy.notes.note })).not.toHaveFocus();
-    await page.getByRole("textbox", { name: staffCopy.notes.note }).fill("Met them");
-    await page.getByRole("button", { name: staffCopy.notes.add }).click();
-    await expect.element(log().nth(0)).toHaveTextContent('add({"politicianId":"1","body":"Met them"})');
   });
 
   it("logs an event's save in the lists, or says there are none", async () => {

@@ -89,9 +89,9 @@ export const staffCopy = {
     // Beside a page the staff member first saw in the last 3 days.
     newTag: "new",
     draftTag: "draft",
-    supporterEmails: "Blocked emails",
+    supporterEmails: "Bounced emails",
     signupUpload: "Import sign-ups",
-    mpEmails: "Blocked emails",
+    mpEmails: "Addresses to fix",
     logout: "Log out",
   },
   // A letter in Gmail, by its page's heading: a button that copies a
@@ -177,18 +177,14 @@ export const staffCopy = {
   // Your sessions, on your own page (/staff/me): one row each, and a way to end them all.
   sessions: {
     intro: "You're logged into the PauseAI Staff pages on these devices.",
-    columns: {
-      browser: "Browser",
-      system: "System",
-      started: "Logged in",
-      ends: "Ends",
-      kept: "Kept signed in",
-    },
-    kept: { yes: "Yes", no: "No" } as Record<string, string>,
+    // Under a session's browser and system: each before its time, then, for one that is, that it's kept.
+    started: "Logged in",
+    ends: "Ends",
+    kept: "Kept signed in",
     // Beside the session of the browser looking.
     thisBrowser: "This browser",
-    // A browser or system we can't name from what the browser sent.
-    unknown: "Unknown",
+    // In place of the browser and system, when what the browser sent names neither.
+    unknown: "Unknown browser",
     logOutEverywhere: "Log out of all of them",
   },
   // The home page: the dashboard.
@@ -612,7 +608,7 @@ export const staffCopy = {
           complaint: (when: string) => `They marked an email as spam, ${when}`,
           hold: (when: string) => `On hold in CiviCRM, ${when}`,
         } as Record<string, (when: string) => string>,
-        seeBlocked: "See blocked emails",
+        seeBlocked: "See bounced emails",
       },
       activityTitle: "History",
       // Where they are, and what it's from: their postcode, a city they gave, or an event's place.
@@ -687,12 +683,24 @@ export const staffCopy = {
     crumb: "Erase",
     // Beside the button, at the foot of the supporter's page.
     note: "If they've asked to be forgotten, for example a GDPR request.",
-    intro:
-      "For when someone asks to be forgotten, for example a GDPR erasure request. Everything we hold about this person is deleted: letters, event registrations, their Luma contact, our copy of their PauseAI membership. We keep references to them in blocked addresses and unsubscribes. The global team's own copy of their membership has to be erased by asking them.",
-    referenceLabel: "Request reference",
+    // Under the page's title: what erasing is for.
+    intro: "For when someone asks to be forgotten, for example a GDPR erasure request",
+    // In red, over the form.
+    warning: "This can't be undone.",
+    // Beside the form: what goes, and what stays.
+    erased: {
+      title: "What's erased",
+      text: "Everything we hold about this person is deleted: letters, event registrations, their Luma contact, our copy of their PauseAI membership.",
+    },
+    kept: {
+      title: "What we keep",
+      text: "We keep references to them in blocked addresses and unsubscribes. The global team's own copy of their membership has to be erased by asking them.",
+    },
+    // The field for what points back to their request, kept in the audit log's entry, and under it what to put.
+    referenceLabel: "How and when did they ask?",
     referenceHint:
-      "Put the number or date of the request for the audit log. Don't give personal information about the person as that gets logged.",
-    confirm: "I'm sure: this person asked to be erased.",
+      "For example “Email to Joseph, 3 Nov 2026”. Don't put their name or address, as this reference is kept after they're erased.",
+    confirm: "I'm sure this person asked to be erased",
     button: "Erase",
     cancel: "Cancel",
     done: "Erased. We've kept only their blocked addresses and unsubscribes, so we never contact them again.",
@@ -858,7 +866,7 @@ export const staffCopy = {
     // In that column, when they've answered none.
     noAsks: "None",
     noEmail: "No email",
-    // On a politician whose address is blocked (/staff/politicians/blocked-emails).
+    // On a politician whose address is blocked (/staff/politicians/addresses-to-fix).
     emailBlocked: "Email blocked",
     // The button on an ask staff record by hand.
   },
@@ -1805,15 +1813,19 @@ All events: ${link}`,
       },
     },
   },
-  // The pages of blocked addresses (/staff/politicians/blocked-emails and
-  // /staff/supporters/blocked-emails), and the bounces and complaints that blocked them.
+  // The pages of blocked addresses (/staff/politicians/addresses-to-fix and
+  // /staff/supporters/bounced-emails), and the bounces and complaints that blocked them.
   emails: {
-    // The two pages: politicians' addresses, and everyone else's.
+    // The two pages, each titled as the navigation names it: politicians' addresses, and everyone else's.
     titles: {
-      mps: "Politicians' blocked emails",
-      supporters: "Supporters' blocked emails",
+      mps: "Addresses to fix",
+      supporters: "Bounced emails",
     },
-    intro: "Nothing is sent to these addresses until they're unblocked",
+    // Under each title, what the page is.
+    intros: {
+      mps: "Politicians' bad emails, fix them in Airtable or unblock them here",
+      supporters: "Supporters' bad emails, unblock them here",
+    },
     // Over the list: how many are blocked, of those the filters find.
     count: (n: number) => `${n} blocked ${plural(n, "address", "addresses")}`,
     // Instead of the table, when no address is blocked, or none of the cause filtered for.
@@ -2023,7 +2035,7 @@ All events: ${link}`,
     supporterBounces: {
       subject: (n: number) => `${n} supporters' ${plural(n, "address", "addresses")} bounced`,
       body: (n: number, held: number, lines: string[], link: string) =>
-        `${n} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${count(held, "reply is", "replies are")} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nSupporters' blocked emails: ${link}`,
+        `${n} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${count(held, "reply is", "replies are")} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nBounced emails: ${link}`,
     },
     // A text's new words sent to WhatsApp for approval, to who sent them and the inbox: the words, and the text.
     templateSubmitted: {

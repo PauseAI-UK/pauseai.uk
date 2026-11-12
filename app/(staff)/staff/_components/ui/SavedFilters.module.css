@@ -154,11 +154,6 @@
   }
 }
 
-.empty {
-  margin: 0;
-  color: var(--text-secondary);
-}
-
 .count {
   margin: var(--space-2) 0 0;
   padding-top: var(--space-2);

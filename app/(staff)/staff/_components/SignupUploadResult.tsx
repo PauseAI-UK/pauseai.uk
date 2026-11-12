@@ -7,6 +7,7 @@ import { staffDate, staffTime } from "@/lib/staff-time";
 import { Muted } from "@/components/ui/Text";
 import { monthsAndYears } from "@/lib/dated-groups";
 import Counts from "./ui/Counts";
+import Empty from "./ui/Empty";
 import Grid, { Card, spanClass } from "./ui/Grid";
 import ExternalLink from "./ui/ExternalLink";
 import PageHead from "./ui/PageHead";
@@ -71,7 +72,7 @@ export default function SignupUploadResult({
       <Card span={6}>
         {upload.lumaReading && <LumaReading />}
         {upload.people.length === 0 ? (
-          <p>{words.none}</p>
+          <Empty>{words.none}</Empty>
         ) : (
           <Table>
             <thead>
@@ -123,7 +124,7 @@ function UploadDay({ day, year }: { day: string; year: string }) {
  */
 export function SignupUploadsList({ uploads, now }: { uploads: SignupUploadSummary[]; now: string }) {
   const heads = copy.uploads;
-  if (uploads.length === 0) return <p>{heads.none}</p>;
+  if (uploads.length === 0) return <Empty>{heads.none}</Empty>;
   const year = now.slice(0, 4);
   return (
     <Grid>

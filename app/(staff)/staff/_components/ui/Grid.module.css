@@ -88,9 +88,11 @@
 }
 
 /* Beside a record: the page's second tint; a plain strip in it is white,
-   so it still stands off the card (ui/Strip). */
+   so it still stands off the card (ui/Strip), and so is a plain lozenge
+   (components/ui/Tag), whose own colour is the card's. */
 .aside {
   --strip-plain: var(--surface);
+  --tag-plain-bg: var(--surface);
 
   background: var(--surface-2);
 }

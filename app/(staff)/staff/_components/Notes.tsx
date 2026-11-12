@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { canDeleteNote, canEditNote, noteParts, type Note, type NoteReader } from "@/lib/notes";
 import { staffTime } from "@/lib/staff-time";
 import NoteChanges from "./NoteChanges";
-import NoteForm from "./NoteForm";
+import NotesCard from "./NotesCard";
 import styles from "./Notes.module.css";
 import ExternalLink from "./ui/ExternalLink";
 
@@ -101,27 +101,17 @@ export function NoteEntry({
 }
 
 /**
- * A supporter's notes, a section of their page: newest first, each a
- * NoteEntry, or a line saying there are none; then the form to add one.
+ * A supporter's notes, a card of their page (NotesCard): newest first, each
+ * a NoteEntry, or a line saying there are none, with the way to write one.
  */
 export default function Notes({ supporterId, ...props }: NotesProps & { supporterId: number }) {
   return (
-    <section aria-labelledby="notes">
-      <h2 id="notes">{copy.title}</h2>
-      {props.notes.length === 0 ? (
-        <p className={styles.none}>{copy.none}</p>
-      ) : (
-        <ol className={styles.notes} aria-labelledby="notes">
-          {props.notes.map((note) => (
-            <li key={note.id}>
-              <NoteEntry note={note} {...props} />
-            </li>
-          ))}
-        </ol>
-      )}
-      <div className={styles.add}>
-        <NoteForm target={{ name: "supporterId", value: supporterId }} add={props.add} />
-      </div>
-    </section>
+    <NotesCard target={{ name: "supporterId", value: supporterId }} writer={props.reader.email} add={props.add}>
+      {props.notes.map((note) => (
+        <li key={note.id}>
+          <NoteEntry note={note} {...props} />
+        </li>
+      ))}
+    </NotesCard>
   );
 }

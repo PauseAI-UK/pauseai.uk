@@ -8,6 +8,7 @@ import { askedLine } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
 import AskWays from "./AskWays";
 import Counts from "./ui/Counts";
+import Empty from "./ui/Empty";
 import Grid, { spanClass } from "./ui/Grid";
 import Strip from "./ui/Strip";
 import StaffLink from "./ui/StaffLink";
@@ -117,7 +118,7 @@ export default function AsksList({
         </div>
       )}
       {asks.length === 0 ? (
-        <p>{copy.none}</p>
+        <Empty>{copy.none}</Empty>
       ) : (
         <Grid>
           <div className={`${spanClass(6)} ${styles.groups}`}>

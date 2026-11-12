@@ -31,6 +31,14 @@
   margin-left: auto;
 }
 
+/* A list with nothing in it: its words, and the way to clear the filters
+   beside them, in the one row under the headings. */
+.none {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
 /* A short column's cells (a house, a date, a count) stay on one line. */
 .short {
   white-space: nowrap;

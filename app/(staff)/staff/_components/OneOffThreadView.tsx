@@ -6,6 +6,7 @@ import type { OneOffThread } from "@/lib/server/one-off-emails";
 import { MessageText } from "./LetterThread";
 import ThreadEmail from "./ThreadEmail";
 import { staffTime } from "@/lib/staff-time";
+import Empty from "./ui/Empty";
 import Grid, { Card, spanClass } from "./ui/Grid";
 import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
@@ -46,7 +47,7 @@ function ThreadPeople({ people }: { people: OneOffThread["people"] }) {
   return (
     <Card look="aside" title={copy.people.title} id="thread-people" span={2}>
       {people.length === 0 ? (
-        <Muted>{copy.people.none}</Muted>
+        <Empty>{copy.people.none}</Empty>
       ) : (
         <ul className={styles.people}>
           {people.map((person) => (

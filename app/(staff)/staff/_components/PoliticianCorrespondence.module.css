@@ -52,8 +52,3 @@
 .more[open] > summary {
   display: none;
 }
-
-.none {
-  margin: 0;
-  color: var(--text-secondary);
-}

@@ -178,7 +178,7 @@ through `outsideFetch` like any other outside service.
   refuses it, whichever service sends the letter. The letter shows as
   bounced on its campaign's page. The site then blocks the address, so the
   next letter to it waits until staff unblock it at
-  `/staff/politicians/blocked-emails`. Postmark's own addresses at
+  `/staff/politicians/addresses-to-fix`. Postmark's own addresses at
   `bounce-testing.postmarkapp.com`, such as `hardbounce@` and `softbounce@`,
   also produce real bounce webhooks. None is used in CI.
 
@@ -235,7 +235,7 @@ words:
 
 They're written from the point of view of the person using the site, a
 supporter or staff, in the words the site and the staff pages use
-(letters inbox, relayed, blocked emails, mailing, ask), and plainly: what
+(letters inbox, relayed, blocked address, mailing, ask), and plainly: what
 happens, not how the test fakes it. A fixture, a route or a webhook is
 named only if a person would see it. For example:
 
@@ -582,7 +582,7 @@ order, alongside the others:
   - A few words, sentence case, no full stop, and no colon listing what
     comes of it: the story says that.
   - The words on the site, not the code's: "Log in", "Connect Gmail",
-    "blocked emails", never "RSC payload", "Server Action" or
+    "Addresses to fix", never "RSC payload", "Server Action" or
     "hydration".
   - Unique in its section: the review pairs a flow's frames with main's
     by section, title and caption. Main's are from main's own spec files,
@@ -791,7 +791,7 @@ that drives it or why nothing does.
 - `supporters.spec.ts`: The supporter pages:
   - closed without the permission;
   - notes on a supporter: one added with a link, then edited, an admin with no Delete on a colleague's old note, and one from today deleted, in the audit log;
-  - the list after the Luma import, searched, filtered, reset and sorted;
+  - the list after the Luma import, searched, filtered, filtered to nobody with its frame kept, cleared from the row that says so, and sorted;
   - those not at an event, chosen by Except, who declined it or never registered, then by its chip only those at it;
   - an MP's constituents, by the MP filter, named in the page's title;
   - a supporter's page with their MP and an opt-out from the webhook, then subscribed again, and the audit log, which records a download of the supporters but not a look at one's page;
@@ -800,7 +800,7 @@ that drives it or why nothing does.
   - a march sign-up, with what they gave and the link they came by;
   - the list's Consent column, and its filter: those who can't be emailed about events, then the newsletter;
   - members: one who also wrote to their MP, one CiviCRM says never opted in, one with "No bulk emails" there, with what a topic is from its ?, one who unsubscribed there, and one CiviCRM doesn't have;
-  - a hold in CiviCRM on the supporters' blocked emails, lifted with a note;
+  - a hold in CiviCRM in Bounced emails, lifted with a note;
   - erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next members import;
   - an old link with two subscriptions.
 - `signup-uploads.spec.ts`: Import sign-ups:
@@ -822,8 +822,8 @@ that drives it or why nothing does.
   - logged in with none: every staff page, as HTML and as its RSC payload, holding no supporter's name or email (the leak check);
   - an admin without `supporters`: sent emails, the audit log and its download holding none either, each saying so;
   - an MP's letters without who wrote them;
-  - Letters and Supporters' blocked emails closed without `supporters`, and Politicians' blocked emails naming a letter without linking it;
-  - a supporter's bounced address on Supporters' blocked emails, unblocked;
+  - Letters and Bounced emails closed without `supporters`, and Addresses to fix naming a letter without linking it;
+  - a supporter's bounced address in Bounced emails, unblocked, and Addresses to fix with nothing in it;
   - logged in on two browsers, your address in the sidebar leading to your account page, and logging out of both from there;
   - an admin seeing each account's last login, last seen and sessions, and logging a colleague out everywhere.
 - `collateral.spec.ts`: The collateral maker, one flow per studio: a single image from a calendar event, a campaign pack, a gallery; each to its downloads.
@@ -871,11 +871,11 @@ that drives it or why nothing does.
 - `/staff/api/dev-login`: `staff-login`: the dev login, a fixture build's one-click sign-in as a seeded account. Every other section logs in with it (`logInAsStaff` in `tests/steps.ts`).
 - `/staff/mailings/[id]/files/[file]`: Not driven: the mailings flows' files are drawn from it, but no flow opens one. Vitest-tested.
 - `/staff/broadcasts/[id]/files/[file]`: Not driven, as the broadcasts flows attach no files. It's the twin of the mailings' route, and is Vitest-tested.
-- `/staff/politicians/download`, `/staff/supporters/download`, `/staff/politicians/blocked-emails/download`, `/staff/supporters/blocked-emails/download`, `/staff/audit-log/download`, the lists' downloads. Each route is Vitest-tested beside it.
+- `/staff/politicians/download`, `/staff/supporters/download`, `/staff/politicians/addresses-to-fix/download`, `/staff/supporters/bounced-emails/download`, `/staff/audit-log/download`, the lists' downloads. Each route is Vitest-tested beside it.
   - `politicians`: the list of 250 opens its Download menu and downloads the CSV, every page of it.
   - `supporters`: the supporters as vCards, which the audit log records.
   - `audit-log` and `permissions`: the audit log's download. It holds what the search found, and without `supporters` nothing about supporters.
-  - The two blocked emails downloads aren't driven.
+  - The two downloads of blocked addresses aren't driven.
 
 **Not compared:** the live site. A diff of the public pages against
 pauseai.uk would fail on every run, as live data changes under it (events,

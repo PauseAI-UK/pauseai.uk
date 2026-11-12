@@ -1,4 +1,4 @@
-import { ALL_EMAILS_LIST, type AllEmailsSort } from "@/lib/staff-lists";
+import { ALL_EMAILS_LIST, clearedPath, type AllEmailsSort } from "@/lib/staff-lists";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -187,7 +187,8 @@ export default function AllLetters({
         columns={columns}
         rows={found.letters}
         rowKey={(letter) => `${letter.kind}-${letter.id}`}
-        empty={<Muted>{copy.noneFound}</Muted>}
+        empty={copy.noneFound}
+        clear={clearedPath(ALL_EMAILS_LIST, values)}
       />
     </>
   );

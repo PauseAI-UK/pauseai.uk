@@ -222,8 +222,8 @@ function busyCalendar(database: string) {
   );
 }
 
-/** The headings of the lists by owner or by tag, not the menu's. */
-const listHeadings = (page: Page) => page.locator("section:not(nav section) > h2");
+/** The titles of the lists by owner or by tag, each a card's, not the menu's headings. */
+const listHeadings = (page: Page) => page.locator("section:not(nav section) h2");
 
 /** Shows what's found as `choice` says, from the Group by chip's menu. */
 async function groupBy(page: Page, choice: keyof typeof copy.group.choices) {

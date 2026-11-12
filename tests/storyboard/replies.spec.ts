@@ -320,10 +320,10 @@ test("Jane's letter bounces", async ({ page, request, flowDatabase }) => {
   expect(notice.From).toBe(`"PauseAI" <${LETTERS_INBOX}>`);
   await emailFrame(page, notice, "The email Jane gets");
   story(
-    "Staff check the address with the MP's office, then unblock it on the blocked emails page, with a note. The letter goes again, and Jane is told.",
+    "Staff check the address with the MP's office, then unblock it, from Addresses to fix, with a note. The letter goes again, and Jane is told.",
   );
 
-  await page.goto(`${BASE}/staff/politicians/blocked-emails`);
+  await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
   await page.getByRole("link", { name: bouncy.name, exact: true }).first().click();
   await expect(page.getByRole("heading", { level: 1, name: bouncy.name })).toBeVisible();
   await page.getByLabel(staffCopy.emails.note).fill("Their office gave us the right address");

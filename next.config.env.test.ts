@@ -59,9 +59,14 @@ describe("redirects", () => {
       destination: "/campaigns/:path*",
       permanent: true,
     });
-    for (const source of ["/staff/blocked-addresses", "/staff/blocked-emails"]) {
-      expect(redirects).toContainEqual({ source, destination: "/staff/politicians/blocked-emails", permanent: true });
+    for (const source of ["/staff/blocked-addresses", "/staff/blocked-emails", "/staff/politicians/blocked-emails"]) {
+      expect(redirects).toContainEqual({ source, destination: "/staff/politicians/addresses-to-fix", permanent: true });
     }
+    expect(redirects).toContainEqual({
+      source: "/staff/supporters/blocked-emails",
+      destination: "/staff/supporters/bounced-emails",
+      permanent: true,
+    });
     expect(redirects).toContainEqual({ source: "/glasgow", destination: "/scotland", permanent: true });
     expect(redirects).toContainEqual({
       source: "/staff/import-data/:job",

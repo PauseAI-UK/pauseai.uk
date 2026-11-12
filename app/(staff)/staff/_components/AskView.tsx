@@ -10,6 +10,7 @@ import { staffDate } from "@/lib/staff-time";
 import { answeredOf, ANSWER_TONES, askCounts } from "./AsksList";
 import Band, { BandFact } from "./ui/Band";
 import Counts from "./ui/Counts";
+import Empty from "./ui/Empty";
 import Grid, { Card } from "./ui/Grid";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
@@ -98,9 +99,9 @@ function AnswerColumn({ group, path }: { group: AskAnswerGroup; path: string }) 
     <section className={styles.column} data-tone={ANSWER_TONES[group.key]}>
       <ColumnHead group={group} path={path} />
       {group.people.length === 0 ? (
-        <p className={styles.columnFoot}>
-          <Muted>{page.none}</Muted>
-        </p>
+        <div className={styles.columnFoot}>
+          <Empty>{page.none}</Empty>
+        </div>
       ) : (
         <ul className={styles.people}>
           {group.people.map((person) => (
@@ -196,9 +197,7 @@ export default function AskView({ ask, answer }: { ask: AskPageData; answer: str
       {answered === 0 && ask.noAnswer === 0 ? (
         <Grid>
           <Card span={6} as="div" title={page.answersTitle} id="answers">
-            <p>
-              <Muted>{page.none}</Muted>
-            </p>
+            <Empty>{page.none}</Empty>
           </Card>
         </Grid>
       ) : answer ? (

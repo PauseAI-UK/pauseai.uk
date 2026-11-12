@@ -297,12 +297,12 @@ describe("EventColumns", () => {
         save={save}
       />,
     );
-  const headings = () => [...document.querySelectorAll("h2")].map((h2) => h2.textContent);
-  /** A list, by its heading's words, which end in its count. */
+  /** A list's card's head: its title, then how many at its right. */
+  const head = (card: Element) => card.querySelector("h2")!.parentElement!.textContent!;
+  const headings = () => [...document.querySelectorAll("section")].map(head);
+  /** A list, by its head's words, which end in its count. */
   const list = (title: string) =>
-    [...document.querySelectorAll("section")].find((one) =>
-      new RegExp(`^${title}\\d+$`).test(one.querySelector("h2")!.textContent!),
-    )!;
+    [...document.querySelectorAll("section")].find((one) => new RegExp(`^${title}\\d+$`).test(head(one)))!;
   /** What a list's line for an event says, and the line. */
   const lineIn = (title: string, name: string) =>
     [...list(title).querySelectorAll("li")].find((li) => li.textContent!.includes(name))!;
@@ -310,8 +310,14 @@ describe("EventColumns", () => {
   it("lists by owner, No owner first in red, each with its count, and on each line its tags, or city, or Online", async () => {
     await renderColumns("owner");
     expect(headings()).toEqual(["No owner2", "jo@pauseai.uk2", "joseph@pauseai.uk7"]);
+    // Each a card, named by its title; No owner's in red, with its warning.
+    await expect.element(page.getByRole("region", { name: "jo@pauseai.uk", exact: true })).toBeVisible();
+    const title = (name: string) => list(name).querySelector("h2 > span")!;
     expect(list("No owner").querySelector("h2 svg")).not.toBeNull();
     expect(list("joseph@pauseai.uk").querySelector("h2 svg")).toBeNull();
+    expect(getComputedStyle(title("No owner")).color).not.toBe(getComputedStyle(title("joseph@pauseai.uk")).color);
+    // An event's date leads its row, before its name.
+    expect(lineIn("No owner", "AI risk talk").textContent).toMatch(/^\d+ \w+ 2026AI risk talk/);
     expect(lineIn("No owner", "AI risk talk").textContent).toContain("Oxford");
     expect(lineIn("No owner", "Leeds first meet-up").textContent).toContain("Leeds");
     expect(lineIn("jo@pauseai.uk", "New volunteers' welcome").textContent).toContain("Online");
@@ -424,10 +430,7 @@ describe("EventsList", () => {
   it("is lists by the grouping, of what the tab and filters find", async () => {
     await renderList({ group: "owner", place: "!online" });
     expect(document.querySelector("table")).toBeNull();
-    expect([...document.querySelectorAll("h2")].map((h2) => h2.textContent)).toEqual([
-      "No owner1",
-      "joseph@pauseai.uk1",
-    ]);
+    expect([...document.querySelectorAll("h2")].map((h2) => h2.textContent)).toEqual(["No owner", "joseph@pauseai.uk"]);
   });
 });
 

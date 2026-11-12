@@ -45,7 +45,7 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
       { id: "broadcasts", href: "/staff/broadcasts", permission: "supporters", draft: true },
       // A letter's page stays at /staff/letters/[id], and shows in Campaigns.
       { id: "campaigns", href: "/staff/campaigns", permission: "supporters", under: ["/staff/letters"] },
-      { id: "supporterEmails", href: "/staff/supporters/blocked-emails", permission: "supporters" },
+      { id: "supporterEmails", href: "/staff/supporters/bounced-emails", permission: "supporters" },
       { id: "signupUpload", href: "/staff/supporters/import", permission: "supporters" },
     ],
   },
@@ -56,7 +56,7 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
       { id: "asks", href: "/staff/asks" },
       { id: "mailings", href: "/staff/mailings" },
       { id: "emails", href: "/staff/emails", under: ["/staff/one-off"] },
-      { id: "mpEmails", href: "/staff/politicians/blocked-emails" },
+      { id: "mpEmails", href: "/staff/politicians/addresses-to-fix" },
     ],
   },
   {
@@ -92,7 +92,7 @@ export function pagesFor(permissions: readonly Permission[]): StaffPageId[] {
 /**
  * The page in the navigation a path is, or is under: the one with the
  * longest whole-segment prefix of it, its href or one it has `under` it. So
- * /staff/supporters/7 is under Supporters, /staff/supporters/blocked-emails
+ * /staff/supporters/7 is under Supporters, /staff/supporters/bounced-emails
  * is its own page, and /staff/letters/supporter/7 is under Supporters too.
  */
 export function staffPageOf(path: string): StaffPageLink | undefined {

@@ -5,6 +5,7 @@ import { monthsAndYears } from "@/lib/dated-groups";
 import type { CampaignSummary } from "@/lib/server/campaigns";
 import { staffDate } from "@/lib/staff-time";
 import Counts, { countsOpening } from "./ui/Counts";
+import Empty from "./ui/Empty";
 import Grid, { spanClass } from "./ui/Grid";
 import StaffLink from "./ui/StaffLink";
 import styles from "./MailingsOverview.module.css";
@@ -77,13 +78,7 @@ function Row({ campaign, year }: { campaign: CampaignSummary; year: string }) {
  * its most recent letter, a row with the same counts box.
  */
 export default function CampaignsOverview({ campaigns, now }: { campaigns: CampaignSummary[]; now: string }) {
-  if (campaigns.length === 0) {
-    return (
-      <p>
-        <Muted>{copy.none}</Muted>
-      </p>
-    );
-  }
+  if (campaigns.length === 0) return <Empty>{copy.none}</Empty>;
   const at = new Date(now);
   const year = now.slice(0, 4);
   const when = (campaign: CampaignSummary) => campaign.lastAt!.toISOString();

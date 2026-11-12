@@ -55,7 +55,6 @@ import StaffAccountsTable, { AddStaff } from "@/app/(staff)/staff/_components/St
 import type { StaffAccount } from "@/lib/server/staff-accounts";
 import UnblockForm, { UnblockBubble } from "@/app/(staff)/staff/_components/UnblockForm";
 import NoteChanges from "@/app/(staff)/staff/_components/NoteChanges";
-import NoteForm from "@/app/(staff)/staff/_components/NoteForm";
 import NotesCard from "@/app/(staff)/staff/_components/NotesCard";
 import Notes, { NoteEntry, NoteText } from "@/app/(staff)/staff/_components/Notes";
 import {
@@ -420,7 +419,11 @@ export function NotesCardExample({ lines = true, writable = true }: { lines?: bo
   return (
     <Logged>
       {(log) => (
-        <NotesCard politicianId={7} writer={exampleNoteWriter.email} add={writable ? log("add") : undefined}>
+        <NotesCard
+          target={{ name: "politicianId", value: 7 }}
+          writer={exampleNoteWriter.email}
+          add={writable ? log("add") : undefined}
+        >
           {(lines ? ["Met them at the fair", "Asked for the one-pager"] : []).map((note) => (
             <li key={note}>{note}</li>
           ))}
@@ -428,17 +431,6 @@ export function NotesCardExample({ lines = true, writable = true }: { lines?: bo
       )}
     </Logged>
   );
-}
-
-/** The form to add a note, logged: closed, or opened, on a supporter, with what a note should be, or on a politician. */
-export function NoteFormExample({
-  on = "supporterId",
-  opened = false,
-}: {
-  on?: "supporterId" | "politicianId";
-  opened?: boolean;
-}) {
-  return <Logged>{(log) => <NoteForm target={{ name: on, value: 1 }} add={log("add")} opened={opened} />}</Logged>;
 }
 
 /** A note's text, its addresses links, and its lines kept. */

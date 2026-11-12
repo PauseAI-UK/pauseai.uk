@@ -169,7 +169,7 @@ function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | 
     );
   if (!run)
     return (
-      // A job that has never run: said plainly, not as a status in bold.
+      // A job that has never run: that's how it stands, so a strip, said plainly, not as a status in bold.
       <Strip>{ABOUT[job].none}</Strip>
     );
   return (

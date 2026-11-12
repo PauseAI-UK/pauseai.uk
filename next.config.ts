@@ -152,11 +152,19 @@ const nextConfig: NextConfig = {
       // replacing /campaigns, and links to them were shared while testing.
       { source: "/campaigns-v2", destination: `/campaigns/${campaigns[0].slug}`, permanent: true },
       { source: "/campaigns-v2/:path*", destination: "/campaigns/:path*", permanent: true },
-      // Staff alerts about bounced letters linked to the blocked emails page
-      // under its first two names, before it split in two; the letters were
-      // to politicians.
-      { source: "/staff/blocked-addresses", destination: "/staff/politicians/blocked-emails", permanent: true },
-      { source: "/staff/blocked-emails", destination: "/staff/politicians/blocked-emails", permanent: true },
+      // Staff alerts about bounced letters linked to the page of blocked
+      // addresses under its first two names, before it split in two; the
+      // letters were to politicians.
+      { source: "/staff/blocked-addresses", destination: "/staff/politicians/addresses-to-fix", permanent: true },
+      { source: "/staff/blocked-emails", destination: "/staff/politicians/addresses-to-fix", permanent: true },
+      // The two pages it split into, under the address each had first, which
+      // emails to staff linked to; a search or filter in the link is kept.
+      {
+        source: "/staff/politicians/blocked-emails",
+        destination: "/staff/politicians/addresses-to-fix",
+        permanent: true,
+      },
+      { source: "/staff/supporters/blocked-emails", destination: "/staff/supporters/bounced-emails", permanent: true },
       // Your sessions are on your own page, with your Gmail.
       { source: "/staff/sessions", destination: "/staff/me#sessions", permanent: true },
       { source: "/staff/letters", destination: "/staff/campaigns", permanent: true },

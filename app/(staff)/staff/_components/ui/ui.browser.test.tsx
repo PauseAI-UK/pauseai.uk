@@ -20,7 +20,9 @@ import PageHead from "./PageHead";
 import Band, { BandFact } from "./Band";
 import Counts, { countsOpening } from "./Counts";
 import DownloadMenu from "./DownloadMenu";
+import Empty from "./Empty";
 import Grid, { Card, Column } from "./Grid";
+import Rows, { Row } from "./Rows";
 import Progress from "./Progress";
 import CopyButton from "./CopyButton";
 import Shortened, { cutAtWord } from "./Shortened";
@@ -821,8 +823,8 @@ describe("ListFrame", () => {
     await expect.element(page.getByRole("button", { name: staffCopy.lists.download })).not.toBeInTheDocument();
   });
 
-  it("says what a list with nothing in it says, instead", async () => {
-    await render(
+  it("keeps its frame with nothing in it: how many, the headings, and one row saying so, with no downloads", async () => {
+    const empty = (clear?: string) => (
       <ListFrame
         count="0 rows"
         total={0}
@@ -830,14 +832,30 @@ describe("ListFrame", () => {
         pages={1}
         pageSize={2}
         href={() => ""}
+        download={(format) => `/list/download?format=${format}`}
+        actions={<button type="button">Mail these</button>}
         columns={columns}
         rows={[]}
         rowKey={(r) => r.name}
         empty="None."
-      />,
+        clear={clear}
+      />
     );
-    await expect.element(page.getByText("None.")).toBeVisible();
-    await expect.element(page.getByRole("table")).not.toBeInTheDocument();
+    const { rerender } = await render(empty());
+    await expect.element(page.getByText("0 rows")).toBeVisible();
+    expect([...document.querySelectorAll("th")].map((th) => th.textContent)).toEqual(["Name", "Count", "Act"]);
+    // The one row, across every column, its words grey.
+    const cells = [...document.querySelectorAll("td")];
+    expect(cells.map((cell) => [cell.textContent, cell.getAttribute("colspan")])).toEqual([["None.", "3"]]);
+    const words = page.getByText("None.").element();
+    expect(getComputedStyle(words).color).not.toBe(getComputedStyle(cells[0]).color);
+    await expect.element(page.getByRole("button")).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link")).not.toBeInTheDocument();
+    // Emptied by its filters, the row has the way to clear them.
+    await rerender(empty("/list"));
+    await expect
+      .element(page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }))
+      .toHaveAttribute("href", "/list");
   });
 
   it("is wider than the content's width, and on a phone says the page in place of the numbers", async () => {
@@ -860,6 +878,16 @@ describe("ListTable", () => {
     await render(<ListTable columns={columns} rows={rows} rowKey={(r) => r.name} />);
     await expect.element(page.getByRole("cell", { name: "Bob" })).toBeVisible();
     expect(document.querySelector("th")!.textContent).toBe("Name");
+  });
+
+  it("with no rows, is its headings alone, or with them one row of what it's given to say", async () => {
+    const { rerender } = await render(<ListTable columns={columns} rows={[]} rowKey={(r) => r.name} />);
+    expect(document.querySelectorAll("td")).toHaveLength(0);
+    await rerender(<ListTable columns={columns} rows={[]} rowKey={(r) => r.name} none="Nobody." />);
+    await expect.element(page.getByText("Nobody.")).toHaveAttribute("colspan", "3");
+    // With rows, it's left out.
+    await rerender(<ListTable columns={columns} rows={rows} rowKey={(r) => r.name} none="Nobody." />);
+    await expect.element(page.getByText("Nobody.")).not.toBeInTheDocument();
   });
 
   it("keeps a column of words room for a few of them in a box too narrow for the table", async () => {
@@ -1246,5 +1274,83 @@ describe("Column", () => {
     );
     const top = (text: string) => page.getByText(text).element().getBoundingClientRect().top;
     expect(top("Second")).toBeGreaterThan(top("First"));
+  });
+});
+
+describe("Empty", () => {
+  it("is a grey line with no space of its own, or sits in a line with other things", async () => {
+    await render(
+      <StaffPage as="div">
+        <Empty>No letters.</Empty>
+        <p>
+          History <Empty inline>Nothing yet.</Empty>
+        </p>
+      </StaffPage>,
+    );
+    const line = page.getByText("No letters.").element();
+    expect(line.tagName).toBe("P");
+    expect(getComputedStyle(line).marginTop).toBe("0px");
+    expect(getComputedStyle(line).marginBottom).toBe("0px");
+    const inline = page.getByText("Nothing yet.").element();
+    expect(inline.tagName).toBe("SPAN");
+    // Both the same grey, quieter than the words around them.
+    expect(getComputedStyle(inline).color).toBe(getComputedStyle(line).color);
+    expect(getComputedStyle(inline).color).not.toBe(getComputedStyle(inline.parentElement!).color);
+  });
+});
+
+describe("Rows", () => {
+  it("rules each row from the last, its second line quieter, and lines up what leads and ends the rows", async () => {
+    await page.viewport(1280, 800);
+    await render(
+      <StaffPage as="div">
+        <div style={{ width: 320 }}>
+          <Rows label="Events">
+            <Row lead="16 Oct 2026" second="Exampleton · 9 going" end={<button type="button">Edit</button>}>
+              Breakfast with the example organisers
+            </Row>
+            <Row lead="7 Nov 2026" second="Online" end={<button type="button">Change it</button>}>
+              Meet-up
+            </Row>
+            <Row>Only a main line</Row>
+          </Rows>
+        </div>
+      </StaffPage>,
+    );
+    const rows = page.getByRole("list", { name: "Events" }).getByRole("listitem").elements();
+    expect(rows).toHaveLength(3);
+    expect(getComputedStyle(rows[0]).borderTopWidth).toBe("0px");
+    expect(getComputedStyle(rows[1]).borderTopWidth).toBe("1px");
+    const box = (text: string) => page.getByText(text).element().getBoundingClientRect();
+    // The dates start level, and the main lines after them, though the dates' lengths differ.
+    expect(box("7 Nov 2026").left).toBe(box("16 Oct 2026").left);
+    expect(box("Meet-up").left).toBe(box("Breakfast with the example organisers").left);
+    expect(box("Meet-up").left).toBeGreaterThan(box("16 Oct 2026").left + 60);
+    // A date stays on one line while the words beside it wrap.
+    expect(box("16 Oct 2026").height).toBeLessThan(box("Breakfast with the example organisers").height);
+    // The second line is under the main one, smaller and grey.
+    const second = page.getByText("Online").element();
+    expect(box("Online").top).toBeGreaterThanOrEqual(box("Meet-up").bottom);
+    expect(parseFloat(getComputedStyle(second).fontSize)).toBeLessThan(
+      parseFloat(getComputedStyle(page.getByText("Meet-up").element()).fontSize),
+    );
+    // What ends the rows ends at the same edge, the list's.
+    const edit = page.getByRole("button", { name: "Edit" }).element().getBoundingClientRect();
+    const change = page.getByRole("button", { name: "Change it" }).element().getBoundingClientRect();
+    expect(Math.round(edit.right)).toBeLessThanOrEqual(Math.round(change.right));
+    expect(Math.round(change.right)).toBe(Math.round(rows[1].getBoundingClientRect().right));
+    // A row of one line has nothing before or after it.
+    expect(rows[2].children).toHaveLength(1);
+    // On a phone, what leads a row is over its words, which start where it does; what ends it stays beside both.
+    await page.viewport(400, 800);
+    try {
+      expect(box("Meet-up").left).toBe(box("7 Nov 2026").left);
+      expect(box("Meet-up").top).toBeGreaterThanOrEqual(box("7 Nov 2026").bottom);
+      const button = page.getByRole("button", { name: "Change it" }).element().getBoundingClientRect();
+      expect(button.left).toBeGreaterThan(box("Meet-up").right);
+      expect(button.top).toBeLessThan(box("Online").bottom);
+    } finally {
+      await page.viewport(1280, 800);
+    }
   });
 });

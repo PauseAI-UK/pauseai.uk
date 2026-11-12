@@ -342,8 +342,8 @@ export const staffLetters: Group = {
           label: "All, and complaints to a search",
           render: () => (
             <StaffPage as="div">
-              <EmailBlockFilters q="" kind="" action="/staff/politicians/blocked-emails" />
-              <EmailBlockFilters q="example.org" kind="complaint" action="/staff/politicians/blocked-emails" />
+              <EmailBlockFilters q="" kind="" action="/staff/politicians/addresses-to-fix" />
+              <EmailBlockFilters q="example.org" kind="complaint" action="/staff/politicians/addresses-to-fix" />
             </StaffPage>
           ),
         },

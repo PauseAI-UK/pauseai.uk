@@ -91,18 +91,22 @@ export function blockColumns(
 
 /**
  * The blocked addresses, in the list frame: how many, their downloads at
- * `download`, and a row each; or that there are none.
+ * `download`, and a row each; or that there are none, with the way to
+ * `clear` a search or filter that's on.
  */
 export default function EmailBlocksTable({
   blocks,
   unblock,
   letterLinks,
   download,
+  clear,
 }: {
   blocks: EmailBlock[];
   unblock: (form: FormData) => void | Promise<void>;
   letterLinks: boolean;
   download?: (format: DownloadFormat) => string;
+  /** The page with its search and filter off, while either is on. */
+  clear?: string;
 }) {
   return (
     <ListFrame
@@ -116,6 +120,7 @@ export default function EmailBlocksTable({
       rows={blocks}
       rowKey={(b) => b.address}
       empty={copy.noBlocks}
+      clear={clear}
     />
   );
 }
