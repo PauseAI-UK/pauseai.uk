@@ -805,9 +805,13 @@ Where they come from:
   PauseAI and what it said it wanted to do, which count over Airtable's
   where both have them. A contact that's gone gives none of them, and its
   history says when it left. Staff see the source as "Member".
-- **Airtable's members.** PauseAI's members in the UK whom we may hold:
-  those who ticked "Share your details with PauseAI UK" on the join form,
-  or who joined before the form asked, as it has since July 2026. The
+- **Airtable's members.** PauseAI's members in the UK whom we may hold,
+  the same people Global's CRM puts in the UK chapter: those who joined
+  before July 2026, and those who shared their details with PauseAI UK.
+  From 30 June to 4 October 2026 the join form ticked the share box for
+  everyone with its required privacy checkbox, so a signup from then counts
+  only if they also ticked "Keep me informed" or chose to volunteer or
+  lead. Since then the form asks the question on its own. The
   hourly import (`lib/server/members-import.ts`) reads them from Stichting
   PauseAI's "Members & Actions" Airtable base into `airtable_members`,
   keyed by the Airtable record ID, which CiviCRM keeps too. They count

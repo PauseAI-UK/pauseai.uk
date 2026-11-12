@@ -153,11 +153,15 @@ export async function fetchPoliticians(token: string): Promise<PoliticianRecord[
     .sort((a, b) => a.politician.name.localeCompare(b.politician.name));
 }
 
-// UK members who shared their details with PauseAI UK on the join form, or
-// joined before it asked (from July 2026), less the losing half of each
-// merged duplicate.
+// The UK members Stichting PauseAI's CRM puts in the UK chapter, less the
+// losing half of each merged duplicate: those who joined before July 2026,
+// and those who shared their details with PauseAI UK. The "June 2026
+// onboarding flow" (/join, 30 June to 4 October 2026) ticked the share box
+// for everyone with its required privacy checkbox, so for its signups the
+// box counts only with "Keep me informed" or a Volunteer or Lead intent, as
+// the CRM counts them.
 export const MEMBERS_FORMULA =
-  "AND({Country}='United Kingdom',OR({GDPR chapter share permission}=TRUE(),IS_BEFORE({Created Datetime},'2026-07-01')),{Merged into}=BLANK())";
+  "AND({Country}='United Kingdom',{Merged into}=BLANK(),OR(IS_BEFORE({Created Datetime},'2026-07-01'),AND({GDPR chapter share permission}=TRUE(),OR({Signup source}!='June 2026 onboarding flow',{Email subscription}=TRUE(),{Intent}='Volunteer',{Intent}='Lead'))))";
 
 /** The only fields copied from a member's record: what airtable_members stores (docs/data-protection.md). */
 export const MEMBER_FIELDS = [

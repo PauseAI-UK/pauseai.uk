@@ -348,18 +348,27 @@ signed up, and their MP. Deliberately not specified yet.
 
 ### 5½. Drop Airtable's members
 
-Once CiviCRM returns every member, drop the Airtable import.
+The Airtable import reads the members Global's CRM puts in the UK
+chapter, so CiviCRM returns every one of them. Each member CiviCRM never
+returned joined through the "June 2026 onboarding flow", which ticked
+the share box for everyone with its required privacy checkbox, and
+neither ticked "Keep me informed" nor chose to volunteer or lead. The CRM
+doesn't count that as sharing, so CiviCRM leaves them out on purpose
+(Global, 11 November), and the import's formula leaves them out too
+(`MEMBERS_FORMULA`). On 12 November that dropped 65 and added none,
+leaving 1,634. Like any member
+no longer read, they're marked removed and kept until erased; they lose
+the Member badge, and their details count for nothing.
 
-- Tell Global about the members CiviCRM doesn't return, in a comment on
-  PauseAI/pauseai-civicrm#1175 with their Airtable record IDs (private
-  there, never here): our members with no CiviCRM contact once the import
-  has run on production. On 10 November there were 64: all in the UK in
-  Airtable, agreed to chapter sharing, not excluded or merged, and joined
-  by the June 2026 onboarding flow between July and October, most in
-  September, while every newer member is returned.
-- Once CiviCRM returns them, a member's "Keep me informed" stops counting
-  for the newsletter, as CiviCRM's `newsletter` list answers for every
-  member, and `contact_permission()` loses that rule.
+Then drop the Airtable import:
+
+- Once the formula has run on production, check that no member the
+  import reads is one CiviCRM has never returned. Any that is goes to
+  Global, in a comment on PauseAI/pauseai-civicrm#1175 with the Airtable
+  record IDs (private there, never here).
+- A member's "Keep me informed" stops counting for the newsletter, as
+  CiviCRM's `newsletter` list answers for every member, and
+  `contact_permission()` loses that rule.
 - Then drop the import (`import-members`, `fetchMembers()`),
   `airtable_members`, `airtable_members_erased`,
   `supporter_links.airtable_member_id` and the Airtable views.

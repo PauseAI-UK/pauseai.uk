@@ -2369,7 +2369,7 @@ All events: ${link}`,
       before: "Everyone in the UK who joined PauseAI Global through ",
       link: "the join form",
       after:
-        " and shared their details with PauseAI UK, or joined before the form asked. Copied from the global team's Airtable.",
+        " ⁂ and shared their details with PauseAI UK, or joined before July 2026. From July to early October 2026 the form shared everyone's, so only those who also ticked Keep me informed or offered to volunteer or lead. Copied from the global team's Airtable.",
     },
     importNow: "Import members now",
     never: "Not imported yet.",
