@@ -324,8 +324,8 @@ the code should go instead. The rules below say which ones are enforced.
   name (`staffCopy.syncs.syncNow`), so changing it breaks nothing. Words
   not written yet are placeholders: a draft in English, starting with the
   asterism (U+2042), so that it can't be mistaken for real copy.
-  `tests/checks/placeholder-copy.test.ts` fails while any placeholder is
-  left, which stops placeholders being deployed (AGENTS.md).
+  `npm run placeholders` fails while any placeholder is left, in CI and in
+  Netlify's build, which stops placeholders being deployed (AGENTS.md).
 - **Names say which one.** There will be many campaigns, letters, imports
   and statuses.
   - An exported name for one of them names it: `SOBEL_BILL_CAMPAIGN`, not
@@ -378,6 +378,14 @@ first time. It doesn't tell the code's history (above). Beyond that:
   what the page shows is a claim about that other place, and whichever
   side moves can break it. If they no longer match, the comment has the
   bug: fix it in the same change as the code, or delete it.
+- **A reference in the docs has to lead somewhere.**
+  `tests/checks/doc-references.test.ts` fails on a path in backticks, in
+  any Markdown file, that isn't in the repo, and on a doc cited by a
+  heading or bold lead-in it doesn't have (`docs/testing.md`, "Coverage"),
+  in Markdown or a comment. So name a file by its whole path from the top
+  of the repo, and cite a heading in its exact words. Plans and
+  investments may name files they propose. Names of functions and columns
+  aren't checked.
 
 Keep comments short. Readers skip a long comment whole, including the part
 that mattered, so cut until only what a reader couldn't work out from the

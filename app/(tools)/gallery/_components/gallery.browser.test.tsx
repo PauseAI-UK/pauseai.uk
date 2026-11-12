@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
@@ -201,5 +202,22 @@ describe("Logged", () => {
     await expect.element(items.nth(3)).toHaveTextContent("onClick(event)");
     await expect.element(items.nth(4)).toHaveTextContent("onKey(event)");
     await expect.element(items.nth(5)).toHaveTextContent('action({"id":"7","name":"Jo"})');
+  });
+
+  it("hands out the same function for a name at every render, so an effect that depends on it runs once", async () => {
+    const handed: unknown[] = [];
+    function Reports({ report }: { report: (what: string) => void }) {
+      useEffect(() => {
+        handed.push(report);
+        report("shown");
+      }, [report]);
+      return <p>Reports once</p>;
+    }
+    await render(<Logged>{(log) => <Reports report={log("onReport")} />}</Logged>);
+    const items = page.getByRole("list", { name: "Event log" }).getByRole("listitem");
+    // The log is drawn by a second render, which hands the effect the same function, so it doesn't run again.
+    await expect.element(items.nth(0)).toHaveTextContent('onReport("shown")');
+    expect(items.all()).toHaveLength(1);
+    expect(handed).toHaveLength(1);
   });
 });

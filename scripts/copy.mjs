@@ -27,10 +27,9 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { sections } from "../tests/storyboard/report/frames.ts";
+import { MARK } from "./placeholders.mjs";
 import { runDirOf } from "./storyboard-changed.mjs";
 
-/** The placeholder mark, by its code point, so this file isn't taken for copy (tests/checks/placeholder-copy.test.ts). */
-export const MARK = String.fromCodePoint(0x2042);
 const BASE = "origin/main";
 export const PAGE = "test-results/copy.html";
 

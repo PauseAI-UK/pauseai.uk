@@ -6,7 +6,7 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "npm run typecheck && vitest run --project node && npm run lint && npm run lint:css && next build",
+    "build": "npm run placeholders && npm run typecheck && vitest run --project node && npm run lint && npm run lint:css && next build",
     "typecheck": "next typegen && tsc --noEmit",
     "start": "next start",
     "gate": "node scripts/gate.mjs",
@@ -29,6 +29,7 @@
     "storyboard": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/storyboard.mjs",
     "storyboard:changed": "node scripts/storyboard-changed.mjs",
     "copy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/copy.mjs",
+    "placeholders": "node scripts/placeholders.mjs",
     "test:report": "playwright show-report",
     "data:ai-sentiment": "node scripts/generate-ai-sentiment-data.mjs",
     "data:story-image-detect-faces": "node scripts/detect-face-positions.mjs",

@@ -191,7 +191,11 @@ describeWithDatabase("errors the server throws", () => {
 
   it("sends one email when the same new error is thrown twice at once", async () => {
     const sent = notifications();
+    // An error not kept is only reported, so the count below would come up short without saying why.
+    const notKept: string[] = [];
+    registerProblemKeeper((what, described) => notKept.push(`${what} ${described}`));
     await Promise.all([thrown(new Error("At once")), thrown(new Error("At once")), thrown(new Error("At once"))]);
+    expect(notKept).toEqual([]);
     expect(sent).toHaveLength(1);
     expect(await rows()).toEqual([expect.objectContaining({ count: 3 })]);
   });

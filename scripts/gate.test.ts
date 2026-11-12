@@ -81,7 +81,7 @@ describe("slowPlan", () => {
     expect(lanes.map((lane) => lane.map((step) => step.label))).toEqual([
       ["npm run typecheck", "npm run test:storyboard"],
       ["npm test"],
-      ["npm run lint", "npm run lint:css", "npm run lint:unused", "npm run format:check"],
+      ["npm run lint", "npm run lint:css", "npm run lint:unused", "npm run format:check", "npm run placeholders"],
       ["(backup) npm ci --no-audit --no-fund", "(backup) npm test", "(backup) npm run typecheck"],
     ]);
     expect(lanes[3].map((step) => step.cwd)).toEqual(["backup", "backup", "backup"]);
