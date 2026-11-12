@@ -103,5 +103,10 @@ export function staffPageOf(path: string): StaffPageLink | undefined {
     .sort((a, b) => b.length - a.length)[0]?.page;
 }
 
+/** Where a page in the navigation is. */
+export function staffPageHref(id: StaffPageId): string {
+  return STAFF_SECTIONS.flatMap((section) => section.pages).find((page) => page.id === id)!.href;
+}
+
 /** How long a page shows as new after someone first saw it. */
 export const NEW_FOR_DAYS = 3;

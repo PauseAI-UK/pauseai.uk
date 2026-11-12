@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { mailingPageData } from "@/lib/server/mailing-pages";
-import { mailingTitle } from "@/lib/server/mailings";
+import { mailingCrumb, mailingTitle } from "@/lib/server/mailings";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { mailingId } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
-import Breadcrumb from "../../../_components/Breadcrumb";
 import MailingFor from "../../../_components/MailingFor";
+import Page from "../../../_components/ui/Page";
 import {
   attachToMailing,
   deleteMailingDraft,
@@ -32,12 +31,12 @@ export async function generateMetadata({ params }: Pick<Params, "params">): Prom
 /** A mailing: one imported, with a page of its recipients; a draft, to write; or one scheduled or sent. */
 export default async function MailingPage({ params, searchParams }: Params) {
   const { email } = await requireStaff();
-  const data = found(await mailingPageData(found(mailingId((await params).id)), await searchParams, email));
+  const id = found(mailingId((await params).id));
+  const [data, here] = await Promise.all([mailingPageData(id, await searchParams, email), mailingCrumb(id)]);
   return (
-    <>
-      <Breadcrumb href="/staff/mailings">{staffCopy.nav.mailings}</Breadcrumb>
+    <Page kind="record" under="mailings" here={found(here)}>
       <MailingFor
-        data={data}
+        data={found(data)}
         actions={{
           save: saveMailing,
           attach: attachToMailing,
@@ -49,6 +48,6 @@ export default async function MailingPage({ params, searchParams }: Params) {
           reschedule: rescheduleMailingNow,
         }}
       />
-    </>
+    </Page>
   );
 }

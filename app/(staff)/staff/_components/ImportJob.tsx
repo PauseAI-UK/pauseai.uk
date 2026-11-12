@@ -16,7 +16,6 @@ import {
 import { MEMBERS_API } from "@/lib/parliament";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { staffTime } from "@/lib/staff-time";
-import Breadcrumb from "./Breadcrumb";
 import styles from "./ImportJob.module.css";
 import ImportCard, { ImportCards } from "./ImportCard";
 import ImportIcon, { type ImportSource } from "./ImportIcon";
@@ -26,6 +25,7 @@ import RunList from "./RunList";
 import Tag from "@/components/ui/Tag";
 import Strip from "./ui/Strip";
 import ExternalLink from "./ui/ExternalLink";
+import PageHead from "./ui/PageHead";
 
 // Every import and check: the overview at /staff/scheduled-jobs, a card each,
 // and each job's own page, with its button and every run it has made.
@@ -200,7 +200,7 @@ export function ImportOverview({
 }) {
   return (
     <>
-      <h1>{words.pageTitle}</h1>
+      <PageHead intro={words.pageIntro}>{words.pageTitle}</PageHead>
       {SCHEDULES.map((schedule) => (
         <Fragment key={schedule}>
           <h2>{words[schedule]}</h2>
@@ -226,7 +226,7 @@ export function ImportOverview({
   );
 }
 
-/** One job's page: the way back, its icon, name, how often it runs and what sets it apart, what it does, its button, then every run it has made, newest first. */
+/** One job's page: its icon, name, how often it runs and what sets it apart, what it does and its button, then every run it has made, newest first. */
 export function ImportJobPage({
   job,
   runs,
@@ -247,18 +247,19 @@ export function ImportJobPage({
 }): ReactNode {
   return (
     <>
-      <Breadcrumb href="/staff/scheduled-jobs">{words.pageTitle}</Breadcrumb>
-      <div className={styles.head}>
-        <ImportIcon source={SOURCES[job]} />
-        <h1 className={styles.heading}>
-          {jobTitles[job]}
-          <Tag>{words[jobSchedule(job)]}</Tag>
-          <JobTag job={job} />
-        </h1>
-      </div>
-      <p>
-        <Intro job={job} airtableTable={airtableTable} />
-      </p>
+      <PageHead
+        lead={<ImportIcon source={SOURCES[job]} />}
+        tags={
+          <>
+            <Tag>{words[jobSchedule(job)]}</Tag>
+            <JobTag job={job} />
+          </>
+        }
+        intro={<Intro job={job} airtableTable={airtableTable} />}
+        action={<JobActions action={run} label={ABOUT[job].button} />}
+      >
+        {jobTitles[job]}
+      </PageHead>
       {running && (
         <div className={styles.running}>
           <Strip tone="blue">
@@ -270,7 +271,6 @@ export function ImportJobPage({
           </Strip>
         </div>
       )}
-      <JobActions action={run} label={ABOUT[job].button} />
       <RunList runs={runs} none={ABOUT[job].none} decide={decide} running={running} />
     </>
   );

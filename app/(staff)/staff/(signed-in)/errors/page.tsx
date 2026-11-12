@@ -5,6 +5,7 @@ import { listErrorsSeen } from "@/lib/server/errors-seen";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import ErrorsSeen from "../../_components/ErrorsSeen";
+import Page from "../../_components/ui/Page";
 
 export const metadata: Metadata = { title: staffCopy.nav.errors };
 
@@ -17,5 +18,9 @@ export default async function ErrorsPage({
   await requireStaff("admin");
   const { page, done } = ERRORS_LIST.read(await searchParams);
   const showDone = done === "yes";
-  return <ErrorsSeen done={showDone} {...await listErrorsSeen(pageNumber(page), showDone)} />;
+  return (
+    <Page kind="list">
+      <ErrorsSeen done={showDone} {...await listErrorsSeen(pageNumber(page), showDone)} />
+    </Page>
+  );
 }

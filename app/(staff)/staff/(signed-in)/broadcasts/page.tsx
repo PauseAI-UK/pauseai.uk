@@ -6,7 +6,8 @@ import { requireStaff } from "@/lib/server/staff-auth";
 import { mailingId } from "@/lib/staff-search";
 import { firstOf, type ParamValue } from "@/lib/list-params";
 import BroadcastsOverview from "../../_components/BroadcastsOverview";
-import PageTitle from "../../_components/ui/PageTitle";
+import Page from "../../_components/ui/Page";
+import PageHead from "../../_components/ui/PageHead";
 import Strip from "../../_components/ui/Strip";
 
 export const metadata: Metadata = { title: staffCopy.broadcastPages.title };
@@ -21,9 +22,8 @@ export default async function BroadcastsPage({ searchParams }: { searchParams: P
   await requireStaff("supporters");
   const pulse = mailingId(firstOf((await searchParams).submitted));
   return (
-    <>
-      <Strip tone="amber">{staffCopy.broadcastPages.noBackend}</Strip>
-      <PageTitle
+    <Page kind="month-list">
+      <PageHead
         intro={staffCopy.broadcastPages.intro}
         action={
           <ButtonLink variant="primary" fit href="/staff/broadcasts/new">
@@ -32,8 +32,9 @@ export default async function BroadcastsPage({ searchParams }: { searchParams: P
         }
       >
         {staffCopy.broadcastPages.title}
-      </PageTitle>
+      </PageHead>
+      <Strip tone="amber">{staffCopy.broadcastPages.noBackend}</Strip>
       <BroadcastsOverview {...await broadcastsPage()} pulse={pulse} />
-    </>
+    </Page>
   );
 }

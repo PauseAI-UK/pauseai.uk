@@ -1,9 +1,7 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { ErrorSeen } from "@/lib/server/errors-seen";
-import { ERRORS_LIST } from "@/lib/staff-lists";
 import { staffTime } from "@/lib/staff-time";
-import Breadcrumb from "./Breadcrumb";
 import Band, { BandFact } from "./ui/Band";
 import styles from "./ErrorSeenView.module.css";
 
@@ -28,7 +26,6 @@ export default function ErrorSeenView({
 }) {
   return (
     <>
-      <Breadcrumb href={ERRORS_LIST.path}>{copy.one.back}</Breadcrumb>
       <Band
         title={error.words}
         corner={

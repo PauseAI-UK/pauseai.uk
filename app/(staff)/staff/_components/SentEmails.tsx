@@ -11,6 +11,7 @@ import { staffTime } from "@/lib/staff-time";
 import SortHeading from "./SortHeading";
 import FilterBar from "./ui/FilterBar";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
+import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 
@@ -127,7 +128,7 @@ export default function SentEmails({
   );
   return (
     <>
-      <h1>{staffCopy.nav.sentEmails}</h1>
+      <PageHead intro={copy.intro}>{staffCopy.nav.sentEmails}</PageHead>
       {!supporters && (
         <p>
           <Withheld>{copy.withheld}</Withheld>

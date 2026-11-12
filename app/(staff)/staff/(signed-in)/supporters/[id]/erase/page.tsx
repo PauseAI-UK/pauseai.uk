@@ -7,7 +7,7 @@ import { supporterId } from "@/lib/staff-search";
 import { supporterTitle } from "@/lib/supporters";
 import { eraseSupporterNow } from "../../../../actions";
 import EraseForm from "../../../../_components/EraseForm";
-import Breadcrumb from "../../../../_components/Breadcrumb";
+import Page from "../../../../_components/ui/Page";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -22,9 +22,13 @@ export default async function EraseSupporterPage({ params }: Params) {
   await requireStaff("supporters");
   const supporter = found(await getSupporter(found(supporterId((await params).id))));
   return (
-    <>
-      <Breadcrumb href={`/staff/supporters/${supporter.summary.id}`}>{staffCopy.nav.supporters}</Breadcrumb>
+    <Page
+      kind="form"
+      under="supporters"
+      via={[{ href: `/staff/supporters/${supporter.summary.id}`, label: supporterTitle(supporter.summary) }]}
+      here={staffCopy.erase.crumb}
+    >
       <EraseForm supporter={supporter.summary} action={eraseSupporterNow} />
-    </>
+    </Page>
   );
 }

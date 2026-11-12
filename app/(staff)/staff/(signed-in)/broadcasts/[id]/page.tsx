@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { broadcastPageData, broadcastTitle } from "@/lib/server/broadcast-pages";
+import { broadcastCrumb, broadcastPageData, broadcastTitle } from "@/lib/server/broadcast-pages";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { mailingId } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
-import Breadcrumb from "../../../_components/Breadcrumb";
 import BroadcastFor from "../../../_components/BroadcastFor";
+import Page from "../../../_components/ui/Page";
 import { broadcastWriterActions } from "../writer-actions";
 
 type Params = {
@@ -22,11 +21,11 @@ export async function generateMetadata({ params }: Pick<Params, "params">): Prom
 /** A broadcast to supporters: a draft, to write; or one scheduled or sent. */
 export default async function BroadcastPage({ params, searchParams }: Params) {
   const { email } = await requireStaff("supporters");
-  const data = found(await broadcastPageData(found(mailingId((await params).id)), await searchParams, email));
+  const id = found(mailingId((await params).id));
+  const [data, here] = await Promise.all([broadcastPageData(id, await searchParams, email), broadcastCrumb(id)]);
   return (
-    <>
-      <Breadcrumb href="/staff/broadcasts">{staffCopy.nav.broadcasts}</Breadcrumb>
-      <BroadcastFor data={data} actions={broadcastWriterActions} />
-    </>
+    <Page kind="record" under="broadcasts" here={found(here)}>
+      <BroadcastFor data={found(data)} actions={broadcastWriterActions} />
+    </Page>
   );
 }

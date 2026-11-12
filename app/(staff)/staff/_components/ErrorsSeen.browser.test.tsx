@@ -89,7 +89,6 @@ describe("ErrorsSeen", () => {
 describe("ErrorSeenView", () => {
   it("shows a server's error: what and where it was, its code, when, and the latest with its stack trace", async () => {
     await render(<ErrorSeenView error={inPage} setDone={setDone} />);
-    await expect.element(page.getByRole("link", { name: copy.one.back })).toHaveAttribute("href", "/staff/errors");
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(inPage.words);
     const fact = (label: string) => page.getByText(label, { exact: true }).element().parentElement!.textContent;
     expect(fact(copy.one.kind)).toBe(`${copy.one.kind}${copy.kinds.render}`);

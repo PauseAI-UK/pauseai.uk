@@ -6,9 +6,10 @@ import { emailsSearch } from "@/lib/staff-search";
 import { filtersPath } from "@/lib/list-params";
 import { unblockAddress } from "../../../actions";
 import EmailBlockFilters from "../../../_components/EmailBlockFilters";
-import PageIntro from "../../../_components/ui/PageIntro";
 import EmailBlocksTable from "../../../_components/EmailBlocksTable";
 import EmailProblemsTable from "../../../_components/EmailProblemsTable";
+import Page from "../../../_components/ui/Page";
+import PageHead from "../../../_components/ui/PageHead";
 
 export const metadata: Metadata = { title: staffCopy.emails.titles.supporters };
 
@@ -22,9 +23,8 @@ export default async function SupporterEmailsPage({
   const { q, kind, filter } = emailsSearch(await searchParams);
   const [blocks, problems] = await Promise.all([listBlocks("others", filter), recentProblems("others")]);
   return (
-    <>
-      <h1>{staffCopy.emails.titles.supporters}</h1>
-      <PageIntro>{staffCopy.emails.intro}</PageIntro>
+    <Page kind="list">
+      <PageHead intro={staffCopy.emails.intro}>{staffCopy.emails.titles.supporters}</PageHead>
       <EmailBlockFilters q={q} kind={kind} action="/staff/supporters/blocked-emails" />
       <EmailBlocksTable
         blocks={blocks}
@@ -34,6 +34,6 @@ export default async function SupporterEmailsPage({
       />
       <h2>{staffCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks />
-    </>
+    </Page>
   );
 }

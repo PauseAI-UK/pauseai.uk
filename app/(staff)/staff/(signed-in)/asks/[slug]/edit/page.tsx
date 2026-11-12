@@ -7,7 +7,8 @@ import { askFormSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { deleteAskNow, saveAskNow } from "../../../../actions";
 import AskForm from "../../../../_components/AskForm";
-import Breadcrumb from "../../../../_components/Breadcrumb";
+import Page from "../../../../_components/ui/Page";
+import PageHead from "../../../../_components/ui/PageHead";
 
 type Params = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, ParamValue>> };
 
@@ -22,10 +23,14 @@ export default async function AskPage({ params, searchParams }: Params) {
   const ask = found(await askToEdit((await params).slug));
   const { back, notice } = askFormSearch(await searchParams);
   return (
-    <>
-      <Breadcrumb href={`/staff/asks/${ask.slug}`}>{ask.title}</Breadcrumb>
-      <h1>{staffCopy.asks.editTitle(ask.title)}</h1>
+    <Page
+      kind="form"
+      under="asks"
+      via={[{ href: `/staff/asks/${ask.slug}`, label: ask.title }]}
+      here={staffCopy.asks.edit}
+    >
+      <PageHead>{staffCopy.asks.editTitle(ask.title)}</PageHead>
       <AskForm ask={ask} back={back} notice={notice} save={saveAskNow} remove={deleteAskNow} />
-    </>
+    </Page>
   );
 }

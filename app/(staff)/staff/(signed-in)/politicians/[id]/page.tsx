@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { listAsks } from "@/lib/server/asks";
 import { blockOn } from "@/lib/server/email";
@@ -25,7 +24,7 @@ import { politicianOneOffs } from "@/lib/server/one-off-emails";
 import { politicianMessages } from "@/lib/server/politician-correspondence";
 import DeletePolitician from "../../../_components/DeletePolitician";
 import PoliticianDetails from "../../../_components/PoliticianDetails";
-import Breadcrumb from "../../../_components/Breadcrumb";
+import Page from "../../../_components/ui/Page";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -56,8 +55,7 @@ export default async function PoliticianPage({
     politicianAliases(politician),
   ]);
   return (
-    <>
-      <Breadcrumb href="/staff/politicians">{staffCopy.nav.politicians}</Breadcrumb>
+    <Page kind="record" under="politicians" here={politician.name}>
       <PoliticianDetails
         politician={politician}
         asks={asks}
@@ -84,6 +82,6 @@ export default async function PoliticianPage({
         }}
       />
       <DeletePolitician politician={politician} deletable={deletable} action={deletePoliticianNow} />
-    </>
+    </Page>
   );
 }

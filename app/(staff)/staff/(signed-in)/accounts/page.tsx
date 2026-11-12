@@ -6,7 +6,8 @@ import { accountsSearch } from "@/lib/staff-search";
 import { endStaffSessionsNow, removeStaffAccountNow, saveStaffAccountNow } from "../../actions";
 import AccountsNotice from "../../_components/AccountsNotice";
 import StaffAccountsTable, { AddStaff } from "../../_components/StaffAccountsTable";
-import PageTitle from "../../_components/ui/PageTitle";
+import Page from "../../_components/ui/Page";
+import PageHead from "../../_components/ui/PageHead";
 
 /** Who may use the staff pages, and what each may do, for admins to change. */
 export const metadata: Metadata = { title: staffCopy.accounts.title };
@@ -20,10 +21,10 @@ export default async function AccountsPage({
   const { notice, sort } = accountsSearch(await searchParams);
   const accounts = await listStaffAccounts(sort);
   return (
-    <>
-      <PageTitle action={<AddStaff accounts={accounts} add={saveStaffAccountNow} />}>
+    <Page kind="list">
+      <PageHead intro={staffCopy.accounts.intro} action={<AddStaff accounts={accounts} add={saveStaffAccountNow} />}>
         {staffCopy.accounts.title}
-      </PageTitle>
+      </PageHead>
       <AccountsNotice notice={notice} />
       <StaffAccountsTable
         accounts={accounts}
@@ -33,6 +34,6 @@ export default async function AccountsPage({
         remove={removeStaffAccountNow}
         endSessions={endStaffSessionsNow}
       />
-    </>
+    </Page>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { listAsks } from "@/lib/server/asks";
 import { getSupporterLetter } from "@/lib/server/letters";
@@ -9,6 +10,7 @@ import FindInGmail from "../../../_components/FindInGmail";
 import { letterTitle } from "../../../_components/LetterHistory";
 import { SupporterLetterThread } from "../../../_components/LetterThread";
 import LetterView from "../../../_components/LetterView";
+import Page from "../../../_components/ui/Page";
 import { setAskStatus } from "../../../actions";
 
 type Params = { params: Promise<{ id: string }> };
@@ -33,8 +35,15 @@ export default async function LetterPage({ params }: Params) {
   const [letter, asks] = await Promise.all([letterOf(params), listAsks()]);
   const politician = found(await getPolitician(letter.politicianId));
   return (
-    <LetterView letter={letter} politician={politician} asks={asks} setStatus={setAskStatus}>
-      <SupporterLetterThread letter={letter} link={<FindInGmail find={letter.gmail} />} />
-    </LetterView>
+    <Page
+      kind="item"
+      under="campaigns"
+      via={[{ href: `/staff/campaigns/${letter.campaign}`, label: letter.campaignTitle }]}
+      here={staffCopy.letters.crumb}
+    >
+      <LetterView letter={letter} politician={politician} asks={asks} setStatus={setAskStatus}>
+        <SupporterLetterThread letter={letter} link={<FindInGmail find={letter.gmail} />} />
+      </LetterView>
+    </Page>
   );
 }

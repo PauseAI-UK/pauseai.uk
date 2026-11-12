@@ -54,7 +54,6 @@ import {
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import Tag from "@/components/ui/Tag";
 import { GmailConnect, GmailOutcome, SentToday } from "@/app/(staff)/staff/_components/GmailConnect";
-import AccountTitle from "@/app/(staff)/staff/_components/AccountTitle";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { changesSearch } from "@/lib/staff-search";
 import { type ImportJob, NIGHTLY } from "@/lib/import-runs";
@@ -492,20 +491,6 @@ export const staffAdmin: Group = {
           render: () => (
             <StaffPage as="div">
               <StaffHome permissions={[]} dashboard={exampleDashboard} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "AccountTitle",
-      file: "app/(staff)/staff/_components/AccountTitle.tsx",
-      variants: [
-        {
-          label: "Your own page's title, and your address",
-          render: () => (
-            <StaffPage as="div">
-              <AccountTitle email="jo@pauseai.uk" />
             </StaffPage>
           ),
         },

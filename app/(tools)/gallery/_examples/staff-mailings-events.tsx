@@ -4,7 +4,7 @@
 // login page.
 import { staffCopy } from "@/lib/content/staff-interface";
 import EventFilters from "@/app/(staff)/staff/_components/EventFilters";
-import { EventGroups, EventsSource, EventTabs, Missing } from "@/app/(staff)/staff/_components/EventsTable";
+import { EventGroups, EventsIntro, EventTabs, Missing } from "@/app/(staff)/staff/_components/EventsTable";
 import { exampleEventsTab, exampleStaff } from "@/app/(staff)/staff/_components/EventsTable.examples";
 import { MailingLetter } from "@/app/(staff)/staff/_components/MailingLetter";
 import { FilterPills } from "@/app/(staff)/staff/_components/MailingParts";
@@ -15,7 +15,7 @@ import {
   exampleWriterData,
 } from "@/app/(staff)/staff/_components/MailingWriter.examples";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
-import PageTitle from "@/app/(staff)/staff/_components/ui/PageTitle";
+import PageHead from "@/app/(staff)/staff/_components/ui/PageHead";
 import type { Group } from "../_components/types";
 import {
   MailingEditorExample,
@@ -291,14 +291,14 @@ export const staffMailingsEvents: Group = {
       ],
     },
     {
-      name: "EventsSource",
+      name: "EventsIntro",
       file: "app/(staff)/staff/_components/EventsTable.tsx",
       variants: [
         {
-          label: "At the events page's title's right",
+          label: "Under the events page's title: what it lists, with our Luma calendar linked",
           render: () => (
             <StaffPage as="div">
-              <PageTitle action={<EventsSource />}>Events</PageTitle>
+              <PageHead intro={<EventsIntro />}>Events</PageHead>
             </StaffPage>
           ),
         },

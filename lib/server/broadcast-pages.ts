@@ -327,6 +327,19 @@ export async function broadcastTitle(id: number): Promise<string | undefined> {
   return broadcast && (broadcast.title || staffCopy.broadcastPages.untitled);
 }
 
+/**
+ * A broadcast's step of the trail above its page: its title, or for a
+ * draft, whose title changes as it's written, that it's a draft; or
+ * undefined for no such broadcast.
+ */
+export async function broadcastCrumb(id: number): Promise<string | undefined> {
+  const [broadcast] = await query<{ title: string; draft: boolean }>(
+    "SELECT title, state = 'draft' AS draft FROM mailings WHERE id = $1 AND audience = 'supporters'",
+    [id],
+  );
+  return broadcast && (broadcast.draft ? staffCopy.broadcastPages.draftCrumb : broadcast.title);
+}
+
 /** One supporter's copy of a broadcast. */
 export type MessageCopy = {
   id: number;

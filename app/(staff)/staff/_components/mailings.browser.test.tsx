@@ -627,9 +627,6 @@ describe("LetterView", () => {
     await expect.element(page.getByRole("group", { name: exampleAsks[0]!.title })).toBeVisible();
     await expect.element(page.getByText("the thread")).toBeVisible();
     await expect.element(page.getByRole("heading", { name: staffCopy.letters.detail.historyTitle })).toBeVisible();
-    await expect
-      .element(page.getByRole("link", { name: letter.mailing }))
-      .toHaveAttribute("href", `/staff/mailings/${letter.mailingId}`);
     await expect.element(page.getByText(staffCopy.mailings.personalised, { exact: false })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: letter.mpName }))
@@ -681,12 +678,9 @@ describe("LetterView", () => {
     await expect.element(page.getByText(staffCopy.letters.status.replied, { exact: true })).toBeVisible();
   });
 
-  it("a supporter's: back to the letters, its campaign over its ask, tagged when it's to a test politician", async () => {
+  it("a supporter's: its campaign over its ask, tagged when it's to a test politician", async () => {
     const supporters = { ...exampleSupporterLetterDetails, campaignAsk: exampleAsks[0]!.slug };
     await view({ letter: supporters, politician: { ...politician, isTest: true } });
-    await expect
-      .element(page.getByRole("navigation").getByRole("link", { name: supporters.campaignTitle }))
-      .toHaveAttribute("href", `/staff/campaigns/${supporters.campaign}`);
     await expect
       .element(page.getByRole("heading", { level: 1 }))
       .toHaveTextContent(staffCopy.letters.oneTitle(supporters.senderName, supporters.mpName));

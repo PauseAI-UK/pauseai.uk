@@ -181,6 +181,19 @@ export async function mailingTitle(id: number): Promise<string | undefined> {
   return mailing && (mailing.title || staffCopy.mailingPages.untitled);
 }
 
+/**
+ * A mailing's step of the trail above its page: its title, or for a draft,
+ * whose title changes as it's written, that it's a draft; or undefined for
+ * no such mailing.
+ */
+export async function mailingCrumb(id: number): Promise<string | undefined> {
+  const [mailing] = await query<{ title: string; draft: boolean }>(
+    "SELECT title, state = 'draft' AS draft FROM mailings WHERE id = $1 AND audience = 'politicians'",
+    [id],
+  );
+  return mailing && (mailing.draft ? staffCopy.mailingPages.draftCrumb : mailing.title);
+}
+
 /** One mailing to politicians, with a page, from 1, of its recipients in `tab`, by name, with their outcomes. */
 export async function getMailing(id: number, page = 1, tab: RecipientTab = "all"): Promise<Mailing | undefined> {
   const [mailing] = await query<MailingSummary>(

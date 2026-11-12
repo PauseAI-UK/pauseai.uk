@@ -296,6 +296,45 @@ The same data is in `test-results/storyboard/latest/storyboard.json`, for
 an agent. Both are local only and gitignored. A difference never fails the
 review. Only this branch's checks do, and the exit code is theirs.
 
+**The storyboard's progress.** Every run of the storyboard, the review's
+and the gate's alike, says how far through its flows it is in one file,
+always at the same place in its checkout
+(`tests/storyboard/report/progress.ts`):
+
+```
+test-results/storyboard-progress.json
+{"kind":"review","side":"branch","pid":4242,"startedAt":"2026-11-12T10:00:00.000Z","updatedAt":"2026-11-12T10:03:45.000Z","total":566,"done":347,"failed":0,"ended":false}
+```
+
+It's written when the run starts, after each flow and when the run ends.
+`kind` is which run it is: "review", with pictures on both viewports, or
+"flows", the gate's lighter run, which only checks that every flow works
+and so has fewer to do. `done` counts every flow that has finished, and
+`failed` those of them that didn't pass. Anything that shows a run's
+progress, such as a terminal's status line, reads this file, not the run's
+output, which goes wherever whoever started it sent it. A run is going
+while `ended` is false and the process `pid` is alive: one that was killed
+never says it ended.
+
+A review that has to run main's flows does that in main's own checkout,
+and it takes as long as the branch's. That run writes to the same file,
+the one in the checkout the review was started in, with `side` "main", so
+one place says how far the review is and which half it's on.
+
+When a full review ends, it records how it went and the commit it
+pictured (`scripts/storyboard.mjs`):
+
+```
+test-results/storyboard-review.json
+{"commit":"8fbe0082…","endedAt":"2026-11-12T11:24:30.000Z","run":"2026-11-12T11-18-17","flows":566,"failed":0,"changed":1077}
+```
+
+So a reader can say whether the commit it's looking at has had its review:
+it has if `commit` is that commit. A partial run, of a section or one
+viewport, doesn't write it. `changed` is null for a review with no run of
+main to compare with. The gate's status has the same `commit`, for its
+flows (below, "The gate's status").
+
 **The changed frames**, for an agent: `npm run storyboard:changed`
 (`scripts/storyboard-changed.mjs`) prints the latest run's changed frames,
 without running anything. Given another run's folder or name, it prints
@@ -990,6 +1029,10 @@ import("@/tests/next-headers"))` and put the session cookie in
 - A staff component sets no width of its own: the page's grid and the
   measure do (`docs/style-guide.md`, "Staff pages"), or
   `tests/checks/staff-widths.test.ts` fails.
+- A new staff page says which kind of page it is, and where it is under
+  the navigation's pages, and its title is one of the two heads'
+  (`docs/style-guide.md`, "Kinds of page"), or
+  `tests/checks/staff-page-kinds.test.ts` fails.
 - A new page needs nothing extra: the route list picks it up. A new dynamic
   route (`[slug]`) needs an example in `tests/routes.ts`, or
   `tests/routes.test.ts` fails.
@@ -1082,6 +1125,29 @@ log has been quiet for two minutes, the gate also says how long, as that's
 the sign of a run that's stuck (below). The gate ends with the last lines
 of each failed command's log, then a table of every command's exit code,
 time and log, and it exits 1 if any failed.
+
+**The gate's status.** `npm run gate` says how each of its commands stands
+in `tmp/gate/status.json` (`statusWriter` in `scripts/gate.mjs`), for the
+same readers as the storyboard's progress (above, "The storyboard's
+progress"):
+
+```
+{"pid":4242,"commit":"8fbe0082…","startedAt":"…","updatedAt":"…","ended":false,
+ "groups":{"checks":"passed","test":"running","flows":"running"},
+ "steps":{"prettier":"passed","tsc":"passed","test":"running","storyboard":"running","lint":"passed"}}
+```
+
+A step is `waiting`, `running`, `passed`, `failed` or `skipped`. `groups`
+sums them up as the three things worth watching: the two long ones each on
+its own, `test` and `flows` (the gate's storyboard, which checks that
+every flow works, where the review pictures them), and `checks`,
+everything else (the types, the linters, the placeholder check and the
+backup Worker's package), which is quick. A group is failed if any of its
+steps has, and running until all of them are done. Only the groups this
+gate is running are there, so `--no-storyboard` has no flows. `commit` is
+the one the gate started on: its result is of the code as it is now only
+while that's still the checkout's commit. Like the storyboard's file, the
+gate is going while `ended` is false and `pid` is alive.
 
 ### Long runs in the background
 

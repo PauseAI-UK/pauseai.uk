@@ -4,10 +4,11 @@ import { page } from "vitest/browser";
 import { longDay } from "@/lib/calendar-days";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { MAX_SIGNUP_FILE_BYTES, type SignupPlan, type SignupUploadInput } from "@/lib/signup-upload";
+import { staffDate, staffTime } from "@/lib/staff-time";
 import { exampleSignupPlan, exampleSignupUpload, exampleSignupUploadPeople } from "./SignupUpload.examples";
 import SignupUploadForm from "./SignupUploadForm";
 import SignupUploadPreview, { SignupPlanView, type SignupUploadActions } from "./SignupUploadPreview";
-import SignupUploadResult, { SignupUploadsList } from "./SignupUploadResult";
+import SignupUploadResult, { SignupUploadHead, SignupUploadsList } from "./SignupUploadResult";
 
 const { push, refresh } = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", async (original) => ({
@@ -353,14 +354,40 @@ describe("SignupUploadPreview", () => {
   });
 });
 
+describe("SignupUploadHead", () => {
+  const facts = () => page.getByRole("banner").element().querySelector("p")!.textContent;
+  const always = [
+    copy.result.summary(exampleSignupUpload.imported, exampleSignupUpload.heldBack),
+    copy.result.by(exampleSignupUpload.uploadedBy, staffTime(exampleSignupUpload.uploadedAt)),
+    copy.result.signedOn(staffDate(new Date(exampleSignupUpload.signedOn))),
+  ];
+
+  it("titles the page with the file, and says under it what came of it, its event and where it was collected", async () => {
+    await render(<SignupUploadHead upload={exampleSignupUpload} />);
+    await expect
+      .element(page.getByRole("heading", { level: 1 }))
+      .toHaveTextContent(copy.result.title(exampleSignupUpload.filename));
+    expect(facts()).toBe(
+      [
+        ...always,
+        `${copy.result.event} ${exampleSignupUpload.eventName}`,
+        copy.result.note(exampleSignupUpload.note!),
+      ].join(" · "),
+    );
+    await expect
+      .element(page.getByRole("link", { name: new RegExp(exampleSignupUpload.eventName!) }))
+      .toHaveAttribute("href", exampleSignupUpload.eventUrl!);
+  });
+
+  it("leaves out an event or a note it hasn't", async () => {
+    await render(<SignupUploadHead upload={{ ...exampleSignupUpload, eventName: null, note: null }} />);
+    expect(facts()).toBe(always.join(" · "));
+  });
+});
+
 describe("SignupUploadResult", () => {
   it("shows what became of each person, a link for those with a supporter", async () => {
     await render(<SignupUploadResult upload={exampleSignupUploadPeople} />);
-    await expect.element(page.getByText(copy.result.summary(4, 2))).toBeVisible();
-    await expect.element(page.getByText(copy.result.note("Flyering at Camden Town"))).toBeVisible();
-    await expect
-      .element(page.getByRole("link", { name: /PauseAI London March/ }))
-      .toHaveAttribute("href", "https://luma.com/example");
     await expect.element(page.getByRole("link", { name: "Person 1" })).toHaveAttribute("href", "/staff/supporters/1");
     expect(page.getByRole("link", { name: "Person 3" }).elements()).toEqual([]);
     const said = copy.preview.happens;

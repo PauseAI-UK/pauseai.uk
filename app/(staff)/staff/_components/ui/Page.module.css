@@ -1,0 +1,10 @@
+/* The page's own things start at its top, and a strip on the page itself
+   is as far from what's above and below it as a grid's cards are from each
+   other, as in StaffPage, whose column this fills. */
+.page > :first-child {
+  margin-top: 0;
+}
+
+.page > [data-strip] {
+  margin-block: var(--space-5);
+}

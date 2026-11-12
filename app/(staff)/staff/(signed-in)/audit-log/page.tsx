@@ -8,6 +8,8 @@ import { type ParamValue } from "@/lib/list-params";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
 import ChangesFilters, { changeWords } from "../../_components/ChangesFilters";
 import ChangesTable from "../../_components/ChangesTable";
+import Page from "../../_components/ui/Page";
+import PageHead from "../../_components/ui/PageHead";
 import { openSavedList } from "../../saved-lists";
 
 type Props = { searchParams: Promise<Partial<Record<keyof ChangesSearch, ParamValue>>> };
@@ -27,8 +29,8 @@ export default async function ChangesPage({ searchParams }: Props) {
   } = await openSavedList("audit-log", await searchParams);
   const [log, choices] = await Promise.all([recentChanges(supporters, filter), changeChoices(supporters)]);
   return (
-    <>
-      <h1>{staffCopy.changes.title}</h1>
+    <Page kind="list">
+      <PageHead intro={staffCopy.changes.intro}>{staffCopy.changes.title}</PageHead>
       <ChangesFilters
         search={search}
         choices={choices}
@@ -42,6 +44,6 @@ export default async function ChangesPage({ searchParams }: Props) {
         supporters={supporters}
         airtableTable={PARLIAMENTARIANS_TABLE_URL}
       />
-    </>
+    </Page>
   );
 }

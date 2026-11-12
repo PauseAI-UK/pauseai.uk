@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { campaignVersions, getCampaignSummary } from "@/lib/server/campaigns";
 import { listLetters } from "@/lib/server/letters";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { lettersSearch, type LettersSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
-import Breadcrumb from "../../../_components/Breadcrumb";
 import CampaignView from "../../../_components/CampaignView";
+import Page from "../../../_components/ui/Page";
 
 type Params = {
   params: Promise<{ slug: string }>;
@@ -27,9 +26,8 @@ export default async function CampaignPage({ params, searchParams }: Params) {
   const { filter, ...search } = lettersSearch({ ...(await searchParams), campaign: slug });
   const [letters, { versions, changed }] = await Promise.all([listLetters(filter), campaignVersions(slug)]);
   return (
-    <>
-      <Breadcrumb href="/staff/campaigns">{staffCopy.campaigns.title}</Breadcrumb>
+    <Page kind="record" under="campaigns" here={campaign.title}>
       <CampaignView campaign={campaign} versions={versions} changed={changed} letters={letters} search={search} />
-    </>
+    </Page>
   );
 }

@@ -1020,7 +1020,7 @@ describe("MessageCopyView", () => {
     await expect
       .element(page.getByRole("link", { name: "Jane Example", exact: true }))
       .toHaveAttribute("href", "/staff/supporters/7");
-    await expect.element(page.getByText("· Leeds")).toBeVisible();
+    expect(page.getByRole("banner").element().querySelector("p")!.textContent).toBe("Jane Example · Leeds");
     await expect
       .element(page.getByLabelText(copy.threadTitle).getByText(staffTime(exampleMessageCopy.sentAt!)))
       .toBeVisible();

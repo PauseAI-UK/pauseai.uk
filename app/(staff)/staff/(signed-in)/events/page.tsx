@@ -9,8 +9,9 @@ import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../save
 import { openSavedList } from "../../saved-lists";
 import EventFilters, { eventWords } from "../../_components/EventFilters";
 import { EventsList } from "../../_components/EventColumns";
-import { EventsSource, EventTabs } from "../../_components/EventsTable";
-import PageTitle from "../../_components/ui/PageTitle";
+import { EventsIntro, EventTabs } from "../../_components/EventsTable";
+import Page from "../../_components/ui/Page";
+import PageHead from "../../_components/ui/PageHead";
 
 type Params = Partial<EventsSearch> & { view?: ParamValue };
 type Props = { searchParams: Promise<Params> };
@@ -34,8 +35,8 @@ export default async function EventsPage({ searchParams }: Props) {
   } = await openSavedList("events", await searchParams);
   const { events, total, pages, removed, staff, tags, cities, now } = await eventsPage(filter, hosts);
   return (
-    <>
-      <PageTitle action={<EventsSource />}>{staffCopy.events.title}</PageTitle>
+    <Page kind="list">
+      <PageHead intro={<EventsIntro />}>{staffCopy.events.title}</PageHead>
       <EventTabs search={search} />
       <EventFilters
         search={search}
@@ -53,6 +54,6 @@ export default async function EventsPage({ searchParams }: Props) {
         save={saveEventNow}
         hosts={hosts}
       />
-    </>
+    </Page>
   );
 }

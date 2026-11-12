@@ -5,15 +5,16 @@ import { mailingsPage } from "@/lib/server/mailings";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { newMailing } from "../../mailing-actions";
 import MailingsOverview from "../../_components/MailingsOverview";
-import PageTitle from "../../_components/ui/PageTitle";
+import Page from "../../_components/ui/Page";
+import PageHead from "../../_components/ui/PageHead";
 
 export const metadata: Metadata = { title: staffCopy.mailings.title };
 
 export default async function MailingsPage() {
   await requireStaff();
   return (
-    <>
-      <PageTitle
+    <Page kind="month-list">
+      <PageHead
         intro={staffCopy.mailings.intro}
         action={
           // A new mailing is a draft from the start, with no one ticked, and the list then chooses who it's for.
@@ -25,8 +26,8 @@ export default async function MailingsPage() {
         }
       >
         {staffCopy.mailings.title}
-      </PageTitle>
+      </PageHead>
       <MailingsOverview {...await mailingsPage()} />
-    </>
+    </Page>
   );
 }

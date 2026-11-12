@@ -16,7 +16,7 @@ import { bubbleTrigger } from "./bubble-trigger";
 import ListFrame, { ListTable, type ListColumn } from "./ListFrame";
 import NavFold from "./NavFold";
 import FormPending from "./FormPending";
-import PageTitle from "./PageTitle";
+import PageHead from "./PageHead";
 import Band, { BandFact } from "./Band";
 import Counts, { countsOpening } from "./Counts";
 import DownloadMenu from "./DownloadMenu";
@@ -187,29 +187,84 @@ describe("StaffPage", () => {
   });
 });
 
-describe("PageTitle", () => {
-  it("puts a subheading right under the title, clear of the button at any width", async () => {
+describe("PageHead", () => {
+  it("puts what the page is right under the title, clear of the button at any width", async () => {
     await render(
       <div style={{ width: "22rem" }}>
-        <PageTitle
+        <PageHead
           action={<button type="button">New mailing with long words</button>}
           intro="What the page is, at length"
         >
           Mailings
-        </PageTitle>
+        </PageHead>
       </div>,
     );
     const words = page.getByText("What the page is, at length").element().getBoundingClientRect();
     const title = page.getByRole("heading", { level: 1 }).element().getBoundingClientRect();
     const button = page.getByRole("button").element().getBoundingClientRect();
-    expect(words.top).toBeGreaterThanOrEqual(title.top);
+    expect(words.top).toBeGreaterThanOrEqual(title.bottom);
     expect(words.bottom <= button.top || words.right <= button.left).toBe(true);
   });
 
-  it("is the page's heading, with its button beside it", async () => {
-    await render(<PageTitle action={<button type="button">New mailing</button>}>Mailings</PageTitle>);
-    await expect.element(page.getByRole("heading", { level: 1, name: "Mailings" })).toBeVisible();
-    await expect.element(page.getByRole("button", { name: "New mailing" })).toBeVisible();
+  it("is the page's heading alone, with no line under it and nothing at its right", async () => {
+    const { container } = await render(<PageHead>Audit log</PageHead>);
+    await expect.element(page.getByRole("heading", { level: 1, name: "Audit log" })).toBeVisible();
+    expect(container.querySelectorAll("p")).toHaveLength(0);
+    expect(page.getByRole("banner").element().children).toHaveLength(1);
+  });
+
+  it("has its button at the title's right", async () => {
+    await page.viewport(1280, 800);
+    await render(<PageHead action={<button type="button">New mailing</button>}>Mailings</PageHead>);
+    const title = page.getByRole("heading", { level: 1, name: "Mailings" }).element().getBoundingClientRect();
+    const button = page.getByRole("button", { name: "New mailing" }).element().getBoundingClientRect();
+    expect(button.left).toBeGreaterThan(title.right);
+  });
+
+  it("says what the page is in a line quieter than the page's text", async () => {
+    await render(<PageHead intro="Our events">Events</PageHead>);
+    const line = page.getByRole("banner").element().querySelector("p")!;
+    expect(line.textContent).toBe("Our events");
+    expect(getComputedStyle(line).color).not.toBe(getComputedStyle(document.body).color);
+  });
+
+  it("leads the title with an icon, puts tags beside it, and its facts in a line, leaving out one that's nothing", async () => {
+    await render(
+      <PageHead
+        lead={<span role="img" aria-label="From Luma" />}
+        tags={<Tag>Sent</Tag>}
+        facts={[
+          <a key="who" href="#who">
+            Jane Smith MP
+          </a>,
+          null,
+          "Example North",
+          false,
+          "",
+        ]}
+      >
+        A letter
+      </PageHead>,
+    );
+    const head = page.getByRole("banner");
+    const lead = head.getByRole("img", { name: "From Luma" }).element();
+    const title = head.getByRole("heading", { level: 1 }).element();
+    expect(lead.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await expect.element(head.getByText("Sent")).toBeVisible();
+    expect(head.element().querySelector("p")!.textContent).toBe("Jane Smith MP · Example North");
+    await expect.element(head.getByRole("link", { name: "Jane Smith MP" })).toBeVisible();
+  });
+
+  it("keeps the same space under it, whatever follows", async () => {
+    const { container } = await render(
+      <div>
+        <PageHead>Mailings</PageHead>
+        <p style={{ margin: 0 }}>The page</p>
+      </div>,
+    );
+    const head = page.getByRole("banner").element().getBoundingClientRect();
+    const next = container.querySelector("div > p")!.getBoundingClientRect();
+    expect(next.top - head.bottom).toBe(24);
   });
 });
 

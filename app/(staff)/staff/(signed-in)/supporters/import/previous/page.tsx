@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listSignupUploads } from "@/lib/server/signup-uploads";
 import { requireStaff } from "@/lib/server/staff-auth";
-import Breadcrumb from "../../../../_components/Breadcrumb";
+import Page from "../../../../_components/ui/Page";
+import PageHead from "../../../../_components/ui/PageHead";
 import { now } from "@/lib/now";
 import { SignupUploadsList } from "../../../../_components/SignupUploadResult";
 
@@ -15,10 +16,9 @@ export default async function PreviousSignupUploadsPage() {
   await requireStaff("supporters");
   const uploads = await listSignupUploads();
   return (
-    <>
-      <Breadcrumb href="/staff/supporters/import">{copy.title}</Breadcrumb>
-      <h1>{copy.uploads.title}</h1>
+    <Page kind="month-list" under="signupUpload" here={copy.uploads.title}>
+      <PageHead>{copy.uploads.title}</PageHead>
       <SignupUploadsList uploads={uploads} now={now().toISOString()} />
-    </>
+    </Page>
   );
 }

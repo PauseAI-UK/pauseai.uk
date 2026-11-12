@@ -1,4 +1,3 @@
-import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { letterFor } from "@/lib/mailing-doc";
 import { named } from "@/lib/email-parsing/addresses";
@@ -12,8 +11,8 @@ import { LetterHistory, type HistoryEntry } from "./LetterHistory";
 import { Thread } from "./LetterThread";
 import ThreadEmail from "./ThreadEmail";
 import Grid, { Card, Column, spanClass } from "./ui/Grid";
+import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
-import letter from "./LetterView.module.css";
 
 const copy = staffCopy.broadcastPages;
 
@@ -63,14 +62,17 @@ export default function MessageCopyView({ one }: { one: MessageCopy }) {
   const has = (kind: string) => one.events.some((event) => event.kind === kind);
   return (
     <>
-      <div className={letter.heading}>
-        <h1>{copy.copyTitle(one.channel, name)}</h1>
-        <CopyStatus copyOf={{ ...one, read: has("read"), bounced: has("bounced"), optedOut: has("opted-out") }} />
-      </div>
-      <p className={letter.about}>
-        {one.supporterId ? <StaffLink href={`/staff/supporters/${one.supporterId}`}>{name}</StaffLink> : name}
-        {one.place && <Muted> · {one.place}</Muted>}
-      </p>
+      <PageHead
+        tags={
+          <CopyStatus copyOf={{ ...one, read: has("read"), bounced: has("bounced"), optedOut: has("opted-out") }} />
+        }
+        facts={[
+          one.supporterId ? <StaffLink href={`/staff/supporters/${one.supporterId}`}>{name}</StaffLink> : name,
+          one.place,
+        ]}
+      >
+        {copy.copyTitle(one.channel, name)}
+      </PageHead>
       <Grid>
         <div className={spanClass(3)}>
           <Thread title={copy.threadTitle}>

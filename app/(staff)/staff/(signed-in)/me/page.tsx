@@ -6,9 +6,10 @@ import { isLettersInboxAddress } from "@/lib/server/letters-inbox";
 import { listSessions, requireStaff } from "@/lib/server/staff-auth";
 import { firstOf, type ParamValue } from "@/lib/list-params";
 import { disconnectMyGmail } from "../../actions";
-import AccountTitle from "../../_components/AccountTitle";
 import MyGmail from "../../_components/MyGmail";
 import StaffSessions from "../../_components/StaffSessions";
+import Page from "../../_components/ui/Page";
+import PageHead from "../../_components/ui/PageHead";
 
 export const metadata: Metadata = { title: staffCopy.me.title };
 
@@ -17,8 +18,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<R
   const { email, token } = await requireStaff();
   const [account, sessions] = await Promise.all([gmailAccount(email), listSessions(email, token)]);
   return (
-    <>
-      <AccountTitle email={email} />
+    <Page kind="board">
+      <PageHead intro={email}>{staffCopy.me.title}</PageHead>
       <h2 id="sessions">{staffCopy.me.sessionsTitle}</h2>
       <p>{staffCopy.sessions.intro}</p>
       <StaffSessions sessions={sessions} />
@@ -30,6 +31,6 @@ export default async function MePage({ searchParams }: { searchParams: Promise<R
         disconnect={disconnectMyGmail}
         keepsThreads={keepsPoliticianThreads(email)}
       />
-    </>
+    </Page>
   );
 }

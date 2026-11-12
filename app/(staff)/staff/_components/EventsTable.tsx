@@ -2,8 +2,8 @@ import { EVENTS_LIST } from "@/lib/staff-lists";
 import { Fragment } from "react";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
+import { site } from "@/lib/content/site";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { importPath } from "@/lib/import-runs";
 import type { EventHost, StaffEvent } from "@/lib/server/staff-events";
 import {
   EVENT_SORTS,
@@ -33,15 +33,13 @@ import ExternalLink from "./ui/ExternalLink";
 const PATH = EVENTS_LIST.path;
 const copy = staffCopy.events;
 
-/**
- * At the page's top right, quietly, as on a politician's page: where the
- * events come from, Luma, leading to its import's page.
- */
-export function EventsSource() {
+/** Under the page's title: what it lists, and where the events come from, our calendar on Luma, which it links to. */
+export function EventsIntro() {
   return (
-    <p className={styles.source}>
-      {copy.source.label} <StaffLink href={importPath("import-luma")}>{copy.source.link}</StaffLink>
-    </p>
+    <>
+      {copy.intro.before}
+      <ExternalLink href={site.social.luma}>{copy.intro.link}</ExternalLink>
+    </>
   );
 }
 

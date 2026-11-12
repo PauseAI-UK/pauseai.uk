@@ -9,6 +9,8 @@ import ErasedNotice from "../../_components/ErasedNotice";
 import { ChoosingBroadcastFrame, BroadcastSupporters } from "../../_components/BroadcastSupporters";
 import SupporterFilters, { supporterWords } from "../../_components/SupporterFilters";
 import SupportersTable from "../../_components/SupportersTable";
+import Page from "../../_components/ui/Page";
+import PageHead from "../../_components/ui/PageHead";
 import { keepFilterForBroadcast, newBroadcast } from "../../broadcast-actions";
 import { openSavedList } from "../../saved-lists";
 
@@ -34,24 +36,26 @@ export default async function SupportersPage({ searchParams }: Props) {
   const { filter, ...search } = supportersSearch(params);
   const [page, choices] = await Promise.all([listSupporters(filter), supporterChoices()]);
   return (
-    <ChoosingBroadcastFrame choosing={choosing} search={search} total={page.total} keep={keepFilterForBroadcast}>
-      <h1>{staffCopy.supporters.title}</h1>
-      <ErasedNotice erased={search.erased} why={search.why} />
-      <SupporterFilters
-        search={search}
-        choices={choices}
-        near={page.near}
-        lockConsent={Boolean(choosing)}
-        saved={{
-          state: saved,
-          actions: { save: saveFilter, update: updateFilter, rename: renameFilter, remove: deleteFilter },
-        }}
-      />
-      <SupportersTable
-        page={page}
-        search={search}
-        actions={<BroadcastSupporters search={search} total={page.total} action={newBroadcast} choosing={choosing} />}
-      />
-    </ChoosingBroadcastFrame>
+    <Page kind="list">
+      <ChoosingBroadcastFrame choosing={choosing} search={search} total={page.total} keep={keepFilterForBroadcast}>
+        <PageHead intro={staffCopy.supporters.intro}>{staffCopy.supporters.title}</PageHead>
+        <ErasedNotice erased={search.erased} why={search.why} />
+        <SupporterFilters
+          search={search}
+          choices={choices}
+          near={page.near}
+          lockConsent={Boolean(choosing)}
+          saved={{
+            state: saved,
+            actions: { save: saveFilter, update: updateFilter, rename: renameFilter, remove: deleteFilter },
+          }}
+        />
+        <SupportersTable
+          page={page}
+          search={search}
+          actions={<BroadcastSupporters search={search} total={page.total} action={newBroadcast} choosing={choosing} />}
+        />
+      </ChoosingBroadcastFrame>
+    </Page>
   );
 }

@@ -9,6 +9,7 @@ import { monthsAndYears } from "@/lib/dated-groups";
 import Counts from "./ui/Counts";
 import Grid, { Card, spanClass } from "./ui/Grid";
 import ExternalLink from "./ui/ExternalLink";
+import PageHead from "./ui/PageHead";
 import { LumaReading } from "./SignupUploadPreview";
 import StaffLink from "./ui/StaffLink";
 import styles from "./SignupUpload.module.css";
@@ -38,24 +39,28 @@ function Happened({ person }: { person: SignupUploadPerson }) {
   );
 }
 
-/** The upload's own line: what came of it, who did it, and what it was. */
-function UploadFacts({ upload }: { upload: SignupUploadSummary }) {
+/** The head of an upload's page: its file, and under it what came of it, who did it, and what it was. */
+export function SignupUploadHead({ upload }: { upload: SignupUploadSummary }) {
   return (
-    <ul className={styles.summary}>
-      <li>{words.summary(upload.imported, upload.heldBack)}</li>
-      <li>{words.by(upload.uploadedBy, staffTime(upload.uploadedAt))}</li>
-      <li>{words.signedOn(staffDate(new Date(upload.signedOn)))}</li>
-      {upload.eventName && (
-        <li>
-          {words.event} <ExternalLink href={upload.eventUrl!}>{upload.eventName}</ExternalLink>
-        </li>
-      )}
-      {upload.note && <li>{words.note(upload.note)}</li>}
-    </ul>
+    <PageHead
+      facts={[
+        words.summary(upload.imported, upload.heldBack),
+        words.by(upload.uploadedBy, staffTime(upload.uploadedAt)),
+        words.signedOn(staffDate(new Date(upload.signedOn))),
+        upload.eventName && (
+          <>
+            {words.event} <ExternalLink href={upload.eventUrl!}>{upload.eventName}</ExternalLink>
+          </>
+        ),
+        upload.note && words.note(upload.note),
+      ]}
+    >
+      {words.title(upload.filename)}
+    </PageHead>
   );
 }
 
-/** What an upload did: its facts, and each person still held from it, with what Luma said. */
+/** What an upload did: each person still held from it, with what Luma said. */
 export default function SignupUploadResult({
   upload,
 }: {
@@ -64,7 +69,6 @@ export default function SignupUploadResult({
   return (
     <Grid>
       <Card span={6}>
-        <UploadFacts upload={upload} />
         {upload.lumaReading && <LumaReading />}
         {upload.people.length === 0 ? (
           <p>{words.none}</p>

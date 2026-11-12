@@ -18,6 +18,8 @@ import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../save
 import { openSavedList } from "../../saved-lists";
 import PoliticianFilters, { politicianWords } from "../../_components/PoliticianFilters";
 import PoliticiansList, { ChoosingHead, HouseTabs } from "../../_components/PoliticiansList";
+import Page from "../../_components/ui/Page";
+import PageHead from "../../_components/ui/PageHead";
 
 type Props = { searchParams: Promise<Partial<PoliticiansSearch>> };
 
@@ -37,30 +39,32 @@ export default async function PoliticiansPage({ searchParams }: Props) {
     saved.params,
   );
   return (
-    <ChoosingHead choosing={choosing} cancel={deleteMailingDraft}>
-      <h1>{staffCopy.politicians.title}</h1>
-      <HouseTabs search={search} choosing={choosing} />
-      <PoliticianFilters
-        search={search}
-        asks={asks}
-        parties={parties}
-        hidden={filtersHidden}
-        saved={{
-          state: saved,
-          actions: { save: saveFilter, update: updateFilter, rename: renameFilter, remove: deleteFilter },
-        }}
-      />
-      <PoliticiansList
-        list={list}
-        search={search}
-        asks={asks}
-        newMailing={newMailing}
-        choosing={choosing}
-        tickedHere={tickedHere}
-        pasted={pasted.lines}
-        skipped={pasted.skipped}
-        actions={{ pick: pickPolitician, pickFound, pickMany, paste: pasteNames, untickAll }}
-      />
-    </ChoosingHead>
+    <Page kind="list">
+      <ChoosingHead choosing={choosing} cancel={deleteMailingDraft}>
+        <PageHead intro={staffCopy.politicians.intro}>{staffCopy.politicians.title}</PageHead>
+        <HouseTabs search={search} choosing={choosing} />
+        <PoliticianFilters
+          search={search}
+          asks={asks}
+          parties={parties}
+          hidden={filtersHidden}
+          saved={{
+            state: saved,
+            actions: { save: saveFilter, update: updateFilter, rename: renameFilter, remove: deleteFilter },
+          }}
+        />
+        <PoliticiansList
+          list={list}
+          search={search}
+          asks={asks}
+          newMailing={newMailing}
+          choosing={choosing}
+          tickedHere={tickedHere}
+          pasted={pasted.lines}
+          skipped={pasted.skipped}
+          actions={{ pick: pickPolitician, pickFound, pickMany, paste: pasteNames, untickAll }}
+        />
+      </ChoosingHead>
+    </Page>
   );
 }

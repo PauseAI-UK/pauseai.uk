@@ -5,7 +5,8 @@ import { askFormSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { deleteAskNow, saveAskNow } from "../../../actions";
 import AskForm from "../../../_components/AskForm";
-import Breadcrumb from "../../../_components/Breadcrumb";
+import Page from "../../../_components/ui/Page";
+import PageHead from "../../../_components/ui/PageHead";
 
 export const metadata: Metadata = { title: staffCopy.asks.newTitle };
 
@@ -14,10 +15,9 @@ export default async function NewAskPage({ searchParams }: { searchParams: Promi
   await requireStaff();
   const { back, notice } = askFormSearch(await searchParams);
   return (
-    <>
-      <Breadcrumb href="/staff/asks">{staffCopy.asks.title}</Breadcrumb>
-      <h1>{staffCopy.asks.newTitle}</h1>
+    <Page kind="form" under="asks" here={staffCopy.asks.newTitle}>
+      <PageHead>{staffCopy.asks.newTitle}</PageHead>
       <AskForm ask={null} back={back} notice={notice} save={saveAskNow} remove={deleteAskNow} />
-    </>
+    </Page>
   );
 }
