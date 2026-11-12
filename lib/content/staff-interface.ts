@@ -46,7 +46,7 @@ export const staffCopy = {
   // The dev login's box under the login card, in a fixture build only.
   // At the foot of a supporter's consents in a fixture build: a button per address that opens their contact preferences.
   devPreferences: {
-    title: "⁂ Dev: links in our emails to them",
+    title: "Dev: links in our emails to them",
     // An address's contact preferences, as the email with a link to them opens them.
     preferences: (address: string) => `Contact preferences: ${address}`,
     // The unsubscribe page of the latest broadcast email of theirs under these topics.
