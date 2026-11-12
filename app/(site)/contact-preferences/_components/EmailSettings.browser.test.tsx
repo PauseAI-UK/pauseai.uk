@@ -215,14 +215,12 @@ describe("EmailSettings", () => {
     await expect.element(why("newsletter", copy.why.reasons.unsubscribed!(copy.sourceWords("link")))).toBeVisible();
   });
 
-  it("from an email's link they've already used: what it did, with no button", async () => {
+  it("from an email's link to what they don't get already, for whatever reason: that they're not subscribed", async () => {
     await show(exampleUnsubscribed, ["newsletter"]);
     await expect
-      .element(page.getByRole("heading", { name: copy.unsubscribe.done(copy.inSentence.newsletter) }))
-      .toBeVisible();
-    await expect
-      .element(page.getByRole("heading", { name: copy.unsubscribe.done(copy.inSentence.newsletter) }))
+      .element(page.getByRole("heading", { name: copy.unsubscribe.off(copy.inSentence.newsletter) }))
       .not.toHaveFocus();
+    await expect.element(page.getByText(copy.unsubscribe.below)).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.unsubscribe.button })).not.toBeInTheDocument();
   });
 

@@ -223,7 +223,7 @@ function Unsubscribe({
   opened: Opened;
   unsubscribe: (form: FormData) => Promise<void>;
 }) {
-  // Pressed here, its words take the focus; found so on opening, they don't, as the page's title starts it.
+  // Pressed here, or found so on opening.
   const [done, setDone] = useState<"pressed" | "already" | null>(() => (offAlready(view, topics) ? "already" : null));
   if (!done) {
     return (
@@ -242,9 +242,18 @@ function Unsubscribe({
       </FormStack>
     );
   }
+  // Found so on opening, it says only that they don't get them, which is true whatever the reason: they may never have.
+  if (done === "already") {
+    return (
+      <div className={styles.unsubscribe}>
+        <h2>{copy.unsubscribe.off(inWords(topics))}</h2>
+        <p>{copy.unsubscribe.below}</p>
+      </div>
+    );
+  }
   return (
     <div className={styles.unsubscribe} role="status">
-      <h2 ref={done === "pressed" ? focusOnMount : undefined} tabIndex={-1}>
+      <h2 ref={focusOnMount} tabIndex={-1}>
         {copy.unsubscribe.done(inWords(topics))}
       </h2>
       {/* Pointing to the choices below, where the page has them: an old email's link offers a fresh link instead. */}
