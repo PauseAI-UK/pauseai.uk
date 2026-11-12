@@ -91,6 +91,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       key: "name",
       label: staffCopy.fields.name,
       heading: heading("name", staffCopy.fields.name),
+      words: "name",
       text: (p) => p.name,
       cell: (p) => (
         <>
@@ -111,6 +112,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       key: "constituency",
       label: staffCopy.fields.constituency,
       heading: heading("constituency", staffCopy.fields.constituency),
+      words: "name",
       text: (p) => p.constituency,
       cell: (p) => p.constituency,
     },
@@ -155,6 +157,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       key: "asks",
       label: staffCopy.politicians.columns.asks,
       heading: heading("asks", staffCopy.politicians.columns.asks),
+      words: "line",
       text: (p) =>
         answered(p)
           .map((ask) => `${staffCopy.statuses[p.statuses[ask.slug].status]}: ${ask.title}`)

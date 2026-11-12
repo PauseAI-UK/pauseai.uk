@@ -65,14 +65,23 @@ describe("EmailBlocksTable", () => {
     await expect.element(complained.getByText(staffCopy.emails.purposes["forwarded-reply"])).toBeVisible();
     const unknown = page.getByRole("row").filter({ hasText: "unknown@example.org" });
     await expect.element(unknown.getByText(staffCopy.emails.notRecorded)).toBeVisible();
-    // Without a note the browser won't send it; with one, it does.
+    // The row holds a button alone; it opens a bubble that asks why, which Cancel closes.
     const note = bounced.getByLabelText(staffCopy.emails.note);
+    const open = bounced.getByRole("button", { name: staffCopy.emails.unblockOpen });
+    const unblock = bounced.getByRole("button", { name: staffCopy.emails.unblock, exact: true });
+    await expect.element(note).not.toBeVisible();
+    await open.click();
+    await expect.element(note).toBeVisible();
+    await bounced.getByRole("button", { name: staffCopy.emails.cancel }).click();
+    await expect.element(note).not.toBeVisible();
+    // Without a note the browser won't send it; with one, it does.
+    await open.click();
     expect((note.element() as HTMLInputElement).required).toBe(true);
-    await bounced.getByRole("button", { name: staffCopy.emails.unblock }).click();
+    await unblock.click();
     await expect.element(note).toHaveFocus();
     expect(sent).toEqual([]);
     await note.fill("Fixed in Airtable");
-    await bounced.getByRole("button", { name: staffCopy.emails.unblock }).click();
+    await unblock.click();
     await vi.waitFor(() => expect(sent).toEqual([{ address: exampleBlock.address, note: "Fixed in Airtable" }]));
   });
 

@@ -12,13 +12,17 @@ import styles from "./ListFrame.module.css";
  * A column of a staff list: its heading, its cell, and its value in a
  * download (lib/staff-list.ts). `heading` is its own <th>, such as a
  * SortHeading, in place of the label's. A `short` column's cells never
- * wrap, so the long ones take the room left. An `end` column, a row's
- * buttons, sits at the right edge.
+ * wrap, so the long ones take the room left. A column of `words` wraps,
+ * but keeps room for a few of them on a line however narrow the window: a
+ * "name" (a person's, a place's) or a "line" (a subject, a title, a
+ * sentence). An `end` column, a row's buttons, sits at the right edge,
+ * and stays at the window's while a table too wide for it scrolls.
  */
 export type ListColumn<Row> = DownloadColumn<Row> & {
   cell: (row: Row) => ReactNode;
   heading?: ReactNode;
   short?: boolean;
+  words?: "name" | "line";
   end?: boolean;
   className?: string;
 };
@@ -39,11 +43,22 @@ export function ListTable<Row>({
   align?: "top" | "middle";
 }) {
   const cellClass = (column: ListColumn<Row>) =>
-    [column.short && styles.short, column.end && styles.end, column.className].filter(Boolean).join(" ") || undefined;
+    [column.short && styles.short, column.words && styles[column.words], column.end && styles.end, column.className]
+      .filter(Boolean)
+      .join(" ") || undefined;
   return (
     <Table align={align}>
       <thead>
-        <tr>{columns.map((column) => column.heading ?? <th key={column.key}>{column.label}</th>)}</tr>
+        <tr>
+          {columns.map(
+            (column) =>
+              column.heading ?? (
+                <th key={column.key} className={column.end ? styles.end : undefined}>
+                  {column.label}
+                </th>
+              ),
+          )}
+        </tr>
       </thead>
       <tbody>
         {rows.map((row) => (

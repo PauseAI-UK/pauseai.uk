@@ -12,6 +12,7 @@ import SortHeading from "./SortHeading";
 import FilterBar from "./ui/FilterBar";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import PageHead from "./ui/PageHead";
+import Shortened, { cutAtWord } from "./ui/Shortened";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 
@@ -34,6 +35,16 @@ function Outcome({ outcome }: { outcome: string }) {
   return <Tag tone={outcome === "sent" ? undefined : "red"}>{copy.outcomes[outcome] ?? outcome}</Tag>;
 }
 
+/** How many characters of a subject a row shows. */
+const SUBJECT_LENGTH = 40;
+
+/** An email's subject, a longer one cut short at a word, to unfold (ui/Shortened). */
+function Subject({ subject }: { subject: string | null }) {
+  if (subject === null) return null;
+  const short = cutAtWord(subject, SUBJECT_LENGTH);
+  return short === null ? subject : <Shortened short={short} whole={subject} />;
+}
+
 const columns: (ListColumn<SentEmail> & { key: SentEmailSort | "links" })[] = [
   { key: "when", label: copy.columns.when, short: true, cell: (e) => staffTime(e.at) },
   {
@@ -54,7 +65,7 @@ const columns: (ListColumn<SentEmail> & { key: SentEmailSort | "links" })[] = [
   { key: "to", label: copy.columns.to, cell: (e) => <Person person={e.to} address={e.address} /> },
   { key: "from", label: copy.columns.from, cell: (e) => <Person person={e.from} address={e.fromAddress} /> },
   { key: "backend", label: copy.columns.backend, short: true, cell: (e) => copy.backends[e.backend] },
-  { key: "subject", label: copy.columns.subject, cell: (e) => e.subject },
+  { key: "subject", label: copy.columns.subject, words: "line", cell: (e) => <Subject subject={e.subject} /> },
   { key: "outcome", label: copy.columns.outcome, short: true, cell: (e) => <Outcome outcome={e.outcome} /> },
   {
     key: "links",

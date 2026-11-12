@@ -20,6 +20,7 @@ import LetterStatus from "./LetterStatus";
 import styles from "./MailingView.module.css";
 import TestTag from "./TestTag";
 import ExternalLink from "./ui/ExternalLink";
+import When from "./ui/When";
 
 const copy = staffCopy.campaigns;
 const words = staffCopy.letters;
@@ -54,7 +55,9 @@ const campaignLetterColumns: ListColumn<LetterSummary>[] = [
         ) : (
           <StaffLink href={`/staff/supporters/${l.supporterId}`}>{l.senderName}</StaffLink>
         )}
-        <Muted>{staffDate(l.createdAt)}</Muted>
+        <Muted>
+          <When at={l.createdAt} day />
+        </Muted>
       </span>
     ),
   },

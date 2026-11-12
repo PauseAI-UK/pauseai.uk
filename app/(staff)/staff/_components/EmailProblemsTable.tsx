@@ -2,9 +2,9 @@ import Table from "@/components/ui/Table";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { ProblemSummary } from "@/lib/server/email";
-import { staffTime } from "@/lib/staff-time";
 import LetterLink from "./LetterLink";
 import Reason from "./BounceReason";
+import When from "./ui/When";
 import styles from "./EmailProblemsTable.module.css";
 
 /** The latest bounces and complaints, soft bounces too, and what each email was: a letter, linked to it with `letterLinks`. */
@@ -31,7 +31,9 @@ export default function EmailProblemsTable({
       <tbody>
         {problems.map((problem) => (
           <tr key={problem.id}>
-            <td>{staffTime(problem.at)}</td>
+            <td>
+              <When at={problem.at} />
+            </td>
             <td>{problem.address}</td>
             <td className={styles.short}>{staffCopy.emails.kinds[problem.kind]}</td>
             <td>

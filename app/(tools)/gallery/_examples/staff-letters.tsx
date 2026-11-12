@@ -55,6 +55,7 @@ import {
   EmailBlocksTableExample,
   MailingLetterViewExample,
   SupporterLetterViewExample,
+  UnblockBubbleExample,
   UnblockFormExample,
 } from "./staff.client";
 
@@ -313,6 +314,21 @@ export const staffLetters: Group = {
           render: () => (
             <StaffPage as="div">
               <UnblockFormExample />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "UnblockBubble",
+      file: "app/(staff)/staff/_components/UnblockForm.tsx",
+      variants: [
+        {
+          label:
+            "In a list's row: a button that opens the bubble asking why; and a complaint, which can't be unblocked",
+          render: () => (
+            <StaffPage as="div">
+              <UnblockBubbleExample />
             </StaffPage>
           ),
         },
