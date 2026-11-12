@@ -444,7 +444,7 @@ function missedSummary(missed, changed) {
 function planSummary(chosen, total) {
   const from = chosen.source.latest
     ? "the latest run"
-    : `the kept tree ${chosen.source.tree.slice(0, 12)}, nearer than any run here`;
+    : `the kept tree ${chosen.source.tree.slice(0, 12)} (nearer than the latest run here)`;
   if (chosen.unknown.length > 0)
     return [
       `Storyboard: every flow, ${total}, as what ${chosen.unknown.slice(0, 3).join(", ")} can change isn't known.`,

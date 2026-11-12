@@ -36,6 +36,14 @@ What that check found on the way, each now in the map or the recording:
 - `next.config.ts` and `proxy.ts` import files no page does;
 - files read by name or by listing a folder: fonts, a stand-in picture, the sitemap's walk of `app/`.
 
+Then, by its pictures:
+
+- A review with Next's prefetches answered with nothing pictured all 2,182 frames as one without did, so a page that's prefetched and never opened changes nothing a flow shows.
+- Five planted changes, to a staff table, two stylesheets, a staff page's heading and the staff copy, reviewed from the store's frames: 486 flows ran and 80 were carried, and every frame was as a run of all 566 pictured it.
+- With the map blinded to the staff copy on purpose and a label on every staff page changed, the review reached no flow, three of its six spot checks looked different, and it ran every flow.
+
+The comparisons found one frame that differed between runs of the same code, the march's sticky header on the phone, now fixed (`tests/storyboard/frame.ts`, `repaintSticky`).
+
 Following the flows' runs by coverage to choose them, in place of imports, picked a little fewer (45% of the time against 47%), but needs a run of one flow at a time. Not worth it.
 
 ## Hits
