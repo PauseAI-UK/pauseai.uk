@@ -15,7 +15,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { DeleteTwice } from "./DeleteTwice";
 import SortHeading from "./SortHeading";
-import Bubble from "./ui/Bubble";
+import Bubble from "@/components/ui/Bubble";
 import styles from "./StaffAccountsTable.module.css";
 
 type Action = (form: FormData) => void | Promise<void>;

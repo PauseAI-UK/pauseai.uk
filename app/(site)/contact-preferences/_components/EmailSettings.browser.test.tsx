@@ -125,7 +125,7 @@ describe("EmailSettings", () => {
 
   it("holds email under “No bulk emails”, which they can lift, and offers no Stop everything", async () => {
     const done = await show(exampleNoBulk, null, actions(exampleSettings));
-    await expect.element(page.getByText(copy.noBulk.body(exampleNoBulk.hold!.at))).toBeVisible();
+    await expect.element(page.getByText(copy.noBulk.body)).toBeVisible();
     await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.email })).toBeDisabled();
     // Email paused only where they get nothing else: the newsletter goes to them by text.
     await expect.element(card("newsletter").getByText(copy.tags.paused)).not.toBeInTheDocument();

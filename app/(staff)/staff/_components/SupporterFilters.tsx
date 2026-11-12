@@ -5,7 +5,7 @@ import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
 import type { SupporterChoices, SupportersPage } from "@/lib/server/supporters";
 import { filteredName, filterWords, SUPPORTER_FILTERS } from "@/lib/staff-list-filters";
-import ChannelIcon from "./ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import { supporterFiltersOf } from "./SupportersTable";
 import FilterBar from "./ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";

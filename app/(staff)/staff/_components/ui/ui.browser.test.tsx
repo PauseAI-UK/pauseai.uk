@@ -12,8 +12,8 @@ import { filteredTitle, filterWords, type Filter } from "@/lib/staff-list-filter
 import FilterBar from "./FilterBar";
 import Menu from "./Menu";
 import MenuSelect from "./MenuSelect";
-import Bubble, { BubbleBox } from "./Bubble";
-import { bubbleTrigger } from "./bubble-trigger";
+import Bubble, { BubbleBox } from "@/components/ui/Bubble";
+import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import ListFrame, { ListTable, type ListColumn } from "./ListFrame";
 import NavFold from "./NavFold";
 import FormPending from "./FormPending";

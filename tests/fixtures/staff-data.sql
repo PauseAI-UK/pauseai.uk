@@ -330,20 +330,29 @@ INSERT INTO civicrm_contacts (contact_id, airtable_id, email, first_name, last_n
   do_not_email, do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since,
   newsletter, newsletter_since, volunteer_updates, volunteer_updates_since, first_seen_at, gone_at)
 SELECT c.id, c.airtable_id, c.email, c.first_name, c.last_name, c.city, c.postal_code, c.joined_date::date, c.intent,
-  c.phone, c.on_hold, f, c.no_bulk, f, false, f, c.no_phone, f, false, f,
+  c.phone, c.on_hold, f, c.no_bulk, f, c.no_email, f, c.no_phone, f, c.no_sms, f,
   c.newsletter, coalesce(now() - c.newsletter_ago, f), c.volunteer, f, f, now() - c.gone_ago
 FROM (VALUES
-  (101, 'recMemberJane', 'jane.fixture@example.com', 'Jane', 'Fixture', 'Manchester', 'M1 1AE', '2026-09-12', 'volunteer', NULL, false, false, false, 'subscribed', NULL::interval, 'subscribed', NULL::interval),
-  (103, 'recMemberOwen', 'owen.member@example.com', 'Owen', 'Member', 'Bristol', NULL, '2026-10-06', 'act_now', NULL, false, false, false, 'not_opted_in', NULL, 'not_on_list', NULL),
-  (104, 'recMemberRhea', 'rhea.member@example.com', 'Rhea', 'Member', 'Cardiff', NULL, '2026-07-10', 'keep_informed', NULL, false, true, false, 'subscribed', NULL, 'not_on_list', NULL),
-  (105, 'recMemberKit', 'kit.member@example.com', 'Kit', 'Member', 'Oxford', 'OX1 1AA', '2026-03-03', 'volunteer', NULL, false, false, false, 'unsubscribed', interval '1 day', 'subscribed', NULL),
-  (106, 'recMemberTom', 'tom.seed@example.com', 'Tom', 'Seed', 'London', NULL, '2024-11-03', NULL, '+447700900456', false, false, true, 'not_opted_in', NULL, 'not_on_list', NULL),
-  (107, 'recMemberGil', 'gil.member@example.com', 'Gil', 'Member', 'Leeds', 'LS1 1AA', '2026-08-01', 'act_now', NULL, false, false, false, 'subscribed', NULL, 'not_on_list', interval '1 day'),
-  (108, NULL, 'casey.chapter@example.com', 'Casey', 'Chapter', 'Glasgow', 'G1 1AA', '2026-10-20', 'none', NULL, true, false, false, 'subscribed', NULL, 'not_on_list', NULL),
-  (109, NULL, 'sasha.chapter@example.com', 'Sasha', 'Chapter', 'Belfast', NULL, '2026-11-02', 'volunteer', '+447700900987', false, false, false, 'subscribed', NULL, 'not_on_list', NULL)
-) c (id, airtable_id, email, first_name, last_name, city, postal_code, joined_date, intent, phone, on_hold, no_bulk, no_phone, newsletter, newsletter_ago, volunteer, gone_ago)
+  (101, 'recMemberJane', 'jane.fixture@example.com', 'Jane', 'Fixture', 'Manchester', 'M1 1AE', '2026-09-12', 'volunteer', NULL, false, false, false, false, false, 'subscribed', NULL::interval, 'subscribed', NULL::interval),
+  (103, 'recMemberOwen', 'owen.member@example.com', 'Owen', 'Member', 'Bristol', NULL, '2026-10-06', 'act_now', NULL, false, false, true, false, false, 'not_opted_in', NULL, 'not_on_list', NULL),
+  (104, 'recMemberRhea', 'rhea.member@example.com', 'Rhea', 'Member', 'Cardiff', NULL, '2026-07-10', 'keep_informed', NULL, false, true, false, false, false, 'subscribed', NULL, 'not_on_list', NULL),
+  (105, 'recMemberKit', 'kit.member@example.com', 'Kit', 'Member', 'Oxford', 'OX1 1AA', '2026-03-03', 'volunteer', NULL, false, false, false, false, false, 'unsubscribed', interval '1 day', 'subscribed', NULL),
+  (106, 'recMemberTom', 'tom.seed@example.com', 'Tom', 'Seed', 'London', NULL, '2024-11-03', NULL, '+447700900456', false, false, false, true, true, 'not_opted_in', NULL, 'not_on_list', NULL),
+  (107, 'recMemberGil', 'gil.member@example.com', 'Gil', 'Member', 'Leeds', 'LS1 1AA', '2026-08-01', 'act_now', NULL, false, false, false, false, false, 'subscribed', NULL, 'not_on_list', interval '1 day'),
+  (108, NULL, 'casey.chapter@example.com', 'Casey', 'Chapter', 'Glasgow', 'G1 1AA', '2026-10-20', 'none', NULL, true, false, false, false, false, 'subscribed', NULL, 'not_on_list', NULL),
+  (109, NULL, 'sasha.chapter@example.com', 'Sasha', 'Chapter', 'Belfast', NULL, '2026-11-02', 'volunteer', '+447700900987', false, false, false, false, false, 'subscribed', NULL, 'not_on_list', NULL)
+) c (id, airtable_id, email, first_name, last_name, city, postal_code, joined_date, intent, phone, on_hold, no_bulk, no_email,
+  no_phone, no_sms, newsletter, newsletter_ago, volunteer, gone_ago)
 CROSS JOIN (SELECT now() - interval '2 days' AS f) first;
 INSERT INTO civicrm_erased (contact_id, erased_at) VALUES (199, now() - interval '15 days');
+-- Sasha pressed Stop everything on the contact preferences page: every bulk
+-- email, and her number's call for volunteering, one group, which Restart
+-- undoes.
+INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at) VALUES
+  ('sasha.chapter@example.com', 'bulk', 'email', 'preferences',
+   'preferences stop-all seed-sasha email bulk sasha.chapter@example.com', now() - interval '1 day'),
+  ('+447700900987', 'volunteering', 'call', 'preferences',
+   'preferences stop-all seed-sasha call volunteering +447700900987', now() - interval '1 day');
 INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at)
 SELECT email, 'newsletter', 'email', 'civicrm', contact_id || ' newsletter ' || newsletter_since, newsletter_since
 FROM civicrm_contacts WHERE newsletter = 'unsubscribed';

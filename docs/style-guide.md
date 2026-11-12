@@ -724,7 +724,7 @@ most one row of tabs, for the one choice people make most.
 
 **Popovers, not modals.** Anything a button opens (a menu, a small form,
 or the few words behind a "?") is a bubble hung from that button
-(`ui/Bubble`, or `ui/Menu` for a list of choices). So it opens where the
+(`components/ui/Bubble`, or `ui/Menu` for a list of choices). So it opens where the
 person is looking, and the page stays in view around it. It's never a box
 in the middle of the window, which takes people away from what they were
 doing and hides what they'd want to check against. The one exception is a
@@ -740,7 +740,7 @@ would jump. A small form that's always in its row, such as Unblock, moves
 nothing and stays there.
 
 **A bubble you click open to work in or read has a pointer up to its
-button** (`ui/Bubble`). A bubble that holds a form, or a few words on the
+button** (`components/ui/Bubble`). A bubble that holds a form, or a few words on the
 thing beside it, is a small dialog: an Edit, Add staff, Change the time, a
 "?", a {}. Its pointer says what it belongs to, which matters most where
 the same button is down every row, as {} is down a history. The pointer

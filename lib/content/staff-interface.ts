@@ -44,6 +44,8 @@ export const staffCopy = {
   // The same, short, where there's little room (a note's buttons).
   deleteItShort: "Confirm?",
   // The dev login's box under the login card, in a fixture build only.
+  // At the foot of a supporter's consents in a fixture build: a button per address that opens their contact preferences.
+  devPreferences: { title: "Dev: open their contact preferences" },
   devLogin: {
     // Before what a shared inbox's address is, in the dev login.
     lettersInbox: "Letters inbox",

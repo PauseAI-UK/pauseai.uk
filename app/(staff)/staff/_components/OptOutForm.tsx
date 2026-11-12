@@ -10,7 +10,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { choiceValue, type OptOutChoice } from "@/lib/opt-out-choices";
 import type { FilterOption } from "@/lib/staff-list-filters";
 import { phoneWords } from "@/lib/phone";
-import ChannelIcon from "./ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import MenuSelect from "./ui/MenuSelect";
 import styles from "./OptOutForm.module.css";
 

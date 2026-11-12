@@ -5,13 +5,22 @@ import type { Channel, Way } from "@/lib/contact-permissions";
  * speech bubble with three dots for a text (WhatsApp too), a handset for a
  * call or a phone number. By `channel`, it's the kind of address; by a way,
  * how we'd use it. With `label`, it's named so; without, it's decoration
- * beside words that already say it.
+ * beside words that already say it. `size` is its width and height in
+ * pixels, small to sit in a line of small words.
  */
-export default function ChannelIcon({ channel, label }: { channel: Channel | Way; label?: string }) {
+export default function ChannelIcon({
+  channel,
+  label,
+  size = 12,
+}: {
+  channel: Channel | Way;
+  label?: string;
+  size?: number;
+}) {
   return (
     <svg
-      width="12"
-      height="12"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

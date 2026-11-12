@@ -8,7 +8,7 @@ import ErasedNotice from "@/app/(staff)/staff/_components/ErasedNotice";
 import { LumaReading } from "@/app/(staff)/staff/_components/SignupUploadPreview";
 import SupporterBadges from "@/app/(staff)/staff/_components/SupporterBadges";
 import SubscriptionBadges from "@/app/(staff)/staff/_components/SubscriptionBadges";
-import ChannelIcon from "@/app/(staff)/staff/_components/ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import SupporterDetails from "@/app/(staff)/staff/_components/SupporterDetails";
 import SupporterFilters from "@/app/(staff)/staff/_components/SupporterFilters";
 import SupportersTable from "@/app/(staff)/staff/_components/SupportersTable";
@@ -183,7 +183,7 @@ export const staffSupporters: Group = {
     },
     {
       name: "ChannelIcon",
-      file: "app/(staff)/staff/_components/ChannelIcon.tsx",
+      file: "components/ui/ChannelIcon.tsx",
       variants: [
         {
           label: "Email and phone, named, and as decoration",

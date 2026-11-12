@@ -5,7 +5,7 @@ import { FieldSet } from "@/components/ui/Field";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { consentChoice } from "@/lib/broadcasts";
 import { TOPICS, consentKey, stateValue, type Channel } from "@/lib/contact-permissions";
-import ChannelIcon from "./ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 
 const copy = staffCopy.broadcastPages;
 

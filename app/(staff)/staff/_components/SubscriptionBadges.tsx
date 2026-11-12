@@ -1,7 +1,7 @@
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { CONSENTS, TOPICS, consentKey, type Consent, type ContactPermission } from "@/lib/contact-permissions";
-import ChannelIcon from "./ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import styles from "./SubscriptionBadges.module.css";
 
 /**

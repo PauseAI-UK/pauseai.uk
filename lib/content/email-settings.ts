@@ -93,15 +93,13 @@ export const emailSettingsCopy = {
   },
   settings: {
     title: "Contact preferences",
-    lead: (address: string) =>
-      `View and change how PauseAI UK contacts you via your email ${address} and associated phone numbers.`,
     // Beside a topic's boxes, as a change of them is saved; as the staff pages' drafts say it.
     saving: "Saving…",
     saved: "Saved",
   },
   topics: topicNames,
   about: {
-    newsletter: "Weekly news from the UK campaign, including events.",
+    newsletter: "Weekly news from PauseAI UK",
     events: "Event reminders, invitations and news.",
     volunteering: "More in depth contact from staff and local groups.",
   } as Record<Topic, string>,
@@ -112,12 +110,13 @@ export const emailSettingsCopy = {
     events: "our event emails",
     volunteering: "our volunteering emails",
   } as Record<Topic, string>,
-  tags: { paused: "Email paused" },
   // Under a topic, why it's on or off, from its answer.
   why: {
-    // What opens why a topic is on or off, under its boxes.
-    ask: "⁂ Why?",
-    no: "Off since",
+    yes: "Why:",
+    // A topic they've given no answer for.
+    unasked: "you haven't asked for these.",
+    // The "?" beside a topic's name on a phone, which opens why in a bubble.
+    ask: "Why?",
     reasons: {
       asked: (source: string) => `⁂ you ticked the box ${source}.`,
       chose: () => "you turned it on here.",
@@ -135,20 +134,35 @@ export const emailSettingsCopy = {
   wording: (topic: Topic, way: Way) => `⁂ PauseAI UK can send me its ${topicNames[topic]} by ${wayNames[way]}.`,
   // "No bulk emails" set, which the person can lift here.
   noBulk: {
-    title: "⁂ You've asked PauseAI not to send you bulk email",
-    body: (date: Date | null) =>
-      `⁂ ${date ? `This was recorded on ${settingsDate(date)}. ` : ""}So you don't get any of our newsletters or event emails, or PauseAI Global's. Texts and calls aren't affected.`,
+    title: "⁂ You've turned off bulk email",
+    body: "⁂ So no newsletters or event emails from us or PauseAI Global.",
     wording: "⁂ PauseAI UK and PauseAI Global can send me bulk email again.",
-    button: "⁂ Send me bulk email again",
-    note: "⁂ This turns PauseAI Global's emails back on too. Then choose which of ours you want below.",
+    button: "⁂ Restart emails",
+    note: "⁂ This turns PauseAI Global's back on too.",
+  },
+  // "No bulk emails" as Stop everything set it, which its button undoes in full; the words kept beside that choice.
+  stopped: {
+    title: "⁂ You've stopped everything",
+    body: "⁂ So no emails, texts or calls from us, and no bulk email from PauseAI Global.",
+    button: "⁂ Restart all emails, texts and calls",
+    wording: "⁂ PauseAI UK can email, text and call me as before, and PauseAI Global can send me bulk email again.",
+  },
+  // PauseAI Global's "Do not SMS" and "Do not phone" on every number of theirs, which only Global can lift.
+  doNotText: {
+    title: "⁂ You've asked PauseAI never to text you",
+    body: "⁂ Only PauseAI Global can change that.",
+  },
+  doNotCall: {
+    title: "⁂ You've asked PauseAI never to call you",
+    body: "⁂ Only PauseAI Global can change that.",
   },
   doNotEmail: {
     title: "⁂ You've asked PauseAI never to email you",
-    body: "⁂ So we don't, apart from an email about something you've just done, such as this page's link. We can't change this here: if you'd like our emails again, ask PauseAI Global.",
+    body: "⁂ Only PauseAI Global can change that. It doesn't stop texts or calls.",
   },
   blocked: {
     title: "⁂ We can't email this address",
-    body: "⁂ Our emails to it bounced, or were marked as spam, so we don't send any more. Texts and calls aren't affected.",
+    body: "⁂ Our emails to it bounced or were marked as spam. It doesn't stop texts or calls.",
   },
   global: {
     title: "PauseAI Global's emails",
@@ -160,7 +174,7 @@ export const emailSettingsCopy = {
   },
   stopAll: {
     title: "Stop everything",
-    body: "⁂ No more newsletters, event invitations or volunteering asks from PauseAI UK, by email, text or phone, and no bulk email from PauseAI Global either. We'll still email you about something you've just done, such as a link you asked for.",
+    body: "Stops everything from PauseAI UK by email, text or phone, and PauseAI Global's bulk email. We'll still email you about things you do with us, like a link you request.",
     button: "Stop all emails, texts and calls",
   },
   // The box at the top of the page an email's unsubscribe link opens.

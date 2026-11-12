@@ -5,12 +5,14 @@ import { Checkbox } from "@/components/ui/Controls";
 import { FormStack } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { SaveState } from "@/components/ui/SaveState";
-import Tag from "@/components/ui/Tag";
-import { emailSettingsCopy as copy, settingsDate } from "@/lib/content/email-settings";
+import Bubble from "@/components/ui/Bubble";
+import ChannelIcon from "@/components/ui/ChannelIcon";
+import { iconButtonClass } from "@/components/ui/IconButton";
+import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
 import type { ContactPermission, Topic } from "@/lib/contact-permissions";
 import {
   choiceKey,
-  getsTopic,
+  numberHolds,
   settingsTopics,
   stillGets,
   type SettingsTopic,
@@ -60,30 +62,19 @@ const reasonWords = (answer: ContactPermission): string => {
   return copy.why.reasons[reason]?.(copy.sourceWords(answer.source)) ?? "";
 };
 
-/** Why a topic is on, or since when it's off ("Off since" in bold), in the person's words; null where we can't say. */
-function why(answer: ContactPermission | null): ReactNode {
-  if (!answer) return null;
-  const reason = reasonWords(answer);
-  if (answer.reason === "unsubscribed") {
-    return (
-      <>
-        <strong>
-          {copy.why.no} {settingsDate(answer.at)}:
-        </strong>{" "}
-        {reason}
-      </>
-    );
-  }
-  return reason || null;
-}
-
 /**
- * A topic's lozenge, only when they don't get it as all its email is held,
- * which a ticked Email box doesn't say. Whether they get it otherwise, the
- * lit boxes say.
+ * Why a topic is on or off, after a bold "Why:", in the person's words: that
+ * they never asked, where there's no answer; null for a reason the page has
+ * no words for.
  */
-function TopicTag({ topic }: { topic: SettingsTopic }) {
-  return !getsTopic(topic) && topic.boxes.some((box) => box.locked) ? <Tag tone="amber">{copy.tags.paused}</Tag> : null;
+function why(answer: ContactPermission | null): ReactNode {
+  const reason = answer ? reasonWords(answer) : copy.why.unasked;
+  if (!reason) return null;
+  return (
+    <>
+      <strong>{copy.why.yes}</strong> {reason}
+    </>
+  );
 }
 
 /** Where the last change to a topic's boxes is: being saved, or saved. */
@@ -99,7 +90,19 @@ function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | n
   return (
     <fieldset className={styles.card}>
       <legend className={styles.topic}>
-        {copy.topics[topic.topic]} <TopicTag topic={topic} />
+        <span>{copy.topics[topic.topic]}</span>
+        {reason && (
+          <span className={`${styles.askWrap} ${styles.phoneOnly}`}>
+            <Bubble
+              id={`why-${topic.topic}`}
+              label="?"
+              trigger={iconButtonClass("outline", styles.ask)}
+              name={copy.why.ask}
+            >
+              {reason}
+            </Bubble>
+          </span>
+        )}
       </legend>
       <p className={styles.what}>{copy.about[topic.topic]}</p>
       <div className={styles.ways}>
@@ -121,13 +124,7 @@ function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | n
           {saving && <SaveState state={saving}>{copy.settings[saving]}</SaveState>}
         </span>
       </div>
-      {/* Folded, as most come to change something rather than to see why it's so. */}
-      {reason && (
-        <details className={styles.why}>
-          <summary>{copy.why.ask}</summary>
-          <p>{reason}</p>
-        </details>
-      )}
+      {reason && <p className={`${styles.why} ${styles.wideOnly}`}>{reason}</p>}
     </fieldset>
   );
 }
@@ -147,16 +144,18 @@ function Hold({
 }) {
   const hold = view.hold!;
   if (hold.kind === "no-bulk") {
+    // As Stop everything set it, its words are of everything, and its button restarts it all.
+    const words = hold.everything ? copy.stopped : copy.noBulk;
     return (
       <FormStack className={`${styles.held} ${styles.buttonForm}`} action={lift}>
         <OpenedBy opened={opened} />
         <h2 ref={focus ? focusOnMount : undefined} tabIndex={-1}>
-          {copy.noBulk.title}
+          {words.title}
         </h2>
-        <p className={styles.boxText}>{copy.noBulk.body(hold.at)}</p>
+        <p className={styles.boxText}>{words.body}</p>
         <p className={styles.boxText}>{copy.noBulk.note}</p>
         <SubmitButton variant="ghost" fit>
-          {copy.noBulk.button}
+          {words.button}
         </SubmitButton>
       </FormStack>
     );
@@ -168,6 +167,19 @@ function Hold({
       <p className={styles.boxText}>{words.body}</p>
     </div>
   );
+}
+
+/** What PauseAI Global stops to every number of theirs, texts or calls (numberHolds), a box each, as email's are. */
+function NumberHolds({ view }: { view: SettingsView }) {
+  return numberHolds(view).map((way) => {
+    const words = way === "text" ? copy.doNotText : copy.doNotCall;
+    return (
+      <div className={styles.held} key={way}>
+        <h2>{words.title}</h2>
+        <p className={styles.boxText}>{words.body}</p>
+      </div>
+    );
+  });
 }
 
 /** The box an email's unsubscribe link opens the page with: one button, then what it did, and what they still get. */
@@ -243,6 +255,24 @@ function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["
   );
 }
 
+/** What PauseAI Global sends, and how to stop it; how to stop it all only while Stop everything is offered (not `held`). */
+function GlobalEmails({ held }: { held: boolean }) {
+  return (
+    <>
+      <p>{copy.global.intro}</p>
+      <ul>
+        {copy.global.lists.map((list) => (
+          <li key={list}>{list}</li>
+        ))}
+      </ul>
+      <p>
+        {copy.global.howToStop}
+        {!held && ` ${copy.global.stopAll}`}
+      </p>
+    </>
+  );
+}
+
 /**
  * The contact preferences page: from an email's unsubscribe link, its box first;
  * then what PauseAI UK sends the address and its numbers, a topic a card,
@@ -294,7 +324,11 @@ export default function EmailSettings({
           <h1 ref={focus === "title" ? focusOnMount : undefined} tabIndex={-1} key={`title-${round}`}>
             {copy.settings.title}
           </h1>
-          <p className={styles.lead}>{copy.settings.lead(view.address)}</p>
+          {/* Whose settings these are: the address alone, which says it plainly enough. */}
+          <p className={styles.address}>
+            <ChannelIcon channel="email" size={20} />
+            {view.address}
+          </p>
           {view.hold && (
             <Hold
               view={view}
@@ -303,6 +337,7 @@ export default function EmailSettings({
               focus={focus === "hold"}
             />
           )}
+          <NumberHolds view={view} />
           {/*
             Each box saves as it's changed, with every box as it is then. Not by
             the form's action, as React resets a form after one, which would put
@@ -330,21 +365,16 @@ export default function EmailSettings({
               />
             ))}
           </FormStack>
-          {/* Folded to its heading, as it's for reading rather than changing anything here. */}
-          <details className={styles.global}>
+          {/* Open on a wide screen; folded to its heading on a phone, as it's for reading rather than changing anything. */}
+          <section className={`${styles.global} ${styles.wide}`} aria-labelledby="global">
+            <h2 id="global">{copy.global.title}</h2>
+            <GlobalEmails held={Boolean(view.hold)} />
+          </section>
+          <details className={`${styles.global} ${styles.narrow}`}>
             <summary>
-              <h2 id="global">{copy.global.title}</h2>
+              <h2>{copy.global.title}</h2>
             </summary>
-            <p>{copy.global.intro}</p>
-            <ul>
-              {copy.global.lists.map((list) => (
-                <li key={list}>{list}</li>
-              ))}
-            </ul>
-            <p>
-              {copy.global.howToStop}
-              {!view.hold && ` ${copy.global.stopAll}`}
-            </p>
+            <GlobalEmails held={Boolean(view.hold)} />
           </details>
           {!view.hold && (
             <section className={styles.stopAll} aria-labelledby="stop-all">

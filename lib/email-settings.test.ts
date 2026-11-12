@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { ContactPermission } from "./contact-permissions";
-import { choiceKey, getsTopic, hold, settingsTopics, stillGets, type SettingsView } from "./email-settings";
+import { choiceKey, hold, settingsTopics, stillGets, type SettingsView } from "./email-settings";
 
 const AT = new Date("2026-11-02T10:00:00Z");
 const JANE = "jane@example.com";
@@ -53,7 +53,6 @@ it("gives each topic a box by email, and by text and call where it goes by them 
     ["events", ["email-", "text-"]],
     ["volunteering", ["email-", "text-", "call-"]],
   ]);
-  expect(topics.map(getsTopic)).toEqual([true, false, false]);
   expect(topics[1].why).toMatchObject({ reason: "unsubscribed" });
   expect(topics[2].why).toBeNull();
   expect(settingsTopics(view([answer({})]))[0].boxes.map((b) => b.way)).toEqual(["email"]);

@@ -158,7 +158,23 @@ export async function settingsFor(address: string): Promise<SettingsView> {
   const to = normaliseAddress(address);
   const numbers = await numbersOf(to);
   const answers = await answersFor(to, numbers);
-  return { address: to, numbers, answers, hold: hold(answers) };
+  const held = hold(answers);
+  return { address: to, numbers, answers, hold: held && { ...held, everything: (await stoppedAll(to)) !== null } };
+}
+
+/** The start of the source reference of each stop one Stop everything makes, which Restart finds them by. */
+const STOP_ALL = "preferences stop-all";
+
+/** The group of stops of the Stop everything whose "No bulk emails" holds the address now; null for none. */
+async function stoppedAll(address: string, db?: Queryable): Promise<string | null> {
+  const [row] = await query<{ ref: string }>(
+    `SELECT source_ref AS ref FROM opt_outs
+     WHERE address = $1 AND way = 'email' AND list = 'bulk' AND resubscribed_at IS NULL
+       AND source = 'preferences' AND source_ref LIKE $2`,
+    [address, `${STOP_ALL} %`],
+    db,
+  );
+  return row ? row.ref.split(" ").slice(0, 3).join(" ") : null;
 }
 
 /** The live calendar, which only the live site changes; a fixture build's is fake. */
@@ -264,21 +280,33 @@ export async function saveSettings(address: string, ticked: Set<string>): Promis
 /**
  * Lifts "No bulk emails" for the address, as the person chose beside the
  * page's words for it: closes our opt-out of every bulk email, and tells
- * CiviCRM, which turns PauseAI Global's bulk email back on too. Nothing
- * while "Do not email" stands, which only Global can lift.
+ * CiviCRM, which turns PauseAI Global's bulk email back on too. Where Stop
+ * everything set it, it undoes that in full, closing the stops it made of
+ * texts and calls too. Nothing while "Do not email" stands, which only
+ * Global can lift.
  */
 export async function liftNoBulk(address: string): Promise<boolean> {
   const view = await settingsFor(address);
   if (view.hold?.kind !== "no-bulk") return false;
+  const wording = view.hold.everything ? copy.stopped.wording : copy.noBulk.wording;
   await transaction(async (db) => {
+    const group = await stoppedAll(view.address, db);
+    if (group) {
+      await query(
+        `UPDATE opt_outs SET resubscribed_at = now()
+         WHERE source = 'preferences' AND source_ref LIKE $1 AND way <> 'email' AND resubscribed_at IS NULL`,
+        [`${group} %`],
+        db,
+      );
+    }
     const [{ id }] = await query<{ id: number }>(
       `INSERT INTO preference_choices (address, way, topic, wording) VALUES ($1, 'email', 'bulk', $2)
        RETURNING id::int AS id`,
-      [view.address, copy.noBulk.wording],
+      [view.address, wording],
       db,
     );
     await recordBulkLift(view.address, db);
-    await queueBulkLift({ id, address: view.address, at: now(), wording: copy.noBulk.wording }, db);
+    await queueBulkLift({ id, address: view.address, at: now(), wording }, db);
   });
   return true;
 }
@@ -286,16 +314,28 @@ export async function liftNoBulk(address: string): Promise<boolean> {
 /**
  * Opts the address out of every bulk email, which CiviCRM is told of, and
  * its numbers out of every topic by text and call they had a yes for; and
- * takes the address off our Luma calendar.
+ * takes the address off our Luma calendar. The stops are one group, by
+ * their source reference (STOP_ALL), so Restart can undo them all.
  */
 export async function stopEverything(address: string): Promise<void> {
   const view = await settingsFor(address);
+  const group = `${STOP_ALL} ${randomUUID()}`;
+  const stop = (target: string, way: Way, list: Topic | "bulk", db: Queryable) =>
+    recordOptOut(
+      {
+        address: target,
+        way,
+        list,
+        source: "preferences",
+        sourceRef: `${group} ${way} ${list} ${target}`,
+        unsubscribedAt: now(),
+      },
+      db,
+    );
   await transaction(async (db) => {
-    await optOut(view.address, "email", "bulk", "preferences", db);
+    await stop(view.address, "email", "bulk", db);
     for (const answer of view.answers) {
-      if (answer.way !== "email" && answer.send === "yes") {
-        await optOut(answer.address, answer.way, answer.topic, "preferences", db);
-      }
+      if (answer.way !== "email" && answer.send === "yes") await stop(answer.address, answer.way, answer.topic, db);
     }
   });
   await offCalendarAfter([{ address: view.address, list: "bulk", source: "preferences" }]);

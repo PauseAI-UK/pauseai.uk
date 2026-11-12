@@ -24,7 +24,7 @@ import Grid, { Card } from "./ui/Grid";
 import Progress from "./ui/Progress";
 import Strip from "./ui/Strip";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
-import Bubble from "./ui/Bubble";
+import Bubble from "@/components/ui/Bubble";
 import AnswerWord from "./AnswerWord";
 import LetterStatus from "./LetterStatus";
 import styles from "./MailingView.module.css";

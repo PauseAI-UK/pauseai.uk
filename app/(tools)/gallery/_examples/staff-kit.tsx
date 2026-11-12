@@ -9,8 +9,8 @@ import Choices from "@/app/(staff)/staff/_components/ui/Choices";
 import ManyChoices, { NotWords } from "@/app/(staff)/staff/_components/ui/ManyChoices";
 import Menu from "@/app/(staff)/staff/_components/ui/Menu";
 import MenuSelect from "@/app/(staff)/staff/_components/ui/MenuSelect";
-import Bubble, { BubbleBox } from "@/app/(staff)/staff/_components/ui/Bubble";
-import { bubbleTrigger } from "@/app/(staff)/staff/_components/ui/bubble-trigger";
+import Bubble, { BubbleBox } from "@/components/ui/Bubble";
+import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import CopyButton from "@/app/(staff)/staff/_components/ui/CopyButton";
 import Alert from "@/app/(staff)/staff/_components/Alert";
 import AlertIcon from "@/app/(staff)/staff/_components/AlertIcon";
@@ -19,7 +19,7 @@ import Breadcrumb from "@/app/(staff)/staff/_components/ui/Breadcrumb";
 import LockIcon from "@/app/(staff)/staff/_components/ui/LockIcon";
 import NotIcon from "@/app/(staff)/staff/_components/ui/NotIcon";
 import IconText from "@/app/(staff)/staff/_components/ui/IconText";
-import ChannelIcon from "@/app/(staff)/staff/_components/ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import ListFrame, { ListTable, type ListColumn } from "@/app/(staff)/staff/_components/ui/ListFrame";
 import Withheld from "@/app/(staff)/staff/_components/ui/Withheld";
 import ChoiceSearch from "@/app/(staff)/staff/_components/ui/ChoiceSearch";
@@ -1410,7 +1410,7 @@ export const staffKit: Group = {
     },
     {
       name: "Bubble",
-      file: "app/(staff)/staff/_components/ui/Bubble.tsx",
+      file: "components/ui/Bubble.tsx",
       variants: [
         {
           label: "A button that opens a form or a few words, pointing to it",
@@ -1426,7 +1426,7 @@ export const staffKit: Group = {
     },
     {
       name: "BubbleBox",
-      file: "app/(staff)/staff/_components/ui/Bubble.tsx",
+      file: "components/ui/Bubble.tsx",
       variants: [
         {
           label: "The bubble alone, for a button of its own look",

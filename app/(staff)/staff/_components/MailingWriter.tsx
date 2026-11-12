@@ -45,7 +45,7 @@ import MailingEditor from "./MailingEditor";
 import MailingFiles from "./MailingFiles";
 import { MailingLetter } from "./MailingLetter";
 import Grid, { Card } from "./ui/Grid";
-import Bubble from "./ui/Bubble";
+import Bubble from "@/components/ui/Bubble";
 import NotIcon from "./ui/NotIcon";
 import Strip from "./ui/Strip";
 import Numbered from "./ui/Numbered";

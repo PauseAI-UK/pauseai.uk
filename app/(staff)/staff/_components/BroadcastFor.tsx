@@ -6,7 +6,7 @@ import { type Params } from "@/lib/list-params";
 import { Muted } from "@/components/ui/Text";
 import { broadcastTerms } from "@/lib/broadcasts";
 import { consentKey } from "@/lib/contact-permissions";
-import ChannelIcon from "./ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import IconText from "./ui/IconText";
 import BroadcastView from "./BroadcastView";
 import ChannelWriter from "./ChannelWriter";

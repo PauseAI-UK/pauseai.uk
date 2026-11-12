@@ -9,7 +9,7 @@ import { filtersPath, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import Alert from "../Alert";
 import { DeleteTwice } from "../DeleteTwice";
-import Bubble from "./Bubble";
+import Bubble from "@/components/ui/Bubble";
 import ChoiceSearch from "./ChoiceSearch";
 import Menu, { menuItemClass, menuItemsClass } from "./Menu";
 import MenuSubmit from "./MenuSubmit";

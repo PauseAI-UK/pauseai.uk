@@ -9,7 +9,7 @@ import { londonClock, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
 import { FIELD_WORDS, stopsAt, type BroadcastChannel } from "@/lib/broadcasts";
 import Strip from "./ui/Strip";
 import { phoneWords } from "@/lib/phone";
-import ChannelIcon from "./ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import IconText from "./ui/IconText";
 import MailEmail from "./MailEmail";
 import MailingFiles from "./MailingFiles";
