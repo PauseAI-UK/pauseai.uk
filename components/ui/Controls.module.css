@@ -79,6 +79,11 @@
   }
 }
 
+/* Centred in its box by align-items, without the margin that puts a bare one on its words' first line. */
+.boxed .checkbox {
+  margin: 0;
+}
+
 .boxed:has(:checked) {
   border-color: var(--accent);
   background: var(--peach);

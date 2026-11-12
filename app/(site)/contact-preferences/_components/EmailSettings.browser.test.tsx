@@ -224,6 +224,14 @@ describe("EmailSettings", () => {
     await expect.element(page.getByRole("button", { name: copy.unsubscribe.button })).not.toBeInTheDocument();
   });
 
+  it("from an email's link: its box goes once anything below is changed, as what it says may no longer be so", async () => {
+    await show(exampleSettings, ["newsletter"]);
+    const question = page.getByRole("heading", { name: copy.unsubscribe.title(copy.inSentence.newsletter) });
+    await expect.element(question).toBeVisible();
+    await card("events").getByRole("checkbox", { name: copy.ways.text }).click();
+    await expect.element(question).not.toBeInTheDocument();
+  });
+
   it("from an email's link with a topic they still get: its button", async () => {
     await show(exampleUnsubscribed, ["newsletter", "events"]);
     await expect.element(page.getByRole("button", { name: copy.unsubscribe.button })).toBeVisible();

@@ -341,14 +341,20 @@ export default function EmailSettings({
   // The topic last changed, and whether its change is saved yet; saves still going, so it's saved only once all are.
   const [saving, setSaving] = useState<{ topic: Topic; state: Saving } | null>(null);
   const going = useRef(0);
+  // Whether anything below the email's box has changed, which may make what the box says untrue, so it goes.
+  const [changed, setChanged] = useState(false);
   const update = (next: SettingsView | null, then: typeof focus = null) => {
     setView(next);
     setRound((n) => n + 1);
     setFocus(then);
   };
+  const changeBelow = (next: SettingsView | null, then: typeof focus) => {
+    setChanged(true);
+    update(next, then);
+  };
   return (
     <>
-      {unsubscribe && (
+      {unsubscribe && !changed && (
         <Unsubscribe
           topics={unsubscribe}
           view={view}
@@ -372,7 +378,7 @@ export default function EmailSettings({
             <Hold
               view={view}
               opened={opened}
-              lift={async (form) => update(await actions.lift(form), "title")}
+              lift={async (form) => changeBelow(await actions.lift(form), "title")}
               focus={focus === "hold"}
             />
           )}
@@ -387,6 +393,7 @@ export default function EmailSettings({
               const topic = (event.target as unknown as HTMLInputElement).value.split(":")[0] as Topic;
               const form = new FormData(event.currentTarget);
               setSaving({ topic, state: "saving" });
+              setChanged(true);
               going.current++;
               const next = await actions.save(form);
               going.current--;
@@ -421,7 +428,7 @@ export default function EmailSettings({
               <p>{copy.stopAll.body}</p>
               <FormStack
                 className={styles.buttonForm}
-                action={async (form) => update(await actions.stopAll(form), "hold")}
+                action={async (form) => changeBelow(await actions.stopAll(form), "hold")}
               >
                 <OpenedBy opened={opened} />
                 <SubmitButton variant="ghost" fit>

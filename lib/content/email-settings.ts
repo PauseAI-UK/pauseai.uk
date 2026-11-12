@@ -119,7 +119,7 @@ export const emailSettingsCopy = {
     ask: "Why?",
     reasons: {
       asked: (source: string) => `you ticked the box ${source}.`,
-      chose: () => "⁂ you turned them on here.",
+      chose: () => "you turned them on here.",
       "signed-up": (source: string) => `you gave us your details ${source}.`,
       subscribed: () => "you're on PauseAI UK's list with PauseAI Global.",
       following: () => "you follow our calendar on Luma.",
