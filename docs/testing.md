@@ -47,9 +47,8 @@ every test. It isn't the gate: `npm test` is, over every file.
 
 Because a failing test hides the coverage, a check that's meant to fail for
 days isn't a Vitest test. The check for placeholder copy is a command of its
-own, `npm run placeholders` (`scripts/placeholders.mjs`), which
-`npm run lint` ends with. So a branch whose copy waits for approval fails
-CI's lint job, and still has its coverage checked.
+own, `npm run placeholders` (`scripts/placeholders.mjs`), so a branch whose
+copy waits for approval still has its coverage checked.
 
 - **Every file is held at 100%**: statements, branches, functions and
   lines, each file on its own (`perFile: true`).
@@ -977,11 +976,11 @@ npm run typecheck         # types (also runs in npm run build)
 npm test                  # both Vitest projects, with the coverage gate (what CI runs)
 npm run test:changed      # the tests for the files changed since origin/main, and those files' uncovered lines and branches
 npm run test:node         # Vitest node project (also runs in npm run build)
-npm run lint              # ESLint, failing on warnings too, then npm run placeholders (also runs in npm run build)
+npm run lint              # ESLint, failing on warnings too (also runs in npm run build)
 npm run lint:css          # Stylelint (also runs in npm run build)
 npm run lint:unused       # Knip: unused files, exports and dependencies
 npm run format:check      # Prettier, on everything .prettierignore doesn't list (npm run format fixes it)
-npm run placeholders      # fails on placeholder copy, naming each line (the end of npm run lint)
+npm run placeholders      # fails on placeholder copy, naming each line (also runs in npm run build)
 npm run test:browser      # Vitest browser project
 npm run test:watch        # Vitest in watch mode
 npm run test:storyboard   # Playwright: the storyboard's gate, on a fixture build
@@ -989,11 +988,11 @@ npm run storyboard        # Playwright: the storyboard with screenshots, against
 npm run test:report       # open the last Playwright report
 ```
 
-- `npm run build` runs the types, the Node project and the linters first,
-  then `next build`. Only the Node project, because Netlify's build has no
-  browser. While any copy is a placeholder, `npm run lint` fails on its
-  placeholder check, and so does the build: placeholders can't be deployed
-  (AGENTS.md).
+- `npm run build` runs the placeholder check, the types, the Node project
+  and the linters first, then `next build`. Only the Node project, because
+  Netlify's build has no browser. While any copy is a placeholder,
+  `npm run placeholders` fails, and so does the build: placeholders can't be
+  deployed (AGENTS.md).
 - **Ports.** The storyboard builds and starts the site itself on this
   checkout's own port, or reuses a server already there (except in CI). The
   port, and main's beside it for the review, come from a hash of the
@@ -1033,14 +1032,13 @@ mistake. `--fast` stops after them anyway.
 - `npm run typecheck`, then `npm run test:storyboard` (the storyboard waits
   for the types, as in CI, and both write `.next`);
 - `npm test`;
-- the four linters, one after another, `npm run lint` as its two halves:
-  ESLint, then `npm run placeholders`;
+- the four linters, then `npm run placeholders`, one after another;
 - the backup Worker's `npm ci`, tests and types.
 
 A lane stops at a failed `typecheck` or backup `npm ci`, as what follows
 needs it. Each linter runs whether or not the one before it passed. A
 branch with placeholder copy fails `npm run placeholders` alone, so the
-table still shows whether ESLint, its tests and its coverage pass.
+table still shows whether its tests and coverage pass.
 `--no-storyboard` leaves the storyboard out, for use while making changes.
 `npm run build` isn't run: it repeats the unit tests and linters, and the
 storyboard builds the site.

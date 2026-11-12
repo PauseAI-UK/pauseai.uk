@@ -38,7 +38,7 @@ The branch isn't done until `npm run gate` exits 0. It takes the files changed s
 
 - the types, then the storyboard;
 - `npm test`, with the coverage gate;
-- the four linters, one after another, with the placeholder check as a command of its own;
+- the four linters, then the placeholder check, one after another;
 - the backup Worker's package.
 
 Each command has a time limit and a log in `tmp/gate/`. While they run, a line a minute says which are still running and whose log has gone quiet. The gate ends with a table of exit codes and the end of each failed log. Go by those exit codes, not a grep of the output: `npm test` can report every test passing and still fail on coverage.
@@ -130,7 +130,7 @@ Before you say a change is done, run `npm test`. That's both Vitest projects wit
 
 People write the words visitors and recipients read: page text, letters, emails, form labels and messages. When code needs copy that doesn't exist yet, write a placeholder: a draft in plain English that starts with ⁂, e.g. "⁂ Import the calendar now", so a person can see what the words must say and it can't be mistaken for the real thing.
 
-`npm run placeholders` fails while ⁂ appears anywhere in the repo outside this file, and names each line. `npm run lint` ends with it, so CI's lint job and Netlify's build fail too, and placeholders can't be merged by accident. It isn't one of the tests, so while a branch's copy waits, `npm test` still checks its coverage: only the placeholder check's own row of the gate's table fails.
+`npm run placeholders` fails while ⁂ appears anywhere in the repo outside this file, and names each line. CI, the gate and Netlify's build run it, so placeholders can't be merged by accident. It isn't one of the tests, so while a branch's copy waits, `npm test` still checks its coverage: only the placeholder check's own row of the gate's table fails.
 
 After every full storyboard review of a branch with placeholders, run `npm run copy` and give the person you're working with the page it writes, so they can see the copy waiting for approval: it writes one page, `test-results/copy.html`, with each placeholder the branch adds or changes, its file and line, and the frames that picture it (`docs/testing.md`, "The copy to approve").
 

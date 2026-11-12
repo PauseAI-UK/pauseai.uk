@@ -6,7 +6,7 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "npm run typecheck && vitest run --project node && npm run lint && npm run lint:css && next build",
+    "build": "npm run placeholders && npm run typecheck && vitest run --project node && npm run lint && npm run lint:css && next build",
     "typecheck": "next typegen && tsc --noEmit",
     "start": "next start",
     "gate": "node scripts/gate.mjs",
@@ -14,7 +14,7 @@
     "friction-sweep": "node scripts/friction-sweep.mjs",
     "worktree": "node scripts/worktree.mjs",
     "serve": "node scripts/serve.mjs",
-    "lint": "eslint --max-warnings 0 && npm run placeholders",
+    "lint": "eslint --max-warnings 0",
     "lint:css": "stylelint \"**/*.css\"",
     "lint:unused": "knip",
     "format": "prettier --write .",

@@ -51,7 +51,7 @@ Two more scripts check the migrations:
 
 Each command has a time limit and a log in `tmp/gate/`, and the gate ends with a table of exit codes. `--fast` stops after the first part, and `--no-storyboard` leaves out the storyboard. `docs/testing.md`, "`npm run gate`", covers it.
 
-`placeholders.mjs`, run with `npm run placeholders`, fails while any file has placeholder copy, and lists each line that does. `npm run lint` ends with it, so CI and `npm run build` run it, and the gate runs it as a command of its own (AGENTS.md, "Never write final copy").
+`placeholders.mjs`, run with `npm run placeholders`, fails while any file has placeholder copy, and lists each line that does. CI, the gate and `npm run build` run it (AGENTS.md, "Never write final copy").
 
 ## Worktrees
 
