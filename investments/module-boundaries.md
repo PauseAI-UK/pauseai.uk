@@ -21,4 +21,4 @@ Ignoring type imports, nine files form an import cycle through the email transpo
 
 ## Hits
 
-None yet.
+- 2026-11-12: `email.ts`, `gmail-accounts.ts`, `notifications.ts` and `relays.ts` import each other, so a change to any of them reaches 82 files and most staff flows of the storyboard (`narrow-imports.md`)
