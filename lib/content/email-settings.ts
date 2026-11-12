@@ -18,26 +18,26 @@ const topicNames: Record<Topic, string> = {
   volunteering: "Volunteering",
 };
 
-const wayNames: Record<Way, string> = { email: "⁂ Email", text: "⁂ Text", call: "⁂ Call" };
+const wayNames: Record<Way, string> = { email: "Email", text: "Text", call: "Call" };
 
 /** Where a yes or an opt-out came from, as the page tells the person: the form, or how they did it. */
 const sources: Record<string, string> = {
-  "march-2026-11": "⁂ when you signed up for the March Against AI Extinction",
-  "email-your-mp": "⁂ when you wrote to your MP",
-  "web-form": "⁂ when you wrote to your MP",
-  "paper-signup": "⁂ on a paper sign-up form",
-  airtable: "⁂ when you joined PauseAI",
-  civicrm: "⁂ with PauseAI Global",
-  luma: "⁂ on Luma",
-  "luma-webhook": "⁂ in a Luma email",
-  "luma-contacts": "⁂ on Luma",
-  link: "⁂ from one of our emails",
-  "list-unsubscribe": "⁂ from your mail app",
-  "postmark-complaint": "⁂ by marking our email as spam",
-  reply: "⁂ by replying to our email",
-  staff: "⁂ by telling us",
-  preferences: "⁂ on this page",
-  "civicrm-check": "⁂ with PauseAI Global",
+  "march-2026-11": "when you signed up for the March Against AI Extinction",
+  "email-your-mp": "when you wrote to your MP",
+  "web-form": "when you wrote to your MP",
+  "paper-signup": "on a paper sign-up form",
+  airtable: "when you joined PauseAI",
+  civicrm: "with PauseAI Global",
+  luma: "on Luma",
+  "luma-webhook": "in a Luma email",
+  "luma-contacts": "on Luma",
+  link: "from one of our emails",
+  "list-unsubscribe": "from your mail app",
+  "postmark-complaint": "by marking our email as spam",
+  reply: "by replying to our email",
+  staff: "by telling us",
+  preferences: "on this page",
+  "civicrm-check": "with PauseAI Global",
 };
 
 const from = (source: string | null): string => sources[source ?? ""] ?? "";
@@ -95,9 +95,9 @@ export const emailSettingsCopy = {
     title: "Contact preferences",
     lead: (address: string) =>
       `View and change how PauseAI UK contacts you via your email ${address} and associated phone numbers.`,
-    save: "⁂ Save",
-    saveNote: "Changes apply at once.",
-    saved: "⁂ Saved.",
+    // Under a topic's boxes, as a change of them is saved.
+    saving: "⁂ Saving…",
+    saved: "⁂ Saved",
   },
   topics: topicNames,
   about: {
@@ -108,11 +108,11 @@ export const emailSettingsCopy = {
   ways: wayNames,
   // A topic in a sentence, as an unsubscribe says what of.
   inSentence: {
-    newsletter: "⁂ the UK newsletter",
-    events: "⁂ our event emails",
-    volunteering: "⁂ our volunteering emails",
+    newsletter: "the UK newsletter",
+    events: "our event emails",
+    volunteering: "our volunteering emails",
   } as Record<Topic, string>,
-  tags: { paused: "⁂ Email paused" },
+  tags: { paused: "Email paused" },
   // Under a topic, why it's on or off, from its answer.
   why: {
     yes: "Why:",
@@ -124,7 +124,7 @@ export const emailSettingsCopy = {
       subscribed: () => "you're on PauseAI UK's list with PauseAI Global.",
       following: () => "you follow our calendar on Luma.",
       "gave-number": (source: string) => `you gave your number for texts on the day ${source}.`,
-      volunteered: () => "⁂ you said you'd like to volunteer when you joined PauseAI.",
+      volunteered: () => "you said you'd like to volunteer when you joined PauseAI.",
       unsubscribed: (source: string) => `you unsubscribed ${source}.`,
       declined: (source: string) => `you left the box unticked ${source}.`,
     } as Partial<Record<Reason, (source: string) => string>>,
@@ -151,17 +151,17 @@ export const emailSettingsCopy = {
     body: "⁂ Our emails to it bounced, or were marked as spam, so we don't send any more. Texts and calls aren't affected.",
   },
   global: {
-    title: "⁂ PauseAI Global's emails",
+    title: "PauseAI Global's emails",
     intro: "PauseAI Global, the international movement, can send its own emails:",
-    lists: ["⁂ the PauseAI Newsletter", "⁂ Critical Alerts, when something urgent happens", "⁂ Local Invitations"],
-    howToStop: "⁂ To stop one of them, use the unsubscribe link at the bottom of its emails.",
+    lists: ["the PauseAI Newsletter", "Critical Alerts, when something urgent happens", "Local Invitations"],
+    howToStop: "To stop one of them, use the unsubscribe link at the bottom of its emails.",
     // Only while Stop everything is offered, below.
-    stopAll: "⁂ To stop them all, use “Stop everything” below.",
+    stopAll: "To stop them all, use “Stop everything” below.",
   },
   stopAll: {
-    title: "⁂ Stop everything",
+    title: "Stop everything",
     body: "⁂ No more newsletters, event invitations or volunteering asks from PauseAI UK, by email, text or phone, and no bulk email from PauseAI Global either. We'll still email you about something you've just done, such as a link you asked for.",
-    button: "⁂ Stop all emails, texts and calls",
+    button: "Stop all emails, texts and calls",
   },
   // The box at the top of the page an email's unsubscribe link opens.
   unsubscribe: {

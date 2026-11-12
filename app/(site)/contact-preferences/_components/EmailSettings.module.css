@@ -64,12 +64,15 @@
   font-size: var(--text-sm);
 }
 
-/* Save, and what it does beside it. */
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
+/* Whether a topic's last change is saved, under its boxes; no room taken while it says nothing. */
+.saving {
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.saving:empty {
+  display: none;
 }
 
 /* What holds every email: a pale amber box above the topics, its heading and words evenly spaced. */

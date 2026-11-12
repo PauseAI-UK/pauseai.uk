@@ -49,9 +49,15 @@ export const focusOnMount = (el: HTMLElement | null) => el?.focus();
 /** Topics in a sentence: "the UK newsletter and our event emails". */
 const inWords = (topics: Topic[]): string => topics.map((t) => copy.inSentence[t]).join(` ${copy.unsubscribe.and} `);
 
-/** An answer's reason in the person's words, with where it came from; nothing for one the page has no words for. */
-const reasonWords = (answer: ContactPermission): string =>
-  copy.why.reasons[answer.reason]?.(copy.sourceWords(answer.source)) ?? "";
+/**
+ * An answer's reason in the person's words, with where it came from; nothing
+ * for one the page has no words for. Being on PauseAI Global's volunteering
+ * list is saying so when joining, which is how its join form puts them there.
+ */
+const reasonWords = (answer: ContactPermission): string => {
+  const reason = answer.reason === "subscribed" && answer.topic === "volunteering" ? "volunteered" : answer.reason;
+  return copy.why.reasons[reason]?.(copy.sourceWords(answer.source)) ?? "";
+};
 
 /** Why a topic is on, or since when it's off, in the person's words, its "Why:" or "Off since" in bold. */
 function why(answer: ContactPermission | null): ReactNode {
@@ -86,8 +92,14 @@ function TopicTag({ topic }: { topic: SettingsTopic }) {
   return !getsTopic(topic) && topic.boxes.some((box) => box.locked) ? <Tag tone="amber">{copy.tags.paused}</Tag> : null;
 }
 
-/** One topic: its name, whether they get it, what it is, a box for each way, and why. */
-function TopicCard({ topic }: { topic: SettingsTopic }) {
+/** Where the last change to a topic's boxes is: being saved, or saved. */
+type Saving = "saving" | "saved";
+
+/**
+ * One topic: its name, whether they get it, what it is, a box for each way,
+ * whether its last change is saved, and why.
+ */
+function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | null }) {
   const [boxes, setBoxes] = useState(topic.boxes);
   return (
     <fieldset className={styles.card}>
@@ -110,6 +122,11 @@ function TopicCard({ topic }: { topic: SettingsTopic }) {
           </Checkbox>
         ))}
       </div>
+      {/* There before it says anything, so a screen reader hears each change of it. */}
+      <p className={styles.saving} role="status">
+        {saving === "saving" && copy.settings.saving}
+        {saving === "saved" && <Tag tone="green">{copy.settings.saved}</Tag>}
+      </p>
       <p className={styles.why}>{why(topic.why)}</p>
     </fieldset>
   );
@@ -226,14 +243,12 @@ function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["
   );
 }
 
-/** The boxes ticked in a form, to tell whether they've changed. */
-const ticked = (form: HTMLFormElement) => new FormData(form).getAll("choice").join(" ");
-
 /**
  * The contact preferences page: from an email's unsubscribe link, its box first;
  * then what PauseAI UK sends the address and its numbers, a topic a card,
  * the numbers unnamed, as the link doesn't prove they're the person's;
- * with what holds all its email above them; Save; what PauseAI Global
+ * each saved as it's changed, with what holds all its email above them;
+ * what PauseAI Global
  * sends; and Stop everything. Once its link has run out, an offer of a
  * fresh one in place of all but the box.
  */
@@ -250,26 +265,17 @@ export default function EmailSettings({
   actions: SettingsActions;
 }) {
   const [view, setView] = useState(initial);
-  const [saved, setSaved] = useState(false);
   // Each change gives fresh boxes, so the cards start again from what was kept.
   const [round, setRound] = useState(0);
   // Where the focus goes once a button's change is shown: the page's title after a lift, the hold after Stop everything.
   const [focus, setFocus] = useState<"title" | "hold" | null>(null);
-  // Whether the boxes differ from what was kept, which they're compared with each time one changes; Save is ghosted till then.
-  const [changed, setChanged] = useState(false);
-  const kept = useRef("");
-  // Which round's boxes those were; the boxes are read once a round, when they're new.
-  const keptRound = useRef(-1);
-  const keep = (form: HTMLFormElement | null) => {
-    if (!form || keptRound.current === round) return;
-    kept.current = ticked(form);
-    keptRound.current = round;
-  };
+  // The topic last changed, and whether its change is saved yet; saves still going, so it's saved only once all are.
+  const [saving, setSaving] = useState<{ topic: Topic; state: Saving } | null>(null);
+  const going = useRef(0);
   const update = (next: SettingsView | null, then: typeof focus = null) => {
     setView(next);
     setRound((n) => n + 1);
     setFocus(then);
-    setChanged(false);
   };
   return (
     <>
@@ -297,36 +303,32 @@ export default function EmailSettings({
               focus={focus === "hold"}
             />
           )}
+          {/*
+            Each box saves as it's changed, with every box as it is then. Not by
+            the form's action, as React resets a form after one, which would put
+            the boxes back as the page first drew them.
+          */}
           <FormStack
-            ref={keep}
-            onChange={(event) => setChanged(ticked(event.currentTarget) !== kept.current)}
-            action={async (form) => {
-              // Cleared first, so each save's "Saved" is news a screen reader reads.
-              setSaved(false);
-              update(await actions.save(form));
-              setSaved(true);
+            onChange={async (event) => {
+              const topic = (event.target as unknown as HTMLInputElement).value.split(":")[0] as Topic;
+              const form = new FormData(event.currentTarget);
+              setSaving({ topic, state: "saving" });
+              going.current++;
+              const next = await actions.save(form);
+              going.current--;
+              // The boxes stay as they are, so a change made while this one was saved isn't undone.
+              setView(next);
+              if (!going.current) setSaving((was) => was && { ...was, state: "saved" });
             }}
           >
             <OpenedBy opened={opened} />
             {settingsTopics(view).map((topic) => (
-              <TopicCard key={`${topic.topic}-${round}`} topic={topic} />
+              <TopicCard
+                key={`${topic.topic}-${round}`}
+                topic={topic}
+                saving={saving?.topic === topic.topic ? saving.state : null}
+              />
             ))}
-            <div className={styles.row}>
-              {/* Ghosted, not disabled, so the focus stays on it after a save, as a disabled button drops it. */}
-              <SubmitButton
-                variant="primary"
-                fit
-                aria-disabled={!changed}
-                onClick={(event) => {
-                  if (!changed) event.preventDefault();
-                }}
-              >
-                {copy.settings.save}
-              </SubmitButton>
-              <span className={styles.quiet} role="status">
-                {saved ? copy.settings.saved : copy.settings.saveNote}
-              </span>
-            </div>
           </FormStack>
           <section className={styles.global} aria-labelledby="global">
             <h2 id="global">{copy.global.title}</h2>

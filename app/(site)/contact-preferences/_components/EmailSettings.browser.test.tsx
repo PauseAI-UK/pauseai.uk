@@ -66,31 +66,31 @@ describe("EmailSettings", () => {
     await expect.element(page.getByRole("heading", { name: copy.global.title })).toBeVisible();
   });
 
-  it("saves what's ticked, with whose page it is, and says so", async () => {
+  it("saves each box as it's changed, with whose page it is, and says so under its topic", async () => {
     const done = await show(exampleSettings);
-    // Ghosted till a box differs from what was kept: pressed, it saves nothing; a box ticked and unticked ghosts it again.
-    const save = page.getByRole("button", { name: copy.settings.save });
-    await expect.element(save).toHaveAttribute("aria-disabled", "true");
-    // Forced, as a ghosted button takes a press but does nothing with it.
-    await save.click({ force: true });
+    // Slow to answer, so it says it's saving meanwhile.
+    let answer = () => {};
+    done.save.mockImplementationOnce(() => new Promise((resolve) => (answer = () => resolve(exampleSettings))));
     await card("volunteering").getByRole("checkbox", { name: copy.ways.email }).click();
-    await expect.element(save).toHaveAttribute("aria-disabled", "false");
-    await card("volunteering").getByRole("checkbox", { name: copy.ways.email }).click();
-    await expect.element(save).toHaveAttribute("aria-disabled", "true");
-    expect(done.save).not.toHaveBeenCalled();
-    await card("volunteering").getByRole("checkbox", { name: copy.ways.email }).click();
-    await card("newsletter").getByRole("checkbox", { name: copy.ways.text }).click();
-    await save.click();
-    await expect.element(page.getByText(copy.settings.saved)).toBeVisible();
-    // The button stays where the focus was, so the keyboard carries on from it.
-    await expect.element(save).toHaveFocus();
+    await expect.element(card("volunteering").getByRole("status")).toHaveTextContent(copy.settings.saving);
+    answer();
+    await expect.element(card("volunteering").getByRole("status")).toHaveTextContent(copy.settings.saved);
     expect(fields(done.save.mock.calls[0][0])).toEqual([
       ["kind", "link"],
       ["token", "tok"],
       ["choice", "newsletter:email"],
+      ["choice", "newsletter:text"],
       ["choice", "events:email"],
       ["choice", "volunteering:email"],
     ]);
+    // The next change saves too, with the first kept, and says so under its own topic.
+    await card("newsletter").getByRole("checkbox", { name: copy.ways.text }).click();
+    await vi.waitFor(() => expect(done.save).toHaveBeenCalledTimes(2));
+    expect(fields(done.save.mock.calls[1][0])).not.toContainEqual(["choice", "newsletter:text"]);
+    expect(fields(done.save.mock.calls[1][0])).toContainEqual(["choice", "volunteering:email"]);
+    await expect.element(card("newsletter").getByRole("status")).toHaveTextContent(copy.settings.saved);
+    await expect.element(card("volunteering").getByText(copy.settings.saved)).not.toBeInTheDocument();
+    await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.email })).toBeChecked();
   });
 
   it("stops everything", async () => {

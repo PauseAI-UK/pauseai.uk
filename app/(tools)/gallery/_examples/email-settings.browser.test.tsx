@@ -19,7 +19,7 @@ describe("the contact preferences group's examples", () => {
   it("logs each action of the page, by its link", async () => {
     await render(<EmailSettingsExample view={exampleSettings} unsubscribe={["newsletter"]} />);
     await page.getByRole("button", { name: copy.unsubscribe.button }).click();
-    await page.getByRole("button", { name: copy.settings.save }).click();
+    await page.getByRole("checkbox", { name: copy.ways.text }).first().click();
     await page.getByRole("button", { name: copy.stopAll.button }).click();
     await expect.element(log().nth(2)).toHaveTextContent('stopAll({"kind":"copy","token":"example"})');
     expect(log().nth(0).element().textContent).toContain("unsubscribe(");
