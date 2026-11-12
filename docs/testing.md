@@ -757,7 +757,7 @@ that drives it or why nothing does.
   - asking for a link past Turnstile, the email with it, and the page it opens;
   - changing what you get, with why behind a “?” on a phone;
   - Stop everything, and Restart undoing it, texts and calls too;
-  - an email's unsubscribe link, fresh and two months old, with a fresh link emailed;
+  - an email's unsubscribe link, fresh, opened again once used, and two months old, with a fresh link emailed;
   - a link that's run out;
   - “No bulk emails” lifted, and “Do not email”, “Do not SMS” and “Do not phone”, which only PauseAI Global can lift;
   - an address we can't email, as its emails bounced;

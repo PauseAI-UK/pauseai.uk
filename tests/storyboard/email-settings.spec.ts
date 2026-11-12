@@ -183,10 +183,23 @@ test("An email's unsubscribe link", { tag: "@phone" }, async ({ page, request, f
   await open(page, copyLink(flowDatabase, JANE, "newsletter", 1));
   await expect(page.getByRole("heading", { name: copy.unsubscribe.title(copy.inSentence.newsletter) })).toBeVisible();
   await frame(page, "One button");
-  story("She presses it. The page says what stopped, and what she still gets and why.");
+  story("She presses it. The page says what stopped, and that she can choose what else she gets below.");
   await page.getByRole("button", { name: copy.unsubscribe.button }).click();
   await expect(page.getByRole("heading", { name: copy.unsubscribe.done(copy.inSentence.newsletter) })).toBeVisible();
   await frame(page, "Unsubscribed");
+  story(
+    "Later she opens the email's link again. She no longer gets the newsletter, so the page says that, with no button.",
+  );
+  await page.reload();
+  await hydrated(page);
+  const off = page.getByRole("heading", { name: copy.unsubscribe.off(copy.inSentence.newsletter) });
+  await expect(off).toBeVisible();
+  await frame(page, "The link opened again");
+  story("She turns volunteering on by text. The box at the top goes, as what it says may no longer be so.");
+  await topicCard(page, "volunteering").getByRole("checkbox", { name: copy.ways.text }).check();
+  await expect(topicCard(page, "volunteering").getByText(copy.settings.saved)).toBeVisible();
+  await expect(off).toHaveCount(0);
+  await frame(page, "The box gone after a change");
 });
 
 test("An old email's unsubscribe link", async ({ page, request, flowDatabase }) => {
