@@ -42,16 +42,30 @@ function describe(arg: unknown): string {
   }
 }
 
+type Log = (name: string) => (...args: unknown[]) => void;
+
+/** A `log` that passes each call to `add` as "name(…)", and gives the same function each time it's asked for a name. */
+function logTo(add: (call: string) => void): Log {
+  const made = new Map<string, (...args: unknown[]) => void>();
+  return (name) => {
+    let logs = made.get(name);
+    if (!logs) {
+      logs = (...args) => add(`${name}(${args.map(describe).join(", ")})`);
+      made.set(name, logs);
+    }
+    return logs;
+  };
+}
+
 /**
  * Gives an example's action callbacks something to do: `log("onSave")` is a
- * function that adds "onSave(…)" to a list under the component.
+ * function that adds "onSave(…)" to a list under the component. It's the
+ * same function for the same name at every render, so it can go to a prop
+ * an effect depends on without the effect running again after each log.
  */
-export function Logged({ children }: { children: (log: (name: string) => (...args: unknown[]) => void) => ReactNode }) {
+export function Logged({ children }: { children: (log: Log) => ReactNode }) {
   const [calls, setCalls] = useState<string[]>([]);
-  const log =
-    (name: string) =>
-    (...args: unknown[]) =>
-      setCalls((list) => [...list, `${name}(${args.map(describe).join(", ")})`]);
+  const [log] = useState(() => logTo((call) => setCalls((list) => [...list, call])));
   return (
     <>
       {children(log)}

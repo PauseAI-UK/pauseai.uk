@@ -1075,6 +1075,13 @@ exit code after it. When the time it usually takes has passed, look at the
 file. A run whose output hasn't moved in minutes is stuck, so stop it and
 find out why, rather than waiting for the limit.
 
+A Vitest test file that hasn't finished in five minutes stops the run
+itself, failing it and naming the file (`tests/hung-files.mts`, a reporter
+in `vitest.config.mts`). A test's own limit runs in the page the test is
+in, so it can't fire once that page is stuck: a component whose effect sets
+state every time it runs renders for ever, and the run would otherwise sit
+there printing nothing. Run the named file on its own to find the test.
+
 Stopping a storyboard run can leave its fixture server (`next-server`)
 running on the checkout's port (above). Locally the storyboard reuses
 whatever answers there, so the next run waits on it, printing nothing. The

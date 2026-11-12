@@ -1,6 +1,9 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
+// With its extension, and written in TypeScript that Node can strip, as
+// scripts/test-changed.mjs loads this file in Node itself.
+import { HungFiles } from "./tests/hung-files.mts";
 
 // Two projects, one coverage report (see docs/testing.md):
 //
@@ -20,6 +23,9 @@ export default defineConfig({
     },
   },
   test: {
+    // Vitest's own reporters, and one that stops the run at a test file
+    // that never finishes, naming it (tests/hung-files.mts).
+    reporters: [...configDefaults.reporters, new HungFiles()],
     projects: [
       {
         extends: true,
