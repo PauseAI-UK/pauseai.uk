@@ -178,7 +178,7 @@ export const test = base.extend<{ flowDatabase: string }>({
   context: async ({ context }, provide, testInfo) => {
     await context.route(ANALYTICS_URL, (route) => route.abort());
     // Experiment: in a coverage run, the server renders only what the flow opens
-    if (process.env.FLOW_COVERAGE === "1" || process.env.NO_PREFETCH === "1")
+    if (process.env.FLOW_COVERAGE === "1")
       await context.route(
         (url) => url.href.startsWith(BASE),
         (route) =>
@@ -196,7 +196,7 @@ export const test = base.extend<{ flowDatabase: string }>({
         rsc: !!headers["rsc"],
       });
     });
-    const covering = process.env.FLOW_COVERAGE === "1" && process.env.NO_CLIENT_COVERAGE !== "1";
+    const covering = process.env.FLOW_COVERAGE === "1";
     const started: Promise<void>[] = [];
     const watch = (p: import("@playwright/test").Page) => {
       p.on("framenavigated", (f) => {
