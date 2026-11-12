@@ -582,5 +582,12 @@ describeWithDatabase("politicians", () => {
       await setStatus(id, PM, { status: "signed", date: null, note: "" }, "jo@pauseai.uk");
     }
     expect((await signatories(PM)).map((one) => one.name)).toEqual(["Áine Example", "Bea Bee", "de Souza", "Zoe Zed"]);
+    // The staff list, sorted by its Name column, either way.
+    const listed = async (dir: "asc" | "desc") =>
+      (await listPoliticians({ search: "e", sort: { key: "name", dir } }))
+        .map((one) => one.name)
+        .filter((name) => names.includes(name));
+    expect(await listed("asc")).toEqual(["Áine Example", "Bea Bee", "de Souza", "Zoe Zed"]);
+    expect(await listed("desc")).toEqual(["Zoe Zed", "de Souza", "Bea Bee", "Áine Example"]);
   });
 });

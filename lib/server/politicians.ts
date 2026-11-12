@@ -184,7 +184,7 @@ const POLITICIANS_PAGE_SIZE = 100;
  * POLITICIAN_ACTIVITY gives.
  */
 const POLITICIAN_COLUMNS: Record<PoliticianSort, string> = {
-  name: "n.name",
+  name: "n.name COLLATE english",
   house: "p.house",
   constituency: "p.constituency",
   party: "p.party",

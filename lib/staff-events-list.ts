@@ -94,6 +94,9 @@ function passes(event: StaffEvent, filter: EventFilter): boolean {
   });
 }
 
+/** English order, as the database's `COLLATE english` sorts: accented letters among the plain ones. */
+const ENGLISH = new Intl.Collator("en-GB");
+
 /** What an event sorts by, for a column: when, its name, where, how many are going, its owner, or its doc, none first. */
 function sortValue(event: StaffEvent, key: EventSort): string | number {
   if (key === "going") return event.going;
@@ -148,8 +151,9 @@ export function findEvents<E extends SearchedEvent>(
         passes(event, filter),
     );
   const found = matching(filter.removed);
+  // Both sides are of one column, so of one type.
   const order = (a: string | number, b: string | number, dir: string) =>
-    (a < b ? -1 : a > b ? 1 : 0) * (dir === "asc" ? 1 : -1);
+    (typeof a === "number" ? a - (b as number) : ENGLISH.compare(a, b as string)) * (dir === "asc" ? 1 : -1);
   const startDir = EVENT_SORTS[filter.tab].start;
   found.sort(
     (a, b) =>

@@ -280,7 +280,7 @@ export async function listSupporters(
   const column = {
     active: "s.last_active_at",
     first: "s.first_seen_at",
-    name: "s.name",
+    name: "s.name COLLATE english",
     events: "s.events",
     letters: "s.letters",
   }[filter.sort];
