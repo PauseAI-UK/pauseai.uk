@@ -114,6 +114,73 @@ test("A page breaks in someone's browser", async ({ page, flowDatabase }) => {
   await frame(page, "The errors");
 });
 
+test("An error marked done", async ({ page, flowDatabase }) => {
+  story(
+    "Last week the spam check couldn't be reached, and a script in someone's browser threw, which an admin has since marked done.",
+  );
+  runSql(
+    flowDatabase,
+    `INSERT INTO errors_seen (key, kind, route, name, words, latest_words, first_seen, last_seen, count, done_at, done_by)
+     VALUES
+       ('flow-problem', 'problem', '', '', 'Turnstile couldn''t be reached',
+        'Turnstile couldn''t be reached: fetch failed (connect ETIMEDOUT 192.0.2.7:443)',
+        now() - interval '6 days', now() - interval '5 days', 7, NULL, NULL),
+       ('flow-browser', 'browser-other', '/', 'Error', 'ResizeObserver loop completed with undelivered notifications.',
+        'ResizeObserver loop completed with undelivered notifications.',
+        now() - interval '20 days', now() - interval '4 days', 31, now() - interval '3 days', 'jane.smith@pauseai.uk')`,
+  );
+
+  story("An admin opens Errors. The spam check's is to do; the other is under Done.");
+  await logIn(page, flowDatabase, ["admin"]);
+  await page.goto(`${BASE}/staff/errors`);
+  await settled(page);
+  const words = "Turnstile couldn't be reached";
+  await frame(page, "The errors to do");
+
+  story("They open one that's been fixed. Its page has a button to mark it done.");
+  await page.getByRole("link", { name: words }).click();
+  await expect(page.getByRole("heading", { level: 1, name: words })).toBeVisible();
+  await frame(page, "The error's own page");
+
+  story("They mark it done. The page says who did, and when.");
+  await page.getByRole("button", { name: errors.one.markDone }).click();
+  await expect(page.getByRole("button", { name: errors.one.undo })).toBeVisible();
+  await frame(page, "Marked done");
+
+  story("It's gone from the errors to do, and is under Done, with the one marked done before.");
+  await page.getByRole("link", { name: errors.one.back }).click();
+  await expect(page.getByRole("link", { name: words })).toHaveCount(0);
+  await page.getByRole("link", { name: errors.tabs.done }).click();
+  await expect(page.getByRole("link", { name: words })).toBeVisible();
+  await settled(page);
+  await frame(page, "The errors done");
+});
+
+test("An error done happens again", async ({ page, flowDatabase }) => {
+  story("A button on a page throws when it's clicked. The page carries on, and the error is kept.");
+  await page.goto(`${BASE}/broken`);
+  await page.getByRole("button", { name: "Break from a click" }).click();
+  await expect.poll(() => kept(flowDatabase, "browser-other")).toEqual({ count: 1, alerted: false });
+
+  story("An admin marks it done, thinking it fixed.");
+  await logIn(page, flowDatabase, ["admin"]);
+  await page.goto(`${BASE}/staff/errors`);
+  const words = "Asked to break, from a click, on try <n>";
+  await page.getByRole("link", { name: words }).click();
+  await page.getByRole("button", { name: errors.one.markDone }).click();
+  await expect(page.getByRole("button", { name: errors.one.undo })).toBeVisible();
+
+  story("Someone clicks the button again, and it throws again. The error is back with those to do, counted twice.");
+  await page.goto(`${BASE}/broken`);
+  await page.getByRole("button", { name: "Break from a click" }).click();
+  await expect.poll(() => kept(flowDatabase, "browser-other")).toEqual({ count: 2, alerted: false });
+  await page.goto(`${BASE}/staff/errors`);
+  const row = page.getByRole("row").filter({ hasText: words });
+  await expect(row.getByRole("cell").last()).toHaveText("2");
+  await settled(page);
+  await frame(page, "The errors to do");
+});
+
 test("The spam check can't be reached", async ({ page, flowDatabase }) => {
   story(
     "Cloudflare's spam check is down when Jane sends her letter. She's told so, and her letter doesn't go. Nothing was thrown, but the failure is kept as an error.",

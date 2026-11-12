@@ -12,6 +12,7 @@ import {
   listErrorsSeen,
   NEW_BROWSER_ERRORS_AN_HOUR,
   SERVER_EMAILS_AN_HOUR,
+  setErrorDone,
   tidyErrorsSeen,
 } from "./errors-seen";
 import { registerProblemKeeper } from "./problems";
@@ -371,7 +372,7 @@ describeWithDatabase("the list of errors", () => {
          now() - interval '2 days', now() - n * interval '1 minute'
        FROM generate_series(1, 101) AS n`,
     );
-    const first = await listErrorsSeen(1);
+    const first = await listErrorsSeen(1, false);
     expect(first).toEqual(expect.objectContaining({ total: 101, pages: 2, page: 1, pageSize: 100 }));
     expect(first.errors).toHaveLength(100);
     expect(first.errors[0]).toEqual({
@@ -387,17 +388,45 @@ describeWithDatabase("the list of errors", () => {
       firstSeen: expect.any(Date),
       lastSeen: expect.any(Date),
       count: 1,
+      doneAt: null,
+      doneBy: null,
     });
-    const second = await listErrorsSeen(2);
+    const second = await listErrorsSeen(2, false);
     expect(second.errors.map((error) => error.words)).toEqual(["Words 101"]);
     expect(await errorSeen(String(first.errors[0].id))).toEqual(first.errors[0]);
   });
 
   it("is one empty page with none, and finds no error by an ID that isn't one or isn't there", async () => {
-    expect(await listErrorsSeen(1)).toEqual({ errors: [], total: 0, pages: 1, page: 1, pageSize: 100 });
+    expect(await listErrorsSeen(1, false)).toEqual({ errors: [], total: 0, pages: 1, page: 1, pageSize: 100 });
     expect(await errorSeen("12")).toBeUndefined();
     expect(await errorSeen("12; DROP TABLE errors_seen")).toBeUndefined();
     expect(await errorSeen("")).toBeUndefined();
+  });
+
+  it("moves an error marked done to the done ones, and back when it's marked to do or happens again", async () => {
+    await thrown(new Error("Fixed now"));
+    await thrown(new Error("Still going"));
+    const words = async (done: boolean) => (await listErrorsSeen(1, done)).errors.map((error) => error.words);
+    const [fixed] = (await listErrorsSeen(1, false)).errors.filter((error) => error.words === "Fixed now");
+
+    await setErrorDone(fixed.id, "jo@pauseai.uk");
+    expect(await words(false)).toEqual(["Still going"]);
+    expect(await listErrorsSeen(1, true)).toEqual(expect.objectContaining({ total: 1 }));
+    expect(await errorSeen(String(fixed.id))).toEqual(
+      expect.objectContaining({ doneAt: expect.any(Date), doneBy: "jo@pauseai.uk" }),
+    );
+
+    await setErrorDone(fixed.id, null);
+    expect(await errorSeen(String(fixed.id))).toEqual(expect.objectContaining({ doneAt: null, doneBy: null }));
+    expect(await words(true)).toEqual([]);
+
+    // Done again, then it happens again: it's to do, counted as before.
+    await setErrorDone(fixed.id, "jo@pauseai.uk");
+    await thrown(new Error("Fixed now"));
+    expect(await words(true)).toEqual([]);
+    expect(await errorSeen(String(fixed.id))).toEqual(
+      expect.objectContaining({ count: 2, doneAt: null, doneBy: null }),
+    );
   });
 
   it("is tidied of those not seen for a month", async () => {

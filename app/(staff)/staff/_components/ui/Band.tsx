@@ -65,7 +65,7 @@ export default function Band({
         <div className={styles.heading}>
           <h1>{title}</h1>
           {tag}
-          {corner && <p className={styles.corner}>{corner}</p>}
+          {corner && <div className={styles.corner}>{corner}</div>}
         </div>
         {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
         <div className={styles.row}>

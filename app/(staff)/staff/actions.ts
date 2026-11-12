@@ -21,7 +21,9 @@ import {
 } from "@/lib/staff-forms";
 import { addAsk, deleteAsk, editAsk } from "@/lib/server/asks";
 import { isPoliticianAddress, unblock } from "@/lib/server/email";
+import { setErrorDone } from "@/lib/server/errors-seen";
 import { disconnectGmail } from "@/lib/server/gmail-accounts";
+import { ERRORS_LIST } from "@/lib/staff-lists";
 import { eraseSupporter } from "@/lib/server/erasure";
 import { decideHeldSync } from "@/lib/server/politician-sync";
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
@@ -186,6 +188,16 @@ export async function removeAliasNow(form: FormData): Promise<void> {
   const politicianId = idFrom(form, "politicianId");
   if (politicianId && (await removePoliticianAddress(politicianId, String(form.get("address") ?? ""), email)))
     revalidatePath("/staff", "layout");
+}
+
+/** The button on an error's page: marks it done, as the admin, with `done` "yes"; or to do again without. */
+export async function setErrorDoneNow(form: FormData): Promise<void> {
+  const { email } = await requireStaff("admin");
+  const id = idFrom(form);
+  if (!id) return;
+  await setErrorDone(id, form.get("done") === "yes" ? email : null);
+  // Its page, and both tabs of the list.
+  revalidatePath(ERRORS_LIST.path, "layout");
 }
 
 /** Where the accounts page goes after a change: back to itself, saying why if the change was refused. */

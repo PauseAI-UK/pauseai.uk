@@ -13,3 +13,8 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Who marked it done, and when: a note on it, set apart from its facts. */
+.done {
+  font-style: italic;
+}

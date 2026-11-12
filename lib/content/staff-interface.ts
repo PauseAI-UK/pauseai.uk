@@ -2209,6 +2209,10 @@ All events: ${link}`,
     intro: "Server and browser errors",
     total: (n: number) => count(n, "error", "errors"),
     none: "No errors.",
+    // The list's two tabs: those still to do, and those an admin has marked done, which go back to the first
+    // when they happen again. Then what the Done tab says when it's empty.
+    tabs: { label: "Which errors", toDo: "To do", done: "Done" },
+    noneDone: "No errors are marked done.",
     columns: {
       what: "Error message",
       kind: "Kind",
@@ -2217,6 +2221,9 @@ All events: ${link}`,
       first: "First seen",
       last: "Last seen",
       count: "Times",
+      // On the Done tab alone: who marked it done, and when.
+      doneBy: "Marked done by",
+      doneAt: "Marked done",
     },
     // What was running: Next's four on the server, a problem our code reported, and the browser's two. Of
     // the browser's, the first lost the visitor the page, which went to the error page; the second threw
@@ -2248,6 +2255,11 @@ All events: ${link}`,
       message: "Error message",
       stack: "Stack trace",
       noStack: "No stack trace.",
+      // The button that takes it off the list to do until it happens again; then, once it's done, who marked
+      // it and when, and the button that puts it back.
+      markDone: "Mark as done",
+      doneBy: (by: string, at: string) => `Marked done by ${by}, ${at}.`,
+      undo: "Mark not done",
     },
     // The emails. `where` is the kind and the route; `words` the error's, with what varies taken out.
     email: {

@@ -1659,11 +1659,14 @@ CREATE TABLE public.errors_seen (
     count integer DEFAULT 1 NOT NULL,
     alerted_at timestamp with time zone,
     alerted_count integer DEFAULT 0 NOT NULL,
+    done_at timestamp with time zone,
+    done_by text,
     CONSTRAINT errors_seen_check CHECK ((last_seen >= first_seen)),
     CONSTRAINT errors_seen_check1 CHECK (((alerted_count >= 0) AND (alerted_count <= count))),
     CONSTRAINT errors_seen_check2 CHECK (((alerted_at IS NULL) = (alerted_count = 0))),
     CONSTRAINT errors_seen_check3 CHECK (((latest_browser IS NULL) OR (kind = ANY (ARRAY['browser-page'::text, 'browser-other'::text])))),
     CONSTRAINT errors_seen_count_check CHECK ((count > 0)),
+    CONSTRAINT errors_seen_done CHECK (((done_at IS NULL) = (done_by IS NULL))),
     CONSTRAINT errors_seen_kind_check CHECK ((kind = ANY (ARRAY['render'::text, 'route'::text, 'action'::text, 'proxy'::text, 'problem'::text, 'browser-page'::text, 'browser-other'::text])))
 );
 
