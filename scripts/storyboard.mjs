@@ -451,8 +451,10 @@ function planSummary(chosen, total) {
       `  Teach scripts/storyboard-reach.mjs what such a file reaches (EVERYTHING, NOTHING, or how it's read),`,
       `  or add a hit to investments/storyboard-review-speed.md naming the file.`,
     ].join("\n");
+  if (chosen.run.size === 0 && chosen.changed.length === 0)
+    return `Storyboard: none of the ${total} flows to run: nothing has changed since ${from}.`;
   if (chosen.run.size === 0)
-    return `Storyboard: none of the ${total} flows to carry afresh: the ${chosen.changed.length} files changed since ${from} reach none.`;
+    return `Storyboard: none of the ${total} flows to run: the ${chosen.changed.length} files changed since ${from} reach none.`;
   if (chosen.run.size === total)
     return `Storyboard: every flow, ${total}: the ${chosen.changed.length} files changed since ${from} reach them all, or none of them has run on this code.`;
   const why = [
