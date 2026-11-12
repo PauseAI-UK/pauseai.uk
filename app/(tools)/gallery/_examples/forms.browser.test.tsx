@@ -38,6 +38,10 @@ describe("the forms group's examples", () => {
     await expect.element(value()).toHaveTextContent("Value: false");
     await page.getByRole("checkbox", { name: /long label/ }).click();
     await expect.element(value()).toHaveTextContent("Value: true");
+    await page.getByRole("checkbox", { name: "Boxed", exact: true }).click();
+    await expect.element(value()).toHaveTextContent("Value: false");
+    await page.getByRole("checkbox", { name: "Boxed, unticked" }).click();
+    await expect.element(value()).toHaveTextContent("Value: true");
   });
 
   it("picks a segment", async () => {

@@ -56,3 +56,6 @@ export const exampleDoNotEmail = view([
 
 /** Our emails to the address bounced. */
 export const exampleBlocked = view([answer({ send: "no", reason: "blocked", source: "hard" })], []);
+
+/** On PauseAI Global's volunteering list, as its join form puts those who say they'd like to volunteer. */
+export const exampleVolunteer = view([answer({ topic: "volunteering", reason: "subscribed", source: "civicrm" })]);

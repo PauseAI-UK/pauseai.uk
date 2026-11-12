@@ -95,14 +95,14 @@ export const emailSettingsCopy = {
     title: "Contact preferences",
     lead: (address: string) =>
       `View and change how PauseAI UK contacts you via your email ${address} and associated phone numbers.`,
-    // Under a topic's boxes, as a change of them is saved.
-    saving: "⁂ Saving…",
-    saved: "⁂ Saved",
+    // Beside a topic's boxes, as a change of them is saved; as the staff pages' drafts say it.
+    saving: "Saving…",
+    saved: "Saved",
   },
   topics: topicNames,
   about: {
     newsletter: "Weekly news from the UK campaign, including events.",
-    events: "Invitations to events, and nothing else.",
+    events: "Event reminders, invitations and news.",
     volunteering: "More in depth contact from staff and local groups.",
   } as Record<Topic, string>,
   ways: wayNames,

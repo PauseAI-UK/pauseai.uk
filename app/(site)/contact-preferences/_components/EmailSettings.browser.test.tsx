@@ -10,6 +10,7 @@ import {
   exampleNoBulk,
   exampleSettings,
   exampleUnsubscribed,
+  exampleVolunteer,
 } from "./EmailSettings.examples";
 import SettingsStart from "./SettingsStart";
 
@@ -90,7 +91,22 @@ describe("EmailSettings", () => {
     expect(fields(done.save.mock.calls[1][0])).toContainEqual(["choice", "volunteering:email"]);
     await expect.element(card("newsletter").getByRole("status")).toHaveTextContent(copy.settings.saved);
     await expect.element(card("volunteering").getByText(copy.settings.saved)).not.toBeInTheDocument();
+    // Saved only once every save is: a change made while another saves says Saving till both are.
+    let first = () => {};
+    done.save.mockImplementationOnce(() => new Promise((resolve) => (first = () => resolve(exampleSettings))));
+    await card("events").getByRole("checkbox", { name: copy.ways.text }).click();
+    await card("events").getByRole("checkbox", { name: copy.ways.email }).click();
+    first();
+    await vi.waitFor(() => expect(done.save).toHaveBeenCalledTimes(4));
+    await expect.element(card("events").getByRole("status")).toHaveTextContent(copy.settings.saved);
     await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.email })).toBeChecked();
+  });
+
+  it("says a yes from PauseAI Global's volunteering list was given on joining", async () => {
+    await show(exampleVolunteer);
+    await expect
+      .element(card("volunteering").getByText(copy.why.reasons.volunteered!(""), { exact: false }))
+      .toBeVisible();
   });
 
   it("stops everything", async () => {

@@ -1,6 +1,7 @@
 // The ui kit's forms, words and tables (components/ui/), each at both
 // densities: comfortable, the public site's, and compact, the staff
 // interface's.
+import { SaveState } from "@/components/ui/SaveState";
 import { Button } from "@/components/ui/Button";
 import Actions from "@/components/ui/Actions";
 import { DateRange, FileInput, Select, TextArea, TextInput } from "@/components/ui/Controls";
@@ -369,6 +370,22 @@ export const forms: Group = {
                 </FilterForm>
               )}
             </Densities>
+          ),
+        },
+      ],
+    },
+    {
+      name: "SaveState",
+      file: "components/ui/SaveState.tsx",
+      variants: [
+        {
+          label: "Saving, saved, and not saved",
+          render: () => (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)" }}>
+              <SaveState state="saving">Saving…</SaveState>
+              <SaveState state="saved">Saved</SaveState>
+              <SaveState state="failed">Not saved</SaveState>
+            </div>
           ),
         },
       ],

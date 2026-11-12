@@ -4,6 +4,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { Checkbox } from "@/components/ui/Controls";
 import { FormStack } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { SaveState } from "@/components/ui/SaveState";
 import Tag from "@/components/ui/Tag";
 import { emailSettingsCopy as copy, settingsDate } from "@/lib/content/email-settings";
 import type { ContactPermission, Topic } from "@/lib/contact-permissions";
@@ -121,12 +122,11 @@ function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | n
             {copy.ways[box.way]}
           </Checkbox>
         ))}
+        {/* Beside the boxes, there before it says anything, so a screen reader hears each change of it. */}
+        <span className={styles.saving} role="status">
+          {saving && <SaveState state={saving}>{copy.settings[saving]}</SaveState>}
+        </span>
       </div>
-      {/* There before it says anything, so a screen reader hears each change of it. */}
-      <p className={styles.saving} role="status">
-        {saving === "saving" && copy.settings.saving}
-        {saving === "saved" && <Tag tone="green">{copy.settings.saved}</Tag>}
-      </p>
       <p className={styles.why}>{why(topic.why)}</p>
     </fieldset>
   );

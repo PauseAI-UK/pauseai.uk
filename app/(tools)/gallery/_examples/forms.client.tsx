@@ -30,7 +30,7 @@ export function CheckboxExample() {
             <Checkbox boxed checked={!checked} onChange={(value) => set(!value)}>
               Boxed, unticked
             </Checkbox>
-            <Checkbox boxed checked={false} disabled onChange={() => {}}>
+            <Checkbox boxed checked={false} disabled onChange={set}>
               Boxed, locked
             </Checkbox>
           </div>

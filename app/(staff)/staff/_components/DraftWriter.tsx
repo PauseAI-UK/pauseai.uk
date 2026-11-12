@@ -7,6 +7,7 @@ import { earliestHour, fromLondon, londonDayHour } from "@/lib/staff-time";
 import type { MailingAttachmentSummary, SaveResult } from "@/lib/server/mailing-drafts";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { SaveState as SaveStatePill, type SaveStateValue as SaveState } from "@/components/ui/SaveState";
 import { CHECK_EVERY, DueTimeFields } from "./DueTime";
 import styles from "./MailingWriter.module.css";
 
@@ -18,7 +19,7 @@ const copy = staffCopy.mailingPages;
 /** How long after the last change a draft saves itself. */
 const SAVE_DELAY = 800;
 
-export type SaveState = "saving" | "saved" | "conflict" | "failed";
+export type { SaveState };
 
 export type AttachResult = (SaveResult | { saved: false; reason: "too-big" }) & {
   attachments: MailingAttachmentSummary[];
@@ -30,16 +31,6 @@ export type DraftActions = {
   attach: (form: FormData) => Promise<AttachResult | undefined>;
   detach: (id: number, version: number, attachmentId: number) => Promise<AttachResult>;
 };
-
-/** Whether the draft is saved: saving, grey; saved, green; not saved, red. */
-function SaveStatePill({ state }: { state: SaveState }) {
-  return (
-    <span className={styles.saveState} data-state={state}>
-      <span className={styles.saveDot} aria-hidden="true" />
-      {copy.savePill[state]}
-    </span>
-  );
-}
 
 /**
  * A draft's title, with whether it's saved at the top right, scrolling away
@@ -65,7 +56,7 @@ export function DraftTitle({ title, saveState }: { title: string; saveState?: Sa
           {/* None for what's not a draft yet, as nothing's saved. */}
           {saveState && (
             <span role="status">
-              <SaveStatePill state={saveState} />
+              <SaveStatePill state={saveState}>{copy.savePill[saveState]}</SaveStatePill>
             </span>
           )}
         </div>
