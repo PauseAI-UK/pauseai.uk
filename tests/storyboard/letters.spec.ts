@@ -246,7 +246,10 @@ test("A letter bounces", async ({ page, request, flowDatabase }) => {
   );
   // Who wrote it, leading to them as a supporter; their address is in its history too.
   await expect(page.getByRole("link", { name: `Jane Smith <${sender}>` })).toBeVisible();
-  await expect(page.getByText(staffCopy.letters.status.bounced).first()).toBeVisible();
+  // The letter's own status, not the navigation's Bounced emails.
+  await expect(
+    page.getByRole("main").getByText(staffCopy.letters.status.bounced, { exact: true }).first(),
+  ).toBeVisible();
   await frame(page, "Jane's letter, bounced");
   story("The button beside the bounce in the letter's history shows what the bounce said.");
   await page
