@@ -418,9 +418,9 @@ export const staffSupporters: Group = {
           render: () => (
             <DevPreferences
               emails={["jane.smith@example.com", "jane@example.org"]}
-              copies={[
-                { copyId: 2, channel: "email", topics: ["newsletter"], sentAt: new Date("2026-11-01T10:00:00Z") },
-                { copyId: 1, channel: "email", topics: ["events"], sentAt: new Date("2026-10-20T10:00:00Z") },
+              permissions={[
+                { address: "jane.smith@example.com", topic: "newsletter", way: "email", send: "yes" },
+                { address: "jane.smith@example.com", topic: "events", way: "email", send: "yes" },
               ]}
               fixtures
             />

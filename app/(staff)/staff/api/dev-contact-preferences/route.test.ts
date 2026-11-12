@@ -3,12 +3,14 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { downloadAs } from "@/tests/staff-download";
 import { query } from "@/lib/server/db";
-import { hashOf } from "@/lib/server/email-settings";
+import { devBroadcastTitle, hashOf } from "@/lib/server/email-settings";
+import { addFormEntry } from "@/lib/server/form-entries";
 import { GET } from "./route";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
 
 const URL = "https://pauseai.uk/staff/api/dev-contact-preferences";
+const JANE = "jane.smith@example.com";
 
 describeWithDatabase("GET /staff/api/dev-contact-preferences", () => {
   useTestDatabase();
@@ -26,23 +28,49 @@ describeWithDatabase("GET /staff/api/dev-contact-preferences", () => {
     expect(await query("SELECT address FROM preference_links")).toEqual([{ address: "jane.smith@example.com" }]);
   });
 
-  it("in a fixture build, gives a copy of a broadcast a fresh unsubscribe link and goes to it", async () => {
+  it("in a fixture build, goes to the unsubscribe page of the address's latest email under a topic, made if none", async () => {
     vi.stubEnv("DATA_FIXTURES", "1");
-    const [{ id }] = await query<{ id: number }>(
-      `WITH m AS (INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
-         VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'staff@pauseai.uk', 'draft') RETURNING id)
-       INSERT INTO broadcast_messages (mailing_id, address, status, topics, sent_at)
-       SELECT m.id, NULL, 'sent', '{newsletter}', now() FROM m RETURNING id::int AS id`,
+    await addFormEntry("march-2026-11", {
+      name: "Jane Smith",
+      email: JANE,
+      phone: null,
+      city: null,
+      postcode: null,
+      consent: true,
+      utmSource: null,
+    });
+    const open = async (topic: string) => {
+      const res = await downloadAs(GET, `${URL}?address=${encodeURIComponent(JANE)}&topic=${topic}`, ["supporters"]);
+      expect(res.status).toBe(303);
+      return /^https:\/\/pauseai\.uk\/contact-preferences\/m\/([\w-]+)$/.exec(res.headers.get("location")!)![1];
+    };
+    const copies = () =>
+      query(
+        `SELECT m.title, c.topics, c.link_token_hash AS hash FROM broadcast_messages c
+         JOIN mailings m ON m.id = c.mailing_id ORDER BY c.id`,
+      );
+    // None yet: one made, under a broadcast for the purpose.
+    const first = await open("newsletter");
+    expect(await copies()).toEqual([
+      { title: devBroadcastTitle("newsletter"), topics: ["newsletter"], hash: hashOf(first) },
+    ]);
+    // Then the same copy, with a fresh link; and a second topic's under a broadcast of its own.
+    const again = await open("newsletter");
+    await open("events");
+    expect((await copies()).map((c) => [c.title, c.hash === hashOf(again)])).toEqual([
+      [devBroadcastTitle("newsletter"), true],
+      [devBroadcastTitle("events"), false],
+    ]);
+    // An address no supporter has, or a topic there's no such thing as.
+    expect((await downloadAs(GET, `${URL}?address=nobody%40example.com&topic=newsletter`, ["supporters"])).status).toBe(
+      404,
     );
-    const res = await downloadAs(GET, `${URL}?copy=${id}`, ["supporters"]);
-    expect(res.status).toBe(303);
-    const token = /^https:\/\/pauseai\.uk\/contact-preferences\/m\/([\w-]+)$/.exec(res.headers.get("location")!)![1];
-    expect(await query("SELECT link_token_hash AS hash FROM broadcast_messages")).toEqual([{ hash: hashOf(token) }]);
-    // A copy there isn't.
-    expect((await downloadAs(GET, `${URL}?copy=${id + 1}`, ["supporters"])).status).toBe(404);
+    expect(
+      (await downloadAs(GET, `${URL}?address=${encodeURIComponent(JANE)}&topic=other`, ["supporters"])).status,
+    ).toBe(404);
   });
 
-  it("doesn't exist outside a fixture build, or without an address or a copy", async () => {
+  it("doesn't exist outside a fixture build, or without an address", async () => {
     vi.stubEnv("DATA_FIXTURES", "1");
     expect((await downloadAs(GET, URL, ["supporters"])).status).toBe(404);
     vi.stubEnv("DATA_FIXTURES", "");

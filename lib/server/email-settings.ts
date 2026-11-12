@@ -61,18 +61,59 @@ export async function newSettingsLink(address: string, db?: Queryable): Promise<
   return `/contact-preferences/${token}`;
 }
 
+/** The title of the broadcast a fixture build makes a copy under, for an address that was sent none under `topic`. */
+export const devBroadcastTitle = (topic: Topic): string => `Dev: ${topic} unsubscribe link`;
+
 /**
- * A new unsubscribe link for a broadcast's copy, as its email carries one:
- * its path; undefined for no such copy. Its old token stops working, so
- * it's only for a fixture build (app/(staff)/staff/api/dev-contact-preferences).
+ * A new unsubscribe link for the latest copy of an email broadcast to
+ * `address` under `topic`, as its email carries one: its path. With no such
+ * copy, it makes one, sent now, under a broadcast for the purpose
+ * (devBroadcastTitle), once for each topic; undefined for an address no
+ * supporter has. Its copy's old token stops working, so it's only for a
+ * fixture build (app/(staff)/staff/api/dev-contact-preferences).
  */
-export async function newCopyLink(copyId: number): Promise<string | undefined> {
-  const token = randomBytes(18).toString("base64url");
-  const rows = await query("UPDATE broadcast_messages SET link_token_hash = $2 WHERE id = $1 RETURNING id", [
-    copyId,
-    hashOf(token),
-  ]);
-  return rows.length ? `/contact-preferences/m/${token}` : undefined;
+export async function newTopicLink(address: string, topic: Topic): Promise<string | undefined> {
+  const to = normaliseAddress(address);
+  return transaction(async (db) => {
+    const [found] = await query<{ id: number }>(
+      `SELECT c.id::int AS id FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
+       WHERE c.address = $1 AND m.channel = 'email' AND $2 = ANY (c.topics) AND c.sent_at IS NOT NULL
+       ORDER BY c.sent_at DESC, c.id DESC LIMIT 1`,
+      [to, topic],
+      db,
+    );
+    const id = found?.id ?? (await devCopy(to, topic, db));
+    if (id === undefined) return undefined;
+    const token = randomBytes(18).toString("base64url");
+    await query("UPDATE broadcast_messages SET link_token_hash = $2 WHERE id = $1", [id, hashOf(token)], db);
+    return `/contact-preferences/m/${token}`;
+  });
+}
+
+/** A copy sent now to `address` under the dev broadcast for `topic`, made if there's none yet; undefined for an address no supporter has. */
+async function devCopy(address: string, topic: Topic, db: Queryable): Promise<number | undefined> {
+  const [supporter] = await query<{ id: number }>(
+    "SELECT supporter_id::int AS id FROM supporter_links WHERE matched_by = 'email' AND matched_value = $1 LIMIT 1",
+    [address],
+    db,
+  );
+  if (!supporter) return undefined;
+  const title = devBroadcastTitle(topic);
+  const [made] = await query<{ id: number }>(
+    `WITH found AS (SELECT id FROM mailings WHERE audience = 'supporters' AND title = $1),
+     made AS (
+       INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name,
+         due_at, state)
+       SELECT $1, $1, 'supporters', 'email', $2, '{"list": "supporters", "params": {}}', '{"type": "doc", "content": []}',
+         'dev@pauseai.uk', 'hello@pauseai.uk', 'PauseAI UK', now(), 'sent'
+       WHERE NOT EXISTS (SELECT 1 FROM found) RETURNING id)
+     INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, topics, sent_at)
+     SELECT id, $3, $4, 'sent', ARRAY[$2], now() FROM (SELECT id FROM found UNION ALL SELECT id FROM made) m
+     RETURNING id::int AS id`,
+    [title, topic, supporter.id, address],
+    db,
+  );
+  return made.id;
 }
 
 /** Whether we have the address from anywhere: someone we know, or an opt-out of theirs. */

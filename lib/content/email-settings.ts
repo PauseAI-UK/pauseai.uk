@@ -119,7 +119,7 @@ export const emailSettingsCopy = {
     ask: "Why?",
     reasons: {
       asked: (source: string) => `you ticked the box ${source}.`,
-      chose: () => "you turned it on here.",
+      chose: () => "⁂ you turned them on here.",
       "signed-up": (source: string) => `you gave us your details ${source}.`,
       subscribed: () => "you're on PauseAI UK's list with PauseAI Global.",
       following: () => "you follow our calendar on Luma.",
@@ -183,14 +183,14 @@ export const emailSettingsCopy = {
   unsubscribe: {
     title: (topics: string) => `Unsubscribe from ${topics}?`,
     button: "Unsubscribe",
-    done: (topics: string) => `⁂ You've unsubscribed from ${topics}`,
-    doneBody: "⁂ You won't get it by email any more.",
+    done: (topics: string) => `You've unsubscribed from ${topics}`,
+    doneBody: "You won't get them by email any more.",
     // In place of the button, where they get none of its topics by email already, for whatever reason.
     off: (topics: string) => `You're not subscribed to ${topics}`,
     // Under that, as nothing's changed.
     offBelow: "You can choose what you get below.",
     // After it, where the page shows their choices below.
-    below: "⁂ You can choose what else you get below.",
+    below: "You can choose what else you get below.",
     and: "⁂ and",
   },
   // The page from an old email's unsubscribe link: the button still works, the rest doesn't.

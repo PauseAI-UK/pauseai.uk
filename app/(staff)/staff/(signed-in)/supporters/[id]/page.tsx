@@ -57,7 +57,11 @@ export default async function SupporterPage({ params }: Params) {
               choices={optOutChoices(supporter.permissions)}
               record={recordOptOutNow}
             />
-            <DevPreferences emails={supporter.summary.emails} copies={broadcasts} fixtures={config.fixtures} />
+            <DevPreferences
+              emails={supporter.summary.emails}
+              permissions={supporter.permissions}
+              fixtures={config.fixtures}
+            />
           </>
         }
         notes={
