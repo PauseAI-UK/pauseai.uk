@@ -32,6 +32,25 @@ async function openPolitician(page: Page, name: string) {
   await expect(page.getByRole("heading", { level: 1 })).toContainText(name);
 }
 
+/**
+ * From a politician's page, back to the list by the trail, then sorted by
+ * one of its headings. Gives the first row, and its cell under a heading.
+ */
+async function listSortedBy(page: Page, heading: string, sorted: RegExp) {
+  await page
+    .getByRole("navigation", { name: staffCopy.breadcrumb })
+    .getByRole("link", { name: staffCopy.nav.politicians })
+    .click();
+  await expect(page).toHaveURL(`${BASE}/staff/politicians`);
+  // The heading's link, not a count at the top of the politician's page, which can have the same words.
+  await page.getByRole("columnheader", { name: heading }).getByRole("link").click();
+  await expect(page).toHaveURL(sorted);
+  const first = page.getByRole("row").nth(1);
+  const headings = await page.getByRole("columnheader").allInnerTexts();
+  const under = (name: string) => first.getByRole("cell").nth(headings.findIndex((text) => text.startsWith(name)));
+  return { first, under };
+}
+
 test("A politician's page", async ({ page, request, flowDatabase }) => {
   story(
     "Staff open Polly Placeholder's page. It shows her markers, the notes kept on her in Airtable, her answers to the asks and the emails PauseAI has sent her.",
@@ -120,20 +139,9 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
     Number.parseInt(await page.getByRole("link", { name: label }).innerText(), 10);
   const onHerPage = [await counted(copy.band.emailsToThem), await counted(copy.band.emailsFromThem)];
   expect(onHerPage[1]).toBe(1);
-  await page
-    .getByRole("navigation", { name: staffCopy.breadcrumb })
-    .getByRole("link", { name: staffCopy.nav.politicians })
-    .click();
-  await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   const { columns } = staffCopy.politicians;
-  // The heading's link, not the count at the top of her page, which has the same words.
-  await page.getByRole("columnheader", { name: columns.emailsFromThem }).getByRole("link").click();
-  await expect(page).toHaveURL(/sort=replies&dir=desc/);
-  const first = page.getByRole("row").nth(1);
+  const { first, under } = await listSortedBy(page, columns.emailsFromThem, /sort=replies&dir=desc/);
   await expect(first.getByRole("link", { name: "Polly Placeholder", exact: true })).toBeVisible();
-  const headings = await page.getByRole("columnheader").allInnerTexts();
-  const under = (heading: string) =>
-    first.getByRole("cell").nth(headings.findIndex((text) => text.startsWith(heading)));
   await expect(under(columns.emailsToThem)).toHaveText(String(onHerPage[0]));
   await expect(under(columns.emailsFromThem)).toHaveText(String(onHerPage[1]));
   await frame(page, "The list, by emails from them");
@@ -596,4 +604,15 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/politicians/${polly}`);
   await expect(page.getByRole("link", { name: "From my own address" })).toBeVisible();
   await frame(page, "Her email from it, under her");
+
+  story(
+    "That email is all we've had to do with her. On the politicians list it's her one email from them, and the day of her first and last activity, so sorting by Last activity puts her first.",
+  );
+  const { columns } = staffCopy.politicians;
+  const { first, under } = await listSortedBy(page, columns.last, /sort=active&dir=desc/);
+  await expect(first.getByRole("link", { name: "Polly Placeholder", exact: true })).toBeVisible();
+  await expect(under(columns.emailsFromThem)).toHaveText("1");
+  await expect(under(columns.first)).toHaveText(/\d{4}$/);
+  await expect(under(columns.last)).toHaveText(await under(columns.first).innerText());
+  await frame(page, "The list, by last activity");
 });

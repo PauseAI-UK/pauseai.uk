@@ -733,7 +733,7 @@ that drives it or why nothing does.
   - the politicians mailed about an ask, and those not yet;
   - several answers to an ask, ticked in the chip's second half;
   - PauseAI's email to one, from her history, and its Gmail search copied;
-  - her own Gmail added to her aliases, and the next Gmail read finding her email from it.
+  - her own Gmail added to her aliases, the next Gmail read finding her email from it, and the list sorted by last activity, which that email dates.
 - `mailings.spec.ts`: Mailings to politicians, the old ones and those written on the site:
   - the mailings, one mailing's recipients, and a politician's history leading back to it;
   - a mailing's ask leading to its page;
