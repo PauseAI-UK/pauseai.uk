@@ -306,7 +306,17 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
         channel: "email",
         status: "delivered",
         read: false,
+        replied: false,
+        toLookAt: false,
       },
     ]);
+    // Their reply, waiting for staff.
+    await query(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, blob_key, automatic)
+       VALUES ($1, now(), 'jane@example.com', 'Re: Events', 'hello@pauseai.uk', 'g1', 't1', 'k', false)`,
+      [copy],
+    );
+    expect(await broadcastsToSupporter(jane)).toMatchObject([{ replied: true, toLookAt: true }]);
   });
 });

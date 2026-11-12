@@ -509,7 +509,7 @@ export const staffBroadcasts: Group = {
       file: "app/(staff)/staff/_components/SupporterBroadcasts.tsx",
       variants: [
         {
-          label: "Those they were sent",
+          label: "Those they were sent, one with a reply to look at",
           render: () => (
             <StaffPage as="div">
               <SupporterBroadcasts
@@ -526,6 +526,21 @@ export const staffBroadcasts: Group = {
                     bounced: false,
                     optedOut: false,
                     replied: false,
+                    toLookAt: false,
+                  },
+                  {
+                    copyId: 23,
+                    messageId: 7,
+                    title: "Thank you for marching",
+                    channel: "email",
+                    status: "delivered",
+                    skipReason: null,
+                    sentAt: new Date("2026-11-06T09:18:00Z"),
+                    read: true,
+                    bounced: false,
+                    optedOut: false,
+                    replied: true,
+                    toLookAt: true,
                   },
                   {
                     copyId: 22,
@@ -539,6 +554,7 @@ export const staffBroadcasts: Group = {
                     bounced: false,
                     optedOut: false,
                     replied: false,
+                    toLookAt: false,
                   },
                 ]}
               />

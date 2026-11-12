@@ -1158,6 +1158,7 @@ describe("SupporterBroadcasts", () => {
             bounced: false,
             optedOut: false,
             replied: false,
+            toLookAt: false,
           },
           {
             copyId: 22,
@@ -1171,6 +1172,7 @@ describe("SupporterBroadcasts", () => {
             bounced: false,
             optedOut: false,
             replied: false,
+            toLookAt: false,
           },
           {
             copyId: 23,
@@ -1184,6 +1186,7 @@ describe("SupporterBroadcasts", () => {
             bounced: false,
             optedOut: false,
             replied: false,
+            toLookAt: false,
           },
         ]}
       />,
