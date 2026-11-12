@@ -15,6 +15,7 @@ import {
   importsOf,
   NAMED,
   reachContext,
+  RECORDING,
   readByNoFlow,
   reachedFlows,
   resolveImport,
@@ -517,6 +518,16 @@ describe("reachedFlows", () => {
     expect(added(["app/(site)/new/page.tsx"], ["app/(site)/new/page.tsx"])).toEqual(keysOf(sitemap));
     expect(added(["app/(site)/new/page.tsx"], [])).toEqual(new Set());
     expect(added(["lib/new.ts"], ["lib/new.ts"])).toEqual(new Set());
+    // A file that reaches every flow by rule isn't followed to what lists its folder.
+    writeFileSync(join(root, "app/sitemap.ts"), `readdirSync(join(process.cwd(), "netlify", "database"));`);
+    try {
+      const listing = (file: string) =>
+        reachedFlows({ files: [file], addedOrDeleted: [file], runs, context: reachContext(root) }).keys;
+      expect(listing("netlify/database/migrations/0200_new.sql")).toEqual(new Set());
+      expect(listing("netlify/database-notes/new.ts")).toEqual(keysOf(sitemap));
+    } finally {
+      writeFileSync(join(root, "app/sitemap.ts"), FILES["app/sitemap.ts"]);
+    }
   });
 
   it("reruns the flows reaching what reads a data file: a spec naming it, or code naming its folder", () => {
@@ -530,7 +541,7 @@ describe("reachedFlows", () => {
 });
 
 describe("flowsToRun", () => {
-  const passed = (r: ReturnType<typeof run>, tree = "t1") => ({ ...r, status: "passed", tree });
+  const passed = (r: ReturnType<typeof run>, tree = "t1") => ({ ...r, status: "passed", tree, recording: RECORDING });
   const fresh = "desktop|home|A new flow";
   const suite = new Set([home.key, letters.key, events.key, phoneHome.key, fresh]);
   const carried = [passed(home), passed(letters), passed(events), passed(phoneHome)];
@@ -562,18 +573,18 @@ describe("flowsToRun", () => {
     });
   });
 
-  it("runs a flow that failed, or that recorded no tree or nothing opened, and carries the rest when nothing changed", () => {
+  it("runs a flow that failed, or that recorded no tree or nothing opened, or recorded it another way", () => {
     const chosen = choose(
       () => since([]),
       [
         { ...passed(home), status: "failed" },
         { ...passed(letters), tree: undefined },
         { ...passed(events), opened: undefined },
-        passed(phoneHome),
+        { ...passed(phoneHome), recording: RECORDING - 1 },
       ],
     );
-    expect(chosen.run).toEqual(new Set([home.key, letters.key, events.key, fresh]));
-    expect(chosen).toMatchObject({ fresh: 4, reached: 0, swept: 0 });
+    expect(chosen.run).toEqual(new Set([home.key, letters.key, events.key, phoneHome.key, fresh]));
+    expect(chosen).toMatchObject({ fresh: 5, reached: 0, swept: 0 });
   });
 
   it("runs a flow whose tree git no longer has", () => {

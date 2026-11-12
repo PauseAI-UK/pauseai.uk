@@ -16,6 +16,15 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import ts from "typescript";
 
+/**
+ * Which way of recording what a flow opened its record was made by
+ * (tests/storyboard/fixtures.ts, scripts/record-requests.mjs), as the
+ * reporter stamps each flow. Add one whenever the recording, or how this map
+ * reads it, changes what a record holds: a flow recorded another way is run
+ * again, never carried on a record that may leave something out.
+ */
+export const RECORDING = 1;
+
 /** Files no import leads to that every flow depends on: a change to one reruns everything. */
 const EVERYTHING = [
   /^package(-lock)?\.json$/,
@@ -538,8 +547,10 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context, copyKe
         unknown.push(path);
     }
   }
-  // What lists a folder finds something else when a file in it comes or goes.
-  for (const path of addedOrDeleted) add(flowsReaching(listers(context, path)));
+  // What lists a folder finds something else when a file in it comes or goes. Not for a file that reaches every
+  // flow anyway, as a new migration does: how far that goes is flowsToRun's to say.
+  for (const path of addedOrDeleted)
+    if (!EVERYTHING.some((re) => re.test(path))) add(flowsReaching(listers(context, path)));
   return { keys, everything, unknown };
 }
 
@@ -548,7 +559,8 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context, copyKe
  * run's flows (each with the tree it ran on and what it opened):
  *
  * - a flow with no run to carry, or one that didn't pass, or one that
- *   recorded no tree or nothing of what it opened (`fresh`);
+ *   recorded no tree or nothing of what it opened, or recorded it another
+ *   way (RECORDING) (`fresh`);
  * - a flow that ran on other installed dependencies than `setup`, which
  *   the tree doesn't hold (`fresh` too);
  * - a flow whose tree git no longer has, so `changedSince(tree)` is
@@ -572,7 +584,8 @@ export function flowsToRun({ suite, carried, phoneTagged, context, setup, change
   const run = new Set();
   for (const key of suite) {
     const last = byKey.get(key);
-    if (!last || last.status !== "passed" || !last.tree || !last.opened || last.setup !== setup) run.add(key);
+    const recorded = last?.tree && last.opened && last.recording === RECORDING;
+    if (!recorded || last.status !== "passed" || last.setup !== setup) run.add(key);
   }
   // By the tree each was last known to look as it does: the one a review last carried it at (`seen`), or the one it ran on.
   const trees = new Map();

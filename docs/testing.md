@@ -446,7 +446,7 @@ into the run's folder in the same way.
 **Which flows a review runs.** Given no selection of its own,
 `npm run storyboard` runs only the flows that might show something new, and
 carries the rest, so every review is as small as the change. Each flow
-keeps three things with its frames (`frames.json`):
+keeps these with its frames (`frames.json`):
 
 - `tree`, the tree of the code it ran on, when the build was that tree's:
   Playwright built it for the run. With a server already up, whose build
@@ -461,13 +461,23 @@ keeps three things with its frames (`frames.json`):
   each address their pages come to. Next's prefetches of the pages a link
   points to don't count; following the link does. One entry isn't a path:
   `instrumentation.ts`, when the server kept an error during the flow
-  (`errors_seen` changed), as nothing imports what handles one.
+  (`errors_seen` changed), as nothing imports what handles one. A flow on
+  a build whose server kept none of its requests (main's, for
+  `--this-suite-on-main`) records nothing, so it's never carried.
+- `recording`, which way of recording `opened` made the record
+  (`RECORDING` in `scripts/storyboard-reach.mjs`). Add one to it whenever
+  the recording changes what a record holds: a flow recorded another way is
+  run again.
+- `seen`, on a flow a review carried: the tree it was carried at. The
+  next review asks what changed since then, as what changed before was
+  found not to reach it.
 
 The review then runs (`scripts/storyboard-reach.mjs`, `flowsToRun`):
 
 - each flow with nothing to carry: new to the suite, failed last time,
-  recorded without its tree, or run on other dependencies;
-- each flow that the files changed since its tree can reach;
+  recorded without its tree or another way, or run on other dependencies;
+- each flow that the files changed since its tree, or since it was last
+  carried, can reach;
 - when one of those files reaches every flow, every desktop flow, and the
   phone's tagged ones, as CI runs;
 - when the map can't place one of those files, every flow.
@@ -540,7 +550,9 @@ the repo as it is:
 
 **Spot checks.** A review that carries flows also runs six of them
 anyway, chosen by a hash of the tree and the flow, and compares each with
-what it would have carried, as the review compares a frame with main's. If
+what it would have carried, as the review compares a frame with main's.
+It does so even when the change reaches no flow, unless nothing changed
+but docs and unit tests. If
 one looks different, the map missed something in the files changed (or a
 frame differs from run to run): the review says which flows, at once and
 at its end, and runs every flow. Find what the map missed and fix it, or

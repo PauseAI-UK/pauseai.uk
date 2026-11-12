@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 import type { Reporter, TestCase, TestResult } from "@playwright/test/reporter";
+import { RECORDING } from "../../../scripts/storyboard-reach.mjs";
 import { carryRuns, type FlowRun, type PlaceholderText, type RunManifest } from "./frames.ts";
 
 // Collects the frames (tests/storyboard/frame.ts) of every flow into
@@ -80,7 +81,7 @@ export default class StoryboardReporter implements Reporter {
       ...(story.length ? { end: story } : {}),
       shotAt: this.shotAt,
       ...(this.tree ? { tree: this.tree, setup: this.setup } : {}),
-      ...(opened ? { opened } : {}),
+      ...(opened ? { opened, recording: RECORDING } : {}),
     });
   }
 

@@ -9,9 +9,10 @@ type Context = {
 };
 type Changed = { files: string[]; addedOrDeleted: string[] };
 type Run = { key: string; section: string; flow: string; opened?: string[] };
-type CarriedRun = Run & { status: string; tree?: string; seen?: string; setup?: string };
+type CarriedRun = Run & { status: string; tree?: string; seen?: string; setup?: string; recording?: number };
 
 export const NAMED: string[];
+export const RECORDING: number;
 export const STAFF_COPY: string;
 export function readByNoFlow(path: string): boolean;
 export function resolveImport(root: string, from: string, spec: string): string | undefined;

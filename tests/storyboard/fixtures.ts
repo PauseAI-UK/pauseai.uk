@@ -138,6 +138,9 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
   // pages it can reach (scripts/storyboard-reach.mjs). Next's prefetches of the pages a link
   // points to don't count: nothing of them is seen until the link is followed, which counts.
   //
+  // A change to what's recorded here needs RECORDING (scripts/storyboard-reach.mjs) moved on, so flows
+  // recorded before it aren't carried.
+  //
   // One entry isn't a path. When the server kept an error during the flow (a row of errors_seen added,
   // or seen again), the flow ran what instrumentation.ts hands errors to, which no page imports: it's
   // recorded as having opened that file.
