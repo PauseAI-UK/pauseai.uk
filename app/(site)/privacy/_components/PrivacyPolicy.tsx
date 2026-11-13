@@ -6,7 +6,7 @@ export default function PrivacyPolicy() {
   return (
     <ProsePage>
       <h1>Privacy Policy</h1>
-      <ProseMeta>Last updated: 1 June 2026</ProseMeta>
+      <ProseMeta>Last updated: ⁂ the day this goes live</ProseMeta>
 
       <p>
         PauseAI UK is part of the global PauseAI movement and is run in the UK by <strong>Safe AI Alliance Ltd</strong>,
@@ -14,133 +14,70 @@ export default function PrivacyPolicy() {
         office 128 City Road, London EC1V 2NX.
       </p>
       <p>
-        Because PauseAI is a global movement, different organisations are responsible for (&ldquo;control&rdquo;)
-        different data:
-      </p>
-      <ul>
-        <li>
-          <strong>If you donate</strong>, Safe AI Alliance Ltd is the data controller. This notice mainly explains how
-          we handle donation data.
-        </li>
-        <li>
-          <strong>If you sign up, volunteer, or subscribe to updates</strong>, that information is collected and
-          controlled by <strong>Stichting PauseAI</strong> (the global PauseAI foundation, based in the Netherlands) and
-          handled under{" "}
-          <a className="inline-link" href="https://pauseai.info/privacy" target="_blank" rel="noreferrer">
-            its privacy policy
-          </a>
-          . If you live in the UK and shared your details with PauseAI UK when you joined, or joined before the form
-          asked, PauseAI UK holds a copy of them too, as the next section says.
-        </li>
-        <li>
-          <strong>If you fill in a paper form for us</strong>, for example when we&apos;re out leafleting, PauseAI UK
-          keeps what you wrote: your name and email, and your phone number and postcode if you gave them. We use this to
-          register you for any event you signed up for, through Luma, and to keep you updated on our campaigns by email,
-          and by phone if you gave a number. You can unsubscribe at any time.
-        </li>
-      </ul>
-      <p>
-        For questions about donation data or this notice, contact us at{" "}
+        ⁂ We are the data controller for everything below, except analytics and your PauseAI membership, which{" "}
+        <strong>Stichting PauseAI</strong> (the global PauseAI foundation, based in the Netherlands) controls under{" "}
+        <a className="inline-link" href="https://pauseai.info/privacy" target="_blank" rel="noreferrer">
+          its privacy policy
+        </a>
+        . Questions:{" "}
         <a className="inline-link" href="mailto:hello@pauseai.uk">
           hello@pauseai.uk
-        </a>
-        . For sign-up, volunteer, or newsletter data, see{" "}
-        <a className="inline-link" href="https://pauseai.info/privacy" target="_blank" rel="noreferrer">
-          Stichting PauseAI&apos;s privacy policy
         </a>
         .
       </p>
 
+      {/* The facts behind the sections below are in docs/data-protection.md. */}
+
       <h2>Donation data</h2>
       <p>
-        Donations are processed by <strong>Stripe</strong>, our payment provider. When you donate, Stripe collects your
-        name, email address, billing address, and payment details (such as your card or bank account information). We
-        receive a record of your donation — your name, email, amount, and the date — but we never see or store your full
-        card or bank details; those stay with Stripe.
-      </p>
-      <p>
-        We use this information to process your donation, send you a receipt, keep accurate financial records, and
-        (where appropriate) thank you and keep you updated about the impact of your support.
-      </p>
-      <p>
-        <strong>Legal basis:</strong> performing our agreement with you to process your donation; complying with our
-        legal obligations to keep financial records; and our legitimate interest in administering and acknowledging
-        donations.
-      </p>
-      <p>
-        If you email us about a donation, we keep your message and contact details so we can deal with your query (legal
-        basis: our legitimate interest in responding).
-      </p>
-      <p>
-        When you donate, we ask if you&rsquo;re happy to be named on our wall of thanks. If you say yes, our donate page
-        shows the name you gave and the date you donated (legal basis: your explicit consent). Your latest answer is the
-        one that counts. To come off, email hello@pauseai.uk and we&rsquo;ll change your answer to no.
+        ⁂ Donations are processed by <strong>Stripe</strong>. We receive your name, email, amount, and the date, but
+        never your card or bank details. We use this to send you a receipt, keep financial records, and thank you (legal
+        basis: our agreement with you, our legal obligation to keep records, and our legitimate interest). If you say
+        yes to our wall of thanks, our donate page shows the name you gave and the date you donated (legal basis: your
+        explicit consent). To come off, email hello@pauseai.uk.
       </p>
 
       <h2>Website analytics</h2>
       <p>
-        This site uses <strong>Google Analytics</strong>, run by <strong>Stichting PauseAI</strong> (the global PauseAI
-        foundation), which owns the Google Workspace it lives in — so for analytics, Stichting PauseAI is the data
-        controller. It sets cookies that collect information such as the pages you visit, your approximate location (by
-        country/region), and your device and browser type. Analytics is enabled by default, but you can{" "}
-        <strong>opt out at any time</strong> using the &ldquo;Cookie settings&rdquo; link in the footer — this stops the
-        tracking and deletes the analytics cookies, and we remember your choice on future visits.
+        ⁂ This site uses <strong>Google Analytics</strong>, run by Stichting PauseAI. It sets cookies that collect the
+        pages you visit, your approximate location, and your device and browser type (legal basis: legitimate interest).
+        You can opt out at any time using the &ldquo;Cookie settings&rdquo; link in the footer.
       </p>
-      <p>
-        <strong>Legal basis:</strong> our legitimate interest in understanding how the site is used.
-      </p>
-
-      {/* The facts behind the sections below are in docs/data-protection.md. */}
 
       <h2>Email your MP</h2>
       <p>
-        When you write to your MP through this site, we keep your name, email address, postal address and postcode,
-        which campaign and MP you wrote to, the letter you sent and the draft you started from, and whether you ticked
-        the box to hear about events and ways to help. Your postcode goes to postcodes.io to find your constituency, and
-        the form is protected by Cloudflare Turnstile. We send your letter from a Gmail inbox of ours, under an address
-        made for you, so your MP&apos;s office never sees your own email address; their replies come to us and we pass
-        them on to you, unchanged, and pass your answers back to them. We keep every message both ways. If an email to
-        you or to your MP bounces or is marked as spam, we keep a record of that against the address so we don&apos;t
-        send to it again. When we erase your data, your letters, the messages and the address made for you go, and the
-        copies in our Gmail inbox are deleted within 30 days.
+        ⁂ When you write to your MP through this site, we keep your name, email address, postal address and postcode,
+        which campaign and MP you wrote to, the letter you sent, and whether you ticked the box to hear about events and
+        ways to help. We send your letter under an address made for you, so your MP&apos;s office never sees your own
+        email address, and pass replies both ways. We keep every message. If you copy us into an email to a politician,
+        or forward us one, we keep that too (legal basis: legitimate interest in running the campaign, and your consent
+        if you ticked the box).
       </p>
 
+      <h2>⁂ Signing up</h2>
       <p>
-        If you copy us into an email to your MP or another politician, or forward us one, we keep it, with your name,
-        email address and what you wrote, so that we can see what has been said to them. The same goes for letters you
-        sent through our earlier form, and replies to them. We delete these when you ask us to erase your data.
+        ⁂ When you sign up to a march on this site, or on a paper form when we&apos;re out leafleting, we keep your name
+        and email, and your phone number, city and postcode if you gave them. We register you on Luma for the event, and
+        keep you updated on our campaigns if you said yes (legal basis: legitimate interest in running the event, and
+        your consent).
       </p>
 
       <h2>Events and Luma</h2>
       <p>
-        Our events run on Luma. When you register for or host one of our events, or follow our calendar, Luma gives us
-        your name, email address, which events you registered for and with what status, which events you host, when you
-        followed the calendar, and (where an event asked for them) your phone number and postcode. We copy this every
-        hour. If you unsubscribe from the calendar&apos;s emails, Luma tells us and we record it, so we never email that
-        address about events. A postcode you type on our home page to see events near you goes to postcodes.io and is
-        kept only in your browser, not by us.
+        ⁂ Our events run on Luma. When you register for or host one of our events, or follow our calendar, Luma gives us
+        your name, email address, which events you registered for, and (where an event asked for them) your phone number
+        and postcode. If you unsubscribe from the calendar&apos;s emails, Luma tells us, so we never email that address
+        about events.
       </p>
 
       <h2>Supporters and political opinions</h2>
       <p>
-        We bring your letters and event registrations together into one record, so that the people who run PauseAI UK
-        can see you as one person rather than several. Registering for a protest or writing to your MP under a PauseAI
-        campaign shows a political opinion, which is special category data. We hold it under UK GDPR Article 9(2)(d), as
-        a not-for-profit body with a political aim processing data about its members and people in regular contact with
-        it, and we don&apos;t disclose it outside PauseAI UK without your consent. Only staff with permission can see
-        these combined records, and we log every time a list of them is downloaded.
-      </p>
-      <p>
-        So we can invite you to things near you, we work out roughly where you are: from your postcode, or else a city
-        you gave us, or else where an event you registered for was. Your postcode or city goes to postcodes.io to find
-        the place, and we keep the place with your record.
-      </p>
-      <p>
-        If you joined PauseAI and live in the UK, Stichting PauseAI shares your membership with us when you ticked
-        &ldquo;Share your details with PauseAI UK&rdquo; on the join form, or if you joined before the form asked. We
-        copy it every hour: your name, email, phone, city and postcode, when you joined, what you said you wanted to do,
-        and whether you asked for updates. We keep it with the rest of your record until you ask us to erase it.
-        Stichting PauseAI keeps its own copy under its own policy.
+        ⁂ We bring your letters, sign-ups and event registrations together into one record, and work out roughly where
+        you are from your postcode or city, to invite you to things near you. If you joined PauseAI, live in the UK, and
+        agreed to share your details with PauseAI UK, Stichting PauseAI shares your membership with us too. Taking part
+        in a PauseAI campaign shows a political opinion, which is special category data. We hold it as a not-for-profit
+        body with a political aim (UK GDPR Article 9(2)(d)), and we don&apos;t disclose it outside PauseAI UK without
+        your consent. Only staff with permission can see these records.
       </p>
 
       <h2>How we contact you</h2>
@@ -170,125 +107,49 @@ export default function PrivacyPolicy() {
 
       <h2>Who processes this data for us</h2>
       <ul>
+        <li>⁂ Stripe: donations.</li>
         <li>Luma: events and registrations.</li>
         <li>Postmark: sending and receiving email.</li>
         <li>Meta (WhatsApp): sending and receiving texts.</li>
-        <li>Netlify: hosting the site and its database, with backups kept for 3 to 30 days.</li>
-        <li>Cloudflare: our nightly database backup, kept for 90 days, and Turnstile, the anti-spam check.</li>
+        <li>⁂ Google (Gmail): sending letters to MPs and passing on replies.</li>
+        <li>⁂ Netlify: hosting the site and its database.</li>
+        <li>⁂ Cloudflare: backups, and Turnstile, the anti-spam check.</li>
         <li>postcodes.io: looking up postcodes; it keeps nothing.</li>
-        <li>Airtable: our records of MPs and of members, and letters sent through our earlier form.</li>
-        <li>
-          Google (Gmail): our email, which sends your letters to your MP and passes on their replies, and where copies
-          of letters to politicians, their replies, and the letters we send them are kept.
-        </li>
+        <li>⁂ Airtable: our records of MPs and of members.</li>
       </ul>
+      <p>
+        ⁂ We do not sell your personal data. Where a provider is outside the UK, the transfer is protected by UK
+        adequacy regulations or the UK International Data Transfer Agreement.
+      </p>
 
       <h2>How long we keep it</h2>
       <p>
-        We keep what we hold about you, such as your letters, the events you registered for, and the emails and texts we
-        sent you, until you ask us to erase it. We keep one thing after that: that you asked us to stop emailing or
-        texting you, or that an email to you bounced, so we never contact you again. Copies in our backups are deleted
-        within 90 days.
-      </p>
-
-      <h2>Asking for your data to be erased, or for a copy of it</h2>
-      <p>
-        To have your data erased, or to get a copy of what we hold, email{" "}
-        <a className="inline-link" href="mailto:hello@pauseai.uk">
-          hello@pauseai.uk
-        </a>{" "}
-        from the address we hold for you and say which you want. We reply within a month. Erasure removes everything we
-        hold about you except what we keep so as not to email you again; we also remove you from our Luma calendar and
-        ask our policy team to erase their copy. If you&apos;re not satisfied, you can complain to the ICO.
-      </p>
-
-      <h2>Who we share donation data with</h2>
-      <p>
-        We do not sell your personal data. We share donation data only with the providers that help us operate, each
-        acting on our behalf or under their own privacy terms:
-      </p>
-      <ul>
-        <li>
-          <strong>Stripe</strong> — payment processing.{" "}
-          <a className="inline-link" href="https://stripe.com/en-gb/privacy" target="_blank" rel="noreferrer">
-            Stripe&apos;s privacy policy
-          </a>
-          .
-        </li>
-        <li>
-          <strong>Netlify</strong> — website hosting.{" "}
-          <a className="inline-link" href="https://www.netlify.com/privacy/" target="_blank" rel="noreferrer">
-            Netlify&apos;s privacy policy
-          </a>
-          .
-        </li>
-      </ul>
-      <p>
-        Some of these providers are based outside the UK, so your data may be transferred internationally. Where it is,
-        that transfer is protected by appropriate safeguards (such as UK &ldquo;adequacy&rdquo; regulations or the UK
-        International Data Transfer Agreement).
-      </p>
-
-      <h2>How long we keep donation data</h2>
-      <ul>
-        <li>
-          <strong>Donation and financial records:</strong> at least 6 years, as required by UK tax and company law.
-        </li>
-        <li>
-          <strong>Donation-related correspondence:</strong> no longer than we need it for the matter it relates to; you
-          can ask us to erase it sooner.
-        </li>
-      </ul>
-      <p>
-        Retention of sign-up, volunteer, and newsletter data is covered by{" "}
-        <a className="inline-link" href="https://pauseai.info/privacy" target="_blank" rel="noreferrer">
-          Stichting PauseAI&apos;s privacy policy
-        </a>
-        .
+        ⁂ Donation records: 6 years, as UK law requires. Everything else: until you ask us to erase it, then backups
+        within 90 days. After erasure we keep only that you asked us to stop contacting you or that an email to you
+        bounced, so we never contact you again; that a letter went to your MP; and our backup&apos;s copy of messages
+        about letters to MPs.
       </p>
 
       <h2>Your rights</h2>
-      <p>Under UK data protection law you have the right to:</p>
-      <ul>
-        <li>access the personal data we hold about you;</li>
-        <li>have inaccurate data corrected;</li>
-        <li>have your data erased in certain circumstances;</li>
-        <li>restrict or object to how we use your data;</li>
-        <li>request a copy of your data in a portable format;</li>
-        <li>withdraw consent at any time (where we rely on consent); and</li>
-        <li>complain to the regulator.</li>
-      </ul>
       <p>
-        To exercise these rights over <strong>donation data</strong>, email{" "}
+        ⁂ You can ask for a copy of your data, or to correct or erase it, or object to how we use it: email{" "}
         <a className="inline-link" href="mailto:hello@pauseai.uk">
           hello@pauseai.uk
-        </a>
-        . For sign-up, volunteer, or newsletter data, contact Stichting PauseAI via{" "}
-        <a className="inline-link" href="https://pauseai.info/privacy" target="_blank" rel="noreferrer">
-          their privacy policy
-        </a>
-        . You can also complain to the UK&apos;s data protection regulator, the Information Commissioner&apos;s Office
-        (ICO), at{" "}
+        </a>{" "}
+        from the address we hold for you. We reply within a month. You can also complain to the{" "}
         <a className="inline-link" href="https://ico.org.uk/" target="_blank" rel="noreferrer">
-          ico.org.uk
+          ICO
         </a>
         .
       </p>
 
       <h2>Cookies</h2>
       <p>
-        By default, this site uses <strong>Google Analytics cookies</strong> (managed by Stichting PauseAI) to
-        understand how the site is used, and we store your cookie choice in your browser so we can remember it. When you
-        donate, <strong>Stripe&apos;s</strong> secure checkout also sets its own cookies, which are necessary to process
-        payments and are governed by Stripe&apos;s privacy policy. You can opt out of analytics at any time using the
-        &ldquo;Cookie settings&rdquo; link in the footer, or block cookies in your browser.
+        ⁂ Google Analytics cookies, which you can turn off with &ldquo;Cookie settings&rdquo; in the footer; one
+        remembering that choice; and Stripe&apos;s, when you donate.
       </p>
 
-      <h2>Changes to this policy</h2>
-      <p>
-        We may update this policy from time to time. When we do, we&apos;ll change the &ldquo;last updated&rdquo; date
-        at the top. If the changes are significant, we&apos;ll make that clear.
-      </p>
+      <p>⁂ When we change this policy, we change the date at the top.</p>
     </ProsePage>
   );
 }
