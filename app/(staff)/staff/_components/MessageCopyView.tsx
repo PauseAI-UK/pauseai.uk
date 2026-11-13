@@ -104,7 +104,7 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
             {
               at: answer.sentAt,
               status: "answered",
-              details: { by: answer.sentBy },
+              details: { by: answer.sentBy === SITE_ACTOR ? copy.replies.automatically : answer.sentBy },
               label: copy.replies.historyAnswered,
             },
           ]

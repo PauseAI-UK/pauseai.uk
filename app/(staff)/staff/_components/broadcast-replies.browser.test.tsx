@@ -100,13 +100,17 @@ describe("replies to broadcasts", () => {
         one={{
           ...emailCopy,
           replies: [{ ...exampleBroadcastReplies[1], text: "STOP", outcome: "opted-out", dealtBy: SITE_ACTOR }],
-          answers: [],
+          answers: [{ ...exampleBroadcastAnswers[0], replyId: exampleBroadcastReplies[1].id, sentBy: SITE_ACTOR }],
         }}
       />,
     );
     await expect.element(page.getByText("STOP", { exact: true })).toBeVisible();
+    // Said to be the site's own, not a person's.
+    await expect.element(page.getByText(copy.replies.sentAutomatically, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(copy.replies.optedOutAutomatically(""), { exact: false })).toBeVisible();
     const history = page.getByRole("list", { name: staffCopy.letters.detail.historyTitle });
     await expect.element(history.getByText(copy.replies.historyOptedOut, { exact: true })).not.toBeInTheDocument();
+    await expect.element(history.getByText(copy.replies.automatically, { exact: true })).toBeVisible();
   });
 
   it("record as an opt-out of what the email went under, or of all bulk email, in the form a supporter's page has", async () => {
@@ -246,7 +250,9 @@ describe("replies to broadcasts", () => {
     // Theirs as they came, ours as sent, with who sent it, and one whose sending never finished.
     await expect.element(page.getByText("Is it the same place as last time?")).toBeVisible();
     await expect.element(page.getByText("Yes, Parliament Square, by the statue.").first()).toBeVisible();
-    await expect.element(page.getByText(copy.replies.sentBy("jo@pauseai.uk"))).toBeVisible();
+    await expect
+      .element(page.getByText(`${copy.replies.sentBy("jo@pauseai.uk")} · ${staffTime(exampleTextAnswers[0].sentAt!)}`))
+      .toBeVisible();
     await expect.element(page.getByText(copy.replies.stillSending("+447700900000"))).toBeVisible();
     // Their name, as their copy had it.
     await expect.element(page.getByText("Jane Example", { exact: true }).first()).toBeVisible();
@@ -279,7 +285,9 @@ describe("replies to broadcasts", () => {
     await rerender(
       view([exampleTextReplyPastDay], [{ ...exampleTextAnswers[0], replyId: exampleTextReplyPastDay.id }]),
     );
-    await expect.element(page.getByText(copy.replies.sentBy("jo@pauseai.uk"))).toBeVisible();
+    await expect
+      .element(page.getByText(`${copy.replies.sentBy("jo@pauseai.uk")} · ${staffTime(exampleTextAnswers[0].sentAt!)}`))
+      .toBeVisible();
     expect(page.getByText(copy.replies.windowClosed).elements()).toEqual([]);
     // From a number the copy didn't go to: named by it, as a staff page writes it.
     await rerender(view([{ ...exampleTextReplyPastDay, from: "+447700900999" }]));

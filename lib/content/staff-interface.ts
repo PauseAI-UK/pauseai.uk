@@ -1458,6 +1458,10 @@ All events: ${link}`,
       sentBy: (by: string) => `Sent by ${by}`,
       stillSending: (account: string) => `Unsure if this sent. Check ${account}'s Sent folder in Gmail.`,
       optedOut: (by: string, when: string) => `Recorded as an opt-out by ${by}, ${when}`,
+      // The site's own: its answer to a STOP, the STOP recorded as an opt-out, and who in the history.
+      sentAutomatically: "Sent automatically",
+      optedOutAutomatically: (when: string) => `Recorded as an opt-out automatically, ${when}`,
+      automatically: "Automatically",
       nothingDone: (by: string, when: string) => `Nothing to do, said ${by}, ${when}`,
       // In its history.
       // Each with who, on a line under it.

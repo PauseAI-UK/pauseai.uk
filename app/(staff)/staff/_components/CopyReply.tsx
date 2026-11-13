@@ -16,7 +16,7 @@ import { MailingLetter } from "./MailingLetter";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "./ThreadEmail";
-import { TEXT_SENDER_NAME } from "@/lib/broadcasts";
+import { SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import styles from "./MessageCopyView.module.css";
 
 const copy = staffCopy.broadcastPages;
@@ -31,21 +31,20 @@ const sender = (reply: BroadcastReply, one: MessageCopy) => {
 
 /** Our answer to a reply, in the thread after it: who sent it, or that it may not have gone; to a text, as a bubble. */
 function Answer({ answer, reply, one }: { answer: BroadcastAnswer; reply: BroadcastReply; one: MessageCopy }) {
-  const by = (
-    <p className={styles.dealt}>
-      {answer.sentAt ? copy.replies.sentBy(answer.sentBy) : copy.replies.stillSending(one.sentFrom)}
-    </p>
-  );
+  // Who sent it: the site itself, for its answer to a STOP, or the staff member.
+  const sentBy = answer.sentBy === SITE_ACTOR ? copy.replies.sentAutomatically : copy.replies.sentBy(answer.sentBy);
   if (one.channel === "text") {
+    // Who sent it on the line with the time, as a chat app puts what it says of a message there.
     return (
       <ChatWall>
-        <ChatBubble who={TEXT_SENDER_NAME} when={answer.sentAt ? staffTime(answer.sentAt) : ""} ours>
+        <ChatBubble who={TEXT_SENDER_NAME} when={answer.sentAt ? `${sentBy} · ${staffTime(answer.sentAt)}` : ""} ours>
           <TextWords words={answer.body} />
-          {by}
+          {!answer.sentAt && <p className={styles.dealt}>{copy.replies.stillSending(one.sentFrom)}</p>}
         </ChatBubble>
       </ChatWall>
     );
   }
+  const by = <p className={styles.dealt}>{answer.sentAt ? sentBy : copy.replies.stillSending(one.sentFrom)}</p>;
   return (
     <ThreadEmail
       from={named(one.fromName, one.sentFrom)}
@@ -88,7 +87,9 @@ export default function Reply({
     reply.automatic ? null : reply.outcome && reply.outcome !== "answered" ? (
       <>
         <p className={styles.dealt}>
-          {(reply.outcome === "opted-out" ? copy.replies.optedOut : copy.replies.nothingDone)(reply.dealtBy!, when!)}
+          {reply.dealtBy === SITE_ACTOR
+            ? copy.replies.optedOutAutomatically(when!)
+            : (reply.outcome === "opted-out" ? copy.replies.optedOut : copy.replies.nothingDone)(reply.dealtBy!, when!)}
         </p>
         {write && (
           <p className={styles.write}>
