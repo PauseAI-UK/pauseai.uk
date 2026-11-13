@@ -4,6 +4,7 @@ The UK weekly, and smaller broadcasts such as one to a local group, sent
 from pauseai.uk instead of CiviCRM, so each email can be personal, with
 events near the reader and their MP. It uses the Broadcasts pages at
 `/staff/broadcasts`, and comes in six phases, a pull request each.
+Phases 1 to 4 are merged (the last, #318); 5, 5½ and 6 are to come.
 
 ## Now
 
@@ -13,9 +14,9 @@ events near the reader and their MP. It uses the Broadcasts pages at
 - `contact_permission()` can only answer "Not sure" for a member's
   `pauseai-updates` email, as we can't see who unsubscribed in CiviCRM.
 - Global's chapter contacts API is live at `https://crm.pauseai.info/`,
-  and we have a UK key, in Netlify as `CIVICRM_CHAPTER_KEY`. Its spec is
-  [PauseAI/pauseai-civicrm#1175](https://github.com/PauseAI/pauseai-civicrm/issues/1175).
-  It has three actions:
+  and we have a UK key, in Netlify as `CIVICRM_CHAPTER_KEY`.
+  [Its spec](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md)
+  is in PauseAI/pauseai-civicrm. It has three actions:
   - `get`: every UK chapter contact's address, Airtable ID, email and
     phone flags, and status on the two UK lists, `newsletter` (our
     `pauseai-updates`) and `volunteer_updates`. Someone who leaves the
@@ -222,7 +223,7 @@ it has a result, unless CiviCRM told us of it:
 | Events by email, or one topic by text or call | nothing |
 
 Texts and calls stopped altogether go as `do_not_sms` and
-`do_not_phone`, with WhatsApp sending (`plans/supporters-phone.md`,
+`do_not_phone`, with WhatsApp sending (`plans/supporters-whatsapp.md`,
 "Opt-outs"). Only opt-outs go: a yes on our side, from any box, stays
 ours, and CiviCRM's lists stay its own.
 
@@ -285,7 +286,7 @@ an older opt-out.
 
 **A yes from someone with "No bulk emails".** When someone ticks the
 email box on the march form, Email your MP, a paper sign-up form or the
-Luma checkbox (once it's built: `plans/supporters-phone.md`, "Asking on
+Luma checkbox (once it's built: `plans/supporters-whatsapp.md`, "Asking on
 Luma") but has "No bulk emails" set, their entry is stored as
 usual, and we email them a link to the preferences page to lift it,
 saying where they signed up. The site's forms send it at once, the Luma
@@ -350,7 +351,7 @@ opt-outs within a few days.
 
 Replies are kept in `broadcast_replies`, each with the message it
 answers, whatever the channel, so WhatsApp's replies join the same table
-(`plans/supporters-phone.md`). For email it's the whole message, in
+(`plans/supporters-whatsapp.md`). For email it's the whole message, in
 Netlify Blobs as the letters' replies are. Each reply has two buttons,
 Record as an opt-out and Nothing to do, and waits to be looked at until one
 is pressed; an automatic reply never waits. Record as an opt-out is staff
@@ -371,7 +372,7 @@ can undo either. Where staff see them:
 
 **Answering replies.** Staff answer a reply to an email broadcast on its
 Thread page, rather than in `hello@`'s Gmail; replies to texts reuse it
-(`plans/supporters-phone.md`, step 6). The answer goes from the address the
+(`plans/supporters-whatsapp.md`, step 6). The answer goes from the address the
 broadcast went from, by Gmail, in the reply's thread (`In-Reply-To` and
 `References`), so it shows in that mailbox's Sent and the person's
 conversation. It's kept under the reply, with who sent it, and a reply
@@ -416,7 +417,7 @@ has completed for 24 hours. It sends by itself if CiviCRM answers
 within three days of its scheduled time; otherwise it stops as any
 broadcast does, listing who it didn't reach, and whoever scheduled it
 is emailed. Three days is the limit for waiting, email or text, fixed and
-set by nobody, as `plans/supporters-phone.md` describes for texts: the
+set by nobody, as `plans/supporters-whatsapp.md` describes for texts: the
 scheduled page says quietly when it will stop. An email by Gmail that's
 sending has seven (`lib/broadcast-days.ts`).
 
@@ -481,7 +482,7 @@ PECR wants a simple way to stop in every email. Google wants a visible
 link and one-click headers from anyone sending 5,000 a day, which we do
 from the start, and spam complaints below 0.1%, never reaching 0.3%
 ([sender guidelines](https://support.google.com/a/answer/81126)). As
-for texts (`plans/supporters-phone.md`, "Opt-outs"), an opt-out reaches us
+for texts (`plans/supporters-whatsapp.md`, "Opt-outs"), an opt-out reaches us
 every way a person might make it, and each is honoured at once:
 
 - The unsubscribe link in every email. It stops at once, then opens the
@@ -517,7 +518,7 @@ member records can reopen one.
 - Our own join form on pauseai.uk, with a "PauseAI UK can email me"
   box, still passing new members to Global. pauseai.uk brought in 351
   of the 427 UK signups in October.
-- The Luma checkbox (`plans/supporters-phone.md`) covers the weekly.
+- The Luma checkbox (`plans/supporters-whatsapp.md`) covers the weekly.
   Registering for an event isn't a yes on its own: the charities' soft
   opt-in (PECR regulation 22(3A)) is for registered charities, and Safe
   AI Alliance Ltd isn't one.

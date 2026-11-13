@@ -70,7 +70,7 @@ export type SendOptions = {
  */
 export type SendResult =
   | { sent: true; id: string; messageId: string | null; threadId: string | null; backend: Backend }
-  | { sent: false; reason: "blocked" | "failed"; retry?: true };
+  | { sent: false; reason: "blocked" | "failed"; retry?: true; detail?: string };
 
 /**
  * What sent an email, as the event about it in a letter's history records
@@ -247,7 +247,7 @@ export async function send(
         return { sent: false, reason: "blocked" };
       }
       await log("failed");
-      return { sent: false, reason: "failed" };
+      return { sent: false, reason: "failed", detail: error.message };
     }
     problem(
       staffCopy.problems.anywhere.sendFailed(error instanceof GmailError ? `${purpose}, by Gmail as ${from}` : purpose),
@@ -255,7 +255,9 @@ export async function send(
     );
     await log("failed");
     const retry = error instanceof GmailError && (error.revoked || error.status === 429 || error.status >= 500);
-    return retry ? { sent: false, reason: "failed", retry } : { sent: false, reason: "failed" };
+    // What the provider said, for whoever looks at the copy that failed.
+    const detail = (error as Error).message;
+    return retry ? { sent: false, reason: "failed", retry, detail } : { sent: false, reason: "failed", detail };
   }
   // It went: a failure to log it is reported, never thrown, so no caller takes it for one that didn't.
   await log("sent", id, threadId).catch((error) =>

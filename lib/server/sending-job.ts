@@ -4,6 +4,7 @@ import { asRun } from "./import-runs";
 import { sendLetterQueue, uncertainLetters } from "./letter-sending";
 import { sendDueLetters, startDueMailings } from "./mailing-sending";
 import { sendDueBroadcasts, startDueBroadcasts } from "./broadcast-sending";
+import { checkTemplates } from "./whatsapp-templates";
 
 const JOB = "send-mailings";
 
@@ -12,7 +13,8 @@ const JOB = "send-mailings";
  * stopped run left sending as uncertain (uncertainLetters), so a mailing
  * with one can finish; then the letters inbox's queue
  * (letter-sending.ts), then the mailings due and their letters
- * (mailing-sending.ts), then the broadcasts to supporters due and their
+ * (mailing-sending.ts), then what WhatsApp has decided of our templates
+ * (whatsapp-templates.ts), then the broadcasts to supporters due and their
  * copies (broadcast-sending.ts), for its budget (JOBS) in all, short of what Netlify
  * gives a function, so a slow last send still finishes. The background
  * function (netlify/functions/send-mailings-background) runs it again until
@@ -26,6 +28,8 @@ export async function runSending(startedBy: string, request?: Request): Promise<
     const queue = await sendLetterQueue(until, request);
     const started = await startDueMailings();
     const result: SendingResult = { started, ...(await sendDueLetters({ until })), queue };
+    // What WhatsApp has decided of our templates first, so a text on one it has paused doesn't go.
+    await checkTemplates();
     const broadcasts = { started: await startDueBroadcasts(), ...(await sendDueBroadcasts(until)) };
     result.broadcasts = broadcasts;
     const anything =

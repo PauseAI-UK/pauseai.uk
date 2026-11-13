@@ -1200,10 +1200,13 @@ CREATE FUNCTION pg_temp.seed_words(words text) RETURNS jsonb LANGUAGE sql AS $$
     jsonb_build_object('type', 'text', 'text', ', ' || words)))))
 $$;
 
-INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason, created_at)
+INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason, created_at, footer)
 SELECT t.name, pg_temp.seed_words(t.words), t.status, t.by,
   CASE WHEN t.status = 'approved' THEN now() - t.ago END, CASE WHEN t.status = 'rejected' THEN now() - t.ago END,
-  CASE WHEN t.status = 'rejected' THEN 'The message is too short for WhatsApp to tell what it is about.' END, now() - t.ago - interval '1 day'
+  -- WhatsApp's code for why, which the draft and the email put in words (rejectionWords, lib/broadcasts.ts).
+  CASE WHEN t.status = 'rejected' THEN 'PROMOTIONAL' END, now() - t.ago - interval '1 day',
+  -- Its footer as it went to WhatsApp (templateFooter): each of these is for event texts.
+  'Reply STOP to stop event texts'
 FROM (VALUES
   ('The march meets at 11:00 at Parliament Square.', 'the march meets at 11:00 at Parliament Square. Look for the orange flags.', 'approved', 'jo@pauseai.uk', interval '10 days'),
   ('PauseCon room change', 'PauseCon has moved to the Main Hall. Doors still open at 09:30.', 'approved', 'sam@pauseai.uk', interval '12 days'),
@@ -1266,8 +1269,8 @@ WHERE audience = 'supporters' AND title = 'Volunteer evening';
 -- his number has PauseAI Global's "Do not SMS", so the flyering text
 -- skipped it;
 -- Grace no longer follows the calendar; Li's number isn't on WhatsApp; and
--- Pat, whom PauseCon room change reached, asked us to stop two hours later
--- (opt_outs, above), and Jane answered it. Erin had the summer social
+-- Pat and Robin, whom PauseCon room change reached, replied "stop" two
+-- hours later (below), stopping event texts, and Jane answered it. Erin had the summer social
 -- before she unsubscribed and was erased. Volunteer evening reached two
 -- before it stopped, and never the other two. Scheduled broadcasts have no
 -- copies, as sending finds who they go to. Events this month's first, so
@@ -1303,10 +1306,11 @@ SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FR
     ('PauseCon: the recordings', 'usr-seed-18', 'cancelled', NULL, NULL, false, false),
     ('Our next event is on Saturday.', 'usr-fixture-1', 'delivered', NULL, 'delivered', true, false),
     ('Our next event is on Saturday.', 'usr-seed-7', 'delivered', NULL, 'delivered', false, false),
-    ('Our next event is on Saturday.', 'usr-seed-22', 'scheduled', NULL, NULL, false, false),
+    -- Robin pressed Stop on PauseCon room change days before, so this one skips them.
+    ('Our next event is on Saturday.', 'usr-seed-22', 'skipped', 'unsubscribed', NULL, false, false),
     ('Our next event is on Saturday.', 'usr-seed-10', 'scheduled', NULL, NULL, false, false),
     ('PauseCon room change', 'usr-fixture-1', 'delivered', NULL, 'delivered', true, false),
-    ('PauseCon room change', 'usr-seed-22', 'delivered', NULL, 'delivered', true, false),
+    ('PauseCon room change', 'usr-seed-22', 'delivered', NULL, 'delivered', true, true),
     ('PauseCon room change', 'usr-fixture-5', 'delivered', NULL, 'delivered', false, true),
     ('PauseCon room change', 'usr-seed-12', 'failed', NULL, 'failed', false, false),
     ('PauseCon room change', 'usr-seed-10', 'skipped', 'not-on-whatsapp', NULL, false, false),
@@ -1321,7 +1325,12 @@ SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FR
     ('Volunteer evening', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
     ('Volunteer evening', 'usr-fixture-3', 'delivered', NULL, 'delivered', false, false),
     ('Volunteer evening', 'usr-seed-10', 'cancelled', NULL, NULL, false, false),
-    ('Volunteer evening', 'usr-seed-12', 'cancelled', NULL, NULL, false, false)
+    ('Volunteer evening', 'usr-seed-12', 'cancelled', NULL, NULL, false, false),
+    -- Last, so no copy above moves: Thank you for marching, still sending,
+    -- has already failed one and skipped Grace, who no longer follows the
+    -- calendar, so the list shows them under its bar.
+    ('Thank you for marching', 'usr-seed-12', 'failed', NULL, 'failed', false, false),
+    ('Thank you for marching', 'usr-seed-11', 'skipped', 'no-permission', NULL, false, false)
   ) v (title, luma_user, status, reason, report, was_read, stopped)) c
   JOIN mailings m ON m.audience = 'supporters' AND m.title = c.title
   LEFT JOIN supporter_links k ON k.luma_user_id = c.luma_user
@@ -1354,9 +1363,18 @@ SELECT id, due_at, 'sent' FROM seed_copies WHERE status IN ('sent', 'delivered',
 UNION ALL SELECT id, due_at + CASE WHEN refused THEN interval '0' ELSE interval '1 minute' END, report
   FROM seed_copies WHERE report IS NOT NULL
 UNION ALL SELECT id, due_at + interval '20 minutes', 'read' FROM seed_copies WHERE was_read
-UNION ALL SELECT c.id, c.due_at + interval '30 minutes', 'replied' FROM seed_copies c JOIN mailings m ON m.id = c.mailing_id
-  WHERE m.title = 'PauseCon room change' AND c.luma_user = 'usr-fixture-1'
 UNION ALL SELECT id, due_at + interval '2 hours', 'opted-out' FROM seed_copies WHERE stopped;
+-- Why each failed or bounced, as its provider said it: Postmark's bounce,
+-- WhatsApp's error, Gmail's refusal.
+UPDATE broadcast_message_events e SET details = CASE
+    WHEN e.kind = 'bounced' THEN '{"reason": "No such mailbox"}'::jsonb
+    WHEN s.channel = 'text' THEN '{"code": 131000, "title": "Something went wrong"}'::jsonb
+    ELSE '{"reason": "Recipient address rejected"}'::jsonb END
+FROM seed_copies s WHERE s.id = e.message_id AND e.kind IN ('failed', 'bounced');
+-- The number WhatsApp said isn't on it, which texts skip from then on.
+INSERT INTO whatsapp_unreachable (number, at, message_id)
+SELECT coalesce(c.address, '+447700900099'), s.due_at, c.id
+FROM broadcast_messages c JOIN seed_copies s USING (id) WHERE s.reason = 'not-on-whatsapp';
 -- Robin's bounce, which blocked the address.
 WITH bounced AS (
   INSERT INTO email_problems (at, address, message_id, kind, reason, can_reset, details)
@@ -1390,8 +1408,32 @@ FROM (VALUES
 JOIN mailings m ON m.audience = 'supporters' AND m.title = r.title
 JOIN seed_copies s ON s.mailing_id = m.id AND s.luma_user = r.luma_user
 JOIN luma_people l ON l.user_id = r.luma_user;
+-- Replies to texts, by WhatsApp: their words, as its webhook gave them.
+-- Jane's to PauseCon room change is days old, so WhatsApp takes no answer
+-- now; the one to Our next event is on Saturday came 40 minutes ago, so
+-- staff can answer it.
+INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
+SELECT s.id, s.due_at + r.after, c.address, '', r.id, r.words, false
+FROM (VALUES
+  ('PauseCon room change', 'usr-fixture-1', interval '30 minutes', 'seed-text-reply', 'Thanks! Is it still the same building?'),
+  ('Our next event is on Saturday.', 'usr-seed-7', interval '20 minutes', 'seed-text-reply-recent', 'Can I bring my kids along?')
+) r (title, luma_user, after, id, words)
+JOIN mailings m ON m.title = r.title AND m.channel = 'text'
+JOIN seed_copies s ON s.mailing_id = m.id AND s.luma_user = r.luma_user
+JOIN broadcast_messages c ON c.id = s.id;
 INSERT INTO broadcast_message_events (message_id, at, kind)
 SELECT message_id, received_at, 'replied' FROM broadcast_replies WHERE NOT automatic;
+-- Two hours after PauseCon room change came, Robin and Pat replied
+-- "stop", as its footer says, which recordWhatsAppStop keeps
+-- (lib/server/whatsapp-stops.ts): the text's topic, events, stopped for
+-- the number, from WhatsApp. Their other text topics stay open, so
+-- nothing goes to CiviCRM.
+INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at, message_id)
+SELECT c.address, 'events', 'text', 'whatsapp', 'reply seed-text-stop-' || w.luma_user || ' events',
+  s.due_at + interval '2 hours', c.id
+FROM (VALUES ('usr-seed-22'), ('usr-fixture-5')) w (luma_user)
+JOIN seed_copies s ON s.luma_user = w.luma_user JOIN mailings m ON m.id = s.mailing_id JOIN broadcast_messages c ON c.id = s.id
+WHERE m.title = 'PauseCon room change';
 INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, created_at, sent_at, gmail_message_id,
   rfc_message_id)
 SELECT id, '00000000-0000-4000-8000-000000000001', dealt_by,

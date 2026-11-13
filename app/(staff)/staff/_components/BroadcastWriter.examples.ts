@@ -100,11 +100,14 @@ const template = (id: number, name: string, more: Partial<WhatsAppTemplate> = {}
   name,
   body: exampleTextWords,
   status: "approved",
+  category: "MARKETING",
+  metaName: null,
   createdBy: "jo@pauseai.uk",
   approvedAt: new Date("2026-10-20T10:00:00Z"),
   requestedAt: new Date("2026-10-19T10:00:00Z"),
   rejectedAt: null,
   rejectedReason: null,
+  footer: "Reply STOP to stop event texts",
   lastUsedAt: null,
   lastUsedTo: 0,
   ...more,
@@ -116,7 +119,7 @@ export const exampleTemplates: WhatsAppTemplate[] = [
     lastUsedAt: new Date("2026-11-02T08:00:00Z"),
     lastUsedTo: 318,
   }),
-  template(2, "PauseCon room change", { createdBy: null }),
+  template(2, "PauseCon room change", { createdBy: null, footer: null }),
   template(3, "Our next event is on Saturday."),
   template(4, "Local group meetup"),
   template(5, "write_to_your_mp"),
@@ -239,11 +242,21 @@ const summary: BroadcastSummary = {
   answered: 0,
   channel: "email",
   sendBy: "gmail",
-  delivered: 0,
-  read: 0,
   waiting: false,
   rejected: false,
-  toLookAt: 0,
+  gaveUp: false,
+  waitReason: null,
+  states: {
+    look: 0,
+    "opted-out": 1,
+    error: 4,
+    unreached: 2,
+    "not-sent": 8,
+    replied: 0,
+    read: 0,
+    delivered: 0,
+    sent: 275,
+  },
 };
 
 /** A broadcast as the list has it. */
@@ -270,13 +283,9 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       place: "Leeds",
       status: "delivered",
       skipReason: null,
-      stoppedBy: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
-      read: true,
-      bounced: false,
-      optedOut: false,
-      replied: false,
-      toLookAt: false,
+      state: "read",
+      why: null,
     },
     {
       copyId: 22,
@@ -285,13 +294,9 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       place: null,
       status: "failed",
       skipReason: null,
-      stoppedBy: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
-      read: false,
-      bounced: false,
-      optedOut: false,
-      replied: false,
-      toLookAt: false,
+      state: "error",
+      why: "gmail",
     },
     {
       copyId: 23,
@@ -300,13 +305,9 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       place: null,
       status: "skipped",
       skipReason: "blocked",
-      stoppedBy: null,
       sentAt: null,
-      read: false,
-      bounced: false,
-      optedOut: false,
-      replied: false,
-      toLookAt: false,
+      state: "not-sent",
+      why: "blocked",
     },
     {
       copyId: 24,
@@ -315,13 +316,9 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       place: null,
       status: "skipped",
       skipReason: "unsubscribed",
-      stoppedBy: null,
       sentAt: null,
-      read: false,
-      bounced: false,
-      optedOut: false,
-      replied: false,
-      toLookAt: false,
+      state: "not-sent",
+      why: "unsubscribed",
     },
     {
       copyId: 25,
@@ -330,13 +327,9 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       place: null,
       status: "delivered",
       skipReason: null,
-      stoppedBy: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
-      read: false,
-      bounced: false,
-      optedOut: false,
-      replied: false,
-      toLookAt: false,
+      state: "delivered",
+      why: null,
     },
   ],
 };
@@ -358,7 +351,9 @@ export const exampleMessageCopy: MessageCopy = {
   merge: { values: { firstName: "Jane" }, meets: ["has:firstName"] },
   status: "delivered",
   skipReason: null,
-  stoppedBy: null,
+  state: "read",
+  why: null,
+  footer: "Reply STOP to stop event texts",
   place: "Leeds",
   sentAt: new Date("2026-11-07T07:18:00Z"),
   events: [
@@ -384,6 +379,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtBy: null,
     dealtAt: null,
     doNotEmail: false,
+    answerable: true,
   },
   {
     id: 2,
@@ -396,6 +392,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtBy: "jo@pauseai.uk",
     dealtAt: new Date("2026-11-07T10:00:00Z"),
     doNotEmail: false,
+    answerable: true,
   },
   {
     id: 4,
@@ -408,6 +405,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtBy: "jo@pauseai.uk",
     dealtAt: new Date("2026-11-07T10:05:00Z"),
     doNotEmail: false,
+    answerable: true,
   },
   {
     id: 1,
@@ -420,6 +418,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtBy: null,
     dealtAt: null,
     doNotEmail: false,
+    answerable: true,
   },
 ];
 
@@ -438,3 +437,53 @@ export const exampleBroadcastAnswers: BroadcastAnswer[] = [
     },
   },
 ];
+
+/**
+ * Replies to a text, by WhatsApp, oldest first: Jane's question, which Jo
+ * answered, and her thanks, waiting for staff, still within WhatsApp's day.
+ */
+export const exampleTextReplies: BroadcastReply[] = [
+  {
+    id: 11,
+    receivedAt: new Date("2026-11-07T07:30:00Z"),
+    from: "+447700900001",
+    subject: "",
+    text: "Is it the same place as last time?",
+    automatic: false,
+    outcome: "answered",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T07:45:00Z"),
+    doNotEmail: false,
+    answerable: true,
+  },
+  {
+    id: 12,
+    receivedAt: new Date("2026-11-07T08:00:00Z"),
+    from: "+447700900001",
+    subject: "",
+    text: "Great, thanks!",
+    automatic: false,
+    outcome: null,
+    dealtBy: null,
+    dealtAt: null,
+    doNotEmail: false,
+    answerable: true,
+  },
+];
+
+/** Jo's answer to Jane's question by text (exampleTextReplies). */
+export const exampleTextAnswers: BroadcastAnswer[] = [
+  {
+    id: 11,
+    replyId: 11,
+    sentBy: "jo@pauseai.uk",
+    sentAt: new Date("2026-11-07T07:45:00Z"),
+    body: {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "Yes, Parliament Square, by the statue." }] }],
+    },
+  },
+];
+
+/** A reply to a text more than a day old, which WhatsApp takes no answer to. */
+export const exampleTextReplyPastDay: BroadcastReply = { ...exampleTextReplies[1], id: 13, answerable: false };

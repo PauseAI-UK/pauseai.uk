@@ -409,7 +409,19 @@ job all leave broadcasts out.
   and the text can't be scheduled. When words are sent for approval, and
   when WhatsApp decides, an email with the words goes to whoever sent them
   and to the notification inbox. A template has no parts that only some
-  people get, as its words are the same for everyone.
+  people get, as its words are the same for everyone. New words go to
+  WhatsApp (`createTemplate`) as a marketing template in British English,
+  named by its name and ID in WhatsApp's lower case (`meta_name`), each
+  field a named parameter (`{{first_name}}`) with an example, and a
+  footer naming the text's topics: "Reply STOP to stop event texts"
+  (`templateFooter`). If WhatsApp doesn't take them, the
+  draft is as it was, and says so. Withdrawn, they're deleted there too.
+  WhatsApp's decision comes by its webhook, and each run of the sending asks
+  it too while a template waits or a text is to go, in case a webhook went
+  astray (`lib/server/whatsapp-templates.ts`). A rejection is put in plain
+  words with what to do. Once approved, WhatsApp can pause or disable a
+  template for its quality, which stops every text on it (`wait_reason`
+  `template`), and approve it again.
 - **Sending** (`lib/server/broadcast-sending.ts`). The 15-minute
   `send-mailings` run starts each broadcast that's due, as it does
   mailings, none overnight: a copy for each it goes to then, once to each
@@ -427,9 +439,22 @@ job all leave broadcasts out.
   left `sending` for half an hour is failed, not sent again, as it may
   have gone. While copies
   are left, the run starts the background function as letters do ("Mailings
-  to politicians"). A text goes by the fake backend a fixture build has, and
-  on the live site nothing sends one yet (`lib/server/broadcast-channels.ts`),
-  so scheduling one is refused and the pages say so.
+  to politicians"). Each channel has a sender, and one loop sends by either.
+- **What sends a text**: WhatsApp's Cloud API
+  (`lib/server/outside-services/whatsapp.ts`), from our number, read from
+  the WhatsApp account, where its keys are set: on the live site alone, and
+  a fixture build's fake (`lib/server/broadcast-channels.ts`). Anywhere
+  else nothing sends a text, so scheduling one is refused and the pages say
+  so. A copy is the text's template, its fields filled in for the person.
+  Before a copy goes, its number is checked with CiviCRM's
+  `checkSuppression`, and one with "Do not SMS" is skipped, as is a number
+  WhatsApp has said isn't on it (`whatsapp_unreachable`). A number takes as
+  many texts a day as its tier allows, 250 to start with: the rest wait for
+  the next day. WhatsApp's answer to a send, or its webhook later, can
+  refuse a copy: as the number isn't on WhatsApp, which skips it from then
+  on; as the person stopped marketing messages, a stop ("Opt-outs"); or as
+  they've had enough marketing messages lately, when it's held a day
+  (`not_before`).
 - **What sends an email** (`mailings.send_by`; `BROADCAST_SEND_BY` in
   `lib/broadcasts.ts`). An email is always from `hello@pauseai.uk`
   (`BROADCAST_SENDER`), where its replies are read. It goes by one of the
@@ -447,7 +472,7 @@ job all leave broadcasts out.
   - **Postmark**'s broadcast stream, apart from the site's transactional
     mail, with no limit of ours. Postmark hasn't approved us for broadcasts,
     so it can't be chosen yet (`available`).
-- **Waiting for CiviCRM.** Nothing goes unchecked. An email broadcast
+- **Waiting for CiviCRM.** Nothing goes unchecked. A broadcast
   waits while no CiviCRM pull has completed for a day, or CiviCRM doesn't
   answer its check; whoever scheduled it and the notification inbox are
   emailed once, and its page says since when and why. It goes by itself
@@ -458,19 +483,32 @@ job all leave broadcasts out.
   pages' words take their numbers from), stops: its copies not yet gone
   are cancelled, and whoever scheduled it and the notification inbox are
   emailed why and how many it didn't reach (`wait_reason`: `civicrm`,
-  `pull` or `limit`). Resume sending, on its page, sets it going again
+  `pull` or `limit`). A text stops too when WhatsApp pauses or disables its
+  template (`template`). Resume sending, on its page, sets it going again
   (`resumeBroadcast`): its cancelled copies are to go again, or one that
   never started is scheduled again, from now, so it has its days again.
 - **What Postmark reports**, of a copy it sent. Its delivery webhook marks a copy delivered;
   a hard bounce marks it failed and blocks the address; a spam complaint is
   an opt-out of every bulk email (`lib/server/delivery-problems.ts`).
+- **What WhatsApp reports**, by its webhook, `/api/whatsapp`, signed with
+  the Meta app's secret (`lib/server/whatsapp-webhooks.ts`): each text
+  delivered, read or failed; a message to us, which answers the text it
+  quotes, or else the newest sent to that number, and is kept as a reply,
+  or is a stop of the topics that text went under if it says "stop" or
+  "unsubscribe", in any case, or,
+  answering no text, is emailed to the notification inbox; a stop or
+  resume in WhatsApp's own setting for marketing messages; what it
+  decided of a template, or its category; and anything about our number's
+  quality or limit, a template's quality or our account, emailed to the
+  notification inbox. Each is applied once, however often it's sent.
 - **Replies** (`lib/server/broadcast-replies.ts`). The read of each
   connected Gmail matches a reply to its copy by the Message-ID it went
   with, before anything else in the mailbox sees it, and keeps it whole
   (`broadcast_replies`, the message in Netlify Blobs). A person's reply
   waits for staff, who record it as an opt-out, of what the copy went under
-  or of every bulk email, or as nothing to do; an automatic one never
-  waits. The broadcast's page counts replies, and those to look at in
+  or of every bulk email (every text, for a text's), or as nothing to do;
+  an automatic one never waits. A reply to a text is its words, as
+  WhatsApp's webhook gives them. The broadcast's page counts replies, and those to look at in
   amber, which come first among its recipients; the staff home says how
   many wait. A message from the mailbox's own address in the thread is an
   answer of ours sent from its Gmail, and isn't kept as a reply.
@@ -487,7 +525,10 @@ job all leave broadcasts out.
   unless it's an opt-out, and an answered reply can still be recorded as
   one. Reading the mailbox skips our answer, as an email we sent
   (`email_sends`), and a reply to it joins the same copy, by its
-  Message-ID. It's transactional, as it answers what the person wrote.
+  Message-ID. It's transactional, as it answers what the person wrote. An
+  answer to a reply to a text goes by WhatsApp, as words of our own, which
+  it takes only within a day of their message; after that the thread says
+  so, and there's no Reply.
 - **A message's page**, Thread (`/staff/broadcasts/<id>/<copy>`), shows one
   person's copy as they got it, and when it was sent, delivered and read,
   with each reply under it and its buttons, our answers, and who dealt with
@@ -1135,8 +1176,9 @@ email.
 Global's CRM, CiviCRM, is one of our sources (`civicrm_contacts`,
 `lib/server/civicrm-import.ts`): every UK chapter contact its chapter
 contacts API returns (`lib/server/outside-services/civicrm.ts`, with
-`CIVICRM_CHAPTER_KEY`; the spec is PauseAI/pauseai-civicrm#1175, which is
-private), as it told us. The hourly import pulls them all, 500 a page by
+`CIVICRM_CHAPTER_KEY`;
+[its spec](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md)
+is in PauseAI/pauseai-civicrm, which is private), as it told us. The hourly import pulls them all, 500 a page by
 contact ID, and keeps each one's contact ID, Airtable ID and address; its
 member details (`first_name`, `last_name`, `city`, `postal_code`,
 `joined_date`, a day, `intent`, and `phone`, which Global shares for calls

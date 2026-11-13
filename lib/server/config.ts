@@ -80,9 +80,9 @@ export const config = {
   get notifyMailDomain(): string {
     return value(process.env.NOTIFY_MAIL_DOMAIN) ?? "notify.pauseai.uk";
   },
-  /** The WhatsApp business account's number, which texts to supporters come from (lib/server/broadcast-channels.ts). */
-  get whatsappNumber(): string | undefined {
-    return value(process.env.WHATSAPP_NUMBER);
+  /** The WhatsApp account's ID, which Meta calls the Messaging account ID (lib/server/outside-services/whatsapp.ts). */
+  get whatsappAccountId(): string | undefined {
+    return value(process.env.WHATSAPP_ACCOUNT_ID);
   },
   /** Where an email that isn't really sent is written (lib/server/fixtures/outbox.ts). */
   get outboxDir(): string | undefined {
@@ -98,6 +98,14 @@ export const config = {
   /** Our UK chapter's key to Global's CiviCRM chapter contacts API (lib/server/outside-services/civicrm.ts). */
   get civicrmChapterKey(): string | undefined {
     return value(process.env.CIVICRM_CHAPTER_KEY);
+  },
+  /** WhatsApp's permanent access token, set only on the live site, so a deploy preview can't send from the real number. */
+  get whatsappToken(): string | undefined {
+    return value(process.env.WHATSAPP_TOKEN);
+  },
+  /** The Meta app's secret, which signs WhatsApp's webhooks (X-Hub-Signature-256). */
+  get whatsappAppSecret(): string | undefined {
+    return value(process.env.WHATSAPP_APP_SECRET);
   },
   get lumaApiKey(): string | undefined {
     return value(process.env.LUMA_API_KEY?.trim());

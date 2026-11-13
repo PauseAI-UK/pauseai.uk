@@ -143,6 +143,15 @@ through `outsideFetch` like any other outside service.
   has one) and its attachments. Every email the site sends has one, such as
   the letter, a relayed reply and the staff login link. It's what was sent,
   not how Gmail or Outlook draw it.
+- **And the WhatsApp texts.** The fake WhatsApp writes each text to the
+  outbox as a text file (`.txt`): its template's name and fields, or words
+  of our own (`lib/server/fixtures/whatsapp-outbox.ts`).
+  `textFrame(page, from, text, caption)` shows one as the supporter gets it,
+  in a plain chat app (`tests/fixtures/text-view.ts`): our picture, name
+  and number, then the text in a bubble with its footer.
+  WhatsApp keeps a template's words, so `shownText` in
+  `tests/storyboard/whatsapp-steps.ts` reads them from the flow's database
+  and fills in the fields from the file.
 
   So that the frames compare, the fixture build fills in what would be
   random: the `Date` header is the fixed clock's, and a login link's token
@@ -914,7 +923,8 @@ that drives it or why nothing does.
   - the list's Broadcast button with a Consent filter;
   - an email written, from hello@ by its Gmail with what it can send today, previewed, sent as a test, scheduled and unscheduled;
   - a text on an approved template, with the templates' search and Show all;
-  - a text on new words, sent for WhatsApp's approval, locked till it decides, then rejected;
+  - a text on new words, sent for WhatsApp's approval, locked till it decides, then rejected by its webhook;
+  - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
   - who it goes to changed from the list, with its Consent locked there;
   - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
   - an email sent by the sending job, by hello@'s Gmail, and a copy as the supporter gets it, with its unsubscribe link;
@@ -922,7 +932,10 @@ that drives it or why nothing does.
   - one waiting for CiviCRM, with the email saying so and its page;
   - a reply asking to stop, to look at on the email's page, recorded as an opt-out from its thread;
   - a reply answered from its thread, by Gmail from hello@, and the email the person gets;
-  - one to the newsletter's and events' yeses both, ticked as about our events.
+  - one to the newsletter's and events' yeses both, ticked as about our events;
+  - a text sent by the sending job, by the fake WhatsApp, then delivered and read by its webhook;
+  - a reply to a text by WhatsApp's webhook, as a bubble, answered from its thread by WhatsApp;
+  - Stop pressed in WhatsApp, on the copy and the supporter's page.
 - `email-settings.spec.ts`: The contact preferences page:
   - asking for a link past Turnstile, the email with it, and the page it opens;
   - changing what you get, with why behind a “?” on a phone;
@@ -1039,6 +1052,7 @@ that drives it or why nothing does.
 - `/api/backup/letter-replies`, `/api/backup/letter-replies/[id]`: Not driven: they are for the backup Worker, and show nothing. Vitest-tested.
 - `/api/csp-report`: Not driven: a browser posts to it only on a CSP violation. Vitest-tested.
 - `/api/browser-error`: `errors`: a page breaking in someone's browser, which the error page posts, and a button's click throwing, which the listener does.
+- `/api/whatsapp`: `broadcasts`: WhatsApp's webhook, signed as Meta signs it (`postWhatsAppWebhook` in `tests/whatsapp-webhooks.ts`): a template approved and rejected, a text delivered and read, a reply, and Stop pressed. Its check of the callback URL is Vitest-tested.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `tests/steps.ts`), and the redelivery that changes nothing.
 - `/staff/api/login`, `/staff/api/callback`: `staff-login`: asking for a login link and opening it (`logInWithLink` in `tests/steps.ts`).
 - `/staff/api/logout`: `staff-login`: logging out, and the request without a session.

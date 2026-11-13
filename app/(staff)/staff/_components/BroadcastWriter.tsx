@@ -1,7 +1,9 @@
 "use client";
 
 import type { JSONContent } from "@tiptap/react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { templateFooter } from "@/lib/whatsapp-template";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
@@ -35,6 +37,7 @@ import { earliestRun, londonClock, londonWhen, sendsAt, staffDate, staffTime } f
 import type { Channel } from "@/lib/contact-permissions";
 import {
   approvalProblems,
+  rejectionWords,
   fakeRecipient,
   hasField,
   hasWords,
@@ -195,11 +198,14 @@ function BroadcastPreview({
   needs,
   dueAt,
   sendTest,
+  footer,
 }: {
   data: BroadcastWriterData;
   draft: WrittenBroadcast;
   body: MailingDoc;
   words: Words;
+  /** A text's footer: its chosen template's, as it went to WhatsApp, or for new words, the one they'd go with. */
+  footer: string;
   subject: string;
   from: string;
   /** The connected Gmail an email goes from, which its test goes from too; none for Postmark. */
@@ -284,6 +290,7 @@ function BroadcastPreview({
         <TextBubble
           from={TEXT_SENDER_NAME}
           words={letterFor(body, recipient)}
+          footer={footer}
           time={londonClock(sendsAt(dueAt ?? earliestRun()))}
         />
       )}
@@ -391,6 +398,8 @@ export default function BroadcastWriter({
     });
   const [choosing, choose] = useLeaving();
   const [submitting, setSubmitting] = useState(false);
+  // WhatsApp didn't take the words just now, so they're still here to send again.
+  const [submitFailed, setSubmitFailed] = useState(false);
   // New words sent to WhatsApp, waiting for it to approve them.
   const waiting = draft.template?.status === "pending" ? draft.template : undefined;
   // Once taken back, the words can be changed again: Write is brought fully into view once the page has them.
@@ -492,7 +501,6 @@ export default function BroadcastWriter({
   return (
     <>
       <DraftTitle title={title} saveState={blank ? undefined : saveState} />
-      {!data.sends && <Strip tone="amber">{copy.cantSend}</Strip>}
       {saveState === "conflict" && (
         <Strip tone="red" announce>
           {staffCopy.mailingPages.saveStates.conflict}
@@ -504,7 +512,7 @@ export default function BroadcastWriter({
         </Strip>
       )}
       {draft.template?.status === "rejected" && (
-        <Strip tone="red">{copy.rejected(staffTime(draft.template.rejectedAt!), draft.template.rejectedReason!)}</Strip>
+        <Strip tone="red">{copy.rejected(rejectionWords(draft.template.rejectedReason))}</Strip>
       )}
       <Grid>
         <Card span={6} title={<Numbered n={1}>{copy.sections.who}</Numbered>} id="who-title">
@@ -585,14 +593,14 @@ export default function BroadcastWriter({
                 </div>
               ) : (
                 <div className={own.account}>
-                  <span className={own.picture} aria-hidden="true">
-                    {TEXT_SENDER_NAME[0]}
-                  </span>
+                  {/* Our profile picture on WhatsApp: PauseAI's pause symbol, as Global's and every group's is. */}
+                  <Image src="/images/logos/Pause-Symbol.svg" alt="" width={616} height={616} className={own.picture} />
+
                   <p>
                     <strong>{TEXT_SENDER_NAME}</strong>{" "}
                     <Muted>
                       {data.textNumber ? (
-                        <span className={own.number}>{phoneWords(data.textNumber)}</span>
+                        <span className={own.number}>{copy.fromOption(phoneWords(data.textNumber), copy.textBy)}</span>
                       ) : (
                         copy.noNumber
                       )}
@@ -698,6 +706,7 @@ export default function BroadcastWriter({
                 draft={draft}
                 body={body}
                 words={words}
+                footer={template?.footer ?? templateFooter(draft.topics)}
                 subject={values.subject}
                 from={fromLine}
                 gmail={byGmail && data.sender.connected ? draft.sentFrom : null}
@@ -746,12 +755,15 @@ export default function BroadcastWriter({
                     pending={submitting}
                     onClick={async () => {
                       setSubmitting(true);
+                      setSubmitFailed(false);
                       await saveNow();
+                      const result = await actions.submitTemplate(id);
                       // Back to the list, where the broadcast's row says it's waiting for WhatsApp, and pulses.
-                      if ((await actions.submitTemplate(id)) === "submitted") {
+                      if (result === "submitted") {
                         router.push(`/staff/broadcasts?submitted=${id}`);
                       } else {
                         setSubmitting(false);
+                        setSubmitFailed(result === "failed");
                       }
                     }}
                   >
@@ -767,7 +779,12 @@ export default function BroadcastWriter({
                 )}
                 <DeleteDraft id={id} action={actions.deleteDraft} />
               </div>
-              <ProblemList problems={shownProblems.map((problem) => copy.problems[problem])} />
+              <ProblemList
+                problems={[
+                  ...shownProblems.map((problem) => copy.problems[problem]),
+                  ...(submitFailed ? [copy.submitFailed] : []),
+                ]}
+              />
             </Card>
           </>,
         )}

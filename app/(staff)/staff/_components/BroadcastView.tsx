@@ -3,10 +3,17 @@ import Tag, { type TagTone } from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { WrittenBroadcast } from "@/lib/server/broadcast-drafts";
-import type { BroadcastPageData, MessageRecipient, BroadcastSummary } from "@/lib/server/broadcast-pages";
+import {
+  COPY_STATES,
+  type BroadcastPageData,
+  type BroadcastSummary,
+  type CopyState,
+  type MessageRecipient,
+} from "@/lib/server/broadcast-pages";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { londonClock, londonDate, sendsAt, staffDate } from "@/lib/staff-time";
 import { FIELD_WORDS, waitStopsAt, type BroadcastChannel } from "@/lib/broadcasts";
+import { templateFooter } from "@/lib/whatsapp-template";
 import Strip from "./ui/Strip";
 import { phoneWords } from "@/lib/phone";
 import ChannelIcon from "@/components/ui/ChannelIcon";
@@ -18,7 +25,8 @@ import { ResumeBroadcast } from "./MailingButtons";
 import { MailingStanding, MailingWhen } from "./MailingView";
 import TextBubble from "./TextBubble";
 import Band, { BandFact } from "./ui/Band";
-import Counts, { countsFiltering, type Count } from "./ui/Counts";
+import { countsFiltering, type Count } from "./ui/Counts";
+import { CountGroups } from "./BroadcastCounts";
 import Grid, { Card } from "./ui/Grid";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
@@ -35,52 +43,65 @@ export function BroadcastChannelName({ channel }: { channel: BroadcastChannel })
 }
 
 /**
- * How a broadcast went, in the order it happens: what went, what didn't,
- * what never went as it was stopped, then what was read, what was
- * replied to and what's still to look at, a dash where that can't be.
+ * A broadcast's channel as an icon before its title, for a list where
+ * emails and texts must tell apart at a glance. Named, as the list's line
+ * under the title may not say it.
+ */
+export function BroadcastChannelMark({ channel }: { channel: BroadcastChannel }) {
+  return (
+    <span className={styles.channelMark}>
+      <ChannelIcon channel={channel} label={copy.channels[channel]} size={18} />
+    </span>
+  );
+}
+
+/**
+ * How its copies stand, a count for each state (COPY_STATES), in the order
+ * it happens: what went and arrived, what was read and replied to, what's
+ * to check, who opted out because of it; then what didn't go, the expected
+ * first. Each is the colour of its recipients'
+ * tags. Only texts are said to be read, so an email's read is none, and a
+ * count of none isn't shown.
  */
 export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
+  const n = (state: (typeof COPY_STATES)[number]) => broadcast.states[state];
   return [
-    // Those that went, delivered or not yet said to be, as a mailing counts them: Gmail never says what arrived, and
-    // each copy's own tag says what its provider did.
-    { key: "sent", n: broadcast.sent, label: copy.counts.sent },
-    { key: "failed", n: broadcast.failed, label: copy.counts.failed, tone: "red" },
-    { key: "stopped", n: broadcast.stopped, label: copy.counts.stopped },
-    // Every broadcast has every count, so they line up from row to row: an email can't say it was read, nor a
-    // text be replied to here, so a dash.
-    { key: "read", n: broadcast.channel === "text" ? broadcast.read : null, label: copy.counts.read },
-    { key: "replied", n: broadcast.channel === "email" ? broadcast.replied : null, label: copy.counts.replied },
-    // The replies still to look at, in amber while there are any.
-    {
-      key: "look",
-      n: broadcast.channel === "email" ? broadcast.toLookAt : null,
-      label: copy.counts.look,
-      ...(broadcast.toLookAt ? { tone: "amber" as const } : {}),
-    },
+    { key: "sent", n: n("sent"), label: copy.counts.sent, tone: "grey" },
+    { key: "delivered", n: n("delivered"), label: copy.counts.delivered, tone: "green" },
+    { key: "read", n: n("read"), label: copy.counts.read, tone: "green" },
+    { key: "replied", n: n("replied"), label: copy.counts.replied, tone: "green" },
+    { key: "look", n: n("look"), label: copy.counts.look, tone: "blue" },
+    { key: "opted-out", n: n("opted-out"), label: copy.counts["opted-out"], tone: "red" },
+    // Those that didn't go: not sent, as expected, first; then what went wrong.
+    { key: "not-sent", n: n("not-sent"), label: copy.counts["not-sent"], tone: "grey" },
+    { key: "error", n: n("error"), label: copy.counts.error, tone: "red" },
+    { key: "unreached", n: n("unreached"), label: copy.counts.unreached, tone: "amber" },
   ];
 }
 
-type CopyState = Pick<MessageRecipient, "status" | "skipReason" | "read" | "bounced" | "optedOut"> &
-  Partial<Pick<MessageRecipient, "replied" | "toLookAt" | "stoppedBy">>;
+/** Each state's colour: red bad, amber sad, green good, blue for staff to do, plain for normal. */
+const STATE_TONES: Partial<Record<CopyState, TagTone>> = {
+  look: "blue",
+  "opted-out": "red",
+  error: "red",
+  unreached: "amber",
+  replied: "green",
+  read: "green",
+  delivered: "green",
+};
 
-/**
- * How a copy went, as a tag; an amber Stopped beside it for one who asked
- * us to stop after it arrived; and whether they replied, in amber while
- * the reply's still to look at.
- */
-export function CopyStatus({ copyOf }: { copyOf: CopyState }) {
+/** A copy's one tag: its state's words, with why where it has one, in its state's colour. */
+export function copyStatus({ state, why }: Pick<MessageRecipient, "state" | "why">): { words: string; tone?: TagTone } {
+  return {
+    words: copy.copyStates[`${state}:${why}`] ?? copy.copyStates[state]!,
+    tone: STATE_TONES[state],
+  };
+}
+
+/** Where a copy stands, as one tag (copyStatus). */
+export function CopyStatus({ copyOf }: { copyOf: Pick<MessageRecipient, "state" | "why"> }) {
   const { words, tone } = copyStatus(copyOf);
-  return (
-    <span className={styles.tags}>
-      <Tag tone={tone}>{words}</Tag>
-      {copyOf.optedOut && <Tag tone="amber">{copy.events["opted-out"]}</Tag>}
-      {copyOf.toLookAt ? (
-        <Tag tone="amber">{copy.lookTag}</Tag>
-      ) : (
-        copyOf.replied && <Tag tone="green">{copy.repliedTag}</Tag>
-      )}
-    </span>
-  );
+  return <Tag tone={tone}>{words}</Tag>;
 }
 
 /**
@@ -101,7 +122,11 @@ export function BroadcastWaiting({
   if (written.gaveUp) {
     return (
       <Strip tone="red" action={resume}>
-        {written.waitReason === "limit" ? copy.gaveUpLimit : copy.gaveUp}
+        {written.waitReason === "limit"
+          ? copy.gaveUpLimit
+          : written.waitReason === "template"
+            ? copy.gaveUpTemplate
+            : copy.gaveUp}
       </Strip>
     );
   }
@@ -111,23 +136,6 @@ export function BroadcastWaiting({
     return <Strip tone="amber">{copy.waiting(reason, londonDate(waitStopsAt(written.dueAt!)))}</Strip>;
   }
   return atLimit ? <Strip tone="amber">{copy.moreTomorrow}</Strip> : null;
-}
-
-/** How a copy went, in words and its tone: skipped with why, bounced, or its status, or read. */
-export function copyStatus(copyOf: Omit<CopyState, "optedOut">): {
-  words: string;
-  tone?: TagTone;
-} {
-  const { skipReason, status, read, bounced, stoppedBy } = copyOf;
-  if (skipReason) return { words: copy.skipReasons[skipReason as "blocked"], tone: "red" };
-  // Cancelled as its broadcast stopped by itself, not by us: why.
-  if (status === "cancelled" && stoppedBy) return { words: copy.stoppedBy[stoppedBy], tone: "amber" };
-  if (bounced) return { words: copy.events.bounced, tone: "red" };
-  if (read) return { words: copy.statuses.read, tone: "green" };
-  return {
-    words: copy.statuses[status],
-    tone: status === "failed" ? "red" : status === "cancelled" ? "amber" : undefined,
-  };
 }
 
 /** Whether a copy went, so has a page of its own. */
@@ -179,6 +187,7 @@ function BroadcastWords({ written, parts }: { written: WrittenBroadcast; parts: 
         <TextBubble
           from={written.fromName!}
           words={{ content: written.body.content.filter((block) => block.type !== "onlyFor") }}
+          footer={written.template?.footer ?? templateFooter(written.topics)}
           time={londonClock(sendsAt(written.dueAt!))}
         />
       </Card>
@@ -228,6 +237,12 @@ export default function BroadcastView({
   const path = `/staff/broadcasts/${written.id}`;
   const scheduled = written.state === "scheduled";
   const counts = countsFiltering(path, broadcastCounts(summary), tab, staffCopy.mailingPages.showEveryone);
+  // Those that went, then those that didn't, each under its total.
+  const gone = new Set(["error", "unreached", "not-sent"]);
+  const groups = [
+    { key: "went", label: copy.groups.went, counts: counts.filter((count) => !gone.has(count.key)) },
+    { key: "gone", label: copy.groups.gone, counts: counts.filter((count) => gone.has(count.key)) },
+  ];
   return (
     <div className={view.page}>
       <Band
@@ -237,7 +252,7 @@ export default function BroadcastView({
             <Tag tone={scheduled ? "blue" : undefined}>{staffCopy.mailingPages.states[written.state]}</Tag>
           )
         }
-        aside={!scheduled && <Counts counts={counts} />}
+        aside={!scheduled && <CountGroups groups={groups} />}
       >
         {/* The channel's icon is Said yes to's, beside it. */}
         <BandFact label={copy.facts.from} detail={written.fromName}>

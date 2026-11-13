@@ -19,7 +19,7 @@ import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture
 import { historyIdNow } from "@/lib/server/fixtures/letters-inbox";
 
 export { expect } from "@playwright/test";
-export { emailFrame, frame, story } from "./frame";
+export { emailFrame, frame, story, textFrame } from "./frame";
 
 /** The build under test. */
 export const BASE = LOCAL_URL;

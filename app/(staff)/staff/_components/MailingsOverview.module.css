@@ -58,6 +58,14 @@
   font-weight: 600;
 }
 
+/* The title, after its mark where the list has one. */
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
 /* How it stands, at the column's right edge, so the boxes line up there. */
 .standing {
   display: flex;
@@ -70,6 +78,12 @@
   gap: var(--space-2);
   align-items: center;
   font-size: var(--text-sm);
+}
+
+/* One sending: its bar, the column's width. */
+.sending {
+  display: grid;
+  flex: 1;
 }
 
 /* The sending bar, the width of the column, leading to the mailing. */

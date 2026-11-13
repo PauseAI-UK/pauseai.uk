@@ -46,7 +46,11 @@ function form(fields: Record<string, string | string[] | File>) {
 
 const draft = async (params: Record<string, string> = EMAIL) => (await createBroadcastDraft(JO, params))!;
 
-beforeEach(() => vi.stubEnv("DATA_FIXTURES", "1"));
+beforeEach(() => {
+  vi.stubEnv("DATA_FIXTURES", "1");
+  vi.stubEnv("WHATSAPP_TOKEN", "token");
+  vi.stubEnv("WHATSAPP_ACCOUNT_ID", "fixture-account");
+});
 afterEach(() => vi.unstubAllEnvs());
 
 describeWithDatabase("the broadcast pages' Server Actions", () => {

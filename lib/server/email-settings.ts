@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { CONSENTS, type ContactPermission, type Topic, type Way } from "@/lib/contact-permissions";
@@ -106,7 +106,7 @@ export async function newTopicLink(address: string, topic: Topic, old = false): 
     );
     const id = found?.id ?? (await devCopy(to, topic, old, db));
     if (id === undefined) return undefined;
-    const token = randomBytes(18).toString("base64url");
+    const token = (await randomId(18, () => `copy link ${id}`)).toString("base64url");
     await query("UPDATE broadcast_messages SET link_token_hash = $2 WHERE id = $1", [id, hashOf(token)], db);
     return `/contact-preferences/m/${token}`;
   });

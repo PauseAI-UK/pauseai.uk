@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { daysInWords, SENDING_DAYS } from "./broadcast-days";
 import { staffCopy } from "./content/staff-interface";
-import { EMPTY_MAILING_DOC, type MailingDoc } from "./mailing-doc";
+import { EMPTY_MAILING_DOC, type MailingDoc, type MailingInline } from "./mailing-doc";
 import {
   fakeRecipient,
   firstNameOf,
@@ -12,6 +12,8 @@ import {
   hasField,
   textCost,
   broadcastScheduleProblems,
+  misplacedFields,
+  rejectionWords,
   broadcastTerms,
   isAvailableSendBy,
   sendingDays,
@@ -401,6 +403,40 @@ describe("broadcastScheduleProblems", () => {
       "not-approved",
     ]);
     expect(broadcastScheduleProblems({ ...good, channel: "text", title: "" })).toEqual([]);
+  });
+
+  it("puts WhatsApp's code for a rejection in plain words, or gives one it doesn't know as it is", () => {
+    const words = staffCopy.notifications.templateRejectedWhy;
+    expect(rejectionWords("INVALID_FORMAT")).toBe(words.reasons.INVALID_FORMAT);
+    expect(rejectionWords("SOMETHING_NEW")).toBe(words.other("SOMETHING_NEW"));
+    expect(rejectionWords(null)).toBe(words.other("NONE"));
+  });
+
+  it("won't send new words for approval with a field at the start or end, or two together, as WhatsApp rejects them", () => {
+    const field = (name: string): MailingInline => ({ type: "field", attrs: { field: name } });
+    const text = (words: string): MailingInline => ({ type: "text", text: words });
+    const words = (...content: MailingInline[]): MailingDoc => ({
+      type: "doc",
+      content: [{ type: "paragraph", content }],
+    });
+    const problems = (body: MailingDoc, approved = false) =>
+      broadcastScheduleProblems({ ...good, channel: "text", approved, body });
+    expect(problems(words(text("Hi "), field("firstName"), text(", see you there.")))).toEqual(["not-approved"]);
+    expect(problems(words(field("firstName"), text(", see you there.")))).toEqual(["field-edge", "not-approved"]);
+    expect(problems(words(text("See you there, "), field("firstName")))).toEqual(["field-edge", "not-approved"]);
+    expect(problems(words(text("Hi "), field("firstName"), text(" "), field("lastName"), text("!")))).toEqual([
+      "fields-together",
+      "not-approved",
+    ]);
+    expect(problems(words(field("firstName"), field("lastName")))).toEqual([
+      "field-edge",
+      "fields-together",
+      "not-approved",
+    ]);
+    // An approved template is WhatsApp's to judge, and an email takes fields anywhere.
+    expect(problems(words(field("firstName"), text(" hi")), true)).toEqual([]);
+    expect(broadcastScheduleProblems({ ...good, body: words(field("firstName")) })).toEqual([]);
+    expect(misplacedFields(words(text("No fields here")))).toEqual({ atEdge: false, together: false });
   });
 
   it("wants a text's words approved by WhatsApp, but not an email's, said after all but the time", () => {

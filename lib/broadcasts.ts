@@ -1,6 +1,15 @@
 import { contactState, TOPICS, type Topic } from "./contact-permissions";
 import { staffCopy } from "./content/staff-interface";
-import { greetingLetter, inlinesOf, isBlankMailing, type MailingDoc, type MailingRecipientValues } from "./mailing-doc";
+import { toText } from "./letter-format";
+import {
+  fieldsIn,
+  greetingLetter,
+  inlinesOf,
+  isBlankMailing,
+  letterFor,
+  type MailingDoc,
+  type MailingRecipientValues,
+} from "./mailing-doc";
 import { SENDING_DAYS, WAIT_DAYS } from "./broadcast-days";
 import { GMAIL_DAILY_LIMIT } from "./gmail-connect";
 import { now } from "./now";
@@ -321,6 +330,8 @@ export type BroadcastScheduleProblem =
   | "no-template"
   | "not-approved"
   | "no-name"
+  | "field-edge"
+  | "fields-together"
   | "not-connected"
   | "too-slow"
   | "no-time"
@@ -353,6 +364,33 @@ export type SchedulingBroadcast = {
   sends: boolean;
 };
 
+/**
+ * WhatsApp's code for why it rejected a template, as stored, in plain words
+ * with what to do, as the draft and the email of it say it; a code not
+ * listed is given as it is, and none as NONE.
+ */
+export function rejectionWords(code: string | null): string {
+  const words = staffCopy.notifications.templateRejectedWhy;
+  return code && Object.hasOwn(words.reasons, code) ? words.reasons[code]! : words.other(code ?? "NONE");
+}
+
+/** Stands for each field in a text's words, to find where its fields are: a character nobody types. */
+const FIELD_MARK = "\u0001";
+
+/**
+ * Where a text's fields fall that WhatsApp rejects as an invalid format
+ * (https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-review):
+ * at the very start or end of its words, and two side by side.
+ */
+export function misplacedFields(body: MailingDoc): { atEdge: boolean; together: boolean } {
+  const values = Object.fromEntries(fieldsIn(body).map((field) => [field, FIELD_MARK]));
+  const words = toText(letterFor(body, { values, meets: [] })).trim();
+  return {
+    atEdge: words.startsWith(FIELD_MARK) || words.endsWith(FIELD_MARK),
+    together: /\u0001\s*\u0001/.test(words),
+  };
+}
+
 /** What doesn't stop a text's new words going to WhatsApp for approval: that they aren't approved yet, and its time. */
 const LEFT_TILL_SCHEDULING: BroadcastScheduleProblem[] = ["not-approved", "no-time", "time-passed"];
 
@@ -370,6 +408,9 @@ export function approvalProblems(problems: BroadcastScheduleProblem[]): Broadcas
 export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): BroadcastScheduleProblem[] {
   const blank = isBlankMailing(broadcast.body);
   const email = broadcast.channel === "email";
+  // A text's words not yet approved, which go to WhatsApp as a new template, and where their fields fall.
+  const newWords = !email && !blank && !broadcast.approved;
+  const misplaced = newWords ? misplacedFields(broadcast.body) : undefined;
   // In the order of the page's sections: who it's to, what's written, who it's from, then WhatsApp's approval, then when.
   const checks: [BroadcastScheduleProblem, boolean][] = [
     ["unknown-filter", broadcast.unknown.length > 0],
@@ -378,6 +419,8 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["no-letter", email && blank],
     ["no-template", !email && blank],
     ["no-name", !email && !blank && !broadcast.approved && !broadcast.title.trim()],
+    ["field-edge", newWords && misplaced!.atEdge],
+    ["fields-together", newWords && misplaced!.together],
     ["not-connected", broadcast.byGmail && !broadcast.connected],
     // At a day's limit of emails, it must all go before it would stop.
     ["too-slow", email && sendingDays(broadcast.recipients, broadcast.remaining) > SENDING_DAYS],

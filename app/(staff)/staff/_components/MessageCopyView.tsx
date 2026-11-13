@@ -11,6 +11,7 @@ import { ChatBubble, ChatWall, TextWords } from "./TextBubble";
 import { LetterHistory, type HistoryEntry } from "./LetterHistory";
 import { Thread } from "./LetterThread";
 import ThreadEmail from "./ThreadEmail";
+import bubble from "./Broadcasts.module.css";
 import Grid, { Card, Column } from "./ui/Grid";
 import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
@@ -32,7 +33,10 @@ function NotReached({ one }: { one: MessageCopy }) {
       : ["scheduled", "sending"].includes(one.status)
         ? copy.notReached.notYet
         : copy.notReached.never(
-            copy.notReached.why[one.status === "skipped" ? one.skipReason! : (one.stoppedBy ?? "cancelled")],
+            // Its broadcast stopped by itself (an error, why it gave up), or by us.
+            copy.notReached.why[
+              one.status === "skipped" ? one.skipReason! : one.state === "error" ? one.why! : "cancelled"
+            ],
           );
   return <Strip tone="amber">{words}</Strip>;
 }
@@ -45,6 +49,8 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
       <ChatWall>
         <ChatBubble who={TEXT_SENDER_NAME} when={one.sentAt ? staffTime(one.sentAt) : ""} ours>
           <TextWords words={letterFor(one.body, merge)} />
+          {/* Its footer, as they got it, where we know it. */}
+          {one.footer && <span className={bubble.footer}>{one.footer}</span>}
         </ChatBubble>
       </ChatWall>
     );
@@ -116,13 +122,10 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
  */
 export default function MessageCopyView({ one, actions }: { one: MessageCopy; actions?: ReplyHandlers }) {
   const name = one.name ?? (one.supporterId ? staffCopy.supporters.noName : copy.erased);
-  const has = (kind: string) => one.events.some((event) => event.kind === kind);
   return (
     <>
       <PageHead
-        tags={
-          <CopyStatus copyOf={{ ...one, read: has("read"), bounced: has("bounced"), optedOut: has("opted-out") }} />
-        }
+        tags={<CopyStatus copyOf={one} />}
         facts={[
           one.supporterId ? <StaffLink href={`/staff/supporters/${one.supporterId}`}>{name}</StaffLink> : name,
           one.place,

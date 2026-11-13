@@ -60,8 +60,8 @@ export async function addTemplate(
 ): Promise<number> {
   const status = more.status ?? "approved";
   const [{ id }] = await query<{ id: number }>(
-    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id::int AS id`,
+    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason, stopped_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, CASE WHEN $3 IN ('paused', 'disabled') THEN now() END) RETURNING id::int AS id`,
     [
       name,
       JSON.stringify(EVENT_WORDS),
@@ -69,7 +69,7 @@ export async function addTemplate(
       more.createdBy === undefined ? "jo@pauseai.uk" : more.createdBy,
       status === "approved" ? "2026-10-01T10:00:00Z" : null,
       status === "rejected" ? "2026-10-02T10:00:00Z" : null,
-      status === "rejected" ? (more.reason ?? "It ends with a merge field.") : null,
+      status === "rejected" ? (more.reason ?? "INVALID_FORMAT") : null,
     ],
   );
   return id;

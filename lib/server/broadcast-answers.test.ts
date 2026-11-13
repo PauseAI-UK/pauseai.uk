@@ -1,4 +1,4 @@
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { http, HttpResponse } from "msw";
 import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
@@ -169,5 +169,92 @@ describeWithDatabase("answers to replies", () => {
     // A blocked address.
     await recordProblem({ address: "jane@example.com", messageId: null, kind: "hard", reason: "No", canReset: true });
     expect(await answerReply(reply, DRAFT, words("Hi"), JO)).toEqual({ sent: false, reason: "blocked" });
+  });
+});
+
+describeWithDatabase("answers to replies to texts", () => {
+  useTestDatabase();
+  afterEach(() => vi.unstubAllEnvs());
+
+  /** A text to Jane's number, and her reply to it by WhatsApp `ago` ago; the reply's ID. */
+  async function textReplied(ago = "1 hour"): Promise<number> {
+    const [{ id: mailing }] = await query<{ id: number }>(
+      `INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name,
+         due_at, state)
+       VALUES ('News', '', 'supporters', 'text', 'events', '{"list": "supporters", "params": {}}',
+         '{"type": "doc", "content": []}', $1, '+447700900000', 'PauseAI UK', now(), 'sent')
+       RETURNING id::int AS id`,
+      [JO],
+    );
+    const [{ id: copy }] = await query<{ id: number }>(
+      `WITH s AS (INSERT INTO supporters DEFAULT VALUES RETURNING id)
+       INSERT INTO broadcast_messages (mailing_id, supporter_id, status, topics, address, provider_message_id)
+       SELECT $1, s.id, 'sent', '{events}', '+447700900123', $2 FROM s RETURNING id::int AS id`,
+      [mailing, `wamid.copy-${mailing}`],
+    );
+    const [{ id: reply }] = await query<{ id: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
+       VALUES ($1, now() - $2::interval, '+447700900123', '', $3, 'When is it?', false)
+       RETURNING id::int AS id`,
+      [copy, ago, `wamid.reply-${copy}`],
+    );
+    return reply;
+  }
+
+  /** WhatsApp taking each send, or refusing it; what each send asked for. */
+  function whatsAppTakes(refuse = false): unknown[] {
+    const sends: unknown[] = [];
+    server.use(
+      http.post(/graph\.facebook\.com\/.*\/messages$/, async ({ request }) => {
+        sends.push(await request.json());
+        return refuse
+          ? HttpResponse.json({ error: { code: 131047, message: "Too late" } }, { status: 400 })
+          : HttpResponse.json({ messages: [{ id: "wamid.answer" }] });
+      }),
+    );
+    return sends;
+  }
+
+  const keys = () => {
+    vi.stubEnv("WHATSAPP_TOKEN", "token");
+    vi.stubEnv("WHATSAPP_ACCOUNT_ID", "fixture-account");
+  };
+
+  it("go by WhatsApp, as words of our own, within a day of their reply", async () => {
+    keys();
+    const sends = whatsAppTakes();
+    const reply = await textReplied();
+    expect(await answerReply(reply, DRAFT, words("Saturday at 11."), JO)).toEqual({ sent: true });
+    expect(sends).toEqual([
+      expect.objectContaining({
+        to: "447700900123",
+        type: "text",
+        text: { body: "Saturday at 11.", preview_url: false },
+      }),
+    ]);
+    expect(
+      await query("SELECT status, provider_message_id AS id, gmail_message_id AS gmail FROM broadcast_answers"),
+    ).toEqual([{ status: "sent", id: "wamid.answer", gmail: null }]);
+    expect(await query("SELECT outcome FROM broadcast_replies")).toEqual([{ outcome: "answered" }]);
+  });
+
+  it("aren't sent more than a day after their reply, nor where WhatsApp doesn't send, nor when it refuses", async () => {
+    keys();
+    const sends = whatsAppTakes(true);
+    expect(await answerReply(await textReplied("25 hours"), DRAFT, words("Hi"), JO)).toEqual({
+      sent: false,
+      reason: "window",
+    });
+    expect(sends).toEqual([]);
+    const reply = await textReplied();
+    expect(await answerReply(reply, DRAFT, words("Hi"), JO)).toEqual({ sent: false, reason: "failed" });
+    expect(sends).toHaveLength(1);
+    vi.stubEnv("WHATSAPP_TOKEN", "");
+    expect(await answerReply(reply, "6f1c2a0e-5b7d-4c1e-9a3f-2d8e4b6c0a12", words("Hi"), JO)).toEqual({
+      sent: false,
+      reason: "failed",
+    });
+    // Each that didn't go is forgotten, to send again.
+    expect(await query("SELECT 1 FROM broadcast_answers")).toEqual([]);
   });
 });

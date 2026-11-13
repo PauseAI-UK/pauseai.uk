@@ -3,7 +3,15 @@
 import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
 import { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
 import { ResumeBroadcastExample } from "./staff.client";
-import { BroadcastChannelName, BroadcastWaiting, CopyStatus } from "@/app/(staff)/staff/_components/BroadcastView";
+import {
+  BroadcastChannelMark,
+  BroadcastChannelName,
+  BroadcastWaiting,
+  broadcastCounts,
+  CopyStatus,
+} from "@/app/(staff)/staff/_components/BroadcastView";
+import { CountGroups, NeedsAndFine } from "@/app/(staff)/staff/_components/BroadcastCounts";
+import { countsOpening } from "@/app/(staff)/staff/_components/ui/Counts";
 import {
   exampleBroadcastData,
   exampleBroadcastEmail,
@@ -17,6 +25,7 @@ import SupporterBroadcasts from "@/app/(staff)/staff/_components/SupporterBroadc
 import TextBubble, { ChatBubble, ChatWall, LinkedText, TextWords } from "@/app/(staff)/staff/_components/TextBubble";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import { mailingGroups } from "@/lib/mailing-groups";
+import { templateFooter } from "@/lib/whatsapp-template";
 import type { Group } from "../_components/types";
 import {
   ChoosingBroadcastFrameExample,
@@ -83,6 +92,23 @@ const groups = mailingGroups(
   },
   new Date(now),
 );
+
+/** A text that went to 61: most arrived, some read and replied, one to check, two opted out, and some that didn't go. */
+const EXAMPLE_TEXT_SUMMARY = {
+  ...exampleBroadcastSummary,
+  channel: "text" as const,
+  states: {
+    sent: 3,
+    delivered: 21,
+    read: 25,
+    replied: 3,
+    look: 1,
+    "opted-out": 2,
+    error: 1,
+    unreached: 2,
+    "not-sent": 6,
+  },
+};
 
 export const staffBroadcasts: Group = {
   id: "staff-broadcasts",
@@ -292,26 +318,84 @@ export const staffBroadcasts: Group = {
       ],
     },
     {
+      name: "BroadcastChannelMark",
+      file: "app/(staff)/staff/_components/BroadcastView.tsx",
+      variants: [
+        {
+          label: "Each channel",
+          render: () => (
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <BroadcastChannelMark channel="email" />
+              <BroadcastChannelMark channel="text" />
+            </div>
+          ),
+        },
+      ],
+    },
+    {
+      name: "CountGroups",
+      file: "app/(staff)/staff/_components/BroadcastCounts.tsx",
+      variants: [
+        {
+          label: "A text's counts, those that went and those that didn't, each under its total",
+          render: () => {
+            const counts = countsOpening("/staff/broadcasts/5", broadcastCounts(EXAMPLE_TEXT_SUMMARY));
+            const gone = ["error", "unreached", "not-sent"];
+            return (
+              <CountGroups
+                groups={[
+                  { key: "went", label: "went", counts: counts.filter((one) => !gone.includes(one.key)) },
+                  { key: "gone", label: "didn't go", counts: counts.filter((one) => gone.includes(one.key)) },
+                ]}
+              />
+            );
+          },
+        },
+      ],
+    },
+    {
+      name: "NeedsAndFine",
+      file: "app/(staff)/staff/_components/BroadcastCounts.tsx",
+      variants: [
+        {
+          label: "What needs a look, then the rest folded behind how many are fine; and one with nothing to look at",
+          render: () => (
+            <div style={{ display: "grid", gap: "1rem", justifyItems: "end" }}>
+              <NeedsAndFine counts={countsOpening("/staff/broadcasts/5", broadcastCounts(EXAMPLE_TEXT_SUMMARY))} />
+              <NeedsAndFine
+                counts={countsOpening(
+                  "/staff/broadcasts/6",
+                  broadcastCounts({
+                    ...EXAMPLE_TEXT_SUMMARY,
+                    states: { ...EXAMPLE_TEXT_SUMMARY.states, look: 0, "opted-out": 0, error: 0, unreached: 0 },
+                  }),
+                )}
+              />
+            </div>
+          ),
+        },
+      ],
+    },
+    {
       name: "CopyStatus",
       file: "app/(staff)/staff/_components/BroadcastView.tsx",
       variants: [
         {
           label:
-            "Read, bounced, stopped before it went, asked us to stop after it arrived, replied, a reply to look at, and dropped by PauseAI Global's check",
-          render: () => {
-            const went = { status: "delivered", skipReason: null, read: false, bounced: false, optedOut: false };
-            return (
-              <>
-                <CopyStatus copyOf={{ ...went, read: true }} />
-                <CopyStatus copyOf={{ ...went, status: "failed", bounced: true }} />
-                <CopyStatus copyOf={{ ...went, status: "cancelled" }} />
-                <CopyStatus copyOf={{ ...went, optedOut: true }} />
-                <CopyStatus copyOf={{ ...went, replied: true }} />
-                <CopyStatus copyOf={{ ...went, replied: true, toLookAt: true }} />
-                <CopyStatus copyOf={{ ...went, status: "skipped", skipReason: "suppressed" }} />
-              </>
-            );
-          },
+            "Each state, a colour each: sent, delivered, read and replied; a reply to check; opted out because of it; an error; didn't reach; and not sent",
+          render: () => (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              <CopyStatus copyOf={{ state: "sent", why: null }} />
+              <CopyStatus copyOf={{ state: "delivered", why: null }} />
+              <CopyStatus copyOf={{ state: "read", why: null }} />
+              <CopyStatus copyOf={{ state: "replied", why: null }} />
+              <CopyStatus copyOf={{ state: "look", why: null }} />
+              <CopyStatus copyOf={{ state: "opted-out", why: "whatsapp-reply" }} />
+              <CopyStatus copyOf={{ state: "error", why: "whatsapp" }} />
+              <CopyStatus copyOf={{ state: "unreached", why: "bounced" }} />
+              <CopyStatus copyOf={{ state: "not-sent", why: "suppressed" }} />
+            </div>
+          ),
         },
       ],
     },
@@ -345,6 +429,23 @@ export const staffBroadcasts: Group = {
               <BroadcastWaiting
                 written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason: "limit" }}
                 resume={<ResumeBroadcastExample id={8} />}
+              />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A text stopped, as WhatsApp paused its template",
+          render: () => (
+            <StaffPage as="div">
+              <BroadcastWaiting
+                written={{
+                  ...exampleBroadcastEmail,
+                  channel: "text",
+                  state: "cancelled",
+                  gaveUp: true,
+                  waitReason: "template",
+                }}
+                resume={<ResumeBroadcastExample id={9} />}
               />
             </StaffPage>
           ),
@@ -484,6 +585,15 @@ export const staffBroadcasts: Group = {
             </StaffPage>
           ),
         },
+        {
+          label:
+            "A text's replies by WhatsApp: one answered, one to look at, and one too old for WhatsApp to take an answer to",
+          render: () => (
+            <StaffPage as="div">
+              <MessageCopyViewExample replies pastDay />
+            </StaffPage>
+          ),
+        },
       ],
     },
     {
@@ -495,6 +605,14 @@ export const staffBroadcasts: Group = {
           render: () => (
             <StaffPage as="div">
               <ReplyActionsExample />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "To a text: an opt-out of what the text went under, or of every text; or nothing to do",
+          render: () => (
+            <StaffPage as="div">
+              <ReplyActionsExample text />
             </StaffPage>
           ),
         },
@@ -570,13 +688,9 @@ export const staffBroadcasts: Group = {
                     channel: "text",
                     status: "delivered",
                     skipReason: null,
-                    stoppedBy: null,
                     sentAt: new Date("2026-11-07T07:18:00Z"),
-                    read: true,
-                    bounced: false,
-                    optedOut: false,
-                    replied: false,
-                    toLookAt: false,
+                    state: "read",
+                    why: null,
                   },
                   {
                     copyId: 23,
@@ -585,13 +699,9 @@ export const staffBroadcasts: Group = {
                     channel: "email",
                     status: "delivered",
                     skipReason: null,
-                    stoppedBy: null,
                     sentAt: new Date("2026-11-06T09:18:00Z"),
-                    read: true,
-                    bounced: false,
-                    optedOut: false,
-                    replied: true,
-                    toLookAt: true,
+                    state: "look",
+                    why: null,
                   },
                   {
                     copyId: 22,
@@ -600,13 +710,9 @@ export const staffBroadcasts: Group = {
                     channel: "email",
                     status: "failed",
                     skipReason: null,
-                    stoppedBy: null,
                     sentAt: null,
-                    read: false,
-                    bounced: false,
-                    optedOut: false,
-                    replied: false,
-                    toLookAt: false,
+                    state: "error",
+                    why: "gmail",
                   },
                 ]}
               />
@@ -621,8 +727,15 @@ export const staffBroadcasts: Group = {
       file: "app/(staff)/staff/_components/TextBubble.tsx",
       variants: [
         {
-          label: "A text with its Stop button",
-          render: () => <TextBubble from="PauseAI UK" words={exampleWhatsAppWords} time="07:18" />,
+          label: "A text with its footer",
+          render: () => (
+            <TextBubble
+              from="PauseAI UK"
+              words={exampleWhatsAppWords}
+              footer={templateFooter(["events"])}
+              time="07:18"
+            />
+          ),
         },
       ],
     },

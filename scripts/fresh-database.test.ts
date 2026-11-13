@@ -348,6 +348,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "bulk preferences",
           "events luma-contacts",
           "events luma-webhook",
+          "events whatsapp",
           "newsletter civicrm",
           "newsletter link",
           "volunteering preferences",

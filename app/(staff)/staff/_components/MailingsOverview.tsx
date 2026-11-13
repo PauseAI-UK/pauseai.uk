@@ -43,10 +43,12 @@ export type OverviewLook<T extends MailingSummary> = {
   counts: (mailing: T) => Count[];
   untitled: string;
   none: string;
+  /** A picture before the title: a broadcast's channel, telling emails and texts apart at a glance. */
+  mark?: (mailing: T) => ReactNode;
   lead?: (mailing: T) => ReactNode;
   from?: (mailing: T) => string | undefined;
-  /** Beside a draft's Draft, what's holding it up, if anything is. */
-  holdUp?: (mailing: T) => ReactNode;
+  /** How one stands at its row's right, in place of a mailing's state, bar or counts, given where its row leads. */
+  standing?: (mailing: T, href: string) => ReactNode;
 };
 
 /** How a list of mailings to politicians looks. */
@@ -85,22 +87,24 @@ function Standing<T extends MailingSummary>({
   href: string;
   look: OverviewLook<T>;
 }) {
+  if (look.standing) return look.standing(mailing, href);
   if (mailing.state === "draft" || mailing.state === "scheduled") {
     return (
       <span className={styles.state}>
         <Tag tone={mailing.state === "scheduled" ? "blue" : undefined}>{copy.states[mailing.state]}</Tag>
-        {look.holdUp?.(mailing)}
         {copy.toCount(mailing.to)}
       </span>
     );
   }
   if (mailing.state === "sending") {
     return (
-      <StaffLink href={href} className={styles.bar}>
-        <Progress value={mailing.sent + mailing.failed} max={mailing.to} tone="blue" label={copy.sentLabel}>
-          {copy.sendingBar(mailing.sent, mailing.to)}
-        </Progress>
-      </StaffLink>
+      <span className={styles.sending}>
+        <StaffLink href={href} className={styles.bar}>
+          <Progress value={mailing.sent + mailing.failed} max={mailing.to} tone="blue" label={copy.sentLabel}>
+            {copy.sendingBar(mailing.sent, mailing.to)}
+          </Progress>
+        </StaffLink>
+      </span>
     );
   }
   return <Counts counts={countsOpening(href, look.counts(mailing))} small />;
@@ -138,9 +142,12 @@ function Row<T extends MailingSummary>({
         <When mailing={mailing} year={year} />
       </span>
       <span className={styles.what}>
-        <StaffLink href={href} className={styles.title}>
-          {mailing.title || look.untitled}
-        </StaffLink>
+        <span className={styles.head}>
+          {look.mark?.(mailing)}
+          <StaffLink href={href} className={styles.title}>
+            {mailing.title || look.untitled}
+          </StaffLink>
+        </span>
         <Muted>
           {look.lead?.(mailing)}
           {look.lead && from ? " · " : ""}

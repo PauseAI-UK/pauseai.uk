@@ -34,7 +34,8 @@ const TEXT_FILTER = { contact: "text:events:yes" };
 
 beforeEach(() => {
   vi.stubEnv("DATA_FIXTURES", "1");
-  vi.stubEnv("WHATSAPP_NUMBER", "+447700900000");
+  vi.stubEnv("WHATSAPP_TOKEN", "token");
+  vi.stubEnv("WHATSAPP_ACCOUNT_ID", "fixture-account");
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -117,12 +118,11 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       id: went,
       channel: "email",
       to: 5,
+      // As the sending bar counts them: one went, four done with but not sent.
       sent: 1,
-      delivered: 1,
-      // The failure and the blocked address; and those who asked us to stop, or whose consent ended.
-      failed: 2,
-      stopped: 2,
-      read: 1,
+      failed: 4,
+      // Read; the failure an error; the rest not sent, as expected.
+      states: { read: 1, error: 1, "not-sent": 3, delivered: 0, sent: 0, "opted-out": 0, unreached: 0, look: 0 },
     });
   });
 
@@ -244,19 +244,21 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       ["delivered", null],
       ["failed", null],
     ]);
-    const [{ jane }] = await query<{ jane: number }>(
-      "SELECT id::int AS jane FROM broadcast_messages WHERE address = 'jane@example.com'",
+    const [{ delivered }] = await query<{ delivered: number }>(
+      "SELECT id::int AS delivered FROM broadcast_messages WHERE mailing_id = $1 AND status = 'delivered'",
+      [id],
     );
-    await query("INSERT INTO broadcast_message_events (message_id, kind) VALUES ($1, 'read')", [jane]);
+    await query("INSERT INTO broadcast_message_events (message_id, kind) VALUES ($1, 'read')", [delivered]);
     const all = await broadcastPageData(id, {}, JO);
     expect(all).toMatchObject({ kind: "written", tab: "all", recipientsTotal: 2, page: 1, pages: 1, pageSize: 100 });
-    expect(all!.kind === "written" && all!.recipients[0]).toMatchObject({ name: "Jane Smith", read: true });
-    expect(await broadcastPageData(id, { tab: "failed", page: "1" }, JO)).toMatchObject({
-      tab: "failed",
+    expect(all!.kind === "written" && all!.recipients[0]).toMatchObject({ name: "Jane Smith" });
+    expect(all!.kind === "written" && all!.recipients.map((one) => one.state).sort()).toEqual(["error", "read"]);
+    expect(await broadcastPageData(id, { tab: "error", page: "1" }, JO)).toMatchObject({
+      tab: "error",
       recipientsTotal: 1,
     });
     expect(await broadcastPageData(id, { tab: "nonsense" }, JO)).toMatchObject({ tab: "all" });
-    for (const tab of ["delivered", "stopped", "read"]) {
+    for (const tab of ["delivered", "not-sent", "read"]) {
       expect(await broadcastPageData(id, { tab }, JO)).toMatchObject({ tab });
     }
     expect(await choosingBroadcast(String(id))).toBeUndefined();
@@ -335,9 +337,8 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
         title: "Events",
         channel: "email",
         status: "delivered",
-        read: false,
-        replied: false,
-        toLookAt: false,
+        state: "delivered",
+        why: null,
       },
     ]);
     // Their reply, waiting for staff.
@@ -347,6 +348,70 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
        VALUES ($1, now(), 'jane@example.com', 'Re: Events', 'hello@pauseai.uk', 'g1', 't1', 'k', false)`,
       [copy],
     );
-    expect(await broadcastsToSupporter(jane)).toMatchObject([{ replied: true, toLookAt: true }]);
+    expect(await broadcastsToSupporter(jane)).toMatchObject([{ state: "look" }]);
+  });
+
+  it("puts each copy in one state, the first that applies, with why", async () => {
+    for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) await addFollower(`usr-${n}`, `p${n}@example.com`, `P${n}`);
+    const id = await scheduled(EMAIL_FILTER, { subject: "Events", body: EVENT_WORDS });
+    const copies = await sent(id, [
+      ["delivered", null],
+      ["failed", null],
+      ["failed", null],
+      ["failed", null],
+      ["skipped", "not-on-whatsapp"],
+      ["skipped", "not-on-whatsapp"],
+      ["cancelled", null],
+      ["delivered", null],
+      ["sent", null],
+    ]);
+    const event = (copy: number, kind: string, details = {}) =>
+      query("INSERT INTO broadcast_message_events (message_id, kind, details) VALUES ($1, $2, $3)", [
+        copy,
+        kind,
+        JSON.stringify(details),
+      ]);
+    // Opted out because of it: replied stop.
+    await query(
+      `INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at, message_id)
+       VALUES ('+447700900001', 'events', 'text', 'whatsapp', 'reply w1 events', now(), $1)`,
+      [copies[0]],
+    );
+    await event(copies[1], "bounced");
+    await event(copies[2], "failed", { unfinished: true });
+    await event(copies[3], "failed", { reason: "Recipient address rejected" });
+    // Found not on WhatsApp by this one, and known before.
+    await query("INSERT INTO whatsapp_unreachable (number, message_id) VALUES ('+447700900005', $1)", [copies[4]]);
+    await query(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, blob_key, automatic)
+       VALUES ($1, now(), 'p8@example.com', 'Re: Events', 'hello@pauseai.uk', 'g8', 't8', 'k', false)`,
+      [copies[7]],
+    );
+    const states = async () => {
+      const data = await broadcastPageData(id, {}, JO);
+      const rows = data!.kind === "written" ? data!.recipients : [];
+      return copies.map((copy) => {
+        const row = rows.find((one) => one.copyId === copy)!;
+        return [row.state, row.why];
+      });
+    };
+    expect(await states()).toEqual([
+      ["opted-out", "whatsapp-reply"],
+      ["unreached", "bounced"],
+      ["error", "unfinished"],
+      ["error", "gmail"],
+      ["unreached", "not-on-whatsapp"],
+      ["not-sent", "not-on-whatsapp"],
+      ["not-sent", "cancelled"],
+      ["look", null],
+      ["sent", null],
+    ]);
+    // A broadcast that gave up: those it left are an error, and why.
+    await query(
+      "UPDATE mailings SET state = 'cancelled', gave_up = true, wait_reason = 'limit', waiting_since = now() WHERE id = $1",
+      [id],
+    );
+    expect((await states())[6]).toEqual(["error", "limit"]);
   });
 });
