@@ -15,8 +15,8 @@ export default function PrivacyPolicy() {
       </p>
       <p>
         ⁂ We decide how your data is used (we&apos;re its &ldquo;data controller&rdquo;), even where a provider below
-        stores or sends it for us. Your PauseAI membership, if you joined on pauseai.info, is{" "}
-        <strong>Stichting PauseAI</strong>&apos;s, under{" "}
+        stores or sends it for us. If you join PauseAI, your membership is <strong>Stichting PauseAI</strong>&apos;s,
+        under{" "}
         <a className="inline-link" href="https://pauseai.info/privacy" target="_blank" rel="noreferrer">
           their privacy policy
         </a>
