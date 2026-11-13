@@ -154,16 +154,29 @@ export default function PrivacyPolicy() {
         .
       </p>
       <p>
+        ⁂ We only text you, on WhatsApp, about things you said yes to texts about. Each text says how to stop: reply
+        STOP to stop texts about that, or turn off our messages in WhatsApp&apos;s own settings for us.
+      </p>
+      <p>
         Before each email goes, we check your address against Stichting PauseAI’s records, so if you’ve asked PauseAI
         not to email you, we won’t. When you unsubscribe from us, we tell Stichting PauseAI. If you stop all bulk email,
         their emails stop too.
       </p>
+      <p>
+        ⁂ We check your number the same way before each text, and when you stop all our texts, we tell Stichting
+        PauseAI.
+      </p>
       <p>If you reply to one of our emails, we keep your reply.</p>
+      <p>⁂ If you reply to one of our texts, we keep your reply too, and we may answer you on WhatsApp.</p>
 
       <h2>Who processes this data for us</h2>
       <ul>
         <li>Luma: events and registrations.</li>
         <li>Postmark: sending and receiving email.</li>
+        <li>
+          ⁂ Meta (WhatsApp): sending our texts, telling us whether each was delivered and read, and passing on your
+          replies.
+        </li>
         <li>Netlify: hosting the site and its database, with backups kept for 3 to 30 days.</li>
         <li>Cloudflare: our nightly database backup, kept for 90 days, and Turnstile, the anti-spam check.</li>
         <li>postcodes.io: looking up postcodes; it keeps nothing.</li>
@@ -178,6 +191,10 @@ export default function PrivacyPolicy() {
       <p>
         We keep letters and event data until you ask us to erase them. The record that you unsubscribed, or that an
         address bounced, stays after erasure, because it exists to stop us emailing you. Backups expire by themselves.
+      </p>
+      <p>
+        ⁂ We keep each text we sent you, and whether it was delivered and read, until you ask us to erase your data. The
+        record that you stopped our texts stays after erasure, so we never text you again.
       </p>
 
       <h2>Asking for your data to be erased, or for a copy of it</h2>
