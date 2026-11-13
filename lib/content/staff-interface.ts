@@ -1395,8 +1395,23 @@ All events: ${link}`,
       `Schedule ${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")}`,
     // At the foot of a text on new words: sending them to WhatsApp, and while it reviews them.
     submitTemplate: "Send for approval",
-    // Under it, when WhatsApp didn't take the words just now.
-    submitFailed: "A technical error stopped the template going to WhatsApp for approval. Try again later.",
+    // In a red alert under it, when the words didn't go: WhatsApp refused them, with its reason if it gave one, …
+    submitFailed: (reason: string | null) =>
+      reason
+        ? `⁂ Not sent for approval. WhatsApp refused the template: "${reason}". Change the words and send them again.`
+        : "⁂ Not sent for approval. WhatsApp couldn't be reached, or refused the template without saying why. Nothing has been sent. Try again in a few minutes, and tell the tech team if it keeps happening.",
+    // … the site refused them, …
+    submitRefused: {
+      "no-words": "⁂ Not sent for approval: the text has no words yet.",
+      "not-ready": "⁂ Not sent for approval: something on this page needs fixing first. Reload the page to see what.",
+      already: "⁂ Not sent for approval: these words are already with WhatsApp. Reload the page to see them.",
+      "not-text": "⁂ Not sent for approval: this broadcast is an email, not a text.",
+      "not-draft": "⁂ Not sent for approval: this text isn't a draft any more. Reload the page to see what it is now.",
+      gone: "⁂ Not sent for approval: this text has been deleted.",
+    },
+    // … or something broke.
+    submitBroke:
+      "⁂ Not sent for approval: something went wrong on our side. Nothing has been sent. Tell the tech team, and try again later.",
     // Over new words, what they're called in the list of templates, and the heading over the words.
     templateName: "Template name",
     templateWords: "Message",
@@ -1419,6 +1434,7 @@ All events: ${link}`,
       "no-name": "Give the template a name.",
       "field-edge": "WhatsApp templates can't have a field at the very start or end.",
       "fields-together": "WhatsApp templates can't have two fields next to each other.",
+      "field-twice": "⁂ WhatsApp templates can't use the same field twice.",
       "not-approved": "WhatsApp needs to approve the words first. This can take 24 hours.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
       "too-slow": `That's too many to send in ${daysInWords(SENDING_DAYS)}. Send it to fewer people.`,

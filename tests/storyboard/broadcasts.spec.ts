@@ -328,6 +328,28 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await frame(page, "The list, the draft WhatsApp rejected");
 });
 
+test("WhatsApp won't take new words", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff write new words for a text and send them for approval, but they're longer than WhatsApp takes for a template.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await page.getByLabel(copy.templateLabel).first().selectOption({ label: copy.newTemplate });
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.insertText("The march meets at 11:00 at Parliament Square. ".repeat(25).trim());
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March day: where to meet"));
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.getByRole("button", { name: copy.submitTemplate }).click();
+  story(
+    "WhatsApp refuses them. A red alert under the button gives its reason, and the words stay, to change and send again.",
+  );
+  await expect(send.getByRole("alert")).toBeVisible();
+  await send.scrollIntoViewIfNeeded();
+  await frame(page, "WhatsApp's refusal, under the button", { window: true });
+});
+
 test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
   story("Staff send a text's new words to WhatsApp for approval, as in the flow before.");
   await importLuma(request, BASE);

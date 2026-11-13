@@ -20,9 +20,12 @@ export const FIXTURE_PHONE_ID = "fixture-phone";
 // Made up: a number Ofcom keeps for drama (https://www.ofcom.org.uk/phones-and-broadband/phone-numbers/numbers-for-drama).
 const FIXTURE_NUMBER = "+44 7700 900000";
 
-function json(body: unknown): Response {
-  return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
+
+/** The most characters WhatsApp takes in a template's words (https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates/components). */
+export const FIXTURE_BODY_LIMIT = 1024;
 
 /** An ID that depends only on what was sent, so the same send has the same ID every run. */
 const idOf = (text: string): string => createHash("sha256").update(text).digest("hex").slice(0, 16);
@@ -82,6 +85,21 @@ export function whatsAppResponse(pathname: string, init?: RequestInit): Response
   }
   if (path.endsWith("/message_templates") && method === "POST") {
     const template = JSON.parse(String(init!.body)) as NewTemplate;
+    // Words too long refused, as Meta refuses them, with its words for people.
+    const words = template.components.find((component) => component.type === "BODY")!.text;
+    if (words.length > FIXTURE_BODY_LIMIT) {
+      return json(
+        {
+          error: {
+            message: "Invalid parameter",
+            code: 100,
+            error_user_title: "Message too long",
+            error_user_msg: `The message body can have at most ${FIXTURE_BODY_LIMIT} characters.`,
+          },
+        },
+        400,
+      );
+    }
     toOutbox(templateWords(template));
     return json({ id: `fixture-template-${idOf(template.name)}`, status: "PENDING", category: "MARKETING" });
   }

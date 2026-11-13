@@ -606,17 +606,24 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(button(copy.sendTest)).toBeDisabled();
     // In Schedule's place, as it can't be scheduled till WhatsApp approves.
     expect(button(copy.schedule(412, "text")).query()).toBeNull();
-    // Refused: it stays, to be pressed again.
+    // Refused here: an alert says why, and the button stays, to be pressed again.
     actions.submitTemplate.mockResolvedValue("already");
     await button(copy.submitTemplate).click();
     await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledWith(4), WAIT);
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitRefused.already);
     await expect.element(button(copy.submitTemplate)).toBeEnabled();
     expect(navigation.pushed).toEqual([]);
-    await expect.element(page.getByText(copy.submitFailed)).not.toBeInTheDocument();
-    // WhatsApp didn't take them: it says so, to press again.
-    actions.submitTemplate.mockResolvedValue("failed");
+    // WhatsApp didn't take them: its reason, or that it gave none.
+    actions.submitTemplate.mockResolvedValue({ failed: "Invalid parameter" });
     await button(copy.submitTemplate).click();
-    await expect.element(page.getByText(copy.submitFailed)).toBeVisible();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitFailed("Invalid parameter"));
+    actions.submitTemplate.mockResolvedValue({ failed: null });
+    await button(copy.submitTemplate).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitFailed(null));
+    // The action itself broke.
+    actions.submitTemplate.mockRejectedValue(new Error("Server Action failed"));
+    await button(copy.submitTemplate).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitBroke);
     await expect.element(button(copy.submitTemplate)).toBeEnabled();
     // Sent: back to the list, where its row pulses.
     actions.submitTemplate.mockResolvedValue("submitted");

@@ -362,6 +362,7 @@ export type BroadcastScheduleProblem =
   | "no-name"
   | "field-edge"
   | "fields-together"
+  | "field-twice"
   | "not-connected"
   | "too-slow"
   | "no-time"
@@ -411,14 +412,18 @@ const FIELD_MARK = "\u0001";
 /**
  * Where a text's fields fall that WhatsApp rejects as an invalid format
  * (https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-review):
- * at the very start or end of its words, and two side by side.
+ * at the very start or end of its words, two side by side, and one used
+ * more than once, as each is a named parameter WhatsApp takes once.
  */
-export function misplacedFields(body: MailingDoc): { atEdge: boolean; together: boolean } {
-  const values = Object.fromEntries(fieldsIn(body).map((field) => [field, FIELD_MARK]));
+export function misplacedFields(body: MailingDoc): { atEdge: boolean; together: boolean; twice: boolean } {
+  const fields = fieldsIn(body);
+  const values = Object.fromEntries(fields.map((field) => [field, FIELD_MARK]));
   const words = toText(letterFor(body, { values, meets: [] })).trim();
   return {
     atEdge: words.startsWith(FIELD_MARK) || words.endsWith(FIELD_MARK),
     together: /\u0001\s*\u0001/.test(words),
+    // Each field once at most, so as many marks as fields.
+    twice: words.split(FIELD_MARK).length - 1 > fields.length,
   };
 }
 
@@ -452,6 +457,7 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["no-name", !email && !blank && !broadcast.approved && !broadcast.title.trim()],
     ["field-edge", newWords && misplaced!.atEdge],
     ["fields-together", newWords && misplaced!.together],
+    ["field-twice", newWords && misplaced!.twice],
     ["not-connected", broadcast.byGmail && !broadcast.connected],
     // At a day's limit of emails or texts, it must all go before it would stop.
     ["too-slow", sendingDays(broadcast.recipients, broadcast.remaining, broadcast.daily) > SENDING_DAYS],

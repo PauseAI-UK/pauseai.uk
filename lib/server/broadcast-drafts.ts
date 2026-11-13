@@ -46,7 +46,7 @@ import {
   type WrittenMailing,
 } from "./mailing-drafts";
 import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } from "./broadcast-channels";
-import { createTemplate, deleteTemplate, sendTemplate } from "./outside-services/whatsapp";
+import { createTemplate, deleteTemplate, sendTemplate, WhatsAppRequestError } from "./outside-services/whatsapp";
 import { problem } from "./problems";
 import { metaName, templateParams, textResult, textsLeftToday } from "./whatsapp-texts";
 import { TEMPLATE_FOOTER, templateText } from "@/lib/whatsapp-template";
@@ -460,19 +460,26 @@ const templateWords = (body: MailingDoc): string => toText(letterFor(body, FIELD
 /** Where a draft text is, for a link in an email. */
 const draftLink = (id: number): string => staffLink(`/staff/broadcasts/${id}`, undefined);
 
+/** Why WhatsApp didn't take new words: its own reason, or null when it gave none or wasn't reached. */
+export type TemplateNotTaken = { failed: string | null };
+
 export type TemplateSubmitResult =
-  "submitted" | "no-words" | "not-ready" | "already" | "not-text" | "not-draft" | "gone" | "failed";
+  "submitted" | "no-words" | "not-ready" | "already" | "not-text" | "not-draft" | "gone" | TemplateNotTaken;
 
 /**
  * Sends a template's words to WhatsApp for approval, as a marketing
  * template in British English, each field a named parameter with an
  * example, and the footer every text has, saying a reply of stop stops it;
- * keeps WhatsApp's ID for it. Says whether WhatsApp took them, reporting it
- * if not.
+ * keeps WhatsApp's ID for it. Gives null if WhatsApp took them, else why
+ * not, reporting it.
  */
-async function sendForApproval(template: { id: number; metaName: string; body: MailingDoc }): Promise<boolean> {
+async function sendForApproval(template: {
+  id: number;
+  metaName: string;
+  body: MailingDoc;
+}): Promise<TemplateNotTaken | null> {
   const backend = await textBackend();
-  if (!backend) return false;
+  if (!backend) return { failed: null };
   const footer = TEMPLATE_FOOTER;
   try {
     const made = await createTemplate(backend.keys, {
@@ -487,10 +494,10 @@ async function sendForApproval(template: { id: number; metaName: string; body: M
       made.id,
       footer,
     ]);
-    return true;
+    return null;
   } catch (error) {
     problem(staffCopy.problems.anywhere.templateNotSent(template.metaName), error);
-    return false;
+    return { failed: error instanceof WhatsAppRequestError ? error.reason : null };
   }
 }
 
@@ -501,7 +508,7 @@ async function sendForApproval(template: { id: number; metaName: string; body: M
  * them and the notification inbox the
  * words. Not for words that are an approved template, or waiting already, nor
  * a text that anything but its time would stop being scheduled. If WhatsApp
- * doesn't take them, they're as they were, to send again (`failed`).
+ * doesn't take them, they're as they were, to send again, and it says why (`failed`).
  */
 export async function submitTemplate(id: number, by: string): Promise<TemplateSubmitResult> {
   const result = await transaction(async (db) => {
@@ -539,11 +546,12 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
     };
   });
   if (typeof result === "string") return result;
-  if (!(await sendForApproval({ id: result.templateId, metaName: result.metaName, body: result.body }))) {
+  const notTaken = await sendForApproval({ id: result.templateId, metaName: result.metaName, body: result.body });
+  if (notTaken) {
     // As it was before: the words back to change or send again, and the rejected template they were on, if any.
     await query("UPDATE mailings SET template_id = $2, updated_at = now() WHERE id = $1", [id, result.before]);
     await query("DELETE FROM whatsapp_templates WHERE id = $1", [result.templateId]);
-    return "failed";
+    return notTaken;
   }
   await logChange(by, "submit broadcast template", { id, name: result.name });
   const email = staffCopy.notifications.templateSubmitted;

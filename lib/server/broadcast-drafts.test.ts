@@ -427,8 +427,12 @@ describeWithDatabase("broadcasts to supporters", () => {
       const rejected = await addTemplate("Old words", { status: "rejected" });
       const id = await written();
       await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [id, rejected]);
-      expect(await submitTemplate(id, JO)).toBe("failed");
+      // With WhatsApp's reason, to show staff.
+      expect(await submitTemplate(id, JO)).toEqual({ failed: "Bad" });
       expect((await getWrittenBroadcast(id))!.template).toMatchObject({ id: rejected, status: "rejected" });
+      // The request itself failing gives none.
+      server.use(http.post(TEMPLATES, () => HttpResponse.error()));
+      expect(await submitTemplate(id, JO)).toEqual({ failed: null });
       expect(await query("SELECT id::int AS id FROM whatsapp_templates")).toEqual([{ id: rejected }]);
       expect(console.error).toHaveBeenCalled();
       // WhatsApp answering the check before, which asks for our number and for its daily limit, but not when the words go.
@@ -440,7 +444,8 @@ describeWithDatabase("broadcasts to supporters", () => {
             : HttpResponse.json({ data: [{ id: "fixture-phone", display_phone_number: "+44 7700 900000" }] }),
         ),
       );
-      expect(await submitTemplate(id, JO)).toBe("failed");
+      // WhatsApp not reached: no reason.
+      expect(await submitTemplate(id, JO)).toEqual({ failed: null });
       expect(await query("SELECT action FROM audit_log WHERE action = 'submit broadcast template'")).toEqual([]);
     });
 
