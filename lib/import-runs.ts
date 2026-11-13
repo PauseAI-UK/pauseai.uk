@@ -5,11 +5,11 @@ import type { MpProblem } from "./mp-check";
 import type { PoliticianChanges, PoliticianRecord, Renamed } from "./politician-sync";
 
 /**
- * How often a job runs on its own: every 5 minutes, hourly or nightly, each
+ * How often a job runs on its own: every 5 minutes, every 15, hourly or nightly, each
  * by a scheduled function in netlify/functions/<job>/ whose cron says the
  * same (netlify/scheduled.test.ts).
  */
-export type JobSchedule = "frequent" | "hourly" | "nightly";
+export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly";
 
 /**
  * Every job, by its name in the import log (`import_runs.job`): its page,
@@ -26,7 +26,7 @@ export const JOBS = {
   "import-members": { slug: "members", schedule: "hourly" },
   "import-civicrm": { slug: "civicrm", schedule: "hourly" },
   "read-gmail": { slug: "gmail", schedule: "frequent" },
-  "send-mailings": { slug: "sending", schedule: "hourly", budgetMs: 8_000 },
+  "send-mailings": { slug: "sending", schedule: "quarter-hour", budgetMs: 8_000 },
   "sync-politicians": { slug: "politicians", schedule: "nightly" },
   "check-mps": { slug: "mp-check", schedule: "nightly" },
   "import-controlai": { slug: "controlai", schedule: "nightly" },
@@ -190,8 +190,13 @@ export type CivicrmImportResult = {
   /** Supporters made for contacts whose address nobody had, and contacts linked to a supporter (runs kept before CiviCRM made supporters don't say). */
   supportersAdded?: number;
   linked?: number;
+  /** Our opt-outs, and lifts of "No bulk emails", sent to CiviCRM first; only when there were any. */
+  updates?: CivicrmUpdatesResult;
 };
 export type CivicrmImport = ImportRun<"import-civicrm", CivicrmImportResult>;
+
+/** What sending our updates to CiviCRM came to: applied, refused, or left to try again. */
+export type CivicrmUpdatesResult = { sent: number; refused: number; unanswered: number };
 
 /** What reading one connected Gmail account found. */
 export type GmailRead = {
@@ -259,6 +264,8 @@ export type SendingResult = {
   /** The mailings waiting for their send time or a person. */
   waiting: string[];
   queue: { sent: number; left: number };
+  /** Broadcasts to supporters started, their copies sent, skipped, failed and left, and broadcasts waiting for CiviCRM; runs kept before broadcasts were sent don't say. */
+  broadcasts?: { started: number[]; sent: number; skipped: number; failed: number; waiting: number; left: number };
 };
 export type Sending = ImportRun<"send-mailings", SendingResult>;
 

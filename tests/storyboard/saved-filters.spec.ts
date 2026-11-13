@@ -272,7 +272,7 @@ test("Loading a saved filter while choosing who a mailing goes to", async ({ pag
 });
 
 test("Loading a saved filter while choosing who a broadcast goes to", async ({ page, request, flowDatabase }) => {
-  story("Staff write an email to supporters, then Change who: the supporters list is choosing who it's for.");
+  story("Staff write an email to supporters, then Narrow down: the supporters list is choosing who it's for.");
   const broadcasts = staffCopy.broadcastPages;
   await importLuma(request, BASE);
   await logIn(page, flowDatabase, ["supporters"]);
@@ -282,7 +282,7 @@ test("Loading a saved filter while choosing who a broadcast goes to", async ({ p
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
   await page.getByLabel(broadcasts.subject).fill("Saved for later");
   await expect(page.getByRole("status").first()).toHaveText(staffCopy.mailingPages.savePill.saved);
-  await page.getByRole("link", { name: staffCopy.mailingPages.changeWho }).click();
+  await page.getByRole("link", { name: broadcasts.narrowDown }).click();
   await expect(page.getByText(broadcasts.choosing("Saved for later"))).toBeVisible();
   await openList(page);
   await frame(page, "Choosing, with the list open", { window: true });

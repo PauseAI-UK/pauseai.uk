@@ -4,7 +4,7 @@
   fill: none;
   stroke: currentcolor;
   stroke-width: 2;
-  vertical-align: -2px;
+  vertical-align: middle;
 }
 
 /* A padlock, after a locked chip's words, where its arrow would be. */
@@ -14,5 +14,4 @@
   fill: none;
   stroke: currentcolor;
   stroke-width: 1.75;
-  vertical-align: -1px;
 }

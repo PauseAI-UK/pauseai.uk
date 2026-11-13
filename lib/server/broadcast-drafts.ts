@@ -11,12 +11,17 @@ import {
   hasWords,
   broadcastScheduleProblems,
   broadcastTerms,
+  choiceTerms,
+  isAvailableSendBy,
+  termsValues,
   BROADCAST_SENDER,
   TEXT_SENDER_NAME,
   type BroadcastChannel,
   type BroadcastScheduleProblem,
+  type BroadcastSendBy,
   type BroadcastTerms,
 } from "@/lib/broadcasts";
+import { now } from "@/lib/now";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
 import { gmailAccount } from "./gmail-accounts";
@@ -35,14 +40,14 @@ import {
   type SaveResult,
   type WrittenMailing,
 } from "./mailing-drafts";
-import { broadcastBackend, textSenderNumber } from "./broadcast-channels";
+import { broadcastBackend, broadcastEmailChannel, channelSends, textSenderNumber } from "./broadcast-channels";
 import { supporterAudience } from "./broadcast-recipients";
 import { notifyStaff, staffLink } from "./notifications";
 import { filterProblems } from "./stored-filters";
 import type { Topic } from "@/lib/contact-permissions";
 
 // A broadcast to supporters written on the site: a mailing to the supporters
-// list's filter, with one channel and one topic, fixed when it's made from
+// list's filter, with one channel and its topics, fixed when it's made from
 // the list's Consent filter. Saved as a mailing is (mailing-drafts.ts);
 // sending finds who gets it, a message each. A text goes on a WhatsApp
 // template: one approved, or new words, which staff send for approval and
@@ -70,8 +75,19 @@ export type WrittenBroadcast = WrittenMailing & {
   /** The subject, for an email; for a text, its template's name or its first words. */
   title: string;
   channel: BroadcastChannel;
-  topic: Topic;
+  /** The topics whose yes it goes under, in TOPICS' order (BroadcastTerms). */
+  topics: Topic[];
   template: WhatsAppTemplate | null;
+  /** What sends it, for an email (lib/broadcasts.ts, BROADCAST_SEND_BY). */
+  sendBy: BroadcastSendBy;
+  /**
+   * Since when it's waited for CiviCRM, and why; or that it stopped, as it
+   * hadn't all gone in time, and why: it waited too long, or a day's limit
+   * of emails left it too slow ("limit").
+   */
+  waitingSince: Date | null;
+  waitReason: "civicrm" | "pull" | "limit" | null;
+  gaveUp: boolean;
 };
 
 const SELECT_TEMPLATES = `
@@ -89,20 +105,31 @@ export async function approvedTemplates(): Promise<WhatsAppTemplate[]> {
   );
 }
 
+/** A broadcast's topics, in a query of `mailings`: its first (`topic`), then the others (`also_topics`). */
+export const TOPICS_OF = "array_prepend(topic, also_topics)";
+
+/** A broadcast's topics, as `mailings` keeps them: its first, and the others. */
+const topicColumns = (terms: BroadcastTerms): [Topic, Topic[]] => [terms.topics[0], terms.topics.slice(1)];
+
 /** A broadcast written here, as stored; undefined for none, or a mailing to politicians. */
 export async function getWrittenBroadcast(id: number, opening = false): Promise<WrittenBroadcast | undefined> {
   const written = await (opening ? openWrittenMailing : getWrittenMailing)(id, "supporters");
   if (!written) return undefined;
-  const [{ title, channel, topic, templateId }] = await query<{
-    title: string;
-    channel: BroadcastChannel;
-    topic: Topic;
-    templateId: number | null;
-  }>(`SELECT title, channel, topic, template_id::int AS "templateId" FROM mailings WHERE id = $1`, [id]);
+  const [{ templateId, ...own }] = await query<
+    Pick<WrittenBroadcast, "title" | "channel" | "topics" | "sendBy" | "waitingSince" | "waitReason" | "gaveUp"> & {
+      templateId: number | null;
+    }
+  >(
+    `SELECT title, channel, ${TOPICS_OF} AS topics, template_id::int AS "templateId", send_by AS "sendBy",
+       waiting_since AS "waitingSince",
+       wait_reason AS "waitReason", gave_up AS "gaveUp"
+     FROM mailings WHERE id = $1`,
+    [id],
+  );
   const [template] = templateId
     ? await query<WhatsAppTemplate>(`${SELECT_TEMPLATES} WHERE t.id = $1`, [templateId])
     : [];
-  return { ...written, title, channel, topic, template: template ?? null };
+  return { ...written, ...own, template: template ?? null };
 }
 
 /** Who a new broadcast appears from: for an email the address we write from; for a text the business account. */
@@ -113,7 +140,7 @@ const senderOf = (channel: BroadcastChannel): { sentFrom: string; fromName: stri
 
 /**
  * Makes a draft to those the supporters list's `params` find, by `by`, its
- * channel and topic from their Consent filter. Returns its ID; undefined
+ * channel and topics from their Consent filter. Returns its ID; undefined
  * with no Consent filter answered yes.
  */
 export async function createBroadcastDraft(by: string, params: Params): Promise<number | undefined> {
@@ -123,27 +150,28 @@ export async function createBroadcastDraft(by: string, params: Params): Promise<
   const { sentFrom, fromName } = senderOf(terms.channel);
   return transaction(async (db) => {
     const [{ id }] = await query<{ id: number }>(
-      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, sent_from, from_name, state)
-       VALUES ('', 'supporters', $1, $2, $3, $4, $5, $6, $7, 'draft') RETURNING id::int AS id`,
+      `INSERT INTO mailings (title, audience, channel, topic, also_topics, filter, body, created_by, sent_from, from_name, state)
+       VALUES ('', 'supporters', $1, $2, $8, $3, $4, $5, $6, $7, 'draft') RETURNING id::int AS id`,
       [
         terms.channel,
-        terms.topic,
+        topicColumns(terms)[0],
         JSON.stringify(filter),
         JSON.stringify({ type: "doc", content: [] }),
         by,
         sentFrom,
         fromName,
+        topicColumns(terms)[1],
       ],
       db,
     );
-    await logChange(by, "create broadcast", { id, channel: terms.channel, topic: terms.topic }, db);
+    await logChange(by, "create broadcast", { id, ...terms }, db);
     return id;
   });
 }
 
 /**
  * Keeps who a draft goes to: the list's `params`, while their Consent filter
- * still says its channel and topic, as they're fixed. Says whether it did.
+ * still says its channel and topics, as they're fixed. Says whether it did.
  */
 export async function changeBroadcastFilter(id: number, params: Params): Promise<boolean> {
   const broadcast = await getWrittenBroadcast(id);
@@ -158,21 +186,21 @@ export async function changeBroadcastFilter(id: number, params: Params): Promise
 }
 
 /**
- * Changes the Consent a draft goes under to `value`, one topic answered yes,
+ * Changes the Consent a draft goes under to `value`, topics answered yes,
  * keeping its other filters. To the other channel only while it has no words
  * of its own (hasWords), starting it afresh as one new on that channel is.
  * Says whether it did.
  */
 export async function changeBroadcastConsent(id: number, value: string, by: string): Promise<boolean> {
   const broadcast = await getWrittenBroadcast(id);
-  const terms = broadcastTerms(value);
+  const terms = choiceTerms(value);
   if (broadcast?.state !== "draft" || !terms) return false;
   const moving = terms.channel !== broadcast.channel;
   if (moving && hasWords({ ...broadcast, templateId: broadcast.template?.id ?? null })) return false;
-  const filter = storedFilter("supporters", { ...broadcast.filter.params, contact: value });
+  const filter = storedFilter("supporters", { ...broadcast.filter.params, contact: termsValues(terms) });
   const sender = senderOf(terms.channel);
   await query(
-    `UPDATE mailings SET channel = $2, topic = $3, filter = $4,
+    `UPDATE mailings SET channel = $2, topic = $3, filter = $4, also_topics = $8,
        subject = CASE WHEN $5 THEN '' ELSE subject END,
        body = CASE WHEN $5 THEN '{"type": "doc", "content": []}'::jsonb ELSE body END,
        title = CASE WHEN $5 THEN '' ELSE title END,
@@ -181,30 +209,45 @@ export async function changeBroadcastConsent(id: number, value: string, by: stri
        from_name = CASE WHEN $5 THEN $7 ELSE from_name END,
        version = version + 1, updated_at = now()
      WHERE id = $1`,
-    [id, terms.channel, terms.topic, JSON.stringify(filter), moving, sender.sentFrom, sender.fromName],
+    [
+      id,
+      terms.channel,
+      topicColumns(terms)[0],
+      JSON.stringify(filter),
+      moving,
+      sender.sentFrom,
+      sender.fromName,
+      topicColumns(terms)[1],
+    ],
   );
-  await logChange(by, "change broadcast consent", { id, channel: terms.channel, topic: terms.topic });
+  await logChange(by, "change broadcast consent", { id, ...terms });
   return true;
 }
 
 /** Whether a filter's terms are the broadcast's own. */
 export function sameTerms(terms: BroadcastTerms | undefined, broadcast: BroadcastTerms): boolean {
-  return terms?.channel === broadcast.channel && terms.topic === broadcast.topic;
+  return terms?.channel === broadcast.channel && terms.topics.join() === broadcast.topics.join();
 }
 
 /**
  * A save's changes as the writer sends them, if each is what it should be
- * for the channel: a text has no subject, says who it's from by its account,
- * may name a template, or null for none, and may have a title of its own, as
- * it has no subject to be one.
+ * for the channel. Neither says the address or the name it's from, which
+ * are fixed (senderOf). An email may say what sends it, of what can now
+ * (isAvailableSendBy). A text has no subject, may name a
+ * template, or null for none, and may have a title of its own, as it has no
+ * subject to be one.
  */
 export function broadcastChangesFrom(value: unknown, channel: BroadcastChannel): MailingChanges | undefined {
   if (typeof value !== "object" || value === null) return undefined;
-  const { templateId, title, ...rest } = value as Record<string, unknown>;
+  const { templateId, title, sendBy, ...rest } = value as Record<string, unknown>;
   const changes = mailingChangesFrom(rest);
-  if (!changes || "ask" in changes) return undefined;
-  if (channel === "email") return templateId === undefined && title === undefined ? changes : undefined;
-  if ("subject" in changes || "sentFrom" in changes || "fromName" in changes) return undefined;
+  if (!changes || "ask" in changes || "sentFrom" in changes || "fromName" in changes) return undefined;
+  if (channel === "email") {
+    if (templateId !== undefined || title !== undefined) return undefined;
+    if (sendBy === undefined) return changes;
+    return isAvailableSendBy(sendBy) ? { ...changes, sendBy } : undefined;
+  }
+  if (sendBy !== undefined || "subject" in changes) return undefined;
   if (title !== undefined && typeof title !== "string") return undefined;
   const titled = title === undefined ? changes : { ...changes, title };
   if (templateId === undefined) return titled;
@@ -245,26 +288,42 @@ export type BroadcastScheduleResult =
   | { scheduled: false; problems: BroadcastScheduleProblem[] }
   | { scheduled: false; reason: "conflict" | "not-draft" | "gone" };
 
+/**
+ * How what sends a broadcast stands, for the page to say and for scheduling
+ * to check: whether it goes by Gmail, and then whether the Gmail it's from
+ * is connected; and how many more emails it can send today, null for no
+ * limit, or a text.
+ */
+export async function broadcastSender(
+  broadcast: Pick<WrittenBroadcast, "channel" | "sendBy" | "sentFrom">,
+): Promise<{ byGmail: boolean; connected: boolean; remaining: number | null }> {
+  if (broadcast.channel !== "email") return { byGmail: false, connected: false, remaining: null };
+  const byGmail = broadcast.sendBy === "gmail";
+  const { channel } = broadcastEmailChannel(broadcast.sendBy);
+  const [connected, remaining] = await Promise.all([
+    byGmail ? gmailAccount(broadcast.sentFrom!) : undefined,
+    channel.remainingToday(broadcast.sentFrom!),
+  ]);
+  return { byGmail, connected: Boolean(connected), remaining };
+}
+
 /** What stops a broadcast being scheduled, as it's stored, and how many it would go to now. */
 async function scheduleProblems(
   broadcast: WrittenBroadcast,
 ): Promise<{ problems: BroadcastScheduleProblem[]; recipients: number }> {
-  // From a staff member's Gmail, rather than by Postmark, it needs that Gmail connected.
-  const byGmail = broadcast.channel === "email" && broadcast.sentFrom !== BROADCAST_SENDER.email;
-  const [audience, unknown, connected] = await Promise.all([
+  const [audience, unknown, sender] = await Promise.all([
     supporterAudience(broadcast.filter, broadcast),
     filterProblems(broadcast.filter),
-    byGmail ? gmailAccount(broadcast.sentFrom!) : undefined,
+    broadcastSender(broadcast),
   ]);
   const problems = broadcastScheduleProblems({
     ...broadcast,
     recipients: audience.recipients.length,
     unknown,
-    byGmail,
-    connected: Boolean(connected),
+    ...sender,
     approved: broadcast.template?.status === "approved",
     numbered: Boolean(textSenderNumber()),
-    sends: Boolean(broadcastBackend()),
+    sends: channelSends(broadcast.channel, broadcast.sendBy),
   });
   return { problems, recipients: audience.recipients.length };
 }
@@ -310,6 +369,39 @@ export async function stopBroadcast(id: number, by: string): Promise<boolean> {
       return false;
     }
     await logChange(by, "stop broadcast", { id, was: broadcast.state }, db);
+    return true;
+  });
+}
+
+/**
+ * Sets going again a broadcast that stopped as it hadn't all gone in time
+ * (gave_up): its copies that never went are to go again, or, for one that
+ * never started, it's scheduled again. From now, so it has its days to go
+ * in again (waitStopsAt, sendingStopsAt). Says whether it did.
+ */
+export async function resumeBroadcast(id: number, by: string): Promise<boolean> {
+  return transaction(async (db) => {
+    const [stopped] = await query<{ started: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id) AS started
+       FROM mailings m WHERE m.id = $1 AND m.audience = 'supporters' AND m.state = 'cancelled' AND m.gave_up
+       FOR UPDATE`,
+      [id],
+      db,
+    );
+    if (!stopped) return false;
+    const copies = await query(
+      "UPDATE broadcast_messages SET status = 'scheduled' WHERE mailing_id = $1 AND status = 'cancelled' RETURNING id",
+      [id],
+      db,
+    );
+    await query(
+      `UPDATE mailings SET state = $2, gave_up = false, waiting_since = NULL, wait_reason = NULL, due_at = $3,
+         updated_at = now()
+       WHERE id = $1`,
+      [id, stopped.started ? "sending" : "scheduled", now()],
+      db,
+    );
+    await logChange(by, "resume broadcast", { id, copies: copies.length }, db);
     return true;
   });
 }

@@ -27,7 +27,7 @@ export default function SignupUploadHelp({ open, onToggle }: { open: boolean; on
       <div>
         {/* A triangle before it, as a fold's, pointing down while what it opens is open. */}
         <LinkButton onClick={onToggle}>
-          <span className={styles.fold} aria-hidden="true">
+          <span className={styles.fold} aria-hidden="true" data-beside="lowercase">
             {open ? "▾" : "▸"}
           </span>
           {open ? copy.less : copy.more}

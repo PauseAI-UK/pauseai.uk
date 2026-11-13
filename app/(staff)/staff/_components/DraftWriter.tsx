@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { MAX_ATTACHMENT_BYTES } from "@/lib/mailing-attachments";
-import { earliestHour, fromLondon, londonDayHour } from "@/lib/staff-time";
+import { earliestRun, fromLondon, londonDayTime, SENDING } from "@/lib/staff-time";
 import type { MailingAttachmentSummary, SaveResult } from "@/lib/server/mailing-drafts";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { CHECK_EVERY, DueTimeFields } from "./DueTime";
+import { SaveState as SaveStatePill, type SaveStateValue as SaveState } from "@/components/ui/SaveState";
+import { CHECK_EVERY, DueTimeFields, dueTime } from "./DueTime";
 import styles from "./MailingWriter.module.css";
 
 // What a draft mailing's page and a draft message's page share: saving as
@@ -18,7 +19,7 @@ const copy = staffCopy.mailingPages;
 /** How long after the last change a draft saves itself. */
 const SAVE_DELAY = 800;
 
-export type SaveState = "saving" | "saved" | "conflict" | "failed";
+export type { SaveState };
 
 export type AttachResult = (SaveResult | { saved: false; reason: "too-big" }) & {
   attachments: MailingAttachmentSummary[];
@@ -30,16 +31,6 @@ export type DraftActions = {
   attach: (form: FormData) => Promise<AttachResult | undefined>;
   detach: (id: number, version: number, attachmentId: number) => Promise<AttachResult>;
 };
-
-/** Whether the draft is saved: saving, grey; saved, green; not saved, red. */
-function SaveStatePill({ state }: { state: SaveState }) {
-  return (
-    <span className={styles.saveState} data-state={state}>
-      <span className={styles.saveDot} aria-hidden="true" />
-      {copy.savePill[state]}
-    </span>
-  );
-}
 
 /**
  * A draft's title, with whether it's saved at the top right, scrolling away
@@ -65,7 +56,7 @@ export function DraftTitle({ title, saveState }: { title: string; saveState?: Sa
           {/* None for what's not a draft yet, as nothing's saved. */}
           {saveState && (
             <span role="status">
-              <SaveStatePill state={saveState} />
+              <SaveStatePill state={saveState}>{copy.savePill[saveState]}</SaveStatePill>
             </span>
           )}
         </div>
@@ -201,7 +192,7 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
   useEffect(() => {
     const check = () => {
       const due = latest.current.dueAt;
-      if (due && due < earliestHour()) change({ dueAt: earliestHour() } as Partial<Changes>);
+      if (due && due < earliestRun()) change({ dueAt: earliestRun() } as Partial<Changes>);
     };
     check();
     const timer = setInterval(check, CHECK_EVERY);
@@ -270,22 +261,26 @@ export function ProblemList({ problems }: { problems: string[] }) {
 }
 
 /**
- * When a draft goes: London's day and hour. A day chosen without an hour is
- * kept, showing, till there's an hour too, which sets `dueAt`.
+ * When a draft goes: London's day, hour and minutes, a run of the sending. A
+ * day chosen without an hour is kept, showing, till there's an hour too,
+ * which sets `dueAt`.
  */
 export function DueSection({ dueAt, onChange }: { dueAt: Date | null; onChange: (dueAt: Date) => void }) {
   const [dayPicked, setDayPicked] = useState("");
-  const when = dueAt ? londonDayHour(dueAt) : { day: dayPicked || londonDayHour(earliestHour()).day, hour: null };
+  const when = dueAt
+    ? dueTime(dueAt)
+    : { day: dayPicked || londonDayTime(earliestRun()).day, hour: null, minute: SENDING.minutes[0] };
   return (
     <div className={styles.when}>
       <DueTimeFields
         day={when.day}
         hour={when.hour}
+        minute={when.minute}
         dayClass={styles.day}
         hourClass={styles.hour}
-        onChange={(day, hour) => {
+        onChange={(day, time) => {
           setDayPicked(day);
-          if (hour !== null) onChange(fromLondon(day, hour));
+          if (time) onChange(fromLondon(day, time.hour, time.minute));
         }}
       />
     </div>

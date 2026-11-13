@@ -1,3 +1,5 @@
+import type { BroadcastAnswer } from "@/lib/server/broadcast-answers";
+import type { BroadcastReply } from "@/lib/server/broadcast-replies";
 import type { LetterDoc } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { MailingDoc } from "@/lib/mailing-doc";
@@ -166,17 +168,11 @@ export const exampleBroadcastData: BroadcastWriterData = {
     { id: "name", label: "Name", lacking: 23, fallback: true },
   ],
   conditions: examplePartsCovering,
-  senders: [
-    {
-      email: "jo@pauseai.uk",
-      name: "Jo Example",
-      connectedAt: new Date("2026-10-01T10:00:00Z"),
-      sentToday: 12,
-      remaining: 1988,
-    },
-  ],
+  // hello@'s Gmail, connected, with most of a day's emails still to send.
+  sender: { byGmail: true, connected: true, remaining: 1788 },
   me: "jo@pauseai.uk",
   sends: true,
+  textsSend: true,
   templates: exampleTemplates,
   textNumber: "+447700900000",
 };
@@ -197,8 +193,12 @@ export const exampleBroadcastEmail: WrittenBroadcast = {
   version: 4,
   attachments: [],
   channel: "email",
-  topic: "newsletter",
+  topics: ["newsletter"],
   template: null,
+  sendBy: "gmail",
+  waitingSince: null,
+  waitReason: null,
+  gaveUp: false,
 };
 
 /** A draft text with nothing chosen. */
@@ -210,7 +210,7 @@ export const exampleBroadcastText: WrittenBroadcast = {
   body: { type: "doc", content: [] },
   sentFrom: "+447700900000",
   channel: "text",
-  topic: "events",
+  topics: ["events"],
   filter: { list: "supporters", params: { contact: "text:events:yes" } },
 };
 
@@ -238,10 +238,12 @@ const summary: BroadcastSummary = {
   replied: 0,
   answered: 0,
   channel: "email",
-  delivered: 276,
+  sendBy: "gmail",
+  delivered: 0,
   read: 0,
   waiting: false,
   rejected: false,
+  toLookAt: 0,
 };
 
 /** A broadcast as the list has it. */
@@ -255,6 +257,7 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
   choices: exampleSupporterChoices,
   parts: Object.fromEntries(exampleParts.map((part) => [part.id, part.label])),
   tab: "all",
+  atLimit: false,
   recipientsTotal: 5,
   page: 1,
   pages: 1,
@@ -267,10 +270,13 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       place: "Leeds",
       status: "delivered",
       skipReason: null,
+      stoppedBy: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
       read: true,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     },
     {
       copyId: 22,
@@ -279,10 +285,13 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       place: null,
       status: "failed",
       skipReason: null,
+      stoppedBy: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
       read: false,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     },
     {
       copyId: 23,
@@ -291,10 +300,13 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       place: null,
       status: "skipped",
       skipReason: "blocked",
+      stoppedBy: null,
       sentAt: null,
       read: false,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     },
     {
       copyId: 24,
@@ -303,10 +315,13 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       place: null,
       status: "skipped",
       skipReason: "unsubscribed",
+      stoppedBy: null,
       sentAt: null,
       read: false,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     },
     {
       copyId: 25,
@@ -315,10 +330,13 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
       place: null,
       status: "delivered",
       skipReason: null,
+      stoppedBy: null,
       sentAt: new Date("2026-10-18T10:00:00Z"),
       read: false,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     },
   ],
 };
@@ -329,6 +347,7 @@ export const exampleMessageCopy: MessageCopy = {
   messageId: 5,
   title: "March day: where to meet",
   channel: "text",
+  sendBy: "gmail",
   subject: "",
   body: exampleTextWords,
   fromName: "PauseAI UK",
@@ -339,6 +358,7 @@ export const exampleMessageCopy: MessageCopy = {
   merge: { values: { firstName: "Jane" }, meets: ["has:firstName"] },
   status: "delivered",
   skipReason: null,
+  stoppedBy: null,
   place: "Leeds",
   sentAt: new Date("2026-11-07T07:18:00Z"),
   events: [
@@ -346,4 +366,75 @@ export const exampleMessageCopy: MessageCopy = {
     { at: new Date("2026-11-07T07:18:30Z"), kind: "delivered", details: {} },
     { at: new Date("2026-11-07T07:18:00Z"), kind: "sent", details: { id: "wamid.example" } },
   ],
+  topics: ["events"],
+  replies: [],
+  answers: [],
 };
+
+/** Replies to an email, oldest first, as a thread shows them: an automatic reply; Jane's thanks, which Jo said needed nothing; her question, which Jo answered; and her asking to stop, waiting for staff. */
+export const exampleBroadcastReplies: BroadcastReply[] = [
+  {
+    id: 3,
+    receivedAt: new Date("2026-11-07T07:19:00Z"),
+    from: "jane@example.com",
+    subject: "Automatic reply: Thank you for marching",
+    text: "I'm away until Monday.",
+    automatic: true,
+    outcome: null,
+    dealtBy: null,
+    dealtAt: null,
+    doNotEmail: false,
+  },
+  {
+    id: 2,
+    receivedAt: new Date("2026-11-07T08:10:00Z"),
+    from: "jane@example.com",
+    subject: "Re: Thank you for marching",
+    text: "It was a great day.",
+    automatic: false,
+    outcome: "nothing",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T10:00:00Z"),
+    doNotEmail: false,
+  },
+  {
+    id: 4,
+    receivedAt: new Date("2026-11-07T08:40:00Z"),
+    from: "jane@example.com",
+    subject: "Re: Thank you for marching",
+    text: "When's the next one?",
+    automatic: false,
+    outcome: "answered",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T10:05:00Z"),
+    doNotEmail: false,
+  },
+  {
+    id: 1,
+    receivedAt: new Date("2026-11-07T09:30:00Z"),
+    from: "jane@example.com",
+    subject: "Re: Thank you for marching",
+    text: "Could you take me off this list please?",
+    automatic: false,
+    outcome: null,
+    dealtBy: null,
+    dealtAt: null,
+    doNotEmail: false,
+  },
+];
+
+/** Jo's answer to Jane's question (exampleBroadcastReplies). */
+export const exampleBroadcastAnswers: BroadcastAnswer[] = [
+  {
+    id: 1,
+    replyId: 4,
+    sentBy: "jo@pauseai.uk",
+    sentAt: new Date("2026-11-07T10:05:00Z"),
+    body: {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Hi Jane, it's on 6 December. See you there!" }] },
+      ],
+    },
+  },
+];

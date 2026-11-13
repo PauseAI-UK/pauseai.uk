@@ -9,6 +9,7 @@ import {
   LinkBarExample,
   LinkButtonExample,
   SegmentedExample,
+  TogglesExample,
   StatusMessageUndoExample,
 } from "./forms.client";
 
@@ -38,12 +39,28 @@ describe("the forms group's examples", () => {
     await expect.element(value()).toHaveTextContent("Value: false");
     await page.getByRole("checkbox", { name: /long label/ }).click();
     await expect.element(value()).toHaveTextContent("Value: true");
+    await page.getByRole("checkbox", { name: "Boxed", exact: true }).click();
+    await expect.element(value()).toHaveTextContent("Value: false");
+    await page.getByRole("checkbox", { name: "Boxed, unticked" }).click();
+    await expect.element(value()).toHaveTextContent("Value: true");
   });
 
   it("picks a segment", async () => {
     await render(<SegmentedExample />);
     await page.getByRole("radio", { name: "Large" }).click();
     await expect.element(value()).toHaveTextContent('Value: "l"');
+  });
+
+  it("turns toggles on and off, but not the last one on", async () => {
+    await render(<TogglesExample />);
+    await page.getByRole("button", { name: "Pears" }).click();
+    await expect.element(value()).toHaveTextContent('Value: ["apples","pears","plums"]');
+    await page.getByRole("button", { name: "Apples" }).click();
+    await page.getByRole("button", { name: "Pears" }).click();
+    await expect.element(value()).toHaveTextContent('Value: ["plums"]');
+    await page.getByRole("button", { name: "Plums" }).click();
+    await expect.element(value()).toHaveTextContent('Value: ["plums"]');
+    await expect.element(page.getByRole("button", { name: "Plums" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("presses the link button", async () => {

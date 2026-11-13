@@ -11,8 +11,9 @@ import FilterBarLines from "./FilterBarLines";
 import { filteredTitle, filterWords, type Filter } from "@/lib/staff-list-filters";
 import FilterBar from "./FilterBar";
 import Menu from "./Menu";
-import Bubble, { BubbleBox } from "./Bubble";
-import { bubbleTrigger } from "./bubble-trigger";
+import MenuSelect from "./MenuSelect";
+import Bubble, { BubbleBox } from "@/components/ui/Bubble";
+import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import ListFrame, { ListTable, type ListColumn } from "./ListFrame";
 import NavFold from "./NavFold";
 import FormPending from "./FormPending";
@@ -593,6 +594,31 @@ describe("FilterBar", () => {
     const halves = page.getByRole("group", { name: "Part" }).getByRole("button").all();
     expect(halves.map((half) => half.element().textContent)).toEqual(["Part: A", "Two"]);
     expect(halves[0].element().querySelector("span")).toBeNull();
+  });
+
+  it("offers in a lozenge's first half only the choices with its second part", async () => {
+    const seconds = (first: string, likes: string[]) =>
+      likes.map((like) => ({ value: `${first}:${like}`, label: like, like }));
+    await render(
+      <FilterBar
+        path="/list"
+        values={{ part: ["a:yes"] }}
+        search={{ name: "q", label: "Search" }}
+        filters={[
+          {
+            name: "part",
+            label: "Part",
+            options: [
+              { value: "a:yes", label: "A", seconds: seconds("a", ["yes", "no"]) },
+              { value: "b:no", label: "B", seconds: seconds("b", ["no"]) },
+              { value: "c", label: "C" },
+            ],
+          },
+        ]}
+      />,
+    );
+    await page.getByRole("button", { name: "Part: A" }).click();
+    expect(links()).toEqual(["/list?part=a%3Ayes", "/list"]);
   });
 
   it("shows a searchable filter's choices only once something's typed, those that have it", async () => {
@@ -1352,5 +1378,29 @@ describe("Rows", () => {
     } finally {
       await page.viewport(1280, 800);
     }
+  });
+});
+
+describe("MenuSelect", () => {
+  it("sends nothing till a choice is picked from its menu, then that one, named in its box", async () => {
+    const options = [
+      { value: "a", label: "Apples" },
+      { value: "p", label: "Pears", group: { label: "Fruit", icon: null } },
+    ];
+    const { container } = await render(
+      <form>
+        <MenuSelect id="fruit" name="fruit" label="Fruit" placeholder="Choose…" options={options} />
+      </form>,
+    );
+    const sent = () => new FormData(container.querySelector("form")!).get("fruit");
+    expect(sent()).toBe("");
+    await page.getByRole("button", { name: "Fruit: Choose…" }).click();
+    await page.getByRole("button", { name: "Apples" }).click();
+    expect(sent()).toBe("a");
+    await page.getByRole("button", { name: "Fruit: Apples" }).click();
+    await expect.element(page.getByRole("button", { name: "Apples" })).toHaveAttribute("aria-current", "true");
+    await page.getByRole("button", { name: "Pears, Fruit" }).click();
+    expect(sent()).toBe("p");
+    await expect.element(page.getByRole("button", { name: "Fruit: Pears, Fruit" })).toBeVisible();
   });
 });

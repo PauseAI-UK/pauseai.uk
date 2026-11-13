@@ -8,6 +8,7 @@ import {
   addTestPolitician,
   connectTestGmail,
   describeWithDatabase,
+  refuseWrites,
   useTestDatabase,
 } from "@/tests/database";
 import { query } from "./db";
@@ -25,7 +26,7 @@ import {
 } from "./email";
 
 const POSTMARK = "https://api.postmarkapp.com/email";
-const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/outbound/suppressions/delete";
+const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/:stream/suppressions/delete";
 const EMAIL = { From: "a@notify.pauseai.uk", To: '"Jo" <Jo@Example.org>', Subject: "S", TextBody: "T" };
 const BOUNCE: DeliveryProblem = {
   address: "Jo@Example.org",
@@ -259,6 +260,32 @@ describeWithDatabase("send by Gmail", () => {
     ]);
   });
 
+  it("says one went that went, though logging it failed, reporting it, so it's never taken for one that didn't", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    server.use(http.post(SEND, () => HttpResponse.json({ id: "g3", threadId: "t3" })));
+    await refuseWrites("email_sends", "NEW.outcome = 'sent'", "INSERT");
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toMatchObject({ sent: true, id: "g3" });
+    expect(String(error.mock.calls.at(-1)![0])).toContain("mailing");
+  });
+
+  it("fails to be tried again when Gmail answers that it's busy or down, and not when it refuses the email", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    for (const [status, retry] of [
+      [429, true],
+      [503, true],
+      [400, false],
+    ] as const) {
+      server.use(http.post(SEND, () => new HttpResponse("No", { status })));
+      expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+        sent: false,
+        reason: "failed",
+        ...(retry && { retry }),
+      });
+    }
+  });
+
   it("fails, saying which account, when Gmail can't send or the account isn't connected", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({ sent: false, reason: "failed" });
@@ -300,6 +327,81 @@ describeWithDatabase("recordProblem", () => {
     expect(await recordProblem(BOUNCE)).toBe(false);
     expect(await recordProblem({ ...BOUNCE, kind: "complaint" })).toBe(false);
     expect(await listBlocks("others")).toMatchObject([{ kind: "complaint", canReset: false }]);
+  });
+
+  it("opts the address out of every bulk email for a complaint, from the copy of a broadcast it names, for CiviCRM", async () => {
+    const [{ id: mailing }] = await query<{ id: number }>(
+      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+       VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'staff@pauseai.uk', 'draft') RETURNING id::int AS id`,
+    );
+    const [{ id: copy }] = await query<{ id: number }>(
+      `INSERT INTO broadcast_messages (mailing_id, status, provider_message_id) VALUES ($1, 'sent', 'pm-1')
+       RETURNING id::int AS id`,
+      [mailing],
+    );
+    await recordProblem({ ...BOUNCE, kind: "complaint", messageId: "pm-1" });
+    await recordProblem({ ...BOUNCE, address: "sam@example.org", kind: "complaint", messageId: null });
+    expect(await query("SELECT address, list, source, message_id::int AS copy FROM opt_outs ORDER BY id")).toEqual([
+      { address: "jo@example.org", list: "bulk", source: "postmark-complaint", copy },
+      { address: "sam@example.org", list: "bulk", source: "postmark-complaint", copy: null },
+    ]);
+    expect(await query("SELECT email, change FROM civicrm_updates ORDER BY id")).toEqual([
+      { email: "jo@example.org", change: "no_bulk_email" },
+      { email: "sam@example.org", change: "no_bulk_email" },
+    ]);
+  });
+});
+
+describeWithDatabase("send, of a broadcast's copy", () => {
+  useTestDatabase();
+
+  it("goes on Postmark's broadcast stream with its own headers and Message-ID, and is kept with its copy", async () => {
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "token");
+    const [{ copy }] = await query<{ copy: number }>(
+      `WITH m AS (INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+                  VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'jo@pauseai.uk', 'draft') RETURNING id)
+       INSERT INTO broadcast_messages (mailing_id, status) SELECT m.id, 'scheduled' FROM m RETURNING id::int AS copy`,
+    );
+    let body: { MessageStream: string; Headers: { Name: string; Value: string }[] } | undefined;
+    server.use(
+      http.post(POSTMARK, async ({ request }) => {
+        body = (await request.json()) as typeof body;
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "pm-1" });
+      }),
+    );
+    const unsubscribe = { Name: "List-Unsubscribe", Value: "<https://pauseai.uk/api/unsubscribe/t>" };
+    expect(
+      await send({ ...EMAIL, Headers: [unsubscribe] }, "broadcast", null, {
+        stream: "broadcast",
+        messageId: "copy-1@pauseai.uk",
+        copyId: copy,
+      }),
+    ).toMatchObject({ sent: true, id: "pm-1", messageId: "copy-1@pauseai.uk" });
+    expect(body).toMatchObject({
+      MessageStream: "broadcast",
+      Headers: [unsubscribe, { Name: "Message-ID", Value: "<copy-1@pauseai.uk>" }],
+    });
+    expect(await query("SELECT rfc_message_id AS rfc, broadcast_message_id::int AS copy FROM email_sends")).toEqual([
+      { rfc: "copy-1@pauseai.uk", copy },
+    ]);
+    // With headers of its own and no Message-ID, they go as they are.
+    await send({ ...EMAIL, Headers: [unsubscribe] }, "broadcast");
+    expect(body).toMatchObject({ MessageStream: "outbound", Headers: [unsubscribe] });
+  });
+});
+
+describeWithDatabase("send to an address with “Do not email”", () => {
+  useTestDatabase();
+
+  it("refuses all but what the person asked for or did", async () => {
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "token");
+    server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 0, MessageID: "m" })));
+    await query(
+      `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at) VALUES ('jo@example.org', 'all', 'civicrm-check', 'x', now())`,
+    );
+    const email = { From: "a@notify.pauseai.uk", To: "jo@example.org", Subject: "S", TextBody: "T" };
+    expect(await send(email, "mailing")).toEqual({ sent: false, reason: "blocked" });
+    expect(await send(email, "preferences-link")).toMatchObject({ sent: true });
   });
 });
 

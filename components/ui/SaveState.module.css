@@ -1,0 +1,42 @@
+/* A dot and a word: grey and pulsing while saving, green once saved, red when it wasn't. */
+.saveState {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.saveDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.saveState[data-state="saving"] .saveDot {
+  animation: pulse 0.8s ease-in-out infinite;
+}
+
+.saveState[data-state="saved"] {
+  color: var(--status-green);
+}
+
+.saveState[data-state="failed"],
+.saveState[data-state="conflict"] {
+  color: var(--status-red);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saveState[data-state="saving"] .saveDot {
+    animation: none;
+  }
+}

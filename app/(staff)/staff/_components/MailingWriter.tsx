@@ -44,14 +44,16 @@ import { DeleteDraft } from "./MailingButtons";
 import MailingEditor from "./MailingEditor";
 import MailingFiles from "./MailingFiles";
 import { MailingLetter } from "./MailingLetter";
+import { BandFact, Facts } from "./ui/Band";
 import Grid, { Card } from "./ui/Grid";
-import Bubble from "./ui/Bubble";
+import Bubble from "@/components/ui/Bubble";
 import NotIcon from "./ui/NotIcon";
 import Strip from "./ui/Strip";
 import Numbered from "./ui/Numbered";
 import styles from "./MailingWriter.module.css";
 
 const copy = staffCopy.mailingPages;
+const facts = staffCopy.broadcastPages.sendFacts;
 
 /** The fields a new letter's greeting can use, the first every recipient has. */
 const GREETING_FIELDS = ["salutation", "name"];
@@ -259,7 +261,13 @@ export default function MailingWriter({
                       )}
                       {senderChoices.map((sender) => (
                         <option key={sender.email} value={sender.email}>
-                          {sender.connected ? sender.email : copy.senderNotConnected(sender.email)}
+                          {/* As a broadcast's: the address, and what sends from it. */}
+                          {(sender.connected ? (address: string) => address : copy.senderNotConnected)(
+                            staffCopy.broadcastPages.fromOption(
+                              sender.email,
+                              staffCopy.broadcastPages.sendBy.names.gmail,
+                            ),
+                          )}
                         </option>
                       ))}
                     </Select>
@@ -373,13 +381,17 @@ export default function MailingWriter({
         </Card>
 
         <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
-          <p className={styles.count}>
-            {copy.summary(
-              data.recipients.length,
-              values.sentFrom,
-              values.dueAt ? londonWhen(values.dueAt, "short") : null,
-            )}
-          </p>
+          {/* As a broadcast's Send says what will go. */}
+          <Facts>
+            <BandFact label={facts.what}>{facts.count(data.recipients.length, "email")}</BandFact>
+            {/* As the mailing's page has it: the address, the name under it. */}
+            <BandFact label={facts.from} detail={values.sentFrom ? values.fromName || sender?.name : undefined}>
+              {values.sentFrom ?? facts.noSender}
+            </BandFact>
+            {/* A mailing always goes by its account's Gmail. */}
+            <BandFact label={facts.via}>{staffCopy.broadcastPages.sendBy.names.gmail}</BandFact>
+            <BandFact label={facts.when}>{values.dueAt ? londonWhen(values.dueAt, "short") : facts.noTime}</BandFact>
+          </Facts>
           <div className={styles.send}>
             <ScheduleButton
               label={copy.schedule(data.recipients.length)}

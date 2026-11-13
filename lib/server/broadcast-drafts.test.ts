@@ -17,6 +17,7 @@ import {
   sameTerms,
   scheduleBroadcast,
   sendBroadcastTest,
+  resumeBroadcast,
   stopBroadcast,
   submitTemplate,
   withdrawTemplate,
@@ -41,6 +42,7 @@ function outbox() {
 }
 
 const JO = "jo@pauseai.uk";
+const HELLO = "hello@pauseai.uk";
 const FUTURE = new Date("2099-01-01T09:18:00.000Z");
 /** EVENT_WORDS as an email about a template says them, its fields as words. */
 const SAID = toText(letterFor(EVENT_WORDS, FIELDS_AS_WORDS));
@@ -70,10 +72,16 @@ it("takes only what a broadcast may change, by its channel", () => {
   expect(broadcastChangesFrom(null, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ ask: "an-ask" }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ templateId: 1 }, "email")).toBeUndefined();
-  expect(broadcastChangesFrom({ subject: "Hello", fromName: "Jo" }, "email")).toEqual({
+  expect(broadcastChangesFrom({ subject: "Hello" }, "email")).toEqual({ subject: "Hello" });
+  expect(broadcastChangesFrom({ subject: "Hello", fromName: "Jo" }, "email")).toBeUndefined();
+  // Neither says the address it's from; an email may say what sends it, of what can yet.
+  expect(broadcastChangesFrom({ sentFrom: "jo@pauseai.uk" }, "email")).toBeUndefined();
+  expect(broadcastChangesFrom({ subject: "Hello", sendBy: "gmail" }, "email")).toEqual({
     subject: "Hello",
-    fromName: "Jo",
+    sendBy: "gmail",
   });
+  expect(broadcastChangesFrom({ sendBy: "postmark" }, "email")).toBeUndefined();
+  expect(broadcastChangesFrom({ sendBy: "gmail" }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ subject: "Hello" }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ sentFrom: "jo@pauseai.uk" }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ fromName: "Jo" }, "text")).toBeUndefined();
@@ -92,21 +100,25 @@ it("takes only what a broadcast may change, by its channel", () => {
 });
 
 it("says whether a filter's terms are a broadcast's own", () => {
-  const own = { channel: "email" as const, topic: "newsletter" as const };
+  const own = { channel: "email" as const, topics: ["newsletter" as const] };
   expect(sameTerms(own, own)).toBe(true);
-  expect(sameTerms({ ...own, topic: "events" }, own)).toBe(false);
+  expect(sameTerms({ ...own, topics: ["events"] }, own)).toBe(false);
+  expect(sameTerms({ ...own, topics: ["newsletter", "events"] }, own)).toBe(false);
+  expect(sameTerms({ ...own, channel: "text" }, own)).toBe(false);
   expect(sameTerms(undefined, own)).toBe(false);
 });
 
 describeWithDatabase("broadcasts to supporters", () => {
   useTestDatabase();
+  // An email goes by hello@'s Gmail, which is connected.
+  beforeEach(() => connectTestGmail(HELLO));
 
   it("makes a draft only from a Consent filter answered yes, from hello@ for an email and the account for a text", async () => {
     expect(await createBroadcastDraft(JO, { contact: "email:events:unsure" })).toBeUndefined();
     const email = (await getWrittenBroadcast(await draftOf({ ...EMAIL_FILTER, near: "M1" })))!;
     expect(email).toMatchObject({
       channel: "email",
-      topic: "events",
+      topics: ["events"],
       sentFrom: "hello@pauseai.uk",
       fromName: "PauseAI UK",
       state: "draft",
@@ -211,18 +223,40 @@ describeWithDatabase("broadcasts to supporters", () => {
       scheduled: false,
       problems: ["no-subject", "no-letter", "no-time"],
     });
-    // Nothing goes on the live site yet.
+    // An email goes on the live site too.
     const version = await readied(id, { subject: "Events", body: EVENT_WORDS });
     vi.stubEnv("DATA_FIXTURES", "");
-    expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: false, problems: ["cannot-send"] });
+    expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
   });
 
-  it("holds an email from a Gmail to its being connected", async () => {
+  it("goes under several topics' yeses, keeping them through a change of Consent, and schedules", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane");
+    const id = (await createBroadcastDraft(JO, { contact: ["email:volunteering:yes", "email:newsletter:yes"] }))!;
+    expect(await getWrittenBroadcast(id)).toMatchObject({ topics: ["newsletter", "volunteering"] });
+    expect(await changeBroadcastConsent(id, "email:newsletter:yes email:events:yes email:volunteering:yes", JO)).toBe(
+      true,
+    );
+    expect(await getWrittenBroadcast(id)).toMatchObject({
+      topics: ["newsletter", "events", "volunteering"],
+      filter: { params: { contact: ["email:newsletter:yes", "email:events:yes", "email:volunteering:yes"] } },
+    });
+    const version = await readied(id, { subject: "Events", body: EVENT_WORDS });
+    expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
+  });
+
+  it("holds an email by Gmail to hello@'s being connected, and one by Postmark to Postmark's sending yet", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane");
     const id = await draftOf(EMAIL_FILTER);
-    const version = await readied(id, { subject: "Events", body: EVENT_WORDS, sentFrom: JO });
+    const version = await readied(id, { subject: "Events", body: EVENT_WORDS, sendBy: "gmail" });
+    expect(await getWrittenBroadcast(id)).toMatchObject({ sendBy: "gmail" });
+    await query(
+      "UPDATE staff_accounts SET gmail_token = NULL, gmail_connected_at = NULL, gmail_history_id = NULL, gmail_name = NULL",
+    );
     expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: false, problems: ["not-connected"] });
-    await connectTestGmail(JO);
+    await query("UPDATE mailings SET send_by = 'postmark' WHERE id = $1", [id]);
+    expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: false, problems: ["cannot-send"] });
+    await query("UPDATE mailings SET send_by = 'gmail' WHERE id = $1", [id]);
+    await connectTestGmail(HELLO);
     expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
   });
 
@@ -401,7 +435,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await changeBroadcastConsent(id, "email:newsletter:yes", JO)).toBe(true);
     expect(await getWrittenBroadcast(id)).toMatchObject({
       channel: "email",
-      topic: "newsletter",
+      topics: ["newsletter"],
       subject: "Events",
       filter: { params: { contact: "email:newsletter:yes", near: "LS1" } },
     });
@@ -414,7 +448,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await changeBroadcastConsent(blank, TEXT_FILTER.contact, JO)).toBe(true);
     expect(await getWrittenBroadcast(blank)).toMatchObject({
       channel: "text",
-      topic: "events",
+      topics: ["events"],
       subject: "",
       template: null,
       fromName: TEXT_SENDER_NAME,
@@ -430,6 +464,44 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await getWrittenBroadcast(id)).toMatchObject({ state: "draft" });
     expect(await stopBroadcast(id, JO)).toBe(false);
     expect(await stopBroadcast(999, JO)).toBe(false);
+  });
+
+  it("sets going again one that stopped as it hadn't all gone in time, to those it didn't reach, and no other", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane");
+    await addFollower("usr-2", "sam@example.com", "Sam");
+    const id = await draftOf(EMAIL_FILTER);
+    await scheduleBroadcast(id, await readied(id, { subject: "Events", body: EVENT_WORDS }), JO);
+    // One that isn't stopped, or that staff stopped, has nothing to resume.
+    expect(await resumeBroadcast(id, JO)).toBe(false);
+    expect(await resumeBroadcast(999, JO)).toBe(false);
+    // It started, sent Jane's, and stopped with Sam's still to go.
+    await startSending(id);
+    await query("UPDATE broadcast_messages SET status = 'sent' WHERE address = 'jane@example.com'");
+    await query("UPDATE broadcast_messages SET status = 'cancelled' WHERE address = 'sam@example.com'");
+    const gaveUp = () =>
+      query(
+        `UPDATE mailings SET state = 'cancelled', gave_up = true, waiting_since = now(), wait_reason = 'limit',
+           due_at = '2026-11-01T09:00:00Z' WHERE id = $1`,
+        [id],
+      );
+    await gaveUp();
+    expect(await resumeBroadcast(id, JO)).toBe(true);
+    const resumed = (await getWrittenBroadcast(id))!;
+    expect(resumed).toMatchObject({ state: "sending", gaveUp: false, waitingSince: null, waitReason: null });
+    // From now, so it has its days again.
+    expect(resumed.dueAt!.getTime()).toBeGreaterThan(Date.parse("2026-11-01T09:00:00Z"));
+    expect(await query("SELECT address, status FROM broadcast_messages ORDER BY address")).toEqual([
+      { address: "jane@example.com", status: "sent" },
+      { address: "sam@example.com", status: "scheduled" },
+    ]);
+    expect(await query("SELECT actor, details FROM audit_log WHERE action = 'resume broadcast'")).toEqual([
+      { actor: JO, details: { id, copies: 1 } },
+    ]);
+    // One that never started is scheduled again, for sending to find who it goes to.
+    await query("DELETE FROM broadcast_messages");
+    await gaveUp();
+    expect(await resumeBroadcast(id, JO)).toBe(true);
+    expect(await getWrittenBroadcast(id)).toMatchObject({ state: "scheduled", gaveUp: false });
   });
 
   it("keeps an approved template when a broadcast on it is unscheduled", async () => {

@@ -2,6 +2,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { GmailAccount } from "@/lib/server/gmail-accounts";
 import { staffDate } from "@/lib/staff-time";
+import { BROADCAST_SENDER } from "@/lib/broadcasts";
 import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";
 import styles from "./MyGmail.module.css";
 import { Card } from "./ui/Grid";
@@ -9,9 +10,24 @@ import StaffLink from "./ui/StaffLink";
 
 const copy = staffCopy.gmail;
 
-/** What's kept from this mailbox: all its threads with politicians, or only replies to what's sent from here. */
-function KeptNote({ keeps }: { keeps: boolean }) {
+/**
+ * What's kept from this mailbox: all its threads with politicians, or only
+ * replies to what's sent from here: mailings, and from hello@ broadcasts too.
+ */
+function KeptNote({ keeps, me }: { keeps: boolean; me: string }) {
   const words = staffCopy.oneOff;
+  if (!keeps && me === BROADCAST_SENDER.email) {
+    const both = words.notKeptBroadcasts;
+    return (
+      <p>
+        <em>
+          {both.before} <StaffLink href="/staff/mailings">{staffCopy.mailings.title}</StaffLink> {both.and}{" "}
+          <StaffLink href="/staff/broadcasts">{staffCopy.broadcastPages.title}</StaffLink>
+          {both.after}
+        </em>
+      </p>
+    );
+  }
   const { before, after } = keeps ? words.kept : words.notKept;
   return (
     <p>
@@ -73,7 +89,7 @@ export default function MyGmail({
         <GmailOutcome outcome={outcome} me={me} lettersInbox={lettersInbox} />
         {account ? (
           <>
-            {!lettersInbox && <KeptNote keeps={keepsThreads} />}
+            {!lettersInbox && <KeptNote keeps={keepsThreads} me={me} />}
             <p>
               {copy.connected(staffDate(account.connectedAt))}{" "}
               <SentToday sent={account.sentToday} lettersInbox={lettersInbox} />

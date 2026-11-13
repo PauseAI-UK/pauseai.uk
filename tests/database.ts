@@ -1,6 +1,6 @@
 // A Postgres database for each test file that needs one, a copy of the
 // migrated template (tests/vitest.global-setup.node.ts). See docs/testing.md.
-import { afterAll, beforeAll, beforeEach, describe, inject, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, inject, onTestFinished, vi } from "vitest";
 import { closeDb, query } from "@/lib/server/db";
 import { encryptToken } from "@/lib/server/gmail-tokens";
 import { copyDatabase, databaseUrl, dropDatabase, freshDatabase } from "@/scripts/fresh-database.mjs";
@@ -251,4 +251,26 @@ export async function connectTestGmail(email = "jo@pauseai.uk", historyId = "100
      ON CONFLICT (email) DO UPDATE SET gmail_token = $2, gmail_connected_at = now(), gmail_history_id = $3`,
     [email, encryptToken(`fixture-refresh:${email}`), historyId],
   );
+}
+
+let refusals = 0;
+
+/**
+ * Makes the database refuse, till the test ends, each `write` (UPDATE or
+ * INSERT) of `table` whose new row matches `when`, SQL on NEW, as if it
+ * failed just then: for what happens when a write goes wrong partway. The
+ * database lasts the whole file, so the trigger is dropped once the test
+ * is done.
+ */
+export async function refuseWrites(table: string, when: string, write: "UPDATE" | "INSERT" = "UPDATE"): Promise<void> {
+  const name = `refuse_write_${++refusals}`;
+  await query(`CREATE FUNCTION ${name}() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN RAISE EXCEPTION 'the database went away'; END $$`);
+  await query(
+    `CREATE TRIGGER ${name} BEFORE ${write} ON ${table} FOR EACH ROW WHEN (${when}) EXECUTE FUNCTION ${name}()`,
+  );
+  onTestFinished(async () => {
+    await query(`DROP TRIGGER ${name} ON ${table}`);
+    await query(`DROP FUNCTION ${name}`);
+  });
 }

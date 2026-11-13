@@ -14,6 +14,18 @@ export function DeleteDraft({ id, action }: { id: number; action: FormAction }) 
   return <DeleteTwice name="id" value={String(id)} label={copy.deleteDraft} action={action} />;
 }
 
+/** Resume sending, for broadcast `id`, which stopped before it had all gone: small, beside what says so. */
+export function ResumeBroadcast({ id, action }: { id: number; action: FormAction }) {
+  return (
+    <form action={action}>
+      <input type="hidden" name="id" value={id} />
+      <SubmitButton variant="ghost" size="small" fit>
+        {staffCopy.broadcastPages.resume}
+      </SubmitButton>
+    </form>
+  );
+}
+
 /**
  * Unschedule or Stop sending, for mailing `id`: a scheduled one becomes a
  * draft again, one sending sends no more. Small in a list; `full`, the full

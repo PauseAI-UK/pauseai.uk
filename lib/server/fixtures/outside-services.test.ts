@@ -65,6 +65,53 @@ describe("fixtureResponse", () => {
     expect(await ids(fixtureResponse(get, { method: "POST", body: body.toString() }))).toEqual([105]);
   });
 
+  it("checks CiviCRM's blocks: all for Do not email, bulk for No bulk emails, none for anyone else", async () => {
+    const res = fixtureResponse("https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/checkSuppression", {
+      method: "POST",
+      body: new URLSearchParams({
+        params: JSON.stringify({ email: ["rhea.member@example.com", "nobody@example.com"] }),
+      }).toString(),
+    })!;
+    expect(await res.json()).toEqual({
+      values: [
+        { email: "rhea.member@example.com", block: "bulk" },
+        { email: "nobody@example.com", block: "none" },
+      ],
+    });
+    const none = fixtureResponse("https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/checkSuppression")!;
+    expect(await none.json()).toEqual({ values: [] });
+  });
+
+  it("accepts every opt-out sent to CiviCRM, and a lift of No bulk emails only for a UK contact's address", async () => {
+    const url = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions";
+    const events = [
+      { event_id: "a", email: "nobody@example.com", change: "unsubscribe" },
+      { event_id: "b", email: "nobody@example.com", change: "allow_bulk_email" },
+      { event_id: "c", email: "rhea.member@example.com", change: "allow_bulk_email" },
+    ];
+    const res = fixtureResponse(url, {
+      method: "POST",
+      body: new URLSearchParams({ params: JSON.stringify({ events }) }).toString(),
+    })!;
+    expect(await res.json()).toEqual({
+      values: [
+        { event_id: "a", status: "accepted" },
+        { event_id: "b", status: "refused", reason: "not_in_uk" },
+        { event_id: "c", status: "accepted" },
+      ],
+    });
+    expect(await fixtureResponse(url)!.json()).toEqual({ values: [] });
+  });
+
+  it("takes anyone off Luma's calendar", async () => {
+    expect(
+      await fixtureResponse("https://public-api.luma.com/v1/calendars/contacts/remove", {
+        method: "POST",
+        body: "{}",
+      })!.json(),
+    ).toEqual({});
+  });
+
   it("serves Airtable's members from the members table", async () => {
     const members = await fixtureResponse(
       "https://api.airtable.com/v0/appWPTGqZmUcs3NWu/tblL1icZBhTV1gQ9o?x=1",

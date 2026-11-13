@@ -6,7 +6,7 @@ import { BIG_EVENTS_TAG, ONLINE_TAG } from "@/lib/event-tags";
 import type { SearchedEvent, StaffEvent } from "@/lib/server/staff-events";
 import { windowStart } from "@/lib/staff-dashboard";
 import type { SortColumns, SortSpec } from "@/lib/staff-sort";
-import { londonDayHour } from "@/lib/staff-time";
+import { londonDayTime } from "@/lib/staff-time";
 
 /** The list's tabs: events still to come, and those past. */
 export const EVENT_TABS = ["future", "past"] as const;
@@ -120,7 +120,7 @@ function searchFinds(event: SearchedEvent, search: string): boolean {
  * however late it began, and moves to Past at midnight.
  */
 export function stillToCome(startAt: Date, now: Date): boolean {
-  return londonDayHour(startAt).day >= londonDayHour(now).day;
+  return londonDayTime(startAt).day >= londonDayTime(now).day;
 }
 
 /** Whether an event needs an owner at `now`: it's still to come, and on Luma. */

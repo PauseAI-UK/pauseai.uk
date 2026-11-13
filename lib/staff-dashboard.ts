@@ -96,7 +96,9 @@ export type DashboardAction =
   | { kind: "held-sync"; at: Date; added: number; removed: number; changed: number }
   | { kind: "blocked-mp"; politicianId: number; name: string; isTest: boolean; at: Date }
   | { kind: "failed-import"; job: ImportJob; at: Date; error: string }
-  | { kind: "letters-inbox"; inbox: string; count: number; at: Date };
+  | { kind: "letters-inbox"; inbox: string; count: number; at: Date }
+  /** Replies to broadcasts waiting for staff, and the broadcast with the oldest, where to start. */
+  | { kind: "broadcast-replies"; count: number; broadcastId: number };
 
 export type Dashboard = {
   /** The window's length in days. */

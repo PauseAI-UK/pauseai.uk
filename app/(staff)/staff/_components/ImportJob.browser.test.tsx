@@ -42,14 +42,19 @@ describe("ImportOverview", () => {
         .getByRole("heading", { level: 2 })
         .all()
         .map((h) => h.element().textContent),
-    ).toEqual([staffCopy.import.frequent, staffCopy.import.hourly, staffCopy.import.nightly]);
+    ).toEqual([
+      staffCopy.import.frequent,
+      staffCopy.import["quarter-hour"],
+      staffCopy.import.hourly,
+      staffCopy.import.nightly,
+    ]);
     const cards = [...document.querySelectorAll("section")];
     expect(cards.map((card) => card.querySelector("h3 a")!.getAttribute("href"))).toEqual([
       "/staff/scheduled-jobs/luma",
       "/staff/scheduled-jobs/gmail",
+      "/staff/scheduled-jobs/sending",
       "/staff/scheduled-jobs/members",
       "/staff/scheduled-jobs/civicrm",
-      "/staff/scheduled-jobs/sending",
       "/staff/scheduled-jobs/politicians",
       "/staff/scheduled-jobs/mp-check",
       "/staff/scheduled-jobs/controlai",
@@ -58,9 +63,9 @@ describe("ImportOverview", () => {
     expect(cards.map((card) => card.querySelector("h3 a")!.textContent)).toEqual([
       jobTitles["import-luma"],
       jobTitles["read-gmail"],
+      jobTitles["send-mailings"],
       jobTitles["import-members"],
       jobTitles["import-civicrm"],
-      jobTitles["send-mailings"],
       jobTitles["sync-politicians"],
       jobTitles["check-mps"],
       jobTitles["import-controlai"],
@@ -69,7 +74,7 @@ describe("ImportOverview", () => {
     // Under the name, how the newest run ended, tinted to match.
     const status = (i: number) => cards[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!;
     expect(status(0).textContent).toBe(`${staffCopy.runs.status.incomplete}21 Oct 2026, 11:17`);
-    expect([0, 1, 2, 5, 6, 7].map((i) => status(i).className.match(/green|amber|red/)?.[0])).toEqual([
+    expect([0, 1, 3, 5, 6, 7].map((i) => status(i).className.match(/green|amber|red/)?.[0])).toEqual([
       "amber",
       "green",
       "green",
@@ -77,9 +82,9 @@ describe("ImportOverview", () => {
       "green",
       "red",
     ]);
-    expect(status(4).className).not.toMatch(/green|amber|red/);
-    expect(status(3).textContent).toBe(staffCopy.civicrm.never);
-    expect(status(4).textContent).toBe(staffCopy.sending.never);
+    expect(status(2).className).not.toMatch(/green|amber|red/);
+    expect(status(4).textContent).toBe(staffCopy.civicrm.never);
+    expect(status(2).textContent).toBe(staffCopy.sending.never);
     expect(status(8).textContent).toBe(staffCopy.tidying.never);
     // The politicians' sync links the table it reads, and says the test MPs stay.
     const link = (i: number) => cards[i].querySelector(":scope > p a")!.getAttribute("href");
@@ -88,20 +93,23 @@ describe("ImportOverview", () => {
     expect(cards[6].querySelector(":scope > p")!.textContent).not.toContain(staffCopy.syncs.testMps);
     // The members come from the join form; Gmail's card leads to where it's connected; the sending's to the campaigns'
     // letters and the mailings, the tidying's to the audit log, the mailings and the errors.
-    expect(link(2)).toBe("https://pauseai.info/join");
-    expect(link(3)).toBe("https://crm.pauseai.info/");
+    expect(link(3)).toBe("https://pauseai.info/join");
+    expect(link(4)).toBe("https://crm.pauseai.info/");
     expect(link(1)).toBe("/staff/me");
-    expect([...cards[4].querySelectorAll(":scope > p a")].map((a) => a.getAttribute("href"))).toEqual([
+    expect([...cards[2].querySelectorAll(":scope > p a")].map((a) => a.getAttribute("href"))).toEqual([
       "/staff/campaigns",
       "/staff/mailings",
+      "/staff/broadcasts",
     ]);
-    expect(cards[4].querySelector(":scope > p")!.textContent).toBe(
+    expect(cards[2].querySelector(":scope > p")!.textContent).toBe(
       [
         staffCopy.sending.intro.before,
         staffCopy.sending.intro.link,
         staffCopy.sending.intro.after,
         staffCopy.sending.introThen.link,
         staffCopy.sending.introThen.after,
+        staffCopy.sending.introLast.link,
+        staffCopy.sending.introLast.after,
       ].join(""),
     );
     expect([...cards[8].querySelectorAll(":scope > p a")].map((a) => a.getAttribute("href"))).toEqual([
@@ -127,13 +135,13 @@ describe("ImportOverview", () => {
       `${jobTitles["import-luma"]}${staffCopy.import.changesLuma}`,
     );
     expect(cards[1].querySelector("h3")!.textContent).toBe(`${jobTitles["read-gmail"]}${kinds.read}${kinds.send}`);
-    expect(cards[3].querySelector("h3")!.textContent).toBe(jobTitles["import-civicrm"]);
+    expect(cards[4].querySelector("h3")!.textContent).toBe(jobTitles["import-civicrm"]);
     expect(
       cards
         .flatMap((card) => [...card.querySelectorAll("h3 > span")])
         .some((tag) => /green|amber|red|blue/.test(tag.className)),
     ).toBe(false);
-    expect(cards[4].querySelector("h3")!.textContent).toBe(`${jobTitles["send-mailings"]}${kinds.send}`);
+    expect(cards[2].querySelector("h3")!.textContent).toBe(`${jobTitles["send-mailings"]}${kinds.send}`);
     expect(cards[6].querySelector("h3")!.textContent).toBe(`${jobTitles["check-mps"]}${kinds.check}`);
     expect(cards[8].querySelector("h3")!.textContent).toBe(`${jobTitles["tidy-logs"]}${kinds.tidy}`);
   });
@@ -156,7 +164,7 @@ describe("ImportOverview", () => {
       document.querySelectorAll("section")[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!
         .className;
     expect(status(0)).toMatch(/green/);
-    expect(status(4)).toMatch(/green/);
+    expect(status(2)).toMatch(/green/);
     await rerender(
       <ImportOverview
         running={[]}
@@ -164,7 +172,7 @@ describe("ImportOverview", () => {
         airtableTable="x"
       />,
     );
-    expect(status(4)).not.toMatch(/green|amber|red/);
+    expect(status(2)).not.toMatch(/green|amber|red/);
     await rerender(
       <ImportOverview
         newest={[undefined, undefined, undefined, undefined, exampleAppliedSync, undefined, undefined]}
@@ -172,7 +180,7 @@ describe("ImportOverview", () => {
         airtableTable="x"
       />,
     );
-    expect(status(4)).toMatch(/blue/);
+    expect(status(2)).toMatch(/blue/);
     expect(document.body.textContent).toContain(staffCopy.runs.status.running);
     expect(document.body.textContent).toContain(staffTime(press.startedAt));
   });

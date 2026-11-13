@@ -175,28 +175,7 @@
 }
 
 /* An event to choose, in the shared list of choices (ui/Choices), as one of its links looks. */
-.choice {
-  display: block;
-  width: 100%;
-  padding: 2px var(--space-2);
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.choice:hover {
-  background: var(--surface-2);
-}
-
-.choice:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
+/* An event to choose, a button in the filters' choices, which style it (FilterBar.module.css); its date quiet. */
 .choice span {
   color: var(--text-secondary);
   font-size: var(--text-xs);
@@ -232,7 +211,7 @@
   margin-right: var(--space-1);
   font-size: 1.4em;
   line-height: 1;
-  vertical-align: -0.1em;
+  vertical-align: middle;
 }
 
 /* What will happen: room for a few lozenges a line, wrapping, without pushing the table past its card. */

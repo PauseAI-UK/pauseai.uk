@@ -34,11 +34,12 @@ import {
   type GmailMessageHeaders,
 } from "./outside-services/gmail";
 import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "./letter-replies";
+import { copyAnswered, keepBroadcastReply } from "./broadcast-replies";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { describeError, problem } from "./problems";
 
 // Reading the connected Gmail accounts, every 5 minutes: the replies to PauseAI's
-// letters and the bounces of them. For each message that arrived since the
+// letters and to copies of broadcasts (broadcast-replies.ts), and the bounces of them. For each message that arrived since the
 // last read, the site fetches only the few headers that say what it
 // answers; it fetches whole only the messages in our letters' threads, and
 // bounces. A politician's reply, or our answer to it, is kept whole
@@ -206,6 +207,16 @@ async function readMessage(account: string, token: string, id: string, read: Gma
     id,
   ]);
   if (kept || (await isOurs(account, message))) return;
+  // A reply to a copy of a broadcast, before anything else sees it; one from the mailbox itself is an answer of ours,
+  // sent from its Gmail rather than the site, which isOurs doesn't know.
+  const copyId = await copyAnswered(message);
+  if (copyId) {
+    if (from === account.toLowerCase()) return;
+    const what = await keepBroadcastReply(account, token, copyId, message);
+    if (what === "reply") read.replies++;
+    if (what === "automatic") read.autoReplies++;
+    return;
+  }
   const letterId = await letterAnswered(account, message);
   if (!letterId) {
     if (keepsPoliticianThreads(account))

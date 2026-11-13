@@ -32,6 +32,10 @@ type Props = {
   recipients?: number;
   /** The ID of the label naming it. */
   labelledBy: string;
+  /** An email to one person, such as an answer to a reply: the formatting alone, with no merge fields or parts, so no sidebar. */
+  plain?: boolean;
+  /** Puts the cursor in it as it appears, as when it was opened to write in. */
+  autoFocus?: boolean;
 };
 
 /** Whether a field can be used: every recipient has a value for it, or those without get its fallback. */
@@ -400,6 +404,8 @@ export default function MailingEditor({
   whatsApp,
   recipients,
   labelledBy,
+  plain = false,
+  autoFocus = false,
 }: Props) {
   const frame = useRef<HTMLDivElement>(null);
   // Where the { was typed, and where to show the menu of fields.
@@ -416,6 +422,7 @@ export default function MailingEditor({
   const editor = useEditor({
     extensions,
     content: initial,
+    autofocus: autoFocus ? "end" : false,
     // Rendered on the server too, where there's no editor yet.
     immediatelyRender: false,
     editorProps: {
@@ -501,7 +508,7 @@ export default function MailingEditor({
           </div>
         )}
       </div>
-      {editor && (
+      {editor && !plain && (
         <Sidebar editor={editor} fields={fields} conditions={conditions} noParts={whatsApp} recipients={recipients} />
       )}
     </div>

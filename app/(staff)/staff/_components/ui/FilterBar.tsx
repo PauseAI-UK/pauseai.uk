@@ -13,6 +13,7 @@ import ManyChoices, { NotWords } from "./ManyChoices";
 import StaffLink from "./StaffLink";
 import Menu from "./Menu";
 import LockIcon from "./LockIcon";
+import IconText from "./IconText";
 import NotIcon from "./NotIcon";
 import SavedFilters, { SavedFilterGone, type SavedFiltersProps } from "./SavedFilters";
 import styles from "./FilterBar.module.css";
@@ -186,18 +187,27 @@ export default function FilterBar({
     value: string,
     text: ReactNode,
     second = false,
-    seconds?: { options: FilterOption[]; current: string },
+    seconds?: { options: FilterOption[]; current: string; together: string[] },
   ) => {
     const { value: plain, not } = notValue(value);
-    const others = chosen(filter.name).filter((v) => v !== value);
-    const like = choiceParts(filter, plain).second?.like;
-    // The new choice's second part the same as the one it had, if there was one and it has it.
-    const same = (v: string) =>
-      (like && filter.options.find((o) => o.value === v)?.seconds?.find((o) => o.like === like)?.value) || v;
+    // A second part changes for every value of its lozenge.
+    const changing = seconds?.together ?? [value];
+    const others = chosen(filter.name).filter((v) => !changing.includes(v));
+    // Each of the lozenge's values with the second part `v` has: the others share their second parts' likes.
+    const withSecond = (v: string) => {
+      const to = seconds!.options.find((o) => o.value === v)!.like;
+      return changing.map((one) => {
+        const next =
+          one === value
+            ? v
+            : choiceParts(filter, notValue(one).value).first!.seconds!.find((o) => o.like === to)!.value;
+        return not ? NOT + next : next;
+      });
+    };
     const choose = (v: string) =>
       seconds
-        ? href({ [filter.name]: [...others, not ? NOT + v : v] })
-        : href({ ...without(filter.name), [filter.name]: same(v) });
+        ? href({ [filter.name]: [...others, ...withSecond(v)] })
+        : href({ ...without(filter.name), [filter.name]: v });
     if (filter.locked) {
       // There, saying what it is and why it can't change, but not opening.
       return (
@@ -244,6 +254,67 @@ export default function FilterBar({
           </p>
         )}
       </Menu>
+    );
+  };
+  // A lozenge of a choice in two parts, for `ones` of one group and one second part: its first half the firsts,
+  // one or more, "+ Add" offering others of the group; its second, their second part, which changes for them all.
+  // Its group's icon before its words, so "PauseAI UK" says which.
+  const parted = (filter: Filter, ones: string[]) => {
+    const { value: plain, not } = notValue(ones[0]);
+    const { first, second } = choiceParts(filter, plain);
+    const like = (second ?? first!.seconds![0]).like;
+    const here = ones.map((one) => notValue(one).value);
+    // Each first as it is with this second part, as the lozenge has them and offers them: those that have it, or,
+    // with no like to match, its own as it is and each other as the filter has it. Not those another lozenge has.
+    const taken = chosen(filter.name).map((one) => notValue(one).value);
+    const offered = filter.options
+      .flatMap((option) => {
+        if (like === undefined) return [option === first ? { ...option, value: plain } : option];
+        const same = option.seconds?.find((o) => o.like === like);
+        return same ? [{ ...option, value: same.value }] : [];
+      })
+      .filter((option) => here.includes(option.value) || !taken.includes(option.value));
+    const words = (named: ReactNode) =>
+      not ? (
+        <>
+          <NotWords label={filter.label} />
+          {named}
+        </>
+      ) : (
+        <>
+          {filter.label}: {named}
+        </>
+      );
+    const firsts = here.map((one) => choiceParts(filter, one).first!.label);
+    return (
+      <span key={`${filter.name}-${ones.join(" ")}`} className={styles.pair} role="group" aria-label={filter.label}>
+        {filter.locked ? (
+          chip(filter, ones[0], words(<IconText icon={first!.group?.icon}>{copy.anyOf(firsts)}</IconText>))
+        ) : (
+          <ManyChoices
+            id={`filter-${filter.name}-${ones.join("-")}`}
+            path={path}
+            values={values}
+            name={filter.name}
+            label={filter.label}
+            all={chosen(filter.name)}
+            here={here}
+            not={not}
+            oneEach={false}
+            options={offered}
+            boxOptions={offered.filter((option) => option.group?.label === first!.group?.label)}
+            every={[]}
+            turns={false}
+            half={false}
+            icon={first!.group?.icon}
+          />
+        )}
+        {chip(filter, ones[0], (second ?? first!.seconds![0]).label, true, {
+          options: first!.seconds!,
+          current: plain,
+          together: ones,
+        })}
+      </span>
     );
   };
   // A repeating filter's values, found or left out, without their marks.
@@ -374,40 +445,22 @@ export default function FilterBar({
               }
               if (filter.place) return chip(filter, value, placeLabel(filter, value));
               if (filter.repeat) return [manyChip(filter, false), manyChip(filter, true)];
-              return chosen(filter.name).map((one) => {
+              // A choice in two parts: those of one group (a Consent's way) with one second part (its answer),
+              // found or left out, one lozenge, "or" between their firsts.
+              // In the order they first come; one it doesn't know, or with no like to match, alone.
+              const lozenges = new Map<string, string[]>();
+              for (const one of chosen(filter.name)) {
                 const { value: plain, not } = notValue(one);
                 const { first, second } = choiceParts(filter, plain);
-                if (!first?.seconds) return chip(filter, one, valueWords(filter, one, ": "));
-                // A choice in two parts: one lozenge in two halves, the second narrowing the first.
-                // Its group's icon before its words, so "PauseAI UK" says which.
-                const named = first.group ? (
-                  <>
-                    <span className={styles.chipIcon}>{first.group.icon}</span>
-                    {first.label}
-                  </>
-                ) : (
-                  first.label
-                );
-                const words = not ? (
-                  <>
-                    <NotWords label={filter.label} />
-                    {named}
-                  </>
-                ) : (
-                  <>
-                    {filter.label}: {named}
-                  </>
-                );
-                return (
-                  <span key={`${filter.name}-${one}`} className={styles.pair} role="group" aria-label={filter.label}>
-                    {chip(filter, one, words)}
-                    {chip(filter, one, (second ?? first.seconds[0]).label, true, {
-                      options: first.seconds,
-                      current: plain,
-                    })}
-                  </span>
-                );
-              });
+                const like = first?.seconds && (second ?? first.seconds[0]).like;
+                const key = like === undefined ? `own ${one}` : [not, first!.group?.label, like].join("|");
+                lozenges.set(key, [...(lozenges.get(key) ?? []), one]);
+              }
+              return [...lozenges.values()].map((ones) =>
+                choiceParts(filter, notValue(ones[0]).value).first?.seconds
+                  ? parted(filter, ones)
+                  : chip(filter, ones[0], valueWords(filter, ones[0], ": ")),
+              );
             })}
           {offered.length > 0 &&
             (negatable.length > 0 ? (

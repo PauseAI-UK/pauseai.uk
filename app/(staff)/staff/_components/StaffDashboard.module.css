@@ -98,7 +98,7 @@ a.tile:focus-visible {
   height: 0.7rem;
   margin-right: var(--space-1);
   border-radius: var(--radius-sm);
-  vertical-align: -1px;
+  vertical-align: middle;
 }
 
 /* The campaigns' colours, in the order the content lists them. */

@@ -12,7 +12,7 @@ describe("sectionsFor", () => {
       ["admin", ["import"]],
     ]);
     expect(pages(["supporters"])).toEqual([
-      ["supporters", ["supporters", "broadcasts", "campaigns", "supporterEmails", "signupUpload"]],
+      ["supporters", ["supporters", "campaigns", "broadcasts", "supporterEmails", "signupUpload"]],
       ["politicians", ["politicians", "asks", "mailings", "emails", "mpEmails"]],
       ["events", ["events"]],
       ["admin", ["import"]],

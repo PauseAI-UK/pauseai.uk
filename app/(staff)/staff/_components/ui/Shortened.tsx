@@ -12,7 +12,10 @@ export default function Shortened({ short, whole, children }: { short: string; w
     <details className={styles.fold}>
       <summary>
         <span className={styles.short}>
-          {short} <span className={styles.more}>…</span>
+          {short}{" "}
+          <span className={styles.more} data-beside="lowercase">
+            …
+          </span>
         </span>
         <span className={styles.whole}>{whole}</span> {children}
       </summary>

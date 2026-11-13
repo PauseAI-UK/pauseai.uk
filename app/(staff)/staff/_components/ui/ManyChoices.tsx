@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { Checkbox } from "@/components/ui/Controls";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { chosenValues } from "@/lib/filter-choices";
@@ -9,6 +9,7 @@ import { filtersPath, NOT, type Params } from "@/lib/list-params";
 import Choices from "./Choices";
 import type { FilterOption } from "@/lib/staff-list-filters";
 import { useBarHold } from "./FilterBarLines";
+import IconText from "./IconText";
 import Menu from "./Menu";
 import NotIcon from "./NotIcon";
 import StaffLink from "./StaffLink";
@@ -37,7 +38,11 @@ export function NotWords({ label }: { label: string }) {
  * open and the chip stays, even with nothing ticked, until the menu closes; only
  * the chip's words change. As a lozenge's second half (`half`) it's there with
  * none chosen too, named for its blank choice, and has nothing to turn round or
- * remove. `turns` offers turning what it has the other way.
+ * remove. `turns` offers turning what it has the other way. `icon`, before
+ * its choices, says what they all are, so its words leave out their group
+ * (a Consent lozenge's way). `boxOptions`, if given, are those "+ Add" offers
+ * to tick, where they're fewer than the menu offers to pick one of. `id`
+ * tells its menu from another of the filter's.
  */
 export default function ManyChoices({
   path,
@@ -53,6 +58,9 @@ export default function ManyChoices({
   search,
   turns,
   half,
+  icon,
+  boxOptions = options,
+  id = `filter-${name}-${not ? "left-out" : "found"}`,
 }: {
   path: string;
   values: Params;
@@ -69,6 +77,9 @@ export default function ManyChoices({
   search?: string;
   turns: boolean;
   half: boolean;
+  icon?: ReactNode;
+  boxOptions?: FilterOption[];
+  id?: string;
 }) {
   const was = here.map((value) => (not ? NOT + value : value));
   const [boxes, setBoxes] = useState(here.length > 1);
@@ -98,7 +109,7 @@ export default function ManyChoices({
   });
   const words = (value: string) => {
     const option = options.find((one) => one.value === value)!;
-    return [option.group?.label, option.label].filter(Boolean).join(", ");
+    return [icon ? undefined : option.group?.label, option.label].filter(Boolean).join(", ");
   };
   const chosenWords = ticked.flatMap((value, i) =>
     i === 0
@@ -112,7 +123,7 @@ export default function ManyChoices({
   );
   return (
     <Menu
-      id={`filter-${name}-${not ? "left-out" : "found"}`}
+      id={id}
       trigger={not ? `${styles.chip} ${styles.not}` : styles.chip}
       label={
         half ? (
@@ -125,7 +136,7 @@ export default function ManyChoices({
           <>
             {not && <NotIcon />}
             {not ? <NotWords label={label} /> : `${label}: `}
-            {chosenWords}
+            {icon ? <IconText icon={icon}>{chosenWords}</IconText> : chosenWords}
           </>
         )
       }
@@ -141,7 +152,7 @@ export default function ManyChoices({
       >
         {boxes ? (
           <Choices
-            options={options.filter((option) => option.value)}
+            options={boxOptions.filter((option) => option.value)}
             current={ticked}
             search={search}
             row={(option) => (

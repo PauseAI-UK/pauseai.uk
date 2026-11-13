@@ -164,16 +164,22 @@ export async function gmailSendName(accessToken: string): Promise<string> {
 
 /**
  * Sends an email as the account: Gmail sends it from the account's own
- * address, and keeps it in Sent. Returns Gmail's ID for it and its thread.
- * With fixtures, it's written to the outbox too (lib/server/fixtures/outbox.ts).
+ * address, and keeps it in Sent. With `threadId`, it joins that thread, as
+ * Gmail asks of a reply, besides its In-Reply-To, References and subject
+ * ([threads](https://developers.google.com/workspace/gmail/api/guides/threads)).
+ * Returns Gmail's ID for it and its thread. With fixtures, it's written to the outbox too (lib/server/fixtures/outbox.ts).
  */
-export async function sendGmail(accessToken: string, email: MimeEmail): Promise<{ id: string; threadId: string }> {
+export async function sendGmail(
+  accessToken: string,
+  email: MimeEmail,
+  threadId?: string,
+): Promise<{ id: string; threadId: string }> {
   const outbox = config.outboxDir;
   if (config.fixtures && outbox) saveToOutbox(outbox, { ...email, Tag: "gmail" });
   return api(accessToken, "/messages/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ raw: Buffer.from(toMime(email), "utf8").toString("base64url") }),
+    body: JSON.stringify({ raw: Buffer.from(toMime(email), "utf8").toString("base64url"), threadId }),
   });
 }
 

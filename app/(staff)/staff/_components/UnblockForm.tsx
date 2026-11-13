@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { EmailBlock } from "@/lib/server/email";
-import Bubble from "./ui/Bubble";
+import Bubble from "@/components/ui/Bubble";
 import styles from "./UnblockForm.module.css";
 
 const copy = staffCopy.emails;

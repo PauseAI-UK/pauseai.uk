@@ -31,19 +31,22 @@ import type {
 } from "@/lib/server/broadcast-drafts";
 import type { BroadcastWriterData } from "@/lib/server/broadcast-pages";
 import { filtersPath } from "@/lib/list-params";
-import { earliestHour, londonClock, londonWhen, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
-import { stateValue, type Channel } from "@/lib/contact-permissions";
+import { earliestRun, londonClock, londonWhen, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
+import type { Channel } from "@/lib/contact-permissions";
 import {
   approvalProblems,
   fakeRecipient,
   hasField,
   hasWords,
   BROADCAST_START,
+  consentChoice,
   textCost,
   broadcastScheduleProblems,
+  BROADCAST_SEND_BY,
   BROADCAST_SENDER,
-  textSender,
+  sendingDays,
   TEXT_SENDER_NAME,
+  type BroadcastSendBy,
 } from "@/lib/broadcasts";
 import {
   DraftTitle,
@@ -54,14 +57,15 @@ import {
   useDraftWriter,
   type DraftActions,
 } from "./DraftWriter";
-import { SentToday } from "./GmailConnect";
 import { ARMED_FOR } from "./DeleteTwice";
 import { DeleteDraft } from "./MailingButtons";
 import MailingEditor from "./MailingEditor";
 import MailingFiles from "./MailingFiles";
 import BroadcastConsent from "./BroadcastConsent";
+import { othersThanConsent } from "./SupporterFilters";
 import { MailingLetter } from "./MailingLetter";
 import TextBubble from "./TextBubble";
+import { BandFact, Facts } from "./ui/Band";
 import Grid, { Card } from "./ui/Grid";
 import NotIcon from "./ui/NotIcon";
 import Strip from "./ui/Strip";
@@ -72,12 +76,15 @@ import own from "./Broadcasts.module.css";
 
 const copy = staffCopy.broadcastPages;
 
+/** What can send an email, in the order they're offered. */
+const SEND_BY = Object.keys(BROADCAST_SEND_BY) as BroadcastSendBy[];
+
 /** What a broadcast's page can change. */
 type Changes = {
   subject: string;
   body: MailingDoc;
-  sentFrom: string | null;
-  fromName: string | null;
+  /** What sends an email. */
+  sendBy: BroadcastSendBy;
   dueAt: Date | null;
   templateId: number | null;
   /** A text's, which has no subject to be one. */
@@ -277,7 +284,7 @@ function BroadcastPreview({
         <TextBubble
           from={TEXT_SENDER_NAME}
           words={letterFor(body, recipient)}
-          time={londonClock(sendsAt(dueAt ?? earliestHour()))}
+          time={londonClock(sendsAt(dueAt ?? earliestRun()))}
         />
       )}
 
@@ -373,8 +380,7 @@ export default function BroadcastWriter({
       initial: {
         subject: draft.subject,
         body: draft.body,
-        sentFrom: draft.sentFrom,
-        fromName: draft.fromName || null,
+        sendBy: draft.sendBy,
         dueAt: draft.dueAt,
         templateId: draft.template?.status === "approved" ? draft.template.id : null,
         title: draft.title,
@@ -409,8 +415,9 @@ export default function BroadcastWriter({
   const written = email
     ? !isBlankMailing(body) && JSON.stringify(body) !== JSON.stringify(start)
     : !isBlankMailing(body);
-  const sender = data.senders.find((one) => one.email === values.sentFrom);
-  const byGmail = email && values.sentFrom !== BROADCAST_SENDER.email;
+  // By Gmail, it goes from the address's own connected Gmail, which sends so many a day.
+  const byGmail = email && values.sendBy === "gmail";
+  const remaining = email ? data.sender.remaining : null;
   const problems = broadcastScheduleProblems({
     channel: draft.channel,
     subject: values.subject,
@@ -420,17 +427,19 @@ export default function BroadcastWriter({
     recipients: data.count,
     unknown: data.unknown,
     byGmail,
-    connected: Boolean(sender),
+    connected: data.sender.connected,
+    remaining,
     approved: words === "chosen",
     numbered: Boolean(data.textNumber),
     sends: data.sends,
   }).filter((problem) => problem !== "cannot-send");
   // Greyed, before a Consent by the channel picked: that comes first.
   const shownProblems = blank ? ["no-consent", ...problems] : problems;
-  const fromName = email ? values.fromName || (byGmail ? sender?.name : BROADCAST_SENDER.name) : TEXT_SENDER_NAME;
-  const fromLine = email ? named(fromName, values.sentFrom!) : TEXT_SENDER_NAME;
-  // In the summary, a text's WhatsApp number too, once there is one, as an email's address.
-  const summaryFrom = email || !data.textNumber ? fromLine : textSender(TEXT_SENDER_NAME, data.textNumber);
+  const fromName = email ? draft.fromName || BROADCAST_SENDER.name : TEXT_SENDER_NAME;
+  const fromLine = email ? named(fromName, draft.sentFrom!) : TEXT_SENDER_NAME;
+  // In Send, as the broadcast's page has it: the address, or a text's WhatsApp number once there is one, the
+  // name under it; with no number yet, the name alone.
+  const fromAddress = email ? draft.sentFrom! : data.textNumber && phoneWords(data.textNumber);
   const title = email ? values.subject.trim() || copy.newTitle.email : values.title.trim() || copy.newTitle.text;
   const whoPath = filtersPath("/staff/supporters", { ...data.filter.params, broadcast: String(id) });
   const hasOwnWords = hasWords({ subject: values.subject, body, templateId: values.templateId });
@@ -500,15 +509,7 @@ export default function BroadcastWriter({
       <Grid>
         <Card span={6} title={<Numbered n={1}>{copy.sections.who}</Numbered>} id="who-title">
           <BroadcastConsent
-            value={
-              blank
-                ? ""
-                : stateValue({
-                    way: draft.channel === "email" ? "email" : "text",
-                    topic: draft.topic,
-                    send: "yes",
-                  })
-            }
+            value={blank ? "" : consentChoice(draft)}
             channel={draft.channel === "email" ? "email" : "phone"}
             written={hasOwnWords}
             pending={picking}
@@ -535,7 +536,9 @@ export default function BroadcastWriter({
                     leavePage(whoPath);
                   }}
                 >
-                  {staffCopy.mailingPages.changeWho}
+                  {othersThanConsent(data.filter.params, data.choices).length > 0
+                    ? staffCopy.mailingPages.changeWho
+                    : copy.narrowDown}
                 </ButtonAnchor>
               </div>
               {data.unknown.length > 0 && (
@@ -553,28 +556,32 @@ export default function BroadcastWriter({
               {email ? (
                 <div className={styles.from}>
                   <div className={styles.fromFields}>
-                    <Field label={copy.fromAccount} className={styles.sender}>
-                      <Select value={values.sentFrom!} onChange={(event) => change({ sentFrom: event.target.value })}>
-                        {/* Each address with what sends from it: ours by Postmark, a staff member's by their Gmail. */}
-                        <option value={BROADCAST_SENDER.email}>
-                          {copy.fromOption(BROADCAST_SENDER.email, "Postmark")}
-                        </option>
-                        {data.senders.map((one) => (
-                          <option key={one.email} value={one.email}>
-                            {copy.fromOption(one.email, "Gmail")}
+                    {/* Always the one address, where replies come back to be read: the choice is what sends from it. */}
+                    <Field label={copy.fromAccount} className={own.accountChoice}>
+                      <Select
+                        value={values.sendBy}
+                        onChange={(event) => change({ sendBy: event.target.value as BroadcastSendBy })}
+                      >
+                        {SEND_BY.map((one) => (
+                          <option key={one} value={one} disabled={!BROADCAST_SEND_BY[one].available}>
+                            {copy.fromOption(draft.sentFrom!, copy.sendBy.names[one])}
                           </option>
                         ))}
                       </Select>
                     </Field>
-                    <Field label={copy.fromName} className={styles.sender}>
-                      <TextInput
-                        value={values.fromName ?? ""}
-                        onChange={(event) => change({ fromName: event.target.value })}
-                      />
-                    </Field>
+                    {/* The name it's from is fixed too. */}
+                    <div className={styles.sender}>
+                      <p className={styles.label}>{copy.fromName}</p>
+                      <p className={own.fixed}>{fromName}</p>
+                    </div>
                   </div>
-                  {/* A Gmail's sending today, against its daily limit, as a mailing's writer says it. */}
-                  {sender && <SentToday sent={sender.sentToday} />}
+                  {/* By Gmail: how many more its account can send today, and so how long this takes; or that it isn't connected. */}
+                  {byGmail &&
+                    (data.sender.connected ? (
+                      <Muted>{copy.sendBy.room(draft.sentFrom!, remaining!, sendingDays(data.count, remaining))}</Muted>
+                    ) : (
+                      <Strip tone="amber">{copy.sendBy.notConnected(draft.sentFrom!)}</Strip>
+                    ))}
                 </div>
               ) : (
                 <div className={own.account}>
@@ -693,7 +700,7 @@ export default function BroadcastWriter({
                 words={words}
                 subject={values.subject}
                 from={fromLine}
-                gmail={byGmail && sender ? sender.email : null}
+                gmail={byGmail && data.sender.connected ? draft.sentFrom : null}
                 needs={problems
                   .filter((problem) => TEST_NEEDS.includes(problem))
                   .map((problem) => copy.problems[problem])}
@@ -711,20 +718,23 @@ export default function BroadcastWriter({
             </Card>
 
             <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
-              <p className={styles.count}>
-                {copy.summary(
-                  data.count,
-                  draft.channel,
-                  summaryFrom,
-                  values.dueAt ? londonWhen(values.dueAt, "short") : null,
-                )}{" "}
+              <Facts>
+                <BandFact label={copy.sendFacts.what}>{copy.sendFacts.count(data.count, draft.channel)}</BandFact>
+                <BandFact label={copy.sendFacts.from} detail={fromAddress ? fromName : undefined}>
+                  {fromAddress || fromName}
+                </BandFact>
+                <BandFact label={copy.sendFacts.via}>
+                  {email ? copy.sendBy.names[values.sendBy] : copy.sendFacts.whatsApp}
+                </BandFact>
+                <BandFact label={copy.sendFacts.when}>
+                  {values.dueAt ? londonWhen(values.dueAt, "short") : copy.sendFacts.noTime}
+                </BandFact>
                 {!email && (
-                  <>
+                  <BandFact label={copy.sendFacts.cost} detail={textCost(data.count).rate}>
                     {textCost(data.count).about}
-                    <span className={own.rate}>{textCost(data.count).rate}</span>
-                  </>
+                  </BandFact>
                 )}
-              </p>
+              </Facts>
               <div className={styles.send}>
                 {/* New words go to WhatsApp from here, at the foot, once they're written, in Schedule's
                     place, as they can't be scheduled till WhatsApp approves them. */}

@@ -269,7 +269,7 @@ export function supporterId(id: string): number | undefined {
 export type SupportersSearch = SearchOf<typeof SUPPORTERS_LIST.params>;
 
 /** What an erasure can leave behind when its clean-up fails. */
-export const ERASE_LEFTOVERS = ["mail", "oneOffs"] as const;
+export const ERASE_LEFTOVERS = ["mail", "oneOffs", "replies"] as const;
 export type EraseLeftover = (typeof ERASE_LEFTOVERS)[number];
 
 /** Where an erasure goes afterwards: the list, saying so, and what couldn't be cleared, if anything. */

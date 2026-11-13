@@ -101,6 +101,37 @@ describeWithDatabase("handleDeliveryProblem", () => {
     },
   );
 
+  it("marks a copy of a broadcast that bounced failed, notes a complaint, and lets a soft bounce be", async () => {
+    postmark();
+    const [{ mailing }] = await query<{ mailing: number }>(
+      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+       VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'staff@pauseai.uk', 'draft') RETURNING id::int AS mailing`,
+    );
+    for (const n of [1, 2, 3]) {
+      await query(`INSERT INTO broadcast_messages (mailing_id, status, provider_message_id) VALUES ($1, 'sent', $2)`, [
+        mailing,
+        `pm-${n}`,
+      ]);
+      await query(
+        `INSERT INTO email_sends (purpose, address, outcome, message_id) VALUES ('broadcast', $1, 'sent', $2)`,
+        [`p${n}@example.com`, `pm-${n}`],
+      );
+    }
+    const problem = { messageId: "", reason: "Nope", canReset: true };
+    await handleDeliveryProblem({ ...problem, address: "p1@example.com", messageId: "pm-1", kind: "hard" });
+    await handleDeliveryProblem({ ...problem, address: "p2@example.com", messageId: "pm-2", kind: "complaint" });
+    await handleDeliveryProblem({ ...problem, address: "p3@example.com", messageId: "pm-3", kind: "soft" });
+    expect(await query("SELECT provider_message_id AS id, status FROM broadcast_messages ORDER BY id")).toEqual([
+      { id: "pm-1", status: "failed" },
+      { id: "pm-2", status: "sent" },
+      { id: "pm-3", status: "sent" },
+    ]);
+    expect(await query("SELECT kind, details FROM broadcast_message_events ORDER BY id")).toEqual([
+      { kind: "bounced", details: { reason: "Nope" } },
+      { kind: "opted-out", details: { reason: "Nope" } },
+    ]);
+  });
+
   it("says nothing of an address blocked that isn't a politician's in office", async () => {
     await sentEmail("forwarded-reply");
     const sent = postmark();

@@ -1,13 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
-import { GMAIL_DAILY_LIMIT } from "@/lib/gmail-connect";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mailingGroups } from "@/lib/mailing-groups";
 import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
+import type { BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { supportersSearch } from "@/lib/staff-search";
 import { londonWhen, staffTime } from "@/lib/staff-time";
 import { textCost } from "@/lib/broadcasts";
+import { SENDING_DAYS } from "@/lib/broadcast-days";
+import { GMAIL_DAILY_LIMIT } from "@/lib/gmail-connect";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { navigation } from "@/tests/browser/navigation";
 import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
@@ -52,6 +54,7 @@ function fakeActions() {
     schedule: action(() => ({ scheduled: true })),
     deleteDraft: vi.fn(async () => {}),
     changeConsent: action(() => true),
+    setAboutEvents: action(() => true),
     create: vi.fn(async () => {}),
     submitTemplate: action(() => "submitted"),
     withdrawTemplate: action(() => true),
@@ -76,14 +79,30 @@ const button = (name: string | RegExp) => page.getByRole("button", { name });
 
 describe("BroadcastWriter's Consent", () => {
   const consents = staffCopy.supporters.subscriptions.consents;
-  const group = (name: string) => page.getByRole("radiogroup", { name });
+  // Email or text, one of them; Said yes to, one of its topics, or after + Add, any of them, toggled.
+  const toggled = (name: string) =>
+    name === copy.facts.saidYes &&
+    [...document.querySelectorAll("fieldset")]
+      .filter((field) => field.querySelector("legend")!.textContent === name)
+      .at(-1)
+      ?.textContent!.endsWith(staffCopy.filters.justOne) === true;
+  // Said yes to's toggles are a group inside the field's own group of that name.
+  const group = (name: string) =>
+    toggled(name)
+      ? page.getByRole("group", { name }).getByRole("group", { name }).last()
+      : page.getByRole("radiogroup", { name }).last();
   const radios = (name: string) =>
     [...group(name).element().querySelectorAll("button")].map((b) => [
       b.textContent,
-      b.getAttribute("aria-checked") === "true",
+      b.getAttribute(toggled(name) ? "aria-pressed" : "aria-checked") === "true",
       (b as HTMLButtonElement).disabled,
     ]);
-  const choose = (within: string, name: string) => group(within).getByRole("radio", { name }).click();
+  const choose = (within: string, name: string) =>
+    group(within)
+      .getByRole(toggled(within) ? "button" : "radio", { name })
+      .click();
+  const add = () => page.getByRole("button", { name: staffCopy.filters.addChoice }).click();
+  const justOne = () => page.getByRole("button", { name: staffCopy.filters.justOne }).click();
 
   it("asks email or text, then offers that channel's Consents in a row, its own chosen, the other channel shut once it has words", async () => {
     await renderWriter();
@@ -91,11 +110,72 @@ describe("BroadcastWriter's Consent", () => {
       [copy.channels.email, true, false],
       [copy.channels.text, false, true],
     ]);
+    // One of them, chosen…
     expect(radios(copy.facts.saidYes)).toEqual([
       [consents["email:newsletter"], true, false],
       [consents["email:events"], false, false],
       [consents["email:volunteering"], false, false],
     ]);
+    // …or, after + Add, any of them, "or" between each.
+    await add();
+    expect(radios(copy.facts.saidYes)).toEqual([
+      [consents["email:newsletter"], true, false],
+      [consents["email:events"], false, false],
+      [consents["email:volunteering"], false, false],
+    ]);
+    expect(group(copy.facts.saidYes).element().textContent).toBe(
+      [consents["email:newsletter"], consents["email:events"], consents["email:volunteering"]].join("or"),
+    );
+  });
+
+  it("swaps its one topic for another, but not for the one it has", async () => {
+    const actions = await renderWriter();
+    await choose(copy.facts.saidYes, consents["email:newsletter"]);
+    await choose(copy.facts.saidYes, consents["email:events"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:events:yes"), WAIT);
+    expect(actions.changeConsent).toHaveBeenCalledTimes(1);
+  });
+
+  it("with several, offers them all, and Just one keeps the first; with one, Just one only goes back", async () => {
+    const actions = await renderWriter({
+      draft: {
+        ...exampleBroadcastEmail,
+        topics: ["newsletter", "events"],
+        filter: { list: "supporters", params: { contact: ["email:newsletter:yes", "email:events:yes"] } },
+      },
+    });
+    await justOne();
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:newsletter:yes"), WAIT);
+    await renderWriter();
+    await add();
+    await page.getByRole("button", { name: staffCopy.filters.justOne }).last().click();
+    expect(radios(copy.facts.saidYes).map(([, on]) => on)).toEqual([true, false, false]);
+    expect(actions.changeConsent).toHaveBeenCalledTimes(1);
+  });
+
+  it("adds a topic to those it goes under, and takes one off, but not the last", async () => {
+    const actions = await renderWriter({
+      draft: {
+        ...exampleBroadcastEmail,
+        topics: ["newsletter", "events"],
+        filter: { list: "supporters", params: { contact: ["email:newsletter:yes", "email:events:yes"] } },
+      },
+    });
+    expect(radios(copy.facts.saidYes).map(([, on]) => on)).toEqual([true, true, false]);
+    await choose(copy.facts.saidYes, consents["email:volunteering"]);
+    await vi.waitFor(
+      () =>
+        expect(actions.changeConsent).toHaveBeenCalledWith(
+          3,
+          "email:newsletter:yes email:events:yes email:volunteering:yes",
+        ),
+      WAIT,
+    );
+    await choose(copy.facts.saidYes, consents["email:newsletter"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:events:yes"), WAIT);
+    await renderWriter();
+    await choose(copy.facts.saidYes, consents["email:newsletter"]);
+    expect(actions.changeConsent).toHaveBeenCalledTimes(2);
   });
 
   it("offers either channel to one with no words of its own, showing the other's Consents without changing it", async () => {
@@ -117,7 +197,7 @@ describe("BroadcastWriter's Consent", () => {
   it("saves what's typed, changes the Consent, and shows the draft as it is then", async () => {
     const actions = await renderWriter();
     const refreshes = navigation.refreshes;
-    // The one it has already: nothing to change.
+    // The only one it has: it stays.
     await choose(copy.facts.saidYes, consents["email:newsletter"]);
     await choose(copy.facts.saidYes, consents["email:events"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:events:yes"), WAIT);
@@ -173,6 +253,23 @@ describe("BroadcastWriter's Consent", () => {
     );
     expect(radios(copy.consentChannel)[1]).toEqual([copy.channels.text, true, false]);
     expect(page.getByLabelText(copy.subject, { exact: true }).query()).toBeNull();
+  });
+
+  it("on New broadcast, says texts can't be sent yet once Text is picked, where nothing sends them", async () => {
+    await render(
+      <ChannelWriter
+        fresh
+        data={{ ...exampleBroadcastData, textsSend: false }}
+        draft={{ ...exampleBroadcastEmail, subject: "", body: EMPTY_MAILING_DOC }}
+        who={<p>Who</p>}
+        actions={fakeActions() as unknown as BroadcastWriterActions}
+      />,
+    );
+    await expect.element(page.getByText(copy.cantSend)).not.toBeInTheDocument();
+    await choose(copy.consentChannel, copy.channels.text);
+    await expect.element(page.getByText(copy.cantSend)).toBeVisible();
+    await choose(copy.consentChannel, copy.channels.email);
+    await expect.element(page.getByText(copy.cantSend)).not.toBeInTheDocument();
   });
 
   it("on New broadcast, starts with neither channel chosen, everything after it greyed and still, and makes the draft", async () => {
@@ -256,6 +353,14 @@ describe("BroadcastWriter, by email", () => {
     await expect.element(page.getByRole("heading", { name: "Events", level: 1 })).toBeVisible();
   });
 
+  it("offers to narrow down everyone who said yes, and to change who once they're narrowed", async () => {
+    await renderWriter({
+      data: { ...exampleBroadcastData, filter: { list: "supporters", params: { contact: "email:newsletter:yes" } } },
+    });
+    await expect.element(page.getByRole("link", { name: copy.narrowDown })).toBeVisible();
+    expect(page.getByRole("link", { name: staffCopy.mailingPages.changeWho }).query()).toBeNull();
+  });
+
   it("goes to the list to change who, with the draft's filter and saved first", async () => {
     await renderWriter();
     await page.getByRole("link", { name: staffCopy.mailingPages.changeWho }).click();
@@ -295,39 +400,51 @@ describe("BroadcastWriter, by email", () => {
     await expect.element(button(copy.sendTest)).toBeDisabled();
   });
 
-  it("names what sends from each address, and changes to a connected Gmail", async () => {
-    const actions = await renderWriter();
-    // Each address names what sends from it.
-    await expect
-      .element(page.getByRole("option", { name: copy.fromOption("hello@pauseai.uk", "Postmark") }))
-      .toBeInTheDocument();
-    await expect
-      .element(page.getByRole("option", { name: copy.fromOption("jo@pauseai.uk", "Gmail") }))
-      .toBeInTheDocument();
-    expect(document.body.textContent).not.toContain(GMAIL_DAILY_LIMIT.toLocaleString("en-GB"));
-    await expect.element(page.getByText(copy.testVia.email("hello@pauseai.uk"))).toBeVisible();
-    // An email's preview says nothing of how to stop; a text's does (below).
-    await page.getByLabelText(copy.fromAccount, { exact: false }).selectOptions("jo@pauseai.uk");
+  it("goes from hello@ by its Gmail, Postmark greyed out, its name fixed, and says what it can send today", async () => {
+    await renderWriter();
+    const account = page.getByLabelText(copy.fromAccount, { exact: false });
+    await expect.element(account).toHaveValue("gmail");
+    const options = [...account.element().querySelectorAll("option")].map((o) => [o.textContent, o.disabled]);
+    expect(options).toEqual([
+      [copy.fromOption("hello@pauseai.uk", copy.sendBy.names.gmail), false],
+      [copy.fromOption("hello@pauseai.uk", copy.sendBy.names.postmark), true],
+    ]);
+    // The name isn't a field.
+    await expect.element(page.getByRole("textbox", { name: copy.fromName })).not.toBeInTheDocument();
+    // Enough left today for all it goes to.
+    await expect.element(page.getByText(copy.sendBy.room("hello@pauseai.uk", 1788, 1))).toBeVisible();
     // The test goes the same way.
-    await expect.element(page.getByText(copy.testVia.emailGmail("jo@pauseai.uk"))).toBeVisible();
-    // How many it has sent today, of its daily limit; none for Postmark's.
-    const sentToday = staffCopy.gmail.sentToday(12, GMAIL_DAILY_LIMIT.toLocaleString("en-GB"));
-    await expect.element(page.getByText(sentToday)).toBeVisible();
-    await page.getByLabelText(copy.fromName, { exact: false }).fill("Jo at PauseAI");
-    await vi.waitFor(() => expect(actions.save).toHaveBeenCalled(), WAIT);
+    await expect.element(page.getByText(copy.testVia.emailGmail("hello@pauseai.uk"))).toBeVisible();
+    await account.selectOptions("gmail");
+    await expect.element(account).toHaveValue("gmail");
   });
 
-  it("uses a connected Gmail's own name with none of its own, and won't go from one no longer connected", async () => {
-    await renderWriter({ draft: { ...exampleBroadcastEmail, sentFrom: "jo@pauseai.uk", fromName: null } });
-    await expect.element(page.getByText("Jo Example <jo@pauseai.uk>")).toBeVisible();
-    await page.getByLabelText(copy.fromAccount, { exact: false }).selectOptions("hello@pauseai.uk");
+  it("is from PauseAI UK with no name of its own: Send has the address, the name under it, then by what", async () => {
+    await renderWriter({ draft: { ...exampleBroadcastEmail, fromName: null } });
+    const send = page.getByLabelText("6Send", { exact: false });
+    await expect.element(send.getByText("hello@pauseai.uk", { exact: true })).toBeVisible();
+    await expect.element(send.getByText("PauseAI UK", { exact: true })).toBeVisible();
+    await expect.element(send.getByText(copy.sendBy.names.gmail, { exact: true })).toBeVisible();
   });
 
-  it("says a Gmail isn't connected", async () => {
+  it("says how many days it takes to more than hello@ can send today, and won't schedule over its sending days", async () => {
+    await renderWriter({ data: { ...exampleBroadcastData, count: 3000 } });
+    await expect.element(page.getByText(copy.sendBy.room("hello@pauseai.uk", 1788, 2))).toBeVisible();
+    expect(document.body.textContent).not.toContain(copy.problems["too-slow"]);
+    const most = 1788 + (SENDING_DAYS - 1) * GMAIL_DAILY_LIMIT;
+    await renderWriter({ data: { ...exampleBroadcastData, count: most } });
+    expect(document.body.textContent).not.toContain(copy.problems["too-slow"]);
+    await renderWriter({ data: { ...exampleBroadcastData, count: most + 1 } });
+    await expect.element(page.getByText(copy.problems["too-slow"])).toBeVisible();
+  });
+
+  it("says hello@'s Gmail isn't connected, when its test goes by Postmark", async () => {
     await renderWriter({
-      draft: { ...exampleBroadcastEmail, sentFrom: "gone@pauseai.uk", fromName: "" },
+      data: { ...exampleBroadcastData, sender: { byGmail: true, connected: false, remaining: 1800 } },
     });
+    await expect.element(page.getByText(copy.sendBy.notConnected("hello@pauseai.uk"))).toBeVisible();
     await expect.element(page.getByText(copy.problems["not-connected"])).toBeVisible();
+    await expect.element(page.getByText(copy.testVia.email("hello@pauseai.uk"))).toBeVisible();
   });
 
   it("says when no one's left to send to, and when the filter's values are gone", async () => {
@@ -416,7 +533,9 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText(copy.problems["no-template"])).toBeVisible();
     await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
     await expect.element(page.getByLabelText(copy.subject)).not.toBeInTheDocument();
-    await expect.element(page.getByText("07700 900000", { exact: true })).toBeVisible();
+    await expect
+      .element(page.getByLabelText("2Sent from", { exact: false }).getByText("07700 900000", { exact: true }))
+      .toBeVisible();
   });
 
   it("offers only new words when there are no approved templates", async () => {
@@ -609,8 +728,11 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText(/Hi Jane, the march meets/)).toBeVisible();
     // What they'll cost, and the rate, as it may have changed.
     await expect.element(page.getByText(textCost(exampleBroadcastData.count).rate)).toBeVisible();
-    // The summary names the WhatsApp number it's from.
-    await expect.element(page.getByText(/texts from PauseAI UK \(07700 900000\) on WhatsApp/)).toBeVisible();
+    // What will go names the WhatsApp number it's from, the name under it.
+    const send = page.getByLabelText("6Send", { exact: false });
+    await expect.element(send.getByText("07700 900000", { exact: true })).toBeVisible();
+    await expect.element(send.getByText("PauseAI UK", { exact: true })).toBeVisible();
+    await expect.element(page.getByText(copy.sendFacts.whatsApp, { exact: true })).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
     await page.getByLabelText(copy.testTo).fill("+447700900002");
     await button(copy.sendTest).click();
@@ -624,7 +746,11 @@ describe("BroadcastWriter, by text", () => {
     });
     await expect.element(page.getByText(copy.testVia.textOff)).toBeVisible();
     await expect.element(page.getByText(copy.noNumber)).toBeVisible();
-    await expect.element(page.getByText(/texts from PauseAI UK on WhatsApp/)).toBeVisible();
+    // With no number, it's from the name alone, with no time yet.
+    await expect
+      .element(page.getByLabelText("6Send", { exact: false }).getByText("PauseAI UK", { exact: true }))
+      .toBeVisible();
+    await expect.element(page.getByText(copy.sendFacts.noTime)).toBeVisible();
     // And it can't be scheduled till there's one.
     await expect.element(page.getByText(copy.problems["no-number"])).toBeVisible();
   });
@@ -703,7 +829,7 @@ describe("the supporters list", () => {
       id: 3,
       title: "Events",
       channel: "email" as const,
-      topic: "newsletter" as const,
+      topics: ["newsletter" as const],
       blank: false,
     };
     await render(
@@ -719,7 +845,7 @@ describe("the supporters list", () => {
       id: 3,
       title: "Events",
       channel: "email" as const,
-      topic: "newsletter" as const,
+      topics: ["newsletter" as const],
       blank: false,
     };
 
@@ -761,15 +887,17 @@ describe("the supporters list", () => {
 });
 
 describe("a broadcast's page", () => {
-  const actions = { stop: nothing, reschedule: nothing };
+  const actions = { stop: nothing, reschedule: nothing, resume: nothing };
   const who = <p>Who</p>;
 
-  it("gives an email's counts, each leading to those recipients, its words and its recipients", async () => {
+  it("gives an email's counts, each leading to those recipients, those sent first, its words and its recipients", async () => {
     await render(<BroadcastView data={exampleBroadcastSent} who={who} contact={null} {...actions} />);
     await expect.element(page.getByRole("heading", { name: exampleBroadcastSent.written.subject })).toBeVisible();
+    // Those that went, delivered or not yet said to be: Gmail never says what arrived.
+    expect(page.getByRole("link", { name: new RegExp(copy.counts.delivered) }).query()).toBeNull();
     await expect
-      .element(page.getByRole("link", { name: `276 ${copy.counts.delivered}` }))
-      .toHaveAttribute("href", "/staff/broadcasts/5?tab=delivered");
+      .element(page.getByRole("link", { name: `${exampleBroadcastSent.summary.sent} ${copy.counts.sent}` }))
+      .toHaveAttribute("href", "/staff/broadcasts/5?tab=sent");
     await expect.element(page.getByRole("link", { name: copy.counts.read })).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.emailTitle)).toBeVisible();
     await expect.element(page.getByText(staffCopy.campaigns.supporters(290), { exact: true })).toBeVisible();
@@ -866,7 +994,7 @@ describe("a broadcast's page", () => {
     await expect
       .element(page.getByText(staffCopy.mailingPages.sends(londonWhen(new Date("2026-11-07T07:18:00Z"), "short"))))
       .toBeVisible();
-    await expect.element(page.getByRole("link", { name: copy.counts.delivered })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: copy.counts.sent })).not.toBeInTheDocument();
     // Who the filters find now, as sending finds who it goes to.
     await expect.element(page.getByText(copy.recipientsNow)).toBeVisible();
     await expect.element(page.getByRole("table")).toBeVisible();
@@ -898,6 +1026,60 @@ describe("a broadcast's page", () => {
     await expect.element(page.getByText(copy.scheduledLine(290, "email", "hello@pauseai.uk"))).toBeVisible();
   });
 
+  it("says one past its time that waits for CiviCRM is waiting to go, not when it sends", async () => {
+    const due = new Date("2026-11-07T07:18:00Z");
+    const data = {
+      ...exampleBroadcastSent,
+      summary: { ...exampleBroadcastSummary, state: "scheduled" as const },
+      written: {
+        ...exampleBroadcastSent.written,
+        state: "scheduled" as const,
+        dueAt: due,
+        waitingSince: due,
+        waitReason: "pull" as const,
+      },
+    };
+    await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
+    await expect.element(page.getByText(copy.waitingDue)).toBeVisible();
+    await expect
+      .element(page.getByText(staffCopy.mailingPages.sends(londonWhen(due, "short"))))
+      .not.toBeInTheDocument();
+  });
+
+  it("says the rest of one sending go tomorrow, once what sends it can send no more today", async () => {
+    const data = {
+      ...exampleBroadcastSent,
+      atLimit: true,
+      summary: { ...exampleBroadcastSummary, state: "sending" as const },
+      written: { ...exampleBroadcastSent.written, state: "sending" as const },
+    };
+    await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
+    await expect.element(page.getByText(copy.moreTomorrow)).toBeVisible();
+  });
+
+  it("says why one stopped before it had all gone: CiviCRM, or a day's limit of emails", async () => {
+    const stopped = (waitReason: "pull" | "limit") => ({
+      ...exampleBroadcastSent,
+      summary: { ...exampleBroadcastSummary, state: "cancelled" as const },
+      written: {
+        ...exampleBroadcastSent.written,
+        state: "cancelled" as const,
+        gaveUp: true,
+        waitingSince: new Date("2026-11-07T07:18:00Z"),
+        waitReason,
+      },
+    });
+    const resume = vi.fn(async (form: FormData) => void form);
+    await render(<BroadcastView data={stopped("limit")} who={who} contact={null} {...actions} resume={resume} />);
+    await expect.element(page.getByText(copy.gaveUpLimit)).toBeVisible();
+    // Resume sending sets it going again.
+    await button(copy.resume).click();
+    await vi.waitFor(() => expect(resume).toHaveBeenCalled());
+    expect(resume.mock.calls[0][0].get("id")).toBe(String(exampleBroadcastSent.written.id));
+    await render(<BroadcastView data={stopped("pull")} who={who} contact={null} {...actions} />);
+    await expect.element(page.getByText(copy.gaveUp)).toBeVisible();
+  });
+
   it("says each copy's status", () => {
     const base = { status: "delivered", skipReason: null, read: false, bounced: false };
     expect(copyStatus(base).words).toBe(copy.statuses.delivered);
@@ -908,6 +1090,11 @@ describe("a broadcast's page", () => {
     expect(copyStatus({ ...base, read: true })).toEqual({ words: copy.statuses.read, tone: "green" });
     expect(copyStatus({ ...base, status: "failed" }).tone).toBe("red");
     expect(copyStatus({ ...base, status: "cancelled" })).toEqual({ words: copy.statuses.cancelled, tone: "amber" });
+    // Cancelled as its broadcast stopped by itself: why, not that we stopped it.
+    expect(copyStatus({ ...base, status: "cancelled", stoppedBy: "limit" })).toEqual({
+      words: copy.stoppedBy.limit,
+      tone: "amber",
+    });
     expect(copyStatus({ ...base, status: "skipped", skipReason: "not-on-whatsapp" }).words).toBe(
       copy.skipReasons["not-on-whatsapp"],
     );
@@ -926,6 +1113,7 @@ describe("BroadcastFor", () => {
     ...fakeActions(),
     stop: nothing,
     reschedule: nothing,
+    resume: nothing,
   } as unknown as Parameters<typeof BroadcastFor>[0]["actions"];
 
   it("shows a draft to write", async () => {
@@ -949,11 +1137,15 @@ describe("BroadcastFor", () => {
       <>
         <BroadcastContact params={{ contact: "text:events:yes" }} />
         <BroadcastContact params={{ contact: "email:events:yes" }} />
+        <BroadcastContact params={{ contact: ["email:newsletter:yes", "email:events:yes"] }} />
         <BroadcastWho params={{ contact: "email:newsletter:yes", near: "LS1" }} choices={exampleSupporterChoices} />
       </>,
     );
     await expect.element(page.getByText(supporters["text:events"])).toBeVisible();
     await expect.element(page.getByText(supporters["email:events"])).toBeVisible();
+    await expect
+      .element(page.getByText(staffCopy.filters.anyOf([supporters["email:newsletter"], supporters["email:events"]])))
+      .toBeVisible();
     const pills = page.getByRole("list", { name: staffCopy.mailingPages.whoLabel }).getByRole("listitem");
     await expect.element(pills.first()).toBeVisible();
     expect(pills.all().map((pill) => pill.element().textContent)).toHaveLength(1);
@@ -973,9 +1165,18 @@ describe("BroadcastsOverview", () => {
       state: "scheduled" as const,
       channel: "text" as const,
       title: "Waiting",
+      sentFrom: "+447700900000",
     };
     const plain = { ...exampleBroadcastSummary, id: 6, state: "scheduled" as const, title: "Plain" };
-    const held = { ...exampleBroadcastSummary, id: 8, state: "draft" as const, title: "Held", waiting: true };
+    const held = {
+      ...exampleBroadcastSummary,
+      id: 8,
+      state: "draft" as const,
+      title: "Held",
+      waiting: true,
+      sentFrom: null,
+      fromName: null,
+    };
     const turnedDown = {
       ...exampleBroadcastSummary,
       id: 9,
@@ -985,8 +1186,13 @@ describe("BroadcastsOverview", () => {
     };
     await render(
       <BroadcastsOverview
-        groups={mailingGroups(
-          { drafts: [held, turnedDown], comingUp: [waiting, plain], sent: [{ ...exampleBroadcastSummary, title: "" }] },
+        groups={mailingGroups<BroadcastSummary>(
+          {
+            drafts: [held, turnedDown],
+            comingUp: [waiting, plain],
+            // By Postmark, so it counts what arrived.
+            sent: [{ ...exampleBroadcastSummary, title: "", sendBy: "postmark" as const, delivered: 276 }],
+          },
           new Date(now),
         )}
         now={now}
@@ -994,6 +1200,13 @@ describe("BroadcastsOverview", () => {
     );
     await expect.element(page.getByRole("link", { name: "Waiting" })).toHaveAttribute("href", "/staff/broadcasts/4");
     await expect.element(page.getByText(copy.channels.text).first()).toBeVisible();
+    // Its channel, then who it's from, a dot between.
+    const lead = page.getByRole("link", { name: "Waiting" }).element().nextElementSibling!;
+    expect(lead.textContent).toBe(`${copy.channels.text} · PauseAI UK · 07700 900000`);
+    // With no one it's from yet, its channel alone.
+    expect(page.getByRole("link", { name: "Held" }).element().nextElementSibling!.textContent).toBe(
+      copy.channels.email,
+    );
     // A draft whose words WhatsApp is reviewing says so beside its Draft.
     await expect.element(page.getByText(copy.waitingTag)).toBeVisible();
     // And one whose words it rejected, till they're sent again.
@@ -1001,7 +1214,7 @@ describe("BroadcastsOverview", () => {
     expect(page.getByText(copy.rejectedTag).all()).toHaveLength(1);
     await expect.element(page.getByText(staffCopy.mailingPages.states.scheduled).first()).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.untitled }).first()).toBeVisible();
-    await expect.element(page.getByText(new RegExp(copy.counts.delivered)).first()).toBeVisible();
+    await expect.element(page.getByText(new RegExp(copy.counts.sent)).first()).toBeVisible();
   });
 
   it("says when there are none", async () => {
@@ -1011,6 +1224,38 @@ describe("BroadcastsOverview", () => {
 });
 
 describe("MessageCopyView", () => {
+  it("says over one that never reached them why: refused as it was sent, by what, never sent, or not yet; nothing over one that went", async () => {
+    const strip = () => document.querySelector("[data-strip]")?.textContent;
+    const { rerender } = await render(<MessageCopyView one={exampleMessageCopy} />);
+    expect(strip()).toBeUndefined();
+    // Refused by what sends it: WhatsApp for a text, an email's by its own.
+    await rerender(
+      <MessageCopyView
+        one={{ ...exampleMessageCopy, channel: "email", sendBy: "postmark", status: "failed", sentAt: null }}
+      />,
+    );
+    expect(strip()).toBe(copy.notReached.refused(copy.sendBy.names.postmark));
+    for (const [status, words] of [
+      ["failed", copy.notReached.refused(copy.sendFacts.whatsApp)],
+      ["cancelled", copy.notReached.never(copy.notReached.why.cancelled)],
+      ["scheduled", copy.notReached.notYet],
+      ["sending", copy.notReached.notYet],
+    ] as const) {
+      await rerender(<MessageCopyView one={{ ...exampleMessageCopy, status, sentAt: null }} />);
+      expect(strip()).toBe(words);
+    }
+    // Cancelled as its broadcast stopped by itself: why.
+    await rerender(
+      <MessageCopyView one={{ ...exampleMessageCopy, status: "cancelled", stoppedBy: "civicrm", sentAt: null }} />,
+    );
+    expect(strip()).toBe(copy.notReached.never(copy.notReached.why.civicrm));
+    // Skipped, why, as its lozenge says.
+    await rerender(
+      <MessageCopyView one={{ ...exampleMessageCopy, status: "skipped", skipReason: "blocked", sentAt: null }} />,
+    );
+    expect(strip()).toBe(copy.notReached.never(copy.notReached.why.blocked));
+  });
+
   it("shows a text as they got it, titled as a letter is, with what its provider reported", async () => {
     await render(<MessageCopyView one={exampleMessageCopy} />);
     await expect
@@ -1088,10 +1333,13 @@ describe("SupporterBroadcasts", () => {
             channel: "text",
             status: "delivered",
             skipReason: null,
+            stoppedBy: null,
             sentAt: new Date("2026-11-07T07:18:00Z"),
             read: true,
             bounced: false,
             optedOut: false,
+            replied: false,
+            toLookAt: false,
           },
           {
             copyId: 22,
@@ -1100,10 +1348,13 @@ describe("SupporterBroadcasts", () => {
             channel: "email",
             status: "failed",
             skipReason: null,
+            stoppedBy: null,
             sentAt: null,
             read: false,
             bounced: false,
             optedOut: false,
+            replied: false,
+            toLookAt: false,
           },
           {
             copyId: 23,
@@ -1112,10 +1363,13 @@ describe("SupporterBroadcasts", () => {
             channel: "email",
             status: "cancelled",
             skipReason: null,
+            stoppedBy: null,
             sentAt: null,
             read: false,
             bounced: false,
             optedOut: false,
+            replied: false,
+            toLookAt: false,
           },
         ]}
       />,

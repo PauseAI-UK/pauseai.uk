@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { copy } from "@/lib/content/email-your-mp";
-import Turnstile, { loadTurnstile, TURNSTILE_SCRIPT, type TurnstileApi } from "./Turnstile";
+import Turnstile, { loadTurnstile, TURNSTILE_SCRIPT, type TurnstileApi } from "@/components/ui/Turnstile";
 
 type TurnstileWindow = Window & { turnstile?: TurnstileApi; onTurnstileLoad?: () => void };
 const w = window as TurnstileWindow;

@@ -44,17 +44,14 @@ describe("SupporterFilters", () => {
       (b) => b.textContent === `${label}: ${topics.newsletter}`,
     )!;
     expect(topicChip.querySelector("svg")).not.toBeNull();
-    // Consent doesn't repeat, so several can only come from an old link or saved filter: a chip each. The first
-    // half: each consent, choosing one takes the filter's place, keeping the answer; then Remove, taking off only
-    // that one; the erased notice goes.
+    // A lozenge each, for a way and an answer, found or left out. The first half: each consent with its answer,
+    // choosing one keeps the other lozenges; then Remove, taking off only that one; the erased notice goes.
     const others = "contact=%21text%3Aevents%3Ayes&contact=email%3Anewsletter%3Aasked";
     const first = await menu(new RegExp(`^${label}:\\s+${topics.newsletter}`));
-    expect(first).toContainEqual([
-      topics.newsletter,
-      "/staff/supporters?activity=registered&contact=email%3Anewsletter%3Ano",
-    ]);
-    expect(first).toContainEqual([topics.events, "/staff/supporters?activity=registered&contact=email%3Aevents%3Ano"]);
-    expect(first).toContainEqual([topics.events, "/staff/supporters?activity=registered&contact=text%3Aevents%3Ano"]);
+    const keeping = `/staff/supporters?activity=registered&${others}`;
+    expect(first).toContainEqual([topics.newsletter, `${keeping}&contact=email%3Anewsletter%3Ano`]);
+    expect(first).toContainEqual([topics.events, `${keeping}&contact=email%3Aevents%3Ano`]);
+    expect(first).toContainEqual([topics.events, `${keeping}&contact=text%3Aevents%3Ano`]);
     expect(first.at(-1)).toEqual([staffCopy.filters.remove, `/staff/supporters?activity=registered&${others}`]);
     // Under its way's heading, each topic once.
     const box = document.querySelector("[popover]:popover-open")!;
@@ -81,6 +78,38 @@ describe("SupporterFilters", () => {
     // + Filter doesn't offer it again.
     const add = await menu(staffCopy.filters.add);
     expect(add.map(([words]) => words)).not.toContain(topics.volunteering);
+  });
+
+  it("puts Consents of one way and one answer in one lozenge, or between them, + Add offering that way's alone, its answer changing them all", async () => {
+    const { filter, ...search } = supportersSearch({
+      contact: ["email:newsletter:yes", "text:events:yes", "email:events:yes", "email:volunteering:no"],
+    });
+    void filter;
+    await render(<SupporterFilters search={search} choices={none} />);
+    const { topics } = copy.filters;
+    const label = copy.columns.subscriptions;
+    const answers = copy.detail.permissions.answers;
+    expect(chips()).toEqual([
+      `${label}: ${staffCopy.filters.anyOf([topics.newsletter, topics.events])}`,
+      answers.email.yes,
+      `${label}: ${topics.events}`,
+      answers.text.yes,
+      `${label}: ${topics.volunteering}`,
+      answers.email.no,
+    ]);
+    // Several, so its menu opens as boxes: email's topics alone.
+    await menu(new RegExp(`^${label}:\\s+${topics.newsletter} or`));
+    const box = document.querySelector("[popover]:popover-open")!;
+    expect(
+      [...box.querySelectorAll("input[type=checkbox]")].map((input) => (input as HTMLInputElement).checked),
+    ).toEqual([true, true, false]);
+    await userEvent.keyboard("{Escape}");
+    // Its answer changes both.
+    const second = await menu(answers.email.yes);
+    expect(second[1]).toEqual([
+      answers.email.no,
+      "/staff/supporters?contact=text%3Aevents%3Ayes&contact=email%3Avolunteering%3Ano&contact=email%3Anewsletter%3Ano&contact=email%3Aevents%3Ano",
+    ]);
   });
 
   it("while choosing who a broadcast goes to, shows its Consent locked: no menu, never offered, kept by Clear filters", async () => {

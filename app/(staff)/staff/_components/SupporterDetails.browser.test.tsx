@@ -278,6 +278,55 @@ describe("SupporterDetails", () => {
               status: null,
             },
             {
+              source: "staff",
+              at: new Date("2026-01-02T00:00:00Z"),
+              kind: "opted-out",
+              title: "newsletter",
+              campaignTitle: null,
+              detail: "x@example.com",
+              href: null,
+              status: null,
+              how: "At a stall",
+              recordedBy: "jo@pauseai.uk",
+            },
+            {
+              source: "reply",
+              at: new Date("2026-01-02T00:00:00Z"),
+              kind: "opted-out",
+              title: "events",
+              campaignTitle: null,
+              detail: "x@example.com",
+              href: null,
+              status: null,
+              how: null,
+              recordedBy: "sam@pauseai.uk",
+              thread: "/staff/broadcasts/3/7",
+            },
+            {
+              source: "reply",
+              at: new Date("2026-01-02T00:00:00Z"),
+              kind: "opted-out",
+              title: "volunteering",
+              campaignTitle: null,
+              detail: "x@example.com",
+              href: null,
+              status: null,
+              how: null,
+              recordedBy: "lee@pauseai.uk",
+              thread: null,
+            },
+            {
+              source: "link",
+              at: new Date("2026-01-02T00:00:00Z"),
+              kind: "opted-out",
+              title: "newsletter",
+              campaignTitle: null,
+              detail: "y@example.com",
+              href: null,
+              status: null,
+              thread: "/staff/broadcasts/3/8",
+            },
+            {
               source: "x",
               at: new Date("2026-01-02T00:00:00Z"),
               kind: "resubscribed",
@@ -328,6 +377,24 @@ describe("SupporterDetails", () => {
     await expect.element(page.getByText("Thing", { exact: false }).first()).toBeVisible();
     await expect.element(page.getByText(copy.detail.statuses.waitlist, { exact: false }).first()).toBeVisible();
     await expect.element(page.getByText("other-list", { exact: false })).toBeVisible();
+    // An opt-out staff recorded says who, and how the person told them, or that it was their reply.
+    await expect
+      .element(page.getByText(copy.detail.toldStaff("jo@pauseai.uk", "At a stall"), { exact: false }))
+      .toBeVisible();
+    await expect
+      .element(page.getByText(copy.detail.fromReply("sam@pauseai.uk").trim(), { exact: false }))
+      .toBeVisible();
+    // "their reply" links to it, in its thread, where it's kept.
+    await expect
+      .element(page.getByRole("link", { name: copy.detail.theirReply }))
+      .toHaveAttribute("href", "/staff/broadcasts/3/7");
+    await expect
+      .element(page.getByText(copy.detail.fromReply("lee@pauseai.uk").trim(), { exact: false }))
+      .toBeVisible();
+    // One by an email's link: the email it came from.
+    await expect
+      .element(page.getByRole("link", { name: copy.detail.theEmail }))
+      .toHaveAttribute("href", "/staff/broadcasts/3/8");
     await expect.element(page.getByText("Gone campaign", { exact: false }).first()).toBeVisible();
     // A letter's status, as stored when it's no status we know, beside the link to its page.
     await expect.element(page.getByText("odd", { exact: false }).first()).toBeVisible();

@@ -204,4 +204,28 @@ describeWithDatabase("dashboard", () => {
       { kind: "failed-import", job: "read-gmail", at: expect.any(Date), error: "Gmail down" },
     ]);
   });
+
+  it("says how many replies to broadcasts wait for a person, and the broadcast with the oldest", async () => {
+    const [{ mailing }] = await query<{ mailing: number }>(
+      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+       VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'jo@pauseai.uk', 'draft') RETURNING id::int AS mailing`,
+    );
+    const [{ copy }] = await query<{ copy: number }>(
+      "INSERT INTO broadcast_messages (mailing_id, status) VALUES ($1, 'sent') RETURNING id::int AS copy",
+      [mailing],
+    );
+    const reply = (gmail: string, automatic: boolean, outcome: string | null) =>
+      query(
+        `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+           gmail_thread_id, blob_key, automatic, outcome, dealt_by, dealt_at)
+         VALUES ($1, now(), 'jane@example.com', 'Re', 'hello@pauseai.uk', $2, $2, 'k', $3, $4,
+           CASE WHEN $4::text IS NULL THEN NULL ELSE 'jo@pauseai.uk' END, CASE WHEN $4::text IS NULL THEN NULL ELSE now() END)`,
+        [copy, gmail, automatic, outcome],
+      );
+    await reply("g1", true, null);
+    await reply("g2", false, "nothing");
+    expect((await dashboard(7)).actions).toEqual([]);
+    await reply("g3", false, null);
+    expect((await dashboard(7)).actions).toEqual([{ kind: "broadcast-replies", count: 1, broadcastId: mailing }]);
+  });
 });

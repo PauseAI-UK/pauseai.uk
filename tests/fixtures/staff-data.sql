@@ -330,20 +330,29 @@ INSERT INTO civicrm_contacts (contact_id, airtable_id, email, first_name, last_n
   do_not_email, do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since,
   newsletter, newsletter_since, volunteer_updates, volunteer_updates_since, first_seen_at, gone_at)
 SELECT c.id, c.airtable_id, c.email, c.first_name, c.last_name, c.city, c.postal_code, c.joined_date::date, c.intent,
-  c.phone, c.on_hold, f, c.no_bulk, f, false, f, c.no_phone, f, false, f,
+  c.phone, c.on_hold, f, c.no_bulk, f, c.no_email, f, c.no_phone, f, c.no_sms, f,
   c.newsletter, coalesce(now() - c.newsletter_ago, f), c.volunteer, f, f, now() - c.gone_ago
 FROM (VALUES
-  (101, 'recMemberJane', 'jane.fixture@example.com', 'Jane', 'Fixture', 'Manchester', 'M1 1AE', '2026-09-12', 'volunteer', NULL, false, false, false, 'subscribed', NULL::interval, 'subscribed', NULL::interval),
-  (103, 'recMemberOwen', 'owen.member@example.com', 'Owen', 'Member', 'Bristol', NULL, '2026-10-06', 'act_now', NULL, false, false, false, 'not_opted_in', NULL, 'not_on_list', NULL),
-  (104, 'recMemberRhea', 'rhea.member@example.com', 'Rhea', 'Member', 'Cardiff', NULL, '2026-07-10', 'keep_informed', NULL, false, true, false, 'subscribed', NULL, 'not_on_list', NULL),
-  (105, 'recMemberKit', 'kit.member@example.com', 'Kit', 'Member', 'Oxford', 'OX1 1AA', '2026-03-03', 'volunteer', NULL, false, false, false, 'unsubscribed', interval '1 day', 'subscribed', NULL),
-  (106, 'recMemberTom', 'tom.seed@example.com', 'Tom', 'Seed', 'London', NULL, '2024-11-03', NULL, '+447700900456', false, false, true, 'not_opted_in', NULL, 'not_on_list', NULL),
-  (107, 'recMemberGil', 'gil.member@example.com', 'Gil', 'Member', 'Leeds', 'LS1 1AA', '2026-08-01', 'act_now', NULL, false, false, false, 'subscribed', NULL, 'not_on_list', interval '1 day'),
-  (108, NULL, 'casey.chapter@example.com', 'Casey', 'Chapter', 'Glasgow', 'G1 1AA', '2026-10-20', 'none', NULL, true, false, false, 'subscribed', NULL, 'not_on_list', NULL),
-  (109, NULL, 'sasha.chapter@example.com', 'Sasha', 'Chapter', 'Belfast', NULL, '2026-11-02', 'volunteer', '+447700900987', false, false, false, 'subscribed', NULL, 'not_on_list', NULL)
-) c (id, airtable_id, email, first_name, last_name, city, postal_code, joined_date, intent, phone, on_hold, no_bulk, no_phone, newsletter, newsletter_ago, volunteer, gone_ago)
+  (101, 'recMemberJane', 'jane.fixture@example.com', 'Jane', 'Fixture', 'Manchester', 'M1 1AE', '2026-09-12', 'volunteer', NULL, false, false, false, false, false, 'subscribed', NULL::interval, 'subscribed', NULL::interval),
+  (103, 'recMemberOwen', 'owen.member@example.com', 'Owen', 'Member', 'Bristol', NULL, '2026-10-06', 'act_now', NULL, false, false, true, false, false, 'not_opted_in', NULL, 'not_on_list', NULL),
+  (104, 'recMemberRhea', 'rhea.member@example.com', 'Rhea', 'Member', 'Cardiff', NULL, '2026-07-10', 'keep_informed', NULL, false, true, false, false, false, 'subscribed', NULL, 'not_on_list', NULL),
+  (105, 'recMemberKit', 'kit.member@example.com', 'Kit', 'Member', 'Oxford', 'OX1 1AA', '2026-03-03', 'volunteer', NULL, false, false, false, false, false, 'unsubscribed', interval '1 day', 'subscribed', NULL),
+  (106, 'recMemberTom', 'tom.seed@example.com', 'Tom', 'Seed', 'London', NULL, '2024-11-03', NULL, '+447700900456', false, false, false, true, true, 'not_opted_in', NULL, 'not_on_list', NULL),
+  (107, 'recMemberGil', 'gil.member@example.com', 'Gil', 'Member', 'Leeds', 'LS1 1AA', '2026-08-01', 'act_now', NULL, false, false, false, false, false, 'subscribed', NULL, 'not_on_list', interval '1 day'),
+  (108, NULL, 'casey.chapter@example.com', 'Casey', 'Chapter', 'Glasgow', 'G1 1AA', '2026-10-20', 'none', NULL, true, false, false, false, false, 'subscribed', NULL, 'not_on_list', NULL),
+  (109, NULL, 'sasha.chapter@example.com', 'Sasha', 'Chapter', 'Belfast', NULL, '2026-11-02', 'volunteer', '+447700900987', false, false, false, false, false, 'subscribed', NULL, 'not_on_list', NULL)
+) c (id, airtable_id, email, first_name, last_name, city, postal_code, joined_date, intent, phone, on_hold, no_bulk, no_email,
+  no_phone, no_sms, newsletter, newsletter_ago, volunteer, gone_ago)
 CROSS JOIN (SELECT now() - interval '2 days' AS f) first;
 INSERT INTO civicrm_erased (contact_id, erased_at) VALUES (199, now() - interval '15 days');
+-- Sasha pressed Stop everything on the contact preferences page: every bulk
+-- email, and her number's call for volunteering, one group, which Restart
+-- undoes.
+INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at) VALUES
+  ('sasha.chapter@example.com', 'bulk', 'email', 'preferences',
+   'preferences stop-all seed-sasha email bulk sasha.chapter@example.com', now() - interval '1 day'),
+  ('+447700900987', 'volunteering', 'call', 'preferences',
+   'preferences stop-all seed-sasha call volunteering +447700900987', now() - interval '1 day');
 INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at)
 SELECT email, 'newsletter', 'email', 'civicrm', contact_id || ' newsletter ' || newsletter_since, newsletter_since
 FROM civicrm_contacts WHERE newsletter = 'unsubscribed';
@@ -1222,7 +1231,8 @@ SELECT nextval(pg_get_serial_sequence('mailings', 'id')) AS id, m.* FROM (VALUES
   ('Our next event is on Saturday.', 'text', 'sending', interval '-1 hour', 'Our next event is on Saturday.', NULL),
   ('PauseCon room change', 'text', 'sent', interval '-3 days', 'PauseCon room change', NULL),
   ('We are flyering on Saturday.', 'text', 'cancelled', interval '-6 days', 'We are flyering on Saturday.', NULL),
-  ('End of summer social', 'email', 'sent', interval '-65 days', NULL, 'join us for an end of summer social in London next Saturday.')
+  ('End of summer social', 'email', 'sent', interval '-65 days', NULL, 'join us for an end of summer social in London next Saturday.'),
+  ('Volunteer evening', 'email', 'cancelled', interval '-8 days', NULL, 'volunteers meet on Thursday evening to plan the month.')
 ) m (title, channel, state, due, template, words);
 INSERT INTO mailings (id, title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state, template_id, created_at, opened_at)
   OVERRIDING SYSTEM VALUE
@@ -1239,24 +1249,34 @@ SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 's
   'jo@pauseai.uk', CASE WHEN m.channel = 'email' THEN 'hello@pauseai.uk' ELSE '+447700900000' END, 'PauseAI UK',
   now() + m.due, m.state, t.id, least(now(), now() + m.due) - interval '2 days', now() - interval '1 hour'
 FROM seed_broadcasts m LEFT JOIN whatsapp_templates t ON t.name = m.template;
+-- Volunteer evening stopped as it hadn't all gone by Gmail in its seven days
+-- (sendingStopsAt), so it offers to resume.
+UPDATE mailings SET gave_up = true, wait_reason = 'limit', waiting_since = due_at + interval '7 days'
+WHERE audience = 'supporters' AND title = 'Volunteer evening';
 
 -- Each copy of those sent, sending or stopped, as sending left it: one for
 -- each supporter the broadcast's Consent found when it went, at their
 -- address or number that said yes. Every way one can go: delivered, a text
--- also read, sent with no word back yet, failed, bounced, skipped for each
+-- also read, sent with no word back yet, failed (an email refused by Gmail
+-- as it was sent, a text reported by WhatsApp after), bounced, skipped for each
 -- reason, and never sent, as the broadcast was stopped first. Each agrees
 -- with the supporter's own page: Robin's calendar address bounced on Events
 -- this month, which blocked it, so the PauseCon email skipped it; Tom
--- unsubscribed after three broadcasts were written and before each went;
+-- unsubscribed after two emails were written and before each went, and
+-- his number has PauseAI Global's "Do not SMS", so the flyering text
+-- skipped it;
 -- Grace no longer follows the calendar; Li's number isn't on WhatsApp; and
 -- Pat, whom PauseCon room change reached, asked us to stop two hours later
 -- (opt_outs, above), and Jane answered it. Erin had the summer social
--- before she unsubscribed and was erased. Scheduled broadcasts have no
+-- before she unsubscribed and was erased. Volunteer evening reached two
+-- before it stopped, and never the other two. Scheduled broadcasts have no
 -- copies, as sending finds who they go to. Events this month's first, so
 -- its first copy is 1.
 CREATE TEMP TABLE seed_copies ON COMMIT DROP AS
 SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FROM (
-  SELECT m.id AS mailing_id, m.channel, m.due_at, k.supporter_id, c.luma_user, c.status, c.reason, c.report, c.was_read, c.stopped
+  SELECT m.id AS mailing_id, m.channel, m.due_at, k.supporter_id, c.luma_user, c.status, c.reason, c.report, c.was_read, c.stopped,
+    -- An email failing is Gmail refusing it as it was sent; a text's failing, WhatsApp's report after.
+    m.channel = 'email' AND c.status = 'failed' AND c.report = 'failed' AS refused
   FROM (SELECT v.*, row_number() OVER () AS n FROM (VALUES
     ('Events this month', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
     ('Events this month', 'usr-fixture-3', 'delivered', NULL, 'delivered', false, false),
@@ -1292,12 +1312,16 @@ SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FR
     ('PauseCon room change', 'usr-seed-10', 'skipped', 'not-on-whatsapp', NULL, false, false),
     ('We are flyering on Saturday.', 'usr-fixture-1', 'delivered', NULL, 'delivered', true, false),
     ('We are flyering on Saturday.', 'usr-seed-22', 'failed', NULL, 'failed', false, false),
-    ('We are flyering on Saturday.', 'usr-seed-9', 'skipped', 'unsubscribed', NULL, false, false),
+    ('We are flyering on Saturday.', 'usr-seed-9', 'skipped', 'no-permission', NULL, false, false),
     ('We are flyering on Saturday.', 'usr-seed-10', 'cancelled', NULL, NULL, false, false),
     ('We are flyering on Saturday.', 'usr-seed-12', 'cancelled', NULL, NULL, false, false),
     ('End of summer social', 'usr-fixture-6', 'delivered', NULL, 'delivered', false, false),
     ('End of summer social', 'usr-seed-9', 'delivered', NULL, 'delivered', false, false),
-    ('End of summer social', 'usr-seed-20', 'delivered', NULL, 'delivered', false, false)
+    ('End of summer social', 'usr-seed-20', 'delivered', NULL, 'delivered', false, false),
+    ('Volunteer evening', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
+    ('Volunteer evening', 'usr-fixture-3', 'delivered', NULL, 'delivered', false, false),
+    ('Volunteer evening', 'usr-seed-10', 'cancelled', NULL, NULL, false, false),
+    ('Volunteer evening', 'usr-seed-12', 'cancelled', NULL, NULL, false, false)
   ) v (title, luma_user, status, reason, report, was_read, stopped)) c
   JOIN mailings m ON m.audience = 'supporters' AND m.title = c.title
   LEFT JOIN supporter_links k ON k.luma_user_id = c.luma_user
@@ -1311,7 +1335,7 @@ INSERT INTO broadcast_messages (id, mailing_id, supporter_id, address, status, p
 SELECT c.id, c.mailing_id, c.supporter_id,
   CASE WHEN c.channel = 'email' THEN (SELECT email FROM luma_people WHERE user_id = c.luma_user)
     ELSE (SELECT phone_number(g.phone) FROM luma_guests g WHERE g.user_id = c.luma_user AND g.phone IS NOT NULL ORDER BY g.registered_at DESC LIMIT 1) END,
-  c.status, CASE WHEN c.status IN ('sent', 'delivered', 'failed') THEN 'seed-broadcast-' || c.id END,
+  c.status, CASE WHEN c.status IN ('sent', 'delivered', 'failed') AND NOT c.refused THEN 'seed-broadcast-' || c.id END,
   CASE WHEN c.supporter_id IS NOT NULL THEN jsonb_build_object('name', s.name, 'place', (SELECT place FROM supporter_place WHERE supporter_id = c.supporter_id),
     'values', jsonb_build_object('firstName', split_part(s.name, ' ', 1), 'name', s.name),
     'meets', '["has:firstName", "has:name"]'::jsonb || coalesce((
@@ -1319,14 +1343,16 @@ SELECT c.id, c.mailing_id, c.supporter_id,
         SELECT 'wrote:' || l.campaign AS part FROM supporter_links k JOIN letters_from_supporters l ON l.entry_id = k.form_entry_id WHERE k.supporter_id = c.supporter_id
         UNION SELECT 'event:' || g.event_id FROM supporter_links k JOIN luma_guests g ON g.user_id = k.luma_user_id
           WHERE k.supporter_id = c.supporter_id AND g.approval_status <> 'declined') parts), '[]'::jsonb)) END,
-  c.reason, CASE WHEN c.status IN ('sent', 'delivered', 'failed') THEN c.due_at END
+  c.reason, CASE WHEN c.status IN ('sent', 'delivered', 'failed') AND NOT c.refused THEN c.due_at END
 FROM seed_copies c LEFT JOIN supporters_summary s ON s.id = c.supporter_id;
 -- What each provider reported: delivered, failed or bounced a minute after
 -- sending, read twenty minutes after, Jane's answer ten minutes later, and
--- Pat's stop two hours after.
+-- Pat's stop two hours after. An email Gmail refused failed as it was sent,
+-- and never went.
 INSERT INTO broadcast_message_events (message_id, at, kind)
-SELECT id, due_at, 'sent' FROM seed_copies WHERE status IN ('sent', 'delivered', 'failed')
-UNION ALL SELECT id, due_at + interval '1 minute', report FROM seed_copies WHERE report IS NOT NULL
+SELECT id, due_at, 'sent' FROM seed_copies WHERE status IN ('sent', 'delivered', 'failed') AND NOT refused
+UNION ALL SELECT id, due_at + CASE WHEN refused THEN interval '0' ELSE interval '1 minute' END, report
+  FROM seed_copies WHERE report IS NOT NULL
 UNION ALL SELECT id, due_at + interval '20 minutes', 'read' FROM seed_copies WHERE was_read
 UNION ALL SELECT c.id, c.due_at + interval '30 minutes', 'replied' FROM seed_copies c JOIN mailings m ON m.id = c.mailing_id
   WHERE m.title = 'PauseCon room change' AND c.luma_user = 'usr-fixture-1'
@@ -1339,6 +1365,64 @@ WITH bounced AS (
   RETURNING id, address
 )
 INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM bounced;
+
+-- Each copy's unsubscribe link (its token's hash) and the Message-ID it went with, as sending
+-- gives them, and the topic it went under. Jane's copy of Thank you for
+-- marching has a link the public pages open (tests/routes.ts).
+UPDATE broadcast_messages c SET link_token_hash = encode(sha256(convert_to(CASE WHEN c.id = (
+    SELECT s.id FROM seed_copies s JOIN mailings m ON m.id = s.mailing_id
+    WHERE m.title = 'Thank you for marching' AND s.luma_user = 'usr-fixture-1')
+  THEN 'seed-unsubscribe-jane' ELSE 'seed-link-' || c.id END, 'UTF8')), 'hex'),
+  rfc_message_id = 'seed-copy-' || c.id || '@pauseai.uk', topics = ARRAY[m.topic]
+FROM mailings m WHERE m.id = c.mailing_id;
+-- Replies, read from hello@: Alex asking to stop, waiting for staff; Fay's
+-- automatic reply; and Jane's thanks, which Jo answered.
+INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+  gmail_thread_id, rfc_message_id, blob_key, automatic, outcome, dealt_by, dealt_at)
+SELECT s.id, s.due_at + r.after, l.email, r.subject, 'hello@pauseai.uk', r.gmail, r.gmail,
+  'fixture-' || r.file || '@example.com', 'fixture/' || r.file || '.eml.gz',
+  r.automatic, r.outcome, r.dealt_by, CASE WHEN r.outcome IS NOT NULL THEN s.due_at + r.after + interval '1 hour' END
+FROM (VALUES
+  ('Events this month', 'usr-fixture-3', interval '2 hours', 'Re: Events this month', 'seed-reply-stop', 'broadcast-reply-stop', false, NULL, NULL),
+  ('Events this month', 'usr-fixture-6', interval '1 minute', 'Automatic reply: Events this month', 'seed-reply-away', 'broadcast-reply-away', true, NULL, NULL),
+  ('Thank you for marching', 'usr-fixture-1', interval '50 minutes', 'Re: Thank you for marching', 'seed-reply-thanks', 'broadcast-reply-thanks', false, 'answered', 'jo@pauseai.uk')
+) r (title, luma_user, after, subject, gmail, file, automatic, outcome, dealt_by)
+JOIN mailings m ON m.audience = 'supporters' AND m.title = r.title
+JOIN seed_copies s ON s.mailing_id = m.id AND s.luma_user = r.luma_user
+JOIN luma_people l ON l.user_id = r.luma_user;
+INSERT INTO broadcast_message_events (message_id, at, kind)
+SELECT message_id, received_at, 'replied' FROM broadcast_replies WHERE NOT automatic;
+INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, created_at, sent_at, gmail_message_id,
+  rfc_message_id)
+SELECT id, '00000000-0000-4000-8000-000000000001', dealt_by,
+  '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Thank you for coming, Jane! The next march is on 6 December."}]}]}',
+  'sent', dealt_at, dealt_at, 'seed-answer-thanks', 'seed-answer-thanks@pauseai.uk'
+FROM broadcast_replies WHERE gmail_message_id = 'seed-reply-thanks';
+
+-- ------------------------------------------------------ contact preferences
+
+-- Someone who's no supporter unsubscribed from the newsletter by an old
+-- email's link, which CiviCRM accepted; and lifted "No bulk emails" on the
+-- contact preferences page, beside its words, which CiviCRM has still to answer.
+-- A link to Jane's settings, asked for an hour ago, which the public pages
+-- open (tests/routes.ts).
+WITH seed_out AS (
+  INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)
+  VALUES ('gone.seed@example.com', 'newsletter', 'link', 'seed-link-gone', now() - interval '4 days') RETURNING id, unsubscribed_at
+)
+INSERT INTO civicrm_updates (opt_out_id, change, list, email, occurred_at, source, tries, tried_at, status, answered_at)
+SELECT id, 'unsubscribe', 'newsletter', 'gone.seed@example.com', unsubscribed_at, 'pauseai.uk:link', 1,
+  unsubscribed_at + interval '1 hour', 'accepted', unsubscribed_at + interval '1 hour'
+FROM seed_out;
+WITH seed_lift AS (
+  INSERT INTO preference_choices (address, way, topic, wording, chosen_at)
+  VALUES ('lifted.seed@example.com', 'email', 'bulk', 'PauseAI UK and PauseAI Global can send me bulk email again.', now() - interval '20 minutes')
+  RETURNING id, chosen_at, wording
+)
+INSERT INTO civicrm_updates (choice_id, change, email, occurred_at, source, wording)
+SELECT id, 'allow_bulk_email', 'lifted.seed@example.com', chosen_at, 'pauseai.uk:preferences', wording FROM seed_lift;
+INSERT INTO preference_links (token_hash, address, created_at, expires_at)
+VALUES (encode(sha256('seed-settings-jane'::bytea), 'hex'), 'jane.fixture@example.com', now() - interval '1 hour', now() + interval '7 days' - interval '1 hour');
 
 -- --------------------------------------------------------------- errors
 

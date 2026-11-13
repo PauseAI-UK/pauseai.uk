@@ -20,6 +20,7 @@ import type { Group } from "../_components/types";
 import {
   MailingEditorExample,
   MailingButtonsExample,
+  ResumeBroadcastExample,
   ChangeTimeFormExample,
   DueTimeFieldsExample,
   MailingFilesExample,
@@ -508,6 +509,20 @@ export const staffMailingsEvents: Group = {
           render: () => (
             <StaffPage as="div">
               <MailingButtonsExample id={5} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "ResumeBroadcast",
+      file: "app/(staff)/staff/_components/MailingButtons.tsx",
+      variants: [
+        {
+          label: "Beside what says a broadcast stopped before it had all gone",
+          render: () => (
+            <StaffPage as="div">
+              <ResumeBroadcastExample id={7} />
             </StaffPage>
           ),
         },

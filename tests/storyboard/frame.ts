@@ -4,6 +4,7 @@ import { emailView } from "../fixtures/email-view";
 import type { OutboxEmail } from "@/lib/server/fixtures/outbox";
 import { LOCAL_URL } from "../checkout.mjs";
 import type { PlaceholderText } from "./report/frames";
+import { iconsLevelWithWords } from "./icons-level";
 import { tableDatesOnOneLine } from "./table-dates";
 
 /**
@@ -42,6 +43,7 @@ export async function frame(
   const index = info.annotations.filter((a) => a.type === "frame").length + 1;
   info.annotations.push({ type: "frame", description: caption });
   await tableDatesOnOneLine(page);
+  await iconsLevelWithWords(page);
   if (process.env.STORYBOARD_SHOTS !== "1") return;
 
   // The pointer is wherever the last click left it, which, as the page

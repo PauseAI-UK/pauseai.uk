@@ -203,3 +203,14 @@ export async function listCalendarContacts(cursor?: string): Promise<LumaPage<Ca
     }),
   };
 }
+
+/**
+ * Takes an address off the calendar's contacts, so Luma sends it none of the
+ * calendar's invites or newsletters
+ * (https://docs.luma.com/reference/post_v1-calendars-contacts-remove). They
+ * can still register for events, and follow again themselves. Throws as
+ * lumaPost does.
+ */
+export async function removeCalendarContact(email: string): Promise<void> {
+  await lumaPost("/v1/calendars/contacts/remove", { email });
+}

@@ -37,11 +37,30 @@ describeWithDatabase("POST /api/postmark/bounce", () => {
     expect(await query("SELECT address FROM email_blocks")).toEqual([{ address: "test-mp@parliament.example" }]);
   });
 
+  it("marks a copy of a broadcast delivered, once, from the delivery webhook", async () => {
+    const [{ id: mailing }] = await query<{ id: number }>(
+      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+       VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'staff@pauseai.uk', 'draft') RETURNING id::int AS id`,
+    );
+    await query(
+      "INSERT INTO broadcast_messages (mailing_id, status, provider_message_id) VALUES ($1, 'sent', 'pm-1')",
+      [mailing],
+    );
+    const delivered = { RecordType: "Delivery", MessageID: "pm-1", DeliveredAt: "2026-11-02T10:00:00Z" };
+    expect(await (await POST(webhookRequest("/api/postmark/bounce", delivered))).json()).toEqual({ recorded: true });
+    await POST(webhookRequest("/api/postmark/bounce", { ...delivered, DeliveredAt: "not a time" }));
+    await POST(webhookRequest("/api/postmark/bounce", { RecordType: "Delivery" }));
+    expect(await query("SELECT status FROM broadcast_messages")).toEqual([{ status: "delivered" }]);
+    expect(await query("SELECT kind, at FROM broadcast_message_events")).toEqual([
+      { kind: "delivered", at: new Date("2026-11-02T10:00:00Z") },
+    ]);
+  });
+
   it("records a bounce for an email we didn't send, and answers 200 for anything else, or a body that isn't JSON", async () => {
     expect(await (await POST(webhookRequest("/api/postmark/bounce", bounce))).json()).toEqual({ recorded: true });
     expect(await query("SELECT address FROM email_problems")).toEqual([{ address: "test-mp@parliament.example" }]);
-    const delivery = await POST(webhookRequest("/api/postmark/bounce", { ...bounce, RecordType: "Delivery" }));
-    expect(await delivery.json()).toEqual({ recorded: false });
+    const opened = await POST(webhookRequest("/api/postmark/bounce", { ...bounce, RecordType: "Open" }));
+    expect(await opened.json()).toEqual({ recorded: false });
     expect((await POST(webhookRequest("/api/postmark/bounce", "not json"))).status).toBe(200);
   });
 

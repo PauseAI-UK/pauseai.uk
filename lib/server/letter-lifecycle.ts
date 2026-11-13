@@ -57,28 +57,68 @@ export type TakenLetter<Unsent> = {
   message(): Promise<ChannelMessage>;
   /** The details of the event logged when it went. */
   sentDetails(result: Extract<ChannelResult, { sent: true }>): object;
-  /** What's done with it when the channel didn't send it, and what that says. */
-  unsent(reason: Extract<ChannelResult, { sent: false }>["reason"]): Promise<Unsent>;
+  /** What's done with it when the channel didn't send it, by why and whether to try again, and what that says. */
+  unsent(result: Extract<ChannelResult, { sent: false }>): Promise<Unsent>;
 };
+
+/**
+ * What's thrown when a letter went but marking it sent failed: it's left
+ * sending, for uncertainLetters to mark uncertain, as sending it again
+ * would send it twice.
+ */
+export class SentUnrecorded extends Error {
+  constructor(
+    letterId: number,
+    readonly cause: unknown,
+  ) {
+    super(`Letter ${letterId} went, but couldn't be marked sent`);
+  }
+}
+
+/**
+ * What's thrown when anything went wrong before a letter went, or dealing
+ * with one that didn't: it never went, so the caller puts it back to try
+ * again.
+ */
+class NotSentYet extends Error {
+  constructor(
+    letterId: number,
+    readonly cause: unknown,
+  ) {
+    super(`Letter ${letterId} couldn't be sent`);
+  }
+}
 
 /**
  * Sends a letter a run has taken, by `channel`: unless it's held, sends it,
  * and marks it sent, logging the event, or else leaves it as `unsent` says.
- * Every kind of letter goes this way, each by its own channel.
+ * Every kind of letter goes this way, each by its own channel. Throws
+ * NotSentYet for anything going wrong before it went, and SentUnrecorded
+ * for marking one that went failing, for the caller to tell apart.
  */
 export async function sendLetterVia<Unsent>(
   channel: MailingChannel,
   letter: TakenLetter<Unsent>,
 ): Promise<{ sent: true } | Unsent> {
-  const held = await letter.held();
-  if (held !== undefined) return held;
-  const result = await channel.send(await letter.message(), letter.purpose);
-  if (!result.sent) return letter.unsent(result.reason);
-  await transition(letter.id, ["sending"], "sent", {
-    event: "sent",
-    details: letter.sentDetails(result),
-    stamp: "sent_at",
-  });
+  let result: ChannelResult;
+  try {
+    const held = await letter.held();
+    if (held !== undefined) return held;
+    // The channel never throws once it has sent (send in email.ts), so whatever's thrown here, nothing went.
+    result = await channel.send(await letter.message(), letter.purpose);
+    if (!result.sent) return await letter.unsent(result);
+  } catch (error) {
+    throw new NotSentYet(letter.id, error);
+  }
+  try {
+    await transition(letter.id, ["sending"], "sent", {
+      event: "sent",
+      details: letter.sentDetails(result),
+      stamp: "sent_at",
+    });
+  } catch (error) {
+    throw new SentUnrecorded(letter.id, error);
+  }
   return { sent: true };
 }
 

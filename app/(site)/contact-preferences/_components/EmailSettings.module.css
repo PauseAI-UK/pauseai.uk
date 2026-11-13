@@ -1,0 +1,233 @@
+/* The contact preferences page, in a reading column (ProsePage): asking for a link, and the settings. */
+
+.lead {
+  font-size: var(--text-lg);
+}
+
+/* Whose settings they are, under the page's title: an envelope and the address, large and bold. */
+.address {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.address svg {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+/* Small grey words: what else to do, or what Save does. */
+.quiet {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+/* What else to do, under the card asking for a link. */
+.card + .quiet {
+  margin-top: var(--space-4);
+}
+
+.alert {
+  color: var(--status-red);
+  margin: 0;
+}
+
+/* A white card: a topic, the form to ask for a link, or an offer of a fresh one. */
+.card {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  min-width: 0;
+}
+
+/* A topic's name and its lozenge, as the card's legend, inside it. */
+.topic {
+  float: left;
+  width: 100%;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--text);
+}
+
+.topic + * {
+  clear: both;
+}
+
+/* What the topic is, under its name: lighter and greyer, over the prose page's margins for every paragraph. */
+.card .what {
+  margin: 0 0 var(--space-3);
+  color: var(--text-secondary);
+}
+
+/* Its boxes, a row that wraps. */
+.ways {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* Why it's on or off, under the boxes; on a phone, in a bubble instead (.bubble). */
+/* A rule above it, there only with it. */
+.card .why {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-sm);
+}
+
+/* Whether a topic's last change is saved, to the right of its boxes. */
+.saving {
+  display: inline-flex;
+}
+
+/* What holds every email: a pale amber box above the topics, its heading and words evenly spaced. */
+.held {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-5);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: rgb(var(--amber-rgb) / 0.12);
+}
+
+/* Their first heading at the box's top, over the prose page's own margin. */
+.unsubscribe h2:first-of-type {
+  margin-top: 0;
+}
+
+/* A box whose grid's gap spaces its heading, words and button, so they have no margins of their own. */
+.held h2:first-of-type,
+.held .boxText,
+.offer h2:first-of-type,
+.offer .boxText {
+  margin: 0;
+}
+
+/* An offer of a fresh link, once a page's link has run out. */
+.offer {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+/* A form whose one button is as wide as its words. */
+.buttonForm {
+  justify-items: start;
+}
+
+/* An email's unsubscribe, first on its page. */
+.unsubscribe {
+  margin: 0 0 var(--space-6);
+  padding: var(--space-5);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+/* PauseAI Global's emails: a warm panel, open on a wide screen (.wide), folded to its heading on a phone (.narrow). */
+.global {
+  margin-top: var(--space-6);
+  padding: var(--space-1) var(--space-5) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+
+.narrow {
+  display: none;
+  padding: var(--space-3) var(--space-5);
+}
+
+/* Open, its words spaced from the heading as the wide box's are, and none left at the foot. */
+.narrow[open] summary {
+  margin-bottom: var(--space-3);
+}
+
+.narrow > p:first-of-type {
+  margin-top: 0;
+}
+
+.narrow > p:last-child {
+  margin-bottom: 0;
+}
+
+.narrow summary {
+  cursor: pointer;
+}
+
+/* The heading in the summary, on the marker's line. */
+.narrow summary h2 {
+  display: inline;
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+@media (max-width: 720px) {
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: block;
+  }
+}
+
+/* Stop everything, below a rule. */
+.stopAll {
+  margin-top: var(--space-6);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+/* On a phone: tighter cards, so a topic's boxes fit on one row. */
+@media (max-width: 720px) {
+  .card {
+    padding: var(--space-4);
+  }
+
+  .ways {
+    gap: var(--space-2);
+  }
+}
+
+/* Only on a wide screen, or only on a phone. */
+@media (max-width: 720px) {
+  .wideOnly {
+    display: none;
+  }
+}
+
+@media (min-width: 721px) {
+  .phoneOnly {
+    display: none;
+  }
+}
+
+/* On a phone: the topic's name on the left of its line, the "?" on the right. */
+@media (max-width: 720px) {
+  .topic {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+}
+
+/* The "?" and its bubble, in the legend but not in its bold: only "Why:" is. */
+.askWrap {
+  font-weight: 400;
+}
+
+/* The "?" that opens why in a bubble, a small round button. */
+.ask {
+  --icon-button-size: 24px;
+  flex: none;
+  font-weight: 700;
+}

@@ -130,10 +130,37 @@ function Subject({ item }: { item: SupporterActivity }) {
     );
   }
   if (item.kind === "opted-out" || item.kind === "resubscribed") {
+    // One staff recorded says who, and how the person told them, or that it was from their reply.
+    // Their reply, linked to its thread where there's one.
+    const reply = item.thread ? (
+      <StaffLink href={item.thread}>{copy.detail.theirReply}</StaffLink>
+    ) : (
+      copy.detail.theirReply
+    );
     return (
       <>
         {copy.lists[item.title ?? ""] ?? item.title}
         {item.detail && <Muted> · {item.detail}</Muted>}
+        {item.recordedBy && (
+          <Muted>
+            {" · "}
+            {item.how ? (
+              copy.detail.toldStaff(item.recordedBy, item.how)
+            ) : (
+              <>
+                {copy.detail.fromReply(item.recordedBy)}
+                {reply}
+              </>
+            )}
+          </Muted>
+        )}
+        {/* One from an email but no reply, such as its unsubscribe link: the email it came from. */}
+        {item.thread && !item.recordedBy && (
+          <Muted>
+            {" · "}
+            <StaffLink href={item.thread}>{copy.detail.theEmail}</StaffLink>
+          </Muted>
+        )}
       </>
     );
   }
@@ -308,6 +335,7 @@ export default function SupporterDetails({
   messages,
   notes,
   oneOffs,
+  optOut,
 }: {
   supporter: Details;
   erase?: ReactNode;
@@ -317,6 +345,8 @@ export default function SupporterDetails({
   notes?: ReactNode;
   /** The card of their one-off emails (OneOffTable). */
   oneOffs?: ReactNode;
+  /** The form to record an opt-out they told staff of (OptOutForm), under their consents. */
+  optOut?: ReactNode;
 }) {
   const { activity, permissions, letters } = supporter;
   const usable = new Set(permissions.filter((p) => p.channel === "phone" && p.send !== "no").map((p) => p.address));
@@ -348,6 +378,7 @@ export default function SupporterDetails({
         <Column span={2}>
           <Card look="aside" title={copy.detail.listsTitle} id="subscriptions">
             <PermissionTiles permissions={permissions} />
+            {optOut}
           </Card>
           {notes}
         </Column>

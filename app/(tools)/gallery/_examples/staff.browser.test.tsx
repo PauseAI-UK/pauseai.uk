@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -15,6 +15,7 @@ import {
   MailingWriterExample,
   NoteChangesExample,
   NoteEntryExample,
+  OptOutFormExample,
   NotesCardExample,
   NotesExample,
   NoteTextExample,
@@ -58,10 +59,18 @@ describe("the staff examples", () => {
     await expect.poll(() => push.mock.calls).toEqual([["/staff/supporters/import/previous/6"]]);
   });
 
-  it("picks a mailing's hour, and logs Change the time's save", async () => {
+  it("picks a mailing's hour and minutes, and logs Change the time's save", async () => {
+    // The example's day, early, as the fixture clock has it, so no hour's too soon whenever this runs.
+    vi.useFakeTimers({ now: new Date("2026-10-16T06:00:00Z"), toFake: ["Date"] });
+    onTestFinished(() => void vi.useRealTimers());
     const { unmount } = await render(<DueTimeFieldsExample />);
-    await page.getByRole("combobox").selectOptions("15");
-    await expect.element(page.getByRole("combobox")).toHaveValue("15");
+    const hour = page.getByRole("combobox", { name: staffCopy.mailingPages.hour });
+    const minutes = page.getByRole("combobox", { name: staffCopy.mailingPages.minutes });
+    await expect.element(minutes).toBeDisabled();
+    await hour.selectOptions("15");
+    await expect.element(hour).toHaveValue("15");
+    await minutes.selectOptions("48");
+    await expect.element(minutes).toHaveValue("48");
     await unmount();
     await render(<ChangeTimeFormExample />);
     await page.getByRole("button", { name: staffCopy.mailingPages.saveTime }).click();
@@ -119,6 +128,21 @@ describe("the staff examples", () => {
     await unmount();
     await render(<NoteEntryExample own={false} />);
     await expect.element(page.getByText(staffCopy.notes.edited, { exact: false })).toBeVisible();
+  });
+
+  it("logs recording an opt-out", async () => {
+    await render(<OptOutFormExample opened />);
+    const words = staffCopy.supporters.detail.permissions.recordOptOut;
+    await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
+    const newsletter = staffCopy.supporters.detail.permissions.topics.newsletter;
+    await page.getByRole("button", { name: `${newsletter}, jane.smith@example.com (${words.ways.email})` }).click();
+    await page.getByRole("textbox", { name: words.how }).fill("At the stall");
+    await page.getByRole("button", { name: words.record }).click();
+    await expect
+      .element(log().nth(0))
+      .toHaveTextContent(
+        'record({"supporterId":"1","choice":"email|newsletter|jane.smith@example.com","how":"At the stall"})',
+      );
   });
 
   it("logs an event's save in the lists, or says there are none", async () => {

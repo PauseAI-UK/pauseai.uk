@@ -11,6 +11,7 @@ import {
   type CivicrmContact,
 } from "./outside-services/civicrm";
 import { config } from "./config";
+import { sendCivicrmUpdates } from "./civicrm-updates";
 import { recordCivicrmLists } from "./opt-outs";
 import { problem } from "./problems";
 import { resendAfterFix } from "./relays";
@@ -28,8 +29,8 @@ import { linkSupporters } from "./supporters";
 // contact a complete pull doesn't return has left the UK chapter, and is
 // marked gone, unless the pull is so much smaller than the last that it's
 // more likely CiviCRM's mistake. Between pulls, the members import looks up
-// each new member's address (lookUpNewMembers). Nothing here writes to
-// CiviCRM.
+// each new member's address (lookUpNewMembers). Before it pulls, a run sends
+// CiviCRM our opt-outs waiting for it (civicrm-updates.ts).
 
 const JOB = "import-civicrm";
 
@@ -182,7 +183,11 @@ async function markGone(pulled: number[], before: number, db: Queryable): Promis
 export async function importCivicrm(startedBy: string): Promise<CivicrmImportResult> {
   let unblocked: string[] = [];
   const { result } = await asRun(JOB, startedBy, async () => {
-    const contacts = await pullContacts(civicrmKey());
+    const key = civicrmKey();
+    // Ours first, so the pull already has them.
+    const updates = await sendCivicrmUpdates(key);
+    const sentAny = updates.sent + updates.refused + updates.unanswered > 0;
+    const contacts = await pullContacts(key);
     return transaction(async (db) => {
       const [{ before }] = await query<{ before: number }>(
         "SELECT count(*)::int AS before FROM civicrm_contacts WHERE gone_at IS NULL",
@@ -206,6 +211,7 @@ export async function importCivicrm(startedBy: string): Promise<CivicrmImportRes
         optOuts: applied.optOuts,
         blocked: applied.blocked,
         ...(unblocked.length > 0 && { unblocked: unblocked.length }),
+        ...(sentAny && { updates }),
       };
       const { supportersAdded, linked } = await linkSupporters(db);
       if (linked > 0) Object.assign(result, { supportersAdded, linked });
@@ -216,7 +222,8 @@ export async function importCivicrm(startedBy: string): Promise<CivicrmImportRes
         await refreshSupporterFacts(db);
         await refreshSupportersList(db);
       }
-      const anything = added + changed + result.gone + result.optOuts + result.blocked + unblocked.length + linked;
+      const anything =
+        added + changed + result.gone + result.optOuts + result.blocked + unblocked.length + linked + updates.sent;
       return { status: anything > 0 ? "ok" : "unchanged", result } as const;
     });
   });

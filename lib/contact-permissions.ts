@@ -51,6 +51,7 @@ export type Send = (typeof SENDS)[number];
 /** Why we may or may not contact someone about a consent; the migration says what each means. */
 export const REASONS = [
   "asked",
+  "chose",
   "signed-up",
   "subscribed",
   "following",

@@ -1,4 +1,6 @@
 import "server-only";
+import { emailSettingsCopy, settingsDate } from "@/lib/content/email-settings";
+import { NOTICE_DAYS, sendBulkNotice } from "./email-settings";
 import { createHash } from "node:crypto";
 import { now } from "@/lib/now";
 import {
@@ -51,7 +53,7 @@ async function whatWeHold(rows: SignupRow[], input: SignupUploadInput) {
   const phones = rows.flatMap((row) => (row.phone ? [row.phone] : []));
   const lower = async (sql: string, values: unknown[]) =>
     new Set((await query<{ email: string }>(sql, values)).map((row) => row.email));
-  const [known, blocked, entered, going, numbers] = await Promise.all([
+  const [known, blocked, entered, going, numbers, holds] = await Promise.all([
     lower("SELECT DISTINCT email FROM supporter_identity WHERE email = ANY($1::text[])", [emails]),
     lower("SELECT address AS email FROM email_blocks WHERE address = ANY($1::text[])", [emails]),
     lower(
@@ -73,8 +75,23 @@ async function whatWeHold(rows: SignupRow[], input: SignupUploadInput) {
        ) AS held FROM unnest($1::text[]) given`,
       [phones],
     ),
+    // What stops all bulk email to each, which a new entry's yes can't get past, and whether they've had a notice of it lately.
+    query<{ email: string; reason: string; noticed: boolean }>(
+      `SELECT e.email, d.reason, EXISTS (
+           SELECT 1 FROM email_sends s WHERE s.purpose = 'bulk-notice' AND s.address = e.email
+             AND s.at > now() - make_interval(days => $2)) AS noticed
+       FROM unnest($1::text[]) e (email)
+         CROSS JOIN LATERAL contact_permission('newsletter', 'email', e.email) d
+       WHERE d.reason IN ('no-bulk-email', 'do-not-email')`,
+      [emails, NOTICE_DAYS],
+    ),
   ]);
-  return { known, blocked, entered, going, numbers };
+  const notices = new Map(
+    holds
+      .filter((hold) => hold.reason !== "no-bulk-email" || !hold.noticed)
+      .map((hold) => [hold.email, hold.reason === "no-bulk-email" ? ("bulk" as const) : ("no-email" as const)]),
+  );
+  return { known, blocked, entered, going, numbers, notices };
 }
 
 /**
@@ -110,6 +127,7 @@ export async function planSignupUpload(input: SignupUploadInput): Promise<Signup
       pile: problem ? "held" : !registers && entered ? "done" : action,
       known: held.known.has(row.email) ? "email" : byMobile ? "mobile" : null,
       newEntry: !problem && !entered,
+      notice: !problem && !entered ? (held.notices.get(row.email) ?? null) : null,
     };
   });
   const plan = { input, eventName: event?.name ?? null, rows };
@@ -218,6 +236,15 @@ export async function finishSignupUpload(
     // started. One already going does nothing, and the next scheduled run reads them.
     await query("UPDATE luma_events SET guests_synced_at = NULL WHERE id = $1", [input.eventId]);
     await startLumaImport();
+  }
+  // Signing the form is joining the list, so each new entry with "No bulk emails" is told how to lift it.
+  const where = emailSettingsCopy.bulkNotice.paper(
+    input.note.trim(),
+    settingsDate(new Date(entryTime(input.signedOn))),
+  );
+  const noticed = new Set(plan.rows.filter((row) => row.notice === "bulk").map((row) => row.email));
+  for (const entry of entries) {
+    if (noticed.has(entry.email)) await sendBulkNotice(entry.id, where);
   }
   // Their postcodes' places and MPs now, rather than at the next Luma import, which also looks up any left over.
   await lookUpPlaces();

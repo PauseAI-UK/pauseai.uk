@@ -1,5 +1,12 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { afterEach, beforeEach, expect, it, onTestFinished, vi } from "vitest";
+import { staffCopy } from "@/lib/content/staff-interface";
+import {
+  addTestPolitician,
+  connectTestGmail,
+  describeWithDatabase,
+  useTestDatabase,
+  refuseWrites,
+} from "@/tests/database";
 import type { MailingDoc } from "@/lib/mailing-doc";
 import { query } from "./db";
 import { recordProblem } from "./email";
@@ -191,6 +198,69 @@ describeWithDatabase("sending mailings", () => {
     ]);
   });
 
+  it("puts a letter back to go next run when sending it throws, and the rest of its mailing wait, failing none", async () => {
+    await addTestPolitician({ airtableId: null, name: "Polly", email: "polly@example.org" });
+    await addTestPolitician({ airtableId: null, name: "Dora", email: "dora@example.org" });
+    await scheduled();
+    vi.setSystemTime(new Date("2026-11-01T10:00:00Z"));
+    await startDueMailings();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { channel } = recording(() => {
+      throw new Error("couldn't make it");
+    });
+    expect(await sendDueLetters({ until: Infinity, gap: 0, channel })).toMatchObject({ sent: 0, failed: 0, left: 2 });
+    expect((await letters()).map((letter) => letter.status)).toEqual(["scheduled", "scheduled"]);
+    const [{ first }] = await query<{ first: number }>("SELECT min(id)::int AS first FROM letters_from_pauseai");
+    const words = staffCopy.problems.anywhere;
+    expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(words.letterOf(first)));
+  });
+
+  it("puts back a letter it took but couldn't read, so it goes next run rather than being left sending", async () => {
+    await addTestPolitician({ airtableId: null, name: "Polly", email: "polly@example.org" });
+    await scheduled();
+    vi.setSystemTime(new Date("2026-11-01T10:00:00Z"));
+    await startDueMailings();
+    // Reading the letter after taking it fails, as the politicians' table is briefly missing.
+    await query("ALTER TABLE notable_people RENAME TO notable_people_gone");
+    onTestFinished(
+      async () => void (await query("ALTER TABLE IF EXISTS notable_people_gone RENAME TO notable_people")),
+    );
+    await expect(sendDueLetters({ until: Infinity, gap: 0, channel: recording(SENT).channel })).rejects.toThrow();
+    await query("ALTER TABLE notable_people_gone RENAME TO notable_people");
+    expect((await letters()).map((letter) => letter.status)).toEqual(["scheduled"]);
+  });
+
+  it("counts a letter that went as sent when marking it fails, reporting it, and goes on to the rest", async () => {
+    await addTestPolitician({ airtableId: null, name: "Polly", email: "polly@example.org" });
+    await addTestPolitician({ airtableId: null, name: "Dora", email: "dora@example.org" });
+    await scheduled();
+    vi.setSystemTime(new Date("2026-11-01T10:00:00Z"));
+    await startDueMailings();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await refuseWrites("letters", "NEW.status = 'sent'");
+    const { sent, channel } = recording(SENT);
+    expect(await sendDueLetters({ until: Infinity, gap: 0, channel })).toMatchObject({ sent: 2, failed: 0, left: 0 });
+    expect(sent).toHaveLength(2);
+    // Left sending, for uncertainLetters to mark uncertain for a person, never sent again.
+    expect((await letters()).map((letter) => letter.status)).toEqual(["sending", "sending"]);
+  });
+
+  it("leaves a letter Gmail can't send for now, and the rest from its account, for the next run, failing none", async () => {
+    await addTestPolitician({ airtableId: null, name: "Polly", email: "polly@example.org" });
+    await addTestPolitician({ airtableId: null, name: "Dora", email: "dora@example.org" });
+    await scheduled();
+    vi.setSystemTime(new Date("2026-11-01T10:00:00Z"));
+    await startDueMailings();
+    const { channel } = recording(() => ({ sent: false, reason: "failed", retry: true }));
+    expect(await sendDueLetters({ until: Infinity, gap: 0, channel })).toMatchObject({
+      sent: 0,
+      failed: 0,
+      left: 2,
+      waiting: [JO],
+    });
+    expect((await letters()).map((letter) => letter.status)).toEqual(["scheduled", "scheduled"]);
+  });
+
   it("stops for the day at the account's limit, and when its Gmail is no longer connected, leaving the rest", async () => {
     await addTestPolitician({ airtableId: null, name: "Polly", email: "polly@example.org" });
     await addTestPolitician({ airtableId: null, name: "Dora", email: "dora@example.org" });
@@ -266,12 +336,12 @@ describeWithDatabase("sending mailings", () => {
     const id = await scheduled();
     vi.setSystemTime(new Date("2026-11-01T10:00:00Z"));
     await startDueMailings();
-    // The run stops once Gmail has taken the first letter, before it's marked sent.
-    const { sent, channel } = recording(() => {
-      throw new Error("The function timed out");
-    });
-    await expect(sendDueLetters({ until: Infinity, gap: 0, channel })).rejects.toThrow("timed out");
-    expect(sent.map((m) => m.to.name)).toEqual(["Dora"]);
+    // A run is cut off (Netlify stops the function) once Gmail has taken Dora's letter, before it's marked sent:
+    // it's left sending, as no code of ours runs after.
+    await query(
+      `UPDATE letters l SET status = 'sending', taken_at = now() FROM notable_people n
+       WHERE n.id = l.notable_person_id AND n.name = 'Dora'`,
+    );
     // The next run sends the rest, and waits for the one left sending, as a run may be sending it now.
     const next = recording(SENT);
     expect(await uncertainLetters()).toBe(0);

@@ -5,6 +5,7 @@ import {
   detachFromBroadcast,
   newBroadcastWith,
   rescheduleBroadcastNow,
+  resumeBroadcastNow,
   saveBroadcast,
   scheduleBroadcastNow,
   sendBroadcastTestNow,
@@ -27,4 +28,5 @@ export const broadcastWriterActions = {
   withdrawTemplate: withdrawTemplateNow,
   stop: stopBroadcastNow,
   reschedule: rescheduleBroadcastNow,
+  resume: resumeBroadcastNow,
 };

@@ -8,7 +8,6 @@ import { firstOf, type ParamValue } from "@/lib/list-params";
 import BroadcastsOverview from "../../_components/BroadcastsOverview";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
-import Strip from "../../_components/ui/Strip";
 
 export const metadata: Metadata = { title: staffCopy.broadcastPages.title };
 
@@ -33,7 +32,6 @@ export default async function BroadcastsPage({ searchParams }: { searchParams: P
       >
         {staffCopy.broadcastPages.title}
       </PageHead>
-      <Strip tone="amber">{staffCopy.broadcastPages.noBackend}</Strip>
       <BroadcastsOverview {...await broadcastsPage()} pulse={pulse} />
     </Page>
   );

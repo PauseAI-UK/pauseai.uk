@@ -252,7 +252,7 @@ export const campaignsLetter: Group = {
     },
     {
       name: "Turnstile",
-      file: "app/(site)/campaigns/_components/Turnstile.tsx",
+      file: "components/ui/Turnstile.tsx",
       variants: [
         {
           label: "Cloudflare's widget, stood in for here as in the flows",

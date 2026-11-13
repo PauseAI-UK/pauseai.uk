@@ -4,7 +4,7 @@
 // components with no props, so the server-rendered gallery can place them.
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useState } from "react";
-import { Checkbox, Radio, Segmented } from "@/components/ui/Controls";
+import { Checkbox, Radio, Segmented, Toggles } from "@/components/ui/Controls";
 import { Label } from "@/components/ui/Field";
 import LinkBar from "@/components/ui/LinkBar";
 import LinkButton from "@/components/ui/LinkButton";
@@ -23,6 +23,17 @@ export function CheckboxExample() {
           <Checkbox checked={!checked} onChange={(value) => set(!value)}>
             An example option with a long label, which runs on to a second line on a phone and lines up under the first.
           </Checkbox>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+            <Checkbox boxed checked={checked} onChange={set}>
+              Boxed
+            </Checkbox>
+            <Checkbox boxed checked={!checked} onChange={(value) => set(!value)}>
+              Boxed, unticked
+            </Checkbox>
+            <Checkbox boxed checked={false} disabled onChange={set}>
+              Boxed, locked
+            </Checkbox>
+          </div>
         </div>
       )}
     </Controlled>
@@ -42,6 +53,25 @@ export function SegmentedExample() {
         <>
           <Label>Example size</Label>
           <Segmented label="Example size" options={SIZES} value={value} onChange={set} />
+        </>
+      )}
+    </Controlled>
+  );
+}
+
+const FRUITS = [
+  { value: "apples", label: "Apples" },
+  { value: "pears", label: "Pears" },
+  { value: "plums", label: "Plums" },
+];
+
+export function TogglesExample() {
+  return (
+    <Controlled initial={["apples", "plums"]}>
+      {(values, set) => (
+        <>
+          <Label>Example fruit</Label>
+          <Toggles label="Example fruit" options={FRUITS} values={values} onChange={set} joiner="or" min={1} />
         </>
       )}
     </Controlled>

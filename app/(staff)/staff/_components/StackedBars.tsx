@@ -76,7 +76,8 @@ export default function StackedBars({ parts, bars, name, from, to }: Props) {
                 Boolean(bars[pointed].counts[part.key]) && (
                   <span key={part.key} className={styles.line}>
                     <span>
-                      <span className={styles.swatch} data-part={place} aria-hidden="true" /> {part.label}
+                      <span className={styles.swatch} data-part={place} aria-hidden="true" data-beside="lowercase" />{" "}
+                      {part.label}
                     </span>
                     <span>{bars[pointed].counts[part.key]}</span>
                   </span>
@@ -94,8 +95,8 @@ export default function StackedBars({ parts, bars, name, from, to }: Props) {
           (part, place) =>
             Boolean(bars[last].counts[part.key]) && (
               <span key={part.key}>
-                <span className={styles.swatch} data-part={place} aria-hidden="true" /> {part.label} ·{" "}
-                {bars[last].counts[part.key]}
+                <span className={styles.swatch} data-part={place} aria-hidden="true" data-beside="lowercase" />{" "}
+                {part.label} · {bars[last].counts[part.key]}
               </span>
             ),
         )}

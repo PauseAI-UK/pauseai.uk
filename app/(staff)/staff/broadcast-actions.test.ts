@@ -3,7 +3,7 @@ import { query } from "@/lib/server/db";
 import { createDraft, getWrittenMailing, saveDraft } from "@/lib/server/mailing-drafts";
 import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import { createSession } from "@/lib/server/staff-auth";
-import { describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/broadcast-fixtures";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
@@ -13,11 +13,14 @@ import {
   keepFilterForBroadcast,
   newBroadcast,
   changeBroadcastConsentNow,
+  dealWithReplyNow,
+  answerReplyNow,
   newBroadcastWith,
   rescheduleBroadcastNow,
   saveBroadcast,
   scheduleBroadcastNow,
   sendBroadcastTestNow,
+  resumeBroadcastNow,
   stopBroadcastNow,
   submitTemplateNow,
   withdrawTemplateNow,
@@ -48,6 +51,8 @@ afterEach(() => vi.unstubAllEnvs());
 
 describeWithDatabase("the broadcast pages' Server Actions", () => {
   useTestDatabase();
+  // An email goes by hello@'s Gmail, which is connected.
+  beforeEach(() => connectTestGmail("hello@pauseai.uk"));
 
   beforeEach(async () => {
     requestCookies.clear();
@@ -94,10 +99,68 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     const id = await draft();
     expect(await changeBroadcastConsentNow(id, "email:newsletter:yes")).toBe(true);
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/broadcasts/${id}`);
-    expect((await getWrittenBroadcast(id))!.topic).toBe("newsletter");
+    expect((await getWrittenBroadcast(id))!.topics).toEqual(["newsletter"]);
     vi.mocked(revalidatePath).mockClear();
     expect(await changeBroadcastConsentNow(id, "nonsense")).toBe(false);
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("changes a draft to several topics' yeses, and back to one", async () => {
+    const id = await draft();
+    expect(await changeBroadcastConsentNow(id, "email:newsletter:yes email:events:yes")).toBe(true);
+    expect((await getWrittenBroadcast(id))!.topics).toEqual(["newsletter", "events"]);
+    expect(await changeBroadcastConsentNow(id, "email:events:yes")).toBe(true);
+    expect((await getWrittenBroadcast(id))!.topics).toEqual(["events"]);
+  });
+
+  it("records what a reply is, and nothing for a form that doesn't say", async () => {
+    const id = await draft();
+    const [{ copy }] = await query<{ copy: number }>(
+      "INSERT INTO broadcast_messages (mailing_id, status) VALUES ($1, 'sent') RETURNING id::int AS copy",
+      [id],
+    );
+    const [{ reply }] = await query<{ reply: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, blob_key, automatic)
+       VALUES ($1, now(), 'jane@example.com', 'Re', 'hello@pauseai.uk', 'g1', 't1', 'k', false) RETURNING id::int AS reply`,
+      [copy],
+    );
+    await dealWithReplyNow(form({ replyId: String(reply), decision: "maybe" }));
+    await dealWithReplyNow(form({ decision: "nothing" }));
+    expect(revalidatePath).not.toHaveBeenCalled();
+    await dealWithReplyNow(form({ replyId: String(reply), decision: "nothing" }));
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts", "layout");
+    vi.mocked(revalidatePath).mockClear();
+    await dealWithReplyNow(form({ replyId: String(reply), decision: "bulk" }));
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(await query("SELECT outcome FROM broadcast_replies")).toEqual([{ outcome: "nothing" }]);
+  });
+
+  it("sends an answer to a reply, showing the page afresh once it's gone, and nothing for a reply or draft it can't name", async () => {
+    await connectTestGmail("hello@pauseai.uk");
+    const id = await draft();
+    await query("UPDATE mailings SET sent_from = 'hello@pauseai.uk', from_name = 'PauseAI UK' WHERE id = $1", [id]);
+    const [{ copy }] = await query<{ copy: number }>(
+      "INSERT INTO broadcast_messages (mailing_id, status) VALUES ($1, 'sent') RETURNING id::int AS copy",
+      [id],
+    );
+    const [{ reply }] = await query<{ reply: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, blob_key, automatic)
+       VALUES ($1, now(), 'jane@example.com', 'Re', 'hello@pauseai.uk', 'g1', 't1', 'k', false) RETURNING id::int AS reply`,
+      [copy],
+    );
+    const body = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Thanks!" }] }] };
+    const DRAFT = "6f1c2a0e-5b7d-4c1e-9a3f-2d8e4b6c0a11";
+    expect(await answerReplyNow(reply, "not-a-uuid", body)).toEqual({ sent: false, reason: "gone" });
+    expect(await answerReplyNow(1.5, DRAFT, body)).toEqual({ sent: false, reason: "gone" });
+    expect(await answerReplyNow(reply, DRAFT, { type: "doc", content: [] })).toEqual({ sent: false, reason: "blank" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(await answerReplyNow(reply, DRAFT, body)).toEqual({ sent: true });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts", "layout");
+    expect(await query("SELECT outcome, dealt_by FROM broadcast_replies")).toEqual([
+      { outcome: "answered", dealt_by: JO },
+    ]);
   });
 
   it("keeps who it's to from the list, and goes back to the draft", async () => {
@@ -154,15 +217,24 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     await saveBroadcast(id, 1, { subject: "Hi", body: EVENT_WORDS, dueAt: FUTURE });
     expect(await scheduleBroadcastNow(id, 2)).toEqual({ scheduled: true });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts");
-    await rescheduleBroadcastNow(form({ id: String(id), day: "2099-02-03", hour: "9" }));
-    expect((await getWrittenBroadcast(id))!.dueAt).not.toEqual(FUTURE);
+    await rescheduleBroadcastNow(form({ id: String(id), day: "2099-02-03", hour: "9", minute: "33" }));
+    expect((await getWrittenBroadcast(id))!.dueAt).toEqual(new Date("2099-02-03T09:33:00.000Z"));
     const moved = (await getWrittenBroadcast(id))!.dueAt;
-    await rescheduleBroadcastNow(form({ id: "", day: "2099-02-03", hour: "9" }));
-    await rescheduleBroadcastNow(form({ id: String(id), day: "soon", hour: "9" }));
-    await rescheduleBroadcastNow(form({ id: String(id), day: "2099-02-04", hour: "25" }));
-    await rescheduleBroadcastNow(form({ id: "999", day: "2099-02-04", hour: "9" }));
+    await rescheduleBroadcastNow(form({ id: "", day: "2099-02-03", hour: "9", minute: "3" }));
+    await rescheduleBroadcastNow(form({ id: String(id), day: "soon", hour: "9", minute: "3" }));
+    await rescheduleBroadcastNow(form({ id: String(id), day: "2099-02-04", hour: "25", minute: "3" }));
+    await rescheduleBroadcastNow(form({ id: "999", day: "2099-02-04", hour: "9", minute: "3" }));
     expect((await getWrittenBroadcast(id))!.dueAt).toEqual(moved);
     await stopBroadcastNow(form({ id: "" }));
+    expect((await getWrittenBroadcast(id))!.state).toBe("scheduled");
+    // Stopped as it hadn't all gone in time, it resumes.
+    await query(
+      "UPDATE mailings SET state = 'cancelled', gave_up = true, waiting_since = now(), wait_reason = 'limit' WHERE id = $1",
+      [id],
+    );
+    await resumeBroadcastNow(form({ id: "" }));
+    expect((await getWrittenBroadcast(id))!.state).toBe("cancelled");
+    await resumeBroadcastNow(form({ id: String(id) }));
     expect((await getWrittenBroadcast(id))!.state).toBe("scheduled");
     await stopBroadcastNow(form({ id: String(id) }));
     expect((await getWrittenBroadcast(id))!.state).toBe("draft");

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { type ImportJob, importPath, isImportJob } from "@/lib/import-runs";
 import { runJob } from "@/lib/server/jobs";
+import { actionRequest } from "@/lib/site-url";
 import { now } from "@/lib/now";
 import { erasedPath, staffBack } from "@/lib/staff-search";
 import {
@@ -19,6 +20,10 @@ import {
   statusFrom,
   unblockFrom,
 } from "@/lib/staff-forms";
+import { chosen, optOutChoices } from "@/lib/opt-out-choices";
+import { offCalendarAfter } from "@/lib/server/email-settings";
+import { recordStaffOptOut } from "@/lib/server/opt-outs";
+import { getSupporter } from "@/lib/server/supporters";
 import { addAsk, deleteAsk, editAsk } from "@/lib/server/asks";
 import { isPoliticianAddress, unblock } from "@/lib/server/email";
 import { setErrorDone } from "@/lib/server/errors-seen";
@@ -82,6 +87,25 @@ export async function deletePoliticianNow(form: FormData): Promise<void> {
   }
 }
 
+/**
+ * The form in a supporter's consents: records that they opted out of what
+ * staff chose, at one of their addresses or numbers, with how they said so;
+ * events by email, or every bulk email, takes them off our Luma calendar too.
+ * Says whether it was new; false for a choice not theirs, or no how.
+ */
+export async function recordOptOutNow(form: FormData): Promise<boolean> {
+  const { email } = await requireStaff("supporters");
+  const id = idFrom(form, "supporterId");
+  const how = String(form.get("how") ?? "").trim();
+  const supporter = id ? await getSupporter(id) : undefined;
+  const choice = supporter && chosen(form.get("choice"), optOutChoices(supporter.permissions));
+  if (!choice || !how) return false;
+  const recorded = await recordStaffOptOut(choice, email, { how });
+  if (recorded) await offCalendarAfter([{ ...choice, source: "staff" }]);
+  revalidatePath(`/staff/supporters/${id}`);
+  return recorded;
+}
+
 /** Refreshes the page of whom a note is about. */
 function refreshNotes(target: NoteTarget): void {
   revalidatePath(
@@ -132,7 +156,7 @@ export async function runJobNow(job: string): Promise<void> {
   const { email } = await requireStaff();
   if (!isImportJob(job)) return;
   try {
-    await runJob(job, email);
+    await runJob(job, email, await actionRequest());
   } catch (error) {
     console.error(error);
   }

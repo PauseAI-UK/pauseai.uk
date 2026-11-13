@@ -336,6 +336,12 @@ export type SignupPlanRow = SignupRow & {
   known: "email" | "mobile" | null;
   /** Whether they'll get a form entry, which an earlier upload of the same day's forms may have given them. */
   newEntry: boolean;
+  /**
+   * For a new entry: emailed a way to lift "No bulk emails", which stops what
+   * they signed up for (`bulk`); or with "Do not email", never hearing from
+   * us (`no-email`); or neither.
+   */
+  notice: "bulk" | "no-email" | null;
 };
 
 /** What finalising a file will do, for the preview, with what finalising checks hasn't changed. */

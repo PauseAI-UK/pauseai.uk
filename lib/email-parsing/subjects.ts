@@ -59,3 +59,8 @@ export function isAcknowledgement(subject: string): boolean {
     /automatic reply|automated response|out of office/i.test(subject)
   );
 }
+
+/** An answer's subject: the message's, with "Re:" before it once. */
+export function answerSubject(subject: string): string {
+  return /^re:/i.test(subject) ? subject : `Re: ${subject}`;
+}

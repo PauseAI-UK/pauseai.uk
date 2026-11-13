@@ -61,16 +61,23 @@ function Action({ action }: { action: DashboardAction }) {
               words.lettersInboxButton,
               importPath("read-gmail"),
             ]
-          : [
-              words.failedImport(jobTitles[action.job]),
-              words.failedImportDetail(action.error, staffTime(action.at)),
-              words.seeRun,
-              importPath(action.job),
-            ];
+          : action.kind === "broadcast-replies"
+            ? [
+                words.broadcastReplies(action.count),
+                words.broadcastRepliesDetail,
+                words.broadcastRepliesButton,
+                `/staff/broadcasts/${action.broadcastId}?tab=look`,
+              ]
+            : [
+                words.failedImport(jobTitles[action.job]),
+                words.failedImportDetail(action.error, staffTime(action.at)),
+                words.seeRun,
+                importPath(action.job),
+              ];
   return (
     <li>
       <Strip
-        tone={action.kind === "held-sync" ? "amber" : "red"}
+        tone={action.kind === "held-sync" || action.kind === "broadcast-replies" ? "amber" : "red"}
         action={
           <StaffLink className={buttonClass({ variant: "primary", size: "small", fit: true })} href={href}>
             {button}
@@ -114,8 +121,8 @@ function CampaignBar({ counts }: { counts: Record<string, number> }) {
       <span className={styles.legend}>
         {parts.map((campaign, i) => (
           <span key={campaign.slug}>
-            <span className={styles.swatch} data-campaign={i} aria-hidden="true" /> {campaign.title} ·{" "}
-            {counts[campaign.slug]}
+            <span className={styles.swatch} data-campaign={i} aria-hidden="true" data-beside="lowercase" />{" "}
+            {campaign.title} · {counts[campaign.slug]}
           </span>
         ))}
       </span>
@@ -227,11 +234,15 @@ export default function StaffDashboard({
   dashboard: Dashboard;
   permissions: readonly Permission[];
 }) {
+  // Replies are supporters', for staff who may see them.
+  const actions = dashboard.actions.filter(
+    (action) => action.kind !== "broadcast-replies" || permissions.includes("supporters"),
+  );
   return (
     <>
-      {dashboard.actions.length > 0 && (
+      {actions.length > 0 && (
         <ul className={styles.actions} aria-label={copy.actionsTitle}>
-          {dashboard.actions.map((action, i) => (
+          {actions.map((action, i) => (
             <Action key={i} action={action} />
           ))}
         </ul>

@@ -1,6 +1,7 @@
 // The ui kit's forms, words and tables (components/ui/), each at both
 // densities: comfortable, the public site's, and compact, the staff
 // interface's.
+import { SaveState } from "@/components/ui/SaveState";
 import { Button } from "@/components/ui/Button";
 import Actions from "@/components/ui/Actions";
 import { DateRange, FileInput, Select, TextArea, TextInput } from "@/components/ui/Controls";
@@ -21,6 +22,7 @@ import {
   LinkButtonExample,
   SegmentedExample,
   StatusMessageUndoExample,
+  TogglesExample,
 } from "./forms.client";
 
 // Every tone, so a new one is a type error until it's here.
@@ -251,7 +253,7 @@ export const forms: Group = {
       file: "components/ui/Controls.tsx",
       variants: [
         {
-          label: "Ticked, and with a label that wraps",
+          label: "Ticked, with a label that wraps, and boxed: ticked, not, and locked",
           render: () => <Densities>{() => <CheckboxExample />}</Densities>,
         },
       ],
@@ -263,6 +265,16 @@ export const forms: Group = {
         {
           label: "In a label, as the staff writer's templates are",
           render: () => <Densities>{() => <RadioExample />}</Densities>,
+        },
+      ],
+    },
+    {
+      name: "Toggles",
+      file: "components/ui/Controls.tsx",
+      variants: [
+        {
+          label: "Three options, two on, “or” between",
+          render: () => <Densities>{() => <TogglesExample />}</Densities>,
         },
       ],
     },
@@ -369,6 +381,22 @@ export const forms: Group = {
                 </FilterForm>
               )}
             </Densities>
+          ),
+        },
+      ],
+    },
+    {
+      name: "SaveState",
+      file: "components/ui/SaveState.tsx",
+      variants: [
+        {
+          label: "Saving, saved, and not saved",
+          render: () => (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)" }}>
+              <SaveState state="saving">Saving…</SaveState>
+              <SaveState state="saved">Saved</SaveState>
+              <SaveState state="failed">Not saved</SaveState>
+            </div>
           ),
         },
       ],

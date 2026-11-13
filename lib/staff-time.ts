@@ -33,8 +33,11 @@ export function staffDay(at: Date): string {
   return new Date(at).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
 }
 
-/** The day, as yyyy-mm-dd, and the hour, in London, of a moment: what a mailing's When says. */
-export function londonDayHour(at: Date): { day: string; hour: number } {
+/** A moment's day, as yyyy-mm-dd, hour and minute, in London: what a mailing's When says. */
+export type LondonTime = { day: string; hour: number; minute: number };
+
+/** The day, as yyyy-mm-dd, the hour and the minute, in London, of a moment. */
+export function londonDayTime(at: Date): LondonTime {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-GB", {
       timeZone: "Europe/London",
@@ -42,33 +45,41 @@ export function londonDayHour(at: Date): { day: string; hour: number } {
       month: "2-digit",
       day: "2-digit",
       hour: "2-digit",
+      minute: "2-digit",
       hourCycle: "h23",
     })
       .formatToParts(new Date(at))
       .map((part) => [part.type, part.value]),
   );
-  return { day: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour) };
+  return { day: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour), minute: Number(parts.minute) };
 }
 
-/** The moment that's `hour` o'clock on `day` (yyyy-mm-dd) in London. */
-export function fromLondon(day: string, hour: number): Date {
-  const guess = Date.parse(`${day}T${String(hour).padStart(2, "0")}:00:00Z`);
+/** The moment that's `hour`:`minute` on `day` (yyyy-mm-dd) in London. */
+export function fromLondon(day: string, hour: number, minute = 0): Date {
+  const guess = Date.parse(`${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00Z`);
   // London is never behind UTC: the guess, or an hour before it in summer time.
-  const summer = londonDayHour(new Date(guess)).hour !== hour;
+  const summer = londonDayTime(new Date(guess)).hour !== hour;
   return new Date(guess - (summer ? 3_600_000 : 0));
 }
 
 /**
- * When the hourly sending runs, in UTC: at this minute past each hour from
- * the first to the end of the day (netlify/functions/send-mailings, whose
- * test checks its schedule says the same).
+ * When the sending runs, in UTC: at these minutes past each hour, from the
+ * first hour to the end of the day (netlify/functions/send-mailings, whose
+ * test checks its schedule says the same). London's hours start when UTC's
+ * do, so its runs are at the same minutes.
  */
-export const SENDING = { minute: 18, firstHour: 6 };
+export const SENDING = { minutes: [3, 18, 33, 48], firstHour: 6 } as const;
 
-/** The moment a mailing due at `at`, a whole hour, goes: that hour's run of the sending, or overnight the day's first. */
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+
+/** The moment a mailing due at `at` goes: the first run of the sending at or after it, or overnight the day's first. */
 export function sendsAt(at: Date): Date {
-  const sends = new Date(at);
-  sends.setUTCHours(Math.max(sends.getUTCHours(), SENDING.firstHour), SENDING.minute);
+  const time = new Date(at).getTime();
+  const hour = Math.floor(time / HOUR) * HOUR;
+  const minute = SENDING.minutes.find((m) => hour + m * MINUTE >= time);
+  const sends = new Date(minute === undefined ? hour + HOUR + SENDING.minutes[0] * MINUTE : hour + minute * MINUTE);
+  if (sends.getUTCHours() < SENDING.firstHour) sends.setUTCHours(SENDING.firstHour, SENDING.minutes[0]);
   return sends;
 }
 
@@ -123,22 +134,21 @@ export function londonStart(at: Date): string {
   return `${part({ weekday: "short" })} ${part({ day: "numeric", month: "short", year: "numeric" })}, ${londonClock(at)}`;
 }
 
-/** How close to its hour's run of the sending is too close for a mailing to go on it. */
-const TOO_SOON = 5 * 60_000;
+/** How close to a run of the sending is too close for a mailing to go on it. */
+const TOO_SOON = 5 * MINUTE;
 
 /**
- * The first whole hour a mailing can be due at: one whose run of the sending
- * (sendsAt) is at least TOO_SOON away, so at 15:05 it's 15:00, which goes at
- * 15:18. London's hours start when UTC's do. By the site's clock
- * (lib/now.ts), so in a fixture build a page rendered ahead of time offers
- * the hours the browser does.
+ * The first run of the sending a mailing can be due at: one at least
+ * TOO_SOON away, so at 15:15 it's 15:33. By the site's clock (lib/now.ts),
+ * so in a fixture build a page rendered ahead of time offers the times the
+ * browser does.
  */
-export function earliestHour(): Date {
-  const hour = 3_600_000;
-  return new Date(Math.ceil((now().getTime() + TOO_SOON - SENDING.minute * 60_000) / hour) * hour);
+export function earliestRun(): Date {
+  return sendsAt(new Date(now().getTime() + TOO_SOON));
 }
 
-/** `hour` on `day`, unless that's the first day a mailing can go and the hour is sooner than the first it can go at, when it's that. */
-export function hourNotTooSoon(day: string, hour: number, earliest: { day: string; hour: number }): number {
-  return day === earliest.day && hour < earliest.hour ? earliest.hour : hour;
+/** `time`, unless it's sooner than `earliest`, the first a mailing can go at, when it's that. */
+export function notTooSoon(time: LondonTime, earliest: LondonTime): LondonTime {
+  const at = (t: LondonTime) => `${t.day} ${String(t.hour * 60 + t.minute).padStart(4, "0")}`;
+  return at(time) < at(earliest) ? earliest : time;
 }

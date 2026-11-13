@@ -42,9 +42,9 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
     pages: [
       // A supporter's letters are a page of the supporter's.
       { id: "supporters", href: "/staff/supporters", permission: "supporters", under: ["/staff/letters/supporter"] },
-      { id: "broadcasts", href: "/staff/broadcasts", permission: "supporters", draft: true },
       // A letter's page stays at /staff/letters/[id], and shows in Campaigns.
       { id: "campaigns", href: "/staff/campaigns", permission: "supporters", under: ["/staff/letters"] },
+      { id: "broadcasts", href: "/staff/broadcasts", permission: "supporters", draft: true },
       { id: "supporterEmails", href: "/staff/supporters/bounced-emails", permission: "supporters" },
       { id: "signupUpload", href: "/staff/supporters/import", permission: "supporters" },
     ],

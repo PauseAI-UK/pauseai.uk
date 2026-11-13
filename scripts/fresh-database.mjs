@@ -220,14 +220,25 @@ export function addFixtureData(url) {
   psql(url, "-1", "-f", FIXTURE_DATA);
 }
 
+/** The mailbox broadcasts go from and their replies come to (BROADCAST_SENDER in lib/broadcasts.ts). */
+const BROADCAST_MAILBOX = "hello@pauseai.uk";
+
+/**
+ * Connects the fake Gmail of the broadcasts' mailbox, so answers to the fake
+ * data's replies go from it, as they would once the real one is connected.
+ */
+export function connectBroadcastMailbox(url, key) {
+  connectLettersInbox(url, BROADCAST_MAILBOX, key, "PauseAI UK");
+}
+
 /**
  * Connects the fake Gmail of `email`, the letters inbox of a fixture build
  * (LETTERS_INBOX), as someone logged in as it would on /staff/me: a staff
  * account holding the fixture's refresh token for it, encrypted with `key`
  * (GMAIL_TOKEN_KEY) as lib/server/gmail-tokens.ts does, read from the fake
- * mailbox's first history ID.
+ * mailbox's first history ID, under the name `name`.
  */
-export function connectLettersInbox(url, email, key) {
+export function connectLettersInbox(url, email, key, name = "Letters") {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", Buffer.from(key, "base64"), iv);
   const sealed = Buffer.concat([cipher.update(`fixture-refresh:${email}`, "utf8"), cipher.final()]);
@@ -236,7 +247,7 @@ export function connectLettersInbox(url, email, key) {
     url,
     "-c",
     `INSERT INTO staff_accounts (email, added_by, gmail_token, gmail_connected_at, gmail_history_id, gmail_name)
-     VALUES ('${email}', 'migration', '\\x${token}', now(), '1000', 'Letters')`,
+     VALUES ('${email}', 'migration', '\\x${token}', now(), '1000', '${name}')`,
   );
 }
 

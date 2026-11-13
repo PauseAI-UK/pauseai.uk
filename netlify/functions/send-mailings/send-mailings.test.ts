@@ -27,11 +27,11 @@ function site(run: object, background = 202) {
   return calls;
 }
 
-describe("the hourly sending function", () => {
-  it("runs every hour, night and day, and hands on to the background function only while there's more to send", async () => {
-    expect(config.schedule).toBe("18 * * * *");
-    // What the staff pages say of when a mailing goes.
-    expect(config.schedule).toBe(`${SENDING.minute} * * * *`);
+describe("the sending function", () => {
+  it("runs every 15 minutes, night and day, and hands on to the background function only while there's more to send", async () => {
+    expect(config.schedule).toBe("3,18,33,48 * * * *");
+    // The times the staff pages offer a mailing.
+    expect(config.schedule).toBe(`${SENDING.minutes.join(",")} * * * *`);
     expect(site(RUN).length).toBe(0);
     expect(await (await sendMailings()).json()).toEqual(RUN);
     const calls = site({ ...RUN, sent: 7, left: 3 });
@@ -53,5 +53,14 @@ describe("moreToSend", () => {
     expect(moreToSend({ ...RUN, left: 2, failed: 1 })).toBe(true);
     expect(moreToSend({ ...RUN, left: 2 })).toBe(false);
     expect(moreToSend({ ...RUN, sent: 3 })).toBe(false);
+  });
+
+  it("is while broadcasts' copies are left too, and the last call got through some of anything", () => {
+    const broadcasts = { sent: 0, skipped: 0, failed: 0, left: 500 };
+    expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, sent: 500 } })).toBe(true);
+    expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, skipped: 1 } })).toBe(true);
+    expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, failed: 1 } })).toBe(true);
+    expect(moreToSend({ ...RUN, broadcasts })).toBe(false);
+    expect(moreToSend({ ...RUN, sent: 1, broadcasts })).toBe(true);
   });
 });

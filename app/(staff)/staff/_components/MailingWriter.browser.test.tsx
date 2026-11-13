@@ -354,47 +354,53 @@ describe("MailingWriter", () => {
     await expect.element(page.getByText(copy.noOne)).toBeVisible();
   });
 
-  it("sets when it goes, in London's day and hour, starting today with no hour, never too soon", async () => {
+  it("sets when it goes, in London's day, hour and minutes, starting today with no hour, never too soon", async () => {
     vi.useFakeTimers({ now: new Date("2026-07-01T10:30:00Z"), toFake: ["Date"] });
     try {
       const { actions } = await renderWriter({ draft: { ...exampleWrittenMailing, dueAt: null } });
       const when = region(copy.sections.when);
       const day = when.getByRole("button", { name: copy.day });
-      const hour = when.getByRole("combobox");
+      const hour = when.getByRole("combobox", { name: copy.hour });
+      const minute = when.getByRole("combobox", { name: copy.minutes });
       await expect.element(day).toHaveTextContent("Wed 1 Jul 2026");
       await expect.element(hour).toHaveValue("");
-      // It's 11:30 in London: noon is the first hour it can go at.
-      const option = (h: number) => when.getByRole("option", { name: `${String(h).padStart(2, "0")}:18` });
-      await expect.element(option(11)).toBeDisabled();
-      await expect.element(option(12)).not.toBeDisabled();
+      // The minutes wait for an hour.
+      await expect.element(minute).toBeDisabled();
+      // It's 11:30 in London: 11:48 is the first run it can go on.
+      const option = (name: string) => when.getByRole("option", { name, exact: true });
+      await expect.element(option("10")).toBeDisabled();
+      await expect.element(option("11")).not.toBeDisabled();
       // Another day, still with no hour, saves nothing.
       await chooseDay(day, "2026-07-03");
       await pause(1200);
       expect(actions.save).not.toHaveBeenCalled();
       await hour.selectOptions("14");
       await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
-      expect(actions.save.mock.calls[0][2]).toEqual({ dueAt: new Date("2026-07-03T13:00:00.000Z") });
-      await expect.element(page.getByText(copy.summary(2, "jo@pauseai.uk", "Fri 3 Jul at 14:18"))).toBeVisible();
-      // Back to today, an hour too soon moves on to the first it can go at; another keeps it.
-      await hour.selectOptions("9");
+      expect(actions.save.mock.calls[0][2]).toEqual({ dueAt: new Date("2026-07-03T13:03:00.000Z") });
+      await expect.element(page.getByText("Fri 3 Jul at 14:03")).toBeVisible();
+      await minute.selectOptions("48");
       await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(2);
-      expect(actions.save.mock.calls[1][2]).toEqual({ dueAt: new Date("2026-07-03T08:00:00.000Z") });
-      await chooseDay(day, "2026-07-01");
+      expect(actions.save.mock.calls[1][2]).toEqual({ dueAt: new Date("2026-07-03T13:48:00.000Z") });
+      // Back to today, a time too soon moves on to the first it can go at; another keeps it.
+      await hour.selectOptions("9");
       await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(3);
-      expect(actions.save.mock.calls[2][2]).toEqual({ dueAt: new Date("2026-07-01T11:00:00.000Z") });
+      expect(actions.save.mock.calls[2][2]).toEqual({ dueAt: new Date("2026-07-03T08:48:00.000Z") });
+      await chooseDay(day, "2026-07-01");
+      await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(4);
+      expect(actions.save.mock.calls[3][2]).toEqual({ dueAt: new Date("2026-07-01T10:48:00.000Z") });
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it("opens a draft whose time has gone at the next hour, and saves that", async () => {
+  it("opens a draft whose time has gone at the first run it can go on, and saves that", async () => {
     vi.useFakeTimers({ now: new Date("2026-07-01T10:30:00Z"), toFake: ["Date"] });
     try {
       const { actions } = await renderWriter({
         draft: { ...exampleWrittenMailing, dueAt: new Date("2026-06-01T09:00:00Z") },
       });
       await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
-      expect(actions.save.mock.calls[0][2]).toEqual({ dueAt: new Date("2026-07-01T11:00:00.000Z") });
+      expect(actions.save.mock.calls[0][2]).toEqual({ dueAt: new Date("2026-07-01T10:48:00.000Z") });
     } finally {
       vi.useRealTimers();
     }
@@ -474,7 +480,11 @@ describe("MailingWriter", () => {
         .getByRole("option")
         .all()
         .map((option) => option.element().textContent),
-    ).toEqual(["al@pauseai.uk", "samuel.whitlock@pauseai.uk"]);
+    ).toEqual(
+      ["al@pauseai.uk", "samuel.whitlock@pauseai.uk"].map((address) =>
+        staffCopy.broadcastPages.fromOption(address, staffCopy.broadcastPages.sendBy.names.gmail),
+      ),
+    );
     await expect.element(field(copy.fromLegend)).toHaveValue("al@pauseai.uk");
     await expect.element(from.getByRole("link", { name: copy.connectOne })).toHaveAttribute("href", "/staff/me#gmail");
     // The preview's From: the name the Gmail sends as, or with none, its address alone.
@@ -536,13 +546,21 @@ describe("MailingWriter", () => {
         .getByRole("option")
         .all()
         .map((option) => option.element().textContent),
-    ).toEqual([DEFAULT_SENDER, "al@pauseai.uk", "samuel.whitlock@pauseai.uk"]);
+    ).toEqual(
+      [DEFAULT_SENDER, "al@pauseai.uk", "samuel.whitlock@pauseai.uk"].map((address) =>
+        staffCopy.broadcastPages.fromOption(address, staffCopy.broadcastPages.sendBy.names.gmail),
+      ),
+    );
   });
 
   it("with no Gmail connected, says so in place of the choice, and links to where one is connected", async () => {
     await renderWriter({ data: { ...exampleWriterData, senders: [] } });
     const from = region(copy.sections.from);
     await expect.element(from.getByText(copy.noSenders)).toBeVisible();
+    // Send says no one's chosen yet, nor a time.
+    const send = region(copy.sections.send);
+    await expect.element(send.getByText(staffCopy.broadcastPages.sendFacts.noSender)).toBeVisible();
+    await expect.element(send.getByText(staffCopy.broadcastPages.sendFacts.noTime)).toBeVisible();
     expect(from.getByRole("combobox").query()).toBeNull();
     await expect.element(from.getByRole("link", { name: copy.connectOne })).toBeVisible();
   });

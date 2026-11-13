@@ -13,8 +13,8 @@ import type { Politician } from "@/lib/server/politicians";
 import { staffDate } from "@/lib/staff-time";
 import AnswerWord from "./AnswerWord";
 import { AskLead } from "./AskLine";
-import { BubbleBox } from "./ui/Bubble";
-import { bubbleTrigger } from "./ui/bubble-trigger";
+import { BubbleBox } from "@/components/ui/Bubble";
+import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import Menu from "./ui/Menu";
 import styles from "./Details.module.css";
 

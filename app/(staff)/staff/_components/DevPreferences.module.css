@@ -1,0 +1,35 @@
+/* A box nobody could take for part of the page, in the development colour, hatched, as the dev login is. */
+.dev {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border: 2px dashed var(--dev);
+  border-radius: var(--radius-md);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--dev-bg),
+    var(--dev-bg) 10px,
+    var(--surface) 10px,
+    var(--surface) 20px
+  );
+  color: var(--dev);
+}
+
+.title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* A link per address, in the box's colour. */
+.choices {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.choices a {
+  color: inherit;
+  overflow-wrap: anywhere;
+}

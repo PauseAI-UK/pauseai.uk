@@ -14,7 +14,7 @@ import PasteForm from "./PasteForm";
 import PickBox from "./PickBox";
 import PoliticianTable, { politicianColumns } from "./PoliticianTable";
 import styles from "./PoliticiansList.module.css";
-import Bubble from "./ui/Bubble";
+import Bubble from "@/components/ui/Bubble";
 import ListFrame, { ListTable, type ListColumn } from "./ui/ListFrame";
 import Strip from "./ui/Strip";
 import Tabs from "./ui/Tabs";

@@ -107,8 +107,10 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
   const path = `/staff/campaigns/${campaign.slug}`;
   const { page, ...filters } = search;
   void page;
-  // Each count shows those it counts; pressed again, it shows them all.
+  // Each count shows those it counts; pressed again, it shows them all. One that doesn't apply (answers, with no
+  // ask) leads nowhere, faded, as countsFiltering's do.
   const counts = campaignCounts(campaign).map((count) => {
+    if (count.n === null) return count;
     const current = count.key === search.tab;
     return {
       ...count,

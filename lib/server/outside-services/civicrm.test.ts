@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { fetchContactsPage, lookUpContacts, readContact } from "./civicrm";
+import { checkSuppression, fetchContactsPage, lookUpContacts, readContact, updateSubscriptions } from "./civicrm";
 
 const ROW = {
   contact_id: 12345,
@@ -108,8 +108,117 @@ describe("get", () => {
 
   it("refuses an answer with no list of contacts", async () => {
     server.use(http.get(GET, () => HttpResponse.json({ error_message: "Nope" })));
-    await expect(fetchContactsPage("key", 0)).rejects.toThrow("CiviCRM's answer had no list of contacts");
+    await expect(fetchContactsPage("key", 0)).rejects.toThrow("CiviCRM's answer to get had no list of values");
     server.use(http.get(GET, () => HttpResponse.json(null)));
-    await expect(fetchContactsPage("key", 0)).rejects.toThrow("no list of contacts");
+    await expect(fetchContactsPage("key", 0)).rejects.toThrow("no list of values");
+  });
+});
+
+/** The params a POST to `action` was sent, from its body. */
+const paramsOf = async (request: Request) =>
+  JSON.parse(new URLSearchParams(await request.text()).get("params")!) as Record<string, unknown>;
+
+describe("checkSuppression", () => {
+  const CHECK = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/checkSuppression";
+
+  it("asks by POST whether each address is blocked, and gives each block by address", async () => {
+    let asked: Record<string, unknown> | undefined;
+    server.use(
+      http.post(CHECK, async ({ request }) => {
+        asked = await paramsOf(request);
+        return HttpResponse.json({
+          values: [
+            { email: " A@Example.org", block: "none" },
+            { email: "b@example.org", block: "bulk" },
+            { email: "c@example.org", block: "all" },
+            { phone: "+447700900123", do_not_phone: false, do_not_sms: false },
+          ],
+        });
+      }),
+    );
+    const blocks = await checkSuppression("key", ["a@example.org", "b@example.org", "c@example.org"]);
+    expect(asked).toEqual({ email: ["a@example.org", "b@example.org", "c@example.org"], phone: [] });
+    expect([...blocks]).toEqual([
+      ["a@example.org", "none"],
+      ["b@example.org", "bulk"],
+      ["c@example.org", "all"],
+    ]);
+  });
+
+  it("refuses a block it doesn't know, or an answer that leaves an address out", async () => {
+    server.use(http.post(CHECK, () => HttpResponse.json({ values: [{ email: "a@example.org", block: "some" }] })));
+    await expect(checkSuppression("key", ["a@example.org"])).rejects.toThrow("a block we don't know: some");
+    server.use(http.post(CHECK, () => HttpResponse.json({ values: [] })));
+    await expect(checkSuppression("key", ["a@example.org"])).rejects.toThrow("didn't say whether 1 addresses");
+  });
+});
+
+describe("updateSubscriptions", () => {
+  const UPDATE = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions";
+  const AT = new Date("2026-11-01T09:00:00Z");
+
+  it("sends each event with only the fields it has, and reads each result by its ID", async () => {
+    let asked: Record<string, unknown> | undefined;
+    server.use(
+      http.post(UPDATE, async ({ request }) => {
+        asked = await paramsOf(request);
+        return HttpResponse.json({
+          values: [
+            { event_id: "opt-out:1", status: "accepted" },
+            { event_id: "lift:2", status: "refused", reason: "not_in_uk" },
+            { event_id: "opt-out:3", status: "invalid", error: "unknown list" },
+            { event_id: "opt-out:4", status: "invalid" },
+            { event_id: "opt-out:5", status: "pending" },
+            { status: "accepted" },
+          ],
+        });
+      }),
+    );
+    const results = await updateSubscriptions("key", [
+      {
+        eventId: "opt-out:1",
+        email: "a@example.org",
+        change: "unsubscribe",
+        list: "newsletter",
+        contactId: 12,
+        occurredAt: AT,
+        source: "pauseai.uk:link",
+      },
+      {
+        eventId: "lift:2",
+        email: "b@example.org",
+        change: "allow_bulk_email",
+        occurredAt: AT,
+        source: "pauseai.uk:preferences",
+        wording: "Email me again",
+      },
+    ]);
+    expect(asked).toEqual({
+      events: [
+        {
+          event_id: "opt-out:1",
+          email: "a@example.org",
+          change: "unsubscribe",
+          list: "newsletter",
+          contact_id: 12,
+          occurred_at: "2026-11-01T09:00:00.000Z",
+          source: "pauseai.uk:link",
+        },
+        {
+          event_id: "lift:2",
+          email: "b@example.org",
+          change: "allow_bulk_email",
+          occurred_at: "2026-11-01T09:00:00.000Z",
+          source: "pauseai.uk:preferences",
+          wording: "Email me again",
+        },
+      ],
+    });
+    expect([...results]).toEqual([
+      ["opt-out:1", { status: "accepted" }],
+      ["lift:2", { status: "refused", reason: "not_in_uk" }],
+      ["opt-out:3", { status: "invalid", reason: "unknown list" }],
+      ["opt-out:4", { status: "invalid", reason: "" }],
+    ]);
   });
 });

@@ -30,6 +30,18 @@ describe("sendEmail", () => {
     expect(await request!.json()).toEqual({ ...EMAIL, MessageStream: "outbound" });
   });
 
+  it("posts a broadcast's copy to the broadcast stream", async () => {
+    let body: unknown;
+    server.use(
+      http.post(POSTMARK, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "msg-2" });
+      }),
+    );
+    expect(await sendEmail(EMAIL, "broadcast")).toBe("msg-2");
+    expect(body).toEqual({ ...EMAIL, MessageStream: "broadcast" });
+  });
+
   it("works with the fixture Postmark", async () => {
     expect(await sendEmail(EMAIL)).toMatch(/^[0-9a-f-]{36}$/);
   });
@@ -126,19 +138,20 @@ describe("sendEmail", () => {
 });
 
 describe("unsuppress", () => {
-  const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/outbound/suppressions/delete";
+  const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/:stream/suppressions/delete";
 
-  it("asks Postmark to take the address off the transactional stream's suppression list", async () => {
-    let request: Request | undefined;
+  it("asks Postmark to take the address off both streams' suppression lists", async () => {
+    const requests: Request[] = [];
     server.use(
       http.post(UNSUPPRESS, ({ request: r }) => {
-        request = r.clone();
+        requests.push(r.clone());
         return HttpResponse.json({ Suppressions: [] });
       }),
     );
     await unsuppress("a@example.org");
-    expect(request!.headers.get("X-Postmark-Server-Token")).toBe("server-token");
-    expect(await request!.json()).toEqual({ Suppressions: [{ EmailAddress: "a@example.org" }] });
+    expect(requests.map((r) => new URL(r.url).pathname.split("/")[2])).toEqual(["outbound", "broadcast"]);
+    expect(requests[0].headers.get("X-Postmark-Server-Token")).toBe("server-token");
+    expect(await requests[1].json()).toEqual({ Suppressions: [{ EmailAddress: "a@example.org" }] });
   });
 
   it("works with the fixture Postmark, which needs no token", async () => {

@@ -27,6 +27,7 @@ const GROUPS = [
   "campaigns-letter",
   "pages",
   "march-signup",
+  "email-settings",
   "track-record",
   "sentiment",
   "tools",

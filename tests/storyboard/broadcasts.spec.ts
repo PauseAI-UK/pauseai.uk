@@ -1,9 +1,12 @@
-import type { Page } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { SENDING_DAYS } from "@/lib/broadcast-days";
+import { GMAIL_DAILY_LIMIT } from "@/lib/gmail-connect";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addStaffAccount, importLuma, logInAsStaff, newestEmail } from "../steps";
+import { addStaffAccount, importCivicrm, importLuma, logInAsStaff, newestEmail } from "../steps";
 import { caretInEmpty } from "./editor-steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { connectGmail } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
@@ -20,6 +23,8 @@ const EMAIL = "contact=email%3Aevents%3Ayes";
 const TEXT = "contact=text%3Aevents%3Ayes";
 /** How many of the fixture's supporters each filter finds. */
 const EMAILABLE = 3;
+/** Where an email to supporters is from, whose connected Gmail sends it. */
+const HELLO = "hello@pauseai.uk";
 const TEXTABLE = 1;
 const WORDS =
   '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hi "}, {"type": "field", "attrs": {"field": "firstName"}}, {"type": "text", "text": ", the march meets at 11:00 at Parliament Square."}]}]}';
@@ -138,7 +143,7 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await page.getByRole("link", { name: copy.newBroadcast }).click();
   await expect(page).toHaveURL(`${BASE}/staff/broadcasts/new`);
   const channel = page.getByRole("radiogroup", { name: copy.consentChannel });
-  const saidYes = page.getByRole("radiogroup", { name: copy.facts.saidYes });
+  const saidYes = page.getByRole("group", { name: copy.facts.saidYes });
   await expect(saidYes).toHaveCount(0);
   await frame(page, "New broadcast, email or text to choose");
   story("Text shows the Consents someone can have said yes to by text, and the greyed writer below becomes a text's.");
@@ -163,12 +168,14 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await frame(page, "The draft switched to Text, greyed till a Consent is chosen");
   await channel.getByRole("radio", { name: copy.channels.email }).click();
   await expect(page.getByText(copy.problems["no-consent"])).toHaveCount(0);
-  story("Its Consent can change while it's a draft, but, once it has words, only to another by email.");
+  story(
+    "Its Consent can change while it's a draft, but, once it has words, only by email. Another topic takes the place of the one it had.",
+  );
   await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.consents["email:newsletter"] }).click();
   await expect(
     saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.consents["email:newsletter"] }),
-  ).toBeChecked();
-  await frame(page, "Under another Consent");
+  ).toHaveAttribute("aria-checked", "true");
+  await frame(page, "Under the newsletter in place of events");
 });
 
 test("A broadcast by email", async ({ page, request, flowDatabase }) => {
@@ -176,11 +183,14 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
     "A broadcast can start from the supporters list too. With the Consent filter on those who can be emailed, answered yes, there's a button, counting who it finds.",
   );
   await importLuma(request, BASE);
+  connectGmail(flowDatabase, HELLO);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters?${EMAIL}`);
   await expect(page.getByRole("button", { name: copy.broadcastButton(EMAILABLE) })).toBeVisible();
   await frame(page, "The list, ready to broadcast");
-  story("It makes a draft to them and opens the writer: by email, from PauseAI UK.");
+  story(
+    "It makes a draft to them and opens the writer: by email, from hello@, sent by its Gmail. Postmark can't be chosen yet. Under that, how many more emails hello@ can send today.",
+  );
   await page.getByRole("button", { name: copy.broadcastButton(EMAILABLE) }).click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.newTitle.email);
@@ -204,13 +214,13 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
   await frame(page, "The preview, for someone with no first name", { window: true });
   await noName.click();
-  story("Send test sends them a copy, by Postmark, as that supporter would get it.");
+  story("Send test sends them a copy, by hello@'s Gmail too, as that supporter would get it.");
   await preview.getByRole("button", { name: copy.sendTest }).click();
   await expect(preview.getByText(copy.testSent(staffEmail()))).toBeVisible();
   const email = newestEmail((one) => one.To.includes(`<${staffEmail()}>`))!;
   expect(email.Subject).toBe("Events near you this month");
   await emailFrame(page, email, "The test copy");
-  story("They pick the 14:00 hour, and see what it'll send and cost, then schedule it.");
+  story("They pick 14:03, and see what it'll send and cost, then schedule it.");
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.scrollIntoViewIfNeeded();
@@ -246,7 +256,7 @@ test("A text on an approved template", async ({ page, request, flowDatabase }) =
   await savedAfter(page, () => words.selectOption({ label: "PauseCon room change" }));
   await expect(page.getByRole("heading", { name: "PauseCon room change", level: 1 })).toBeVisible();
   await frame(page, "A template chosen");
-  story("They choose the hour.");
+  story("They choose the time.");
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.scrollIntoViewIfNeeded();
@@ -312,14 +322,14 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
 
 test("Changing who a broadcast goes to", async ({ page, request, flowDatabase }) => {
   story(
-    "On a draft, Change who opens the supporters list choosing for it: the dark strip at the top naming the draft, and the dark bar at the foot.",
+    "On a draft to everyone who said yes, Narrow down opens the supporters list choosing for it: the dark strip at the top naming the draft, and the dark bar at the foot.",
   );
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
   await startFromList(page, EMAIL, EMAILABLE);
   await savedAfter(page, () => page.getByLabel(copy.subject).fill("Change me"));
   const draft = page.url();
-  await page.getByRole("link", { name: mailingCopy.changeWho }).click();
+  await page.getByRole("link", { name: copy.narrowDown }).click();
   await expect(page.getByText(copy.choosing("Change me"))).toBeVisible();
   const bar = page.getByRole("region", { name: copy.choosingLabel });
   await expect(bar).toBeVisible();
@@ -342,7 +352,7 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   await expect(page).toHaveURL(draft);
   await expect(page.getByRole("list", { name: staffCopy.mailingPages.whoLabel })).toContainText("fixture");
   await frame(page, "The draft, to those found");
-  story("Cancel at the top goes back and changes nothing.");
+  story("Narrowed, the button is Change who. Cancel at the top goes back and changes nothing.");
   await page.getByRole("link", { name: mailingCopy.changeWho }).click();
   await page.getByRole("link", { name: copy.choosingCancel }).click();
   await expect(page).toHaveURL(draft);
@@ -356,7 +366,6 @@ test("An email sent", async ({ page, request, flowDatabase }) => {
   const sent = addSent(flowDatabase, "email", "Thank you for marching");
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts`);
-  await expect(page.getByText(copy.noBackend)).toBeVisible();
   await frame(page, "The list, one sent");
   await page.getByRole("link", { name: "Thank you for marching" }).first().click();
   await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
@@ -372,8 +381,11 @@ test("An email sent", async ({ page, request, flowDatabase }) => {
   story("The supporter's page lists the broadcast.");
   const [supporter] = runSql(flowDatabase, `SELECT supporter_id FROM broadcast_messages WHERE id = ${sent.copy}`);
   await page.goto(`${BASE}/staff/supporters/${supporter}`);
-  const heading = page.getByRole("heading", { name: copy.supporterTitle });
-  await heading.scrollIntoViewIfNeeded();
+  // The heading near the window's top, so the list under it shows.
+  await page.getByRole("heading", { name: copy.supporterTitle }).evaluate((heading) => {
+    heading.scrollIntoView({ block: "start", behavior: "instant" });
+    window.scrollBy({ top: -24, behavior: "instant" });
+  });
   await frame(page, "On the supporter's page", { window: true });
 });
 
@@ -389,4 +401,197 @@ test("A text sent", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
   await expect(page.getByText(/the march meets at 11:00/)).toBeVisible();
   await frame(page, "The text as they got it");
+});
+
+/** An email to those who follow the calendar, scheduled for an hour ago, as scheduling leaves one; its ID. */
+function addDue(database: string, title: string, scheduledBy: string): string {
+  const [id] = runSql(
+    database,
+    `INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state)
+     VALUES ('${title}', '${title}', 'supporters', 'email', 'events', '{"list": "supporters", "params": {"contact": "email:events:yes"}}',
+       '${WORDS}', 'jo@pauseai.uk', 'hello@pauseai.uk', 'PauseAI UK', now() - interval '1 hour', 'scheduled')
+     RETURNING id`,
+  );
+  runSql(
+    database,
+    `INSERT INTO audit_log (actor, action, details) VALUES ('${scheduledBy}', 'schedule broadcast', '{"id": ${id}, "recipients": ${EMAILABLE}}')`,
+  );
+  return id;
+}
+
+/** The hourly sending, as its schedule runs it. */
+async function runSending(request: APIRequestContext) {
+  const res = await request.post(`${BASE}/api/cron/send-mailings`, {
+    headers: { Authorization: "Bearer fixture-cron-secret" },
+  });
+  if (!res.ok()) throw new Error(`Sending failed: ${res.status()} ${await res.text()}`);
+}
+
+test("An email broadcast goes", async ({ page, request, flowDatabase }) => {
+  story(
+    "An email's time has come. The hourly sending checks each address with PauseAI Global's records first, then sends each copy by hello@'s Gmail, with its own unsubscribe link at the foot and in its headers.",
+  );
+  await importLuma(request, BASE);
+  await importCivicrm(request, BASE);
+  connectGmail(flowDatabase, HELLO);
+  const id = addDue(flowDatabase, "Stall on Saturday", staffEmail());
+  await runSending(request);
+  const email = newestEmail((one) => one.Subject === "Stall on Saturday" && one.To.includes("@example.com"))!;
+  await emailFrame(page, email, "A supporter's copy");
+  story("Its page counts what was delivered, failed and stopped, and the replies.");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
+  await frame(page, "The email, sent");
+});
+
+test("An email that takes more than a day", async ({ page, request, flowDatabase }) => {
+  story(
+    "hello@'s Gmail sends up to 1,800 emails a day, and today it has room for two more. So the hourly sending sends two copies of this email, and the rest wait for tomorrow.",
+  );
+  await importLuma(request, BASE);
+  await importCivicrm(request, BASE);
+  connectGmail(flowDatabase, HELLO);
+  runSql(
+    flowDatabase,
+    `INSERT INTO email_sends (purpose, address, outcome, message_id, backend, sender)
+     SELECT 'broadcast', 'earlier-' || i || '@example.com', 'sent', 'earlier-' || i, 'gmail', '${HELLO}'
+     FROM generate_series(1, ${GMAIL_DAILY_LIMIT - 2}) i`,
+  );
+  const id = addDue(flowDatabase, "Stall on Saturday", staffEmail());
+  await runSending(request);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(page.getByText(copy.moreTomorrow)).toBeVisible();
+  await frame(page, "Two sent, the rest tomorrow");
+  story(
+    "A week after its time it still hasn't all gone, so it stops, and whoever scheduled it is told how many it didn't reach.",
+  );
+  runSql(flowDatabase, `UPDATE mailings SET due_at = due_at - interval '${SENDING_DAYS} days' WHERE id = ${id}`);
+  await runSending(request);
+  const told = newestEmail(
+    (one) => one.Subject === staffCopy.notifications.broadcastGaveUp.subject("Stall on Saturday", "limit"),
+  )!;
+  await emailFrame(page, told, "The email saying it stopped");
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(page.getByText(copy.gaveUpLimit)).toBeVisible();
+  await frame(page, "Stopped");
+  story("Resume sending sets it going again, to the one it didn't reach, with its days again to go in.");
+  await page.getByRole("button", { name: copy.resume }).click();
+  await expect(page.getByText(copy.gaveUpLimit)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: mailingCopy.stopSending })).toBeVisible();
+  await frame(page, "Sending again");
+});
+
+test("A broadcast waiting for CiviCRM", async ({ page, request, flowDatabase }) => {
+  story(
+    "No import from CiviCRM has finished in the last day, so nobody can be checked against PauseAI Global's records, and nothing goes unchecked. The email waits, and whoever scheduled it is told, once.",
+  );
+  await importLuma(request, BASE);
+  const id = addDue(flowDatabase, "Social on Friday", staffEmail());
+  await runSending(request);
+  const told = newestEmail(
+    (one) => one.Subject === staffCopy.notifications.broadcastWaiting.subject("Social on Friday"),
+  )!;
+  await emailFrame(page, told, "The email saying it waits");
+  story("Its page says why it waits, and the day it will give up if it still can't go.");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(page.getByText(/^Waiting for an import from CiviCRM/)).toBeVisible();
+  await frame(page, "Waiting for CiviCRM");
+});
+
+test("A reply that asks us to stop", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter replied to an email. The reply came to hello@'s inbox, which the site reads, so it's on the email's page, counted in amber until someone looks at it.",
+  );
+  await importLuma(request, BASE);
+  const sent = addSent(flowDatabase, "email", "Thank you for marching");
+  runSql(
+    flowDatabase,
+    `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+       gmail_thread_id, blob_key, automatic)
+     VALUES (${sent.copy}, '2026-10-15T10:00:00Z', 'person1@example.com', 'Re: Thank you for marching', 'hello@pauseai.uk',
+       'flow-reply', 'flow-reply', 'fixture/broadcast-reply-stop.eml.gz', false)`,
+  );
+  runSql(flowDatabase, `UPDATE broadcast_messages SET topics = '{events}' WHERE mailing_id = ${sent.id}`);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
+  await expect(page.getByText(copy.lookTag)).toBeVisible();
+  await frame(page, "A reply to look at");
+  story(
+    "The thread shows the reply under our email. It asks to stop, so they record it as an opt-out of all bulk email.",
+  );
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText(/could you please stop sending me these/)).toBeVisible();
+  await page.getByRole("button", { name: copy.replies.reply }).scrollIntoViewIfNeeded();
+  await frame(page, "The reply, with its buttons", { window: true });
+  story("Unsubscribe them opens the form a supporter's page has, but needn't ask how they told us: by replying.");
+  const words = staffCopy.supporters.detail.permissions.recordOptOut;
+  await page.getByRole("button", { name: words.open }).click();
+  await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
+  await page.getByRole("button", { name: copy.replies.bulk }).click();
+  await frame(page, "Unsubscribe them, all bulk email chosen", { window: true });
+  await page.getByRole("button", { name: words.record }).click();
+  await expect(page.getByText(/Recorded as an opt-out/).first()).toBeVisible();
+  await frame(page, "Recorded as an opt-out");
+});
+
+test("Answering a reply", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter replied to an email to say thanks. Staff answer it on the email's page, rather than in hello@'s Gmail, at the foot of the thread.",
+  );
+  await importLuma(request, BASE);
+  const sent = addSent(flowDatabase, "email", "Thank you for marching");
+  connectGmail(flowDatabase, "hello@pauseai.uk");
+  runSql(
+    flowDatabase,
+    `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+       gmail_thread_id, rfc_message_id, blob_key, automatic)
+     VALUES (${sent.copy}, '2026-10-15T10:00:00Z', 'person1@example.com', 'Re: Thank you for marching', 'hello@pauseai.uk',
+       'flow-thanks', 'flow-thanks', 'fixture-broadcast-reply-thanks@example.com',
+       'fixture/broadcast-reply-thanks.eml.gz', false)`,
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText(/See you at the next one/)).toBeVisible();
+  await page.getByRole("button", { name: copy.replies.reply }).click();
+  const editor = page.getByRole("textbox", { name: copy.replies.answerLabel });
+  await expect(editor).toBeFocused();
+  await editor.pressSequentially("Thank you for coming! The next march is on 6 December.");
+  await page.getByRole("button", { name: copy.replies.discard }).scrollIntoViewIfNeeded();
+  await frame(page, "Writing a reply", { window: true });
+  story(
+    "Send reply sends it by Gmail from hello@, in the same conversation as their reply. It's in the thread, the reply is settled, and the History says who answered.",
+  );
+  await page.getByRole("button", { name: copy.replies.send }).click();
+  await expect(page.getByText(copy.replies.sentBy(staffEmail()))).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.replies.nothing })).toHaveCount(0);
+  await frame(page, "The reply, answered");
+  story("The email they get, from hello@, as an answer to theirs.");
+  // To them by name, as they're a supporter.
+  const answer = () =>
+    newestEmail((one) => one.To.endsWith("<person1@example.com>") && one.Subject === "Re: Thank you for marching");
+  await expect.poll(answer).toBeTruthy();
+  await emailFrame(page, answer()!, "The answer they get");
+});
+
+test("To more than one topic's yeses", async ({ page, request, flowDatabase }) => {
+  story(
+    "An invitation to an event suits those who said yes to the newsletter as well as those who said yes to events. + Add lets Said yes to take more than one topic, “or” between: a yes to any one is enough.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, EMAIL, EMAILABLE);
+  const saidYes = page.getByRole("group", { name: copy.facts.saidYes });
+  await saidYes.getByRole("button", { name: staffCopy.filters.addChoice }).click();
+  const newsletter = saidYes.getByRole("button", {
+    name: staffCopy.supporters.subscriptions.consents["email:newsletter"],
+  });
+  await newsletter.click();
+  await expect(newsletter).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    saidYes.getByRole("button", { name: staffCopy.supporters.subscriptions.consents["email:events"] }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await frame(page, "Newsletter or events");
 });

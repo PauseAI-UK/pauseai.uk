@@ -1,0 +1,5 @@
+/* A time's hour and minutes, side by side. */
+.time {
+  display: flex;
+  gap: var(--space-3);
+}

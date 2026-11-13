@@ -28,6 +28,11 @@ function cronSchedule(cron: string): JobSchedule | undefined {
   const [minute, hour, ...rest] = cron.split(" ");
   if (rest.join(" ") !== "* * *") return undefined;
   if (/^(\*|\d+-\d+)\/5$/.test(minute) && hour === "*") return "frequent";
+  // Four minutes, 15 apart.
+  const quarters = minute.split(",").map(Number);
+  if (quarters.length === 4 && quarters.every((m, i) => m === quarters[0] + 15 * i) && hour === "*") {
+    return "quarter-hour";
+  }
   if (!/^\d+$/.test(minute)) return undefined;
   if (hour === "*") return "hourly";
   return /^\d+$/.test(hour) ? "nightly" : undefined;
@@ -37,6 +42,9 @@ describe("the scheduled functions", () => {
   it("tells a cron's schedule apart", () => {
     expect(cronSchedule("*/5 * * * *")).toBe("frequent");
     expect(cronSchedule("2-59/5 * * * *")).toBe("frequent");
+    expect(cronSchedule("3,18,33,48 * * * *")).toBe("quarter-hour");
+    expect(cronSchedule("3,18,33,49 * * * *")).toBeUndefined();
+    expect(cronSchedule("3,18,33,48 6 * * *")).toBeUndefined();
     expect(cronSchedule("18 * * * *")).toBe("hourly");
     expect(cronSchedule("23 6 * * *")).toBe("nightly");
     expect(cronSchedule("23 */2 * * *")).toBeUndefined();

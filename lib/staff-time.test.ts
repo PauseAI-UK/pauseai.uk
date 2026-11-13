@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   datesHeldTogether,
-  earliestHour,
+  earliestRun,
   fromLondon,
-  hourNotTooSoon,
-  londonDayHour,
+  notTooSoon,
+  londonDayTime,
   londonClock,
   londonDate,
   londonStart,
@@ -44,55 +44,68 @@ it("is the time of day to the minute, in UTC", () => {
 });
 
 describe("London's time, for when a mailing goes", () => {
-  it("reads a moment as London's day and hour, in winter and in summer time", () => {
-    expect(londonDayHour(new Date("2026-11-30T09:00:00Z"))).toEqual({ day: "2026-11-30", hour: 9 });
-    expect(londonDayHour(new Date("2026-07-01T23:30:00Z"))).toEqual({ day: "2026-07-02", hour: 0 });
+  it("reads a moment as London's day, hour and minute, in winter and in summer time", () => {
+    expect(londonDayTime(new Date("2026-11-30T09:03:00Z"))).toEqual({ day: "2026-11-30", hour: 9, minute: 3 });
+    expect(londonDayTime(new Date("2026-07-01T23:30:00Z"))).toEqual({ day: "2026-07-02", hour: 0, minute: 30 });
   });
 
-  it("makes a moment from London's day and hour", () => {
+  it("makes a moment from London's day, hour and minute, on the hour if no minute's given", () => {
     expect(fromLondon("2026-11-30", 9)).toEqual(new Date("2026-11-30T09:00:00.000Z"));
-    expect(fromLondon("2026-07-02", 0)).toEqual(new Date("2026-07-01T23:00:00.000Z"));
+    expect(fromLondon("2026-11-30", 9, 33)).toEqual(new Date("2026-11-30T09:33:00.000Z"));
+    expect(fromLondon("2026-07-02", 0, 18)).toEqual(new Date("2026-07-01T23:18:00.000Z"));
   });
 
   it("says when, in London", () => {
-    expect(londonWhen(new Date("2026-10-30T09:00:00Z"))).toBe("Friday 30 October at 09:18");
-    expect(londonWhen(new Date("2026-07-02T08:00:00Z"))).toBe("Thursday 2 July at 09:18");
-    expect(londonWhenShort(new Date("2026-10-30T09:00:00Z"))).toBe("Fri 30 Oct, 09:18");
-    expect(londonWhen(new Date("2026-10-30T09:00:00Z"), "short")).toBe("Fri 30 Oct at 09:18");
+    expect(londonWhen(new Date("2026-10-30T09:18:00Z"))).toBe("Friday 30 October at 09:18");
+    expect(londonWhen(new Date("2026-07-02T08:48:00Z"))).toBe("Thursday 2 July at 09:48");
+    expect(londonWhenShort(new Date("2026-10-30T09:03:00Z"))).toBe("Fri 30 Oct, 09:03");
+    expect(londonWhen(new Date("2026-10-30T09:33:00Z"), "short")).toBe("Fri 30 Oct at 09:33");
     // Overnight, when the sending doesn't run, at its first run of the morning.
-    expect(londonWhen(new Date("2026-10-30T03:00:00Z"))).toBe("Friday 30 October at 06:18");
-    expect(londonWhen(new Date("2026-07-02T02:00:00Z"))).toBe("Thursday 2 July at 07:18");
+    expect(londonWhen(new Date("2026-10-30T03:00:00Z"))).toBe("Friday 30 October at 06:03");
+    expect(londonWhen(new Date("2026-07-02T02:00:00Z"))).toBe("Thursday 2 July at 07:03");
   });
 });
 
-it("sends a mailing at its hour's run of the sending, or overnight at the morning's first", () => {
-  expect(sendsAt(new Date("2026-10-30T09:00:00.000Z"))).toEqual(new Date("2026-10-30T09:18:00.000Z"));
-  expect(sendsAt(new Date("2026-10-30T23:00:00.000Z"))).toEqual(new Date("2026-10-30T23:18:00.000Z"));
-  expect(sendsAt(new Date("2026-10-30T00:00:00.000Z"))).toEqual(new Date("2026-10-30T06:18:00.000Z"));
+it("sends a mailing at the first run of the sending at or after its time, or overnight at the morning's first", () => {
+  expect(sendsAt(new Date("2026-10-30T09:18:00.000Z"))).toEqual(new Date("2026-10-30T09:18:00.000Z"));
+  // On the hour, as one due before the sending ran every 15 minutes is.
+  expect(sendsAt(new Date("2026-10-30T09:00:00.000Z"))).toEqual(new Date("2026-10-30T09:03:00.000Z"));
+  expect(sendsAt(new Date("2026-10-30T09:18:30.000Z"))).toEqual(new Date("2026-10-30T09:33:00.000Z"));
+  // After the hour's last run, the next hour's first.
+  expect(sendsAt(new Date("2026-10-30T09:50:00.000Z"))).toEqual(new Date("2026-10-30T10:03:00.000Z"));
+  expect(sendsAt(new Date("2026-10-30T23:50:00.000Z"))).toEqual(new Date("2026-10-31T06:03:00.000Z"));
+  expect(sendsAt(new Date("2026-10-30T00:00:00.000Z"))).toEqual(new Date("2026-10-30T06:03:00.000Z"));
   expect(londonClock(new Date("2026-07-02T23:18:00Z"))).toBe("00:18");
 });
 
-describe("the first hour a mailing can go", () => {
-  it("is the first whole hour whose run of the sending is at least five minutes away", () => {
+describe("the first time a mailing can go", () => {
+  it("is the first run of the sending at least five minutes away", () => {
     vi.useFakeTimers({ now: new Date("2026-07-01T10:30:00Z"), toFake: ["Date"] });
     try {
-      expect(earliestHour()).toEqual(new Date("2026-07-01T11:00:00.000Z"));
-      vi.setSystemTime(new Date("2026-07-01T11:05:00Z"));
-      expect(earliestHour()).toEqual(new Date("2026-07-01T11:00:00.000Z"));
-      vi.setSystemTime(new Date("2026-07-01T11:13:00Z"));
-      expect(earliestHour()).toEqual(new Date("2026-07-01T11:00:00.000Z"));
-      vi.setSystemTime(new Date("2026-07-01T11:14:00Z"));
-      expect(earliestHour()).toEqual(new Date("2026-07-01T12:00:00.000Z"));
+      expect(earliestRun()).toEqual(new Date("2026-07-01T10:48:00.000Z"));
+      vi.setSystemTime(new Date("2026-07-01T10:43:00Z"));
+      expect(earliestRun()).toEqual(new Date("2026-07-01T10:48:00.000Z"));
+      vi.setSystemTime(new Date("2026-07-01T10:44:00Z"));
+      expect(earliestRun()).toEqual(new Date("2026-07-01T11:03:00.000Z"));
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it("moves an hour too soon on that day to it, and keeps any other", () => {
-    const earliest = { day: "2026-07-01", hour: 12 };
-    expect(hourNotTooSoon("2026-07-01", 9, earliest)).toBe(12);
-    expect(hourNotTooSoon("2026-07-01", 14, earliest)).toBe(14);
-    expect(hourNotTooSoon("2026-07-02", 9, earliest)).toBe(9);
+  it("moves a time too soon to it, and keeps any other", () => {
+    const earliest = { day: "2026-07-01", hour: 12, minute: 33 };
+    expect(notTooSoon({ day: "2026-07-01", hour: 9, minute: 48 }, earliest)).toEqual(earliest);
+    expect(notTooSoon({ day: "2026-07-01", hour: 12, minute: 18 }, earliest)).toEqual(earliest);
+    expect(notTooSoon({ day: "2026-07-01", hour: 12, minute: 48 }, earliest)).toEqual({
+      day: "2026-07-01",
+      hour: 12,
+      minute: 48,
+    });
+    expect(notTooSoon({ day: "2026-07-02", hour: 9, minute: 3 }, earliest)).toEqual({
+      day: "2026-07-02",
+      hour: 9,
+      minute: 3,
+    });
   });
 });
 

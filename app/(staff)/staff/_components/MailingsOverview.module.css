@@ -10,10 +10,12 @@
 }
 
 /* A row: when, the mailing, and how it stands, in columns that line up
-   from row to row; on a phone, when over the title and how it stands under it. */
+   from row to row; on a phone, when over the title and how it stands under it.
+   How it stands is wide enough for a broadcast's six small counts side by
+   side (Counts' small ones, 4.25rem each, and their borders). */
 .row {
   display: grid;
-  grid-template-columns: 9rem minmax(0, 1fr) 24rem;
+  grid-template-columns: 9rem minmax(0, 1fr) 26.5rem;
   gap: var(--space-2) var(--space-4);
   align-items: center;
   padding: var(--space-3) 0;
