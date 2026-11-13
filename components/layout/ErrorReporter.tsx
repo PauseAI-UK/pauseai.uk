@@ -1,5 +1,6 @@
 "use client";
 
+import { isNextRouterError } from "next/dist/client/components/is-next-router-error";
 import { useEffect } from "react";
 import { fromOurScripts, reportBrowserError } from "@/lib/browser-errors";
 
@@ -21,6 +22,10 @@ export default function ErrorReporter({
   useEffect(() => {
     const target = on ?? window;
     const tell = (thrown: unknown) => {
+      // Next's redirect and not-found aren't errors. A Server Action that
+      // redirects, called by a click that doesn't wait for it, leaves the
+      // redirect behind as a failed promise, after Next has followed it.
+      if (isNextRouterError(thrown)) return;
       if (thrown instanceof Error && fromOurScripts(thrown.stack, window.location.origin)) {
         report("browser-other", thrown);
       }

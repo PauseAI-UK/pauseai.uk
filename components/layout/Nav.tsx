@@ -70,9 +70,13 @@ export default function Nav() {
 
   const header = useRef<HTMLElement>(null);
   useEffect(() => {
-    // The stylesheet positions the mobile menu and in-page anchors below the header.
+    // The stylesheet positions the mobile menu and in-page anchors below the
+    // header. Going to a page without the header, such as the march page,
+    // takes it out of the page, and the ResizeObserver can report that after
+    // React has let go of it: there's nothing to measure then.
     const syncHeaderHeight = () => {
-      document.documentElement.style.setProperty("--site-header-h", `${header.current!.offsetHeight}px`);
+      if (!header.current) return;
+      document.documentElement.style.setProperty("--site-header-h", `${header.current.offsetHeight}px`);
     };
     syncHeaderHeight();
     const resizeObserver = new ResizeObserver(syncHeaderHeight);

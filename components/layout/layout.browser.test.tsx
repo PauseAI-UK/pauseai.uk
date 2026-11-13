@@ -86,6 +86,28 @@ describe("Nav", () => {
     expect(document.documentElement.style.getPropertyValue("--site-header-h")).toMatch(/px$/);
   });
 
+  it("measures nothing once the header is gone", async () => {
+    // Following the march banner to the march page, which has no header,
+    // takes the header out of the page. The ResizeObserver reports it shrinking
+    // to nothing, and the report can come after React has let go of it.
+    const reports: ResizeObserverCallback[] = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(report: ResizeObserverCallback) {
+          reports.push(report);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const { unmount } = await render(<Nav />);
+    document.documentElement.style.setProperty("--site-header-h", "77px");
+    await unmount();
+    reports[0]([], {} as ResizeObserver);
+    expect(document.documentElement.style.getPropertyValue("--site-header-h")).toBe("77px");
+  });
+
   it("opens and closes the mobile menu", async () => {
     const { container } = await render(<Nav />);
     const burger = container.querySelector('button[aria-label="Menu"]') as HTMLElement;
