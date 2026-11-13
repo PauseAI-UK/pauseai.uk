@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { run } from "./backup.ts";
 import { archiveMessages, tarHeader, type Site } from "./messages.ts";
 
@@ -55,6 +55,19 @@ describe("archiveMessages", () => {
     const report = await archiveMessages(site({ a: big }, ["a", "gone"]), path, AT);
     expect(report).toMatchObject({ messages: 1, missing: ["gone"] });
     expect((await readFile(path)).length).toBe(report.bytes);
+  });
+
+  it("says how far it's got in the container's logs: at the start, every hundred, and at the end", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const messages = Object.fromEntries(Array.from({ length: 250 }, (_, i) => [`m${i}.eml.gz`, "x"]));
+    await archiveMessages(site(messages), join(dir, "progress.tar"), AT);
+    expect(info.mock.calls.map(([line]) => line)).toEqual([
+      "Messages: 0 of 250 fetched",
+      "Messages: 100 of 250 fetched",
+      "Messages: 200 of 250 fetched",
+      "Messages: 250 of 250 fetched",
+    ]);
+    info.mockRestore();
   });
 
   it("fails where the site won't list its messages, or send one", async () => {

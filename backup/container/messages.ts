@@ -22,6 +22,15 @@ export type Site = (path: string) => Promise<Response>;
 
 const BLOCK = 512;
 
+/**
+ * How many messages are fetched at once: ten of the largest, about 11 MB
+ * each, fit well in the container's 1 GB.
+ */
+const AT_ONCE = 10;
+
+/** How many messages between the lines saying how far it's got: a whole number of batches. */
+const PROGRESS_EVERY = 100;
+
 /** A tar header field: `text`, padded with NULs to `length`. */
 function field(header: Buffer, offset: number, length: number, text: string): void {
   header.write(text, offset, length, "utf8");
@@ -81,21 +90,35 @@ export async function archiveMessages(site: Site, path: string, at: Date): Promi
     if (!out.write(chunk)) await new Promise<void>((resolve) => out.once("drain", () => resolve()));
   };
   const missing: string[] = [];
+  // How far it's got, in the container's logs, as fetching them all takes minutes.
+  const progress = (done: number) => console.info(`Messages: ${done} of ${keys.length} fetched`);
+  progress(0);
+  // A message, or null where the site has none for its key.
+  const fetchOne = async (key: string): Promise<Buffer | null> => {
+    const file = await site(`/api/backup/messages?key=${encodeURIComponent(key)}`);
+    if (file.status === 404) return null;
+    if (!file.ok) throw new Error(`The site wouldn't send message ${key}: ${file.status}.`);
+    return Buffer.from(await file.arrayBuffer());
+  };
   try {
-    for (const key of keys) {
-      const file = await site(`/api/backup/messages?key=${encodeURIComponent(key)}`);
-      if (file.status === 404) {
-        missing.push(key);
-        continue;
+    // A few at once, each batch written in the order listed.
+    for (let i = 0; i < keys.length; i += AT_ONCE) {
+      if (i > 0 && i % PROGRESS_EVERY === 0) progress(i);
+      const batch = keys.slice(i, i + AT_ONCE);
+      const files = await Promise.all(batch.map(fetchOne));
+      for (const [j, data] of files.entries()) {
+        if (!data) {
+          missing.push(batch[j]);
+          continue;
+        }
+        await write(tarHeader(batch[j], data.length, at));
+        await write(data);
+        await write(Buffer.alloc((BLOCK - (data.length % BLOCK)) % BLOCK));
       }
-      if (!file.ok) throw new Error(`The site wouldn't send message ${key}: ${file.status}.`);
-      const data = Buffer.from(await file.arrayBuffer());
-      await write(tarHeader(key, data.length, at));
-      await write(data);
-      await write(Buffer.alloc((BLOCK - (data.length % BLOCK)) % BLOCK));
     }
     // Two empty blocks end the archive.
     await write(Buffer.alloc(BLOCK * 2));
+    progress(keys.length);
   } finally {
     await new Promise<void>((resolve) => out.end(() => resolve()));
   }

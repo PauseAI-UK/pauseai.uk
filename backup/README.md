@@ -56,7 +56,7 @@ is in no archive after, and the old archives expire. The manifest records
 the archive, and the checks say so if a message the site listed was missing
 from its store, or the archive has more than 20% fewer messages than the
 night before. If the archive fails, the dump is still kept, and the problem
-emailed.
+emailed. Each message is gzipped already, so the tar isn't compressed again.
 
 Any problem, or a backup that fails outright, is emailed through Postmark.
 If a Healthchecks.io ping URL is set, every run pings it. Healthchecks.io
@@ -104,11 +104,84 @@ command with it, which runs a backup at once and shows the report. Try the
 command a few minutes after the first deploy, once the container is ready,
 and keep the secret somewhere safe.
 
-Run `setup.sh` again to change a secret, and `npm run deploy` to deploy
-changes to the code.
+Run `setup.sh` again to change a secret or add a lifecycle rule it didn't
+make before; Enter keeps each secret as it is.
 
-The Worker's logs are in Cloudflare's dashboard: Workers & Pages >
-pauseai-uk-backup > Logs.
+## Deploy a change
+
+From an up-to-date `main`:
+
+```bash
+git pull
+cd backup
+npm ci
+npm run deploy
+```
+
+It prints the Worker's address,
+`https://pauseai-uk-backup.<subdomain>.workers.dev`, the subdomain being the
+Cloudflare account's own (also under Workers & Pages, "Subdomain"). Cloudflare
+rolls a new container image out over a few minutes: under Containers >
+pauseai-uk-backup-backupcontainer > Versions, wait till the new version has
+100% before running a backup by hand, or the old one may answer. "Image
+already exists remotely" and "no changes" mean the container is as it was;
+only the Worker changed.
+
+## Run a backup now
+
+```bash
+curl -X POST https://pauseai-uk-backup.<subdomain>.workers.dev/run -H "Authorization: Bearer <RUN_SECRET>"
+```
+
+It answers when the backup is done, with "No problems." or a list of them,
+as the email would say. That takes a while: about three minutes for the
+dump, then a few more for the messages, fetched ten at a time. Follow it in the logs ("Follow a run", below) rather
+than waiting on curl.
+
+`RUN_SECRET` is what `setup.sh` printed the first time. Cloudflare won't show a secret again, so
+if it's lost, make another; only this command uses it:
+
+```bash
+openssl rand -hex 32                 # keep it somewhere safe
+npx wrangler secret put RUN_SECRET   # paste it when asked
+```
+
+## Follow a run
+
+Every way to see how a backup is doing, or did:
+
+- **The container's logs**: in Cloudflare's dashboard
+  (https://dash.cloudflare.com/?to=/:account/workers/containers), Containers >
+  pauseai-uk-backup-backupcontainer > Logs. Each step shows as a request:
+  `POST /backup` (the dump and its checks), `GET /dump`, `POST /messages`
+  (fetching the messages), `GET /messages`. While it fetches them, "Messages:
+  300 of 942 fetched", every hundred. "Activity expired, signalling container
+  to stop" is it going to sleep two minutes after its last request.
+- **The Worker's logs**: Workers & Pages > pauseai-uk-backup > Logs
+  (https://dash.cloudflare.com/?to=/:account/workers-and-pages), or live in a
+  terminal with `npx wrangler tail pauseai-uk-backup`
+  (https://developers.cloudflare.com/workers/observability/logs/real-time-logs/).
+- **The report**: the answer to `/run` (above), and the email any problem
+  sends, from `ALERT_FROM` to `ALERT_TO`, through Postmark.
+- **Healthchecks.io**, if it's set up (https://healthchecks.io/projects/):
+  each run's ping, and an email when a night's backup never runs.
+- **What it stored**: the bucket in R2
+  (https://dash.cloudflare.com/?to=/:account/r2/overview), or the newest
+  manifest, with the dump's key and counts, and the archive's under
+  `messages`:
+
+```bash
+npx wrangler r2 object get pauseai-uk-backups/latest.json --remote --pipe
+```
+
+## Read the messages' archive
+
+```bash
+npx wrangler r2 object get pauseai-uk-backups/messages/2026-10-19T03-00-00Z.tar --remote --file messages.tar
+tar -tf messages.tar | wc -l   # as many as the manifest's messages.messages
+mkdir messages && tar -xf messages.tar -C messages
+gunzip -c messages/<account>/<id>.eml.gz   # one message, as it came
+```
 
 ## Restore a backup
 
@@ -131,7 +204,7 @@ createdb restored
 pg_restore --no-owner --no-privileges --dbname=restored backup.dump
 psql --dbname=restored --file=container/restore-sequences.sql
 npx wrangler r2 object get pauseai-uk-backups/messages/2026-10-19T03-00-00Z.tar --remote --file messages.tar
-tar -xf messages.tar -C messages   # each message, gzipped, under its key
+mkdir messages && tar -xf messages.tar -C messages   # each message, gzipped, under its key
 ```
 
 ## Tests
