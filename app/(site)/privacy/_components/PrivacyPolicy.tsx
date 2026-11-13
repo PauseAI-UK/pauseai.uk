@@ -126,8 +126,8 @@ export default function PrivacyPolicy() {
         <li>Airtable: our records of MPs and of members.</li>
       </ul>
       <p>
-        ⁂ We do not sell your personal data. Where a provider is outside the UK, the transfer is protected by UK
-        adequacy regulations or the UK International Data Transfer Agreement.
+        We do not sell your personal data. Where a provider is outside the UK, the transfer is protected by UK adequacy
+        regulations or the UK International Data Transfer Agreement.
       </p>
 
       <h2>How long we keep it</h2>
