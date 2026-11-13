@@ -90,14 +90,14 @@ export default function PrivacyPolicy() {
 
       <h2>How we contact you</h2>
       <p>
-        ⁂ We only email you if you asked for our newsletter or events, or said you’d like to volunteer. Every email has
-        a link to unsubscribe.
+        We only email you if you asked for our newsletter or events, or said you’d like to volunteer. Every email has a
+        link to unsubscribe.
       </p>
       <p>
-        ⁂ We only text you on WhatsApp if you asked for texts, or said you’d like to volunteer. Reply STOP to stop them.
+        We only text you on WhatsApp if you asked for texts, or said you’d like to volunteer. Reply STOP to stop them.
       </p>
       <p>
-        ⁂ Change what you get on the{" "}
+        Change what you get on the{" "}
         <Link className="inline-link" href="/contact-preferences">
           contact preferences page
         </Link>
