@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
         <a className="inline-link" href="https://pauseai.info/privacy" target="_blank" rel="noreferrer">
           their privacy policy
         </a>
-        . Questions:{" "}
+        . If you have any questions about your data, email us at{" "}
         <a className="inline-link" href="mailto:hello@pauseai.uk">
           hello@pauseai.uk
         </a>
