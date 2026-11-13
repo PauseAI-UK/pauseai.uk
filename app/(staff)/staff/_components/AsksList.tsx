@@ -69,11 +69,10 @@ function AskRow({ ask, picked, Title }: { ask: AskWithCounts; picked: boolean; T
   return (
     <li id={ask.slug} className={styles.ask} aria-current={picked || undefined}>
       <div className={styles.what}>
-        <span className={styles.asked}>
-          <AskKindIcon kind={ask.kind} size={16} />
-          {[askedLine(ask), askPeriod(ask)].filter(Boolean).join(" · ")}
-        </span>
-        <Title className={styles.title}>
+        <span className={styles.asked}>{[askedLine(ask), askPeriod(ask)].filter(Boolean).join(" · ")}</span>
+        {/* Its kind's picture before its title, as a broadcast's channel is before its; the line above says it in words. */}
+        <Title className={`${styles.title} ${styles.titled}`}>
+          <AskKindIcon kind={ask.kind} size={20} />
           <StaffLink href={askHref(ask.slug)}>{ask.title}</StaffLink>
         </Title>
         <Answers ask={ask} />

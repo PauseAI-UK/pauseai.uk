@@ -171,19 +171,20 @@ export default function AskView({ ask, answer }: { ask: AskPageData; answer: str
   return (
     <div className={styles.page}>
       <Band
-        title={ask.title}
+        title={
+          // Its kind's picture first, as a broadcast's title has its channel's; the Asked fact says it in words.
+          <span className={styles.titled}>
+            <AskKindIcon kind={ask.kind} size={24} />
+            {ask.title}
+          </span>
+        }
         corner={
           <StaffLink className={buttonClass({ variant: "ghost", size: "small", fit: true })} href={`${path}/edit`}>
             {copy.edit}
           </StaffLink>
         }
       >
-        <BandFact label={page.asked}>
-          <span className={styles.asked}>
-            <AskKindIcon kind={ask.kind} size={18} />
-            {askedLine(ask)}
-          </span>
-        </BandFact>
+        <BandFact label={page.asked}>{askedLine(ask)}</BandFact>
         <BandFact label={ask.kind === "letter" ? page.when : page.on}>{askPeriod(ask)}</BandFact>
         <BandFact label={page.readIt[ask.kind]}>
           {ask.url &&
