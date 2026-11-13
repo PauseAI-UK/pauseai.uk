@@ -44,7 +44,7 @@ describe("SupporterDetails", () => {
     await expect.element(page.getByText(copy.detail.placeFrom.postcode("M1 1AE"), { exact: true })).toBeVisible();
     expect(band.querySelector("a[href='/staff/politicians/1']")!.textContent).toBe("Polly Placeholder");
     expect(band.textContent).toContain("Manchester Central · Labour (Co-op)");
-    expect(band.textContent).toContain(copy.detail.firstVia(copy.sources.luma));
+    expect(band.textContent).toContain(copy.detail.firstCame.luma);
     const counts = band.querySelector("[class*=counts]")!;
     expect(counts.querySelector("a")).toBeNull();
     expect([...counts.children].map((count) => count.textContent)).toEqual([
@@ -473,7 +473,22 @@ describe("SupporterDetails", () => {
     );
     await expect.element(page.getByText("Douglas", { exact: true })).toBeVisible();
     await expect.element(page.getByText("Somewhere", { exact: true })).toBeVisible();
-    expect(document.body.textContent).not.toContain(copy.detail.firstVia(copy.sources.luma));
+    expect(document.body.textContent).not.toContain(copy.detail.firstCame.luma);
+  });
+
+  it("says a member first came by joining PauseAI", async () => {
+    const copy = staffCopy.supporters;
+    await render(
+      <SupporterDetails
+        supporter={{
+          ...exampleSupporterDetails,
+          identities: [
+            { source: "civicrm", email: "jane@example.com", name: "Jane", seenAt: new Date("2026-03-01T10:00:00Z") },
+          ],
+        }}
+      />,
+    );
+    expect(document.body.textContent).toContain(copy.detail.firstCame.civicrm);
   });
 
   it("says each year when we've known them across two, and one day when it's all they were seen", async () => {

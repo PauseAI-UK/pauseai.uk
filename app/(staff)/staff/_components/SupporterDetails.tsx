@@ -195,7 +195,7 @@ function Active({ first, last, source }: { first: Date | null; last: Date | null
   const [from, to] = days;
   const sameYear = to && from!.slice(-4) === to.slice(-4);
   return (
-    <BandFact label={copy.detail.active} detail={source && copy.detail.firstVia(copy.sources[source])}>
+    <BandFact label={copy.detail.active} detail={source && copy.detail.firstCame[source]}>
       {to ? `${sameYear ? from!.slice(0, -5) : from} – ${to}` : from}
     </BandFact>
   );

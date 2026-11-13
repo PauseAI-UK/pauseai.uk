@@ -680,7 +680,15 @@ export const staffCopy = {
       // In the band at the top: their MP, linked to their page, how they first came, under when they were active,
       // and how many events they registered for and letters they wrote, each linked to its table.
       theirMp: "Their MP",
-      firstVia: (source: string) => `first came via ${source}`,
+      // Under when they were active, how they first came, by the source of their first record.
+      firstCame: {
+        civicrm: "first came by joining PauseAI",
+        "email-your-mp": "first came by writing to their MP",
+        "web-form": "first came by writing to their MP on pauseai.info",
+        luma: "first came through Luma",
+        "march-2026-11": "first came by signing up for the march",
+        "paper-signup": "first came on a paper sign-up form",
+      } as Record<string, string>,
       eventsCounted: (n: number) => plural(n, "event", "events"),
       lettersCounted: (n: number) => plural(n, "letter to an MP", "letters to MPs"),
       broadcastsCounted: (n: number) => plural(n, "broadcast", "broadcasts"),

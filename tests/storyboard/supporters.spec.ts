@@ -236,7 +236,7 @@ test("A supporter's page", async ({ page, request, flowDatabase }) => {
   const jane = page.getByRole("row").filter({ hasText: "Jane Fixture" });
   await jane.getByRole("link", { name: "Jane Fixture" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Jane Fixture");
-  await expect(page.getByText(copy.detail.firstVia(copy.sources.luma))).toBeVisible();
+  await expect(page.getByText(copy.detail.firstCame.luma)).toBeVisible();
   await expect(page.getByText("07700 900001", { exact: false }).first()).toBeVisible();
   // Her postcode is in Manchester Central, whose MP the politicians sync brought.
   await expect(page.getByRole("link", { name: "Mo Example" })).toBeVisible();
@@ -492,7 +492,7 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   await expect(page).toHaveURL(/\/staff\/supporters\/\d+$/);
   // The letter's sender's name, as the newest; how they first came, as a member.
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lee Letter");
-  await expect(page.getByText(copy.detail.firstVia(copy.sources.civicrm))).toBeVisible();
+  await expect(page.getByText(copy.detail.firstCame.civicrm)).toBeVisible();
   await expect(page.getByText("29 Nov 2025", { exact: false }).first()).toBeVisible();
   // Left the box on their letter unticked, the newest thing they told us about the newsletter.
   await expect(page.getByText(said("declined", "email-your-mp"), { exact: false })).toBeVisible();
