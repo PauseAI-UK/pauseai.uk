@@ -226,9 +226,9 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
  * their record has gone from Airtable, and under it what they are; at its
  * top right, quietly, where their record came from, an Airtable MP's linked
  * to it there; then their party, whether they're in office, their nation
- * and how to write to them; and roughly how many emails went each way, when
- * any did, each leading to Correspondence, and how many asks they agreed to
- * (asksAgreed).
+ * and how to write to them; and how many asks they agreed to (asksAgreed),
+ * then roughly how many emails went each way, when any did, each leading to
+ * Correspondence.
  */
 function PoliticianBand({
   politician,
@@ -279,7 +279,7 @@ function PoliticianBand({
       aside={
         <Counts
           counts={[
-            ...emailCounts,
+            // First, as it matters most, and as the politicians list's columns have it.
             {
               key: "asks",
               n: asksAgreed(politician.statuses),
@@ -288,6 +288,7 @@ function PoliticianBand({
               tone: "green",
               href: `/staff/politicians/${politician.id}#asks-title`,
             },
+            ...emailCounts,
           ]}
         />
       }
