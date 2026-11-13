@@ -97,7 +97,8 @@ export function settingsTopics(view: SettingsView): SettingsTopic[] {
       .map((way) => ({
         way,
         on: own.some((a) => a.way === way && a.send === "yes"),
-        locked: way === "email" ? view.hold !== null : stopped.includes(way),
+        // Stop everything stops every text and call too, till Restart.
+        locked: way === "email" ? view.hold !== null : stopped.includes(way) || Boolean(view.hold?.everything),
       }));
     const email = forNumber
       ? (own.find((a) => a.way === "text") ?? own[0])

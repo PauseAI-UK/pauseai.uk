@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db";
+import { SITE_ACTOR } from "@/lib/broadcasts";
 import { stopAnswer } from "@/lib/whatsapp-template";
 import { addFollower, addTemplate } from "@/tests/broadcast-fixtures";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -137,7 +138,7 @@ describeWithDatabase("WhatsApp's webhook", () => {
       skip: "unsubscribed",
       events: [{ kind: "opted-out" }],
     });
-    expect(await stops()).toEqual(["refused", "refused", "refused"]);
+    expect(await stops()).toEqual(["refused"]);
   });
 
   it("holds a day one WhatsApp held back while its text is sending, and fails it once the text has finished", async () => {
@@ -209,12 +210,14 @@ describeWithDatabase("WhatsApp's webhook", () => {
     ]);
   });
 
-  it("takes a reply saying stop, whatever its case, as a stop of the copy it answers", async () => {
+  it("takes a reply saying stop, whatever its case, as a stop of the copy it answers, kept as an opt-out", async () => {
     const id = await sentCopy();
     expect(await recordWhatsAppWebhook(message({ text: { body: " STOP " }, context: { id: "wamid.out-1" } }))).toBe(1);
-    expect(await stops()).toEqual(["reply", "reply", "reply"]);
+    expect(await stops()).toEqual(["reply"]);
     expect((await copyOf(id)).events).toEqual([{ kind: "opted-out", details: {} }]);
-    expect(await query("SELECT 1 FROM broadcast_replies")).toEqual([]);
+    expect(
+      await query("SELECT message_id::int AS copy, body, outcome, dealt_by AS by, automatic FROM broadcast_replies"),
+    ).toEqual([{ copy: id, body: " STOP ", outcome: "opted-out", by: SITE_ACTOR, automatic: false }]);
   });
 
   it("answers a stop once, saying what it stopped, with a link to the page for the number", async () => {
@@ -235,6 +238,11 @@ describeWithDatabase("WhatsApp's webhook", () => {
     expect(body).toBe(stopAnswer(["events"], link));
     const page = await linkPage(link.split("/").at(-1)!);
     expect(page).toMatchObject({ number: true, view: { address: "+447700900123", numbers: ["+447700900123"] } });
+    // The answer, kept under the stop's reply, so the copy's thread shows it.
+    expect(
+      await query(`SELECT a.sent_by AS by, a.status, a.provider_message_id AS id, a.body #>> '{content,0,content,0,text}' AS words
+                   FROM broadcast_answers a JOIN broadcast_replies r ON r.id = a.reply_id`),
+    ).toEqual([{ by: SITE_ACTOR, status: "sent", id: "wamid.answer", words: body }]);
   });
 
   it("keeps a stop whose answer doesn't go, reporting it, and answers none without WhatsApp's keys", async () => {
@@ -242,8 +250,9 @@ describeWithDatabase("WhatsApp's webhook", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     await sentCopy();
     await recordWhatsAppWebhook(message({ text: { body: "stop" }, context: { id: "wamid.out-1" } }));
-    expect(await stops()).toEqual(["reply", "reply", "reply"]);
+    expect(await stops()).toEqual(["reply"]);
     expect(error).toHaveBeenCalledWith(staffCopy.problems.anywhere.stopNotAnswered, expect.anything());
+    expect(await query("SELECT 1 FROM broadcast_answers")).toEqual([]);
     error.mockClear();
     vi.unstubAllEnvs();
     await recordWhatsAppWebhook(message({ id: "wamid.in-2", text: { body: "stop" } }, "447700900124"));
@@ -281,7 +290,7 @@ describeWithDatabase("WhatsApp's webhook", () => {
         ],
       });
     expect(await recordWhatsAppWebhook(preference("stop"))).toBe(1);
-    expect(await stops()).toEqual(["setting", "setting", "setting"]);
+    expect(await stops()).toEqual(["setting"]);
     expect(await recordWhatsAppWebhook(preference("resume"))).toBe(1);
     expect(await stops()).toEqual([]);
     expect(await recordWhatsAppWebhook(preference("something"))).toBe(0);

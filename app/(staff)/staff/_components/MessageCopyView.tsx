@@ -4,7 +4,7 @@ import { named } from "@/lib/email-parsing/addresses";
 import type { MessageCopy } from "@/lib/server/broadcast-pages";
 import Reply, { type ReplyHandlers } from "./CopyReply";
 import { staffTime } from "@/lib/staff-time";
-import { FIELDS_AS_WORDS, TEXT_SENDER_NAME } from "@/lib/broadcasts";
+import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import { MailingLetter } from "./MailingLetter";
 import { CopyStatus } from "./BroadcastView";
 import { ChatBubble, ChatWall, TextWords } from "./TextBubble";
@@ -74,8 +74,9 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
  * another.
  */
 function historyOf(one: MessageCopy): HistoryEntry[] {
+  // A STOP the site recorded is already there, as WhatsApp's opt-out.
   const dealt = one.replies.flatMap((reply) =>
-    reply.dealtAt && reply.outcome !== "answered"
+    reply.dealtAt && reply.outcome !== "answered" && reply.dealtBy !== SITE_ACTOR
       ? [
           {
             at: reply.dealtAt,

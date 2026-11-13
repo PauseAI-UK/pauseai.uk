@@ -5,6 +5,7 @@
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { named } from "@/lib/email-parsing/addresses";
+import { phoneWords } from "@/lib/phone";
 import { answerSubject } from "@/lib/email-parsing/subjects";
 import type { BroadcastAnswer } from "@/lib/server/broadcast-answers";
 import type { MessageCopy } from "@/lib/server/broadcast-pages";
@@ -13,7 +14,7 @@ import { staffTime } from "@/lib/staff-time";
 import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import { MailingLetter } from "./MailingLetter";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
-import { ChatBubble, ChatWall } from "./TextBubble";
+import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "./ThreadEmail";
 import { TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import styles from "./MessageCopyView.module.css";
@@ -21,8 +22,12 @@ import styles from "./MessageCopyView.module.css";
 const copy = staffCopy.broadcastPages;
 
 /** Who a reply is from: their name as their copy had it, when it's from the address the copy went to. */
-const sender = (reply: BroadcastReply, one: MessageCopy) =>
-  named(reply.from === one.address ? one.name : null, reply.from);
+const sender = (reply: BroadcastReply, one: MessageCopy) => {
+  const name = reply.from === one.address ? one.name : null;
+  // A text's, as WhatsApp names them: their name, or else their number as staff pages write it.
+  if (one.channel === "text") return name || phoneWords(reply.from);
+  return named(name, reply.from);
+};
 
 /** Our answer to a reply, in the thread after it: who sent it, or that it may not have gone; to a text, as a bubble. */
 function Answer({ answer, reply, one }: { answer: BroadcastAnswer; reply: BroadcastReply; one: MessageCopy }) {
@@ -35,7 +40,7 @@ function Answer({ answer, reply, one }: { answer: BroadcastAnswer; reply: Broadc
     return (
       <ChatWall>
         <ChatBubble who={TEXT_SENDER_NAME} when={answer.sentAt ? staffTime(answer.sentAt) : ""} ours>
-          <MailingLetter doc={answer.body} />
+          <TextWords words={answer.body} />
           {by}
         </ChatBubble>
       </ChatWall>
@@ -72,7 +77,12 @@ export default function Reply({
   const when = reply.dealtAt && staffTime(reply.dealtAt);
   const text = one.channel === "text";
   const ours = text ? TEXT_SENDER_NAME : named(one.fromName, one.sentFrom);
-  const words = reply.text ? <p className={styles.text}>{reply.text}</p> : <Muted>{copy.replies.noText}</Muted>;
+  // A text's words as WhatsApp shows them, each web address a link.
+  const words = reply.text ? (
+    <p className={styles.text}>{text ? <LinkedText text={reply.text} /> : reply.text}</p>
+  ) : (
+    <Muted>{copy.replies.noText}</Muted>
+  );
   // Reply, while its answer isn't open: in its buttons, or under what it was recorded as.
   const dealt = (write?: () => void) =>
     reply.automatic ? null : reply.outcome && reply.outcome !== "answered" ? (
@@ -99,9 +109,12 @@ export default function Reply({
       )
     );
   // A text's reply in a card, as an email's is: the chat, then at its foot what to record it as and Reply, or
-  // why it can't be answered now.
+  // why it can't be answered now: only under their latest message, while it's unanswered, as an earlier one, or
+  // one we answered, needs no answer now.
+  const answered = one.answers.some((answer) => answer.replyId === reply.id);
+  const latest = one.replies.at(-1)?.id === reply.id;
   const textReply = (write?: () => void) => {
-    const closed = !reply.answerable && actions;
+    const closed = !reply.answerable && actions && latest && !answered;
     const done = dealt(write);
     return (
       <div className={styles.textReply}>

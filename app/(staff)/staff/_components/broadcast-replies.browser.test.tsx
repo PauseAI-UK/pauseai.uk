@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { sendingStopsAt, waitStopsAt } from "@/lib/broadcasts";
+import { sendingStopsAt, SITE_ACTOR, waitStopsAt } from "@/lib/broadcasts";
 import { londonDate, staffTime } from "@/lib/staff-time";
 import { broadcastCounts, BroadcastWaiting, CopyStatus } from "./BroadcastView";
 import {
@@ -15,6 +15,8 @@ import {
   exampleTextReplies,
   exampleTextReplyPastDay,
 } from "./BroadcastWriter.examples";
+import type { BroadcastAnswer } from "@/lib/server/broadcast-answers";
+import type { BroadcastReply } from "@/lib/server/broadcast-replies";
 import MessageCopyView from "./MessageCopyView";
 import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
@@ -90,6 +92,21 @@ describe("replies to broadcasts", () => {
       `${staffCopy.letters.detail.fields.by}sam@pauseai.uk${staffCopy.letters.detail.fields.how}${copy.replies.how}`,
     );
     await expect.element(page.getByText(copy.replies.stillSending("hello@pauseai.uk"))).toBeVisible();
+  });
+
+  it("show a STOP the site recorded in the thread, but not twice in the history, as WhatsApp's opt-out is there", async () => {
+    await render(
+      <MessageCopyView
+        one={{
+          ...emailCopy,
+          replies: [{ ...exampleBroadcastReplies[1], text: "STOP", outcome: "opted-out", dealtBy: SITE_ACTOR }],
+          answers: [],
+        }}
+      />,
+    );
+    await expect.element(page.getByText("STOP", { exact: true })).toBeVisible();
+    const history = page.getByRole("list", { name: staffCopy.letters.detail.historyTitle });
+    await expect.element(history.getByText(copy.replies.historyOptedOut, { exact: true })).not.toBeInTheDocument();
   });
 
   it("record as an opt-out of what the email went under, or of all bulk email, in the form a supporter's page has", async () => {
@@ -232,7 +249,7 @@ describe("replies to broadcasts", () => {
     await expect.element(page.getByText(copy.replies.sentBy("jo@pauseai.uk"))).toBeVisible();
     await expect.element(page.getByText(copy.replies.stillSending("+447700900000"))).toBeVisible();
     // Their name, as their copy had it.
-    await expect.element(page.getByText("Jane Example <+447700900001>").first()).toBeVisible();
+    await expect.element(page.getByText("Jane Example", { exact: true }).first()).toBeVisible();
     // The one too old for WhatsApp says so, and has no Reply; the others do, the answered one and the one waiting.
     await expect.element(page.getByText(copy.replies.windowClosed)).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.replies.reply })).toHaveLength(2);
@@ -248,6 +265,26 @@ describe("replies to broadcasts", () => {
     await page.getByRole("textbox", { name: copy.replies.answerLabel }).fill("Thanks!");
     await page.getByRole("button", { name: copy.replies.send }).click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.replies.notSent.window);
+  });
+
+  it("to a text say WhatsApp won't take an answer only under their latest message, while it's unanswered", async () => {
+    const view = (replies: BroadcastReply[], answers: BroadcastAnswer[] = []) => (
+      <MessageCopyView one={{ ...exampleMessageCopy, replies, answers }} actions={{ deal: vi.fn(), answer: vi.fn() }} />
+    );
+    // An old message before a newer one.
+    const { rerender } = await render(view([exampleTextReplyPastDay, ...exampleTextReplies]));
+    await expect.element(page.getByText("Is it the same place as last time?")).toBeVisible();
+    expect(page.getByText(copy.replies.windowClosed).elements()).toEqual([]);
+    // Their latest, answered.
+    await rerender(
+      view([exampleTextReplyPastDay], [{ ...exampleTextAnswers[0], replyId: exampleTextReplyPastDay.id }]),
+    );
+    await expect.element(page.getByText(copy.replies.sentBy("jo@pauseai.uk"))).toBeVisible();
+    expect(page.getByText(copy.replies.windowClosed).elements()).toEqual([]);
+    // From a number the copy didn't go to: named by it, as a staff page writes it.
+    await rerender(view([{ ...exampleTextReplyPastDay, from: "+447700900999" }]));
+    await expect.element(page.getByText(copy.replies.windowClosed)).toBeVisible();
+    await expect.element(page.getByText("07700 900999", { exact: true })).toBeVisible();
   });
 
   it("are counted on an email's or a text's page, each count the colour of its tags, the same boxes either way, and tagged on each recipient", async () => {

@@ -26,6 +26,7 @@ import {
 import { addFormEntry } from "./form-entries";
 import { recordOptOut } from "./opt-outs";
 import { inRun } from "./run-store";
+import { settingsTopics } from "@/lib/email-settings";
 
 const JANE = "jane.smith@example.com";
 const REMOVE = "https://public-api.luma.com/v1/calendars/contacts/remove";
@@ -357,7 +358,7 @@ describeWithDatabase("the contact preferences page", () => {
     expect((await settingsFor(JANE)).hold).toMatchObject({ kind: "no-bulk" });
   });
 
-  it("stops everything: every bulk email, for CiviCRM, each number's yeses, and the Luma calendar", async () => {
+  it("stops everything: every bulk email, every text and call to each number, for CiviCRM, and the Luma calendar", async () => {
     const removed = lumaRemoves();
     vi.stubEnv("DEPLOY_CONTEXT", "production");
     vi.stubEnv("LUMA_API_KEY", "k");
@@ -365,10 +366,30 @@ describeWithDatabase("the contact preferences page", () => {
     await stopEverything(JANE);
     expect(await optOuts()).toEqual([
       { address: JANE, list: "bulk", way: "email", source: "preferences", open: true },
-      { address: "+447700900123", list: "newsletter", way: "text", source: "preferences", open: true },
-      { address: "+447700900123", list: "events", way: "text", source: "preferences", open: true },
+      { address: "+447700900123", list: "all", way: "text", source: "preferences", open: true },
+      { address: "+447700900123", list: "all", way: "call", source: "preferences", open: true },
     ]);
-    expect(await query("SELECT change FROM civicrm_updates")).toEqual([{ change: "no_bulk_email" }]);
+    expect(await query("SELECT change FROM civicrm_updates ORDER BY id")).toEqual([
+      { change: "no_bulk_email" },
+      { change: "do_not_sms" },
+      { change: "do_not_phone" },
+    ]);
+    // Every text and call, those it had no yes for too, and any yes that comes later.
+    await query(
+      "INSERT INTO preference_choices (address, way, topic, wording) VALUES ('+447700900123', 'text', 'volunteering', 'w')",
+    );
+    const sends = await query<{ consent: string; send: string }>(
+      `SELECT c.topic || ':' || c.way AS consent, d.send
+       FROM (VALUES ('newsletter', 'text'), ('events', 'text'), ('volunteering', 'text'), ('volunteering', 'call')) c (topic, way)
+       CROSS JOIN LATERAL contact_permission(c.topic, c.way, '+447700900123') d`,
+    );
+    expect(sends.map((row) => row.send)).toEqual(["no", "no", "no", "no"]);
+    // The page locks those boxes, as Restart is what lifts them.
+    expect(
+      settingsTopics(await settingsFor(JANE)).flatMap((t) =>
+        t.boxes.filter((b) => b.way !== "email").map((b) => b.locked),
+      ),
+    ).toEqual([true, true, true, true]);
     expect(removed).toEqual([{ email: JANE }]);
     expect((await settingsFor(JANE)).hold).toMatchObject({ kind: "no-bulk", source: "preferences", everything: true });
   });
@@ -383,7 +404,8 @@ describeWithDatabase("the contact preferences page", () => {
     expect(await optOuts()).toEqual([
       { address: "+447700900123", list: "events", way: "text", source: "preferences", open: true },
       { address: JANE, list: "bulk", way: "email", source: "preferences", open: false },
-      { address: "+447700900123", list: "newsletter", way: "text", source: "preferences", open: false },
+      { address: "+447700900123", list: "all", way: "text", source: "preferences", open: false },
+      { address: "+447700900123", list: "all", way: "call", source: "preferences", open: false },
     ]);
     expect(await query("SELECT wording FROM preference_choices WHERE topic = 'bulk'")).toEqual([
       { wording: emailSettingsCopy.stopped.wording },

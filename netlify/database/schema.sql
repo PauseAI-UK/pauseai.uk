@@ -145,6 +145,11 @@ WITH
     UNION ALL
     SELECT 2, 'do-not-phone', min(c.do_not_phone_since), 'civicrm' FROM civi c
     WHERE for_way = 'call' AND c.do_not_phone HAVING count(*) > 0
+    UNION ALL
+    -- Every text, or every call, to the number stopped: by Stop everything, or WhatsApp.
+    SELECT 2, 'unsubscribed', o.unsubscribed_at, o.source FROM opt_outs o
+    WHERE for_way <> 'email' AND o.way = for_way AND o.address = for_address AND o.list = 'all'
+      AND o.resubscribed_at IS NULL
   ),
   said AS (
     -- An opt-out in force.
@@ -617,13 +622,13 @@ CREATE TABLE public.opt_outs (
     how text,
     message_id bigint,
     CONSTRAINT opt_outs_address_check CHECK ((address = lower(address))),
+    CONSTRAINT opt_outs_bulk_email CHECK (((list <> 'bulk'::text) OR (way = 'email'::text))),
     CONSTRAINT opt_outs_how CHECK (((source = 'staff'::text) = ((how IS NOT NULL) AND (how <> ''::text)))),
     CONSTRAINT opt_outs_list_check CHECK ((list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text, 'bulk'::text, 'all'::text]))),
     CONSTRAINT opt_outs_recorded_by CHECK (((source = ANY (ARRAY['staff'::text, 'reply'::text])) = (recorded_by IS NOT NULL))),
     CONSTRAINT opt_outs_recorded_by_check CHECK ((recorded_by = lower(recorded_by))),
     CONSTRAINT opt_outs_source_check CHECK ((source = ANY (ARRAY['luma-webhook'::text, 'luma-contacts'::text, 'civicrm'::text, 'link'::text, 'list-unsubscribe'::text, 'postmark-complaint'::text, 'reply'::text, 'staff'::text, 'preferences'::text, 'civicrm-check'::text, 'whatsapp'::text]))),
-    CONSTRAINT opt_outs_way_check CHECK ((way = ANY (ARRAY['email'::text, 'text'::text, 'call'::text]))),
-    CONSTRAINT opt_outs_whole_email CHECK (((list <> ALL (ARRAY['bulk'::text, 'all'::text])) OR (way = 'email'::text)))
+    CONSTRAINT opt_outs_way_check CHECK ((way = ANY (ARRAY['email'::text, 'text'::text, 'call'::text])))
 );
 
 --
@@ -1700,7 +1705,14 @@ CREATE VIEW public.phone_permissions AS
             opt_outs.way,
             opt_outs.address
            FROM public.opt_outs
-          WHERE ((opt_outs.way <> 'email'::text) AND (opt_outs.resubscribed_at IS NULL))
+          WHERE ((opt_outs.way <> 'email'::text) AND (opt_outs.list <> 'all'::text) AND (opt_outs.resubscribed_at IS NULL))
+        UNION
+         SELECT t_1.topic,
+            o.way,
+            o.address
+           FROM (public.opt_outs o
+             JOIN ( VALUES ('newsletter'::text,'text'::text), ('events'::text,'text'::text), ('volunteering'::text,'text'::text), ('volunteering'::text,'call'::text)) t_1(topic, way) ON ((t_1.way = o.way)))
+          WHERE ((o.list = 'all'::text) AND (o.way <> 'email'::text) AND (o.resubscribed_at IS NULL))
         UNION
          SELECT preference_choices.topic,
             preference_choices.way,

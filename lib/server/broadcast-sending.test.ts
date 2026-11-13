@@ -1058,9 +1058,7 @@ describeWithDatabase("sending texts", () => {
     expect(await query("SELECT number FROM whatsapp_unreachable")).toEqual([{ number: "+447700900120" }]);
     // The stop is of every text, by WhatsApp, and goes to CiviCRM as Do not SMS.
     expect(await query("SELECT list, source FROM opt_outs WHERE address = '+447700900121' ORDER BY list")).toEqual([
-      { list: "events", source: "whatsapp" },
-      { list: "newsletter", source: "whatsapp" },
-      { list: "volunteering", source: "whatsapp" },
+      { list: "all", source: "whatsapp" },
     ]);
     expect(await query("SELECT change, phone FROM civicrm_updates")).toEqual([
       { change: "do_not_sms", phone: "+447700900121" },

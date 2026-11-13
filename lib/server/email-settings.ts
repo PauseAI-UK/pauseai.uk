@@ -394,8 +394,9 @@ export async function liftNoBulk(address: string): Promise<boolean> {
 
 /**
  * Opts the address out of every bulk email, which CiviCRM is told of, and
- * its numbers out of every topic by text and call they had a yes for; and
- * takes the address off our Luma calendar. The stops are one group, by
+ * each of its numbers out of every text and every call (`all`), whatever it
+ * has a yes for now or later, which CiviCRM is told of as "Do not SMS" and
+ * "Do not phone"; and takes the address off our Luma calendar. The stops are one group, by
  * their source reference (STOP_ALL), so Restart can undo them all. Nothing
  * for a number's page, which doesn't offer it.
  */
@@ -403,7 +404,7 @@ export async function stopEverything(address: string): Promise<void> {
   if (isNumber(normaliseAddress(address))) return;
   const view = await settingsFor(address);
   const group = `${STOP_ALL} ${randomUUID()}`;
-  const stop = (target: string, way: Way, list: Topic | "bulk", db: Queryable) =>
+  const stop = (target: string, way: Way, list: "bulk" | "all", db: Queryable) =>
     recordOptOut(
       {
         address: target,
@@ -417,8 +418,9 @@ export async function stopEverything(address: string): Promise<void> {
     );
   await transaction(async (db) => {
     await stop(view.address, "email", "bulk", db);
-    for (const answer of view.answers) {
-      if (answer.way !== "email" && answer.send === "yes") await stop(answer.address, answer.way, answer.topic, db);
+    for (const number of view.numbers) {
+      await stop(number, "text", "all", db);
+      await stop(number, "call", "all", db);
     }
   });
   await offCalendarAfter([{ address: view.address, list: "bulk", source: "preferences" }]);

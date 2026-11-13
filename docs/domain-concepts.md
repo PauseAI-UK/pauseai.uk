@@ -1216,8 +1216,9 @@ none. Turning off events by email, or every bulk email, takes the
 address off our Luma calendar too, on the live site. "No bulk emails" holds
 all of its email, which the person can lift there, beside a plain sentence
 of what that does; "Do not email" only Global can lift. Stop everything is
-an opt-out of every bulk email, and of each text and call the numbers had a
-yes for.
+an opt-out of every bulk email, and of every text and every call to each of
+the numbers (`all` by text and by call), so no yes, now or later, gets
+past it till Restart; the page locks their boxes meanwhile.
 
 Someone with "No bulk emails" who ticks a box to hear from us, on the march
 form, Email your MP or a paper sign-up form, is emailed how to lift it,
@@ -1313,7 +1314,9 @@ Each answer is yes or no, with a reason from a short list, when, and which
 source said so. First, whatever stops every topic by the way: a blocked
 address (`email_blocks`, below), then CiviCRM's "Do not email" and "No bulk
 emails" for email, "Do not SMS" for texts and "Do not phone" for calls, on
-any contact with the address or number, or of a member who gave the number. Then the
+any contact with the address or number, or of a member who gave the number;
+and our own stop of every text or every call to the number (`all`), from
+Stop everything, WhatsApp's setting or a text it refused. Then the
 latest thing the person said about the consent, a stop or a yes, a stop
 winning a tie, so a box ticked after an unsubscribe opens it again. Last,
 if they said nothing that counts, why not: a box left unticked, never

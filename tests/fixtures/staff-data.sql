@@ -345,14 +345,16 @@ FROM (VALUES
   no_phone, no_sms, newsletter, newsletter_ago, volunteer, gone_ago)
 CROSS JOIN (SELECT now() - interval '2 days' AS f) first;
 INSERT INTO civicrm_erased (contact_id, erased_at) VALUES (199, now() - interval '15 days');
--- Sasha pressed Stop everything on the contact preferences page: every bulk
--- email, and her number's call for volunteering, one group, which Restart
--- undoes.
+-- Sasha pressed Stop everything on the contact preferences page
+-- (stopEverything): every bulk email, and every text and call to her
+-- number, one group, which Restart undoes.
 INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at) VALUES
   ('sasha.chapter@example.com', 'bulk', 'email', 'preferences',
    'preferences stop-all seed-sasha email bulk sasha.chapter@example.com', now() - interval '1 day'),
-  ('+447700900987', 'volunteering', 'call', 'preferences',
-   'preferences stop-all seed-sasha call volunteering +447700900987', now() - interval '1 day');
+  ('+447700900987', 'all', 'text', 'preferences',
+   'preferences stop-all seed-sasha text all +447700900987', now() - interval '1 day'),
+  ('+447700900987', 'all', 'call', 'preferences',
+   'preferences stop-all seed-sasha call all +447700900987', now() - interval '1 day');
 INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at)
 SELECT email, 'newsletter', 'email', 'civicrm', contact_id || ' newsletter ' || newsletter_since, newsletter_since
 FROM civicrm_contacts WHERE newsletter = 'unsubscribed';
@@ -1205,8 +1207,8 @@ SELECT t.name, pg_temp.seed_words(t.words), t.status, t.by,
   CASE WHEN t.status = 'approved' THEN now() - t.ago END, CASE WHEN t.status = 'rejected' THEN now() - t.ago END,
   -- WhatsApp's code for why, which the draft and the email put in words (rejectionWords, lib/broadcasts.ts).
   CASE WHEN t.status = 'rejected' THEN 'PROMOTIONAL' END, now() - t.ago - interval '1 day',
-  -- Its footer as it went to WhatsApp (templateFooter): each of these is for event texts.
-  'Reply STOP to stop event texts'
+  -- Its footer as it went to WhatsApp, every text's (TEMPLATE_FOOTER).
+  'Reply STOP to stop these texts'
 FROM (VALUES
   ('The march meets at 11:00 at Parliament Square.', 'the march meets at 11:00 at Parliament Square. Look for the orange flags.', 'approved', 'jo@pauseai.uk', interval '10 days'),
   ('PauseCon room change', 'PauseCon has moved to the Main Hall. Doors still open at 09:30.', 'approved', 'sam@pauseai.uk', interval '12 days'),
@@ -1434,6 +1436,21 @@ SELECT c.address, 'events', 'text', 'whatsapp', 'reply seed-text-stop-' || w.lum
 FROM (VALUES ('usr-seed-22'), ('usr-fixture-5')) w (luma_user)
 JOIN seed_copies s ON s.luma_user = w.luma_user JOIN mailings m ON m.id = s.mailing_id JOIN broadcast_messages c ON c.id = s.id
 WHERE m.title = 'PauseCon room change';
+-- Each stop is kept as a reply to the text, recorded as an opt-out by the
+-- site (SITE_ACTOR, lib/broadcasts.ts), and answered (whatsapp-webhooks.ts):
+-- what it stopped, with a link to the number's contact preferences.
+INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic,
+  outcome, dealt_by, dealt_at)
+SELECT o.message_id, o.unsubscribed_at, o.address, '', split_part(o.source_ref, ' ', 2), 'STOP', false, 'opted-out',
+  'pauseai.uk', o.unsubscribed_at
+FROM opt_outs o WHERE o.source_ref LIKE 'reply seed-text-stop-%';
+INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, created_at, sent_at, provider_message_id)
+SELECT r.id, gen_random_uuid(), 'pauseai.uk',
+  jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content',
+    jsonb_build_array(jsonb_build_object('type', 'text', 'text',
+      'You won''t get any more event texts from PauseAI UK. To change what we send you: https://pauseai.uk/contact-preferences/seed-stop-' || r.id))))),
+  'sent', r.received_at, r.received_at, 'answer-' || r.provider_message_id
+FROM broadcast_replies r WHERE r.provider_message_id LIKE 'seed-text-stop-%';
 INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, created_at, sent_at, gmail_message_id,
   rfc_message_id)
 SELECT id, '00000000-0000-4000-8000-000000000001', dealt_by,
