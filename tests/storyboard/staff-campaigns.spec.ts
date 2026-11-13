@@ -30,14 +30,14 @@ test("Campaigns", async ({ page, flowDatabase }) => {
   await expect(page.getByRole("region", { name: copy.theLetter })).toContainText(campaigns[0].subject);
   await frame(page, "A campaign's page");
 
-  story("Each count shows only the letters it counts. None has failed.");
+  story("Each count shows only the letters it counts: the sent count, the letters that went.");
   await page
-    .getByRole("link", { name: /failed/ })
+    .getByRole("link", { name: new RegExp(` ${staffCopy.copyStates.counts.sent}$`) })
     .first()
     .click();
-  await expect(page).toHaveURL(/tab=failed/);
-  await expect(page.getByText(staffCopy.letters.none)).toBeVisible();
-  await frame(page, "No letters failed");
+  await expect(page).toHaveURL(/tab=sent/);
+  await expect(page.getByRole("heading", { name: staffCopy.copyStates.tabs.sent })).toBeVisible();
+  await frame(page, "The letters sent");
 });
 
 test("No answer yet", async ({ page, flowDatabase }) => {

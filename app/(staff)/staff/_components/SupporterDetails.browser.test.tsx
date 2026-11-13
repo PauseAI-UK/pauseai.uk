@@ -476,20 +476,19 @@ describe("SupporterDetails", () => {
     expect(document.body.textContent).not.toContain(copy.detail.firstVia(copy.sources.luma));
   });
 
-  it("says each year when we've known them across two", async () => {
-    await render(
+  it("says each year when we've known them across two, and one day when it's all they were seen", async () => {
+    const known = (first: string, last: string) => (
       <SupporterDetails
         supporter={{
           ...exampleSupporterDetails,
-          summary: {
-            ...exampleSupporter,
-            firstSeenAt: new Date("2025-12-01T12:00:00Z"),
-            lastActiveAt: new Date("2026-01-05T12:00:00Z"),
-          },
+          summary: { ...exampleSupporter, firstSeenAt: new Date(first), lastActiveAt: new Date(last) },
         }}
-      />,
+      />
     );
+    const { rerender } = await render(known("2025-12-01T12:00:00Z", "2026-01-05T12:00:00Z"));
     await expect.element(page.getByText("1 Dec 2025 – 5 Jan 2026", { exact: true })).toBeVisible();
+    await rerender(known("2026-02-14T09:00:00Z", "2026-02-14T17:00:00Z"));
+    await expect.element(page.getByText("14 Feb 2026", { exact: true })).toBeVisible();
   });
 
   it("counts only what there is any of: events, letters, broadcasts sent and notes, or no box at all", async () => {

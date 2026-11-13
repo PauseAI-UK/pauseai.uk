@@ -36,22 +36,19 @@ test("Letters by count", async ({ page, request, flowDatabase }) => {
     BOUNCY_ADDRESS,
   );
 
-  story("The campaign's page shows Jane's letter sent and Sam's bounced.");
+  story("The campaign's page shows Jane's letter sent, and that Sam's didn't reach his MP, as it bounced.");
   await page.reload();
   const janes = page.getByRole("row").filter({ hasText: "Jane Smith" });
   const sams = page.getByRole("row").filter({ hasText: "Sam Smith" });
-  await expect(janes).toContainText(staffCopy.letters.status.sent);
-  await expect(sams).toContainText(staffCopy.letters.status.bounced);
+  await expect(janes).toContainText(staffCopy.copyStates.tags.sent!);
+  await expect(sams).toContainText(staffCopy.copyStates.tags["unreached:bounced"]!);
   await frame(page, "The campaign's letters");
-  story("The failed count shows only the letter that bounced, and pressed again, all of them.");
-  await page
-    .getByRole("link", { name: /failed/ })
-    .first()
-    .click();
-  await expect(page).toHaveURL(/tab=failed/);
+  story("The didn't reach count shows only the letter that bounced, and pressed again, all of them.");
+  await page.getByRole("link", { name: `1 ${staffCopy.copyStates.counts.unreached}` }).click();
+  await expect(page).toHaveURL(/tab=unreached/);
   await expect(sams).toBeVisible();
   await expect(janes).toHaveCount(0);
-  await frame(page, "The letters that failed");
+  await frame(page, "The letter that didn't reach");
 
   await page.getByRole("link", { name: staffCopy.campaigns.showAll }).click();
   await expect(janes).toBeVisible();

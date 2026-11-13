@@ -539,7 +539,7 @@ test("Gmail refuses a letter", async ({ page, request, flowDatabase }) => {
   story("The letter's page says what Gmail said, in its history.");
 
   await page.goto(`${BASE}/staff/mailings/${id}/letters/${letter}`);
-  await expect(page.getByText("Invalid To header")).toBeVisible();
+  await expect(page.getByText("Invalid To header").first()).toBeVisible();
   await frame(page, "The refused letter's page");
 });
 
