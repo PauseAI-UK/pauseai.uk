@@ -149,6 +149,18 @@ describeWithDatabase("the contact preferences page", () => {
     expect(await linkPage("no-such-token")).toBeUndefined();
   });
 
+  it("makes the same links on every run of a fixture build, a different one each, so the storyboard's emails compare", async () => {
+    vi.stubEnv("DATA_FIXTURES", "1");
+    const first = await newSettingsLink(JANE);
+    const second = await newSettingsLink(JANE);
+    expect(second).not.toBe(first);
+    expect(await newSettingsLink("sam.jones@example.com")).not.toBe(first);
+    // Another run, starting as this one did.
+    await query("DELETE FROM preference_links");
+    expect(await newSettingsLink(JANE)).toBe(first);
+    expect(await newSettingsLink(JANE)).toBe(second);
+  });
+
   it("shows each topic's answer for the address and its numbers, and what holds all its email", async () => {
     await jane();
     const view = await settingsFor(JANE);
