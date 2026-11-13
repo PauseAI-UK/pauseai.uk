@@ -151,12 +151,15 @@ export default function PrivacyPolicy() {
       </p>
 
       <h2>Cookies</h2>
-      <p>
-        ⁂ Google Analytics and Google Ads set cookies, which you can turn off with &ldquo;Cookie settings&rdquo; in the
-        footer, and your browser remembers that choice. When you donate, you go to Stripe&apos;s own site, which sets
-        its own cookies there. The join form we show from pauseai.info may set its own cookies too. While you write to
-        your MP, your browser keeps your draft until you close the tab.
-      </p>
+      <ul>
+        <li>
+          ⁂ Google Analytics and Google Ads set cookies, which you can turn off with &ldquo;Cookie settings&rdquo; in
+          the footer. Your browser remembers that choice.
+        </li>
+        <li>⁂ When you donate, you go to Stripe&apos;s own site, which sets its own cookies there.</li>
+        <li>⁂ The join form we show from pauseai.info may set its own cookies.</li>
+        <li>⁂ While you write to your MP, your browser keeps your draft until you close the tab.</li>
+      </ul>
 
       <p>When we change this policy, we change the date at the top.</p>
     </ProsePage>
