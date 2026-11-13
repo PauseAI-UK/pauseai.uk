@@ -401,7 +401,8 @@ export async function stopBroadcast(id: number, by: string): Promise<boolean> {
  * (gave_up): its copies that never went are to go again, or, for one that
  * never started, it's scheduled again. From now, so it has its days to go
  * in again (sendingStopsAt), and waiting for nothing, so its days to wait
- * too (waitStopsAt). Says whether it did.
+ * too (waitStopsAt); nor resting after tries that failed before it stopped,
+ * so it goes at the next run. Says whether it did.
  */
 export async function resumeBroadcast(id: number, by: string): Promise<boolean> {
   return transaction(async (db) => {
@@ -420,7 +421,7 @@ export async function resumeBroadcast(id: number, by: string): Promise<boolean> 
     );
     await query(
       `UPDATE mailings SET state = $2, gave_up = false, waiting_since = NULL, wait_reason = NULL, due_at = $3,
-         updated_at = now()
+         try_failed_at = NULL, updated_at = now()
        WHERE id = $1`,
       [id, stopped.started ? "sending" : "scheduled", now()],
       db,

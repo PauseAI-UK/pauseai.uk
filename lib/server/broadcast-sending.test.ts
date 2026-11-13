@@ -433,29 +433,41 @@ describeWithDatabase("sending broadcasts", () => {
     expect(await sams()).toEqual(["scheduled"]);
   });
 
-  it("fails a copy Gmail refuses for itself, and rests its broadcast, so nothing fails everyone", async () => {
-    const refused = recordGmail(() => new HttpResponse("Bad", { status: 400 }));
+  it("fails a copy Gmail refuses for itself and goes on with the rest, as one address's trouble is its own", async () => {
+    let tries = 0;
+    const gmail = recordGmail(() => (++tries === 1 ? new HttpResponse("Bad", { status: 400 }) : undefined));
     await addFollower("usr-jane", "jane@example.com", "Jane Smith");
     await addFollower("usr-sam", "sam@example.com", "Sam");
     await addFollower("usr-pat", "pat@example.com", "Pat");
     await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 2, failed: 1, left: 0 });
+    expect(gmail).toHaveLength(3);
+    expect((await stateOf(id)).state).toBe("sent");
+  });
+
+  it("rests a broadcast two of whose copies fail in a row, so nothing that fails every copy fails everyone", async () => {
+    const refused = recordGmail(() => new HttpResponse("Bad", { status: 400 }));
+    for (const name of ["jane", "sam", "pat", "ann"]) await addFollower(`usr-${name}`, `${name}@example.com`, name);
+    await pulled();
     await broadcast();
     await startDueBroadcasts();
-    expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 0, failed: 1, left: 2 });
-    expect((await copies()).map((copy) => copy.status).sort()).toEqual(["failed", "scheduled", "scheduled"]);
+    expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 0, failed: 2, left: 2 });
+    expect((await copies()).map((copy) => copy.status).sort()).toEqual(["failed", "failed", "scheduled", "scheduled"]);
     // Called again at once, as the background function does while anything is sending, it tries no other.
     expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 0, failed: 0, left: 2 });
-    expect(refused).toHaveLength(1);
+    expect(refused).toHaveLength(2);
     // Another broadcast goes meanwhile.
     const gmail = recordGmail();
     const other = await broadcast();
     await startDueBroadcasts();
-    expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 3, failed: 0, left: 2 });
+    expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 4, failed: 0, left: 2 });
     expect((await stateOf(other)).state).toBe("sent");
     // Rested, it goes on with the rest.
     await rested();
     expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 2, failed: 0, left: 0 });
-    expect(gmail).toHaveLength(5);
+    expect(gmail).toHaveLength(6);
   });
 
   it("sends to an address CiviCRM says it hasn't checked, as it may not look everyone up yet: our own records stand", async () => {
@@ -851,11 +863,8 @@ describeWithDatabase("sending texts", () => {
     await pulled();
     const id = await text();
     await startDueBroadcasts();
-    // The one that fails ends its run, wherever it comes: the rest go once the text has rested.
-    const first = await sendDueBroadcasts(LATER);
-    await rested();
-    const second = await sendDueBroadcasts(LATER);
-    expect([first.sent + second.sent, first.skipped + second.skipped, first.failed + second.failed]).toEqual([1, 2, 1]);
+    // The one that fails doesn't hold up the rest.
+    expect(await inRun(() => sendDueBroadcasts(LATER))).toMatchObject({ sent: 1, skipped: 2, failed: 1 });
     expect(await copies()).toMatchObject([
       { address: "+447700900120", status: "skipped", skip: "not-on-whatsapp" },
       { address: "+447700900121", status: "skipped", skip: "unsubscribed" },
@@ -874,7 +883,6 @@ describeWithDatabase("sending texts", () => {
       { change: "do_not_sms", phone: "+447700900121" },
     ]);
     // The one held goes no sooner than a day from now, as one never handed over.
-    await rested();
     expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, left: 1 });
     expect((await stateOf(id)).state).toBe("sending");
     expect(await query("SELECT handed_at FROM broadcast_messages WHERE address = '+447700900122'")).toEqual([
@@ -928,23 +936,35 @@ describeWithDatabase("sending texts", () => {
     );
   });
 
-  it("fails one WhatsApp won't take for a reason of its own, and rests the text, so nothing fails everyone", async () => {
-    for (const [n, user] of ["jane", "sam", "ann"].entries()) {
+  it("rests a text two of whose copies WhatsApp fails in a row, so nothing that fails every copy fails everyone", async () => {
+    for (const [n, user] of ["jane", "sam", "ann", "bo"].entries()) {
       await addFollower(`usr-${user}`, `${user}@example.com`, `${user} Smith`, { phone: `+44770090012${n}` });
     }
     const tried = whatsApp(() => refused(131000));
     await pulled();
     await text();
     await startDueBroadcasts();
-    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, failed: 1, left: 2 });
+    expect(await inRun(() => sendDueBroadcasts(LATER))).toMatchObject({ sent: 0, failed: 2, left: 2 });
     // Called again at once, it tries no other.
     expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, failed: 0, left: 2 });
-    expect(tried).toHaveLength(1);
+    expect(tried).toHaveLength(2);
     // Rested, it goes on with the rest.
     const sent = whatsApp();
     await rested();
     expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 2, failed: 0, left: 0 });
     expect(sent).toHaveLength(2);
+  });
+
+  it("fails, never sends again, one whose send to WhatsApp broke off, as WhatsApp may have taken it", async () => {
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    whatsApp(() => HttpResponse.error());
+    await pulled();
+    await text();
+    await startDueBroadcasts();
+    const { run, problems } = await inRun(async (r) => ({ run: await sendDueBroadcasts(LATER), problems: r.problems }));
+    expect(run).toMatchObject({ sent: 0, failed: 1, left: 0 });
+    expect(await copies()).toMatchObject([{ address: "+447700900123", status: "failed" }]);
+    expect(problems.map((p) => p.what)).toEqual([staffCopy.problems.anywhere.sendFailed("broadcast")]);
   });
 
   it("fails, not sends again, one a run handed to WhatsApp and stopped before keeping the answer; one it only took goes", async () => {

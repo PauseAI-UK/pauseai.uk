@@ -50,9 +50,9 @@ import { markUnreachable, templateParams, textResult, textsLeftToday, unreachabl
 // day, or CiviCRM not answering, a broadcast waits, and staff are told
 // once; it goes by itself when it can. One that has waited WAIT_DAYS, or is
 // still sending SENDING_DAYS after its time (lib/broadcast-days.ts), stops,
-// and whoever scheduled it is told who it didn't reach. A try at a copy
-// that fails rests its broadcast a while (REST_MINUTES), so nothing that
-// fails every copy can fail everyone.
+// and whoever scheduled it is told who it didn't reach. A broadcast whose
+// sender can't send for now, or two of whose copies fail in a row, rests a
+// while (REST_MINUTES), so nothing that fails every copy can fail everyone.
 
 /** Who the audit log says started and finished a broadcast. */
 const JOB = "send-mailings";
@@ -335,20 +335,22 @@ type Sending = Due & {
   body: unknown;
   sentFrom: string;
   fromName: string;
-  /** Whether a try at one of its copies failed in the last REST_MINUTES. */
+  /** Whether its tries were failing in the last REST_MINUTES (tryFailed). */
   resting: boolean;
 };
 
 /**
- * How long a broadcast rests after a try at one of its copies failed,
- * before another is tried. A failed copy is never sent again, so this is
- * what bounds the cost of something failing every copy: two an hour, each
- * reported, however often the sending is called, which the background
- * function does again at once while anything else is going.
+ * How long a broadcast rests once its sender can't send for now, or two of
+ * its copies have failed in a row, before another is tried: a little under
+ * two of the sending's 15-minute runs, so the second run after tries again.
+ * A failed copy is never sent again, so this is what bounds the cost of
+ * something failing every copy: two each half-hour, each reported, however
+ * often the sending is called, which the background function does again at
+ * once while anything else is going.
  */
-const REST_MINUTES = 30;
+const REST_MINUTES = 25;
 
-/** Notes that a try at one of a broadcast's copies failed just now, for it to rest from. */
+/** Notes that a broadcast's tries are failing as of now, for it to rest from. */
 async function tryFailed(broadcast: Sending): Promise<void> {
   await query("UPDATE mailings SET try_failed_at = now() WHERE id = $1", [broadcast.id]);
 }
@@ -709,13 +711,19 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
         "phone",
       ),
     blocked: blockedNumbers,
-    send: async (copy) =>
-      textResult(
-        await sendTemplate(backend.keys, backend.number.id, copy.address, {
-          name: template.name,
-          params: templateParams(body, copy.mergeValues),
-        }),
-      ),
+    send: async (copy) => {
+      // Its words can't be made: thrown, as nothing has gone, so it's put back.
+      const params = templateParams(body, copy.mergeValues);
+      try {
+        return textResult(
+          await sendTemplate(backend.keys, backend.number.id, copy.address, { name: template.name, params }),
+        );
+      } catch (error) {
+        // The send broke off, and WhatsApp may have taken it by then: failed, as an email is, never sent twice.
+        problem(staffCopy.problems.anywhere.sendFailed("broadcast"), error);
+        return { sent: false, reason: "failed" };
+      }
+    },
   };
 }
 
@@ -723,15 +731,18 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
  * Sends a broadcast's copies by its sender, one at a time, its gap apart,
  * until there are none, it's `until`, or the sender can send no more today,
  * when the rest wait for a later run: a few taken at a time, checked, and
- * each handed over and sent, or put back. Once a try at a copy fails, no
- * more go: the sender answering that it can't send for now (`retry`) fails
- * none, and anything else fails that copy alone; the rest wait, and the
- * broadcast rests (REST_MINUTES), as whatever failed one may fail them all.
- * Counts the broadcast as waiting when CiviCRM didn't answer.
+ * each handed over and sent, or put back. A copy that fails is failed alone,
+ * as one address's or number's trouble is its own, and the rest go on. But
+ * no more go, and the broadcast rests (REST_MINUTES), once the sender
+ * answers that it can't send for now (`retry`), which fails none, or two
+ * copies fail one after the other, as whatever failed them may fail them
+ * all. Counts the broadcast as waiting when CiviCRM didn't answer.
  */
 async function sendCopies(broadcast: Sending, sender: CopySender, run: BroadcastRun, until: number): Promise<void> {
   if (broadcast.resting) return;
   const { gap } = sender;
+  // Whether the last copy tried failed.
+  let failedLast = false;
   while (Date.now() + gap < until) {
     if (!(await sender.ready())) return;
     const remaining = (await sender.remainingToday()) ?? TAKE;
@@ -759,12 +770,14 @@ async function sendCopies(broadcast: Sending, sender: CopySender, run: Broadcast
           return false;
         }
         await keep(copy, result, run, went);
-        if (!result.sent && result.reason === "failed") {
-          // Whatever failed this one may fail the next: the rest wait, so nothing fails everyone.
+        const failed = !result.sent && result.reason === "failed";
+        if (failed && failedLast) {
+          // Two in a row: whatever failed them may fail the next, so the rest wait, and nothing fails everyone.
           await putBack(checked.slice(i + 1));
           await tryFailed(broadcast);
           return false;
         }
+        failedLast = failed;
       }
       return true;
     });
