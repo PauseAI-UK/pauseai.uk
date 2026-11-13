@@ -1,4 +1,4 @@
-/* A letter's status tag, and beside it whether it was answered or replied to. */
+/* A letter's one status tag. */
 .tags {
   display: inline-flex;
   flex-wrap: wrap;

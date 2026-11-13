@@ -1168,6 +1168,87 @@ All events: ${link}`,
   },
   // The pages for broadcasts, emails and texts to supporters: from the supporters list, the writer, the list of them
   // and each one's page; each supporter's copy of one is a message.
+  // How a copy of something sent to many went, a broadcast's to a supporter or a letter to a politician, in states
+  // (lib/copy-states.ts; docs/domain-concepts.md, "How a copy went"). Each is one colour: red bad, amber sad, green
+  // good, blue for staff to do, grey normal.
+  copyStates: {
+    // Over its recipients, how many are in each state, and the heading over those a count lists.
+    counts: {
+      sent: "sent",
+      delivered: "delivered",
+      read: "read",
+      replied: "replied",
+      answered: "answered",
+      look: "to check",
+      "opted-out": "opted out",
+      spam: "marked spam",
+      error: "error",
+      unreached: "didn't reach",
+      "not-sent": "not sent",
+    } as Record<string, string>,
+    tabs: {
+      sent: "Sent",
+      delivered: "Delivered",
+      read: "Read",
+      replied: "Replied",
+      answered: "Answered",
+      look: "Replies to check",
+      "opted-out": "Opted out because of this",
+      spam: "Marked as spam",
+      error: "Something went wrong",
+      unreached: "Didn't reach them",
+      "not-sent": "Not sent",
+    } as Record<string, string>,
+    // On its page, its counts in two groups, each under its total: those that went, and those that didn't.
+    groups: { went: "went", gone: "didn't go" },
+    // In a list, after the counts that need a look, the rest folded behind how many are fine; or all.
+    andFine: (n: number) => `and ${n.toLocaleString("en-GB")} fine`,
+    allFine: (n: number) => `all ${n.toLocaleString("en-GB")} fine`,
+    // A recipient's one tag: its state, and why, by state and why (state:why), or its state alone.
+    tags: {
+      queued: "Queued",
+      scheduled: "Scheduled",
+      sending: "Sending",
+      sent: "Sent",
+      delivered: "Delivered",
+      read: "Read",
+      replied: "Replied",
+      answered: "Answered",
+      look: "To check: replied",
+      "opted-out": "Opted out",
+      "opted-out:whatsapp-reply": "Opted out: replied “stop”",
+      "opted-out:postmark-complaint": "Opted out: marked as spam",
+      "opted-out:link": "Opted out: unsubscribe link",
+      "opted-out:list-unsubscribe": "Opted out: unsubscribe link",
+      "opted-out:reply": "Opted out: by reply",
+      // A politician's office marked our letter as spam.
+      spam: "Marked spam",
+      error: "Error",
+      "error:gmail": "Error: Gmail refused it",
+      "error:postmark": "Error: Postmark refused it",
+      "error:whatsapp": "Error: WhatsApp refused it",
+      "error:unfinished": "Error: send cut off",
+      "error:limit": "Error: out of time",
+      "error:civicrm": "Error: CiviCRM down",
+      "error:pull": "Error: CiviCRM down",
+      "error:template": "Error: template paused",
+      "error:late": "Error: out of time, CiviCRM down",
+      "error:failing": "Error: sending kept failing",
+      "unreached:bounced": "Didn't reach: bounced",
+      "unreached:not-on-whatsapp": "Didn't reach: not on WhatsApp",
+      "not-sent": "Not sent",
+      "not-sent:cancelled": "Not sent: we cancelled",
+      "not-sent:unsubscribed": "Not sent: opted out before",
+      "not-sent:whatsapp": "Not sent: opted out before, in WhatsApp",
+      "not-sent:no-permission": "Not sent: consent ended",
+      "not-sent:suppressed": "Not sent: PauseAI Global",
+      "not-sent:blocked": "Not sent: address blocked",
+      "not-sent:not-on-whatsapp": "Not sent: not on WhatsApp",
+      // A mailing's letter to a politician who has left office, or has no address we know.
+      "not-sent:left-office": "Not sent: left office",
+      "not-sent:no-email": "Not sent: no email address",
+    } as Record<string, string>,
+  },
   broadcastPages: {
     title: "Broadcasts",
     intro: "Bulk emails and texts PauseAI sends to supporters",
@@ -1295,6 +1376,8 @@ All events: ${link}`,
       noSender: "No account chosen yet",
       // What sends it: Gmail, Postmark or WhatsApp.
       via: "Via",
+      // On a sent one's page, under who it's from, after their name: what sends it (Gmail, Postmark or WhatsApp).
+      viaDetail: (name: string) => `via ${name}`,
       whatsApp: "WhatsApp",
       when: "When",
       noTime: "No time chosen yet",
@@ -1341,31 +1424,6 @@ All events: ${link}`,
       `${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")} from ${from}.`,
     textTitle: "The text",
     emailTitle: "The email",
-    // Over a broadcast's recipients, how many are in each state (COPY_STATES in lib/server/broadcast-pages.ts), and
-    // the heading over those a count lists. Each is one colour, as its recipients' tags are: red bad, amber sad,
-    // green good, blue for staff to do, grey normal.
-    counts: {
-      sent: "sent",
-      delivered: "delivered",
-      read: "read",
-      replied: "replied",
-      look: "to check",
-      "opted-out": "opted out",
-      error: "error",
-      unreached: "didn't reach",
-      "not-sent": "not sent",
-    } as Record<string, string>,
-    tabs: {
-      sent: "Sent",
-      delivered: "Delivered",
-      read: "Read",
-      replied: "Replied",
-      look: "Replies to check",
-      "opted-out": "Opted out because of this",
-      error: "Something went wrong",
-      unreached: "Didn't reach them",
-      "not-sent": "Not sent",
-    } as Record<string, string>,
     // In the list of broadcasts, where each stands, as a sentence after a dot in its colour: a draft, its words with
     // WhatsApp or rejected by it, scheduled, stopped by us or by itself and why, sent.
     standing: {
@@ -1390,48 +1448,6 @@ All events: ${link}`,
       } as Record<string, (n: number, of: number) => string>,
       sent: (n: number) => `Sent to ${count(n, "person", "people")}`,
     },
-    // On a broadcast's page, its counts in two groups, each under its total: those that went, and those that didn't.
-    groups: { went: "went", gone: "didn't go" },
-    // In the list of broadcasts, after the counts that need a look, the rest folded behind how many are fine; or all.
-    andFine: (n: number) => `and ${n.toLocaleString("en-GB")} fine`,
-    allFine: (n: number) => `all ${n.toLocaleString("en-GB")} fine`,
-    // A recipient's one tag: its state, and why, by state and why (state:why), or its state alone.
-    copyStates: {
-      scheduled: "Scheduled",
-      sending: "Sending",
-      sent: "Sent",
-      delivered: "Delivered",
-      read: "Read",
-      replied: "Replied",
-      look: "To check: replied",
-      "opted-out": "Opted out",
-      "opted-out:whatsapp-reply": "Opted out: replied “stop”",
-      "opted-out:postmark-complaint": "Opted out: marked as spam",
-      "opted-out:link": "Opted out: unsubscribe link",
-      "opted-out:list-unsubscribe": "Opted out: unsubscribe link",
-      "opted-out:reply": "Opted out: by reply",
-      error: "Error",
-      "error:gmail": "Error: Gmail refused it",
-      "error:postmark": "Error: Postmark refused it",
-      "error:whatsapp": "Error: WhatsApp refused it",
-      "error:unfinished": "Error: send cut off",
-      "error:limit": "Error: out of time",
-      "error:civicrm": "Error: CiviCRM down",
-      "error:pull": "Error: CiviCRM down",
-      "error:template": "Error: template paused",
-      "error:late": "Error: out of time, CiviCRM down",
-      "error:failing": "Error: sending kept failing",
-      "unreached:bounced": "Didn't reach: bounced",
-      "unreached:not-on-whatsapp": "Didn't reach: not on WhatsApp",
-      "not-sent": "Not sent",
-      "not-sent:cancelled": "Not sent: we cancelled",
-      "not-sent:unsubscribed": "Not sent: opted out before",
-      "not-sent:whatsapp": "Not sent: opted out before, in WhatsApp",
-      "not-sent:no-permission": "Not sent: consent ended",
-      "not-sent:suppressed": "Not sent: PauseAI Global",
-      "not-sent:blocked": "Not sent: address blocked",
-      "not-sent:not-on-whatsapp": "Not sent: not on WhatsApp",
-    } as Record<string, string>,
     // A reply under our email on its Thread: what staff can record it as, and what they did.
     replies: {
       topics: (topics: string) => `${topics} (this email)`,
@@ -1569,14 +1585,6 @@ All events: ${link}`,
     whoLabel: "Who it's for",
     // A search, as a pill of who a mailing is to.
     searchPill: (typed: string) => `Search "${typed}"`,
-    // A mailing's counts.
-    counts: {
-      sent: "sent",
-      replied: "replied",
-      failed: "failed",
-      stopped: "stopped",
-      answered: "answer",
-    },
     // A new mailing's page's title, and the button that starts an empty one: on the mailings page, and on the politicians list with no filter.
     newTitle: "New mailing",
     // On the politicians list with a filter: the button that starts one to everyone it finds.
@@ -1775,14 +1783,6 @@ All events: ${link}`,
     unschedule: "Unschedule",
     stopSending: "Stop sending",
     sentLabel: "Sent",
-    tabs: {
-      all: "All",
-      sent: "Sent",
-      replied: "Replied",
-      failed: "Failed",
-      stopped: "Stopped",
-      answered: "Answered",
-    },
     // The list of mailings: when a draft was last saved, and how many a draft or one scheduled goes to.
     savedAt: (when: string) => `Saved ${when}`,
     toCount: (n: number) => `to ${count(n, "person", "people")}`,
@@ -1800,12 +1800,6 @@ All events: ${link}`,
     // In a mailing's email, who it's to: each recipient, as it's a letter to many.
     toEach: "Each recipient, by name and address",
     emailTitle: "The email",
-    // A skipped letter's status tag, with why it was skipped.
-    skipReasons: {
-      blocked: "Skipped: address blocked",
-      "left-office": "Skipped: left office",
-      "no-email": "Skipped: no email address",
-    } as Record<string, string>,
   },
   // The asks page: each ask, its kind and date, and how many gave each answer.
   asks: {
@@ -2519,11 +2513,8 @@ All events: ${link}`,
     fromEach: "Each supporter",
     lettersTitle: "Letters",
     // Over the letters one of the counts has chosen, and the way back to them all.
+    // Over the letters whose text was changed; those a state's count chooses are headed as a mailing's are (copyStates.tabs).
     tabs: {
-      sent: "Letters that arrived",
-      failed: "Letters that failed",
-      replied: "Letters with a reply",
-      answered: "Letters to those who answered",
       changed: "Letters with the text changed",
     },
     showAll: "Show all the letters",

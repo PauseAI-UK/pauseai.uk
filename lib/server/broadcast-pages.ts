@@ -28,7 +28,7 @@ import {
   type WrittenBroadcast,
 } from "./broadcast-drafts";
 import { broadcastChoices, broadcastParts, supporterAudience } from "./broadcast-recipients";
-import type { MailingSummary } from "./mailings";
+import type { MailingBase } from "./mailings";
 import { howOptedOutFrom, optedOutFrom } from "./opt-outs";
 import { checkStoredFilter, filterProblems } from "./stored-filters";
 import { supporterChoices, type SupporterChoices } from "./supporters";
@@ -39,7 +39,7 @@ import { supporterChoices, type SupporterChoices } from "./supporters";
 // of `mailings`, so this reads only those to supporters.
 
 /** A broadcast in the list: a mailing's summary, with what only a broadcast has. */
-export type BroadcastSummary = MailingSummary & {
+export type BroadcastSummary = MailingBase & {
   channel: BroadcastChannel;
   /** What sends an email; Gmail says nothing of what arrives, so its copies stay sent. */
   sendBy: BroadcastSendBy;
@@ -132,8 +132,7 @@ const SELECT_BROADCASTS = `
     -- As the sending bar counts them (MailingsOverview): those that went, and those done with but not sent.
     count(c.id) FILTER (WHERE c.status IN ('sent', 'delivered'))::int AS sent,
     count(c.id) FILTER (WHERE c.status IN ('failed', 'skipped', 'cancelled'))::int AS failed,
-    0 AS stopped, 0 AS answered,
-    count(c.id) FILTER (WHERE ${REPLIED})::int AS replied,
+    0 AS answered,
     -- How many are in each state.
     json_build_object(${COPY_STATES.map((one) => `'${one}', count(c.id) FILTER (WHERE s.state = '${one}')`).join(", ")}) AS states
   FROM mailings m LEFT JOIN broadcast_messages c ON c.mailing_id = m.id

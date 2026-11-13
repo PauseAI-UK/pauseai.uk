@@ -7,7 +7,7 @@ import { exampleAsks } from "./PoliticianTable.examples";
 // Fake data for the pages of campaigns, asks, sent emails and one-off emails,
 // for their tests and the gallery.
 
-/** A campaign with an ask, a letter failed, and its letters over several months. */
+/** A campaign with an ask, a letter that bounced, and its letters over several months. */
 export const exampleCampaign: CampaignSummary = {
   slug: "pauseai-info-frontier-ai",
   title: "Regulate AI developers now (Airtable)",
@@ -16,9 +16,8 @@ export const exampleCampaign: CampaignSummary = {
   askKind: "letter",
   url: null,
   letters: 12,
-  sent: 11,
-  failed: 1,
-  replied: 2,
+  // Three answered of the politicians written to, two letters' replies, and a bounce.
+  states: { sent: 7, replied: 2, answered: 2, spam: 0, error: 0, unreached: 1, "not-sent": 0 },
   answered: 3,
   politicians: 9,
   supporters: 10,
@@ -35,7 +34,7 @@ export const exampleCampaignNoAsk: CampaignSummary = {
   askTitle: null,
   askKind: null,
   answered: 0,
-  failed: 0,
+  states: { sent: 10, replied: 2, answered: 0, spam: 0, error: 0, unreached: 0, "not-sent": 0 },
   firstAt: new Date("2025-05-20T09:00:00Z"),
   lastAt: new Date("2025-06-17T09:00:00Z"),
 };
@@ -46,8 +45,7 @@ export const exampleCampaignEmpty: CampaignSummary = {
   slug: "support-sobel-bill",
   title: "Support the bill",
   letters: 0,
-  sent: 0,
-  replied: 0,
+  states: { sent: 0, replied: 0, answered: 0, spam: 0, error: 0, unreached: 0, "not-sent": 0 },
   politicians: 0,
   supporters: 0,
   firstAt: null,

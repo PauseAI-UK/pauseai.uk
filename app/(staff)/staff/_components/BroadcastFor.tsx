@@ -5,8 +5,6 @@ import { type Params } from "@/lib/list-params";
 import { Muted } from "@/components/ui/Text";
 import { broadcastTerms } from "@/lib/broadcasts";
 import { consentKey } from "@/lib/contact-permissions";
-import ChannelIcon from "@/components/ui/ChannelIcon";
-import IconText from "./ui/IconText";
 import BroadcastView from "./BroadcastView";
 import ChannelWriter from "./ChannelWriter";
 import type { BroadcastWriterActions } from "./BroadcastWriter";
@@ -17,19 +15,19 @@ type FormAction = (form: FormData) => void | Promise<void>;
 
 /**
  * What everyone a broadcast is to said yes to, from the list's Consent
- * filter: the channel's icon, then each consent as the list's lozenges name
- * it, "or" between. Apart from the other filters, as it's what lets us send
- * it.
+ * filter: each consent as the list's lozenges name it, "or" between. Apart
+ * from the other filters, as it's what lets us send it. The channel's icon is
+ * the page's title's.
  */
 export function BroadcastContact({ params }: { params: Params }) {
   const terms = broadcastTerms(params.contact)!;
   const way = terms.channel === "email" ? "email" : "text";
   return (
-    <IconText icon={<ChannelIcon channel={way} />}>
+    <>
       {staffCopy.filters.anyOf(
         terms.topics.map((topic) => staffCopy.supporters.subscriptions.consents[consentKey({ way, topic })]),
       )}
-    </IconText>
+    </>
   );
 }
 

@@ -30,6 +30,7 @@ import {
 import { exampleAsks, examplePolitician } from "./PoliticianTable.examples";
 
 const copy = staffCopy.mailingPages;
+const states = staffCopy.copyStates;
 const noAction = async () => {};
 
 describe("MailingLetter", () => {
@@ -272,14 +273,16 @@ describe("MailingsOverview", () => {
     // Sending: its bar, leading to it.
     await expect.element(page.getByRole("progressbar", { name: copy.sentLabel })).toHaveAttribute("value", "214");
     await expect.element(page.getByText(copy.sendingBar(209, 650))).toBeVisible();
-    // Sent: each count opens it with that tab chosen, the day without this year; every count on every row,
-    // answered a dash leading nowhere without an ask.
-    expect(document.querySelector('a[href="/staff/mailings/4?tab=failed"]')).not.toBeNull();
+    // Sent: what needs a look, opening it with that tab chosen, and the rest folded behind how many are fine; the
+    // day without this year. One with no letters has no counts.
+    await expect
+      .element(row("AI safety conference").getByRole("link", { name: `2 ${states.counts.unreached}` }))
+      .toHaveAttribute("href", "/staff/mailings/4?tab=unreached");
+    await expect.element(row("AI safety conference")).toMatchTextContent(states.andFine(10));
     await expect.element(row("AI safety conference")).toMatchTextContent("20 Oct");
     await expect.element(row("AI safety conference")).not.toMatchTextContent("20 Oct 2026");
-    await expect.element(row("Ben Lake").first()).toMatchTextContent(`0 ${copy.counts.stopped}`);
-    await expect.element(row("Ben Lake").first()).toMatchTextContent(`– ${copy.counts.answered}`);
-    expect(row("Ben Lake").first().element().querySelector('a[href$="tab=answered"]')).toBeNull();
+    await expect.element(row("Ben Lake").first()).not.toMatchTextContent(states.allFine(0));
+    expect(row("Ben Lake").first().element().querySelector("a[href*='tab=']")).toBeNull();
     // Last year's, with its year.
     await expect.element(row("Ben Lake").last()).toMatchTextContent("9 Jul 2025");
     // Who it's from, or Airtable, and its ask, leading to who answered it.
@@ -299,8 +302,14 @@ describe("MailingsOverview", () => {
     await expect
       .element(page.getByRole("link", { name: "Edinburgh conference" }).first())
       .toHaveAttribute("href", "/staff/asks/edinburgh-conference-2026");
-    // Nothing on it changes a mailing.
-    expect(page.getByRole("button").all()).toHaveLength(0);
+    // Nothing on it changes a mailing: its only buttons unfold how many are fine.
+    expect(page.getByRole("button").all().length).toBeGreaterThan(0);
+    expect(
+      page
+        .getByRole("button")
+        .all()
+        .every((button) => button.element().hasAttribute("aria-expanded")),
+    ).toBe(true);
   });
 
   it("an ask with no sender says only the ask", async () => {
@@ -366,38 +375,43 @@ describe("MailingView", () => {
   it("once sent: its band, how many answered, the email, and its recipients", async () => {
     await view({});
     await expect.element(page.getByRole("heading", { level: 1 })).toMatchTextContent(mailing.title);
-    // With an ask, the bar says it's sent, not a tag: the one more is Polly's letter's.
-    expect(page.getByText(copy.states.sent, { exact: true }).all()).toHaveLength(2);
+    // With an ask, the bar says it's sent, not a tag: the one Sent is the label of when it went.
+    expect(page.getByText(copy.states.sent, { exact: true }).all()).toHaveLength(1);
     await expect.element(page.getByText(copy.answeredBar(3, 12))).toBeVisible();
-    await expect.element(page.getByRole("progressbar", { name: copy.counts.answered })).toHaveAttribute("value", "3");
-    // The band: when, by whom, from where, the ask, and who it was for.
+    await expect.element(page.getByRole("progressbar", { name: states.tabs.answered })).toHaveAttribute("value", "3");
+    // The band: when, by whom, from where and by what, the ask, and who it was for.
     await expect.element(page.getByText("20 Oct 2026", { exact: true })).toBeVisible();
     await expect.element(page.getByText(copy.by(written.createdBy))).toBeVisible();
     await expect.element(page.getByText("jo@pauseai.uk", { exact: true })).toBeVisible();
+    await expect
+      .element(page.getByText(`Jo Example · ${staffCopy.broadcastPages.sendFacts.viaDetail("Gmail")}`))
+      .toBeVisible();
     await expect.element(page.getByText("who")).toBeVisible();
     await expect.element(page.getByText(staffCopy.campaigns.politicians(12))).toBeVisible();
-    // Each count leads to those recipients, none chosen.
+    // The counts in two groups, each under its total: those that went, and those that didn't.
+    await expect.element(page.getByRole("group", { name: `10 ${states.groups.went}` })).toBeVisible();
+    await expect.element(page.getByRole("group", { name: `2 ${states.groups.gone}` })).toBeVisible();
+    // Each count leads to those recipients, none chosen; a count of none isn't shown.
     await expect
-      .element(page.getByRole("link", { name: `2 ${copy.counts.failed}` }))
-      .toHaveAttribute("href", "/staff/mailings/4?tab=failed");
+      .element(page.getByRole("link", { name: `2 ${states.counts.unreached}` }))
+      .toHaveAttribute("href", "/staff/mailings/4?tab=unreached");
     await expect
-      .element(page.getByRole("link", { name: `10 ${copy.counts.sent}` }))
+      .element(page.getByRole("link", { name: `5 ${states.counts.sent}` }))
       .toHaveAttribute("href", "/staff/mailings/4?tab=sent");
     expect(document.querySelectorAll("a[aria-current]")).toHaveLength(0);
-    // Stopped only when it was.
-    await expect.element(page.getByText(copy.counts.stopped)).not.toBeInTheDocument();
-    // Each recipient: their seat and party, their answer, how it went and their letter.
+    await expect.element(page.getByText(states.counts["not-sent"]!)).not.toBeInTheDocument();
+    // Each recipient: their seat and party, their answer, one tag of how it went, and their letter.
     await expect.element(recipient("Polly")).toMatchTextContent("Cities of London and Westminster · Labour (Co-op)");
     await expect.element(recipient("Polly")).toMatchTextContent(staffCopy.statuses.going);
-    await expect.element(recipient("Polly")).toMatchTextContent(staffCopy.mailings.columns.answered);
-    await expect.element(recipient("Polly").getByText(staffCopy.letters.status.sent, { exact: true })).toBeVisible();
+    await expect.element(recipient("Polly").getByText(states.tags.answered!, { exact: true })).toBeVisible();
+    await expect.element(recipient("Polly").getByText(states.tags.sent!, { exact: true })).not.toBeInTheDocument();
     await expect
       .element(recipient("Polly").getByRole("link", { name: copy.letterAndReplies(2) }))
       .toHaveAttribute("href", "/staff/mailings/4/letters/11");
-    await expect.element(recipient("Morag")).toMatchTextContent(staffCopy.letters.status.bounced);
+    await expect.element(recipient("Morag")).toMatchTextContent(states.tags["unreached:bounced"]!);
     await expect.element(recipient("Morag").getByRole("link", { name: copy.theLetter })).toBeInTheDocument();
     // One skipped says why, with no letter to go to.
-    await expect.element(recipient("Dora")).toMatchTextContent(copy.skipReasons["left-office"]);
+    await expect.element(recipient("Dora")).toMatchTextContent(states.tags["not-sent:left-office"]!);
     await expect.element(recipient("Dora").getByRole("link", { name: copy.theLetter })).not.toBeInTheDocument();
     // The email as a mail app shows one: from, to and the subject, then the letter and its files.
     await expect.element(page.getByText("Jo Example <jo@pauseai.uk>")).toBeVisible();
@@ -417,49 +431,56 @@ describe("MailingView", () => {
         recipients: [
           { ...mailing.recipients[0], answer: null, replies: 0 },
           { ...mailing.recipients[1], status: "spam_complaint" },
-          { ...mailing.recipients[2], status: "mislaid", skipReason: null, sentAt: null },
+          { ...mailing.recipients[2], status: "uncertain", skipReason: null, sentAt: null },
         ],
       },
     });
     await expect.element(page.getByRole("progressbar")).not.toBeInTheDocument();
-    // Sent as a tag, with Polly's letter's, beside her Replied, one more.
-    expect(page.getByText(copy.states.sent, { exact: true }).all()).toHaveLength(3);
-    await expect.element(page.getByRole("heading", { name: copy.tabs.replied })).toBeVisible();
+    // Sent as its tag, as well as the label of when it went.
+    expect(page.getByText(copy.states.sent, { exact: true }).all()).toHaveLength(2);
+    await expect.element(page.getByRole("heading", { name: states.tabs.replied })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.showEveryone }))
       .toHaveAttribute("href", "/staff/mailings/4");
     // The count chosen, pressed again, shows everyone, as its tooltip says.
-    const chosen = page.getByRole("link", { name: `2 ${copy.counts.replied}` });
+    const chosen = page.getByRole("link", { name: `2 ${states.counts.replied}` });
     await expect.element(chosen).toHaveAttribute("aria-current", "true");
     await expect.element(chosen).toHaveAttribute("href", "/staff/mailings/4");
     await expect.element(chosen).toHaveAttribute("title", copy.showEveryone);
-    await expect.element(page.getByRole("link", { name: `10 ${copy.counts.sent}` })).not.toHaveAttribute("title");
-    // With no ask, no answers.
-    await expect.element(page.getByText(copy.counts.answered)).not.toBeInTheDocument();
-    await expect.element(recipient("Polly")).toMatchTextContent(copy.tabs.replied);
+    await expect.element(page.getByRole("link", { name: `5 ${states.counts.sent}` })).not.toHaveAttribute("title");
     // Replied, as Airtable recorded it, with no reply kept: still one.
+    await expect.element(recipient("Polly")).toMatchTextContent(states.tags.replied!);
     await expect.element(recipient("Polly").getByRole("link", { name: copy.letterAndReplies(1) })).toBeVisible();
-    await expect.element(recipient("Morag")).toMatchTextContent(staffCopy.letters.status.spam_complaint);
-    // A status nobody knows any more, as it's stored, dated when the mailing last changed.
-    await expect.element(recipient("Dora")).toMatchTextContent("mislaid");
+    await expect.element(recipient("Morag")).toMatchTextContent(states.tags.spam!);
+    // One whose send was cut off, dated when the mailing last changed.
+    await expect.element(recipient("Dora")).toMatchTextContent(states.tags["error:unfinished"]!);
     await expect.element(recipient("Dora")).toMatchTextContent("28 Oct 2026");
   });
 
   it("stopped, said so, with how many it never sent; sent at no time when nothing's gone", async () => {
     await view({
-      mailing: { ...mailing, ask: null, askTitle: null, sentAt: null, stopped: 3, tab: "stopped", page: 2, pages: 2 },
+      mailing: {
+        ...mailing,
+        ask: null,
+        askTitle: null,
+        sentAt: null,
+        states: { ...mailing.states, "not-sent": 3 },
+        tab: "not-sent",
+        page: 2,
+        pages: 2,
+      },
       written: { ...written, state: "cancelled" },
     });
     // Stopped as its tag, and the tab's heading.
-    expect(page.getByText(copy.states.cancelled, { exact: true }).all()).toHaveLength(2);
-    await expect.element(page.getByRole("heading", { name: copy.tabs.stopped })).toBeVisible();
+    await expect.element(page.getByText(copy.states.cancelled, { exact: true })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: states.tabs["not-sent"] })).toBeVisible();
     await expect.element(page.getByText(staffCopy.mailings.notSent)).toBeVisible();
     await expect
-      .element(page.getByRole("link", { name: `3 ${copy.counts.stopped}` }))
+      .element(page.getByRole("link", { name: `3 ${states.counts["not-sent"]}` }))
       .toHaveAttribute("href", "/staff/mailings/4");
     await expect
       .element(page.getByRole("link", { name: staffCopy.paging.previous }))
-      .toHaveAttribute("href", "/staff/mailings/4?tab=stopped");
+      .toHaveAttribute("href", "/staff/mailings/4?tab=not-sent");
   });
 
   it("scheduled: when it sends, Change the time in London's hours and minutes, and Stop; no counts yet", async () => {
@@ -470,7 +491,7 @@ describe("MailingView", () => {
     await view({ written: { ...written, state: "scheduled" }, stop: action, reschedule: action });
     await expect.element(page.getByText(copy.sends("Tue 1 Dec at 09:03"))).toBeVisible();
     expect(page.getByText(copy.states.scheduled, { exact: true }).all()).toHaveLength(2);
-    await expect.element(page.getByRole("link", { name: `10 ${copy.counts.sent}` })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: `5 ${states.counts.sent}` })).not.toBeInTheDocument();
     await page.getByRole("button", { name: copy.changeTime }).click();
     await expect.element(page.getByRole("button", { name: copy.day })).toMatchTextContent("Tue 1 Dec 2026");
     await page.getByRole("combobox", { name: copy.hour }).selectOptions("10");
@@ -632,10 +653,9 @@ describe("LetterView", () => {
       </LetterView>,
     );
 
-  it("answered: green, beside how it went, with the ask as the politician's page has it, beside the thread and history", async () => {
-    await view({ letter: { ...letter, status: "bounced" } });
-    await expect.element(page.getByText(staffCopy.mailings.columns.answered, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(staffCopy.letters.status.bounced, { exact: true })).toBeVisible();
+  it("answered: green, in place of how it went, with the ask as the politician's page has it, beside the thread and history", async () => {
+    await view({});
+    await expect.element(page.getByText(states.tags.answered!, { exact: true })).toBeVisible();
     await expect.element(page.getByRole("group", { name: exampleAsks[0]!.title })).toBeVisible();
     await expect.element(page.getByText("the thread")).toBeVisible();
     await expect.element(page.getByRole("heading", { name: staffCopy.letters.detail.historyTitle })).toBeVisible();
@@ -645,49 +665,35 @@ describe("LetterView", () => {
       .toHaveAttribute("href", `/staff/politicians/${letter.politicianId}`);
   });
 
-  it("not answered, with no ask: its status, red when it bounced; one nobody knows any more as stored", async () => {
+  it("not answered, with no ask: how it went, as a mailing's list says it", async () => {
     const { rerender } = await view({
       letter: { ...letter, mailingAsk: null, status: "bounced", personalised: false },
     });
-    await expect.element(page.getByText(staffCopy.letters.status.bounced, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(states.tags["unreached:bounced"]!, { exact: true })).toBeVisible();
     await expect
       .element(page.getByRole("heading", { name: staffCopy.mailings.fields.ask, exact: true }))
       .not.toBeInTheDocument();
-    await rerender(
-      <LetterView
-        letter={{ ...letter, status: "mislaid" }}
-        politician={{ ...politician, statuses: {} }}
-        asks={exampleAsks}
-        setStatus={noAction}
-      >
-        <p>the thread</p>
-      </LetterView>,
-    );
-    await expect.element(page.getByText("mislaid", { exact: true })).toBeVisible();
-    await rerender(
-      <LetterView
-        letter={{ ...letter, status: "spam_complaint" }}
-        politician={{ ...politician, statuses: {} }}
-        asks={exampleAsks}
-        setStatus={noAction}
-      >
-        <p>the thread</p>
-      </LetterView>,
-    );
-    await expect.element(page.getByText(staffCopy.letters.status.spam_complaint, { exact: true })).toBeVisible();
-    // Skipped, with why; replied to, beside it.
-    await rerender(
-      <LetterView
-        letter={{ ...letter, status: "skipped", skipReason: "no-email", repliedAt: new Date("2026-10-02T09:00:00Z") }}
-        politician={{ ...politician, statuses: {} }}
-        asks={exampleAsks}
-        setStatus={noAction}
-      >
-        <p>the thread</p>
-      </LetterView>,
-    );
-    await expect.element(page.getByText(staffCopy.mailingPages.skipReasons["no-email"], { exact: true })).toBeVisible();
-    await expect.element(page.getByText(staffCopy.letters.status.replied, { exact: true })).toBeVisible();
+    const shows = (one: Partial<typeof letter>) =>
+      rerender(
+        <LetterView
+          letter={{ ...letter, ...one }}
+          politician={{ ...politician, statuses: {} }}
+          asks={exampleAsks}
+          setStatus={noAction}
+        >
+          <p>the thread</p>
+        </LetterView>,
+      );
+    await shows({ status: "spam_complaint" });
+    await expect.element(page.getByText(states.tags.spam!, { exact: true })).toBeVisible();
+    // Gmail refused it, as it sends a mailing's letters; one copied from Airtable, not said what refused it.
+    await shows({ status: "not_sent", backend: null });
+    await expect.element(page.getByText(states.tags["error:gmail"]!, { exact: true })).toBeVisible();
+    await shows({ status: "not_sent", backend: "airtable" });
+    await expect.element(page.getByText(states.tags.error!, { exact: true })).toBeVisible();
+    // Skipped, with why, though replied to.
+    await shows({ status: "skipped", skipReason: "no-email", repliedAt: new Date("2026-10-02T09:00:00Z") });
+    await expect.element(page.getByText(states.tags["not-sent:no-email"]!, { exact: true })).toBeVisible();
   });
 
   it("a supporter's: its campaign over its ask, tagged when it's to a test politician", async () => {
@@ -696,7 +702,8 @@ describe("LetterView", () => {
     await expect
       .element(page.getByRole("heading", { level: 1 }))
       .toHaveTextContent(staffCopy.letters.oneTitle(supporters.senderName, supporters.mpName));
-    await expect.element(page.getByText(staffCopy.mailings.columns.answered, { exact: true })).toBeVisible();
+    // It bounced, so says so, though the politician answered.
+    await expect.element(page.getByText(states.tags["unreached:bounced"]!, { exact: true })).toBeVisible();
     await expect.element(page.getByText(staffCopy.politicians.flags.test, { exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: staffCopy.mailings.fields.ask, exact: true })).toBeVisible();
     // Under the ask, the campaign it's based on.

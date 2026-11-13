@@ -4,7 +4,7 @@ import type { BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { textSender } from "@/lib/broadcasts";
 import MailingsOverview, { type OverviewLook } from "./MailingsOverview";
 import { BroadcastChannelMark, broadcastCounts } from "./BroadcastView";
-import { NeedsAndFine } from "./BroadcastCounts";
+import { NeedsAndFine } from "./CopyCounts";
 import { countsOpening } from "./ui/Counts";
 import Progress from "./ui/Progress";
 import StaffLink from "./ui/StaffLink";

@@ -443,18 +443,24 @@ colours for state.
 **The band** (`ui/Band`). A record whose page is about it alone (a
 supporter, a mailing) starts with a tinted band. The band has:
 
-- the record's title and a tag;
-- its facts (`BandFact`), each with a quiet line under it;
-- at the facts' right, its numbers in one white box (`ui/Counts`). Each
-  number is a link (`StaffLink`, below) to what it counts.
+- the record's title and a tag; a broadcast's title has its channel's
+  icon before it, email or text;
+- its facts (`BandFact`), each with a quiet line under it, which can say
+  more of the same fact so it needs no fact of its own: who a mailing is
+  from has what sent it under it ("via Gmail");
+- at the facts' right, its numbers in one white box (`ui/Counts`), or for
+  a mailing, broadcast or campaign, in two groups (`CountGroups`, "Status
+  colours" below). Each number is a link (`StaffLink`, below) to what it
+  counts.
 
 When the list under the band is the record's own, as a mailing's
 recipients are, each count is a filter that toggles. Pressed, it shows
 only those it counts, and is underlined. While it's on, its tooltip is
 "Show everyone", and pressing it again shows everyone.
 
-A list of such records (the mailings) has the same white box, small, in
-each row, and the whole box leads to the record.
+A list of mailings, broadcasts or campaigns shows in each row only the
+counts that need a look (`NeedsAndFine`), each leading to the record with
+that count chosen.
 
 **The dashboard's numbers** (`METRIC_LINKS`). A tile leads to a page that
 shows the same number: a tile saying 12 opens a list of 12. So a tile
@@ -480,10 +486,12 @@ A count of them has its number on the same colour as the tags of those
 it counts (`ui/Counts`), so pressing a count lists tags all that colour,
 and each record has one tag, so it's in one count. A tag says why after a
 colon where there's a why: "Opted out: pressed Stop", "Not sent: consent
-ended". A broadcast's copies follow this (`copyStatus` in
-`BroadcastView.tsx`); a mailing's letters still have the older scheme,
-red for every skip and amber for Cancelled, with a second tag beside the
-status for Answered (`investments/one-copy-states.md`).
+ended". A broadcast's copies, a mailing's letters and a campaign's letters
+all follow this, from one set of states (`docs/domain-concepts.md`, "How a
+copy went"): on its page, its counts in two groups, those that went and
+those that didn't, each under its total (`CountGroups`); in a list, only
+the red, amber and blue counts as tags, the rest folded behind how many
+are fine (`NeedsAndFine`).
 
 Each kind of record's status tags come from one function, used wherever
 the record is shown, so a letter reads the same in a mailing's list as on

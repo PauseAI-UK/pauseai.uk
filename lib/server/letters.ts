@@ -1,6 +1,6 @@
 import "server-only";
-import { ARRIVED, DID_NOT_ARRIVE, statusIn } from "@/lib/letter-status";
 import { cache } from "react";
+import { CAMPAIGN_LETTER_STATE } from "./campaigns";
 import { config } from "./config";
 import type { AskStatus } from "@/lib/asks";
 import type { Permission } from "@/lib/staff-permissions";
@@ -148,14 +148,9 @@ export async function recentLetters(filter: LetterFilter & { politicianId?: numb
 const BACKEND = `CASE WHEN s.airtable_id IS NOT NULL THEN 'airtable' ELSE (SELECT e.backend FROM email_sends e
   WHERE e.letter_id = s.id AND e.purpose = 'letter' AND e.outcome = 'sent' ORDER BY e.at DESC, e.id DESC LIMIT 1) END`;
 
-/** The letters each tab of a campaign's list shows. */
-const TAB_CONDITIONS: Record<LetterTab, string> = {
-  changed: "s.own_words > 0",
-  replied: "l.replied_at IS NOT NULL",
-  sent: statusIn("l.status", ARRIVED),
-  answered: "EXISTS (SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = n.id AND st.ask = c.ask)",
-  failed: statusIn("l.status", DID_NOT_ARRIVE),
-};
+/** The letters a tab of a campaign's list shows: those whose text was changed, or those in its state. */
+const tabCondition = (tab: LetterTab) =>
+  tab === "changed" ? "s.own_words > 0" : `(${CAMPAIGN_LETTER_STATE}) = '${tab}'`;
 
 /** Letters as recentLetters finds them, from `offset`, each with how many the filter finds in all. */
 async function letterRows({
@@ -200,7 +195,7 @@ async function letterRows({
   if (not?.campaign) conditions.push(sql`s.campaign <> ALL(${not.campaign})`);
   if (backend) conditions.push(sql`${backendOf} = ANY(${backend})`);
   if (not?.backend) conditions.push(sql`(${backendOf} = ANY(${not.backend})) IS NOT TRUE`);
-  if (tab != null) conditions.push(sql.raw(TAB_CONDITIONS[tab]));
+  if (tab != null) conditions.push(sql.raw(tabCondition(tab)));
   if (flags) conditions.push(marked(flags));
   if (not?.flags) conditions.push(sql`(${marked(not.flags)}) IS NOT TRUE`);
   const rows = await query<Omit<LetterSummary, "events"> & { events: AsJson<LetterEvent>[]; total: number }>(

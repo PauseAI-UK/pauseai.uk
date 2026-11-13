@@ -56,7 +56,10 @@ describe("CampaignsOverview", () => {
     await render(
       <CampaignsOverview campaigns={[exampleCampaign, exampleCampaignNoAsk, exampleCampaignEmpty]} now={NOW} />,
     );
-    expect(document.querySelector(`a[href="/staff/campaigns/${exampleCampaign.slug}?tab=replied"]`)).not.toBeNull();
+    // What needs a look, leading to its letters, and the rest folded behind how many are fine.
+    expect(document.querySelector(`a[href="/staff/campaigns/${exampleCampaign.slug}?tab=unreached"]`)).not.toBeNull();
+    expect(document.body.textContent).toContain(staffCopy.copyStates.andFine(11));
+    expect(document.body.textContent).toContain(staffCopy.copyStates.allFine(12));
     const headings = page
       .getByRole("heading", { level: 2 })
       .all()
@@ -72,10 +75,6 @@ describe("CampaignsOverview", () => {
     // Those with no letters come first, under no month.
     expect(document.querySelector("li")!.textContent).toContain(copy.noLetters);
     expect(document.body.textContent).toContain(staffCopy.asks.noAsk);
-    // Every row has every count, so they line up: one with no ask has a dash for its answers.
-    const rows = [...document.querySelectorAll("li")];
-    const noAsk = rows.find((row) => row.textContent.includes(staffCopy.asks.noAsk))!;
-    expect(noAsk.textContent).toContain(`– ${staffCopy.mailingPages.counts.answered}`);
   });
 
   it("says there are none", async () => {
@@ -169,8 +168,8 @@ describe("CampaignView", () => {
     { ...exampleLetter, id: 2, status: "sent", answer: "signed" as const, constituency: null, party: "" },
     { ...exampleLetter, id: 3, status: "sent", repliedAt: new Date(NOW), ownWords: null, supporterId: null },
     { ...exampleLetter, id: 4, status: "sent", autoRepliedAt: new Date(NOW) },
-    { ...exampleLetter, id: 5, status: "unknown" },
-    { ...exampleLetter, id: 6, status: "not_sent" },
+    { ...exampleLetter, id: 5, status: "not_sent", backend: "postmark" as const },
+    { ...exampleLetter, id: 6, status: "not_sent", backend: "airtable" as const },
   ];
   const view = (campaign = exampleCampaign, search = emptyLettersSearch) => (
     <CampaignView
@@ -190,9 +189,19 @@ describe("CampaignView", () => {
     await says(staffCopy.mailingPages.answeredBar(3, 9));
     await expect.element(link(exampleCampaign.askTitle!)).toHaveAttribute("href", `/staff/asks/${exampleCampaign.ask}`);
     await says(staffCopy.statuses.signed);
-    await says(staffCopy.letters.status.bounced);
+    // Each letter's one tag: answered in place of sent; what refused one, where that's known.
+    const tags = staffCopy.copyStates.tags;
+    await says(tags["unreached:bounced"]!);
+    await says(tags.answered!);
+    await says(tags.replied!);
+    await says(tags["error:postmark"]!);
+    await expect.element(page.getByText(tags.error!, { exact: true })).toBeVisible();
     await says(staffCopy.letters.status.auto_reply);
-    await says("unknown");
+    // The counts in two groups, each under its total.
+    await expect.element(page.getByRole("group", { name: `11 ${staffCopy.copyStates.groups.went}` })).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: `1 ${staffCopy.copyStates.counts.unreached}` }))
+      .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}?tab=unreached`);
     await expect
       .element(page.getByRole("link", { name: copy.changedLink(exampleChanged) }))
       .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}?tab=changed`);
@@ -201,17 +210,24 @@ describe("CampaignView", () => {
       .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}?page=2`);
   });
 
-  it("with no ask, says so, with no bar, its answers a faded dash that leads nowhere", async () => {
+  it("with no ask, says so, with no bar and no answers", async () => {
     const { unmount } = await render(view(exampleCampaignNoAsk));
     expect(document.body.textContent).toContain(staffCopy.asks.noAsk);
     expect(document.querySelector("progress")).toBeNull();
-    const answers = [...document.querySelectorAll("[class*=count]")].find(
-      (count) => count.textContent === `– ${staffCopy.mailingPages.counts.answered}`,
-    )!;
-    expect([answers.tagName, answers.hasAttribute("data-none")]).toEqual(["SPAN", true]);
+    await expect.element(page.getByText(staffCopy.copyStates.counts.answered!)).not.toBeInTheDocument();
     await unmount();
-    await render(view(exampleCampaignEmpty, { ...emptyLettersSearch, tab: "failed", page: "2" }));
+    // A count chosen heads the letters, and pressed again shows them all; so does the changed wording.
+    const { unmount: again } = await render(
+      view(exampleCampaignNoAsk, { ...emptyLettersSearch, tab: "replied", page: "2" }),
+    );
+    await expect.element(page.getByRole("heading", { name: staffCopy.copyStates.tabs.replied })).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: `2 ${staffCopy.copyStates.counts.replied}` }))
+      .toHaveAttribute("title", copy.showAll);
     await expect.element(page.getByRole("link", { name: staffCopy.paging.previous })).toBeVisible();
+    await again();
+    await render(view(exampleCampaignEmpty, { ...emptyLettersSearch, tab: "changed" }));
+    await expect.element(page.getByRole("heading", { name: copy.tabs.changed })).toBeVisible();
   });
 });
 

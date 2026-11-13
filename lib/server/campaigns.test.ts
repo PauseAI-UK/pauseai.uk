@@ -6,7 +6,7 @@ import { query } from "./db";
 describeWithDatabase("campaigns", () => {
   useTestDatabase();
 
-  it("counts each campaign's letters, those that failed and were replied to, and who's answered its ask", async () => {
+  it("counts each campaign's letters in each state, and who's answered its ask", async () => {
     const polly = await addTestPolitician();
     const dora = await addTestPolitician({ name: "Dora", email: "dora@parliament.uk", airtableId: "b" });
     const slug = "regulate-letter-pm";
@@ -30,11 +30,10 @@ describeWithDatabase("campaigns", () => {
       [polly],
     );
     const campaign = await getCampaignSummary(slug);
+    // Polly answered, and her letter that bounced is in its own state; Dora replied.
     expect(campaign).toMatchObject({
       letters: 3,
-      sent: 2,
-      failed: 1,
-      replied: 1,
+      states: { sent: 0, replied: 1, answered: 1, spam: 0, error: 0, unreached: 1, "not-sent": 0 },
       answered: 1,
       politicians: 2,
       supporters: 2,

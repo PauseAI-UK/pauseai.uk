@@ -6,7 +6,7 @@ import Reply, { type ReplyHandlers } from "./CopyReply";
 import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import { MailingLetter } from "./MailingLetter";
-import { CopyStatus } from "./BroadcastView";
+import { CopyStatus } from "./CopyStatus";
 import { ChatBubble, ChatWall, TextWords } from "./TextBubble";
 import { LetterHistory, type HistoryEntry } from "./LetterHistory";
 import { Thread } from "./LetterThread";

@@ -749,7 +749,8 @@ export const staffLetters: Group = {
       file: "app/(staff)/staff/_components/LetterStatus.tsx",
       variants: [
         {
-          label: "Every status, every skip, and Answered or Replied beside one",
+          label:
+            "Every status, every skip, one Gmail refused, one replied to, one answered, and one that bounced though answered",
           render: () => (
             <StaffPage as="div">
               <ul>
@@ -774,7 +775,13 @@ export const staffLetters: Group = {
                   </li>
                 ))}
                 <li>
+                  <LetterStatus status="not_sent" sentBy="gmail" answered={false} replied={false} />
+                </li>
+                <li>
                   <LetterStatus status="sent" answered={false} replied />
+                </li>
+                <li>
+                  <LetterStatus status="sent" answered replied />
                 </li>
                 <li>
                   <LetterStatus status="bounced" answered replied />

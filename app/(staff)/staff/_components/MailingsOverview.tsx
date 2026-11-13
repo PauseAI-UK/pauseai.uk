@@ -6,10 +6,12 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { ReactNode } from "react";
 import type { MailingGroup } from "@/lib/mailing-groups";
 import { mailingWhen } from "@/lib/mailing-groups";
-import type { MailingSummary } from "@/lib/server/mailings";
+import type { MailingBase, MailingSummary } from "@/lib/server/mailings";
 import { named } from "@/lib/email-parsing/addresses";
 import { londonWhenShort, staffDate } from "@/lib/staff-time";
-import Counts, { countsOpening, type Count } from "./ui/Counts";
+import { countsOpening, type Count } from "./ui/Counts";
+import { NeedsAndFine } from "./CopyCounts";
+import { stateCounts } from "./CopyStatus";
 import Empty from "./ui/Empty";
 import Grid, { spanClass } from "./ui/Grid";
 import Progress from "./ui/Progress";
@@ -18,19 +20,13 @@ import styles from "./MailingsOverview.module.css";
 const copy = staffCopy.mailingPages;
 
 /**
- * How a mailing sent went, in the order it happens: what arrived, what
- * didn't, what was never sent as it was stopped, then what came back; the
- * same in the list and on its page. Every mailing has every count, so they
- * line up from row to row; answers are a dash for one with no ask.
+ * How a mailing's letters stand, a count for each state (LETTER_STATES), in
+ * the order it happens: what went, what came back, and what was marked as
+ * spam; then what didn't go, the expected first. The same in the list and on
+ * its page; a count of none isn't shown.
  */
 export function mailingCounts(mailing: MailingSummary): Count[] {
-  return [
-    { key: "sent", n: mailing.sent, label: copy.counts.sent },
-    { key: "failed", n: mailing.failed, label: copy.counts.failed, tone: "red" },
-    { key: "stopped", n: mailing.stopped, label: copy.counts.stopped },
-    { key: "replied", n: mailing.replied, label: copy.counts.replied },
-    { key: "answered", n: mailing.ask ? mailing.answered : null, label: copy.counts.answered, tone: "green" },
-  ];
+  return stateCounts(mailing.states, ["sent", "replied", "answered", "spam", "not-sent", "error", "unreached"]);
 }
 
 /**
@@ -38,7 +34,7 @@ export function mailingCounts(mailing: MailingSummary): Count[] {
  * sent went, what comes before who it's from, who it's from when not as an
  * email's sender is, and what one scheduled says.
  */
-export type OverviewLook<T extends MailingSummary> = {
+export type OverviewLook<T extends MailingBase> = {
   base: string;
   counts: (mailing: T) => Count[];
   untitled: string;
@@ -64,7 +60,7 @@ const MAILINGS_LOOK: OverviewLook<MailingSummary> = {
  * goes, or one sending started, in blue, as it's going out; the day one
  * went, with its year when that's not `year`.
  */
-function When({ mailing, year }: { mailing: MailingSummary; year: string }) {
+function When({ mailing, year }: { mailing: MailingBase; year: string }) {
   if (mailing.state === "draft") return <Muted>{copy.savedAt(staffDate(mailing.updatedAt))}</Muted>;
   if (mailing.state === "scheduled" || mailing.state === "sending") {
     return <strong className={styles.due}>{londonWhenShort(mailing.dueAt!)}</strong>;
@@ -76,17 +72,10 @@ function When({ mailing, year }: { mailing: MailingSummary; year: string }) {
 /**
  * How it stands, at a row's right, only what matters there: a draft's
  * Draft and how many it's to; one scheduled the same; one sending, its
- * bar; one sent, its counts, the box leading to it as its title does.
+ * bar; one sent, what needs a look, the rest folded behind how many are
+ * fine.
  */
-function Standing<T extends MailingSummary>({
-  mailing,
-  href,
-  look,
-}: {
-  mailing: T;
-  href: string;
-  look: OverviewLook<T>;
-}) {
+function Standing<T extends MailingBase>({ mailing, href, look }: { mailing: T; href: string; look: OverviewLook<T> }) {
   if (look.standing) return look.standing(mailing, href);
   if (mailing.state === "draft" || mailing.state === "scheduled") {
     return (
@@ -107,14 +96,14 @@ function Standing<T extends MailingSummary>({
       </span>
     );
   }
-  return <Counts counts={countsOpening(href, look.counts(mailing))} small />;
+  return <NeedsAndFine counts={countsOpening(href, look.counts(mailing))} />;
 }
 
 /**
  * One mailing, a row: when; its title, leading to it, over who it's from,
  * name and address, the staff member who wrote it, and its ask; how it stands.
  */
-function Row<T extends MailingSummary>({
+function Row<T extends MailingBase>({
   mailing,
   year,
   look,
@@ -181,7 +170,7 @@ function Row<T extends MailingSummary>({
  * done on the mailing's own page, on purpose. It's as wide as the grid,
  * not the window.
  */
-export default function MailingsOverview<T extends MailingSummary = MailingSummary>({
+export default function MailingsOverview<T extends MailingBase = MailingSummary>({
   groups,
   now,
   look = MAILINGS_LOOK as unknown as OverviewLook<T>,

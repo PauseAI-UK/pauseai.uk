@@ -1,15 +1,9 @@
 import type { ReactNode } from "react";
-import Tag, { type TagTone } from "@/components/ui/Tag";
+import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { WrittenBroadcast } from "@/lib/server/broadcast-drafts";
-import {
-  COPY_STATES,
-  type BroadcastPageData,
-  type BroadcastSummary,
-  type CopyState,
-  type MessageRecipient,
-} from "@/lib/server/broadcast-pages";
+import type { BroadcastPageData, BroadcastSummary, MessageRecipient } from "@/lib/server/broadcast-pages";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { londonClock, londonDate, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
 import { FIELD_WORDS, waitEndsAt, type BroadcastChannel } from "@/lib/broadcasts";
@@ -22,11 +16,12 @@ import MailEmail from "./MailEmail";
 import MailingFiles from "./MailingFiles";
 import { MailingLetter } from "./MailingLetter";
 import { ResumeBroadcast } from "./MailingButtons";
-import { MailingStanding, MailingWhen } from "./MailingView";
+import { fromDetail, MailingStanding, MailingWhen } from "./MailingView";
 import TextBubble from "./TextBubble";
 import Band, { BandFact } from "./ui/Band";
 import { countsFiltering, type Count } from "./ui/Counts";
-import { CountGroups } from "./BroadcastCounts";
+import { CountGroups } from "./CopyCounts";
+import { CopyStatus, stateCounts, wentAndGone } from "./CopyStatus";
 import Grid, { Card } from "./ui/Grid";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
@@ -64,44 +59,18 @@ export function BroadcastChannelMark({ channel }: { channel: BroadcastChannel })
  * count of none isn't shown.
  */
 export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
-  const n = (state: (typeof COPY_STATES)[number]) => broadcast.states[state];
-  return [
-    { key: "sent", n: n("sent"), label: copy.counts.sent, tone: "grey" },
-    { key: "delivered", n: n("delivered"), label: copy.counts.delivered, tone: "green" },
-    { key: "read", n: n("read"), label: copy.counts.read, tone: "green" },
-    { key: "replied", n: n("replied"), label: copy.counts.replied, tone: "green" },
-    { key: "look", n: n("look"), label: copy.counts.look, tone: "blue" },
-    { key: "opted-out", n: n("opted-out"), label: copy.counts["opted-out"], tone: "red" },
+  return stateCounts(broadcast.states, [
+    "sent",
+    "delivered",
+    "read",
+    "replied",
+    "look",
+    "opted-out",
     // Those that didn't go: not sent, as expected, first; then what went wrong.
-    { key: "not-sent", n: n("not-sent"), label: copy.counts["not-sent"], tone: "grey" },
-    { key: "error", n: n("error"), label: copy.counts.error, tone: "red" },
-    { key: "unreached", n: n("unreached"), label: copy.counts.unreached, tone: "amber" },
-  ];
-}
-
-/** Each state's colour: red bad, amber sad, green good, blue for staff to do, plain for normal. */
-const STATE_TONES: Partial<Record<CopyState, TagTone>> = {
-  look: "blue",
-  "opted-out": "red",
-  error: "red",
-  unreached: "amber",
-  replied: "green",
-  read: "green",
-  delivered: "green",
-};
-
-/** A copy's one tag: its state's words, with why where it has one, in its state's colour. */
-export function copyStatus({ state, why }: Pick<MessageRecipient, "state" | "why">): { words: string; tone?: TagTone } {
-  return {
-    words: copy.copyStates[`${state}:${why}`] ?? copy.copyStates[state]!,
-    tone: STATE_TONES[state],
-  };
-}
-
-/** Where a copy stands, as one tag (copyStatus). */
-export function CopyStatus({ copyOf }: { copyOf: Pick<MessageRecipient, "state" | "why"> }) {
-  const { words, tone } = copyStatus(copyOf);
-  return <Tag tone={tone}>{words}</Tag>;
+    "not-sent",
+    "error",
+    "unreached",
+  ]);
 }
 
 /**
@@ -241,17 +210,17 @@ export default function BroadcastView({
   const { written, summary, tab } = data;
   const path = `/staff/broadcasts/${written.id}`;
   const scheduled = written.state === "scheduled";
-  const counts = countsFiltering(path, broadcastCounts(summary), tab, staffCopy.mailingPages.showEveryone);
-  // Those that went, then those that didn't, each under its total.
-  const gone = new Set(["error", "unreached", "not-sent"]);
-  const groups = [
-    { key: "went", label: copy.groups.went, counts: counts.filter((count) => !gone.has(count.key)) },
-    { key: "gone", label: copy.groups.gone, counts: counts.filter((count) => gone.has(count.key)) },
-  ];
+  const groups = wentAndGone(countsFiltering(path, broadcastCounts(summary), tab, staffCopy.mailingPages.showEveryone));
   return (
     <div className={view.page}>
       <Band
-        title={written.title || copy.untitled}
+        title={
+          // The icon's a picture alone: the facts say the channel in words, in what they said yes to and what sends it.
+          <span className={styles.titled}>
+            <ChannelIcon channel={written.channel} size={24} />
+            {written.title || copy.untitled}
+          </span>
+        }
         tag={
           written.state === "sending" ? undefined : (
             <Tag tone={scheduled ? "blue" : undefined}>{staffCopy.mailingPages.states[written.state]}</Tag>
@@ -259,12 +228,15 @@ export default function BroadcastView({
         }
         aside={!scheduled && <CountGroups groups={groups} />}
       >
-        {/* The channel's icon is Said yes to's, beside it. */}
-        <BandFact label={copy.facts.from} detail={written.fromName}>
+        {/* What sends it is said under who it's from, so it takes no fact of its own. */}
+        <BandFact
+          label={copy.facts.from}
+          detail={fromDetail(
+            written.fromName,
+            written.channel === "text" ? copy.sendFacts.whatsApp : copy.sendBy.names[written.sendBy],
+          )}
+        >
           {written.channel === "text" ? phoneWords(written.sentFrom!) : written.sentFrom}
-        </BandFact>
-        <BandFact label={copy.sendFacts.via}>
-          {written.channel === "text" ? copy.sendFacts.whatsApp : copy.sendBy.names[written.sendBy]}
         </BandFact>
         <BandFact label={copy.facts.saidYes}>{contact}</BandFact>
         <BandFact label={staffCopy.mailingPages.to} detail={staffCopy.campaigns.supporters(summary.to)}>
@@ -289,7 +261,7 @@ export default function BroadcastView({
         <BroadcastWords written={written} parts={data.parts} />
         <Card span={3} as="div">
           <div className={view.recipientsHead}>
-            <h2>{tab === "all" ? copy.recipientsTitle : copy.tabs[tab]}</h2>
+            <h2>{tab === "all" ? copy.recipientsTitle : staffCopy.copyStates.tabs[tab]}</h2>
             {tab !== "all" && <StaffLink href={path}>{staffCopy.mailingPages.showEveryone}</StaffLink>}
           </div>
           {/* Sending finds who it goes to, so one scheduled lists who its filters find now. */}

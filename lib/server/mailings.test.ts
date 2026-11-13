@@ -2,8 +2,18 @@ import { expect, it } from "vitest";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "./db";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { letterState, letterStateSql } from "@/lib/copy-states";
+import { LETTER_STATUSES } from "@/lib/letter-status";
 import { createDraft, saveDraft } from "./mailing-drafts";
-import { getMailing, listMailings, mailingCrumb, mailingsOverview, mailingsPage, mailingTitle } from "./mailings";
+import {
+  getMailing,
+  listMailings,
+  mailingCrumb,
+  mailingsOverview,
+  mailingsPage,
+  mailingTitle,
+  type RecipientTab,
+} from "./mailings";
 
 /** A PauseAI letter of the mailing titled `title`, to `politicianId`. */
 async function addLetter(
@@ -44,15 +54,27 @@ describeWithDatabase("mailings", () => {
     await addLetter(CSRB, polly, { sent: "2026-06-01" });
 
     const mailings = await listMailings();
-    // The unsent first, the newest made first. Sent is what arrived, a spam complaint too; failed, the bounce and the one not sent.
-    expect(mailings.map((m) => [m.title, m.sent, m.failed, m.stopped, m.replied])).toEqual([
-      ["DeepMind letter", 0, 0, 0, 0],
-      ["Westminster Hall Debate Invitation", 0, 0, 0, 0],
-      ["Documentary Invitation", 0, 0, 0, 0],
-      ["Ben Lake October 2026 Debate", 0, 0, 0, 0],
-      [EDINBURGH, 2, 2, 1, 1],
-      [CSRB, 1, 0, 0, 0],
+    // The unsent first, the newest made first. For the sending bar, sent is what arrived, a spam complaint too;
+    // failed, the bounce and the one not sent.
+    expect(mailings.map((m) => [m.title, m.sent, m.failed])).toEqual([
+      ["DeepMind letter", 0, 0],
+      ["Westminster Hall Debate Invitation", 0, 0],
+      ["Documentary Invitation", 0, 0],
+      ["Ben Lake October 2026 Debate", 0, 0],
+      [EDINBURGH, 2, 2],
+      [CSRB, 1, 0],
     ]);
+    // Each letter in one state: the reply, the bounce, the one Gmail refused, the one stopped, and the spam complaint.
+    expect(mailings[4].states).toEqual({
+      sent: 0,
+      replied: 1,
+      answered: 0,
+      spam: 1,
+      error: 1,
+      unreached: 1,
+      "not-sent": 1,
+    });
+    expect(mailings[0].states.sent).toBe(0);
     expect(mailings[4]).toMatchObject({
       ask: "edinburgh-conference-2026",
       askTitle: "Edinburgh conference",
@@ -107,37 +129,64 @@ describeWithDatabase("mailings", () => {
     expect(await mailingCrumb(9999)).toBeUndefined();
   });
 
-  it("lists a tab of the recipients: those who replied, whose letter failed or was stopped, with their answer to its ask", async () => {
+  it("lists a tab of the recipients, those whose letter is in one state, with their answer to its ask", async () => {
     const polly = await addTestPolitician();
     const dora = await addTestPolitician({ name: "Dora Dummy", airtableId: "recDora" });
     const rob = await addTestPolitician({ name: "Rob Example", airtableId: "recRob" });
     const jo = await addTestPolitician({ name: "Jo Example", airtableId: "recJo" });
+    const sam = await addTestPolitician({ name: "Sam Example", airtableId: "recSam" });
+    const kim = await addTestPolitician({ name: "Kim Example", airtableId: "recKim" });
+    const lee = await addTestPolitician({ name: "Lee Example", airtableId: "recLee" });
+    const ann = await addTestPolitician({ name: "Ann Example", airtableId: "recAnn" });
     await addLetter(EDINBURGH, polly, { replied: "2026-10-04" });
     await addLetter(EDINBURGH, dora, { status: "bounced" });
     const skipped = await addLetter(EDINBURGH, rob, { status: "skipped" });
     await query("UPDATE letters_from_pauseai SET skip_reason = 'left-office' WHERE id = $1", [skipped]);
     await addLetter(EDINBURGH, jo, { status: "cancelled" });
+    await addLetter(EDINBURGH, sam, { status: "uncertain" });
+    await addLetter(EDINBURGH, kim, { status: "spam_complaint" });
+    await addLetter(EDINBURGH, lee, { replied: "2026-10-05" });
+    await addLetter(EDINBURGH, ann);
+    // Polly answered, and so did Dora, whose letter bounced: a letter that didn't go is in its own state.
     await query(
-      `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by) VALUES ($1, 'edinburgh-conference-2026', 'event', 'going', 'staff')`,
-      [polly],
+      `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by)
+       VALUES ($1, 'edinburgh-conference-2026', 'event', 'going', 'staff'), ($2, 'edinburgh-conference-2026', 'event', 'going', 'staff')`,
+      [polly, dora],
     );
     const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM mailings WHERE title = $1", [EDINBURGH]);
-    const names = async (tab: "sent" | "replied" | "failed" | "stopped" | "answered") =>
-      (await getMailing(id, 1, tab))!.recipients.map((r) => [r.name, r.answer, r.skipReason]);
-    expect(await names("sent")).toEqual([["Polly Placeholder", "going", null]]);
-    expect(await names("replied")).toEqual([["Polly Placeholder", "going", null]]);
-    expect(await names("failed")).toEqual([
-      ["Dora Dummy", null, null],
-      ["Rob Example", null, "left-office"],
-    ]);
-    expect(await names("stopped")).toEqual([["Jo Example", null, null]]);
-    expect(await names("answered")).toEqual([["Polly Placeholder", "going", null]]);
-    expect(await getMailing(id, 1, "failed")).toMatchObject({
-      tab: "failed",
-      recipientsTotal: 2,
-      to: 4,
+    const names = async (tab: RecipientTab) => (await getMailing(id, 1, tab))!.recipients.map((r) => r.name);
+    expect(await names("answered")).toEqual(["Polly Placeholder"]);
+    expect(await names("replied")).toEqual(["Lee Example"]);
+    expect(await names("sent")).toEqual(["Ann Example"]);
+    expect(await names("spam")).toEqual(["Kim Example"]);
+    expect(await names("error")).toEqual(["Sam Example"]);
+    expect(await names("unreached")).toEqual(["Dora Dummy"]);
+    expect(await names("not-sent")).toEqual(["Jo Example", "Rob Example"]);
+    const mailing = (await getMailing(id, 1, "not-sent"))!;
+    expect(mailing).toMatchObject({ tab: "not-sent", recipientsTotal: 2, to: 8, answered: 2 });
+    expect(mailing.recipients.map((r) => r.skipReason)).toEqual([null, "left-office"]);
+    expect(mailing.states).toEqual({
+      sent: 1,
+      replied: 1,
       answered: 1,
+      spam: 1,
+      error: 1,
+      unreached: 1,
+      "not-sent": 2,
     });
+  });
+
+  it("puts a letter in the same state in SQL as on its tag, for every status, answered, replied or neither", async () => {
+    const cases = LETTER_STATUSES.flatMap((status) =>
+      [false, true].flatMap((answered) => [false, true].map((replied) => ({ status, answered, replied }))),
+    );
+    const rows = await query<{ state: string }>(
+      `SELECT ${letterStateSql("c.answered")} AS state
+       FROM jsonb_to_recordset($1::jsonb) AS c(status text, answered boolean, replied boolean),
+         LATERAL (SELECT c.status, CASE WHEN c.replied THEN now() END AS replied_at) l`,
+      [JSON.stringify(cases)],
+    );
+    expect(rows.map((row) => row.state)).toEqual(cases.map((one) => letterState(one).state));
   });
 
   it("puts the mailings in three parts: drafts, those coming up, and the rest", async () => {

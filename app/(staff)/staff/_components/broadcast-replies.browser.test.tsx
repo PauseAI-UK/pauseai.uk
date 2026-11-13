@@ -4,7 +4,8 @@ import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { sendingStopsAt, SITE_ACTOR, waitStopsAt } from "@/lib/broadcasts";
 import { londonDate, staffTime } from "@/lib/staff-time";
-import { broadcastCounts, BroadcastWaiting, CopyStatus } from "./BroadcastView";
+import { broadcastCounts, BroadcastWaiting } from "./BroadcastView";
+import { CopyStatus } from "./CopyStatus";
 import {
   exampleBroadcastAnswers,
   exampleBroadcastEmail,
@@ -22,6 +23,7 @@ import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
 
 const copy = staffCopy.broadcastPages;
+const stateWords = staffCopy.copyStates;
 const topics = staffCopy.supporters.detail.permissions.topics;
 const optOut = staffCopy.supporters.detail.permissions.recordOptOut.open;
 const emailCopy = {
@@ -301,13 +303,13 @@ describe("replies to broadcasts", () => {
     expect(counts.find((count) => count.key === "replied")).toEqual({
       key: "replied",
       n: 3,
-      label: copy.counts.replied,
+      label: stateWords.counts.replied,
       tone: "green",
     });
     expect(counts.find((count) => count.key === "look")).toEqual({
       key: "look",
       n: 1,
-      label: copy.counts.look,
+      label: stateWords.counts.look,
       tone: "blue",
     });
     // Read counts what it has, as every count does: none for an email, which is never said to be read.
@@ -321,8 +323,8 @@ describe("replies to broadcasts", () => {
         <CopyStatus copyOf={{ state: "look", why: null }} />
       </>,
     );
-    await expect.element(page.getByText(copy.copyStates.replied!, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(copy.copyStates.look!)).toBeVisible();
+    await expect.element(page.getByText(stateWords.tags.replied!, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(stateWords.tags.look!)).toBeVisible();
   });
 });
 

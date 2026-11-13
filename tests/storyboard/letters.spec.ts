@@ -129,14 +129,13 @@ test("Replies to letters", async ({ page, request, flowDatabase }) => {
   await postReply(request, flowDatabase, samsLetter);
 
   story(
-    "Both letters are still sent, as a letter's status says only whether it was delivered. The Replied column shows Jane's automatic reply.",
+    "Sam's letter now says Replied. Jane's is still sent, as an automatic reply isn't a reply, and under it the list says one came.",
   );
   await page.reload();
   const janes = page.getByRole("row").filter({ hasText: "Jane Smith" });
   const sams = page.getByRole("row").filter({ hasText: "Sam Smith" });
-  // Both still sent: the status says whether it was delivered, not what came back.
-  await expect(janes).toContainText(copy.status.sent);
-  await expect(sams).toContainText(staffCopy.mailingPages.tabs.replied);
+  await expect(janes).toContainText(staffCopy.copyStates.tags.sent!);
+  await expect(sams).toContainText(staffCopy.copyStates.tags.replied!);
   await expect(janes).toContainText(copy.status.auto_reply);
   await expect(sams).not.toContainText(copy.status.auto_reply);
   await frame(page, "The campaign's letters");
@@ -187,9 +186,9 @@ test("A letter's page", async ({ page, flowDatabase }) => {
   // order that differs between runs: the frame is of the bubble, its note in the middle of the window.
   await note.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
   await frame(page, "Editing the MP's answer", { window: true });
-  story("Saved, a tag beside the letter's status says the MP answered.");
+  story("Saved, the letter's tag says the MP answered.");
   await page.getByRole("button", { name: staffCopy.politician.save }).click();
-  const answered = page.getByText(staffCopy.mailings.columns.answered, { exact: true });
+  const answered = page.getByText(staffCopy.copyStates.tags.answered!, { exact: true });
   await expect(answered).toBeVisible();
   // The edit form closing shortens the page, and where that leaves the window differs between runs:
   // the frame is of the tag, in the middle of the window.

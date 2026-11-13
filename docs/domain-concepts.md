@@ -356,6 +356,66 @@ time they're written to, and kept.
 
   A soft bounce is only noted.
 
+### How a copy went
+
+A broadcast's copy to a supporter, a mailing's letter to a politician and a
+campaign's letter from a supporter are each one copy of something sent to
+many. What became of each is said the same way, in states that each have a
+meaning, a colour and a count:
+
+| State        | Colour | Means                                                                                                                                   |
+| ------------ | ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| scheduled    | grey   | still to go                                                                                                                             |
+| sending      | grey   | going out now                                                                                                                           |
+| sent         | grey   | it went, and nothing has come back                                                                                                      |
+| delivered    | green  | the provider says it arrived (Postmark and WhatsApp say so; Gmail never does)                                                           |
+| read         | green  | WhatsApp says they read it                                                                                                              |
+| replied      | green  | they replied: a state like the others, a good one, not a second tag                                                                     |
+| answered     | green  | a letter's politician has answered its ask, however they told us                                                                        |
+| to check     | blue   | they replied and no one has dealt with it yet, for copies whose replies can be dealt with                                               |
+| opted out    | red    | this copy made them stop: pressed Stop, replied "stop", marked it as spam, unsubscribed                                                 |
+| marked spam  | red    | a politician's office marked our letter as spam                                                                                         |
+| error        | red    | our side broke: the provider refused it, a send was cut off so we can't tell if it went, or we gave up                                  |
+| didn't reach | amber  | their address or number turned out dead on this send: a bounce, or a number not on WhatsApp                                             |
+| not sent     | grey   | not sent, as expected: they'd opted out before, their consent ended, the address was already blocked, there's no address, we stopped it |
+
+The principles:
+
+- **One state a copy.** A copy shows one tag, and is in one count. Where
+  more than one applies, the first in this order wins: to check, opted
+  out, marked spam, error, didn't reach, not sent, answered, replied, read,
+  delivered, sent. So a reply to check is never hidden, and a letter that
+  didn't go says so though its politician answered.
+- **The colour says how it feels**: red bad, amber sad, green good, blue
+  for staff to do, grey normal (`docs/style-guide.md`, "Status colours").
+  A count's number is on its tags' colour, so pressing it lists tags all
+  that colour.
+- **The tag says why after a colon** where there's a why: "Not sent:
+  consent ended", "Didn't reach: not on WhatsApp". The copy's own page
+  keeps the whole story, with the provider's own words.
+- **Went and didn't go.** On its page, the counts fall in two groups: those
+  that went (sent, delivered, read, replied, answered, to check, opted out,
+  marked spam) and those that didn't (error, didn't reach, not sent). A
+  count of none isn't shown. A list of many shows only the red, amber and
+  blue counts, and folds the rest into how many are fine.
+- **Expected isn't bad.** A copy not sent for a reason we knew before it
+  went (an earlier opt-out, a blocked address, no address) is grey, not
+  red. Red is for what this send itself broke or caused.
+
+The states, their colours and their words are one set (`lib/copy-states.ts`,
+`staffCopy.copyStates`), and each copy's tag and the counts come from it
+(`CopyStatus.tsx` and `CopyCounts.tsx` in
+`app/(staff)/staff/_components/`). Each kind adds its own: a broadcast's
+copies are delivered, read, opted out or to check, worked out in
+`lib/server/broadcast-pages.ts`; a letter is answered or marked spam, and
+has no "to check", as nothing marks a reply to it dealt with. A letter's
+state is worked out twice, in TypeScript for its tag wherever it's shown
+(`letterState`) and in SQL for counting and listing by state
+(`letterStateSql`), and a test checks they agree for every status.
+
+Gmail refusing a mailing's letter keeps no reason, so its tag says Gmail
+refused it, and not Gmail's own words, as a broadcast's page can.
+
 ### Broadcasts to supporters
 
 A broadcast is an email or a text to many supporters at once, and each

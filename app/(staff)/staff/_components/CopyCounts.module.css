@@ -27,6 +27,15 @@
   font-size: var(--text-lg);
 }
 
+/* What needs a look, a tag each, apart as words are; then how many are fine, and under them the rest unfolded. */
+.needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+}
+
 .link {
   text-decoration: none;
 }

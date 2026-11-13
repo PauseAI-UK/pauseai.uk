@@ -107,6 +107,13 @@
   height: 3rem;
 }
 
+/* A broadcast's title on its page, after its channel's icon, the icon's middle level with the words'. */
+.titled {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
 /* A recipient's cell: their name over where they are, or how it went over when. */
 .stack {
   display: flex;

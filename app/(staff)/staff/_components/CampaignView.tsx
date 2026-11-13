@@ -10,7 +10,8 @@ import { staffDate } from "@/lib/staff-time";
 import CampaignLetter from "./CampaignLetter";
 import { CampaignAsk, campaignCounts } from "./CampaignsOverview";
 import Band, { BandFact } from "./ui/Band";
-import Counts from "./ui/Counts";
+import { CountGroups } from "./CopyCounts";
+import { wentAndGone } from "./CopyStatus";
 import Grid, { Card } from "./ui/Grid";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import Progress from "./ui/Progress";
@@ -73,7 +74,12 @@ const campaignLetterColumns: ListColumn<LetterSummary>[] = [
     short: true,
     cell: (l) => (
       <span className={styles.who}>
-        <LetterStatus status={l.status} answered={Boolean(l.answer)} replied={Boolean(l.repliedAt)} />
+        <LetterStatus
+          status={l.status}
+          answered={Boolean(l.answer)}
+          replied={Boolean(l.repliedAt)}
+          sentBy={l.backend === "airtable" ? null : l.backend}
+        />
         {!l.repliedAt && l.autoRepliedAt && <Muted>{words.status.auto_reply}</Muted>}
         <StaffLink href={`/staff/letters/${l.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
       </span>
@@ -107,10 +113,8 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
   const path = `/staff/campaigns/${campaign.slug}`;
   const { page, ...filters } = search;
   void page;
-  // Each count shows those it counts; pressed again, it shows them all. One that doesn't apply (answers, with no
-  // ask) leads nowhere, faded, as countsFiltering's do.
+  // Each count shows those it counts, keeping the list's other filters; pressed again, it shows them all.
   const counts = campaignCounts(campaign).map((count) => {
-    if (count.n === null) return count;
     const current = count.key === search.tab;
     return {
       ...count,
@@ -121,7 +125,7 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
   });
   return (
     <div className={styles.page}>
-      <Band title={campaign.title} aside={<Counts counts={counts} />}>
+      <Band title={campaign.title} aside={<CountGroups groups={wentAndGone(counts)} />}>
         <BandFact label={copy.from}>{copy.supporters(campaign.supporters)}</BandFact>
         <BandFact label={copy.to}>{copy.politicians(campaign.politicians)}</BandFact>
         <BandFact label={campaign.ask ? staffCopy.asks.askTo[campaign.askKind!] : staffCopy.mailings.fields.ask}>
@@ -144,7 +148,7 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
               value={campaign.answered}
               max={campaign.politicians}
               tone="green"
-              label={staffCopy.mailingPages.counts.answered}
+              label={staffCopy.copyStates.tabs.answered}
               big
             >
               {staffCopy.mailingPages.answeredBar(campaign.answered, campaign.politicians)}
@@ -162,7 +166,13 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
         </Card>
         <Card span={3} as="div">
           <div className={styles.recipientsHead}>
-            <h2>{search.tab ? copy.tabs[search.tab as keyof typeof copy.tabs] : copy.lettersTitle}</h2>
+            <h2>
+              {!search.tab
+                ? copy.lettersTitle
+                : search.tab === "changed"
+                  ? copy.tabs.changed
+                  : staffCopy.copyStates.tabs[search.tab]}
+            </h2>
             {search.tab && <StaffLink href={filtersPath(path, { ...filters, tab: "" })}>{copy.showAll}</StaffLink>}
           </div>
           <ListFrame
