@@ -33,7 +33,7 @@ export const messageFrom = (
   id: string,
   quoted: string,
   said: { text: string } | { button: string },
-  minutes = 30,
+  minutes = 0,
 ) =>
   webhook("messages", {
     messaging_product: "whatsapp",
