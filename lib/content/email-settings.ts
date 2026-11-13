@@ -216,7 +216,7 @@ export const emailSettingsCopy = {
     and: "and",
   },
   // Under expired's title, on a number's page whose link has run out: there's no address to email a new one to.
-  numberExpired: "⁂ For your privacy, this link only worked for 30 days. To stop our texts, reply STOP to any of them.",
+  numberExpired: "For your privacy, this link only worked for 30 days. To stop our texts, reply STOP to any of them.",
   // The page from an old email's unsubscribe link: the button still works, the rest doesn't.
   pageExpired: {
     title: "This email is too old to change your other choices",
