@@ -39,7 +39,13 @@ export type ChannelMessage = {
  */
 export type ChannelResult =
   | { sent: true; id: string; messageId?: string | null; threadId?: string | null }
-  | { sent: false; reason: "blocked" | "failed" | "unreachable" | "stopped" | "held"; retry?: true };
+  | {
+      sent: false;
+      reason: "blocked" | "failed" | "unreachable" | "stopped" | "held";
+      retry?: true;
+      /** What the provider said of a failure, as it said it. */
+      detail?: string;
+    };
 
 /** What a provider reported about a message it sent: its ID, and what happened. */
 export type ChannelReport = { messageId: string; kind: "delivered" | "failed" | "bounced" | "opted-out" | "replied" };

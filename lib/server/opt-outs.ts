@@ -257,6 +257,22 @@ export const OPT_OUT_RECORDED = `
     AND o.unsubscribed_at = a.at
   LIMIT 1`;
 
+/**
+ * SQL for whether an opt-out was made from the broadcast copy `copy` (its
+ * ID's column), such as by its unsubscribe link, a stop in WhatsApp, or its
+ * reply recorded as one: they opted out because of it.
+ */
+export const optedOutFrom = (copy: string): string => `EXISTS (SELECT 1 FROM opt_outs o WHERE o.message_id = ${copy})`;
+
+/**
+ * SQL for how they opted out from the copy `copy`, by the first opt-out made
+ * from it: its source, or a WhatsApp stop's kind after "whatsapp-"
+ * (whatsapp-button, whatsapp-reply, whatsapp-refused); null for none.
+ */
+export const howOptedOutFrom = (copy: string): string =>
+  `(SELECT CASE WHEN o.source = 'whatsapp' THEN 'whatsapp-' || split_part(o.source_ref, ' ', 1) ELSE o.source END
+    FROM opt_outs o WHERE o.message_id = ${copy} ORDER BY o.unsubscribed_at, o.id LIMIT 1)`;
+
 /** Whether an address has ever opted out of anything, which is our having it. */
 export async function hasOptedOut(address: string): Promise<boolean> {
   const [row] = await query("SELECT 1 FROM opt_outs WHERE address = $1 LIMIT 1", [normaliseAddress(address)]);

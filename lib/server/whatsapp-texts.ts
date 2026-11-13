@@ -1,25 +1,13 @@
 import "server-only";
-import { toText } from "@/lib/letter-format";
-import { fieldsIn, letterFor, type MailingDoc, type MailingRecipientValues } from "@/lib/mailing-doc";
+import { fieldsIn, type MailingDoc, type MailingRecipientValues } from "@/lib/mailing-doc";
+import { paramName } from "@/lib/whatsapp-template";
 import { query } from "./db";
 import type { ChannelResult } from "./mailing-channels";
 import type { TemplateParam, WhatsAppSend } from "./outside-services/whatsapp";
 
-// A text's words as a WhatsApp template: its merge fields as named
-// parameters, which WhatsApp fills in for each person from what a send
-// gives it. A template's words are the same for everyone, so a text has
-// fields but no parts for only some.
-
-/** A merge field's name as a template's parameter, which WhatsApp wants in lower case: firstName is first_name. */
-export function paramName(field: string): string {
-  return field.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-}
-
-/** A text's words as the template's body: each field as its parameter, {{first_name}}. */
-export function templateText(body: MailingDoc): string {
-  const values = Object.fromEntries(fieldsIn(body).map((field) => [field, `{{${paramName(field)}}}`]));
-  return toText(letterFor(body, { values, meets: [] }));
-}
+// Sending a text by its template (lib/whatsapp-template.ts): each person's
+// words for its fields, and what became of a send. A template's words are
+// the same for everyone, so a text has fields but no parts for only some.
 
 /** The words of each of a text's fields for one person, or as an example, as a send or a template gives them. */
 export function templateParams(body: MailingDoc, recipient: MailingRecipientValues): TemplateParam[] {
@@ -63,9 +51,9 @@ export function textResult(send: WhatsAppSend): ChannelResult {
   if (send.code === WHATSAPP_ERRORS.stopped) return { sent: false, reason: "stopped" };
   if (send.code === WHATSAPP_ERRORS.held) return { sent: false, reason: "held" };
   if ((WHATSAPP_ERRORS.later as readonly (number | null)[]).includes(send.code)) {
-    return { sent: false, reason: "failed", retry: true };
+    return { sent: false, reason: "failed", retry: true, detail: send.reason };
   }
-  return { sent: false, reason: "failed" };
+  return { sent: false, reason: "failed", detail: send.reason };
 }
 
 /** Marks a number as not on WhatsApp, from the copy that found it, so texts skip it from then on. */

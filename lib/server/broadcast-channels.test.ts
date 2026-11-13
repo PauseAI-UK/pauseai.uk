@@ -12,12 +12,21 @@ function keysSet() {
 }
 
 it("sends no text where WhatsApp's keys aren't set, as on a deploy preview", async () => {
+  vi.stubEnv("DATA_FIXTURES", "");
   vi.stubEnv("WHATSAPP_TOKEN", "");
   vi.stubEnv("WHATSAPP_ACCOUNT_ID", "fixture-account");
   expect(whatsAppKeys()).toBeUndefined();
   expect(channelSends("text")).toBe(false);
   expect(await textBackend()).toBeUndefined();
   expect(await textSenderNumber()).toBeNull();
+});
+
+it("uses the fake's keys in a fixture build where none are set, as the dev server", () => {
+  vi.stubEnv("DATA_FIXTURES", "1");
+  vi.stubEnv("WHATSAPP_TOKEN", "");
+  vi.stubEnv("WHATSAPP_ACCOUNT_ID", "");
+  expect(whatsAppKeys()).toEqual({ token: "fixture", accountId: "fixture-account" });
+  expect(channelSends("text")).toBe(true);
 });
 
 it("sends texts by WhatsApp from our number there, where its keys are set", async () => {

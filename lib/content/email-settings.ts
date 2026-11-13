@@ -63,7 +63,7 @@ const sources: Record<string, string> = {
   staff: "by telling us",
   preferences: "on this page",
   "civicrm-check": "with PauseAI Global",
-  whatsapp: "⁂ in WhatsApp",
+  whatsapp: "in WhatsApp",
 };
 
 const from = (source: string | null): string => sources[source ?? ""] ?? "";

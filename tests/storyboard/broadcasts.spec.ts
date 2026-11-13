@@ -5,7 +5,8 @@ import { GMAIL_DAILY_LIMIT } from "@/lib/gmail-connect";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addStaffAccount, importCivicrm, importLuma, logInAsStaff, newestEmail } from "../steps";
 import { caretInEmpty } from "./editor-steps";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { BASE, emailFrame, expect, frame, story, test, textFrame } from "./fixtures";
+import { newestText, OUR_CHAT, shownText, templateSent } from "./whatsapp-steps";
 import { connectGmail } from "./staff-steps";
 import type { Section } from "./report/frames";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
@@ -315,7 +316,9 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
   await postWhatsAppWebhook(request, BASE, templateStatus(name, "REJECTED", "INVALID_FORMAT"));
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
-  await expect(page.getByText(/The words aren't in a form WhatsApp takes/)).toBeVisible();
+  await expect(
+    page.getByText(staffCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT, { exact: false }),
+  ).toBeVisible();
   await frame(page, "Rejected, and what to do");
   story("The list says so too, until the words go for approval again or a template is chosen.");
   await page.goto(`${BASE}/staff/broadcasts`);
@@ -336,11 +339,19 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   await page.getByRole("button", { name: copy.submitTemplate }).click();
   await page.waitForURL(`${BASE}/staff/broadcasts?submitted=${id}`);
+  story("What goes to WhatsApp: the words, with a footer saying how to stop and a Stop button, as every text has.");
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  await textFrame(
+    page,
+    OUR_CHAT,
+    templateSent(flowDatabase, name!),
+    "What went to WhatsApp for approval",
+    `Sent to WhatsApp for approval: ${name}`,
+  );
   story(
     "WhatsApp approves them, and its webhook tells the site. Whoever sent them, and the notification inbox, are emailed, with a link to the text.",
   );
-  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
-  await postWhatsAppWebhook(request, BASE, templateStatus(name, "APPROVED"));
+  await postWhatsAppWebhook(request, BASE, templateStatus(name!, "APPROVED"));
   const told = newestEmail(
     (one) => one.Subject === staffCopy.notifications.templateApproved.subject("PauseCon doors"),
   )!;
@@ -397,6 +408,7 @@ test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {
     "A text's time has come. The sending checks each number with PauseAI Global's records first, then sends each copy by WhatsApp: the template, its first name filled in.",
   );
   const sent = await textSent(request, flowDatabase);
+  await textFrame(page, OUR_CHAT, shownText(flowDatabase, newestText(`+${sent.number}`)!), "The text, as they get it");
   story("WhatsApp's webhook says it was delivered, then read.");
   await postWhatsAppWebhook(request, BASE, statusOf(sent.wamid, sent.number, "delivered"));
   await postWhatsAppWebhook(request, BASE, statusOf(sent.wamid, sent.number, "read", 20));
@@ -434,6 +446,8 @@ test("A reply to a text", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: copy.replies.send }).click();
   await expect(page.getByText(copy.replies.sentBy(staffEmail()))).toBeVisible();
   await frame(page, "The answer, sent");
+  const answer = newestText(`+${sent.number}`, (text) => "words" in text)!;
+  await textFrame(page, OUR_CHAT, shownText(flowDatabase, answer), "The answer, as they get it");
 });
 
 test("Stop, pressed in WhatsApp", async ({ page, request, flowDatabase }) => {
@@ -448,7 +462,7 @@ test("Stop, pressed in WhatsApp", async ({ page, request, flowDatabase }) => {
   );
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
-  await expect(page.getByText(copy.events["opted-out"]).first()).toBeVisible();
+  await expect(page.getByText(copy.copyStates["opted-out:whatsapp-button"]!).first()).toBeVisible();
   await frame(page, "Their copy, stopped");
   story("Their page shows the stop of every text, and that it came from WhatsApp.");
   const [supporter] = runSql(flowDatabase, `SELECT supporter_id FROM broadcast_messages WHERE id = ${sent.copy}`);
@@ -508,9 +522,9 @@ test("An email sent", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
   await frame(page, "The email's page");
   story("A count shows those it counts.");
-  await page.getByRole("link", { name: new RegExp(copy.counts.stopped) }).click();
-  await expect(page.getByRole("heading", { name: copy.tabs.stopped })).toBeVisible();
-  await frame(page, "Those who stopped");
+  await page.getByRole("link", { name: new RegExp(copy.counts["not-sent"]!) }).click();
+  await expect(page.getByRole("heading", { name: copy.tabs["not-sent"] })).toBeVisible();
+  await frame(page, "Those not sent");
   story("Each recipient leads to their copy: the email as they got it, when it was sent, delivered and read.");
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
   await expect(page.getByRole("heading", { name: copy.threadTitle })).toBeVisible();
@@ -654,7 +668,7 @@ test("A reply that asks us to stop", async ({ page, request, flowDatabase }) => 
   runSql(flowDatabase, `UPDATE broadcast_messages SET topics = '{events}' WHERE mailing_id = ${sent.id}`);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
-  await expect(page.getByText(copy.lookTag)).toBeVisible();
+  await expect(page.getByText(copy.copyStates.look!)).toBeVisible();
   await frame(page, "A reply to look at");
   story(
     "The thread shows the reply under our email. It asks to stop, so they record it as an opt-out of all bulk email.",

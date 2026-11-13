@@ -303,6 +303,24 @@ The rest comes from those:
 Built: steps 1 to 4, but for the Marketing Messages API. Still to do:
 sending by that API once its terms are signed, and step 5, if at all.
 
+Still to do, once the copy is approved: a rejected template keeps
+WhatsApp's code (`INVALID_FORMAT`) in `rejected_reason`, not our words
+for it, which are looked up when shown (the draft's strip, the email), so
+a change to them applies to every rejection, and the sample data in
+`tests/fixtures/staff-data.sql` holds a real code.
+
+Also once the copy is approved: the storyboard pictures texts as
+it does emails. The fake writes each text and each template sent for
+approval to the outbox as a `.txt` file; a `textFrame()` beside
+`emailFrame()` (`tests/storyboard/frame.ts`) draws a text as WhatsApp
+shows it, from a view beside `tests/fixtures/email-view.ts`: our pause
+symbol and name at the top, then a bubble with the template's words, its
+fields filled in from the template's own file in the outbox, its footer
+and Stop button; a reply from the Thread page as a plain bubble. "A text
+goes by WhatsApp" ends on the text as received, the reply flow on the
+answer as received, and "WhatsApp approves new words" shows what went
+for approval.
+
 1. The WhatsApp backend in `lib/server/outside-services/whatsapp.ts`,
    with a fake for tests. It sends by the Cloud API's `/messages` for
    now. Marketing messages are to go through the Marketing Messages API

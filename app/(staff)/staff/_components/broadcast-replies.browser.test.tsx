@@ -250,26 +250,34 @@ describe("replies to broadcasts", () => {
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.replies.notSent.window);
   });
 
-  it("are counted on an email's page, those to look at amber while there are any, the same boxes either way, and tagged on each recipient", async () => {
-    const counts = broadcastCounts({ ...exampleBroadcastSummary, channel: "email", replied: 3, toLookAt: 1 });
-    expect(counts.slice(-2)).toEqual([
-      { key: "replied", n: 3, label: copy.counts.replied },
-      { key: "look", n: 1, label: copy.counts.look, tone: "amber" },
-    ]);
-    const none = broadcastCounts({ ...exampleBroadcastSummary, channel: "email", replied: 0, toLookAt: 0 });
-    expect(none.at(-1)).toEqual({ key: "look", n: 0, label: copy.counts.look });
-    const text = broadcastCounts({ ...exampleBroadcastSummary, channel: "text" });
-    expect(text.slice(-2).map((count) => count.n)).toEqual([null, null]);
-    expect(none.map((count) => count.key)).toEqual(text.map((count) => count.key));
-    const went = { status: "delivered", skipReason: null, read: false, bounced: false, optedOut: false };
+  it("are counted on an email's or a text's page, each count the colour of its tags, the same boxes either way, and tagged on each recipient", async () => {
+    const states = { ...exampleBroadcastSummary.states, replied: 3, look: 1 };
+    const counts = broadcastCounts({ ...exampleBroadcastSummary, channel: "email", states });
+    expect(counts.find((count) => count.key === "replied")).toEqual({
+      key: "replied",
+      n: 3,
+      label: copy.counts.replied,
+      tone: "green",
+    });
+    expect(counts.find((count) => count.key === "look")).toEqual({
+      key: "look",
+      n: 1,
+      label: copy.counts.look,
+      tone: "blue",
+    });
+    // An email can't say it was read: a dash; a text can.
+    expect(counts.find((count) => count.key === "read")!.n).toBeNull();
+    const text = broadcastCounts({ ...exampleBroadcastSummary, channel: "text", states });
+    expect(text.find((count) => count.key === "read")!.n).toBe(0);
+    expect(counts.map((count) => count.key)).toEqual(text.map((count) => count.key));
     await render(
       <>
-        <CopyStatus copyOf={{ ...went, replied: true }} />
-        <CopyStatus copyOf={{ ...went, replied: true, toLookAt: true }} />
+        <CopyStatus copyOf={{ state: "replied", why: null }} />
+        <CopyStatus copyOf={{ state: "look", why: null }} />
       </>,
     );
-    await expect.element(page.getByText(copy.repliedTag)).toBeVisible();
-    await expect.element(page.getByText(copy.lookTag)).toBeVisible();
+    await expect.element(page.getByText(copy.copyStates.replied!, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(copy.copyStates.look!)).toBeVisible();
   });
 });
 

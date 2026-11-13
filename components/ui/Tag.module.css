@@ -38,6 +38,11 @@ td .tag {
   color: var(--status-blue);
 }
 
+/* Normal: as plain, named so a count's grey can pass straight to its tags. */
+.grey {
+  background: var(--tag-plain-bg, var(--surface-2));
+}
+
 .red {
   background: var(--status-red-bg);
   color: var(--status-red);

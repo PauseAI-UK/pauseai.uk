@@ -55,6 +55,7 @@ export function UnsubscribeForm({
   beside,
   spaced = true,
   opened = false,
+  end = false,
 }: {
   id: string;
   hidden: Record<string, string>;
@@ -66,6 +67,8 @@ export function UnsubscribeForm({
   beside?: ReactNode;
   spaced?: boolean;
   opened?: boolean;
+  /** Its buttons at the right, as under a text's reply, whose answer opens at the right. */
+  end?: boolean;
 }) {
   const [open, setOpen] = useState(opened);
   const [already, setAlready] = useState(false);
@@ -76,7 +79,7 @@ export function UnsubscribeForm({
   if (!open) {
     return (
       <div className={space}>
-        <div className={styles.buttons}>
+        <div className={end ? `${styles.buttons} ${styles.end}` : styles.buttons}>
           {before}
           <Button variant="ghost" size="small" fit type="button" onClick={() => setOpen(true)}>
             {words.open}

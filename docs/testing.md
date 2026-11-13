@@ -143,6 +143,15 @@ through `outsideFetch` like any other outside service.
   has one) and its attachments. Every email the site sends has one, such as
   the letter, a relayed reply and the staff login link. It's what was sent,
   not how Gmail or Outlook draw it.
+- **And the WhatsApp texts.** The fake WhatsApp writes each text to the
+  outbox as a text file (`.txt`): its template's name and fields, or words
+  of our own (`lib/server/fixtures/whatsapp-outbox.ts`).
+  `textFrame(page, from, text, caption)` shows one as the supporter gets it,
+  in a plain chat app (`tests/fixtures/text-view.ts`): our picture, name
+  and number, then the text in a bubble with its footer and Stop button.
+  WhatsApp keeps a template's words, so `shownText` in
+  `tests/storyboard/whatsapp-steps.ts` reads them from the flow's database
+  and fills in the fields from the file.
 
   So that the frames compare, the fixture build fills in what would be
   random: the `Date` header is the fixed clock's, and a login link's token

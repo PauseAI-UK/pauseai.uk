@@ -516,7 +516,9 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
     await expect.element(page.getByLabelText(copy.subject)).not.toBeInTheDocument();
     await expect
-      .element(page.getByLabelText("2Sent from", { exact: false }).getByText("07700 900000", { exact: true }))
+      .element(
+        page.getByLabelText("2Sent from", { exact: false }).getByText("07700 900000, by WhatsApp", { exact: true }),
+      )
       .toBeVisible();
   });
 
@@ -700,14 +702,13 @@ describe("BroadcastWriter, by text", () => {
       ...exampleTemplates[0],
       status: "rejected",
       rejectedAt: new Date("2026-11-05T14:02:00Z"),
-      rejectedReason: "It ends with a merge field.",
+      rejectedReason: "INVALID_FORMAT",
     };
     await renderWriter({ draft: { ...exampleBroadcastText, body: exampleTextWords, template } });
-    // In quotes, its own full stop left off, as the note's sentence carries on.
+    // WhatsApp's code in plain words, as the email of it says it.
     await expect
-      .element(page.getByText(copy.rejected(staffTime(template.rejectedAt!), "It ends with a merge field")))
+      .element(page.getByText(copy.rejected(staffCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT!)))
       .toBeVisible();
-    await expect.element(page.getByText(/“It ends with a merge field” on/)).toBeVisible();
   });
 
   it("previews a bubble, and sends a test to a number only on an approved template", async () => {
@@ -881,10 +882,9 @@ describe("a broadcast's page", () => {
   it("gives an email's counts, each leading to those recipients, those sent first, its words and its recipients", async () => {
     await render(<BroadcastView data={exampleBroadcastSent} who={who} contact={null} {...actions} />);
     await expect.element(page.getByRole("heading", { name: exampleBroadcastSent.written.subject })).toBeVisible();
-    // Those that went, delivered or not yet said to be: Gmail never says what arrived.
-    expect(page.getByRole("link", { name: new RegExp(copy.counts.delivered) }).query()).toBeNull();
+    // Those that went and nothing more is known: Gmail never says what arrived.
     await expect
-      .element(page.getByRole("link", { name: `${exampleBroadcastSent.summary.sent} ${copy.counts.sent}` }))
+      .element(page.getByRole("link", { name: `${exampleBroadcastSent.summary.states.sent} ${copy.counts.sent}` }))
       .toHaveAttribute("href", "/staff/broadcasts/5?tab=sent");
     await expect.element(page.getByRole("link", { name: copy.counts.read })).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.emailTitle)).toBeVisible();
@@ -894,8 +894,8 @@ describe("a broadcast's page", () => {
       .toHaveAttribute("href", "/staff/supporters/7");
     await expect.element(page.getByText("Leeds")).toBeVisible();
     await expect.element(page.getByText(copy.erased)).toBeVisible();
-    await expect.element(page.getByText(copy.skipReasons.blocked)).toBeVisible();
-    await expect.element(page.getByText(copy.skipReasons.unsubscribed)).toBeVisible();
+    await expect.element(page.getByText(copy.copyStates["not-sent:blocked"]!)).toBeVisible();
+    await expect.element(page.getByText(copy.copyStates["not-sent:unsubscribed"]!)).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.threadLink }).first())
       .toHaveAttribute("href", "/staff/broadcasts/5/21");
@@ -905,29 +905,29 @@ describe("a broadcast's page", () => {
   it("lists a tab, with its heading and the way back; pressing its count again shows everyone", async () => {
     await render(
       <BroadcastView
-        data={{ ...exampleBroadcastSent, tab: "failed", pages: 2 }}
+        data={{ ...exampleBroadcastSent, tab: "error", pages: 2 }}
         who={who}
         contact={null}
         {...actions}
       />,
     );
-    await expect.element(page.getByRole("heading", { name: copy.tabs.failed })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: copy.tabs.error })).toBeVisible();
     await expect.element(page.getByRole("link", { name: staffCopy.mailingPages.showEveryone }).first()).toBeVisible();
     await expect
-      .element(page.getByRole("link", { name: new RegExp(copy.counts.failed) }))
+      .element(page.getByRole("link", { name: new RegExp(copy.counts.error!) }))
       .toHaveAttribute("href", "/staff/broadcasts/5");
   });
 
   it("leads to a copy only once it has gone", async () => {
     const [one] = exampleBroadcastSent.recipients;
     const recipients = [
-      { ...one, copyId: 31, status: "scheduled", read: false, sentAt: null },
-      { ...one, copyId: 32, status: "cancelled", read: false, sentAt: null },
+      { ...one, copyId: 31, status: "scheduled", state: "scheduled" as const, sentAt: null },
+      { ...one, copyId: 32, status: "cancelled", state: "not-sent" as const, why: "cancelled", sentAt: null },
     ];
     await render(
       <BroadcastView data={{ ...exampleBroadcastSent, recipients }} who={who} contact={null} {...actions} />,
     );
-    await expect.element(page.getByText(copy.statuses.scheduled)).toBeVisible();
+    await expect.element(page.getByText(copy.copyStates.scheduled!)).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.threadLink })).not.toBeInTheDocument();
   });
 
@@ -950,7 +950,11 @@ describe("a broadcast's page", () => {
 
   const text = {
     ...exampleBroadcastSent,
-    summary: { ...exampleBroadcastSummary, channel: "text" as const, read: 240 },
+    summary: {
+      ...exampleBroadcastSummary,
+      channel: "text" as const,
+      states: { ...exampleBroadcastSummary.states, read: 240 },
+    },
     written: {
       ...exampleBroadcastSent.written,
       channel: "text" as const,
@@ -969,7 +973,7 @@ describe("a broadcast's page", () => {
       .closest("p")!;
     expect(words.querySelector("[class*=field]")!.textContent).toBe(copy.fieldWords.firstName);
     await expect.element(page.getByText(copy.stopButton, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(copy.skipReasons.unsubscribed)).toBeVisible();
+    await expect.element(page.getByText(copy.copyStates["not-sent:unsubscribed"]!)).toBeVisible();
   });
 
   it("says one scheduled goes as it is, with no counts", async () => {
@@ -1068,31 +1072,32 @@ describe("a broadcast's page", () => {
     await expect.element(page.getByText(copy.gaveUp)).toBeVisible();
   });
 
-  it("says each copy's status", () => {
-    const base = { status: "delivered", skipReason: null, read: false, bounced: false };
-    expect(copyStatus(base).words).toBe(copy.statuses.delivered);
-    expect(copyStatus({ ...base, status: "failed", bounced: true })).toEqual({
-      words: copy.events.bounced,
+  it("says each copy's state in one tag, in its colour, with why where there's one", async () => {
+    expect(copyStatus({ state: "sent", why: null })).toEqual({ words: copy.copyStates.sent, tone: undefined });
+    expect(copyStatus({ state: "delivered", why: null })).toEqual({ words: copy.copyStates.delivered, tone: "green" });
+    expect(copyStatus({ state: "read", why: null }).tone).toBe("green");
+    expect(copyStatus({ state: "look", why: null })).toEqual({ words: copy.copyStates.look, tone: "blue" });
+    expect(copyStatus({ state: "opted-out", why: "whatsapp-button" })).toEqual({
+      words: copy.copyStates["opted-out:whatsapp-button"],
       tone: "red",
     });
-    expect(copyStatus({ ...base, read: true })).toEqual({ words: copy.statuses.read, tone: "green" });
-    expect(copyStatus({ ...base, status: "failed" }).tone).toBe("red");
-    expect(copyStatus({ ...base, status: "cancelled" })).toEqual({ words: copy.statuses.cancelled, tone: "amber" });
-    // Cancelled as its broadcast stopped by itself: why, not that we stopped it.
-    expect(copyStatus({ ...base, status: "cancelled", stoppedBy: "limit" })).toEqual({
-      words: copy.stoppedBy.limit,
+    // A why it has no words for: its state alone.
+    expect(copyStatus({ state: "opted-out", why: "staff" }).words).toBe(copy.copyStates["opted-out"]);
+    expect(copyStatus({ state: "error", why: "limit" })).toEqual({
+      words: copy.copyStates["error:limit"],
+      tone: "red",
+    });
+    expect(copyStatus({ state: "unreached", why: "bounced" })).toEqual({
+      words: copy.copyStates["unreached:bounced"],
       tone: "amber",
     });
-    expect(copyStatus({ ...base, status: "skipped", skipReason: "not-on-whatsapp" }).words).toBe(
-      copy.skipReasons["not-on-whatsapp"],
-    );
-  });
-
-  it("tags one who asked us to stop after it arrived as stopped, beside delivered", async () => {
-    const delivered = { status: "delivered", skipReason: null, read: false, bounced: false };
-    await render(<CopyStatus copyOf={{ ...delivered, optedOut: true }} />);
-    await expect.element(page.getByText(copy.statuses.delivered)).toBeVisible();
-    await expect.element(page.getByText(copy.events["opted-out"], { exact: true })).toBeVisible();
+    // Not sent, as expected: grey.
+    expect(copyStatus({ state: "not-sent", why: "no-permission" })).toEqual({
+      words: copy.copyStates["not-sent:no-permission"],
+      tone: undefined,
+    });
+    await render(<CopyStatus copyOf={{ state: "replied", why: null }} />);
+    await expect.element(page.getByText(copy.copyStates.replied!, { exact: true })).toBeVisible();
   });
 });
 
@@ -1146,6 +1151,48 @@ describe("BroadcastFor", () => {
 describe("BroadcastsOverview", () => {
   const now = "2026-11-05T12:00:00Z";
 
+  it("shows, under one sending's bar, what needs a look already, in colour, each leading to its tab", async () => {
+    const sending = (id: number, title: string, more: Partial<BroadcastSummary>): BroadcastSummary => ({
+      ...exampleBroadcastSummary,
+      id,
+      title,
+      state: "sending",
+      dueAt: new Date("2026-11-05T11:00:00Z"),
+      to: 7,
+      sent: 4,
+      failed: 0,
+      states: { ...exampleBroadcastSummary.states, "opted-out": 0, error: 0, unreached: 0, look: 0 },
+      ...more,
+    });
+    await render(
+      <BroadcastsOverview
+        groups={mailingGroups<BroadcastSummary>(
+          {
+            drafts: [],
+            comingUp: [
+              sending(4, "Going badly", {
+                states: { ...exampleBroadcastSummary.states, "opted-out": 1, error: 2, unreached: 0, look: 1 },
+              }),
+              sending(6, "Going well", {}),
+            ],
+            sent: [],
+          },
+          new Date(now),
+        )}
+        now={now}
+      />,
+    );
+    await expect.element(page.getByText(staffCopy.mailingPages.sendingBar(4, 7)).first()).toBeVisible();
+    const need = (words: string) => page.getByRole("link", { name: words, exact: true });
+    await expect.element(need(`2 ${copy.counts.error}`)).toHaveAttribute("href", "/staff/broadcasts/4?tab=error");
+    await expect
+      .element(need(`1 ${copy.counts["opted-out"]}`))
+      .toHaveAttribute("href", "/staff/broadcasts/4?tab=opted-out");
+    await expect.element(need(`1 ${copy.counts.look}`)).toHaveAttribute("href", "/staff/broadcasts/4?tab=look");
+    // Nothing to look at, nothing under the bar.
+    expect(page.getByRole("link", { name: new RegExp(copy.counts.error!) }).elements()).toHaveLength(1);
+  });
+
   it("lists emails and texts, each with its channel, leading to its page", async () => {
     const waiting = {
       ...exampleBroadcastSummary,
@@ -1179,7 +1226,14 @@ describe("BroadcastsOverview", () => {
             drafts: [held, turnedDown],
             comingUp: [waiting, plain],
             // By Postmark, so it counts what arrived.
-            sent: [{ ...exampleBroadcastSummary, title: "", sendBy: "postmark" as const, delivered: 276 }],
+            sent: [
+              {
+                ...exampleBroadcastSummary,
+                title: "",
+                sendBy: "postmark" as const,
+                states: { ...exampleBroadcastSummary.states, delivered: 276 },
+              },
+            ],
           },
           new Date(now),
         )}
@@ -1187,14 +1241,15 @@ describe("BroadcastsOverview", () => {
       />,
     );
     await expect.element(page.getByRole("link", { name: "Waiting" })).toHaveAttribute("href", "/staff/broadcasts/4");
-    await expect.element(page.getByText(copy.channels.text).first()).toBeVisible();
-    // Its channel, then who it's from, a dot between.
-    const lead = page.getByRole("link", { name: "Waiting" }).element().nextElementSibling!;
-    expect(lead.textContent).toBe(`${copy.channels.text} · PauseAI UK · 07700 900000`);
+    // Its channel's icon before its title, named.
+    await expect.element(page.getByRole("img", { name: copy.channels.text }).first()).toBeVisible();
+    await expect.element(page.getByRole("img", { name: copy.channels.email }).first()).toBeVisible();
+    // Under the title, its channel's name, then who it's from, a dot between.
+    const lineUnder = (title: string) =>
+      page.getByRole("link", { name: title }).element().parentElement!.nextElementSibling!;
+    expect(lineUnder("Waiting").textContent).toBe(`${copy.channels.text} · PauseAI UK · 07700 900000`);
     // With no one it's from yet, its channel alone.
-    expect(page.getByRole("link", { name: "Held" }).element().nextElementSibling!.textContent).toBe(
-      copy.channels.email,
-    );
+    expect(lineUnder("Held").textContent).toBe(copy.channels.email);
     // A draft whose words WhatsApp is reviewing says so beside its Draft.
     await expect.element(page.getByText(copy.waitingTag)).toBeVisible();
     // And one whose words it rejected, till they're sent again.
@@ -1232,9 +1287,11 @@ describe("MessageCopyView", () => {
       await rerender(<MessageCopyView one={{ ...exampleMessageCopy, status, sentAt: null }} />);
       expect(strip()).toBe(words);
     }
-    // Cancelled as its broadcast stopped by itself: why.
+    // Cancelled as its broadcast stopped by itself, an error: why.
     await rerender(
-      <MessageCopyView one={{ ...exampleMessageCopy, status: "cancelled", stoppedBy: "civicrm", sentAt: null }} />,
+      <MessageCopyView
+        one={{ ...exampleMessageCopy, status: "cancelled", state: "error", why: "civicrm", sentAt: null }}
+      />,
     );
     expect(strip()).toBe(copy.notReached.never(copy.notReached.why.civicrm));
     // Skipped, why, as its lozenge says.
@@ -1249,7 +1306,7 @@ describe("MessageCopyView", () => {
     await expect
       .element(page.getByRole("heading", { level: 1 }))
       .toHaveTextContent(copy.copyTitle("text", "Jane Example"));
-    await expect.element(page.getByText(copy.statuses.read, { exact: true }).first()).toBeVisible();
+    await expect.element(page.getByText(copy.copyStates.read!, { exact: true }).first()).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: "Jane Example", exact: true }))
       .toHaveAttribute("href", "/staff/supporters/7");
@@ -1321,13 +1378,9 @@ describe("SupporterBroadcasts", () => {
             channel: "text",
             status: "delivered",
             skipReason: null,
-            stoppedBy: null,
             sentAt: new Date("2026-11-07T07:18:00Z"),
-            read: true,
-            bounced: false,
-            optedOut: false,
-            replied: false,
-            toLookAt: false,
+            state: "read",
+            why: null,
           },
           {
             copyId: 22,
@@ -1336,13 +1389,9 @@ describe("SupporterBroadcasts", () => {
             channel: "email",
             status: "failed",
             skipReason: null,
-            stoppedBy: null,
             sentAt: null,
-            read: false,
-            bounced: false,
-            optedOut: false,
-            replied: false,
-            toLookAt: false,
+            state: "error",
+            why: "gmail",
           },
           {
             copyId: 23,
@@ -1351,13 +1400,9 @@ describe("SupporterBroadcasts", () => {
             channel: "email",
             status: "cancelled",
             skipReason: null,
-            stoppedBy: null,
             sentAt: null,
-            read: false,
-            bounced: false,
-            optedOut: false,
-            replied: false,
-            toLookAt: false,
+            state: "not-sent",
+            why: "cancelled",
           },
         ]}
       />,

@@ -43,8 +43,12 @@ export type OverviewLook<T extends MailingSummary> = {
   counts: (mailing: T) => Count[];
   untitled: string;
   none: string;
+  /** A picture before the title: a broadcast's channel, telling emails and texts apart at a glance. */
+  mark?: (mailing: T) => ReactNode;
   lead?: (mailing: T) => ReactNode;
   from?: (mailing: T) => string | undefined;
+  /** The counts shown under one sending's bar while they're more than none, by key: what needs a look already. */
+  whileSending?: string[];
   /** Beside a draft's Draft, what's holding it up, if anything is. */
   holdUp?: (mailing: T) => ReactNode;
 };
@@ -95,12 +99,29 @@ function Standing<T extends MailingSummary>({
     );
   }
   if (mailing.state === "sending") {
+    // What needs a look already, each leading to its tab: in the colour its count has once it's sent.
+    const needs = countsOpening(href, look.counts(mailing)).filter(
+      (count) => look.whileSending?.includes(count.key) && count.n,
+    );
     return (
-      <StaffLink href={href} className={styles.bar}>
-        <Progress value={mailing.sent + mailing.failed} max={mailing.to} tone="blue" label={copy.sentLabel}>
-          {copy.sendingBar(mailing.sent, mailing.to)}
-        </Progress>
-      </StaffLink>
+      <span className={styles.sending}>
+        <StaffLink href={href} className={styles.bar}>
+          <Progress value={mailing.sent + mailing.failed} max={mailing.to} tone="blue" label={copy.sentLabel}>
+            {copy.sendingBar(mailing.sent, mailing.to)}
+          </Progress>
+        </StaffLink>
+        {needs.length > 0 && (
+          <span className={styles.needs}>
+            {needs.map((count) => (
+              <StaffLink key={count.key} href={count.href!} className={styles.need}>
+                <Tag tone={count.tone}>
+                  {count.n!.toLocaleString("en-GB")} {count.label}
+                </Tag>
+              </StaffLink>
+            ))}
+          </span>
+        )}
+      </span>
     );
   }
   return <Counts counts={countsOpening(href, look.counts(mailing))} small />;
@@ -138,9 +159,12 @@ function Row<T extends MailingSummary>({
         <When mailing={mailing} year={year} />
       </span>
       <span className={styles.what}>
-        <StaffLink href={href} className={styles.title}>
-          {mailing.title || look.untitled}
-        </StaffLink>
+        <span className={styles.head}>
+          {look.mark?.(mailing)}
+          <StaffLink href={href} className={styles.title}>
+            {mailing.title || look.untitled}
+          </StaffLink>
+        </span>
         <Muted>
           {look.lead?.(mailing)}
           {look.lead && from ? " · " : ""}

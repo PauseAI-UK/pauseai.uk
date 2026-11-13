@@ -27,6 +27,7 @@ const EXCEPTIONS = new Map([
   ["lib/server/json.ts  parseJsonIfAny", "a body that isn't JSON is an answer the caller asked for"],
   // The tests' reader of a fixture build's outbox: one not made yet holds no emails.
   ["lib/server/fixtures/outbox.ts  readOutbox", "an outbox that isn't there yet has no emails in it"],
+  ["lib/server/fixtures/whatsapp-outbox.ts  readTexts", "an outbox that isn't there yet has no texts in it"],
   // Asking Next to wait for work after the response throws outside a request: the work is already going.
   ["lib/server/errors-seen.ts  heldOpen", "outside a request there's nothing to hold open, and the work goes on"],
   // Gmail's history of a mailbox expires: the read searches instead, and its run says it restarted.

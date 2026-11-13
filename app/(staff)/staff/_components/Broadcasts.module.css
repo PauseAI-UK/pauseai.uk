@@ -97,17 +97,18 @@
   gap: var(--space-3);
 }
 
-.picture {
+/* A broadcast's channel in a list, before its title: the icon alone, in the title's colour. */
+.channelMark {
   display: grid;
   flex: none;
   place-items: center;
+  color: var(--ink);
+}
+
+.picture {
+  flex: none;
   width: 3rem;
   height: 3rem;
-  border-radius: 50%;
-  background: var(--pause-orange);
-  color: var(--surface);
-  font-size: var(--text-lg);
-  font-weight: 800;
 }
 
 /* A recipient's cell: their name over where they are, or how it went over when. */

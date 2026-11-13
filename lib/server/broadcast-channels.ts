@@ -2,6 +2,7 @@ import "server-only";
 import { BROADCAST_SEND_BY, type BroadcastChannel, type BroadcastSendBy } from "@/lib/broadcasts";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { config } from "./config";
+import { FIXTURE_KEYS } from "./fixtures/whatsapp";
 import { gmailEmail, postmarkBroadcast, type MailingChannel } from "./mailing-channels";
 import { businessNumber, type BusinessNumber, type WhatsAppKeys } from "./outside-services/whatsapp";
 import { problem } from "./problems";
@@ -25,11 +26,16 @@ export function broadcastEmailChannel(sendBy: BroadcastSendBy): { channel: Maili
   return EMAIL_CHANNELS[sendBy];
 }
 
-/** WhatsApp's keys, where they're set. */
+/**
+ * WhatsApp's keys, where they're set. A fixture build without them uses the
+ * fake's, as it needs no keys for any other service: its every call goes to
+ * the fakes (outside-fetch.ts), so they can't reach Meta.
+ */
 export function whatsAppKeys(): WhatsAppKeys | undefined {
   const token = config.whatsappToken;
   const accountId = config.whatsappAccountId;
-  return token && accountId ? { token, accountId } : undefined;
+  if (token && accountId) return { token, accountId };
+  return config.fixtures ? FIXTURE_KEYS : undefined;
 }
 
 /** What sends texts: WhatsApp's keys, and our number there. */

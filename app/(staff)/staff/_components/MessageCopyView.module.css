@@ -18,3 +18,34 @@
 .write {
   margin: var(--space-3) 0 0;
 }
+
+/* Under a text's reply, at the right, where its answer opens. */
+.textFoot .write {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* A text's reply, in a card as an email's is: the chat at its top, edge to edge. */
+.textReply {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.textReply > :first-child {
+  border-radius: 0;
+}
+
+/* Its foot: why it can't be answered now, what it was recorded as, and its buttons. */
+.textFoot {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* Whatever comes first in the foot needs no rule over it: the chat's edge is the rule. */
+.textFoot > :first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}

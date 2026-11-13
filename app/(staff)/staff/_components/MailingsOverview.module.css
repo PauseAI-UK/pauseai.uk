@@ -58,6 +58,14 @@
   font-weight: 600;
 }
 
+/* The title, after its mark where the list has one. */
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
 /* How it stands, at the column's right edge, so the boxes line up there. */
 .standing {
   display: flex;
@@ -70,6 +78,24 @@
   gap: var(--space-2);
   align-items: center;
   font-size: var(--text-sm);
+}
+
+/* One sending: its bar, and under it what needs a look already, at the column's right. */
+.sending {
+  display: grid;
+  flex: 1;
+  gap: var(--space-1);
+}
+
+.needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+.need {
+  text-decoration: none;
 }
 
 /* The sending bar, the width of the column, leading to the mailing. */
@@ -89,6 +115,10 @@
     order: -1;
     margin-bottom: calc(-1 * var(--space-1));
     font-size: var(--text-xs);
+  }
+
+  .needs {
+    justify-content: flex-start;
   }
 
   .standing {

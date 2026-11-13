@@ -69,7 +69,7 @@ export async function addTemplate(
       more.createdBy === undefined ? "jo@pauseai.uk" : more.createdBy,
       status === "approved" ? "2026-10-01T10:00:00Z" : null,
       status === "rejected" ? "2026-10-02T10:00:00Z" : null,
-      status === "rejected" ? (more.reason ?? "It ends with a merge field.") : null,
+      status === "rejected" ? (more.reason ?? "INVALID_FORMAT") : null,
     ],
   );
   return id;

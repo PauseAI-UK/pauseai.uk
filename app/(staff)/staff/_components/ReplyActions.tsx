@@ -62,6 +62,7 @@ export default function ReplyActions({
         howKnown
         record={deal}
         spaced={false}
+        end={text}
         before={write && <ReplyButton write={write} />}
         beside={
           !answered && (

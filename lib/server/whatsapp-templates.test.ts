@@ -7,7 +7,7 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { notifications } from "@/tests/notifications";
 import { createBroadcastDraft } from "./broadcast-drafts";
-import { applyTemplateStatus, checkTemplates, rejectionWords } from "./whatsapp-templates";
+import { applyTemplateStatus, checkTemplates } from "./whatsapp-templates";
 
 const words = staffCopy.notifications.templateRejectedWhy;
 const TEMPLATES = /graph\.facebook\.com\/.*\/message_templates/;
@@ -17,12 +17,6 @@ beforeEach(() => {
   vi.stubEnv("WHATSAPP_ACCOUNT_ID", "fixture-account");
 });
 afterEach(() => vi.unstubAllEnvs());
-
-it("puts WhatsApp's reason for a rejection in plain words, or gives a code it doesn't know as it is", () => {
-  expect(rejectionWords("INVALID_FORMAT")).toBe(words.reasons.INVALID_FORMAT);
-  expect(rejectionWords("SOMETHING_NEW")).toBe(words.other("SOMETHING_NEW"));
-  expect(rejectionWords(null)).toBe(words.other("NONE"));
-});
 
 /** A template named `name` here and `meta` at WhatsApp, in `status`; its ID. */
 async function template(name: string, status = "pending", meta: string | null = `${name}_1`): Promise<number> {
@@ -77,14 +71,15 @@ describeWithDatabase("what WhatsApp decides of our templates", () => {
     expect((await stateOf(id)).status).toBe("pending");
   });
 
-  it("rejects one waiting, giving why in plain words, but not one it has decided already", async () => {
+  it("rejects one waiting, keeping WhatsApp's code for why and emailing it in plain words, but not one it has decided already", async () => {
     const sent = notifications();
     const id = await template("march");
     expect(await applyTemplateStatus("march_1", "REJECTED", "PROMOTIONAL")).toBe(true);
     expect(await query("SELECT status, rejected_reason AS reason FROM whatsapp_templates WHERE id = $1", [id])).toEqual(
-      [{ status: "rejected", reason: words.reasons.PROMOTIONAL }],
+      [{ status: "rejected", reason: "PROMOTIONAL" }],
     );
     expect(sent.map((email) => email.Subject)).toEqual([staffCopy.notifications.templateRejected.subject("march")]);
+    expect(sent[0]!.TextBody).toContain(words.reasons.PROMOTIONAL);
     const approved = await template("social", "approved");
     expect(await applyTemplateStatus("social_1", "REJECTED", null)).toBe(false);
     expect((await stateOf(approved)).status).toBe("approved");

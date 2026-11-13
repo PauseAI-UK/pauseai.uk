@@ -98,17 +98,30 @@ export default function Reply({
         />
       )
     );
-  const email = (write?: () => void) =>
-    text ? (
-      <>
+  // A text's reply in a card, as an email's is: the chat, then at its foot what to record it as and Reply, or
+  // why it can't be answered now.
+  const textReply = (write?: () => void) => {
+    const closed = !reply.answerable && actions;
+    const done = dealt(write);
+    return (
+      <div className={styles.textReply}>
         <ChatWall>
           <ChatBubble who={sender(reply, one)} when={staffTime(reply.receivedAt)}>
             {words}
           </ChatBubble>
         </ChatWall>
-        {!reply.answerable && actions && <Muted>{copy.replies.windowClosed}</Muted>}
-        {dealt(write)}
-      </>
+        {(closed || done) && (
+          <div className={styles.textFoot}>
+            {closed && <Muted>{copy.replies.windowClosed}</Muted>}
+            {done}
+          </div>
+        )}
+      </div>
+    );
+  };
+  const email = (write?: () => void) =>
+    text ? (
+      textReply(write)
     ) : (
       <ThreadEmail from={sender(reply, one)} to={ours} at={reply.receivedAt} subject={reply.subject}>
         {words}

@@ -26,7 +26,7 @@ import {
 } from "./forms.client";
 
 // Every tone, so a new one is a type error until it's here.
-const TONES: Record<TagTone, string> = { red: "Red", amber: "Amber", green: "Green", blue: "Blue" };
+const TONES: Record<TagTone, string> = { red: "Red", amber: "Amber", green: "Green", blue: "Blue", grey: "Grey" };
 
 export const forms: Group = {
   id: "forms",

@@ -3,7 +3,12 @@
 import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
 import { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
 import { ResumeBroadcastExample } from "./staff.client";
-import { BroadcastChannelName, BroadcastWaiting, CopyStatus } from "@/app/(staff)/staff/_components/BroadcastView";
+import {
+  BroadcastChannelMark,
+  BroadcastChannelName,
+  BroadcastWaiting,
+  CopyStatus,
+} from "@/app/(staff)/staff/_components/BroadcastView";
 import {
   exampleBroadcastData,
   exampleBroadcastEmail,
@@ -292,26 +297,40 @@ export const staffBroadcasts: Group = {
       ],
     },
     {
+      name: "BroadcastChannelMark",
+      file: "app/(staff)/staff/_components/BroadcastView.tsx",
+      variants: [
+        {
+          label: "Each channel",
+          render: () => (
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <BroadcastChannelMark channel="email" />
+              <BroadcastChannelMark channel="text" />
+            </div>
+          ),
+        },
+      ],
+    },
+    {
       name: "CopyStatus",
       file: "app/(staff)/staff/_components/BroadcastView.tsx",
       variants: [
         {
           label:
-            "Read, bounced, stopped before it went, asked us to stop after it arrived, replied, a reply to look at, and dropped by PauseAI Global's check",
-          render: () => {
-            const went = { status: "delivered", skipReason: null, read: false, bounced: false, optedOut: false };
-            return (
-              <>
-                <CopyStatus copyOf={{ ...went, read: true }} />
-                <CopyStatus copyOf={{ ...went, status: "failed", bounced: true }} />
-                <CopyStatus copyOf={{ ...went, status: "cancelled" }} />
-                <CopyStatus copyOf={{ ...went, optedOut: true }} />
-                <CopyStatus copyOf={{ ...went, replied: true }} />
-                <CopyStatus copyOf={{ ...went, replied: true, toLookAt: true }} />
-                <CopyStatus copyOf={{ ...went, status: "skipped", skipReason: "suppressed" }} />
-              </>
-            );
-          },
+            "Each state, a colour each: sent, delivered, read and replied; a reply to check; opted out because of it; an error; didn't reach; and not sent",
+          render: () => (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              <CopyStatus copyOf={{ state: "sent", why: null }} />
+              <CopyStatus copyOf={{ state: "delivered", why: null }} />
+              <CopyStatus copyOf={{ state: "read", why: null }} />
+              <CopyStatus copyOf={{ state: "replied", why: null }} />
+              <CopyStatus copyOf={{ state: "look", why: null }} />
+              <CopyStatus copyOf={{ state: "opted-out", why: "whatsapp-button" }} />
+              <CopyStatus copyOf={{ state: "error", why: "whatsapp" }} />
+              <CopyStatus copyOf={{ state: "unreached", why: "bounced" }} />
+              <CopyStatus copyOf={{ state: "not-sent", why: "suppressed" }} />
+            </div>
+          ),
         },
       ],
     },
@@ -604,13 +623,9 @@ export const staffBroadcasts: Group = {
                     channel: "text",
                     status: "delivered",
                     skipReason: null,
-                    stoppedBy: null,
                     sentAt: new Date("2026-11-07T07:18:00Z"),
-                    read: true,
-                    bounced: false,
-                    optedOut: false,
-                    replied: false,
-                    toLookAt: false,
+                    state: "read",
+                    why: null,
                   },
                   {
                     copyId: 23,
@@ -619,13 +634,9 @@ export const staffBroadcasts: Group = {
                     channel: "email",
                     status: "delivered",
                     skipReason: null,
-                    stoppedBy: null,
                     sentAt: new Date("2026-11-06T09:18:00Z"),
-                    read: true,
-                    bounced: false,
-                    optedOut: false,
-                    replied: true,
-                    toLookAt: true,
+                    state: "look",
+                    why: null,
                   },
                   {
                     copyId: 22,
@@ -634,13 +645,9 @@ export const staffBroadcasts: Group = {
                     channel: "email",
                     status: "failed",
                     skipReason: null,
-                    stoppedBy: null,
                     sentAt: null,
-                    read: false,
-                    bounced: false,
-                    optedOut: false,
-                    replied: false,
-                    toLookAt: false,
+                    state: "error",
+                    why: "gmail",
                   },
                 ]}
               />

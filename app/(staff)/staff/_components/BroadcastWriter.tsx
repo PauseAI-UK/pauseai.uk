@@ -1,6 +1,7 @@
 "use client";
 
 import type { JSONContent } from "@tiptap/react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
@@ -35,6 +36,7 @@ import { earliestRun, londonClock, londonWhen, sendsAt, staffDate, staffTime } f
 import type { Channel } from "@/lib/contact-permissions";
 import {
   approvalProblems,
+  rejectionWords,
   fakeRecipient,
   hasField,
   hasWords,
@@ -505,7 +507,7 @@ export default function BroadcastWriter({
         </Strip>
       )}
       {draft.template?.status === "rejected" && (
-        <Strip tone="red">{copy.rejected(staffTime(draft.template.rejectedAt!), draft.template.rejectedReason!)}</Strip>
+        <Strip tone="red">{copy.rejected(rejectionWords(draft.template.rejectedReason))}</Strip>
       )}
       <Grid>
         <Card span={6} title={<Numbered n={1}>{copy.sections.who}</Numbered>} id="who-title">
@@ -586,14 +588,14 @@ export default function BroadcastWriter({
                 </div>
               ) : (
                 <div className={own.account}>
-                  <span className={own.picture} aria-hidden="true">
-                    {TEXT_SENDER_NAME[0]}
-                  </span>
+                  {/* Our profile picture on WhatsApp: PauseAI's pause symbol, as Global's and every group's is. */}
+                  <Image src="/images/logos/Pause-Symbol.svg" alt="" width={616} height={616} className={own.picture} />
+
                   <p>
                     <strong>{TEXT_SENDER_NAME}</strong>{" "}
                     <Muted>
                       {data.textNumber ? (
-                        <span className={own.number}>{phoneWords(data.textNumber)}</span>
+                        <span className={own.number}>{copy.fromOption(phoneWords(data.textNumber), copy.textBy)}</span>
                       ) : (
                         copy.noNumber
                       )}

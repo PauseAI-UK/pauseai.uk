@@ -54,6 +54,18 @@ export function saveToOutbox(dir: string, email: PostmarkEmail): string {
 }
 
 /**
+ * Saves something else that isn't really sent, such as a WhatsApp text, as
+ * words in a text file (.txt) in the outbox `dir`, among the emails, so the
+ * outbox has everything a person would have got. Returns the file's path.
+ */
+export function saveNoteToOutbox(dir: string, words: string): string {
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, `${Date.now()}-${String(++count).padStart(4, "0")}.txt`);
+  writeFileSync(file, words);
+  return file;
+}
+
+/**
  * Saves a whole message as it was sent, a relay of another's, in the outbox
  * `dir`. Returns the file's path.
  */

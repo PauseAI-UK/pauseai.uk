@@ -467,23 +467,23 @@ tile's link is hidden ("Filters", below).
 over a thin bar: blue while it's going out, green for answers. It goes in
 its own card under a band, and is thin in a list's row.
 
-**Status colours.** A status is grey but for four:
+**Status colours.** A colour means how a status feels, the same everywhere:
 
-- red where it didn't arrive or we can't tell (Not sent, Bounced, Spam
-  complaint, Uncertain, every skip);
-- amber where we stopped it (Cancelled);
-- green for good news, the answer a thing was for (Answered);
-- blue for what's going out or about to (Scheduled, Sending).
+- red is bad: something broke, or a message made someone opt out;
+- amber is sad: it couldn't reach them, as their address or number is dead;
+- green is good: it arrived, was read, was answered or replied to;
+- blue is for staff to do (a reply to check), or going out now (Sending);
+- grey is normal: sent, scheduled, or not sent as expected (they'd opted
+  out before, an address already blocked, we cancelled).
 
-Sent, Replied, Draft and Waiting are grey, so the four stand out.
-
-A skip or a stop says which kind it is in the tag, as "Status: variant":
-"Skipped: left office", "Cancelled: we stopped the mailing".
-
-A second fact about a record is a second tag beside its status, never in
-its place. Such a fact is that it was answered or replied to, or that a
-supporter asked us to stop after a message arrived. So a bounced letter
-that was answered shows Bounced and Answered.
+A count of them has its number on the same colour as the tags of those
+it counts (`ui/Counts`), so pressing a count lists tags all that colour,
+and each record has one tag, so it's in one count. A tag says why after a
+colon where there's a why: "Opted out: pressed Stop", "Not sent: consent
+ended". A broadcast's copies follow this (`copyStatus` in
+`BroadcastView.tsx`); a mailing's letters still have the older scheme,
+red for every skip and amber for Cancelled, with a second tag beside the
+status for Answered (`investments/one-copy-states.md`).
 
 Each kind of record's status tags come from one function, used wherever
 the record is shown, so a letter reads the same in a mailing's list as on
