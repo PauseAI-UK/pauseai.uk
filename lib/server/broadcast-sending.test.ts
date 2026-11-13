@@ -542,9 +542,44 @@ describeWithDatabase("sending broadcasts", () => {
     );
   });
 
-  it("counts tries the account or provider refuses towards stopping, as they'd never end, though nobody is failed", async () => {
+  it("rests through Gmail's sending limit however long it lasts, telling staff once after six hours, and goes on after", async () => {
+    const sent = notifications();
+    let limited = true;
+    const limit = () => new HttpResponse("User-rate limit exceeded (Mail sending)", { status: 429 });
+    recordGmail(() => (limited ? limit() : undefined));
+    for (const name of ["jane", "sam"]) await addFollower(`usr-${name}`, `${name}@example.com`, name);
+    await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    const heldBack = () =>
+      sent.filter((email) => email.Subject === staffCopy.notifications.broadcastHeldBack.subject("See you there"));
+    // Ten tries, far more than would stop it for failing, and nobody fails.
+    for (let tries = 0; tries < 10; tries++) {
+      expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 0, failed: 0, left: 2 });
+      await rested();
+    }
+    expect(await stateOf(id)).toMatchObject({ state: "sending", gaveUp: false });
+    expect(heldBack()).toEqual([]);
+    // Six hours on, still at its limit: staff are told, once, of when it began.
+    vi.setSystemTime(new Date("2026-11-02T16:18:00Z"));
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    await rested();
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    expect(heldBack()).toHaveLength(1);
+    expect(heldBack()[0].TextBody).toContain(staffTime(new Date("2026-11-02T10:18:00Z")));
+    // Gmail's limit lifts: it goes on, to both, held back no more.
+    limited = false;
+    await rested();
+    expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 2, left: 0 });
+    expect((await stateOf(id)).state).toBe("sent");
+    expect(await query("SELECT held_back_since, held_back_told FROM mailings WHERE id = $1", [id])).toEqual([
+      { held_back_since: null, held_back_told: false },
+    ]);
+  });
+
+  it("counts tries refused till someone fixes the account towards stopping, though nobody is failed", async () => {
     notifications();
-    const tried = recordGmail(() => new HttpResponse("Insufficient Permission", { status: 403 }));
+    const tried = recordGmail(() => new HttpResponse("Invalid Credentials", { status: 401 }));
     for (const name of ["jane", "sam"]) await addFollower(`usr-${name}`, `${name}@example.com`, name);
     await pulled();
     const id = await broadcast();

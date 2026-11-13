@@ -36,9 +36,13 @@ const templateSend = (to: string) =>
     },
   });
 
-it("gives our one number, at the lowest tier", async () => {
+it("gives our one number, at the lowest messaging limit", async () => {
   expect(await json(whatsAppResponse(at("fixture-account/phone_numbers")))).toEqual({
-    data: [{ id: FIXTURE_PHONE_ID, display_phone_number: "+44 7700 900000", messaging_limit_tier: "TIER_250" }],
+    data: [{ id: FIXTURE_PHONE_ID, display_phone_number: "+44 7700 900000" }],
+  });
+  expect(await json(whatsAppResponse(at(FIXTURE_PHONE_ID)))).toEqual({
+    id: FIXTURE_PHONE_ID,
+    whatsapp_business_manager_messaging_limit: "TIER_250",
   });
 });
 

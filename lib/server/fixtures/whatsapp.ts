@@ -69,9 +69,10 @@ export function whatsAppResponse(pathname: string, init?: RequestInit): Response
   const path = pathname.replace(`/${GRAPH_VERSION}/`, "");
   const method = init?.method ?? "GET";
   if (path.endsWith("/phone_numbers")) {
-    return json({
-      data: [{ id: FIXTURE_PHONE_ID, display_phone_number: FIXTURE_NUMBER, messaging_limit_tier: "TIER_250" }],
-    });
+    return json({ data: [{ id: FIXTURE_PHONE_ID, display_phone_number: FIXTURE_NUMBER }] });
+  }
+  if (path === FIXTURE_PHONE_ID && method === "GET") {
+    return json({ id: FIXTURE_PHONE_ID, whatsapp_business_manager_messaging_limit: "TIER_250" });
   }
   if (path === `${FIXTURE_PHONE_ID}/messages` && method === "POST") {
     const body = String(init!.body);

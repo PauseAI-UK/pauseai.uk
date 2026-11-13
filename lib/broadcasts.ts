@@ -11,7 +11,6 @@ import {
   type MailingRecipientValues,
 } from "./mailing-doc";
 import { SENDING_DAYS, WAIT_DAYS } from "./broadcast-days";
-import { GMAIL_DAILY_LIMIT } from "./gmail-connect";
 import { now } from "./now";
 import { phoneWords } from "./phone";
 import { staffDate } from "./staff-time";
@@ -134,13 +133,13 @@ export function isAvailableSendBy(value: unknown): value is BroadcastSendBy {
 }
 
 /**
- * How many days an email to `recipients` takes to send, by what can send
+ * How many days a broadcast to `recipients` takes to send, by what can send
  * `remaining` more today and `daily` each day after: one, with no limit
  * (null). Today's count as the first day's, whenever it's scheduled for, as
  * what it will have left then can't be known.
  */
-export function sendingDays(recipients: number, remaining: number | null, daily: number = GMAIL_DAILY_LIMIT): number {
-  if (remaining === null || recipients <= remaining) return 1;
+export function sendingDays(recipients: number, remaining: number | null, daily: number | null): number {
+  if (remaining === null || daily === null || recipients <= remaining) return 1;
   return 1 + Math.ceil((recipients - remaining) / daily);
 }
 
@@ -379,8 +378,9 @@ export type SchedulingBroadcast = {
   /** Whether it goes by Gmail, and whether the Gmail it's from is connected. */
   byGmail: boolean;
   connected: boolean;
-  /** How many more emails what sends it can send today; null for no limit, or a text. */
+  /** How many more what sends it can send today, and each day after; null for no limit. */
   remaining: number | null;
+  daily: number | null;
   /** Whether a text's words are a template WhatsApp has approved. */
   approved: boolean;
   /** Whether a WhatsApp number is configured for texts to come from. */
@@ -447,8 +447,8 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["field-edge", newWords && misplaced!.atEdge],
     ["fields-together", newWords && misplaced!.together],
     ["not-connected", broadcast.byGmail && !broadcast.connected],
-    // At a day's limit of emails, it must all go before it would stop.
-    ["too-slow", email && sendingDays(broadcast.recipients, broadcast.remaining) > SENDING_DAYS],
+    // At a day's limit of emails or texts, it must all go before it would stop.
+    ["too-slow", sendingDays(broadcast.recipients, broadcast.remaining, broadcast.daily) > SENDING_DAYS],
     ["no-number", !email && !broadcast.numbered],
     ["not-approved", !email && !blank && !broadcast.approved],
     ["no-time", !broadcast.dueAt],

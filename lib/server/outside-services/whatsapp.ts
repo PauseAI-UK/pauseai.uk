@@ -1,6 +1,8 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { parseJsonIfAny } from "../json";
+import { problem } from "../problems";
 import { outsideFetch } from "./outside-fetch";
 
 // The only file that talks to WhatsApp, through Meta's Cloud API, with our
@@ -58,7 +60,11 @@ async function graph(
   return data;
 }
 
-/** How many people a number may start conversations with a day, by its tier; null for no limit. */
+/**
+ * How many people a business may text a day outside a conversation they
+ * started, by its messaging limit; null for no limit.
+ * https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits
+ */
 const TIERS: Record<string, number | null> = {
   TIER_250: 250,
   TIER_1K: 1000,
@@ -72,14 +78,31 @@ const TIERS: Record<string, number | null> = {
 export type BusinessNumber = { id: string; number: string; dailyLimit: number | null };
 
 /**
+ * The business's messaging limit, as asked of its number: the business
+ * portfolio's, shared by every number in it. Empty if Meta doesn't say,
+ * which is reported.
+ */
+async function messagingLimit(keys: WhatsAppKeys, numberId: string): Promise<string> {
+  try {
+    const data = await graph(keys, `${numberId}?fields=whatsapp_business_manager_messaging_limit`);
+    return typeof data.whatsapp_business_manager_messaging_limit === "string"
+      ? data.whatsapp_business_manager_messaging_limit
+      : "";
+  } catch (error) {
+    problem(staffCopy.problems.anywhere.whatsAppLimitUnknown, error);
+    return "";
+  }
+}
+
+/**
  * The account's number, its first. Its daily limit is the lowest, 250, when
  * Meta gives none we know, so we never send more than it allows.
  */
 export async function businessNumber(keys: WhatsAppKeys): Promise<BusinessNumber> {
-  const data = await graph(keys, `${keys.accountId}/phone_numbers?fields=id,display_phone_number,messaging_limit_tier`);
-  const [first] = (data.data ?? []) as { id: string; display_phone_number: string; messaging_limit_tier?: string }[];
+  const data = await graph(keys, `${keys.accountId}/phone_numbers?fields=id,display_phone_number`);
+  const [first] = (data.data ?? []) as { id: string; display_phone_number: string }[];
   if (!first) throw new WhatsAppRequestError("The WhatsApp account has no phone number");
-  const tier = first.messaging_limit_tier ?? "";
+  const tier = await messagingLimit(keys, first.id);
   return {
     id: first.id,
     number: `+${first.display_phone_number.replace(/\D/g, "")}`,

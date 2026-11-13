@@ -162,6 +162,8 @@ describeWithDatabase("send", () => {
         sent: false,
         reason: "failed",
         retry: true,
+        // Our token refused lasts till someone fixes it; the rest pass by themselves.
+        ...(status === 401 && { fixNeeded: true }),
         detail: expect.any(String),
       });
     }
@@ -305,22 +307,40 @@ describeWithDatabase("send by Gmail", () => {
   it("fails to be tried again when Gmail answers that it's busy, down or refusing the account, and not when it refuses the email", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     await connectTestGmail();
-    for (const [status, retry] of [
-      [429, true],
-      [503, true],
-      [401, true],
-      [403, true],
-      [400, false],
-      [404, false],
+    for (const [status, retry, fixNeeded] of [
+      [429, true, false],
+      [503, true, false],
+      [401, true, true],
+      [403, true, false],
+      [400, false, false],
+      [404, false, false],
     ] as const) {
       server.use(http.post(SEND, () => new HttpResponse("No", { status })));
       expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
         sent: false,
         reason: "failed",
         ...(retry && { retry }),
+        ...(fixNeeded && { fixNeeded }),
         detail: expect.any(String),
       });
     }
+  });
+
+  it("says Gmail's access revoked needs fixing, as it never passes by itself", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    server.use(
+      http.post("https://oauth2.googleapis.com/token", () =>
+        HttpResponse.json({ error: "invalid_grant" }, { status: 400 }),
+      ),
+    );
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+      sent: false,
+      reason: "failed",
+      retry: true,
+      fixNeeded: true,
+      detail: expect.any(String),
+    });
   });
 
   it("fails, saying which account, when Gmail can't send or the account isn't connected", async () => {

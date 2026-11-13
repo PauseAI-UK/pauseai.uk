@@ -212,6 +212,9 @@ describe("unsuppress", () => {
       ),
     );
     await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 422");
+    // Nor one that says nothing at all.
+    answers({ outbound: 200, broadcast: 422 });
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 422");
     answers({ outbound: 200, broadcast: 404 });
     await expect(unsuppress("a@example.org")).resolves.toBeUndefined();
   });

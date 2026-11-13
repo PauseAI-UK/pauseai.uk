@@ -31,6 +31,7 @@ import {
   exampleBroadcastText,
   exampleSupporterChoices,
   exampleTemplates,
+  exampleTextSender,
   exampleTextWords,
   exampleWhatsAppWords,
 } from "./BroadcastWriter.examples";
@@ -426,11 +427,27 @@ describe("BroadcastWriter, by email", () => {
 
   it("says hello@'s Gmail isn't connected, when its test goes by Postmark", async () => {
     await renderWriter({
-      data: { ...exampleBroadcastData, sender: { byGmail: true, connected: false, remaining: 1800 } },
+      data: { ...exampleBroadcastData, sender: { byGmail: true, connected: false, remaining: 1800, daily: 1800 } },
     });
     await expect.element(page.getByText(copy.sendBy.notConnected("hello@pauseai.uk"))).toBeVisible();
     await expect.element(page.getByText(copy.problems["not-connected"])).toBeVisible();
     await expect.element(page.getByText(copy.testVia.email("hello@pauseai.uk"))).toBeVisible();
+  });
+
+  it("says how many more people our WhatsApp number can text today, and how long a text takes, held to its days", async () => {
+    const text = (count: number, sender = exampleTextSender) =>
+      renderWriter({ draft: exampleBroadcastText, data: { ...exampleBroadcastData, count, sender } });
+    await text(412);
+    await expect.element(page.getByText(copy.textRoom(238, 2))).toBeVisible();
+    await text(200);
+    await expect.element(page.getByText(copy.textRoom(238, 1))).toBeVisible();
+    const most = 238 + (SENDING_DAYS - 1) * 250;
+    await text(most + 1);
+    await expect.element(page.getByText(copy.problems["too-slow"])).toBeVisible();
+    // At the top tier, however many.
+    await text(50_000, { ...exampleTextSender, remaining: null, daily: null });
+    await expect.element(page.getByText(copy.textRoom(null, 1))).toBeVisible();
+    expect(document.body.textContent).not.toContain(copy.problems["too-slow"]);
   });
 
   it("says when no one's left to send to, and when the filter's values are gone", async () => {

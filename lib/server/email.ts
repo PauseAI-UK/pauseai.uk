@@ -69,27 +69,44 @@ export type SendOptions = {
  * or down, refused our credentials or a quota (ACCOUNT_REFUSALS), or Gmail
  * no longer lets us use the account. Nothing went, so a later try can't
  * send it twice, and the account's next email would fail the same way.
+ * `fixNeeded` marks one of those that lasts till someone fixes the account:
+ * its credentials refused, or Gmail's access revoked. The rest pass by
+ * themselves, as a sending limit does.
  * `mayHaveGone` marks one whose send broke off with no answer, which the
  * provider may have taken first: it must never be sent again.
  */
 export type SendResult =
   | { sent: true; id: string; messageId: string | null; threadId: string | null; backend: Backend }
-  | { sent: false; reason: "blocked" | "failed"; retry?: true; mayHaveGone?: true; detail?: string };
+  | {
+      sent: false;
+      reason: "blocked" | "failed";
+      retry?: true;
+      fixNeeded?: true;
+      mayHaveGone?: true;
+      detail?: string;
+    };
 
 /**
- * The statuses Gmail and Postmark refuse an account's sending with,
- * whatever the email: its credentials (401), its permission or a quota of
- * the API (403), and its sending limits (429).
+ * The statuses Gmail and Postmark refuse an account's sending with for now,
+ * whatever the email: a quota of the API or a request rate (403), and its
+ * sending limits (429), which Gmail keeps to for up to a day.
  * https://developers.google.com/workspace/gmail/api/guides/handle-errors
  * https://postmarkapp.com/developer/api/overview
  */
-const ACCOUNT_REFUSALS = [401, 403, 429];
+const REFUSED_FOR_NOW = [403, 429];
 
-/** Whether a provider's refusal is the account's or its own, not this email's, so a later try may go (SendResult). */
-function accountsFault(error: unknown): boolean {
+/**
+ * Whether a provider's refusal is the account's or its own, not this
+ * email's, so a later try may go (SendResult): "fix" for one that lasts
+ * till someone fixes the account, its credentials refused (401) or Gmail's
+ * access revoked; "later" for one that passes by itself, a limit or the
+ * provider busy or down.
+ */
+function accountsFault(error: unknown): "fix" | "later" | undefined {
   const status = error instanceof GmailError || error instanceof PostmarkError ? error.status : undefined;
-  if (status === undefined) return false;
-  return (error instanceof GmailError && error.revoked) || ACCOUNT_REFUSALS.includes(status) || status >= 500;
+  if (status === undefined) return undefined;
+  if ((error instanceof GmailError && error.revoked) || status === 401) return "fix";
+  return REFUSED_FOR_NOW.includes(status) || status >= 500 ? "later" : undefined;
 }
 
 /**
@@ -283,7 +300,9 @@ export async function send(
     const detail = (error as Error).message;
     // The account's or provider's fault, or something before the email was handed over, as getting a token: try later.
     const providers = error instanceof GmailError || error instanceof PostmarkError;
-    if (accountsFault(error) || (!handed && !providers)) return { sent: false, reason: "failed", retry: true, detail };
+    const fault = accountsFault(error);
+    if (fault === "fix") return { sent: false, reason: "failed", retry: true, fixNeeded: true, detail };
+    if (fault || (!handed && !providers)) return { sent: false, reason: "failed", retry: true, detail };
     // No answer from the provider at all: it may have taken the email before the connection broke.
     const answered = providers;
     return answered

@@ -2165,6 +2165,8 @@ CREATE TABLE public.mailings (
     send_by text DEFAULT 'gmail'::text NOT NULL,
     try_failed_at timestamp with time zone,
     failed_in_a_row integer DEFAULT 0 NOT NULL,
+    held_back_since timestamp with time zone,
+    held_back_told boolean DEFAULT false NOT NULL,
     CONSTRAINT mailings_also_topics CHECK (((cardinality(also_topics) = 0) OR ((topic IS NOT NULL) AND (NOT (topic = ANY (also_topics)))))),
     CONSTRAINT mailings_also_topics_check CHECK ((also_topics <@ ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])),
     CONSTRAINT mailings_audience_check CHECK ((audience = ANY (ARRAY['politicians'::text, 'supporters'::text]))),

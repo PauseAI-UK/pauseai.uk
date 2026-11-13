@@ -331,13 +331,14 @@ describe("daysInWords", () => {
 
 describe("sendingDays", () => {
   it("is one day while what's left today is enough, then one more for each day's limit after", () => {
-    expect(sendingDays(1800, 1800)).toBe(1);
-    expect(sendingDays(1801, 1800)).toBe(2);
-    expect(sendingDays(10, 0)).toBe(2);
-    expect(sendingDays(3600, 0)).toBe(3);
-    expect(sendingDays(3601, 0)).toBe(4);
+    expect(sendingDays(1800, 1800, 1800)).toBe(1);
+    expect(sendingDays(1801, 1800, 1800)).toBe(2);
+    expect(sendingDays(10, 0, 1800)).toBe(2);
+    expect(sendingDays(3600, 0, 1800)).toBe(3);
+    expect(sendingDays(3601, 0, 1800)).toBe(4);
     expect(sendingDays(250, 100, 50)).toBe(4);
-    expect(sendingDays(1_000_000, null)).toBe(1);
+    expect(sendingDays(1_000_000, null, null)).toBe(1);
+    expect(sendingDays(1_000_000, 0, null)).toBe(1);
   });
 });
 
@@ -362,6 +363,7 @@ describe("broadcastScheduleProblems", () => {
     byGmail: false,
     connected: false,
     remaining: null,
+    daily: null,
     approved: true,
     numbered: true,
     sends: true,
@@ -460,16 +462,24 @@ describe("broadcastScheduleProblems", () => {
   });
 
   it("holds one by Gmail to its Gmail being connected, and to all going within SENDING_DAYS at its daily limit", () => {
-    const gmail = { ...good, byGmail: true, connected: true, remaining: 1000 };
+    const gmail = { ...good, byGmail: true, connected: true, remaining: 1000, daily: 1800 };
     expect(broadcastScheduleProblems({ ...gmail, connected: false })).toEqual(["not-connected"]);
     expect(broadcastScheduleProblems(gmail)).toEqual([]);
     // What's left today, then a day's limit each day after.
     const most = 1000 + (SENDING_DAYS - 1) * 1800;
     expect(broadcastScheduleProblems({ ...gmail, recipients: most })).toEqual([]);
     expect(broadcastScheduleProblems({ ...gmail, recipients: most + 1 })).toEqual(["too-slow"]);
-    // With no limit, however many; and a text has none.
+    // With no limit, however many.
     expect(broadcastScheduleProblems({ ...good, recipients: 50_000 })).toEqual([]);
-    expect(broadcastScheduleProblems({ ...gmail, channel: "text", recipients: 50_000 })).toEqual([]);
+  });
+
+  it("holds a text to all going within SENDING_DAYS at our WhatsApp number's daily limit", () => {
+    const text = { ...good, channel: "text" as const, remaining: 100, daily: 250 };
+    const most = 100 + (SENDING_DAYS - 1) * 250;
+    expect(broadcastScheduleProblems({ ...text, recipients: most })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...text, recipients: most + 1 })).toEqual(["too-slow"]);
+    // At the top tier, however many.
+    expect(broadcastScheduleProblems({ ...text, remaining: null, daily: null, recipients: 50_000 })).toEqual([]);
   });
 
   it("won't send into the past", () => {

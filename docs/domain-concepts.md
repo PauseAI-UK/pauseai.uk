@@ -440,21 +440,30 @@ job all leave broadcasts out.
   (`handed_at`) and goes, an email with
   its unsubscribe link token made then, only its hash kept; those a run has
   no time left for are put back, as are the rest when the channel answers that
-  it can't send for now (Gmail or Postmark busy, down, at a limit or quota, or
-  the account's access refused or revoked: `ACCOUNT_REFUSALS` in
-  `lib/server/email.ts`; WhatsApp too fast, unavailable, or our token
-  expired: `WHATSAPP_ERRORS.later`). A copy its channel refuses for itself
+  it can't send for now. Some of those pass by themselves: Gmail or
+  Postmark busy, down, or at a limit or quota (`REFUSED_FOR_NOW` in
+  `lib/server/email.ts`), as Gmail's daily sending limit, which can last
+  most of a day; WhatsApp too fast, our number limited, the template
+  paused, or WhatsApp unavailable (`WHATSAPP_ERRORS.later`). Others last
+  till someone fixes the account (`fixNeeded`): its credentials refused or
+  Gmail's access revoked, WhatsApp's token expired or the template disabled
+  (`WHATSAPP_ERRORS.fix`). A copy its channel refuses for itself
   is failed alone, as is one whose send broke off with no answer, kept as
   never finished as it may have gone, and the rest go on. Once the channel
   can't send for now, or two copies fail in a row, no more of the broadcast
   goes for 25 minutes (`REST_MINUTES`, from `mailings.try_failed_at`),
   however often the sending is called, and its page says till when. The
   count of failed tries in a row (`mailings.failed_in_a_row`), the
-  channel's "not now"s among them, runs across rests and runs, and starts
-  again when a copy goes; at five (`FAILURES_TO_STOP`) the broadcast stops,
-  so whatever fails every copy fails five people, not everyone, and an
-  account refused for good stops it within a couple of hours rather than
-  stalling it for days. Resume ends a rest and the count. A
+  channel's refusals that need fixing among them, runs across rests and
+  runs, and starts again when a copy goes; at five (`FAILURES_TO_STOP`) the
+  broadcast stops, so whatever fails every copy fails five people, not
+  everyone, and an account refused for good stops it within a couple of
+  hours rather than stalling it for days. A "not now" that passes by itself
+  never counts: the broadcast rests through it as long as it lasts, within
+  its seven days, and goes on after. Once it has sent nothing for six hours
+  that way (`mailings.held_back_since`), whoever scheduled it is told, once
+  (`held_back_told`), with what the channel last said. Resume ends a rest
+  and the count. A
   copy a stopped run left `sending` for
   half an hour is failed, not sent again, if it had been handed to its
   channel, as it may have gone; one the run had only taken never went, so
@@ -469,9 +478,15 @@ job all leave broadcasts out.
   so. A copy is the text's template, its fields filled in for the person.
   Before a copy goes, its number is checked with CiviCRM's
   `checkSuppression`, and one with "Do not SMS" is skipped, as is a number
-  WhatsApp has said isn't on it (`whatsapp_unreachable`). A number takes as
-  many texts a day as its tier allows, 250 to start with: the rest wait for
-  the next day. WhatsApp's answer to a send, or its webhook later, can
+  WhatsApp has said isn't on it (`whatsapp_unreachable`). Texts go to as
+  many people a day as Meta's messaging limit for our business allows
+  (`whatsapp_business_manager_messaging_limit`, read from our number), 250
+  to start with, or 250 if Meta doesn't say: the rest wait for the next day.
+  Meta doesn't say how much of the limit is used, so the site counts those
+  it texted in the last day, as nothing else sends from our number. The
+  writer says how many more people it can text today and how many days the
+  text would take, and one that would take more than seven can't be
+  scheduled (`too-slow`). WhatsApp's answer to a send, or its webhook later, can
   refuse a copy: as the number isn't on WhatsApp, which skips it from then
   on; as the person stopped marketing messages, a stop ("Opt-outs"); or as
   they've had enough marketing messages lately, when it's held a day

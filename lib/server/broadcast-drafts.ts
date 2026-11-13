@@ -29,7 +29,7 @@ import {
 import { now } from "@/lib/now";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
-import { gmailAccount } from "./gmail-accounts";
+import { gmailAccount, GMAIL_DAILY_LIMIT } from "./gmail-accounts";
 import type { ChannelResult } from "./mailing-channels";
 import {
   getWrittenMailing,
@@ -48,7 +48,7 @@ import {
 import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } from "./broadcast-channels";
 import { createTemplate, deleteTemplate, sendTemplate } from "./outside-services/whatsapp";
 import { problem } from "./problems";
-import { metaName, templateParams, textResult } from "./whatsapp-texts";
+import { metaName, templateParams, textResult, textsLeftToday } from "./whatsapp-texts";
 import { templateFooter, templateText } from "@/lib/whatsapp-template";
 import { supporterAudience } from "./broadcast-recipients";
 import { notifyStaff, staffLink } from "./notifications";
@@ -314,20 +314,25 @@ export type BroadcastScheduleResult =
 /**
  * How what sends a broadcast stands, for the page to say and for scheduling
  * to check: whether it goes by Gmail, and then whether the Gmail it's from
- * is connected; and how many more emails it can send today, null for no
- * limit, or a text.
+ * is connected; and how many more it can send today, and each day after,
+ * null for no limit: emails by Gmail's limit, texts by our WhatsApp
+ * number's, counted by this site, the only thing that sends from it, as
+ * Meta doesn't say how many it has used.
  */
 export async function broadcastSender(
   broadcast: Pick<WrittenBroadcast, "channel" | "sendBy" | "sentFrom">,
-): Promise<{ byGmail: boolean; connected: boolean; remaining: number | null }> {
-  if (broadcast.channel !== "email") return { byGmail: false, connected: false, remaining: null };
+): Promise<{ byGmail: boolean; connected: boolean; remaining: number | null; daily: number | null }> {
+  if (broadcast.channel !== "email") {
+    const daily = (await textBackend())?.number.dailyLimit ?? null;
+    return { byGmail: false, connected: false, remaining: await textsLeftToday(daily), daily };
+  }
   const byGmail = broadcast.sendBy === "gmail";
   const { channel } = broadcastEmailChannel(broadcast.sendBy);
   const [connected, remaining] = await Promise.all([
     byGmail ? gmailAccount(broadcast.sentFrom!) : undefined,
     channel.remainingToday(broadcast.sentFrom!),
   ]);
-  return { byGmail, connected: Boolean(connected), remaining };
+  return { byGmail, connected: Boolean(connected), remaining, daily: remaining === null ? null : GMAIL_DAILY_LIMIT };
 }
 
 /** What stops a broadcast being scheduled, as it's stored, and how many it would go to now. */
@@ -439,7 +444,7 @@ export async function resumeBroadcast(id: number, by: string): Promise<boolean> 
     );
     await query(
       `UPDATE mailings SET state = $2, gave_up = false, waiting_since = NULL, wait_reason = NULL, due_at = $3,
-         try_failed_at = NULL, failed_in_a_row = 0, updated_at = now()
+         try_failed_at = NULL, failed_in_a_row = 0, held_back_since = NULL, held_back_told = false, updated_at = now()
        WHERE id = $1`,
       [id, stopped.started ? "sending" : "scheduled", now()],
       db,

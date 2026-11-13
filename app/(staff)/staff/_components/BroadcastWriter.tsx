@@ -426,7 +426,9 @@ export default function BroadcastWriter({
     : !isBlankMailing(body);
   // By Gmail, it goes from the address's own connected Gmail, which sends so many a day.
   const byGmail = email && values.sendBy === "gmail";
-  const remaining = email ? data.sender.remaining : null;
+  // How many more emails or texts can go today, and each day after, and so how many days this takes.
+  const { remaining, daily } = data.sender;
+  const days = sendingDays(data.count, remaining, daily);
   const problems = broadcastScheduleProblems({
     channel: draft.channel,
     subject: values.subject,
@@ -438,6 +440,7 @@ export default function BroadcastWriter({
     byGmail,
     connected: data.sender.connected,
     remaining,
+    daily,
     approved: words === "chosen",
     numbered: Boolean(data.textNumber),
     sends: data.sends,
@@ -586,7 +589,7 @@ export default function BroadcastWriter({
                   {/* By Gmail: how many more its account can send today, and so how long this takes; or that it isn't connected. */}
                   {byGmail &&
                     (data.sender.connected ? (
-                      <Muted>{copy.sendBy.room(draft.sentFrom!, remaining!, sendingDays(data.count, remaining))}</Muted>
+                      <Muted>{copy.sendBy.room(draft.sentFrom!, remaining!, days)}</Muted>
                     ) : (
                       <Strip tone="amber">{copy.sendBy.notConnected(draft.sentFrom!)}</Strip>
                     ))}
@@ -608,6 +611,8 @@ export default function BroadcastWriter({
                   </p>
                 </div>
               )}
+              {/* A text: how many more people our number can text today, and so how long this takes. */}
+              {!email && data.textNumber && <Muted>{copy.textRoom(remaining, days)}</Muted>}
             </Card>
 
             <Card

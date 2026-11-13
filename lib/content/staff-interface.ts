@@ -1268,6 +1268,14 @@ All events: ${link}`,
     },
     fromName: "Name",
     noNumber: "No WhatsApp number is configured yet",
+    // Under a text's number: how many more people it can text today, by Meta's daily limit, and how long this one
+    // would take; null for no limit.
+    textRoom: (remaining: number | null, days: number) =>
+      remaining === null
+        ? "⁂ Our WhatsApp number has no daily limit, so this will go in one go."
+        : days === 1
+          ? `⁂ Our WhatsApp number can text ${remaining.toLocaleString("en-GB")} more people today, enough for this broadcast.`
+          : `⁂ Our WhatsApp number can text ${remaining.toLocaleString("en-GB")} more people today, so this broadcast will take ${days} days.`,
     // What a text goes by, after our number, as an email's address has Gmail or Postmark.
     textBy: "WhatsApp",
     // Send.
@@ -2291,6 +2299,13 @@ All events: ${link}`,
       body: (title: string, reason: "civicrm" | "pull", stops: string, link: string) =>
         `“${title}” was due to go, but hasn't been sent.\n\nWe check every address with CiviCRM before emailing it, and ${reason === "civicrm" ? "CiviCRM isn't answering" : "our import from CiviCRM hasn't worked for a day"}.\n\nYou don't need to do anything. It will send as soon as CiviCRM is back. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
     },
+    // A broadcast whose Gmail, Postmark or WhatsApp has said at every try since `since` that it can't send for now,
+    // as at a limit or down, to whoever scheduled it and the inbox, once: it goes on by itself, or stops at `stops`.
+    broadcastHeldBack: {
+      subject: (title: string) => `⁂ Held back: ${title}`,
+      body: (title: string, channel: "email" | "text", since: string, said: string, stops: string, link: string) =>
+        `⁂ “${title}” hasn't sent anything since ${since}: ${channel === "text" ? "WhatsApp" : "what sends it"} keeps saying it can't send for now. It last said: ${said}\n\nIt will carry on by itself once it can. If it hasn't all gone by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
+    },
     // A broadcast that waited too long and stopped, to whoever scheduled it and the inbox: how many it didn't reach.
     broadcastGaveUp: {
       subject: (title: string, reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing") =>
@@ -2845,6 +2860,8 @@ All events: ${link}`,
         `${what} was sent, but couldn't be marked as sent. Check before sending it again`,
       // WhatsApp's API didn't answer when asked for our number, so no text could be sent or scheduled just then.
       whatsAppUnanswered: "WhatsApp didn't answer, so no text could go just then",
+      // Meta didn't say how many people our WhatsApp account can text a day, so the fewest are, till it does.
+      whatsAppLimitUnknown: "⁂ WhatsApp didn't say our daily limit, so texts go to no more than 250 people a day",
       // A text's new words couldn't be sent to WhatsApp for approval, or taken back from it.
       templateNotSent: (name: string) => `WhatsApp didn't take template ${name} for approval`,
       templateNotDeleted: (name: string) => `WhatsApp didn't delete template ${name}, which was withdrawn here`,

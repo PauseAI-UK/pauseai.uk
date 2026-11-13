@@ -57,9 +57,12 @@ it("keeps what WhatsApp said of a send", () => {
   expect(refused(131049)).toEqual({ sent: false, reason: "held" });
   expect(refused(130429)).toEqual({ sent: false, reason: "failed", retry: true, detail: "No" });
   expect(refused(132015)).toEqual({ sent: false, reason: "failed", retry: true, detail: "No" });
-  // Our token expired, or WhatsApp can't take messages just now: the next text would fail the same, so try later.
-  expect(refused(190)).toEqual({ sent: false, reason: "failed", retry: true, detail: "No" });
+  // Our number limited, or WhatsApp can't take messages just now: the next text would fail the same, so try later.
+  expect(refused(131048)).toEqual({ sent: false, reason: "failed", retry: true, detail: "No" });
   expect(refused(131016)).toEqual({ sent: false, reason: "failed", retry: true, detail: "No" });
+  // Our token expired, or the template disabled for good: later too, once someone has fixed it.
+  expect(refused(190)).toEqual({ sent: false, reason: "failed", retry: true, fixNeeded: true, detail: "No" });
+  expect(refused(132016)).toEqual({ sent: false, reason: "failed", retry: true, fixNeeded: true, detail: "No" });
   expect(refused(131000)).toEqual({ sent: false, reason: "failed", detail: "No" });
   // What WhatsApp said of a failure is kept, for the copy's tag.
   expect(refused(null)).toEqual({ sent: false, reason: "failed", detail: "No" });

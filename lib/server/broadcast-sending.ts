@@ -55,7 +55,9 @@ import { markUnreachable, templateParams, textResult, textsLeftToday, unreachabl
 // still sending SENDING_DAYS after its time (lib/broadcast-days.ts), stops,
 // and whoever scheduled it is told who it didn't reach. A broadcast whose
 // sender can't send for now, or two of whose copies fail in a row, rests a
-// while (REST_MINUTES), so nothing that fails every copy can fail everyone.
+// while (REST_MINUTES), so nothing that fails every copy can fail everyone;
+// a limit or an outage it rests through for as long as it lasts, telling
+// staff once it's been hours (heldBack).
 
 /** Who the audit log says started and finished a broadcast. */
 const JOB = "send-mailings";
@@ -360,7 +362,56 @@ type Sending = Due & {
   resting: boolean;
   /** How many tries at its copies have failed one after another (failedInARow). */
   failedInARow: number;
+  /** Since when its sender has said at every try that it can't send for now (heldBack); null if it hasn't. */
+  heldBackSince: Date | null;
 };
+
+/** How long a broadcast's sender can say it can't send for now, with nothing going, before staff are told. */
+const HELD_BACK_HOURS = 6;
+
+/**
+ * Notes that a broadcast's sender said it can't send for now, as at a day's
+ * limit, which passes by itself: it rests (tryFailed), and never stops for
+ * it, but once nothing has gone for HELD_BACK_HOURS, whoever scheduled it
+ * is told, once, with what the sender last `said`.
+ */
+async function heldBack(broadcast: Sending, said: string): Promise<void> {
+  const [{ since }] = await query<{ since: Date }>(
+    `UPDATE mailings SET try_failed_at = now(), held_back_since = coalesce(held_back_since, $2)
+     WHERE id = $1 RETURNING held_back_since AS since`,
+    [broadcast.id, now()],
+  );
+  broadcast.heldBackSince = since;
+  if (now().getTime() - since.getTime() < HELD_BACK_HOURS * 60 * 60 * 1000) return;
+  // Told once, whichever run gets here first.
+  const telling = await query(
+    "UPDATE mailings SET held_back_told = true WHERE id = $1 AND NOT held_back_told RETURNING id",
+    [broadcast.id],
+  );
+  if (telling.length === 0) return;
+  const email = staffCopy.notifications.broadcastHeldBack;
+  await notifyStaff(
+    email.subject(broadcast.title),
+    email.body(
+      broadcast.title,
+      broadcast.channel,
+      staffTime(since),
+      said,
+      staffTime(sendingStopsAt(broadcast.dueAt)),
+      staffLink(`/staff/broadcasts/${broadcast.id}`, undefined),
+    ),
+    null,
+    "staff-alert",
+    await scheduler(broadcast.id),
+  );
+}
+
+/** Notes that a broadcast held back (heldBack) has sent a copy, so it isn't any more. */
+async function notHeldBack(broadcast: Sending): Promise<void> {
+  if (!broadcast.heldBackSince) return;
+  await query("UPDATE mailings SET held_back_since = NULL, held_back_told = false WHERE id = $1", [broadcast.id]);
+  broadcast.heldBackSince = null;
+}
 
 /**
  * Notes that a broadcast's tries are failing as of now, for it to rest
@@ -774,9 +825,11 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
  * no more go, and the broadcast rests (REST_MINUTES), once the sender
  * answers that it can't send for now (`retry`), which fails none, or two
  * copies have failed one after the other, here or in runs before, as
- * whatever failed them may fail them all; and FAILURES_TO_STOP failed tries
- * in a row, of either kind, stop it. Counts the broadcast as waiting when
- * CiviCRM didn't answer.
+ * whatever failed them may fail them all. FAILURES_TO_STOP failed tries in
+ * a row stop it, counting the sender's refusals that last till someone
+ * fixes its account (`fixNeeded`), but never one that passes by itself, as
+ * a day's limit does: it goes on after that, however long it rests
+ * (heldBack). Counts the broadcast as waiting when CiviCRM didn't answer.
  */
 async function sendCopies(broadcast: Sending, sender: CopySender, run: BroadcastRun, until: number): Promise<void> {
   const { gap } = sender;
@@ -804,8 +857,15 @@ async function sendCopies(broadcast: Sending, sender: CopySender, run: Broadcast
         // It can't send for now, as Gmail sometimes says: this copy and the rest wait, rather than fail.
         if (retry) await putBack(checked.slice(i));
         else await keep(copy, result, run, went);
+        if (result.sent) await notHeldBack(broadcast);
+        // A limit, or the provider busy or down, passes by itself: it rests, and goes on after, however long that takes.
+        if (!result.sent && result.retry && !result.fixNeeded) {
+          // Every such answer says what the provider said.
+          await heldBack(broadcast, result.detail!);
+          return false;
+        }
         if (!result.sent && result.reason !== "failed") continue;
-        // A try the account refused counts too, as it may never end, though it fails nobody.
+        // A try refused till someone fixes the account counts too, as it would never end, though it fails nobody.
         const inARow = await failedInARow(broadcast, !result.sent);
         if (inARow < 2 && !retry) continue;
         // Two in a row, or the sender can't send now: the rest wait, so nothing fails everyone.
@@ -848,7 +908,7 @@ export async function sendDueBroadcasts(until: number, gap?: number): Promise<Br
   const sending = await query<Sending>(
     `SELECT ${DUE_COLUMNS}, subject, body, sent_from AS "sentFrom", from_name AS "fromName",
        coalesce(try_failed_at > now() - make_interval(mins => $1), false) AS resting,
-       failed_in_a_row AS "failedInARow"
+       failed_in_a_row AS "failedInARow", held_back_since AS "heldBackSince"
      FROM mailings WHERE audience = 'supporters' AND state = 'sending' ORDER BY due_at, id`,
     [REST_MINUTES],
   );
