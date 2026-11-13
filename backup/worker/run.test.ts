@@ -6,19 +6,21 @@ import { LATEST, takeBackup, type BackupDeps } from "./run.ts";
 
 const NOW = new Date("2026-10-19T03:00:00.123Z");
 const REPORT: DumpReport = { bytes: 3, sha256: "abc", tables: { letters: { rows: 2, newest: null } } };
-const MESSAGES: MessagesReport = { bytes: 4, sha256: "def", messages: 2, missing: [] };
+const MESSAGES: MessagesReport = { bytes: 4, sha256: "def", messages: 2, fetched: 2, missing: [] };
 
 /** The container: a dump's report and dump, and a messages' archive's report and the archive. */
 async function containerServer(path: string, init?: RequestInit): Promise<Response> {
   if (path === "/backup") return Response.json(REPORT);
-  if (path === "/messages") return init?.method === "POST" ? Response.json(MESSAGES) : new Response("TARS");
+  if (path.startsWith("/messages")) return init?.method === "POST" ? Response.json(MESSAGES) : new Response("TARS");
   return new Response("DUMP");
 }
 
 function fakeBucket(objects: Record<string, string> = {}) {
   return {
     objects,
-    get: vi.fn(async (key: string) => (key in objects ? { text: async () => objects[key] } : null)),
+    get: vi.fn(async (key: string) =>
+      key in objects ? { text: async () => objects[key], body: new Response(objects[key]).body! } : null,
+    ),
     put: vi.fn(async (key: string, value: string) => {
       objects[key] = value;
     }),
@@ -53,10 +55,8 @@ describe("takeBackup", () => {
       method: "POST",
       body: JSON.stringify({ timestamps: { letters: "created_at" } }),
     });
-    expect(container).toHaveBeenCalledWith("/messages", {
-      method: "POST",
-      body: JSON.stringify({ at: "2026-10-19T03:00:00.123Z" }),
-    });
+    // No archive before, so none to copy from.
+    expect(container).toHaveBeenCalledWith("/messages?at=2026-10-19T03%3A00%3A00.123Z", { method: "POST" });
     expect(d.uploads).toEqual([
       ["dumps/2026-10-19T03-00-00Z.dump", "DUMP", REPORT],
       ["messages/2026-10-19T03-00-00Z.tar", "TARS", MESSAGES],
@@ -117,7 +117,7 @@ describe("takeBackup", () => {
 
   it("keeps the dump, saying why, where the messages couldn't be archived, sent or stored", async () => {
     const failing = (path: string, init: RequestInit | undefined, answer: Response) =>
-      path === "/messages" && (init?.method === "POST") === (answer.status === 500)
+      path.startsWith("/messages") && (init?.method === "POST") === (answer.status === 500)
         ? answer
         : containerServer(path, init);
     const cases: [Partial<BackupDeps>, string][] = [
@@ -149,5 +149,28 @@ describe("takeBackup", () => {
       expect(outcome.manifest).not.toHaveProperty("messages");
       expect(JSON.parse(bucket.objects[LATEST]).key).toBe("dumps/2026-10-19T03-00-00Z.dump");
     }
+  });
+
+  it("sends the container last night's archive to copy from, but on Sundays, when it fetches them all", async () => {
+    const lastNight: Manifest = {
+      ...REPORT,
+      at: "2026-10-18T03:00:00.000Z",
+      key: "k",
+      messages: { key: "messages/last.tar", ...MESSAGES },
+    };
+    const sent: (string | null)[] = [];
+    const container = async (path: string, init?: RequestInit) => {
+      if (path.startsWith("/messages") && init?.method === "POST") {
+        sent.push(init.body ? await new Response(init.body).text() : null);
+      }
+      return containerServer(path, init);
+    };
+    const bucket = () => fakeBucket({ [LATEST]: JSON.stringify(lastNight), "messages/last.tar": "LAST" });
+    await takeBackup(deps({ bucket: bucket(), container }));
+    // 25 October 2026 is a Sunday.
+    await takeBackup(deps({ bucket: bucket(), container, now: new Date("2026-10-25T03:00:00Z") }));
+    // Gone from the bucket, as it expired: none.
+    await takeBackup(deps({ bucket: fakeBucket({ [LATEST]: JSON.stringify(lastNight) }), container }));
+    expect(sent).toEqual(["LAST", null, null]);
   });
 });

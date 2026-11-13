@@ -17,7 +17,8 @@ export const LATEST = "latest.json";
 export const MESSAGES = "messages/";
 
 export interface Bucket {
-  get(key: string): Promise<{ text(): Promise<string> } | null>;
+  /** An object as R2 gives it: its text, and its body as a stream. */
+  get(key: string): Promise<{ text(): Promise<string>; body?: ReadableStream } | null>;
   put(key: string, value: string): Promise<unknown>;
 }
 
@@ -61,7 +62,7 @@ export async function takeBackup({ bucket, container, upload, rules, now }: Back
     await upload(key, dump.body, report);
 
     // The dump is kept whether or not the messages are.
-    const archived = await archiveMessages(container, upload, time, now);
+    const archived = await archiveMessages({ bucket, container, upload }, time, now, previous?.messages?.key);
     const manifest: Manifest = {
       at: now.toISOString(),
       key,
@@ -80,15 +81,27 @@ export async function takeBackup({ bucket, container, upload, rules, now }: Back
   }
 }
 
-/** Has the container archive the site's kept messages, and stores the archive beside the dump; or says why it couldn't. */
+/** The day of the week, Sunday, whose archive fetches every message from the site, not copying any from the night before. */
+const FULL_FETCH_DAY = 0;
+
+/**
+ * Has the container archive the site's kept messages, sending it last
+ * night's archive (`previousKey`) to copy those it can from, but on
+ * Sundays, so a message spoilt in one archive isn't carried on for good;
+ * and stores the archive beside the dump; or says why it couldn't.
+ */
 async function archiveMessages(
-  container: BackupDeps["container"],
-  upload: BackupDeps["upload"],
+  { bucket, container, upload }: Pick<BackupDeps, "bucket" | "container" | "upload">,
   time: string,
   now: Date,
+  previousKey: string | undefined,
 ): Promise<{ messages: MessagesManifest } | { problem: string }> {
   try {
-    const response = await container("/messages", { method: "POST", body: JSON.stringify({ at: now.toISOString() }) });
+    const previous = previousKey && now.getUTCDay() !== FULL_FETCH_DAY ? await bucket.get(previousKey) : null;
+    const response = await container(`/messages?at=${encodeURIComponent(now.toISOString())}`, {
+      method: "POST",
+      ...(previous?.body && { body: previous.body, duplex: "half" }),
+    } as RequestInit);
     if (!response.ok) throw new Error(`The container couldn't archive the messages. ${await response.text()}`);
     const report = (await response.json()) as MessagesReport;
     const key = `${MESSAGES}${time}.tar`;

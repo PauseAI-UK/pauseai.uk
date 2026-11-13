@@ -70,7 +70,7 @@ describe("problems", () => {
   it("finds messages the site listed but couldn't send, naming a few", () => {
     const archive = (missing: string[], messages = 10) => ({
       ...manifest({}),
-      messages: { key: "messages/x.tar", bytes: 1, sha256: "def", messages, missing },
+      messages: { key: "messages/x.tar", bytes: 1, sha256: "def", messages, fetched: messages, missing },
     });
     expect(problems(archive([]), undefined, {})).toEqual([]);
     expect(problems(archive(["a", "b"]), undefined, {})).toEqual([
@@ -84,7 +84,7 @@ describe("problems", () => {
   it("finds an archive with many fewer messages than the last", () => {
     const archive = (messages: number, at = AT) => ({
       ...manifest({}, 1000, at),
-      messages: { key: "messages/x.tar", bytes: 1, sha256: "def", messages, missing: [] },
+      messages: { key: "messages/x.tar", bytes: 1, sha256: "def", messages, fetched: messages, missing: [] },
     });
     const previous = archive(100, "2026-10-18T03:00:00.000Z");
     expect(problems(archive(70), previous, {})).toEqual([

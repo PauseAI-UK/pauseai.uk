@@ -48,9 +48,18 @@ the backup before:
 Then the container archives the messages the site keeps whole, gzipped,
 in Netlify Blobs: the replies to letters, one-off emails, and replies to
 broadcasts by email. That's outside the database, so the dump doesn't hold
-them. It fetches every one through the site's read-only route
-(`app/api/backup/messages`), with the site's `BACKUP_SECRET`, into one tar
-file, each named by its key, which the Worker stores beside the dump. The
+them. It writes every one into one tar file, each named by its key, which
+the Worker stores beside the dump. A key's message never changes, so it
+copies each message last night's archive has, which the Worker sends it,
+and fetches only the rest through the site's read-only route
+(`app/api/backup/messages`), with the site's `BACKUP_SECRET`: a handful on
+most nights. On Sundays it fetches them all, so a message spoilt in one
+archive isn't carried on for good; it does the same when last night's
+archive is missing, or can't be read, and the manifest says why
+(`previousUnused`). It fetches four at a time, and tries a request that
+gets no answer, or a 5xx or 429, again after 1, 2, 4, 8, 16 and 32 seconds
+and a minute, before it gives up; the problem then says why, the network's
+reason too ("fetch failed: ECONNRESET, 8 times"). The
 archive holds what the site has that night, so a message erased on the site
 is in no archive after, and the old archives expire. The manifest records
 the archive, and the checks say so if a message the site listed was missing
@@ -140,7 +149,8 @@ curl -X POST https://pauseai-uk-backup.<subdomain>.workers.dev/run -H "Authoriza
 
 It answers when the backup is done, with "No problems." or a list of them,
 as the email would say. That takes a while: about three minutes for the
-dump, then a few more for the messages, fetched ten at a time. Follow it in the logs ("Follow a run", below) rather
+dump, then a minute or so for the messages, or a few on a Sunday, when it
+fetches them all. Follow it in the logs ("Follow a run", below) rather
 than waiting on curl.
 
 `RUN_SECRET` is what `setup.sh` printed the first time. Cloudflare won't show a secret again, so
@@ -159,8 +169,8 @@ Every way to see how a backup is doing, or did:
   (https://dash.cloudflare.com/?to=/:account/workers/containers), Containers >
   pauseai-uk-backup-backupcontainer > Logs. Each step shows as a request:
   `POST /backup` (the dump and its checks), `GET /dump`, `POST /messages`
-  (fetching the messages), `GET /messages`. While it fetches them, "Messages:
-  300 of 942 fetched", every hundred. "Activity expired, signalling container
+  (fetching the messages), `GET /messages`. While it writes them, "Messages: 300 of 1774,
+  12 fetched from the site", every hundred. "Activity expired, signalling container
   to stop" is it going to sleep two minutes after its last request.
 - **The Worker's logs**: Workers & Pages > pauseai-uk-backup > Logs
   (https://dash.cloudflare.com/?to=/:account/workers-and-pages), or live in a

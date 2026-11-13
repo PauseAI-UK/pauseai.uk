@@ -19,6 +19,7 @@ beforeAll(async () => {
   const server = backupServer(db.url, {
     dump: join(dir, "backup.dump"),
     messages: join(dir, "messages.tar"),
+    previous: join(dir, "previous.tar"),
     site: async (path) =>
       path === "/api/backup/messages" ? Response.json({ keys: ["jo/m1.eml.gz"] }) : new Response("GZ"),
   }).listen(0);
@@ -55,20 +56,32 @@ describe("backupServer", () => {
   });
 
   it("archives the messages on POST /messages, then serves the archive on GET /messages", async () => {
-    const response = await fetch(`${base}/messages`, {
-      method: "POST",
-      body: JSON.stringify({ at: "2026-11-13T03:00:00.000Z" }),
-    });
+    const at = "?at=2026-11-13T03:00:00.000Z";
+    const response = await fetch(`${base}/messages${at}`, { method: "POST" });
     expect(response.status).toBe(200);
     const report = (await response.json()) as MessagesReport;
-    expect(report).toMatchObject({ messages: 1, missing: [] });
+    expect(report).toMatchObject({ messages: 1, fetched: 1, missing: [] });
     const archive = await fetch(`${base}/messages`);
     expect(archive.headers.get("content-length")).toBe(String(report.bytes));
-    expect(Buffer.from(await archive.arrayBuffer())).toEqual(await readFile(join(dir, "messages.tar")));
+    const tar = Buffer.from(await archive.arrayBuffer());
+    expect(tar).toEqual(await readFile(join(dir, "messages.tar")));
+    // Sent as last night's, it's copied from, the site asked for nothing.
+    const again = await fetch(`${base}/messages${at}`, { method: "POST", body: tar });
+    expect(await again.json()).toMatchObject({ messages: 1, fetched: 0 });
+  });
+
+  it("needs a time to date the messages by", async () => {
+    const response = await fetch(`${base}/messages`, { method: "POST" });
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe("No time to date the messages by.");
   });
 
   it("says the messages can't be archived without the site", async () => {
-    const server = backupServer(db.url, { dump: join(dir, "x.dump"), messages: join(dir, "x.tar") }).listen(0);
+    const server = backupServer(db.url, {
+      dump: join(dir, "x.dump"),
+      messages: join(dir, "x.tar"),
+      previous: join(dir, "x-previous.tar"),
+    }).listen(0);
     await new Promise((resolve) => server.once("listening", resolve));
     const response = await fetch(`http://localhost:${(server.address() as AddressInfo).port}/messages`, {
       method: "POST",
