@@ -15,18 +15,20 @@ afterEach(() => vi.unstubAllEnvs());
 const ask = (query = "", authorization = "Bearer b4ckup") =>
   GET(new NextRequest(`https://pauseai.uk/api/backup/messages${query}`, { headers: { authorization } }));
 
-/** A reply to a letter, kept under `key`. */
-async function reply(key: string, id: string): Promise<void> {
+/** Replies to a letter, each kept under its key, by its Gmail ID. */
+async function replies(keys: Record<string, string>): Promise<void> {
   const politician = await addTestPolitician();
   const [{ id: letter }] = await query<{ id: number }>(
     "INSERT INTO letters (kind, notable_person_id, status) VALUES ('pauseai', $1, 'sent') RETURNING id::int AS id",
     [politician],
   );
-  await query(
-    `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, at, from_us, blob_key, size)
-     VALUES ($1, 'jo@pauseai.uk', $2, 't1', 'p@example.org', now(), false, $3, 5)`,
-    [letter, id, key],
-  );
+  for (const [id, key] of Object.entries(keys)) {
+    await query(
+      `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, at, from_us, blob_key, size)
+       VALUES ($1, 'jo@pauseai.uk', $2, 't1', 'p@example.org', now(), false, $3, 5)`,
+      [letter, id, key],
+    );
+  }
 }
 
 describeWithDatabase("GET /api/backup/messages", () => {
@@ -34,9 +36,8 @@ describeWithDatabase("GET /api/backup/messages", () => {
 
   it("lists every kept message's key, and sends each, gzipped, to the backup", async () => {
     await saveLetterReply("jo/m2.eml.gz", gzipSync("hello"));
-    await reply("jo/m2.eml.gz", "m2");
-    // A row whose message is gone.
-    await reply("jo/m1.eml.gz", "m1");
+    // m1's row has no message: it's gone.
+    await replies({ m2: "jo/m2.eml.gz", m1: "jo/m1.eml.gz" });
     expect(await (await ask()).json()).toEqual({ keys: ["jo/m1.eml.gz", "jo/m2.eml.gz"] });
     const file = await ask("?key=jo%2Fm2.eml.gz");
     expect(file.headers.get("content-type")).toBe("application/gzip");
