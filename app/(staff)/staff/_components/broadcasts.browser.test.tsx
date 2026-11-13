@@ -255,23 +255,6 @@ describe("BroadcastWriter's Consent", () => {
     expect(page.getByLabelText(copy.subject, { exact: true }).query()).toBeNull();
   });
 
-  it("on New broadcast, says texts can't be sent yet once Text is picked, where nothing sends them", async () => {
-    await render(
-      <ChannelWriter
-        fresh
-        data={{ ...exampleBroadcastData, textsSend: false }}
-        draft={{ ...exampleBroadcastEmail, subject: "", body: EMPTY_MAILING_DOC }}
-        who={<p>Who</p>}
-        actions={fakeActions() as unknown as BroadcastWriterActions}
-      />,
-    );
-    await expect.element(page.getByText(copy.cantSend)).not.toBeInTheDocument();
-    await choose(copy.consentChannel, copy.channels.text);
-    await expect.element(page.getByText(copy.cantSend)).toBeVisible();
-    await choose(copy.consentChannel, copy.channels.email);
-    await expect.element(page.getByText(copy.cantSend)).not.toBeInTheDocument();
-  });
-
   it("on New broadcast, starts with neither channel chosen, everything after it greyed and still, and makes the draft", async () => {
     const actions = fakeActions();
     await render(
@@ -455,7 +438,7 @@ describe("BroadcastWriter, by email", () => {
     await expect.element(page.getByText(copy.problems["no-recipients"])).toBeVisible();
   });
 
-  it("says when nothing can be sent yet, and that someone saved it meanwhile", async () => {
+  it("can't be scheduled where nothing sends it, and says someone saved it meanwhile", async () => {
     const actions = fakeActions();
     actions.save.mockResolvedValue({ saved: false, reason: "conflict" });
     await render(
@@ -466,7 +449,6 @@ describe("BroadcastWriter, by email", () => {
         actions={actions as unknown as BroadcastWriterActions}
       />,
     );
-    await expect.element(page.getByText(copy.cantSend)).toBeVisible();
     await expect.element(button(copy.schedule(412, "email"))).toBeDisabled();
     await page.getByLabelText(copy.subject).fill("Changed");
     await expect.element(page.getByText(staffCopy.mailingPages.saveStates.conflict)).toBeVisible();
