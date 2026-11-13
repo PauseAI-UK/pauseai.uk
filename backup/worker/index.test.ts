@@ -28,6 +28,17 @@ const REPORT = {
     politicians: { rows: 650 },
   },
 };
+// The messages' archive, the same length as the dump, as the stand-in FixedLengthStream checks.
+const MESSAGES = { bytes: 4, sha256: "def", messages: 1, missing: [] };
+
+/** The container's server: a backup's report and dump, a messages' archive's report and the archive. */
+async function containerServer(request: Request): Promise<Response> {
+  const path = new URL(request.url).pathname;
+  if (path === "/backup") return Response.json(REPORT);
+  if (path === "/messages") return request.method === "POST" ? Response.json(MESSAGES) : new Response("TARS");
+  return new Response("DUMP");
+}
+
 let stored: Record<string, { value: string; options?: unknown }>;
 let env: Env;
 const send = vi.fn<typeof fetch>();
@@ -50,13 +61,9 @@ beforeEach(() => {
     } as unknown as R2Bucket,
     BACKUP_CONTAINER: {} as Env["BACKUP_CONTAINER"],
   };
-  containerFetch.mockImplementation(async (request) =>
-    new URL(request.url).pathname === "/backup" ? Response.json(REPORT) : new Response("DUMP"),
-  );
-  // The site has no replies kept; anything else is Postmark or Healthchecks, which take it.
-  send.mockImplementation(async (url) =>
-    String(url).startsWith("https://site.example/") ? Response.json({ replies: [] }) : new Response("ok"),
-  );
+  containerFetch.mockImplementation(containerServer);
+  // Postmark or Healthchecks, which take it.
+  send.mockImplementation(async () => new Response("ok"));
   vi.stubGlobal("fetch", send);
   // Cloudflare's stream that insists on a length; a plain pass-through here.
   vi.stubGlobal(
@@ -75,45 +82,28 @@ afterEach(() => {
 });
 
 describe("BackupContainer", () => {
-  it("gives the container the database's connection string", () => {
+  it("gives the container the database's connection string, and the site's address and secret", () => {
     const container = new BackupContainer({} as BackupContainer["ctx"], env);
-    expect(container.envVars).toEqual({ DATABASE_URL: "postgresql://reader@db/site" });
+    expect(container.envVars).toEqual({
+      DATABASE_URL: "postgresql://reader@db/site",
+      SITE_URL: "https://site.example",
+      SITE_BACKUP_SECRET: "site-secret",
+    });
     expect(container.defaultPort).toBe(8080);
+    env.SITE_BACKUP_SECRET = undefined;
+    expect(new BackupContainer({} as BackupContainer["ctx"], env).envVars).not.toHaveProperty("SITE_BACKUP_SECRET");
   });
 });
 
 describe("backUpAndReport", () => {
-  it("backs up into the bucket, checking the dump's hash", async () => {
+  it("backs up into the bucket, the dump and the messages' archive, checking their hashes", async () => {
     const outcome = await backUpAndReport(env, new Date(Date.now() + 1000));
     expect(outcome.problems).toEqual([]);
     expect(stored[outcome.manifest!.key]).toEqual({ value: "DUMP", options: { sha256: "abc" } });
+    expect(stored[outcome.manifest!.messages!.key]).toEqual({ value: "TARS", options: { sha256: "def" } });
     const [request] = containerFetch.mock.calls[0];
     expect(request.method).toBe("POST");
     expect(new URL(request.url).pathname).toBe("/backup");
-  });
-});
-
-describe("backUpAndReport and the replies", () => {
-  it("copies the site's new replies, asking with the site's secret", async () => {
-    send.mockImplementation(async (url, init) => {
-      const path = String(url);
-      expect(new Headers(init?.headers).get("authorization")).toBe(
-        path.startsWith("https://site.example/") ? "Bearer site-secret" : null,
-      );
-      if (path.endsWith("letter-replies?after=0")) return Response.json({ replies: [{ id: 1, key: "jo/m1.eml.gz" }] });
-      if (path.endsWith("letter-replies/1")) return new Response("GZ");
-      if (path.startsWith("https://site.example/")) return Response.json({ replies: [] });
-      return new Response("ok");
-    });
-    const outcome = await backUpAndReport(env, new Date(Date.now() + 1000));
-    expect(outcome.problems).toEqual([]);
-    expect(stored["replies/jo/m1.eml.gz"].value).toBe("GZ");
-  });
-
-  it("says so when it can't, as without the site's secret", async () => {
-    env.SITE_BACKUP_SECRET = undefined;
-    const outcome = await backUpAndReport(env, new Date(Date.now() + 1000));
-    expect(outcome.problems).toEqual(["SITE_BACKUP_SECRET isn't set, so the replies to letters weren't copied."]);
   });
 });
 

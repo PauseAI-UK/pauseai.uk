@@ -66,4 +66,32 @@ describe("problems", () => {
       "import_runs: the newest row doesn't exist, but should be within 36 hours of the backup.",
     ]);
   });
+
+  it("finds messages the site listed but couldn't send, naming a few", () => {
+    const archive = (missing: string[], messages = 10) => ({
+      ...manifest({}),
+      messages: { key: "messages/x.tar", bytes: 1, sha256: "def", messages, missing },
+    });
+    expect(problems(archive([]), undefined, {})).toEqual([]);
+    expect(problems(archive(["a", "b"]), undefined, {})).toEqual([
+      "2 of the site's messages weren't in its store: a, b.",
+    ]);
+    expect(problems(archive(["a", "b", "c", "d", "e", "f", "g"]), undefined, {})).toEqual([
+      "7 of the site's messages weren't in its store: a, b, c, d, e, and 2 more.",
+    ]);
+  });
+
+  it("finds an archive with many fewer messages than the last", () => {
+    const archive = (messages: number, at = AT) => ({
+      ...manifest({}, 1000, at),
+      messages: { key: "messages/x.tar", bytes: 1, sha256: "def", messages, missing: [] },
+    });
+    const previous = archive(100, "2026-10-18T03:00:00.000Z");
+    expect(problems(archive(70), previous, {})).toEqual([
+      "The messages' archive has 70 messages, down from 100 in the backup of 2026-10-18T03:00:00.000Z.",
+    ]);
+    expect(problems(archive(90), previous, {})).toEqual([]);
+    // A backup from before there was an archive.
+    expect(problems(archive(70), manifest({}), {})).toEqual([]);
+  });
 });

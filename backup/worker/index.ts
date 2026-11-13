@@ -1,12 +1,11 @@
 import { Container, getContainer } from "@cloudflare/containers";
 import { describe, report, type AlertEnv } from "./alerts.ts";
 import { RULES } from "./checks.ts";
-import { copyReplies } from "./replies.ts";
 import { takeBackup, type Outcome } from "./run.ts";
 
 // The Worker: every night (the cron in wrangler.jsonc) it starts the
-// container, takes a backup, stores it in R2, copies the replies the site
-// keeps outside the database (replies.ts), and reports how it went.
+// container, takes a backup and archives the messages the site keeps
+// outside the database, stores them in R2, and reports how it went.
 // POST /run, with RUN_SECRET as a bearer token, does the same at once and
 // replies with the report.
 
@@ -14,7 +13,7 @@ export interface Env extends AlertEnv {
   /** A read-only connection string for the live database. */
   DATABASE_URL: string;
   RUN_SECRET?: string;
-  /** The site, and the secret its backup routes take (its BACKUP_SECRET). */
+  /** The site, and the secret its backup route takes (its BACKUP_SECRET), for the container to fetch its messages. */
   SITE_URL: string;
   SITE_BACKUP_SECRET?: string;
   BACKUPS: R2Bucket;
@@ -28,7 +27,11 @@ export class BackupContainer extends Container<Env> {
 
   constructor(ctx: Container<Env>["ctx"], env: Env) {
     super(ctx, env);
-    this.envVars = { DATABASE_URL: env.DATABASE_URL };
+    this.envVars = {
+      DATABASE_URL: env.DATABASE_URL,
+      SITE_URL: env.SITE_URL,
+      ...(env.SITE_BACKUP_SECRET && { SITE_BACKUP_SECRET: env.SITE_BACKUP_SECRET }),
+    };
   }
 }
 
@@ -45,14 +48,6 @@ export async function backUpAndReport(env: Env, now = new Date()): Promise<Outco
     rules: RULES,
     now,
   });
-  const replies = env.SITE_BACKUP_SECRET
-    ? await copyReplies({
-        bucket: env.BACKUPS,
-        site: (path) =>
-          fetch(`${env.SITE_URL}${path}`, { headers: { Authorization: `Bearer ${env.SITE_BACKUP_SECRET}` } }),
-      })
-    : { problems: ["SITE_BACKUP_SECRET isn't set, so the replies to letters weren't copied."] };
-  outcome.problems.push(...replies.problems);
   await report(outcome, env);
   return outcome;
 }

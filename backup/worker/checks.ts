@@ -1,4 +1,5 @@
 import type { DumpReport, TimestampColumns } from "../container/backup.ts";
+import type { MessagesReport } from "../container/messages.ts";
 
 // What a good backup looks like, checked after every run against what the
 // dump holds and against the backup before it.
@@ -31,12 +32,19 @@ export const RULES: Record<string, TableRule> = {
 /** A dump shrinking by more than this fraction since the last backup is a problem. */
 const MAX_SHRINK = 0.2;
 
+/** The messages' archive as the manifest records it: its key in the bucket, and what the container said of it. */
+export interface MessagesManifest extends MessagesReport {
+  key: string;
+}
+
 /** The record kept beside each dump. */
 export interface Manifest extends DumpReport {
   /** When the backup was taken, as an ISO timestamp. */
   at: string;
   /** The dump's key in the bucket. */
   key: string;
+  /** The messages' archive; missing where it couldn't be made, or the backup is from before there was one. */
+  messages?: MessagesManifest;
 }
 
 /** Each rule's timestamp column, for the container to find the newest rows. */
@@ -44,6 +52,33 @@ export function timestampColumns(rules: Record<string, TableRule>): TimestampCol
   const columns: TimestampColumns = {};
   for (const [table, rule] of Object.entries(rules)) if (rule.timestamp) columns[table] = rule.timestamp;
   return columns;
+}
+
+/** How many of the missing messages' keys a problem names. */
+const NAMED = 5;
+
+/**
+ * What's wrong with the messages' archive: messages the site listed but
+ * couldn't send, and fewer messages by more than MAX_SHRINK than the backup
+ * before. A missing archive is told where it failed (run.ts).
+ */
+function messageProblems(
+  messages: MessagesManifest | undefined,
+  previous: MessagesManifest | undefined,
+  since: string,
+): string[] {
+  if (!messages) return [];
+  const found: string[] = [];
+  if (messages.missing.length) {
+    const more = messages.missing.length > NAMED ? `, and ${messages.missing.length - NAMED} more` : "";
+    found.push(
+      `${messages.missing.length} of the site's messages weren't in its store: ${messages.missing.slice(0, NAMED).join(", ")}${more}.`,
+    );
+  }
+  if (previous && messages.messages < previous.messages * (1 - MAX_SHRINK)) {
+    found.push(`The messages' archive has ${messages.messages} messages, down from ${previous.messages}${since}.`);
+  }
+  return found;
 }
 
 /** What's wrong with this backup, one line each. Empty if nothing is. */
@@ -58,6 +93,7 @@ export function problems(
     const percent = Math.round((1 - manifest.bytes / previous.bytes) * 100);
     found.push(`The dump is ${percent}% smaller than${since}: ${manifest.bytes} bytes, down from ${previous.bytes}.`);
   }
+  found.push(...messageProblems(manifest.messages, previous?.messages, since));
   for (const [table, rule] of Object.entries(rules)) {
     const stats = manifest.tables[table];
     if (!stats) {

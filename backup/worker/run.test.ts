@@ -1,10 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DumpReport } from "../container/backup.ts";
+import type { MessagesReport } from "../container/messages.ts";
 import type { Manifest } from "./checks.ts";
 import { LATEST, takeBackup, type BackupDeps } from "./run.ts";
 
 const NOW = new Date("2026-10-19T03:00:00.123Z");
 const REPORT: DumpReport = { bytes: 3, sha256: "abc", tables: { letters: { rows: 2, newest: null } } };
+const MESSAGES: MessagesReport = { bytes: 4, sha256: "def", messages: 2, missing: [] };
+
+/** The container: a dump's report and dump, and a messages' archive's report and the archive. */
+async function containerServer(path: string, init?: RequestInit): Promise<Response> {
+  if (path === "/backup") return Response.json(REPORT);
+  if (path === "/messages") return init?.method === "POST" ? Response.json(MESSAGES) : new Response("TARS");
+  return new Response("DUMP");
+}
 
 function fakeBucket(objects: Record<string, string> = {}) {
   return {
@@ -16,11 +25,13 @@ function fakeBucket(objects: Record<string, string> = {}) {
   };
 }
 
-function deps(overrides: Partial<BackupDeps> = {}): BackupDeps & { uploads: [string, string, DumpReport][] } {
-  const uploads: [string, string, DumpReport][] = [];
+type Upload = [string, string, Pick<DumpReport, "bytes" | "sha256">];
+
+function deps(overrides: Partial<BackupDeps> = {}): BackupDeps & { uploads: Upload[] } {
+  const uploads: Upload[] = [];
   return {
     bucket: fakeBucket(),
-    container: async (path) => (path === "/backup" ? Response.json(REPORT) : new Response("DUMP")),
+    container: containerServer,
     upload: async (key, body, report) => {
       uploads.push([key, await new Response(body).text(), report]);
     },
@@ -34,9 +45,7 @@ function deps(overrides: Partial<BackupDeps> = {}): BackupDeps & { uploads: [str
 describe("takeBackup", () => {
   it("stores the dump and its manifest, and finds no problems in a good backup", async () => {
     const bucket = fakeBucket();
-    const container = vi.fn(async (path: string) =>
-      path === "/backup" ? Response.json(REPORT) : new Response("DUMP"),
-    );
+    const container = vi.fn(containerServer);
     const d = deps({ bucket, container, rules: { letters: { timestamp: "created_at" } } });
     const outcome = await takeBackup(d);
 
@@ -44,8 +53,20 @@ describe("takeBackup", () => {
       method: "POST",
       body: JSON.stringify({ timestamps: { letters: "created_at" } }),
     });
-    expect(d.uploads).toEqual([["dumps/2026-10-19T03-00-00Z.dump", "DUMP", REPORT]]);
-    const manifest = { at: "2026-10-19T03:00:00.123Z", key: "dumps/2026-10-19T03-00-00Z.dump", ...REPORT };
+    expect(container).toHaveBeenCalledWith("/messages", {
+      method: "POST",
+      body: JSON.stringify({ at: "2026-10-19T03:00:00.123Z" }),
+    });
+    expect(d.uploads).toEqual([
+      ["dumps/2026-10-19T03-00-00Z.dump", "DUMP", REPORT],
+      ["messages/2026-10-19T03-00-00Z.tar", "TARS", MESSAGES],
+    ]);
+    const manifest = {
+      at: "2026-10-19T03:00:00.123Z",
+      key: "dumps/2026-10-19T03-00-00Z.dump",
+      ...REPORT,
+      messages: { key: "messages/2026-10-19T03-00-00Z.tar", ...MESSAGES },
+    };
     expect(outcome).toEqual({ manifest, problems: [] });
     expect(JSON.parse(bucket.objects["manifests/2026-10-19T03-00-00Z.json"])).toEqual(manifest);
     expect(JSON.parse(bucket.objects[LATEST])).toEqual(manifest);
@@ -74,7 +95,7 @@ describe("takeBackup", () => {
   it("reports a dump the container couldn't send", async () => {
     for (const dump of [new Response("gone", { status: 500 }), new Response(null)]) {
       const outcome = await takeBackup(
-        deps({ container: async (path) => (path === "/backup" ? Response.json(REPORT) : dump) }),
+        deps({ container: async (path, init) => (path === "/dump" ? dump : containerServer(path, init)) }),
       );
       expect(outcome.problems).toEqual([`The container couldn't send the dump: ${dump.status}.`]);
     }
@@ -92,5 +113,41 @@ describe("takeBackup", () => {
     );
     expect(outcome).toEqual({ problems: ["R2 said no"] });
     expect(bucket.put).not.toHaveBeenCalled();
+  });
+
+  it("keeps the dump, saying why, where the messages couldn't be archived, sent or stored", async () => {
+    const failing = (path: string, init: RequestInit | undefined, answer: Response) =>
+      path === "/messages" && (init?.method === "POST") === (answer.status === 500)
+        ? answer
+        : containerServer(path, init);
+    const cases: [Partial<BackupDeps>, string][] = [
+      [
+        { container: async (path, init) => failing(path, init, new Response("no site", { status: 500 })) },
+        "The container couldn't archive the messages. no site",
+      ],
+      [
+        { container: async (path, init) => failing(path, init, new Response(null, { status: 404 })) },
+        "The container couldn't send the messages: 404.",
+      ],
+      [
+        { container: async (path, init) => failing(path, init, new Response(null)) },
+        "The container couldn't send the messages: 200.",
+      ],
+      [
+        {
+          upload: async (key) => {
+            if (key.startsWith("messages/")) throw new Error("R2 said no");
+          },
+        },
+        "R2 said no",
+      ],
+    ];
+    for (const [overrides, problem] of cases) {
+      const bucket = fakeBucket();
+      const outcome = await takeBackup(deps({ bucket, ...overrides }));
+      expect(outcome.problems).toEqual([problem]);
+      expect(outcome.manifest).not.toHaveProperty("messages");
+      expect(JSON.parse(bucket.objects[LATEST]).key).toBe("dumps/2026-10-19T03-00-00Z.dump");
+    }
   });
 });
