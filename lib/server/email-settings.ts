@@ -24,6 +24,7 @@ import {
   type OptOutSource,
 } from "./opt-outs";
 import { removeCalendarContact } from "./outside-services/luma-calendar";
+import { randomId } from "./random-id";
 import { notifyDomain } from "./outside-services/postmark";
 import { problem } from "./problems";
 
@@ -52,10 +53,21 @@ export const hashOf = (token: string): string => createHash("sha256").update(tok
 
 /** A new link to the page for `address`, working for LINK_DAYS: its path. */
 export async function newSettingsLink(address: string, db?: Queryable): Promise<string> {
-  const token = randomBytes(24).toString("base64url");
+  const to = normaliseAddress(address);
+  // The address and how many it's had: a different seed for each link.
+  const token = (
+    await randomId(24, async () => {
+      const [{ count }] = await query<{ count: number }>(
+        "SELECT count(*)::int AS count FROM preference_links WHERE address = $1",
+        [to],
+        db,
+      );
+      return `settings ${to} ${count}`;
+    })
+  ).toString("base64url");
   await query(
     `INSERT INTO preference_links (token_hash, address, expires_at) VALUES ($1, $2, now() + make_interval(days => $3))`,
-    [hashOf(token), normaliseAddress(address), LINK_DAYS],
+    [hashOf(token), to, LINK_DAYS],
     db,
   );
   return `/contact-preferences/${token}`;

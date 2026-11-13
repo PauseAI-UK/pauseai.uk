@@ -9,24 +9,8 @@ export default function Footer() {
   return (
     <footer className={styles.footer}>
       <div className={`container ${styles.grid}`}>
-        <Brand />
-        <div className={styles.links}>
-          <Link href="/donate">Donate</Link>
-          <Link href="/events">Events</Link>
-          <Link href={site.openLetterPath}>Open letter</Link>
-          <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
-            WhatsApp community
-          </a>
-          <a href={site.shopUrl} target="_blank" rel="noreferrer">
-            Shop
-          </a>
-          <Link href="/jobs">Jobs</Link>
-          <Link href="/press">Press</Link>
-          <Link href="/privacy">Privacy</Link>
-          <CookieSettingsLink />
-          <Link href="/contact-preferences">Contact preferences</Link>
-        </div>
-        <div className={styles.socialRow}>
+        <div className={styles.brand}>
+          <Brand />
           <div className={styles.social}>
             <a href={site.social.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
               <svg viewBox="0 0 24 24" fill="currentColor">
@@ -68,6 +52,57 @@ export default function Footer() {
           <a className={styles.email} href={`mailto:${site.contactEmail}`}>
             {site.contactEmail}
           </a>
+        </div>
+        <div className={styles.groups}>
+          <div>
+            <h2>Get involved</h2>
+            <ul>
+              <li>
+                <Link href="/donate">Donate</Link>
+              </li>
+              <li>
+                <Link href="/events">Events</Link>
+              </li>
+              <li>
+                <Link href={site.openLetterPath}>Open letter</Link>
+              </li>
+              <li>
+                <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
+                  WhatsApp community
+                </a>
+              </li>
+              <li>
+                <a href={site.shopUrl} target="_blank" rel="noreferrer">
+                  Shop
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h2>About us</h2>
+            <ul>
+              <li>
+                <Link href="/jobs">Jobs</Link>
+              </li>
+              <li>
+                <Link href="/press">Press</Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h2>Your data</h2>
+            <ul>
+              <li>
+                <Link href="/privacy">Privacy</Link>
+              </li>
+              <li>
+                <CookieSettingsLink />
+              </li>
+              <li>
+                <Link href="/contact-preferences">Contact preferences</Link>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
       <div className={`container ${styles.bottom}`}>

@@ -269,7 +269,7 @@ test("Sharing, and registering someone new", { tag: "@phone" }, async ({ page, c
   await copyMidWindow(page);
   // A mouse can't swipe the row, so there the apps wrap and all show; a
   // phone's row runs off its end, faded.
-  const apps = page.getByRole("list").filter({ has: page.getByRole("link", { name: "WhatsApp" }) });
+  const apps = page.getByRole("list").filter({ has: page.getByRole("link", { name: "WhatsApp", exact: true }) });
   await expect(apps.getByRole("link")).toHaveCount(9);
   if (test.info().project.name === "desktop") {
     for (const app of await apps.getByRole("link").all()) await expect(app).toBeInViewport({ ratio: 1 });

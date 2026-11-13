@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { afterEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
@@ -132,6 +133,15 @@ describeWithDatabase("the contact preferences page", () => {
     await noBulkInCivicrm();
     await emailSettingsLink(JANE);
     expect(sent.map((email) => email.To)).toEqual(["sam@example.com", JANE]);
+  });
+
+  it("in a fixture build, makes each link's token from the address and how many it's had", async () => {
+    vi.stubEnv("DATA_FIXTURES", "1");
+    const token = (seed: string) => createHash("sha256").update(seed).digest().subarray(0, 24).toString("base64url");
+    expect(await newSettingsLink(" Jane.Smith@example.com")).toBe(
+      `/contact-preferences/${token(`settings ${JANE} 0`)}`,
+    );
+    expect(await newSettingsLink(JANE)).toBe(`/contact-preferences/${token(`settings ${JANE} 1`)}`);
   });
 
   it("offers a fresh link once a link has run out, and has no page for a link it never made", async () => {
