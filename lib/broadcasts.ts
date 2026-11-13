@@ -90,6 +90,16 @@ const daysAfter = (from: Date, days: number): Date => new Date(new Date(from).ge
  */
 export const waitStopsAt = (waitingSince: Date): Date => daysAfter(waitingSince, WAIT_DAYS);
 
+/**
+ * How long a broadcast rests once its sender can't send for now, or two of
+ * its copies have failed in a row, before another is tried: a little under
+ * two of the sending's 15-minute runs, so the second run after tries again.
+ */
+export const REST_MINUTES = 25;
+
+/** When a broadcast resting since `since` tries again. */
+export const restsUntil = (since: Date): Date => new Date(new Date(since).getTime() + REST_MINUTES * 60 * 1000);
+
 /** When a broadcast that hasn't all gone, at a day's limit of emails, stops: SENDING_DAYS after its time. */
 export const sendingStopsAt = (dueAt: Date): Date => daysAfter(dueAt, SENDING_DAYS);
 

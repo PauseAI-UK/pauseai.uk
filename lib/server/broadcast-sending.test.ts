@@ -241,7 +241,7 @@ describeWithDatabase("sending broadcasts", () => {
     expect(sent[0].TextBody).toContain(staffTime(new Date("2026-11-05T10:18:00Z")));
     // It never started, so who it didn't reach is everyone it would go to.
     expect(sent[1].TextBody).toContain(
-      staffCopy.notifications.broadcastGaveUp.body("See you there", "pull", 1, "").trim(),
+      staffCopy.notifications.broadcastGaveUp.body("See you there", "pull", 1, "", "email").trim(),
     );
     expect(await query("SELECT details FROM audit_log WHERE action = 'stop broadcast'")).toEqual([
       { details: { id, was: "scheduled" } },
@@ -368,7 +368,7 @@ describeWithDatabase("sending broadcasts", () => {
     expect(await stateOf(id)).toEqual({ state: "cancelled", waiting: true, reason: "civicrm", gaveUp: true });
     expect((await copies()).map((copy) => copy.status)).toEqual(["cancelled", "cancelled"]);
     expect(sent.at(-1)!.TextBody).toContain(
-      staffCopy.notifications.broadcastGaveUp.body("See you there", "civicrm", 2, "").trim(),
+      staffCopy.notifications.broadcastGaveUp.body("See you there", "civicrm", 2, "", "email").trim(),
     );
   });
 
@@ -383,8 +383,8 @@ describeWithDatabase("sending broadcasts", () => {
     // One goes, and hello@ is at its limit for the day.
     await sentToday(1799);
     await sendDueBroadcasts(LATER, 0);
-    // Four days on, still sending, CiviCRM doesn't answer.
-    vi.setSystemTime(new Date("2026-11-06T10:18:00Z"));
+    // Three days on, still sending, CiviCRM doesn't answer: its three days of waiting end before its seven do.
+    vi.setSystemTime(new Date("2026-11-05T10:18:00Z"));
     await query("UPDATE email_sends SET at = at - interval '1 day'");
     server.use(http.post(CHECK, () => new HttpResponse("Down", { status: 503 })));
     await inRun(() => sendDueBroadcasts(LATER, 0));
@@ -393,9 +393,9 @@ describeWithDatabase("sending broadcasts", () => {
     expect(sent.map((email) => email.Subject)).toEqual([
       staffCopy.notifications.broadcastWaiting.subject("See you there"),
     ]);
-    expect(sent[0].TextBody).toContain(staffTime(new Date("2026-11-09T10:18:00Z")));
+    expect(sent[0].TextBody).toContain(staffTime(new Date("2026-11-08T10:18:00Z")));
     // Three days of that stops it.
-    vi.setSystemTime(new Date("2026-11-09T10:18:00Z"));
+    vi.setSystemTime(new Date("2026-11-08T10:18:00Z"));
     await inRun(() => sendDueBroadcasts(LATER, 0));
     expect(await stateOf(id)).toEqual({ state: "cancelled", waiting: true, reason: "civicrm", gaveUp: true });
   });
@@ -468,6 +468,55 @@ describeWithDatabase("sending broadcasts", () => {
     await rested();
     expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 2, failed: 0, left: 0 });
     expect(gmail).toHaveLength(6);
+  });
+
+  it("stops one whose copies go on failing, five in a row across its rests, telling who scheduled it", async () => {
+    const sent = notifications();
+    const refused = recordGmail(() => new HttpResponse("Bad", { status: 400 }));
+    for (const name of ["jane", "sam", "pat", "ann", "bo", "cy"]) {
+      await addFollower(`usr-${name}`, `${name}@example.com`, name);
+    }
+    await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    // Two fail, and it rests; each rest after, one more fails, as the failures go on in a row.
+    expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ failed: 2, left: 4 });
+    for (const left of [3, 2]) {
+      await rested();
+      expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ failed: 1, left });
+      expect((await stateOf(id)).state).toBe("sending");
+    }
+    // The fifth in a row stops it, and nobody else is tried.
+    await rested();
+    expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ failed: 1, left: 0 });
+    expect(await stateOf(id)).toMatchObject({ state: "cancelled", reason: "failing", gaveUp: true });
+    expect(refused).toHaveLength(5);
+    expect((await copies()).map((copy) => copy.status).sort()).toEqual([
+      "cancelled",
+      "failed",
+      "failed",
+      "failed",
+      "failed",
+      "failed",
+    ]);
+    const words = staffCopy.notifications.broadcastGaveUp;
+    expect(sent.at(-1)!.Subject).toBe(words.subject("See you there", "failing"));
+    expect(sent.at(-1)!.TextBody).toContain(words.body("See you there", "failing", 1, "", "email").trim());
+  });
+
+  it("counts failures in a row only: one that goes between them starts the count again", async () => {
+    let tries = 0;
+    // Every other try fails, so none fail in a row.
+    const gmail = recordGmail(() => (++tries % 2 ? new HttpResponse("Bad", { status: 400 }) : undefined));
+    for (const name of ["jane", "sam", "pat", "ann", "bo", "cy", "di", "ed", "fi", "gus", "hal", "ivy"]) {
+      await addFollower(`usr-${name}`, `${name}@example.com`, name);
+    }
+    await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 6, failed: 6, left: 0 });
+    expect(gmail).toHaveLength(12);
+    expect((await stateOf(id)).state).toBe("sent");
   });
 
   it("sends to an address CiviCRM says it hasn't checked, as it may not look everyone up yet: our own records stand", async () => {
@@ -621,8 +670,33 @@ describeWithDatabase("sending broadcasts", () => {
     expect(await stateOf(id)).toEqual({ state: "cancelled", waiting: true, reason: "limit", gaveUp: true });
     expect((await copies()).map((copy) => copy.status).sort()).toEqual(["cancelled", "sent"]);
     expect(sent.at(-1)!.TextBody).toContain(
-      staffCopy.notifications.broadcastGaveUp.body("See you there", "limit", 1, "").trim(),
+      staffCopy.notifications.broadcastGaveUp.body("See you there", "limit", 1, "", "email").trim(),
     );
+  });
+
+  it("stops one whose seven days run out while CiviCRM is down, saying CiviCRM is why, not its size", async () => {
+    const sent = notifications();
+    recordGmail();
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith");
+    await addFollower("usr-sam", "sam@example.com", "Sam");
+    await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    await sentToday(1799);
+    await sendDueBroadcasts(LATER, 0);
+    // Six days on, CiviCRM goes down, a day before its seven are up.
+    vi.setSystemTime(new Date("2026-11-08T09:00:00Z"));
+    await query("UPDATE email_sends SET at = at - interval '2 days'");
+    server.use(http.post(CHECK, () => new HttpResponse("Down", { status: 503 })));
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    expect(await stateOf(id)).toEqual({ state: "sending", waiting: true, reason: "civicrm", gaveUp: false });
+    // Its seven days are up: it stops then, though it hasn't waited three, and CiviCRM is why.
+    vi.setSystemTime(new Date("2026-11-09T09:00:00Z"));
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    expect(await stateOf(id)).toEqual({ state: "cancelled", waiting: true, reason: "late", gaveUp: true });
+    const words = staffCopy.notifications.broadcastGaveUp;
+    expect(sent.at(-1)!.Subject).toBe(words.subject("See you there", "late"));
+    expect(sent.at(-1)!.TextBody).toContain(words.body("See you there", "late", 1, "", "email").trim());
   });
 
   it("puts back the copies it took and has no time left to send", async () => {
@@ -921,6 +995,22 @@ describeWithDatabase("sending texts", () => {
     expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, left: 1 });
     await query("UPDATE broadcast_messages SET sent_at = now() - interval '2 days' WHERE address LIKE '+4477009%'");
     expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 1, left: 0 });
+  });
+
+  it("stops one that hasn't all gone seven days after its time, saying our number's daily limit is why, not Gmail's", async () => {
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    const sent = notifications();
+    whatsApp();
+    await pulled();
+    await text();
+    await startDueBroadcasts();
+    vi.setSystemTime(new Date("2026-11-09T09:00:00Z"));
+    await pulled();
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, left: 0 });
+    const words = staffCopy.notifications.broadcastGaveUp;
+    const told = sent.find((email) => email.Subject === words.subject("March day", "limit"))!;
+    expect(told.TextBody).toContain(words.body("March day", "limit", 1, "", "text").trim());
+    expect(told.TextBody).not.toContain(words.whyLimit);
   });
 
   it("stops one whose template WhatsApp has paused, telling whoever scheduled it", async () => {

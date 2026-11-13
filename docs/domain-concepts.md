@@ -446,8 +446,11 @@ job all leave broadcasts out.
   send broke off, as it may have gone, and the rest go on. Once the channel
   can't send for now, or two copies fail in a row, no more of the broadcast
   goes for 25 minutes (`REST_MINUTES`, from `mailings.try_failed_at`),
-  however often the sending is called, so whatever fails every copy fails
-  two each half-hour, each reported, not everyone. Resume ends the rest. A
+  however often the sending is called, and its page says till when. The
+  count of failures in a row (`mailings.failed_in_a_row`) runs across rests
+  and runs, and starts again when a copy goes; at five
+  (`FAILURES_TO_STOP`) the broadcast stops, so whatever fails every copy
+  fails five people, not everyone. Resume ends a rest and the count. A
   copy a stopped run left `sending` for
   half an hour is failed, not sent again, if it had been handed to its
   channel, as it may have gone; one the run had only taken never went, so
@@ -499,8 +502,11 @@ job all leave broadcasts out.
   pages' words take their numbers from), stops: its copies not yet gone
   are cancelled, and whoever scheduled it and the notification inbox are
   emailed why and how many it didn't reach (`wait_reason`: `civicrm`,
-  `pull` or `limit`). A text stops too when WhatsApp pauses or disables its
-  template (`template`). Resume sending, on its page, sets it going again
+  `pull` or `limit`). Its seven days are the most it has, waiting or not:
+  one still waiting for CiviCRM when they run out stops then, saying so
+  (`late`), not that it was too large. A text stops too when WhatsApp
+  pauses or disables its template (`template`), and any broadcast when its
+  copies keep failing (`failing`, above). Resume sending, on its page, sets it going again
   (`resumeBroadcast`): its cancelled copies are to go again, or one that
   never started is scheduled again, from now, so it has its days again.
 - **What Postmark reports**, of a copy it sent. Its delivery webhook marks a copy delivered;

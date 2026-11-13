@@ -202,6 +202,7 @@ export const exampleBroadcastEmail: WrittenBroadcast = {
   waitingSince: null,
   waitReason: null,
   gaveUp: false,
+  restingUntil: null,
 };
 
 /** A draft text with nothing chosen. */

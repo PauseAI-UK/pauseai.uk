@@ -11,7 +11,7 @@ import {
   type MessageRecipient,
 } from "@/lib/server/broadcast-pages";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import { londonClock, londonDate, sendsAt, staffDate } from "@/lib/staff-time";
+import { londonClock, londonDate, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
 import { FIELD_WORDS, waitStopsAt, type BroadcastChannel } from "@/lib/broadcasts";
 import { templateFooter } from "@/lib/whatsapp-template";
 import Strip from "./ui/Strip";
@@ -106,9 +106,10 @@ export function CopyStatus({ copyOf }: { copyOf: Pick<MessageRecipient, "state" 
 
 /**
  * Whether a broadcast is waiting for CiviCRM, since when, why and when it
- * stops; or, `atLimit`, for what sends it to send more tomorrow; or that it
- * stopped, as it hadn't all gone in time, and why, with `resume`, the
- * button that sets it going again. Nothing otherwise.
+ * stops; or resting after its sends failed, till when; or, `atLimit`, for
+ * what sends it to send more tomorrow; or that it stopped by itself, and
+ * why, with `resume`, the button that sets it going again. Nothing
+ * otherwise.
  */
 export function BroadcastWaiting({
   written,
@@ -120,13 +121,15 @@ export function BroadcastWaiting({
   resume?: ReactNode;
 }) {
   if (written.gaveUp) {
+    const stopped = {
+      limit: copy.gaveUpLimit,
+      template: copy.gaveUpTemplate,
+      late: copy.gaveUpLate,
+      failing: copy.gaveUpFailing,
+    }[written.waitReason as string];
     return (
       <Strip tone="red" action={resume}>
-        {written.waitReason === "limit"
-          ? copy.gaveUpLimit
-          : written.waitReason === "template"
-            ? copy.gaveUpTemplate
-            : copy.gaveUp}
+        {stopped ?? copy.gaveUp}
       </Strip>
     );
   }
@@ -135,6 +138,7 @@ export function BroadcastWaiting({
     const reason = written.waitReason as "civicrm" | "pull";
     return <Strip tone="amber">{copy.waiting(reason, londonDate(waitStopsAt(written.waitingSince)))}</Strip>;
   }
+  if (written.restingUntil) return <Strip tone="amber">{copy.resting(staffTime(written.restingUntil))}</Strip>;
   return atLimit ? <Strip tone="amber">{copy.moreTomorrow}</Strip> : null;
 }
 

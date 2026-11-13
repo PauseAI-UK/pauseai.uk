@@ -305,6 +305,7 @@ export async function newBroadcastPageData(
       waitingSince: null,
       waitReason: null,
       gaveUp: false,
+      restingUntil: null,
     },
     data: {
       filter,
