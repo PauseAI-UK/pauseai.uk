@@ -93,6 +93,11 @@ describe("archiveMessages", () => {
     expect(await archiveMessages(site(messages), join(dir, "n1.tar"), AT, join(dir, "none.tar"))).toMatchObject({
       fetched: 1,
     });
+    // An empty one, as the container saves when the Worker sends none: no archive, not a broken one.
+    await writeFile(join(dir, "empty.tar"), "");
+    const fromEmpty = await archiveMessages(site(messages), join(dir, "n2.tar"), AT, join(dir, "empty.tar"));
+    expect(fromEmpty).toMatchObject({ fetched: 1 });
+    expect(fromEmpty).not.toHaveProperty("previousUnused");
     const broken = async (name: string, contents: Buffer) => {
       await writeFile(join(dir, name), contents);
       return archiveMessages(site(messages), join(dir, `out-${name}`), AT, join(dir, name));

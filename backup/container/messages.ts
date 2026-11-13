@@ -84,7 +84,7 @@ const text = (block: Buffer, offset: number, length: number): string =>
 
 /**
  * Where each file is in the tar file at `path`, by name, as tarHeader writes
- * them; empty if there's no file there. Throws on one it can't read, which
+ * them; empty if there's no file there, or an empty one. Throws on one it can't read, which
  * is then not used.
  */
 export async function tarIndex(path: string): Promise<Map<string, Entry>> {
@@ -97,6 +97,8 @@ export async function tarIndex(path: string): Promise<Map<string, Entry>> {
   }
   try {
     const { size: length } = await file.stat();
+    // None sent: no archive to copy from.
+    if (length === 0) return index;
     const block = Buffer.alloc(BLOCK);
     let at = 0;
     while (at + BLOCK <= length) {

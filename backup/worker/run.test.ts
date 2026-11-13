@@ -88,7 +88,9 @@ describe("takeBackup", () => {
     const outcome = await takeBackup(
       deps({ bucket, container: async () => new Response("pg_dump exited with 1: no", { status: 500 }) }),
     );
-    expect(outcome).toEqual({ problems: ["The container couldn't back up the database. pg_dump exited with 1: no"] });
+    expect(outcome).toEqual({
+      problems: ["The container couldn't back up the database: 500, pg_dump exited with 1: no"],
+    });
     expect(bucket.put).not.toHaveBeenCalled();
   });
 
@@ -123,11 +125,21 @@ describe("takeBackup", () => {
     const cases: [Partial<BackupDeps>, string][] = [
       [
         { container: async (path, init) => failing(path, init, new Response("no site", { status: 500 })) },
-        "The container couldn't archive the messages. no site",
+        "The container couldn't archive the messages: 500, no site",
       ],
       [
         { container: async (path, init) => failing(path, init, new Response(null, { status: 404 })) },
         "The container couldn't send the messages: 404.",
+      ],
+      [
+        // An old container answering an address it doesn't know: its status alone, as it says nothing.
+        {
+          container: async (path, init) =>
+            path.startsWith("/messages") && init?.method === "POST"
+              ? new Response(null, { status: 404 })
+              : containerServer(path, init),
+        },
+        "The container couldn't archive the messages: 404",
       ],
       [
         { container: async (path, init) => failing(path, init, new Response(null)) },

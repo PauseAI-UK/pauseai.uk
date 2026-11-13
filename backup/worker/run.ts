@@ -39,6 +39,12 @@ export interface Outcome {
   problems: string[];
 }
 
+/** A failed answer in words: its status, then what it said, if anything, as an empty one says nothing alone. */
+async function failure(response: Response): Promise<string> {
+  const said = (await response.text()).trim();
+  return said ? `${response.status}, ${said}` : `${response.status}`;
+}
+
 export async function takeBackup({ bucket, container, upload, rules, now }: BackupDeps): Promise<Outcome> {
   try {
     const latest = await bucket.get(LATEST);
@@ -48,7 +54,7 @@ export async function takeBackup({ bucket, container, upload, rules, now }: Back
       method: "POST",
       body: JSON.stringify({ timestamps: timestampColumns(rules) }),
     });
-    if (!response.ok) throw new Error(`The container couldn't back up the database. ${await response.text()}`);
+    if (!response.ok) throw new Error(`The container couldn't back up the database: ${await failure(response)}`);
     const report = (await response.json()) as DumpReport;
 
     // 2026-10-19T03-00-00Z: sorts by time, and has no colons for tools that mind them.
@@ -102,7 +108,7 @@ async function archiveMessages(
       method: "POST",
       ...(previous?.body && { body: previous.body, duplex: "half" }),
     } as RequestInit);
-    if (!response.ok) throw new Error(`The container couldn't archive the messages. ${await response.text()}`);
+    if (!response.ok) throw new Error(`The container couldn't archive the messages: ${await failure(response)}`);
     const report = (await response.json()) as MessagesReport;
     const key = `${MESSAGES}${time}.tar`;
     const archive = await container("/messages");

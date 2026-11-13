@@ -129,7 +129,7 @@ describe("the fetch handler", () => {
     containerFetch.mockResolvedValue(new Response("pg_dump failed", { status: 500 }));
     const response = await run(authorized);
     expect(response.status).toBe(500);
-    expect(await response.text()).toBe("Problems:\n- The container couldn't back up the database. pg_dump failed");
+    expect(await response.text()).toBe("Problems:\n- The container couldn't back up the database: 500, pg_dump failed");
   });
 
   it("replies 500 when the report can't be sent", async () => {
