@@ -17,6 +17,8 @@ Find what the backup test waits on during the stall, then either run the backup 
 - 2026-11-12: `scripts/fresh-database.test.ts` timed out at 30s in the gate (48s) with the load average at 73, and passed alone in 20s, ~5 min
 - 2026-11-12: `scripts/fresh-database.test.ts` timed out at 30s in the gate again (39s), the load average at 42, and `npm test` passed alone straight after, ~5 min
 - 2026-11-12: with a new worktree's run of main's storyboard going beside the gate, `scripts/fresh-database.test.ts` timed out twice at 30s, and the backup tests failed three ways: `createdb` ending "could not open file … Interrupted system call" in two files, and `backUp` timing out at 60s, ~10 min
+- 2026-11-13: `lib/server/form-entries.test.ts`, `lib/server/stored-filters.test.ts` and `scripts/fresh-database.test.ts` timed out with a one-flow storyboard run going beside `npm test`, ~5 min
+- 2026-11-13: `scripts/fresh-database.test.ts` and `lib/server/db.test.ts` timed out at 30s in the gate beside a 533-flow storyboard review, and both passed alone in 4s, ~5 min
 - 2026-11-12: `worker/rules.test.ts` timed out at 60s in the gate, the load average at 61, and the backup tests passed alone straight after, ~5 min
 - 2026-11-13: with the storyboard rerunning most flows beside it, `lib/server/db.test.ts` timed out at 30s and `worker/rules.test.ts` at 60s in the gate (`npm test` took 4m16s, 1m30s the run before), and both passed alone in seconds, ~5 min
 - 2026-11-13: `worker/rules.test.ts` timed out at 60s in the gate beside `npm test` and the storyboard, and passed alone in 22s. Timed alone, step by step: `pg_restore` 7.1s, `dropdb --force` 4.5s, `initdb` 2.4s, the schema's `psql` 1.5s, `createdb` 1.2s; the scratch server's `fsync=off` saved about 2s, ~20 min
