@@ -15,6 +15,19 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* What a job does, under its head: the page's own paragraph, in its text's
+   colour, as wide as the page; under it, at the left, the job's button. */
+.about {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  margin-block-end: var(--space-6);
+}
+
+.about p {
+  margin: 0;
+}
+
 /* A press still running, set off from the job's runs under it. */
 .running {
   margin-block-end: var(--space-4);

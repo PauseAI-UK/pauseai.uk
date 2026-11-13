@@ -915,7 +915,7 @@ if (existsSync(branchFrames)) {
     `\nStoryboard: ${summary.frames} frames in ${summary.flows} flows, ${
       withMain ? `${summary.changed} changed against main` : "no run of main to compare with"
     }${summary.failed ? `, ${summary.failed} failed` : ""}${
-      summary.mainFailed ? `, ${summary.mainFailed} failed on main` : ""
+      summary.mainMissing ? `, ${summary.mainMissing} with main missing` : ""
     }. ${join(runDir, "index.html")}\n`,
   );
   // A review that stands for every flow: run whole, or of every flow that might show something new.

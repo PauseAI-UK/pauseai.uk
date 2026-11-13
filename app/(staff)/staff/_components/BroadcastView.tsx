@@ -38,15 +38,16 @@ export function BroadcastChannelName({ channel }: { channel: BroadcastChannel })
 
 /**
  * How a broadcast went, in the order it happens: what arrived, what didn't,
- * what never went as it was stopped, then what was read, only for a text, as
- * an email's isn't reported.
+ * what never went as it was stopped, then what was read, a dash for an
+ * email, as an email's isn't reported.
  */
 export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
   return [
     { key: "delivered", n: broadcast.delivered, label: copy.counts.delivered },
     { key: "failed", n: broadcast.failed, label: copy.counts.failed, tone: "red" },
     { key: "stopped", n: broadcast.stopped, label: copy.counts.stopped },
-    ...(broadcast.channel === "text" ? [{ key: "read", n: broadcast.read, label: copy.counts.read }] : []),
+    // Every broadcast has every count, so they line up from row to row: an email can't say it was read, so a dash.
+    { key: "read", n: broadcast.channel === "text" ? broadcast.read : null, label: copy.counts.read },
   ];
 }
 

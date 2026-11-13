@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { NOTIFICATIONS, notifications } from "@/tests/notifications";
+import { notifications, toNotifications } from "@/tests/notifications";
 import { query } from "./db";
 import {
   BROWSER_EMAILS_AN_HOUR,
@@ -161,7 +161,7 @@ describeWithDatabase("errors the server throws", () => {
     const place = `${copy.kinds.render} /staff/politicians/[id]`;
     expect(sent).toEqual([
       expect.objectContaining({
-        To: NOTIFICATIONS,
+        To: toNotifications(),
         Subject: copy.email.server.subject("No politician <n>"),
         TextBody: copy.email.server.first(place, "No politician <n>", link),
       }),

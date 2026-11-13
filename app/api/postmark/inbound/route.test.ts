@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { webhookRequest } from "@/tests/postmark-webhooks";
 import { POST } from "./route";
@@ -43,7 +44,7 @@ describeWithDatabase("POST /api/postmark/inbound", () => {
     );
     expect(await (await POST(webhookRequest("/api/postmark/inbound", inbound))).json()).toEqual({ forwarded: 2 });
 
-    expect(to).toEqual(["replies@pauseai.uk", '"Jane" <jane@example.com>']);
+    expect(to).toEqual([`"${staffCopy.inboxNames.policy}" <replies@pauseai.uk>`, '"Jane" <jane@example.com>']);
     expect(await query("SELECT status, details FROM letter_events")).toEqual([
       {
         status: "replied",

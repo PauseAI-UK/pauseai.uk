@@ -35,7 +35,7 @@ import {
   sentIds,
   testProxy,
 } from "./letters-inbox-steps";
-import { bouncy, BOUNCY_ADDRESS, logIn, NOTIFICATION_INBOX, POLICY_INBOX, sentLetterId } from "./staff-steps";
+import { bouncy, BOUNCY_ADDRESS, logIn, POLICY_INBOX, sentLetterId, TO_NOTIFICATIONS } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Replies to letters", part: "Staff pages", order: 110 };
@@ -244,7 +244,7 @@ test("Automatic replies", async ({ page, request, flowDatabase }) => {
   expect(line).toMatchObject({ relayed: 3, notUnderstood: [expect.objectContaining({ reason: "over_cap" })] });
   const alert = newestEmail(
     (email) =>
-      email.To === NOTIFICATION_INBOX && email.Subject === staffCopy.lettersInbox.alert.subject(1, LETTERS_INBOX),
+      email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.lettersInbox.alert.subject(1, LETTERS_INBOX),
   )!;
   expect(alert.TextBody).toContain(staffCopy.lettersInbox.reasons.over_cap);
   await emailFrame(page, alert, "The email staff get");
@@ -290,7 +290,7 @@ test("Emails that aren't relayed", async ({ page, request, flowDatabase }) => {
   expect(sentIds(flowDatabase, letterIdOf(flowDatabase, sender), "relay")).toEqual([]);
   const alert = newestEmail(
     (email) =>
-      email.To === NOTIFICATION_INBOX && email.Subject === staffCopy.lettersInbox.alert.subject(2, LETTERS_INBOX),
+      email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.lettersInbox.alert.subject(2, LETTERS_INBOX),
   )!;
   await emailFrame(page, alert, "The email staff get");
   story("On the Gmail import's page, that run had problems, and lists the two emails.");
@@ -311,7 +311,7 @@ test("Jane's letter bounces", async ({ page, request, flowDatabase }) => {
   deliver(flowDatabase, bounceOf(sentIds(flowDatabase, id, "letter")[0], BOUNCY_ADDRESS));
   expect(await readInbox(request)).toMatchObject({ bounces: 1, notUnderstood: [] });
   const alert = newestEmail(
-    (email) => email.To === NOTIFICATION_INBOX && email.Subject === staffCopy.alert.subject(bouncy.name),
+    (email) => email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.alert.subject(bouncy.name),
   )!;
   await emailFrame(page, alert, "The email staff get");
   story("Jane is told, in the thread of her copy, that her letter hasn't reached her MP.");
@@ -390,7 +390,7 @@ test("Jane's address bounces", async ({ page, request, flowDatabase }) => {
   );
   await runQueue(request);
   const bounces = staffCopy.notifications.supporterBounces;
-  const report = newestEmail((email) => email.To === NOTIFICATION_INBOX && email.Subject === bounces.subject(1))!;
+  const report = newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === bounces.subject(1))!;
   await emailFrame(page, report, "The report to the notification inbox");
 
   story(
@@ -458,7 +458,7 @@ test("The daily limit", async ({ page, request, flowDatabase }) => {
   runSql(flowDatabase, `UPDATE letters SET created_at = now() - interval '3 hours 10 minutes' WHERE id = ${sams}`);
   await runQueue(request);
   const waiting = staffCopy.notifications.lettersWaiting;
-  const notice = newestEmail((email) => email.To === NOTIFICATION_INBOX && email.Subject === waiting.subject(1, 3))!;
+  const notice = newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === waiting.subject(1, 3))!;
   await emailFrame(page, notice, "The email to the notification inbox");
   story(
     "The next day, the hourly job sends what's waiting: the MP's second reply to Jane first, then Sam's letter and his copy.",
@@ -591,7 +591,7 @@ test("A reply to an older letter", async ({ page, request, flowDatabase }) => {
   ).toBe(2);
   const forwarded = newestEmailTo(sender)!;
   expect(forwarded.TextBody).toContain(copy.forwardedReply.toSender(office.Name));
-  expect(forwarded.ReplyTo).toBe(`${OFFICE_ADDRESS}, ${address}`);
+  expect(forwarded.ReplyTo).toBe(`"${office.Name}" <${OFFICE_ADDRESS}>, "Jane Smith" <${address}>`);
   await emailFrame(page, forwarded, "The reply, as Jane gets it");
   story(
     "The letter's history says where the reply went, and why, and that Postmark sent the letter and brought the reply.",

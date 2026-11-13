@@ -10,6 +10,10 @@ import { gunzipSync } from "node:zlib";
 import { letterReply } from "./outside-services/blobs";
 import { threadMessages } from "./letter-threads";
 import { stubBlobsEnv } from "@/tests/gmail-sends";
+import { staffCopy } from "@/lib/content/staff-interface";
+
+/** The policy inbox as a forward to it is addressed. */
+const POLICY = `"${staffCopy.inboxNames.policy}" <replies@pauseai.uk>`;
 
 const POSTMARK = "https://api.postmarkapp.com/email";
 const basic = (credentials: string) => `Basic ${Buffer.from(credentials).toString("base64")}`;
@@ -157,10 +161,11 @@ describeWithDatabase("forwardReply", () => {
       ),
     ).toEqual(["replies@pauseai.uk", "Jane@Example.com"]);
 
-    expect(sent.map((e) => e.To)).toEqual(["replies@pauseai.uk", `"Jane Smith" <Jane@Example.com>`]);
+    // Each named: the policy inbox by its own name, Jane by hers.
+    expect(sent.map((e) => e.To)).toEqual([POLICY, `"Jane Smith" <Jane@Example.com>`]);
     expect(sent[0]).toMatchObject({
       From: "PauseAI UK <noreply@notify.pauseai.uk>",
-      ReplyTo: "test-mp@parliament.example, jane.smith.482913@letters.pauseai.uk",
+      ReplyTo: `"Testy McTestface MP" <test-mp@parliament.example>, "Jane Smith" <jane.smith.482913@letters.pauseai.uk>`,
       Subject: "Re: S",
     });
     expect(sent[0].TextBody).toContain(copy.forwardedReply.toInbox("Testy McTestface MP", "Jane Smith"));
@@ -254,19 +259,20 @@ describeWithDatabase("forwardReply", () => {
     expect(
       await forwardReply(
         reply(mailbox, {
-          FromFull: { Email: "jane@example.com", Name: "Jane Smith" },
+          // Her email gives no name: her address is bare where answering it reaches her.
+          FromFull: { Email: "jane@example.com" },
           ToFull: [{ Email: "test-mp@parliament.example" }, { Email: `${mailbox}@letters.pauseai.uk` }],
         }),
       ),
     ).toEqual(["replies@pauseai.uk"]);
     expect(sent[0].TextBody).toContain(copy.forwardedReply.followUp("Jane Smith", "Testy McTestface MP"));
-    expect(sent[0].ReplyTo).toBe(`jane@example.com, ${mailbox}@letters.pauseai.uk`);
+    expect(sent[0].ReplyTo).toBe(`jane@example.com, "Jane Smith" <${mailbox}@letters.pauseai.uk>`);
     expect(await events()).toEqual([
       {
         status: "replied",
         details: {
           from: "jane@example.com",
-          name: "Jane Smith",
+          name: "",
           to: `test-mp@parliament.example, ${mailbox}@letters.pauseai.uk`,
           messageId: "inbound-1",
           backend: "postmark",
@@ -324,7 +330,7 @@ describeWithDatabase("forwardReply", () => {
     expect(await forwardReply({ OriginalRecipient: `${mailbox}@letters.pauseai.uk` })).toEqual(["Jane@Example.com"]);
     expect(sent[0].Subject).toBe("");
     expect(sent[0].TextBody).toContain("From:  <>\nDate: \n");
-    expect(sent[0].ReplyTo).toBe(`${mailbox}@letters.pauseai.uk`);
+    expect(sent[0].ReplyTo).toBe(`"Jane Smith" <${mailbox}@letters.pauseai.uk>`);
     expect(await events()).toEqual([
       {
         status: "replied",
@@ -356,7 +362,7 @@ describeWithDatabase("forwardReply", () => {
     const sent = postmark();
     await recordProblem({ address: "jane@example.com", messageId: null, kind: "hard", reason: "", canReset: true });
     expect(await forwardReply(reply(mailbox))).toEqual(["replies@pauseai.uk"]);
-    expect(sent.map((e) => e.To)).toEqual(["replies@pauseai.uk"]);
+    expect(sent.map((e) => e.To)).toEqual([POLICY]);
     expect(sent[0].TextBody).toContain(copy.forwardedReply.senderBlocked("Jane Smith"));
     expect((await events())[0].details).toMatchObject({
       handling: [

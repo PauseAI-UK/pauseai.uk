@@ -4,7 +4,8 @@ import { DATE_PICKER_WORDS } from "@/lib/content/date-picker";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { TEST_MPS } from "@/lib/test-mps";
 import { connectLettersInbox, databaseUrl, runSql } from "@/scripts/fresh-database.mjs";
-import { fixtureEnv } from "@/lib/server/fixtures/fixture-env.mjs";
+import { fixtureEnv, NOTIFICATION_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { OUTBOX_DIR } from "../checkout.mjs";
 import { ROUTES } from "../routes";
 import {
@@ -103,8 +104,11 @@ export const loadingLine = (page: Page) =>
 /** The policy inbox in a fixture build (lib/server/fixtures/fixture-env.mjs), where replies to letters sent before the letters inbox go. */
 export const POLICY_INBOX = "policy@example.org";
 
-/** Where a fixture build emails when something needs a person (lib/server/fixtures/fixture-env.mjs). */
-export { NOTIFICATION_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
+/**
+ * Where a fixture build emails when something needs a person
+ * (lib/server/fixtures/fixture-env.mjs), as an email to it is addressed: with the inbox's name.
+ */
+export const TO_NOTIFICATIONS = `"${staffCopy.inboxNames.notifications}" <${NOTIFICATION_INBOX}>`;
 
 /** Bouncy McTestface MP, whose address doesn't exist. */
 export const bouncy = TEST_MPS.find((mp) => mp.postcode === "ZZ99ZH")!;

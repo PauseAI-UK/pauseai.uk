@@ -58,6 +58,7 @@ export const COLOUR_TOKENS = [
   "--brand-airtable-blue",
   "--brand-airtable-red",
   "--brand-gmail-blue",
+  "--brand-parliament-green",
   "--chat-wall",
   "--chat-ours",
   "--chat-our-name",

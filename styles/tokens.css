@@ -202,6 +202,8 @@
   --brand-airtable-blue: #18bfff;
   --brand-airtable-red: #f82b60;
   --brand-gmail-blue: #4285f4;
+  /* The House of Commons' green, for a plain portcullis standing for Parliament. */
+  --brand-parliament-green: #006548;
   /* A text as a messaging app shows it: the wall behind it, our bubble, and the names on the bubbles. */
   --chat-wall: #e4ddd3;
   --chat-ours: #d9fdd3;

@@ -18,6 +18,9 @@ const askLimits = {
 /** What one supporter's copy of a broadcast is, by how it went: the first word of its page's title, and its step of the trail above it. */
 const copyKind = (channel: "email" | "text") => (channel === "email" ? "Email" : "Text");
 
+/** After a bounce alert, for a bounce read from a Gmail mailbox: a link to it there; nothing for one Postmark reported. */
+const bounceLine = (link: string | undefined) => (link ? `\n\nThe bounce, in Gmail:\n${link}` : "");
+
 export const staffCopy = {
   metaTitle: "PauseAI Staff",
   // The tooltip on a link out of the site, beside its arrow, which a screen reader reads as its description.
@@ -1881,14 +1884,15 @@ All events: ${link}`,
   // Postmark's reason sometimes ends in a full stop and sometimes doesn't.
   alert: {
     subject: (mp: string) => `A letter to ${mp} bounced`,
-    // The mail server's reason quoted after its own sentence, and the link on a line of its own.
-    body: (mp: string, address: string, reason: string, link: string) =>
-      `A letter to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's fixed in Airtable and unblocked here:\n${link}`,
+    // The mail server's reason quoted after its own sentence, and the link on a line of its own; then, for a
+    // bounce read from a Gmail mailbox, a link to it there.
+    body: (mp: string, address: string, reason: string, link: string, bounce?: string) =>
+      `A letter to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's fixed in Airtable and unblocked here:\n${link}${bounceLine(bounce)}`,
     // An email to an MP that wasn't a letter or a relay, or one the site can't place.
     notALetter: {
       subject: (mp: string) => `An email to ${mp} bounced`,
-      body: (mp: string, address: string, reason: string, link: string) =>
-        `An email to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's fixed in Airtable and unblocked here:\n${link}`,
+      body: (mp: string, address: string, reason: string, link: string, bounce?: string) =>
+        `An email to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's fixed in Airtable and unblocked here:\n${link}${bounceLine(bounce)}`,
     },
   },
   // The web imports, after the Airtable ones on the Scheduled jobs page: ControlAI's
@@ -1897,12 +1901,13 @@ All events: ${link}`,
   controlAi: {
     title: "ControlAI letter to the Prime Minister backing the Sobel bill",
     intro: {
-      before: "MPs and peers who signed ",
+      before: "Imports the MPs and peers who signed ",
       link: "the letter",
-      after: " are marked as having signed “ControlAI's letter to the Prime Minister”. This can't be changed by hand.",
+      after:
+        ", marking them as having signed “ControlAI's letter to the Prime Minister”. This can't be changed by hand.",
     },
     importNow: "Import ControlAI letter now",
-    never: "Not read yet.",
+    never: "Not imported yet.",
     result: (r: { signatories: number; matched: number; added: number; removed: number }) =>
       `${r.signatories} names, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
     columns: { name: "Name", problem: "Problem" },
@@ -1911,7 +1916,7 @@ All events: ${link}`,
   // The copy every 5 minutes of the Luma calendar's events, guests and contacts
   // (lib/server/luma-import.ts), on the Scheduled jobs page.
   luma: {
-    title: "Events and guests from Luma",
+    title: "Events, guests and subscriptions from Luma",
     intro: {
       before: "Imports the public events on ",
       link: "our Luma calendar",
@@ -1995,6 +2000,12 @@ All events: ${link}`,
       body: (inbox: string, lines: string[], runUrl: string) =>
         `Open each in Gmail and deal with it by hand: forward it, answer it, or leave it.\n\n${lines.join("\n")}\n\nThe run: ${runUrl}`,
     },
+  },
+  // The names our own inboxes go by on the emails the site sends them: the
+  // notification inbox, and the policy inbox an MP's reply is forwarded to.
+  inboxNames: {
+    notifications: "PauseAI UK notifications",
+    policy: "PauseAI UK policy",
   },
   // The emails to the notification inbox (lib/server/notifications.ts) that
   // aren't above (alert, lettersInbox.alert): each a subject, and a body with
@@ -2370,18 +2381,21 @@ All events: ${link}`,
     unmatchedAlert: {
       subject: (n: number) => `${count(n, "email", "emails")} in policy@ matched no politician`,
       body: (lines: string[], link: string) =>
+        // Each line its sender, subject and a link to it in Gmail, which opens for someone signed in to its mailbox.
         `Some emails arrived in the policy@ inbox and weren't kept, because they didn't match a politician. Work out who they're from, and widen the rule or add exceptions.\n\n${lines.join("\n")}\n\n${link}`,
       // After the list, when a report is full: how many wait for the next one.
       more: (n: number) => `And ${n} more, in the next report.`,
     },
   },
+  // The hourly pull of Global's UK members from its Airtable (lib/server/members-import.ts), said as the
+  // CiviCRM import below is, as the two are read side by side.
   members: {
-    title: "PauseAI members in the UK",
+    title: "UK members in Airtable",
     intro: {
-      before: "Everyone in the UK who joined PauseAI Global through ",
+      before: "Imports everyone in the UK in Global's Airtable who joined through ",
       link: "the join form",
       after:
-        " and agreed to share their details with PauseAI UK, or joined before July 2026. Copied from the global team's Airtable.",
+        " and agreed to share their details with PauseAI UK, or joined before July 2026. Their name, email, phone, town and postcode, and whether they asked to be kept informed.",
     },
     importNow: "Import members now",
     never: "Not imported yet.",
@@ -2400,10 +2414,10 @@ All events: ${link}`,
   civicrm: {
     title: "UK chapter contacts in CiviCRM",
     intro: {
-      before: "Everyone Global's ",
-      link: "CRM",
+      before: "Imports everyone in the UK chapter in Global's ",
+      link: "CiviCRM",
       after:
-        " has in the UK chapter. Whether they are subscribed to the UK newsletter and volunteer lists. Their “No bulk emails”, “Do not email”, “Do not phone”, “Do not SMS” and hold. No names or numbers.",
+        ": whether they're subscribed to the UK newsletter and volunteer lists, and their “No bulk emails”, “Do not email”, “Do not phone”, “Do not SMS” and hold. No names or numbers.",
     },
     importNow: "Import contacts now",
     never: "Not imported yet.",
@@ -2425,7 +2439,7 @@ All events: ${link}`,
     title: "Politicians from Airtable",
     // With a link to the table in the middle.
     intro: {
-      before: "Every politician in every body is copied from the ",
+      before: "Imports every politician in every body from the ",
       link: "UK Parliamentarians table in Airtable",
       after:
         ", except the Airtable test MPs. Whether they've signed a letter or attended an event is not copied. Runs that change lots of data are held for checking.",
@@ -2433,7 +2447,7 @@ All events: ${link}`,
     /** The test MPs (lib/test-mps.json) aren't in Airtable; every import adds any that are missing. */
     testMps: "Adds our own test MPs if any are missing.",
     syncNow: "Import politicians now",
-    none: "Not yet imported.",
+    none: "Not imported yet.",
     added: "Added",
     // Those whose record is no longer in Airtable.
     removed: "Gone from Airtable",
@@ -2606,25 +2620,34 @@ All events: ${link}`,
     // the rest, such as reading Gmail, sending mailings and tidying the logs.
     pageTitle: "Scheduled jobs",
     // Under the title.
-    pageIntro: "Status of data syncing and email syncing",
-    // Each import's icons, named for screen readers and on hover: where it's
-    // from. Then how often it runs, the overview's headings and a lozenge on
-    // the job's page, and the lozenges after some jobs' names: those that act
-    // outside the site, and the one that keeps the site tidy.
+    pageIntro: "Imports, mail and tidying that run on a timer",
+    // Each job's icon, named for screen readers and on hover: where it reads
+    // from or works on. Then how often it runs, the overview's headings and a
+    // lozenge on the job's page.
     airtable: "Airtable",
-    web: "Web",
+    parliament: "UK Parliament",
+    controlai: "ControlAI",
     database: "Database",
     luma: "Luma",
     civicrm: "CiviCRM",
     gmail: "Gmail",
     nightly: "Nightly",
+    // What a job that isn't an import does, a lozenge after its name: compares
+    // with another list, reads mail, sends mail, or keeps the site tidy.
+    kinds: {
+      check: "Check",
+      read: "Reads mail",
+      send: "Sends mail",
+      tidy: "Tidy",
+    },
+    // After that, for the Luma import, which tags Luma's events. Reading Gmail,
+    // which relays mail and emails staff, has "Sends mail" (kinds.send).
+    changesLuma: "Changes Luma",
     // On a job's page, while a run of it is going: one a staff member started, or one of its schedule's.
     running: (who: string, when: string) => `Running, started by ${who} at ${when}. Can only run one at a time.`,
     runningScheduled: (when: string) => `Running now, started at ${when}. Can only run one at a time.`,
     frequent: "Every 5 minutes",
     hourly: "Hourly",
-    takesAction: "Takes action",
-    siteAdmin: "Site admin",
   },
   allLetters: {
     title: "Correspondence",

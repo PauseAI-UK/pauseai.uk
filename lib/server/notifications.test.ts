@@ -1,7 +1,8 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { NOTIFICATIONS, notifications } from "@/tests/notifications";
+import { NOTIFICATIONS, notifications, toNotifications } from "@/tests/notifications";
+import { saveStaffAccount } from "./staff-accounts";
 import { query } from "./db";
 import { notifyStaff, reportMailingBounces, staffLink } from "./notifications";
 
@@ -21,7 +22,7 @@ describeWithDatabase("notifyStaff", () => {
   it("emails the notification inbox, logged as a staff alert, and nothing where it isn't set", async () => {
     const sent = notifications();
     expect(await notifyStaff("Subject", "Body")).toBe(true);
-    expect(sent).toEqual([expect.objectContaining({ To: NOTIFICATIONS, Subject: "Subject", TextBody: "Body" })]);
+    expect(sent).toEqual([expect.objectContaining({ To: toNotifications(), Subject: "Subject", TextBody: "Body" })]);
     expect(await query("SELECT purpose, address, letter_id FROM email_sends")).toEqual([
       { purpose: "staff-alert", address: NOTIFICATIONS, letter_id: null },
     ]);
@@ -30,10 +31,12 @@ describeWithDatabase("notifyStaff", () => {
     expect(sent).toHaveLength(1);
   });
 
-  it("copies a staff member it's about", async () => {
+  it("copies a staff member it's about, by the name their Gmail sends as", async () => {
     const sent = notifications();
+    await saveStaffAccount("jo@pauseai.uk", [], "test");
+    await query("UPDATE staff_accounts SET gmail_name = 'Jo Bloggs'");
     await notifyStaff("Subject", "Body", null, "staff-alert", "jo@pauseai.uk");
-    expect(sent).toEqual([expect.objectContaining({ To: NOTIFICATIONS, Cc: "jo@pauseai.uk" })]);
+    expect(sent).toEqual([expect.objectContaining({ To: toNotifications(), Cc: `"Jo Bloggs" <jo@pauseai.uk>` })]);
   });
 });
 
@@ -46,8 +49,21 @@ describeWithDatabase("reportMailingBounces", () => {
   const NAME = "Testy McTestface MP";
   let messages = 0;
 
-  /** A letter to the MP sent as `purpose`, and a problem with it from `at`. */
-  async function bounced(mp: number, reason: string, { kind = "hard", purpose = "mailing", at = "now()" } = {}) {
+  /**
+   * A letter to the MP sent as `purpose`, and a problem with it from `at`:
+   * Postmark's, or a bounce read from Gmail with its `gmailId`, in `account`'s mailbox if it's known.
+   */
+  async function bounced(
+    mp: number,
+    reason: string,
+    {
+      kind = "hard",
+      purpose = "mailing",
+      at = "now()",
+      gmailId = null as string | null,
+      account = null as string | null,
+    } = {},
+  ) {
     const [{ id }] = await query<{ id: number }>(
       "INSERT INTO letters (kind, notable_person_id, status) VALUES ('pauseai', $1, 'bounced') RETURNING id::int AS id",
       [mp],
@@ -58,8 +74,9 @@ describeWithDatabase("reportMailingBounces", () => {
       [purpose, id, ADDRESS, messageId],
     );
     await query(
-      `INSERT INTO email_problems (address, message_id, kind, reason, can_reset, at) VALUES ($1, $2, $3, $4, $5, ${at})`,
-      [ADDRESS, messageId, kind, reason, kind !== "complaint"],
+      `INSERT INTO email_problems (address, message_id, kind, reason, can_reset, at, gmail_message_id, details)
+       VALUES ($1, $2, $3, $4, $5, ${at}, $6, $7)`,
+      [ADDRESS, messageId, kind, reason, kind !== "complaint", gmailId, account ? { account } : {}],
     );
   }
 
@@ -113,6 +130,23 @@ describeWithDatabase("reportMailingBounces", () => {
       Subject: words.subject(1),
       TextBody: words.body([`- ${NAME} (${ADDRESS}): Mailbox gone`], LINK),
     });
+  });
+
+  it("links each bounce read from a Gmail mailbox to it there", async () => {
+    const sent = setUp();
+    const mp = await addTestMp();
+    await bounced(mp, "Unknown user", { gmailId: "g1", account: "jo@pauseai.uk" });
+    await bounced(mp, "No such user", { gmailId: "g2" });
+    await reportMailingBounces(undefined);
+    expect(sent[0].TextBody).toBe(
+      words.body(
+        [
+          `- ${NAME} (${ADDRESS}): Unknown user https://mail.google.com/mail/?authuser=jo%40pauseai.uk#all/g1`,
+          `- ${NAME} (${ADDRESS}): No such user`,
+        ],
+        LINK,
+      ),
+    );
   });
 
   it("tells of them next time if its email didn't go", async () => {

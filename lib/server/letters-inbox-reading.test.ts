@@ -1,6 +1,7 @@
 import { gunzipSync } from "node:zlib";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
+import { toNotifications } from "@/tests/notifications";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { copy } from "@/lib/content/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -519,7 +520,7 @@ describeWithDatabase("reading the letters inbox", () => {
     await read();
     expect(emails).toHaveLength(1);
     expect(emails[0]).toMatchObject({
-      To: "notifications@example.org",
+      To: toNotifications(),
       Subject: staffCopy.lettersInbox.alert.subject(2, LETTERS_INBOX),
       Tag: "staff-alert",
     });

@@ -687,10 +687,14 @@ describeWithDatabase("one-off emails", () => {
       expect(await reportUnmatchedMail(token)).toBe(1);
     });
 
-    it("lists each by sender and subject, once", async () => {
+    it("lists each by sender and subject, with a link to it in its mailbox, once", async () => {
       await add("r1");
       mailbox({ id: "r1", from: "Sue <sue@example.com>", subject: "Hiring?" });
+      const sent = notifications();
       expect(await reportUnmatchedMail(token)).toBe(1);
+      expect(sent[0].TextBody).toContain(
+        "- Sue <sue@example.com>: Hiring? https://mail.google.com/mail/?authuser=policy%40pauseai.uk#all/r1",
+      );
       const [{ subject }] = await query<{ subject: string }>(
         "SELECT subject FROM email_sends WHERE purpose = 'staff-report'",
       );

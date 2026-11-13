@@ -60,7 +60,8 @@ describe("pairRuns", () => {
       expect.objectContaining({ flow: "login", frames: 4, changed: 3, status: "passed", mainStatus: "passed" }),
       expect.objectContaining({ flow: "letters", viewport: "phone", frames: 1, changed: 0 }),
     ]);
-    expect(board.summary).toEqual({ flows: 2, failed: 0, frames: 5, changed: 3, mainFailed: 0 });
+    expect(board.summary).toEqual({ flows: 2, failed: 0, frames: 5, changed: 3, mainMissing: 0 });
+    expect(board.flows.map((f) => f.mainMissing)).toEqual([undefined, undefined]);
   });
 
   it("keeps the story told before each frame, and after the last", async () => {
@@ -81,6 +82,20 @@ describe("pairRuns", () => {
       expect.objectContaining({ caption: "form", changed: false, branch: "desktop/login/1.png" }),
     ]);
     expect(board.flows[0].mainStatus).toBeUndefined();
+    // Nothing to compare with at all isn't main missing for one flow.
+    expect(board.flows[0].mainMissing).toBeUndefined();
+    expect(board.summary.mainMissing).toBe(0);
+  });
+
+  it("puts a flow main hasn't run, as one new here, under main missing, its frames not counted as changed", async () => {
+    const main: RunManifest = { frames: [run("login", ["form"])] };
+    const board = await pairRuns({ frames: [run("login", ["form"]), run("signup", ["form", "sent"])] }, main, same);
+    expect(board.flows.map((f) => [f.flow, f.mainMissing, f.changed])).toEqual([
+      ["login", undefined, 0],
+      ["signup", "not-run", 0],
+    ]);
+    expect(board.frames.filter((f) => f.flow === "signup").map((f) => f.changed)).toEqual([true, true]);
+    expect(board.summary).toMatchObject({ changed: 0, mainMissing: 1 });
   });
 
   it("keeps a failed flow's error, and main's status when main failed", async () => {
@@ -93,7 +108,8 @@ describe("pairRuns", () => {
     // Main got no frame, so this branch's is new to it.
     expect(board.frames[0]).toMatchObject({ changed: true, main: undefined, status: "failed" });
     expect(board.summary.failed).toBe(1);
-    expect(board.summary).toMatchObject({ changed: 0, mainFailed: 1 });
+    expect(board.summary).toMatchObject({ changed: 0, mainMissing: 1 });
+    expect(board.flows[0].mainMissing).toBe("failed");
     expect(board.flows[0].changed).toBe(0);
   });
 

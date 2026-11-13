@@ -5,7 +5,7 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { fakeTurnstile, fillLetter, lookUpTestMp, newestEmail } from "../steps";
 import { BASE, emailFrame, expect, frame, madeUpAddress, story, test } from "./fixtures";
-import { logIn, NOTIFICATION_INBOX, settled } from "./staff-steps";
+import { logIn, settled, TO_NOTIFICATIONS } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Errors", part: "Staff pages", order: 135 };
@@ -20,7 +20,7 @@ const errors = staffCopy.errorsSeen;
 
 /** The email to the notification inbox with this subject, once it's there. */
 async function notified(subject: string) {
-  const sent = () => newestEmail((email) => email.To === NOTIFICATION_INBOX && email.Subject === subject);
+  const sent = () => newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === subject);
   await expect.poll(sent).toBeTruthy();
   return sent()!;
 }
@@ -142,21 +142,23 @@ test("An error marked done", async ({ page, flowDatabase }) => {
   await expect(page.getByRole("heading", { level: 1, name: words })).toBeVisible();
   await frame(page, "The error's own page");
 
-  story("They mark it done. The page says who did, and when.");
+  story("They mark it done, and are taken back to the errors to do, ready for the next. It's gone from there.");
   await page.getByRole("button", { name: errors.one.markDone }).click();
-  await expect(page.getByRole("button", { name: errors.one.undo })).toBeVisible();
-  await frame(page, "Marked done");
-
-  story("It's gone from the errors to do, and is under Done, with the one marked done before.");
-  await page
-    .getByRole("navigation", { name: staffCopy.breadcrumb })
-    .getByRole("link", { name: staffCopy.nav.errors })
-    .click();
+  await expect(page).toHaveURL(`${BASE}/staff/errors`);
   await expect(page.getByRole("link", { name: words })).toHaveCount(0);
+  await settled(page);
+  await frame(page, "Back at the errors to do");
+
+  story("It's under Done, with the one marked done before.");
   await page.getByRole("link", { name: errors.tabs.done }).click();
   await expect(page.getByRole("link", { name: words })).toBeVisible();
   await settled(page);
   await frame(page, "The errors done");
+
+  story("Its page says who marked it done, and when, with a button to put it back.");
+  await page.getByRole("link", { name: words }).click();
+  await expect(page.getByRole("button", { name: errors.one.undo })).toBeVisible();
+  await frame(page, "Marked done");
 });
 
 test("An error done happens again", async ({ page, flowDatabase }) => {
@@ -171,7 +173,7 @@ test("An error done happens again", async ({ page, flowDatabase }) => {
   const words = "Asked to break, from a click, on try <n>";
   await page.getByRole("link", { name: words }).click();
   await page.getByRole("button", { name: errors.one.markDone }).click();
-  await expect(page.getByRole("button", { name: errors.one.undo })).toBeVisible();
+  await expect(page.getByRole("link", { name: words })).toHaveCount(0);
 
   story("Someone clicks the button again, and it throws again. The error is back with those to do, counted twice.");
   await page.goto(`${BASE}/broken`);

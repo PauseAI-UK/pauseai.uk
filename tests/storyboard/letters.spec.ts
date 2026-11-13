@@ -10,7 +10,7 @@ import {
   bouncy,
   BOUNCY_ADDRESS,
   logIn,
-  NOTIFICATION_INBOX,
+  TO_NOTIFICATIONS,
   postBounce,
   postReply,
   sentLetterId,
@@ -225,7 +225,7 @@ test("A letter bounces", async ({ page, request, flowDatabase }) => {
   await bounceLetter(request, flowDatabase, letterId, BOUNCY_ADDRESS);
 
   const alert = newestEmail(
-    (email) => email.To === NOTIFICATION_INBOX && email.Subject === staffCopy.alert.subject(bouncy.name),
+    (email) => email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.alert.subject(bouncy.name),
   );
   expect(alert?.TextBody).toContain(`${BASE}/staff/politicians/addresses-to-fix`);
   await emailFrame(page, alert!, "The email staff get");

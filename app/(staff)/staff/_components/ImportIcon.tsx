@@ -3,14 +3,17 @@ import type { ReactNode } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import styles from "./ImportIcon.module.css";
 
-/** Where an import reads from. */
-export type ImportSource = "airtable" | "luma" | "civicrm" | "gmail" | "web" | "database";
+/** Where a job reads from, or works on. */
+export type ImportSource = "airtable" | "luma" | "civicrm" | "gmail" | "parliament" | "controlai" | "database";
 
 // Each service's own mark, in its own colours: Airtable's three boxes (its
 // shape Simple Icons', https://simpleicons.org, CC0), Gmail's M, and Luma's
-// star and CiviCRM's triangle, their own pictures from luma.com and
-// civicrm.org, as Luma's is shaded and CiviCRM's has no flat copy to hand.
-// The web, no one's, is a globe, and our own database a stack of discs.
+// star, CiviCRM's triangle and ControlAI's box, their own pictures from
+// luma.com, civicrm.org and controlai.com, as Luma's is shaded and the others
+// have no flat copy to hand. Parliament's is a plain portcullis in the
+// Commons' green, not its crowned one, whose use Parliament restricts
+// (https://www.parliament.uk/site-information/copyright-parliament/the-crowned-portcullis/).
+// Our own database, no one's, is a stack of discs.
 const MARKS: Record<ImportSource, ReactNode> = {
   airtable: (
     <svg viewBox="0 0 24 24">
@@ -39,11 +42,14 @@ const MARKS: Record<ImportSource, ReactNode> = {
   ),
   luma: <Image src="/images/logos/luma.png" alt="" width={36} height={36} />,
   civicrm: <Image src="/images/logos/civicrm.png" alt="" width={36} height={35} />,
-  web: (
-    <svg viewBox="0 0 24 24" className={styles.line}>
-      <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" />
-      <path d="M3 12h18" />
-      <path d="M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z" />
+  controlai: <Image src="/images/logos/controlai.png" alt="" width={36} height={36} />,
+  // Chains from its top corners, a beam, five bars down ending in spikes, and three across.
+  parliament: (
+    <svg viewBox="0 0 24 24" fill="var(--brand-parliament-green)">
+      <path d="M3 1h1.5v4H3zM19.5 1H21v4h-1.5z" />
+      <path d="M2 5h20v2H2z" />
+      <path d="M3 7h1.6v12L3.8 21 3 19zM7.6 7h1.6v12l-.8 2-.8-2zM11.2 7h1.6v12l-.8 2-.8-2zM14.8 7h1.6v12l-.8 2-.8-2zM19.4 7H21v12l-.8 2-.8-2z" />
+      <path d="M3 10h18v1.5H3zM3 13.5h18V15H3zM3 17h18v1.5H3z" />
     </svg>
   ),
   database: (

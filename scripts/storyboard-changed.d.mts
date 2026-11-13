@@ -2,8 +2,8 @@ import type { Flow, Frame, Storyboard } from "../tests/storyboard/report/frames.
 
 type Changed = {
   frames: { kind: "differs" | "new" | "gone"; frame: Frame }[];
+  missing: { flow: Flow; frames: Frame[] }[];
   failed: Flow[];
-  failedOnMain: Flow[];
   noise: number;
 };
 

@@ -3,12 +3,12 @@ import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { type ImportJob, importPath } from "@/lib/import-runs";
 import { staffDate } from "@/lib/staff-time";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { FIXTURE_NOW, LETTERS_INBOX, NOTIFICATION_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
+import { FIXTURE_NOW, LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { failService } from "@/lib/server/fixtures/failing-services";
 import { addStaffAccount, logInAsStaff, newestEmail, syncPoliticians } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
-import { connectPolicyMailboxes, logIn, staffEmail } from "./staff-steps";
+import { connectPolicyMailboxes, logIn, staffEmail, TO_NOTIFICATIONS } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };
@@ -19,7 +19,7 @@ export const section: Section = { name: "Imports", part: "Staff pages", order: 1
 
 /** The newest email to the notification inbox with `subject`. */
 const notified = (subject: string) =>
-  newestEmail((email) => email.To === NOTIFICATION_INBOX && email.Subject === subject);
+  newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === subject);
 
 test("The Luma import", async ({ page, flowDatabase }) => {
   story(
@@ -67,7 +67,7 @@ test("The Luma import", async ({ page, flowDatabase }) => {
 
 test("The members import", async ({ page, flowDatabase }) => {
   story(
-    "Staff run the members import, which copies PauseAI members in the UK from the global team's Airtable. Every member is copied but one, who was erased.",
+    "Staff run the members import, which copies the UK members in Global's Airtable. Every member is copied but one, who was erased.",
   );
   runSql(flowDatabase, "INSERT INTO airtable_members_erased (id) VALUES ('recMemberErased')");
   await logIn(page, flowDatabase);
@@ -478,7 +478,7 @@ test("Keeping Joseph's threads", async ({ page, flowDatabase }) => {
 
 test("Mail that matches nothing", async ({ page, request, flowDatabase }) => {
   story(
-    "Mail in policy@ that isn't about a politician isn't kept, but staff get a list of it, once a day, by sender and subject.",
+    "Mail in policy@ that isn't about a politician isn't kept, but staff get a list of it, once a day, by sender and subject, each with a link to it in policy@'s Gmail.",
   );
   await syncPoliticians(request, BASE);
   connectPolicyMailboxes(flowDatabase);
@@ -490,5 +490,6 @@ test("Mail that matches nothing", async ({ page, request, flowDatabase }) => {
   await expect.poll(() => newestEmail((email) => email.Subject === subject)).toBeTruthy();
   const report = newestEmail((email) => email.Subject === subject)!;
   expect(report.TextBody).toContain("Are you hiring?");
+  expect(report.TextBody).toContain("https://mail.google.com/mail/?authuser=policy%40pauseai.uk#all/0b02");
   await emailFrame(page, report, "The email staff get");
 });

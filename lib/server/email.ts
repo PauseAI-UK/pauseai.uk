@@ -82,6 +82,8 @@ export type DeliveryProblem = {
   details?: object;
   /** The bounce's own message, when it was read from a Gmail mailbox rather than reported by Postmark. */
   gmailMessageId?: string;
+  /** The Gmail mailbox it was read from, with `gmailMessageId`. */
+  gmailAccount?: string;
 };
 
 /** Who the audit log says blocked an address. */
