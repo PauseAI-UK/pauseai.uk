@@ -20,6 +20,14 @@ const SEND_URL = "https://api.postmarkapp.com/email";
 const STREAMS = { transactional: "outbound", broadcast: "broadcast" } as const;
 export type PostmarkStream = keyof typeof STREAMS;
 const unsuppressUrl = (stream: string) => `https://api.postmarkapp.com/message-streams/${stream}/suppressions/delete`;
+/**
+ * The statuses Postmark answers with for something that isn't there: 404
+ * for an entity, and 422 for a request that's wrong, as its error 1226 is,
+ * "The message stream for the provided ID was not found"
+ * (https://postmarkapp.com/developer/api/overview). Its docs don't say which
+ * a stream's suppressions give, so either is taken.
+ */
+const NO_SUCH = [404, 422];
 /** Postmark's error for an address on the stream's suppression list. */
 const INACTIVE_RECIPIENT = 406;
 /** Postmark accepts this token, and answers as if it sent the email. */
@@ -133,6 +141,9 @@ export async function sendEmail(email: Email, stream: PostmarkStream = "transact
  * to it again, as our block is one for every email. Postmark won't for a
  * spam complaint, and says so only in its
  * answer, which is ignored: if it still refuses, the next email learns that.
+ * Throws if Postmark refuses, but for a broadcast stream the server doesn't
+ * have (NO_SUCH): nothing is suppressed on a stream that isn't there, and
+ * unblocking mustn't wait for one to be made.
  * The dev server, without a real token, doesn't ask.
  */
 export async function unsuppress(address: string): Promise<void> {
@@ -153,7 +164,10 @@ export async function unsuppress(address: string): Promise<void> {
       },
       body: JSON.stringify({ Suppressions: [{ EmailAddress: address }] }),
     });
-    if (!res.ok) throw new PostmarkError(`Postmark refused to unsuppress the address: ${res.status}`);
+    const noBroadcastStream = stream === STREAMS.broadcast && NO_SUCH.includes(res.status);
+    if (!res.ok && !noBroadcastStream) {
+      throw new PostmarkError(`Postmark refused to unsuppress the address: ${res.status}`);
+    }
   }
 }
 

@@ -185,8 +185,14 @@ export function lookUpContacts(key: string, emails: string[]): Promise<CivicrmCo
 export const SUPPRESSION_BATCH = 500;
 export const UPDATE_BATCH = 100;
 
-/** Whether PauseAI may email an address: `all` stops every email, `bulk` bulk email, `none` neither. */
-export const BLOCKS = ["none", "bulk", "all"] as const;
+/**
+ * Whether PauseAI may email an address: `all` stops every email, `bulk` bulk
+ * email, `none` neither. `unchecked` is CiviCRM not having looked: until
+ * Global lets the check answer for everyone, it does for an address that
+ * isn't a UK contact's, which then follows our own records, as the spec has
+ * it.
+ */
+export const BLOCKS = ["none", "bulk", "all", "unchecked"] as const;
 export type Block = (typeof BLOCKS)[number];
 
 /** Whether PauseAI may call or text a number: "Do not phone" stops calls, "Do not SMS" texts, WhatsApp too. */
@@ -200,15 +206,18 @@ export type Suppressions = { emails: Map<string, Block>; phones: Map<string, Num
  * email" (`all`) or "No bulk emails" (`bulk`), across every contact with the
  * address, in any chapter or none; and calls or texts to each of `phones`,
  * in international format, by "Do not phone" or "Do not SMS": up to
- * SUPPRESSION_BATCH of both a call. Each address as CiviCRM gives it back,
- * trimmed and lowercased, and each number as sent. A flag CiviCRM leaves
- * null, for a number it doesn't answer for, blocks nothing, as the spec
- * has it follow our own records. Throws if any sent is missing, or an
- * address's block isn't one we know.
+ * SUPPRESSION_BATCH of both a call. Each address and number as it was
+ * asked: CiviCRM echoes each as sent, and an address is matched to its echo
+ * whatever its case or the space round it, so neither can lose one its
+ * answer. A flag CiviCRM leaves null, for a number it doesn't answer for,
+ * blocks nothing, as the spec has it follow our own records. Throws if any
+ * sent is missing, which the spec says never happens, or an address's block
+ * isn't one we know.
  */
 export async function checkSuppression(key: string, emails: string[], phones: string[] = []): Promise<Suppressions> {
   const rows = await call(key, "checkSuppression", { email: emails, phone: phones }, "POST");
   const found: Suppressions = { emails: new Map(), phones: new Map() };
+  const answered = new Map<string, Block>();
   for (const row of rows) {
     if (typeof row.phone === "string") {
       found.phones.set(row.phone, { doNotPhone: row.do_not_phone === true, doNotSms: row.do_not_sms === true });
@@ -218,7 +227,11 @@ export async function checkSuppression(key: string, emails: string[], phones: st
     if (!(BLOCKS as readonly unknown[]).includes(row.block)) {
       throw new CivicrmRequestError(`CiviCRM gave an address a block we don't know: ${String(row.block)}`);
     }
-    found.emails.set(row.email.trim().toLowerCase(), row.block as Block);
+    answered.set(row.email.trim().toLowerCase(), row.block as Block);
+  }
+  for (const email of emails) {
+    const block = answered.get(email.trim().toLowerCase());
+    if (block) found.emails.set(email, block);
   }
   const missing = emails.filter((email) => !found.emails.has(email)).length;
   if (missing) throw new CivicrmRequestError(`CiviCRM didn't say whether ${missing} addresses are blocked`);

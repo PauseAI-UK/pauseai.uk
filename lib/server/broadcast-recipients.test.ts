@@ -33,7 +33,8 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
       meets: ["has:firstName", "has:name", "event:evt-1"],
     });
     expect(recipients.find((one) => one.id === sam)).toMatchObject({
-      name: staffCopy.supporters.noName,
+      // No name, which the email's To is without; where its words name them, a fallback.
+      name: null,
       values: { firstName: copy.fallbacks.firstName, name: copy.fallbacks.name },
     });
     expect(fields.map(({ id, lacking, fallback }) => ({ id, lacking, fallback }))).toEqual([
@@ -106,8 +107,8 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
     const nobody = await addFollower("usr-4", "nobody@example.com", "");
     const { recipients } = await supporterAudience(FILTER, { channel: "text", topics: ["newsletter"] });
     expect(recipients).toEqual([]);
-    // Pat never said yes, Sam asked us to stop and Bob's address is blocked: only the one with no name goes, said so.
+    // Pat never said yes, Sam asked us to stop and Bob's address is blocked: only the one with no name goes.
     const email = await supporterAudience(FILTER, EMAIL);
-    expect(email.recipients.map((one) => [one.id, one.name])).toEqual([[nobody, staffCopy.supporters.noName]]);
+    expect(email.recipients.map((one) => [one.id, one.name])).toEqual([[nobody, null]]);
   });
 });

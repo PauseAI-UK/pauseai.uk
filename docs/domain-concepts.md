@@ -431,13 +431,25 @@ job all leave broadcasts out.
   every address is checked with CiviCRM's `checkSuppression`, which drops
   anyone PauseAI mustn't bulk email ("Opt-outs", below), but for "No bulk
   emails" lifted on the contact preferences page and not yet sent to
-  CiviCRM, which skips the copy without an opt-out. Each then goes, with
+  CiviCRM, which skips the copy without an opt-out. An address CiviCRM
+  answers `unchecked` for, as it does for one that isn't a UK contact's
+  until Global lets the check answer for everyone, follows our own records
+  and goes. CiviCRM answers for every address it's asked about, so an
+  answer that leaves one out is CiviCRM not answering ("Waiting for
+  CiviCRM", below). Each copy is then marked as handed to its channel
+  (`handed_at`) and goes, an email with
   its unsubscribe link token made then, only its hash kept; those a run has
-  no time left for are put back, as are the rest when Gmail answers that
-  it can't send for now (busy, down, or the account's access revoked), to
-  go on the next run. A copy Gmail refuses is failed. A copy a stopped run
-  left `sending` for half an hour is failed, not sent again, as it may
-  have gone. While copies
+  no time left for are put back, as are the rest when the channel answers that
+  it can't send for now (Gmail busy, down, at a limit or quota, or the account's
+  access refused or revoked: `ACCOUNT_REFUSALS` in `lib/server/email.ts`).
+  A copy its channel refuses for itself is failed. After any failed try, no more
+  of the broadcast goes for half an hour (`REST_MINUTES`, from
+  `mailings.try_failed_at`), however often the sending is called, so
+  whatever fails every copy fails two an hour, each reported, not
+  everyone. A copy a stopped run left `sending` for
+  half an hour is failed, not sent again, if it had been handed to its
+  channel, as it may have gone; one the run had only taken never went, so
+  it's put back to go. While copies
   are left, the run starts the background function as letters do ("Mailings
   to politicians"). Each channel has a sender, and one loop sends by either.
 - **What sends a text**: WhatsApp's Cloud API
@@ -459,7 +471,8 @@ job all leave broadcasts out.
   `lib/broadcasts.ts`). An email is always from `hello@pauseai.uk`
   (`BROADCAST_SENDER`), where its replies are read. It goes by one of the
   channels mailings go by (`lib/server/mailing-channels.ts`), through
-  `send()`, with its files, its unsubscribe link at its foot and in its
+  `send()`, to its supporter by name, or to their address alone if they
+  have none, with its files, its unsubscribe link at its foot and in its
   `List-Unsubscribe` and `List-Unsubscribe-Post` headers:
   - **Gmail**, `hello@`'s own connected Gmail, one a second, up to the
     account's daily limit (`GMAIL_DAILY_LIMIT`, 1,800, which leaves room
@@ -477,9 +490,10 @@ job all leave broadcasts out.
   answer its check; whoever scheduled it and the notification inbox are
   emailed once, and its page says since when and why. It goes by itself
   when it can. A scheduled one's page says quietly when it would stop.
-- **Stopping.** A broadcast still waiting for CiviCRM three days after its
-  time (`WAIT_DAYS`), or still sending, at a day's limit of emails, seven
-  days after it (`SENDING_DAYS`, both in `lib/broadcast-days.ts`, which the
+- **Stopping.** A broadcast that has waited for CiviCRM for three days
+  (`WAIT_DAYS`), from when it first couldn't go, whether at its time or
+  days into sending, or one still sending, at a day's limit of emails, seven
+  days after its time (`SENDING_DAYS`, both in `lib/broadcast-days.ts`, which the
   pages' words take their numbers from), stops: its copies not yet gone
   are cancelled, and whoever scheduled it and the notification inbox are
   emailed why and how many it didn't reach (`wait_reason`: `civicrm`,
@@ -1372,7 +1386,10 @@ The two pages' first addresses, `/staff/politicians/blocked-emails` and
 linked there (`next.config.ts`).
 
 Staff can unblock an address that bounced, which asks Postmark to send to it
-again. A complaint can't be unblocked.
+again, on both its streams (`unsuppress`). The transactional stream refusing
+stops the unblock; the broadcast stream refusing doesn't, as a Postmark
+server without that stream has nothing suppressed on it, though Postmark
+failing does. A complaint can't be unblocked.
 
 What a bounce means depends on the email's purpose, so each purpose can
 have a hook (`lib/server/delivery-problems.ts`). A letter's hook marks the

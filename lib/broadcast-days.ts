@@ -2,7 +2,7 @@
 // rules (lib/broadcasts.ts) and the words that say them
 // (lib/content/staff-interface.ts), which can't import each other.
 
-/** How long after its time a broadcast waits for CiviCRM before it stops. */
+/** How long a broadcast waits for CiviCRM, from when it first couldn't go, before it stops. */
 export const WAIT_DAYS = 3;
 
 /** How long after its time a broadcast has to all go, at a day's limit of emails, before it stops. */

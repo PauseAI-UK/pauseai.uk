@@ -48,9 +48,11 @@ import { markUnreachable, templateParams, textResult, textsLeftToday, unreachabl
 // A text goes by the fake backend a fixture build has, and nothing on the
 // live site. Nothing goes unchecked: with no complete CiviCRM pull for a
 // day, or CiviCRM not answering, a broadcast waits, and staff are told
-// once; it goes by itself when it can. One still waiting WAIT_DAYS after
-// its time, or still sending SENDING_DAYS after (lib/broadcast-days.ts),
-// stops, and whoever scheduled it is told who it didn't reach.
+// once; it goes by itself when it can. One that has waited WAIT_DAYS, or is
+// still sending SENDING_DAYS after its time (lib/broadcast-days.ts), stops,
+// and whoever scheduled it is told who it didn't reach. A try at a copy
+// that fails rests its broadcast a while (REST_MINUTES), so nothing that
+// fails every copy can fail everyone.
 
 /** Who the audit log says started and finished a broadcast. */
 const JOB = "send-mailings";
@@ -120,8 +122,8 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
       : cancelled.length;
   await query(
     `UPDATE mailings SET state = 'cancelled', gave_up = true, wait_reason = $2,
-       waiting_since = coalesce(waiting_since, now()), updated_at = now() WHERE id = $1`,
-    [broadcast.id, reason],
+       waiting_since = coalesce(waiting_since, $3), updated_at = now() WHERE id = $1`,
+    [broadcast.id, reason, now()],
   );
   await logChange(JOB, "stop broadcast", { id: broadcast.id, was: broadcast.state });
   const email = staffCopy.notifications.broadcastGaveUp;
@@ -151,13 +153,17 @@ export async function stopTextsOn(templateId: number): Promise<number> {
 
 /**
  * Has a broadcast wait for `reason`, from now if it wasn't, telling staff
- * once; or stops it, if it's been WAIT_DAYS past its time.
+ * once; or stops it, if it has waited WAIT_DAYS. Those run from when it
+ * began to wait, by the site's clock, not from its time: one that's days
+ * into sending when CiviCRM first fails has them all.
  */
 async function wait(broadcast: Due, reason: WaitReason): Promise<void> {
-  if (now() >= waitStopsAt(broadcast.dueAt)) return giveUp(broadcast, reason);
-  await query("UPDATE mailings SET waiting_since = coalesce(waiting_since, now()), wait_reason = $2 WHERE id = $1", [
+  if (broadcast.waitingSince && now() >= waitStopsAt(broadcast.waitingSince)) return giveUp(broadcast, reason);
+  const began = now();
+  await query("UPDATE mailings SET waiting_since = coalesce(waiting_since, $3), wait_reason = $2 WHERE id = $1", [
     broadcast.id,
     reason,
+    began,
   ]);
   if (broadcast.waitingSince) return;
   const email = staffCopy.notifications.broadcastWaiting;
@@ -166,7 +172,7 @@ async function wait(broadcast: Due, reason: WaitReason): Promise<void> {
     email.body(
       broadcast.title,
       reason,
-      staffTime(waitStopsAt(broadcast.dueAt)),
+      staffTime(waitStopsAt(began)),
       staffLink(`/staff/broadcasts/${broadcast.id}`, undefined),
     ),
     null,
@@ -244,7 +250,8 @@ type Copy = {
   address: string;
   rfcMessageId: string;
   topics: Topic[];
-  mergeValues: MailingRecipientValues & { name: string };
+  /** Their name with them, none for someone who has none. */
+  mergeValues: MailingRecipientValues & { name: string | null };
 };
 
 /** Each copy's answer now: whether any of its topics says yes, and if none, why. */
@@ -323,7 +330,28 @@ function copyMessage(broadcast: Sending, copy: Copy, linkToken: string, attachme
 /** What a run of sending broadcasts did, and how many copies of those sending are left to go. */
 export type BroadcastRun = { sent: number; skipped: number; failed: number; waiting: number; left: number };
 
-type Sending = Due & { subject: string; body: unknown; sentFrom: string; fromName: string };
+type Sending = Due & {
+  subject: string;
+  body: unknown;
+  sentFrom: string;
+  fromName: string;
+  /** Whether a try at one of its copies failed in the last REST_MINUTES. */
+  resting: boolean;
+};
+
+/**
+ * How long a broadcast rests after a try at one of its copies failed,
+ * before another is tried. A failed copy is never sent again, so this is
+ * what bounds the cost of something failing every copy: two an hour, each
+ * reported, however often the sending is called, which the background
+ * function does again at once while anything else is going.
+ */
+const REST_MINUTES = 30;
+
+/** Notes that a try at one of a broadcast's copies failed just now, for it to rest from. */
+async function tryFailed(broadcast: Sending): Promise<void> {
+  await query("UPDATE mailings SET try_failed_at = now() WHERE id = $1", [broadcast.id]);
+}
 
 /**
  * The most copies of a broadcast taken at once, to be checked with CiviCRM
@@ -348,12 +376,26 @@ async function nextCopies(id: number, limit: number): Promise<Copy[]> {
   ).then((copies) => copies.sort((a, b) => a.id - b.id));
 }
 
-/** Puts copies taken and not sent back to go later: those still sending, not one skipped or kept meanwhile. */
+/**
+ * Puts copies taken and not sent back to go later: those still sending, not
+ * one skipped or kept meanwhile. None went, so each is as one never handed
+ * to its channel (hand).
+ */
 async function putBack(copies: Copy[]): Promise<void> {
   await query(
-    "UPDATE broadcast_messages SET status = 'scheduled', sending_since = NULL WHERE id = ANY($1::bigint[]) AND status = 'sending'",
+    `UPDATE broadcast_messages SET status = 'scheduled', sending_since = NULL, handed_at = NULL
+     WHERE id = ANY($1::bigint[]) AND status = 'sending'`,
     [copies.map((copy) => copy.id)],
   );
+}
+
+/**
+ * Marks a copy as handed to its channel, just before it is. From then,
+ * until the channel's answer is kept, it may have gone, which is what
+ * failLeftSending goes by.
+ */
+async function hand(copy: Copy): Promise<void> {
+  await query("UPDATE broadcast_messages SET handed_at = now() WHERE id = $1", [copy.id]);
 }
 
 /**
@@ -412,14 +454,22 @@ async function fail(id: number, why: { reason?: string } | { unfinished: true })
 const STOPPED_MINUTES = 30;
 
 /**
- * The copies a run took and stopped before keeping its channel's answer
- * for: failed, as they may have gone, and sending them again could send
- * twice.
+ * Deals with the copies a run took and stopped before finishing with. One
+ * it had handed to its channel (hand) may have gone, so it's failed:
+ * sending it again could send twice. One it had only taken never went, so
+ * it's put back to go, or cancelled if its broadcast has stopped since.
  */
 async function failLeftSending(run: BroadcastRun): Promise<void> {
+  const stopped = "c.status = 'sending' AND c.sending_since < now() - make_interval(mins => $1)";
+  await query(
+    `UPDATE broadcast_messages c
+     SET status = CASE WHEN m.state = 'sending' THEN 'scheduled' ELSE 'cancelled' END, sending_since = NULL
+     FROM mailings m
+     WHERE m.id = c.mailing_id AND c.handed_at IS NULL AND ${stopped}`,
+    [STOPPED_MINUTES],
+  );
   const left = await query<{ id: number }>(
-    `SELECT id::int AS id FROM broadcast_messages
-     WHERE status = 'sending' AND sending_since < now() - make_interval(mins => $1) ORDER BY id`,
+    `SELECT c.id::int AS id FROM broadcast_messages c WHERE ${stopped} ORDER BY c.id`,
     [STOPPED_MINUTES],
   );
   for (const { id } of left) await fail(id, { unfinished: true });
@@ -436,8 +486,8 @@ const HELD_HOURS = 24;
  */
 export async function holdCopy(copyId: number): Promise<void> {
   await query(
-    `UPDATE broadcast_messages SET status = 'scheduled', sending_since = NULL, provider_message_id = NULL,
-       sent_at = NULL, not_before = now() + make_interval(hours => $2)
+    `UPDATE broadcast_messages SET status = 'scheduled', sending_since = NULL, handed_at = NULL,
+       provider_message_id = NULL, sent_at = NULL, not_before = now() + make_interval(hours => $2)
      WHERE id = $1`,
     [copyId, HELD_HOURS],
   );
@@ -568,7 +618,8 @@ async function blockedEmails(copies: Copy[], said: Suppressions): Promise<Blocke
   const lifting = await liftsOnTheirWay(copies.map((copy) => copy.address));
   return copies.flatMap((copy): Blocked[] => {
     const block = said.emails.get(copy.address)!;
-    if (block === "none") return [];
+    // One CiviCRM hasn't checked follows our own records, which said yes.
+    if (block === "none" || block === "unchecked") return [];
     if (block === "bulk" && lifting.has(copy.address)) return [{ copy }];
     const optOut: OptOut = {
       address: copy.address,
@@ -672,11 +723,14 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
  * Sends a broadcast's copies by its sender, one at a time, its gap apart,
  * until there are none, it's `until`, or the sender can send no more today,
  * when the rest wait for a later run: a few taken at a time, checked, and
- * each sent or put back. None more this run once the sender answers that it
- * can't send for now (`retry`). Counts the broadcast as waiting when
- * CiviCRM didn't answer.
+ * each handed over and sent, or put back. Once a try at a copy fails, no
+ * more go: the sender answering that it can't send for now (`retry`) fails
+ * none, and anything else fails that copy alone; the rest wait, and the
+ * broadcast rests (REST_MINUTES), as whatever failed one may fail them all.
+ * Counts the broadcast as waiting when CiviCRM didn't answer.
  */
 async function sendCopies(broadcast: Sending, sender: CopySender, run: BroadcastRun, until: number): Promise<void> {
+  if (broadcast.resting) return;
   const { gap } = sender;
   while (Date.now() + gap < until) {
     if (!(await sender.ready())) return;
@@ -696,13 +750,21 @@ async function sendCopies(broadcast: Sending, sender: CopySender, run: Broadcast
           await putBack(checked.slice(i));
           return false;
         }
+        await hand(copy);
         const result = await sender.send(copy);
         if (!result.sent && result.retry) {
-          // It can't send for now, as Gmail sometimes says: this copy and the rest wait for the next run, rather than fail.
+          // It can't send for now, as Gmail sometimes says: this copy and the rest wait, rather than fail.
           await putBack(checked.slice(i));
+          await tryFailed(broadcast);
           return false;
         }
         await keep(copy, result, run, went);
+        if (!result.sent && result.reason === "failed") {
+          // Whatever failed this one may fail the next: the rest wait, so nothing fails everyone.
+          await putBack(checked.slice(i + 1));
+          await tryFailed(broadcast);
+          return false;
+        }
       }
       return true;
     });
@@ -727,15 +789,18 @@ async function finishBroadcasts(): Promise<void> {
  * between two emails, in place of their channel's own. A broadcast that
  * hasn't all gone by when it stops (sendingStopsAt) is stopped, unless it's
  * waiting for CiviCRM, when that stops it. One with no sender, a text on the
- * live site, counts as waiting. First, copies an earlier run took and never
- * finished are failed (failLeftSending).
+ * live site, counts as waiting, and one resting after a failed try sends
+ * none. First, copies an earlier run took and never finished are failed,
+ * or put back if they never reached their channel (failLeftSending).
  */
 export async function sendDueBroadcasts(until: number, gap?: number): Promise<BroadcastRun> {
   const run: BroadcastRun = { sent: 0, skipped: 0, failed: 0, waiting: 0, left: 0 };
   await failLeftSending(run);
   const sending = await query<Sending>(
-    `SELECT ${DUE_COLUMNS}, subject, body, sent_from AS "sentFrom", from_name AS "fromName"
+    `SELECT ${DUE_COLUMNS}, subject, body, sent_from AS "sentFrom", from_name AS "fromName",
+       coalesce(try_failed_at > now() - make_interval(mins => $1), false) AS resting
      FROM mailings WHERE audience = 'supporters' AND state = 'sending' ORDER BY due_at, id`,
+    [REST_MINUTES],
   );
   for (const broadcast of sending) {
     if (!broadcast.waitingSince && now() >= sendingStopsAt(broadcast.dueAt)) {
