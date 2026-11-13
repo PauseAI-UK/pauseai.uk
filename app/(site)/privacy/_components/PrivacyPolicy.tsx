@@ -51,7 +51,7 @@ export default function PrivacyPolicy() {
 
       <h2>Email your MP</h2>
       <p>
-        ⁂ When you write to your MP through this site, we keep your name, email address, postal address and postcode,
+        When you write to your MP through this site, we keep your name, email address, postal address and postcode,
         which campaign and MP you wrote to, the letter you sent, and whether you ticked the box to hear about events and
         ways to help. We send your letter under an address made for you, so your MP&apos;s office never sees your own
         email address, and pass replies both ways. We keep every message. If you copy{" "}
