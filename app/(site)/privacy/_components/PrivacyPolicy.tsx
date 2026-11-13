@@ -99,8 +99,8 @@ export default function PrivacyPolicy() {
         .
       </p>
       <p>
-        We only text you on WhatsApp when you opted in to texts. Every text says how to stop: reply STOP. Or change the
-        texts you get on the{" "}
+        We only text you on WhatsApp when you opted in to texts. To stop, reply STOP to any of them, or change the texts
+        you get on the{" "}
         <Link className="inline-link" href="/contact-preferences">
           contact preferences page
         </Link>
