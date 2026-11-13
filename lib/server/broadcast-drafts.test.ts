@@ -619,13 +619,15 @@ describeWithDatabase("broadcasts to supporters", () => {
     const gaveUp = () =>
       query(
         `UPDATE mailings SET state = 'cancelled', gave_up = true, waiting_since = now(), wait_reason = 'limit',
-           due_at = '2026-11-01T09:00:00Z' WHERE id = $1`,
+           due_at = '2026-11-01T09:00:00Z', try_failed_at = now() WHERE id = $1`,
         [id],
       );
     await gaveUp();
     expect(await resumeBroadcast(id, JO)).toBe(true);
     const resumed = (await getWrittenBroadcast(id))!;
     expect(resumed).toMatchObject({ state: "sending", gaveUp: false, waitingSince: null, waitReason: null });
+    // It goes at the next run, not resting after a try that failed before it stopped.
+    expect(await query("SELECT try_failed_at FROM mailings WHERE id = $1", [id])).toEqual([{ try_failed_at: null }]);
     // From now, so it has its days again.
     expect(resumed.dueAt!.getTime()).toBeGreaterThan(Date.parse("2026-11-01T09:00:00Z"));
     expect(await query("SELECT address, status FROM broadcast_messages ORDER BY address")).toEqual([

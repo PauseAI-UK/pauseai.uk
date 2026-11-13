@@ -441,11 +441,13 @@ job all leave broadcasts out.
   no time left for are put back, as are the rest when the channel answers that
   it can't send for now (Gmail busy, down, at a limit or quota, or the account's
   access refused or revoked: `ACCOUNT_REFUSALS` in `lib/server/email.ts`).
-  A copy its channel refuses for itself is failed. After any failed try, no more
-  of the broadcast goes for half an hour (`REST_MINUTES`, from
-  `mailings.try_failed_at`), however often the sending is called, so
-  whatever fails every copy fails two an hour, each reported, not
-  everyone. A copy a stopped run left `sending` for
+  A copy its channel refuses for itself is failed alone, as is one whose
+  send broke off, as it may have gone, and the rest go on. Once the channel
+  can't send for now, or two copies fail in a row, no more of the broadcast
+  goes for 25 minutes (`REST_MINUTES`, from `mailings.try_failed_at`),
+  however often the sending is called, so whatever fails every copy fails
+  two each half-hour, each reported, not everyone. Resume ends the rest. A
+  copy a stopped run left `sending` for
   half an hour is failed, not sent again, if it had been handed to its
   channel, as it may have gone; one the run had only taken never went, so
   it's put back to go. While copies
