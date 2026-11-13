@@ -30,6 +30,8 @@ import {
   PoliticianCorrespondenceExample,
   PoliticianDetailsExample,
   AddAliasFormExample,
+  EditPoliticianFormExample,
+  PoliticianMarksExample,
   PoliticianTableEmptyExample,
   PoliticianTableExample,
   DeletePoliticianExample,
@@ -297,6 +299,28 @@ export const staffPoliticians: Group = {
       ],
     },
     {
+      name: "PoliticianMarks",
+      file: "app/(staff)/staff/_components/PoliticianMarks.tsx",
+      variants: [
+        { label: "One marker on, one off", render: () => <PoliticianMarksExample /> },
+        { label: "A test politician's", render: () => <PoliticianMarksExample test /> },
+      ],
+    },
+    {
+      name: "EditPoliticianForm",
+      file: "app/(staff)/staff/_components/EditPoliticianForm.tsx",
+      variants: [
+        {
+          label: "An MP's: only the salutation, saved",
+          render: () => <EditPoliticianFormExample result={{ saved: true }} />,
+        },
+        {
+          label: "A Lord's, with their email, refused as the shared inbox",
+          render: () => <EditPoliticianFormExample lord result={{ saved: false, why: "shared" }} />,
+        },
+      ],
+    },
+    {
       name: "AddAliasForm",
       file: "app/(staff)/staff/_components/AddAliasForm.tsx",
       variants: [
@@ -311,6 +335,10 @@ export const staffPoliticians: Group = {
         {
           label: "An address they have already",
           render: () => <AddAliasFormExample result={{ added: false, why: "exists" }} />,
+        },
+        {
+          label: "The Lords' shared inbox",
+          render: () => <AddAliasFormExample result={{ added: false, why: "shared" }} />,
         },
       ],
     },

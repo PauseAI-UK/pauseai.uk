@@ -18,11 +18,20 @@ import lumaGuests from "./luma-guests.json";
 import lumaContacts from "./luma-contacts.json";
 import airtablePoliticians from "./airtable-politicians.json";
 import civicrmContacts from "./civicrm-contacts.json";
-import parliamentMembers from "./parliament-members.json";
 import controlaiLetter from "./controlai-letter.json";
 import stripeCheckoutSessions from "./stripe-checkout-sessions.json";
 import stripePaymentIntents from "./stripe-payment-intents.json";
 import { failingResponse } from "./failing-services";
+import {
+  CONTROLAI_STATEMENT_HTML,
+  NI_ASSEMBLY,
+  PARLIAMENT_ENDING,
+  PARLIAMENT_MEMBERS,
+  SCOTTISH_PARLIAMENT,
+  SENEDD_MEMBERS,
+  THEYWORKFORYOU_PEOPLE_DATA,
+  wikidataAnswer,
+} from "./politician-lists";
 import { historyIdOf, keepSent, lettersInboxResponse, lettersMailbox } from "./letters-inbox";
 import { policyMailResponse } from "./policy-mailbox";
 import { whatsAppResponse } from "./whatsapp";
@@ -308,15 +317,33 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
       ? json({ status: 200, result: { outcode, ...result } })
       : new Response(JSON.stringify({ status: 404, error: "Outcode not found" }), { status: 404 });
   }
-  if (hostname === "members-api.parliament.uk" && pathname === "/api/Members/Search") {
-    return json(parliamentMembers);
+  // The bodies' lists of members (politician-lists.ts). Parliament's starts with a byte-order mark, as its own does.
+  const house = hostname === "data.parliament.uk" && pathname.match(/\/house=(Commons|Lords)(?:%7C|\|)/i);
+  if (house) return new Response(`\uFEFF${JSON.stringify(PARLIAMENT_MEMBERS[house[1] as "Commons" | "Lords"])}`);
+  if (hostname === "members-api.parliament.uk" && /^\/api\/Members\/\d+$/.test(pathname)) {
+    return json(PARLIAMENT_ENDING);
   }
-  const contact = hostname === "members-api.parliament.uk" && pathname.match(/^\/api\/Members\/(\d+)\/Contact$/);
-  if (contact) {
-    // Every fixture MP's office address, in the API's own pattern.
-    return json({
-      value: [{ type: "Parliamentary office", typeId: 1, email: `mp${contact[1]}.office@parliament.uk ` }],
-    });
+  if (hostname === "data.parliament.scot" && pathname.startsWith("/api/")) {
+    const list = SCOTTISH_PARLIAMENT[pathname.slice("/api/".length)];
+    if (list) return json(list);
+  }
+  if (hostname === "business.senedd.wales" && pathname === "/mgwebservice.asmx/GetCouncillorsByWard") {
+    return new Response(SENEDD_MEMBERS, { headers: { "Content-Type": "text/xml" } });
+  }
+  if (hostname === "data.niassembly.gov.uk" && pathname === "/members.asmx/GetAllCurrentMembers_JSON") {
+    return json(NI_ASSEMBLY.members);
+  }
+  if (hostname === "data.niassembly.gov.uk" && pathname === "/members.asmx/GetAllMemberContactDetails_JSON") {
+    return json(NI_ASSEMBLY.contacts);
+  }
+  if (hostname === "raw.githubusercontent.com" && pathname.endsWith("/members/people.json")) {
+    return json(THEYWORKFORYOU_PEOPLE_DATA);
+  }
+  if (hostname === "query.wikidata.org" && pathname === "/sparql") {
+    return json(wikidataAnswer(new URLSearchParams(String(init?.body ?? "")).get("query") ?? ""));
+  }
+  if (hostname === "controlai.org" && pathname === "/statement") {
+    return new Response(CONTROLAI_STATEMENT_HTML, { headers: { "Content-Type": "text/html" } });
   }
   if (hostname === "api.stripe.com" && pathname === "/v1/checkout/sessions") {
     // Completed checkouts: donors who said yes, one who said no, one who gave

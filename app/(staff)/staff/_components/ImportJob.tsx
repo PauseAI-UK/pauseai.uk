@@ -9,11 +9,16 @@ import {
   jobSchedule,
   type ImportJob,
   importPath,
+  type PoliticianImportJob,
   NIGHTLY,
   runStatus,
   runTone,
 } from "@/lib/import-runs";
-import { MEMBERS_API } from "@/lib/parliament";
+import { CONTROLAI_STATEMENT_PAGE } from "@/lib/controlai-statement";
+import { NI_MEMBERS_URL } from "@/lib/ni-assembly";
+import { parliamentMembersUrl } from "@/lib/parliament";
+import { SCOTTISH_PARLIAMENT_API } from "@/lib/scottish-parliament";
+import { SENEDD_MEMBERS_URL } from "@/lib/senedd";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { staffTime } from "@/lib/staff-time";
 import styles from "./ImportJob.module.css";
@@ -37,9 +42,13 @@ const CIVICRM = "https://crm.pauseai.info/";
 /** Where each job reads from, as its icon. */
 const SOURCES: Record<ImportJob, ImportSource> = {
   "import-luma": "luma",
+  "import-parliament": "parliament",
+  "import-scottish-parliament": "scottish-parliament",
+  "import-senedd": "senedd",
+  "import-ni-assembly": "ni-assembly",
   "sync-politicians": "airtable",
-  "check-mps": "parliament",
   "import-controlai": "controlai",
+  "import-controlai-statement": "controlai",
   "import-civicrm": "civicrm",
   "read-gmail": "gmail",
   "send-mailings": "gmail",
@@ -51,7 +60,6 @@ const SOURCES: Record<ImportJob, ImportSource> = {
  * import has none: its description starts by saying it imports.
  */
 const KINDS: Partial<Record<ImportJob, keyof typeof words.kinds>> = {
-  "check-mps": "check",
   "read-gmail": "read",
   "send-mailings": "send",
   "tidy-logs": "tidy",
@@ -79,6 +87,12 @@ function JobTags({ job }: { job: ImportJob }) {
   );
 }
 
+/** A body's import's description, button and words before its first run, with where its list is. */
+function politicianImport(job: PoliticianImportJob, href: string) {
+  const words = staffCopy.politicianImports;
+  return { intro: words.intros[job], href, also: words.held, button: words.importNow, none: words.never };
+}
+
 /** Each job's description, around a link to where it reads from, and its button and what to say before its first run. */
 const ABOUT: Record<
   ImportJob,
@@ -99,23 +113,26 @@ const ABOUT: Record<
     button: staffCopy.luma.importNow,
     none: staffCopy.luma.never,
   },
+  "import-parliament": politicianImport("import-parliament", parliamentMembersUrl("Commons")),
+  "import-scottish-parliament": politicianImport("import-scottish-parliament", `${SCOTTISH_PARLIAMENT_API}/members`),
+  "import-senedd": politicianImport("import-senedd", SENEDD_MEMBERS_URL),
+  "import-ni-assembly": politicianImport("import-ni-assembly", NI_MEMBERS_URL),
   "sync-politicians": {
     intro: staffCopy.syncs.intro,
-    also: staffCopy.syncs.testMps,
     button: staffCopy.syncs.syncNow,
     none: staffCopy.syncs.none,
-  },
-  "check-mps": {
-    intro: staffCopy.check.intro,
-    href: MEMBERS_API,
-    button: staffCopy.check.checkNow,
-    none: staffCopy.check.never,
   },
   "import-controlai": {
     intro: staffCopy.controlAi.intro,
     href: CONTROLAI_LETTER_PAGE,
     button: staffCopy.controlAi.importNow,
     none: staffCopy.controlAi.never,
+  },
+  "import-controlai-statement": {
+    intro: staffCopy.controlAiStatement.intro,
+    href: CONTROLAI_STATEMENT_PAGE,
+    button: staffCopy.controlAiStatement.importNow,
+    none: staffCopy.controlAiStatement.never,
   },
   "import-civicrm": {
     intro: staffCopy.civicrm.intro,
@@ -198,9 +215,9 @@ function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | 
 
 /** /staff/scheduled-jobs: a card per job, each a link to its page, with how its newest run ended. */
 /** The overview's sections, each the jobs that run that often, in this order. */
-const SCHEDULES = ["frequent", "quarter-hour", "hourly", "nightly"] as const;
+const SCHEDULES = ["frequent", "quarter-hour", "hourly", "nightly", "manual"] as const;
 
-/** Every job, a card each, under a heading for how often it runs: every 5 minutes, every 15, hourly, then nightly. */
+/** Every job, a card each, under a heading for how often it runs: every 5 minutes, every 15, hourly, nightly, then only when pressed. */
 export function ImportOverview({
   newest,
   running,
@@ -260,7 +277,7 @@ export function ImportJobPage({
   running?: RunningJob;
   /** The Server Action that runs the job now. */
   run: (form: FormData) => void | Promise<void>;
-  /** Applies or discards a held politician sync. */
+  /** Applies or discards a held import. */
   decide: Decide;
   airtableTable: string;
 }): ReactNode {

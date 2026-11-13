@@ -813,10 +813,11 @@ SELECT 'Events this month', 'Events this month', 'supporters', 'email', 'events'
 
 -- Every job, in every state: Luma runs hourly, stopping short in each way;
 -- syncs from when only MPs were read, applied by themselves, held then
--- discarded, held then applied; politician syncs unchanged, applied with
--- statuses, and one held now, changing more politicians than a sync may
--- unchecked and renaming one; checks with and without problems; ControlAI
--- reads, one failed; and the signatory import, once.
+-- discarded, held then applied; politician syncs from when they copied every
+-- detail, unchanged, applied with statuses, and one discarded as the copy
+-- stopped; Parliament's import unchanged, and held now, as it would mark
+-- every MP without an ID as having left; ControlAI reads, one failed; and
+-- the signatory import, once.
 INSERT INTO import_runs (at, job, started_by, status, error, result, decided_by) VALUES
   (now() - interval '3 days', 'import-luma', 'nightly', 'ok', NULL, '{"events": 12, "eventsSynced": 8, "eventsLeft": 4, "guestsChanged": 40, "people": 18, "contacts": 9, "supportersAdded": 15, "linked": 20, "requests": 150, "stoppedBy": "rate-limit"}', NULL),
   (now() - interval '2 days', 'import-luma', 'nightly', 'ok', NULL, '{"events": 0, "eventsSynced": 4, "eventsLeft": 0, "guestsChanged": 6, "people": 2, "contacts": 1, "supportersAdded": 2, "linked": 2, "requests": 60, "stoppedBy": "time"}', NULL),
@@ -828,9 +829,9 @@ INSERT INTO import_runs (at, job, started_by, status, error, result, decided_by)
   (now() - interval '18 days', 'sync-politicians', 'jo@pauseai.uk', 'applied', NULL, '{"changes": {"added": [], "removed": [{"airtableId": "recGone", "name": "Gordon Gone", "salutation": "Mr Gone", "constituency": "Former Seat", "party": "Independent", "email": "gordon.gone.mp@parliament.uk"}], "changed": []}}', 'admin@pauseai.uk'),
   (now() - interval '1 day' + interval '1 hour', 'sync-politicians', 'nightly', 'unchanged', NULL, '{"changes": {"added": [], "removed": [], "changed": []}, "renamed": [], "statuses": {"added": 0, "changed": 0, "removed": 0}}', NULL),
   (now() - interval '6 days', 'sync-politicians', 'nightly', 'applied', NULL, '{"changes": {"added": [], "removed": [{"airtableId": "recRemoved", "name": "Rob Removed", "salutation": "Mr Removed", "email": "rob.removed.mp@parliament.uk", "status": "in_office", "house": "commons", "constituency": "Removed Seat", "party": "Example Party", "country": "england", "notes": "", "importantTarget": false, "personalConnection": false}], "changed": []}, "renamed": [], "statuses": {"added": 2, "changed": 1, "removed": 0}}', NULL),
-  (now() - interval '1 hour' + interval '5 minutes', 'sync-politicians', 'nightly', 'held', NULL, jsonb_set('{"renamed": [{"airtableId": "recPlaceholder", "from": "Polly Placeholder", "to": "Pauline Placeholder"}], "statuses": {"added": 0, "changed": 0, "removed": 0}, "records": [], "changes": {"added": [{"airtableId": "recNew", "name": "Nina New", "salutation": "Ms New", "constituency": "New Seat", "party": "Green", "email": "nina.new.mp@parliament.uk"}], "removed": [], "changed": [{"airtableId": "recPlaceholder", "name": "Polly Placeholder", "salutation": "Ms Placeholder", "constituency": "Cities of London and Westminster", "party": "Labour (Co-op)", "email": "polly.placeholder@parliament.uk"}]}}'::jsonb, '{changes,removed}', (SELECT jsonb_agg(jsonb_build_object('airtableId', 'recSeedGone' || n, 'name', 'Gone McSeed ' || n || ' MP', 'salutation', '', 'constituency', 'Seed Seat ' || n, 'party', '', 'email', NULL) ORDER BY n) FROM generate_series(1, 22) n)), NULL),
-  (now() - interval '2 days' + interval '1 hour', 'check-mps', 'nightly', 'ok', NULL, '{"problems": []}', NULL),
-  (now() - interval '1 day' + interval '1 hour', 'check-mps', 'nightly', 'ok', NULL, '{"problems": [{"kind": "email", "constituency": "Cities of London and Westminster", "name": "Polly Placeholder", "airtable": "polly.placeholder.mp@parliament.uk", "parliament": ["polly.placeholder@parliament.uk"]}, {"kind": "missing", "constituency": "New Seat", "parliament": "Nina New"}]}', NULL),
+  (now() - interval '1 hour' + interval '5 minutes', 'sync-politicians', 'nightly', 'discarded', NULL, '{"changes": {"added": [], "removed": [], "changed": []}, "renamed": [], "records": []}', 'migration'),
+  (now() - interval '2 days' + interval '1 hour', 'import-parliament', 'nightly', 'unchanged', NULL, '{"changes": {"added": [], "changed": [], "left": [], "renamed": [], "unofficial": [], "salutations": []}, "vacant": [], "relinked": {"read": 0, "unread": 0, "linked": 0, "unlinked": 0, "offices": 0}}', NULL),
+  (now() - interval '1 hour' + interval '6 minutes', 'import-parliament', 'nightly', 'held', NULL, '{"changes": {"added": [{"officialId": 99901, "house": "commons", "name": "Nina New", "constituency": "New Seat", "party": "Green", "country": "england", "emails": ["nina.new.mp@parliament.uk"], "websites": [], "salutation": "Ms New"}], "changed": [], "left": [], "renamed": [], "unofficial": [], "salutations": []}, "members": [{"officialId": 99901, "house": "commons", "name": "Nina New", "constituency": "New Seat", "party": "Green", "country": "england", "emails": ["nina.new.mp@parliament.uk"], "websites": [], "salutation": "Ms New"}], "endings": []}', NULL),
   (now() - interval '2 days' + interval '2 hours', 'import-controlai', 'nightly', 'ok', NULL, '{"pdfUrl": "https://images.controlai.com/letter.pdf", "signatories": 86, "matched": 74, "added": 1, "removed": 0, "problems": [{"name": "Baroness Nobody", "kind": "nobody", "candidates": []}]}', NULL),
   (now() - interval '1 day' + interval '2 hours', 'import-controlai', 'nightly', 'failed', 'No PDF linked from the letter page', '{}', NULL),
   -- CiviCRM's first pull, Kit's unsubscribe and Gil leaving the chapter the next day, then nothing new.
@@ -842,22 +843,14 @@ INSERT INTO import_runs (at, job, started_by, status, error, result, decided_by)
   -- The newest read found mail in the letters inbox it couldn't handle, which the dashboard shows.
   (now() - interval '30 minutes', 'read-gmail', 'nightly', 'ok', NULL, '{"accounts": [{"account": "mailings@pauseai.uk", "replies": 0, "autoReplies": 0, "bounces": 0}, {"account": "fixture-letters@pauseai.uk", "replies": 1, "autoReplies": 0, "bounces": 0, "relayed": 1, "spam": 1, "uncertain": 0, "notUnderstood": [{"gmailMessageId": "18c0ffee00000001", "from": "stranger@example.com", "subject": "Hello", "reason": "stranger"}]}]}', NULL);
 
--- The held sync keeps every record, as it read them: those here, with
--- Airtable's statuses, and Nina New, so applying it changes only what it
--- says.
-UPDATE import_runs SET result = jsonb_set(result, '{records}', (
-  SELECT jsonb_agg(r) FROM (
-    SELECT jsonb_build_object(
-      'politician', jsonb_build_object('airtableId', n.airtable_id, 'name', n.name, 'salutation', n.salutation, 'email', n.email, 'status', n.status, 'house', p.house,
-        'constituency', p.constituency, 'party', p.party, 'country', p.country, 'notes', n.notes,
-        'importantTarget', n.important_target, 'personalConnection', n.personal_connection),
-      'statuses', coalesce((SELECT jsonb_object_agg(s.ask, s.status) FROM ask_statuses s
-        WHERE s.notable_person_id = n.id AND s.updated_by = 'airtable' AND s.ask <> 'go-to-parliament-oct-2026'), '{}')) AS r
-    FROM notable_people n JOIN politicians p USING (id) WHERE n.airtable_id IS NOT NULL AND n.airtable_removed_at IS NULL
-    UNION ALL
-    SELECT '{"politician": {"airtableId": "recNew", "name": "Nina New", "salutation": "Ms New", "email": "nina.new.mp@parliament.uk", "status": "in_office", "house": "commons", "constituency": "New Seat", "party": "Green", "country": "england", "notes": "", "importantTarget": false, "personalConnection": false}, "statuses": {}}'::jsonb
-  ) records))
-WHERE job = 'sync-politicians' AND status = 'held';
+-- The held import would mark every MP here who has no ID from Parliament as
+-- having left, as its list has only Nina New: so it's held.
+UPDATE import_runs SET result = jsonb_set(result, '{changes,left}', (
+  SELECT jsonb_agg(jsonb_build_object('id', n.id, 'name', n.name, 'house', p.house, 'constituency', p.constituency,
+    'status', 'left_office', 'date', NULL, 'reason', NULL) ORDER BY n.id)
+  FROM notable_people n JOIN politicians p USING (id)
+  WHERE p.house IN ('commons', 'lords') AND n.status = 'in_office' AND NOT p.is_test))
+WHERE job = 'import-parliament' AND status = 'held';
 
 -- ------------------------------------------------------------ audit log
 

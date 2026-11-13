@@ -1,83 +1,97 @@
-// MPs from Parliament's Members API (https://members-api.parliament.uk/,
-// no key needed), to check Airtable's list against. The caller passes in
-// how to fetch: lib/server/outside-services/parliament.ts.
+// Parliament's members, both Houses, from its Members Data Platform, which
+// gives each House's sitting members with their addresses in one answer
+// (https://data.parliament.uk/membersdataplatform/, no key needed), and why
+// a membership ended from its Members API (https://members-api.parliament.uk/).
+// The caller fetches: lib/server/outside-services/parliament.ts.
+
+import { constituencyCountry } from "./constituencies";
+import type { Ending, OfficialMember } from "./politician-import";
+import { mpSalutation, peerSalutation, type Gender } from "./salutation";
 
 export const MEMBERS_API = "https://members-api.parliament.uk/api";
+const MEMBERS_DATA = "https://data.parliament.uk/membersdataplatform/services/mnis/members/query";
 
-/** An MP as Parliament lists them. */
-export type ParliamentMp = {
-  parliamentId: number;
-  name: string;
-  constituency: string;
-  /** Every email Parliament lists for them, trimmed: some end in a space. */
-  emails: string[];
-  /** Every web address Parliament lists for them. */
-  websites: string[];
+/** A member's page on Parliament's site, which staff follow from theirs. */
+export const parliamentProfile = (id: number) => `https://members.parliament.uk/member/${id}`;
+
+/** Where each House's sitting members are listed, with their addresses: those on leave too, who are still members. */
+export function parliamentMembersUrl(house: "Commons" | "Lords"): string {
+  return `${MEMBERS_DATA}/house=${house}%7CMembership=current/Addresses/`;
+}
+
+type Address = {
+  "@Type_Id"?: string;
+  IsPreferred?: string;
+  Email?: string | null;
+  Address1?: string | null;
 };
 
 type Member = {
-  id: number;
-  nameDisplayAs: string;
-  latestHouseMembership: { membershipFrom: string };
+  "@Member_Id": string;
+  DisplayAs: string;
+  ListAs: string;
+  Gender?: string | null;
+  Party?: { "#text"?: string } | null;
+  House: string;
+  MemberFrom?: string | null;
+  Addresses?: { Address?: Address | Address[] } | null;
 };
 
-type Contact = { email?: string | null; line1?: string | null; isWebAddress?: boolean };
+/** A one-item list, as the platform gives one, or none, as a list. */
+const list = <T>(items: T | T[] | null | undefined): T[] =>
+  items == null ? [] : Array.isArray(items) ? items : [items];
 
-export type GetJson = (url: string) => Promise<unknown>;
+const GENDERS: Record<string, Gender> = { M: "male", F: "female" };
 
-/** The API's page size limit. */
-const PAGE_SIZE = 20;
-
-// Well past 650 MPs, so a looping response can't page forever.
-const MAX_PAGES = 60;
-
-/** Runs `task` over `items`, `limit` at a time, keeping the order. */
-async function mapLimited<T, R>(items: T[], limit: number, task: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let next = 0;
-  async function worker() {
-    while (next < items.length) {
-      const index = next++;
-      results[index] = await task(items[index]);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return results;
+/** A member's emails, the one to write to first: the one they prefer, then their parliamentary office's. */
+function emailsOf(addresses: Address[]): string[] {
+  const rank = (a: Address) => (a.IsPreferred === "True" ? 0 : a["@Type_Id"] === "1" ? 1 : 2);
+  const emails = [...addresses]
+    .sort((a, b) => rank(a) - rank(b))
+    .map((a) => a.Email?.trim().toLowerCase() ?? "")
+    .filter((email) => /^[^\s@]+@[^\s@]+$/.test(email));
+  return [...new Set(emails)];
 }
 
-/** Every sitting MP, with their emails. */
-export async function fetchCurrentMps(getJson: GetJson): Promise<ParliamentMp[]> {
-  const members: Member[] = [];
-  for (let page = 0; ; page++) {
-    if (page >= MAX_PAGES) throw new Error(`Members API paging went past ${MAX_PAGES} pages`);
-    const params = new URLSearchParams({
-      House: "1",
-      IsCurrentMember: "true",
-      skip: String(page * PAGE_SIZE),
-      take: String(PAGE_SIZE),
-    });
-    const data = (await getJson(`${MEMBERS_API}/Members/Search?${params}`)) as {
-      items?: { value: Member }[];
-      totalResults?: number;
-    };
-    if (!Array.isArray(data.items)) throw new Error("Members API response has no items");
-    members.push(...data.items.map((item) => item.value));
-    if (data.items.length < PAGE_SIZE || members.length >= (data.totalResults ?? 0)) break;
-  }
-  // Ten at a time keeps the nightly check inside a Netlify scheduled
-  // function's 30 seconds (about 15 seconds, 14 Oct 2026). Parliament answers
-  // 429 if asked for too many at once, and the caller waits and tries again.
-  return mapLimited(members, 10, async (member) => {
-    const data = (await getJson(`${MEMBERS_API}/Members/${member.id}/Contact`)) as { value?: Contact[] };
-    const emails = (data.value ?? []).map((contact) => contact.email?.trim() ?? "").filter(Boolean);
+/** One House's members, from the platform's answer (parliamentMembersUrl). */
+export function parliamentMembers(data: unknown): OfficialMember[] {
+  const members = (data as { Members?: { Member?: Member | Member[] } } | null)?.Members?.Member;
+  if (members === undefined) throw new Error("Parliament's members list has no members");
+  return list(members).map((m) => {
+    const commons = m.House === "Commons";
+    const addresses = list(m.Addresses?.Address);
+    const constituency = commons ? (m.MemberFrom?.trim() ?? null) : null;
     return {
-      parliamentId: member.id,
-      name: member.nameDisplayAs,
-      constituency: member.latestHouseMembership.membershipFrom,
-      emails: [...new Set(emails)],
-      websites: (data.value ?? []).flatMap((contact) =>
-        contact.isWebAddress && contact.line1 ? [contact.line1.trim()] : [],
-      ),
+      officialId: Number(m["@Member_Id"]),
+      house: commons ? "commons" : "lords",
+      name: m.DisplayAs.trim(),
+      constituency,
+      party: m.Party?.["#text"]?.trim() ?? "",
+      country: (constituency && constituencyCountry(constituency)) || null,
+      emails: emailsOf(addresses),
+      websites: addresses.flatMap((a) => (/^https?:\/\//i.test(a.Address1 ?? "") ? [a.Address1!.trim()] : [])),
+      salutation: commons ? mpSalutation(m.ListAs, GENDERS[m.Gender ?? ""]) : peerSalutation(m.DisplayAs),
     };
   });
+}
+
+/** Where the Members API says why someone's membership ended. */
+export const memberUrl = (id: number) => `${MEMBERS_API}/Members/${id}`;
+
+/**
+ * Why a membership ended, from the Members API's answer (memberUrl): died,
+ * retired or otherwise left, with the day and Parliament's words.
+ */
+export function parliamentEnding(data: unknown): Ending {
+  const membership = (
+    data as {
+      value?: { latestHouseMembership?: { membershipEndDate?: string | null; membershipEndReason?: string | null } };
+    } | null
+  )?.value?.latestHouseMembership;
+  const reason = membership?.membershipEndReason ?? null;
+  return {
+    status: /death|died/i.test(reason ?? "") ? "died" : /retire/i.test(reason ?? "") ? "retired" : "left_office",
+    date: membership?.membershipEndDate?.slice(0, 10) ?? null,
+    reason,
+  };
 }

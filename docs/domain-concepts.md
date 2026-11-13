@@ -47,11 +47,16 @@ A notable person has what all kinds share:
 
 - a name as they're known in public, with any title that's part of it
   ("Lord McFall of Alcluith");
-- a salutation, which follows "Dear" and is written by hand, as no rule
-  makes it from the name ("Sir Iain", "Bishop");
+- a salutation, which follows "Dear" ("Sir Iain", "Lady Smith", "Bishop"):
+  made by a rule from what their body lists (`lib/salutation.ts`), which
+  staff can correct. Where the rule can't tell, as for a new MSP or member
+  of the Senedd whose gender Wikidata doesn't know yet, it's their name,
+  marked to check (`salutation_to_check`), and made again once it can.
+  Gender is read only to choose Mr or Ms, never kept;
 - an email, if we know it;
 - notes;
-- Airtable's markers (important target, personal connection);
+- Airtable's markers (important target, personal connection), which staff
+  turn on and off in the band at the top of their page;
 - a status: `in_office`, `died`, `retired` or `left_office`.
 
 A politician (`politicians`) adds a house, a constituency if they have one,
@@ -64,17 +69,32 @@ history stays.
 
 Where they come from:
 
-- **Airtable's UK Parliamentarians**, which the policy team keeps, is copied
-  nightly (`lib/server/politician-sync.ts`): the politicians of every body,
-  each keyed by its record's ID, all but the records ticked Test. A
-  sync is held for staff to apply or discard if it would change more than 20
-  people at once, or anyone's name (which may be Airtable reusing a record
-  for someone new). A record gone from Airtable keeps its status
-  and gets `airtable_removed_at`. A nightly check compares the MPs with
-  Parliament's Members API and reports the differences
-  (`lib/server/mp-check.ts`). It changes nothing but the emails and domains
-  Parliament lists for each MP, which say whose a one-off email is, and then
+- **Each body's own list**, imported nightly
+  (`lib/server/politician-import.ts`): Parliament's, both Houses, from its
+  Members Data Platform; the Scottish Parliament's, the Senedd's and the
+  Northern Ireland Assembly's, from their open data. Each politician keeps
+  the ID their body gives them (`politicians.official_id`; the Commons and
+  the Lords share Parliament's), and is matched by it, or the first time by
+  name, and an MP by their seat. An import adds new members, updates names,
+  parties, seats and emails, and marks those no longer listed as having left,
+  with why, where Parliament says. It's held for staff to apply or discard if
+  it would change more than 20 politicians at once, rename anyone, or give an
+  MP a constituency that isn't the ONS's name for it, as no postcode would
+  find them. Parliament's import also checks every constituency has one MP in
+  office, keeps the test MPs in step, and, like each import, saves each
+  address and domain the body lists, which say whose a one-off email is, then
   relinks the one-off emails ("One-off emails", below).
+- **A politician's email** stays as it is while their body lists it, or lists
+  none, or never listed it (a Lord's own address, found by staff); it moves to
+  the one the body lists only once the body stops listing it. The House of
+  Lords' shared inbox, which most Lords list as their only address, is never
+  anyone's: a check constraint refuses it (`SHARED_INBOXES` in
+  `lib/one-off.ts`). Staff set a Lord's email by hand.
+- **Airtable's UK Parliamentarians**, which the policy team kept, is copied
+  only when staff press its button (`lib/server/politician-sync.ts`): each
+  politician's salutation, markers and notes, matched by the record's ID or
+  else by name. It adds and removes no one. A record gone from Airtable while
+  it copied everyone keeps `airtable_removed_at`.
 - **Test MPs** are fixed, each found by a test postcode (`lib/test-mps.json`,
   ZZ99Z\*) and each standing for one case: an ordinary MP, one who has
   signed, one with no email, one whose email bounces. A new case that a
@@ -139,12 +159,17 @@ hasn't answered has no row. Each kind allows its own statuses
 such as "Tentatively said yes". A foreign key on `(ask_kind, status)`
 refuses any status not in that table, and a new status is a row there.
 
-Staff set statuses by hand, with a note, for every ask but one: ControlAI's
-letter to the Prime Minister, which the ControlAI import sets from
-controlai.org (`IMPORTED_ASKS`, `updated_by` `controlai`,
-`lib/server/controlai-import.ts`). Statuses with `updated_by` `airtable`
-were copied from Airtable's records before the site kept answers itself.
-Staff change them like any other.
+Staff set statuses by hand, with a note, for every ask but two, which
+imports set from controlai.org (`IMPORTED_ASKS`, `updated_by` `controlai`):
+ControlAI's letter to the Prime Minister, from the names in its PDF
+(`lib/server/controlai-import.ts`), and its UK campaign statement, from its
+page's links to each supporter's page on their body's site, by the ID their
+body gives them or the name in the page's address
+(`lib/server/controlai-statement-import.ts`). As every sitting politician is
+on our list, a link the statement's import matches to no one is a problem of
+its run. Statuses with `updated_by` `airtable` were copied from Airtable's
+records before the site kept answers itself. Staff change them like any
+other.
 
 `/staff/asks` lists the asks, newest first: who asks each, how many gave
 each answer, how many were written to and how they were asked. An ask's own
@@ -799,8 +824,8 @@ else in it.
   Whose it is, the politicians a thread shows under, goes by the politician book
   (`lib/server/politician-book.ts`). An address is a politician's if it's:
   - their email, or one they had;
-  - one in `politician_addresses`: listed for them by Parliament's Members API,
-    added by staff (such as a personal Gmail), or their office's;
+  - one in `politician_addresses`: listed for them by their body, added by
+    staff (such as a personal Gmail), or their office's;
   - on a domain of their own (`politician_domains`); or
   - a parliament address in one of the forms their name or seat makes
     (`addressForms`): `meg.hillier.mp@`, `meghilliermp@`, `officeofmeghillier@`,
@@ -809,10 +834,11 @@ else in it.
     Ireland Assembly. At parliament.uk and parliament.scot a name needs its mark,
     as staff have `first.last@` too. A form two politicians make is no one's.
 
-  The nightly check against Parliament's Members API saves each MP's listed
-  emails, and each domain Parliament lists, if only one politician has it and
+  Each body's nightly import saves each address it lists for a member, but one
+  two members list, and each domain it lists, if only one politician has it and
   it isn't shared: a party's, social media's, a mail provider's or the public
-  sector's, whatever its ending. Its last step is relinking (below).
+  sector's, whatever its ending. An address the body stops listing stays, as a
+  past one. Its last step is relinking (below).
 
   An office's address is a parliament address that's no politician's but reads
   as a person's own (`first.last@`), seen only in threads with one politician,
@@ -822,8 +848,8 @@ else in it.
 - **Relinking** (`lib/server/one-off-relink.ts`) works out every thread's
   politicians afresh from its messages' addresses, the addresses and names they
   quote, and the book as it is, and whether it has someone else in it. It runs
-  at the end of the nightly check (and its button), and when staff add or remove
-  an address. A message's quotes are stored as it's kept (`quoted_addresses`,
+  at the end of each body's import (and its button), and when staff add or
+  remove an address, or set a Lord's email. A message's quotes are stored as it's kept (`quoted_addresses`,
   `quoted_names`); for one kept before, relinking reads them from its blob, as
   many as it can in its time, and a thread with any still unread loses no one.
   Outlook quotes a colleague in Parliament by name alone ("HILLIER, Meg"), so a
@@ -1439,7 +1465,7 @@ each time it happens, with a link to where to deal with it:
   `lib/server/import-runs.ts`; "Imports", below);
 - a Gmail account the read every 5 minutes couldn't read, after a run that could
   (`lib/server/gmail-reading.ts`); one Google disconnected has its own;
-- the politician sync held, when none was (`lib/server/politician-sync.ts`);
+- a body's import held, when none was (`lib/server/politician-import.ts`);
 - Google disconnecting a Gmail account (`lib/server/gmail-accounts.ts`);
 - letters to MPs waiting over three hours to go, until those it named
   have gone (`LATE_HOURS` in `lib/server/letter-sending.ts`);
@@ -1501,9 +1527,10 @@ to supporters", above).
 
 A job that copies data in from outside:
 
-- the politician sync;
-- the check against Parliament;
-- the ControlAI letter;
+- each body's members: Parliament's, the Scottish Parliament's, the
+  Senedd's and the Northern Ireland Assembly's;
+- the copy from Airtable, run only when staff press its button;
+- the ControlAI letter, and ControlAI's statement;
 - the Luma import;
 - the CiviCRM import;
 - the Gmail reading.
@@ -1530,7 +1557,7 @@ have. So a job that keeps going wrong the same way says so once, until a run
 goes right (`lib/server/import-runs.ts`). A problem with an alert of its
 own, such as a Gmail account Google disconnected, is marked told, so the
 run's email leaves it out. A run can be held for staff to decide on, as a
-large politician sync is.
+body's import that would change too much is.
 
 `/staff/scheduled-jobs` shows each job's newest run on a card. Each job's own
 page (`/staff/scheduled-jobs/<slug>`, `importPath()` in `lib/import-runs.ts`)
@@ -1714,28 +1741,28 @@ Reading is logged only where the data is personal and leaves the site: each
 download of a list of supporters or their blocked addresses. Nothing else
 about reading is logged.
 
-| Action                                                                                                        | Actor                                | When                                                                                            | Details name                                                 |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `add politician`                                                                                              | `sync`                               | The politician sync adds a politician                                                           | `id`, and their details                                      |
-| `edit politician`                                                                                             | `sync`                               | The politician sync changes a politician's details, or their record is back                     | `id`, `name`, and each field `changed`, before and after     |
-| `remove politician`, `delete politician`                                                                      | `sync`, staff                        | The politician sync finds a record no longer in Airtable; staff delete one gone                 | `id`, `name`                                                 |
-| `set status`                                                                                                  | staff, `controlai`                   | A status set or cleared, by hand or by the ControlAI import                                     | `politicianId`, `ask`, `status`, `date`, `note`              |
-| `apply politician sync`, `hold politician sync`, `apply held politician sync`, `discard held politician sync` | `sync`, staff                        | Each sync's outcome, and each decision on a held one                                            | counts, or the run's `id`                                    |
-| `import ControlAI letter`                                                                                     | `controlai`                          | A read of the letter that set or cleared any status                                             | counts                                                       |
-| `add ask`, `edit ask`, `delete ask`                                                                           | staff                                | The asks pages                                                                                  | `slug`, and the ask's fields                                 |
-| `add note`, `edit note`, `delete note`                                                                        | staff                                | A note on a politician or a supporter                                                           | `noteId`, and whose it is                                    |
-| `save filter`, `update filter`, `rename filter`, `delete filter`                                              | staff                                | A saved filter on a staff list                                                                  | `id`, `list`                                                 |
-| `create mailing`, `schedule mailing`, `reschedule mailing`, `stop mailing`, `delete mailing`                  | staff                                | A mailing written on the site                                                                   | `id`, and `recipients`, `dueAt` or what it `was`             |
-| `start mailing`, `finish mailing`                                                                             | `send-mailings`                      | The hourly job starts a scheduled mailing, and sends its last letter                            | `id`                                                         |
-| `create broadcast`, `change broadcast consent`, `schedule broadcast`, `stop broadcast`, `resume broadcast`    | staff                                | A broadcast to supporters                                                                       | `id`, and `channel`, `topic`, `recipients` or what it `was`  |
-| `submit broadcast template`, `withdraw broadcast template`                                                    | staff                                | A text's words sent to WhatsApp for approval, or taken back                                     | `id`, and the template's `name`                              |
-| `set event owner`, `set event doc`                                                                            | staff, `sync`                        | An event's owner or Google Doc set on the events page, or an owner given by the rules           | `eventId`, `owner` or `url`, `previous`                      |
-| `import sign-ups`                                                                                             | staff                                | A file of paper sign-ups imported                                                               | `uploadId`, `imported`, `heldBack`                           |
-| `block address`, `unblock address`                                                                            | `postmark`, staff                    | A bounce or complaint blocks an address; staff unblock it                                       | `address`, and the `kind` or the `note`                      |
-| `add staff account`, `set staff permissions`, `remove staff account`, `end staff sessions`                    | staff, or the address on first login | The accounts page, a first login, and sessions ended from the accounts page or `/staff/me`      | `email`, the permissions `from` and `to`, or `sessions`      |
-| `connect gmail`, `disconnect gmail`                                                                           | staff, `google`                      | A Gmail connected or disconnected on `/staff/me`, or by Google                                  | `email`, and `why`                                           |
-| `download supporters`, `download blocked emails`                                                              | staff                                | A list of supporters, or of blocked addresses with theirs, is downloaded, as CSV, JSON or vCard | the list's `filters` in words, the `format`, how many `rows` |
-| `erase supporter`                                                                                             | staff                                | A supporter is erased                                                                           | `id`, the request's `reference`, and what went               |
+| Action                                                                                                                | Actor                                | When                                                                                                                                          | Details name                                                                           |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `add politician`                                                                                                      | a body's import                      | A body's import adds a politician                                                                                                             | `id`, and their details                                                                |
+| `edit politician`                                                                                                     | a body's import, `sync`, staff       | An import changes a politician's details, or marks them left; the copy from Airtable, or staff, change a salutation, marker or a Lord's email | `id`, `name`, and each field `changed`, before and after; a leaver's `date` and `note` |
+| `remove politician`, `delete politician`                                                                              | `sync`, staff                        | Once, the politician sync found a record no longer in Airtable; staff delete one gone                                                         | `id`, `name`                                                                           |
+| `set status`                                                                                                          | staff, `controlai`                   | A status set or cleared, by hand or by an import of ControlAI's letter or statement                                                           | `politicianId`, `ask`, `status`, `date`, `note`                                        |
+| `apply politician import`, `hold politician import`, `apply held politician import`, `discard held politician import` | a body's import, staff               | Each import's outcome, and each decision on a held one                                                                                        | the `job`, and counts, or the run's `id`                                               |
+| `import ControlAI letter`                                                                                             | `controlai`                          | A read of the letter that set or cleared any status                                                                                           | counts                                                                                 |
+| `add ask`, `edit ask`, `delete ask`                                                                                   | staff                                | The asks pages                                                                                                                                | `slug`, and the ask's fields                                                           |
+| `add note`, `edit note`, `delete note`                                                                                | staff                                | A note on a politician or a supporter                                                                                                         | `noteId`, and whose it is                                                              |
+| `save filter`, `update filter`, `rename filter`, `delete filter`                                                      | staff                                | A saved filter on a staff list                                                                                                                | `id`, `list`                                                                           |
+| `create mailing`, `schedule mailing`, `reschedule mailing`, `stop mailing`, `delete mailing`                          | staff                                | A mailing written on the site                                                                                                                 | `id`, and `recipients`, `dueAt` or what it `was`                                       |
+| `start mailing`, `finish mailing`                                                                                     | `send-mailings`                      | The hourly job starts a scheduled mailing, and sends its last letter                                                                          | `id`                                                                                   |
+| `create broadcast`, `change broadcast consent`, `schedule broadcast`, `stop broadcast`, `resume broadcast`            | staff                                | A broadcast to supporters                                                                                                                     | `id`, and `channel`, `topic`, `recipients` or what it `was`                            |
+| `submit broadcast template`, `withdraw broadcast template`                                                            | staff                                | A text's words sent to WhatsApp for approval, or taken back                                                                                   | `id`, and the template's `name`                                                        |
+| `set event owner`, `set event doc`                                                                                    | staff, `sync`                        | An event's owner or Google Doc set on the events page, or an owner given by the rules                                                         | `eventId`, `owner` or `url`, `previous`                                                |
+| `import sign-ups`                                                                                                     | staff                                | A file of paper sign-ups imported                                                                                                             | `uploadId`, `imported`, `heldBack`                                                     |
+| `block address`, `unblock address`                                                                                    | `postmark`, staff                    | A bounce or complaint blocks an address; staff unblock it                                                                                     | `address`, and the `kind` or the `note`                                                |
+| `add staff account`, `set staff permissions`, `remove staff account`, `end staff sessions`                            | staff, or the address on first login | The accounts page, a first login, and sessions ended from the accounts page or `/staff/me`                                                    | `email`, the permissions `from` and `to`, or `sessions`                                |
+| `connect gmail`, `disconnect gmail`                                                                                   | staff, `google`                      | A Gmail connected or disconnected on `/staff/me`, or by Google                                                                                | `email`, and `why`                                                                     |
+| `download supporters`, `download blocked emails`                                                                      | staff                                | A list of supporters, or of blocked addresses with theirs, is downloaded, as CSV, JSON or vCard                                               | the list's `filters` in words, the `format`, how many `rows`                           |
+| `erase supporter`                                                                                                     | staff                                | A supporter is erased                                                                                                                         | `id`, the request's `reference`, and what went                                         |
 
 Earlier entries keep their own names (`EarlierAuditDetails` in
 `lib/audit-events.ts`):

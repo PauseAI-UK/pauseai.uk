@@ -23,3 +23,14 @@ export function isOfficialName(name: string): boolean {
 }
 
 const OFFICIAL = new Set(Object.values(NAMES));
+
+/** Each nation by the start of its constituencies' codes. */
+const NATIONS = { E14: "england", W07: "wales", S14: "scotland", N05: "northern-ireland" } as const;
+
+const CODES = new Map(Object.entries(NAMES).map(([code, name]) => [name, code]));
+
+/** The nation a constituency with this official name is in, if it's one. */
+export function constituencyCountry(name: string): (typeof NATIONS)[keyof typeof NATIONS] | undefined {
+  const code = CODES.get(name);
+  return code ? NATIONS[code.slice(0, 3) as keyof typeof NATIONS] : undefined;
+}

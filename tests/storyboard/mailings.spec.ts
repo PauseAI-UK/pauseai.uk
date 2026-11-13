@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addStaffAccount, logInAsStaff, newestEmail, recordAnswers, syncPoliticians, WEBHOOK_AUTH } from "../steps";
+import { addStaffAccount, logInAsStaff, newestEmail, recordAnswers, importPoliticians, WEBHOOK_AUTH } from "../steps";
 import { caretAtEnd } from "./editor-steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { addPauseaiEmails, stayOnPage, TO_NOTIFICATIONS } from "./staff-steps";
@@ -82,7 +82,7 @@ function addMailing(database: string, title: string, state: string, statuses: st
 
 test("A new mailing", async ({ page, request, flowDatabase }) => {
   story("Staff connect their Gmail on their account page, so there's one to send from, then open the mailings page.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   // Your Gmail connected, on your account page, so there's one to send from.
   await page.goto(`${BASE}/staff/me`);
@@ -158,7 +158,7 @@ test("A new mailing", async ({ page, request, flowDatabase }) => {
 
 test("A new mailing from the whole list", async ({ page, request, flowDatabase }) => {
   story("On the politicians list with no filter, the button is New mailing.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians`);
   await frame(page, "The politicians list");
@@ -173,7 +173,7 @@ test("Changing and deleting a draft", async ({ page, request, flowDatabase }) =>
   story(
     "On the politicians list, staff choose the Lords and press Mail these: everyone the list finds is ticked for it.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians?house=lords`);
   await frame(page, "The Lords");
@@ -242,7 +242,7 @@ test("Changing and deleting a draft", async ({ page, request, flowDatabase }) =>
 
 test("Pasting names", async ({ page, request, flowDatabase }) => {
   story("On the Commons, staff press Mail these: all three MPs it finds are ticked, and the box over them too.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians?house=commons`);
   await page.getByRole("button", { name: copy.mailThese(3) }).click();
@@ -301,7 +301,7 @@ test("Pasting names", async ({ page, request, flowDatabase }) => {
 
 test("Rescheduling a mailing", async ({ page, request, flowDatabase }) => {
   story("A mailing is scheduled for 30 October. The mailings page shows it coming up, with when it goes.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   const id = addMailing(flowDatabase, "Edinburgh reminder", "scheduled", ["scheduled", "scheduled", "scheduled"]);
   runSql(flowDatabase, `UPDATE mailings SET due_at = '2026-10-30T09:00:00Z' WHERE id = ${id}`);
@@ -352,7 +352,7 @@ test("Rescheduling a mailing", async ({ page, request, flowDatabase }) => {
 
 test("Sending and sent", async ({ page, request, flowDatabase }) => {
   story("A mailing is part-way through sending. Its page shows how far it's got, with Stop sending.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   const sending = addMailing(flowDatabase, "Going out now", "sending", ["sent", "scheduled", "scheduled"]);
   await page.goto(`${BASE}/staff/mailings/${sending}`);
@@ -385,7 +385,7 @@ test("A run stops while sending", async ({ page, request, flowDatabase }) => {
   story(
     "A mailing is sending when the run sending it stops, after Gmail has taken a letter but before it's marked sent. Two of its three letters went; the third may have gone.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   const id = addMailing(flowDatabase, "Going out now", "sending", ["sent", "sending", "sent"]);
   const [letter] = runSql(
@@ -418,7 +418,7 @@ test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
   story(
     "A mailing has been sent, and two MPs' addresses bounce its letters. Each is blocked, and nobody is emailed yet.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   const sent = addMailing(flowDatabase, "Edinburgh follow-up", "sent", ["skipped:left-office", "sent", "sent"]);
   const letters = runSql(
@@ -476,7 +476,7 @@ test("A stopped mailing", async ({ page, request, flowDatabase }) => {
   story(
     "A mailing was stopped part-way through. On the mailings page, its row shows the one letter Gmail refused, and folds the rest away as fine.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   addMailing(
     flowDatabase,
@@ -547,7 +547,7 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   story(
     "Staff start a mailing to a politician in Scotland. No Gmail is connected, so Sent from says nothing can be sent, with a link to add theirs.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   // With no Gmail connected, a mailing can't be sent, and Sent from says where to connect one.
   await startFromList(page, "nation=scotland", 1);
@@ -668,7 +668,7 @@ test("Old mailings", async ({ page, request, flowDatabase }) => {
   story(
     "The mailings page lists every mailing PauseAI has sent politicians, by month, newest first. These were copied from Airtable.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   const mailings = staffCopy.mailings;
   addPauseaiEmails(flowDatabase);
@@ -699,7 +699,7 @@ test("Old mailings", async ({ page, request, flowDatabase }) => {
 
 test("From a mailing to its ask", async ({ page, request, flowDatabase }) => {
   story("The invitation names its ask. Following it opens the Edinburgh conference's page.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   addPauseaiEmails(flowDatabase);

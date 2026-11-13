@@ -166,6 +166,16 @@ const savedFilter: LeadOf<"save filter" | "update filter" | "rename filter" | "d
   fields: ["id", "list"],
 });
 
+/** Logged by a body's import: the held run, on its job's page. */
+const heldImport: LeadOf<"apply held politician import" | "discard held politician import"> = (details) => ({
+  parts: [
+    <StaffLink key="run" href={importPath(details.job)}>
+      {copy.run(String(details.id))}
+    </StaffLink>,
+  ],
+  fields: ["id", "job"],
+});
+
 /** Logged by the politician sync, or before it read every body, the MP sync. */
 const heldSync: LeadOf<
   "apply held politician sync" | "discard held politician sync" | "apply held MP sync" | "discard held MP sync"
@@ -222,6 +232,8 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "discard held politician sync": heldSync,
   "apply held MP sync": heldSync,
   "discard held MP sync": heldSync,
+  "apply held politician import": heldImport,
+  "discard held politician import": heldImport,
   "add staff account": account,
   "set staff permissions": (details) => ({
     parts: [details.email, `${permissionNames(details.from)} → ${permissionNames(details.to)}`],
@@ -235,6 +247,8 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "hold politician sync": none,
   "apply MP sync": none,
   "hold MP sync": none,
+  "apply politician import": none,
+  "hold politician import": none,
   "import ControlAI letter": none,
   "import web form letters": none,
   "import sign-ups": (details) => ({

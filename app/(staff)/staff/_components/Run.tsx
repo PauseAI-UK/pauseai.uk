@@ -4,32 +4,37 @@ import { gmailMessageLink } from "@/lib/letter-links";
 import {
   type AnyImportRun,
   type ControlAiImport,
+  type ControlAiStatementImport,
   type LumaImport,
   type CivicrmImport,
   type GmailReading,
-  type MpCheck,
+  type PoliticianImport,
   type PoliticianSync,
   type Sending,
   type Tidying,
 } from "@/lib/import-runs";
-import type { MpProblem } from "@/lib/mp-check";
-import { changeCount, type Renamed, type SyncedPolitician } from "@/lib/politician-sync";
+import type { House } from "@/lib/politician-filters";
+import { importChangeCount } from "@/lib/politician-import";
+import { changeCount } from "@/lib/politician-sync";
 import RunBox from "./RunBox";
 import { Muted } from "@/components/ui/Text";
 import Table from "@/components/ui/Table";
 import ExternalLink from "./ui/ExternalLink";
 
-/** The Server Action that applies or discards a held politician sync. */
+/** The Server Action that applies or discards a held import. */
 export type Decide = (formData: FormData) => void | Promise<void>;
 
+/** Who a politician is, as a run lists them: where they sit and their name. */
+type Listed = { name?: string; house?: House; constituency?: string | null; email?: string | null };
+
 /**
- * Politicians a sync added, lost or changed, each by where they sit and
+ * Politicians a run added, lost or changed, each by where they sit and
  * their name, in the order a person reads them. Runs from before every body was read have only MPs, without
  * a house.
  */
-function Politicians({ heading, politicians }: { heading: string; politicians: Partial<SyncedPolitician>[] }) {
+function Politicians({ heading, politicians }: { heading: string; politicians: Listed[] }) {
   if (politicians.length === 0) return null;
-  const where = (p: Partial<SyncedPolitician>) => `${p.constituency ?? staffCopy.houses[p.house!]}: ${p.name}`;
+  const where = (p: Listed) => `${p.constituency ?? staffCopy.houses[p.house!]}: ${p.name}`;
   // In the order a person reads them, a number in a name as a number: Gone 2 before Gone 10.
   const sorted = [...politicians].sort((a, b) => where(a).localeCompare(where(b), "en-GB", { numeric: true }));
   return (
@@ -39,9 +44,9 @@ function Politicians({ heading, politicians }: { heading: string; politicians: P
       </h4>
       <ul>
         {sorted.map((p) => (
-          <li key={p.airtableId}>
+          <li key={where(p)}>
             {where(p)}
-            {p.email ? "" : ` (${staffCopy.politicians.noEmail})`}
+            {p.email === null ? ` (${staffCopy.politicians.noEmail})` : ""}
           </li>
         ))}
       </ul>
@@ -49,19 +54,17 @@ function Politicians({ heading, politicians }: { heading: string; politicians: P
   );
 }
 
-/** The records whose names changed, from and to. */
-function RenamedList({ renamed }: { renamed: Renamed[] }) {
-  if (renamed.length === 0) return null;
+/** A list of lines under a heading with how many, or nothing if there are none. */
+function Lines({ heading, lines }: { heading: string; lines: string[] }) {
+  if (lines.length === 0) return null;
   return (
     <>
       <h4>
-        {staffCopy.syncs.renamed} ({renamed.length})
+        {heading} ({lines.length})
       </h4>
       <ul>
-        {renamed.map((r) => (
-          <li key={r.airtableId}>
-            {r.from} → {r.to}
-          </li>
+        {lines.map((line) => (
+          <li key={line}>{line}</li>
         ))}
       </ul>
     </>
@@ -69,44 +72,35 @@ function RenamedList({ renamed }: { renamed: Renamed[] }) {
 }
 
 /** One button, in a form of its own, so the decision travels as a field. */
-function Decision({ id, decision, decide }: { id: number; decision: "apply" | "discard"; decide: Decide }) {
+function Decision({ run, decision, decide }: { run: PoliticianImport; decision: "apply" | "discard"; decide: Decide }) {
   return (
     <form action={decide}>
-      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="id" value={run.id} />
+      <input type="hidden" name="job" value={run.job} />
       <input type="hidden" name="decision" value={decision} />
       <SubmitButton variant={decision === "apply" ? "primary" : "ghost"} size="small">
-        {staffCopy.syncs[decision]}
+        {staffCopy.politicianImports[decision]}
       </SubmitButton>
     </form>
   );
 }
 
 /**
- * A copy of the politicians from Airtable: who was added, removed and
- * changed, and whose names changed. A held one can be
- * applied or discarded, given `decide`.
+ * A copy from Airtable: whose salutation, markers or notes it changed, and
+ * the records it found no one for. Runs kept from when it copied every
+ * detail also list who it added and removed, and whose names changed.
  */
-function SyncRun({
-  run,
-  decide,
-  open,
-  bare,
-}: {
-  run: PoliticianSync;
-  decide?: Decide;
-  open?: boolean;
-  bare?: boolean;
-}) {
+function SyncRun({ run, open, bare }: { run: PoliticianSync; open?: boolean; bare?: boolean }) {
   if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
   const { added, removed, changed } = run.result.changes;
   const renamed = run.result.renamed ?? [];
-  const count = changeCount(run.result.changes);
+  const unmatched = run.result.unmatched ?? [];
+  const count = changeCount(run.result.changes) + renamed.length + unmatched.length;
   return (
     <RunBox
       run={run}
       open={open}
       bare={bare}
-
       lines={count}
       summary={
         <>
@@ -114,83 +108,90 @@ function SyncRun({
           {changed.length}
         </>
       }
-      actions={
-        run.status === "held" &&
-        decide && (
-          <>
-            <Decision id={run.id} decision="apply" decide={decide} />
-            <Decision id={run.id} decision="discard" decide={decide} />
-          </>
-        )
-      }
     >
       {count > 0 && (
         <>
-          <RenamedList renamed={renamed} />
+          <Lines heading={staffCopy.syncs.renamed} lines={renamed.map((r) => `${r.from} → ${r.to}`)} />
           <Politicians heading={staffCopy.syncs.added} politicians={added} />
           <Politicians heading={staffCopy.syncs.removed} politicians={removed} />
           <Politicians heading={staffCopy.syncs.changed} politicians={changed} />
+          <Lines heading={staffCopy.syncs.unmatched} lines={unmatched} />
         </>
       )}
     </RunBox>
   );
 }
 
-/** What each side says, for one problem. */
-function sides(problem: MpProblem): [string, string] {
-  switch (problem.kind) {
-    case "missing":
-      return ["", problem.parliament];
-    case "extra":
-    case "unofficial":
-      return [problem.airtable, ""];
-    case "name":
-      return [problem.airtable, problem.parliament];
-    case "email":
-      return [`${problem.name}: ${problem.airtable ?? staffCopy.check.noEmail}`, problem.parliament.join(", ")];
-  }
-}
-
-/** A check of Airtable's MPs against Parliament's: where they disagree. */
-function CheckRun({ run, open, bare }: { run: MpCheck; open?: boolean; bare?: boolean }) {
+/**
+ * An import of a body's members: who it added, changed and found had left,
+ * then what a person should look at first, the names changed and the seats no
+ * postcode would find, and the salutations unlike the rule's; for
+ * Parliament's, the constituencies with no MP; and what relinking did. A held
+ * one can be applied or discarded, given `decide`.
+ */
+function PoliticianImportRun({
+  run,
+  decide,
+  open,
+  bare,
+}: {
+  run: PoliticianImport;
+  decide?: Decide;
+  open?: boolean;
+  bare?: boolean;
+}) {
   if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
-  const { problems, relinked } = run.result;
-  const count = problems.length;
-  const checked = count === 0 ? staffCopy.check.allGood : staffCopy.check.problems(count);
+  const words = staffCopy.politicianImports;
+  const { changes, vacant, relinked } = run.result;
+  const { added, changed, left, renamed, unofficial, salutations } = changes;
+  const count = importChangeCount(changes) + renamed.length + unofficial.length + salutations.length;
+  const summary = [words.result({ added: added.length, changed: changed.length, left: left.length })];
+  if (vacant?.length) summary.push(words.vacant(vacant.length));
+  if (relinked) summary.push(words.relinked(relinked));
   return (
     <RunBox
       run={run}
       open={open}
       bare={bare}
-      lines={count}
-      summary={relinked ? `${checked.replace(/\.?$/, ".")} ${staffCopy.check.relinked(relinked)}` : checked}
+      lines={count + (vacant?.length ?? 0)}
+      summary={summary.join(" ")}
+      actions={
+        run.status === "held" &&
+        decide && (
+          <>
+            <Decision run={run} decision="apply" decide={decide} />
+            <Decision run={run} decision="discard" decide={decide} />
+          </>
+        )
+      }
     >
-      {count > 0 && (
-        <Table>
-          <thead>
-            <tr>
-              <th>{staffCopy.check.columns.constituency}</th>
-              <th>{staffCopy.check.columns.problem}</th>
-              <th>{staffCopy.check.columns.airtable}</th>
-              <th>{staffCopy.check.columns.parliament}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {problems.map((problem) => {
-              const [airtable, parliament] = sides(problem);
-              return (
-                <tr key={`${problem.constituency} ${problem.kind}`}>
-                  <td>{problem.constituency}</td>
-                  <td>{staffCopy.check.kinds[problem.kind]}</td>
-                  <td>{airtable}</td>
-                  <td>{parliament}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </Table>
+      {count + (vacant?.length ?? 0) > 0 && (
+        <>
+          <Lines heading={words.renamed} lines={renamed.map((r) => `${r.from} → ${r.to}`)} />
+          <Lines heading={words.unofficial} lines={unofficial.map((u) => `${u.constituency}: ${u.name}`)} />
+          <Politicians heading={words.added} politicians={added.map((m) => ({ ...m, email: m.emails[0] ?? null }))} />
+          <Politicians heading={words.left} politicians={left} />
+          <Lines
+            heading={words.changed}
+            lines={changed.map((c) => `${c.name}: ${Object.keys(c.changed).join(", ")}`)}
+          />
+          <Lines heading={words.salutations} lines={salutations.map((s) => `${s.name}: ${s.ours} → ${s.rule}`)} />
+          <Lines heading={words.noMp} lines={vacant ?? []} />
+        </>
       )}
     </RunBox>
+  );
+}
+
+/** A copy of ControlAI's statement's supporters: what it did. Links it couldn't match are a problem of the run. */
+function ControlAiStatementRun({ run, open, bare }: { run: ControlAiStatementImport; open?: boolean; bare?: boolean }) {
+  return (
+    <RunBox
+      run={run}
+      summary={run.status === "failed" ? null : staffCopy.controlAiStatement.result(run.result)}
+      open={open}
+      bare={bare}
+    />
   );
 }
 
@@ -365,12 +366,17 @@ export default function Run({
   bare?: boolean;
 }) {
   switch (run.job) {
+    case "import-parliament":
+    case "import-scottish-parliament":
+    case "import-senedd":
+    case "import-ni-assembly":
+      return <PoliticianImportRun run={run} decide={decide} open={open} bare={bare} />;
     case "sync-politicians":
-      return <SyncRun run={run} decide={decide} open={open} bare={bare} />;
-    case "check-mps":
-      return <CheckRun run={run} open={open} bare={bare} />;
+      return <SyncRun run={run} open={open} bare={bare} />;
     case "import-controlai":
       return <ControlAiRun run={run} open={open} bare={bare} />;
+    case "import-controlai-statement":
+      return <ControlAiStatementRun run={run} open={open} bare={bare} />;
     case "import-luma":
       return <LumaRun run={run} open={open} bare={bare} />;
     case "import-civicrm":

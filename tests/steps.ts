@@ -39,26 +39,52 @@ export async function fakeTurnstile(page: Page) {
   );
 }
 
+/** The jobs that bring the fixture politicians in: each body's import, then the copy from Airtable. */
+const POLITICIAN_JOBS = [
+  "import-parliament",
+  "import-scottish-parliament",
+  "import-senedd",
+  "import-ni-assembly",
+  "sync-politicians",
+];
+
 /**
- * Copies the politicians, and PauseAI's emails to
- * them into the flow's database through the nightly sync's own route (the
- * fixture Airtable: a politician of each body, one retired and one who
- * left), and refreshes the test MPs.
+ * Brings the fixture politicians into the flow's database through the
+ * nightly imports' own routes, from the bodies' fixture lists
+ * (lib/server/fixtures/politician-lists.ts), which refresh the test MPs too.
+ * First it adds two who've left, whom no list has: Rita Retired and Gordon
+ * Gone, from before the imports. Then the copy from Airtable gives each
+ * their record, their salutation, markers and notes.
  */
-export async function syncPoliticians(request: APIRequestContext, base: string) {
-  const res = await request.post(`${base}/api/cron/sync-politicians`, {
-    headers: { Authorization: "Bearer fixture-cron-secret" },
-  });
-  if (!res.ok()) throw new Error(`Politician sync on ${base} failed: ${res.status()} ${await res.text()}`);
+export async function importPoliticians(request: APIRequestContext, base: string, database: string) {
+  runSql(
+    database,
+    `WITH former (name, salutation, status, constituency, country) AS (VALUES
+       ('Rita Retired', 'Ms Retired', 'retired', 'Old Seat', 'wales'),
+       ('Gordon Gone', 'Mr Gone', 'left_office', 'Former Seat', 'england')),
+     added AS (
+       INSERT INTO notable_people (kind, name, salutation, email, status)
+       SELECT 'politician', f.name, f.salutation,
+         CASE WHEN f.name = 'Gordon Gone' THEN 'gordon.gone.mp@parliament.uk' END, f.status
+       FROM former f WHERE NOT EXISTS (SELECT 1 FROM notable_people n WHERE n.name = f.name)
+       RETURNING id, name)
+     INSERT INTO politicians (id, house, constituency, party, country)
+     SELECT a.id, 'commons', f.constituency, 'Independent', f.country FROM added a JOIN former f USING (name)`,
+  );
+  for (const job of POLITICIAN_JOBS) {
+    const res = await request.post(`${base}/api/cron/${job}`, {
+      headers: { Authorization: "Bearer fixture-cron-secret" },
+    });
+    if (!res.ok()) throw new Error(`${job} on ${base} failed: ${res.status()} ${await res.text()}`);
+  }
 }
 
 /**
  * Records, as staff would on their pages, the fixture politicians' answers
  * to the asks: Polly signed ControlAI's statement and declined the Edinburgh
  * conference, Morag is going to it, Lord Seedling signed the DeepMind letter
- * and Rita Retired the Frontier AI letter. Run after syncPoliticians, which
- * adds them. An answer they already have stays, as on a build whose sync
- * set them.
+ * and Rita Retired the Frontier AI letter. Run after importPoliticians, which
+ * adds them. An answer they already have stays.
  */
 export function recordAnswers(database: string) {
   runSql(

@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addFilter, addStaffAccount, changeFilter, logInAsStaff, recordAnswers, syncPoliticians } from "../steps";
+import { addFilter, addStaffAccount, changeFilter, logInAsStaff, recordAnswers, importPoliticians } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
 import { importPath } from "@/lib/import-runs";
@@ -10,10 +10,10 @@ import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
 
-// The politicians from Airtable: every body, as the nightly sync copies them
-// from the fixture Airtable (lib/server/fixtures/airtable-*.json), with their
-// answers to the asks as staff recorded them (recordAnswers) and PauseAI's
-// emails to them.
+// The politicians of every body, as the nightly imports read them from the
+// bodies' fixture lists (lib/server/fixtures/politician-lists.ts), with what
+// the copy from the fixture Airtable adds, their answers to the asks as staff
+// recorded them (recordAnswers) and PauseAI's emails to them.
 
 const copy = staffCopy.politician;
 
@@ -55,7 +55,7 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   story(
     "Staff open Polly Placeholder's page. It shows her markers, the notes kept on her in Airtable, her answers to the asks and the emails PauseAI has sent her.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   addPauseaiEmails(flowDatabase);
@@ -77,7 +77,7 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
   story(
     "Polly has had PauseAI's emails and has answered one. Staff open her page, which lists each with who wrote and when.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   addPauseaiEmails(flowDatabase);
@@ -149,7 +149,7 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
 
 test("A note on a politician", async ({ page, request, flowDatabase }) => {
   story("Staff write a note on Polly's page, in the notes beside her correspondence.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
   const notes = page.getByRole("region", { name: staffCopy.notes.title, exact: true });
@@ -182,7 +182,7 @@ test("An answer to a new ask", async ({ page, request, flowDatabase }) => {
     `INSERT INTO asks (slug, title, kind, date, asked_by)
      VALUES ('giant-pause-button-oct-2026', 'Giant pause button', 'letter', '2026-10-29', '{pauseai}')`,
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
   const asks = page.getByRole("region", { name: copy.statusesTitle });
@@ -209,7 +209,7 @@ test("An answer to a new ask", async ({ page, request, flowDatabase }) => {
 
 test("Recording a no, then clearing it", async ({ page, request, flowDatabase }) => {
   story("Polly hasn't answered the letter to the Prime Minister, so it has no row among her asks.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
   const asks = page.getByRole("region", { name: copy.statusesTitle });
@@ -247,7 +247,7 @@ test("Peers, MSPs and former MPs", async ({ page, request, flowDatabase }) => {
   story(
     "Politicians come from every body, not only the Commons. Lord Seedling is a peer who signed the DeepMind letter.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Lord Seedling of Example");
@@ -272,7 +272,7 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   story(
     "The politicians list starts with those in office. + Filter offers the rest of the filters, and each applies as soon as it's chosen.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians`);
@@ -329,7 +329,7 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
 
 test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {
   story("Staff want those going to the Edinburgh conference or who haven't answered, for a reminder.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   const filters = staffCopy.politicians;
@@ -374,7 +374,7 @@ test("The house tabs", async ({ page, request, flowDatabase }) => {
   story(
     "Staff look at every politician, in office or not, then pick a house from the tabs. The filters they chose stay.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians?status=any`);
   const houses = page.getByRole("navigation", { name: staffCopy.fields.house });
@@ -456,7 +456,7 @@ test("Pages of politicians, and Download", async ({ page, flowDatabase }) => {
 
 test("Searching politicians", async ({ page, request, flowDatabase }) => {
   story('A search can mix words from a name and a constituency. "Pol Westminster" finds Polly.');
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians`);
   const copy = staffCopy.politicians;
@@ -509,7 +509,7 @@ test("Searching politicians", async ({ page, request, flowDatabase }) => {
 
 test("Deleting a politician", async ({ page, request, flowDatabase }) => {
   story("Rita Retired is gone from Airtable, so staff can delete her. Anyone still in Airtable has no Delete button.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   runSql(flowDatabase, "UPDATE notable_people SET airtable_removed_at = now() WHERE name = 'Rita Retired'");
   await logIn(page, flowDatabase);
   // Anyone still in Airtable can't be.
@@ -535,7 +535,7 @@ test("Deleting a politician", async ({ page, request, flowDatabase }) => {
 
 test("Who has been mailed", async ({ page, request, flowDatabase }) => {
   story("Staff filter the politicians list by who was mailed about the Edinburgh conference.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   addPauseaiEmails(flowDatabase);
   await page.goto(`${BASE}/staff/politicians?mailed=edinburgh-conference-2026`);
@@ -549,7 +549,7 @@ test("Who has been mailed", async ({ page, request, flowDatabase }) => {
 
 test("PauseAI's email to a politician", async ({ page, request, flowDatabase }) => {
   story("Each email PauseAI sent a politician is in their history, and has its own page under its mailing.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   addPauseaiEmails(flowDatabase);
   await openPolitician(page, "Polly Placeholder");
@@ -575,7 +575,7 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   story(
     "Polly wrote to policy@ from her own Gmail, which is on no list, so her email matched no one. Staff open her aliases from her email at the top of her page.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   connectPolicyMailboxes(flowDatabase);
   await logIn(page, flowDatabase, ["supporters", "admin"]);
   const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
@@ -615,4 +615,103 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   await expect(under(columns.first)).toHaveText(/\d{4}$/);
   await expect(under(columns.last)).toHaveText(await under(columns.first).innerText());
   await frame(page, "The list, by last activity");
+});
+
+test("Marking a politician", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly Placeholder is an important target. Staff press Personal connection in the band at the top of her page to mark that too, and press Important target to take it off.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  await openPolitician(page, "Polly Placeholder");
+  const important = page.getByRole("button", { name: copy.importantTarget });
+  const connection = page.getByRole("button", { name: copy.personalConnection });
+  await expect(important).toHaveAttribute("aria-pressed", "true");
+  await expect(connection).toHaveAttribute("aria-pressed", "false");
+  await frame(page, "Her page, an important target");
+  await connection.click();
+  await expect(connection).toHaveAttribute("aria-pressed", "true");
+  await important.click();
+  await expect(important).toHaveAttribute("aria-pressed", "false");
+  await frame(page, "Her page, a personal connection");
+
+  story("Her page's record of changes says who changed each marker.");
+  await page.getByText(copy.recordTitle).click();
+  await expect(page.getByRole("cell", { name: staffEmail() }).first()).toBeVisible();
+  await frame(page, "The record of changes");
+});
+
+test("Writing to a Lord", async ({ page, request, flowDatabase }) => {
+  story(
+    "Lord Seedling lists only the House of Lords' shared inbox, so he has no email. Staff find his own address, and set it under Writing to them at the foot of his page, with a salutation that's better than the rule's.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  await openPolitician(page, "Lord Seedling of Example");
+  await expect(page.getByText(staffCopy.politicians.noEmail).first()).toBeVisible();
+  await page.goto(`${BASE}${new URL(page.url()).pathname}?aliases=open#aliases`);
+  const form = page.getByRole("form", { name: copy.editDetails.title });
+  await expect(form).toBeVisible();
+  await frame(page, "Writing to him");
+
+  story("They save it. The band at the top shows his new address and salutation.");
+  await form.getByLabel(copy.editDetails.email).fill("seedling@lords.example");
+  await form.getByLabel(copy.editDetails.salutation).fill("Lord Seedling of Example");
+  await form.getByRole("button", { name: copy.editDetails.save }).click();
+  await expect(form.getByText(copy.editDetails.saved)).toBeVisible();
+  await frame(page, "Saved");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.getByRole("link", { name: "seedling@lords.example" })).toBeVisible();
+  await frame(page, "His page, with his address");
+
+  story("An MP's address is their body's, so Writing to them has only a salutation to change.");
+  await openPolitician(page, "Polly Placeholder");
+  await page.goto(`${BASE}${new URL(page.url()).pathname}?aliases=open#aliases`);
+  await expect(page.getByRole("form", { name: copy.editDetails.title }).getByLabel(copy.editDetails.email)).toHaveCount(
+    0,
+  );
+  await frame(page, "Writing to an MP");
+});
+
+test("A salutation to check", async ({ page, request, flowDatabase }) => {
+  story(
+    "Wikidata was down when the Senedd's import added Gwen Example, so it didn't know her gender, and her salutation is her name, marked to check.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  runSql(
+    flowDatabase,
+    "UPDATE notable_people SET salutation = name, salutation_to_check = true WHERE name = 'Gwen Example'",
+  );
+  await logIn(page, flowDatabase);
+  await openPolitician(page, "Gwen Example");
+  await expect(page.getByText(copy.salutationToCheck)).toBeVisible();
+  await frame(page, "Her page, her salutation to check");
+
+  story("The tag leads to Writing to them, where staff correct it, and it's no longer marked.");
+  await page.getByText(copy.salutationToCheck).click();
+  const form = page.getByRole("form", { name: copy.editDetails.title });
+  await form.getByLabel(copy.editDetails.salutation).fill("Ms Example");
+  await form.getByRole("button", { name: copy.editDetails.save }).click();
+  await expect(form.getByText(copy.editDetails.saved)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(copy.salutationToCheck)).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await frame(page, "Her page, her salutation corrected");
+});
+
+test("ControlAI's statement", async ({ page, request, flowDatabase }) => {
+  story(
+    "ControlAI's statement is backed by politicians of every body, each linked to their page on their body's site. Its nightly import marks them as having signed.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}${importPath("import-controlai-statement")}`);
+  await page.getByRole("button", { name: staffCopy.controlAiStatement.importNow }).click();
+  await expect(page.getByText(/5 supporters/)).toBeVisible();
+  await frame(page, "The import's page");
+
+  story("The ask's page lists who signed it.");
+  await page.goto(`${BASE}/staff/asks/controlai-statement`);
+  await expect(page.getByText("Morag Example").first()).toBeVisible();
+  await frame(page, "The statement's ask");
 });

@@ -354,10 +354,12 @@ describeWithDatabase("politicians", () => {
     expect((await listPoliticians({ search: "Polly" }))[0]).toEqual({
       id: mp,
       airtableId: "recPlaceholder",
+      officialId: null,
       airtableRemovedAt: null,
       house: "commons",
       name: "Polly Placeholder",
       salutation: "Ms Placeholder",
+      salutationToCheck: false,
       constituency: "Cities of London and Westminster",
       party: "Labour (Co-op)",
       country: null,
@@ -525,8 +527,8 @@ describeWithDatabase("politicians", () => {
     // As the imports log them: added, and gone from Airtable.
     await addAuditEntry("jo@pauseai.uk", "add politician", { id: peer, name: "Lord Example" });
     await logChange("sync", "remove politician", { id: peer, name: "Lord Example" });
-    // Not theirs: a held sync's run with the same id, and someone else's status.
-    await logChange("jo@pauseai.uk", "apply held politician sync", { id: peer });
+    // Not theirs: a held import's run with the same id, and someone else's status.
+    await logChange("jo@pauseai.uk", "apply held politician import", { id: peer, job: "import-parliament" });
     expect((await politicianHistory(peer, null)).map((c) => [c.action, c.actor])).toEqual([
       ["remove politician", "sync"],
       ["add politician", "jo@pauseai.uk"],

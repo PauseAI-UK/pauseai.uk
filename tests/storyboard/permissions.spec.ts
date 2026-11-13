@@ -13,7 +13,7 @@ import {
   logInAsStaff,
   lookUpTestMp,
   sendLetter,
-  syncPoliticians,
+  importPoliticians,
   WEBHOOK_AUTH,
 } from "../steps";
 import { addPauseaiEmails } from "./staff-steps";
@@ -70,7 +70,7 @@ test("No permissions", async ({ page, request, flowDatabase }) => {
   story(
     "Supporters have registered for events, joined as members and written to their MP, and one supporter's address has bounced. A staff member with no permissions logs in.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await importLuma(request, BASE);
   await importCivicrm(request, BASE);
   const sender = madeUpAddress("Jane Smith", 31);
@@ -158,7 +158,7 @@ test("No permissions", async ({ page, request, flowDatabase }) => {
 
 test("An admin without Supporters", async ({ page, request, flowDatabase }) => {
   story("Jane writes to her MP, and her address bounces. An admin who can't see supporters looks at what went out.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   const sender = madeUpAddress("Jane Smith", 32);
   await writeLetter(page, sender);
   await postBounce(request, sender);
@@ -188,7 +188,7 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   story(
     "Jane writes to an MP whose address bounces her letter. Staff without the Supporters permission can't open her letter, or Bounced emails, the supporters' page.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   const bouncy = TEST_MPS.find((mp) => mp.postcode === "ZZ99ZH")!;
   await fakeTurnstile(page);
   await lookUpTestMp(page, BASE, bouncy);
@@ -240,7 +240,7 @@ test("Unblocking a supporter's address", async ({ page, request, flowDatabase })
   story(
     "An email to Jane Fixture bounces, so her address is blocked. It's a supporter's, so Addresses to fix, the politicians' page, has nothing: its frame is there, saying so.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await importLuma(request, BASE);
   await postBounce(request, "jane.fixture@example.com");
   await logIn(page, flowDatabase, ["supporters"]);

@@ -20,7 +20,7 @@ import {
   lookUpTestMp,
   postLumaWebhook,
   sendLetter,
-  syncPoliticians,
+  importPoliticians,
 } from "../steps";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
@@ -189,7 +189,7 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
     "Staff look for the supporters in Mo Example's constituency, Manchester Central. The MP filter shows MPs once something's typed in its box.",
   );
   await importLuma(request, BASE);
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
@@ -216,7 +216,7 @@ test("A supporter's page", async ({ page, request, flowDatabase }) => {
     "Jane Fixture unsubscribes from the Luma calendar's emails, and Luma tells us. Luma tells us twice, and it's recorded once.",
   );
   await importLuma(request, BASE);
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   // Jane unsubscribed from the calendar's emails, Luma told us, and someone redelivered it.
   expect(
     await postLumaWebhook(request, BASE, "calendar.person.unsubscribed", "jane.fixture@example.com", "msg_1"),
@@ -390,7 +390,7 @@ test("Merged by phone number", async ({ page, request, flowDatabase }) => {
 
 test("A letter writer's page", async ({ page, request, flowDatabase }) => {
   story("Jane Smith writes to her MP. Staff find her letter on its campaign's page, and click her name.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   const sender = madeUpAddress("Jane Smith", 41);
   await fakeTurnstile(page);
   await lookUpTestMp(page, BASE, TEST_MPS[0]);
@@ -471,7 +471,7 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   story(
     "Lee writes to their MP. The CiviCRM import finds Lee is a member too, and the two are one supporter, with both a Member and a Wrote to MP activity.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await fakeTurnstile(page);
   await lookUpTestMp(page, BASE, TEST_MPS[0], "Lee Letter");
   await fillLetter(page, "lee.letter@example.com");

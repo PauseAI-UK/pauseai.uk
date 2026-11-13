@@ -204,6 +204,13 @@
   --brand-gmail-blue: #4285f4;
   /* The House of Commons' green, for a plain portcullis standing for Parliament. */
   --brand-parliament-green: #006548;
+  /* The Saltire's blue, for the Scottish Parliament; the Welsh flag's green
+     and red, for the Senedd; and a slate blue for the plain front of
+     Stormont, for the Northern Ireland Assembly. */
+  --brand-saltire-blue: #0065bd;
+  --brand-wales-green: #00b140;
+  --brand-wales-red: #c8102e;
+  --brand-stormont-blue: #2f5d8a;
   /* A text as a messaging app shows it: the wall behind it, our bubble, and the names on the bubbles. */
   --chat-wall: #e4ddd3;
   --chat-ours: #d9fdd3;

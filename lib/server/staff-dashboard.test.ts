@@ -110,9 +110,9 @@ describeWithDatabase("dashboard", () => {
     await recordFailure("import-luma", "jo", new Error("Luma answered 500"));
     await query(
       `INSERT INTO import_runs (at, job, started_by, status, result) VALUES
-         ('2026-10-21T00:00:00Z', 'sync-politicians', 'nightly', 'held', '{"changes": {"added": [], "removed": [{"airtableId": "a"}, {"airtableId": "b"}], "changed": []}, "records": []}')`,
+         ('2026-10-21T00:00:00Z', 'import-parliament', 'nightly', 'held', '{"changes": {"added": [], "left": [{"id": 1}, {"id": 2}], "changed": []}, "members": []}')`,
     );
-    await recordRun("check-mps", "nightly", "ok", { problems: [] });
+    await recordRun("import-parliament", "nightly", "ok", { problems: [] });
     return { real, gone, test };
   }
 
@@ -148,7 +148,14 @@ describeWithDatabase("dashboard", () => {
     expect(result.series.eventRegistrations[0].from).toEqual(new Date("2026-08-26T12:00:00.000Z"));
     expect(result.series.eventRegistrations[7].from).toEqual(result.since);
     expect(result.actions).toEqual([
-      { kind: "held-sync", at: new Date("2026-10-21T00:00:00.000Z"), added: 0, removed: 2, changed: 0 },
+      {
+        kind: "held-import",
+        job: "import-parliament",
+        at: new Date("2026-10-21T00:00:00.000Z"),
+        added: 0,
+        left: 2,
+        changed: 0,
+      },
       {
         kind: "blocked-mp",
         politicianId: real,

@@ -133,10 +133,12 @@ export const exampleAliases: PoliticianAliases = {
 export const examplePolitician: Politician = {
   id: 7,
   airtableId: "rec90002",
+  officialId: 90002,
   airtableRemovedAt: null,
   house: "commons",
   name: "Polly Placeholder",
   salutation: "Ms Placeholder",
+  salutationToCheck: false,
   constituency: "Cities of London and Westminster",
   party: "Labour (Co-op)",
   country: "england",

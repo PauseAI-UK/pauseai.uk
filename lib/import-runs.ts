@@ -1,15 +1,16 @@
 // The import log's types, shared by the server (lib/server/import-runs.ts)
 // and the staff components that show a run (app/(staff)/staff/_components/Run.tsx).
 import type { ControlAiMatchProblem } from "./controlai-letter";
-import type { MpProblem } from "./mp-check";
+import type { Ending, ImportChanges, OfficialMember } from "./politician-import";
 import type { PoliticianChanges, PoliticianRecord, Renamed } from "./politician-sync";
 
 /**
- * How often a job runs on its own: every 5 minutes, every 15, hourly or nightly, each
- * by a scheduled function in netlify/functions/<job>/ whose cron says the
- * same (netlify/scheduled.test.ts).
+ * How often a job runs on its own: every 5 minutes, every 15, hourly or
+ * nightly, each by a scheduled function in netlify/functions/<job>/ whose
+ * cron says the same (netlify/scheduled.test.ts); or never, only when staff
+ * press its button.
  */
-export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly";
+export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly" | "manual";
 
 /**
  * Every job, by its name in the import log (`import_runs.job`): its page,
@@ -26,9 +27,13 @@ export const JOBS = {
   "import-civicrm": { slug: "civicrm", schedule: "hourly" },
   "read-gmail": { slug: "gmail", schedule: "frequent" },
   "send-mailings": { slug: "sending", schedule: "quarter-hour", budgetMs: 8_000 },
-  "sync-politicians": { slug: "politicians", schedule: "nightly" },
-  "check-mps": { slug: "mp-check", schedule: "nightly" },
+  "import-parliament": { slug: "parliament", schedule: "nightly" },
+  "import-scottish-parliament": { slug: "scottish-parliament", schedule: "nightly" },
+  "import-senedd": { slug: "senedd", schedule: "nightly" },
+  "import-ni-assembly": { slug: "ni-assembly", schedule: "nightly" },
+  "sync-politicians": { slug: "politicians", schedule: "manual" },
   "import-controlai": { slug: "controlai", schedule: "nightly" },
+  "import-controlai-statement": { slug: "controlai-statement", schedule: "nightly" },
   "tidy-logs": { slug: "tidying", schedule: "nightly" },
 } as const satisfies Record<string, { slug: string; schedule: JobSchedule; budgetMs?: number }>;
 
@@ -84,12 +89,14 @@ export type ImportRun<Job extends ImportJob, Result> = {
 );
 
 /**
- * What a sync-politicians run keeps: what changed, and the names among it.
- * A held one also keeps every record, to apply later. Runs from before the
- * sync read every body keep only the changes.
+ * What a sync-politicians run keeps: whose salutation, markers or notes it
+ * changed, and the records it matched to no one. Runs kept from when it
+ * copied every detail keep who it added and removed, whose names changed,
+ * and, held, every record.
  */
 export type PoliticianSyncResult = {
   changes: PoliticianChanges;
+  unmatched?: string[];
   renamed?: Renamed[];
   records?: PoliticianRecord[];
 };
@@ -102,9 +109,24 @@ export type PoliticianSync = ImportRun<"sync-politicians", PoliticianSyncResult>
  */
 export type Relinked = { read: number; unread: number; linked: number; unlinked: number; offices: number };
 
-/** A check's result; one from before relinking ran with the check has no `relinked`. */
-export type MpCheckResult = { problems: MpProblem[]; relinked?: Relinked };
-export type MpCheck = ImportRun<"check-mps", MpCheckResult>;
+/** The imports of each body's members (lib/server/politician-import.ts). */
+export type PoliticianImportJob =
+  "import-parliament" | "import-scottish-parliament" | "import-senedd" | "import-ni-assembly";
+
+/**
+ * What an import of a body's members keeps: what it changed, or would; a
+ * held one, the list it read and why its leavers left, to apply later.
+ * Parliament's says which constituencies have no MP; an applied one, what
+ * relinking the one-off threads did.
+ */
+export type PoliticianImportResult = {
+  changes: ImportChanges;
+  members?: OfficialMember[];
+  endings?: [number, Ending][];
+  vacant?: string[];
+  relinked?: Relinked;
+};
+export type PoliticianImport = ImportRun<PoliticianImportJob, PoliticianImportResult>;
 
 export type ControlAiImportResult = {
   pdfUrl: string;
@@ -118,6 +140,21 @@ export type ControlAiImportResult = {
   problems: ControlAiMatchProblem[];
 };
 export type ControlAiImport = ImportRun<"import-controlai", ControlAiImportResult>;
+
+/**
+ * What an import of ControlAI's statement did: the politicians its page
+ * links to, those matched, the statuses set and removed, and each link it
+ * couldn't match, which, with every sitting politician on our list, is a
+ * fault.
+ */
+export type ControlAiStatementResult = {
+  supporters: number;
+  matched: number;
+  added: number;
+  removed: number;
+  unmatched: string[];
+};
+export type ControlAiStatementImport = ImportRun<"import-controlai-statement", ControlAiStatementResult>;
 
 /** Where supporters are, looked up after a Luma import: the postcodes and towns looked up, and whether postcodes.io failed partway. */
 export type PlacesLookup = { postcodes: number; towns: number; failed: boolean };
@@ -261,7 +298,15 @@ export type TidyingResult = { importRuns: number; auditEntries: number; drafts: 
 export type Tidying = ImportRun<"tidy-logs", TidyingResult>;
 
 export type AnyImportRun =
-  PoliticianSync | MpCheck | ControlAiImport | LumaImport | CivicrmImport | GmailReading | Sending | Tidying;
+  | PoliticianSync
+  | PoliticianImport
+  | ControlAiImport
+  | ControlAiStatementImport
+  | LumaImport
+  | CivicrmImport
+  | GmailReading
+  | Sending
+  | Tidying;
 
 /** Whether a run left work for later: a Luma import cut short, by its time, its rate limit or another run. */
 function moreToDo(run: Exclude<AnyImportRun, { status: "failed" }>): boolean {

@@ -1,5 +1,5 @@
 import "server-only";
-import { keepsPoliticianThreads, nameParts, type PoliticianBook } from "@/lib/one-off";
+import { isSharedInbox, keepsPoliticianThreads, nameParts, type PoliticianBook } from "@/lib/one-off";
 import { auditActions, logChange } from "./audit";
 import { config } from "./config";
 import { query, transaction } from "./db";
@@ -195,7 +195,7 @@ export async function searchAddedAddresses(until: number): Promise<AddressSearch
 }
 
 /** What adding an address did, or why it didn't. */
-export type AddResult = { added: true } | { added: false; why: "invalid" | "exists" };
+export type AddResult = { added: true } | { added: false; why: "invalid" | "exists" | "shared" };
 
 /**
  * Adds an address to a politician's by hand, logged, and relinks every
@@ -206,6 +206,7 @@ export type AddResult = { added: true } | { added: false; why: "invalid" | "exis
 export async function addPoliticianAddress(politicianId: number, given: string, by: string): Promise<AddResult> {
   const address = given.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return { added: false, why: "invalid" };
+  if (isSharedInbox(address)) return { added: false, why: "shared" };
   const added = await transaction(async (db) => {
     const rows = await query(
       `INSERT INTO politician_addresses (address, notable_person_id, source, added_by)

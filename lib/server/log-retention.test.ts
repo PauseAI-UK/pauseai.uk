@@ -31,8 +31,8 @@ describeWithDatabase("tidying the logs", () => {
     await query("DELETE FROM import_runs");
     await run("import-luma", "8 days");
     const frequentNew = await run("import-luma", "6 days");
-    await run("check-mps", "32 days");
-    const nightlyNew = await run("check-mps", "20 days");
+    await run("import-parliament", "32 days");
+    const nightlyNew = await run("import-parliament", "20 days");
     expect(await tidyLogs()).toEqual({ importRuns: 2, auditEntries: 0 });
     expect(await ids("import_runs")).toEqual([frequentNew, nightlyNew]);
   });

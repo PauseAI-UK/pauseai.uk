@@ -218,10 +218,11 @@ export const staffCopy = {
       // The list's name, read out by a screen reader; not shown.
       actionsTitle: "Needs a person",
       actions: {
-        heldSync: (changes: number) => `MP import would change ${changes} MPs`,
+        // A body's import held, as it would change too much: which, and how many politicians.
+        heldImport: (job: string, changes: number) => `⁂ ${job} would change ${changes} politicians`,
         // Why it's held, and what to do.
-        heldSyncDetail:
-          "That's a lot of MPs, so please check it, and apply or discard it. Fix any problems in Airtable.",
+        heldImportDetail:
+          "⁂ That's a lot of politicians, or someone's name has changed, so please check it, and apply or discard it.",
         decide: "Review import",
         blockedMp: (name: string) => `${name}'s email is bouncing`,
         blockedMpDetail: "Find a working email for this MP if it has changed, or unblock if working now.",
@@ -1931,6 +1932,32 @@ All events: ${link}`,
       airtable: "Airtable",
       staff: "Added by staff",
       test: "A test MP",
+      // Their body's list, linking to their page on its site.
+      parliament: "⁂ Parliament",
+      "scottish-parliament": "⁂ the Scottish Parliament",
+      senedd: "⁂ the Senedd",
+      "ni-assembly": "⁂ the Northern Ireland Assembly",
+    },
+    // The band's fact of the markers staff set, and the test tag; each marker a button that turns it on or off.
+    marks: "⁂ Marks",
+    // The band's fact of the words after "Dear", and a tag when they're made from the name alone, to check.
+    salutation: "⁂ Salutation",
+    salutationToCheck: "⁂ To check",
+    // The form in Writing to them that changes what staff keep by hand.
+    editDetails: {
+      title: "⁂ How we write to them",
+      salutation: "⁂ Salutation",
+      email: "⁂ Email",
+      // Under the email field, for a Lord: why it's theirs to set.
+      emailHint: "⁂ Most Lords list no address of their own, so set one here if you find it.",
+      save: "Save",
+      saved: "⁂ Saved.",
+      refused: {
+        salutation: "⁂ A salutation can't be empty.",
+        email: "⁂ That doesn't look like an email address.",
+        shared: "⁂ That's the House of Lords' shared inbox, which isn't anyone's own address.",
+        gone: "⁂ This politician can't be edited.",
+      },
     },
     // A status: who set it and when; the ask's title heads the line. An import's is "from" it.
     setBy: (who: string, when: string) => `set by ${who}, ${when}`,
@@ -1951,7 +1978,7 @@ All events: ${link}`,
     country: "Nation",
     // Over the notes Airtable has on them, which are changed there.
     notes: "Notes from Airtable",
-    // Over how to write to them: their address and salutation.
+    // The section at the foot of their page on how to write to them: their salutation, a Lord's email, and every address of theirs.
     writing: "Writing to them",
     // Airtable's markers, as tags by their name.
     importantTarget: "Important target",
@@ -2039,6 +2066,8 @@ All events: ${link}`,
       refused: {
         invalid: "That doesn't look like an email address.",
         exists: "That address is already listed.",
+        // The House of Lords' shared inbox, which forwards to the Lord a message names: no one's own.
+        shared: "⁂ That's the House of Lords' shared inbox, which isn't anyone's own address.",
       },
     },
     // At the foot of the page of one whose record has gone from Airtable, and who's had no letters.
@@ -2076,11 +2105,9 @@ All events: ${link}`,
       // the import (linked to its page). A new address isn't blocked.
       wrong: {
         title: "Address wrong?",
-        before: "Correct it in ",
-        airtable: "Airtable",
-        middle: ", then run the ",
-        link: "nightly import",
-        after: ". The new address isn't blocked.",
+        before: "⁂ Correct it in ",
+        link: "⁂ Writing to them",
+        after: "⁂ , below. The new address isn't blocked.",
       },
       // If the address is right: unblock it, with the note of why.
       right: {
@@ -2296,11 +2323,11 @@ All events: ${link}`,
       body: (job: string, error: string, link: string) =>
         `The import '${job}' failed with the error: "${error}". It will try again at its next run, and you won't be emailed again until it has worked.\n\nIts runs: ${link}`,
     },
-    // The MP import is held, as it would change too much: how many MPs, and its page.
-    syncHeld: {
-      subject: (changes: number) => `MP import would change ${changes} MPs`,
-      body: (changes: number, link: string) =>
-        `The MP import would change ${changes} MPs, so it's held until someone checks it. Review it, then apply or discard it, and fix any problems in Airtable:\n\n${link}`,
+    // A body's import is held, as it would change too much: which import, how many politicians, and its page.
+    importHeld: {
+      subject: (job: string, changes: number) => `⁂ ${job} would change ${changes} politicians`,
+      body: (job: string, changes: number, link: string) =>
+        `⁂ ${job} would change ${changes} politicians, so it's held until someone checks it. Review it, then apply or discard it:\n\n${link}`,
     },
     // Google stopped our access to a connected Gmail: whose, what stops, and where to connect it again.
     gmailDisconnected: {
@@ -2783,26 +2810,24 @@ All events: ${link}`,
       `${r.updates ? sentToCivicrm(r.updates) : ""}${count(r.contacts, "contact", "contacts")} read: ${r.added} added, ${r.changed} changed, ${r.held ? "none marked gone, as too few came back" : `${r.gone} gone`}; ${count(r.optOuts, "unsubscribe", "unsubscribes")} changed, ${count(r.blocked, "address", "addresses")} blocked for a hold.${r.unblocked ? ` ${count(r.unblocked, "address", "addresses")} unblocked, as CiviCRM lifted the hold.` : ""}${r.linked ? ` ${count(r.supportersAdded!, "new supporter", "new supporters")}, ${r.linked} linked.` : ""}`,
   },
   syncs: {
-    title: "Politicians from Airtable",
+    title: "⁂ Salutations, markers and notes from Airtable",
     // With a link to the table in the middle.
     intro: {
-      before: "Imports every politician in every body from the ",
+      before: "⁂ Copies each politician's salutation, Important target, Personal connection and notes from the ",
       link: "UK Parliamentarians table in Airtable",
       after:
-        ", except the Airtable test MPs. Whether they've signed a letter or attended an event is not copied. Runs that change lots of data are held for checking.",
+        "⁂ . It doesn't run on its own, and adds no one: the politicians come from their bodies' lists. Press it only if someone has changed one of these in Airtable.",
     },
-    /** The test MPs (lib/test-mps.json) aren't in Airtable; every import adds any that are missing. */
-    testMps: "Adds our own test MPs if any are missing.",
-    syncNow: "Import politicians now",
+    syncNow: "⁂ Copy from Airtable now",
     none: "Not imported yet.",
     added: "Added",
-    // Those whose record is no longer in Airtable.
+    // Those whose record is no longer in Airtable, in runs from when the copy added and removed politicians.
     removed: "Gone from Airtable",
     changed: "Changed",
-    // A record whose name changed, which may be Airtable reusing it for someone new: from, to.
+    // Records matched to no politician here, which aren't added.
+    unmatched: "⁂ Not found here",
+    // A record whose name changed, in runs from when the copy held for those: from, to.
     renamed: "Renamed",
-    apply: "Apply",
-    discard: "Discard",
   },
 
   // What went wrong without stopping the work (lib/server/problems.ts), by how far each can reach.
@@ -2960,40 +2985,86 @@ All events: ${link}`,
     quiet: (n: number) => `${count(n, "run", "runs")}, nothing new`,
     stretch: (n: number) => `${count(n, "run", "runs")}, no problems`,
   },
-  check: {
-    title: "Members of Parliament against Parliament's list",
-    // With a link to the API in the middle.
-    intro: {
-      before: "Compares the MPs imported from Airtable with ",
-      link: "Parliament's Members API",
-      after:
-        ", and lists where they disagree. Airtable isn't changed, manually make updates there. It also saves the email addresses Parliament lists for each MP, and links one-off emails to politicians again.",
+  // The nightly imports of each body's members from its own list (lib/server/politician-import.ts).
+  politicianImports: {
+    titles: {
+      "import-parliament": "⁂ MPs and peers from Parliament",
+      "import-scottish-parliament": "⁂ MSPs from the Scottish Parliament",
+      "import-senedd": "⁂ Members of the Senedd from the Senedd",
+      "import-ni-assembly": "⁂ MLAs from the Northern Ireland Assembly",
     },
-    checkNow: "Check MPs now",
-    never: "Never checked",
-    allGood: "All good.",
-    problems: (n: number) => count(n, "problem", "problems"),
-    // After the check, the one-off emails are linked again to the politicians
+    // Each with a link to the body's list in the middle.
+    intros: {
+      "import-parliament": {
+        before: "⁂ Imports every sitting MP and peer from ",
+        link: "⁂ Parliament's list of members",
+        after:
+          "⁂ : their names, parties, constituencies and email addresses. Marks anyone who has left, with why. Adds our own test MPs if any are missing, and links one-off emails to politicians again.",
+      },
+      "import-scottish-parliament": {
+        before: "⁂ Imports every sitting MSP from ",
+        link: "⁂ the Scottish Parliament's open data",
+        after: "⁂ : their names, parties, seats and email addresses. Marks anyone who has left.",
+      },
+      "import-senedd": {
+        before: "⁂ Imports every sitting member of the Senedd from ",
+        link: "⁂ the Senedd's list of members",
+        after: "⁂ : their names, parties, constituencies and email addresses. Marks anyone who has left.",
+      },
+      "import-ni-assembly": {
+        before: "⁂ Imports every sitting MLA from ",
+        link: "⁂ the Northern Ireland Assembly's open data",
+        after: "⁂ : their names, parties, constituencies and email addresses. Marks anyone who has left.",
+      },
+    },
+    // How an import holds a run that changes too much.
+    held: "⁂ A run that changes more than 20 politicians, or anyone's name, is held for checking.",
+    importNow: "⁂ Import now",
+    never: "⁂ Not imported yet.",
+    result: (r: { added: number; changed: number; left: number }) =>
+      `⁂ ${r.added} added, ${r.changed} changed, ${r.left} left.`,
+    added: "⁂ Added",
+    changed: "⁂ Changed",
+    left: "⁂ Left",
+    // Someone whose name changed, which may be a mistake in matching: from, to.
+    renamed: "⁂ Renamed",
+    // An MP whose constituency isn't spelt as the official list has it, so no postcode would find them.
+    unofficial: "⁂ Constituency names no postcode would find",
+    // Politicians linked to their body's list for the first time whose salutation by rule isn't ours: ours, then the rule's.
+    salutations: "⁂ Salutations unlike the rule's",
+    // Parliament's: constituencies with no MP in office, as before a by-election.
+    vacant: (n: number) => `⁂ ${count(n, "constituency", "constituencies")} with no MP.`,
+    noMp: "⁂ Constituencies with no MP",
+    // After an import, the one-off emails are linked again to the politicians
     // their addresses now match: what that did.
     relinked: (r: { read: number; unread: number; linked: number; unlinked: number; offices: number }) =>
       `One-off emails: ${count(r.linked, "new link", "new links")} to politicians, ${r.unlinked} removed, ${count(r.offices, "office address", "office addresses")} found.` +
       (r.read || r.unread
         ? ` ${count(r.unread, "older email", "older emails")} still to check for quoted addresses.`
         : ""),
-    columns: {
-      constituency: "Constituency",
-      problem: "Problem",
-      airtable: "Here / Airtable",
-      parliament: "Parliament",
-    },
-    kinds: {
-      unofficial: "Unofficial constituency name",
-      missing: "Missing from here / Airtable",
-      extra: "Missing from Parliament",
-      name: "Name differs",
-      email: "Email differs",
-    } as Record<string, string>,
     noEmail: "None",
+    apply: "⁂ Apply",
+    discard: "⁂ Discard",
+    // A problem of the run: Wikidata couldn't be asked, so new MSPs' or Senedd members' salutations are their names until the next run.
+    genderLookupFailed:
+      "⁂ Couldn't ask Wikidata for new members' genders, so their salutations are their names for now",
+    // A problem of Parliament's import: constituencies with two MPs in office, which follow, so a postcode there finds the wrong one.
+    twoMps: "⁂ Constituencies with two MPs in office:",
+  },
+  // The nightly import of ControlAI's statement's supporters (lib/server/controlai-statement-import.ts).
+  controlAiStatement: {
+    title: "⁂ ControlAI's UK campaign statement",
+    intro: {
+      before: "⁂ Imports the politicians who back ",
+      link: "⁂ ControlAI's statement",
+      after: "⁂ , marking them as having signed it. This can't be changed by hand.",
+    },
+    importNow: "⁂ Import ControlAI statement now",
+    never: "⁂ Not imported yet.",
+    result: (r: { supporters: number; matched: number; added: number; removed: number }) =>
+      `⁂ ${r.supporters} supporters, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
+    // A problem of the run: links on the page to politicians we don't have, which follow.
+    unmatched: "⁂ Supporters on ControlAI's page we couldn't find here:",
   },
   import: {
     // The page with every scheduled job: the imports, the politicians from
@@ -3007,12 +3078,17 @@ All events: ${link}`,
     // lozenge on the job's page.
     airtable: "Airtable",
     parliament: "UK Parliament",
+    "scottish-parliament": "⁂ Scottish Parliament",
+    senedd: "⁂ Senedd",
+    "ni-assembly": "⁂ Northern Ireland Assembly",
     controlai: "ControlAI",
     database: "Database",
     luma: "Luma",
     civicrm: "CiviCRM",
     gmail: "Gmail",
     nightly: "Nightly",
+    // A job that runs only when staff press its button.
+    manual: "⁂ When pressed",
     // What a job that isn't an import does, a lozenge after its name: compares
     // with another list, reads mail, sends mail, or keeps the site tidy.
     kinds: {
@@ -3382,9 +3458,10 @@ All events: ${link}`,
 
 /** Each job in the import log, by the title of its card on the Scheduled jobs page and of its own page. */
 export const jobTitles: Record<ImportJob, string> = {
+  ...staffCopy.politicianImports.titles,
   "sync-politicians": staffCopy.syncs.title,
-  "check-mps": staffCopy.check.title,
   "import-controlai": staffCopy.controlAi.title,
+  "import-controlai-statement": staffCopy.controlAiStatement.title,
   "import-luma": staffCopy.luma.title,
   "import-civicrm": staffCopy.civicrm.title,
   "read-gmail": staffCopy.gmailReading.title,

@@ -6,6 +6,8 @@
 import type { AskStatus } from "./asks";
 import type { BroadcastTerms } from "./broadcasts";
 import type { FieldChange } from "./field-changes";
+import type { PoliticianImportJob } from "./import-runs";
+import type { ImportedFields } from "./politician-import";
 import type { SyncedPolitician } from "./politician-sync";
 import type { SavedList } from "./saved-filters";
 import type { DownloadFormat } from "./staff-list";
@@ -17,8 +19,11 @@ import type { MailingState } from "./server/mailing-drafts";
 import type { NoteTarget } from "./server/notes";
 import type { House } from "./server/politicians";
 
-/** How many a sync or import added, removed or changed. */
+/** How many a sync added, removed or changed. */
 type SyncCounts = { added: number; removed: number; changed: number };
+
+/** Which body's import, and how many politicians it added, found had left, or changed. */
+type ImportCounts = { job: PoliticianImportJob; added: number; left: number; changed: number };
 
 /** A download of a list: its filters in words, its format, how many rows, and a vCard file's code. */
 type DownloadDetails = { filters: string[]; format: DownloadFormat; rows: number; code?: string };
@@ -58,16 +63,18 @@ export type DownloadAction = "download supporters" | "download blocked emails";
 /** Each action logChange logs, and its details. */
 export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "set status": { politicianId: number; ask: string; status: AskStatus | null; date: string | null; note: string };
-  "add politician": { id: number } & SyncedPolitician;
-  "edit politician": PoliticianEdit & { airtableId: string };
+  /** By an import, from their body's list. */
+  "add politician": { id: number } & ImportedFields;
+  /** An import's or a staff member's edit; an import's change of status, with when it happened and why. */
+  "edit politician": PoliticianEdit & { date?: string | null; note?: string };
   "remove politician": { id: number; name: string };
   "delete politician": { id: number; name: string; airtableId: string };
   "add politician address": { politicianId: number; address: string };
   "remove politician address": { politicianId: number; address: string };
-  "apply politician sync": SyncCounts;
-  "hold politician sync": SyncCounts;
-  "apply held politician sync": { id: number };
-  "discard held politician sync": { id: number };
+  "apply politician import": ImportCounts;
+  "hold politician import": ImportCounts;
+  "apply held politician import": { id: number; job: PoliticianImportJob };
+  "discard held politician import": { id: number; job: PoliticianImportJob };
   "import ControlAI letter": { added: number; removed: number; problems: number };
   "import sign-ups": { uploadId: number; imported: number; heldBack: number };
   "add ask": Ask;
@@ -124,7 +131,12 @@ type EarlierAuditDetails = {
     | HandAddedPolitician
     | SyncedMp
     | ({ id: number } & SyncedPolitician & { forename?: string | null; surname?: string | null; city?: string | null });
-  "edit politician": HandAddedPolitician | SyncedMp | PoliticianEdit;
+  "edit politician": HandAddedPolitician | SyncedMp | (PoliticianEdit & { airtableId: string });
+  // From when the sync copied every politician from Airtable.
+  "apply politician sync": SyncCounts;
+  "hold politician sync": SyncCounts;
+  "apply held politician sync": { id: number };
+  "discard held politician sync": { id: number };
   // Before the sync read every body: the MPs alone.
   "apply MP sync": SyncCounts;
   "hold MP sync": SyncCounts;

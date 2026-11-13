@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { constituencyName, isOfficialName } from "./constituencies";
+import { constituencyCountry, constituencyName, isOfficialName } from "./constituencies";
 import constituencies from "./constituencies.json";
 
 describe("the official constituencies", () => {
@@ -19,5 +19,14 @@ describe("the official constituencies", () => {
     expect(isOfficialName("Ynys Môn")).toBe(true);
     expect(isOfficialName("Ynys Mon")).toBe(false);
     expect(isOfficialName("Montgomeryshire and Glyndwr")).toBe(false);
+  });
+
+  it("knows each constituency's nation by its code, and every code is one of the four", () => {
+    expect(constituencyCountry("Cities of London and Westminster")).toBe("england");
+    expect(constituencyCountry("Ynys Môn")).toBe("wales");
+    expect(constituencyCountry("Glasgow North")).toBe("scotland");
+    expect(constituencyCountry("Foyle")).toBe("northern-ireland");
+    expect(constituencyCountry("Nowhere")).toBeUndefined();
+    expect(Object.values(constituencies).every((name) => constituencyCountry(name))).toBe(true);
   });
 });

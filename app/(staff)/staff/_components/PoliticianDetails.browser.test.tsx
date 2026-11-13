@@ -28,7 +28,6 @@ describe("PoliticianDetails", () => {
     setStatus: vi.fn(),
     letters: { senders: false as const, letters: [] },
     history: [],
-    airtableTable: "https://airtable.com/app/tbl",
   };
 
   const definitions = () =>
@@ -45,16 +44,22 @@ describe("PoliticianDetails", () => {
 
   it("heads the page with a band of who they are, beside counts, then their correspondence beside their asks and notes", async () => {
     const { rerender } = await render(
-      <PoliticianDetails politician={{ ...MP, airtableId: null, email: null }} unblock={vi.fn()} {...none} />,
+      <PoliticianDetails
+        politician={{ ...MP, airtableId: null, officialId: null, email: null }}
+        unblock={vi.fn()}
+        {...none}
+      />,
     );
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(MP.name);
     await expect.element(page.getByText(staffCopy.politician.importantTarget)).toBeVisible();
-    // Their party, status and nation, the party's and the nation's with an icon; how to write to them; where they came from.
+    // Their party, status and nation, the party's and the nation's with an icon; how to write to them; their markers.
     expect(terms()).toEqual([
       staffCopy.fields.party,
       staffCopy.politician.status,
       staffCopy.politician.country,
       staffCopy.fields.email,
+      staffCopy.politician.salutation,
+      staffCopy.politician.marks,
     ]);
     expect(definitions()).toEqual([
       MP.party,
@@ -62,6 +67,7 @@ describe("PoliticianDetails", () => {
       staffCopy.countries.england,
       staffCopy.politicians.noEmail,
       MP.salutation,
+      staffCopy.politician.importantTarget,
     ]);
     // Where they came from, quietly, at the top right.
     await expect
@@ -105,25 +111,55 @@ describe("PoliticianDetails", () => {
       />,
     );
     await expect.element(page.getByRole("link", { name: MP.email! })).toHaveAttribute("href", `mailto:${MP.email}`);
-    expect(terms()).toEqual([staffCopy.politician.status, staffCopy.fields.email]);
+    expect(terms()).toEqual([staffCopy.politician.status, staffCopy.fields.email, staffCopy.politician.marks]);
   });
 
-  it("sends Airtable's politicians to Airtable, saying if their record has gone; each says where they came from", async () => {
-    for (const [politician, source] of [
-      [MP, staffCopy.politician.sources.airtable],
-      [{ ...MP, airtableId: null, isTest: true, importantTarget: false }, staffCopy.politician.sources.test],
+  it("marks a salutation made from the name to check, leading to where it's written", async () => {
+    await render(
+      <PoliticianDetails
+        politician={{ ...MP, salutationToCheck: true, importantTarget: false }}
+        unblock={vi.fn()}
+        {...none}
+      />,
+    );
+    await expect
+      .element(page.getByRole("link", { name: staffCopy.politician.salutationToCheck }))
+      .toHaveAttribute("href", `/staff/politicians/${MP.id}?aliases=open#aliases`);
+    expect(terms()).not.toContain(staffCopy.politician.marks);
+  });
+
+  it("turns a marker on or off with its button in the band", async () => {
+    const { fn, sent } = action();
+    await render(<PoliticianDetails politician={MP} unblock={vi.fn()} setMark={fn} {...none} />);
+    const important = page.getByRole("button", { name: staffCopy.politician.importantTarget });
+    await expect.element(important).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: staffCopy.politician.personalConnection }).click();
+    await vi.waitFor(() =>
+      expect(sent).toEqual([{ politicianId: String(MP.id), mark: "personalConnection", on: "true" }]),
+    );
+  });
+
+  it("links each politician to their page on their body's site, saying if their Airtable record has gone", async () => {
+    for (const [politician, source, href] of [
+      [MP, staffCopy.politician.sources.parliament, "https://members.parliament.uk/member/90002"],
+      [
+        { ...MP, house: "senedd" as const, officialId: 5053 },
+        staffCopy.politician.sources.senedd,
+        "https://business.senedd.wales/mgUserInfo.aspx?UID=5053",
+      ],
+      [{ ...MP, officialId: null }, staffCopy.politician.sources.airtable, undefined],
+      [{ ...MP, airtableId: null, officialId: null, isTest: true }, staffCopy.politician.sources.test, undefined],
     ] as const) {
       const { unmount } = await render(<PoliticianDetails politician={politician} unblock={vi.fn()} {...none} />);
-      // From Airtable: the source links to their own record there. A test MP has none, and no link.
-      const record = page.getByRole("link", { name: source, exact: true });
-      if (politician.airtableId) {
-        await expect.element(record).toHaveAttribute("href", `https://airtable.com/app/tbl/${politician.airtableId}`);
-        await expect.element(record).toHaveAttribute("target", "_blank");
-        await expect.element(page.getByText(staffCopy.politician.editInAirtable, { exact: false })).toBeVisible();
+      await expect
+        .element(page.getByText(staffCopy.politician.source, { exact: false }))
+        .toHaveTextContent(`${staffCopy.politician.source} ${source}`);
+      const link = page.getByRole("link", { name: source, exact: true });
+      if (href) {
+        await expect.element(link).toHaveAttribute("href", href);
+        await expect.element(link).toHaveAttribute("target", "_blank");
       } else {
-        await expect.element(record).not.toBeInTheDocument();
-        await expect.element(page.getByText(`${staffCopy.politician.source} ${source}`)).toBeVisible();
-        await expect.element(page.getByText(staffCopy.politicians.flags.test)).toBeVisible();
+        await expect.element(link).not.toBeInTheDocument();
       }
       await unmount();
     }
@@ -1071,21 +1107,14 @@ describe("PoliticianDetails", () => {
     const strip = notice.element().firstElementChild!;
     expect(strip.firstElementChild!.tagName.toLowerCase()).toBe("svg");
     expect(strip.className).toMatch(/red/);
-    // Its two choices side by side: the address wrong, or right.
-    expect([...notice.element().querySelectorAll("h3")].map((h) => h.textContent)).toEqual([
-      copy.wrong.title,
-      copy.right.title,
-    ]);
+    // An MP's address is their body's, so the only choice here is that it's right.
+    expect([...notice.element().querySelectorAll("h3")].map((h) => h.textContent)).toEqual([copy.right.title]);
     expect(notice.element().querySelector("p")!.textContent).toBe(
       `${copy.why.before}${MP.email}${copy.why.after(exampleBlock.reason, "12 Oct 2026, 09:10")}`,
     );
     expect(notice.element().querySelector("p strong")!.textContent).toBe(MP.email);
     // The example's reason ends in a full stop, so the sentence doesn't add a second.
     expect(notice.element().querySelector("p")!.textContent).not.toContain("..");
-    await expect.element(notice.getByRole("heading", { name: copy.wrong.title })).toBeVisible();
-    await expect
-      .element(notice.getByRole("link", { name: copy.wrong.link }))
-      .toHaveAttribute("href", "/staff/scheduled-jobs/politicians");
     // The address is a link to write to it in the band, and under it in bold in the strip.
     expect(
       page
@@ -1097,18 +1126,25 @@ describe("PoliticianDetails", () => {
     await page.getByRole("button", { name: staffCopy.emails.unblock }).click();
     await vi.waitFor(() => expect(sent).toEqual([{ address: MP.email, note: "Fixed in Airtable" }]));
 
-    // An MP not from Airtable: correcting the address links to the table, as they have no record in it.
+    // An MP's address is their body's, so there's nowhere to correct it here; a Lord's is staff's, in Writing to them.
+    expect(notice.element().textContent).not.toContain(copy.wrong.before);
     await rerender(
       <PoliticianDetails
-        politician={{ ...MP, airtableId: null, emailBlocked: true }}
+        politician={{ ...MP, house: "lords", emailBlocked: true }}
         block={{ ...exampleBlock, address: MP.email! }}
         unblock={fn}
+        editDetails={vi.fn()}
         {...none}
       />,
     );
+    // A Lord's: their two choices side by side, the address wrong, corrected in Writing to them, or right.
+    expect([...notice.element().querySelectorAll("h3")].map((h) => h.textContent)).toEqual([
+      copy.wrong.title,
+      copy.right.title,
+    ]);
     await expect
-      .element(notice.getByRole("link", { name: copy.wrong.airtable }))
-      .toHaveAttribute("href", "https://airtable.com/app/tbl");
+      .element(notice.getByRole("link", { name: copy.wrong.link }))
+      .toHaveAttribute("href", `/staff/politicians/${MP.id}?aliases=open#aliases`);
 
     // A complaint can't be unblocked here: no advice on fixing it, and no form.
     await rerender(
@@ -1136,7 +1172,7 @@ describe("PoliticianDetails", () => {
       .toHaveAttribute("href", `/staff/politicians/${MP.id}?aliases=open#aliases`);
     const fold = document.getElementById("aliases") as HTMLDetailsElement;
     expect(fold.open).toBe(false);
-    expect(fold.querySelector("summary")!.textContent).toBe(`${words.title} 8`);
+    expect(fold.querySelector("summary")!.textContent).toBe(`${staffCopy.politician.writing} 8`);
     await rerender(
       <PoliticianDetails
         politician={MP}

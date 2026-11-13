@@ -3,307 +3,100 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import fixture from "@/lib/server/fixtures/airtable-politicians.json";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import type { PoliticianSync } from "@/lib/import-runs";
 import { query } from "./db";
-import { type PoliticianSync, NIGHTLY } from "@/lib/import-runs";
-import { staffCopy } from "@/lib/content/staff-interface";
-import { notifications } from "@/tests/notifications";
 import { listRuns } from "./import-runs";
-import { decideHeldSync, mpsInOffice, syncPoliticians } from "./politician-sync";
-
-const recentSyncs = () => listRuns("sync-politicians") as Promise<PoliticianSync[]>;
+import { syncPoliticians } from "./politician-sync";
 
 const JO = "jo@pauseai.uk";
 
 // Airtable's API, matched without naming its host, which only lib/server/outside-services/airtable.ts does.
 const AIRTABLE = "https://*.airtable.com/v0/*";
 
-type Record = (typeof fixture.records)[number] | { id: string; fields: { [field: string]: unknown } };
-
-/** Airtable answers with these records instead of the fixture's. */
-function airtableHas(records: Record[]) {
-  server.use(http.get(AIRTABLE, () => HttpResponse.json({ records })));
-}
-
-/** `count` made-up MPs, as Airtable has them. */
-const many = (count: number, from = 1): Record[] =>
-  Array.from({ length: count }, (_, i) => ({
-    id: `recMany${from + i}`,
-    fields: { "Full name or Title": `Many ${from + i}`, Body: "House of Commons", Constituency: `Seat ${from + i}` },
-  }));
-
 const people = () =>
-  query<{ airtableId: string | null; name: string; status: string; house: string; removed: boolean; isTest: boolean }>(
-    `SELECT n.airtable_id AS "airtableId", n.name, n.status, p.house, n.airtable_removed_at IS NOT NULL AS removed,
-       p.is_test AS "isTest"
-     FROM notable_people n JOIN politicians p ON p.id = n.id ORDER BY p.is_test, n.name`,
+  query<{
+    airtableId: string | null;
+    name: string;
+    salutation: string;
+    notes: string;
+    important: boolean;
+    connection: boolean;
+    toCheck: boolean;
+  }>(
+    `SELECT n.airtable_id AS "airtableId", n.name, n.salutation, n.notes, n.important_target AS important,
+       n.personal_connection AS connection, n.salutation_to_check AS "toCheck"
+     FROM notable_people n JOIN politicians p ON p.id = n.id WHERE NOT p.is_test ORDER BY n.name`,
   );
 
-const statuses = () =>
-  query<{ name: string; ask: string; status: string; by: string }>(
-    `SELECT n.name, s.ask, s.status, s.updated_by AS by FROM ask_statuses s JOIN notable_people n ON n.id = s.notable_person_id
-     ORDER BY n.name, s.ask`,
-  );
-
-beforeEach(() => {
-  vi.stubEnv("TEST_MP_EMAIL", "test-mp@parliament.example");
-  vi.stubEnv("AIRTABLE_TOKEN", "token");
-});
+beforeEach(() => vi.stubEnv("AIRTABLE_TOKEN", "token"));
 afterEach(() => vi.unstubAllEnvs());
 
 describeWithDatabase("syncPoliticians", () => {
   useTestDatabase();
 
-  it("fills an empty table from Airtable, every body, with the test MPs, and records the sync", async () => {
-    const result = await syncPoliticians(NIGHTLY);
-    expect(result).toMatchObject({ status: "applied", renamed: [] });
-    expect(result.changes.added).toHaveLength(7);
-    expect((await people()).filter((p) => !p.isTest)).toEqual([
-      {
-        airtableId: "recGone",
-        name: "Gordon Gone",
-        status: "left_office",
-        house: "commons",
-        removed: false,
-        isTest: false,
-      },
-      {
-        airtableId: "recSeedling",
-        name: "Lord Seedling of Example",
-        status: "in_office",
-        house: "lords",
-        removed: false,
-        isTest: false,
-      },
-      {
-        airtableId: "recMo",
-        name: "Mo Example",
-        status: "in_office",
-        house: "commons",
-        removed: false,
-        isTest: false,
-      },
-      {
-        airtableId: "recMorag",
-        name: "Morag Example",
-        status: "in_office",
-        house: "scottish-parliament",
-        removed: false,
-        isTest: false,
-      },
-      {
-        airtableId: "recDummy",
-        name: "Ms Dora Dummy",
-        status: "in_office",
-        house: "commons",
-        removed: false,
-        isTest: false,
-      },
+  it("adds no one: it lists the records it found no one for", async () => {
+    const result = await syncPoliticians(JO);
+    expect(result.changes.changed).toEqual([]);
+    expect(result.unmatched).toHaveLength(fixture.records.length);
+    expect(await people()).toEqual([]);
+    const [run] = (await listRuns("sync-politicians")) as PoliticianSync[];
+    expect(run).toMatchObject({ status: "unchanged", startedBy: JO });
+  });
+
+  it("copies a salutation, the markers and notes to the politician with the record, or by name, and logs each", async () => {
+    await addTestPolitician({ name: "Polly Placeholder", salutation: "Polly Placeholder", airtableId: null });
+    await query("UPDATE notable_people SET salutation_to_check = true");
+    await addTestPolitician({ name: "Somebody Else", airtableId: "recMorag", salutation: "Mx Else" });
+    const result = await syncPoliticians(JO);
+    expect(result.changes.changed.map((p) => p.airtableId).sort()).toEqual(["recMorag", "recPlaceholder"]);
+    expect(await people()).toEqual([
       {
         airtableId: "recPlaceholder",
         name: "Polly Placeholder",
-        status: "in_office",
-        house: "commons",
-        removed: false,
-        isTest: false,
-      },
-      {
-        airtableId: "recRetired",
-        name: "Rita Retired",
-        status: "retired",
-        house: "commons",
-        removed: false,
-        isTest: false,
-      },
-    ]);
-    expect((await people()).filter((p) => p.isTest).map((p) => p.name)).toEqual([
-      "Backy McTestface MP",
-      "Bouncy McTestface MP",
-      "Nomail McTestface MP",
-      "Signy McTestface MP",
-      "Testy McTestface MP",
-    ]);
-    // No answers from Airtable's records, though they have some: only the test MPs' own.
-    expect(await statuses()).toEqual([
-      { name: "Backy McTestface MP", ask: "controlai-letter", status: "signed", by: "sync" },
-      { name: "Signy McTestface MP", ask: "frontier-ai-letter", status: "signed", by: "sync" },
-    ]);
-    // Everything the sync copies, for one of them.
-    expect(
-      await query(
-        `SELECT n.salutation, n.email, n.notes, n.important_target AS "importantTarget",
-           n.personal_connection AS "personalConnection", p.constituency, p.party, p.country
-         FROM notable_people n JOIN politicians p USING (id) WHERE n.airtable_id = 'recPlaceholder'`,
-      ),
-    ).toEqual([
-      {
         salutation: "Ms Placeholder",
-        email: "polly.placeholder.mp@parliament.uk",
         notes: "Met at the example fair.\nRecommended",
-        importantTarget: true,
-        personalConnection: false,
-        constituency: "Cities of London and Westminster",
-        party: "Labour (Co-op)",
-        country: "england",
+        important: true,
+        connection: false,
+        toCheck: false,
+      },
+      {
+        airtableId: "recMorag",
+        name: "Somebody Else",
+        salutation: "Ms Example",
+        notes: "",
+        important: false,
+        connection: true,
+        toCheck: false,
       },
     ]);
-    const [sync] = await recentSyncs();
-    expect(sync).toMatchObject({ status: "applied", startedBy: NIGHTLY, error: null, decidedBy: null });
-    // Applied, so the records aren't needed again.
-    expect(sync.result.records).toBeUndefined();
-    // The run's summary, and one entry per politician added, by their row; no status set.
-    const log = await query<{ actor: string; action: string }>("SELECT actor, action FROM audit_log ORDER BY id");
-    expect(log.filter((e) => e.action === "add politician")).toHaveLength(7);
-    expect(log.filter((e) => e.action === "set status")).toHaveLength(0);
-    expect(log.at(-1)).toEqual({ actor: "sync", action: "apply politician sync" });
-    expect(
-      await query(
-        "SELECT count(*)::int AS n FROM audit_log a JOIN notable_people p ON p.id = (a.details->>'id')::bigint WHERE a.action = 'add politician'",
-      ),
-    ).toEqual([{ n: 7 }]);
-  });
-
-  it("does nothing when nothing has changed, except keep the test MPs' inbox up to date, and records that", async () => {
-    await syncPoliticians(NIGHTLY);
-    vi.stubEnv("TEST_MP_EMAIL", "");
-    expect((await syncPoliticians(JO)).status).toBe("unchanged");
-    const [unchanged, applied] = await recentSyncs();
-    expect(unchanged).toMatchObject({ status: "unchanged", startedBy: JO });
-    expect(applied.status).toBe("applied");
-    expect(
-      await query("SELECT n.email FROM notable_people n JOIN politicians p USING (id) WHERE p.is_test ORDER BY n.name"),
-    ).toEqual([
-      { email: null },
-      { email: "no-such-mailbox@pauseai.uk" },
-      { email: null },
-      { email: null },
-      { email: null },
-    ]);
-    expect(await query("SELECT count(*)::int AS n FROM audit_log WHERE action LIKE '%politician sync'")).toEqual([
-      { n: 1 },
-    ]);
-  });
-
-  it("leaves the test MPs' statuses to staff once they're added", async () => {
-    await syncPoliticians(NIGHTLY);
-    await query("DELETE FROM ask_statuses WHERE updated_by = 'sync'");
-    await syncPoliticians(NIGHTLY);
-    expect((await statuses()).filter((s) => s.by === "sync")).toEqual([]);
-  });
-
-  it("applies a small change: one gone from Airtable is kept with their status, one retires, and one comes back", async () => {
-    await syncPoliticians(NIGHTLY);
-    const [dora, polly, ...rest] = fixture.records;
-    airtableHas([{ ...polly, fields: { ...polly.fields, Status: "Retired" } }, ...rest]);
-    const result = await syncPoliticians(NIGHTLY);
-    expect(result.status).toBe("applied");
-    expect(result.changes.removed.map((p) => p.airtableId)).toEqual(["recDummy"]);
-    expect(result.changes.changed.map((p) => p.airtableId)).toEqual(["recPlaceholder"]);
-    const after = await people();
-    expect(after.find((p) => p.name === "Ms Dora Dummy")).toMatchObject({ status: "in_office", removed: true });
-    expect(after.find((p) => p.name === "Polly Placeholder")).toMatchObject({ status: "retired", removed: false });
-    const edit = await query<{ details: { changed: object } }>(
-      "SELECT details FROM audit_log WHERE action = 'edit politician'",
+    const logged = await query<{ details: { name: string; changed: object } }>(
+      "SELECT details FROM audit_log WHERE action = 'edit politician' ORDER BY id",
     );
-    expect(edit[0].details.changed).toEqual({ status: ["in_office", "retired"] });
-    expect(await query("SELECT details->>'name' AS name FROM audit_log WHERE action = 'remove politician'")).toEqual([
-      { name: "Ms Dora Dummy" },
-    ]);
-
-    // Dora's record is back: no longer marked, and logged as an edit, not added again.
-    airtableHas([dora, { ...polly, fields: { ...polly.fields, Status: "Retired" } }, ...rest]);
-    const back = await syncPoliticians(NIGHTLY);
-    expect(back.changes).toMatchObject({ added: [], changed: [{ airtableId: "recDummy" }] });
-    expect((await people()).find((p) => p.name === "Ms Dora Dummy")).toMatchObject({ removed: false });
-    expect(await query("SELECT count(*)::int AS n FROM notable_people WHERE airtable_id = 'recDummy'")).toEqual([
-      { n: 1 },
-    ]);
+    expect(logged.map((row) => row.details.name).sort()).toEqual(["Polly Placeholder", "Somebody Else"]);
+    expect((await syncPoliticians(JO)).changes.changed).toEqual([]);
   });
 
-  it("takes a politician added by hand under the same name to be Airtable's, rather than adding them twice", async () => {
-    const peer = await addTestPolitician({
-      airtableId: null,
+  it("keeps our salutation where Airtable has none, and a salutation to check while it's still the name", async () => {
+    await addTestPolitician({
       name: "Lord Seedling of Example",
-      house: "lords",
-      constituency: null,
+      salutation: "Lord Seedling of Example",
+      airtableId: null,
     });
-    await syncPoliticians(NIGHTLY);
-    expect(
-      await query("SELECT id::int AS id, airtable_id FROM notable_people WHERE name = 'Lord Seedling of Example'"),
-    ).toEqual([{ id: peer, airtable_id: "recSeedling" }]);
-  });
-
-  it("holds a sync that changes too much, for staff to apply or discard", async () => {
-    const sent = notifications();
-    airtableHas(many(3));
-    await syncPoliticians(NIGHTLY);
-    airtableHas([...many(3), ...many(21, 4), ...fixture.records]);
-    const held = await syncPoliticians(NIGHTLY);
-    expect(held.status).toBe("held");
-    // The notification inbox is told, once: the next night's, held again, says nothing.
-    expect(await syncPoliticians(NIGHTLY)).toMatchObject({ status: "held" });
-    const words = staffCopy.notifications.syncHeld;
-    expect(sent.map((email) => [email.Subject, email.TextBody])).toEqual([
-      [words.subject(28), words.body(28, "https://pauseai.uk/staff/scheduled-jobs/politicians")],
-    ]);
-    expect(held.changes.added).toHaveLength(28);
-    // Nothing applied.
-    expect((await people()).filter((p) => !p.isTest)).toHaveLength(3);
-    const [run] = await recentSyncs();
-    expect(run.result.records).toHaveLength(31);
-
-    expect(await decideHeldSync(run.id, "apply", JO)).toBe(true);
-    expect((await people()).filter((p) => !p.isTest)).toHaveLength(31);
-    expect((await recentSyncs())[0]).toMatchObject({ status: "applied", decidedBy: JO });
-    expect(await query("SELECT actor, action FROM audit_log ORDER BY id DESC LIMIT 1")).toEqual([
-      { actor: JO, action: "apply held politician sync" },
-    ]);
-    // Decided, so it can't be decided again.
-    expect(await decideHeldSync(run.id, "discard", JO)).toBe(false);
-    expect(await decideHeldSync(9999, "apply", JO)).toBe(false);
-  });
-
-  it("holds a sync that renames anyone, which may be Airtable reusing a record, and discards it on request", async () => {
-    await syncPoliticians(NIGHTLY);
-    const [dora, ...rest] = fixture.records;
-    airtableHas([{ ...dora, fields: { ...dora.fields, "Full name or Title": "Someone New" } }, ...rest]);
-    const held = await syncPoliticians(NIGHTLY);
-    expect(held).toMatchObject({
-      status: "held",
-      renamed: [{ airtableId: "recDummy", from: "Ms Dora Dummy", to: "Someone New" }],
+    await query("UPDATE notable_people SET salutation_to_check = true");
+    server.use(
+      http.get(AIRTABLE, () =>
+        HttpResponse.json({
+          records: [
+            { id: "recSeedling", fields: { "Full name or Title": "Lord Seedling of Example", Body: "House of Lords" } },
+          ],
+        }),
+      ),
+    );
+    await syncPoliticians(JO);
+    expect((await people())[0]).toMatchObject({
+      airtableId: "recSeedling",
+      salutation: "Lord Seedling of Example",
+      toCheck: true,
     });
-    const [run] = await recentSyncs();
-    expect(await decideHeldSync(run.id, "discard", JO)).toBe(true);
-    expect((await people()).map((p) => p.name)).toContain("Ms Dora Dummy");
-    expect((await recentSyncs())[0]).toMatchObject({ status: "discarded", decidedBy: JO });
-  });
-
-  it("gives the check against Parliament the MPs in office, by constituency", async () => {
-    await syncPoliticians(NIGHTLY);
-    expect(await mpsInOffice()).toEqual([
-      {
-        name: "Polly Placeholder",
-        constituency: "Cities of London and Westminster",
-        email: "polly.placeholder.mp@parliament.uk",
-      },
-      {
-        name: "Ms Dora Dummy",
-        constituency: "Hackney North and Stoke Newington",
-        email: "mp90001.office@parliament.uk",
-      },
-      { name: "Mo Example", constituency: "Manchester Central", email: "mp90003.office@parliament.uk" },
-    ]);
-  });
-
-  it("fails, changing nothing but the log, without a token or if Airtable fails", async () => {
-    vi.stubEnv("AIRTABLE_TOKEN", "");
-    await expect(syncPoliticians(NIGHTLY)).rejects.toThrow("AIRTABLE_TOKEN isn't set");
-    vi.stubEnv("AIRTABLE_TOKEN", "token");
-    server.use(http.get(AIRTABLE, () => new HttpResponse(null, { status: 500 })));
-    await expect(syncPoliticians(JO)).rejects.toThrow("status 500");
-    expect(await people()).toEqual([]);
-    expect(await recentSyncs()).toMatchObject([
-      { status: "failed", startedBy: JO, error: "Airtable request failed with status 500: ", result: {} },
-      { status: "failed", startedBy: NIGHTLY, error: expect.stringContaining("AIRTABLE_TOKEN isn't set") },
-    ]);
   });
 });

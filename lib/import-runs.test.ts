@@ -12,6 +12,7 @@ import {
 import {
   exampleAppliedSync,
   exampleFailedRun,
+  exampleImportResult,
   exampleGmailResult,
   exampleHeldSync,
   exampleLumaResult,
@@ -30,6 +31,7 @@ it("knows which jobs run on a schedule, and how often", () => {
   expect(jobSchedule("import-luma")).toBe("frequent");
   expect(jobSchedule("import-civicrm")).toBe("hourly");
   expect(jobSchedule("tidy-logs")).toBe("nightly");
+  expect(jobSchedule("sync-politicians")).toBe("manual");
 });
 
 it("lists a job's newest run, or none", () => {
@@ -38,7 +40,7 @@ it("lists a job's newest run, or none", () => {
 });
 
 it("gives each job a page of its own, and finds the job from its page's slug", () => {
-  expect(importPath("check-mps")).toBe("/staff/scheduled-jobs/mp-check");
+  expect(importPath("import-parliament")).toBe("/staff/scheduled-jobs/parliament");
   for (const job of IMPORT_JOBS) expect(jobBySlug(importPath(job).split("/").pop()!)).toBe(job);
   expect(jobBySlug("history")).toBeUndefined();
 });
@@ -59,23 +61,23 @@ it("says a run that went wrong along the way had problems, whatever else it did,
     "problems",
   );
   expect(runStatus(exampleRun("import-luma", exampleLumaResult, { status: "unchanged", problems }))).toBe("problems");
-  expect(runStatus(exampleRun("check-mps", { problems: [] }, { problems }))).toBe("problems");
+  expect(runStatus(exampleRun("import-parliament", exampleImportResult, { problems }))).toBe("problems");
   expect(runStatus(exampleRun("read-gmail", exampleGmailResult, { problems }))).toBe("problems");
   expect(runStatus(exampleFailedRun("read-gmail", "boom", { problems }))).toBe("failed");
 });
 
 it("colours a run by how it ended: green done, applied or unchanged, amber held, stopped short or with problems, red failed, none otherwise", () => {
-  expect(runTone(exampleRun("check-mps", { problems: [] }, { problems: [{ what: "Parliament was slow" }] }))).toBe(
-    "amber",
-  );
-  expect(runTone(exampleRun("check-mps", { problems: [] }))).toBe("green");
+  expect(
+    runTone(exampleRun("import-parliament", exampleImportResult, { problems: [{ what: "Parliament was slow" }] })),
+  ).toBe("amber");
+  expect(runTone(exampleRun("import-parliament", exampleImportResult))).toBe("green");
   expect(runTone(exampleAppliedSync)).toBe("green");
   expect(runTone(exampleHeldSync)).toBe("amber");
   expect(runTone(exampleRun("import-luma", { ...exampleLumaResult, stoppedBy: "time" }))).toBe("amber");
   expect(runTone(exampleRun("import-luma", exampleLumaResult))).toBe("green");
   // postcodes.io failing leaves work for later too.
-  expect(runTone(exampleFailedRun("check-mps", "boom", {}))).toBe("red");
+  expect(runTone(exampleFailedRun("import-parliament", "boom", {}))).toBe("red");
   expect(runTone(exampleRun("import-luma", exampleLumaResult, { status: "unchanged" }))).toBe("green");
-  expect(runTone(exampleRun("check-mps", { problems: [] }, { status: "discarded" }))).toBeUndefined();
+  expect(runTone(exampleRun("import-parliament", exampleImportResult, { status: "discarded" }))).toBeUndefined();
   expect(runTone(undefined)).toBeUndefined();
 });

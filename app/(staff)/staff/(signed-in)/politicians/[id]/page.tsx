@@ -3,7 +3,6 @@ import { found } from "@/lib/found";
 import { listAsks } from "@/lib/server/asks";
 import { blockOn } from "@/lib/server/email";
 import { pauseaiLetters, politicianLetters } from "@/lib/server/letters";
-import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
 import { notesOn } from "@/lib/server/notes";
 import { canDeletePolitician, getPolitician, politicianHistory } from "@/lib/server/politicians";
 import { requireStaff } from "@/lib/server/staff-auth";
@@ -16,8 +15,10 @@ import {
   deleteNoteNow,
   deletePoliticianNow,
   editNoteNow,
+  editPoliticianNow,
   removeAliasNow,
   setAskStatus,
+  setMarkNow,
   unblockAddress,
 } from "../../../actions";
 import { politicianOneOffs } from "@/lib/server/one-off-emails";
@@ -71,7 +72,8 @@ export default async function PoliticianPage({
         aliasesOpen={query.aliases === "open"}
         aliasActions={{ add: addAliasNow, remove: removeAliasNow }}
         history={history}
-        airtableTable={PARLIAMENTARIANS_TABLE_URL}
+        setMark={setMarkNow}
+        editDetails={editPoliticianNow}
         notes={{
           notes,
           reader: staff,

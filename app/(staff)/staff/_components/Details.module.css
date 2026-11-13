@@ -440,6 +440,12 @@
   color: var(--text-secondary);
 }
 
+/* Over the addresses, under the form of how we write to them. */
+.aliasHeading {
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: var(--text-md);
+}
+
 /* An address staff added: who and when, then its Remove button beside. */
 .aliasAdded {
   display: flex;

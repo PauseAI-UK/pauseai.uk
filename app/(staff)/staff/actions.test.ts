@@ -27,7 +27,9 @@ import {
   deleteAskNow,
   disconnectMyGmail,
   saveAskNow,
-  decideSync,
+  decideImport,
+  editPoliticianNow,
+  setMarkNow,
   deletePoliticianNow,
   eraseSupporterNow,
   endStaffSessionsNow,
@@ -81,7 +83,9 @@ describeWithDatabase("staff Server Actions", () => {
       () => setAskStatus(form({ politicianId: String(id), ask: PM, status: "signed" })),
       () => runJobNow("check-mps"),
       () => runJobNow("nothing"),
-      () => decideSync(form({ id: "1", decision: "apply" })),
+      () => decideImport(form({ id: "1", job: "import-parliament", decision: "apply" })),
+      () => setMarkNow(form({ politicianId: "1", mark: "importantTarget", on: "true" })),
+      () => editPoliticianNow(form({ politicianId: "1", salutation: "X" })),
       () => removeStaffAccountNow(form({ email: "x@pauseai.uk" })),
       () => saveStaffAccountNow(form({ email: "jo@pauseai.uk", "permission:admin": "on" })),
       () => eraseSupporterNow(form({ id: "1", reference: "r", confirm: "on" })),
@@ -365,16 +369,17 @@ describeWithDatabase("staff Server Actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/tidying");
   });
 
-  it("the check's button checks the MPs against Parliament's", async () => {
-    await runJobNow("check-mps");
-    expect(await runs()).toEqual([{ job: "check-mps", status: "ok", startedBy: "jo@pauseai.uk" }]);
+  it("an import's button imports its body's members", async () => {
+    await runJobNow("import-senedd");
+    expect(await runs()).toEqual([{ job: "import-senedd", status: "applied", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
   });
 
-  it("the sync's button copies the politicians from Airtable, and keeps a failure rather than crashing the page", async () => {
+  it("the sync's button copies what Airtable has to the politicians here, and keeps a failure rather than crashing the page", async () => {
+    await addTestPolitician({ airtableId: null });
     await runJobNow("sync-politicians");
     expect(await query("SELECT count(*)::int AS n FROM notable_people WHERE airtable_id IS NOT NULL")).toEqual([
-      { n: 7 },
+      { n: 1 },
     ]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
 
@@ -390,16 +395,49 @@ describeWithDatabase("staff Server Actions", () => {
     ]);
   });
 
-  it("decideSync applies or discards a held sync, and ignores a bad form", async () => {
-    for (let i = 1; i <= 25; i++) await addTestPolitician({ airtableId: `rec${10000 + i}`, constituency: `Seat ${i}` });
-    await runJobNow("sync-politicians");
+  it("decideImport applies or discards a held import, and ignores a bad form", async () => {
+    await query(
+      `INSERT INTO import_runs (job, started_by, status, result) VALUES ('import-senedd', 'nightly', 'held', $1)`,
+      [JSON.stringify({ changes: {}, members: [], endings: [] })],
+    );
     const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM import_runs");
-    await decideSync(form({ id: String(id), decision: "maybe" }));
-    await decideSync(form({ id: "x", decision: "apply" }));
+    await decideImport(form({ id: String(id), job: "import-senedd", decision: "maybe" }));
+    await decideImport(form({ id: "x", job: "import-senedd", decision: "apply" }));
+    await decideImport(form({ id: String(id), job: "sync-politicians", decision: "apply" }));
     expect(await query("SELECT status FROM import_runs")).toEqual([{ status: "held" }]);
-    await decideSync(form({ id: String(id), decision: "discard" }));
+    await decideImport(form({ id: String(id), job: "import-senedd", decision: "discard" }));
     expect(await query("SELECT status, decided_by FROM import_runs")).toEqual([
       { status: "discarded", decided_by: "jo@pauseai.uk" },
+    ]);
+  });
+
+  it("setMarkNow turns a marker on and off, and ignores a bad form", async () => {
+    const id = await addTestPolitician();
+    await setMarkNow(form({ politicianId: String(id), mark: "importantTarget", on: "true" }));
+    await setMarkNow(form({ politicianId: String(id), mark: "is_test", on: "true" }));
+    await setMarkNow(form({ politicianId: "x", mark: "importantTarget", on: "true" }));
+    expect(await query("SELECT important_target AS on FROM notable_people")).toEqual([{ on: true }]);
+    await setMarkNow(form({ politicianId: String(id), mark: "importantTarget", on: "false" }));
+    expect(await query("SELECT important_target AS on FROM notable_people")).toEqual([{ on: false }]);
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/politicians/${id}`);
+  });
+
+  it("editPoliticianNow saves a salutation and a Lord's email, says why not, and ignores a bad form", async () => {
+    const lord = await addTestPolitician({ house: "lords", email: null });
+    expect(await editPoliticianNow(form({ politicianId: "x", salutation: "Lord X" }))).toBeUndefined();
+    expect(await editPoliticianNow(form({ politicianId: String(lord), salutation: "" }))).toEqual({
+      saved: false,
+      why: "salutation",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(
+      await editPoliticianNow(form({ politicianId: String(lord), salutation: "Lord X", email: "x@example.org" })),
+    ).toEqual({ saved: true });
+    expect(await editPoliticianNow(form({ politicianId: String(lord), salutation: "Lord Y" }))).toEqual({
+      saved: true,
+    });
+    expect(await query("SELECT salutation, email FROM notable_people")).toEqual([
+      { salutation: "Lord Y", email: "x@example.org" },
     ]);
   });
 

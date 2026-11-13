@@ -747,7 +747,6 @@ describe("the rest", () => {
         letters={{ senders: false, letters: [] }}
         oneOffs={[exampleOneOffs[0], exampleHiddenOneOff, { ...exampleOneOffs[0], id: 3, subject: "" }]}
         history={[]}
-        airtableTable="x"
       />,
     );
     await expect.element(link(exampleOneOffs[0].subject!)).toHaveAttribute("href", "/staff/one-off/1");

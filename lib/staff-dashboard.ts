@@ -1,4 +1,4 @@
-import type { ImportJob } from "./import-runs";
+import type { ImportJob, PoliticianImportJob } from "./import-runs";
 import type { Permission } from "./staff-permissions";
 import { staffCopy } from "./content/staff-interface";
 import { now } from "./now";
@@ -93,7 +93,7 @@ export const METRIC_LINKS: Record<
 
 /** Something waiting for a person, with where its button goes. */
 export type DashboardAction =
-  | { kind: "held-sync"; at: Date; added: number; removed: number; changed: number }
+  | { kind: "held-import"; job: PoliticianImportJob; at: Date; added: number; left: number; changed: number }
   | { kind: "blocked-mp"; politicianId: number; name: string; isTest: boolean; at: Date }
   | { kind: "failed-import"; job: ImportJob; at: Date; error: string }
   | { kind: "letters-inbox"; inbox: string; count: number; at: Date }

@@ -47,15 +47,20 @@ export const askHref = (slug: string) => `/staff/asks/${slug}`;
 export const FRONTIER_AI_LETTER_ASK = "frontier-ai-letter";
 /** ControlAI's letter to the Prime Minister backing the Artificial Superintelligence Bill. */
 export const CONTROLAI_LETTER_ASK = "controlai-letter";
+/** ControlAI's UK campaign statement, which politicians back on its page. */
+export const CONTROLAI_STATEMENT_ASK = "controlai-statement";
 
 /**
  * The asks the code names, by slug, which staff can edit but never delete:
  * a campaign, the public list of signatories or an import depends on them.
  */
-export const NAMED_ASKS: readonly string[] = [FRONTIER_AI_LETTER_ASK, CONTROLAI_LETTER_ASK];
+export const NAMED_ASKS: readonly string[] = [FRONTIER_AI_LETTER_ASK, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK];
 
-/** The asks an import answers, which staff can't: the ControlAI import's (lib/server/controlai-import.ts). */
-export const IMPORTED_ASKS: readonly string[] = [CONTROLAI_LETTER_ASK];
+/**
+ * The asks an import answers, which staff can't: ControlAI's letter and
+ * statement (lib/server/controlai-import.ts, controlai-statement-import.ts).
+ */
+export const IMPORTED_ASKS: readonly string[] = [CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK];
 
 export const ASKERS: readonly Asker[] = ["supporters", "pauseai", "controlai"];
 

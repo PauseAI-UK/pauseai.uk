@@ -36,14 +36,14 @@ describe("StaffDashboard", () => {
     const list = page.getByRole("list", { name: copy.actionsTitle });
     const items = list.getByRole("listitem").all();
     expect(items.map((item) => item.element().textContent)).toEqual([
-      `${copy.actions.heldSync(24)}${copy.actions.heldSyncDetail}${copy.actions.decide}`,
+      `${copy.actions.heldImport(jobTitles["import-parliament"], 24)}${copy.actions.heldImportDetail}${copy.actions.decide}`,
       `${copy.actions.blockedMp("Bouncy McTestface MP")} ${staffCopy.politicians.flags.test}${copy.actions.blockedMpDetail}${copy.actions.openMp}`,
       `${copy.actions.failedImport(jobTitles["import-controlai"])}${copy.actions.failedImportDetail("No PDF linked", "21 Oct 2026, 02:00")}${copy.actions.seeRun}`,
       `${staffCopy.lettersInbox.alert.subject(2, "fixture-letters@pauseai.uk")}${copy.actions.lettersInboxDetail("21 Oct 2026, 03:20")}${copy.actions.lettersInboxButton}`,
     ]);
     await expect
       .element(page.getByRole("link", { name: copy.actions.decide }))
-      .toHaveAttribute("href", "/staff/scheduled-jobs/politicians");
+      .toHaveAttribute("href", "/staff/scheduled-jobs/parliament");
     await expect
       .element(page.getByRole("link", { name: copy.actions.openMp }))
       .toHaveAttribute("href", "/staff/politicians/7");

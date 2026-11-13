@@ -59,7 +59,10 @@ export async function tidyLogs(): Promise<{ importRuns: number; auditEntries: nu
          OR (r.job = ANY($1) AND r.at < now() - interval '1 month')
          OR (r.job = ANY($2) AND r.at < now() - interval '1 month'))
      RETURNING 1`,
-    [[...jobsThat("frequent"), ...jobsThat("quarter-hour"), ...jobsThat("hourly")], jobsThat("nightly")],
+    [
+      [...jobsThat("frequent"), ...jobsThat("quarter-hour"), ...jobsThat("hourly")],
+      [...jobsThat("nightly"), ...jobsThat("manual")],
+    ],
   );
   const entries = await query(
     `DELETE FROM audit_log a WHERE a.at < now() - interval '1 month' AND NOT ${POLITICIAN_HISTORY} RETURNING 1`,

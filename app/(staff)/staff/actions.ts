@@ -30,7 +30,8 @@ import { setErrorDone } from "@/lib/server/errors-seen";
 import { disconnectGmail } from "@/lib/server/gmail-accounts";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { eraseSupporter } from "@/lib/server/erasure";
-import { decideHeldSync } from "@/lib/server/politician-sync";
+import { decideHeldImport, isPoliticianImport } from "@/lib/server/politician-import";
+import { editPoliticianDetails, type EditResult, isMark, setMark } from "@/lib/server/politician-edits";
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
 import { deletePolitician, setStatus } from "@/lib/server/politicians";
 import { type AddResult, addPoliticianAddress, removePoliticianAddress } from "@/lib/server/politician-aliases";
@@ -85,6 +86,35 @@ export async function deletePoliticianNow(form: FormData): Promise<void> {
     revalidatePath("/staff/politicians");
     redirect("/staff/politicians");
   }
+}
+
+/** A marker's button in a politician's band: turns it on or off. */
+export async function setMarkNow(form: FormData): Promise<void> {
+  const { email } = await requireStaff();
+  const id = idFrom(form, "politicianId");
+  const mark = String(form.get("mark") ?? "");
+  if (!id || !isMark(mark)) return;
+  await setMark(id, mark, form.get("on") === "true", email);
+  revalidatePath(`/staff/politicians/${id}`);
+  revalidatePath("/staff/politicians");
+}
+
+/** The form of a politician's details: saves what staff changed, saying whether it did, or why not. */
+export async function editPoliticianNow(form: FormData): Promise<EditResult | undefined> {
+  const { email } = await requireStaff();
+  const id = idFrom(form, "politicianId");
+  if (!id) return undefined;
+  const given = form.get("email");
+  const result = await editPoliticianDetails(
+    id,
+    {
+      salutation: String(form.get("salutation") ?? ""),
+      ...(given === null ? {} : { email: String(given) }),
+    },
+    email,
+  );
+  if (result.saved) revalidatePath("/staff", "layout");
+  return result;
 }
 
 /**
@@ -163,13 +193,15 @@ export async function runJobNow(job: string): Promise<void> {
   refreshImport(job);
 }
 
-export async function decideSync(form: FormData): Promise<void> {
+/** Applies or discards a held import of a body's members, from its job's page. */
+export async function decideImport(form: FormData): Promise<void> {
   const { email } = await requireStaff();
   const id = idFrom(form);
   const decision = form.get("decision");
-  if (!id || (decision !== "apply" && decision !== "discard")) return;
-  await decideHeldSync(id, decision, email);
-  refreshImport("sync-politicians");
+  const job = String(form.get("job") ?? "");
+  if (!id || (decision !== "apply" && decision !== "discard") || !isPoliticianImport(job)) return;
+  await decideHeldImport(id, decision, email);
+  refreshImport(job);
 }
 
 /**

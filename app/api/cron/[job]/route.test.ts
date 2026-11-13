@@ -24,14 +24,8 @@ const answer = async (job: string) => (await call(job)).json();
 describeWithDatabase("POST /api/cron/<job>", () => {
   useTestDatabase();
 
-  it("copies the politicians from Airtable, and says what changed", async () => {
-    expect(await answer("sync-politicians")).toEqual({
-      status: "applied",
-      added: 7,
-      removed: 0,
-      changed: 0,
-      renamed: 0,
-    });
+  it("copies what Airtable has to the politicians here, and says what changed and what it found no one for", async () => {
+    expect(await answer("sync-politicians")).toEqual({ changed: 0, unmatched: 7 });
   });
 
   it("fails when the politicians do, keeping the run", async () => {
@@ -50,16 +44,24 @@ describeWithDatabase("POST /api/cron/<job>", () => {
   });
 
   it("doesn't run a job while a staff member's run of it is going, and says so", async () => {
-    await startRunning("check-mps", "jo@pauseai.uk");
-    const res = await call("check-mps");
+    await startRunning("import-parliament", "jo@pauseai.uk");
+    const res = await call("import-parliament");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ stoppedBy: "running" });
     expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);
   });
 
-  it("checks the MPs against Parliament's, and says how many problems it found", async () => {
-    // No MPs copied yet, so each of Parliament's is missing.
-    expect(await answer("check-mps")).toEqual({ problems: 3, read: 0, unread: 0, linked: 0, unlinked: 0, offices: 0 });
+  it("imports each body's members, and says what changed", async () => {
+    // No politicians yet, so each body's are added.
+    expect(await answer("import-parliament")).toEqual({ status: "applied", added: 4, changed: 0, left: 0 });
+    expect(await answer("import-scottish-parliament")).toEqual({ status: "applied", added: 1, changed: 0, left: 0 });
+    expect(await answer("import-senedd")).toEqual({ status: "applied", added: 1, changed: 0, left: 0 });
+    expect(await answer("import-ni-assembly")).toEqual({ status: "applied", added: 1, changed: 0, left: 0 });
+  });
+
+  it("reads ControlAI's statement and says what it did", async () => {
+    await answer("import-parliament");
+    expect(await answer("import-controlai-statement")).toMatchObject({ supporters: 5, matched: 2, added: 2 });
   });
 
   it("reads ControlAI's letter and says what it did", async () => {
@@ -131,7 +133,7 @@ describeWithDatabase("POST /api/cron/<job>", () => {
   });
 
   it("refuses anyone without the secret, before saying whether the job exists", async () => {
-    expect((await call("check-mps", "Bearer guess")).status).toBe(401);
+    expect((await call("import-parliament", "Bearer guess")).status).toBe(401);
     expect((await call("nothing", "Bearer guess")).status).toBe(401);
     expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);
   });

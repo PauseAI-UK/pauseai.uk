@@ -5,13 +5,15 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { exampleLetter } from "@/app/(staff)/staff/_components/LettersTable.examples";
 import {
   AddAliasFormExample,
+  EditPoliticianFormExample,
+  PoliticianMarksExample,
   ChangeTimeFormExample,
   ChoosingListExample,
   DueTimeFieldsExample,
   EventColumnsExample,
   EventsListExample,
   EventsTableExample,
-  HeldSyncExample,
+  HeldImportExample,
   MailingWriterExample,
   NoteChangesExample,
   NoteEntryExample,
@@ -211,12 +213,16 @@ describe("the staff examples", () => {
     await expect.element(page.getByRole("button", { name: "Close" })).toBeVisible();
   });
 
-  it("logs a held sync's apply and discard", async () => {
-    await render(<HeldSyncExample />);
-    await page.getByRole("button", { name: staffCopy.syncs.apply }).click();
-    await expect.element(log().nth(0)).toHaveTextContent('decide({"id":"3","decision":"apply"})');
-    await page.getByRole("button", { name: staffCopy.syncs.discard }).click();
-    await expect.element(log().nth(1)).toHaveTextContent('decide({"id":"3","decision":"discard"})');
+  it("logs a held import's apply and discard", async () => {
+    await render(<HeldImportExample />);
+    await page.getByRole("button", { name: staffCopy.politicianImports.apply }).click();
+    await expect
+      .element(log().nth(0))
+      .toHaveTextContent('decide({"id":"4","job":"import-parliament","decision":"apply"})');
+    await page.getByRole("button", { name: staffCopy.politicianImports.discard }).click();
+    await expect
+      .element(log().nth(1))
+      .toHaveTextContent('decide({"id":"4","job":"import-parliament","decision":"discard"})');
   });
 
   it("logs clearing a politician's signature on their page", async () => {
@@ -309,6 +315,32 @@ describe("the staff examples", () => {
       .element(log().nth(0))
       .toHaveTextContent('addAlias({"politicianId":"7","address":"polly@example.com"})');
     await expect.element(page.getByRole("status")).toHaveTextContent(staffCopy.politician.aliases.added);
+  });
+
+  it("logs a politician's salutation and a Lord's email, and says what the server answered", async () => {
+    const { rerender } = await render(<EditPoliticianFormExample lord result={{ saved: false, why: "shared" }} />);
+    const words = staffCopy.politician.editDetails;
+    await page.getByLabelText(words.email).fill("contactholmember@parliament.uk");
+    await page.getByRole("button", { name: words.save }).click();
+    await expect.element(page.getByRole("status")).toHaveTextContent(words.refused.shared);
+    await expect
+      .element(log().nth(0))
+      .toHaveTextContent(
+        'editDetails({"politicianId":"7","salutation":"Lord Seedling","email":"contactholmember@parliament.uk"})',
+      );
+    await rerender(<EditPoliticianFormExample result={{ saved: true }} />);
+    await expect.element(page.getByLabelText(words.email)).not.toBeInTheDocument();
+    await page.getByRole("button", { name: words.save }).click();
+    await expect.element(page.getByRole("status").last()).toHaveTextContent(words.saved);
+  });
+
+  it("logs a marker's press, turning it the other way", async () => {
+    await render(<PoliticianMarksExample test />);
+    await page.getByRole("button", { name: staffCopy.politician.personalConnection }).click();
+    await expect
+      .element(log().nth(0))
+      .toHaveTextContent('setMark({"politicianId":"7","mark":"personalConnection","on":"true"})');
+    await expect.element(page.getByText(staffCopy.politicians.flags.test)).toBeVisible();
   });
 
   it("says when no politician matches", async () => {

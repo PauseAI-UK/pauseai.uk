@@ -4,7 +4,17 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import styles from "./ImportIcon.module.css";
 
 /** Where a job reads from, or works on. */
-export type ImportSource = "airtable" | "luma" | "civicrm" | "gmail" | "parliament" | "controlai" | "database";
+export type ImportSource =
+  | "airtable"
+  | "luma"
+  | "civicrm"
+  | "gmail"
+  | "parliament"
+  | "scottish-parliament"
+  | "senedd"
+  | "ni-assembly"
+  | "controlai"
+  | "database";
 
 // Each service's own mark, in its own colours: Airtable's three boxes (its
 // shape Simple Icons', https://simpleicons.org, CC0), Gmail's M, and Luma's
@@ -50,6 +60,29 @@ const MARKS: Record<ImportSource, ReactNode> = {
       <path d="M2 5h20v2H2z" />
       <path d="M3 7h1.6v12L3.8 21 3 19zM7.6 7h1.6v12l-.8 2-.8-2zM11.2 7h1.6v12l-.8 2-.8-2zM14.8 7h1.6v12l-.8 2-.8-2zM19.4 7H21v12l-.8 2-.8-2z" />
       <path d="M3 10h18v1.5H3zM3 13.5h18V15H3zM3 17h18v1.5H3z" />
+    </svg>
+  ),
+  // The Saltire, white on blue, standing for the Scottish Parliament.
+  "scottish-parliament": (
+    <svg viewBox="0 0 24 24">
+      <rect x="1" y="4" width="22" height="16" rx="1.5" fill="var(--brand-saltire-blue)" />
+      <path d="M2.5 5.5 21.5 18.5M21.5 5.5 2.5 18.5" stroke="var(--white)" strokeWidth="2.6" />
+    </svg>
+  ),
+  // The Welsh flag's white over green, with a red diamond for its dragon, standing for the Senedd.
+  senedd: (
+    <svg viewBox="0 0 24 24">
+      <rect x="1" y="4" width="22" height="8" rx="1.5" fill="var(--white)" stroke="var(--brand-wales-green)" />
+      <rect x="1" y="12" width="22" height="8" rx="1.5" fill="var(--brand-wales-green)" />
+      <path d="M12 6.5 17 12l-5 5.5L7 12z" fill="var(--brand-wales-red)" />
+    </svg>
+  ),
+  // Stormont's front, plainly: a pediment, six columns and the steps, standing for the Northern Ireland Assembly.
+  "ni-assembly": (
+    <svg viewBox="0 0 24 24" fill="var(--brand-stormont-blue)">
+      <path d="M12 2 22 7H2z" />
+      <path d="M3.5 8.5h2v9h-2zM7 8.5h2v9H7zM10.5 8.5h1.5v9h-1.5zM12 8.5h1.5v9H12zM15 8.5h2v9h-2zM18.5 8.5h2v9h-2z" />
+      <path d="M2 18.5h20v1.5H2zM1 21h22v1.5H1z" />
     </svg>
   ),
   database: (

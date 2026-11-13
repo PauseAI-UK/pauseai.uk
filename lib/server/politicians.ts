@@ -18,8 +18,9 @@ import { sql, type Sql } from "./sql";
 // Politicians, the notable people who are in a parliament or were, and
 // their answer to each ask. A politician is a row of notable_people, with
 // what all notable people have, and one of politicians, with what only
-// politicians have. They're copied from Airtable nightly
-// (politician-sync.ts), and staff set statuses in the staff interface.
+// politicians have. They're imported nightly from their bodies' lists
+// (politician-import.ts); staff set what no list has
+// (politician-edits.ts), and statuses, in the staff interface.
 
 export { COUNTRIES, HOUSES, PERSON_STATUSES } from "@/lib/politician-filters";
 export type { Country, EmailState, House, PersonStatus, PoliticianFlag } from "@/lib/politician-filters";
@@ -37,11 +38,15 @@ export type Politician = {
   id: number;
   /** Airtable's record ID, for those copied from it. Null for the test MPs, and anyone added by hand. */
   airtableId: string | null;
+  /** The ID their body gives them, once an import has matched them to its list. */
+  officialId: number | null;
   /** When their record was no longer in Airtable. */
   airtableRemovedAt: Date | null;
   house: House;
   name: string;
   salutation: string;
+  /** Their salutation is their name, as their gender isn't known: for staff to check. */
+  salutationToCheck: boolean;
   constituency: string | null;
   party: string;
   country: Country | null;
@@ -123,7 +128,7 @@ const POLITICIAN_ACTIVITY = (which: "first" | "last") => {
 
 const SELECT_POLITICIANS = `
   SELECT n.id::int AS id, n.airtable_id AS "airtableId", n.airtable_removed_at AS "airtableRemovedAt", p.house,
-    n.name, n.salutation, p.constituency, p.party, p.country, n.email, n.status,
+    p.official_id AS "officialId", n.name, n.salutation, n.salutation_to_check AS "salutationToCheck", p.constituency, p.party, p.country, n.email, n.status,
     n.notes, n.important_target AS "importantTarget", n.personal_connection AS "personalConnection",
     p.is_test AS "isTest",
     EXISTS (SELECT 1 FROM email_blocks b WHERE b.address = lower(n.email)) AS "emailBlocked",

@@ -23,6 +23,20 @@ export const PARLIAMENT_DOMAINS = [
 ] as const;
 
 /**
+ * Inboxes a body shares among its members, which forward a message to the
+ * member it names: the House of Lords', which most Lords list as their only
+ * address. No one's own, so never a politician's email or one of their
+ * addresses, which a check constraint on each table also refuses (migration
+ * 0124).
+ */
+export const SHARED_INBOXES: readonly string[] = ["contactholmember@parliament.uk"];
+
+/** Whether an address is a shared inbox (SHARED_INBOXES). */
+export function isSharedInbox(address: string): boolean {
+  return SHARED_INBOXES.includes(address.trim().toLowerCase());
+}
+
+/**
  * PauseAI's addresses besides the connected Gmails: kept by hand, as Gmail's
  * API can't tell an alias from another address.
  */

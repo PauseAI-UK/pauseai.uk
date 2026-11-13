@@ -1,7 +1,7 @@
 import "server-only";
 import { AGREED_STATUSES } from "@/lib/asks";
 import { campaignForAsk } from "@/lib/email-your-mp";
-import { IMPORT_JOBS } from "@/lib/import-runs";
+import { IMPORT_JOBS, type PoliticianImportJob } from "@/lib/import-runs";
 import { now } from "@/lib/now";
 import {
   BY_CAMPAIGN,
@@ -20,6 +20,7 @@ import {
 import type { SupporterSource } from "@/lib/supporters";
 import { query } from "./db";
 import { latestRun } from "./import-runs";
+import { BODY_JOBS } from "./politician-import";
 
 // Fills the staff home's dashboard (lib/staff-dashboard.ts): the counts in
 // the window and the one before it, in one query; the campaign breakdowns,
@@ -148,15 +149,16 @@ async function supportersBySource(until: Date, days: DashboardWindow): Promise<S
   });
 }
 
-/** Every politician sync still held for a decision, oldest first. */
-async function heldSyncs(): Promise<DashboardAction[]> {
-  const rows = await query<{ at: Date; added: number; removed: number; changed: number }>(
-    `SELECT at, jsonb_array_length(result->'changes'->'added')::int AS added,
-            jsonb_array_length(result->'changes'->'removed')::int AS removed,
+/** Every import of a body's members still held for a decision, oldest first. */
+async function heldImports(): Promise<DashboardAction[]> {
+  const rows = await query<{ job: PoliticianImportJob; at: Date; added: number; left: number; changed: number }>(
+    `SELECT job, at, jsonb_array_length(result->'changes'->'added')::int AS added,
+            jsonb_array_length(result->'changes'->'left')::int AS left,
             jsonb_array_length(result->'changes'->'changed')::int AS changed
-     FROM import_runs WHERE job = 'sync-politicians' AND status = 'held' ORDER BY at, id`,
+     FROM import_runs WHERE job = ANY($1::text[]) AND status = 'held' ORDER BY at, id`,
+    [Object.values(BODY_JOBS)],
   );
-  return rows.map(({ at, ...counts }) => ({ kind: "held-sync", at, ...counts }));
+  return rows.map((row) => ({ kind: "held-import", ...row }));
 }
 
 /** Every politician in office whose address is blocked, with the problem that blocked it, oldest first. */
@@ -193,7 +195,7 @@ export async function dashboard(days: DashboardWindow): Promise<Dashboard> {
       Promise.all(WITH_SERIES.map((metric) => series(metric, at, days))),
       supportersBySource(at, days),
       agreedMp(since, until),
-      heldSyncs(),
+      heldImports(),
       blockedMps(),
       Promise.all(IMPORT_JOBS.map((job) => latestRun(job))),
     ]);

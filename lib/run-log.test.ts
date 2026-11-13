@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   exampleFailedRun,
+  exampleImportResult,
   exampleGmailResult,
   exampleCivicrmResult,
   exampleLumaResult,
@@ -29,12 +30,12 @@ describe("how a run shows", () => {
   it("is in a table of the day's runs on a job that runs every 5 minutes or hourly, and whole otherwise", () => {
     expect(tabled("import-luma")).toBe(true);
     expect(tabled("import-civicrm")).toBe(true);
-    expect(tabled("check-mps")).toBe(false);
+    expect(tabled("import-parliament")).toBe(false);
     expect(tabled("tidy-logs")).toBe(false);
   });
 
   it("is whole for a job that runs rarely, whatever it did", () => {
-    const check = exampleRun("check-mps", { problems: [] }, { status: "unchanged" });
+    const check = exampleRun("import-parliament", exampleImportResult, { status: "unchanged" });
     expect(runShape(check)).toBe("run");
     expect(runShape(exampleFailedRun("tidy-logs", "boom", {}))).toBe("run");
   });
@@ -103,7 +104,10 @@ describe("a job's page", () => {
       gmail(1, { restarted: true }),
     ];
     expect(flat(runLog(runs, false)).map((e) => e.tone)).toEqual(["green", "amber", "red", undefined]);
-    const rare = [exampleRun("check-mps", { problems: [] }, {}), exampleFailedRun("check-mps", "boom", { id: 2 })];
+    const rare = [
+      exampleRun("import-parliament", exampleImportResult, {}),
+      exampleFailedRun("import-parliament", "boom", { id: 2 }),
+    ];
     expect(flat(runLog(rare, false)).map((e) => e.tone)).toEqual(["green", undefined]);
   });
 
@@ -115,7 +119,7 @@ describe("a job's page", () => {
   });
 
   it("folds whole runs past the newest few, and rows past the most recent", () => {
-    const whole = [1, 2, 3, 4, 5, 6].map((id) => exampleRun("check-mps", { problems: [] }, { id }));
+    const whole = [1, 2, 3, 4, 5, 6].map((id) => exampleRun("import-parliament", exampleImportResult, { id }));
     expect(flat(runLog(whole, false)).map((e) => e.open)).toEqual([
       true,
       undefined,

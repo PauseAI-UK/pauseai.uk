@@ -271,10 +271,10 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         ]);
         // Every job's run in every state.
         expect(runSql(name, "SELECT DISTINCT job FROM import_runs ORDER BY 1")).toEqual([
-          "check-mps",
           "import-civicrm",
           "import-controlai",
           "import-luma",
+          "import-parliament",
           "read-gmail",
           "sync-politicians",
         ]);
