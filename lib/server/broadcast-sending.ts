@@ -18,7 +18,7 @@ import type { StoredFilter } from "@/lib/staff-search";
 import { SENDING, staffTime } from "@/lib/staff-time";
 import { siteUrl } from "@/lib/site-url";
 import { logChange } from "./audit";
-import { TOPICS_OF } from "./broadcast-drafts";
+import { SEND_AGAIN, TOPICS_OF } from "./broadcast-drafts";
 import { broadcastEmailChannel, textBackend } from "./broadcast-channels";
 import { supporterAudience } from "./broadcast-recipients";
 import { query } from "./db";
@@ -119,10 +119,20 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
     "UPDATE broadcast_messages SET status = 'cancelled' WHERE mailing_id = $1 AND status = 'scheduled' RETURNING id",
     [broadcast.id],
   );
+  // Those Resume sends to: the cancelled, and for one that kept failing, those refused too (SEND_AGAIN).
+  const refused =
+    reason === "failing"
+      ? (
+          await query<{ n: number }>(
+            `SELECT count(*)::int AS n FROM broadcast_messages c WHERE c.mailing_id = $1 AND ${SEND_AGAIN}`,
+            [broadcast.id],
+          )
+        )[0].n
+      : 0;
   const notReached =
     broadcast.state === "scheduled"
       ? (await supporterAudience(broadcast.filter, termsOf(broadcast))).recipients.length
-      : cancelled.length;
+      : cancelled.length + refused;
   await query(
     `UPDATE mailings SET state = 'cancelled', gave_up = true, wait_reason = $2,
        waiting_since = coalesce(waiting_since, $3), updated_at = now() WHERE id = $1`,
@@ -543,7 +553,8 @@ async function keepSent({ id: copyId, address }: Copy, result: ChannelResult, ru
   } else if (result.reason === "held") {
     await holdCopy(copyId);
   } else {
-    await fail(copyId, { reason: result.detail });
+    // One whose send broke off may have gone: kept as never finished, so Resume never sends it again.
+    await fail(copyId, result.mayHaveGone ? { unfinished: true } : { reason: result.detail });
     run.failed++;
   }
 }
@@ -739,7 +750,7 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
       } catch (error) {
         // The send broke off, and WhatsApp may have taken it by then: failed, as an email is, never sent twice.
         problem(staffCopy.problems.anywhere.sendFailed("broadcast"), error);
-        return { sent: false, reason: "failed" };
+        return { sent: false, reason: "failed", mayHaveGone: true };
       }
     },
   };

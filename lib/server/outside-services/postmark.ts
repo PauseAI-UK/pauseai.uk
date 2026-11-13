@@ -61,7 +61,12 @@ export type Email = {
 export class PostmarkError extends Error {
   /** Postmark refused because the address is suppressed: it bounced or complained before. */
   readonly inactive: boolean;
-  constructor(message: string, code?: number) {
+  constructor(
+    message: string,
+    code?: number,
+    /** The HTTP status Postmark answered with, if it answered. */
+    readonly status?: number,
+  ) {
     super(message);
     this.inactive = code === INACTIVE_RECIPIENT;
   }
@@ -126,6 +131,7 @@ export async function sendEmail(email: Email, stream: PostmarkStream = "transact
     throw new PostmarkError(
       `Postmark refused the email: ${res.status} ${result.ErrorCode ?? ""} ${result.Message ?? ""}`.trim(),
       result.ErrorCode as number | undefined,
+      res.status,
     );
   }
   log(

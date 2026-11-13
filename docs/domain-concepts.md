@@ -439,10 +439,12 @@ job all leave broadcasts out.
   (`handed_at`) and goes, an email with
   its unsubscribe link token made then, only its hash kept; those a run has
   no time left for are put back, as are the rest when the channel answers that
-  it can't send for now (Gmail busy, down, at a limit or quota, or the account's
-  access refused or revoked: `ACCOUNT_REFUSALS` in `lib/server/email.ts`).
-  A copy its channel refuses for itself is failed alone, as is one whose
-  send broke off, as it may have gone, and the rest go on. Once the channel
+  it can't send for now (Gmail or Postmark busy, down, at a limit or quota, or
+  the account's access refused or revoked: `ACCOUNT_REFUSALS` in
+  `lib/server/email.ts`; WhatsApp too fast, unavailable, or our token
+  expired: `WHATSAPP_ERRORS.later`). A copy its channel refuses for itself
+  is failed alone, as is one whose send broke off with no answer, kept as
+  never finished as it may have gone, and the rest go on. Once the channel
   can't send for now, or two copies fail in a row, no more of the broadcast
   goes for 25 minutes (`REST_MINUTES`, from `mailings.try_failed_at`),
   however often the sending is called, and its page says till when. The
@@ -508,6 +510,10 @@ job all leave broadcasts out.
   copies keep failing (`failing`, above). Resume sending, on its page, sets it going again
   (`resumeBroadcast`): its cancelled copies are to go again, or one that
   never started is scheduled again, from now, so it has its days again.
+  One that stopped as its copies kept failing sends again those its channel
+  refused too (`SEND_AGAIN`), but never one whose send broke off, which may
+  have gone, nor one that bounced; the email saying it stopped counts them
+  among those it didn't reach.
 - **What Postmark reports**, of a copy it sent. Its delivery webhook marks a copy delivered;
   a hard bounce marks it failed and blocks the address; a spam complaint is
   an opt-out of every bulk email (`lib/server/delivery-problems.ts`).

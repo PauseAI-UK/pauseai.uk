@@ -2314,7 +2314,7 @@ All events: ${link}`,
       // Why, for one whose days ran out while it waited for CiviCRM.
       whyLate: `Its ${daysInWords(SENDING_DAYS)} ran out while CiviCRM was down, and we don't send to anyone without checking with it first.`,
       // Why, for one so many of whose copies failed one after another (FAILURES_TO_STOP): something may be wrong with what sends it.
-      whyFailing: `The last ${FAILURES_TO_STOP} messages it tried all failed, so something may be fundamentally wrong. Check each copy and fix any problem before sending again.`,
+      whyFailing: `The last ${FAILURES_TO_STOP} messages we tried to send all failed, so something may be fundamentally wrong. Check each copy and fix any problem before sending again.`,
       body: (
         title: string,
         reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing",

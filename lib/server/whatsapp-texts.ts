@@ -41,7 +41,8 @@ export const WHATSAPP_ERRORS = {
   unreachable: 131026,
   stopped: 131050,
   held: 131049,
-  later: [130429, 131056, 80007, 132015, 132016],
+  // Also our access token expired (190), or WhatsApp can't take messages just now (131016): the next would fail the same.
+  later: [130429, 131056, 80007, 132015, 132016, 190, 131016],
 } as const;
 
 /** What a send by WhatsApp was, as sending keeps it. */
