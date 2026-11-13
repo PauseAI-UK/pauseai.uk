@@ -621,7 +621,7 @@ export const staffCopy = {
           staff: "telling staff",
           preferences: "our contact preferences page",
           "civicrm-check": "PauseAI Global's records",
-          whatsapp: "⁂ WhatsApp: its setting, a text's Stop button or a reply",
+          whatsapp: "stopping our texts in WhatsApp",
         } as Record<string, string>,
         otherSource: "their newest form",
         // Where a member who's gone came from, as the join form's records are read from Global's Airtable.
@@ -1297,7 +1297,7 @@ All events: ${link}`,
     // At the foot of a text on new words: sending them to WhatsApp, and while it reviews them.
     submitTemplate: "Send for approval",
     // Under it, when WhatsApp didn't take the words just now.
-    submitFailed: "⁂ WhatsApp didn't take the words just now. Try again in a few minutes.",
+    submitFailed: "⁂ Couldn't send the words to WhatsApp. Try again later.",
     // Over new words, what they're called in the list of templates, and the heading over the words.
     templateName: "Template name",
     templateWords: "Message",
