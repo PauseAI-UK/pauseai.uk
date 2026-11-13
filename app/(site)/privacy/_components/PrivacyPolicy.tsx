@@ -54,9 +54,12 @@ export default function PrivacyPolicy() {
         ⁂ When you write to your MP through this site, we keep your name, email address, postal address and postcode,
         which campaign and MP you wrote to, the letter you sent, and whether you ticked the box to hear about events and
         ways to help. We send your letter under an address made for you, so your MP&apos;s office never sees your own
-        email address, and pass replies both ways. We keep every message. If you copy us into an email to a politician,
-        or forward us one, we keep that too (legal basis: legitimate interest in running the campaign, and your consent
-        if you ticked the box).
+        email address, and pass replies both ways. We keep every message. If you copy{" "}
+        <a className="inline-link" href="mailto:policy@pauseai.uk">
+          policy@pauseai.uk
+        </a>{" "}
+        into an email to a politician, or forward us one, we keep that too (legal basis: legitimate interest in running
+        the campaign, and your consent if you ticked the box).
       </p>
 
       <h2>⁂ Signing up</h2>
