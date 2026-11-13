@@ -465,7 +465,8 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   base. Those are for the politician sync and the members import.
 - **Global's CiviCRM.** Its chapter contacts API, at
   `https://crm.pauseai.info/`, is specified in
-  [PauseAI/pauseai-civicrm#1175](https://github.com/PauseAI/pauseai-civicrm/issues/1175).
+  [`docs/chapter-contacts-api.md`](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md)
+  in PauseAI/pauseai-civicrm.
   That repo is private, so an agent can't read the spec: ask Francis to
   paste it. The hourly CiviCRM import reads its `get` with the UK chapter's
   key, `CIVICRM_CHAPTER_KEY`, in Netlify; nothing writes to CiviCRM yet.

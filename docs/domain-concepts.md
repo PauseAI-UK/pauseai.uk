@@ -1135,7 +1135,9 @@ email.
 Global's CRM, CiviCRM, is one of our sources (`civicrm_contacts`,
 `lib/server/civicrm-import.ts`): every UK chapter contact its chapter
 contacts API returns (`lib/server/outside-services/civicrm.ts`, with
-`CIVICRM_CHAPTER_KEY`; the spec is PauseAI/pauseai-civicrm#1175, which is
+`CIVICRM_CHAPTER_KEY`; the spec is
+[`docs/chapter-contacts-api.md`](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md)
+in PauseAI/pauseai-civicrm, which is
 private), as it told us. The hourly import pulls them all, 500 a page by
 contact ID, and keeps each one's contact ID, Airtable ID and address; its
 member details (`first_name`, `last_name`, `city`, `postal_code`,

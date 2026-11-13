@@ -4,7 +4,8 @@ import { outsideFetch } from "./outside-fetch";
 
 // The only file that talks to Global's CRM, CiviCRM, through its chapter
 // contacts API, with our UK chapter's key, CIVICRM_CHAPTER_KEY. Its spec is
-// PauseAI/pauseai-civicrm#1175, which is private. Three actions: `get`,
+// https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md,
+// in a private repo. Three actions: `get`,
 // every UK chapter contact a page at a time, or those with some addresses;
 // `checkSuppression`, whether PauseAI may email each of some addresses at
 // all; and `updateSubscriptions`, our opt-outs, and lifts of "No bulk
