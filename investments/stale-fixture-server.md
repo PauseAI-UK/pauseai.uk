@@ -18,3 +18,4 @@ The storyboard reuses a fixture server that's already up on the checkout's port 
 
 - 2026-11-12: nine letter flows failed on a server that had already run them once, and the cause took about 40 minutes to find
 - 2026-11-12: a review against a server left up ran flows whose records the next review couldn't use
+- 2026-11-13: a storyboard stopped partway left its fixture server up and hung; the gate's next review reused it, its error flows timed out, and it hit its 20-minute limit
