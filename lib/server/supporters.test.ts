@@ -403,6 +403,8 @@ describeWithDatabase("listSupporters and getSupporter", () => {
       lastActiveAt: new Date("2026-10-10T10:00:00Z"),
       events: 1,
       letters: 0,
+      broadcasts: 0,
+      notes: 0,
       member: false,
       place: { name: "London", basis: "event", given: "evt-1", country: null, latitude: 51.5, longitude: -0.1 },
       permissions: [
@@ -528,6 +530,34 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ sort: "events", dir: "desc" })).toEqual(["Sam", "Jane", "Old", "Pat"]);
     expect(await names({ sort: "letters", dir: "desc" })).toEqual(["Pat", "Sam", "Jane", "Old"]);
     expect(await names({ sort: "active", dir: "asc" })).toEqual(["Old", "Pat", "Jane", "Sam"]);
+    // Broadcasts each was sent a copy of, whether it went or not: both to Old, the first to Jane, skipped.
+    const mailings = await query<{ id: number }>(
+      `INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at,
+         state)
+       SELECT 'News ' || n, 'News', 'supporters', 'email', 'newsletter', '{"list": "supporters", "params": {}}',
+         '{"type": "doc", "content": []}', 'jo@pauseai.uk', 'hello@pauseai.uk', 'PauseAI UK', now(), 'sent'
+       FROM generate_series(1, 2) n RETURNING id::int AS id`,
+    );
+    await query(
+      `INSERT INTO broadcast_messages (mailing_id, supporter_id, status, skip_reason, address)
+       SELECT m, s.id, CASE WHEN s.name = 'Jane' THEN 'skipped' ELSE 'sent' END,
+         CASE WHEN s.name = 'Jane' THEN 'unsubscribed' END, s.name || '@example.com'
+       FROM supporters_summary s, unnest($1::int[]) WITH ORDINALITY AS m(m, n)
+       WHERE s.name = 'Old' OR (s.name = 'Jane' AND n = 1)`,
+      [mailings.map((m) => m.id)],
+    );
+    expect(await names({ sort: "broadcasts", dir: "desc" })).toEqual(["Old", "Jane", "Sam", "Pat"]);
+    const listed = (await listSupporters({ sort: "broadcasts", dir: "desc", page: 1 })).supporters;
+    expect(listed.map((s) => s.broadcasts)).toEqual([2, 1, 0, 0]);
+    // And the notes staff wrote on each: two on Pat.
+    await query(
+      `INSERT INTO notes (supporter_id, body, written_by, created_at)
+       SELECT s.id, 'Met at the march', 'jo@pauseai.uk', now() FROM supporters_summary s, generate_series(1, 2)
+       WHERE s.name = 'Pat'`,
+    );
+    expect(await names({ sort: "notes", dir: "desc" })).toEqual(["Pat", "Sam", "Jane", "Old"]);
+    const noted = (await listSupporters({ sort: "notes", dir: "desc", page: 1 })).supporters;
+    expect(noted.map((s) => s.notes)).toEqual([2, 0, 0, 0]);
   });
 
   it("shows the newest number we may use, and finds supporters by their numbers' answers", async () => {

@@ -126,9 +126,15 @@ const LUMA_CONTACT = `(s.luma_follows AND NOT ${optedOutOfLuma("s.emails")})`;
  * they've done, and where they are (a place's name, what it's from and
  * where it is), or nulls.
  */
+/** How many broadcasts supporter `s` was sent a copy of, whether it went or not, as their page lists them. */
+const BROADCASTS = "(SELECT count(*)::int FROM broadcast_messages c WHERE c.supporter_id = s.id)";
+
+/** How many notes staff have written on supporter `s`. */
+const NOTES = "(SELECT count(*)::int FROM notes n WHERE n.supporter_id = s.id)";
+
 const SUMMARY_COLUMNS = `s.id::int AS id, s.name, coalesce(s.emails, '{}') AS emails, s.phones, s.postcode,
   coalesce(s.sources, '{}') AS sources, ${LUMA_CONTACT} AS "lumaContact", s.first_seen_at AS "firstSeenAt",
-  s.last_active_at AS "lastActiveAt", s.events, s.letters, s.member,
+  s.last_active_at AS "lastActiveAt", s.events, s.letters, ${BROADCASTS} AS broadcasts, ${NOTES} AS notes, s.member,
   CASE WHEN s.basis IS NULL THEN NULL
   ELSE json_build_object('name', s.place, 'basis', s.basis, 'given', s.given, 'country', s.country,
     'latitude', s.latitude, 'longitude', s.longitude) END AS place`;
@@ -284,6 +290,8 @@ export async function listSupporters(
     name: "s.name COLLATE english",
     events: "s.events",
     letters: "s.letters",
+    broadcasts: BROADCASTS,
+    notes: NOTES,
   }[filter.sort];
   const dir = filter.dir === "asc" ? "ASC" : "DESC";
   const order = sql.raw(`${column} ${dir} NULLS LAST, s.last_active_at DESC NULLS LAST, s.id ${dir}`);

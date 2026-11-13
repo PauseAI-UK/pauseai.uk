@@ -18,6 +18,8 @@ export const exampleSupporter: SupporterSummary = {
   lastActiveAt: new Date("2026-10-12T18:30:00Z"),
   events: 2,
   letters: 1,
+  broadcasts: 2,
+  notes: 1,
   member: false,
 };
 

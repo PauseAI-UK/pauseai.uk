@@ -194,7 +194,15 @@ export const SUPPORTERS_LIST = defineStaffList({
     "unsubscribed",
   ],
   sorts: {
-    columns: { active: "desc", first: "asc", name: "asc", events: "desc", letters: "desc" },
+    columns: {
+      active: "desc",
+      first: "asc",
+      name: "asc",
+      events: "desc",
+      letters: "desc",
+      broadcasts: "desc",
+      notes: "desc",
+    },
     fallback: "active",
   },
 });

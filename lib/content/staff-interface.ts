@@ -488,6 +488,10 @@ export const staffCopy = {
       lastActive: "Last activity",
       events: "Events",
       letters: "Letters to MP",
+      // How many broadcasts each was sent a copy of, as their page's card of them lists them.
+      broadcasts: "Broadcasts",
+      // How many notes staff have written on each.
+      notes: "Notes",
       // Added by the Event filter: how their registration for the event stands, each event named when there are several.
       registrations: "At the event",
       // Added by the Campaign filter: when they first wrote in the campaign.
@@ -683,8 +687,8 @@ export const staffCopy = {
       firstVia: (source: string) => `first came via ${source}`,
       eventsCounted: (n: number) => plural(n, "event", "events"),
       lettersCounted: (n: number) => plural(n, "letter to an MP", "letters to MPs"),
-      broadcastsCounted: (n: number) => plural(n, "⁂ broadcast sent", "⁂ broadcasts sent"),
-      notesCounted: (n: number) => plural(n, "⁂ note", "⁂ notes"),
+      broadcastsCounted: (n: number) => plural(n, "broadcast", "broadcasts"),
+      notesCounted: (n: number) => plural(n, "note", "notes"),
       // Beside the box of what we hold: the events they registered for, and their letters, a table each.
       eventsTitle: "Events",
       noEvents: "No events.",
