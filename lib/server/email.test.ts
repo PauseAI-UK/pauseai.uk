@@ -335,6 +335,33 @@ describeWithDatabase("send by Gmail", () => {
       { outcome: "failed", backend: "gmail", sender: "jo@pauseai.uk", rfc_message_id: null },
     ]);
   });
+
+  it("fails to be tried again when it breaks off before the email is handed to Gmail, as nothing went", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    const sent: unknown[] = [];
+    server.use(
+      http.post("https://oauth2.googleapis.com/token", () => HttpResponse.error()),
+      http.post(SEND, () => {
+        sent.push(1);
+        return HttpResponse.json({ id: "g1", threadId: "t1" });
+      }),
+    );
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+      sent: false,
+      reason: "failed",
+      retry: true,
+      detail: expect.any(String),
+    });
+    expect(sent).toEqual([]);
+  });
+
+  it("says one whose send to Gmail broke off may have gone", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    server.use(http.post(SEND, () => HttpResponse.error()));
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toMatchObject({ sent: false, mayHaveGone: true });
+  });
 });
 
 describeWithDatabase("recordProblem", () => {

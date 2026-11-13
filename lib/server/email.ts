@@ -231,11 +231,15 @@ export async function send(
   }
   let id: string;
   let threadId: string | null = null;
+  // Whether the email has been handed to the provider: until then, whatever goes wrong, nothing went.
+  let handed = false;
   try {
     if (backend.name === "gmail") {
       const token = await gmailAccess(backend.account);
-      const sent = raw
-        ? await sendRawGmail(token, raw(rfcId!, now()))
+      const message = raw ? raw(rfcId!, now()) : undefined;
+      handed = true;
+      const sent = message
+        ? await sendRawGmail(token, message)
         : await sendGmail(token, { ...email, MessageId: rfcId!, Date: now() }, joins);
       id = sent.id;
       threadId = sent.threadId;
@@ -244,6 +248,7 @@ export async function send(
     } else {
       // Its Message-ID goes with whatever other headers it has.
       const headers = [...(email.Headers ?? []), ...(rfcId ? [{ Name: "Message-ID", Value: `<${rfcId}>` }] : [])];
+      handed = true;
       id = await sendEmail(headers.length ? { ...email, Headers: headers } : email, stream);
     }
   } catch (error) {
@@ -276,9 +281,11 @@ export async function send(
     await log("failed");
     // What the provider said, for whoever looks at the copy that failed.
     const detail = (error as Error).message;
-    if (accountsFault(error)) return { sent: false, reason: "failed", retry: true, detail };
+    // The account's or provider's fault, or something before the email was handed over, as getting a token: try later.
+    const providers = error instanceof GmailError || error instanceof PostmarkError;
+    if (accountsFault(error) || (!handed && !providers)) return { sent: false, reason: "failed", retry: true, detail };
     // No answer from the provider at all: it may have taken the email before the connection broke.
-    const answered = error instanceof GmailError || error instanceof PostmarkError;
+    const answered = providers;
     return answered
       ? { sent: false, reason: "failed", detail }
       : { sent: false, reason: "failed", mayHaveGone: true, detail };

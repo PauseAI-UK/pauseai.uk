@@ -449,10 +449,12 @@ job all leave broadcasts out.
   can't send for now, or two copies fail in a row, no more of the broadcast
   goes for 25 minutes (`REST_MINUTES`, from `mailings.try_failed_at`),
   however often the sending is called, and its page says till when. The
-  count of failures in a row (`mailings.failed_in_a_row`) runs across rests
-  and runs, and starts again when a copy goes; at five
-  (`FAILURES_TO_STOP`) the broadcast stops, so whatever fails every copy
-  fails five people, not everyone. Resume ends a rest and the count. A
+  count of failed tries in a row (`mailings.failed_in_a_row`), the
+  channel's "not now"s among them, runs across rests and runs, and starts
+  again when a copy goes; at five (`FAILURES_TO_STOP`) the broadcast stops,
+  so whatever fails every copy fails five people, not everyone, and an
+  account refused for good stops it within a couple of hours rather than
+  stalling it for days. Resume ends a rest and the count. A
   copy a stopped run left `sending` for
   half an hour is failed, not sent again, if it had been handed to its
   channel, as it may have gone; one the run had only taken never went, so
@@ -495,7 +497,9 @@ job all leave broadcasts out.
 - **Waiting for CiviCRM.** Nothing goes unchecked. A broadcast
   waits while no CiviCRM pull has completed for a day, or CiviCRM doesn't
   answer its check; whoever scheduled it and the notification inbox are
-  emailed once, and its page says since when and why. It goes by itself
+  emailed once, and its page says since when and why, and when it stops if
+  CiviCRM doesn't come back: three days on, or sooner if its seven run out
+  first (`waitEndsAt`). It goes by itself
   when it can. A scheduled one's page says quietly when it would stop.
 - **Stopping.** A broadcast that has waited for CiviCRM for three days
   (`WAIT_DAYS`), from when it first couldn't go, whether at its time or
@@ -514,7 +518,8 @@ job all leave broadcasts out.
   One that stopped as its copies kept failing sends again those its channel
   refused too (`SEND_AGAIN`), but never one whose send broke off, which may
   have gone, nor one that bounced; the email saying it stopped counts them
-  among those it didn't reach.
+  among those it didn't reach. Those go after the ones never tried, so the
+  copies likeliest to fail again can't stop it before the rest have gone.
 - **What Postmark reports**, of a copy it sent. Its delivery webhook marks a copy delivered;
   a hard bounce marks it failed and blocks the address; a spam complaint is
   an opt-out of every bulk email (`lib/server/delivery-problems.ts`).

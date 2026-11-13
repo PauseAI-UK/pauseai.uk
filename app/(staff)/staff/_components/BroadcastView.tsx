@@ -12,7 +12,7 @@ import {
 } from "@/lib/server/broadcast-pages";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { londonClock, londonDate, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
-import { FIELD_WORDS, waitStopsAt, type BroadcastChannel } from "@/lib/broadcasts";
+import { FIELD_WORDS, waitEndsAt, type BroadcastChannel } from "@/lib/broadcasts";
 import { templateFooter } from "@/lib/whatsapp-template";
 import Strip from "./ui/Strip";
 import { phoneWords } from "@/lib/phone";
@@ -136,7 +136,8 @@ export function BroadcastWaiting({
   if (written.waitingSince) {
     // One waiting, not stopped, waits for CiviCRM.
     const reason = written.waitReason as "civicrm" | "pull";
-    return <Strip tone="amber">{copy.waiting(reason, londonDate(waitStopsAt(written.waitingSince)))}</Strip>;
+    const sending = written.state === "sending" && written.dueAt ? { dueAt: written.dueAt } : null;
+    return <Strip tone="amber">{copy.waiting(reason, londonDate(waitEndsAt(written.waitingSince, sending)))}</Strip>;
   }
   if (written.restingUntil) return <Strip tone="amber">{copy.resting(staffTime(written.restingUntil))}</Strip>;
   return atLimit ? <Strip tone="amber">{copy.moreTomorrow}</Strip> : null;

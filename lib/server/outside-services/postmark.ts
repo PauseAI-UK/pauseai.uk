@@ -21,13 +21,18 @@ const STREAMS = { transactional: "outbound", broadcast: "broadcast" } as const;
 export type PostmarkStream = keyof typeof STREAMS;
 const unsuppressUrl = (stream: string) => `https://api.postmarkapp.com/message-streams/${stream}/suppressions/delete`;
 /**
- * The statuses Postmark answers with for something that isn't there: 404
- * for an entity, and 422 for a request that's wrong, as its error 1226 is,
- * "The message stream for the provided ID was not found"
- * (https://postmarkapp.com/developer/api/overview). Its docs don't say which
- * a stream's suppressions give, so either is taken.
+ * Whether Postmark's answer says there's no such stream: 404 for an entity
+ * that isn't there, or 422 with its error 1226, "The message stream for the
+ * provided ID was not found" (https://postmarkapp.com/developer/api/overview).
+ * Its docs don't say which a stream's suppressions give, so either is
+ * taken; a 422 for anything else isn't.
  */
-const NO_SUCH = [404, 422];
+async function noSuchStream(res: Response): Promise<boolean> {
+  if (res.status === 404) return true;
+  if (res.status !== 422) return false;
+  const body = ((await readJsonIfAny(res)) ?? {}) as Record<string, unknown>;
+  return body.ErrorCode === 1226;
+}
 /** Postmark's error for an address on the stream's suppression list. */
 const INACTIVE_RECIPIENT = 406;
 /** Postmark accepts this token, and answers as if it sent the email. */
@@ -148,7 +153,7 @@ export async function sendEmail(email: Email, stream: PostmarkStream = "transact
  * spam complaint, and says so only in its
  * answer, which is ignored: if it still refuses, the next email learns that.
  * Throws if Postmark refuses, but for a broadcast stream the server doesn't
- * have (NO_SUCH): nothing is suppressed on a stream that isn't there, and
+ * have (noSuchStream): nothing is suppressed on a stream that isn't there, and
  * unblocking mustn't wait for one to be made.
  * The dev server, without a real token, doesn't ask.
  */
@@ -170,8 +175,7 @@ export async function unsuppress(address: string): Promise<void> {
       },
       body: JSON.stringify({ Suppressions: [{ EmailAddress: address }] }),
     });
-    const noBroadcastStream = stream === STREAMS.broadcast && NO_SUCH.includes(res.status);
-    if (!res.ok && !noBroadcastStream) {
+    if (!res.ok && !(stream === STREAMS.broadcast && (await noSuchStream(res)))) {
       throw new PostmarkError(`Postmark refused to unsuppress the address: ${res.status}`);
     }
   }

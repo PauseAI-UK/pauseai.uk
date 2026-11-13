@@ -203,6 +203,15 @@ describe("unsuppress", () => {
     // Nor is its limit on how fast we ask the stream not being there.
     answers({ outbound: 200, broadcast: 429 });
     await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 429");
+    // Nor a 422 for anything but the stream not being there (its error 1226).
+    server.use(
+      http.post(UNSUPPRESS, ({ params }) =>
+        params.stream === "broadcast"
+          ? HttpResponse.json({ ErrorCode: 300, Message: "Invalid" }, { status: 422 })
+          : HttpResponse.json({ Suppressions: [] }),
+      ),
+    );
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 422");
     answers({ outbound: 200, broadcast: 404 });
     await expect(unsuppress("a@example.org")).resolves.toBeUndefined();
   });

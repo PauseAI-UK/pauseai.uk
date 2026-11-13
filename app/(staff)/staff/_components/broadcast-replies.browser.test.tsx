@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { waitStopsAt } from "@/lib/broadcasts";
+import { sendingStopsAt, waitStopsAt } from "@/lib/broadcasts";
 import { londonDate, staffTime } from "@/lib/staff-time";
 import { broadcastCounts, BroadcastWaiting, CopyStatus } from "./BroadcastView";
 import {
@@ -292,6 +292,14 @@ describe("BroadcastWaiting", () => {
       />,
     );
     await expect.element(page.getByText(copy.waiting("pull", londonDate(waitStopsAt(began))))).toBeVisible();
+    // Begun later still, its seven days run out before its three of waiting do: it says the sooner.
+    const later = new Date("2026-11-13T07:18:00Z");
+    await rerender(
+      <BroadcastWaiting
+        written={{ ...exampleBroadcastEmail, state: "sending", dueAt: due, waitingSince: later, waitReason: "civicrm" }}
+      />,
+    );
+    await expect.element(page.getByText(copy.waiting("civicrm", londonDate(sendingStopsAt(due))))).toBeVisible();
     await rerender(
       <BroadcastWaiting
         written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason: "civicrm" }}

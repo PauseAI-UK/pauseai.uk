@@ -9,7 +9,7 @@ import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase }
 import { server } from "@/tests/fixtures/msw";
 import { recordGmail } from "@/tests/gmail-sends";
 import { notifications, NOTIFICATIONS } from "@/tests/notifications";
-import { createBroadcastDraft } from "./broadcast-drafts";
+import { createBroadcastDraft, resumeBroadcast } from "./broadcast-drafts";
 import { sendDueBroadcasts, startDueBroadcasts } from "./broadcast-sending";
 import { hashOf } from "./email-settings";
 import { recordOptOut } from "./opt-outs";
@@ -512,6 +512,70 @@ describeWithDatabase("sending broadcasts", () => {
     expect(sent.at(-1)!.TextBody).toContain(words.body("See you there", "failing", 6, "", "email").trim());
   });
 
+  it("sends, on Resume after it kept failing, to those never tried before those refused, so they can't stop it first", async () => {
+    notifications();
+    const refused = recordGmail(() => new HttpResponse("Bad", { status: 400 }));
+    for (const name of ["ann", "bo", "cy", "di", "ed", "fi", "gus"]) {
+      await addFollower(`usr-${name}`, `${name}@example.com`, name);
+    }
+    await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    // Five fail, across its rests, and it stops with two never tried.
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    for (let rest = 0; rest < 3; rest++) {
+      await rested();
+      await inRun(() => sendDueBroadcasts(LATER, 0));
+    }
+    expect((await stateOf(id)).reason).toBe("failing");
+    expect(refused).toHaveLength(5);
+    const neverTried = await query<{ address: string }>(
+      "SELECT address FROM broadcast_messages WHERE status = 'cancelled' ORDER BY id",
+    );
+    expect(neverTried).toHaveLength(2);
+    // Resumed, with Gmail still refusing: the two never tried go first, then the five again.
+    expect(await resumeBroadcast(id, "jo@pauseai.uk")).toBe(true);
+    const order = recordGmail(() => new HttpResponse("Bad", { status: 400 }));
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    expect(order.map((email) => email.headers.get("to")!.match(/<(.*)>/)![1])).toEqual(
+      neverTried.map((copy) => copy.address),
+    );
+  });
+
+  it("counts tries the account or provider refuses towards stopping, as they'd never end, though nobody is failed", async () => {
+    notifications();
+    const tried = recordGmail(() => new HttpResponse("Insufficient Permission", { status: 403 }));
+    for (const name of ["jane", "sam"]) await addFollower(`usr-${name}`, `${name}@example.com`, name);
+    await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    for (let rest = 0; rest < 4; rest++) {
+      expect((await stateOf(id)).state).toBe("sending");
+      await rested();
+      await inRun(() => sendDueBroadcasts(LATER, 0));
+    }
+    expect(tried).toHaveLength(5);
+    expect(await stateOf(id)).toMatchObject({ state: "cancelled", reason: "failing", gaveUp: true });
+    // Nobody failed: Resume sends to both.
+    expect((await copies()).map((copy) => copy.status)).toEqual(["cancelled", "cancelled"]);
+  });
+
+  it("never puts back one that may have gone when keeping its failure fails, so it's never sent twice", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    recordGmail(() => HttpResponse.error());
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith");
+    await pulled();
+    await broadcast();
+    await startDueBroadcasts();
+    await refuseWrites("broadcast_messages", "NEW.status = 'failed'");
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    // Left sending, handed over, for a later run to fail as cut off.
+    expect(await query("SELECT status, handed_at IS NOT NULL AS handed FROM broadcast_messages")).toEqual([
+      { status: "sending", handed: true },
+    ]);
+  });
+
   it("counts failures in a row only: one that goes between them starts the count again", async () => {
     let tries = 0;
     // Every other try fails, so none fail in a row.
@@ -698,6 +762,8 @@ describeWithDatabase("sending broadcasts", () => {
     server.use(http.post(CHECK, () => new HttpResponse("Down", { status: 503 })));
     await inRun(() => sendDueBroadcasts(LATER, 0));
     expect(await stateOf(id)).toEqual({ state: "sending", waiting: true, reason: "civicrm", gaveUp: false });
+    // The email says it stops when its seven days are up, as that's before its three days of waiting are.
+    expect(sent.at(-1)!.TextBody).toContain(staffTime(new Date("2026-11-09T09:00:00Z")));
     // Its seven days are up: it stops then, though it hasn't waited three, and CiviCRM is why.
     vi.setSystemTime(new Date("2026-11-09T09:00:00Z"));
     await inRun(() => sendDueBroadcasts(LATER, 0));
@@ -1019,6 +1085,23 @@ describeWithDatabase("sending texts", () => {
     const told = sent.find((email) => email.Subject === words.subject("March day", "limit"))!;
     expect(told.TextBody).toContain(words.body("March day", "limit", 1, "", "text").trim());
     expect(told.TextBody).not.toContain(words.whyGmailLimit);
+  });
+
+  it("asks WhatsApp nothing for a text that's resting", async () => {
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    await pulled();
+    const id = await text();
+    await startDueBroadcasts();
+    await query("UPDATE mailings SET try_failed_at = now() WHERE id = $1", [id]);
+    const asked: string[] = [];
+    server.use(
+      http.get(/graph\.facebook\.com\/.*phone_numbers/, ({ request }) => {
+        asked.push(request.url);
+        return HttpResponse.json({ data: [] });
+      }),
+    );
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, left: 1 });
+    expect(asked).toEqual([]);
   });
 
   it("stops one whose template WhatsApp has paused, telling whoever scheduled it", async () => {

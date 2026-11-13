@@ -104,6 +104,18 @@ export const restsUntil = (since: Date): Date => new Date(new Date(since).getTim
 export const sendingStopsAt = (dueAt: Date): Date => daysAfter(dueAt, SENDING_DAYS);
 
 /**
+ * When a broadcast waiting for CiviCRM since `waitingSince` stops, if
+ * CiviCRM doesn't come back: WAIT_DAYS on, or, for one already sending, when
+ * its SENDING_DAYS run out, if that's sooner.
+ */
+export function waitEndsAt(waitingSince: Date, sending: { dueAt: Date } | null): Date {
+  const waited = waitStopsAt(waitingSince);
+  if (!sending) return waited;
+  const out = sendingStopsAt(sending.dueAt);
+  return out < waited ? out : waited;
+}
+
+/**
  * What can send an email to supporters, and whether it can yet: the
  * connected Gmail of the address it's from (BROADCAST_SENDER), or Postmark's
  * broadcast stream, which Postmark hasn't approved us for.
