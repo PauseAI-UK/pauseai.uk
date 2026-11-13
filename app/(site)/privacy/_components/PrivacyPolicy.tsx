@@ -72,7 +72,7 @@ export default function PrivacyPolicy() {
 
       <h2>Events and Luma</h2>
       <p>
-        ⁂ Our events run on Luma. When you register for or host one of our events, or follow our calendar, Luma gives us
+        Our events run on Luma. When you register for or host one of our events, or follow our calendar, Luma gives us
         your name, email address, which events you registered for, and (where an event asked for them) your phone number
         and postcode. If you unsubscribe from the calendar&apos;s emails, Luma tells us, so we never email that address
         about events.
