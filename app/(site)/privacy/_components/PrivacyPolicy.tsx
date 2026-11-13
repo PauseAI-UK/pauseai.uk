@@ -139,7 +139,7 @@ export default function PrivacyPolicy() {
 
       <h2>Your rights</h2>
       <p>
-        ⁂ You can ask for a copy of your data, or to correct or erase it, or object to how we use it: email{" "}
+        You can ask for a copy of your data, or to correct or erase it, or object to how we use it: email{" "}
         <a className="inline-link" href="mailto:hello@pauseai.uk">
           hello@pauseai.uk
         </a>{" "}
