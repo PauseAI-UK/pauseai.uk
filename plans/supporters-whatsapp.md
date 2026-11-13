@@ -1,35 +1,38 @@
-# Texts to supporters
+# WhatsApp to supporters
 
 This plan is for broadcasts to supporters by text, on the Broadcasts
 pages at `/staff/broadcasts`. A broadcast is by email or by text, and
 each supporter's copy is a message. A broadcast by text is called a text
-for short. A text is sent by WhatsApp, and perhaps later by SMS to
-numbers not on WhatsApp. The work is two pull requests, and an optional
-third:
+for short, and is sent by WhatsApp. The work is two pull requests:
 
-1. Groundwork: consent, opt-outs and replies.
+1. Groundwork: shared sending, consent, opt-outs and replies.
 2. The WhatsApp backend, which comes next.
-3. Optional: an SMS backend, for numbers not on WhatsApp.
 
-Email comes first: phases 2 to 4 of `plans/supporters-email.md`, in one
-pull request, build pieces this plan then uses for texts:
+Email's broadcasts (#318) built pieces this plan uses for texts:
 `broadcast_replies` and how staff see and deal with replies; staff
-recording a stop; the preferences page, with texts and calls on
-it; the three days a broadcast may send for; and "Newsletter or events
-only".
+recording a stop; the preferences page, with texts and calls on it; the
+three days a broadcast may send for; and "Newsletter or events only".
 
 ## Now
 
-- We have about 750 numbers. Roughly 470 are volunteers' from the join
-  form, Tally-era ones included, and allow calls and texts. Roughly 320
-  are from Luma, nearly all from the November march and PauseCon 2025,
-  and allow texts only. More come from our march form, live since
-  28 October, whose box allows calls and texts.
+- We have about 750 numbers. Roughly 470 are members', from the join
+  form by CiviCRM, Tally-era ones included. Global shares them for calls
+  only: texts wait for
+  [legal-pack#13](https://github.com/PauseAI/legal-pack/issues/13)
+  (open question 11). Roughly 320 are from Luma, nearly all from the
+  November march and PauseCon 2025, and allow texts only. More come from
+  our march form, live since 28 October, whose box allows calls and
+  texts.
 - `contact_permission()` answers for numbers, and `TOPIC_WAYS` in
   `lib/contact-permissions.ts` says which ways each topic allows: calls,
-  texts or both. The number of a member who joined since 30 June 2026
-  with no volunteering intent is unsure.
-- `opt_outs` takes numbers, but only from Luma.
+  texts or both.
+- `opt_outs` takes numbers from Luma, staff and the preferences page,
+  which also shows CiviCRM's "Do not SMS" and "Do not phone" on a
+  person's numbers.
+- Broadcasts by text can be written, and a fixture build sends them by a
+  fake backend; on the live site nothing sends them. The send loop, and
+  the checks just before each copy goes, are email's
+  (`lib/server/broadcast-sending.ts`); texts skip the checks.
 - The site doesn't send texts. Our giffgaff number has the WhatsApp Business
   app on Reuben's phone, but its broadcast lists only reach people who
   have saved the number, so we need the API.
@@ -40,10 +43,8 @@ only".
   SMS and app messages as electronic mail, and the soft opt-in doesn't
   cover political campaigning
   ([ICO](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guide-to-pecr/electronic-and-telephone-marketing/electronic-mail-marketing/)).
-- Text is one way to contact someone, whichever backend sends it, as
-  it is to the people we message: a yes to texts allows WhatsApp and
-  SMS, and a stop by either stops both. Meta accepts an opt-in that
-  names us without naming WhatsApp
+- A yes to texts allows WhatsApp. Meta accepts an opt-in that names us
+  without naming WhatsApp
   ([opt-in](https://developers.facebook.com/documentation/business-messaging/whatsapp/getting-opt-in)).
 - A message stays within what the person agreed to: a `march-day` text
   is about the march, sent on the day.
@@ -63,8 +64,7 @@ wants every request to stop honoured, however it's made
   A marketing message to someone who has stopped fails with error
   131050.
 - From the "Stop" button on every marketing template.
-- As a reply: STOP by SMS (some providers handle it and tell us by
-  webhook), or "stop" or "unsubscribe" on WhatsApp. Anything less clear,
+- As a reply: "stop" or "unsubscribe" on WhatsApp. Anything less clear,
   such as "not interested", is shown to staff with a button to record it
   as a stop.
 - Any other way, such as an email or a word at an event. Staff record
@@ -74,8 +74,8 @@ Blocking or reporting us in WhatsApp isn't reported to us. Messages to
 that person stop being delivered, and a number never delivered to is
 skipped after a few tries, as one not on WhatsApp is.
 
-Each stop is a row in `opt_outs` with a new source (`whatsapp-webhook`,
-`sms-provider`, `reply` or `staff`). From then on:
+Each stop is a row in `opt_outs` with its source: a new one,
+`whatsapp-webhook`, or `reply` or `staff`. From then on:
 
 - `contact_permission()` says no for every topic;
 - `contact_unsubscribes` lists it;
@@ -89,7 +89,11 @@ box on one of our forms or the preferences page, closes any stop.
 Before each round of texts, every number is checked with CiviCRM's
 `checkSuppression`, and one with "Do not SMS" anywhere in PauseAI is
 skipped, as Global's spec asks; "Do not SMS" counts as no WhatsApp too.
-Email broadcasts check addresses the same way.
+Email broadcasts check addresses the same way, by the same code. Numbers
+go in international format, as we store them. CiviCRM answers for any
+number, not only a UK contact's. As for email, no text
+goes with no complete CiviCRM pull for a day, or while CiviCRM doesn't
+answer the check.
 
 A stop of every text to a number, such as one by WhatsApp or "No texts
 at all" on the preferences page, goes to CiviCRM's `updateSubscriptions`
@@ -118,7 +122,7 @@ Staff see a stop in three places:
 
 These stops don't cover calls, which have their own ("Calls"). Global
 doesn't call or text, but CiviCRM has "Do not phone" and "Do not SMS"
-flags, and its chapter contacts API carries them (open question 11).
+flags, and its chapter contacts API carries them.
 
 ## 1. Groundwork
 
@@ -140,8 +144,15 @@ and event messages.
 
 ### Steps
 
-1. Each message of a broadcast by text records which backend sent it.
-   `mailings.channel` loses `whatsapp`, leaving `email` and `text`.
+0. First, without changing what email does, share the sending
+   (`lib/server/broadcast-sending.ts`) between channels: one send loop,
+   and one check just before each copy goes (our own opt-outs, then
+   CiviCRM's `checkSuppression`), with each channel giving how it
+   checks, builds and sends a message, and its pace. Texts then get our
+   own opt-outs checked, and wait for a fresh CiviCRM pull as email
+   does. `checkSuppression` takes numbers, and `civicrm_updates` takes
+   `do_not_sms` and `do_not_phone` for a number, in a migration.
+1. `mailings.channel` loses `whatsapp`, leaving `email` and `text`.
 2. Opt-ins:
    - the Luma checkbox, which the import reads as it reads the postcode
      question;
@@ -150,7 +161,7 @@ and event messages.
 
    Our forms' box already counts for a number they ask (`site-forms`).
    Email your MP asks for no number.
-3. Opt-outs, as above. Staff recording one by hand comes with email.
+3. Opt-outs, as above. Staff record one by hand already.
 4. Mark a number that isn't a mobile, or isn't on WhatsApp, and skip it
    from then on.
 5. A new source for `volunteering`, as a new member's number is unsure
@@ -196,11 +207,16 @@ Done:
   the website, the address, hello@pauseai.uk, and the category nearest
   to a non-profit, which the list calls Charity.
 - The backend's three settings are in Netlify ("Settings", below).
+- A payment method, which the App Dashboard asks for "to send
+  business-initiated messages".
+- Francis and Joseph both have full control of the portfolio. Each
+  admin logs in with a personal Facebook account, in their own name
+  ([portfolios](https://www.facebook.com/business/help/1710077379203657)).
+  Facebook doesn't allow accounts that aren't a real person, so
+  admin@pauseai.uk can't be one.
 
 Still to do:
 
-- Check there's a payment method, which the App Dashboard asks for "to
-  send business-initiated messages".
 - Raise the limit from 250 a day, which WhatsApp Manager still shows.
   After verifying a business, Meta approves or denies the rise to
   2,000 by the quality of our messages, and Business info says
@@ -215,20 +231,39 @@ Still to do:
   we send 2,000 delivered messages to different numbers in 30 days,
   which is more numbers than we have. At 250 a day, a text to all 750
   numbers takes the whole three days it may send for ("Scheduling").
-- Check Joseph is an admin of the portfolio, which requires two-factor
-  authentication of everyone. Each admin logs in with a personal
-  Facebook account, in their own name
-  ([portfolios](https://www.facebook.com/business/help/1710077379203657)).
-  Facebook doesn't allow accounts that aren't a real person, so
-  admin@pauseai.uk can't be one.
-- Accept the Marketing Messages API's terms, in the App Dashboard's
-  WhatsApp Quickstart
-  ([get started](https://developers.facebook.com/documentation/business-messaging/whatsapp/marketing-messages/get-started)).
-- Publish the app. Until then, the App Dashboard says, it receives only
-  test webhooks sent from the dashboard, and no production data.
-- Set up the webhook, once `/api/whatsapp` is deployed: the callback URL
-  and verify token in the use case's "Configure Webhooks", then
-  "Subscribe webhooks" on the WhatsApp account.
+
+In order, once the backend is merged:
+
+1. Set up the webhook, once `/api/whatsapp` is deployed: the callback
+   URL and verify token in the use case's "Configure Webhooks", then
+   "Subscribe webhooks" on the WhatsApp account.
+2. Publish the app: the App Mode toggle in the App Dashboard's toolbar,
+   from Development to Live. Until then, the App Dashboard says, it
+   receives only test webhooks sent from the dashboard, and no
+   production data; Meta's webhook docs say "some webhooks will not be
+   sent if your app is in Dev mode"
+   ([app modes](https://developers.facebook.com/docs/development/build-and-test/app-modes),
+   [webhooks](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/overview)).
+   Without them we'd miss deliveries, replies and stops, so it's done
+   before the first text.
+3. Accept the Marketing Messages API's terms, which marketing texts go
+   by (step 1 of "Steps"), as someone with full control of the
+   portfolio: in WhatsApp Manager, Overview, the Alerts section's
+   "Accept terms" for Marketing Messages API for WhatsApp
+   ([onboarding](https://developers.facebook.com/documentation/business-messaging/whatsapp/marketing-messages/onboarding)).
+   Meta's other way, the App Dashboard's WhatsApp Quickstart, isn't in
+   our app's dashboard, which is laid out by its use case. Sending by it
+   also wants an approved marketing template and the `messages` webhook
+   subscribed
+   ([get started](https://developers.facebook.com/documentation/business-messaging/whatsapp/marketing-messages/get-started)).
+   On 13 November WhatsApp Manager's Overview had no Alerts section, so
+   nothing to accept yet; Meta's docs don't say when the alert appears.
+   The account's `marketing_messages_onboarding_status` field says
+   whether it's `ELIGIBLE` or `ONBOARDED`.
+   Signing it sends an `account_update` webhook, `MM_LITE_TERMS_SIGNED`.
+   Our account, made before 13 April 2027, can send marketing messages
+   by the Cloud API until 13 October 2027
+   ([overview](https://developers.facebook.com/documentation/business-messaging/whatsapp/marketing-messages/overview)).
 
 Then start gently: staff, then volunteers, then one local group, each
 text under 200 messages until the limit has risen. Keep
@@ -332,7 +367,7 @@ The rest comes from those:
    once verified
    ([templates](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview)).
 
-   Without an SMS backend, a text skips numbers not on WhatsApp.
+   A text skips numbers not on WhatsApp.
 3. A webhook at `/api/whatsapp`, which checks `X-Hub-Signature-256`
    ([webhooks](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/create-webhook-endpoint.md))
    and:
@@ -399,17 +434,6 @@ reached. That makes a new broadcast whose filter is "not sent this
 broadcast", so fixing the words or giving it more time doesn't text
 again the people it did reach.
 
-## 3. Optional: an SMS backend
-
-We build this only if WhatsApp leaves too many numbers out. An SMS
-provider would send a text's words as they are to numbers not on
-WhatsApp, from a real UK number so people can reply. Each SMS would end
-with how to stop, such as "Reply STOP to stop". Each 160-character
-segment is charged, and so is each reply staff send.
-
-Its webhook would record deliveries, failures, STOP as a stop, and other
-replies, as WhatsApp's does.
-
 ## Calls
 
 Calls aren't built here. Volunteers make calls, as local groups do now, from
@@ -439,7 +463,7 @@ Record in `docs/data-protection.md`:
 
 - messaging numbers that said yes;
 - the new opt-in sources;
-- the SMS provider and Meta as processors of numbers, messages and
+- Meta as a processor of numbers, messages and
   delivery receipts;
 - read receipts, which are new data about a person;
 - stops kept after erasure;
@@ -448,43 +472,46 @@ Record in `docs/data-protection.md`:
 
 ## Not in this plan
 
-WhatsApp groups and Communities, attachments, messages to politicians,
-and a calling tool.
+SMS, WhatsApp groups and Communities, attachments, messages to
+politicians, and a calling tool.
 
 ## Open questions
 
 1. Settled: WhatsApp has a number of its own, registered for the API
-   ("Applying"). Whether it's in the Business app too is question 10.
+   ("Applying"). Whether it's in the Business app too is question 9.
 2. What should the checkbox say? A person writes it, and the same words
    go on Luma and our forms. It must name PauseAI UK and say messages
    and calls.
 3. How does a volunteer who isn't staff record a stop for calls: by
    telling staff, or on a page of the numbers they were given?
 4. Should a resume in WhatsApp's settings undo any stop, or only one
-   made there, leaving a Stop button, a reply or an SMS STOP in force?
+   made there, leaving a Stop button or a reply in force?
 5. A person with a WhatsApp username can hide their number, and Meta's
    webhooks then give only an ID for them that's particular to us. Do we
    store that ID against the number when we send, so a later stop can be
    matched?
-6. Which SMS provider, and can it take over the giffgaff number?
-7. Can a text have conditional parts? Meta's docs describe a template
+6. Can a text have conditional parts? Meta's docs describe a template
    body as fixed words with parameters and don't mention parts only some
    people get, so each combination would need its own template. If so,
    the writer offers fields with fallbacks for a text, not conditional
    parts. A fallback can't help a field at the start or end of the body,
    which Meta rejects
    ([overview](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview)).
-8. Once the join form stops asking intent, where do we learn who wants
+7. Once the join form stops asking intent, where do we learn who wants
    to volunteer: Global's `volunteer_updates` list, our own join form,
    or something else?
-9. A `march-day` text is sent on the day ("Rules"), but a text keeps
+8. A `march-day` text is sent on the day ("Rules"), but a text keeps
    sending for three days. Does a topic like that stop sooner?
-10. Should the number also be in the WhatsApp Business app, by
-    coexistence (step 5 of "2. The WhatsApp backend"), so staff can answer on a
-    phone, at the cost of becoming a Tech Provider or using a partner?
-11. Do we use CiviCRM's phone flags
-    ([PauseAI/pauseai-civicrm#1175](https://github.com/PauseAI/pauseai-civicrm/issues/1175))?
-    That would mean checking every round's numbers with
-    `checkSuppression` first, treating "Do not SMS" as no WhatsApp too,
-    and sending our blanket stops back as `do_not_sms` or `do_not_phone`
-    ("Opt-outs"). It would also send Global numbers from our own sources.
+9. Should the number also be in the WhatsApp Business app, by
+   coexistence (step 5 of "2. The WhatsApp backend"), so staff can answer on a
+   phone, at the cost of becoming a Tech Provider or using a partner?
+10. Settled: we use CiviCRM's phone flags, as Global's
+    [spec](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md)
+    asks ("Opt-outs"). Checking our own sources' numbers sends them to
+    Global, which legal-pack#9 covers.
+11. Can members' numbers, from CiviCRM, get texts? Global shares them
+    for calls about volunteering, and for practical texts about
+    something the person registered for, such as an event's time and
+    place, but no other texts, as no join form asked
+    ([legal-pack#13](https://github.com/PauseAI/legal-pack/issues/13)).
+    Until then, a text reaches Luma's and our march form's numbers.
