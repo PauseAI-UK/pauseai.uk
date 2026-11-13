@@ -75,7 +75,8 @@ describeWithDatabase("POST /api/whatsapp", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ applied: 1 });
     expect(console.info).toHaveBeenLastCalledWith("WhatsApp webhook: 1 applied");
-    expect(await query("SELECT count(*)::int AS n FROM opt_outs WHERE source = 'whatsapp'")).toEqual([{ n: 3 }]);
+    // One stop of every text.
+    expect(await query("SELECT list FROM opt_outs WHERE source = 'whatsapp'")).toEqual([{ list: "all" }]);
   });
 
   it("answers 500, reporting it, when it can't be recorded, so Meta sends it again", async () => {
