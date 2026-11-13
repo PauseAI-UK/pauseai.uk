@@ -172,12 +172,20 @@ export const exampleBroadcastData: BroadcastWriterData = {
   ],
   conditions: examplePartsCovering,
   // hello@'s Gmail, connected, with most of a day's emails still to send.
-  sender: { byGmail: true, connected: true, remaining: 1788 },
+  sender: { byGmail: true, connected: true, remaining: 1788, daily: 1800 },
   me: "jo@pauseai.uk",
   sends: true,
   textsSend: true,
   templates: exampleTemplates,
   textNumber: "+447700900000",
+};
+
+/** What sends a text: our WhatsApp number, at Meta's lowest daily limit, with a few texted today. */
+export const exampleTextSender: BroadcastWriterData["sender"] = {
+  byGmail: false,
+  connected: false,
+  remaining: 238,
+  daily: 250,
 };
 
 /** A draft email, written. */
@@ -202,6 +210,7 @@ export const exampleBroadcastEmail: WrittenBroadcast = {
   waitingSince: null,
   waitReason: null,
   gaveUp: false,
+  restingUntil: null,
 };
 
 /** A draft text with nothing chosen. */

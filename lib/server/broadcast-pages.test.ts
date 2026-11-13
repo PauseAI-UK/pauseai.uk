@@ -139,7 +139,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       sends: true,
       unknown: [],
       templates: [],
-      sender: { byGmail: true, connected: true, remaining: 1800 },
+      sender: { byGmail: true, connected: true, remaining: 1800, daily: 1800 },
     });
     // No supporter's details: its preview is for someone made up.
     expect(data!.kind === "draft" && "recipients" in data!).toBe(false);
@@ -156,17 +156,24 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       const data = await broadcastPageData(id, {}, JO);
       return data!.kind === "draft" && data!.sender;
     };
-    expect(await sender()).toEqual({ byGmail: true, connected: true, remaining: 1800 });
+    expect(await sender()).toEqual({ byGmail: true, connected: true, remaining: 1800, daily: 1800 });
     await sentByHello(1);
-    expect(await sender()).toEqual({ byGmail: true, connected: true, remaining: 1799 });
+    expect(await sender()).toEqual({ byGmail: true, connected: true, remaining: 1799, daily: 1800 });
     await query(
       "UPDATE staff_accounts SET gmail_token = NULL, gmail_connected_at = NULL, gmail_history_id = NULL, gmail_name = NULL",
     );
-    expect(await sender()).toEqual({ byGmail: true, connected: false, remaining: 1799 });
-    // A text has no such sender.
+    expect(await sender()).toEqual({ byGmail: true, connected: false, remaining: 1799, daily: 1800 });
+    // A text goes by our WhatsApp number, at its daily limit, less those texted in the last day.
     const text = (await createBroadcastDraft(JO, { contact: "text:events:yes" }))!;
-    const data = await broadcastPageData(text, {}, JO);
-    expect(data!.kind === "draft" && data!.sender).toEqual({ byGmail: false, connected: false, remaining: null });
+    const textSender = async () => {
+      const data = await broadcastPageData(text, {}, JO);
+      return data!.kind === "draft" && data!.sender;
+    };
+    expect(await textSender()).toEqual({ byGmail: false, connected: false, remaining: 250, daily: 250 });
+    // With no WhatsApp, no limit to say.
+    vi.stubEnv("WHATSAPP_TOKEN", "");
+    vi.stubEnv("DATA_FIXTURES", "");
+    expect(await textSender()).toEqual({ byGmail: false, connected: false, remaining: null, daily: null });
   });
 
   it("says one sending is at its limit once hello@ can send no more today", async () => {
@@ -187,7 +194,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     // Each condition a part can be for, as a draft's, covering no one yet.
     expect(data.conditions.length).toBeGreaterThan(0);
     expect(data.conditions.every((condition) => condition.covers === 0)).toBe(true);
-    expect(data.sender).toEqual({ byGmail: true, connected: true, remaining: 1800 });
+    expect(data.sender).toEqual({ byGmail: true, connected: true, remaining: 1800, daily: 1800 });
   });
 
   it("names a broadcast in the trail above its page: a draft as a draft, one sent by its title", async () => {
@@ -284,12 +291,15 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
   it("lists who one scheduled would go to now, by name, a page at a time, each yet to be sent", async () => {
     await addFollower("usr-1", "sam@example.com", "Sam");
     await addFollower("usr-2", "jane@example.com", "Jane Smith");
+    await addFollower("usr-3", "nameless@example.com", "");
     const id = await scheduled(EMAIL_FILTER, { subject: "Soon", body: EVENT_WORDS });
     const data = await broadcastPageData(id, {}, JO);
-    expect(data).toMatchObject({ kind: "written", recipientsTotal: 2, pages: 1, summary: { to: 2 } });
+    expect(data).toMatchObject({ kind: "written", recipientsTotal: 3, pages: 1, summary: { to: 3 } });
     expect(data!.kind === "written" && data!.recipients.map((r) => [r.name, r.status])).toEqual([
       ["Jane Smith", "scheduled"],
       ["Sam", "scheduled"],
+      // One with no name has none here, and comes last, as among the copies of one that has started.
+      [null, "scheduled"],
     ]);
     expect(await broadcastPageData(id, { page: "2" }, JO)).toMatchObject({ recipients: [] });
   });

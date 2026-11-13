@@ -33,15 +33,18 @@ export function metaName(name: string, id: number): string {
  * WhatsApp's error codes for a message it refused, by what we do about it
  * (https://developers.facebook.com/documentation/business-messaging/whatsapp/support/error-codes):
  * the number isn't on WhatsApp; the person stopped marketing messages; the
- * person has had enough marketing messages lately, so try in a day; or
- * we've sent too many too fast, or the template can't be sent just now, so
- * try next run.
+ * person has had enough marketing messages lately, so try in a day; we've
+ * sent too many too fast, our number is limited, the template is paused, or
+ * WhatsApp can't take messages just now, so try later, as it passes by
+ * itself; or our access token expired (190), or the template is disabled
+ * for good, so try later, once someone has fixed it.
  */
 export const WHATSAPP_ERRORS = {
   unreachable: 131026,
   stopped: 131050,
   held: 131049,
-  later: [130429, 131056, 80007, 132015, 132016],
+  later: [130429, 131056, 131048, 80007, 132015, 131016],
+  fix: [190, 132016],
 } as const;
 
 /** What a send by WhatsApp was, as sending keeps it. */
@@ -52,6 +55,9 @@ export function textResult(send: WhatsAppSend): ChannelResult {
   if (send.code === WHATSAPP_ERRORS.held) return { sent: false, reason: "held" };
   if ((WHATSAPP_ERRORS.later as readonly (number | null)[]).includes(send.code)) {
     return { sent: false, reason: "failed", retry: true, detail: send.reason };
+  }
+  if ((WHATSAPP_ERRORS.fix as readonly (number | null)[]).includes(send.code)) {
+    return { sent: false, reason: "failed", retry: true, fixNeeded: true, detail: send.reason };
   }
   return { sent: false, reason: "failed", detail: send.reason };
 }

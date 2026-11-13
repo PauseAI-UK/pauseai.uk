@@ -25,8 +25,7 @@ import {
   submitTemplate,
   withdrawTemplate,
 } from "./broadcast-drafts";
-import { supporterAudience } from "./broadcast-recipients";
-import { FIELDS_AS_WORDS, TEXT_SENDER_NAME } from "@/lib/broadcasts";
+import { fakeRecipient, FIELDS_AS_WORDS, TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import { toText } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mkdtempSync } from "node:fs";
@@ -432,11 +431,11 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect((await getWrittenBroadcast(id))!.template).toMatchObject({ id: rejected, status: "rejected" });
       expect(await query("SELECT id::int AS id FROM whatsapp_templates")).toEqual([{ id: rejected }]);
       expect(console.error).toHaveBeenCalled();
-      // WhatsApp answering the check before, but not when the words go.
+      // WhatsApp answering the check before, which asks for our number and for its daily limit, but not when the words go.
       let asked = 0;
       server.use(
         http.get(/phone_numbers/, () =>
-          ++asked > 1
+          ++asked > 2
             ? HttpResponse.json({}, { status: 500 })
             : HttpResponse.json({ data: [{ id: "fixture-phone", display_phone_number: "+44 7700 900000" }] }),
         ),
@@ -489,7 +488,7 @@ describeWithDatabase("broadcasts to supporters", () => {
       await query("UPDATE whatsapp_templates SET meta_name = 'march_day_9' WHERE id = $1", [template]);
       await readied(id, { templateId: template });
       const text = (await getWrittenBroadcast(id))!;
-      const to = (await supporterAudience(text.filter, text)).recipients[0];
+      const to = fakeRecipient([], "text");
       expect(await sendBroadcastTest(text, to, "+447700900002")).toEqual({ sent: true, id: "wamid.test" });
       expect(names).toEqual(["march_day_9"]);
       server.use(http.get(/phone_numbers/, () => HttpResponse.json({}, { status: 500 })));
@@ -600,8 +599,10 @@ describeWithDatabase("broadcasts to supporters", () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const id = await draftOf(TEXT_FILTER);
     await scheduleBroadcast(id, await readied(id, { templateId: await addTemplate("March day") }), JO);
+    // It was waiting for CiviCRM, which a draft doesn't.
+    await query("UPDATE mailings SET waiting_since = now(), wait_reason = 'pull' WHERE id = $1", [id]);
     expect(await stopBroadcast(id, JO)).toBe(true);
-    expect(await getWrittenBroadcast(id)).toMatchObject({ state: "draft" });
+    expect(await getWrittenBroadcast(id)).toMatchObject({ state: "draft", waitingSince: null, waitReason: null });
     expect(await stopBroadcast(id, JO)).toBe(false);
     expect(await stopBroadcast(999, JO)).toBe(false);
   });
@@ -621,13 +622,17 @@ describeWithDatabase("broadcasts to supporters", () => {
     const gaveUp = () =>
       query(
         `UPDATE mailings SET state = 'cancelled', gave_up = true, waiting_since = now(), wait_reason = 'limit',
-           due_at = '2026-11-01T09:00:00Z' WHERE id = $1`,
+           due_at = '2026-11-01T09:00:00Z', try_failed_at = now(), failed_in_a_row = 5 WHERE id = $1`,
         [id],
       );
     await gaveUp();
     expect(await resumeBroadcast(id, JO)).toBe(true);
     const resumed = (await getWrittenBroadcast(id))!;
     expect(resumed).toMatchObject({ state: "sending", gaveUp: false, waitingSince: null, waitReason: null });
+    // It goes at the next run, not resting after a try that failed before it stopped, and its count starts again.
+    expect(await query("SELECT try_failed_at, failed_in_a_row FROM mailings WHERE id = $1", [id])).toEqual([
+      { try_failed_at: null, failed_in_a_row: 0 },
+    ]);
     // From now, so it has its days again.
     expect(resumed.dueAt!.getTime()).toBeGreaterThan(Date.parse("2026-11-01T09:00:00Z"));
     expect(await query("SELECT address, status FROM broadcast_messages ORDER BY address")).toEqual([
@@ -644,6 +649,48 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await getWrittenBroadcast(id)).toMatchObject({ state: "scheduled", gaveUp: false });
   });
 
+  it("sends again, on Resume of one that stopped as its copies kept failing, those refused, not those that may have gone", async () => {
+    for (const name of ["jane", "sam", "pat", "ann", "bo"])
+      await addFollower(`usr-${name}`, `${name}@example.com`, name);
+    const id = await draftOf(EMAIL_FILTER);
+    await scheduleBroadcast(id, await readied(id, { subject: "Events", body: EVENT_WORDS }), JO);
+    await startSending(id);
+    // Jane's went; Gmail refused Sam's; Pat's send was cut off; Ann's bounced; Bo's never went.
+    const failed = async (address: string, details: object, kind = "failed") => {
+      await query(
+        `WITH c AS (UPDATE broadcast_messages SET status = 'failed' WHERE address = $1 RETURNING id)
+         INSERT INTO broadcast_message_events (message_id, kind, details) SELECT id, $3, $2 FROM c`,
+        [address, JSON.stringify(details), kind],
+      );
+    };
+    await query("UPDATE broadcast_messages SET status = 'sent' WHERE address = 'jane@example.com'");
+    await failed("sam@example.com", { reason: "Gmail answered 400" });
+    await failed("pat@example.com", { unfinished: true });
+    await failed("ann@example.com", {}, "bounced");
+    await query("UPDATE broadcast_messages SET status = 'cancelled' WHERE address = 'bo@example.com'");
+    const stop = (reason: string) =>
+      query(
+        `UPDATE mailings SET state = 'cancelled', gave_up = true, waiting_since = now(), wait_reason = $2 WHERE id = $1`,
+        [id, reason],
+      );
+    const statuses = () => query("SELECT address, status FROM broadcast_messages ORDER BY address");
+    // Stopped for another reason, its failures stay failed: they were each one's own.
+    await stop("limit");
+    expect(await resumeBroadcast(id, JO)).toBe(true);
+    expect((await statuses()).filter((c) => c.status === "scheduled")).toEqual([
+      { address: "bo@example.com", status: "scheduled" },
+    ]);
+    await stop("failing");
+    expect(await resumeBroadcast(id, JO)).toBe(true);
+    expect(await statuses()).toEqual([
+      { address: "ann@example.com", status: "failed" },
+      { address: "bo@example.com", status: "scheduled" },
+      { address: "jane@example.com", status: "sent" },
+      { address: "pat@example.com", status: "failed" },
+      { address: "sam@example.com", status: "scheduled" },
+    ]);
+  });
+
   it("keeps an approved template when a broadcast on it is unscheduled", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const template = await addTemplate("March day");
@@ -653,20 +700,39 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect((await getWrittenBroadcast(id))!.template).toMatchObject({ id: template });
   });
 
+  it("says till when one sending rests after its sends failed, and nothing once that's past, or for one not sending", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane");
+    const id = await draftOf(EMAIL_FILTER);
+    await scheduleBroadcast(id, await readied(id, { subject: "Events", body: EVENT_WORDS }), JO);
+    const failedAt = new Date(Date.now() - 5 * 60 * 1000);
+    await query("UPDATE mailings SET try_failed_at = $2 WHERE id = $1", [id, failedAt]);
+    // Scheduled, not sending: it isn't resting.
+    expect((await getWrittenBroadcast(id))!.restingUntil).toBeNull();
+    await startSending(id);
+    expect((await getWrittenBroadcast(id))!.restingUntil).toEqual(new Date(failedAt.getTime() + 25 * 60 * 1000));
+    await query("UPDATE mailings SET try_failed_at = now() - interval '1 hour' WHERE id = $1", [id]);
+    expect((await getWrittenBroadcast(id))!.restingUntil).toBeNull();
+    await query("UPDATE mailings SET try_failed_at = NULL WHERE id = $1", [id]);
+    expect((await getWrittenBroadcast(id))!.restingUntil).toBeNull();
+  });
+
   it("stops one sending: sends no more, and says so of those not sent", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane");
     const id = await draftOf(EMAIL_FILTER);
     await scheduleBroadcast(id, await readied(id, { subject: "Events", body: EVENT_WORDS }), JO);
     await startSending(id);
+    // It was waiting for CiviCRM, which one that's stopped doesn't.
+    await query("UPDATE mailings SET waiting_since = now(), wait_reason = 'civicrm' WHERE id = $1", [id]);
     expect(await stopBroadcast(id, JO)).toBe(true);
-    expect((await getWrittenBroadcast(id))!.state).toBe("cancelled");
+    expect(await getWrittenBroadcast(id)).toMatchObject({ state: "cancelled", waitingSince: null, waitReason: null });
     expect(await query("SELECT status FROM broadcast_messages")).toEqual([{ status: "cancelled" }]);
   });
 
   it("tests an email by Postmark, and a text by its backend only on an approved template", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const email = (await getWrittenBroadcast(await draftOf(EMAIL_FILTER)))!;
-    const emailTo = (await supporterAudience(email.filter, email)).recipients[0];
+    // A test copy is for someone made up, as the writer's preview is.
+    const emailTo = fakeRecipient([], "email");
     await expect(
       sendBroadcastTest({ ...email, subject: "Hi", body: EVENT_WORDS }, emailTo, "me@pauseai.uk"),
     ).resolves.toMatchObject({
@@ -674,7 +740,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     });
     const id = await draftOf(TEXT_FILTER);
     const text = (await getWrittenBroadcast(id))!;
-    const textTo = (await supporterAudience(text.filter, text)).recipients[0];
+    const textTo = fakeRecipient([], "text");
     expect(await sendBroadcastTest(text, textTo, "+447700900002")).toBeUndefined();
     await readied(id, { templateId: await addTemplate("March day") });
     const approved = (await getWrittenBroadcast(id))!;

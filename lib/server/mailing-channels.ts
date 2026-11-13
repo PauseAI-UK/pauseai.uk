@@ -13,9 +13,12 @@ import { headerName, notifyDomain, type Attachment } from "./outside-services/po
 
 /** One message, as a channel sends it. */
 export type ChannelMessage = {
-  /** The name it's from, and the account it's sent from; and who it's to. Each has a name but the sender, whose may be blank. */
+  /**
+   * The name it's from, and the account it's sent from; and who it's to. The sender's name may be blank, and
+   * someone it's to may have none, as a supporter may: it's then to their address alone (mailbox).
+   */
   from: { name: string; address: string };
-  to: { name: string; address: string };
+  to: { name: string | null; address: string };
   subject: string;
   html: string;
   text: string;
@@ -43,12 +46,26 @@ export type ChannelResult =
       sent: false;
       reason: "blocked" | "failed" | "unreachable" | "stopped" | "held";
       retry?: true;
+      /** The refusal that's to be tried later lasts till someone fixes the account (SendResult). */
+      fixNeeded?: true;
+      /** Its send broke off with no answer, so the provider may have taken it: it's never sent again (SendResult). */
+      mayHaveGone?: true;
       /** What the provider said of a failure, as it said it. */
       detail?: string;
     };
 
 /** What a provider reported about a message it sent: its ID, and what happened. */
 export type ChannelReport = { messageId: string; kind: "delivered" | "failed" | "bounced" | "opted-out" | "replied" };
+
+/**
+ * Who an email is from or to, as its header says: their name, made safe
+ * for it and in quotes, and address; or the address alone, with no name or
+ * one that's nothing once made safe, never a stand-in for one.
+ */
+function mailbox({ name, address }: { name: string | null; address: string }): string {
+  const safe = headerName(name ?? "");
+  return safe ? `"${safe}" <${address}>` : address;
+}
 
 export type MailingChannel = {
   /** Whether it sends a scheduled mailing. One that doesn't yet still sends test copies. */
@@ -73,7 +90,7 @@ export const postmarkEmail: MailingChannel = {
       {
         From: `"${headerName(message.from.name)}" <noreply@${notifyDomain()}>`,
         ReplyTo: `"${headerName(message.from.name)}" <${message.from.address}>`,
-        To: `"${headerName(message.to.name)}" <${message.to.address}>`,
+        To: mailbox(message.to),
         Subject: message.subject,
         TextBody: message.text,
         HtmlBody: message.html,
@@ -103,8 +120,8 @@ export const gmailEmail: MailingChannel = {
     send(
       {
         // Without a name, Gmail sends it in the account's own.
-        From: message.from.name ? `"${headerName(message.from.name)}" <${message.from.address}>` : message.from.address,
-        To: `"${headerName(message.to.name)}" <${message.to.address}>`,
+        From: mailbox(message.from),
+        To: mailbox(message.to),
         Subject: message.subject,
         TextBody: message.text,
         HtmlBody: message.html,
@@ -136,7 +153,7 @@ export const postmarkBroadcast: MailingChannel = {
     send(
       {
         From: `"${headerName(message.from.name)}" <${message.from.address}>`,
-        To: `"${headerName(message.to.name)}" <${message.to.address}>`,
+        To: mailbox(message.to),
         Subject: message.subject,
         TextBody: message.text,
         HtmlBody: message.html,
@@ -166,7 +183,7 @@ export const lettersInboxEmail: MailingChannel = {
     send(
       {
         From: `"${headerName(message.from.name)} (via PauseAI)" <${message.from.address}>`,
-        To: `"${headerName(message.to.name)}" <${message.to.address}>`,
+        To: mailbox(message.to),
         Subject: message.subject,
         TextBody: message.text,
         HtmlBody: message.html,

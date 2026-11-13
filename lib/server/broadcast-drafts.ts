@@ -17,6 +17,7 @@ import {
   choiceTerms,
   isAvailableSendBy,
   rejectionWords,
+  restsUntil,
   termsValues,
   BROADCAST_SENDER,
   TEXT_SENDER_NAME,
@@ -28,7 +29,7 @@ import {
 import { now } from "@/lib/now";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
-import { gmailAccount } from "./gmail-accounts";
+import { gmailAccount, GMAIL_DAILY_LIMIT } from "./gmail-accounts";
 import type { ChannelResult } from "./mailing-channels";
 import {
   getWrittenMailing,
@@ -47,7 +48,7 @@ import {
 import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } from "./broadcast-channels";
 import { createTemplate, deleteTemplate, sendTemplate } from "./outside-services/whatsapp";
 import { problem } from "./problems";
-import { metaName, templateParams, textResult } from "./whatsapp-texts";
+import { metaName, templateParams, textResult, textsLeftToday } from "./whatsapp-texts";
 import { templateFooter, templateText } from "@/lib/whatsapp-template";
 import { supporterAudience } from "./broadcast-recipients";
 import { notifyStaff, staffLink } from "./notifications";
@@ -96,13 +97,14 @@ export type WrittenBroadcast = WrittenMailing & {
   /** What sends it, for an email (lib/broadcasts.ts, BROADCAST_SEND_BY). */
   sendBy: BroadcastSendBy;
   /**
-   * Since when it's waited for CiviCRM, and why; or that it stopped, as it
-   * hadn't all gone in time, and why: it waited too long, or a day's limit
-   * of emails left it too slow ("limit").
+   * Since when it's waited for CiviCRM, and why; or that it stopped by
+   * itself, and why (StopReason in broadcast-sending.ts).
    */
   waitingSince: Date | null;
-  waitReason: "civicrm" | "pull" | "limit" | "template" | null;
+  waitReason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing" | null;
   gaveUp: boolean;
+  /** Till when it rests, as its sends failed or what sends it couldn't for now (REST_MINUTES); null if it isn't. */
+  restingUntil: Date | null;
 };
 
 const SELECT_TEMPLATES = `
@@ -130,21 +132,24 @@ const topicColumns = (terms: BroadcastTerms): [Topic, Topic[]] => [terms.topics[
 export async function getWrittenBroadcast(id: number, opening = false): Promise<WrittenBroadcast | undefined> {
   const written = await (opening ? openWrittenMailing : getWrittenMailing)(id, "supporters");
   if (!written) return undefined;
-  const [{ templateId, ...own }] = await query<
+  const [{ templateId, tryFailedAt, ...own }] = await query<
     Pick<WrittenBroadcast, "title" | "channel" | "topics" | "sendBy" | "waitingSince" | "waitReason" | "gaveUp"> & {
       templateId: number | null;
+      tryFailedAt: Date | null;
     }
   >(
     `SELECT title, channel, ${TOPICS_OF} AS topics, template_id::int AS "templateId", send_by AS "sendBy",
        waiting_since AS "waitingSince",
-       wait_reason AS "waitReason", gave_up AS "gaveUp"
+       wait_reason AS "waitReason", gave_up AS "gaveUp", try_failed_at AS "tryFailedAt"
      FROM mailings WHERE id = $1`,
     [id],
   );
   const [template] = templateId
     ? await query<WhatsAppTemplate>(`${SELECT_TEMPLATES} WHERE t.id = $1`, [templateId])
     : [];
-  return { ...written, ...own, template: template ?? null };
+  const restsTill = tryFailedAt && restsUntil(tryFailedAt);
+  const restingUntil = written.state === "sending" && restsTill && restsTill > now() ? restsTill : null;
+  return { ...written, ...own, restingUntil, template: template ?? null };
 }
 
 /**
@@ -309,20 +314,25 @@ export type BroadcastScheduleResult =
 /**
  * How what sends a broadcast stands, for the page to say and for scheduling
  * to check: whether it goes by Gmail, and then whether the Gmail it's from
- * is connected; and how many more emails it can send today, null for no
- * limit, or a text.
+ * is connected; and how many more it can send today, and each day after,
+ * null for no limit: emails by Gmail's limit, texts by our WhatsApp
+ * number's, counted by this site, the only thing that sends from it, as
+ * Meta doesn't say how many it has used.
  */
 export async function broadcastSender(
   broadcast: Pick<WrittenBroadcast, "channel" | "sendBy" | "sentFrom">,
-): Promise<{ byGmail: boolean; connected: boolean; remaining: number | null }> {
-  if (broadcast.channel !== "email") return { byGmail: false, connected: false, remaining: null };
+): Promise<{ byGmail: boolean; connected: boolean; remaining: number | null; daily: number | null }> {
+  if (broadcast.channel !== "email") {
+    const daily = (await textBackend())?.number.dailyLimit ?? null;
+    return { byGmail: false, connected: false, remaining: await textsLeftToday(daily), daily };
+  }
   const byGmail = broadcast.sendBy === "gmail";
   const { channel } = broadcastEmailChannel(broadcast.sendBy);
   const [connected, remaining] = await Promise.all([
     byGmail ? gmailAccount(broadcast.sentFrom!) : undefined,
     channel.remainingToday(broadcast.sentFrom!),
   ]);
-  return { byGmail, connected: Boolean(connected), remaining };
+  return { byGmail, connected: Boolean(connected), remaining, daily: remaining === null ? null : GMAIL_DAILY_LIMIT };
 }
 
 /** What stops a broadcast being scheduled, as it's stored, and how many it would go to now. */
@@ -366,7 +376,11 @@ export async function scheduleBroadcast(id: number, version: number, by: string)
   });
 }
 
-/** Stops a broadcast: a scheduled one becomes a draft again; one sending sends no more. Says whether it stopped. */
+/**
+ * Stops a broadcast: a scheduled one becomes a draft again; one sending
+ * sends no more. Either waits for CiviCRM no longer, so scheduled again it
+ * has its days to wait afresh (waitStopsAt). Says whether it stopped.
+ */
 export async function stopBroadcast(id: number, by: string): Promise<boolean> {
   return transaction(async (db) => {
     const [broadcast] = await query<{ state: string }>(
@@ -386,21 +400,36 @@ export async function stopBroadcast(id: number, by: string): Promise<boolean> {
     } else {
       return false;
     }
+    await query("UPDATE mailings SET waiting_since = NULL, wait_reason = NULL WHERE id = $1", [id], db);
     await logChange(by, "stop broadcast", { id, was: broadcast.state }, db);
     return true;
   });
 }
 
 /**
+ * A copy `c` that failed in a way it can be sent again: its channel refused
+ * it, rather than its send breaking off, when it may have gone, and it
+ * didn't bounce, which blocks the address.
+ */
+export const SEND_AGAIN = `c.status = 'failed'
+  AND NOT EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id
+                  AND (e.kind = 'bounced' OR (e.kind = 'failed' AND e.details ? 'unfinished')))`;
+
+/**
  * Sets going again a broadcast that stopped as it hadn't all gone in time
  * (gave_up): its copies that never went are to go again, or, for one that
  * never started, it's scheduled again. From now, so it has its days to go
- * in again (waitStopsAt, sendingStopsAt). Says whether it did.
+ * in again (sendingStopsAt), and waiting for nothing, so its days to wait
+ * too (waitStopsAt); nor resting after tries that failed before it stopped,
+ * so it goes at the next run. One that stopped as its copies kept failing
+ * sends again those its channel refused too (SEND_AGAIN), as whatever
+ * failed them should be fixed by now. Says whether it did.
  */
 export async function resumeBroadcast(id: number, by: string): Promise<boolean> {
   return transaction(async (db) => {
-    const [stopped] = await query<{ started: boolean }>(
-      `SELECT EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id) AS started
+    const [stopped] = await query<{ started: boolean; failing: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id) AS started,
+         m.wait_reason = 'failing' AS failing
        FROM mailings m WHERE m.id = $1 AND m.audience = 'supporters' AND m.state = 'cancelled' AND m.gave_up
        FOR UPDATE`,
       [id],
@@ -408,13 +437,14 @@ export async function resumeBroadcast(id: number, by: string): Promise<boolean> 
     );
     if (!stopped) return false;
     const copies = await query(
-      "UPDATE broadcast_messages SET status = 'scheduled' WHERE mailing_id = $1 AND status = 'cancelled' RETURNING id",
-      [id],
+      `UPDATE broadcast_messages c SET status = 'scheduled', handed_at = NULL
+       WHERE c.mailing_id = $1 AND (c.status = 'cancelled' OR ($2 AND ${SEND_AGAIN})) RETURNING id`,
+      [id, stopped.failing],
       db,
     );
     await query(
       `UPDATE mailings SET state = $2, gave_up = false, waiting_since = NULL, wait_reason = NULL, due_at = $3,
-         updated_at = now()
+         try_failed_at = NULL, failed_in_a_row = 0, held_back_since = NULL, held_back_told = false, updated_at = now()
        WHERE id = $1`,
       [id, stopped.started ? "sending" : "scheduled", now()],
       db,

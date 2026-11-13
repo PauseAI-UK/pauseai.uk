@@ -31,6 +31,7 @@ import {
   exampleBroadcastText,
   exampleSupporterChoices,
   exampleTemplates,
+  exampleTextSender,
   exampleTextWords,
   exampleWhatsAppWords,
 } from "./BroadcastWriter.examples";
@@ -426,11 +427,27 @@ describe("BroadcastWriter, by email", () => {
 
   it("says hello@'s Gmail isn't connected, when its test goes by Postmark", async () => {
     await renderWriter({
-      data: { ...exampleBroadcastData, sender: { byGmail: true, connected: false, remaining: 1800 } },
+      data: { ...exampleBroadcastData, sender: { byGmail: true, connected: false, remaining: 1800, daily: 1800 } },
     });
     await expect.element(page.getByText(copy.sendBy.notConnected("hello@pauseai.uk"))).toBeVisible();
     await expect.element(page.getByText(copy.problems["not-connected"])).toBeVisible();
     await expect.element(page.getByText(copy.testVia.email("hello@pauseai.uk"))).toBeVisible();
+  });
+
+  it("says how many more people our WhatsApp number can text today, and how long a text takes, held to its days", async () => {
+    const text = (count: number, sender = exampleTextSender) =>
+      renderWriter({ draft: exampleBroadcastText, data: { ...exampleBroadcastData, count, sender } });
+    await text(412);
+    await expect.element(page.getByText(copy.textRoom(238, 2))).toBeVisible();
+    await text(200);
+    await expect.element(page.getByText(copy.textRoom(238, 1))).toBeVisible();
+    // At the top tier, however many.
+    await text(50_000, { ...exampleTextSender, remaining: null, daily: null });
+    await expect.element(page.getByText(copy.textRoom(null, 1))).toBeVisible();
+    expect(document.body.textContent).not.toContain(copy.problems["too-slow"]);
+    const most = 238 + (SENDING_DAYS - 1) * 250;
+    await text(most + 1);
+    await expect.element(page.getByText(copy.problems["too-slow"])).toBeVisible();
   });
 
   it("says when no one's left to send to, and when the filter's values are gone", async () => {
@@ -1371,6 +1388,8 @@ describe("BroadcastsOverview", () => {
               went(4, "CiviCRM down", gaveUp("civicrm")),
               went(5, "No pull", gaveUp("pull")),
               went(6, "Template paused", gaveUp("template")),
+              went(7, "Late", gaveUp("late")),
+              went(8, "Failing", gaveUp("failing")),
             ],
           },
           new Date(now),
@@ -1379,7 +1398,14 @@ describe("BroadcastsOverview", () => {
       />,
     );
     const words = copy.standing;
-    for (const said of [words.sent(5), words.stopped(3, 5), words.gaveUp.limit!(3, 5), words.gaveUp.template!(3, 5)]) {
+    for (const said of [
+      words.sent(5),
+      words.stopped(3, 5),
+      words.gaveUp.limit!(3, 5),
+      words.gaveUp.template!(3, 5),
+      words.gaveUp.late!(3, 5),
+      words.gaveUp.failing!(3, 5),
+    ]) {
       await expect.element(page.getByText(said)).toBeVisible();
     }
     // CiviCRM down, or no fresh pull from it, read the same.
@@ -1421,6 +1447,14 @@ describe("MessageCopyView", () => {
       />,
     );
     expect(strip()).toBe(copy.notReached.never(copy.notReached.why.civicrm));
+    // Every way a broadcast stops by itself has its own words, on the copy and its lozenge.
+    for (const why of ["late", "failing"]) {
+      await rerender(
+        <MessageCopyView one={{ ...exampleMessageCopy, status: "cancelled", state: "error", why, sentAt: null }} />,
+      );
+      expect(strip()).toBe(copy.notReached.never(copy.notReached.why[why]!));
+      expect(copy.copyStates[`error:${why}`]).toBeDefined();
+    }
     // Skipped, why, as its lozenge says.
     await rerender(
       <MessageCopyView one={{ ...exampleMessageCopy, status: "skipped", skipReason: "blocked", sentAt: null }} />,

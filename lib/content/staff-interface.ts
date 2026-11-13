@@ -1,6 +1,6 @@
 // Every word the staff interface (/staff) shows.
 
-import { daysInWords, SENDING_DAYS, WAIT_DAYS } from "@/lib/broadcast-days";
+import { daysInWords, FAILURES_TO_STOP, SENDING_DAYS, WAIT_DAYS } from "@/lib/broadcast-days";
 import type { Reason, Topic, Way } from "@/lib/contact-permissions";
 import { letterEditorCopy } from "@/lib/content/letter-editor";
 import type { AddressSearch, ImportJob } from "@/lib/import-runs";
@@ -1268,6 +1268,14 @@ All events: ${link}`,
     },
     fromName: "Name",
     noNumber: "No WhatsApp number is configured yet",
+    // Under a text's number: how many more people it can text today, by Meta's daily limit, and how long this one
+    // would take; null for no limit.
+    textRoom: (remaining: number | null, days: number) =>
+      remaining === null
+        ? "Our WhatsApp number has no daily limit, so this will go in one go."
+        : days === 1
+          ? `Our WhatsApp number can text ${remaining.toLocaleString("en-GB")} more people today, enough for this broadcast.`
+          : `Our WhatsApp number can text ${remaining.toLocaleString("en-GB")} more people today, so this broadcast will take ${days} days.`,
     // What a text goes by, after our number, as an email's address has Gmail or Postmark.
     textBy: "WhatsApp",
     // Send.
@@ -1375,6 +1383,10 @@ All events: ${link}`,
           `CiviCRM was down: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
         template: (n: number, of: number) =>
           `WhatsApp paused its words: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
+        late: (n: number, of: number) =>
+          `CiviCRM was down when its time ran out: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
+        failing: (n: number, of: number) =>
+          `Kept failing to send: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
       } as Record<string, (n: number, of: number) => string>,
       sent: (n: number) => `Sent to ${count(n, "person", "people")}`,
     },
@@ -1407,6 +1419,8 @@ All events: ${link}`,
       "error:civicrm": "Error: CiviCRM down",
       "error:pull": "Error: CiviCRM down",
       "error:template": "Error: template paused",
+      "error:late": "Error: out of time, CiviCRM down",
+      "error:failing": "Error: sending kept failing",
       "unreached:bounced": "Didn't reach: bounced",
       "unreached:not-on-whatsapp": "Didn't reach: not on WhatsApp",
       "not-sent": "Not sent",
@@ -1474,6 +1488,12 @@ All events: ${link}`,
     gaveUpLimit: `Stopped after ${daysInWords(SENDING_DAYS)}, before everyone got it.`,
     // The same, for a text whose template WhatsApp paused or disabled, for its quality.
     gaveUpTemplate: "Stopped, as WhatsApp paused or disabled the template it used.",
+    // The same, for one whose days ran out while it waited for CiviCRM.
+    gaveUpLate: `Stopped after ${daysInWords(SENDING_DAYS)}, as CiviCRM was down when they ran out.`,
+    // The same, for one so many of whose copies failed one after another that it stopped (FAILURES_TO_STOP).
+    gaveUpFailing: `Stopped, as the last ${FAILURES_TO_STOP} emails or texts it tried all failed. Each one's page says why.`,
+    // On one sending that has paused after its sends failed, or what sends it couldn't for now, till when it tries again.
+    resting: (until: string) => `Paused, as sending failed. It will try again at ${until}.`,
     // On one sending by Gmail that can send no more today, under the bar that says how far it's got.
     moreTomorrow: "Gmail has reached today's limit. The rest will be sent tomorrow.",
     recipientsTitle: "Recipients",
@@ -1526,6 +1546,8 @@ All events: ${link}`,
         civicrm: `CiviCRM was down for ${daysInWords(WAIT_DAYS)}`,
         pull: `CiviCRM was down for ${daysInWords(WAIT_DAYS)}`,
         template: "WhatsApp paused the template",
+        late: `the broadcast's ${daysInWords(SENDING_DAYS)} ran out while CiviCRM was down`,
+        failing: "the broadcast stopped after its sending kept failing",
       } as Record<string, string>,
       notYet: "The broadcast is still sending, so this hasn't gone yet.",
     },
@@ -2277,27 +2299,50 @@ All events: ${link}`,
       body: (title: string, reason: "civicrm" | "pull", stops: string, link: string) =>
         `“${title}” was due to go, but hasn't been sent.\n\nWe check every address with CiviCRM before emailing it, and ${reason === "civicrm" ? "CiviCRM isn't answering" : "our import from CiviCRM hasn't worked for a day"}.\n\nYou don't need to do anything. It will send as soon as CiviCRM is back. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
     },
+    // A broadcast whose Gmail, Postmark or WhatsApp has said at every try since `since` that it can't send for now,
+    // as at a limit or down, to whoever scheduled it and the inbox, once: it goes on by itself, or stops at `stops`.
+    broadcastHeldBack: {
+      subject: (title: string) => `Held back: ${title}`,
+      body: (title: string, channel: "email" | "text", since: string, said: string, stops: string, link: string) =>
+        `“${title}” hasn't sent anything since ${since}: ${channel === "text" ? "WhatsApp" : "what sends it"} keeps saying it can't send for now. It last said: ${said}\n\nIt will carry on by itself once it can. If it hasn't all gone by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
+    },
     // A broadcast that waited too long and stopped, to whoever scheduled it and the inbox: how many it didn't reach.
     broadcastGaveUp: {
-      subject: (title: string, reason: "civicrm" | "pull" | "limit" | "template") =>
+      subject: (title: string, reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing") =>
         reason === "template"
           ? `Stopped, as WhatsApp paused the template it used: ${title}`
-          : `Stopped after ${daysInWords(reason === "limit" ? SENDING_DAYS : WAIT_DAYS)}: ${title}`,
+          : reason === "failing"
+            ? `Stopped, as sending kept failing: ${title}`
+            : `Stopped after ${daysInWords(reason === "limit" || reason === "late" ? SENDING_DAYS : WAIT_DAYS)}: ${title}`,
       // How to send it to those it didn't reach: the button on its page (broadcastPages.resume).
       resume: `To send it to them, press “${RESUME_SENDING}” on its page.`,
-      // Why, for one a day's limit of emails left too slow, in place of CiviCRM's sentence.
-      whyLimit: `It was too large a broadcast for Gmail to send within ${daysInWords(SENDING_DAYS)}.`,
+      // Why, for an email that Gmail's daily limit left too slow, in place of CiviCRM's sentence.
+      whyGmailLimit: `It was too large a broadcast for Gmail to send within ${daysInWords(SENDING_DAYS)}.`,
+      // The same, for a text that our WhatsApp number's daily limit left too slow.
+      whyWhatsAppLimit: `It was too large a broadcast for our WhatsApp number to send within ${daysInWords(SENDING_DAYS)}.`,
       // Why, for a text whose template WhatsApp paused or disabled, for its quality.
       whyTemplate:
         "WhatsApp paused or disabled its template, as people blocked, reported or didn't read texts on it. Change the words before it goes again.",
-      body: (title: string, reason: "civicrm" | "pull" | "limit" | "template", notReached: number, link: string) => {
+      // Why, for one whose days ran out while it waited for CiviCRM.
+      whyLate: `Its ${daysInWords(SENDING_DAYS)} ran out while CiviCRM was down, and we don't send to anyone without checking with it first.`,
+      // Why, for one so many of whose copies failed one after another (FAILURES_TO_STOP): something may be wrong with what sends it.
+      whyFailing: `The last ${FAILURES_TO_STOP} messages we tried to send all failed, so something may be fundamentally wrong. Check each copy and fix any problem before sending again.`,
+      body: (
+        title: string,
+        reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing",
+        notReached: number,
+        link: string,
+        channel: "email" | "text",
+      ) => {
         const words = staffCopy.notifications.broadcastGaveUp;
-        const why =
-          reason === "limit"
-            ? words.whyLimit
-            : reason === "template"
-              ? words.whyTemplate
-              : `CiviCRM couldn't be reached for ${daysInWords(WAIT_DAYS)}, and we don't email anyone without checking with it first.`;
+        const why = {
+          limit: channel === "text" ? words.whyWhatsAppLimit : words.whyGmailLimit,
+          template: words.whyTemplate,
+          late: words.whyLate,
+          failing: words.whyFailing,
+          civicrm: `CiviCRM couldn't be reached for ${daysInWords(WAIT_DAYS)}, and we don't email anyone without checking with it first.`,
+          pull: `CiviCRM couldn't be reached for ${daysInWords(WAIT_DAYS)}, and we don't email anyone without checking with it first.`,
+        }[reason];
         return `“${title}” has been stopped. ${why}\n\n${count(notReached, "person", "people")} didn't get it. ${words.resume}\n\n${link}`;
       },
     },
@@ -2815,6 +2860,8 @@ All events: ${link}`,
         `${what} was sent, but couldn't be marked as sent. Check before sending it again`,
       // WhatsApp's API didn't answer when asked for our number, so no text could be sent or scheduled just then.
       whatsAppUnanswered: "WhatsApp didn't answer, so no text could go just then",
+      // Meta didn't say how many people our WhatsApp account can text a day, so the fewest are, till it does.
+      whatsAppLimitUnknown: "WhatsApp didn't say our daily limit, so texts go to no more than 250 people a day",
       // A text's new words couldn't be sent to WhatsApp for approval, or taken back from it.
       templateNotSent: (name: string) => `WhatsApp didn't take template ${name} for approval`,
       templateNotDeleted: (name: string) => `WhatsApp didn't delete template ${name}, which was withdrawn here`,

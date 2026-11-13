@@ -154,6 +154,32 @@ describeWithDatabase("send", () => {
     expect(await isBlocked("jo@example.org")).toBe(false);
   });
 
+  it("fails to be tried again when Postmark is down, busy or refuses our token, as the next email would fail the same", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const status of [500, 503, 429, 401]) {
+      server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 0, Message: "No" }, { status })));
+      expect(await send(EMAIL, "staff-alert")).toEqual({
+        sent: false,
+        reason: "failed",
+        retry: true,
+        // Our token refused lasts till someone fixes it; the rest pass by themselves.
+        ...(status === 401 && { fixNeeded: true }),
+        detail: expect.any(String),
+      });
+    }
+  });
+
+  it("says one whose send broke off before an answer may have gone, so it's never sent again", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    server.use(http.post(POSTMARK, () => HttpResponse.error()));
+    expect(await send(EMAIL, "staff-alert")).toEqual({
+      sent: false,
+      reason: "failed",
+      mayHaveGone: true,
+      detail: expect.any(String),
+    });
+  });
+
   it("sends with a Message-ID of ours when given one, as a mailing's letter, counting it against its sender", async () => {
     let headers: unknown;
     server.use(
@@ -278,22 +304,43 @@ describeWithDatabase("send by Gmail", () => {
     expect(String(error.mock.calls.at(-1)![0])).toContain("mailing");
   });
 
-  it("fails to be tried again when Gmail answers that it's busy or down, and not when it refuses the email", async () => {
+  it("fails to be tried again when Gmail answers that it's busy, down or refusing the account, and not when it refuses the email", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     await connectTestGmail();
-    for (const [status, retry] of [
-      [429, true],
-      [503, true],
-      [400, false],
+    for (const [status, retry, fixNeeded] of [
+      [429, true, false],
+      [503, true, false],
+      [401, true, true],
+      [403, true, false],
+      [400, false, false],
+      [404, false, false],
     ] as const) {
       server.use(http.post(SEND, () => new HttpResponse("No", { status })));
       expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
         sent: false,
         reason: "failed",
         ...(retry && { retry }),
+        ...(fixNeeded && { fixNeeded }),
         detail: expect.any(String),
       });
     }
+  });
+
+  it("says Gmail's access revoked needs fixing, as it never passes by itself", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    server.use(
+      http.post("https://oauth2.googleapis.com/token", () =>
+        HttpResponse.json({ error: "invalid_grant" }, { status: 400 }),
+      ),
+    );
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+      sent: false,
+      reason: "failed",
+      retry: true,
+      fixNeeded: true,
+      detail: expect.any(String),
+    });
   });
 
   it("fails, saying which account, when Gmail can't send or the account isn't connected", async () => {
@@ -307,6 +354,33 @@ describeWithDatabase("send by Gmail", () => {
     expect(await query("SELECT outcome, backend, sender, rfc_message_id FROM email_sends")).toEqual([
       { outcome: "failed", backend: "gmail", sender: "jo@pauseai.uk", rfc_message_id: null },
     ]);
+  });
+
+  it("fails to be tried again when it breaks off before the email is handed to Gmail, as nothing went", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    const sent: unknown[] = [];
+    server.use(
+      http.post("https://oauth2.googleapis.com/token", () => HttpResponse.error()),
+      http.post(SEND, () => {
+        sent.push(1);
+        return HttpResponse.json({ id: "g1", threadId: "t1" });
+      }),
+    );
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+      sent: false,
+      reason: "failed",
+      retry: true,
+      detail: expect.any(String),
+    });
+    expect(sent).toEqual([]);
+  });
+
+  it("says one whose send to Gmail broke off may have gone", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    server.use(http.post(SEND, () => HttpResponse.error()));
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toMatchObject({ sent: false, mayHaveGone: true });
   });
 });
 

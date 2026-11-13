@@ -431,13 +431,43 @@ job all leave broadcasts out.
   every address is checked with CiviCRM's `checkSuppression`, which drops
   anyone PauseAI mustn't bulk email ("Opt-outs", below), but for "No bulk
   emails" lifted on the contact preferences page and not yet sent to
-  CiviCRM, which skips the copy without an opt-out. Each then goes, with
+  CiviCRM, which skips the copy without an opt-out. An address CiviCRM
+  answers `unchecked` for, as it does for one that isn't a UK contact's
+  until Global lets the check answer for everyone, follows our own records
+  and goes. CiviCRM answers for every address it's asked about, so an
+  answer that leaves one out is CiviCRM not answering ("Waiting for
+  CiviCRM", below). Each copy is then marked as handed to its channel
+  (`handed_at`) and goes, an email with
   its unsubscribe link token made then, only its hash kept; those a run has
-  no time left for are put back, as are the rest when Gmail answers that
-  it can't send for now (busy, down, or the account's access revoked), to
-  go on the next run. A copy Gmail refuses is failed. A copy a stopped run
-  left `sending` for half an hour is failed, not sent again, as it may
-  have gone. While copies
+  no time left for are put back, as are the rest when the channel answers that
+  it can't send for now. Some of those pass by themselves: Gmail or
+  Postmark busy, down, or at a limit or quota (`REFUSED_FOR_NOW` in
+  `lib/server/email.ts`), as Gmail's daily sending limit, which can last
+  most of a day; WhatsApp too fast, our number limited, the template
+  paused, or WhatsApp unavailable (`WHATSAPP_ERRORS.later`). Others last
+  till someone fixes the account (`fixNeeded`): its credentials refused or
+  Gmail's access revoked, WhatsApp's token expired or the template disabled
+  (`WHATSAPP_ERRORS.fix`). A copy its channel refuses for itself
+  is failed alone, as is one whose send broke off with no answer, kept as
+  never finished as it may have gone, and the rest go on. Once the channel
+  can't send for now, or two copies fail in a row, no more of the broadcast
+  goes for 25 minutes (`REST_MINUTES`, from `mailings.try_failed_at`),
+  however often the sending is called, and its page says till when. The
+  count of failed tries in a row (`mailings.failed_in_a_row`), the
+  channel's refusals that need fixing among them, runs across rests and
+  runs, and starts again when a copy goes; at five (`FAILURES_TO_STOP`) the
+  broadcast stops, so whatever fails every copy fails five people, not
+  everyone, and an account refused for good stops it within a couple of
+  hours rather than stalling it for days. A "not now" that passes by itself
+  never counts: the broadcast rests through it as long as it lasts, within
+  its seven days, and goes on after. Once it has sent nothing for six hours
+  that way (`mailings.held_back_since`), whoever scheduled it is told, once
+  (`held_back_told`), with what the channel last said. Resume ends a rest
+  and the count. A
+  copy a stopped run left `sending` for
+  half an hour is failed, not sent again, if it had been handed to its
+  channel, as it may have gone; one the run had only taken never went, so
+  it's put back to go. While copies
   are left, the run starts the background function as letters do ("Mailings
   to politicians"). Each channel has a sender, and one loop sends by either.
 - **What sends a text**: WhatsApp's Cloud API
@@ -448,9 +478,15 @@ job all leave broadcasts out.
   so. A copy is the text's template, its fields filled in for the person.
   Before a copy goes, its number is checked with CiviCRM's
   `checkSuppression`, and one with "Do not SMS" is skipped, as is a number
-  WhatsApp has said isn't on it (`whatsapp_unreachable`). A number takes as
-  many texts a day as its tier allows, 250 to start with: the rest wait for
-  the next day. WhatsApp's answer to a send, or its webhook later, can
+  WhatsApp has said isn't on it (`whatsapp_unreachable`). Texts go to as
+  many people a day as Meta's messaging limit for our business allows
+  (`whatsapp_business_manager_messaging_limit`, read from our number), 250
+  to start with, or 250 if Meta doesn't say: the rest wait for the next day.
+  Meta doesn't say how much of the limit is used, so the site counts those
+  it texted in the last day, as nothing else sends from our number. The
+  writer says how many more people it can text today and how many days the
+  text would take, and one that would take more than seven can't be
+  scheduled (`too-slow`). WhatsApp's answer to a send, or its webhook later, can
   refuse a copy: as the number isn't on WhatsApp, which skips it from then
   on; as the person stopped marketing messages, a stop ("Opt-outs"); or as
   they've had enough marketing messages lately, when it's held a day
@@ -459,7 +495,8 @@ job all leave broadcasts out.
   `lib/broadcasts.ts`). An email is always from `hello@pauseai.uk`
   (`BROADCAST_SENDER`), where its replies are read. It goes by one of the
   channels mailings go by (`lib/server/mailing-channels.ts`), through
-  `send()`, with its files, its unsubscribe link at its foot and in its
+  `send()`, to its supporter by name, or to their address alone if they
+  have none, with its files, its unsubscribe link at its foot and in its
   `List-Unsubscribe` and `List-Unsubscribe-Post` headers:
   - **Gmail**, `hello@`'s own connected Gmail, one a second, up to the
     account's daily limit (`GMAIL_DAILY_LIMIT`, 1,800, which leaves room
@@ -475,18 +512,29 @@ job all leave broadcasts out.
 - **Waiting for CiviCRM.** Nothing goes unchecked. A broadcast
   waits while no CiviCRM pull has completed for a day, or CiviCRM doesn't
   answer its check; whoever scheduled it and the notification inbox are
-  emailed once, and its page says since when and why. It goes by itself
+  emailed once, and its page says since when and why, and when it stops if
+  CiviCRM doesn't come back: three days on, or sooner if its seven run out
+  first (`waitEndsAt`). It goes by itself
   when it can. A scheduled one's page says quietly when it would stop.
-- **Stopping.** A broadcast still waiting for CiviCRM three days after its
-  time (`WAIT_DAYS`), or still sending, at a day's limit of emails, seven
-  days after it (`SENDING_DAYS`, both in `lib/broadcast-days.ts`, which the
+- **Stopping.** A broadcast that has waited for CiviCRM for three days
+  (`WAIT_DAYS`), from when it first couldn't go, whether at its time or
+  days into sending, or one still sending, at a day's limit of emails, seven
+  days after its time (`SENDING_DAYS`, both in `lib/broadcast-days.ts`, which the
   pages' words take their numbers from), stops: its copies not yet gone
   are cancelled, and whoever scheduled it and the notification inbox are
   emailed why and how many it didn't reach (`wait_reason`: `civicrm`,
-  `pull` or `limit`). A text stops too when WhatsApp pauses or disables its
-  template (`template`). Resume sending, on its page, sets it going again
+  `pull` or `limit`). Its seven days are the most it has, waiting or not:
+  one still waiting for CiviCRM when they run out stops then, saying so
+  (`late`), not that it was too large. A text stops too when WhatsApp
+  pauses or disables its template (`template`), and any broadcast when its
+  copies keep failing (`failing`, above). Resume sending, on its page, sets it going again
   (`resumeBroadcast`): its cancelled copies are to go again, or one that
   never started is scheduled again, from now, so it has its days again.
+  One that stopped as its copies kept failing sends again those its channel
+  refused too (`SEND_AGAIN`), but never one whose send broke off, which may
+  have gone, nor one that bounced; the email saying it stopped counts them
+  among those it didn't reach. Those go after the ones never tried, so the
+  copies likeliest to fail again can't stop it before the rest have gone.
 - **What Postmark reports**, of a copy it sent. Its delivery webhook marks a copy delivered;
   a hard bounce marks it failed and blocks the address; a spam complaint is
   an opt-out of every bulk email (`lib/server/delivery-problems.ts`).
@@ -1372,7 +1420,10 @@ The two pages' first addresses, `/staff/politicians/blocked-emails` and
 linked there (`next.config.ts`).
 
 Staff can unblock an address that bounced, which asks Postmark to send to it
-again. A complaint can't be unblocked.
+again, on both its streams (`unsuppress`). The transactional stream refusing
+stops the unblock; the broadcast stream refusing doesn't, as a Postmark
+server without that stream has nothing suppressed on it, though Postmark
+failing does. A complaint can't be unblocked.
 
 What a bounce means depends on the email's purpose, so each purpose can
 have a hook (`lib/server/delivery-problems.ts`). A letter's hook marks the

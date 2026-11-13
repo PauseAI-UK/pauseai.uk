@@ -28,6 +28,7 @@ import {
   exampleTextAnswers,
   exampleTextReplies,
   exampleTextReplyPastDay,
+  exampleTextSender,
   exampleTextWords,
 } from "@/app/(staff)/staff/_components/BroadcastWriter.examples";
 import { Muted } from "@/components/ui/Text";
@@ -86,7 +87,12 @@ export function BroadcastWriterExample({
                   rejectedReason: "INVALID_FORMAT",
                 },
               };
-  const data = kind === "off" ? { ...exampleBroadcastData, sends: false, textNumber: null } : exampleBroadcastData;
+  const data =
+    kind === "off"
+      ? { ...exampleBroadcastData, sends: false, textNumber: null }
+      : kind === "email" || kind === "blank"
+        ? exampleBroadcastData
+        : { ...exampleBroadcastData, sender: exampleTextSender };
   return (
     <Logged>
       {(log) =>

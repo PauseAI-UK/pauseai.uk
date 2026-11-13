@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { server } from "@/tests/fixtures/msw";
 import {
   businessNumber,
@@ -18,33 +19,44 @@ const KEYS = { token: "token", accountId: "account" };
 const GRAPH = "https://graph.facebook.com/v23.0";
 
 describe("our number", () => {
-  it("is the account's first, in international format, with its tier's daily limit", async () => {
+  const limit = (whatsapp_business_manager_messaging_limit?: string) =>
+    http.get(`${GRAPH}/p1`, ({ request }) =>
+      new URL(request.url).searchParams.get("fields") === "whatsapp_business_manager_messaging_limit"
+        ? HttpResponse.json({ id: "p1", whatsapp_business_manager_messaging_limit })
+        : undefined,
+    );
+
+  it("is the account's first, in international format, with its messaging limit a day", async () => {
     let auth: string | null = null;
     server.use(
       http.get(`${GRAPH}/account/phone_numbers`, ({ request }) => {
         auth = request.headers.get("authorization");
-        return HttpResponse.json({
-          data: [{ id: "p1", display_phone_number: "+44 7700 900000", messaging_limit_tier: "TIER_2K" }],
-        });
+        return HttpResponse.json({ data: [{ id: "p1", display_phone_number: "+44 7700 900000" }] });
       }),
+      limit("TIER_2K"),
     );
     expect(await businessNumber(KEYS)).toEqual({ id: "p1", number: "+447700900000", dailyLimit: 2000 });
     expect(auth).toBe("Bearer token");
   });
 
-  it("has no limit at the top tier, and the lowest when Meta gives none we know", async () => {
-    const tier = (messaging_limit_tier?: string) =>
-      server.use(
-        http.get(`${GRAPH}/account/phone_numbers`, () =>
-          HttpResponse.json({ data: [{ id: "p1", display_phone_number: "447700900000", messaging_limit_tier }] }),
-        ),
-      );
-    tier("TIER_UNLIMITED");
+  it("has no limit at the top tier, and the lowest when Meta gives none we know, or doesn't answer", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    server.use(
+      http.get(`${GRAPH}/account/phone_numbers`, () =>
+        HttpResponse.json({ data: [{ id: "p1", display_phone_number: "447700900000" }] }),
+      ),
+    );
+    server.use(limit("TIER_UNLIMITED"));
     expect((await businessNumber(KEYS)).dailyLimit).toBeNull();
-    tier("TIER_NEW");
+    server.use(limit("TIER_NEW"));
     expect((await businessNumber(KEYS)).dailyLimit).toBe(250);
-    tier();
+    server.use(limit());
     expect((await businessNumber(KEYS)).dailyLimit).toBe(250);
+    expect(error).not.toHaveBeenCalled();
+    // Refused, as by an API version without the field: the lowest, reported.
+    server.use(http.get(`${GRAPH}/p1`, () => HttpResponse.json({ error: { code: 100 } }, { status: 400 })));
+    expect((await businessNumber(KEYS)).dailyLimit).toBe(250);
+    expect(error.mock.calls[0][0]).toBe(staffCopy.problems.anywhere.whatsAppLimitUnknown);
   });
 
   it("refuses an account with no number, or a refusal, with Meta's code", async () => {

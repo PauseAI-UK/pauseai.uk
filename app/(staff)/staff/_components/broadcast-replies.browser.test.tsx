@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { waitStopsAt } from "@/lib/broadcasts";
+import { sendingStopsAt, waitStopsAt } from "@/lib/broadcasts";
 import { londonDate, staffTime } from "@/lib/staff-time";
 import { broadcastCounts, BroadcastWaiting, CopyStatus } from "./BroadcastView";
 import {
@@ -284,12 +284,22 @@ describe("replies to broadcasts", () => {
 describe("BroadcastWaiting", () => {
   it("says that one is waiting and why, or that it stopped; nothing for one scheduled", async () => {
     const due = new Date("2026-11-07T07:18:00Z");
+    // Days into sending when it began to wait: it gives up that long after, not after its time.
+    const began = new Date("2026-11-11T07:18:00Z");
     const { rerender } = await render(
       <BroadcastWaiting
-        written={{ ...exampleBroadcastEmail, state: "sending", dueAt: due, waitingSince: due, waitReason: "pull" }}
+        written={{ ...exampleBroadcastEmail, state: "sending", dueAt: due, waitingSince: began, waitReason: "pull" }}
       />,
     );
-    await expect.element(page.getByText(copy.waiting("pull", londonDate(waitStopsAt(due))))).toBeVisible();
+    await expect.element(page.getByText(copy.waiting("pull", londonDate(waitStopsAt(began))))).toBeVisible();
+    // Begun later still, its seven days run out before its three of waiting do: it says the sooner.
+    const later = new Date("2026-11-13T07:18:00Z");
+    await rerender(
+      <BroadcastWaiting
+        written={{ ...exampleBroadcastEmail, state: "sending", dueAt: due, waitingSince: later, waitReason: "civicrm" }}
+      />,
+    );
+    await expect.element(page.getByText(copy.waiting("civicrm", londonDate(sendingStopsAt(due))))).toBeVisible();
     await rerender(
       <BroadcastWaiting
         written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason: "civicrm" }}
@@ -308,6 +318,20 @@ describe("BroadcastWaiting", () => {
       />,
     );
     await expect.element(page.getByText(copy.gaveUpTemplate)).toBeVisible();
+    // Its seven days ran out while CiviCRM was down; its copies kept failing.
+    for (const [waitReason, words] of [
+      ["late", copy.gaveUpLate],
+      ["failing", copy.gaveUpFailing],
+    ] as const) {
+      await rerender(
+        <BroadcastWaiting written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason }} />,
+      );
+      await expect.element(page.getByText(words)).toBeVisible();
+    }
+    // Resting after its copies failed, till when.
+    const until = new Date("2026-11-11T07:43:00Z");
+    await rerender(<BroadcastWaiting written={{ ...exampleBroadcastEmail, state: "sending", restingUntil: until }} />);
+    await expect.element(page.getByText(copy.resting(staffTime(until)))).toBeVisible();
     const { container } = await render(
       <BroadcastWaiting written={{ ...exampleBroadcastEmail, channel: "text", state: "scheduled", dueAt: due }} />,
     );
