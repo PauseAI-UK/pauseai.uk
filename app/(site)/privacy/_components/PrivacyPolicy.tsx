@@ -156,7 +156,6 @@ export default function PrivacyPolicy() {
         <li>
           ⁂ Google Analytics and Google Ads cookies. Turn them off with &ldquo;Cookie settings&rdquo; in the footer.
         </li>
-        <li>⁂ Your cookie settings choice.</li>
         <li>⁂ Stichting PauseAI&apos;s Google Analytics cookies, from the join form we show from pauseai.info.</li>
         <li>⁂ Your letter to your MP while you write it, until you close the tab.</li>
       </ul>
