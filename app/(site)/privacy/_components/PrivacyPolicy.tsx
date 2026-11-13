@@ -166,8 +166,7 @@ export default function PrivacyPolicy() {
         you’ve asked PauseAI not to email or text you, we won’t. When you unsubscribe from us, we tell Stichting
         PauseAI. If you stop all bulk email, their emails stop too.
       </p>
-      <p>If you reply to one of our emails, we keep your reply.</p>
-      <p>⁂ If you reply to one of our texts, we keep your reply too, and we may answer you on WhatsApp.</p>
+      <p>If you reply to one of our emails or texts, we keep your reply.</p>
 
       <h2>Who processes this data for us</h2>
       <ul>
