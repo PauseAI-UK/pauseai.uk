@@ -25,6 +25,12 @@ describe("staff interface copy", () => {
     expect(leftOut(3, 0, 2, true)).not.toContain("filter");
   });
 
+  it("names WhatsApp as what holds back a text, and what sends it for an email", () => {
+    const { body } = staffCopy.notifications.broadcastHeldBack;
+    expect(body("Rain", "text", "10:18", "Rate limit hit", "Mon", "")).toContain("WhatsApp");
+    expect(body("Rain", "email", "10:18", "Quota", "Mon", "")).not.toContain("WhatsApp");
+  });
+
   it("names the ask being edited", () => {
     expect(staffCopy.asks.editTitle("Winter reception")).toContain("Winter reception");
   });

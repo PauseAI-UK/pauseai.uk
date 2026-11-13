@@ -441,13 +441,13 @@ describe("BroadcastWriter, by email", () => {
     await expect.element(page.getByText(copy.textRoom(238, 2))).toBeVisible();
     await text(200);
     await expect.element(page.getByText(copy.textRoom(238, 1))).toBeVisible();
-    const most = 238 + (SENDING_DAYS - 1) * 250;
-    await text(most + 1);
-    await expect.element(page.getByText(copy.problems["too-slow"])).toBeVisible();
     // At the top tier, however many.
     await text(50_000, { ...exampleTextSender, remaining: null, daily: null });
     await expect.element(page.getByText(copy.textRoom(null, 1))).toBeVisible();
     expect(document.body.textContent).not.toContain(copy.problems["too-slow"]);
+    const most = 238 + (SENDING_DAYS - 1) * 250;
+    await text(most + 1);
+    await expect.element(page.getByText(copy.problems["too-slow"])).toBeVisible();
   });
 
   it("says when no one's left to send to, and when the filter's values are gone", async () => {
