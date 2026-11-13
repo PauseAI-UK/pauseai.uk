@@ -148,10 +148,10 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         const url = freshDatabase(name);
         addTestMps(url, "mp@example.org");
         addFixtureData(url);
-        // Every table has rows, bar the migrations' own record.
+        // Every table has rows, bar the migrations' own record and Airtable's members, which nothing writes.
         const tables = runSql(
           name,
-          "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> 'schema_migrations' ORDER BY 1",
+          "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name NOT IN ('schema_migrations', 'airtable_members', 'airtable_members_erased') ORDER BY 1",
         );
         expect(tables.length).toBeGreaterThan(15);
         for (const table of tables) expect(runSql(name, `SELECT count(*) FROM ${table}`), table).not.toEqual(["0"]);
@@ -211,7 +211,7 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         expect(
           runSql(
             name,
-            "SELECT count(*) FROM airtable_members m WHERE NOT EXISTS (SELECT 1 FROM supporter_links l WHERE l.airtable_member_id = m.id)",
+            "SELECT count(*) FROM civicrm_contacts c WHERE NOT EXISTS (SELECT 1 FROM supporter_links l WHERE l.civicrm_contact_id = c.contact_id)",
           ),
         ).toEqual(["0"]);
         // Sorted byte by byte, so the order is the same whatever the database's collation.
@@ -221,12 +221,9 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
             'SELECT s FROM (SELECT DISTINCT sources::text AS s FROM supporters_summary) d ORDER BY s COLLATE "C"',
           ),
         ).toEqual([
-          "{airtable,civicrm,email-your-mp,luma}",
-          "{airtable,civicrm,luma}",
-          "{airtable,civicrm}",
-          "{airtable,email-your-mp}",
-          "{airtable,luma}",
-          "{airtable}",
+          "{civicrm,email-your-mp,luma}",
+          "{civicrm,email-your-mp}",
+          "{civicrm,luma}",
           "{civicrm}",
           "{email-your-mp,luma,march-2026-11}",
           "{email-your-mp,luma}",
@@ -278,7 +275,6 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "import-civicrm",
           "import-controlai",
           "import-luma",
-          "import-members",
           "read-gmail",
           "sync-politicians",
         ]);

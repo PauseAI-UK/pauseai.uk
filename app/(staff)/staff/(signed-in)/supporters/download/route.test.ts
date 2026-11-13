@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { addTestContact, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { downloadAs } from "@/tests/staff-download";
 import { query } from "@/lib/server/db";
@@ -17,10 +17,14 @@ describeWithDatabase("GET /staff/supporters/download", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("gives every supporter the filters find, as cards too, with the numbers the Consent filter finds, each download logged", async () => {
-    await query(
-      `INSERT INTO airtable_members (id, email, name, phone, city, joined_at, created_at, keep_informed, share_permission, source_modified_at, intent)
-       VALUES ('recA', 'ann@example.com', 'Ann', '+447700900001', 'Leeds', '2026-09-01', '2026-09-01', true, true, '2026-09-01', 'Volunteer')`,
-    );
+    await addTestContact(1, "ann@example.com", {
+      name: "Ann",
+      phone: "+447700900001",
+      city: "Leeds",
+      joined: "2026-09-01",
+      intent: "volunteer",
+      newsletter: "subscribed",
+    });
     await linkSupporters();
     // A volunteer's number.
     const found = "contact=email%3Anewsletter%3Ayes&contact=call%3Avolunteering%3Ayes";

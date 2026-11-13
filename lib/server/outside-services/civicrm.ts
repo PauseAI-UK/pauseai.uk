@@ -166,19 +166,9 @@ async function call(
   return values as Record<string, unknown>[];
 }
 
-/** Calls `get` with `params`, as `call` does. */
-async function get(key: string, params: object, method: "GET" | "POST"): Promise<CivicrmContact[]> {
-  return (await call(key, "get", params, method)).map(readContact);
-}
-
 /** A page of the UK chapter's contacts: up to PAGE_SIZE, in order of contact ID, after `after`. */
-export function fetchContactsPage(key: string, after: number): Promise<CivicrmContact[]> {
-  return get(key, { limit: PAGE_SIZE, after_contact_id: after }, "GET");
-}
-
-/** The UK chapter's contacts with any of `emails`. */
-export function lookUpContacts(key: string, emails: string[]): Promise<CivicrmContact[]> {
-  return get(key, { email: emails }, "POST");
+export async function fetchContactsPage(key: string, after: number): Promise<CivicrmContact[]> {
+  return (await call(key, "get", { limit: PAGE_SIZE, after_contact_id: after }, "GET")).map(readContact);
 }
 
 /** The most addresses `checkSuppression` takes a call, and events `updateSubscriptions` does. */

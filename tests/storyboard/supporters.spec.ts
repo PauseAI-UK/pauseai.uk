@@ -16,7 +16,6 @@ import {
   fillLetter,
   importLuma,
   importCivicrm,
-  importMembers,
   logInAsStaff,
   lookUpTestMp,
   postLumaWebhook,
@@ -237,7 +236,7 @@ test("A supporter's page", async ({ page, request, flowDatabase }) => {
   const jane = page.getByRole("row").filter({ hasText: "Jane Fixture" });
   await jane.getByRole("link", { name: "Jane Fixture" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Jane Fixture");
-  await expect(page.getByText(copy.detail.firstVia(copy.sources.luma))).toBeVisible();
+  await expect(page.getByText(copy.detail.firstCame.luma)).toBeVisible();
   await expect(page.getByText("07700 900001", { exact: false }).first()).toBeVisible();
   // Her postcode is in Manchester Central, whose MP the politicians sync brought.
   await expect(page.getByRole("link", { name: "Mo Example" })).toBeVisible();
@@ -470,15 +469,13 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
 
 test("A member who wrote to their MP", async ({ page, request, flowDatabase }) => {
   story(
-    "Lee writes to their MP. The members import finds Lee is a member too, and the two are one supporter, with both a Member and a Wrote to MP activity.",
+    "Lee writes to their MP. The CiviCRM import finds Lee is a member too, and the two are one supporter, with both a Member and a Wrote to MP activity.",
   );
   await syncPoliticians(request, BASE);
   await fakeTurnstile(page);
   await lookUpTestMp(page, BASE, TEST_MPS[0], "Lee Letter");
   await fillLetter(page, "lee.letter@example.com");
   await sendLetter(page, TEST_MPS[0]);
-  await importMembers(request, BASE);
-
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
@@ -488,14 +485,14 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   await expect(lee).toContainText(copy.badges.letter);
   await frame(page, "The supporters list");
   story(
-    "Lee's page has the name from the letter, the newest, and says Lee first came via Airtable's members, as CiviCRM doesn't return Lee. Lee joined before the join form asked about updates, so gets them. The history has the joining and the letter.",
+    "Lee's page has the name from the letter, the newest, and says Lee first came as a member. The history has the joining and the letter.",
   );
 
   await lee.getByRole("link").first().click();
   await expect(page).toHaveURL(/\/staff\/supporters\/\d+$/);
   // The letter's sender's name, as the newest; how they first came, as a member.
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lee Letter");
-  await expect(page.getByText(copy.detail.firstVia(copy.sources.airtable))).toBeVisible();
+  await expect(page.getByText(copy.detail.firstCame.civicrm)).toBeVisible();
   await expect(page.getByText("29 Nov 2025", { exact: false }).first()).toBeVisible();
   // Left the box on their letter unticked, the newest thing they told us about the newsletter.
   await expect(page.getByText(said("declined", "email-your-mp"), { exact: false })).toBeVisible();
@@ -511,7 +508,6 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
     "Jane Fixture has unsubscribed from the Luma calendar's emails. The supporters list has a Consent column: what each supporter gets, by topic.",
   );
   await importLuma(request, BASE);
-  await importMembers(request, BASE);
   // Jane unsubscribed from the calendar's emails, and Luma told us.
   await postLumaWebhook(request, BASE, "calendar.person.unsubscribed", "jane.fixture@example.com", "msg_1");
   await importCivicrm(request, BASE);
@@ -584,7 +580,6 @@ test("A member who never opted in", async ({ page, request, flowDatabase }) => {
   story(
     "Owen joined as a member without ticking Keep me informed. CiviCRM says they never opted in to chapter emails, so their page says we won't send them the newsletter.",
   );
-  await importMembers(request, BASE);
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
@@ -600,7 +595,6 @@ test("A member with No bulk emails", async ({ page, request, flowDatabase }) => 
   story(
     "Rhea is on the newsletter in CiviCRM, but has set No bulk emails there, so their page says we won't email them about anything. The ? by a topic says what it is.",
   );
-  await importMembers(request, BASE);
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
@@ -615,7 +609,6 @@ test("Their contact preferences, from their page", async ({ page, request, flowD
   story(
     "In a fixture build, a supporter's page has a link per address at the foot of Can we contact them?, which opens the contact preferences page as one of our emails' links would, to see what they'd see.",
   );
-  await importMembers(request, BASE);
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
@@ -632,7 +625,6 @@ test("A member who unsubscribed in CiviCRM", async ({ page, request, flowDatabas
   story(
     "Kit unsubscribed from the newsletter in CiviCRM, and the hourly pull from CiviCRM brought it here as a stop. They're still on the volunteer list there, so we may email them about volunteering.",
   );
-  await importMembers(request, BASE);
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
@@ -640,19 +632,6 @@ test("A member who unsubscribed in CiviCRM", async ({ page, request, flowDatabas
   await expect(page.getByText(said("unsubscribed", "civicrm"), { exact: false })).toBeVisible();
   await expect(page.getByText(said("subscribed", "civicrm", "volunteering"), { exact: false })).toBeVisible();
   await frame(page, "Kit's page");
-});
-
-test("A member CiviCRM doesn't have", async ({ page, request, flowDatabase }) => {
-  story(
-    "CiviCRM doesn't return some members, Mara among them. Mara ticked Keep me informed on joining, so that's still a yes to the newsletter.",
-  );
-  await importMembers(request, BASE);
-  await importCivicrm(request, BASE);
-  await logInWithSupporters(page, flowDatabase);
-  await page.goto(`${BASE}/staff/supporters`);
-  await page.getByRole("link", { name: "Mara Member" }).click();
-  await expect(page.getByText(said("asked", "airtable"), { exact: false })).toBeVisible();
-  await frame(page, "Mara's page");
 });
 
 test("Erasing a supporter", async ({ page, request, flowDatabase }) => {
@@ -699,8 +678,8 @@ test("Erasing a supporter", async ({ page, request, flowDatabase }) => {
 });
 
 test("Erasing a member", async ({ page, request, flowDatabase }) => {
-  story("Staff erase Mara, a member. The next members import leaves Mara out.");
-  await importMembers(request, BASE);
+  story("Staff erase Mara, a member. The next CiviCRM import leaves Mara out.");
+  await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Mara Member" }).click();
@@ -712,11 +691,11 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("status")).toHaveText(staffCopy.erase.done);
   await expect(page.getByRole("link", { name: "Mara Member" })).toHaveCount(0);
 
-  await importMembers(request, BASE);
+  await importCivicrm(request, BASE);
   await page.reload();
-  await expect(page.getByText(copy.total(8), { exact: true })).toBeVisible();
+  await expect(page.getByText(copy.total(10), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Mara Member" })).toHaveCount(0);
-  await frame(page, "The supporters list, after the members import");
+  await frame(page, "The supporters list, after the CiviCRM import");
 });
 
 test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {

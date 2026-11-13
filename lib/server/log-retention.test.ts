@@ -42,7 +42,7 @@ describeWithDatabase("tidying the logs", () => {
     const held = await run("sync-politicians", "60 days", "held");
     await run("sync-politicians", "50 days", "applied");
     const newest = await run("sync-politicians", "40 days", "unchanged");
-    const onlyRun = await run("import-members", "90 days");
+    const onlyRun = await run("import-civicrm", "90 days");
     expect(await tidyLogs()).toEqual({ importRuns: 1, auditEntries: 0 });
     expect(await ids("import_runs")).toEqual([held, newest, onlyRun]);
   });

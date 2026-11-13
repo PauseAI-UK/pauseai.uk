@@ -862,9 +862,8 @@ that drives it or why nothing does.
   - a held politician import: the notification inbox is emailed, the home has an action for it, and it's discarded, then applied;
   - an import held for a renamed record;
   - the Luma import run twice from its page;
-  - the members import, skipping an erased member and looking up the new ones in CiviCRM;
   - the CiviCRM import, skipping an erased contact;
-  - the logs of Luma, the Gmail reading and the members, a table a day, with the newest run's tinted row, rows, a row for quiet runs, a problem's tinted rows and a folded stretch;
+  - the logs of Luma, the Gmail reading and CiviCRM, a table a day, with the newest run's tinted row, rows, a row for quiet runs, a problem's tinted rows and a folded stretch;
   - the connected Gmail read from its page, and the button pressed again while the scheduled read is going;
   - an import failing, with Luma down for the flow (`lib/server/fixtures/failing-services.ts`), and one with problems, with postcodes.io down: the notification inbox is emailed once, though the import fails twice;
   - a Gmail that Google disconnects, with the notification inbox emailed;
@@ -986,9 +985,9 @@ that drives it or why nothing does.
   - a letter writer reached from the letters page;
   - a march sign-up, with what they gave and the link they came by;
   - the list's Consent column, and its filter: those who can't be emailed about events, then the newsletter;
-  - members: one who also wrote to their MP, one CiviCRM says never opted in, one with "No bulk emails" there, with what a topic is from its ?, one who unsubscribed there, and one CiviCRM doesn't have;
+  - members: one who also wrote to their MP, one CiviCRM says never opted in, one with "No bulk emails" there, with what a topic is from its ?, and one who unsubscribed there;
   - a hold in CiviCRM in Bounced emails, lifted with a note;
-  - erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next members import;
+  - erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next CiviCRM import;
   - subscriptions to more than one topic, in one chip, its answer changing them all;
   - an opt-out told to staff, recorded under a supporter's consents with how it was given;
   - in a fixture build, a supporter's contact preferences opened from their page.
@@ -1049,7 +1048,6 @@ that drives it or why nothing does.
     - `imports`: the read that finds Google has disconnected a Gmail. The Gmail page's button runs the same `readGmail()`.
     - `mailings`: not through the route. A staff member's fixture Gmail has no messages to read, so the flow adds the reply that the read would keep.
   - `import-luma`: `supporters`: `importLuma()` in `tests/steps.ts` fills a flow's database from the fixture calendar; the `imports` page runs it too.
-  - `import-members`: `imports`: the Scheduled jobs page runs `importMembers()`, which the route calls.
 - `/api/backup/messages`: Not driven: it's for the backup's container, and shows nothing. Vitest-tested.
 - `/api/csp-report`: Not driven: a browser posts to it only on a CSP violation. Vitest-tested.
 - `/api/browser-error`: `errors`: a page breaking in someone's browser, which the error page posts, and a button's click throwing, which the listener does.

@@ -14,7 +14,6 @@ import {
   exampleDisconnectedGmail,
   exampleGmailResult,
   exampleLettersInboxRead,
-  exampleMembersResult,
   exampleCivicrmResult,
   exampleRun,
   exampleSendingResult,
@@ -151,14 +150,13 @@ describe("RunList", () => {
   });
 
   it("tables an hourly job without counts under Time and what it found, saying who pressed it, and heads a day whose first rows are folded", async () => {
-    const members = exampleMembersResult;
     const at = (day: number, hour: number) => new Date(`2026-11-0${day}T${String(hour).padStart(2, "0")}:00:00Z`);
     const { rerender } = await render(
       <RunList
         runs={[
-          ran("import-members", members, { id: 1, at: at(3, 12) }),
-          ran("import-members", members, { id: 2, at: at(3, 11), startedBy: "jo@pauseai.uk" }),
-          ran("import-members", members, { id: 3, at: at(3, 10), status: "unchanged" }),
+          ran("import-civicrm", exampleCivicrmResult, { id: 1, at: at(3, 12) }),
+          ran("import-civicrm", exampleCivicrmResult, { id: 2, at: at(3, 11), startedBy: "jo@pauseai.uk" }),
+          ran("import-civicrm", exampleCivicrmResult, { id: 3, at: at(3, 10), status: "unchanged" }),
         ]}
         none="None"
       />,
@@ -169,7 +167,7 @@ describe("RunList", () => {
     ]);
     const pressed = page.getByRole("row").all()[2];
     expect(pressed.element().textContent).toBe(
-      `11:00${staffCopy.runs.status.ok} · ${staffCopy.runs.by("jo@pauseai.uk")} · ${staffCopy.members.result(members)}`,
+      `11:00${staffCopy.runs.status.ok} · ${staffCopy.runs.by("jo@pauseai.uk")} · ${staffCopy.civicrm.result(exampleCivicrmResult)}`,
     );
     expect(pressed.element().className).toBe("");
 
@@ -235,7 +233,7 @@ describe("RunList", () => {
     const table = () => page.getByRole("table").element() as HTMLElement;
     expect(getComputedStyle(table()).minWidth).not.toBe("0px");
     await rerender(
-      <RunTable header entries={[{ shape: "run", runs: [ran("import-members", exampleMembersResult, { id: 4 })] }]} />,
+      <RunTable header entries={[{ shape: "run", runs: [ran("import-civicrm", exampleCivicrmResult, { id: 4 })] }]} />,
     );
     expect(getComputedStyle(table()).minWidth).toBe("0px");
   });
@@ -422,28 +420,7 @@ describe("RunList", () => {
     await expect.element(page.getByText(staffCopy.runs.error("Database down"), { exact: false })).toBeVisible();
   });
 
-  it("shows a members import's counts, or its error", async () => {
-    await render(
-      <RunList
-        runs={[
-          ran("import-members", exampleMembersResult, { id: 1 }),
-          failed("import-members", "Airtable answered 503", { id: 2 }),
-        ]}
-        none="None"
-      />,
-    );
-    // In the day's table, the row says the time and the job's page the schedule.
-    const [first, second] = page.getByRole("status").all();
-    await expect
-      .element(first)
-      .toHaveTextContent(`${staffCopy.runs.status.ok} · ${staffCopy.members.result(exampleMembersResult)}`);
-    await expect
-      .element(second)
-      .toHaveTextContent(`${staffCopy.runs.status.failed} · ${staffCopy.runs.error("Airtable answered 503")}`);
-  });
-
-  it("shows a CiviCRM import's counts, the members it found there, or its error", async () => {
-    const quiet = { ...exampleMembersResult, civicrm: undefined };
+  it("shows a CiviCRM import's counts, or its error", async () => {
     await render(
       <RunList
         runs={[
@@ -460,10 +437,6 @@ describe("RunList", () => {
     await expect
       .element(second)
       .toHaveTextContent(`${staffCopy.runs.status.failed} · ${staffCopy.runs.error("CiviCRM answered 503")}`);
-    // A members import that found no one in CiviCRM says nothing of it.
-    const found = staffCopy.members.result(exampleMembersResult);
-    expect(found.startsWith(staffCopy.members.result(quiet))).toBe(true);
-    expect(found).not.toBe(staffCopy.members.result(quiet));
   });
 
   it("shows a Gmail read's totals, then each account, with one searched afresh and one that couldn't be read", async () => {

@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { query } from "@/lib/server/db";
 import { server } from "@/tests/fixtures/msw";
-import { describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { addTestContact, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { linkSupporters } from "./supporters";
 import { lookUpPlaces } from "./supporter-places";
 
@@ -27,13 +27,16 @@ async function guest(id: string, events: string[], postcode: string | null = nul
   }
 }
 
+let contacts = 0;
+
 /** A member who gave a city and maybe a postcode. */
 async function member(id: string, city: string, postcode: string | null = null) {
-  await query(
-    `INSERT INTO airtable_members (id, email, name, city, postcode, joined_at, created_at, keep_informed, share_permission, source_modified_at)
-     VALUES ($1, $2, $1, $3, $4, '2026-09-01', '2026-09-01', true, true, '2026-09-01')`,
-    [id, `${id}@example.com`, city, postcode],
-  );
+  await addTestContact(++contacts, `${id}@example.com`, {
+    name: id,
+    city,
+    postcode: postcode ?? undefined,
+    joined: "2026-09-01",
+  });
 }
 
 const places = () =>

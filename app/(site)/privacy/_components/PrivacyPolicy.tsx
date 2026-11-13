@@ -120,7 +120,6 @@ export default function PrivacyPolicy() {
         <li>Netlify: hosting the site and its database.</li>
         <li>Cloudflare: backups, and Turnstile, the anti-spam check.</li>
         <li>postcodes.io: looking up postcodes; it keeps nothing.</li>
-        <li>Airtable: our records of MPs and of members.</li>
       </ul>
       <p>
         We do not sell your personal data. Where a provider is outside the UK, the transfer is protected by UK adequacy

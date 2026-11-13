@@ -3,14 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { CivicrmImportResult } from "@/lib/import-runs";
 import { query, transaction, type Queryable } from "./db";
 import { asRun } from "./import-runs";
-import {
-  civicrmKey,
-  fetchContactsPage,
-  lookUpContacts,
-  PAGE_SIZE,
-  type CivicrmContact,
-} from "./outside-services/civicrm";
-import { config } from "./config";
+import { civicrmKey, fetchContactsPage, PAGE_SIZE, type CivicrmContact } from "./outside-services/civicrm";
 import { sendCivicrmUpdates } from "./civicrm-updates";
 import { recordCivicrmLists } from "./opt-outs";
 import { problem } from "./problems";
@@ -28,9 +21,8 @@ import { linkSupporters } from "./supporters";
 // becomes opt-outs from `civicrm`, and a new hold blocks the address. A
 // contact a complete pull doesn't return has left the UK chapter, and is
 // marked gone, unless the pull is so much smaller than the last that it's
-// more likely CiviCRM's mistake. Between pulls, the members import looks up
-// each new member's address (lookUpNewMembers). Before it pulls, a run sends
-// CiviCRM our opt-outs waiting for it (civicrm-updates.ts).
+// more likely CiviCRM's mistake. Before it pulls, a run sends CiviCRM our
+// opt-outs waiting for it (civicrm-updates.ts).
 
 const JOB = "import-civicrm";
 
@@ -230,37 +222,4 @@ export async function importCivicrm(startedBy: string): Promise<CivicrmImportRes
   // Once committed, as when staff unblock: what waited for an address goes.
   for (const address of unblocked) await resendAfterFix({ address });
   return result;
-}
-
-/**
- * Looks up in CiviCRM the addresses of members first seen in the last day
- * that no pull has returned, as someone who just joined isn't in the last
- * one, and keeps any it finds as a pull would. Nothing without the key, and
- * CiviCRM failing is a problem of the run it's in, not a failure. Returns
- * how many contacts it found.
- */
-export async function lookUpNewMembers(db: Queryable): Promise<number> {
-  const rows = await query<{ email: string }>(
-    `SELECT DISTINCT m.email FROM airtable_members m
-     WHERE m.removed_at IS NULL AND m.first_seen_at > now() - interval '1 day'
-       AND NOT EXISTS (SELECT 1 FROM civicrm_contacts c WHERE c.airtable_id = m.id OR c.email = m.email)
-     ORDER BY m.email`,
-    [],
-    db,
-  );
-  if (rows.length === 0 || !config.civicrmChapterKey) return 0;
-  let found: CivicrmContact[];
-  try {
-    found = await lookUpContacts(
-      civicrmKey(),
-      rows.map((row) => row.email),
-    );
-  } catch (error) {
-    problem(staffCopy.problems.job.civicrmLookupFailed, error);
-    return 0;
-  }
-  if (found.length === 0) return 0;
-  await upsertContacts(found, db);
-  await applyContacts(db);
-  return found.length;
 }

@@ -120,19 +120,19 @@ describe("PermissionTiles", () => {
     expect(volunteering.querySelectorAll("a")).toHaveLength(1);
   });
 
-  it("says a member who's gone is gone from Airtable, and any other source by its name", async () => {
+  it("says where an answer came from by its source's name, or as their newest form for a source it doesn't name", async () => {
     const [newsletter] = exampleMemberDetails.permissions;
     await render(
       <PermissionTiles
         permissions={[
-          { ...newsletter, send: "no", reason: "left", source: "airtable" },
-          { ...newsletter, address: "b@example.com", send: "no", reason: "left", source: "civicrm" },
+          { ...newsletter, send: "no", reason: "left", source: "civicrm" },
+          { ...newsletter, address: "b@example.com", send: "no", reason: "left", source: "somewhere" },
         ]}
       />,
     );
     expect(reasons(rows()[0])).toEqual([
-      copy.reasons.left("10 Nov 2026", copy.membersFrom),
       copy.reasons.left("10 Nov 2026", copy.sources.civicrm),
+      copy.reasons.left("10 Nov 2026", copy.otherSource),
     ]);
   });
 

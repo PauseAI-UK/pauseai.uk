@@ -1,14 +1,12 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { query, transaction } from "@/lib/server/db";
+import { query } from "@/lib/server/db";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
-import { importCivicrm, lookUpNewMembers } from "./civicrm-import";
+import { importCivicrm } from "./civicrm-import";
 import { unblock } from "./email";
-import { importMembers } from "./members-import";
 import { recordOptOut } from "./opt-outs";
-import { inRun } from "./run-store";
 
 const GET = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
 
@@ -331,87 +329,5 @@ describeWithDatabase("importCivicrm", () => {
       { name: "Jane Brown", member: true, first_seen_at: new Date("2026-09-01T00:00:00Z") },
       { name: null, member: false, first_seen_at: new Date("2026-09-13T00:00:00Z") },
     ]);
-  });
-});
-
-describeWithDatabase("lookUpNewMembers", () => {
-  useTestDatabase();
-
-  /** A member, first seen `ago`, whom CiviCRM may or may not have. */
-  async function member(id: string, email: string, ago = "1 hour") {
-    await query(
-      `INSERT INTO airtable_members (id, email, joined_at, created_at, keep_informed, share_permission, source_modified_at, first_seen_at)
-       VALUES ($1, $2, now(), now(), true, true, now(), now() - $3::interval)`,
-      [id, email, ago],
-    );
-  }
-
-  it("looks up new members no pull has returned, by POST, and keeps those it finds", async () => {
-    await member("recNew", "new@example.com");
-    await member("recOld", "old@example.com", "2 days");
-    await member("recKnown", "known@example.com");
-    await query(
-      `INSERT INTO civicrm_contacts (contact_id, airtable_id, email, on_hold, on_hold_since, no_bulk_email, no_bulk_email_since,
-         do_not_email, do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since,
-         newsletter, newsletter_since, volunteer_updates, volunteer_updates_since)
-       VALUES (5, 'recKnown', 'known@example.com', false, now(), false, now(), false, now(), false, now(), false, now(),
-         'subscribed', now(), 'not_on_list', now())`,
-    );
-    const asked = serve([contact(9, "new@example.com", { airtable_id: "recNew" }, { newsletter: "unsubscribed" })]);
-    expect(await transaction((db) => lookUpNewMembers(db))).toBe(1);
-    expect(asked).toEqual([{ method: "POST", params: { email: ["new@example.com"] } }]);
-    expect((await kept()).map((c) => c.id)).toEqual([5, 9]);
-    expect(await optOuts()).toEqual([
-      { address: "new@example.com", list: "newsletter", way: "email", source: "civicrm", open: true },
-    ]);
-  });
-
-  it("asks nothing when there's no one new, or no key, and finds nothing for someone CiviCRM doesn't have", async () => {
-    const asked = serve([]);
-    expect(await transaction((db) => lookUpNewMembers(db))).toBe(0);
-    await member("recNew", "new@example.com");
-    vi.stubEnv("CIVICRM_CHAPTER_KEY", "");
-    expect(await transaction((db) => lookUpNewMembers(db))).toBe(0);
-    expect(asked).toEqual([]);
-    vi.stubEnv("CIVICRM_CHAPTER_KEY", "k");
-    expect(await transaction((db) => lookUpNewMembers(db))).toBe(0);
-    expect(asked).toHaveLength(1);
-  });
-
-  it("reports CiviCRM failing as a problem of the run it's in", async () => {
-    await member("recNew", "new@example.com");
-    server.use(http.post(GET, () => new HttpResponse("Down", { status: 500 })));
-    const problems = await inRun(async (run) => {
-      expect(await transaction((db) => lookUpNewMembers(db))).toBe(0);
-      return run.problems;
-    });
-    expect(problems).toEqual([
-      { what: staffCopy.problems.job.civicrmLookupFailed, error: "CiviCRM request failed with status 500: Down" },
-    ]);
-  });
-
-  it("runs at the end of the members import, which counts what it found", async () => {
-    vi.stubEnv("AIRTABLE_TOKEN", "t");
-    server.use(
-      http.get("https://api.airtable.com/v0/appWPTGqZmUcs3NWu/tblL1icZBhTV1gQ9o", () =>
-        HttpResponse.json({
-          records: [
-            {
-              id: "recNew",
-              fields: {
-                Email: "new@example.com",
-                "Joined Datetime": "2026-11-10",
-                "Created Datetime": "2026-11-10T10:00:00.000Z",
-                "Last Modified": "2026-11-10T10:00:00.000Z",
-                "Email subscription": true,
-                "GDPR chapter share permission": true,
-              },
-            },
-          ],
-        }),
-      ),
-    );
-    serve([contact(9, "new@example.com", { airtable_id: "recNew" })]);
-    expect(await importMembers("nightly")).toMatchObject({ added: 1, civicrm: 1 });
   });
 });

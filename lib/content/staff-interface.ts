@@ -524,7 +524,6 @@ export const staffCopy = {
       "web-form": "pauseai.info letter",
       "march-2026-11": "March sign-up",
       "paper-signup": "Paper sign-up",
-      airtable: "Airtable",
       civicrm: "Member",
     } as Record<string, string>,
     // In a supporter's history, what an opt-out was from.
@@ -606,14 +605,13 @@ export const staffCopy = {
           left: (when: string, source: string) => `No longer shared with us by ${source}, ${when}`,
           ended: (_when: string, source: string) => `Gave it on ${source} for texts on the day, which is over`,
         } as Record<Reason, (when: string, source: string, topic?: Topic) => string>,
-        // Where an answer came from, by its source: a form, the join form, Luma, its webhook or its list of the
-        // calendar's contacts, or CiviCRM.
+        // Where an answer came from, by its source: a form, Luma, its webhook or its list of the calendar's
+        // contacts, or CiviCRM.
         sources: {
           "email-your-mp": "their letter to their MP",
           "web-form": "their pauseai.info letter",
           "march-2026-11": "the march sign-up",
           "paper-signup": "a paper sign-up form",
-          airtable: "the join form",
           luma: "Luma",
           "luma-webhook": "Luma",
           "luma-contacts": "Luma",
@@ -628,8 +626,6 @@ export const staffCopy = {
           whatsapp: "stopping our texts in WhatsApp",
         } as Record<string, string>,
         otherSource: "their newest form",
-        // Where a member who's gone came from, as the join form's records are read from Global's Airtable.
-        membersFrom: "Airtable",
         // Behind a row's "?": the topic, what it is, and when it's a yes and when a no.
         topicTitle: (topic: string) => `Topic: ${topic}`,
         when: { yes: "Yes when", no: "No when" },
@@ -684,7 +680,15 @@ export const staffCopy = {
       // In the band at the top: their MP, linked to their page, how they first came, under when they were active,
       // and how many events they registered for and letters they wrote, each linked to its table.
       theirMp: "Their MP",
-      firstVia: (source: string) => `first came via ${source}`,
+      // Under when they were active, how they first came, by the source of their first record.
+      firstCame: {
+        civicrm: "first came by joining PauseAI",
+        "email-your-mp": "first came by writing to their MP",
+        "web-form": "first came by writing to their MP on pauseai.info",
+        luma: "first came through Luma",
+        "march-2026-11": "first came by signing up for the march",
+        "paper-signup": "first came on a paper sign-up form",
+      } as Record<string, string>,
       eventsCounted: (n: number) => plural(n, "event", "events"),
       lettersCounted: (n: number) => plural(n, "letter to an MP", "letters to MPs"),
       broadcastsCounted: (n: number) => plural(n, "broadcast", "broadcasts"),
@@ -2756,37 +2760,13 @@ All events: ${link}`,
       more: (n: number) => `And ${n} more, in the next report.`,
     },
   },
-  // The hourly pull of Global's UK members from its Airtable (lib/server/members-import.ts), said as the
-  // CiviCRM import below is, as the two are read side by side.
-  members: {
-    title: "UK members in Airtable",
-    intro: {
-      before: "Imports everyone in the UK in Global's Airtable who joined through ",
-      link: "the join form",
-      after:
-        " and agreed to share their details with PauseAI UK, or joined before July 2026. Their name, email, phone, town and postcode, and whether they asked to be kept informed.",
-    },
-    importNow: "Import members now",
-    never: "Not imported yet.",
-    result: (r: {
-      members: number;
-      added: number;
-      changed: number;
-      removed: number;
-      supportersAdded: number;
-      linked: number;
-      civicrm?: number;
-    }) =>
-      `${r.members} members read: ${r.added} added, ${r.changed} changed, ${r.removed} removed; ${r.supportersAdded} new supporters, ${r.linked} linked.${r.civicrm ? ` ${r.civicrm} found in CiviCRM.` : ""}`,
-  },
   // The hourly pull of Global's UK chapter contacts from CiviCRM (lib/server/civicrm-import.ts).
   civicrm: {
     title: "UK chapter contacts in CiviCRM",
     intro: {
       before: "Imports everyone in the UK chapter in Global's ",
       link: "CiviCRM",
-      after:
-        ": whether they're subscribed to the UK newsletter and volunteer lists, and their “No bulk emails”, “Do not email”, “Do not phone”, “Do not SMS” and hold. No names or numbers.",
+      after: ", with their details, which UK lists they're on, and their do-not flags and holds.",
     },
     importNow: "Import contacts now",
     never: "Not imported yet.",
@@ -2856,8 +2836,6 @@ All events: ${link}`,
       // The CiviCRM import: a pull came back much shorter than the last, so nobody was taken as gone from the
       // chapter, in case it's CiviCRM's mistake. The counts follow; Global should be told.
       civicrmTooFew: "CiviCRM returned far fewer contacts than last time, so nobody was marked gone. Tell Global:",
-      // The members import: looking up new members' addresses in CiviCRM failed. The next pull finds them.
-      civicrmLookupFailed: "Couldn't look up new members in CiviCRM",
       // The CiviCRM import: sending our opt-outs to CiviCRM failed, or it didn't answer some, or said some were
       // wrong. Each is tried again next hour, but a wrong one needs a developer.
       // Sending a broadcast: CiviCRM didn't answer its check of the addresses, so it waits (staff are told by email).
@@ -3411,7 +3389,6 @@ export const jobTitles: Record<ImportJob, string> = {
   "check-mps": staffCopy.check.title,
   "import-controlai": staffCopy.controlAi.title,
   "import-luma": staffCopy.luma.title,
-  "import-members": staffCopy.members.title,
   "import-civicrm": staffCopy.civicrm.title,
   "read-gmail": staffCopy.gmailReading.title,
   "send-mailings": staffCopy.sending.title,

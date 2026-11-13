@@ -25,9 +25,6 @@ The nightly `sync-politicians` job copies the politicians from base
 | Test records                                            | The site's own test politicians                   |
 | Web form emails, Go to Parliament                       | Nothing; both were imported once already          |
 
-The members import reads a different base, Stichting PauseAI's
-"Members & Actions", and isn't affected.
-
 ## Official sources
 
 Each politician stores the ID their legislature gives them, so someone
@@ -121,9 +118,8 @@ All four give each member's name, party, constituency and email.
    Senedd links contain a name, so those are matched by name. If the
    page has too few names, nothing is changed, as with the letter.
 6. Switch off Airtable:
-   - Remove the syncs, their rows on the Import page and the token's
-     access to the base. `AIRTABLE_TOKEN` stays, as
-     the members import reads its own base with it.
+   - Remove the syncs, their rows on the Import page, and
+     `AIRTABLE_TOKEN`, as nothing else reads Airtable.
    - Politicians keep their `airtable_id`.
    - Each politician's Airtable notes become one note in their history,
      with a line saying Recommended if it was ticked. The note is

@@ -28,7 +28,6 @@ import {
   exampleDisconnectedGmail,
   exampleGmailResult,
   exampleLettersInboxRead,
-  exampleMembersResult,
   exampleCivicrmResult,
   exampleRun,
   exampleSendingResult,
@@ -134,14 +133,6 @@ const RUNS: Record<ImportJob, Variant> = {
             { id: 2 },
           )}
         />
-      </StaffPage>
-    ),
-  },
-  "import-members": {
-    label: "A members import that found new members",
-    render: () => (
-      <StaffPage as="div">
-        <Run run={exampleRun("import-members", exampleMembersResult)} />
       </StaffPage>
     ),
   },
@@ -767,8 +758,7 @@ export const staffAdmin: Group = {
                     { ...exampleLumaResult, stoppedBy: "time" },
                     { at: new Date("2026-10-21T11:17:00Z") },
                   ),
-                  exampleRun("import-members", exampleMembersResult, { at: new Date("2026-10-21T11:47:00Z") }),
-                  undefined,
+                  exampleRun("import-civicrm", exampleCivicrmResult, { at: new Date("2026-10-21T10:49:00Z") }),
                   exampleRun("read-gmail", exampleGmailResult, { at: new Date("2026-10-21T11:20:00Z") }),
                   undefined,
                   exampleRun(
@@ -1131,12 +1121,12 @@ export const staffAdmin: Group = {
           ),
         },
         {
-          label: "A job without counts: the members, hourly, its run's words spanning the table",
+          label: "A job without counts: CiviCRM's, hourly, its run's words spanning the table",
           render: () => (
             <StaffPage as="div">
               <RunTable
                 header
-                entries={[{ shape: "run", runs: [exampleRun("import-members", exampleMembersResult, { id: 28 })] }]}
+                entries={[{ shape: "run", runs: [exampleRun("import-civicrm", exampleCivicrmResult, { id: 28 })] }]}
               />
             </StaffPage>
           ),

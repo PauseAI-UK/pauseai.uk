@@ -32,8 +32,6 @@ import PageHead from "./ui/PageHead";
 
 const words = staffCopy.import;
 
-/** PauseAI's join form, where the members come from. */
-const JOIN_FORM = "https://pauseai.info/join";
 const CIVICRM = "https://crm.pauseai.info/";
 
 /** Where each job reads from, as its icon. */
@@ -42,7 +40,6 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "sync-politicians": "airtable",
   "check-mps": "parliament",
   "import-controlai": "controlai",
-  "import-members": "airtable",
   "import-civicrm": "civicrm",
   "read-gmail": "gmail",
   "send-mailings": "gmail",
@@ -119,12 +116,6 @@ const ABOUT: Record<
     href: CONTROLAI_LETTER_PAGE,
     button: staffCopy.controlAi.importNow,
     none: staffCopy.controlAi.never,
-  },
-  "import-members": {
-    intro: staffCopy.members.intro,
-    href: JOIN_FORM,
-    button: staffCopy.members.importNow,
-    none: staffCopy.members.never,
   },
   "import-civicrm": {
     intro: staffCopy.civicrm.intro,

@@ -2,11 +2,13 @@ import { expect, it, vi } from "vitest";
 import { query, transaction } from "@/lib/server/db";
 import { migrate } from "@/scripts/db-migrate.mjs";
 import {
+  addTestContact,
   addTestLetter,
   addTestMp,
   addTestPolitician,
   describeWithDatabase,
   MAKES_DATABASES,
+  type TestContactDetails,
   useDatabaseUpTo,
   useTestDatabase,
 } from "@/tests/database";
@@ -120,7 +122,7 @@ describeWithDatabase("linkSupporters", () => {
     // A second address for Jane, with her number written another way, and a member with that address and a
     // second number of hers, which a third address gave too: a chain, all Jane. A landline shared is two people.
     await lumaUser("usr-3", "jane.work@example.com", "Jane W", "evt-1", { phone: "+44 7700 900001" });
-    await member("recWork", "jane.work@example.com", "2026-09-01T00:00:00Z", { phone: "07700 900002" });
+    await member("jane.work@example.com", "2026-09-01", { phone: "07700 900002" });
     await lumaUser("usr-4", "jane.other@example.com", "Jane O", "evt-1", { phone: "07700900002" });
     await lumaUser("usr-5", "flatmate@example.com", "Flatmate", "evt-1", { phone: "0161 496 0000" });
     // The list as the hourly refresh left it, before they're linked.
@@ -574,11 +576,7 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ contact: [{ ...lumaPhone, reason: "unsubscribed" }] })).toEqual(["Jane"]);
     expect(await names({ contact: [{ ...lumaPhone, reason: "following" }] })).toEqual([]);
     // The same number given on joining as a volunteer is one we may use; a number found by email or phone.
-    await member("recJane", "jane@example.com", "2026-09-01T00:00:00Z", {
-      name: "Jane",
-      phone: "07700 900001",
-      intent: "Volunteer",
-    });
+    await member("jane@example.com", "2026-09-01", { name: "Jane", phone: "07700 900001", intent: "volunteer" });
     await linkSupporters();
     expect(await jane()).toMatchObject({ phones: ["+447700900001"] });
     const volunteered = { way: "call", topic: "volunteering", reason: "volunteered" } as const;
@@ -778,26 +776,11 @@ describeWithDatabase("listSupporters and getSupporter", () => {
   });
 });
 
-/** A member's record, joined on `created`, ticking "Keep me informed" unless told otherwise. */
-async function member(id: string, email: string, created: string, more: Record<string, unknown> = {}) {
-  await query(
-    `INSERT INTO airtable_members (id, email, name, phone, city, postcode, joined_at, created_at, keep_informed, share_permission,
-       intent, source_modified_at, removed_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10, $8, $11)`,
-    [
-      id,
-      email,
-      more.name ?? "A Member",
-      more.phone ?? null,
-      more.city ?? null,
-      more.postcode ?? null,
-      more.joinedAt ?? created,
-      created,
-      more.keepInformed ?? true,
-      more.intent ?? null,
-      more.removedAt ?? null,
-    ],
-  );
+let contacts = 0;
+
+/** A member, as CiviCRM gives them, who joined on `joined`. */
+async function member(email: string, joined: string, details: TestContactDetails = {}) {
+  await addTestContact(++contacts, email, { joined, ...details });
 }
 
 /** The supporter with this address. */
@@ -812,128 +795,63 @@ async function supporterWith(email: string): Promise<number> {
 describeWithDatabase("members as supporters", () => {
   useTestDatabase();
 
-  it("links a member to the supporter with their email, with their city, joining and what they chose", async () => {
+  it("links a member to the supporter with their email, with their number, place, joining and what they chose", async () => {
     const mp = await addTestMp();
     await letter("jane@example.com", "Jane Smith", mp, { createdAt: "2026-10-05T09:00:00Z" });
-    await member("recJane", "jane@example.com", "2026-09-12T10:00:00Z", {
+    await member("jane@example.com", "2024-03-23", {
       name: "Jane M",
-      joinedAt: "2024-03-23T00:00:00Z",
       phone: "+447700900123",
       city: "Manchester",
-      intent: "Volunteer",
+      intent: "volunteer",
     });
     expect(await linkSupporters()).toEqual({ supportersAdded: 1, linked: 2 });
-    const jane = (await getSupporter(await supporterWith("jane@example.com")))!;
+    const id = await supporterWith("jane@example.com");
+    const jane = (await getSupporter(id))!;
     expect(jane.summary).toMatchObject({
-      sources: ["airtable", "email-your-mp"],
+      sources: ["civicrm", "email-your-mp"],
       member: true,
       phones: ["+447700900123"],
       firstSeenAt: new Date("2024-03-23T00:00:00Z"),
     });
-    expect(jane.contacts).toContainEqual({
-      source: "airtable",
-      at: new Date("2026-09-12T10:00:00Z"),
-      phone: "+447700900123",
-      postcode: null,
-      latitude: null,
-      longitude: null,
-      city: "Manchester",
-    });
-    // Her letter's box, the newest yes; Keep me informed counts too, as CiviCRM hasn't returned her.
+    expect(jane.contacts).toContainEqual(
+      expect.objectContaining({ source: "civicrm", phone: "+447700900123", city: "Manchester" }),
+    );
+    expect(jane.activity).toContainEqual(
+      expect.objectContaining({
+        source: "civicrm",
+        at: new Date("2024-03-23T00:00:00Z"),
+        kind: "member-joined",
+        title: "volunteer",
+      }),
+    );
+    // Her letter's box, the newest yes.
     expect(jane.permissions.find((p) => p.topic === "newsletter")).toMatchObject({
       send: "yes",
       reason: "asked",
       source: "email-your-mp",
     });
-    expect(jane.activity).toContainEqual({
-      source: "airtable",
-      at: new Date("2024-03-23T00:00:00Z"),
-      kind: "member-joined",
-      title: "Volunteer",
-      campaignTitle: null,
-      detail: null,
-      href: "https://airtable.com/appWPTGqZmUcs3NWu/tblL1icZBhTV1gQ9o/recJane",
-      status: null,
-      eventAt: null,
-      letterId: null,
-      how: null,
-      recordedBy: null,
-      thread: null,
-    });
-
-    // A member no longer read is no longer one, though what they gave stays.
-    await query("UPDATE airtable_members SET removed_at = now()");
-    const removed = (await getSupporter(await supporterWith("jane@example.com")))!;
-    expect(removed.summary).toMatchObject({ member: false, sources: ["airtable", "email-your-mp"] });
-    // Her letter's yes holds; what came only from her membership doesn't.
-    expect(removed.permissions.find((p) => p.topic === "newsletter")).toMatchObject({
-      send: "yes",
-      source: "email-your-mp",
-    });
-    expect(removed.permissions.find((p) => p.topic === "volunteering")).toMatchObject({
-      send: "no",
-      reason: "left",
-    });
-  });
-
-  it("takes a CiviCRM contact's details over Airtable's, and shows none once it's gone, unless another is returned", async () => {
-    await member("recJane", "jane@example.com", "2026-09-12T10:00:00Z", {
-      name: "Jane Airtable",
-      phone: "+447700900123",
-      city: "York",
-      intent: "Volunteer",
-    });
-    const contact = (id: number, email: string, gone: string | null = null) =>
-      query(
-        `INSERT INTO civicrm_contacts (contact_id, airtable_id, email, first_name, last_name, city, postal_code,
-           joined_date, intent, phone, on_hold, on_hold_since, no_bulk_email, no_bulk_email_since, do_not_email,
-           do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since, newsletter,
-           newsletter_since, volunteer_updates, volunteer_updates_since, first_seen_at, gone_at)
-         VALUES ($1, 'recJane', $2, 'Jane', 'Smith', 'Manchester', 'M1 1AE', '2026-09-12', 'volunteer',
-           '+447700900124', false, $3, false, $3, false, $3, false, $3, false, $3, 'subscribed', $3, 'subscribed', $3,
-           $3, $4)`,
-        [id, email, "2026-11-01T00:00:00Z", gone],
-      );
-    await contact(1, "jane@example.com");
-    expect(await linkSupporters()).toEqual({ supportersAdded: 1, linked: 2 });
-    const id = await supporterWith("jane@example.com");
-    const jane = (await getSupporter(id))!;
-    expect(jane.summary).toMatchObject({
-      name: "Jane Smith",
-      sources: ["airtable", "civicrm"],
-      member: true,
-      phones: ["+447700900124"],
-      firstSeenAt: new Date("2026-09-12T00:00:00Z"),
-    });
-    expect(jane.contacts).toEqual([
-      expect.objectContaining({ source: "civicrm", phone: "+447700900124", city: "Manchester", postcode: "M1 1AE" }),
-    ]);
-    expect(jane.activity).toEqual([
-      expect.objectContaining({
-        source: "civicrm",
-        at: new Date("2026-09-12T00:00:00Z"),
-        kind: "member-joined",
-        title: "volunteer",
-      }),
-    ]);
 
     // Merged into another contact with her address: the old one gone, she's still a member, with nothing about leaving.
-    await query("UPDATE civicrm_contacts SET gone_at = '2026-11-05T00:00:00Z' WHERE contact_id = 1");
-    await contact(2, "jane@example.com");
+    await query("UPDATE civicrm_contacts SET gone_at = '2026-11-05T00:00:00Z'");
+    await member("jane@example.com", "2024-03-23", { name: "Jane M", phone: "+447700900124" });
     await linkSupporters();
     const merged = (await getSupporter(id))!;
-    expect(merged.summary.member).toBe(true);
-    expect(merged.activity.map((a) => a.kind)).toEqual(["member-joined"]);
+    expect(merged.summary).toMatchObject({ member: true, phones: ["+447700900124"] });
+    expect(merged.activity.map((a) => a.kind)).toEqual(["letter", "member-joined"]);
 
-    // Gone altogether: no longer a member, nothing CiviCRM or Airtable said of her used, and when she left.
-    await query("UPDATE civicrm_contacts SET gone_at = '2026-11-06T00:00:00Z' WHERE contact_id = 2");
+    // Gone altogether: no longer a member, nothing CiviCRM said of her used, and when she left. Her letter's yes holds.
+    await query("UPDATE civicrm_contacts SET gone_at = '2026-11-06T00:00:00Z' WHERE gone_at IS NULL");
     const gone = (await getSupporter(id))!;
-    expect(gone.summary).toMatchObject({ name: null, member: false, phones: [] });
-    expect(gone.contacts).toEqual([]);
-    expect(gone.activity.map((a) => [a.kind, a.at])).toEqual([
+    expect(gone.summary).toMatchObject({ name: "Jane Smith", member: false, phones: [] });
+    expect(gone.contacts.filter((c) => c.source === "civicrm")).toEqual([]);
+    expect(gone.activity.filter((a) => a.source === "civicrm").map((a) => [a.kind, a.at])).toEqual([
       ["member-left", new Date("2026-11-06T00:00:00Z")],
       ["member-left", new Date("2026-11-05T00:00:00Z")],
     ]);
+    expect(gone.permissions.find((p) => p.topic === "newsletter")).toMatchObject({
+      send: "yes",
+      source: "email-your-mp",
+    });
   });
 });
 

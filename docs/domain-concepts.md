@@ -951,15 +951,15 @@ that's still so.
 
 One row per person we know of (`supporters`). `supporter_links` ties the
 supporter to each record about them in a source: a Luma user
-(`luma_user_id`), a form entry (`form_entry_id`), a member in Airtable
-(`airtable_member_id`) or a CiviCRM contact (`civicrm_contact_id`).
+(`luma_user_id`), a form entry (`form_entry_id`) or a CiviCRM contact
+(`civicrm_contact_id`).
 Records are matched by trimmed, lowercased email and nothing more, so
 `jane+luma@` and `jane@` are two people. The supporter holds no
 name, email, phone or place of its own: those come from the linked
 records, newest first.
 
 `linkSupporters()` (`lib/server/supporters.ts`) only adds links. It runs at
-the end of each Luma and members import and when a form entry is kept, and
+the end of each Luma and CiviCRM import and when a form entry is kept, and
 it's set-based, so running it again does nothing. Then supporters who gave
 the same UK mobile number (`+447…` as `phone_number()` writes it) are made
 one person, whatever their emails. `merge_supporters_by_phone()` moves the
@@ -1044,25 +1044,14 @@ Where they come from:
 - **CiviCRM.** Global's UK chapter contacts, pulled hourly ("CiviCRM",
   below), are the members: a member is a contact the latest complete pull
   returns. Each gives its name, city, postcode, number, the day it joined
-  PauseAI and what it said it wanted to do, which count over Airtable's
-  where both have them. A contact that's gone gives none of them, and its
-  history says when it left. Staff see the source as "Member".
-- **Airtable's members.** PauseAI's members in the UK whom we may hold,
-  the same people Global's CRM puts in the UK chapter: those who joined
-  before July 2026, and those who shared their details with PauseAI UK.
-  From 30 June to 4 October 2026 the join form ticked the share box for
+  PauseAI and what it said it wanted to do. A contact that's gone gives
+  none of them, and its history says when it left. Staff see the source as
+  "Member". CiviCRM returns the UK members whom we may hold: those who
+  joined before July 2026, and those who shared their details with PauseAI
+  UK. From 30 June to 4 October 2026 the join form ticked the share box for
   everyone with its required privacy checkbox, so a signup from then counts
   only if they also ticked "Keep me informed" or chose to volunteer or
-  lead. Since then the form asks the question on its own. The
-  hourly import (`lib/server/members-import.ts`) reads them from Stichting
-  PauseAI's "Members & Actions" Airtable base into `airtable_members`,
-  keyed by the Airtable record ID, which CiviCRM keeps too. They count
-  only for a member CiviCRM has never returned, as some members aren't:
-  their name, number, place, joining and "Keep me informed" are read from
-  here then, and the Member badge with them. For everyone CiviCRM returns,
-  the record only links them. A member the import no longer reads is
-  marked removed and kept, with their links, until erased, and isn't a
-  member. Staff see the source as "Airtable".
+  lead. Since then the form asks the question on its own.
 
 **Where they are.** The `supporter_place` view gives each supporter's
 best-known place, with its coordinates and country. It's the first of these
@@ -1103,8 +1092,7 @@ doesn't come back:
 
 - The Luma user's ID goes in `luma_erased`, which the import skips. A new
   Luma account later is a new supporter.
-- A member's Airtable record ID goes in `airtable_members_erased`, and
-  their CiviCRM contact IDs in `civicrm_erased`, in the same way.
+- Their CiviCRM contact IDs go in `civicrm_erased`, in the same way.
 - A one-off email's Gmail ID and hashed Message-ID go in `one_off_erased`,
   so that reading its thread again doesn't keep it again.
 
@@ -1117,7 +1105,7 @@ An erasure doesn't reach these from here, and has to go to each by hand
 - Luma's own records;
 - the copies of letters and replies in the policy team's Gmail inbox;
 - letters sent through the earlier form, in Airtable ("Web form emails");
-- Stichting PauseAI's own copy of a member.
+- Global's own copy of a member, in CiviCRM.
 
 A new source is a table of its own, a column and a widened `CHECK` on
 `supporter_links`, its three views and its arms of the union views, a
@@ -1306,15 +1294,12 @@ gives no dates but the day they joined, so each flag's and list's `_since`
 is when a pull saw it change, and one the same as `first_seen_at` is as it
 was when we first saw the contact. A
 contact links to a supporter by its address, a new one if nobody has it,
-as every source does, and its answers reach a member by its Airtable ID.
-Between pulls, the members import looks up each new member's address
-(`lookUpNewMembers`), as someone who just joined isn't in the last pull.
+as every source does.
 
 A contact a complete pull doesn't return has left the UK chapter, often by
 saying no to sharing with us, though Global doesn't say why: it may have
 moved abroad, been deleted or been merged into another contact. It's marked
-`gone_at`, its details and lists stop counting, as do its member's records
-in Airtable (below), and its history says it left, unless another contact
+`gone_at`, its details and lists stop counting, and its history says it left, unless another contact
 of the supporter's is still returned, as after a merge. If a pull returns more than
 5% fewer contacts than were there, nobody is marked gone, as that's more
 likely CiviCRM's mistake, and the run says so, to tell Global. A new hold
@@ -1359,8 +1344,8 @@ or a call to a number. The topics:
 - **Newsletter**, the PauseAI UK newsletter, which includes events: a box
   ticked on one of our forms, for email, and for texts on the march's,
   which says "by email, text and phone"; a paper sign-up, where writing an
-  address or a number down is joining; CiviCRM's `newsletter` list, for
-  email; and a member's "Keep me informed", for one CiviCRM has never returned.
+  address or a number down is joining; and CiviCRM's `newsletter` list, for
+  email.
 - **Events only**: following the Luma calendar, which registering for an
   event does too, for email. A number given at a Luma registration has the
   answer of the account that gave it, for texts; a number given on a form
@@ -1369,8 +1354,7 @@ or a call to a number. The topics:
 - **Volunteering**: CiviCRM's `volunteer_updates` list, for email; and a
   member's number, for calls and texts, if they chose to volunteer or lead when
   joining, or joined before 30 June 2026 on the Tally form, which didn't
-  ask: a contact's number and intent from CiviCRM, or from Airtable for a
-  member CiviCRM has never returned.
+  ask: a contact's number and intent from CiviCRM.
 
 Each answer is yes or no, with a reason from a short list, when, and which
 source said so. First, whatever stops every topic by the way: a blocked
@@ -1521,7 +1505,7 @@ A job that copies data in from outside:
 - the check against Parliament;
 - the ControlAI letter;
 - the Luma import;
-- the members import;
+- the CiviCRM import;
 - the Gmail reading.
 
 Two more jobs don't import but run on a schedule all the same: the

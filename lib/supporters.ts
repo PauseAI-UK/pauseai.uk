@@ -6,11 +6,10 @@ import { staffCopy } from "./content/staff-interface";
 import type { ContactPermission, ContactState } from "./contact-permissions";
 import type { SortDirection } from "./staff-sort";
 
-/** Where a supporter came from: Luma, CiviCRM's UK chapter contacts (the members), the members in Airtable, or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, or the march sign-up. */
+/** Where a supporter came from: Luma, CiviCRM's UK chapter contacts (the members), or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, or the march sign-up. */
 export const SUPPORTER_SOURCES = [
   "luma",
   "civicrm",
-  "airtable",
   "email-your-mp",
   "web-form",
   "march-2026-11",
@@ -18,8 +17,8 @@ export const SUPPORTER_SOURCES = [
 ] as const;
 export type SupporterSource = (typeof SUPPORTER_SOURCES)[number];
 
-/** What a supporter_links row points at (lib/server/supporter-sources.ts): a Luma user, a form entry, a member in Airtable or a CiviCRM contact. */
-export type SupporterLinkSource = "luma" | "form" | "airtable" | "civicrm";
+/** What a supporter_links row points at (lib/server/supporter-sources.ts): a Luma user, a form entry or a CiviCRM contact. */
+export type SupporterLinkSource = "luma" | "form" | "civicrm";
 
 /** The lozenges in the list's Activities column, in its order: a member, a contact of the Luma calendar, registered for events, wrote to their MP, signed up for the march. */
 export const SUPPORTER_BADGES = ["member", "lumaContact", "registered", "letter", "march"] as const;
@@ -50,7 +49,7 @@ export type SupporterSummary = {
   broadcasts: number;
   /** Notes staff have written on them. */
   notes: number;
-  /** Whether they're a PauseAI member now: a UK chapter contact CiviCRM's last pull returned, or a member in Airtable whom CiviCRM has never returned. */
+  /** Whether they're a PauseAI member now: a UK chapter contact CiviCRM's last pull returned. */
   member: boolean;
   /** Where they are, as best we know (the supporter_place view); null if we don't. */
   place?: SupporterPlaceName | null;

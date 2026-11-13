@@ -48,12 +48,9 @@ const renamed = (rows: Row[]): Row[] =>
   rows.map((row) => ({
     ...row,
     ...(row.source === "letter" && { source: row.id === 2 ? "web-form" : "email-your-mp" }),
-    ...(row.source === "member" && { source: "airtable" }),
     ...(row.title === "luma-calendar" && { title: "events" }),
     ...(Array.isArray(row.sources) && {
-      sources: (row.sources as string[])
-        .map((s) => (s === "letter" ? "email-your-mp" : s === "member" ? "airtable" : s))
-        .sort(),
+      sources: (row.sources as string[]).map((s) => (s === "letter" ? "email-your-mp" : s)).sort(),
     }),
   }));
 
@@ -97,7 +94,7 @@ describeWithDatabase("migration 0043_form_entries", MAKES_DATABASES, () => {
     ]);
     const jane2 = await letter("2026-10-05T10:00:00Z", ["Jane", "jane@example.com", "2 High St", "SW1A 2AA", false]);
     const sam = await letter("2026-10-06T10:00:00Z", ["Sam", "sam@example.com", "3 High St", "M1 1AE", true]);
-    // Jane is on Luma and a member too, has unsubscribed from the calendar, and her first postcode has a place.
+    // Jane is on Luma too, has unsubscribed from the calendar, and her first postcode has a place.
     await query(
       `INSERT INTO luma_events (id, name, url, start_at, access, city, latitude, longitude)
        VALUES ('evt-1', 'A meetup', 'meetup', '2026-09-20T18:00:00Z', 'manage', 'Leeds', 53.8, -1.55)`,
@@ -108,10 +105,6 @@ describeWithDatabase("migration 0043_form_entries", MAKES_DATABASES, () => {
     await query(
       `INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, phone)
        VALUES ('gst-1', 'evt-1', 'usr-1', 'approved', '2026-09-10T00:00:00Z', '07700 900001')`,
-    );
-    await query(
-      `INSERT INTO members (id, email, name, city, joined_at, created_at, keep_informed, share_permission, source_modified_at)
-       VALUES ('recJane', 'jane@example.com', 'Jane M', 'York', '2026-08-01', '2026-08-01', true, true, '2026-08-01')`,
     );
     await query(
       `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)
@@ -126,7 +119,6 @@ describeWithDatabase("migration 0043_form_entries", MAKES_DATABASES, () => {
          (1, 'usr-1', NULL, NULL, 'email', 'jane@example.com'),
          (1, NULL, $1, NULL, 'email', 'jane@example.com'),
          (1, NULL, $2, NULL, 'email', 'jane@example.com'),
-         (1, NULL, NULL, 'recJane', 'email', 'jane@example.com'),
          (2, NULL, $3, NULL, 'email', 'wendy@example.com')`,
       [jane1, jane2, wendy],
     );
@@ -187,16 +179,14 @@ describeWithDatabase("migration 0043_form_entries", MAKES_DATABASES, () => {
     ).toEqual([]);
     expect(
       await query(
-        `SELECT supporter_id::int AS supporter, luma_user_id AS luma, form_entry_id::int AS entry,
-           airtable_member_id AS member
+        `SELECT supporter_id::int AS supporter, luma_user_id AS luma, form_entry_id::int AS entry
          FROM supporter_links ORDER BY id`,
       ),
     ).toEqual([
-      { supporter: 1, luma: "usr-1", entry: null, member: null },
-      { supporter: 1, luma: null, entry: jane1, member: null },
-      { supporter: 1, luma: null, entry: jane2, member: null },
-      { supporter: 1, luma: null, entry: null, member: "recJane" },
-      { supporter: 2, luma: null, entry: wendy, member: null },
+      { supporter: 1, luma: "usr-1", entry: null },
+      { supporter: 1, luma: null, entry: jane1 },
+      { supporter: 1, luma: null, entry: jane2 },
+      { supporter: 2, luma: null, entry: wendy },
     ]);
 
     // Every view says what it did, with each letter's source as its form, in history and contact details as in
