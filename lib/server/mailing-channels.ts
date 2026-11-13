@@ -42,11 +42,14 @@ export type ChannelResult =
 export type ChannelReport = { messageId: string; kind: "delivered" | "failed" | "bounced" | "opted-out" | "replied" };
 
 /**
- * Who an email is from or to, as its header says: their name, in quotes,
- * and address; or with no name the address alone, never a stand-in for one.
+ * Who an email is from or to, as its header says: their name, made safe
+ * for it and in quotes, and address; or the address alone, with no name or
+ * one that's nothing once made safe, never a stand-in for one.
  */
-const mailbox = ({ name, address }: { name: string | null; address: string }): string =>
-  name ? `"${headerName(name)}" <${address}>` : address;
+function mailbox({ name, address }: { name: string | null; address: string }): string {
+  const safe = headerName(name ?? "");
+  return safe ? `"${safe}" <${address}>` : address;
+}
 
 export type MailingChannel = {
   /** Whether it sends a scheduled mailing. One that doesn't yet still sends test copies. */

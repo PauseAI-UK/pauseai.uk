@@ -273,8 +273,13 @@ describeWithDatabase("mailing drafts", () => {
     // At 09:00, the last hour's run went at 08:18, and this hour's goes at 09:18.
     expect(await rescheduleMailing(id, new Date("2026-11-01T08:00:00Z"), STAFF)).toBe(false);
     expect(await rescheduleMailing(id, new Date("2026-11-01T09:00:00Z"), STAFF)).toBe(true);
+    // One that was waiting at its old time, as a broadcast does for CiviCRM, isn't at its new.
+    await query("UPDATE mailings SET waiting_since = now(), wait_reason = 'pull' WHERE id = $1", [id]);
     expect(await rescheduleMailing(id, new Date("2026-11-05T10:00:00Z"), STAFF)).toBe(true);
     expect((await getWrittenMailing(id))!.dueAt).toEqual(new Date("2026-11-05T10:00:00Z"));
+    expect(await query("SELECT waiting_since, wait_reason FROM mailings WHERE id = $1", [id])).toEqual([
+      { waiting_since: null, wait_reason: null },
+    ]);
   });
 
   it("stops a scheduled mailing, a draft again with no recipients, and one sending, which sends no more", async () => {

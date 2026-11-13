@@ -455,9 +455,11 @@ async function newToken(copy: Copy): Promise<string> {
  * answer is no now are skipped with why; CiviCRM's check drops anyone
  * blocked, keeping it as an opt-out of ours. One whose address CiviCRM's
  * answer leaves out can't go unchecked, and asking again would hold up
- * everyone after it, so it's failed alone, and reported. Returns those
- * that can go; or undefined when the broadcast waits, as CiviCRM didn't
- * answer, with its copies put back.
+ * everyone after it, so it's failed alone, and reported; but an answer that
+ * leaves out half the addresses or more is no answer, as failing them would
+ * lose them for good where waiting loses none. Returns those that can go;
+ * or undefined when the broadcast waits, as CiviCRM didn't answer, with its
+ * copies put back.
  */
 async function checkCopies(broadcast: Sending, copies: Copy[], run: BroadcastRun): Promise<Copy[] | undefined> {
   const said = await answers(copies);
@@ -474,6 +476,10 @@ async function checkCopies(broadcast: Sending, copies: Copy[], run: BroadcastRun
   let blocks: Map<string, Block>;
   try {
     blocks = await suppressions(going.map((copy) => copy.address));
+    const unanswered = going.filter((copy) => !blocks.has(copy.address)).length;
+    if (unanswered * 2 >= going.length) {
+      throw new Error(`CiviCRM didn't say whether ${unanswered} of ${going.length} addresses are blocked`);
+    }
   } catch (error) {
     // Nothing is sent unchecked.
     problem(staffCopy.problems.job.civicrmCheckFailed, error);
@@ -519,6 +525,25 @@ async function checkCopies(broadcast: Sending, copies: Copy[], run: BroadcastRun
   return checked;
 }
 
+/**
+ * How long a broadcast rests after a try at one of its copies failed,
+ * before another is tried. A failed copy is never sent again, so this is
+ * what bounds the cost of something failing every email: two copies an
+ * hour, each reported, however often the sending is called, which the
+ * background function does again at once while anything else is going.
+ */
+const FAILED_REST_MINUTES = 30;
+
+/** Whether a try at one of a broadcast's copies failed at its channel in the last FAILED_REST_MINUTES (email_sends). */
+async function failedLately(id: number): Promise<boolean> {
+  const [failed] = await query(
+    `SELECT 1 FROM email_sends s JOIN broadcast_messages c ON c.id = s.broadcast_message_id
+     WHERE c.mailing_id = $1 AND s.outcome = 'failed' AND s.at > now() - make_interval(mins => $2) LIMIT 1`,
+    [id, FAILED_REST_MINUTES],
+  );
+  return Boolean(failed);
+}
+
 /** Those of `addresses` whose lift of "No bulk emails" waits to go to CiviCRM. */
 async function liftsOnTheirWay(addresses: string[]): Promise<Set<string>> {
   const rows = await query<{ email: string }>(
@@ -534,13 +559,14 @@ async function liftsOnTheirWay(addresses: string[]): Promise<Set<string>> {
  * apart, until there are none, it's `until`, or the channel can send no
  * more today, when the rest wait for a later run: a few taken at a time,
  * checked, and each sent or put back. By Gmail, none while the account it's
- * from isn't connected, and none more this run once Gmail answers that it
- * can't send for now (`retry`), which fails none, or once a copy fails,
- * which fails that one alone: the rest wait for the next run, as whatever
- * failed it may fail them too. Counts the broadcast as waiting when
- * CiviCRM didn't answer.
+ * from isn't connected. Once a try at a copy fails, no more go: Gmail
+ * answering that it can't send for now (`retry`) fails none, and anything
+ * else fails that copy alone; the rest wait, and the broadcast rests
+ * (failedLately), as whatever failed one may fail them all. Counts the
+ * broadcast as waiting when CiviCRM didn't answer.
  */
 async function sendEmails(broadcast: Sending, run: BroadcastRun, until: number, gapOverride?: number): Promise<void> {
+  if (await failedLately(broadcast.id)) return;
   const { channel, gapMs } = broadcastEmailChannel(broadcast.sendBy);
   const gap = gapOverride ?? gapMs;
   const pacedChannel = paced(channel, gap);
@@ -572,7 +598,7 @@ async function sendEmails(broadcast: Sending, run: BroadcastRun, until: number, 
         }
         await keep(copy.id, result, run, went);
         if (!result.sent && result.reason === "failed") {
-          // Whatever failed this one may fail the next: the rest wait for the next run, so nothing fails everyone.
+          // Whatever failed this one may fail the next: the rest wait, so nothing fails everyone.
           await putBack(checked.slice(i + 1));
           return false;
         }

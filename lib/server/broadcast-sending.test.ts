@@ -103,6 +103,9 @@ const sentToday = (n: number) =>
     [n, HELLO],
   );
 
+/** An hour on from every try at an email so far, so a broadcast one of them failed for is rested. */
+const rested = () => query("UPDATE email_sends SET at = at - interval '1 hour'");
+
 describeWithDatabase("sending broadcasts", () => {
   useTestDatabase();
   beforeEach(() => connectTestGmail(HELLO));
@@ -423,13 +426,15 @@ describeWithDatabase("sending broadcasts", () => {
       (await copies()).filter((copy) => copy.address === "sam@example.com").map((copy) => copy.status);
     expect(await sams()).toEqual(["scheduled"]);
     // Nor does Gmail refusing the account, at a quota of its API, which the next copy would meet too.
-    recordGmail(() => new HttpResponse("Quota", { status: 403 }));
+    await rested();
+    const refused = recordGmail(() => new HttpResponse("Quota", { status: 403 }));
     expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 0, failed: 0, left: 2 });
+    expect(refused).toHaveLength(1);
     expect(await sams()).toEqual(["scheduled"]);
   });
 
-  it("fails a copy Gmail refuses for itself, and sends no more of its broadcast that run, so nothing fails everyone", async () => {
-    recordGmail(() => new HttpResponse("Bad", { status: 400 }));
+  it("fails a copy Gmail refuses for itself, and rests its broadcast, so nothing fails everyone", async () => {
+    const refused = recordGmail(() => new HttpResponse("Bad", { status: 400 }));
     await addFollower("usr-jane", "jane@example.com", "Jane Smith");
     await addFollower("usr-sam", "sam@example.com", "Sam");
     await addFollower("usr-pat", "pat@example.com", "Pat");
@@ -438,12 +443,57 @@ describeWithDatabase("sending broadcasts", () => {
     await startDueBroadcasts();
     expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 0, failed: 1, left: 2 });
     expect((await copies()).map((copy) => copy.status).sort()).toEqual(["failed", "scheduled", "scheduled"]);
-    // The next run goes on with the rest.
-    recordGmail();
+    // Called again at once, as the background function does while anything is sending, it tries no other.
+    expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 0, failed: 0, left: 2 });
+    expect(refused).toHaveLength(1);
+    // Another broadcast goes meanwhile.
+    const gmail = recordGmail();
+    const other = await broadcast();
+    await startDueBroadcasts();
+    expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 3, failed: 0, left: 2 });
+    expect((await stateOf(other)).state).toBe("sent");
+    // Rested, it goes on with the rest.
+    await rested();
     expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 2, failed: 0, left: 0 });
+    expect(gmail).toHaveLength(5);
   });
 
   it("fails alone a copy whose address CiviCRM's answer leaves out, reporting it, and sends the rest", async () => {
+    const gmail = recordGmail();
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith");
+    await addFollower("usr-pat", "pat@example.com", "Pat");
+    await addFollower("usr-sam", "sam@example.com", "Sam");
+    server.use(
+      http.post(CHECK, () =>
+        HttpResponse.json({
+          values: [
+            { email: "jane@example.com", block: "none" },
+            { email: "pat@example.com", block: "none" },
+          ],
+        }),
+      ),
+    );
+    await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    const { run, problems } = await inRun(async (r) => ({
+      run: await sendDueBroadcasts(LATER, 0),
+      problems: r.problems,
+    }));
+    expect(run).toEqual({ sent: 2, skipped: 0, failed: 1, waiting: 0, left: 0 });
+    expect((await copies()).map((copy) => [copy.address, copy.status])).toEqual([
+      ["jane@example.com", "sent"],
+      ["pat@example.com", "sent"],
+      ["sam@example.com", "failed"],
+    ]);
+    expect(gmail).toHaveLength(2);
+    expect(problems.map((p) => p.what)).toEqual([staffCopy.problems.anywhere.sendFailed("broadcast")]);
+    // It doesn't wait, as CiviCRM answered.
+    expect(await stateOf(id)).toEqual({ state: "sent", waiting: false, reason: null, gaveUp: false });
+  });
+
+  it("waits, failing none, when CiviCRM's answer leaves out half its addresses or more, as that's no answer", async () => {
+    notifications();
     const gmail = recordGmail();
     await addFollower("usr-jane", "jane@example.com", "Jane Smith");
     await addFollower("usr-sam", "sam@example.com", "Sam");
@@ -455,15 +505,10 @@ describeWithDatabase("sending broadcasts", () => {
       run: await sendDueBroadcasts(LATER, 0),
       problems: r.problems,
     }));
-    expect(run).toEqual({ sent: 1, skipped: 0, failed: 1, waiting: 0, left: 0 });
-    expect((await copies()).map((copy) => [copy.address, copy.status])).toEqual([
-      ["jane@example.com", "sent"],
-      ["sam@example.com", "failed"],
-    ]);
-    expect(gmail).toHaveLength(1);
-    expect(problems.map((p) => p.what)).toEqual([staffCopy.problems.anywhere.sendFailed("broadcast")]);
-    // It doesn't wait, as CiviCRM answered.
-    expect(await stateOf(id)).toEqual({ state: "sent", waiting: false, reason: null, gaveUp: false });
+    expect(run).toEqual({ sent: 0, skipped: 0, failed: 0, waiting: 1, left: 2 });
+    expect(gmail).toEqual([]);
+    expect(problems.map((p) => p.what)).toEqual([staffCopy.problems.job.civicrmCheckFailed]);
+    expect(await stateOf(id)).toEqual({ state: "sending", waiting: true, reason: "civicrm", gaveUp: false });
   });
 
   it("sends to someone with no name by their address alone", async () => {
@@ -640,6 +685,7 @@ describeWithDatabase("sending broadcasts", () => {
     await inRun(() => sendDueBroadcasts(LATER, 0));
     expect((await copies()).map((copy) => copy.status)).toEqual(["scheduled"]);
     await query("UPDATE broadcast_messages SET status = 'sending', sending_since = now() - interval '40 minutes'");
+    await rested();
     const gmail = recordGmail();
     expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 1, failed: 0 });
     expect(gmail).toHaveLength(1);

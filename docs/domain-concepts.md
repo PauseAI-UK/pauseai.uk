@@ -421,16 +421,17 @@ job all leave broadcasts out.
   emails" lifted on the contact preferences page and not yet sent to
   CiviCRM, which skips the copy without an opt-out. A copy whose address
   CiviCRM's answer leaves out is failed alone and reported, and the rest of
-  its batch go; an answer that names none of them is CiviCRM not answering
-  ("Waiting for CiviCRM", below). Each then goes, with
+  its batch go; an answer that leaves out half of them or more is CiviCRM
+  not answering ("Waiting for CiviCRM", below), as waiting loses nobody.
+  Each then goes, with
   its unsubscribe link token made then, only its hash kept; those a run has
   no time left for are put back, as are the rest when Gmail answers that
   it can't send for now (busy, down, at a limit or quota, or the account's
-  access refused or revoked: `ACCOUNT_REFUSALS` in `lib/server/email.ts`), to
-  go on the next run. A copy Gmail refuses for itself is failed, and no
-  more of its broadcast goes that run, nor does the failure count towards
-  starting the background function, so whatever fails every email fails
-  one copy a run, not everyone. A copy a stopped run left `sending` for
+  access refused or revoked: `ACCOUNT_REFUSALS` in `lib/server/email.ts`).
+  A copy Gmail refuses for itself is failed. After any failed try, no more
+  of the broadcast goes for half an hour (`FAILED_REST_MINUTES`), however
+  often the sending is called, so whatever fails every email fails two
+  copies an hour, each reported, not everyone. A copy a stopped run left `sending` for
   half an hour is failed, not sent again, if it had been handed to its
   channel, as it may have gone; one the run had only taken, which has no
   link token yet, never went, so it's put back to go. While copies

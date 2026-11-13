@@ -194,9 +194,8 @@ export type Block = (typeof BLOCKS)[number];
  * address, in any chapter or none: up to SUPPRESSION_BATCH a call. Each
  * address is given as it was asked, matched to CiviCRM's answer whatever
  * its case or the space round it. One the answer leaves out isn't in what's
- * returned, for the caller to deal with by itself, so it can't hold up the
- * rest. Throws if a block isn't one we know, or the answer names none of
- * the addresses, which is no answer.
+ * returned: what that means, for one address or for most of them, is the
+ * caller's to say. Throws if a block isn't one we know.
  */
 export async function checkSuppression(key: string, emails: string[]): Promise<Map<string, Block>> {
   const rows = await call(key, "checkSuppression", { email: emails, phone: [] }, "POST");
@@ -213,8 +212,6 @@ export async function checkSuppression(key: string, emails: string[]): Promise<M
     const block = answered.get(email.trim().toLowerCase());
     if (block) blocks.set(email, block);
   }
-  if (emails.length > 0 && blocks.size === 0)
-    throw new CivicrmRequestError(`CiviCRM didn't say whether ${emails.length} addresses are blocked`);
   return blocks;
 }
 

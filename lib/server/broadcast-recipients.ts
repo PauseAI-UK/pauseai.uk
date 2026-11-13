@@ -110,7 +110,7 @@ export async function supporterAudience(filter: StoredFilter, terms: BroadcastTe
   const recipients: SupporterRecipient[] = [];
   const { topics } = terms;
   for (const row of supporters) {
-    const name = row.name || null;
+    const name = row.name?.trim() || null;
     // A text goes to a number that said yes by text, never by call; of their yeses, the first address's.
     const yeses = row.permissions.filter(
       (one) => one.way === terms.channel && topics.includes(one.topic) && one.send === "yes",

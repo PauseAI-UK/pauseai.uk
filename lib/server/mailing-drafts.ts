@@ -469,12 +469,18 @@ export async function stopMailing(id: number, by: string): Promise<boolean> {
   });
 }
 
-/** Changes when a scheduled mailing goes, to an hour whose run of the sending is still to come. Says whether it did. */
+/**
+ * Changes when a scheduled mailing goes, to an hour whose run of the sending
+ * is still to come. One that was waiting at its old time, as a broadcast
+ * does for CiviCRM, isn't at its new: its wait would otherwise count against
+ * the days it has to wait then (waitStopsAt). Says whether it did.
+ */
 export async function rescheduleMailing(id: number, dueAt: Date, by: string): Promise<boolean> {
   if (sendsAt(dueAt) <= now()) return false;
   return transaction(async (db) => {
     const changed = await query(
-      "UPDATE mailings SET due_at = $2, updated_at = now() WHERE id = $1 AND state = 'scheduled' RETURNING id",
+      `UPDATE mailings SET due_at = $2, waiting_since = NULL, wait_reason = NULL, updated_at = now()
+       WHERE id = $1 AND state = 'scheduled' RETURNING id`,
       [id, dueAt],
       db,
     );

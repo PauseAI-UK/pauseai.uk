@@ -287,10 +287,10 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     const data = await broadcastPageData(id, {}, JO);
     expect(data).toMatchObject({ kind: "written", recipientsTotal: 3, pages: 1, summary: { to: 3 } });
     expect(data!.kind === "written" && data!.recipients.map((r) => [r.name, r.status])).toEqual([
-      // One with no name has none here, and comes where the page's words for them would.
-      [null, "scheduled"],
       ["Jane Smith", "scheduled"],
       ["Sam", "scheduled"],
+      // One with no name has none here, and comes last, as among the copies of one that has started.
+      [null, "scheduled"],
     ]);
     expect(await broadcastPageData(id, { page: "2" }, JO)).toMatchObject({ recipients: [] });
   });

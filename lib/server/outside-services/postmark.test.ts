@@ -200,6 +200,11 @@ describe("unsuppress", () => {
     await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 422");
     answers({ outbound: 200, broadcast: 503 });
     await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 503");
+    // Nor is its limit on how fast we ask the stream not being there.
+    answers({ outbound: 200, broadcast: 429 });
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 429");
+    answers({ outbound: 200, broadcast: 404 });
+    await expect(unsuppress("a@example.org")).resolves.toBeUndefined();
   });
 
   it("throws when Postmark refuses, or there's no token", async () => {
