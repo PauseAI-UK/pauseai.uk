@@ -80,8 +80,8 @@ export default function PrivacyPolicy() {
 
       <h2>Supporters and political opinions</h2>
       <p>
-        ⁂ We bring your letters, sign-ups and event registrations together into one record, and work out roughly where
-        you are from your postcode or city, to invite you to things near you. If you joined PauseAI, live in the UK, and
+        We bring your letters, sign-ups and event registrations together into one record, and work out roughly where you
+        are from your postcode or city, to invite you to things near you. If you joined PauseAI, live in the UK, and
         agreed to share your details with PauseAI UK, Stichting PauseAI shares your membership with us too. Taking part
         in a PauseAI campaign shows a political opinion, which is special category data. We hold it as a not-for-profit
         body with a political aim (UK GDPR Article 9(2)(d)), and we don&apos;t disclose it outside PauseAI UK without
