@@ -1,6 +1,6 @@
 # Investments
 
-Technical investment: work that makes the site easier to change, safer to run, or quicker to work on. It isn't a list of features or bugs: work on what the site does for people, including a bug in it, goes in a plan (`plans/`) or a GitHub issue, not here. Each file here is one piece of it. They come in three kinds:
+Technical investment: work that makes the site easier to change, safer to run, or quicker to work on. It isn't a list of features or bugs: for work on what the site does for people, including a bug in it, tell the person you're working with instead. Each file here is one piece of it. They come in three kinds:
 
 - **Architecture:** large refactors that change how a whole area is built, so that a kind of change that now touches ten files touches one. Examples: copy beside its feature, row types made from the schema, modules by domain. They take a week or more, and are done a step at a time.
 - **Operations:** what keeps the live site working and tells us when it isn't. Examples: error reporting, alerts when a job stops, checks that stop a bad deploy.

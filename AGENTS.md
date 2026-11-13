@@ -4,7 +4,7 @@ Read `README.md` first. It links the docs in `docs/`, including the code structu
 
 ## Log friction in `investments/`
 
-`investments/` holds technical investment, the work that would make the code easier to change or the site safer to run: architecture refactors, operations, small fixes and missing tools, one file each. It isn't for features or for bugs in what the site does for people: those go in a plan or a GitHub issue. When one costs you time (a script in `tmp/` you'd want again, the same edit in many places, a flaky test, a long wait on a check, a bug the design made easy), add a dated line under its "Hits", or start a file for it. `investments/README.md` says how, and `npm run investments` lists the most hit. Nothing private goes in a hit, and nothing about how you used production services or the database.
+`investments/` holds technical investment, the work that would make the code easier to change or the site safer to run: architecture refactors, operations, small fixes and missing tools, one file each. It isn't for features or for bugs in what the site does for people: tell the person you're working with about those instead. When one costs you time (a script in `tmp/` you'd want again, the same edit in many places, a flaky test, a long wait on a check, a bug the design made easy), add a dated line under its "Hits", or start a file for it. `investments/README.md` says how, and `npm run investments` lists the most hit. Nothing private goes in a hit, and nothing about how you used production services or the database.
 
 ## Comments describe the code as it is
 
