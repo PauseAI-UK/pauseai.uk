@@ -6,7 +6,7 @@ export default function PrivacyPolicy() {
   return (
     <ProsePage>
       <h1>Privacy Policy</h1>
-      <ProseMeta>Last updated: ⁂ the day this goes live</ProseMeta>
+      <ProseMeta>Last updated: 13 November 2026</ProseMeta>
 
       <p>
         PauseAI UK is part of the global PauseAI movement and is run in the UK by <strong>Safe AI Alliance Ltd</strong>,
