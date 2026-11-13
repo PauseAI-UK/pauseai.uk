@@ -30,8 +30,8 @@ export default function PrivacyPolicy() {
 
       <h2>Donation data</h2>
       <p>
-        ⁂ Donations are processed by <strong>Stripe</strong>. We receive your name, email, amount, and the date, but
-        never your card or bank details. We use this to send you a receipt, keep financial records, and thank you (legal
+        Donations are processed by <strong>Stripe</strong>. We receive your name, email, amount, and the date, but never
+        your card or bank details. We use this to send you a receipt, keep financial records, and thank you (legal
         basis: our agreement with you, our legal obligation to keep records, and our legitimate interest). If you say
         yes to our wall of thanks, our donate page shows the name you gave and the date you donated (legal basis: your
         explicit consent). To come off, email{" "}
@@ -43,7 +43,7 @@ export default function PrivacyPolicy() {
 
       <h2>Website analytics</h2>
       <p>
-        ⁂ This site uses <strong>Google Analytics</strong>, run by Stichting PauseAI. It sets cookies that collect the
+        This site uses <strong>Google Analytics</strong>, run by Stichting PauseAI. It sets cookies that collect the
         pages you visit, your approximate location, and your device and browser type (legal basis: legitimate interest).
         You can opt out at any time using the &ldquo;Cookie settings&rdquo; link in the footer.
       </p>
