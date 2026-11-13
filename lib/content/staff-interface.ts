@@ -2740,10 +2740,9 @@ All events: ${link}`,
   civicrm: {
     title: "UK chapter contacts in CiviCRM",
     intro: {
-      before: "⁂ Imports the members: everyone in the UK chapter in Global's ",
+      before: "⁂ Imports everyone in the UK chapter in Global's ",
       link: "CiviCRM",
-      after:
-        ". Their name, email, phone, town and postcode, when they joined and what they want to do; whether they're subscribed to the UK newsletter and volunteer lists; and their “No bulk emails”, “Do not email”, “Do not phone”, “Do not SMS” and hold.",
+      after: ": their details, which UK lists they're on, and their do-not flags and holds.",
     },
     importNow: "Import contacts now",
     never: "Not imported yet.",
