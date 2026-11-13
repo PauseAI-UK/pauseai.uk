@@ -10,14 +10,11 @@ export type SendingRun = {
 /**
  * Whether calling again would send more: letters or copies of broadcasts are
  * left, and this call got through some, so not every account sending them
- * is at its limit, nor every broadcast waiting for CiviCRM. A broadcast's
- * copy failing isn't getting through one: a broadcast sends no more in a
- * call once a copy fails (sendEmails), and were that all a call did, calling
- * again at once would fail the next.
+ * is at its limit, nor every broadcast waiting for CiviCRM.
  */
 export function moreToSend(run: SendingRun): boolean {
   const broadcasts = run.broadcasts ?? { sent: 0, skipped: 0, failed: 0, left: 0 };
   const left = run.left + broadcasts.left;
-  const done = run.sent + run.skipped + run.failed + broadcasts.sent + broadcasts.skipped;
+  const done = run.sent + run.skipped + run.failed + broadcasts.sent + broadcasts.skipped + broadcasts.failed;
   return left > 0 && done > 0;
 }

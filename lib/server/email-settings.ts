@@ -26,6 +26,7 @@ import {
 import { removeCalendarContact } from "./outside-services/luma-calendar";
 import { notifyDomain } from "./outside-services/postmark";
 import { problem } from "./problems";
+import { randomId } from "./random-id";
 
 // The contact preferences page (/contact-preferences), where anyone sees and changes
 // what PauseAI UK sends an address, and why. It opens only from a link
@@ -50,12 +51,26 @@ const copy = emailSettingsCopy;
 /** What's kept of a link's token: its hash, so the database alone can't open anyone's page. */
 export const hashOf = (token: string): string => createHash("sha256").update(token).digest("hex");
 
-/** A new link to the page for `address`, working for LINK_DAYS: its path. */
+/**
+ * A new link to the page for `address`, working for LINK_DAYS: its path.
+ * Its token is random, but in a fixture build comes from the address and
+ * how many links it has, so the storyboard's pictures of the emails it's in
+ * are the same on every run (randomId).
+ */
 export async function newSettingsLink(address: string, db?: Queryable): Promise<string> {
-  const token = randomBytes(24).toString("base64url");
+  const to = normaliseAddress(address);
+  const made = await randomId(24, async () => {
+    const [{ count }] = await query<{ count: number }>(
+      "SELECT count(*)::int AS count FROM preference_links WHERE address = $1",
+      [to],
+      db,
+    );
+    return `contact preferences ${to} ${count}`;
+  });
+  const token = made.toString("base64url");
   await query(
     `INSERT INTO preference_links (token_hash, address, expires_at) VALUES ($1, $2, now() + make_interval(days => $3))`,
-    [hashOf(token), normaliseAddress(address), LINK_DAYS],
+    [hashOf(token), to, LINK_DAYS],
     db,
   );
   return `/contact-preferences/${token}`;

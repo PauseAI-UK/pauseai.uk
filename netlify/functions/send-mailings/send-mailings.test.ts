@@ -59,10 +59,8 @@ describe("moreToSend", () => {
     const broadcasts = { sent: 0, skipped: 0, failed: 0, left: 500 };
     expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, sent: 500 } })).toBe(true);
     expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, skipped: 1 } })).toBe(true);
+    expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, failed: 1 } })).toBe(true);
     expect(moreToSend({ ...RUN, broadcasts })).toBe(false);
-    // A copy failing isn't getting through one: if every email is failing, the next waits for the next run.
-    expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, failed: 1 } })).toBe(false);
-    expect(moreToSend({ ...RUN, broadcasts: { ...broadcasts, failed: 1, sent: 1 } })).toBe(true);
     expect(moreToSend({ ...RUN, sent: 1, broadcasts })).toBe(true);
   });
 });
