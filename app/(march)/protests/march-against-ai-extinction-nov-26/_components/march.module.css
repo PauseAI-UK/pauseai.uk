@@ -234,17 +234,10 @@ svg:has(+ .marked-highlight) path {
 /* ── Hero ────────────────────────────────────────────────────────────── */
 
 /* The words at the foot of the first screen, over the photo, which darkens
-   towards them.
-
-   --hero-edge is where the words start: in line with the header and the
-   bands below, where the site's container has room at its sides, and
-   otherwise a share of the window in from its edge. The photo and the dark
-   over it are placed from the same edge, at distances that grow with the
-   window up to the design's 1440px and are fixed past it. So in a window
-   wide enough for the words at their full size, the words, the photo and
-   the dark keep their places beside one another, whatever its width. */
+   towards them. --hero-edge is where the words start: a share of the window
+   in from its edge, so they keep clear of the photo's subject. */
 .hero {
-  --hero-edge: max(clamp(24px, 5.56vw, 80px), (100% - var(--container-width, 1140px)) / 2 + 24px);
+  --hero-edge: clamp(24px, 5.56vw, 80px);
 
   position: relative;
   isolation: isolate;
@@ -258,18 +251,16 @@ svg:has(+ .marked-highlight) path {
   color: var(--white);
 }
 /* The photo at the hero's full height, placed so the woman with the sign,
-   56% of the way across it, is clear of the words: in a window with no room
-   beside the container, that's the middle of its right half. Its left edge
-   fades into the dark, and so does its right, which shows only in a window
-   too wide for the photo to reach the end of. */
+   56% of the way across it, is in the middle of the window's right half.
+   Its left edge fades into the dark. */
 .hero-photo {
   position: absolute;
   inset-block: 0;
-  left: calc(var(--hero-edge) + min(69.44%, 1000px));
+  left: 75%;
   z-index: -2;
   aspect-ratio: 1524 / 716;
   transform: translateX(-56%);
-  mask-image: linear-gradient(90deg, transparent, var(--black) 25%, var(--black) 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, var(--black) 25%);
 }
 .hero-photo img {
   object-fit: cover;
@@ -282,9 +273,9 @@ svg:has(+ .marked-highlight) path {
   z-index: -1;
   background: linear-gradient(
     90deg,
-    rgb(var(--text-rgb) / 0.9) calc(var(--hero-edge) + min(32.44%, 467px)),
-    rgb(var(--text-rgb) / 0.4) calc(var(--hero-edge) + min(58.44%, 842px)),
-    rgb(var(--text-rgb) / 0) calc(var(--hero-edge) + min(80.44%, 1158px))
+    rgb(var(--text-rgb) / 0.9) 38%,
+    rgb(var(--text-rgb) / 0.4) 64%,
+    rgb(var(--text-rgb) / 0) 86%
   );
 }
 .hero-inner {
@@ -298,6 +289,28 @@ svg:has(+ .marked-highlight) path {
 .hero .hero-inner {
   max-width: none;
   padding-inline: var(--hero-edge);
+}
+/* In a window wider than 1920px the words start in line with the header
+   and the bands below. The photo and the dark over it are placed from the
+   words, at the distances they have in a 1440px window, so they keep their
+   places beside the words whatever the width. In a window too wide for the
+   photo to reach its right edge, that edge fades into the dark too. */
+@media (min-width: 1921px) {
+  .hero {
+    --hero-edge: calc((100% - var(--container-width, 1140px)) / 2 + 24px);
+  }
+  .hero-photo {
+    left: calc(var(--hero-edge) + 1000px);
+    mask-image: linear-gradient(90deg, transparent, var(--black) 25%, var(--black) 90%, transparent);
+  }
+  .hero::after {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--text-rgb) / 0.9) calc(var(--hero-edge) + 467px),
+      rgb(var(--text-rgb) / 0.4) calc(var(--hero-edge) + 842px),
+      rgb(var(--text-rgb) / 0) calc(var(--hero-edge) + 1158px)
+    );
+  }
 }
 .hero-title {
   font-family: var(--font-display), "Lato", system-ui, sans-serif;
