@@ -678,6 +678,12 @@ Set up outside the code:
 
   Give admin to at least one other person, as the last admin can't be removed. An erasure request is handled as `docs/data-protection.md` says.
 
+- **The weekly press survey:** a GitHub Actions workflow, `.github/workflows/press-survey.yml`, not a Netlify job, as its output is a pull request. In the repository's settings on GitHub:
+  1. Actions → General → Workflow permissions: tick "Allow GitHub Actions to create and approve pull requests".
+  2. Secrets and variables → Actions: add `CLAUDE_CODE_OAUTH_TOKEN`, the output of `claude setup-token` run by an account with a Claude subscription. Without it the survey still runs, adding only pages that name PauseAI UK.
+
+  Its pull requests start no CI run until someone marks one ready for review or pushes to it, as GitHub starts no workflow for a workflow's own token.
+
 - **A new database:** from `/staff/scheduled-jobs`, run the politician sync. Until it has run, Email your MP finds no MPs.
 
   The Luma import fills the supporter pages over its first few runs, and links every letter already written. Run it from `/staff/scheduled-jobs` too, to watch it.

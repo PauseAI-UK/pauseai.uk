@@ -4,8 +4,10 @@
 //
 // DISCOVERY
 // A new item usually starts as a lead — a name, an outlet, a rough date,
-// or a URL someone found — not a finished, verified entry. Before it's
-// added:
+// or a URL someone found — not a finished, verified entry. A weekly
+// survey (scripts/press-survey.mjs) opens a draft pull request with the
+// week's leads, and the entries it could check against these rules; a
+// person checks each before it merges. Before an item's added:
 //
 // - Prefer the outlet's own on-site search over a generic web search.
 //   Several major outlets (confirmed: BBC) block automated crawlers

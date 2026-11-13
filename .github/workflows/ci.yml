@@ -3,7 +3,11 @@ name: CI
 on:
   push:
     branches: [main]
+  # And when a draft is marked ready: a pull request opened or pushed to by
+  # a workflow's own token (the press survey's) starts no run until a person
+  # acts on it.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 # A push to a pull request cancels its run still in progress, whose result
 # no longer counts. Each push to main runs in a group of its own, so every
