@@ -69,37 +69,14 @@ CREATE FUNCTION public.contact_permission(for_topic text, for_way text, for_addr
     LANGUAGE sql STABLE
     AS $$
 WITH
-  -- The members in Airtable with the address, or who gave the number.
-  theirs AS (
-    SELECT m.* FROM airtable_members m WHERE for_way = 'email' AND m.email = for_address
-    UNION ALL
-    SELECT m.* FROM airtable_members m WHERE for_way <> 'email' AND phone_number(m.phone) = for_address
-  ),
-  -- The CiviCRM contacts of the address, or who gave the number, or of the
-  -- members who gave it.
+  -- The CiviCRM contacts of the address, or who gave the number.
   civi AS (
     SELECT c.* FROM civicrm_contacts c WHERE for_way = 'email' AND c.email = for_address
     UNION
     SELECT c.* FROM civicrm_contacts c WHERE for_way <> 'email' AND phone_number(c.phone) = for_address
-    UNION
-    SELECT c.* FROM civicrm_contacts c WHERE for_way <> 'email' AND c.airtable_id IN (SELECT id FROM theirs)
   ),
-  -- Each of those members: whether CiviCRM has ever returned them, and when
-  -- every contact of theirs went, if all have.
-  their_members AS (
-    SELECT m.*,
-      NOT EXISTS (SELECT 1 FROM civicrm_contacts c WHERE c.airtable_id = m.id OR c.email = m.email) AS never_returned,
-      (SELECT max(c.gone_at) FROM civicrm_contacts c WHERE c.airtable_id = m.id
-       HAVING bool_and(c.gone_at IS NOT NULL)) AS gone_at
-    FROM theirs m
-  ),
-  -- Those whose records may still be used: shared by Airtable, and returned
-  -- by CiviCRM's latest pull, or never returned at all.
-  members_kept AS (
-    SELECT m.* FROM their_members m WHERE m.removed_at IS NULL AND m.gone_at IS NULL
-  ),
-  -- The contacts and members who gave the number, for a volunteering call or
-  -- text, each with whether they wanted to volunteer, and when they joined.
+  -- The contacts who gave the number, for a volunteering call or text, each
+  -- with whether they wanted to volunteer, and when they joined.
   callers AS (
     SELECT coalesce(c.intent IN ('volunteer', 'lead') OR (c.intent IS NULL AND c.joined_date < '2026-06-30'), false)
         AS volunteer,
@@ -107,13 +84,6 @@ WITH
     FROM civi c
     WHERE for_way IN ('call', 'text') AND for_topic = 'volunteering' AND c.gone_at IS NULL
       AND phone_number(c.phone) = for_address
-    UNION ALL
-    SELECT coalesce(m.intent IN ('Volunteer', 'Lead') OR (m.intent IS NULL AND m.created_at < '2026-06-30T00:00:00Z'),
-        false),
-      m.created_at, 'airtable'
-    FROM members_kept m
-    WHERE for_way IN ('call', 'text') AND for_topic = 'volunteering' AND m.never_returned
-      AND phone_number(m.phone) = for_address
   ),
   -- The latest lift of "No bulk emails" on the email settings page that
   -- CiviCRM hasn't refused.
@@ -176,13 +146,6 @@ WITH
           WHERE c.gone_at IS NULL AND CASE WHEN for_topic = 'newsletter' THEN c.newsletter ELSE c.volunteer_updates END = 'subscribed') c
     WHERE for_way = 'email' AND for_topic IN ('newsletter', 'volunteering') AND c.since IS NOT NULL
     UNION ALL
-    -- "Keep me informed", for a member CiviCRM has never returned, ticked
-    -- once it was a free choice.
-    SELECT 'yes', 'asked', m.created_at, 'airtable'
-    FROM members_kept m
-    WHERE for_way = 'email' AND for_topic = 'newsletter' AND m.email = for_address AND m.keep_informed
-      AND m.never_returned AND m.created_at >= '2026-06-30T00:00:00Z'
-    UNION ALL
     -- Following the Luma calendar.
     SELECT 'yes', 'following', f.since, 'luma'
     FROM (SELECT min(l.contact_since) AS since FROM luma_people l WHERE l.email = for_address) f
@@ -209,7 +172,7 @@ WITH
     FROM form_entries f JOIN day_texts d ON d.form = f.form
     WHERE for_way = 'text' AND for_topic = 'events' AND phone_number(f.phone) = for_address AND now() < d.ends_at
     UNION ALL
-    -- A contact or member who chose to volunteer gave the number.
+    -- A contact who chose to volunteer gave the number.
     SELECT 'yes', 'volunteered', c.at, c.source FROM callers c WHERE c.volunteer
   ),
   nothing AS (
@@ -219,23 +182,11 @@ WITH
       AND ((for_way = 'email' AND lower(trim(f.email)) = for_address)
         OR (for_way = 'text' AND phone_number(f.phone) = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
     UNION ALL
-    SELECT CASE WHEN m.created_at < '2026-06-30T00:00:00Z' THEN 'not-opted-in' ELSE 'declined' END, m.created_at,
-      'airtable'
-    FROM members_kept m
-    WHERE for_way = 'email' AND for_topic = 'newsletter' AND m.email = for_address AND m.never_returned
-      AND (NOT m.keep_informed OR m.created_at < '2026-06-30T00:00:00Z')
-    UNION ALL
     SELECT 'not-volunteer', c.at, c.source FROM callers c WHERE NOT c.volunteer
     UNION ALL
     SELECT 'not-opted-in', c.newsletter_since, 'civicrm'
     FROM civi c
     WHERE for_way = 'email' AND for_topic = 'newsletter' AND c.gone_at IS NULL AND c.newsletter = 'not_opted_in'
-    UNION ALL
-    SELECT 'left', coalesce(m.removed_at, m.gone_at), CASE WHEN m.removed_at IS NULL THEN 'civicrm' ELSE 'airtable' END
-    FROM their_members m
-    WHERE (m.removed_at IS NOT NULL OR m.gone_at IS NOT NULL)
-      AND ((for_way = 'email' AND for_topic = 'newsletter' AND m.email = for_address)
-        OR (for_way IN ('call', 'text') AND for_topic = 'volunteering' AND phone_number(m.phone) = for_address))
     UNION ALL
     SELECT 'left', c.gone_at, 'civicrm'
     FROM civi c
@@ -296,8 +247,6 @@ BEGIN
         JOIN supporter_links k ON k.luma_user_id = g.user_id WHERE phone_number(g.phone) %1$s
       UNION SELECT k.supporter_id, phone_number(f.phone) FROM form_entries f
         JOIN supporter_links k ON k.form_entry_id = f.id WHERE phone_number(f.phone) %1$s
-      UNION SELECT k.supporter_id, phone_number(m.phone) FROM airtable_members m
-        JOIN supporter_links k ON k.airtable_member_id = m.id WHERE phone_number(m.phone) %1$s
       UNION SELECT k.supporter_id, phone_number(c.phone) FROM civicrm_contacts c
         JOIN supporter_links k ON k.civicrm_contact_id = c.contact_id WHERE phone_number(c.phone) %1$s)
     SELECT a.supporter_id AS from_id, min(b.supporter_id) AS into_id
@@ -360,29 +309,6 @@ $$;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
-
---
--- Name: airtable_members; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.airtable_members (
-    id text CONSTRAINT members_id_not_null NOT NULL,
-    email text CONSTRAINT members_email_not_null NOT NULL,
-    name text DEFAULT ''::text CONSTRAINT members_name_not_null NOT NULL,
-    phone text,
-    city text,
-    postcode text,
-    joined_at timestamp with time zone CONSTRAINT members_joined_at_not_null NOT NULL,
-    created_at timestamp with time zone CONSTRAINT members_created_at_not_null NOT NULL,
-    keep_informed boolean CONSTRAINT members_keep_informed_not_null NOT NULL,
-    share_permission boolean CONSTRAINT members_share_permission_not_null NOT NULL,
-    intent text,
-    source_modified_at timestamp with time zone CONSTRAINT members_source_modified_at_not_null NOT NULL,
-    first_seen_at timestamp with time zone DEFAULT now() CONSTRAINT members_first_seen_at_not_null NOT NULL,
-    changed_at timestamp with time zone DEFAULT now() CONSTRAINT members_changed_at_not_null NOT NULL,
-    removed_at timestamp with time zone,
-    CONSTRAINT airtable_members_email_check CHECK ((email = lower(email)))
-);
 
 --
 -- Name: civicrm_contacts; Type: TABLE; Schema: public; Owner: -
@@ -682,23 +608,6 @@ CREATE TABLE public.signup_uploads (
 );
 
 --
--- Name: supporter_activity_airtable; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.supporter_activity_airtable AS
- SELECT id AS source_id,
-    joined_at AS at,
-    'member-joined'::text AS kind,
-    intent AS title,
-    NULL::text AS detail,
-    ('https://airtable.com/appWPTGqZmUcs3NWu/tblL1icZBhTV1gQ9o/'::text || id) AS href,
-    NULL::text AS status
-   FROM public.airtable_members m
-  WHERE (NOT (EXISTS ( SELECT 1
-           FROM public.civicrm_contacts c
-          WHERE ((c.airtable_id = m.id) OR (c.email = m.email)))));
-
---
 -- Name: supporter_activity_civicrm; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -777,10 +686,9 @@ CREATE TABLE public.supporter_links (
     matched_by text NOT NULL,
     matched_value text NOT NULL,
     linked_at timestamp with time zone DEFAULT now() NOT NULL,
-    airtable_member_id text,
     form_entry_id bigint,
     civicrm_contact_id bigint,
-    CONSTRAINT supporter_links_check CHECK ((num_nonnulls(luma_user_id, form_entry_id, airtable_member_id, civicrm_contact_id) = 1)),
+    CONSTRAINT supporter_links_check CHECK ((num_nonnulls(luma_user_id, form_entry_id, civicrm_contact_id) = 1)),
     CONSTRAINT supporter_links_matched_by_check CHECK ((matched_by = 'email'::text)),
     CONSTRAINT supporter_links_matched_value_check CHECK ((matched_value = lower(matched_value)))
 );
@@ -855,17 +763,6 @@ UNION ALL
   WHERE (o.resubscribed_at IS NOT NULL)
 UNION ALL
  SELECT k.supporter_id,
-    'airtable'::text AS source,
-    a.at,
-    a.kind,
-    a.title,
-    a.detail,
-    a.href,
-    a.status
-   FROM (public.supporter_activity_airtable a
-     JOIN public.supporter_links k ON ((k.airtable_member_id = a.source_id)))
-UNION ALL
- SELECT k.supporter_id,
     'luma'::text AS source,
     COALESCE(h.added_at, e.created_at, e.first_seen_at) AS at,
     'luma-hosted'::text AS kind,
@@ -891,23 +788,6 @@ UNION ALL
            FROM (public.supporter_links o
              JOIN public.civicrm_contacts c ON ((c.contact_id = o.civicrm_contact_id)))
           WHERE ((o.supporter_id = k.supporter_id) AND (c.gone_at IS NULL))))));
-
---
--- Name: supporter_contact_airtable; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.supporter_contact_airtable AS
- SELECT id AS source_id,
-    created_at AS at,
-    phone,
-    postcode,
-    NULL::double precision AS latitude,
-    NULL::double precision AS longitude,
-    city
-   FROM public.airtable_members m
-  WHERE (NOT (EXISTS ( SELECT 1
-           FROM public.civicrm_contacts c
-          WHERE ((c.airtable_id = m.id) OR (c.email = m.email)))));
 
 --
 -- Name: supporter_contact_civicrm; Type: VIEW; Schema: public; Owner: -
@@ -982,17 +862,6 @@ UNION ALL
      JOIN public.form_entries f ON ((f.id = c.source_id)))
 UNION ALL
  SELECT k.supporter_id,
-    'airtable'::text AS source,
-    c.at,
-    c.phone,
-    c.postcode,
-    c.latitude,
-    c.longitude,
-    c.city
-   FROM (public.supporter_contact_airtable c
-     JOIN public.supporter_links k ON ((k.airtable_member_id = c.source_id)))
-UNION ALL
- SELECT k.supporter_id,
     'civicrm'::text AS source,
     c.at,
     c.phone,
@@ -1002,22 +871,6 @@ UNION ALL
     c.city
    FROM (public.supporter_contact_civicrm c
      JOIN public.supporter_links k ON ((k.civicrm_contact_id = c.source_id)));
-
---
--- Name: supporter_source_airtable; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.supporter_source_airtable AS
- SELECT id AS source_id,
-    email,
-        CASE
-            WHEN (EXISTS ( SELECT 1
-               FROM public.civicrm_contacts c
-              WHERE ((c.airtable_id = m.id) OR (c.email = m.email)))) THEN ''::text
-            ELSE name
-        END AS name,
-    joined_at AS seen_at
-   FROM public.airtable_members m;
 
 --
 -- Name: supporter_source_civicrm; Type: VIEW; Schema: public; Owner: -
@@ -1078,14 +931,6 @@ UNION ALL
    FROM ((public.supporter_source_form s
      JOIN public.supporter_links k ON ((k.form_entry_id = s.source_id)))
      JOIN public.form_entries f ON ((f.id = s.source_id)))
-UNION ALL
- SELECT k.supporter_id,
-    'airtable'::text AS source,
-    s.email,
-    s.name,
-    s.seen_at
-   FROM (public.supporter_source_airtable s
-     JOIN public.supporter_links k ON ((k.airtable_member_id = s.source_id)))
 UNION ALL
  SELECT k.supporter_id,
     'civicrm'::text AS source,
@@ -1190,17 +1035,10 @@ CREATE VIEW public.supporters_summary AS
            FROM public.supporter_contact
           GROUP BY supporter_contact.supporter_id
         ), mem AS (
-         SELECT k.supporter_id
+         SELECT DISTINCT k.supporter_id
            FROM (public.supporter_links k
              JOIN public.civicrm_contacts c ON ((c.contact_id = k.civicrm_contact_id)))
           WHERE (c.gone_at IS NULL)
-        UNION
-         SELECT k.supporter_id
-           FROM (public.supporter_links k
-             JOIN public.airtable_members m ON ((m.id = k.airtable_member_id)))
-          WHERE ((m.removed_at IS NULL) AND (NOT (EXISTS ( SELECT 1
-                   FROM public.civicrm_contacts c
-                  WHERE ((c.airtable_id = m.id) OR (c.email = m.email))))))
         ), ph AS (
          SELECT n.supporter_id,
             array_agg(n.number ORDER BY n.at DESC, n.number) AS phones
@@ -1291,15 +1129,6 @@ BEGIN
   END LOOP;
 END
 $$;
-
---
--- Name: airtable_members_erased; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.airtable_members_erased (
-    id text CONSTRAINT members_erased_id_not_null NOT NULL,
-    erased_at timestamp with time zone DEFAULT now() CONSTRAINT members_erased_erased_at_not_null NOT NULL
-);
 
 --
 -- Name: ask_kind_statuses; Type: TABLE; Schema: public; Owner: -
@@ -1628,10 +1457,6 @@ CREATE VIEW public.email_permissions AS
            FROM public.form_entries
         UNION
          SELECT 'newsletter'::text,
-            airtable_members.email
-           FROM public.airtable_members
-        UNION
-         SELECT 'newsletter'::text,
             civicrm_contacts.email
            FROM public.civicrm_contacts
           WHERE (civicrm_contacts.newsletter <> 'not_on_list'::text)
@@ -1686,13 +1511,6 @@ CREATE VIEW public.phone_permissions AS
            FROM public.form_entries
           WHERE ((form_entries.form IN ( SELECT day_texts.form
                    FROM public.day_texts)) AND (public.phone_number(form_entries.phone) IS NOT NULL))
-        UNION
-         SELECT 'volunteering'::text,
-            w.way,
-            public.phone_number(airtable_members.phone) AS phone_number
-           FROM public.airtable_members,
-            ( VALUES ('call'::text), ('text'::text)) w(way)
-          WHERE (public.phone_number(airtable_members.phone) IS NOT NULL)
         UNION
          SELECT 'volunteering'::text,
             w.way,
@@ -2732,20 +2550,6 @@ CREATE TABLE public.whatsapp_unreachable (
 ALTER TABLE ONLY public.saved_filters ALTER COLUMN id SET DEFAULT nextval('public.saved_filters_id_seq'::regclass);
 
 --
--- Name: airtable_members_erased airtable_members_erased_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.airtable_members_erased
-    ADD CONSTRAINT airtable_members_erased_pkey PRIMARY KEY (id);
-
---
--- Name: airtable_members airtable_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.airtable_members
-    ADD CONSTRAINT airtable_members_pkey PRIMARY KEY (id);
-
---
 -- Name: ask_kind_statuses ask_kind_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3376,13 +3180,6 @@ ALTER TABLE ONLY public.staff_sessions
     ADD CONSTRAINT staff_sessions_pkey PRIMARY KEY (token_hash);
 
 --
--- Name: supporter_links supporter_links_airtable_member_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.supporter_links
-    ADD CONSTRAINT supporter_links_airtable_member_id_key UNIQUE (airtable_member_id);
-
---
 -- Name: supporter_links supporter_links_civicrm_contact_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3458,18 +3255,6 @@ ALTER TABLE ONLY public.whatsapp_templates
 
 ALTER TABLE ONLY public.whatsapp_unreachable
     ADD CONSTRAINT whatsapp_unreachable_pkey PRIMARY KEY (number);
-
---
--- Name: airtable_members_email; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX airtable_members_email ON public.airtable_members USING btree (email);
-
---
--- Name: airtable_members_phone; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX airtable_members_phone ON public.airtable_members USING btree (public.phone_number(phone));
 
 --
 -- Name: ask_statuses_ask; Type: INDEX; Schema: public; Owner: -
@@ -4276,13 +4061,6 @@ ALTER TABLE ONLY public.signup_uploads
 
 ALTER TABLE ONLY public.staff_nav_seen
     ADD CONSTRAINT staff_nav_seen_email_fkey FOREIGN KEY (email) REFERENCES public.staff_accounts(email) ON DELETE CASCADE;
-
---
--- Name: supporter_links supporter_links_airtable_member_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.supporter_links
-    ADD CONSTRAINT supporter_links_airtable_member_id_fkey FOREIGN KEY (airtable_member_id) REFERENCES public.airtable_members(id) ON DELETE CASCADE;
 
 --
 -- Name: supporter_links supporter_links_civicrm_contact_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

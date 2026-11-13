@@ -540,13 +540,10 @@ export const staffCopy = {
       unusable: "Don't use",
       postcode: "Postcode",
       city: "City",
-      /** What they chose on the join form, as Airtable or CiviCRM says it; "Keep informed" and "None" say nothing more. */
+      /** What they chose on the join form, as CiviCRM says it; "keep_informed" and "none" say nothing more. */
       intents: {
-        Volunteer: "wants to volunteer",
         volunteer: "wants to volunteer",
-        Lead: "wants to lead",
         lead: "wants to lead",
-        "Act now": "wants to act now",
         act_now: "wants to act now",
       } as Record<string, string>,
       // From when we first saw them to their last activity.

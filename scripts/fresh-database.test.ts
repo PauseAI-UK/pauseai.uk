@@ -148,10 +148,10 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
         const url = freshDatabase(name);
         addTestMps(url, "mp@example.org");
         addFixtureData(url);
-        // Every table has rows, bar the migrations' own record and Airtable's members, which nothing writes.
+        // Every table has rows, bar the migrations' own record.
         const tables = runSql(
           name,
-          "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name NOT IN ('schema_migrations', 'airtable_members', 'airtable_members_erased') ORDER BY 1",
+          "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> 'schema_migrations' ORDER BY 1",
         );
         expect(tables.length).toBeGreaterThan(15);
         for (const table of tables) expect(runSql(name, `SELECT count(*) FROM ${table}`), table).not.toEqual(["0"]);

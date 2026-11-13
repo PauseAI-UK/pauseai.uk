@@ -4,7 +4,7 @@ The UK weekly, and smaller broadcasts such as one to a local group, sent
 from pauseai.uk instead of CiviCRM, so each email can be personal, with
 events near the reader and their MP. It uses the Broadcasts pages at
 `/staff/broadcasts`, and comes in six phases, a pull request each.
-Phases 1 to 4 are merged (the last, #318); 5, 5½ and 6 are to come.
+Phases 1 to 4 and 5½ are merged; 5 and 6 are to come.
 
 ## Now
 
@@ -440,28 +440,6 @@ the person ticks it themselves.
 More filters and lozenges in Broadcasts, so an email can carry such
 things as events near the reader, the main events with how many have
 signed up, and their MP. Deliberately not specified yet.
-
-### 5½. Drop Airtable's members
-
-CiviCRM returns every member the Airtable import reads (checked on
-production on 13 November), so the members come from CiviCRM alone. The
-65 members CiviCRM leaves out on purpose go, with the 53 supporters only
-they gave us: we're not to hold them.
-
-In two pull requests, as a migration must work with the code still
-running during a deploy:
-
-1. The import goes (`import-members`, `fetchMembers()`,
-   `lookUpNewMembers()`), and nothing in the code reads Airtable's members.
-   Its migration deletes the members, their links, the supporters left with
-   none and the import's runs. The tables and views stay, empty.
-2. Once that's deployed, a migration drops `airtable_members`,
-   `airtable_members_erased`, `supporter_links.airtable_member_id` and the
-   Airtable views, takes the Airtable arms out of `contact_permission()`,
-   `merge_supporters_by_phone()`, the union views, `supporters_summary`
-   and the permissions views, and `import-members` out of `import_runs`'
-   check. The tests of those arms go with it. `AIRTABLE_TOKEN` then needs
-   no access to the members' base.
 
 ### 6. The weekly, scheduled each week
 
