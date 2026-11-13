@@ -185,12 +185,10 @@ export default function PrivacyPolicy() {
 
       <h2>How long we keep it</h2>
       <p>
-        We keep letters and event data until you ask us to erase them. The record that you unsubscribed, or that an
-        address bounced, stays after erasure, because it exists to stop us emailing you. Backups expire by themselves.
-      </p>
-      <p>
-        ⁂ We keep each text we sent you, and whether it was delivered and read, until you ask us to erase your data. The
-        record that you stopped our texts stays after erasure, so we never text you again.
+        We keep what we hold about you, such as your letters, the events you registered for, and the emails and texts we
+        sent you, until you ask us to erase it. We keep one thing after that: that you asked us to stop emailing or
+        texting you, or that an email to you bounced, so we never contact you again. Copies in our backups are deleted
+        within 90 days.
       </p>
 
       <h2>Asking for your data to be erased, or for a copy of it</h2>
