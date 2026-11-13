@@ -524,7 +524,7 @@ test("A stopped mailing", async ({ page, request, flowDatabase }) => {
 
 test("Gmail refuses a letter", async ({ page, request, flowDatabase }) => {
   story("A mailing has been sent, but Gmail refused one of its letters. Its tag says so, in red.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   const id = addMailing(flowDatabase, "Edinburgh follow-up", "sent", ["sent", "not_sent"]);
   const [letter] = runSql(
