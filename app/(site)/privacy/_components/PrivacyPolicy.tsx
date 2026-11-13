@@ -154,8 +154,8 @@ export default function PrivacyPolicy() {
         .
       </p>
       <p>
-        ⁂ We only text you, on WhatsApp, about things you said yes to texts about. Each text says how to stop: reply
-        STOP to stop texts about that, or turn off our messages in WhatsApp&apos;s own settings for us.
+        ⁂ We only text you, on WhatsApp, about things you said yes to texts about. To stop texts on a topic, reply STOP
+        to one of them. To stop them all, turn off our messages in WhatsApp.
       </p>
       <p>
         Before each email goes, we check your address against Stichting PauseAI’s records, so if you’ve asked PauseAI
@@ -173,10 +173,7 @@ export default function PrivacyPolicy() {
       <ul>
         <li>Luma: events and registrations.</li>
         <li>Postmark: sending and receiving email.</li>
-        <li>
-          ⁂ Meta (WhatsApp): sending our texts, telling us whether each was delivered and read, and passing on your
-          replies.
-        </li>
+        <li>Meta (WhatsApp): sending and receiving texts.</li>
         <li>Netlify: hosting the site and its database, with backups kept for 3 to 30 days.</li>
         <li>Cloudflare: our nightly database backup, kept for 90 days, and Turnstile, the anti-spam check.</li>
         <li>postcodes.io: looking up postcodes; it keeps nothing.</li>
