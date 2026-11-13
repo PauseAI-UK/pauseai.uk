@@ -8,7 +8,7 @@ import { constituencyCountry } from "./constituencies";
 import type { Ending, OfficialMember } from "./politician-import";
 import { mpSalutation, peerSalutation, type Gender } from "./salutation";
 
-export const MEMBERS_API = "https://members-api.parliament.uk/api";
+const MEMBERS_API = "https://members-api.parliament.uk/api";
 const MEMBERS_DATA = "https://data.parliament.uk/membersdataplatform/services/mnis/members/query";
 
 /** A member's page on Parliament's site, which staff follow from theirs. */

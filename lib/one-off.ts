@@ -29,7 +29,7 @@ export const PARLIAMENT_DOMAINS = [
  * addresses, which a check constraint on each table also refuses (migration
  * 0124).
  */
-export const SHARED_INBOXES: readonly string[] = ["contactholmember@parliament.uk"];
+const SHARED_INBOXES: readonly string[] = ["contactholmember@parliament.uk"];
 
 /** Whether an address is a shared inbox (SHARED_INBOXES). */
 export function isSharedInbox(address: string): boolean {

@@ -9,9 +9,6 @@ import type { OfficialMember } from "./politician-import";
 
 export const SENEDD_MEMBERS_URL = "https://business.senedd.wales/mgwebservice.asmx/GetCouncillorsByWard";
 
-/** A member's page on the Senedd's site, by the name in it ("peredur-owen-griffiths-ms"). */
-export const SENEDD_PAGES = "https://senedd.wales/people/";
-
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
 /** Text from XML, its entities decoded and its spacing trimmed. */
