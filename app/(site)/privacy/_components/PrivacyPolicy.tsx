@@ -151,13 +151,13 @@ export default function PrivacyPolicy() {
       </p>
 
       <h2>Cookies</h2>
-      <p>⁂ This site keeps a few things in your browser:</p>
+      <p>This site keeps a few things in your browser:</p>
       <ul>
         <li>
-          ⁂ Google Analytics and Google Ads cookies. Turn them off with &ldquo;Cookie settings&rdquo; in the footer.
+          Google Analytics and Google Ads cookies. Turn them off with &ldquo;Cookie settings&rdquo; in the footer.
         </li>
-        <li>⁂ Stichting PauseAI&apos;s Google Analytics cookies, from the join form we show from pauseai.info.</li>
-        <li>⁂ Your letter to your MP while you write it, until you close the tab.</li>
+        <li>Stichting PauseAI&apos;s Google Analytics cookies, from the join form we show from pauseai.info.</li>
+        <li>Your letter to your MP while you write it, until you close the tab.</li>
       </ul>
 
       <p>When we change this policy, we change the date at the top.</p>
