@@ -47,6 +47,9 @@ export type BroadcastSummary = MailingSummary & {
   waiting: boolean;
   /** A draft whose new words WhatsApp rejected, until they're sent again or a template's chosen. */
   rejected: boolean;
+  /** One that stopped by itself, as it hadn't all gone in time, and why: limit, civicrm, pull or template. */
+  gaveUp: boolean;
+  waitReason: string | null;
   /** How many of its copies are in each state (COPY_STATES). */
   states: Record<(typeof COPY_STATES)[number], number>;
 };
@@ -123,6 +126,7 @@ const SELECT_BROADCASTS = `
     m.updated_at AS "updatedAt", m.channel, m.send_by AS "sendBy",
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'pending') AS waiting,
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'rejected') AS rejected,
+    m.gave_up AS "gaveUp", m.wait_reason AS "waitReason",
     min(c.sent_at) AS "sentAt",
     count(c.id)::int AS "to",
     -- As the sending bar counts them (MailingsOverview): those that went, and those done with but not sent.

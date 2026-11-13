@@ -243,6 +243,8 @@ const summary: BroadcastSummary = {
   sendBy: "gmail",
   waiting: false,
   rejected: false,
+  gaveUp: false,
+  waitReason: null,
   states: {
     look: 0,
     "opted-out": 1,

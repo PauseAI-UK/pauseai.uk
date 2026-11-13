@@ -3,7 +3,9 @@ import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { holdCopy } from "./broadcast-sending";
 import { query, transaction } from "./db";
+import { config } from "./config";
 import { notifyStaff } from "./notifications";
+import { managerLink } from "./outside-services/whatsapp";
 import { numberOf, recordWhatsAppResume, recordWhatsAppStop } from "./whatsapp-stops";
 import { markUnreachable, WHATSAPP_ERRORS } from "./whatsapp-texts";
 import { applyTemplateStatus } from "./whatsapp-templates";
@@ -205,7 +207,8 @@ async function applyChange(field: string, value: Record<string, unknown>): Promi
     );
   } else if (ALERTS.includes(field)) {
     const email = staffCopy.notifications.whatsAppAlert;
-    await notifyStaff(email.subject(field), email.body(field, JSON.stringify(value, null, 2)), null, "staff-alert");
+    const body = email.body(field, JSON.stringify(value, null, 2), managerLink(config.whatsappAccountId));
+    await notifyStaff(email.subject(field), body, null, "staff-alert");
     applied++;
   }
   return applied;

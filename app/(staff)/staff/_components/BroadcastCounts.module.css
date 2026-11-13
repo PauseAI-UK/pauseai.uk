@@ -1,0 +1,81 @@
+/* The groups side by side, wrapping between groups, never inside one. */
+.groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  align-items: flex-start;
+}
+
+/* A group: its total over its counts, no frame, so the words above say what they hold. */
+.group {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.total {
+  padding: 0 0 var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.total strong {
+  color: var(--text);
+  font-family: var(--font-display), "Lato", system-ui, sans-serif;
+  font-size: var(--text-lg);
+}
+
+/* The count a list under it shows: underlined, as a chosen tab is. */
+.link[aria-current] {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
+}
+
+/* What needs a look, then how many are fine, then, unfolded, the rest. */
+.needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.link {
+  text-decoration: none;
+}
+
+.fine {
+  padding: 0 var(--space-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.fine:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.rest {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+@media (max-width: 860px) {
+  .needs,
+  .rest {
+    justify-content: flex-start;
+  }
+}

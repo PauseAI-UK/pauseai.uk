@@ -298,7 +298,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
     "Sent, it's back to the list of broadcasts, where the draft says it's waiting for WhatsApp, its row tinted to find it.",
   );
   await page.waitForURL(`${BASE}/staff/broadcasts?submitted=${id}`);
-  await expect(page.getByText(copy.waitingTag)).toBeVisible();
+  await expect(page.getByText(copy.standing.waiting)).toBeVisible();
   await frame(page, "Back on the list, the draft waiting for WhatsApp");
   story("Whoever sent them, and the notification inbox, get the words by email.");
   const sent = newestEmail((one) => one.Cc === staffEmail())!;
@@ -322,7 +322,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await frame(page, "Rejected, and what to do");
   story("The list says so too, until the words go for approval again or a template is chosen.");
   await page.goto(`${BASE}/staff/broadcasts`);
-  await expect(page.getByText(copy.rejectedTag)).toBeVisible();
+  await expect(page.getByText(copy.standing.rejected)).toBeVisible();
   await frame(page, "The list, the draft WhatsApp rejected");
 });
 

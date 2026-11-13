@@ -7,8 +7,11 @@ import {
   BroadcastChannelMark,
   BroadcastChannelName,
   BroadcastWaiting,
+  broadcastCounts,
   CopyStatus,
 } from "@/app/(staff)/staff/_components/BroadcastView";
+import { CountGroups, NeedsAndFine } from "@/app/(staff)/staff/_components/BroadcastCounts";
+import { countsOpening } from "@/app/(staff)/staff/_components/ui/Counts";
 import {
   exampleBroadcastData,
   exampleBroadcastEmail,
@@ -88,6 +91,23 @@ const groups = mailingGroups(
   },
   new Date(now),
 );
+
+/** A text that went to 61: most arrived, some read and replied, one to check, two opted out, and some that didn't go. */
+const EXAMPLE_TEXT_SUMMARY = {
+  ...exampleBroadcastSummary,
+  channel: "text" as const,
+  states: {
+    sent: 3,
+    delivered: 21,
+    read: 25,
+    replied: 3,
+    look: 1,
+    "opted-out": 2,
+    error: 1,
+    unreached: 2,
+    "not-sent": 6,
+  },
+};
 
 export const staffBroadcasts: Group = {
   id: "staff-broadcasts",
@@ -306,6 +326,50 @@ export const staffBroadcasts: Group = {
             <div style={{ display: "flex", gap: "1rem" }}>
               <BroadcastChannelMark channel="email" />
               <BroadcastChannelMark channel="text" />
+            </div>
+          ),
+        },
+      ],
+    },
+    {
+      name: "CountGroups",
+      file: "app/(staff)/staff/_components/BroadcastCounts.tsx",
+      variants: [
+        {
+          label: "A text's counts, those that went and those that didn't, each folding under its total",
+          render: () => {
+            const counts = countsOpening("/staff/broadcasts/5", broadcastCounts(EXAMPLE_TEXT_SUMMARY));
+            const gone = ["error", "unreached", "not-sent"];
+            return (
+              <CountGroups
+                groups={[
+                  { key: "went", label: "went", counts: counts.filter((one) => !gone.includes(one.key)) },
+                  { key: "gone", label: "didn't go", counts: counts.filter((one) => gone.includes(one.key)) },
+                ]}
+              />
+            );
+          },
+        },
+      ],
+    },
+    {
+      name: "NeedsAndFine",
+      file: "app/(staff)/staff/_components/BroadcastCounts.tsx",
+      variants: [
+        {
+          label: "What needs a look, then the rest folded behind how many are fine; and one with nothing to look at",
+          render: () => (
+            <div style={{ display: "grid", gap: "1rem", justifyItems: "end" }}>
+              <NeedsAndFine counts={countsOpening("/staff/broadcasts/5", broadcastCounts(EXAMPLE_TEXT_SUMMARY))} />
+              <NeedsAndFine
+                counts={countsOpening(
+                  "/staff/broadcasts/6",
+                  broadcastCounts({
+                    ...EXAMPLE_TEXT_SUMMARY,
+                    states: { ...EXAMPLE_TEXT_SUMMARY.states, look: 0, "opted-out": 0, error: 0, unreached: 0 },
+                  }),
+                )}
+              />
             </div>
           ),
         },
