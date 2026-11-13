@@ -189,29 +189,61 @@ function googleFound(raw: string): Finding[] | undefined {
 }
 
 /**
+ * The domain Google Workspace signs a domain's mail with when the domain
+ * has no DKIM key of its own: example-org.20260707.gappssmtp.com for
+ * example.org. Google signs with it only for the Workspace that holds the
+ * domain, so a pass for it is the domain's own.
+ */
+const workspaceSigner = /^([a-z0-9-]+)\.\d+\.gappssmtp\.com$/;
+
+/**
+ * The service many MPs' offices send through, which signs every office's
+ * mail with its own domain, whatever the From. It sends only for offices
+ * that use it, so its pass for a politician's own domain is the office's.
+ */
+const CASEWORKER_MP = "caseworkermp.com";
+
+/**
  * Whether Google's servers found a message is from the domain of `from`
  * (googleFound): it passed DMARC, for a From aligned with it; or, where
  * the domain has no DMARC policy, SPF or DKIM passed for a domain aligned
- * with it. Each result is read from its own clause, with the domain that
- * clause names. Not if DMARC has two results, as Google gives one, so the
- * other is someone's addition.
+ * with it, or DKIM for its Google Workspace (workspaceSigner). For a
+ * `politician`'s own domain, DKIM passing for Caseworker MP is enough
+ * (CASEWORKER_MP). Each result is read from its own clause, with the
+ * domain that clause names. Not if DMARC has two results, as Google gives
+ * one, so the other is someone's addition.
  */
-export function authenticated(raw: string, from: string): boolean {
+export function authenticated(raw: string, from: string, politician = false): boolean {
   const found = googleFound(raw);
   if (!found) return false;
   const domain = domainOf(from);
   const of = (method: string) => found.filter((finding) => finding.method === method);
-  const passed = (finding: Finding, ...names: string[]) => {
-    const about = names.map((name) => finding.properties.get(name)).find(Boolean);
-    return finding.result === "pass" && !!about && aligned(domainOf(about), domain);
+  const about = (finding: Finding, ...names: string[]) => {
+    const value = names.map((name) => finding.properties.get(name)).find(Boolean);
+    return finding.result === "pass" && value ? domainOf(value) : undefined;
   };
+  const passed = (finding: Finding, ...names: string[]) => {
+    const value = about(finding, ...names);
+    return !!value && aligned(value, domain);
+  };
+  const signers = of("dkim").flatMap((d) => about(d, "header.d", "header.i") ?? []);
   const dmarc = of("dmarc");
   if (dmarc.length > 1) return false;
+  if (politician && signers.some((s) => s === CASEWORKER_MP || s.endsWith(`.${CASEWORKER_MP}`))) return true;
   if (dmarc.length && dmarc[0].result !== "none") return passed(dmarc[0], "header.from");
   const spf = of("spf");
   return (
-    (spf.length === 1 && passed(spf[0], "smtp.mailfrom")) || of("dkim").some((d) => passed(d, "header.d", "header.i"))
+    (spf.length === 1 && passed(spf[0], "smtp.mailfrom")) ||
+    signers.some((s) => aligned(s, domain) || workspaceSigner.exec(s)?.[1] === domain.replaceAll(".", "-"))
   );
+}
+
+/** Whether an address is at a politician's own domain, or under one (politician_domains). */
+async function isPoliticians(address: string): Promise<boolean> {
+  const [row] = await query("SELECT 1 FROM politician_domains WHERE $1 = domain OR $1 LIKE '%.' || domain LIMIT 1", [
+    domainOf(address),
+  ]);
+  return !!row;
 }
 
 /** Whether an address is the office's: an address of Parliament's, or the one the letter went to. */
@@ -479,7 +511,7 @@ async function readMessage(
     // What received it, as every email's event says (sentBy in email.ts).
     ...sentBy({ name: "gmail", account }),
   };
-  if (!authenticated(raw.toString("latin1"), from.address)) {
+  if (!authenticated(raw.toString("latin1"), from.address, await isPoliticians(from.address))) {
     await letterEvent(letterId, "not_relayed", { ...event, reason: "not_verified" });
     return notUnderstood("not_verified");
   }

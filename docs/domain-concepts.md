@@ -306,8 +306,10 @@ time they're written to, and kept.
 
   A relay is the same message, byte for byte, with only the headers ours
   (`relayMime`), and nobody the office copied in gets it. Only mail that
-  Google found passes DMARC (or, with no policy, aligned SPF or DKIM) is
-  relayed. That's read from the first `Authentication-Results` field in the
+  Google found passes DMARC (or, with no policy, aligned SPF or DKIM, or
+  DKIM by the domain's Google Workspace) is relayed. From an MP's own
+  domain, DKIM by Caseworker MP, the casework service many offices send
+  through, is enough too. That's read from the first `Authentication-Results` field in the
   message, which is Google's, each result from its own clause
   (`authenticated`): the fields below it, and much of what Google's own
   repeats, are the sender's to write.
