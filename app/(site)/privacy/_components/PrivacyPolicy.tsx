@@ -115,15 +115,15 @@ export default function PrivacyPolicy() {
 
       <h2>Who processes this data for us</h2>
       <ul>
-        <li>⁂ Stripe: donations.</li>
+        <li>Stripe: donations.</li>
         <li>Luma: events and registrations.</li>
         <li>Postmark: sending and receiving email.</li>
         <li>Meta (WhatsApp): sending and receiving texts.</li>
-        <li>⁂ Google (Gmail): sending letters to MPs and passing on replies.</li>
-        <li>⁂ Netlify: hosting the site and its database.</li>
-        <li>⁂ Cloudflare: backups, and Turnstile, the anti-spam check.</li>
+        <li>Google (Gmail): sending and receiving email, including your letters to your MP.</li>
+        <li>Netlify: hosting the site and its database.</li>
+        <li>Cloudflare: backups, and Turnstile, the anti-spam check.</li>
         <li>postcodes.io: looking up postcodes; it keeps nothing.</li>
-        <li>⁂ Airtable: our records of MPs and of members.</li>
+        <li>Airtable: our records of MPs and of members.</li>
       </ul>
       <p>
         ⁂ We do not sell your personal data. Where a provider is outside the UK, the transfer is protected by UK
