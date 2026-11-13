@@ -181,13 +181,15 @@ function stop(dir) {
 }
 
 /** Runs the worktree's own copy of the database script, as the migrations are that branch's. */
-function freshDatabase(dir, name, email) {
+function freshDatabase(dir, name, email, key) {
   const script = `
-    import { addFixtureData, addTestMps, freshDatabase, giveAdminSupporters } from "./scripts/fresh-database.mjs";
-    const url = freshDatabase(${JSON.stringify(name)});
-    addTestMps(url, ${JSON.stringify(email)});
-    addFixtureData(url);
-    giveAdminSupporters(url);
+    import * as db from "./scripts/fresh-database.mjs";
+    const url = db.freshDatabase(${JSON.stringify(name)});
+    db.addTestMps(url, ${JSON.stringify(email)});
+    db.addFixtureData(url);
+    db.giveAdminSupporters(url);
+    // So answers to the fake replies to broadcasts go from hello@; a branch from before it has no such step.
+    db.connectBroadcastMailbox?.(url, ${JSON.stringify(key)});
     console.log(url);`;
   return execFileSync("node", ["--input-type=module", "-e", script], { cwd: dir, encoding: "utf8" }).trim();
 }
@@ -247,7 +249,7 @@ async function main(args) {
   // The clock runs, and no analytics: it's to use, not to picture.
   delete env.FIXTURE_NOW;
   delete env.ANALYTICS;
-  env.NETLIFY_DB_URL = freshDatabase(dir, `pauseai_serve_${hash}`, TEST_MP_EMAIL);
+  env.NETLIFY_DB_URL = freshDatabase(dir, `pauseai_serve_${hash}`, TEST_MP_EMAIL, env.GMAIL_TOKEN_KEY);
 
   // In its own process group, so stopping it stops what it starts.
   const server = spawn(

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import ProsePage, { ProseMeta } from "@/components/ui/ProsePage";
 
 // The privacy policy for PauseAI UK (Safe AI Alliance Ltd).
@@ -141,6 +142,23 @@ export default function PrivacyPolicy() {
         and whether you asked for updates. We keep it with the rest of your record until you ask us to erase it.
         Stichting PauseAI keeps its own copy under its own policy.
       </p>
+
+      <h2>How we contact you</h2>
+      <p>
+        We only email you when you opted in - either to our newsletter, messages about events or you said you’d like to
+        volunteer. Every email has a link at the bottom to unsubscribe or change the emails you get. Or check your
+        settings now on the{" "}
+        <Link className="inline-link" href="/contact-preferences">
+          contact preferences page
+        </Link>
+        .
+      </p>
+      <p>
+        Before each email goes, we check your address against Stichting PauseAI’s records, so if you’ve asked PauseAI
+        not to email you, we won’t. When you unsubscribe from us, we tell Stichting PauseAI. If you stop all bulk email,
+        their emails stop too.
+      </p>
+      <p>If you reply to one of our emails, we keep your reply.</p>
 
       <h2>Who processes this data for us</h2>
       <ul>

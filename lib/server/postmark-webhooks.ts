@@ -15,8 +15,8 @@ import { messageIds } from "@/lib/email-parsing/mime";
 import { claimOneOffs, hasMessage } from "./letter-replies";
 import { saveLetterReply } from "./outside-services/blobs";
 
-// What Postmark tells us: bounces and spam complaints, and replies to
-// letters. Postmark doesn't sign webhooks, so each webhook URL carries a
+// What Postmark tells us: bounces and spam complaints, deliveries of
+// copies of broadcasts, and replies to letters. Postmark doesn't sign webhooks, so each webhook URL carries a
 // username and password (basic auth, over HTTPS), and requests without them
 // are refused.
 
@@ -76,6 +76,26 @@ export function deliveryProblem(payload: PostmarkProblem): DeliveryProblem | und
     canReset: payload.CanActivate === true,
     details: { type: payload.Type },
   };
+}
+
+/** Postmark's delivery webhook's payload, as far as we read it. */
+export type PostmarkDelivery = { RecordType?: string; MessageID?: string; DeliveredAt?: string };
+
+/**
+ * Marks a copy of a broadcast delivered, once, from Postmark's delivery
+ * webhook, which the broadcast stream has. Returns whether it was a delivery,
+ * whatever it was of.
+ */
+export async function recordDelivery(payload: PostmarkDelivery): Promise<boolean> {
+  if (payload.RecordType !== "Delivery") return false;
+  const at = payload.DeliveredAt && !Number.isNaN(Date.parse(payload.DeliveredAt)) ? payload.DeliveredAt : now();
+  await query(
+    `WITH copy AS (
+       UPDATE broadcast_messages SET status = 'delivered' WHERE provider_message_id = $1 AND status = 'sent' RETURNING id)
+     INSERT INTO broadcast_message_events (message_id, kind, at) SELECT id, 'delivered', $2 FROM copy`,
+    [payload.MessageID ?? null, at],
+  );
+  return true;
 }
 
 /**

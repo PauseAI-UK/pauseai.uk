@@ -769,6 +769,10 @@ describe("the rest", () => {
     expect(link(staffCopy.oneOff.title).query()).toBeNull();
     await says(staffCopy.oneOff.notKept.before);
     await expect.element(link(staffCopy.mailings.title)).toHaveAttribute("href", "/staff/mailings");
+    // hello@'s sends the broadcasts too.
+    await rerender(<MyGmail {...props} me="hello@pauseai.uk" />);
+    await says(staffCopy.oneOff.notKeptBroadcasts.before);
+    await expect.element(link(staffCopy.broadcastPages.title)).toHaveAttribute("href", "/staff/broadcasts");
     await rerender(<MyGmail {...props} lettersInbox />);
     expect(link(staffCopy.mailings.title).query()).toBeNull();
   });

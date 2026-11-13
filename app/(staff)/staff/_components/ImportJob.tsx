@@ -141,7 +141,10 @@ const ABOUT: Record<
   "send-mailings": {
     intro: staffCopy.sending.intro,
     href: "/staff/campaigns",
-    then: [{ ...staffCopy.sending.introThen, href: "/staff/mailings" }],
+    then: [
+      { ...staffCopy.sending.introThen, href: "/staff/mailings" },
+      { ...staffCopy.sending.introLast, href: "/staff/broadcasts" },
+    ],
     button: staffCopy.sending.sendNow,
     none: staffCopy.sending.never,
   },
@@ -204,9 +207,9 @@ function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | 
 
 /** /staff/scheduled-jobs: a card per job, each a link to its page, with how its newest run ended. */
 /** The overview's sections, each the jobs that run that often, in this order. */
-const SCHEDULES = ["frequent", "hourly", "nightly"] as const;
+const SCHEDULES = ["frequent", "quarter-hour", "hourly", "nightly"] as const;
 
-/** Every job, a card each, under a heading for how often it runs: every 5 minutes, hourly, then nightly. */
+/** Every job, a card each, under a heading for how often it runs: every 5 minutes, every 15, hourly, then nightly. */
 export function ImportOverview({
   newest,
   running,

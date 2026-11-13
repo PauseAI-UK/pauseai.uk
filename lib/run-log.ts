@@ -15,8 +15,8 @@ const RECENT_ROWS = 12;
 /** A run shown whole, in a table's row, or as part of a line saying nothing happened. */
 type Shape = "run" | "rows" | "quiet";
 
-/** Whether a job makes many runs a day: one every 5 minutes. */
-const runsOften = (job: ImportJob) => jobSchedule(job) === "frequent";
+/** Whether a job makes many runs a day: one every 5 or 15 minutes. */
+const runsOften = (job: ImportJob) => ["frequent", "quarter-hour"].includes(jobSchedule(job));
 
 /** Whether a job's page lays its history out as a table of the day's runs: one that runs often, or hourly. */
 export function tabled(job: ImportJob): boolean {

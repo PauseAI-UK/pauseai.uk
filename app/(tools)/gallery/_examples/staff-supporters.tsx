@@ -3,12 +3,13 @@
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
 import { NoteFrom } from "@/app/(staff)/staff/_components/Notes";
+import DevPreferences from "@/app/(staff)/staff/_components/DevPreferences";
 import EraseLink from "@/app/(staff)/staff/_components/EraseLink";
 import ErasedNotice from "@/app/(staff)/staff/_components/ErasedNotice";
 import { LumaReading } from "@/app/(staff)/staff/_components/SignupUploadPreview";
 import SupporterBadges from "@/app/(staff)/staff/_components/SupporterBadges";
 import SubscriptionBadges from "@/app/(staff)/staff/_components/SubscriptionBadges";
-import ChannelIcon from "@/app/(staff)/staff/_components/ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import SupporterDetails from "@/app/(staff)/staff/_components/SupporterDetails";
 import SupporterFilters from "@/app/(staff)/staff/_components/SupporterFilters";
 import SupportersTable from "@/app/(staff)/staff/_components/SupportersTable";
@@ -33,6 +34,7 @@ import {
   NoteChangesExample,
   NoteEntryExample,
   NotesCardExample,
+  OptOutFormExample,
   NoteTextExample,
   SignupPlanViewExample,
   SignupUploadFormExample,
@@ -181,7 +183,7 @@ export const staffSupporters: Group = {
     },
     {
       name: "ChannelIcon",
-      file: "app/(staff)/staff/_components/ChannelIcon.tsx",
+      file: "components/ui/ChannelIcon.tsx",
       variants: [
         {
           label: "Email and phone, named, and as decoration",
@@ -387,6 +389,36 @@ export const staffSupporters: Group = {
       ],
     },
     {
+      name: "OptOutForm",
+      file: "app/(staff)/staff/_components/OptOutForm.tsx",
+      variants: [
+        { label: "Closed: the button that opens it", render: () => <OptOutFormExample /> },
+        {
+          label: "Opened: what of, at which address or number, and how they told us",
+          render: () => <OptOutFormExample opened />,
+        },
+      ],
+    },
+    {
+      name: "DevPreferences",
+      file: "app/(staff)/staff/_components/DevPreferences.tsx",
+      variants: [
+        {
+          label: "At the foot of a supporter's consents, in a fixture build only",
+          render: () => (
+            <DevPreferences
+              emails={["jane.smith@example.com", "jane@example.org"]}
+              permissions={[
+                { address: "jane.smith@example.com", topic: "newsletter", way: "email", send: "yes" },
+                { address: "jane.smith@example.com", topic: "events", way: "email", send: "yes" },
+              ]}
+              fixtures
+            />
+          ),
+        },
+      ],
+    },
+    {
       name: "NoteText",
       file: "app/(staff)/staff/_components/Notes.tsx",
       variants: [{ label: "With addresses, as links, on two lines", render: () => <NoteTextExample /> }],
@@ -414,7 +446,13 @@ export const staffSupporters: Group = {
     {
       name: "SignupPlanView",
       file: "app/(staff)/staff/_components/SignupUploadPreview.tsx",
-      variants: [{ label: "Someone in every pile", render: () => <SignupPlanViewExample /> }],
+      variants: [
+        {
+          label:
+            "Someone in every pile, one emailed how to lift “No bulk emails”, with the email they'll get, and one with “Do not email”",
+          render: () => <SignupPlanViewExample />,
+        },
+      ],
     },
     {
       name: "LumaReading",

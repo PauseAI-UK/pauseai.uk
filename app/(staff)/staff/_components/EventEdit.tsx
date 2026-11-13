@@ -8,7 +8,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { EventSaved } from "@/lib/server/staff-events";
 import { GOOGLE_DOC_PATTERN } from "@/lib/staff-forms";
-import Bubble from "./ui/Bubble";
+import Bubble from "@/components/ui/Bubble";
 import Notice from "./ui/Notice";
 import styles from "./EventsTable.module.css";
 
@@ -42,7 +42,7 @@ export function EventsEditing({ children }: { children: ReactNode }) {
 
 /**
  * An event's Edit button, at its row's right, which opens a bubble under
- * it (ui/Bubble), over the table, so the row doesn't move: its owner, any staff
+ * it (components/ui/Bubble), over the table, so the row doesn't move: its owner, any staff
  * account, and the link to its Google Doc, only to Google Docs or Drive,
  * blank to clear it; Save, off till they differ from what's saved, saves
  * them together and closes it, and Cancel closes it as it was. With no owner, that's the select's first choice,

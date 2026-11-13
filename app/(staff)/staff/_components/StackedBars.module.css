@@ -96,7 +96,7 @@
   height: 0.7rem;
   margin-right: var(--space-1);
   border-radius: var(--radius-sm);
-  vertical-align: -1px;
+  vertical-align: middle;
 }
 
 /* What a pointed-at bar holds, floating over the chart: as wide as its lines, whatever room the bar's place leaves it. */

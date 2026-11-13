@@ -9,7 +9,9 @@ import styles from "./IconText.module.css";
 export default function IconText({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
     <span>
-      <span className={styles.icon}>{icon}</span>
+      <span className={styles.icon} data-beside="lowercase">
+        {icon}
+      </span>
       {children}
     </span>
   );

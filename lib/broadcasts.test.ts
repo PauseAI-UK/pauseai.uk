@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { daysInWords, SENDING_DAYS } from "./broadcast-days";
 import { staffCopy } from "./content/staff-interface";
 import { EMPTY_MAILING_DOC, type MailingDoc } from "./mailing-doc";
 import {
@@ -12,6 +13,8 @@ import {
   textCost,
   broadcastScheduleProblems,
   broadcastTerms,
+  isAvailableSendBy,
+  sendingDays,
   textSender,
   type SchedulingBroadcast,
 } from "./broadcasts";
@@ -206,24 +209,31 @@ describe("firstNameOf", () => {
 const WORDS: MailingDoc = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Hello" }] }] };
 
 describe("broadcastTerms", () => {
-  it("takes the channel and topic from one topic answered yes, a number's being by text", () => {
-    expect(broadcastTerms("email:newsletter:yes")).toEqual({ channel: "email", topic: "newsletter" });
-    expect(broadcastTerms(["text:events:yes"])).toEqual({ channel: "text", topic: "events" });
+  it("takes the channel and topics from topics answered yes by one way, a number's being by text", () => {
+    expect(broadcastTerms("email:newsletter:yes")).toEqual({ channel: "email", topics: ["newsletter"] });
+    expect(broadcastTerms(["text:events:yes"])).toEqual({ channel: "text", topics: ["events"] });
+    // Any of them, by one channel, in TOPICS' order whatever the filter's.
+    expect(broadcastTerms(["email:volunteering:yes", "email:newsletter:yes", "email:events:yes"])).toEqual({
+      channel: "email",
+      topics: ["newsletter", "events", "volunteering"],
+    });
   });
 
   it("ignores what the filter leaves out", () => {
     expect(broadcastTerms(["email:newsletter:yes", "!email:events:yes"])).toEqual({
       channel: "email",
-      topic: "newsletter",
+      topics: ["newsletter"],
     });
   });
 
-  it("gives none without one topic answered yes, as not sure isn't enough", () => {
+  it("gives none without topics answered yes by one way, as not sure isn't enough, nor calls", () => {
     expect(broadcastTerms(undefined)).toBeUndefined();
     expect(broadcastTerms("nonsense")).toBeUndefined();
     expect(broadcastTerms("email:newsletter:unsure")).toBeUndefined();
     expect(broadcastTerms("email:newsletter")).toBeUndefined();
-    expect(broadcastTerms(["email:newsletter:yes", "email:events:yes"])).toBeUndefined();
+    expect(broadcastTerms(["email:newsletter:yes", "text:events:yes"])).toBeUndefined();
+    expect(broadcastTerms(["email:newsletter:yes", "email:events:no"])).toBeUndefined();
+    expect(broadcastTerms("call:volunteering:yes")).toBeUndefined();
   });
 });
 
@@ -233,8 +243,8 @@ it("says what texts cost, and at what rate", () => {
 });
 
 describe("a text's sender", () => {
-  it("is the name, then the number in brackets", () => {
-    expect(textSender("PauseAI UK", "+447700900000")).toBe("PauseAI UK (07700 900000)");
+  it("is the name, then the number, a dot between", () => {
+    expect(textSender("PauseAI UK", "+447700900000")).toBe("PauseAI UK · 07700 900000");
   });
 });
 
@@ -309,6 +319,35 @@ describe("fakeRecipient", () => {
   });
 });
 
+describe("daysInWords", () => {
+  it("says a number of days in words, but a large one in figures", () => {
+    expect(daysInWords(1)).toBe("one day");
+    expect(daysInWords(7)).toBe("seven days");
+    expect(daysInWords(12)).toBe("12 days");
+  });
+});
+
+describe("sendingDays", () => {
+  it("is one day while what's left today is enough, then one more for each day's limit after", () => {
+    expect(sendingDays(1800, 1800)).toBe(1);
+    expect(sendingDays(1801, 1800)).toBe(2);
+    expect(sendingDays(10, 0)).toBe(2);
+    expect(sendingDays(3600, 0)).toBe(3);
+    expect(sendingDays(3601, 0)).toBe(4);
+    expect(sendingDays(250, 100, 50)).toBe(4);
+    expect(sendingDays(1_000_000, null)).toBe(1);
+  });
+});
+
+describe("isAvailableSendBy", () => {
+  it("is so of Gmail, but not of Postmark yet, nor of anything else", () => {
+    expect(isAvailableSendBy("gmail")).toBe(true);
+    expect(isAvailableSendBy("postmark")).toBe(false);
+    expect(isAvailableSendBy("pigeon")).toBe(false);
+    expect(isAvailableSendBy(null)).toBe(false);
+  });
+});
+
 describe("broadcastScheduleProblems", () => {
   const good: SchedulingBroadcast = {
     channel: "email",
@@ -320,6 +359,7 @@ describe("broadcastScheduleProblems", () => {
     unknown: [],
     byGmail: false,
     connected: false,
+    remaining: null,
     approved: true,
     numbered: true,
     sends: true,
@@ -383,10 +423,17 @@ describe("broadcastScheduleProblems", () => {
     expect(broadcastScheduleProblems({ ...good, numbered: false })).toEqual([]);
   });
 
-  it("holds a Gmail to being connected, but not to its daily limit, as the rest go the next day", () => {
-    expect(broadcastScheduleProblems({ ...good, byGmail: true, recipients: 5000 })).toEqual(["not-connected"]);
-    expect(broadcastScheduleProblems({ ...good, byGmail: true, connected: true, recipients: 5000 })).toEqual([]);
-    expect(broadcastScheduleProblems({ ...good, byGmail: true, connected: true })).toEqual([]);
+  it("holds one by Gmail to its Gmail being connected, and to all going within SENDING_DAYS at its daily limit", () => {
+    const gmail = { ...good, byGmail: true, connected: true, remaining: 1000 };
+    expect(broadcastScheduleProblems({ ...gmail, connected: false })).toEqual(["not-connected"]);
+    expect(broadcastScheduleProblems(gmail)).toEqual([]);
+    // What's left today, then a day's limit each day after.
+    const most = 1000 + (SENDING_DAYS - 1) * 1800;
+    expect(broadcastScheduleProblems({ ...gmail, recipients: most })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...gmail, recipients: most + 1 })).toEqual(["too-slow"]);
+    // With no limit, however many; and a text has none.
+    expect(broadcastScheduleProblems({ ...good, recipients: 50_000 })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...gmail, channel: "text", recipients: 50_000 })).toEqual([]);
   });
 
   it("won't send into the past", () => {

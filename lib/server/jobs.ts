@@ -56,9 +56,12 @@ export const ANOTHER_RUNNING = { stoppedBy: "running" } as const;
 /**
  * Runs a job, unless a run of it is going, whoever started that, and says
  * what the run did, or ANOTHER_RUNNING. A failure is kept as a failed run,
- * then thrown on.
+ * then thrown on. `request` is the call's, for the links a run emails: the
+ * cron route's own, or a Server Action's stand-in (actionRequest). It must
+ * be given, even as undefined, so a caller can't forget it and leave a
+ * local build unable to say its own address.
  */
-export async function runJob(job: ImportJob, startedBy: string, request?: Request): Promise<unknown> {
+export async function runJob(job: ImportJob, startedBy: string, request: Request | undefined): Promise<unknown> {
   if (!(await startRunning(job, startedBy))) return ANOTHER_RUNNING;
   try {
     return await RUNS[job](startedBy, request);

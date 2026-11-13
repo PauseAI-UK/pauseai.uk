@@ -8,8 +8,9 @@ import FilterBar from "@/app/(staff)/staff/_components/ui/FilterBar";
 import Choices from "@/app/(staff)/staff/_components/ui/Choices";
 import ManyChoices, { NotWords } from "@/app/(staff)/staff/_components/ui/ManyChoices";
 import Menu from "@/app/(staff)/staff/_components/ui/Menu";
-import Bubble, { BubbleBox } from "@/app/(staff)/staff/_components/ui/Bubble";
-import { bubbleTrigger } from "@/app/(staff)/staff/_components/ui/bubble-trigger";
+import MenuSelect from "@/app/(staff)/staff/_components/ui/MenuSelect";
+import Bubble, { BubbleBox } from "@/components/ui/Bubble";
+import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import CopyButton from "@/app/(staff)/staff/_components/ui/CopyButton";
 import Alert from "@/app/(staff)/staff/_components/Alert";
 import AlertIcon from "@/app/(staff)/staff/_components/AlertIcon";
@@ -18,7 +19,7 @@ import Breadcrumb from "@/app/(staff)/staff/_components/ui/Breadcrumb";
 import LockIcon from "@/app/(staff)/staff/_components/ui/LockIcon";
 import NotIcon from "@/app/(staff)/staff/_components/ui/NotIcon";
 import IconText from "@/app/(staff)/staff/_components/ui/IconText";
-import ChannelIcon from "@/app/(staff)/staff/_components/ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import ListFrame, { ListTable, type ListColumn } from "@/app/(staff)/staff/_components/ui/ListFrame";
 import Withheld from "@/app/(staff)/staff/_components/ui/Withheld";
 import ChoiceSearch from "@/app/(staff)/staff/_components/ui/ChoiceSearch";
@@ -31,7 +32,7 @@ import NavIcon from "@/app/(staff)/staff/_components/NavIcon";
 import SortHeading from "@/app/(staff)/staff/_components/SortHeading";
 import Table from "@/components/ui/Table";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
-import Band, { BandFact } from "@/app/(staff)/staff/_components/ui/Band";
+import Band, { BandFact, Facts } from "@/app/(staff)/staff/_components/ui/Band";
 import Counts, { countsOpening } from "@/app/(staff)/staff/_components/ui/Counts";
 import DownloadMenu from "@/app/(staff)/staff/_components/ui/DownloadMenu";
 import Empty from "@/app/(staff)/staff/_components/ui/Empty";
@@ -803,6 +804,26 @@ export const staffKit: Group = {
       ],
     },
     {
+      name: "Facts",
+      file: "app/(staff)/staff/_components/ui/Band.tsx",
+      variants: [
+        {
+          label: "Facts on their own, in a card, as a broadcast's Send step lists what will go",
+          render: () => (
+            <StaffPage as="div">
+              <Facts>
+                <BandFact label="Sends">412 emails</BandFact>
+                <BandFact label="From" detail="by email">
+                  PauseAI UK &lt;hello@pauseai.uk&gt;
+                </BandFact>
+                <BandFact label="When">Fri 16 Oct at 14:18</BandFact>
+              </Facts>
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
       name: "Counts",
       file: "app/(staff)/staff/_components/ui/Counts.tsx",
       variants: [
@@ -1543,6 +1564,47 @@ export const staffKit: Group = {
       ],
     },
     {
+      name: "MenuSelect",
+      file: "app/(staff)/staff/_components/ui/MenuSelect.tsx",
+      variants: [
+        {
+          label: "A dropdown in a form, its choices in groups with icons, as the filters' menus show them",
+          render: () => (
+            <StaffPage as="div">
+              <MenuSelect
+                id="example-menu-select"
+                name="choice"
+                label="What they opted out of"
+                placeholder="Choose…"
+                options={[
+                  {
+                    value: "e1",
+                    label: "UK newsletter",
+                    group: { label: "jane@example.com (email)", icon: <ChannelIcon channel="email" /> },
+                  },
+                  {
+                    value: "e2",
+                    label: "Every bulk email",
+                    group: { label: "jane@example.com (email)", icon: <ChannelIcon channel="email" /> },
+                  },
+                  {
+                    value: "t1",
+                    label: "Events only",
+                    group: { label: "07700 900123 (text)", icon: <ChannelIcon channel="text" /> },
+                  },
+                  {
+                    value: "c1",
+                    label: "Volunteering",
+                    group: { label: "07700 900123 (call)", icon: <ChannelIcon channel="call" /> },
+                  },
+                ]}
+              />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
       name: "MenuSubmit",
       file: "app/(staff)/staff/_components/ui/MenuSubmit.tsx",
       variants: [
@@ -1558,7 +1620,7 @@ export const staffKit: Group = {
     },
     {
       name: "Bubble",
-      file: "app/(staff)/staff/_components/ui/Bubble.tsx",
+      file: "components/ui/Bubble.tsx",
       variants: [
         {
           label: "A button that opens a form or a few words, pointing to it",
@@ -1574,7 +1636,7 @@ export const staffKit: Group = {
     },
     {
       name: "BubbleBox",
-      file: "app/(staff)/staff/_components/ui/Bubble.tsx",
+      file: "components/ui/Bubble.tsx",
       variants: [
         {
           label: "The bubble alone, for a button of its own look",

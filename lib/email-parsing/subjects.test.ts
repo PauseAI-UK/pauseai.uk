@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAcknowledgement, isMachineReply, plainSubject, sameSubject } from "./subjects";
+import { answerSubject, isAcknowledgement, isMachineReply, plainSubject, sameSubject } from "./subjects";
 
 describe("isMachineReply", () => {
   const reply = (headers: Record<string, string>, subject = "Re: Your letter") =>
@@ -54,5 +54,12 @@ describe("a reply's subject", () => {
       expect(isAcknowledgement(subject)).toBe(true);
     }
     expect(isAcknowledgement("Thanks, I'll sign")).toBe(false);
+  });
+});
+
+describe("answerSubject", () => {
+  it("puts Re: before a subject once", () => {
+    expect(answerSubject("News")).toBe("Re: News");
+    expect(answerSubject("RE: News")).toBe("RE: News");
   });
 });

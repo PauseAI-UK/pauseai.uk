@@ -216,14 +216,14 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     await query("UPDATE mailings SET state = 'scheduled' WHERE id = $1", [id]);
     for (const bad of [
       { id: "x" },
-      { id: String(id), day: "soon", hour: "9" },
-      { id: String(id), day: "2099-07-01", hour: "24" },
+      { id: String(id), day: "soon", hour: "9", minute: "3" },
+      { id: String(id), day: "2099-07-01", hour: "24", minute: "3" },
     ] as Record<string, string>[]) {
       await rescheduleMailingNow(form(bad));
     }
     expect((await getWrittenMailing(id))!.dueAt).toEqual(new Date("2099-01-01T09:00:00Z"));
-    await rescheduleMailingNow(form({ id: String(id), day: "2099-07-01", hour: "10" }));
-    expect((await getWrittenMailing(id))!.dueAt).toEqual(new Date("2099-07-01T09:00:00Z"));
+    await rescheduleMailingNow(form({ id: String(id), day: "2099-07-01", hour: "10", minute: "3" }));
+    expect((await getWrittenMailing(id))!.dueAt).toEqual(new Date("2099-07-01T09:03:00Z"));
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/mailings/${id}`);
 
     await stopMailingNow(form({ id: "x" }));

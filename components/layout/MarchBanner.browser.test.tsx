@@ -4,8 +4,12 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import MarchBanner from "./MarchBanner";
 
+const at = vi.hoisted(() => ({ path: null as string | null }));
+vi.mock("next/navigation", () => ({ usePathname: () => at.path }));
+
 afterEach(() => {
   vi.useRealTimers();
+  at.path = null;
 });
 
 describe("MarchBanner", () => {
@@ -19,6 +23,16 @@ describe("MarchBanner", () => {
     await expect
       .element(page.getByRole("link", { name: "Register →" }))
       .toHaveAttribute("href", "/protests/march-against-ai-extinction-nov-26");
+  });
+
+  it("isn't on the contact preferences pages, but is on others", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-15T09:00:00Z"), toFake: ["Date"] });
+    at.path = "/contact-preferences/abc";
+    const { container, rerender } = await render(<MarchBanner />);
+    expect(container.querySelector("aside")).toBeNull();
+    at.path = "/donate";
+    await rerender(<MarchBanner />);
+    expect(container.querySelector("aside")).not.toBeNull();
   });
 
   it("goes after the march", async () => {

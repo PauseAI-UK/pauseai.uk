@@ -29,8 +29,8 @@ export default function ChannelWriter({
     body: EMPTY_MAILING_DOC,
     template: null,
   };
-  // To no one yet, as who it goes to depends on the Consent still to be chosen.
-  const data = { ...props.data, count: 0, recipients: [] };
+  // To no one yet, as who it goes to depends on the Consent still to be chosen; an email can always be sent, a text only with a backend.
+  const data = { ...props.data, count: 0, recipients: [], sends: channel === "phone" ? props.data.textsSend : true };
   return (
     <BroadcastWriter
       {...props}

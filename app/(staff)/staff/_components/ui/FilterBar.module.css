@@ -263,8 +263,15 @@
   display: none;
 }
 
-.choices a {
+/* A choice: a link, or a button where picking it sets a form's value (MenuSelect), looking the same. */
+.choices :is(a, button) {
   display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
   color: var(--text);
@@ -291,7 +298,7 @@
   flex: none;
 }
 
-.inGroup a {
+.inGroup :is(a, button) {
   display: flex;
   gap: var(--space-4);
   justify-content: space-between;
@@ -306,17 +313,16 @@
 }
 
 /* A group's icon in a chip, before its words, with room each side. */
-.chipIcon {
-  display: inline-flex;
-  margin: 0 var(--space-1) 0 2px;
-  vertical-align: -1px;
+.choices button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
-.choices a:hover {
+.choices :is(a, button):hover {
   background: var(--surface-2);
 }
 
-.choices a[aria-current],
+.choices :is(a, button)[aria-current],
 .choices a[data-pending] {
   background: var(--accent-light);
   font-weight: 700;

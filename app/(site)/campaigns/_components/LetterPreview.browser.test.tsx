@@ -6,7 +6,7 @@ import { navigation } from "@/tests/browser/navigation";
 import { readDraft, readSent, saveDraft } from "./draft";
 import { exampleDraft, exampleMp } from "./draft.examples";
 import LetterPreview from "./LetterPreview";
-import type { TurnstileApi } from "./Turnstile";
+import type { TurnstileApi } from "@/components/ui/Turnstile";
 
 const [letterToPm, bill] = campaigns;
 const MP = exampleMp;

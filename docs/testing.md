@@ -908,15 +908,30 @@ that drives it or why nothing does.
   - one whose run stopped while sending, finished by the next run with that letter uncertain, and the letter's page;
   - a mailing's letters bouncing, the MPs on the dashboard and the day's report to the notification inbox;
   - one stopped part-way, with every way a letter fails on its failed tab, its stopped tab, pressed again for everyone, and its sent tab;
-  - one sent from your Gmail in a From name of its own, by the hourly job, and the reply read from it.
+  - one sent from your Gmail in a From name of its own, by the sending job, and the reply read from it.
 - `broadcasts.spec.ts`: Broadcasts to supporters:
   - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed;
   - the list's Broadcast button with a Consent filter;
-  - an email written, previewed, sent as a test, scheduled and unscheduled;
+  - an email written, from hello@ by its Gmail with what it can send today, previewed, sent as a test, scheduled and unscheduled;
   - a text on an approved template, with the templates' search and Show all;
   - a text on new words, sent for WhatsApp's approval, locked till it decides, then rejected;
   - who it goes to changed from the list, with its Consent locked there;
-  - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them.
+  - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
+  - an email sent by the sending job, by hello@'s Gmail, and a copy as the supporter gets it, with its unsubscribe link;
+  - an email with more copies than hello@'s Gmail can send today: some sent and the rest tomorrow, then stopped three days after its time, with the email saying so, and set going again by Resume sending;
+  - one waiting for CiviCRM, with the email saying so and its page;
+  - a reply asking to stop, to look at on the email's page, recorded as an opt-out from its thread;
+  - a reply answered from its thread, by Gmail from hello@, and the email the person gets;
+  - one to the newsletter's and events' yeses both, ticked as about our events.
+- `email-settings.spec.ts`: The contact preferences page:
+  - asking for a link past Turnstile, the email with it, and the page it opens;
+  - changing what you get, with why behind a “?” on a phone;
+  - Stop everything, and Restart undoing it, texts and calls too;
+  - an email's unsubscribe link, fresh, opened again once used, and two months old, with a fresh link emailed;
+  - a link that's run out;
+  - “No bulk emails” lifted, and “Do not email”, “Do not SMS” and “Do not phone”, which only PauseAI Global can lift;
+  - an address we can't email, as its emails bounced;
+  - the email to someone with “No bulk emails” who ticked the march's box.
 - `events.spec.ts`: Events and their owners:
   - the Luma import giving events their owners by the rules, and the email to the owner;
   - new events tagged on Luma, and the email asking about one it can't tell;
@@ -960,7 +975,9 @@ that drives it or why nothing does.
   - members: one who also wrote to their MP, one CiviCRM says never opted in, one with "No bulk emails" there, with what a topic is from its ?, one who unsubscribed there, and one CiviCRM doesn't have;
   - a hold in CiviCRM in Bounced emails, lifted with a note;
   - erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next members import;
-  - an old link with two subscriptions.
+  - subscriptions to more than one topic, in one chip, its answer changing them all;
+  - an opt-out told to staff, recorded under a supporter's consents with how it was given;
+  - in a fixture build, a supporter's contact preferences opened from their page.
 - `signup-uploads.spec.ts`: Import sign-ups:
   - files written different ways, linked to an event or not;
   - a hundred rows at once;
@@ -968,7 +985,8 @@ that drives it or why nothing does.
   - files it refuses;
   - what Luma says;
   - what changes before importing;
-  - Past imports, and an import's page.
+  - Past imports, and an import's page;
+  - someone with "No bulk emails" marked in the preview, with the email they'll get, and someone with "Do not email".
 - `errors.spec.ts`: What goes wrong outside an import:
   - a staff page that throws: Next's error page in its place and Reload, the email to the notification inbox, once though it fails twice, the errors list and the error's own page;
   - a page breaking in someone's browser, on the fixture build's page that breaks (`/broken`): the email that quotes none of it, and a click that throws, kept without an email;
@@ -998,6 +1016,7 @@ that drives it or why nothing does.
   - `march-signup`: registering, Luma failing, and an email the server won't take.
   - `supporters`: a sign-up kept, on the supporter's page.
 - `/api/march/signups`: `march-signup`: the count asked for again when the page comes back into view. Vitest-tested beside it.
+- `/api/unsubscribe/[token]`: a mail app's one-click Unsubscribe, which a person never sees, so no flow drives it; Vitest-tested with the page's actions (`app/(site)/contact-preferences/actions.test.ts`).
 - `/api/postmark/bounce`, `/api/postmark/inbound`, Postmark's webhooks. Replies to the letters that the letters inbox sends, and their bounces, come through `read-gmail`, below.
   - `campaigns`: both routes turn away a post without Postmark's credentials, and a bounce for an email that isn't a letter changes nothing.
   - `letters`, `mailings` and `permissions`: Postmark's bounce payloads, for a letter, a mailing's letters and an email we can't place.
@@ -1026,6 +1045,7 @@ that drives it or why nothing does.
 - `/staff/api/gmail/connect`, `/staff/api/gmail/callback`:
   - `staff-login`: your Gmail connected from your own page.
   - `mailings`: the same, reached by the link in a mailing's Sent from.
+- `/staff/api/dev-contact-preferences`: `supporters`: their contact preferences, from their page, a fixture build's link per address; its links to an email's unsubscribe page, per topic and for an old email, go to the page as `email-settings` pictures it.
 - `/staff/api/dev-login`: `staff-login`: the dev login, a fixture build's one-click sign-in as a seeded account. Every other section logs in with it (`logInAsStaff` in `tests/steps.ts`).
 - `/staff/mailings/[id]/files/[file]`: Not driven: the mailings flows' files are drawn from it, but no flow opens one. Vitest-tested.
 - `/staff/broadcasts/[id]/files/[file]`: Not driven, as the broadcasts flows attach no files. It's the twin of the mailings' route, and is Vitest-tested.

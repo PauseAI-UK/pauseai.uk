@@ -1,20 +1,26 @@
-import { contactState, type Topic } from "./contact-permissions";
+import { contactState, TOPICS, type Topic } from "./contact-permissions";
 import { staffCopy } from "./content/staff-interface";
 import { greetingLetter, inlinesOf, isBlankMailing, type MailingDoc, type MailingRecipientValues } from "./mailing-doc";
+import { SENDING_DAYS, WAIT_DAYS } from "./broadcast-days";
+import { GMAIL_DAILY_LIMIT } from "./gmail-connect";
 import { now } from "./now";
 import { phoneWords } from "./phone";
 import { staffDate } from "./staff-time";
 import { anyAndNone, valuesOf, type ParamValue } from "./list-params";
 
 // The rules of broadcasts to supporters, for the server to keep and the pages
-// to say: how the Consent filter fixes a broadcast's channel and topic, its
+// to say: how the Consent filter fixes a broadcast's channel and topics, its
 // merge fields, what it costs, and what stops it being scheduled.
 
 /** How a broadcast goes. Staff choose text, never the backend that sends it. */
 export type BroadcastChannel = "email" | "text";
 
-/** What a broadcast is, fixed when it's made: its channel and its topic. */
-export type BroadcastTerms = { channel: BroadcastChannel; topic: Topic };
+/**
+ * What a broadcast is, fixed when it's made: its channel, and the topics
+ * whose yes by it it goes under, one or more, in TOPICS' order: a yes to any
+ * of them is enough.
+ */
+export type BroadcastTerms = { channel: BroadcastChannel; topics: Topic[] };
 
 /** A new email's words: the greeting to their first name, a line to write on, and the signature. */
 export const BROADCAST_START: MailingDoc = greetingLetter(
@@ -37,17 +43,71 @@ export function hasWords(broadcast: { subject: string; body: MailingDoc; templat
 }
 
 /**
- * A broadcast's channel and topic, from the supporters list's Consent filter:
- * one topic by email or text, answered yes. Undefined for anything else, as
- * two topics wouldn't say which it's about, and calls aren't broadcast. What
- * the filter leaves out doesn't count.
+ * A broadcast's channel and topics, from the supporters list's Consent
+ * filter: topics by one way, email or text, each answered yes. Undefined for
+ * anything else: yeses by two ways, as a broadcast goes one way, a no or
+ * unsure, or calls, which aren't broadcast. What the filter leaves out
+ * doesn't count.
  */
 export function broadcastTerms(contact: ParamValue | undefined): BroadcastTerms | undefined {
   const [found] = anyAndNone(valuesOf(contact), (values) => values.flatMap((value) => contactState(value) ?? []));
-  if (found?.length !== 1) return undefined;
-  const [{ way, topic, send }] = found;
-  if (send !== "yes" || way === "call") return undefined;
-  return { channel: way, topic };
+  if (!found?.length) return undefined;
+  const [{ way }] = found;
+  if (way === "call" || found.some((state) => state.send !== "yes" || state.way !== way)) return undefined;
+  return { channel: way, topics: TOPICS.filter((topic) => found.some((state) => state.topic === topic)) };
+}
+
+/** The Consent filter's values for a broadcast's terms, which broadcastTerms reads back. */
+export function termsValues(terms: BroadcastTerms): string[] {
+  return terms.topics.map((topic) => `${terms.channel === "email" ? "email" : "text"}:${topic}:yes`);
+}
+
+/** A broadcast's terms as one choice in the writer, its Consent filter's values with a space between. */
+export function consentChoice(terms: BroadcastTerms): string {
+  return termsValues(terms).join(" ");
+}
+
+/** The terms of a choice in the writer, as consentChoice writes it. */
+export function choiceTerms(choice: string): BroadcastTerms | undefined {
+  return broadcastTerms(choice.split(" "));
+}
+
+/** `days` after a broadcast's time. */
+const daysAfter = (dueAt: Date, days: number): Date => new Date(new Date(dueAt).getTime() + days * 24 * 60 * 60 * 1000);
+
+/** When a broadcast waiting for CiviCRM stops: WAIT_DAYS after its time. */
+export const waitStopsAt = (dueAt: Date): Date => daysAfter(dueAt, WAIT_DAYS);
+
+/** When a broadcast that hasn't all gone, at a day's limit of emails, stops: SENDING_DAYS after its time. */
+export const sendingStopsAt = (dueAt: Date): Date => daysAfter(dueAt, SENDING_DAYS);
+
+/**
+ * What can send an email to supporters, and whether it can yet: the
+ * connected Gmail of the address it's from (BROADCAST_SENDER), or Postmark's
+ * broadcast stream, which Postmark hasn't approved us for.
+ */
+export const BROADCAST_SEND_BY = { gmail: { available: true }, postmark: { available: false } } as const;
+
+export type BroadcastSendBy = keyof typeof BROADCAST_SEND_BY;
+
+/** Whether `value` is a way of sending an email to supporters that can be chosen now. */
+export function isAvailableSendBy(value: unknown): value is BroadcastSendBy {
+  return (
+    typeof value === "string" &&
+    Object.hasOwn(BROADCAST_SEND_BY, value) &&
+    BROADCAST_SEND_BY[value as BroadcastSendBy].available
+  );
+}
+
+/**
+ * How many days an email to `recipients` takes to send, by what can send
+ * `remaining` more today and `daily` each day after: one, with no limit
+ * (null). Today's count as the first day's, whenever it's scheduled for, as
+ * what it will have left then can't be known.
+ */
+export function sendingDays(recipients: number, remaining: number | null, daily: number = GMAIL_DAILY_LIMIT): number {
+  if (remaining === null || recipients <= remaining) return 1;
+  return 1 + Math.ceil((recipients - remaining) / daily);
 }
 
 /** The merge fields of a broadcast to supporters. No one has all of them, so each has a fallback. */
@@ -195,15 +255,15 @@ export function registeredFor(id: string): string {
   return `event:${id}`;
 }
 
-/** Who an email to supporters appears from, unless a connected Gmail is chosen. */
+/** Who an email to supporters is from, where its replies come back; by Gmail, the account that sends it. */
 export const BROADCAST_SENDER = { name: "PauseAI UK", email: "hello@pauseai.uk" };
 
 /** The name a text appears from: the WhatsApp business account's. */
 export const TEXT_SENDER_NAME = "PauseAI UK";
 
-/** Who a text is from, on one line: the name, then its number in brackets. */
+/** Who a text is from, on one line: the name, then its number, a dot between. */
 export function textSender(name: string, number: string): string {
-  return `${name} (${phoneWords(number)})`;
+  return `${name} · ${phoneWords(number)}`;
 }
 
 /**
@@ -262,6 +322,7 @@ export type BroadcastScheduleProblem =
   | "not-approved"
   | "no-name"
   | "not-connected"
+  | "too-slow"
   | "no-time"
   | "time-passed"
   | "no-number"
@@ -279,9 +340,11 @@ export type SchedulingBroadcast = {
   recipients: number;
   /** The values of its filter the site no longer knows. */
   unknown: string[];
-  /** Whether it's from a staff member's Gmail, and whether that's connected. */
+  /** Whether it goes by Gmail, and whether the Gmail it's from is connected. */
   byGmail: boolean;
   connected: boolean;
+  /** How many more emails what sends it can send today; null for no limit, or a text. */
+  remaining: number | null;
   /** Whether a text's words are a template WhatsApp has approved. */
   approved: boolean;
   /** Whether a WhatsApp number is configured for texts to come from. */
@@ -316,6 +379,8 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["no-template", !email && blank],
     ["no-name", !email && !blank && !broadcast.approved && !broadcast.title.trim()],
     ["not-connected", broadcast.byGmail && !broadcast.connected],
+    // At a day's limit of emails, it must all go before it would stop.
+    ["too-slow", email && sendingDays(broadcast.recipients, broadcast.remaining) > SENDING_DAYS],
     ["no-number", !email && !broadcast.numbered],
     ["not-approved", !email && !blank && !broadcast.approved],
     ["no-time", !broadcast.dueAt],

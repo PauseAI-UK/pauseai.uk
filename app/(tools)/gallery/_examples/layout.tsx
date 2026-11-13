@@ -10,6 +10,7 @@ import TagManagerNoscript from "@/components/layout/TagManagerNoscript";
 import MarchBanner from "@/components/layout/MarchBanner";
 import Nav from "@/components/layout/Nav";
 import NoAnalytics from "@/components/layout/NoAnalytics";
+import NotFoundMain from "@/components/layout/NotFoundMain";
 import { localGroups } from "@/lib/content/local-groups";
 import type { Group } from "../_components/types";
 import styles from "../_components/Gallery.module.css";
@@ -69,6 +70,11 @@ export const layout: Group = {
       name: "MarchBanner",
       file: "components/layout/MarchBanner.tsx",
       variants: [{ label: "The strip under the header until the march", render: () => <MarchBanner /> }],
+    },
+    {
+      name: "NotFoundMain",
+      file: "components/layout/NotFoundMain.tsx",
+      variants: [{ label: "A 404, between the site's header and footer", render: () => <NotFoundMain as="div" /> }],
     },
     {
       name: "Footer",

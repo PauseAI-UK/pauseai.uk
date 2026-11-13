@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { Button, ButtonAnchor, ButtonLink, buttonClass } from "./Button";
@@ -188,6 +188,33 @@ describe("SubmitButton", () => {
     await expect.element(button).toHaveAttribute("aria-busy", "true");
     finish();
     await expect.element(button).toBeEnabled();
+  });
+
+  it("has the focus back once its work is done, if it had it, as disabling it dropped it", async () => {
+    let finish = () => {};
+    const action = () => new Promise<void>((resolve) => (finish = resolve));
+    const clicked = vi.fn();
+    await render(
+      <form action={action}>
+        <SubmitButton variant="primary" onClick={clicked}>
+          Save
+        </SubmitButton>
+        <button type="button">Elsewhere</button>
+      </form>,
+    );
+    const button = page.getByRole("button", { name: "Save" });
+    await button.click();
+    await expect.element(button).toBeDisabled();
+    finish();
+    await expect.element(button).toHaveFocus();
+    expect(clicked).toHaveBeenCalled();
+    // One whose focus went elsewhere meanwhile leaves it there.
+    await button.click();
+    await expect.element(button).toBeDisabled();
+    await page.getByRole("button", { name: "Elsewhere" }).click();
+    finish();
+    await expect.element(button).toBeEnabled();
+    await expect.element(page.getByRole("button", { name: "Elsewhere" })).toHaveFocus();
   });
 
   it("is pending once its form is sent to a URL, until the page shows again, as after the browser's Back", async () => {

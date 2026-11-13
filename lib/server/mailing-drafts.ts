@@ -11,6 +11,7 @@ import { MAX_ATTACHMENT_BYTES } from "@/lib/mailing-attachments";
 import { scheduleProblems, type ScheduleProblem } from "@/lib/mailing-schedule";
 import { toHtml, toText } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
+import type { BroadcastSendBy } from "@/lib/broadcasts";
 import { now } from "@/lib/now";
 import { sendsAt } from "@/lib/staff-time";
 import { logChange } from "./audit";
@@ -61,6 +62,8 @@ export type MailingChanges = Partial<
     title: string;
     /** The WhatsApp template a text goes on. */
     templateId: number | null;
+    /** What sends an email to supporters. */
+    sendBy: BroadcastSendBy;
   }
 >;
 
@@ -75,6 +78,7 @@ const COLUMNS: Record<keyof MailingChanges, string> = {
   dueAt: "due_at",
   title: "title",
   templateId: "template_id",
+  sendBy: "send_by",
 };
 
 /** A save, or why not: someone else saved since, it's no longer a draft, or it's gone. */

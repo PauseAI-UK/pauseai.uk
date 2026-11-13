@@ -3,6 +3,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { SignupPlan, SignupUploadInput } from "@/lib/signup-upload";
 import { server } from "@/tests/fixtures/msw";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { notifications } from "@/tests/notifications";
+import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { query } from "./db";
 import { eraseSupporter } from "./erasure";
 import { linkSupporters } from "./supporters";
@@ -254,6 +256,40 @@ Bad,bad,,,,,Y`,
     expect(again.rows[0]).toMatchObject({ pile: "done", newEntry: false });
     const later = await planOf({ ...upload, signedOn: "2026-10-11" });
     expect(later.rows[0]).toMatchObject({ pile: "going", newEntry: true });
+  });
+
+  it("emails each new entry with “No bulk emails” how to lift it, once, and marks one with “Do not email”", async () => {
+    const sent = notifications();
+    for (const [id, email, noBulk, doNotEmail] of [
+      [1, "nb@example.com", true, false],
+      [2, "dne@example.com", false, true],
+    ] as const) {
+      await query(
+        `INSERT INTO civicrm_contacts (contact_id, email, on_hold, no_bulk_email, do_not_email, do_not_phone, do_not_sms,
+           newsletter, volunteer_updates, on_hold_since, no_bulk_email_since, do_not_email_since, do_not_phone_since,
+           do_not_sms_since, newsletter_since, volunteer_updates_since)
+         VALUES ($1, $2, false, $3, $4, false, false, 'subscribed', 'not_on_list',
+           now(), now(), now(), now(), now(), now(), now())`,
+        [id, email, noBulk, doNotEmail],
+      );
+    }
+    const upload = input("Name,Email\nNi,nb@example.com\nDee,dne@example.com\nJo,jo@example.com");
+    expect((await planOf(upload)).rows.map((row) => row.notice)).toEqual(["bulk", "no-email", null]);
+    await imported(upload);
+    expect(sent).toEqual([
+      expect.objectContaining({
+        To: "nb@example.com",
+        Subject: emailSettingsCopy.bulkNotice.subject,
+        TextBody: expect.stringContaining(emailSettingsCopy.bulkNotice.paper("Flyering", "10 October 2026")),
+      }),
+    ]);
+    // Imported again, there's nothing new, so nothing to tell.
+    expect((await planOf(upload)).rows.map((row) => row.notice)).toEqual([null, null, null]);
+    await imported(upload);
+    expect(sent).toHaveLength(1);
+    // Another sheet from a later day: new entries, but nb@ had a notice within thirty days, so none now.
+    const later = { ...upload, signedOn: "2026-10-12" };
+    expect((await planOf(later)).rows.map((row) => row.notice)).toEqual([null, "no-email", null]);
   });
 
   it("does no more than say so when things changed since the preview", async () => {

@@ -267,7 +267,7 @@ describe("MailingsOverview", () => {
     await expect.element(row("Meet us in Westminster").first()).toMatchTextContent(copy.toCount(412));
     await expect.element(page.getByRole("link", { name: copy.untitled })).toHaveAttribute("href", "/staff/mailings/7");
     // Scheduled: when it goes, and how many it's to.
-    await expect.element(row("Edinburgh: one week to go")).toMatchTextContent("Fri 30 Oct, 09:18");
+    await expect.element(row("Edinburgh: one week to go")).toMatchTextContent("Fri 30 Oct, 09:03");
     await expect.element(row("Edinburgh: one week to go")).toMatchTextContent(copy.states.scheduled);
     // Sending: its bar, leading to it.
     await expect.element(page.getByRole("progressbar", { name: copy.sentLabel })).toHaveAttribute("value", "214");
@@ -462,18 +462,19 @@ describe("MailingView", () => {
       .toHaveAttribute("href", "/staff/mailings/4?tab=stopped");
   });
 
-  it("scheduled: when it sends, Change the time in London's hours, and Stop; no counts yet", async () => {
+  it("scheduled: when it sends, Change the time in London's hours and minutes, and Stop; no counts yet", async () => {
     vi.useFakeTimers({ now: new Date("2026-10-29T12:00:00Z"), toFake: ["Date"] });
     onTestFinished(() => void vi.useRealTimers());
     const forms: FormData[] = [];
     const action = async (form: FormData) => void forms.push(form);
     await view({ written: { ...written, state: "scheduled" }, stop: action, reschedule: action });
-    await expect.element(page.getByText(copy.sends("Tue 1 Dec at 09:18"))).toBeVisible();
+    await expect.element(page.getByText(copy.sends("Tue 1 Dec at 09:03"))).toBeVisible();
     expect(page.getByText(copy.states.scheduled, { exact: true }).all()).toHaveLength(2);
     await expect.element(page.getByRole("link", { name: `10 ${copy.counts.sent}` })).not.toBeInTheDocument();
     await page.getByRole("button", { name: copy.changeTime }).click();
     await expect.element(page.getByRole("button", { name: copy.day })).toMatchTextContent("Tue 1 Dec 2026");
-    await page.getByRole("combobox").selectOptions("10");
+    await page.getByRole("combobox", { name: copy.hour }).selectOptions("10");
+    await page.getByRole("combobox", { name: copy.minutes }).selectOptions("33");
     await page.getByRole("button", { name: copy.saveTime }).click();
     await page.getByRole("button", { name: copy.unschedule }).click();
     await expect
@@ -483,12 +484,13 @@ describe("MailingView", () => {
           ["id", "12"],
           ["day", "2026-12-01"],
           ["hour", "10"],
+          ["minute", "33"],
         ],
         [["id", "12"]],
       ]);
   });
 
-  it("Change the time keeps an hour overnight that a mailing was due at already, saying when it goes", async () => {
+  it("Change the time starts one due overnight, or on the hour, at the run it goes on", async () => {
     vi.useFakeTimers({ now: new Date("2026-12-01T08:58:00Z"), toFake: ["Date", "setInterval", "clearInterval"] });
     onTestFinished(() => void vi.useRealTimers());
     await view({
@@ -496,13 +498,8 @@ describe("MailingView", () => {
       reschedule: async () => {},
     });
     await page.getByRole("button", { name: copy.changeTime }).click();
-    await expect.element(page.getByRole("combobox")).toHaveValue("3");
-    expect(
-      page
-        .getByRole("option")
-        .all()
-        .map((option) => option.element().textContent)[0],
-    ).toBe(copy.goesAt("03:00", "06:18"));
+    await expect.element(page.getByRole("combobox", { name: copy.hour })).toHaveValue("6");
+    await expect.element(page.getByRole("combobox", { name: copy.minutes })).toHaveValue("3");
   });
 
   it("Change the time never offers a time too soon: it starts at the first it can go, and moves on as time passes", async () => {
@@ -513,25 +510,36 @@ describe("MailingView", () => {
     await view({ written: { ...written, state: "scheduled" }, reschedule: action });
     await page.getByRole("button", { name: copy.changeTime }).click();
     const day = page.getByRole("button", { name: copy.day });
-    const hour = page.getByRole("combobox");
-    const option = (h: number) => page.getByRole("option", { name: `${String(h).padStart(2, "0")}:18` });
-    // Each hour says when a mailing due then goes, and those overnight, when nothing is sent, aren't offered.
-    expect(page.getByRole("option").all()[0].element().textContent).toBe("06:18");
-    // It's due at 09:00, whose run goes at 09:18, twenty minutes from now in London: it can still go then, and
-    // the hours before it can't be chosen.
+    const hour = page.getByRole("combobox", { name: copy.hour });
+    const minute = page.getByRole("combobox", { name: copy.minutes });
+    const option = (name: string) => page.getByRole("option", { name, exact: true });
+    // The hours the sending runs in: overnight ones aren't offered. The minutes are its runs.
+    expect(hour.getByRole("option").all()[0].element().textContent).toBe("06");
+    expect(
+      minute
+        .getByRole("option")
+        .all()
+        .map((one) => one.element().textContent),
+    ).toEqual([":03", ":18", ":33", ":48"]);
+    // It's due at 09:00, so it goes on the 09:03 run, five minutes from now: it can still go then, and the hours
+    // before it can't be chosen.
     await expect.element(day).toMatchTextContent("Tue 1 Dec 2026");
     await expect.element(hour).toHaveValue("9");
-    await expect.element(option(8)).toBeDisabled();
-    await expect.element(option(9)).not.toBeDisabled();
-    // Another day, any hour; back to today, one too soon moves on.
+    await expect.element(minute).toHaveValue("3");
+    await expect.element(option("08")).toBeDisabled();
+    await expect.element(option("09")).not.toBeDisabled();
+    // At 09:00, the 09:03 run is too soon, so 09:18, and :03 can't be chosen.
+    vi.advanceTimersByTime(2 * 60_000);
+    await expect.element(minute).toHaveValue("18");
+    await expect.element(option(":03")).toBeDisabled();
+    // Another day, any time; back to today, one too soon moves on.
     await chooseDay(day, "2026-12-02");
     await hour.selectOptions("7");
-    await expect.element(option(7)).not.toBeDisabled();
+    await minute.selectOptions("3");
+    await expect.element(option(":03")).not.toBeDisabled();
     await chooseDay(day, "2026-12-01");
     await expect.element(hour).toHaveValue("9");
-    // At 09:14, the 09:18 run is too soon, so 10:00.
-    vi.advanceTimersByTime(16 * 60_000);
-    await expect.element(hour).toHaveValue("10");
+    await expect.element(minute).toHaveValue("18");
     await page.getByRole("button", { name: copy.saveTime }).click();
     await expect
       .poll(() => forms.map((form) => [...form.entries()]))
@@ -539,7 +547,8 @@ describe("MailingView", () => {
         [
           ["id", "12"],
           ["day", "2026-12-01"],
-          ["hour", "10"],
+          ["hour", "9"],
+          ["minute", "18"],
         ],
       ]);
   });

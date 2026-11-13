@@ -166,6 +166,52 @@ describeWithDatabase("reading Gmail", () => {
     );
   const events = () => query('SELECT letter_id::int AS "letterId", status, details FROM letter_events ORDER BY id');
 
+  it("keeps a reply to a copy of a broadcast whole, before anything else sees it, and only notes an automatic one; not an answer of ours from the mailbox", async () => {
+    await connectTestGmail(JO, "1000");
+    const [{ id: mailing }] = await query<{ id: number }>(
+      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+       VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'staff@pauseai.uk', 'draft') RETURNING id::int AS id`,
+    );
+    await query(
+      `INSERT INTO broadcast_messages (mailing_id, status, rfc_message_id, topics) VALUES ($1, 'sent', 'copy-1@pauseai.uk', '{newsletter}')`,
+      [mailing],
+    );
+    const reply =
+      "From: Jane <jane@example.com>\r\nSubject: Re: News\r\nIn-Reply-To: <copy-1@pauseai.uk>\r\n\r\nPlease stop.";
+    mailbox({
+      history: ["b1", "b2", "b3"],
+      messages: {
+        // An answer written in the mailbox's own Gmail, not the site.
+        b3: {
+          headers: { From: `PauseAI UK <${JO}>`, Subject: "Re: News", "In-Reply-To": "<copy-1@pauseai.uk>" },
+          raw: "Subject: Re: News\r\n\r\nDone.",
+        },
+        b1: {
+          headers: { From: "Jane <jane@example.com>", Subject: "Re: News", "In-Reply-To": "<copy-1@pauseai.uk>" },
+          raw: reply,
+        },
+        b2: {
+          headers: {
+            From: "Jane <jane@example.com>",
+            Subject: "Out of office",
+            "Auto-Submitted": "auto-replied",
+            References: "<other@example.org> <copy-1@pauseai.uk>",
+          },
+          raw: "Subject: Out of office\r\n\r\nAway.",
+        },
+      },
+    });
+    expect(await read()).toMatchObject([{ account: JO, replies: 1, autoReplies: 1 }]);
+    expect(await query("SELECT from_address, subject, automatic, blob_key FROM broadcast_replies ORDER BY id")).toEqual(
+      [
+        { from_address: "jane@example.com", subject: "Re: News", automatic: false, blob_key: `${JO}/b1.eml.gz` },
+        { from_address: "jane@example.com", subject: "Out of office", automatic: true, blob_key: `${JO}/b2.eml.gz` },
+      ],
+    );
+    expect(await query("SELECT kind FROM broadcast_message_events")).toEqual([{ kind: "replied" }]);
+    expect(gunzipSync((await letterReply(`${JO}/b1.eml.gz`))!).toString("latin1")).toBe(reply);
+  });
+
   it("keeps a politician's reply whole and marks the letter replied to; keeps our answer, but not as a reply", async () => {
     await connectTestGmail(JO, "1000");
     const letter = await sentLetter();
@@ -643,7 +689,7 @@ describeWithDatabase("reading Gmail", () => {
     await read();
     // A run started while another is going keeps nothing, and doesn't go.
     await startRunning("read-gmail", NIGHTLY);
-    expect(await runJob("read-gmail", JO)).toBe(ANOTHER_RUNNING);
+    expect(await runJob("read-gmail", JO, undefined)).toBe(ANOTHER_RUNNING);
     await stopRunning("read-gmail");
     expect(await listRuns("read-gmail")).toHaveLength(1);
     await read();

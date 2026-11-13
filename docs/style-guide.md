@@ -180,12 +180,24 @@ take whatever value they need:
 - **Space that grows with the text**: in `em`, such as a checkbox lined up
   with its label's first line (`Controls.module.css`). Stylelint allows
   `em`, since it isn't a fixed size.
-- **Optical nudges**: a pixel or two to line an icon up with its text. Say
-  in a comment what it lines up. A small icon before words in the staff
-  pages needs no nudge. Put the icon and the words in `IconText`
-  (`ui/IconText.tsx`), which centres the icon on the words wherever they
-  are. Don't use a flex row of your own, as its baseline is the icon's
-  bottom edge.
+- **Lining something up with words**: never a nudge, and never one
+  keyword applied everywhere. A pixel or two lines up with words of one
+  size and is out at any other; and `vertical-align: middle` centres on
+  the words' lowercase letters, which suits a small icon but sits
+  something as tall as the line (a numbered circle beside a heading) too
+  low under its capitals. So:
+  - A small icon before words goes in `IconText` (`ui/IconText.tsx`),
+    centred on their lowercase letters wherever they are.
+  - Anything as tall as the line goes beside its words in a flex row,
+    `align-items: center` centring it on the line (`ui/Numbered`).
+  - Stylelint refuses `vertical-align` but in the files listed as vetted
+    in `stylelint.config.mjs` (`VERTICAL_ALIGN_VETTED`), and there only a
+    keyword. Adding a file to that list, or changing how one of them lines
+    something up, needs its storyboard frame checked by eye against
+    main's, zoomed in: crop the same spot from both and compare.
+  - Whenever you put an icon, badge or number beside words, however you
+    line it up, look at it in a storyboard frame, zoomed in, before
+    saying it's done. Check that its middle sits level with the words'.
 - **A size measured from something else**: the nav's height in
   `scroll-padding-top`, the heights reserved for the signup form while it
   loads (`OnboardingFormEmbed.module.css`). Say in a comment where the
@@ -784,7 +796,7 @@ most one row of tabs, for the one choice people make most.
 
 **Popovers, not modals.** Anything a button opens (a menu, a small form,
 or the few words behind a "?") is a bubble hung from that button
-(`ui/Bubble`, or `ui/Menu` for a list of choices). So it opens where the
+(`components/ui/Bubble`, or `ui/Menu` for a list of choices). So it opens where the
 person is looking, and the page stays in view around it. It's never a box
 in the middle of the window, which takes people away from what they were
 doing and hides what they'd want to check against. The one exception is a
@@ -801,7 +813,7 @@ column's width from the words: a blocked address's "Unblock…" opens a
 bubble that asks why, with Unblock and Cancel.
 
 **A bubble you click open to work in or read has a pointer up to its
-button** (`ui/Bubble`). A bubble that holds a form, or a few words on the
+button** (`components/ui/Bubble`). A bubble that holds a form, or a few words on the
 thing beside it, is a small dialog: an Edit, Add staff, Change the time, a
 "?", a {}. Its pointer says what it belongs to, which matters most where
 the same button is down every row, as {} is down a history. The pointer
@@ -859,7 +871,7 @@ job runs.
 A nightly job shows each run whole, in its box (`RunBox`). The
 newest is tinted by how it ended.
 
-A job that runs every 5 minutes or hourly has one table a day instead
+A job that runs every 5 or 15 minutes or hourly has one table a day instead
 (`RunTable.tsx`, `lib/run-log.ts`), so the same number sits in the same
 place. The time comes first, then the job's counts, or what each run
 found. A Gmail read's counts are over every account it read. In the

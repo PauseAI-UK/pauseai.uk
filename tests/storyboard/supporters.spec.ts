@@ -1,6 +1,7 @@
 import { FIXTURE_NOW } from "@/lib/server/fixtures/fixture-env.mjs";
 import { campaigns } from "@/lib/content/email-your-mp";
 import type { Page } from "@playwright/test";
+import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { marchSignupCopy } from "@/lib/content/march-signup";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { Reason, Topic } from "@/lib/contact-permissions";
@@ -550,24 +551,33 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await frame(page, "Those who can't be emailed the newsletter");
 });
 
-test("An old link with two subscriptions", async ({ page, request, flowDatabase }) => {
-  story(
-    "Subscriptions is chosen one at a time now, but a link or saved filter from before can have two. Each keeps its chip.",
-  );
+test("Subscriptions to more than one topic", async ({ page, request, flowDatabase }) => {
+  story("Those who said yes to events by email, or to the newsletter: + Add on the chip turns its topics to boxes.");
   await importLuma(request, BASE);
   await logInWithSupporters(page, flowDatabase);
-  await page.goto(`${BASE}/staff/supporters?contact=email:events:no&contact=email:volunteering:no`);
+  await page.goto(`${BASE}/staff/supporters?contact=email:events:yes`);
   const { topics } = copy.filters;
   const label = copy.columns.subscriptions;
-  await expect(page.getByRole("button", { name: `${label}: ${topics.events}` })).toBeVisible();
-  await expect(page.getByRole("button", { name: `${label}: ${topics.volunteering}` })).toBeVisible();
-  await frame(page, "Two chips");
+  const menu = page.locator("[popover]:popover-open");
+  await page.getByRole("button", { name: `${label}: ${topics.events}` }).click();
+  await menu.getByRole("button", { name: staffCopy.filters.addChoice }).click();
+  await expect(menu.getByRole("checkbox", { name: topics.events })).toBeChecked();
+  await frame(page, "Email's topics, events ticked");
 
-  story("Choosing another topic in one takes the filter's place, leaving one chip.");
-  await changeTopic(page, `${label}: ${topics.events}`, topics.newsletter);
-  await expect(page.getByRole("button", { name: `${label}: ${topics.newsletter}` })).toBeVisible();
-  await expect(page.getByRole("button", { name: `${label}: ${topics.volunteering}` })).toHaveCount(0);
-  await frame(page, "One chip");
+  story("Ticking the newsletter changes the list at once. The chip says both, with or between them.");
+  await menu.getByRole("checkbox", { name: topics.newsletter }).check();
+  const both = `${label}: ${staffCopy.filters.anyOf([topics.events, topics.newsletter])}`;
+  await expect(page.getByRole("button", { name: both })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/contact=.*contact=/);
+  await frame(page, "One chip for both");
+
+  story("Changing its answer to No changes it for both.");
+  await page.getByRole("button", { name: copy.detail.permissions.answers.email.yes }).click();
+  await menu.getByRole("link", { name: copy.detail.permissions.answers.email.no, exact: true }).click();
+  await expect(page.getByRole("button", { name: both })).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.detail.permissions.answers.email.no })).toBeVisible();
+  await frame(page, "Both, No");
 });
 
 test("A member who never opted in", async ({ page, request, flowDatabase }) => {
@@ -599,6 +609,23 @@ test("A member with No bulk emails", async ({ page, request, flowDatabase }) => 
   await page.getByRole("button", { name: copy.detail.permissions.why }).first().click();
   await expect(page.getByText(copy.detail.permissions.details.newsletter.about)).toBeVisible();
   await frame(page, "Rhea's page");
+});
+
+test("Their contact preferences, from their page", async ({ page, request, flowDatabase }) => {
+  story(
+    "In a fixture build, a supporter's page has a link per address at the foot of Can we contact them?, which opens the contact preferences page as one of our emails' links would, to see what they'd see.",
+  );
+  await importMembers(request, BASE);
+  await importCivicrm(request, BASE);
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters`);
+  await page.getByRole("link", { name: "Tom Seed" }).click();
+  const dev = page.getByRole("region", { name: staffCopy.devPreferences.title });
+  await dev.scrollIntoViewIfNeeded();
+  await frame(page, "A link for each address", { window: true });
+  await dev.getByRole("link", { name: staffCopy.devPreferences.preferences("tom.seed@example.com") }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(emailSettingsCopy.settings.title);
+  await frame(page, "Tom's contact preferences");
 });
 
 test("A member who unsubscribed in CiviCRM", async ({ page, request, flowDatabase }) => {
@@ -708,4 +735,36 @@ test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
   await row.getByRole("button", { name: staffCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
   await frame(page, "Bounced emails, empty");
+});
+
+test("Recording an opt-out told to staff", async ({ page, request, flowDatabase }) => {
+  story(
+    "Jane tells someone at a stall she'd rather not hear about volunteering any more. Under her consents, staff record it, with how she told them; only Jane can opt back in.",
+  );
+  await importCivicrm(request, BASE);
+  await logInWithSupporters(page, flowDatabase);
+  const [jane] = runSql(
+    flowDatabase,
+    "SELECT supporter_id FROM supporter_links WHERE matched_value = 'jane.fixture@example.com'",
+  );
+  await page.goto(`${BASE}/staff/supporters/${jane}`);
+  const words = copy.detail.permissions.recordOptOut;
+  await page.getByRole("button", { name: words.open }).click();
+  // The box near the window's top, so its menu opens below it, as it does wherever it fits.
+  await page
+    .getByRole("button", { name: `${words.what}: ${words.choose}` })
+    .evaluate((box) => box.scrollIntoView({ block: "start", behavior: "instant" }));
+  await page.evaluate(() => window.scrollBy({ top: -80, behavior: "instant" }));
+  await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
+  await expect(page.getByRole("button", { name: /^Volunteering, jane\.fixture@example\.com/ })).toBeVisible();
+  await frame(page, "What they opted out of: under each address and number, by each way", { window: true });
+  await page.getByRole("button", { name: /^Volunteering, jane\.fixture@example\.com/ }).click();
+  await page.getByRole("textbox", { name: words.how }).fill("Asked at the Leeds stall");
+  await page.getByRole("button", { name: words.record }).scrollIntoViewIfNeeded();
+  await frame(page, "The form, filled in", { window: true });
+  await page.getByRole("button", { name: words.record }).click();
+  await expect(page.getByRole("button", { name: words.open })).toBeVisible();
+  await expect(page.getByText(said("unsubscribed", "staff"), { exact: false })).toBeVisible();
+  await page.getByRole("heading", { name: copy.detail.listsTitle }).scrollIntoViewIfNeeded();
+  await frame(page, "Her consents, volunteering by email off", { window: true });
 });

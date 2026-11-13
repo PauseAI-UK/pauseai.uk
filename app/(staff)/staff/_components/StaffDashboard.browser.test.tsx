@@ -13,6 +13,24 @@ const [pm, bill] = campaigns;
 describe("StaffDashboard", () => {
   const copy = staffCopy.home.dashboard;
 
+  it("lists replies to broadcasts to look at, amber, only for staff who may see supporters", async () => {
+    const dashboard = {
+      ...exampleQuietDashboard,
+      actions: [{ kind: "broadcast-replies" as const, count: 2, broadcastId: 13 }],
+    };
+    const { rerender } = await render(<StaffDashboard dashboard={dashboard} permissions={["supporters"]} />);
+    const item = page.getByRole("list", { name: copy.actionsTitle }).getByRole("listitem");
+    expect(item.element().textContent).toBe(
+      `${copy.actions.broadcastReplies(2)}${copy.actions.broadcastRepliesDetail}${copy.actions.broadcastRepliesButton}`,
+    );
+    expect(item.element().firstElementChild!.className).toMatch(/amber/);
+    await expect
+      .element(page.getByRole("link", { name: copy.actions.broadcastRepliesButton }))
+      .toHaveAttribute("href", "/staff/broadcasts/13?tab=look");
+    await rerender(<StaffDashboard dashboard={dashboard} permissions={[]} />);
+    await expect.element(page.getByRole("list", { name: copy.actionsTitle })).not.toBeInTheDocument();
+  });
+
   it("lists what needs a person as a strip each, red when broken and amber when waiting, a button each, or nothing", async () => {
     const { rerender } = await render(<StaffDashboard dashboard={exampleDashboard} permissions={[]} />);
     const list = page.getByRole("list", { name: copy.actionsTitle });

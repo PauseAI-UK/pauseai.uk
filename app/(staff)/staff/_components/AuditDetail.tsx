@@ -183,7 +183,7 @@ const account: LeadOf<"add staff account" | "remove staff account"> = (details) 
   fields: ["email"],
 });
 
-const address: LeadOf<"block address" | "unblock address"> = (details) => ({
+const address: LeadOf<"block address" | "unblock address" | "record opt-out"> = (details) => ({
   parts: [details.address],
   fields: ["address"],
 });
@@ -230,6 +230,7 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "remove staff account": account,
   "block address": address,
   "unblock address": address,
+  "record opt-out": address,
   "apply politician sync": none,
   "hold politician sync": none,
   "apply MP sync": none,
@@ -268,6 +269,9 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "withdraw broadcast template": none,
   "schedule broadcast": none,
   "stop broadcast": none,
+  "resume broadcast": none,
+  "deal with reply": none,
+  "answer reply": none,
   "download supporters": none,
   "download blocked emails": none,
   "download letters": none,

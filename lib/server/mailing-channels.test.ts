@@ -6,8 +6,18 @@ import { query } from "./db";
 import { GMAIL_DAILY_LIMIT } from "./gmail-accounts";
 import { LETTERS_INBOX, recordGmail, testProxy } from "@/tests/gmail-sends";
 import { LETTERS_DAILY_LIMIT } from "./letters-inbox";
-import { gmailEmail, lettersInboxEmail, mailingChannel, postmarkEmail } from "./mailing-channels";
+import { gmailEmail, lettersInboxEmail, mailingChannel, postmarkBroadcast, postmarkEmail } from "./mailing-channels";
 import { parseMime } from "@/lib/email-parsing/mime";
+
+/** A message with nothing in it, for what a channel says of any. */
+const MESSAGE = {
+  from: { name: "PauseAI UK", address: "hello@pauseai.uk" },
+  to: { name: "A", address: "a@b.c" },
+  subject: "",
+  html: "",
+  text: "",
+  attachments: [],
+};
 
 describe("postmarkEmail", () => {
   const message = {
@@ -32,6 +42,15 @@ describe("postmarkEmail", () => {
     });
     expect(postmarkEmail.report({ RecordType: "Bounce", Email: "a@b.c" })).toBeUndefined();
     expect(postmarkEmail.report({ RecordType: "Delivery", MessageID: "m-1" })).toBeUndefined();
+  });
+});
+
+describe("postmarkBroadcast", () => {
+  it("sends broadcasts, with no limit of ours, at no cost, and reports nothing itself", async () => {
+    expect(postmarkBroadcast.sendsMailings).toBe(true);
+    expect(await postmarkBroadcast.remainingToday("hello@pauseai.uk")).toBeNull();
+    expect(postmarkBroadcast.cost({ ...MESSAGE })).toBe(0);
+    expect(postmarkBroadcast.report({ RecordType: "Bounce", MessageID: "m-1" })).toBeUndefined();
   });
 });
 

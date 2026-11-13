@@ -2,7 +2,8 @@ import "server-only";
 import { JOBS, type LumaImportResult } from "@/lib/import-runs";
 import { query, transaction, type Queryable } from "./db";
 import { asRun, type Ran } from "./import-runs";
-import { recordContactsPass } from "./opt-outs";
+import { offCalendar } from "./email-settings";
+import { recordContactsPass, stillOnCalendar } from "./opt-outs";
 import { refreshSupporterFacts, refreshSupportersList } from "./supporter-facts";
 import { lookUpPlaces } from "./supporter-places";
 import { linkSupporters } from "./supporters";
@@ -478,6 +479,9 @@ async function importContacts(budget: Budget): Promise<{ changed: number; pages:
     await saveState("contacts", cursor ?? "", finished, db);
     return finished && passStartedAt ? recordContactsPass(passStartedAt, db) : 0;
   });
+  if (finished && passStartedAt) {
+    for (const address of await stillOnCalendar(passStartedAt)) await offCalendar(address);
+  }
   return { changed, pages };
 }
 

@@ -20,7 +20,7 @@ const COLUMNS: ListColumn<SupporterBroadcastRow>[] = [
         <StaffLink href={`/staff/broadcasts/${m.messageId}`}>{m.title || copy.untitled}</StaffLink>
         <Muted>
           <BroadcastChannelName channel={m.channel} />
-          {m.sentAt && staffDate(m.sentAt)}
+          {m.sentAt && ` · ${staffDate(m.sentAt)}`}
         </Muted>
       </span>
     ),

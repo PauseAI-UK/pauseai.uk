@@ -143,6 +143,7 @@ function Row<T extends MailingSummary>({
         </StaffLink>
         <Muted>
           {look.lead?.(mailing)}
+          {look.lead && from ? " · " : ""}
           {from}
           {by && (
             <>

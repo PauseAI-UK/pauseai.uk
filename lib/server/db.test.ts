@@ -1,11 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { Pool } from "pg";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, inject, it, vi } from "vitest";
 import { closeDb, query, transaction, verifyFullUrl } from "./db";
 import { describeWithDatabase, MAKES_DATABASES, useTestDatabase, withDatabaseDown } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
-import { dropDatabase, freshDatabase, runSql } from "@/scripts/fresh-database.mjs";
+import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs";
 import { staffCopy } from "@/lib/content/staff-interface";
 
 // A copy of the stand-in, so one test can make cookies() throw as it does
@@ -112,7 +112,7 @@ describeWithDatabase("the database", () => {
 
     it("queries the database the cookie names, and the usual one without it", async () => {
       vi.stubEnv("DATA_FIXTURES", "1");
-      freshDatabase(flow);
+      copyDatabase(flow, inject("templateDatabase"));
       try {
         const usual = await currentDatabase();
         requestCookies.set(FLOW_DATABASE_COOKIE, flow);
@@ -136,9 +136,8 @@ describeWithDatabase("the database", () => {
         await closeDb();
         dropDatabase(flow);
       }
-      // Longer than the 5s default: it makes a database, a psql process per
-      // migration, then waits up to 5s for the pool to close. On a loaded CI
-      // runner, with every database test file at once, that ran out of time.
+      // Longer than the 5s default: it copies the migrated template, then
+      // waits up to 5s for the pool to close, which a loaded machine slows.
     }, 30_000);
 
     it("ignores a cookie naming any other database", async () => {
@@ -155,7 +154,7 @@ describeWithDatabase("the database", () => {
       const error = vi.spyOn(console, "error").mockImplementation(() => {});
       // The pool reports the cut-off connection with an "error" event, however long that takes.
       const emit = vi.spyOn(Pool.prototype, "emit");
-      freshDatabase(flow);
+      copyDatabase(flow, inject("templateDatabase"));
       requestCookies.set(FLOW_DATABASE_COOKIE, flow);
       // The flow's pool closes an idle connection after a second, and starting psql can take longer than
       // that on a busy machine, leaving nothing to cut off; its timer waits until the database is gone.

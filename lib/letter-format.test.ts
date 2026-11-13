@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { doIUseEmail } from "@jsx-email/doiuse-email";
-import { checkDoc, docFromMarkup, isBlank, linkHref, toHtml, toText, type LetterDoc } from "./letter-format";
+import { checkDoc, docFromMarkup, hasWords, isBlank, linkHref, toHtml, toText, type LetterDoc } from "./letter-format";
 
 const text = (value: string, ...marks: ("bold" | "italic")[]) =>
   marks.length ? { type: "text", text: value, marks: marks.map((type) => ({ type })) } : { type: "text", text: value };
@@ -215,6 +215,12 @@ describe("toHtml and toText", () => {
   it("knows a letter with no words in it", () => {
     expect(isBlank(doc(p(), list([p()]), p(text("  "))))).toBe(true);
     expect(isBlank(letter)).toBe(false);
+  });
+
+  it("knows an editor's document with words in it, and not one that isn't a letter", () => {
+    expect(hasWords(letter)).toBe(true);
+    expect(hasWords(doc(p(text("  "))))).toBe(false);
+    expect(hasWords({ type: "nonsense" })).toBe(false);
   });
 });
 

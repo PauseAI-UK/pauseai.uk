@@ -4,9 +4,11 @@ import { outsideFetch } from "./outside-fetch";
 
 // The only file that talks to Global's CRM, CiviCRM, through its chapter
 // contacts API, with our UK chapter's key, CIVICRM_CHAPTER_KEY. Its spec is
-// PauseAI/pauseai-civicrm#1175, which is private. It reads `get` alone:
-// every UK chapter contact a page at a time, or those with some addresses.
-// Nothing here writes to CiviCRM.
+// PauseAI/pauseai-civicrm#1175, which is private. Three actions: `get`,
+// every UK chapter contact a page at a time, or those with some addresses;
+// `checkSuppression`, whether PauseAI may email each of some addresses at
+// all; and `updateSubscriptions`, our opt-outs, and lifts of "No bulk
+// emails", sent back.
 
 const API = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact";
 
@@ -135,10 +137,18 @@ export function readContact(row: Record<string, unknown>): CivicrmContact {
   };
 }
 
-/** Calls `get` with `params`, by GET in the URL, or by POST in the body, which keeps addresses out of URL logs. */
-async function get(key: string, params: object, method: "GET" | "POST"): Promise<CivicrmContact[]> {
+/**
+ * Calls `action` with `params`, by GET in the URL, or by POST in the body,
+ * which keeps addresses out of URL logs, and gives its rows.
+ */
+async function call(
+  key: string,
+  action: string,
+  params: object,
+  method: "GET" | "POST",
+): Promise<Record<string, unknown>[]> {
   const encoded = new URLSearchParams({ params: JSON.stringify(params) });
-  const res = await outsideFetch(method === "GET" ? `${API}/get?${encoded}` : `${API}/get`, {
+  const res = await outsideFetch(method === "GET" ? `${API}/${action}?${encoded}` : `${API}/${action}`, {
     method,
     headers: {
       "X-Civi-Auth": `Bearer ${key}`,
@@ -151,8 +161,13 @@ async function get(key: string, params: object, method: "GET" | "POST"): Promise
   if (!res.ok) throw new CivicrmRequestError(`CiviCRM request failed with status ${res.status}: ${await res.text()}`);
   const data: unknown = await res.json();
   const values = (data as { values?: unknown })?.values;
-  if (!Array.isArray(values)) throw new CivicrmRequestError("CiviCRM's answer had no list of contacts");
-  return values.map((row) => readContact(row as Record<string, unknown>));
+  if (!Array.isArray(values)) throw new CivicrmRequestError(`CiviCRM's answer to ${action} had no list of values`);
+  return values as Record<string, unknown>[];
+}
+
+/** Calls `get` with `params`, as `call` does. */
+async function get(key: string, params: object, method: "GET" | "POST"): Promise<CivicrmContact[]> {
+  return (await call(key, "get", params, method)).map(readContact);
 }
 
 /** A page of the UK chapter's contacts: up to PAGE_SIZE, in order of contact ID, after `after`. */
@@ -163,4 +178,92 @@ export function fetchContactsPage(key: string, after: number): Promise<CivicrmCo
 /** The UK chapter's contacts with any of `emails`. */
 export function lookUpContacts(key: string, emails: string[]): Promise<CivicrmContact[]> {
   return get(key, { email: emails }, "POST");
+}
+
+/** The most addresses `checkSuppression` takes a call, and events `updateSubscriptions` does. */
+export const SUPPRESSION_BATCH = 500;
+export const UPDATE_BATCH = 100;
+
+/** Whether PauseAI may email an address: `all` stops every email, `bulk` bulk email, `none` neither. */
+export const BLOCKS = ["none", "bulk", "all"] as const;
+export type Block = (typeof BLOCKS)[number];
+
+/**
+ * Whether PauseAI anywhere blocks email to each of `emails`, by "Do not
+ * email" (`all`) or "No bulk emails" (`bulk`), across every contact with the
+ * address, in any chapter or none: up to SUPPRESSION_BATCH a call. Each
+ * address as CiviCRM gives it back, trimmed and lowercased; throws if any
+ * sent is missing, or its block isn't one we know.
+ */
+export async function checkSuppression(key: string, emails: string[]): Promise<Map<string, Block>> {
+  const rows = await call(key, "checkSuppression", { email: emails, phone: [] }, "POST");
+  const blocks = new Map<string, Block>();
+  for (const row of rows) {
+    if (typeof row.email !== "string") continue;
+    if (!(BLOCKS as readonly unknown[]).includes(row.block)) {
+      throw new CivicrmRequestError(`CiviCRM gave an address a block we don't know: ${String(row.block)}`);
+    }
+    blocks.set(row.email.trim().toLowerCase(), row.block as Block);
+  }
+  const missing = emails.filter((email) => !blocks.has(email));
+  if (missing.length)
+    throw new CivicrmRequestError(`CiviCRM didn't say whether ${missing.length} addresses are blocked`);
+  return blocks;
+}
+
+/** A change to a UK list or a flag, as `updateSubscriptions` takes it. */
+export type SubscriptionEvent = {
+  /** Ours, unique: sending it again changes nothing there. */
+  eventId: string;
+  email: string;
+  change: "unsubscribe" | "no_bulk_email" | "allow_bulk_email";
+  list?: "newsletter" | "volunteer_updates";
+  /** From the last pull, for an opt-out. */
+  contactId?: number;
+  occurredAt: Date;
+  /** Where the person did it. */
+  source: string;
+  /** For a lift: the words beside what they chose. */
+  wording?: string;
+};
+
+/** What CiviCRM did with an event: applied it (or it was already so), refused an opt-in and why, or found it wrong. */
+export type SubscriptionResult =
+  { status: "accepted"; reason?: undefined } | { status: "refused" | "invalid"; reason: string };
+
+/**
+ * Sends up to UPDATE_BATCH events, applied in order, and gives CiviCRM's
+ * result for each by its ID. Throws if CiviCRM fails, so none has a result.
+ */
+export async function updateSubscriptions(
+  key: string,
+  events: SubscriptionEvent[],
+): Promise<Map<string, SubscriptionResult>> {
+  const rows = await call(
+    key,
+    "updateSubscriptions",
+    {
+      events: events.map((event) => ({
+        event_id: event.eventId,
+        email: event.email,
+        change: event.change,
+        ...(event.list && { list: event.list }),
+        ...(event.contactId && { contact_id: event.contactId }),
+        occurred_at: event.occurredAt.toISOString(),
+        source: event.source,
+        ...(event.wording && { wording: event.wording }),
+      })),
+    },
+    "POST",
+  );
+  const results = new Map<string, SubscriptionResult>();
+  for (const row of rows) {
+    const status = row.status;
+    if (typeof row.event_id !== "string") continue;
+    if (status === "accepted") results.set(row.event_id, { status });
+    else if (status === "refused" || status === "invalid") {
+      results.set(row.event_id, { status, reason: String(row.reason ?? row.error ?? "") });
+    }
+  }
+  return results;
 }

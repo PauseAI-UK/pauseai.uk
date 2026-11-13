@@ -7,7 +7,7 @@ import { checkDoc, toHtml, toText } from "@/lib/letter-format";
 import { query } from "./db";
 import { isBlocked, send, sentBy, type Backend, type Purpose } from "./email";
 import { gmailAccount } from "./gmail-accounts";
-import { letterEvent, sendLetterVia, transition } from "./letter-lifecycle";
+import { letterEvent, SentUnrecorded, sendLetterVia, transition } from "./letter-lifecycle";
 import { lettersInbox, proxyAddress } from "./letters-inbox";
 import { lettersInboxEmail } from "./mailing-channels";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -125,8 +125,14 @@ export async function sendLetter(id: number): Promise<{ sent: true } | { sent: f
   try {
     return await sendTaken(id);
   } catch (error) {
-    // Kept, and back in the queue, so the next run tries again; whoever wrote it is told it's on its way.
-    problem(staffCopy.problems.anywhere.letterNotSent(id), error);
+    const words = staffCopy.problems.anywhere;
+    if (error instanceof SentUnrecorded) {
+      // It went: it stays sending, for uncertainLetters to mark uncertain, so it isn't sent twice. The run goes on.
+      problem(words.sentUnrecorded(words.letterOf(id)), error.cause);
+      return { sent: true };
+    }
+    // It never went: back in the queue, so the next run tries again; whoever wrote it is told it's on its way.
+    problem(words.letterNotSent(id), error);
     return requeue(id, "failed");
   }
 }
@@ -187,13 +193,35 @@ export async function sendCopy(id: number): Promise<void> {
     [id],
   );
   if (!taken) return;
-  const letter = (await outgoingLetter(id))!;
   const state = async (copyState: string) =>
     query("UPDATE letters_from_supporters SET copy_state = $2 WHERE id = $1", [id, copyState]);
+  const words = staffCopy.problems.anywhere;
+  let sent: Awaited<ReturnType<typeof sendTakenCopy>>;
+  try {
+    sent = await sendTakenCopy(id, state);
+  } catch (error) {
+    // Nothing went (send never throws after it has): back in the queue, to go next run.
+    await state("queued");
+    problem(words.notSentYet(words.letterCopyOf(id)), error);
+    return;
+  }
+  if (!sent) return;
+  try {
+    await state("sent");
+    await letterEvent(id, "copy_sent", sent);
+  } catch (error) {
+    // It went: left sending, for uncertainLetters to mark uncertain, never sent twice.
+    problem(words.sentUnrecorded(words.letterCopyOf(id)), error);
+  }
+}
+
+/** Sends a copy sendCopy has taken, unless held or left queued (`state`), saying what its event records once it went. */
+async function sendTakenCopy(id: number, state: (copyState: string) => Promise<unknown>) {
+  const letter = (await outgoingLetter(id))!;
   if (await isBlocked(letter.senderEmail)) {
     await state("held");
     await letterEvent(id, "copy_held", { to: letter.senderEmail, reason: "blocked" });
-    return;
+    return undefined;
   }
   if (await cannotSend(1)) return void (await state("queued"));
   const doc = checkDoc(letter.letter)!;
@@ -216,14 +244,7 @@ export async function sendCopy(id: number): Promise<void> {
     { backend: lettersBackend() },
   );
   if (!result.sent) return void (await state("queued"));
-  await state("sent");
-  await letterEvent(id, "copy_sent", {
-    from,
-    to: letter.senderEmail,
-    replyTo,
-    messageId: result.messageId,
-    ...sentBy(result.backend),
-  });
+  return { from, to: letter.senderEmail, replyTo, messageId: result.messageId, ...sentBy(result.backend) };
 }
 
 /**

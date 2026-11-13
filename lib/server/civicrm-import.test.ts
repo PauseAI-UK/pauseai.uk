@@ -7,6 +7,7 @@ import { server } from "@/tests/fixtures/msw";
 import { importCivicrm, lookUpNewMembers } from "./civicrm-import";
 import { unblock } from "./email";
 import { importMembers } from "./members-import";
+import { recordOptOut } from "./opt-outs";
 import { inRun } from "./run-store";
 
 const GET = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
@@ -130,6 +131,19 @@ describeWithDatabase("importCivicrm", () => {
       { status: "ok", started_by: "jo@pauseai.uk" },
       { status: "unchanged", started_by: "nightly" },
     ]);
+  });
+
+  it("sends our opt-outs first, so the pull has them, and the run says so", async () => {
+    serve([contact(1, "kit@example.com")]);
+    await recordOptOut({
+      address: "kit@example.com",
+      list: "newsletter",
+      source: "link",
+      sourceRef: "1",
+      unsubscribedAt: new Date("2026-11-01T09:00:00Z"),
+    });
+    expect(await importCivicrm("nightly")).toMatchObject({ updates: { sent: 1, refused: 0, unanswered: 0 } });
+    expect(await query("SELECT status FROM civicrm_updates")).toEqual([{ status: "accepted" }]);
   });
 
   it("keeps when each value changed, and a list joined again ends the opt-out it made", async () => {

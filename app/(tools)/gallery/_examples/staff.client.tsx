@@ -71,7 +71,8 @@ import { Button } from "@/components/ui/Button";
 import ButtonRow from "@/components/ui/ButtonRow";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { ChangeTimeForm, DueTimeFields } from "@/app/(staff)/staff/_components/DueTime";
-import { DeleteDraft, StopMailing } from "@/app/(staff)/staff/_components/MailingButtons";
+import { SENDING } from "@/lib/staff-time";
+import { DeleteDraft, ResumeBroadcast, StopMailing } from "@/app/(staff)/staff/_components/MailingButtons";
 import { DeleteTwice } from "@/app/(staff)/staff/_components/DeleteTwice";
 import AskForm from "@/app/(staff)/staff/_components/AskForm";
 import MyGmail from "@/app/(staff)/staff/_components/MyGmail";
@@ -117,6 +118,9 @@ import PasteForm from "@/app/(staff)/staff/_components/PasteForm";
 import PickBox from "@/app/(staff)/staff/_components/PickBox";
 import PoliticiansList, { ChoosingHead, type ChoosingActions } from "@/app/(staff)/staff/_components/PoliticiansList";
 import { Controlled, Logged } from "../_components/wiring";
+import OptOutForm from "@/app/(staff)/staff/_components/OptOutForm";
+import { CONSENTS } from "@/lib/contact-permissions";
+import { optOutChoices } from "@/lib/opt-out-choices";
 
 /** The table of politicians: one function for both examples. */
 function LoggedPoliticianTable({ politicians }: { politicians: Politician[] }) {
@@ -428,6 +432,34 @@ export function NotesCardExample({ lines = true, writable = true }: { lines?: bo
             <li key={note}>{note}</li>
           ))}
         </NotesCard>
+      )}
+    </Logged>
+  );
+}
+
+/** Unsubscribe them, for a supporter with an address and a number. */
+export function OptOutFormExample({ opened = false }: { opened?: boolean }) {
+  const choices = optOutChoices([
+    ...CONSENTS.map((c) => ({
+      address: c.way === "email" ? "jane.smith@example.com" : "+447700900123",
+      channel: c.way === "email" ? ("email" as const) : ("phone" as const),
+      topic: c.topic,
+      way: c.way,
+      send: "yes" as const,
+    })),
+  ]);
+  return (
+    <Logged>
+      {(log) => (
+        <OptOutForm
+          supporterId={1}
+          choices={choices}
+          record={async (form) => {
+            log("record")(form);
+            return true;
+          }}
+          opened={opened}
+        />
       )}
     </Logged>
   );
@@ -853,6 +885,11 @@ export function SupporterLetterViewExample({ ask }: { ask: boolean }) {
   );
 }
 
+/** Resume sending, for a broadcast that stopped before it had all gone. */
+export function ResumeBroadcastExample({ id }: { id: number }) {
+  return <Logged>{(log) => <ResumeBroadcast id={id} action={log("resumeBroadcastNow")} />}</Logged>;
+}
+
 /** Delete draft and Stop, for draft `id`, each page's own, so two on a page don't share a box. */
 export function MailingButtonsExample({ id }: { id: number }) {
   return (
@@ -867,10 +904,21 @@ export function MailingButtonsExample({ id }: { id: number }) {
   );
 }
 
-/** A mailing's day and hour, today with no hour chosen: the hours too soon can't be. */
+/** A mailing's day, hour and minutes, today with no hour chosen: the hours too soon can't be, nor the minutes till one is. */
 export function DueTimeFieldsExample() {
-  const [when, setWhen] = useState<{ day: string; hour: number | null }>({ day: "2026-10-16", hour: null });
-  return <DueTimeFields day={when.day} hour={when.hour} onChange={(day, hour) => setWhen({ day, hour })} />;
+  const [when, setWhen] = useState<{ day: string; hour: number | null; minute: number }>({
+    day: "2026-10-16",
+    hour: null,
+    minute: SENDING.minutes[0],
+  });
+  return (
+    <DueTimeFields
+      day={when.day}
+      hour={when.hour}
+      minute={when.minute}
+      onChange={(day, time) => setWhen((was) => ({ ...was, day, ...time }))}
+    />
+  );
 }
 
 /**

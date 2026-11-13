@@ -10,7 +10,7 @@ import { linkSupporters } from "./supporters";
 
 const copy = staffCopy.broadcastPages;
 const FILTER = { list: "supporters" as const, params: {} };
-const EMAIL = { channel: "email" as const, topic: "events" as const };
+const EMAIL = { channel: "email" as const, topics: ["events" as const] };
 
 describeWithDatabase("who a broadcast to supporters goes to", () => {
   useTestDatabase();
@@ -86,7 +86,7 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
 
   it("uses a number that said yes, for a text", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
-    const { recipients } = await supporterAudience(FILTER, { channel: "text", topic: "events" });
+    const { recipients } = await supporterAudience(FILTER, { channel: "text", topics: ["events"] });
     expect(recipients.map((one) => one.address)).toEqual(["+447700900001"]);
   });
 
@@ -104,7 +104,7 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
        INSERT INTO email_blocks (address, problem_id) SELECT 'bob@example.com', id FROM p`,
     );
     const nobody = await addFollower("usr-4", "nobody@example.com", "");
-    const { recipients } = await supporterAudience(FILTER, { channel: "text", topic: "newsletter" });
+    const { recipients } = await supporterAudience(FILTER, { channel: "text", topics: ["newsletter"] });
     expect(recipients).toEqual([]);
     // Pat never said yes, Sam asked us to stop and Bob's address is blocked: only the one with no name goes, said so.
     const email = await supporterAudience(FILTER, EMAIL);

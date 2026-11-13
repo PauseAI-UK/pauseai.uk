@@ -12,7 +12,7 @@ import { query } from "./db";
 // (/api/cron/tidy-logs), which also deletes forgotten mailing drafts and
 // old errors.
 //
-// An import run is kept for a week if its job runs every 5 minutes or hourly, and a month if it
+// An import run is kept for a week if its job runs every 5 or 15 minutes or hourly, and a month if it
 // runs nightly. Every job keeps its newest run, however old, as its page shows it, and a held sync is kept
 // until someone applies or discards it.
 //
@@ -59,7 +59,7 @@ export async function tidyLogs(): Promise<{ importRuns: number; auditEntries: nu
          OR (r.job = ANY($1) AND r.at < now() - interval '1 month')
          OR (r.job = ANY($2) AND r.at < now() - interval '1 month'))
      RETURNING 1`,
-    [[...jobsThat("frequent"), ...jobsThat("hourly")], jobsThat("nightly")],
+    [[...jobsThat("frequent"), ...jobsThat("quarter-hour"), ...jobsThat("hourly")], jobsThat("nightly")],
   );
   const entries = await query(
     `DELETE FROM audit_log a WHERE a.at < now() - interval '1 month' AND NOT ${POLITICIAN_HISTORY} RETURNING 1`,

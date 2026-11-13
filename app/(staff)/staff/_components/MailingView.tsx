@@ -24,7 +24,7 @@ import Grid, { Card } from "./ui/Grid";
 import Progress from "./ui/Progress";
 import Strip from "./ui/Strip";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
-import Bubble from "./ui/Bubble";
+import Bubble from "@/components/ui/Bubble";
 import AnswerWord from "./AnswerWord";
 import LetterStatus from "./LetterStatus";
 import styles from "./MailingView.module.css";
@@ -119,7 +119,8 @@ function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: Form
  * when one scheduled sends, large and blue, as it's going out, with Change
  * the time and Unschedule; how far one sending has got, with Stop
  * sending; once sent, how many of everyone it went to have answered its ask.
- * Nothing for one with no ask.
+ * Nothing for one with no ask. `due` replaces when one scheduled sends, as
+ * for a broadcast past its time that waits.
  */
 export function MailingStanding({
   mailing,
@@ -127,12 +128,14 @@ export function MailingStanding({
   stop,
   reschedule,
   line,
+  due,
 }: {
   mailing: Pick<Mailing, "ask" | "to" | "sent" | "failed" | "answered">;
   written?: WrittenMailing;
   stop: FormAction;
   reschedule: FormAction;
   line?: string;
+  due?: string;
 }) {
   if (written?.state === "scheduled") {
     return (
@@ -140,7 +143,7 @@ export function MailingStanding({
         <Card span={6} as="div">
           <div className={styles.standing}>
             <div className={styles.due}>
-              <strong>{copy.sends(londonWhen(written.dueAt!, "short"))}</strong>
+              <strong>{due ?? copy.sends(londonWhen(written.dueAt!, "short"))}</strong>
               <span>{line ?? copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!)}</span>
             </div>
             <div className={styles.actions}>
@@ -281,6 +284,12 @@ export default function MailingView({
               mailing.fromName ??
               (mailing.oldLetters ? staffCopy.mailings.notRecorded : staffCopy.mailings.imported))}
         </BandFact>
+        {/* One written here went by its account's Gmail; an imported one's way isn't known. */}
+        {written && (
+          <BandFact label={staffCopy.broadcastPages.sendFacts.via}>
+            {staffCopy.broadcastPages.sendBy.names.gmail}
+          </BandFact>
+        )}
         <BandFact label={copy.to} detail={who && staffCopy.campaigns.politicians(mailing.to)}>
           {who ?? staffCopy.campaigns.politicians(mailing.to)}
         </BandFact>

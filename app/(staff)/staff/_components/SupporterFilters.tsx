@@ -2,16 +2,23 @@ import { SUPPORTERS_LIST } from "@/lib/staff-lists";
 import type { Way } from "@/lib/contact-permissions";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
+import type { Params } from "@/lib/list-params";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
 import type { SupporterChoices, SupportersPage } from "@/lib/server/supporters";
 import { filteredName, filterWords, SUPPORTER_FILTERS } from "@/lib/staff-list-filters";
-import ChannelIcon from "./ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import { supporterFiltersOf } from "./SupportersTable";
 import FilterBar from "./ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";
 
 /** A channel's icon, over its topics in the Subscriptions filter. */
 const channelIcon = (way: Way) => <ChannelIcon channel={way} />;
+
+/** The supporters list's filters on but Consent, in words: who a broadcast is to, of those who said yes. */
+export function othersThanConsent(params: Params, choices: SupporterChoices): string[] {
+  const others = Object.fromEntries(Object.entries(params).filter(([name]) => name !== "contact"));
+  return supporterWords(supportersSearch(others), choices);
+}
 
 /** The supporters list's search and filters that are on, in words, as their chips say them. */
 export function supporterWords(

@@ -215,7 +215,7 @@ function Handling({ handling }: { handling: ReplyHandling[] }) {
 }
 
 /** One entry of a letter's history, and what belongs under it (a reply's relay, Sent's copy) in a list, a size smaller. */
-function Entry({ event, id }: { event: HistoryEntry; id: string }) {
+function Entry({ event, id, logged }: { event: HistoryEntry; id: string; logged: boolean }) {
   return (
     <li>
       <p className={styles.eventHead}>
@@ -223,13 +223,13 @@ function Entry({ event, id }: { event: HistoryEntry; id: string }) {
         {event.tag && <Tag>{event.tag}</Tag>}
         <span className={styles.eventWhen}>{staffTime(event.at)}</span>
       </p>
-      <span>{Object.keys(event.details).length > 0 && <LoggedJson id={id} details={event.details} />}</span>
+      <span>{logged && Object.keys(event.details).length > 0 && <LoggedJson id={id} details={event.details} />}</span>
       <EventFields event={event} />
       {event.handling && <Handling handling={event.handling} />}
       {event.under && (
         <ol className={`${styles.events} ${styles.under}`}>
           {event.under.map((under, j) => (
-            <Entry key={j} event={under} id={`${id}-${j}`} />
+            <Entry key={j} event={under} id={`${id}-${j}`} logged={logged} />
           ))}
         </ol>
       )}
@@ -242,14 +242,15 @@ function Entry({ event, id }: { event: HistoryEntry; id: string }) {
  * a line, with its tag, and a {} button at its right that opens what it
  * recorded as recorded, as the audit log has; under them every field, a
  * line each, in words, and for a reply, what was done with it; under a
- * reply its relay, and under Sent the supporter's copy.
+ * reply its relay, and under Sent the supporter's copy. Without `logged`
+ * (a broadcast's copy, whose entries record little), no {} buttons.
  */
-export function LetterHistory({ events }: { events: HistoryEntry[] }) {
+export function LetterHistory({ events, logged = true }: { events: HistoryEntry[]; logged?: boolean }) {
   if (events.length === 0) return <Empty>{copy.detail.noHistory}</Empty>;
   return (
     <ol className={`${styles.history} ${styles.events}`} aria-label={copy.detail.historyTitle}>
       {events.map((event, i) => (
-        <Entry key={i} event={event} id={`event-${i}`} />
+        <Entry key={i} event={event} id={`event-${i}`} logged={logged} />
       ))}
     </ol>
   );

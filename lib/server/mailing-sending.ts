@@ -7,9 +7,11 @@ import { logChange } from "./audit";
 import { query } from "./db";
 import { isBlocked, sentBy } from "./email";
 import { gmailAccount } from "./gmail-accounts";
-import { sendLetterVia, transition } from "./letter-lifecycle";
+import { SentUnrecorded, sendLetterVia, transition } from "./letter-lifecycle";
+import { problem } from "./problems";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { attachmentsOf, emailFor } from "./mailing-drafts";
-import { mailingChannel, type MailingChannel } from "./mailing-channels";
+import { mailingChannel, paced, type MailingChannel } from "./mailing-channels";
 import type { SkipReason } from "./mailings";
 import { sql } from "./sql";
 
@@ -30,7 +32,7 @@ const SEND_GAP_MS = 1000;
 
 /**
  * Starts every scheduled mailing that's due, but none overnight, before
- * SENDING.firstHour (lib/staff-time.ts), though the job runs every hour:
+ * SENDING.firstHour (lib/staff-time.ts), though the job runs all night:
  * one due then starts with the morning's first run. Returns their IDs.
  */
 export async function startDueMailings(): Promise<number[]> {
@@ -67,13 +69,19 @@ async function nextLetter(mailingId: number): Promise<Letter | undefined> {
     { stamp: "taken_at" },
   );
   if (!id) return undefined;
-  const [letter] = await query<Letter>(
-    `SELECT l.id::int AS id, n.name, n.email, n.status = 'in_office' AS "inOffice", p.merge_values AS "mergeValues"
-     FROM letters l JOIN letters_from_pauseai p USING (id) JOIN notable_people n ON n.id = l.notable_person_id
-     WHERE l.id = $1`,
-    [id],
-  );
-  return letter;
+  try {
+    const [letter] = await query<Letter>(
+      `SELECT l.id::int AS id, n.name, n.email, n.status = 'in_office' AS "inOffice", p.merge_values AS "mergeValues"
+       FROM letters l JOIN letters_from_pauseai p USING (id) JOIN notable_people n ON n.id = l.notable_person_id
+       WHERE l.id = $1`,
+      [id],
+    );
+    return letter;
+  } catch (error) {
+    // Taken but not read, so never sent: back to go next run, rather than left sending.
+    await transition(id, ["sending"], "scheduled");
+    throw error;
+  }
 }
 
 async function skip(letterId: number, reason: SkipReason): Promise<void> {
@@ -101,23 +109,8 @@ async function lettersLeft(): Promise<number> {
   return left;
 }
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/** `channel`, each send at least `gap` ms after the one before, as Gmail's pace allows. */
-function paced(channel: MailingChannel, gap: number): MailingChannel {
-  let last = 0;
-  return {
-    ...channel,
-    async send(message, purpose) {
-      await wait(Math.max(0, last + gap - Date.now()));
-      last = Date.now();
-      return channel.send(message, purpose);
-    },
-  };
-}
-
-/** What became of a mailing's letter that didn't go: skipped, with its reason, or failed. */
-type Unsent = { sent: false; skipped: boolean };
+/** What became of a mailing's letter that didn't go: skipped, with its reason, failed, or `waiting` for the next run. */
+type Unsent = { sent: false; skipped: boolean; waiting?: true };
 
 /** A letter skipped, with why. */
 async function skipped(letterId: number, reason: SkipReason): Promise<Unsent> {
@@ -128,8 +121,9 @@ async function skipped(letterId: number, reason: SkipReason): Promise<Unsent> {
 /**
  * Sends the letters of the mailings being sent, oldest due first, one at a
  * time, `gap` apart, until there are none or it's `until` (a time in ms).
- * An account at its daily limit, or no longer connected, sends no more
- * this run: its letters wait for the next.
+ * An account at its daily limit, or no longer connected, or one Gmail
+ * answers can't send for now, sends no more this run: its letters wait
+ * for the next.
  */
 export async function sendDueLetters({
   until,
@@ -163,39 +157,62 @@ export async function sendDueLetters({
       const letter = await nextLetter(mailing.id);
       if (!letter) break;
       const to = letter.email;
-      const result = await sendLetterVia<Unsent>(pacedChannel, {
-        id: letter.id,
-        purpose: "mailing",
-        held: async () => {
-          if (!letter.inOffice) return skipped(letter.id, "left-office");
-          if (!to) return skipped(letter.id, "no-email");
-          if (await isBlocked(to)) return skipped(letter.id, "blocked");
-          return undefined;
-        },
-        message: async () => ({
-          from: { name: mailing.fromName, address: mailing.sentFrom },
-          to: { name: letter.name, address: to! },
-          ...emailFor({ subject: mailing.subject, body }, letter.mergeValues),
-          attachments,
-          letterId: letter.id,
-        }),
-        sentDetails: (sent) => ({
-          from: mailing.sentFrom,
-          to,
-          messageId: sent.messageId,
-          threadId: sent.threadId,
-          // A mailing's letter goes from its mailing's Gmail.
-          ...sentBy({ name: "gmail", account: mailing.sentFrom }),
-        }),
-        unsent: async (reason) => {
-          if (reason === "blocked") return skipped(letter.id, "blocked");
-          await transition(letter.id, ["sending"], "not_sent", { event: "failed" });
-          return { sent: false, skipped: false };
-        },
-      });
+      let result: { sent: true } | Unsent;
+      try {
+        result = await sendLetterVia<Unsent>(pacedChannel, {
+          id: letter.id,
+          purpose: "mailing",
+          held: async () => {
+            if (!letter.inOffice) return skipped(letter.id, "left-office");
+            if (!to) return skipped(letter.id, "no-email");
+            if (await isBlocked(to)) return skipped(letter.id, "blocked");
+            return undefined;
+          },
+          message: async () => ({
+            from: { name: mailing.fromName, address: mailing.sentFrom },
+            to: { name: letter.name, address: to! },
+            ...emailFor({ subject: mailing.subject, body }, letter.mergeValues),
+            attachments,
+            letterId: letter.id,
+          }),
+          sentDetails: (sent) => ({
+            from: mailing.sentFrom,
+            to,
+            messageId: sent.messageId,
+            threadId: sent.threadId,
+            // A mailing's letter goes from its mailing's Gmail.
+            ...sentBy({ name: "gmail", account: mailing.sentFrom }),
+          }),
+          unsent: async ({ reason, retry }) => {
+            if (reason === "blocked") return skipped(letter.id, "blocked");
+            if (retry) {
+              // Gmail can't send for now: it waits for the next run, as the rest from its account do.
+              await transition(letter.id, ["sending"], "scheduled");
+              return { sent: false, skipped: false, waiting: true };
+            }
+            await transition(letter.id, ["sending"], "not_sent", { event: "failed" });
+            return { sent: false, skipped: false };
+          },
+        });
+      } catch (error) {
+        const words = staffCopy.problems.anywhere;
+        if (error instanceof SentUnrecorded) {
+          // It went: it stays sending, for uncertainLetters to mark uncertain, so it isn't sent twice.
+          problem(words.sentUnrecorded(words.letterOf(letter.id)), error.cause);
+          run.sent++;
+          continue;
+        }
+        // It never went (NotSentYet): back to go next run, and the rest of this mailing with it.
+        await transition(letter.id, ["sending"], "scheduled");
+        problem(words.notSentYet(words.letterOf(letter.id)), error);
+        break;
+      }
       if (result.sent) run.sent++;
       else if (result.skipped) run.skipped++;
-      else run.failed++;
+      else if (result.waiting) {
+        run.waiting.push(mailing.sentFrom);
+        break;
+      } else run.failed++;
     }
   }
   await finishMailings();

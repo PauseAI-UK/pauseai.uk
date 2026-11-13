@@ -30,6 +30,11 @@ export function BandFact({
   );
 }
 
+/** Facts (BandFact) laid out as a Band lays out its own, anywhere else on a page. */
+export function Facts({ children }: { children: ReactNode }) {
+  return <dl className={`${styles.facts} ${styles.alone}`}>{children}</dl>;
+}
+
 /**
  * The tinted band at the top of a record's page (a supporter's, a
  * mailing's): `lead` at its left, such as a map; the title, with a tag

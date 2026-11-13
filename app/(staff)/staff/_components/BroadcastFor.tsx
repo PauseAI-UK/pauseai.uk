@@ -1,39 +1,41 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { BroadcastPageData } from "@/lib/server/broadcast-pages";
 import type { SupporterChoices } from "@/lib/server/supporters";
-import { supportersSearch } from "@/lib/staff-search";
 import { type Params } from "@/lib/list-params";
 import { Muted } from "@/components/ui/Text";
 import { broadcastTerms } from "@/lib/broadcasts";
 import { consentKey } from "@/lib/contact-permissions";
-import ChannelIcon from "./ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import IconText from "./ui/IconText";
 import BroadcastView from "./BroadcastView";
 import ChannelWriter from "./ChannelWriter";
 import type { BroadcastWriterActions } from "./BroadcastWriter";
-import { supporterWords } from "./SupporterFilters";
+import { othersThanConsent } from "./SupporterFilters";
 import parts from "./MailingParts.module.css";
 
 type FormAction = (form: FormData) => void | Promise<void>;
 
 /**
  * What everyone a broadcast is to said yes to, from the list's Consent
- * filter: the channel's icon, then the consent as the list's lozenges name it. Apart from the other filters, as it's what lets us send it.
+ * filter: the channel's icon, then each consent as the list's lozenges name
+ * it, "or" between. Apart from the other filters, as it's what lets us send
+ * it.
  */
 export function BroadcastContact({ params }: { params: Params }) {
   const terms = broadcastTerms(params.contact)!;
   const way = terms.channel === "email" ? "email" : "text";
   return (
     <IconText icon={<ChannelIcon channel={way} />}>
-      {staffCopy.supporters.subscriptions.consents[consentKey({ way, topic: terms.topic })]}
+      {staffCopy.filters.anyOf(
+        terms.topics.map((topic) => staffCopy.supporters.subscriptions.consents[consentKey({ way, topic })]),
+      )}
     </IconText>
   );
 }
 
 /** Who else a broadcast is to, as pills that can't be changed here: the list's filters but Consent, which BroadcastContact says. */
 export function BroadcastWho({ params, choices }: { params: Params; choices: SupporterChoices }) {
-  const others = Object.fromEntries(Object.entries(params).filter(([name]) => name !== "contact"));
-  const words = supporterWords(supportersSearch(others), choices);
+  const words = othersThanConsent(params, choices);
   if (words.length === 0) return <Muted>{staffCopy.broadcastPages.everyoneWhoSaidYes}</Muted>;
   return (
     <ul className={parts.pills} aria-label={staffCopy.mailingPages.whoLabel}>
@@ -50,7 +52,7 @@ export default function BroadcastFor({
   actions,
 }: {
   data: BroadcastPageData;
-  actions: BroadcastWriterActions & { stop: FormAction; reschedule: FormAction };
+  actions: BroadcastWriterActions & { stop: FormAction; reschedule: FormAction; resume: FormAction };
 }) {
   if (data.kind === "draft") {
     const who = <BroadcastWho params={data.filter.params} choices={data.choices} />;
@@ -59,5 +61,14 @@ export default function BroadcastFor({
   }
   const who = <BroadcastWho params={data.written.filter.params} choices={data.choices} />;
   const contact = <BroadcastContact params={data.written.filter.params} />;
-  return <BroadcastView data={data} who={who} contact={contact} stop={actions.stop} reschedule={actions.reschedule} />;
+  return (
+    <BroadcastView
+      data={data}
+      who={who}
+      contact={contact}
+      stop={actions.stop}
+      reschedule={actions.reschedule}
+      resume={actions.resume}
+    />
+  );
 }

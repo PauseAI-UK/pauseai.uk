@@ -363,7 +363,7 @@ describe("a filter that doesn't repeat, with several values from an old link or 
   };
   const links = () => [...open().querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")]);
 
-  it("has a chip for each; its second half changes that one, its first takes the filter's place, and Remove takes only that", async () => {
+  it("has a chip for each; its second half changes that one, its first offers what no other chip has, and Remove takes only that", async () => {
     await render(bar([part], { part: ["a:2", "b", "!a:1"] }));
     const pairs = page.getByRole("group", { name: "Part" });
     await pairs.nth(0).getByRole("button").nth(1).click();
@@ -371,8 +371,7 @@ describe("a filter that doesn't repeat, with several values from an old link or 
     await away();
     await pairs.nth(0).getByRole("button").nth(0).click();
     expect(links()).toEqual([
-      ["A", "/list?part=a%3A1"],
-      ["B", "/list?part=b"],
+      ["A", "/list?part=b&part=%21a%3A1&part=a%3A2"],
       [copy.remove, "/list?part=b&part=%21a%3A1"],
     ]);
     await away();

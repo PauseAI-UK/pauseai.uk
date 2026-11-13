@@ -13,7 +13,11 @@ export function Subhead({ children }: { children: ReactNode }) {
 
 /** A word flagged in red beside a heading: "POSTPONED". */
 export function Flag({ children }: { children: ReactNode }) {
-  return <span className={styles.flag}>{children}</span>;
+  return (
+    <span className={styles.flag} data-beside="lowercase">
+      {children}
+    </span>
+  );
 }
 
 /** A last paragraph set off by a dashed rule, such as what's further ahead. */

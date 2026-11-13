@@ -2,7 +2,6 @@ import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/broadcast-fixtures";
 import { createBroadcastDraft, getWrittenBroadcast, saveBroadcastDraft, scheduleBroadcast } from "./broadcast-drafts";
 import {
@@ -19,6 +18,16 @@ import {
 } from "./broadcast-pages";
 
 const JO = "jo@pauseai.uk";
+const HELLO = "hello@pauseai.uk";
+
+/** hello@ having sent `n` more emails just now. */
+const sentByHello = (n: number) =>
+  query(
+    `INSERT INTO email_sends (purpose, address, outcome, message_id, backend, sender)
+     SELECT 'broadcast', 'x' || i || '@example.com', 'sent', 'earlier-' || i, 'gmail', $2
+     FROM generate_series(1, $1::int) i`,
+    [n, HELLO],
+  );
 const FUTURE = new Date("2099-01-01T09:18:00.000Z");
 const EMAIL_FILTER = { contact: "email:events:yes" };
 const TEXT_FILTER = { contact: "text:events:yes" };
@@ -62,6 +71,8 @@ async function sent(id: number, statuses: [string, string | null][]): Promise<nu
 
 describeWithDatabase("the pages of broadcasts to supporters", () => {
   useTestDatabase();
+  // An email goes by hello@'s Gmail, which is connected.
+  beforeEach(() => connectTestGmail(HELLO));
 
   it("says when there are none", async () => {
     expect((await broadcastsPage()).groups).toEqual([]);
@@ -128,7 +139,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       sends: true,
       unknown: [],
       templates: [],
-      senders: [],
+      sender: { byGmail: true, connected: true, remaining: 1800 },
     });
     // No supporter's details: its preview is for someone made up.
     expect(data!.kind === "draft" && "recipients" in data!).toBe(false);
@@ -139,26 +150,44 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await broadcastPageData(id, {}, JO)).toMatchObject({ unknown: ["event=gone"], count: 0 });
   });
 
-  it("offers connected Gmails to send from, never the letters inbox", async () => {
-    await connectTestGmail(JO);
-    await connectTestGmail(LETTERS_INBOX);
-    vi.stubEnv("LETTERS_INBOX", LETTERS_INBOX);
+  it("says how what sends a draft email stands: hello@'s Gmail connected or not, and what it can send today", async () => {
     const id = (await createBroadcastDraft(JO, EMAIL_FILTER))!;
-    const data = await broadcastPageData(id, {}, JO);
-    expect(data!.kind === "draft" && data!.senders.map((one) => one.email)).toEqual([JO]);
+    const sender = async () => {
+      const data = await broadcastPageData(id, {}, JO);
+      return data!.kind === "draft" && data!.sender;
+    };
+    expect(await sender()).toEqual({ byGmail: true, connected: true, remaining: 1800 });
+    await sentByHello(1);
+    expect(await sender()).toEqual({ byGmail: true, connected: true, remaining: 1799 });
+    await query(
+      "UPDATE staff_accounts SET gmail_token = NULL, gmail_connected_at = NULL, gmail_history_id = NULL, gmail_name = NULL",
+    );
+    expect(await sender()).toEqual({ byGmail: true, connected: false, remaining: 1799 });
+    // A text has no such sender.
+    const text = (await createBroadcastDraft(JO, { contact: "text:events:yes" }))!;
+    const data = await broadcastPageData(text, {}, JO);
+    expect(data!.kind === "draft" && data!.sender).toEqual({ byGmail: false, connected: false, remaining: null });
   });
 
-  it("gives New broadcast an email to no one yet, with the Gmails it could go from but never the letters inbox", async () => {
-    await connectTestGmail(JO);
-    await connectTestGmail(LETTERS_INBOX);
+  it("says one sending is at its limit once hello@ can send no more today", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith");
+    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS });
+    expect(await broadcastPageData(id, {}, JO)).toMatchObject({ kind: "written", atLimit: false });
+    await startSending(id);
+    expect(await broadcastPageData(id, {}, JO)).toMatchObject({ atLimit: false });
+    await sentByHello(1800);
+    expect(await broadcastPageData(id, {}, JO)).toMatchObject({ atLimit: true });
+  });
+
+  it("gives New broadcast an email to no one yet, by hello@'s Gmail", async () => {
     const { draft, data } = await newBroadcastPageData(JO);
-    expect(draft).toMatchObject({ id: 0, channel: "email", state: "draft", filter: { params: {} } });
+    expect(draft).toMatchObject({ id: 0, channel: "email", sendBy: "gmail", state: "draft", filter: { params: {} } });
     expect(data).toMatchObject({ count: 0, me: JO, templates: [] });
     expect(data.fields.map((field) => field.lacking)).toEqual([0, 0]);
     // Each condition a part can be for, as a draft's, covering no one yet.
     expect(data.conditions.length).toBeGreaterThan(0);
     expect(data.conditions.every((condition) => condition.covers === 0)).toBe(true);
-    expect(data.senders.map((sender) => sender.email)).toEqual([JO]);
+    expect(data.sender).toEqual({ byGmail: true, connected: true, remaining: 1800 });
   });
 
   it("names a broadcast in the trail above its page: a draft as a draft, one sent by its title", async () => {
@@ -181,12 +210,17 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await choosingBroadcast(String(id))).toEqual({
       id,
       channel: "email",
-      topic: "events",
+      topics: ["events"],
       title: "Events",
       blank: false,
     });
     expect(choosingConsent((await choosingBroadcast(String(id)))!)).toBe(EMAIL_FILTER.contact);
-    expect(choosingConsent({ id, channel: "text", topic: "events", title: "", blank: true })).toBe("text:events:yes");
+    expect(choosingConsent({ id, channel: "text", topics: ["events"], title: "", blank: true })).toBe(
+      "text:events:yes",
+    );
+    expect(choosingConsent({ id, channel: "email", topics: ["newsletter", "events"], title: "", blank: true })).toEqual(
+      ["email:newsletter:yes", "email:events:yes"],
+    );
     // The list choosing for it keeps its Consent over another; with no draft, the filters as they are.
     const other = { contact: "email:newsletter:yes", near: "LS1" };
     expect(await withChoosing(other, String(id))).toMatchObject({
@@ -302,7 +336,17 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
         channel: "email",
         status: "delivered",
         read: false,
+        replied: false,
+        toLookAt: false,
       },
     ]);
+    // Their reply, waiting for staff.
+    await query(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, blob_key, automatic)
+       VALUES ($1, now(), 'jane@example.com', 'Re: Events', 'hello@pauseai.uk', 'g1', 't1', 'k', false)`,
+      [copy],
+    );
+    expect(await broadcastsToSupporter(jane)).toMatchObject([{ replied: true, toLookAt: true }]);
   });
 });

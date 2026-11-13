@@ -7,7 +7,11 @@ import { requireStaff } from "@/lib/server/staff-auth";
 import { getSupporter } from "@/lib/server/supporters";
 import { supporterId } from "@/lib/staff-search";
 import { canonicalSupporter, supporterTitle } from "@/lib/supporters";
-import { addNoteNow, deleteNoteNow, editNoteNow } from "../../../actions";
+import { optOutChoices } from "@/lib/opt-out-choices";
+import { config } from "@/lib/server/config";
+import { addNoteNow, deleteNoteNow, editNoteNow, recordOptOutNow } from "../../../actions";
+import DevPreferences from "../../../_components/DevPreferences";
+import OptOutForm from "../../../_components/OptOutForm";
 import EraseLink from "../../../_components/EraseLink";
 import Notes from "../../../_components/Notes";
 import SupporterBroadcasts from "../../../_components/SupporterBroadcasts";
@@ -46,6 +50,20 @@ export default async function SupporterPage({ params }: Params) {
         erase={<EraseLink supporterId={supporter.summary.id} />}
         oneOffs={<OneOffTable threads={oneOffs} />}
         messages={<SupporterBroadcasts broadcasts={broadcasts} />}
+        optOut={
+          <>
+            <OptOutForm
+              supporterId={supporter.summary.id}
+              choices={optOutChoices(supporter.permissions)}
+              record={recordOptOutNow}
+            />
+            <DevPreferences
+              emails={supporter.summary.emails}
+              permissions={supporter.permissions}
+              fixtures={config.fixtures}
+            />
+          </>
+        }
         notes={
           <Notes
             notes={notes}

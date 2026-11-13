@@ -114,7 +114,10 @@ function thrownParts(thrown: unknown): Pick<Happening, "name" | "code" | "words"
 }
 
 const VALUES = `($1, $2, $3, $4, $5, $6, $7, $8, $9)`;
-const AGAIN = `ON CONFLICT (key) DO UPDATE SET count = errors_seen.count + 1, last_seen = now(), words = EXCLUDED.words,
+// now() is when the statement's transaction began, so one that waited on another's new row may be earlier than its
+// first_seen: last_seen never goes back.
+const AGAIN = `ON CONFLICT (key) DO UPDATE SET count = errors_seen.count + 1,
+  last_seen = greatest(errors_seen.last_seen, now()), words = EXCLUDED.words,
   latest_words = EXCLUDED.latest_words, latest_stack = EXCLUDED.latest_stack, latest_browser = EXCLUDED.latest_browser,
   done_at = NULL, done_by = NULL
   RETURNING id::int AS id`;

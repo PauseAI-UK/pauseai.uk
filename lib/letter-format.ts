@@ -248,6 +248,12 @@ export function toText(doc: LetterDoc): string {
     .trim();
 }
 
+/** Whether `value` is a letter, as checkDoc allows, with words in it, as an editor's document must be to send. */
+export function hasWords(value: unknown): boolean {
+  const doc = checkDoc(value);
+  return doc !== undefined && !isBlank(doc);
+}
+
 /** Whether the letter has any words in it. */
 export function isBlank(doc: LetterDoc): boolean {
   // Without the dashes of bullets and the > of quotes.

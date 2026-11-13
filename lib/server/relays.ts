@@ -2,7 +2,7 @@ import "server-only";
 import { gunzipSync } from "node:zlib";
 import type { LetterEvent } from "@/lib/letter-status";
 import { query } from "./db";
-import { isBlocked, send, sentBy } from "./email";
+import { isBlocked, send, sentBy, type SendResult } from "./email";
 import {
   cannotSend,
   lettersBackend,
@@ -18,6 +18,8 @@ import { letterEvent, transition } from "./letter-lifecycle";
 import { isLettersInboxAddress } from "./letters-inbox";
 import { relayMime } from "./mime";
 import { letterReply } from "./outside-services/blobs";
+import { problem } from "./problems";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { mpName, nameLine, proxyLine } from "./proxies";
 
 // Relays: each message the MP's office or the supporter sends through a
@@ -90,6 +92,38 @@ export async function sendRelay(relayId: number): Promise<{ sent: boolean; reaso
     [relayId],
   );
   if (!relay) return { sent: false };
+  const words = staffCopy.problems.anywhere;
+  let sent: Awaited<ReturnType<typeof sendTakenRelay>>;
+  try {
+    sent = await sendTakenRelay(relayId, relay);
+  } catch (error) {
+    // Nothing went (send never throws after it has): back in the queue, to go next run.
+    await setStatus(relayId, "queued", "failed");
+    problem(words.notSentYet(words.relayOf(relayId)), error);
+    return { sent: false, reason: "failed" };
+  }
+  if (!("result" in sent)) return sent;
+  const { result, from, to } = sent;
+  try {
+    await query(
+      "UPDATE letter_relays SET status = 'sent', reason = NULL, sent_at = now(), rfc_message_id = $2 WHERE id = $1",
+      [relayId, result.messageId],
+    );
+    await relayEvent(relayId, "relayed", { from, to, messageId: result.messageId, ...sentBy(result.backend) });
+  } catch (error) {
+    // It went: left sending, for uncertainRelays to mark uncertain, never sent twice.
+    problem(words.sentUnrecorded(words.relayOf(relayId)), error);
+  }
+  return { sent: true };
+}
+
+/** Sends a relay sendRelay has taken, unless held or left queued, saying what it went with, or why not. */
+async function sendTakenRelay(
+  relayId: number,
+  relay: { letterId: number; toSupporter: boolean; blobKey: string; reason: string | null; autoReply: boolean },
+): Promise<
+  { sent: false; reason: QueueReason } | { result: Extract<SendResult, { sent: true }>; from: string; to: string }
+> {
   const letter = (await outgoingLetter(relay.letterId))!;
   const [from, to, toName, thread] = relay.toSupporter
     ? [proxyLine(mpName(letter.mpName), letter.mpTag), letter.senderEmail, letter.senderName, "letter-copy" as const]
@@ -127,12 +161,7 @@ export async function sendRelay(relayId: number): Promise<{ sent: boolean; reaso
   });
   // A block found only as it went is one the next try finds first.
   if (!result.sent) return requeue(relayId, to, "failed", relay.reason);
-  await query(
-    "UPDATE letter_relays SET status = 'sent', reason = NULL, sent_at = now(), rfc_message_id = $2 WHERE id = $1",
-    [relayId, result.messageId],
-  );
-  await relayEvent(relayId, "relayed", { from, to, messageId: result.messageId, ...sentBy(result.backend) });
-  return { sent: true };
+  return { result, from, to };
 }
 
 /**

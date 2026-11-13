@@ -2,9 +2,11 @@
 // writer, the list of them, each one's page, and one copy as sent.
 import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
 import { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
-import { BroadcastChannelName, CopyStatus } from "@/app/(staff)/staff/_components/BroadcastView";
+import { ResumeBroadcastExample } from "./staff.client";
+import { BroadcastChannelName, BroadcastWaiting, CopyStatus } from "@/app/(staff)/staff/_components/BroadcastView";
 import {
   exampleBroadcastData,
+  exampleBroadcastEmail,
   exampleBroadcastSent,
   exampleBroadcastSummary,
   exampleSupporterChoices,
@@ -22,6 +24,9 @@ import {
   DraftTitleExample,
   MailingStandingExample,
   MessageCopyViewExample,
+  AnswerableReplyExample,
+  ReplyActionsExample,
+  ReplyButtonExample,
   BroadcastForExample,
   BroadcastConsentExample,
   BroadcastSupportersExample,
@@ -280,8 +285,7 @@ export const staffBroadcasts: Group = {
           label: "Each channel",
           render: () => (
             <>
-              <BroadcastChannelName channel="email" />
-              <BroadcastChannelName channel="text" />
+              <BroadcastChannelName channel="email" /> <BroadcastChannelName channel="text" />
             </>
           ),
         },
@@ -292,7 +296,8 @@ export const staffBroadcasts: Group = {
       file: "app/(staff)/staff/_components/BroadcastView.tsx",
       variants: [
         {
-          label: "Read, bounced, stopped before it went, and asked us to stop after it arrived",
+          label:
+            "Read, bounced, stopped before it went, asked us to stop after it arrived, replied, a reply to look at, and dropped by PauseAI Global's check",
           render: () => {
             const went = { status: "delivered", skipReason: null, read: false, bounced: false, optedOut: false };
             return (
@@ -301,9 +306,48 @@ export const staffBroadcasts: Group = {
                 <CopyStatus copyOf={{ ...went, status: "failed", bounced: true }} />
                 <CopyStatus copyOf={{ ...went, status: "cancelled" }} />
                 <CopyStatus copyOf={{ ...went, optedOut: true }} />
+                <CopyStatus copyOf={{ ...went, replied: true }} />
+                <CopyStatus copyOf={{ ...went, replied: true, toLookAt: true }} />
+                <CopyStatus copyOf={{ ...went, status: "skipped", skipReason: "suppressed" }} />
               </>
             );
           },
+        },
+      ],
+    },
+    {
+      name: "BroadcastWaiting",
+      file: "app/(staff)/staff/_components/BroadcastView.tsx",
+      variants: [
+        {
+          label: "Waiting for CiviCRM, since when and why; and stopped, as it waited too long",
+          render: () => (
+            <StaffPage as="div">
+              <BroadcastWaiting
+                written={{
+                  ...exampleBroadcastEmail,
+                  state: "sending",
+                  waitingSince: new Date("2026-11-07T07:18:00Z"),
+                  waitReason: "civicrm",
+                }}
+              />
+              <BroadcastWaiting
+                written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason: "pull" }}
+              />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "By Gmail: at today's limit, the rest tomorrow; and stopped, as it hadn't all gone in three days",
+          render: () => (
+            <StaffPage as="div">
+              <BroadcastWaiting written={{ ...exampleBroadcastEmail, state: "sending" }} atLimit />
+              <BroadcastWaiting
+                written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason: "limit" }}
+                resume={<ResumeBroadcastExample id={8} />}
+              />
+            </StaffPage>
+          ),
         },
       ],
     },
@@ -432,6 +476,81 @@ export const staffBroadcasts: Group = {
             </StaffPage>
           ),
         },
+        {
+          label: "An email's replies: one to look at, one dealt with, and an automatic one",
+          render: () => (
+            <StaffPage as="div">
+              <MessageCopyViewExample email replies />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "ReplyActions",
+      file: "app/(staff)/staff/_components/ReplyActions.tsx",
+      variants: [
+        {
+          label: "What a reply is: an opt-out of what the email went under, or of all bulk email; or nothing to do",
+          render: () => (
+            <StaffPage as="div">
+              <ReplyActionsExample />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "ReplyButton",
+      file: "app/(staff)/staff/_components/ReplyActions.tsx",
+      variants: [
+        {
+          label: "Reply, in orange, which opens a reply's answer",
+          render: () => (
+            <StaffPage as="div">
+              <ReplyButtonExample />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "UnsubscribeForm",
+      file: "app/(staff)/staff/_components/OptOutForm.tsx",
+      variants: [
+        {
+          label: "On a reply: Reply before it and Nothing to do after, its form asking nothing of how they told us",
+          render: () => (
+            <StaffPage as="div">
+              <ReplyActionsExample write />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "Reply",
+      file: "app/(staff)/staff/_components/CopyReply.tsx",
+      variants: [
+        {
+          label: "Replies in a copy's thread: one to deal with, an automatic one, and one answered",
+          render: () => <MessageCopyViewExample email replies />,
+        },
+      ],
+    },
+    {
+      name: "AnswerableReply",
+      file: "app/(staff)/staff/_components/AnswerableReply.tsx",
+      variants: [
+        {
+          label: "A reply with its Reply button, and its answer opened, being written as it will be sent",
+          render: () => (
+            <StaffPage as="div">
+              <AnswerableReplyExample />
+              <AnswerableReplyExample opened />
+            </StaffPage>
+          ),
+        },
       ],
     },
     {
@@ -439,7 +558,7 @@ export const staffBroadcasts: Group = {
       file: "app/(staff)/staff/_components/SupporterBroadcasts.tsx",
       variants: [
         {
-          label: "Those they were sent",
+          label: "Those they were sent, one with a reply to look at",
           render: () => (
             <StaffPage as="div">
               <SupporterBroadcasts
@@ -451,10 +570,28 @@ export const staffBroadcasts: Group = {
                     channel: "text",
                     status: "delivered",
                     skipReason: null,
+                    stoppedBy: null,
                     sentAt: new Date("2026-11-07T07:18:00Z"),
                     read: true,
                     bounced: false,
                     optedOut: false,
+                    replied: false,
+                    toLookAt: false,
+                  },
+                  {
+                    copyId: 23,
+                    messageId: 7,
+                    title: "Thank you for marching",
+                    channel: "email",
+                    status: "delivered",
+                    skipReason: null,
+                    stoppedBy: null,
+                    sentAt: new Date("2026-11-06T09:18:00Z"),
+                    read: true,
+                    bounced: false,
+                    optedOut: false,
+                    replied: true,
+                    toLookAt: true,
                   },
                   {
                     copyId: 22,
@@ -463,10 +600,13 @@ export const staffBroadcasts: Group = {
                     channel: "email",
                     status: "failed",
                     skipReason: null,
+                    stoppedBy: null,
                     sentAt: null,
                     read: false,
                     bounced: false,
                     optedOut: false,
+                    replied: false,
+                    toLookAt: false,
                   },
                 ]}
               />

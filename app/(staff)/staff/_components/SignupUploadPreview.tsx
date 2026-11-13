@@ -21,6 +21,7 @@ import Numbered from "./ui/Numbered";
 import Strip from "./ui/Strip";
 import styles from "./SignupUpload.module.css";
 import { phoneWords } from "@/lib/phone";
+import { emailSettingsCopy, settingsDate } from "@/lib/content/email-settings";
 
 const copy = staffCopy.signupUpload;
 const words = copy.preview;
@@ -51,7 +52,44 @@ function Happens({ row }: { row: SignupPlanRow }) {
       {row.pile === "going" && <Tag>{said.going}</Tag>}
       {row.newEntry && <Tag tone="green">{said.mailing}</Tag>}
       {row.newEntry && row.phone && <Tag tone="green">{said.phone}</Tag>}
+      {row.notice === "bulk" && <Tag tone="amber">{said.notice}</Tag>}
+      {row.notice === "no-email" && <Tag tone="red">{said.noEmail}</Tag>}
     </span>
+  );
+}
+
+/** A copy function's words around where `fill` goes, split there: before it, and after. */
+const around = (words: (fill: string) => string): [string, string] => {
+  const [before, after] = words("\0").split("\0");
+  return [before, after];
+};
+
+/**
+ * Where and when the forms say they signed up, as the email to anyone with
+ * "No bulk emails" says it, as typed: where in bold and quoted, as it's
+ * what staff typed.
+ */
+function SignedWhere({ input }: { input: Pick<SignupUploadInput, "note" | "signedOn"> }) {
+  const date = settingsDate(new Date(`${input.signedOn}T12:00:00Z`));
+  const [before, after] = around((where) => emailSettingsCopy.bulkNotice.paper(where, date));
+  return (
+    <>
+      {before}
+      <strong>“{input.note.trim()}”</strong>
+      {after}
+    </>
+  );
+}
+
+/** How many have "No bulk emails", so will be emailed, and where the email will say they signed. */
+function NoticesLine({ n, input }: { n: number; input: Pick<SignupUploadInput, "note" | "signedOn"> }) {
+  const [before, after] = around((where) => words.summary.notices(n, where));
+  return (
+    <li>
+      {before}
+      <SignedWhere input={input} />
+      {after}
+    </li>
   );
 }
 
@@ -62,6 +100,8 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
   const shown = [...plan.rows].sort((a, b) => SIGNUP_PILES.indexOf(a.pile) - SIGNUP_PILES.indexOf(b.pile));
   const summary = words.summary;
   const known = fresh.filter((row) => row.known).length;
+  const notices = plan.rows.filter((row) => row.notice === "bulk").length;
+  const noEmail = plan.rows.filter((row) => row.notice === "no-email").length;
 
   return (
     <div className={styles.page}>
@@ -71,6 +111,8 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
         </li>
         {counts.held > 0 && <li>{summary.held(counts.held)}</li>}
         {plan.eventName && <li>{summary.event(plan.eventName, counts.register)}</li>}
+        {noEmail > 0 && <li>{summary.noEmail(noEmail)}</li>}
+        {notices > 0 && <NoticesLine n={notices} input={plan.input} />}
       </ul>
 
       <Table>

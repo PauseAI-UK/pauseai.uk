@@ -262,42 +262,6 @@
 }
 
 /* Whether the draft is saved: grey saving, green saved, red not saved. */
-.saveState {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.saveDot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: currentcolor;
-}
-
-.saveState[data-state="saving"] .saveDot {
-  animation: pulse 0.8s ease-in-out infinite;
-}
-
-.saveState[data-state="saved"] {
-  color: var(--status-green);
-}
-
-.saveState[data-state="failed"],
-.saveState[data-state="conflict"] {
-  color: var(--status-red);
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.25;
-  }
-}
-
 /* The bar with the title and whether it's saved, at the top of the window
    once the title has scrolled off: a frame of no height, so it takes no room
    in the page, and the bar in it, showing only whether it's saved until then. */
@@ -362,9 +326,5 @@
 @media (prefers-reduced-motion: reduce) {
   .bar {
     transition: none;
-  }
-
-  .saveState[data-state="saving"] .saveDot {
-    animation: none;
   }
 }

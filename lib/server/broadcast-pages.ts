@@ -3,18 +3,26 @@ import type { MailingDoc, MailingRecipientValues } from "@/lib/mailing-doc";
 import { checkMailingDoc } from "@/lib/mailing-doc";
 import type { MailingChoice } from "@/lib/mailing-fields";
 import { mailingGroups, type MailingGroup } from "@/lib/mailing-groups";
-import { stateValue } from "@/lib/contact-permissions";
 import { now } from "@/lib/now";
 import { storedFilter, type StoredFilter } from "@/lib/staff-search";
 import { firstOf, pageNumber, type Params, type ParamValue } from "@/lib/list-params";
-import { BROADCAST_SENDER, type BroadcastChannel, type BroadcastTerms } from "@/lib/broadcasts";
+import {
+  BROADCAST_SENDER,
+  termsValues,
+  type BroadcastChannel,
+  type BroadcastSendBy,
+  type BroadcastTerms,
+} from "@/lib/broadcasts";
 import { staffCopy } from "@/lib/content/staff-interface";
+import type { Topic } from "@/lib/contact-permissions";
+import { answersTo, type BroadcastAnswer } from "./broadcast-answers";
+import { repliesTo, type BroadcastReply } from "./broadcast-replies";
 import { query } from "./db";
-import { gmailAccounts, type GmailAccount } from "./gmail-accounts";
-import { isLettersInboxAddress } from "./letters-inbox";
-import { broadcastBackend, textSenderNumber } from "./broadcast-channels";
+import { channelSends, textSenderNumber } from "./broadcast-channels";
 import {
   approvedTemplates,
+  broadcastSender,
+  TOPICS_OF,
   getWrittenBroadcast,
   type WhatsAppTemplate,
   type WrittenBroadcast,
@@ -32,19 +40,28 @@ import { supporterChoices, type SupporterChoices } from "./supporters";
 /** A broadcast in the list: a mailing's summary, with what only a broadcast has. */
 export type BroadcastSummary = MailingSummary & {
   channel: BroadcastChannel;
-  /** Copies its provider says arrived, of the `sent` that have gone. */
+  /** What sends an email; Gmail says nothing of what arrives, so its copies stay sent. */
+  sendBy: BroadcastSendBy;
+  /** Copies its provider says arrived, of the `sent` that have gone: none by Gmail. */
   delivered: number;
   read: number;
   /** A draft whose new words WhatsApp is reviewing. */
   waiting: boolean;
   /** A draft whose new words WhatsApp rejected, until they're sent again or a template's chosen. */
   rejected: boolean;
+  /** Copies with a reply from a person, and of those, any still waiting for staff to look at. */
+  toLookAt: number;
 };
 
+// Why a copy's broadcast stopped by itself, when it did (its wait_reason), so a copy it left unsent can say so.
+const STOPPED_BY = "(SELECT CASE WHEN g.gave_up THEN g.wait_reason END FROM mailings g WHERE g.id = c.mailing_id)";
 const WAS_READ = "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'read')";
 const BOUNCED = "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'bounced')";
 const OPTED_OUT =
   "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'opted-out')";
+const REPLIED = "EXISTS (SELECT 1 FROM broadcast_replies r WHERE r.message_id = c.id AND NOT r.automatic)";
+const TO_LOOK_AT =
+  "EXISTS (SELECT 1 FROM broadcast_replies r WHERE r.message_id = c.id AND NOT r.automatic AND r.outcome IS NULL)";
 // Stopped: never sent, as the broadcast was stopped, they asked us to stop, or their consent ended before it
 // went; or they asked us to stop after it arrived, so it counts as delivered too.
 const STOPPED = `(c.status = 'cancelled' OR c.skip_reason IN ('unsubscribed', 'no-permission') OR ${OPTED_OUT})`;
@@ -54,7 +71,7 @@ const FAILED =
 const SELECT_BROADCASTS = `
   SELECT m.id::int AS id, m.title, m.ask, NULL AS "askTitle", false AS imported, m.state, m.created_by AS "createdBy",
     coalesce(nullif(m.from_name, ''), m.sent_from) AS "fromName", m.sent_from AS "sentFrom", m.due_at AS "dueAt",
-    m.updated_at AS "updatedAt", m.channel,
+    m.updated_at AS "updatedAt", m.channel, m.send_by AS "sendBy",
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'pending') AS waiting,
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'rejected') AS rejected,
     min(c.sent_at) AS "sentAt",
@@ -64,8 +81,9 @@ const SELECT_BROADCASTS = `
     count(c.id) FILTER (WHERE ${FAILED})::int AS failed,
     count(c.id) FILTER (WHERE ${STOPPED})::int AS stopped,
     count(c.id) FILTER (WHERE ${WAS_READ})::int AS read,
-    0 AS replied,
-    0 AS answered
+    count(c.id) FILTER (WHERE ${REPLIED})::int AS replied,
+    0 AS answered,
+    count(c.id) FILTER (WHERE ${TO_LOOK_AT})::int AS "toLookAt"
   FROM mailings m LEFT JOIN broadcast_messages c ON c.mailing_id = m.id
   WHERE m.audience = 'supporters'`;
 
@@ -73,9 +91,11 @@ const SELECT_BROADCASTS = `
 export async function broadcastsPage(): Promise<{ groups: MailingGroup<BroadcastSummary>[]; now: string }> {
   // A draft or one scheduled has no messages yet, so how many it goes to is who its filters find now.
   const [unsent, all] = await Promise.all([
-    query<BroadcastSummary & { filter: unknown; topic: BroadcastTerms["topic"] }>(
-      `SELECT d.*, f.filter, f.topic FROM (${SELECT_BROADCASTS} AND m.state IN ('draft', 'scheduled') GROUP BY m.id) d
-       JOIN (SELECT id::int AS id, filter, topic FROM mailings) f USING (id) ORDER BY d."updatedAt" DESC, d.id DESC`,
+    query<BroadcastSummary & { filter: unknown; topics: BroadcastTerms["topics"] }>(
+      `SELECT d.*, f.filter, f.topics
+       FROM (${SELECT_BROADCASTS} AND m.state IN ('draft', 'scheduled') GROUP BY m.id) d
+       JOIN (SELECT id::int AS id, filter, ${TOPICS_OF} AS topics FROM mailings) f USING (id)
+       ORDER BY d."updatedAt" DESC, d.id DESC`,
     ),
     query<BroadcastSummary>(
       `${SELECT_BROADCASTS} AND m.state NOT IN ('draft', 'scheduled') GROUP BY m.id
@@ -83,9 +103,9 @@ export async function broadcastsPage(): Promise<{ groups: MailingGroup<Broadcast
     ),
   ]);
   const counted = await Promise.all(
-    unsent.map(async ({ filter, topic, ...broadcast }) => ({
+    unsent.map(async ({ filter, topics, ...broadcast }) => ({
       ...broadcast,
-      to: (await supporterAudience(checkStoredFilter(filter)!, { channel: broadcast.channel, topic })).recipients
+      to: (await supporterAudience(checkStoredFilter(filter)!, { channel: broadcast.channel, topics })).recipients
         .length,
     })),
   );
@@ -106,6 +126,9 @@ export async function broadcastsPage(): Promise<{ groups: MailingGroup<Broadcast
 }
 
 /** One recipient of a broadcast, on its page. */
+/** Why a copy's broadcast stopped by itself, leaving it unsent (StopReason in broadcast-sending.ts); or none. */
+export type CopyStoppedBy = "civicrm" | "pull" | "limit" | null;
+
 export type MessageRecipient = {
   copyId: number;
   supporterId: number | null;
@@ -115,23 +138,31 @@ export type MessageRecipient = {
   status: string;
   skipReason: string | null;
   sentAt: Date | null;
+  /** Why its broadcast stopped by itself, when it did, leaving it unsent: its days run out, or CiviCRM. */
+  stoppedBy: CopyStoppedBy;
   read: boolean;
   /** An email that failed as it bounced. */
   bounced: boolean;
   /** They asked us to stop after it reached them. */
   optedOut: boolean;
+  /** They replied, and staff have still to look at a reply. */
+  replied: boolean;
+  toLookAt: boolean;
 };
 
 /** Which of a broadcast's recipients its page lists. */
-export const MESSAGE_TABS = ["all", "delivered", "failed", "stopped", "read"] as const;
+export const MESSAGE_TABS = ["all", "delivered", "sent", "failed", "stopped", "read", "replied", "look"] as const;
 export type MessageTab = (typeof MESSAGE_TABS)[number];
 
 const TAB_CONDITIONS: Record<MessageTab, string> = {
   all: "true",
   delivered: "c.status = 'delivered'",
+  sent: "c.status IN ('sent', 'delivered')",
   failed: FAILED,
   stopped: STOPPED,
   read: WAS_READ,
+  replied: REPLIED,
+  look: TO_LOOK_AT,
 };
 
 const RECIPIENTS_PAGE_SIZE = 100;
@@ -146,11 +177,13 @@ export type BroadcastWriterData = {
   count: number;
   fields: MailingChoice[];
   conditions: MailingChoice[];
-  /** The connected Gmail accounts an email can be from instead. */
-  senders: GmailAccount[];
+  /** How what sends an email stands, for the draft as stored (broadcastSender). */
+  sender: Awaited<ReturnType<typeof broadcastSender>>;
   me: string;
-  /** Whether a broadcast can be sent yet. */
+  /** Whether this broadcast can be sent yet, by its channel. */
   sends: boolean;
+  /** Whether a text can be sent yet, for the writer when Texts is picked. */
+  textsSend: boolean;
   templates: WhatsAppTemplate[];
   /** The WhatsApp business account's number, if one is set. */
   textNumber: string | null;
@@ -166,6 +199,8 @@ export type BroadcastPageData =
       /** What each part its words can be only for says, as its box shows it. */
       parts: Record<string, string>;
       tab: MessageTab;
+      /** Whether it's sending by what can send no more today, so the rest wait for tomorrow. */
+      atLimit: boolean;
       recipients: MessageRecipient[];
       recipientsTotal: number;
       page: number;
@@ -174,11 +209,11 @@ export type BroadcastPageData =
     };
 
 async function writerData(draft: WrittenBroadcast, me: string): Promise<BroadcastWriterData> {
-  const [audience, unknown, choices, senders, templates] = await Promise.all([
+  const [audience, unknown, choices, sender, templates] = await Promise.all([
     supporterAudience(draft.filter, draft),
     filterProblems(draft.filter),
     supporterChoices(),
-    gmailAccounts(),
+    broadcastSender(draft),
     approvedTemplates(),
   ]);
   return {
@@ -188,10 +223,10 @@ async function writerData(draft: WrittenBroadcast, me: string): Promise<Broadcas
     count: audience.recipients.length,
     fields: audience.fields,
     conditions: audience.conditions,
-    // Never the letters inbox, which sends supporters' letters and nothing else.
-    senders: senders.filter((sender) => !isLettersInboxAddress(sender.email)),
+    sender,
     me,
-    sends: Boolean(broadcastBackend()),
+    sends: channelSends(draft.channel, draft.sendBy),
+    textsSend: channelSends("text"),
     templates,
     textNumber: textSenderNumber(),
   };
@@ -205,9 +240,10 @@ async function writerData(draft: WrittenBroadcast, me: string): Promise<Broadcas
 export async function newBroadcastPageData(
   me: string,
 ): Promise<{ draft: WrittenBroadcast; data: BroadcastWriterData }> {
-  const [choices, senders, templates, parts] = await Promise.all([
+  const start = { channel: "email", sendBy: "gmail", sentFrom: BROADCAST_SENDER.email } as const;
+  const [choices, sender, templates, parts] = await Promise.all([
     supporterChoices(),
-    gmailAccounts(),
+    broadcastSender(start),
     approvedTemplates(),
     broadcastParts(),
   ]);
@@ -228,8 +264,12 @@ export async function newBroadcastPageData(
       attachments: [],
       title: "",
       channel: "email",
-      topic: "newsletter",
+      topics: ["newsletter"],
       template: null,
+      sendBy: start.sendBy,
+      waitingSince: null,
+      waitReason: null,
+      gaveUp: false,
     },
     data: {
       filter,
@@ -237,9 +277,10 @@ export async function newBroadcastPageData(
       unknown: [],
       count: 0,
       ...broadcastChoices([], parts),
-      senders: senders.filter((sender) => !isLettersInboxAddress(sender.email)),
+      sender,
       me,
-      sends: Boolean(broadcastBackend()),
+      sends: channelSends("email"),
+      textsSend: channelSends("text"),
       templates,
       textNumber: textSenderNumber(),
     },
@@ -267,8 +308,10 @@ export async function broadcastPageData(
     query<MessageRecipient>(
       `SELECT c.id::int AS "copyId", c.supporter_id::int AS "supporterId", c.merge_values ->> 'name' AS name,
          c.merge_values ->> 'place' AS place, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
-         ${WAS_READ} AS read, ${BOUNCED} AS bounced, ${OPTED_OUT} AS "optedOut"
-       ${from} ORDER BY (c.merge_values ->> 'name') COLLATE english NULLS LAST, c.id LIMIT $2 OFFSET $3`,
+         ${STOPPED_BY} AS "stoppedBy", ${WAS_READ} AS read, ${BOUNCED} AS bounced, ${OPTED_OUT} AS "optedOut", ${REPLIED} AS replied,
+         ${TO_LOOK_AT} AS "toLookAt"
+       ${from} ORDER BY ${TO_LOOK_AT} DESC, (c.merge_values ->> 'name') COLLATE english NULLS LAST, c.id
+       LIMIT $2 OFFSET $3`,
       [id, RECIPIENTS_PAGE_SIZE, (page - 1) * RECIPIENTS_PAGE_SIZE],
     ),
     query<{ total: number }>(`SELECT count(*)::int AS total ${from}`, [id]),
@@ -278,6 +321,7 @@ export async function broadcastPageData(
   // One scheduled has no messages yet: it goes to whoever its filters find when it's sent, so for now, who they
   // find, a page at a time, each yet to be sent.
   const now = written.state === "scheduled" ? await scheduledRecipients(written, page) : undefined;
+  const sender = written.state === "sending" ? await broadcastSender(written) : undefined;
   const listed = now?.total ?? total;
   return {
     kind: "written",
@@ -286,6 +330,7 @@ export async function broadcastPageData(
     choices,
     parts: Object.fromEntries(parts.map((part) => [part.id, part.label])),
     tab,
+    atLimit: sender?.remaining === 0,
     recipients: now?.rows ?? recipients,
     recipientsTotal: listed,
     page,
@@ -311,9 +356,12 @@ async function scheduledRecipients(
       status: "scheduled" as const,
       skipReason: null,
       sentAt: null,
+      stoppedBy: null,
       read: false,
       bounced: false,
       optedOut: false,
+      replied: false,
+      toLookAt: false,
     }));
   return { rows, total: recipients.length };
 }
@@ -350,6 +398,8 @@ export type MessageCopy = {
   body: MailingDoc;
   fromName: string;
   sentFrom: string;
+  /** What sends an email (lib/broadcasts.ts); a text goes by WhatsApp. */
+  sendBy: BroadcastSendBy;
   /** What's kept of them: none once they're erased. */
   supporterId: number | null;
   name: string | null;
@@ -360,8 +410,16 @@ export type MessageCopy = {
   /** Where they are, as sending found it. */
   place: string | null;
   sentAt: Date | null;
+  /** Why its broadcast stopped by itself, when it did, leaving it unsent. */
+  stoppedBy: CopyStoppedBy;
   /** What its provider reported, newest first. */
   events: BroadcastEvent[];
+  /** The topics it went under, which a reply recorded as an opt-out stops. */
+  topics: Topic[];
+  /** The replies to it, oldest first. */
+  replies: BroadcastReply[];
+  /** Staff's answers to those replies, oldest first. */
+  answers: BroadcastAnswer[];
 };
 
 /** Something that happened to a copy, as its provider reported it. */
@@ -369,21 +427,27 @@ export type BroadcastEvent = { at: Date; kind: string; details: Record<string, u
 
 /** One copy of a broadcast, by its broadcast's ID and its own; or undefined. */
 export async function messageCopy(broadcastId: number, copyId: number): Promise<MessageCopy | undefined> {
-  const [row] = await query<Omit<MessageCopy, "events">>(
+  const [row] = await query<Omit<MessageCopy, "events" | "replies" | "answers">>(
     `SELECT c.id::int AS id, m.id::int AS "messageId", m.title, m.channel, m.subject, m.body,
-       m.from_name AS "fromName", m.sent_from AS "sentFrom", c.supporter_id::int AS "supporterId",
+       m.from_name AS "fromName", m.sent_from AS "sentFrom", m.send_by AS "sendBy", c.supporter_id::int AS "supporterId",
        c.merge_values ->> 'name' AS name, c.merge_values ->> 'place' AS place, c.address,
-       CASE WHEN c.merge_values ? 'values' THEN c.merge_values END AS merge, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt"
+       CASE WHEN c.merge_values ? 'values' THEN c.merge_values END AS merge, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
+       ${STOPPED_BY} AS "stoppedBy",
+       c.topics
      FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
      WHERE c.id = $2 AND m.id = $1 AND m.audience = 'supporters'`,
     [broadcastId, copyId],
   );
   if (!row) return undefined;
-  const events = await query<BroadcastEvent>(
-    "SELECT at, kind, details FROM broadcast_message_events WHERE message_id = $1 ORDER BY at DESC, id DESC",
-    [copyId],
-  );
-  return { ...row, body: checkMailingDoc(row.body)!, events };
+  const [events, replies, answers] = await Promise.all([
+    query<BroadcastEvent>(
+      "SELECT at, kind, details FROM broadcast_message_events WHERE message_id = $1 ORDER BY at DESC, id DESC",
+      [copyId],
+    ),
+    repliesTo(copyId),
+    answersTo(copyId),
+  ]);
+  return { ...row, body: checkMailingDoc(row.body)!, events, replies, answers };
 }
 
 /** A broadcast sent to a supporter, on their page. */
@@ -395,16 +459,22 @@ export type SupporterBroadcastRow = {
   status: string;
   skipReason: string | null;
   sentAt: Date | null;
+  /** Why its broadcast stopped by itself, when it did, leaving it unsent. */
+  stoppedBy: CopyStoppedBy;
   read: boolean;
   bounced: boolean;
   optedOut: boolean;
+  replied: boolean;
+  /** A reply of theirs to it waits for staff. */
+  toLookAt: boolean;
 };
 
 /** The broadcasts a supporter was sent, newest first. */
 export async function broadcastsToSupporter(supporterId: number): Promise<SupporterBroadcastRow[]> {
   return query<SupporterBroadcastRow>(
     `SELECT c.id::int AS "copyId", m.id::int AS "messageId", m.title, m.channel, c.status, c.skip_reason AS "skipReason",
-       c.sent_at AS "sentAt", ${WAS_READ} AS read, ${BOUNCED} AS bounced, ${OPTED_OUT} AS "optedOut"
+       c.sent_at AS "sentAt", ${STOPPED_BY} AS "stoppedBy", ${WAS_READ} AS read, ${BOUNCED} AS bounced, ${OPTED_OUT} AS "optedOut", ${REPLIED} AS replied,
+       ${TO_LOOK_AT} AS "toLookAt"
      FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
      WHERE c.supporter_id = $1 ORDER BY c.sent_at DESC NULLS FIRST, c.id DESC`,
     [supporterId],
@@ -412,15 +482,16 @@ export async function broadcastsToSupporter(supporterId: number): Promise<Suppor
 }
 
 /** The draft the supporters list is choosing who for. */
-export type ChoosingBroadcast = Pick<WrittenBroadcast, "id" | "channel" | "topic"> & {
+export type ChoosingBroadcast = Pick<WrittenBroadcast, "id" | "channel" | "topics"> & {
   title: string;
   /** Nothing written yet, as from New broadcast. */
   blank: boolean;
 };
 
-/** The Consent a draft being chosen for goes under, as the list's Consent filter writes it. */
-export function choosingConsent(choosing: ChoosingBroadcast): string {
-  return stateValue({ way: choosing.channel === "email" ? "email" : "text", topic: choosing.topic, send: "yes" });
+/** The Consent a draft being chosen for goes under, as the list's Consent filter writes it: a value, or one a topic. */
+export function choosingConsent(choosing: ChoosingBroadcast): string | string[] {
+  const values = termsValues(choosing);
+  return values.length === 1 ? values[0] : values;
 }
 
 /**
@@ -443,7 +514,7 @@ export async function choosingBroadcast(id: string): Promise<ChoosingBroadcast |
   return {
     id: draft.id,
     channel: draft.channel,
-    topic: draft.topic,
+    topics: draft.topics,
     title: draft.title || staffCopy.broadcastPages.newTitle[draft.channel],
     blank: !draft.title,
   };

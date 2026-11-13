@@ -35,6 +35,7 @@ describeWithDatabase("the sending and the tidying, as runs of the import log", (
       left: 0,
       waiting: [],
       queue: { sent: 0, left: 0 },
+      broadcasts: { started: [], sent: 0, skipped: 0, failed: 0, waiting: 0, left: 0 },
     });
     await addTestPolitician({ name: "Polly Placeholder", email: "polly@parliament.example" });
     await connectTestGmail(JO);

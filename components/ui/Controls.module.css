@@ -63,6 +63,42 @@
   cursor: pointer;
 }
 
+/* A checkbox and its label in a box of their own, lit while ticked. */
+.boxed {
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+/* Narrower on a phone, so a few fit on a row. */
+@media (max-width: 720px) {
+  .boxed {
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+/* Centred in its box by align-items, without the margin that puts a bare one on its words' first line. */
+.boxed .checkbox {
+  margin: 0;
+}
+
+.boxed:has(:checked) {
+  border-color: var(--accent);
+  background: var(--peach);
+}
+
+.boxed:has(:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.boxed:has(:disabled) {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* Centred on the first line of the label's words, however many lines they
    run to. It takes the label's font, which a checkbox doesn't by default,
    so its em and its line height (lh) are the label's. */
@@ -94,10 +130,18 @@
 }
 
 .segment[aria-checked="true"],
+.segment[aria-pressed="true"],
 .segment[aria-current] {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
   font-weight: 600;
+}
+
+/* The word between Toggles' buttons, lighter, so the eye finds the choices. */
+.joiner {
+  align-self: center;
+  color: var(--text-secondary);
+  font-size: var(--note-font-size);
 }
 
 /* A choice of nothing, set apart from the others. */

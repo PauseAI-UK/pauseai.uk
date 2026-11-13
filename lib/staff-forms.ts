@@ -4,7 +4,7 @@ import { ASK_STATUSES, ASKERS, type Asker, type AskKind, type AskStatus } from "
 import { answeredByHand } from "@/lib/email-your-mp";
 import { SAVED, SAVED_LISTS, type SavedList } from "@/lib/saved-filters";
 import { PERMISSIONS, type Permission } from "@/lib/staff-permissions";
-import { fromLondon } from "@/lib/staff-time";
+import { fromLondon, SENDING } from "@/lib/staff-time";
 
 function text(form: FormData, name: string): string {
   const value = form.get(name);
@@ -17,12 +17,17 @@ export function idFrom(form: FormData, name = "id"): number | undefined {
   return /^\d+$/.test(value) && Number(value) > 0 ? Number(value) : undefined;
 }
 
-/** When a form says something goes: its day, as YYYY-MM-DD, and hour, in London; undefined if either isn't one. */
+/**
+ * When a form says something goes: its day, as YYYY-MM-DD, hour and minute,
+ * in London, a minute the sending runs at; undefined if any isn't one.
+ */
 export function dueAtFrom(form: FormData): Date | undefined {
   const day = form.get("day");
   const hour = Number(form.get("hour"));
+  const minute = Number(form.get("minute"));
   if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day) || !(hour >= 0 && hour < 24)) return undefined;
-  return fromLondon(day, hour);
+  if (!(SENDING.minutes as readonly number[]).includes(minute)) return undefined;
+  return fromLondon(day, hour, minute);
 }
 
 /** The list a saved filter's form is for, if it's one that has them. */

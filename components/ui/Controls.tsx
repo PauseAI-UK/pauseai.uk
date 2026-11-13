@@ -1,4 +1,10 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import {
+  Fragment,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from "react";
 import DatePicker from "./DatePicker";
 import styles from "./Controls.module.css";
 
@@ -43,13 +49,20 @@ export function FileInput(props: Omit<InputProps, "type">) {
   return <input {...props} type="file" className={styles.file} />;
 }
 
-/** A checkbox with its label beside it. Controlled: `onChange` gets whether it's now ticked. A form sends `value` for it, ticked. */
+/**
+ * A checkbox with its label beside it. Controlled: `onChange` gets whether
+ * it's now ticked. A form sends `value` for it, ticked. `boxed`, the two sit
+ * in a box of their own, lit in the accent colour while ticked, for a few
+ * choices side by side that should stand out, such as a topic's ways on the
+ * contact preferences page.
+ */
 export function Checkbox({
   id,
   name,
   value,
   checked,
   disabled,
+  boxed = false,
   onChange,
   children,
 }: {
@@ -58,11 +71,12 @@ export function Checkbox({
   value?: string;
   checked: boolean;
   disabled?: boolean;
+  boxed?: boolean;
   onChange: (checked: boolean) => void;
   children: ReactNode;
 }) {
   return (
-    <label className={styles.checkboxLabel} htmlFor={id}>
+    <label className={boxed ? `${styles.checkboxLabel} ${styles.boxed}` : styles.checkboxLabel} htmlFor={id}>
       <input
         id={id}
         name={name}
@@ -97,10 +111,69 @@ export function Radio({
 }
 
 /**
+ * A row of buttons any of which can be on, as Segmented's look, with a
+ * lighter `joiner` ("or") between each, e.g. the topics a broadcast goes
+ * under. Each says whether it's pressed. `values` are those on; one change
+ * gives them all, in the options' order. `min` of them stay on: the last
+ * one on can't be turned off. `disabled`, none can be changed; `busy`,
+ * a change is on its way, so clicks do nothing, but nothing looks
+ * different, as a cursor that flickers to "not allowed" on each click would.
+ */
+export function Toggles<T extends string>({
+  label,
+  options,
+  values,
+  onChange,
+  joiner,
+  min = 0,
+  disabled = false,
+  busy = false,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  values: T[];
+  onChange: (values: T[]) => void;
+  joiner: string;
+  min?: number;
+  disabled?: boolean;
+  busy?: boolean;
+}) {
+  const toggle = (value: T) => {
+    const on = values.includes(value);
+    if (busy || (on && values.length <= min)) return;
+    onChange(options.map((o) => o.value).filter((one) => (one === value ? !on : values.includes(one))));
+  };
+  return (
+    <div className={styles.segmented} role="group" aria-label={label} aria-busy={busy || undefined}>
+      {options.map((o, i) => (
+        <Fragment key={o.value}>
+          {i > 0 && (
+            <span className={styles.joiner} aria-hidden="true">
+              {joiner}
+            </span>
+          )}
+          <button
+            type="button"
+            aria-pressed={values.includes(o.value)}
+            className={styles.segment}
+            disabled={disabled}
+            onClick={() => toggle(o.value)}
+          >
+            {o.label}
+          </button>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+/**
  * A row of mutually exclusive buttons, e.g. a QR code's size; each with an
  * icon before its words if it has one. One `quiet` is set apart from the
  * rest, dashed and grey, for a choice of nothing, such as no answer.
- * `disabled`, none can be picked; an option's own, just it.
+ * `disabled`, none can be picked; an option's own, just it. `busy`, a
+ * pick is on its way, so clicks do nothing, but nothing looks different,
+ * as a cursor that flickers to "not allowed" on each click would.
  */
 export function Segmented<T extends string | boolean>({
   label,
@@ -108,15 +181,17 @@ export function Segmented<T extends string | boolean>({
   value,
   onChange,
   disabled = false,
+  busy = false,
 }: {
   label: string;
   options: { value: T; label: string; icon?: ReactNode; quiet?: boolean; disabled?: boolean }[];
   value: T;
   onChange: (value: T) => void;
   disabled?: boolean;
+  busy?: boolean;
 }) {
   return (
-    <div className={styles.segmented} role="radiogroup" aria-label={label}>
+    <div className={styles.segmented} role="radiogroup" aria-label={label} aria-busy={busy || undefined}>
       {options.map((o) => (
         <button
           key={String(o.value)}
@@ -125,7 +200,7 @@ export function Segmented<T extends string | boolean>({
           aria-checked={o.value === value}
           className={o.quiet ? `${styles.segment} ${styles.quiet}` : styles.segment}
           disabled={disabled || o.disabled}
-          onClick={() => onChange(o.value)}
+          onClick={() => !busy && onChange(o.value)}
         >
           {o.icon}
           {o.label}

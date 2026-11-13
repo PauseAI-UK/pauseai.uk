@@ -101,6 +101,12 @@ export type SupporterActivity = {
   letterId?: number | null;
   /** When the event starts, for a registration or hosting, where the supporter's page reads it; null for an event no longer copied. */
   eventAt?: Date | null;
+  /** For an opt-out staff recorded, how the person told them; null for one from a reply, or not staff's. */
+  how?: string | null;
+  /** For an opt-out staff recorded, who; null for any other. */
+  recordedBy?: string | null;
+  /** For an opt-out from one of our broadcasts (a reply to it, its links, a complaint), its copy's thread page; else null. */
+  thread?: string | null;
 };
 
 /** Whether an activity is known only to the day: joining PauseAI, as CiviCRM gives it. */

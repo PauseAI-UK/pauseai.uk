@@ -1,3 +1,9 @@
+/* The number and its name side by side, the circle centred on the line of the name, as tall as it is. */
+.titled {
+  display: inline-flex;
+  align-items: center;
+}
+
 .number {
   display: inline-flex;
   align-items: center;
@@ -9,5 +15,5 @@
   background: var(--text);
   color: var(--surface);
   font-size: var(--text-sm);
-  vertical-align: 0.1em;
+  flex: none;
 }

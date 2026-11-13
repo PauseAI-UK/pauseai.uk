@@ -25,6 +25,27 @@ const UNCONVERTED_UI_SIZES = [
   "components/ui/Section.module.css",
 ];
 
+/** The CSS that may use vertical-align, as it lines its own things up and has been checked by eye. */
+const VERTICAL_ALIGN_VETTED = [
+  "app/(site)/_components/PressMarquee.module.css",
+  "app/(staff)/staff/_components/ImportIcon.module.css",
+  "app/(staff)/staff/_components/SignupUpload.module.css",
+  "app/(staff)/staff/_components/StackedBars.module.css",
+  "app/(staff)/staff/_components/StaffDashboard.module.css",
+  "app/(staff)/staff/_components/StaffNav.module.css",
+  "app/(staff)/staff/_components/SubscriptionBadges.module.css",
+  "app/(staff)/staff/_components/ui/IconText.module.css",
+  "app/(staff)/staff/_components/ui/NotIcon.module.css",
+  "app/(staff)/staff/_components/ui/Shortened.module.css",
+  "components/briefings/BriefingText.module.css",
+  "components/briefings/BudgetChart.module.css",
+  "components/posts/PostBody.module.css",
+  "components/ui/EditorIcons.module.css",
+  "components/ui/Required.module.css",
+  "components/ui/Table.module.css",
+  "components/ui/Tag.module.css",
+];
+
 /** @type {import("stylelint").Config} */
 const config = {
   // The rules that catch mistakes (unknown properties and values, duplicate
@@ -51,8 +72,38 @@ const config = {
     "color-no-hex": true,
     "color-named": "never",
     "declaration-property-value-disallowed-list": [RAW_COLOURS, MESSAGE],
+    // Lining something up beside words goes wrong quietly: a nudge of a pixel
+    // or two holds at one font size only, and one keyword everywhere is
+    // right for some and wrong for others (middle centres on lowercase
+    // letters, too low beside a heading's capitals). So vertical-align is
+    // refused but in the files below that vet their own, each checked by eye
+    // in the storyboard against main's frame. An icon before words is
+    // IconText (app/(staff)/staff/_components/ui/IconText.tsx); anything as
+    // tall as the line goes beside its words in a flex row, align-items
+    // centring it (ui/Numbered.module.css). docs/style-guide.md, "Lining
+    // something up with words".
+    "property-disallowed-list": [
+      ["vertical-align"],
+      {
+        message:
+          'vertical-align lines things up by eye, so is kept to the vetted files in stylelint.config.mjs: put an icon before words in IconText, or lay it out beside them with align-items: center (docs/style-guide.md, "Lining something up with words")',
+      },
+    ],
+    // Where it's allowed, a keyword, never a nudge by a length.
+    "declaration-property-value-allowed-list": [
+      { "vertical-align": ["top", "middle", "bottom", "baseline", "super", "sub", "text-top", "text-bottom"] },
+      {
+        message:
+          "vertical-align by a length is a nudge that holds at one font size only: put an icon before words in IconText, or use a keyword",
+      },
+    ],
   },
   overrides: [
+    {
+      // The files that line something up with vertical-align, each checked against main's storyboard frames.
+      files: VERTICAL_ALIGN_VETTED,
+      rules: { "property-disallowed-list": null },
+    },
     {
       files: ["components/ui/**/*.css"],
       rules: { "declaration-property-value-disallowed-list": [{ ...RAW_COLOURS, ...RAW_SIZES }, MESSAGE] },

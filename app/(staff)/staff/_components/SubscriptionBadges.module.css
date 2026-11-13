@@ -4,5 +4,5 @@
   display: inline-flex;
   gap: var(--space-1);
   margin-right: var(--space-1);
-  vertical-align: -1px;
+  vertical-align: middle;
 }

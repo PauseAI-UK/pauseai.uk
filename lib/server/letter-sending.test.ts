@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpResponse } from "msw";
 import { copy } from "@/lib/content/email-your-mp";
 import { docFromMarkup } from "@/lib/letter-format";
-import { addTestMp, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { addTestMp, connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
 import { deliverToLettersInbox, resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { LETTERS_INBOX, recordGmail, stubLettersInboxEnv, testMail, testProxy } from "@/tests/gmail-sends";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -156,6 +156,20 @@ describeWithDatabase("the letters inbox's queue", () => {
     expect(await statusOf()).toBe("queued");
   });
 
+  it("leaves a letter that went sending, not queued, when marking it sent fails, so it isn't sent twice", async () => {
+    const id = await queued();
+    const sent = recordGmail();
+    await refuseWrites("letters", "NEW.status = 'sent'");
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    // It went, so it counts as sent, and the run goes on, saying so.
+    expect(await sendLetter(id)).toEqual({ sent: true });
+    expect(sent).toHaveLength(1);
+    expect(await statusOf()).toBe("sending");
+    expect(error.mock.calls[0][0]).toBe(
+      staffCopy.problems.anywhere.sentUnrecorded(staffCopy.problems.anywhere.letterOf(id)),
+    );
+  });
+
   it("queues a letter when Gmail refuses the MP's address as blocked", async () => {
     const id = await queued();
     // Blocked between the check and the send, as by a bounce read meanwhile; awaited before the test ends,
@@ -228,6 +242,50 @@ describeWithDatabase("the letters inbox's queue", () => {
     expect(await sendRelay(relayId)).toEqual({ sent: true });
     expect(sent[0].headers.has("in-reply-to")).toBe(false);
     void id;
+  });
+
+  it("puts a copy back when something goes wrong before it goes, and leaves one that went for a person", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const words = staffCopy.problems.anywhere;
+    await submitLetter(FORM);
+    const id = (await query<{ id: number }>("SELECT id::int AS id FROM letters"))[0].id;
+    await query("UPDATE letters_from_supporters SET copy_state = 'queued'");
+    // Gmail refusing it, then logging that failing: nothing went, so it's back in the queue.
+    recordGmail(() => HttpResponse.json({ error: { code: 500 } }, { status: 500 }));
+    await refuseWrites("email_sends", "NEW.outcome = 'failed'", "INSERT");
+    await sendCopy(id);
+    expect(await query("SELECT copy_state FROM letters_from_supporters")).toEqual([{ copy_state: "queued" }]);
+    expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(words.letterCopyOf(id)));
+    // It goes, but marking it sent fails: left sending, for a person, never sent again.
+    const sent = recordGmail();
+    await refuseWrites("letters_from_supporters", "NEW.copy_state = 'sent'");
+    await sendCopy(id);
+    expect(sent).toHaveLength(1);
+    expect(await query("SELECT copy_state FROM letters_from_supporters")).toEqual([{ copy_state: "sending" }]);
+    expect(error.mock.calls.map(([what]) => what)).toContain(words.sentUnrecorded(words.letterCopyOf(id)));
+  });
+
+  it("puts a relay back when something goes wrong before it goes, and leaves one that went for a person", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const words = staffCopy.problems.anywhere;
+    await replied();
+    await query("UPDATE letter_relays SET status = 'queued'");
+    const [{ relayId }] = await query<{ relayId: number }>(
+      'SELECT id::int AS "relayId" FROM letter_relays ORDER BY id LIMIT 1',
+    );
+    recordGmail(() => HttpResponse.json({ error: { code: 500 } }, { status: 500 }));
+    await refuseWrites("email_sends", "NEW.outcome = 'failed'", "INSERT");
+    expect(await sendRelay(relayId)).toEqual({ sent: false, reason: "failed" });
+    expect(await query("SELECT status, reason FROM letter_relays WHERE id = $1", [relayId])).toEqual([
+      { status: "queued", reason: "failed" },
+    ]);
+    expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(words.relayOf(relayId)));
+    const sent = recordGmail();
+    await refuseWrites("letter_relays", "NEW.status = 'sent'");
+    expect(await sendRelay(relayId)).toEqual({ sent: true });
+    expect(sent).toHaveLength(1);
+    expect(await query("SELECT status FROM letter_relays WHERE id = $1", [relayId])).toEqual([{ status: "sending" }]);
+    expect(error.mock.calls.map(([what]) => what)).toContain(words.sentUnrecorded(words.relayOf(relayId)));
   });
 
   it("tells the supporter nothing has gone again while it can't go", async () => {

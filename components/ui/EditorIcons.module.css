@@ -3,7 +3,7 @@
   width: 1em;
   height: 1em;
   margin-right: var(--space-1);
-  vertical-align: -0.125em;
+  vertical-align: middle;
   fill: none;
   stroke: currentcolor;
   stroke-width: 2;

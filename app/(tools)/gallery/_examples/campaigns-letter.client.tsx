@@ -23,7 +23,7 @@ import LetterForm from "@/app/(site)/campaigns/_components/LetterForm";
 import LetterPreview from "@/app/(site)/campaigns/_components/LetterPreview";
 import LetterSent from "@/app/(site)/campaigns/_components/LetterSent";
 import LetterWrite from "@/app/(site)/campaigns/_components/LetterWrite";
-import Turnstile, { type TurnstileApi } from "@/app/(site)/campaigns/_components/Turnstile";
+import Turnstile, { type TurnstileApi } from "@/components/ui/Turnstile";
 import { Controlled, Logged } from "../_components/wiring";
 
 const [letterToPm, bill] = campaigns;

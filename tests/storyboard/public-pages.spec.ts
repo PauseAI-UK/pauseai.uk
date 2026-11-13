@@ -4,6 +4,7 @@ import { BLOG, posts } from "../../lib/content/blog";
 import { BRIEFINGS, briefings } from "../../lib/content/briefings";
 import { feedPath } from "../../lib/content/posts";
 import { ROUTES } from "../routes";
+import { fakeTurnstile } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
 import type { Section } from "./report/frames";
@@ -31,7 +32,11 @@ const EMPTY_STEP = /^\/campaigns\/[^/]+\/(write|preview)$/;
 // The component gallery has its own section, gallery.spec.ts, which pictures
 // its index and every group's page and checks them the same way.
 const GALLERY = /^\/gallery(\/|$)/;
-const PUBLIC_ROUTES = ROUTES.filter((route) => !isStaffRoute(route) && !EMPTY_STEP.test(route) && !GALLERY.test(route));
+// Someone's contact preferences open only from a link made for them: email-settings.spec.ts pictures them.
+const SETTINGS_LINK = /^\/contact-preferences\/./;
+const PUBLIC_ROUTES = ROUTES.filter(
+  (route) => !isStaffRoute(route) && !EMPTY_STEP.test(route) && !GALLERY.test(route) && !SETTINGS_LINK.test(route),
+);
 
 // Matched against the message text. Kept deliberately short — every entry here
 // is a thing we have decided not to look at, so it should have a reason.
@@ -75,6 +80,8 @@ for (const route of PUBLIC_ROUTES) {
     });
     page.on("pageerror", (error) => problems.push(`[pageerror] ${String(error).slice(0, 300)}`));
 
+    // A page with a form behind Turnstile, as /contact-preferences is, gets the stand-in, as no flow can pass the real one.
+    await fakeTurnstile(page);
     const response = await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded" });
     expect(response?.status(), "status").toBe(200);
 

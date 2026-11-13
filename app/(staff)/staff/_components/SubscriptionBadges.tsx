@@ -1,7 +1,7 @@
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { CONSENTS, TOPICS, consentKey, type Consent, type ContactPermission } from "@/lib/contact-permissions";
-import ChannelIcon from "./ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import styles from "./SubscriptionBadges.module.css";
 
 /**
@@ -34,7 +34,7 @@ export default function SubscriptionBadges({ permissions }: { permissions: Conta
     if (ways.length === 0) return [];
     return [
       <Tag key={topic} tone="green">
-        <span className={styles.ways}>
+        <span className={styles.ways} data-beside="lowercase">
           {ways.map((way) => (
             <ChannelIcon key={way} channel={way} label={staffCopy.supporters.filters.ways[way]} />
           ))}

@@ -25,7 +25,7 @@
   color: var(--text-secondary);
   font-weight: 700;
   line-height: 1.2;
-  vertical-align: 1px;
+  vertical-align: middle;
 }
 
 .fold summary:hover .more,

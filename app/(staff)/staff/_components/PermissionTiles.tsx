@@ -4,10 +4,10 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { TOPICS, WAYS, type Channel, type ContactPermission, type Topic, type Way } from "@/lib/contact-permissions";
 import { phoneWords } from "@/lib/phone";
 import { staffDate } from "@/lib/staff-time";
-import ChannelIcon from "./ChannelIcon";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import Tag from "@/components/ui/Tag";
-import { BubbleBox } from "./ui/Bubble";
-import { bubbleTrigger } from "./ui/bubble-trigger";
+import { BubbleBox } from "@/components/ui/Bubble";
+import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import styles from "./PermissionTiles.module.css";
 
 const copy = staffCopy.supporters.detail.permissions;

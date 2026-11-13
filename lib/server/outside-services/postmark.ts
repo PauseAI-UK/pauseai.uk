@@ -10,9 +10,16 @@ import { readJsonIfAny } from "../json";
 // which would skip the fixtures in a Playwright build (docs/testing.md).
 
 const SEND_URL = "https://api.postmarkapp.com/email";
-/** The transactional stream, which every email is sent on. */
-const STREAM = "outbound";
-const UNSUPPRESS_URL = `https://api.postmarkapp.com/message-streams/${STREAM}/suppressions/delete`;
+/**
+ * Postmark's streams, by what we call them: the transactional one, which
+ * every email but a broadcast's copies is sent on; and the broadcast one,
+ * for copies of broadcasts to supporters, which Postmark keeps apart, so
+ * their complaints can't harm our letters' delivery
+ * (https://postmarkapp.com/message-streams).
+ */
+const STREAMS = { transactional: "outbound", broadcast: "broadcast" } as const;
+export type PostmarkStream = keyof typeof STREAMS;
+const unsuppressUrl = (stream: string) => `https://api.postmarkapp.com/message-streams/${stream}/suppressions/delete`;
 /** Postmark's error for an address on the stream's suppression list. */
 const INACTIVE_RECIPIENT = 406;
 /** Postmark accepts this token, and answers as if it sent the email. */
@@ -63,16 +70,17 @@ export function notifyDomain(): string {
 }
 
 /**
- * Sends one email on the transactional stream. Returns Postmark's MessageID.
+ * Sends one email, on the transactional stream unless `stream` says the
+ * broadcast one. Returns Postmark's MessageID.
  *
  * Emails that aren't really sent go to the outbox (lib/server/fixtures/outbox.ts)
  * instead, and the server log says which file: with DATA_FIXTURES=1, and in
  * the dev server without a real Postmark token. The outbox is OUTBOX_DIR, or
  * tmp/outbox in the dev server.
  */
-export async function sendEmail(email: Email): Promise<string> {
+export async function sendEmail(email: Email, stream: PostmarkStream = "transactional"): Promise<string> {
   const what = `Email${email.Tag ? ` "${email.Tag}"` : ""} to an address at ${email.To.replace(/^.*@|>$/g, "")}`;
-  const body = { ...email, MessageStream: STREAM };
+  const body = { ...email, MessageStream: STREAMS[stream] };
   const dev = config.nodeEnv === "development";
   const outbox = config.outboxDir ?? (dev ? "tmp/outbox" : "");
   const fixtures = config.fixtures;
@@ -121,8 +129,9 @@ export async function sendEmail(email: Email): Promise<string> {
 }
 
 /**
- * Takes an address off the stream's suppression list, so Postmark sends to
- * it again. Postmark won't for a spam complaint, and says so only in its
+ * Takes an address off both streams' suppression lists, so Postmark sends
+ * to it again, as our block is one for every email. Postmark won't for a
+ * spam complaint, and says so only in its
  * answer, which is ignored: if it still refuses, the next email learns that.
  * The dev server, without a real token, doesn't ask.
  */
@@ -134,16 +143,18 @@ export async function unsuppress(address: string): Promise<void> {
     return;
   }
   if (!token && !fixtures) throw new PostmarkError("POSTMARK_SERVER_TOKEN is not set");
-  const res = await outsideFetch(UNSUPPRESS_URL, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Postmark-Server-Token": token || "fixture",
-    },
-    body: JSON.stringify({ Suppressions: [{ EmailAddress: address }] }),
-  });
-  if (!res.ok) throw new PostmarkError(`Postmark refused to unsuppress the address: ${res.status}`);
+  for (const stream of Object.values(STREAMS)) {
+    const res = await outsideFetch(unsuppressUrl(stream), {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-Postmark-Server-Token": token || "fixture",
+      },
+      body: JSON.stringify({ Suppressions: [{ EmailAddress: address }] }),
+    });
+    if (!res.ok) throw new PostmarkError(`Postmark refused to unsuppress the address: ${res.status}`);
+  }
 }
 
 /** Says in the server log what happened to an email. Quiet in unit tests, which send plenty. */

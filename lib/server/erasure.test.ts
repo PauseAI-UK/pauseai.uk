@@ -11,6 +11,7 @@ import { readGmail } from "./gmail-reading";
 import { submitLetter } from "./mp-letters";
 import { letterReply, saveLetterReply } from "./outside-services/blobs";
 import { eraseSupporter } from "./erasure";
+import { recordOptOut } from "./opt-outs";
 import { importLuma } from "./luma-import";
 import { importMembers } from "./members-import";
 import { linkSupporters } from "./supporters";
@@ -262,6 +263,90 @@ describeWithDatabase("eraseSupporter", () => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
     expect(await query("SELECT 1 FROM one_off_threads")).toEqual([]);
+  });
+
+  it("deletes their replies to broadcasts, their contact preferences links and yeses, and what CiviCRM has answered for them", async () => {
+    stubLettersInboxEnv();
+    const mp = await addTestMp();
+    const id = await janeWithEverything(mp);
+    const [{ email }] = await query<{ email: string }>(
+      "SELECT lower(matched_value) AS email FROM supporter_links WHERE supporter_id = $1 AND matched_by = 'email' LIMIT 1",
+      [id],
+    );
+    const [{ copy }] = await query<{ copy: number }>(
+      `WITH m AS (
+         INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+         VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'jo@pauseai.uk', 'draft') RETURNING id)
+       INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status) SELECT id, $1, $2, 'sent' FROM m
+       RETURNING id::int AS copy`,
+      [id, email],
+    );
+    // Their reply, and our answer to it.
+    await query(
+      `WITH r AS (
+         INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+           gmail_thread_id, blob_key, automatic)
+         VALUES ($1, now(), $2, 'Re', 'hello@pauseai.uk', 'g-reply', 't-reply', 'hello@pauseai.uk/g-reply.eml.gz', false)
+         RETURNING id)
+       INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, sent_at)
+       SELECT id, gen_random_uuid(), 'jo@pauseai.uk', '{}', 'sent', now() FROM r`,
+      [copy, email],
+    );
+    // A broadcast whose copy to them hasn't gone yet.
+    await query(
+      `WITH m AS (
+         INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+         VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'jo@pauseai.uk', 'draft') RETURNING id)
+       INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status) SELECT id, $1, $2, 'scheduled' FROM m`,
+      [id, email],
+    );
+    await query(
+      `INSERT INTO email_sends (purpose, address, outcome, message_id, broadcast_message_id) VALUES
+         ('broadcast', $1, 'sent', 'b-1', $2), ('preferences-link', $1, 'sent', 'p-1', NULL),
+         ('bulk-notice', $1, 'sent', 'n-1', NULL), ('broadcast-answer', $1, 'sent', 'a-1', NULL),
+         ('preferences-link', 'someone@example.com', 'sent', 'p-2', NULL)`,
+      [email, copy],
+    );
+    await query("INSERT INTO preference_links (token_hash, address, expires_at) VALUES ('h', $1, now())", [email]);
+    await query(
+      "INSERT INTO preference_choices (address, way, topic, wording) VALUES ($1, 'email', 'volunteering', 'Yes')",
+      [email],
+    );
+    await recordOptOut({
+      address: email,
+      list: "newsletter",
+      source: "link",
+      sourceRef: "a",
+      unsubscribedAt: new Date(),
+    });
+    await recordOptOut({ address: email, list: "bulk", source: "link", sourceRef: "b", unsubscribedAt: new Date() });
+    await query("UPDATE civicrm_updates SET status = 'accepted', answered_at = now() WHERE change = 'unsubscribe'");
+    server.use(http.delete("https://blobs.fixture.invalid/*", () => new HttpResponse(null, { status: 500 })));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await eraseSupporter(id, "ICO-10", "jo@pauseai.uk")).toMatchObject({ notCleared: ["replies"] });
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    expect(await query("SELECT 1 FROM broadcast_replies")).toEqual([]);
+    expect(await query("SELECT 1 FROM broadcast_answers")).toEqual([]);
+    expect(await query("SELECT 1 FROM preference_links")).toEqual([]);
+    expect(await query("SELECT 1 FROM preference_choices")).toEqual([]);
+    // What we emailed them is gone from the log; someone else's stays.
+    expect(
+      await query(
+        "SELECT address FROM email_sends WHERE purpose IN ('broadcast', 'preferences-link', 'bulk-notice', 'broadcast-answer')",
+      ),
+    ).toEqual([{ address: "someone@example.com" }]);
+    // The copy still to go won't, so the broadcast can finish.
+    expect(await query("SELECT status, skip_reason FROM broadcast_messages ORDER BY id")).toEqual([
+      { status: "sent", skip_reason: null },
+      { status: "skipped", skip_reason: "no-permission" },
+    ]);
+    // The opt-outs stay, and the one still to go to CiviCRM.
+    expect(await query("SELECT change FROM civicrm_updates")).toEqual([{ change: "no_bulk_email" }]);
+    expect(await query("SELECT list FROM opt_outs WHERE source = 'link' ORDER BY id")).toEqual([
+      { list: "newsletter" },
+      { list: "bulk" },
+    ]);
   });
 
   it("takes their details out of saved filters, while it can still find them", async () => {

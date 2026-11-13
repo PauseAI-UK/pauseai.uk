@@ -312,7 +312,7 @@ test("Rescheduling a mailing", async ({ page, request, flowDatabase }) => {
   story("Its page says when it sends, and to whom.");
 
   await page.getByRole("link", { name: "Edinburgh reminder" }).click();
-  await expect(page.getByText(copy.sends("Fri 30 Oct at 09:18"))).toBeVisible();
+  await expect(page.getByText(copy.sends("Fri 30 Oct at 09:03"))).toBeVisible();
   await frame(page, "The scheduled mailing");
   story("Change the time opens a calendar to choose another day.");
 
@@ -323,16 +323,19 @@ test("Rescheduling a mailing", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: copy.day }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await frame(page, "The calendar", { window: true });
-  story("They choose Monday 2 November, and the 14:00 hour, in London's time.");
+  story(
+    "They choose Monday 2 November at 14:33, in London's time: the sending runs at 3, 18, 33 and 48 past each hour.",
+  );
   await page
     .getByRole("dialog")
     .getByRole("button", { name: /^Monday 2 November 2026/ })
     .click();
   await page.getByLabel(copy.hour, { exact: false }).selectOption("14");
-  await frame(page, "A new day and hour", { window: true });
+  await page.getByLabel(copy.minutes, { exact: false }).selectOption("33");
+  await frame(page, "A new day and time", { window: true });
   story("Change it saves the new time. Then Unschedule makes the mailing a draft again, to change and schedule later.");
   await page.getByRole("button", { name: copy.saveTime }).click();
-  await expect(page.getByText(copy.sends("Mon 2 Nov at 14:18"))).toBeVisible();
+  await expect(page.getByText(copy.sends("Mon 2 Nov at 14:33"))).toBeVisible();
 
   await page.getByRole("button", { name: copy.unschedule }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Edinburgh reminder");
@@ -564,15 +567,15 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   await from.evaluate((section) => section.scrollIntoView({ block: "center", behavior: "instant" }));
   await scrollSettled(page);
   await frame(page, "Sent from, with a name of its own", { window: true });
-  story("They schedule it for the 14:00 hour. It will send at 14:18.");
+  story("They schedule it for 14:03, the hour's first run of the sending.");
 
   await page.getByLabel(copy.hour, { exact: false }).selectOption("14");
   await page.getByRole("button", { name: copy.schedule(1) }).click();
-  await expect(page.getByText(copy.sends("Fri 16 Oct at 14:18"))).toBeVisible();
+  await expect(page.getByText(copy.sends("Fri 16 Oct at 14:03"))).toBeVisible();
   await frame(page, "The scheduled mailing");
-  story("When its time comes, the hourly job sends it from their Gmail.");
+  story("When its time comes, the sending job sends it from their Gmail.");
 
-  // Its time come, the hourly job starts it and sends it.
+  // Its time come, the sending job starts it and sends it.
   const [id] = runSql(flowDatabase, "SELECT id FROM mailings WHERE title = 'See you in Edinburgh'");
   runSql(flowDatabase, `UPDATE mailings SET due_at = '2026-10-16T11:00:00Z' WHERE id = ${id}`);
   const sent = await request.post(`${BASE}/api/cron/send-mailings`, {
@@ -586,7 +589,7 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
 
   await page.reload();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("See you in Edinburgh");
-  await expect(page.getByText(copy.sends("Fri 16 Oct at 14:18"))).not.toBeVisible();
+  await expect(page.getByText(copy.sends("Fri 16 Oct at 14:03"))).not.toBeVisible();
   await frame(page, "The sent mailing");
   story("Morag's letter's page shows it as it went, with no replies yet.");
 
