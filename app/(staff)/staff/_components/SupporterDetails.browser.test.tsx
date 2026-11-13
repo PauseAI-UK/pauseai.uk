@@ -101,7 +101,8 @@ describe("SupporterDetails", () => {
         ),
       )
       .toHaveLength(2);
-    await expect.element(page.getByText("1 Mar 2026 – 12 Oct 2026", { exact: true })).toBeVisible();
+    // When we've known her, the year said once, as both days are in it.
+    await expect.element(page.getByText("1 Mar – 12 Oct 2026", { exact: true })).toBeVisible();
     // The history, folded until opened: what, linked, with a status only when it isn't approved.
     const history = page.getByRole("list", { name: copy.detail.activityTitle });
     await expect
@@ -473,6 +474,22 @@ describe("SupporterDetails", () => {
     await expect.element(page.getByText("Douglas", { exact: true })).toBeVisible();
     await expect.element(page.getByText("Somewhere", { exact: true })).toBeVisible();
     expect(document.body.textContent).not.toContain(copy.detail.firstVia(copy.sources.luma));
+  });
+
+  it("says each year when we've known them across two", async () => {
+    await render(
+      <SupporterDetails
+        supporter={{
+          ...exampleSupporterDetails,
+          summary: {
+            ...exampleSupporter,
+            firstSeenAt: new Date("2025-12-01T12:00:00Z"),
+            lastActiveAt: new Date("2026-01-05T12:00:00Z"),
+          },
+        }}
+      />,
+    );
+    await expect.element(page.getByText("1 Dec 2025 – 5 Jan 2026", { exact: true })).toBeVisible();
   });
 
   it("counts only what there is any of: events, letters, broadcasts sent and notes, or no box at all", async () => {

@@ -32,22 +32,13 @@ const copy = staffCopy.broadcastPages;
 
 type FormAction = (form: FormData) => void | Promise<void>;
 
-/** A broadcast's channel, as an icon and its name. */
-export function BroadcastChannelName({ channel }: { channel: BroadcastChannel }) {
-  return <IconText icon={<ChannelIcon channel={channel} />}>{copy.channels[channel]}</IconText>;
-}
-
 /**
- * A broadcast's channel as an icon before its title, for a list where
- * emails and texts must tell apart at a glance. Named, as the list's line
- * under the title may not say it.
+ * A broadcast's channel as an icon before its title (IconText), for a list
+ * where emails and texts must tell apart at a glance. Named, as the list's
+ * line under the title may not say it.
  */
 export function BroadcastChannelMark({ channel }: { channel: BroadcastChannel }) {
-  return (
-    <span className={styles.channelMark}>
-      <ChannelIcon channel={channel} label={copy.channels[channel]} size={18} />
-    </span>
-  );
+  return <ChannelIcon channel={channel} label={copy.channels[channel]} size={18} />;
 }
 
 /**
@@ -216,10 +207,9 @@ export default function BroadcastView({
       <Band
         title={
           // The icon's a picture alone: the facts say the channel in words, in what they said yes to and what sends it.
-          <span className={styles.titled}>
-            <ChannelIcon channel={written.channel} size={24} />
+          <IconText icon={<ChannelIcon channel={written.channel} size={24} />}>
             {written.title || copy.untitled}
-          </span>
+          </IconText>
         }
         tag={
           written.state === "sending" ? undefined : (

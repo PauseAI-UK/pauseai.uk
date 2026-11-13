@@ -16,6 +16,7 @@ import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
 import { askedLine } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
+import IconText from "./ui/IconText";
 import AskWays from "./AskWays";
 import styles from "./AskView.module.css";
 import TestTag from "./TestTag";
@@ -173,10 +174,7 @@ export default function AskView({ ask, answer }: { ask: AskPageData; answer: str
       <Band
         title={
           // Its kind's picture first, as a broadcast's title has its channel's; the Asked fact says it in words.
-          <span className={styles.titled}>
-            <AskKindIcon kind={ask.kind} size={24} />
-            {ask.title}
-          </span>
+          <IconText icon={<AskKindIcon kind={ask.kind} size={24} />}>{ask.title}</IconText>
         }
         corner={
           <StaffLink className={buttonClass({ variant: "ghost", size: "small", fit: true })} href={`${path}/edit`}>

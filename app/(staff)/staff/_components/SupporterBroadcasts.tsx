@@ -2,7 +2,9 @@ import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { SupporterBroadcastRow } from "@/lib/server/broadcast-pages";
 import { staffDate } from "@/lib/staff-time";
-import { BroadcastChannelName, copyWent } from "./BroadcastView";
+import ChannelIcon from "@/components/ui/ChannelIcon";
+import { copyWent } from "./BroadcastView";
+import IconText from "./ui/IconText";
 import { CopyStatus } from "./CopyStatus";
 import Empty from "./ui/Empty";
 import { Card } from "./ui/Grid";
@@ -18,9 +20,12 @@ const COLUMNS: ListColumn<SupporterBroadcastRow>[] = [
     label: copy.supporterColumns.message,
     cell: (m) => (
       <span className={styles.stack}>
-        <StaffLink href={`/staff/broadcasts/${m.messageId}`}>{m.title || copy.untitled}</StaffLink>
+        {/* Its channel's picture before its name, as on the list of broadcasts; the line under says it in words. */}
+        <IconText icon={<ChannelIcon channel={m.channel} size={16} />}>
+          <StaffLink href={`/staff/broadcasts/${m.messageId}`}>{m.title || copy.untitled}</StaffLink>
+        </IconText>
         <Muted>
-          <BroadcastChannelName channel={m.channel} />
+          {copy.channels[m.channel]}
           {m.sentAt && ` · ${staffDate(m.sentAt)}`}
         </Muted>
       </span>

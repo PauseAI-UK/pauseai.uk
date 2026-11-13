@@ -186,14 +186,17 @@ function Subject({ item }: { item: SupporterActivity }) {
 
 /**
  * When we've known them: from when we first saw them to their last
- * activity, one day if they're the same; and the source they first came by.
+ * activity, one day if they're the same, the year said once if both are in
+ * it; and the source they first came by.
  */
 function Active({ first, last, source }: { first: Date | null; last: Date | null; source?: SupporterSource }) {
   const days = [...new Set([first, last].filter((at): at is Date => Boolean(at)).map((at) => staffDate(at)))];
   if (days.length === 0) return null;
+  const [from, to] = days;
+  const sameYear = to && from!.slice(-4) === to.slice(-4);
   return (
     <BandFact label={copy.detail.active} detail={source && copy.detail.firstVia(copy.sources[source])}>
-      {days.join(" – ")}
+      {to ? `${sameYear ? from!.slice(0, -5) : from} – ${to}` : from}
     </BandFact>
   );
 }

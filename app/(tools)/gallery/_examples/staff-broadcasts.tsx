@@ -3,12 +3,7 @@
 import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
 import { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
 import { ResumeBroadcastExample } from "./staff.client";
-import {
-  BroadcastChannelMark,
-  BroadcastChannelName,
-  BroadcastWaiting,
-  broadcastCounts,
-} from "@/app/(staff)/staff/_components/BroadcastView";
+import { BroadcastChannelMark, BroadcastWaiting, broadcastCounts } from "@/app/(staff)/staff/_components/BroadcastView";
 import { CopyStatus, wentAndGone } from "@/app/(staff)/staff/_components/CopyStatus";
 import { CountGroups, NeedsAndFine } from "@/app/(staff)/staff/_components/CopyCounts";
 import { countsOpening } from "@/app/(staff)/staff/_components/ui/Counts";
@@ -299,20 +294,6 @@ export const staffBroadcasts: Group = {
             <StaffPage as="div">
               <BroadcastsOverview groups={[]} now={now} />
             </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "BroadcastChannelName",
-      file: "app/(staff)/staff/_components/BroadcastView.tsx",
-      variants: [
-        {
-          label: "Each channel",
-          render: () => (
-            <>
-              <BroadcastChannelName channel="email" /> <BroadcastChannelName channel="text" />
-            </>
           ),
         },
       ],

@@ -12,6 +12,7 @@ import { countsOpening, type Count } from "./ui/Counts";
 import { NeedsAndFine } from "./CopyCounts";
 import { stateCounts } from "./CopyStatus";
 import Empty from "./ui/Empty";
+import IconText from "./ui/IconText";
 import Grid, { spanClass } from "./ui/Grid";
 import Progress from "./ui/Progress";
 import styles from "./MailingsOverview.module.css";
@@ -126,6 +127,11 @@ function Row<T extends MailingBase>({
   pulse: boolean;
 }) {
   const href = `${look.base}/${mailing.id}`;
+  const title = (
+    <StaffLink href={href} className={styles.title}>
+      {mailing.title || look.untitled}
+    </StaffLink>
+  );
   // Its name, as a mail app shows it, before its address; with no name of its own, the address alone.
   const from =
     look.from?.(mailing) ??
@@ -142,11 +148,9 @@ function Row<T extends MailingBase>({
         <When mailing={mailing} year={year} />
       </span>
       <span className={styles.what}>
+        {/* A list with a mark has it before each title, as an icon is before words (IconText). */}
         <span className={styles.head}>
-          {look.mark?.(mailing)}
-          <StaffLink href={href} className={styles.title}>
-            {mailing.title || look.untitled}
-          </StaffLink>
+          {look.mark ? <IconText icon={look.mark(mailing)}>{title}</IconText> : title}
         </span>
         <Muted>
           {look.lead?.(mailing)}

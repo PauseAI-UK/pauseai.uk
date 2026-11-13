@@ -1372,7 +1372,7 @@ describe("BroadcastsOverview", () => {
     await expect.element(page.getByRole("img", { name: copy.channels.email }).first()).toBeVisible();
     // Under the title, its channel's name, then who it's from, a dot between.
     const lineUnder = (title: string) =>
-      page.getByRole("link", { name: title }).element().parentElement!.nextElementSibling!;
+      page.getByRole("link", { name: title }).element().closest("[class*=head]")!.nextElementSibling!;
     expect(lineUnder("Waiting").textContent).toBe(`${copy.channels.text} · PauseAI UK · 07700 900000`);
     // With no one it's from yet, its channel alone.
     expect(lineUnder("Held").textContent).toBe(copy.channels.email);

@@ -137,13 +137,6 @@
 }
 
 /* Its kind's picture beside who asked them to do what. */
-/* Its title after its kind's picture, the picture's middle level with the words'. */
-.titled {
-  display: inline-flex;
-  gap: var(--space-2);
-  align-items: center;
-}
-
 /* A phone: the counts under the title, with the room to keep each label on a line. */
 @media (max-width: 30rem) {
   .howCounts {
