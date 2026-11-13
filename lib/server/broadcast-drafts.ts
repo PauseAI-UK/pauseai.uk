@@ -49,7 +49,7 @@ import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } fr
 import { createTemplate, deleteTemplate, sendTemplate } from "./outside-services/whatsapp";
 import { problem } from "./problems";
 import { metaName, templateParams, textResult, textsLeftToday } from "./whatsapp-texts";
-import { templateFooter, templateText } from "@/lib/whatsapp-template";
+import { TEMPLATE_FOOTER, templateText } from "@/lib/whatsapp-template";
 import { supporterAudience } from "./broadcast-recipients";
 import { notifyStaff, staffLink } from "./notifications";
 import { filterProblems } from "./stored-filters";
@@ -466,18 +466,14 @@ export type TemplateSubmitResult =
 /**
  * Sends a template's words to WhatsApp for approval, as a marketing
  * template in British English, each field a named parameter with an
- * example, and a footer saying a reply of stop stops its topics; keeps WhatsApp's
- * ID for it. Says whether WhatsApp took them, reporting it if not.
+ * example, and the footer every text has, saying a reply of stop stops it;
+ * keeps WhatsApp's ID for it. Says whether WhatsApp took them, reporting it
+ * if not.
  */
-async function sendForApproval(template: {
-  id: number;
-  metaName: string;
-  body: MailingDoc;
-  topics: Topic[];
-}): Promise<boolean> {
+async function sendForApproval(template: { id: number; metaName: string; body: MailingDoc }): Promise<boolean> {
   const backend = await textBackend();
   if (!backend) return false;
-  const footer = templateFooter(template.topics);
+  const footer = TEMPLATE_FOOTER;
   try {
     const made = await createTemplate(backend.keys, {
       name: template.metaName,
@@ -537,21 +533,13 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
     return {
       name,
       body: broadcast.body,
-      topics: broadcast.topics,
       templateId,
       metaName: meta,
       before: broadcast.template?.id ?? null,
     };
   });
   if (typeof result === "string") return result;
-  if (
-    !(await sendForApproval({
-      id: result.templateId,
-      metaName: result.metaName,
-      body: result.body,
-      topics: result.topics,
-    }))
-  ) {
+  if (!(await sendForApproval({ id: result.templateId, metaName: result.metaName, body: result.body }))) {
     // As it was before: the words back to change or send again, and the rejected template they were on, if any.
     await query("UPDATE mailings SET template_id = $2, updated_at = now() WHERE id = $1", [id, result.before]);
     await query("DELETE FROM whatsapp_templates WHERE id = $1", [result.templateId]);

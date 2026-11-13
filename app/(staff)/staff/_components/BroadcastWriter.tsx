@@ -3,7 +3,7 @@
 import type { JSONContent } from "@tiptap/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { templateFooter } from "@/lib/whatsapp-template";
+import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
@@ -711,7 +711,7 @@ export default function BroadcastWriter({
                 draft={draft}
                 body={body}
                 words={words}
-                footer={template?.footer ?? templateFooter(draft.topics)}
+                footer={template?.footer ?? TEMPLATE_FOOTER}
                 subject={values.subject}
                 from={fromLine}
                 gmail={byGmail && data.sender.connected ? draft.sentFrom : null}

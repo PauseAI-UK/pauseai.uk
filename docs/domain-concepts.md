@@ -412,9 +412,10 @@ job all leave broadcasts out.
   people get, as its words are the same for everyone. New words go to
   WhatsApp (`createTemplate`) as a marketing template in British English,
   named by its name and ID in WhatsApp's lower case (`meta_name`), each
-  field a named parameter (`{{first_name}}`) with an example, and a
-  footer naming the text's topics: "Reply STOP to stop event texts"
-  (`templateFooter`). If WhatsApp doesn't take them, the
+  field a named parameter (`{{first_name}}`) with an example, and the
+  footer every text has, "Reply STOP to stop these texts"
+  (`TEMPLATE_FOOTER`), so any template can go under any topics. If
+  WhatsApp doesn't take them, the
   draft is as it was, and says so. Withdrawn, they're deleted there too.
   WhatsApp's decision comes by its webhook, and each run of the sending asks
   it too while a template waits or a text is to go, in case a webhook went
@@ -543,7 +544,9 @@ job all leave broadcasts out.
   delivered, read or failed; a message to us, which answers the text it
   quotes, or else the newest sent to that number, and is kept as a reply,
   or is a stop of the topics that text went under if it says "stop" or
-  "unsubscribe", in any case, or,
+  "unsubscribe", in any case, which the site answers once, in the day
+  WhatsApp takes words of ours: what it stopped, and a link to the contact
+  preferences page for the number; or,
   answering no text, is emailed to the notification inbox; a stop or
   resume in WhatsApp's own setting for marketing messages; what it
   decided of a template, or its category; and anything about our number's
@@ -1197,9 +1200,13 @@ broadcast has its own link (`/contact-preferences/m/<token>`), which opens the
 page with one button that opts out of what the copy went under: following
 the link changes nothing, as mail scanners follow links nobody clicked. The
 button works forever; the rest of the page for 30 days after the copy went,
-then it offers a fresh link.
+then it offers a fresh link. The answer to a stop in WhatsApp has a link
+for the number alone, working for 30 days: the page then has that number's
+texts and calls, with no email, PauseAI Global's emails or Stop everything,
+and once it's run out it says to reply STOP, as there's no address to send
+a fresh one to.
 
-The page opens only from a link emailed to the address, so a box ticked
+The page opens only from a link emailed to the address, or texted to the number, so a box ticked
 there is its owner saying yes: a yes from the page (`preference_choices`),
 with the words beside it, which wins over an older opt-out. An untick is
 an opt-out from the page. Texts and calls are for the numbers of whoever has

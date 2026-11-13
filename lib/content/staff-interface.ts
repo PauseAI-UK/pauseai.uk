@@ -2865,6 +2865,8 @@ All events: ${link}`,
       // A text's new words couldn't be sent to WhatsApp for approval, or taken back from it.
       templateNotSent: (name: string) => `WhatsApp didn't take template ${name} for approval`,
       templateNotDeleted: (name: string) => `WhatsApp didn't delete template ${name}, which was withdrawn here`,
+      // The text answering a reply of "stop" didn't go, though the stop is kept.
+      stopNotAnswered: "⁂ Someone's STOP was recorded, but the text telling them so didn't go",
       // What those are, in them.
       copyOf: (id: number) => `Broadcast copy ${id}`,
       letterOf: (id: number) => `Letter ${id}`,

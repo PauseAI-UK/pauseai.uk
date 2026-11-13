@@ -4,7 +4,7 @@ import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db";
 import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailing-doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { templateFooter } from "@/lib/whatsapp-template";
+import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/broadcast-fixtures";
 import { toNotifications } from "@/tests/notifications";
 import { getWrittenMailing, saveDraft } from "./mailing-drafts";
@@ -412,12 +412,12 @@ describeWithDatabase("broadcasts to supporters", () => {
             example: { body_text_named_params: [{ param_name: "first_name", example: "Jane" }] },
           },
           // Saying a reply of stop stops the text's topic, with no button.
-          { type: "FOOTER", text: templateFooter(["events"]) },
+          { type: "FOOTER", text: TEMPLATE_FOOTER },
         ],
       });
       // Its footer kept as it went, for every page to show.
       expect(await query("SELECT meta_id, footer FROM whatsapp_templates")).toEqual([
-        { meta_id: "meta-1", footer: templateFooter(["events"]) },
+        { meta_id: "meta-1", footer: TEMPLATE_FOOTER },
       ]);
     });
 

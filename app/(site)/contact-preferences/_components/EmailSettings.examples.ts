@@ -61,6 +61,25 @@ export const exampleNumberHolds = view([
   answer({ way: "call", channel: "phone", address: PHONE, send: "no", reason: "do-not-phone", source: "civicrm" }),
 ]);
 
+/** A number's page, from the answer to its STOP: events stopped by the reply, the newsletter still by text. */
+export const exampleNumber: SettingsView = {
+  address: PHONE,
+  numbers: [PHONE],
+  answers: [
+    answer({ way: "text", channel: "phone", address: PHONE }),
+    answer({
+      topic: "events",
+      way: "text",
+      channel: "phone",
+      address: PHONE,
+      send: "no",
+      reason: "unsubscribed",
+      source: "whatsapp",
+    }),
+  ],
+  hold: null,
+};
+
 /** "Do not email" in CiviCRM. */
 export const exampleDoNotEmail = view([
   answer({ send: "no", reason: "do-not-email", source: "civicrm" }),

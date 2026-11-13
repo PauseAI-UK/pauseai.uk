@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { ContactPermission } from "./contact-permissions";
-import { choiceKey, hold, numberHolds, settingsTopics, type SettingsView } from "./email-settings";
+import { choiceKey, hold, isNumber, numberHolds, settingsTopics, type SettingsView } from "./email-settings";
 
 const AT = new Date("2026-11-02T10:00:00Z");
 const JANE = "jane@example.com";
@@ -57,6 +57,13 @@ it("gives each topic a box by email, and by text and call where it goes by them 
   expect(topics[1].why).toMatchObject({ reason: "unsubscribed" });
   expect(topics[2].why).toBeNull();
   expect(settingsTopics(view([answer({})]))[0].boxes.map((b) => b.way)).toEqual(["email"]);
+});
+
+it("gives a number's page no email boxes", () => {
+  const number = { ...view([answer({ way: "text", channel: "phone", address: PHONE })], [PHONE]), address: PHONE };
+  expect(isNumber(PHONE)).toBe(true);
+  expect(isNumber(JANE)).toBe(false);
+  expect(settingsTopics(number).map((t) => t.boxes.map((b) => b.way))).toEqual([["text"], ["text"], ["text", "call"]]);
 });
 
 it("explains a topic by its email's yes, else a number's yes, and locks email while all of it is held", () => {

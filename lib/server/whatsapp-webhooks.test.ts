@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db";
+import { stopAnswer } from "@/lib/whatsapp-template";
 import { addFollower, addTemplate } from "@/tests/broadcast-fixtures";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { server } from "@/tests/fixtures/msw";
 import { notifications, type Notification } from "@/tests/notifications";
 import { createBroadcastDraft } from "./broadcast-drafts";
+import { linkPage } from "./email-settings";
 import { recordWhatsAppWebhook } from "./whatsapp-webhooks";
 
 /** A webhook carrying one change. */
@@ -66,6 +70,20 @@ const copyOf = async (id: number) => {
   );
   return { ...copy, events };
 };
+
+/** WhatsApp taking each text we send, or refusing it; what each send asked for. */
+function whatsAppTakes(refuse = false): unknown[] {
+  const sends: unknown[] = [];
+  server.use(
+    http.post(/graph\.facebook\.com\/.*\/messages$/, async ({ request }) => {
+      sends.push(await request.json());
+      return refuse
+        ? HttpResponse.json({ error: { code: 131047, message: "Too late" } }, { status: 400 })
+        : HttpResponse.json({ messages: [{ id: "wamid.answer" }] });
+    }),
+  );
+  return sends;
+}
 
 /** The number's open opt-outs, by how they were given. */
 const stops = async () =>
@@ -197,6 +215,39 @@ describeWithDatabase("WhatsApp's webhook", () => {
     expect(await stops()).toEqual(["reply", "reply", "reply"]);
     expect((await copyOf(id)).events).toEqual([{ kind: "opted-out", details: {} }]);
     expect(await query("SELECT 1 FROM broadcast_replies")).toEqual([]);
+  });
+
+  it("answers a stop once, saying what it stopped, with a link to the page for the number", async () => {
+    const sends = whatsAppTakes();
+    const id = await sentCopy();
+    await query("UPDATE broadcast_messages SET topics = '{events}' WHERE id = $1", [id]);
+    await recordWhatsAppWebhook(message({ text: { body: "stop" }, context: { id: "wamid.out-1" } }));
+    await recordWhatsAppWebhook(message({ id: "wamid.in-2", text: { body: "stop" }, context: { id: "wamid.out-1" } }));
+    expect(sends).toEqual([
+      expect.objectContaining({
+        to: "447700900123",
+        type: "text",
+        text: expect.objectContaining({ body: expect.any(String) }),
+      }),
+    ]);
+    const body = (sends[0] as { text: { body: string } }).text.body;
+    const link = body.match(/https:\/\/pauseai\.uk\/contact-preferences\/\S+/)![0];
+    expect(body).toBe(stopAnswer(["events"], link));
+    const page = await linkPage(link.split("/").at(-1)!);
+    expect(page).toMatchObject({ number: true, view: { address: "+447700900123", numbers: ["+447700900123"] } });
+  });
+
+  it("keeps a stop whose answer doesn't go, reporting it, and answers none without WhatsApp's keys", async () => {
+    whatsAppTakes(true);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await sentCopy();
+    await recordWhatsAppWebhook(message({ text: { body: "stop" }, context: { id: "wamid.out-1" } }));
+    expect(await stops()).toEqual(["reply", "reply", "reply"]);
+    expect(error).toHaveBeenCalledWith(staffCopy.problems.anywhere.stopNotAnswered, expect.anything());
+    error.mockClear();
+    vi.unstubAllEnvs();
+    await recordWhatsAppWebhook(message({ id: "wamid.in-2", text: { body: "stop" } }, "447700900124"));
+    expect(error).not.toHaveBeenCalled();
   });
 
   it("keeps any other button pressed, or words that aren't a stop, as a reply", async () => {

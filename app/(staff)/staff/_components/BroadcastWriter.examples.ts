@@ -3,6 +3,7 @@ import type { BroadcastReply } from "@/lib/server/broadcast-replies";
 import type { LetterDoc } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { MailingDoc } from "@/lib/mailing-doc";
+import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import type { WhatsAppTemplate, WrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import type {
   MessageCopy,
@@ -107,7 +108,7 @@ const template = (id: number, name: string, more: Partial<WhatsAppTemplate> = {}
   requestedAt: new Date("2026-10-19T10:00:00Z"),
   rejectedAt: null,
   rejectedReason: null,
-  footer: "Reply STOP to stop event texts",
+  footer: TEMPLATE_FOOTER,
   lastUsedAt: null,
   lastUsedTo: 0,
   ...more,
@@ -362,7 +363,7 @@ export const exampleMessageCopy: MessageCopy = {
   skipReason: null,
   state: "read",
   why: null,
-  footer: "Reply STOP to stop event texts",
+  footer: TEMPLATE_FOOTER,
   place: "Leeds",
   sentAt: new Date("2026-11-07T07:18:00Z"),
   events: [

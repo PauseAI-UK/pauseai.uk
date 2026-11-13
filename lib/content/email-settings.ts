@@ -95,10 +95,16 @@ export const emailSettingsCopy = {
     html: (link: string) =>
       `You get this because you said PauseAI UK could email you. <a href="${link}">Unsubscribe or change what we send you</a>.`,
   },
-  // A text's foot, a grey line under its words, saying how to stop the topics it went under (textTopics), as a
-  // reply of "stop" to it does: WhatsApp takes at most 60 characters.
-  textFooter: (topics: string[]) => `Reply STOP to stop ${topics.join(" and ")} texts`,
-  textTopics: { newsletter: "newsletter", events: "event", volunteering: "volunteering" } as Record<string, string>,
+  // A text's foot, a grey line under its words, the same on every text, so any template can go under any topics. A
+  // reply of "stop" to it stops the topics the text went under. WhatsApp takes at most 60 characters.
+  textFooter: "Reply STOP to stop these texts",
+  // WhatsApp's answer to a reply of "stop", naming what it stopped (textTopics, in a list), with a link to the page
+  // for the number.
+  stopAnswer: (topics: string, link: string) =>
+    `You won't get any more ${topics} texts from PauseAI UK. To change what we send you: ${link}`,
+  textTopics: { newsletter: "newsletter", events: "event", volunteering: "volunteering" } as Record<Topic, string>,
+  // Between the last two topics of a list; a comma between the others.
+  listAnd: "and",
   // Asking for a link: the first page.
   start: {
     title: "Contact preferences",
@@ -209,6 +215,8 @@ export const emailSettingsCopy = {
     below: "You can choose what else you get below.",
     and: "and",
   },
+  // Under expired's title, on a number's page whose link has run out: there's no address to email a new one to.
+  numberExpired: "⁂ For your privacy, this link only worked for 30 days. To stop our texts, reply STOP to any of them.",
   // The page from an old email's unsubscribe link: the button still works, the rest doesn't.
   pageExpired: {
     title: "This email is too old to change your other choices",

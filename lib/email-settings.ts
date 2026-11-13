@@ -29,6 +29,9 @@ export type SettingsView = {
   hold: SettingsHold | null;
 };
 
+/** Whether a page is for a number alone, opened by the link a stop's answer gave it, rather than an email address. */
+export const isNumber = (address: string): boolean => address.startsWith("+");
+
 /** A box changed on the page: on is a yes, off an opt-out. */
 export type SettingsChoice = { topic: Topic; way: Way; on: boolean };
 
@@ -72,8 +75,9 @@ export type SettingsTopic = { topic: Topic; boxes: SettingsBox[]; why: ContactPe
 export const choiceKey = (topic: Topic, way: Way): string => `${topic}:${way}`;
 
 /**
- * Each topic, with a box for email, and for texts and calls where the topic
- * goes by them and the owner has a number: ticked where any number says
+ * Each topic, with a box for email, but on a number's page, and for texts
+ * and calls where the topic goes by them and the owner has a number: ticked
+ * where any number says
  * yes. Email can't be changed while all its email is held, nor texts or
  * calls while PauseAI Global stops them (numberHolds). Why is the email's
  * answer, or else a number's yes, or else whatever answer there is.
@@ -82,7 +86,10 @@ export function settingsTopics(view: SettingsView): SettingsTopic[] {
   const stopped: Way[] = numberHolds(view);
   return TOPICS.map((topic) => {
     const own = view.answers.filter((a) => a.topic === topic);
-    const ways: Way[] = ["email", ...(view.numbers.length ? (["text", "call"] as const) : [])];
+    const ways: Way[] = [
+      ...(isNumber(view.address) ? [] : (["email"] as const)),
+      ...(view.numbers.length ? (["text", "call"] as const) : []),
+    ];
     const boxes = ways
       .filter((way) => hasWay(topic, way))
       .map((way) => ({

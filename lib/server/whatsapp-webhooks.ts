@@ -1,11 +1,17 @@
 import "server-only";
 import { staffCopy } from "@/lib/content/staff-interface";
+import type { Topic } from "@/lib/contact-permissions";
+import { siteUrl } from "@/lib/site-url";
+import { stopAnswer } from "@/lib/whatsapp-template";
+import { textBackend } from "./broadcast-channels";
 import { holdCopy } from "./broadcast-sending";
 import { query, transaction } from "./db";
 import { config } from "./config";
+import { newNumberLink } from "./email-settings";
 import { notifyStaff } from "./notifications";
-import { managerLink } from "./outside-services/whatsapp";
-import { numberOf, recordWhatsAppResume, recordWhatsAppStop } from "./whatsapp-stops";
+import { managerLink, sendText } from "./outside-services/whatsapp";
+import { problem } from "./problems";
+import { numberOf, recordWhatsAppResume, recordWhatsAppStop, stoppedTopics } from "./whatsapp-stops";
 import { markUnreachable, WHATSAPP_ERRORS } from "./whatsapp-texts";
 import { applyTemplateStatus } from "./whatsapp-templates";
 
@@ -138,16 +144,35 @@ function asksToStop(message: Message): boolean {
 }
 
 /**
- * A message someone sent us: a stop, if it asks to; else a reply to the
- * copy it answers, kept once, for staff; else, as it answers no text,
- * emailed to staff.
+ * Answers a stop, in the day WhatsApp takes words of our own after a
+ * message: what it stopped, and a link to the contact preferences page for
+ * the number. A failure is reported, not thrown, as the stop is kept.
+ */
+async function answerStop(number: string, topics: Topic[]): Promise<void> {
+  try {
+    const backend = await textBackend();
+    if (!backend) return;
+    const link = siteUrl(await newNumberLink(number), undefined).toString();
+    const sent = await sendText(backend.keys, backend.number.id, number, stopAnswer(topics, link));
+    if (!sent.sent) throw new Error(sent.reason);
+  } catch (error) {
+    problem(staffCopy.problems.anywhere.stopNotAnswered, error);
+  }
+}
+
+/**
+ * A message someone sent us: a stop, if it asks to, answered the first
+ * time; else a reply to the copy it answers, kept once, for staff; else, as
+ * it answers no text, emailed to staff.
  */
 async function applyMessage(message: Message): Promise<boolean> {
   const number = numberOf(message.from);
   const at = timeOf(message.timestamp);
   const copyId = await copyAnswered(number, message.context?.id);
   if (asksToStop(message)) {
-    return recordWhatsAppStop(number, "reply", message.id, at, copyId);
+    const recorded = await recordWhatsAppStop(number, "reply", message.id, at, copyId);
+    if (recorded) await answerStop(number, await stoppedTopics("reply", copyId));
+    return recorded;
   }
   if (!copyId) {
     const email = staffCopy.notifications.whatsAppMessage;

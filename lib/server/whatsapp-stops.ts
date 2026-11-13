@@ -5,8 +5,8 @@ import { recordOptOut, recordSourceResume } from "./opt-outs";
 
 // Stops given in WhatsApp, whichever way: its "Offers and announcements"
 // setting, a reply asking to stop, or a text WhatsApp refused as the person
-// had stopped. A reply stops the topics the text it answers went under, as
-// that text's footer says (templateFooter); WhatsApp's setting is for the
+// had stopped. A reply stops the topics the text it answers went under, the
+// texts its footer means (TEMPLATE_FOOTER); WhatsApp's setting is for the
 // whole number, so it and a refusal stop every text. Each topic's stop is
 // an opt-out (source whatsapp), and the one that leaves no text topic open
 // queues "Do not SMS" for CiviCRM (civicrm-updates.ts). A resume in
@@ -25,6 +25,18 @@ export function numberOf(waId: string): string {
 const TEXT_TOPICS = TOPICS.filter((topic) => hasWay(topic, "text"));
 
 /**
+ * The topics a stop given by `kind` stops: a reply to a copy, the copy's;
+ * anything else, or a copy that doesn't say what it went under, every text,
+ * to be safe.
+ */
+export async function stoppedTopics(kind: StopKind, copyId?: number, db?: Queryable): Promise<Topic[]> {
+  if (kind !== "reply" || !copyId) return TEXT_TOPICS;
+  const [copy] = await query<{ topics: Topic[] }>("SELECT topics FROM broadcast_messages WHERE id = $1", [copyId], db);
+  const its = TEXT_TOPICS.filter((topic) => copy!.topics.includes(topic));
+  return its.length ? its : TEXT_TOPICS;
+}
+
+/**
  * Records a stop of texts to `number`, given by `kind`, `ref` being
  * WhatsApp's ID for what said it, so the same stop told twice is kept once,
  * and `copyId` the copy it came from, if any, whose history then says
@@ -41,17 +53,7 @@ export async function recordWhatsAppStop(
   db?: Queryable,
 ): Promise<boolean> {
   if (!db) return transaction((tx) => recordWhatsAppStop(number, kind, ref, at, copyId, tx));
-  let topics = TEXT_TOPICS;
-  if (kind === "reply" && copyId) {
-    const [copy] = await query<{ topics: Topic[] }>(
-      "SELECT topics FROM broadcast_messages WHERE id = $1",
-      [copyId],
-      db,
-    );
-    // A copy that doesn't say what it went under: every text, to be safe.
-    const its = TEXT_TOPICS.filter((topic) => copy!.topics.includes(topic));
-    if (its.length) topics = its;
-  }
+  const topics = await stoppedTopics(kind, copyId, db);
   let recorded = false;
   for (const topic of topics) {
     const made = await recordOptOut(

@@ -13,6 +13,7 @@ import {
   hashOf,
   liftNoBulk,
   linkPage,
+  newNumberLink,
   newSettingsLink,
   openAddress,
   resendLink,
@@ -151,7 +152,7 @@ describeWithDatabase("the contact preferences page", () => {
     await query(
       "UPDATE preference_links SET expires_at = now() - interval '1 second', created_at = now() - interval '1 hour'",
     );
-    expect(await linkPage(token)).toEqual({ kind: "link", token, unsubscribe: null, view: null });
+    expect(await linkPage(token)).toEqual({ kind: "link", token, number: false, unsubscribe: null, view: null });
     expect(await openAddress("link", token)).toBeUndefined();
     await resendLink("link", token);
     await resendLink("link", "no-such-token");
@@ -171,6 +172,40 @@ describeWithDatabase("the contact preferences page", () => {
     ]);
     await noBulkInCivicrm();
     expect((await settingsFor(JANE)).hold).toMatchObject({ kind: "no-bulk", source: "civicrm", everything: false });
+  });
+
+  it("opens a number's page on its texts and calls alone, for a month, and saves only those", async () => {
+    await jane();
+    const NUMBER = "+447700900123";
+    const token = (await newNumberLink(NUMBER)).split("/").at(-1)!;
+    const page = await linkPage(token);
+    expect(page).toMatchObject({
+      kind: "link",
+      number: true,
+      view: { address: NUMBER, numbers: [NUMBER], hold: null },
+    });
+    expect(page!.view!.answers.filter((a) => a.send === "yes").map((a) => `${a.topic}:${a.way}`)).toEqual([
+      "newsletter:text",
+      "events:text",
+    ]);
+    // An email box sent with it changes nothing; the number's boxes do.
+    expect(await saveSettings(NUMBER, new Set(["newsletter:email", "newsletter:text"]))).toEqual([
+      { topic: "events", way: "text", on: false },
+    ]);
+    expect((await settingsFor(JANE)).answers.find((a) => a.way === "email" && a.topic === "newsletter")?.send).toBe(
+      "yes",
+    );
+    // Stop everything isn't offered there, so does nothing.
+    await stopEverything(NUMBER);
+    expect(await optOuts()).toEqual([
+      { address: NUMBER, list: "events", way: "text", source: "preferences", open: true },
+    ]);
+    const [{ days }] = await query<{ days: number }>(
+      "SELECT round(extract(epoch FROM expires_at - created_at) / 86400)::int AS days FROM preference_links",
+    );
+    expect(days).toBe(30);
+    await query("UPDATE preference_links SET expires_at = now() - interval '1 second'");
+    expect(await linkPage(token)).toEqual({ kind: "link", token, number: true, unsubscribe: null, view: null });
   });
 
   it("saves ticks as yeses with their words, and unticks as opt-outs, sending ours to CiviCRM", async () => {
