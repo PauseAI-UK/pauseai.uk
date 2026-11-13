@@ -315,7 +315,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
   await postWhatsAppWebhook(request, BASE, templateStatus(name, "REJECTED", "INVALID_FORMAT"));
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
-  await expect(page.getByText(staffCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT)).toBeVisible();
+  await expect(page.getByText(/The words aren't in a form WhatsApp takes/)).toBeVisible();
   await frame(page, "Rejected, and what to do");
   story("The list says so too, until the words go for approval again or a template is chosen.");
   await page.goto(`${BASE}/staff/broadcasts`);
