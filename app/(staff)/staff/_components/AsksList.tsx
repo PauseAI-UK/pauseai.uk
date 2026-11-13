@@ -96,15 +96,16 @@ function AskRow({ ask, picked, Title }: { ask: AskWithCounts; picked: boolean; T
           <AskKindIcon kind={ask.kind} size={20} />
           <StaffLink href={askHref(ask.slug)}>{ask.title}</StaffLink>
         </Title>
-        <Answers ask={ask} />
       </div>
       {ask.ways.length > 0 && (
         <div className={styles.how}>
           <AskWays ways={ask.ways} />
         </div>
       )}
+      {/* How far it went, then its answers under it, as a mailing's row has its sentence over its counts. */}
       <div className={styles.standing}>
         <AskStanding ask={ask} />
+        <Answers ask={ask} />
       </div>
     </li>
   );

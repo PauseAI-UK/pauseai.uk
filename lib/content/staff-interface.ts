@@ -683,6 +683,8 @@ export const staffCopy = {
       firstVia: (source: string) => `first came via ${source}`,
       eventsCounted: (n: number) => plural(n, "event", "events"),
       lettersCounted: (n: number) => plural(n, "letter to an MP", "letters to MPs"),
+      broadcastsCounted: (n: number) => plural(n, "⁂ broadcast sent", "⁂ broadcasts sent"),
+      notesCounted: (n: number) => plural(n, "⁂ note", "⁂ notes"),
       // Beside the box of what we hold: the events they registered for, and their letters, a table each.
       eventsTitle: "Events",
       noEvents: "No events.",

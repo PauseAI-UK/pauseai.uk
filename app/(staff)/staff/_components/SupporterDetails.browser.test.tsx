@@ -473,10 +473,17 @@ describe("SupporterDetails", () => {
     await expect.element(page.getByText("Douglas", { exact: true })).toBeVisible();
     await expect.element(page.getByText("Somewhere", { exact: true })).toBeVisible();
     expect(document.body.textContent).not.toContain(copy.detail.firstVia(copy.sources.luma));
-    // Nothing counted is a nought, so the box keeps its shape.
-    expect(document.querySelector("[class*=counts]")!.firstElementChild!.textContent).toBe(
-      `0 ${copy.detail.eventsCounted(0)}`,
-    );
+  });
+
+  it("counts only what there is any of: events, letters, broadcasts sent and notes, or no box at all", async () => {
+    const copy = staffCopy.supporters;
+    const nothing = { ...exampleSupporterDetails, activity: [], letters: [] };
+    const counts = () =>
+      [...(document.querySelector("[class*=counts]")?.children ?? [])].map((count) => count.textContent);
+    const { rerender } = await render(<SupporterDetails supporter={nothing} />);
+    expect(counts()).toEqual([]);
+    await rerender(<SupporterDetails supporter={nothing} sentAndNoted={{ broadcasts: 3, notes: 1 }} />);
+    expect(counts()).toEqual([`3 ${copy.detail.broadcastsCounted(3)}`, `1 ${copy.detail.notesCounted(1)}`]);
   });
 
   it("says when there are no events or letters", async () => {

@@ -50,6 +50,7 @@ export default async function SupporterPage({ params }: Params) {
         erase={<EraseLink supporterId={supporter.summary.id} />}
         oneOffs={<OneOffTable threads={oneOffs} />}
         messages={<SupporterBroadcasts broadcasts={broadcasts} />}
+        sentAndNoted={{ broadcasts: broadcasts.length, notes: notes.length }}
         optOut={
           <>
             <OptOutForm
