@@ -284,6 +284,8 @@ function PoliticianBand({
               key: "asks",
               n: asksAgreed(politician.statuses),
               label: copy.band.asksAgreed(asksAgreed(politician.statuses)),
+              // Good news, so green, as an answered letter's count is; none stays grey.
+              tone: "green",
               href: `/staff/politicians/${politician.id}#asks-title`,
             },
           ]}
