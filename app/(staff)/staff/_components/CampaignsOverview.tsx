@@ -63,12 +63,15 @@ function Row({ campaign, year }: { campaign: CampaignSummary; year: string }) {
         </Muted>
       </span>
       <span className={styles.standing}>
-        {/* How many went, after a dot, as a mailing's row says where it stands; then what needs a look. */}
+        {/* How many went, after a dot, as a mailing's row says where it stands; then what needs a look. One with no
+            letters says so at its left, so nothing here. */}
         <span className={styles.stands}>
-          <span className={styles.sentence}>
-            <i className={styles.dot} aria-hidden="true" />
-            {copy.sent(went(campaign))}
-          </span>
+          {campaign.letters > 0 && (
+            <span className={styles.sentence}>
+              <i className={styles.dot} aria-hidden="true" />
+              {copy.sent(went(campaign))}
+            </span>
+          )}
           <NeedsAndFine counts={countsOpening(href, campaignCounts(campaign))} />
         </span>
       </span>

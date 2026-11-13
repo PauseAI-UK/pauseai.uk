@@ -6,8 +6,10 @@
   align-items: flex-start;
 }
 
-/* A group: its total over its counts, no frame, so the words above say what they hold. */
+/* A group: its total over its counts, no frame, so the words above say what they hold. Never narrower than its
+   counts, so it goes under the one before rather than squeezing them; never wider than the band. */
 .group {
+  flex: none;
   min-width: 0;
   max-width: 100%;
   margin: 0;
