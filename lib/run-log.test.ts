@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   exampleFailedRun,
   exampleGmailResult,
+  exampleCivicrmResult,
   exampleLumaResult,
-  exampleMembersResult,
   exampleRun,
 } from "@/app/(staff)/staff/_components/RunList.examples";
 import type { AnyImportRun } from "./import-runs";
@@ -28,7 +28,7 @@ const shapes = (days: ReturnType<typeof runLog>) => flat(days).map((e) => [e.sha
 describe("how a run shows", () => {
   it("is in a table of the day's runs on a job that runs every 5 minutes or hourly, and whole otherwise", () => {
     expect(tabled("import-luma")).toBe(true);
-    expect(tabled("import-members")).toBe(true);
+    expect(tabled("import-civicrm")).toBe(true);
     expect(tabled("check-mps")).toBe(false);
     expect(tabled("tidy-logs")).toBe(false);
   });
@@ -41,7 +41,7 @@ describe("how a run shows", () => {
 
   it("is a line when a frequent or hourly job found nothing, unless it stopped short", () => {
     expect(runShape(quietLuma(1))).toBe("quiet");
-    expect(runShape(exampleRun("import-members", exampleMembersResult, { status: "unchanged" }))).toBe("quiet");
+    expect(runShape(exampleRun("import-civicrm", exampleCivicrmResult, { status: "unchanged" }))).toBe("quiet");
     const stopped = exampleRun(
       "import-luma",
       { ...exampleLumaResult, stoppedBy: "time" as const },
@@ -52,7 +52,7 @@ describe("how a run shows", () => {
 
   it("is whole for a failure, and for an hourly job that found something", () => {
     expect(runShape(exampleFailedRun("import-luma", "boom", {}))).toBe("run");
-    expect(runShape(exampleRun("import-members", exampleMembersResult, {}))).toBe("run");
+    expect(runShape(exampleRun("import-civicrm", exampleCivicrmResult, {}))).toBe("run");
   });
 
   it("is a row for Luma's ordinary run, and whole for one that stopped short", () => {

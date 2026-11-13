@@ -2,9 +2,9 @@ import "server-only";
 import type { SupporterLinkSource } from "@/lib/supporters";
 
 // Where supporters come from. Each source is a table of records about
-// people (a Luma user, a form entry, a member in Airtable, a CiviCRM
-// contact), a column of supporter_links pointing at it, and up to three
-// views in the same shape, made in the migrations:
+// people (a Luma user, a form entry, a CiviCRM contact), a column of
+// supporter_links pointing at it, and up to three views in the same shape,
+// made in the migrations:
 // supporter_source_<name> (source_id, email, name, seen_at) for the
 // matcher, supporter_activity_<name> (source_id, at, kind, title, detail,
 // href, status) for the history, and supporter_contact_<name> (source_id, at,
@@ -19,7 +19,7 @@ export type SourceDefinition = {
   /** The views' suffix. A form entry's supporter_identity source is its form, as staff tell them apart. */
   name: SupporterLinkSource;
   /** The supporter_links column that points at the source's record. */
-  column: "luma_user_id" | "form_entry_id" | "airtable_member_id" | "civicrm_contact_id";
+  column: "luma_user_id" | "form_entry_id" | "civicrm_contact_id";
   /** The column's type, for casting a source_id into it. */
   type: "text" | "bigint";
 };
@@ -27,6 +27,5 @@ export type SourceDefinition = {
 export const SUPPORTER_SOURCES: readonly SourceDefinition[] = [
   { name: "luma", column: "luma_user_id", type: "text" },
   { name: "form", column: "form_entry_id", type: "bigint" },
-  { name: "airtable", column: "airtable_member_id", type: "text" },
   { name: "civicrm", column: "civicrm_contact_id", type: "bigint" },
 ];

@@ -15,16 +15,12 @@ const copy = staffCopy.supporters.detail.permissions;
 /**
  * The short reason for an answer, with when and where it came from. A
  * blocked address's is what blocked it, or nothing for a cause the copy has
- * no words for. A member who's gone is gone from where members are read,
- * not from the join form they filled in.
+ * no words for.
  */
 export function permissionReason(permission: ContactPermission): string {
   const when = permission.at ? staffDate(permission.at) : "";
   if (permission.reason === "blocked") return copy.blockedBecause[permission.source ?? ""]?.(when) ?? "";
-  const source =
-    permission.reason === "left" && permission.source === "airtable"
-      ? copy.membersFrom
-      : (copy.sources[permission.source ?? ""] ?? copy.otherSource);
+  const source = copy.sources[permission.source ?? ""] ?? copy.otherSource;
   return copy.reasons[permission.reason](when, source, permission.topic);
 }
 

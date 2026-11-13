@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { checkSuppression, fetchContactsPage, lookUpContacts, readContact, updateSubscriptions } from "./civicrm";
+import { checkSuppression, fetchContactsPage, readContact, updateSubscriptions } from "./civicrm";
 
 const ROW = {
   contact_id: 12345,
@@ -82,10 +82,10 @@ describe("readContact", () => {
   });
 });
 
-describe("get", () => {
+describe("fetchContactsPage", () => {
   const GET = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
 
-  it("pages by GET with the key in its header, and looks up addresses by POST, out of the URL", async () => {
+  it("pages by GET with the key in its header", async () => {
     const seen: { method: string; url: string; auth: string | null; body: string }[] = [];
     server.use(
       http.all(GET, async ({ request }) => {
@@ -99,11 +99,8 @@ describe("get", () => {
       }),
     );
     expect(await fetchContactsPage("key", 7)).toHaveLength(1);
-    expect(await lookUpContacts("key", ["jane@example.org"])).toHaveLength(1);
     expect(seen[0]).toMatchObject({ method: "GET", auth: "Bearer key", body: "" });
     expect(JSON.parse(new URL(seen[0].url).searchParams.get("params")!)).toEqual({ limit: 500, after_contact_id: 7 });
-    expect(seen[1]).toMatchObject({ method: "POST", url: GET, auth: "Bearer key" });
-    expect(JSON.parse(new URLSearchParams(seen[1].body).get("params")!)).toEqual({ email: ["jane@example.org"] });
   });
 
   it("refuses an answer with no list of contacts", async () => {

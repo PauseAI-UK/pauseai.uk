@@ -13,19 +13,19 @@ import { letterReply, saveLetterReply } from "./outside-services/blobs";
 import { eraseSupporter } from "./erasure";
 import { recordOptOut } from "./opt-outs";
 import { importLuma } from "./luma-import";
-import { importMembers } from "./members-import";
+import { importCivicrm } from "./civicrm-import";
 import { linkSupporters } from "./supporters";
 
 beforeEach(() => {
   vi.stubEnv("LUMA_API_KEY", "k");
-  vi.stubEnv("AIRTABLE_TOKEN", "t");
+  vi.stubEnv("CIVICRM_CHAPTER_KEY", "k");
 });
 afterEach(() => vi.unstubAllEnvs());
 
 async function janeWithEverything(mp: number): Promise<number> {
-  // Jane: a Luma user with registrations, a member, a letter with a reply forwarded to her, a bounce record, and an opt-out.
+  // Jane: a Luma user with registrations, a member in CiviCRM, a letter with a reply forwarded to her, a bounce record, and an opt-out.
   await importLuma("test");
-  await importMembers("test");
+  await importCivicrm("test");
   const letterId = await addTestLetter({
     politicianId: mp,
     senderName: "Jane",
@@ -108,13 +108,15 @@ describeWithDatabase("eraseSupporter", () => {
       { address: "test-mp@parliament.example", letter_id: null },
       { address: "policy@example.org", letter_id: null },
     ]);
-    expect(await query("SELECT count(*)::int AS n FROM email_problems")).toEqual([{ n: 1 }]);
+    expect(
+      await query("SELECT count(*)::int AS n FROM email_problems WHERE address = 'jane.fixture@example.com'"),
+    ).toEqual([{ n: 1 }]);
     expect(await query("SELECT count(*)::int AS n FROM opt_outs WHERE address = 'jane.fixture@example.com'")).toEqual([
       { n: 1 },
     ]);
     expect(await query("SELECT user_id FROM luma_erased")).toEqual([{ user_id: "usr-fixture-1" }]);
-    expect(await query("SELECT 1 FROM airtable_members WHERE email = 'jane.fixture@example.com'")).toEqual([]);
-    expect(await query("SELECT id FROM airtable_members_erased")).toEqual([{ id: "recMemberJane" }]);
+    expect(await query("SELECT 1 FROM civicrm_contacts WHERE email = 'jane.fixture@example.com'")).toEqual([]);
+    expect(await query("SELECT contact_id::int AS id FROM civicrm_erased")).toEqual([{ id: 101 }]);
     // The message stays, as one delivered, without who to or what it said.
     expect(await query("SELECT supporter_id, address, merge_values, status FROM broadcast_messages")).toEqual([
       { supporter_id: null, address: null, merge_values: null, status: "delivered" },
@@ -137,14 +139,14 @@ describeWithDatabase("eraseSupporter", () => {
       },
     ]);
     // Everyone else is still there, and the next import doesn't bring Jane back.
-    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 14 }]);
+    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 16 }]);
     await query("UPDATE luma_events SET guests_synced_at = NULL, hosts_synced_at = NULL");
     await importLuma("test");
-    await importMembers("test");
+    await importCivicrm("test");
     expect(await query("SELECT 1 FROM luma_people WHERE user_id = 'usr-fixture-1'")).toEqual([]);
     expect(await query("SELECT 1 FROM luma_event_hosts WHERE user_id = 'usr-fixture-1'")).toEqual([]);
-    expect(await query("SELECT 1 FROM airtable_members WHERE id = 'recMemberJane'")).toEqual([]);
-    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 14 }]);
+    expect(await query("SELECT 1 FROM civicrm_contacts WHERE contact_id = 101")).toEqual([]);
+    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 16 }]);
   });
 
   describe("a letter from the letters inbox", () => {

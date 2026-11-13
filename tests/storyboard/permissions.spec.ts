@@ -9,7 +9,7 @@ import {
   fakeTurnstile,
   fillLetter,
   importLuma,
-  importMembers,
+  importCivicrm,
   logInAsStaff,
   lookUpTestMp,
   sendLetter,
@@ -72,7 +72,7 @@ test("No permissions", async ({ page, request, flowDatabase }) => {
   );
   await syncPoliticians(request, BASE);
   await importLuma(request, BASE);
-  await importMembers(request, BASE);
+  await importCivicrm(request, BASE);
   const sender = madeUpAddress("Jane Smith", 31);
   await writeLetter(page, sender);
   await postBounce(request, sender);

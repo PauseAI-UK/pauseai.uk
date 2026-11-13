@@ -80,19 +80,15 @@ describeWithDatabase("POST /api/cron/<job>", () => {
   it("copies the fixture's UK chapter contacts from CiviCRM and says what it did", async () => {
     // Kit's unsubscribe, and Casey's hold; with no members here, each contact is a new supporter.
     expect(await answer("import-civicrm")).toEqual({
-      contacts: 8,
-      added: 8,
+      contacts: 11,
+      added: 11,
       changed: 0,
       gone: 0,
       optOuts: 1,
       blocked: 1,
-      supportersAdded: 8,
-      linked: 8,
+      supportersAdded: 11,
+      linked: 11,
     });
-  });
-
-  it("copies the fixture members and says what it did", async () => {
-    expect(await answer("import-members")).toMatchObject({ members: 9, added: 9 });
   });
 
   it("reads each connected Gmail, says what it found, and keeps the run as the schedule's", async () => {

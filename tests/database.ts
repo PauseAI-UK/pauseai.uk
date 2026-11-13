@@ -207,6 +207,51 @@ export function addTestMp(email: string | null = "test-mp@parliament.example"): 
   });
 }
 
+/** What CiviCRM says of a contact's member; each left out, it has none. */
+export type TestContactDetails = {
+  name?: string;
+  city?: string;
+  postcode?: string;
+  joined?: string;
+  intent?: string;
+  phone?: string;
+  newsletter?: string;
+  gone?: string;
+};
+
+/**
+ * Adds a UK chapter contact as a CiviCRM pull keeps it: every flag off, on
+ * neither list unless `details` says, and everything seen first on `seen`.
+ */
+export async function addTestContact(
+  id: number,
+  email: string,
+  details: TestContactDetails = {},
+  seen = "2026-09-01T00:00:00Z",
+): Promise<void> {
+  await query(
+    `INSERT INTO civicrm_contacts (contact_id, email, first_name, city, postal_code, joined_date, intent, phone,
+       on_hold, on_hold_since, no_bulk_email, no_bulk_email_since, do_not_email, do_not_email_since, do_not_phone,
+       do_not_phone_since, do_not_sms, do_not_sms_since, newsletter, newsletter_since, volunteer_updates,
+       volunteer_updates_since, first_seen_at, gone_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false, $9, false, $9, false, $9, false, $9, false, $9, $10, $9,
+       'not_on_list', $9, $9, $11)`,
+    [
+      id,
+      email,
+      details.name ?? null,
+      details.city ?? null,
+      details.postcode ?? null,
+      details.joined ?? null,
+      details.intent ?? null,
+      details.phone ?? null,
+      seen,
+      details.newsletter ?? "not_on_list",
+      details.gone ?? null,
+    ],
+  );
+}
+
 /**
  * Adds an entry straight into the audit log, of any action and details: only
  * what the reader of an entry needs, or an action logChange doesn't log.

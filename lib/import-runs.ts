@@ -23,7 +23,6 @@ export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly";
  */
 export const JOBS = {
   "import-luma": { slug: "luma", schedule: "frequent", budgetMs: 20_000 },
-  "import-members": { slug: "members", schedule: "hourly" },
   "import-civicrm": { slug: "civicrm", schedule: "hourly" },
   "read-gmail": { slug: "gmail", schedule: "frequent" },
   "send-mailings": { slug: "sending", schedule: "quarter-hour", budgetMs: 8_000 },
@@ -156,22 +155,6 @@ export type LumaImportResult = {
 };
 export type LumaImport = ImportRun<"import-luma", LumaImportResult>;
 
-/** What a run of the members import did: counts of what it copied. */
-export type MembersImportResult = {
-  /** Members read from the membership dataset. */
-  members: number;
-  /** Members added, changed, or marked as removed. */
-  added: number;
-  changed: number;
-  removed: number;
-  /** Supporters made for people seen for the first time, and source records linked to a supporter. */
-  supportersAdded: number;
-  linked: number;
-  /** New members' contacts found by looking them up in CiviCRM, if any were. */
-  civicrm?: number;
-};
-export type MembersImport = ImportRun<"import-members", MembersImportResult>;
-
 /**
  * What a run of the CiviCRM import did: contacts returned, added and
  * changed, and marked gone, unless the pull was so short that it `held`
@@ -278,15 +261,7 @@ export type TidyingResult = { importRuns: number; auditEntries: number; drafts: 
 export type Tidying = ImportRun<"tidy-logs", TidyingResult>;
 
 export type AnyImportRun =
-  | PoliticianSync
-  | MpCheck
-  | ControlAiImport
-  | LumaImport
-  | MembersImport
-  | CivicrmImport
-  | GmailReading
-  | Sending
-  | Tidying;
+  PoliticianSync | MpCheck | ControlAiImport | LumaImport | CivicrmImport | GmailReading | Sending | Tidying;
 
 /** Whether a run left work for later: a Luma import cut short, by its time, its rate limit or another run. */
 function moreToDo(run: Exclude<AnyImportRun, { status: "failed" }>): boolean {

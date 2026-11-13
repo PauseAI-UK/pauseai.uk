@@ -1,4 +1,4 @@
-import { exampleLumaResult, exampleMembersResult } from "@/app/(staff)/staff/_components/RunList.examples";
+import { exampleCivicrmResult, exampleLumaResult } from "@/app/(staff)/staff/_components/RunList.examples";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { type ImportJob, importPath } from "@/lib/import-runs";
 import { staffDate } from "@/lib/staff-time";
@@ -65,58 +65,25 @@ test("The Luma import", async ({ page, flowDatabase }) => {
   await frame(page, "The second run");
 });
 
-test("The members import", async ({ page, flowDatabase }) => {
-  story(
-    "Staff run the members import, which copies the UK members in Global's Airtable. Every member is copied but one, who was erased.",
-  );
-  runSql(flowDatabase, "INSERT INTO airtable_members_erased (id) VALUES ('recMemberErased')");
-  await logIn(page, flowDatabase);
-  await page.goto(`${BASE}/staff/scheduled-jobs/members`);
-  await page.getByRole("button", { name: staffCopy.members.importNow }).click();
-  // The fixture's nine members, one of them erased.
-  const first = {
-    members: 9,
-    added: 8,
-    changed: 0,
-    removed: 0,
-    supportersAdded: 8,
-    // The members, and the CiviCRM contacts of the new members it has, looked up as they're new.
-    linked: 13,
-    civicrm: 5,
-  };
-  await expect(page.getByText(staffCopy.members.result(first))).toBeVisible();
-  await page.getByRole("heading", { name: staffCopy.members.title }).scrollIntoViewIfNeeded();
-  await frame(page, "The first run");
-
-  story("Run again, it finds nothing new.");
-  await page.getByRole("button", { name: staffCopy.members.importNow }).click();
-  await expect(
-    page.getByText(staffCopy.members.result({ ...first, added: 0, supportersAdded: 0, linked: 0, civicrm: 0 })),
-  ).toBeVisible();
-  await expect(page.getByText(staffCopy.runs.status.unchanged)).toBeVisible();
-  await page.getByRole("heading", { name: staffCopy.members.title }).scrollIntoViewIfNeeded();
-  await frame(page, "The second run");
-});
-
 test("The CiviCRM import", async ({ page, flowDatabase }) => {
   story(
-    "Staff run the CiviCRM import, which copies everyone Global's CRM has in the UK chapter: their lists and their stops, but no names. Every contact is copied but one, who was erased.",
+    "Staff run the CiviCRM import, which copies everyone Global's CRM has in the UK chapter, the members: their details, lists and stops. Every contact is copied but one, who was erased.",
   );
   runSql(flowDatabase, "INSERT INTO civicrm_erased (contact_id) VALUES (199)");
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}${importPath("import-civicrm")}`);
   await page.getByRole("button", { name: staffCopy.civicrm.importNow }).click();
-  // The fixture's eight contacts, one erased; Kit's unsubscribe, and Casey's hold. With no members here yet, each
+  // The fixture's eleven contacts, one erased; Kit's unsubscribe, and Casey's hold. With nobody here yet, each
   // contact is a new supporter.
   const first = {
-    contacts: 8,
-    added: 7,
+    contacts: 11,
+    added: 10,
     changed: 0,
     gone: 0,
     optOuts: 1,
     blocked: 1,
-    supportersAdded: 7,
-    linked: 7,
+    supportersAdded: 10,
+    linked: 10,
   };
   await expect(page.getByText(staffCopy.civicrm.result(first))).toBeVisible();
   await page.getByRole("heading", { name: staffCopy.civicrm.title }).scrollIntoViewIfNeeded();
@@ -232,16 +199,16 @@ test("The Gmail reading's log", async ({ page, flowDatabase }) => {
   await frame(page, "Its log");
 });
 
-test("The members import's log", async ({ page, flowDatabase }) => {
+test("The CiviCRM import's log", async ({ page, flowDatabase }) => {
   story(
-    "Members are copied hourly. Hours with nothing new gather into a row; one with new members is a row of its own words.",
+    "Members are copied from CiviCRM hourly. Hours with nothing new gather into a row; one with new members is a row of its own words.",
   );
   await logIn(page, flowDatabase);
-  scheduled(flowDatabase, "import-members", 1, "0 minutes", exampleMembersResult);
-  scheduled(flowDatabase, "import-members", 3, "1 hour", exampleMembersResult, "unchanged", 60);
-  scheduled(flowDatabase, "import-members", 1, "4 hours", exampleMembersResult);
-  scheduled(flowDatabase, "import-members", 5, "5 hours", exampleMembersResult, "unchanged", 60);
-  await page.goto(`${BASE}${importPath("import-members")}`);
+  scheduled(flowDatabase, "import-civicrm", 1, "0 minutes", exampleCivicrmResult);
+  scheduled(flowDatabase, "import-civicrm", 3, "1 hour", exampleCivicrmResult, "unchanged", 60);
+  scheduled(flowDatabase, "import-civicrm", 1, "4 hours", exampleCivicrmResult);
+  scheduled(flowDatabase, "import-civicrm", 5, "5 hours", exampleCivicrmResult, "unchanged", 60);
+  await page.goto(`${BASE}${importPath("import-civicrm")}`);
   await expect(page.getByText(/nothing new/).first()).toBeVisible();
   await frame(page, "Its log");
 });

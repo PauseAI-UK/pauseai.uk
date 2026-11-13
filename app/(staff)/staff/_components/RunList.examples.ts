@@ -5,7 +5,6 @@ import {
   type GmailReadResult,
   type ImportJob,
   type LumaImportResult,
-  type MembersImportResult,
   type CivicrmImportResult,
   type MpCheckResult,
   NIGHTLY,
@@ -22,7 +21,6 @@ type Results = {
   "check-mps": MpCheckResult;
   "import-controlai": ControlAiImportResult;
   "import-luma": LumaImportResult;
-  "import-members": MembersImportResult;
   "import-civicrm": CivicrmImportResult;
   "read-gmail": GmailReadResult;
   "send-mailings": SendingResult;
@@ -123,17 +121,6 @@ export const exampleLumaResult: LumaImportResult = {
   supportersAdded: 2,
   linked: 3,
   requests: 21,
-};
-
-/** What a run of the members import did: a few new members, one of whom left Keep me informed unticked. */
-export const exampleMembersResult: MembersImportResult = {
-  members: 1505,
-  added: 3,
-  changed: 1,
-  removed: 0,
-  supportersAdded: 2,
-  linked: 3,
-  civicrm: 2,
 };
 
 /** What a pull from CiviCRM did: a few new contacts, a couple gone from the chapter, an unsubscribe and a hold. */

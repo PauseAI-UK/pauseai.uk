@@ -51,7 +51,6 @@ const sources: Record<string, string> = {
   "email-your-mp": "when you wrote to your MP",
   "web-form": "when you wrote to your MP",
   "paper-signup": "on a paper sign-up form",
-  airtable: "when you joined PauseAI",
   civicrm: "with PauseAI Global",
   luma: "on Luma",
   "luma-webhook": "in a Luma email",

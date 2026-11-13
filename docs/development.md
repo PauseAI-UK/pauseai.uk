@@ -467,8 +467,8 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   token it never arrives. Use fixtures to log in, or a real server token and
   your own pauseai.uk address.
 - **Airtable.** `AIRTABLE_TOKEN` needs read access to the UK
-  Parliamentarians base's "UK Parliamentarians" table, and to the members'
-  base. Those are for the politician sync and the members import.
+  Parliamentarians base's "UK Parliamentarians" table, for the politician
+  sync.
 - **Global's CiviCRM.** Its chapter contacts API, at
   `https://crm.pauseai.info/`, is specified in
   [a document in PauseAI/pauseai-civicrm](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md).
@@ -478,8 +478,7 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   `updateSubscriptions`; each broadcast's copies are checked with its
   `checkSuppression` just before they go.
   Without the key, fixture builds answer from
-  `lib/server/fixtures/civicrm-contacts.json`, and the members import skips
-  looking up new members.
+  `lib/server/fixtures/civicrm-contacts.json`.
 - **WhatsApp.** Texts to supporters go by Meta's WhatsApp Cloud API
   (`lib/server/outside-services/whatsapp.ts`), with three settings, set in
   Netlify for production alone, so a deploy preview can't send from the real
@@ -534,7 +533,6 @@ curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/sync-politic
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/check-mps           # the MPs against Parliament
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/import-controlai    # ControlAI's letter's signatories
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/import-luma         # the Luma import; with fixtures, the fixture calendar
-curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/import-members      # the members import; with fixtures, the fixture members
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/tidy-logs           # deletes what the import and audit logs no longer keep, and empty drafts
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/send-mailings       # sends what the letters inbox has queued, then starts the mailings due and sends for a few seconds
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/read-gmail          # reads the connected Gmail accounts for replies and bounces, and relays the letters inbox's
@@ -725,7 +723,6 @@ Each is a Netlify scheduled function in `netlify/functions/` that calls its rout
 | `import-luma`                                | every 5 minutes, from 2 past the hour | `LUMA_API_KEY`. Its background function does the work. The first copy of the calendar takes a few runs; after that each run reads what's changed ("Supporters" in `docs/domain-concepts.md`).                                                                                                      |
 | `read-gmail`                                 | every 5 minutes                       | The connected Gmail accounts                                                                                                                                                                                                                                                                       |
 | `send-mailings`                              | 3, 18, 33 and 48 past every hour      | The connected Gmail accounts. Its background function sends what one call can't (`send-mailings-background`), which credit-based plans have (https://docs.netlify.com/build/functions/background-functions/). It starts no mailing between midnight and 06:03, so one due overnight goes at 06:03. |
-| `import-members`                             | 19 past every hour                    | `AIRTABLE_TOKEN`, with read access to Stichting PauseAI's "Members & Actions" base (`appWPTGqZmUcs3NWu`), which the global team grant. A run reads every UK member we may hold, which counts against the global team's Airtable plan's monthly API calls.                                          |
 | `import-civicrm`                             | 49 past every hour                    | `CIVICRM_CHAPTER_KEY`, our UK chapter's key to Global's chapter contacts API. A run reads every UK chapter contact, a page of 500 at a time.                                                                                                                                                       |
 
 The database sleeps after five minutes without a query, and is billed while it's awake: about 10 credits an hour at its smallest. The 5-minute jobs keep it awake all day.

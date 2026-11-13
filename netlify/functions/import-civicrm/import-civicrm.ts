@@ -3,5 +3,5 @@ import { runsJob } from "../../scheduled";
 
 export default runsJob("import-civicrm");
 
-// At 49 minutes past every hour, well away from the members import, which looks up new members in CiviCRM too.
+// At 49 minutes past every hour.
 export const config = { schedule: "49 * * * *" };

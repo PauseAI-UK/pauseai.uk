@@ -1942,7 +1942,7 @@ CREATE TABLE public.import_runs (
     decided_at timestamp with time zone,
     problems jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT import_runs_check CHECK (((status = 'failed'::text) = (error IS NOT NULL))),
-    CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['sync-politicians'::text, 'check-mps'::text, 'import-controlai'::text, 'import-luma'::text, 'import-members'::text, 'read-gmail'::text, 'send-mailings'::text, 'tidy-logs'::text, 'import-civicrm'::text]))),
+    CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['sync-politicians'::text, 'check-mps'::text, 'import-controlai'::text, 'import-luma'::text, 'read-gmail'::text, 'send-mailings'::text, 'tidy-logs'::text, 'import-civicrm'::text]))),
     CONSTRAINT import_runs_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unchanged'::text, 'held'::text, 'applied'::text, 'discarded'::text])))
 );
 

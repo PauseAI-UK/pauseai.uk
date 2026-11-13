@@ -19,9 +19,8 @@ import type { EraseLeftover } from "@/lib/staff-search";
 // message kept both ways and their blobs, and its mail there goes to
 // Trash; a Luma user goes with their registrations and contact, and their
 // Luma ID is kept in
-// luma_erased so the import never copies them back; a member's record goes
-// the same way, its ID kept in airtable_members_erased, and their CiviCRM contacts,
-// their IDs kept in civicrm_erased; a message of a mailing
+// luma_erased so the import never copies them back; their CiviCRM contacts go
+// the same way, their IDs kept in civicrm_erased; a message of a mailing
 // sent to them loses its address and merge values; a one-off email with their
 // address on it goes, with its blob, its IDs kept in one_off_erased so that
 // reading its thread again doesn't keep it again, as does a reply on a form letter
@@ -30,13 +29,14 @@ import type { EraseLeftover } from "@/lib/staff-search";
 // exists to stop us mailing the address: email_problems, email_blocks and
 // opt_outs. The audit log entry carries the supporter's ID and the
 // request's reference, never a name or address. Luma's own copy is left
-// for a person to deal with, as is Stichting PauseAI's of a member
+// for a person to deal with, as is Global's CiviCRM of a member
 // (docs/data-protection.md).
 
 export type ErasureResult = {
   lumaUsers: number;
   formEntries: number;
   letters: number;
+  /** Their CiviCRM contacts. */
   members: number;
   /** Their proxies on the letters inbox, and the messages of their letters there, trashed. */
   proxies: number;
@@ -82,13 +82,6 @@ export async function eraseSupporter(id: number, reference: string, by: string):
         db,
       )
     ).map((row) => row.userId);
-    const members = (
-      await query<{ id: string }>(
-        "SELECT airtable_member_id AS id FROM supporter_links WHERE supporter_id = $1 AND airtable_member_id IS NOT NULL",
-        [id],
-        db,
-      )
-    ).map((row) => row.id);
     const entries = (
       await query<{ id: number }>(
         "SELECT form_entry_id::int AS id FROM supporter_links WHERE supporter_id = $1 AND form_entry_id IS NOT NULL",
@@ -150,25 +143,20 @@ export async function eraseSupporter(id: number, reference: string, by: string):
       [id],
       db,
     );
-    // Their CiviCRM contacts, by any of their addresses or their member records, kept in civicrm_erased.
-    await query(
+    // Their CiviCRM contacts, linked or by any of their addresses, kept in civicrm_erased.
+    const members = await query(
       `WITH theirs AS (
          DELETE FROM civicrm_contacts c
-         WHERE c.airtable_id = ANY($2::text[])
+         WHERE c.contact_id IN (SELECT civicrm_contact_id FROM supporter_links WHERE supporter_id = $1)
            OR c.email IN (SELECT lower(matched_value) FROM supporter_links WHERE supporter_id = $1)
-         RETURNING contact_id)
-       INSERT INTO civicrm_erased (contact_id) SELECT contact_id FROM theirs ON CONFLICT DO NOTHING`,
-      [id, members],
+         RETURNING contact_id),
+       kept AS (INSERT INTO civicrm_erased (contact_id) SELECT contact_id FROM theirs ON CONFLICT DO NOTHING)
+       SELECT contact_id FROM theirs`,
+      [id],
       db,
     );
     await query("INSERT INTO luma_erased (user_id) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING", [lumaUsers], db);
     await query("DELETE FROM luma_people WHERE user_id = ANY($1::text[])", [lumaUsers], db);
-    await query(
-      "INSERT INTO airtable_members_erased (id) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING",
-      [members],
-      db,
-    );
-    await query("DELETE FROM airtable_members WHERE id = ANY($1::text[])", [members], db);
     // A message they were sent keeps only that it was; one still to go won't, as they've no permission now.
     await query(
       `UPDATE broadcast_messages SET supporter_id = NULL, address = NULL, merge_values = NULL,

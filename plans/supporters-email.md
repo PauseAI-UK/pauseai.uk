@@ -443,34 +443,25 @@ signed up, and their MP. Deliberately not specified yet.
 
 ### 5½. Drop Airtable's members
 
-The Airtable import reads the members Global's CRM puts in the UK
-chapter, so CiviCRM returns every one of them. Each member CiviCRM never
-returned joined through the "June 2026 onboarding flow", which ticked
-the share box for everyone with its required privacy checkbox, and
-neither ticked "Keep me informed" nor chose to volunteer or lead. The CRM
-doesn't count that as sharing, so CiviCRM leaves them out on purpose
-(Global, 11 November), and the import's formula leaves them out too
-(`MEMBERS_FORMULA`). On 12 November that dropped 65 and added none,
-leaving 1,634. Like any member no longer read, they're marked removed
-and kept until erased: they lose the Member badge and any yes from their
-membership, and their consents say "No longer shared with us by the join
-form", while staff still see their details.
+CiviCRM returns every member the Airtable import reads (checked on
+production on 13 November), so the members come from CiviCRM alone. The
+65 members CiviCRM leaves out on purpose go, with the 53 supporters only
+they gave us: we're not to hold them.
 
-Then drop the Airtable import:
+In two pull requests, as a migration must work with the code still
+running during a deploy:
 
-- Once the formula has run on production, check that no member the
-  import reads is one CiviCRM has never returned. Any that is goes to
-  Global, in a comment on PauseAI/pauseai-civicrm#1175 with the Airtable
-  record IDs (private there, never here).
-- A member's "Keep me informed" stops counting for the newsletter, as
-  CiviCRM's `newsletter` list answers for every member, and
-  `contact_permission()` loses that rule.
-- Then drop the import (`import-members`, `fetchMembers()`),
-  `airtable_members`, `airtable_members_erased`,
-  `supporter_links.airtable_member_id` and the Airtable views.
-  `civicrm_erased` keeps erased people out from then on. The CiviCRM
-  source is the member source, and the supporter's page no longer shows
-  "Airtable" as one.
+1. The import goes (`import-members`, `fetchMembers()`,
+   `lookUpNewMembers()`), and nothing in the code reads Airtable's members.
+   Its migration deletes the members, their links, the supporters left with
+   none and the import's runs. The tables and views stay, empty.
+2. Once that's deployed, a migration drops `airtable_members`,
+   `airtable_members_erased`, `supporter_links.airtable_member_id` and the
+   Airtable views, takes the Airtable arms out of `contact_permission()`,
+   `merge_supporters_by_phone()`, the union views, `supporters_summary`
+   and the permissions views, and `import-members` out of `import_runs`'
+   check. The tests of those arms go with it. `AIRTABLE_TOKEN` then needs
+   no access to the members' base.
 
 ### 6. The weekly, scheduled each week
 

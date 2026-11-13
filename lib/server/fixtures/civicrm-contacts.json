@@ -148,6 +148,69 @@
       }
     },
     {
+      "contact_id": 110,
+      "airtable_id": "recMemberMara",
+      "email": "mara.member@example.com",
+      "first_name": "Mara",
+      "last_name": "Member",
+      "city": "London",
+      "postal_code": null,
+      "joined_date": "2026-10-13",
+      "intent": "lead",
+      "phone": "+447700900123",
+      "on_hold": false,
+      "no_bulk_email": false,
+      "do_not_email": false,
+      "do_not_phone": false,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "subscribed",
+        "volunteer_updates": "subscribed"
+      }
+    },
+    {
+      "contact_id": 111,
+      "airtable_id": "recMemberLee",
+      "email": "lee.letter@example.com",
+      "first_name": "Lee",
+      "last_name": "Letter",
+      "city": "Bristol",
+      "postal_code": "BS1 1AA",
+      "joined_date": "2025-11-29",
+      "intent": null,
+      "phone": null,
+      "on_hold": false,
+      "no_bulk_email": false,
+      "do_not_email": false,
+      "do_not_phone": false,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "not_opted_in",
+        "volunteer_updates": "not_on_list"
+      }
+    },
+    {
+      "contact_id": 112,
+      "airtable_id": "recMemberRobin",
+      "email": "robin.rivers@example.com",
+      "first_name": "Robin",
+      "last_name": "Rivers",
+      "city": "Leeds",
+      "postal_code": null,
+      "joined_date": "2026-05-01",
+      "intent": "keep_informed",
+      "phone": "+447700900333",
+      "on_hold": false,
+      "no_bulk_email": false,
+      "do_not_email": false,
+      "do_not_phone": false,
+      "do_not_sms": false,
+      "lists": {
+        "newsletter": "not_opted_in",
+        "volunteer_updates": "not_on_list"
+      }
+    },
+    {
       "contact_id": 199,
       "airtable_id": "recMemberErased",
       "email": "erased.seed@example.com",

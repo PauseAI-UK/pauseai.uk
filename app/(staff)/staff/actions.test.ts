@@ -347,13 +347,6 @@ describeWithDatabase("staff Server Actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
   });
 
-  it("the members import's button copies the members as the staff member", async () => {
-    await runJobNow("import-members");
-    expect(await runs()).toEqual([{ job: "import-members", status: "ok", startedBy: "jo@pauseai.uk" }]);
-    expect(await query("SELECT count(*)::int AS n FROM airtable_members")).toEqual([{ n: 9 }]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/members");
-  });
-
   it("the Gmail reading's button reads the connected Gmail as the staff member", async () => {
     await runJobNow("read-gmail");
     expect(await runs()).toEqual([{ job: "read-gmail", status: "unchanged", startedBy: "jo@pauseai.uk" }]);

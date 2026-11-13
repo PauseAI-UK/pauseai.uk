@@ -5,7 +5,6 @@ import {
   type AnyImportRun,
   type ControlAiImport,
   type LumaImport,
-  type MembersImport,
   type CivicrmImport,
   type GmailReading,
   type MpCheck,
@@ -255,18 +254,6 @@ function LumaRun({ run, open, bare }: { run: LumaImport; open?: boolean; bare?: 
   );
 }
 
-/** A copy of the members: the counts. */
-function MembersRun({ run, open, bare }: { run: MembersImport; open?: boolean; bare?: boolean }) {
-  return (
-    <RunBox
-      run={run}
-      summary={run.status === "failed" ? null : staffCopy.members.result(run.result)}
-      open={open}
-      bare={bare}
-    />
-  );
-}
-
 /** A pull from CiviCRM: the counts, and why nobody was marked gone, if no one was. */
 function CivicrmRun({ run, open, bare }: { run: CivicrmImport; open?: boolean; bare?: boolean }) {
   return (
@@ -386,8 +373,6 @@ export default function Run({
       return <ControlAiRun run={run} open={open} bare={bare} />;
     case "import-luma":
       return <LumaRun run={run} open={open} bare={bare} />;
-    case "import-members":
-      return <MembersRun run={run} open={open} bare={bare} />;
     case "import-civicrm":
       return <CivicrmRun run={run} open={open} bare={bare} />;
     case "read-gmail":

@@ -28,7 +28,7 @@ it("knows the jobs", () => {
 
 it("knows which jobs run on a schedule, and how often", () => {
   expect(jobSchedule("import-luma")).toBe("frequent");
-  expect(jobSchedule("import-members")).toBe("hourly");
+  expect(jobSchedule("import-civicrm")).toBe("hourly");
   expect(jobSchedule("tidy-logs")).toBe("nightly");
 });
 
