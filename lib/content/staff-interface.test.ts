@@ -43,6 +43,12 @@ describe("staff interface copy", () => {
     }
   });
 
+  it("ends WhatsApp's reason for refusing a template with one full stop, whether its own has one or not", () => {
+    for (const reason of ["Message too long.", "Message too long"]) {
+      expect(staffCopy.broadcastPages.submitFailed(reason)).toContain("saying “Message too long.” Change it");
+    }
+  });
+
   it("names a letter's page by whom it was from and to, and a supporter's letters' by who wrote them", () => {
     expect(staffCopy.letters.oneTitle("Jane Smith", "Testy MP")).toContain("Jane Smith");
     expect(staffCopy.letters.oneTitle("Jane Smith", "Testy MP")).toContain("Testy MP");

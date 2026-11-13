@@ -1398,21 +1398,20 @@ All events: ${link}`,
     // In a red alert under it, when the template didn't go: WhatsApp refused it, with its reason if it gave one, …
     submitFailed: (reason: string | null) =>
       reason
-        ? `⁂ WhatsApp refused the template, saying "${reason}". Change it and send it again.`
-        : "⁂ WhatsApp couldn't be reached, or refused the template without saying why. Try again in a few minutes, and tell the tech team if it keeps happening.",
+        ? // Its reason ends its sentence, inside the quotes, with one full stop whether WhatsApp's has one or not.
+          `WhatsApp refused the template, saying “${reason.replace(/\.+$/, "")}.” Change it and send it again.`
+        : "WhatsApp didn't take the template. Try again soon.",
     // … the site refused it, …
     submitRefused: {
-      "no-words": "⁂ The template is empty, so it wasn't sent for approval.",
-      "not-ready":
-        "⁂ Something on this page needs fixing before the template can go for approval. Reload the page to see what.",
-      already: "⁂ This template is already with WhatsApp. Reload the page to see it.",
-      "not-text": "⁂ This broadcast is an email, so it has no template to approve.",
-      "not-draft": "⁂ This text isn't a draft any more. Reload the page to see what it is now.",
-      gone: "⁂ This text has been deleted.",
+      "no-words": "The template is empty, so it wasn't sent for approval.",
+      "not-ready": "Something has changed under my feet. Reload the page to see what needs fixing.",
+      already: "This template is already with WhatsApp. Reload the page to see it.",
+      "not-text": "This broadcast is an email, so it has no template to approve.",
+      "not-draft": "This text isn't a draft any more. Reload the page to see what it is now.",
+      gone: "This draft broadcast has been deleted.",
     },
     // … or something broke.
-    submitBroke:
-      "⁂ Something went wrong on our side, and the template wasn't sent for approval. Try again later, and tell the tech team if it keeps happening.",
+    submitBroke: "Something went wrong on our side, and the template wasn't sent for approval. Try again soon.",
     // Over new words, what they're called in the list of templates, and the heading over the words.
     templateName: "Template name",
     templateWords: "Message",
@@ -1435,8 +1434,8 @@ All events: ${link}`,
       "no-name": "Give the template a name.",
       "field-edge": "WhatsApp templates can't have a field at the very start or end.",
       "fields-together": "WhatsApp templates can't have two fields next to each other.",
-      "field-twice": "⁂ WhatsApp templates can't use the same field twice.",
-      "not-approved": "WhatsApp needs to approve the words first. This can take 24 hours.",
+      "field-twice": "WhatsApp templates can't use the same field twice.",
+      "not-approved": "WhatsApp needs to approve the template first. This can take 24 hours.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
       "too-slow": `That's too many to send in ${daysInWords(SENDING_DAYS)}. Send it to fewer people.`,
       "no-number": "No WhatsApp number is configured, so texts can't be sent.",
@@ -1453,8 +1452,8 @@ All events: ${link}`,
     // (mailingPages.standing), as a sentence after a dot in its colour: its words with WhatsApp or rejected by it,
     // stopped by itself and why.
     standing: {
-      waiting: "Waiting for WhatsApp to approve its words",
-      rejected: "WhatsApp rejected its words",
+      waiting: "Waiting for WhatsApp to approve its template",
+      rejected: "WhatsApp rejected its template",
       gaveUp: {
         limit: (n: number, of: number) =>
           `Ran out of time after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
@@ -1463,7 +1462,7 @@ All events: ${link}`,
         pull: (n: number, of: number) =>
           `CiviCRM was down: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
         template: (n: number, of: number) =>
-          `WhatsApp paused its words: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
+          `WhatsApp paused its template: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
         late: (n: number, of: number) =>
           `CiviCRM was down when its time ran out: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
         failing: (n: number, of: number) =>
@@ -2351,7 +2350,7 @@ All events: ${link}`,
       whyWhatsAppLimit: `It was too large a broadcast for our WhatsApp number to send within ${daysInWords(SENDING_DAYS)}.`,
       // Why, for a text whose template WhatsApp paused or disabled, for its quality.
       whyTemplate:
-        "WhatsApp paused or disabled its template, as people blocked, reported or didn't read texts on it. Change the words before it goes again.",
+        "WhatsApp paused or disabled its template, as people blocked, reported or didn't read texts on it. Change the template before it goes again.",
       // Why, for one whose days ran out while it waited for CiviCRM.
       whyLate: `Its ${daysInWords(SENDING_DAYS)} ran out while CiviCRM was down, and we don't send to anyone without checking with it first.`,
       // Why, for one so many of whose copies failed one after another (FAILURES_TO_STOP): something may be wrong with what sends it.
@@ -2391,12 +2390,12 @@ All events: ${link}`,
     // (https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-review).
     templateRejectedWhy: {
       reasons: {
-        ABUSIVE_CONTENT: "“abusive content”. It found the words abusive or against its policies.",
-        INCORRECT_CATEGORY: "“incorrect category”. It thought the words weren't marketing.",
+        ABUSIVE_CONTENT: "“abusive content”. It found the template abusive or against its policies.",
+        INCORRECT_CATEGORY: "“incorrect category”. It thought the template wasn't marketing.",
         INVALID_FORMAT: "“invalid format”. There was a field at the very start or end, or two fields together.",
-        PROMOTIONAL: "“promotional”. It thought the words were too promotional.",
-        SCAM: "“scam”. It thought the words might be a scam.",
-        TAG_CONTENT_MISMATCH: "“tag content mismatch”. It thought the words weren't marketing.",
+        PROMOTIONAL: "“promotional”. It thought the template was too promotional.",
+        SCAM: "“scam”. It thought the template might be a scam.",
+        TAG_CONTENT_MISMATCH: "“tag content mismatch”. It thought the template wasn't marketing.",
       } as Record<string, string>,
       other: (code: string) => `“${code}”, a reason we don't know.`,
     },
