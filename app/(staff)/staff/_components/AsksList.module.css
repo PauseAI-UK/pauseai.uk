@@ -151,6 +151,11 @@
   font-size: var(--tag-font-size);
 }
 
+/* An answer's tag, leading to those who gave it. */
+.answer {
+  text-decoration: none;
+}
+
 /* The same size as the tags beside it, only outlined: nothing was answered. */
 .answers .noAnswer {
   padding: var(--tag-padding);
@@ -167,6 +172,22 @@
   display: flex;
   justify-content: flex-end;
   min-width: 0;
+}
+
+/* How far it has gone, a sentence after a grey dot, as a mailing's row says where it stands. */
+.sentence {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: var(--text-sm);
+}
+
+.dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--muted);
 }
 
 /* How it stands where it falls, not at the right. */

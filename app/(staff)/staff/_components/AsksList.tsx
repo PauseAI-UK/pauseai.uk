@@ -7,7 +7,6 @@ import type { AskWithCounts } from "@/lib/server/asks";
 import { askedLine } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
 import AskWays from "./AskWays";
-import Counts from "./ui/Counts";
 import Empty from "./ui/Empty";
 import Grid, { spanClass } from "./ui/Grid";
 import Strip from "./ui/Strip";
@@ -40,7 +39,14 @@ export function askCounts(ask: AskWithCounts) {
   ];
 }
 
-/** An ask's lozenges: how many gave each answer its kind allows, then those written to with no answer. */
+/** An answer's name after its number, as a mailing's counts are: "12 signed". */
+const answerWords = (status: string) => staffCopy.statuses[status]!.toLocaleLowerCase("en-GB");
+
+/**
+ * An ask's lozenges: how many gave each answer its kind allows, then those
+ * written to with no answer, each its number first, as a mailing's counts
+ * are, and leading to the ask's page with that answer chosen.
+ */
 function Answers({ ask }: { ask: AskWithCounts }) {
   if (answersOf(ask).length === 0 && !ask.noAnswer)
     return (
@@ -48,19 +54,34 @@ function Answers({ ask }: { ask: AskWithCounts }) {
         <Muted>{copy.noAnswers}</Muted>
       </span>
     );
+  const href = (answer: string) => `${askHref(ask.slug)}?answer=${answer}`;
   return (
     <div className={styles.answers}>
       {answersOf(ask).map((status) => (
-        <Tag key={status} tone={ANSWER_TONES[status]}>
-          {staffCopy.statuses[status]} <strong>{ask.counts[status]!.toLocaleString("en-GB")}</strong>
-        </Tag>
+        <StaffLink key={status} href={href(status)} className={styles.answer}>
+          <Tag tone={ANSWER_TONES[status]}>
+            {ask.counts[status]!.toLocaleString("en-GB")} {answerWords(status)}
+          </Tag>
+        </StaffLink>
       ))}
       {ask.noAnswer > 0 && (
-        <span className={styles.noAnswer}>
-          {staffCopy.statuses.noAnswer} <strong>{ask.noAnswer.toLocaleString("en-GB")}</strong>
-        </span>
+        <StaffLink href={href("none")} className={`${styles.answer} ${styles.noAnswer}`}>
+          {ask.noAnswer.toLocaleString("en-GB")} {answerWords("noAnswer")}
+        </StaffLink>
       )}
     </div>
+  );
+}
+
+/** How far an ask has gone, as a sentence after a dot, as a mailing's row says where it stands. */
+function AskStanding({ ask }: { ask: AskWithCounts }) {
+  return (
+    <span className={styles.sentence}>
+      <i className={styles.dot} aria-hidden="true" />
+      {askCounts(ask)
+        .map((count) => `${count.n.toLocaleString("en-GB")} ${count.label}`)
+        .join(" · ")}
+    </span>
   );
 }
 
@@ -83,7 +104,7 @@ function AskRow({ ask, picked, Title }: { ask: AskWithCounts; picked: boolean; T
         </div>
       )}
       <div className={styles.standing}>
-        <Counts small counts={askCounts(ask)} />
+        <AskStanding ask={ask} />
       </div>
     </li>
   );
