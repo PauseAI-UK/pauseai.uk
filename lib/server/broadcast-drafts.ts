@@ -6,7 +6,10 @@ import { type Params } from "@/lib/list-params";
 import { staffCopy } from "@/lib/content/staff-interface";
 import {
   approvalProblems,
+  BROADCAST_FIELDS,
+  fakeRecipient,
   FIELDS_AS_WORDS,
+  hasField,
   type FakeRecipient,
   hasWords,
   broadcastScheduleProblems,
@@ -40,7 +43,11 @@ import {
   type SaveResult,
   type WrittenMailing,
 } from "./mailing-drafts";
-import { broadcastBackend, broadcastEmailChannel, channelSends, textSenderNumber } from "./broadcast-channels";
+import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } from "./broadcast-channels";
+import { createTemplate, deleteTemplate, sendTemplate } from "./outside-services/whatsapp";
+import { problem } from "./problems";
+import { metaName, templateParams, templateText, textResult } from "./whatsapp-texts";
+import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { supporterAudience } from "./broadcast-recipients";
 import { notifyStaff, staffLink } from "./notifications";
 import { filterProblems } from "./stored-filters";
@@ -58,7 +65,12 @@ export type WhatsAppTemplate = {
   id: number;
   name: string;
   body: MailingDoc;
-  status: "pending" | "approved" | "rejected";
+  /** Waiting for WhatsApp, approved, rejected; or, once approved, paused or disabled by WhatsApp for its quality. */
+  status: "pending" | "approved" | "rejected" | "paused" | "disabled";
+  /** What WhatsApp approved it as, which may not be what it was sent as; null till it has. */
+  category: "MARKETING" | "UTILITY" | "AUTHENTICATION" | null;
+  /** The name WhatsApp has it by, for one sent from here; one made in WhatsApp Manager has its own name there. */
+  metaName: string | null;
   /** Who made it, or none for one made in WhatsApp Manager. */
   createdBy: string | null;
   approvedAt: Date | null;
@@ -86,12 +98,12 @@ export type WrittenBroadcast = WrittenMailing & {
    * of emails left it too slow ("limit").
    */
   waitingSince: Date | null;
-  waitReason: "civicrm" | "pull" | "limit" | null;
+  waitReason: "civicrm" | "pull" | "limit" | "template" | null;
   gaveUp: boolean;
 };
 
 const SELECT_TEMPLATES = `
-  SELECT t.id::int AS id, t.name, t.body, t.status, t.created_by AS "createdBy", t.approved_at AS "approvedAt", t.created_at AS "requestedAt",
+  SELECT t.id::int AS id, t.name, t.body, t.status, t.category, t.meta_name AS "metaName", t.created_by AS "createdBy", t.approved_at AS "approvedAt", t.created_at AS "requestedAt",
     t.rejected_at AS "rejectedAt", t.rejected_reason AS "rejectedReason", u.at AS "lastUsedAt", coalesce(u.n, 0)::int AS "lastUsedTo"
   FROM whatsapp_templates t LEFT JOIN LATERAL (
     SELECT m.due_at AS at, (SELECT count(*) FROM broadcast_messages c WHERE c.mailing_id = m.id) AS n
@@ -132,11 +144,14 @@ export async function getWrittenBroadcast(id: number, opening = false): Promise<
   return { ...written, ...own, template: template ?? null };
 }
 
-/** Who a new broadcast appears from: for an email the address we write from; for a text the business account. */
-const senderOf = (channel: BroadcastChannel): { sentFrom: string; fromName: string } =>
+/**
+ * Who a new broadcast appears from: for an email the address we write
+ * from; for a text our WhatsApp number, or none where WhatsApp doesn't send.
+ */
+const senderOf = async (channel: BroadcastChannel): Promise<{ sentFrom: string; fromName: string }> =>
   channel === "email"
     ? { sentFrom: BROADCAST_SENDER.email, fromName: BROADCAST_SENDER.name }
-    : { sentFrom: textSenderNumber() ?? "", fromName: TEXT_SENDER_NAME };
+    : { sentFrom: (await textSenderNumber()) ?? "", fromName: TEXT_SENDER_NAME };
 
 /**
  * Makes a draft to those the supporters list's `params` find, by `by`, its
@@ -147,7 +162,7 @@ export async function createBroadcastDraft(by: string, params: Params): Promise<
   const filter = storedFilter("supporters", params);
   const terms = broadcastTerms(filter.params.contact);
   if (!terms) return undefined;
-  const { sentFrom, fromName } = senderOf(terms.channel);
+  const { sentFrom, fromName } = await senderOf(terms.channel);
   return transaction(async (db) => {
     const [{ id }] = await query<{ id: number }>(
       `INSERT INTO mailings (title, audience, channel, topic, also_topics, filter, body, created_by, sent_from, from_name, state)
@@ -198,7 +213,7 @@ export async function changeBroadcastConsent(id: number, value: string, by: stri
   const moving = terms.channel !== broadcast.channel;
   if (moving && hasWords({ ...broadcast, templateId: broadcast.template?.id ?? null })) return false;
   const filter = storedFilter("supporters", { ...broadcast.filter.params, contact: termsValues(terms) });
-  const sender = senderOf(terms.channel);
+  const sender = await senderOf(terms.channel);
   await query(
     `UPDATE mailings SET channel = $2, topic = $3, filter = $4, also_topics = $8,
        subject = CASE WHEN $5 THEN '' ELSE subject END,
@@ -322,7 +337,7 @@ async function scheduleProblems(
     unknown,
     ...sender,
     approved: broadcast.template?.status === "approved",
-    numbered: Boolean(textSenderNumber()),
+    numbered: Boolean(await textSenderNumber()),
     sends: channelSends(broadcast.channel, broadcast.sendBy),
   });
   return { problems, recipients: audience.recipients.length };
@@ -413,7 +428,32 @@ const templateWords = (body: MailingDoc): string => toText(letterFor(body, FIELD
 const draftLink = (id: number): string => staffLink(`/staff/broadcasts/${id}`, undefined);
 
 export type TemplateSubmitResult =
-  "submitted" | "no-words" | "not-ready" | "already" | "not-text" | "not-draft" | "gone";
+  "submitted" | "no-words" | "not-ready" | "already" | "not-text" | "not-draft" | "gone" | "failed";
+
+/**
+ * Sends a template's words to WhatsApp for approval, as a marketing
+ * template in British English, each field a named parameter with an
+ * example, a footer saying how to stop and a Stop button; keeps WhatsApp's
+ * ID for it. Says whether WhatsApp took them, reporting it if not.
+ */
+async function sendForApproval(template: { id: number; metaName: string; body: MailingDoc }): Promise<boolean> {
+  const backend = await textBackend();
+  if (!backend) return false;
+  try {
+    const made = await createTemplate(backend.keys, {
+      name: template.metaName,
+      body: templateText(template.body),
+      examples: templateParams(template.body, fakeRecipient(BROADCAST_FIELDS.map(hasField), "text")),
+      footer: emailSettingsCopy.textFooter,
+      stopButton: emailSettingsCopy.stopButton,
+    });
+    await query("UPDATE whatsapp_templates SET meta_id = $2 WHERE id = $1", [template.id, made.id]);
+    return true;
+  } catch (error) {
+    problem(staffCopy.problems.anywhere.templateNotSent(template.metaName), error);
+    return false;
+  }
+}
 
 /**
  * Sends a draft text's new words to WhatsApp for approval, as a new
@@ -421,7 +461,8 @@ export type TemplateSubmitResult =
  * or they're withdrawn. It's called what the text is called. Emails who sent
  * them and the notification inbox the
  * words. Not for words that are an approved template, or waiting already, nor
- * a text that anything but its time would stop being scheduled.
+ * a text that anything but its time would stop being scheduled. If WhatsApp
+ * doesn't take them, they're as they were, to send again (`failed`).
  */
 export async function submitTemplate(id: number, by: string): Promise<TemplateSubmitResult> {
   const result = await transaction(async (db) => {
@@ -440,17 +481,26 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
     if (approvalProblems((await scheduleProblems(broadcast)).problems).length) return "not-ready" as const;
     // As staff named it: a text with no name isn't ready (approvalProblems).
     const name = broadcast.title.trim();
-    await query(
+    const [{ templateId }] = await query<{ templateId: number }>(
       `WITH t AS (INSERT INTO whatsapp_templates (name, body, status, created_by)
          VALUES ($2, $3, 'pending', $4) RETURNING id)
-       UPDATE mailings SET template_id = t.id, title = $2, updated_at = now() FROM t WHERE mailings.id = $1`,
+       UPDATE mailings SET template_id = t.id, title = $2, updated_at = now() FROM t WHERE mailings.id = $1
+       RETURNING t.id::int AS "templateId"`,
       [id, name, JSON.stringify(broadcast.body), by],
       db,
     );
-    await logChange(by, "submit broadcast template", { id, name }, db);
-    return { name, body: broadcast.body };
+    const meta = metaName(name, templateId);
+    await query("UPDATE whatsapp_templates SET meta_name = $2 WHERE id = $1", [templateId, meta], db);
+    return { name, body: broadcast.body, templateId, metaName: meta, before: broadcast.template?.id ?? null };
   });
   if (typeof result === "string") return result;
+  if (!(await sendForApproval({ id: result.templateId, metaName: result.metaName, body: result.body }))) {
+    // As it was before: the words back to change or send again, and the rejected template they were on, if any.
+    await query("UPDATE mailings SET template_id = $2, updated_at = now() WHERE id = $1", [id, result.before]);
+    await query("DELETE FROM whatsapp_templates WHERE id = $1", [result.templateId]);
+    return "failed";
+  }
+  await logChange(by, "submit broadcast template", { id, name: result.name });
   const email = staffCopy.notifications.templateSubmitted;
   await notifyStaff(
     email.subject(result.name),
@@ -462,21 +512,36 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
   return "submitted";
 }
 
-/** Takes back a draft text's words from WhatsApp's review, so they can be changed. Says whether it did. */
+/**
+ * Takes back a draft text's words from WhatsApp's review, so they can be
+ * changed, deleting them at WhatsApp too: if that fails, it's reported,
+ * and whatever WhatsApp decides of them is ignored. Says whether it did.
+ */
 export async function withdrawTemplate(id: number, by: string): Promise<boolean> {
-  return transaction(async (db) => {
-    const [broadcast] = await query<{ templateId: number }>(
-      `SELECT m.template_id::int AS "templateId" FROM mailings m JOIN whatsapp_templates t ON t.id = m.template_id
+  const withdrawn = await transaction(async (db) => {
+    const [broadcast] = await query<{ templateId: number; metaName: string | null }>(
+      `SELECT m.template_id::int AS "templateId", t.meta_name AS "metaName"
+       FROM mailings m JOIN whatsapp_templates t ON t.id = m.template_id
        WHERE m.id = $1 AND m.audience = 'supporters' AND m.state = 'draft' AND t.status = 'pending' FOR UPDATE OF m`,
       [id],
       db,
     );
-    if (!broadcast) return false;
+    if (!broadcast) return undefined;
     await query("UPDATE mailings SET template_id = NULL, updated_at = now() WHERE id = $1", [id], db);
     await query("DELETE FROM whatsapp_templates WHERE id = $1", [broadcast.templateId], db);
     await logChange(by, "withdraw broadcast template", { id }, db);
-    return true;
+    return broadcast;
   });
+  if (!withdrawn) return false;
+  const backend = withdrawn.metaName ? await textBackend() : undefined;
+  if (backend) {
+    try {
+      await deleteTemplate(backend.keys, withdrawn.metaName!);
+    } catch (error) {
+      problem(staffCopy.problems.anywhere.templateNotDeleted(withdrawn.metaName!), error);
+    }
+  }
+  return true;
 }
 
 /** What WhatsApp decided about a template: approved, or rejected and why. */
@@ -523,12 +588,14 @@ export async function sendBroadcastTest(
   to: string,
 ): Promise<ChannelResult | undefined> {
   if (broadcast.channel === "email") return sendTestCopy(broadcast, recipient, to);
-  const backend = broadcastBackend();
-  if (!backend || broadcast.template?.status !== "approved") return undefined;
-  return backend.send({
-    channel: "text",
-    to,
-    subject: broadcast.template.name,
-    text: toText(letterFor(broadcast.body, recipient)),
-  });
+  if (broadcast.template?.status !== "approved") return undefined;
+  const backend = await textBackend();
+  if (!backend) return undefined;
+  const template = broadcast.template;
+  return textResult(
+    await sendTemplate(backend.keys, backend.number.id, to, {
+      name: template.metaName ?? template.name,
+      params: templateParams(template.body, recipient),
+    }),
+  );
 }

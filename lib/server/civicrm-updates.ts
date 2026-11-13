@@ -11,8 +11,9 @@ import {
 import { problem } from "./problems";
 
 // Our opt-outs sent to CiviCRM's updateSubscriptions, so Global's records
-// and mail honour them too, and lifts of "No bulk emails" made on the email
-// settings page. Each is queued in civicrm_updates in the transaction that
+// and mail honour them too: of email by address, and of every text or call
+// to a number as its "Do not SMS" or "Do not phone"; and lifts of "No bulk
+// emails" made on the email settings page. Each is queued in civicrm_updates in the transaction that
 // records it, then sent by the hourly CiviCRM import, before it pulls, and
 // tried again each hour until CiviCRM answers it. Only opt-outs go, but
 // that one opt-in: a yes on our side stays ours, as CiviCRM's lists are its
@@ -31,16 +32,45 @@ export function civicrmChange(list: string, way: string): Pick<SubscriptionEvent
 const sourceName = (source: string): string => `pauseai.uk:${source}`;
 
 /**
+ * An opt-out of ours, as queued for CiviCRM: for a number, whether the
+ * number now has a stop of every topic by its way (`every`).
+ */
+type Queued = { id: number; address: string; list: string; way: string; source: string; at: Date; every: boolean };
+
+/**
+ * Queues "Do not SMS" or "Do not phone" for a number whose every topic by
+ * text, or by call, `optOut` has just stopped, as those are CiviCRM's
+ * flags for the whole number; a stop of only some stays ours. Returns
+ * whether it queued it.
+ */
+async function queueNumberStop(optOut: Queued, db?: Queryable): Promise<boolean> {
+  if (!optOut.every) return false;
+  await query(
+    `INSERT INTO civicrm_updates (opt_out_id, change, phone, occurred_at, source) VALUES ($1, $2, $3, $4, $5)`,
+    [
+      optOut.id,
+      optOut.way === "text" ? "do_not_sms" : "do_not_phone",
+      optOut.address,
+      optOut.at,
+      sourceName(optOut.source),
+    ],
+    db,
+  );
+  return true;
+}
+
+/**
  * Queues an opt-out of ours for CiviCRM, if it's one it takes (civicrmChange)
  * and not one CiviCRM told us of, with the contact ID of the address's
- * contact in the last pull, if it has one. Returns whether it queued it.
+ * contact in the last pull, if it has one; or, for a number, the stop of
+ * every text or call it completes (queueNumberStop). Returns whether it
+ * queued it.
  */
-export async function queueOptOut(
-  optOut: { id: number; address: string; list: string; way: string; source: string; at: Date },
-  db?: Queryable,
-): Promise<boolean> {
+export async function queueOptOut(optOut: Queued, db?: Queryable): Promise<boolean> {
+  if (optOut.source === "civicrm" || optOut.source === "civicrm-check") return false;
+  if (optOut.way !== "email") return queueNumberStop(optOut, db);
   const change = civicrmChange(optOut.list, optOut.way);
-  if (!change || optOut.source === "civicrm" || optOut.source === "civicrm-check") return false;
+  if (!change) return false;
   await query(
     `INSERT INTO civicrm_updates (opt_out_id, change, list, email, contact_id, occurred_at, source)
      VALUES ($1, $2, $3, $4,
@@ -65,22 +95,26 @@ export async function queueBulkLift(
 }
 
 /** An update CiviCRM hasn't answered, as kept: null where it has none of a field. */
-type Waiting = Omit<SubscriptionEvent, "list" | "contactId" | "wording"> & {
+type Waiting = Omit<SubscriptionEvent, "email" | "phone" | "list" | "contactId" | "wording"> & {
   id: number;
   choiceId: number | null;
+  email: string | null;
+  phone: string | null;
   list: SubscriptionEvent["list"] | null;
   contactId: number | null;
   wording: string | null;
 };
 
 /** An update as CiviCRM is sent it, with only the fields it has. */
-function eventOf({ eventId, email, change, list, contactId, occurredAt, source, wording }: Waiting): SubscriptionEvent {
+function eventOf(waiting: Waiting): SubscriptionEvent {
+  const { eventId, email, phone, change, list, contactId, occurredAt, source, wording } = waiting;
   return {
     eventId,
-    email,
     change,
     occurredAt,
     source,
+    ...(email && { email }),
+    ...(phone && { phone }),
     ...(list && { list }),
     ...(contactId && { contactId }),
     ...(wording && { wording }),
@@ -118,7 +152,7 @@ export async function sendCivicrmUpdates(key: string): Promise<CivicrmUpdatesRes
   const waiting = await query<Waiting>(
     `SELECT id::int AS id, choice_id::int AS "choiceId",
        CASE WHEN opt_out_id IS NULL THEN 'lift:' || choice_id ELSE 'opt-out:' || opt_out_id END AS "eventId",
-       email, change, list, contact_id::int AS "contactId", occurred_at AS "occurredAt", source, wording
+       email, phone, change, list, contact_id::int AS "contactId", occurred_at AS "occurredAt", source, wording
      FROM civicrm_updates WHERE status IS NULL ORDER BY id`,
   );
   const counts: CivicrmUpdatesResult = { sent: 0, refused: 0, unanswered: 0 };

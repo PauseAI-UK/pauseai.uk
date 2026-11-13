@@ -1354,9 +1354,11 @@ SELECT id, due_at, 'sent' FROM seed_copies WHERE status IN ('sent', 'delivered',
 UNION ALL SELECT id, due_at + CASE WHEN refused THEN interval '0' ELSE interval '1 minute' END, report
   FROM seed_copies WHERE report IS NOT NULL
 UNION ALL SELECT id, due_at + interval '20 minutes', 'read' FROM seed_copies WHERE was_read
-UNION ALL SELECT c.id, c.due_at + interval '30 minutes', 'replied' FROM seed_copies c JOIN mailings m ON m.id = c.mailing_id
-  WHERE m.title = 'PauseCon room change' AND c.luma_user = 'usr-fixture-1'
 UNION ALL SELECT id, due_at + interval '2 hours', 'opted-out' FROM seed_copies WHERE stopped;
+-- The number WhatsApp said isn't on it, which texts skip from then on.
+INSERT INTO whatsapp_unreachable (number, at, message_id)
+SELECT coalesce(c.address, '+447700900099'), s.due_at, c.id
+FROM broadcast_messages c JOIN seed_copies s USING (id) WHERE s.reason = 'not-on-whatsapp';
 -- Robin's bounce, which blocked the address.
 WITH bounced AS (
   INSERT INTO email_problems (at, address, message_id, kind, reason, can_reset, details)
@@ -1390,6 +1392,13 @@ FROM (VALUES
 JOIN mailings m ON m.audience = 'supporters' AND m.title = r.title
 JOIN seed_copies s ON s.mailing_id = m.id AND s.luma_user = r.luma_user
 JOIN luma_people l ON l.user_id = r.luma_user;
+-- Jane's reply to the text PauseCon room change, by WhatsApp: its words, as
+-- its webhook gave them. It's days old, so WhatsApp takes no answer now.
+INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
+SELECT s.id, s.due_at + interval '30 minutes', c.address, '', 'seed-text-reply',
+  'Thanks! Is it still the same building?', false
+FROM seed_copies s JOIN mailings m ON m.id = s.mailing_id JOIN broadcast_messages c ON c.id = s.id
+WHERE m.title = 'PauseCon room change' AND s.luma_user = 'usr-fixture-1';
 INSERT INTO broadcast_message_events (message_id, at, kind)
 SELECT message_id, received_at, 'replied' FROM broadcast_replies WHERE NOT automatic;
 INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, created_at, sent_at, gmail_message_id,

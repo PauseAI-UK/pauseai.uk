@@ -14,9 +14,9 @@ Phases 1 to 4 are merged (the last, #318); 5, 5½ and 6 are to come.
 - `contact_permission()` can only answer "Not sure" for a member's
   `pauseai-updates` email, as we can't see who unsubscribed in CiviCRM.
 - Global's chapter contacts API is live at `https://crm.pauseai.info/`,
-  and we have a UK key, in Netlify as `CIVICRM_CHAPTER_KEY`. Its spec is
-  [`docs/chapter-contacts-api.md`](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md)
-  in PauseAI/pauseai-civicrm. It has three actions:
+  and we have a UK key, in Netlify as `CIVICRM_CHAPTER_KEY`.
+  [Its spec](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md)
+  is in PauseAI/pauseai-civicrm. It has three actions:
   - `get`: every UK chapter contact's address, Airtable ID, email and
     phone flags, and status on the two UK lists, `newsletter` (our
     `pauseai-updates`) and `volunteer_updates`. Someone who leaves the

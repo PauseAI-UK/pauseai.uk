@@ -11,6 +11,7 @@ import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
 import type { AnswerResult } from "@/lib/server/broadcast-answers";
 import Alert from "./Alert";
 import MailingEditor from "./MailingEditor";
+import { ChatBubble, ChatWall } from "./TextBubble";
 import ThreadEmail from "./ThreadEmail";
 import styles from "./ReplyActions.module.css";
 
@@ -36,7 +37,8 @@ const isSendKey = (event: KeyboardEvent) => event.key === "Enter" && (event.meta
  * (`answer`); sent, it closes, and the page shows it in the thread. One
  * that didn't go stays open, saying why. Discard closes it, its words gone.
  * To someone with "Do not email" (`doNotEmail`), it warns that it goes all
- * the same.
+ * the same. To a text's reply (`text`), it's a bubble of ours, with no
+ * subject, and goes by WhatsApp.
  * `opened` shows it being written to begin with, as the gallery does,
  * leaving the cursor where it is.
  */
@@ -48,6 +50,7 @@ export default function AnswerableReply({
   answer,
   doNotEmail = false,
   opened = false,
+  text = false,
   children,
 }: {
   replyId: number;
@@ -57,6 +60,7 @@ export default function AnswerableReply({
   answer: AnswerAction;
   doNotEmail?: boolean;
   opened?: boolean;
+  text?: boolean;
   children: (write: (() => void) | undefined) => ReactNode;
 }) {
   const [open, setOpen] = useState(opened);
@@ -92,7 +96,7 @@ export default function AnswerableReply({
     <>
       {children(open ? undefined : write)}
       {open && (
-        <ThreadEmail from={from} to={to} at={null} subject={answerSubject(subject)}>
+        <AnswerShell text={text} from={from} to={to} subject={subject}>
           <div
             onKeyDownCapture={(event) => {
               if (!isSendKey(event)) return;
@@ -128,8 +132,38 @@ export default function AnswerableReply({
               </p>
             )}
           </div>
-        </ThreadEmail>
+        </AnswerShell>
       )}
     </>
+  );
+}
+
+/** What an answer being written sits in: an email of ours to them, "Re:" their reply; or a bubble of ours, for a text. */
+function AnswerShell({
+  text,
+  from,
+  to,
+  subject,
+  children,
+}: {
+  text: boolean;
+  from: string;
+  to: string;
+  subject: string;
+  children: ReactNode;
+}) {
+  if (text) {
+    return (
+      <ChatWall>
+        <ChatBubble who={from} when="" ours>
+          {children}
+        </ChatBubble>
+      </ChatWall>
+    );
+  }
+  return (
+    <ThreadEmail from={from} to={to} at={null} subject={answerSubject(subject)}>
+      {children}
+    </ThreadEmail>
   );
 }

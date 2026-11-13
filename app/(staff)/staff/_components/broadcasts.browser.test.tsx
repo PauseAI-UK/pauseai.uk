@@ -606,6 +606,12 @@ describe("BroadcastWriter, by text", () => {
     await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledWith(4), WAIT);
     await expect.element(button(copy.submitTemplate)).toBeEnabled();
     expect(navigation.pushed).toEqual([]);
+    await expect.element(page.getByText(copy.submitFailed)).not.toBeInTheDocument();
+    // WhatsApp didn't take them: it says so, to press again.
+    actions.submitTemplate.mockResolvedValue("failed");
+    await button(copy.submitTemplate).click();
+    await expect.element(page.getByText(copy.submitFailed)).toBeVisible();
+    await expect.element(button(copy.submitTemplate)).toBeEnabled();
     // Sent: back to the list, where its row pulses.
     actions.submitTemplate.mockResolvedValue("submitted");
     await button(copy.submitTemplate).click();

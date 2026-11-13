@@ -1,13 +1,14 @@
 import "server-only";
 import { gzipSync } from "node:zlib";
-import type { Topic } from "@/lib/contact-permissions";
+import { hasWay, TOPICS, type Topic, type Way } from "@/lib/contact-permissions";
+import { inWindow } from "./broadcast-answers";
 import { fromAddress, messageIds } from "@/lib/email-parsing/mime";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
 import { messageContent } from "./letter-threads";
 import { offCalendarAfter } from "./email-settings";
-import { recordStaffOptOut, type CalendarOptOut } from "./opt-outs";
+import { recordStaffOptOut, type CalendarOptOut, type OptOutList } from "./opt-outs";
 import { saveLetterReply } from "./outside-services/blobs";
 import { gmailRawMessage, type GmailMessageHeaders } from "./outside-services/gmail";
 
@@ -101,20 +102,28 @@ export type BroadcastReply = {
   dealtAt: Date | null;
   /** Whether its sender has "Do not email", which an answer to them still goes despite, as it answers what they wrote. */
   doNotEmail: boolean;
+  /** Whether it can be answered now: an email's always can; a text's only within a day, as WhatsApp allows. */
+  answerable: boolean;
 };
 
-/** The replies to a copy, oldest first. */
+/** The replies to a copy, oldest first: an email's words from the message kept whole, a text's as kept. */
 export async function repliesTo(copyId: number): Promise<BroadcastReply[]> {
-  const rows = await query<Omit<BroadcastReply, "text"> & { blobKey: string }>(
+  const rows = await query<
+    Omit<BroadcastReply, "text" | "answerable"> & { blobKey: string | null; body: string | null }
+  >(
     `SELECT id::int AS id, received_at AS "receivedAt", from_address AS from, subject, automatic, outcome,
-       dealt_by AS "dealtBy", dealt_at AS "dealtAt", blob_key AS "blobKey",
+       dealt_by AS "dealtBy", dealt_at AS "dealtAt", blob_key AS "blobKey", body,
        EXISTS (SELECT 1 FROM contact_permission('newsletter', 'email', from_address) d WHERE d.reason = 'do-not-email')
          AS "doNotEmail"
      FROM broadcast_replies WHERE message_id = $1 ORDER BY received_at, id`,
     [copyId],
   );
   return Promise.all(
-    rows.map(async ({ blobKey, ...reply }) => ({ ...reply, text: (await messageContent(blobKey)).text })),
+    rows.map(async ({ blobKey, body, ...reply }) =>
+      blobKey
+        ? { ...reply, text: (await messageContent(blobKey)).text, answerable: true }
+        : { ...reply, text: body, answerable: inWindow(reply.receivedAt) },
+    ),
   );
 }
 
@@ -132,9 +141,9 @@ export type ReplyDecision = "topics" | "bulk" | "nothing";
 export async function dealWithReply(replyId: number, decision: ReplyDecision, by: string): Promise<boolean> {
   const recorded: CalendarOptOut[] = [];
   const waiting = await transaction(async (db) => {
-    const [reply] = await query<{ copyId: number; address: string | null; topics: Topic[] }>(
-      `SELECT r.message_id::int AS "copyId", c.address, c.topics FROM broadcast_replies r
-       JOIN broadcast_messages c ON c.id = r.message_id
+    const [reply] = await query<{ copyId: number; address: string | null; topics: Topic[]; text: boolean }>(
+      `SELECT r.message_id::int AS "copyId", c.address, c.topics, m.channel = 'text' AS text FROM broadcast_replies r
+       JOIN broadcast_messages c ON c.id = r.message_id JOIN mailings m ON m.id = c.mailing_id
        WHERE r.id = $1 AND (r.outcome IS NULL OR (r.outcome = 'answered' AND $2)) AND NOT r.automatic
        FOR UPDATE OF r`,
       [replyId, decision !== "nothing"],
@@ -143,16 +152,14 @@ export async function dealWithReply(replyId: number, decision: ReplyDecision, by
     if (!reply) return false;
     const outcome = decision === "nothing" ? "nothing" : "opted-out";
     if (decision !== "nothing" && reply.address) {
-      const lists = decision === "bulk" ? (["bulk"] as const) : reply.topics;
+      // By text, "bulk" is every text: each topic a text goes under.
+      const every: OptOutList[] = reply.text ? TOPICS.filter((topic) => hasWay(topic, "text")) : ["bulk"];
+      const lists = decision === "bulk" ? every : reply.topics;
+      const way: Way = reply.text ? "text" : "email";
       for (const list of lists) {
-        await recordStaffOptOut(
-          { address: reply.address, way: "email", list },
-          by,
-          { replyId, messageId: reply.copyId },
-          db,
-        );
+        await recordStaffOptOut({ address: reply.address, way, list }, by, { replyId, messageId: reply.copyId }, db);
       }
-      recorded.push(...lists.map((list) => ({ address: reply.address!, list, source: "reply" as const })));
+      recorded.push(...lists.map((list) => ({ address: reply.address!, list, way, source: "reply" as const })));
     }
     await query(
       "UPDATE broadcast_replies SET outcome = $2, dealt_by = $3, dealt_at = now() WHERE id = $1",

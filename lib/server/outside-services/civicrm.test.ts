@@ -131,25 +131,49 @@ describe("checkSuppression", () => {
             { email: " A@Example.org", block: "none" },
             { email: "b@example.org", block: "bulk" },
             { email: "c@example.org", block: "all" },
-            { phone: "+447700900123", do_not_phone: false, do_not_sms: false },
+            { neither: true },
           ],
         });
       }),
     );
     const blocks = await checkSuppression("key", ["a@example.org", "b@example.org", "c@example.org"]);
     expect(asked).toEqual({ email: ["a@example.org", "b@example.org", "c@example.org"], phone: [] });
-    expect([...blocks]).toEqual([
+    expect([...blocks.emails]).toEqual([
       ["a@example.org", "none"],
       ["b@example.org", "bulk"],
       ["c@example.org", "all"],
     ]);
   });
 
-  it("refuses a block it doesn't know, or an answer that leaves an address out", async () => {
+  it("asks of numbers too, giving each one's flags, and a flag left null blocks nothing", async () => {
+    let asked: Record<string, unknown> | undefined;
+    server.use(
+      http.post(CHECK, async ({ request }) => {
+        asked = await paramsOf(request);
+        return HttpResponse.json({
+          values: [
+            { phone: "+447700900001", do_not_phone: true, do_not_sms: false },
+            { phone: "+447700900002", do_not_phone: false, do_not_sms: true },
+            { phone: "+447700900003", do_not_phone: null, do_not_sms: null },
+          ],
+        });
+      }),
+    );
+    const blocks = await checkSuppression("key", [], ["+447700900001", "+447700900002", "+447700900003"]);
+    expect(asked).toEqual({ email: [], phone: ["+447700900001", "+447700900002", "+447700900003"] });
+    expect([...blocks.phones]).toEqual([
+      ["+447700900001", { doNotPhone: true, doNotSms: false }],
+      ["+447700900002", { doNotPhone: false, doNotSms: true }],
+      ["+447700900003", { doNotPhone: false, doNotSms: false }],
+    ]);
+  });
+
+  it("refuses a block it doesn't know, or an answer that leaves an address or a number out", async () => {
     server.use(http.post(CHECK, () => HttpResponse.json({ values: [{ email: "a@example.org", block: "some" }] })));
     await expect(checkSuppression("key", ["a@example.org"])).rejects.toThrow("a block we don't know: some");
     server.use(http.post(CHECK, () => HttpResponse.json({ values: [] })));
     await expect(checkSuppression("key", ["a@example.org"])).rejects.toThrow("didn't say whether 1 addresses");
+    await expect(checkSuppression("key", [], ["+447700900001"])).rejects.toThrow("didn't say whether 1 numbers");
   });
 });
 

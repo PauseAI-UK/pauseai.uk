@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db";
-import { addFollower, EVENT_WORDS } from "@/tests/broadcast-fixtures";
+import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/broadcast-fixtures";
 import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { recordGmail } from "@/tests/gmail-sends";
@@ -560,25 +560,208 @@ describeWithDatabase("sending broadcasts", () => {
 
 describeWithDatabase("sending texts", () => {
   useTestDatabase();
+  beforeEach(() => {
+    vi.stubEnv("WHATSAPP_TOKEN", "token");
+    vi.stubEnv("WHATSAPP_ACCOUNT_ID", "fixture-account");
+  });
 
-  it("go by the fixture build's backend, and wait on the live site, where none sends them", async () => {
-    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+  const SEND = /graph\.facebook\.com\/.*\/messages$/;
+
+  /** A text to events' yeses by text, due at DUE, on an approved template, or one `status` says; its ID. */
+  async function text(status = "approved"): Promise<number> {
     const id = (await createBroadcastDraft("jo@pauseai.uk", { contact: "text:events:yes" }))!;
+    const template = await addTemplate("March day", { status });
+    await query("UPDATE whatsapp_templates SET meta_name = 'march_day_' || id WHERE id = $1", [template]);
     await query(
-      `UPDATE mailings SET body = $2, due_at = $3, state = 'scheduled', sent_from = '+447700900000', from_name = 'PauseAI UK'
+      `UPDATE mailings SET title = 'March day', body = $2, due_at = $3, state = 'scheduled', sent_from = '+447700900000',
+         from_name = 'PauseAI UK', template_id = $4
        WHERE id = $1`,
-      [id, JSON.stringify(EVENT_WORDS), DUE],
+      [id, JSON.stringify(EVENT_WORDS), DUE, template],
     );
+    await query("INSERT INTO audit_log (actor, action, details) VALUES ('sam@pauseai.uk', 'schedule broadcast', $1)", [
+      JSON.stringify({ id, recipients: 1 }),
+    ]);
+    return id;
+  }
+
+  /** WhatsApp answering each send as `answer` says, by number; each send it got. */
+  function whatsApp(answer: (to: string) => Response | undefined = () => undefined) {
+    const sent: { to: string; template: { name: string; components: unknown[] } }[] = [];
+    server.use(
+      http.post(SEND, async ({ request }) => {
+        const body = (await request.json()) as (typeof sent)[number];
+        sent.push(body);
+        return answer(body.to) ?? HttpResponse.json({ messages: [{ id: `wamid.${body.to}` }] });
+      }),
+    );
+    return sent;
+  }
+
+  /** WhatsApp refusing a send with error `code`. */
+  const refused = (code: number) => HttpResponse.json({ error: { code, message: "Refused" } }, { status: 400 });
+
+  it("go by WhatsApp, the template filled in for each, and wait where nothing sends them", async () => {
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    const id = await text();
+    // As an email does, it waits for a CiviCRM pull.
+    expect(await startDueBroadcasts()).toEqual([]);
+    expect((await stateOf(id)).reason).toBe("pull");
+    await pulled();
     expect(await startDueBroadcasts()).toEqual([id]);
+    vi.stubEnv("WHATSAPP_TOKEN", "");
     expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, waiting: 1 });
-    vi.stubEnv("DATA_FIXTURES", "1");
+    vi.stubEnv("WHATSAPP_TOKEN", "token");
     // One whose words can't be made goes back, to go next run.
     vi.spyOn(console, "error").mockImplementation(() => {});
     const values = await query("SELECT id, merge_values FROM broadcast_messages");
     await query("UPDATE broadcast_messages SET merge_values = NULL");
     expect(await inRun(() => sendDueBroadcasts(LATER))).toMatchObject({ sent: 0, failed: 0, left: 1 });
     await query("UPDATE broadcast_messages SET merge_values = $1", [values[0].merge_values]);
+    const sent = whatsApp();
     expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 1, waiting: 0 });
+    expect(sent).toEqual([
+      expect.objectContaining({
+        to: "447700900123",
+        template: {
+          name: expect.stringMatching(/^march_day_\d+$/),
+          language: { code: "en_GB" },
+          components: [{ type: "body", parameters: [{ type: "text", parameter_name: "first_name", text: "Jane" }] }],
+        },
+      }),
+    ]);
+    expect(await query("SELECT provider_message_id AS id FROM broadcast_messages")).toEqual([
+      { id: "wamid.447700900123" },
+    ]);
     expect((await stateOf(id)).state).toBe("sent");
+  });
+
+  it("checks each number just before it goes: an opt-out since, CiviCRM's Do not SMS, or not on WhatsApp skips it", async () => {
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    await addFollower("usr-sam", "sam@example.com", "Sam Jones", { phone: "+447700900124" });
+    await addFollower("usr-ann", "ann@example.com", "Ann Lee", { phone: "+447700900125" });
+    await addFollower("usr-bo", "bo@example.com", "Bo Kim", { phone: "+447700900126" });
+    let asked: unknown;
+    server.use(
+      http.post(CHECK, async ({ request }) => {
+        asked = JSON.parse(new URLSearchParams(await request.text()).get("params")!);
+        return HttpResponse.json({
+          values: (asked as { phone: string[] }).phone.map((phone) => ({
+            phone,
+            do_not_phone: false,
+            do_not_sms: phone === "+447700900124",
+          })),
+        });
+      }),
+    );
+    whatsApp();
+    await pulled();
+    await text();
+    await startDueBroadcasts();
+    await recordOptOut({
+      address: "+447700900125",
+      list: "events",
+      way: "text",
+      source: "staff",
+      sourceRef: "told",
+      unsubscribedAt: new Date(),
+      recordedBy: "jo@pauseai.uk",
+      how: "At the march",
+    });
+    await query("INSERT INTO whatsapp_unreachable (number) VALUES ('+447700900126')");
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 1, skipped: 3 });
+    expect((asked as { phone: string[] }).phone.toSorted()).toEqual([
+      "+447700900123",
+      "+447700900124",
+      "+447700900126",
+    ]);
+    expect(await copies()).toMatchObject([
+      { address: "+447700900123", status: "sent" },
+      { address: "+447700900124", status: "skipped", skip: "suppressed" },
+      { address: "+447700900125", status: "skipped", skip: "unsubscribed" },
+      { address: "+447700900126", status: "skipped", skip: "not-on-whatsapp" },
+    ]);
+    // CiviCRM's flag is CiviCRM's: none of ours is kept for it.
+    expect(await query("SELECT 1 FROM opt_outs WHERE address = '+447700900124'")).toEqual([]);
+  });
+
+  it("keeps what WhatsApp refuses: not on WhatsApp, stopped, held a day, too fast for now, or failed", async () => {
+    for (const [n, user] of ["jane", "sam", "ann", "bo", "cy"].entries()) {
+      await addFollower(`usr-${user}`, `${user}@example.com`, `${user} Smith`, { phone: `+44770090012${n}` });
+    }
+    const codes: Record<string, number> = {
+      "447700900120": 131026,
+      "447700900121": 131050,
+      "447700900122": 131049,
+      "447700900124": 131000,
+    };
+    whatsApp((to) => (codes[to] ? refused(codes[to]) : undefined));
+    await pulled();
+    const id = await text();
+    await startDueBroadcasts();
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 1, skipped: 2, failed: 1 });
+    expect(await copies()).toMatchObject([
+      { address: "+447700900120", status: "skipped", skip: "not-on-whatsapp" },
+      { address: "+447700900121", status: "skipped", skip: "unsubscribed" },
+      { address: "+447700900122", status: "scheduled" },
+      { address: "+447700900123", status: "sent" },
+      { address: "+447700900124", status: "failed" },
+    ]);
+    expect(await query("SELECT number FROM whatsapp_unreachable")).toEqual([{ number: "+447700900120" }]);
+    // The stop is of every text, by WhatsApp, and goes to CiviCRM as Do not SMS.
+    expect(await query("SELECT list, source FROM opt_outs WHERE address = '+447700900121' ORDER BY list")).toEqual([
+      { list: "events", source: "whatsapp" },
+      { list: "newsletter", source: "whatsapp" },
+      { list: "volunteering", source: "whatsapp" },
+    ]);
+    expect(await query("SELECT change, phone FROM civicrm_updates")).toEqual([
+      { change: "do_not_sms", phone: "+447700900121" },
+    ]);
+    // The one held goes no sooner than a day from now.
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, left: 1 });
+    expect((await stateOf(id)).state).toBe("sending");
+    // WhatsApp saying too many too fast puts it back for the next run.
+    await query("UPDATE broadcast_messages SET not_before = now() WHERE address = '+447700900122'");
+    codes["447700900122"] = 130429;
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, failed: 0, left: 1 });
+    delete codes["447700900122"];
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 1, left: 0 });
+  });
+
+  it("sends no more than our number's daily limit, and the rest the next day", async () => {
+    const jane = await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    whatsApp();
+    await pulled();
+    // Texts to the fixture number's limit, 250 people, in the last day.
+    const earlier = await text();
+    await query(
+      `WITH earlier AS (
+         INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name,
+           due_at, state, template_id)
+         SELECT title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, 'sent',
+           template_id
+         FROM mailings, generate_series(1, 250) WHERE id = $1 RETURNING id)
+       INSERT INTO broadcast_messages (mailing_id, supporter_id, status, sent_at, address)
+       SELECT id, $2, 'sent', now() - interval '1 hour', '+4477009' || lpad(id::text, 5, '0') FROM earlier`,
+      [earlier, jane],
+    );
+    await query("DELETE FROM mailings WHERE id = $1", [earlier]);
+    await text();
+    await startDueBroadcasts();
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, left: 1 });
+    await query("UPDATE broadcast_messages SET sent_at = now() - interval '2 days' WHERE address LIKE '+4477009%'");
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 1, left: 0 });
+  });
+
+  it("stops one whose template WhatsApp has paused, telling whoever scheduled it", async () => {
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    const sent = notifications();
+    await pulled();
+    const id = await text("paused");
+    await startDueBroadcasts();
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0 });
+    expect(await stateOf(id)).toMatchObject({ state: "cancelled", gaveUp: true, reason: "template" });
+    expect(sent.map((email) => email.Subject)).toContain(
+      staffCopy.notifications.broadcastGaveUp.subject("March day", "template"),
+    );
   });
 });

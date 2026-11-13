@@ -100,6 +100,8 @@ const template = (id: number, name: string, more: Partial<WhatsAppTemplate> = {}
   name,
   body: exampleTextWords,
   status: "approved",
+  category: "MARKETING",
+  metaName: null,
   createdBy: "jo@pauseai.uk",
   approvedAt: new Date("2026-10-20T10:00:00Z"),
   requestedAt: new Date("2026-10-19T10:00:00Z"),
@@ -384,6 +386,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtBy: null,
     dealtAt: null,
     doNotEmail: false,
+    answerable: true,
   },
   {
     id: 2,
@@ -396,6 +399,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtBy: "jo@pauseai.uk",
     dealtAt: new Date("2026-11-07T10:00:00Z"),
     doNotEmail: false,
+    answerable: true,
   },
   {
     id: 4,
@@ -408,6 +412,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtBy: "jo@pauseai.uk",
     dealtAt: new Date("2026-11-07T10:05:00Z"),
     doNotEmail: false,
+    answerable: true,
   },
   {
     id: 1,
@@ -420,6 +425,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtBy: null,
     dealtAt: null,
     doNotEmail: false,
+    answerable: true,
   },
 ];
 
@@ -438,3 +444,53 @@ export const exampleBroadcastAnswers: BroadcastAnswer[] = [
     },
   },
 ];
+
+/**
+ * Replies to a text, by WhatsApp, oldest first: Jane's question, which Jo
+ * answered, and her thanks, waiting for staff, still within WhatsApp's day.
+ */
+export const exampleTextReplies: BroadcastReply[] = [
+  {
+    id: 11,
+    receivedAt: new Date("2026-11-07T07:30:00Z"),
+    from: "+447700900001",
+    subject: "",
+    text: "Is it the same place as last time?",
+    automatic: false,
+    outcome: "answered",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T07:45:00Z"),
+    doNotEmail: false,
+    answerable: true,
+  },
+  {
+    id: 12,
+    receivedAt: new Date("2026-11-07T08:00:00Z"),
+    from: "+447700900001",
+    subject: "",
+    text: "Great, thanks!",
+    automatic: false,
+    outcome: null,
+    dealtBy: null,
+    dealtAt: null,
+    doNotEmail: false,
+    answerable: true,
+  },
+];
+
+/** Jo's answer to Jane's question by text (exampleTextReplies). */
+export const exampleTextAnswers: BroadcastAnswer[] = [
+  {
+    id: 11,
+    replyId: 11,
+    sentBy: "jo@pauseai.uk",
+    sentAt: new Date("2026-11-07T07:45:00Z"),
+    body: {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "Yes, Parliament Square, by the statue." }] }],
+    },
+  },
+];
+
+/** A reply to a text more than a day old, which WhatsApp takes no answer to. */
+export const exampleTextReplyPastDay: BroadcastReply = { ...exampleTextReplies[1], id: 13, answerable: false };

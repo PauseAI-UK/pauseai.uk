@@ -228,7 +228,7 @@ async function writerData(draft: WrittenBroadcast, me: string): Promise<Broadcas
     sends: channelSends(draft.channel, draft.sendBy),
     textsSend: channelSends("text"),
     templates,
-    textNumber: textSenderNumber(),
+    textNumber: await textSenderNumber(),
   };
 }
 
@@ -282,7 +282,7 @@ export async function newBroadcastPageData(
       sends: channelSends("email"),
       textsSend: channelSends("text"),
       templates,
-      textNumber: textSenderNumber(),
+      textNumber: await textSenderNumber(),
     },
   };
 }

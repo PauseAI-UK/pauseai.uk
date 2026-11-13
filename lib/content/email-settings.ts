@@ -63,6 +63,7 @@ const sources: Record<string, string> = {
   staff: "by telling us",
   preferences: "on this page",
   "civicrm-check": "with PauseAI Global",
+  whatsapp: "⁂ in WhatsApp",
 };
 
 const from = (source: string | null): string => sources[source ?? ""] ?? "";
@@ -94,6 +95,10 @@ export const emailSettingsCopy = {
     html: (link: string) =>
       `You get this because you said PauseAI UK could email you. <a href="${link}">Unsubscribe or change what we send you</a>.`,
   },
+  // A text's foot, under its words, saying how to stop: WhatsApp takes at most 60 characters.
+  textFooter: "⁂ Press Stop for no more texts from us",
+  // The button on every text that stops them all: WhatsApp takes at most 25 characters.
+  stopButton: "⁂ Stop",
   // Asking for a link: the first page.
   start: {
     title: "Contact preferences",
