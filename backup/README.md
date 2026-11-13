@@ -59,8 +59,13 @@ night before. If the archive fails, the dump is still kept, and the problem
 emailed. Each message is gzipped already, so the tar isn't compressed again.
 
 Any problem, or a backup that fails outright, is emailed through Postmark.
-If a Healthchecks.io ping URL is set, every run pings it. Healthchecks.io
-then emails when a night's backup never runs at all.
+If a Healthchecks.io ping URL is set (`HEALTHCHECK_URL`), every run pings it
+once, at the end, with its report as the ping's body: the URL itself for a
+run with no problems, which Healthchecks.io marks up; the URL with `/fail`
+added for a run with any, which it marks down and emails about
+(https://healthchecks.io/docs/http_api/). It emails too when a night's
+backup never pings at all. Cloudflare never shows a secret again: a ping
+arriving on the check's page is how to know the URL is right.
 
 The bucket holds:
 
