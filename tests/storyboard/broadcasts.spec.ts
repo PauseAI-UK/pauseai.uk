@@ -328,10 +328,8 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await frame(page, "The list, the draft WhatsApp rejected");
 });
 
-test("WhatsApp won't take new words", async ({ page, request, flowDatabase }) => {
-  story(
-    "Staff write new words for a text and send them for approval, but they're longer than WhatsApp takes for a template.",
-  );
+test("WhatsApp won't take a new template", async ({ page, request, flowDatabase }) => {
+  story("Staff write a new template for a text and send it for approval, but it's longer than WhatsApp allows.");
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
@@ -343,7 +341,7 @@ test("WhatsApp won't take new words", async ({ page, request, flowDatabase }) =>
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.getByRole("button", { name: copy.submitTemplate }).click();
   story(
-    "WhatsApp refuses them. A red alert under the button gives its reason, and the words stay, to change and send again.",
+    "WhatsApp refuses it. A red alert under the button gives its reason, and the template stays, to change and send again.",
   );
   await expect(send.getByRole("alert")).toBeVisible();
   await send.scrollIntoViewIfNeeded();

@@ -1395,23 +1395,24 @@ All events: ${link}`,
       `Schedule ${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")}`,
     // At the foot of a text on new words: sending them to WhatsApp, and while it reviews them.
     submitTemplate: "Send for approval",
-    // In a red alert under it, when the words didn't go: WhatsApp refused them, with its reason if it gave one, …
+    // In a red alert under it, when the template didn't go: WhatsApp refused it, with its reason if it gave one, …
     submitFailed: (reason: string | null) =>
       reason
-        ? `⁂ Not sent for approval. WhatsApp refused the template: "${reason}". Change the words and send them again.`
-        : "⁂ Not sent for approval. WhatsApp couldn't be reached, or refused the template without saying why. Nothing has been sent. Try again in a few minutes, and tell the tech team if it keeps happening.",
-    // … the site refused them, …
+        ? `⁂ WhatsApp refused the template, saying "${reason}". Change it and send it again.`
+        : "⁂ WhatsApp couldn't be reached, or refused the template without saying why. Try again in a few minutes, and tell the tech team if it keeps happening.",
+    // … the site refused it, …
     submitRefused: {
-      "no-words": "⁂ Not sent for approval: the text has no words yet.",
-      "not-ready": "⁂ Not sent for approval: something on this page needs fixing first. Reload the page to see what.",
-      already: "⁂ Not sent for approval: these words are already with WhatsApp. Reload the page to see them.",
-      "not-text": "⁂ Not sent for approval: this broadcast is an email, not a text.",
-      "not-draft": "⁂ Not sent for approval: this text isn't a draft any more. Reload the page to see what it is now.",
-      gone: "⁂ Not sent for approval: this text has been deleted.",
+      "no-words": "⁂ The template is empty, so it wasn't sent for approval.",
+      "not-ready":
+        "⁂ Something on this page needs fixing before the template can go for approval. Reload the page to see what.",
+      already: "⁂ This template is already with WhatsApp. Reload the page to see it.",
+      "not-text": "⁂ This broadcast is an email, so it has no template to approve.",
+      "not-draft": "⁂ This text isn't a draft any more. Reload the page to see what it is now.",
+      gone: "⁂ This text has been deleted.",
     },
     // … or something broke.
     submitBroke:
-      "⁂ Not sent for approval: something went wrong on our side. Nothing has been sent. Tell the tech team, and try again later.",
+      "⁂ Something went wrong on our side, and the template wasn't sent for approval. Try again later, and tell the tech team if it keeps happening.",
     // Over new words, what they're called in the list of templates, and the heading over the words.
     templateName: "Template name",
     templateWords: "Message",
