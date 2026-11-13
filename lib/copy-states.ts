@@ -33,7 +33,7 @@ export const DIDNT_GO = new Set(["error", "unreached", "not-sent"]);
  * off, so it may or may not have gone); it didn't reach them (it bounced);
  * not sent, as expected (no address, left office, address already blocked,
  * we stopped the mailing); their answer to its ask is recorded; they
- * replied; sent. A letter still to go is queued, scheduled or sending, and in
+ * replied; sent, saying so when only an automatic reply came back. A letter still to go is queued, scheduled or sending, and in
  * no count.
  */
 export const LETTER_STATES = ["spam", "error", "unreached", "not-sent", "answered", "replied", "sent"] as const;
@@ -46,12 +46,15 @@ export function letterState({
   skipReason,
   answered,
   replied,
+  autoReplied,
   sentBy,
 }: {
   status: string;
   skipReason?: SkipReason | null;
   answered: boolean;
   replied: boolean;
+  /** Whether only an automatic reply came back, which is no reply. */
+  autoReplied?: boolean;
   /** What sends it, to say what refused one that failed; unknown for a supporter's. */
   sentBy?: string | null;
 }): { state: LetterState; why: string | null } {
@@ -64,7 +67,7 @@ export function letterState({
   if (status === "skipped") return { state: "not-sent", why: skipReason ?? null };
   if (answered) return { state: "answered", why: null };
   if (replied) return { state: "replied", why: null };
-  return { state: "sent", why: null };
+  return { state: "sent", why: autoReplied ? "auto-reply" : null };
 }
 
 /**

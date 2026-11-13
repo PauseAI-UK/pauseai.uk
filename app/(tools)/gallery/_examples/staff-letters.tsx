@@ -750,7 +750,7 @@ export const staffLetters: Group = {
       variants: [
         {
           label:
-            "Every status, every skip, one Gmail refused, one replied to, one answered, and one that bounced though answered",
+            "Every status, every skip, one Gmail refused, one with only an automatic reply, one replied to, one answered, and one that bounced though answered",
           render: () => (
             <StaffPage as="div">
               <ul>
@@ -776,6 +776,9 @@ export const staffLetters: Group = {
                 ))}
                 <li>
                   <LetterStatus status="not_sent" sentBy="gmail" answered={false} replied={false} />
+                </li>
+                <li>
+                  <LetterStatus status="sent" answered={false} replied={false} autoReplied />
                 </li>
                 <li>
                   <LetterStatus status="sent" answered={false} replied />

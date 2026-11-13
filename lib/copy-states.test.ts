@@ -31,6 +31,11 @@ describe("letterState", () => {
     });
   });
 
+  it("says one sent that only an automatic reply came back to, but not one replied to as well", () => {
+    expect(letterState({ status: "sent", autoReplied: true, ...plain })).toEqual({ state: "sent", why: "auto-reply" });
+    expect(letterState({ status: "sent", answered: false, replied: true, autoReplied: true }).state).toBe("replied");
+  });
+
   it("says what refused one that failed, where that's known", () => {
     expect(letterState({ status: "not_sent", sentBy: "gmail", ...plain })).toEqual({ state: "error", why: "gmail" });
     expect(letterState({ status: "not_sent", sentBy: null, ...plain })).toEqual({ state: "error", why: null });

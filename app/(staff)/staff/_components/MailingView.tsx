@@ -94,6 +94,7 @@ function recipientColumns(mailing: Mailing): ListColumn<MailingRecipient>[] {
             skipReason={r.skipReason}
             answered={Boolean(mailing.ask && r.answer)}
             replied={Boolean(r.repliedAt)}
+            autoReplied={r.autoReplied}
             sentBy={mailing.imported ? null : "gmail"}
           />
           <Muted>{staffDate(r.repliedAt ?? r.sentAt ?? mailing.updatedAt)}</Muted>

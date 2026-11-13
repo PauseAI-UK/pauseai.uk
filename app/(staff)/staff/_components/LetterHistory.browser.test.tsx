@@ -54,6 +54,17 @@ describe("LetterHistory", () => {
     expect(replied.element().textContent).toContain(`${copy.detail.fields.reason}odd`);
   });
 
+  it("says what Gmail said when it refused a letter, as it said it", async () => {
+    await render(
+      <LetterHistory
+        events={[{ at: new Date("2026-10-14T10:00:00Z"), status: "failed", details: { detail: "Invalid To header" } }]}
+      />,
+    );
+    expect(history().getByRole("listitem").element().textContent).toContain(
+      `${copy.detail.fields.detail}Invalid To header`,
+    );
+  });
+
   it("puts each reply's relay under it, and the copy under the Sent it went with, and leaves the rest where they were", async () => {
     const letter = {
       ...exampleSupporterLetterDetails,

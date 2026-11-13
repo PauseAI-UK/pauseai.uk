@@ -522,6 +522,27 @@ test("A stopped mailing", async ({ page, request, flowDatabase }) => {
   await frame(page, "The one sent");
 });
 
+test("Gmail refuses a letter", async ({ page, request, flowDatabase }) => {
+  story("A mailing has been sent, but Gmail refused one of its letters. Its tag says so, in red.");
+  await syncPoliticians(request, BASE);
+  await logIn(page, flowDatabase);
+  const id = addMailing(flowDatabase, "Edinburgh follow-up", "sent", ["sent", "not_sent"]);
+  const [letter] = runSql(
+    flowDatabase,
+    `INSERT INTO letter_events (letter_id, status, details)
+     SELECT l.id, 'failed', '{"detail": "Invalid To header"}' FROM letters_from_pauseai p JOIN letters l USING (id)
+     WHERE p.mailing_id = ${id} AND l.status = 'not_sent' RETURNING letter_id`,
+  );
+  await page.goto(`${BASE}/staff/mailings/${id}`);
+  await expect(page.getByText(stateWords.tags["error:gmail"]!)).toBeVisible();
+  await frame(page, "The mailing, one letter refused");
+  story("The letter's page says what Gmail said, in its history.");
+
+  await page.goto(`${BASE}/staff/mailings/${id}/letters/${letter}`);
+  await expect(page.getByText("Invalid To header")).toBeVisible();
+  await frame(page, "The refused letter's page");
+});
+
 test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   story(
     "Staff start a mailing to a politician in Scotland. No Gmail is connected, so Sent from says nothing can be sent, with a link to add theirs.",

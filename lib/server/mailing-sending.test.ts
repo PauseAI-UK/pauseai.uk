@@ -176,7 +176,7 @@ describeWithDatabase("sending mailings", () => {
     await startDueMailings();
     const { channel } = recording((m) =>
       m.to.address === "cat@example.org"
-        ? { sent: false, reason: "failed" }
+        ? { sent: false, reason: "failed", detail: "Message rejected: the recipient address is invalid" }
         : m.to.address === "dan@example.org"
           ? { sent: false, reason: "blocked" }
           : SENT(),
@@ -194,7 +194,7 @@ describeWithDatabase("sending mailings", () => {
       { name: "Eve Emptied", status: "skipped", skipReason: "no-email", sentAt: false },
     ]);
     expect(await query("SELECT status, details FROM letter_events WHERE status <> 'skipped'")).toEqual([
-      { status: "failed", details: {} },
+      { status: "failed", details: { detail: "Message rejected: the recipient address is invalid" } },
     ]);
   });
 

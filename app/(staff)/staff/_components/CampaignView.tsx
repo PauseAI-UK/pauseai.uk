@@ -78,9 +78,9 @@ const campaignLetterColumns: ListColumn<LetterSummary>[] = [
           status={l.status}
           answered={Boolean(l.answer)}
           replied={Boolean(l.repliedAt)}
+          autoReplied={Boolean(l.autoRepliedAt)}
           sentBy={l.backend === "airtable" ? null : l.backend}
         />
-        {!l.repliedAt && l.autoRepliedAt && <Muted>{words.status.auto_reply}</Muted>}
         <StaffLink href={`/staff/letters/${l.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
       </span>
     ),

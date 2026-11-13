@@ -199,7 +199,8 @@ describe("CampaignView", () => {
     await says(tags.replied!);
     await says(tags["error:postmark"]!);
     await expect.element(page.getByText(tags.error!, { exact: true })).toBeVisible();
-    await says(staffCopy.letters.status.auto_reply);
+    // One only an automatic reply came back to, which is no reply.
+    await says(tags["sent:auto-reply"]!);
     // The counts in two groups, each under its total.
     await expect.element(page.getByRole("group", { name: `11 ${staffCopy.copyStates.groups.went}` })).toBeVisible();
     await expect

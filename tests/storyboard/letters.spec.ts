@@ -120,7 +120,6 @@ test("Replies to letters", async ({ page, request, flowDatabase }) => {
   story(
     "Jane and Sam write to their MP. The office answers Jane's letter with only an automatic reply, and writes back to Sam.",
   );
-  const copy = staffCopy.letters;
   const jane = madeUpAddress("Jane Smith", 15);
   const sam = madeUpAddress("Sam Smith", 16);
   const janesLetter = await sentLetterId(page, flowDatabase, jane);
@@ -129,15 +128,13 @@ test("Replies to letters", async ({ page, request, flowDatabase }) => {
   await postReply(request, flowDatabase, samsLetter);
 
   story(
-    "Sam's letter now says Replied. Jane's is still sent, as an automatic reply isn't a reply, and under it the list says one came.",
+    "Sam's letter now says Replied. Jane's is still sent, as an automatic reply isn't a reply, and its tag says one came.",
   );
   await page.reload();
   const janes = page.getByRole("row").filter({ hasText: "Jane Smith" });
   const sams = page.getByRole("row").filter({ hasText: "Sam Smith" });
-  await expect(janes).toContainText(staffCopy.copyStates.tags.sent!);
+  await expect(janes).toContainText(staffCopy.copyStates.tags["sent:auto-reply"]!);
   await expect(sams).toContainText(staffCopy.copyStates.tags.replied!);
-  await expect(janes).toContainText(copy.status.auto_reply);
-  await expect(sams).not.toContainText(copy.status.auto_reply);
   await frame(page, "The campaign's letters");
   story("The replied count shows Sam's, as an automatic reply doesn't count.");
   await page
