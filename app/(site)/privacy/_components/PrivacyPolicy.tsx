@@ -62,9 +62,9 @@ export default function PrivacyPolicy() {
         the campaign, and your consent if you ticked the box).
       </p>
 
-      <h2>⁂ Signing up</h2>
+      <h2>Signing up</h2>
       <p>
-        ⁂ When you sign up to a march on this site, or on a paper form when we&apos;re out leafleting, we keep your name
+        When you sign up to a march on this site, or on a paper form when we&apos;re out leafleting, we keep your name
         and email, and your phone number, city and postcode if you gave them. We register you on Luma for the event, and
         keep you updated on our campaigns if you said yes (legal basis: legitimate interest in running the event, and
         your consent).
