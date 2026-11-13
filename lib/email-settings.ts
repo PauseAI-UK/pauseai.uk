@@ -80,14 +80,16 @@ export const choiceKey = (topic: Topic, way: Way): string => `${topic}:${way}`;
  * where any number says
  * yes. Email can't be changed while all its email is held, nor texts or
  * calls while PauseAI Global stops them (numberHolds). Why is the email's
- * answer, or else a number's yes, or else whatever answer there is.
+ * answer, or else a number's yes, or else the email's no; on a number's
+ * page, which has no email, its text's no, or else its call's.
  */
 export function settingsTopics(view: SettingsView): SettingsTopic[] {
   const stopped: Way[] = numberHolds(view);
+  const forNumber = isNumber(view.address);
   return TOPICS.map((topic) => {
     const own = view.answers.filter((a) => a.topic === topic);
     const ways: Way[] = [
-      ...(isNumber(view.address) ? [] : (["email"] as const)),
+      ...(forNumber ? [] : (["email"] as const)),
       ...(view.numbers.length ? (["text", "call"] as const) : []),
     ];
     const boxes = ways
@@ -97,7 +99,9 @@ export function settingsTopics(view: SettingsView): SettingsTopic[] {
         on: own.some((a) => a.way === way && a.send === "yes"),
         locked: way === "email" ? view.hold !== null : stopped.includes(way),
       }));
-    const email = own.find((a) => a.way === "email" && !HOLDS[a.reason]);
+    const email = forNumber
+      ? (own.find((a) => a.way === "text") ?? own[0])
+      : own.find((a) => a.way === "email" && !HOLDS[a.reason]);
     const why = email?.send === "yes" ? email : (own.find((a) => a.send === "yes") ?? email ?? null);
     return { topic, boxes, why };
   });
