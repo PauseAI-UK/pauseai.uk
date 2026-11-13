@@ -345,8 +345,10 @@ async function scheduledRecipients(
   page: number,
 ): Promise<{ rows: MessageRecipient[]; total: number }> {
   const { recipients } = await supporterAudience(written.filter, written);
+  // By name, one with none by the words the page shows for them.
+  const shown = (one: { name: string | null }) => one.name ?? staffCopy.supporters.noName;
   const rows = [...recipients]
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => shown(a).localeCompare(shown(b)))
     .slice((page - 1) * RECIPIENTS_PAGE_SIZE, page * RECIPIENTS_PAGE_SIZE)
     .map((one) => ({
       copyId: one.id,

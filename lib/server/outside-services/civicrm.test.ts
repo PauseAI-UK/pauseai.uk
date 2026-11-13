@@ -145,11 +145,20 @@ describe("checkSuppression", () => {
     ]);
   });
 
-  it("refuses a block it doesn't know, or an answer that leaves an address out", async () => {
+  it("refuses a block it doesn't know, or an answer that names none of the addresses", async () => {
     server.use(http.post(CHECK, () => HttpResponse.json({ values: [{ email: "a@example.org", block: "some" }] })));
     await expect(checkSuppression("key", ["a@example.org"])).rejects.toThrow("a block we don't know: some");
     server.use(http.post(CHECK, () => HttpResponse.json({ values: [] })));
     await expect(checkSuppression("key", ["a@example.org"])).rejects.toThrow("didn't say whether 1 addresses");
+    // With none to ask about, there's nothing to refuse.
+    expect([...(await checkSuppression("key", []))]).toEqual([]);
+  });
+
+  it("leaves out an address the answer does, giving the rest, each as it was asked whatever its case", async () => {
+    server.use(http.post(CHECK, () => HttpResponse.json({ values: [{ email: "a@example.org", block: "bulk" }] })));
+    expect([...(await checkSuppression("key", ["A@Example.org ", "b@example.org"]))]).toEqual([
+      ["A@Example.org ", "bulk"],
+    ]);
   });
 });
 

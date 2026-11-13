@@ -133,6 +133,12 @@ export async function sendEmail(email: Email, stream: PostmarkStream = "transact
  * to it again, as our block is one for every email. Postmark won't for a
  * spam complaint, and says so only in its
  * answer, which is ignored: if it still refuses, the next email learns that.
+ * Throws if Postmark refuses for the transactional stream, or fails on
+ * either. Its refusing for the broadcast stream (any 4xx, as it answers for
+ * a stream the server doesn't have, by its error 1226:
+ * https://postmarkapp.com/developer/api/overview) is let pass: nothing is
+ * suppressed on a stream that isn't there, and an address still suppressed
+ * on one that is, the next broadcast learns of.
  * The dev server, without a real token, doesn't ask.
  */
 export async function unsuppress(address: string): Promise<void> {
@@ -153,7 +159,10 @@ export async function unsuppress(address: string): Promise<void> {
       },
       body: JSON.stringify({ Suppressions: [{ EmailAddress: address }] }),
     });
-    if (!res.ok) throw new PostmarkError(`Postmark refused to unsuppress the address: ${res.status}`);
+    const refusedForBroadcasts = stream === STREAMS.broadcast && res.status < 500;
+    if (!res.ok && !refusedForBroadcasts) {
+      throw new PostmarkError(`Postmark refused to unsuppress the address: ${res.status}`);
+    }
   }
 }
 

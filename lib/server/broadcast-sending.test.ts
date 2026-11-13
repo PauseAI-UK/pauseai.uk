@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db";
+import { staffTime } from "@/lib/staff-time";
 import { addFollower, EVENT_WORDS } from "@/tests/broadcast-fixtures";
 import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
@@ -222,14 +223,21 @@ describeWithDatabase("sending broadcasts", () => {
     const sent = notifications();
     await addFollower("usr-jane", "jane@example.com", "Jane Smith");
     const id = await broadcast();
-    vi.setSystemTime(new Date("2026-11-05T09:18:00Z"));
+    await startDueBroadcasts();
+    vi.setSystemTime(new Date("2026-11-05T10:17:00Z"));
+    await startDueBroadcasts();
+    expect(await stateOf(id)).toEqual({ state: "scheduled", waiting: true, reason: "pull", gaveUp: false });
+    vi.setSystemTime(new Date("2026-11-05T10:18:00Z"));
     await startDueBroadcasts();
     expect(await stateOf(id)).toEqual({ state: "cancelled", waiting: true, reason: "pull", gaveUp: true });
     expect(sent.map((email) => email.Subject)).toEqual([
+      staffCopy.notifications.broadcastWaiting.subject("See you there"),
       staffCopy.notifications.broadcastGaveUp.subject("See you there", "pull"),
     ]);
+    // It says when it stops: three days from when it began to wait.
+    expect(sent[0].TextBody).toContain(staffTime(new Date("2026-11-05T10:18:00Z")));
     // It never started, so who it didn't reach is everyone it would go to.
-    expect(sent[0].TextBody).toContain(
+    expect(sent[1].TextBody).toContain(
       staffCopy.notifications.broadcastGaveUp.body("See you there", "pull", 1, "").trim(),
     );
     expect(await query("SELECT details FROM audit_log WHERE action = 'stop broadcast'")).toEqual([
@@ -361,6 +369,34 @@ describeWithDatabase("sending broadcasts", () => {
     );
   });
 
+  it("goes on waiting, not stopping, when CiviCRM first fails days into sending: its three days run from then", async () => {
+    const sent = notifications();
+    recordGmail();
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith");
+    await addFollower("usr-sam", "sam@example.com", "Sam");
+    await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    // One goes, and hello@ is at its limit for the day.
+    await sentToday(1799);
+    await sendDueBroadcasts(LATER, 0);
+    // Four days on, still sending, CiviCRM doesn't answer.
+    vi.setSystemTime(new Date("2026-11-06T10:18:00Z"));
+    await query("UPDATE email_sends SET at = at - interval '1 day'");
+    server.use(http.post(CHECK, () => new HttpResponse("Down", { status: 503 })));
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    expect(await stateOf(id)).toEqual({ state: "sending", waiting: true, reason: "civicrm", gaveUp: false });
+    expect((await copies()).map((copy) => copy.status).sort()).toEqual(["scheduled", "sent"]);
+    expect(sent.map((email) => email.Subject)).toEqual([
+      staffCopy.notifications.broadcastWaiting.subject("See you there"),
+    ]);
+    expect(sent[0].TextBody).toContain(staffTime(new Date("2026-11-09T10:18:00Z")));
+    // Three days of that stops it.
+    vi.setSystemTime(new Date("2026-11-09T10:18:00Z"));
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    expect(await stateOf(id)).toEqual({ state: "cancelled", waiting: true, reason: "civicrm", gaveUp: true });
+  });
+
   it("blocks an address Postmark says it suppressed, and fails a copy Postmark or Gmail won't take", async () => {
     postmark((email) => email.To.includes("gone@"));
     await addFollower("usr-gone", "gone@example.com", "Gone");
@@ -386,10 +422,59 @@ describeWithDatabase("sending broadcasts", () => {
     const sams = async () =>
       (await copies()).filter((copy) => copy.address === "sam@example.com").map((copy) => copy.status);
     expect(await sams()).toEqual(["scheduled"]);
-    // Gmail refusing them fails them.
+    // Nor does Gmail refusing the account, at a quota of its API, which the next copy would meet too.
+    recordGmail(() => new HttpResponse("Quota", { status: 403 }));
+    expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 0, failed: 0, left: 2 });
+    expect(await sams()).toEqual(["scheduled"]);
+  });
+
+  it("fails a copy Gmail refuses for itself, and sends no more of its broadcast that run, so nothing fails everyone", async () => {
     recordGmail(() => new HttpResponse("Bad", { status: 400 }));
-    expect((await inRun(() => sendDueBroadcasts(LATER, 0))).failed).toBe(2);
-    expect(await sams()).toEqual(["failed"]);
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith");
+    await addFollower("usr-sam", "sam@example.com", "Sam");
+    await addFollower("usr-pat", "pat@example.com", "Pat");
+    await pulled();
+    await broadcast();
+    await startDueBroadcasts();
+    expect(await inRun(() => sendDueBroadcasts(LATER, 0))).toMatchObject({ sent: 0, failed: 1, left: 2 });
+    expect((await copies()).map((copy) => copy.status).sort()).toEqual(["failed", "scheduled", "scheduled"]);
+    // The next run goes on with the rest.
+    recordGmail();
+    expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 2, failed: 0, left: 0 });
+  });
+
+  it("fails alone a copy whose address CiviCRM's answer leaves out, reporting it, and sends the rest", async () => {
+    const gmail = recordGmail();
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith");
+    await addFollower("usr-sam", "sam@example.com", "Sam");
+    server.use(http.post(CHECK, () => HttpResponse.json({ values: [{ email: "jane@example.com", block: "none" }] })));
+    await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    const { run, problems } = await inRun(async (r) => ({
+      run: await sendDueBroadcasts(LATER, 0),
+      problems: r.problems,
+    }));
+    expect(run).toEqual({ sent: 1, skipped: 0, failed: 1, waiting: 0, left: 0 });
+    expect((await copies()).map((copy) => [copy.address, copy.status])).toEqual([
+      ["jane@example.com", "sent"],
+      ["sam@example.com", "failed"],
+    ]);
+    expect(gmail).toHaveLength(1);
+    expect(problems.map((p) => p.what)).toEqual([staffCopy.problems.anywhere.sendFailed("broadcast")]);
+    // It doesn't wait, as CiviCRM answered.
+    expect(await stateOf(id)).toEqual({ state: "sent", waiting: false, reason: null, gaveUp: false });
+  });
+
+  it("sends to someone with no name by their address alone", async () => {
+    const gmail = recordGmail();
+    await addFollower("usr-nobody", "nobody@example.com", "");
+    await pulled();
+    await broadcast();
+    await startDueBroadcasts();
+    expect(await query("SELECT merge_values -> 'name' AS name FROM broadcast_messages")).toEqual([{ name: null }]);
+    await sendDueBroadcasts(LATER, 0);
+    expect(gmail.map((email) => email.headers.get("to"))).toEqual(["nobody@example.com"]);
   });
 
   it("puts back copies whose email can't be made, so they go next run, reporting it, failing none", async () => {
@@ -522,25 +607,55 @@ describeWithDatabase("sending broadcasts", () => {
     expect((await stateOf(id)).state).toBe("sending");
   });
 
-  it("fails, not sends again, a copy a run took and stopped before keeping its channel's answer", async () => {
+  it("fails, not sends again, a copy a run handed to its channel and stopped before keeping the answer; one it only took goes", async () => {
     const gmail = recordGmail();
     await addFollower("usr-jane", "jane@example.com", "Jane Smith");
     await addFollower("usr-sam", "sam@example.com", "Sam");
+    await addFollower("usr-pat", "pat@example.com", "Pat");
     await pulled();
     const id = await broadcast();
     await startDueBroadcasts();
-    // A run took Jane's copy and stopped; another is taking Sam's now.
+    // A run took Jane's copy and Pat's, gave Jane's its link to send it, and stopped; another is taking Sam's now.
     await query(
       `UPDATE broadcast_messages SET status = 'sending',
-         sending_since = now() - CASE address WHEN 'jane@example.com' THEN interval '40 minutes' ELSE interval '1 minute' END`,
+         link_token_hash = CASE address WHEN 'jane@example.com' THEN 'hash' END,
+         sending_since = now() - CASE address WHEN 'sam@example.com' THEN interval '1 minute' ELSE interval '40 minutes' END`,
     );
-    expect(await sendDueBroadcasts(LATER, 0)).toEqual({ sent: 0, skipped: 0, failed: 1, waiting: 0, left: 0 });
-    expect(gmail).toEqual([]);
+    expect(await sendDueBroadcasts(LATER, 0)).toEqual({ sent: 1, skipped: 0, failed: 1, waiting: 0, left: 0 });
+    expect(gmail.map((email) => email.headers.get("to"))).toEqual(['"Pat" <pat@example.com>']);
     expect((await copies()).map((copy) => [copy.address, copy.status])).toEqual([
       ["jane@example.com", "failed"],
+      ["pat@example.com", "sent"],
       ["sam@example.com", "sending"],
     ]);
     expect((await stateOf(id)).state).toBe("sending");
+  });
+
+  it("sends a copy Gmail couldn't take once, though a later run took it and stopped before reaching it", async () => {
+    recordGmail(() => new HttpResponse("Down", { status: 500 }));
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith");
+    await pulled();
+    await broadcast();
+    await startDueBroadcasts();
+    await inRun(() => sendDueBroadcasts(LATER, 0));
+    expect((await copies()).map((copy) => copy.status)).toEqual(["scheduled"]);
+    await query("UPDATE broadcast_messages SET status = 'sending', sending_since = now() - interval '40 minutes'");
+    const gmail = recordGmail();
+    expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 1, failed: 0 });
+    expect(gmail).toHaveLength(1);
+  });
+
+  it("cancels, not sends, a copy a stopped run only took, when its broadcast has been stopped since", async () => {
+    const gmail = recordGmail();
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith");
+    await pulled();
+    const id = await broadcast();
+    await startDueBroadcasts();
+    await query("UPDATE broadcast_messages SET status = 'sending', sending_since = now() - interval '40 minutes'");
+    await query("UPDATE mailings SET state = 'cancelled' WHERE id = $1", [id]);
+    expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 0, failed: 0, left: 0 });
+    expect((await copies()).map((copy) => copy.status)).toEqual(["cancelled"]);
+    expect(gmail).toEqual([]);
   });
 
   it("sends one to the newsletter's and events' yeses both under whichever each said yes to", async () => {
@@ -580,5 +695,20 @@ describeWithDatabase("sending texts", () => {
     await query("UPDATE broadcast_messages SET merge_values = $1", [values[0].merge_values]);
     expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 1, waiting: 0 });
     expect((await stateOf(id)).state).toBe("sent");
+  });
+
+  it("fails one a run took and stopped before finishing with, as nothing says whether it went", async () => {
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    const id = (await createBroadcastDraft("jo@pauseai.uk", { contact: "text:events:yes" }))!;
+    await query(
+      `UPDATE mailings SET body = $2, due_at = $3, state = 'scheduled', sent_from = '+447700900000', from_name = 'PauseAI UK'
+       WHERE id = $1`,
+      [id, JSON.stringify(EVENT_WORDS), DUE],
+    );
+    await startDueBroadcasts();
+    await query("UPDATE broadcast_messages SET status = 'sending', sending_since = now() - interval '40 minutes'");
+    vi.stubEnv("DATA_FIXTURES", "1");
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, failed: 1 });
+    expect(await query("SELECT status FROM broadcast_messages")).toEqual([{ status: "failed" }]);
   });
 });

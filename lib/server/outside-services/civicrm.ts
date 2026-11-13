@@ -192,22 +192,29 @@ export type Block = (typeof BLOCKS)[number];
  * Whether PauseAI anywhere blocks email to each of `emails`, by "Do not
  * email" (`all`) or "No bulk emails" (`bulk`), across every contact with the
  * address, in any chapter or none: up to SUPPRESSION_BATCH a call. Each
- * address as CiviCRM gives it back, trimmed and lowercased; throws if any
- * sent is missing, or its block isn't one we know.
+ * address is given as it was asked, matched to CiviCRM's answer whatever
+ * its case or the space round it. One the answer leaves out isn't in what's
+ * returned, for the caller to deal with by itself, so it can't hold up the
+ * rest. Throws if a block isn't one we know, or the answer names none of
+ * the addresses, which is no answer.
  */
 export async function checkSuppression(key: string, emails: string[]): Promise<Map<string, Block>> {
   const rows = await call(key, "checkSuppression", { email: emails, phone: [] }, "POST");
-  const blocks = new Map<string, Block>();
+  const answered = new Map<string, Block>();
   for (const row of rows) {
     if (typeof row.email !== "string") continue;
     if (!(BLOCKS as readonly unknown[]).includes(row.block)) {
       throw new CivicrmRequestError(`CiviCRM gave an address a block we don't know: ${String(row.block)}`);
     }
-    blocks.set(row.email.trim().toLowerCase(), row.block as Block);
+    answered.set(row.email.trim().toLowerCase(), row.block as Block);
   }
-  const missing = emails.filter((email) => !blocks.has(email));
-  if (missing.length)
-    throw new CivicrmRequestError(`CiviCRM didn't say whether ${missing.length} addresses are blocked`);
+  const blocks = new Map<string, Block>();
+  for (const email of emails) {
+    const block = answered.get(email.trim().toLowerCase());
+    if (block) blocks.set(email, block);
+  }
+  if (emails.length > 0 && blocks.size === 0)
+    throw new CivicrmRequestError(`CiviCRM didn't say whether ${emails.length} addresses are blocked`);
   return blocks;
 }
 

@@ -13,3 +13,4 @@ Before a PR is marked ready, an agent other than its author reviews its code (Cl
 ## Hits
 
 - 2026-11-09: a review of the code found letters can stick in `sending` and `job_presses` missing from the tests' table list, both in merged code
+- 2026-11-13: a review of the broadcasts PR, the day it merged, found six bugs in sending them, among them one where a Gmail quota error would have failed every recipient; fixed in a PR of their own

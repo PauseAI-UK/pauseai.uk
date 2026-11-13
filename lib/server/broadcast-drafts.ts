@@ -348,7 +348,11 @@ export async function scheduleBroadcast(id: number, version: number, by: string)
   });
 }
 
-/** Stops a broadcast: a scheduled one becomes a draft again; one sending sends no more. Says whether it stopped. */
+/**
+ * Stops a broadcast: a scheduled one becomes a draft again; one sending
+ * sends no more. Either waits for CiviCRM no longer, so scheduled again it
+ * has its days to wait afresh (waitStopsAt). Says whether it stopped.
+ */
 export async function stopBroadcast(id: number, by: string): Promise<boolean> {
   return transaction(async (db) => {
     const [broadcast] = await query<{ state: string }>(
@@ -368,6 +372,7 @@ export async function stopBroadcast(id: number, by: string): Promise<boolean> {
     } else {
       return false;
     }
+    await query("UPDATE mailings SET waiting_since = NULL, wait_reason = NULL WHERE id = $1", [id], db);
     await logChange(by, "stop broadcast", { id, was: broadcast.state }, db);
     return true;
   });
@@ -377,7 +382,8 @@ export async function stopBroadcast(id: number, by: string): Promise<boolean> {
  * Sets going again a broadcast that stopped as it hadn't all gone in time
  * (gave_up): its copies that never went are to go again, or, for one that
  * never started, it's scheduled again. From now, so it has its days to go
- * in again (waitStopsAt, sendingStopsAt). Says whether it did.
+ * in again (sendingStopsAt), and waiting for nothing, so its days to wait
+ * too (waitStopsAt). Says whether it did.
  */
 export async function resumeBroadcast(id: number, by: string): Promise<boolean> {
   return transaction(async (db) => {

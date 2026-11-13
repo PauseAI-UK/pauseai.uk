@@ -20,7 +20,8 @@ const copy = staffCopy.broadcastPages;
 /** A supporter a broadcast goes to: where, and what it's filled in with. */
 export type SupporterRecipient = MailingRecipientValues & {
   id: number;
-  name: string;
+  /** None for someone with no name: their email is to their address alone, and the pages say they have none. */
+  name: string | null;
   /** Their email address, or number, that said yes. */
   address: string;
   place: string | null;
@@ -109,7 +110,7 @@ export async function supporterAudience(filter: StoredFilter, terms: BroadcastTe
   const recipients: SupporterRecipient[] = [];
   const { topics } = terms;
   for (const row of supporters) {
-    const name = row.name || staffCopy.supporters.noName;
+    const name = row.name || null;
     // A text goes to a number that said yes by text, never by call; of their yeses, the first address's.
     const yeses = row.permissions.filter(
       (one) => one.way === terms.channel && topics.includes(one.topic) && one.send === "yes",

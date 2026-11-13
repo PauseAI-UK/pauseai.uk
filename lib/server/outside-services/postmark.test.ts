@@ -174,6 +174,34 @@ describe("unsuppress", () => {
     );
   });
 
+  it("goes on when Postmark won't for the broadcast stream, as a server without one has nothing suppressed on it", async () => {
+    const asked: string[] = [];
+    server.use(
+      http.post(UNSUPPRESS, ({ params }) => {
+        asked.push(String(params.stream));
+        return params.stream === "broadcast"
+          ? HttpResponse.json({ ErrorCode: 1226, Message: "No such stream" }, { status: 422 })
+          : HttpResponse.json({ Suppressions: [] });
+      }),
+    );
+    await expect(unsuppress("a@example.org")).resolves.toBeUndefined();
+    expect(asked).toEqual(["outbound", "broadcast"]);
+  });
+
+  it("throws when Postmark won't for the transactional stream, or fails on the broadcast one", async () => {
+    const answers = (status: { outbound: number; broadcast: number }) =>
+      server.use(
+        http.post(
+          UNSUPPRESS,
+          ({ params }) => new HttpResponse(null, { status: status[params.stream as "outbound" | "broadcast"] }),
+        ),
+      );
+    answers({ outbound: 422, broadcast: 200 });
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 422");
+    answers({ outbound: 200, broadcast: 503 });
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 503");
+  });
+
   it("throws when Postmark refuses, or there's no token", async () => {
     server.use(http.post(UNSUPPRESS, () => new HttpResponse(null, { status: 500 })));
     await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 500");

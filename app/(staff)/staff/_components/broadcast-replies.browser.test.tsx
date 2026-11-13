@@ -237,12 +237,14 @@ describe("replies to broadcasts", () => {
 describe("BroadcastWaiting", () => {
   it("says that one is waiting and why, or that it stopped; nothing for one scheduled", async () => {
     const due = new Date("2026-11-07T07:18:00Z");
+    // Days into sending when it began to wait: it gives up that long after, not after its time.
+    const began = new Date("2026-11-11T07:18:00Z");
     const { rerender } = await render(
       <BroadcastWaiting
-        written={{ ...exampleBroadcastEmail, state: "sending", dueAt: due, waitingSince: due, waitReason: "pull" }}
+        written={{ ...exampleBroadcastEmail, state: "sending", dueAt: due, waitingSince: began, waitReason: "pull" }}
       />,
     );
-    await expect.element(page.getByText(copy.waiting("pull", londonDate(waitStopsAt(due))))).toBeVisible();
+    await expect.element(page.getByText(copy.waiting("pull", londonDate(waitStopsAt(began))))).toBeVisible();
     await rerender(
       <BroadcastWaiting
         written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason: "civicrm" }}

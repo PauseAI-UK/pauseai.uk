@@ -282,10 +282,13 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
   it("lists who one scheduled would go to now, by name, a page at a time, each yet to be sent", async () => {
     await addFollower("usr-1", "sam@example.com", "Sam");
     await addFollower("usr-2", "jane@example.com", "Jane Smith");
+    await addFollower("usr-3", "nameless@example.com", "");
     const id = await scheduled(EMAIL_FILTER, { subject: "Soon", body: EVENT_WORDS });
     const data = await broadcastPageData(id, {}, JO);
-    expect(data).toMatchObject({ kind: "written", recipientsTotal: 2, pages: 1, summary: { to: 2 } });
+    expect(data).toMatchObject({ kind: "written", recipientsTotal: 3, pages: 1, summary: { to: 3 } });
     expect(data!.kind === "written" && data!.recipients.map((r) => [r.name, r.status])).toEqual([
+      // One with no name has none here, and comes where the page's words for them would.
+      [null, "scheduled"],
       ["Jane Smith", "scheduled"],
       ["Sam", "scheduled"],
     ]);

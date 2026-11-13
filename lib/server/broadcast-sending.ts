@@ -43,8 +43,8 @@ import { problem } from "./problems";
 // limit and carries on the next day, or Postmark's broadcast stream.
 // Nothing goes unchecked: with no complete CiviCRM pull for a day, or
 // CiviCRM not answering, a broadcast waits, and staff are told once; it
-// goes by itself when it can. One still waiting WAIT_DAYS after its time,
-// or still sending SENDING_DAYS after (lib/broadcast-days.ts), stops, and
+// goes by itself when it can. One that has waited WAIT_DAYS, or is still
+// sending SENDING_DAYS after its time (lib/broadcast-days.ts), stops, and
 // whoever scheduled it is told who it didn't reach. A text goes by the fake backend
 // a fixture build has, and nothing on the live site.
 
@@ -112,8 +112,8 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
       : cancelled.length;
   await query(
     `UPDATE mailings SET state = 'cancelled', gave_up = true, wait_reason = $2,
-       waiting_since = coalesce(waiting_since, now()), updated_at = now() WHERE id = $1`,
-    [broadcast.id, reason],
+       waiting_since = coalesce(waiting_since, $3), updated_at = now() WHERE id = $1`,
+    [broadcast.id, reason, now()],
   );
   await logChange(JOB, "stop broadcast", { id: broadcast.id, was: broadcast.state });
   const email = staffCopy.notifications.broadcastGaveUp;
@@ -128,13 +128,17 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
 
 /**
  * Has a broadcast wait for `reason`, from now if it wasn't, telling staff
- * once; or stops it, if it's been WAIT_DAYS past its time.
+ * once; or stops it, if it has waited WAIT_DAYS. Those run from when it
+ * began to wait, by the site's clock, not from its time: one that's days
+ * into sending when CiviCRM first fails has them all.
  */
 async function wait(broadcast: Due, reason: WaitReason): Promise<void> {
-  if (now() >= waitStopsAt(broadcast.dueAt)) return giveUp(broadcast, reason);
-  await query("UPDATE mailings SET waiting_since = coalesce(waiting_since, now()), wait_reason = $2 WHERE id = $1", [
+  if (broadcast.waitingSince && now() >= waitStopsAt(broadcast.waitingSince)) return giveUp(broadcast, reason);
+  const began = now();
+  await query("UPDATE mailings SET waiting_since = coalesce(waiting_since, $3), wait_reason = $2 WHERE id = $1", [
     broadcast.id,
     reason,
+    began,
   ]);
   if (broadcast.waitingSince) return;
   const email = staffCopy.notifications.broadcastWaiting;
@@ -143,7 +147,7 @@ async function wait(broadcast: Due, reason: WaitReason): Promise<void> {
     email.body(
       broadcast.title,
       reason,
-      staffTime(waitStopsAt(broadcast.dueAt)),
+      staffTime(waitStopsAt(began)),
       staffLink(`/staff/broadcasts/${broadcast.id}`, undefined),
     ),
     null,
@@ -221,7 +225,8 @@ type Copy = {
   address: string;
   rfcMessageId: string;
   topics: Topic[];
-  mergeValues: MailingRecipientValues & { name: string };
+  /** Their name with them, none for someone who has none. */
+  mergeValues: MailingRecipientValues & { name: string | null };
 };
 
 /** Each copy's answer now: whether any of its topics says yes, and if none, why. */
@@ -253,7 +258,7 @@ async function skip(id: number, reason: "blocked" | "unsubscribed" | "no-permiss
   );
 }
 
-/** CiviCRM's block on each address, SUPPRESSION_BATCH a call; throws if it doesn't answer. */
+/** CiviCRM's block on each address it answers for, SUPPRESSION_BATCH a call; throws if it doesn't answer. */
 async function suppressions(addresses: string[]): Promise<Map<string, Block>> {
   const key = civicrmKey();
   const blocks = new Map<string, Block>();
@@ -320,10 +325,16 @@ async function nextCopies(id: number, limit: number): Promise<Copy[]> {
   ).then((copies) => copies.sort((a, b) => a.id - b.id));
 }
 
-/** Puts copies taken and not sent back to go later: those still sending, not one skipped or kept meanwhile. */
+/**
+ * Puts copies taken and not sent back to go later: those still sending, not
+ * one skipped or kept meanwhile. None went, so the link token one was given
+ * to go with is dropped, and it gets another when it does go: a copy that's
+ * `sending` with a token is one handed to its channel (failLeftSending).
+ */
 async function putBack(copies: Copy[]): Promise<void> {
   await query(
-    "UPDATE broadcast_messages SET status = 'scheduled', sending_since = NULL WHERE id = ANY($1::bigint[]) AND status = 'sending'",
+    `UPDATE broadcast_messages SET status = 'scheduled', sending_since = NULL, link_token_hash = NULL
+     WHERE id = ANY($1::bigint[]) AND status = 'sending'`,
     [copies.map((copy) => copy.id)],
   );
 }
@@ -385,14 +396,24 @@ async function fail(id: number): Promise<void> {
 const STOPPED_MINUTES = 30;
 
 /**
- * The copies a run took and stopped before keeping its channel's answer
- * for: failed, as they may have gone, and sending them again could send
- * twice.
+ * Deals with the copies a run took and stopped before finishing with. One
+ * it had handed to its channel, which an email has its link token for
+ * (newToken), may have gone, so it's failed: sending it again could send
+ * twice. An email the run had only taken has no token and never went, so
+ * it's put back to go, or cancelled if its broadcast has stopped since. A
+ * text has no token, so every one left is failed.
  */
 async function failLeftSending(run: BroadcastRun): Promise<void> {
+  const stopped = "c.status = 'sending' AND c.sending_since < now() - make_interval(mins => $1)";
+  await query(
+    `UPDATE broadcast_messages c
+     SET status = CASE WHEN m.state = 'sending' THEN 'scheduled' ELSE 'cancelled' END, sending_since = NULL
+     FROM mailings m
+     WHERE m.id = c.mailing_id AND m.channel = 'email' AND c.link_token_hash IS NULL AND ${stopped}`,
+    [STOPPED_MINUTES],
+  );
   const left = await query<{ id: number }>(
-    `SELECT id::int AS id FROM broadcast_messages
-     WHERE status = 'sending' AND sending_since < now() - make_interval(mins => $1) ORDER BY id`,
+    `SELECT c.id::int AS id FROM broadcast_messages c WHERE ${stopped} ORDER BY c.id`,
     [STOPPED_MINUTES],
   );
   for (const { id } of left) await fail(id);
@@ -432,9 +453,11 @@ async function newToken(copy: Copy): Promise<string> {
 /**
  * Checks copies of an email broadcast just before they go: those whose
  * answer is no now are skipped with why; CiviCRM's check drops anyone
- * blocked, keeping it as an opt-out of ours. Returns those that can go; or
- * undefined when the broadcast waits, as CiviCRM didn't answer, with its
- * copies put back.
+ * blocked, keeping it as an opt-out of ours. One whose address CiviCRM's
+ * answer leaves out can't go unchecked, and asking again would hold up
+ * everyone after it, so it's failed alone, and reported. Returns those
+ * that can go; or undefined when the broadcast waits, as CiviCRM didn't
+ * answer, with its copies put back.
  */
 async function checkCopies(broadcast: Sending, copies: Copy[], run: BroadcastRun): Promise<Copy[] | undefined> {
   const said = await answers(copies);
@@ -461,7 +484,16 @@ async function checkCopies(broadcast: Sending, copies: Copy[], run: BroadcastRun
   const lifting = await liftsOnTheirWay(going.map((copy) => copy.address));
   const checked: Copy[] = [];
   for (const copy of going) {
-    const block = blocks.get(copy.address)!;
+    const block = blocks.get(copy.address);
+    if (!block) {
+      problem(
+        staffCopy.problems.anywhere.sendFailed("broadcast"),
+        new Error(`CiviCRM didn't say whether the address of broadcast copy ${copy.id} is blocked`),
+      );
+      await fail(copy.id);
+      run.failed++;
+      continue;
+    }
     if (block === "none") {
       checked.push(copy);
       continue;
@@ -503,7 +535,9 @@ async function liftsOnTheirWay(addresses: string[]): Promise<Set<string>> {
  * more today, when the rest wait for a later run: a few taken at a time,
  * checked, and each sent or put back. By Gmail, none while the account it's
  * from isn't connected, and none more this run once Gmail answers that it
- * can't send for now (`retry`). Counts the broadcast as waiting when
+ * can't send for now (`retry`), which fails none, or once a copy fails,
+ * which fails that one alone: the rest wait for the next run, as whatever
+ * failed it may fail them too. Counts the broadcast as waiting when
  * CiviCRM didn't answer.
  */
 async function sendEmails(broadcast: Sending, run: BroadcastRun, until: number, gapOverride?: number): Promise<void> {
@@ -537,6 +571,11 @@ async function sendEmails(broadcast: Sending, run: BroadcastRun, until: number, 
           return false;
         }
         await keep(copy.id, result, run, went);
+        if (!result.sent && result.reason === "failed") {
+          // Whatever failed this one may fail the next: the rest wait for the next run, so nothing fails everyone.
+          await putBack(checked.slice(i + 1));
+          return false;
+        }
       }
       return true;
     });
@@ -587,7 +626,8 @@ async function finishBroadcasts(): Promise<void> {
  * between two emails, in place of their channel's own. An email broadcast
  * that hasn't all gone by when it stops (sendingStopsAt) is stopped, unless it's
  * waiting for CiviCRM, when that stops it. First, copies an earlier run
- * took and never finished are failed (failLeftSending).
+ * took and never finished are failed, or put back if they never reached
+ * their channel (failLeftSending).
  */
 export async function sendDueBroadcasts(until: number, gap?: number): Promise<BroadcastRun> {
   const run: BroadcastRun = { sent: 0, skipped: 0, failed: 0, waiting: 0, left: 0 };
