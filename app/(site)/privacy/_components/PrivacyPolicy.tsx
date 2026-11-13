@@ -132,10 +132,9 @@ export default function PrivacyPolicy() {
 
       <h2>How long we keep it</h2>
       <p>
-        ⁂ Donation records: 6 years, as UK law requires. Everything else: until you ask us to erase it, then backups
-        within 90 days. After erasure we keep only that you asked us to stop contacting you or that an email to you
-        bounced, so we never contact you again; that a letter went to your MP; and our backup&apos;s copy of messages
-        about letters to MPs.
+        We keep donation records for 6 years, as UK law requires, and everything else until you ask us to erase it. Our
+        backups delete it within 90 days after that. After erasure we keep only that you asked us to stop contacting
+        you, or that an email to you bounced, so we never contact you again.
       </p>
 
       <h2>Your rights</h2>
