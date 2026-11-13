@@ -153,9 +153,9 @@ export default function PrivacyPolicy() {
       <h2>Cookies</h2>
       <p>
         ⁂ Google Analytics and Google Ads set cookies, which you can turn off with &ldquo;Cookie settings&rdquo; in the
-        footer, and your browser remembers that choice. Stripe&apos;s page sets its own when you donate, as may the join
-        form we show from pauseai.info. While you write to your MP, your browser keeps your draft until you close the
-        tab.
+        footer, and your browser remembers that choice. When you donate, you go to Stripe&apos;s own site, which sets
+        its own cookies there. The join form we show from pauseai.info may set its own cookies too. While you write to
+        your MP, your browser keeps your draft until you close the tab.
       </p>
 
       <p>When we change this policy, we change the date at the top.</p>
