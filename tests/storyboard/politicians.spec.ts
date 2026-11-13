@@ -62,7 +62,9 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   await openPolitician(page, "Polly Placeholder");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Polly Placeholder");
   await expect(page.getByText(copy.importantTarget, { exact: true })).toBeVisible();
-  await expect(page.getByText("Met at the example fair.")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: staffCopy.notes.title }).getByText("Met at the example fair."),
+  ).toBeVisible();
   const asks = page.getByRole("region", { name: copy.statusesTitle });
   // ControlAI's campaign statement and her answer to the conference, as staff recorded them.
   const answer = (ask: RegExp) => asks.getByRole("group", { name: ask }).locator("[class*=answer]");
@@ -590,9 +592,11 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   story("Staff add her Gmail. The page says her earlier emails will be found shortly.");
   await fold.getByLabel(aliases.address).fill(POLLY_PERSONAL);
   await fold.getByRole("button", { name: aliases.add }).click();
-  await expect(fold.getByRole("status")).toHaveText(aliases.added);
+  // The add form's own status, not the one of the form for how we write to her, above it.
+  const added = fold.getByRole("status").filter({ hasText: aliases.added });
+  await expect(added).toBeVisible();
   await expect(fold.getByText(POLLY_PERSONAL)).toBeVisible();
-  await fold.getByRole("status").scrollIntoViewIfNeeded();
+  await added.scrollIntoViewIfNeeded();
   await frame(page, "Her Gmail added", { window: true });
 
   story("The next read of Gmail searches policy@ for her Gmail, and says so. Her email is kept, and shows under her.");

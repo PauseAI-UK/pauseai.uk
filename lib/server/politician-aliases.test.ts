@@ -50,13 +50,16 @@ describeWithDatabase("a politician's aliases", () => {
   it("lists each address and domain by where it came from, leaving out their email where it's repeated", async () => {
     const polly = await politician();
     await query(
-      `INSERT INTO audit_log (actor, action, details) VALUES ('sync', 'edit politician', $1), ('sync', 'edit politician', $2)`,
+      `INSERT INTO audit_log (actor, action, details)
+       VALUES ('sync', 'edit politician', $1), ('sync', 'edit politician', $2), ('sync', 'edit politician', $3)`,
       [
         JSON.stringify({
           id: polly.id,
           changed: { email: ["old.polly@example.com", "polly.placeholder.mp@parliament.uk"] },
         }),
         JSON.stringify({ id: polly.id, changed: { name: ["Polly", "Polly Placeholder"] } }),
+        // An address given where there was none: the none isn't a past address.
+        JSON.stringify({ id: polly.id, changed: { email: [null, "old.polly@example.com"] } }),
       ],
     );
     await query(

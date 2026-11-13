@@ -416,11 +416,11 @@ test("A run stops while sending", async ({ page, request, flowDatabase }) => {
 
 test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
   story(
-    "A mailing has been sent, and two MPs' addresses bounce its letters. Each is blocked, and nobody is emailed yet.",
+    "A mailing has been sent, and two politicians' addresses bounce its letters. Each is blocked, and nobody is emailed yet.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
-  const sent = addMailing(flowDatabase, "Edinburgh follow-up", "sent", ["skipped:left-office", "sent", "sent"]);
+  const sent = addMailing(flowDatabase, "Edinburgh follow-up", "sent", ["sent", "skipped:left-office", "sent"]);
   const letters = runSql(
     flowDatabase,
     `SELECT l.id, n.email, n.name FROM letters_from_pauseai m JOIN letters l USING (id) JOIN notable_people n ON n.id = l.notable_person_id
@@ -454,13 +454,13 @@ test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
   expect(
     newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.alert.subject(name)),
   ).toBeUndefined();
-  story("The dashboard already shows both MPs, waiting for someone to fix their addresses.");
+  story("The dashboard already shows both, waiting for someone to fix their addresses.");
 
   await page.goto(`${BASE}/staff`);
   await expect(page.getByText(staffCopy.home.dashboard.actions.blockedMp(name))).toBeVisible();
   await frame(page, "The dashboard");
   story(
-    "Within the hour, the notification inbox gets the day's report, with each MP, their address and what its server said.",
+    "Within the hour, the notification inbox gets the day's report, with each politician, their address and what its server said.",
   );
 
   await runQueue(request);

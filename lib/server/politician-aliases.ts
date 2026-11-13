@@ -77,9 +77,11 @@ export async function politicianAliases(politician: {
 }): Promise<PoliticianAliases> {
   const [past, listed, domains, book] = await Promise.all([
     query<{ address: string }>(
-      `SELECT DISTINCT lower(jsonb_array_elements_text(details->'changed'->'email')) AS address
-       FROM audit_log WHERE action = ${auditActions("edit politician")} AND (details->>'id')::bigint = $1
-         AND details->'changed' ? 'email' ORDER BY address`,
+      `SELECT DISTINCT address FROM (
+         SELECT lower(jsonb_array_elements_text(details->'changed'->'email')) AS address
+         FROM audit_log WHERE action = ${auditActions("edit politician")} AND (details->>'id')::bigint = $1
+           AND details->'changed' ? 'email'
+       ) emails WHERE address IS NOT NULL ORDER BY address`,
       [politician.id],
     ),
     query<{ address: string; source: AddressSource; addedBy: string | null; at: Date }>(
