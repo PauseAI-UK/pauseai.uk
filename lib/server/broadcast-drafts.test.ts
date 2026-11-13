@@ -431,11 +431,11 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect((await getWrittenBroadcast(id))!.template).toMatchObject({ id: rejected, status: "rejected" });
       expect(await query("SELECT id::int AS id FROM whatsapp_templates")).toEqual([{ id: rejected }]);
       expect(console.error).toHaveBeenCalled();
-      // WhatsApp answering the check before, but not when the words go.
+      // WhatsApp answering the check before, which asks for our number and for its daily limit, but not when the words go.
       let asked = 0;
       server.use(
         http.get(/phone_numbers/, () =>
-          ++asked > 1
+          ++asked > 2
             ? HttpResponse.json({}, { status: 500 })
             : HttpResponse.json({ data: [{ id: "fixture-phone", display_phone_number: "+44 7700 900000" }] }),
         ),

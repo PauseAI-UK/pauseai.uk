@@ -172,6 +172,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await textSender()).toEqual({ byGmail: false, connected: false, remaining: 250, daily: 250 });
     // With no WhatsApp, no limit to say.
     vi.stubEnv("WHATSAPP_TOKEN", "");
+    vi.stubEnv("DATA_FIXTURES", "");
     expect(await textSender()).toEqual({ byGmail: false, connected: false, remaining: null, daily: null });
   });
 
