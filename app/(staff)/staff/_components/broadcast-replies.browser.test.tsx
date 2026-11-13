@@ -265,10 +265,10 @@ describe("replies to broadcasts", () => {
       label: copy.counts.look,
       tone: "blue",
     });
-    // An email can't say it was read: a dash; a text can.
-    expect(counts.find((count) => count.key === "read")!.n).toBeNull();
-    const text = broadcastCounts({ ...exampleBroadcastSummary, channel: "text", states });
-    expect(text.find((count) => count.key === "read")!.n).toBe(0);
+    // Read counts what it has, as every count does: none for an email, which is never said to be read.
+    expect(counts.find((count) => count.key === "read")!.n).toBe(0);
+    const text = broadcastCounts({ ...exampleBroadcastSummary, channel: "text", states: { ...states, read: 4 } });
+    expect(text.find((count) => count.key === "read")!.n).toBe(4);
     expect(counts.map((count) => count.key)).toEqual(text.map((count) => count.key));
     await render(
       <>

@@ -60,15 +60,15 @@ export function BroadcastChannelMark({ channel }: { channel: BroadcastChannel })
  * it happens: what went and arrived, what was read and replied to, what's
  * to check, who opted out because of it; then what didn't go, the expected
  * first. Each is the colour of its recipients'
- * tags. Every broadcast has every count, so they line up from row to row:
- * an email can't say it was read, so a dash.
+ * tags. Only texts are said to be read, so an email's read is none, and a
+ * count of none isn't shown.
  */
 export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
   const n = (state: (typeof COPY_STATES)[number]) => broadcast.states[state];
   return [
     { key: "sent", n: n("sent"), label: copy.counts.sent, tone: "grey" },
     { key: "delivered", n: n("delivered"), label: copy.counts.delivered, tone: "green" },
-    { key: "read", n: broadcast.channel === "text" ? n("read") : null, label: copy.counts.read, tone: "green" },
+    { key: "read", n: n("read"), label: copy.counts.read, tone: "green" },
     { key: "replied", n: n("replied"), label: copy.counts.replied, tone: "green" },
     { key: "look", n: n("look"), label: copy.counts.look, tone: "blue" },
     { key: "opted-out", n: n("opted-out"), label: copy.counts["opted-out"], tone: "red" },

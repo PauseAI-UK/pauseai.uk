@@ -337,7 +337,7 @@ export const staffBroadcasts: Group = {
       file: "app/(staff)/staff/_components/BroadcastCounts.tsx",
       variants: [
         {
-          label: "A text's counts, those that went and those that didn't, each folding under its total",
+          label: "A text's counts, those that went and those that didn't, each under its total",
           render: () => {
             const counts = countsOpening("/staff/broadcasts/5", broadcastCounts(EXAMPLE_TEXT_SUMMARY));
             const gone = ["error", "unreached", "not-sent"];
