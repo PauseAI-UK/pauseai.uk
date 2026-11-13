@@ -83,11 +83,17 @@ describeWithDatabase("dashboard", () => {
        INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at) VALUES
          ('+447700900001', 'newsletter', 'text', 'civicrm', 'r5', '2026-10-20T00:00:00Z');
        -- Sources: this week's supporter was a member before they were a Luma contact; last week's is on Luma; five weeks ago's has no record to say; u3 has an opt-out that counts.
-       INSERT INTO airtable_members (id, email, name, phone, joined_at, created_at, keep_informed, share_permission, source_modified_at) VALUES
-         ('m1', 'u1@example.com', 'U1', '+447700900001', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z', true, false, '2026-10-01T00:00:00Z');
-       INSERT INTO supporter_links (supporter_id, luma_user_id, airtable_member_id, matched_by, matched_value) VALUES
+       INSERT INTO civicrm_contacts (contact_id, email, first_name, phone, joined_date, on_hold, on_hold_since,
+         no_bulk_email, no_bulk_email_since, do_not_email, do_not_email_since, do_not_phone, do_not_phone_since,
+         do_not_sms, do_not_sms_since, newsletter, newsletter_since, volunteer_updates, volunteer_updates_since,
+         first_seen_at) VALUES
+         (1, 'u1@example.com', 'U1', '+447700900001', '2026-10-01', false, '2026-10-21T00:00:00Z', false,
+          '2026-10-21T00:00:00Z', false, '2026-10-21T00:00:00Z', false, '2026-10-21T00:00:00Z', false,
+          '2026-10-21T00:00:00Z', 'not_on_list', '2026-10-21T00:00:00Z', 'not_on_list', '2026-10-21T00:00:00Z',
+          '2026-10-21T00:00:00Z');
+       INSERT INTO supporter_links (supporter_id, luma_user_id, civicrm_contact_id, matched_by, matched_value) VALUES
          ((SELECT id FROM supporters WHERE first_seen_at = '2026-10-20T00:00:00Z'), 'u1', NULL, 'email', 'u1@example.com'),
-         ((SELECT id FROM supporters WHERE first_seen_at = '2026-10-20T00:00:00Z'), NULL, 'm1', 'email', 'u1@example.com'),
+         ((SELECT id FROM supporters WHERE first_seen_at = '2026-10-20T00:00:00Z'), NULL, 1, 'email', 'u1@example.com'),
          ((SELECT id FROM supporters WHERE first_seen_at = '2026-10-10T00:00:00Z'), 'u2', NULL, 'email', 'u2@example.com'),
          ((SELECT id FROM supporters WHERE first_seen_at IS NULL), 'u3', NULL, 'email', 'u3@example.com');`,
     );
@@ -137,7 +143,7 @@ describeWithDatabase("dashboard", () => {
     expect(result.series.eventRegistrations.map((point) => point.count)).toEqual([0, 0, 0, 0, 0, 1, 0, 2]);
     // New supporters once each, under their earliest source: the member who later joined Luma, and last week's on Luma.
     expect(result.supportersBySource.map((point) => point.count)).toEqual([0, 0, 0, 0, 0, 0, 1, 1]);
-    expect(result.supportersBySource.slice(-2).map((point) => point.sources)).toEqual([{ luma: 1 }, { airtable: 1 }]);
+    expect(result.supportersBySource.slice(-2).map((point) => point.sources)).toEqual([{ luma: 1 }, { civicrm: 1 }]);
     expect(result.supportersBySource[7].from).toEqual(result.since);
     expect(result.series.eventRegistrations[0].from).toEqual(new Date("2026-08-26T12:00:00.000Z"));
     expect(result.series.eventRegistrations[7].from).toEqual(result.since);
@@ -163,7 +169,7 @@ describeWithDatabase("dashboard", () => {
     expect(result.counts.lettersSent).toEqual({ current: 2, previous: 1 });
     expect(result.counts.supportersAdded).toEqual({ current: 2, previous: 1 });
     expect(result.supportersBySource.map((point) => point.count)).toEqual([0, 0, 0, 0, 0, 0, 0, 2]);
-    expect(result.supportersBySource[7].sources).toEqual({ luma: 1, airtable: 1 });
+    expect(result.supportersBySource[7].sources).toEqual({ luma: 1, civicrm: 1 });
     expect(result.supportersBySource[7].from).toEqual(result.since);
     expect(result.agreedMp).toBe(real);
   });

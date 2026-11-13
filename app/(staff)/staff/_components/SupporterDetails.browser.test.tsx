@@ -639,14 +639,12 @@ describe("SupporterDetails, a member", () => {
     );
   });
 
-  it("words a join with less to say, from Airtable to the minute, and their leaving", async () => {
-    const airtable = { ...joined, source: "airtable", at: new Date("2026-07-10T09:30:00Z") };
+  it("words a join with less to say, and their leaving to the minute", async () => {
     await render(
       <SupporterDetails
         supporter={{
           ...exampleMemberDetails,
           activity: [
-            { ...airtable, title: "Volunteer" },
             { ...joined, title: "none" },
             { ...joined, title: null },
             { ...joined, kind: "member-left", title: null },
@@ -661,7 +659,6 @@ describe("SupporterDetails, a member", () => {
       .all()
       .map((item) => item.element().textContent);
     expect(lines).toEqual([
-      `10 Jul 2026, 09:30${copy.detail.kinds["member-joined"]} ${copy.detail.intents.Volunteer}`,
       `10 Jul 2026${copy.detail.kinds["member-joined"]} `,
       `10 Jul 2026${copy.detail.kinds["member-joined"]} `,
       `10 Jul 2026, 00:00${copy.detail.kinds["member-left"]} `,

@@ -500,13 +500,10 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ contact: [...unsubscribed, { way: "email", topic: "newsletter", reason: "asked" }] })).toEqual(
       ["Sam", "Pat"],
     );
-    // Leaving "Keep me informed" unticked isn't an unsubscribe.
-    await query(
-      `INSERT INTO airtable_members (id, email, name, joined_at, created_at, keep_informed, share_permission, source_modified_at)
-       VALUES ('recOld', 'old@example.com', 'Old', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', false, true, '2026-09-01T00:00:00Z')`,
-    );
+    // Never opting in to chapter emails in CiviCRM isn't an unsubscribe.
+    await member("old@example.com", "2026-09-01", { newsletter: "not_opted_in" });
     expect(await names({ contact: [...unsubscribed] })).toEqual(["Sam"]);
-    expect(await names({ contact: [{ way: "email", topic: "newsletter", reason: "declined" }] })).toEqual(["Old"]);
+    expect(await names({ contact: [{ way: "email", topic: "newsletter", reason: "not-opted-in" }] })).toEqual(["Old"]);
     // A block is a no for each of the address's topics, and outranks the unsubscribe.
     await query(
       `WITH p AS (INSERT INTO email_problems (address, kind, at, can_reset) VALUES ('sam@example.com', 'hard', '2026-10-13T00:00:00Z', false) RETURNING id)
