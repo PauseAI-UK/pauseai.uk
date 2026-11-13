@@ -1010,7 +1010,7 @@ describeWithDatabase("sending texts", () => {
     const words = staffCopy.notifications.broadcastGaveUp;
     const told = sent.find((email) => email.Subject === words.subject("March day", "limit"))!;
     expect(told.TextBody).toContain(words.body("March day", "limit", 1, "", "text").trim());
-    expect(told.TextBody).not.toContain(words.whyLimit);
+    expect(told.TextBody).not.toContain(words.whyGmailLimit);
   });
 
   it("stops one whose template WhatsApp has paused, telling whoever scheduled it", async () => {
