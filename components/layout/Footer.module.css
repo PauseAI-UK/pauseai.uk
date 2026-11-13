@@ -8,37 +8,56 @@
   color: var(--on-dark);
 }
 
+/* The brand, its icons and email at the left, and the links in groups beside
+   it: under it on a narrow screen. */
 .grid {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(16rem, 1fr) 2fr;
+  gap: var(--space-6) var(--space-7);
+  align-items: start;
 }
 
-.links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
+.brand {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
 }
 
-.links a {
+/* Each group a column, as many side by side as fit, so a narrow screen
+   wraps whole groups rather than links. */
+.groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-5) var(--space-6);
+}
+
+.groups h2 {
+  margin: 0 0 var(--space-3);
+  color: rgb(var(--white-rgb) / 0.5);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.groups ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.groups a {
   color: rgb(var(--white-rgb) / 0.7);
   text-decoration: none;
   font-size: 14px;
 }
 
-.links a:hover {
+.groups a:hover {
   color: var(--accent);
-}
-
-.socialRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  flex: 1 1 320px;
-  min-width: 0;
 }
 
 .email {
@@ -99,18 +118,8 @@
   color: var(--accent);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 800px) {
   .grid {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-  }
-  .socialRow {
-    flex: 0 0 auto;
-    width: 100%;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 14px;
+    grid-template-columns: 1fr;
   }
 }
