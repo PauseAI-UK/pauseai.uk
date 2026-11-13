@@ -13,3 +13,4 @@ Turn on `@typescript-eslint/no-misused-promises` beside `no-floating-promises` i
 ## Hits
 
 - 2026-11-14: `Boolean(textSenderNumber())` after it became async, found only by a failing test, ~15 min
+- 2026-11-13: an async Consent picker passed as `pick: (value: string) => void`, so a Server Action's redirect became an unhandled rejection that production reported as an error; `no-misused-promises` would flag it, ~30 min

@@ -449,7 +449,11 @@ test("A reply to a text", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: copy.replies.send }).click();
   await expect(page.getByText(copy.replies.sentBy(staffEmail()))).toBeVisible();
   await frame(page, "The answer, sent");
-  const answer = newestText(`+${sent.number}`, (text) => "words" in text)!;
+  // Every flow texts the same fixture supporter, and the outbox is shared: this flow's answer is the one with its words.
+  const answer = newestText(
+    `+${sent.number}`,
+    (text) => "words" in text && text.words.startsWith("Yes, there's a lift"),
+  )!;
   await textFrame(page, OUR_CHAT, shownText(flowDatabase, answer), "The answer, as they get it");
 });
 
@@ -460,7 +464,11 @@ test("Stop, replied in WhatsApp", async ({ page, request, flowDatabase }) => {
   const sent = await textSent(request, flowDatabase);
   await postWhatsAppWebhook(request, BASE, messageFrom(sent.number, "wamid.flow-stop", sent.wamid, { text: "STOP" }));
   story("The site answers in WhatsApp, saying what stopped, with a link to their contact preferences.");
-  const answer = newestText(`+${sent.number}`, (text) => "words" in text)!;
+  // The outbox is shared with the other flows: the answer to STOP is the text with the contact preferences' link.
+  const answer = newestText(
+    `+${sent.number}`,
+    (text) => "words" in text && text.words.includes("/contact-preferences/"),
+  )!;
   await textFrame(page, OUR_CHAT, shownText(flowDatabase, answer), "The answer to their STOP");
   story("The link opens their number's texts and calls alone: no email, as the link went only to the number.");
   const link = new URL(shownText(flowDatabase, answer).words.match(/https?:\/\/\S+/)![0]);

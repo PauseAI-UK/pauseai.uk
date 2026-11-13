@@ -1,3 +1,5 @@
+import { notFound } from "next/dist/client/components/not-found";
+import { getRedirectError } from "next/dist/client/components/redirect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import type { reportBrowserError } from "@/lib/browser-errors";
@@ -74,6 +76,28 @@ describe("ErrorReporter", () => {
     on.dispatchEvent(new ErrorEvent("error", { error: thrownFrom("chrome-extension://abcdef/content.js") }));
     on.dispatchEvent(new ErrorEvent("error", { message: "Script error." }));
     on.dispatchEvent(new ErrorEvent("error", { error: "a string" }));
+    expect(report).not.toHaveBeenCalled();
+  });
+
+  it("leaves out Next's redirect and not-found, which aren't errors", async () => {
+    // A Server Action that redirects, run from a click that doesn't wait for
+    // it, leaves Next's redirect as a failed promise no one waits on.
+    const ourStack = (signal: Error) => Object.assign(signal, { stack: ours().stack });
+    let lost: Error;
+    try {
+      notFound();
+    } catch (thrown) {
+      lost = thrown as Error;
+    }
+    const report = reports();
+    const on = new EventTarget();
+    await render(<ErrorReporter report={report} on={on} />);
+    for (const signal of [getRedirectError("/staff/broadcasts/1", "push"), lost!].map(ourStack)) {
+      const failed = Promise.reject(signal);
+      failed.catch(() => {});
+      on.dispatchEvent(new PromiseRejectionEvent("unhandledrejection", { promise: failed, reason: signal }));
+      on.dispatchEvent(new ErrorEvent("error", { error: signal }));
+    }
     expect(report).not.toHaveBeenCalled();
   });
 
