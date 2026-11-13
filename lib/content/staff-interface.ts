@@ -486,7 +486,7 @@ export const staffCopy = {
       consentReason: "Consent reason",
       firstSeen: "First sign-up",
       lastActive: "Last activity",
-      events: "Luma events",
+      events: "Events",
       letters: "Letters to MP",
       // Added by the Event filter: how their registration for the event stands, each event named when there are several.
       registrations: "At the event",
