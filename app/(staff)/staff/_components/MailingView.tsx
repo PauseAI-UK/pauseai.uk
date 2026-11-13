@@ -19,7 +19,9 @@ import MailingFiles from "./MailingFiles";
 import { MailingLetter } from "./MailingLetter";
 import { mailingCounts } from "./MailingsOverview";
 import Band, { BandFact } from "./ui/Band";
-import Counts, { countsFiltering } from "./ui/Counts";
+import { countsFiltering } from "./ui/Counts";
+import { CountGroups } from "./CopyCounts";
+import { wentAndGone } from "./CopyStatus";
 import Grid, { Card } from "./ui/Grid";
 import Progress from "./ui/Progress";
 import Strip from "./ui/Strip";
@@ -92,6 +94,8 @@ function recipientColumns(mailing: Mailing): ListColumn<MailingRecipient>[] {
             skipReason={r.skipReason}
             answered={Boolean(mailing.ask && r.answer)}
             replied={Boolean(r.repliedAt)}
+            autoReplied={r.autoReplied}
+            sentBy={mailing.imported ? null : "gmail"}
           />
           <Muted>{staffDate(r.repliedAt ?? r.sentAt ?? mailing.updatedAt)}</Muted>
           {!r.skipReason && (
@@ -178,12 +182,17 @@ export function MailingStanding({
   return (
     <Grid>
       <Card span={6} as="div">
-        <Progress value={mailing.answered} max={mailing.to} tone="green" label={copy.counts.answered} big>
+        <Progress value={mailing.answered} max={mailing.to} tone="green" label={staffCopy.copyStates.tabs.answered} big>
           {copy.answeredBar(mailing.answered, mailing.to)}
         </Progress>
       </Card>
     </Grid>
   );
+}
+
+/** The quiet line under who a mailing or broadcast is from: their name, if it has one, then what sends it. */
+export function fromDetail(name: string | null | undefined, sentBy: string): string {
+  return [name, staffCopy.broadcastPages.sendFacts.viaDetail(sentBy)].filter(Boolean).join(" · ");
 }
 
 /** When it went, or goes, and who sent it, as the band's first fact says it. */
@@ -260,7 +269,7 @@ export default function MailingView({
   reschedule: FormAction;
 }) {
   const path = `/staff/mailings/${mailing.id}`;
-  const counts = countsFiltering(path, mailingCounts(mailing), mailing.tab, copy.showEveryone);
+  const groups = wentAndGone(countsFiltering(path, mailingCounts(mailing), mailing.tab, copy.showEveryone));
   const state = written?.state;
   // A mailing with a bar under its band says how it stands there, not in a tag.
   const barred = state === "sending" || (state !== "scheduled" && mailing.ask);
@@ -275,21 +284,19 @@ export default function MailingView({
             <Tag>{staffCopy.mailings.imported}</Tag>
           )
         }
-        aside={state !== "scheduled" && <Counts counts={counts} />}
+        aside={state !== "scheduled" && <CountGroups groups={groups} />}
       >
-        <BandFact label={copy.from} detail={written?.fromName}>
+        {/* One written here went by its account's Gmail, said under who it's from; an imported one's way isn't known. */}
+        <BandFact
+          label={copy.from}
+          detail={written && fromDetail(written.fromName, staffCopy.broadcastPages.sendBy.names.gmail)}
+        >
           {written
             ? written.sentFrom
             : (mailing.sentFrom ??
               mailing.fromName ??
               (mailing.oldLetters ? staffCopy.mailings.notRecorded : staffCopy.mailings.imported))}
         </BandFact>
-        {/* One written here went by its account's Gmail; an imported one's way isn't known. */}
-        {written && (
-          <BandFact label={staffCopy.broadcastPages.sendFacts.via}>
-            {staffCopy.broadcastPages.sendBy.names.gmail}
-          </BandFact>
-        )}
         <BandFact label={copy.to} detail={who && staffCopy.campaigns.politicians(mailing.to)}>
           {who ?? staffCopy.campaigns.politicians(mailing.to)}
         </BandFact>
@@ -320,7 +327,9 @@ export default function MailingView({
         )}
         <Card span={3} as="div">
           <div className={styles.recipientsHead}>
-            <h2>{mailing.tab === "all" ? staffCopy.mailings.recipientsTitle : copy.tabs[mailing.tab]}</h2>
+            <h2>
+              {mailing.tab === "all" ? staffCopy.mailings.recipientsTitle : staffCopy.copyStates.tabs[mailing.tab]}
+            </h2>
             {mailing.tab !== "all" && <StaffLink href={path}>{copy.showEveryone}</StaffLink>}
           </div>
           <ListFrame

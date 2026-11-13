@@ -162,7 +162,10 @@ describeWithDatabase("recentLetters", () => {
     const campaign = "regulate-letter-pm";
     await addTestLetter({ politicianId: polly, campaign, postmarkMailbox: "a", status: "sent" });
     await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "b", status: "bounced" });
-    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "c", status: "queued" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "c", status: "sent" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "d", status: "sent" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "e", status: "spam_complaint" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "f", status: "not_sent" });
     await query("UPDATE letters SET replied_at = now() WHERE id = 3");
     await query(
       "UPDATE letters_from_supporters SET draft = 'x', draft_approximate = false, own_words = 0.2 WHERE id = 2",
@@ -172,10 +175,13 @@ describeWithDatabase("recentLetters", () => {
       [polly],
     );
     const ids = async (tab: LetterTab) => (await recentLetters({ tab })).map((l) => l.id);
-    expect(await ids("sent")).toEqual([1]);
-    expect(await ids("failed")).toEqual([2]);
-    expect(await ids("replied")).toEqual([3]);
+    // Each letter in one state: Polly's answered the ask, so hers isn't counted as sent.
     expect(await ids("answered")).toEqual([1]);
+    expect(await ids("unreached")).toEqual([2]);
+    expect(await ids("replied")).toEqual([3]);
+    expect(await ids("sent")).toEqual([4]);
+    expect(await ids("spam")).toEqual([5]);
+    expect(await ids("error")).toEqual([6]);
     expect(await ids("changed")).toEqual([2]);
   });
 

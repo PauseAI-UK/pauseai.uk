@@ -36,22 +36,19 @@ test("Letters by count", async ({ page, request, flowDatabase }) => {
     BOUNCY_ADDRESS,
   );
 
-  story("The campaign's page shows Jane's letter sent and Sam's bounced.");
+  story("The campaign's page shows Jane's letter sent, and that Sam's didn't reach his MP, as it bounced.");
   await page.reload();
   const janes = page.getByRole("row").filter({ hasText: "Jane Smith" });
   const sams = page.getByRole("row").filter({ hasText: "Sam Smith" });
-  await expect(janes).toContainText(staffCopy.letters.status.sent);
-  await expect(sams).toContainText(staffCopy.letters.status.bounced);
+  await expect(janes).toContainText(staffCopy.copyStates.tags.sent!);
+  await expect(sams).toContainText(staffCopy.copyStates.tags["unreached:bounced"]!);
   await frame(page, "The campaign's letters");
-  story("The failed count shows only the letter that bounced, and pressed again, all of them.");
-  await page
-    .getByRole("link", { name: /failed/ })
-    .first()
-    .click();
-  await expect(page).toHaveURL(/tab=failed/);
+  story("The didn't reach count shows only the letter that bounced, and pressed again, all of them.");
+  await page.getByRole("link", { name: `1 ${staffCopy.copyStates.counts.unreached}` }).click();
+  await expect(page).toHaveURL(/tab=unreached/);
   await expect(sams).toBeVisible();
   await expect(janes).toHaveCount(0);
-  await frame(page, "The letters that failed");
+  await frame(page, "The letter that didn't reach");
 
   await page.getByRole("link", { name: staffCopy.campaigns.showAll }).click();
   await expect(janes).toBeVisible();
@@ -120,7 +117,6 @@ test("Replies to letters", async ({ page, request, flowDatabase }) => {
   story(
     "Jane and Sam write to their MP. The office answers Jane's letter with only an automatic reply, and writes back to Sam.",
   );
-  const copy = staffCopy.letters;
   const jane = madeUpAddress("Jane Smith", 15);
   const sam = madeUpAddress("Sam Smith", 16);
   const janesLetter = await sentLetterId(page, flowDatabase, jane);
@@ -129,16 +125,13 @@ test("Replies to letters", async ({ page, request, flowDatabase }) => {
   await postReply(request, flowDatabase, samsLetter);
 
   story(
-    "Both letters are still sent, as a letter's status says only whether it was delivered. The Replied column shows Jane's automatic reply.",
+    "Sam's letter now says Replied. Jane's is still sent, as an automatic reply isn't a reply, and its tag says one came.",
   );
   await page.reload();
   const janes = page.getByRole("row").filter({ hasText: "Jane Smith" });
   const sams = page.getByRole("row").filter({ hasText: "Sam Smith" });
-  // Both still sent: the status says whether it was delivered, not what came back.
-  await expect(janes).toContainText(copy.status.sent);
-  await expect(sams).toContainText(staffCopy.mailingPages.tabs.replied);
-  await expect(janes).toContainText(copy.status.auto_reply);
-  await expect(sams).not.toContainText(copy.status.auto_reply);
+  await expect(janes).toContainText(staffCopy.copyStates.tags["sent:auto-reply"]!);
+  await expect(sams).toContainText(staffCopy.copyStates.tags.replied!);
   await frame(page, "The campaign's letters");
   story("The replied count shows Sam's, as an automatic reply doesn't count.");
   await page
@@ -187,9 +180,9 @@ test("A letter's page", async ({ page, flowDatabase }) => {
   // order that differs between runs: the frame is of the bubble, its note in the middle of the window.
   await note.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
   await frame(page, "Editing the MP's answer", { window: true });
-  story("Saved, a tag beside the letter's status says the MP answered.");
+  story("Saved, the letter's tag says the MP answered.");
   await page.getByRole("button", { name: staffCopy.politician.save }).click();
-  const answered = page.getByText(staffCopy.mailings.columns.answered, { exact: true });
+  const answered = page.getByText(staffCopy.copyStates.tags.answered!, { exact: true });
   await expect(answered).toBeVisible();
   // The edit form closing shortens the page, and where that leaves the window differs between runs:
   // the frame is of the tag, in the middle of the window.

@@ -247,8 +247,6 @@ const summary: BroadcastSummary = {
   sentAt: new Date("2026-10-18T10:00:00Z"),
   sent: 276,
   failed: 6,
-  stopped: 8,
-  replied: 0,
   answered: 0,
   channel: "email",
   sendBy: "gmail",

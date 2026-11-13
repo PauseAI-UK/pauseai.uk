@@ -23,9 +23,8 @@ const base: MailingSummary = {
   sentAt: null,
   sent: 1,
   failed: 0,
-  stopped: 0,
-  replied: 0,
   answered: 0,
+  states: { sent: 1, replied: 0, answered: 0, spam: 0, error: 0, unreached: 0, "not-sent": 0 },
 };
 const one = (id: number, more: Partial<MailingSummary>): MailingSummary => ({ ...base, id, ...more });
 const ids = (mailings: MailingSummary[]) => mailings.map((m) => m.id);

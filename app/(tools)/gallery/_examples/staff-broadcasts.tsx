@@ -3,14 +3,9 @@
 import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
 import { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
 import { ResumeBroadcastExample } from "./staff.client";
-import {
-  BroadcastChannelMark,
-  BroadcastChannelName,
-  BroadcastWaiting,
-  broadcastCounts,
-  CopyStatus,
-} from "@/app/(staff)/staff/_components/BroadcastView";
-import { CountGroups, NeedsAndFine } from "@/app/(staff)/staff/_components/BroadcastCounts";
+import { BroadcastChannelMark, BroadcastWaiting, broadcastCounts } from "@/app/(staff)/staff/_components/BroadcastView";
+import { CopyStatus, wentAndGone } from "@/app/(staff)/staff/_components/CopyStatus";
+import { CountGroups, NeedsAndFine } from "@/app/(staff)/staff/_components/CopyCounts";
 import { countsOpening } from "@/app/(staff)/staff/_components/ui/Counts";
 import {
   exampleBroadcastData,
@@ -304,20 +299,6 @@ export const staffBroadcasts: Group = {
       ],
     },
     {
-      name: "BroadcastChannelName",
-      file: "app/(staff)/staff/_components/BroadcastView.tsx",
-      variants: [
-        {
-          label: "Each channel",
-          render: () => (
-            <>
-              <BroadcastChannelName channel="email" /> <BroadcastChannelName channel="text" />
-            </>
-          ),
-        },
-      ],
-    },
-    {
       name: "BroadcastChannelMark",
       file: "app/(staff)/staff/_components/BroadcastView.tsx",
       variants: [
@@ -334,28 +315,21 @@ export const staffBroadcasts: Group = {
     },
     {
       name: "CountGroups",
-      file: "app/(staff)/staff/_components/BroadcastCounts.tsx",
+      file: "app/(staff)/staff/_components/CopyCounts.tsx",
       variants: [
         {
           label: "A text's counts, those that went and those that didn't, each under its total",
-          render: () => {
-            const counts = countsOpening("/staff/broadcasts/5", broadcastCounts(EXAMPLE_TEXT_SUMMARY));
-            const gone = ["error", "unreached", "not-sent"];
-            return (
-              <CountGroups
-                groups={[
-                  { key: "went", label: "went", counts: counts.filter((one) => !gone.includes(one.key)) },
-                  { key: "gone", label: "didn't go", counts: counts.filter((one) => gone.includes(one.key)) },
-                ]}
-              />
-            );
-          },
+          render: () => (
+            <CountGroups
+              groups={wentAndGone(countsOpening("/staff/broadcasts/5", broadcastCounts(EXAMPLE_TEXT_SUMMARY)))}
+            />
+          ),
         },
       ],
     },
     {
       name: "NeedsAndFine",
-      file: "app/(staff)/staff/_components/BroadcastCounts.tsx",
+      file: "app/(staff)/staff/_components/CopyCounts.tsx",
       variants: [
         {
           label: "What needs a look, then the rest folded behind how many are fine; and one with nothing to look at",
@@ -378,17 +352,19 @@ export const staffBroadcasts: Group = {
     },
     {
       name: "CopyStatus",
-      file: "app/(staff)/staff/_components/BroadcastView.tsx",
+      file: "app/(staff)/staff/_components/CopyStatus.tsx",
       variants: [
         {
           label:
-            "Each state, a colour each: sent, delivered, read and replied; a reply to check; opted out because of it; an error; didn't reach; and not sent",
+            "Each state, a colour each: sent, delivered, read, replied and answered; a reply to check; opted out because of it; marked as spam; an error; didn't reach; and not sent",
           render: () => (
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
               <CopyStatus copyOf={{ state: "sent", why: null }} />
               <CopyStatus copyOf={{ state: "delivered", why: null }} />
               <CopyStatus copyOf={{ state: "read", why: null }} />
               <CopyStatus copyOf={{ state: "replied", why: null }} />
+              <CopyStatus copyOf={{ state: "answered", why: null }} />
+              <CopyStatus copyOf={{ state: "spam", why: null }} />
               <CopyStatus copyOf={{ state: "look", why: null }} />
               <CopyStatus copyOf={{ state: "opted-out", why: "whatsapp-reply" }} />
               <CopyStatus copyOf={{ state: "error", why: "whatsapp" }} />

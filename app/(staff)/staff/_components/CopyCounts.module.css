@@ -6,13 +6,22 @@
   align-items: flex-start;
 }
 
-/* A group: its total over its counts, no frame, so the words above say what they hold. */
+/* A group: its total over its counts, no frame, so the words above say what they hold. Never narrower than its
+   counts, so it goes under the one before rather than squeezing them; never wider than the band. */
 .group {
+  flex: none;
   min-width: 0;
   max-width: 100%;
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+/* A phone: each group the band's width, one under the other, so its counts share all of it (ui/Counts). */
+@media (max-width: 30rem) {
+  .group {
+    flex: 1 1 100%;
+  }
 }
 
 .total {
@@ -25,6 +34,15 @@
   color: var(--text);
   font-family: var(--font-display), "Lato", system-ui, sans-serif;
   font-size: var(--text-lg);
+}
+
+/* What needs a look, a tag each, apart as words are; then how many are fine, and under them the rest unfolded. */
+.needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .link {

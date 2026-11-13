@@ -6,7 +6,7 @@ import { exampleAsks, exampleAsksWithCounts } from "./PoliticianTable.examples";
 import AsksList from "./AsksList";
 
 describe("AsksList", () => {
-  const lozenge = (status: string, n: number) => `${status} ${n}`;
+  const lozenge = (status: string, n: number) => `${n} ${status.toLocaleLowerCase("en-GB")}`;
 
   it("picks out the ask a link led to: its row, by its slug, tinted and current", async () => {
     await render(
@@ -57,12 +57,18 @@ describe("AsksList", () => {
     expect(ways).toContain(`${copy.waysOf.campaign}Sign the open letter`);
     expect(ways).toContain(`${copy.waysOf.mailing}First mailing about the letter`);
     expect(text(exampleAsks[0].title)).not.toContain(copy.waysOf.campaign);
-    // Each leads to its own page; the answers are only counts.
+    // Each leads to its own page, and each answer to its page with that answer chosen.
     await expect
       .element(row(exampleAsks[0].title).getByRole("link", { name: exampleAsks[0].title }))
       .toHaveAttribute("href", `/staff/asks/${exampleAsks[0].slug}`);
-    expect(page.getByRole("link", { name: lozenge(staffCopy.statuses.other, 1) }).query()).toBeNull();
-    expect(page.getByRole("link", { name: lozenge(staffCopy.statuses.noAnswer, 132) }).query()).toBeNull();
+    await expect
+      .element(row(exampleAsks[0].title).getByRole("link", { name: lozenge(staffCopy.statuses.other, 1) }))
+      .toHaveAttribute("href", `/staff/asks/${exampleAsks[0].slug}?answer=other`);
+    await expect
+      .element(page.getByRole("link", { name: lozenge(staffCopy.statuses.noAnswer, 132) }))
+      .toHaveAttribute("href", expect.stringMatching(/\?answer=none$/));
+    // How far it has gone, a sentence after a dot.
+    expect(first).toContain(`186 ${copy.page.writtenTo} · 40 ${copy.page.lettersWord(40)} · 20 ${copy.page.replied}`);
     expect(page.getByRole("status").query()).toBeNull();
   });
 

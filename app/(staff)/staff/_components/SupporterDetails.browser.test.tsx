@@ -101,7 +101,8 @@ describe("SupporterDetails", () => {
         ),
       )
       .toHaveLength(2);
-    await expect.element(page.getByText("1 Mar 2026 – 12 Oct 2026", { exact: true })).toBeVisible();
+    // When we've known her, the year said once, as both days are in it.
+    await expect.element(page.getByText("1 Mar – 12 Oct 2026", { exact: true })).toBeVisible();
     // The history, folded until opened: what, linked, with a status only when it isn't approved.
     const history = page.getByRole("list", { name: copy.detail.activityTitle });
     await expect
@@ -473,10 +474,32 @@ describe("SupporterDetails", () => {
     await expect.element(page.getByText("Douglas", { exact: true })).toBeVisible();
     await expect.element(page.getByText("Somewhere", { exact: true })).toBeVisible();
     expect(document.body.textContent).not.toContain(copy.detail.firstVia(copy.sources.luma));
-    // Nothing counted is a nought, so the box keeps its shape.
-    expect(document.querySelector("[class*=counts]")!.firstElementChild!.textContent).toBe(
-      `0 ${copy.detail.eventsCounted(0)}`,
+  });
+
+  it("says each year when we've known them across two, and one day when it's all they were seen", async () => {
+    const known = (first: string, last: string) => (
+      <SupporterDetails
+        supporter={{
+          ...exampleSupporterDetails,
+          summary: { ...exampleSupporter, firstSeenAt: new Date(first), lastActiveAt: new Date(last) },
+        }}
+      />
     );
+    const { rerender } = await render(known("2025-12-01T12:00:00Z", "2026-01-05T12:00:00Z"));
+    await expect.element(page.getByText("1 Dec 2025 – 5 Jan 2026", { exact: true })).toBeVisible();
+    await rerender(known("2026-02-14T09:00:00Z", "2026-02-14T17:00:00Z"));
+    await expect.element(page.getByText("14 Feb 2026", { exact: true })).toBeVisible();
+  });
+
+  it("counts only what there is any of: events, letters, broadcasts sent and notes, or no box at all", async () => {
+    const copy = staffCopy.supporters;
+    const nothing = { ...exampleSupporterDetails, activity: [], letters: [] };
+    const counts = () =>
+      [...(document.querySelector("[class*=counts]")?.children ?? [])].map((count) => count.textContent);
+    const { rerender } = await render(<SupporterDetails supporter={nothing} />);
+    expect(counts()).toEqual([]);
+    await rerender(<SupporterDetails supporter={nothing} sentAndNoted={{ broadcasts: 3, notes: 1 }} />);
+    expect(counts()).toEqual([`3 ${copy.detail.broadcastsCounted(3)}`, `1 ${copy.detail.notesCounted(1)}`]);
   });
 
   it("says when there are no events or letters", async () => {

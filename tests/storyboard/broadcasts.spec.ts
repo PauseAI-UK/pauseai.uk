@@ -23,6 +23,7 @@ export const section: Section = { name: "Broadcasts to supporters", part: "Staff
 // fake WhatsApp, with what its webhook then brings: delivery, a reply, a stop.
 
 const copy = staffCopy.broadcastPages;
+const stateWords = staffCopy.copyStates;
 const mailingCopy = staffCopy.mailingPages;
 const EMAIL = "contact=email%3Aevents%3Ayes";
 const TEXT = "contact=text%3Aevents%3Ayes";
@@ -468,7 +469,7 @@ test("Stop, replied in WhatsApp", async ({ page, request, flowDatabase }) => {
   await frame(page, "Their contact preferences, from the link");
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
-  await expect(page.getByText(copy.copyStates["opted-out:whatsapp-reply"]!).first()).toBeVisible();
+  await expect(page.getByText(stateWords.tags["opted-out:whatsapp-reply"]!).first()).toBeVisible();
   await frame(page, "Their copy, stopped");
   story("Their page shows the stop of that topic's texts, and that it came from WhatsApp.");
   const [supporter] = runSql(flowDatabase, `SELECT supporter_id FROM broadcast_messages WHERE id = ${sent.copy}`);
@@ -528,8 +529,8 @@ test("An email sent", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
   await frame(page, "The email's page");
   story("A count shows those it counts.");
-  await page.getByRole("link", { name: new RegExp(copy.counts["not-sent"]!) }).click();
-  await expect(page.getByRole("heading", { name: copy.tabs["not-sent"] })).toBeVisible();
+  await page.getByRole("link", { name: new RegExp(stateWords.counts["not-sent"]!) }).click();
+  await expect(page.getByRole("heading", { name: stateWords.tabs["not-sent"] })).toBeVisible();
   await frame(page, "Those not sent");
   story("Each recipient leads to their copy: the email as they got it, when it was sent, delivered and read.");
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
@@ -674,7 +675,7 @@ test("A reply that asks us to stop", async ({ page, request, flowDatabase }) => 
   runSql(flowDatabase, `UPDATE broadcast_messages SET topics = '{events}' WHERE mailing_id = ${sent.id}`);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
-  await expect(page.getByText(copy.copyStates.look!)).toBeVisible();
+  await expect(page.getByText(stateWords.tags.look!)).toBeVisible();
   await frame(page, "A reply to look at");
   story(
     "The thread shows the reply under our email. It asks to stop, so they record it as an opt-out of all bulk email.",

@@ -1,16 +1,18 @@
 import StaffLink from "./ui/StaffLink";
-import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { askHref } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { ReactNode } from "react";
 import type { MailingGroup } from "@/lib/mailing-groups";
 import { mailingWhen } from "@/lib/mailing-groups";
-import type { MailingSummary } from "@/lib/server/mailings";
+import type { MailingBase, MailingSummary } from "@/lib/server/mailings";
 import { named } from "@/lib/email-parsing/addresses";
 import { londonWhenShort, staffDate } from "@/lib/staff-time";
-import Counts, { countsOpening, type Count } from "./ui/Counts";
+import { countsOpening, type Count } from "./ui/Counts";
+import { NeedsAndFine } from "./CopyCounts";
+import { stateCounts } from "./CopyStatus";
 import Empty from "./ui/Empty";
+import IconText from "./ui/IconText";
 import Grid, { spanClass } from "./ui/Grid";
 import Progress from "./ui/Progress";
 import styles from "./MailingsOverview.module.css";
@@ -18,19 +20,13 @@ import styles from "./MailingsOverview.module.css";
 const copy = staffCopy.mailingPages;
 
 /**
- * How a mailing sent went, in the order it happens: what arrived, what
- * didn't, what was never sent as it was stopped, then what came back; the
- * same in the list and on its page. Every mailing has every count, so they
- * line up from row to row; answers are a dash for one with no ask.
+ * How a mailing's letters stand, a count for each state (LETTER_STATES), in
+ * the order it happens: what went, what came back, and what was marked as
+ * spam; then what didn't go, the expected first. The same in the list and on
+ * its page; a count of none isn't shown.
  */
 export function mailingCounts(mailing: MailingSummary): Count[] {
-  return [
-    { key: "sent", n: mailing.sent, label: copy.counts.sent },
-    { key: "failed", n: mailing.failed, label: copy.counts.failed, tone: "red" },
-    { key: "stopped", n: mailing.stopped, label: copy.counts.stopped },
-    { key: "replied", n: mailing.replied, label: copy.counts.replied },
-    { key: "answered", n: mailing.ask ? mailing.answered : null, label: copy.counts.answered, tone: "green" },
-  ];
+  return stateCounts(mailing.states, ["sent", "replied", "answered", "spam", "not-sent", "error", "unreached"]);
 }
 
 /**
@@ -38,7 +34,7 @@ export function mailingCounts(mailing: MailingSummary): Count[] {
  * sent went, what comes before who it's from, who it's from when not as an
  * email's sender is, and what one scheduled says.
  */
-export type OverviewLook<T extends MailingSummary> = {
+export type OverviewLook<T extends MailingBase> = {
   base: string;
   counts: (mailing: T) => Count[];
   untitled: string;
@@ -47,9 +43,22 @@ export type OverviewLook<T extends MailingSummary> = {
   mark?: (mailing: T) => ReactNode;
   lead?: (mailing: T) => ReactNode;
   from?: (mailing: T) => string | undefined;
-  /** How one stands at its row's right, in place of a mailing's state, bar or counts, given where its row leads. */
-  standing?: (mailing: T, href: string) => ReactNode;
+  /** Where one stands, as a sentence after a dot in its colour, where it has more to say than a mailing does. */
+  sentence?: (mailing: T) => Sentence | undefined;
 };
+
+/** Where one stands in a list, as a sentence after a dot in its colour: red for something wrong, blue for going out, grey for normal. */
+export type Sentence = { tone: "red" | "blue" | "grey"; text: string };
+
+/** Where a mailing or a broadcast stands: a draft, scheduled, sending, stopped and how far it got, or sent, and to how many. */
+function mailingSentence(mailing: MailingBase): Sentence {
+  const words = copy.standing;
+  if (mailing.state === "draft") return { tone: "grey", text: words.draft(mailing.to) };
+  if (mailing.state === "scheduled") return { tone: "blue", text: words.scheduled(mailing.to) };
+  if (mailing.state === "sending") return { tone: "blue", text: copy.sendingBar(mailing.sent, mailing.to) };
+  if (mailing.state === "cancelled") return { tone: "grey", text: words.stopped(mailing.sent, mailing.to) };
+  return { tone: "grey", text: words.sent(mailing.to) };
+}
 
 /** How a list of mailings to politicians looks. */
 const MAILINGS_LOOK: OverviewLook<MailingSummary> = {
@@ -64,7 +73,7 @@ const MAILINGS_LOOK: OverviewLook<MailingSummary> = {
  * goes, or one sending started, in blue, as it's going out; the day one
  * went, with its year when that's not `year`.
  */
-function When({ mailing, year }: { mailing: MailingSummary; year: string }) {
+function When({ mailing, year }: { mailing: MailingBase; year: string }) {
   if (mailing.state === "draft") return <Muted>{copy.savedAt(staffDate(mailing.updatedAt))}</Muted>;
   if (mailing.state === "scheduled" || mailing.state === "sending") {
     return <strong className={styles.due}>{londonWhenShort(mailing.dueAt!)}</strong>;
@@ -74,47 +83,39 @@ function When({ mailing, year }: { mailing: MailingSummary; year: string }) {
 }
 
 /**
- * How it stands, at a row's right, only what matters there: a draft's
- * Draft and how many it's to; one scheduled the same; one sending, its
- * bar; one sent, its counts, the box leading to it as its title does.
+ * How it stands, at a row's right: its sentence after its dot; while
+ * sending, the sentence over the bar of how far it's got, no dot, as the bar
+ * says it, the bar leading to it; and once any went, what needs a look, the
+ * rest folded behind how many are fine.
  */
-function Standing<T extends MailingSummary>({
-  mailing,
-  href,
-  look,
-}: {
-  mailing: T;
-  href: string;
-  look: OverviewLook<T>;
-}) {
-  if (look.standing) return look.standing(mailing, href);
-  if (mailing.state === "draft" || mailing.state === "scheduled") {
-    return (
-      <span className={styles.state}>
-        <Tag tone={mailing.state === "scheduled" ? "blue" : undefined}>{copy.states[mailing.state]}</Tag>
-        {copy.toCount(mailing.to)}
-      </span>
-    );
-  }
-  if (mailing.state === "sending") {
-    return (
-      <span className={styles.sending}>
+function Standing<T extends MailingBase>({ mailing, href, look }: { mailing: T; href: string; look: OverviewLook<T> }) {
+  const { tone, text } = look.sentence?.(mailing) ?? mailingSentence(mailing);
+  return (
+    <span className={styles.stands}>
+      {mailing.state === "sending" ? (
         <StaffLink href={href} className={styles.bar}>
           <Progress value={mailing.sent + mailing.failed} max={mailing.to} tone="blue" label={copy.sentLabel}>
-            {copy.sendingBar(mailing.sent, mailing.to)}
+            <span className={styles.sentence}>{text}</span>
           </Progress>
         </StaffLink>
-      </span>
-    );
-  }
-  return <Counts counts={countsOpening(href, look.counts(mailing))} small />;
+      ) : (
+        <span className={styles.sentence}>
+          <i className={styles.dot} data-tone={tone} aria-hidden="true" />
+          {text}
+        </span>
+      )}
+      {mailing.state !== "draft" && mailing.state !== "scheduled" && (
+        <NeedsAndFine counts={countsOpening(href, look.counts(mailing))} />
+      )}
+    </span>
+  );
 }
 
 /**
  * One mailing, a row: when; its title, leading to it, over who it's from,
  * name and address, the staff member who wrote it, and its ask; how it stands.
  */
-function Row<T extends MailingSummary>({
+function Row<T extends MailingBase>({
   mailing,
   year,
   look,
@@ -126,6 +127,11 @@ function Row<T extends MailingSummary>({
   pulse: boolean;
 }) {
   const href = `${look.base}/${mailing.id}`;
+  const title = (
+    <StaffLink href={href} className={styles.title}>
+      {mailing.title || look.untitled}
+    </StaffLink>
+  );
   // Its name, as a mail app shows it, before its address; with no name of its own, the address alone.
   const from =
     look.from?.(mailing) ??
@@ -142,11 +148,9 @@ function Row<T extends MailingSummary>({
         <When mailing={mailing} year={year} />
       </span>
       <span className={styles.what}>
+        {/* A list with a mark has it before each title, as an icon is before words (IconText). */}
         <span className={styles.head}>
-          {look.mark?.(mailing)}
-          <StaffLink href={href} className={styles.title}>
-            {mailing.title || look.untitled}
-          </StaffLink>
+          {look.mark ? <IconText icon={look.mark(mailing)}>{title}</IconText> : title}
         </span>
         <Muted>
           {look.lead?.(mailing)}
@@ -181,7 +185,7 @@ function Row<T extends MailingSummary>({
  * done on the mailing's own page, on purpose. It's as wide as the grid,
  * not the window.
  */
-export default function MailingsOverview<T extends MailingSummary = MailingSummary>({
+export default function MailingsOverview<T extends MailingBase = MailingSummary>({
   groups,
   now,
   look = MAILINGS_LOOK as unknown as OverviewLook<T>,

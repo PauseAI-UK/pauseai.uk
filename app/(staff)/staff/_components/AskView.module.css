@@ -111,8 +111,10 @@
   line-height: 1.35;
 }
 
+/* Their name over their party, a test politician's tag between, a little apart. */
 .person {
   display: grid;
+  gap: var(--space-1);
   justify-items: start;
   min-width: 0;
 }
@@ -135,12 +137,6 @@
 }
 
 /* Its kind's picture beside who asked them to do what. */
-.asked {
-  display: inline-flex;
-  gap: var(--space-1);
-  align-items: center;
-}
-
 /* A phone: the counts under the title, with the room to keep each label on a line. */
 @media (max-width: 30rem) {
   .howCounts {

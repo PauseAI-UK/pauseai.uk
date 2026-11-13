@@ -93,14 +93,6 @@
   gap: var(--space-3);
 }
 
-/* A broadcast's channel in a list, before its title: the icon alone, in the title's colour. */
-.channelMark {
-  display: grid;
-  flex: none;
-  place-items: center;
-  color: var(--ink);
-}
-
 .picture {
   flex: none;
   width: 3rem;

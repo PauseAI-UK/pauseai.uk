@@ -18,3 +18,4 @@ Find what the backup test waits on during the stall, then either run the backup 
 - 2026-11-12: `scripts/fresh-database.test.ts` timed out at 30s in the gate again (39s), the load average at 42, and `npm test` passed alone straight after, ~5 min
 - 2026-11-12: with a new worktree's run of main's storyboard going beside the gate, `scripts/fresh-database.test.ts` timed out twice at 30s, and the backup tests failed three ways: `createdb` ending "could not open file … Interrupted system call" in two files, and `backUp` timing out at 60s, ~10 min
 - 2026-11-12: `worker/rules.test.ts` timed out at 60s in the gate, the load average at 61, and the backup tests passed alone straight after, ~5 min
+- 2026-11-13: with the storyboard rerunning most flows beside it, `lib/server/db.test.ts` timed out at 30s and `worker/rules.test.ts` at 60s in the gate (`npm test` took 4m16s, 1m30s the run before), and both passed alone in seconds, ~5 min

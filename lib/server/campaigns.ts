@@ -1,5 +1,5 @@
 import "server-only";
-import { ARRIVED, DID_NOT_ARRIVE, statusIn } from "@/lib/letter-status";
+import { LETTER_STATES, letterStateSql, type CountedLetterState } from "@/lib/copy-states";
 import { cache } from "react";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { FORM_VERSIONS, formVersionAt } from "@/lib/content/pauseai-info-form";
@@ -16,11 +16,10 @@ export type CampaignSummary = {
   askTitle: string | null;
   askKind: string | null;
   url: string | null;
-  /** All its letters, sent, failed, replied to, and whose politician has answered its ask. */
+  /** All its letters, and how many are in each state (LETTER_STATES). */
   letters: number;
-  sent: number;
-  failed: number;
-  replied: number;
+  states: Record<CountedLetterState, number>;
+  /** The politicians who have answered its ask. */
   answered: number;
   /** How many politicians it wrote to, and supporters wrote. */
   politicians: number;
@@ -29,19 +28,24 @@ export type CampaignSummary = {
   lastAt: Date | null;
 };
 
+/** Whether the politician of a campaign `c`'s letter `l` has answered its ask, in SQL. */
+const CAMPAIGN_ANSWERED =
+  "EXISTS (SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = l.notable_person_id AND st.ask = c.ask)";
+
+/** A campaign `c`'s letter `l`'s state (letterStateSql). */
+export const CAMPAIGN_LETTER_STATE = letterStateSql(CAMPAIGN_ANSWERED);
+
 const SELECT_CAMPAIGNS = `
   SELECT c.slug, c.title, c.ask, a.title AS "askTitle", a.kind AS "askKind", c.url,
     count(l.id)::int AS letters,
-    count(l.id) FILTER (WHERE ${statusIn("l.status", ARRIVED)})::int AS sent,
-    count(l.id) FILTER (WHERE ${statusIn("l.status", DID_NOT_ARRIVE)})::int AS failed,
-    count(l.replied_at)::int AS replied,
-    count(DISTINCT l.notable_person_id) FILTER (WHERE EXISTS (
-      SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = l.notable_person_id AND st.ask = c.ask))::int AS answered,
+    json_build_object(${LETTER_STATES.map((one) => `'${one}', count(l.id) FILTER (WHERE ls.state = '${one}')`).join(", ")}) AS states,
+    count(DISTINCT l.notable_person_id) FILTER (WHERE ${CAMPAIGN_ANSWERED})::int AS answered,
     count(DISTINCT l.notable_person_id)::int AS politicians,
     count(DISTINCT lower(trim(f.email)))::int AS supporters,
     min(l.created_at) AS "firstAt", max(l.created_at) AS "lastAt"
   FROM campaigns c LEFT JOIN asks a ON a.slug = c.ask LEFT JOIN letters_from_supporters s ON s.campaign = c.slug
-    LEFT JOIN letters l ON l.id = s.id LEFT JOIN form_entries f ON f.id = s.entry_id`;
+    LEFT JOIN letters l ON l.id = s.id LEFT JOIN form_entries f ON f.id = s.entry_id
+    LEFT JOIN LATERAL (SELECT ${CAMPAIGN_LETTER_STATE} AS state) ls ON true`;
 
 /** Every campaign, the most recent letter's first, those with none last. */
 export async function listCampaignSummaries(): Promise<CampaignSummary[]> {

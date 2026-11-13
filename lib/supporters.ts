@@ -46,6 +46,10 @@ export type SupporterSummary = {
   /** Events registered for, declined ones left out. */
   events: number;
   letters: number;
+  /** Broadcasts they were sent a copy of, whether it went or not, as their page lists them. */
+  broadcasts: number;
+  /** Notes staff have written on them. */
+  notes: number;
   /** Whether they're a PauseAI member now: a UK chapter contact CiviCRM's last pull returned, or a member in Airtable whom CiviCRM has never returned. */
   member: boolean;
   /** Where they are, as best we know (the supporter_place view); null if we don't. */

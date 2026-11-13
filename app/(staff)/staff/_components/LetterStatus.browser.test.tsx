@@ -4,23 +4,25 @@ import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import LetterStatus from "./LetterStatus";
 
-const answered = staffCopy.mailings.columns.answered;
-const replied = staffCopy.letters.status.replied;
-const tags = () => [...document.querySelectorAll("span > span")].map((tag) => tag.textContent);
+const tags = staffCopy.copyStates.tags;
+const shown = () => [...document.querySelectorAll("span > span")].map((tag) => tag.textContent);
 
 describe("LetterStatus", () => {
-  it("shows Answered beside how the letter went, not in its place, and not Replied as well", async () => {
-    await render(<LetterStatus status="bounced" answered replied />);
-    await expect.element(page.getByText(answered, { exact: true })).toBeVisible();
-    expect(tags()).toEqual([staffCopy.letters.status.bounced, answered]);
-    // Side by side, a little apart.
-    expect(getComputedStyle(page.getByText(answered, { exact: true }).element().parentElement!).columnGap).toBe("4px");
+  it("shows one tag, an answer in place of how it went", async () => {
+    await render(<LetterStatus status="sent" answered replied />);
+    await expect.element(page.getByText(tags.answered!, { exact: true })).toBeVisible();
+    expect(shown()).toEqual([tags.answered]);
   });
 
-  it("shows Replied beside it when not answered, and the skip with why", async () => {
+  it("shows how one that didn't go went, and why, in its colour, though answered", async () => {
+    await render(<LetterStatus status="not_sent" sentBy="gmail" answered replied={false} />);
+    await expect.element(page.getByText(tags["error:gmail"]!, { exact: true })).toBeVisible();
+    expect(shown()).toEqual([tags["error:gmail"]]);
+  });
+
+  it("shows a skip with why", async () => {
     await render(<LetterStatus status="skipped" skipReason="left-office" answered={false} replied />);
-    await expect.element(page.getByText(replied, { exact: true })).toBeVisible();
-    expect(tags()).toEqual([staffCopy.mailingPages.skipReasons["left-office"], replied]);
+    expect(shown()).toEqual([tags["not-sent:left-office"]]);
   });
 
   it("wraps a long tag in a narrow cell that keeps its words on one line, rather than running out of it", async () => {
@@ -29,20 +31,14 @@ describe("LetterStatus", () => {
         <tbody>
           <tr>
             <td style={{ whiteSpace: "nowrap" }}>
-              <LetterStatus status="cancelled" answered={false} replied={false} />
+              <LetterStatus status="skipped" skipReason="no-email" answered={false} replied={false} />
             </td>
           </tr>
         </tbody>
       </table>,
     );
-    const tag = page.getByText(staffCopy.letters.status.cancelled, { exact: true }).element();
+    const tag = page.getByText(tags["not-sent:no-email"]!, { exact: true }).element();
     expect(getComputedStyle(tag).whiteSpace).toBe("normal");
     expect(tag.getBoundingClientRect().width).toBeLessThanOrEqual(120);
-  });
-
-  it("shows the status alone when neither", async () => {
-    await render(<LetterStatus status="sent" answered={false} replied={false} />);
-    await expect.element(page.getByText(staffCopy.letters.status.sent, { exact: true })).toBeVisible();
-    expect(tags()).toEqual([staffCopy.letters.status.sent]);
   });
 });

@@ -1,5 +1,16 @@
 import type { Mailing, MailingSummary } from "@/lib/server/mailings";
 
+/** No letters in any state, for an example to add its own. */
+const NO_STATES: MailingSummary["states"] = {
+  sent: 0,
+  replied: 0,
+  answered: 0,
+  spam: 0,
+  error: 0,
+  unreached: 0,
+  "not-sent": 0,
+};
+
 /** What every mailing has, for the examples to change. */
 const mailing: MailingSummary = {
   id: 1,
@@ -21,15 +32,14 @@ const mailing: MailingSummary = {
   sentAt: null,
   sent: 0,
   failed: 0,
-  stopped: 0,
-  replied: 0,
   answered: 0,
+  states: NO_STATES,
 };
 
 /**
- * A mailing written here, sent from Jo with an ask, a bounce, two replies
- * and three answers; one copied from Airtable, with an ask, one bounce and
- * a reply; one with no ask, not sent yet.
+ * A mailing written here, sent from Jo with an ask, two bounces, two replies
+ * and three answers; one copied from Airtable, with an ask, one answer, one
+ * bounce and one Gmail refused; one with no ask, not sent yet.
  */
 export const exampleMailings: MailingSummary[] = [
   {
@@ -47,8 +57,8 @@ export const exampleMailings: MailingSummary[] = [
     sentAt: new Date("2026-10-20T08:00:00Z"),
     sent: 10,
     failed: 2,
-    replied: 2,
     answered: 3,
+    states: { ...NO_STATES, sent: 5, replied: 2, answered: 3, unreached: 2 },
   },
   { ...mailing, id: 3, title: "Ben Lake October 2026 Debate", imported: false },
   {
@@ -61,10 +71,10 @@ export const exampleMailings: MailingSummary[] = [
     imported: true,
     to: 4,
     sentAt: new Date("2026-10-01T09:00:00Z"),
-    sent: 1,
+    sent: 2,
     failed: 2,
-    replied: 1,
     answered: 1,
+    states: { ...NO_STATES, sent: 1, answered: 1, unreached: 1, error: 1 },
   },
 ];
 
@@ -102,7 +112,7 @@ export const exampleSending: MailingSummary = {
   to: 650,
   sent: 209,
   failed: 5,
-  replied: 4,
+  states: { ...NO_STATES, sent: 205, replied: 4, unreached: 3, error: 2 },
 };
 
 /** The Edinburgh invitation, with its recipients: one personalised who replied twice, one that bounced, one left out. */
@@ -124,6 +134,7 @@ export const exampleMailing: Mailing = {
       status: "sent",
       sentAt: new Date("2026-10-01T09:00:00Z"),
       repliedAt: new Date("2026-10-03T14:00:00Z"),
+      autoReplied: false,
       replies: 2,
       personalised: true,
       answer: "going",
@@ -139,6 +150,7 @@ export const exampleMailing: Mailing = {
       status: "bounced",
       sentAt: new Date("2026-10-01T09:00:00Z"),
       repliedAt: null,
+      autoReplied: false,
       replies: 0,
       personalised: false,
       answer: null,
@@ -154,6 +166,7 @@ export const exampleMailing: Mailing = {
       status: "not_sent",
       sentAt: null,
       repliedAt: null,
+      autoReplied: false,
       replies: 0,
       personalised: false,
       answer: null,

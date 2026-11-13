@@ -183,14 +183,15 @@ export async function sendDueLetters({
             // A mailing's letter goes from its mailing's Gmail.
             ...sentBy({ name: "gmail", account: mailing.sentFrom }),
           }),
-          unsent: async ({ reason, retry }) => {
+          unsent: async ({ reason, retry, detail }) => {
             if (reason === "blocked") return skipped(letter.id, "blocked");
             if (retry) {
               // Gmail can't send for now: it waits for the next run, as the rest from its account do.
               await transition(letter.id, ["sending"], "scheduled");
               return { sent: false, skipped: false, waiting: true };
             }
-            await transition(letter.id, ["sending"], "not_sent", { event: "failed" });
+            // Gmail's own words, for the letter's history.
+            await transition(letter.id, ["sending"], "not_sent", { event: "failed", details: { detail } });
             return { sent: false, skipped: false };
           },
         });

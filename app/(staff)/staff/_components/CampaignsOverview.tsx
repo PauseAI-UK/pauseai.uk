@@ -4,33 +4,23 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { monthsAndYears } from "@/lib/dated-groups";
 import type { CampaignSummary } from "@/lib/server/campaigns";
 import { staffDate } from "@/lib/staff-time";
-import Counts, { countsOpening } from "./ui/Counts";
+import { countsOpening, type Count } from "./ui/Counts";
+import { NeedsAndFine } from "./CopyCounts";
+import { stateCounts } from "./CopyStatus";
 import Empty from "./ui/Empty";
 import Grid, { spanClass } from "./ui/Grid";
 import StaffLink from "./ui/StaffLink";
 import styles from "./MailingsOverview.module.css";
 
 const copy = staffCopy.campaigns;
-const words = staffCopy.mailingPages;
 
-/**
- * How a campaign went, as a mailing's are told: what went, what failed, what
- * came back, and the answers, a dash with no ask, so every row has every
- * count and they line up.
- */
-export function campaignCounts(campaign: CampaignSummary) {
-  return [
-    { key: "sent", n: campaign.sent, label: words.counts.sent },
-    { key: "failed", n: campaign.failed, label: words.counts.failed, tone: "red" as const },
-    { key: "replied", n: campaign.replied, label: words.counts.replied },
-    {
-      key: "answered",
-      n: campaign.ask ? campaign.answered : null,
-      label: words.counts.answered,
-      tone: "green" as const,
-    },
-  ];
+/** How a campaign's letters stand, a count for each state, as a mailing's are told (mailingCounts). */
+export function campaignCounts(campaign: CampaignSummary): Count[] {
+  return stateCounts(campaign.states, ["sent", "replied", "answered", "spam", "error", "unreached"]);
 }
+
+/** How many of a campaign's letters went, whatever came of them. */
+const went = ({ states }: CampaignSummary) => states.sent + states.replied + states.answered + states.spam;
 
 /** A campaign's ask, as its row and its page lead into it: "Ask to sign" and its title. */
 export function CampaignAsk({ campaign }: { campaign: CampaignSummary }) {
@@ -73,7 +63,17 @@ function Row({ campaign, year }: { campaign: CampaignSummary; year: string }) {
         </Muted>
       </span>
       <span className={styles.standing}>
-        <Counts counts={countsOpening(href, campaignCounts(campaign))} small />
+        {/* How many went, after a dot, as a mailing's row says where it stands; then what needs a look. One with no
+            letters says so at its left, so nothing here. */}
+        <span className={styles.stands}>
+          {campaign.letters > 0 && (
+            <span className={styles.sentence}>
+              <i className={styles.dot} aria-hidden="true" />
+              {copy.sent(went(campaign))}
+            </span>
+          )}
+          <NeedsAndFine counts={countsOpening(href, campaignCounts(campaign))} />
+        </span>
       </span>
     </li>
   );

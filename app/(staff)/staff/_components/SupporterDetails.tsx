@@ -186,14 +186,17 @@ function Subject({ item }: { item: SupporterActivity }) {
 
 /**
  * When we've known them: from when we first saw them to their last
- * activity, one day if they're the same; and the source they first came by.
+ * activity, one day if they're the same, the year said once if both are in
+ * it; and the source they first came by.
  */
 function Active({ first, last, source }: { first: Date | null; last: Date | null; source?: SupporterSource }) {
   const days = [...new Set([first, last].filter((at): at is Date => Boolean(at)).map((at) => staffDate(at)))];
   if (days.length === 0) return null;
+  const [from, to] = days;
+  const sameYear = to && from!.slice(-4) === to.slice(-4);
   return (
     <BandFact label={copy.detail.active} detail={source && copy.detail.firstVia(copy.sources[source])}>
-      {days.join(" – ")}
+      {to ? `${sameYear ? from!.slice(0, -5) : from} – ${to}` : from}
     </BandFact>
   );
 }
@@ -210,30 +213,33 @@ function PlaceMap({ latitude, longitude }: { latitude?: number | null; longitude
   );
 }
 
+/** How many of each thing a supporter's page has a table or card of. */
+type Counted = { events: number; letters: number; broadcasts: number; notes: number };
+
 /**
  * The band at the top of their page: where they are on a map; their name;
  * then where they are and what it's from, their MP, when they were active
  * and how they first came, each when known; and how many events they
- * registered for and letters they wrote, linked to the tables, which say
- * what the list's lozenges would.
+ * registered for, letters they wrote, broadcasts they were sent and notes
+ * staff wrote, the tables and cards of which are below, only those there
+ * are any of.
  */
-function SupporterBand({ supporter, events, letters }: { supporter: Details; events: number; letters: number }) {
+function SupporterBand({ supporter, counted }: { supporter: Details; counted: Counted }) {
   const { summary, mp, identities } = supporter;
   const { place } = summary;
   const first = identities[0];
+  const counts = [
+    { key: "events", n: counted.events, label: copy.detail.eventsCounted(counted.events) },
+    { key: "letters", n: counted.letters, label: copy.detail.lettersCounted(counted.letters) },
+    { key: "broadcasts", n: counted.broadcasts, label: copy.detail.broadcastsCounted(counted.broadcasts) },
+    { key: "notes", n: counted.notes, label: copy.detail.notesCounted(counted.notes) },
+  ].filter((count) => count.n > 0);
   return (
     <Band
       className={styles.band}
       title={summary.name ?? copy.noName}
       lead={place && <PlaceMap latitude={place.latitude} longitude={place.longitude} />}
-      aside={
-        <Counts
-          counts={[
-            { key: "events", n: events, label: copy.detail.eventsCounted(events) },
-            { key: "letters", n: letters, label: copy.detail.lettersCounted(letters) },
-          ]}
-        />
-      }
+      aside={counts.length > 0 && <Counts counts={counts} />}
     >
       {place?.name && (
         <BandFact label={copy.detail.place} detail={copy.detail.placeFrom[place.basis](place.given)}>
@@ -334,6 +340,7 @@ export default function SupporterDetails({
   erase,
   messages,
   notes,
+  sentAndNoted = { broadcasts: 0, notes: 0 },
   oneOffs,
   optOut,
 }: {
@@ -343,6 +350,8 @@ export default function SupporterDetails({
   messages?: ReactNode;
   /** The notes card (Notes), under whether we'd contact them. */
   notes?: ReactNode;
+  /** How many broadcasts they were sent and notes staff wrote, for the band to count. */
+  sentAndNoted?: { broadcasts: number; notes: number };
   /** The card of their one-off emails (OneOffTable). */
   oneOffs?: ReactNode;
   /** The form to record an opt-out they told staff of (OptOutForm), under their consents. */
@@ -354,7 +363,10 @@ export default function SupporterDetails({
   const events = eventsByDate(activity);
   return (
     <>
-      <SupporterBand supporter={supporter} events={eventsCounted(activity)} letters={letters.length} />
+      <SupporterBand
+        supporter={supporter}
+        counted={{ events: eventsCounted(activity), letters: letters.length, ...sentAndNoted }}
+      />
 
       <Grid>
         <Column span={4}>

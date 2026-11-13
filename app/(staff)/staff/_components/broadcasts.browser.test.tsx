@@ -16,8 +16,9 @@ import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
 import MessageCopyView from "./MessageCopyView";
 import BroadcastFor, { BroadcastContact, BroadcastWho } from "./BroadcastFor";
 import { ChoosingBroadcastFrame, BroadcastSupporters } from "./BroadcastSupporters";
-import BroadcastView, { broadcastCounts, CopyStatus, copyStatus } from "./BroadcastView";
-import { CountGroups, NeedsAndFine } from "./BroadcastCounts";
+import BroadcastView, { broadcastCounts } from "./BroadcastView";
+import { CountGroups, NeedsAndFine } from "./CopyCounts";
+import { CopyStatus, copyStatus } from "./CopyStatus";
 import { countsOpening } from "./ui/Counts";
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import BroadcastWriter, { templateLine, type BroadcastWriterActions } from "./BroadcastWriter";
@@ -44,6 +45,7 @@ vi.mock("@/lib/leave-page", () => ({ leavePage }));
 afterEach(() => leavePage.mockClear());
 
 const copy = staffCopy.broadcastPages;
+const stateWords = staffCopy.copyStates;
 const WAIT = { timeout: 3000 };
 const nothing = async () => {};
 
@@ -905,9 +907,11 @@ describe("a broadcast's page", () => {
     await expect.element(page.getByRole("heading", { name: exampleBroadcastSent.written.subject })).toBeVisible();
     // Those that went and nothing more is known: Gmail never says what arrived.
     await expect
-      .element(page.getByRole("link", { name: `${exampleBroadcastSent.summary.states.sent} ${copy.counts.sent}` }))
+      .element(
+        page.getByRole("link", { name: `${exampleBroadcastSent.summary.states.sent} ${stateWords.counts.sent}` }),
+      )
       .toHaveAttribute("href", "/staff/broadcasts/5?tab=sent");
-    await expect.element(page.getByRole("link", { name: copy.counts.read })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: stateWords.counts.read })).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.emailTitle)).toBeVisible();
     await expect.element(page.getByText(staffCopy.campaigns.supporters(290), { exact: true })).toBeVisible();
     await expect
@@ -915,8 +919,8 @@ describe("a broadcast's page", () => {
       .toHaveAttribute("href", "/staff/supporters/7");
     await expect.element(page.getByText("Leeds")).toBeVisible();
     await expect.element(page.getByText(copy.erased)).toBeVisible();
-    await expect.element(page.getByText(copy.copyStates["not-sent:blocked"]!)).toBeVisible();
-    await expect.element(page.getByText(copy.copyStates["not-sent:unsubscribed"]!)).toBeVisible();
+    await expect.element(page.getByText(stateWords.tags["not-sent:blocked"]!)).toBeVisible();
+    await expect.element(page.getByText(stateWords.tags["not-sent:unsubscribed"]!)).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.threadLink }).first())
       .toHaveAttribute("href", "/staff/broadcasts/5/21");
@@ -932,10 +936,10 @@ describe("a broadcast's page", () => {
         {...actions}
       />,
     );
-    await expect.element(page.getByRole("heading", { name: copy.tabs.error })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: stateWords.tabs.error })).toBeVisible();
     await expect.element(page.getByRole("link", { name: staffCopy.mailingPages.showEveryone }).first()).toBeVisible();
     await expect
-      .element(page.getByRole("link", { name: new RegExp(copy.counts.error!) }))
+      .element(page.getByRole("link", { name: new RegExp(stateWords.counts.error!) }))
       .toHaveAttribute("href", "/staff/broadcasts/5");
   });
 
@@ -948,7 +952,7 @@ describe("a broadcast's page", () => {
     await render(
       <BroadcastView data={{ ...exampleBroadcastSent, recipients }} who={who} contact={null} {...actions} />,
     );
-    await expect.element(page.getByText(copy.copyStates.scheduled!)).toBeVisible();
+    await expect.element(page.getByText(stateWords.tags.scheduled!)).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.threadLink })).not.toBeInTheDocument();
   });
 
@@ -986,7 +990,7 @@ describe("a broadcast's page", () => {
 
   it("gives a text's read count, and the text as a bubble, its fields as chips", async () => {
     await render(<BroadcastView data={text} who={who} contact={null} {...actions} />);
-    await expect.element(page.getByRole("link", { name: `240 ${copy.counts.read}` })).toBeVisible();
+    await expect.element(page.getByRole("link", { name: `240 ${stateWords.counts.read}` })).toBeVisible();
     await expect.element(page.getByText(copy.textTitle)).toBeVisible();
     const words = page
       .getByText(/the march meets/)
@@ -994,7 +998,7 @@ describe("a broadcast's page", () => {
       .closest("p")!;
     expect(words.querySelector("[class*=field]")!.textContent).toBe(copy.fieldWords.firstName);
     await expect.element(page.getByText(TEMPLATE_FOOTER, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(copy.copyStates["not-sent:unsubscribed"]!)).toBeVisible();
+    await expect.element(page.getByText(stateWords.tags["not-sent:unsubscribed"]!)).toBeVisible();
   });
 
   it("says one scheduled goes as it is, with no counts", async () => {
@@ -1007,7 +1011,7 @@ describe("a broadcast's page", () => {
     await expect
       .element(page.getByText(staffCopy.mailingPages.sends(londonWhen(new Date("2026-11-07T07:18:00Z"), "short"))))
       .toBeVisible();
-    await expect.element(page.getByRole("link", { name: copy.counts.sent })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: stateWords.counts.sent })).not.toBeInTheDocument();
     // Who the filters find now, as sending finds who it goes to.
     await expect.element(page.getByText(copy.recipientsNow)).toBeVisible();
     await expect.element(page.getByRole("table")).toBeVisible();
@@ -1094,31 +1098,31 @@ describe("a broadcast's page", () => {
   });
 
   it("says each copy's state in one tag, in its colour, with why where there's one", async () => {
-    expect(copyStatus({ state: "sent", why: null })).toEqual({ words: copy.copyStates.sent, tone: undefined });
-    expect(copyStatus({ state: "delivered", why: null })).toEqual({ words: copy.copyStates.delivered, tone: "green" });
+    expect(copyStatus({ state: "sent", why: null })).toEqual({ words: stateWords.tags.sent, tone: undefined });
+    expect(copyStatus({ state: "delivered", why: null })).toEqual({ words: stateWords.tags.delivered, tone: "green" });
     expect(copyStatus({ state: "read", why: null }).tone).toBe("green");
-    expect(copyStatus({ state: "look", why: null })).toEqual({ words: copy.copyStates.look, tone: "blue" });
+    expect(copyStatus({ state: "look", why: null })).toEqual({ words: stateWords.tags.look, tone: "blue" });
     expect(copyStatus({ state: "opted-out", why: "whatsapp-reply" })).toEqual({
-      words: copy.copyStates["opted-out:whatsapp-reply"],
+      words: stateWords.tags["opted-out:whatsapp-reply"],
       tone: "red",
     });
     // A why it has no words for: its state alone.
-    expect(copyStatus({ state: "opted-out", why: "staff" }).words).toBe(copy.copyStates["opted-out"]);
+    expect(copyStatus({ state: "opted-out", why: "staff" }).words).toBe(stateWords.tags["opted-out"]);
     expect(copyStatus({ state: "error", why: "limit" })).toEqual({
-      words: copy.copyStates["error:limit"],
+      words: stateWords.tags["error:limit"],
       tone: "red",
     });
     expect(copyStatus({ state: "unreached", why: "bounced" })).toEqual({
-      words: copy.copyStates["unreached:bounced"],
+      words: stateWords.tags["unreached:bounced"],
       tone: "amber",
     });
     // Not sent, as expected: plain.
     expect(copyStatus({ state: "not-sent", why: "no-permission" })).toEqual({
-      words: copy.copyStates["not-sent:no-permission"],
+      words: stateWords.tags["not-sent:no-permission"],
       tone: undefined,
     });
     await render(<CopyStatus copyOf={{ state: "replied", why: null }} />);
-    await expect.element(page.getByText(copy.copyStates.replied!, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(stateWords.tags.replied!, { exact: true })).toBeVisible();
   });
 });
 
@@ -1140,18 +1144,40 @@ describe("BroadcastFor", () => {
     await expect.element(page.getByRole("heading", { name: copy.sections.write })).toBeVisible();
   });
 
-  it("shows one sent", async () => {
+  // The labels of the band's facts.
+  const terms = () => [...document.querySelector("dl")!.querySelectorAll("dt")].map((term) => term.textContent);
+
+  it("shows one sent, the rest of its filters as pills, Only those, beside what they said yes to", async () => {
     await render(<BroadcastFor data={exampleBroadcastSent} actions={actions} />);
     await expect.element(page.getByText(copy.recipientsTitle)).toBeVisible();
+    expect(terms()).toContain(copy.facts.onlyThose);
+  });
+
+  it("shows one sent to everyone who said yes as how many under what they said yes to, with no Only those", async () => {
+    const written = {
+      ...exampleBroadcastSent.written,
+      filter: { list: "supporters" as const, params: { contact: "email:events:yes" } },
+    };
+    await render(<BroadcastFor data={{ ...exampleBroadcastSent, written }} actions={actions} />);
+    const saidYes = page.getByText(copy.facts.saidYes, { exact: true }).element().parentElement!;
+    expect(saidYes.textContent).toContain(staffCopy.campaigns.supporters(exampleBroadcastSent.summary.to));
+    expect(terms()).not.toContain(copy.facts.onlyThose);
+    await expect.element(page.getByText(copy.everyoneWhoSaidYes)).not.toBeInTheDocument();
   });
 
   it("says what they said yes to apart, and the other filters as pills, or everyone who did", async () => {
     const supporters = staffCopy.supporters.subscriptions.consents;
     const view = await render(
       <>
-        <BroadcastContact params={{ contact: "text:events:yes" }} />
-        <BroadcastContact params={{ contact: "email:events:yes" }} />
-        <BroadcastContact params={{ contact: ["email:newsletter:yes", "email:events:yes"] }} />
+        <p>
+          <BroadcastContact params={{ contact: "text:events:yes" }} />
+        </p>
+        <p>
+          <BroadcastContact params={{ contact: "email:events:yes" }} />
+        </p>
+        <p>
+          <BroadcastContact params={{ contact: ["email:newsletter:yes", "email:events:yes"] }} />
+        </p>
         <BroadcastWho params={{ contact: "email:newsletter:yes", near: "LS1" }} choices={exampleSupporterChoices} />
       </>,
     );
@@ -1192,18 +1218,19 @@ describe("BroadcastCounts", () => {
     const { rerender } = await render(
       <CountGroups
         groups={[
-          // With a count that doesn't apply, as an email's read: none to add.
-          { key: "went", label: "went", counts: [...all.slice(0, 6), { key: "none", n: null, label: "none" }] },
+          { key: "went", label: "went", counts: all.slice(0, 6) },
           { key: "gone", label: "didn't go", counts: all.slice(6) },
         ]}
       />,
     );
     await expect.element(page.getByText("34", { exact: true })).toBeVisible();
     await expect
-      .element(page.getByRole("link", { name: `25 ${copy.counts.read}` }))
+      .element(page.getByRole("link", { name: `25 ${stateWords.counts.read}` }))
       .toHaveAttribute("href", "/staff/broadcasts/5?tab=read");
-    await expect.element(page.getByRole("link", { name: new RegExp(copy.counts.delivered) })).not.toBeInTheDocument();
-    await expect.element(page.getByRole("link", { name: `6 ${copy.counts["not-sent"]}` })).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: new RegExp(stateWords.counts.delivered) }))
+      .not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: `6 ${stateWords.counts["not-sent"]}` })).toBeVisible();
     // A group of none: no line.
     await rerender(
       <CountGroups
@@ -1218,18 +1245,18 @@ describe("BroadcastCounts", () => {
   it("shows what needs a look, then unfolds the rest behind how many are fine; all fine when nothing needs one", async () => {
     const { rerender } = await render(<NeedsAndFine counts={counts()} />);
     await expect
-      .element(page.getByRole("link", { name: `1 ${copy.counts.look}` }))
+      .element(page.getByRole("link", { name: `1 ${stateWords.counts.look}` }))
       .toHaveAttribute("href", "/staff/broadcasts/5?tab=look");
-    await expect.element(page.getByRole("link", { name: `2 ${copy.counts.unreached}` })).toBeVisible();
-    const fine = page.getByRole("button", { name: new RegExp(copy.andFine(58)) });
-    await expect.element(page.getByRole("link", { name: `21 ${copy.counts.delivered}` })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: `2 ${stateWords.counts.unreached}` })).toBeVisible();
+    const fine = page.getByRole("button", { name: new RegExp(stateWords.andFine(58)) });
+    await expect.element(page.getByRole("link", { name: `21 ${stateWords.counts.delivered}` })).not.toBeInTheDocument();
     await fine.click();
     await expect.element(fine).toHaveAttribute("aria-expanded", "true");
-    await expect.element(page.getByRole("link", { name: `21 ${copy.counts.delivered}` })).toBeVisible();
+    await expect.element(page.getByRole("link", { name: `21 ${stateWords.counts.delivered}` })).toBeVisible();
     await fine.click();
-    await expect.element(page.getByRole("link", { name: `21 ${copy.counts.delivered}` })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: `21 ${stateWords.counts.delivered}` })).not.toBeInTheDocument();
     await rerender(<NeedsAndFine counts={counts({ look: 0, "opted-out": 0, error: 0, unreached: 0 })} />);
-    await expect.element(page.getByRole("button", { name: new RegExp(copy.allFine(58)) })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: new RegExp(stateWords.allFine(58)) })).toBeVisible();
     // Nothing at all: nothing to show.
     const none = {
       sent: 0,
@@ -1283,13 +1310,13 @@ describe("BroadcastsOverview", () => {
     );
     await expect.element(page.getByText(staffCopy.mailingPages.sendingBar(4, 7)).first()).toBeVisible();
     const need = (words: string) => page.getByRole("link", { name: words, exact: true });
-    await expect.element(need(`2 ${copy.counts.error}`)).toHaveAttribute("href", "/staff/broadcasts/4?tab=error");
+    await expect.element(need(`2 ${stateWords.counts.error}`)).toHaveAttribute("href", "/staff/broadcasts/4?tab=error");
     await expect
-      .element(need(`1 ${copy.counts["opted-out"]}`))
+      .element(need(`1 ${stateWords.counts["opted-out"]}`))
       .toHaveAttribute("href", "/staff/broadcasts/4?tab=opted-out");
-    await expect.element(need(`1 ${copy.counts.look}`)).toHaveAttribute("href", "/staff/broadcasts/4?tab=look");
+    await expect.element(need(`1 ${stateWords.counts.look}`)).toHaveAttribute("href", "/staff/broadcasts/4?tab=look");
     // Nothing to look at, nothing under the bar.
-    expect(page.getByRole("link", { name: new RegExp(copy.counts.error!) }).elements()).toHaveLength(1);
+    expect(page.getByRole("link", { name: new RegExp(stateWords.counts.error!) }).elements()).toHaveLength(1);
   });
 
   it("lists emails and texts, each with its channel, leading to its page", async () => {
@@ -1345,7 +1372,7 @@ describe("BroadcastsOverview", () => {
     await expect.element(page.getByRole("img", { name: copy.channels.email }).first()).toBeVisible();
     // Under the title, its channel's name, then who it's from, a dot between.
     const lineUnder = (title: string) =>
-      page.getByRole("link", { name: title }).element().parentElement!.nextElementSibling!;
+      page.getByRole("link", { name: title }).element().closest("[class*=head]")!.nextElementSibling!;
     expect(lineUnder("Waiting").textContent).toBe(`${copy.channels.text} · PauseAI UK · 07700 900000`);
     // With no one it's from yet, its channel alone.
     expect(lineUnder("Held").textContent).toBe(copy.channels.email);
@@ -1354,11 +1381,11 @@ describe("BroadcastsOverview", () => {
     // And one whose words it rejected, till they're sent again.
     await expect.element(page.getByText(copy.standing.rejected)).toBeVisible();
     expect(page.getByText(copy.standing.rejected).all()).toHaveLength(1);
-    await expect.element(page.getByText(copy.standing.scheduled(290)).first()).toBeVisible();
+    await expect.element(page.getByText(staffCopy.mailingPages.standing.scheduled(290)).first()).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.untitled }).first()).toBeVisible();
     // One sent: how many it went to; then what needs a look, the rest folded behind how many are fine.
-    await expect.element(page.getByText(copy.standing.sent(290))).toBeVisible();
-    await expect.element(page.getByRole("link", { name: `4 ${copy.counts.error}` })).toBeVisible();
+    await expect.element(page.getByText(staffCopy.mailingPages.standing.sent(290))).toBeVisible();
+    await expect.element(page.getByRole("link", { name: `4 ${stateWords.counts.error}` })).toBeVisible();
     await expect.element(page.getByRole("button", { name: / fine/ }).first()).toBeVisible();
   });
 
@@ -1397,8 +1424,8 @@ describe("BroadcastsOverview", () => {
     );
     const words = copy.standing;
     for (const said of [
-      words.sent(5),
-      words.stopped(3, 5),
+      staffCopy.mailingPages.standing.sent(5),
+      staffCopy.mailingPages.standing.stopped(3, 5),
       words.gaveUp.limit!(3, 5),
       words.gaveUp.template!(3, 5),
       words.gaveUp.late!(3, 5),
@@ -1451,7 +1478,7 @@ describe("MessageCopyView", () => {
         <MessageCopyView one={{ ...exampleMessageCopy, status: "cancelled", state: "error", why, sentAt: null }} />,
       );
       expect(strip()).toBe(copy.notReached.never(copy.notReached.why[why]!));
-      expect(copy.copyStates[`error:${why}`]).toBeDefined();
+      expect(stateWords.tags[`error:${why}`]).toBeDefined();
     }
     // Skipped, why, as its lozenge says.
     await rerender(
@@ -1470,7 +1497,7 @@ describe("MessageCopyView", () => {
     await expect
       .element(page.getByRole("heading", { level: 1 }))
       .toHaveTextContent(copy.copyTitle("text", "Jane Example"));
-    await expect.element(page.getByText(copy.copyStates.read!, { exact: true }).first()).toBeVisible();
+    await expect.element(page.getByText(stateWords.tags.read!, { exact: true }).first()).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: "Jane Example", exact: true }))
       .toHaveAttribute("href", "/staff/supporters/7");

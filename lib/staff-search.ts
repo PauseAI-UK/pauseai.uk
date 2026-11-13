@@ -9,6 +9,7 @@ import type { BlocksFilter } from "@/lib/server/email";
 import type { PoliticianFilter } from "@/lib/server/politicians";
 import type { SentEmailsFilter } from "@/lib/server/sent-emails";
 import { campaignBySlug } from "@/lib/email-your-mp";
+import { LETTER_STATES } from "@/lib/copy-states";
 import {
   among,
   anyAndNone,
@@ -44,8 +45,8 @@ import { parseSort, type SortSpec } from "@/lib/staff-sort";
 import { EVENT_GROUPINGS, EVENT_SORTS, type EventFilter } from "@/lib/staff-events-list";
 import { isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters";
 
-/** Which of a campaign's letters its counts can show: those that arrived, failed, were replied to, whose politician answered its ask, or whose text was changed. */
-export const LETTER_TABS = ["sent", "failed", "replied", "answered", "changed"] as const;
+/** Which of a campaign's letters its counts can show: those in one state, or whose text was changed. */
+export const LETTER_TABS = [...LETTER_STATES, "changed"] as const;
 export type LetterTab = (typeof LETTER_TABS)[number];
 
 /** A campaign's letters' URL, as typed. */

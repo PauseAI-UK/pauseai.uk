@@ -66,29 +66,49 @@
   min-width: 0;
 }
 
-/* How it stands, at the column's right edge, so the boxes line up there. */
+/* How it stands, at the column's right edge, so they line up there. */
 .standing {
   display: flex;
   justify-content: flex-end;
   min-width: 0;
 }
 
-.state {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
+/* Its sentence, or bar, over what needs a look. */
+.stands {
+  display: grid;
+  flex: 1;
+  gap: var(--space-1);
+  justify-items: end;
   font-size: var(--text-sm);
 }
 
-/* One sending: its bar, the column's width. */
-.sending {
-  display: grid;
-  flex: 1;
+/* A dot in its colour, then the sentence: in the text's colour, over a bar as well. */
+.sentence {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  color: var(--text);
 }
 
-/* The sending bar, the width of the column, leading to the mailing. */
+.dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.dot[data-tone="red"] {
+  background: var(--status-red);
+}
+
+.dot[data-tone="blue"] {
+  background: var(--status-blue);
+}
+
+/* The sending bar, the width of the column, leading to it: its sentence above it, on the left. */
 .bar {
-  flex: 1;
+  justify-self: stretch;
   color: inherit;
   text-decoration: none;
 }
@@ -108,5 +128,9 @@
   .standing {
     order: 2;
     justify-content: flex-start;
+  }
+
+  .stands {
+    justify-items: start;
   }
 }

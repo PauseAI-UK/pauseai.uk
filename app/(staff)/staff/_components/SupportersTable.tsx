@@ -235,6 +235,22 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
       text: (s) => s.letters,
       cell: (s) => s.letters,
     },
+    {
+      key: "broadcasts",
+      label: copy.columns.broadcasts,
+      heading: heading("broadcasts", copy.columns.broadcasts),
+      short: true,
+      text: (s) => s.broadcasts,
+      cell: (s) => s.broadcasts,
+    },
+    {
+      key: "notes",
+      label: copy.columns.notes,
+      heading: heading("notes", copy.columns.notes),
+      short: true,
+      text: (s) => s.notes,
+      cell: (s) => s.notes,
+    },
     wrote && {
       key: "wrote",
       label: copy.columns.wrote,

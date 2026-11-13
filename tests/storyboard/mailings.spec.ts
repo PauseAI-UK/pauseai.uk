@@ -22,6 +22,7 @@ export const section: Section = { name: "Mailings", part: "Staff pages", order: 
 // bouncing.
 
 const copy = staffCopy.mailingPages;
+const stateWords = staffCopy.copyStates;
 
 /** This flow's own staff address: flows run alongside each other, and share the outbox. */
 const staffEmail = () => `mail-${test.info().testId.replace(/\W/g, "").slice(-8)}@pauseai.uk`;
@@ -357,25 +358,27 @@ test("Sending and sent", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/mailings/${sending}`);
   await expect(page.getByText(copy.sendingBar(1, 3))).toBeVisible();
   await frame(page, "A mailing sending");
-  story("Another mailing has been sent. Of its four letters, two failed: one bounced, and one was skipped.");
+  story(
+    "Another mailing has been sent. Of its four letters, two went, one bounced, and one wasn't sent, as the address was blocked. Its counts say so, in two groups.",
+  );
 
   const sent = addMailing(flowDatabase, "Edinburgh follow-up", "sent", ["sent", "bounced", "skipped", "sent"]);
   await page.goto(`${BASE}/staff/mailings/${sent}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Edinburgh follow-up");
-  await expect(page.getByRole("link", { name: `2 ${copy.counts.failed}` })).toBeVisible();
+  await expect(page.getByRole("link", { name: `1 ${stateWords.counts.unreached}` })).toBeVisible();
   await frame(page, "The sent mailing");
-  story("The failed count shows only those two, and pressed again goes back to everyone.");
+  story("The didn't reach count shows only the one that bounced, and pressed again goes back to everyone.");
 
-  await page.getByRole("link", { name: `2 ${copy.counts.failed}` }).click();
-  await expect(page.getByRole("row")).toHaveCount(3);
-  await frame(page, "The two that failed");
+  await page.getByRole("link", { name: `1 ${stateWords.counts.unreached}` }).click();
+  await expect(page.getByRole("row")).toHaveCount(2);
+  await frame(page, "The one that bounced");
   story("Each recipient links to their letter's page, under the mailing's.");
 
   // Each recipient leads to their letter's own page, under the mailing, back to which it goes.
   await page.getByRole("table").getByRole("link", { name: copy.theLetter }).click();
   await expect(page).toHaveURL(new RegExp(`/staff/mailings/${sent}/letters/\\d+$`));
   await expect(page.getByRole("navigation").getByRole("link", { name: "Edinburgh follow-up" })).toBeVisible();
-  await frame(page, "A failed letter's page");
+  await frame(page, "The bounced letter's page");
 });
 
 test("A run stops while sending", async ({ page, request, flowDatabase }) => {
@@ -402,7 +405,7 @@ test("A run stops while sending", async ({ page, request, flowDatabase }) => {
   });
   expect(await run.json()).toMatchObject({ started: [], sent: 0, left: 0 });
   await page.reload();
-  await expect(page.getByText(staffCopy.letters.status.uncertain)).toBeVisible();
+  await expect(page.getByText(stateWords.tags["error:unfinished"]!)).toBeVisible();
   await frame(page, "The mailing sent, one letter uncertain");
   story("The letter's page says so, and its history says when and to whom it may have gone, for someone to check.");
 
@@ -471,7 +474,7 @@ test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
 
 test("A stopped mailing", async ({ page, request, flowDatabase }) => {
   story(
-    "A mailing was stopped part-way through. On the mailings page, its counts show one sent, four failed and one stopped.",
+    "A mailing was stopped part-way through. On the mailings page, its row shows the one letter Gmail refused, and folds the rest away as fine.",
   );
   await syncPoliticians(request, BASE);
   await logIn(page, flowDatabase);
@@ -485,34 +488,59 @@ test("A stopped mailing", async ({ page, request, flowDatabase }) => {
   );
   await page.goto(`${BASE}/staff/mailings`);
   const row = page.getByRole("listitem").filter({ hasText: "Briefing on the bill" });
-  await expect(row).toContainText(copy.counts.stopped);
+  await expect(row.getByRole("link", { name: `1 ${stateWords.counts.error}` })).toBeVisible();
+  await expect(row).toContainText(stateWords.andFine(5));
   await row.scrollIntoViewIfNeeded();
   await frame(page, "The stopped mailing, on the mailings page", { window: true });
   story(
-    "On its page, the failed count shows why each of the four failed: one politician left office, one has no address, one address is blocked, and Gmail refused one.",
+    "On its page, the not sent count shows the four that weren't sent, each saying why: one politician left office, one has no address, one address is blocked, and one was never sent as the mailing was stopped first.",
   );
 
   await row.getByRole("link", { name: "Briefing on the bill", exact: true }).click();
-  await page.getByRole("link", { name: `4 ${copy.counts.failed}` }).click();
+  await page.getByRole("link", { name: `4 ${stateWords.counts["not-sent"]}` }).click();
   await expect(page.getByRole("row")).toHaveCount(5);
-  await frame(page, "The four that failed");
-  story("The stopped count shows the one never sent, as the mailing was stopped first.");
+  await frame(page, "The four not sent");
+  story("The error count shows the one Gmail refused.");
 
-  await page.getByRole("link", { name: `1 ${copy.counts.stopped}` }).click();
+  await page.getByRole("link", { name: `1 ${stateWords.counts.error}` }).click();
   await expect(page.getByRole("row")).toHaveCount(2);
-  await frame(page, "The one never sent");
+  await frame(page, "The one Gmail refused");
   story("Pressed again, the count is no longer chosen, and everyone shows.");
 
   // Pressed again, the count shows everyone.
-  await page.getByRole("link", { name: `1 ${copy.counts.stopped}` }).click();
+  await page.getByRole("link", { name: `1 ${stateWords.counts.error}` }).click();
   await expect(page).toHaveURL(/\/staff\/mailings\/\d+$/);
   await expect(page.getByRole("row")).toHaveCount(7);
   await frame(page, "Everyone");
-  story("The sent count shows the one letter that went.");
+  story("The count of those that went shows the one letter that went.");
 
-  await page.getByRole("link", { name: `1 ${copy.counts.sent}` }).click();
+  await page
+    .getByRole("group", { name: `1 ${stateWords.groups.went}` })
+    .getByRole("link")
+    .click();
   await expect(page.getByRole("row")).toHaveCount(2);
   await frame(page, "The one sent");
+});
+
+test("Gmail refuses a letter", async ({ page, request, flowDatabase }) => {
+  story("A mailing has been sent, but Gmail refused one of its letters. Its tag says so, in red.");
+  await syncPoliticians(request, BASE);
+  await logIn(page, flowDatabase);
+  const id = addMailing(flowDatabase, "Edinburgh follow-up", "sent", ["sent", "not_sent"]);
+  const [letter] = runSql(
+    flowDatabase,
+    `INSERT INTO letter_events (letter_id, status, details)
+     SELECT l.id, 'failed', '{"detail": "Invalid To header"}' FROM letters_from_pauseai p JOIN letters l USING (id)
+     WHERE p.mailing_id = ${id} AND l.status = 'not_sent' RETURNING letter_id`,
+  );
+  await page.goto(`${BASE}/staff/mailings/${id}`);
+  await expect(page.getByText(stateWords.tags["error:gmail"]!)).toBeVisible();
+  await frame(page, "The mailing, one letter refused");
+  story("The letter's page says what Gmail said, in its history.");
+
+  await page.goto(`${BASE}/staff/mailings/${id}/letters/${letter}`);
+  await expect(page.locator("dd").filter({ hasText: "Invalid To header" })).toBeVisible();
+  await frame(page, "The refused letter's page");
 });
 
 test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {

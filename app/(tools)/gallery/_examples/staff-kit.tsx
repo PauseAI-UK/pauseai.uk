@@ -828,7 +828,7 @@ export const staffKit: Group = {
       file: "app/(staff)/staff/_components/ui/Counts.tsx",
       variants: [
         {
-          label: "Each leading to its list, the failed one chosen; a 0 and a count that doesn't apply, grey",
+          label: "Each leading to its list, the failed one chosen; a 0 grey",
           render: () => (
             <StaffPage as="div">
               <Counts
@@ -836,7 +836,6 @@ export const staffKit: Group = {
                   { key: "sent", n: 84, label: "sent", href: "#sent" },
                   { key: "failed", n: 3, label: "failed", tone: "red", href: "#failed", current: true },
                   { key: "replied", n: 0, label: "replied", href: "#replied" },
-                  { key: "answered", n: null, label: "answers" },
                 ]}
               />
             </StaffPage>

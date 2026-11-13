@@ -1,5 +1,6 @@
 import "server-only";
 import { ARRIVED, MAILING_FAILED, statusIn } from "@/lib/letter-status";
+import { LETTER_STATES, letterStateSql, type CountedLetterState } from "@/lib/copy-states";
 import type { AskStatus } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mailingGroups, type MailingGroup } from "@/lib/mailing-groups";
@@ -15,7 +16,8 @@ import type { MailingState } from "./mailing-drafts";
 // each one, and whether it was personalised: no text, sender or attachments.
 // Those written here are drafts until they're scheduled (mailing-drafts.ts).
 
-export type MailingSummary = {
+/** What a mailing to politicians and a broadcast to supporters both have; each counts its own states. */
+export type MailingBase = {
   id: number;
   title: string;
   /** The ask it makes, if any: its slug and title. */
@@ -43,15 +45,16 @@ export type MailingSummary = {
   to: number;
   /** The first of its letters sent, or none yet. */
   sentAt: Date | null;
-  /** Letters that arrived: sent, and not bounced. */
+  /** For how far one sending has got: letters that arrived, sent and not bounced; and those that didn't, skipped, refused by Gmail, or bounced. */
   sent: number;
-  /** Letters that didn't: skipped, refused by Gmail, or bounced. */
   failed: number;
-  /** Letters never sent, as the mailing was stopped first. */
-  stopped: number;
-  replied: number;
-  /** Recipients who have answered its ask. */
+  /** Recipients who have answered its ask, whatever became of their letter. */
   answered: number;
+};
+
+export type MailingSummary = MailingBase & {
+  /** How many of its letters are in each state (LETTER_STATES). */
+  states: Record<CountedLetterState, number>;
 };
 
 /** Why a mailing skipped a recipient: their address blocked, out of office, or in office with no address. */
@@ -68,6 +71,8 @@ export type MailingRecipient = {
   status: string;
   sentAt: Date | null;
   repliedAt: Date | null;
+  /** Whether an automatic reply came back, such as an out-of-office. */
+  autoReplied: boolean;
   /** How many replies of theirs we keep; none for one recorded only as replied, as Airtable did. */
   replies: number;
   personalised: boolean;
@@ -77,19 +82,16 @@ export type MailingRecipient = {
   skipReason: SkipReason | null;
 };
 
-/** Which of a mailing's recipients its page lists: everyone, those whose letter arrived, failed or was stopped, who replied, or who answered its ask. */
-export const RECIPIENT_TABS = ["all", "sent", "failed", "stopped", "replied", "answered"] as const;
+/** Which of a mailing's recipients its page lists: everyone, or those whose letter is in one state. */
+export const RECIPIENT_TABS = ["all", ...LETTER_STATES] as const;
 export type RecipientTab = (typeof RECIPIENT_TABS)[number];
 
-const TAB_CONDITIONS: Record<RecipientTab, string> = {
-  all: "true",
-  replied: "l.replied_at IS NOT NULL",
-  sent: statusIn("l.status", ARRIVED),
-  failed: statusIn("l.status", MAILING_FAILED),
-  stopped: "l.status = 'cancelled'",
-  answered: `EXISTS (SELECT 1 FROM ask_statuses s JOIN mailings asked ON asked.id = p.mailing_id
-    WHERE s.notable_person_id = n.id AND s.ask = asked.ask)`,
-};
+/** Whether the politician of the letter `l` has answered the ask `ask`, an SQL expression. */
+const answeredAsk = (ask: string) =>
+  `EXISTS (SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = l.notable_person_id AND st.ask = ${ask})`;
+
+/** A mailing's letter's state (letterStateSql), its mailing `m`. */
+const LETTER_STATE = letterStateSql(answeredAsk("m.ask"));
 
 /** A mailing with a page of its recipients in a tab, of `recipientsTotal`, on `pages` pages of `pageSize`. */
 export type Mailing = MailingSummary & {
@@ -112,11 +114,11 @@ const SELECT_MAILINGS = `
     count(l.id)::int AS "to",
     count(l.id) FILTER (WHERE ${statusIn("l.status", ARRIVED)})::int AS sent,
     count(l.id) FILTER (WHERE ${statusIn("l.status", MAILING_FAILED)})::int AS failed,
-    count(l.id) FILTER (WHERE l.status = 'cancelled')::int AS stopped,
-    count(l.replied_at)::int AS replied,
-    count(l.id) FILTER (WHERE EXISTS (SELECT 1 FROM ask_statuses s WHERE s.notable_person_id = l.notable_person_id AND s.ask = m.ask))::int AS answered
+    count(l.id) FILTER (WHERE ${answeredAsk("m.ask")})::int AS answered,
+    json_build_object(${LETTER_STATES.map((one) => `'${one}', count(l.id) FILTER (WHERE ls.state = '${one}')`).join(", ")}) AS states
   FROM mailings m LEFT JOIN asks a ON a.slug = m.ask
-    LEFT JOIN letters_from_pauseai p ON p.mailing_id = m.id LEFT JOIN letters l ON l.id = p.id`;
+    LEFT JOIN letters_from_pauseai p ON p.mailing_id = m.id LEFT JOIN letters l ON l.id = p.id
+    LEFT JOIN LATERAL (SELECT ${LETTER_STATE} AS state) ls ON true`;
 
 /** Every mailing to politicians but the drafts, newest first, those not yet sent at the top. */
 export async function listMailings(): Promise<MailingSummary[]> {
@@ -202,12 +204,13 @@ export async function getMailing(id: number, page = 1, tab: RecipientTab = "all"
   );
   if (!mailing) return undefined;
   const from = `FROM letters_from_pauseai p JOIN letters l USING (id) JOIN notable_people n ON n.id = l.notable_person_id
-    LEFT JOIN politicians seat ON seat.id = n.id
-    WHERE p.mailing_id = $1 AND ${TAB_CONDITIONS[tab]}`;
+    JOIN mailings m ON m.id = p.mailing_id LEFT JOIN politicians seat ON seat.id = n.id
+    WHERE p.mailing_id = $1 AND ${tab === "all" ? "true" : `(${LETTER_STATE}) = '${tab}'`}`;
   const [recipients, [{ total }]] = await Promise.all([
     query<MailingRecipient>(
       `SELECT l.id::int AS "letterId", n.id::int AS "politicianId", n.name, coalesce(seat.is_test, false) AS "isTest", seat.constituency, seat.party, l.status, l.sent_at AS "sentAt",
          l.replied_at AS "repliedAt",
+         EXISTS (SELECT 1 FROM letter_events e WHERE e.letter_id = l.id AND e.status = 'auto_reply') AS "autoReplied",
          (SELECT count(*)::int FROM letter_replies r WHERE r.letter_id = l.id AND NOT r.from_us) AS replies, p.personalised, p.skip_reason AS "skipReason",
          (SELECT s.status FROM ask_statuses s WHERE s.notable_person_id = n.id AND s.ask = $4) AS answer
        ${from} ORDER BY n.name COLLATE english, l.id LIMIT $2 OFFSET $3`,
