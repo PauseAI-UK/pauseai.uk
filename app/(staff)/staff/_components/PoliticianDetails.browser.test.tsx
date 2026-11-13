@@ -128,6 +128,24 @@ describe("PoliticianDetails", () => {
     expect(terms()).not.toContain(staffCopy.politician.marks);
   });
 
+  it("saves how we write to them from Writing to them, saying when the server gave no answer", async () => {
+    const editDetails = vi.fn(async () => undefined);
+    await render(
+      <PoliticianDetails
+        politician={MP}
+        unblock={vi.fn()}
+        editDetails={editDetails}
+        aliases={exampleAliases}
+        aliasActions={{ add: vi.fn(), remove: vi.fn() }}
+        aliasesOpen
+        {...none}
+      />,
+    );
+    await page.getByRole("button", { name: staffCopy.politician.editDetails.save }).click();
+    await vi.waitFor(() => expect(editDetails).toHaveBeenCalledOnce());
+    await expect.element(page.getByText(staffCopy.politician.editDetails.saved)).not.toBeInTheDocument();
+  });
+
   it("turns a marker on or off with its button in the band", async () => {
     const { fn, sent } = action();
     await render(<PoliticianDetails politician={MP} unblock={vi.fn()} setMark={fn} {...none} />);

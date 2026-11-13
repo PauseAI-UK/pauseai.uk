@@ -26,7 +26,7 @@ type Copied = Pick<SyncedPolitician, "salutation" | "notes" | "importantTarget" 
 type Ours = Copied & { id: number; airtableId: string | null; name: string };
 
 /** Copies what Airtable has that no body lists, keeping the run. `startedBy` is the staff member's email. */
-export async function syncPoliticians(startedBy: string): Promise<PoliticianSyncResult> {
+export async function syncPoliticians(startedBy: string): Promise<PoliticianSyncResult & { unmatched: string[] }> {
   const { result } = await asRun(JOB, startedBy, async () => {
     const records = (await fetchPoliticians(airtableToken())).map((record) => record.politician);
     const result = await transaction(async (db) => {

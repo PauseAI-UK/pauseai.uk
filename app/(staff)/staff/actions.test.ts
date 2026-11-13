@@ -404,6 +404,7 @@ describeWithDatabase("staff Server Actions", () => {
     await decideImport(form({ id: String(id), job: "import-senedd", decision: "maybe" }));
     await decideImport(form({ id: "x", job: "import-senedd", decision: "apply" }));
     await decideImport(form({ id: String(id), job: "sync-politicians", decision: "apply" }));
+    await decideImport(form({ id: String(id), decision: "apply" }));
     expect(await query("SELECT status FROM import_runs")).toEqual([{ status: "held" }]);
     await decideImport(form({ id: String(id), job: "import-senedd", decision: "discard" }));
     expect(await query("SELECT status, decided_by FROM import_runs")).toEqual([
@@ -416,6 +417,7 @@ describeWithDatabase("staff Server Actions", () => {
     await setMarkNow(form({ politicianId: String(id), mark: "importantTarget", on: "true" }));
     await setMarkNow(form({ politicianId: String(id), mark: "is_test", on: "true" }));
     await setMarkNow(form({ politicianId: "x", mark: "importantTarget", on: "true" }));
+    await setMarkNow(form({ politicianId: String(id) }));
     expect(await query("SELECT important_target AS on FROM notable_people")).toEqual([{ on: true }]);
     await setMarkNow(form({ politicianId: String(id), mark: "importantTarget", on: "false" }));
     expect(await query("SELECT important_target AS on FROM notable_people")).toEqual([{ on: false }]);
@@ -425,7 +427,7 @@ describeWithDatabase("staff Server Actions", () => {
   it("editPoliticianNow saves a salutation and a Lord's email, says why not, and ignores a bad form", async () => {
     const lord = await addTestPolitician({ house: "lords", email: null });
     expect(await editPoliticianNow(form({ politicianId: "x", salutation: "Lord X" }))).toBeUndefined();
-    expect(await editPoliticianNow(form({ politicianId: String(lord), salutation: "" }))).toEqual({
+    expect(await editPoliticianNow(form({ politicianId: String(lord) }))).toEqual({
       saved: false,
       why: "salutation",
     });

@@ -60,6 +60,25 @@ describe("ChangesTable", () => {
     await expect.element(cell.getByRole("link")).toHaveAttribute("href", "/staff/supporters/import/previous/3");
   });
 
+  it("links a decision on a held import to its job's page", async () => {
+    const edit = exampleChanges.find((one) => one.action === "edit politician")!;
+    const applied = {
+      ...edit,
+      action: "apply held politician import",
+      details: { id: 4, job: "import-senedd" },
+    } as const;
+    await render(
+      <ChangesTable
+        search={changesSearch({})}
+        log={log([applied as unknown as (typeof exampleChanges)[number]])}
+        page={1}
+        airtableTable="https://airtable.com/app/tbl"
+      />,
+    );
+    const cell = page.getByRole("row").nth(1).getByRole("cell").nth(4);
+    await expect.element(cell.getByRole("link")).toHaveAttribute("href", "/staff/scheduled-jobs/senedd");
+  });
+
   it("says whose address was added or removed", async () => {
     const entries = exampleChanges.filter((one) => /politician address/.test(one.action));
     await render(

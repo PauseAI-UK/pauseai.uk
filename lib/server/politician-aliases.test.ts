@@ -268,6 +268,11 @@ describeWithDatabase("a politician's aliases", () => {
       added: false,
       why: "exists",
     });
+    // The Lords' shared inbox is no one's own address.
+    expect(await addPoliticianAddress(polly.id, "ContactHOLMember@parliament.uk", "jo@pauseai.uk")).toEqual({
+      added: false,
+      why: "shared",
+    });
   });
 
   it("removes only an address staff added, logged", async () => {

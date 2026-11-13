@@ -334,6 +334,18 @@ describe("the staff examples", () => {
     await expect.element(page.getByRole("status").last()).toHaveTextContent(words.saved);
   });
 
+  it("logs a politician's markers and how we write to them, on their page", async () => {
+    await render(<PoliticianDetailsExample fromAirtable aliases />);
+    await page.getByRole("button", { name: staffCopy.politician.personalConnection }).click();
+    await expect
+      .element(log().nth(0))
+      .toHaveTextContent('setMark({"politicianId":"7","mark":"personalConnection","on":"true"})');
+    await page.getByRole("button", { name: staffCopy.politician.editDetails.save }).click();
+    await expect
+      .element(log().nth(1))
+      .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Ms Placeholder"})');
+  });
+
   it("logs a marker's press, turning it the other way", async () => {
     await render(<PoliticianMarksExample test />);
     await page.getByRole("button", { name: staffCopy.politician.personalConnection }).click();

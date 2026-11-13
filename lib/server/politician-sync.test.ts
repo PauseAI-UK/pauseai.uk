@@ -76,6 +76,13 @@ describeWithDatabase("syncPoliticians", () => {
     expect((await syncPoliticians(JO)).changes.changed).toEqual([]);
   });
 
+  it("fails without AIRTABLE_TOKEN, keeping the run", async () => {
+    vi.stubEnv("AIRTABLE_TOKEN", "");
+    await expect(syncPoliticians(JO)).rejects.toThrow("AIRTABLE_TOKEN isn't set");
+    const [run] = await listRuns("sync-politicians");
+    expect(run.status).toBe("failed");
+  });
+
   it("keeps our salutation where Airtable has none, and a salutation to check while it's still the name", async () => {
     await addTestPolitician({
       name: "Lord Seedling of Example",

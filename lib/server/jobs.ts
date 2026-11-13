@@ -38,7 +38,7 @@ const RUNS: Record<ImportJob, RunJob> = {
   "import-ni-assembly": (by) => importPoliticianCounts("ni-assembly", by),
   "sync-politicians": async (by) => {
     const { changes, unmatched } = await syncPoliticians(by);
-    return { changed: changes.changed.length, unmatched: unmatched?.length ?? 0 };
+    return { changed: changes.changed.length, unmatched: unmatched.length };
   },
   "import-controlai": (by) => importControlAiLetter(by),
   "import-controlai-statement": (by) => importControlAiStatement(by),
