@@ -81,11 +81,14 @@ export function choiceTerms(choice: string): BroadcastTerms | undefined {
   return broadcastTerms(choice.split(" "));
 }
 
-/** `days` after a broadcast's time. */
-const daysAfter = (dueAt: Date, days: number): Date => new Date(new Date(dueAt).getTime() + days * 24 * 60 * 60 * 1000);
+/** `days` after a time. */
+const daysAfter = (from: Date, days: number): Date => new Date(new Date(from).getTime() + days * 24 * 60 * 60 * 1000);
 
-/** When a broadcast waiting for CiviCRM stops: WAIT_DAYS after its time. */
-export const waitStopsAt = (dueAt: Date): Date => daysAfter(dueAt, WAIT_DAYS);
+/**
+ * When a broadcast waiting for CiviCRM stops: WAIT_DAYS after it began to
+ * wait, whether that was at its time or days into sending.
+ */
+export const waitStopsAt = (waitingSince: Date): Date => daysAfter(waitingSince, WAIT_DAYS);
 
 /** When a broadcast that hasn't all gone, at a day's limit of emails, stops: SENDING_DAYS after its time. */
 export const sendingStopsAt = (dueAt: Date): Date => daysAfter(dueAt, SENDING_DAYS);

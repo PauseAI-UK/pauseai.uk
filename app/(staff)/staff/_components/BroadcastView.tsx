@@ -130,7 +130,7 @@ export function BroadcastWaiting({
   if (written.waitingSince) {
     // One waiting, not stopped, waits for CiviCRM.
     const reason = written.waitReason as "civicrm" | "pull";
-    return <Strip tone="amber">{copy.waiting(reason, londonDate(waitStopsAt(written.dueAt!)))}</Strip>;
+    return <Strip tone="amber">{copy.waiting(reason, londonDate(waitStopsAt(written.waitingSince)))}</Strip>;
   }
   return atLimit ? <Strip tone="amber">{copy.moreTomorrow}</Strip> : null;
 }

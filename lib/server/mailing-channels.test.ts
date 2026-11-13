@@ -99,6 +99,11 @@ describeWithDatabase("gmailEmail", () => {
     expect(await query("SELECT letter_id FROM email_sends WHERE purpose = 'mailing-test'")).toEqual([
       { letter_id: null },
     ]);
+    // To someone with no name, or one that's nothing once it's made safe for a header: their address alone.
+    for (const name of [null, ' "" ']) {
+      await gmailEmail.send({ ...MESSAGE_TO_POLLY, to: { name, address: "polly@example.org" } }, "mailing-test");
+      expect(parseMime(raw).headers.get("to")).toBe("polly@example.org");
+    }
   });
 
   it("can send up to the day's limit from an account, at no cost, and reports nothing, as bounces are read", async () => {

@@ -278,13 +278,16 @@ describeWithDatabase("send by Gmail", () => {
     expect(String(error.mock.calls.at(-1)![0])).toContain("mailing");
   });
 
-  it("fails to be tried again when Gmail answers that it's busy or down, and not when it refuses the email", async () => {
+  it("fails to be tried again when Gmail answers that it's busy, down or refusing the account, and not when it refuses the email", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     await connectTestGmail();
     for (const [status, retry] of [
       [429, true],
       [503, true],
+      [401, true],
+      [403, true],
       [400, false],
+      [404, false],
     ] as const) {
       server.use(http.post(SEND, () => new HttpResponse("No", { status })));
       expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({

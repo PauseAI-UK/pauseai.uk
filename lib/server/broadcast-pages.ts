@@ -379,8 +379,9 @@ async function scheduledRecipients(
   page: number,
 ): Promise<{ rows: MessageRecipient[]; total: number }> {
   const { recipients } = await supporterAudience(written.filter, written);
+  // By name, those with none last, as among the copies of one that has started (listed by SQL, nulls last).
   const rows = [...recipients]
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => Number(!a.name) - Number(!b.name) || String(a.name).localeCompare(String(b.name)))
     .slice((page - 1) * RECIPIENTS_PAGE_SIZE, page * RECIPIENTS_PAGE_SIZE)
     .map((one) => ({
       copyId: one.id,

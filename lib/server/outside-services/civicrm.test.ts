@@ -175,6 +175,16 @@ describe("checkSuppression", () => {
     await expect(checkSuppression("key", ["a@example.org"])).rejects.toThrow("didn't say whether 1 addresses");
     await expect(checkSuppression("key", [], ["+447700900001"])).rejects.toThrow("didn't say whether 1 numbers");
   });
+
+  it("matches each address to its echo whatever its case or the space round it, and gives it as it was asked", async () => {
+    server.use(http.post(CHECK, () => HttpResponse.json({ values: [{ email: "A@Example.org ", block: "bulk" }] })));
+    expect([...(await checkSuppression("key", ["A@Example.org "])).emails]).toEqual([["A@Example.org ", "bulk"]]);
+  });
+
+  it("takes unchecked, CiviCRM's answer for an address it may not look up yet, as an answer", async () => {
+    server.use(http.post(CHECK, () => HttpResponse.json({ values: [{ email: "a@example.org", block: "unchecked" }] })));
+    expect([...(await checkSuppression("key", ["a@example.org"])).emails]).toEqual([["a@example.org", "unchecked"]]);
+  });
 });
 
 describe("updateSubscriptions", () => {

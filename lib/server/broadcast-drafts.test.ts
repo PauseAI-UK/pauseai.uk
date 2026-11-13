@@ -25,8 +25,7 @@ import {
   submitTemplate,
   withdrawTemplate,
 } from "./broadcast-drafts";
-import { supporterAudience } from "./broadcast-recipients";
-import { FIELDS_AS_WORDS, TEXT_SENDER_NAME } from "@/lib/broadcasts";
+import { fakeRecipient, FIELDS_AS_WORDS, TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import { toText } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mkdtempSync } from "node:fs";
@@ -486,7 +485,7 @@ describeWithDatabase("broadcasts to supporters", () => {
       await query("UPDATE whatsapp_templates SET meta_name = 'march_day_9' WHERE id = $1", [template]);
       await readied(id, { templateId: template });
       const text = (await getWrittenBroadcast(id))!;
-      const to = (await supporterAudience(text.filter, text)).recipients[0];
+      const to = fakeRecipient([], "text");
       expect(await sendBroadcastTest(text, to, "+447700900002")).toEqual({ sent: true, id: "wamid.test" });
       expect(names).toEqual(["march_day_9"]);
       server.use(http.get(/phone_numbers/, () => HttpResponse.json({}, { status: 500 })));
@@ -597,8 +596,10 @@ describeWithDatabase("broadcasts to supporters", () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const id = await draftOf(TEXT_FILTER);
     await scheduleBroadcast(id, await readied(id, { templateId: await addTemplate("March day") }), JO);
+    // It was waiting for CiviCRM, which a draft doesn't.
+    await query("UPDATE mailings SET waiting_since = now(), wait_reason = 'pull' WHERE id = $1", [id]);
     expect(await stopBroadcast(id, JO)).toBe(true);
-    expect(await getWrittenBroadcast(id)).toMatchObject({ state: "draft" });
+    expect(await getWrittenBroadcast(id)).toMatchObject({ state: "draft", waitingSince: null, waitReason: null });
     expect(await stopBroadcast(id, JO)).toBe(false);
     expect(await stopBroadcast(999, JO)).toBe(false);
   });
@@ -655,15 +656,18 @@ describeWithDatabase("broadcasts to supporters", () => {
     const id = await draftOf(EMAIL_FILTER);
     await scheduleBroadcast(id, await readied(id, { subject: "Events", body: EVENT_WORDS }), JO);
     await startSending(id);
+    // It was waiting for CiviCRM, which one that's stopped doesn't.
+    await query("UPDATE mailings SET waiting_since = now(), wait_reason = 'civicrm' WHERE id = $1", [id]);
     expect(await stopBroadcast(id, JO)).toBe(true);
-    expect((await getWrittenBroadcast(id))!.state).toBe("cancelled");
+    expect(await getWrittenBroadcast(id)).toMatchObject({ state: "cancelled", waitingSince: null, waitReason: null });
     expect(await query("SELECT status FROM broadcast_messages")).toEqual([{ status: "cancelled" }]);
   });
 
   it("tests an email by Postmark, and a text by its backend only on an approved template", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const email = (await getWrittenBroadcast(await draftOf(EMAIL_FILTER)))!;
-    const emailTo = (await supporterAudience(email.filter, email)).recipients[0];
+    // A test copy is for someone made up, as the writer's preview is.
+    const emailTo = fakeRecipient([], "email");
     await expect(
       sendBroadcastTest({ ...email, subject: "Hi", body: EVENT_WORDS }, emailTo, "me@pauseai.uk"),
     ).resolves.toMatchObject({
@@ -671,7 +675,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     });
     const id = await draftOf(TEXT_FILTER);
     const text = (await getWrittenBroadcast(id))!;
-    const textTo = (await supporterAudience(text.filter, text)).recipients[0];
+    const textTo = fakeRecipient([], "text");
     expect(await sendBroadcastTest(text, textTo, "+447700900002")).toBeUndefined();
     await readied(id, { templateId: await addTemplate("March day") });
     const approved = (await getWrittenBroadcast(id))!;
