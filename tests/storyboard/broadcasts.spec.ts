@@ -431,7 +431,9 @@ test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {
     "A text's time has come. The sending checks each number with PauseAI Global's records first, then sends each copy by WhatsApp: the template, its first name filled in.",
   );
   const sent = await textSent(request, flowDatabase);
-  await textFrame(page, OUR_CHAT, shownText(flowDatabase, newestText(`+${sent.number}`)!), "The text, as they get it");
+  // A template, as other flows text the same number words of their own at the same time.
+  const text = newestText(`+${sent.number}`, (one) => "template" in one)!;
+  await textFrame(page, OUR_CHAT, shownText(flowDatabase, text), "The text, as they get it");
   story("WhatsApp's webhook says it was delivered, then read.");
   await postWhatsAppWebhook(request, BASE, statusOf(sent.wamid, sent.number, "delivered"));
   await postWhatsAppWebhook(request, BASE, statusOf(sent.wamid, sent.number, "read", 20));
