@@ -55,7 +55,7 @@ export default function Footer() {
         </div>
         <div className={styles.groups}>
           <div>
-            <h2>⁂ Get involved</h2>
+            <h2>Get involved</h2>
             <ul>
               <li>
                 <Link href="/donate">Donate</Link>
@@ -79,7 +79,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h2>⁂ About us</h2>
+            <h2>About us</h2>
             <ul>
               <li>
                 <Link href="/jobs">Jobs</Link>
@@ -90,7 +90,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h2>⁂ Your data</h2>
+            <h2>Your data</h2>
             <ul>
               <li>
                 <Link href="/privacy">Privacy</Link>
