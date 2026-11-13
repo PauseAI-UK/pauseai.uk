@@ -303,6 +303,16 @@ The rest comes from those:
 Built: steps 1 to 4, but for the Marketing Messages API. Still to do:
 sending by that API once its terms are signed, and step 5, if at all.
 
+To research: a link button on every text to the person's contact
+preferences page (`/preferences/<token>`), so they can stop one topic
+rather than every text, as an email's link lets them. A template may have
+up to two URL buttons, whose address ends in one value per send, beside
+quick replies if each kind is grouped together
+([components](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/components)).
+Open: whether two buttons show well on phones and WhatsApp desktop (which
+can't show a quick reply beside another kind), and a link token per text
+copy, which texts don't have yet.
+
 Still to do, once the copy is approved: a rejected template keeps
 WhatsApp's code (`INVALID_FORMAT`) in `rejected_reason`, not our words
 for it, which are looked up when shown (the draft's strip, the email), so

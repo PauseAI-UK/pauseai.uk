@@ -27,23 +27,6 @@
   font-size: var(--text-lg);
 }
 
-/* The count a list under it shows: underlined, as a chosen tab is. */
-.link[aria-current] {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-decoration-color: var(--accent);
-  text-underline-offset: 4px;
-}
-
-/* What needs a look, then how many are fine, then, unfolded, the rest. */
-.needs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  align-items: center;
-  justify-content: flex-end;
-}
-
 .link {
   text-decoration: none;
 }
