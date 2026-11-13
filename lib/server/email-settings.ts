@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { CONSENTS, type ContactPermission, type Topic, type Way } from "@/lib/contact-permissions";
-import { hold, LINK_DAYS, type SettingsChoice, type SettingsView } from "@/lib/email-settings";
+import { hold, isNumber, LINK_DAYS, type SettingsChoice, type SettingsView } from "@/lib/email-settings";
 import { now } from "@/lib/now";
 import { siteUrl, siteUrlIfKnown } from "@/lib/site-url";
 import { queueBulkLift } from "./civicrm-updates";
@@ -33,14 +33,17 @@ import { problem } from "./problems";
 // emailed to the address: one asked for on the page, which works for
 // LINK_DAYS, or the unsubscribe link in a copy of a broadcast, whose button
 // that opts out of what the copy went under works forever, and whose page
-// works for PAGE_DAYS after it went. So a box ticked there is the address's
-// owner saying yes: a yes from the page (preference_choices), with the
-// words beside it. An untick is an opt-out from the page. Turning off events
+// works for PAGE_DAYS after it went; or, for a number alone, from the link
+// in the answer to a stop in WhatsApp (newNumberLink). So a box ticked there
+// is the address's or number's owner saying yes: a yes from the page
+// (preference_choices), with the words beside it. An untick is an opt-out from the page. Turning off events
 // by email, or every bulk email, takes the address off our Luma calendar
 // too, on the live site.
 
 /** How long the page works from a copy's unsubscribe link, after the copy went. */
 const PAGE_DAYS = 30;
+/** How long a link for a number works, as no fresh one can be emailed to it. */
+const NUMBER_LINK_DAYS = 30;
 /** How soon after one link the same address can be sent another. */
 const RESEND_MINUTES = 2;
 /** How many links an address can be sent in a day, however they're asked for. */
@@ -51,8 +54,17 @@ const copy = emailSettingsCopy;
 /** What's kept of a link's token: its hash, so the database alone can't open anyone's page. */
 export const hashOf = (token: string): string => createHash("sha256").update(token).digest("hex");
 
-/** A new link to the page for `address`, working for LINK_DAYS: its path. */
-export async function newSettingsLink(address: string, db?: Queryable): Promise<string> {
+/**
+ * A new link to the page for a number alone, its texts and calls, working
+ * for NUMBER_LINK_DAYS: its path. Sent only to the number, in answer to a
+ * stop, so it proves the number is theirs.
+ */
+export function newNumberLink(number: string): Promise<string> {
+  return newSettingsLink(number, undefined, NUMBER_LINK_DAYS);
+}
+
+/** A new link to the page for `address`, working for LINK_DAYS, or `days`: its path. */
+export async function newSettingsLink(address: string, db?: Queryable, days = LINK_DAYS): Promise<string> {
   const to = normaliseAddress(address);
   // The address and how many it's had: a different seed for each link.
   const token = (
@@ -67,7 +79,7 @@ export async function newSettingsLink(address: string, db?: Queryable): Promise<
   ).toString("base64url");
   await query(
     `INSERT INTO preference_links (token_hash, address, expires_at) VALUES ($1, $2, now() + make_interval(days => $3))`,
-    [hashOf(token), to, LINK_DAYS],
+    [hashOf(token), to, days],
     db,
   );
   return `/contact-preferences/${token}`;
@@ -225,22 +237,28 @@ async function numbersOf(address: string): Promise<string[]> {
   return rows.map((row) => row.phone);
 }
 
-/** Every consent's answer for the address, and each number by text and call, whatever has an answer. */
-async function answersFor(address: string, numbers: string[]): Promise<ContactPermission[]> {
+/** Every consent's answer for the address, if any, and each number by text and call, whatever has an answer. */
+async function answersFor(address: string | null, numbers: string[]): Promise<ContactPermission[]> {
   return query<ContactPermission>(
     `SELECT c.topic, c.way, CASE WHEN c.way = 'email' THEN 'email' ELSE 'phone' END AS channel, a.address,
        d.send, d.reason, d.at, d.source
      FROM unnest($1::text[], $2::text[]) c (topic, way)
-       JOIN (SELECT $3::text AS address, 'email' AS way UNION ALL SELECT n, 'phone' FROM unnest($4::text[]) n) a
+       JOIN (SELECT $3::text AS address, 'email' AS way WHERE $3 IS NOT NULL
+             UNION ALL SELECT n, 'phone' FROM unnest($4::text[]) n) a
          ON (a.way = 'email') = (c.way = 'email')
        CROSS JOIN LATERAL contact_permission(c.topic, c.way, a.address) d`,
     [CONSENTS.map((c) => c.topic), CONSENTS.map((c) => c.way), address, numbers],
   );
 }
 
-/** What the page shows for an address: its numbers, and each consent's answer, and what stops all its email. */
+/**
+ * What the page shows for an address: its numbers, and each consent's
+ * answer, and what stops all its email. For a number, the number alone, and
+ * its answers by text and call.
+ */
 export async function settingsFor(address: string): Promise<SettingsView> {
   const to = normaliseAddress(address);
+  if (isNumber(to)) return { address: to, numbers: [to], answers: await answersFor(null, [to]), hold: null };
   const numbers = await numbersOf(to);
   const answers = await answersFor(to, numbers);
   const held = hold(answers);
@@ -317,15 +335,15 @@ async function chooseYes(address: string, way: Way, topic: Topic, db: Queryable)
  * opt-out. A text or call box stands for every number, ticked where any
  * says yes (settingsTopics): ticking it is a yes for each number without
  * one, unticking it an opt-out for each with one, and leaving it as it was
- * changes none. Nothing for email while all its email is held, nor any box
- * the page didn't offer. Returns what changed.
+ * changes none. Nothing for email while all its email is held, nor on a
+ * number's page, nor any box the page didn't offer. Returns what changed.
  */
 export async function saveSettings(address: string, ticked: Set<string>): Promise<SettingsChoice[]> {
   const view = await settingsFor(address);
   const changed: SettingsChoice[] = [];
   await transaction(async (db) => {
     for (const { topic, way } of CONSENTS) {
-      if (way === "email" && view.hold) continue;
+      if (way === "email" && (view.hold || isNumber(view.address))) continue;
       const targets = way === "email" ? [view.address] : view.numbers;
       if (targets.length === 0) continue;
       const yes = (target: string) =>
@@ -376,14 +394,17 @@ export async function liftNoBulk(address: string): Promise<boolean> {
 
 /**
  * Opts the address out of every bulk email, which CiviCRM is told of, and
- * its numbers out of every topic by text and call they had a yes for; and
- * takes the address off our Luma calendar. The stops are one group, by
- * their source reference (STOP_ALL), so Restart can undo them all.
+ * each of its numbers out of every text and every call (`all`), whatever it
+ * has a yes for now or later, which CiviCRM is told of as "Do not SMS" and
+ * "Do not phone"; and takes the address off our Luma calendar. The stops are one group, by
+ * their source reference (STOP_ALL), so Restart can undo them all. Nothing
+ * for a number's page, which doesn't offer it.
  */
 export async function stopEverything(address: string): Promise<void> {
+  if (isNumber(normaliseAddress(address))) return;
   const view = await settingsFor(address);
   const group = `${STOP_ALL} ${randomUUID()}`;
-  const stop = (target: string, way: Way, list: Topic | "bulk", db: Queryable) =>
+  const stop = (target: string, way: Way, list: "bulk" | "all", db: Queryable) =>
     recordOptOut(
       {
         address: target,
@@ -397,8 +418,9 @@ export async function stopEverything(address: string): Promise<void> {
     );
   await transaction(async (db) => {
     await stop(view.address, "email", "bulk", db);
-    for (const answer of view.answers) {
-      if (answer.way !== "email" && answer.send === "yes") await stop(answer.address, answer.way, answer.topic, db);
+    for (const number of view.numbers) {
+      await stop(number, "text", "all", db);
+      await stop(number, "call", "all", db);
     }
   });
   await offCalendarAfter([{ address: view.address, list: "bulk", source: "preferences" }]);
@@ -427,6 +449,8 @@ export type SettingsKind = "link" | "copy";
 export type SettingsPageState = {
   kind: SettingsKind;
   token: string;
+  /** Whether the link is for a number alone, to which no fresh link can be emailed. */
+  number: boolean;
   unsubscribe: Topic[] | null;
   view: SettingsView | null;
 };
@@ -435,14 +459,26 @@ export type SettingsPageState = {
 export async function linkPage(token: string): Promise<SettingsPageState | undefined> {
   const link = await settingsLink(token);
   if (!link) return undefined;
-  return { kind: "link", token, unsubscribe: null, view: link.open ? await settingsFor(link.address) : null };
+  return {
+    kind: "link",
+    token,
+    number: isNumber(link.address),
+    unsubscribe: null,
+    view: link.open ? await settingsFor(link.address) : null,
+  };
 }
 
 /** The page a copy's unsubscribe link opens; undefined for no such copy. */
 export async function copyPage(token: string): Promise<SettingsPageState | undefined> {
   const found = await copyLink(token);
   if (!found) return undefined;
-  return { kind: "copy", token, unsubscribe: found.topics, view: found.open ? await settingsFor(found.address) : null };
+  return {
+    kind: "copy",
+    token,
+    number: false,
+    unsubscribe: found.topics,
+    view: found.open ? await settingsFor(found.address) : null,
+  };
 }
 
 /** The address a page's link is for, while the page works; undefined once it's run out, or for no such link. */

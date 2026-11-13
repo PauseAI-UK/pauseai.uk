@@ -17,7 +17,7 @@ WORKDIR /app
 RUN echo '{"type": "module"}' > package.json
 # COPY keeps each file's mode from the checkout, which may not let others
 # read it, and the node user below must.
-COPY --chmod=644 container/backup.ts container/server.ts container/main.ts container/restore-sequences.sql ./
+COPY --chmod=644 container/backup.ts container/messages.ts container/server.ts container/main.ts container/restore-sequences.sql ./
 
 # Postgres won't run as root.
 USER node

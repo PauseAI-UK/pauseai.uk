@@ -45,12 +45,18 @@ the backup before:
   has last night's data.
 - `politicians` has at least 600 rows
 
-Then it copies the replies to letters that the site has kept since the
-last run. The site keeps each reply whole, gzipped, in Netlify Blobs. That's
-outside the database, so the dump doesn't hold them. The Worker fetches the
-new ones through the site's read-only routes
-(`app/api/backup/letter-replies`), with the site's `BACKUP_SECRET`, and
-records which reply it copied last.
+Then the container archives the messages the site keeps whole, gzipped,
+in Netlify Blobs: the replies to letters, one-off emails, and replies to
+broadcasts by email. That's outside the database, so the dump doesn't hold
+them. It fetches every one through the site's read-only route
+(`app/api/backup/messages`), with the site's `BACKUP_SECRET`, into one tar
+file, each named by its key, which the Worker stores beside the dump. The
+archive holds what the site has that night, so a message erased on the site
+is in no archive after, and the old archives expire. The manifest records
+the archive, and the checks say so if a message the site listed was missing
+from its store, or the archive has more than 20% fewer messages than the
+night before. If the archive fails, the dump is still kept, and the problem
+emailed.
 
 Any problem, or a backup that fails outright, is emailed through Postmark.
 If a Healthchecks.io ping URL is set, every run pings it. Healthchecks.io
@@ -58,13 +64,12 @@ then emails when a night's backup never runs at all.
 
 The bucket holds:
 
-| Key                     | What                                                         |
-| ----------------------- | ------------------------------------------------------------ |
-| `dumps/<time>.dump`     | the dump, kept for 90 days (an R2 lifecycle rule)            |
-| `manifests/<time>.json` | its manifest, kept for good: a history of the counts         |
-| `latest.json`           | the newest manifest, which the next run compares itself with |
-| `replies/<key>`         | a reply to one of our letters, gzipped, kept for good        |
-| `replies/latest.json`   | the last reply copied, which the next run starts after       |
+| Key                     | What                                                          |
+| ----------------------- | ------------------------------------------------------------- |
+| `dumps/<time>.dump`     | the dump, kept for 90 days (an R2 lifecycle rule)             |
+| `manifests/<time>.json` | its manifest, kept for good: a history of the counts          |
+| `latest.json`           | the newest manifest, which the next run compares itself with  |
+| `messages/<time>.tar`   | the site's kept messages, kept for 30 days (a lifecycle rule) |
 
 ## Set it up
 
@@ -78,8 +83,8 @@ It needs:
   (https://docs.netlify.com/build/data-and-storage/netlify-database/access-control/)
 - a **Postmark server token** that can send from `ALERT_FROM` in
   `wrangler.jsonc`, and the address to send problems to
-- the site's **`BACKUP_SECRET`**, from its Netlify settings, for copying the
-  replies to letters
+- the site's **`BACKUP_SECRET`**, from its Netlify settings, for archiving
+  the messages it keeps
 - optionally, a **Healthchecks.io** check (https://healthchecks.io/docs/):
   a period of 1 day, and a few hours' grace
 
@@ -113,6 +118,10 @@ pauseai-uk-backup > Logs.
 4. Run `container/restore-sequences.sql`. It sets each table's sequence to
    follow the table's highest ID, as the dump doesn't hold the sequences'
    values. If you skip it, the next new row clashes with an old one.
+5. To restore the messages, download the archive the manifest names
+   (`messages.key`) and put each file back in Netlify Blobs, in the
+   site's `letter-replies` store, under its name in the archive. An
+   archive is kept for 30 days, so an older dump has none.
 
 ```bash
 cd backup
@@ -121,6 +130,8 @@ npx wrangler r2 object get pauseai-uk-backups/dumps/2026-10-19T03-00-00Z.dump --
 createdb restored
 pg_restore --no-owner --no-privileges --dbname=restored backup.dump
 psql --dbname=restored --file=container/restore-sequences.sql
+npx wrangler r2 object get pauseai-uk-backups/messages/2026-10-19T03-00-00Z.tar --remote --file messages.tar
+tar -xf messages.tar -C messages   # each message, gzipped, under its key
 ```
 
 ## Tests

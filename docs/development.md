@@ -691,7 +691,7 @@ Set up outside the code:
 
   The client's ID and secret go into Netlify as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. `GMAIL_TOKEN_KEY` is 32 random bytes in base64. Previews have other addresses, so Gmail can be connected only on the live site.
 
-  The replies read from Gmail are kept in Netlify Blobs, in the `letter-replies` store, which needs no setting. The backup Worker copies them with `BACKUP_SECRET`. That secret goes into Netlify, and into the Worker as `SITE_BACKUP_SECRET` (`backup/README.md`).
+  The replies read from Gmail are kept in Netlify Blobs, in the `letter-replies` store, which needs no setting. The nightly backup archives them, with every other message kept there, using `BACKUP_SECRET`. That secret goes into Netlify, and into the Worker as `SITE_BACKUP_SECRET` (`backup/README.md`).
 
 - **The letters inbox:** a Gmail account of PauseAI UK's Workspace at pauseai.uk, which supporters' letters to MPs go from (`docs/domain-concepts.md`, "Letters through the letters inbox"). It's used for nothing else. To set it up:
   1. Put its address into Netlify as `LETTERS_INBOX`. It goes nowhere in the repo, which is public.

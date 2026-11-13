@@ -19,7 +19,7 @@ import { ChoosingBroadcastFrame, BroadcastSupporters } from "./BroadcastSupporte
 import BroadcastView, { broadcastCounts, CopyStatus, copyStatus } from "./BroadcastView";
 import { CountGroups, NeedsAndFine } from "./BroadcastCounts";
 import { countsOpening } from "./ui/Counts";
-import { templateFooter } from "@/lib/whatsapp-template";
+import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import BroadcastWriter, { templateLine, type BroadcastWriterActions } from "./BroadcastWriter";
 import ChannelWriter from "./ChannelWriter";
 import {
@@ -733,8 +733,8 @@ describe("BroadcastWriter, by text", () => {
 
   it("previews a bubble, and sends a test to a number only on an approved template", async () => {
     const actions = await renderWriter({ draft: onTemplate });
-    // Its footer, saying a reply of stop stops its topic.
-    await expect.element(page.getByText(templateFooter(onTemplate.topics), { exact: true })).toBeVisible();
+    // Its footer, saying a reply of stop stops these texts.
+    await expect.element(page.getByText(TEMPLATE_FOOTER, { exact: true })).toBeVisible();
     await expect.element(page.getByText(/Hi Jane, the march meets/)).toBeVisible();
     // What they'll cost, and the rate, as it may have changed.
     await expect.element(page.getByText(textCost(exampleBroadcastData.count).rate)).toBeVisible();
@@ -785,9 +785,7 @@ describe("LinkedText", () => {
 
 describe("TextBubble", () => {
   it("shows a text as WhatsApp does: bold, italic, a list, a quote, web addresses linked and a link's mark not", async () => {
-    await render(
-      <TextBubble from="PauseAI UK" words={exampleWhatsAppWords} footer={templateFooter(["events"])} time="07:18" />,
-    );
+    await render(<TextBubble from="PauseAI UK" words={exampleWhatsAppWords} footer={TEMPLATE_FOOTER} time="07:18" />);
     const bubble = page.getByText("PauseAI UK").element().parentElement!;
     expect(bubble.querySelector("strong")?.textContent).toBe("11:00");
     expect(bubble.querySelector("strong em")?.textContent).toBe("Parliament Square");
@@ -995,7 +993,7 @@ describe("a broadcast's page", () => {
       .element()
       .closest("p")!;
     expect(words.querySelector("[class*=field]")!.textContent).toBe(copy.fieldWords.firstName);
-    await expect.element(page.getByText(templateFooter(text.written.topics), { exact: true })).toBeVisible();
+    await expect.element(page.getByText(TEMPLATE_FOOTER, { exact: true })).toBeVisible();
     await expect.element(page.getByText(copy.copyStates["not-sent:unsubscribed"]!)).toBeVisible();
   });
 

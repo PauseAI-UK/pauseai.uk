@@ -27,14 +27,16 @@ describeWithDatabase("stops given in WhatsApp", () => {
 
   it("stops every text to the number, once however often it's told, and sends CiviCRM Do not SMS", async () => {
     expect(await recordWhatsAppStop(NUMBER, "setting", "447700900123 1730000000", AT)).toBe(true);
+    // One stop of every text, whatever topics a text goes under now or later.
     expect(await stops()).toEqual([
-      { list: "newsletter", ref: "setting 447700900123 1730000000 newsletter", copy: null, back: false },
-      { list: "events", ref: "setting 447700900123 1730000000 events", copy: null, back: false },
-      { list: "volunteering", ref: "setting 447700900123 1730000000 volunteering", copy: null, back: false },
+      { list: "all", ref: "setting 447700900123 1730000000 all", copy: null, back: false },
     ]);
+    expect(
+      (await query<{ send: string }>("SELECT send FROM contact_permission('volunteering', 'text', $1)", [NUMBER]))[0],
+    ).toEqual({ send: "no" });
     expect(await query("SELECT change, phone FROM civicrm_updates")).toEqual([{ change: "do_not_sms", phone: NUMBER }]);
     expect(await recordWhatsAppStop(NUMBER, "setting", "447700900123 1730000000", AT)).toBe(false);
-    expect(await stops()).toHaveLength(3);
+    expect(await stops()).toHaveLength(1);
   });
 
   it("says Stopped in the history of the copy it came from", async () => {
@@ -45,7 +47,8 @@ describeWithDatabase("stops given in WhatsApp", () => {
       [id],
     );
     expect(await recordWhatsAppStop(NUMBER, "reply", "wamid.1", AT, copy)).toBe(true);
-    expect((await stops()).map((stop) => stop.copy)).toEqual([copy, copy, copy]);
+    // A copy that doesn't say its topics: every text.
+    expect((await stops()).map((stop) => [stop.list, stop.copy])).toEqual([["all", copy]]);
     expect(await query("SELECT kind, at FROM broadcast_message_events WHERE message_id = $1", [copy])).toEqual([
       { kind: "opted-out", at: AT },
     ]);
@@ -75,10 +78,6 @@ describeWithDatabase("stops given in WhatsApp", () => {
     // A stop by a reply stays, whatever the setting says.
     await recordWhatsAppStop(NUMBER, "reply", "wamid.2", LATER);
     expect(await recordWhatsAppResume(NUMBER, LATER)).toBe(false);
-    expect((await stops()).filter((stop) => !stop.back).map((stop) => stop.ref)).toEqual([
-      "reply wamid.2 newsletter",
-      "reply wamid.2 events",
-      "reply wamid.2 volunteering",
-    ]);
+    expect((await stops()).filter((stop) => !stop.back).map((stop) => stop.ref)).toEqual(["reply wamid.2 all"]);
   });
 });

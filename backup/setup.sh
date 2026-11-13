@@ -3,7 +3,8 @@
 # change a secret. It needs Docker running, to build the container's image.
 #
 #   1. logs Wrangler in to Cloudflare, if it isn't already
-#   2. creates the R2 bucket, which deletes dumps after 90 days
+#   2. creates the R2 bucket, which deletes dumps after 90 days, and the
+#      archives of the site's messages after 30
 #   3. asks for the secrets (Enter keeps one that's already set)
 #   4. deploys the Worker and its container, which then run every night
 #
@@ -13,6 +14,7 @@ cd "$(dirname "$0")"
 
 BUCKET=pauseai-uk-backups
 KEEP_DAYS=90
+MESSAGE_DAYS=30
 wrangler() { npx wrangler "$@"; }
 
 docker info >/dev/null 2>&1 || { echo "Start Docker first: deploying builds the container's image." >&2; exit 1; }
@@ -25,6 +27,9 @@ if ! wrangler r2 bucket info "$BUCKET" >/dev/null 2>&1; then
 fi
 if ! wrangler r2 bucket lifecycle list "$BUCKET" 2>/dev/null | grep -q expire-dumps; then
   wrangler r2 bucket lifecycle add "$BUCKET" expire-dumps dumps/ --expire-days "$KEEP_DAYS" --force
+fi
+if ! wrangler r2 bucket lifecycle list "$BUCKET" 2>/dev/null | grep -q expire-messages; then
+  wrangler r2 bucket lifecycle add "$BUCKET" expire-messages messages/ --expire-days "$MESSAGE_DAYS" --force
 fi
 
 # The secrets the Worker has already, if it's been deployed before.
@@ -61,7 +66,7 @@ ask POSTMARK_SERVER_TOKEN "Postmark server token" required
 ask ALERT_TO "The address problems go to" required
 echo
 echo "The site's BACKUP_SECRET, in Netlify's settings: the Worker sends it to"
-echo "copy the replies to letters, which the site keeps outside the database."
+echo "archive the messages the site keeps outside the database."
 ask SITE_BACKUP_SECRET "SITE_BACKUP_SECRET" required
 echo
 echo "Optional: a Healthchecks.io check's ping URL (a daily period, a few hours'"

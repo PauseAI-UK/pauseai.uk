@@ -37,7 +37,7 @@ export type CivicrmContact = {
   /** The day they joined, YYYY-MM-DD. */
   joinedDate: string | null;
   intent: Intent | null;
-  /** Their primary number, which Global shares for calls only. */
+  /** Their primary number. */
   phone: string | null;
   onHold: boolean;
   noBulkEmail: boolean;

@@ -159,6 +159,7 @@ describeWithDatabase("permissionsFor", () => {
       ["a@example.com", "newsletter", "email", "email", "yes"],
       ["a@example.com", "volunteering", "email", "email", "yes"],
       ["b@example.com", "events", "email", "email", "yes"],
+      ["+447700900030", "volunteering", "text", "phone", "yes"],
       ["+447700900030", "volunteering", "call", "phone", "yes"],
     ]);
   });
@@ -411,7 +412,7 @@ describeWithDatabase("permissionsFor", () => {
     expect(await phoneAnswer("+447700900030", "newsletter", "call")).toBeUndefined();
   });
 
-  it("emails about volunteering CiviCRM's volunteer list, and calls volunteers' numbers but for CiviCRM's flags, never texts", async () => {
+  it("emails about volunteering CiviCRM's volunteer list, and calls and texts volunteers' numbers but for CiviCRM's flags", async () => {
     await civicrm("jane@example.com", "2026-11-01T00:00:00Z", { volunteer: "subscribed" });
     await civicrm("kit@example.com", "2026-11-01T00:00:00Z", { volunteer: "unsubscribed" });
     await optOut("kit@example.com", "2026-11-01T00:00:00Z", { list: "volunteering", source: "civicrm" });
@@ -517,10 +518,19 @@ describeWithDatabase("permissionsFor", () => {
     ]);
     expect((await phoneAnswer("+447700900047", "volunteering", "call"))?.slice(0, 2)).toEqual(["no", "do-not-phone"]);
 
-    // No number is asked about for volunteering texts.
-    for (const number of ["+447700900050", "+447700900040", "+447700900056"]) {
-      expect(await phoneAnswer(number, "volunteering", "text")).toBeUndefined();
-    }
+    // Texts about volunteering go to the same numbers, but for "Do not SMS" rather than "Do not phone".
+    expect(await phoneAnswer("+447700900050", "volunteering", "text")).toEqual([
+      "yes",
+      "volunteered",
+      "2026-09-12T00:00:00.000Z",
+      "civicrm",
+    ]);
+    expect((await phoneAnswer("+447700900040", "volunteering", "text"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
+    expect((await phoneAnswer("+447700900052", "volunteering", "text"))?.slice(0, 2)).toEqual(["no", "not-volunteer"]);
+    expect((await phoneAnswer("+447700900055", "volunteering", "text"))?.slice(0, 2)).toEqual(["no", "left"]);
+    expect((await phoneAnswer("+447700900044", "volunteering", "text"))?.slice(0, 2)).toEqual(["no", "left"]);
+    expect((await phoneAnswer("+447700900056", "volunteering", "text"))?.slice(0, 2)).toEqual(["no", "do-not-sms"]);
+    expect((await phoneAnswer("+447700900057", "volunteering", "text"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
   });
 
   it("lists each opt-out that's the answer now, and finds whether any consent lets us use a number", async () => {

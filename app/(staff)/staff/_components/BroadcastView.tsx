@@ -13,7 +13,7 @@ import {
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { londonClock, londonDate, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
 import { FIELD_WORDS, waitEndsAt, type BroadcastChannel } from "@/lib/broadcasts";
-import { templateFooter } from "@/lib/whatsapp-template";
+import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import Strip from "./ui/Strip";
 import { phoneWords } from "@/lib/phone";
 import ChannelIcon from "@/components/ui/ChannelIcon";
@@ -192,7 +192,7 @@ function BroadcastWords({ written, parts }: { written: WrittenBroadcast; parts: 
         <TextBubble
           from={written.fromName!}
           words={{ content: written.body.content.filter((block) => block.type !== "onlyFor") }}
-          footer={written.template?.footer ?? templateFooter(written.topics)}
+          footer={written.template?.footer ?? TEMPLATE_FOOTER}
           time={londonClock(sendsAt(written.dueAt!))}
         />
       </Card>

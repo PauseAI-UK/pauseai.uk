@@ -11,11 +11,22 @@ import { iconButtonClass } from "@/components/ui/IconButton";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
 import { site } from "@/lib/content/site";
 import type { ContactPermission, Topic } from "@/lib/contact-permissions";
-import { choiceKey, numberHolds, settingsTopics, type SettingsTopic, type SettingsView } from "@/lib/email-settings";
+import {
+  choiceKey,
+  isNumber,
+  numberHolds,
+  settingsTopics,
+  type SettingsTopic,
+  type SettingsView,
+} from "@/lib/email-settings";
 import styles from "./EmailSettings.module.css";
 
-/** What the page was opened by and for: kept in each form, so the server knows whose page it is. */
-type Opened = { kind: "link" | "copy"; token: string };
+/**
+ * What the page was opened by and for: kept in each form, so the server
+ * knows whose page it is. `number`, a link for a number alone, from the
+ * answer to a stop.
+ */
+type Opened = { kind: "link" | "copy"; token: string; number?: boolean };
 
 /** The page's actions, each given its form: those that change anything give the page afresh, or null once its link has run out. */
 export type SettingsActions = {
@@ -265,9 +276,21 @@ function Unsubscribe({
   );
 }
 
-/** A page whose link has run out: an email's button still works, but for the rest, a fresh link. */
+/**
+ * A page whose link has run out: an email's button still works, but for the
+ * rest, a fresh link; for a number's, which has no address to email it to,
+ * how to stop texts instead.
+ */
 function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["resend"] }) {
   const [sent, setSent] = useState(false);
+  if (opened.number) {
+    return (
+      <div className={`${styles.card} ${styles.offer}`}>
+        <h2>{copy.expired.title}</h2>
+        <p className={styles.boxText}>{copy.numberExpired}</p>
+      </div>
+    );
+  }
   const words = opened.kind === "copy" ? copy.pageExpired : copy.expired;
   return (
     <div className={`${styles.card} ${styles.offer}`}>
@@ -320,7 +343,9 @@ function GlobalEmails({ held }: { held: boolean }) {
  * doesn't prove they're the person's; each saved as it's changed, with what
  * holds all its email or texts and calls above them; what PauseAI Global
  * sends; and Stop everything. Once its link has run out, an offer of a fresh
- * one in place of all but the box.
+ * one in place of all but the box. A number's page, from the answer to a
+ * stop, has the number's texts and calls alone, the number shown, as the
+ * link went only to it.
  */
 export default function EmailSettings({
   opened,
@@ -353,6 +378,8 @@ export default function EmailSettings({
     setChanged(true);
     update(next, then);
   };
+  // A number's page, its texts and calls alone: none of PauseAI Global's emails, nor Stop everything.
+  const forNumber = view !== null && isNumber(view.address);
   return (
     <>
       {unsubscribe && !changed && (
@@ -370,9 +397,9 @@ export default function EmailSettings({
           <h1 ref={focus === "title" ? focusOnMount : undefined} tabIndex={-1} key={`title-${round}`}>
             {copy.settings.title}
           </h1>
-          {/* Whose settings these are: the address alone, which says it plainly enough. */}
+          {/* Whose settings these are: the address alone, or the number, which says it plainly enough. */}
           <p className={styles.address}>
-            <ChannelIcon channel="email" size={20} />
+            <ChannelIcon channel={forNumber ? "phone" : "email"} size={20} />
             {view.address}
           </p>
           {view.hold && (
@@ -413,17 +440,21 @@ export default function EmailSettings({
             ))}
           </FormStack>
           {/* Open on a wide screen; folded to its heading on a phone, as it's for reading rather than changing anything. */}
-          <section className={`${styles.global} ${styles.wide}`} aria-labelledby="global">
-            <h2 id="global">{copy.global.title}</h2>
-            <GlobalEmails held={Boolean(view.hold)} />
-          </section>
-          <details className={`${styles.global} ${styles.narrow}`}>
-            <summary>
-              <h2>{copy.global.title}</h2>
-            </summary>
-            <GlobalEmails held={Boolean(view.hold)} />
-          </details>
-          {!view.hold && (
+          {!forNumber && (
+            <>
+              <section className={`${styles.global} ${styles.wide}`} aria-labelledby="global">
+                <h2 id="global">{copy.global.title}</h2>
+                <GlobalEmails held={Boolean(view.hold)} />
+              </section>
+              <details className={`${styles.global} ${styles.narrow}`}>
+                <summary>
+                  <h2>{copy.global.title}</h2>
+                </summary>
+                <GlobalEmails held={Boolean(view.hold)} />
+              </details>
+            </>
+          )}
+          {!view.hold && !forNumber && (
             <section className={styles.stopAll} aria-labelledby="stop-all">
               <h2 id="stop-all">{copy.stopAll.title}</h2>
               <p>{copy.stopAll.body}</p>

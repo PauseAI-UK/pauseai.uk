@@ -19,9 +19,19 @@ export function templateText(body: MailingDoc): string {
   return toText(letterFor(body, { values, meets: [] }));
 }
 
-/** A template's footer, saying a reply of "stop" stops the topics it goes under: "Reply STOP to stop event texts". */
-export function templateFooter(topics: Topic[]): string {
-  return emailSettingsCopy.textFooter(topics.map((topic) => emailSettingsCopy.textTopics[topic]!));
+/** Every template's footer, saying a reply of "stop" stops the texts: the same whatever topics a text goes under. */
+export const TEMPLATE_FOOTER = emailSettingsCopy.textFooter;
+
+/** Topics as a list in words: "newsletter", "newsletter and event", "newsletter, event and volunteering". */
+function topicList(topics: Topic[]): string {
+  const words = topics.map((topic) => emailSettingsCopy.textTopics[topic]);
+  const last = words.pop()!;
+  return words.length ? `${words.join(", ")} ${emailSettingsCopy.listAnd} ${last}` : last;
+}
+
+/** The answer to a reply of "stop": what it stopped, and a link to the contact preferences page for the number. */
+export function stopAnswer(topics: Topic[], link: string): string {
+  return emailSettingsCopy.stopAnswer(topicList(topics), link);
 }
 
 /** A template's words with its parameters filled in, as WhatsApp shows the text: `{{first_name}}` as `params.first_name`. */

@@ -25,7 +25,7 @@ import SupporterBroadcasts from "@/app/(staff)/staff/_components/SupporterBroadc
 import TextBubble, { ChatBubble, ChatWall, LinkedText, TextWords } from "@/app/(staff)/staff/_components/TextBubble";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import { mailingGroups } from "@/lib/mailing-groups";
-import { templateFooter } from "@/lib/whatsapp-template";
+import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import type { Group } from "../_components/types";
 import {
   ChoosingBroadcastFrameExample,
@@ -754,12 +754,7 @@ export const staffBroadcasts: Group = {
         {
           label: "A text with its footer",
           render: () => (
-            <TextBubble
-              from="PauseAI UK"
-              words={exampleWhatsAppWords}
-              footer={templateFooter(["events"])}
-              time="07:18"
-            />
+            <TextBubble from="PauseAI UK" words={exampleWhatsAppWords} footer={TEMPLATE_FOOTER} time="07:18" />
           ),
         },
       ],

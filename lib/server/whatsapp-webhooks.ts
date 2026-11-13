@@ -1,11 +1,20 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
+import { SITE_ACTOR } from "@/lib/broadcasts";
 import { staffCopy } from "@/lib/content/staff-interface";
+import type { LetterDoc } from "@/lib/letter-format";
+import type { Topic } from "@/lib/contact-permissions";
+import { siteUrl } from "@/lib/site-url";
+import { stopAnswer } from "@/lib/whatsapp-template";
+import { textBackend } from "./broadcast-channels";
 import { holdCopy } from "./broadcast-sending";
 import { query, transaction } from "./db";
 import { config } from "./config";
+import { newNumberLink } from "./email-settings";
 import { notifyStaff } from "./notifications";
-import { managerLink } from "./outside-services/whatsapp";
-import { numberOf, recordWhatsAppResume, recordWhatsAppStop } from "./whatsapp-stops";
+import { managerLink, sendText } from "./outside-services/whatsapp";
+import { problem } from "./problems";
+import { numberOf, recordWhatsAppResume, recordWhatsAppStop, stoppedTopics } from "./whatsapp-stops";
 import { markUnreachable, WHATSAPP_ERRORS } from "./whatsapp-texts";
 import { applyTemplateStatus } from "./whatsapp-templates";
 
@@ -138,7 +147,52 @@ function asksToStop(message: Message): boolean {
 }
 
 /**
- * A message someone sent us: a stop, if it asks to; else a reply to the
+ * Keeps a stop that answers copy `copyId` as a reply to it, recorded as an
+ * opt-out by the site (SITE_ACTOR), so its thread shows it; its ID.
+ */
+async function keepStop(copyId: number, number: string, message: Message, at: Date): Promise<number> {
+  const [{ id }] = await query<{ id: number }>(
+    `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic,
+       outcome, dealt_by, dealt_at)
+     VALUES ($1, $2, $3, '', $4, $5, false, 'opted-out', $6, $2) RETURNING id::int AS id`,
+    [copyId, at, number, message.id, wordsOf(message), SITE_ACTOR],
+  );
+  return id;
+}
+
+/**
+ * Answers a stop, in the day WhatsApp takes words of our own after a
+ * message: what it stopped, and a link to the contact preferences page for
+ * the number; kept as the answer to the stop's reply, if it was kept as one.
+ * A failure is reported, not thrown, as the stop is kept.
+ */
+async function answerStop(number: string, topics: Topic[], replyId?: number): Promise<void> {
+  try {
+    const backend = await textBackend();
+    if (!backend) return;
+    const link = siteUrl(await newNumberLink(number), undefined).toString();
+    const words = stopAnswer(topics, link);
+    const sent = await sendText(backend.keys, backend.number.id, number, words);
+    if (!sent.sent) throw new Error(sent.reason);
+    if (replyId) {
+      const doc: LetterDoc = {
+        type: "doc",
+        content: [{ type: "paragraph", content: [{ type: "text", text: words }] }],
+      };
+      await query(
+        `INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, sent_at, provider_message_id)
+         VALUES ($1, $2, $3, $4, 'sent', now(), $5)`,
+        [replyId, randomUUID(), SITE_ACTOR, JSON.stringify(doc), sent.id],
+      );
+    }
+  } catch (error) {
+    problem(staffCopy.problems.anywhere.stopNotAnswered, error);
+  }
+}
+
+/**
+ * A message someone sent us: a stop, if it asks to, the first time kept as
+ * a reply to the copy it answers, if any, and answered; else a reply to the
  * copy it answers, kept once, for staff; else, as it answers no text,
  * emailed to staff.
  */
@@ -147,7 +201,12 @@ async function applyMessage(message: Message): Promise<boolean> {
   const at = timeOf(message.timestamp);
   const copyId = await copyAnswered(number, message.context?.id);
   if (asksToStop(message)) {
-    return recordWhatsAppStop(number, "reply", message.id, at, copyId);
+    const recorded = await recordWhatsAppStop(number, "reply", message.id, at, copyId);
+    if (recorded) {
+      const replyId = copyId ? await keepStop(copyId, number, message, at) : undefined;
+      await answerStop(number, await stoppedTopics("reply", copyId), replyId);
+    }
+    return recorded;
   }
   if (!copyId) {
     const email = staffCopy.notifications.whatsAppMessage;

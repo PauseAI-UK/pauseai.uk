@@ -4,6 +4,7 @@ import {
   exampleBlocked,
   exampleDoNotEmail,
   exampleNoBulk,
+  exampleNumber,
   exampleNumberHolds,
   exampleSettings,
   exampleStopped,
@@ -71,6 +72,22 @@ export const emailSettings: Group = {
           render: () => (
             <ProsePage>
               <EmailSettingsExample view={exampleNumberHolds} />
+            </ProsePage>
+          ),
+        },
+        {
+          label: "A number's page, from the answer to a STOP: its texts and calls alone",
+          render: () => (
+            <ProsePage>
+              <EmailSettingsExample view={exampleNumber} number />
+            </ProsePage>
+          ),
+        },
+        {
+          label: "A number's link, run out: how to stop texts instead",
+          render: () => (
+            <ProsePage>
+              <EmailSettingsExample view={null} number />
             </ProsePage>
           ),
         },

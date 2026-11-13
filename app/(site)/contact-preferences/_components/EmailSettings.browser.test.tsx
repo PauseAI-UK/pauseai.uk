@@ -8,6 +8,7 @@ import {
   exampleBlocked,
   exampleDoNotEmail,
   exampleNoBulk,
+  exampleNumber,
   exampleNumberHolds,
   exampleSettings,
   exampleStopped,
@@ -256,6 +257,37 @@ describe("EmailSettings", () => {
     await page.getByRole("button", { name: copy.expired.button }).click();
     await expect.element(page.getByText(copy.expired.sent)).toHaveFocus();
     expect(done.resend).toHaveBeenCalledOnce();
+  });
+
+  it("shows a number's page with its texts and calls alone: no email, PauseAI Global's emails or Stop everything", async () => {
+    await render(
+      <EmailSettings
+        opened={{ kind: "link", token: "tok", number: true }}
+        unsubscribe={null}
+        initial={exampleNumber}
+        actions={actions()}
+      />,
+    );
+    await expect.element(page.getByText(exampleNumber.address)).toBeVisible();
+    await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.text })).toBeChecked();
+    await expect.element(card("events").getByRole("checkbox", { name: copy.ways.text })).not.toBeChecked();
+    expect(page.getByRole("checkbox", { name: copy.ways.email }).elements()).toEqual([]);
+    expect(page.getByRole("heading", { name: copy.global.title }).elements()).toEqual([]);
+    expect(page.getByRole("heading", { name: copy.stopAll.title }).elements()).toEqual([]);
+  });
+
+  it("says how to stop texts, with no fresh link, for a number's link that's run out", async () => {
+    await render(
+      <EmailSettings
+        opened={{ kind: "link", token: "tok", number: true }}
+        unsubscribe={null}
+        initial={null}
+        actions={actions()}
+      />,
+    );
+    await expect.element(page.getByRole("heading", { name: copy.expired.title })).toBeVisible();
+    await expect.element(page.getByText(copy.numberExpired)).toBeVisible();
+    expect(page.getByRole("button", { name: copy.expired.button }).elements()).toEqual([]);
   });
 
   it("offers a fresh link for a link asked for that's run out", async () => {

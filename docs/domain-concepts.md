@@ -412,9 +412,10 @@ job all leave broadcasts out.
   people get, as its words are the same for everyone. New words go to
   WhatsApp (`createTemplate`) as a marketing template in British English,
   named by its name and ID in WhatsApp's lower case (`meta_name`), each
-  field a named parameter (`{{first_name}}`) with an example, and a
-  footer naming the text's topics: "Reply STOP to stop event texts"
-  (`templateFooter`). If WhatsApp doesn't take them, the
+  field a named parameter (`{{first_name}}`) with an example, and the
+  footer every text has, "Reply STOP to stop these texts"
+  (`TEMPLATE_FOOTER`), so any template can go under any topics. If
+  WhatsApp doesn't take them, the
   draft is as it was, and says so. Withdrawn, they're deleted there too.
   WhatsApp's decision comes by its webhook, and each run of the sending asks
   it too while a template waits or a text is to go, in case a webhook went
@@ -543,7 +544,9 @@ job all leave broadcasts out.
   delivered, read or failed; a message to us, which answers the text it
   quotes, or else the newest sent to that number, and is kept as a reply,
   or is a stop of the topics that text went under if it says "stop" or
-  "unsubscribe", in any case, or,
+  "unsubscribe", in any case, which the site answers once, in the day
+  WhatsApp takes words of ours: what it stopped, and a link to the contact
+  preferences page for the number; or,
   answering no text, is emailed to the notification inbox; a stop or
   resume in WhatsApp's own setting for marketing messages; what it
   decided of a template, or its category; and anything about our number's
@@ -1197,9 +1200,13 @@ broadcast has its own link (`/contact-preferences/m/<token>`), which opens the
 page with one button that opts out of what the copy went under: following
 the link changes nothing, as mail scanners follow links nobody clicked. The
 button works forever; the rest of the page for 30 days after the copy went,
-then it offers a fresh link.
+then it offers a fresh link. The answer to a stop in WhatsApp has a link
+for the number alone, working for 30 days: the page then has that number's
+texts and calls, with no email, PauseAI Global's emails or Stop everything,
+and once it's run out it says to reply STOP, as there's no address to send
+a fresh one to.
 
-The page opens only from a link emailed to the address, so a box ticked
+The page opens only from a link emailed to the address, or texted to the number, so a box ticked
 there is its owner saying yes: a yes from the page (`preference_choices`),
 with the words beside it, which wins over an older opt-out. An untick is
 an opt-out from the page. Texts and calls are for the numbers of whoever has
@@ -1209,8 +1216,9 @@ none. Turning off events by email, or every bulk email, takes the
 address off our Luma calendar too, on the live site. "No bulk emails" holds
 all of its email, which the person can lift there, beside a plain sentence
 of what that does; "Do not email" only Global can lift. Stop everything is
-an opt-out of every bulk email, and of each text and call the numbers had a
-yes for.
+an opt-out of every bulk email, and of every text and every call to each of
+the numbers (`all` by text and by call), so no yes, now or later, gets
+past it till Restart; the page locks their boxes meanwhile.
 
 Someone with "No bulk emails" who ticks a box to hear from us, on the march
 form, Email your MP or a paper sign-up form, is emailed how to lift it,
@@ -1229,8 +1237,7 @@ contacts API returns (`lib/server/outside-services/civicrm.ts`, with
 is in PauseAI/pauseai-civicrm, which is private), as it told us. The hourly import pulls them all, 500 a page by
 contact ID, and keeps each one's contact ID, Airtable ID and address; its
 member details (`first_name`, `last_name`, `city`, `postal_code`,
-`joined_date`, a day, `intent`, and `phone`, which Global shares for calls
-only), each null when CiviCRM has none; its flags (`on_hold`,
+`joined_date`, a day, `intent`, and `phone`), each null when CiviCRM has none; its flags (`on_hold`,
 `no_bulk_email`, `do_not_email`, `do_not_phone`, `do_not_sms`); and its
 status on the two UK lists, `newsletter` and `volunteer_updates`. CiviCRM
 gives no dates but the day they joined, so each flag's and list's `_since`
@@ -1298,17 +1305,18 @@ or a call to a number. The topics:
   for "text updates on the day" is a yes for texts until the day ends
   (`day_texts`).
 - **Volunteering**: CiviCRM's `volunteer_updates` list, for email; and a
-  member's number, for calls, if they chose to volunteer or lead when
+  member's number, for calls and texts, if they chose to volunteer or lead when
   joining, or joined before 30 June 2026 on the Tally form, which didn't
   ask: a contact's number and intent from CiviCRM, or from Airtable for a
-  member CiviCRM has never returned. Never for texts, as no join form has
-  asked whether we may text them, and Global shares numbers for calls only.
+  member CiviCRM has never returned.
 
 Each answer is yes or no, with a reason from a short list, when, and which
 source said so. First, whatever stops every topic by the way: a blocked
 address (`email_blocks`, below), then CiviCRM's "Do not email" and "No bulk
 emails" for email, "Do not SMS" for texts and "Do not phone" for calls, on
-any contact with the address or number, or of a member who gave the number. Then the
+any contact with the address or number, or of a member who gave the number;
+and our own stop of every text or every call to the number (`all`), from
+Stop everything, WhatsApp's setting or a text it refused. Then the
 latest thing the person said about the consent, a stop or a yes, a stop
 winning a tie, so a box ticked after an unsubscribe opens it again. Last,
 if they said nothing that counts, why not: a box left unticked, never

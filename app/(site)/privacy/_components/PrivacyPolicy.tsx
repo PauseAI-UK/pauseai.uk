@@ -90,17 +90,14 @@ export default function PrivacyPolicy() {
 
       <h2>How we contact you</h2>
       <p>
-        We only email you when you opted in - either to our newsletter, messages about events or you said you’d like to
-        volunteer. Every email has a link at the bottom to unsubscribe or change the emails you get. Or check your
-        settings now on the{" "}
-        <Link className="inline-link" href="/contact-preferences">
-          contact preferences page
-        </Link>
-        .
+        We only email you if you asked for our newsletter or events, or said you’d like to volunteer. Every email has a
+        link to unsubscribe.
       </p>
       <p>
-        We only text you on WhatsApp when you opted in to texts. To stop, reply STOP to any of them, or change the texts
-        you get on the{" "}
+        We only text you on WhatsApp if you asked for texts, or said you’d like to volunteer. Reply STOP to stop them.
+      </p>
+      <p>
+        Change what you get on the{" "}
         <Link className="inline-link" href="/contact-preferences">
           contact preferences page
         </Link>

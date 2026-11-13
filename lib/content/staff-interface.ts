@@ -642,7 +642,7 @@ export const staffCopy = {
           },
           volunteering: {
             about: "Any contact about volunteering.",
-            yes: "By email, they're on the volunteer list in CiviCRM. By call, they gave the number on the join form after choosing to volunteer or lead. Never by text yet, as the join form hasn't asked whether we can text them.",
+            yes: "By email, they're on the volunteer list in CiviCRM. By call or text, they gave the number on the join form after choosing to volunteer or lead.",
             no: "They unsubscribed, didn't choose to volunteer, or the global team no longer shares them with us.",
           },
         } as Record<Topic, { about: string; yes: string; no: string }>,
@@ -1458,6 +1458,10 @@ All events: ${link}`,
       sentBy: (by: string) => `Sent by ${by}`,
       stillSending: (account: string) => `Unsure if this sent. Check ${account}'s Sent folder in Gmail.`,
       optedOut: (by: string, when: string) => `Recorded as an opt-out by ${by}, ${when}`,
+      // The site's own: its answer to a STOP, the STOP recorded as an opt-out, and who in the history.
+      sentAutomatically: "Sent automatically",
+      optedOutAutomatically: (when: string) => `Recorded as an opt-out automatically, ${when}`,
+      automatically: "Automatically",
       nothingDone: (by: string, when: string) => `Nothing to do, said ${by}, ${when}`,
       // In its history.
       // Each with who, on a line under it.
@@ -2865,6 +2869,9 @@ All events: ${link}`,
       // A text's new words couldn't be sent to WhatsApp for approval, or taken back from it.
       templateNotSent: (name: string) => `WhatsApp didn't take template ${name} for approval`,
       templateNotDeleted: (name: string) => `WhatsApp didn't delete template ${name}, which was withdrawn here`,
+      // The text answering a reply of "stop" didn't go, though the stop is kept.
+      stopNotAnswered:
+        "A supporter replied STOP and their texts are stopped, but our WhatsApp reply confirming it failed to send",
       // What those are, in them.
       copyOf: (id: number) => `Broadcast copy ${id}`,
       letterOf: (id: number) => `Letter ${id}`,

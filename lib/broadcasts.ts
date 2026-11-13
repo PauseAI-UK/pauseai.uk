@@ -20,6 +20,12 @@ import { anyAndNone, valuesOf, type ParamValue } from "./list-params";
 // to say: how the Consent filter fixes a broadcast's channel and topics, its
 // merge fields, what it costs, and what stops it being scheduled.
 
+/**
+ * Who dealt with a reply or sent an answer when the site did it itself,
+ * not staff: a STOP replied to a text, kept as an opt-out and answered.
+ */
+export const SITE_ACTOR = "pauseai.uk";
+
 /** How a broadcast goes. Staff choose text, never the backend that sends it. */
 export type BroadcastChannel = "email" | "text";
 

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "./db";
 import { parseMime } from "@/lib/email-parsing/mime";
-import { letterThread, messageContent, replyFile, repliesAfter } from "./letter-threads";
+import { letterThread, messageContent } from "./letter-threads";
 import { wholeTextOf } from "@/lib/email-parsing/mime";
 import { saveLetterReply } from "./outside-services/blobs";
 
@@ -192,17 +192,5 @@ describeWithDatabase("letter threads", () => {
     expect((await messageContent("layout.eml.gz")).text).toBe(
       "Dear\u00a0Jo,\n\nIt’s split in the source & – — &unknown;.\n\nA line\n\nAnother\nline\n\n- First\n- Second",
     );
-  });
-
-  it("lists the kept replies after an ID for the backup, and gives each one's file", async () => {
-    const { letter: id } = await letter();
-    await keep(id, "a.eml.gz", "hello", "2026-11-02T12:00:00Z");
-    await keep(id, "b.eml.gz", "again", "2026-11-02T13:00:00Z");
-    const [first, second] = await repliesAfter(0);
-    expect([first.key, second.key]).toEqual(["a.eml.gz", "b.eml.gz"]);
-    expect(await repliesAfter(first.id)).toEqual([second]);
-    expect(await repliesAfter(0, 1)).toEqual([first]);
-    expect((await replyFile(second.id))!.equals(gzipSync(Buffer.from("again")))).toBe(true);
-    expect(await replyFile(999)).toBeUndefined();
   });
 });

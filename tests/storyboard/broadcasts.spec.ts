@@ -1,5 +1,6 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { emailSettingsCopy as settingsCopy } from "@/lib/content/email-settings";
 import { SENDING_DAYS } from "@/lib/broadcast-days";
 import { GMAIL_DAILY_LIMIT } from "@/lib/gmail-connect";
 import { runSql } from "@/scripts/fresh-database.mjs";
@@ -7,7 +8,7 @@ import { addStaffAccount, importCivicrm, importLuma, logInAsStaff, newestEmail }
 import { caretInEmpty } from "./editor-steps";
 import { BASE, emailFrame, expect, frame, story, test, textFrame } from "./fixtures";
 import { newestText, OUR_CHAT, shownText, templateSent } from "./whatsapp-steps";
-import { templateFooter } from "@/lib/whatsapp-template";
+import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import { connectGmail } from "./staff-steps";
 import type { Section } from "./report/frames";
 import { messageFrom, postWhatsAppWebhook, statusOf, templateStatus } from "../whatsapp-webhooks";
@@ -85,7 +86,7 @@ function addTemplates(database: string) {
          'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Hi '),
            jsonb_build_object('type', 'field', 'attrs', jsonb_build_object('field', 'firstName')),
            jsonb_build_object('type', 'text', 'text', ', ' || words))))),
-       'approved', by, '2026-10-01T10:00:00Z'::timestamptz - n * interval '1 day', '${templateFooter(["events"])}'
+       'approved', by, '2026-10-01T10:00:00Z'::timestamptz - n * interval '1 day', '${TEMPLATE_FOOTER}'
      FROM (VALUES
        ('The march meets at 11:00 at Parliament Square.', 'the march meets at 11:00 at Parliament Square. Look for the orange flags.', 'jo@pauseai.uk', 1),
        ('PauseCon room change', 'PauseCon has moved to the Main Hall. Doors still open at 09:30.', 'sam@pauseai.uk', 2),
@@ -373,7 +374,7 @@ function addDueText(database: string, title: string, scheduledBy: string): strin
     database,
     `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, meta_name, category, footer)
      VALUES ('${title}', '${WORDS}', 'approved', 'jo@pauseai.uk', now() - interval '1 day', 'flow_text_1', 'MARKETING',
-       '${templateFooter(["events"])}')
+       '${TEMPLATE_FOOTER}')
      RETURNING id`,
   );
   const [id] = runSql(
@@ -453,10 +454,18 @@ test("A reply to a text", async ({ page, request, flowDatabase }) => {
 
 test("Stop, replied in WhatsApp", async ({ page, request, flowDatabase }) => {
   story(
-    "A supporter replies STOP to a text, as its footer says. WhatsApp's webhook tells the site, which stops texts on that text's topic to their number.",
+    "A supporter replies STOP to a text, as its footer says. WhatsApp's webhook tells the site, which stops texts on that text's topics to their number.",
   );
   const sent = await textSent(request, flowDatabase);
   await postWhatsAppWebhook(request, BASE, messageFrom(sent.number, "wamid.flow-stop", sent.wamid, { text: "STOP" }));
+  story("The site answers in WhatsApp, saying what stopped, with a link to their contact preferences.");
+  const answer = newestText(`+${sent.number}`, (text) => "words" in text)!;
+  await textFrame(page, OUR_CHAT, shownText(flowDatabase, answer), "The answer to their STOP");
+  story("The link opens their number's texts and calls alone: no email, as the link went only to the number.");
+  const link = new URL(shownText(flowDatabase, answer).words.match(/https?:\/\/\S+/)![0]);
+  await page.goto(`${BASE}${link.pathname}`);
+  await expect(page.getByRole("heading", { name: settingsCopy.settings.title })).toBeVisible();
+  await frame(page, "Their contact preferences, from the link");
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
   await expect(page.getByText(copy.copyStates["opted-out:whatsapp-reply"]!).first()).toBeVisible();

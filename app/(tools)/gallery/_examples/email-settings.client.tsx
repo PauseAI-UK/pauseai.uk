@@ -23,13 +23,19 @@ export function SettingsStartExample() {
   );
 }
 
-/** The page for `view`, or its link run out with none; from an email's unsubscribe link under `unsubscribe`. Each action logs, and gives the page as it was. */
+/**
+ * The page for `view`, or its link run out with none; from an email's
+ * unsubscribe link under `unsubscribe`; a number's link, `number`. Each
+ * action logs, and gives the page as it was.
+ */
 export function EmailSettingsExample({
   view,
   unsubscribe = null,
+  number = false,
 }: {
   view: SettingsView | null;
   unsubscribe?: Topic[] | null;
+  number?: boolean;
 }) {
   return (
     <Logged>
@@ -40,7 +46,7 @@ export function EmailSettingsExample({
         };
         return (
           <EmailSettings
-            opened={{ kind: unsubscribe ? "copy" : "link", token: "example" }}
+            opened={{ kind: unsubscribe ? "copy" : "link", token: "example", number }}
             unsubscribe={unsubscribe}
             initial={view}
             actions={{
