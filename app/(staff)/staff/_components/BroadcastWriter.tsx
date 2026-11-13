@@ -494,7 +494,6 @@ export default function BroadcastWriter({
   return (
     <>
       <DraftTitle title={title} saveState={blank ? undefined : saveState} />
-      {!data.sends && <Strip tone="amber">{copy.cantSend}</Strip>}
       {saveState === "conflict" && (
         <Strip tone="red" announce>
           {staffCopy.mailingPages.saveStates.conflict}

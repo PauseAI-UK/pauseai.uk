@@ -1220,7 +1220,6 @@ All events: ${link}`,
     sections: { who: "To", write: "Write", preview: "Preview", from: "Sent from", when: "When", send: "Send" },
     willGet: (n: number, channel: "email" | "text") =>
       `${count(n, "supporter", "supporters")} will be ${channel === "email" ? "emailed" : "texted"}.`,
-    cantSend: "Texts can't be sent yet. You can still write one.",
     // Write.
     subject: "Subject",
     emailLabel: "Email",
