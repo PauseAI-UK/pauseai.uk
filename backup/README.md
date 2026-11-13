@@ -51,21 +51,27 @@ broadcasts by email. That's outside the database, so the dump doesn't hold
 them. It writes every one into one tar file, each named by its key, which
 the Worker stores beside the dump. A key's message never changes, so it
 copies each message last night's archive has, which the Worker sends it,
-and fetches only the rest through the site's read-only route
-(`app/api/backup/messages`), with the site's `BACKUP_SECRET`: a handful on
-most nights. On Sundays it fetches them all, so a message spoilt in one
-archive isn't carried on for good; it does the same when last night's
-archive is missing, or can't be read, and the manifest says why
-(`previousUnused`). It fetches four at a time, and tries a request that
-gets no answer, or a 5xx or 429, again after 1, 2, 4, 8, 16 and 32 seconds
-and a minute, before it gives up; the problem then says why, the network's
-reason too ("fetch failed: ECONNRESET, 8 times"). The
-archive holds what the site has that night, so a message erased on the site
-is in no archive after, and the old archives expire. The manifest records
-the archive, and the checks say so if a message the site listed was missing
-from its store, or the archive has more than 20% fewer messages than the
-night before. If the archive fails, the dump is still kept, and the problem
-emailed. Each message is gzipped already, so the tar isn't compressed again.
+and fetches the rest through the site's read-only route
+(`app/api/backup/messages`), with the site's `BACKUP_SECRET`. It also
+fetches again a seventh of them each night, by key, so every message is
+checked against the site once a week, and a copy spoilt in one archive
+isn't carried on for long; if the site fails one of those, last night's
+copy is kept. So a night fetches a few hundred messages, not all of them,
+as a quick burst of a thousand or so made the site stop answering. It asks
+two at a time, with a half-second pause after, and tries a request that
+gets no answer, or a 5xx or 429, again after 1, 2, 4, 8, 16, 32, 60 and
+120 seconds. A message it still can't get is left out of that night's
+archive, which is stored all the same, and the next night tries it again:
+the run reports it as a problem, naming it and the reason ("fetch failed:
+UND_ERR_CONNECT_TIMEOUT, 9 times"). So a first archive, or one after a bad
+night, fills in over a night or two rather than failing whole. If last
+night's archive is missing or can't be read, it fetches them all, and the
+manifest says why (`previousUnused`). The manifest records the archive:
+how many messages, how many fetched, which the site listed but had none
+for, and which it couldn't fetch. The checks say so if any are missing or
+couldn't be fetched, or the archive has more than 20% fewer messages than
+the night before. If the archive can't be made at all, the dump is still
+kept, and the problem emailed. Each message is gzipped already, so the tar isn't compressed again.
 
 Any problem, or a backup that fails outright, is emailed through Postmark.
 If a Healthchecks.io ping URL is set (`HEALTHCHECK_URL`), every run pings it
@@ -149,8 +155,8 @@ curl -X POST https://pauseai-uk-backup.<subdomain>.workers.dev/run -H "Authoriza
 
 It answers when the backup is done, with "No problems." or a list of them,
 as the email would say. That takes a while: about three minutes for the
-dump, then a minute or so for the messages, or a few on a Sunday, when it
-fetches them all. Follow it in the logs ("Follow a run", below) rather
+dump, then a few minutes for the messages, or longer the first time, when
+it fetches them all. Follow it in the logs ("Follow a run", below) rather
 than waiting on curl.
 
 `RUN_SECRET` is what `setup.sh` printed the first time. Cloudflare won't show a secret again, so

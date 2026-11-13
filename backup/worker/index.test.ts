@@ -29,7 +29,7 @@ const REPORT = {
   },
 };
 // The messages' archive, the same length as the dump, as the stand-in FixedLengthStream checks.
-const MESSAGES = { bytes: 4, sha256: "def", messages: 1, missing: [] };
+const MESSAGES = { bytes: 4, sha256: "def", messages: 1, fetched: 1, missing: [], failed: [] };
 
 /** The container's server: a backup's report and dump, a messages' archive's report and the archive. */
 async function containerServer(request: Request): Promise<Response> {

@@ -6,7 +6,7 @@ import { LATEST, takeBackup, type BackupDeps } from "./run.ts";
 
 const NOW = new Date("2026-10-19T03:00:00.123Z");
 const REPORT: DumpReport = { bytes: 3, sha256: "abc", tables: { letters: { rows: 2, newest: null } } };
-const MESSAGES: MessagesReport = { bytes: 4, sha256: "def", messages: 2, fetched: 2, missing: [] };
+const MESSAGES: MessagesReport = { bytes: 4, sha256: "def", messages: 2, fetched: 2, missing: [], failed: [] };
 
 /** The container: a dump's report and dump, and a messages' archive's report and the archive. */
 async function containerServer(path: string, init?: RequestInit): Promise<Response> {
@@ -163,7 +163,7 @@ describe("takeBackup", () => {
     }
   });
 
-  it("sends the container last night's archive to copy from, but on Sundays, when it fetches them all", async () => {
+  it("sends the container last night's archive to copy from, every night it's there", async () => {
     const lastNight: Manifest = {
       ...REPORT,
       at: "2026-10-18T03:00:00.000Z",
@@ -179,10 +179,8 @@ describe("takeBackup", () => {
     };
     const bucket = () => fakeBucket({ [LATEST]: JSON.stringify(lastNight), "messages/last.tar": "LAST" });
     await takeBackup(deps({ bucket: bucket(), container }));
-    // 25 October 2026 is a Sunday.
-    await takeBackup(deps({ bucket: bucket(), container, now: new Date("2026-10-25T03:00:00Z") }));
     // Gone from the bucket, as it expired: none.
     await takeBackup(deps({ bucket: fakeBucket({ [LATEST]: JSON.stringify(lastNight) }), container }));
-    expect(sent).toEqual(["LAST", null, null]);
+    expect(sent).toEqual(["LAST", null]);
   });
 });

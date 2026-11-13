@@ -54,13 +54,17 @@ export function timestampColumns(rules: Record<string, TableRule>): TimestampCol
   return columns;
 }
 
-/** How many of the missing messages' keys a problem names. */
+/** How many of the messages a problem lists it names. */
 const NAMED = 5;
+
+/** The first few of a list of messages, and how many more. */
+const named = (list: string[]): string =>
+  `${list.slice(0, NAMED).join(", ")}${list.length > NAMED ? `, and ${list.length - NAMED} more` : ""}`;
 
 /**
  * What's wrong with the messages' archive: messages the site listed but
- * couldn't send, and fewer messages by more than MAX_SHRINK than the backup
- * before. A missing archive is told where it failed (run.ts).
+ * had none for, messages it couldn't fetch tonight, and fewer messages by
+ * more than MAX_SHRINK than the backup before. A missing archive is told where it failed (run.ts).
  */
 function messageProblems(
   messages: MessagesManifest | undefined,
@@ -70,9 +74,11 @@ function messageProblems(
   if (!messages) return [];
   const found: string[] = [];
   if (messages.missing.length) {
-    const more = messages.missing.length > NAMED ? `, and ${messages.missing.length - NAMED} more` : "";
+    found.push(`${messages.missing.length} of the site's messages weren't in its store: ${named(messages.missing)}.`);
+  }
+  if (messages.failed.length) {
     found.push(
-      `${messages.missing.length} of the site's messages weren't in its store: ${messages.missing.slice(0, NAMED).join(", ")}${more}.`,
+      `${messages.failed.length} messages couldn't be fetched from the site, so aren't in tonight's archive; the next night tries them again: ${named(messages.failed)}.`,
     );
   }
   if (previous && messages.messages < previous.messages * (1 - MAX_SHRINK)) {

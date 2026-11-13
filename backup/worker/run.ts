@@ -87,14 +87,10 @@ export async function takeBackup({ bucket, container, upload, rules, now }: Back
   }
 }
 
-/** The day of the week, Sunday, whose archive fetches every message from the site, not copying any from the night before. */
-const FULL_FETCH_DAY = 0;
-
 /**
  * Has the container archive the site's kept messages, sending it last
- * night's archive (`previousKey`) to copy those it can from, but on
- * Sundays, so a message spoilt in one archive isn't carried on for good;
- * and stores the archive beside the dump; or says why it couldn't.
+ * night's archive (`previousKey`) to copy those it can from; and stores the
+ * archive beside the dump; or says why it couldn't.
  */
 async function archiveMessages(
   { bucket, container, upload }: Pick<BackupDeps, "bucket" | "container" | "upload">,
@@ -103,7 +99,7 @@ async function archiveMessages(
   previousKey: string | undefined,
 ): Promise<{ messages: MessagesManifest } | { problem: string }> {
   try {
-    const previous = previousKey && now.getUTCDay() !== FULL_FETCH_DAY ? await bucket.get(previousKey) : null;
+    const previous = previousKey ? await bucket.get(previousKey) : null;
     const response = await container(`/messages?at=${encodeURIComponent(now.toISOString())}`, {
       method: "POST",
       ...(previous?.body && { body: previous.body, duplex: "half" }),
