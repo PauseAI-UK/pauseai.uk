@@ -621,6 +621,7 @@ export const staffCopy = {
           staff: "telling staff",
           preferences: "our contact preferences page",
           "civicrm-check": "PauseAI Global's records",
+          whatsapp: "⁂ WhatsApp: its setting, a text's Stop button or a reply",
         } as Record<string, string>,
         otherSource: "their newest form",
         // Where a member who's gone came from, as the join form's records are read from Global's Airtable.
@@ -1295,6 +1296,8 @@ All events: ${link}`,
       `Schedule ${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")}`,
     // At the foot of a text on new words: sending them to WhatsApp, and while it reviews them.
     submitTemplate: "Send for approval",
+    // Under it, when WhatsApp didn't take the words just now.
+    submitFailed: "⁂ WhatsApp didn't take the words just now. Try again in a few minutes.",
     // Over new words, what they're called in the list of templates, and the heading over the words.
     templateName: "Template name",
     templateWords: "Message",
@@ -1374,6 +1377,7 @@ All events: ${link}`,
         gone: "Their reply has been deleted, so this can't answer it.",
         blocked: "Not sent: their address is blocked, as email to it bounced or they marked ours as spam.",
         failed: "Error sending via Gmail. Try again, or reply in Gmail itself.",
+        window: "⁂ Not sent: it's more than a day since their reply, so WhatsApp won't take an answer now.",
       },
       // Our answer in the thread: who sent it; one whose sending never finished.
       sentBy: (by: string) => `Sent by ${by}`,
@@ -1386,6 +1390,14 @@ All events: ${link}`,
       historyNothing: "Marked as nothing to do",
       historyAnswered: "Answered",
       noText: "No text to show. Open it in Gmail.",
+      // A reply to a text with no words, such as a photo or a voice note, which only WhatsApp shows: what it is.
+      notWords: (type: string) => `⁂ [A ${type} message, which only WhatsApp shows]`,
+      // For a reply to a text: an opt-out of every text, in place of all bulk email; how they told us.
+      allTexts: "⁂ Every text",
+      topicsText: (topics: string) => `⁂ ${topics} (this text)`,
+      howText: "⁂ By replying to this text",
+      // A text's reply can be answered in WhatsApp only within a day of it.
+      windowClosed: "⁂ It's more than a day since their reply, so WhatsApp won't take an answer now.",
     },
     // A broadcast that can't go yet, on its page: CiviCRM didn't answer its check, or no pull has finished for a day.
     waiting: (reason: "civicrm" | "pull", stops: string) =>
@@ -1399,6 +1411,8 @@ All events: ${link}`,
     resume: RESUME_SENDING,
     // The same, for one a day's limit of emails left too slow.
     gaveUpLimit: `Stopped after ${daysInWords(SENDING_DAYS)}, before everyone got it.`,
+    // The same, for a text whose template WhatsApp paused or disabled, for its quality.
+    gaveUpTemplate: "⁂ Stopped, as WhatsApp paused or disabled its template.",
     // On one sending by Gmail that can send no more today, under the bar that says how far it's got.
     moreTomorrow: "Gmail has reached today's limit. The rest will be sent tomorrow.",
     recipientsTitle: "Recipients",
@@ -2225,14 +2239,27 @@ All events: ${link}`,
     },
     // A broadcast that waited too long and stopped, to whoever scheduled it and the inbox: how many it didn't reach.
     broadcastGaveUp: {
-      subject: (title: string, reason: "civicrm" | "pull" | "limit") =>
-        `Stopped after ${daysInWords(reason === "limit" ? SENDING_DAYS : WAIT_DAYS)}: ${title}`,
+      subject: (title: string, reason: "civicrm" | "pull" | "limit" | "template") =>
+        reason === "template"
+          ? `⁂ Stopped, as WhatsApp paused its template: ${title}`
+          : `Stopped after ${daysInWords(reason === "limit" ? SENDING_DAYS : WAIT_DAYS)}: ${title}`,
       // How to send it to those it didn't reach: the button on its page (broadcastPages.resume).
       resume: `To send it to them, press “${RESUME_SENDING}” on its page.`,
       // Why, for one a day's limit of emails left too slow, in place of CiviCRM's sentence.
       whyLimit: `It was too large a broadcast for Gmail to send within ${daysInWords(SENDING_DAYS)}.`,
-      body: (title: string, reason: "civicrm" | "pull" | "limit", notReached: number, link: string) =>
-        `“${title}” has been stopped. ${reason === "limit" ? staffCopy.notifications.broadcastGaveUp.whyLimit : `CiviCRM couldn't be reached for ${daysInWords(WAIT_DAYS)}, and we don't email anyone without checking with it first.`}\n\n${count(notReached, "person", "people")} didn't get it. ${staffCopy.notifications.broadcastGaveUp.resume}\n\n${link}`,
+      // Why, for a text whose template WhatsApp paused or disabled, for its quality.
+      whyTemplate:
+        "⁂ WhatsApp paused or disabled its template, as people blocked, reported or didn't read texts on it. Change the words before it goes again.",
+      body: (title: string, reason: "civicrm" | "pull" | "limit" | "template", notReached: number, link: string) => {
+        const words = staffCopy.notifications.broadcastGaveUp;
+        const why =
+          reason === "limit"
+            ? words.whyLimit
+            : reason === "template"
+              ? words.whyTemplate
+              : `CiviCRM couldn't be reached for ${daysInWords(WAIT_DAYS)}, and we don't email anyone without checking with it first.`;
+        return `“${title}” has been stopped. ${why}\n\n${count(notReached, "person", "people")} didn't get it. ${words.resume}\n\n${link}`;
+      },
     },
     // A text's new words sent to WhatsApp for approval, to who sent them and the inbox: the words, and the text.
     templateSubmitted: {
@@ -2245,6 +2272,39 @@ All events: ${link}`,
       subject: (name: string) => `WhatsApp approved the template: ${name}`,
       body: (words: string, links: string[]) =>
         `WhatsApp approved this copy, so a text on it can be scheduled now.\n\n${words}\n\n${links.join("\n")}`,
+    },
+    // Why WhatsApp rejected a template, by its code, in plain words with what to do
+    // (https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-review).
+    templateRejectedWhy: {
+      reasons: {
+        ABUSIVE_CONTENT: "⁂ WhatsApp found the words abusive or against its policies.",
+        INCORRECT_CATEGORY: "⁂ WhatsApp thought the words weren't marketing. Write them as a message to supporters.",
+        INVALID_FORMAT:
+          "⁂ The words aren't in a form WhatsApp takes: a field at the very start or end, or two fields together.",
+        PROMOTIONAL: "⁂ WhatsApp thought the words too promotional.",
+        SCAM: "⁂ WhatsApp thought the words might be a scam.",
+        TAG_CONTENT_MISMATCH: "⁂ WhatsApp thought the words didn't match their kind.",
+      } as Record<string, string>,
+      other: (code: string) => `⁂ WhatsApp gave no reason we know (${code}).`,
+    },
+    // WhatsApp paused or disabled a template for its quality, as people blocked or reported texts on it, to
+    // whoever sent it and the inbox: and how many texts on it that stopped.
+    // A WhatsApp message that answers no text of ours, to the inbox: who from, and its words.
+    whatsAppMessage: {
+      subject: (number: string) => `⁂ A WhatsApp message from ${number}`,
+      body: (number: string, words: string) =>
+        `⁂ ${number} sent this to our WhatsApp number. It answers no text of ours, so it's here.\n\n${words}`,
+    },
+    // Something WhatsApp says of our number, a template's quality or our account, to the inbox, as it says it.
+    whatsAppAlert: {
+      subject: (what: string) => `⁂ WhatsApp: ${what}`,
+      body: (what: string, details: string) =>
+        `⁂ WhatsApp sent this about our number or account (${what}). Check WhatsApp Manager.\n\n${details}`,
+    },
+    templatePaused: {
+      subject: (name: string) => `⁂ WhatsApp paused the template: ${name}`,
+      body: (name: string, stopped: number) =>
+        `⁂ WhatsApp paused or disabled “${name}”, as people blocked, reported or didn't read texts on it. ${count(stopped, "text", "texts")} on it stopped. Write new words before texting these people again.`,
     },
     templateRejected: {
       subject: (name: string) => `WhatsApp rejected the template: ${name}`,
@@ -2713,6 +2773,11 @@ All events: ${link}`,
       // An email went, but recording that failed: a person must check, as sending it again would send it twice.
       sentUnrecorded: (what: string) =>
         `${what} was sent, but couldn't be marked as sent. Check before sending it again`,
+      // WhatsApp's API didn't answer when asked for our number, so no text could be sent or scheduled just then.
+      whatsAppUnanswered: "WhatsApp didn't answer, so no text could go just then",
+      // A text's new words couldn't be sent to WhatsApp for approval, or taken back from it.
+      templateNotSent: (name: string) => `WhatsApp didn't take template ${name} for approval`,
+      templateNotDeleted: (name: string) => `WhatsApp didn't delete template ${name}, which was withdrawn here`,
       // What those are, in them.
       copyOf: (id: number) => `Broadcast copy ${id}`,
       letterOf: (id: number) => `Letter ${id}`,
@@ -2755,6 +2820,8 @@ All events: ${link}`,
       signatoriesUnread: "The signatories couldn't be read",
       // Luma gets an error, so it sends the webhook again.
       webhookNotRecorded: "A Luma webhook couldn't be recorded",
+      // WhatsApp gets an error, so it sends the webhook again.
+      whatsAppWebhookNotRecorded: "A WhatsApp webhook couldn't be recorded",
       // A visitor looking up a postcode, or staff searching near a place, gets a failed answer.
       postcodesDown: "postcodes.io couldn't be asked",
       // The donate page shows an empty wall of thanks.

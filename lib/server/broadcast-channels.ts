@@ -1,13 +1,17 @@
 import "server-only";
 import { BROADCAST_SEND_BY, type BroadcastChannel, type BroadcastSendBy } from "@/lib/broadcasts";
+import { staffCopy } from "@/lib/content/staff-interface";
 import { config } from "./config";
-import { gmailEmail, postmarkBroadcast, type ChannelResult, type MailingChannel } from "./mailing-channels";
+import { gmailEmail, postmarkBroadcast, type MailingChannel } from "./mailing-channels";
+import { businessNumber, type BusinessNumber, type WhatsAppKeys } from "./outside-services/whatsapp";
+import { problem } from "./problems";
 
 // What sends a message to a supporter once it's written. An email goes by
 // one of the channels mailings go by (mailing-channels.ts), as the broadcast
-// says (send_by). A text's real backend is still to come, so on the live
-// site nothing sends one, and the pages say so; a fixture build has a fake,
-// so its flows can be driven whole.
+// says (send_by). A text goes by WhatsApp (outside-services/whatsapp.ts)
+// where its keys are set: on the live site alone, and a fixture build's
+// fake. Anywhere else, such as a deploy preview, nothing sends a text, and
+// the pages say so.
 
 /** The channel each way of sending an email to supporters goes by, and the gap it keeps between two sends, in ms. */
 const EMAIL_CHANNELS: Record<BroadcastSendBy, { channel: MailingChannel; gapMs: number }> = {
@@ -21,27 +25,38 @@ export function broadcastEmailChannel(sendBy: BroadcastSendBy): { channel: Maili
   return EMAIL_CHANNELS[sendBy];
 }
 
-/** One message to one supporter, as a backend sends it. */
-export type SupporterMessage = { channel: BroadcastChannel; to: string; subject: string; text: string };
+/** WhatsApp's keys, where they're set. */
+export function whatsAppKeys(): WhatsAppKeys | undefined {
+  const token = config.whatsappToken;
+  const accountId = config.whatsappAccountId;
+  return token && accountId ? { token, accountId } : undefined;
+}
 
-export type BroadcastBackend = { send(message: SupporterMessage): Promise<ChannelResult> };
+/** What sends texts: WhatsApp's keys, and our number there. */
+export type TextBackend = { keys: WhatsAppKeys; number: BusinessNumber };
 
-const fakeBackend: BroadcastBackend = { send: async ({ to }) => ({ sent: true, id: `fake-${to}` }) };
-
-/** What sends texts to supporters, if anything does yet. */
-export function broadcastBackend(): BroadcastBackend | undefined {
-  return config.fixtures ? fakeBackend : undefined;
+/** What sends texts, if anything does here; undefined too while WhatsApp doesn't answer, which is reported. */
+export async function textBackend(): Promise<TextBackend | undefined> {
+  const keys = whatsAppKeys();
+  if (!keys) return undefined;
+  try {
+    return { keys, number: await businessNumber(keys) };
+  } catch (error) {
+    problem(staffCopy.problems.anywhere.whatsAppUnanswered, error);
+    return undefined;
+  }
 }
 
 /**
  * Whether a broadcast by `channel` can be sent: an email by `sendBy`, if
- * that's available yet, Gmail unless it says; a text only with a backend.
+ * that's available yet, Gmail unless it says; a text where WhatsApp's keys
+ * are set.
  */
 export function channelSends(channel: BroadcastChannel, sendBy: BroadcastSendBy = "gmail"): boolean {
-  return channel === "email" ? BROADCAST_SEND_BY[sendBy].available : Boolean(broadcastBackend());
+  return channel === "email" ? BROADCAST_SEND_BY[sendBy].available : Boolean(whatsAppKeys());
 }
 
-/** The WhatsApp business account's number, as texts appear from it, if one is set. */
-export function textSenderNumber(): string | null {
-  return config.whatsappNumber ?? null;
+/** Our WhatsApp number, as texts appear from it, if it can be had. */
+export async function textSenderNumber(): Promise<string | null> {
+  return (await textBackend())?.number.number ?? null;
 }

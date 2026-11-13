@@ -465,14 +465,32 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   base. Those are for the politician sync and the members import.
 - **Global's CiviCRM.** Its chapter contacts API, at
   `https://crm.pauseai.info/`, is specified in
-  [`docs/chapter-contacts-api.md`](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md)
-  in PauseAI/pauseai-civicrm.
+  [a document in PauseAI/pauseai-civicrm](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md).
   That repo is private, so an agent can't read the spec: ask Francis to
   paste it. The hourly CiviCRM import reads its `get` with the UK chapter's
-  key, `CIVICRM_CHAPTER_KEY`, in Netlify; nothing writes to CiviCRM yet.
+  key, `CIVICRM_CHAPTER_KEY`, in Netlify, and sends our opt-outs to its
+  `updateSubscriptions`; each broadcast's copies are checked with its
+  `checkSuppression` just before they go.
   Without the key, fixture builds answer from
   `lib/server/fixtures/civicrm-contacts.json`, and the members import skips
   looking up new members.
+- **WhatsApp.** Texts to supporters go by Meta's WhatsApp Cloud API
+  (`lib/server/outside-services/whatsapp.ts`), with three settings, set in
+  Netlify for production alone, so a deploy preview can't send from the real
+  number: `WHATSAPP_TOKEN`, the permanent access token; `WHATSAPP_ACCOUNT_ID`,
+  the WhatsApp account's ID, from the App Dashboard's API Setup panel, which
+  our number is read from; and `WHATSAPP_APP_SECRET`, the Meta app's secret,
+  from its basic settings, which signs the webhook. Without them, nothing
+  sends a text. The webhook is `/api/whatsapp`: in the App Dashboard, the
+  use case's "Configure Webhooks" takes its callback URL and the verify
+  token `WHATSAPP_APP_SECRET=… npm run whatsapp:verify-token` prints, then
+  "Subscribe webhooks" on the WhatsApp account, with the `messages`,
+  `user_preferences`, `message_template_status_update`,
+  `template_category_update`, `phone_number_quality_update`,
+  `message_template_quality_update` and `account_update` fields. The app
+  must be published (Live) for WhatsApp to send real webhooks. Fixture
+  builds talk to a fake (`lib/server/fixtures/whatsapp.ts`), and the
+  storyboard posts its webhooks itself, signed with the fixture's secret.
 
 ### The march sign-up and Luma
 

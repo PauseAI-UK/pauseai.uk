@@ -349,6 +349,23 @@ export const staffBroadcasts: Group = {
             </StaffPage>
           ),
         },
+        {
+          label: "A text stopped, as WhatsApp paused its template",
+          render: () => (
+            <StaffPage as="div">
+              <BroadcastWaiting
+                written={{
+                  ...exampleBroadcastEmail,
+                  channel: "text",
+                  state: "cancelled",
+                  gaveUp: true,
+                  waitReason: "template",
+                }}
+                resume={<ResumeBroadcastExample id={9} />}
+              />
+            </StaffPage>
+          ),
+        },
       ],
     },
     {
@@ -484,6 +501,15 @@ export const staffBroadcasts: Group = {
             </StaffPage>
           ),
         },
+        {
+          label:
+            "A text's replies by WhatsApp: one answered, one to look at, and one too old for WhatsApp to take an answer to",
+          render: () => (
+            <StaffPage as="div">
+              <MessageCopyViewExample replies pastDay />
+            </StaffPage>
+          ),
+        },
       ],
     },
     {
@@ -495,6 +521,14 @@ export const staffBroadcasts: Group = {
           render: () => (
             <StaffPage as="div">
               <ReplyActionsExample />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "To a text: an opt-out of what the text went under, or of every text; or nothing to do",
+          render: () => (
+            <StaffPage as="div">
+              <ReplyActionsExample text />
             </StaffPage>
           ),
         },

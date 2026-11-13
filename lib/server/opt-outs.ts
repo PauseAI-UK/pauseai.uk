@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import type { Topic, Way } from "@/lib/contact-permissions";
+import { hasWay, TOPICS, type Topic, type Way } from "@/lib/contact-permissions";
 import { now } from "@/lib/now";
 import { logChange } from "./audit";
 import { queueOptOut } from "./civicrm-updates";
@@ -18,8 +18,9 @@ import { query, transaction, type Queryable } from "./db";
  * What can record an opt-out: Luma's webhook, a full pass over the
  * calendar's contacts, or CiviCRM's lists; an email's unsubscribe link, or a
  * mail app's Unsubscribe button; a spam complaint; staff, for a reply or
- * anything else the person told them; the contact preferences page; or
- * CiviCRM's suppression check before a broadcast.
+ * anything else the person told them; the contact preferences page;
+ * CiviCRM's suppression check before a broadcast; or WhatsApp
+ * (whatsapp-stops.ts).
  */
 export type OptOutSource =
   | "luma-webhook"
@@ -31,7 +32,8 @@ export type OptOutSource =
   | "reply"
   | "staff"
   | "preferences"
-  | "civicrm-check";
+  | "civicrm-check"
+  | "whatsapp";
 
 /** What an opt-out stops: a topic, or by email every bulk email (`bulk`), or all email (`all`). */
 export type OptOutList = Topic | "bulk" | "all";
@@ -85,10 +87,50 @@ export async function recordOptOut(optOut: OptOut, db?: Queryable): Promise<bool
   );
   if (!row) return false;
   await queueOptOut(
-    { id: row.id, address, list: optOut.list, way, source: optOut.source, at: optOut.unsubscribedAt },
+    {
+      id: row.id,
+      address,
+      list: optOut.list,
+      way,
+      source: optOut.source,
+      at: optOut.unsubscribedAt,
+      every: way !== "email" && (await stopsEvery(address, way, db)),
+    },
     db,
   );
   return true;
+}
+
+/** Whether a number has an open stop of every topic that goes by `way`, text or call. */
+async function stopsEvery(address: string, way: Exclude<Way, "email">, db: Queryable): Promise<boolean> {
+  const topics = TOPICS.filter((topic) => hasWay(topic, way));
+  const [{ every }] = await query<{ every: boolean }>(
+    `SELECT count(DISTINCT list) = $3 AS every FROM opt_outs
+     WHERE address = $1 AND way = $2 AND list = ANY($4::text[]) AND resubscribed_at IS NULL`,
+    [address, way, topics.length, topics],
+    db,
+  );
+  return every;
+}
+
+/**
+ * Closes the open opt-outs of `address` that `source` made, those whose
+ * reference starts `refStart`, from `at`, as the person took them back
+ * there. Says whether any were open.
+ */
+export async function recordSourceResume(
+  address: string,
+  source: OptOutSource,
+  refStart: string,
+  at: Date,
+): Promise<boolean> {
+  const rows = await query(
+    `UPDATE opt_outs SET resubscribed_at = $4
+     WHERE address = $1 AND source = $2 AND source_ref LIKE $3 AND resubscribed_at IS NULL AND unsubscribed_at <= $4
+     RETURNING id`,
+    [normaliseAddress(address), source, `${refStart}%`, at],
+  );
+  return rows.length > 0;
 }
 
 /**

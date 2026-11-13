@@ -1,4 +1,7 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { emailSettingsCopy } from "@/lib/content/email-settings";
+import { http, HttpResponse } from "msw";
+import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db";
 import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailing-doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -51,7 +54,8 @@ const TEXT_FILTER = { contact: "text:events:yes" };
 
 beforeEach(() => {
   vi.stubEnv("DATA_FIXTURES", "1");
-  vi.stubEnv("WHATSAPP_NUMBER", "+447700900000");
+  vi.stubEnv("WHATSAPP_TOKEN", "token");
+  vi.stubEnv("WHATSAPP_ACCOUNT_ID", "fixture-account");
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -125,13 +129,13 @@ describeWithDatabase("broadcasts to supporters", () => {
       template: null,
       filter: { list: "supporters", params: { ...EMAIL_FILTER, near: "M1" } },
     });
-    vi.stubEnv("WHATSAPP_NUMBER", "+447700900000");
+    vi.stubEnv("WHATSAPP_TOKEN", "token");
     expect(await getWrittenBroadcast(await draftOf(TEXT_FILTER))).toMatchObject({
       channel: "text",
       sentFrom: "+447700900000",
       fromName: "PauseAI UK",
     });
-    vi.stubEnv("WHATSAPP_NUMBER", "");
+    vi.stubEnv("WHATSAPP_TOKEN", "");
     expect(await getWrittenBroadcast(await draftOf(TEXT_FILTER))).toMatchObject({ sentFrom: "" });
   });
 
@@ -320,9 +324,9 @@ describeWithDatabase("broadcasts to supporters", () => {
     // Not while anything but its time would stop it being scheduled, such as no number to send from.
     const unready = await draftOf(TEXT_FILTER);
     await readied(unready, { body: EVENT_WORDS, dueAt: null });
-    vi.stubEnv("WHATSAPP_NUMBER", "");
+    vi.stubEnv("WHATSAPP_TOKEN", "");
     expect(await submitTemplate(unready, JO)).toBe("not-ready");
-    vi.stubEnv("WHATSAPP_NUMBER", "+447700900000");
+    vi.stubEnv("WHATSAPP_TOKEN", "token");
     const onTemplate = await draftOf(TEXT_FILTER);
     await readied(onTemplate, { templateId: await addTemplate("March day") });
     expect(await submitTemplate(onTemplate, JO)).toBe("already");
@@ -367,6 +371,127 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await query("SELECT action FROM audit_log WHERE action = 'withdraw broadcast template'")).toHaveLength(1);
   });
 
+  describe("at WhatsApp", () => {
+    const TEMPLATES = /graph\.facebook\.com\/v23\.0\/fixture-account\/message_templates/;
+
+    beforeEach(() => {
+      vi.stubEnv("DATA_FIXTURES", "");
+      vi.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    /** A draft text with words, ready to send for approval; its ID. */
+    async function written(): Promise<number> {
+      const id = await draftOf(TEXT_FILTER);
+      await readied(id, { body: EVENT_WORDS, title: "See you there." });
+      return id;
+    }
+
+    it("sends new words as a marketing template, its field an example, with how to stop, keeping its ID", async () => {
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+      let made: Record<string, unknown> = {};
+      server.use(
+        http.post(TEMPLATES, async ({ request }) => {
+          made = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ id: "meta-1", status: "PENDING", category: "MARKETING" });
+        }),
+      );
+      const id = await written();
+      expect(await submitTemplate(id, JO)).toBe("submitted");
+      const template = (await getWrittenBroadcast(id))!.template!;
+      expect(template.metaName).toBe(`see_you_there_${template.id}`);
+      expect(made).toEqual({
+        name: template.metaName,
+        language: "en_GB",
+        category: "MARKETING",
+        parameter_format: "NAMED",
+        components: [
+          {
+            type: "BODY",
+            text: toText(letterFor(EVENT_WORDS, { values: { firstName: "{{first_name}}" }, meets: [] })),
+            example: { body_text_named_params: [{ param_name: "first_name", example: "Jane" }] },
+          },
+          { type: "FOOTER", text: emailSettingsCopy.textFooter },
+          { type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: emailSettingsCopy.stopButton }] },
+        ],
+      });
+      expect(await query("SELECT meta_id FROM whatsapp_templates")).toEqual([{ meta_id: "meta-1" }]);
+    });
+
+    it("leaves the draft as it was, reporting it, when WhatsApp doesn't take the words or answer", async () => {
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+      server.use(http.post(TEMPLATES, () => HttpResponse.json({ error: { message: "Bad" } }, { status: 400 })));
+      const rejected = await addTemplate("Old words", { status: "rejected" });
+      const id = await written();
+      await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [id, rejected]);
+      expect(await submitTemplate(id, JO)).toBe("failed");
+      expect((await getWrittenBroadcast(id))!.template).toMatchObject({ id: rejected, status: "rejected" });
+      expect(await query("SELECT id::int AS id FROM whatsapp_templates")).toEqual([{ id: rejected }]);
+      expect(console.error).toHaveBeenCalled();
+      // WhatsApp answering the check before, but not when the words go.
+      let asked = 0;
+      server.use(
+        http.get(/phone_numbers/, () =>
+          ++asked > 1
+            ? HttpResponse.json({}, { status: 500 })
+            : HttpResponse.json({ data: [{ id: "fixture-phone", display_phone_number: "+44 7700 900000" }] }),
+        ),
+      );
+      expect(await submitTemplate(id, JO)).toBe("failed");
+      expect(await query("SELECT action FROM audit_log WHERE action = 'submit broadcast template'")).toEqual([]);
+    });
+
+    it("deletes words taken back there too, reporting it if it can't", async () => {
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+      const deleted: string[] = [];
+      server.use(
+        http.delete(TEMPLATES, ({ request }) => {
+          deleted.push(new URL(request.url).searchParams.get("name")!);
+          return deleted.length > 1
+            ? HttpResponse.json({ error: { message: "Gone" } }, { status: 404 })
+            : HttpResponse.json({ success: true });
+        }),
+      );
+      const id = await written();
+      await submitTemplate(id, JO);
+      const name = (await getWrittenBroadcast(id))!.template!.metaName;
+      expect(await withdrawTemplate(id, JO)).toBe(true);
+      expect(deleted).toEqual([name]);
+      await submitTemplate(id, JO);
+      expect(await withdrawTemplate(id, JO)).toBe(true);
+      expect(deleted).toHaveLength(2);
+      expect(console.error).toHaveBeenCalled();
+      // One made before it had a name there, only here.
+      const other = await written();
+      await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [
+        other,
+        await addTemplate("Never sent", { status: "pending" }),
+      ]);
+      expect(await withdrawTemplate(other, JO)).toBe(true);
+      expect(deleted).toHaveLength(2);
+    });
+
+    it("tests a text on a template by the name WhatsApp has it by, but not while WhatsApp doesn't answer", async () => {
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+      const names: string[] = [];
+      server.use(
+        http.post(/messages$/, async ({ request }) => {
+          names.push(((await request.json()) as { template: { name: string } }).template.name);
+          return HttpResponse.json({ messages: [{ id: "wamid.test" }] });
+        }),
+      );
+      const id = await draftOf(TEXT_FILTER);
+      const template = await addTemplate("March day");
+      await query("UPDATE whatsapp_templates SET meta_name = 'march_day_9' WHERE id = $1", [template]);
+      await readied(id, { templateId: template });
+      const text = (await getWrittenBroadcast(id))!;
+      const to = (await supporterAudience(text.filter, text)).recipients[0];
+      expect(await sendBroadcastTest(text, to, "+447700900002")).toEqual({ sent: true, id: "wamid.test" });
+      expect(names).toEqual(["march_day_9"]);
+      server.use(http.get(/phone_numbers/, () => HttpResponse.json({}, { status: 500 })));
+      expect(await sendBroadcastTest(text, to, "+447700900002")).toBeUndefined();
+    });
+  });
+
   it("records WhatsApp's decision, emailing who sent the words and the inbox, with the texts on them", async () => {
     vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
@@ -406,10 +531,19 @@ describeWithDatabase("broadcasts to supporters", () => {
     const id = await draftOf(TEXT_FILTER);
     const version = await readied(id, { body: EMPTY_MAILING_DOC });
     expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: false, problems: ["no-template"] });
-    vi.stubEnv("WHATSAPP_NUMBER", "");
+    // WhatsApp answering, but with no number on the account.
+    vi.stubEnv("DATA_FIXTURES", "");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    server.use(http.get(/graph\.facebook\.com/, () => HttpResponse.json({ data: [] })));
     expect(await scheduleBroadcast(id, version, JO)).toEqual({
       scheduled: false,
       problems: ["no-template", "no-number"],
+    });
+    // No keys, as on a deploy preview: nothing sends a text, and there's no number.
+    vi.stubEnv("WHATSAPP_TOKEN", "");
+    expect(await scheduleBroadcast(id, version, JO)).toEqual({
+      scheduled: false,
+      problems: ["no-template", "no-number", "cannot-send"],
     });
   });
 
@@ -539,7 +673,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     await readied(id, { templateId: await addTemplate("March day") });
     const approved = (await getWrittenBroadcast(id))!;
     await expect(sendBroadcastTest(approved, textTo, "+447700900002")).resolves.toMatchObject({ sent: true });
-    vi.stubEnv("DATA_FIXTURES", "");
+    vi.stubEnv("WHATSAPP_TOKEN", "");
     expect(await sendBroadcastTest(approved, textTo, "+447700900002")).toBeUndefined();
   });
 

@@ -188,3 +188,55 @@ describeWithDatabase("replies to broadcasts", () => {
     expect(await query("SELECT * FROM opt_outs")).toEqual([]);
   });
 });
+
+describeWithDatabase("replies to texts", () => {
+  useTestDatabase();
+
+  /** A text to Jane's number under events, and her reply to it by WhatsApp `ago` ago; the reply's ID. */
+  async function textReply(ago: string): Promise<number> {
+    const [{ id: mailing }] = await query<{ id: number }>(
+      `INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name,
+         due_at, state)
+       VALUES ('News', '', 'supporters', 'text', 'events', '{"list": "supporters", "params": {}}',
+         '{"type": "doc", "content": []}', $1, '+447700900000', 'PauseAI UK', now(), 'sent')
+       RETURNING id::int AS id`,
+      [JO],
+    );
+    const [{ id: copyId }] = await query<{ id: number }>(
+      `WITH s AS (INSERT INTO supporters DEFAULT VALUES RETURNING id)
+       INSERT INTO broadcast_messages (mailing_id, supporter_id, status, topics, address)
+       SELECT $1, s.id, 'sent', '{events}', '+447700900123' FROM s RETURNING id::int AS id`,
+      [mailing],
+    );
+    const [{ id }] = await query<{ id: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
+       VALUES ($1, now() - $2::interval, '+447700900123', '', $3, 'Please stop', false) RETURNING id::int AS id`,
+      [copyId, ago, `wamid.${copyId}`],
+    );
+    return id;
+  }
+
+  it("gives a text's words as kept, answerable only within a day", async () => {
+    const recent = await textReply("1 hour");
+    const old = await textReply("2 days");
+    const copyOf = async (id: number) =>
+      (await query<{ copy: number }>("SELECT message_id::int AS copy FROM broadcast_replies WHERE id = $1", [id]))[0]
+        .copy;
+    expect(await repliesTo(await copyOf(recent))).toMatchObject([
+      { id: recent, text: "Please stop", answerable: true },
+    ]);
+    expect(await repliesTo(await copyOf(old))).toMatchObject([{ id: old, text: "Please stop", answerable: false }]);
+  });
+
+  it("records a text's reply as a stop of texts: of what it went under, or of every text", async () => {
+    const one = await textReply("1 hour");
+    expect(await dealWithReply(one, "topics", JO)).toBe(true);
+    const every = await textReply("1 hour");
+    expect(await dealWithReply(every, "bulk", JO)).toBe(true);
+    expect(await query("SELECT list, way, source FROM opt_outs ORDER BY list")).toEqual([
+      { list: "events", way: "text", source: "reply" },
+      { list: "newsletter", way: "text", source: "reply" },
+      { list: "volunteering", way: "text", source: "reply" },
+    ]);
+  });
+});

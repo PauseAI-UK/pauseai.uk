@@ -30,10 +30,16 @@ export type ChannelMessage = {
   headers?: { Name: string; Value: string }[];
 };
 
-/** A send, with the Message-ID it went with and its Gmail thread, if it had them; or why not, and whether to try again (SendResult). */
+/**
+ * A send, with the Message-ID it went with and its Gmail thread, if it had
+ * them; or why not, and whether to try again (SendResult). A text can also
+ * be refused as the number isn't on WhatsApp (`unreachable`), as the person
+ * stopped marketing messages there (`stopped`), or held back a day, as
+ * they've had enough marketing messages lately (`held`).
+ */
 export type ChannelResult =
   | { sent: true; id: string; messageId?: string | null; threadId?: string | null }
-  | { sent: false; reason: "blocked" | "failed"; retry?: true };
+  | { sent: false; reason: "blocked" | "failed" | "unreachable" | "stopped" | "held"; retry?: true };
 
 /** What a provider reported about a message it sent: its ID, and what happened. */
 export type ChannelReport = { messageId: string; kind: "delivered" | "failed" | "bounced" | "opted-out" | "replied" };

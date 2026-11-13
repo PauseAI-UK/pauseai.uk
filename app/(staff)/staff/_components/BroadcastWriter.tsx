@@ -391,6 +391,8 @@ export default function BroadcastWriter({
     });
   const [choosing, choose] = useLeaving();
   const [submitting, setSubmitting] = useState(false);
+  // WhatsApp didn't take the words just now, so they're still here to send again.
+  const [submitFailed, setSubmitFailed] = useState(false);
   // New words sent to WhatsApp, waiting for it to approve them.
   const waiting = draft.template?.status === "pending" ? draft.template : undefined;
   // Once taken back, the words can be changed again: Write is brought fully into view once the page has them.
@@ -746,12 +748,15 @@ export default function BroadcastWriter({
                     pending={submitting}
                     onClick={async () => {
                       setSubmitting(true);
+                      setSubmitFailed(false);
                       await saveNow();
+                      const result = await actions.submitTemplate(id);
                       // Back to the list, where the broadcast's row says it's waiting for WhatsApp, and pulses.
-                      if ((await actions.submitTemplate(id)) === "submitted") {
+                      if (result === "submitted") {
                         router.push(`/staff/broadcasts?submitted=${id}`);
                       } else {
                         setSubmitting(false);
+                        setSubmitFailed(result === "failed");
                       }
                     }}
                   >
@@ -767,7 +772,12 @@ export default function BroadcastWriter({
                 )}
                 <DeleteDraft id={id} action={actions.deleteDraft} />
               </div>
-              <ProblemList problems={shownProblems.map((problem) => copy.problems[problem])} />
+              <ProblemList
+                problems={[
+                  ...shownProblems.map((problem) => copy.problems[problem]),
+                  ...(submitFailed ? [copy.submitFailed] : []),
+                ]}
+              />
             </Card>
           </>,
         )}

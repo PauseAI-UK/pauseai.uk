@@ -101,7 +101,11 @@ export function BroadcastWaiting({
   if (written.gaveUp) {
     return (
       <Strip tone="red" action={resume}>
-        {written.waitReason === "limit" ? copy.gaveUpLimit : copy.gaveUp}
+        {written.waitReason === "limit"
+          ? copy.gaveUpLimit
+          : written.waitReason === "template"
+            ? copy.gaveUpTemplate
+            : copy.gaveUp}
       </Strip>
     );
   }

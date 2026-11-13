@@ -80,6 +80,25 @@ describe("fixtureResponse", () => {
     });
     const none = fixtureResponse("https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/checkSuppression")!;
     expect(await none.json()).toEqual({ values: [] });
+    // A number has its contact's flags; one no contact holds, none.
+    const numbers = fixtureResponse(
+      "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/checkSuppression",
+      {
+        method: "POST",
+        body: new URLSearchParams({ params: JSON.stringify({ phone: ["+447700900456", "+447700900001"] }) }).toString(),
+      },
+    )!;
+    expect(await numbers.json()).toEqual({
+      values: [
+        { phone: "+447700900456", do_not_phone: true, do_not_sms: false },
+        { phone: "+447700900001", do_not_phone: false, do_not_sms: false },
+      ],
+    });
+  });
+
+  it("answers the Graph API as WhatsApp's fake", async () => {
+    const res = fixtureResponse("https://graph.facebook.com/v23.0/fixture-account/phone_numbers?fields=id")!;
+    expect(await res.json()).toMatchObject({ data: [{ id: "fixture-phone" }] });
   });
 
   it("accepts every opt-out sent to CiviCRM, and a lift of No bulk emails only for a UK contact's address", async () => {

@@ -36,7 +36,8 @@
     "march:preview": "node scripts/march-preview.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:reset": "node scripts/db-reset.mjs",
-    "db:schema": "node scripts/db-schema.mjs"
+    "db:schema": "node scripts/db-schema.mjs",
+    "whatsapp:verify-token": "node scripts/whatsapp-verify-token.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^11.1.7",

@@ -24,7 +24,8 @@ export function ReplyButton({ write }: { write: () => void }) {
  * Under a reply waiting for staff: Reply, while its answer isn't open
  * (`write`); Unsubscribe them, the form a supporter's
  * page has, for what the email went under (`topics`) or every bulk email,
- * at the address that replied, with no need to say how they told us, as
+ * or for a reply to a text (`text`), what it went under or every text,
+ * at the address or number that replied, with no need to say how they told us, as
  * it's the reply; and beside it
  * Nothing to do, which one `answered` already has no need of. Each sends
  * the reply's ID and its decision. The answer is written at the foot of
@@ -35,11 +36,13 @@ export default function ReplyActions({
   topics,
   deal,
   answered = false,
+  text = false,
   write,
 }: {
   replyId: number;
   topics: Topic[];
   answered?: boolean;
+  text?: boolean;
   write?: () => void;
   deal: (form: FormData) => void | Promise<void>;
 }) {
@@ -50,8 +53,11 @@ export default function ReplyActions({
         hidden={{ replyId: String(replyId) }}
         field="decision"
         options={[
-          { value: "topics", label: copy.replies.topics(topics.map((t) => topicNames[t]).join(", ")) },
-          { value: "bulk", label: copy.replies.bulk },
+          {
+            value: "topics",
+            label: (text ? copy.replies.topicsText : copy.replies.topics)(topics.map((t) => topicNames[t]).join(", ")),
+          },
+          { value: "bulk", label: text ? copy.replies.allTexts : copy.replies.bulk },
         ]}
         howKnown
         record={deal}

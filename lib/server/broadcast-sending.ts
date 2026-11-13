@@ -17,7 +17,7 @@ import { SENDING, staffTime } from "@/lib/staff-time";
 import { siteUrl } from "@/lib/site-url";
 import { logChange } from "./audit";
 import { TOPICS_OF } from "./broadcast-drafts";
-import { broadcastBackend, broadcastEmailChannel } from "./broadcast-channels";
+import { broadcastEmailChannel, textBackend } from "./broadcast-channels";
 import { supporterAudience } from "./broadcast-recipients";
 import { query } from "./db";
 import { hashOf } from "./email-settings";
@@ -26,27 +26,31 @@ import { paced, type ChannelMessage, type ChannelResult } from "./mailing-channe
 import { attachmentsOf, emailFor } from "./mailing-drafts";
 import { newMessageId } from "./mime";
 import { notifyStaff, staffLink } from "./notifications";
-import { recordOptOut } from "./opt-outs";
-import { checkSuppression, civicrmKey, SUPPRESSION_BATCH, type Block } from "./outside-services/civicrm";
+import { recordOptOut, type OptOut } from "./opt-outs";
+import { checkSuppression, civicrmKey, SUPPRESSION_BATCH, type Suppressions } from "./outside-services/civicrm";
 import type { Attachment } from "./outside-services/postmark";
+import { sendTemplate } from "./outside-services/whatsapp";
 import { problem } from "./problems";
+import { recordWhatsAppStop } from "./whatsapp-stops";
+import { markUnreachable, templateParams, textResult, textsLeftToday, unreachable } from "./whatsapp-texts";
 
 // Sending broadcasts to supporters, in the send-mailings run every 15 minutes, as
 // mailings to politicians go. A broadcast that's due starts: who it goes to
 // is found then (supporterAudience), a copy each, once to each address,
 // each with its own unsubscribe link. Its copies go in batches, each checked
 // just before: anyone who has opted out since is skipped, and every address
-// is checked with CiviCRM's checkSuppression, which drops anyone PauseAI
-// mustn't bulk email and keeps that as an opt-out of ours. An email goes by
-// the channel its broadcast says (broadcast-channels.ts), one copy at a
-// time at the channel's pace: hello@'s Gmail, which sends up to a day's
-// limit and carries on the next day, or Postmark's broadcast stream.
-// Nothing goes unchecked: with no complete CiviCRM pull for a day, or
-// CiviCRM not answering, a broadcast waits, and staff are told once; it
-// goes by itself when it can. One still waiting WAIT_DAYS after its time,
-// or still sending SENDING_DAYS after (lib/broadcast-days.ts), stops, and
-// whoever scheduled it is told who it didn't reach. A text goes by the fake backend
-// a fixture build has, and nothing on the live site.
+// or number is checked with CiviCRM's checkSuppression, which drops anyone
+// PauseAI mustn't bulk email, keeping that as an opt-out of ours, or text.
+// Each channel has a sender (CopySender), and one loop sends by either. An
+// email goes by the channel its broadcast says (broadcast-channels.ts), one
+// copy at a time at the channel's pace: hello@'s Gmail, which sends up to a
+// day's limit and carries on the next day, or Postmark's broadcast stream.
+// A text goes by the fake backend a fixture build has, and nothing on the
+// live site. Nothing goes unchecked: with no complete CiviCRM pull for a
+// day, or CiviCRM not answering, a broadcast waits, and staff are told
+// once; it goes by itself when it can. One still waiting WAIT_DAYS after
+// its time, or still sending SENDING_DAYS after (lib/broadcast-days.ts),
+// stops, and whoever scheduled it is told who it didn't reach.
 
 /** Who the audit log says started and finished a broadcast. */
 const JOB = "send-mailings";
@@ -57,8 +61,12 @@ const FRESH_HOURS = 24;
 /** Why a broadcast is waiting: CiviCRM didn't answer its check, or no pull has completed for a day. */
 export type WaitReason = "civicrm" | "pull";
 
-/** Why a broadcast stopped before it had all gone: it waited too long, or a day's limit of emails left it too slow. */
-export type StopReason = WaitReason | "limit";
+/**
+ * Why a broadcast stopped before it had all gone: it waited too long, a
+ * day's limit left it too slow, or WhatsApp paused or disabled a text's
+ * template.
+ */
+export type StopReason = WaitReason | "limit" | "template";
 
 type Due = {
   id: number;
@@ -127,6 +135,21 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
 }
 
 /**
+ * Stops every text on a template WhatsApp paused or disabled, scheduled or
+ * sending, as one that hasn't all gone in time stops (giveUp), each
+ * whoever scheduled it told. Returns how many it stopped.
+ */
+export async function stopTextsOn(templateId: number): Promise<number> {
+  const texts = await query<Due>(
+    `SELECT ${DUE_COLUMNS} FROM mailings
+     WHERE audience = 'supporters' AND template_id = $1 AND state IN ('scheduled', 'sending') ORDER BY id`,
+    [templateId],
+  );
+  for (const text of texts) await giveUp(text, "template");
+  return texts.length;
+}
+
+/**
  * Has a broadcast wait for `reason`, from now if it wasn't, telling staff
  * once; or stops it, if it's been WAIT_DAYS past its time.
  */
@@ -192,8 +215,8 @@ async function start(broadcast: Due): Promise<void> {
 
 /**
  * Starts every broadcast that's due, but none overnight, as mailings to
- * politicians: an email only once a CiviCRM pull has completed in the last
- * day, or it waits. Returns those it started.
+ * politicians: only once a CiviCRM pull has completed in the last day, or
+ * it waits. Returns those it started.
  */
 export async function startDueBroadcasts(): Promise<number[]> {
   if (now().getUTCHours() < SENDING.firstHour) return [];
@@ -205,7 +228,7 @@ export async function startDueBroadcasts(): Promise<number[]> {
   const started: number[] = [];
   const fresh = await pullFresh();
   for (const broadcast of due) {
-    if (broadcast.channel === "email" && !fresh) {
+    if (!fresh) {
       await wait(broadcast, "pull");
       continue;
     }
@@ -246,23 +269,27 @@ async function answers(copies: Copy[]): Promise<Map<number, "yes" | "blocked" | 
   );
 }
 
-async function skip(id: number, reason: "blocked" | "unsubscribed" | "no-permission" | "suppressed"): Promise<void> {
+/** Why a copy didn't go. */
+type SkipReason = "blocked" | "unsubscribed" | "no-permission" | "suppressed" | "not-on-whatsapp";
+
+async function skip(id: number, reason: SkipReason): Promise<void> {
   await query(
     "UPDATE broadcast_messages SET status = 'skipped', skip_reason = $2, sending_since = NULL WHERE id = $1",
     [id, reason],
   );
 }
 
-/** CiviCRM's block on each address, SUPPRESSION_BATCH a call; throws if it doesn't answer. */
-async function suppressions(addresses: string[]): Promise<Map<string, Block>> {
+/** What CiviCRM says of some addresses, or some numbers, SUPPRESSION_BATCH a call; throws if it doesn't answer. */
+async function suppressions(values: string[], of: "email" | "phone"): Promise<Suppressions> {
   const key = civicrmKey();
-  const blocks = new Map<string, Block>();
-  for (let i = 0; i < addresses.length; i += SUPPRESSION_BATCH) {
-    for (const [address, block] of await checkSuppression(key, addresses.slice(i, i + SUPPRESSION_BATCH))) {
-      blocks.set(address, block);
-    }
+  const found: Suppressions = { emails: new Map(), phones: new Map() };
+  for (let i = 0; i < values.length; i += SUPPRESSION_BATCH) {
+    const batch = values.slice(i, i + SUPPRESSION_BATCH);
+    const { emails, phones } = await checkSuppression(key, of === "email" ? batch : [], of === "phone" ? batch : []);
+    for (const [address, block] of emails) found.emails.set(address, block);
+    for (const [number, block] of phones) found.phones.set(number, block);
   }
-  return blocks;
+  return found;
 }
 
 /**
@@ -313,6 +340,7 @@ async function nextCopies(id: number, limit: number): Promise<Copy[]> {
   return query<Copy>(
     `WITH next AS (
        SELECT id FROM broadcast_messages WHERE mailing_id = $1 AND status = 'scheduled' AND address IS NOT NULL
+         AND (not_before IS NULL OR not_before <= now())
        ORDER BY id LIMIT $2 FOR UPDATE SKIP LOCKED)
      UPDATE broadcast_messages c SET status = 'sending', sending_since = now() FROM next WHERE c.id = next.id
      RETURNING c.id::int AS id, c.address, c.rfc_message_id AS "rfcMessageId", c.topics, c.merge_values AS "mergeValues"`,
@@ -356,15 +384,11 @@ async function withCare(taken: Copy[], send: (went: (id: number) => void) => Pro
  * sending (failLeftSending), as it went and mustn't go twice; for one that
  * didn't, it's thrown, for withCare to put it back.
  */
-async function keep(
-  copyId: number,
-  result: ChannelResult,
-  run: BroadcastRun,
-  went: (id: number) => void,
-): Promise<void> {
+async function keep(copy: Copy, result: ChannelResult, run: BroadcastRun, went: (id: number) => void): Promise<void> {
+  const copyId = copy.id;
   if (result.sent) went(copyId);
   try {
-    await keepSent(copyId, result, run);
+    await keepSent(copy, result, run);
   } catch (error) {
     if (!result.sent) throw error;
     const words = staffCopy.problems.anywhere;
@@ -399,11 +423,30 @@ async function failLeftSending(run: BroadcastRun): Promise<void> {
   run.failed += left.length;
 }
 
+/** How long WhatsApp asks a copy to wait when the person has had enough marketing messages lately. */
+const HELD_HOURS = 24;
+
+/**
+ * Puts back a copy WhatsApp held, as the person has had enough marketing
+ * messages lately, to go no sooner than a day from now, while its
+ * broadcast still has time to send.
+ */
+export async function holdCopy(copyId: number): Promise<void> {
+  await query(
+    `UPDATE broadcast_messages SET status = 'scheduled', sending_since = NULL, provider_message_id = NULL,
+       sent_at = NULL, not_before = now() + make_interval(hours => $2)
+     WHERE id = $1`,
+    [copyId, HELD_HOURS],
+  );
+}
+
 /**
  * Keeps what became of a copy sent: its channel's ID for it, and the
- * Message-ID it went with, where the channel gave it another.
+ * Message-ID it went with, where the channel gave it another. A text
+ * WhatsApp refused marks its number as not on WhatsApp, or records the
+ * person's stop, or is held a day.
  */
-async function keepSent(copyId: number, result: ChannelResult, run: BroadcastRun): Promise<void> {
+async function keepSent({ id: copyId, address }: Copy, result: ChannelResult, run: BroadcastRun): Promise<void> {
   if (result.sent) {
     await query(
       `WITH copy AS (UPDATE broadcast_messages SET status = 'sent', provider_message_id = $2, sent_at = now(),
@@ -416,6 +459,16 @@ async function keepSent(copyId: number, result: ChannelResult, run: BroadcastRun
   } else if (result.reason === "blocked") {
     await skip(copyId, "blocked");
     run.skipped++;
+  } else if (result.reason === "unreachable") {
+    await markUnreachable(address, copyId);
+    await skip(copyId, "not-on-whatsapp");
+    run.skipped++;
+  } else if (result.reason === "stopped") {
+    await recordWhatsAppStop(address, "refused", `copy-${copyId}`, now(), copyId);
+    await skip(copyId, "unsubscribed");
+    run.skipped++;
+  } else if (result.reason === "held") {
+    await holdCopy(copyId);
   } else {
     await fail(copyId);
     run.failed++;
@@ -430,13 +483,44 @@ async function newToken(copy: Copy): Promise<string> {
 }
 
 /**
- * Checks copies of an email broadcast just before they go: those whose
- * answer is no now are skipped with why; CiviCRM's check drops anyone
- * blocked, keeping it as an opt-out of ours. Returns those that can go; or
+ * A copy that can't go, as CiviCRM's check blocks it, and the opt-out of
+ * ours that keeps that, where it's ours to keep; or as its number isn't on
+ * WhatsApp.
+ */
+type Blocked = { copy: Copy; optOut?: OptOut; reason?: "not-on-whatsapp" };
+
+/**
+ * How a broadcast's copies go, by its channel, for a run: its pace, whether
+ * it can send now, how many more it can send today, CiviCRM's check of its
+ * copies' addresses or numbers, and sending one.
+ */
+type CopySender = {
+  /** The ms between two sends. */
+  gap: number;
+  /** Whether it can send now: by Gmail, only while the account it's from is connected. */
+  ready(): Promise<boolean>;
+  /** How many more it can send today; null for no limit. */
+  remainingToday(): Promise<number | null>;
+  /** What CiviCRM says of the copies' addresses or numbers; throws if it doesn't answer. */
+  ask(copies: Copy[]): Promise<Suppressions>;
+  /** Which of the copies that answer blocks. */
+  blocked(copies: Copy[], said: Suppressions): Promise<Blocked[]>;
+  send(copy: Copy): Promise<ChannelResult>;
+};
+
+/**
+ * Checks copies just before they go: those whose answer is no now are
+ * skipped with why; CiviCRM's check drops anyone blocked, keeping it as an
+ * opt-out of ours where it's ours to keep. Returns those that can go; or
  * undefined when the broadcast waits, as CiviCRM didn't answer, with its
  * copies put back.
  */
-async function checkCopies(broadcast: Sending, copies: Copy[], run: BroadcastRun): Promise<Copy[] | undefined> {
+async function checkCopies(
+  broadcast: Sending,
+  sender: CopySender,
+  copies: Copy[],
+  run: BroadcastRun,
+): Promise<Copy[] | undefined> {
   const said = await answers(copies);
   const going: Copy[] = [];
   for (const copy of copies) {
@@ -448,9 +532,9 @@ async function checkCopies(broadcast: Sending, copies: Copy[], run: BroadcastRun
     }
   }
   if (going.length === 0) return [];
-  let blocks: Map<string, Block>;
+  let suppressed: Suppressions;
   try {
-    blocks = await suppressions(going.map((copy) => copy.address));
+    suppressed = await sender.ask(going);
   } catch (error) {
     // Nothing is sent unchecked.
     problem(staffCopy.problems.job.civicrmCheckFailed, error);
@@ -458,33 +542,55 @@ async function checkCopies(broadcast: Sending, copies: Copy[], run: BroadcastRun
     await wait(broadcast, "civicrm");
     return undefined;
   }
-  const lifting = await liftsOnTheirWay(going.map((copy) => copy.address));
-  const checked: Copy[] = [];
-  for (const copy of going) {
-    const block = blocks.get(copy.address)!;
-    if (block === "none") {
-      checked.push(copy);
-      continue;
-    }
-    // CiviCRM hasn't had the person's lift of "No bulk emails" yet: this copy can't go, but their choice stands.
-    if (block === "all" || !lifting.has(copy.address)) {
-      await recordOptOut({
-        address: copy.address,
-        list: block === "all" ? "all" : "bulk",
-        source: "civicrm-check",
-        sourceRef: `check ${copy.id}`,
-        unsubscribedAt: now(),
-        messageId: copy.id,
-      });
-    }
-    await skip(copy.id, "suppressed");
+  const blocked = await sender.blocked(going, suppressed);
+  for (const { copy, optOut, reason } of blocked) {
+    if (optOut) await recordOptOut(optOut);
+    await skip(copy.id, reason ?? "suppressed");
     run.skipped++;
   }
   if (broadcast.waitingSince) {
     await query("UPDATE mailings SET waiting_since = NULL, wait_reason = NULL WHERE id = $1", [broadcast.id]);
     broadcast.waitingSince = null;
   }
-  return checked;
+  return going.filter((copy) => !blocked.some((one) => one.copy === copy));
+}
+
+/**
+ * The copies of an email CiviCRM blocks: any it says mustn't be emailed at
+ * all, or bulk emailed, each kept as an opt-out of ours, but not "No bulk
+ * emails" while the person's lift of it waits to go to CiviCRM, as their
+ * choice stands.
+ */
+async function blockedEmails(copies: Copy[], said: Suppressions): Promise<Blocked[]> {
+  const lifting = await liftsOnTheirWay(copies.map((copy) => copy.address));
+  return copies.flatMap((copy): Blocked[] => {
+    const block = said.emails.get(copy.address)!;
+    if (block === "none") return [];
+    if (block === "bulk" && lifting.has(copy.address)) return [{ copy }];
+    const optOut: OptOut = {
+      address: copy.address,
+      list: block === "all" ? "all" : "bulk",
+      source: "civicrm-check",
+      sourceRef: `check ${copy.id}`,
+      unsubscribedAt: now(),
+      messageId: copy.id,
+    };
+    return [{ copy, optOut }];
+  });
+}
+
+/**
+ * The copies of a text that can't go: any whose number has CiviCRM's "Do
+ * not SMS", which stops WhatsApp too, and any whose number isn't on
+ * WhatsApp. None is kept as an opt-out of ours: CiviCRM's import already
+ * brings its flag into consent.
+ */
+async function blockedNumbers(copies: Copy[], said: Suppressions): Promise<Blocked[]> {
+  const off = await unreachable(copies.map((copy) => copy.address));
+  return copies.flatMap((copy): Blocked[] => {
+    if (said.phones.get(copy.address)!.doNotSms) return [{ copy }];
+    return off.has(copy.address) ? [{ copy, reason: "not-on-whatsapp" }] : [];
+  });
 }
 
 /** Those of `addresses` whose lift of "No bulk emails" waits to go to CiviCRM. */
@@ -498,28 +604,86 @@ async function liftsOnTheirWay(addresses: string[]): Promise<Set<string>> {
 }
 
 /**
- * Sends an email broadcast's copies by its channel, one at a time, `gap` ms
- * apart, until there are none, it's `until`, or the channel can send no
- * more today, when the rest wait for a later run: a few taken at a time,
- * checked, and each sent or put back. By Gmail, none while the account it's
- * from isn't connected, and none more this run once Gmail answers that it
- * can't send for now (`retry`). Counts the broadcast as waiting when
- * CiviCRM didn't answer.
+ * An email's sender: by the channel its broadcast says, `gap` ms apart, each
+ * copy with its unsubscribe link and the broadcast's files. By Gmail, none
+ * while the account it's from isn't connected.
  */
-async function sendEmails(broadcast: Sending, run: BroadcastRun, until: number, gapOverride?: number): Promise<void> {
+async function emailSender(broadcast: Sending, gapOverride?: number): Promise<CopySender> {
   const { channel, gapMs } = broadcastEmailChannel(broadcast.sendBy);
   const gap = gapOverride ?? gapMs;
   const pacedChannel = paced(channel, gap);
   const attachments = await attachmentsOf(broadcast.id);
+  return {
+    gap,
+    ready: async () => broadcast.sendBy !== "gmail" || Boolean(await gmailAccount(broadcast.sentFrom)),
+    remainingToday: () => channel.remainingToday(broadcast.sentFrom),
+    ask: (copies) =>
+      suppressions(
+        copies.map((copy) => copy.address),
+        "email",
+      ),
+    blocked: blockedEmails,
+    send: async (copy) =>
+      pacedChannel.send(copyMessage(broadcast, copy, await newToken(copy), attachments), "broadcast"),
+  };
+}
+
+/**
+ * A text's sender: by WhatsApp, its template filled in for each person, up
+ * to our number's daily limit. None where WhatsApp doesn't send, or doesn't
+ * answer; `template` when the text's template isn't approved now, as
+ * WhatsApp paused or disabled it, which stops the text.
+ */
+async function textSender(broadcast: Sending): Promise<CopySender | "template" | undefined> {
+  const backend = await textBackend();
+  if (!backend) return undefined;
+  const [template] = await query<{ name: string; status: string; body: unknown }>(
+    `SELECT coalesce(t.meta_name, t.name) AS name, t.status, t.body
+     FROM mailings m JOIN whatsapp_templates t ON t.id = m.template_id WHERE m.id = $1`,
+    [broadcast.id],
+  );
+  if (template?.status !== "approved") return "template";
+  // Its fields are the template's, as WhatsApp has them.
+  const body = checkMailingDoc(template.body)!;
+  return {
+    gap: 0,
+    ready: async () => true,
+    remainingToday: () => textsLeftToday(backend.number.dailyLimit),
+    ask: (copies) =>
+      suppressions(
+        copies.map((copy) => copy.address),
+        "phone",
+      ),
+    blocked: blockedNumbers,
+    send: async (copy) =>
+      textResult(
+        await sendTemplate(backend.keys, backend.number.id, copy.address, {
+          name: template.name,
+          params: templateParams(body, copy.mergeValues),
+        }),
+      ),
+  };
+}
+
+/**
+ * Sends a broadcast's copies by its sender, one at a time, its gap apart,
+ * until there are none, it's `until`, or the sender can send no more today,
+ * when the rest wait for a later run: a few taken at a time, checked, and
+ * each sent or put back. None more this run once the sender answers that it
+ * can't send for now (`retry`). Counts the broadcast as waiting when
+ * CiviCRM didn't answer.
+ */
+async function sendCopies(broadcast: Sending, sender: CopySender, run: BroadcastRun, until: number): Promise<void> {
+  const { gap } = sender;
   while (Date.now() + gap < until) {
-    if (broadcast.sendBy === "gmail" && !(await gmailAccount(broadcast.sentFrom))) return;
-    const remaining = (await channel.remainingToday(broadcast.sentFrom)) ?? TAKE;
-    // No more than there's time to send at the channel's pace, nor than it can send today.
+    if (!(await sender.ready())) return;
+    const remaining = (await sender.remainingToday()) ?? TAKE;
+    // No more than there's time to send at the sender's pace, nor than it can send today.
     const room = gap ? Math.max(1, Math.floor((until - Date.now()) / gap)) : TAKE;
     const copies = await nextCopies(broadcast.id, Math.min(TAKE, room, remaining));
     if (copies.length === 0) return;
     const going = await withCare(copies, async (went) => {
-      const checked = await checkCopies(broadcast, copies, run);
+      const checked = await checkCopies(broadcast, sender, copies, run);
       if (!checked) {
         run.waiting++;
         return false;
@@ -529,40 +693,13 @@ async function sendEmails(broadcast: Sending, run: BroadcastRun, until: number, 
           await putBack(checked.slice(i));
           return false;
         }
-        const message = copyMessage(broadcast, copy, await newToken(copy), attachments);
-        const result = await pacedChannel.send(message, "broadcast");
+        const result = await sender.send(copy);
         if (!result.sent && result.retry) {
-          // Gmail can't send for now: this copy and the rest wait for the next run, rather than fail.
+          // It can't send for now, as Gmail sometimes says: this copy and the rest wait for the next run, rather than fail.
           await putBack(checked.slice(i));
           return false;
         }
-        await keep(copy.id, result, run, went);
-      }
-      return true;
-    });
-    if (!going) return;
-  }
-}
-
-/**
- * Sends a text broadcast's copies by the backend a fixture build has; on the
- * live site, where texts can't be scheduled, none, and it counts as waiting.
- */
-async function sendTexts(broadcast: Sending, run: BroadcastRun, until: number): Promise<void> {
-  const backend = broadcastBackend();
-  if (!backend) {
-    run.waiting++;
-    return;
-  }
-  const body = checkMailingDoc(broadcast.body)!;
-  while (Date.now() < until) {
-    const copies = await nextCopies(broadcast.id, TAKE);
-    if (copies.length === 0) return;
-    const going = await withCare(copies, async (went) => {
-      for (const copy of copies) {
-        const { text } = emailFor({ subject: "", body }, copy.mergeValues);
-        const result = await backend.send({ channel: "text", to: copy.address, subject: broadcast.title, text });
-        await keep(copy.id, result, run, went);
+        await keep(copy, result, run, went);
       }
       return true;
     });
@@ -584,10 +721,11 @@ async function finishBroadcasts(): Promise<void> {
 /**
  * Sends the copies of every broadcast that's sending, oldest due first,
  * until there are none or it's `until` (a time in ms); `gap` is the ms
- * between two emails, in place of their channel's own. An email broadcast
- * that hasn't all gone by when it stops (sendingStopsAt) is stopped, unless it's
- * waiting for CiviCRM, when that stops it. First, copies an earlier run
- * took and never finished are failed (failLeftSending).
+ * between two emails, in place of their channel's own. A broadcast that
+ * hasn't all gone by when it stops (sendingStopsAt) is stopped, unless it's
+ * waiting for CiviCRM, when that stops it. One with no sender, a text on the
+ * live site, counts as waiting. First, copies an earlier run took and never
+ * finished are failed (failLeftSending).
  */
 export async function sendDueBroadcasts(until: number, gap?: number): Promise<BroadcastRun> {
   const run: BroadcastRun = { sent: 0, skipped: 0, failed: 0, waiting: 0, left: 0 };
@@ -597,9 +735,14 @@ export async function sendDueBroadcasts(until: number, gap?: number): Promise<Br
      FROM mailings WHERE audience = 'supporters' AND state = 'sending' ORDER BY due_at, id`,
   );
   for (const broadcast of sending) {
-    if (broadcast.channel !== "email") await sendTexts(broadcast, run, until);
-    else if (!broadcast.waitingSince && now() >= sendingStopsAt(broadcast.dueAt)) await giveUp(broadcast, "limit");
-    else await sendEmails(broadcast, run, until, gap);
+    if (!broadcast.waitingSince && now() >= sendingStopsAt(broadcast.dueAt)) {
+      await giveUp(broadcast, "limit");
+      continue;
+    }
+    const sender = broadcast.channel === "email" ? await emailSender(broadcast, gap) : await textSender(broadcast);
+    if (sender === "template") await giveUp(broadcast, "template");
+    else if (sender) await sendCopies(broadcast, sender, run, until);
+    else run.waiting++;
   }
   await finishBroadcasts();
   const [{ left }] = await query<{ left: number }>(

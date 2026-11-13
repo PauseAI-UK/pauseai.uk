@@ -621,7 +621,7 @@ CREATE TABLE public.opt_outs (
     CONSTRAINT opt_outs_list_check CHECK ((list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text, 'bulk'::text, 'all'::text]))),
     CONSTRAINT opt_outs_recorded_by CHECK (((source = ANY (ARRAY['staff'::text, 'reply'::text])) = (recorded_by IS NOT NULL))),
     CONSTRAINT opt_outs_recorded_by_check CHECK ((recorded_by = lower(recorded_by))),
-    CONSTRAINT opt_outs_source_check CHECK ((source = ANY (ARRAY['luma-webhook'::text, 'luma-contacts'::text, 'civicrm'::text, 'link'::text, 'list-unsubscribe'::text, 'postmark-complaint'::text, 'reply'::text, 'staff'::text, 'preferences'::text, 'civicrm-check'::text]))),
+    CONSTRAINT opt_outs_source_check CHECK ((source = ANY (ARRAY['luma-webhook'::text, 'luma-contacts'::text, 'civicrm'::text, 'link'::text, 'list-unsubscribe'::text, 'postmark-complaint'::text, 'reply'::text, 'staff'::text, 'preferences'::text, 'civicrm-check'::text, 'whatsapp'::text]))),
     CONSTRAINT opt_outs_way_check CHECK ((way = ANY (ARRAY['email'::text, 'text'::text, 'call'::text]))),
     CONSTRAINT opt_outs_whole_email CHECK (((list <> ALL (ARRAY['bulk'::text, 'all'::text])) OR (way = 'email'::text)))
 );
@@ -1378,6 +1378,7 @@ CREATE TABLE public.broadcast_answers (
     sent_at timestamp with time zone,
     gmail_message_id text,
     rfc_message_id text,
+    provider_message_id text,
     CONSTRAINT broadcast_answers_check CHECK (((status = 'sent'::text) = (sent_at IS NOT NULL))),
     CONSTRAINT broadcast_answers_sent_by_check CHECK ((sent_by = lower(sent_by))),
     CONSTRAINT broadcast_answers_status_check CHECK ((status = ANY (ARRAY['sending'::text, 'sent'::text])))
@@ -1440,6 +1441,7 @@ CREATE TABLE public.broadcast_messages (
     rfc_message_id text,
     topics text[] DEFAULT '{}'::text[] NOT NULL,
     sending_since timestamp with time zone,
+    not_before timestamp with time zone,
     CONSTRAINT broadcast_messages_check CHECK (((status = 'skipped'::text) = (skip_reason IS NOT NULL))),
     CONSTRAINT broadcast_messages_check1 CHECK (((supporter_id IS NOT NULL) OR ((address IS NULL) AND (merge_values IS NULL)))),
     CONSTRAINT broadcast_messages_check2 CHECK (((status = 'sending'::text) = (sending_since IS NOT NULL))),
@@ -1470,21 +1472,26 @@ CREATE TABLE public.broadcast_replies (
     received_at timestamp with time zone NOT NULL,
     from_address text NOT NULL,
     subject text NOT NULL,
-    account text NOT NULL,
-    gmail_message_id text NOT NULL,
-    gmail_thread_id text NOT NULL,
+    account text,
+    gmail_message_id text,
+    gmail_thread_id text,
     rfc_message_id text,
-    blob_key text NOT NULL,
+    blob_key text,
     automatic boolean NOT NULL,
     outcome text,
     dealt_by text,
     dealt_at timestamp with time zone,
+    provider_message_id text,
+    body text,
     CONSTRAINT broadcast_replies_check CHECK (((outcome IS NULL) = (dealt_by IS NULL))),
     CONSTRAINT broadcast_replies_check1 CHECK (((outcome IS NULL) = (dealt_at IS NULL))),
     CONSTRAINT broadcast_replies_check2 CHECK ((NOT (automatic AND (outcome IS NOT NULL)))),
     CONSTRAINT broadcast_replies_dealt_by_check CHECK ((dealt_by = lower(dealt_by))),
     CONSTRAINT broadcast_replies_from_address_check CHECK ((from_address = lower(from_address))),
-    CONSTRAINT broadcast_replies_outcome_check CHECK ((outcome = ANY (ARRAY['opted-out'::text, 'nothing'::text, 'answered'::text])))
+    CONSTRAINT broadcast_replies_gmail CHECK ((num_nonnulls(account, gmail_message_id, gmail_thread_id, blob_key) = ANY (ARRAY[0, 4]))),
+    CONSTRAINT broadcast_replies_one_kind CHECK ((num_nonnulls(gmail_message_id, provider_message_id) = 1)),
+    CONSTRAINT broadcast_replies_outcome_check CHECK ((outcome = ANY (ARRAY['opted-out'::text, 'nothing'::text, 'answered'::text]))),
+    CONSTRAINT broadcast_replies_whatsapp CHECK (((provider_message_id IS NULL) = (body IS NULL)))
 );
 
 --
@@ -1532,7 +1539,7 @@ CREATE TABLE public.civicrm_updates (
     choice_id bigint,
     change text NOT NULL,
     list text,
-    email text NOT NULL,
+    email text,
     contact_id bigint,
     occurred_at timestamp with time zone NOT NULL,
     source text NOT NULL,
@@ -1543,14 +1550,17 @@ CREATE TABLE public.civicrm_updates (
     status text,
     reason text,
     answered_at timestamp with time zone,
-    CONSTRAINT civicrm_updates_change_check CHECK ((change = ANY (ARRAY['unsubscribe'::text, 'no_bulk_email'::text, 'allow_bulk_email'::text]))),
+    phone text,
+    CONSTRAINT civicrm_updates_change_check CHECK ((change = ANY (ARRAY['unsubscribe'::text, 'no_bulk_email'::text, 'allow_bulk_email'::text, 'do_not_sms'::text, 'do_not_phone'::text]))),
     CONSTRAINT civicrm_updates_check CHECK ((num_nonnulls(opt_out_id, choice_id) = 1)),
     CONSTRAINT civicrm_updates_check1 CHECK (((choice_id IS NOT NULL) = (change = 'allow_bulk_email'::text))),
     CONSTRAINT civicrm_updates_check2 CHECK (((change = 'unsubscribe'::text) = (list IS NOT NULL))),
     CONSTRAINT civicrm_updates_check3 CHECK (((change = 'allow_bulk_email'::text) = (wording IS NOT NULL))),
     CONSTRAINT civicrm_updates_check4 CHECK (((status IS NULL) = (answered_at IS NULL))),
     CONSTRAINT civicrm_updates_email_check CHECK ((email = lower(email))),
+    CONSTRAINT civicrm_updates_email_or_phone CHECK ((num_nonnulls(email, phone) = 1)),
     CONSTRAINT civicrm_updates_list_check CHECK ((list = ANY (ARRAY['newsletter'::text, 'volunteer_updates'::text]))),
+    CONSTRAINT civicrm_updates_phone CHECK (((phone IS NOT NULL) = (change = ANY (ARRAY['do_not_sms'::text, 'do_not_phone'::text])))),
     CONSTRAINT civicrm_updates_status_check CHECK ((status = ANY (ARRAY['accepted'::text, 'refused'::text, 'invalid'::text])))
 );
 
@@ -2170,7 +2180,7 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_template_for_texts CHECK (((template_id IS NULL) OR (channel = 'text'::text))),
     CONSTRAINT mailings_topic_check CHECK ((topic = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text]))),
     CONSTRAINT mailings_topic_for_supporters CHECK (((audience = 'supporters'::text) = (topic IS NOT NULL))),
-    CONSTRAINT mailings_wait_reason_check CHECK ((wait_reason = ANY (ARRAY['civicrm'::text, 'pull'::text, 'limit'::text]))),
+    CONSTRAINT mailings_wait_reason_check CHECK ((wait_reason = ANY (ARRAY['civicrm'::text, 'pull'::text, 'limit'::text, 'template'::text]))),
     CONSTRAINT mailings_waiting CHECK (((waiting_since IS NULL) = (wait_reason IS NULL)))
 );
 
@@ -2656,12 +2666,19 @@ CREATE TABLE public.whatsapp_templates (
     rejected_at timestamp with time zone,
     rejected_reason text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT whatsapp_templates_check CHECK (((status = 'approved'::text) = (approved_at IS NOT NULL))),
+    meta_name text,
+    meta_id text,
+    category text,
+    stopped_at timestamp with time zone,
+    CONSTRAINT whatsapp_templates_category_check CHECK ((category = ANY (ARRAY['MARKETING'::text, 'UTILITY'::text, 'AUTHENTICATION'::text]))),
+    CONSTRAINT whatsapp_templates_check CHECK (((status <> 'approved'::text) OR (approved_at IS NOT NULL))),
     CONSTRAINT whatsapp_templates_check1 CHECK (((status = 'rejected'::text) = (rejected_at IS NOT NULL))),
     CONSTRAINT whatsapp_templates_check2 CHECK (((status = 'rejected'::text) = (rejected_reason IS NOT NULL))),
     CONSTRAINT whatsapp_templates_created_by_check CHECK ((created_by = lower(created_by))),
+    CONSTRAINT whatsapp_templates_meta_name_check CHECK ((meta_name ~ '^[a-z0-9_]+$'::text)),
     CONSTRAINT whatsapp_templates_name_check CHECK ((name <> ''::text)),
-    CONSTRAINT whatsapp_templates_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])))
+    CONSTRAINT whatsapp_templates_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'paused'::text, 'disabled'::text]))),
+    CONSTRAINT whatsapp_templates_stopped CHECK (((status = ANY (ARRAY['paused'::text, 'disabled'::text])) = (stopped_at IS NOT NULL)))
 );
 
 --
@@ -2675,6 +2692,16 @@ ALTER TABLE public.whatsapp_templates ALTER COLUMN id ADD GENERATED ALWAYS AS ID
     NO MINVALUE
     NO MAXVALUE
     CACHE 1
+);
+
+--
+-- Name: whatsapp_unreachable; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.whatsapp_unreachable (
+    number text NOT NULL,
+    at timestamp with time zone DEFAULT now() NOT NULL,
+    message_id bigint
 );
 
 --
@@ -2808,6 +2835,13 @@ ALTER TABLE ONLY public.broadcast_replies
 
 ALTER TABLE ONLY public.broadcast_replies
     ADD CONSTRAINT broadcast_replies_pkey PRIMARY KEY (id);
+
+--
+-- Name: broadcast_replies broadcast_replies_provider_message_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_replies
+    ADD CONSTRAINT broadcast_replies_provider_message_id_key UNIQUE (provider_message_id);
 
 --
 -- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -3377,11 +3411,32 @@ ALTER TABLE ONLY public.unmatched_mail
     ADD CONSTRAINT unmatched_mail_pkey PRIMARY KEY (account, gmail_message_id);
 
 --
+-- Name: whatsapp_templates whatsapp_templates_meta_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whatsapp_templates
+    ADD CONSTRAINT whatsapp_templates_meta_id_key UNIQUE (meta_id);
+
+--
+-- Name: whatsapp_templates whatsapp_templates_meta_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whatsapp_templates
+    ADD CONSTRAINT whatsapp_templates_meta_name_key UNIQUE (meta_name);
+
+--
 -- Name: whatsapp_templates whatsapp_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.whatsapp_templates
     ADD CONSTRAINT whatsapp_templates_pkey PRIMARY KEY (id);
+
+--
+-- Name: whatsapp_unreachable whatsapp_unreachable_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whatsapp_unreachable
+    ADD CONSTRAINT whatsapp_unreachable_pkey PRIMARY KEY (number);
 
 --
 -- Name: airtable_members_email; Type: INDEX; Schema: public; Owner: -
@@ -3490,6 +3545,12 @@ CREATE INDEX civicrm_contacts_phone ON public.civicrm_contacts USING btree (publ
 --
 
 CREATE INDEX civicrm_updates_email ON public.civicrm_updates USING btree (email);
+
+--
+-- Name: civicrm_updates_phone_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX civicrm_updates_phone_index ON public.civicrm_updates USING btree (phone);
 
 --
 -- Name: civicrm_updates_unanswered; Type: INDEX; Schema: public; Owner: -
@@ -4236,6 +4297,13 @@ ALTER TABLE ONLY public.supporter_links
 
 ALTER TABLE ONLY public.supporter_merges
     ADD CONSTRAINT supporter_merges_into_id_fkey FOREIGN KEY (into_id) REFERENCES public.supporters(id) ON DELETE CASCADE;
+
+--
+-- Name: whatsapp_unreachable whatsapp_unreachable_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whatsapp_unreachable
+    ADD CONSTRAINT whatsapp_unreachable_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.broadcast_messages(id) ON DELETE SET NULL;
 
 --
 -- PostgreSQL database dump complete

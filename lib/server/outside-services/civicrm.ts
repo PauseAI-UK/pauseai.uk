@@ -8,7 +8,7 @@ import { outsideFetch } from "./outside-fetch";
 // in a private repo. Three actions: `get`,
 // every UK chapter contact a page at a time, or those with some addresses;
 // `checkSuppression`, whether PauseAI may email each of some addresses at
-// all; and `updateSubscriptions`, our opt-outs, and lifts of "No bulk
+// all, or call or text each of some numbers; and `updateSubscriptions`, our opt-outs, and lifts of "No bulk
 // emails", sent back.
 
 const API = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact";
@@ -189,35 +189,52 @@ export const UPDATE_BATCH = 100;
 export const BLOCKS = ["none", "bulk", "all"] as const;
 export type Block = (typeof BLOCKS)[number];
 
+/** Whether PauseAI may call or text a number: "Do not phone" stops calls, "Do not SMS" texts, WhatsApp too. */
+export type NumberBlock = { doNotPhone: boolean; doNotSms: boolean };
+
+/** What `checkSuppression` says of each address and number it was asked about. */
+export type Suppressions = { emails: Map<string, Block>; phones: Map<string, NumberBlock> };
+
 /**
  * Whether PauseAI anywhere blocks email to each of `emails`, by "Do not
  * email" (`all`) or "No bulk emails" (`bulk`), across every contact with the
- * address, in any chapter or none: up to SUPPRESSION_BATCH a call. Each
- * address as CiviCRM gives it back, trimmed and lowercased; throws if any
- * sent is missing, or its block isn't one we know.
+ * address, in any chapter or none; and calls or texts to each of `phones`,
+ * in international format, by "Do not phone" or "Do not SMS": up to
+ * SUPPRESSION_BATCH of both a call. Each address as CiviCRM gives it back,
+ * trimmed and lowercased, and each number as sent. A flag CiviCRM leaves
+ * null, for a number it doesn't answer for, blocks nothing, as the spec
+ * has it follow our own records. Throws if any sent is missing, or an
+ * address's block isn't one we know.
  */
-export async function checkSuppression(key: string, emails: string[]): Promise<Map<string, Block>> {
-  const rows = await call(key, "checkSuppression", { email: emails, phone: [] }, "POST");
-  const blocks = new Map<string, Block>();
+export async function checkSuppression(key: string, emails: string[], phones: string[] = []): Promise<Suppressions> {
+  const rows = await call(key, "checkSuppression", { email: emails, phone: phones }, "POST");
+  const found: Suppressions = { emails: new Map(), phones: new Map() };
   for (const row of rows) {
+    if (typeof row.phone === "string") {
+      found.phones.set(row.phone, { doNotPhone: row.do_not_phone === true, doNotSms: row.do_not_sms === true });
+      continue;
+    }
     if (typeof row.email !== "string") continue;
     if (!(BLOCKS as readonly unknown[]).includes(row.block)) {
       throw new CivicrmRequestError(`CiviCRM gave an address a block we don't know: ${String(row.block)}`);
     }
-    blocks.set(row.email.trim().toLowerCase(), row.block as Block);
+    found.emails.set(row.email.trim().toLowerCase(), row.block as Block);
   }
-  const missing = emails.filter((email) => !blocks.has(email));
-  if (missing.length)
-    throw new CivicrmRequestError(`CiviCRM didn't say whether ${missing.length} addresses are blocked`);
-  return blocks;
+  const missing = emails.filter((email) => !found.emails.has(email)).length;
+  if (missing) throw new CivicrmRequestError(`CiviCRM didn't say whether ${missing} addresses are blocked`);
+  const missingPhones = phones.filter((phone) => !found.phones.has(phone)).length;
+  if (missingPhones) throw new CivicrmRequestError(`CiviCRM didn't say whether ${missingPhones} numbers are blocked`);
+  return found;
 }
 
-/** A change to a UK list or a flag, as `updateSubscriptions` takes it. */
+/** A change to a UK list or a flag, as `updateSubscriptions` takes it: by address, or a number's flag by number. */
 export type SubscriptionEvent = {
   /** Ours, unique: sending it again changes nothing there. */
   eventId: string;
-  email: string;
-  change: "unsubscribe" | "no_bulk_email" | "allow_bulk_email";
+  email?: string;
+  /** In international format, for "Do not SMS" or "Do not phone". */
+  phone?: string;
+  change: "unsubscribe" | "no_bulk_email" | "allow_bulk_email" | "do_not_sms" | "do_not_phone";
   list?: "newsletter" | "volunteer_updates";
   /** From the last pull, for an opt-out. */
   contactId?: number;
@@ -246,7 +263,8 @@ export async function updateSubscriptions(
     {
       events: events.map((event) => ({
         event_id: event.eventId,
-        email: event.email,
+        ...(event.email && { email: event.email }),
+        ...(event.phone && { phone: event.phone }),
         change: event.change,
         ...(event.list && { list: event.list }),
         ...(event.contactId && { contact_id: event.contactId }),

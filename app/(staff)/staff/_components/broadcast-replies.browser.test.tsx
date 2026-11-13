@@ -11,6 +11,9 @@ import {
   exampleBroadcastReplies,
   exampleBroadcastSummary,
   exampleMessageCopy,
+  exampleTextAnswers,
+  exampleTextReplies,
+  exampleTextReplyPastDay,
 } from "./BroadcastWriter.examples";
 import MessageCopyView from "./MessageCopyView";
 import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
@@ -211,6 +214,42 @@ describe("replies to broadcasts", () => {
     expect(answer.mock.calls[1][1]).toBe(answer.mock.calls[0][1]);
   });
 
+  it("to a text show as bubbles, with our answer, and no Reply to one more than a day old", async () => {
+    const answer = vi.fn<AnswerAction>(async () => ({ sent: false, reason: "window" }));
+    await render(
+      <MessageCopyView
+        one={{
+          ...exampleMessageCopy,
+          replies: [...exampleTextReplies, exampleTextReplyPastDay],
+          answers: [...exampleTextAnswers, { ...exampleTextAnswers[0], id: 12, sentAt: null }],
+        }}
+        actions={{ deal: vi.fn(), answer }}
+      />,
+    );
+    // Theirs as they came, ours as sent, with who sent it, and one whose sending never finished.
+    await expect.element(page.getByText("Is it the same place as last time?")).toBeVisible();
+    await expect.element(page.getByText("Yes, Parliament Square, by the statue.").first()).toBeVisible();
+    await expect.element(page.getByText(copy.replies.sentBy("jo@pauseai.uk"))).toBeVisible();
+    await expect.element(page.getByText(copy.replies.stillSending("+447700900000"))).toBeVisible();
+    // Their name, as their copy had it.
+    await expect.element(page.getByText("Jane Example <+447700900001>").first()).toBeVisible();
+    // The one too old for WhatsApp says so, and has no Reply; the others do, the answered one and the one waiting.
+    await expect.element(page.getByText(copy.replies.windowClosed)).toBeVisible();
+    await expect.element(page.getByRole("button", { name: copy.replies.reply })).toHaveLength(2);
+    // An opt-out of a reply to a text is of every text.
+    await page.getByRole("button", { name: optOut }).last().click();
+    const words = staffCopy.supporters.detail.permissions.recordOptOut;
+    await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
+    await expect.element(page.getByRole("button", { name: copy.replies.allTexts })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: copy.replies.topicsText(topics.events) })).toBeVisible();
+    // The answer is written as a bubble of ours, not an email: no subject.
+    await page.getByRole("button", { name: copy.replies.reply }).last().click();
+    await expect.element(page.getByRole("article")).not.toBeInTheDocument();
+    await page.getByRole("textbox", { name: copy.replies.answerLabel }).fill("Thanks!");
+    await page.getByRole("button", { name: copy.replies.send }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.replies.notSent.window);
+  });
+
   it("are counted on an email's page, those to look at amber while there are any, the same boxes either way, and tagged on each recipient", async () => {
     const counts = broadcastCounts({ ...exampleBroadcastSummary, channel: "email", replied: 3, toLookAt: 1 });
     expect(counts.slice(-2)).toEqual([
@@ -249,6 +288,18 @@ describe("BroadcastWaiting", () => {
       />,
     );
     await expect.element(page.getByText(copy.gaveUp)).toBeVisible();
+    await rerender(
+      <BroadcastWaiting
+        written={{
+          ...exampleBroadcastEmail,
+          channel: "text",
+          state: "cancelled",
+          gaveUp: true,
+          waitReason: "template",
+        }}
+      />,
+    );
+    await expect.element(page.getByText(copy.gaveUpTemplate)).toBeVisible();
     const { container } = await render(
       <BroadcastWaiting written={{ ...exampleBroadcastEmail, channel: "text", state: "scheduled", dueAt: due }} />,
     );

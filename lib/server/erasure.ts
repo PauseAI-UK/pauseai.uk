@@ -54,19 +54,27 @@ export async function eraseSupporter(id: number, reference: string, by: string):
     if (!supporter) return undefined;
     await eraseFromSavedFilters(id, by, db);
     // First, while their links say which addresses and numbers are theirs: their replies to broadcasts, with our
-    // answers to them, whose messages go after; their links and yeses on the contact preferences page; and what CiviCRM has answered of what
-    // we sent it for them. Not an opt-out, nor one still to go, which stay.
+    // answers to them, whose messages go after, a text's kept only here; their links and yeses on the contact
+    // preferences page; what CiviCRM has answered of what we sent it for them; and that a number of theirs isn't on
+    // WhatsApp. Not an opt-out, nor one still to go, which stay.
     const theirs = `(SELECT lower(matched_value) FROM supporter_links WHERE supporter_id = $1
                      UNION SELECT phone_number(matched_value) FROM supporter_links WHERE supporter_id = $1)`;
     const replies = await query<{ blobKey: string }>(
-      `DELETE FROM broadcast_replies WHERE message_id IN (SELECT id FROM broadcast_messages WHERE supporter_id = $1)
-       RETURNING blob_key AS "blobKey"`,
+      `WITH gone AS (
+         DELETE FROM broadcast_replies WHERE message_id IN (SELECT id FROM broadcast_messages WHERE supporter_id = $1)
+         RETURNING blob_key)
+       SELECT blob_key AS "blobKey" FROM gone WHERE blob_key IS NOT NULL`,
       [id],
       db,
     );
     await query(`DELETE FROM preference_links WHERE address IN ${theirs}`, [id], db);
     await query(`DELETE FROM preference_choices WHERE address IN ${theirs}`, [id], db);
-    await query(`DELETE FROM civicrm_updates WHERE status IS NOT NULL AND email IN ${theirs}`, [id], db);
+    await query(
+      `DELETE FROM civicrm_updates WHERE status IS NOT NULL AND (email IN ${theirs} OR phone IN ${theirs})`,
+      [id],
+      db,
+    );
+    await query(`DELETE FROM whatsapp_unreachable WHERE number IN ${theirs}`, [id], db);
     const lumaUsers = (
       await query<{ userId: string }>(
         `SELECT luma_user_id AS "userId" FROM supporter_links WHERE supporter_id = $1 AND luma_user_id IS NOT NULL`,

@@ -3,10 +3,12 @@
 This plan is for broadcasts to supporters by text, on the Broadcasts
 pages at `/staff/broadcasts`. A broadcast is by email or by text, and
 each supporter's copy is a message. A broadcast by text is called a text
-for short, and is sent by WhatsApp. The work is two pull requests:
+for short, and is sent by WhatsApp. The work was planned as two pull
+requests, groundwork then the backend; one pull request, from the branch
+`whatsapp-sending`, builds both, but for what's marked "Still to do" below.
 
 1. Groundwork: shared sending, consent, opt-outs and replies.
-2. The WhatsApp backend, which comes next.
+2. The WhatsApp backend.
 
 Email's broadcasts (#318) built pieces this plan uses for texts:
 `broadcast_replies` and how staff see and deal with replies; staff
@@ -144,16 +146,17 @@ and event messages.
 
 ### Steps
 
-0. First, without changing what email does, share the sending
-   (`lib/server/broadcast-sending.ts`) between channels: one send loop,
-   and one check just before each copy goes (our own opt-outs, then
-   CiviCRM's `checkSuppression`), with each channel giving how it
-   checks, builds and sends a message, and its pace. Texts then get our
-   own opt-outs checked, and wait for a fresh CiviCRM pull as email
-   does. `checkSuppression` takes numbers, and `civicrm_updates` takes
-   `do_not_sms` and `do_not_phone` for a number, in a migration.
-1. `mailings.channel` loses `whatsapp`, leaving `email` and `text`.
-2. Opt-ins:
+0. Built: the sending shared between channels
+   (`lib/server/broadcast-sending.ts`): one send loop, and one check
+   just before each copy goes (our own opt-outs, then CiviCRM's
+   `checkSuppression`), each channel a sender giving how it checks,
+   builds and sends a message, and its pace. Texts wait for a fresh
+   CiviCRM pull as email does. `checkSuppression` takes numbers, and
+   `civicrm_updates` takes `do_not_sms` and `do_not_phone` for a
+   number.
+1. Still to do: `mailings.channel` loses `whatsapp`, leaving `email` and
+   `text`. Nothing uses it, and no row on the live site has it.
+2. Opt-ins, still to do but for the preferences page:
    - the Luma checkbox, which the import reads as it reads the postcode
      question;
    - the preferences page, which email builds, for a yes given
@@ -161,16 +164,13 @@ and event messages.
 
    Our forms' box already counts for a number they ask (`site-forms`).
    Email your MP asks for no number.
-3. Opt-outs, as above. Staff record one by hand already.
-4. Mark a number that isn't a mobile, or isn't on WhatsApp, and skip it
-   from then on.
-5. A new source for `volunteering`, as a new member's number is unsure
-   (open question 8).
-6. Replies to texts join `broadcast_replies`, which email builds with
-   how staff see and deal with them (`plans/supporters-email.md`,
-   "Replies"). This adds a reply box on the Thread page. Anyone with the
-   `supporters` permission can reply, and each reply records who sent
-   it.
+3. Built: opt-outs, as above. Staff record one by hand already.
+4. Built: a number WhatsApp says isn't on it is skipped from then on
+   (`whatsapp_unreachable`). Still to do: one that isn't a mobile.
+5. Still to do: a new source for `volunteering`, as a new member's
+   number is unsure (open question 7).
+6. Built: replies to texts join `broadcast_replies`, shown and answered
+   on the Thread page as bubbles.
 
 ## 2. The WhatsApp backend
 
@@ -293,16 +293,21 @@ The rest comes from those:
 
 - The number and Meta's ID for it, which a send is posted to, are read
   from the account's phone numbers (`GET /<account ID>/phone_numbers`)
-  and kept. `WHATSAPP_NUMBER`, which the site reads now, goes.
+  and kept. `WHATSAPP_NUMBER` has gone.
 - The webhook's verify token, which Meta sends back when the callback
   URL is set, is worked out from the app secret. A script prints it for
   whoever sets the webhook up.
 
 ### Steps
 
+Built: steps 1 to 4, but for the Marketing Messages API. Still to do:
+sending by that API once its terms are signed, and step 5, if at all.
+
 1. The WhatsApp backend in `lib/server/outside-services/whatsapp.ts`,
-   with a fake for tests. Marketing messages go through the Marketing
-   Messages API, as the Cloud API stops sending them on 13 October 2027
+   with a fake for tests. It sends by the Cloud API's `/messages` for
+   now. Marketing messages are to go through the Marketing Messages API
+   (`/marketing_messages`) once its terms are signed ("Applying"), as
+   the Cloud API stops sending them on 13 October 2027
    ([overview](https://developers.facebook.com/documentation/business-messaging/whatsapp/marketing-messages/overview.md)).
    Meta charges for each delivered message, by category
    ([rate card](https://whatsappbusiness.com/products/platform-pricing/)).

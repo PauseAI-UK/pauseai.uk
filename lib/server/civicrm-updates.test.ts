@@ -10,6 +10,7 @@ import { inRun } from "./run-store";
 
 const UPDATE = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions";
 const AT = new Date("2026-11-01T09:00:00Z");
+const JO = "jo@pauseai.uk";
 
 type Event = Record<string, unknown>;
 
@@ -193,5 +194,47 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
     expect(await query("SELECT count(*)::int AS n FROM civicrm_updates WHERE status IS NULL AND tries = 0")).toEqual([
       { n: 50 },
     ]);
+  });
+});
+
+describeWithDatabase("our stops of a number sent to CiviCRM", () => {
+  useTestDatabase();
+
+  it("sends a stop of every text as Do not SMS, and of calls as Do not phone, but not a stop of some texts", async () => {
+    const stop = (list: OptOut["list"], way: "text" | "call", ref: string) =>
+      recordOptOut(
+        optOut({
+          address: "+447700900001",
+          list,
+          way,
+          source: "staff",
+          sourceRef: ref,
+          recordedBy: JO,
+          how: "Told us",
+        }),
+      );
+    await stop("events", "text", "a");
+    await stop("newsletter", "text", "b");
+    expect(await query("SELECT 1 FROM civicrm_updates")).toEqual([]);
+    await stop("volunteering", "text", "c");
+    await stop("volunteering", "call", "d");
+    expect(await query("SELECT change, phone, email FROM civicrm_updates ORDER BY id")).toEqual([
+      { change: "do_not_sms", phone: "+447700900001", email: null },
+      { change: "do_not_phone", phone: "+447700900001", email: null },
+    ]);
+    const calls = serve();
+    expect(await sendCivicrmUpdates("key")).toEqual({ sent: 2, refused: 0, unanswered: 0 });
+    expect(calls[0]).toEqual([
+      expect.objectContaining({ phone: "+447700900001", change: "do_not_sms", source: "pauseai.uk:staff" }),
+      expect.objectContaining({ phone: "+447700900001", change: "do_not_phone" }),
+    ]);
+    expect(calls[0][0]).not.toHaveProperty("email");
+  });
+
+  it("sends nothing for a number's stop CiviCRM told us of", async () => {
+    for (const list of ["events", "newsletter", "volunteering"] as const) {
+      await recordOptOut(optOut({ address: "+447700900001", list, way: "text", source: "civicrm", sourceRef: list }));
+    }
+    expect(await query("SELECT 1 FROM civicrm_updates")).toEqual([]);
   });
 });

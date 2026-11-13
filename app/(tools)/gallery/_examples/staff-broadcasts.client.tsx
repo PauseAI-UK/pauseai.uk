@@ -25,6 +25,9 @@ import {
   exampleSupporterChoices,
   exampleBroadcastText,
   exampleTemplates,
+  exampleTextAnswers,
+  exampleTextReplies,
+  exampleTextReplyPastDay,
   exampleTextWords,
 } from "@/app/(staff)/staff/_components/BroadcastWriter.examples";
 import { Muted } from "@/components/ui/Text";
@@ -231,8 +234,26 @@ export function MailingStandingExample() {
   );
 }
 
-/** Thread: a text as the conversation, or an email as the thread, with `replies` under it: one to look at, one dealt with, one answered, and an automatic one. */
-export function MessageCopyViewExample({ email = false, replies = false }: { email?: boolean; replies?: boolean }) {
+/**
+ * Thread: a text as the conversation, or an email as the thread, with
+ * `replies` under it: for an email, one to look at, one dealt with, one
+ * answered, and an automatic one; for a text, one answered, one to look at,
+ * and, `pastDay`, one too old for WhatsApp to take an answer to.
+ */
+export function MessageCopyViewExample({
+  email = false,
+  replies = false,
+  pastDay = false,
+}: {
+  email?: boolean;
+  replies?: boolean;
+  pastDay?: boolean;
+}) {
+  const text = {
+    ...exampleMessageCopy,
+    replies: replies ? [...exampleTextReplies, ...(pastDay ? [exampleTextReplyPastDay] : [])] : [],
+    answers: replies ? exampleTextAnswers : [],
+  };
   const one = email
     ? {
         ...exampleMessageCopy,
@@ -245,12 +266,12 @@ export function MessageCopyViewExample({ email = false, replies = false }: { ema
         replies: replies ? exampleBroadcastReplies : [],
         answers: replies ? exampleBroadcastAnswers : [],
       }
-    : exampleMessageCopy;
+    : text;
   return <Logged>{(log) => <MessageCopyView one={one} actions={{ deal: log("deal"), answer: sent(log) }} />}</Logged>;
 }
 
-/** What to record a reply as, under it. */
-export function ReplyActionsExample({ write = false }: { write?: boolean }) {
+/** What to record a reply as, under it: to an email, or to a text (`text`). */
+export function ReplyActionsExample({ write = false, text = false }: { write?: boolean; text?: boolean }) {
   return (
     <Logged>
       {(log) => (
@@ -258,6 +279,7 @@ export function ReplyActionsExample({ write = false }: { write?: boolean }) {
           replyId={1}
           topics={["newsletter", "events"]}
           deal={log("deal")}
+          text={text}
           write={write ? () => log("write")() : undefined}
         />
       )}

@@ -34,7 +34,8 @@ const TEXT_FILTER = { contact: "text:events:yes" };
 
 beforeEach(() => {
   vi.stubEnv("DATA_FIXTURES", "1");
-  vi.stubEnv("WHATSAPP_NUMBER", "+447700900000");
+  vi.stubEnv("WHATSAPP_TOKEN", "token");
+  vi.stubEnv("WHATSAPP_ACCOUNT_ID", "fixture-account");
 });
 afterEach(() => vi.unstubAllEnvs());
 

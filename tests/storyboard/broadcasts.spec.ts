@@ -8,14 +8,17 @@ import { caretInEmpty } from "./editor-steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { connectGmail } from "./staff-steps";
 import type { Section } from "./report/frames";
+import { emailSettingsCopy } from "@/lib/content/email-settings";
+import { messageFrom, postWhatsAppWebhook, statusOf, templateStatus } from "../whatsapp-webhooks";
 
 export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
 
 // Broadcasts to supporters: started from the supporters list's Consent filter,
 // by email or text; a text on a WhatsApp approved template, or on new words
-// sent for approval; who it's to changed from the list; and the pages of those
-// sent, and each copy's, made in the database as scheduling and sending would
-// make them.
+// sent for approval, which WhatsApp's webhook approves or rejects; who it's to
+// changed from the list; the pages of those sent, and each copy's, made in the
+// database as scheduling and sending would make them; and a text sent by the
+// fake WhatsApp, with what its webhook then brings: delivery, a reply, a stop.
 
 const copy = staffCopy.broadcastPages;
 const mailingCopy = staffCopy.mailingPages;
@@ -306,18 +309,152 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await frame(page, "The draft, sent for approval");
   await page.getByLabel(copy.templateLabel).first().scrollIntoViewIfNeeded();
   await frame(page, "Its words locked", { window: true });
-  story("WhatsApp rejects them. The draft says why in plain words, and the words can be changed and sent again.");
-  runSql(
-    flowDatabase,
-    `UPDATE whatsapp_templates SET status = 'rejected', rejected_at = '2026-10-16T11:00:00Z', rejected_reason = 'The text ends with a merge field.' WHERE status = 'pending'`,
+  story(
+    "WhatsApp rejects them, and its webhook tells the site why, as a code. The draft says what it means in plain words, and the words can be changed and sent again.",
   );
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  await postWhatsAppWebhook(request, BASE, templateStatus(name, "REJECTED", "INVALID_FORMAT"));
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
-  await expect(page.getByText(/The text ends with a merge field/)).toBeVisible();
+  await expect(page.getByText(staffCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT)).toBeVisible();
   await frame(page, "Rejected, and what to do");
   story("The list says so too, until the words go for approval again or a template is chosen.");
   await page.goto(`${BASE}/staff/broadcasts`);
   await expect(page.getByText(copy.rejectedTag)).toBeVisible();
   await frame(page, "The list, the draft WhatsApp rejected");
+});
+
+test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
+  story("Staff send a text's new words to WhatsApp for approval, as in the flow before.");
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  const id = new URL(page.url()).pathname.split("/").at(-1);
+  await page.getByLabel(copy.templateLabel).first().selectOption({ label: copy.newTemplate });
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("Doors open at 09:30 for PauseCon.");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("PauseCon doors"));
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
+  await page.getByRole("button", { name: copy.submitTemplate }).click();
+  await page.waitForURL(`${BASE}/staff/broadcasts?submitted=${id}`);
+  story(
+    "WhatsApp approves them, and its webhook tells the site. Whoever sent them, and the notification inbox, are emailed, with a link to the text.",
+  );
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  await postWhatsAppWebhook(request, BASE, templateStatus(name, "APPROVED"));
+  const told = newestEmail(
+    (one) => one.Subject === staffCopy.notifications.templateApproved.subject("PauseCon doors"),
+  )!;
+  await emailFrame(page, told, "The email saying WhatsApp approved them");
+  story("The text can be scheduled now.");
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await expect(send.getByRole("button", { name: copy.schedule(TEXTABLE, "text") })).toBeEnabled();
+  await send.scrollIntoViewIfNeeded();
+  await frame(page, "Approved, ready to schedule", { window: true });
+});
+
+/**
+ * A text to those who can be texted, on an approved template, scheduled for
+ * an hour ago by `scheduledBy`, as scheduling leaves one; its ID.
+ */
+function addDueText(database: string, title: string, scheduledBy: string): string {
+  const [template] = runSql(
+    database,
+    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, meta_name, category)
+     VALUES ('${title}', '${WORDS}', 'approved', 'jo@pauseai.uk', now() - interval '1 day', 'flow_text_1', 'MARKETING')
+     RETURNING id`,
+  );
+  const [id] = runSql(
+    database,
+    `INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at,
+       state, template_id)
+     VALUES ('${title}', '', 'supporters', 'text', 'events', '{"list": "supporters", "params": {"contact": "text:events:yes"}}',
+       '${WORDS}', 'jo@pauseai.uk', '+447700900000', 'PauseAI UK', now() - interval '1 hour', 'scheduled', ${template})
+     RETURNING id`,
+  );
+  runSql(
+    database,
+    `INSERT INTO audit_log (actor, action, details) VALUES ('${scheduledBy}', 'schedule broadcast', '{"id": ${id}, "recipients": ${TEXTABLE}}')`,
+  );
+  return id;
+}
+
+/** A text sent by WhatsApp: its ID, and its copy's ID, number (digits alone) and WhatsApp's ID for it. */
+async function textSent(request: APIRequestContext, database: string) {
+  await importLuma(request, BASE);
+  await importCivicrm(request, BASE);
+  const id = addDueText(database, "PauseCon doors", staffEmail());
+  await runSending(request);
+  const [copy, number, wamid] = runSql(
+    database,
+    `SELECT id || '|' || substr(address, 2) || '|' || provider_message_id FROM broadcast_messages WHERE mailing_id = ${id}`,
+  )[0].split("|");
+  return { id, copy, number, wamid };
+}
+
+test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {
+  story(
+    "A text's time has come. The sending checks each number with PauseAI Global's records first, then sends each copy by WhatsApp: the template, its first name filled in.",
+  );
+  const sent = await textSent(request, flowDatabase);
+  story("WhatsApp's webhook says it was delivered, then read.");
+  await postWhatsAppWebhook(request, BASE, statusOf(sent.wamid, sent.number, "delivered"));
+  await postWhatsAppWebhook(request, BASE, statusOf(sent.wamid, sent.number, "read", 20));
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
+  await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
+  await frame(page, "The text, sent and read");
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText(/the march meets at 11:00/)).toBeVisible();
+  await frame(page, "Their copy, with what WhatsApp reported");
+});
+
+test("A reply to a text", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter answers a text in WhatsApp. Its webhook brings the reply to the site, on the text's page, under the copy it answers.",
+  );
+  const sent = await textSent(request, flowDatabase);
+  await postWhatsAppWebhook(
+    request,
+    BASE,
+    messageFrom(sent.number, "wamid.flow-reply", sent.wamid, { text: "Is there step-free access?" }),
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText("Is there step-free access?")).toBeVisible();
+  await frame(page, "The reply, as a bubble");
+  story(
+    "Within a day of their message WhatsApp takes words of ours, so staff answer it here. It goes by WhatsApp, and shows in the thread.",
+  );
+  await page.getByRole("button", { name: copy.replies.reply }).click();
+  const editor = page.getByRole("textbox", { name: copy.replies.answerLabel });
+  await expect(editor).toBeFocused();
+  await editor.pressSequentially("Yes, there's a lift by the main doors.");
+  await frame(page, "Writing an answer", { window: true });
+  await page.getByRole("button", { name: copy.replies.send }).click();
+  await expect(page.getByText(copy.replies.sentBy(staffEmail()))).toBeVisible();
+  await frame(page, "The answer, sent");
+});
+
+test("Stop, pressed in WhatsApp", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter presses Stop on a text. WhatsApp's webhook tells the site, which stops every text to their number, and tells PauseAI Global's records too.",
+  );
+  const sent = await textSent(request, flowDatabase);
+  await postWhatsAppWebhook(
+    request,
+    BASE,
+    messageFrom(sent.number, "wamid.flow-stop", sent.wamid, { button: emailSettingsCopy.stopButton }),
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText(copy.events["opted-out"]).first()).toBeVisible();
+  await frame(page, "Their copy, stopped");
+  story("Their page shows the stop of every text, and that it came from WhatsApp.");
+  const [supporter] = runSql(flowDatabase, `SELECT supporter_id FROM broadcast_messages WHERE id = ${sent.copy}`);
+  await page.goto(`${BASE}/staff/supporters/${supporter}`);
+  await expect(page.getByText(staffCopy.supporters.detail.permissions.sources.whatsapp).first()).toBeVisible();
+  await frame(page, "Their page, texts stopped");
 });
 
 test("Changing who a broadcast goes to", async ({ page, request, flowDatabase }) => {

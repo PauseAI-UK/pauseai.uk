@@ -12,4 +12,4 @@ In `vitest.config.mts`, take `tests/fixtures/**` out of `coverage.include`, add 
 
 ## Hits
 
-None yet.
+- 2026-11-14: wrote tests for the fake WhatsApp (`lib/server/fixtures/whatsapp.test.ts`) and the fake CiviCRM's answer for numbers only to keep them at 100%, ~15 min

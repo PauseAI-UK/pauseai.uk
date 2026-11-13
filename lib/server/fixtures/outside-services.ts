@@ -26,6 +26,7 @@ import stripePaymentIntents from "./stripe-payment-intents.json";
 import { failingResponse } from "./failing-services";
 import { historyIdOf, keepSent, lettersInboxResponse, lettersMailbox } from "./letters-inbox";
 import { policyMailResponse } from "./policy-mailbox";
+import { whatsAppResponse } from "./whatsapp";
 
 /** A UUID-shaped id that depends only on `text`. */
 /** Every UUID in some text. */
@@ -195,16 +196,27 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
   }
   if (hostname === "crm.pauseai.info" && pathname === "/civicrm/ajax/api4/PauseaiChapterContact/checkSuppression") {
     // An address of a contact with "No bulk emails" is blocked from bulk email; any other, in CiviCRM or not, from
-    // none, as no fixture contact has "Do not email".
-    const { email = [] } = JSON.parse(new URLSearchParams(String(init?.body)).get("params") ?? "{}") as {
+    // none, as no fixture contact has "Do not email". A number has the flags of the contact holding it, if any.
+    const { email = [], phone = [] } = JSON.parse(new URLSearchParams(String(init?.body)).get("params") ?? "{}") as {
       email?: string[];
+      phone?: string[];
     };
     return json({
-      values: email.map((address) => {
-        const contact = civicrmContacts.values.find((one) => one.email === address);
-        const block = contact?.no_bulk_email ? "bulk" : "none";
-        return { email: address, block };
-      }),
+      values: [
+        ...email.map((address) => {
+          const contact = civicrmContacts.values.find((one) => one.email === address);
+          const block = contact?.no_bulk_email ? "bulk" : "none";
+          return { email: address, block };
+        }),
+        ...phone.map((number) => {
+          const contact = civicrmContacts.values.find((one) => one.phone === number);
+          return {
+            phone: number,
+            do_not_phone: contact?.do_not_phone ?? false,
+            do_not_sms: contact?.do_not_sms ?? false,
+          };
+        }),
+      ],
     });
   }
   if (hostname === "crm.pauseai.info" && pathname === "/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions") {
@@ -358,6 +370,7 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
   const google = googleResponse(hostname, pathname, searchParams, init, scope);
   if (google) return google;
   if (hostname === "blobs.fixture.invalid") return blobResponse(pathname, init);
+  if (hostname === "graph.facebook.com") return whatsAppResponse(pathname, init);
   if (hostname === "challenges.cloudflare.com" && pathname === "/turnstile/v0/siteverify") {
     return json({ success: true, hostname: "localhost" });
   }
