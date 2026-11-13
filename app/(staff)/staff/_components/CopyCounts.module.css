@@ -17,6 +17,13 @@
   border: 0;
 }
 
+/* A phone: each group the band's width, one under the other, so its counts share all of it (ui/Counts). */
+@media (max-width: 30rem) {
+  .group {
+    flex: 1 1 100%;
+  }
+}
+
 .total {
   padding: 0 0 var(--space-1);
   color: var(--text-secondary);
