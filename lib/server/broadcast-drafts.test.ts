@@ -416,7 +416,10 @@ describeWithDatabase("broadcasts to supporters", () => {
           { type: "FOOTER", text: templateFooter(["events"]) },
         ],
       });
-      expect(await query("SELECT meta_id FROM whatsapp_templates")).toEqual([{ meta_id: "meta-1" }]);
+      // Its footer kept as it went, for every page to show.
+      expect(await query("SELECT meta_id, footer FROM whatsapp_templates")).toEqual([
+        { meta_id: "meta-1", footer: templateFooter(["events"]) },
+      ]);
     });
 
     it("leaves the draft as it was, reporting it, when WhatsApp doesn't take the words or answer", async () => {

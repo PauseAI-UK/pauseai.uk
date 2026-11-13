@@ -198,11 +198,14 @@ function BroadcastPreview({
   needs,
   dueAt,
   sendTest,
+  footer,
 }: {
   data: BroadcastWriterData;
   draft: WrittenBroadcast;
   body: MailingDoc;
   words: Words;
+  /** A text's footer: its chosen template's, as it went to WhatsApp, or for new words, the one they'd go with. */
+  footer: string;
   subject: string;
   from: string;
   /** The connected Gmail an email goes from, which its test goes from too; none for Postmark. */
@@ -287,7 +290,7 @@ function BroadcastPreview({
         <TextBubble
           from={TEXT_SENDER_NAME}
           words={letterFor(body, recipient)}
-          footer={templateFooter(draft.topics)}
+          footer={footer}
           time={londonClock(sendsAt(dueAt ?? earliestRun()))}
         />
       )}
@@ -703,6 +706,7 @@ export default function BroadcastWriter({
                 draft={draft}
                 body={body}
                 words={words}
+                footer={template?.footer ?? templateFooter(draft.topics)}
                 subject={values.subject}
                 from={fromLine}
                 gmail={byGmail && data.sender.connected ? draft.sentFrom : null}

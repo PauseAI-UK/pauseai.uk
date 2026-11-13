@@ -7,6 +7,7 @@ import { addStaffAccount, importCivicrm, importLuma, logInAsStaff, newestEmail }
 import { caretInEmpty } from "./editor-steps";
 import { BASE, emailFrame, expect, frame, story, test, textFrame } from "./fixtures";
 import { newestText, OUR_CHAT, shownText, templateSent } from "./whatsapp-steps";
+import { templateFooter } from "@/lib/whatsapp-template";
 import { connectGmail } from "./staff-steps";
 import type { Section } from "./report/frames";
 import { messageFrom, postWhatsAppWebhook, statusOf, templateStatus } from "../whatsapp-webhooks";
@@ -79,12 +80,12 @@ async function startFromList(page: Page, filters: string, n: number) {
 function addTemplates(database: string) {
   runSql(
     database,
-    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at)
+    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, footer)
      SELECT name, jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph',
          'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Hi '),
            jsonb_build_object('type', 'field', 'attrs', jsonb_build_object('field', 'firstName')),
            jsonb_build_object('type', 'text', 'text', ', ' || words))))),
-       'approved', by, '2026-10-01T10:00:00Z'::timestamptz - n * interval '1 day'
+       'approved', by, '2026-10-01T10:00:00Z'::timestamptz - n * interval '1 day', '${templateFooter(["events"])}'
      FROM (VALUES
        ('The march meets at 11:00 at Parliament Square.', 'the march meets at 11:00 at Parliament Square. Look for the orange flags.', 'jo@pauseai.uk', 1),
        ('PauseCon room change', 'PauseCon has moved to the Main Hall. Doors still open at 09:30.', 'sam@pauseai.uk', 2),
@@ -370,8 +371,9 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
 function addDueText(database: string, title: string, scheduledBy: string): string {
   const [template] = runSql(
     database,
-    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, meta_name, category)
-     VALUES ('${title}', '${WORDS}', 'approved', 'jo@pauseai.uk', now() - interval '1 day', 'flow_text_1', 'MARKETING')
+    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, meta_name, category, footer)
+     VALUES ('${title}', '${WORDS}', 'approved', 'jo@pauseai.uk', now() - interval '1 day', 'flow_text_1', 'MARKETING',
+       '${templateFooter(["events"])}')
      RETURNING id`,
   );
   const [id] = runSql(

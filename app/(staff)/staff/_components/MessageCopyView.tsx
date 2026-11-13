@@ -11,6 +11,7 @@ import { ChatBubble, ChatWall, TextWords } from "./TextBubble";
 import { LetterHistory, type HistoryEntry } from "./LetterHistory";
 import { Thread } from "./LetterThread";
 import ThreadEmail from "./ThreadEmail";
+import bubble from "./Broadcasts.module.css";
 import Grid, { Card, Column } from "./ui/Grid";
 import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
@@ -48,6 +49,8 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
       <ChatWall>
         <ChatBubble who={TEXT_SENDER_NAME} when={one.sentAt ? staffTime(one.sentAt) : ""} ours>
           <TextWords words={letterFor(one.body, merge)} />
+          {/* Its footer, as they got it, where we know it. */}
+          {one.footer && <span className={bubble.footer}>{one.footer}</span>}
         </ChatBubble>
       </ChatWall>
     );

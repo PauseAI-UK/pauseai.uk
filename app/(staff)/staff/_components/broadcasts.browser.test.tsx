@@ -1429,7 +1429,12 @@ describe("MessageCopyView", () => {
   });
 
   it("shows a text as they got it, titled as a letter is, with what its provider reported", async () => {
-    await render(<MessageCopyView one={exampleMessageCopy} />);
+    const { rerender } = await render(<MessageCopyView one={{ ...exampleMessageCopy, footer: null }} />);
+    // A footer we don't know, as for a template made in WhatsApp Manager: none shown.
+    await expect.element(page.getByText(/Reply STOP/)).not.toBeInTheDocument();
+    await rerender(<MessageCopyView one={exampleMessageCopy} />);
+    // Its footer, as its template went to WhatsApp.
+    await expect.element(page.getByText(exampleMessageCopy.footer!, { exact: true })).toBeVisible();
     await expect
       .element(page.getByRole("heading", { level: 1 }))
       .toHaveTextContent(copy.copyTitle("text", "Jane Example"));

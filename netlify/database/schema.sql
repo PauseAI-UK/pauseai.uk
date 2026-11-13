@@ -2670,6 +2670,7 @@ CREATE TABLE public.whatsapp_templates (
     meta_id text,
     category text,
     stopped_at timestamp with time zone,
+    footer text,
     CONSTRAINT whatsapp_templates_category_check CHECK ((category = ANY (ARRAY['MARKETING'::text, 'UTILITY'::text, 'AUTHENTICATION'::text]))),
     CONSTRAINT whatsapp_templates_check CHECK (((status <> 'approved'::text) OR (approved_at IS NOT NULL))),
     CONSTRAINT whatsapp_templates_check1 CHECK (((status = 'rejected'::text) = (rejected_at IS NOT NULL))),

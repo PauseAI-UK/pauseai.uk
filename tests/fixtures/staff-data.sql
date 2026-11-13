@@ -1200,11 +1200,13 @@ CREATE FUNCTION pg_temp.seed_words(words text) RETURNS jsonb LANGUAGE sql AS $$
     jsonb_build_object('type', 'text', 'text', ', ' || words)))))
 $$;
 
-INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason, created_at)
+INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason, created_at, footer)
 SELECT t.name, pg_temp.seed_words(t.words), t.status, t.by,
   CASE WHEN t.status = 'approved' THEN now() - t.ago END, CASE WHEN t.status = 'rejected' THEN now() - t.ago END,
   -- WhatsApp's code for why, which the draft and the email put in words (rejectionWords, lib/broadcasts.ts).
-  CASE WHEN t.status = 'rejected' THEN 'PROMOTIONAL' END, now() - t.ago - interval '1 day'
+  CASE WHEN t.status = 'rejected' THEN 'PROMOTIONAL' END, now() - t.ago - interval '1 day',
+  -- Its footer as it went to WhatsApp (templateFooter): each of these is for event texts.
+  'Reply STOP to stop event texts'
 FROM (VALUES
   ('The march meets at 11:00 at Parliament Square.', 'the march meets at 11:00 at Parliament Square. Look for the orange flags.', 'approved', 'jo@pauseai.uk', interval '10 days'),
   ('PauseCon room change', 'PauseCon has moved to the Main Hall. Doors still open at 09:30.', 'approved', 'sam@pauseai.uk', interval '12 days'),

@@ -79,6 +79,8 @@ export type WhatsAppTemplate = {
   requestedAt: Date;
   rejectedAt: Date | null;
   rejectedReason: string | null;
+  /** Its footer as it went to WhatsApp, or none for one made in WhatsApp Manager. */
+  footer: string | null;
   /** When it last went, and to how many; none if it never has. */
   lastUsedAt: Date | null;
   lastUsedTo: number;
@@ -105,7 +107,7 @@ export type WrittenBroadcast = WrittenMailing & {
 
 const SELECT_TEMPLATES = `
   SELECT t.id::int AS id, t.name, t.body, t.status, t.category, t.meta_name AS "metaName", t.created_by AS "createdBy", t.approved_at AS "approvedAt", t.created_at AS "requestedAt",
-    t.rejected_at AS "rejectedAt", t.rejected_reason AS "rejectedReason", u.at AS "lastUsedAt", coalesce(u.n, 0)::int AS "lastUsedTo"
+    t.rejected_at AS "rejectedAt", t.rejected_reason AS "rejectedReason", t.footer, u.at AS "lastUsedAt", coalesce(u.n, 0)::int AS "lastUsedTo"
   FROM whatsapp_templates t LEFT JOIN LATERAL (
     SELECT m.due_at AS at, (SELECT count(*) FROM broadcast_messages c WHERE c.mailing_id = m.id) AS n
     FROM mailings m WHERE m.template_id = t.id AND m.state IN ('sending', 'sent', 'cancelled')
@@ -445,14 +447,20 @@ async function sendForApproval(template: {
 }): Promise<boolean> {
   const backend = await textBackend();
   if (!backend) return false;
+  const footer = templateFooter(template.topics);
   try {
     const made = await createTemplate(backend.keys, {
       name: template.metaName,
       body: templateText(template.body),
       examples: templateParams(template.body, fakeRecipient(BROADCAST_FIELDS.map(hasField), "text")),
-      footer: templateFooter(template.topics),
+      footer,
     });
-    await query("UPDATE whatsapp_templates SET meta_id = $2 WHERE id = $1", [template.id, made.id]);
+    // Its footer kept as it went, so every page shows what people got.
+    await query("UPDATE whatsapp_templates SET meta_id = $2, footer = $3 WHERE id = $1", [
+      template.id,
+      made.id,
+      footer,
+    ]);
     return true;
   } catch (error) {
     problem(staffCopy.problems.anywhere.templateNotSent(template.metaName), error);

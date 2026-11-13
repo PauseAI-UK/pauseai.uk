@@ -440,6 +440,8 @@ export type MessageCopy = {
   /** Where they are, as sending found it. */
   place: string | null;
   sentAt: Date | null;
+  /** A text's footer, as its template went to WhatsApp; none for an email, or a template whose footer we don't know. */
+  footer: string | null;
   /** Where it stands, and why, as a recipient's row has them. */
   state: CopyState;
   why: string | null;
@@ -463,7 +465,8 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
        m.from_name AS "fromName", m.sent_from AS "sentFrom", m.send_by AS "sendBy", c.supporter_id::int AS "supporterId",
        c.merge_values ->> 'name' AS name, c.merge_values ->> 'place' AS place, c.address,
        CASE WHEN c.merge_values ? 'values' THEN c.merge_values END AS merge, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
-       ${COPY_STATE} AS state, ${COPY_WHY} AS why, c.topics
+       ${COPY_STATE} AS state, ${COPY_WHY} AS why, c.topics,
+       (SELECT t.footer FROM whatsapp_templates t WHERE t.id = m.template_id) AS footer
      FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
      WHERE c.id = $2 AND m.id = $1 AND m.audience = 'supporters'`,
     [broadcastId, copyId],

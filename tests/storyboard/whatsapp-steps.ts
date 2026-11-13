@@ -6,8 +6,7 @@
 import { TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import { readTexts, type OutboxText } from "@/lib/server/fixtures/whatsapp-outbox";
 import type { MailingDoc } from "@/lib/mailing-doc";
-import type { Topic } from "@/lib/contact-permissions";
-import { filledTemplate, templateFooter, templateText } from "@/lib/whatsapp-template";
+import { filledTemplate, templateText } from "@/lib/whatsapp-template";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { OUTBOX_DIR } from "../checkout.mjs";
 import type { TextShown } from "../fixtures/text-view";
@@ -28,14 +27,13 @@ function templateWords(database: string, name: string): string {
   return templateText(JSON.parse(body!) as MailingDoc);
 }
 
-/** A template's footer, by the name WhatsApp has it by: the topics of the text it was made for (templateFooter). */
-function footerOf(database: string, name: string): string {
-  const [topics] = runSql(
+/** A template's footer as it went to WhatsApp, by the name WhatsApp has it by; none where it isn't known. */
+function footerOf(database: string, name: string): string | undefined {
+  const [footer] = runSql(
     database,
-    `SELECT array_to_string(array_prepend(m.topic, m.also_topics), ',') FROM mailings m
-     JOIN whatsapp_templates t ON t.id = m.template_id WHERE coalesce(t.meta_name, t.name) = '${name}' ORDER BY m.id LIMIT 1`,
+    `SELECT footer FROM whatsapp_templates WHERE coalesce(meta_name, name) = '${name}'`,
   );
-  return templateFooter(topics!.split(",") as Topic[]);
+  return footer;
 }
 
 /** What a text shows: its template's words filled in, with its footer; or words of our own. */

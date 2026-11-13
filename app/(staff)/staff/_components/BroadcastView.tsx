@@ -187,7 +187,7 @@ function BroadcastWords({ written, parts }: { written: WrittenBroadcast; parts: 
         <TextBubble
           from={written.fromName!}
           words={{ content: written.body.content.filter((block) => block.type !== "onlyFor") }}
-          footer={templateFooter(written.topics)}
+          footer={written.template?.footer ?? templateFooter(written.topics)}
           time={londonClock(sendsAt(written.dueAt!))}
         />
       </Card>
