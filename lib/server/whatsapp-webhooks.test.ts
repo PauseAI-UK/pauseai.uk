@@ -245,6 +245,14 @@ describeWithDatabase("WhatsApp's webhook", () => {
     ).toEqual([{ by: SITE_ACTOR, status: "sent", id: "wamid.answer", words: body }]);
   });
 
+  it("answers a stop from a number we never texted, keeping no reply, as there's no thread for it", async () => {
+    const sends = whatsAppTakes();
+    await recordWhatsAppWebhook(message({ text: { body: "stop" } }, "447700900999"));
+    expect(sends).toEqual([expect.objectContaining({ to: "447700900999", type: "text" })]);
+    expect(await query("SELECT 1 FROM broadcast_replies")).toEqual([]);
+    expect(await query("SELECT 1 FROM broadcast_answers")).toEqual([]);
+  });
+
   it("keeps a stop whose answer doesn't go, reporting it, and answers none without WhatsApp's keys", async () => {
     whatsAppTakes(true);
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
