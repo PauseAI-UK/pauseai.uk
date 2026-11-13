@@ -2867,7 +2867,7 @@ All events: ${link}`,
       templateNotDeleted: (name: string) => `WhatsApp didn't delete template ${name}, which was withdrawn here`,
       // The text answering a reply of "stop" didn't go, though the stop is kept.
       stopNotAnswered:
-        "⁂ A supporter replied STOP and their texts are stopped, but our WhatsApp reply confirming it failed to send",
+        "A supporter replied STOP and their texts are stopped, but our WhatsApp reply confirming it failed to send",
       // What those are, in them.
       copyOf: (id: number) => `Broadcast copy ${id}`,
       letterOf: (id: number) => `Letter ${id}`,
