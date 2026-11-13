@@ -87,6 +87,38 @@ describe("authenticated", () => {
     expect(google("spf=pass smtp.mailfrom=other.org smtp.mailfrom=example.org")).toBe(false);
   });
 
+  it("takes Google Workspace's own signature for a domain as the domain's", () => {
+    // Google signs as <the domain, dots as dashes>.<selector>.gappssmtp.com for a domain with no key of its own.
+    const workspace = "dkim=pass header.i=@example-org.20260707.gappssmtp.com header.s=20260707";
+    expect(google(`${workspace}; spf=none smtp.mailfrom=a@example.org`)).toBe(true);
+    expect(google("dkim=pass header.d=example-org.20260707.gappssmtp.com")).toBe(true);
+    expect(google(workspace, "a@example-org.com")).toBe(false);
+    expect(google(workspace, "a@mail.example.org")).toBe(false);
+    expect(google("dkim=pass header.i=@example-org.gappssmtp.com")).toBe(false);
+    expect(google("dkim=pass header.i=@example-org.20260707.gappssmtp.com.attacker.example")).toBe(false);
+    expect(google("dkim=fail header.i=@example-org.20260707.gappssmtp.com")).toBe(false);
+    // Not where the domain's DMARC policy refused it.
+    expect(google(`${workspace}; dmarc=fail header.from=example.org`)).toBe(false);
+  });
+
+  it("takes Caseworker MP's signature as a politician's own domain's, whatever its DMARC found", () => {
+    const caseworker =
+      "dkim=pass header.i=@caseworkermp.com header.s=s1; spf=pass smtp.mailfrom=bounces+1-a=b.example@outbound.caseworkermp.com";
+    const politician = (found: string) =>
+      authenticated(head([`mx.google.com; ${found}`]), "office@janesmithmp.example", true);
+    expect(politician(caseworker)).toBe(true);
+    expect(politician(`${caseworker}; dmarc=fail header.from=janesmithmp.example`)).toBe(true);
+    expect(politician("dkim=pass header.d=mail.caseworkermp.com")).toBe(true);
+    // Only for a politician's domain, only for a pass, and only for Caseworker MP's own domain.
+    expect(authenticated(head([`mx.google.com; ${caseworker}`]), "office@janesmithmp.example")).toBe(false);
+    expect(politician("dkim=fail header.i=@caseworkermp.com")).toBe(false);
+    expect(politician("dkim=pass header.i=@notcaseworkermp.com")).toBe(false);
+    expect(politician("dkim=pass header.i=@com")).toBe(false);
+    expect(politician("dkim=pass")).toBe(false);
+    // Never where Google's field has two DMARC results.
+    expect(politician(`${caseworker}; dmarc=fail header.from=x.example; dmarc=fail header.from=y.example`)).toBe(false);
+  });
+
   it("reads nothing the sender chose as a result of its own", () => {
     // An envelope sender of dmarc=pass@…, which Google repeats in SPF's comment and its mailfrom.
     expect(
@@ -478,6 +510,19 @@ describeWithDatabase("reading the letters inbox", () => {
       status: "not_relayed",
       details: expect.objectContaining({ reason: "not_verified", from: "test-mp@parliament.example" }),
     });
+  });
+
+  it("relays an office's mail sent by Caseworker MP from the MP's own domain", async () => {
+    const letter = await write();
+    const auth = "dkim=pass header.i=@caseworkermp.com header.s=s1; spf=pass smtp.mailfrom=b@outbound.caseworkermp.com";
+    deliver({ from: MP, to: JANES_PROXY, auth });
+    expect((await read()).notUnderstood).toEqual([expect.objectContaining({ reason: "not_verified" })]);
+    await query(
+      "INSERT INTO politician_domains (domain, notable_person_id) SELECT 'parliament.example', notable_person_id FROM letters WHERE id = $1",
+      [letter.id],
+    );
+    deliver({ from: MP, to: JANES_PROXY, auth });
+    expect(await read()).toMatchObject({ relayed: 1, notUnderstood: [] });
   });
 
   it("takes any Parliament address as the office's, and no other but the one the letter went to", async () => {
