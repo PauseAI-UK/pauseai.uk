@@ -162,13 +162,9 @@ export default function PrivacyPolicy() {
         .
       </p>
       <p>
-        Before each email goes, we check your address against Stichting PauseAI’s records, so if you’ve asked PauseAI
-        not to email you, we won’t. When you unsubscribe from us, we tell Stichting PauseAI. If you stop all bulk email,
-        their emails stop too.
-      </p>
-      <p>
-        ⁂ We check your number the same way before each text, and when you stop all our texts, we tell Stichting
-        PauseAI.
+        Before each email or text goes, we check your address or number against Stichting PauseAI’s records, so if
+        you’ve asked PauseAI not to email or text you, we won’t. When you unsubscribe from us, we tell Stichting
+        PauseAI. If you stop all bulk email, their emails stop too.
       </p>
       <p>If you reply to one of our emails, we keep your reply.</p>
       <p>⁂ If you reply to one of our texts, we keep your reply too, and we may answer you on WhatsApp.</p>
