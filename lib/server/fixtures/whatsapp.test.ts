@@ -2,7 +2,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { FIXTURE_PHONE_ID, whatsAppResponse } from "./whatsapp";
+import { FIXTURE_BODY_LIMIT, FIXTURE_PHONE_ID, whatsAppResponse } from "./whatsapp";
 
 const at = (path: string) => `/v23.0/${path}`;
 const json = async (response: Response | undefined) => (await response!.json()) as Record<string, unknown>;
@@ -111,6 +111,23 @@ it("takes templates for approval, writing each to the outbox, deletes them, and 
     success: true,
   });
   expect(await json(whatsAppResponse(at("fixture-account/message_templates")))).toEqual({ data: [] });
+});
+
+it("refuses a template whose words are too long, as Meta does", async () => {
+  const refused = whatsAppResponse(at("fixture-account/message_templates"), {
+    method: "POST",
+    body: JSON.stringify({
+      name: "long_1",
+      components: [
+        { type: "BODY", text: "a".repeat(FIXTURE_BODY_LIMIT + 1) },
+        { type: "FOOTER", text: "Reply STOP to stop event texts" },
+      ],
+    }),
+  })!;
+  expect(refused.status).toBe(400);
+  expect(await refused.json()).toMatchObject({
+    error: { message: "Invalid parameter", error_user_title: "Message too long" },
+  });
 });
 
 it("knows nothing else", () => {

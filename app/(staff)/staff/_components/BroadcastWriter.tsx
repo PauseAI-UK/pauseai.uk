@@ -60,6 +60,7 @@ import {
   useDraftWriter,
   type DraftActions,
 } from "./DraftWriter";
+import Alert from "./Alert";
 import { ARMED_FOR } from "./DeleteTwice";
 import { DeleteDraft } from "./MailingButtons";
 import MailingEditor from "./MailingEditor";
@@ -398,8 +399,8 @@ export default function BroadcastWriter({
     });
   const [choosing, choose] = useLeaving();
   const [submitting, setSubmitting] = useState(false);
-  // WhatsApp didn't take the words just now, so they're still here to send again.
-  const [submitFailed, setSubmitFailed] = useState(false);
+  // Why the words didn't go for approval just now, so they're still here to send again: an alert under the button.
+  const [submitError, setSubmitError] = useState<string | null>(null);
   // New words sent to WhatsApp, waiting for it to approve them.
   const waiting = draft.template?.status === "pending" ? draft.template : undefined;
   // Once taken back, the words can be changed again: Write is brought fully into view once the page has them.
@@ -760,16 +761,23 @@ export default function BroadcastWriter({
                     pending={submitting}
                     onClick={async () => {
                       setSubmitting(true);
-                      setSubmitFailed(false);
-                      await saveNow();
-                      const result = await actions.submitTemplate(id);
+                      setSubmitError(null);
+                      const result = await saveNow()
+                        .then(() => actions.submitTemplate(id))
+                        .catch(() => "broke" as const);
                       // Back to the list, where the broadcast's row says it's waiting for WhatsApp, and pulses.
                       if (result === "submitted") {
                         router.push(`/staff/broadcasts?submitted=${id}`);
-                      } else {
-                        setSubmitting(false);
-                        setSubmitFailed(result === "failed");
+                        return;
                       }
+                      setSubmitting(false);
+                      setSubmitError(
+                        result === "broke"
+                          ? copy.submitBroke
+                          : typeof result === "object"
+                            ? copy.submitFailed(result.failed)
+                            : copy.submitRefused[result],
+                      );
                     }}
                   >
                     {copy.submitTemplate}
@@ -784,12 +792,8 @@ export default function BroadcastWriter({
                 )}
                 <DeleteDraft id={id} action={actions.deleteDraft} />
               </div>
-              <ProblemList
-                problems={[
-                  ...shownProblems.map((problem) => copy.problems[problem]),
-                  ...(submitFailed ? [copy.submitFailed] : []),
-                ]}
-              />
+              {submitError && <Alert>{submitError}</Alert>}
+              <ProblemList problems={shownProblems.map((problem) => copy.problems[problem])} />
             </Card>
           </>,
         )}

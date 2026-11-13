@@ -23,11 +23,16 @@ export const managerLink = (accountId: string | undefined): string =>
 /** What every call needs: the token, and the WhatsApp account's ID. */
 export type WhatsAppKeys = { token: string; accountId: string };
 
-/** A call WhatsApp refused, with its error code, if it gave one. */
+/**
+ * A call WhatsApp refused, with its error code, if it gave one, and its
+ * reason: the words Meta writes for people, which say what to change
+ * (`error_user_title`, `error_user_msg`), else its bare message.
+ */
 export class WhatsAppRequestError extends Error {
   constructor(
     message: string,
     readonly code: number | null = null,
+    readonly reason: string | null = null,
   ) {
     super(message);
     this.name = "WhatsAppRequestError";
@@ -51,10 +56,18 @@ async function graph(
   });
   const data = (parseJsonIfAny(await res.text()) ?? {}) as Record<string, unknown>;
   if (!res.ok) {
-    const error = (data.error ?? {}) as { message?: string; code?: number };
+    const error = (data.error ?? {}) as {
+      message?: string;
+      code?: number;
+      error_user_title?: string;
+      error_user_msg?: string;
+    };
+    // Meta's words for people, as "Invalid parameter" alone doesn't say which.
+    const forPeople = [error.error_user_title, error.error_user_msg].filter(Boolean).join(": ");
     throw new WhatsAppRequestError(
-      `WhatsApp request failed with status ${res.status}: ${error.message ?? "no message"}`,
+      `WhatsApp request failed with status ${res.status}: ${error.message ?? "no message"}${forPeople ? ` (${forPeople})` : ""}`,
       typeof error.code === "number" ? error.code : null,
+      forPeople || error.message || null,
     );
   }
   return data;

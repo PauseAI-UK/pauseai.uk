@@ -18,7 +18,7 @@ About 30 client components import it. A bundler can't drop the unused parts of o
 
 After the change:
 
-- Each feature gets a `copy.ts` beside its components, which its tests import as they import `staffCopy` today.
+- Each module gets its own copy file beside it (a feature's components, or a server module's emails and problems), which its tests import as they import `staffCopy` today, so a change to one module's words reaches only the flows that use that module.
 - A small shared vocabulary (statuses, houses, fields, paging) stays central.
 - Emails and problem messages move beside the server code that sends them.
 - Plurals go through `plural()` and `count()` in `lib/content/plural.ts`.
@@ -27,4 +27,6 @@ Move one top-level key at a time, the most used first (`politician`, `mailingPag
 
 ## Hits
 
+- 2026-11-13: a fix to one button's alerts in the broadcast writer changed `staff-interface.ts`, so the storyboard review had to run 533 of 622 flows, nearly all of them
+- Since 2026-11-01 (x85): 85 of main's 183 commits changed `staff-interface.ts`, each one rerunning most of the storyboard
 - 2026-11-12: `staffCopy` is in two thirds of the commits whose change reaches over half of the storyboard's flows; even key by key, `politician` reaches 146 of 280 (`storyboard-review-speed.md`)

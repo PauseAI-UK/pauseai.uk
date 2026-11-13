@@ -328,6 +328,26 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await frame(page, "The list, the draft WhatsApp rejected");
 });
 
+test("WhatsApp won't take a new template", async ({ page, request, flowDatabase }) => {
+  story("Staff write a new template for a text and send it for approval, but it's longer than WhatsApp allows.");
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await page.getByLabel(copy.templateLabel).first().selectOption({ label: copy.newTemplate });
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.insertText("The march meets at 11:00 at Parliament Square. ".repeat(25).trim());
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March day: where to meet"));
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.getByRole("button", { name: copy.submitTemplate }).click();
+  story(
+    "WhatsApp refuses it. A red alert under the button gives its reason, and the template stays, to change and send again.",
+  );
+  await expect(send.getByRole("alert")).toBeVisible();
+  await send.scrollIntoViewIfNeeded();
+  await frame(page, "WhatsApp's refusal, under the button", { window: true });
+});
+
 test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
   story("Staff send a text's new words to WhatsApp for approval, as in the flow before.");
   await importLuma(request, BASE);
@@ -411,7 +431,9 @@ test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {
     "A text's time has come. The sending checks each number with PauseAI Global's records first, then sends each copy by WhatsApp: the template, its first name filled in.",
   );
   const sent = await textSent(request, flowDatabase);
-  await textFrame(page, OUR_CHAT, shownText(flowDatabase, newestText(`+${sent.number}`)!), "The text, as they get it");
+  // A template, as other flows text the same number words of their own at the same time.
+  const text = newestText(`+${sent.number}`, (one) => "template" in one)!;
+  await textFrame(page, OUR_CHAT, shownText(flowDatabase, text), "The text, as they get it");
   story("WhatsApp's webhook says it was delivered, then read.");
   await postWhatsAppWebhook(request, BASE, statusOf(sent.wamid, sent.number, "delivered"));
   await postWhatsAppWebhook(request, BASE, statusOf(sent.wamid, sent.number, "read", 20));

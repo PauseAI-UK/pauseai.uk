@@ -71,12 +71,29 @@ describe("our number", () => {
       name: "WhatsAppRequestError",
       code: 190,
       message: "WhatsApp request failed with status 401: Bad token",
+      reason: "Bad token",
     });
+    // Meta's words for people, which say what's wrong: its title and message, or either alone.
+    const refusal = (error: object) =>
+      server.use(
+        http.get(`${GRAPH}/account/phone_numbers`, () =>
+          HttpResponse.json({ error: { message: "Invalid parameter", code: 100, ...error } }, { status: 400 }),
+        ),
+      );
+    refusal({ error_user_title: "Duplicate parameter", error_user_msg: "Use each parameter once." });
+    await expect(businessNumber(KEYS)).rejects.toMatchObject({
+      message:
+        "WhatsApp request failed with status 400: Invalid parameter (Duplicate parameter: Use each parameter once.)",
+      reason: "Duplicate parameter: Use each parameter once.",
+    });
+    refusal({ error_user_msg: "Use each parameter once." });
+    await expect(businessNumber(KEYS)).rejects.toMatchObject({ reason: "Use each parameter once." });
     // An answer that isn't JSON, or has no error in it.
     server.use(http.get(`${GRAPH}/account/phone_numbers`, () => new HttpResponse("down", { status: 502 })));
     await expect(businessNumber(KEYS)).rejects.toMatchObject({
       code: null,
       message: expect.stringContaining("no message"),
+      reason: null,
     });
   });
 });

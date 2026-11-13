@@ -414,7 +414,7 @@ describe("broadcastScheduleProblems", () => {
     expect(rejectionWords(null)).toBe(words.other("NONE"));
   });
 
-  it("won't send new words for approval with a field at the start or end, or two together, as WhatsApp rejects them", () => {
+  it("won't send new words for approval with a field at the start or end, two together, or one twice, as WhatsApp rejects them", () => {
     const field = (name: string): MailingInline => ({ type: "field", attrs: { field: name } });
     const text = (words: string): MailingInline => ({ type: "text", text: words });
     const words = (...content: MailingInline[]): MailingDoc => ({
@@ -435,10 +435,17 @@ describe("broadcastScheduleProblems", () => {
       "fields-together",
       "not-approved",
     ]);
+    expect(
+      problems(words(text("Hi "), field("firstName"), text(", your name is "), field("firstName"), text("."))),
+    ).toEqual(["field-twice", "not-approved"]);
+    // Two fields, each once, aren't twice.
+    expect(problems(words(text("Hi "), field("firstName"), text(", or "), field("name"), text(" in full.")))).toEqual([
+      "not-approved",
+    ]);
     // An approved template is WhatsApp's to judge, and an email takes fields anywhere.
     expect(problems(words(field("firstName"), text(" hi")), true)).toEqual([]);
     expect(broadcastScheduleProblems({ ...good, body: words(field("firstName")) })).toEqual([]);
-    expect(misplacedFields(words(text("No fields here")))).toEqual({ atEdge: false, together: false });
+    expect(misplacedFields(words(text("No fields here")))).toEqual({ atEdge: false, together: false, twice: false });
   });
 
   it("wants a text's words approved by WhatsApp, but not an email's, said after all but the time", () => {

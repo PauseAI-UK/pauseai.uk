@@ -924,6 +924,7 @@ that drives it or why nothing does.
   - an email written, from hello@ by its Gmail with what it can send today, previewed, sent as a test, scheduled and unscheduled;
   - a text on an approved template, with the templates' search and Show all;
   - a text on new words, sent for WhatsApp's approval, locked till it decides, then rejected by its webhook;
+  - a new template WhatsApp won't take, too long, with its reason in a red alert under the button;
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
   - who it goes to changed from the list, with its Consent locked there;
   - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
