@@ -35,27 +35,28 @@ export function BroadcastChannelName({ channel }: { channel: BroadcastChannel })
 }
 
 /**
- * How a broadcast went, in the order it happens: what arrived (by Gmail,
- * what went), what didn't, what never went as it was stopped, then what
- * was read and what was replied to, a dash where that isn't reported.
+ * How a broadcast went, in the order it happens: what went, what didn't,
+ * what never went as it was stopped, then what was read, what was
+ * replied to and what's still to look at, a dash where that can't be.
  */
 export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
-  // Gmail says nothing of what arrives, so an email it sends counts those that went, as a mailing does.
-  const delivers = broadcast.channel === "text" || broadcast.sendBy !== "gmail";
   return [
-    delivers
-      ? { key: "delivered", n: broadcast.delivered, label: copy.counts.delivered }
-      : { key: "sent", n: broadcast.sent, label: copy.counts.sent },
+    // Those that went, delivered or not yet said to be, as a mailing counts them: Gmail never says what arrived, and
+    // each copy's own tag says what its provider did.
+    { key: "sent", n: broadcast.sent, label: copy.counts.sent },
     { key: "failed", n: broadcast.failed, label: copy.counts.failed, tone: "red" },
     { key: "stopped", n: broadcast.stopped, label: copy.counts.stopped },
     // Every broadcast has every count, so they line up from row to row: an email can't say it was read, nor a
     // text be replied to here, so a dash.
     { key: "read", n: broadcast.channel === "text" ? broadcast.read : null, label: copy.counts.read },
     { key: "replied", n: broadcast.channel === "email" ? broadcast.replied : null, label: copy.counts.replied },
-    // And, while there are any, the replies still to look at, in amber.
-    ...(broadcast.toLookAt
-      ? [{ key: "look", n: broadcast.toLookAt, label: copy.counts.look, tone: "amber" as const }]
-      : []),
+    // The replies still to look at, in amber while there are any.
+    {
+      key: "look",
+      n: broadcast.channel === "email" ? broadcast.toLookAt : null,
+      label: copy.counts.look,
+      ...(broadcast.toLookAt ? { tone: "amber" as const } : {}),
+    },
   ];
 }
 

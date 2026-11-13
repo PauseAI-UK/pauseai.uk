@@ -211,15 +211,17 @@ describe("replies to broadcasts", () => {
     expect(answer.mock.calls[1][1]).toBe(answer.mock.calls[0][1]);
   });
 
-  it("are counted on an email's page, those to look at amber, and tagged on each recipient", async () => {
+  it("are counted on an email's page, those to look at amber while there are any, the same boxes either way, and tagged on each recipient", async () => {
     const counts = broadcastCounts({ ...exampleBroadcastSummary, channel: "email", replied: 3, toLookAt: 1 });
     expect(counts.slice(-2)).toEqual([
       { key: "replied", n: 3, label: copy.counts.replied },
       { key: "look", n: 1, label: copy.counts.look, tone: "amber" },
     ]);
-    expect(broadcastCounts({ ...exampleBroadcastSummary, channel: "email", replied: 0, toLookAt: 0 }).at(-1)?.key).toBe(
-      "replied",
-    );
+    const none = broadcastCounts({ ...exampleBroadcastSummary, channel: "email", replied: 0, toLookAt: 0 });
+    expect(none.at(-1)).toEqual({ key: "look", n: 0, label: copy.counts.look });
+    const text = broadcastCounts({ ...exampleBroadcastSummary, channel: "text" });
+    expect(text.slice(-2).map((count) => count.n)).toEqual([null, null]);
+    expect(none.map((count) => count.key)).toEqual(text.map((count) => count.key));
     const went = { status: "delivered", skipReason: null, read: false, bounced: false, optedOut: false };
     await render(
       <>

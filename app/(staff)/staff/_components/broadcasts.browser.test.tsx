@@ -890,26 +890,14 @@ describe("a broadcast's page", () => {
   const actions = { stop: nothing, reschedule: nothing, resume: nothing };
   const who = <p>Who</p>;
 
-  it("counts those sent, not delivered, for an email by Gmail, which says nothing of what arrives", async () => {
+  it("gives an email's counts, each leading to those recipients, those sent first, its words and its recipients", async () => {
     await render(<BroadcastView data={exampleBroadcastSent} who={who} contact={null} {...actions} />);
     await expect.element(page.getByRole("heading", { name: exampleBroadcastSent.written.subject })).toBeVisible();
+    // Those that went, delivered or not yet said to be: Gmail never says what arrived.
     expect(page.getByRole("link", { name: new RegExp(copy.counts.delivered) }).query()).toBeNull();
     await expect
       .element(page.getByRole("link", { name: `${exampleBroadcastSent.summary.sent} ${copy.counts.sent}` }))
       .toHaveAttribute("href", "/staff/broadcasts/5?tab=sent");
-  });
-
-  it("gives an email's counts, each leading to those recipients, its words and its recipients", async () => {
-    // By Postmark, which reports what arrived.
-    const byPostmark = {
-      ...exampleBroadcastSent,
-      summary: { ...exampleBroadcastSent.summary, sendBy: "postmark" as const, delivered: 276 },
-    };
-    await render(<BroadcastView data={byPostmark} who={who} contact={null} {...actions} />);
-    await expect.element(page.getByRole("heading", { name: exampleBroadcastSent.written.subject })).toBeVisible();
-    await expect
-      .element(page.getByRole("link", { name: `276 ${copy.counts.delivered}` }))
-      .toHaveAttribute("href", "/staff/broadcasts/5?tab=delivered");
     await expect.element(page.getByRole("link", { name: copy.counts.read })).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.emailTitle)).toBeVisible();
     await expect.element(page.getByText(staffCopy.campaigns.supporters(290), { exact: true })).toBeVisible();
@@ -1006,7 +994,7 @@ describe("a broadcast's page", () => {
     await expect
       .element(page.getByText(staffCopy.mailingPages.sends(londonWhen(new Date("2026-11-07T07:18:00Z"), "short"))))
       .toBeVisible();
-    await expect.element(page.getByRole("link", { name: copy.counts.delivered })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: copy.counts.sent })).not.toBeInTheDocument();
     // Who the filters find now, as sending finds who it goes to.
     await expect.element(page.getByText(copy.recipientsNow)).toBeVisible();
     await expect.element(page.getByRole("table")).toBeVisible();
@@ -1226,7 +1214,7 @@ describe("BroadcastsOverview", () => {
     expect(page.getByText(copy.rejectedTag).all()).toHaveLength(1);
     await expect.element(page.getByText(staffCopy.mailingPages.states.scheduled).first()).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.untitled }).first()).toBeVisible();
-    await expect.element(page.getByText(new RegExp(copy.counts.delivered)).first()).toBeVisible();
+    await expect.element(page.getByText(new RegExp(copy.counts.sent)).first()).toBeVisible();
   });
 
   it("says when there are none", async () => {

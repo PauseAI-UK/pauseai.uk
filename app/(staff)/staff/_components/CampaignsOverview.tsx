@@ -13,15 +13,22 @@ import styles from "./MailingsOverview.module.css";
 const copy = staffCopy.campaigns;
 const words = staffCopy.mailingPages;
 
-/** How a campaign went, as a mailing's are told: what went, what failed, what came back; answers only when it has an ask. */
+/**
+ * How a campaign went, as a mailing's are told: what went, what failed, what
+ * came back, and the answers, a dash with no ask, so every row has every
+ * count and they line up.
+ */
 export function campaignCounts(campaign: CampaignSummary) {
   return [
     { key: "sent", n: campaign.sent, label: words.counts.sent },
     { key: "failed", n: campaign.failed, label: words.counts.failed, tone: "red" as const },
     { key: "replied", n: campaign.replied, label: words.counts.replied },
-    ...(campaign.ask
-      ? [{ key: "answered", n: campaign.answered, label: words.counts.answered, tone: "green" as const }]
-      : []),
+    {
+      key: "answered",
+      n: campaign.ask ? campaign.answered : null,
+      label: words.counts.answered,
+      tone: "green" as const,
+    },
   ];
 }
 

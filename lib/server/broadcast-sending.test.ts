@@ -206,7 +206,7 @@ describeWithDatabase("sending broadcasts", () => {
     expect(await stateOf(id)).toEqual({ state: "scheduled", waiting: true, reason: "pull", gaveUp: false });
     expect(sent).toEqual([
       expect.objectContaining({
-        To: NOTIFICATIONS,
+        To: expect.stringContaining(`<${NOTIFICATIONS}>`),
         Cc: "sam@pauseai.uk",
         Subject: staffCopy.notifications.broadcastWaiting.subject("See you there"),
       }),

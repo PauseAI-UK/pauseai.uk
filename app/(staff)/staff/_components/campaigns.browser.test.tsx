@@ -72,6 +72,10 @@ describe("CampaignsOverview", () => {
     // Those with no letters come first, under no month.
     expect(document.querySelector("li")!.textContent).toContain(copy.noLetters);
     expect(document.body.textContent).toContain(staffCopy.asks.noAsk);
+    // Every row has every count, so they line up: one with no ask has a dash for its answers.
+    const rows = [...document.querySelectorAll("li")];
+    const noAsk = rows.find((row) => row.textContent.includes(staffCopy.asks.noAsk))!;
+    expect(noAsk.textContent).toContain(`– ${staffCopy.mailingPages.counts.answered}`);
   });
 
   it("says there are none", async () => {
@@ -197,10 +201,15 @@ describe("CampaignView", () => {
       .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}?page=2`);
   });
 
-  it("with no ask, says so, with no bar", async () => {
-    await render(view(exampleCampaignNoAsk));
+  it("with no ask, says so, with no bar, its answers a faded dash that leads nowhere", async () => {
+    const { unmount } = await render(view(exampleCampaignNoAsk));
     expect(document.body.textContent).toContain(staffCopy.asks.noAsk);
     expect(document.querySelector("progress")).toBeNull();
+    const answers = [...document.querySelectorAll("[class*=count]")].find(
+      (count) => count.textContent === `– ${staffCopy.mailingPages.counts.answered}`,
+    )!;
+    expect([answers.tagName, answers.hasAttribute("data-none")]).toEqual(["SPAN", true]);
+    await unmount();
     await render(view(exampleCampaignEmpty, { ...emptyLettersSearch, tab: "failed", page: "2" }));
     await expect.element(page.getByRole("link", { name: staffCopy.paging.previous })).toBeVisible();
   });
