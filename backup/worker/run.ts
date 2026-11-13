@@ -17,7 +17,8 @@ export const LATEST = "latest.json";
 export const MESSAGES = "messages/";
 
 export interface Bucket {
-  get(key: string): Promise<{ text(): Promise<string> } | null>;
+  /** An object as R2 gives it: its text, and its body as a stream. */
+  get(key: string): Promise<{ text(): Promise<string>; body?: ReadableStream } | null>;
   put(key: string, value: string): Promise<unknown>;
 }
 
@@ -38,6 +39,12 @@ export interface Outcome {
   problems: string[];
 }
 
+/** A failed answer in words: its status, then what it said, if anything, as an empty one says nothing alone. */
+async function failure(response: Response): Promise<string> {
+  const said = (await response.text()).trim();
+  return said ? `${response.status}, ${said}` : `${response.status}`;
+}
+
 export async function takeBackup({ bucket, container, upload, rules, now }: BackupDeps): Promise<Outcome> {
   try {
     const latest = await bucket.get(LATEST);
@@ -47,7 +54,7 @@ export async function takeBackup({ bucket, container, upload, rules, now }: Back
       method: "POST",
       body: JSON.stringify({ timestamps: timestampColumns(rules) }),
     });
-    if (!response.ok) throw new Error(`The container couldn't back up the database. ${await response.text()}`);
+    if (!response.ok) throw new Error(`The container couldn't back up the database: ${await failure(response)}`);
     const report = (await response.json()) as DumpReport;
 
     // 2026-10-19T03-00-00Z: sorts by time, and has no colons for tools that mind them.
@@ -61,7 +68,7 @@ export async function takeBackup({ bucket, container, upload, rules, now }: Back
     await upload(key, dump.body, report);
 
     // The dump is kept whether or not the messages are.
-    const archived = await archiveMessages(container, upload, time, now);
+    const archived = await archiveMessages({ bucket, container, upload }, time, now, previous?.messages?.key);
     const manifest: Manifest = {
       at: now.toISOString(),
       key,
@@ -80,16 +87,24 @@ export async function takeBackup({ bucket, container, upload, rules, now }: Back
   }
 }
 
-/** Has the container archive the site's kept messages, and stores the archive beside the dump; or says why it couldn't. */
+/**
+ * Has the container archive the site's kept messages, sending it last
+ * night's archive (`previousKey`) to copy those it can from; and stores the
+ * archive beside the dump; or says why it couldn't.
+ */
 async function archiveMessages(
-  container: BackupDeps["container"],
-  upload: BackupDeps["upload"],
+  { bucket, container, upload }: Pick<BackupDeps, "bucket" | "container" | "upload">,
   time: string,
   now: Date,
+  previousKey: string | undefined,
 ): Promise<{ messages: MessagesManifest } | { problem: string }> {
   try {
-    const response = await container("/messages", { method: "POST", body: JSON.stringify({ at: now.toISOString() }) });
-    if (!response.ok) throw new Error(`The container couldn't archive the messages. ${await response.text()}`);
+    const previous = previousKey ? await bucket.get(previousKey) : null;
+    const response = await container(`/messages?at=${encodeURIComponent(now.toISOString())}`, {
+      method: "POST",
+      ...(previous?.body && { body: previous.body, duplex: "half" }),
+    } as RequestInit);
+    if (!response.ok) throw new Error(`The container couldn't archive the messages: ${await failure(response)}`);
     const report = (await response.json()) as MessagesReport;
     const key = `${MESSAGES}${time}.tar`;
     const archive = await container("/messages");

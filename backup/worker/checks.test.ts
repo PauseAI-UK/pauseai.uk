@@ -70,7 +70,7 @@ describe("problems", () => {
   it("finds messages the site listed but couldn't send, naming a few", () => {
     const archive = (missing: string[], messages = 10) => ({
       ...manifest({}),
-      messages: { key: "messages/x.tar", bytes: 1, sha256: "def", messages, missing },
+      messages: { key: "messages/x.tar", bytes: 1, sha256: "def", messages, fetched: messages, missing, failed: [] },
     });
     expect(problems(archive([]), undefined, {})).toEqual([]);
     expect(problems(archive(["a", "b"]), undefined, {})).toEqual([
@@ -84,7 +84,15 @@ describe("problems", () => {
   it("finds an archive with many fewer messages than the last", () => {
     const archive = (messages: number, at = AT) => ({
       ...manifest({}, 1000, at),
-      messages: { key: "messages/x.tar", bytes: 1, sha256: "def", messages, missing: [] },
+      messages: {
+        key: "messages/x.tar",
+        bytes: 1,
+        sha256: "def",
+        messages,
+        fetched: messages,
+        missing: [],
+        failed: [],
+      },
     });
     const previous = archive(100, "2026-10-18T03:00:00.000Z");
     expect(problems(archive(70), previous, {})).toEqual([
@@ -93,5 +101,16 @@ describe("problems", () => {
     expect(problems(archive(90), previous, {})).toEqual([]);
     // A backup from before there was an archive.
     expect(problems(archive(70), manifest({}), {})).toEqual([]);
+  });
+
+  it("finds messages that couldn't be fetched tonight, naming a few", () => {
+    const failed = Array.from({ length: 6 }, (_, i) => `k${i} (fetch failed: ECONNRESET, 9 times)`);
+    const tonight = {
+      ...manifest({}),
+      messages: { key: "messages/x.tar", bytes: 1, sha256: "def", messages: 10, fetched: 1, missing: [], failed },
+    };
+    expect(problems(tonight, undefined, {})).toEqual([
+      `6 messages couldn't be fetched from the site, so aren't in tonight's archive; the next night tries them again: ${failed.slice(0, 5).join(", ")}, and 1 more.`,
+    ]);
   });
 });

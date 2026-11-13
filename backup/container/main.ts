@@ -9,6 +9,7 @@ const { SITE_URL: siteUrl, SITE_BACKUP_SECRET: secret } = process.env;
 backupServer(databaseUrl, {
   dump: "/tmp/backup.dump",
   messages: "/tmp/messages.tar",
+  previous: "/tmp/previous.tar",
   site:
     siteUrl && secret
       ? (path) => fetch(`${siteUrl}${path}`, { headers: { Authorization: `Bearer ${secret}` } })

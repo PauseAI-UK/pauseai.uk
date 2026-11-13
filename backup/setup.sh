@@ -70,7 +70,8 @@ echo "archive the messages the site keeps outside the database."
 ask SITE_BACKUP_SECRET "SITE_BACKUP_SECRET" required
 echo
 echo "Optional: a Healthchecks.io check's ping URL (a daily period, a few hours'"
-echo "grace), which emails if a night's backup never reports at all."
+echo "grace). Each run pings it, adding /fail for a run with problems, and it"
+echo "emails if a run fails or a night's backup never reports at all."
 ask HEALTHCHECK_URL "Ping URL" optional
 
 if ! has_secret RUN_SECRET; then
