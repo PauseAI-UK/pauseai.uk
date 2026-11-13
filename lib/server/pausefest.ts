@@ -1,11 +1,25 @@
 import "server-only";
-import { pausefest } from "@/lib/content/pausefest";
-import type { EventGoing } from "@/lib/going";
-import { getEventGoing } from "./outside-services/luma-public";
+import { pausefest, type FestLive } from "@/lib/content/pausefest";
+import { timeRange } from "@/lib/time-range";
+import { getPublicEvent } from "./outside-services/luma-public";
 
-/** Who's going to each of PauseFest's events that has a Luma ID, by that ID, asked of Luma all at once. */
-export async function getPauseFestGoing(): Promise<Record<string, EventGoing | null>> {
-  const ids = pausefest.days.flatMap((day) => day.events.flatMap((event) => (event.lumaId ? [event.lumaId] : [])));
-  const going = await Promise.all(ids.map(getEventGoing));
-  return Object.fromEntries(ids.map((id, i) => [id, going[i]]));
+/**
+ * What Luma says of each of PauseFest's events, by its Luma ID, asked all at
+ * once: its times, and who's going unless its guests are hidden.
+ */
+export async function getPauseFestLive(): Promise<Record<string, FestLive>> {
+  const events = pausefest.days.flatMap((day) => day.events);
+  const live = await Promise.all(events.map((event) => getPublicEvent(event.lumaId)));
+  return Object.fromEntries(
+    events.map((event, i) => {
+      const { startAt = null, endAt = null, going = null } = live[i] ?? {};
+      return [
+        event.lumaId,
+        {
+          time: startAt && endAt ? timeRange(startAt, endAt) : null,
+          going: event.hideGuests ? null : going,
+        },
+      ];
+    }),
+  );
 }

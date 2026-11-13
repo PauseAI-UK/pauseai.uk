@@ -2,17 +2,20 @@
 // March Against AI Extinction, for its page (app/(site)/pausefest-london-2026).
 // The events, times and places are the PauseAI UK Luma calendar's, the words
 // its flyer's.
+import type { EventGoing } from "@/lib/going";
 import { march } from "./march";
 
 export type FestEvent = {
   title: string;
-  /** As people say it, in UK time: "6–9pm". */
+  /** As people say it, in UK time: "6–9pm". Luma's times replace it, where Luma can say. */
   time: string;
   place: string;
   /** Where people register: the event on Luma, or the march's own sign-up. */
   href: string;
-  /** The event's ID on Luma, for who's going; none for an event whose guests aren't shown. */
-  lumaId?: string;
+  /** The event's ID on Luma, for its times and who's going. */
+  lumaId: string;
+  /** Whether who's going is left unshown, as for an event people apply to. */
+  hideGuests?: boolean;
   /** What a featured event's button says, when not "Register". */
   button?: string;
   /** The event's cover, square, shown beside a featured event. */
@@ -22,6 +25,9 @@ export type FestEvent = {
   /** Smaller events that go with this one, such as the buses to the march. */
   extras?: { label: string; href: string }[];
 };
+
+/** What Luma says of an event as the page is drawn: its times, and who's going where shown. Null where Luma can't say. */
+export type FestLive = { time: string | null; going: EventGoing | null };
 
 export type FestDay = {
   /** As the poster gives it: "Fri 20 Nov". */
@@ -91,7 +97,9 @@ export const pausefest: {
           time: "9.30am–1.30pm",
           place: "Palace of Westminster",
           href: "https://luma.com/pauseai-conf-nov26",
+          lumaId: "evt-p2EKwf3Bu0Zo5Xz",
           button: "Apply",
+          hideGuests: true,
           image: "https://images.lumacdn.com/uploads/t2/6f9c5a2e-8e76-41a6-9fc2-2627399cc8a2.png",
           featured: true,
         },

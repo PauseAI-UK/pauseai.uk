@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { ButtonAnchor, ButtonLink } from "@/components/ui/Button";
-import type { FestDay, FestEvent } from "@/lib/content/pausefest";
+import type { FestDay, FestEvent, FestLive } from "@/lib/content/pausefest";
 import type { EventGoing } from "@/lib/going";
 import Going from "./Going";
 import styles from "./Programme.module.css";
@@ -15,7 +15,17 @@ function linkProps(href: string) {
  * time, the name large with where and the links under it, and the cover
  * where the poster has a QR code.
  */
-function Featured({ day, event, going }: { day: FestDay; event: FestEvent; going?: EventGoing | null }) {
+function Featured({
+  day,
+  event,
+  time,
+  going,
+}: {
+  day: FestDay;
+  event: FestEvent;
+  time: string;
+  going?: EventGoing | null;
+}) {
   const { internal, ...external } = linkProps(event.href);
   const button = event.button ?? "Register";
   return (
@@ -24,7 +34,7 @@ function Featured({ day, event, going }: { day: FestDay; event: FestEvent; going
         <p className={styles.featuredWhen}>
           {day.short}
           <br />
-          {event.time}
+          {time}
         </p>
         <div>
           <h3 className={styles.featuredTitle}>{event.title}</h3>
@@ -56,7 +66,7 @@ function Featured({ day, event, going }: { day: FestDay; event: FestEvent; going
 }
 
 /** Any other event: an orange row with its day, its name, when and where, and a link to register. */
-function Row({ day, event, going }: { day: FestDay; event: FestEvent; going?: EventGoing | null }) {
+function Row({ day, event, time, going }: { day: FestDay; event: FestEvent; time: string; going?: EventGoing | null }) {
   const { internal, ...external } = linkProps(event.href);
   return (
     <li className={styles.row}>
@@ -65,7 +75,7 @@ function Row({ day, event, going }: { day: FestDay; event: FestEvent; going?: Ev
         <div>
           <h3 className={styles.rowTitle}>{event.title}</h3>
           <p className={styles.rowMeta}>
-            {event.time} · {event.place}
+            {time} · {event.place}
           </p>
           {going && <Going going={going} />}
         </div>
@@ -79,16 +89,11 @@ function Row({ day, event, going }: { day: FestDay; event: FestEvent; going?: Ev
 
 /**
  * The festival's events in order, as its poster lists them: the main ones in
- * black bands, the rest in orange rows, each with who's going, by its Luma ID,
- * where Luma could say.
+ * black bands, the rest in orange rows, each with its times and who's going
+ * as `live` has them from Luma, by its Luma ID, or the times it's given where
+ * Luma can't say.
  */
-export default function Programme({
-  days,
-  going = {},
-}: {
-  days: FestDay[];
-  going?: Record<string, EventGoing | null>;
-}) {
+export default function Programme({ days, live = {} }: { days: FestDay[]; live?: Record<string, FestLive> }) {
   return (
     <section className={styles.programme} aria-labelledby="programme-heading">
       <div className="container">
@@ -99,11 +104,13 @@ export default function Programme({
       <ol className={styles.list}>
         {days.flatMap((day) =>
           day.events.map((event) => {
-            const shown = event.lumaId ? going[event.lumaId] : null;
+            const now = live[event.lumaId];
+            const time = now?.time ?? event.time;
+            const going = now?.going;
             return event.featured ? (
-              <Featured key={event.href} day={day} event={event} going={shown} />
+              <Featured key={event.href} day={day} event={event} time={time} going={going} />
             ) : (
-              <Row key={event.href} day={day} event={event} going={shown} />
+              <Row key={event.href} day={day} event={event} time={time} going={going} />
             );
           }),
         )}
