@@ -19,6 +19,9 @@ export function campaignCounts(campaign: CampaignSummary): Count[] {
   return stateCounts(campaign.states, ["sent", "replied", "answered", "spam", "error", "unreached"]);
 }
 
+/** How many of a campaign's letters went, whatever came of them. */
+const went = ({ states }: CampaignSummary) => states.sent + states.replied + states.answered + states.spam;
+
 /** A campaign's ask, as its row and its page lead into it: "Ask to sign" and its title. */
 export function CampaignAsk({ campaign }: { campaign: CampaignSummary }) {
   if (!campaign.ask) return <>{staffCopy.asks.noAsk}</>;
@@ -60,7 +63,14 @@ function Row({ campaign, year }: { campaign: CampaignSummary; year: string }) {
         </Muted>
       </span>
       <span className={styles.standing}>
-        <NeedsAndFine counts={countsOpening(href, campaignCounts(campaign))} />
+        {/* How many went, after a dot, as a mailing's row says where it stands; then what needs a look. */}
+        <span className={styles.stands}>
+          <span className={styles.sentence}>
+            <i className={styles.dot} aria-hidden="true" />
+            {copy.sent(went(campaign))}
+          </span>
+          <NeedsAndFine counts={countsOpening(href, campaignCounts(campaign))} />
+        </span>
       </span>
     </li>
   );

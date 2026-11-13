@@ -2500,6 +2500,8 @@ All events: ${link}`,
     none: "No campaigns yet.",
     fromSupporters: "From supporters",
     noLetters: "No letters",
+    // In the list of campaigns, after a dot, as a mailing's row says where it stands: how many of its letters went.
+    sent: (n: number) => `⁂ ${count(n, "letter", "letters")} sent`,
     started: "Started",
     last: "Last letter",
     from: "From",

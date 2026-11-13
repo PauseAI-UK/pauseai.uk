@@ -60,6 +60,9 @@ describe("CampaignsOverview", () => {
     expect(document.querySelector(`a[href="/staff/campaigns/${exampleCampaign.slug}?tab=unreached"]`)).not.toBeNull();
     expect(document.body.textContent).toContain(staffCopy.copyStates.andFine(11));
     expect(document.body.textContent).toContain(staffCopy.copyStates.allFine(12));
+    // How many went, after a dot: all but the one that bounced; or none.
+    expect(document.body.textContent).toContain(copy.sent(11));
+    expect(document.body.textContent).toContain(copy.sent(0));
     const headings = page
       .getByRole("heading", { level: 2 })
       .all()

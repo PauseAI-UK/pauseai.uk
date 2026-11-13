@@ -1144,21 +1144,24 @@ describe("BroadcastFor", () => {
     await expect.element(page.getByRole("heading", { name: copy.sections.write })).toBeVisible();
   });
 
+  // The labels of the band's facts.
+  const terms = () => [...document.querySelector("dl")!.querySelectorAll("dt")].map((term) => term.textContent);
+
   it("shows one sent, who it's to as pills beside what they said yes to", async () => {
     await render(<BroadcastFor data={exampleBroadcastSent} actions={actions} />);
     await expect.element(page.getByText(copy.recipientsTitle)).toBeVisible();
-    await expect.element(page.getByRole("term").filter({ hasText: staffCopy.mailingPages.to })).toBeVisible();
+    expect(terms()).toContain(staffCopy.mailingPages.to);
   });
 
   it("shows one sent to everyone who said yes as how many under what they said yes to, with no To", async () => {
     const written = {
       ...exampleBroadcastSent.written,
-      filter: { list: "supporters", params: { contact: "email:events:yes" } },
+      filter: { list: "supporters" as const, params: { contact: "email:events:yes" } },
     };
     await render(<BroadcastFor data={{ ...exampleBroadcastSent, written }} actions={actions} />);
-    const saidYes = page.getByRole("term").filter({ hasText: copy.facts.saidYes }).element().parentElement!;
+    const saidYes = page.getByText(copy.facts.saidYes, { exact: true }).element().parentElement!;
     expect(saidYes.textContent).toContain(staffCopy.campaigns.supporters(exampleBroadcastSent.summary.to));
-    expect(page.getByRole("term").filter({ hasText: staffCopy.mailingPages.to }).query()).toBeNull();
+    expect(terms()).not.toContain(staffCopy.mailingPages.to);
     await expect.element(page.getByText(copy.everyoneWhoSaidYes)).not.toBeInTheDocument();
   });
 
