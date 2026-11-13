@@ -402,17 +402,29 @@ export async function stopBroadcast(id: number, by: string): Promise<boolean> {
 }
 
 /**
+ * A copy `c` that failed in a way it can be sent again: its channel refused
+ * it, rather than its send breaking off, when it may have gone, and it
+ * didn't bounce, which blocks the address.
+ */
+export const SEND_AGAIN = `c.status = 'failed'
+  AND NOT EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id
+                  AND (e.kind = 'bounced' OR (e.kind = 'failed' AND e.details ? 'unfinished')))`;
+
+/**
  * Sets going again a broadcast that stopped as it hadn't all gone in time
  * (gave_up): its copies that never went are to go again, or, for one that
  * never started, it's scheduled again. From now, so it has its days to go
  * in again (sendingStopsAt), and waiting for nothing, so its days to wait
  * too (waitStopsAt); nor resting after tries that failed before it stopped,
- * so it goes at the next run. Says whether it did.
+ * so it goes at the next run. One that stopped as its copies kept failing
+ * sends again those its channel refused too (SEND_AGAIN), as whatever
+ * failed them should be fixed by now. Says whether it did.
  */
 export async function resumeBroadcast(id: number, by: string): Promise<boolean> {
   return transaction(async (db) => {
-    const [stopped] = await query<{ started: boolean }>(
-      `SELECT EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id) AS started
+    const [stopped] = await query<{ started: boolean; failing: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id) AS started,
+         m.wait_reason = 'failing' AS failing
        FROM mailings m WHERE m.id = $1 AND m.audience = 'supporters' AND m.state = 'cancelled' AND m.gave_up
        FOR UPDATE`,
       [id],
@@ -420,8 +432,9 @@ export async function resumeBroadcast(id: number, by: string): Promise<boolean> 
     );
     if (!stopped) return false;
     const copies = await query(
-      "UPDATE broadcast_messages SET status = 'scheduled' WHERE mailing_id = $1 AND status = 'cancelled' RETURNING id",
-      [id],
+      `UPDATE broadcast_messages c SET status = 'scheduled', handed_at = NULL
+       WHERE c.mailing_id = $1 AND (c.status = 'cancelled' OR ($2 AND ${SEND_AGAIN})) RETURNING id`,
+      [id, stopped.failing],
       db,
     );
     await query(

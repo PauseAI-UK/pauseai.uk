@@ -154,6 +154,30 @@ describeWithDatabase("send", () => {
     expect(await isBlocked("jo@example.org")).toBe(false);
   });
 
+  it("fails to be tried again when Postmark is down, busy or refuses our token, as the next email would fail the same", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const status of [500, 503, 429, 401]) {
+      server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 0, Message: "No" }, { status })));
+      expect(await send(EMAIL, "staff-alert")).toEqual({
+        sent: false,
+        reason: "failed",
+        retry: true,
+        detail: expect.any(String),
+      });
+    }
+  });
+
+  it("says one whose send broke off before an answer may have gone, so it's never sent again", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    server.use(http.post(POSTMARK, () => HttpResponse.error()));
+    expect(await send(EMAIL, "staff-alert")).toEqual({
+      sent: false,
+      reason: "failed",
+      mayHaveGone: true,
+      detail: expect.any(String),
+    });
+  });
+
   it("sends with a Message-ID of ours when given one, as a mailing's letter, counting it against its sender", async () => {
     let headers: unknown;
     server.use(

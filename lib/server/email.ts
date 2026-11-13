@@ -64,23 +64,33 @@ export type SendOptions = {
 };
 
 /**
- * A send, or why not. `retry` marks a failure Gmail answered that's the
- * account's or Gmail's own, not this email's: it was busy or down, or
- * refused the account (ACCOUNT_REFUSALS), or no longer lets us use it.
- * Nothing went, so a later try can't send it twice, and the account's next
- * email would fail the same way.
+ * A send, or why not. `retry` marks a failure Gmail or Postmark answered
+ * that's the account's or the provider's own, not this email's: it was busy
+ * or down, refused our credentials or a quota (ACCOUNT_REFUSALS), or Gmail
+ * no longer lets us use the account. Nothing went, so a later try can't
+ * send it twice, and the account's next email would fail the same way.
+ * `mayHaveGone` marks one whose send broke off with no answer, which the
+ * provider may have taken first: it must never be sent again.
  */
 export type SendResult =
   | { sent: true; id: string; messageId: string | null; threadId: string | null; backend: Backend }
-  | { sent: false; reason: "blocked" | "failed"; retry?: true; detail?: string };
+  | { sent: false; reason: "blocked" | "failed"; retry?: true; mayHaveGone?: true; detail?: string };
 
 /**
- * The statuses Gmail refuses an account's sending with, whatever the
- * email: its credentials (401), its permission or a quota of the API (403),
- * and its sending limits (429).
+ * The statuses Gmail and Postmark refuse an account's sending with,
+ * whatever the email: its credentials (401), its permission or a quota of
+ * the API (403), and its sending limits (429).
  * https://developers.google.com/workspace/gmail/api/guides/handle-errors
+ * https://postmarkapp.com/developer/api/overview
  */
 const ACCOUNT_REFUSALS = [401, 403, 429];
+
+/** Whether a provider's refusal is the account's or its own, not this email's, so a later try may go (SendResult). */
+function accountsFault(error: unknown): boolean {
+  const status = error instanceof GmailError || error instanceof PostmarkError ? error.status : undefined;
+  if (status === undefined) return false;
+  return (error instanceof GmailError && error.revoked) || ACCOUNT_REFUSALS.includes(status) || status >= 500;
+}
 
 /**
  * What sent an email, as the event about it in a letter's history records
@@ -264,11 +274,14 @@ export async function send(
       error,
     );
     await log("failed");
-    const retry =
-      error instanceof GmailError && (error.revoked || ACCOUNT_REFUSALS.includes(error.status) || error.status >= 500);
     // What the provider said, for whoever looks at the copy that failed.
     const detail = (error as Error).message;
-    return retry ? { sent: false, reason: "failed", retry, detail } : { sent: false, reason: "failed", detail };
+    if (accountsFault(error)) return { sent: false, reason: "failed", retry: true, detail };
+    // No answer from the provider at all: it may have taken the email before the connection broke.
+    const answered = error instanceof GmailError || error instanceof PostmarkError;
+    return answered
+      ? { sent: false, reason: "failed", detail }
+      : { sent: false, reason: "failed", mayHaveGone: true, detail };
   }
   // It went: a failure to log it is reported, never thrown, so no caller takes it for one that didn't.
   await log("sent", id, threadId).catch((error) =>

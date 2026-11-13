@@ -46,6 +46,8 @@ export type ChannelResult =
       sent: false;
       reason: "blocked" | "failed" | "unreachable" | "stopped" | "held";
       retry?: true;
+      /** Its send broke off with no answer, so the provider may have taken it: it's never sent again (SendResult). */
+      mayHaveGone?: true;
       /** What the provider said of a failure, as it said it. */
       detail?: string;
     };

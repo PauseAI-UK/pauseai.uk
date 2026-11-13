@@ -410,11 +410,19 @@ describeWithDatabase("sending broadcasts", () => {
     expect(await sendDueBroadcasts(LATER)).toEqual({ sent: 1, skipped: 1, failed: 0, waiting: 0, left: 0 });
     expect(await query("SELECT address FROM email_blocks")).toEqual([{ address: "gone@example.com" }]);
 
-    server.use(http.post(POSTMARK, () => new HttpResponse("Down", { status: 500 })));
+    // Postmark refusing the email itself fails it.
+    server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 300, Message: "Invalid" }, { status: 422 })));
     await broadcast("email:events:yes", "postmark");
     await startDueBroadcasts();
     // Jane alone, as the address that bounced isn't sent to.
     expect((await inRun(() => sendDueBroadcasts(LATER))).failed).toBe(1);
+
+    // Postmark down: it waits, failed by nobody, as the next would fail the same.
+    server.use(http.post(POSTMARK, () => new HttpResponse("Down", { status: 500 })));
+    const down = await broadcast("email:events:yes", "postmark");
+    await startDueBroadcasts();
+    expect(await inRun(() => sendDueBroadcasts(LATER))).toMatchObject({ failed: 0, left: 1 });
+    await query("UPDATE broadcast_messages SET status = 'cancelled' WHERE mailing_id = $1", [down]);
 
     // Gmail down: nothing more goes this run, and its copies wait for the next, none failed.
     recordGmail(() => new HttpResponse("Down", { status: 500 }));
@@ -501,7 +509,7 @@ describeWithDatabase("sending broadcasts", () => {
     ]);
     const words = staffCopy.notifications.broadcastGaveUp;
     expect(sent.at(-1)!.Subject).toBe(words.subject("See you there", "failing"));
-    expect(sent.at(-1)!.TextBody).toContain(words.body("See you there", "failing", 1, "", "email").trim());
+    expect(sent.at(-1)!.TextBody).toContain(words.body("See you there", "failing", 6, "", "email").trim());
   });
 
   it("counts failures in a row only: one that goes between them starts the count again", async () => {
@@ -1055,6 +1063,10 @@ describeWithDatabase("sending texts", () => {
     expect(run).toMatchObject({ sent: 0, failed: 1, left: 0 });
     expect(await copies()).toMatchObject([{ address: "+447700900123", status: "failed" }]);
     expect(problems.map((p) => p.what)).toEqual([staffCopy.problems.anywhere.sendFailed("broadcast")]);
+    // Kept as cut off, so Resume never sends it again.
+    expect(await query("SELECT details FROM broadcast_message_events WHERE kind = 'failed'")).toEqual([
+      { details: { unfinished: true } },
+    ]);
   });
 
   it("fails, not sends again, one a run handed to WhatsApp and stopped before keeping the answer; one it only took goes", async () => {

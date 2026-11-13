@@ -649,6 +649,48 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await getWrittenBroadcast(id)).toMatchObject({ state: "scheduled", gaveUp: false });
   });
 
+  it("sends again, on Resume of one that stopped as its copies kept failing, those refused, not those that may have gone", async () => {
+    for (const name of ["jane", "sam", "pat", "ann", "bo"])
+      await addFollower(`usr-${name}`, `${name}@example.com`, name);
+    const id = await draftOf(EMAIL_FILTER);
+    await scheduleBroadcast(id, await readied(id, { subject: "Events", body: EVENT_WORDS }), JO);
+    await startSending(id);
+    // Jane's went; Gmail refused Sam's; Pat's send was cut off; Ann's bounced; Bo's never went.
+    const failed = async (address: string, details: object, kind = "failed") => {
+      await query(
+        `WITH c AS (UPDATE broadcast_messages SET status = 'failed' WHERE address = $1 RETURNING id)
+         INSERT INTO broadcast_message_events (message_id, kind, details) SELECT id, $3, $2 FROM c`,
+        [address, JSON.stringify(details), kind],
+      );
+    };
+    await query("UPDATE broadcast_messages SET status = 'sent' WHERE address = 'jane@example.com'");
+    await failed("sam@example.com", { reason: "Gmail answered 400" });
+    await failed("pat@example.com", { unfinished: true });
+    await failed("ann@example.com", {}, "bounced");
+    await query("UPDATE broadcast_messages SET status = 'cancelled' WHERE address = 'bo@example.com'");
+    const stop = (reason: string) =>
+      query(
+        `UPDATE mailings SET state = 'cancelled', gave_up = true, waiting_since = now(), wait_reason = $2 WHERE id = $1`,
+        [id, reason],
+      );
+    const statuses = () => query("SELECT address, status FROM broadcast_messages ORDER BY address");
+    // Stopped for another reason, its failures stay failed: they were each one's own.
+    await stop("limit");
+    expect(await resumeBroadcast(id, JO)).toBe(true);
+    expect((await statuses()).filter((c) => c.status === "scheduled")).toEqual([
+      { address: "bo@example.com", status: "scheduled" },
+    ]);
+    await stop("failing");
+    expect(await resumeBroadcast(id, JO)).toBe(true);
+    expect(await statuses()).toEqual([
+      { address: "ann@example.com", status: "failed" },
+      { address: "bo@example.com", status: "scheduled" },
+      { address: "jane@example.com", status: "sent" },
+      { address: "pat@example.com", status: "failed" },
+      { address: "sam@example.com", status: "scheduled" },
+    ]);
+  });
+
   it("keeps an approved template when a broadcast on it is unscheduled", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const template = await addTemplate("March day");
