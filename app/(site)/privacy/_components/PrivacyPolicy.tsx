@@ -14,7 +14,7 @@ export default function PrivacyPolicy() {
         office 128 City Road, London EC1V 2NX.
       </p>
       <p>
-        ⁂ We decide how your data is used (we&apos;re its &ldquo;data controller&rdquo;), even where a provider below
+        We decide how your data is used (we&apos;re its &ldquo;data controller&rdquo;), even where a provider below
         stores or sends it for us. If you join PauseAI, your membership is held by <strong>Stichting PauseAI</strong>{" "}
         (the global PauseAI foundation, based in the Netherlands), under{" "}
         <a className="inline-link" href="https://pauseai.info/privacy" target="_blank" rel="noreferrer">
