@@ -1539,6 +1539,8 @@ All events: ${link}`,
       from: "From",
       // What everyone a broadcast is to said yes to: its channel and topic, from the Consent filter.
       saidYes: "Said yes to",
+      // The rest of the list's filters, narrowing those who said yes.
+      onlyThose: "Only those",
     },
     // In To, when Consent is the only filter.
     everyoneWhoSaidYes: "Everyone who said yes",

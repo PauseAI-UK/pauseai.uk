@@ -242,7 +242,7 @@ export default function BroadcastView({
         <BandFact label={copy.facts.saidYes} detail={!who && staffCopy.campaigns.supporters(summary.to)}>
           {contact}
         </BandFact>
-        <BandFact label={staffCopy.mailingPages.to} detail={staffCopy.campaigns.supporters(summary.to)}>
+        <BandFact label={copy.facts.onlyThose} detail={staffCopy.campaigns.supporters(summary.to)}>
           {who}
         </BandFact>
         <MailingWhen mailing={summary} written={written} />

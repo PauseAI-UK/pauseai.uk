@@ -21,14 +21,14 @@ export type CountGroup = { key: string; label: string; counts: Count[] };
 /** The tones that ask for a look: red bad, amber sad, blue for staff to do. */
 const NEEDS_A_LOOK = new Set<Count["tone"]>(["red", "amber", "blue"]);
 
-const total = (counts: Count[]) => counts.reduce((sum, count) => sum + (count.n ?? 0), 0);
+const total = (counts: Count[]) => counts.reduce((sum, count) => sum + count.n, 0);
 
 /** A count as a tag in its colour, a grey count's plain, leading to its tab. */
 function CountTag({ count }: { count: Count }) {
   return (
     <StaffLink href={count.href!} className={styles.link}>
       <Tag tone={count.tone === "grey" ? undefined : count.tone}>
-        {count.n!.toLocaleString("en-GB")} {count.label}
+        {count.n.toLocaleString("en-GB")} {count.label}
       </Tag>
     </StaffLink>
   );
