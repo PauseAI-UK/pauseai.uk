@@ -34,7 +34,7 @@ export const SUPPORTER_LETTER_STATUSES = [
 export const ARRIVED = ["sent", "spam_complaint"] as const satisfies readonly LetterStatus[];
 
 /** Those that didn't arrive: refused as they went, or bounced. */
-export const DID_NOT_ARRIVE = ["not_sent", "bounced"] as const satisfies readonly LetterStatus[];
+const DID_NOT_ARRIVE = ["not_sent", "bounced"] as const satisfies readonly LetterStatus[];
 
 /** A mailing's letters that failed: those that didn't arrive, and those skipped as they were about to go. */
 export const MAILING_FAILED = [...DID_NOT_ARRIVE, "skipped"] as const satisfies readonly LetterStatus[];

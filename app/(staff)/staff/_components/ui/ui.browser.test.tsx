@@ -1189,14 +1189,14 @@ describe("Band", () => {
 });
 
 describe("Counts", () => {
-  it("each leads to its own, the chosen one marked; a 0 and a dash grey, a problem red and an answer green", async () => {
+  it("each leads to its own, the chosen one marked; a 0 grey, a problem red and an answer green", async () => {
     await render(
       <Counts
         counts={[
           { key: "sent", n: 1200, label: "sent", href: "/sent" },
           { key: "bounced", n: 3, label: "bounced", tone: "red", href: "/bounced", current: true },
           { key: "skipped", n: 0, label: "skipped" },
-          { key: "answered", n: null, label: "answered", tone: "green" },
+          { key: "answered", n: 5, label: "answered", tone: "green" },
           { key: "replied", n: 2, label: "replied", tone: "green" },
         ]}
       />,
@@ -1207,7 +1207,8 @@ describe("Counts", () => {
     const colour = (text: string) => getComputedStyle(page.getByText(text, { exact: true }).element()).color;
     expect(colour("3")).not.toBe(colour("1,200"));
     expect(colour("2")).not.toBe(colour("1,200"));
-    expect(colour("0")).toBe(colour("–"));
+    expect(colour("5")).toBe(colour("2"));
+    expect(colour("0")).not.toBe(colour("1,200"));
   });
 
   it("in a list's row, each opens its page with its own tab chosen", async () => {

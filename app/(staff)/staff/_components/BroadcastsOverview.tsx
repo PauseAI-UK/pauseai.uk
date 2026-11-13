@@ -2,79 +2,29 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import type { MailingGroup } from "@/lib/mailing-groups";
 import type { BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { textSender } from "@/lib/broadcasts";
-import MailingsOverview, { type OverviewLook } from "./MailingsOverview";
+import MailingsOverview, { type OverviewLook, type Sentence } from "./MailingsOverview";
 import { BroadcastChannelMark, broadcastCounts } from "./BroadcastView";
-import { NeedsAndFine } from "./CopyCounts";
-import { countsOpening } from "./ui/Counts";
-import Progress from "./ui/Progress";
-import StaffLink from "./ui/StaffLink";
-import styles from "./BroadcastsOverview.module.css";
 
 const copy = staffCopy.broadcastPages;
 
 const words = copy.standing;
 
 /**
- * Where one stands, as a sentence after a dot in its colour, red for
- * something wrong, blue for going out or waiting on WhatsApp, grey for
- * normal: a draft, its words with WhatsApp or rejected by it, scheduled,
- * sending, stopped by us or by itself and why, sent; and how many of how
- * many went, where some did.
+ * Where a broadcast stands, where it has more to say than a mailing: its
+ * words with WhatsApp, or rejected by it; stopped by itself, and why, and
+ * how many of how many went.
  */
-function sentence(b: BroadcastSummary): { tone: "red" | "blue" | "grey"; text: string } {
-  if (b.state === "draft") {
-    if (b.rejected) return { tone: "red", text: words.rejected };
-    if (b.waiting) return { tone: "blue", text: words.waiting };
-    return { tone: "grey", text: words.draft(b.to) };
-  }
-  if (b.state === "scheduled") return { tone: "blue", text: words.scheduled(b.to) };
-  if (b.state === "sending") return { tone: "blue", text: staffCopy.mailingPages.sendingBar(b.sent, b.to) };
-  if (b.state === "cancelled") {
-    return b.gaveUp
-      ? { tone: "red", text: words.gaveUp[b.waitReason!]!(b.sent, b.to) }
-      : { tone: "grey", text: words.stopped(b.sent, b.to) };
-  }
-  return { tone: "grey", text: words.sent(b.to) };
-}
-
-/**
- * How one stands at its row's right: its sentence after its dot; while
- * sending, the sentence to the left of the bar of how far it's got, no dot,
- * as the bar says it; and once any went, what needs a look, the rest folded
- * behind how many are fine.
- */
-function BroadcastStanding({ broadcast, href }: { broadcast: BroadcastSummary; href: string }) {
-  const { tone, text } = sentence(broadcast);
-  return (
-    <span className={styles.standing}>
-      {broadcast.state === "sending" ? (
-        <StaffLink href={href} className={styles.bar}>
-          <Progress
-            value={broadcast.sent + broadcast.failed}
-            max={broadcast.to}
-            tone="blue"
-            label={staffCopy.mailingPages.sentLabel}
-          >
-            <span className={styles.sentence}>{text}</span>
-          </Progress>
-        </StaffLink>
-      ) : (
-        <span className={styles.sentence}>
-          <i className={styles.dot} data-tone={tone} aria-hidden="true" />
-          {text}
-        </span>
-      )}
-      {!["draft", "scheduled"].includes(broadcast.state) && (
-        <NeedsAndFine counts={countsOpening(href, broadcastCounts(broadcast))} />
-      )}
-    </span>
-  );
+function sentence(b: BroadcastSummary): Sentence | undefined {
+  if (b.state === "draft" && b.rejected) return { tone: "red", text: words.rejected };
+  if (b.state === "draft" && b.waiting) return { tone: "blue", text: words.waiting };
+  if (b.state === "cancelled" && b.gaveUp) return { tone: "red", text: words.gaveUp[b.waitReason!]!(b.sent, b.to) };
+  return undefined;
 }
 
 const LOOK: OverviewLook<BroadcastSummary> = {
   base: "/staff/broadcasts",
   counts: broadcastCounts,
-  standing: (broadcast, href) => <BroadcastStanding broadcast={broadcast} href={href} />,
+  sentence,
   untitled: copy.untitled,
   none: copy.none,
   mark: (broadcast) => <BroadcastChannelMark channel={broadcast.channel} />,

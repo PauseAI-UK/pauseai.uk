@@ -44,13 +44,6 @@
   color: var(--muted);
 }
 
-/* A count that doesn't apply, such as answers to a mailing with no ask: its
-   dash and label both faded, so it reads as not there rather than as none. */
-.count[data-none] {
-  color: var(--muted);
-  opacity: 0.6;
-}
-
 /* A count with a tone, of more than none: the whole box on its colour, its number and label in it, as the
    tags of those it counts are (components/ui/Tag.module.css), so a count and its list match. */
 .count[data-tone="red"] {

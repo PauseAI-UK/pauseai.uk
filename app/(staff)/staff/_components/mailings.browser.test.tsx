@@ -263,13 +263,16 @@ describe("MailingsOverview", () => {
         .all()
         .map((h) => h.element().textContent),
     ).toEqual([copy.comingUp, "October 2026", "2025"]);
-    // A draft: when it was saved, Draft and how many it's to; one untitled, said so.
+    // Each says where it stands after a dot. A draft: when it was saved, and how many it's to; one untitled, said so.
     await expect.element(row("Meet us in Westminster").first()).toMatchTextContent(copy.savedAt("28 Oct 2026"));
-    await expect.element(row("Meet us in Westminster").first()).toMatchTextContent(copy.toCount(412));
+    await expect.element(row("Meet us in Westminster").first()).toMatchTextContent(copy.standing.draft(412));
     await expect.element(page.getByRole("link", { name: copy.untitled })).toHaveAttribute("href", "/staff/mailings/7");
-    // Scheduled: when it goes, and how many it's to.
+    // Scheduled: when it goes, and how many it's to, its dot blue.
     await expect.element(row("Edinburgh: one week to go")).toMatchTextContent("Fri 30 Oct, 09:03");
-    await expect.element(row("Edinburgh: one week to go")).toMatchTextContent(copy.states.scheduled);
+    await expect.element(row("Edinburgh: one week to go")).toMatchTextContent(copy.standing.scheduled(72));
+    expect(row("Edinburgh: one week to go").element().querySelector("i[data-tone=blue]")).not.toBeNull();
+    // Sent, to how many.
+    await expect.element(row("AI safety conference")).toMatchTextContent(copy.standing.sent(12));
     // Sending: its bar, leading to it.
     await expect.element(page.getByRole("progressbar", { name: copy.sentLabel })).toHaveAttribute("value", "214");
     await expect.element(page.getByText(copy.sendingBar(209, 650))).toBeVisible();

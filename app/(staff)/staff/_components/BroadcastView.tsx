@@ -198,7 +198,7 @@ export default function BroadcastView({
   resume,
 }: {
   data: Extract<BroadcastPageData, { kind: "written" }>;
-  /** Who else it was for, as pills (BroadcastWho). */
+  /** Who else it was for, as pills (BroadcastWho); nothing for everyone who said yes. */
   who: ReactNode;
   /** What they all said yes to (BroadcastContact). */
   contact: ReactNode;
@@ -238,7 +238,10 @@ export default function BroadcastView({
         >
           {written.channel === "text" ? phoneWords(written.sentFrom!) : written.sentFrom}
         </BandFact>
-        <BandFact label={copy.facts.saidYes}>{contact}</BandFact>
+        {/* To everyone who said yes, how many is said under what they said yes to, with no To of its own. */}
+        <BandFact label={copy.facts.saidYes} detail={!who && staffCopy.campaigns.supporters(summary.to)}>
+          {contact}
+        </BandFact>
         <BandFact label={staffCopy.mailingPages.to} detail={staffCopy.campaigns.supporters(summary.to)}>
           {who}
         </BandFact>

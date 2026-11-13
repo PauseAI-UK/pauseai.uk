@@ -57,8 +57,12 @@ export default function BroadcastFor({
     // A new start on a change of channel, as an email's fields and a text's aren't the same.
     return <ChannelWriter key={data.draft.channel} data={data} draft={data.draft} who={who} actions={actions} />;
   }
-  const who = <BroadcastWho params={data.written.filter.params} choices={data.choices} />;
-  const contact = <BroadcastContact params={data.written.filter.params} />;
+  // To everyone who said yes, Said yes to says who it's to alone.
+  const params = data.written.filter.params;
+  const who = othersThanConsent(params, data.choices).length > 0 && (
+    <BroadcastWho params={params} choices={data.choices} />
+  );
+  const contact = <BroadcastContact params={params} />;
   return (
     <BroadcastView
       data={data}

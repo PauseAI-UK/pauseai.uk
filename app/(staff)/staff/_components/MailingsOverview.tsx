@@ -1,5 +1,4 @@
 import StaffLink from "./ui/StaffLink";
-import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { askHref } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -43,9 +42,22 @@ export type OverviewLook<T extends MailingBase> = {
   mark?: (mailing: T) => ReactNode;
   lead?: (mailing: T) => ReactNode;
   from?: (mailing: T) => string | undefined;
-  /** How one stands at its row's right, in place of a mailing's state, bar or counts, given where its row leads. */
-  standing?: (mailing: T, href: string) => ReactNode;
+  /** Where one stands, as a sentence after a dot in its colour, where it has more to say than a mailing does. */
+  sentence?: (mailing: T) => Sentence | undefined;
 };
+
+/** Where one stands in a list, as a sentence after a dot in its colour: red for something wrong, blue for going out, grey for normal. */
+export type Sentence = { tone: "red" | "blue" | "grey"; text: string };
+
+/** Where a mailing or a broadcast stands: a draft, scheduled, sending, stopped and how far it got, or sent, and to how many. */
+function mailingSentence(mailing: MailingBase): Sentence {
+  const words = copy.standing;
+  if (mailing.state === "draft") return { tone: "grey", text: words.draft(mailing.to) };
+  if (mailing.state === "scheduled") return { tone: "blue", text: words.scheduled(mailing.to) };
+  if (mailing.state === "sending") return { tone: "blue", text: copy.sendingBar(mailing.sent, mailing.to) };
+  if (mailing.state === "cancelled") return { tone: "grey", text: words.stopped(mailing.sent, mailing.to) };
+  return { tone: "grey", text: words.sent(mailing.to) };
+}
 
 /** How a list of mailings to politicians looks. */
 const MAILINGS_LOOK: OverviewLook<MailingSummary> = {
@@ -70,33 +82,32 @@ function When({ mailing, year }: { mailing: MailingBase; year: string }) {
 }
 
 /**
- * How it stands, at a row's right, only what matters there: a draft's
- * Draft and how many it's to; one scheduled the same; one sending, its
- * bar; one sent, what needs a look, the rest folded behind how many are
- * fine.
+ * How it stands, at a row's right: its sentence after its dot; while
+ * sending, the sentence over the bar of how far it's got, no dot, as the bar
+ * says it, the bar leading to it; and once any went, what needs a look, the
+ * rest folded behind how many are fine.
  */
 function Standing<T extends MailingBase>({ mailing, href, look }: { mailing: T; href: string; look: OverviewLook<T> }) {
-  if (look.standing) return look.standing(mailing, href);
-  if (mailing.state === "draft" || mailing.state === "scheduled") {
-    return (
-      <span className={styles.state}>
-        <Tag tone={mailing.state === "scheduled" ? "blue" : undefined}>{copy.states[mailing.state]}</Tag>
-        {copy.toCount(mailing.to)}
-      </span>
-    );
-  }
-  if (mailing.state === "sending") {
-    return (
-      <span className={styles.sending}>
+  const { tone, text } = look.sentence?.(mailing) ?? mailingSentence(mailing);
+  return (
+    <span className={styles.stands}>
+      {mailing.state === "sending" ? (
         <StaffLink href={href} className={styles.bar}>
           <Progress value={mailing.sent + mailing.failed} max={mailing.to} tone="blue" label={copy.sentLabel}>
-            {copy.sendingBar(mailing.sent, mailing.to)}
+            <span className={styles.sentence}>{text}</span>
           </Progress>
         </StaffLink>
-      </span>
-    );
-  }
-  return <NeedsAndFine counts={countsOpening(href, look.counts(mailing))} />;
+      ) : (
+        <span className={styles.sentence}>
+          <i className={styles.dot} data-tone={tone} aria-hidden="true" />
+          {text}
+        </span>
+      )}
+      {mailing.state !== "draft" && mailing.state !== "scheduled" && (
+        <NeedsAndFine counts={countsOpening(href, look.counts(mailing))} />
+      )}
+    </span>
+  );
 }
 
 /**

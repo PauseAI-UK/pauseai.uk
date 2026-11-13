@@ -29,7 +29,7 @@ export type CampaignSummary = {
 };
 
 /** Whether the politician of a campaign `c`'s letter `l` has answered its ask, in SQL. */
-export const CAMPAIGN_ANSWERED =
+const CAMPAIGN_ANSWERED =
   "EXISTS (SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = l.notable_person_id AND st.ask = c.ask)";
 
 /** A campaign `c`'s letter `l`'s state (letterStateSql). */

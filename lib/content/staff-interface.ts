@@ -1424,14 +1424,12 @@ All events: ${link}`,
       `${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")} from ${from}.`,
     textTitle: "The text",
     emailTitle: "The email",
-    // In the list of broadcasts, where each stands, as a sentence after a dot in its colour: a draft, its words with
-    // WhatsApp or rejected by it, scheduled, stopped by us or by itself and why, sent.
+    // In the list of broadcasts, where each stands, where a broadcast has more to say than a mailing
+    // (mailingPages.standing), as a sentence after a dot in its colour: its words with WhatsApp or rejected by it,
+    // stopped by itself and why.
     standing: {
-      draft: (n: number) => `Draft, to ${count(n, "person", "people")}`,
       waiting: "Waiting for WhatsApp to approve its words",
       rejected: "WhatsApp rejected its words",
-      scheduled: (n: number) => `Scheduled to ${count(n, "person", "people")}`,
-      stopped: (n: number, of: number) => `Stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
       gaveUp: {
         limit: (n: number, of: number) =>
           `Ran out of time after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
@@ -1446,7 +1444,6 @@ All events: ${link}`,
         failing: (n: number, of: number) =>
           `Kept failing to send: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
       } as Record<string, (n: number, of: number) => string>,
-      sent: (n: number) => `Sent to ${count(n, "person", "people")}`,
     },
     // A reply under our email on its Thread: what staff can record it as, and what they did.
     replies: {
@@ -1783,9 +1780,16 @@ All events: ${link}`,
     unschedule: "Unschedule",
     stopSending: "Stop sending",
     sentLabel: "Sent",
-    // The list of mailings: when a draft was last saved, and how many a draft or one scheduled goes to.
+    // The list of mailings: when a draft was last saved.
     savedAt: (when: string) => `Saved ${when}`,
-    toCount: (n: number) => `to ${count(n, "person", "people")}`,
+    // In the list of mailings or broadcasts, where each stands, as a sentence after a dot in its colour: a draft,
+    // scheduled, stopped by us, sent.
+    standing: {
+      draft: (n: number) => `Draft, to ${count(n, "person", "people")}`,
+      scheduled: (n: number) => `Scheduled to ${count(n, "person", "people")}`,
+      stopped: (n: number, of: number) => `Stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
+      sent: (n: number) => `Sent to ${count(n, "person", "people")}`,
+    },
     // The bar of how far a mailing sending has got, and once it's sent, how many have answered its ask.
     sendingBar: (n: number, of: number) => `Sending: ${n} of ${of} sent`,
     answeredBar: (n: number, of: number) => `Sent: ✓ ${n} of ${of} answered the ask`,

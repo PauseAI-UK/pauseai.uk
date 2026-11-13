@@ -1144,9 +1144,22 @@ describe("BroadcastFor", () => {
     await expect.element(page.getByRole("heading", { name: copy.sections.write })).toBeVisible();
   });
 
-  it("shows one sent", async () => {
+  it("shows one sent, who it's to as pills beside what they said yes to", async () => {
     await render(<BroadcastFor data={exampleBroadcastSent} actions={actions} />);
     await expect.element(page.getByText(copy.recipientsTitle)).toBeVisible();
+    await expect.element(page.getByRole("term").filter({ hasText: staffCopy.mailingPages.to })).toBeVisible();
+  });
+
+  it("shows one sent to everyone who said yes as how many under what they said yes to, with no To", async () => {
+    const written = {
+      ...exampleBroadcastSent.written,
+      filter: { list: "supporters", params: { contact: "email:events:yes" } },
+    };
+    await render(<BroadcastFor data={{ ...exampleBroadcastSent, written }} actions={actions} />);
+    const saidYes = page.getByRole("term").filter({ hasText: copy.facts.saidYes }).element().parentElement!;
+    expect(saidYes.textContent).toContain(staffCopy.campaigns.supporters(exampleBroadcastSent.summary.to));
+    expect(page.getByRole("term").filter({ hasText: staffCopy.mailingPages.to }).query()).toBeNull();
+    await expect.element(page.getByText(copy.everyoneWhoSaidYes)).not.toBeInTheDocument();
   });
 
   it("says what they said yes to apart, and the other filters as pills, or everyone who did", async () => {
@@ -1202,8 +1215,7 @@ describe("BroadcastCounts", () => {
     const { rerender } = await render(
       <CountGroups
         groups={[
-          // With a count that doesn't apply, as an email's read: none to add.
-          { key: "went", label: "went", counts: [...all.slice(0, 6), { key: "none", n: null, label: "none" }] },
+          { key: "went", label: "went", counts: all.slice(0, 6) },
           { key: "gone", label: "didn't go", counts: all.slice(6) },
         ]}
       />,
@@ -1366,10 +1378,10 @@ describe("BroadcastsOverview", () => {
     // And one whose words it rejected, till they're sent again.
     await expect.element(page.getByText(copy.standing.rejected)).toBeVisible();
     expect(page.getByText(copy.standing.rejected).all()).toHaveLength(1);
-    await expect.element(page.getByText(copy.standing.scheduled(290)).first()).toBeVisible();
+    await expect.element(page.getByText(staffCopy.mailingPages.standing.scheduled(290)).first()).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.untitled }).first()).toBeVisible();
     // One sent: how many it went to; then what needs a look, the rest folded behind how many are fine.
-    await expect.element(page.getByText(copy.standing.sent(290))).toBeVisible();
+    await expect.element(page.getByText(staffCopy.mailingPages.standing.sent(290))).toBeVisible();
     await expect.element(page.getByRole("link", { name: `4 ${stateWords.counts.error}` })).toBeVisible();
     await expect.element(page.getByRole("button", { name: / fine/ }).first()).toBeVisible();
   });
@@ -1409,8 +1421,8 @@ describe("BroadcastsOverview", () => {
     );
     const words = copy.standing;
     for (const said of [
-      words.sent(5),
-      words.stopped(3, 5),
+      staffCopy.mailingPages.standing.sent(5),
+      staffCopy.mailingPages.standing.stopped(3, 5),
       words.gaveUp.limit!(3, 5),
       words.gaveUp.template!(3, 5),
       words.gaveUp.late!(3, 5),
