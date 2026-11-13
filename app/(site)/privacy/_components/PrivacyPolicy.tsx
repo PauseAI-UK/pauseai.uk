@@ -154,8 +154,12 @@ export default function PrivacyPolicy() {
         .
       </p>
       <p>
-        ⁂ We only text you, on WhatsApp, about things you said yes to texts about. To stop texts on a topic, reply STOP
-        to one of them. To stop them all, turn off our messages in WhatsApp.
+        We only text you on WhatsApp when you opted in to texts. Every text says how to stop: reply STOP. Or change the
+        texts you get on the{" "}
+        <Link className="inline-link" href="/contact-preferences">
+          contact preferences page
+        </Link>
+        .
       </p>
       <p>
         Before each email goes, we check your address against Stichting PauseAI’s records, so if you’ve asked PauseAI
