@@ -642,7 +642,7 @@ export const staffCopy = {
           },
           volunteering: {
             about: "Any contact about volunteering.",
-            yes: "By email, they're on the volunteer list in CiviCRM. By call, they gave the number on the join form after choosing to volunteer or lead. Never by text yet, as the join form hasn't asked whether we can text them.",
+            yes: "By email, they're on the volunteer list in CiviCRM. By call or text, they gave the number on the join form after choosing to volunteer or lead.",
             no: "They unsubscribed, didn't choose to volunteer, or the global team no longer shares them with us.",
           },
         } as Record<Topic, { about: string; yes: string; no: string }>,

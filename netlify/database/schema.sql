@@ -98,21 +98,21 @@ WITH
   members_kept AS (
     SELECT m.* FROM their_members m WHERE m.removed_at IS NULL AND m.gone_at IS NULL
   ),
-  -- The contacts and members who gave the number for a volunteering call,
-  -- each with whether they wanted to volunteer, and when they joined.
+  -- The contacts and members who gave the number, for a volunteering call or
+  -- text, each with whether they wanted to volunteer, and when they joined.
   callers AS (
     SELECT coalesce(c.intent IN ('volunteer', 'lead') OR (c.intent IS NULL AND c.joined_date < '2026-06-30'), false)
         AS volunteer,
       civicrm_joined_at(c.joined_date, c.first_seen_at) AS at, 'civicrm' AS source
     FROM civi c
-    WHERE for_way = 'call' AND for_topic = 'volunteering' AND c.gone_at IS NULL
+    WHERE for_way IN ('call', 'text') AND for_topic = 'volunteering' AND c.gone_at IS NULL
       AND phone_number(c.phone) = for_address
     UNION ALL
     SELECT coalesce(m.intent IN ('Volunteer', 'Lead') OR (m.intent IS NULL AND m.created_at < '2026-06-30T00:00:00Z'),
         false),
       m.created_at, 'airtable'
     FROM members_kept m
-    WHERE for_way = 'call' AND for_topic = 'volunteering' AND m.never_returned
+    WHERE for_way IN ('call', 'text') AND for_topic = 'volunteering' AND m.never_returned
       AND phone_number(m.phone) = for_address
   ),
   -- The latest lift of "No bulk emails" on the email settings page that
@@ -230,7 +230,7 @@ WITH
     FROM their_members m
     WHERE (m.removed_at IS NOT NULL OR m.gone_at IS NOT NULL)
       AND ((for_way = 'email' AND for_topic = 'newsletter' AND m.email = for_address)
-        OR (for_way = 'call' AND for_topic = 'volunteering' AND phone_number(m.phone) = for_address))
+        OR (for_way IN ('call', 'text') AND for_topic = 'volunteering' AND phone_number(m.phone) = for_address))
     UNION ALL
     SELECT 'left', c.gone_at, 'civicrm'
     FROM civi c
@@ -239,7 +239,7 @@ WITH
     UNION ALL
     SELECT 'left', c.gone_at, 'civicrm'
     FROM civi c
-    WHERE for_way = 'call' AND for_topic = 'volunteering' AND c.gone_at IS NOT NULL
+    WHERE for_way IN ('call', 'text') AND for_topic = 'volunteering' AND c.gone_at IS NOT NULL
       AND phone_number(c.phone) = for_address
     UNION ALL
     SELECT 'not-following', NULL, 'luma'
@@ -1683,15 +1683,17 @@ CREATE VIEW public.phone_permissions AS
                    FROM public.day_texts)) AND (public.phone_number(form_entries.phone) IS NOT NULL))
         UNION
          SELECT 'volunteering'::text,
-            'call'::text,
+            w.way,
             public.phone_number(airtable_members.phone) AS phone_number
-           FROM public.airtable_members
+           FROM public.airtable_members,
+            ( VALUES ('call'::text), ('text'::text)) w(way)
           WHERE (public.phone_number(airtable_members.phone) IS NOT NULL)
         UNION
          SELECT 'volunteering'::text,
-            'call'::text,
+            w.way,
             public.phone_number(civicrm_contacts.phone) AS phone_number
-           FROM public.civicrm_contacts
+           FROM public.civicrm_contacts,
+            ( VALUES ('call'::text), ('text'::text)) w(way)
           WHERE (public.phone_number(civicrm_contacts.phone) IS NOT NULL)
         UNION
          SELECT opt_outs.list,

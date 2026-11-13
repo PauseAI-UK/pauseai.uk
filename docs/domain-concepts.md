@@ -1229,8 +1229,7 @@ contacts API returns (`lib/server/outside-services/civicrm.ts`, with
 is in PauseAI/pauseai-civicrm, which is private), as it told us. The hourly import pulls them all, 500 a page by
 contact ID, and keeps each one's contact ID, Airtable ID and address; its
 member details (`first_name`, `last_name`, `city`, `postal_code`,
-`joined_date`, a day, `intent`, and `phone`, which Global shares for calls
-only), each null when CiviCRM has none; its flags (`on_hold`,
+`joined_date`, a day, `intent`, and `phone`), each null when CiviCRM has none; its flags (`on_hold`,
 `no_bulk_email`, `do_not_email`, `do_not_phone`, `do_not_sms`); and its
 status on the two UK lists, `newsletter` and `volunteer_updates`. CiviCRM
 gives no dates but the day they joined, so each flag's and list's `_since`
@@ -1298,11 +1297,10 @@ or a call to a number. The topics:
   for "text updates on the day" is a yes for texts until the day ends
   (`day_texts`).
 - **Volunteering**: CiviCRM's `volunteer_updates` list, for email; and a
-  member's number, for calls, if they chose to volunteer or lead when
+  member's number, for calls and texts, if they chose to volunteer or lead when
   joining, or joined before 30 June 2026 on the Tally form, which didn't
   ask: a contact's number and intent from CiviCRM, or from Airtable for a
-  member CiviCRM has never returned. Never for texts, as no join form has
-  asked whether we may text them, and Global shares numbers for calls only.
+  member CiviCRM has never returned.
 
 Each answer is yes or no, with a reason from a short list, when, and which
 source said so. First, whatever stops every topic by the way: a blocked

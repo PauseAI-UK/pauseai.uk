@@ -562,6 +562,7 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect([...new Set(details.contacts.map((c) => c.phone).filter(Boolean))]).toEqual(["+447700900001"]);
     expect(details.permissions.filter((p) => p.channel === "phone").map((p) => [p.topic, p.way, p.send])).toEqual([
       ["events", "text", "no"],
+      ["volunteering", "text", "yes"],
       ["volunteering", "call", "yes"],
     ]);
   });
