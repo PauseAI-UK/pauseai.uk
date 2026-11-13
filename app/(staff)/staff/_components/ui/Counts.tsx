@@ -4,8 +4,9 @@ import styles from "./Counts.module.css";
 
 /**
  * One count: its number, or none for a count that doesn't apply, shown as
- * a dash; its label; where it leads; and red for a problem or green for
- * what's hoped for, when it isn't 0. `current` marks the one a list under
+ * a dash; its label; where it leads; and its tone, the number on that
+ * colour when it isn't 0: red bad, amber sad, green good, blue for staff
+ * to do, grey normal. `current` marks the one a list under
  * it is filtered to; `title`, what pressing it does, when that isn't plain.
  */
 export type Count = {
@@ -13,7 +14,7 @@ export type Count = {
   n: number | null;
   label: string;
   href?: string;
-  tone?: "red" | "amber" | "green";
+  tone?: "red" | "amber" | "green" | "blue" | "grey";
   current?: boolean;
   title?: string;
 };
@@ -52,11 +53,11 @@ export function countsFiltering<T extends Count>(path: string, counts: T[], tab:
  */
 export default function Counts({ counts, small = false }: { counts: Count[]; small?: boolean }) {
   const cells = counts.map((count) => {
+    // The whole box in its colour, when it counts any.
+    const tone = (count.n && count.tone) || undefined;
     const inner = (
       <>
-        <strong data-tone={count.n ? count.tone : "none"} data-zero={!count.n || undefined}>
-          {count.n === null ? "–" : count.n.toLocaleString("en-GB")}
-        </strong>{" "}
+        <strong data-zero={!count.n || undefined}>{count.n === null ? "–" : count.n.toLocaleString("en-GB")}</strong>{" "}
         {count.label}
       </>
     );
@@ -65,13 +66,14 @@ export default function Counts({ counts, small = false }: { counts: Count[]; sma
         key={count.key}
         href={count.href}
         className={styles.count}
+        data-tone={tone}
         aria-current={count.current ? "true" : undefined}
         title={count.title}
       >
         {inner}
       </StaffLink>
     ) : (
-      <span key={count.key} className={styles.count} data-none={count.n === null || undefined}>
+      <span key={count.key} className={styles.count} data-tone={tone} data-none={count.n === null || undefined}>
         {inner}
       </span>
     );

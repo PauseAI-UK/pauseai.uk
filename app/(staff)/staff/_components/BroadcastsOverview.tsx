@@ -4,16 +4,20 @@ import type { MailingGroup } from "@/lib/mailing-groups";
 import type { BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { textSender } from "@/lib/broadcasts";
 import MailingsOverview, { type OverviewLook } from "./MailingsOverview";
-import { BroadcastChannelName, broadcastCounts } from "./BroadcastView";
+import { BroadcastChannelMark, broadcastCounts } from "./BroadcastView";
 
 const copy = staffCopy.broadcastPages;
 
 const LOOK: OverviewLook<BroadcastSummary> = {
   base: "/staff/broadcasts",
-  counts: broadcastCounts,
+  // Only those it has: all nine don't fit a row. Its page has every one, lined up.
+  counts: (broadcast) => broadcastCounts(broadcast).filter((count) => count.n),
+  whileSending: ["look", "opted-out", "error", "unreached"],
   untitled: copy.untitled,
   none: copy.none,
-  lead: (broadcast) => <BroadcastChannelName channel={broadcast.channel} />,
+  mark: (broadcast) => <BroadcastChannelMark channel={broadcast.channel} />,
+  // The channel's word alone, as the mark beside it is its picture.
+  lead: (broadcast) => copy.channels[broadcast.channel],
   // A text's number, which isn't an address to put in <>.
   from: (broadcast) =>
     broadcast.channel === "text" ? textSender(broadcast.fromName!, broadcast.sentFrom!) : undefined,

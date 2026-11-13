@@ -16,6 +16,7 @@ import {
   broadcastTerms,
   choiceTerms,
   isAvailableSendBy,
+  rejectionWords,
   termsValues,
   BROADCAST_SENDER,
   TEXT_SENDER_NAME,
@@ -46,7 +47,8 @@ import {
 import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } from "./broadcast-channels";
 import { createTemplate, deleteTemplate, sendTemplate } from "./outside-services/whatsapp";
 import { problem } from "./problems";
-import { metaName, templateParams, templateText, textResult } from "./whatsapp-texts";
+import { metaName, templateParams, textResult } from "./whatsapp-texts";
+import { templateText } from "@/lib/whatsapp-template";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { supporterAudience } from "./broadcast-recipients";
 import { notifyStaff, staffLink } from "./notifications";
@@ -544,7 +546,7 @@ export async function withdrawTemplate(id: number, by: string): Promise<boolean>
   return true;
 }
 
-/** What WhatsApp decided about a template: approved, or rejected and why. */
+/** What WhatsApp decided about a template: approved, or rejected and why, by its code (INVALID_FORMAT), which is kept. */
 export type TemplateReview = { approved: true } | { approved: false; reason: string };
 
 /**
@@ -571,7 +573,10 @@ export async function reviewTemplate(templateId: number, review: TemplateReview)
   const copy = staffCopy.notifications;
   const [subject, body] = review.approved
     ? [copy.templateApproved.subject(template.name), copy.templateApproved.body(words, links)]
-    : [copy.templateRejected.subject(template.name), copy.templateRejected.body(review.reason, words, links)];
+    : [
+        copy.templateRejected.subject(template.name),
+        copy.templateRejected.body(rejectionWords(review.reason), words, links),
+      ];
   await notifyStaff(subject, body, null, "staff-alert", template.createdBy ?? undefined);
   return true;
 }

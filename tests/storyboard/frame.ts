@@ -1,6 +1,7 @@
 import { test, type Locator, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { emailView } from "../fixtures/email-view";
+import { textView, type TextShown } from "../fixtures/text-view";
 import type { OutboxEmail } from "@/lib/server/fixtures/outbox";
 import { LOCAL_URL } from "../checkout.mjs";
 import type { PlaceholderText } from "./report/frames";
@@ -356,5 +357,27 @@ export async function emailFrame(page: Page, email: OutboxEmail, caption: string
     await frame(mail, caption);
   } finally {
     await mail.close();
+  }
+}
+
+/**
+ * A frame of a WhatsApp text as the supporter gets it, in a plain chat app
+ * (tests/fixtures/text-view.ts), from `from`, our name and number; `note`
+ * above it, such as that it went for approval. In a page of its own, as
+ * emailFrame's is.
+ */
+export async function textFrame(
+  page: Page,
+  from: { name: string; number: string },
+  text: TextShown,
+  caption: string,
+  note?: string,
+): Promise<void> {
+  const chat = await page.context().newPage();
+  try {
+    await chat.setContent(textView(from, text, note));
+    await frame(chat, caption);
+  } finally {
+    await chat.close();
   }
 }

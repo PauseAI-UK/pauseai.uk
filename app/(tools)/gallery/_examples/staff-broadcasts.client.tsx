@@ -83,7 +83,7 @@ export function BroadcastWriterExample({
                   ...exampleTemplates[0],
                   status: "rejected" as const,
                   rejectedAt: new Date("2026-11-05T14:02:00Z"),
-                  rejectedReason: "The text ends with a merge field.",
+                  rejectedReason: "INVALID_FORMAT",
                 },
               };
   const data = kind === "off" ? { ...exampleBroadcastData, sends: false, textNumber: null } : exampleBroadcastData;

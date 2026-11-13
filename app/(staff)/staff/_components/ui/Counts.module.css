@@ -51,16 +51,47 @@
   opacity: 0.6;
 }
 
-.count strong[data-tone="red"] {
+/* A count with a tone, of more than none: the whole box on its colour, its number and label in it, as the
+   tags of those it counts are (components/ui/Tag.module.css), so a count and its list match. */
+.count[data-tone="red"] {
+  background: var(--status-red-bg);
+}
+
+.count[data-tone="amber"] {
+  background: var(--status-amber-bg);
+}
+
+.count[data-tone="green"] {
+  background: var(--status-green-bg);
+}
+
+.count[data-tone="blue"] {
+  background: var(--status-blue-bg);
+}
+
+/* Grey: normal, on a plain tag's colour. */
+.count[data-tone="grey"] {
+  background: var(--surface-2);
+}
+
+.count[data-tone="red"],
+.count[data-tone="red"] strong {
   color: var(--status-red);
 }
 
-.count strong[data-tone="amber"] {
+.count[data-tone="amber"],
+.count[data-tone="amber"] strong {
   color: var(--status-amber);
 }
 
-.count strong[data-tone="green"] {
+.count[data-tone="green"],
+.count[data-tone="green"] strong {
   color: var(--status-green);
+}
+
+.count[data-tone="blue"],
+.count[data-tone="blue"] strong {
+  color: var(--status-blue);
 }
 
 /* In a list's row: smaller, and each as wide as the rest. */

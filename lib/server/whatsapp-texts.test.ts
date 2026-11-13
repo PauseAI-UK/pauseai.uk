@@ -4,16 +4,8 @@ import type { MailingDoc } from "@/lib/mailing-doc";
 import { addFollower, EVENT_WORDS } from "@/tests/broadcast-fixtures";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { createBroadcastDraft } from "./broadcast-drafts";
-import {
-  markUnreachable,
-  metaName,
-  paramName,
-  templateParams,
-  templateText,
-  textResult,
-  textsLeftToday,
-  unreachable,
-} from "./whatsapp-texts";
+import { filledTemplate, paramName, templateText } from "@/lib/whatsapp-template";
+import { markUnreachable, metaName, templateParams, textResult, textsLeftToday, unreachable } from "./whatsapp-texts";
 
 /** Words with both fields, each twice. */
 const BOTH: MailingDoc = {
@@ -41,6 +33,8 @@ it("names each field's parameter in WhatsApp's lower case", () => {
 
 it("gives a text's words with each field as its parameter, and each field's words once", () => {
   expect(templateText(BOTH)).toBe("Hi {{first_name}} ({{name}}), see you there, {{first_name}}.");
+  // As WhatsApp fills it in; a parameter it isn't given stays as it is.
+  expect(filledTemplate(templateText(BOTH), { first_name: "Jane" })).toBe("Hi Jane ({{name}}), see you there, Jane.");
   expect(templateParams(BOTH, { values: { firstName: "Jane", name: "Jane Smith" }, meets: [] })).toEqual([
     { name: "first_name", text: "Jane" },
     { name: "name", text: "Jane Smith" },
@@ -61,10 +55,11 @@ it("keeps what WhatsApp said of a send", () => {
   expect(refused(131026)).toEqual({ sent: false, reason: "unreachable" });
   expect(refused(131050)).toEqual({ sent: false, reason: "stopped" });
   expect(refused(131049)).toEqual({ sent: false, reason: "held" });
-  expect(refused(130429)).toEqual({ sent: false, reason: "failed", retry: true });
-  expect(refused(132015)).toEqual({ sent: false, reason: "failed", retry: true });
-  expect(refused(131000)).toEqual({ sent: false, reason: "failed" });
-  expect(refused(null)).toEqual({ sent: false, reason: "failed" });
+  expect(refused(130429)).toEqual({ sent: false, reason: "failed", retry: true, detail: "No" });
+  expect(refused(132015)).toEqual({ sent: false, reason: "failed", retry: true, detail: "No" });
+  expect(refused(131000)).toEqual({ sent: false, reason: "failed", detail: "No" });
+  // What WhatsApp said of a failure is kept, for the copy's tag.
+  expect(refused(null)).toEqual({ sent: false, reason: "failed", detail: "No" });
 });
 
 describeWithDatabase("numbers WhatsApp can't reach, and the daily limit", () => {

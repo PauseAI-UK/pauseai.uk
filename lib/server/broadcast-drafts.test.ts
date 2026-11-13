@@ -135,6 +135,8 @@ describeWithDatabase("broadcasts to supporters", () => {
       sentFrom: "+447700900000",
       fromName: "PauseAI UK",
     });
+    // Where no keys are set, as on a deploy preview; a fixture build would use the fake's.
+    vi.stubEnv("DATA_FIXTURES", "");
     vi.stubEnv("WHATSAPP_TOKEN", "");
     expect(await getWrittenBroadcast(await draftOf(TEXT_FILTER))).toMatchObject({ sentFrom: "" });
   });
@@ -515,14 +517,15 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await reviewTemplate(template, { approved: false, reason: "Too late." })).toBe(false);
 
     const other = await addTemplate("Made in WhatsApp Manager", { status: "pending", createdBy: null });
-    expect(await reviewTemplate(other, { approved: false, reason: "It's too short." })).toBe(true);
+    expect(await reviewTemplate(other, { approved: false, reason: "SCAM" })).toBe(true);
     expect(sent()[1]).toMatchObject({
       Subject: words.templateRejected.subject("Made in WhatsApp Manager"),
-      TextBody: words.templateRejected.body("It's too short.", SAID, []),
+      TextBody: words.templateRejected.body(words.templateRejectedWhy.reasons.SCAM!, SAID, []),
     });
     expect(sent()[1].Cc).toBeUndefined();
+    // WhatsApp's code is kept, and put in words where it's shown.
     expect(await query("SELECT status, rejected_reason FROM whatsapp_templates WHERE id = $1", [other])).toEqual([
-      { status: "rejected", rejected_reason: "It's too short." },
+      { status: "rejected", rejected_reason: "SCAM" },
     ]);
   });
 
@@ -673,6 +676,8 @@ describeWithDatabase("broadcasts to supporters", () => {
     await readied(id, { templateId: await addTemplate("March day") });
     const approved = (await getWrittenBroadcast(id))!;
     await expect(sendBroadcastTest(approved, textTo, "+447700900002")).resolves.toMatchObject({ sent: true });
+    // Where no keys are set, as on a deploy preview; a fixture build would use the fake's.
+    vi.stubEnv("DATA_FIXTURES", "");
     vi.stubEnv("WHATSAPP_TOKEN", "");
     expect(await sendBroadcastTest(approved, textTo, "+447700900002")).toBeUndefined();
   });

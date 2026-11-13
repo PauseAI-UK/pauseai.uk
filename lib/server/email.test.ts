@@ -125,12 +125,20 @@ describeWithDatabase("send", () => {
         ),
       );
     refusal("Copy@Example.org, other@example.org");
-    expect(await send(EMAIL, "letter")).toEqual({ sent: false, reason: "failed" });
+    expect(await send(EMAIL, "letter")).toEqual({
+      sent: false,
+      reason: "failed",
+      detail: expect.stringContaining("inactive"),
+    });
     expect(await isBlocked("copy@example.org")).toBe(true);
     expect(await isBlocked("other@example.org")).toBe(true);
     expect(await isBlocked("jo@example.org")).toBe(false);
     // A Cc already blocked stays so.
-    expect(await send(EMAIL, "letter")).toEqual({ sent: false, reason: "failed" });
+    expect(await send(EMAIL, "letter")).toEqual({
+      sent: false,
+      reason: "failed",
+      detail: expect.stringContaining("inactive"),
+    });
     refusal("jo@example.org");
     expect(await send(EMAIL, "letter")).toEqual({ sent: false, reason: "blocked" });
     expect(await sends()).toMatchObject([{ outcome: "failed" }, { outcome: "failed" }, { outcome: "refused" }]);
@@ -139,7 +147,8 @@ describeWithDatabase("send", () => {
   it("says it failed, and logs it, when Postmark fails for any other reason", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 300, Message: "Invalid" }, { status: 422 })));
-    expect(await send(EMAIL, "staff-alert")).toEqual({ sent: false, reason: "failed" });
+    // What Postmark said, kept for the copy's tag.
+    expect(await send(EMAIL, "staff-alert")).toEqual({ sent: false, reason: "failed", detail: expect.any(String) });
     expect(error.mock.calls[0][0]).toBe(staffCopy.problems.anywhere.sendFailed("staff-alert"));
     expect(await sends()).toMatchObject([{ outcome: "failed", messageId: null }]);
     expect(await isBlocked("jo@example.org")).toBe(false);
@@ -282,13 +291,18 @@ describeWithDatabase("send by Gmail", () => {
         sent: false,
         reason: "failed",
         ...(retry && { retry }),
+        detail: expect.any(String),
       });
     }
   });
 
   it("fails, saying which account, when Gmail can't send or the account isn't connected", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({ sent: false, reason: "failed" });
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+      sent: false,
+      reason: "failed",
+      detail: expect.any(String),
+    });
     expect(error.mock.calls[0][0]).toBe(staffCopy.problems.anywhere.sendFailed("mailing, by Gmail as jo@pauseai.uk"));
     expect(await query("SELECT outcome, backend, sender, rfc_message_id FROM email_sends")).toEqual([
       { outcome: "failed", backend: "gmail", sender: "jo@pauseai.uk", rfc_message_id: null },

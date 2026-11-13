@@ -29,6 +29,7 @@ import {
 } from "./broadcast-drafts";
 import { broadcastChoices, broadcastParts, supporterAudience } from "./broadcast-recipients";
 import type { MailingSummary } from "./mailings";
+import { howOptedOutFrom, optedOutFrom } from "./opt-outs";
 import { checkStoredFilter, filterProblems } from "./stored-filters";
 import { supporterChoices, type SupporterChoices } from "./supporters";
 
@@ -42,31 +43,79 @@ export type BroadcastSummary = MailingSummary & {
   channel: BroadcastChannel;
   /** What sends an email; Gmail says nothing of what arrives, so its copies stay sent. */
   sendBy: BroadcastSendBy;
-  /** Copies its provider says arrived, of the `sent` that have gone: none by Gmail. */
-  delivered: number;
-  read: number;
   /** A draft whose new words WhatsApp is reviewing. */
   waiting: boolean;
   /** A draft whose new words WhatsApp rejected, until they're sent again or a template's chosen. */
   rejected: boolean;
-  /** Copies with a reply from a person, and of those, any still waiting for staff to look at. */
-  toLookAt: number;
+  /** How many of its copies are in each state (COPY_STATES). */
+  states: Record<(typeof COPY_STATES)[number], number>;
 };
 
 // Why a copy's broadcast stopped by itself, when it did (its wait_reason), so a copy it left unsent can say so.
 const STOPPED_BY = "(SELECT CASE WHEN g.gave_up THEN g.wait_reason END FROM mailings g WHERE g.id = c.mailing_id)";
 const WAS_READ = "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'read')";
 const BOUNCED = "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'bounced')";
-const OPTED_OUT =
-  "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'opted-out')";
+// They asked us to stop after it reached them: its provider said so (a WhatsApp stop, a spam complaint), or an
+// opt-out was made from it (our link, their mail app's Unsubscribe, their reply).
+const OPTED_OUT = `(EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'opted-out')
+  OR ${optedOutFrom("c.id")})`;
+// How they asked, from the first opt-out made from it.
+const STOPPED_VIA = howOptedOutFrom("c.id");
 const REPLIED = "EXISTS (SELECT 1 FROM broadcast_replies r WHERE r.message_id = c.id AND NOT r.automatic)";
 const TO_LOOK_AT =
   "EXISTS (SELECT 1 FROM broadcast_replies r WHERE r.message_id = c.id AND NOT r.automatic AND r.outcome IS NULL)";
-// Stopped: never sent, as the broadcast was stopped, they asked us to stop, or their consent ended before it
-// went; or they asked us to stop after it arrived, so it counts as delivered too.
-const STOPPED = `(c.status = 'cancelled' OR c.skip_reason IN ('unsubscribed', 'no-permission') OR ${OPTED_OUT})`;
-const FAILED =
-  "(c.status = 'failed' OR (c.status = 'skipped' AND c.skip_reason NOT IN ('unsubscribed', 'no-permission')))";
+// A text's number WhatsApp said isn't on it when this copy went, rather than known before.
+const FOUND_UNREACHABLE = "EXISTS (SELECT 1 FROM whatsapp_unreachable u WHERE u.message_id = c.id)";
+// Its send cut off, so it may have gone (fail in broadcast-sending.ts).
+const UNFINISHED = `EXISTS (SELECT 1 FROM broadcast_message_events e
+  WHERE e.message_id = c.id AND e.kind = 'failed' AND e.details ? 'unfinished')`;
+
+/**
+ * Where a copy stands, one state each, the first that applies: a reply to
+ * check; they opted out because of it; something broke (its provider
+ * refused it, its send cut off, its broadcast gave up); it didn't reach them
+ * (a bounce, or a number found not on WhatsApp); not sent, as expected (they'd
+ * opted out before, their consent ended, an address already blocked, we
+ * cancelled); replied; read; delivered; sent. Still to go: scheduled, or
+ * sending. Each count and tab on a broadcast's page is one of these.
+ */
+export const COPY_STATES = [
+  "look",
+  "opted-out",
+  "error",
+  "unreached",
+  "not-sent",
+  "replied",
+  "read",
+  "delivered",
+  "sent",
+] as const;
+export type CopyState = (typeof COPY_STATES)[number] | "scheduled" | "sending";
+
+const COPY_STATE = `CASE
+  WHEN ${TO_LOOK_AT} THEN 'look'
+  WHEN c.status IN ('scheduled', 'sending') THEN c.status
+  WHEN c.status IN ('sent', 'delivered') AND ${OPTED_OUT} THEN 'opted-out'
+  WHEN (c.status = 'failed' AND NOT ${BOUNCED}) OR (c.status = 'cancelled' AND ${STOPPED_BY} IS NOT NULL) THEN 'error'
+  WHEN c.status = 'failed' OR (c.skip_reason = 'not-on-whatsapp' AND ${FOUND_UNREACHABLE}) THEN 'unreached'
+  WHEN c.status IN ('skipped', 'cancelled') THEN 'not-sent'
+  WHEN ${REPLIED} THEN 'replied'
+  WHEN ${WAS_READ} THEN 'read'
+  WHEN c.status = 'delivered' THEN 'delivered'
+  ELSE 'sent' END`;
+
+// Why it's in its state, where that has a why: how they opted out; what broke (Gmail, Postmark or WhatsApp
+// refusing it, a send cut off, or why its broadcast gave up); bounced or not on WhatsApp; why it wasn't sent (a
+// skip reason, cancelled, or opted out in WhatsApp before).
+const COPY_WHY = `CASE ${COPY_STATE}
+  WHEN 'opted-out' THEN ${STOPPED_VIA}
+  WHEN 'error' THEN coalesce(${STOPPED_BY}, CASE WHEN ${UNFINISHED} THEN 'unfinished'
+    ELSE (SELECT CASE WHEN g.channel = 'text' THEN 'whatsapp' ELSE g.send_by END FROM mailings g WHERE g.id = c.mailing_id) END)
+  WHEN 'unreached' THEN CASE WHEN ${BOUNCED} THEN 'bounced' ELSE 'not-on-whatsapp' END
+  WHEN 'not-sent' THEN CASE WHEN c.status = 'cancelled' THEN 'cancelled'
+    WHEN c.skip_reason = 'unsubscribed' AND ${STOPPED_VIA} = 'whatsapp-refused' THEN 'whatsapp'
+    ELSE c.skip_reason END
+  END`;
 
 const SELECT_BROADCASTS = `
   SELECT m.id::int AS id, m.title, m.ask, NULL AS "askTitle", false AS imported, m.state, m.created_by AS "createdBy",
@@ -76,15 +125,15 @@ const SELECT_BROADCASTS = `
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'rejected') AS rejected,
     min(c.sent_at) AS "sentAt",
     count(c.id)::int AS "to",
+    -- As the sending bar counts them (MailingsOverview): those that went, and those done with but not sent.
     count(c.id) FILTER (WHERE c.status IN ('sent', 'delivered'))::int AS sent,
-    count(c.id) FILTER (WHERE c.status = 'delivered')::int AS delivered,
-    count(c.id) FILTER (WHERE ${FAILED})::int AS failed,
-    count(c.id) FILTER (WHERE ${STOPPED})::int AS stopped,
-    count(c.id) FILTER (WHERE ${WAS_READ})::int AS read,
+    count(c.id) FILTER (WHERE c.status IN ('failed', 'skipped', 'cancelled'))::int AS failed,
+    0 AS stopped, 0 AS answered,
     count(c.id) FILTER (WHERE ${REPLIED})::int AS replied,
-    0 AS answered,
-    count(c.id) FILTER (WHERE ${TO_LOOK_AT})::int AS "toLookAt"
+    -- How many are in each state.
+    json_build_object(${COPY_STATES.map((one) => `'${one}', count(c.id) FILTER (WHERE s.state = '${one}')`).join(", ")}) AS states
   FROM mailings m LEFT JOIN broadcast_messages c ON c.mailing_id = m.id
+  LEFT JOIN LATERAL (SELECT ${COPY_STATE} AS state) s ON true
   WHERE m.audience = 'supporters'`;
 
 /** The page of broadcasts: what's coming up, and those sent under their months and years; and now, which says which year needn't be written. */
@@ -126,9 +175,6 @@ export async function broadcastsPage(): Promise<{ groups: MailingGroup<Broadcast
 }
 
 /** One recipient of a broadcast, on its page. */
-/** Why a copy's broadcast stopped by itself, leaving it unsent (StopReason in broadcast-sending.ts); or none. */
-export type CopyStoppedBy = "civicrm" | "pull" | "limit" | null;
-
 export type MessageRecipient = {
   copyId: number;
   supporterId: number | null;
@@ -138,32 +184,17 @@ export type MessageRecipient = {
   status: string;
   skipReason: string | null;
   sentAt: Date | null;
-  /** Why its broadcast stopped by itself, when it did, leaving it unsent: its days run out, or CiviCRM. */
-  stoppedBy: CopyStoppedBy;
-  read: boolean;
-  /** An email that failed as it bounced. */
-  bounced: boolean;
-  /** They asked us to stop after it reached them. */
-  optedOut: boolean;
-  /** They replied, and staff have still to look at a reply. */
-  replied: boolean;
-  toLookAt: boolean;
+  /** Where it stands (COPY_STATE), and why, where that state has one (COPY_WHY). */
+  state: CopyState;
+  why: string | null;
 };
 
 /** Which of a broadcast's recipients its page lists. */
-export const MESSAGE_TABS = ["all", "delivered", "sent", "failed", "stopped", "read", "replied", "look"] as const;
+export const MESSAGE_TABS = ["all", ...COPY_STATES] as const;
 export type MessageTab = (typeof MESSAGE_TABS)[number];
 
-const TAB_CONDITIONS: Record<MessageTab, string> = {
-  all: "true",
-  delivered: "c.status = 'delivered'",
-  sent: "c.status IN ('sent', 'delivered')",
-  failed: FAILED,
-  stopped: STOPPED,
-  read: WAS_READ,
-  replied: REPLIED,
-  look: TO_LOOK_AT,
-};
+/** Those a tab lists: everyone, or those in its state. */
+const tabCondition = (tab: MessageTab): string => (tab === "all" ? "true" : `${COPY_STATE} = '${tab}'`);
 
 const RECIPIENTS_PAGE_SIZE = 100;
 
@@ -302,14 +333,13 @@ export async function broadcastPageData(
   if (written.state === "draft") return { kind: "draft", draft: written, ...(await writerData(written, me)) };
   const tab = MESSAGE_TABS.find((one) => one === firstOf(search.tab)) ?? "all";
   const page = pageNumber(firstOf(search.page));
-  const from = `FROM broadcast_messages c WHERE c.mailing_id = $1 AND ${TAB_CONDITIONS[tab]}`;
+  const from = `FROM broadcast_messages c WHERE c.mailing_id = $1 AND ${tabCondition(tab)}`;
   const [[summary], recipients, [{ total }], choices, parts] = await Promise.all([
     query<BroadcastSummary>(`${SELECT_BROADCASTS} AND m.id = $1 GROUP BY m.id`, [id]),
     query<MessageRecipient>(
       `SELECT c.id::int AS "copyId", c.supporter_id::int AS "supporterId", c.merge_values ->> 'name' AS name,
          c.merge_values ->> 'place' AS place, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
-         ${STOPPED_BY} AS "stoppedBy", ${WAS_READ} AS read, ${BOUNCED} AS bounced, ${OPTED_OUT} AS "optedOut", ${REPLIED} AS replied,
-         ${TO_LOOK_AT} AS "toLookAt"
+         ${COPY_STATE} AS state, ${COPY_WHY} AS why
        ${from} ORDER BY ${TO_LOOK_AT} DESC, (c.merge_values ->> 'name') COLLATE english NULLS LAST, c.id
        LIMIT $2 OFFSET $3`,
       [id, RECIPIENTS_PAGE_SIZE, (page - 1) * RECIPIENTS_PAGE_SIZE],
@@ -356,12 +386,8 @@ async function scheduledRecipients(
       status: "scheduled" as const,
       skipReason: null,
       sentAt: null,
-      stoppedBy: null,
-      read: false,
-      bounced: false,
-      optedOut: false,
-      replied: false,
-      toLookAt: false,
+      state: "scheduled" as const,
+      why: null,
     }));
   return { rows, total: recipients.length };
 }
@@ -410,8 +436,9 @@ export type MessageCopy = {
   /** Where they are, as sending found it. */
   place: string | null;
   sentAt: Date | null;
-  /** Why its broadcast stopped by itself, when it did, leaving it unsent. */
-  stoppedBy: CopyStoppedBy;
+  /** Where it stands, and why, as a recipient's row has them. */
+  state: CopyState;
+  why: string | null;
   /** What its provider reported, newest first. */
   events: BroadcastEvent[];
   /** The topics it went under, which a reply recorded as an opt-out stops. */
@@ -432,8 +459,7 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
        m.from_name AS "fromName", m.sent_from AS "sentFrom", m.send_by AS "sendBy", c.supporter_id::int AS "supporterId",
        c.merge_values ->> 'name' AS name, c.merge_values ->> 'place' AS place, c.address,
        CASE WHEN c.merge_values ? 'values' THEN c.merge_values END AS merge, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
-       ${STOPPED_BY} AS "stoppedBy",
-       c.topics
+       ${COPY_STATE} AS state, ${COPY_WHY} AS why, c.topics
      FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
      WHERE c.id = $2 AND m.id = $1 AND m.audience = 'supporters'`,
     [broadcastId, copyId],
@@ -459,22 +485,16 @@ export type SupporterBroadcastRow = {
   status: string;
   skipReason: string | null;
   sentAt: Date | null;
-  /** Why its broadcast stopped by itself, when it did, leaving it unsent. */
-  stoppedBy: CopyStoppedBy;
-  read: boolean;
-  bounced: boolean;
-  optedOut: boolean;
-  replied: boolean;
-  /** A reply of theirs to it waits for staff. */
-  toLookAt: boolean;
+  /** Where it stands, and why, as a recipient's row has them. */
+  state: CopyState;
+  why: string | null;
 };
 
 /** The broadcasts a supporter was sent, newest first. */
 export async function broadcastsToSupporter(supporterId: number): Promise<SupporterBroadcastRow[]> {
   return query<SupporterBroadcastRow>(
     `SELECT c.id::int AS "copyId", m.id::int AS "messageId", m.title, m.channel, c.status, c.skip_reason AS "skipReason",
-       c.sent_at AS "sentAt", ${STOPPED_BY} AS "stoppedBy", ${WAS_READ} AS read, ${BOUNCED} AS bounced, ${OPTED_OUT} AS "optedOut", ${REPLIED} AS replied,
-       ${TO_LOOK_AT} AS "toLookAt"
+       c.sent_at AS "sentAt", ${COPY_STATE} AS state, ${COPY_WHY} AS why
      FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
      WHERE c.supporter_id = $1 ORDER BY c.sent_at DESC NULLS FIRST, c.id DESC`,
     [supporterId],

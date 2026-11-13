@@ -396,12 +396,15 @@ async function keep(copy: Copy, result: ChannelResult, run: BroadcastRun, went: 
   }
 }
 
-/** A copy failed, with an event saying so. */
-async function fail(id: number): Promise<void> {
+/**
+ * A copy failed, with an event saying so and why: what its provider said,
+ * or that its send never finished.
+ */
+async function fail(id: number, why: { reason?: string } | { unfinished: true }): Promise<void> {
   await query(
     `WITH copy AS (UPDATE broadcast_messages SET status = 'failed', sending_since = NULL WHERE id = $1 RETURNING id)
-     INSERT INTO broadcast_message_events (message_id, kind) SELECT id, 'failed' FROM copy`,
-    [id],
+     INSERT INTO broadcast_message_events (message_id, kind, details) SELECT id, 'failed', $2 FROM copy`,
+    [id, JSON.stringify(why)],
   );
 }
 
@@ -419,7 +422,7 @@ async function failLeftSending(run: BroadcastRun): Promise<void> {
      WHERE status = 'sending' AND sending_since < now() - make_interval(mins => $1) ORDER BY id`,
     [STOPPED_MINUTES],
   );
-  for (const { id } of left) await fail(id);
+  for (const { id } of left) await fail(id, { unfinished: true });
   run.failed += left.length;
 }
 
@@ -470,7 +473,7 @@ async function keepSent({ id: copyId, address }: Copy, result: ChannelResult, ru
   } else if (result.reason === "held") {
     await holdCopy(copyId);
   } else {
-    await fail(copyId);
+    await fail(copyId, { reason: result.detail });
     run.failed++;
   }
 }

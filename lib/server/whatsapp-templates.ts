@@ -16,12 +16,6 @@ import { problem } from "./problems";
 // A template is found by the name WhatsApp has it by: one sent from here
 // has its own (meta_name); one made in WhatsApp Manager is called that here.
 
-/** WhatsApp's words for a rejection, in plain words, with what to do; a code it doesn't list here is given as it is. */
-export function rejectionWords(reason: string | null): string {
-  const words = staffCopy.notifications.templateRejectedWhy;
-  return (reason && Object.hasOwn(words.reasons, reason) ? words.reasons[reason] : words.other(reason ?? "NONE"))!;
-}
-
 /**
  * Applies a status WhatsApp gives template `name`, and the category it
  * approved it as, if it says. Says whether it changed anything.
@@ -47,9 +41,7 @@ export async function applyTemplateStatus(
     return true;
   }
   if (status === "REJECTED") {
-    return (
-      template.status === "pending" && reviewTemplate(template.id, { approved: false, reason: rejectionWords(reason) })
-    );
+    return template.status === "pending" && reviewTemplate(template.id, { approved: false, reason: reason ?? "NONE" });
   }
   if ((status === "PAUSED" || status === "DISABLED") && template.status === "approved") {
     await query("UPDATE whatsapp_templates SET status = $2, stopped_at = now() WHERE id = $1", [

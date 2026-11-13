@@ -254,13 +254,11 @@ describeWithDatabase("WhatsApp's webhook", () => {
       hook("message_template_status_update", { event, message_template_name: "march_day_1", reason });
     expect(await recordWhatsAppWebhook(decided("REJECTED", "INVALID_FORMAT"))).toBe(1);
     expect(await query("SELECT rejected_reason AS reason FROM whatsapp_templates")).toEqual([
-      { reason: staffCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT },
+      { reason: "INVALID_FORMAT" },
     ]);
     await query("UPDATE whatsapp_templates SET status = 'pending', rejected_at = NULL, rejected_reason = NULL");
     expect(await recordWhatsAppWebhook(decided("REJECTED", undefined))).toBe(1);
-    expect(await query("SELECT rejected_reason AS reason FROM whatsapp_templates")).toEqual([
-      { reason: staffCopy.notifications.templateRejectedWhy.other("NONE") },
-    ]);
+    expect(await query("SELECT rejected_reason AS reason FROM whatsapp_templates")).toEqual([{ reason: "NONE" }]);
     const category = hook("template_category_update", {
       message_template_name: "march_day_1",
       new_category: "UTILITY",

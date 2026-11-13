@@ -32,7 +32,10 @@ function NotReached({ one }: { one: MessageCopy }) {
       : ["scheduled", "sending"].includes(one.status)
         ? copy.notReached.notYet
         : copy.notReached.never(
-            copy.notReached.why[one.status === "skipped" ? one.skipReason! : (one.stoppedBy ?? "cancelled")],
+            // Its broadcast stopped by itself (an error, why it gave up), or by us.
+            copy.notReached.why[
+              one.status === "skipped" ? one.skipReason! : one.state === "error" ? one.why! : "cancelled"
+            ],
           );
   return <Strip tone="amber">{words}</Strip>;
 }
@@ -116,13 +119,10 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
  */
 export default function MessageCopyView({ one, actions }: { one: MessageCopy; actions?: ReplyHandlers }) {
   const name = one.name ?? (one.supporterId ? staffCopy.supporters.noName : copy.erased);
-  const has = (kind: string) => one.events.some((event) => event.kind === kind);
   return (
     <>
       <PageHead
-        tags={
-          <CopyStatus copyOf={{ ...one, read: has("read"), bounced: has("bounced"), optedOut: has("opted-out") }} />
-        }
+        tags={<CopyStatus copyOf={one} />}
         facts={[
           one.supporterId ? <StaffLink href={`/staff/supporters/${one.supporterId}`}>{name}</StaffLink> : name,
           one.place,
