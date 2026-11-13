@@ -23,11 +23,11 @@ const NEEDS_A_LOOK = new Set<Count["tone"]>(["red", "amber", "blue"]);
 
 const total = (counts: Count[]) => counts.reduce((sum, count) => sum + (count.n ?? 0), 0);
 
-/** A count as a tag in its colour, leading to its tab. */
+/** A count as a tag in its colour, a grey count's plain, leading to its tab. */
 function CountTag({ count }: { count: Count }) {
   return (
     <StaffLink href={count.href!} className={styles.link}>
-      <Tag tone={count.tone}>
+      <Tag tone={count.tone === "grey" ? undefined : count.tone}>
         {count.n!.toLocaleString("en-GB")} {count.label}
       </Tag>
     </StaffLink>

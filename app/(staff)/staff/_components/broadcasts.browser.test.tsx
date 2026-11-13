@@ -1097,7 +1097,7 @@ describe("a broadcast's page", () => {
       words: copy.copyStates["unreached:bounced"],
       tone: "amber",
     });
-    // Not sent, as expected: grey.
+    // Not sent, as expected: plain.
     expect(copyStatus({ state: "not-sent", why: "no-permission" })).toEqual({
       words: copy.copyStates["not-sent:no-permission"],
       tone: undefined,
