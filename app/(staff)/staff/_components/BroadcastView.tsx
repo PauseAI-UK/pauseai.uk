@@ -24,7 +24,8 @@ import { ResumeBroadcast } from "./MailingButtons";
 import { MailingStanding, MailingWhen } from "./MailingView";
 import TextBubble from "./TextBubble";
 import Band, { BandFact } from "./ui/Band";
-import Counts, { countsFiltering, type Count } from "./ui/Counts";
+import { countsFiltering, type Count } from "./ui/Counts";
+import { CountGroups } from "./BroadcastCounts";
 import Grid, { Card } from "./ui/Grid";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
@@ -232,6 +233,12 @@ export default function BroadcastView({
   const path = `/staff/broadcasts/${written.id}`;
   const scheduled = written.state === "scheduled";
   const counts = countsFiltering(path, broadcastCounts(summary), tab, staffCopy.mailingPages.showEveryone);
+  // Those that went, then those that didn't, each under its total.
+  const gone = new Set(["error", "unreached", "not-sent"]);
+  const groups = [
+    { key: "went", label: copy.groups.went, counts: counts.filter((count) => !gone.has(count.key)) },
+    { key: "gone", label: copy.groups.gone, counts: counts.filter((count) => gone.has(count.key)) },
+  ];
   return (
     <div className={view.page}>
       <Band
@@ -241,7 +248,7 @@ export default function BroadcastView({
             <Tag tone={scheduled ? "blue" : undefined}>{staffCopy.mailingPages.states[written.state]}</Tag>
           )
         }
-        aside={!scheduled && <Counts counts={counts} />}
+        aside={!scheduled && <CountGroups groups={groups} />}
       >
         {/* The channel's icon is Said yes to's, beside it. */}
         <BandFact label={copy.facts.from} detail={written.fromName}>

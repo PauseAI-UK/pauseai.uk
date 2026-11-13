@@ -268,7 +268,8 @@ describeWithDatabase("WhatsApp's webhook", () => {
     expect(await query("SELECT category FROM whatsapp_templates")).toEqual([{ category: "UTILITY" }]);
   });
 
-  it("emails staff what WhatsApp says of our number, a template's quality or our account", async () => {
+  it("emails staff what WhatsApp says of our number, a template's quality or our account, linking to it in WhatsApp Manager", async () => {
+    vi.stubEnv("WHATSAPP_ACCOUNT_ID", "1234");
     const value = { display_phone_number: "447700900000", event: "DOWNGRADE", current_limit: "TIER_250" };
     expect(await recordWhatsAppWebhook(hook("phone_number_quality_update", value))).toBe(1);
     expect(sent).toEqual([
@@ -277,6 +278,8 @@ describeWithDatabase("WhatsApp's webhook", () => {
         TextBody: expect.stringContaining('"event": "DOWNGRADE"'),
       }),
     ]);
+    expect(sent[0]!.TextBody).toContain("https://business.facebook.com/wa/manage/home/?waba_id=1234");
+    vi.unstubAllEnvs();
   });
 
   it("changes nothing for a field it doesn't read, or a webhook with nothing in it", async () => {

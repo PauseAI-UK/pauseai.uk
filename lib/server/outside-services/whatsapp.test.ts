@@ -7,6 +7,7 @@ import {
   createTemplate,
   deleteTemplate,
   listTemplates,
+  managerLink,
   sendTemplate,
   sendText,
   signedByMeta,
@@ -222,4 +223,9 @@ describe("the webhook's signature", () => {
 
 it("names its error", () => {
   expect(new WhatsAppRequestError("Down").code).toBeNull();
+});
+
+it("links to our account in WhatsApp Manager, or WhatsApp Manager itself without its ID", () => {
+  expect(managerLink("1234")).toBe("https://business.facebook.com/wa/manage/home/?waba_id=1234");
+  expect(managerLink(undefined)).toBe("https://business.facebook.com/wa/manage/home/");
 });

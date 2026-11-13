@@ -16,7 +16,9 @@ import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
 import MessageCopyView from "./MessageCopyView";
 import BroadcastFor, { BroadcastContact, BroadcastWho } from "./BroadcastFor";
 import { ChoosingBroadcastFrame, BroadcastSupporters } from "./BroadcastSupporters";
-import BroadcastView, { CopyStatus, copyStatus } from "./BroadcastView";
+import BroadcastView, { broadcastCounts, CopyStatus, copyStatus } from "./BroadcastView";
+import { CountGroups, NeedsAndFine } from "./BroadcastCounts";
+import { countsOpening } from "./ui/Counts";
 import BroadcastWriter, { templateLine, type BroadcastWriterActions } from "./BroadcastWriter";
 import ChannelWriter from "./ChannelWriter";
 import {
@@ -1148,6 +1150,98 @@ describe("BroadcastFor", () => {
   });
 });
 
+describe("BroadcastCounts", () => {
+  const states = {
+    sent: 3,
+    delivered: 21,
+    read: 25,
+    replied: 3,
+    look: 1,
+    "opted-out": 2,
+    error: 1,
+    unreached: 2,
+    "not-sent": 6,
+  };
+  const counts = (more: Partial<typeof states> = {}) =>
+    countsOpening(
+      "/staff/broadcasts/5",
+      broadcastCounts({ ...exampleBroadcastSummary, channel: "text", states: { ...states, ...more } }),
+    );
+
+  it("gives each group a box, its total then its counts, leaving out any of none", async () => {
+    const all = counts({ delivered: 0 });
+    const { rerender } = await render(
+      <CountGroups
+        groups={[
+          { key: "went", label: "went", counts: all.slice(0, 6) },
+          { key: "gone", label: "didn't go", counts: all.slice(6) },
+        ]}
+      />,
+    );
+    await expect.element(page.getByText("34", { exact: true })).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: `25 ${copy.counts.read}` }))
+      .toHaveAttribute("href", "/staff/broadcasts/5?tab=read");
+    await expect.element(page.getByRole("link", { name: new RegExp(copy.counts.delivered) })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: `6 ${copy.counts["not-sent"]}` })).toBeVisible();
+    // The count the list under it shows is marked.
+    await rerender(
+      <CountGroups
+        groups={[
+          {
+            key: "went",
+            label: "went",
+            counts: all.slice(0, 6).map((one) => ({ ...one, current: one.key === "read" })),
+          },
+        ]}
+      />,
+    );
+    await expect
+      .element(page.getByRole("link", { name: `25 ${copy.counts.read}` }))
+      .toHaveAttribute("aria-current", "true");
+    // A group of none: no line.
+    await rerender(
+      <CountGroups
+        groups={[
+          { key: "gone", label: "didn't go", counts: counts({ error: 0, unreached: 0, "not-sent": 0 }).slice(6) },
+        ]}
+      />,
+    );
+    await expect.element(page.getByText(/didn't go/)).not.toBeInTheDocument();
+  });
+
+  it("shows what needs a look, then unfolds the rest behind how many are fine; all fine when nothing needs one", async () => {
+    const { rerender } = await render(<NeedsAndFine counts={counts()} />);
+    await expect
+      .element(page.getByRole("link", { name: `1 ${copy.counts.look}` }))
+      .toHaveAttribute("href", "/staff/broadcasts/5?tab=look");
+    await expect.element(page.getByRole("link", { name: `2 ${copy.counts.unreached}` })).toBeVisible();
+    const fine = page.getByRole("button", { name: new RegExp(copy.andFine(58)) });
+    await expect.element(page.getByRole("link", { name: `21 ${copy.counts.delivered}` })).not.toBeInTheDocument();
+    await fine.click();
+    await expect.element(fine).toHaveAttribute("aria-expanded", "true");
+    await expect.element(page.getByRole("link", { name: `21 ${copy.counts.delivered}` })).toBeVisible();
+    await fine.click();
+    await expect.element(page.getByRole("link", { name: `21 ${copy.counts.delivered}` })).not.toBeInTheDocument();
+    await rerender(<NeedsAndFine counts={counts({ look: 0, "opted-out": 0, error: 0, unreached: 0 })} />);
+    await expect.element(page.getByRole("button", { name: new RegExp(copy.allFine(58)) })).toBeVisible();
+    // Nothing at all: nothing to show.
+    const none = {
+      sent: 0,
+      delivered: 0,
+      read: 0,
+      replied: 0,
+      "not-sent": 0,
+      look: 0,
+      "opted-out": 0,
+      error: 0,
+      unreached: 0,
+    };
+    await rerender(<NeedsAndFine counts={counts(none)} />);
+    await expect.element(page.getByRole("button")).not.toBeInTheDocument();
+  });
+});
+
 describe("BroadcastsOverview", () => {
   const now = "2026-11-05T12:00:00Z";
 
@@ -1250,14 +1344,57 @@ describe("BroadcastsOverview", () => {
     expect(lineUnder("Waiting").textContent).toBe(`${copy.channels.text} · PauseAI UK · 07700 900000`);
     // With no one it's from yet, its channel alone.
     expect(lineUnder("Held").textContent).toBe(copy.channels.email);
-    // A draft whose words WhatsApp is reviewing says so beside its Draft.
-    await expect.element(page.getByText(copy.waitingTag)).toBeVisible();
+    // Where each stands, as a sentence: a draft whose words WhatsApp is reviewing.
+    await expect.element(page.getByText(copy.standing.waiting)).toBeVisible();
     // And one whose words it rejected, till they're sent again.
-    await expect.element(page.getByText(copy.rejectedTag)).toBeVisible();
-    expect(page.getByText(copy.rejectedTag).all()).toHaveLength(1);
-    await expect.element(page.getByText(staffCopy.mailingPages.states.scheduled).first()).toBeVisible();
+    await expect.element(page.getByText(copy.standing.rejected)).toBeVisible();
+    expect(page.getByText(copy.standing.rejected).all()).toHaveLength(1);
+    await expect.element(page.getByText(copy.standing.scheduled(290)).first()).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.untitled }).first()).toBeVisible();
-    await expect.element(page.getByText(new RegExp(copy.counts.sent)).first()).toBeVisible();
+    // One sent: how many it went to; then what needs a look, the rest folded behind how many are fine.
+    await expect.element(page.getByText(copy.standing.sent(290))).toBeVisible();
+    await expect.element(page.getByRole("link", { name: `4 ${copy.counts.error}` })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: / fine/ }).first()).toBeVisible();
+  });
+
+  it("says where each one that went stands: sent, stopped by us, or stopped by itself and why", async () => {
+    const went = (id: number, title: string, more: Partial<BroadcastSummary>): BroadcastSummary => ({
+      ...exampleBroadcastSummary,
+      id,
+      title,
+      to: 5,
+      sent: 3,
+      ...more,
+    });
+    const stopped = { state: "cancelled" as const };
+    const gaveUp = (waitReason: string) => ({ state: "cancelled" as const, gaveUp: true, waitReason });
+    await render(
+      <BroadcastsOverview
+        groups={mailingGroups<BroadcastSummary>(
+          {
+            drafts: [],
+            comingUp: [],
+            sent: [
+              went(1, "Sent", { state: "sent" }),
+              went(2, "Stopped by us", stopped),
+              went(3, "Out of time", gaveUp("limit")),
+              went(4, "CiviCRM down", gaveUp("civicrm")),
+              went(5, "No pull", gaveUp("pull")),
+              went(6, "Template paused", gaveUp("template")),
+            ],
+          },
+          new Date(now),
+        )}
+        now={now}
+      />,
+    );
+    const words = copy.standing;
+    for (const said of [words.sent(5), words.stopped(3, 5), words.gaveUp.limit!(3, 5), words.gaveUp.template!(3, 5)]) {
+      await expect.element(page.getByText(said)).toBeVisible();
+    }
+    // CiviCRM down, or no fresh pull from it, read the same.
+    expect(page.getByText(words.gaveUp.civicrm!(3, 5)).all()).toHaveLength(2);
+    expect(words.gaveUp.pull!(3, 5)).toBe(words.gaveUp.civicrm!(3, 5));
   });
 
   it("says when there are none", async () => {

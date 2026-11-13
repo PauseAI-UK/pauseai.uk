@@ -14,6 +14,10 @@ import { outsideFetch } from "./outside-fetch";
 export const GRAPH_VERSION = "v23.0";
 const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`;
 
+/** WhatsApp Manager, where staff see our number and account, opened at our account where its ID is set. */
+export const managerLink = (accountId: string | undefined): string =>
+  `https://business.facebook.com/wa/manage/home/${accountId ? `?waba_id=${accountId}` : ""}`;
+
 /** What every call needs: the token, and the WhatsApp account's ID. */
 export type WhatsAppKeys = { token: string; accountId: string };
 

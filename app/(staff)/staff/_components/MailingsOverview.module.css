@@ -80,22 +80,10 @@
   font-size: var(--text-sm);
 }
 
-/* One sending: its bar, and under it what needs a look already, at the column's right. */
+/* One sending: its bar, the column's width. */
 .sending {
   display: grid;
   flex: 1;
-  gap: var(--space-1);
-}
-
-.needs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  justify-content: flex-end;
-}
-
-.need {
-  text-decoration: none;
 }
 
 /* The sending bar, the width of the column, leading to the mailing. */
@@ -115,10 +103,6 @@
     order: -1;
     margin-bottom: calc(-1 * var(--space-1));
     font-size: var(--text-xs);
-  }
-
-  .needs {
-    justify-content: flex-start;
   }
 
   .standing {
