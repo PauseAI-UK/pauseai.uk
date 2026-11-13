@@ -3,6 +3,7 @@
 import type { JSONContent } from "@tiptap/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { templateFooter } from "@/lib/whatsapp-template";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
@@ -286,6 +287,7 @@ function BroadcastPreview({
         <TextBubble
           from={TEXT_SENDER_NAME}
           words={letterFor(body, recipient)}
+          footer={templateFooter(draft.topics)}
           time={londonClock(sendsAt(dueAt ?? earliestRun()))}
         />
       )}

@@ -13,6 +13,7 @@ import {
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { londonClock, londonDate, sendsAt, staffDate } from "@/lib/staff-time";
 import { FIELD_WORDS, waitStopsAt, type BroadcastChannel } from "@/lib/broadcasts";
+import { templateFooter } from "@/lib/whatsapp-template";
 import Strip from "./ui/Strip";
 import { phoneWords } from "@/lib/phone";
 import ChannelIcon from "@/components/ui/ChannelIcon";
@@ -57,7 +58,8 @@ export function BroadcastChannelMark({ channel }: { channel: BroadcastChannel })
 /**
  * How its copies stand, a count for each state (COPY_STATES), in the order
  * it happens: what went and arrived, what was read and replied to, what's
- * to check; then what went wrong. Each is the colour of its recipients'
+ * to check, who opted out because of it; then what didn't go, the expected
+ * first. Each is the colour of its recipients'
  * tags. Every broadcast has every count, so they line up from row to row:
  * an email can't say it was read, so a dash.
  */
@@ -70,9 +72,10 @@ export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
     { key: "replied", n: n("replied"), label: copy.counts.replied, tone: "green" },
     { key: "look", n: n("look"), label: copy.counts.look, tone: "blue" },
     { key: "opted-out", n: n("opted-out"), label: copy.counts["opted-out"], tone: "red" },
+    // Those that didn't go: not sent, as expected, first; then what went wrong.
+    { key: "not-sent", n: n("not-sent"), label: copy.counts["not-sent"], tone: "grey" },
     { key: "error", n: n("error"), label: copy.counts.error, tone: "red" },
     { key: "unreached", n: n("unreached"), label: copy.counts.unreached, tone: "amber" },
-    { key: "not-sent", n: n("not-sent"), label: copy.counts["not-sent"], tone: "grey" },
   ];
 }
 
@@ -184,6 +187,7 @@ function BroadcastWords({ written, parts }: { written: WrittenBroadcast; parts: 
         <TextBubble
           from={written.fromName!}
           words={{ content: written.body.content.filter((block) => block.type !== "onlyFor") }}
+          footer={templateFooter(written.topics)}
           time={londonClock(sendsAt(written.dueAt!))}
         />
       </Card>

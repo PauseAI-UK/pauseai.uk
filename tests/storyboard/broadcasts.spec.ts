@@ -9,7 +9,6 @@ import { BASE, emailFrame, expect, frame, story, test, textFrame } from "./fixtu
 import { newestText, OUR_CHAT, shownText, templateSent } from "./whatsapp-steps";
 import { connectGmail } from "./staff-steps";
 import type { Section } from "./report/frames";
-import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { messageFrom, postWhatsAppWebhook, statusOf, templateStatus } from "../whatsapp-webhooks";
 
 export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
@@ -450,21 +449,17 @@ test("A reply to a text", async ({ page, request, flowDatabase }) => {
   await textFrame(page, OUR_CHAT, shownText(flowDatabase, answer), "The answer, as they get it");
 });
 
-test("Stop, pressed in WhatsApp", async ({ page, request, flowDatabase }) => {
+test("Stop, replied in WhatsApp", async ({ page, request, flowDatabase }) => {
   story(
-    "A supporter presses Stop on a text. WhatsApp's webhook tells the site, which stops every text to their number, and tells PauseAI Global's records too.",
+    "A supporter replies STOP to a text, as its footer says. WhatsApp's webhook tells the site, which stops texts on that text's topic to their number.",
   );
   const sent = await textSent(request, flowDatabase);
-  await postWhatsAppWebhook(
-    request,
-    BASE,
-    messageFrom(sent.number, "wamid.flow-stop", sent.wamid, { button: emailSettingsCopy.stopButton }),
-  );
+  await postWhatsAppWebhook(request, BASE, messageFrom(sent.number, "wamid.flow-stop", sent.wamid, { text: "STOP" }));
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
-  await expect(page.getByText(copy.copyStates["opted-out:whatsapp-button"]!).first()).toBeVisible();
+  await expect(page.getByText(copy.copyStates["opted-out:whatsapp-reply"]!).first()).toBeVisible();
   await frame(page, "Their copy, stopped");
-  story("Their page shows the stop of every text, and that it came from WhatsApp.");
+  story("Their page shows the stop of that topic's texts, and that it came from WhatsApp.");
   const [supporter] = runSql(flowDatabase, `SELECT supporter_id FROM broadcast_messages WHERE id = ${sent.copy}`);
   await page.goto(`${BASE}/staff/supporters/${supporter}`);
   await expect(page.getByText(staffCopy.supporters.detail.permissions.sources.whatsapp).first()).toBeVisible();

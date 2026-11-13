@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db";
 import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailing-doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { templateFooter } from "@/lib/whatsapp-template";
 import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/broadcast-fixtures";
 import { toNotifications } from "@/tests/notifications";
 import { getWrittenMailing, saveDraft } from "./mailing-drafts";
@@ -412,8 +412,8 @@ describeWithDatabase("broadcasts to supporters", () => {
             text: toText(letterFor(EVENT_WORDS, { values: { firstName: "{{first_name}}" }, meets: [] })),
             example: { body_text_named_params: [{ param_name: "first_name", example: "Jane" }] },
           },
-          { type: "FOOTER", text: emailSettingsCopy.textFooter },
-          { type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: emailSettingsCopy.stopButton }] },
+          // Saying a reply of stop stops the text's topic, with no button.
+          { type: "FOOTER", text: templateFooter(["events"]) },
         ],
       });
       expect(await query("SELECT meta_id FROM whatsapp_templates")).toEqual([{ meta_id: "meta-1" }]);

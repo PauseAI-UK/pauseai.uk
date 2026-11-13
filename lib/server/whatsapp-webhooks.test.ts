@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db";
 import { addFollower, addTemplate } from "@/tests/broadcast-fixtures";
@@ -192,15 +191,11 @@ describeWithDatabase("WhatsApp's webhook", () => {
     ]);
   });
 
-  it("takes the Stop button, or a reply saying stop, as a stop of every text", async () => {
+  it("takes a reply saying stop, whatever its case, as a stop of the copy it answers", async () => {
     const id = await sentCopy();
-    const button = { type: "button", button: { text: emailSettingsCopy.stopButton, payload: "Stop" } };
-    expect(await recordWhatsAppWebhook(message({ ...button, context: { id: "wamid.out-1" } }))).toBe(1);
-    expect(await stops()).toEqual(["button", "button", "button"]);
-    expect((await copyOf(id)).events).toEqual([{ kind: "opted-out", details: {} }]);
-    await query("UPDATE opt_outs SET resubscribed_at = now()");
-    expect(await recordWhatsAppWebhook(message({ id: "wamid.in-2", text: { body: " STOP " } }))).toBe(1);
+    expect(await recordWhatsAppWebhook(message({ text: { body: " STOP " }, context: { id: "wamid.out-1" } }))).toBe(1);
     expect(await stops()).toEqual(["reply", "reply", "reply"]);
+    expect((await copyOf(id)).events).toEqual([{ kind: "opted-out", details: {} }]);
     expect(await query("SELECT 1 FROM broadcast_replies")).toEqual([]);
   });
 

@@ -371,10 +371,10 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
         kind,
         JSON.stringify(details),
       ]);
-    // Opted out because of it: pressed Stop.
+    // Opted out because of it: replied stop.
     await query(
       `INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at, message_id)
-       VALUES ('+447700900001', 'events', 'text', 'whatsapp', 'button w1 events', now(), $1)`,
+       VALUES ('+447700900001', 'events', 'text', 'whatsapp', 'reply w1 events', now(), $1)`,
       [copies[0]],
     );
     await event(copies[1], "bounced");
@@ -397,7 +397,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       });
     };
     expect(await states()).toEqual([
-      ["opted-out", "whatsapp-button"],
+      ["opted-out", "whatsapp-reply"],
       ["unreached", "bounced"],
       ["error", "unfinished"],
       ["error", "gmail"],

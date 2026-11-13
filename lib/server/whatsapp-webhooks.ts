@@ -1,5 +1,4 @@
 import "server-only";
-import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { holdCopy } from "./broadcast-sending";
 import { query, transaction } from "./db";
@@ -34,7 +33,7 @@ type Message = {
   timestamp: string;
   type: string;
   text?: { body?: string };
-  /** A template's quick reply button pressed, such as Stop. */
+  /** A button pressed on a template that has one, such as one made in WhatsApp Manager: a reply. */
   button?: { text?: string; payload?: string };
   context?: { id?: string };
 };
@@ -44,7 +43,7 @@ type Preference = { wa_id: string; category?: string; value?: string; timestamp?
 /** A time WhatsApp gives, in seconds since 1970. */
 const timeOf = (seconds: string | number | undefined): Date => new Date(Number(seconds ?? 0) * 1000);
 
-/** The words a person sends to stop every text, as well as the Stop button: compared in lower case, trimmed. */
+/** The words a person sends to stop, as a text's footer says: compared in lower case, trimmed. */
 const STOP_WORDS = ["stop", "unsubscribe"];
 
 /** A copy of a broadcast by WhatsApp's ID for it, with its number. */
@@ -132,11 +131,10 @@ function wordsOf(message: Message): string {
   return message.text?.body ?? message.button?.text ?? staffCopy.broadcastPages.replies.notWords(message.type);
 }
 
-/** Whether a message asks to stop: the Stop button, or a word that says it. */
+/** Whether a message asks to stop: its words say so, whatever their case. */
 function asksToStop(message: Message): boolean {
   const words = wordsOf(message).trim().toLowerCase();
-  if (message.type === "text") return STOP_WORDS.includes(words);
-  return message.type === "button" && words === emailSettingsCopy.stopButton.toLowerCase();
+  return message.type === "text" && STOP_WORDS.includes(words);
 }
 
 /**
@@ -149,7 +147,7 @@ async function applyMessage(message: Message): Promise<boolean> {
   const at = timeOf(message.timestamp);
   const copyId = await copyAnswered(number, message.context?.id);
   if (asksToStop(message)) {
-    return recordWhatsAppStop(number, message.type === "text" ? "reply" : "button", message.id, at, copyId);
+    return recordWhatsAppStop(number, "reply", message.id, at, copyId);
   }
   if (!copyId) {
     const email = staffCopy.notifications.whatsAppMessage;

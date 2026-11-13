@@ -142,8 +142,8 @@ export function sendText(keys: WhatsAppKeys, from: string, to: string, text: str
   return send(keys, from, to, { type: "text", text: { body: text, preview_url: false } });
 }
 
-/** Words to send for approval as a marketing template, with a footer saying how to stop and a Stop button. */
-export type NewTemplate = { name: string; body: string; examples: TemplateParam[]; footer: string; stopButton: string };
+/** Words to send for approval as a marketing template, with a footer saying how to stop. */
+export type NewTemplate = { name: string; body: string; examples: TemplateParam[]; footer: string };
 
 /** Sends new words for approval; gives WhatsApp's ID for the template, and its status and category so far. */
 export async function createTemplate(
@@ -171,7 +171,6 @@ export async function createTemplate(
           }),
         },
         { type: "FOOTER", text: template.footer },
-        { type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: template.stopButton }] },
       ],
     },
   });

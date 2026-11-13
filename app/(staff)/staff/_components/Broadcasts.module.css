@@ -65,16 +65,12 @@
 }
 
 /* The Stop button under a marketing text. */
-.stop {
-  margin-right: var(--space-8);
-  padding: var(--space-2);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  box-shadow: 0 1px 1px var(--shadow);
-  color: var(--chat-our-name);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  text-align: center;
+/* A text's footer: the grey line under its words, saying how to stop. */
+.footer {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
 }
 
 /* Who a text appears from: the account's picture, then its name and number. */

@@ -48,8 +48,7 @@ import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } fr
 import { createTemplate, deleteTemplate, sendTemplate } from "./outside-services/whatsapp";
 import { problem } from "./problems";
 import { metaName, templateParams, textResult } from "./whatsapp-texts";
-import { templateText } from "@/lib/whatsapp-template";
-import { emailSettingsCopy } from "@/lib/content/email-settings";
+import { templateFooter, templateText } from "@/lib/whatsapp-template";
 import { supporterAudience } from "./broadcast-recipients";
 import { notifyStaff, staffLink } from "./notifications";
 import { filterProblems } from "./stored-filters";
@@ -435,10 +434,15 @@ export type TemplateSubmitResult =
 /**
  * Sends a template's words to WhatsApp for approval, as a marketing
  * template in British English, each field a named parameter with an
- * example, a footer saying how to stop and a Stop button; keeps WhatsApp's
+ * example, and a footer saying a reply of stop stops its topics; keeps WhatsApp's
  * ID for it. Says whether WhatsApp took them, reporting it if not.
  */
-async function sendForApproval(template: { id: number; metaName: string; body: MailingDoc }): Promise<boolean> {
+async function sendForApproval(template: {
+  id: number;
+  metaName: string;
+  body: MailingDoc;
+  topics: Topic[];
+}): Promise<boolean> {
   const backend = await textBackend();
   if (!backend) return false;
   try {
@@ -446,8 +450,7 @@ async function sendForApproval(template: { id: number; metaName: string; body: M
       name: template.metaName,
       body: templateText(template.body),
       examples: templateParams(template.body, fakeRecipient(BROADCAST_FIELDS.map(hasField), "text")),
-      footer: emailSettingsCopy.textFooter,
-      stopButton: emailSettingsCopy.stopButton,
+      footer: templateFooter(template.topics),
     });
     await query("UPDATE whatsapp_templates SET meta_id = $2 WHERE id = $1", [template.id, made.id]);
     return true;
@@ -493,10 +496,24 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
     );
     const meta = metaName(name, templateId);
     await query("UPDATE whatsapp_templates SET meta_name = $2 WHERE id = $1", [templateId, meta], db);
-    return { name, body: broadcast.body, templateId, metaName: meta, before: broadcast.template?.id ?? null };
+    return {
+      name,
+      body: broadcast.body,
+      topics: broadcast.topics,
+      templateId,
+      metaName: meta,
+      before: broadcast.template?.id ?? null,
+    };
   });
   if (typeof result === "string") return result;
-  if (!(await sendForApproval({ id: result.templateId, metaName: result.metaName, body: result.body }))) {
+  if (
+    !(await sendForApproval({
+      id: result.templateId,
+      metaName: result.metaName,
+      body: result.body,
+      topics: result.topics,
+    }))
+  ) {
     // As it was before: the words back to change or send again, and the rejected template they were on, if any.
     await query("UPDATE mailings SET template_id = $2, updated_at = now() WHERE id = $1", [id, result.before]);
     await query("DELETE FROM whatsapp_templates WHERE id = $1", [result.templateId]);

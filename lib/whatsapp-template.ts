@@ -1,3 +1,5 @@
+import type { Topic } from "@/lib/contact-permissions";
+import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { toText } from "@/lib/letter-format";
 import { fieldsIn, letterFor, type MailingDoc } from "@/lib/mailing-doc";
 
@@ -15,6 +17,11 @@ export function paramName(field: string): string {
 export function templateText(body: MailingDoc): string {
   const values = Object.fromEntries(fieldsIn(body).map((field) => [field, `{{${paramName(field)}}}`]));
   return toText(letterFor(body, { values, meets: [] }));
+}
+
+/** A template's footer, saying a reply of "stop" stops the topics it goes under: "Reply STOP to stop event texts". */
+export function templateFooter(topics: Topic[]): string {
+  return emailSettingsCopy.textFooter(topics.map((topic) => emailSettingsCopy.textTopics[topic]!));
 }
 
 /** A template's words with its parameters filled in, as WhatsApp shows the text: `{{first_name}}` as `params.first_name`. */

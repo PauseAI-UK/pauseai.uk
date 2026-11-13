@@ -412,8 +412,9 @@ job all leave broadcasts out.
   people get, as its words are the same for everyone. New words go to
   WhatsApp (`createTemplate`) as a marketing template in British English,
   named by its name and ID in WhatsApp's lower case (`meta_name`), each
-  field a named parameter (`{{first_name}}`) with an example, a footer
-  saying how to stop and a Stop button. If WhatsApp doesn't take them, the
+  field a named parameter (`{{first_name}}`) with an example, and a
+  footer naming the text's topics: "Reply STOP to stop event texts"
+  (`templateFooter`). If WhatsApp doesn't take them, the
   draft is as it was, and says so. Withdrawn, they're deleted there too.
   WhatsApp's decision comes by its webhook, and each run of the sending asks
   it too while a template waits or a text is to go, in case a webhook went
@@ -493,7 +494,8 @@ job all leave broadcasts out.
   the Meta app's secret (`lib/server/whatsapp-webhooks.ts`): each text
   delivered, read or failed; a message to us, which answers the text it
   quotes, or else the newest sent to that number, and is kept as a reply,
-  or is a stop if it's the Stop button or says "stop" or "unsubscribe", or,
+  or is a stop of the topics that text went under if it says "stop" or
+  "unsubscribe", in any case, or,
   answering no text, is emailed to the notification inbox; a stop or
   resume in WhatsApp's own setting for marketing messages; what it
   decided of a template, or its category; and anything about our number's

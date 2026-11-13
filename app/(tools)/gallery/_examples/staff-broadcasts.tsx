@@ -25,6 +25,7 @@ import SupporterBroadcasts from "@/app/(staff)/staff/_components/SupporterBroadc
 import TextBubble, { ChatBubble, ChatWall, LinkedText, TextWords } from "@/app/(staff)/staff/_components/TextBubble";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import { mailingGroups } from "@/lib/mailing-groups";
+import { templateFooter } from "@/lib/whatsapp-template";
 import type { Group } from "../_components/types";
 import {
   ChoosingBroadcastFrameExample,
@@ -389,7 +390,7 @@ export const staffBroadcasts: Group = {
               <CopyStatus copyOf={{ state: "read", why: null }} />
               <CopyStatus copyOf={{ state: "replied", why: null }} />
               <CopyStatus copyOf={{ state: "look", why: null }} />
-              <CopyStatus copyOf={{ state: "opted-out", why: "whatsapp-button" }} />
+              <CopyStatus copyOf={{ state: "opted-out", why: "whatsapp-reply" }} />
               <CopyStatus copyOf={{ state: "error", why: "whatsapp" }} />
               <CopyStatus copyOf={{ state: "unreached", why: "bounced" }} />
               <CopyStatus copyOf={{ state: "not-sent", why: "suppressed" }} />
@@ -726,8 +727,15 @@ export const staffBroadcasts: Group = {
       file: "app/(staff)/staff/_components/TextBubble.tsx",
       variants: [
         {
-          label: "A text with its Stop button",
-          render: () => <TextBubble from="PauseAI UK" words={exampleWhatsAppWords} time="07:18" />,
+          label: "A text with its footer",
+          render: () => (
+            <TextBubble
+              from="PauseAI UK"
+              words={exampleWhatsAppWords}
+              footer={templateFooter(["events"])}
+              time="07:18"
+            />
+          ),
         },
       ],
     },

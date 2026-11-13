@@ -49,9 +49,9 @@ function sendWords(send: Send): string {
   return textNote(FIXTURE_NUMBER, { to, template: { name: send.template!.name, params } });
 }
 
-type NewTemplate = { name: string; components: { type: string; text?: string; buttons?: { text: string }[] }[] };
+type NewTemplate = { name: string; components: { type: string; text: string }[] };
 
-/** A template sent for approval, as words: its name, words, footer and button. */
+/** A template sent for approval, as words: its name, words and footer. */
 function templateWords(template: NewTemplate): string {
   const part = (type: string) => template.components.find((component) => component.type === type);
   return [
@@ -60,7 +60,6 @@ function templateWords(template: NewTemplate): string {
     part("BODY")!.text,
     "",
     part("FOOTER")!.text,
-    `[${part("BUTTONS")!.buttons![0].text}]`,
     "",
   ].join("\n");
 }

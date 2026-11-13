@@ -136,9 +136,9 @@ describe("sending", () => {
 });
 
 describe("templates", () => {
-  const NEW = { name: "march_day_1", body: "Hi {{first_name}}", footer: "Press Stop", stopButton: "Stop" };
+  const NEW = { name: "march_day_1", body: "Hi {{first_name}}", footer: "Reply STOP to stop event texts" };
 
-  it("sends words for approval as a marketing template, with examples, a footer and a Stop button", async () => {
+  it("sends words for approval as a marketing template, with examples and a footer saying how to stop", async () => {
     let made: unknown;
     server.use(
       http.post(`${GRAPH}/account/message_templates`, async ({ request }) => {
@@ -162,8 +162,7 @@ describe("templates", () => {
           text: "Hi {{first_name}}",
           example: { body_text_named_params: [{ param_name: "first_name", example: "Jane" }] },
         },
-        { type: "FOOTER", text: "Press Stop" },
-        { type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: "Stop" }] },
+        { type: "FOOTER", text: "Reply STOP to stop event texts" },
       ],
     });
     // Words with no field need no example.

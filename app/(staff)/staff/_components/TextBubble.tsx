@@ -1,11 +1,8 @@
 import { Fragment, type ReactNode } from "react";
 import { FIELD_WORDS } from "@/lib/broadcasts";
 import type { MailingBlock, MailingInline } from "@/lib/mailing-doc";
-import { staffCopy } from "@/lib/content/staff-interface";
 import letter from "./MailingLetter.module.css";
 import styles from "./Broadcasts.module.css";
-
-const copy = staffCopy.broadcastPages;
 
 /** A bubble in a text conversation: theirs at the left in white, ours at the right in green, each with who and when. */
 export function ChatBubble({
@@ -114,18 +111,28 @@ function Blocks({ blocks }: { blocks: MailingBlock[] }) {
 /**
  * A text as a messaging app shows it, a phone's width: the words in a bubble
  * from us, on the left as it is on their phone, formatted as WhatsApp does,
- * with the time, and the Stop button under it.
+ * with its footer, the grey line saying how to stop, and the time.
  */
-export default function TextBubble({ from, words, time }: { from: string; words: TextDoc; time: string }) {
+export default function TextBubble({
+  from,
+  words,
+  footer,
+  time,
+}: {
+  from: string;
+  words: TextDoc;
+  footer: string;
+  time: string;
+}) {
   return (
     <div className={styles.phone}>
       <ChatWall>
         <div className={`${styles.bubble} ${styles.words}`}>
           <span className={`${styles.name} ${styles.ourName}`}>{from}</span>
           <Blocks blocks={words.content} />
+          <span className={styles.footer}>{footer}</span>
           <span className={styles.time}>{time}</span>
         </div>
-        <div className={styles.stop}>{copy.stopButton}</div>
       </ChatWall>
     </div>
   );

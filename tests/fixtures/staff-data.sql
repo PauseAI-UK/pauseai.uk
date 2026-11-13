@@ -1267,8 +1267,8 @@ WHERE audience = 'supporters' AND title = 'Volunteer evening';
 -- his number has PauseAI Global's "Do not SMS", so the flyering text
 -- skipped it;
 -- Grace no longer follows the calendar; Li's number isn't on WhatsApp; and
--- Pat and Robin, whom PauseCon room change reached, stopped our texts in
--- WhatsApp two hours later (below), and Jane answered it. Erin had the summer social
+-- Pat and Robin, whom PauseCon room change reached, replied "stop" two
+-- hours later (below), stopping event texts, and Jane answered it. Erin had the summer social
 -- before she unsubscribed and was erased. Volunteer evening reached two
 -- before it stopped, and never the other two. Scheduled broadcasts have no
 -- copies, as sending finds who they go to. Events this month's first, so
@@ -1421,23 +1421,17 @@ JOIN seed_copies s ON s.mailing_id = m.id AND s.luma_user = r.luma_user
 JOIN broadcast_messages c ON c.id = s.id;
 INSERT INTO broadcast_message_events (message_id, at, kind)
 SELECT message_id, received_at, 'replied' FROM broadcast_replies WHERE NOT automatic;
--- Two hours after PauseCon room change came, Robin pressed its Stop and
--- Pat replied "stop", as recordWhatsAppStop keeps each
--- (lib/server/whatsapp-stops.ts): every topic a text goes under stopped
--- for the number, from WhatsApp, by its kind, and PauseAI Global's "Do
--- not SMS" waiting to go to CiviCRM.
-WITH stopped AS (
-  INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at, message_id)
-  SELECT c.address, t.topic, 'text', 'whatsapp', w.kind || ' seed-text-stop-' || w.kind || ' ' || t.topic,
-    s.due_at + interval '2 hours', c.id
-  FROM (VALUES ('usr-seed-22', 'button'), ('usr-fixture-5', 'reply')) w (luma_user, kind)
-  JOIN seed_copies s ON s.luma_user = w.luma_user JOIN mailings m ON m.id = s.mailing_id JOIN broadcast_messages c ON c.id = s.id
-  CROSS JOIN (VALUES ('newsletter'), ('events'), ('volunteering')) t (topic)
-  WHERE m.title = 'PauseCon room change'
-  RETURNING id, address, list, unsubscribed_at
-)
-INSERT INTO civicrm_updates (opt_out_id, change, phone, occurred_at, source)
-SELECT id, 'do_not_sms', address, unsubscribed_at, 'pauseai.uk:whatsapp' FROM stopped WHERE list = 'volunteering';
+-- Two hours after PauseCon room change came, Robin and Pat replied
+-- "stop", as its footer says, which recordWhatsAppStop keeps
+-- (lib/server/whatsapp-stops.ts): the text's topic, events, stopped for
+-- the number, from WhatsApp. Their other text topics stay open, so
+-- nothing goes to CiviCRM.
+INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at, message_id)
+SELECT c.address, 'events', 'text', 'whatsapp', 'reply seed-text-stop-' || w.luma_user || ' events',
+  s.due_at + interval '2 hours', c.id
+FROM (VALUES ('usr-seed-22'), ('usr-fixture-5')) w (luma_user)
+JOIN seed_copies s ON s.luma_user = w.luma_user JOIN mailings m ON m.id = s.mailing_id JOIN broadcast_messages c ON c.id = s.id
+WHERE m.title = 'PauseCon room change';
 INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, created_at, sent_at, gmail_message_id,
   rfc_message_id)
 SELECT id, '00000000-0000-4000-8000-000000000001', dealt_by,

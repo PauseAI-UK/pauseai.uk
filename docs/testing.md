@@ -148,7 +148,7 @@ through `outsideFetch` like any other outside service.
   of our own (`lib/server/fixtures/whatsapp-outbox.ts`).
   `textFrame(page, from, text, caption)` shows one as the supporter gets it,
   in a plain chat app (`tests/fixtures/text-view.ts`): our picture, name
-  and number, then the text in a bubble with its footer and Stop button.
+  and number, then the text in a bubble with its footer.
   WhatsApp keeps a template's words, so `shownText` in
   `tests/storyboard/whatsapp-steps.ts` reads them from the flow's database
   and fills in the fields from the file.

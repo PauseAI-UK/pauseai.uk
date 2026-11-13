@@ -105,9 +105,10 @@ opt-outs are (`plans/supporters-email.md`, "2. Send our opt-outs back").
 number across PauseAI, so a stop of one topic by text or call, such as
 march-day texts alone, stays ours and sends nothing.
 
-A stop by WhatsApp, whichever way it's given, stops every text to that
-number, of every topic, as WhatsApp's own setting and Stop button are
-for the whole number. Choosing less, such as no more march-day texts
+A reply of "stop" to a text stops the topics it went under, as its
+footer says ("Reply STOP to stop event texts"); WhatsApp's own setting is
+for the whole number, so it, and a text WhatsApp refuses as they'd
+stopped, stop every text. Choosing more finely, such as no more march-day texts
 but still event reminders, is for the preferences page that an email's
 unsubscribe link opens (`plans/supporters-email.md`, "Opt-outs"). There
 a supporter sets what they get by each channel and topic. It's the same
@@ -271,7 +272,7 @@ the first templates useful and expected, such as an event reminder, and
 watch their quality rating, which drops with blocks, reports and
 unread messages
 ([quality](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-quality)).
-An easy Stop button means people stop rather than block us.
+Saying in every text how to stop means people stop rather than block us.
 
 ### Settings
 
@@ -302,6 +303,12 @@ The rest comes from those:
 
 Built: steps 1 to 4, but for the Marketing Messages API. Still to do:
 sending by that API once its terms are signed, and step 5, if at all.
+
+Still to do: a text's footer names the topics it was made for ("Reply
+STOP to stop event texts", `templateFooter`), so an approved template
+picked for a text on other topics would name the wrong ones. The writer
+should offer only templates made for the same topics (the topics of the
+text a template was first sent from), or one made in WhatsApp Manager.
 
 To research: a link button on every text to the person's contact
 preferences page (`/preferences/<token>`), so they can stop one topic
@@ -518,7 +525,7 @@ politicians, and a calling tool.
 3. How does a volunteer who isn't staff record a stop for calls: by
    telling staff, or on a page of the numbers they were given?
 4. Should a resume in WhatsApp's settings undo any stop, or only one
-   made there, leaving a Stop button or a reply in force?
+   made there, leaving a reply in force?
 5. A person with a WhatsApp username can hide their number, and Meta's
    webhooks then give only an ID for them that's particular to us. Do we
    store that ID against the number when we send, so a later stop can be

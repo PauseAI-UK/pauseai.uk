@@ -90,8 +90,7 @@ it("takes templates for approval, writing each to the outbox, deletes them, and 
         name: "march_day_1",
         components: [
           { type: "BODY", text: "Hi {{first_name}}, the march is on Saturday." },
-          { type: "FOOTER", text: "PauseAI UK" },
-          { type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: "Stop" }] },
+          { type: "FOOTER", text: "Reply STOP to stop event texts" },
         ],
       }),
     }),
@@ -102,7 +101,7 @@ it("takes templates for approval, writing each to the outbox, deletes them, and 
     category: "MARKETING",
   });
   expect(written()).toEqual([
-    "WhatsApp template sent for approval: march_day_1\n\nHi {{first_name}}, the march is on Saturday.\n\nPauseAI UK\n[Stop]\n",
+    "WhatsApp template sent for approval: march_day_1\n\nHi {{first_name}}, the march is on Saturday.\n\nReply STOP to stop event texts\n",
   ]);
   expect(await json(whatsAppResponse(at("fixture-account/message_templates"), { method: "DELETE" }))).toEqual({
     success: true,

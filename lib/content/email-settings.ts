@@ -95,10 +95,10 @@ export const emailSettingsCopy = {
     html: (link: string) =>
       `You get this because you said PauseAI UK could email you. <a href="${link}">Unsubscribe or change what we send you</a>.`,
   },
-  // A text's foot, under its words, saying how to stop: WhatsApp takes at most 60 characters.
-  textFooter: "⁂ Press Stop for no more texts from us",
-  // The button on every text that stops them all: WhatsApp takes at most 25 characters.
-  stopButton: "⁂ Stop",
+  // A text's foot, a grey line under its words, saying how to stop the topics it went under (textTopics), as a
+  // reply of "stop" to it does: WhatsApp takes at most 60 characters.
+  textFooter: (topics: string[]) => `Reply STOP to stop ${topics.join(" and ")} texts`,
+  textTopics: { newsletter: "newsletter", events: "event", volunteering: "volunteering" } as Record<string, string>,
   // Asking for a link: the first page.
   start: {
     title: "Contact preferences",

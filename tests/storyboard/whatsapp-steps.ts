@@ -4,10 +4,10 @@
 // fields' words, as WhatsApp is sent them. WhatsApp keeps the template's
 // words, so they're read from the flow's database, as the site has them.
 import { TEXT_SENDER_NAME } from "@/lib/broadcasts";
-import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { readTexts, type OutboxText } from "@/lib/server/fixtures/whatsapp-outbox";
 import type { MailingDoc } from "@/lib/mailing-doc";
-import { filledTemplate, templateText } from "@/lib/whatsapp-template";
+import type { Topic } from "@/lib/contact-permissions";
+import { filledTemplate, templateFooter, templateText } from "@/lib/whatsapp-template";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { OUTBOX_DIR } from "../checkout.mjs";
 import type { TextShown } from "../fixtures/text-view";
@@ -28,16 +28,24 @@ function templateWords(database: string, name: string): string {
   return templateText(JSON.parse(body!) as MailingDoc);
 }
 
-/** A template's footer and Stop button, as every template sent from the site has them. */
-const TEMPLATE_FOOT = { footer: emailSettingsCopy.textFooter, button: emailSettingsCopy.stopButton };
-
-/** What a text shows: its template's words filled in, with the footer and Stop; or words of our own. */
-export function shownText(database: string, text: OutboxText): TextShown {
-  if ("words" in text) return { words: text.words };
-  return { words: filledTemplate(templateWords(database, text.template.name), text.template.params), ...TEMPLATE_FOOT };
+/** A template's footer, by the name WhatsApp has it by: the topics of the text it was made for (templateFooter). */
+function footerOf(database: string, name: string): string {
+  const [topics] = runSql(
+    database,
+    `SELECT array_to_string(array_prepend(m.topic, m.also_topics), ',') FROM mailings m
+     JOIN whatsapp_templates t ON t.id = m.template_id WHERE coalesce(t.meta_name, t.name) = '${name}' ORDER BY m.id LIMIT 1`,
+  );
+  return templateFooter(topics!.split(",") as Topic[]);
 }
 
-/** A template as it went to WhatsApp for approval: its words, each field as {{first_name}}, with the footer and Stop. */
+/** What a text shows: its template's words filled in, with its footer; or words of our own. */
+export function shownText(database: string, text: OutboxText): TextShown {
+  if ("words" in text) return { words: text.words };
+  const { name, params } = text.template;
+  return { words: filledTemplate(templateWords(database, name), params), footer: footerOf(database, name) };
+}
+
+/** A template as it went to WhatsApp for approval: its words, each field as {{first_name}}, with its footer. */
 export function templateSent(database: string, name: string): TextShown {
-  return { words: templateWords(database, name), ...TEMPLATE_FOOT };
+  return { words: templateWords(database, name), footer: footerOf(database, name) };
 }

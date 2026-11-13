@@ -1240,8 +1240,6 @@ All events: ${link}`,
     // Preview.
     chooseTemplate: "Choose a template to see the text here.",
     findRecipient: "Show a fake recipient who…",
-    // Under a text's preview.
-    stopButton: "Stop",
     testTo: "Send a test copy to",
     sendTest: "Send test",
     testVia: {
@@ -1395,7 +1393,6 @@ All events: ${link}`,
       replied: "Replied",
       look: "To check: replied",
       "opted-out": "Opted out",
-      "opted-out:whatsapp-button": "Opted out: pressed Stop",
       "opted-out:whatsapp-reply": "Opted out: replied “stop”",
       "opted-out:postmark-complaint": "Opted out: marked as spam",
       "opted-out:link": "Opted out: unsubscribe link",
