@@ -166,10 +166,12 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
   }
   if (hostname === "api.lu.ma" && pathname === "/event/get") {
     // Any event as its page on luma.com loads it, as far as the site reads
-    // it: how many are going, and the guests Luma features, with no photo a
-    // fixture build would fetch: one with Luma's default, which next/image
-    // can't show, one with none, and one with no name.
+    // it: when it starts and ends, an evening in London, how many are going,
+    // and the guests Luma features, with no photo a fixture build would
+    // fetch: one with Luma's default, which next/image can't show, one with
+    // none, and one with no name.
     return json({
+      event: { start_at: "2026-11-20T18:00:00.000Z", end_at: "2026-11-20T21:00:00.000Z", timezone: "Europe/London" },
       guest_count: 1234,
       featured_guests: [
         { name: "Jane Fixture", avatar_url: "https://cdn.lu.ma/avatars-default/avatar_1.png" },

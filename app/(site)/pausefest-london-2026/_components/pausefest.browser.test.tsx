@@ -58,25 +58,28 @@ describe("Programme", () => {
     await expect.element(signMaking).toHaveAttribute("target", "_blank");
   });
 
-  it("shows who's going to an event Luma could say about, and nothing for one it couldn't or whose guests aren't shown", async () => {
-    const going = { count: 3, guests: [] };
+  it("gives each event Luma's times and who's going, and its own times where Luma can't say", async () => {
     await render(
       <Programme
         days={pausefest.days}
-        going={{
-          "evt-1HKCXSHaJqGO3Bg": { count: 1113, guests: [{ name: "Jane Smith", avatar: null }] },
-          "evt-uvhJhYEEPh6UM9Z": going,
-          "evt-EZYMdCaJRsMDDoy": null,
-          // The conference's, which it has no ID for.
-          undefined: going,
+        live={{
+          "evt-1HKCXSHaJqGO3Bg": {
+            time: "1–4pm",
+            going: { count: 1113, guests: [{ name: "Jane Smith", avatar: null }] },
+          },
+          "evt-uvhJhYEEPh6UM9Z": { time: "3–9pm", going: { count: 3, guests: [] } },
+          "evt-EZYMdCaJRsMDDoy": { time: null, going: null },
         }}
       />,
     );
     const band = (title: string) => page.getByRole("listitem").filter({ hasText: title });
+    await expect.element(band("March Against AI Extinction").getByText(/1–4pm/)).toBeVisible();
     await expect.element(band("March Against AI Extinction").getByText(/1,113 going/)).toBeVisible();
+    await expect.element(band("Sign-making").getByText(/3–9pm ·/)).toBeVisible();
     await expect.element(band("Sign-making").getByText(/3 going/)).toBeVisible();
-    expect(band("Conference in Parliament").getByText(/going/).elements()).toHaveLength(0);
+    await expect.element(band("Flyering for the next march").getByText(/12–4pm ·/)).toBeVisible();
     expect(band("Flyering for the next march").getByText(/going/).elements()).toHaveLength(0);
+    await expect.element(band("Conference in Parliament").getByText(/9.30am–1.30pm/)).toBeVisible();
   });
 
   it("links a row to a page of ours in the same tab", async () => {
