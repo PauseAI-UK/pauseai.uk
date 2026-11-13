@@ -1173,7 +1173,8 @@ describe("BroadcastCounts", () => {
     const { rerender } = await render(
       <CountGroups
         groups={[
-          { key: "went", label: "went", counts: all.slice(0, 6) },
+          // With a count that doesn't apply, as an email's read: none to add.
+          { key: "went", label: "went", counts: [...all.slice(0, 6), { key: "none", n: null, label: "none" }] },
           { key: "gone", label: "didn't go", counts: all.slice(6) },
         ]}
       />,
@@ -1184,21 +1185,6 @@ describe("BroadcastCounts", () => {
       .toHaveAttribute("href", "/staff/broadcasts/5?tab=read");
     await expect.element(page.getByRole("link", { name: new RegExp(copy.counts.delivered) })).not.toBeInTheDocument();
     await expect.element(page.getByRole("link", { name: `6 ${copy.counts["not-sent"]}` })).toBeVisible();
-    // The count the list under it shows is marked.
-    await rerender(
-      <CountGroups
-        groups={[
-          {
-            key: "went",
-            label: "went",
-            counts: all.slice(0, 6).map((one) => ({ ...one, current: one.key === "read" })),
-          },
-        ]}
-      />,
-    );
-    await expect
-      .element(page.getByRole("link", { name: `25 ${copy.counts.read}` }))
-      .toHaveAttribute("aria-current", "true");
     // A group of none: no line.
     await rerender(
       <CountGroups

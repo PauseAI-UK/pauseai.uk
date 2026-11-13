@@ -23,15 +23,10 @@ const NEEDS_A_LOOK = new Set<Count["tone"]>(["red", "amber", "blue"]);
 
 const total = (counts: Count[]) => counts.reduce((sum, count) => sum + (count.n ?? 0), 0);
 
-/** A count as a tag in its colour, leading to its tab; marked as the one the list under it shows. */
+/** A count as a tag in its colour, leading to its tab. */
 function CountTag({ count }: { count: Count }) {
   return (
-    <StaffLink
-      href={count.href!}
-      className={styles.link}
-      aria-current={count.current ? "true" : undefined}
-      title={count.title}
-    >
+    <StaffLink href={count.href!} className={styles.link}>
       <Tag tone={count.tone}>
         {count.n!.toLocaleString("en-GB")} {count.label}
       </Tag>
