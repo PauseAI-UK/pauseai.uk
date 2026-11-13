@@ -2742,7 +2742,7 @@ All events: ${link}`,
     intro: {
       before: "⁂ Imports everyone in the UK chapter in Global's ",
       link: "CiviCRM",
-      after: ": their details, which UK lists they're on, and their do-not flags and holds.",
+      after: ", with their details, which UK lists they're on, and their do-not flags and holds.",
     },
     importNow: "Import contacts now",
     never: "Not imported yet.",
