@@ -14,10 +14,11 @@ export default function PrivacyPolicy() {
         office 128 City Road, London EC1V 2NX.
       </p>
       <p>
-        ⁂ We are the data controller for everything below, except analytics and your PauseAI membership, which{" "}
-        <strong>Stichting PauseAI</strong> (the global PauseAI foundation, based in the Netherlands) controls under{" "}
+        ⁂ We decide how your data is used (we&apos;re its &ldquo;data controller&rdquo;), even where a provider below
+        stores or sends it for us. Your PauseAI membership, if you joined on pauseai.info, is{" "}
+        <strong>Stichting PauseAI</strong>&apos;s, under{" "}
         <a className="inline-link" href="https://pauseai.info/privacy" target="_blank" rel="noreferrer">
-          its privacy policy
+          their privacy policy
         </a>
         . Questions:{" "}
         <a className="inline-link" href="mailto:hello@pauseai.uk">
@@ -43,9 +44,9 @@ export default function PrivacyPolicy() {
 
       <h2>Website analytics</h2>
       <p>
-        This site uses <strong>Google Analytics</strong>, run by Stichting PauseAI. It sets cookies that collect the
-        pages you visit, your approximate location, and your device and browser type (legal basis: legitimate interest).
-        You can opt out at any time using the &ldquo;Cookie settings&rdquo; link in the footer.
+        ⁂ This site uses <strong>Google Analytics</strong>. It sets cookies that collect the pages you visit, your
+        approximate location, and your device and browser type (legal basis: legitimate interest). You can opt out at
+        any time using the &ldquo;Cookie settings&rdquo; link in the footer.
       </p>
 
       <h2>Email your MP</h2>
