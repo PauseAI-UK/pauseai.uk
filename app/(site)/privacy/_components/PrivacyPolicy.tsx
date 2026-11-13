@@ -44,7 +44,7 @@ export default function PrivacyPolicy() {
 
       <h2>Website analytics</h2>
       <p>
-        ⁂ This site uses <strong>Google Analytics</strong>. It sets cookies that collect the pages you visit, your
+        This site uses <strong>Google Analytics</strong>. It sets cookies that collect the pages you visit, your
         approximate location, and your device and browser type (legal basis: legitimate interest). You can opt out at
         any time using the &ldquo;Cookie settings&rdquo; link in the footer.
       </p>
