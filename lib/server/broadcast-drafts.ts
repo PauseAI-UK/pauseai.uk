@@ -17,6 +17,7 @@ import {
   choiceTerms,
   isAvailableSendBy,
   rejectionWords,
+  restsUntil,
   termsValues,
   BROADCAST_SENDER,
   TEXT_SENDER_NAME,
@@ -95,13 +96,14 @@ export type WrittenBroadcast = WrittenMailing & {
   /** What sends it, for an email (lib/broadcasts.ts, BROADCAST_SEND_BY). */
   sendBy: BroadcastSendBy;
   /**
-   * Since when it's waited for CiviCRM, and why; or that it stopped, as it
-   * hadn't all gone in time, and why: it waited too long, or a day's limit
-   * of emails left it too slow ("limit").
+   * Since when it's waited for CiviCRM, and why; or that it stopped by
+   * itself, and why (StopReason in broadcast-sending.ts).
    */
   waitingSince: Date | null;
-  waitReason: "civicrm" | "pull" | "limit" | "template" | null;
+  waitReason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing" | null;
   gaveUp: boolean;
+  /** Till when it rests, as its sends failed or what sends it couldn't for now (REST_MINUTES); null if it isn't. */
+  restingUntil: Date | null;
 };
 
 const SELECT_TEMPLATES = `
@@ -129,21 +131,24 @@ const topicColumns = (terms: BroadcastTerms): [Topic, Topic[]] => [terms.topics[
 export async function getWrittenBroadcast(id: number, opening = false): Promise<WrittenBroadcast | undefined> {
   const written = await (opening ? openWrittenMailing : getWrittenMailing)(id, "supporters");
   if (!written) return undefined;
-  const [{ templateId, ...own }] = await query<
+  const [{ templateId, tryFailedAt, ...own }] = await query<
     Pick<WrittenBroadcast, "title" | "channel" | "topics" | "sendBy" | "waitingSince" | "waitReason" | "gaveUp"> & {
       templateId: number | null;
+      tryFailedAt: Date | null;
     }
   >(
     `SELECT title, channel, ${TOPICS_OF} AS topics, template_id::int AS "templateId", send_by AS "sendBy",
        waiting_since AS "waitingSince",
-       wait_reason AS "waitReason", gave_up AS "gaveUp"
+       wait_reason AS "waitReason", gave_up AS "gaveUp", try_failed_at AS "tryFailedAt"
      FROM mailings WHERE id = $1`,
     [id],
   );
   const [template] = templateId
     ? await query<WhatsAppTemplate>(`${SELECT_TEMPLATES} WHERE t.id = $1`, [templateId])
     : [];
-  return { ...written, ...own, template: template ?? null };
+  const restsTill = tryFailedAt && restsUntil(tryFailedAt);
+  const restingUntil = written.state === "sending" && restsTill && restsTill > now() ? restsTill : null;
+  return { ...written, ...own, restingUntil, template: template ?? null };
 }
 
 /**
@@ -420,7 +425,7 @@ export async function resumeBroadcast(id: number, by: string): Promise<boolean> 
     );
     await query(
       `UPDATE mailings SET state = $2, gave_up = false, waiting_since = NULL, wait_reason = NULL, due_at = $3,
-         try_failed_at = NULL, updated_at = now()
+         try_failed_at = NULL, failed_in_a_row = 0, updated_at = now()
        WHERE id = $1`,
       [id, stopped.started ? "sending" : "scheduled", now()],
       db,

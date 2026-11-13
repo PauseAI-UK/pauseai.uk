@@ -2164,12 +2164,14 @@ CREATE TABLE public.mailings (
     gave_up boolean DEFAULT false NOT NULL,
     send_by text DEFAULT 'gmail'::text NOT NULL,
     try_failed_at timestamp with time zone,
+    failed_in_a_row integer DEFAULT 0 NOT NULL,
     CONSTRAINT mailings_also_topics CHECK (((cardinality(also_topics) = 0) OR ((topic IS NOT NULL) AND (NOT (topic = ANY (also_topics)))))),
     CONSTRAINT mailings_also_topics_check CHECK ((also_topics <@ ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])),
     CONSTRAINT mailings_audience_check CHECK ((audience = ANY (ARRAY['politicians'::text, 'supporters'::text]))),
     CONSTRAINT mailings_box_or_dates CHECK (((airtable_field IS NULL) OR (airtable_sent_between IS NULL))),
     CONSTRAINT mailings_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'text'::text, 'whatsapp'::text]))),
     CONSTRAINT mailings_created_by_check CHECK ((created_by = lower(created_by))),
+    CONSTRAINT mailings_failed_in_a_row_check CHECK ((failed_in_a_row >= 0)),
     CONSTRAINT mailings_gave_up CHECK (((NOT gave_up) OR ((state = 'cancelled'::text) AND (wait_reason IS NOT NULL)))),
     CONSTRAINT mailings_imported_or_written CHECK ((((airtable_field IS NOT NULL) OR (airtable_sent_between IS NOT NULL)) = ((body IS NULL) AND (filter IS NULL) AND (created_by IS NULL)))),
     CONSTRAINT mailings_imported_sent CHECK (((body IS NOT NULL) OR (state = 'sent'::text))),
@@ -2182,7 +2184,7 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_template_for_texts CHECK (((template_id IS NULL) OR (channel = 'text'::text))),
     CONSTRAINT mailings_topic_check CHECK ((topic = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text]))),
     CONSTRAINT mailings_topic_for_supporters CHECK (((audience = 'supporters'::text) = (topic IS NOT NULL))),
-    CONSTRAINT mailings_wait_reason_check CHECK ((wait_reason = ANY (ARRAY['civicrm'::text, 'pull'::text, 'limit'::text, 'template'::text]))),
+    CONSTRAINT mailings_wait_reason_check CHECK ((wait_reason = ANY (ARRAY['civicrm'::text, 'pull'::text, 'limit'::text, 'template'::text, 'late'::text, 'failing'::text]))),
     CONSTRAINT mailings_waiting CHECK (((waiting_since IS NULL) = (wait_reason IS NULL)))
 );
 

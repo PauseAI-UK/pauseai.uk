@@ -449,6 +449,31 @@ export const staffBroadcasts: Group = {
             </StaffPage>
           ),
         },
+        {
+          label: "Resting after its sends failed; and stopped, as they kept failing",
+          render: () => (
+            <StaffPage as="div">
+              <BroadcastWaiting
+                written={{ ...exampleBroadcastEmail, state: "sending", restingUntil: new Date("2026-11-07T07:43:00Z") }}
+              />
+              <BroadcastWaiting
+                written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason: "failing" }}
+                resume={<ResumeBroadcastExample id={10} />}
+              />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "Stopped, as its seven days ran out while CiviCRM was down",
+          render: () => (
+            <StaffPage as="div">
+              <BroadcastWaiting
+                written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason: "late" }}
+                resume={<ResumeBroadcastExample id={11} />}
+              />
+            </StaffPage>
+          ),
+        },
       ],
     },
     {

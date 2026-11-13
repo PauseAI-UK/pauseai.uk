@@ -119,7 +119,7 @@ const LISTED: Record<string, readonly string[]> = {
   ]),
   "broadcast_replies.outcome": every<NonNullable<BroadcastReply["outcome"]>>()(["opted-out", "nothing", "answered"]),
   "broadcast_answers.status": every<AnswerStatus>()(["sending", "sent"]),
-  "mailings.wait_reason": every<StopReason>()(["civicrm", "pull", "limit", "template"]),
+  "mailings.wait_reason": every<StopReason>()(["civicrm", "pull", "limit", "template", "late", "failing"]),
   "mailings.send_by": every<BroadcastSendBy>()(["gmail", "postmark"]),
   "civicrm_updates.change": every<SubscriptionEvent["change"]>()([
     "unsubscribe",

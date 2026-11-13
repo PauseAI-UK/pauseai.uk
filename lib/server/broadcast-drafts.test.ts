@@ -619,15 +619,17 @@ describeWithDatabase("broadcasts to supporters", () => {
     const gaveUp = () =>
       query(
         `UPDATE mailings SET state = 'cancelled', gave_up = true, waiting_since = now(), wait_reason = 'limit',
-           due_at = '2026-11-01T09:00:00Z', try_failed_at = now() WHERE id = $1`,
+           due_at = '2026-11-01T09:00:00Z', try_failed_at = now(), failed_in_a_row = 5 WHERE id = $1`,
         [id],
       );
     await gaveUp();
     expect(await resumeBroadcast(id, JO)).toBe(true);
     const resumed = (await getWrittenBroadcast(id))!;
     expect(resumed).toMatchObject({ state: "sending", gaveUp: false, waitingSince: null, waitReason: null });
-    // It goes at the next run, not resting after a try that failed before it stopped.
-    expect(await query("SELECT try_failed_at FROM mailings WHERE id = $1", [id])).toEqual([{ try_failed_at: null }]);
+    // It goes at the next run, not resting after a try that failed before it stopped, and its count starts again.
+    expect(await query("SELECT try_failed_at, failed_in_a_row FROM mailings WHERE id = $1", [id])).toEqual([
+      { try_failed_at: null, failed_in_a_row: 0 },
+    ]);
     // From now, so it has its days again.
     expect(resumed.dueAt!.getTime()).toBeGreaterThan(Date.parse("2026-11-01T09:00:00Z"));
     expect(await query("SELECT address, status FROM broadcast_messages ORDER BY address")).toEqual([
@@ -651,6 +653,22 @@ describeWithDatabase("broadcasts to supporters", () => {
     await scheduleBroadcast(id, await readied(id, { templateId: template }), JO);
     await stopBroadcast(id, JO);
     expect((await getWrittenBroadcast(id))!.template).toMatchObject({ id: template });
+  });
+
+  it("says till when one sending rests after its sends failed, and nothing once that's past, or for one not sending", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane");
+    const id = await draftOf(EMAIL_FILTER);
+    await scheduleBroadcast(id, await readied(id, { subject: "Events", body: EVENT_WORDS }), JO);
+    const failedAt = new Date(Date.now() - 5 * 60 * 1000);
+    await query("UPDATE mailings SET try_failed_at = $2 WHERE id = $1", [id, failedAt]);
+    // Scheduled, not sending: it isn't resting.
+    expect((await getWrittenBroadcast(id))!.restingUntil).toBeNull();
+    await startSending(id);
+    expect((await getWrittenBroadcast(id))!.restingUntil).toEqual(new Date(failedAt.getTime() + 25 * 60 * 1000));
+    await query("UPDATE mailings SET try_failed_at = now() - interval '1 hour' WHERE id = $1", [id]);
+    expect((await getWrittenBroadcast(id))!.restingUntil).toBeNull();
+    await query("UPDATE mailings SET try_failed_at = NULL WHERE id = $1", [id]);
+    expect((await getWrittenBroadcast(id))!.restingUntil).toBeNull();
   });
 
   it("stops one sending: sends no more, and says so of those not sent", async () => {

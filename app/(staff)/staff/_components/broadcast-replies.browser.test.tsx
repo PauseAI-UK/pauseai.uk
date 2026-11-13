@@ -310,6 +310,20 @@ describe("BroadcastWaiting", () => {
       />,
     );
     await expect.element(page.getByText(copy.gaveUpTemplate)).toBeVisible();
+    // Its seven days ran out while CiviCRM was down; its copies kept failing.
+    for (const [waitReason, words] of [
+      ["late", copy.gaveUpLate],
+      ["failing", copy.gaveUpFailing],
+    ] as const) {
+      await rerender(
+        <BroadcastWaiting written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason }} />,
+      );
+      await expect.element(page.getByText(words)).toBeVisible();
+    }
+    // Resting after its copies failed, till when.
+    const until = new Date("2026-11-11T07:43:00Z");
+    await rerender(<BroadcastWaiting written={{ ...exampleBroadcastEmail, state: "sending", restingUntil: until }} />);
+    await expect.element(page.getByText(copy.resting(staffTime(until)))).toBeVisible();
     const { container } = await render(
       <BroadcastWaiting written={{ ...exampleBroadcastEmail, channel: "text", state: "scheduled", dueAt: due }} />,
     );
