@@ -1,9 +1,9 @@
 "use client";
 
 // PoliticianDetails's example that logs its saves (PoliticianDetails.gallery.tsx).
-import { exampleBlock } from "@/app/(staff)/staff/_components/EmailBlocksTable.examples";
+import { exampleBlock } from "../oversight/EmailBlocksTable.examples";
 import { exampleLetter } from "../letters/LettersTable.examples";
-import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "@/app/(staff)/staff/_components/Notes.examples";
+import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "../notes/Notes.examples";
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import PoliticianDetails from "./PoliticianDetails";
 import { exampleAliases, examplePolitician, examplePoliticianHistory } from "./PoliticianTable.examples";

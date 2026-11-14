@@ -5,6 +5,7 @@ import { now } from "@/lib/now";
 import { logChange } from "@/lib/server/audit.server";
 import { queueOptOut } from "./civicrm-updates.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
+import type { Complained } from "@/lib/email/email.server";
 
 // Each time an address or number opted out of a topic by a way, or out of
 // every bulk email or all email, and when it opted back in, if it has
@@ -59,6 +60,30 @@ export type OptOut = {
 export function normaliseAddress(address: string): string {
   return address.trim().toLowerCase();
 }
+
+/**
+ * A spam complaint, which the sending layer records in `db` as problem `id`
+ * (recordProblem in lib/email/email.server.ts): an opt-out of every bulk
+ * email too, whoever made it, which CiviCRM is told of.
+ */
+export const optOutOnComplaint: Complained = async (problem, id, db) => {
+  const [copy] = await query<{ id: number }>(
+    "SELECT id::int AS id FROM broadcast_messages WHERE provider_message_id = $1",
+    [problem.messageId],
+    db,
+  );
+  await recordOptOut(
+    {
+      address: problem.address,
+      list: "bulk",
+      source: "postmark-complaint",
+      sourceRef: String(id),
+      unsubscribedAt: now(),
+      messageId: copy?.id,
+    },
+    db,
+  );
+};
 
 /**
  * Records an opt-out, and queues it for CiviCRM if it takes it. Returns

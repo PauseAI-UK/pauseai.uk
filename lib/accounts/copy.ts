@@ -87,7 +87,7 @@ export const accountsCopy = {
     lastAdmin: "The last administrator can't be removed or lose permissions to administrate.",
   },
   // What went wrong without stopping the work (lib/server/problems.server.ts). No job reaches these: each is kept as an
-  // error (lib/server/errors-seen.server.ts), on the errors page and emailed to staff.
+  // error (lib/oversight/errors-seen.server.ts), on the errors page and emailed to staff.
   problems: {
     // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission.
     tokenNotRevoked: (account: string) => `${account}'s Gmail token couldn't be revoked at Google`,

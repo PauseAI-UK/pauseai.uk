@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { type DownloadColumn } from "@/lib/staff-list";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { supportersCopy } from "@/lib/supporters/copy";
-import { blockColumns } from "./EmailBlocksTable";
-import { exampleBlock, exampleComplaint, exampleGmailBlock } from "./EmailBlocksTable.examples";
+import { blockColumns } from "./oversight/EmailBlocksTable";
+import { exampleBlock, exampleComplaint, exampleGmailBlock } from "./oversight/EmailBlocksTable.examples";
 
 describe("each list's download values and contact cards", () => {
   const values = <Row,>(columns: DownloadColumn<Row>[], row: Row) =>

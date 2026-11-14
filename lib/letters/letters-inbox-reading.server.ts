@@ -2,8 +2,8 @@ import "server-only";
 import { gzipSync } from "node:zlib";
 import type { GmailRead, NotUnderstoodReason } from "@/lib/import-runs";
 import { query } from "@/lib/server/db.server";
-import { handleDeliveryProblem } from "@/lib/server/delivery-problems.server";
-import { sentBy } from "@/lib/server/email.server";
+import type { DeliveryProblem } from "@/lib/email/email.server";
+import { sentBy } from "@/lib/email/email.server";
 import { readBounce } from "@/lib/email-parsing/bounces";
 import { letterEvent } from "./lifecycle.server";
 import { isLettersInboxAddress, proxyTag } from "./letters-inbox.server";
@@ -418,6 +418,9 @@ async function isOurs(account: string, message: GmailMessageHeaders): Promise<bo
   return !!row;
 }
 
+/** What's done with a bounce of an email we sent: it's recorded, and its email's purpose does what it does. */
+type HandleProblem = (problem: DeliveryProblem) => Promise<void>;
+
 /**
  * Records that an email we sent bounced, if the bounce says the address it
  * went to failed: anyone can write to the inbox as mailer-daemon, and a
@@ -430,7 +433,7 @@ async function bounce(
   raw: Buffer,
   message: GmailMessageHeaders,
   subject: string,
-  request: Request | undefined,
+  handleProblem: HandleProblem,
 ) {
   const { addresses, messageId } = readBounce(raw.toString("latin1"));
   const [sent] = await query<{ messageId: string; address: string }>(
@@ -441,18 +444,15 @@ async function bounce(
   const failures = addresses.filter((failed) => failed.address === sent?.address);
   if (!sent || (addresses.length && !failures.length)) return undefined;
   for (const failed of failures) {
-    await handleDeliveryProblem(
-      {
-        address: failed.address,
-        messageId: sent.messageId,
-        kind: failed.delayed ? "soft" : "hard",
-        reason: failed.reason || failed.status || subject,
-        canReset: true,
-        details: { ...(failed.status && { status: failed.status }), account },
-        gmailMessageId: message.id,
-      },
-      request,
-    );
+    await handleProblem({
+      address: failed.address,
+      messageId: sent.messageId,
+      kind: failed.delayed ? "soft" : "hard",
+      reason: failed.reason || failed.status || subject,
+      canReset: true,
+      details: { ...(failed.status && { status: failed.status }), account },
+      gmailMessageId: message.id,
+    });
   }
   return failures.length;
 }
@@ -467,7 +467,7 @@ async function readMessage(
   labels: Labels,
   id: string,
   read: LettersInboxRead,
-  request: Request | undefined,
+  handleProblem: HandleProblem,
 ): Promise<void> {
   const message = await gmailMessageHeaders(token, id, HEADERS).catch(unlessGone);
   if (!message) return;
@@ -493,7 +493,7 @@ async function readMessage(
   }
   const raw = await gmailRawMessage(token, id);
   if (/^(mailer-daemon|postmaster)@/.test(from.address)) {
-    const bounces = await bounce(account, raw, message, subject, request);
+    const bounces = await bounce(account, raw, message, subject, handleProblem);
     if (bounces === undefined) return notUnderstood("bounce");
     read.bounces += bounces;
     return file(token, labels, id, "noted");
@@ -537,18 +537,18 @@ async function readMessage(
 
 /**
  * Reads the letters inbox's messages `ids`, in order, into `read`, the
- * account's line of the run. `request` is the job's call, for links in
- * alerts.
+ * account's line of the run. A bounce of what we sent goes to
+ * `handleProblem`, which records it and does what its email's purpose does.
  */
 export async function readLettersInbox(
   account: string,
   token: string,
   ids: string[],
   read: GmailRead,
-  request: Request | undefined,
+  handleProblem: HandleProblem,
 ): Promise<GmailRead> {
   const tally: LettersInboxRead = { ...read, relayed: 0, spam: 0, uncertain: 0, notUnderstood: [] };
   const labels = new Labels(token);
-  for (const id of ids) await readMessage(account, token, labels, id, tally, request);
+  for (const id of ids) await readMessage(account, token, labels, id, tally, handleProblem);
   return tally;
 }

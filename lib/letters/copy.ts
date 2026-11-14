@@ -348,7 +348,7 @@ export const lettersCopy = {
   },
   // What went wrong without stopping the work (lib/server/problems.server.ts). Each can happen in a job or not:
   // in a job, staff see it on the job's page and in the email; not in one, it's kept as an error
-  // (lib/server/errors-seen.server.ts), on the errors page and emailed to staff.
+  // (lib/oversight/errors-seen.server.ts), on the errors page and emailed to staff.
   problems: {
     // Something went wrong sending a queued letter. It's back in the queue, and the writer is told it's on its way.
     letterNotSent: (id: number) => `Letter ${id} couldn't be sent, so it's gone back in the queue`,
@@ -357,7 +357,7 @@ export const lettersCopy = {
     letterCopyOf: (id: number) => `The supporter's copy of letter ${id}`,
     relayOf: (id: number) => `Relay ${id}`,
   },
-  // The emails to staff (lib/server/notifications.server.ts).
+  // The emails to staff (lib/email/notifications.server.ts).
   notifications: {
     // Once a day at most: the supporters' copies that bounced since the last, so their MP's replies can't be
     // passed on; how many replies are held; each address's domain and what its server said.

@@ -2,171 +2,16 @@
 
 // The staff screens' examples whose Server Actions are props: client
 // components with no props, each action logged rather than sent.
-import ChangesFilters from "@/app/(staff)/staff/_components/ChangesFilters";
-import { changesSearch } from "@/lib/staff-search";
-import type { EmailBlock } from "@/lib/server/email.server";
-import EmailBlocksTable from "@/app/(staff)/staff/_components/EmailBlocksTable";
 import FilterBar from "@/app/(staff)/staff/_components/ui/FilterBar";
 import Menu, { menuItemsClass } from "@/app/(staff)/staff/_components/ui/Menu";
 import MenuSubmit from "@/app/(staff)/staff/_components/ui/MenuSubmit";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import { savedFiltersProps } from "@/app/(staff)/staff/_components/ui/SavedFilters";
-import {
-  exampleBlock,
-  exampleComplaint,
-  exampleGmailBlock,
-} from "@/app/(staff)/staff/_components/EmailBlocksTable.examples";
-import ErrorSeenView from "@/app/(staff)/staff/_components/ErrorSeenView";
-import { exampleErrorDone, exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
-import UnblockForm, { UnblockBubble } from "@/app/(staff)/staff/_components/UnblockForm";
-import NoteChanges from "@/app/(staff)/staff/_components/NoteChanges";
-import NotesCard from "@/app/(staff)/staff/_components/NotesCard";
-import Notes, { NoteEntry, NoteText } from "@/app/(staff)/staff/_components/Notes";
-import {
-  exampleNoteAdmin,
-  exampleNotes,
-  exampleNotesAt,
-  exampleNoteWriter,
-} from "@/app/(staff)/staff/_components/Notes.examples";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { DeleteTwice } from "@/app/(staff)/staff/_components/DeleteTwice";
 import Notice from "@/app/(staff)/staff/_components/ui/Notice";
 import { Logged } from "../_components/wiring";
-
-/** Blocked addresses, a bounce and a complaint unless told otherwise, their unblocking logged. */
-export function EmailBlocksTableExample({
-  blocks = [exampleBlock, exampleGmailBlock, exampleComplaint],
-  letterLinks = true,
-}: {
-  blocks?: EmailBlock[];
-  letterLinks?: boolean;
-}) {
-  return (
-    <Logged>{(log) => <EmailBlocksTable blocks={blocks} unblock={log("unblock")} letterLinks={letterLinks} />}</Logged>
-  );
-}
-
-/** The unblock form for a bounce, logged, and what shows for a complaint instead. */
-export function UnblockFormExample() {
-  return (
-    <Logged>
-      {(log) => (
-        <>
-          <UnblockForm block={exampleBlock} action={log("unblock")} />
-          <UnblockForm block={exampleComplaint} action={log("unblock")} />
-        </>
-      )}
-    </Logged>
-  );
-}
-
-/**
- * A row's button that opens the bubble asking why, its form logged, and what
- * shows for a complaint instead. Its address is its own, as the bubble's ID
- * is made from it, and the table's example is on the same page.
- */
-export function UnblockBubbleExample() {
-  return (
-    <Logged>
-      {(log) => (
-        <>
-          <UnblockBubble block={{ address: "bounced@parliament.example", canReset: true }} action={log("unblock")} />
-          <UnblockBubble block={exampleComplaint} action={log("unblock")} />
-        </>
-      )}
-    </Logged>
-  );
-}
-
-/**
- * A supporter's notes, their forms logged, as Jo sees them, who can change
- * her newest; as an admin, who can delete any; or with none yet.
- */
-export function NotesExample({ as = "writer" }: { as?: "writer" | "admin" | "empty" }) {
-  return (
-    <Logged>
-      {(log) => (
-        <Notes
-          supporterId={1}
-          notes={as === "empty" ? [] : exampleNotes}
-          reader={as === "admin" ? exampleNoteAdmin : exampleNoteWriter}
-          at={exampleNotesAt}
-          add={log("add")}
-          edit={log("edit")}
-          remove={log("delete")}
-        />
-      )}
-    </Logged>
-  );
-}
-
-/** One note as a history shows it, labelled and without its time: Jo's, which she can change, or Sam's, edited, which she can't. */
-export function NoteEntryExample({ own = true }: { own?: boolean }) {
-  return (
-    <Logged>
-      {(log) => (
-        <NoteEntry
-          note={exampleNotes[own ? 0 : 1]}
-          reader={exampleNoteWriter}
-          at={exampleNotesAt}
-          edit={log("edit")}
-          remove={log("delete")}
-          label="Note"
-          dated={false}
-        />
-      )}
-    </Logged>
-  );
-}
-
-/** A note's buttons, logged: Edit, which opens Save, Cancel and Delete, for its writer; Delete alone for an admin. */
-export function NoteChangesExample({ editable = true }: { editable?: boolean }) {
-  return (
-    <Logged>
-      {(log) => (
-        <NoteChanges
-          note={exampleNotes[0]}
-          editable={editable}
-          text={<NoteText body={exampleNotes[0].body} />}
-          meta="jo@pauseai.uk"
-          edit={log("edit")}
-          remove={log("delete")}
-        />
-      )}
-    </Logged>
-  );
-}
-
-/** A politician's history card, its Write a note logged: two lines, or none; or without Write a note. */
-export function NotesCardExample({ lines = true, writable = true }: { lines?: boolean; writable?: boolean }) {
-  return (
-    <Logged>
-      {(log) => (
-        <NotesCard
-          target={{ name: "politicianId", value: 7 }}
-          writer={exampleNoteWriter.email}
-          add={writable ? log("add") : undefined}
-        >
-          {(lines ? ["Met them at the fair", "Asked for the one-pager"] : []).map((note) => (
-            <li key={note}>{note}</li>
-          ))}
-        </NotesCard>
-      )}
-    </Logged>
-  );
-}
-
-/** A note's text, its addresses links, and its lines kept. */
-export function NoteTextExample() {
-  return <NoteText body={exampleNotes[0].body + "\n" + exampleNotes[1].body} />;
-}
-
-/** An error's page, its button logged: the examples' errors by their place in the list, or the one marked done. */
-export function ErrorSeenViewExample({ which }: { which: 0 | 1 | 2 | "done" }) {
-  const error = which === "done" ? exampleErrorDone : exampleErrorsSeen[which];
-  return <Logged>{(log) => <ErrorSeenView error={error} setDone={log("setDone")} />}</Logged>;
-}
 
 /** A note, open, that its × closes, and opens again. */
 export function NoticeExample() {
@@ -233,23 +78,6 @@ const SAVED_STATES = {
   edited: { values: { party: "Green", saved: "1" }, loaded: { edited: true, gone: [] } },
   gone: { values: { party: "Labour", saved: "1" }, loaded: { edited: false, gone: ["party=Reform Group"] } },
 };
-
-/** The audit log's filters: several of who chosen, one of what left out, and how recent. */
-export function ChangesFiltersExample() {
-  return (
-    <Logged>
-      {(log) => (
-        <StaffPage as="div">
-          <ChangesFilters
-            search={changesSearch({ actor: ["jo@pauseai.uk", "sync"], action: "!add note", when: "30" })}
-            choices={{ actors: ["jo@pauseai.uk", "sync"], actions: ["add note", "edit event"] }}
-            actions={{ save: log("save"), update: log("update"), rename: log("rename"), remove: log("remove") }}
-          />
-        </StaffPage>
-      )}
-    </Logged>
-  );
-}
 
 /** A filter bar with saved filters, in one of its states. */
 export function SavedFilterExample({ state }: { state: keyof typeof SAVED_STATES }) {

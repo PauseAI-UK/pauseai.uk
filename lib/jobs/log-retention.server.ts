@@ -2,7 +2,7 @@ import "server-only";
 import { IMPORT_JOBS, type JobSchedule, jobSchedule, type TidyingResult } from "@/lib/import-runs";
 import { ADDRESS_ACTIONS } from "@/lib/audit-events";
 import { auditActions } from "@/lib/server/audit.server";
-import { tidyErrorsSeen } from "@/lib/server/errors-seen.server";
+import { tidyErrorsSeen } from "@/lib/oversight/errors-seen.server";
 import { asRun } from "@/lib/server/import-runs.server";
 import { deleteForgottenDrafts } from "@/lib/mailings/drafts.server";
 import { query } from "@/lib/server/db.server";

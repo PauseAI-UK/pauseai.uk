@@ -333,7 +333,7 @@ export const broadcastsCopy = {
   },
   // What went wrong without stopping the work (lib/server/problems.server.ts). Each can happen in a job or not:
   // in a job, staff see it on the job's page and in the email; not in one, it's kept as an error
-  // (lib/server/errors-seen.server.ts), on the errors page and emailed to staff. whatsAppWebhookNotRecorded
+  // (lib/oversight/errors-seen.server.ts), on the errors page and emailed to staff. whatsAppWebhookNotRecorded
   // is in no job.
   problems: {
     // Sending a broadcast: CiviCRM didn't answer its check of the addresses, so it waits (staff are told by email).
@@ -352,7 +352,7 @@ export const broadcastsCopy = {
     // WhatsApp gets an error, so it sends the webhook again.
     whatsAppWebhookNotRecorded: "A WhatsApp webhook couldn't be recorded",
   },
-  // The emails to staff (lib/server/notifications.server.ts).
+  // The emails to staff (lib/email/notifications.server.ts).
   notifications: {
     // A broadcast that can't go, as CiviCRM didn't answer its check or no pull has completed for a day, to whoever
     // scheduled it and the inbox, once: it goes by itself when it can, or stops at `stops`.

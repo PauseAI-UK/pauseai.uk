@@ -31,7 +31,7 @@ const EXCEPTIONS = new Map([
   ["lib/server/fixtures/whatsapp-outbox.ts  readTexts", "an outbox that isn't there yet has no texts in it"],
   // Asking Next to wait for work after the response throws outside a request: the work is already going.
   [
-    "lib/server/errors-seen.server.ts  heldOpen",
+    "lib/oversight/errors-seen.server.ts  heldOpen",
     "outside a request there's nothing to hold open, and the work goes on",
   ],
   // Gmail's history of a mailbox expires: the read searches instead, and its run says it restarted.
@@ -40,7 +40,7 @@ const EXCEPTIONS = new Map([
     "history gone is an answer: the read searches, and says so",
   ],
   // Postmark refusing a suppressed address is kept as that address blocked, which staff see.
-  ["lib/server/email.server.ts  sendWith", "a suppressed address is recorded as blocked, its own report"],
+  ["lib/email/email.server.ts  sendWith", "a suppressed address is recorded as blocked, its own report"],
   // A file that isn't UTF-8 is read as Windows-1252, as spreadsheets save it: the catch is the question.
   ["lib/supporters/signup-csv.ts  signupFileText", "a file that isn't UTF-8 is an answer: it's read as Windows-1252"],
   // What's typed as a link that the URL parser refuses is no link: the catch is the question.

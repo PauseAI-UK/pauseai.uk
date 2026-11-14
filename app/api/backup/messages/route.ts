@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isBackupRequest } from "@/lib/jobs/cron.server";
-import { keptMessage, keptMessageKeys } from "@/lib/server/kept-messages.server";
+import { keptMessage, keptMessageKeys } from "@/lib/email/kept-messages.server";
 
 /**
  * For the backup's container (backup/container/messages.ts): every kept

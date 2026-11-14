@@ -157,7 +157,7 @@ export const staffCopy = {
     notifications: "PauseAI UK notifications",
     policy: "PauseAI UK policy",
   },
-  // The emails to the notification inbox (lib/server/notifications.server.ts) that
+  // The emails to the notification inbox (lib/email/notifications.server.ts) that
   // aren't above (alert, lettersInbox.alert): each a subject, and a body with
   // a link to where a person can deal with it.
   notifications: {
@@ -242,7 +242,7 @@ export const staffCopy = {
       links: { letter: "Has a letter", campaign: "Has a campaign", mailing: "Has a mailing" },
     },
   },
-  // What went wrong on the site outside a job's run (lib/server/errors-seen.server.ts): the admins' list at
+  // What went wrong on the site outside a job's run (lib/oversight/errors-seen.server.ts): the admins' list at
   // /staff/errors, one error's page, and the emails to the notification inbox.
   errorsSeen: {
     // Under the list's heading.
@@ -339,7 +339,7 @@ export const staffCopy = {
       unreadable: "Messages that Gmail has but refused to give us:",
     },
     // Can happen in a job or not. In a job, staff see it on the job's page and in the email. Not in a job, such
-    // as a visitor sending a letter, it's kept as an error (lib/server/errors-seen.server.ts): on the errors page, and
+    // as a visitor sending a letter, it's kept as an error (lib/oversight/errors-seen.server.ts): on the errors page, and
     // emailed to staff.
     anywhere: {
       // An email didn't go, as Gmail or Postmark errored.
@@ -359,7 +359,7 @@ export const staffCopy = {
       charsetUnknown: (charset: string) =>
         `An email's charset isn't one we know, so its text may be garbled: ${charset}`,
     },
-    // No job reaches these: each is kept as an error (lib/server/errors-seen.server.ts), on the errors page and
+    // No job reaches these: each is kept as an error (lib/oversight/errors-seen.server.ts), on the errors page and
     // emailed to staff, but for connectionDropped and errorNotKept, which only reach Netlify's logs. Each
     // says what the person saw, if anything.
     logs: {
@@ -398,30 +398,6 @@ export const staffCopy = {
       // An error, or a problem above, that couldn't be kept or emailed about, as the database or the email failed.
       errorNotKept: "An error couldn't be kept or emailed about",
     },
-  },
-  // The notes on a supporter's or a politician's page, and the form to add one.
-  notes: {
-    title: "Notes",
-    none: "No notes yet.",
-    // After who wrote it and when, once it's been edited.
-    edited: "edited",
-    // The field's name, for a screen reader.
-    note: "Note",
-    // Under a note's buttons, when the server wouldn't change it: its day is up.
-    tooLate: {
-      edit: "Notes can only be edited for 24 hours.",
-      delete: "Notes can only be deleted for 24 hours.",
-    },
-    // The button that opens the field to write one, and the one that closes it unsent.
-    write: "Write a note",
-    cancel: "Cancel",
-    add: "Add note",
-    edit: "Edit",
-    save: "Save",
-    delete: "Delete",
-    // Under the field on a supporter's page: what a note about them should be.
-    guidance:
-      "Only write notes you'd be happy for them to read (as they can via GDPR). Avoid writing about health, beliefs or private life.",
   },
   changes: {
     // Over the list, for an admin without the supporters permission.

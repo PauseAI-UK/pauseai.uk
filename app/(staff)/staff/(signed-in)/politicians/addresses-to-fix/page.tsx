@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { listBlocks, recentProblems } from "@/lib/server/email.server";
+import { listBlocks, recentProblems } from "@/lib/email/email.server";
 import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 import { emailsSearch } from "@/lib/staff-search";
 import { clearedTo, filtersPath } from "@/lib/list-params";
-import { unblockAddress } from "../../../actions";
-import EmailBlockFilters from "../../../_components/EmailBlockFilters";
-import EmailBlocksTable from "../../../_components/EmailBlocksTable";
-import EmailProblemsTable from "../../../_components/EmailProblemsTable";
+import { unblockAddress } from "../../../_components/oversight/actions";
+import EmailBlockFilters from "../../../_components/email/EmailBlockFilters";
+import EmailBlocksTable from "../../../_components/oversight/EmailBlocksTable";
+import EmailProblemsTable from "../../../_components/oversight/EmailProblemsTable";
 import Page from "../../../_components/ui/Page";
 import PageHead from "../../../_components/ui/PageHead";
 import { politiciansCopy } from "../../../_components/politicians/copy";

@@ -2,7 +2,8 @@ import "server-only";
 import { query } from "@/lib/server/db.server";
 import { reportSupporterBounces, tellOfficesOfHeldReplies } from "./held-replies.server";
 import { cannotSend, noticeToSender, RESEND_DAYS, sendCopy, sendLetter } from "./sending.server";
-import { notifyStaff, reportMailingBounces, staffLink } from "@/lib/server/notifications.server";
+import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
+import { reportMailingBounces } from "./mailing-bounces.server";
 import { resendAfterFix, sendRelay, uncertainRelays } from "./relays.server";
 import { lettersCopy } from "./copy";
 

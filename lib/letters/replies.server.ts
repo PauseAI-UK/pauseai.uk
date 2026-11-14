@@ -2,7 +2,7 @@ import "server-only";
 import { gzipSync } from "node:zlib";
 import { decodeWords, fromAddress, messageIds } from "@/lib/email-parsing/mime.server";
 import { query, transaction } from "@/lib/server/db.server";
-import { sentBy } from "@/lib/server/email.server";
+import { sentBy } from "@/lib/email/email.server";
 import { messageContent } from "./threads.server";
 import type { ReplyHandling } from "./records.server";
 import { deleteLetterReply, saveLetterReply } from "@/lib/server/outside-services/blobs.server";

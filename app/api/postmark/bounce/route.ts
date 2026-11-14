@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
-import { handleDeliveryProblem } from "@/lib/server/delivery-problems.server";
-import {
-  deliveryProblem,
-  isPostmark,
-  recordAutoResponder,
-  recordDelivery,
-} from "@/lib/server/postmark-webhooks.server";
+import { handleDeliveryProblem } from "@/lib/oversight/delivery-problems.server";
+import { deliveryProblem, isPostmark, recordDelivery } from "@/lib/email/postmark-webhooks.server";
+import { recordAutoResponder } from "@/lib/letters/inbound.server";
 import { readJsonIfAny } from "@/lib/server/json.server";
 import { problem } from "@/lib/server/problems.server";
 import { staffCopy } from "@/lib/content/staff-interface";

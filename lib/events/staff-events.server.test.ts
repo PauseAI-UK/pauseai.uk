@@ -4,7 +4,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query, transaction } from "@/lib/server/db.server";
-import { recordProblem } from "@/lib/server/email.server";
+import { recordProblem } from "@/lib/email/email.server";
 import { EVENTS_PAGE_SIZE } from "./list";
 import { eventsSearch } from "@/lib/staff-search";
 import { assignRuleOwners, eventsPage, ownerEmails, setEventDoc, setEventOwner } from "./staff-events.server";

@@ -66,13 +66,13 @@ const SERVICES = [
     name: "Postmark",
     files: ["postmark.server.ts"],
     host: "api\\.postmarkapp\\.com",
-    why: "and email is sent with send() from lib/server/email-sending.server.ts",
+    why: "and email is sent with send() from lib/accounts/email-sending.server.ts",
   },
   {
     name: "Google's OAuth and Gmail",
     files: ["gmail.server.ts"],
     host: "(?:oauth2|gmail|openidconnect)\\.googleapis\\.com|accounts\\.google\\.com.o.oauth2",
-    why: "and email is sent with send() from lib/server/email-sending.server.ts",
+    why: "and email is sent with send() from lib/accounts/email-sending.server.ts",
   },
   { name: "postcodes.io", files: ["postcodes.server.ts"], host: "api\\.postcodes\\.io" },
   // Stripe's API, not the donate links, which are payment pages on donate.stripe.com.
@@ -91,20 +91,20 @@ const hostRule = ({ name, files, host, why }) => ({
   message: `${name} is called only from ${files.join(" and ")}${why ? `, ${why}` : ""}.`,
 });
 
-// Email goes out only through sendWith() in lib/server/email.server.ts, which skips
+// Email goes out only through sendWith() in lib/email/email.server.ts, which skips
 // blocked addresses and records each send, so a bounce can be traced to
 // what was sent. Only it uses Postmark's binding to send or unblock.
 const POSTMARK_IMPORT = {
   group: ["**/postmark.server"],
   importNames: ["sendEmail", "unsuppress"],
   message:
-    "Send email with send() from lib/server/email-sending.server.ts, which skips blocked addresses and records each send; unblock with unblock() from lib/server/delivery-problems.server.ts.",
+    "Send email with send() from lib/accounts/email-sending.server.ts, which skips blocked addresses and records each send; unblock with unblock() from lib/oversight/delivery-problems.server.ts.",
 };
 const GMAIL_IMPORT = {
   group: ["**/gmail.server"],
   importNames: ["sendGmail"],
   message:
-    "Send email with send() from lib/server/email-sending.server.ts, which skips blocked addresses and records each send.",
+    "Send email with send() from lib/accounts/email-sending.server.ts, which skips blocked addresses and records each send.",
 };
 
 // Packages that make their own requests, which a fixture build can't
@@ -312,16 +312,30 @@ const PAGE_REDIRECT = {
 // may import only those. Their tests and gallery examples may reach across.
 const STAFF_COMPONENTS = "app/(staff)/staff/_components";
 export const FEATURES = {
-  accounts: [],
-  events: ["accounts", "supporters"],
-  supporters: ["accounts", "politicians", "letters"],
-  erasure: ["accounts", "supporters", "letters"],
-  politicians: ["accounts", "letters", "asks"],
+  email: [],
+  accounts: ["email"],
+  notes: ["accounts"],
+  events: ["accounts", "email", "supporters"],
+  supporters: ["accounts", "email", "politicians", "letters"],
+  erasure: ["accounts", "email", "supporters", "letters"],
+  politicians: ["accounts", "email", "notes", "letters", "asks"],
   asks: ["accounts"],
-  mailings: ["accounts", "asks", "politicians", "letters"],
-  letters: ["accounts", "asks"],
-  broadcasts: ["accounts", "supporters", "politicians", "letters", "mailings"],
-  jobs: ["accounts", "asks", "events", "supporters", "politicians", "letters", "mailings", "broadcasts"],
+  mailings: ["accounts", "email", "asks", "politicians", "letters"],
+  letters: ["accounts", "email", "asks"],
+  broadcasts: ["accounts", "email", "supporters", "politicians", "letters", "mailings"],
+  oversight: ["accounts", "email", "supporters", "politicians", "letters", "broadcasts"],
+  jobs: [
+    "accounts",
+    "email",
+    "asks",
+    "events",
+    "supporters",
+    "politicians",
+    "letters",
+    "mailings",
+    "broadcasts",
+    "oversight",
+  ],
 };
 /** Each feature's folder of logic, lib/<feature>, where its server code is, beside lib/server/. */
 export const featureLibFolders = () => Object.keys(FEATURES).map((feature) => `lib/${feature}`);
@@ -462,7 +476,7 @@ const eslintConfig = defineConfig([
     { files: [`${OUTSIDE}/*.ts`], outsideFetch: true },
     ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true })),
     { files: [`${OUTSIDE}/outside-fetch.server.ts`], fetch: true },
-    { files: ["lib/server/email.server.ts"], sendEmail: true },
+    { files: ["lib/email/email.server.ts"], sendEmail: true },
     { files: ["lib/site-url.server.ts"], siteUrl: true },
     { files: ["lib/server/db.server.ts"], database: true },
   ].map(({ files, ...allowed }) => ({ files, ignores: ["**/*.test.{ts,tsx}"], rules: siteCodeRules(allowed) })),

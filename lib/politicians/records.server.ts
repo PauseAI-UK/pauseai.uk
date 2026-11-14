@@ -54,7 +54,7 @@ export type Politician = {
   importantTarget: boolean;
   personalConnection: boolean;
   isTest: boolean;
-  /** Their address bounced or complained, so nothing is sent to it (lib/server/email.server.ts). */
+  /** Their address bounced or complained, so nothing is sent to it (lib/email/email.server.ts). */
   emailBlocked: boolean;
   /** How many emails went to them, and came from them (politician-email-counts.ts). */
   emailsToThem: number;

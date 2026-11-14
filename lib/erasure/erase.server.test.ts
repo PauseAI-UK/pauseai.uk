@@ -7,7 +7,7 @@ import { addTestLetter, addTestMp, connectTestGmail, describeWithDatabase, useTe
 import { deliverToLettersInbox, lettersMailbox, resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { LETTERS_INBOX, stubLettersInboxEnv, testMail, testProxy } from "@/tests/gmail-sends";
 import { readGmail } from "@/lib/jobs/gmail-reading.server";
-import { submitLetter } from "@/lib/server/mp-letters.server";
+import { submitLetter } from "../../app/api/email-your-mp/letters/mp-letters.server";
 import { letterReply, saveLetterReply } from "@/lib/server/outside-services/blobs.server";
 import { eraseSupporter } from "./erase.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";

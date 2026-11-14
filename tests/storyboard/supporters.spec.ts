@@ -23,6 +23,7 @@ import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy"
 import { erasureCopy } from "@/lib/erasure/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { notesCopy } from "@/app/(staff)/staff/_components/notes/copy";
 
 export const section: Section = { name: "Supporters", part: "Staff pages", order: 50 };
 
@@ -326,22 +327,22 @@ test("Notes on a supporter", async ({ page, request, flowDatabase }) => {
   );
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters/${jane}`);
-  const card = page.getByRole("region", { name: staffCopy.notes.title });
+  const card = page.getByRole("region", { name: notesCopy.notes.title });
   const notes = card.getByRole("listitem");
   await expect(notes).toHaveCount(1);
-  await expect(card.getByRole("button", { name: staffCopy.notes.edit })).toHaveCount(0);
-  await expect(card.getByRole("button", { name: staffCopy.notes.delete })).toHaveCount(0);
+  await expect(card.getByRole("button", { name: notesCopy.notes.edit })).toHaveCount(0);
+  await expect(card.getByRole("button", { name: notesCopy.notes.delete })).toHaveCount(0);
   await frame(page, "Jane's page, with a colleague's note");
   story("Staff write a note of their own, with a link in it.");
-  await card.getByRole("button", { name: staffCopy.notes.write }).click();
+  await card.getByRole("button", { name: notesCopy.notes.write }).click();
   await card
-    .getByRole("textbox", { name: staffCopy.notes.note })
+    .getByRole("textbox", { name: notesCopy.notes.note })
     .fill("Met her at the Leeds stall.\nSlides from her talk: https://example.org/slides/leeds");
   await frame(page, "Writing a note");
   story("Added, the note is at the top, and its link can be followed. Its writer can edit or delete it for a day.");
-  await card.getByRole("button", { name: staffCopy.notes.add }).click();
+  await card.getByRole("button", { name: notesCopy.notes.add }).click();
   await expect(notes).toHaveCount(2);
-  await expect(card.getByRole("textbox", { name: staffCopy.notes.note })).toHaveCount(0);
+  await expect(card.getByRole("textbox", { name: notesCopy.notes.note })).toHaveCount(0);
   await expect(notes.first().getByRole("link", { name: "https://example.org/slides/leeds" })).toHaveAttribute(
     "href",
     "https://example.org/slides/leeds",
@@ -349,15 +350,15 @@ test("Notes on a supporter", async ({ page, request, flowDatabase }) => {
   await frame(page, "The new note");
   story("They edit it.");
 
-  await notes.first().getByRole("button", { name: staffCopy.notes.edit }).click();
+  await notes.first().getByRole("button", { name: notesCopy.notes.edit }).click();
   await notes
     .first()
-    .getByRole("textbox", { name: staffCopy.notes.note })
+    .getByRole("textbox", { name: notesCopy.notes.note })
     .fill("Met her at the Leeds stall in October.");
   await frame(page, "Editing the note");
   story("Saved, the note is marked as edited.");
-  await notes.first().getByRole("button", { name: staffCopy.notes.save }).click();
-  await expect(notes.first()).toContainText(`· ${staffCopy.notes.edited}`);
+  await notes.first().getByRole("button", { name: notesCopy.notes.save }).click();
+  await expect(notes.first()).toContainText(`· ${notesCopy.notes.edited}`);
   await expect(notes.first().getByRole("textbox")).toBeHidden();
   await frame(page, "The note, edited");
 
@@ -371,11 +372,11 @@ test("Notes on a supporter", async ({ page, request, flowDatabase }) => {
   await page.reload();
   const oldNote = notes.filter({ hasText: "Asked about the Manchester group." });
   const newNote = notes.filter({ hasText: "Wrong supporter, sorry." });
-  await expect(oldNote.getByRole("button", { name: staffCopy.notes.delete })).toHaveCount(0);
-  await expect(newNote.getByRole("button", { name: staffCopy.notes.delete })).toBeVisible();
+  await expect(oldNote.getByRole("button", { name: notesCopy.notes.delete })).toHaveCount(0);
+  await expect(newNote.getByRole("button", { name: notesCopy.notes.delete })).toBeVisible();
   await frame(page, "An admin, with Delete on today's note only");
   story("Delete asks to be pressed a second time.");
-  await newNote.getByRole("button", { name: staffCopy.notes.delete }).click();
+  await newNote.getByRole("button", { name: notesCopy.notes.delete }).click();
   await frame(page, "Deleting the colleague's note");
   await newNote.getByRole("button", { name: staffVocabulary.deleteItShort }).click();
   await expect(notes).toHaveCount(2);

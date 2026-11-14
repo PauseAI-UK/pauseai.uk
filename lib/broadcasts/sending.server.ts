@@ -28,7 +28,7 @@ import { gmailAccount } from "@/lib/accounts/gmail-accounts.server";
 import { paced, type ChannelMessage, type ChannelResult } from "@/lib/letters/channels.server";
 import { attachmentsOf, emailFor } from "@/lib/mailings/drafts.server";
 import { newMessageId } from "@/lib/server/mime.server";
-import { notifyStaff, staffLink } from "@/lib/server/notifications.server";
+import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { recordOptOut, type OptOut } from "@/lib/supporters/opt-outs.server";
 import {
   checkSuppression,

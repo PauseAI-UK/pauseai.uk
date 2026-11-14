@@ -19,9 +19,13 @@ import { supportersTableGallery } from "@/app/(staff)/staff/_components/supporte
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import type { Group } from "../_components/types";
-import { NotesExample, NoteChangesExample, NoteEntryExample, NotesCardExample, NoteTextExample } from "./staff.client";
+import { notesCardGallery } from "@/app/(staff)/staff/_components/notes/NotesCard.gallery";
+import { noteChangesGallery } from "@/app/(staff)/staff/_components/notes/NoteChanges.gallery";
+import { notesGallery } from "@/app/(staff)/staff/_components/notes/Notes.gallery";
 
 const [optOutForm] = optOutFormGallery;
+
+const [notes, noteEntry, noteText] = notesGallery;
 
 export const staffSupporters: Group = {
   id: "staff-supporters",
@@ -52,89 +56,13 @@ export const staffSupporters: Group = {
     ...eraseFormGallery,
     ...erasedNoticeGallery,
     ...eraseLinkGallery,
-    {
-      name: "Notes",
-      file: "app/(staff)/staff/_components/Notes.tsx",
-      variants: [
-        {
-          label: "A supporter's notes card, as their writer sees them: her newest she can still change",
-          render: () => (
-            <StaffPage as="div">
-              <NotesExample />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "As an admin, who can delete any",
-          render: () => (
-            <StaffPage as="div">
-              <NotesExample as="admin" />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "None yet",
-          render: () => (
-            <StaffPage as="div">
-              <NotesExample as="empty" />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "NoteEntry",
-      file: "app/(staff)/staff/_components/Notes.tsx",
-      variants: [
-        { label: "In a history: her own, which she can change", render: () => <NoteEntryExample /> },
-        { label: "Someone else's, edited", render: () => <NoteEntryExample own={false} /> },
-      ],
-    },
-    {
-      name: "NoteChanges",
-      file: "app/(staff)/staff/_components/NoteChanges.tsx",
-      variants: [
-        { label: "Its writer's: Edit, which opens Save, Cancel and Delete", render: () => <NoteChangesExample /> },
-        { label: "An admin's, on someone else's: Delete alone", render: () => <NoteChangesExample editable={false} /> },
-      ],
-    },
-    {
-      name: "NotesCard",
-      file: "app/(staff)/staff/_components/NotesCard.tsx",
-      variants: [
-        {
-          label: "With Write a note, which drafts one at the top",
-          render: () => (
-            <StaffPage as="div">
-              <NotesCardExample />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "No notes yet",
-          render: () => (
-            <StaffPage as="div">
-              <NotesCardExample lines={false} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Without Write a note",
-          render: () => (
-            <StaffPage as="div">
-              <NotesCardExample writable={false} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    notes,
+    noteEntry,
+    ...noteChangesGallery,
+    ...notesCardGallery,
     optOutForm,
     ...devPreferencesGallery,
-    {
-      name: "NoteText",
-      file: "app/(staff)/staff/_components/Notes.tsx",
-      variants: [{ label: "With addresses, as links, on two lines", render: () => <NoteTextExample /> }],
-    },
+    noteText,
     ...signupUploadFormGallery,
     ...signupUploadHelpGallery,
     ...signupUploadPreviewGallery,

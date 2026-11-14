@@ -4,10 +4,10 @@
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { listWindow, type DashboardWindow } from "./staff-dashboard";
 import { contactState } from "@/lib/supporters/contact-permissions";
-import type { ChangesFilter } from "@/lib/server/audit.server";
-import type { BlocksFilter } from "@/lib/server/email.server";
+import type { ChangesFilter } from "@/lib/oversight/audit-log.server";
+import type { BlocksFilter } from "@/lib/email/email.server";
 import type { PoliticianFilter } from "@/lib/politicians/records.server";
-import type { SentEmailsFilter } from "@/lib/server/sent-emails.server";
+import type { SentEmailsFilter } from "@/lib/oversight/sent-emails.server";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { LETTER_STATES } from "@/lib/letters/copy-states";
 import {

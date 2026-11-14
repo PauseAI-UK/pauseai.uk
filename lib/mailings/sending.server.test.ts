@@ -10,7 +10,7 @@ import {
 } from "@/tests/database";
 import type { MailingDoc } from "./doc";
 import { query } from "@/lib/server/db.server";
-import { recordProblem } from "@/lib/server/email.server";
+import { recordProblem } from "@/lib/email/email.server";
 import type { ChannelMessage, MailingChannel } from "@/lib/letters/channels.server";
 import { uncertainLetters } from "@/lib/letters/sending.server";
 import { createDraft, saveDraft, scheduleMailing } from "./drafts.server";

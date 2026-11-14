@@ -1,6 +1,6 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { gmailMessageLink } from "@/lib/letters/links";
+import { gmailMessageLink } from "@/lib/email/gmail-links";
 import {
   type AnyImportRun,
   type ControlAiImport,

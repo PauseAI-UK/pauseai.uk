@@ -16,7 +16,7 @@ Examples, not a complete list:
   and `lib/server/import-runs.server.ts` compares sentences to decide whether a problem is new. So a rewording looks
   like a new problem.
 - `problem()`'s second argument is sometimes a caught error, sometimes a list we built ourselves.
-- `inactiveAddresses()` in `lib/server/email.server.ts` gets addresses by parsing a Postmark error's message.
+- `inactiveAddresses()` in `lib/email/email.server.ts` gets addresses by parsing a Postmark error's message.
 - `luma-guests.server.ts` does `error as Error` and returns sentences as `reason`.
 - `turnstile.server.ts`, `mp-letters.server.ts` and `/api/email-your-mp/lookup` return finished copy as data.
 - `describeError()` flattens errors to text, which is stored in several columns.

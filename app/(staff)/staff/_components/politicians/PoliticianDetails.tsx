@@ -7,9 +7,9 @@ import type { Ask } from "@/lib/asks/records.server";
 import { AskTitle } from "../asks/AskLine";
 import { PoliticianAsks } from "./AskRow";
 import CampaignName from "../CampaignName";
-import { FieldChanges } from "../AuditDetail";
+import { FieldChanges } from "./FieldChanges";
 import type { FieldChange } from "@/lib/field-changes";
-import type { EmailBlock } from "@/lib/server/email.server";
+import type { EmailBlock } from "@/lib/email/email.server";
 import type { OneOffThreadRow } from "@/lib/letters/one-off-emails.server";
 import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/letters/records.server";
 import type { Politician, PoliticianChange } from "@/lib/politicians/records.server";
@@ -24,9 +24,9 @@ import Strip from "../ui/Strip";
 import Tabs from "../ui/Tabs";
 import Withheld from "../ui/Withheld";
 import { NationShape, Rosette, StatusDot } from "./PoliticianIcons";
-import UnblockForm from "../UnblockForm";
-import NotesCard from "../NotesCard";
-import { NoteEntry, type NotesProps } from "../Notes";
+import UnblockForm from "../email/UnblockForm";
+import NotesCard from "../notes/NotesCard";
+import { NoteEntry, type NotesProps } from "../notes/Notes";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import { statusOf } from "../letters/LetterStatus";
 import { Muted } from "@/components/ui/Text";
@@ -38,6 +38,7 @@ import { bodyOf, officialProfile } from "@/lib/politicians/official-profiles";
 import type { EditResult } from "@/lib/politicians/edits.server";
 import { politiciansCopy } from "./copy";
 import { lettersCopy } from "../letters/copy";
+import { notesCopy } from "../notes/copy";
 
 const copy = politiciansCopy.politician;
 
@@ -407,7 +408,7 @@ export default function PoliticianDetails({
         <>
           {note.body}{" "}
           <Muted>
-            · {copy.history.note} · {note.writtenBy}
+            · {notesCopy.notes.kind} · {note.writtenBy}
           </Muted>
         </>
       ),

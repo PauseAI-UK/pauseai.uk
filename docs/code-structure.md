@@ -142,7 +142,7 @@ the code should go instead. The rules below say which ones are enforced.
     imports aside (`tests/checks/import-cycles.test.ts`). Where a lower
     module needs something of a higher one, move it down, or have the
     higher one pass it in, as `send()` passes `sendWith()` its Gmail
-    access (`lib/server/email-sending.server.ts`).
+    access (`lib/accounts/email-sending.server.ts`).
 - **Redirects are in `next.config.ts`.** A path that only sends people
   elsewhere is an entry in its `redirects()`, never a page that calls
   `redirect()`. On a click within the site, a page that redirects while
@@ -170,7 +170,7 @@ the code should go instead. The rules below say which ones are enforced.
     gone right or something else goes wrong.
   - Outside a run, as in a form or a webhook, the problem is kept as an
     error, as what the server throws is: on the admins' Errors page, and
-    emailed to staff when it's new (`lib/server/errors-seen.server.ts`;
+    emailed to staff when it's new (`lib/oversight/errors-seen.server.ts`;
     `docs/domain-concepts.md`, "Errors"). So a thrown error needs no catch
     to be noticed, and a caught one needs only `problem()`.
   - Nothing in `lib/server`, `app/api` or `netlify/functions` writes an
@@ -271,11 +271,11 @@ the code should go instead. The rules below say which ones are enforced.
 - **Reading email** is all in `lib/email-parsing/`: addresses, MIME and
   headers, subjects and machine replies, bounces, the mail a message
   quotes, and a plain text's links and bold. `lib/server/mime.server.ts` only writes email.
-- **Email** goes out only through `sendWith()` (`lib/server/email.server.ts`),
+- **Email** goes out only through `sendWith()` (`lib/email/email.server.ts`),
   which skips blocked addresses and records each send
   (`docs/domain-concepts.md`). The site's code calls it by `send()`
-  (`lib/server/email-sending.server.ts`); staff's notifications call it directly
-  (`lib/server/notifications.server.ts`), as the Gmail accounts `send()` reaches
+  (`lib/accounts/email-sending.server.ts`); staff's notifications call it directly
+  (`lib/email/notifications.server.ts`), as the Gmail accounts `send()` reaches
   notify staff themselves.
   An ESLint rule lets only that file import `sendEmail` or `unsuppress`
   from Postmark's binding (`lib/server/outside-services/postmark.server.ts`), or
@@ -405,9 +405,9 @@ the code should go instead. The rules below say which ones are enforced.
 
 ## Feature folders
 
-The staff interface is made of features: accounts, events, supporters,
-erasure, politicians, asks, mailings, letters, broadcasts, jobs and
-oversight. Each feature's code is in two folders of its own, so the pieces
+The staff interface is made of features: the sending layer (email),
+accounts, notes, events, supporters, erasure, politicians, asks, mailings,
+letters, broadcasts, oversight and jobs. Each feature's code is in two folders of its own, so the pieces
 of one are found together and what it depends on can be seen and held:
 
 ```
@@ -415,7 +415,11 @@ app/(staff)/staff/_components/
   ui/                 the kit: page frame, tables, filters, menus
   shell/              the staff pages' frame: the sidebar and its icons,
                       and every page's name in it
+  email/              the blocked addresses' parts that need no feature:
+                      a bounce's reason, the filters and the unblock form
   accounts/           logging in, your own page, staff accounts, Gmail
+  notes/              the notes on a supporter's or a politician's page,
+                      and their forms
   events/             the events page: its table, lists and filters, and
                       an event's edit form
   supporters/         the supporters list, its filters and badges, a
@@ -443,6 +447,9 @@ app/(staff)/staff/_components/
                       page, one supporter's copy with its replies and our
                       answers, the text bubbles, and a supporter's
                       broadcasts
+  oversight/          what staff check the site by: the audit log, the
+                      emails sent, the errors seen, and the tables of
+                      blocked addresses and their bounces
   jobs/               the scheduled jobs: the overview of every job, a
                       job's page and its button, and each run's line, box
                       and table
@@ -457,8 +464,17 @@ lib/
                       and copy.ts with the
                       words its server code sends or logs, and those its
                       logic and components share
+  email/              the sending layer: sending, blocked addresses and
+                      what bounced, Postmark's bounce and delivery
+                      webhooks, the notifications to staff and the
+                      addresses they're copied to, and kept messages. It
+                      stands on no feature: each feature that sends stands
+                      on it, and hands it what a bounce of its own emails
+                      does (DeliveryHooks)
   accounts/           staff auth, login and sessions, permissions, staff
-                      accounts, Gmail's connection and tokens
+                      accounts, Gmail's connection and tokens, and send(),
+                      which sends by Postmark or a connected Gmail
+  notes/              the notes on supporters and politicians
   events/             staff events and their list, tags, owners and
                       tagging, the Luma import and webhooks, and the
                       march's and PauseFest's events on Luma
@@ -503,6 +519,11 @@ lib/
                       (whose drafts and pages a broadcast's are built on),
                       letters, and the politicians list's choosing bar,
                       which its own shares; nothing stands on it
+  oversight/          the audit log's page, the emails sent, the errors
+                      seen, and what each feature's emails do about a
+                      bounce or complaint, put together for the webhook
+                      and the Gmail reader. It stands on the features
+                      whose emails and words it shows
   jobs/               the scheduled jobs: what runs each (the registry),
                       the schedule's calls, reading Gmail, sending, the
                       CiviCRM and ControlAI imports, tidying the logs, and

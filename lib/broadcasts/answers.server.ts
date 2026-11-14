@@ -9,7 +9,7 @@ import { broadcastsCopy } from "./copy";
 import { now } from "@/lib/now";
 import { textBackend } from "./channels.server";
 import { query, transaction } from "@/lib/server/db.server";
-import { send } from "@/lib/server/email-sending.server";
+import { send } from "@/lib/accounts/email-sending.server";
 import { sendText } from "@/lib/server/outside-services/whatsapp.server";
 
 // Staff's answers to replies to broadcasts, written on the copy's Thread

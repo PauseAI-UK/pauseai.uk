@@ -64,7 +64,7 @@ export const config = {
   get lettersInbox(): string | undefined {
     return address(process.env.LETTERS_INBOX);
   },
-  /** Where staff are emailed when something needs a person (lib/server/notifications.server.ts). */
+  /** Where staff are emailed when something needs a person (lib/email/notifications.server.ts). */
   get notificationInbox(): string | undefined {
     return address(process.env.NOTIFICATION_INBOX);
   },

@@ -4,7 +4,7 @@ import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { importCivicrm } from "./civicrm-import.server";
-import { unblock } from "@/lib/server/delivery-problems.server";
+import { unblock } from "@/lib/oversight/delivery-problems.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";
 import { jobsCopy } from "./copy";
 

@@ -3,7 +3,7 @@ import { config } from "@/lib/server/config.server";
 import { tagsForEvent, type EventToTag } from "./tags";
 import { londonStart } from "@/lib/staff-time";
 import { query, type Queryable } from "@/lib/server/db.server";
-import { notifyStaff, staffLink } from "@/lib/server/notifications.server";
+import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { applyEventTag, listEventTags } from "@/lib/server/outside-services/luma-calendar.server";
 import { problem } from "@/lib/server/problems.server";
 import { eventsCopy } from "./copy";

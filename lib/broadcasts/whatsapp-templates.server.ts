@@ -3,7 +3,7 @@ import { reviewTemplate } from "./drafts.server";
 import { textBackend } from "./channels.server";
 import { stopTextsOn } from "./sending.server";
 import { query } from "@/lib/server/db.server";
-import { notifyStaff } from "@/lib/server/notifications.server";
+import { notifyStaff } from "@/lib/email/notifications.server";
 import { listTemplates, type MetaTemplate } from "@/lib/server/outside-services/whatsapp.server";
 import { problem } from "@/lib/server/problems.server";
 import { broadcastsCopy } from "./copy";

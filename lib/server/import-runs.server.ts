@@ -2,7 +2,7 @@ import "server-only";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { importPath, type AnyImportRun, type ImportJob, type ImportRunStatus } from "@/lib/import-runs";
 import { query } from "./db.server";
-import { notifyStaff, staffLink } from "./notifications.server";
+import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { describeError } from "./problems.server";
 import { currentRun, inRun } from "./run-store.server";
 

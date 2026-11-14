@@ -19,14 +19,14 @@ import {
   type PoliticianBook,
 } from "./one-off";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { gmailMessageLink } from "./links";
+import { gmailMessageLink } from "@/lib/email/gmail-links";
 import { now } from "@/lib/now";
 import type { Permission } from "@/lib/accounts/permissions";
 import { query, type Queryable } from "@/lib/server/db.server";
 import { messageContent } from "./threads.server";
 import { wholeTextOf } from "@/lib/email-parsing/mime.server";
 import { decodeWords, fromAddress, messageIds, parseMime } from "@/lib/email-parsing/mime.server";
-import { notifyStaff, staffLink } from "@/lib/server/notifications.server";
+import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { deleteLetterReply, saveLetterReply } from "@/lib/server/outside-services/blobs.server";
 import {
   GmailError,

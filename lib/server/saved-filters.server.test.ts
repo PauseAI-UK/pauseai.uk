@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { recentChanges } from "./audit.server";
+import { recentChanges } from "@/lib/oversight/audit-log.server";
 import { query, transaction } from "./db.server";
 import {
   createSavedFilter,

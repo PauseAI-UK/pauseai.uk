@@ -3,10 +3,10 @@ import { createHash, randomBytes } from "node:crypto";
 import { siteUrl } from "@/lib/site-url.server";
 import { LOGIN_BROWSER_COOKIE, LOGIN_LINK_PATH } from "./session";
 import { query, transaction } from "@/lib/server/db.server";
-import { send } from "@/lib/server/email-sending.server";
+import { send } from "./email-sending.server";
 import { notifyDomain } from "@/lib/server/outside-services/postmark.server";
 import { randomId } from "@/lib/server/random-id.server";
-import { staffAddressLine } from "./staff-address.server";
+import { staffAddressLine } from "@/lib/email/staff-address.server";
 import { isStaffEmail } from "./permissions";
 import { accountsCopy } from "./copy";
 

@@ -23,7 +23,7 @@ import {
   politicianNames,
 } from "./records.server";
 import { POLITICIANS_LIST } from "@/lib/staff-lists";
-import { recordProblem } from "@/lib/server/email.server";
+import { recordProblem } from "@/lib/email/email.server";
 import { logChange } from "@/lib/server/audit.server";
 
 const PM = "frontier-ai-letter";

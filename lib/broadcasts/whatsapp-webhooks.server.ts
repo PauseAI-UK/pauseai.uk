@@ -10,7 +10,7 @@ import { holdCopy } from "./sending.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { config } from "@/lib/server/config.server";
 import { newNumberLink } from "@/lib/supporters/email-settings.server";
-import { notifyStaff } from "@/lib/server/notifications.server";
+import { notifyStaff } from "@/lib/email/notifications.server";
 import { managerLink, sendText } from "@/lib/server/outside-services/whatsapp.server";
 import { problem } from "@/lib/server/problems.server";
 import { numberOf, recordWhatsAppResume, recordWhatsAppStop, stoppedTopics } from "./whatsapp-stops.server";

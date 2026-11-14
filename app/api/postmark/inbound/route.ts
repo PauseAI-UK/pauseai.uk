@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { forwardReply, isPostmark } from "@/lib/server/postmark-webhooks.server";
+import { isPostmark } from "@/lib/email/postmark-webhooks.server";
+import { forwardReply } from "@/lib/letters/inbound.server";
 import { problem } from "@/lib/server/problems.server";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { readJsonIfAny } from "@/lib/server/json.server";

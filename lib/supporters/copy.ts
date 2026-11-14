@@ -321,7 +321,7 @@ export const supportersCopy = {
   },
   // What went wrong without stopping the work (lib/server/problems.server.ts).
   problems: {
-    // No job reaches this: it's kept as an error (lib/server/errors-seen.server.ts), on the errors page and emailed to
+    // No job reaches this: it's kept as an error (lib/oversight/errors-seen.server.ts), on the errors page and emailed to
     // staff. Someone turned off events by email, or every bulk email, on the contact preferences page or an email's
     // unsubscribe link, but Luma didn't take them off the calendar, which goes on emailing them.
     lumaRemoveFailed:

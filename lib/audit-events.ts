@@ -1,5 +1,5 @@
 // What the audit log holds: each action, and the details logged with it.
-// logChange (lib/server/audit.server.ts) writes only what AuditDetails says; the
+// logChange (lib/oversight/audit-log.server.ts) writes only what AuditDetails says; the
 // log's pages read StoredAuditDetails, which adds what rows logged earlier
 // may still hold, as the log keeps a politician's history while they're here
 // and everything else for a month (lib/jobs/log-retention.server.ts).
@@ -12,10 +12,10 @@ import type { SavedList } from "./saved-filters";
 import type { DownloadFormat } from "./staff-list";
 import type { Permission } from "@/lib/accounts/permissions";
 import type { Ask } from "@/lib/asks/records.server";
-import type { DeliveryProblem } from "./server/email.server";
+import type { DeliveryProblem } from "@/lib/email/email.server";
 import type { ErasureResult } from "@/lib/erasure/erase.server";
 import type { MailingState } from "@/lib/mailings/drafts.server";
-import type { NoteTarget } from "./server/notes.server";
+import type { NoteTarget } from "@/lib/notes/records.server";
 import type { House } from "@/lib/politicians/records.server";
 
 /** How many a sync added, removed or changed. */

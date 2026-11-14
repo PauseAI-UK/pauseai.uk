@@ -16,7 +16,7 @@ import { runSending } from "./sending.server";
 // inside asRun() (tests/checks/cron-runs.test.ts), which keeps it. A
 // scheduled run comes through /api/cron/<job> (app/api/cron/[job]/route.ts),
 // a staff member's through the job's button (runJobNow in
-// app/(staff)/staff/actions.ts).
+// app/(staff)/staff/_components/oversight/actions.ts).
 
 /**
  * Runs a job. `startedBy` is NIGHTLY or the staff member's email, and

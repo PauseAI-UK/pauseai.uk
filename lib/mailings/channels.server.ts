@@ -1,8 +1,8 @@
 import "server-only";
-import { send } from "@/lib/server/email-sending.server";
+import { send } from "@/lib/accounts/email-sending.server";
 import { GMAIL_DAILY_LIMIT, sentToday } from "@/lib/accounts/gmail-accounts.server";
 import { mailbox, type MailingChannel } from "@/lib/letters/channels.server";
-import { deliveryProblem, type PostmarkProblem } from "@/lib/server/postmark-webhooks.server";
+import { deliveryProblem, type PostmarkProblem } from "@/lib/email/postmark-webhooks.server";
 import { headerName, notifyDomain } from "@/lib/server/outside-services/postmark.server";
 
 // The channels a mailing's messages and a broadcast's go out by, as a
@@ -76,7 +76,7 @@ export const gmailEmail: MailingChannel = {
  * Email by Postmark's broadcast stream, for a broadcast to supporters: from
  * the address it's written from, with no limit of ours on how many a day.
  * Its bounces and complaints come by Postmark's webhooks
- * (postmark-webhooks.server.ts), which go by the copy's own ID, not through report.
+ * (lib/email/postmark-webhooks.server.ts), which go by the copy's own ID, not through report.
  */
 export const postmarkBroadcast: MailingChannel = {
   sendsMailings: true,

@@ -1,12 +1,12 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
 import { importPath, type GmailRead, type GmailReadResult } from "@/lib/import-runs";
-import { gmailMessageLink } from "@/lib/letters/links";
+import { gmailMessageLink } from "@/lib/email/gmail-links";
 import { query } from "@/lib/server/db.server";
-import { handleDeliveryProblem } from "@/lib/server/delivery-problems.server";
+import { handleDeliveryProblem } from "@/lib/oversight/delivery-problems.server";
 import { lettersInbox } from "@/lib/letters/letters-inbox.server";
 import { readLettersInbox } from "@/lib/letters/letters-inbox-reading.server";
-import { notifyStaff, staffLink } from "@/lib/server/notifications.server";
+import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { gmailAccess, gmailReadingState, saveGmailName, saveHistoryId } from "@/lib/accounts/gmail-accounts.server";
 import { asRun, type Ran } from "@/lib/server/import-runs.server";
 import { keepsPoliticianThreads } from "@/lib/letters/one-off";
@@ -200,7 +200,9 @@ async function readAccount(account: string, historyId: string, request: Request 
     read.restarted = true;
   }
   if (letters) {
-    read = await readLettersInbox(account, token, history.messageIds, read, request);
+    read = await readLettersInbox(account, token, history.messageIds, read, (problem) =>
+      handleDeliveryProblem(problem, request),
+    );
   } else {
     const ids = new Set([...history.messageIds, ...(await searchGmail(token, BOUNCE_SEARCH))]);
     for (const id of ids) await readMessage(account, token, id, read, request);

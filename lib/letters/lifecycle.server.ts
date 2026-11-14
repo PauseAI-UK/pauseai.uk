@@ -1,7 +1,7 @@
 import "server-only";
 import type { LetterEvent, LetterStatus } from "./status";
 import { query, type Queryable } from "@/lib/server/db.server";
-import type { Purpose } from "@/lib/server/email.server";
+import type { Purpose } from "@/lib/email/email.server";
 import type { ChannelMessage, ChannelResult, MailingChannel } from "./channels.server";
 import { sql, type Sql } from "@/lib/server/sql.server";
 

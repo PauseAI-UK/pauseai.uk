@@ -1,5 +1,4 @@
 import type { Page } from "@playwright/test";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { connectPolicyMailboxes } from "./gmail-steps";
@@ -14,6 +13,7 @@ import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
+import { notesCopy } from "@/app/(staff)/staff/_components/notes/copy";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
 
@@ -70,7 +70,7 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Polly Placeholder");
   await expect(page.getByText(copy.importantTarget, { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("region", { name: staffCopy.notes.title }).getByText("Met at the example fair."),
+    page.getByRole("region", { name: notesCopy.notes.title }).getByText("Met at the example fair."),
   ).toBeVisible();
   const asks = page.getByRole("region", { name: copy.statusesTitle });
   // ControlAI's campaign statement and her answer to the conference, as staff recorded them.
@@ -161,16 +161,16 @@ test("A note on a politician", async ({ page, request, flowDatabase }) => {
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
-  const notes = page.getByRole("region", { name: staffCopy.notes.title, exact: true });
-  await notes.getByRole("button", { name: staffCopy.notes.write }).click();
-  const box = notes.getByRole("textbox", { name: staffCopy.notes.note });
+  const notes = page.getByRole("region", { name: notesCopy.notes.title, exact: true });
+  await notes.getByRole("button", { name: notesCopy.notes.write }).click();
+  const box = notes.getByRole("textbox", { name: notesCopy.notes.note });
   await box.fill("Her office says write to www.example.org/contact");
   // The card alone, as where focus leaves the window varies between runs.
   await frame(page, "The note, written", { of: notes });
   story(
     "Once added, the note is the newest in the card, and the web address in it is a link. Airtable's notes on her stay last.",
   );
-  await notes.getByRole("button", { name: staffCopy.notes.add }).click();
+  await notes.getByRole("button", { name: notesCopy.notes.add }).click();
   const note = notes.getByRole("listitem").filter({ hasText: "Her office says" });
   await expect(note.getByRole("link", { name: "www.example.org/contact" })).toHaveAttribute(
     "href",

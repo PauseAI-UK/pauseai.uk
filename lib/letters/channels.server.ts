@@ -1,6 +1,6 @@
 import "server-only";
-import type { Purpose } from "@/lib/server/email.server";
-import { send } from "@/lib/server/email-sending.server";
+import type { Purpose } from "@/lib/email/email.server";
+import { send } from "@/lib/accounts/email-sending.server";
 import { sentToday } from "@/lib/accounts/gmail-accounts.server";
 import { headerName, type Attachment } from "@/lib/server/outside-services/postmark.server";
 import { LETTERS_DAILY_LIMIT, lettersInbox } from "./letters-inbox.server";

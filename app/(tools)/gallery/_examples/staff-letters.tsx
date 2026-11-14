@@ -2,15 +2,15 @@
 // page, thread and history, and the blocked addresses, on fake letters.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
-import EmailBlockFilters from "@/app/(staff)/staff/_components/EmailBlockFilters";
-import { exampleProblems } from "@/app/(staff)/staff/_components/EmailBlocksTable.examples";
-import EmailProblemsTable from "@/app/(staff)/staff/_components/EmailProblemsTable";
 import CampaignName from "@/app/(staff)/staff/_components/CampaignName";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import { campaigns } from "@/lib/content/email-your-mp";
-import BounceReason from "@/app/(staff)/staff/_components/BounceReason";
 import type { Group } from "../_components/types";
-import { EmailBlocksTableExample, UnblockBubbleExample, UnblockFormExample } from "./staff.client";
+import { emailProblemsTableGallery } from "@/app/(staff)/staff/_components/oversight/EmailProblemsTable.gallery";
+import { emailBlockFiltersGallery } from "@/app/(staff)/staff/_components/email/EmailBlockFilters.gallery";
+import { unblockFormGallery } from "@/app/(staff)/staff/_components/email/UnblockForm.gallery";
+import { emailBlocksTableGallery } from "@/app/(staff)/staff/_components/oversight/EmailBlocksTable.gallery";
+import { bounceReasonGallery } from "@/app/(staff)/staff/_components/email/BounceReason.gallery";
 import { campaignsOverviewGallery } from "@/app/(staff)/staff/_components/mailings/CampaignsOverview.gallery";
 import { mailEmailGallery } from "@/app/(staff)/staff/_components/mailings/MailEmail.gallery";
 import { campaignLetterGallery } from "@/app/(staff)/staff/_components/mailings/CampaignLetter.gallery";
@@ -32,6 +32,8 @@ import { letterLinkGallery } from "@/app/(staff)/staff/_components/letters/Lette
 
 const [pm] = campaigns;
 
+const [unblockForm, unblockBubble] = unblockFormGallery;
+
 export const staffLetters: Group = {
   id: "staff-letters",
   title: "The staff interface: letters",
@@ -40,136 +42,12 @@ export const staffLetters: Group = {
     ...threadEmailGallery,
     ...letterChangesGallery,
     ...mailFoldGallery,
-    {
-      name: "BounceReason",
-      file: "app/(staff)/staff/_components/BounceReason.tsx",
-      variants: [
-        {
-          label: "Postmark's, a long one found in someone's Gmail, folded to its first sentence, and a hold in CiviCRM",
-          render: () => (
-            <StaffPage as="div">
-              <div>
-                <BounceReason reason="Unknown user" kind="hard" foundInGmail={false} />
-              </div>
-              <div>
-                <BounceReason
-                  reason="550-5.1.1 The email account that you tried to reach does not exist. Please try 550-5.1.1 double-checking the recipient's email address for typos. https://support.google.com/mail/?p=NoSuchUser - gsmtp"
-                  kind="hard"
-                  foundInGmail
-                />
-              </div>
-              <div>
-                <BounceReason reason="CiviCRM has the address on hold" kind="hold" foundInGmail={false} />
-              </div>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EmailBlocksTable",
-      file: "app/(staff)/staff/_components/EmailBlocksTable.tsx",
-      variants: [
-        {
-          label: "An MP's address that bounced, and one that complained",
-          render: () => (
-            <StaffPage as="div">
-              <EmailBlocksTableExample />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Without the supporters permission: the letter named, not linked",
-          render: () => (
-            <StaffPage as="div">
-              <EmailBlocksTableExample letterLinks={false} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "None",
-          render: () => (
-            <StaffPage as="div">
-              <EmailBlocksTableExample blocks={[]} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "UnblockForm",
-      file: "app/(staff)/staff/_components/UnblockForm.tsx",
-      variants: [
-        {
-          label: "For a bounce, and for a complaint, which can't be unblocked",
-          render: () => (
-            <StaffPage as="div">
-              <UnblockFormExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "UnblockBubble",
-      file: "app/(staff)/staff/_components/UnblockForm.tsx",
-      variants: [
-        {
-          label:
-            "In a list's row: a button that opens the bubble asking why; and a complaint, which can't be unblocked",
-          render: () => (
-            <StaffPage as="div">
-              <UnblockBubbleExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EmailBlockFilters",
-      file: "app/(staff)/staff/_components/EmailBlockFilters.tsx",
-      variants: [
-        {
-          label: "All, and complaints to a search",
-          render: () => (
-            <StaffPage as="div">
-              <EmailBlockFilters q="" kind="" action="/staff/politicians/addresses-to-fix" />
-              <EmailBlockFilters q="example.org" kind="complaint" action="/staff/politicians/addresses-to-fix" />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EmailProblemsTable",
-      file: "app/(staff)/staff/_components/EmailProblemsTable.tsx",
-      variants: [
-        {
-          label: "A letter's hard bounce, a forwarded reply's soft one, and a complaint about an email we didn't log",
-          render: () => (
-            <StaffPage as="div">
-              <EmailProblemsTable problems={exampleProblems} letterLinks />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Without the supporters permission: the letter named, not linked",
-          render: () => (
-            <StaffPage as="div">
-              <EmailProblemsTable problems={exampleProblems} letterLinks={false} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "None",
-          render: () => (
-            <StaffPage as="div">
-              <EmailProblemsTable problems={[]} letterLinks />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...bounceReasonGallery,
+    ...emailBlocksTableGallery,
+    unblockForm,
+    unblockBubble,
+    ...emailBlockFiltersGallery,
+    ...emailProblemsTableGallery,
     ...campaignsOverviewGallery,
     ...mailEmailGallery,
     ...campaignLetterGallery,

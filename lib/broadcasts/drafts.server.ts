@@ -55,7 +55,7 @@ import { problem } from "@/lib/server/problems.server";
 import { metaName, templateParams, textResult, textsLeftToday } from "./whatsapp-texts.server";
 import { TEMPLATE_FOOTER, templateText } from "./whatsapp-template";
 import { supporterAudience } from "./recipients.server";
-import { notifyStaff, staffLink } from "@/lib/server/notifications.server";
+import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { filterProblems } from "@/lib/server/stored-filters.server";
 import type { Topic } from "@/lib/supporters/contact-permissions";
 import { broadcastsCopy } from "./copy";

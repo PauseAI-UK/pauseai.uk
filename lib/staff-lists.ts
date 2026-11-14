@@ -355,7 +355,7 @@ export const ACCOUNTS_LIST = defineStaffList({
   },
 });
 
-/** What has gone wrong on the site (lib/server/errors-seen.server.ts). It's the one seen most recently first, with no other sort. */
+/** What has gone wrong on the site (lib/oversight/errors-seen.server.ts). It's the one seen most recently first, with no other sort. */
 export const ERRORS_LIST = defineStaffList({
   path: "/staff/errors",
   needs: "admin",

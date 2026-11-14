@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { listAsks } from "@/lib/asks/records.server";
-import { blockOn } from "@/lib/server/email.server";
+import { blockOn } from "@/lib/email/email.server";
 import { pauseaiLetters, politicianLetters } from "@/lib/letters/records.server";
-import { notesOn } from "@/lib/server/notes.server";
+import { notesOn } from "@/lib/notes/records.server";
 import { getPolitician, politicianHistory } from "@/lib/politicians/records.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { now } from "@/lib/now";
 import { politicianId } from "@/lib/staff-search";
 import { politicianAliases } from "@/lib/politicians/aliases.server";
-import { addNoteNow, deleteNoteNow, editNoteNow, unblockAddress } from "../../../actions";
+import { addNoteNow, deleteNoteNow, editNoteNow } from "../../../_components/notes/actions";
+import { unblockAddress } from "../../../_components/oversight/actions";
 import {
   addAliasNow,
   editPoliticianNow,

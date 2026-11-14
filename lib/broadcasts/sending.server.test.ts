@@ -13,7 +13,7 @@ import { createBroadcastDraft, resumeBroadcast } from "./drafts.server";
 import { sendDueBroadcasts, startDueBroadcasts } from "./sending.server";
 import { hashOf } from "@/lib/supporters/email-settings.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";
-import { recordProblem } from "@/lib/server/email.server";
+import { recordProblem } from "@/lib/email/email.server";
 import { inRun } from "@/lib/server/run-store.server";
 import { broadcastsCopy } from "./copy";
 

@@ -1,13 +1,7 @@
-import SentEmails from "@/app/(staff)/staff/_components/SentEmails";
-import ErrorsSeen from "@/app/(staff)/staff/_components/ErrorsSeen";
-import { exampleErrorDone, exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
 // The staff interface's dashboard, imports, audit log, accounts, login and
 // Gmail, on fake runs and changes.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
-import ChangesTable from "@/app/(staff)/staff/_components/ChangesTable";
-import { exampleChanges } from "@/app/(staff)/staff/_components/ChangesTable.examples";
-import AuditDetail, { FieldChanges } from "@/app/(staff)/staff/_components/AuditDetail";
 import { DotParts, LoggedJson } from "@/app/(staff)/staff/_components/Logged";
 import { keepSignedInGallery } from "@/app/(staff)/staff/_components/accounts/KeepSignedIn.gallery";
 import { myGmailGallery } from "@/app/(staff)/staff/_components/accounts/MyGmail.gallery";
@@ -30,10 +24,14 @@ import {
   exampleSupporterDetails,
 } from "@/app/(staff)/staff/_components/supporters/SupportersTable.examples";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
-import { changesSearch } from "@/lib/staff-search";
 import type { Group } from "../_components/types";
-import { ErrorSeenViewExample, ChangesFiltersExample } from "./staff.client";
-import { exampleSentEmails } from "@/app/(staff)/staff/_components/SentEmails.examples";
+import { changesTableGallery } from "@/app/(staff)/staff/_components/oversight/ChangesTable.gallery";
+import { changesFiltersGallery } from "@/app/(staff)/staff/_components/oversight/ChangesFilters.gallery";
+import { fieldChangesGallery } from "@/app/(staff)/staff/_components/politicians/FieldChanges.gallery";
+import { auditDetailGallery } from "@/app/(staff)/staff/_components/oversight/AuditDetail.gallery";
+import { errorSeenViewGallery } from "@/app/(staff)/staff/_components/oversight/ErrorSeenView.gallery";
+import { errorsSeenGallery } from "@/app/(staff)/staff/_components/oversight/ErrorsSeen.gallery";
+import { sentEmailsGallery } from "@/app/(staff)/staff/_components/oversight/SentEmails.gallery";
 import { importIconGallery } from "@/app/(staff)/staff/_components/jobs/ImportIcon.gallery";
 import { importCardGallery } from "@/app/(staff)/staff/_components/jobs/ImportCard.gallery";
 import { importJobGallery } from "@/app/(staff)/staff/_components/jobs/ImportJob.gallery";
@@ -48,95 +46,9 @@ export const staffAdmin: Group = {
   id: "staff-admin",
   title: "The staff interface: admin and accounts",
   examples: [
-    {
-      name: "SentEmails",
-      file: "app/(staff)/staff/_components/SentEmails.tsx",
-      variants: [
-        {
-          label: "A letter, one bounced, an imported mailing and a sign-in",
-          render: () => (
-            <StaffPage as="div">
-              <SentEmails
-                emails={exampleSentEmails}
-                total={4}
-                pages={1}
-                page={1}
-                pageSize={100}
-                search={{ q: "", purpose: [], outcome: [], backend: [], link: [], sort: "", dir: "", page: "" }}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "ErrorsSeen",
-      file: "app/(staff)/staff/_components/ErrorsSeen.tsx",
-      variants: [
-        {
-          label: "To do: a page's error, a problem, and two from browsers",
-          render: () => (
-            <StaffPage as="div">
-              <ErrorsSeen done={false} errors={exampleErrorsSeen} total={4} pages={1} page={1} pageSize={100} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Nothing has gone wrong",
-          render: () => (
-            <StaffPage as="div">
-              <ErrorsSeen done={false} errors={[]} total={0} pages={1} page={1} pageSize={100} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Done: who marked each, and when",
-          render: () => (
-            <StaffPage as="div">
-              <ErrorsSeen done errors={[exampleErrorDone]} total={1} pages={1} page={1} pageSize={100} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "ErrorSeenView",
-      file: "app/(staff)/staff/_components/ErrorSeenView.tsx",
-      variants: [
-        {
-          label: "A Postgres error in a page, with its stack trace",
-          render: () => (
-            <StaffPage as="div">
-              <ErrorSeenViewExample which={0} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A problem, which has no stack trace",
-          render: () => (
-            <StaffPage as="div">
-              <ErrorSeenViewExample which={1} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A page that fell over in a browser",
-          render: () => (
-            <StaffPage as="div">
-              <ErrorSeenViewExample which={2} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Marked done",
-          render: () => (
-            <StaffPage as="div">
-              <ErrorSeenViewExample which="done" />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...sentEmailsGallery,
+    ...errorsSeenGallery,
+    ...errorSeenViewGallery,
     {
       name: "PermissionTiles",
       file: "app/(staff)/staff/_components/PermissionTiles.tsx",
@@ -321,34 +233,8 @@ export const staffAdmin: Group = {
     ...devLoginGallery,
     ...loginFormGallery,
     ...jobActionsGallery,
-    {
-      name: "AuditDetail",
-      file: "app/(staff)/staff/_components/AuditDetail.tsx",
-      variants: [
-        {
-          label: "An MP's status set, in words, linked to their page and the campaign's",
-          render: () => (
-            <StaffPage as="div">
-              <AuditDetail change={exampleChanges[0]} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "FieldChanges",
-      file: "app/(staff)/staff/_components/AuditDetail.tsx",
-      variants: [
-        {
-          label: "What an edit changed, each field before and after",
-          render: () => (
-            <StaffPage as="div">
-              <FieldChanges changed={{ party: ["Labour", "Independent"], email: [null, "polly@example.org"] }} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...auditDetailGallery,
+    ...fieldChangesGallery,
     {
       name: "DotParts",
       file: "app/(staff)/staff/_components/Logged.tsx",
@@ -377,34 +263,8 @@ export const staffAdmin: Group = {
         },
       ],
     },
-    {
-      name: "ChangesFilters",
-      file: "app/(staff)/staff/_components/ChangesFilters.tsx",
-      variants: [
-        {
-          label: "Several of who chosen, one of what left out, and how recent",
-          render: () => <ChangesFiltersExample />,
-        },
-      ],
-    },
-    {
-      name: "ChangesTable",
-      file: "app/(staff)/staff/_components/ChangesTable.tsx",
-      variants: [
-        {
-          label: "One of each kind of entry, in words, and one of a kind it doesn't know",
-          render: () => (
-            <StaffPage as="div">
-              <ChangesTable
-                search={changesSearch({})}
-                log={{ changes: exampleChanges, total: exampleChanges.length, pages: 1, pageSize: 100 }}
-                page={1}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...changesFiltersGallery,
+    ...changesTableGallery,
     ...resultBoxGallery,
     ...runGallery,
     ...runBoxGallery,

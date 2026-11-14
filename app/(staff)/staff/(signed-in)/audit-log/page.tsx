@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { changeChoices, recentChanges } from "@/lib/server/audit.server";
+import { changeChoices, recentChanges } from "@/lib/oversight/audit-log.server";
 import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 import type { ChangesSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
-import ChangesFilters, { changeWords } from "../../_components/ChangesFilters";
-import ChangesTable from "../../_components/ChangesTable";
+import ChangesFilters, { changeWords } from "../../_components/oversight/ChangesFilters";
+import ChangesTable from "../../_components/oversight/ChangesTable";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
 import { openSavedList } from "../../saved-lists.server";

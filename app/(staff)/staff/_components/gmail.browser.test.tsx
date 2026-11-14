@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import BounceReason, { firstSentence } from "./BounceReason";
+import BounceReason, { firstSentence } from "./email/BounceReason";
 import { DeleteTwice } from "./DeleteTwice";
 
 describe("firstSentence", () => {

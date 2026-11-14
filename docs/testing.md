@@ -127,7 +127,7 @@ through `outsideFetch` like any other outside service.
   `MessageID`, and the Gmail one its IDs. Tests read the request MSW
   received:
   - `recordGmail()` (`tests/gmail-sends.ts`) records what goes by Gmail.
-    `lib/server/mp-letters.server.test.ts` uses it to check a letter's From, To,
+    `app/api/email-your-mp/letters/mp-letters.server.test.ts` uses it to check a letter's From, To,
     text and attachments.
   - `notifications()` (`tests/notifications.ts`) records what Postmark is
     asked to send, for the emails to the notification inbox.
@@ -171,7 +171,7 @@ through `outsideFetch` like any other outside service.
   runs the letter's HTML through doiuse-email
   (`@jsx-email/doiuse-email`, the Can I email tables,
   https://www.caniemail.com) for every Gmail and Outlook app, and fails on
-  anything they don't support. `lib/plain-email-html.test.ts` does the same
+  anything they don't support. `lib/email/plain-email-html.test.ts` does the same
   for the HTML made from a text email. Paying a service to picture the real apps
   (Litmus, Email on Acid) gives pictures that vary run to run, so it isn't
   in CI.

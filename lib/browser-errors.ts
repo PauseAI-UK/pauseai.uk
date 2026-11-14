@@ -1,7 +1,7 @@
-import type { BrowserKind } from "./error-key";
+import type { BrowserKind } from "@/lib/oversight/error-key";
 
 // An error in this browser, told to the site (/api/browser-error), which
-// keeps it beside the server's own (lib/server/errors-seen.server.ts). The error
+// keeps it beside the server's own (lib/oversight/errors-seen.server.ts). The error
 // page tells of what lost it the page (app/global-error.tsx), and a listener of anything else thrown from our own scripts
 // (components/layout/ErrorReporter.tsx).
 

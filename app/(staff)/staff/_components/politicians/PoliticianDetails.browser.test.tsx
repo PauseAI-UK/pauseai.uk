@@ -5,12 +5,12 @@ import { campaigns } from "@/lib/content/email-your-mp";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { exampleBlock } from "../EmailBlocksTable.examples";
+import { exampleBlock } from "../oversight/EmailBlocksTable.examples";
 import { exampleLetter } from "../letters/LettersTable.examples";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import PoliticianDetails from "./PoliticianDetails";
 import { type ThreadMessages, type ThreadStep } from "@/lib/politicians/threads";
-import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "../Notes.examples";
+import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "../notes/Notes.examples";
 import { exampleAliases, examplePolitician, examplePoliticianHistory } from "./PoliticianTable.examples";
 import { action } from "@/tests/browser/staff";
 import { politiciansCopy } from "./copy";
@@ -19,6 +19,7 @@ import { asksCopy } from "@/lib/asks/copy";
 import { exampleAsks } from "../asks/AsksList.examples";
 import { exampleHiddenOneOff, exampleOneOffs } from "../letters/OneOffList.examples";
 import { lettersCopy } from "../letters/copy";
+import { notesCopy } from "../notes/copy";
 
 const [pm] = campaigns;
 
@@ -101,7 +102,7 @@ describe("PoliticianDetails", () => {
     history.open = true;
     await expect.element(page.getByText(politiciansCopy.politician.noHistory)).toBeVisible();
     // Without staff's notes, no way to write one.
-    await expect.element(page.getByRole("button", { name: staffCopy.notes.write })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: notesCopy.notes.write })).not.toBeInTheDocument();
     // A personal connection is a tag too; none of the rest is there for someone without them.
     await rerender(
       <PoliticianDetails
@@ -253,12 +254,12 @@ describe("PoliticianDetails", () => {
         }}
       />,
     );
-    await expect.element(page.getByText(staffCopy.notes.none)).toBeVisible();
-    await page.getByRole("button", { name: staffCopy.notes.write }).click();
-    await expect.element(page.getByText(staffCopy.notes.none)).not.toBeInTheDocument();
+    await expect.element(page.getByText(notesCopy.notes.none)).toBeVisible();
+    await page.getByRole("button", { name: notesCopy.notes.write }).click();
+    await expect.element(page.getByText(notesCopy.notes.none)).not.toBeInTheDocument();
     await expect
       .element(
-        page.getByRole("list", { name: staffCopy.notes.title }).getByRole("textbox", { name: staffCopy.notes.note }),
+        page.getByRole("list", { name: notesCopy.notes.title }).getByRole("textbox", { name: notesCopy.notes.note }),
       )
       .toBeVisible();
   });
@@ -280,29 +281,29 @@ describe("PoliticianDetails", () => {
         }}
       />,
     );
-    const notes = page.getByRole("list", { name: staffCopy.notes.title }).getByRole("listitem");
+    const notes = page.getByRole("list", { name: notesCopy.notes.title }).getByRole("listitem");
     await expect.element(notes.nth(0)).toBeVisible();
     expect(notes.nth(0).element().textContent).toContain(exampleNotes[0].body);
-    await expect.element(notes.nth(0).getByRole("button", { name: staffCopy.notes.edit })).toBeVisible();
+    await expect.element(notes.nth(0).getByRole("button", { name: notesCopy.notes.edit })).toBeVisible();
     openFolds();
     const history = page.getByRole("list", { name: politiciansCopy.politician.historyTitle }).getByRole("listitem");
     expect(history.nth(0).element().textContent).toContain(
-      `${staffTime(exampleNotes[0].createdAt)}${exampleNotes[0].body} · ${politiciansCopy.politician.history.note} · jo@pauseai.uk`,
+      `${staffTime(exampleNotes[0].createdAt)}${exampleNotes[0].body} · ${notesCopy.notes.kind} · jo@pauseai.uk`,
     );
     expect(history.nth(0).getByRole("button").query()).toBeNull();
     // Write a note drafts it at the top of the card, and goes while it's there.
-    const write = page.getByRole("button", { name: staffCopy.notes.write });
+    const write = page.getByRole("button", { name: notesCopy.notes.write });
     await write.click();
     await expect.element(write).not.toBeInTheDocument();
-    await expect.element(page.getByRole("textbox", { name: staffCopy.notes.note })).toHaveFocus();
-    expect(notes.nth(0).element().textContent).toContain(`${politiciansCopy.politician.history.note} · jo@pauseai.uk`);
+    await expect.element(page.getByRole("textbox", { name: notesCopy.notes.note })).toHaveFocus();
+    expect(notes.nth(0).element().textContent).toContain(`${notesCopy.notes.kind} · jo@pauseai.uk`);
     // Cancel takes it away.
-    await page.getByRole("button", { name: staffCopy.notes.cancel }).click();
+    await page.getByRole("button", { name: notesCopy.notes.cancel }).click();
     await expect.element(page.getByRole("textbox")).not.toBeInTheDocument();
     expect(notes.nth(0).element().textContent).toContain(exampleNotes[0].body);
     await write.click();
-    await page.getByRole("textbox", { name: staffCopy.notes.note }).fill("Met them");
-    await page.getByRole("button", { name: staffCopy.notes.add }).click();
+    await page.getByRole("textbox", { name: notesCopy.notes.note }).fill("Met them");
+    await page.getByRole("button", { name: notesCopy.notes.add }).click();
     expect(Object.fromEntries((add.mock.calls[0][0] as FormData).entries())).toEqual({
       politicianId: String(MP.id),
       body: "Met them",
@@ -310,7 +311,7 @@ describe("PoliticianDetails", () => {
     await expect.element(page.getByRole("textbox")).not.toBeInTheDocument();
     // Ctrl+Enter adds one too.
     await write.click();
-    await page.getByRole("textbox", { name: staffCopy.notes.note }).fill("Again");
+    await page.getByRole("textbox", { name: notesCopy.notes.note }).fill("Again");
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
     await vi.waitFor(() => expect(add).toHaveBeenCalledTimes(2));
   });

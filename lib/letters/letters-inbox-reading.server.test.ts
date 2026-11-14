@@ -25,7 +25,7 @@ import {
 import { query } from "@/lib/server/db.server";
 import { readGmail } from "@/lib/jobs/gmail-reading.server";
 import { authenticated } from "./letters-inbox-reading.server";
-import { submitLetter, type LetterForm } from "@/lib/server/mp-letters.server";
+import { submitLetter, type LetterForm } from "../../app/api/email-your-mp/letters/mp-letters.server";
 import { letterReply } from "@/lib/server/outside-services/blobs.server";
 import { RELAY_CAP } from "./relays.server";
 import { lettersCopy } from "./copy";

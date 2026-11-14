@@ -6,10 +6,10 @@ import { findEvents, type EventFilter, type EventsFound } from "./list";
 import { londonStart } from "@/lib/staff-time";
 import { logChange } from "@/lib/server/audit.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
-import { send } from "@/lib/server/email-sending.server";
+import { send } from "@/lib/accounts/email-sending.server";
 import { notifyDomain } from "@/lib/server/outside-services/postmark.server";
-import { staffLink } from "@/lib/server/notifications.server";
-import { staffAddressLine } from "@/lib/accounts/staff-address.server";
+import { staffLink } from "@/lib/email/notifications.server";
+import { staffAddressLine } from "@/lib/email/staff-address.server";
 import { eventsCopy } from "./copy";
 
 // Our events on Luma, as the Luma import has them (luma-import.server.ts), for

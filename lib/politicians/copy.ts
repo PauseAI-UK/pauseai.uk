@@ -186,8 +186,6 @@ export const politiciansCopy = {
       "unsigned-letter-replied": "Answered a letter",
       // A letter of one of PauseAI's mailings, by its mailing, and how it was written.
       "pauseai-letter": "Email from PauseAI:",
-      // A staff member's note on them, before who wrote it.
-      note: "Note",
       "add politician": "Added",
       "edit politician": "Edited",
       "remove politician": "No longer in Airtable",
@@ -342,7 +340,7 @@ export const politiciansCopy = {
     // On the Gmail read's run, so on its page and in the email: searching the mailboxes for an address staff added
     // to a politician's failed, so its earlier mail may not be kept.
     addressNotSearched: (address: string) => `Couldn't search policy@ and Joseph's inbox for ${address}`,
-    // No job reaches this: it's kept as an error (lib/server/errors-seen.server.ts), on the errors page and emailed to
+    // No job reaches this: it's kept as an error (lib/oversight/errors-seen.server.ts), on the errors page and emailed to
     // staff. A visitor looking up their MP is told it failed.
     mpLookupFailed: "The MP lookup failed",
   },

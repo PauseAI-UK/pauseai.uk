@@ -8,12 +8,12 @@ import { LETTERS_INBOX, recordGmail, stubLettersInboxEnv, testMail, testProxy } 
 import { staffCopy } from "@/lib/content/staff-interface";
 import { notifications } from "@/tests/notifications";
 import { query } from "@/lib/server/db.server";
-import { recordProblem } from "@/lib/server/email.server";
-import { handleDeliveryProblem, unblock } from "@/lib/server/delivery-problems.server";
+import { recordProblem } from "@/lib/email/email.server";
+import { handleDeliveryProblem, unblock } from "@/lib/oversight/delivery-problems.server";
 import { readGmail } from "@/lib/jobs/gmail-reading.server";
 import { sendLetterQueue } from "./queue.server";
 import { noticeToSender, sendCopy, sendLetter, threading, uncertainLetters } from "./sending.server";
-import { submitLetter, type LetterForm } from "@/lib/server/mp-letters.server";
+import { submitLetter, type LetterForm } from "../../app/api/email-your-mp/letters/mp-letters.server";
 import { relay, resendAfterFix, sendRelay, uncertainRelays } from "./relays.server";
 import { lettersCopy } from "./copy";
 

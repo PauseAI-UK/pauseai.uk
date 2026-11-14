@@ -332,7 +332,7 @@ site reads its replies.
   `available` in `BROADCAST_SEND_BY` (`lib/broadcasts/broadcasts.ts`).
 
 The broadcast stream has the webhooks the site's own emails have
-(`lib/server/postmark-webhooks.server.ts`): delivery, for the delivered count;
+(`lib/email/postmark-webhooks.server.ts`): delivery, for the delivered count;
 a bounce, marking the message failed and, if hard, blocking the
 address; and a spam complaint, which is an opt-out (Opt-outs).
 

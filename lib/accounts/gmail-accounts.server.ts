@@ -4,7 +4,7 @@ import { GMAIL_DAILY_LIMIT } from "./gmail-connect";
 import { logChange } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
 import { config } from "@/lib/server/config.server";
-import { notifyStaff, staffLink } from "@/lib/server/notifications.server";
+import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { decryptToken, encryptToken } from "./gmail-tokens.server";
 import { problem } from "@/lib/server/problems.server";
 import {

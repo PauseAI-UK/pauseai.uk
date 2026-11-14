@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
-import { changeWords } from "../../../_components/ChangesFilters";
-import { changeColumns } from "../../../_components/ChangesTable";
+import { changeWords } from "../../../_components/oversight/ChangesFilters";
+import { changeColumns } from "../../../_components/oversight/ChangesTable";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { recentChanges } from "@/lib/server/audit.server";
+import { recentChanges } from "@/lib/oversight/audit-log.server";
 import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 import { staffDownload } from "@/lib/server/staff-download.server";
 import { changesSearch } from "@/lib/staff-search";

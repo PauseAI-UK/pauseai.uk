@@ -18,7 +18,7 @@ import {
 } from "@/lib/staff-search";
 import { notValue, valuesOf, type Params } from "@/lib/list-params";
 import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters/supporters";
-import { changeChoices } from "./audit.server";
+import { changeChoices } from "@/lib/oversight/audit-log.server";
 import { query } from "./db.server";
 import { HOUSES, PERSON_STATUSES } from "@/lib/politicians/records.server";
 import { eventChoices } from "@/lib/events/staff-events.server";

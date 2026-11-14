@@ -235,7 +235,7 @@ row adds what its kind has, joined as notable people are:
   - **Letters sent by Postmark**, each from an address of its own on
     `letters.pauseai.uk` (`postmark_mailbox`), with the sender on Cc. A
     reply to that address is forwarded to the sender and the policy
-    team (`forwardReply`, `lib/server/postmark-webhooks.server.ts`). A person's reply
+    team (`forwardReply`, `lib/letters/inbound.server.ts`). A person's reply
     is also kept whole on the letter, as one read from Gmail is. It's kept
     from the whole message, which Postmark's inbound webhook carries when
     the server has `RawEmailEnabled` on. The kept reply's account is the
@@ -301,7 +301,7 @@ keyed by their email address, so it's the same in every letter, and it's
 named from the name on their first letter. An MP's proxy is named the first
 time they're written to, and kept.
 
-- **Sending** (`lib/server/mp-letters.server.ts`, `lib/letters/sending.server.ts`): a letter
+- **Sending** (`app/api/email-your-mp/letters/mp-letters.server.ts`, `lib/letters/sending.server.ts`): a letter
   that passes the form's checks is kept, `queued`, and never deleted for
   failing to send. The request tries to send at once, in two steps:
   1. The letter, from the supporter's proxy to the MP alone.
@@ -534,7 +534,7 @@ job all leave broadcasts out.
   no time left for are put back, as are the rest when the channel answers that
   it can't send for now. Some of those pass by themselves: Gmail or
   Postmark busy, down, or at a limit or quota (`REFUSED_FOR_NOW` in
-  `lib/server/email.server.ts`), as Gmail's daily sending limit, which can last
+  `lib/email/email.server.ts`), as Gmail's daily sending limit, which can last
   most of a day; WhatsApp too fast, our number limited, the template
   paused, or WhatsApp unavailable (`WHATSAPP_ERRORS.later`). Others last
   till someone fixes the account (`fixNeeded`): its credentials refused or
@@ -629,7 +629,8 @@ job all leave broadcasts out.
   copies likeliest to fail again can't stop it before the rest have gone.
 - **What Postmark reports**, of a copy it sent. Its delivery webhook marks a copy delivered;
   a hard bounce marks it failed and blocks the address; a spam complaint is
-  an opt-out of every bulk email (`lib/server/delivery-problems.server.ts`).
+  an opt-out of every bulk email (`lib/broadcasts/bounces.server.ts`, and
+  `optOutOnComplaint` in `lib/supporters/opt-outs.server.ts`).
 - **What WhatsApp reports**, by its webhook, `/api/whatsapp`, signed with
   the Meta app's secret (`lib/broadcasts/whatsapp-webhooks.server.ts`): each text
   delivered, read or failed; a message to us, which answers the text it
@@ -1418,7 +1419,7 @@ before they go.
 
 ## Email
 
-Everything the site sends, to anyone (`lib/server/email.server.ts`). Every email
+Everything the site sends, to anyone (`lib/email/email.server.ts`). Every email
 goes through `send()` with its purpose: `letter`, `letter-copy`, `relay`,
 `supporter-notice`, `office-notice`, `forwarded-reply`, `staff-login`,
 `staff-alert`, `staff-report`, `mailing`, `mailing-test`, `broadcast`,
@@ -1435,13 +1436,13 @@ a fixed-width font or in lines broken at a set width. A letter, its copy and
 a mailing, and an answer to a reply, have HTML of their own, from the
 editor's document. For any other,
 written only as text (a notice, a login link, an alert), `send()` makes it
-from the text (`lib/plain-email-html.ts`): a paragraph for each block of
+from the text (`lib/email/plain-email-html.ts`): a paragraph for each block of
 lines, a bulleted list of lines that start "- ", each web address a link.
 The text itself goes unchanged beside it. Postmark is told to leave those links as
 written (`TrackLinks`), so a login link never goes through Postmark's
 address. A relay is its sender's message, as it came.
 
-Admins read the log at `/staff/sent-emails` (`lib/server/sent-emails.server.ts`), a
+Admins read the log at `/staff/sent-emails` (`lib/oversight/sent-emails.server.ts`), a
 page with no visible heading, as the menu names it. A row shows:
 
 - someone outside PauseAI by their name, linked to their page. They're
@@ -1462,11 +1463,11 @@ staff: we don't know a staff account's name, nor a shared inbox's, so a
 login link, an alert or an event owner's email goes to the address alone.
 
 When something needs a person, the site emails the notification inbox,
-`NOTIFICATION_INBOX` (`notifyStaff` in `lib/server/notifications.server.ts`), once
+`NOTIFICATION_INBOX` (`notifyStaff` in `lib/email/notifications.server.ts`), once
 each time it happens, with a link to where to deal with it:
 
 - an MP's address bouncing a letter or relay, or anything else blocking the
-  address of a politician in office (`lib/server/delivery-problems.server.ts`);
+  address of a politician in office (`lib/email/delivery-problems.server.ts`);
 - once a day at most, the politicians in office whose addresses bounced a
   mailing's letter, or complained of it, since the last (`reportMailingBounces`);
 - mail in the letters inbox it can't relay (`lib/jobs/gmail-reading.server.ts`);
@@ -1515,7 +1516,9 @@ server without that stream has nothing suppressed on it, though Postmark
 failing does. A complaint can't be unblocked.
 
 What a bounce means depends on the email's purpose, so each purpose can
-have a hook (`lib/server/delivery-problems.server.ts`). A letter's hook marks the
+have a hook, which its feature hands the sending layer
+(`lib/email/delivery-problems.server.ts`; letters' are in
+`lib/letters/bounces.server.ts`). A letter's hook marks the
 letter bounced and emails staff. A purpose without a hook needs nothing
 beyond the block.
 
@@ -1528,7 +1531,7 @@ An address with "Do not email", in CiviCRM or as an opt-out of all email,
 gets only what the person just asked for or did: a login link, a link to
 the contact preferences page, a letter's copy and their MP's replies to it, which
 to them is mail from their MP that we pass on, and the like (`TRANSACTIONAL`
-in `lib/server/email.server.ts`); `send()` refuses any other. A broadcast's copies
+in `lib/email/email.server.ts`); `send()` refuses any other. A broadcast's copies
 go by `send()` too, each logged as `broadcast` with its copy ("Broadcasts
 to supporters", above).
 
@@ -1615,7 +1618,7 @@ its place and says in its result what's left.
 ## Errors
 
 What goes wrong outside a job's run is kept, so that it reaches someone
-(`errors_seen`, `lib/server/errors-seen.server.ts`). A job's failures and problems
+(`errors_seen`, `lib/oversight/errors-seen.server.ts`). A job's failures and problems
 are its run's ("Imports", above), not these. Three things are kept:
 
 - **An error the server throws** in a page, a route handler, a Server
@@ -1638,7 +1641,7 @@ matches: what was running (its kind), where (the route's pattern, never
 the request's path, which can hold an ID or a token; for a browser's, the
 page's path with each part that's an ID or a number stood for), the
 error's class, and its words with what varies taken out, so "No politician
-4127" and "No politician 4128" are one (`lib/error-key.ts`). A Postgres
+4127" and "No politician 4128" are one (`lib/oversight/error-key.ts`). A Postgres
 error is known by its code and constraint, and nothing of its message,
 which can quote the value it refused. The key is coarse on purpose: two
 bugs sharing a row are found a day apart, but one bug making a row each
@@ -1726,7 +1729,7 @@ parameters (`docs/data-protection.md`).
 ## The audit log
 
 Every change made by staff, or by something acting on its own, records who,
-what and the details (`audit_log`, `lib/server/audit.server.ts`). The actor is a
+what and the details (`audit_log`, `lib/oversight/audit-log.server.ts`). The actor is a
 staff email, or the name of what did it: `sync`, `controlai`, `postmark`,
 `send-mailings`, `google`. Admins read the log at `/staff/audit-log`,
 searched and filtered by who, what and how recent, and sorted by date, who
@@ -1791,7 +1794,7 @@ address may be a supporter's, and a download's filters may name one. A
 politician's details are public, so theirs are logged in full.
 
 An admin without `supporters` sees the log, and its download, without these
-entries (`WITHOUT_SUPPORTERS` in `lib/server/audit.server.ts`), and with a line
+entries (`WITHOUT_SUPPORTERS` in `lib/oversight/audit-log.server.ts`), and with a line
 saying so:
 
 - entries about a supporter or a broadcast;

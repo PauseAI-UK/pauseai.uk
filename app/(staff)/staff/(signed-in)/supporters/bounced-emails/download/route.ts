@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
-import { emailBlockFilters } from "../../../../_components/EmailBlockFilters";
-import { blockColumns } from "../../../../_components/EmailBlocksTable";
+import { emailBlockFilters } from "../../../../_components/email/EmailBlockFilters";
+import { blockColumns } from "../../../../_components/oversight/EmailBlocksTable";
 import { filterWords } from "@/lib/staff-list-filters";
-import { listBlocks } from "@/lib/server/email.server";
+import { listBlocks } from "@/lib/email/email.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { staffDownload } from "@/lib/server/staff-download.server";
 import { emailsSearch } from "@/lib/staff-search";

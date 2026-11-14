@@ -6,7 +6,7 @@ import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase }
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db.server";
 import { answerReply, answersTo } from "./answers.server";
-import { recordProblem } from "@/lib/server/email.server";
+import { recordProblem } from "@/lib/email/email.server";
 
 const HELLO = "hello@pauseai.uk";
 const JO = "jo@pauseai.uk";

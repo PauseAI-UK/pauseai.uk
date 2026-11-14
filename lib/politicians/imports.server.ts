@@ -27,7 +27,7 @@ import { auditActions, logChange } from "@/lib/server/audit.server";
 import { config } from "@/lib/server/config.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { asRun } from "@/lib/server/import-runs.server";
-import { notifyStaff, staffLink } from "@/lib/server/notifications.server";
+import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { relinkOneOffs } from "@/lib/letters/one-off-relink.server";
 import {
   niAssemblyMembersNow,
