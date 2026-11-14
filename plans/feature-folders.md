@@ -154,6 +154,15 @@ The base PR adds these, and `docs/code-structure.md`, "Feature folders", describ
 - **Words.** `controlAi`, `controlAiStatement`, `luma`, `gmailReading`, `sending`, `tidying` and `civicrm` are in `lib/jobs/copy.ts` (lib reads them: the job titles, a ControlAI problem), with the jobs' problems, flat (`couldntRead`, `nameUnknown`, `notUnderstood`, `civicrmTooFew`); `runs` and `import` in `_components/jobs/copy.ts`. `problems.job.unreadable` stays: it's letters' one-off emails'.
 - **Left at the top**: `lib/controlai-statement.ts`, as politicians' `official-profiles.ts` (`nameSlug`) and the ControlAI binding read it, not only the import. `StaffDashboard` (oversight's) reads `jobTitles` and `importPath`, and `AuditDetail` `importPath`.
 
+## Settled by the oversight PR, for the docs PR
+
+- **The sending layer is `email`, below every feature.** `lib/email/` (sending, blocked addresses, Postmark's bounce and delivery webhooks, notifications, the staff address line, kept messages, `emailCopy`) uses no feature. What a bounce of a feature's email does is handed in (`DeliveryHooks`: letters' `lib/letters/bounces.server.ts`, broadcasts' `bounces.server.ts`, supporters' `optOutOnComplaint`), put together in `lib/oversight/delivery-problems.server.ts`; the Gmail reader hands letters' inbox reading its `handleProblem`. `send()` is accounts' (`lib/accounts/email-sending.server.ts`), as it reaches the connected Gmail accounts; letters' inbound replies are `lib/letters/inbound.server.ts`. `_components/email/` holds the blocked addresses' parts that need no feature (BounceReason, EmailBlockFilters, UnblockForm).
+- **Notes are a feature of their own** (`notes/`, `lib/notes/`): politicians' and supporters' pages show them, and oversight uses politicians.
+- **The audit log's writing stays below every feature** (`lib/server/audit.server.ts`, `lib/audit-events.ts`, `lib/field-changes.ts`), as the import log's does; its page's reading is `lib/oversight/audit-log.server.ts`. A politician's `FieldChanges` is politicians'.
+- **The dashboard** (`dashboard/`, `lib/dashboard/`): each group of tiles and what needs a person load their own numbers, and the page puts them together. The windows the dashboard and the lists share are `lib/time-windows.ts`.
+- **Words below every feature**: `importRunsCopy` (`lib/import-runs-copy.ts`), `serverCopy` (`lib/server/copy.ts`), and in `staffVocabulary` the politicians' markers and a logged entry's fields. `UNSORTED` is gone; the kit's parts are `ui/`'s, with every example beside its component.
+- **Left for later**: mailings' examples picture broadcasts' (`CopyCounts`, `MailingView`) and letters' `LetterThread` example a broadcast's thread title, as their frames show those; untangling them would change the frames.
+
 ## How each feature PR goes
 
 1. `git mv` the feature's components, tests and examples into its folder, and its `lib/` files into its domain; rewrite imports.
