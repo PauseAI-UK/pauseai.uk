@@ -1,5 +1,4 @@
 import type { Page } from "@playwright/test";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { ROUTES } from "../routes";
 import { stayOnPage } from "./loading-steps";
 import { addStaffAccount, logIn, staffEmail } from "./login-steps";
@@ -10,6 +9,7 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
+import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
 
 export const section: Section = { name: "Logging in, and your account", part: "Staff pages", order: 10 };
 
@@ -168,9 +168,9 @@ test("Staff accounts", async ({ page, flowDatabase }, testInfo) => {
   await frame(page, "The dashboard, after a first login");
   story("The dashboard can show the last 30 days instead.");
   // The dashboard over a longer window, from the links under the day.
-  await page.getByRole("link", { name: staffCopy.home.dashboard.window(30) }).click();
+  await page.getByRole("link", { name: dashboardCopy.home.dashboard.window(30) }).click();
   await expect(page).toHaveURL(`${BASE}/staff?days=30`);
-  await expect(page.getByText(staffCopy.home.dashboard.change.same(30)).first()).toBeVisible();
+  await expect(page.getByText(dashboardCopy.home.dashboard.change.same(30)).first()).toBeVisible();
   await frame(page, "The dashboard, over 30 days");
   story("Without the Admin permission, the staff accounts page sends them back to the dashboard.");
   await page.goto(`${BASE}/staff/accounts`);

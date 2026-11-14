@@ -20,6 +20,7 @@ import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/cop
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
+import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };
 
@@ -395,9 +396,9 @@ test("A held politician import", async ({ page, request, flowDatabase }) => {
 
   story("The staff dashboard says so first, with a button back to the decision.");
   await page.goto(`${BASE}/staff`);
-  await expect(page.getByText(staffCopy.home.dashboard.actions.heldImport(title, 21))).toBeVisible();
+  await expect(page.getByText(dashboardCopy.home.dashboard.actions.heldImport(title, 21))).toBeVisible();
   await frame(page, "The dashboard");
-  await page.getByRole("link", { name: staffCopy.home.dashboard.actions.decide }).click();
+  await page.getByRole("link", { name: dashboardCopy.home.dashboard.actions.decide }).click();
   await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs/parliament`);
 
   story("An admin discards it. Nothing changes: all 21 are still in office here.");

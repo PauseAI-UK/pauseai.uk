@@ -1,40 +1,12 @@
-import type { ImportJob, PoliticianImportJob } from "./import-runs";
+import type { DashboardWindow } from "@/lib/time-windows";
+import type { ImportJob, PoliticianImportJob } from "@/lib/import-runs";
 import type { Permission } from "@/lib/accounts/permissions";
-import { staffVocabulary } from "./staff-vocabulary";
-import { now } from "./now";
 import type { SupporterSource } from "@/lib/supporters/supporters";
 
 // The staff home's dashboard: what needs a person, and what happened in
-// the window against the window before. The
-// server fills it (lib/server/staff-dashboard.server.ts); StaffDashboard shows it.
-
-/** The windows the dashboard can show, in days; the first is the default. */
-export const DASHBOARD_WINDOWS = [7, 30, 90] as const;
-export type DashboardWindow = (typeof DASHBOARD_WINDOWS)[number];
-
-/** The window a URL asks for ("?days=30"), or the default. */
-export function dashboardWindow(days: string | undefined): DashboardWindow {
-  const found = DASHBOARD_WINDOWS.find((window) => String(window) === days);
-  return found ?? DASHBOARD_WINDOWS[0];
-}
-
-/** A list's date filter from its URL ("?first=30"): those of the last so many days, as a window; otherwise off. */
-export function listWindow(days: string): DashboardWindow | undefined {
-  return DASHBOARD_WINDOWS.find((window) => String(window) === days);
-}
-
-/** A date filter's choices. */
-export const WINDOW_OPTIONS = DASHBOARD_WINDOWS.map((days) => ({
-  value: String(days),
-  label: staffVocabulary.filters.lastDays(days),
-}));
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** The start of a window ending now. */
-export function windowStart(days: number): Date {
-  return new Date(now().getTime() - days * DAY_MS);
-}
+// the window against the window before. Each group of tiles loads its own
+// numbers, as does what needs a person (lib/dashboard/*.server.ts); the
+// page puts them together, and StaffDashboard shows them.
 
 /** How many windows a sparkline or a chart of bars shows, the current one last. */
 export const SERIES_POINTS = 8;
@@ -47,6 +19,8 @@ export const DASHBOARD_SECTIONS = {
 } as const;
 export type DashboardSection = keyof typeof DASHBOARD_SECTIONS;
 export type DashboardMetric = (typeof DASHBOARD_SECTIONS)[DashboardSection][number];
+/** The metrics of one group of tiles. */
+export type SectionMetric<S extends DashboardSection> = (typeof DASHBOARD_SECTIONS)[S][number];
 
 /** The metrics shown with a bar by campaign under the number. */
 export const BY_CAMPAIGN = ["lettersSent", "politiciansAgreed"] as const satisfies readonly DashboardMetric[];
@@ -130,4 +104,53 @@ export function isCampaignMetric(metric: DashboardMetric): metric is CampaignMet
 
 export function isSeriesMetric(metric: DashboardMetric): metric is SeriesMetric {
   return (WITH_SERIES as readonly DashboardMetric[]).includes(metric);
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** What the tiles count over: the window's length, its end (now) and start, and the start of the window before. */
+export type Span = { days: DashboardWindow; until: Date; since: Date; before: Date };
+
+/** The window of `days` ending `at`, and the one before it. */
+export function spanOf(days: DashboardWindow, at: Date): Span {
+  return {
+    days,
+    until: at,
+    since: new Date(at.getTime() - days * DAY_MS),
+    before: new Date(at.getTime() - 2 * days * DAY_MS),
+  };
+}
+
+/** The supporters' tiles' numbers (lib/dashboard/supporters.server.ts). */
+export type SupportersTiles = Pick<Dashboard, "supportersBySource"> & {
+  counts: Record<SectionMetric<"supporters">, Count>;
+};
+/** The politicians' tiles' numbers (lib/dashboard/politicians.server.ts). */
+export type PoliticiansTiles = Pick<Dashboard, "byCampaign" | "agreedMp"> & {
+  counts: Record<SectionMetric<"politicians">, Count>;
+};
+/** The events' tiles' numbers (lib/dashboard/events.server.ts). */
+export type EventsTiles = Pick<Dashboard, "series"> & { counts: Record<SectionMetric<"events">, Count> };
+
+/** The dashboard over `span`, from each group of tiles' numbers and what needs a person. */
+export function dashboardOf(
+  span: Span,
+  {
+    supporters,
+    politicians,
+    events,
+  }: { supporters: SupportersTiles; politicians: PoliticiansTiles; events: EventsTiles },
+  actions: DashboardAction[],
+): Dashboard {
+  return {
+    days: span.days,
+    asOf: span.until,
+    since: span.since,
+    counts: { ...supporters.counts, ...politicians.counts, ...events.counts },
+    byCampaign: politicians.byCampaign,
+    agreedMp: politicians.agreedMp,
+    series: events.series,
+    supportersBySource: supporters.supportersBySource,
+    actions,
+  };
 }

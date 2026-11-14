@@ -3,19 +3,20 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffDate } from "@/lib/staff-time";
-import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
-import { spanClass } from "./ui/Grid";
+import { jobTitles } from "@/lib/content/staff-interface";
+import { spanClass } from "../ui/Grid";
 import StaffDashboard from "./StaffDashboard";
 import { exampleDashboard, exampleQuietDashboard } from "./StaffDashboard.examples";
-import { shellCopy } from "./shell/copy";
-import { supportersCopy } from "./supporters/copy";
-import { politiciansCopy } from "./politicians/copy";
-import { lettersCopy } from "./letters/copy";
+import { shellCopy } from "../shell/copy";
+import { supportersCopy } from "../supporters/copy";
+import { politiciansCopy } from "../politicians/copy";
+import { lettersCopy } from "../letters/copy";
+import { dashboardCopy } from "./copy";
 
 const [pm, bill] = campaigns;
 
 describe("StaffDashboard", () => {
-  const copy = staffCopy.home.dashboard;
+  const copy = dashboardCopy.home.dashboard;
 
   it("lists replies to broadcasts to look at, amber, only for staff who may see supporters", async () => {
     const dashboard = {

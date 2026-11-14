@@ -12,11 +12,6 @@ import { accountsNoticeGallery } from "@/app/(staff)/staff/_components/accounts/
 import { loginCardGallery } from "@/app/(staff)/staff/_components/accounts/LoginCard.gallery";
 import { devLoginGallery } from "@/app/(staff)/staff/_components/accounts/DevLogin.gallery";
 import { loginFormGallery } from "@/app/(staff)/staff/_components/accounts/LoginForm.gallery";
-import StaffDashboard from "@/app/(staff)/staff/_components/StaffDashboard";
-import StaffHome from "@/app/(staff)/staff/_components/StaffHome";
-import { exampleDashboard, exampleQuietDashboard } from "@/app/(staff)/staff/_components/StaffDashboard.examples";
-import Sparkline from "@/app/(staff)/staff/_components/Sparkline";
-import StackedBars from "@/app/(staff)/staff/_components/StackedBars";
 import PermissionTiles, { ContactLink } from "@/app/(staff)/staff/_components/PermissionTiles";
 import {
   exampleBlockedPermissions,
@@ -25,6 +20,10 @@ import {
 } from "@/app/(staff)/staff/_components/supporters/SupportersTable.examples";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import type { Group } from "../_components/types";
+import { staffHomeGallery } from "@/app/(staff)/staff/_components/dashboard/StaffHome.gallery";
+import { sparklineGallery } from "@/app/(staff)/staff/_components/dashboard/Sparkline.gallery";
+import { stackedBarsGallery } from "@/app/(staff)/staff/_components/dashboard/StackedBars.gallery";
+import { staffDashboardGallery } from "@/app/(staff)/staff/_components/dashboard/StaffDashboard.gallery";
 import { changesTableGallery } from "@/app/(staff)/staff/_components/oversight/ChangesTable.gallery";
 import { changesFiltersGallery } from "@/app/(staff)/staff/_components/oversight/ChangesFilters.gallery";
 import { fieldChangesGallery } from "@/app/(staff)/staff/_components/politicians/FieldChanges.gallery";
@@ -115,111 +114,10 @@ export const staffAdmin: Group = {
         },
       ],
     },
-    {
-      name: "StaffDashboard",
-      file: "app/(staff)/staff/_components/StaffDashboard.tsx",
-      variants: [
-        {
-          label: "A busy week with something waiting of each kind, for someone who may see supporters",
-          render: () => (
-            <StaffPage as="div">
-              <StaffDashboard dashboard={exampleDashboard} permissions={["supporters"]} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "For someone who may not: the supporter tiles aren't links",
-          render: () => (
-            <StaffPage as="div">
-              <StaffDashboard dashboard={exampleDashboard} permissions={[]} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A quiet month: nothing waiting, nothing counted",
-          render: () => (
-            <StaffPage as="div">
-              <StaffDashboard dashboard={exampleQuietDashboard} permissions={["supporters"]} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "StackedBars",
-      file: "app/(staff)/staff/_components/StackedBars.tsx",
-      variants: [
-        {
-          label: "Eight weeks of new supporters by their earliest source: point at a bar for what it holds",
-          render: () => (
-            <StaffPage as="div">
-              <div style={{ maxWidth: "24rem" }}>
-                <StackedBars
-                  name="New supporters, the last eight weeks"
-                  parts={[
-                    { key: "luma", label: "Luma" },
-                    { key: "civicrm", label: "Member" },
-                    { key: "email-your-mp", label: "Letter" },
-                  ]}
-                  bars={exampleDashboard.supportersBySource.map((point) => ({
-                    counts: point.sources,
-                    title: `From ${point.from.toISOString().slice(0, 10)}: ${point.count}`,
-                  }))}
-                  from={exampleDashboard.supportersBySource[0].from.toISOString().slice(0, 10)}
-                  to={exampleDashboard.asOf.toISOString().slice(0, 10)}
-                />
-              </div>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "Sparkline",
-      file: "app/(staff)/staff/_components/Sparkline.tsx",
-      variants: [
-        {
-          label: "Eight weeks of registrations: point at it for a week's count",
-          render: () => (
-            <StaffPage as="div">
-              <div style={{ maxWidth: "24rem" }}>
-                <Sparkline
-                  name="Event registrations, the last eight weeks"
-                  values={exampleDashboard.series.eventRegistrations.map((point) => point.count)}
-                  labels={exampleDashboard.series.eventRegistrations.map(
-                    (point) => `From ${point.from.toISOString().slice(0, 10)}: ${point.count}`,
-                  )}
-                  from={exampleDashboard.series.eventRegistrations[0].from.toISOString().slice(0, 10)}
-                  to={exampleDashboard.asOf.toISOString().slice(0, 10)}
-                />
-              </div>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "StaffHome",
-      file: "app/(staff)/staff/_components/StaffHome.tsx",
-      variants: [
-        {
-          label: "For an admin: the dashboard",
-          render: () => (
-            <StaffPage as="div">
-              <StaffHome permissions={["admin", "supporters"]} dashboard={exampleDashboard} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "For someone with no permissions: the dashboard, its supporter tiles not links",
-          render: () => (
-            <StaffPage as="div">
-              <StaffHome permissions={[]} dashboard={exampleDashboard} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...staffDashboardGallery,
+    ...stackedBarsGallery,
+    ...sparklineGallery,
+    ...staffHomeGallery,
     ...myGmailGallery,
     ...gmailConnectGallery,
     ...staffSessionsGallery,

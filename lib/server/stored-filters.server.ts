@@ -6,7 +6,7 @@ import { campaignBySlug } from "@/lib/email-your-mp";
 import { COUNTRIES, EMAIL_STATES } from "@/lib/politicians/filters";
 import { POLITICIAN_FLAGS } from "@/lib/politician-flags";
 import type { SavedList } from "@/lib/saved-filters";
-import { DASHBOARD_WINDOWS } from "@/lib/staff-dashboard";
+import { DASHBOARD_WINDOWS } from "@/lib/time-windows";
 import { NO_OWNER, ONLINE } from "@/lib/events/list";
 import {
   FILTER_LISTS,

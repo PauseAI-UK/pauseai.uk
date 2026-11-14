@@ -16,6 +16,7 @@ import type { Section } from "./report/frames";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
 
 export const section: Section = { name: "Letters and bounces", part: "Staff pages", order: 100 };
 
@@ -109,7 +110,7 @@ test("Correspondence", async ({ page, flowDatabase }) => {
   story("The dashboard's supporter emails tile counts only Jane's, and opens only hers.");
   await page.goto(`${BASE}/staff`);
   const tile = page.locator('a[href="/staff/emails?type=campaign&sent=7"]');
-  await expect(tile).toContainText(staffCopy.home.dashboard.metrics.lettersSent(1));
+  await expect(tile).toContainText(dashboardCopy.home.dashboard.metrics.lettersSent(1));
   await frame(page, "The supporter emails tile");
 });
 
@@ -285,10 +286,10 @@ test("Unblocking an MP's address", async ({ page, request, flowDatabase }) => {
 
   await logIn(page, flowDatabase, ["admin"], "/staff");
   // The home page says the MP's email bounced, first thing, with a button to their page.
-  await expect(page.getByText(staffCopy.home.dashboard.actions.blockedMp(bouncy.name))).toBeVisible();
+  await expect(page.getByText(dashboardCopy.home.dashboard.actions.blockedMp(bouncy.name))).toBeVisible();
   await frame(page, "The dashboard");
   story("The politicians list marks the MP's email as blocked.");
-  await page.getByRole("link", { name: staffCopy.home.dashboard.actions.openMp }).click();
+  await page.getByRole("link", { name: dashboardCopy.home.dashboard.actions.openMp }).click();
   await expect(page.getByRole("heading", { level: 1, name: bouncy.name })).toBeVisible();
 
   await page.goto(`${BASE}/staff/politicians?flag=test`);

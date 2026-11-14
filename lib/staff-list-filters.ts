@@ -16,7 +16,7 @@ import { POLITICIAN_FLAGS } from "@/lib/politician-flags";
 import type { EmailChoice } from "@/lib/letters/all-letters.server";
 import type { Ask } from "@/lib/asks/records.server";
 import type { SupporterChoices, SupportersPage } from "@/lib/supporters/records.server";
-import { WINDOW_OPTIONS } from "./staff-dashboard";
+import { WINDOW_OPTIONS } from "./time-windows";
 import { NO_OWNER, ONLINE } from "@/lib/events/list";
 import {
   ALL_EMAILS_LIST,

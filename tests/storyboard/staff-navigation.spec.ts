@@ -12,6 +12,7 @@ import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/cop
 import { asksCopy } from "@/lib/asks/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
+import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
 
 export const section: Section = { name: "Dashboard and getting around", part: "Staff pages", order: 20 };
 
@@ -129,9 +130,9 @@ test("The dashboard's tabs and numbers", async ({ page, flowDatabase }) => {
   await logIn(page, flowDatabase, ["supporters", "admin"]);
   await page.goto(`${BASE}/staff`);
   await frame(page, "The dashboard");
-  const tabs = page.getByRole("navigation", { name: staffCopy.home.dashboard.windows });
-  await tabs.getByRole("link", { name: staffCopy.home.dashboard.window(30) }).click();
-  await expect(tabs.getByRole("link", { name: staffCopy.home.dashboard.window(30) })).toHaveAttribute(
+  const tabs = page.getByRole("navigation", { name: dashboardCopy.home.dashboard.windows });
+  await tabs.getByRole("link", { name: dashboardCopy.home.dashboard.window(30) }).click();
+  await expect(tabs.getByRole("link", { name: dashboardCopy.home.dashboard.window(30) })).toHaveAttribute(
     "aria-current",
     "page",
   );
@@ -142,7 +143,7 @@ test("The dashboard's tabs and numbers", async ({ page, flowDatabase }) => {
   await frame(page, "Past events, in those 30 days");
   story("Going back, the dashboard is still on its 30 days.");
   await page.goBack();
-  await expect(tabs.getByRole("link", { name: staffCopy.home.dashboard.window(30) })).toHaveAttribute(
+  await expect(tabs.getByRole("link", { name: dashboardCopy.home.dashboard.window(30) })).toHaveAttribute(
     "aria-current",
     "page",
   );
@@ -191,7 +192,7 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
 
   // One signed this week: the tile is their page.
   await page.goto(`${BASE}/staff`);
-  const tile = page.getByRole("link").filter({ hasText: staffCopy.home.dashboard.metrics.politiciansAgreed(1) });
+  const tile = page.getByRole("link").filter({ hasText: dashboardCopy.home.dashboard.metrics.politiciansAgreed(1) });
   await frame(page, "The dashboard");
   story("With one politician agreed, the tile leads to her page.");
   await tile.click();
@@ -208,7 +209,7 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff`);
   await page
     .getByRole("link")
-    .filter({ hasText: staffCopy.home.dashboard.metrics.politiciansAgreed(2) })
+    .filter({ hasText: dashboardCopy.home.dashboard.metrics.politiciansAgreed(2) })
     .click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians?agreed=7&status=any&sort=asks`);
   await expect(
@@ -258,7 +259,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase, ["admin"], "/staff");
   // Logging in lands on the home page: the dashboard, with this admin's permission under their address in the sidebar.
   await expect(page).toHaveURL(`${BASE}/staff`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.home.title);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(dashboardCopy.home.title);
   await expect(page.getByText(staffEmail()).first()).toBeAttached();
   // The sidebar has a heading of the same name, before the dashboard's.
   await expect(page.getByRole("heading", { level: 2, name: shellCopy.nav.sections.politicians }).last()).toBeVisible();

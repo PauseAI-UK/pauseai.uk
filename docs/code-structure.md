@@ -407,7 +407,7 @@ the code should go instead. The rules below say which ones are enforced.
 
 The staff interface is made of features: the sending layer (email),
 accounts, notes, events, supporters, erasure, politicians, asks, mailings,
-letters, broadcasts, oversight and jobs. Each feature's code is in two folders of its own, so the pieces
+letters, broadcasts, oversight, the dashboard and jobs. Each feature's code is in two folders of its own, so the pieces
 of one are found together and what it depends on can be seen and held:
 
 ```
@@ -450,6 +450,8 @@ app/(staff)/staff/_components/
   oversight/          what staff check the site by: the audit log, the
                       emails sent, the errors seen, and the tables of
                       blocked addresses and their bounces
+  dashboard/          the staff home: what needs a person, and the tiles,
+                      with their sparklines and bars
   jobs/               the scheduled jobs: the overview of every job, a
                       job's page and its button, and each run's line, box
                       and table
@@ -524,6 +526,10 @@ lib/
                       bounce or complaint, put together for the webhook
                       and the Gmail reader. It stands on the features
                       whose emails and words it shows
+  dashboard/          the dashboard's tiles, each group loading its own
+                      numbers, and what needs a person; the page puts
+                      them together, so a group's tiles reach only what
+                      they count
   jobs/               the scheduled jobs: what runs each (the registry),
                       the schedule's calls, reading Gmail, sending, the
                       CiviCRM and ControlAI imports, tidying the logs, and

@@ -18,6 +18,7 @@ import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
 
 export const section: Section = { name: "Mailings", part: "Staff pages", order: 40 };
 
@@ -468,7 +469,7 @@ test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
   story("The dashboard already shows both, waiting for someone to fix their addresses.");
 
   await page.goto(`${BASE}/staff`);
-  await expect(page.getByText(staffCopy.home.dashboard.actions.blockedMp(name))).toBeVisible();
+  await expect(page.getByText(dashboardCopy.home.dashboard.actions.blockedMp(name))).toBeVisible();
   await frame(page, "The dashboard");
   story(
     "Within the hour, the notification inbox gets the day's report, with each politician, their address and what its server said.",

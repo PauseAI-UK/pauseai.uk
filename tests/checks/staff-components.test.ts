@@ -29,6 +29,7 @@ const STAYS: Record<string, string[]> = {
     "staff-search",
     "staff-sort",
     "staff-vocabulary",
+    "time-windows",
     // The staff pages' frame, which the kit and the sidebar draw: the pages in their sections, their kinds, the sidebar's folding.
     "staff-nav",
     "staff-page-kinds",
@@ -101,27 +102,14 @@ const UNSORTED: Record<string, string[]> = {
     "Logged",
     "PermissionTiles",
     "SortHeading",
-    "Sparkline",
-    "StackedBars",
-    "StaffDashboard",
     "StaffForms",
-    "StaffHome",
     "TestTag",
     "campaigns",
     "gmail",
     "staff-lists",
   ],
-  lib: [
-    "audit-events",
-    "controlai-letter",
-    "controlai-statement",
-    "email-your-mp",
-    "field-changes",
-    "staff-dashboard",
-    "uk-map",
-    "vcard",
-  ],
-  "lib/server": ["staff-dashboard"],
+  lib: ["audit-events", "controlai-letter", "controlai-statement", "email-your-mp", "field-changes", "uk-map", "vcard"],
+  "lib/server": [],
 };
 
 /** A file's name up to its first dot: "Notes" for Notes.tsx, Notes.module.css and Notes.browser.test.tsx. */

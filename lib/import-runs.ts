@@ -95,9 +95,14 @@ export type ImportRun<Job extends ImportJob, Result> = {
  */
 export type Relinked = { read: number; unread: number; linked: number; unlinked: number; offices: number };
 
-/** The imports of each body's members (lib/politicians/imports.server.ts). */
-export type PoliticianImportJob =
-  "import-parliament" | "import-scottish-parliament" | "import-senedd" | "import-ni-assembly";
+/** The imports of each body's members (lib/politicians/imports.server.ts), the only runs held for a decision. */
+export const POLITICIAN_IMPORT_JOBS = [
+  "import-parliament",
+  "import-scottish-parliament",
+  "import-senedd",
+  "import-ni-assembly",
+] as const satisfies readonly ImportJob[];
+export type PoliticianImportJob = (typeof POLITICIAN_IMPORT_JOBS)[number];
 
 /**
  * What an import of a body's members keeps: what it changed, or would; a

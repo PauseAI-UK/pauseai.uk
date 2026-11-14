@@ -1,40 +1,40 @@
 import { campaigns } from "@/lib/content/email-your-mp";
 import { importPath } from "@/lib/import-runs";
-import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
+import { jobTitles } from "@/lib/content/staff-interface";
 import {
   type CampaignMetric,
   type Count,
   DASHBOARD_SECTIONS,
-  DASHBOARD_WINDOWS,
   type Dashboard,
   type DashboardAction,
   type DashboardMetric,
   type DashboardSection,
-  type DashboardWindow,
   isCampaignMetric,
   isSeriesMetric,
   METRIC_LINKS,
   SERIES_POINTS,
   agreedHref,
-} from "@/lib/staff-dashboard";
+} from "@/lib/dashboard/dashboard";
+import { DASHBOARD_WINDOWS, type DashboardWindow } from "@/lib/time-windows";
 import { SUPPORTER_SOURCES } from "@/lib/supporters/supporters";
 import type { Permission } from "@/lib/accounts/permissions";
 import { staffDate, staffTime } from "@/lib/staff-time";
-import Grid, { spanClass } from "./ui/Grid";
-import Strip from "./ui/Strip";
-import Tabs from "./ui/Tabs";
+import Grid, { spanClass } from "../ui/Grid";
+import Strip from "../ui/Strip";
+import Tabs from "../ui/Tabs";
 import Sparkline from "./Sparkline";
 import StackedBars from "./StackedBars";
-import TestTag from "./TestTag";
+import TestTag from "../TestTag";
 import styles from "./StaffDashboard.module.css";
 import { buttonClass } from "@/components/ui/Button";
 import { Muted } from "@/components/ui/Text";
-import StaffLink from "./ui/StaffLink";
-import { shellCopy } from "./shell/copy";
-import { supportersCopy } from "./supporters/copy";
-import { lettersCopy } from "./letters/copy";
+import StaffLink from "../ui/StaffLink";
+import { shellCopy } from "../shell/copy";
+import { supportersCopy } from "../supporters/copy";
+import { lettersCopy } from "../letters/copy";
+import { dashboardCopy } from "./copy";
 
-const copy = staffCopy.home.dashboard;
+const copy = dashboardCopy.home.dashboard;
 
 /** One thing waiting for a person, as a strip: amber waiting for a decision, red broken; what it is, its detail, and its button. */
 function Action({ action }: { action: DashboardAction }) {

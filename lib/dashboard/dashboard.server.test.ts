@@ -1,8 +1,28 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { addTestLetter, addTestMp, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { query } from "./db.server";
-import { recordFailure, recordRun } from "./import-runs.server";
-import { dashboard } from "./staff-dashboard.server";
+import { query } from "@/lib/server/db.server";
+import { recordFailure, recordRun } from "@/lib/server/import-runs.server";
+import { dashboardOf, spanOf } from "./dashboard";
+import { eventsTiles } from "./events.server";
+import { needsAPerson } from "./needs-a-person.server";
+import { politiciansTiles } from "./politicians.server";
+import { supportersTiles } from "./supporters.server";
+import { now } from "@/lib/now";
+import type { DashboardWindow } from "@/lib/time-windows";
+
+// Each group of tiles' numbers and what needs a person, put together as the dashboard's page does.
+
+/** The dashboard over the last `days`, as the page puts it together. */
+async function dashboard(days: DashboardWindow) {
+  const span = spanOf(days, now());
+  const [supporters, politicians, events, actions] = await Promise.all([
+    supportersTiles(span),
+    politiciansTiles(span),
+    eventsTiles(span),
+    needsAPerson(),
+  ]);
+  return dashboardOf(span, { supporters, politicians, events }, actions);
+}
 
 describeWithDatabase("dashboard", () => {
   useTestDatabase();

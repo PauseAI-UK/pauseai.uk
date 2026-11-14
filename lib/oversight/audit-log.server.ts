@@ -1,6 +1,6 @@
 import "server-only";
 import type { ChangeSort } from "@/lib/staff-lists";
-import { windowStart } from "@/lib/staff-dashboard";
+import { windowStart } from "@/lib/time-windows";
 import type { SortSpec } from "@/lib/staff-sort";
 import { auditActions, type AuditEntry } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";

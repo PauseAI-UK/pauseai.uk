@@ -1,4 +1,4 @@
-import type { Dashboard, SeriesPoint, SourcePoint } from "@/lib/staff-dashboard";
+import type { Dashboard, SeriesPoint, SourcePoint } from "@/lib/dashboard/dashboard";
 
 /** Counts as a sparkline's points, windows of `days`, the last ending at the example's `asOf`. */
 function windows(counts: number[], days = 7): SeriesPoint[] {

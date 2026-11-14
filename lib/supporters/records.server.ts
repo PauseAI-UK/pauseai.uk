@@ -1,7 +1,7 @@
 import "server-only";
 import { OPT_OUT_RECORDED } from "./opt-outs.server";
 import { cache } from "react";
-import { windowStart } from "@/lib/staff-dashboard";
+import { windowStart } from "@/lib/time-windows";
 import { now } from "@/lib/now";
 import type {
   NegatableSupporterFilter,

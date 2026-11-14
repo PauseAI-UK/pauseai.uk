@@ -2,7 +2,7 @@
 // it filters by, leaving out anything blank or unknown. lib/staff-forms.ts
 // reads their forms.
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { listWindow, type DashboardWindow } from "./staff-dashboard";
+import { listWindow, type DashboardWindow } from "./time-windows";
 import { contactState } from "@/lib/supporters/contact-permissions";
 import type { ChangesFilter } from "@/lib/oversight/audit-log.server";
 import type { BlocksFilter } from "@/lib/email/email.server";

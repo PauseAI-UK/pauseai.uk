@@ -324,6 +324,7 @@ export const FEATURES = {
   letters: ["accounts", "email", "asks"],
   broadcasts: ["accounts", "email", "supporters", "politicians", "letters", "mailings"],
   oversight: ["accounts", "email", "supporters", "politicians", "letters", "broadcasts"],
+  dashboard: ["accounts", "asks", "supporters", "letters"],
   jobs: [
     "accounts",
     "email",

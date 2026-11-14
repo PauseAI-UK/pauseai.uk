@@ -2,7 +2,7 @@ import "server-only";
 import { now } from "@/lib/now";
 import { mailboxes } from "@/lib/email-parsing/addresses";
 import { isAtPauseai, PARLIAMENT_DOMAINS, politicianAddresses, type PoliticianBook } from "./one-off";
-import { windowStart } from "@/lib/staff-dashboard";
+import { windowStart } from "@/lib/time-windows";
 import { ALL_LETTERS_PAGE_SIZE, type AllLettersFilter } from "@/lib/staff-search";
 import { query } from "@/lib/server/db.server";
 import { sql, type Sql } from "@/lib/server/sql.server";
