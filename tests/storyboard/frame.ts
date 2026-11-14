@@ -386,4 +386,3 @@ async function showOrigin(page: Page): Promise<() => Promise<void>> {
       .catch(() => {});
   };
 }
-
