@@ -28,32 +28,32 @@ export default function Timeline() {
               </p>
               <EntryList>
                 <li>
-                  <strong>Jonathan Bostock</strong>, AI alignment researcher at Arcadia Impact.
+                  <strong>Luke McNally</strong>, Senior Lecturer at the University of Edinburgh in complex systems and
+                  AI safety.
                 </li>
                 <li>
-                  <strong>David Kirkwood</strong>, South Scotland regional MSP (Reform), on the cross-party group on
-                  Science &amp; Technology.
+                  <strong>Susan Murray</strong>, MP for Mid Dunbartonshire (Liberal Democrats).
+                </li>
+                <li>
+                  <strong>David Kirkwood MSP</strong>, for South Scotland (Reform), on the cross-party group on Science
+                  &amp; Technology.
                 </li>
                 <li>
                   <strong>Ben Macpherson MSP</strong>, for Edinburgh Northern and Leith (SNP), and former Minister for
                   Innovation, Technology and Tertiary Education.
                 </li>
                 <li>
+                  <strong>Carol Mochan MSP</strong>, for South Scotland (Labour).
+                </li>
+                <li>
                   <strong>Lorenzo Martinico</strong>, City of Edinburgh councillor for Portobello/Craigmillar (Green).
-                </li>
-                <li>
-                  <strong>Luke McNally</strong>, Senior Lecturer at the University of Edinburgh in complex systems and
-                  AI safety.
-                </li>
-                <li>
-                  <strong>Carol Mochan</strong>, South Scotland regional MSP (Labour).
-                </li>
-                <li>
-                  <strong>Susan Murray</strong>, MP for Mid Dunbartonshire (Liberal Democrats).
                 </li>
                 <li>
                   <strong>Michael Rovatsos</strong>, Professor of AI at the University of Edinburgh and former director
                   of the Bayes Centre.
+                </li>
+                <li>
+                  <strong>Jonathan Bostock</strong>, AI alignment researcher at Arcadia Impact.
                 </li>
               </EntryList>
             </EntryText>
