@@ -2,7 +2,7 @@
 // `permissions`. The test mocks next/headers with tests/next-headers.ts.
 import { NextRequest } from "next/server";
 import { query } from "@/lib/server/db";
-import { createSession } from "@/lib/server/staff-auth";
+import { createSession } from "@/lib/accounts/auth";
 import { requestCookies } from "./next-headers";
 
 /** Logs Jo in with `permissions`, and GETs `url` from `route`. */

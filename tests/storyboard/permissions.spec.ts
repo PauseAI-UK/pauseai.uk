@@ -12,6 +12,7 @@ import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, flowStorageState, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 
 export const section: Section = { name: "Permissions", part: "Staff pages", order: 140 };
 
@@ -278,14 +279,14 @@ test("Logging out everywhere", async ({ page, browser, flowDatabase }) => {
 
   story("Their page lists where they're logged in, and marks this browser.");
   await link.click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.me.title);
-  const sessions = page.getByRole("list", { name: staffCopy.me.sessionsTitle }).getByRole("listitem");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(accountsCopy.me.title);
+  const sessions = page.getByRole("list", { name: accountsCopy.me.sessionsTitle }).getByRole("listitem");
   await expect(sessions).toHaveCount(2);
-  await expect(sessions.filter({ hasText: staffCopy.sessions.thisBrowser })).toHaveCount(1);
+  await expect(sessions.filter({ hasText: accountsCopy.sessions.thisBrowser })).toHaveCount(1);
   await frame(page, "Where you're logged in");
 
   story("Log out of all of them logs the other browser out too.");
-  await page.getByRole("button", { name: staffCopy.sessions.logOutEverywhere }).click();
+  await page.getByRole("button", { name: accountsCopy.sessions.logOutEverywhere }).click();
   await expect(page).toHaveURL(`${BASE}/staff/login`);
   await other.goto(`${BASE}/staff`);
   await expect(other).toHaveURL(`${BASE}/staff/login`);
@@ -299,8 +300,8 @@ test("Sorting the accounts", async ({ page, flowDatabase }) => {
   );
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/accounts`);
-  await page.getByRole("link", { name: staffCopy.accounts.columns.lastSeen }).click();
-  await expect(page.locator('th[aria-sort="descending"]')).toContainText(staffCopy.accounts.columns.lastSeen);
+  await page.getByRole("link", { name: accountsCopy.accounts.columns.lastSeen }).click();
+  await expect(page.locator('th[aria-sort="descending"]')).toContainText(accountsCopy.accounts.columns.lastSeen);
   await expect(page.getByRole("row").nth(1)).toContainText(staffEmail());
   await frame(page, "The accounts, last seen first");
 });
@@ -314,18 +315,20 @@ test("Logging a colleague out", async ({ page, browser, flowDatabase }, testInfo
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/accounts`);
   const row = page.getByRole("row").filter({ hasText: colleague });
-  await expect(row).toContainText(staffCopy.accounts.addedByLogin);
+  await expect(row).toContainText(accountsCopy.accounts.addedByLogin);
   // The seeded admin has never logged in; this admin's own row warns that ending its sessions ends theirs.
   const seeded = page
     .getByRole("row")
     .filter({ has: page.getByRole("cell", { name: "admin@pauseai.uk", exact: true }) });
-  await expect(seeded).toContainText(staffCopy.accounts.never);
-  await expect(page.getByRole("row").filter({ hasText: staffEmail() })).toContainText(staffCopy.accounts.endMySessions);
+  await expect(seeded).toContainText(accountsCopy.accounts.never);
+  await expect(page.getByRole("row").filter({ hasText: staffEmail() })).toContainText(
+    accountsCopy.accounts.endMySessions,
+  );
   await frame(page, "The accounts page");
 
   story("They end all of a colleague's sessions, and the colleague is logged out.");
-  await row.getByRole("button", { name: staffCopy.accounts.endSessions }).click();
-  await expect(row.getByRole("button", { name: staffCopy.accounts.endSessions })).toHaveCount(0);
+  await row.getByRole("button", { name: accountsCopy.accounts.endSessions }).click();
+  await expect(row.getByRole("button", { name: accountsCopy.accounts.endSessions })).toHaveCount(0);
   await expect(row.getByRole("cell").nth(5)).toHaveText("0");
   await frame(page, "The accounts page, the colleague logged out");
   story("The audit log says who ended whose sessions.");

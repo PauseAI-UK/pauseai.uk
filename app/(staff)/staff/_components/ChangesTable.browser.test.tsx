@@ -8,6 +8,7 @@ import { changesSearch } from "@/lib/staff-search";
 import ChangesTable from "./ChangesTable";
 import { exampleChanges } from "./ChangesTable.examples";
 import { downloads } from "@/tests/browser/staff";
+import { accountsCopy } from "./accounts/copy";
 
 const [pm] = campaigns;
 
@@ -122,8 +123,8 @@ describe("ChangesTable", () => {
       copy.gone("4"),
       `${copy.gone("5")} · ${labels.reference} ICO-12 · ${count(1, "lumaUsers")} · ${count(2, "formEntries")} · ${count(2, "letters")} · ${count(0, "members")}`,
       `samuel.whitlock@pauseai.uk · ${labels.to} ${copy.noPermissions}`,
-      `samuel.whitlock@pauseai.uk · ${copy.noPermissions} → ${staffCopy.accounts.names.supporters}, ${staffCopy.accounts.names.admin}`,
-      `samuel.whitlock@pauseai.uk · ${labels.permissions} ${staffCopy.accounts.names.supporters}, retired`,
+      `samuel.whitlock@pauseai.uk · ${copy.noPermissions} → ${accountsCopy.accounts.names.supporters}, ${accountsCopy.accounts.names.admin}`,
+      `samuel.whitlock@pauseai.uk · ${labels.permissions} ${accountsCopy.accounts.names.supporters}, retired`,
       `${count(3, "added")} · ${count(40, "removed")} · ${count(2, "changed")}`,
       copy.run("12"),
       `${labels.reason} a test · Ids [1,2] · ${fields.house} atlantis · ${labels.status} ${staffVocabulary.statuses.signed}`,

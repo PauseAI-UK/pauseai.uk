@@ -6,7 +6,7 @@ import { SENDING } from "@/lib/staff-time";
 import { logChange } from "./audit";
 import { query } from "./db";
 import { isBlocked, sentBy } from "./email";
-import { gmailAccount } from "./gmail-accounts";
+import { gmailAccount } from "@/lib/accounts/gmail-accounts";
 import { SentUnrecorded, sendLetterVia, transition } from "./letter-lifecycle";
 import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";

@@ -1123,7 +1123,8 @@ pages are noindex.
     group: Next can't look for these files as the page runs, and the check
     fails on one that no group imports. Examples that need state or
     callbacks go in `Component.gallery.client.tsx`, a `"use client"` file
-    beside it, as client components without props.
+    beside it, as client components whose props, if any, are plain values
+    (`MyGmailExample connected`), which a server component can pass.
   - A component in a staff feature's folder
     (`app/(staff)/staff/_components/<feature>/`) has its examples beside
     it. The rest may have them in the gallery's

@@ -5,18 +5,11 @@ import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db";
 import { isBlocked, recordProblem } from "@/lib/server/email";
 import { getPolitician } from "@/lib/server/politicians";
-import { createSession } from "@/lib/server/staff-auth";
-import { saveStaffAccount } from "@/lib/server/staff-accounts";
-import { gmailAccounts } from "@/lib/server/gmail-accounts";
+import { createSession } from "@/lib/accounts/auth";
+import { saveStaffAccount } from "@/lib/accounts/staff-accounts";
 import { addFormEntry } from "@/lib/server/form-entries";
 import { recordStaffOptOut } from "@/lib/server/opt-outs";
-import {
-  addTestPolitician,
-  connectTestGmail,
-  describeWithDatabase,
-  MIGRATION_ASKS,
-  useTestDatabase,
-} from "@/tests/database";
+import { addTestPolitician, describeWithDatabase, MIGRATION_ASKS, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
   addAliasNow,
@@ -25,19 +18,15 @@ import {
   deleteNoteNow,
   editNoteNow,
   deleteAskNow,
-  disconnectMyGmail,
   saveAskNow,
   decideImport,
   editPoliticianNow,
   setMarkNow,
   eraseSupporterNow,
-  endStaffSessionsNow,
   recordOptOutNow,
   setAskStatus,
   saveEventNow,
-  removeStaffAccountNow,
   runJobNow,
-  saveStaffAccountNow,
   setErrorDoneNow,
   unblockAddress,
 } from "./actions";
@@ -84,11 +73,8 @@ describeWithDatabase("staff Server Actions", () => {
       () => decideImport(form({ id: "1", job: "import-parliament", decision: "apply" })),
       () => setMarkNow(form({ politicianId: "1", mark: "importantTarget", on: "true" })),
       () => editPoliticianNow(form({ politicianId: "1", salutation: "X" })),
-      () => removeStaffAccountNow(form({ email: "x@pauseai.uk" })),
-      () => saveStaffAccountNow(form({ email: "jo@pauseai.uk", "permission:admin": "on" })),
       () => eraseSupporterNow(form({ id: "1", reference: "r", confirm: "on" })),
       () => unblockAddress(form({ address: "a@example.org", note: "" })),
-      () => endStaffSessionsNow(form({ email: "jo@pauseai.uk" })),
       () => addNoteNow(form({ politicianId: String(id), body: "Hi" })),
       () => editNoteNow(form({ id: "1", body: "Hi" })),
       () => deleteNoteNow(form({ id: "1" })),
@@ -210,42 +196,6 @@ describeWithDatabase("staff Server Actions", () => {
       { job: "import-controlai", status: "ok", startedBy: "jo@pauseai.uk" },
       { job: "import-controlai", status: "failed", startedBy: "jo@pauseai.uk" },
     ]);
-  });
-
-  it("saveStaffAccountNow adds or changes an account and removeStaffAccountNow removes one, as an admin, going back to the page", async () => {
-    const save = () =>
-      saveStaffAccountNow(form({ email: "Samuel.Whitlock@pauseai.uk", "permission:supporters": "on" }));
-    expect(await expectRedirect(save)).toBe("/staff");
-    await saveStaffAccount("jo@pauseai.uk", ["admin"], "a");
-    expect(await expectRedirect(save)).toBe("/staff/accounts");
-    expect(await query("SELECT email, permissions, added_by FROM staff_accounts ORDER BY email")).toEqual([
-      { email: "jo@pauseai.uk", permissions: ["admin"], added_by: "login" },
-      { email: "samuel.whitlock@pauseai.uk", permissions: ["supporters"], added_by: "jo@pauseai.uk" },
-    ]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/accounts");
-    // The last admin can't lose admin, and the page says so.
-    expect(await expectRedirect(() => saveStaffAccountNow(form({ email: "jo@pauseai.uk" })))).toBe(
-      "/staff/accounts?notice=last-admin",
-    );
-    // Removed, the page says what that leaves them; one that isn't there, nothing; the last admin, why not.
-    expect(await expectRedirect(() => removeStaffAccountNow(form({ email: "samuel.whitlock@pauseai.uk" })))).toBe(
-      "/staff/accounts?notice=removed",
-    );
-    expect(await expectRedirect(() => removeStaffAccountNow(form({ email: "samuel.whitlock@pauseai.uk" })))).toBe(
-      "/staff/accounts",
-    );
-    expect(await expectRedirect(() => removeStaffAccountNow(form({ email: "jo@pauseai.uk" })))).toBe(
-      "/staff/accounts?notice=last-admin",
-    );
-    expect(await query("SELECT count(*)::int AS n FROM staff_accounts")).toEqual([{ n: 1 }]);
-    // An address not at pauseai.uk is refused, and the page says so.
-    expect(await expectRedirect(() => saveStaffAccountNow(form({ email: "sam@example.com" })))).toBe(
-      "/staff/accounts?notice=not-pauseai",
-    );
-    // A bad form does nothing.
-    await saveStaffAccountNow(form({ email: "nobody" }));
-    await removeStaffAccountNow(form({ email: "nobody" }));
-    expect(await query("SELECT count(*)::int AS n FROM staff_accounts")).toEqual([{ n: 1 }]);
   });
 
   it("recordOptOutNow records what staff chose of the supporter's, with how, and nothing else", async () => {
@@ -437,25 +387,6 @@ describeWithDatabase("staff Server Actions", () => {
     expect(await query("SELECT 1 FROM job_presses")).toEqual([]);
   });
 
-  it("endStaffSessionsNow ends an account's sessions, as an admin, going back to the page", async () => {
-    await createSession("samuel.whitlock@pauseai.uk");
-    const end = () => endStaffSessionsNow(form({ email: "samuel.whitlock@pauseai.uk" }));
-    expect(await expectRedirect(end)).toBe("/staff");
-    expect(
-      await query("SELECT count(*)::int AS n FROM staff_sessions WHERE email = 'samuel.whitlock@pauseai.uk'"),
-    ).toEqual([{ n: 1 }]);
-    await saveStaffAccount("jo@pauseai.uk", ["admin"], "a");
-    expect(await expectRedirect(end)).toBe("/staff/accounts");
-    expect(
-      await query("SELECT count(*)::int AS n FROM staff_sessions WHERE email = 'samuel.whitlock@pauseai.uk'"),
-    ).toEqual([{ n: 0 }]);
-    // A bad form does nothing.
-    await endStaffSessionsNow(form({ email: "nobody" }));
-    expect(await query("SELECT actor, action FROM audit_log WHERE action = 'end staff sessions'")).toEqual([
-      { actor: "jo@pauseai.uk", action: "end staff sessions" },
-    ]);
-  });
-
   it("setErrorDoneNow marks an error done as the admin, back to the list, or to do again, staying, refreshing the errors pages", async () => {
     await query(
       "INSERT INTO errors_seen (key, kind, route, name, words, latest_words) VALUES ('k', 'route', '/api', 'Error', 'W', 'W')",
@@ -540,13 +471,6 @@ describeWithDatabase("staff Server Actions", () => {
       { actor: "jo@pauseai.uk" },
       { actor: "jo@pauseai.uk" },
     ]);
-  });
-
-  it("disconnects your own Gmail", async () => {
-    await connectTestGmail("jo@pauseai.uk");
-    expect(await expectRedirect(disconnectMyGmail)).toBe("/staff/me?gmail=disconnected");
-    expect(await gmailAccounts()).toEqual([]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/me");
   });
 
   describe("asks", () => {

@@ -4,7 +4,7 @@ import { RECIPIENT_TABS, getMailing, type Mailing, type RecipientTab } from "./m
 import type { MailingChoice } from "@/lib/mailing-fields";
 import type { MailingRecipientValues } from "@/lib/mailing-doc";
 import { listAsks, type Ask } from "./asks";
-import { gmailAccounts, type GmailAccount } from "./gmail-accounts";
+import { gmailAccounts, type GmailAccount } from "@/lib/accounts/gmail-accounts";
 import { mailingChannel } from "./mailing-channels";
 import { choosingFor, getWrittenMailing, openWrittenMailing, type WrittenMailing } from "./mailing-drafts";
 import { politicianAudience, type LeftOut } from "./mailing-recipients";

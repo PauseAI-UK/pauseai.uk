@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { query } from "@/lib/server/db";
 import { addAttachment, createDraft } from "@/lib/server/mailing-drafts";
 import { createBroadcastDraft } from "@/lib/server/broadcast-drafts";
-import { createSession } from "@/lib/server/staff-auth";
+import { createSession } from "@/lib/accounts/auth";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import { GET } from "./route";

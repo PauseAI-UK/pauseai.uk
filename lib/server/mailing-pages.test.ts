@@ -2,7 +2,7 @@ import { LETTERS_INBOX } from "@/tests/gmail-sends";
 import { expect, it } from "vitest";
 import { afterEach, vi } from "vitest";
 import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { GMAIL_DAILY_LIMIT } from "./gmail-accounts";
+import { GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-accounts";
 import { query } from "./db";
 import { createDraft, saveDraft } from "./mailing-drafts";
 import { mailingPageData, politiciansPageData, type MailingPageData } from "./mailing-pages";

@@ -8,7 +8,7 @@ import { handleDeliveryProblem } from "./delivery-problems";
 import { lettersInbox } from "./letters-inbox";
 import { readLettersInbox } from "./letters-inbox-reading";
 import { notifyStaff, staffLink } from "./notifications";
-import { gmailAccess, gmailReadingState, saveGmailName, saveHistoryId } from "./gmail-accounts";
+import { gmailAccess, gmailReadingState, saveGmailName, saveHistoryId } from "@/lib/accounts/gmail-accounts";
 import { asRun, type Ran } from "./import-runs";
 import { keepsPoliticianThreads } from "@/lib/one-off";
 import { keepIfPoliticianThread, reportUnmatchedMail } from "./one-off-emails";

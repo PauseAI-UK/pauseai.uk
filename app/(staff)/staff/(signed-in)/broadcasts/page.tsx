@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ButtonLink } from "@/components/ui/Button";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { broadcastsPage } from "@/lib/server/broadcast-pages";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { mailingId } from "@/lib/staff-search";
 import { firstOf, type ParamValue } from "@/lib/list-params";
 import BroadcastsOverview from "../../_components/BroadcastsOverview";

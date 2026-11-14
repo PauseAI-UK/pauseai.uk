@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { withChoosing } from "@/lib/server/broadcast-pages";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { listSupporters, supporterChoices } from "@/lib/server/supporters";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";

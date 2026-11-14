@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "./db";
-import { GMAIL_DAILY_LIMIT } from "./gmail-accounts";
+import { GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-accounts";
 import { LETTERS_INBOX, recordGmail, testProxy } from "@/tests/gmail-sends";
 import { LETTERS_DAILY_LIMIT } from "./letters-inbox";
 import { gmailEmail, lettersInboxEmail, mailingChannel, postmarkBroadcast, postmarkEmail } from "./mailing-channels";

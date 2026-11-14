@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { loginBrowser, loginBrowserCookie, sendLoginLink } from "@/lib/server/staff-login";
-import { afterLogin, LOGIN_BROWSER_COOKIE, LOGIN_PATH, NEXT_PARAM } from "@/lib/staff-session";
+import { loginBrowser, loginBrowserCookie, sendLoginLink } from "@/lib/accounts/login";
+import { afterLogin, LOGIN_BROWSER_COOKIE, LOGIN_PATH, NEXT_PARAM } from "@/lib/accounts/session";
 import { siteUrl } from "@/lib/site-url";
 
 // Step one of logging in: the login page's form posts an email address, and

@@ -3,7 +3,7 @@ import { cache } from "react";
 import { CAMPAIGN_LETTER_STATE } from "./campaigns";
 import { config } from "./config";
 import type { AskStatus } from "@/lib/asks";
-import type { Permission } from "@/lib/staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 import type { LetterBackend, LetterFilter, LetterTab } from "@/lib/staff-search";
 import {
   messageIdSearch,

@@ -7,6 +7,7 @@ import { action } from "@/tests/browser/staff";
 import ErrorSeenView from "./ErrorSeenView";
 import ErrorsSeen from "./ErrorsSeen";
 import { exampleErrorDone, exampleErrorsSeen } from "./ErrorsSeen.examples";
+import { shellCopy } from "./shell/copy";
 
 const copy = staffCopy.errorsSeen;
 const [inPage, problem, inBrowser] = exampleErrorsSeen;
@@ -15,7 +16,7 @@ const setDone = vi.fn();
 describe("ErrorsSeen", () => {
   it("lists each error, its words leading to its own page, with where it was and how often", async () => {
     await render(<ErrorsSeen done={false} errors={exampleErrorsSeen} total={4} pages={1} page={1} pageSize={100} />);
-    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(staffCopy.nav.errors);
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(shellCopy.nav.errors);
     await expect.element(page.getByText(copy.total(4))).toBeVisible();
     await expect.element(page.getByRole("link", { name: inPage.words })).toHaveAttribute("href", "/staff/errors/4");
     // A row's cells, in order: last seen, what, its kind, its page or route, first seen, how often.

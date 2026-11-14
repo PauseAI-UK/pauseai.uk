@@ -18,7 +18,7 @@ import {
   agreedHref,
 } from "@/lib/staff-dashboard";
 import { SUPPORTER_SOURCES } from "@/lib/supporters";
-import type { Permission } from "@/lib/staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import Grid, { spanClass } from "./ui/Grid";
 import Strip from "./ui/Strip";
@@ -30,6 +30,7 @@ import styles from "./StaffDashboard.module.css";
 import { buttonClass } from "@/components/ui/Button";
 import { Muted } from "@/components/ui/Text";
 import StaffLink from "./ui/StaffLink";
+import { shellCopy } from "./shell/copy";
 
 const copy = staffCopy.home.dashboard;
 
@@ -212,8 +213,8 @@ function Tiles({
   const metrics: readonly DashboardMetric[] = DASHBOARD_SECTIONS[section];
   return (
     <>
-      <h2 className={styles.heading}>{staffCopy.nav.sections[section]}</h2>
-      <Grid as="ul" label={staffCopy.nav.sections[section]} even>
+      <h2 className={styles.heading}>{shellCopy.nav.sections[section]}</h2>
+      <Grid as="ul" label={shellCopy.nav.sections[section]} even>
         {metrics.map((metric) => (
           <Tile key={metric} metric={metric} dashboard={dashboard} permissions={permissions} />
         ))}

@@ -35,7 +35,7 @@ import { exampleMailing } from "./MailingsTable.examples";
 import PoliticianDetails from "./PoliticianDetails";
 import { examplePolitician } from "./PoliticianTable.examples";
 import { emptyLettersSearch, exampleLetter } from "./LettersTable.examples";
-import MyGmail from "./MyGmail";
+import MyGmail from "./accounts/MyGmail";
 import { OneOffTable } from "./OneOffList";
 import OneOffThreadView from "./OneOffThreadView";
 import ListFrame from "./ui/ListFrame";
@@ -44,7 +44,8 @@ import Tabs from "./ui/Tabs";
 import Run from "./Run";
 import { exampleRun } from "./RunList.examples";
 import SentEmails from "./SentEmails";
-import StaffNav from "./StaffNav";
+import StaffNav from "./shell/StaffNav";
+import { shellCopy } from "./shell/copy";
 
 const copy = staffCopy.campaigns;
 const NOW = "2026-11-05T09:00:00Z";
@@ -593,7 +594,7 @@ describe("SentEmails", () => {
     await render(
       <SentEmails emails={exampleSentEmails} total={150} pages={2} page={1} pageSize={100} search={NO_SEARCH} />,
     );
-    await expect.element(page.getByRole("heading", { level: 1, name: staffCopy.nav.sentEmails })).toBeVisible();
+    await expect.element(page.getByRole("heading", { level: 1, name: shellCopy.nav.sentEmails })).toBeVisible();
     const words = staffCopy.sentEmails;
     expect([...document.querySelectorAll("th")].map((th) => th.textContent!.replace(/[ ▲▼]+$/, ""))).toEqual(
       Object.values(words.columns),
@@ -768,12 +769,12 @@ describe("the rest", () => {
 
   it("has all emails in the menu, under Politicians", async () => {
     await render(<StaffNav email="jo@pauseai.uk" permissions={[]} />);
-    expect(document.querySelector('nav a[href="/staff/emails"]')?.textContent).toContain(staffCopy.nav.emails);
+    expect(document.querySelector('nav a[href="/staff/emails"]')?.textContent).toContain(shellCopy.nav.emails);
   });
 
   it("marks new pages in the navigation", async () => {
     await render(<StaffNav email="jo@pauseai.uk" permissions={["supporters"]} fresh={["campaigns"]} />);
-    const tagged = [...document.querySelectorAll("nav a")].filter((a) => a.textContent?.endsWith(staffCopy.nav.newTag));
+    const tagged = [...document.querySelectorAll("nav a")].filter((a) => a.textContent?.endsWith(shellCopy.nav.newTag));
     expect(tagged.map((a) => a.getAttribute("href"))).toContain("/staff/campaigns");
     expect(tagged.map((a) => a.getAttribute("href"))).not.toContain("/staff/supporters");
   });
@@ -781,8 +782,8 @@ describe("the rest", () => {
   it("marks a draft page as a draft, however new, with no dot", async () => {
     await render(<StaffNav email="jo@pauseai.uk" permissions={["supporters"]} fresh={["broadcasts"]} />);
     const link = document.querySelector('nav a[href="/staff/broadcasts"]')!;
-    expect(link.textContent).toContain(staffCopy.nav.draftTag);
-    expect(link.textContent).not.toContain(staffCopy.nav.newTag);
+    expect(link.textContent).toContain(shellCopy.nav.draftTag);
+    expect(link.textContent).not.toContain(shellCopy.nav.newTag);
     expect(link.querySelector("[aria-hidden='true'] + [aria-hidden='true']")).toBeNull();
   });
 

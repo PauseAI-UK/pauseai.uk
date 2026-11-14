@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { supporterWords } from "../../../_components/SupporterFilters";
 import { supporterColumns, supporterContact } from "../../../_components/SupportersTable";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { staffDownload } from "@/lib/server/staff-download";
 import { listSupporters, supporterChoices } from "@/lib/server/supporters";
 import { supportersSearch } from "@/lib/staff-search";

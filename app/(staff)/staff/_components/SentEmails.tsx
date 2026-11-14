@@ -15,6 +15,7 @@ import PageHead from "./ui/PageHead";
 import Shortened, { cutAtWord } from "./ui/Shortened";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
+import { shellCopy } from "./shell/copy";
 
 const PATH = SENT_EMAILS_LIST.path;
 const copy = staffCopy.sentEmails;
@@ -141,7 +142,7 @@ export default function SentEmails({
   );
   return (
     <>
-      <PageHead intro={copy.intro}>{staffCopy.nav.sentEmails}</PageHead>
+      <PageHead intro={copy.intro}>{shellCopy.nav.sentEmails}</PageHead>
       {!supporters && (
         <p>
           <Withheld>{copy.withheld}</Withheld>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { IMPORT_JOBS } from "@/lib/import-runs";
 import { latestRun, runningNow } from "@/lib/server/import-runs";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { ImportOverview } from "../../_components/ImportJob";
 import Page from "../../_components/ui/Page";
 

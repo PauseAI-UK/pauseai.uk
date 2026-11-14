@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { basename, join, relative, sep } from "node:path";
 import { expect, it } from "vitest";
 
 // A staff page's widths come from its grid (ui/Grid) and the measure
@@ -54,12 +54,15 @@ function maxWidths(css: string): { selector: string; value: string }[] {
 }
 
 it("no staff component sets its own width, but for the measure", () => {
-  const files = readdirSync(COMPONENTS).filter((name) => name.endsWith(".module.css"));
+  // The components at the top and in each feature's folder, the kit's layout pieces in ui/ left out.
+  const files = readdirSync(COMPONENTS, { recursive: true, encoding: "utf8" }).filter(
+    (path) => path.endsWith(".module.css") && !path.startsWith(`ui${sep}`),
+  );
   expect(files.length).toBeGreaterThan(10);
-  const own = files.flatMap((name) =>
-    maxWidths(readFileSync(join(COMPONENTS, name), "utf8"))
+  const own = files.flatMap((path) =>
+    maxWidths(readFileSync(join(COMPONENTS, path), "utf8"))
       .filter(({ value }) => value !== "var(--staff-measure)" && value !== "100%")
-      .map(({ selector, value }) => `${name} ${selector}: ${value}`)
+      .map(({ selector, value }) => `${basename(path)} ${selector}: ${value}`)
       .filter((rule) => !Object.keys(ALLOWED).some((allowed) => rule.startsWith(`${allowed}:`))),
   );
   expect(own, `widths set by components in ${relative(ROOT, COMPONENTS)}`).toEqual([]);

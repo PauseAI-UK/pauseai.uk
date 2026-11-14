@@ -3,7 +3,7 @@
 import { ASK_STATUSES, ASKERS, type Asker, type AskKind, type AskStatus } from "@/lib/asks";
 import { answeredByHand } from "@/lib/email-your-mp";
 import { SAVED, SAVED_LISTS, type SavedList } from "@/lib/saved-filters";
-import { PERMISSIONS, type Permission } from "@/lib/staff-permissions";
+import { PERMISSIONS, type Permission } from "@/lib/accounts/permissions";
 import { fromLondon, SENDING } from "@/lib/staff-time";
 
 function text(form: FormData, name: string): string {

@@ -16,7 +16,7 @@ import { now } from "@/lib/now";
 import { sendsAt } from "@/lib/staff-time";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
-import { gmailAccount } from "./gmail-accounts";
+import { gmailAccount } from "@/lib/accounts/gmail-accounts";
 import { transition } from "./letter-lifecycle";
 import { gmailEmail, mailingChannel, postmarkEmail, type ChannelResult } from "./mailing-channels";
 import { politicianAudience, type PoliticianRecipient } from "./mailing-recipients";

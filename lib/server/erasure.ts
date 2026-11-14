@@ -1,7 +1,7 @@
 import "server-only";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
-import { gmailAccess } from "./gmail-accounts";
+import { gmailAccess } from "@/lib/accounts/gmail-accounts";
 import { lettersInbox } from "./letters-inbox";
 import { deleteLetterReply } from "./outside-services/blobs";
 import { trashGmailMessage } from "./outside-services/gmail";

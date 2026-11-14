@@ -5,7 +5,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { listAsks } from "@/lib/server/asks";
 import { listParties, listPoliticians } from "@/lib/server/politicians";
 import { politiciansSearch } from "@/lib/staff-search";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { staffDownload } from "@/lib/server/staff-download";
 
 /** Every politician the list's filters find, in the columns the list shows, named for its house and filters. */

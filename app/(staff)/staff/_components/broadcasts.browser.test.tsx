@@ -10,7 +10,7 @@ import { supportersSearch } from "@/lib/staff-search";
 import { londonWhen, staffTime } from "@/lib/staff-time";
 import { textCost } from "@/lib/broadcasts";
 import { SENDING_DAYS } from "@/lib/broadcast-days";
-import { GMAIL_DAILY_LIMIT } from "@/lib/gmail-connect";
+import { GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-connect";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { navigation } from "@/tests/browser/navigation";
 import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";

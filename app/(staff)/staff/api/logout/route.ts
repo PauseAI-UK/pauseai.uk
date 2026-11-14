@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { deleteSession, endSession, requireStaff, sessionId } from "@/lib/server/staff-auth";
-import { endStaffSessions } from "@/lib/server/staff-accounts";
-import { KEEP_COOKIE, LOGIN_PATH, SESSION_COOKIE } from "@/lib/staff-session";
+import { deleteSession, endSession, requireStaff, sessionId } from "@/lib/accounts/auth";
+import { endStaffSessions } from "@/lib/accounts/staff-accounts";
+import { KEEP_COOKIE, LOGIN_PATH, SESSION_COOKIE } from "@/lib/accounts/session";
 import { siteUrl } from "@/lib/site-url";
 
 /** Where ending one of your other sessions goes: back to them, on your own page. */

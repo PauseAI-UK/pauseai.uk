@@ -1,4 +1,4 @@
-import { GMAIL_DAILY_LIMIT } from "./gmail-connect";
+import { GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-connect";
 import { fieldsIn, isBlankMailing, type MailingDoc } from "./mailing-doc";
 import { now } from "./now";
 

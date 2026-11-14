@@ -2,20 +2,21 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { featureLibFolders } from "../../eslint.config.mjs";
 
 // An error that's caught is rethrown or reported with problem()
 // (lib/server/problems.ts), so that carrying on past it leaves a record on
 // the run, or at least in the log. This fails on any catch block, or
 // function passed to .catch(), that does neither, or has a way out (break,
 // continue, return) ahead of its report, as an early exit for one kind of
-// error skips it; in the code where jobs and requests run: lib/server, app/api
-// and netlify/functions. A named handler
+// error skips it; in the code where jobs and requests run: lib/server, each
+// feature's folder of logic, app/api and netlify/functions. A named handler
 // passed to .catch() is read too, so one that rethrows all but one error
 // passes. The exceptions below are the few places that catch to answer a
 // question ("is there a request?") rather than to carry on past a failure.
 
 const ROOT = join(__dirname, "..", "..");
-const DIRS = ["lib/server", "app/api", "netlify/functions"];
+const DIRS = ["lib/server", ...featureLibFolders(), "app/api", "netlify/functions"];
 
 /** The catches that aren't losing anything, as "file  function", with why. */
 const EXCEPTIONS = new Map([

@@ -7,6 +7,7 @@ import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
 import Tabs from "./ui/Tabs";
+import { shellCopy } from "./shell/copy";
 
 const PATH = ERRORS_LIST.path;
 const copy = staffCopy.errorsSeen;
@@ -56,7 +57,7 @@ export default function ErrorsSeen({
   const tab = { done: done ? "yes" : "" };
   return (
     <>
-      <PageHead intro={copy.intro}>{staffCopy.nav.errors}</PageHead>
+      <PageHead intro={copy.intro}>{shellCopy.nav.errors}</PageHead>
       <Tabs
         label={copy.tabs.label}
         current={done ? "done" : "toDo"}

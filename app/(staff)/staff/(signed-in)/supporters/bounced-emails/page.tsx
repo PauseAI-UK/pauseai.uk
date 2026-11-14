@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listBlocks, recentProblems } from "@/lib/server/email";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { emailsSearch } from "@/lib/staff-search";
 import { clearedTo, filtersPath } from "@/lib/list-params";
 import { unblockAddress } from "../../../actions";

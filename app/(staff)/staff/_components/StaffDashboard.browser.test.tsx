@@ -7,6 +7,7 @@ import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { spanClass } from "./ui/Grid";
 import StaffDashboard from "./StaffDashboard";
 import { exampleDashboard, exampleQuietDashboard } from "./StaffDashboard.examples";
+import { shellCopy } from "./shell/copy";
 
 const [pm, bill] = campaigns;
 
@@ -91,7 +92,7 @@ describe("StaffDashboard", () => {
       <StaffDashboard dashboard={exampleDashboard} permissions={["admin", "supporters"]} />,
     );
     const group = (section: string) =>
-      page.getByRole("list", { name: staffCopy.nav.sections[section] }).getByRole("listitem").all();
+      page.getByRole("list", { name: shellCopy.nav.sections[section] }).getByRole("listitem").all();
     const mps = group("politicians");
     const events = group("events");
     const supporters = group("supporters");

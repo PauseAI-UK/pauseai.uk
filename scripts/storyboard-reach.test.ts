@@ -397,7 +397,7 @@ describe("changedCopyKeys", () => {
       const key = /^ {2}(\w+): /.exec(line)?.[1];
       return key ? [{ key, line: start + at + 1 }] : [];
     });
-    expect(keys.map(({ key }) => key)).toContain("login");
+    expect(keys.map(({ key }) => key)).toContain("problems");
     expect(keys.map(({ key }) => key)).not.toContain("filters");
     for (const { key, line } of keys) expect(changedCopyKeys(hunk(line), text, text)).toEqual(new Set([key]));
   });

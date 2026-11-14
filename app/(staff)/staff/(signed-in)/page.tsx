@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { dashboard } from "@/lib/server/staff-dashboard";
 import { dashboardWindow } from "@/lib/staff-dashboard";
 import StaffHome from "../_components/StaffHome";

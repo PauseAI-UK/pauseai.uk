@@ -1,6 +1,6 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { Dashboard } from "@/lib/staff-dashboard";
-import type { Permission } from "@/lib/staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 import { staffDay } from "@/lib/staff-time";
 import StaffDashboard from "./StaffDashboard";
 import PageHead from "./ui/PageHead";

@@ -1,9 +1,9 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { NAV_FOLD_KEY } from "@/lib/staff-nav";
 import styles from "./NavFold.module.css";
+import { shellCopy } from "../shell/copy";
 
 /** Tells this page's NavFold the sidebar has folded or unfolded. */
 const EVENT = "staff-nav-fold";
@@ -39,7 +39,7 @@ export default function NavFold() {
       type="button"
       className={styles.fold}
       aria-expanded={!folded}
-      aria-label={folded ? staffCopy.nav.unfold : staffCopy.nav.fold}
+      aria-label={folded ? shellCopy.nav.unfold : shellCopy.nav.fold}
       onClick={toggle}
     >
       <svg

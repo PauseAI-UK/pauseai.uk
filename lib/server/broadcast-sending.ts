@@ -24,7 +24,7 @@ import { broadcastEmailChannel, textBackend } from "./broadcast-channels";
 import { supporterAudience } from "./broadcast-recipients";
 import { query } from "./db";
 import { hashOf } from "./email-settings";
-import { gmailAccount } from "./gmail-accounts";
+import { gmailAccount } from "@/lib/accounts/gmail-accounts";
 import { paced, type ChannelMessage, type ChannelResult } from "./mailing-channels";
 import { attachmentsOf, emailFor } from "./mailing-drafts";
 import { newMessageId } from "./mime";

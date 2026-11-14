@@ -1,4 +1,4 @@
-import type { Permission } from "@/lib/staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 
 // Notes staff write about a supporter or a politician: who may change one,
 // and the links in its text.

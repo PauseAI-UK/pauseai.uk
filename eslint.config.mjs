@@ -305,7 +305,9 @@ const PAGE_REDIRECT = {
 // lib/email-parsing/, and components/. Of the folders beside theirs, they
 // may import only those. Their tests and gallery examples may reach across.
 const STAFF_COMPONENTS = "app/(staff)/staff/_components";
-const FEATURES = {};
+export const FEATURES = { accounts: [] };
+/** Each feature's folder of logic, lib/<feature>, where its server code is, beside lib/server/. */
+export const featureLibFolders = () => Object.keys(FEATURES).map((feature) => `lib/${feature}`);
 // lib/'s folders that every feature stands on.
 const SHARED_LIB = ["server", "content", "email-parsing"];
 // The staff kit and the staff pages' frame, which every feature's components use.
@@ -428,7 +430,15 @@ const eslintConfig = defineConfig([
     // The server's clock runs in the browser too, where config can't go.
     { files: ["lib/now.ts"], fetch: true, env: true },
     { files: ["app/(staff)/**/*.tsx"], fetch: true, staff: true },
-    { files: ["lib/server/**/*.ts", "app/**/route.ts", "app/**/actions.ts"] },
+    // The server's code: lib/server/, each feature's logic, and what answers a request.
+    {
+      files: [
+        "lib/server/**/*.ts",
+        ...featureLibFolders().map((folder) => `${folder}/**/*.ts`),
+        "app/**/route.ts",
+        "app/**/actions.ts",
+      ],
+    },
     // The fakes read the fixture build's own settings, as the storyboard loads them outside the site.
     { files: ["lib/server/fixtures/*.ts"], fakes: true, env: true },
     { files: ["lib/server/config.ts"], env: true, siteUrl: true },

@@ -12,6 +12,7 @@ import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 
 export const section: Section = { name: "Errors", part: "Staff pages", order: 135 };
 
@@ -72,7 +73,7 @@ test("A staff page breaks", async ({ page, flowDatabase }) => {
 
   story("An admin opens Errors. The error is first, as it's the one seen most recently.");
   await page.goto(`${BASE}/staff/errors`);
-  await expect(page.getByRole("heading", { level: 1, name: staffCopy.nav.errors })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: shellCopy.nav.errors })).toBeVisible();
   await settled(page);
   const row = page.getByRole("row").filter({ hasText: words });
   await expect(row.getByRole("cell").last()).toHaveText("2");

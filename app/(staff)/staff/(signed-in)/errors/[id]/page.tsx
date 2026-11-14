@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { errorSeen } from "@/lib/server/errors-seen";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { setErrorDoneNow } from "../../../actions";
 import ErrorSeenView from "../../../_components/ErrorSeenView";
 import Page from "../../../_components/ui/Page";

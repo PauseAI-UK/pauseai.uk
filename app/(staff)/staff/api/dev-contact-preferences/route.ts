@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { TOPICS, type Topic } from "@/lib/contact-permissions";
 import { config } from "@/lib/server/config";
 import { newSettingsLink, newTopicLink } from "@/lib/server/email-settings";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { siteUrl } from "@/lib/site-url";
 
 // Development only (DevPreferences): in a fixture build, a supporter's page

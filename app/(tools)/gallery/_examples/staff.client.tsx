@@ -53,8 +53,6 @@ import {
 import Run from "@/app/(staff)/staff/_components/Run";
 import AskRow, { AskRows, PoliticianAsks } from "@/app/(staff)/staff/_components/AskRow";
 import EraseForm from "@/app/(staff)/staff/_components/EraseForm";
-import StaffAccountsTable, { AddStaff } from "@/app/(staff)/staff/_components/StaffAccountsTable";
-import type { StaffAccount } from "@/lib/server/staff-accounts";
 import UnblockForm, { UnblockBubble } from "@/app/(staff)/staff/_components/UnblockForm";
 import NoteChanges from "@/app/(staff)/staff/_components/NoteChanges";
 import NotesCard from "@/app/(staff)/staff/_components/NotesCard";
@@ -82,12 +80,7 @@ import { SENDING } from "@/lib/staff-time";
 import { DeleteDraft, ResumeBroadcast, StopMailing } from "@/app/(staff)/staff/_components/MailingButtons";
 import { DeleteTwice } from "@/app/(staff)/staff/_components/DeleteTwice";
 import AskForm from "@/app/(staff)/staff/_components/AskForm";
-import MyGmail from "@/app/(staff)/staff/_components/MyGmail";
-import {
-  exampleEditableAsk,
-  exampleGmailAccount,
-  exampleThread,
-} from "@/app/(staff)/staff/_components/LetterThread.examples";
+import { exampleEditableAsk, exampleThread } from "@/app/(staff)/staff/_components/LetterThread.examples";
 import MailingFiles from "@/app/(staff)/staff/_components/MailingFiles";
 import MailingFor from "@/app/(staff)/staff/_components/MailingFor";
 import { FilterPills } from "@/app/(staff)/staff/_components/MailingParts";
@@ -582,64 +575,6 @@ export function ErrorSeenViewExample({ which }: { which: 0 | 1 | 2 | "done" }) {
   return <Logged>{(log) => <ErrorSeenView error={error} setDone={log("setDone")} />}</Logged>;
 }
 
-/** Add staff, at the accounts page's top right: its box adds someone, logged; jo@pauseai.uk is there already. */
-export function AddStaffExample() {
-  return (
-    <Logged>
-      {(log) => <AddStaff accounts={[{ email: "jo@pauseai.uk" } as StaffAccount]} add={log("saveStaffAccount")} />}
-    </Logged>
-  );
-}
-
-/** The seeded admin, never logged in; an admin looking, logged in twice; and someone their first login added; each row's forms logged. */
-export function StaffAccountsTableExample() {
-  return (
-    <Logged>
-      {(log) => (
-        <StaffAccountsTable
-          save={log("saveStaffAccount")}
-          remove={log("removeStaffAccount")}
-          endSessions={log("endStaffSessions")}
-          you="jo@pauseai.uk"
-          sort={{ key: "email", dir: "asc" }}
-          accounts={[
-            {
-              email: "admin@pauseai.uk",
-              permissions: ["admin"],
-              addedBy: "migration",
-              addedAt: new Date("2026-10-16T12:00:00Z"),
-              lastLoginAt: null,
-              lastSeenAt: null,
-              sessions: 0,
-              gmailConnectedAt: null,
-            },
-            {
-              email: "jo@pauseai.uk",
-              permissions: ["admin"],
-              addedBy: "admin@pauseai.uk",
-              addedAt: new Date("2026-10-20T09:00:00Z"),
-              lastLoginAt: new Date("2026-10-22T08:00:00Z"),
-              lastSeenAt: new Date("2026-10-22T09:15:00Z"),
-              sessions: 2,
-              gmailConnectedAt: new Date("2026-10-21T09:00:00Z"),
-            },
-            {
-              email: "samuel.whitlock@pauseai.uk",
-              permissions: [],
-              addedBy: "login",
-              addedAt: new Date("2026-10-21T10:30:00Z"),
-              lastLoginAt: new Date("2026-10-21T10:30:00Z"),
-              lastSeenAt: new Date("2026-10-21T11:00:00Z"),
-              sessions: 1,
-              gmailConnectedAt: null,
-            },
-          ]}
-        />
-      )}
-    </Logged>
-  );
-}
-
 export function EraseFormExample() {
   return (
     <Logged>
@@ -1123,22 +1058,6 @@ export function MailingFilesExample({ editable }: { editable: boolean }) {
           base="/staff/mailings/12/files"
           onAdd={editable ? log("onAdd") : undefined}
           onRemove={editable ? log("onRemove") : undefined}
-        />
-      )}
-    </Logged>
-  );
-}
-
-/** Your Gmail on your own page, connected or not, Disconnect logged. */
-export function MyGmailExample({ connected, outcome = "" }: { connected: boolean; outcome?: string }) {
-  return (
-    <Logged>
-      {(log) => (
-        <MyGmail
-          me="jo@pauseai.uk"
-          account={connected ? exampleGmailAccount : undefined}
-          outcome={outcome}
-          disconnect={log("disconnect")}
         />
       )}
     </Logged>

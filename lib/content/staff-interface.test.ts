@@ -59,7 +59,7 @@ it("words the runs' times, problems and results", () => {
   expect(runs.range("09:00", "09:00")).toBe("09:00");
   expect(runs.range("09:00", "09:05")).toBe("09:00–09:05");
   const { job, anywhere, logs } = staffCopy.problems;
-  for (const words of [job.couldntRead, job.nameUnknown, logs.tokenNotRevoked]) {
+  for (const words of [job.couldntRead, job.nameUnknown]) {
     expect(words("jo@pauseai.uk")).toContain("jo@pauseai.uk");
   }
   expect(job.eventGuests("evt-1")).toContain("evt-1");

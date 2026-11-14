@@ -1,5 +1,5 @@
 import type { ImportJob, PoliticianImportJob } from "./import-runs";
-import type { Permission } from "./staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 import { staffVocabulary } from "./staff-vocabulary";
 import { now } from "./now";
 import type { SupporterSource } from "./supporters";

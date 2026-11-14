@@ -11,9 +11,6 @@ import ChangesTable from "@/app/(staff)/staff/_components/ChangesTable";
 import { exampleChanges } from "@/app/(staff)/staff/_components/ChangesTable.examples";
 import AuditDetail, { FieldChanges } from "@/app/(staff)/staff/_components/AuditDetail";
 import { DotParts, LoggedJson } from "@/app/(staff)/staff/_components/Logged";
-import DevLogin from "@/app/(staff)/staff/_components/DevLogin";
-import LoginCard from "@/app/(staff)/staff/_components/LoginCard";
-import LoginForm from "@/app/(staff)/staff/_components/LoginForm";
 import ResultBox, { OPEN_UP_TO } from "@/app/(staff)/staff/_components/ResultBox";
 import Run from "@/app/(staff)/staff/_components/Run";
 import RunBox from "@/app/(staff)/staff/_components/RunBox";
@@ -35,13 +32,19 @@ import {
   exampleSendingResult,
   exampleTidyingResult,
 } from "@/app/(staff)/staff/_components/RunList.examples";
-import AccountsNotice from "@/app/(staff)/staff/_components/AccountsNotice";
 import ImportCard, { ImportCards } from "@/app/(staff)/staff/_components/ImportCard";
 import ImportIcon from "@/app/(staff)/staff/_components/ImportIcon";
-import { keepSignedInGallery } from "@/app/(staff)/staff/_components/KeepSignedIn.gallery";
+import { keepSignedInGallery } from "@/app/(staff)/staff/_components/accounts/KeepSignedIn.gallery";
+import { myGmailGallery } from "@/app/(staff)/staff/_components/accounts/MyGmail.gallery";
+import { gmailConnectGallery } from "@/app/(staff)/staff/_components/accounts/GmailConnect.gallery";
+import { staffSessionsGallery } from "@/app/(staff)/staff/_components/accounts/StaffSessions.gallery";
+import { staffAccountsTableGallery } from "@/app/(staff)/staff/_components/accounts/StaffAccountsTable.gallery";
+import { accountsNoticeGallery } from "@/app/(staff)/staff/_components/accounts/AccountsNotice.gallery";
+import { loginCardGallery } from "@/app/(staff)/staff/_components/accounts/LoginCard.gallery";
+import { devLoginGallery } from "@/app/(staff)/staff/_components/accounts/DevLogin.gallery";
+import { loginFormGallery } from "@/app/(staff)/staff/_components/accounts/LoginForm.gallery";
 import StaffDashboard from "@/app/(staff)/staff/_components/StaffDashboard";
 import StaffHome from "@/app/(staff)/staff/_components/StaffHome";
-import StaffSessions from "@/app/(staff)/staff/_components/StaffSessions";
 import { exampleDashboard, exampleQuietDashboard } from "@/app/(staff)/staff/_components/StaffDashboard.examples";
 import Sparkline from "@/app/(staff)/staff/_components/Sparkline";
 import StackedBars from "@/app/(staff)/staff/_components/StackedBars";
@@ -53,7 +56,6 @@ import {
 } from "@/app/(staff)/staff/_components/SupportersTable.examples";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import Tag from "@/components/ui/Tag";
-import { GmailConnect, GmailOutcome, SentToday } from "@/app/(staff)/staff/_components/GmailConnect";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { changesSearch } from "@/lib/staff-search";
 import { type ImportJob, NIGHTLY, type PoliticianImportJob } from "@/lib/import-runs";
@@ -63,9 +65,6 @@ import {
   ImportJobPageExample,
   JobActionsExample,
   ErrorSeenViewExample,
-  StaffAccountsTableExample,
-  AddStaffExample,
-  MyGmailExample,
   ChangesFiltersExample,
 } from "./staff.client";
 
@@ -493,172 +492,11 @@ export const staffAdmin: Group = {
         },
       ],
     },
-    {
-      name: "MyGmail",
-      file: "app/(staff)/staff/_components/MyGmail.tsx",
-      variants: [
-        {
-          label: "Not connected: what connecting means, and the button",
-          render: () => (
-            <StaffPage as="div">
-              <MyGmailExample connected={false} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Just connected, with today's sends, and Disconnect",
-          render: () => (
-            <StaffPage as="div">
-              <MyGmailExample connected outcome="connected" />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Connecting failed: the error, then what connecting means again",
-          render: () => (
-            <StaffPage as="div">
-              <MyGmailExample connected={false} outcome="failed" />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "GmailConnect",
-      file: "app/(staff)/staff/_components/GmailConnect.tsx",
-      variants: [
-        {
-          label: "What connecting means, said before going to Google",
-          render: () => (
-            <StaffPage as="div">
-              <GmailConnect back="/staff/mailings/12" />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "The same for the letters inbox: what it does with supporters' letters, and its own limit",
-          render: () => (
-            <StaffPage as="div">
-              <GmailConnect back="/staff/me" lettersInbox />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "SentToday",
-      file: "app/(staff)/staff/_components/GmailConnect.tsx",
-      variants: [
-        {
-          label: "An account's sends against today's limit",
-          render: () => (
-            <StaffPage as="div">
-              <SentToday sent={120} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "GmailOutcome",
-      file: "app/(staff)/staff/_components/GmailConnect.tsx",
-      variants: (["connected", "other-account", "refused", "failed"] as const).map((outcome) => ({
-        label: `Back from Google: ${outcome}`,
-        render: () => (
-          <StaffPage as="div">
-            <GmailOutcome outcome={outcome} me="jo@pauseai.uk" />
-          </StaffPage>
-        ),
-      })),
-    },
-    {
-      name: "StaffSessions",
-      file: "app/(staff)/staff/_components/StaffSessions.tsx",
-      variants: [
-        {
-          label: "Three sessions: this browser's, a kept one on a phone, and one from a browser we can't name",
-          render: () => (
-            <StaffPage as="div">
-              <StaffSessions
-                sessions={[
-                  {
-                    id: "session-1",
-                    userAgent:
-                      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15",
-
-                    startedAt: new Date("2026-10-22T09:00:00Z"),
-                    expiresAt: new Date("2026-10-23T09:00:00Z"),
-                    remember: false,
-                    current: true,
-                  },
-                  {
-                    id: "session-2",
-                    userAgent:
-                      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.90 Mobile/15E148 Safari/604.1",
-
-                    startedAt: new Date("2026-10-20T08:00:00Z"),
-                    expiresAt: new Date("2026-11-21T08:00:00Z"),
-                    remember: true,
-                    current: false,
-                  },
-                  {
-                    id: "session-3",
-                    userAgent: null,
-
-                    startedAt: new Date("2026-10-19T18:30:00Z"),
-                    expiresAt: new Date("2026-10-20T18:30:00Z"),
-                    remember: false,
-                    current: false,
-                  },
-                ]}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "StaffAccountsTable",
-      file: "app/(staff)/staff/_components/StaffAccountsTable.tsx",
-      variants: [
-        {
-          label: "Three accounts, each's permissions by name with Edit, Remove pressed twice, and what removing does",
-          render: () => (
-            <StaffPage as="div">
-              <StaffAccountsTableExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "AddStaff",
-      file: "app/(staff)/staff/_components/StaffAccountsTable.tsx",
-      variants: [
-        {
-          label: "At the page's top right: press it for the box to add someone",
-          render: () => (
-            <StaffPage as="div">
-              <AddStaffExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "AccountsNotice",
-      file: "app/(staff)/staff/_components/AccountsNotice.tsx",
-      variants: [
-        {
-          label: "A change refused: the last admin",
-          render: () => (
-            <StaffPage as="div">
-              <AccountsNotice notice="last-admin" />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...myGmailGallery,
+    ...gmailConnectGallery,
+    ...staffSessionsGallery,
+    ...staffAccountsTableGallery,
+    ...accountsNoticeGallery,
     ...keepSignedInGallery,
     {
       name: "ImportIcon",
@@ -808,72 +646,9 @@ export const staffAdmin: Group = {
         },
       ],
     },
-    {
-      name: "LoginCard",
-      file: "app/(staff)/staff/_components/LoginCard.tsx",
-      variants: [
-        {
-          label: "Around the login form",
-          render: () => (
-            <StaffPage as="div">
-              <LoginCard title={staffCopy.login.title}>
-                <LoginForm />
-              </LoginCard>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "DevLogin",
-      file: "app/(staff)/staff/_components/DevLogin.tsx",
-      variants: [
-        {
-          label: "Under the login card, in a fixture build only",
-          render: () => (
-            <StaffPage as="div">
-              <LoginCard title={staffCopy.login.title}>
-                <LoginForm />
-              </LoginCard>
-              <DevLogin
-                accounts={[
-                  { email: "admin@pauseai.uk", description: staffCopy.devLogin.permissions("Admin") },
-                  { email: "jo@pauseai.uk", description: staffCopy.devLogin.permissions("Supporters") },
-                  { email: "samuel.whitlock@pauseai.uk", description: staffCopy.devLogin.noPermissions },
-                  { email: "nobody@pauseai.uk", description: staffCopy.devLogin.noAccount },
-                ]}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "LoginForm",
-      file: "app/(staff)/staff/_components/LoginForm.tsx",
-      variants: [
-        {
-          label: "After a failed link, and one opened in another browser",
-          render: () => (
-            <StaffPage as="div">
-              <LoginCard title={staffCopy.login.title}>
-                <LoginForm failed="1" elsewhere="1" />
-              </LoginCard>
-            </StaffPage>
-          ),
-        },
-        {
-          label: "The link sent",
-          render: () => (
-            <StaffPage as="div">
-              <LoginCard title={staffCopy.login.title}>
-                <LoginForm sent="1" />
-              </LoginCard>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...loginCardGallery,
+    ...devLoginGallery,
+    ...loginFormGallery,
     {
       name: "JobActions",
       file: "app/(staff)/staff/_components/JobActions.tsx",

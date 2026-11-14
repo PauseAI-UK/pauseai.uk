@@ -7,6 +7,7 @@ import { importPoliticians, PM_LETTER } from "./politician-steps";
 import { importLuma } from "./supporter-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 
 export const section: Section = { name: "Dashboard and getting around", part: "Staff pages", order: 20 };
 
@@ -19,8 +20,8 @@ test("Folding the sidebar", { tag: "@desktop-only" }, async ({ page, flowDatabas
   story("The sidebar lists the staff pages, each with its icon. A round button on its edge folds it.");
   await logIn(page, flowDatabase, ["supporters", "admin"]);
   await page.goto(`${BASE}/staff/politicians`);
-  const nav = page.getByRole("navigation", { name: staffCopy.nav.title });
-  await expect(nav.getByRole("link", { name: staffCopy.nav.supporters })).toBeVisible();
+  const nav = page.getByRole("navigation", { name: shellCopy.nav.title });
+  await expect(nav.getByRole("link", { name: shellCopy.nav.supporters })).toBeVisible();
   await frame(page, "The sidebar");
   story("Folded, it's a strip of icons, each at the height it was, and the page is wider.");
 
@@ -28,16 +29,16 @@ test("Folding the sidebar", { tag: "@desktop-only" }, async ({ page, flowDatabas
   const heights = () =>
     nav.locator("li svg, form svg").evaluateAll((icons) => icons.map((icon) => icon.getBoundingClientRect().top));
   const open = await heights();
-  await nav.getByRole("button", { name: staffCopy.nav.fold }).click();
-  await expect(nav.getByRole("button", { name: staffCopy.nav.unfold })).toBeVisible();
-  await expect(nav.getByRole("heading", { name: staffCopy.nav.sections.admin })).toBeHidden();
+  await nav.getByRole("button", { name: shellCopy.nav.fold }).click();
+  await expect(nav.getByRole("button", { name: shellCopy.nav.unfold })).toBeVisible();
+  await expect(nav.getByRole("heading", { name: shellCopy.nav.sections.admin })).toBeHidden();
   expect(await heights()).toEqual(open);
   await frame(page, "The sidebar, folded");
   story("Tabbing to an icon, or hovering over it, shows the page's name beside it.");
 
   // Hovered, not tabbed to: Chromium now and then took the focus from the link, natively, a second or so after
   // it was given, with nothing else focused, so a focused link's label was in some pictures and not others.
-  const supporters = nav.getByRole("link", { name: staffCopy.nav.supporters });
+  const supporters = nav.getByRole("link", { name: shellCopy.nav.supporters });
   await supporters.hover();
   await expect
     .poll(() => supporters.locator("[class*=label]").evaluate((l) => l.getBoundingClientRect().width))
@@ -45,14 +46,14 @@ test("Folding the sidebar", { tag: "@desktop-only" }, async ({ page, flowDatabas
   await frame(page, "A page's name", { hover: supporters });
   story("The next page opens with the sidebar still folded.");
 
-  await nav.getByRole("link", { name: staffCopy.nav.supporters }).click();
+  await nav.getByRole("link", { name: shellCopy.nav.supporters }).click();
   await expect(page).toHaveURL(`${BASE}/staff/supporters`);
-  await expect(nav.getByRole("button", { name: staffCopy.nav.unfold })).toBeVisible();
+  await expect(nav.getByRole("button", { name: shellCopy.nav.unfold })).toBeVisible();
   await frame(page, "The next page");
   story("The same button unfolds it.");
 
-  await nav.getByRole("button", { name: staffCopy.nav.unfold }).click();
-  await expect(nav.getByRole("heading", { name: staffCopy.nav.sections.admin })).toBeVisible();
+  await nav.getByRole("button", { name: shellCopy.nav.unfold }).click();
+  await expect(nav.getByRole("heading", { name: shellCopy.nav.sections.admin })).toBeVisible();
 });
 
 test("Sorting and searching", async ({ page, flowDatabase }) => {
@@ -102,8 +103,8 @@ test("Following a sidebar link", async ({ page, flowDatabase }) => {
   await page.goto(`${BASE}/staff/politicians`);
   // In the sidebar; on a phone, behind the bar's menu.
   const asks = page
-    .getByRole("navigation", { name: staffCopy.nav.title })
-    .getByRole("link", { name: staffCopy.nav.asks });
+    .getByRole("navigation", { name: shellCopy.nav.title })
+    .getByRole("link", { name: shellCopy.nav.asks });
   if (!(await asks.first().isVisible())) await page.locator("nav details > summary").click();
 
   // The Asks page waits on its table, as on a slow database.
@@ -235,7 +236,7 @@ test("A test MP's page", async ({ page, request, flowDatabase }) => {
   // The trail above the name leads back; then the list sorted by a heading, and reversed.
   await page
     .getByRole("navigation", { name: staffVocabulary.breadcrumb })
-    .getByRole("link", { name: staffCopy.nav.politicians })
+    .getByRole("link", { name: shellCopy.nav.politicians })
     .click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   await page.getByRole("link", { name: staffVocabulary.fields.constituency }).click();
@@ -254,12 +255,12 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.home.title);
   await expect(page.getByText(staffEmail()).first()).toBeAttached();
   // The sidebar has a heading of the same name, before the dashboard's.
-  await expect(page.getByRole("heading", { level: 2, name: staffCopy.nav.sections.politicians }).last()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: shellCopy.nav.sections.politicians }).last()).toBeVisible();
   await frame(page, "The dashboard");
   story("They open Politicians from the sidebar (on a phone, from the menu). The test politicians are left out.");
 
   // The pages are in the sidebar; on a phone, behind the bar's menu.
-  const politicians = page.getByRole("link", { name: staffCopy.nav.politicians, exact: true });
+  const politicians = page.getByRole("link", { name: shellCopy.nav.politicians, exact: true });
   if (!(await politicians.first().isVisible())) await page.locator("nav details > summary").click();
   await politicians.filter({ visible: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.politicians.title);
@@ -291,7 +292,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await expect(card.getByText(/Told us at the march/)).toBeVisible();
   await frame(page, "Polly Placeholder, signed");
   story("The politicians list shows it too.");
-  await page.getByRole("link", { name: staffCopy.nav.politicians }).first().click();
+  await page.getByRole("link", { name: shellCopy.nav.politicians }).first().click();
   const pollyRow = page.getByRole("row").filter({ hasText: "Polly Placeholder" });
   await expect(pollyRow).toContainText(PM_LETTER);
   await expect(pollyRow.getByRole("button")).toHaveCount(0);
@@ -340,7 +341,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   story("They log out (on a phone, from the menu), and the staff pages ask them to log in again.");
 
   // On a phone the navigation and Log out are behind the bar's menu.
-  const logout = page.getByRole("button", { name: staffCopy.nav.logout });
+  const logout = page.getByRole("button", { name: shellCopy.nav.logout });
   if (!(await logout.first().isVisible())) {
     await page.locator("nav details > summary").click();
     await frame(page, "The staff menu");
@@ -361,23 +362,23 @@ test("The new tag", { tag: "@desktop-only" }, async ({ page, flowDatabase }) => 
     `UPDATE staff_nav_seen SET first_seen_at = now() WHERE email = '${email}' AND page IN ('campaigns', 'sentEmails')`,
   );
   await page.goto(`${BASE}/staff`);
-  const nav = page.getByRole("navigation", { name: staffCopy.nav.title }).first();
+  const nav = page.getByRole("navigation", { name: shellCopy.nav.title }).first();
   await expect(
-    nav.getByRole("link", { name: `${staffCopy.nav.campaigns} ${staffCopy.nav.newTag}` }).first(),
+    nav.getByRole("link", { name: `${shellCopy.nav.campaigns} ${shellCopy.nav.newTag}` }).first(),
   ).toBeVisible();
   await frame(page, "New in the menu");
 
   story("With the menu folded to a rail of icons, a dot says the same.");
-  await nav.getByRole("button", { name: staffCopy.nav.fold }).click();
-  await expect(nav.getByRole("button", { name: staffCopy.nav.unfold })).toBeVisible();
+  await nav.getByRole("button", { name: shellCopy.nav.fold }).click();
+  await expect(nav.getByRole("button", { name: shellCopy.nav.unfold })).toBeVisible();
   await frame(page, "New on the rail");
-  await nav.getByRole("button", { name: staffCopy.nav.unfold }).click();
+  await nav.getByRole("button", { name: shellCopy.nav.unfold }).click();
 
   story("Three days later, it's gone.");
   runSql(flowDatabase, `UPDATE staff_nav_seen SET first_seen_at = now() - interval '4 days' WHERE email = '${email}'`);
   await page.reload();
-  await expect(nav.getByRole("link", { name: staffCopy.nav.campaigns }).first()).not.toContainText(
-    staffCopy.nav.newTag,
+  await expect(nav.getByRole("link", { name: shellCopy.nav.campaigns }).first()).not.toContainText(
+    shellCopy.nav.newTag,
   );
   await frame(page, "No longer new");
 });
@@ -392,8 +393,8 @@ test("The new tag on a phone", { tag: "@phone-only" }, async ({ page, flowDataba
   );
   await page.goto(`${BASE}/staff`);
   await page.getByRole("group").locator("summary").click();
-  await expect(page.getByRole("group").getByRole("link", { name: staffCopy.nav.campaigns })).toContainText(
-    staffCopy.nav.newTag,
+  await expect(page.getByRole("group").getByRole("link", { name: shellCopy.nav.campaigns })).toContainText(
+    shellCopy.nav.newTag,
   );
   await frame(page, "New in the phone's menu", { window: true });
 });

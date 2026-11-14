@@ -4,7 +4,7 @@ import { found } from "@/lib/found";
 import { listAsks } from "@/lib/server/asks";
 import { getSupporterLetter } from "@/lib/server/letters";
 import { getPolitician } from "@/lib/server/politicians";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { letterId } from "@/lib/staff-search";
 import FindInGmail from "../../../_components/FindInGmail";
 import { letterTitle } from "../../../_components/LetterHistory";

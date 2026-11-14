@@ -7,7 +7,7 @@ import {
   SESSION_COOKIE,
   sessionCookie,
   STAFF_PATH_HEADER,
-} from "@/lib/staff-session";
+} from "@/lib/accounts/session";
 import { siteUrl } from "@/lib/site-url";
 
 // Turns away anyone on /staff without a session cookie: pages go to the

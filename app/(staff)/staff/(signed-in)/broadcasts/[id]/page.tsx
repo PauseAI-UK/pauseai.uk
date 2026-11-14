@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { broadcastCrumb, broadcastPageData, broadcastTitle } from "@/lib/server/broadcast-pages";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { mailingId } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import BroadcastFor from "../../../_components/BroadcastFor";

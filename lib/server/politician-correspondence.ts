@@ -1,5 +1,5 @@
 import "server-only";
-import type { Permission } from "@/lib/staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 import { onParliamentDomain, politiciansOf } from "@/lib/one-off";
 import type { ThreadMessages, ThreadStep } from "@/lib/politician-correspondence";
 import { isMachineReply } from "@/lib/email-parsing/subjects";

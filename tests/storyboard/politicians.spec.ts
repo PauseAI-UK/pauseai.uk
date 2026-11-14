@@ -10,6 +10,7 @@ import { BASE, expect, frame, story, test } from "./fixtures";
 import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
 import { importPath } from "@/lib/import-runs";
 import type { Section } from "./report/frames";
+import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
 
@@ -42,7 +43,7 @@ async function openPolitician(page: Page, name: string) {
 async function listSortedBy(page: Page, heading: string, sorted: RegExp) {
   await page
     .getByRole("navigation", { name: staffVocabulary.breadcrumb })
-    .getByRole("link", { name: staffCopy.nav.politicians })
+    .getByRole("link", { name: shellCopy.nav.politicians })
     .click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   // The heading's link, not a count at the top of the politician's page, which can have the same words.

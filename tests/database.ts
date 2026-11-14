@@ -2,7 +2,7 @@
 // migrated template (tests/vitest.global-setup.node.ts). See docs/testing.md.
 import { afterAll, beforeAll, beforeEach, describe, inject, onTestFinished, vi } from "vitest";
 import { closeDb, query } from "@/lib/server/db";
-import { encryptToken } from "@/lib/server/gmail-tokens";
+import { encryptToken } from "@/lib/accounts/gmail-tokens";
 import { copyDatabase, databaseUrl, dropDatabase, freshDatabase } from "@/scripts/fresh-database.mjs";
 
 /**

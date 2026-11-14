@@ -3,7 +3,7 @@ import { jobTitles } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { jobBySlug } from "@/lib/import-runs";
 import { listRuns, runningNow } from "@/lib/server/import-runs";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { decideImport, runJobNow } from "../../../actions";
 import { ImportJobPage } from "../../../_components/ImportJob";
 import Page from "../../../_components/ui/Page";

@@ -39,18 +39,6 @@ const bodyNames: Record<Body, string> = {
 const RESUME_SENDING = "Resume sending";
 
 export const staffCopy = {
-  login: {
-    title: "Staff log in",
-    intro: "Enter your staff email to sign in on this browser.",
-    emailLabel: "Email",
-    keep: "Keep me signed in",
-    button: "Send sign in link",
-    sent: "Check your email and open the link in this browser.",
-    again: "Try again",
-    failed: "The link you used has expired or has been used already. Please request a new one.",
-    elsewhere: "The link you used was made in another browser. Either open it there, or request a new one here.",
-  },
-  // The dev login's box under the login card, in a fixture build only.
   // At the foot of a supporter's consents in a fixture build: a button per address that opens their contact preferences.
   devPreferences: {
     title: "Dev: links in our emails to them",
@@ -60,60 +48,6 @@ export const staffCopy = {
     unsubscribe: (topics: string) => `Unsubscribe page: their latest ${topics} email`,
     // The same, for an email too old for the page to show more than its button.
     oldUnsubscribe: "Unsubscribe page: an email over 30 days old",
-  },
-  devLogin: {
-    // Before what a shared inbox's address is, in the dev login.
-    lettersInbox: "Letters inbox",
-    policyInbox: "Policy inbox",
-    title: "Development only: sign in now as",
-    hint: "This appears when DATA_FIXTURES=1 and never in production.",
-    // Beside each address: what it may do.
-    permissions: (names: string) => `${names} permissions`,
-    noPermissions: "Account with no permissions",
-    noAccount: "No account yet: logging in makes one",
-  },
-  // The email with the login link.
-  loginEmail: {
-    subject: "Confirm sign in to PauseAI UK",
-    body: (link: string, minutes: number) =>
-      `Follow this link to sign in:\n\n${link}\n\nYou must use the browser you made the link with, and it will expire after ${minutes} minutes.\n\nIf you did not request this, please ignore this message.`,
-  },
-  nav: {
-    // At the left of the bar, and the way to the home page.
-    title: "PauseAI Staff",
-    // The round button on the sidebar's edge, by its title, that folds it to a strip, and back, for a screen reader.
-    fold: "Fold the menu",
-    unfold: "Unfold the menu",
-    home: "Dashboard",
-    accounts: "Staff accounts",
-    // The sections the pages are in, in the sidebar.
-    sections: {
-      supporters: "Supporters",
-      events: "Events",
-      politicians: "Politicians",
-      admin: "Admin",
-      // Over your address, which leads to your own page.
-      profile: "Your account",
-    } as Record<string, string>,
-    supporters: "Supporters",
-    politicians: "Politicians",
-    asks: "Asks",
-    mailings: "Mailings",
-    broadcasts: "Broadcasts",
-    events: "Events",
-    import: "Scheduled jobs",
-    changes: "Audit log",
-    campaigns: "Campaigns",
-    emails: "Correspondence",
-    sentEmails: "Sent emails",
-    errors: "Errors",
-    // Beside a page the staff member first saw in the last 3 days.
-    newTag: "new",
-    draftTag: "draft",
-    supporterEmails: "Bounced emails",
-    signupUpload: "Import sign-ups",
-    mpEmails: "Addresses to fix",
-    logout: "Log out",
   },
   // A letter in Gmail, by its page's heading: a button that copies a
   // search for it, then says to paste it, and where.
@@ -148,65 +82,6 @@ export const staffCopy = {
     unreadable: "This message couldn't be read.",
     // Over each message, as an email shows them.
     headers: { from: "From", to: "To", cc: "Cc", date: "Date", subject: "Subject" },
-  },
-  // Your own page: your sessions and your Gmail.
-  me: {
-    title: "Your account",
-    sessionsTitle: "Where you're logged in",
-  },
-  // Connecting a staff member's Gmail, on their own page and in a mailing's Sent from.
-  gmail: {
-    title: "Let staff send mailings from your Gmail",
-    // The heading once it's connected.
-    connectedTitle: "Staff can send mailings from your Gmail",
-    // The same two, logged in as the letters inbox, which sends supporters' letters to MPs and nothing else.
-    lettersInboxTitle: "Send supporters' letters to MPs from this Gmail",
-    lettersInboxConnectedTitle: "Supporters' letters to MPs go from this Gmail",
-    // What connecting it means, said before it goes to Google: a line, then a bullet each.
-    intro: "Usually this is a shared account rather than a person's own: log in here as it, then connect it.",
-    explain: [
-      "Mailings can go from its address, are kept in its Sent mail, and replies come back to it.",
-      "The site reads only those replies and bounces, and never deletes or changes anything.",
-    ],
-    limit: (limit: string) => `At most ${limit} a day, leaving room for the account's other email.`,
-    // The same, logged in as the letters inbox, which sends supporters' letters to MPs and nothing else.
-    lettersInboxExplain: [
-      "Supporters' letters to MPs go from proxy addresses on it, and the MPs' replies come back to it, to be relayed to the supporters, and their answers back.",
-      "The site reads all of its mail, labels and archives what it has handled, and moves an erased supporter's mail to Trash.",
-    ],
-    lettersInboxLimit: (limit: string) =>
-      `At most ${limit} a day, letters, copies and relays together, under Google's 2,000.`,
-    connect: "Connect Gmail",
-    disconnect: "Disconnect Gmail",
-    connected: (when: string) => `Connected ${when}.`,
-    notConnected: "Your Gmail isn't connected.",
-    sentToday: (sent: number, limit: string) => `${sent} of today's ${limit} emails sent.`,
-    // After coming back from Google, or disconnecting.
-    outcomes: {
-      connected: "Your Gmail is connected. All staff will be able to send mailings from it now.",
-      // The same, for the letters inbox, which sends supporters' letters and nothing else.
-      connectedLettersInbox:
-        "The letters inbox is connected. Supporters' letters to MPs go from it now, and replies are relayed through it every 5 minutes.",
-      refused: "Gmail wasn't connected, as you didn't allow it.",
-      failed: "Gmail couldn't be connected. Try again.",
-      disconnected: "Your Gmail is disconnected.",
-    } as Record<string, string>,
-    // Back from Google having chosen an account other than the one logged in here, `me`.
-    otherAccount: (me: string) =>
-      `That Google account does not have the same email ${me} as your PauseAI UK staff account. Either pick a different Google account, or log in here with the same email.`,
-  },
-  // Your sessions, on your own page (/staff/me): one row each, and a way to end them all.
-  sessions: {
-    intro: "You're logged into the PauseAI Staff pages on these devices.",
-    // Under a session's browser and system: each before its time, then, for one that is, that it's kept.
-    started: "Logged in",
-    ends: "Ends",
-    kept: "Kept signed in",
-    // Beside the session of the browser looking.
-    thisBrowser: "This browser",
-    // In place of the browser and system, when what the browser sent names neither.
-    unknown: "Unknown browser",
-    logOutEverywhere: "Log out of all of them",
   },
   // The home page: the dashboard.
   home: {
@@ -786,70 +661,6 @@ export const staffCopy = {
       oneOffs: "their one-off emails",
       replies: "their replies to broadcasts",
     },
-  },
-  // The accounts page (/staff/accounts), for admins: who may use the staff
-  // pages, and what each may do.
-  accounts: {
-    title: "Staff accounts",
-    // Under the title.
-    intro: "Who can log in and their permissions",
-    // The table's last row: everyone else at pauseai.uk, who can log in with no permissions; and across the rest of
-    // the row, in grey, what that means.
-    everyone: "*@pauseai.uk",
-    everyoneNote: "Anyone with a @pauseai.uk address can log in with no extra permissions.",
-    names: {
-      admin: "Admin",
-      supporters: "Supporters",
-    } as Record<string, string>,
-    // Under the table, a heading, then after each permission's name: what it opens.
-    permissionsKey: "Permissions key",
-    opens: {
-      supporters: "View information about supporters, include personal details.",
-      admin: "Set permissions for staff accounts and view the audit log.",
-    } as Record<string, string>,
-    columns: {
-      email: "Email",
-      permissions: "Permissions",
-      added: "Added",
-      lastLogin: "Last login",
-      lastSeen: "Last seen",
-      sessions: "Sessions open",
-      gmail: "Gmail",
-    },
-    // In the Gmail column: connected, before when; or not.
-    gmailConnected: "Connected",
-    gmailNot: "Not connected",
-    // In the Added column, after when: who added the account, or that its first login did.
-    addedBy: (who: string) => `by ${who}`,
-    addedByLogin: "by login",
-    // For an account that has never logged in or been seen.
-    never: "Never",
-    // Beside how many sessions a row has open: ends every one; on your own row, it says they're yours, as it logs you out too.
-    endSessions: "End all",
-    endMySessions: "End all mine",
-    // At the top right, the button that opens the field for the address of someone new (its label, read aloud) and its
-    // button, which adds them as a row, with no permissions.
-    addStaff: "Add staff",
-    // The field's label, then what's in it until something is typed.
-    addLabel: "Email:",
-    addTitle: "@pauseai.uk email address",
-    add: "Add",
-    // In a row's Permissions cell, after the permissions it has: the button that opens a box for each, and the form's
-    // buttons.
-    edit: "Edit",
-    editLabel: (email: string) => `Edit ${email}'s permissions`,
-    save: "Save",
-    cancel: "Cancel",
-    // At a row's right, pressed twice; and just after, over the table till its × closes it, what it leaves them.
-    remove: "Remove",
-    removeNote: "They will still be able to log in with basic permissions, unless their Gmail is disabled too.",
-    closeRemoved: "Close",
-    // Beside Add, or above the table after a Save, when the address isn't at pauseai.uk.
-    notPauseai: "Only addresses @pauseai.uk can have an account.",
-    // Beside Add, when the address is in the table already.
-    alreadyThere: "They're in the table already.",
-    // When a change would leave no admin.
-    lastAdmin: "The last administrator can't be removed or lose permissions to administrate.",
   },
   politicians: {
     title: "Politicians",
@@ -2848,8 +2659,6 @@ All events: ${link}`,
       // unsubscribe link, but Luma didn't take them off the calendar, which goes on emailing them.
       lumaRemoveFailed:
         "Someone opted out of event emails but is still on the Luma calendar, so Luma will keep emailing them",
-      // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission.
-      tokenNotRevoked: (account: string) => `${account}'s Gmail token couldn't be revoked at Google`,
       // A visitor looking up their MP is told it failed.
       mpLookupFailed: "The MP lookup failed",
       // A visitor sending a letter gets an error, and the letter is lost unless they try again.

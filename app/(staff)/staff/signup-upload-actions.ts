@@ -5,7 +5,7 @@
 import { revalidatePath } from "next/cache";
 import type { SignupUploadInput } from "@/lib/signup-upload";
 import { finishSignupUpload, planSignupUpload } from "@/lib/server/signup-uploads";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 
 /** What a file would do, for the preview. */
 export async function previewSignupUpload(input: SignupUploadInput) {

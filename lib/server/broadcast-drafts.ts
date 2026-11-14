@@ -29,7 +29,7 @@ import {
 import { now } from "@/lib/now";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
-import { gmailAccount, GMAIL_DAILY_LIMIT } from "./gmail-accounts";
+import { gmailAccount, GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-accounts";
 import type { ChannelResult } from "./mailing-channels";
 import {
   getWrittenMailing,

@@ -5,9 +5,9 @@ import {
   GMAIL_CALLBACK_PATH,
   GMAIL_STATE_COOKIE,
   type GmailConnectOutcome,
-} from "@/lib/gmail-connect";
-import { connectGmail } from "@/lib/server/gmail-accounts";
-import { requireStaff } from "@/lib/server/staff-auth";
+} from "@/lib/accounts/gmail-connect";
+import { connectGmail } from "@/lib/accounts/gmail-accounts";
+import { requireStaff } from "@/lib/accounts/auth";
 import { siteUrl } from "@/lib/site-url";
 
 /** The state and the page to go back to, kept by the connect route, if the cookie holds them. */

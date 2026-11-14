@@ -16,7 +16,6 @@ import {
   idFrom,
   noteEditFrom,
   noteFrom,
-  permissionsFrom,
   statusFrom,
   unblockFrom,
 } from "@/lib/staff-forms";
@@ -28,7 +27,6 @@ import { addAsk, deleteAsk, editAsk } from "@/lib/server/asks";
 import { unblock } from "@/lib/server/delivery-problems";
 import { isPoliticianAddress } from "@/lib/server/email";
 import { setErrorDone } from "@/lib/server/errors-seen";
-import { disconnectGmail } from "@/lib/server/gmail-accounts";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { eraseSupporter } from "@/lib/server/erasure";
 import { decideHeldImport, isPoliticianImport } from "@/lib/server/politician-import";
@@ -36,14 +34,8 @@ import { editPoliticianDetails, type EditResult, isMark, setMark } from "@/lib/s
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
 import { setStatus } from "@/lib/server/politicians";
 import { type AddResult, addPoliticianAddress, removePoliticianAddress } from "@/lib/server/politician-aliases";
-import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
+import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
 import { type EventSaved, setEventDoc, setEventOwner } from "@/lib/server/staff-events";
-import {
-  type AccountChange,
-  endStaffSessions,
-  removeStaffAccount,
-  saveStaffAccount,
-} from "@/lib/server/staff-accounts";
 
 /** The form on a politician's page: sets their answer to an ask, dated today, or clears it, with its note of how we know. */
 export async function setAskStatus(form: FormData): Promise<void> {
@@ -253,43 +245,6 @@ export async function setErrorDoneNow(form: FormData): Promise<void> {
   if (done) redirect(ERRORS_LIST.path);
 }
 
-/** Where the accounts page goes after a change: back to itself, saying why if the change was refused. */
-function accountsPage(change: AccountChange | "removed"): never {
-  revalidatePath("/staff/accounts");
-  redirect(change === "changed" || change === "unchanged" ? "/staff/accounts" : `/staff/accounts?notice=${change}`);
-}
-
-/**
- * The accounts page: gives an address an account with exactly the
- * permissions in the form, adding it if it has none, as the admin. A
- * change refused (the last admin, an address not at pauseai.uk) is said on
- * the page.
- */
-export async function saveStaffAccountNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff("admin");
-  const parsed = permissionsFrom(form);
-  if (!parsed) return;
-  accountsPage(await saveStaffAccount(parsed.email, parsed.permissions, email));
-}
-
-/** The accounts page: removes an account, ending its sessions, and says what that leaves them. */
-export async function removeStaffAccountNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff("admin");
-  const parsed = permissionsFrom(form);
-  if (!parsed) return;
-  const change = await removeStaffAccount(parsed.email, email);
-  accountsPage(change === "changed" ? "removed" : change);
-}
-
-/** The accounts page: ends every session of an account, as the admin; their own included, which logs them out. */
-export async function endStaffSessionsNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff("admin");
-  const parsed = permissionsFrom(form);
-  if (!parsed) return;
-  await endStaffSessions(parsed.email, email);
-  accountsPage("changed");
-}
-
 /**
  * Erases a supporter, from their page, then goes to the list, which says
  * so, and what couldn't be cleared afterwards, if anything. A supporter
@@ -303,14 +258,6 @@ export async function eraseSupporterNow(form: FormData): Promise<void> {
   if (!result) return;
   revalidatePath("/staff", "layout");
   redirect(erasedPath(result.notCleared));
-}
-
-/** Disconnects your own Gmail, from your page, going back to it saying so, in place of how connecting went. */
-export async function disconnectMyGmail(): Promise<void> {
-  const { email } = await requireStaff();
-  await disconnectGmail(email, email);
-  revalidatePath("/staff/me");
-  redirect("/staff/me?gmail=disconnected");
 }
 
 /**

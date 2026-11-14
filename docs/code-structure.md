@@ -124,7 +124,7 @@ the code should go instead. The rules below say which ones are enforced.
   redirects depend on what only the request can tell, such as who's logged
   in or a record merged into another. A helper in `lib/` makes those, and
   the page calls it before anything else: `requireStaff()`
-  (`lib/server/staff-auth.ts`), or `canonicalSupporter()`
+  (`lib/accounts/auth.ts`), or `canonicalSupporter()`
   (`lib/supporters.ts`) for a merged supporter's old ID. Links within the
   site never lead to these redirects, so no one clicking around sees the
   empty layout.
@@ -301,7 +301,7 @@ the code should go instead. The rules below say which ones are enforced.
   Host. So the site's code never reads a request's URL, origin or Host
   header, or `SITE_ORIGIN` itself (an ESLint rule, in `npm run lint`).
   Links in pages are relative.
-- **Staff pages** each call `requireStaff()` (`lib/server/staff-auth.ts`)
+- **Staff pages** each call `requireStaff()` (`lib/accounts/auth.ts`)
   first, as does every staff route handler and Server Action
   (`tests/checks/staff-auth.test.ts`). `proxy.ts` only checks the cookie exists.
   A page that shows more to staff who may see supporters asks
@@ -385,7 +385,9 @@ found together and what it depends on can be seen and held:
 ```
 app/(staff)/staff/_components/
   ui/                 the kit: page frame, tables, filters, menus
-  shell/              the staff pages' frame: navigation, page, dev preferences
+  shell/              the staff pages' frame: the sidebar and its icons,
+                      and every page's name in it
+  accounts/           logging in, your own page, staff accounts, Gmail
   <feature>/          its components, with each one's test, its gallery
                       examples (Component.gallery.tsx), the words only its
                       components use (copy.ts) and its Server Actions
@@ -396,6 +398,8 @@ lib/
                       files import "server-only"), and copy.ts with the
                       words its server code sends or logs, and those its
                       logic and components share
+  accounts/           staff auth, login and sessions, permissions, staff
+                      accounts, Gmail's connection and tokens
   server/             what every feature stands on: the database, sql,
                       settings, problems and runs, random IDs, the outside
                       services and the fixtures
@@ -406,9 +410,16 @@ its files are at the top of `_components/`, `lib/` and `lib/server/`, and
 its words are in `staffCopy`.
 
 - **Its words.** Each copy file exports one object named for the feature
-  (`eventsCopy`), and components and tests refer to its words by name. A
-  number in words goes through `plural()` or `count()`
-  (`lib/content/plural.ts`).
+  (`accountsCopy`), and components and tests refer to its words by name. A
+  group of words (`accountsCopy.gmail`) goes whole to `lib/<feature>/copy.ts`
+  if any code in `lib/` reads it, else to the components' `copy.ts`. The
+  components' object spreads the one in `lib/`, so a component imports only
+  its own folder's `copy.ts`. A number in words goes through `plural()` or
+  `count()` (`lib/content/plural.ts`).
+- **Its server code.** What holds `lib/server/` holds a feature's folder in
+  `lib/` too: the ESLint rules for server code, and the checks that every
+  caught error is reported (`tests/checks/caught-errors.test.ts`,
+  `problem-reporting.test.ts`), which take the folders from `FEATURES`.
 - **Which feature uses which.** `FEATURES` in `eslint.config.mjs` lists
   each feature that has moved, with the features it may use. A feature's
   files may import the kit (`ui/`) and the frame (`shell/`), their own

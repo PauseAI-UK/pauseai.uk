@@ -4,7 +4,7 @@ import { blockColumns } from "../../../../_components/EmailBlocksTable";
 import { filterWords } from "@/lib/staff-list-filters";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listBlocks } from "@/lib/server/email";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { staffDownload } from "@/lib/server/staff-download";
 import { emailsSearch } from "@/lib/staff-search";
 

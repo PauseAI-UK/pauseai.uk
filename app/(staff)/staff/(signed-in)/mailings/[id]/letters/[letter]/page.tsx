@@ -5,7 +5,7 @@ import { letterThread } from "@/lib/server/letter-threads";
 import { listAsks } from "@/lib/server/asks";
 import { getPauseaiLetter } from "@/lib/server/letters";
 import { getPolitician } from "@/lib/server/politicians";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { letterId, mailingId } from "@/lib/staff-search";
 import FindInGmail from "../../../../../_components/FindInGmail";
 import { letterTitle } from "../../../../../_components/LetterHistory";

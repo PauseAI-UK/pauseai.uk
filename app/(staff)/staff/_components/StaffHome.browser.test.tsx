@@ -4,13 +4,14 @@ import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { exampleDashboard } from "./StaffDashboard.examples";
 import StaffHome from "./StaffHome";
+import { shellCopy } from "./shell/copy";
 
 describe("StaffHome", () => {
   it("shows the dashboard under its title and the day, with its groups in the sidebar's order and under its names", async () => {
     await render(<StaffHome permissions={["admin", "supporters"]} dashboard={exampleDashboard} />);
     await expect.element(page.getByRole("heading", { level: 1, name: staffCopy.home.title })).toBeVisible();
     await expect.element(page.getByText("Wednesday 21 October")).toBeVisible();
-    const sections = staffCopy.nav.sections;
+    const sections = shellCopy.nav.sections;
     expect(
       page
         .getByRole("heading", { level: 2 })

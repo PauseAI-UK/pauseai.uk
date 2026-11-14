@@ -3,7 +3,7 @@ import { found } from "@/lib/found";
 import { now } from "@/lib/now";
 import { broadcastsToSupporter } from "@/lib/server/broadcast-pages";
 import { notesOn } from "@/lib/server/notes";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { getSupporter } from "@/lib/server/supporters";
 import { supporterId } from "@/lib/staff-search";
 import { canonicalSupporter, supporterTitle } from "@/lib/supporters";

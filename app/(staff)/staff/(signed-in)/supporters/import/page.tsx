@@ -4,7 +4,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
 import { signupEventChoices } from "@/lib/server/signup-uploads";
 import { SIGNUP_UPLOADS_PATH } from "@/lib/signup-upload";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import SignupUploadForm from "../../../_components/SignupUploadForm";
 import Page from "../../../_components/ui/Page";
 import PageHead from "../../../_components/ui/PageHead";

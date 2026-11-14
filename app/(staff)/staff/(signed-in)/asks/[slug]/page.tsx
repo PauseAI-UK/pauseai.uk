@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { askPageData, askTitle } from "@/lib/server/asks";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { firstOf, pageNumber, type ParamValue } from "@/lib/list-params";
 import AskView from "../../../_components/AskView";
 import Page from "../../../_components/ui/Page";

@@ -4,7 +4,7 @@ import { listAsks } from "@/lib/server/asks";
 import { politiciansPageData } from "@/lib/server/mailing-pages";
 import { listParties } from "@/lib/server/politicians";
 import type { PoliticiansSearch } from "@/lib/staff-search";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import {
   deleteMailingDraft,
   newMailing,

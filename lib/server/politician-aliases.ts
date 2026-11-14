@@ -3,7 +3,7 @@ import { isSharedInbox, keepsPoliticianThreads, nameParts, type PoliticianBook }
 import { auditActions, logChange } from "./audit";
 import { config } from "./config";
 import { query, transaction } from "./db";
-import { gmailAccess } from "./gmail-accounts";
+import { gmailAccess } from "@/lib/accounts/gmail-accounts";
 import { ONE_OFF_HEADERS, isHeld, keepIfPoliticianThread } from "./one-off-emails";
 import { relinkOneOffs } from "./one-off-relink";
 import { GmailError, gmailMessageHeaders, searchGmail, unlessGone } from "./outside-services/gmail";

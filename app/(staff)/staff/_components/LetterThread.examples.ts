@@ -1,5 +1,5 @@
 import type { LetterThread } from "@/lib/server/letter-threads";
-import type { GmailAccount } from "@/lib/server/gmail-accounts";
+import type { GmailAccount } from "@/lib/accounts/gmail-accounts";
 import type { EditableAsk } from "./AskForm";
 
 /** Jo's letter to Polly, from Jo's Gmail, which Polly answered and Jo answered back. */

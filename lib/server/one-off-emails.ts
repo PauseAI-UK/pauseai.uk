@@ -21,7 +21,7 @@ import {
 import { staffCopy } from "@/lib/content/staff-interface";
 import { gmailMessageLink } from "@/lib/letter-links";
 import { now } from "@/lib/now";
-import type { Permission } from "@/lib/staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 import { query, type Queryable } from "./db";
 import { messageContent } from "./letter-threads";
 import { wholeTextOf } from "@/lib/email-parsing/mime";

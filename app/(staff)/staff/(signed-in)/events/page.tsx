@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { eventsPage } from "@/lib/server/staff-events";
-import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
+import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
 import { type EventsSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { saveEventNow } from "../../actions";

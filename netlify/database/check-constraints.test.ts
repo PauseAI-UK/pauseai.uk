@@ -28,7 +28,7 @@ import {
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar";
 import { HOUSES, PERSON_STATUSES } from "@/lib/server/politicians";
 import type { SignupUploadPerson } from "@/lib/server/signup-uploads";
-import { PERMISSIONS } from "@/lib/staff-permissions";
+import { PERMISSIONS } from "@/lib/accounts/permissions";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 
 // A column whose CHECK lists the values it allows lists them in TypeScript

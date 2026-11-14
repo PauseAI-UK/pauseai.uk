@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { query } from "@/lib/server/db";
-import { createSession } from "@/lib/server/staff-auth";
+import { createSession } from "@/lib/accounts/auth";
 import type { SignupPlan } from "@/lib/signup-upload";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";

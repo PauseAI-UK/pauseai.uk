@@ -10,7 +10,7 @@ import { query, transaction, type Queryable } from "./db";
 import { send } from "./email-sending";
 import { notifyDomain } from "./outside-services/postmark";
 import { staffLink } from "./notifications";
-import { staffAddressLine } from "./staff-address";
+import { staffAddressLine } from "@/lib/accounts/staff-address";
 
 // Our events on Luma, as the Luma import has them (luma-import.ts), for
 // the staff interface's events page, and who on staff owns each

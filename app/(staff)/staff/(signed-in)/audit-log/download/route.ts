@@ -3,7 +3,7 @@ import { changeWords } from "../../../_components/ChangesFilters";
 import { changeColumns } from "../../../_components/ChangesTable";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { recentChanges } from "@/lib/server/audit";
-import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
+import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
 import { staffDownload } from "@/lib/server/staff-download";
 import { changesSearch } from "@/lib/staff-search";
 

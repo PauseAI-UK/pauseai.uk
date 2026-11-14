@@ -11,6 +11,7 @@ import { signupUploadPath } from "@/lib/signup-upload";
 import type { LoggedChange, Named } from "@/lib/server/audit";
 import CampaignName from "./CampaignName";
 import { DotParts } from "./Logged";
+import { accountsCopy } from "./accounts/copy";
 
 const copy = staffCopy.changes;
 
@@ -26,7 +27,7 @@ function label(key: string): string {
 /** Permissions as their names, or that there are none. */
 function permissionNames(value: unknown): string {
   const list = value as string[];
-  return list.length ? list.map((p) => staffCopy.accounts.names[p] ?? p).join(", ") : copy.noPermissions;
+  return list.length ? list.map((p) => accountsCopy.accounts.names[p] ?? p).join(", ") : copy.noPermissions;
 }
 
 /** A value as words: a house, a kind of problem, a status or a campaign by name, a mark on or off; anything else as it is. */

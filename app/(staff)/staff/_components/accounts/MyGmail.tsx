@@ -1,0 +1,110 @@
+import { SubmitButton } from "@/components/ui/SubmitButton";
+import { staffCopy } from "@/lib/content/staff-interface";
+import type { GmailAccount } from "@/lib/accounts/gmail-accounts";
+import { staffDate } from "@/lib/staff-time";
+import { BROADCAST_SENDER } from "@/lib/broadcasts";
+import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";
+import styles from "./MyGmail.module.css";
+import { Card } from "../ui/Grid";
+import StaffLink from "../ui/StaffLink";
+import { accountsCopy } from "./copy";
+
+const copy = accountsCopy.gmail;
+
+/**
+ * What's kept from this mailbox: all its threads with politicians, or only
+ * replies to what's sent from here: mailings, and from hello@ broadcasts too.
+ */
+function KeptNote({ keeps, me }: { keeps: boolean; me: string }) {
+  const words = staffCopy.oneOff;
+  if (!keeps && me === BROADCAST_SENDER.email) {
+    const both = words.notKeptBroadcasts;
+    return (
+      <p>
+        <em>
+          {both.before} <StaffLink href="/staff/mailings">{staffCopy.mailings.title}</StaffLink> {both.and}{" "}
+          <StaffLink href="/staff/broadcasts">{staffCopy.broadcastPages.title}</StaffLink>
+          {both.after}
+        </em>
+      </p>
+    );
+  }
+  const { before, after } = keeps ? words.kept : words.notKept;
+  return (
+    <p>
+      <em>
+        {before}{" "}
+        {keeps ? (
+          <StaffLink href="/staff/emails?type=one-off">{words.title}</StaffLink>
+        ) : (
+          <StaffLink href="/staff/mailings">{staffCopy.mailings.title}</StaffLink>
+        )}
+        {after}
+      </em>
+    </p>
+  );
+}
+
+/**
+ * Your Gmail, a card of your own page, a third of its grid, tinted as what's beside your sessions, its title saying whether it's
+ * connected, and for the letters inbox, that it sends supporters' letters: how connecting ended, if Google has just sent you back; then,
+ * connected, since when and today's sends, whether threads with politicians
+ * are kept from it, with Disconnect; or what
+ * connecting means, and the button.
+ */
+export default function MyGmail({
+  me,
+  lettersInbox = false,
+  account,
+  outcome,
+  disconnect,
+  keepsThreads = false,
+}: {
+  /** Who's logged in. */
+  me: string;
+  /** Whether that's the letters inbox. */
+  lettersInbox?: boolean;
+  account: GmailAccount | undefined;
+  /** How connecting ended, if Google has just sent you back. */
+  outcome: string;
+  disconnect: (form: FormData) => void | Promise<void>;
+  /** Whether threads with politicians are kept from it. */
+  keepsThreads?: boolean;
+}) {
+  return (
+    <Card
+      span={2}
+      look="aside"
+      id="gmail"
+      title={
+        lettersInbox
+          ? account
+            ? copy.lettersInboxConnectedTitle
+            : copy.lettersInboxTitle
+          : account
+            ? copy.connectedTitle
+            : copy.title
+      }
+    >
+      <div className={styles.body}>
+        <GmailOutcome outcome={outcome} me={me} lettersInbox={lettersInbox} />
+        {account ? (
+          <>
+            {!lettersInbox && <KeptNote keeps={keepsThreads} me={me} />}
+            <p>
+              {copy.connected(staffDate(account.connectedAt))}{" "}
+              <SentToday sent={account.sentToday} lettersInbox={lettersInbox} />
+            </p>
+            <form action={disconnect}>
+              <SubmitButton variant="ghost" size="small" fit>
+                {copy.disconnect}
+              </SubmitButton>
+            </form>
+          </>
+        ) : (
+          <GmailConnect back="/staff/me" lettersInbox={lettersInbox} />
+        )}
+      </div>
+    </Card>
+  );
+}

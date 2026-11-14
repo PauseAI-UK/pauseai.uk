@@ -3,7 +3,7 @@ import { buttonClass } from "@/components/ui/Button";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
 import { asksWithCounts } from "@/lib/server/asks";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { askFormSearch } from "@/lib/staff-search";
 import { firstOf, type ParamValue } from "@/lib/list-params";
 import AsksList from "../../_components/AsksList";

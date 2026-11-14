@@ -9,7 +9,7 @@ import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { gmailMessageLink } from "@/lib/letter-links";
 import { nameLine } from "./proxies";
-import { staffAddressLine } from "./staff-address";
+import { staffAddressLine } from "@/lib/accounts/staff-address";
 
 // Emails to the notification inbox (NOTIFICATION_INBOX): something on the
 // site needs a person. An MP's address bouncing, mail in the letters inbox

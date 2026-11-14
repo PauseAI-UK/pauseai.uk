@@ -683,7 +683,7 @@ letter at a time, as if they'd written each. It has no unsubscribe link and
 no consent check, as it's to public figures in their public role.
 
 Each staff member connects their own Gmail on their page (`/staff/me`,
-`lib/server/gmail-accounts.ts`). A mailing's Sent from links there while
+`lib/accounts/gmail-accounts.ts`). A mailing's Sent from links there while
 their Gmail isn't connected. Once a Gmail is connected, any staff member can
 send a mailing from it. The Google Cloud project's consent screen is
 Internal, so only accounts in PauseAI's Google Workspace, pauseai.info's as
@@ -1475,7 +1475,7 @@ each time it happens, with a link to where to deal with it:
 - a Gmail account the read every 5 minutes couldn't read, after a run that could
   (`lib/server/gmail-reading.ts`); one Google disconnected has its own;
 - a body's import held, when none was (`lib/server/politician-import.ts`);
-- Google disconnecting a Gmail account (`lib/server/gmail-accounts.ts`);
+- Google disconnecting a Gmail account (`lib/accounts/gmail-accounts.ts`);
 - letters to MPs waiting over three hours to go, until those it named
   have gone (`LATE_HOURS` in `lib/server/letter-sending.ts`);
 - once a day at most, a report of the supporters' copies that bounced
@@ -1808,7 +1808,7 @@ finds it. If it blocks or frees an address, it names `address`.
 ## Staff
 
 Anyone with a pauseai.uk email address can log in, with a link sent to
-that address (`lib/server/staff-auth.ts`, `staff-login.ts`). A session
+that address (`lib/accounts/auth.ts`, `staff-login.ts`). A session
 lasts a day. With "Keep me signed in" it lasts 30 days, renewed on use.
 Anyone at pauseai.uk can be staff, paid or volunteer. The mailbox decides
 who can log in: a leaver's Google account is suspended or deleted, so no
@@ -1826,7 +1826,7 @@ account with none.
 An account opens the pages about politicians, events and imports
 (politicians, an MP's page, asks, mailings, Correspondence, Politicians' blocked
 emails, events, imports). Permissions open more
-(`lib/staff-permissions.ts`):
+(`lib/accounts/permissions.ts`):
 
 - `supporters` opens every page with a member of the public's details
   (supporters, broadcasts, campaigns and their letters, who wrote to which
@@ -1876,7 +1876,7 @@ first sees it (a dot on the folded rail). That goes for any page added to
 `STAFF_SECTIONS`, with nothing else to do. `staff_nav_seen` has a row for
 each account and page, with when they first saw it, and the signed-in layout
 adds a row for each page an account has none for
-(`lib/server/staff-nav-seen.ts`). A new account has no rows, so its pages
+(`lib/accounts/nav-seen.ts`). A new account has no rows, so its pages
 are marked as long since seen, except a page whose entry gives the day it
 went live (`added`): that's marked as seen then, so for its first days it's
 new to a new account too, and to a fresh development database, whose

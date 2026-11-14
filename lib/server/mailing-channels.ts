@@ -1,7 +1,7 @@
 import "server-only";
 import type { Purpose } from "./email";
 import { send } from "./email-sending";
-import { GMAIL_DAILY_LIMIT, sentToday } from "./gmail-accounts";
+import { GMAIL_DAILY_LIMIT, sentToday } from "@/lib/accounts/gmail-accounts";
 import { LETTERS_DAILY_LIMIT, lettersInbox } from "./letters-inbox";
 import { deliveryProblem, type PostmarkProblem } from "./postmark-webhooks";
 import { headerName, notifyDomain, type Attachment } from "./outside-services/postmark";

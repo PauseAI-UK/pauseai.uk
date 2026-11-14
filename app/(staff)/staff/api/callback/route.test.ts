@@ -2,9 +2,9 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { NextRequest } from "next/server";
 import { server } from "@/tests/fixtures/msw";
-import { sessionEmail } from "@/lib/server/staff-auth";
-import { accountOf } from "@/lib/server/staff-accounts";
-import { loginBrowser, sendLoginLink } from "@/lib/server/staff-login";
+import { sessionEmail } from "@/lib/accounts/auth";
+import { accountOf } from "@/lib/accounts/staff-accounts";
+import { loginBrowser, sendLoginLink } from "@/lib/accounts/login";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { GET } from "./route";
 

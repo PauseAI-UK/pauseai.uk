@@ -7,7 +7,7 @@
 // its filter bar's words and choices (lib/staff-list-filters.ts).
 import { filtersPath, firstOf, valuesOf, type ParamValue } from "./list-params";
 import { parseSort, type SortColumns, type SortSpec } from "./staff-sort";
-import type { Permission } from "./staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 
 /** How a list's URL gives a parameter: one value, or several, for a filter chosen more than once, its name repeated. */
 type Kind = "one" | "many";

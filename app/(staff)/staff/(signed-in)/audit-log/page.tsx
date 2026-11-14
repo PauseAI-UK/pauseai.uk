@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { changeChoices, recentChanges } from "@/lib/server/audit";
-import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
+import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
 import type { ChangesSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createSession } from "@/lib/server/staff-auth";
-import { redeemLoginLink } from "@/lib/server/staff-login";
-import { keepCookie, LOGIN_BROWSER_COOKIE, LOGIN_PATH, sessionCookie } from "@/lib/staff-session";
+import { createSession } from "@/lib/accounts/auth";
+import { redeemLoginLink } from "@/lib/accounts/login";
+import { keepCookie, LOGIN_BROWSER_COOKIE, LOGIN_PATH, sessionCookie } from "@/lib/accounts/session";
 import { siteUrl } from "@/lib/site-url";
 
 // Step two of logging in: where the emailed link goes. Open to anyone, so it

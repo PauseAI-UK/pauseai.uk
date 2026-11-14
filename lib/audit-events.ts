@@ -10,7 +10,7 @@ import type { PoliticianImportJob } from "./import-runs";
 import type { ImportedFields } from "./politician-import";
 import type { SavedList } from "./saved-filters";
 import type { DownloadFormat } from "./staff-list";
-import type { Permission } from "./staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 import type { Ask } from "./server/asks";
 import type { DeliveryProblem } from "./server/email";
 import type { ErasureResult } from "./server/erasure";

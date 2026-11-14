@@ -14,7 +14,8 @@ import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import CopyButton from "@/app/(staff)/staff/_components/ui/CopyButton";
 import Alert from "@/app/(staff)/staff/_components/Alert";
 import AlertIcon from "@/app/(staff)/staff/_components/AlertIcon";
-import StaffNav, { type StaffPage as StaffPageName } from "@/app/(staff)/staff/_components/StaffNav";
+import StaffNav from "@/app/(staff)/staff/_components/shell/StaffNav";
+import { staffNavGallery } from "@/app/(staff)/staff/_components/shell/StaffNav.gallery";
 import Breadcrumb from "@/app/(staff)/staff/_components/ui/Breadcrumb";
 import LockIcon from "@/app/(staff)/staff/_components/ui/LockIcon";
 import NotIcon from "@/app/(staff)/staff/_components/ui/NotIcon";
@@ -28,7 +29,8 @@ import FormPending from "@/app/(staff)/staff/_components/ui/FormPending";
 import ExternalLink from "@/app/(staff)/staff/_components/ui/ExternalLink";
 import StaffLink from "@/app/(staff)/staff/_components/ui/StaffLink";
 import TestTag from "@/app/(staff)/staff/_components/TestTag";
-import NavIcon from "@/app/(staff)/staff/_components/NavIcon";
+import NavIcon from "@/app/(staff)/staff/_components/shell/NavIcon";
+import { navIconGallery } from "@/app/(staff)/staff/_components/shell/NavIcon.gallery";
 import SortHeading from "@/app/(staff)/staff/_components/SortHeading";
 import Table from "@/components/ui/Table";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
@@ -111,28 +113,6 @@ const EXAMPLE_NATIONS = [
     ],
   },
 ];
-
-// Every page the navigation can mark as current, so a new one is a type error until it's here.
-const PAGES: Record<StaffPageName, true> = {
-  home: true,
-  me: true,
-  supporters: true,
-  signupUpload: true,
-  campaigns: true,
-  broadcasts: true,
-  sentEmails: true,
-  events: true,
-  supporterEmails: true,
-  politicians: true,
-  asks: true,
-  mailings: true,
-  emails: true,
-  mpEmails: true,
-  import: true,
-  changes: true,
-  errors: true,
-  accounts: true,
-};
 
 export const staffKit: Group = {
   id: "staff-kit",
@@ -351,41 +331,7 @@ export const staffKit: Group = {
         },
       ],
     },
-    {
-      name: "NavIcon",
-      file: "app/(staff)/staff/_components/NavIcon.tsx",
-      variants: [
-        {
-          label: "Each page's icon, and Log out's",
-          render: () => (
-            <StaffPage as="div">
-              <p>
-                {(
-                  [
-                    "home",
-                    "supporters",
-                    "campaigns",
-                    "sentEmails",
-                    "supporterEmails",
-                    "politicians",
-                    "asks",
-                    "mailings",
-                    "emails",
-                    "mpEmails",
-                    "import",
-                    "accounts",
-                    "changes",
-                    "logout",
-                  ] as const
-                ).map((id) => (
-                  <NavIcon key={id} id={id} />
-                ))}
-              </p>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...navIconGallery,
     {
       name: "Withheld",
       file: "app/(staff)/staff/_components/ui/Withheld.tsx",
@@ -944,65 +890,7 @@ export const staffKit: Group = {
         },
       ],
     },
-    {
-      name: "StaffNav",
-      file: "app/(staff)/staff/_components/StaffNav.tsx",
-      variants: [
-        {
-          label: "On the login page: the title alone",
-          render: () => (
-            <StaffPage as="div">
-              <StaffNav />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "For someone without permissions: the pages any account opens",
-          render: () => (
-            <StaffPage as="div">
-              <StaffNav email="jo@pauseai.uk" permissions={[]} current="politicians" />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "With the supporters permission",
-          render: () => (
-            <StaffPage as="div">
-              <StaffNav email="jo@pauseai.uk" permissions={["supporters"]} current="campaigns" />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "With pages they first saw in the last few days marked new",
-          render: () => (
-            <StaffPage as="div">
-              <StaffNav
-                email="jo@pauseai.uk"
-                permissions={["supporters", "admin"]}
-                fresh={["campaigns", "sentEmails"]}
-              />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "For an admin, on each page",
-          render: () => (
-            <StaffPage as="div">
-              <div style={{ display: "grid", gap: 24 }}>
-                {(Object.keys(PAGES) as StaffPageName[]).map((current) => (
-                  <StaffNav
-                    key={current}
-                    email="jo@pauseai.uk"
-                    permissions={["admin", "supporters"]}
-                    current={current}
-                  />
-                ))}
-              </div>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...staffNavGallery,
     {
       name: "Alert",
       file: "app/(staff)/staff/_components/Alert.tsx",

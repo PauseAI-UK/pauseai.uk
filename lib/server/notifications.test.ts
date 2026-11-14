@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { NOTIFICATIONS, notifications, toNotifications } from "@/tests/notifications";
-import { saveStaffAccount } from "./staff-accounts";
+import { saveStaffAccount } from "@/lib/accounts/staff-accounts";
 import { query } from "./db";
 import { notifyStaff, reportMailingBounces, staffLink } from "./notifications";
 

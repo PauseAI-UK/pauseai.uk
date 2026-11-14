@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { listSignupUploads } from "@/lib/server/signup-uploads";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import Page from "../../../../_components/ui/Page";
 import PageHead from "../../../../_components/ui/PageHead";
 import { now } from "@/lib/now";

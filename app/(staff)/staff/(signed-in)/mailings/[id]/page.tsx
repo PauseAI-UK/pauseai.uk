@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { mailingPageData } from "@/lib/server/mailing-pages";
 import { mailingCrumb, mailingTitle } from "@/lib/server/mailings";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { mailingId } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import MailingFor from "../../../_components/MailingFor";

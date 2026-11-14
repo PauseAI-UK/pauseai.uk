@@ -27,7 +27,7 @@ import {
 import { politicianAudience } from "@/lib/server/mailing-recipients";
 import { mailingAudience } from "@/lib/server/mailings";
 import { looksLikeEmail } from "@/lib/email-your-mp";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { staffBack, storedFilter } from "@/lib/staff-search";
 import { filtersPath } from "@/lib/list-params";
 

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { config } from "@/lib/server/config";
-import { createSession } from "@/lib/server/staff-auth";
-import { afterLogin, NEXT_PARAM, sessionCookie } from "@/lib/staff-session";
+import { createSession } from "@/lib/accounts/auth";
+import { afterLogin, NEXT_PARAM, sessionCookie } from "@/lib/accounts/session";
 import { siteUrl } from "@/lib/site-url";
 
 // The dev login (DevLogin): in a fixture build, the login page's second

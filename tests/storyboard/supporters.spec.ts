@@ -18,6 +18,7 @@ import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 
 export const section: Section = { name: "Supporters", part: "Staff pages", order: 50 };
 
@@ -84,7 +85,7 @@ test("Without the Supporters permission", async ({ page, flowDatabase }) => {
   );
   addStaffAccount(flowDatabase, staffEmail());
   await logInAsStaff(page, BASE, staffEmail(), "/staff");
-  await expect(page.getByRole("link", { name: staffCopy.nav.supporters })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: shellCopy.nav.supporters })).toHaveCount(0);
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page).toHaveURL(`${BASE}/staff`);
   await page.goto(`${BASE}/staff/supporters/1`);

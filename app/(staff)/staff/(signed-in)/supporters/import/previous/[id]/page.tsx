@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { getSignupUpload } from "@/lib/server/signup-uploads";
 import { SIGNUP_UPLOADS_PATH } from "@/lib/signup-upload";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { supporterId } from "@/lib/staff-search";
 import SignupUploadResult, { SignupUploadHead } from "../../../../../_components/SignupUploadResult";
 import Page from "../../../../../_components/ui/Page";

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { attachmentHeaders } from "@/lib/mailing-attachments";
 import { attachmentFile } from "@/lib/server/mailing-drafts";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { mailingId } from "@/lib/staff-search";
 
 /** One of a broadcast's files: to open in the browser or picture as a thumbnail, if it's a kind that's safe to; else to save (attachmentHeaders). */

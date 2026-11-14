@@ -31,8 +31,8 @@ import When from "./When";
 
 import { renderToString } from "react-dom/server";
 import { NAV_FOLD_KEY } from "@/lib/staff-nav";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { shellCopy } from "../shell/copy";
 
 describe("ExternalLink", () => {
   it("opens in a new tab with no referrer, with an arrow, and a description saying so", async () => {
@@ -1031,12 +1031,12 @@ describe("NavFold", () => {
 
   it("folds the sidebar and unfolds it, on <html> and remembered in this browser", async () => {
     await render(<NavFold />);
-    const fold = page.getByRole("button", { name: staffCopy.nav.fold });
+    const fold = page.getByRole("button", { name: shellCopy.nav.fold });
     await expect.element(fold).toHaveAttribute("aria-expanded", "true");
     await fold.click();
     expect(document.documentElement.dataset.staffNav).toBe("folded");
     expect(localStorage.getItem(NAV_FOLD_KEY)).toBe("folded");
-    const unfold = page.getByRole("button", { name: staffCopy.nav.unfold });
+    const unfold = page.getByRole("button", { name: shellCopy.nav.unfold });
     await expect.element(unfold).toHaveAttribute("aria-expanded", "false");
     await unfold.click();
     expect(document.documentElement.dataset.staffNav).toBeUndefined();
@@ -1046,16 +1046,16 @@ describe("NavFold", () => {
   it("starts folded when the page already is, and still folds a browser that won't store it", async () => {
     document.documentElement.dataset.staffNav = "folded";
     await render(<NavFold />);
-    await expect.element(page.getByRole("button", { name: staffCopy.nav.unfold })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: shellCopy.nav.unfold })).toBeVisible();
     const setItem = Storage.prototype.setItem;
     const removeItem = Storage.prototype.removeItem;
     Storage.prototype.setItem = Storage.prototype.removeItem = () => {
       throw new Error("no storage");
     };
     try {
-      await page.getByRole("button", { name: staffCopy.nav.unfold }).click();
+      await page.getByRole("button", { name: shellCopy.nav.unfold }).click();
       expect(document.documentElement.dataset.staffNav).toBeUndefined();
-      await page.getByRole("button", { name: staffCopy.nav.fold }).click();
+      await page.getByRole("button", { name: shellCopy.nav.fold }).click();
       expect(document.documentElement.dataset.staffNav).toBe("folded");
     } finally {
       Storage.prototype.setItem = setItem;

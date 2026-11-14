@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
 import { listCampaignSummaries } from "@/lib/server/campaigns";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import CampaignsOverview from "../../_components/CampaignsOverview";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";

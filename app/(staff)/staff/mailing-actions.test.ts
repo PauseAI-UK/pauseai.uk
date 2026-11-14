@@ -4,7 +4,7 @@ import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db";
 import { createDraft, getWrittenMailing, saveDraft, type MailingChanges } from "@/lib/server/mailing-drafts";
 import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/server/broadcast-drafts";
-import { createSession } from "@/lib/server/staff-auth";
+import { createSession } from "@/lib/accounts/auth";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { createSession, sessionEmail, sessionId } from "@/lib/server/staff-auth";
+import { createSession, sessionEmail, sessionId } from "@/lib/accounts/auth";
 import { query } from "@/lib/server/db";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";

@@ -27,7 +27,7 @@ import {
   type BroadcastScheduleResult,
   type TemplateSubmitResult,
 } from "@/lib/server/broadcast-drafts";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import type { SaveResult } from "@/lib/server/mailing-drafts";
 import { dueAtFrom, idFrom } from "@/lib/staff-forms";
 import { storedFilter } from "@/lib/staff-search";

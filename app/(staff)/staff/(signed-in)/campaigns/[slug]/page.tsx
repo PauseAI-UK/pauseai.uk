@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { campaignVersions, getCampaignSummary } from "@/lib/server/campaigns";
 import { listLetters } from "@/lib/server/letters";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth";
 import { lettersSearch, type LettersSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import CampaignView from "../../../_components/CampaignView";

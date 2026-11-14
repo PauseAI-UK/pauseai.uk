@@ -7,7 +7,7 @@ import { checkDoc, toHtml, toText } from "@/lib/letter-format";
 import { query } from "./db";
 import { isBlocked, sentBy, type Backend, type Purpose } from "./email";
 import { send } from "./email-sending";
-import { gmailAccount } from "./gmail-accounts";
+import { gmailAccount } from "@/lib/accounts/gmail-accounts";
 import { letterEvent, SentUnrecorded, sendLetterVia, transition } from "./letter-lifecycle";
 import { lettersInbox, proxyAddress } from "./letters-inbox";
 import { lettersInboxEmail } from "./mailing-channels";

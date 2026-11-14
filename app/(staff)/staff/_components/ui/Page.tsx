@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { PageKind } from "@/lib/staff-page-kinds";
 import { staffPageHref, type StaffPageId } from "@/lib/staff-sections";
 import Breadcrumb, { type Crumb } from "./Breadcrumb";
 import styles from "./Page.module.css";
+import { shellCopy } from "../shell/copy";
 
 /** Where a page below the navigation's is: the navigation's page it's under, any pages between, and its own name. */
 type Trail = { under: StaffPageId; via?: Crumb[]; here: string };
@@ -22,7 +22,7 @@ export default function Page({ kind, under, via = [], here, children }: Props) {
   return (
     <div className={styles.page} data-page-kind={kind}>
       {under && (
-        <Breadcrumb steps={[{ href: staffPageHref(under), label: staffCopy.nav[under] }, ...via]} here={here} />
+        <Breadcrumb steps={[{ href: staffPageHref(under), label: shellCopy.nav[under] }, ...via]} here={here} />
       )}
       {children}
     </div>
