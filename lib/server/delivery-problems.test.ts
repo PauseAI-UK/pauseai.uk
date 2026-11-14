@@ -5,7 +5,7 @@ import { toNotifications } from "@/tests/notifications";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "./db";
-import { handleDeliveryProblem } from "./delivery-problems";
+import { handleDeliveryProblem, unblock } from "./delivery-problems";
 import type { DeliveryProblem, Purpose } from "./email";
 
 /** Postmark's webhook call, which on Netlify arrives on the netlify.app host. */
@@ -227,5 +227,14 @@ describeWithDatabase("handleDeliveryProblem", () => {
     expect(await query("SELECT * FROM letter_events")).toEqual([]);
     // Every problem is still recorded.
     expect(await query("SELECT count(*)::int AS n FROM email_problems")).toEqual([{ n: 6 }]);
+  });
+});
+
+describeWithDatabase("unblock", () => {
+  useTestDatabase();
+
+  it("sends nothing again for an address it didn't unblock", async () => {
+    expect(await unblock("nobody@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
+    expect(await query("SELECT * FROM email_sends")).toEqual([]);
   });
 });
