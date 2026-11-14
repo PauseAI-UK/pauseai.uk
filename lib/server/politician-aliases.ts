@@ -232,24 +232,20 @@ export async function addPoliticianAddress(politicianId: number, given: string, 
     ...known.forms,
   ];
   if (theirs.includes(address)) return { added: false, why: "exists" };
-  const added = await transaction(async (db) => {
-    const rows = await query(
-      `INSERT INTO politician_addresses (address, notable_person_id, source, added_by)
-       SELECT $1, $2, 'staff', $3 WHERE EXISTS (SELECT 1 FROM politicians WHERE id = $2) ON CONFLICT DO NOTHING RETURNING 1`,
+  await transaction(async (db) => {
+    await query(
+      `INSERT INTO politician_addresses (address, notable_person_id, source, added_by) VALUES ($1, $2, 'staff', $3)
+       ON CONFLICT DO NOTHING`,
       [address, politicianId, by],
       db,
     );
-    if (rows.length) {
-      await query(
-        "DELETE FROM politician_addresses WHERE address = $1 AND notable_person_id = $2 AND source = 'rejected'",
-        [address, politicianId],
-        db,
-      );
-      await logChange(by, "add politician address", { politicianId, address }, db);
-    }
-    return rows.length > 0;
+    await query(
+      "DELETE FROM politician_addresses WHERE address = $1 AND notable_person_id = $2 AND source = 'rejected'",
+      [address, politicianId],
+      db,
+    );
+    await logChange(by, "add politician address", { politicianId, address }, db);
   });
-  if (!added) return { added: false, why: "exists" };
   await relinkOneOffs(Date.now());
   return { added: true };
 }
