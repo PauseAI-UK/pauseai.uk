@@ -128,7 +128,7 @@ async function picture(
       });
       await info.attach(`frame ${index}: ${caption}`, { body, contentType: "image/png" });
     } finally {
-      if (moved) await of.evaluate((element: HTMLElement, style) => element.setAttribute("style", style), moved.style);
+      if (moved) await page.evaluate((style) => document.documentElement.setAttribute("style", style), moved.style);
     }
     return;
   }
@@ -167,13 +167,22 @@ async function repaintSticky(page: Page): Promise<void> {
 }
 
 /**
- * Moves an element pictured alone down and right by less than a pixel, so it
- * starts on a whole pixel of the page, and gives its style as it was, to put
- * back; undefined if it was on one already. Text is drawn a shade differently
- * at each fraction of a pixel, so an element pictured where the content above
- * left it (a gallery component, below one that grew by half a pixel) differed
- * from main's in every letter though nothing in it had changed. It's moved by
- * `position: relative`, which leaves the layout around it as it was.
+ * Moves the whole page down and right by less than a pixel, so that an
+ * element pictured alone starts on a whole pixel, and gives the root's style
+ * as it was, to put back; undefined if it was on one already. Text and curves
+ * are drawn a shade differently at each fraction of a pixel, so an element
+ * pictured where the content above left it (a gallery component, below one
+ * that grew by half a pixel) differed from main's though nothing in it had
+ * changed.
+ *
+ * The page is moved by padding on the root, so the element is laid out on a
+ * whole pixel, every box in it where it would be had the content above come
+ * to a whole number: its picture is the same whatever the fraction was. The
+ * margin on the right takes back the width the padding on the left takes.
+ * Moving the element alone, by `position: relative`, isn't the same: it's a
+ * move Chromium makes as it paints, after layout has placed the boxes in it,
+ * and a pill's rounded edge came out a shade different depending on the
+ * fraction the move made up.
  */
 async function onWholePixels(element: Locator): Promise<{ style: string } | undefined> {
   return element.evaluate(async (el: HTMLElement) => {
@@ -181,12 +190,12 @@ async function onWholePixels(element: Locator): Promise<{ style: string } | unde
     const x = Math.ceil(rect.left) - rect.left;
     const y = Math.ceil(rect.top) - rect.top;
     if (x < 0.01 && y < 0.01) return undefined;
-    // One placed already (sticky, absolute, relative) is pictured where it is.
-    if (getComputedStyle(el).position !== "static") return undefined;
-    const style = el.getAttribute("style") ?? "";
-    el.style.position = "relative";
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
+    const root = document.documentElement;
+    const style = root.getAttribute("style") ?? "";
+    const was = getComputedStyle(root);
+    root.style.paddingTop = `${parseFloat(was.paddingTop) + y}px`;
+    root.style.paddingLeft = `${parseFloat(was.paddingLeft) + x}px`;
+    root.style.marginRight = `${parseFloat(was.marginRight) - x}px`;
     await new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())));
     return { style };
   });
