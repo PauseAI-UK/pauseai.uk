@@ -31,14 +31,21 @@ export function personalSalutation(
   return gender ? `${by[gender]} ${surname}` : null;
 }
 
-/**
- * An MP's, from Parliament's list name ("Abbott, Ms Diane": the surname,
- * then any title and the first name) and gender.
- */
-export function mpSalutation(listAs: string, gender: Gender): string | null {
+/** The parts of Parliament's list name for an MP ("Abbott, Ms Diane"): the surname, then any title and the first name. */
+function listName(listAs: string): { title?: string; first: string; surname: string } {
   const [surname, given = ""] = listAs.split(/,\s*/);
   const { title, rest } = titled(given);
-  return personalSalutation({ title, first: rest.split(/\s+/)[0], surname: surname.trim() }, gender);
+  return { title, first: rest.split(/\s+/)[0], surname: surname.trim() };
+}
+
+/** An MP's, from Parliament's list name and their gender. */
+export function mpSalutation(listAs: string, gender: Gender): string | null {
+  return personalSalutation(listName(listAs), gender);
+}
+
+/** Whether Parliament's list name for an MP has a title: one they have on record, so the salutation it makes is how they asked to be addressed. */
+export function mpTitled(listAs: string): boolean {
+  return listName(listAs).title !== undefined;
 }
 
 /** The ranks a peer is written to as Lord, and as Lady. */

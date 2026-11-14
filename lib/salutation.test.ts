@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mpSalutation, peerSalutation, personalSalutation, surnameOf } from "./salutation";
+import { mpSalutation, mpTitled, peerSalutation, personalSalutation, surnameOf } from "./salutation";
 
 describe("mpSalutation", () => {
   it("is the title Parliament gives and the surname", () => {
@@ -22,6 +22,12 @@ describe("mpSalutation", () => {
     expect(mpSalutation("Example, Sam", "other")).toBe("Mx Example");
     expect(mpSalutation("Example, Sam", undefined)).toBeNull();
     expect(mpSalutation("Example", "male")).toBe("Mr Example");
+  });
+
+  it("says whether the list name has a title", () => {
+    expect(mpTitled("Tami, Sir Mark")).toBe(true);
+    expect(mpTitled("Abbott, Ms Diane")).toBe(true);
+    expect(mpTitled("Baker, Alex")).toBe(false);
   });
 
   it("keeps a surname of two words or with a hyphen whole", () => {

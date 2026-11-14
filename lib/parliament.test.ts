@@ -3,7 +3,7 @@ import { PARLIAMENT_MEMBERS } from "@/lib/server/fixtures/politician-lists";
 import { memberUrl, parliamentEnding, parliamentMembers, parliamentMembersUrl, parliamentProfile } from "./parliament";
 
 describe("parliamentMembers", () => {
-  it("reads each MP: name, seat, party, nation, emails trimmed and lowercased, websites, salutation by rule", () => {
+  it("reads each MP: name, seat, party, nation, emails trimmed and lowercased, websites, salutation by rule, any title recorded", () => {
     const [dora, polly, mo] = parliamentMembers(PARLIAMENT_MEMBERS.Commons);
     expect(dora).toEqual({
       officialId: 90001,
@@ -15,9 +15,11 @@ describe("parliamentMembers", () => {
       emails: ["mp90001.office@parliament.uk"],
       websites: [],
       salutation: "Ms Dummy",
+      titled: true,
     });
     expect(polly).toMatchObject({ websites: ["https://www.polly.example"], salutation: "Ms Placeholder" });
-    expect(mo.salutation).toBe("Mx Example");
+    expect(polly).not.toHaveProperty("titled");
+    expect(mo).toMatchObject({ salutation: "Mx Example", titled: true });
   });
 
   it("reads a Lord, alone in their House's answer, without a seat or nation", () => {

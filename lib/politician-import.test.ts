@@ -4,6 +4,7 @@ import {
   compareMembers,
   holdsImport,
   importChangeCount,
+  keptSalutations,
   matchMembers,
   MAX_UNCHECKED_IMPORT_CHANGES,
   nextEmail,
@@ -33,6 +34,7 @@ const ours = (id: number, name: string, extra: Partial<OurPolitician> = {}): Our
   name,
   salutation: `Mx ${name.split(" ").pop()}`,
   salutationToCheck: false,
+  salutationByStaff: false,
   constituency: "Ipswich",
   party: "Labour",
   country: "england",
@@ -150,6 +152,41 @@ describe("compareMembers", () => {
     );
     expect(later.salutations).toEqual([]);
     expect(later.changed).toEqual([]);
+  });
+
+  it("takes the salutation a recorded title makes on linking, so it isn't shown as unlike the rule's", () => {
+    const changes = compareMembers(
+      [ours(1, "Ellie Chowns", { salutation: "Ms Chowns" })],
+      [member(10, "Ellie Chowns", { salutation: "Dr Chowns", titled: true })],
+    );
+    expect(changes.changed[0].changed).toEqual({ officialId: [null, 10], salutation: ["Ms Chowns", "Dr Chowns"] });
+    expect(changes.salutations).toEqual([]);
+  });
+
+  it("takes a recorded title's salutation over ours, unless staff set ours, which it finds to check", () => {
+    const member10 = member(10, "Kemi Badenoch", { salutation: "Mrs Badenoch", titled: true });
+    const changes = compareMembers(
+      [
+        ours(1, "Kemi Badenoch", { officialId: 10, salutation: "Ms Badenoch", salutationToCheck: true }),
+        ours(2, "Helen Grant", { officialId: 20, salutation: "Mrs Grant", salutationByStaff: true }),
+        ours(3, "Sam Same", { officialId: 30, salutation: "Dr Same", salutationByStaff: true }),
+        ours(4, "Pat Untitled", { officialId: 40, salutation: "Mr Untitled", salutationByStaff: true }),
+      ],
+      [
+        member10,
+        member(20, "Helen Grant", { salutation: "Dame Helen", titled: true }),
+        member(30, "Sam Same", { salutation: "Dr Same", titled: true }),
+        member(40, "Pat Untitled", { salutation: "Ms Untitled" }),
+      ],
+    );
+    expect(changes.changed).toEqual([
+      {
+        id: 1,
+        name: "Kemi Badenoch",
+        changed: { salutation: ["Ms Badenoch", "Mrs Badenoch"], salutationToCheck: [true, false] },
+      },
+    ]);
+    expect(keptSalutations(changes.pairs)).toEqual([{ name: "Helen Grant", ours: "Mrs Grant", theirs: "Dame Helen" }]);
   });
 
   it("calls a different name a rename, and an MP's seat no postcode finds unofficial", () => {

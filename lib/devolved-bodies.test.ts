@@ -99,7 +99,7 @@ describe("the Senedd's members", () => {
 });
 
 describe("the NI Assembly's members", () => {
-  it("are those sitting now, with their emails and a salutation from their title", () => {
+  it("are those sitting now, with their emails and a salutation from the title it records", () => {
     expect(niAssemblyMembers(NI_ASSEMBLY.members, NI_ASSEMBLY.contacts)).toEqual([
       {
         officialId: 93001,
@@ -111,6 +111,7 @@ describe("the NI Assembly's members", () => {
         emails: ["aoife.example@mla.niassembly.gov.uk"],
         websites: [],
         salutation: "Ms Example",
+        titled: true,
       },
     ]);
   });
@@ -128,6 +129,7 @@ describe("the NI Assembly's members", () => {
       },
     );
     expect(member).toMatchObject({ salutation: null, party: "", constituency: null, emails: [] });
+    expect(member).not.toHaveProperty("titled");
     expect(() => niAssemblyMembers({}, NI_ASSEMBLY.contacts)).toThrow("members has no members");
     expect(() => niAssemblyMembers(NI_ASSEMBLY.members, null)).toThrow("contacts has no members");
     expect(mlaProfile(93001)).toBe("https://aims.niassembly.gov.uk/mlas/details.aspx?per=93001");
