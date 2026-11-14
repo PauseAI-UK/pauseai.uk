@@ -25,7 +25,7 @@ import { tableDatesOnOneLine } from "./table-dates";
  *
  * `of` pictures one element, exactly (a component in the gallery), with
  * the page at the top so the sticky header is never over it, and the
- * element on a whole pixel (onWholePixels). `window`
+ * element on a whole pixel and a layer of its own (alone). `window`
  * pictures only the window, for a page too long to picture whole. `hover` puts the pointer over an element, and keeps it
  * there for the picture, in place of moving it out of the way.
  *
@@ -54,7 +54,7 @@ export async function frame(
 
   const putBack = await showOrigin(page);
   try {
-    await picture(page, index, caption, { of, windowOnly });
+    await picture(page, index, caption, { of, windowOnly, hovered: hover !== undefined });
   } finally {
     await putBack();
   }
@@ -65,7 +65,7 @@ async function picture(
   page: Page,
   index: number,
   caption: string,
-  { of, windowOnly }: { of?: Locator; windowOnly: boolean },
+  { of, windowOnly, hovered }: { of?: Locator; windowOnly: boolean; hovered: boolean },
 ): Promise<void> {
   const info = test.info();
   // Images below the fold load first, and the fonts, so the picture is of the
@@ -93,6 +93,19 @@ async function picture(
       // Loaded isn't decoded: an image painted before it is can be drawn a
       // shade differently, a few pixels off between runs.
       await Promise.all([...document.images].map((img) => img.decode().catch(() => {})));
+      // So too a CSS background image (the photo library's thumbnails), which
+      // isn't one of the page's images: one of each, loaded and decoded.
+      const backgrounds = new Set<string>();
+      for (const el of document.querySelectorAll("body *")) {
+        for (const [, url] of getComputedStyle(el).backgroundImage.matchAll(/url\("(.+?)"\)/g)) backgrounds.add(url);
+      }
+      await Promise.all(
+        [...backgrounds].map((url) => {
+          const img = new Image();
+          img.src = url;
+          return img.decode().catch(() => {});
+        }),
+      );
       // At rest means the same place for three ticks in a row (settle.ts,
       // scrollSettled): an anchor's smooth scroll starts a tick or two after
       // the click on a slow machine, and one tick of no movement caught the
@@ -115,9 +128,9 @@ async function picture(
     });
   if (of) {
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-    const moved = await onWholePixels(of);
-    // After the scroll and the move: a sticky element in the one pictured (the march's header) is where it will be.
-    await repaintSticky(page);
+    const was = await alone(of);
+    // After the scroll and the move, so what's painted is where it will be.
+    await repaint(page, hovered);
     try {
       const box = (await of.boundingBox())!;
       await attachPlaceholders(page, index, { x: -box.x, y: -box.y, scrolled: false });
@@ -128,11 +141,11 @@ async function picture(
       });
       await info.attach(`frame ${index}: ${caption}`, { body, contentType: "image/png" });
     } finally {
-      if (moved) await page.evaluate((style) => document.documentElement.setAttribute("style", style), moved.style);
+      await putBack(of, was);
     }
     return;
   }
-  await repaintSticky(page);
+  await repaint(page, hovered);
   const windowShot = inWindow || windowOnly;
   await attachPlaceholders(page, index, { x: 0, y: 0, scrolled: !windowShot });
   const body = windowShot ? await page.screenshot(SHOT) : await wholePage(page);
@@ -140,65 +153,83 @@ async function picture(
 }
 
 /**
- * Paints the page's sticky elements afresh where they are now, once the
- * page is where it will be pictured. A sticky element (the staff sidebar, a
- * header) keeps the raster Chromium made of it at the scroll before, so its
- * text and edges could be a pixel up or down between runs: hidden for a tick
- * and shown again, it's painted where it is. Not one holding the focus or
- * an open menu (the site header's), which hiding would close.
+ * Paints the page afresh where it is now, once it's where it will be
+ * pictured. Chromium keeps the raster it made of a layer of the page (a
+ * sticky sidebar or header, a fixed bar, a table that scrolls sideways, and
+ * what's drawn over them) from before the page last moved, so its text and
+ * edges could be a pixel up or down: between runs, after a scroll, or between
+ * a gallery component pictured below content of one height and another.
+ * Hidden for a tick and shown again, everything is painted where it is. Not
+ * what holds the focus or an open menu (the site header's), which hiding
+ * would close, nor, when the frame is of the pointer `hovered` over
+ * something, what it's over, which hiding would move it off.
  */
-async function repaintSticky(page: Page): Promise<void> {
+async function repaint(page: Page, hovered: boolean): Promise<void> {
   await page
-    .evaluate(async () => {
+    .evaluate(async (hovered) => {
       const tick = () => new Promise<void>((done) => requestAnimationFrame(() => setTimeout(done, 50)));
-      const sticky = [...document.querySelectorAll<HTMLElement>("body *")].filter(
-        (el) =>
-          getComputedStyle(el).position === "sticky" &&
-          !el.contains(document.activeElement) &&
-          !el.querySelector(":popover-open"),
-      );
-      for (const el of sticky) el.style.visibility = "hidden";
+      const hide = document.createElement("style");
+      hide.textContent = `body *:not(:focus-within, :has(:popover-open)${hovered ? ", :hover" : ""}) { visibility: hidden !important; }`;
+      document.head.append(hide);
       await tick();
-      for (const el of sticky) el.style.visibility = "";
+      hide.remove();
       await tick();
-    })
+    }, hovered)
     // A page that navigated away: take the picture anyway.
     .catch(() => {});
 }
 
+/** The inline styles `alone` changes, as they were, for `putBack`. */
+type Styles = { root: string | null; element: string | null };
+
 /**
- * Moves the whole page down and right by less than a pixel, so that an
- * element pictured alone starts on a whole pixel, and gives the root's style
- * as it was, to put back; undefined if it was on one already. Text and curves
- * are drawn a shade differently at each fraction of a pixel, so an element
- * pictured where the content above left it (a gallery component, below one
- * that grew by half a pixel) differed from main's though nothing in it had
- * changed.
+ * Readies an element to be pictured alone, so that its picture is the same
+ * wherever the content above left it (a gallery component, below one that
+ * grew), and gives the inline styles it changes, as they were, to put back.
  *
- * The page is moved by padding on the root, so the element is laid out on a
- * whole pixel, every box in it where it would be had the content above come
- * to a whole number: its picture is the same whatever the fraction was. The
- * margin on the right takes back the width the padding on the left takes.
- * Moving the element alone, by `position: relative`, isn't the same: it's a
- * move Chromium makes as it paints, after layout has placed the boxes in it,
- * and a pill's rounded edge came out a shade different depending on the
- * fraction the move made up.
+ * It's moved onto a whole pixel: text and curves are drawn a shade
+ * differently at each fraction of one. The whole page is moved, by padding on
+ * the root (the margin on the right takes back the width the padding on the
+ * left takes), so the element is laid out there, every box in it where it
+ * would be had the content above come to a whole number. Moving the element
+ * alone, by `position: relative`, isn't the same: that move is made as
+ * Chromium paints, after layout, and a pill's rounded edge comes out a shade
+ * different with each fraction it makes up.
+ *
+ * And it's drawn on a layer of its own (`will-change: transform`), so it's
+ * drawn from its own top left. Drawn as part of the page, a photo, a gradient
+ * or a curve comes out a shade different at each place on the page. A
+ * layer makes the element the containing block of a fixed element in it, as
+ * a gallery stage already is.
  */
-async function onWholePixels(element: Locator): Promise<{ style: string } | undefined> {
+async function alone(element: Locator): Promise<Styles> {
   return element.evaluate(async (el: HTMLElement) => {
+    const root = document.documentElement;
+    const was = { root: root.getAttribute("style"), element: el.getAttribute("style") };
     const rect = el.getBoundingClientRect();
     const x = Math.ceil(rect.left) - rect.left;
     const y = Math.ceil(rect.top) - rect.top;
-    if (x < 0.01 && y < 0.01) return undefined;
-    const root = document.documentElement;
-    const style = root.getAttribute("style") ?? "";
-    const was = getComputedStyle(root);
-    root.style.paddingTop = `${parseFloat(was.paddingTop) + y}px`;
-    root.style.paddingLeft = `${parseFloat(was.paddingLeft) + x}px`;
-    root.style.marginRight = `${parseFloat(was.marginRight) - x}px`;
+    const style = getComputedStyle(root);
+    root.style.paddingTop = `${parseFloat(style.paddingTop) + y}px`;
+    root.style.paddingLeft = `${parseFloat(style.paddingLeft) + x}px`;
+    root.style.marginRight = `${parseFloat(style.marginRight) - x}px`;
+    el.style.willChange = "transform";
     await new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())));
-    return { style };
+    return was;
   });
+}
+
+/** Puts back the inline styles `alone` changed. */
+async function putBack(element: Locator, was: Styles): Promise<void> {
+  await element.evaluate((el: HTMLElement, styles: Styles) => {
+    for (const [node, style] of [
+      [document.documentElement, styles.root],
+      [el, styles.element],
+    ] as const) {
+      if (style === null) node.removeAttribute("style");
+      else node.setAttribute("style", style);
+    }
+  }, was);
 }
 
 /**
