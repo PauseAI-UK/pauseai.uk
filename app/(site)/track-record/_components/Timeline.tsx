@@ -46,8 +46,8 @@ export default function Timeline() {
                   <strong>Carol Mochan MSP</strong>, for South Scotland (Labour).
                 </li>
                 <li>
-                  <strong>Cllr Lorenzo Martinico</strong>, for Portobello/Craigmillar on the City of Edinburgh Council
-                  (Green).
+                  <strong>Councillor Lorenzo Martinico</strong>, for Portobello/Craigmillar on the City of Edinburgh
+                  Council (Green).
                 </li>
                 <li>
                   <strong>Michael Rovatsos</strong>, Professor of AI at the University of Edinburgh and former director
