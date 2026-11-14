@@ -33,7 +33,7 @@ const EXCEPTIONS = new Map([
   // Gmail's history of a mailbox expires: the read searches instead, and its run says it restarted.
   ["lib/server/outside-services/gmail.ts  gmailHistory", "history gone is an answer: the read searches, and says so"],
   // Postmark refusing a suppressed address is kept as that address blocked, which staff see.
-  ["lib/server/email.ts  send", "a suppressed address is recorded as blocked, its own report"],
+  ["lib/server/email.ts  sendWith", "a suppressed address is recorded as blocked, its own report"],
 ]);
 
 /**

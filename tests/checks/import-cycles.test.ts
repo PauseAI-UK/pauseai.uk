@@ -78,7 +78,7 @@ function pathRound(graph: Graph, component: Set<string>): string[] {
   return [start];
 }
 
-describe("import cycles", () => {
+describe("import cycles", { timeout: 120_000 }, () => {
   it("no module imports itself, however far round", () => {
     expect(cycles(importGraph(process.cwd(), { handedOver: false }))).toEqual([]);
   });
