@@ -2,12 +2,17 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { campaigns, copy } from "./email-your-mp";
+import { FIRST_CAMPAIGN_SLUG } from "./redirect-addresses";
 
 describe("Email your MP campaigns", () => {
   it("have unique slugs that work in a URL", () => {
     const slugs = campaigns.map((c) => c.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
     for (const slug of slugs) expect(slug).toMatch(/^[a-z0-9-]+$/);
+  });
+
+  it("start with the one plain /campaigns redirects to", () => {
+    expect(campaigns[0].slug).toBe(FIRST_CAMPAIGN_SLUG);
   });
 
   it("attach PDFs that exist, with thumbnails", () => {
