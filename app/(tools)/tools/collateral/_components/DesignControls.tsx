@@ -7,7 +7,7 @@ import { isLumaEventLink } from "@/lib/collateral/lint";
 import type { LibraryPhoto } from "@/lib/collateral/photos";
 import { QR_LABEL_MAX, QR_URL_MAX } from "@/lib/collateral/project";
 import { MAX_QR_CODES, normaliseUrl, type QrCode } from "@/lib/collateral/qr";
-import { drawableToPngDataUrl, fileToDrawable, loadDataUrl, loadImage } from "@/lib/collateral/render";
+import { drawableToPngDataUrl, fileToDrawable, loadDataUrl, loadImage } from "@/lib/collateral/render.client";
 import { defaultValues, getTemplate } from "@/lib/collateral/templates";
 import CharCount from "./CharCount";
 import StylePicker from "./StylePicker";

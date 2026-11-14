@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import { buttonClass } from "@/components/ui/Button";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
-import { asksWithCounts } from "@/lib/server/asks";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { asksWithCounts } from "@/lib/asks/records.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { askFormSearch } from "@/lib/staff-search";
 import { firstOf, type ParamValue } from "@/lib/list-params";
-import AsksList from "../../_components/AsksList";
+import AsksList from "../../_components/asks/AsksList";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
 import StaffLink from "../../_components/ui/StaffLink";
+import { asksCopy } from "@/lib/asks/copy";
 
-export const metadata: Metadata = { title: staffCopy.asks.title };
+export const metadata: Metadata = { title: asksCopy.asks.title };
 
 export default async function AsksPage({ searchParams }: { searchParams: Promise<Record<string, ParamValue>> }) {
   await requireStaff();
@@ -21,14 +21,14 @@ export default async function AsksPage({ searchParams }: { searchParams: Promise
   return (
     <Page kind="month-list">
       <PageHead
-        intro={staffCopy.asks.intro}
+        intro={asksCopy.asks.intro}
         action={
           <StaffLink className={buttonClass({ variant: "primary", fit: true })} href="/staff/asks/new">
-            {staffCopy.asks.newTitle}
+            {asksCopy.asks.newTitle}
           </StaffLink>
         }
       >
-        {staffCopy.asks.title}
+        {asksCopy.asks.title}
       </PageHead>
       <AsksList asks={asks} now={now()} notice={notice} picked={firstOf(params.ask)} />
     </Page>

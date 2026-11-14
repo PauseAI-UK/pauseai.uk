@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import { buttonClass } from "@/components/ui/Button";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
-import { signupEventChoices } from "@/lib/server/signup-uploads";
-import { SIGNUP_UPLOADS_PATH } from "@/lib/signup-upload";
-import { requireStaff } from "@/lib/server/staff-auth";
-import SignupUploadForm from "../../../_components/SignupUploadForm";
+import { signupEventChoices } from "@/lib/supporters/signup-uploads.server";
+import { SIGNUP_UPLOADS_PATH } from "@/lib/supporters/signup-csv";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import SignupUploadForm from "../../../_components/supporters/SignupUploadForm";
 import Page from "../../../_components/ui/Page";
 import PageHead from "../../../_components/ui/PageHead";
 import StaffLink from "../../../_components/ui/StaffLink";
-import { importSignupUpload, previewSignupUpload } from "../../../signup-upload-actions";
+import { importSignupUpload, previewSignupUpload } from "../../../_components/supporters/actions";
+import { supportersCopy } from "../../../_components/supporters/copy";
 
-const copy = staffCopy.signupUpload;
+const copy = supportersCopy.signupUpload;
 
 export const metadata: Metadata = { title: copy.title };
 

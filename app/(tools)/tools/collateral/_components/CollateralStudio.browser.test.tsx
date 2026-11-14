@@ -12,8 +12,8 @@ const STORAGE_KEY = "pauseai-collateral-v2";
 const { downloads } = vi.hoisted(() => ({
   downloads: { png: vi.fn(), pdf: vi.fn(), text: vi.fn() },
 }));
-vi.mock("@/lib/collateral/export", async (importActual) => {
-  const actual = await importActual<typeof import("@/lib/collateral/export")>();
+vi.mock("@/lib/collateral/export.client", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/collateral/export.client")>();
   return {
     ...actual,
     downloadCanvasPng: (...a: unknown[]) => downloads.png(...a),

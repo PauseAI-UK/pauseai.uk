@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import Page from "./Page";
+import { shellCopy } from "../shell/copy";
 
 /** The trail's steps, as their words. */
 const steps = () =>
   page
-    .getByRole("navigation", { name: staffCopy.breadcrumb })
+    .getByRole("navigation", { name: staffVocabulary.breadcrumb })
     .getByRole("listitem")
     .elements()
     .map((step) => step.textContent);
@@ -31,9 +32,9 @@ describe("Page", () => {
         <h1>Jane Smith</h1>
       </Page>,
     );
-    expect(steps()).toEqual([staffCopy.nav.supporters, "Jane Smith"]);
+    expect(steps()).toEqual([shellCopy.nav.supporters, "Jane Smith"]);
     await expect
-      .element(page.getByRole("link", { name: staffCopy.nav.supporters }))
+      .element(page.getByRole("link", { name: shellCopy.nav.supporters }))
       .toHaveAttribute("href", "/staff/supporters");
   });
 
@@ -43,7 +44,7 @@ describe("Page", () => {
         <h1>Erase Jane Smith</h1>
       </Page>,
     );
-    expect(steps()).toEqual([staffCopy.nav.supporters, "Jane Smith", "Erase"]);
+    expect(steps()).toEqual([shellCopy.nav.supporters, "Jane Smith", "Erase"]);
     await expect.element(page.getByRole("link", { name: "Jane Smith" })).toHaveAttribute("href", "/staff/supporters/7");
   });
 });

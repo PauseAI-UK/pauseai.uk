@@ -4,10 +4,10 @@
 // holds functions, so can't come from the server) or what the tool keeps in
 // the browser: client components with no props, so the server-rendered
 // gallery can place them.
-import { CONTROLAI_LETTER_ASK } from "@/lib/asks";
+import { CONTROLAI_LETTER_ASK } from "@/lib/asks/asks";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { campaigns } from "@/lib/content/email-your-mp";
-import { docFromMarkup, toText } from "@/lib/letter-format";
+import { docFromMarkup, toText } from "@/lib/letters/format";
 import {
   markSent,
   saveDraft,
@@ -15,7 +15,7 @@ import {
   type Draft,
   type Lookup,
   type Sent,
-} from "@/app/(site)/campaigns/_components/draft";
+} from "@/app/(site)/campaigns/_components/draft.client";
 import { exampleDraft, exampleLookup, exampleMp } from "@/app/(site)/campaigns/_components/draft.examples";
 import EmailYourMpTool from "@/app/(site)/campaigns/_components/EmailYourMpTool";
 import LetterEditor from "@/app/(site)/campaigns/_components/LetterEditor";

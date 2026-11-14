@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import GalleryGroup from "../_components/GalleryGroup";
-import { galleryGroup } from "../_components/enabled";
+import { galleryGroup } from "../_components/enabled.server";
 import { GROUPS } from "../_examples";
 
 export function generateStaticParams() {

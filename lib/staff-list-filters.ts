@@ -5,17 +5,18 @@
 // gives its bar (`choices`) is what comes from the database or the page,
 // such as the parties, the events, or who's in the log.
 import type { ReactNode } from "react";
-import { ASK_STATUSES } from "./asks";
-import { SENDS, TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "./contact-permissions";
-import { staffCopy } from "./content/staff-interface";
+import { ASK_STATUSES } from "@/lib/asks/asks";
+import { SENDS, TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
+import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, valuesOf, type Params } from "./list-params";
-import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "./politician-filters";
-import type { EmailChoice } from "./server/all-letters";
-import type { Ask } from "./server/asks";
-import type { SupporterChoices, SupportersPage } from "./server/supporters";
-import { WINDOW_OPTIONS } from "./staff-dashboard";
-import { NO_OWNER, ONLINE } from "./staff-events-list";
+import { COUNTRIES, EMAIL_STATES } from "@/lib/politicians/filters";
+import { POLITICIAN_FLAGS } from "@/lib/politician-flags";
+import type { EmailChoice } from "@/lib/letters/all-letters.server";
+import type { Ask } from "@/lib/asks/records.server";
+import type { SupporterChoices, SupportersPage } from "@/lib/supporters/records.server";
+import { WINDOW_OPTIONS } from "./time-windows";
+import { NO_OWNER, ONLINE } from "@/lib/events/list";
 import {
   ALL_EMAILS_LIST,
   AUDIT_LOG_LIST,
@@ -27,7 +28,12 @@ import {
 } from "./staff-lists";
 import { EMAIL_SENDERS, EMAIL_TYPES, SENT_EMAIL_LINKS, SENT_EMAILS_WITHOUT_SUPPORTERS } from "./staff-search";
 import { staffDate } from "./staff-time";
-import { NEAR_MILES, SUPPORTER_BADGES } from "./supporters";
+import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters/supporters";
+import { eventsCopy } from "@/lib/events/copy";
+import { supportersCopy } from "@/lib/supporters/copy";
+import { politiciansCopy } from "@/lib/politicians/copy";
+import { lettersCopy } from "@/lib/letters/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 /**
  * A choice. Choices in a `group` come under its heading, its icon once,
@@ -121,7 +127,7 @@ function choiceWords(filter: Filter, plain: string): string {
 export function valueWords(filter: Filter, value: string, join: string): string {
   const { value: plain, not } = notValue(value);
   const choice = choiceWords(filter, plain);
-  return not ? staffCopy.filters.notChip(filter.label, choice) : `${filter.label}${join}${choice}`;
+  return not ? staffVocabulary.filters.notChip(filter.label, choice) : `${filter.label}${join}${choice}`;
 }
 
 /**
@@ -130,7 +136,7 @@ export function valueWords(filter: Filter, value: string, join: string): string 
  * repeat goes with it, as its chip's second half does, its default too.
  */
 export function filterWords(filters: Filter[], values: Params, search: string): string[] {
-  const words = values[search] ? [`${staffCopy.search}: ${firstOf(values[search])}`] : [];
+  const words = values[search] ? [`${staffVocabulary.search}: ${firstOf(values[search])}`] : [];
   for (const filter of filters) {
     if (filter.after && !filter.repeat) continue;
     const chosen = valuesOf(values[filter.name]).map(notValue);
@@ -139,8 +145,8 @@ export function filterWords(filters: Filter[], values: Params, search: string): 
     );
     const next = filters.find((f) => f.after === filter.name && !f.repeat);
     const then = next ? `, ${choiceWords(next, firstOf(values[next.name]))}` : "";
-    if (found.length) words.push(`${filter.label}: ${staffCopy.filters.anyOf(found)}${then}`);
-    if (out.length) words.push(staffCopy.filters.notChip(filter.label, staffCopy.filters.anyOf(out)));
+    if (found.length) words.push(`${filter.label}: ${staffVocabulary.filters.anyOf(found)}${then}`);
+    if (out.length) words.push(staffVocabulary.filters.notChip(filter.label, staffVocabulary.filters.anyOf(out)));
   }
   return words;
 }
@@ -153,7 +159,7 @@ export function filteredTitle(title: string, words: string[]): string {
   const filters = words.filter(Boolean).join(", ");
   if (!filters) return title;
   const short = filters.length > TITLE_FILTERS ? `${filters.slice(0, TITLE_FILTERS - 1).trimEnd()}…` : filters;
-  return staffCopy.filters.pageTitle(title, short);
+  return staffVocabulary.filters.pageTitle(title, short);
 }
 
 /**
@@ -182,36 +188,39 @@ export type PoliticianChoices = { ask: string; parties: string[]; asks: Ask[] };
  * recently they agreed is only from the dashboard's link.
  */
 export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, parties, asks }: PoliticianChoices) => {
-  const copy = staffCopy.politicians;
+  const copy = politiciansCopy.politicians;
   const ask = asks.find((a) => a.slug === slug);
   const askChoices = asks.map((a) => ({ value: a.slug, label: a.title }));
   return {
     nation: {
-      label: staffCopy.politician.country,
+      label: politiciansCopy.politician.country,
       oneEach: true,
-      options: COUNTRIES.map((country) => ({ value: country, label: staffCopy.countries[country] })),
+      options: COUNTRIES.map((country) => ({ value: country, label: staffVocabulary.countries[country] })),
     },
     party: {
-      label: staffCopy.fields.party,
+      label: staffVocabulary.fields.party,
       oneEach: true,
       options: parties.map((party) => ({ value: party, label: party })),
     },
     status: {
       label: copy.status,
       options: [
-        { value: "", label: staffCopy.personStatuses.in_office },
-        ...Object.entries(staffCopy.personStatuses)
+        { value: "", label: politiciansCopy.personStatuses.in_office },
+        ...Object.entries(politiciansCopy.personStatuses)
           .filter(([value]) => value !== "in_office")
           .map(([value, label]) => ({ value, label })),
         { value: "any", label: copy.anyStatus },
       ],
     },
     email: {
-      label: staffCopy.fields.email,
+      label: staffVocabulary.fields.email,
       oneEach: true,
       options: EMAIL_STATES.map((state) => ({ value: state, label: copy.emailStates[state] })),
     },
-    flag: { label: copy.flag, options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: copy.flags[flag] })) },
+    flag: {
+      label: copy.flag,
+      options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: staffVocabulary.politicianFlags[flag] })),
+    },
     ask: { label: copy.ask, options: askChoices },
     agreed: { label: copy.agreedIn, options: WINDOW_OPTIONS, linkedOnly: true },
     mailed: { label: copy.mailed, options: askChoices },
@@ -223,7 +232,7 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
         // With no ask, as a link from the dashboard can have it, any ask's answers.
         ...(ask ? ASK_STATUSES[ask.kind] : [...new Set(Object.values(ASK_STATUSES).flat())]).map((value) => ({
           value,
-          label: staffCopy.statuses[value],
+          label: staffVocabulary.statuses[value],
         })),
         { value: "none", label: copy.noAnswer },
       ],
@@ -242,7 +251,7 @@ export const CONSENT_ORDER: Consent[] = WAYS.flatMap((way) =>
 
 /** The words in the Near chip: where it found, or that it couldn't; as typed, when it wasn't looked up. */
 function nearWords(text: string, found: SupportersPage["near"]): string {
-  const copy = staffCopy.supporters.filters;
+  const copy = supportersCopy.supporters.filters;
   if (found === undefined) return text;
   if (found === "failed") return copy.failed(text);
   return found ? found.place : copy.notFound(text);
@@ -275,10 +284,14 @@ export type SupporterBarChoices = SupporterChoices & {
 export const SUPPORTER_FILTERS = listFilters(
   SUPPORTERS_LIST,
   ({ events, mps, near, found, channelIcon }: SupporterBarChoices) => {
-    const copy = staffCopy.supporters.filters;
-    const { columns } = staffCopy.supporters;
+    const copy = supportersCopy.supporters.filters;
+    const { columns } = supportersCopy.supporters;
     return {
-      nation: { label: staffCopy.politician.country, oneEach: true, options: choicesOf(staffCopy.countries) },
+      nation: {
+        label: politiciansCopy.politician.country,
+        oneEach: true,
+        options: choicesOf(staffVocabulary.countries),
+      },
       near: {
         label: copy.near,
         options: near ? [{ value: near, label: nearWords(near, found) }] : [],
@@ -289,14 +302,14 @@ export const SUPPORTER_FILTERS = listFilters(
         },
       },
       mp: {
-        label: staffCopy.politician.roles.commons,
+        label: politiciansCopy.politician.roles.commons,
         oneEach: true,
         searchable: true,
         options: mps.map((mp) => ({ value: String(mp.id), label: copy.mpChoice(mp.name, mp.constituency) })),
       },
       activity: {
         label: columns.badges,
-        options: SUPPORTER_BADGES.map((badge) => ({ value: badge, label: staffCopy.supporters.badges[badge] })),
+        options: SUPPORTER_BADGES.map((badge) => ({ value: badge, label: supportersCopy.supporters.badges[badge] })),
       },
       contact: {
         label: columns.subscriptions,
@@ -307,7 +320,7 @@ export const SUPPORTER_FILTERS = listFilters(
         // Each topic under its way's heading, chosen as those we can contact about it; then in its chip's second
         // half, yes or no. Changing the topic keeps the answer.
         options: CONSENT_ORDER.map(({ topic, way }) => {
-          const answers = staffCopy.supporters.detail.permissions.answers[way];
+          const answers = supportersCopy.supporters.detail.permissions.answers[way];
           return {
             value: stateValue({ way, topic, send: "yes" }),
             label: copy.topics[topic],
@@ -351,7 +364,7 @@ export type EventChoices = { staff: readonly string[]; tags: string[]; cities: s
  * dashboard's tile. Where, tags and owner can be chosen more than once.
  */
 export const EVENT_FILTERS = listFilters(EVENTS_LIST, ({ staff, tags, cities }: EventChoices) => {
-  const copy = staffCopy.events;
+  const copy = eventsCopy.events;
   return {
     place: {
       label: copy.filters.place,
@@ -374,7 +387,7 @@ export type ChangeChoices = { actors: string[]; actions: string[] };
 
 /** The audit log's filters, in its columns' order: how recent; who and what, each of which can be chosen more than once. */
 export const CHANGE_FILTERS = listFilters(AUDIT_LOG_LIST, ({ actors, actions }: ChangeChoices) => {
-  const copy = staffCopy.changes;
+  const copy = oversightCopy.changes;
   return {
     when: { label: copy.at, options: WINDOW_OPTIONS },
     actor: { label: copy.actor, oneEach: true, options: actors.map((value) => ({ value, label: value })) },
@@ -384,7 +397,7 @@ export const CHANGE_FILTERS = listFilters(AUDIT_LOG_LIST, ({ actors, actions }: 
 
 /** The send log's filters, their kinds of email only those a staff member without `supporters` may see. */
 export const SENT_EMAIL_FILTERS = listFilters(SENT_EMAILS_LIST, ({ supporters }: { supporters: boolean }) => {
-  const copy = staffCopy.sentEmails;
+  const copy = oversightCopy.sentEmails;
   return {
     purpose: {
       label: copy.filters.purpose,
@@ -411,7 +424,7 @@ export const SENT_EMAIL_FILTERS = listFilters(SENT_EMAILS_LIST, ({ supporters }:
 export const ALL_EMAIL_FILTERS = listFilters(
   ALL_EMAILS_LIST,
   ({ supporters, people }: { supporters: boolean; people: EmailChoice[] }) => {
-    const copy = staffCopy.allLetters;
+    const copy = lettersCopy.allLetters;
     return {
       from: {
         label: copy.from,
@@ -422,12 +435,12 @@ export const ALL_EMAIL_FILTERS = listFilters(
         })),
       },
       to: {
-        label: staffCopy.letters.columns.to,
+        label: lettersCopy.letters.columns.to,
         searchable: true,
         options: people.map((person) => ({
           value: String(person.id),
           label: person.constituency
-            ? staffCopy.supporters.filters.mpChoice(person.name, person.constituency)
+            ? supportersCopy.supporters.filters.mpChoice(person.name, person.constituency)
             : person.name,
         })),
       },
@@ -450,8 +463,8 @@ export const ALL_EMAIL_FILTERS = listFilters(
       },
       // Test MPs' emails show only with Test politician chosen.
       flag: {
-        label: staffCopy.letters.mpFlag,
-        options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: staffCopy.politicians.flags[flag] })),
+        label: lettersCopy.letters.mpFlag,
+        options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: staffVocabulary.politicianFlags[flag] })),
       },
     };
   },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ThankedDonor } from "@/lib/server/outside-services/stripe";
+import type { ThankedDonor } from "@/lib/server/outside-services/stripe.server";
 import styles from "./DonateThanks.module.css";
 
 /** How many donors fit in the window before it rolls. */

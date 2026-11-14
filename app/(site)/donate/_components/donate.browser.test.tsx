@@ -6,10 +6,10 @@ import DonateForm, { DEFAULT_AMOUNT, MONTHLY_URLS, ONE_OFF_URL } from "./DonateF
 import DonateIntro from "./DonateIntro";
 import DonateThanks from "./DonateThanks";
 import { exampleDonors } from "./DonateThanks.examples";
-import type { ThankedDonor } from "@/lib/server/outside-services/stripe";
+import type { ThankedDonor } from "@/lib/server/outside-services/stripe.server";
 
 const { navigate } = vi.hoisted(() => ({ navigate: vi.fn() }));
-vi.mock("@/lib/navigate", () => ({ navigate }));
+vi.mock("@/lib/navigate.client", () => ({ navigate }));
 
 afterEach(() => navigate.mockReset());
 

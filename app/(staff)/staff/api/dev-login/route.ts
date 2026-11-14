@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { config } from "@/lib/server/config";
-import { createSession } from "@/lib/server/staff-auth";
-import { afterLogin, NEXT_PARAM, sessionCookie } from "@/lib/staff-session";
-import { siteUrl } from "@/lib/site-url";
+import { config } from "@/lib/server/config.server";
+import { createSession } from "@/lib/accounts/auth.server";
+import { afterLogin, NEXT_PARAM, sessionCookie } from "@/lib/accounts/session";
+import { siteUrl } from "@/lib/site-url.server";
 
 // The dev login (DevLogin): in a fixture build, the login page's second
 // form posts an address and gets a session for it at once, with no email

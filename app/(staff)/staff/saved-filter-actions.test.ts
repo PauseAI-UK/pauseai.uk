@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { query } from "@/lib/server/db";
-import { createSavedFilter, savedFiltersState } from "@/lib/server/saved-filters";
-import { createSession } from "@/lib/server/staff-auth";
+import { query } from "@/lib/server/db.server";
+import { createSavedFilter, savedFiltersState } from "@/lib/server/saved-filters.server";
+import { createSession } from "@/lib/accounts/auth.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "./saved-filter-actions";

@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { setStatus } from "@/lib/server/politicians";
+import { setStatus } from "@/lib/politicians/records.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase, withDatabaseDown } from "@/tests/database";
 import { GET } from "./route";
 

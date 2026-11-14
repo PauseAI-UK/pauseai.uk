@@ -2,24 +2,25 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-// The database's connection string: only lib/server/db.ts connects, and the
+// The database's connection string: only lib/server/db.server.ts connects, and the
 // test helper points it at a fresh database.
 const DATABASE_URL_RULE = {
   selector: "MemberExpression[property.name='NETLIFY_DB_URL']",
-  message: "Only lib/server/db.ts connects to the database. Query through it.",
+  message: "Only lib/server/db.server.ts connects to the database. Query through it.",
 };
-const PG_IMPORT = { name: "pg", message: "Only lib/server/db.ts connects to the database. Query through it." };
+const PG_IMPORT = { name: "pg", message: "Only lib/server/db.server.ts connects to the database. Query through it." };
 
 // The site's settings are read from the environment only in
-// lib/server/config.ts, which gives each one shape for every caller. The
+// lib/server/config.server.ts, which gives each one shape for every caller. The
 // database's connection string has its own rule, above.
 const PROCESS_ENV_RULE = {
   selector: "MemberExpression[object.name='process'][property.name='env'][parent.property.name!='NETLIFY_DB_URL']",
-  message: "Read settings from config (lib/server/config.ts), which reads and normalises each environment variable.",
+  message:
+    "Read settings from config (lib/server/config.server.ts), which reads and normalises each environment variable.",
 };
 
 // The site's own address: every absolute URL on it, in an email or a
-// redirect, comes from siteUrl() in lib/site-url.ts, which uses the deploy's
+// redirect, comes from siteUrl() in lib/site-url.server.ts, which uses the deploy's
 // address. A request's own URL or Host is the wrong one on Netlify
 // (main--pauseaiuk.netlify.app), and whoever sends the request can set it.
 const SITE_URL_RULE = {
@@ -30,7 +31,7 @@ const SITE_URL_RULE = {
     "CallExpression[callee.property.name='get'][arguments.0.value=/^(host|origin|x-forwarded-host)$/i]",
   ].join(", "),
   message:
-    "Build URLs on this site with siteUrl() from lib/site-url.ts. The request's own URL and Host are netlify.app on Netlify, and can be forged.",
+    "Build URLs on this site with siteUrl() from lib/site-url.server.ts. The request's own URL and Host are netlify.app on Netlify, and can be forged.",
 };
 
 // Outside services are called only from their bindings in
@@ -39,7 +40,7 @@ const SITE_URL_RULE = {
 // and server code never calls fetch() itself.
 const OUTSIDE = "lib/server/outside-services";
 const OUTSIDE_FETCH_IMPORT = {
-  group: ["**/outside-fetch"],
+  group: ["**/outside-fetch.server"],
   importNames: ["outsideFetch"],
   message: `Outside services are called only from their bindings in ${OUTSIDE}/. Use one, or add one there.`,
 };
@@ -57,27 +58,32 @@ const SERVICES = [
   // Luma's API, not its event pages, which are ordinary links.
   {
     name: "Luma's API",
-    files: ["luma-api.ts", "luma-calendar.ts", "luma-guests.ts"],
+    files: ["luma-api.server.ts", "luma-calendar.server.ts", "luma-guests.server.ts"],
     host: "(?:api2|public-api)\\.luma\\.com",
     why: "and its key stays on the server",
   },
   {
     name: "Postmark",
-    files: ["postmark.ts"],
+    files: ["postmark.server.ts"],
     host: "api\\.postmarkapp\\.com",
-    why: "and email is sent with send() from lib/server/email.ts",
+    why: "and email is sent with send() from lib/email/sending.server.ts",
   },
   {
     name: "Google's OAuth and Gmail",
-    files: ["gmail.ts"],
+    files: ["gmail.server.ts"],
     host: "(?:oauth2|gmail|openidconnect)\\.googleapis\\.com|accounts\\.google\\.com.o.oauth2",
-    why: "and email is sent with send() from lib/server/email.ts",
+    why: "and email is sent with send() from lib/email/sending.server.ts",
   },
-  { name: "postcodes.io", files: ["postcodes.ts"], host: "api\\.postcodes\\.io" },
+  { name: "postcodes.io", files: ["postcodes.server.ts"], host: "api\\.postcodes\\.io" },
   // Stripe's API, not the donate links, which are payment pages on donate.stripe.com.
-  { name: "Stripe's API", files: ["stripe.ts"], host: "api\\.stripe\\.com", why: "and its key stays on the server" },
+  {
+    name: "Stripe's API",
+    files: ["stripe.server.ts"],
+    host: "api\\.stripe\\.com",
+    why: "and its key stays on the server",
+  },
   // Turnstile's server-side check, not the widget's script, which the browser loads.
-  { name: "Turnstile", files: ["turnstile.ts"], host: "challenges\\.cloudflare\\.com.turnstile.v0.siteverify" },
+  { name: "Turnstile", files: ["turnstile.server.ts"], host: "challenges\\.cloudflare\\.com.turnstile.v0.siteverify" },
 ].map((service) => ({ ...service, files: service.files.map((file) => `${OUTSIDE}/${file}`) }));
 
 const hostRule = ({ name, files, host, why }) => ({
@@ -85,19 +91,20 @@ const hostRule = ({ name, files, host, why }) => ({
   message: `${name} is called only from ${files.join(" and ")}${why ? `, ${why}` : ""}.`,
 });
 
-// Email goes out only through send() in lib/server/email.ts, which skips
+// Email goes out only through sendWith() in lib/email/email.server.ts, which skips
 // blocked addresses and records each send, so a bounce can be traced to
 // what was sent. Only it uses Postmark's binding to send or unblock.
 const POSTMARK_IMPORT = {
-  group: ["**/postmark"],
+  group: ["**/postmark.server"],
   importNames: ["sendEmail", "unsuppress"],
   message:
-    "Send email with send() from lib/server/email.ts, which skips blocked addresses and records each send; unblock with unblock().",
+    "Send email with send() from lib/email/sending.server.ts, which skips blocked addresses and records each send; unblock with unblock() from lib/oversight/delivery-problems.server.ts.",
 };
 const GMAIL_IMPORT = {
-  group: ["**/gmail"],
+  group: ["**/gmail.server"],
   importNames: ["sendGmail"],
-  message: "Send email with send() from lib/server/email.ts, which skips blocked addresses and records each send.",
+  message:
+    "Send email with send() from lib/email/sending.server.ts, which skips blocked addresses and records each send.",
 };
 
 // Packages that make their own requests, which a fixture build can't
@@ -294,6 +301,112 @@ const PAGE_REDIRECT = {
   message:
     "Send people elsewhere from next.config.ts's redirects(), or, for a redirect that depends on the request, a lib/ helper the page calls first: a page that redirects while rendering shows the layout empty for a moment on a client-side navigation.",
 };
+
+// The staff interface's features (docs/code-structure.md, "Feature folders").
+// Each has a folder of components, app/(staff)/staff/_components/<feature>/,
+// and a folder of logic, lib/<feature>/, and is listed here with the features
+// it may use. A feature's files may import the staff kit (ui/) and frame
+// (shell/), their own folders, the listed features' folders, and what every
+// feature stands on: lib/'s top-level files, lib/server/, lib/content/ and
+// lib/email-parsing/, and components/. Of the folders beside theirs, they
+// may import only those. Their tests and gallery examples may reach across.
+const STAFF_COMPONENTS = "app/(staff)/staff/_components";
+export const FEATURES = {
+  email: [],
+  accounts: ["email"],
+  notes: ["accounts"],
+  events: ["accounts", "email", "supporters"],
+  supporters: ["accounts", "email", "politicians", "letters"],
+  erasure: ["accounts", "email", "supporters", "letters"],
+  politicians: ["accounts", "email", "notes", "letters", "asks"],
+  asks: ["accounts"],
+  mailings: ["accounts", "email", "asks", "politicians", "letters"],
+  letters: ["accounts", "email", "asks"],
+  broadcasts: ["accounts", "email", "supporters", "politicians", "letters", "mailings"],
+  oversight: ["accounts", "email", "supporters", "politicians", "letters", "broadcasts"],
+  dashboard: ["accounts", "asks", "supporters", "letters"],
+  jobs: [
+    "accounts",
+    "email",
+    "asks",
+    "events",
+    "supporters",
+    "politicians",
+    "letters",
+    "mailings",
+    "broadcasts",
+    "oversight",
+  ],
+};
+/** Each feature's folder of logic, lib/<feature>, where its server code is, beside lib/server/. */
+export const featureLibFolders = () => Object.keys(FEATURES).map((feature) => `lib/${feature}`);
+// lib/'s folders that every feature stands on.
+const SHARED_LIB = ["server", "content", "email-parsing"];
+// The staff kit and the staff pages' frame, which every feature's components use.
+const SHARED_COMPONENTS = ["ui", "shell"];
+
+/** A regular expression for any of `names` as a whole folder name. */
+const anyOf = (names) => names.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+
+/**
+ * The imports a feature's files may not make: a folder of lib/, or a folder
+ * beside its own, that's neither shared nor one of the features it uses.
+ * lib/'s top-level files, and the top of _components/, are open to all.
+ */
+function featureImports(feature, uses) {
+  const why = `${feature} may use only ${uses.length ? uses.join(", ") : "no other feature"} (FEATURES in eslint.config.mjs). Move what it needs into a folder it may use, or list the feature it needs there.`;
+  const libFolders = anyOf([...SHARED_LIB, feature, ...uses]);
+  return [
+    { regex: `^@/lib/(?!(${libFolders})/)[^/]+/`, message: `That's another feature's lib/ folder. ${why}` },
+    {
+      // A relative path from lib/<feature>/ or _components/<feature>/ to a folder beside it.
+      regex: `^\\.\\./(?!(${anyOf([...SHARED_LIB, ...SHARED_COMPONENTS, ...uses])})/)[^/]+/`,
+      message: `That's another feature's folder. ${why}`,
+    },
+  ];
+}
+
+/**
+ * The blocks that hold each feature to the features it uses: one for its
+ * components and one for its logic. Each repeats the lists of the LAYERS
+ * blocks above it, which it would otherwise replace.
+ */
+export function featureLayers(features) {
+  return Object.entries(features).flatMap(([feature, uses]) => [
+    {
+      files: [`${STAFF_COMPONENTS}/${feature}/**/*.{ts,tsx}`],
+      patterns: [...ROUTE_IMPORTS, ...featureImports(feature, uses)],
+      paths: [STAFF_LINK_IMPORT],
+    },
+    {
+      files: [`lib/${feature}/**/*.{ts,tsx}`],
+      patterns: [...ROUTE_IMPORTS, COMPONENT_IMPORTS, ...featureImports(feature, uses)],
+    },
+  ]);
+}
+
+// A component's gallery examples, beside it (docs/testing.md, "The component gallery"): part of the gallery.
+const GALLERY_BESIDE = "**/*.gallery{,.client}.tsx";
+
+/**
+ * typescript-eslint's no-restricted-imports for each of `layers`, leaving
+ * out tests and the gallery, which may reach across; and the gallery's own.
+ */
+export function importRules(layers) {
+  return layers
+    .map(({ files, ignores = [], patterns, paths = [] }) => ({
+      files,
+      ignores: ["**/*.test.{ts,tsx}", "app/(tools)/gallery/**", GALLERY_BESIDE, ...ignores],
+      rules: {
+        "@typescript-eslint/no-restricted-imports": ["error", { patterns: [...patterns, ...TESTS_IMPORTS], paths }],
+      },
+    }))
+    .concat({
+      files: ["app/(tools)/gallery/**/*.{ts,tsx}", GALLERY_BESIDE],
+      ignores: ["**/*.test.{ts,tsx}"],
+      rules: { "@typescript-eslint/no-restricted-imports": ["error", { patterns: TESTS_IMPORTS }] },
+    });
+}
 const LAYERS = [
   { files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"], patterns: ROUTE_IMPORTS },
   { files: ["app/**/page.tsx"], patterns: ROUTE_IMPORTS, paths: [PAGE_REDIRECT] },
@@ -306,19 +419,9 @@ const LAYERS = [
     paths: [STAFF_LINK_IMPORT],
   },
   { files: ["app/(staff)/**/page.tsx"], patterns: ROUTE_IMPORTS, paths: [PAGE_REDIRECT, STAFF_LINK_IMPORT] },
-]
-  .map(({ files, ignores = [], patterns, paths = [] }) => ({
-    files,
-    ignores: ["**/*.test.{ts,tsx}", "app/(tools)/gallery/**", ...ignores],
-    rules: {
-      "@typescript-eslint/no-restricted-imports": ["error", { patterns: [...patterns, ...TESTS_IMPORTS], paths }],
-    },
-  }))
-  .concat({
-    files: ["app/(tools)/gallery/**/*.{ts,tsx}"],
-    ignores: ["**/*.test.{ts,tsx}"],
-    rules: { "@typescript-eslint/no-restricted-imports": ["error", { patterns: TESTS_IMPORTS }] },
-  });
+  // Each feature's, after all of the above.
+  ...featureLayers(FEATURES),
+];
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -341,8 +444,8 @@ const eslintConfig = defineConfig([
   // file its own database, and the scripts that make the local ones.
   {
     files: [
-      "lib/server/db.ts",
-      "lib/server/db.test.ts",
+      "lib/server/db.server.ts",
+      "lib/server/db.server.test.ts",
       "tests/database.ts",
       "scripts/db-migrate.mjs",
       "scripts/db-reset.mjs",
@@ -359,23 +462,31 @@ const eslintConfig = defineConfig([
     // The server's clock runs in the browser too, where config can't go.
     { files: ["lib/now.ts"], fetch: true, env: true },
     { files: ["app/(staff)/**/*.tsx"], fetch: true, staff: true },
-    { files: ["lib/server/**/*.ts", "app/**/route.ts", "app/**/actions.ts"] },
+    // The server's code: lib/server/, each feature's logic, and what answers a request.
+    {
+      files: [
+        "lib/server/**/*.ts",
+        ...featureLibFolders().map((folder) => `${folder}/**/*.ts`),
+        "app/**/route.ts",
+        "app/**/actions.ts",
+      ],
+    },
     // The fakes read the fixture build's own settings, as the storyboard loads them outside the site.
     { files: ["lib/server/fixtures/*.ts"], fakes: true, env: true },
-    { files: ["lib/server/config.ts"], env: true, siteUrl: true },
+    { files: ["lib/server/config.server.ts"], env: true, siteUrl: true },
     { files: [`${OUTSIDE}/*.ts`], outsideFetch: true },
     ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true })),
-    { files: [`${OUTSIDE}/outside-fetch.ts`], fetch: true },
-    { files: ["lib/server/email.ts"], sendEmail: true },
-    { files: ["lib/site-url.ts"], siteUrl: true },
-    { files: ["lib/server/db.ts"], database: true },
+    { files: [`${OUTSIDE}/outside-fetch.server.ts`], fetch: true },
+    { files: ["lib/email/email.server.ts"], sendEmail: true },
+    { files: ["lib/site-url.server.ts"], siteUrl: true },
+    { files: ["lib/server/db.server.ts"], database: true },
   ].map(({ files, ...allowed }) => ({ files, ignores: ["**/*.test.{ts,tsx}"], rules: siteCodeRules(allowed) })),
   {
     files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
     ignores: ["**/*.test.{ts,tsx}", ...UNCONVERTED_DOM_EDITS],
     rules: { "no-restricted-properties": ["error", ...DIRECT_DOM_EDITS] },
   },
-  ...LAYERS,
+  ...importRules(LAYERS),
   // A promise nobody waits for fails silently: its rejection reaches only the
   // console, where nobody looks. One that's meant to run on its own says so
   // with `void`. Needs the types, which typed linting gives from tsconfig.

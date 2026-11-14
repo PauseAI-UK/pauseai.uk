@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ProsePage from "@/components/ui/ProsePage";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { found } from "@/lib/found";
-import { copyPage } from "@/lib/server/email-settings";
+import { copyPage } from "@/lib/supporters/email-settings.server";
 import { liftNoBulkNow, resendLinkNow, saveSettingsNow, stopEverythingNow, unsubscribeNow } from "../../actions";
 import EmailSettings from "../../_components/EmailSettings";
 

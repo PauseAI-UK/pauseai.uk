@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { query } from "@/lib/server/db";
-import { problem, registerProblemKeeper } from "@/lib/server/problems";
+import { query } from "@/lib/server/db.server";
+import { problem, registerProblemKeeper } from "@/lib/server/problems.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { onRequestError, register } from "./instrumentation";
 

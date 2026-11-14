@@ -14,7 +14,7 @@ import ShopBanner from "@/app/(site)/_components/ShopBanner";
 import StaffSection from "@/app/(site)/_components/StaffSection";
 import { people } from "@/lib/content/people";
 import { newsRow1, newsRow2 } from "@/lib/content/press-coverage";
-import type { LumaEvent } from "@/lib/events";
+import type { LumaEvent } from "@/lib/site-events";
 import type { Group } from "../_components/types";
 import { EventsPlacePickerExample } from "./home.client";
 

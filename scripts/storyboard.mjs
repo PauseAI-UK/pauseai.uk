@@ -100,7 +100,7 @@ import {
   runFolder,
   selectFlows,
 } from "./storyboard-main.mjs";
-import { changedCopyKeys, flowsToRun, reachContext, readByNoFlow, STAFF_COPY } from "./storyboard-reach.mjs";
+import { flowsToRun, reachContext, readByNoFlow } from "./storyboard-reach.mjs";
 import {
   carryKept,
   keepRuns,
@@ -292,14 +292,6 @@ function setupOf(dir) {
     .slice(0, 16);
 }
 
-/** The keys of staffCopy that differ between two trees, if its file does (changedCopyKeys). */
-const copyKeysBetween = once((from, to) => {
-  if (!changedBetween(from, to)?.files.includes(STAFF_COPY)) return undefined;
-  const show = (at) =>
-    spawnSync("git", ["show", `${at}:${STAFF_COPY}`], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).stdout;
-  return changedCopyKeys(git("diff", "-U0", from, to, "--", STAFF_COPY), show(from), show(to));
-});
-
 /** Each tree the store keeps, but `except`, as flows to carry from: those that passed and whose pictures are there. */
 function keptSources(except) {
   return keptTrees(STORE)
@@ -330,7 +322,6 @@ function nearest(sources, suiteKeys, tree, context, phoneTagged) {
       context,
       setup: setupOf(context.root),
       changedSince: (at) => changedBetween(at, tree),
-      copyKeysSince: (at) => copyKeysBetween(at, tree),
     });
     if (!best || chosen.run.size < best.run.size) best = { ...chosen, source };
   }

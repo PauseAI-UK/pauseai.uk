@@ -5,8 +5,8 @@ import { useState } from "react";
 import { LinkIcon, QuoteIcon } from "@/components/ui/EditorIcons";
 import LinkBar from "@/components/ui/LinkBar";
 import { letterEditorCopy as copy } from "@/lib/content/letter-editor";
-import { isLinkKey, letterExtensions } from "@/lib/letter-extensions";
-import type { LetterDoc } from "@/lib/letter-format";
+import { isLinkKey, letterExtensions } from "@/lib/letters/extensions";
+import type { LetterDoc } from "@/lib/letters/format";
 import styles from "./LetterEditor.module.css";
 
 type Props = {
@@ -17,7 +17,7 @@ type Props = {
   describedBy: string;
 };
 
-/** Bold, italic, links, bullet points and quotes: the formatting a letter may have (lib/letter-format.ts). Link opens the link bar under it, or closes it. */
+/** Bold, italic, links, bullet points and quotes: the formatting a letter may have (lib/letters/format.ts). Link opens the link bar under it, or closes it. */
 function Toolbar({ editor, labelledBy, onLink }: { editor: Editor; labelledBy: string; onLink: () => void }) {
   const active = useEditorState({
     editor,

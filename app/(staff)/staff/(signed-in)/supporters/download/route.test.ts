@@ -2,8 +2,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { addTestContact, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { downloadAs } from "@/tests/staff-download";
-import { query } from "@/lib/server/db";
-import { linkSupporters } from "@/lib/server/supporters";
+import { query } from "@/lib/server/db.server";
+import { linkSupporters } from "@/lib/supporters/records.server";
 import { GET } from "./route";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));

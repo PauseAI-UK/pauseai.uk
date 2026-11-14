@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { recentLetters } from "@/lib/server/letters";
-import { requireStaff } from "@/lib/server/staff-auth";
-import { getSupporter } from "@/lib/server/supporters";
+import { recentLetters } from "@/lib/letters/records.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { getSupporter } from "@/lib/supporters/records.server";
 import { supporterId } from "@/lib/staff-search";
-import { supporterTitle } from "@/lib/supporters";
-import LettersTable from "../../../../_components/LettersTable";
+import { supporterTitle } from "@/lib/supporters/supporters";
+import LettersTable from "../../../../_components/letters/LettersTable";
 import Page from "../../../../_components/ui/Page";
 import PageHead from "../../../../_components/ui/PageHead";
+import { lettersCopy } from "../../../../_components/letters/copy";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -19,7 +19,7 @@ async function supporterOf(params: Params["params"]) {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   await requireStaff("supporters");
-  return { title: staffCopy.letters.fromTitle(supporterTitle((await supporterOf(params)).summary)) };
+  return { title: lettersCopy.letters.fromTitle(supporterTitle((await supporterOf(params)).summary)) };
 }
 
 /** One supporter's letters, from their page, which is the way back. */
@@ -33,9 +33,9 @@ export default async function SupporterLettersPage({ params }: Params) {
       kind="list"
       under="supporters"
       via={[{ href: `/staff/supporters/${summary.id}`, label: name }]}
-      here={staffCopy.letters.title}
+      here={lettersCopy.letters.title}
     >
-      <PageHead>{staffCopy.letters.fromTitle(name)}</PageHead>
+      <PageHead>{lettersCopy.letters.fromTitle(name)}</PageHead>
       <LettersTable letters={letters} />
     </Page>
   );

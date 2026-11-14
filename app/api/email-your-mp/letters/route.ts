@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { parseLetterForm, submitLetter } from "@/lib/server/mp-letters";
-import { readJsonIfAny } from "@/lib/server/json";
+import { parseLetterForm, submitLetter } from "./mp-letters.server";
+import { readJsonIfAny } from "@/lib/server/json.server";
 
 /** A letter from the Email your MP form, sent to the MP straight away, or queued, saying why. */
 export async function POST(request: Request) {

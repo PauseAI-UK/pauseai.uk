@@ -311,7 +311,7 @@ sends nothing, as its entries are already there.
 
 **Sending.** A broadcast says what sends it (`mailings.send_by`), and
 goes by that channel, one of those mailings go by
-(`lib/server/mailing-channels.ts`), so another can be added beside them.
+(`lib/mailings/channels.server.ts`), so another can be added beside them.
 Always from `hello@pauseai.uk`, which is connected as a staff Gmail, so the
 site reads its replies.
 
@@ -329,10 +329,10 @@ site reads its replies.
   is a verified sending domain in Postmark, beside `letters.` and `notify.`
   (`docs/development.md`, "Postmark"). It's in the writer's choice, greyed
   out, until Postmark approves broadcast sending: turning it on is
-  `available` in `BROADCAST_SEND_BY` (`lib/broadcasts.ts`).
+  `available` in `BROADCAST_SEND_BY` (`lib/broadcasts/broadcasts.ts`).
 
 The broadcast stream has the webhooks the site's own emails have
-(`lib/server/postmark-webhooks.ts`): delivery, for the delivered count;
+(`lib/email/postmark-webhooks.server.ts`): delivery, for the delivered count;
 a bounce, marking the message failed and, if hard, blocking the
 address; and a spam complaint, which is an opt-out (Opt-outs).
 
@@ -394,7 +394,7 @@ broadcasts' editor without merge fields, Send reply and Discard. Cmd+Enter
 (Ctrl+Enter off a Mac) sends it, as in Gmail. Replying and opting out go
 together: one recorded as an opt-out can still be answered, and one
 answered can still be recorded as an opt-out. Built
-(`lib/server/broadcast-answers.ts`).
+(`lib/broadcasts/answers.server.ts`).
 
 **Which consents a broadcast goes to** (phase 1). A newsletter or
 events broadcast goes to newsletter, events or both, and one to both
@@ -419,7 +419,7 @@ broadcast does, listing who it didn't reach, and whoever scheduled it
 is emailed. Three days is the limit for waiting, email or text, fixed and
 set by nobody, as `plans/supporters-whatsapp.md` describes for texts: the
 scheduled page says quietly when it will stop. An email by Gmail that's
-sending has seven (`lib/broadcast-days.ts`).
+sending has seven (`lib/broadcasts/days.ts`).
 
 **When it goes.** With the hourly `send-mailings` run, as mailings to
 politicians do (from 06:18 UTC, at 18 minutes past), a copy at a time. Transactional emails, such as a login link or a letter's

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ButtonInside } from "@/components/ui/Button";
 import { useLeaving } from "@/components/ui/useLeaving";
-import { navigate } from "@/lib/navigate";
+import { navigate } from "@/lib/navigate.client";
 import styles from "./DonateForm.module.css";
 
 type Frequency = "monthly" | "oneoff";

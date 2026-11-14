@@ -2,19 +2,21 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { featureLibFolders } from "../../eslint.config.mjs";
 
-// Something going wrong is reported with problem() (lib/server/problems.ts),
+// Something going wrong is reported with problem() (lib/server/problems.server.ts),
 // never written to the log by hand. console.error reaches only Netlify's
 // logs, where nobody looks; problem() logs it and keeps it on the run.
 // String(error) drops the error's cause, so a network failure is kept as
 // "fetch failed" and nothing more; problem() and describeError() keep it.
 // This fails on either in the code where jobs and requests run: lib/server,
-// app/api and netlify/functions, other than problems.ts itself. Warnings and
-// information (console.warn, console.log) are for what isn't a problem.
+// each feature's folder of logic, app/api and netlify/functions, other than
+// problems.server.ts itself. Warnings and information (console.warn, console.log)
+// are for what isn't a problem.
 
 const ROOT = join(__dirname, "..", "..");
-const DIRS = ["lib/server", "app/api", "netlify/functions"];
-const HELPER = "lib/server/problems.ts";
+const DIRS = ["lib/server", ...featureLibFolders(), "app/api", "netlify/functions"];
+const HELPER = "lib/server/problems.server.ts";
 
 /** Names an error is usually caught as. */
 const ERROR_NAMES = /^(e|err|error|cause|reason)$/;

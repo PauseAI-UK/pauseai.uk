@@ -1,5 +1,4 @@
 import { copy } from "@/lib/content/email-your-mp";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { failService } from "@/lib/server/fixtures/failing-services";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
@@ -12,6 +11,9 @@ import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
+import { serverCopy } from "@/lib/server/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 export const section: Section = { name: "Errors", part: "Staff pages", order: 135 };
 
@@ -21,7 +23,7 @@ export const section: Section = { name: "Errors", part: "Staff pages", order: 13
 // same on each, so a flow reads its error's row from its own database to
 // know its email has gone.
 
-const errors = staffCopy.errorsSeen;
+const errors = oversightCopy.errorsSeen;
 
 /** The email to the notification inbox with this subject, once it's there. */
 async function notified(subject: string) {
@@ -72,7 +74,7 @@ test("A staff page breaks", async ({ page, flowDatabase }) => {
 
   story("An admin opens Errors. The error is first, as it's the one seen most recently.");
   await page.goto(`${BASE}/staff/errors`);
-  await expect(page.getByRole("heading", { level: 1, name: staffCopy.nav.errors })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: shellCopy.nav.errors })).toBeVisible();
   await settled(page);
   const row = page.getByRole("row").filter({ hasText: words });
   await expect(row.getByRole("cell").last()).toHaveText("2");
@@ -204,7 +206,7 @@ test("The spam check can't be reached", async ({ page, flowDatabase }) => {
   await frame(page, "What Jane is told");
 
   story("The notification inbox is emailed about it, once.");
-  const words = staffCopy.problems.logs.turnstileDown;
+  const words = serverCopy.problems.logs.turnstileDown;
   const email = await notified(errors.email.server.subject(words));
   await emailFrame(page, email, "The email to the notification inbox");
 

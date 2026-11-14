@@ -5,7 +5,7 @@
 // and act only for its address, only while it works, but for an email's
 // unsubscribe button, which works forever.
 import { after } from "next/server";
-import type { SettingsView } from "@/lib/email-settings";
+import type { SettingsView } from "@/lib/supporters/settings-view";
 import {
   emailSettingsLink,
   liftNoBulk,
@@ -16,9 +16,9 @@ import {
   stopEverything,
   unsubscribeCopy,
   type SettingsKind,
-} from "@/lib/server/email-settings";
-import { actionRequest } from "@/lib/site-url";
-import { checkNotSpam } from "@/lib/server/outside-services/turnstile";
+} from "@/lib/supporters/email-settings.server";
+import { actionRequest } from "@/lib/site-url.server";
+import { checkNotSpam } from "@/lib/server/outside-services/turnstile.server";
 
 const text = (form: FormData, name: string): string => String(form.get(name) ?? "");
 const kindOf = (form: FormData): SettingsKind => (text(form, "kind") === "copy" ? "copy" : "link");

@@ -1,7 +1,7 @@
-// The import log's types, shared by the server (lib/server/import-runs.ts)
-// and the staff components that show a run (app/(staff)/staff/_components/Run.tsx).
+// The import log's types, shared by the server (lib/server/import-runs.server.ts)
+// and the staff components that show a run (app/(staff)/staff/_components/jobs/Run.tsx).
 import type { ControlAiMatchProblem } from "./controlai-letter";
-import type { Ending, ImportChanges, OfficialMember } from "./politician-import";
+import type { Ending, ImportChanges, OfficialMember } from "@/lib/politicians/import-changes";
 
 /**
  * How often a job runs on its own: every 5 minutes, every 15, hourly or
@@ -16,8 +16,8 @@ export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly";
  * do than a run can, how long a run works before it stops taking on more,
  * leaving the rest for the next. Every run is a request to the site, which
  * a Netlify function stops at 30 seconds, so a budget leaves room for the
- * run's last steps. What runs a job is lib/server/jobs.ts; its title, icon
- * and description are the staff interface's (jobTitles, ImportJob.tsx). The
+ * run's last steps. What runs a job is lib/jobs/jobs.server.ts; its title, icon
+ * and description are the staff interface's (importRunsCopy.jobTitles in lib/import-runs-copy.ts, ImportJob.tsx). The
  * overview lists them in this order.
  */
 export const JOBS = {
@@ -89,15 +89,20 @@ export type ImportRun<Job extends ImportJob, Result> = {
 );
 
 /**
- * What relinking the one-off threads did (lib/server/one-off-relink.ts):
+ * What relinking the one-off threads did (lib/letters/one-off-relink.server.ts):
  * messages whose quotes it read, those left to read, people linked to threads
  * and unlinked from them, and the offices' addresses it found.
  */
 export type Relinked = { read: number; unread: number; linked: number; unlinked: number; offices: number };
 
-/** The imports of each body's members (lib/server/politician-import.ts). */
-export type PoliticianImportJob =
-  "import-parliament" | "import-scottish-parliament" | "import-senedd" | "import-ni-assembly";
+/** The imports of each body's members (lib/politicians/imports.server.ts), the only runs held for a decision. */
+export const POLITICIAN_IMPORT_JOBS = [
+  "import-parliament",
+  "import-scottish-parliament",
+  "import-senedd",
+  "import-ni-assembly",
+] as const satisfies readonly ImportJob[];
+export type PoliticianImportJob = (typeof POLITICIAN_IMPORT_JOBS)[number];
 
 /**
  * What an import of a body's members keeps: what it changed, or would; a
@@ -239,9 +244,9 @@ export type NotUnderstood = { gmailMessageId: string; from: string; subject: str
 
 /**
  * What searching the mailboxes for addresses staff added to politicians' did
- * (lib/server/politician-aliases.ts): how many it searched for, the messages
+ * (lib/politicians/aliases.server.ts): how many it searched for, the messages
  * it kept, how many are left for the next run, and whether it stopped as its
- * time ran out. A failure is a problem of the run (problems.ts).
+ * time ran out. A failure is a problem of the run (problems.server.ts).
  */
 export type AddressSearch = {
   searched: number;

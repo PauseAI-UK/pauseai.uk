@@ -7,7 +7,7 @@
 // its filter bar's words and choices (lib/staff-list-filters.ts).
 import { filtersPath, firstOf, valuesOf, type ParamValue } from "./list-params";
 import { parseSort, type SortColumns, type SortSpec } from "./staff-sort";
-import type { Permission } from "./staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 
 /** How a list's URL gives a parameter: one value, or several, for a filter chosen more than once, its name repeated. */
 type Kind = "one" | "many";
@@ -126,7 +126,7 @@ export const POLITICIANS_LIST = defineStaffList({
   sorts: {
     // The Asks column sorts by when their newest answer was recorded, newest first: the dashboard
     // counts signatures by the same time. First and last activity sort by the times
-    // POLITICIAN_ACTIVITY in lib/server/politicians.ts gives.
+    // POLITICIAN_ACTIVITY in lib/politicians/records.server.ts gives.
     columns: {
       name: "asc",
       house: "asc",
@@ -155,7 +155,7 @@ export const SUPPORTERS_LIST = defineStaffList({
     /** A campaign's slug; with `wrote` "no", those who didn't write in it. */
     campaign: "one",
     wrote: "one",
-    /** Nations, as staffCopy.countries keys. */
+    /** Nations, as staffVocabulary.countries keys. */
     nation: "many",
     /** MPs' politician IDs. */
     mp: "many",
@@ -207,7 +207,7 @@ export const SUPPORTERS_LIST = defineStaffList({
   },
 });
 
-/** The events list. Its sorts are each tab's (EVENT_SORTS in lib/staff-events-list.ts). */
+/** The events list. Its sorts are each tab's (EVENT_SORTS in lib/events/list.ts). */
 export const EVENTS_LIST = defineStaffList({
   path: "/staff/events",
   needs: "account",
@@ -355,7 +355,7 @@ export const ACCOUNTS_LIST = defineStaffList({
   },
 });
 
-/** What has gone wrong on the site (lib/server/errors-seen.ts). It's the one seen most recently first, with no other sort. */
+/** What has gone wrong on the site (lib/oversight/errors-seen.server.ts). It's the one seen most recently first, with no other sort. */
 export const ERRORS_LIST = defineStaffList({
   path: "/staff/errors",
   needs: "admin",

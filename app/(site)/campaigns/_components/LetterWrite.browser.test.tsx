@@ -1,9 +1,9 @@
-import { CONTROLAI_LETTER_ASK } from "@/lib/asks";
+import { CONTROLAI_LETTER_ASK } from "@/lib/asks/asks";
 import { afterEach, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
-import { saveDraft, saveLookup } from "./draft";
+import { saveDraft, saveLookup } from "./draft.client";
 import { exampleLookup, exampleMp } from "./draft.examples";
 import LetterWrite from "./LetterWrite";
 

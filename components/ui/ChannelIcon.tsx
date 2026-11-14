@@ -1,4 +1,4 @@
-import type { Channel, Way } from "@/lib/contact-permissions";
+import type { Channel, Way } from "@/lib/supporters/contact-permissions";
 
 /**
  * How we'd reach someone, as a small line icon: an envelope for email, a

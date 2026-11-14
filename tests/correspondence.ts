@@ -1,4 +1,4 @@
-import { query } from "@/lib/server/db";
+import { query } from "@/lib/server/db.server";
 
 // A politician's messages, straight into the tables: the replies kept on a
 // letter's thread, and one-off threads and their messages.

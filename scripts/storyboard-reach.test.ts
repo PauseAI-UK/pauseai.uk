@@ -4,9 +4,7 @@ import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   appRoutes,
-  changedCopyKeys,
   closure,
-  copyKeysRead,
   flowReach,
   flowsToRun,
   folderPattern,
@@ -20,7 +18,6 @@ import {
   reachedFlows,
   resolveImport,
   routeFiles,
-  STAFF_COPY,
   unresolvedImports,
 } from "./storyboard-reach.mjs";
 
@@ -71,7 +68,7 @@ const FILES: Record<string, string> = {
   "components/Letters.tsx": `import { type Letter, sortLetters } from "@/lib/letters";\nexport const Letters = sortLetters;`,
   "lib/letters.ts": `export type Letter = string;\nexport const sortLetters = () => require("./sort");`,
   "lib/sort.ts": `export default 1;`,
-  "lib/posts.ts": `import "@/lib/server/problems";\nexport default 1;`,
+  "lib/posts.ts": `import "@/lib/server/problems.server";\nexport default 1;`,
   "lib/feed.ts": `export default 1;`,
   "lib/redirects.ts": `export default [];`,
   "lib/session.ts": `export default 1;`,
@@ -84,8 +81,8 @@ const FILES: Record<string, string> = {
   "public/pdfs/briefing.pdf": `pdf`,
   "lib/content/staff-interface.ts": COPY,
   "lib/server/errors.ts": `export const keep = 1;`,
-  "lib/server/problems.ts": `export const registerRunStore = (find: () => void) => find;\nconst held = globalThis;`,
-  "lib/server/run-store.ts": `import * as storage from "node:async_hooks";\nimport register, { registerRunStore } from "./problems";\nconst find = () => storage;\nregisterRunStore(find);\nawait register.late(find);\nfind();\nnew Map();`,
+  "lib/server/problems.server.ts": `export const registerRunStore = (find: () => void) => find;\nconst held = globalThis;`,
+  "lib/server/run-store.server.ts": `import * as storage from "node:async_hooks";\nimport register, { registerRunStore } from "./problems.server";\nconst find = () => storage;\nregisterRunStore(find);\nawait register.late(find);\nfind();\nnew Map();`,
   "lib/posts.test.ts": `import { check } from "./posts";\ncheck(globalThis);`,
   "lib/server/inbox.ts": `export const folder = "lib/server/replies/";`,
   "lib/server/replies/jane.eml": `From: jane.smith@example.com`,
@@ -136,7 +133,6 @@ const phoneHome = { ...home, key: "phone|home|The home page" };
 const runs = [home, post, sitemap, letters, events, jobs, broken, galleryUi, galleryStaff, galleryIndex, upload];
 const keysOf = (...some: { key: string }[]) => new Set(some.map((r) => r.key));
 const everyRun = keysOf(...runs);
-const staffRuns = keysOf(letters, events, jobs, broken, upload);
 
 describe("importsOf", () => {
   it("lists the imports that run, not those of types alone", () => {
@@ -206,17 +202,26 @@ describe("readByNoFlow", () => {
 describe("handOvers", () => {
   it("finds where code could be handed over without an import: a call of an imported function as a module loads, and globalThis", () => {
     expect(handOvers(root, ["lib", "components"])).toEqual([
-      "lib/server/problems.ts: uses globalThis",
-      "lib/server/run-store.ts: calls registerRunStore() as it loads",
-      "lib/server/run-store.ts: calls register() as it loads",
+      "lib/server/problems.server.ts: uses globalThis",
+      "lib/server/run-store.server.ts: calls registerRunStore() as it loads",
+      "lib/server/run-store.server.ts: calls register() as it loads",
     ]);
   });
 
   it("joins what's handed over to the module it's handed to, so a flow that reaches the one reaches the other", () => {
     const graph = importGraph(root);
-    expect(graph.get("lib/server/problems.ts")).toEqual(["lib/server/run-store.ts", "instrumentation.ts"]);
+    expect(graph.get("lib/server/problems.server.ts")).toEqual([
+      "lib/server/run-store.server.ts",
+      "instrumentation.ts",
+    ]);
     expect(closure(graph, ["app/(site)/blog/[slug]/page.tsx"])).toContain("lib/server/errors.ts");
-    expect(importGraph(join(root, "components")).has("lib/server/problems.ts")).toBe(false);
+    expect(importGraph(join(root, "components")).has("lib/server/problems.server.ts")).toBe(false);
+  });
+
+  it("leaves them out when asked for the imports alone", () => {
+    const graph = importGraph(root, { handedOver: false });
+    expect(graph.get("lib/server/problems.server.ts")).toEqual([]);
+    expect(graph.get("instrumentation.ts")).toEqual(["lib/server/errors.ts"]);
   });
 });
 
@@ -367,39 +372,8 @@ describe("flowReach", () => {
   });
 });
 
-describe("changedCopyKeys", () => {
-  const hunk = (line: number, added = 1) => `@@ -${line} +${line},${added} @@\n`;
-
-  it("names the top-level keys of staffCopy whose lines a diff changed, before and after", () => {
-    expect(changedCopyKeys(hunk(7) + hunk(10, 2), COPY, COPY)).toEqual(new Set(["events", "filters"]));
-    expect(changedCopyKeys("@@ -4,0 +4 @@\n", COPY, COPY)).toEqual(new Set(["nav"]));
-  });
-
-  it("says * for a line outside the object: before it, its last line, or after it, another export's", () => {
-    expect(changedCopyKeys(hunk(1), COPY, COPY)).toEqual(new Set(["*"]));
-    expect(changedCopyKeys(hunk(2), COPY, COPY)).toEqual(new Set(["*"]));
-    expect(changedCopyKeys(hunk(12), COPY, COPY)).toEqual(new Set(["*"]));
-    expect(changedCopyKeys(hunk(14), COPY, COPY)).toEqual(new Set(["*"]));
-  });
-
-  it("says * for a file with no staffCopy, or one that never closes it", () => {
-    expect(changedCopyKeys(hunk(1), "", "export const other = {\n  nav: 1,\n};")).toEqual(new Set(["*"]));
-    expect(changedCopyKeys(hunk(2), "", "export const staffCopy = {\n  nav: 1,")).toEqual(new Set(["*"]));
-  });
-});
-
-describe("copyKeysRead", () => {
-  it("reads staffCopy.key and destructured keys, and * where the object is used whole", () => {
-    expect(copyKeysRead(FILES["app/(staff)/staff/events/page.tsx"])).toEqual(new Set(["events", "filters"]));
-    expect(copyKeysRead(`import { staffCopy } from "x";\nshow(staffCopy);`)).toEqual(new Set(["*"]));
-    expect(copyKeysRead(`const { } = staffCopy;`)).toEqual(new Set());
-    expect(copyKeysRead(FILES["app/(staff)/staff/jobs/page.tsx"])).toEqual(new Set());
-  });
-});
-
 describe("reachedFlows", () => {
-  const reached = (files: string[], copyKeys?: Set<string>) =>
-    reachedFlows({ files, runs, context: reachContext(root), copyKeys });
+  const reached = (files: string[]) => reachedFlows({ files, runs, context: reachContext(root) });
 
   it("reruns the flows whose reach has a changed file, and none for code no flow reaches", () => {
     expect(reached(["components/Letters.tsx"]).keys).toEqual(
@@ -425,7 +399,7 @@ describe("reachedFlows", () => {
 
   it("reruns, for what handles an error, the flows that kept one and those that reach where problems are reported", () => {
     expect(reached(["lib/server/errors.ts"]).keys).toEqual(keysOf(post, broken));
-    expect(reached(["lib/server/run-store.ts"]).keys).toEqual(keysOf(post));
+    expect(reached(["lib/server/run-store.server.ts"]).keys).toEqual(keysOf(post));
   });
 
   it("reruns the flows that fetched a public file, there or not, and none for one nothing fetches or names", () => {
@@ -484,17 +458,6 @@ describe("reachedFlows", () => {
     const context = reachContext(root);
     const imported = { ...context, graph: new Map([...context.graph, ["lib/x.ts", ["settings.ts"]]]) };
     expect(reachedFlows({ files: ["settings.ts"], runs, context: imported }).unknown).toEqual([]);
-  });
-
-  it("reruns a change to the staff copy for the flows reaching a reader of the keys changed, or one that names no key", () => {
-    expect(reached([STAFF_COPY], new Set(["events"])).keys).toEqual(keysOf(events, jobs));
-    expect(reached([STAFF_COPY], new Set(["filters", "none-reads-this"])).keys).toEqual(keysOf(events, jobs));
-    expect(reached([STAFF_COPY], new Set(["nav"])).keys).toEqual(staffRuns);
-  });
-
-  it("reruns every flow that reaches the staff copy when a line outside a key changed, or the keys aren't known", () => {
-    expect(reached([STAFF_COPY], new Set(["*", "events"])).keys).toEqual(staffRuns);
-    expect(reached([STAFF_COPY]).keys).toEqual(staffRuns);
   });
 
   it("reruns the flows that opened a route whose page or layout was added or deleted", () => {
@@ -557,7 +520,6 @@ describe("flowsToRun", () => {
       phoneTagged,
       context: reachContext(root),
       changedSince,
-      copyKeysSince: () => undefined,
     });
 
   it("runs the flows new to the suite, and those a change since their tree reaches", () => {
@@ -604,7 +566,6 @@ describe("flowsToRun", () => {
       phoneTagged: new Set([phoneHome.key]),
       context: reachContext(root),
       changedSince: () => since(["netlify/database/schema.sql"]),
-      copyKeysSince: () => undefined,
     });
     expect(chosen.run).toEqual(suite);
     expect(chosen).toMatchObject({ swept: 4, reached: 0, everything: ["netlify/database/schema.sql"] });
@@ -618,7 +579,6 @@ describe("flowsToRun", () => {
       phoneTagged: new Set(),
       context: reachContext(root),
       changedSince: () => since(["postcss.config.mjs"]),
-      copyKeysSince: () => undefined,
     });
     expect(chosen.run).toEqual(new Set([...suite, untagged.key]));
     expect(chosen.unknown).toEqual(["postcss.config.mjs"]);
@@ -655,7 +615,6 @@ describe("flowsToRun", () => {
       context: reachContext(root),
       setup: "now",
       changedSince: () => ({ files: ["app/(site)/new/page.tsx"], addedOrDeleted: ["app/(site)/new/page.tsx"] }),
-      copyKeysSince: () => undefined,
     });
     expect(chosen.run).toEqual(new Set([home.key, sitemap.key]));
     expect(chosen).toMatchObject({ fresh: 1, reached: 1 });
@@ -671,18 +630,6 @@ describe("flowsToRun", () => {
       [{ ...passed(home, "t1"), seen: "t5" }, passed(letters, "t1"), passed(events, "t5"), passed(phoneHome, "t5")],
     );
     expect(asked).toEqual(["t5", "t1"]);
-  });
-
-  it("asks for the staff copy's changed keys by tree", () => {
-    const chosen = flowsToRun({
-      suite,
-      carried,
-      phoneTagged: new Set(),
-      context: reachContext(root),
-      changedSince: () => since([STAFF_COPY]),
-      copyKeysSince: (tree) => (tree === "t1" ? new Set(["events"]) : undefined),
-    });
-    expect(chosen.run).toEqual(new Set([fresh, events.key]));
   });
 });
 
@@ -702,9 +649,9 @@ describe("this repo", { timeout: 120_000 }, () => {
       // The fakes' mail and answers, kept for each flow's database across the build's copies of a module: no code.
       "lib/server/fixtures/letters-inbox.ts: uses globalThis",
       "lib/server/fixtures/outside-services.ts: uses globalThis",
-      // Handed the keeper of errors by instrumentation.ts, and the run in progress by run-store.ts (HANDED_OVER).
-      "lib/server/problems.ts: uses globalThis",
-      "lib/server/run-store.ts: calls registerRunStore() as it loads",
+      // Handed the keeper of errors by instrumentation.ts, and the run in progress by run-store.server.ts (HANDED_OVER).
+      "lib/server/problems.server.ts: uses globalThis",
+      "lib/server/run-store.server.ts: calls registerRunStore() as it loads",
     ]);
   });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CONTROLAI_STATEMENT_HTML } from "@/lib/server/fixtures/politician-lists";
 import { nameSlug, statementSupporters } from "./controlai-statement";
-import { officialProfile, bodyOf } from "./official-profiles";
+import { officialProfile, bodyOf } from "@/lib/politicians/official-profiles";
 
 describe("statementSupporters", () => {
   it("reads each supporter once from the links to their pages, by ID or by name", () => {

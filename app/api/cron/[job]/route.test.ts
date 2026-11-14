@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { query } from "@/lib/server/db";
-import { listRuns, runningNow, startRunning } from "@/lib/server/import-runs";
+import { query } from "@/lib/server/db.server";
+import { listRuns, runningNow, startRunning } from "@/lib/server/import-runs.server";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { POST } from "./route";
 

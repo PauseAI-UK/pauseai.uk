@@ -18,7 +18,7 @@ export type LocalGroup = {
   /**
    * Place names that mark a calendar event as this local group's, matched
    * word-bounded against the event name, city and free-text address by
-   * eventMatchesLocalGroup in lib/events.ts. Add the surrounding county or
+   * eventMatchesLocalGroup in lib/site-events.ts. Add the surrounding county or
    * region where the local group organises beyond its host city.
    */
   eventMatchers: string[];

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { homeEventsCopy } from "@/lib/content/home-events";
-import { placeForPostcode } from "@/lib/server/outside-services/postcodes";
-import { readJsonIfAny } from "@/lib/server/json";
+import { placeForPostcode } from "@/lib/server/outside-services/postcodes.server";
+import { readJsonIfAny } from "@/lib/server/json.server";
 
 const MESSAGES = { not_found: homeEventsCopy.postcodeNotFound, failed: homeEventsCopy.postcodeFailed };
 

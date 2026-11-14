@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { browserReport, keepBrowserError } from "@/lib/server/errors-seen";
-import { parseJsonIfAny } from "@/lib/server/json";
+import { browserReport, keepBrowserError } from "@/lib/oversight/errors-seen.server";
+import { parseJsonIfAny } from "@/lib/server/json.server";
 
 // Receives an error from a visitor's browser (lib/browser-errors.ts), and
-// keeps it beside the server's own (lib/server/errors-seen.ts). Anyone can
+// keeps it beside the server's own (lib/oversight/errors-seen.server.ts). Anyone can
 // post anything here, so: only a page of the site's own may (the browser
 // says so, in Sec-Fetch-Site, which a script on another site can't set); the
 // body is capped before it's parsed; every field is checked and cut short

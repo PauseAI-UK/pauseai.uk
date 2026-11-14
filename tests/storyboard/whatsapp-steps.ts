@@ -4,10 +4,10 @@
 // fields' words, as WhatsApp is sent them. WhatsApp keeps the template's
 // words, so they're read from the flow's database, as the site has them.
 import type { Page } from "@playwright/test";
-import { TEXT_SENDER_NAME } from "@/lib/broadcasts";
+import { TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { readTexts, type OutboxText } from "@/lib/server/fixtures/whatsapp-outbox";
-import type { MailingDoc } from "@/lib/mailing-doc";
-import { filledTemplate, templateText } from "@/lib/whatsapp-template";
+import type { MailingDoc } from "@/lib/mailings/doc";
+import { filledTemplate, templateText } from "@/lib/broadcasts/whatsapp-template";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { OUTBOX_DIR } from "../checkout.mjs";
 import { textView, type TextShown } from "../fixtures/text-view";

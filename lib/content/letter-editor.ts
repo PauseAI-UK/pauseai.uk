@@ -1,5 +1,5 @@
 // The words of the letter editors' toolbars and link bar: a supporter's
-// letter on Email your MP, and a mailing's (staffCopy.mailingEditor, which
+// letter on Email your MP, and a mailing's (mailingsCopy.mailingEditor, which
 // adds its own).
 export const letterEditorCopy = {
   bold: "Bold",

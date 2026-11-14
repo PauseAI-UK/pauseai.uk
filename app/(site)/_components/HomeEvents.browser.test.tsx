@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { exampleEvent } from "@/components/events/EventList.examples";
 import { homeEventsCopy as copy } from "@/lib/content/home-events";
-import type { LumaEvent, Place } from "@/lib/events";
+import type { LumaEvent, Place } from "@/lib/site-events";
 import HomeEvents from "./HomeEvents";
 
 const WESTMINSTER: Place = { latitude: 51.5, longitude: -0.13 };

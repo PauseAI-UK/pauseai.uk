@@ -1,4 +1,4 @@
-import type { Permission } from "./staff-permissions";
+import type { Permission } from "@/lib/accounts/permissions";
 
 // The staff interface's pages, in sections, for the navigation. A page with
 // a permission shows only to those who have it, and requires it
@@ -33,7 +33,7 @@ export type StaffSectionId = "supporters" | "events" | "politicians" | "admin";
  * elsewhere. `draft`, for a page to try out that can't do its job yet, which says so in the navigation.
  * `added`, the day a page went live (as 2026-11-13), so for its first days
  * it's new even to an account seeing the navigation for the first time
- * (lib/server/staff-nav-seen.ts).
+ * (lib/accounts/nav-seen.server.ts).
  */
 export type StaffPageLink = {
   id: StaffPageId;

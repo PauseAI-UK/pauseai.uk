@@ -28,12 +28,12 @@ const UNCONVERTED_UI_SIZES = [
 /** The CSS that may use vertical-align, as it lines its own things up and has been checked by eye. */
 const VERTICAL_ALIGN_VETTED = [
   "app/(site)/_components/PressMarquee.module.css",
-  "app/(staff)/staff/_components/ImportIcon.module.css",
-  "app/(staff)/staff/_components/SignupUpload.module.css",
-  "app/(staff)/staff/_components/StackedBars.module.css",
-  "app/(staff)/staff/_components/StaffDashboard.module.css",
-  "app/(staff)/staff/_components/StaffNav.module.css",
-  "app/(staff)/staff/_components/SubscriptionBadges.module.css",
+  "app/(staff)/staff/_components/jobs/ImportIcon.module.css",
+  "app/(staff)/staff/_components/supporters/SignupUpload.module.css",
+  "app/(staff)/staff/_components/dashboard/StackedBars.module.css",
+  "app/(staff)/staff/_components/dashboard/StaffDashboard.module.css",
+  "app/(staff)/staff/_components/supporters/SubscriptionBadges.module.css",
+  "app/(staff)/staff/_components/shell/StaffNav.module.css",
   "app/(staff)/staff/_components/ui/IconText.module.css",
   "app/(staff)/staff/_components/ui/NotIcon.module.css",
   "app/(staff)/staff/_components/ui/Shortened.module.css",

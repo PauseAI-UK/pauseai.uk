@@ -8,7 +8,7 @@ import {
   exportFilename,
   pdfBytesDigital,
   type PlatformExportGroup,
-} from "@/lib/collateral/export";
+} from "@/lib/collateral/export.client";
 import { DEFAULT_FORMAT_ID, formatDimensionLabel, getFormat, type Format } from "@/lib/collateral/formats";
 import {
   CAPTION_MAX,
@@ -38,7 +38,7 @@ import {
   loadFonts,
   loadImage,
   renderCollateral,
-} from "@/lib/collateral/render";
+} from "@/lib/collateral/render.client";
 import { getTemplate, type Drawable } from "@/lib/collateral/templates";
 import { DEFAULT_THEME_ID, getTheme } from "@/lib/collateral/themes";
 import { count } from "@/lib/content/plural";

@@ -11,7 +11,7 @@
 -- outside-services.ts), and the politicians and members with Airtable IDs
 -- Airtable's (airtable-*.json), by the same IDs, so an import writes the
 -- same rows again rather than doubling them. The rest are made up, with
--- "seed" in their IDs. The letters go to the test MPs (lib/test-mps.json),
+-- "seed" in their IDs. The letters go to the test MPs (lib/politicians/test-mps.json),
 -- which must be in the database already, and most recent ones then to
 -- Airtable's two. Supporters and their links are written once everyone
 -- else is, as the matcher (lib/server/supporters.ts) would make them: one
@@ -148,7 +148,7 @@ WHERE rank <= 162;
 
 -- Statuses: Polly signed the letter to the PM last month; Dora this week;
 -- the peer backs the bill, from ControlAI's letter, the week before; Backy
--- McTestface MP's bill status (lib/test-mps.json) was already there. Then
+-- McTestface MP's bill status (lib/politicians/test-mps.json) was already there. Then
 -- answers from Airtable, as production has them: each letter and the statement, and every answer an event
 -- allows, across the conference and Go to Parliament, all copied with each
 -- ask, 20 days ago, so dated the ask's day, or that day if the ask's is still
@@ -1159,7 +1159,7 @@ $$;
 INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason, created_at, footer)
 SELECT t.name, pg_temp.seed_words(t.words), t.status, t.by,
   CASE WHEN t.status = 'approved' THEN now() - t.ago END, CASE WHEN t.status = 'rejected' THEN now() - t.ago END,
-  -- WhatsApp's code for why, which the draft and the email put in words (rejectionWords, lib/broadcasts.ts).
+  -- WhatsApp's code for why, which the draft and the email put in words (rejectionWords, lib/broadcasts/broadcasts.ts).
   CASE WHEN t.status = 'rejected' THEN 'PROMOTIONAL' END, now() - t.ago - interval '1 day',
   -- Its footer as it went to WhatsApp, every text's (TEMPLATE_FOOTER).
   'Reply STOP to stop these texts'
@@ -1293,7 +1293,7 @@ SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FR
   ORDER BY c.n
 ) c;
 -- Each with the merge values sending gives it (recipientValues in
--- lib/server/broadcast-recipients.ts): their name and first name, and the
+-- lib/broadcasts/recipients.server.ts): their name and first name, and the
 -- campaigns they wrote in and events they registered for. Erin's, since
 -- she was erased, keeps only that it went.
 INSERT INTO broadcast_messages (id, mailing_id, supporter_id, address, status, provider_message_id, merge_values, skip_reason, sent_at) OVERRIDING SYSTEM VALUE
@@ -1381,7 +1381,7 @@ INSERT INTO broadcast_message_events (message_id, at, kind)
 SELECT message_id, received_at, 'replied' FROM broadcast_replies WHERE NOT automatic;
 -- Two hours after PauseCon room change came, Robin and Pat replied
 -- "stop", as its footer says, which recordWhatsAppStop keeps
--- (lib/server/whatsapp-stops.ts): the text's topic, events, stopped for
+-- (lib/broadcasts/whatsapp-stops.server.ts): the text's topic, events, stopped for
 -- the number, from WhatsApp. Their other text topics stay open, so
 -- nothing goes to CiviCRM.
 INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at, message_id)
@@ -1391,7 +1391,7 @@ FROM (VALUES ('usr-seed-22'), ('usr-fixture-5')) w (luma_user)
 JOIN seed_copies s ON s.luma_user = w.luma_user JOIN mailings m ON m.id = s.mailing_id JOIN broadcast_messages c ON c.id = s.id
 WHERE m.title = 'PauseCon room change';
 -- Each stop is kept as a reply to the text, recorded as an opt-out by the
--- site (SITE_ACTOR, lib/broadcasts.ts), and answered (whatsapp-webhooks.ts):
+-- site (SITE_ACTOR, lib/broadcasts/broadcasts.ts), and answered (whatsapp-webhooks.ts):
 -- what it stopped, with a link to the number's contact preferences.
 INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic,
   outcome, dealt_by, dealt_at)

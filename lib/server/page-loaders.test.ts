@@ -2,21 +2,21 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { eventsSearch } from "@/lib/staff-search";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { newRequest } from "@/tests/request-cache";
-import { askToEdit, listAsks } from "./asks";
-import { getCampaignSummary } from "./campaigns";
-import { query } from "./db";
-import { getPauseaiLetter, getSupporterLetter } from "./letters";
-import { getPolitician, listParties } from "./politicians";
-import { savedFiltersState } from "./saved-filters";
-import { eventsPage } from "./staff-events";
-import { getSupporter, supporterChoices } from "./supporters";
+import { askToEdit, listAsks } from "@/lib/asks/records.server";
+import { getCampaignSummary } from "@/lib/mailings/campaigns.server";
+import { query } from "./db.server";
+import { getPauseaiLetter, getSupporterLetter } from "@/lib/letters/records.server";
+import { getPolitician, listParties } from "@/lib/politicians/records.server";
+import { savedFiltersState } from "./saved-filters.server";
+import { eventsPage } from "@/lib/events/staff-events.server";
+import { getSupporter, supporterChoices } from "@/lib/supporters/records.server";
 
 vi.mock("react", async (original) => ({
   ...(await original<typeof import("react")>()),
   cache: (await import("@/tests/request-cache")).cache,
 }));
-vi.mock("./db", async (original) => {
-  const db = await original<typeof import("./db")>();
+vi.mock("./db.server", async (original) => {
+  const db = await original<typeof import("./db.server")>();
   return { ...db, query: vi.fn(db.query) };
 });
 

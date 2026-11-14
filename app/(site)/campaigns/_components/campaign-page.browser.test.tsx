@@ -5,7 +5,7 @@ import { campaigns, copy } from "@/lib/content/email-your-mp";
 import CampaignContext from "./CampaignContext";
 import CampaignDocs, { DocCard } from "./CampaignDocs";
 import CampaignHero from "./CampaignHero";
-import { saveLookup } from "./draft";
+import { saveLookup } from "./draft.client";
 import EmailYourMpSection from "./EmailYourMpSection";
 
 const [letterToPm, bill] = campaigns;

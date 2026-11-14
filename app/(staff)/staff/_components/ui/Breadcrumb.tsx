@@ -1,4 +1,4 @@
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import StaffLink from "./StaffLink";
 import styles from "./Breadcrumb.module.css";
 
@@ -12,7 +12,7 @@ export type Crumb = { href: string; label: string };
  */
 export default function Breadcrumb({ steps, here }: { steps: Crumb[]; here: string }) {
   return (
-    <nav aria-label={staffCopy.breadcrumb} className={styles.trail}>
+    <nav aria-label={staffVocabulary.breadcrumb} className={styles.trail}>
       <ol>
         {steps.map((step) => (
           <li key={step.href}>

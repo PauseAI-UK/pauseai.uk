@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { query } from "@/lib/server/db";
+import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase, withDatabaseDown } from "@/tests/database";
 import { LUMA_WEBHOOK_SECRET, lumaPersonWebhook, lumaWebhookHeaders } from "@/tests/luma-webhooks";
 import { POST } from "./route";

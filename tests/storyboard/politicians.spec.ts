@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { connectPolicyMailboxes } from "./gmail-steps";
 import { addFilter, changeFilter } from "./list-steps";
@@ -9,6 +9,11 @@ import { BASE, expect, frame, story, test } from "./fixtures";
 import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
 import { importPath } from "@/lib/import-runs";
 import type { Section } from "./report/frames";
+import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
+import { notesCopy } from "@/app/(staff)/staff/_components/notes/copy";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
 
@@ -17,7 +22,7 @@ export const section: Section = { name: "Politicians", part: "Staff pages", orde
 // the copy from the fixture Airtable adds, their answers to the asks as staff
 // recorded them (recordAnswers) and PauseAI's emails to them.
 
-const copy = staffCopy.politician;
+const copy = politiciansCopy.politician;
 
 /** This flow's own staff address: flows run alongside each other, and share the outbox. */
 const staffEmail = () => `pol-${test.info().testId.replace(/\W/g, "").slice(-8)}@pauseai.uk`;
@@ -40,8 +45,8 @@ async function openPolitician(page: Page, name: string) {
  */
 async function listSortedBy(page: Page, heading: string, sorted: RegExp) {
   await page
-    .getByRole("navigation", { name: staffCopy.breadcrumb })
-    .getByRole("link", { name: staffCopy.nav.politicians })
+    .getByRole("navigation", { name: staffVocabulary.breadcrumb })
+    .getByRole("link", { name: shellCopy.nav.politicians })
     .click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   // The heading's link, not a count at the top of the politician's page, which can have the same words.
@@ -65,13 +70,13 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Polly Placeholder");
   await expect(page.getByText(copy.importantTarget, { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("region", { name: staffCopy.notes.title }).getByText("Met at the example fair."),
+    page.getByRole("region", { name: notesCopy.notes.title }).getByText("Met at the example fair."),
   ).toBeVisible();
   const asks = page.getByRole("region", { name: copy.statusesTitle });
   // ControlAI's campaign statement and her answer to the conference, as staff recorded them.
   const answer = (ask: RegExp) => asks.getByRole("group", { name: ask }).locator("[class*=answer]");
-  await expect(answer(/^Edinburgh/)).toHaveText(new RegExp(`^${staffCopy.statuses.declined}`));
-  await expect(answer(/^ControlAI's campaign statement/)).toHaveText(new RegExp(`^${staffCopy.statuses.signed}`));
+  await expect(answer(/^Edinburgh/)).toHaveText(new RegExp(`^${staffVocabulary.statuses.declined}`));
+  await expect(answer(/^ControlAI's campaign statement/)).toHaveText(new RegExp(`^${staffVocabulary.statuses.signed}`));
   // The conference's invitation, personalised, in her folded history.
   await expect(page.getByText(copy.personalised, { exact: false }).first()).toBeAttached();
   await frame(page, "Polly's page");
@@ -143,7 +148,7 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
     Number.parseInt(await page.getByRole("link", { name: label }).innerText(), 10);
   const onHerPage = [await counted(copy.band.emailsToThem), await counted(copy.band.emailsFromThem)];
   expect(onHerPage[1]).toBe(1);
-  const { columns } = staffCopy.politicians;
+  const { columns } = politiciansCopy.politicians;
   const { first, under } = await listSortedBy(page, columns.emailsFromThem, /sort=emailsFromThem&dir=desc/);
   await expect(first.getByRole("link", { name: "Polly Placeholder", exact: true })).toBeVisible();
   await expect(under(columns.emailsToThem)).toHaveText(String(onHerPage[0]));
@@ -156,16 +161,16 @@ test("A note on a politician", async ({ page, request, flowDatabase }) => {
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
-  const notes = page.getByRole("region", { name: staffCopy.notes.title, exact: true });
-  await notes.getByRole("button", { name: staffCopy.notes.write }).click();
-  const box = notes.getByRole("textbox", { name: staffCopy.notes.note });
+  const notes = page.getByRole("region", { name: notesCopy.notes.title, exact: true });
+  await notes.getByRole("button", { name: notesCopy.notes.write }).click();
+  const box = notes.getByRole("textbox", { name: notesCopy.notes.note });
   await box.fill("Her office says write to www.example.org/contact");
   // The card alone, as where focus leaves the window varies between runs.
   await frame(page, "The note, written", { of: notes });
   story(
     "Once added, the note is the newest in the card, and the web address in it is a link. Airtable's notes on her stay last.",
   );
-  await notes.getByRole("button", { name: staffCopy.notes.add }).click();
+  await notes.getByRole("button", { name: notesCopy.notes.add }).click();
   const note = notes.getByRole("listitem").filter({ hasText: "Her office says" });
   await expect(note.getByRole("link", { name: "www.example.org/contact" })).toHaveAttribute(
     "href",
@@ -200,13 +205,13 @@ test("An answer to a new ask", async ({ page, request, flowDatabase }) => {
   story("Choosing one adds a row for it, like the others, with no answer yet. Staff note how they know her answer.");
   await menu.getByRole("button", { name: "Giant pause button" }).click();
   const row = asks.getByRole("group", { name: "Giant pause button" });
-  await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffCopy.statuses.noAnswer}`));
+  await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffVocabulary.statuses.noAnswer}`));
   await row.getByLabel(copy.note).fill("Said yes on the phone");
   await frame(page, "The new row, with a note", { window: true });
   story("She signed it. Once saved, the answer and its note show like any other.");
-  await row.getByRole("radio", { name: staffCopy.statuses.signed }).click();
+  await row.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
   await row.getByRole("button", { name: copy.save }).click();
-  await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffCopy.statuses.signed}`));
+  await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffVocabulary.statuses.signed}`));
   await expect(row.getByText(/Said yes on the phone/)).toBeVisible();
   await frame(page, "The answer, saved");
 });
@@ -223,15 +228,15 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
   await asks.getByRole("button", { name: copy.otherAsk }).click();
   await page.getByRole("list", { name: copy.otherAsk }).getByRole("button", { name: PM_LETTER }).click();
   const row = asks.getByRole("group", { name: PM_LETTER });
-  await row.getByRole("radio", { name: staffCopy.statuses.declined }).click();
+  await row.getByRole("radio", { name: staffVocabulary.statuses.declined }).click();
   await row.getByLabel(copy.note).fill("Their office said no");
   await frame(page, "Declined, with a note", { window: true });
   story("Once saved, the answer shows with its note under it, and goes into her history.");
   await row.getByRole("button", { name: copy.save }).click();
-  await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffCopy.statuses.declined}`));
+  await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffVocabulary.statuses.declined}`));
   await page.locator("summary", { hasText: copy.historyTitle }).click();
   const history = page.getByRole("list", { name: copy.historyTitle });
-  await expect(history).toContainText(staffCopy.statuses.declined);
+  await expect(history).toContainText(staffVocabulary.statuses.declined);
   await frame(page, "The letter, declined");
 
   story(
@@ -263,7 +268,7 @@ test("Peers, MSPs and former MPs", async ({ page, request, flowDatabase }) => {
   );
   await openPolitician(page, "Morag Example");
   await expect(page.getByText(copy.personalConnection, { exact: true })).toBeVisible();
-  await expect(page.getByText(`${copy.country}${staffCopy.countries.scotland}`)).toBeVisible();
+  await expect(page.getByText(`${copy.country}${staffVocabulary.countries.scotland}`)).toBeVisible();
   await frame(page, "Morag's page");
 
   story("Gordon Gone has left the Commons. He's kept, as a former MP.");
@@ -280,25 +285,25 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians`);
-  const filters = staffCopy.politicians;
+  const filters = politiciansCopy.politicians;
   const rows = page.getByRole("row");
   // Those in office, to start; + Filter offers the rest, each applying as soon as it's chosen.
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
   await expect(rows.filter({ hasText: "Rita Retired" })).toHaveCount(0);
-  await page.getByRole("button", { name: staffCopy.filters.add }).click();
+  await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
   await frame(page, "The filters");
   story("Staff pick those who retired. The filter becomes a chip above the list.");
   await page.keyboard.press("Escape");
-  await addFilter(page, filters.status, staffCopy.personStatuses.retired);
+  await addFilter(page, filters.status, politiciansCopy.personStatuses.retired);
   await expect(page).toHaveURL(/status=retired/);
   await expect(rows.filter({ hasText: "Rita Retired" })).toBeVisible();
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
   await frame(page, "The politicians who retired");
 
   story("They take that filter off, and filter by a marker: personal connections.");
-  await changeFilter(page, `${filters.status}: ${staffCopy.personStatuses.retired}`);
+  await changeFilter(page, `${filters.status}: ${politiciansCopy.personStatuses.retired}`);
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
-  await addFilter(page, filters.flag, filters.flags.connection);
+  await addFilter(page, filters.flag, staffVocabulary.politicianFlags.connection);
   await expect(page).toHaveURL(/flag=connection/);
   await expect(rows.filter({ hasText: "Morag Example" })).toBeVisible();
   await expect(rows).toHaveCount(2);
@@ -306,14 +311,18 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
 
   story("Except this, in the chip's menu, turns it round: everyone but the personal connections.");
   // A chip's menu turns its choice to one the list leaves out.
-  await changeFilter(page, `${filters.flag}: ${filters.flags.connection}`, staffCopy.filters.exceptThis);
+  await changeFilter(
+    page,
+    `${filters.flag}: ${staffVocabulary.politicianFlags.connection}`,
+    staffVocabulary.filters.exceptThis,
+  );
   await expect(page).toHaveURL(/flag=%21connection/);
   await expect(rows.filter({ hasText: "Morag Example" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
   await frame(page, "Everyone but the personal connections");
 
   story("Next, an ask: the Edinburgh conference. Its chip has a second half, for the answer.");
-  await changeFilter(page, staffCopy.filters.notChip(filters.flag, filters.flags.connection));
+  await changeFilter(page, staffVocabulary.filters.notChip(filters.flag, staffVocabulary.politicianFlags.connection));
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   await addFilter(page, filters.ask, "Edinburgh conference");
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026$/);
@@ -326,7 +335,7 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toBeVisible();
   await frame(page, "No answer to the conference yet");
 
-  await page.getByRole("link", { name: staffCopy.resetFilters }).click();
+  await page.getByRole("link", { name: staffVocabulary.resetFilters }).click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
 });
@@ -336,7 +345,7 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
-  const filters = staffCopy.politicians;
+  const filters = politiciansCopy.politicians;
   const rows = page.getByRole("row");
   await page.goto(`${BASE}/staff/politicians?ask=edinburgh-conference-2026`);
   await page.getByRole("button", { name: filters.anyAnswer }).click();
@@ -344,16 +353,16 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   await frame(page, "The answers, a row each");
 
   story("+ Add turns the rows to boxes. Any answer isn't one of them: it's what ticking none means.");
-  await menu.getByRole("button", { name: staffCopy.filters.addChoice }).click();
+  await menu.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
   await frame(page, "Boxes, with Any answer gone");
 
   story("Each tick changes the list at once, with the menu open. The chip's second half says both.");
-  await menu.getByRole("checkbox", { name: staffCopy.statuses.going, exact: true }).check();
+  await menu.getByRole("checkbox", { name: staffVocabulary.statuses.going, exact: true }).check();
   await expect(page).toHaveURL(/answer=going$/);
   await menu.getByRole("checkbox", { name: filters.noAnswer }).check();
   await expect(page).toHaveURL(/answer=going&answer=none/);
   await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toBeVisible();
-  const both = staffCopy.filters.anyOf([staffCopy.statuses.going, filters.noAnswer]);
+  const both = staffVocabulary.filters.anyOf([staffVocabulary.statuses.going, filters.noAnswer]);
   await expect(page.getByRole("button", { name: both })).toBeVisible();
   await frame(page, "Those going, or who haven't answered, the menu still open");
   await page.keyboard.press("Escape");
@@ -381,24 +390,24 @@ test("The house tabs", async ({ page, request, flowDatabase }) => {
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians?status=any`);
-  const houses = page.getByRole("navigation", { name: staffCopy.fields.house });
+  const houses = page.getByRole("navigation", { name: staffVocabulary.fields.house });
   const rows = page.getByRole("row");
-  await expect(houses.getByRole("link", { name: staffCopy.politicians.allHouses })).toHaveAttribute(
+  await expect(houses.getByRole("link", { name: politiciansCopy.politicians.allHouses })).toHaveAttribute(
     "aria-current",
     "page",
   );
   await frame(page, "Every house");
 
   story("In the Commons tab every row is an MP, so there's no column for the house.");
-  await houses.getByRole("link", { name: staffCopy.houses.commons }).click();
+  await houses.getByRole("link", { name: staffVocabulary.houses.commons }).click();
   await expect(page).toHaveURL(/house=commons&status=any/);
   await expect(rows.filter({ hasText: "Gordon Gone" })).toBeVisible();
   await expect(rows.filter({ hasText: "Morag Example" })).toHaveCount(0);
   // Every row is in the Commons, so there's no column saying so.
-  await expect(page.getByRole("columnheader", { name: staffCopy.fields.house })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: staffVocabulary.fields.house })).toHaveCount(0);
   await frame(page, "The Commons");
 
-  await houses.getByRole("link", { name: staffCopy.houses["scottish-parliament"] }).click();
+  await houses.getByRole("link", { name: staffVocabulary.houses["scottish-parliament"] }).click();
   await expect(rows.filter({ hasText: "Morag Example" })).toBeVisible();
   await expect(rows).toHaveCount(2);
   await frame(page, "The Scottish Parliament");
@@ -418,12 +427,12 @@ test("Pages of politicians, and Download", async ({ page, flowDatabase }) => {
   );
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians?status=any`);
-  const copy = staffCopy.politicians;
+  const copy = politiciansCopy.politicians;
   await expect(page.getByText(copy.total(250))).toBeVisible();
   await frame(page, "The politicians list");
   story("Download gets every one of them, not only this page, as a spreadsheet, JSON or vCards for WhatsApp.");
-  await page.getByRole("button", { name: staffCopy.lists.download }).click();
-  const csv = page.getByRole("link", { name: staffCopy.lists.formats.csv });
+  await page.getByRole("button", { name: staffVocabulary.lists.download }).click();
+  const csv = page.getByRole("link", { name: staffVocabulary.lists.formats.csv });
   await expect(csv).toHaveAttribute("href", "/staff/politicians/download?status=any&format=csv");
   await frame(page, "Download's menu");
   // Every page of them, a line each under the headings.
@@ -431,29 +440,29 @@ test("Pages of politicians, and Download", async ({ page, flowDatabase }) => {
   expect((await file.text()).trim().split("\r\n")).toHaveLength(251);
   story("At the foot of the list are the links to the other pages.");
   await page.keyboard.press("Escape");
-  const pages = page.getByRole("navigation", { name: staffCopy.paging.label });
+  const pages = page.getByRole("navigation", { name: staffVocabulary.paging.label });
   await pages.scrollIntoViewIfNeeded();
   await frame(page, "The first page's foot");
 
-  await pages.getByRole("link", { name: staffCopy.paging.next }).click();
+  await pages.getByRole("link", { name: staffVocabulary.paging.next }).click();
   await expect(page).toHaveURL(/status=any&page=2/);
-  await expect(page.getByText(staffCopy.paging.range(101, 200, 250))).toBeVisible();
+  await expect(page.getByText(staffVocabulary.paging.range(101, 200, 250))).toBeVisible();
   await frame(page, "The second page");
 
   story("The last page has no Next. Picking another house starts again from the first page.");
   // On to the last: by its number, or on a phone, where the numbers give way to "Page 2 of 3", by Next.
-  const last = page.getByRole("navigation", { name: staffCopy.paging.label }).getByRole("link", {
-    name: staffCopy.paging.page(3),
+  const last = page.getByRole("navigation", { name: staffVocabulary.paging.label }).getByRole("link", {
+    name: staffVocabulary.paging.page(3),
   });
-  await ((await last.isVisible()) ? last : pages.getByRole("link", { name: staffCopy.paging.next })).click();
+  await ((await last.isVisible()) ? last : pages.getByRole("link", { name: staffVocabulary.paging.next })).click();
   await expect(page).toHaveURL(/status=any&page=3/);
-  await expect(page.getByText(staffCopy.paging.range(201, 250, 250))).toBeVisible();
+  await expect(page.getByText(staffVocabulary.paging.range(201, 250, 250))).toBeVisible();
   await frame(page, "The last page");
 
   // Another house starts from the first page.
   await page
-    .getByRole("navigation", { name: staffCopy.fields.house })
-    .getByRole("link", { name: staffCopy.houses.lords })
+    .getByRole("navigation", { name: staffVocabulary.fields.house })
+    .getByRole("link", { name: staffVocabulary.houses.lords })
     .click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians?house=lords&status=any`);
 });
@@ -463,11 +472,11 @@ test("Searching politicians", async ({ page, request, flowDatabase }) => {
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians`);
-  const copy = staffCopy.politicians;
+  const copy = politiciansCopy.politicians;
   const rows = page.getByRole("row");
   const search = async (text: string) => {
     await page.getByRole("searchbox").fill(text);
-    await page.getByRole("button", { name: staffCopy.search }).click();
+    await page.getByRole("button", { name: staffVocabulary.search }).click();
     await expect(page).toHaveURL(new RegExp(`q=${encodeURIComponent(text).replace(/%20/g, "\\+")}`));
   };
   await search("Pol Westminster");
@@ -533,9 +542,9 @@ test("PauseAI's email to a politician", async ({ page, request, flowDatabase }) 
   await openPolitician(page, "Polly Placeholder");
   await page.locator("summary", { hasText: copy.historyTitle }).click();
   const history = page.getByRole("list", { name: copy.historyTitle });
-  await history.getByRole("link", { name: staffCopy.mailingPages.theLetter }).first().click();
+  await history.getByRole("link", { name: staffVocabulary.theLetter }).first().click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    staffCopy.letters.oneTitle(staffCopy.letters.fromPauseai, "Polly Placeholder"),
+    lettersCopy.letters.oneTitle(lettersCopy.letters.fromPauseai, "Polly Placeholder"),
   );
   await expect(page).toHaveURL(/\/staff\/mailings\/\d+\/letters\/\d+$/);
   await frame(page, "PauseAI's email to Polly");
@@ -543,8 +552,8 @@ test("PauseAI's email to a politician", async ({ page, request, flowDatabase }) 
     "Copy Gmail search copies a search for it by Polly's address and when it went. Airtable didn't say which mailbox sent it, so the page says to look in one that did.",
   );
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.getByRole("button", { name: staffCopy.findInGmail.copy }).click();
-  await expect(page.getByRole("status")).toContainText(staffCopy.findInGmail.whereUnknown);
+  await page.getByRole("button", { name: lettersCopy.findInGmail.copy }).click();
+  await expect(page.getByRole("status")).toContainText(lettersCopy.findInGmail.whereUnknown);
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^to:polly\S+ after:\d+ before:\d+$/);
   await frame(page, "The search, copied");
 });
@@ -572,8 +581,8 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
 
   story("The next read of Gmail searches policy@ for her Gmail, and says so. Her email is kept, and shows under her.");
   await page.goto(`${BASE}${importPath("read-gmail")}`);
-  await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
-  const read = staffCopy.gmailReading.searched({ searched: 1, kept: 0, waiting: 0 }).split(",")[0];
+  await page.getByRole("button", { name: jobsCopy.gmailReading.readNow }).click();
+  const read = jobsCopy.gmailReading.searched({ searched: 1, kept: 0, waiting: 0 }).split(",")[0];
   await expect(page.getByText(read, { exact: false }).first()).toBeVisible();
   await frame(page, "The read of Gmail, having searched for it");
   await page.goto(`${BASE}/staff/politicians/${polly}`);
@@ -583,7 +592,7 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   story(
     "That email is all we've had to do with her. On the politicians list it's her one email from them, and the day of her first and last activity, so sorting by Last activity puts her first.",
   );
-  const { columns } = staffCopy.politicians;
+  const { columns } = politiciansCopy.politicians;
   const { first, under } = await listSortedBy(page, columns.last, /sort=active&dir=desc/);
   await expect(first.getByRole("link", { name: "Polly Placeholder", exact: true })).toBeVisible();
   await expect(under(columns.emailsFromThem)).toHaveText("1");
@@ -685,7 +694,7 @@ test("ControlAI's statement", async ({ page, request, flowDatabase }) => {
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}${importPath("import-controlai-statement")}`);
-  await page.getByRole("button", { name: staffCopy.controlAiStatement.importNow }).click();
+  await page.getByRole("button", { name: jobsCopy.controlAiStatement.importNow }).click();
   await expect(page.getByText(/5 supporters/)).toBeVisible();
   await frame(page, "The import's page");
 

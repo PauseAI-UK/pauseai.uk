@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
-import { listAsks } from "@/lib/server/asks";
-import { politiciansPageData } from "@/lib/server/mailing-pages";
-import { listParties } from "@/lib/server/politicians";
+import { listAsks } from "@/lib/asks/records.server";
+import { politiciansPageData } from "@/lib/mailings/pages.server";
+import { listParties } from "@/lib/politicians/records.server";
 import type { PoliticiansSearch } from "@/lib/staff-search";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import {
   deleteMailingDraft,
   newMailing,
@@ -13,13 +12,14 @@ import {
   pickMany,
   pickPolitician,
   untickAll,
-} from "../../mailing-actions";
+} from "../../_components/mailings/actions";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
-import { openSavedList } from "../../saved-lists";
-import PoliticianFilters, { politicianWords } from "../../_components/PoliticianFilters";
-import PoliticiansList, { ChoosingHead, HouseTabs } from "../../_components/PoliticiansList";
+import { openSavedList } from "../../saved-lists.server";
+import PoliticianFilters, { politicianWords } from "../../_components/politicians/PoliticianFilters";
+import PoliticiansList, { ChoosingHead, HouseTabs } from "../../_components/politicians/PoliticiansList";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
+import { politiciansCopy } from "../../_components/politicians/copy";
 
 type Props = { searchParams: Promise<Partial<PoliticiansSearch>> };
 
@@ -41,7 +41,7 @@ export default async function PoliticiansPage({ searchParams }: Props) {
   return (
     <Page kind="list">
       <ChoosingHead choosing={choosing} cancel={deleteMailingDraft}>
-        <PageHead intro={staffCopy.politicians.intro}>{staffCopy.politicians.title}</PageHead>
+        <PageHead intro={politiciansCopy.politicians.intro}>{politiciansCopy.politicians.title}</PageHead>
         <HouseTabs search={search} choosing={choosing} />
         <PoliticianFilters
           search={search}

@@ -2,7 +2,7 @@
 // that link to it: how PauseAI UK contacts someone, by email, text or call,
 // why, and how to change it. Plain and short: what each choice does, the truth of it, nothing more.
 
-import type { Reason, Topic, Way } from "../contact-permissions";
+import type { Reason, Topic, Way } from "@/lib/supporters/contact-permissions";
 
 /** A date as the page says it: 2 November 2026. */
 export function settingsDate(date: Date | null): string {
@@ -11,7 +11,7 @@ export function settingsDate(date: Date | null): string {
     : "";
 }
 
-// As the staff pages name them (staffCopy.supporters.detail.permissions.topics).
+// As the staff pages name them (supportersCopy.supporters.detail.permissions.topics).
 const topicNames: Record<Topic, string> = {
   newsletter: "Newsletter",
   events: "Events only",

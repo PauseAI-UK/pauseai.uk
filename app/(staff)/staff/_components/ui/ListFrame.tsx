@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { buttonClass } from "@/components/ui/Button";
 import Table from "@/components/ui/Table";
 import { Muted } from "@/components/ui/Text";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { pageRange, type DownloadColumn, type DownloadFormat } from "@/lib/staff-list";
 import StaffLink from "./StaffLink";
 import DownloadMenu from "./DownloadMenu";
@@ -108,7 +108,7 @@ export function ListTable<Row>({
 
 /** Under a list of more than one page: Previous, the pages, Next; on a phone, "Page 6 of 50" for the pages. */
 function Paging({ page, pages, href }: { page: number; pages: number; href: (page: number) => string }) {
-  const copy = staffCopy.paging;
+  const copy = staffVocabulary.paging;
   return (
     <nav aria-label={copy.label} className={styles.pages}>
       {page > 1 && (
@@ -223,14 +223,14 @@ export default function ListFrame<Row>({
           none={
             <span className={styles.none}>
               <Empty inline>{empty}</Empty>
-              {clear && <StaffLink href={clear}>{staffCopy.resetFilters}</StaffLink>}
+              {clear && <StaffLink href={clear}>{staffVocabulary.resetFilters}</StaffLink>}
             </span>
           }
         />
       </div>
     );
   }
-  const copy = staffCopy.lists;
+  const copy = staffVocabulary.lists;
   const from = (page - 1) * pageSize + 1;
   const to = from + rows.length - 1;
   return (
@@ -248,7 +248,7 @@ export default function ListFrame<Row>({
       <ListTable columns={columns} rows={rows} rowKey={rowKey} align={align} />
       {pages > 1 && href && (
         <div className={styles.under}>
-          <Muted>{staffCopy.paging.range(from, to, total)}</Muted>
+          <Muted>{staffVocabulary.paging.range(from, to, total)}</Muted>
           <Paging page={page} pages={pages} href={href} />
         </div>
       )}

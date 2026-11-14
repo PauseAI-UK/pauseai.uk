@@ -3,10 +3,10 @@ import { campaigns } from "@/lib/content/email-your-mp";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { marchSignupCopy } from "@/lib/content/march-signup";
-import { staffCopy } from "@/lib/content/staff-interface";
-import type { Reason, Topic } from "@/lib/contact-permissions";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+import type { Reason, Topic } from "@/lib/supporters/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
-import { TEST_MPS } from "@/lib/test-mps";
+import { TEST_MPS } from "@/lib/politicians/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { lumaPersonWebhook, lumaWebhookHeaders } from "../luma-webhooks";
 import { fillLetter, lookUpTestMp, sendLetter } from "./letter-steps";
@@ -17,6 +17,13 @@ import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
+import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
+import { erasureCopy } from "@/lib/erasure/copy";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { notesCopy } from "@/app/(staff)/staff/_components/notes/copy";
+import { emailCopy } from "@/lib/email/copy";
 
 export const section: Section = { name: "Supporters", part: "Staff pages", order: 50 };
 
@@ -32,7 +39,7 @@ async function logInWithSupporters(page: Page, database: string) {
   await logInAsStaff(page, BASE, staffEmail());
 }
 
-const copy = staffCopy.supporters;
+const copy = supportersCopy.supporters;
 
 /**
  * Posts one of Luma's calendar.person webhooks for `email`, signed with the
@@ -83,7 +90,7 @@ test("Without the Supporters permission", async ({ page, flowDatabase }) => {
   );
   addStaffAccount(flowDatabase, staffEmail());
   await logInAsStaff(page, BASE, staffEmail(), "/staff");
-  await expect(page.getByRole("link", { name: staffCopy.nav.supporters })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: shellCopy.nav.supporters })).toHaveCount(0);
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page).toHaveURL(`${BASE}/staff`);
   await page.goto(`${BASE}/staff/supporters/1`);
@@ -106,7 +113,7 @@ test("Filtering supporters", async ({ page, request, flowDatabase }) => {
 
   // The search waits for its button; a filter applies as soon as it's chosen, keeping the search.
   await page.getByRole("searchbox", { name: copy.filters.search }).fill("fixture@example");
-  await page.getByRole("button", { name: staffCopy.search }).click();
+  await page.getByRole("button", { name: staffVocabulary.search }).click();
   await expect(page).toHaveURL(/\/staff\/supporters\?q=fixture%40example$/);
   // Every one of them has an address at fixture@example.
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
@@ -137,8 +144,8 @@ test("Filtering supporters", async ({ page, request, flowDatabase }) => {
 
   story("Clear filters, in that row as in the bar over the list, takes away the search, the filters and the sort.");
   // Reset clears every filter, and the sort.
-  await expect(page.getByRole("link", { name: staffCopy.resetFilters })).toHaveCount(2);
-  await page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }).click();
+  await expect(page.getByRole("link", { name: staffVocabulary.resetFilters })).toHaveCount(2);
+  await page.getByRole("table").getByRole("link", { name: staffVocabulary.resetFilters }).click();
   await expect(page).toHaveURL(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   await expect(page.getByRole("searchbox", { name: copy.filters.search })).toHaveValue("");
@@ -165,13 +172,16 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   const march = copy.filters.eventChoice("PauseAI London March", staffDate(new Date("2026-02-14T12:00:00Z")));
-  await page.getByRole("button", { name: staffCopy.filters.except }).click();
-  await expect(page.locator("[popover]:popover-open").getByText(staffCopy.filters.exceptHeading)).toBeVisible();
+  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
+  await expect(page.locator("[popover]:popover-open").getByText(staffVocabulary.filters.exceptHeading)).toBeVisible();
   await frame(page, "Except, open");
   story('They choose Event, and type "march" to find it.');
   await page.locator("[popover]:popover-open summary", { hasText: new RegExp(`^${copy.filters.event}$`) }).click();
   // Its events show once something's typed in its box.
-  await page.locator("[popover]:popover-open").getByRole("searchbox", { name: staffCopy.filters.narrow }).fill("march");
+  await page
+    .locator("[popover]:popover-open")
+    .getByRole("searchbox", { name: staffVocabulary.filters.narrow })
+    .fill("march");
   await expect(page.locator("[popover]:popover-open").getByRole("link", { name: march, exact: true })).toBeVisible();
   await frame(page, "Except's events, narrowed");
   story("Three supporters weren't at the march: Dee, who declined, and Fay and a host, who never registered.");
@@ -185,13 +195,13 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   );
   await frame(page, "Supporters not at the London March");
   story("The filter's chip has a menu. Only this turns the filter round.");
-  await page.getByRole("button", { name: staffCopy.filters.notChip(copy.filters.event, march) }).click();
+  await page.getByRole("button", { name: staffVocabulary.filters.notChip(copy.filters.event, march) }).click();
   await expect(
-    page.locator("[popover]:popover-open").getByRole("link", { name: staffCopy.filters.onlyThis }),
+    page.locator("[popover]:popover-open").getByRole("link", { name: staffVocabulary.filters.onlyThis }),
   ).toBeVisible();
   await frame(page, "The chip's menu");
   story("Now the list is the four guests approved for the march, with a column for each one's registration.");
-  await page.locator("[popover]:popover-open").getByRole("link", { name: staffCopy.filters.onlyThis }).click();
+  await page.locator("[popover]:popover-open").getByRole("link", { name: staffVocabulary.filters.onlyThis }).click();
   await expect(page.getByText(copy.total(4), { exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: copy.columns.registrations })).toBeVisible();
   await expect(page.locator("tbody").getByText(copy.detail.registered).first()).toBeVisible();
@@ -207,12 +217,15 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
-  const mp = staffCopy.politician.roles.commons;
+  const mp = politiciansCopy.politician.roles.commons;
   const mo = copy.filters.mpChoice("Mo Example", "Manchester Central");
-  await page.getByRole("button", { name: staffCopy.filters.add }).click();
+  await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
   await page.locator("[popover]:popover-open summary", { hasText: new RegExp(`^${mp}$`) }).click();
   // The MPs show once something's typed in the box.
-  await page.locator("[popover]:popover-open").getByRole("searchbox", { name: staffCopy.filters.narrow }).fill("manc");
+  await page
+    .locator("[popover]:popover-open")
+    .getByRole("searchbox", { name: staffVocabulary.filters.narrow })
+    .fill("manc");
   await expect(page.locator("[popover]:popover-open").getByRole("link", { name: mo, exact: true })).toBeVisible();
   await frame(page, "The MP filter, narrowed");
   story("Only Jane Fixture's postcode is in Manchester Central. The page's title names the filter.");
@@ -221,7 +234,9 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   // Jane's postcode is the one in Manchester Central.
   await expect(page.getByText(copy.total(1), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Jane Fixture" })).toBeVisible();
-  await expect(page).toHaveTitle(`${staffCopy.filters.pageTitle(copy.title, `${mp}: ${mo}`)} - ${staffCopy.metaTitle}`);
+  await expect(page).toHaveTitle(
+    `${staffVocabulary.filters.pageTitle(copy.title, `${mp}: ${mo}`)} - ${staffVocabulary.metaTitle}`,
+  );
   await frame(page, "Mo Example's constituents");
 });
 
@@ -312,22 +327,22 @@ test("Notes on a supporter", async ({ page, request, flowDatabase }) => {
   );
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters/${jane}`);
-  const card = page.getByRole("region", { name: staffCopy.notes.title });
+  const card = page.getByRole("region", { name: notesCopy.notes.title });
   const notes = card.getByRole("listitem");
   await expect(notes).toHaveCount(1);
-  await expect(card.getByRole("button", { name: staffCopy.notes.edit })).toHaveCount(0);
-  await expect(card.getByRole("button", { name: staffCopy.notes.delete })).toHaveCount(0);
+  await expect(card.getByRole("button", { name: notesCopy.notes.edit })).toHaveCount(0);
+  await expect(card.getByRole("button", { name: notesCopy.notes.delete })).toHaveCount(0);
   await frame(page, "Jane's page, with a colleague's note");
   story("Staff write a note of their own, with a link in it.");
-  await card.getByRole("button", { name: staffCopy.notes.write }).click();
+  await card.getByRole("button", { name: notesCopy.notes.write }).click();
   await card
-    .getByRole("textbox", { name: staffCopy.notes.note })
+    .getByRole("textbox", { name: notesCopy.notes.note })
     .fill("Met her at the Leeds stall.\nSlides from her talk: https://example.org/slides/leeds");
   await frame(page, "Writing a note");
   story("Added, the note is at the top, and its link can be followed. Its writer can edit or delete it for a day.");
-  await card.getByRole("button", { name: staffCopy.notes.add }).click();
+  await card.getByRole("button", { name: notesCopy.notes.add }).click();
   await expect(notes).toHaveCount(2);
-  await expect(card.getByRole("textbox", { name: staffCopy.notes.note })).toHaveCount(0);
+  await expect(card.getByRole("textbox", { name: notesCopy.notes.note })).toHaveCount(0);
   await expect(notes.first().getByRole("link", { name: "https://example.org/slides/leeds" })).toHaveAttribute(
     "href",
     "https://example.org/slides/leeds",
@@ -335,15 +350,15 @@ test("Notes on a supporter", async ({ page, request, flowDatabase }) => {
   await frame(page, "The new note");
   story("They edit it.");
 
-  await notes.first().getByRole("button", { name: staffCopy.notes.edit }).click();
+  await notes.first().getByRole("button", { name: notesCopy.notes.edit }).click();
   await notes
     .first()
-    .getByRole("textbox", { name: staffCopy.notes.note })
+    .getByRole("textbox", { name: notesCopy.notes.note })
     .fill("Met her at the Leeds stall in October.");
   await frame(page, "Editing the note");
   story("Saved, the note is marked as edited.");
-  await notes.first().getByRole("button", { name: staffCopy.notes.save }).click();
-  await expect(notes.first()).toContainText(`· ${staffCopy.notes.edited}`);
+  await notes.first().getByRole("button", { name: notesCopy.notes.save }).click();
+  await expect(notes.first()).toContainText(`· ${notesCopy.notes.edited}`);
   await expect(notes.first().getByRole("textbox")).toBeHidden();
   await frame(page, "The note, edited");
 
@@ -357,13 +372,13 @@ test("Notes on a supporter", async ({ page, request, flowDatabase }) => {
   await page.reload();
   const oldNote = notes.filter({ hasText: "Asked about the Manchester group." });
   const newNote = notes.filter({ hasText: "Wrong supporter, sorry." });
-  await expect(oldNote.getByRole("button", { name: staffCopy.notes.delete })).toHaveCount(0);
-  await expect(newNote.getByRole("button", { name: staffCopy.notes.delete })).toBeVisible();
+  await expect(oldNote.getByRole("button", { name: notesCopy.notes.delete })).toHaveCount(0);
+  await expect(newNote.getByRole("button", { name: notesCopy.notes.delete })).toBeVisible();
   await frame(page, "An admin, with Delete on today's note only");
   story("Delete asks to be pressed a second time.");
-  await newNote.getByRole("button", { name: staffCopy.notes.delete }).click();
+  await newNote.getByRole("button", { name: notesCopy.notes.delete }).click();
   await frame(page, "Deleting the colleague's note");
-  await newNote.getByRole("button", { name: staffCopy.deleteItShort }).click();
+  await newNote.getByRole("button", { name: staffVocabulary.deleteItShort }).click();
   await expect(notes).toHaveCount(2);
   await frame(page, "The note, deleted");
   story("The audit log records who added, edited and deleted a note on Jane.");
@@ -426,9 +441,9 @@ test("A letter writer's page", async ({ page, request, flowDatabase }) => {
   story("Letter → opens her letter's page.");
 
   // The letter's status leads to its page, and back to her.
-  await page.getByRole("link", { name: staffCopy.mailingPages.theLetter }).click();
+  await page.getByRole("link", { name: staffVocabulary.theLetter }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    staffCopy.letters.oneTitle("Jane Smith", "Testy McTestface MP"),
+    lettersCopy.letters.oneTitle("Jane Smith", "Testy McTestface MP"),
   );
   await frame(page, "Jane's letter");
   story("Her name on the letter's page leads back to her page.");
@@ -570,13 +585,13 @@ test("Subscriptions to more than one topic", async ({ page, request, flowDatabas
   const label = copy.columns.subscriptions;
   const menu = page.locator("[popover]:popover-open");
   await page.getByRole("button", { name: `${label}: ${topics.events}` }).click();
-  await menu.getByRole("button", { name: staffCopy.filters.addChoice }).click();
+  await menu.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
   await expect(menu.getByRole("checkbox", { name: topics.events })).toBeChecked();
   await frame(page, "Email's topics, events ticked");
 
   story("Ticking the newsletter changes the list at once. The chip says both, with or between them.");
   await menu.getByRole("checkbox", { name: topics.newsletter }).check();
-  const both = `${label}: ${staffCopy.filters.anyOf([topics.events, topics.newsletter])}`;
+  const both = `${label}: ${staffVocabulary.filters.anyOf([topics.events, topics.newsletter])}`;
   await expect(page.getByRole("button", { name: both })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/contact=.*contact=/);
@@ -627,10 +642,10 @@ test("Their contact preferences, from their page", async ({ page, request, flowD
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Tom Seed" }).click();
-  const dev = page.getByRole("region", { name: staffCopy.devPreferences.title });
+  const dev = page.getByRole("region", { name: supportersCopy.devPreferences.title });
   await dev.scrollIntoViewIfNeeded();
   await frame(page, "A link for each address", { window: true });
-  await dev.getByRole("link", { name: staffCopy.devPreferences.preferences("tom.seed@example.com") }).click();
+  await dev.getByRole("link", { name: supportersCopy.devPreferences.preferences("tom.seed@example.com") }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(emailSettingsCopy.settings.title);
   await frame(page, "Tom's contact preferences");
 });
@@ -655,21 +670,21 @@ test("Erasing a supporter", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Sam Fixture" }).click();
   await openEverything(page);
-  const eraseLink = page.getByRole("link", { name: staffCopy.erase.title });
+  const eraseLink = page.getByRole("link", { name: erasureCopy.erase.title });
   await eraseLink.scrollIntoViewIfNeeded();
   await frame(page, "The end of Sam's page");
   story("The erase page's button can't be pressed yet.");
   await eraseLink.click();
   await expect(page).toHaveURL(/\/staff\/supporters\/\d+\/erase$/);
-  await expect(page.getByRole("button", { name: staffCopy.erase.button })).toBeDisabled();
+  await expect(page.getByRole("button", { name: erasureCopy.erase.button })).toBeDisabled();
   await frame(page, "The erase page");
   story("Staff give the request's reference, tick the box and erase Sam. The supporters list says it's done.");
 
-  await page.getByRole("textbox", { name: staffCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
-  await page.getByRole("checkbox", { name: staffCopy.erase.confirm }).check();
-  await page.getByRole("button", { name: staffCopy.erase.button }).click();
+  await page.getByRole("textbox", { name: erasureCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
+  await page.getByRole("checkbox", { name: erasureCopy.erase.confirm }).check();
+  await page.getByRole("button", { name: erasureCopy.erase.button }).click();
   await expect(page).toHaveURL(`${BASE}/staff/supporters?erased=1`);
-  await expect(page.getByRole("status")).toHaveText(staffCopy.erase.done);
+  await expect(page.getByRole("status")).toHaveText(erasureCopy.erase.done);
   await expect(page.getByRole("link", { name: "Sam Fixture" })).toHaveCount(0);
   await expect(page.getByText(copy.total(6), { exact: true })).toBeVisible();
   await frame(page, "The supporters list, without Sam");
@@ -698,11 +713,11 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Mara Member" }).click();
   await openEverything(page);
-  await page.getByRole("link", { name: staffCopy.erase.title }).click();
-  await page.getByRole("textbox", { name: staffCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
-  await page.getByRole("checkbox", { name: staffCopy.erase.confirm }).check();
-  await page.getByRole("button", { name: staffCopy.erase.button }).click();
-  await expect(page.getByRole("status")).toHaveText(staffCopy.erase.done);
+  await page.getByRole("link", { name: erasureCopy.erase.title }).click();
+  await page.getByRole("textbox", { name: erasureCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
+  await page.getByRole("checkbox", { name: erasureCopy.erase.confirm }).check();
+  await page.getByRole("button", { name: erasureCopy.erase.button }).click();
+  await expect(page.getByRole("status")).toHaveText(erasureCopy.erase.done);
   await expect(page.getByRole("link", { name: "Mara Member" })).toHaveCount(0);
 
   await importCivicrm(request, BASE);
@@ -720,13 +735,13 @@ test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters/bounced-emails`);
   const row = page.getByRole("table").first().getByRole("row").filter({ hasText: "casey.chapter@example.com" });
-  await expect(row).toContainText(staffCopy.emails.kinds.hold);
+  await expect(row).toContainText(emailCopy.emails.kinds.hold);
   await frame(page, "Bounced emails");
   story("Staff lift it, with a note. Only a new hold in CiviCRM blocks it again.");
-  await row.getByRole("button", { name: staffCopy.emails.unblockOpen }).click();
-  await row.getByLabel(staffCopy.emails.note).fill("Global say the address works again");
-  await row.getByRole("button", { name: staffCopy.emails.unblock, exact: true }).click();
-  await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
+  await row.getByRole("button", { name: emailCopy.emails.unblockOpen }).click();
+  await row.getByLabel(emailCopy.emails.note).fill("Global say the address works again");
+  await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();
+  await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();
   await frame(page, "Bounced emails, empty");
 });
 

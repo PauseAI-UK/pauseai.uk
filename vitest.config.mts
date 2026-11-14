@@ -17,8 +17,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "."),
-      // lib/server/* imports "server-only", which throws outside a React
-      // server build. Tests run that code directly, so give them the no-op.
+      // A *.server.ts module imports "server-only", which throws outside a
+      // React server build. Tests run that code directly, so give them the no-op.
       "server-only": path.resolve(import.meta.dirname, "node_modules/server-only/empty.js"),
     },
   },
@@ -79,6 +79,7 @@ export default defineConfig({
             "react-dom",
             "react-dom/client",
             "react-dom/server",
+            "client-only",
             "react/jsx-dev-runtime",
             "next/link",
             "next/form",

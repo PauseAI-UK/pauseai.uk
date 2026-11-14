@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { pageNumber, type ParamValue } from "@/lib/list-params";
-import { listErrorsSeen } from "@/lib/server/errors-seen";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { listErrorsSeen } from "@/lib/oversight/errors-seen.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { ERRORS_LIST } from "@/lib/staff-lists";
-import ErrorsSeen from "../../_components/ErrorsSeen";
+import ErrorsSeen from "../../_components/oversight/ErrorsSeen";
 import Page from "../../_components/ui/Page";
+import { shellCopy } from "../../_components/shell/copy";
 
-export const metadata: Metadata = { title: staffCopy.nav.errors };
+export const metadata: Metadata = { title: shellCopy.nav.errors };
 
 /** What has gone wrong on the site outside a job's run, to do or done, the one seen most recently first. */
 export default async function ErrorsPage({

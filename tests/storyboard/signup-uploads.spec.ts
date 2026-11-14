@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { logIn } from "./login-steps";
 import { newestEmail } from "./outbox-steps";
@@ -9,6 +8,8 @@ import { importCivicrm, importLuma } from "./supporter-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
+import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 
 export const section: Section = { name: "Import sign-ups", part: "Staff pages", order: 55 };
 
@@ -16,7 +17,7 @@ export const section: Section = { name: "Import sign-ups", part: "Staff pages", 
 // (tests/fixtures/signup-uploads/) and the fixture Luma calendar, whose five
 // guests are at every event. Each flow on its own database.
 
-const copy = staffCopy.signupUpload;
+const copy = supportersCopy.signupUpload;
 const EVENT = /PauseAI London: Protest at Parliament/;
 const FILES = join(__dirname, "..", "fixtures", "signup-uploads");
 
@@ -64,7 +65,7 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   await logIn(page, flowDatabase, ["supporters"]);
   await page.goto(`${BASE}/staff/supporters`);
   // On a phone the navigation is behind the bar's menu.
-  const navLink = page.getByRole("link", { name: new RegExp(`^${staffCopy.nav.signupUpload}`) });
+  const navLink = page.getByRole("link", { name: new RegExp(`^${shellCopy.nav.signupUpload}`) });
   if (!(await navLink.first().isVisible())) await page.locator("nav details > summary").click();
   await navLink.filter({ visible: true }).click();
   await expect(page.getByRole("heading", { name: copy.title, level: 1 })).toBeVisible();
@@ -101,7 +102,7 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   story("The person's own page shows the form they filled in, with the note, and permission to contact them.");
   await page.getByRole("link", { name: "Robin Newcomer" }).click();
   await page
-    .locator("summary", { has: page.getByRole("heading", { name: staffCopy.supporters.detail.activityTitle }) })
+    .locator("summary", { has: page.getByRole("heading", { name: supportersCopy.supporters.detail.activityTitle }) })
     .click();
   await expect(page.getByText("Flyering at Camden Town")).toBeVisible();
   await frame(page, "On the supporter's page");

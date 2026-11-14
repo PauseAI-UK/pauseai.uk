@@ -67,8 +67,21 @@ export function readByNoFlow(path) {
   return NOTHING.some((re) => re.test(path));
 }
 
-/** Folders of no source: what's built, installed or thrown away. */
-const NOT_SOURCE = new Set(["node_modules", ".git", ".next", ".netlify", "tmp", "test-results", "playwright-report"]);
+/**
+ * Folders of no source: what's built, installed or thrown away. Coverage's
+ * reports among them, which a test run writes and deletes while another
+ * test, such as the import-cycle check, may be reading the repo.
+ */
+const NOT_SOURCE = new Set([
+  "node_modules",
+  ".git",
+  ".next",
+  ".netlify",
+  "tmp",
+  "test-results",
+  "playwright-report",
+  "coverage",
+]);
 const CODE = /\.(tsx?|mts|mjs|jsx?|css|json)$/;
 /** Code that's imported, never read as a file: the rest is data (JSON, pictures, fonts, emails, text). */
 const IMPORTED = /\.(tsx?|mts|mjs|jsx?|css)$/;
@@ -134,13 +147,13 @@ export function importsOf(path, text) {
 
 /**
  * Code handed to a module as another loads, which the first then calls
- * without importing it: lib/server/problems.ts is told how to find the run
- * in progress by run-store.ts, and what keeps an error by instrumentation.ts.
+ * without importing it: lib/server/problems.server.ts is told how to find the run
+ * in progress by run-store.server.ts, and what keeps an error by instrumentation.ts.
  * A flow that reaches the module reaches what's handed to it, as if it were
  * imported. handOvers finds the places in the site's code that could be
  * another, and the tests check each is here or known not to be one.
  */
-const HANDED_OVER = { "lib/server/problems.ts": ["lib/server/run-store.ts", "instrumentation.ts"] };
+const HANDED_OVER = { "lib/server/problems.server.ts": ["lib/server/run-store.server.ts", "instrumentation.ts"] };
 
 /**
  * Where the site's code (`dirs` under `root`) could hand code over without
@@ -180,8 +193,12 @@ export function handOvers(root, dirs) {
   return found;
 }
 
-/** Every source file under `root`, each with the repo's files it imports, and what's handed over to it (HANDED_OVER). */
-export function importGraph(root) {
+/**
+ * Every source file under `root`, each with the repo's files it imports,
+ * and what's handed over to it (HANDED_OVER), unless `handedOver` is false:
+ * the imports alone, as a check of import cycles wants them.
+ */
+export function importGraph(root, { handedOver = true } = {}) {
   const graph = new Map();
   for (const path of walk(root, "", [])) {
     const text = readFileSync(join(root, path), "utf8");
@@ -193,6 +210,7 @@ export function importGraph(root) {
       ),
     ]);
   }
+  if (!handedOver) return graph;
   for (const [to, handed] of Object.entries(HANDED_OVER))
     if (graph.has(to)) graph.set(to, [...graph.get(to), ...handed.filter((path) => graph.has(path))]);
   return graph;
@@ -342,13 +360,7 @@ const ALWAYS_IF_THERE = ["instrumentation-client.ts"];
 const ERRORS_KEPT = "instrumentation.ts";
 
 /** The files this map names by their paths: if one moves, its rule here stops applying (the tests check they exist). */
-export const NAMED = [
-  ...ALWAYS,
-  ERRORS_KEPT,
-  GALLERY_EXAMPLES,
-  "lib/content/staff-interface.ts",
-  ...Object.entries(HANDED_OVER).flat(2),
-];
+export const NAMED = [...ALWAYS, ERRORS_KEPT, GALLERY_EXAMPLES, ...Object.entries(HANDED_OVER).flat(2)];
 
 /**
  * The files a flow can reach: its spec file and what it imports; for each
@@ -377,57 +389,6 @@ export function flowReach(run, { graph, routes, root, reaches }, whole = false) 
   for (const path of closure(whole ? graph : flowGraph(graph, run), entries)) files.add(path);
   reaches?.set(cached, files);
   return files;
-}
-
-/**
- * The staff interface's words are one object, `staffCopy`, read by most of
- * the staff pages. A change to it counts only for the files that read the
- * keys it changed (staffCopy.letters, or `const { letters } = staffCopy`), or
- * that pass the object whole.
- */
-export const STAFF_COPY = "lib/content/staff-interface.ts";
-
-/**
- * The top-level keys of `staffCopy` whose lines a diff (`git diff -U0`)
- * changed, from the file before and after; "*" for a line outside the
- * object, which any reader of the file may use.
- */
-export function changedCopyKeys(diff, before, after) {
-  const keyAt = (text) => {
-    const lines = text.split("\n");
-    const start = lines.findIndex((line) => /^export const staffCopy\b/.test(line));
-    const end = lines.findIndex((line, at) => at > start && /^\}/.test(line));
-    const starts = [];
-    if (start !== -1 && end !== -1)
-      for (let at = start + 1; at < end; at++) {
-        const key = /^ {2}(\w+): /.exec(lines[at])?.[1];
-        if (key) starts.push({ key, line: at + 1 });
-      }
-    return (line) => (line > end ? undefined : starts.findLast((first) => first.line <= line)?.key) ?? "*";
-  };
-  const old = keyAt(before);
-  const now = keyAt(after);
-  const keys = new Set();
-  for (const hunk of diff.matchAll(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/gm)) {
-    const [from, removed, to, added] = [hunk[1], hunk[2] ?? "1", hunk[3], hunk[4] ?? "1"].map(Number);
-    for (let line = from; line < from + removed; line++) keys.add(old(line));
-    for (let line = to; line < to + added; line++) keys.add(now(line));
-  }
-  return keys;
-}
-
-/** The keys of `staffCopy` a file reads, or "*" if it uses the object whole. */
-export function copyKeysRead(text) {
-  const keys = new Set();
-  for (const match of text.matchAll(/staffCopy\.(\w+)/g)) keys.add(match[1]);
-  for (const match of text.matchAll(/\{([^}]*)\}\s*=\s*staffCopy\b/g))
-    for (const name of match[1].split(",")) if (name.trim()) keys.add(name.trim().split(/[\s:]/)[0]);
-  const elsewhere = text
-    .replace(/import[^;]*\bstaffCopy\b[^;]*;/g, "")
-    .replace(/staffCopy\.\w+/g, "")
-    .replace(/\{[^}]*\}\s*=\s*staffCopy\b/g, "");
-  if (/\bstaffCopy\b/.test(elsewhere)) keys.add("*");
-  return keys;
 }
 
 /** The text of a file of the checkout, read once for a context. */
@@ -484,15 +445,13 @@ export function reachContext(root) {
 
 /**
  * The flows of `runs` (each with its key and `opened`) that changed `files`
- * can reach; `addedOrDeleted` are those of them added or deleted.
- * `copyKeys`, if `staffCopy`'s file is one, are the keys of it that changed
- * (changedCopyKeys). Returns:
+ * can reach; `addedOrDeleted` are those of them added or deleted. Returns:
  *
  * - `keys`, the flows reached;
  * - `everything`, the files that reach every flow, if any changed;
  * - `unknown`, the files the map can't place.
  */
-export function reachedFlows({ files, addedOrDeleted = [], runs, context, copyKeys }) {
+export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
   const { graph } = context;
   // A plain stylesheet applies wherever it's loaded, so it's reached through the imports as they are (flowReach).
   const plainStyles = (path) => path.endsWith(".css") && !path.endsWith(".module.css");
@@ -508,19 +467,7 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context, copyKe
   const unknown = [];
   for (const path of files) {
     // Imported, whatever kind of file it is: the flows whose reach has it.
-    if (path === STAFF_COPY && copyKeys && !copyKeys.has("*")) {
-      // Of the staff copy, the readers of the keys changed. One that names no key uses the file some other way, so counts.
-      const readersOfKeys = [...graph]
-        .filter(([, imports]) => imports.includes(STAFF_COPY))
-        .map(([file]) => file)
-        .filter((file) => {
-          const read = copyKeysRead(textOf(context, file));
-          return read.size === 0 || read.has("*") || [...copyKeys].some((key) => read.has(key));
-        });
-      add(flowsReaching(readersOfKeys));
-    } else {
-      add(flowsReaching([path]));
-    }
+    add(flowsReaching([path]));
     if (EVERYTHING.some((re) => re.test(path))) {
       everything.push(path);
     } else if (NOTHING.some((re) => re.test(path))) {
@@ -575,11 +522,10 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context, copyKe
  * A flow a review carried says the tree it was carried at (`seen`): the
  * files changed since then are what can have reached it since, as those
  * before were found not to. `changedSince(tree)` gives the files changed
- * since `tree`, and those of them added or deleted; `copyKeysSince(tree)`, the keys of staffCopy
- * changed since it, if its file changed. Returns the keys to run, and why,
+ * since `tree`, and those of them added or deleted. Returns the keys to run, and why,
  * for the run to say.
  */
-export function flowsToRun({ suite, carried, phoneTagged, context, setup, changedSince, copyKeysSince }) {
+export function flowsToRun({ suite, carried, phoneTagged, context, setup, changedSince }) {
   const byKey = new Map(carried.map((run) => [run.key, run]));
   const run = new Set();
   for (const key of suite) {
@@ -608,7 +554,7 @@ export function flowsToRun({ suite, carried, phoneTagged, context, setup, change
     }
     for (const file of since.files) changed.add(file);
     if (since.files.length === 0) continue;
-    const found = reachedFlows({ ...since, runs, context, copyKeys: copyKeysSince(tree) });
+    const found = reachedFlows({ ...since, runs, context });
     for (const file of found.everything) everything.add(file);
     for (const file of found.unknown) unknown.add(file);
     for (const key of found.keys) reached.add(key);

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
-import { mailingPageData } from "@/lib/server/mailing-pages";
-import { mailingCrumb, mailingTitle } from "@/lib/server/mailings";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { mailingPageData } from "@/lib/mailings/pages.server";
+import { mailingCrumb, mailingTitle } from "@/lib/mailings/records.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { mailingId } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
-import MailingFor from "../../../_components/MailingFor";
+import MailingFor from "../../../_components/mailings/MailingFor";
 import Page from "../../../_components/ui/Page";
 import {
   attachToMailing,
@@ -16,7 +16,7 @@ import {
   scheduleMailingNow,
   sendMailingTest,
   stopMailingNow,
-} from "../../../mailing-actions";
+} from "../../../_components/mailings/actions";
 
 type Params = {
   params: Promise<{ id: string }>;

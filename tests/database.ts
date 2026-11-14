@@ -1,8 +1,8 @@
 // A Postgres database for each test file that needs one, a copy of the
 // migrated template (tests/vitest.global-setup.node.ts). See docs/testing.md.
 import { afterAll, beforeAll, beforeEach, describe, inject, onTestFinished, vi } from "vitest";
-import { closeDb, query } from "@/lib/server/db";
-import { encryptToken } from "@/lib/server/gmail-tokens";
+import { closeDb, query } from "@/lib/server/db.server";
+import { encryptToken } from "@/lib/email/gmail-tokens.server";
 import { copyDatabase, databaseUrl, dropDatabase, freshDatabase } from "@/scripts/fresh-database.mjs";
 
 /**

@@ -1,0 +1,38 @@
+import { Fragment, type ReactNode } from "react";
+import IconButton from "@/components/ui/IconButton";
+import { Muted } from "@/components/ui/Text";
+import { BubbleBox } from "@/components/ui/Bubble";
+import { bubbleTrigger } from "@/components/ui/bubble-trigger";
+import styles from "./Logged.module.css";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+
+/** Parts of a line, between middle dots. */
+export function DotParts({ children }: { children: ReactNode[] }) {
+  return (
+    <>
+      {children.map((part, i) => (
+        <Fragment key={i}>
+          {i > 0 && <Muted> · </Muted>}
+          {part}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/**
+ * A {} button that opens `details` as logged, as JSON, in a bubble by the
+ * button until clicked away. `id` names its bubble, one per page.
+ */
+export function LoggedJson({ id, details }: { id: string; details: unknown }) {
+  return (
+    <>
+      <IconButton look="outline" size={28} aria-label={staffVocabulary.logged.json} {...bubbleTrigger(id)}>
+        {"{}"}
+      </IconButton>
+      <BubbleBox id={id} className={styles.bubble}>
+        <pre className={styles.json}>{JSON.stringify(details, null, 2)}</pre>
+      </BubbleBox>
+    </>
+  );
+}

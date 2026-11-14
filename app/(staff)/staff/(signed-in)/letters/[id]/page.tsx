@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { listAsks } from "@/lib/server/asks";
-import { getSupporterLetter } from "@/lib/server/letters";
-import { getPolitician } from "@/lib/server/politicians";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { listAsks } from "@/lib/asks/records.server";
+import { getSupporterLetter } from "@/lib/letters/records.server";
+import { getPolitician } from "@/lib/politicians/records.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { letterId } from "@/lib/staff-search";
-import FindInGmail from "../../../_components/FindInGmail";
-import { letterTitle } from "../../../_components/LetterHistory";
-import { SupporterLetterThread } from "../../../_components/LetterThread";
-import LetterView from "../../../_components/LetterView";
+import FindInGmail from "../../../_components/letters/FindInGmail";
+import { letterTitle } from "../../../_components/letters/LetterHistory";
+import { SupporterLetterThread } from "../../../_components/letters/LetterThread";
+import LetterView from "../../../_components/letters/LetterView";
 import Page from "../../../_components/ui/Page";
-import { setAskStatus } from "../../../actions";
+import { setAskStatus } from "../../../_components/politicians/actions";
+import AskRow, { AskRows } from "../../../_components/politicians/AskRow";
+import { lettersCopy } from "../../../_components/letters/copy";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -39,9 +40,18 @@ export default async function LetterPage({ params }: Params) {
       kind="item"
       under="campaigns"
       via={[{ href: `/staff/campaigns/${letter.campaign}`, label: letter.campaignTitle }]}
-      here={staffCopy.letters.crumb}
+      here={lettersCopy.letters.crumb}
     >
-      <LetterView letter={letter} politician={politician} asks={asks} setStatus={setAskStatus}>
+      <LetterView
+        letter={letter}
+        politician={politician}
+        asks={asks}
+        answer={(ask) => (
+          <AskRows>
+            <AskRow politician={politician} ask={ask} setStatus={setAskStatus} />
+          </AskRows>
+        )}
+      >
         <SupporterLetterThread letter={letter} link={<FindInGmail find={letter.gmail} />} />
       </LetterView>
     </Page>

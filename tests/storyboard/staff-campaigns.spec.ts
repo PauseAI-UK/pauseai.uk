@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { longDay } from "@/lib/calendar-days";
 import { DATE_PICKER_WORDS } from "@/lib/content/date-picker";
 import { campaigns } from "@/lib/content/email-your-mp";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { sentLetterId } from "./letter-steps";
 import { addFilter } from "./list-steps";
@@ -10,13 +10,17 @@ import { logIn } from "./login-steps";
 import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician-steps";
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { asksCopy } from "@/lib/asks/copy";
+import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 export const section: Section = { name: "Campaigns, asks and sent emails", part: "Staff pages", order: 80 };
 
 // Campaigns, each ask's page and form, and the sent emails. Each flow on its
 // own database.
 
-const copy = staffCopy.campaigns;
+const copy = mailingsCopy.campaigns;
 
 /**
  * Chooses `day` with the date picker the field `label` names: opens it,
@@ -49,11 +53,11 @@ test("Campaigns", async ({ page, flowDatabase }) => {
 
   story("Each count shows only the letters it counts: the sent count, the letters that went.");
   await page
-    .getByRole("link", { name: new RegExp(` ${staffCopy.copyStates.counts.sent}$`) })
+    .getByRole("link", { name: new RegExp(` ${lettersCopy.copyStates.counts.sent}$`) })
     .first()
     .click();
   await expect(page).toHaveURL(/tab=sent/);
-  await expect(page.getByRole("heading", { name: staffCopy.copyStates.tabs.sent })).toBeVisible();
+  await expect(page.getByRole("heading", { name: lettersCopy.copyStates.tabs.sent })).toBeVisible();
   await frame(page, "The letters sent");
 });
 
@@ -61,14 +65,14 @@ test("No answer yet", async ({ page, flowDatabase }) => {
   story("Jane writes to her MP about the letter to the Prime Minister. They haven't answered yet.");
   await sentLetterId(page, flowDatabase, madeUpAddress("Jane Smith", 42));
   await page.goto(`${BASE}/staff/asks/${campaigns[0].ask}`);
-  await expect(page.getByRole("heading", { name: staffCopy.asks.page.howWeAsked })).toBeVisible();
+  await expect(page.getByRole("heading", { name: asksCopy.asks.page.howWeAsked })).toBeVisible();
   await expect(page.getByRole("link", { name: campaigns[0].title, exact: true })).toBeVisible();
 
   story(
     "No answer's column is the whole of who's been written to and hasn't answered. Pressed, it lists them, longest wait first.",
   );
   await frame(page, "The ask's answers");
-  const unanswered = page.getByRole("link", { name: new RegExp(`^${staffCopy.statuses.noAnswer} \\d`) });
+  const unanswered = page.getByRole("link", { name: new RegExp(`^${staffVocabulary.statuses.noAnswer} \\d`) });
   await unanswered.click();
   await expect(page).toHaveURL(/answer=none/);
   await expect(unanswered).toHaveAttribute("aria-current", "true");
@@ -86,12 +90,12 @@ test("Asks", async ({ page, request, flowDatabase }) => {
 
   story("An ask's page says what they were asked, then what they answered, a column each, then how we asked.");
   await page.getByRole("link", { name: "Edinburgh conference" }).first().click();
-  await expect(page.getByText(staffCopy.politician.askedThem("PauseAI", "event"))).toBeVisible();
-  await expect(page.getByRole("heading", { name: staffCopy.asks.page.howWeAsked })).toBeVisible();
+  await expect(page.getByText(asksCopy.asks.askedThem("PauseAI", "event"))).toBeVisible();
+  await expect(page.getByRole("heading", { name: asksCopy.asks.page.howWeAsked })).toBeVisible();
   await frame(page, "An event's page");
 
   story("Pressing an answer's column lists those who gave it, with when they were last written to.");
-  const going = page.getByRole("link", { name: new RegExp(`^${staffCopy.statuses.going} \\d`) });
+  const going = page.getByRole("link", { name: new RegExp(`^${staffVocabulary.statuses.going} \\d`) });
   await going.click();
   await expect(page).toHaveURL(/answer=going/);
   await expect(going).toHaveAttribute("aria-current", "true");
@@ -103,9 +107,9 @@ test("Asks", async ({ page, request, flowDatabase }) => {
     "INSERT INTO asks (slug, title, kind, asked_by) VALUES ('our-letter', 'Our letter', 'letter', '{pauseai}')",
   );
   await page.goto(`${BASE}/staff/asks/our-letter`);
-  await expect(page.getByText(staffCopy.asks.page.noWay)).toBeVisible();
+  await expect(page.getByText(asksCopy.asks.page.noWay)).toBeVisible();
   await frame(page, "A letter's page, with nothing yet");
-  await page.getByRole("link", { name: staffCopy.asks.edit }).click();
+  await page.getByRole("link", { name: asksCopy.asks.edit }).click();
   await expect(page).toHaveURL(`${BASE}/staff/asks/our-letter/edit`);
   await frame(page, "Its form");
 });
@@ -130,26 +134,26 @@ test("An ask's pages", async ({ page, flowDatabase }) => {
   await logIn(page, flowDatabase, ["supporters"]);
   await page.goto(`${BASE}/staff/asks/our-letter`);
   await frame(page, "The column of those who signed");
-  await page.getByRole("link", { name: staffCopy.asks.page.allOf(150) }).click();
-  await expect(page.getByText(staffCopy.campaigns.politicians(150))).toBeVisible();
+  await page.getByRole("link", { name: asksCopy.asks.page.allOf(150) }).click();
+  await expect(page.getByText(staffVocabulary.politicians(150))).toBeVisible();
   await frame(page, "The first page");
 
   story("Next shows the rest, and the answer chosen stays chosen.");
-  await page.getByRole("link", { name: staffCopy.paging.next }).click();
+  await page.getByRole("link", { name: staffVocabulary.paging.next }).click();
   await expect(page).toHaveURL(/page=2/);
-  await expect(page.getByRole("link", { name: `${staffCopy.statuses.signed} 150` })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: `${staffVocabulary.statuses.signed} 150` })).toHaveAttribute(
     "aria-current",
     "true",
   );
   await frame(page, "The second page");
 
   story("The other answer's column top chooses that answer instead.");
-  await page.getByRole("link", { name: `${staffCopy.statuses.declined} 12` }).click();
-  await expect(page.getByText(staffCopy.campaigns.politicians(12))).toBeVisible();
+  await page.getByRole("link", { name: `${staffVocabulary.statuses.declined} 12` }).click();
+  await expect(page.getByText(staffVocabulary.politicians(12))).toBeVisible();
   await frame(page, "Those who declined");
 
   story("Under the answers, a link leads to everyone who answered, in office or not, on the politicians list.");
-  await page.getByRole("link", { name: staffCopy.asks.page.everyone }).click();
+  await page.getByRole("link", { name: asksCopy.asks.page.everyone }).click();
   await expect(page).toHaveURL(/\/staff\/politicians\?ask=our-letter&status=any/);
   await frame(page, "Those who answered, on the politicians list");
 });
@@ -163,7 +167,7 @@ test("Sent emails", async ({ page, flowDatabase }) => {
   await frame(page, "The sent emails");
 
   story("Staff can search by address or subject, and filter by kind.");
-  await addFilter(page, staffCopy.sentEmails.filters.purpose, staffCopy.sentEmails.purposes.letter);
+  await addFilter(page, oversightCopy.sentEmails.filters.purpose, oversightCopy.sentEmails.purposes.letter);
   await expect(page).toHaveURL(/purpose=letter/);
   await frame(page, "Only letters");
 
@@ -176,7 +180,7 @@ test("Sent emails", async ({ page, flowDatabase }) => {
 test("A new ask", async ({ page, flowDatabase }) => {
   story("Staff add an ask from the asks page: an event, a winter reception.");
   await logIn(page, flowDatabase);
-  const asks = staffCopy.asks;
+  const asks = asksCopy.asks;
   await page.goto(`${BASE}/staff/asks`);
   await frame(page, "The asks");
   await page.getByRole("link", { name: asks.newTitle }).click();
@@ -207,9 +211,9 @@ test("A new ask", async ({ page, flowDatabase }) => {
   await page.getByRole("link", { name: "Winter reception" }).click();
   await page.getByRole("link", { name: asks.edit }).click();
   await page.getByRole("button", { name: asks.delete }).click();
-  await expect(page.getByRole("button", { name: staffCopy.deleteIt })).toBeFocused();
+  await expect(page.getByRole("button", { name: staffVocabulary.deleteIt })).toBeFocused();
   await frame(page, "Delete, pressed once", { window: true });
-  await page.getByRole("button", { name: staffCopy.deleteIt }).click();
+  await page.getByRole("button", { name: staffVocabulary.deleteIt }).click();
   await expect(page.getByText(asks.notices.deleted)).toBeVisible();
   await expect(page.getByRole("listitem").filter({ hasText: "Winter reception" })).toHaveCount(0);
   await frame(page, "The ask, deleted");

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import Breadcrumb from "./Breadcrumb";
 
 describe("Breadcrumb", () => {
@@ -15,7 +15,7 @@ describe("Breadcrumb", () => {
         here="Letter"
       />,
     );
-    const trail = page.getByRole("navigation", { name: staffCopy.breadcrumb });
+    const trail = page.getByRole("navigation", { name: staffVocabulary.breadcrumb });
     expect(
       trail
         .getByRole("listitem")

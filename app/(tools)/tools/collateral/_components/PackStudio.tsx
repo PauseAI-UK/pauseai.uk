@@ -8,7 +8,7 @@ import {
   downloadText,
   exportFilename,
   pdfBytesForPrint,
-} from "@/lib/collateral/export";
+} from "@/lib/collateral/export.client";
 import {
   BLEED_MM,
   FORMAT_GROUPS,
@@ -26,7 +26,7 @@ import {
   type PackProject,
 } from "@/lib/collateral/packProject";
 import type { PhotoView } from "@/lib/collateral/photoTransform";
-import { renderCollateral, type RenderOptions } from "@/lib/collateral/render";
+import { renderCollateral, type RenderOptions } from "@/lib/collateral/render.client";
 import { defaultValues, type Drawable } from "@/lib/collateral/templates";
 import { CLEAR_PHOTO_LOGO_SRC, getTheme } from "@/lib/collateral/themes";
 import { count } from "@/lib/content/plural";

@@ -2,9 +2,9 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { downloadAs } from "@/tests/staff-download";
-import { query } from "@/lib/server/db";
-import { devBroadcastTitle, hashOf } from "@/lib/server/email-settings";
-import { addFormEntry } from "@/lib/server/form-entries";
+import { query } from "@/lib/server/db.server";
+import { devBroadcastTitle, hashOf } from "@/lib/supporters/email-settings.server";
+import { addFormEntry } from "@/lib/supporters/form-entries.server";
 import { GET } from "./route";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));

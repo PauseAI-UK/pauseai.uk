@@ -1,22 +1,22 @@
 // What the audit log holds: each action, and the details logged with it.
-// logChange (lib/server/audit.ts) writes only what AuditDetails says; the
+// logChange (lib/oversight/audit-log.server.ts) writes only what AuditDetails says; the
 // log's pages read StoredAuditDetails, which adds what rows logged earlier
 // may still hold, as the log keeps a politician's history while they're here
-// and everything else for a month (lib/server/log-retention.ts).
-import type { AskStatus } from "./asks";
-import type { BroadcastTerms } from "./broadcasts";
+// and everything else for a month (lib/jobs/log-retention.server.ts).
+import type { AskStatus } from "@/lib/asks/asks";
+import type { BroadcastTerms } from "@/lib/broadcasts/broadcasts";
 import type { FieldChange } from "./field-changes";
 import type { PoliticianImportJob } from "./import-runs";
-import type { ImportedFields } from "./politician-import";
+import type { ImportedFields } from "@/lib/politicians/import-changes";
 import type { SavedList } from "./saved-filters";
 import type { DownloadFormat } from "./staff-list";
-import type { Permission } from "./staff-permissions";
-import type { Ask } from "./server/asks";
-import type { DeliveryProblem } from "./server/email";
-import type { ErasureResult } from "./server/erasure";
-import type { MailingState } from "./server/mailing-drafts";
-import type { NoteTarget } from "./server/notes";
-import type { House } from "./server/politicians";
+import type { Permission } from "@/lib/accounts/permissions";
+import type { Ask } from "@/lib/asks/records.server";
+import type { DeliveryProblem } from "@/lib/email/email.server";
+import type { ErasureResult } from "@/lib/erasure/erase.server";
+import type { MailingState } from "@/lib/mailings/drafts.server";
+import type { NoteTarget } from "@/lib/notes/records.server";
+import type { House } from "@/lib/politicians/records.server";
 
 /** How many a sync added, removed or changed. */
 type SyncCounts = { added: number; removed: number; changed: number };

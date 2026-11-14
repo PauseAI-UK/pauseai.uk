@@ -6,8 +6,8 @@ import EventsSection from "@/components/events/EventsSection";
 import { homeEventsCopy as copy } from "@/lib/content/home-events";
 import { localGroups } from "@/lib/content/local-groups";
 import { site } from "@/lib/content/site";
-import { ANYWHERE, inPersonEventsFor, isOnlineEvent, type EventsWhere, type LumaEvent } from "@/lib/events";
-import { EVENTS_PARAM, eventsFromQuery, withEventsQuery, type EventsShowing } from "@/lib/events-url";
+import { ANYWHERE, inPersonEventsFor, isOnlineEvent, type EventsWhere, type LumaEvent } from "@/lib/site-events";
+import { EVENTS_PARAM, eventsFromQuery, withEventsQuery, type EventsShowing } from "@/lib/site-events-url";
 import { placeUnder, type Placement } from "@/lib/popover-placement";
 import EventsPlacePicker from "./EventsPlacePicker";
 import styles from "./HomeEvents.module.css";
@@ -32,7 +32,7 @@ function rememberInUrl(showing: EventsShowing) {
  * The home page's events: every one, soonest first, until the visitor
  * chooses where to see in-person ones near, or only the online ones, which
  * anyone can join from wherever they are. A link can ask for a local
- * group's or the online ones (lib/events-url.ts).
+ * group's or the online ones (lib/site-events-url.ts).
  */
 export default function HomeEvents({ events }: { events: LumaEvent[] }) {
   const [where, setWhere] = useState<EventsWhere>(ANYWHERE);

@@ -2,13 +2,13 @@ import { Button } from "@/components/ui/Button";
 import { TextArea } from "@/components/ui/Controls";
 import { Field } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { carriedParams, savedFilterHref, type SavedList } from "@/lib/saved-filters";
-import type { SavedFiltersState } from "@/lib/server/saved-filters";
+import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
 import { filtersPath, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
-import Alert from "../Alert";
-import { DeleteTwice } from "../DeleteTwice";
+import Alert from "./Alert";
+import { DeleteTwice } from "./DeleteTwice";
 import Bubble from "@/components/ui/Bubble";
 import ChoiceSearch from "./ChoiceSearch";
 import Empty from "./Empty";
@@ -18,7 +18,7 @@ import StaffLink from "./StaffLink";
 import styles from "./SavedFilters.module.css";
 import { iconButtonClass } from "@/components/ui/IconButton";
 
-const copy = staffCopy.filters.saved;
+const copy = staffVocabulary.filters.saved;
 
 /** Three dots, drawn so they're evenly spaced in any browser, whatever its fonts have for "⋯". */
 function MoreDots() {

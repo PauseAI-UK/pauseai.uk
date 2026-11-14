@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { letterThread } from "@/lib/server/letter-threads";
-import { listAsks } from "@/lib/server/asks";
-import { getPauseaiLetter } from "@/lib/server/letters";
-import { getPolitician } from "@/lib/server/politicians";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { letterThread } from "@/lib/mailings/letter-thread.server";
+import { listAsks } from "@/lib/asks/records.server";
+import { getPauseaiLetter } from "@/lib/letters/records.server";
+import { getPolitician } from "@/lib/politicians/records.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { letterId, mailingId } from "@/lib/staff-search";
-import FindInGmail from "../../../../../_components/FindInGmail";
-import { letterTitle } from "../../../../../_components/LetterHistory";
-import LetterView from "../../../../../_components/LetterView";
-import LetterThread from "../../../../../_components/LetterThread";
+import FindInGmail from "../../../../../_components/letters/FindInGmail";
+import { letterTitle } from "../../../../../_components/letters/LetterHistory";
+import LetterView from "../../../../../_components/letters/LetterView";
+import LetterThread from "../../../../../_components/letters/LetterThread";
+import { MailingLetter } from "../../../../../_components/mailings/MailingLetter";
 import Page from "../../../../../_components/ui/Page";
-import { setAskStatus } from "../../../../../actions";
+import { setAskStatus } from "../../../../../_components/politicians/actions";
+import AskRow, { AskRows } from "../../../../../_components/politicians/AskRow";
+import { lettersCopy } from "../../../../../_components/letters/copy";
 
 type Params = { params: Promise<{ id: string; letter: string }> };
 
@@ -43,10 +45,23 @@ export default async function MailingLetterPage({ params }: Params) {
       kind="item"
       under="mailings"
       via={[{ href: `/staff/mailings/${letter.mailingId}`, label: letter.mailing }]}
-      here={staffCopy.letters.crumb}
+      here={lettersCopy.letters.crumb}
     >
-      <LetterView letter={letter} politician={politician} asks={asks} setStatus={setAskStatus}>
-        <LetterThread thread={found(thread)} link={<FindInGmail find={letter.gmail} />} />
+      <LetterView
+        letter={letter}
+        politician={politician}
+        asks={asks}
+        answer={(ask) => (
+          <AskRows>
+            <AskRow politician={politician} ask={ask} setStatus={setAskStatus} />
+          </AskRows>
+        )}
+      >
+        <LetterThread
+          thread={found(thread)}
+          link={<FindInGmail find={letter.gmail} />}
+          showLetter={(doc) => <MailingLetter doc={doc} />}
+        />
       </LetterView>
     </Page>
   );

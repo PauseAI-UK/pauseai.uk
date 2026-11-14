@@ -1,8 +1,8 @@
 import { gzipSync } from "node:zlib";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { query } from "@/lib/server/db";
-import { saveLetterReply } from "@/lib/server/outside-services/blobs";
+import { query } from "@/lib/server/db.server";
+import { saveLetterReply } from "@/lib/server/outside-services/blobs.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { GET } from "./route";
 

@@ -1,7 +1,7 @@
 import JsonLd from "@/components/layout/JsonLd";
 import { march, marchEventJsonLd } from "@/lib/content/march";
 import { pageMetadata } from "@/lib/metadata";
-import { getMarchGuests, getMarchSignupCount } from "@/lib/server/march-event";
+import { getMarchGuests, getMarchSignupCount } from "@/lib/events/march.server";
 import SignupCase from "./_components/SignupCase";
 import SignupDay from "./_components/SignupDay";
 import SignupDemand from "./_components/SignupDemand";

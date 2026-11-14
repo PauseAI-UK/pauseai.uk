@@ -1,0 +1,316 @@
+import "server-only";
+import { isMachineReply } from "@/lib/email-parsing/subjects";
+import { copy } from "@/lib/content/email-your-mp";
+import { now } from "@/lib/now";
+import { config } from "@/lib/server/config.server";
+import { query, transaction } from "@/lib/server/db.server";
+import { isBlocked } from "@/lib/email/email.server";
+import { isAutoResponder, type PostmarkProblem } from "@/lib/email/postmark-webhooks.server";
+import { send } from "@/lib/email/sending.server";
+import type { HandlingReason, ReplyHandling } from "./records.server";
+import { lettersDomain, nameLine, notifyDomain, type Attachment } from "@/lib/server/outside-services/postmark.server";
+import { gzipSync } from "node:zlib";
+import { messageIds } from "@/lib/email-parsing/mime.server";
+import { claimOneOffs, hasMessage } from "./replies.server";
+import { saveLetterReply } from "@/lib/server/outside-services/blobs.server";
+import { emailCopy } from "@/lib/email/copy";
+
+// Replies to letters, by Postmark's inbound webhook, and the automatic
+// replies its bounce webhook brings: each kept on its letter, and a
+// person's forwarded to the shared inbox and the sender.
+
+/**
+ * Adds an 'auto_reply' event to the letter an automatic reply that Postmark
+ * reported as a bounce answers, once per bounce. Returns whether it was one.
+ */
+export async function recordAutoResponder(payload: PostmarkProblem): Promise<boolean> {
+  if (!isAutoResponder(payload)) return false;
+  const handling: ReplyHandling[] = [{ outcome: "not_forwarded", reason: "bounce_address" }];
+  const details = { from: payload.Email ?? "", bounceId: payload.ID ?? null, handling };
+  await query(
+    `INSERT INTO letter_events (letter_id, status, details)
+     SELECT s.letter_id, 'auto_reply', $2 FROM email_sends s
+     WHERE s.message_id = $1 AND s.letter_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM letter_events e WHERE e.letter_id = s.letter_id AND e.status = 'auto_reply'
+                       AND e.details->>'bounceId' = $3)
+     LIMIT 1`,
+    [payload.MessageID ?? null, JSON.stringify(details), String(details.bounceId)],
+  );
+  return true;
+}
+
+type Address = { Email?: string; Name?: string };
+
+/** isMachineReply(), for an inbound email in Postmark's form. */
+export function isAutoReply(email: InboundEmail): boolean {
+  return isMachineReply(
+    (name) => email.Headers?.find((h) => h.Name?.toLowerCase() === name)?.Value,
+    email.Subject ?? "",
+  );
+}
+
+/**
+ * Adds a 'replied' event to the letter, or 'auto_reply' for one sent by a
+ * machine, once per message (Postmark tries again if forwarding fails). A
+ * person's reply from anyone but the sender, who may write back into the
+ * thread, marks the letter as replied to.
+ */
+async function recordReply(letter: { id: number; senderEmail: string }, email: InboundEmail): Promise<number> {
+  const from = email.FromFull?.Email ?? "";
+  const status = isAutoReply(email) ? "auto_reply" : "replied";
+  const details = {
+    from,
+    name: email.FromFull?.Name ?? "",
+    to: addresses(email.ToFull),
+    cc: addresses(email.CcFull),
+    replyTo: email.ReplyTo || undefined,
+    messageId: email.MessageID ?? null,
+    // What received it, as every email's event says (sentBy in email.server.ts).
+    backend: "postmark",
+  };
+  return transaction(async (db) => {
+    await query("SELECT 1 FROM letters WHERE id = $1 FOR UPDATE", [letter.id], db);
+    if (details.messageId) {
+      const [seen] = await query<{ id: number }>(
+        "SELECT id::int AS id FROM letter_events WHERE letter_id = $1 AND status IN ('replied', 'auto_reply') AND details->>'messageId' = $2",
+        [letter.id, details.messageId],
+        db,
+      );
+      if (seen) return seen.id;
+    }
+    const [event] = await query<{ id: number }>(
+      "INSERT INTO letter_events (letter_id, status, details) VALUES ($1, $2, $3) RETURNING id::int AS id",
+      [letter.id, status, JSON.stringify(details)],
+      db,
+    );
+    if (status === "replied" && from.toLowerCase() !== letter.senderEmail.toLowerCase()) {
+      await query("UPDATE letters SET replied_at = coalesce(replied_at, now()) WHERE id = $1", [letter.id], db);
+    }
+    return event.id;
+  });
+}
+
+/**
+ * Keeps a reply whole on its letter, as one read from Gmail is
+ * (letter_replies, and the message in Netlify Blobs), once: Postmark tries
+ * again if forwarding fails, and a copy read from a mailbox may be kept
+ * already. Its account is the letter's own address, and it has no Gmail IDs.
+ * Without the whole message, which Postmark sends only with RawEmailEnabled
+ * on, nothing is kept.
+ */
+async function keepWhole(
+  letter: { id: number; senderEmail: string; mailbox: string },
+  email: InboundEmail,
+): Promise<void> {
+  if (!email.RawEmail || !email.MessageID) return;
+  const header = email.Headers?.find((h) => h.Name?.toLowerCase() === "message-id")?.Value;
+  const rfc = messageIds(header)[0] ?? null;
+  if (await hasMessage(letter.id, rfc)) return;
+  const raw = Buffer.from(email.RawEmail, "utf8");
+  const key = `postmark/${email.MessageID}.eml.gz`;
+  await saveLetterReply(key, gzipSync(raw));
+  const from = (email.FromFull?.Email ?? "").toLowerCase();
+  await query(
+    `INSERT INTO letter_replies (letter_id, account, rfc_message_id, from_address, from_name, subject, at, from_us,
+       blob_key, size, from_supporter)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10) ON CONFLICT (blob_key) DO NOTHING`,
+    [
+      letter.id,
+      `${letter.mailbox}@${lettersDomain()}`.toLowerCase(),
+      rfc,
+      from,
+      email.FromFull?.Name ?? "",
+      email.Subject ?? "",
+      now(),
+      key,
+      raw.length,
+      from === letter.senderEmail.toLowerCase(),
+    ],
+  );
+  await claimOneOffs(letter.id);
+}
+
+/** The addresses of a list of them, as a line: "a@example.com, b@example.com"; none for an empty list. */
+function addresses(list: Address[] | undefined): string | undefined {
+  return (
+    list
+      ?.map((a) => a.Email)
+      .filter(Boolean)
+      .join(", ") || undefined
+  );
+}
+
+/** Adds to a reply's event how it was handled, replacing any from an earlier try. */
+async function noteHandling(eventId: number, handling: ReplyHandling[]): Promise<void> {
+  await query("UPDATE letter_events SET details = details || jsonb_build_object('handling', $2::jsonb) WHERE id = $1", [
+    eventId,
+    JSON.stringify(handling),
+  ]);
+}
+
+export type InboundEmail = {
+  MessageID?: string;
+  OriginalRecipient?: string;
+  FromFull?: Address;
+  ToFull?: Address[];
+  CcFull?: Address[];
+  BccFull?: Address[];
+  Subject?: string;
+  Date?: string;
+  Headers?: { Name?: string; Value?: string }[];
+  /** The Reply-To line, as it came. */
+  ReplyTo?: string;
+  TextBody?: string;
+  Attachments?: Attachment[];
+  /** The whole message, as it came, which the server sends with RawEmailEnabled on. */
+  RawEmail?: string;
+};
+
+/**
+ * The mailboxes an email may be a reply to: each of our addresses it was
+ * sent to, lowercased, the one Postmark delivered it to first. An older
+ * letter's address is reply+<hex>, and only the hex is kept.
+ */
+function letterMailboxes(email: InboundEmail): string[] {
+  const suffix = `@${lettersDomain()}`;
+  return [email.OriginalRecipient, ...[email.ToFull, email.CcFull, email.BccFull].flat().map((a) => a?.Email)]
+    .map((address) => address?.toLowerCase() ?? "")
+    .filter((address) => address.endsWith(suffix))
+    .map((address) => address.slice(0, -suffix.length).replace(/^reply\+/, ""));
+}
+
+/**
+ * Records a reply to a letter, and forwards it to the shared inbox and to the
+ * sender, unless they already have it (their address is in its To or Cc). The
+ * sender's own follow-up, sent to the MP and the letter's address from our
+ * forward's Reply-To, goes to the shared inbox only. The shared inbox's copy
+ * says when the sender wasn't sent one because they're copied in or their
+ * address is blocked. A person's reply is kept whole on the letter
+ * (keepWhole). Returns who it went to.
+ */
+export async function forwardReply(email: InboundEmail): Promise<string[]> {
+  const from = email.FromFull?.Email ?? "";
+  // Our own mail coming back round, such as a forwarded copy: never forward it again.
+  const ours = [lettersDomain(), notifyDomain()].some((domain) => from.toLowerCase().endsWith(`@${domain}`));
+  const mailboxes = letterMailboxes(email);
+  if (!mailboxes.length || ours) return [];
+
+  const [letter] = await query<{
+    id: number;
+    senderName: string;
+    senderEmail: string;
+    mpName: string;
+    mailbox: string;
+  }>(
+    `SELECT l.id::int AS id, f.name AS "senderName", f.email AS "senderEmail", p.name AS "mpName",
+       s.postmark_mailbox AS mailbox
+     FROM letters_from_supporters s JOIN letters l ON l.id = s.id JOIN form_entries f ON f.id = s.entry_id
+       JOIN notable_people p ON p.id = l.notable_person_id
+     WHERE s.postmark_mailbox = ANY($1) ORDER BY array_position($1, s.postmark_mailbox) LIMIT 1`,
+    [mailboxes],
+  );
+  if (!letter) return [];
+  const eventId = await recordReply(letter, email);
+  if (!isAutoReply(email)) await keepWhole(letter, email);
+
+  // Who it might go to, and why: the shared inbox, then the sender, each
+  // left out if they already have it, and the sender if they wrote it.
+  const fromSender = from.toLowerCase() === letter.senderEmail.toLowerCase();
+  const copied = [...(email.ToFull ?? []), ...(email.CcFull ?? [])].map((a) => a.Email?.toLowerCase());
+  const plan = (
+    [
+      [config.policyInbox, "policy_inbox"],
+      [letter.senderEmail, "sender"],
+    ] as const
+  )
+    .filter((entry): entry is [string, "policy_inbox" | "sender"] => !!entry[0])
+    .map(([to, why]): { to: string; reason: HandlingReason; forward: boolean } =>
+      why === "sender" && fromSender
+        ? { to, reason: "own_follow_up", forward: false }
+        : copied.includes(to.toLowerCase())
+          ? { to, reason: "copied", forward: false }
+          : { to, reason: why, forward: true },
+    );
+  const handling: ReplyHandling[] = [];
+
+  // The letter's own Message-ID, so the forward joins the letter's thread for anyone
+  // who has the letter: the sender on Cc, the shared inbox on Bcc.
+  const [sentLetter] = await query<{ messageId: string }>(
+    `SELECT message_id AS "messageId" FROM email_sends
+     WHERE letter_id = $1 AND purpose = 'letter' AND message_id IS NOT NULL ORDER BY at DESC LIMIT 1`,
+    [letter.id],
+  );
+  const threading = sentLetter
+    ? ["In-Reply-To", "References"].map((Name) => ({ Name, Value: `<${sentLetter.messageId}@mtasv.net>` }))
+    : undefined;
+
+  const named = (list: Address[] | undefined) =>
+    list
+      ?.filter((a) => a.Email)
+      .map((a) => (a.Name ? `${a.Name} <${a.Email}>` : a.Email))
+      .join(", ");
+  const original = [
+    `From: ${email.FromFull?.Name ?? ""} <${from}>`,
+    ...[
+      ["To", named(email.ToFull)],
+      ["Cc", named(email.CcFull)],
+    ].flatMap(([field, list]) => (list ? [`${field}: ${list}`] : [])),
+    `Date: ${email.Date ?? ""}`,
+    `Subject: ${email.Subject ?? ""}`,
+  ].join("\n");
+  // Why the sender won't get a copy, for the shared inbox's: their own follow-up says so already.
+  const senderNote = fromSender
+    ? undefined
+    : copied.includes(letter.senderEmail.toLowerCase())
+      ? copy.forwardedReply.senderCopied(letter.senderName)
+      : (await isBlocked(letter.senderEmail))
+        ? copy.forwardedReply.senderBlocked(letter.senderName)
+        : undefined;
+  const sentTo: string[] = [];
+  for (const { to, reason, forward } of plan) {
+    if (!forward) {
+      handling.push({ outcome: "not_forwarded", to, reason });
+      continue;
+    }
+    const result = await send(
+      {
+        From: `PauseAI UK <noreply@${notifyDomain()}>`,
+        To: nameLine(to === letter.senderEmail ? letter.senderName : emailCopy.inboxNames.policy, to),
+        // Answering it reaches whoever wrote, and the letter's address, so it's kept with the letter: each
+        // named, whoever wrote as their email named them, the letter's address as the letter's From did.
+        ReplyTo: [
+          from && (email.FromFull?.Name ? nameLine(email.FromFull.Name, from) : from),
+          nameLine(letter.senderName, `${letter.mailbox}@${lettersDomain()}`),
+        ]
+          .filter(Boolean)
+          .join(", "),
+        Subject: email.Subject ?? "",
+        TextBody: `${
+          fromSender
+            ? copy.forwardedReply.followUp(letter.senderName, letter.mpName)
+            : to === letter.senderEmail
+              ? copy.forwardedReply.toSender(letter.mpName)
+              : [copy.forwardedReply.toInbox(letter.mpName, letter.senderName), senderNote].filter(Boolean).join("\n\n")
+        }\n\n${original}\n\n${email.TextBody ?? ""}`,
+        Headers: threading,
+        Attachments: email.Attachments?.map(({ Name, Content, ContentType }) => ({ Name, Content, ContentType })),
+        Tag: "forwarded-reply",
+      },
+      "forwarded-reply",
+      letter.id,
+    );
+    if (result.sent) sentTo.push(to);
+    handling.push(
+      result.sent
+        ? { outcome: "forwarded", to, reason, at: now().toISOString() }
+        : { outcome: "failed", to, reason: result.reason === "blocked" ? "blocked" : "refused" },
+    );
+    // Thrown, so Postmark tries again. A blocked address is skipped: it would never work.
+    if (!result.sent && result.reason === "failed") {
+      await noteHandling(eventId, handling);
+      throw new Error(`Couldn't forward a reply to letter ${letter.id}`);
+    }
+  }
+  await noteHandling(eventId, handling);
+  return sentTo;
+}

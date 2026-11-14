@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// The docs name code by its path (`lib/server/db.ts`) and cite each other by
+// The docs name code by its path (`lib/server/db.server.ts`) and cite each other by
 // heading (`docs/testing.md`, "Coverage"). A rename leaves either pointing at
 // nothing, and nothing else would say so. This reads every Markdown file and
 // fails on a path in backticks that isn't in the repo, and on a cited
@@ -169,8 +169,8 @@ describe("the docs' references", () => {
 
   it("takes a span in backticks for a path when it starts at the top of the repo", () => {
     const markdown = [
-      "The pool is in `lib/server/db.ts`, and `lib/server/` holds the rest.",
-      "See `lib/server/db.ts:12` and `components/ui/Table`.",
+      "The pool is in `lib/server/db.server.ts`, and `lib/server/` holds the rest.",
+      "See `lib/server/db.server.ts:12` and `components/ui/Table`.",
       "Not paths: `npm run gate`, `/staff/errors`, `tmp/gate/test.log`, `node_modules/.vitest-cache`, `db.ts`.",
       "Many paths: `lib/content/<feature>.ts`, `netlify/functions/*/*.ts`, `app/**/*.{ts,tsx}`, `lib/…`.",
       "```bash",
@@ -178,9 +178,9 @@ describe("the docs' references", () => {
       "```",
     ].join("\n");
     expect(pathsNamed(markdown, ["lib", "components"])).toEqual([
-      { path: "lib/server/db.ts", line: 1 },
+      { path: "lib/server/db.server.ts", line: 1 },
       { path: "lib/server", line: 1 },
-      { path: "lib/server/db.ts", line: 2 },
+      { path: "lib/server/db.server.ts", line: 2 },
       { path: "components/ui/Table", line: 2 },
     ]);
   });

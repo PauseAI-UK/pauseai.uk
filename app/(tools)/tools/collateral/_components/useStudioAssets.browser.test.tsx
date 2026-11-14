@@ -10,8 +10,8 @@ const { loads } = vi.hoisted(() => ({
     image: undefined as undefined | (() => Promise<Drawable>),
   },
 }));
-vi.mock("@/lib/collateral/render", async (importActual) => {
-  const actual = await importActual<typeof import("@/lib/collateral/render")>();
+vi.mock("@/lib/collateral/render.client", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/collateral/render.client")>();
   return {
     ...actual,
     loadFonts: () => (loads.fonts ? loads.fonts() : actual.loadFonts()),

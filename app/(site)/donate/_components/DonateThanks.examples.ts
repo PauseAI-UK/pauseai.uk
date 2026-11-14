@@ -1,4 +1,4 @@
-import type { ThankedDonor } from "@/lib/server/outside-services/stripe";
+import type { ThankedDonor } from "@/lib/server/outside-services/stripe.server";
 
 /** Six made-up donors, newest first, for the donate page's tests and the gallery. */
 export const exampleDonors: ThankedDonor[] = [

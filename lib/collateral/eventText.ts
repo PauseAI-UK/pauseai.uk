@@ -1,4 +1,4 @@
-import type { LumaEvent } from "@/lib/events";
+import type { LumaEvent } from "@/lib/site-events";
 
 /** An upcoming event from our Luma calendar, trimmed to what the collateral tools need. Plain data for the client. */
 export interface CalendarEvent {

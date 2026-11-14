@@ -8,7 +8,7 @@ import ErrorReporter from "@/components/layout/ErrorReporter";
 import FooterYear from "@/components/layout/FooterYear";
 import JsonLd from "@/components/layout/JsonLd";
 import TagManagerNoscript from "@/components/layout/TagManagerNoscript";
-import { analyticsEnabled } from "@/lib/analytics";
+import { analyticsEnabled } from "@/lib/analytics.server";
 import { site } from "@/lib/content/site";
 
 const organizationJsonLd = {
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // Only the live site has analytics (lib/analytics.ts).
+  // Only the live site has analytics (lib/analytics.server.ts).
   const analytics = analyticsEnabled();
   return (
     <html

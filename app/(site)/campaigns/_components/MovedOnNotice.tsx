@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Campaign } from "@/lib/content/email-your-mp";
 import { campaignBySlug } from "@/lib/email-your-mp";
-import { readLookup } from "./draft";
+import { readLookup } from "./draft.client";
 import { Notice } from "./FormParts";
 import styles from "./MovedOnNotice.module.css";
 

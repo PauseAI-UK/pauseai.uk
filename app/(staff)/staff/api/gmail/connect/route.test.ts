@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { createSession } from "@/lib/server/staff-auth";
+import { createSession } from "@/lib/accounts/auth.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { GET } from "./route";

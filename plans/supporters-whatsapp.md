@@ -26,7 +26,7 @@ three days a broadcast may send for; and "Newsletter or events only".
   our march form, live since 28 October, whose box allows calls and
   texts.
 - `contact_permission()` answers for numbers, and `TOPIC_WAYS` in
-  `lib/contact-permissions.ts` says which ways each topic allows: calls,
+  `lib/supporters/contact-permissions.ts` says which ways each topic allows: calls,
   texts or both.
 - `opt_outs` takes numbers from Luma, staff and the preferences page,
   which also shows CiviCRM's "Do not SMS" and "Do not phone" on a
@@ -34,7 +34,7 @@ three days a broadcast may send for; and "Newsletter or events only".
 - Broadcasts by text can be written, and a fixture build sends them by a
   fake backend; on the live site nothing sends them. The send loop, and
   the checks just before each copy goes, are email's
-  (`lib/server/broadcast-sending.ts`); texts skip the checks.
+  (`lib/broadcasts/sending.server.ts`); texts skip the checks.
 - The site doesn't send texts. Our giffgaff number has the WhatsApp Business
   app on Reuben's phone, but its broadcast lists only reach people who
   have saved the number, so we need the API.
@@ -148,7 +148,7 @@ and event messages.
 ### Steps
 
 0. Built: the sending shared between channels
-   (`lib/server/broadcast-sending.ts`): one send loop, and one check
+   (`lib/broadcasts/sending.server.ts`): one send loop, and one check
    just before each copy goes (our own opt-outs, then CiviCRM's
    `checkSuppression`), each channel a sender giving how it checks,
    builds and sends a message, and its pace. Texts wait for a fresh
@@ -288,7 +288,7 @@ real number.
 
 The account ID is on the App Dashboard's API Setup panel, and the app
 secret is in the app's basic settings. Each joins `.env.example` and
-`lib/server/config.ts` when the backend reads it.
+`lib/server/config.server.ts` when the backend reads it.
 
 The rest comes from those:
 
@@ -338,7 +338,7 @@ goes by WhatsApp" ends on the text as received, the reply flow on the
 answer as received, and "WhatsApp approves new words" shows what went
 for approval.
 
-1. The WhatsApp backend in `lib/server/outside-services/whatsapp.ts`,
+1. The WhatsApp backend in `lib/server/outside-services/whatsapp.server.ts`,
    with a fake for tests. It sends by the Cloud API's `/messages` for
    now. Marketing messages are to go through the Marketing Messages API
    (`/marketing_messages`) once its terms are signed ("Applying"), as
@@ -360,7 +360,7 @@ for approval.
    Meanwhile the words are locked. To change them, staff withdraw
    them. Sending them and Meta's decision are each emailed to whoever
    sent them and the notification inbox, with the words
-   (`reviewTemplate` in `lib/server/broadcast-drafts.ts`, which this
+   (`reviewTemplate` in `lib/broadcasts/drafts.server.ts`, which this
    step's webhook and hourly check call). Meta's reasons are codes, so
    the page says the code's meaning in plain words, and what to do when
    Meta recommends something.

@@ -1,0 +1,289 @@
+import "server-only";
+import { config } from "@/lib/server/config.server";
+import { tallySources, type GuestEntry, type SourceCounts } from "@/lib/trackers";
+import { LUMA_PAGE_SIZE, lumaList, type LumaPage } from "./luma-api.server";
+import { outsideFetch } from "./outside-fetch.server";
+import { problem } from "../problems.server";
+import { serverCopy } from "@/lib/server/copy";
+
+// An event's guests, through Luma's official API: the list, for the flyering
+// trackers' tallies and for the import, which keeps each guest; how many are
+// going, for the march's count; and adding one, for the march's sign-up.
+
+/** A guest as Luma lists them, as far as we read them: bare, or wrapped as { guest }. */
+type ApiGuest = {
+  id?: string;
+  api_id?: string;
+  user_id?: string;
+  user_api_id?: string;
+  user_email?: string;
+  email?: string;
+  user_name?: string | null;
+  name?: string | null;
+  approval_status?: string;
+  registered_at?: string | null;
+  phone_number?: string | null;
+  utm_source?: string | null;
+  registration_answers?: { label?: string; answer?: unknown; value?: unknown }[] | null;
+};
+type ApiGuestEntry = (ApiGuest & { guest?: ApiGuest }) | null;
+
+/**
+ * One page of an event's guests, as Luma lists them, latest registration
+ * first, cached for `revalidate` seconds if given. Throws as lumaList does.
+ *
+ * Luma lists everyone invited to the event too, with no registration time,
+ * and there can be thousands: every contact on the calendar once an event is
+ * announced to them. Nothing here wants them, so they're asked for last, and
+ * a page that ends with one is the last page read.
+ */
+async function guestsPage(eventId: string, cursor?: string, revalidate?: number): Promise<LumaPage<ApiGuest>> {
+  const params = new URLSearchParams({
+    event_id: eventId,
+    pagination_limit: String(LUMA_PAGE_SIZE),
+    sort_column: "registered_at",
+    sort_direction: "desc nulls last",
+  });
+  if (cursor) params.set("pagination_cursor", cursor);
+  const page = await lumaList<ApiGuestEntry>("/v1/events/guests/list", params, revalidate);
+  // Entries come as { api_id, guest } or as bare guests, depending on version.
+  const entries = page.entries.flatMap((entry) => (entry ? [entry.guest ?? entry] : []));
+  const last = entries.at(-1);
+  return { ...page, entries, nextCursor: last && !last.registered_at ? undefined : page.nextCursor };
+}
+
+/** How long Next keeps a page of guests for the trackers before asking Luma again, in seconds. */
+const TRACKER_REVALIDATE = 60;
+
+/**
+ * Pages through Luma's authenticated guest list for an event, each page
+ * cached for a minute, so however many open a tracker, Luma is asked about
+ * once a minute. Returns null when LUMA_API_KEY is missing or Luma errors,
+ * so the page can say so rather than show a misleading zero.
+ */
+export async function getSourceCounts(
+  eventApiId: string,
+  tags: readonly string[],
+  since?: Date,
+  until?: Date,
+): Promise<SourceCounts | null> {
+  const entries: GuestEntry[] = [];
+  let cursor: string | undefined;
+  try {
+    do {
+      const page = await guestsPage(eventApiId, cursor, TRACKER_REVALIDATE);
+      for (const guest of page.entries) entries.push({ guest });
+      cursor = page.nextCursor;
+    } while (cursor);
+  } catch (error) {
+    problem(serverCopy.problems.logs.lumaGuestsDown, error);
+    return null;
+  }
+  return tallySources(entries, tags, since, until);
+}
+
+/**
+ * A flyering race's two windows over the same guest list (Next dedupes the
+ * identical Luma fetches): the race itself, and everything after it.
+ */
+export function getRaceCounts(
+  eventApiId: string,
+  tags: readonly string[],
+  open: Date,
+  close: Date,
+): Promise<[SourceCounts | null, SourceCounts | null]> {
+  return Promise.all([getSourceCounts(eventApiId, tags, open, close), getSourceCounts(eventApiId, tags, close)]);
+}
+
+/** How long Next keeps an event's guest count before asking Luma again, in seconds. */
+const GUEST_COUNT_REVALIDATE = 60;
+
+/**
+ * How many guests are going to an event: those Luma has approved, as its
+ * event page counts them, from the event's details
+ * (https://docs.luma.com/reference/get_v1-events-get), which give the counts
+ * only for an event our calendar manages. Cached for a minute, so however
+ * many visitors ask, Luma is asked about once a minute. Null when
+ * LUMA_API_KEY is missing, Luma errs or gives no count, so the page can show
+ * nothing rather than a misleading zero.
+ */
+export async function getEventGuestCount(eventId: string): Promise<number | null> {
+  const key = config.lumaApiKey;
+  if (!key) return null;
+  try {
+    const res = await outsideFetch(
+      `https://public-api.luma.com/v1/events/get?${new URLSearchParams({ event_id: eventId })}`,
+      {
+        headers: { "x-luma-api-key": key, accept: "application/json" },
+        next: { revalidate: GUEST_COUNT_REVALIDATE },
+      },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { guest_counts?: { approved?: { guests?: unknown } } };
+    const going = data.guest_counts?.approved?.guests;
+    return typeof going === "number" ? going : null;
+  } catch (error) {
+    problem(serverCopy.problems.logs.lumaGuestsDown, error);
+    return null;
+  }
+}
+
+/** A guest as the import keeps them. */
+export type EventGuest = {
+  id: string;
+  userId: string;
+  email: string;
+  name: string;
+  /** approved, pending_approval, waitlist, declined, or invited (never registered). */
+  approvalStatus: string;
+  registeredAt: string | null;
+  phone: string | null;
+  /** Their answer to a registration question whose label contains "postcode", as typed. */
+  postcode: string | null;
+  utmSource: string | null;
+};
+
+/** The guest's postcode answer, if the event asked for one and they gave it. */
+function postcodeAnswer(guest: ApiGuest): string | null {
+  for (const answer of guest.registration_answers ?? []) {
+    if (!/postcode/i.test(answer.label ?? "")) continue;
+    const given = typeof answer.answer === "string" ? answer.answer : answer.value;
+    if (typeof given === "string" && given.trim()) return given.trim();
+  }
+  return null;
+}
+
+/** One page of an event's guests, for the import. Throws as lumaList does. */
+export async function listEventGuests(eventId: string, cursor?: string): Promise<LumaPage<EventGuest>> {
+  const page = await guestsPage(eventId, cursor);
+  return {
+    ...page,
+    entries: page.entries.flatMap((guest) => {
+      const id = guest.id ?? guest.api_id;
+      const userId = guest.user_id ?? guest.user_api_id;
+      const email = guest.user_email ?? guest.email;
+      if (!id || !userId || !email) return [];
+      return [
+        {
+          id,
+          userId,
+          email,
+          name: guest.user_name ?? guest.name ?? "",
+          approvalStatus: guest.approval_status ?? "",
+          registeredAt: guest.registered_at ?? null,
+          phone: guest.phone_number || null,
+          postcode: postcodeAnswer(guest),
+          utmSource: guest.utm_source || null,
+        },
+      ];
+    }),
+  };
+}
+
+/** How long adding a guest may take before the sign-up gives up and says so. */
+const ADD_GUEST_TIMEOUT_MS = 5000;
+
+/**
+ * What adding a guest came to. "added" means Luma took the request: it adds
+ * guests in the background, so it doesn't prove the guest is there yet.
+ * "skipped" is Luma declining this guest (unsubscribed from the calendar,
+ * removed or blocked). "not-configured" is LUMA_API_KEY not being set.
+ */
+export type LumaAddGuestResult =
+  { status: "added" } | { status: "skipped" } | { status: "not-configured" } | { status: "failed"; reason: string };
+
+/**
+ * Registers one guest for an event, through Luma's add-guests call
+ * (https://docs.luma.com/reference/post_v1-events-guests-add). Luma then
+ * emails them its confirmation. Never throws: every outcome, a missing key,
+ * an error, a timeout, comes back as a result, for the caller to tell the
+ * visitor.
+ */
+export async function addLumaGuest(
+  eventId: string,
+  guest: { name: string; email: string },
+  timeoutMs = ADD_GUEST_TIMEOUT_MS,
+): Promise<LumaAddGuestResult> {
+  const key = config.lumaApiKey;
+  if (!key) return { status: "not-configured" };
+
+  try {
+    const res = await outsideFetch("https://public-api.luma.com/v1/events/guests/add", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json", "x-luma-api-key": key },
+      body: JSON.stringify({ event_id: eventId, guests: [{ email: guest.email, name: guest.name }] }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) {
+      // The start of the body says why: a bad key, an unknown event, a rate limit.
+      const body = (await res.text()).slice(0, 300);
+      const reason = `Luma responded ${res.status}${body ? `: ${body}` : ""}`;
+      problem(serverCopy.problems.logs.lumaRefusedGuest, reason);
+      return { status: "failed", reason };
+    }
+    const data = (await res.json()) as { skipped?: { email?: unknown }[] };
+    const email = guest.email.toLowerCase();
+    const skipped = (data.skipped ?? []).some((s) => typeof s.email === "string" && s.email.toLowerCase() === email);
+    return skipped ? { status: "skipped" } : { status: "added" };
+  } catch (error) {
+    problem(serverCopy.problems.logs.lumaRefusedGuest, error);
+    const err = error as Error;
+    if (err.name === "TimeoutError") return { status: "failed", reason: `Luma did not respond within ${timeoutMs}ms` };
+    return { status: "failed", reason: `Request to Luma failed: ${err.message}` };
+  }
+}
+
+/** How many guests go in one call to Luma, and how long the call may take. */
+const GUESTS_AT_ONCE = 100;
+const ADD_GUESTS_TIMEOUT_MS = 15000;
+
+/**
+ * Registers guests for an event, a batch at a time, with what became of each
+ * by their email, lower case. Luma emails each its confirmation. A batch that
+ * fails fails for all in it, the others going ahead. Never throws, as
+ * addLumaGuest.
+ */
+export async function addLumaGuests(
+  eventId: string,
+  guests: { name: string; email: string }[],
+): Promise<Map<string, LumaAddGuestResult["status"]>> {
+  const key = config.lumaApiKey;
+  const statuses = new Map<string, LumaAddGuestResult["status"]>();
+  for (let i = 0; i < guests.length; i += GUESTS_AT_ONCE) {
+    const batch = guests.slice(i, i + GUESTS_AT_ONCE);
+    const skipped = key ? await addBatch(eventId, batch, key) : "not-configured";
+    for (const { email } of batch) {
+      const lower = email.toLowerCase();
+      statuses.set(lower, typeof skipped === "string" ? skipped : skipped.has(lower) ? "skipped" : "added");
+    }
+  }
+  return statuses;
+}
+
+/** One call to add guests: the emails Luma skipped, lower case, or that it failed. */
+async function addBatch(
+  eventId: string,
+  guests: { name: string; email: string }[],
+  key: string,
+): Promise<Set<string> | "failed"> {
+  try {
+    const res = await outsideFetch("https://public-api.luma.com/v1/events/guests/add", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json", "x-luma-api-key": key },
+      body: JSON.stringify({ event_id: eventId, guests: guests.map(({ email, name }) => ({ email, name })) }),
+      signal: AbortSignal.timeout(ADD_GUESTS_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      problem(
+        serverCopy.problems.logs.lumaRefusedGuest,
+        `Luma responded ${res.status}: ${(await res.text()).slice(0, 300)}`,
+      );
+      return "failed";
+    }
+    const data = (await res.json()) as { skipped?: { email?: unknown }[] };
+    return new Set((data.skipped ?? []).flatMap((s) => (typeof s.email === "string" ? [s.email.toLowerCase()] : [])));
+  } catch (error) {
+    problem(serverCopy.problems.logs.lumaRefusedGuest, error);
+    return "failed";
+  }
+}

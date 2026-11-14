@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, changeFilter } from "./list-steps";
 import { holdNextPage, settled } from "./loading-steps";
@@ -7,13 +7,14 @@ import { logIn } from "./login-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
 import type { Section } from "./report/frames";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 export const section: Section = { name: "Audit log", part: "Staff pages", order: 70 };
 
 // The audit log's search, filters and sorting, on a few entries of their own.
 
-const copy = staffCopy.changes;
-const filters = staffCopy.filters;
+const copy = oversightCopy.changes;
+const filters = staffVocabulary.filters;
 
 const JO = "jo.example@pauseai.uk";
 const SAM = "sam.example@pauseai.uk";

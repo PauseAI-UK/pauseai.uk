@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { getSignupUpload } from "@/lib/server/signup-uploads";
-import { SIGNUP_UPLOADS_PATH } from "@/lib/signup-upload";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { getSignupUpload } from "@/lib/supporters/signup-uploads.server";
+import { SIGNUP_UPLOADS_PATH } from "@/lib/supporters/signup-csv";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { supporterId } from "@/lib/staff-search";
-import SignupUploadResult, { SignupUploadHead } from "../../../../../_components/SignupUploadResult";
+import SignupUploadResult, { SignupUploadHead } from "../../../../../_components/supporters/SignupUploadResult";
 import Page from "../../../../../_components/ui/Page";
+import { supportersCopy } from "../../../../../_components/supporters/copy";
 
-const copy = staffCopy.signupUpload.result;
+const copy = supportersCopy.signupUpload.result;
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -29,7 +29,7 @@ export default async function SignupUploadResultPage(props: Params) {
     <Page
       kind="item"
       under="signupUpload"
-      via={[{ href: SIGNUP_UPLOADS_PATH, label: staffCopy.signupUpload.uploads.title }]}
+      via={[{ href: SIGNUP_UPLOADS_PATH, label: supportersCopy.signupUpload.uploads.title }]}
       here={upload.filename}
     >
       <SignupUploadHead upload={upload} />

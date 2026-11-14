@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { addAttachment, createDraft } from "@/lib/server/mailing-drafts";
-import { createSession } from "@/lib/server/staff-auth";
+import { addAttachment, createDraft } from "@/lib/mailings/drafts.server";
+import { createSession } from "@/lib/accounts/auth.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import { GET } from "./route";

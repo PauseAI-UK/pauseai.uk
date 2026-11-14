@@ -1,7 +1,7 @@
 // Canned responses for the outside services the site calls. One table, used
 // by both:
 //
-// - lib/server/outside-services/outside-fetch.ts when DATA_FIXTURES=1, so a Playwright run renders
+// - lib/server/outside-services/outside-fetch.server.ts when DATA_FIXTURES=1, so a Playwright run renders
 //   every page from this data instead of the live APIs;
 // - tests/fixtures/msw.ts, so Vitest tests get the same responses over a
 //   real fetch.
@@ -139,7 +139,7 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
   const failing = failingResponse(hostname, scope);
   if (failing) return failing;
   if (hostname === "public-api.luma.com" && pathname === "/v1/calendars/events/list") {
-    // lib/server/outside-services/luma-calendar.ts asks for past events with
+    // lib/server/outside-services/luma-calendar.server.ts asks for past events with
     // "before", upcoming with "after"; the import asks for every event, and
     // gets both, and a private one it must leave out.
     if (searchParams.has("before")) return json(lumaPast);
@@ -396,7 +396,7 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
 const SENT_GMAIL = ((globalThis as { fixtureSentGmail?: Map<string, string> }).fixtureSentGmail ??= new Map());
 
 // Google's OAuth and Gmail, for any account. A token names its account
-// (lib/server/outside-services/gmail.ts makes the code "fixture:<account>"),
+// (lib/server/outside-services/gmail.server.ts makes the code "fixture:<account>"),
 // so the profile says whose it is. A mailbox has no messages, but joseph@'s
 // and policy@'s (policy-mailbox.ts): the tests that read one give their own.
 function googleResponse(
@@ -436,7 +436,7 @@ function googleResponse(
     return json({ sendAs: [{ sendAsEmail: account, displayName: name.join(" "), isPrimary: true }] });
   }
   // The same email gets the same IDs every run, as Postmark's MessageID: from what it says, not the UUIDs
-  // each run makes afresh, its MIME boundaries and Message-IDs, and those it answers (lib/server/mime.ts).
+  // each run makes afresh, its MIME boundaries and Message-IDs, and those it answers (lib/server/mime.server.ts).
   if (pathname.endsWith("/messages/send")) {
     const sending = JSON.parse(String(init!.body)) as { raw: string; threadId?: string };
     const raw = Buffer.from(sending.raw, "base64url").toString();

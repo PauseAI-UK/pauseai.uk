@@ -66,7 +66,7 @@ the tag is lost, and the visit counts as untagged.
 ## The sign-up's events
 
 The sign-up sends two events straight to Google Analytics through gtag
-(`app/(march)/protests/march-against-ai-extinction-nov-26/_components/analytics.ts`).
+(`app/(march)/protests/march-against-ai-extinction-nov-26/_components/analytics.client.ts`).
 GA gets page views the same way, set up by `gtag("config", "G-DLLRWZCYD7")`
 in `components/layout/CookieConsent.tsx`. The events:
 

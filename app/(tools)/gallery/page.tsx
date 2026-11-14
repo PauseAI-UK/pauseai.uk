@@ -1,6 +1,6 @@
 import { pageMetadata } from "@/lib/metadata";
 import GalleryIndex from "./_components/GalleryIndex";
-import { requireGallery } from "./_components/enabled";
+import { requireGallery } from "./_components/enabled.server";
 import { GROUPS } from "./_examples";
 
 // Every component and its variants on fixture data, a page per group, for the

@@ -15,7 +15,7 @@ import { staffPageOf } from "@/lib/staff-sections";
 // doesn't count.
 //
 // Components (_components/) and the layout only render what a page hands
-// them, so they're not entry points. The login page and the two login
+// them, so they're not entry points, but a "use server" file among them is. The login page and the two login
 // routes (asking for a link, and where it goes) are how staff get a session,
 // so they can't require one.
 const ROOT = "app/(staff)";
@@ -30,15 +30,23 @@ const OPEN = new Set([
 function files(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name.startsWith("_") ? [] : files(path);
+    if (entry.isDirectory()) return files(path);
     return /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name) ? [path] : [];
   });
 }
 
+/**
+ * The pages and route handlers, outside private folders (_components/),
+ * which Next never routes; and every "use server" file, wherever it is, as
+ * a feature's Server Actions are in its folder of components.
+ */
 function entryPoints(root: string) {
   return files(root)
     .map((path) => ({ name: relative(root, path).split("\\").join("/"), source: readFileSync(path, "utf8") }))
-    .filter(({ name, source }) => /(^|\/)(page|route)\.tsx?$/.test(name) || /^\s*["']use server["']/m.test(source));
+    .filter(
+      ({ name, source }) =>
+        /^(?!(.*\/)?_)(.*\/)?(page|route)\.tsx?$/.test(name) || /^\s*["']use server["']/m.test(source),
+    );
 }
 
 function isExported(node: ts.Node): boolean {
@@ -180,11 +188,13 @@ describe("staff auth", () => {
         "staff/api/login/route.ts": "export async function POST() {}",
         "staff/api/callback/route.ts": "export async function GET() {}",
         "staff/_components/Table.tsx": "export function Table() {}",
+        "staff/_components/page.tsx": "export default function NotAPage() {}",
+        "staff/_components/events/actions.ts": '"use server";\nexport async function save() { await requireStaff(); }',
         "staff/page.test.tsx": "export function test() {}",
         "layout.tsx": "export default function Layout() {}",
       });
       expect(unprotected(root)).toEqual([]);
-      expect(entryPoints(root)).toHaveLength(6);
+      expect(entryPoints(root)).toHaveLength(7);
     });
 
     it("finds each exported function that doesn't", () => {
@@ -203,12 +213,15 @@ describe("staff auth", () => {
         // One of two actions forgets.
         "staff/more.ts":
           "'use server'\nexport async function ok() { await requireStaff(); }\nexport async function f() {}",
+        // A feature's actions, beside its forms.
+        "staff/_components/events/actions.ts": "'use server'\nexport async function save() {}",
         "staff/z/page.tsx": "async function Page() {}\nexport default Page;",
         "staff/w/page.tsx": "async function Page() {}\nexport { Page as default };",
         "staff/v/page.tsx": "export default async function () {}",
         "staff/u/page.tsx": "export declare function Page(): void;",
       });
       expect(unprotected(root).sort()).toEqual([
+        "staff/_components/events/actions.ts: save doesn't call requireStaff() first",
         "staff/api/y/route.ts: DELETE doesn't call requireStaff() first",
         "staff/api/y/route.ts: POST doesn't call requireStaff() first",
         "staff/api/y/route.ts: PUT doesn't call requireStaff() first",

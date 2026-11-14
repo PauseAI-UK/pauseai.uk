@@ -2,38 +2,49 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { featureLibFolders } from "../../eslint.config.mjs";
 
 // An error that's caught is rethrown or reported with problem()
-// (lib/server/problems.ts), so that carrying on past it leaves a record on
+// (lib/server/problems.server.ts), so that carrying on past it leaves a record on
 // the run, or at least in the log. This fails on any catch block, or
 // function passed to .catch(), that does neither, or has a way out (break,
 // continue, return) ahead of its report, as an early exit for one kind of
-// error skips it; in the code where jobs and requests run: lib/server, app/api
-// and netlify/functions. A named handler
+// error skips it; in the code where jobs and requests run: lib/server, each
+// feature's folder of logic, app/api and netlify/functions. A named handler
 // passed to .catch() is read too, so one that rethrows all but one error
 // passes. The exceptions below are the few places that catch to answer a
 // question ("is there a request?") rather than to carry on past a failure.
 
 const ROOT = join(__dirname, "..", "..");
-const DIRS = ["lib/server", "app/api", "netlify/functions"];
+const DIRS = ["lib/server", ...featureLibFolders(), "app/api", "netlify/functions"];
 
 /** The catches that aren't losing anything, as "file  function", with why. */
 const EXCEPTIONS = new Map([
   // Asking Next for the request's cookies throws outside a request: the catch is the question.
-  ["lib/server/flow-database.ts  flowDatabase", "outside a request there's no cookie, and nothing to report"],
+  ["lib/server/flow-database.server.ts  flowDatabase", "outside a request there's no cookie, and nothing to report"],
   // A development-only warning about migrations: the query after it reports the database being down.
-  ["lib/server/db.ts  warnIfBehind", "the query that follows reports the database being unreachable"],
+  ["lib/server/db.server.ts  warnIfBehind", "the query that follows reports the database being unreachable"],
   // "Not JSON" is an answer, not a failure: the one place that swallows the parse error.
-  ["lib/server/json.ts  parseJsonIfAny", "a body that isn't JSON is an answer the caller asked for"],
+  ["lib/server/json.server.ts  parseJsonIfAny", "a body that isn't JSON is an answer the caller asked for"],
   // The tests' reader of a fixture build's outbox: one not made yet holds no emails.
   ["lib/server/fixtures/outbox.ts  readOutbox", "an outbox that isn't there yet has no emails in it"],
   ["lib/server/fixtures/whatsapp-outbox.ts  readTexts", "an outbox that isn't there yet has no texts in it"],
   // Asking Next to wait for work after the response throws outside a request: the work is already going.
-  ["lib/server/errors-seen.ts  heldOpen", "outside a request there's nothing to hold open, and the work goes on"],
+  [
+    "lib/oversight/errors-seen.server.ts  heldOpen",
+    "outside a request there's nothing to hold open, and the work goes on",
+  ],
   // Gmail's history of a mailbox expires: the read searches instead, and its run says it restarted.
-  ["lib/server/outside-services/gmail.ts  gmailHistory", "history gone is an answer: the read searches, and says so"],
+  [
+    "lib/server/outside-services/gmail.server.ts  gmailHistory",
+    "history gone is an answer: the read searches, and says so",
+  ],
   // Postmark refusing a suppressed address is kept as that address blocked, which staff see.
-  ["lib/server/email.ts  send", "a suppressed address is recorded as blocked, its own report"],
+  ["lib/email/email.server.ts  sendWith", "a suppressed address is recorded as blocked, its own report"],
+  // A file that isn't UTF-8 is read as Windows-1252, as spreadsheets save it: the catch is the question.
+  ["lib/supporters/signup-csv.ts  signupFileText", "a file that isn't UTF-8 is an answer: it's read as Windows-1252"],
+  // What's typed as a link that the URL parser refuses is no link: the catch is the question.
+  ["lib/letters/format.ts  linkHref", "text that isn't a web address is an answer: it's no link"],
 ]);
 
 /**

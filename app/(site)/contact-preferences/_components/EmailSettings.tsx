@@ -10,7 +10,7 @@ import ChannelIcon from "@/components/ui/ChannelIcon";
 import { iconButtonClass } from "@/components/ui/IconButton";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
 import { site } from "@/lib/content/site";
-import type { ContactPermission, Topic } from "@/lib/contact-permissions";
+import type { ContactPermission, Topic } from "@/lib/supporters/contact-permissions";
 import {
   choiceKey,
   isNumber,
@@ -18,7 +18,7 @@ import {
   settingsTopics,
   type SettingsTopic,
   type SettingsView,
-} from "@/lib/email-settings";
+} from "@/lib/supporters/settings-view";
 import styles from "./EmailSettings.module.css";
 
 /**

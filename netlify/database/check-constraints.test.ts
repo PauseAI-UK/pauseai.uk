@@ -1,34 +1,34 @@
-import type { AnswerStatus } from "@/lib/server/broadcast-answers";
+import type { AnswerStatus } from "@/lib/broadcasts/answers.server";
 import { expect, it } from "vitest";
-import { ASK_STATUSES, ASKERS } from "@/lib/asks";
-import { TOPICS, WAYS, type Topic } from "@/lib/contact-permissions";
-import { ERROR_KINDS } from "@/lib/error-key";
+import { ASK_STATUSES, ASKERS } from "@/lib/asks/asks";
+import { TOPICS, WAYS, type Topic } from "@/lib/supporters/contact-permissions";
+import { ERROR_KINDS } from "@/lib/oversight/error-key";
 import { IMPORT_JOBS, type ImportRunStatus } from "@/lib/import-runs";
-import { RECORDED_LETTER_EVENTS } from "@/lib/letter-status";
-import { COUNTRIES } from "@/lib/politician-filters";
-import { query } from "@/lib/server/db";
-import type { Backend, ProblemKind, Purpose } from "@/lib/server/email";
-import type { EntryLuma } from "@/lib/server/form-entries";
-import { GUEST_STATUSES, type ImportList } from "@/lib/server/luma-import";
-import type { mailingChannel } from "@/lib/server/mailing-channels";
-import type { MailingState } from "@/lib/server/mailing-drafts";
-import type { SkipReason } from "@/lib/server/mailings";
-import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
-import type { AddressSource } from "@/lib/server/politician-aliases";
-import type { OptOutList, OptOutSource } from "@/lib/server/opt-outs";
-import type { BroadcastReply } from "@/lib/server/broadcast-replies";
-import type { BroadcastSendBy } from "@/lib/broadcasts";
-import type { StopReason } from "@/lib/server/broadcast-sending";
+import { RECORDED_LETTER_EVENTS } from "@/lib/letters/status";
+import { COUNTRIES } from "@/lib/politicians/filters";
+import { query } from "@/lib/server/db.server";
+import type { Backend, ProblemKind, Purpose } from "@/lib/email/email.server";
+import type { EntryLuma } from "@/lib/supporters/form-entries.server";
+import { GUEST_STATUSES, type ImportList } from "@/lib/events/luma-import.server";
+import type { mailingChannel } from "@/lib/mailings/channels.server";
+import type { MailingState } from "@/lib/mailings/drafts.server";
+import type { SkipReason } from "@/lib/letters/copy-states";
+import type { WhatsAppTemplate } from "@/lib/broadcasts/drafts.server";
+import type { AddressSource } from "@/lib/politicians/aliases.server";
+import type { OptOutList, OptOutSource } from "@/lib/supporters/opt-outs.server";
+import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
+import type { BroadcastSendBy } from "@/lib/broadcasts/broadcasts";
+import type { StopReason } from "@/lib/broadcasts/sending.server";
 import {
   INTENTS,
   LIST_STATUSES,
   type SubscriptionEvent,
   type SubscriptionResult,
-} from "@/lib/server/outside-services/civicrm";
-import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar";
-import { HOUSES, PERSON_STATUSES } from "@/lib/server/politicians";
-import type { SignupUploadPerson } from "@/lib/server/signup-uploads";
-import { PERMISSIONS } from "@/lib/staff-permissions";
+} from "@/lib/server/outside-services/civicrm.server";
+import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar.server";
+import { HOUSES, PERSON_STATUSES } from "@/lib/politicians/records.server";
+import type { SignupUploadPerson } from "@/lib/supporters/signup-uploads.server";
+import { PERMISSIONS } from "@/lib/accounts/permissions";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 
 // A column whose CHECK lists the values it allows lists them in TypeScript

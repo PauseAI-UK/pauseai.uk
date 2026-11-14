@@ -2,7 +2,7 @@
 
 // The home page's examples that call back: the choice of where to see events near.
 import EventsPlacePicker from "@/app/(site)/_components/EventsPlacePicker";
-import { ANYWHERE } from "@/lib/events";
+import { ANYWHERE } from "@/lib/site-events";
 import { Logged } from "../_components/wiring";
 
 export function EventsPlacePickerExample({ group }: { group?: "London" }) {

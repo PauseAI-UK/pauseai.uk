@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
-import type { SettingsView } from "@/lib/email-settings";
+import type { SettingsView } from "@/lib/supporters/settings-view";
 import EmailSettings, { type SettingsActions } from "./EmailSettings";
 import {
   exampleBlocked,

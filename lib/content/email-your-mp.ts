@@ -3,12 +3,12 @@
 // own words (app/(site)/campaigns/<slug>/page.tsx).
 
 // Relative, as next.config.ts imports this file and its loader resolves only its own "@/" imports.
-import { CONTROLAI_LETTER_ASK, FRONTIER_AI_LETTER_ASK, type AskStatus, type AskStatuses } from "../asks";
+import { CONTROLAI_LETTER_ASK, FRONTIER_AI_LETTER_ASK, type AskStatus, type AskStatuses } from "@/lib/asks/asks";
 import { signedControlAiLetter } from "../controlai-letter";
 import { FIRST_CAMPAIGN_SLUG } from "./redirect-addresses";
 import { site } from "./site";
 
-/** The MP's answer to each ask, keyed by the ask's slug (lib/asks.ts). */
+/** The MP's answer to each ask, keyed by the ask's slug (lib/asks/asks.ts). */
 export type MpStatuses = AskStatuses;
 
 /** What a letter needs to know about who it's from and who it's to. */
@@ -39,14 +39,14 @@ type CampaignCommon = {
   slug: string;
   /** Its name in the staff interface. */
   title: string;
-  /** What it asks the MP to do, whose answer we record (lib/asks.ts), if anything. */
+  /** What it asks the MP to do, whose answer we record (lib/asks/asks.ts), if anything. */
   ask?: string;
   subject: string;
   /**
    * The letter to an MP who hasn't done it yet, through the sign-off and
    * the sender's name. The form adds their address and postcode under it
    * (lib/email-your-mp.ts). A blank line between paragraphs, **bold**,
-   * _italic_, and "- " for bullets (lib/letter-format.ts).
+   * _italic_, and "- " for bullets (lib/letters/format.ts).
    */
   letter: (details: LetterDetails) => string;
   attachments: Attachment[];
@@ -183,7 +183,7 @@ export const copy = {
     // the rest, with what each MP is for, behind an arrow.
     testPostcodes: "Dev site takes test postcodes only. Expand for more. Default one: ",
     testMpSigned: (ask: string) => `signed “${ask}”`,
-    // The asks the test MPs have signed (lib/test-mps.json), by their titles in the asks table.
+    // The asks the test MPs have signed (lib/politicians/test-mps.json), by their titles in the asks table.
     testMpAsks: {
       [FRONTIER_AI_LETTER_ASK]: "Frontier AI letter to the Prime Minister",
       [CONTROLAI_LETTER_ASK]: "ControlAI's letter to the Prime Minister",

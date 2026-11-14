@@ -98,7 +98,7 @@ live in one place: `lib/server/fixtures/outside-services.ts`.
   only for browser requests that mustn't really happen (form submits to
   other sites). The storyboard's fixtures (`tests/storyboard/fixtures.ts`)
   deal with what a page loads from other sites:
-  - Analytics loads only on the live site (`lib/analytics.ts`). The fixture
+  - Analytics loads only on the live site (`lib/analytics.server.ts`). The fixture
     build turns it on so the consent flow can be driven, and the fixtures
     block every request to Google for every flow.
   - The two embeds from other sites have stand-ins, since what the real
@@ -117,7 +117,7 @@ Wrap the real module (`importActual`) and replace only that one function.
 ## Email
 
 Emails go through Postmark's HTTP API
-(`lib/server/outside-services/postmark.ts`) or Gmail's (`gmail.ts` beside
+(`lib/server/outside-services/postmark.server.ts`) or Gmail's (`gmail.server.ts` beside
 it), as the letters inbox or a staff member's connected account. Both go
 through `outsideFetch` like any other outside service.
 
@@ -127,7 +127,7 @@ through `outsideFetch` like any other outside service.
   `MessageID`, and the Gmail one its IDs. Tests read the request MSW
   received:
   - `recordGmail()` (`tests/gmail-sends.ts`) records what goes by Gmail.
-    `lib/server/mp-letters.test.ts` uses it to check a letter's From, To,
+    `app/api/email-your-mp/letters/mp-letters.server.test.ts` uses it to check a letter's From, To,
     text and attachments.
   - `notifications()` (`tests/notifications.ts`) records what Postmark is
     asked to send, for the emails to the notification inbox.
@@ -156,7 +156,7 @@ through `outsideFetch` like any other outside service.
 
   So that the frames compare, the fixture build fills in what would be
   random: the `Date` header is the fixed clock's, and a login link's token
-  comes from a seed (`randomId` in `lib/server/random-id.ts`).
+  comes from a seed (`randomId` in `lib/server/random-id.server.ts`).
 
   A fixture build knows the address it's served at (`FIXTURE_ORIGIN`, from
   `lib/server/fixtures/fixture-env.mjs`, which both fixture builds use), as
@@ -167,11 +167,11 @@ through `outsideFetch` like any other outside service.
   (`showOrigin` in `tests/storyboard/frame.ts`), and main's frames and a
   branch's don't differ by it.
 
-- **Gmail and Outlook are checked from the HTML.** `lib/letter-format.test.ts`
+- **Gmail and Outlook are checked from the HTML.** `lib/letters/format.test.ts`
   runs the letter's HTML through doiuse-email
   (`@jsx-email/doiuse-email`, the Can I email tables,
   https://www.caniemail.com) for every Gmail and Outlook app, and fails on
-  anything they don't support. `lib/plain-email-html.test.ts` does the same
+  anything they don't support. `lib/email/plain-email-html.test.ts` does the same
   for the HTML made from a text email. Paying a service to picture the real apps
   (Litmus, Email on Acid) gives pictures that vary run to run, so it isn't
   in CI.
@@ -398,7 +398,7 @@ committed or not.
 A sidebar lists every piece of copy in clusters, in the diff's order. A
 piece's cluster is its file, or for `lib/content/` the set of strings it's
 in (the copy object's top-level key, such as
-`staff-interface.ts › broadcastPages`). Clicking a piece (or <kbd>j</kbd>
+`email-your-mp.ts › lookup`). Clicking a piece (or <kbd>j</kbd>
 and <kbd>k</kbd>) shows it alone:
 
 - the copy as written;
@@ -534,8 +534,8 @@ So the storyboard keeps what a flow reaches to what it pictures:
 
 Imports of types alone (`import type`) don't count, as they're gone once
 compiled. A stylesheet's `@import` and `composes` do. So does code handed
-to a module without an import (`HANDED_OVER`): `lib/server/problems.ts` is
-told how to find the run in progress by `run-store.ts`, and what keeps an
+to a module without an import (`HANDED_OVER`): `lib/server/problems.server.ts` is
+told how to find the run in progress by `run-store.server.ts`, and what keeps an
 error by `instrumentation.ts`, so a flow that reaches the one reaches the
 others. A changed file reaches the flows whose reach has it, and some
 files reach more:
@@ -547,11 +547,6 @@ files reach more:
 - **No flow:** docs, plans, investments, unit tests, the review page's own
   code, and the settings of the tools that don't build the site
   (`NOTHING`), unless a flow imports one.
-- **`staffCopy`:** a change to `lib/content/staff-interface.ts` reaches the
-  files that read the top-level keys it changed (`staffCopy.letters`, or
-  `const { letters } = staffCopy`), and any that import the file without
-  naming a key. A line outside the object reaches every file that imports
-  it.
 - **The gallery:** each group's flow reaches its own examples
   (`_examples/forms.tsx` and `forms.client.tsx`), though the index it picks
   them from imports every group's. A plain stylesheet (not a
@@ -595,9 +590,16 @@ The map can't see what isn't in the tree: an environment file, or the
 machine's fonts and browser. And it takes a page that Next prefetched,
 which a flow never went on to open, to have changed nothing the flow
 shows: true while rendering a page writes nothing. `investments/storyboard-review-speed.md` has
-how it was checked against what runs in each flow, and
-`investments/narrow-imports.md` the imports that make a change reach many
-flows.
+how it was checked against what runs in each flow.
+
+**Which files reach the most flows.** `npm run reach` lists the site's
+files that reach the most desktop flows, from what the kept flows opened
+(the kept tree with the most of them, in the main checkout's store), so a
+change to one at the top reruns most of the storyboard. Narrowing what
+imports it, so fewer pages reach it, makes those reviews shorter: work
+down the list, and run it again after the next review to see whether it
+helped. `npm run reach -- 100` lists the top hundred, and
+`npm run reach -- lib/email` only the files under that folder.
 
 **Main's frames are main's own.** They come from main's suite, run on
 main's build, in a checkout of main's own: a git worktree in your temp
@@ -723,7 +725,7 @@ order, alongside the others:
   (`tests/storyboard/fixtures.ts`) copies it for each flow
   (`CREATE DATABASE … TEMPLATE`, tens of milliseconds), names the copy in a
   cookie on the browser context and the `request` fixture, and drops it
-  afterwards. In a fixture build only, `lib/server/db.ts` reads that cookie
+  afterwards. In a fixture build only, `lib/server/db.server.ts` reads that cookie
   and queries the database it names, through one small pool per database,
   closed when idle. Otherwise it queries the database `NETLIFY_DB_URL`
   names. Flows that need the fixture politicians import them with
@@ -739,7 +741,7 @@ order, alongside the others:
 
   Nothing date-shaped is masked.
 
-- **A seeded hero.** `lib/shuffle.ts` shuffles the same way every time in a
+- **A seeded hero.** `lib/shuffle.server.ts` shuffles the same way every time in a
   fixture build, so the home page's hero is compared too.
 - **Seeded emails.** In a fixture build, a login link's token is made from
   a seed, and an email's `Date` is the fixed clock's, so the pictures of the
@@ -1059,7 +1061,7 @@ that drives it or why nothing does.
   - `replies`: a reply to an old letter's own address.
 - `/api/signatories`: `staff-navigation`: setting a status, then reading the public list.
 - `/blog/feed.xml`, `/campaigns/briefings/feed.xml`: `public-pages`: each feed, its type and entries, and its link in the head of its section's index and a post's page.
-- `/api/cron/[job]`, each scheduled job's run (`lib/server/jobs.ts`), Vitest-tested beside it for every job:
+- `/api/cron/[job]`, each scheduled job's run (`lib/jobs/jobs.server.ts`), Vitest-tested beside it for every job:
   - `import-parliament`, `import-scottish-parliament`, `import-senedd`, `import-ni-assembly`: `importPoliticians()` in `tests/storyboard/politician-steps.ts`, at the start of the staff flows that need politicians, which then gives them their Airtable records' details; `imports` runs Parliament's again to hold it.
   - `import-controlai`, `import-controlai-statement`: Not driven. The `staff-navigation` and `politicians` sections run them through their buttons.
   - `tidy-logs`: Not driven: nothing a person sees changes but its run on its own page.
@@ -1111,10 +1113,32 @@ pages are noindex.
   already does the job, and how the site's pieces look side by side. With
   `DATA_FIXTURES=1` in `.env.local`, `npm run dev` serves it at
   http://localhost:3000/gallery.
-- **Where examples go:** `app/(tools)/gallery/_examples/<group>.tsx`, one
-  entry per component, `{ name, file, variants: [{ label, render }] }`. One
-  that needs state or callbacks goes in the `.client.tsx` beside it.
-  `tests/checks/gallery.test.ts` fails if an exported component has none.
+- **Where examples go:** one entry per component, `{ name, file, variants:
+[{ label, render }] }`, in a file of examples beside the component or in
+  one of the gallery's own. `tests/checks/gallery.test.ts` fails if an
+  exported component has none.
+  - Beside it: `Component.gallery.tsx` exports the examples of every
+    component `Component.tsx` exports, as `componentGallery`, an
+    `Example[]` (`KeepSignedIn.gallery.tsx` exports
+    `keepSignedInGallery`). A group's file in `_examples/` imports it and
+    puts it in its list with `...componentGallery`, where it goes in the
+    group: Next can't look for these files as the page runs, and the check
+    fails on one that no group imports. Examples that need state or
+    callbacks go in `Component.gallery.client.tsx`, a `"use client"` file
+    beside it, as client components whose props, if any, are plain values
+    (`MyGmailExample connected`), which a server component can pass.
+  - A component in a staff feature's folder
+    (`app/(staff)/staff/_components/<feature>/`) has its examples beside
+    it. The rest may have them in the gallery's
+    `app/(tools)/gallery/_examples/<group>.tsx`, and those needing state or
+    callbacks in the `.client.tsx` beside that.
+  - Example data that the gallery and the component's tests share, or
+    that other features' examples build on, is in `Component.examples.ts`
+    beside it (`exampleAsks` in `AsksList.examples.ts`). A feature's
+    examples use its own data.
+  - A group that interleaves the examples of two files takes each out by
+    destructuring (`const [eventsTable, eventTabs] = eventsTableGallery`)
+    and lists them in its order.
 - **A major variant** is a prop that changes how the component looks (a
   `variant`, a size, with and without an image). States someone reaches by
   using a page (open, submitted, an error) belong in the storyboard's
@@ -1167,7 +1191,7 @@ not a mock.
   press on its page) are tested running at once: `atOnce()`
   (`tests/at-once.ts`) starts several runs together on the test file's
   database, and the test checks each letter, guest or message was handled
-  once (`lib/server/sending-job.test.ts`, `lib/server/luma-import.test.ts`).
+  once (`lib/jobs/sending.server.test.ts`, `lib/events/luma-import.server.test.ts`).
 - **A data migration gets a test while its tables are still changing.** A
   migration that moves or reshapes rows, not only tables, is tested with
   `useDatabaseUpTo()`:
@@ -1235,7 +1259,8 @@ import("@/tests/next-headers"))` and put the session cookie in
   varies.
 - A new component ships with its `*.browser.test.tsx` in the same PR.
 - **A new component gets an example in the component gallery**
-  (`app/(tools)/gallery/_examples/`, one per major variant), or
+  (`Component.gallery.tsx` beside it, or `app/(tools)/gallery/_examples/`;
+  one per major variant), or
   `tests/checks/gallery.test.ts` fails. Look at it there on both viewports
   before calling it done ("The component gallery", above); the storyboard
   then pictures it in every review.
@@ -1258,7 +1283,13 @@ import("@/tests/next-headers"))` and put the session cookie in
   module's class (its name is hashed) or import one into a test. To check
   something visual, read its computed style, since a component's module
   loads with it.
-- New logic in `lib/` ships with its `*.test.ts`.
+- New logic in `lib/` ships with its `*.test.ts`, named for its module
+  (`x.server.test.ts` for `x.server.ts`).
+- **A module's name says where it runs** (`docs/code-structure.md`,
+  "Where code runs"): `x.server.ts` imports `"server-only"`, `x.client.ts`
+  imports `"client-only"`, and one that reads `process.env` or imports the
+  database, settings or an outside service is `.server.ts`, or
+  `tests/checks/runs-where.test.ts` fails.
 - A new staff page, route handler or Server Action under `app/(staff)/`
   must call `requireStaff()` as its first statement, or `tests/checks/staff-auth.test.ts`
   fails. Each exported function is checked on its own, so every action in

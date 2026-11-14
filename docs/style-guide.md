@@ -393,9 +393,9 @@ on, however far they've scrolled.
 The supporters list chooses who a broadcast goes to with the same two
 bars, but with no ticks. There the filters say who, and the button at the
 foot keeps the filters for the draft (`ChoosingBroadcastFrame` in
-`_components/BroadcastSupporters.tsx`). A new choosing mode uses these two
+`_components/broadcasts/BroadcastSupporters.tsx`). A new choosing mode uses these two
 bars too, not a design of its own. The mailing's bars are in
-`_components/PoliticiansList.tsx`, and the broadcast's bars share its
+`_components/politicians/PoliticiansList.tsx`, and the broadcast's bars share its
 stylesheet.
 
 **The grid** (`ui/Grid`). The grid has six columns when it's at least
@@ -882,7 +882,7 @@ A nightly job shows each run whole, in its box (`RunBox`). The
 newest is tinted by how it ended.
 
 A job that runs every 5 or 15 minutes or hourly has one table a day instead
-(`RunTable.tsx`, `lib/run-log.ts`), so the same number sits in the same
+(`RunTable.tsx`, `lib/jobs/run-log.ts`), so the same number sits in the same
 place. The time comes first, then the job's counts, or what each run
 found. A Gmail read's counts are over every account it read. In the
 table:

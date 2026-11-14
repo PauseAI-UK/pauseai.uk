@@ -111,7 +111,7 @@ const CookieSettings = createContext<(() => void) | null>(null);
 /**
  * Loads analytics, unless someone has declined it, and shows the cookie
  * banner when a CookieSettingsLink inside it asks. With `analytics` off
- * (every build but the live site's, lib/analytics.ts) it does neither, as on
+ * (every build but the live site's, lib/analytics.server.ts) it does neither, as on
  * a page that opts out: there is nothing to consent to.
  */
 export default function CookieConsent({ analytics, children }: { analytics: boolean; children: ReactNode }) {

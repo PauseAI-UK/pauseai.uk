@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
-import { listSentEmails } from "@/lib/server/sent-emails";
-import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
+import { listSentEmails } from "@/lib/oversight/sent-emails.server";
+import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 import { sentEmailsSearch, type SentEmailsSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
-import SentEmails from "../../_components/SentEmails";
+import SentEmails from "../../_components/oversight/SentEmails";
 import Page from "../../_components/ui/Page";
+import { shellCopy } from "../../_components/shell/copy";
 
-export const metadata: Metadata = { title: staffCopy.nav.sentEmails };
+export const metadata: Metadata = { title: shellCopy.nav.sentEmails };
 
 /** Everything in the send log, newest first, with just a search and filters over the table. */
 export default async function SentEmailsPage({

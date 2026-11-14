@@ -1,0 +1,683 @@
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { server } from "@/tests/fixtures/msw";
+import {
+  addTestContact,
+  addTestLetter,
+  addTestMp,
+  addTestPolitician,
+  connectTestGmail,
+  describeWithDatabase,
+  refuseWrites,
+  useTestDatabase,
+} from "@/tests/database";
+import { query } from "@/lib/server/db.server";
+import {
+  blockOn,
+  type DeliveryProblem,
+  isBlocked,
+  isPoliticianAddress,
+  liftBlock,
+  listBlocks,
+  recentProblems,
+  recordProblem,
+  sendWith,
+  sentBy,
+} from "./email.server";
+import { send } from "./sending.server";
+import { emailCopy } from "./copy";
+
+const POSTMARK = "https://api.postmarkapp.com/email";
+const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/:stream/suppressions/delete";
+const EMAIL = { From: "a@notify.pauseai.uk", To: '"Jo" <Jo@Example.org>', Subject: "S", TextBody: "T" };
+const BOUNCE: DeliveryProblem = {
+  address: "Jo@Example.org",
+  messageId: "msg-1",
+  kind: "hard",
+  reason: "Unknown user",
+  canReset: true,
+};
+
+beforeEach(() => vi.stubEnv("POSTMARK_SERVER_TOKEN", "server-token"));
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
+
+const sends = () =>
+  query(
+    'SELECT purpose, letter_id AS "letterId", address, outcome, message_id AS "messageId" FROM email_sends ORDER BY id',
+  );
+const audit = () => query("SELECT actor, action, details FROM audit_log ORDER BY id");
+
+describeWithDatabase("send", () => {
+  useTestDatabase();
+
+  it("sends the email, and logs it with what it was for", async () => {
+    server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 0, MessageID: "msg-1" })));
+    expect(await send(EMAIL, "staff-login")).toEqual({
+      sent: true,
+      id: "msg-1",
+      messageId: null,
+      threadId: null,
+      backend: { name: "postmark" },
+    });
+    expect(await sends()).toEqual([
+      { purpose: "staff-login", letterId: null, address: "jo@example.org", outcome: "sent", messageId: "msg-1" },
+    ]);
+  });
+
+  it("refuses a blocked address without asking Postmark, and logs that", async () => {
+    let asked = false;
+    server.use(
+      http.post(POSTMARK, () => {
+        asked = true;
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "msg-1" });
+      }),
+    );
+    await recordProblem(BOUNCE);
+    expect(await send(EMAIL, "forwarded-reply")).toEqual({ sent: false, reason: "blocked" });
+    expect(asked).toBe(false);
+    expect(await sends()).toMatchObject([{ outcome: "refused", messageId: null }]);
+  });
+
+  it("blocks an address Postmark says it suppressed, which it hadn't told us about", async () => {
+    server.use(
+      http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 406, Message: "Inactive recipient" }, { status: 422 })),
+    );
+    expect(await send(EMAIL, "staff-login")).toEqual({ sent: false, reason: "blocked" });
+    expect(await isBlocked("jo@example.org")).toBe(true);
+    expect(await query("SELECT kind, can_reset, message_id FROM email_problems")).toEqual([
+      { kind: "hard", can_reset: true, message_id: null },
+    ]);
+    expect(await sends()).toMatchObject([{ outcome: "refused" }]);
+  });
+
+  it("tells staff, once, when Postmark refuses a politician's address", async () => {
+    vi.stubEnv("NOTIFICATION_INBOX", "notifications@pauseai.uk");
+    vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
+    const mp = await addTestMp();
+    const [{ email }] = await query<{ email: string }>("SELECT email FROM notable_people WHERE id = $1", [mp]);
+    const alerts: string[] = [];
+    server.use(
+      http.post(POSTMARK, async ({ request }) => {
+        const { To, Subject } = (await request.json()) as { To: string; Subject: string };
+        if (To === email) return HttpResponse.json({ ErrorCode: 406, Message: "Inactive recipient" }, { status: 422 });
+        alerts.push(Subject);
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "alert" });
+      }),
+    );
+    expect(await send({ ...EMAIL, To: email }, "mailing")).toEqual({ sent: false, reason: "blocked" });
+    expect(alerts).toEqual([emailCopy.alert.notALetter.subject("Testy McTestface MP")]);
+    expect(await send({ ...EMAIL, To: email }, "mailing")).toEqual({ sent: false, reason: "blocked" });
+    expect(alerts).toHaveLength(1);
+  });
+
+  it("blocks only the addresses Postmark names, and says it failed when they don't include the To", async () => {
+    const refusal = (names: string) =>
+      server.use(
+        http.post(POSTMARK, () =>
+          HttpResponse.json(
+            {
+              ErrorCode: 406,
+              Message: `You tried to send to a recipient that has been marked as inactive. Found inactive addresses: ${names}. Inactive recipients are ones that have generated a hard bounce.`,
+            },
+            { status: 422 },
+          ),
+        ),
+      );
+    refusal("Copy@Example.org, other@example.org");
+    expect(await send(EMAIL, "letter")).toEqual({
+      sent: false,
+      reason: "failed",
+      detail: expect.stringContaining("inactive"),
+    });
+    expect(await isBlocked("copy@example.org")).toBe(true);
+    expect(await isBlocked("other@example.org")).toBe(true);
+    expect(await isBlocked("jo@example.org")).toBe(false);
+    // A Cc already blocked stays so.
+    expect(await send(EMAIL, "letter")).toEqual({
+      sent: false,
+      reason: "failed",
+      detail: expect.stringContaining("inactive"),
+    });
+    refusal("jo@example.org");
+    expect(await send(EMAIL, "letter")).toEqual({ sent: false, reason: "blocked" });
+    expect(await sends()).toMatchObject([{ outcome: "failed" }, { outcome: "failed" }, { outcome: "refused" }]);
+  });
+
+  it("says it failed, and logs it, when Postmark fails for any other reason", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 300, Message: "Invalid" }, { status: 422 })));
+    // What Postmark said, kept for the copy's tag.
+    expect(await send(EMAIL, "staff-alert")).toEqual({ sent: false, reason: "failed", detail: expect.any(String) });
+    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sendFailed("staff-alert"));
+    expect(await sends()).toMatchObject([{ outcome: "failed", messageId: null }]);
+    expect(await isBlocked("jo@example.org")).toBe(false);
+  });
+
+  it("fails to be tried again when Postmark is down, busy or refuses our token, as the next email would fail the same", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const status of [500, 503, 429, 401]) {
+      server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 0, Message: "No" }, { status })));
+      expect(await send(EMAIL, "staff-alert")).toEqual({
+        sent: false,
+        reason: "failed",
+        retry: true,
+        // Our token refused lasts till someone fixes it; the rest pass by themselves.
+        ...(status === 401 && { fixNeeded: true }),
+        detail: expect.any(String),
+      });
+    }
+  });
+
+  it("says one whose send broke off before an answer may have gone, so it's never sent again", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    server.use(http.post(POSTMARK, () => HttpResponse.error()));
+    expect(await send(EMAIL, "staff-alert")).toEqual({
+      sent: false,
+      reason: "failed",
+      mayHaveGone: true,
+      detail: expect.any(String),
+    });
+  });
+
+  it("sends with a Message-ID of ours when given one, as a mailing's letter, counting it against its sender", async () => {
+    let headers: unknown;
+    server.use(
+      http.post(POSTMARK, async ({ request }) => {
+        headers = ((await request.json()) as { Headers: unknown }).Headers;
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "msg-2" });
+      }),
+    );
+    expect(await send(EMAIL, "mailing", null, { sender: "jo@pauseai.uk", messageId: "m@pauseai.uk" })).toEqual({
+      sent: true,
+      id: "msg-2",
+      messageId: "m@pauseai.uk",
+      threadId: null,
+      backend: { name: "postmark" },
+    });
+    expect(headers).toEqual([{ Name: "Message-ID", Value: "<m@pauseai.uk>" }]);
+    expect(await query("SELECT backend, sender, rfc_message_id FROM email_sends")).toEqual([
+      { backend: "postmark", sender: "jo@pauseai.uk", rfc_message_id: "m@pauseai.uk" },
+    ]);
+  });
+
+  it("sends an email written only as text with its words as HTML too, its links as written", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post(POSTMARK, async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "msg-3" });
+      }),
+    );
+    const TextBody = "Follow this link:\n\nhttps://pauseai.uk/staff";
+    await send({ ...EMAIL, TextBody }, "staff-login");
+    expect(bodies[0]).toMatchObject({
+      TextBody,
+      HtmlBody: '<p>Follow this link:</p>\n<p><a href="https://pauseai.uk/staff">https://pauseai.uk/staff</a></p>',
+      TrackLinks: "None",
+    });
+
+    // One with HTML of its own, a letter or a mailing, goes as it's written; one with no words gets none.
+    await send({ ...EMAIL, HtmlBody: "<p><em>T</em></p>" }, "mailing");
+    expect(bodies[1]).toMatchObject({ TextBody: "T", HtmlBody: "<p><em>T</em></p>" });
+    expect(bodies[1]).not.toHaveProperty("TrackLinks");
+    await send({ ...EMAIL, TextBody: "" }, "relay");
+    expect(bodies[2]).not.toHaveProperty("HtmlBody");
+    expect(bodies[2]).not.toHaveProperty("TrackLinks");
+  });
+});
+
+describeWithDatabase("send by Gmail", () => {
+  useTestDatabase();
+  const GMAIL = { name: "gmail" as const, account: "jo@pauseai.uk" };
+  const SEND = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
+
+  it("sends as the account, with a Message-ID of ours, and logs the backend, sender and thread", async () => {
+    await connectTestGmail();
+    let auth: string | null = null;
+    let message = "";
+    server.use(
+      http.post(SEND, async ({ request }) => {
+        auth = request.headers.get("authorization");
+        message = Buffer.from(((await request.json()) as { raw: string }).raw, "base64url").toString();
+        return HttpResponse.json({ id: "g1", threadId: "t1" });
+      }),
+    );
+    const sent = await send({ ...EMAIL, Tag: "mailing" }, "mailing", null, { backend: GMAIL });
+    // Written only as text, so its words go as HTML too.
+    expect(message).toContain("Content-Type: text/plain; charset=utf-8");
+    expect(message).toContain(
+      `Content-Type: text/html; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${Buffer.from("<p>T</p>").toString("base64")}`,
+    );
+    expect(sent).toEqual({
+      sent: true,
+      id: "g1",
+      messageId: expect.stringMatching(/@pauseai\.uk$/),
+      threadId: "t1",
+      backend: { name: "gmail", account: expect.any(String) },
+    });
+    expect(auth).toBe("Bearer fixture-access:jo@pauseai.uk");
+    expect(await query("SELECT backend, sender, message_id, rfc_message_id, gmail_thread_id FROM email_sends")).toEqual(
+      [
+        {
+          backend: "gmail",
+          sender: "jo@pauseai.uk",
+          message_id: "g1",
+          rfc_message_id: (sent as { messageId: string }).messageId,
+          gmail_thread_id: "t1",
+        },
+      ],
+    );
+    await send(EMAIL, "mailing", null, { backend: GMAIL, messageId: "given@pauseai.uk" });
+    expect(await query("SELECT rfc_message_id FROM email_sends ORDER BY id DESC LIMIT 1")).toEqual([
+      { rfc_message_id: "given@pauseai.uk" },
+    ]);
+  });
+
+  it("keeps the Message-ID Gmail sent it with, when Gmail gave it one of its own, which replies and bounces name", async () => {
+    await connectTestGmail();
+    server.use(
+      http.post(SEND, () => HttpResponse.json({ id: "g2", threadId: "t2" })),
+      http.get("https://gmail.googleapis.com/gmail/v1/users/me/messages/g2", () =>
+        HttpResponse.json({
+          id: "g2",
+          threadId: "t2",
+          internalDate: "0",
+          payload: { headers: [{ name: "Message-ID", value: "<CAGt2Eo1@mail.gmail.com>" }] },
+        }),
+      ),
+    );
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toMatchObject({
+      messageId: "CAGt2Eo1@mail.gmail.com",
+    });
+    expect(await query("SELECT rfc_message_id FROM email_sends")).toEqual([
+      { rfc_message_id: "CAGt2Eo1@mail.gmail.com" },
+    ]);
+  });
+
+  it("says one went that went, though logging it failed, reporting it, so it's never taken for one that didn't", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    server.use(http.post(SEND, () => HttpResponse.json({ id: "g3", threadId: "t3" })));
+    await refuseWrites("email_sends", "NEW.outcome = 'sent'", "INSERT");
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toMatchObject({ sent: true, id: "g3" });
+    expect(String(error.mock.calls.at(-1)![0])).toContain("mailing");
+  });
+
+  it("fails to be tried again when Gmail answers that it's busy, down or refusing the account, and not when it refuses the email", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    for (const [status, retry, fixNeeded] of [
+      [429, true, false],
+      [503, true, false],
+      [401, true, true],
+      [403, true, false],
+      [400, false, false],
+      [404, false, false],
+    ] as const) {
+      server.use(http.post(SEND, () => new HttpResponse("No", { status })));
+      expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+        sent: false,
+        reason: "failed",
+        ...(retry && { retry }),
+        ...(fixNeeded && { fixNeeded }),
+        detail: expect.any(String),
+      });
+    }
+  });
+
+  it("says Gmail's access revoked needs fixing, as it never passes by itself", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    server.use(
+      http.post("https://oauth2.googleapis.com/token", () =>
+        HttpResponse.json({ error: "invalid_grant" }, { status: 400 }),
+      ),
+    );
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+      sent: false,
+      reason: "failed",
+      retry: true,
+      fixNeeded: true,
+      detail: expect.any(String),
+    });
+  });
+
+  it("fails, saying which account, when Gmail can't send or the account isn't connected", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+      sent: false,
+      reason: "failed",
+      detail: expect.any(String),
+    });
+    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sendFailed("mailing, by Gmail as jo@pauseai.uk"));
+    expect(await query("SELECT outcome, backend, sender, rfc_message_id FROM email_sends")).toEqual([
+      { outcome: "failed", backend: "gmail", sender: "jo@pauseai.uk", rfc_message_id: null },
+    ]);
+  });
+
+  it("fails to be tried again when it breaks off before the email is handed to Gmail, as nothing went", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    const sent: unknown[] = [];
+    server.use(
+      http.post("https://oauth2.googleapis.com/token", () => HttpResponse.error()),
+      http.post(SEND, () => {
+        sent.push(1);
+        return HttpResponse.json({ id: "g1", threadId: "t1" });
+      }),
+    );
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+      sent: false,
+      reason: "failed",
+      retry: true,
+      detail: expect.any(String),
+    });
+    expect(sent).toEqual([]);
+  });
+
+  it("says one whose send to Gmail broke off may have gone", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    server.use(http.post(SEND, () => HttpResponse.error()));
+    expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toMatchObject({ sent: false, mayHaveGone: true });
+  });
+
+  it("fails to be tried again, sending nothing, when its sender has no way to reach Gmail", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    const blocked = vi.fn();
+    expect(await sendWith({ blocked }, EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+      sent: false,
+      reason: "failed",
+      retry: true,
+      detail: "No way to reach jo@pauseai.uk's Gmail",
+    });
+    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sendFailed("mailing"));
+    expect(await query("SELECT outcome FROM email_sends")).toEqual([{ outcome: "failed" }]);
+  });
+});
+
+describeWithDatabase("recordProblem", () => {
+  useTestDatabase();
+
+  it("records a soft bounce without blocking the address", async () => {
+    expect(await recordProblem({ ...BOUNCE, kind: "soft" })).toBe(false);
+    expect(await isBlocked("jo@example.org")).toBe(false);
+    expect(await query("SELECT address, kind, reason, details FROM email_problems")).toEqual([
+      { address: "jo@example.org", kind: "soft", reason: "Unknown user", details: {} },
+    ]);
+    expect(await audit()).toEqual([]);
+  });
+
+  it("blocks the address for a hard bounce, once, and the audit log says so", async () => {
+    expect(await recordProblem({ ...BOUNCE, details: { type: "HardBounce" } })).toBe(true);
+    expect(await recordProblem(BOUNCE)).toBe(false);
+    expect(await isBlocked("JO@example.org")).toBe(true);
+    expect(await query("SELECT details FROM email_problems ORDER BY id")).toEqual([
+      { details: { type: "HardBounce" } },
+      { details: {} },
+    ]);
+    expect(await audit()).toEqual([
+      { actor: "postmark", action: "block address", details: { address: "jo@example.org", kind: "hard" } },
+    ]);
+  });
+
+  it("lets a complaint take over a bounce's block, as it can't be reset, but not the other way round", async () => {
+    await recordProblem(BOUNCE);
+    expect(await recordProblem({ ...BOUNCE, kind: "complaint", canReset: true })).toBe(true);
+    expect(await recordProblem(BOUNCE)).toBe(false);
+    expect(await recordProblem({ ...BOUNCE, kind: "complaint" })).toBe(false);
+    expect(await listBlocks("others")).toMatchObject([{ kind: "complaint", canReset: false }]);
+  });
+});
+
+describeWithDatabase("send, of a broadcast's copy", () => {
+  useTestDatabase();
+
+  it("goes on Postmark's broadcast stream with its own headers and Message-ID, and is kept with its copy", async () => {
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "token");
+    const [{ copy }] = await query<{ copy: number }>(
+      `WITH m AS (INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+                  VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'jo@pauseai.uk', 'draft') RETURNING id)
+       INSERT INTO broadcast_messages (mailing_id, status) SELECT m.id, 'scheduled' FROM m RETURNING id::int AS copy`,
+    );
+    let body: { MessageStream: string; Headers: { Name: string; Value: string }[] } | undefined;
+    server.use(
+      http.post(POSTMARK, async ({ request }) => {
+        body = (await request.json()) as typeof body;
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "pm-1" });
+      }),
+    );
+    const unsubscribe = { Name: "List-Unsubscribe", Value: "<https://pauseai.uk/api/unsubscribe/t>" };
+    expect(
+      await send({ ...EMAIL, Headers: [unsubscribe] }, "broadcast", null, {
+        stream: "broadcast",
+        messageId: "copy-1@pauseai.uk",
+        copyId: copy,
+      }),
+    ).toMatchObject({ sent: true, id: "pm-1", messageId: "copy-1@pauseai.uk" });
+    expect(body).toMatchObject({
+      MessageStream: "broadcast",
+      Headers: [unsubscribe, { Name: "Message-ID", Value: "<copy-1@pauseai.uk>" }],
+    });
+    expect(await query("SELECT rfc_message_id AS rfc, broadcast_message_id::int AS copy FROM email_sends")).toEqual([
+      { rfc: "copy-1@pauseai.uk", copy },
+    ]);
+    // With headers of its own and no Message-ID, they go as they are.
+    await send({ ...EMAIL, Headers: [unsubscribe] }, "broadcast");
+    expect(body).toMatchObject({ MessageStream: "outbound", Headers: [unsubscribe] });
+  });
+});
+
+describeWithDatabase("send to an address with “Do not email”", () => {
+  useTestDatabase();
+
+  it("refuses all but what the person asked for or did", async () => {
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "token");
+    server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 0, MessageID: "m" })));
+    await query(
+      `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at) VALUES ('jo@example.org', 'all', 'civicrm-check', 'x', now())`,
+    );
+    const email = { From: "a@notify.pauseai.uk", To: "jo@example.org", Subject: "S", TextBody: "T" };
+    expect(await send(email, "mailing")).toEqual({ sent: false, reason: "blocked" });
+    expect(await send(email, "preferences-link")).toMatchObject({ sent: true });
+  });
+});
+
+describeWithDatabase("liftBlock", () => {
+  useTestDatabase();
+
+  it("asks Postmark to send to it again, unblocks it, and logs who and why", async () => {
+    let asked: unknown;
+    server.use(
+      http.post(UNSUPPRESS, async ({ request }) => {
+        asked = await request.json();
+        return HttpResponse.json({ Suppressions: [] });
+      }),
+    );
+    await recordProblem(BOUNCE);
+    expect(await liftBlock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(true);
+    expect(asked).toEqual({ Suppressions: [{ EmailAddress: "jo@example.org" }] });
+    expect(await isBlocked("jo@example.org")).toBe(false);
+    expect((await audit()).at(-1)).toEqual({
+      actor: "samuel.whitlock@pauseai.uk",
+      action: "unblock address",
+      details: { address: "jo@example.org", note: "Fixed" },
+    });
+    // The problem stays, as history.
+    expect(await query("SELECT count(*)::int AS n FROM email_problems")).toEqual([{ n: 1 }]);
+  });
+
+  it("refuses a complaint, one Postmark can't reset, and an address that isn't blocked", async () => {
+    await recordProblem({ ...BOUNCE, kind: "complaint" });
+    await recordProblem({ ...BOUNCE, address: "b@example.org", canReset: false });
+    expect(await liftBlock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
+    expect(await liftBlock("b@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
+    expect(await liftBlock("c@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
+    expect(await isBlocked("jo@example.org")).toBe(true);
+  });
+
+  it("leaves it blocked if Postmark can't be reached", async () => {
+    server.use(http.post(UNSUPPRESS, () => new HttpResponse(null, { status: 500 })));
+    await recordProblem(BOUNCE);
+    await expect(liftBlock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).rejects.toThrow("500");
+    expect(await isBlocked("jo@example.org")).toBe(true);
+  });
+
+  it("refuses without a note, before asking Postmark, and the audit log refuses one without a note too", async () => {
+    let asked = false;
+    server.use(
+      http.post(UNSUPPRESS, () => {
+        asked = true;
+        return HttpResponse.json({ Suppressions: [] });
+      }),
+    );
+    await recordProblem(BOUNCE);
+    expect(await liftBlock("jo@example.org", "samuel.whitlock@pauseai.uk", " ")).toBe(false);
+    expect(asked).toBe(false);
+    expect(await isBlocked("jo@example.org")).toBe(true);
+    await expect(
+      query("INSERT INTO audit_log (actor, action, details) VALUES ('x', 'unblock address', '{\"note\": \" \"}')"),
+    ).rejects.toThrow(/audit_log_unblock_note/);
+    await expect(
+      query("INSERT INTO audit_log (actor, action, details) VALUES ('x', 'unblock address', '{}')"),
+    ).rejects.toThrow(/audit_log_unblock_note/);
+  });
+
+  it("says it wasn't unblocked if someone else got there first", async () => {
+    await recordProblem(BOUNCE);
+    server.use(
+      http.post(UNSUPPRESS, async () => {
+        await query("DELETE FROM email_blocks");
+        return HttpResponse.json({ Suppressions: [] });
+      }),
+    );
+    expect(await liftBlock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
+    expect((await audit()).map((a) => a.action)).toEqual(["block address"]);
+  });
+});
+
+describeWithDatabase("listBlocks, blockOn and recentProblems", () => {
+  useTestDatabase();
+
+  it("list each blocked address with whose it is, the letter that found it out, and emails not sent since", async () => {
+    const mp = await addTestMp();
+    const polly = await addTestPolitician({ email: "Test-MP@parliament.example" });
+    const letterId = await addTestLetter({ politicianId: mp, senderName: "Jane", senderEmail: "jane@example.com" });
+    await query(
+      `INSERT INTO email_sends (at, purpose, letter_id, address, outcome, message_id)
+       VALUES (now() - interval '1 day', 'letter', $1, 'test-mp@parliament.example', 'sent', 'msg-1')`,
+      [letterId],
+    );
+    await recordProblem({ ...BOUNCE, address: "test-mp@parliament.example" });
+    await recordProblem({ ...BOUNCE, address: "other@example.org", messageId: null, kind: "complaint" });
+    await recordProblem({
+      ...BOUNCE,
+      address: "soft@example.org",
+      messageId: null,
+      kind: "soft",
+      gmailMessageId: "g1",
+    });
+    // One refused before the bounce, which doesn't count, and one after.
+    await query(
+      `INSERT INTO email_sends (at, purpose, address, outcome) VALUES
+       (now() - interval '2 days', 'letter', 'test-mp@parliament.example', 'refused'),
+       (now() + interval '1 minute', 'letter', 'test-mp@parliament.example', 'refused')`,
+    );
+
+    // A politician's address is on their side; the rest, unknown ones too, on the other.
+    const blocks = await listBlocks("politicians");
+    expect(blocks).toEqual([
+      {
+        address: "test-mp@parliament.example",
+        kind: "hard",
+        reason: "Unknown user",
+        since: expect.any(Date),
+        canReset: true,
+        foundInGmail: false,
+        politicians: [
+          { id: polly, name: "Polly Placeholder", isTest: false },
+          { id: mp, name: "Testy McTestface MP", isTest: true },
+        ],
+        // Politicians' lists never name a supporter.
+        supporters: [],
+        letter: { id: letterId, to: "Testy McTestface MP" },
+        purpose: "letter",
+        refused: 1,
+      },
+    ]);
+    expect(await listBlocks("others")).toEqual([
+      expect.objectContaining({
+        address: "other@example.org",
+        kind: "complaint",
+        politicians: [],
+        supporters: [],
+        letter: null,
+        purpose: null,
+        refused: 0,
+      }),
+    ]);
+    // A supporter's address names them, as the supporters list does: the newest name they gave.
+    await addTestContact(1, "other@example.org", { name: "Olly Other" });
+    const [{ id: olly }] = await query<{ id: number }>("INSERT INTO supporters DEFAULT VALUES RETURNING id::int");
+    await query(
+      `INSERT INTO supporter_links (supporter_id, civicrm_contact_id, matched_by, matched_value) VALUES ($1, 1, 'email', 'other@example.org')`,
+      [olly],
+    );
+    // Linked, as the imports link: the kept supporters list made again.
+    await query("REFRESH MATERIALIZED VIEW supporters_list");
+    expect((await listBlocks("others"))[0].supporters).toEqual([{ id: olly, name: "Olly Other" }]);
+    expect(await listBlocks("politicians", { kind: "complaint" })).toEqual([]);
+    expect((await listBlocks("others", { kind: "complaint" })).map((b) => b.address)).toEqual(["other@example.org"]);
+    expect(await listBlocks("others", { kind: "hard" })).toEqual([]);
+    expect((await listBlocks("others", { search: "OTHER@" })).map((b) => b.address)).toEqual(["other@example.org"]);
+    expect(await listBlocks("others", { search: "nobody" })).toEqual([]);
+
+    expect(await blockOn("Test-MP@parliament.example")).toMatchObject({ address: "test-mp@parliament.example" });
+    expect(await blockOn("soft@example.org")).toBeUndefined();
+    expect(await blockOn(null)).toBeUndefined();
+
+    expect(await recentProblems("others")).toEqual([
+      expect.objectContaining({
+        address: "soft@example.org",
+        kind: "soft",
+        purpose: null,
+        letter: null,
+        foundInGmail: true,
+      }),
+      expect.objectContaining({ address: "other@example.org", kind: "complaint" }),
+    ]);
+    expect(await recentProblems("politicians")).toEqual([
+      expect.objectContaining({
+        address: "test-mp@parliament.example",
+        kind: "hard",
+        purpose: "letter",
+        letter: { id: letterId, to: "Testy McTestface MP" },
+      }),
+    ]);
+    expect(await recentProblems("others", 1)).toHaveLength(1);
+
+    // An address no longer a politician's moves to the other side.
+    await query("UPDATE notable_people SET email = NULL WHERE email ILIKE 'test-mp@parliament.example'");
+    expect(await listBlocks("politicians")).toEqual([]);
+    expect((await listBlocks("others")).map((b) => b.address)).toEqual([
+      "other@example.org",
+      "test-mp@parliament.example",
+    ]);
+  });
+
+  it("isPoliticianAddress says whether an address is a politician's, however it's written", async () => {
+    await addTestPolitician({ email: "Polly@example.org" });
+    expect(await isPoliticianAddress("polly@example.org")).toBe(true);
+    expect(await isPoliticianAddress('"Polly" <POLLY@example.org>')).toBe(true);
+    expect(await isPoliticianAddress("jane@example.com")).toBe(false);
+  });
+});
+
+it("says what sent an email, for its event: the backend, and a Gmail's account", () => {
+  expect(sentBy({ name: "postmark" })).toEqual({ backend: "postmark" });
+  expect(sentBy({ name: "gmail", account: "jo@pauseai.uk" })).toEqual({ backend: "gmail", account: "jo@pauseai.uk" });
+});

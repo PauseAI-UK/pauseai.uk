@@ -1,15 +1,15 @@
 // Reads the staff pages' URLs: each filter as typed, for its form, and what
 // it filters by, leaving out anything blank or unknown. lib/staff-forms.ts
 // reads their forms.
-import { staffCopy } from "@/lib/content/staff-interface";
-import { listWindow, type DashboardWindow } from "./staff-dashboard";
-import { contactState } from "@/lib/contact-permissions";
-import type { ChangesFilter } from "@/lib/server/audit";
-import type { BlocksFilter } from "@/lib/server/email";
-import type { PoliticianFilter } from "@/lib/server/politicians";
-import type { SentEmailsFilter } from "@/lib/server/sent-emails";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { listWindow, type DashboardWindow } from "./time-windows";
+import { contactState } from "@/lib/supporters/contact-permissions";
+import type { ChangesFilter } from "@/lib/oversight/audit-log.server";
+import type { BlocksFilter } from "@/lib/email/email.server";
+import type { PoliticianFilter } from "@/lib/politicians/records.server";
+import type { SentEmailsFilter } from "@/lib/oversight/sent-emails.server";
 import { campaignBySlug } from "@/lib/email-your-mp";
-import { LETTER_STATES } from "@/lib/copy-states";
+import { LETTER_STATES } from "@/lib/letters/copy-states";
 import {
   among,
   anyAndNone,
@@ -20,15 +20,9 @@ import {
   type ParamValue,
   type Params,
 } from "@/lib/list-params";
-import { SUPPORTER_LETTER_STATUSES } from "@/lib/letter-status";
-import {
-  COUNTRIES,
-  EMAIL_STATES,
-  isHouse,
-  isPersonStatus,
-  POLITICIAN_FLAGS,
-  type PoliticianFlag,
-} from "@/lib/politician-filters";
+import { SUPPORTER_LETTER_STATUSES } from "@/lib/letters/status";
+import { COUNTRIES, EMAIL_STATES, isHouse, isPersonStatus } from "@/lib/politicians/filters";
+import { POLITICIAN_FLAGS, type PoliticianFlag } from "@/lib/politician-flags";
 import {
   ACCOUNTS_LIST,
   ALL_EMAILS_LIST,
@@ -42,8 +36,8 @@ import {
   type SortOf,
 } from "@/lib/staff-lists";
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
-import { EVENT_GROUPINGS, EVENT_SORTS, type EventFilter } from "@/lib/staff-events-list";
-import { isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters";
+import { EVENT_GROUPINGS, EVENT_SORTS, type EventFilter } from "@/lib/events/list";
+import { isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters/supporters";
 
 /** Which of a campaign's letters its counts can show: those in one state, or whose text was changed. */
 export const LETTER_TABS = [...LETTER_STATES, "changed"] as const;
@@ -69,7 +63,7 @@ export type LetterReply = (typeof LETTER_REPLIES)[number];
 /** The filters of the letters list that repeat, which can leave out as well as find. */
 type NegatableLetterFilter = "campaign" | "flags" | "backend";
 
-/** Which letters the letters page lists (recentLetters in lib/server/letters.ts). */
+/** Which letters the letters page lists (recentLetters in lib/letters/records.server.ts). */
 export type LetterFilter = {
   /** A letter's status, as SUPPORTER_LETTER_STATUSES. */
   status?: string;
@@ -297,7 +291,7 @@ export function supportersSearch(params: Partial<Record<string, ParamValue>>): S
   );
   const [events, notEvents] = anyAndNone(search.event, (values) => values);
   const [countries, notCountries] = anyAndNone(search.nation, (values) =>
-    values.filter((value) => Object.hasOwn(staffCopy.countries, value)),
+    values.filter((value) => Object.hasOwn(staffVocabulary.countries, value)),
   );
   const [mps, notMps] = anyAndNone(search.mp, (values) => values.flatMap((value) => politicianId(value) ?? []));
   const miles = NEAR_MILES.find((n) => String(n) === search.within) ?? NEAR_MILES[1];
@@ -444,7 +438,7 @@ export function staffBack(back: string | null | undefined, fallback: string): st
 
 // Who a list shows, kept apart from how it shows them (the sort and the
 // page), as its URL parameters, so a mailing can keep it and run it again
-// (lib/server/stored-filters.ts reads it back strictly).
+// (lib/server/stored-filters.server.ts reads it back strictly).
 
 /** The lists a mailing can be to. */
 export const FILTER_LISTS = ["politicians", "supporters"] as const;

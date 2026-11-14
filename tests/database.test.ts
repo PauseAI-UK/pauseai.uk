@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { query } from "@/lib/server/db";
+import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "./database";
 
 // The tests run in order: the first writes, the second sees what was emptied.

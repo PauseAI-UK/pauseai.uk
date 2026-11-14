@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { config } from "../config";
-import { GRAPH_VERSION } from "../outside-services/whatsapp";
+import { config } from "../config.server";
+import { GRAPH_VERSION } from "../outside-services/graph-api";
 import { saveNoteToOutbox } from "./outbox";
 import { textNote } from "./whatsapp-outbox";
 

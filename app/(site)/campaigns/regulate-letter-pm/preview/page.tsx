@@ -1,4 +1,4 @@
-import { config } from "@/lib/server/config";
+import { config } from "@/lib/server/config.server";
 import { copy } from "@/lib/content/email-your-mp";
 import { pageMetadata } from "@/lib/metadata";
 import LetterPreview from "../../_components/LetterPreview";

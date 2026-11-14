@@ -1,14 +1,14 @@
-// The emails to the notification inbox (lib/server/notifications.ts), as
+// The emails to the notification inbox (lib/email/notifications.server.ts), as
 // Postmark gets them, for the tests of what sends them.
 import { http, HttpResponse } from "msw";
 import { vi } from "vitest";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { server } from "./fixtures/msw";
+import { emailCopy } from "@/lib/email/copy";
 
 export const NOTIFICATIONS = "notifications@example.org";
 
 /** The notification inbox as an email to it is addressed: with its name. */
-export const toNotifications = (address = NOTIFICATIONS) => `"${staffCopy.inboxNames.notifications}" <${address}>`;
+export const toNotifications = (address = NOTIFICATIONS) => `"${emailCopy.inboxNames.notifications}" <${address}>`;
 
 export type Notification = { To: string; Subject: string; TextBody: string };
 

@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { site } from "@/lib/content/site";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addStaffAccount, logInAsStaff } from "./login-steps";
 import { newestEmail } from "./outbox-steps";
@@ -9,6 +9,8 @@ import { importLuma } from "./supporter-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { eventsCopy } from "@/lib/events/copy";
+import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 
 export const section: Section = { name: "Events and their owners", part: "Staff pages", order: 120 };
 
@@ -18,7 +20,7 @@ export const section: Section = { name: "Events and their owners", part: "Staff 
 // error, until someone is chosen for it, who's emailed too; an event's
 // Google Doc linked; and, for staff who see supporters, each event's hosts.
 
-const copy = staffCopy.events;
+const copy = eventsCopy.events;
 
 /** This flow's own staff address: flows run alongside each other, and share the outbox. */
 const staffEmail = () => `events-${test.info().testId.replace(/\W/g, "").slice(-8)}@pauseai.uk`;
@@ -158,8 +160,8 @@ test("Event hosts", async ({ page, request, flowDatabase }) => {
   );
   await hosts.getByRole("link", { name: "Jane Fixture" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Jane Fixture" })).toBeVisible();
-  const events = page.getByRole("region", { name: staffCopy.supporters.detail.eventsTitle, exact: false });
-  await expect(events.getByRole("row").filter({ hasText: staffCopy.supporters.detail.host })).toHaveCount(1);
+  const events = page.getByRole("region", { name: supportersCopy.supporters.detail.eventsTitle, exact: false });
+  await expect(events.getByRole("row").filter({ hasText: supportersCopy.supporters.detail.host })).toHaveCount(1);
   // The events she registered for, not declined, or hosts, each once.
   const [count] = runSql(
     flowDatabase,
@@ -169,7 +171,7 @@ test("Event hosts", async ({ page, request, flowDatabase }) => {
   );
   const n = Number(count);
   await expect(page.locator("[class*=counts]").first()).toContainText(
-    `${n} ${staffCopy.supporters.detail.eventsCounted(n)}`,
+    `${n} ${supportersCopy.supporters.detail.eventsCounted(n)}`,
   );
   await frame(page, "Jane Fixture's page");
 });
@@ -342,14 +344,14 @@ test("In-person events by owner", async ({ page, flowDatabase }) => {
   await frame(page, "Every event to come, by owner");
 
   story("From Except, he leaves out Online. The calls and the welcome go, and the lists stay by owner.");
-  await page.getByRole("button", { name: staffCopy.filters.except }).click();
+  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
   const place = page
     .locator("[popover]:popover-open details")
     .filter({ has: page.locator("summary", { hasText: new RegExp(`^${copy.filters.place}$`) }) });
   await place.locator("summary").click();
   await place.getByRole("link", { name: copy.online, exact: true }).click();
   await expect(
-    page.getByRole("button", { name: staffCopy.filters.notChip(copy.filters.place, copy.online) }),
+    page.getByRole("button", { name: staffVocabulary.filters.notChip(copy.filters.place, copy.online) }),
   ).toBeVisible();
   await expect(page).toHaveURL(/group=owner/);
   await expect(page.getByRole("link", { name: "Scotland organisers' call" })).toHaveCount(0);
@@ -361,7 +363,7 @@ test("In-person events by owner", async ({ page, flowDatabase }) => {
   await page.getByRole("link", { name: copy.tabs.past }).click();
   await expect(eventList(page, /^joseph/).getByRole("link", { name: "Yesterday's pub social" })).toBeVisible();
   await expect(
-    page.getByRole("button", { name: staffCopy.filters.notChip(copy.filters.place, copy.online) }),
+    page.getByRole("button", { name: staffVocabulary.filters.notChip(copy.filters.place, copy.online) }),
   ).toBeVisible();
   await frame(page, "Past, by owner, without online events");
 });

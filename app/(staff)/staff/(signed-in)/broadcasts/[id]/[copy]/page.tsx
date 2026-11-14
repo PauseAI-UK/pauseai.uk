@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { messageCopy } from "@/lib/server/broadcast-pages";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { messageCopy } from "@/lib/broadcasts/pages.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { mailingId } from "@/lib/staff-search";
-import MessageCopyView from "../../../../_components/MessageCopyView";
+import MessageCopyView from "../../../../_components/broadcasts/MessageCopyView";
 import Page from "../../../../_components/ui/Page";
-import { answerReplyNow, dealWithReplyNow } from "../../../../broadcast-actions";
+import { answerReplyNow, dealWithReplyNow } from "../../../../_components/broadcasts/actions";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 type Params = { params: Promise<{ id: string; copy: string }> };
 
@@ -30,7 +30,7 @@ export default async function MessageCopyPage({ params }: Params) {
       kind="item"
       under="broadcasts"
       via={[{ href: `/staff/broadcasts/${one.messageId}`, label: one.title }]}
-      here={staffCopy.broadcastPages.copyCrumb(one.channel)}
+      here={broadcastsCopy.broadcastPages.copyCrumb(one.channel)}
     >
       <MessageCopyView one={one} actions={{ deal: dealWithReplyNow, answer: answerReplyNow }} />
     </Page>

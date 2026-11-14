@@ -3,7 +3,7 @@
 // headers, its body as a mail app shows it, and its attachments. A plain,
 // generic mail app, not Gmail or Outlook: it shows what was sent, not how
 // each app will draw it. Whether the HTML works in them is checked from its
-// code instead (lib/letter-format.test.ts).
+// code instead (lib/letters/format.test.ts).
 import type { OutboxEmail } from "@/lib/server/fixtures/outbox";
 
 const escape = (text: string) =>

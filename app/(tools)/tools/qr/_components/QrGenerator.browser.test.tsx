@@ -9,8 +9,8 @@ const { downloads, fonts } = vi.hoisted(() => ({
   downloads: { text: vi.fn(), png: vi.fn() },
   fonts: { fail: false },
 }));
-vi.mock("@/lib/collateral/export", async (importActual) => {
-  const actual = await importActual<typeof import("@/lib/collateral/export")>();
+vi.mock("@/lib/collateral/export.client", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/collateral/export.client")>();
   return {
     ...actual,
     downloadText: (...args: unknown[]) => downloads.text(...args),

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
-import { newBroadcastPageData } from "@/lib/server/broadcast-pages";
-import { requireStaff } from "@/lib/server/staff-auth";
-import ChannelWriter from "../../../_components/ChannelWriter";
+import { newBroadcastPageData } from "@/lib/broadcasts/pages.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import ChannelWriter from "../../../_components/broadcasts/ChannelWriter";
 import Page from "../../../_components/ui/Page";
-import { BroadcastWho } from "../../../_components/BroadcastFor";
-import { broadcastWriterActions } from "../writer-actions";
+import { BroadcastWho } from "../../../_components/broadcasts/BroadcastFor";
+import { broadcastWriterActions } from "../../../_components/broadcasts/writer-actions";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
-export const metadata: Metadata = { title: staffCopy.broadcastPages.newBroadcast };
+export const metadata: Metadata = { title: broadcastsCopy.broadcastPages.newBroadcast };
 
 /**
  * New broadcast: the writer, its Consent to choose first, which makes the
@@ -18,7 +18,7 @@ export default async function NewBroadcastPage() {
   const { email } = await requireStaff("supporters");
   const { draft, data } = await newBroadcastPageData(email);
   return (
-    <Page kind="form" under="broadcasts" here={staffCopy.broadcastPages.newBroadcast}>
+    <Page kind="form" under="broadcasts" here={broadcastsCopy.broadcastPages.newBroadcast}>
       <ChannelWriter
         fresh
         data={data}

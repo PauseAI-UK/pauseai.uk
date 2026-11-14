@@ -21,7 +21,7 @@ import { userInfo } from "node:os";
 // Playwright's loader, which the storyboard's fixtures import this through,
 // compiles to CommonJS.)
 const MIGRATIONS = join(process.cwd(), "netlify", "database", "migrations");
-const TEST_MPS = JSON.parse(readFileSync(join(process.cwd(), "lib", "test-mps.json"), "utf8"));
+const TEST_MPS = JSON.parse(readFileSync(join(process.cwd(), "lib", "politicians", "test-mps.json"), "utf8"));
 const FIXTURE_DATA = join(process.cwd(), "tests", "fixtures", "staff-data.sql");
 
 /** Whether a database URL points at this machine: localhost, or a Unix socket. */
@@ -185,7 +185,7 @@ export function resetDatabase(url, { singleTransaction = false, upTo } = {}) {
 }
 
 /**
- * Adds just the test MPs (lib/test-mps.json), with their statuses, as the
+ * Adds just the test MPs (lib/politicians/test-mps.json), with their statuses, as the
  * nightly sync would, for a database that needs no real MPs.
  */
 export function addTestMps(url, email) {
@@ -227,7 +227,7 @@ export function addFixtureData(url) {
   psql(url, "-1", "-f", FIXTURE_DATA);
 }
 
-/** The mailbox broadcasts go from and their replies come to (BROADCAST_SENDER in lib/broadcasts.ts). */
+/** The mailbox broadcasts go from and their replies come to (BROADCAST_SENDER in lib/broadcasts/broadcasts.ts). */
 const BROADCAST_MAILBOX = "hello@pauseai.uk";
 
 /**
@@ -242,7 +242,7 @@ export function connectBroadcastMailbox(url, key) {
  * Connects the fake Gmail of `email`, the letters inbox of a fixture build
  * (LETTERS_INBOX), as someone logged in as it would on /staff/me: a staff
  * account holding the fixture's refresh token for it, encrypted with `key`
- * (GMAIL_TOKEN_KEY) as lib/server/gmail-tokens.ts does, read from the fake
+ * (GMAIL_TOKEN_KEY) as lib/email/gmail-tokens.server.ts does, read from the fake
  * mailbox's first history ID, under the name `name`.
  */
 export function connectLettersInbox(url, email, key, name = "Letters") {

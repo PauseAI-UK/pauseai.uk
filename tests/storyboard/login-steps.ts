@@ -2,7 +2,7 @@
 // address, its account, and the fixture build's dev login. The staff-login
 // section logs in with the emailed link itself.
 import type { Page } from "@playwright/test";
-import { DEV_LOGIN_PATH, NEXT_PARAM } from "@/lib/staff-session";
+import { DEV_LOGIN_PATH, NEXT_PARAM } from "@/lib/accounts/session";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { BASE, test } from "./fixtures";
 

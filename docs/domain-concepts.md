@@ -4,7 +4,8 @@ The things the site's features are built from, and how far each is
 generalised. A new feature should use these, or grow one, rather than make
 its own: a new kind of email is a new purpose of the one email concept, not
 a second email system. The features themselves are listed in the README;
-where code goes and how it's written is in `docs/code-structure.md`.
+where their code goes and how it's written is in `docs/code-structure.md`,
+whose "Feature folders" says which staff feature holds each.
 
 Each section says what the concept is, where it lives, how to add another
 of its kind, and what it doesn't cover yet.
@@ -41,14 +42,14 @@ What a letter said is kept where we need it to do the job:
 
 Everyone we campaign at is a notable person (`notable_people`). For now
 they're all politicians: MPs, peers, MSPs, members of the Senedd and the Northern
-Ireland Assembly, and others (`HOUSES` in `lib/politician-filters.ts`).
+Ireland Assembly, and others (`HOUSES` in `lib/politicians/filters.ts`).
 
 A notable person has what all kinds share:
 
 - a name as they're known in public, with any title that's part of it
   ("Lord McFall of Alcluith");
 - a salutation, which follows "Dear" ("Sir Iain", "Lady Smith", "Bishop"):
-  made by a rule from what their body lists (`lib/salutation.ts`), which
+  made by a rule from what their body lists (`lib/politicians/salutation.ts`), which
   staff can correct. Where the rule can't tell, as for a new MSP or member
   of the Senedd whose gender Wikidata doesn't know yet, it's their name,
   marked to check (`salutation_to_check`), and made again once it can.
@@ -75,7 +76,7 @@ history stays.
 Where they come from:
 
 - **Each body's own list**, imported nightly
-  (`lib/server/politician-import.ts`): Parliament's, both Houses, from its
+  (`lib/politicians/imports.server.ts`): Parliament's, both Houses, from its
   Members Data Platform; the Scottish Parliament's, the Senedd's and the
   Northern Ireland Assembly's, from their open data. Each politician keeps
   the ID their body gives them (`politicians.official_id`; the Commons and
@@ -94,12 +95,12 @@ Where they come from:
   the one the body lists only once the body stops listing it. The House of
   Lords' shared inbox, which most Lords list as their only address, is never
   anyone's: a check constraint refuses it (`SHARED_INBOXES` in
-  `lib/one-off.ts`). Staff set a Lord's email by hand.
+  `lib/letters/one-off.ts`). Staff set a Lord's email by hand.
 - **Airtable's UK Parliamentarians**, which the policy team kept, is no
   longer read. Its salutations, markers and notes were copied before then;
   each politician who was in it keeps their record's ID (`airtable_id`).
   Nobody is deleted: a politician who leaves their body is marked as left.
-- **Test MPs** are fixed, each found by a test postcode (`lib/test-mps.json`,
+- **Test MPs** are fixed, each found by a test postcode (`lib/politicians/test-mps.json`,
   ZZ99Z\*) and each standing for one case: an ordinary MP, one who has
   signed, one with no email, one whose email bounces. A new case that a
   person would see gets a new test MP.
@@ -109,7 +110,7 @@ else would need a way to find them (a region for an MSP, a list for peers).
 
 The politicians list and the top of a politician's page count their emails
 each way. Both show the same two numbers, counted in SQL for every
-politician at once (`lib/server/politician-email-counts.ts`):
+politician at once (`lib/politicians/email-counts.server.ts`):
 
 - **Emails to them**: the letters to them that went, supporters' and
   PauseAI's, and each message on their one-off threads ("One-off emails",
@@ -125,7 +126,7 @@ The list sorts by them as `sort=emailsToThem` and `sort=emailsFromThem`.
 
 The list's First activity and Last activity are the first and last time we
 did something with a politician, or they with us (`POLITICIAN_ACTIVITY` in
-`lib/server/politicians.ts`): a letter written to them, their reply to one,
+`lib/politicians/records.server.ts`): a letter written to them, their reply to one,
 their answer to an ask, on the day it was given if we know it, or a one-off
 message that counts as an email to them or from them, above. So someone
 whose only contact is a one-off thread has both dates, and the sort by
@@ -134,7 +135,7 @@ either finds them.
 ## Asks
 
 Something we ask notable people to do whose answer we record: sign a
-letter, come to an event (`asks`, `lib/asks.ts`). Each has a slug, a title,
+letter, come to an event (`asks`, `lib/asks/asks.ts`). Each has a slug, a title,
 a kind (`letter` or `event`), a date, a link to the letter or the
 event, and who asks it. That's one or more of:
 
@@ -150,7 +151,7 @@ within these rules:
 - The kind is fixed once anyone has answered.
 - An ask can be deleted only while no answer, campaign or mailing refers to
   it.
-- The asks `lib/asks.ts` names (`NAMED_ASKS`: the Frontier AI letter and
+- The asks `lib/asks/asks.ts` names (`NAMED_ASKS`: the Frontier AI letter and
   ControlAI's letter) can be changed there but never deleted, as campaigns,
   the public list of signatories and the ControlAI import depend on them.
 
@@ -166,10 +167,10 @@ refuses any status not in that table, and a new status is a row there.
 Staff set statuses by hand, with a note, for every ask but two, which
 imports set from controlai.org (`IMPORTED_ASKS`, `updated_by` `controlai`):
 ControlAI's letter to the Prime Minister, from the names in its PDF
-(`lib/server/controlai-import.ts`), and its UK campaign statement, from its
+(`lib/jobs/controlai-import.server.ts`), and its UK campaign statement, from its
 page's links to each supporter's page on their body's site, by the ID their
 body gives them or the name in the page's address
-(`lib/server/controlai-statement-import.ts`). As every sitting politician is
+(`lib/jobs/controlai-statement-import.server.ts`). As every sitting politician is
 on our list, a link the statement's import matches to no one is a problem of
 its run. Statuses with `updated_by` `airtable` were copied from Airtable's
 records before the site kept answers itself. Staff change them like any
@@ -203,7 +204,7 @@ in `app/(site)/campaigns/<slug>/`, and a link in the nav.
 Staff see a campaign as a mailing, from supporters rather than PauseAI.
 `/staff/campaigns` lists them under the month of each one's most recent
 letter, with a mailing's counts. A campaign's page
-(`/staff/campaigns/[slug]`, `lib/server/campaigns.ts`) has:
+(`/staff/campaigns/[slug]`, `lib/mailings/campaigns.server.ts`) has:
 
 - its header;
 - how many answered its ask;
@@ -235,7 +236,7 @@ row adds what its kind has, joined as notable people are:
   - **Letters sent by Postmark**, each from an address of its own on
     `letters.pauseai.uk` (`postmark_mailbox`), with the sender on Cc. A
     reply to that address is forwarded to the sender and the policy
-    team (`forwardReply`, `lib/server/postmark-webhooks.ts`). A person's reply
+    team (`forwardReply`, `lib/letters/inbound.server.ts`). A person's reply
     is also kept whole on the letter, as one read from Gmail is. It's kept
     from the whole message, which Postmark's inbound webhook carries when
     the server has `RawEmailEnabled` on. The kept reply's account is the
@@ -260,17 +261,17 @@ row adds what its kind has, joined as notable people are:
   named by `mailings.airtable_field`, or with no box, the dates it was sent
   in (`airtable_sent_between`).
 
-  A mailing written on the site (`lib/server/mailing-drafts.ts`) is a
+  A mailing written on the site (`lib/mailings/drafts.server.ts`) is a
   draft from the moment New mailing is pressed. A draft holds:
   - The politicians ticked for it on the politicians list, by ID
     (`StoredFilter`'s `picked`). That's a fixed list, which a later
     by-election doesn't change. When everyone a filter found was ticked, the
     draft also keeps that filter, the day and who it found, so the mailing
     can say who it's to as that group, plus or minus a few
-    (`lib/mailing-picks.ts`). A draft made before ticks holds the list's
+    (`lib/mailings/picks.ts`). A draft made before ticks holds the list's
     filter instead, as its URL parameters, until its first tick.
   - Its letter, a document with merge fields and parts only some
-    recipients get (`lib/mailing-doc.ts`).
+    recipients get (`lib/mailings/doc.ts`).
 
   A draft is saved with a version number until it's scheduled. Scheduling
   fixes its recipients: each gets a scheduled PauseAI letter, which keeps
@@ -281,15 +282,15 @@ A letter's ask is its campaign's or its mailing's, never its own.
 
 **A letter's history** is its events, shown on its page newest first,
 each with what it recorded (`historyOf` and `LetterHistory` in
-`app/(staff)/staff/_components/LetterHistory.tsx`; how they're laid out
+`app/(staff)/staff/_components/letters/LetterHistory.tsx`; how they're laid out
 is in `docs/style-guide.md`, "A history").
 
 ### Letters through the letters inbox
 
 Supporters' letters go to MPs from the letters inbox, a Gmail account used
-for nothing else (`LETTERS_INBOX`, `lib/server/letters-inbox.ts`). Each
+for nothing else (`LETTERS_INBOX`, `lib/letters/letters-inbox.server.ts`). Each
 side sees the other only as a proxy, a plus address on the inbox
-(`proxies`, `lib/server/proxies.ts`):
+(`proxies`, `lib/letters/proxies.server.ts`):
 
 - the MP gets the letter from
   `"Jane Smith (via PauseAI)" <letters+jane.smith@…>`;
@@ -301,7 +302,7 @@ keyed by their email address, so it's the same in every letter, and it's
 named from the name on their first letter. An MP's proxy is named the first
 time they're written to, and kept.
 
-- **Sending** (`lib/server/mp-letters.ts`, `letter-sending.ts`): a letter
+- **Sending** (`app/api/email-your-mp/letters/mp-letters.server.ts`, `lib/letters/sending.server.ts`): a letter
   that passes the form's checks is kept, `queued`, and never deleted for
   failing to send. The request tries to send at once, in two steps:
   1. The letter, from the supporter's proxy to the MP alone.
@@ -322,8 +323,8 @@ time they're written to, and kept.
   of its words that are the supporter's own. Its page shows only what they
   changed, with the paragraphs they left alone folded (`LetterChanges`).
 
-- **Reading and relaying** (`lib/server/letters-inbox-reading.ts`,
-  `relays.ts`): `read-gmail`, every 5 minutes, reads the letters inbox, Spam
+- **Reading and relaying** (`lib/letters/letters-inbox-reading.server.ts`,
+  `relays.server.ts`): `read-gmail`, every 5 minutes, reads the letters inbox, Spam
   included, as all of its mail is ours. What it relays:
   - A message from the MP's office (Parliament's domain, or the address the
     letter went to) to the supporter's proxy goes to the supporter from the
@@ -381,7 +382,7 @@ time they're written to, and kept.
   their address and holds later relays to them, in case staff unblock it.
   A day on, if a relay is still held, the MP's office is told once that it
   can't be passed on, from the supporter's proxy in the thread of their
-  reply (`lib/server/held-replies.ts`).
+  reply (`lib/letters/held-replies.server.ts`).
 
   A soft bounce is only noted.
 
@@ -431,12 +432,12 @@ The principles:
   went (an earlier opt-out, a blocked address, no address) is grey, not
   red. Red is for what this send itself broke or caused.
 
-The states, their colours and their words are one set (`lib/copy-states.ts`,
-`staffCopy.copyStates`), and each copy's tag and the counts come from it
+The states, their colours and their words are one set (`lib/letters/copy-states.ts`,
+`mailingsCopy.copyStates`), and each copy's tag and the counts come from it
 (`CopyStatus.tsx` and `CopyCounts.tsx` in
-`app/(staff)/staff/_components/`). Each kind adds its own: a broadcast's
+`app/(staff)/staff/_components/mailings/`). Each kind adds its own: a broadcast's
 copies are delivered, read, opted out or to check, worked out in
-`lib/server/broadcast-pages.ts`; a letter is answered or marked spam, and
+`lib/broadcasts/pages.server.ts`; a letter is answered or marked spam, and
 has no "to check", as nothing marks a reply to it dealt with. A letter's
 state is worked out twice, in TypeScript for its tag wherever it's shown
 (`letterState`) and in SQL for counting and listing by state
@@ -457,7 +458,7 @@ job all leave broadcasts out.
 
 - **Channel and topic.** A broadcast has one channel and one topic, which
   together are its Consent: one topic, answered yes (`broadcastTerms` in
-  `lib/broadcasts.ts`). "Not sure" isn't enough. One more choice goes to
+  `lib/broadcasts/broadcasts.ts`). "Not sure" isn't enough. One more choice goes to
   the newsletter's and events' yeses both ("Newsletter or events only",
   `alsoEvents`), as only an event invitation suits both: it can't be
   scheduled until staff tick that it's about our events. A draft is made in two
@@ -480,7 +481,7 @@ job all leave broadcasts out.
 
   Scheduling doesn't fix who a broadcast goes to. Sending finds them when
   it starts: those the filter finds whom `contact_permission()` says yes
-  for (`lib/server/broadcast-recipients.ts`), with a row of
+  for (`lib/broadcasts/recipients.server.ts`), with a row of
   `broadcast_messages` for each. So it reaches whoever the filters find
   then. Until it's sent, the list of broadcasts and the broadcast's page
   count who the filters find now.
@@ -510,11 +511,11 @@ job all leave broadcasts out.
   draft is as it was, and says so. Withdrawn, they're deleted there too.
   WhatsApp's decision comes by its webhook, and each run of the sending asks
   it too while a template waits or a text is to go, in case a webhook went
-  astray (`lib/server/whatsapp-templates.ts`). A rejection is put in plain
+  astray (`lib/broadcasts/whatsapp-templates.server.ts`). A rejection is put in plain
   words with what to do. Once approved, WhatsApp can pause or disable a
   template for its quality, which stops every text on it (`wait_reason`
   `template`), and approve it again.
-- **Sending** (`lib/server/broadcast-sending.ts`). The 15-minute
+- **Sending** (`lib/broadcasts/sending.server.ts`). The 15-minute
   `send-mailings` run starts each broadcast that's due, as it does
   mailings, none overnight: a copy for each it goes to then, once to each
   address, with the topics whose yes it goes under and the Message-ID it
@@ -534,7 +535,7 @@ job all leave broadcasts out.
   no time left for are put back, as are the rest when the channel answers that
   it can't send for now. Some of those pass by themselves: Gmail or
   Postmark busy, down, or at a limit or quota (`REFUSED_FOR_NOW` in
-  `lib/server/email.ts`), as Gmail's daily sending limit, which can last
+  `lib/email/email.server.ts`), as Gmail's daily sending limit, which can last
   most of a day; WhatsApp too fast, our number limited, the template
   paused, or WhatsApp unavailable (`WHATSAPP_ERRORS.later`). Others last
   till someone fixes the account (`fixNeeded`): its credentials refused or
@@ -563,9 +564,9 @@ job all leave broadcasts out.
   are left, the run starts the background function as letters do ("Mailings
   to politicians"). Each channel has a sender, and one loop sends by either.
 - **What sends a text**: WhatsApp's Cloud API
-  (`lib/server/outside-services/whatsapp.ts`), from our number, read from
+  (`lib/server/outside-services/whatsapp.server.ts`), from our number, read from
   the WhatsApp account, where its keys are set: on the live site alone, and
-  a fixture build's fake (`lib/server/broadcast-channels.ts`). Anywhere
+  a fixture build's fake (`lib/broadcasts/channels.server.ts`). Anywhere
   else nothing sends a text, so scheduling one is refused and the pages say
   so. A copy is the text's template, its fields filled in for the person.
   Before a copy goes, its number is checked with CiviCRM's
@@ -584,9 +585,9 @@ job all leave broadcasts out.
   they've had enough marketing messages lately, when it's held a day
   (`not_before`).
 - **What sends an email** (`mailings.send_by`; `BROADCAST_SEND_BY` in
-  `lib/broadcasts.ts`). An email is always from `hello@pauseai.uk`
+  `lib/broadcasts/broadcasts.ts`). An email is always from `hello@pauseai.uk`
   (`BROADCAST_SENDER`), where its replies are read. It goes by one of the
-  channels mailings go by (`lib/server/mailing-channels.ts`), through
+  channels mailings go by (`lib/mailings/channels.server.ts`), through
   `send()`, to its supporter by name, or to their address alone if they
   have none, with its files, its unsubscribe link at its foot and in its
   `List-Unsubscribe` and `List-Unsubscribe-Post` headers:
@@ -611,7 +612,7 @@ job all leave broadcasts out.
 - **Stopping.** A broadcast that has waited for CiviCRM for three days
   (`WAIT_DAYS`), from when it first couldn't go, whether at its time or
   days into sending, or one still sending, at a day's limit of emails, seven
-  days after its time (`SENDING_DAYS`, both in `lib/broadcast-days.ts`, which the
+  days after its time (`SENDING_DAYS`, both in `lib/broadcasts/days.ts`, which the
   pages' words take their numbers from), stops: its copies not yet gone
   are cancelled, and whoever scheduled it and the notification inbox are
   emailed why and how many it didn't reach (`wait_reason`: `civicrm`,
@@ -629,9 +630,10 @@ job all leave broadcasts out.
   copies likeliest to fail again can't stop it before the rest have gone.
 - **What Postmark reports**, of a copy it sent. Its delivery webhook marks a copy delivered;
   a hard bounce marks it failed and blocks the address; a spam complaint is
-  an opt-out of every bulk email (`lib/server/delivery-problems.ts`).
+  an opt-out of every bulk email (`lib/broadcasts/bounces.server.ts`, and
+  `optOutOnComplaint` in `lib/supporters/opt-outs.server.ts`).
 - **What WhatsApp reports**, by its webhook, `/api/whatsapp`, signed with
-  the Meta app's secret (`lib/server/whatsapp-webhooks.ts`): each text
+  the Meta app's secret (`lib/broadcasts/whatsapp-webhooks.server.ts`): each text
   delivered, read or failed; a message to us, which answers the text it
   quotes, or else the newest sent to that number, and is kept as a reply,
   or is a stop of the topics that text went under if it says "stop" or
@@ -643,7 +645,7 @@ job all leave broadcasts out.
   decided of a template, or its category; and anything about our number's
   quality or limit, a template's quality or our account, emailed to the
   notification inbox. Each is applied once, however often it's sent.
-- **Replies** (`lib/server/broadcast-replies.ts`). The read of each
+- **Replies** (`lib/broadcasts/replies.server.ts`). The read of each
   connected Gmail matches a reply to its copy by the Message-ID it went
   with, before anything else in the mailbox sees it, and keeps it whole
   (`broadcast_replies`, the message in Netlify Blobs). A person's reply
@@ -654,7 +656,7 @@ job all leave broadcasts out.
   amber, which come first among its recipients; the staff home says how
   many wait. A message from the mailbox's own address in the thread is an
   answer of ours sent from its Gmail, and isn't kept as a reply.
-- **Answers** (`lib/server/broadcast-answers.ts`). Staff answer a reply on
+- **Answers** (`lib/broadcasts/answers.server.ts`). Staff answer a reply on
   its Thread page: Reply, first of its buttons, opens a draft after it,
   which Send reply or Cmd+Enter (Ctrl+Enter off a Mac) sends. It goes by Gmail
   from the mailbox the reply came to, as the broadcast's name, in the
@@ -683,7 +685,7 @@ letter at a time, as if they'd written each. It has no unsubscribe link and
 no consent check, as it's to public figures in their public role.
 
 Each staff member connects their own Gmail on their page (`/staff/me`,
-`lib/server/gmail-accounts.ts`). A mailing's Sent from links there while
+`lib/email/gmail-accounts.server.ts`). A mailing's Sent from links there while
 their Gmail isn't connected. Once a Gmail is connected, any staff member can
 send a mailing from it. The Google Cloud project's consent screen is
 Internal, so only accounts in PauseAI's Google Workspace, pauseai.info's as
@@ -703,7 +705,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   most 1,800 a day from an account, counting every mailing
   (`GMAIL_DAILY_LIMIT`). That's under Gmail's 2,000, so the person's own
   email still goes.
-- **Sending** (`lib/server/mailing-sending.ts`): the `send-mailings`
+- **Sending** (`lib/mailings/sending.server.ts`): the `send-mailings`
   job, at 3, 18, 33 and 48 minutes past every hour, starts each scheduled
   mailing that's due. It starts none before 06:03 UTC. A mailing's time is
   one of those runs, chosen by its hour and minutes (`SENDING` in
@@ -725,7 +727,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   letters inbox.
 
 - **A run that stops while sending** (`uncertainLetters` in
-  `lib/server/letter-sending.ts`): a letter (of a mailing or from the
+  `lib/letters/sending.server.ts`): a letter (of a mailing or from the
   letters inbox) or a supporter's copy is marked sending when a run takes
   it (`taken_at`, `copy_taken_at`), and sent once it has gone. A run that
   stops between the two leaves it sending. At the start of the next
@@ -742,7 +744,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   letter's own copy in Sent is also known by Gmail's ID for it, and a bounce
   that names no letter we know is matched by the Gmail thread it's in.
   `send()` takes a backend: Postmark, or a connected Gmail.
-- **Reading** (`lib/server/gmail-reading.ts`): the `read-gmail` job, every
+- **Reading** (`lib/jobs/gmail-reading.server.ts`): the `read-gmail` job, every
   5 minutes, lists each mailbox's new messages since the last `historyId`,
   and fetches only their reply headers. It fetches whole only the messages
   in our letters' threads, and bounces. What it does with each:
@@ -764,7 +766,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   A Gmail thread is in one place. Once a message of it is on a letter, every
   other message in it is the letter's too, whoever wrote it, and any kept as
   a one-off email moves onto the letter (`claimOneOffs`,
-  `lib/server/letter-replies.ts`). Moving a message adds nothing to the
+  `lib/letters/replies.server.ts`). Moving a message adds nothing to the
   letter's history, but for an automatic reply's event.
 
   Each run is in the import log, with what it found in each account, and
@@ -774,7 +776,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   (`/staff/mailings/<id>/letters/<letter>`), reached from the politician's
   history and the mailing's recipients. A letter whose text the page
   doesn't have, one copied from Airtable, has Copy Gmail search in its
-  place (`lib/letter-links.ts`): a search for the letter by its
+  place (`lib/letters/links.ts`): a search for the letter by its
   Message-ID, to paste into Gmail wherever the mailbox it went from can be
   seen, a delegate's view included. It's a search because Gmail has no
   link into a delegated mailbox. A supporter's letter's page has the same. For a letter
@@ -813,20 +815,20 @@ letters, and the rest as one-off emails.
 
 Threads with a politician that aren't a letter of a campaign or mailing: Joseph's
 own emails, a volunteer copying policy@, an MP writing to us.
-`lib/server/one-off-emails.ts` keeps each message whole, in Netlify Blobs with a
+`lib/letters/one-off-emails.server.ts` keeps each message whole, in Netlify Blobs with a
 row in `one_off_messages`, in its thread (`one_off_threads`). Staff read them, and
 can't change them, on Correspondence (`/staff/emails`), in the navigation under
 Politicians, and on the politician's and the supporter's pages. On Correspondence,
 staff without `supporters` don't see supporters' letters or a thread with someone
 else in it.
 
-- **What counts** (`lib/one-off.ts`): a message counts if it has:
+- **What counts** (`lib/letters/one-off.ts`): a message counts if it has:
   - an address a politician has or has had (past ones come from the audit log);
   - an address on a politician's own domain; or
   - an address on a parliament's domain.
 
   Whose it is, the politicians a thread shows under, goes by the politician book
-  (`lib/server/politician-book.ts`). An address is a politician's if it's:
+  (`lib/letters/book.server.ts`). An address is a politician's if it's:
   - their email, or one they had;
   - one in `politician_addresses`: listed for them by their body, added by
     staff (such as a personal Gmail), or their office's;
@@ -849,7 +851,7 @@ else in it.
   such as their caseworker's. Relinking works these out again each time, by the
   book without them.
 
-- **Relinking** (`lib/server/one-off-relink.ts`) works out every thread's
+- **Relinking** (`lib/letters/one-off-relink.server.ts`) works out every thread's
   politicians afresh from its messages' addresses, the addresses and names they
   quote, and the book as it is, and whether it has someone else in it. It runs
   at the end of each body's import (and its button), and when staff add or
@@ -861,7 +863,7 @@ else in it.
   the House of Lords' shared inbox, which the House forwards to the Lord its
   subject names ("For Baroness Verma: …"), links that Lord, when the name is
   one sitting Lord's, with or without their territorial part (`lordFor`,
-  `lordNamed` in `lib/one-off.ts`); a name that's no one's, or more than one
+  `lordNamed` in `lib/letters/one-off.ts`); a name that's no one's, or more than one
   Lord's, links no one.
 
 - **Aliases.** A politician's email, in the band at the top of their page,
@@ -935,7 +937,7 @@ entry's `created_at`.
 A public form that takes an email address must check one of two things:
 
 - that a person is filling it in, with Turnstile, as the letter form has
-  (`lib/server/outside-services/turnstile.ts`); or
+  (`lib/server/outside-services/turnstile.server.ts`); or
 - that the address is theirs, with a link emailed to it that must be clicked
   before the entry counts.
 
@@ -960,7 +962,7 @@ the import did for that person as it did it:
 The import's where collected is the entry's line in a supporter's history, and
 the import's own page is under Past imports.
 
-`lib/signup-upload.ts` reads the file. It's liberal about separators, encodings,
+`lib/supporters/signup-csv.ts` reads the file. It's liberal about separators, encodings,
 how a heading is spelt and ways of saying yes, and about nothing else. A column
 whose heading isn't on its list is ignored, so a doubt in a file is settled
 before it's imported. A row is held back, with nothing kept, if it has:
@@ -993,7 +995,7 @@ Records are matched by trimmed, lowercased email and nothing more, so
 name, email, phone or place of its own: those come from the linked
 records, newest first.
 
-`linkSupporters()` (`lib/server/supporters.ts`) only adds links. It runs at
+`linkSupporters()` (`lib/supporters/records.server.ts`) only adds links. It runs at
 the end of each Luma and CiviCRM import and when a form entry is kept, and
 it's set-based, so running it again does nothing. Then supporters who gave
 the same UK mobile number (`+447…` as `phone_number()` writes it) are made
@@ -1003,7 +1005,7 @@ newer. `supporter_merges` keeps the deleted one's ID, so its old page,
 `/staff/supporters/<id>`, redirects to the supporter it went into. Landlines
 and numbers abroad aren't matched, as households and offices share them.
 
-Each source (`lib/server/supporter-sources.ts`) gives three views in one
+Each source (`lib/supporters/sources.server.ts`) gives three views in one
 shape, made in the migrations:
 
 - `supporter_source_<name>` (`source_id`, `email`, `name`, `seen_at`), for
@@ -1030,7 +1032,7 @@ supporter's own page is always as they are now.
 
 When a supporter was first seen is the earliest `seen_at` of their records
 (`supporter_first_seen`). `refreshSupporterFacts()`
-(`lib/server/supporter-facts.ts`), which `linkSupporters()` runs, keeps it
+(`lib/supporters/facts.server.ts`), which `linkSupporters()` runs, keeps it
 on the supporter (`supporters.first_seen_at`). So the staff home counts new
 supporters by it without working it out each time.
 
@@ -1040,7 +1042,7 @@ their blocked addresses) is an audit log entry.
 
 Where they come from:
 
-- **Luma.** The import (`lib/server/luma-import.ts`) runs every 5 minutes
+- **Luma.** The import (`lib/events/luma-import.server.ts`) runs every 5 minutes
   and copies:
   - every public event on our calendar, into `luma_events`;
   - each registered guest, into `luma_guests` (phone, a postcode answer,
@@ -1066,7 +1068,7 @@ Where they come from:
 
   The import is the one thing that changes Luma's calendar, and only on
   production. An upcoming event with no tags gets the calendar's tags that
-  its name, city and region clearly say (`lib/event-tags.ts`). Where they
+  its name, city and region clearly say (`lib/events/tags.ts`). Where they
   don't, the notification inbox is asked, once. The import makes no new
   tags.
 
@@ -1098,7 +1100,7 @@ they have:
 3. the newest event they registered for that isn't a big day or online.
 
 Each postcode and town is looked up at postcodes.io once, at the end of each
-Luma import (`lib/server/supporter-places.ts`), and a big import catches up
+Luma import (`lib/supporters/places.server.ts`), and a big import catches up
 over a few runs. Postcodes are kept in `postcode_places`, each with its
 constituency, and towns in `named_places`. A postcode's first half alone
 ("SE15") says roughly where someone is but not their constituency, so it
@@ -1106,10 +1108,10 @@ gives no MP.
 
 The list's Near filter reads the place. A supporter's MP is the one for
 their postcode's constituency. The supporter's page shows the cities they
-gave (`givenPlaces()` in `lib/supporter-place.ts`).
+gave (`givenPlaces()` in `lib/supporters/given-places.ts`).
 
 **Erasure.** When someone asks to be forgotten, staff erase the supporter
-from their page (`lib/server/erasure.ts`), under the request's reference.
+from their page (`lib/erasure/erase.server.ts`), under the request's reference.
 For each source, what that source holds goes:
 
 - A form entry, with its letter, the letter's events and the copies of
@@ -1152,7 +1154,7 @@ Our events are Luma's, as the import copies them every 5 minutes
 (`luma_events`). The staff interface's events page (`/staff/events`) lists
 our own as a table on two tabs: Future, soonest first, and Past, latest
 first. The table says how many are going, and is sorted and filtered there
-(`lib/staff-events-list.ts`). An event is still to come until midnight in
+(`lib/events/list.ts`). An event is still to come until midnight in
 London on its day, however late it began (`stillToCome()`), so it's on
 Future all that day.
 
@@ -1173,7 +1175,7 @@ it. For a host found on the event's first read, it's dated when the event
 was made on Luma, as Luma doesn't say when someone became a host.
 
 Each event can have one owner on staff
-(`event_owners`, `lib/server/staff-events.ts`), kept apart from
+(`event_owners`, `lib/events/staff-events.server.ts`), kept apart from
 `luma_events` as only the import writes that. Any staff member can make
 anyone with a staff account an event's owner, from the page, but can't
 take an owner away. One email goes to the new owner, whoever chose them,
@@ -1181,7 +1183,7 @@ copied to the owner before. It says who gave the event to them and from
 whom, and the page says whom it emailed.
 
 At the end of each import, every event still to come with no owner gets one
-by the rules in `lib/event-owners.ts`, written there for now: by the place
+by the rules in `lib/events/owners.ts`, written there for now: by the place
 in its city or Luma tags, or else a default owner. Each owner is emailed
 once, listing the events they were given. Someone the rules name who has no
 staff account gets nothing. The event then stays with no owner, and the page
@@ -1197,7 +1199,7 @@ who changed it.
 ## Opt-outs
 
 Each time an address or number stopped a topic by a way, and when it
-opted back in, if it has (`opt_outs`, `lib/server/opt-outs.ts`). Keyed by
+opted back in, if it has (`opt_outs`, `lib/supporters/opt-outs.server.ts`). Keyed by
 address, not supporter, because an unsubscribe can arrive before we know
 whose address it is; the supporter pages join it to every address a
 supporter has. An address is opted out of a topic by a way while it has an
@@ -1207,7 +1209,7 @@ address has one opt-out in force for each whoever reported it, and its
 source says who did. Three things tell us:
 
 - Luma's `calendar.person.unsubscribed` webhook (`/api/luma/webhook`,
-  `lib/server/luma-webhooks.ts`), at once, keyed by Luma's `Webhook-Id`
+  `lib/events/luma-webhooks.server.ts`), at once, keyed by Luma's `Webhook-Id`
   so a redelivery changes nothing: a stop to events by email, as the
   calendar's emails are about events. Luma doesn't say whether it was an
   unsubscribe, a block or a spam report. `calendar.person.subscribed`
@@ -1260,7 +1262,7 @@ box unticked isn't one, nor is CiviCRM's `not_opted_in`: neither undoes a
 yes from another source.
 
 Each opt-out of ours that CiviCRM takes goes to its `updateSubscriptions`
-too (`lib/server/civicrm-updates.ts`), so Global's records and mail honour
+too (`lib/supporters/civicrm-updates.server.ts`), so Global's records and mail honour
 it: the newsletter by email as an unsubscribe from `newsletter`,
 volunteering by email from `volunteer_updates`, and every bulk email as
 `no_bulk_email`. One CiviCRM told us of doesn't go back, and events, or a
@@ -1275,7 +1277,7 @@ A new source is a name in the `CHECK` on `source`, and whatever records it.
 
 ### The contact preferences page
 
-`/contact-preferences` (`lib/server/email-settings.ts`) is where anyone sees and
+`/contact-preferences` (`lib/supporters/email-settings.server.ts`) is where anyone sees and
 changes what PauseAI UK sends them, and why. Someone asks for a link by
 their address, past Turnstile; one goes only to an address we have, after
 the page has answered, and the page says the same either way, so neither
@@ -1315,8 +1317,8 @@ email.
 ### CiviCRM
 
 Global's CRM, CiviCRM, is one of our sources (`civicrm_contacts`,
-`lib/server/civicrm-import.ts`): every UK chapter contact its chapter
-contacts API returns (`lib/server/outside-services/civicrm.ts`, with
+`lib/jobs/civicrm-import.server.ts`): every UK chapter contact its chapter
+contacts API returns (`lib/server/outside-services/civicrm.server.ts`, with
 `CIVICRM_CHAPTER_KEY`;
 [its spec](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md)
 is in PauseAI/pauseai-civicrm, which is private), as it told us. The hourly import pulls them all, 500 a page by
@@ -1359,12 +1361,12 @@ number about each topic by each way, and why: `contact_permission()`
 explained), read through the `email_permissions` and `phone_permissions`
 views and `contact_permissions`, both of them. Everything that asks reads
 those: the supporter's page and the list's Consent, Email and Phone
-columns, through `permissionsFor()` in `lib/server/contact-permissions.ts`;
+columns, through `permissionsFor()` in `lib/supporters/permissions-for.server.ts`;
 the list's Consent filter; and who a broadcast goes to. Their stops are
 read through the `contact_unsubscribes` view, by the list's Unsubscribed
 filter and the staff home's count of new opt-outs. Nothing else reads `opt_outs` to answer it, and
 `tests/checks/opt-outs.test.ts` fails if code outside
-`lib/server/opt-outs.ts` and erasure does.
+`lib/supporters/opt-outs.server.ts` and erasure does.
 
 An address or a number does two jobs, kept apart. It says which records
 are one person, so every one is kept and shown, whatever its answers. And
@@ -1373,7 +1375,7 @@ consent and one address, so someone who gave Luma one number and the join
 form another has an answer for each.
 
 A consent is a topic, what we'd send, by a way (`CONSENTS` in
-`lib/contact-permissions.ts`): email to an address, or a text (WhatsApp too)
+`lib/supporters/contact-permissions.ts`): email to an address, or a text (WhatsApp too)
 or a call to a number. The topics:
 
 - **Newsletter**, the PauseAI UK newsletter, which includes events: a box
@@ -1418,7 +1420,7 @@ before they go.
 
 ## Email
 
-Everything the site sends, to anyone (`lib/server/email.ts`). Every email
+Everything the site sends, to anyone (`lib/email/email.server.ts`). Every email
 goes through `send()` with its purpose: `letter`, `letter-copy`, `relay`,
 `supporter-notice`, `office-notice`, `forwarded-reply`, `staff-login`,
 `staff-alert`, `staff-report`, `mailing`, `mailing-test`, `broadcast`,
@@ -1435,13 +1437,13 @@ a fixed-width font or in lines broken at a set width. A letter, its copy and
 a mailing, and an answer to a reply, have HTML of their own, from the
 editor's document. For any other,
 written only as text (a notice, a login link, an alert), `send()` makes it
-from the text (`lib/plain-email-html.ts`): a paragraph for each block of
+from the text (`lib/email/plain-email-html.ts`): a paragraph for each block of
 lines, a bulleted list of lines that start "- ", each web address a link.
 The text itself goes unchanged beside it. Postmark is told to leave those links as
 written (`TrackLinks`), so a login link never goes through Postmark's
 address. A relay is its sender's message, as it came.
 
-Admins read the log at `/staff/sent-emails` (`lib/server/sent-emails.ts`), a
+Admins read the log at `/staff/sent-emails` (`lib/oversight/sent-emails.server.ts`), a
 page with no visible heading, as the menu names it. A row shows:
 
 - someone outside PauseAI by their name, linked to their page. They're
@@ -1457,30 +1459,30 @@ the kinds with no supporter's details on them
 Every address an email is to, Cc'd or Bcc'd to has a name with it: the
 person's own name on their own address, `"Jane Smith"
 <jane.smith@example.com>`, and their name with "(via PauseAI)" on a proxy
-(`nameLine` and `proxyLine` in `lib/server/proxies.ts`). The exception is
+(`nameLine` and `proxyLine` in `lib/letters/proxies.server.ts`). The exception is
 staff: we don't know a staff account's name, nor a shared inbox's, so a
 login link, an alert or an event owner's email goes to the address alone.
 
 When something needs a person, the site emails the notification inbox,
-`NOTIFICATION_INBOX` (`notifyStaff` in `lib/server/notifications.ts`), once
+`NOTIFICATION_INBOX` (`notifyStaff` in `lib/email/notifications.server.ts`), once
 each time it happens, with a link to where to deal with it:
 
 - an MP's address bouncing a letter or relay, or anything else blocking the
-  address of a politician in office (`lib/server/delivery-problems.ts`);
+  address of a politician in office (`lib/email/delivery-problems.server.ts`);
 - once a day at most, the politicians in office whose addresses bounced a
   mailing's letter, or complained of it, since the last (`reportMailingBounces`);
-- mail in the letters inbox it can't relay (`lib/server/gmail-reading.ts`);
+- mail in the letters inbox it can't relay (`lib/jobs/gmail-reading.server.ts`);
 - a job failing, or having a problem, that its run before didn't (`alertIfNew` in
-  `lib/server/import-runs.ts`; "Imports", below);
+  `lib/server/import-runs.server.ts`; "Imports", below);
 - a Gmail account the read every 5 minutes couldn't read, after a run that could
-  (`lib/server/gmail-reading.ts`); one Google disconnected has its own;
-- a body's import held, when none was (`lib/server/politician-import.ts`);
-- Google disconnecting a Gmail account (`lib/server/gmail-accounts.ts`);
+  (`lib/jobs/gmail-reading.server.ts`); one Google disconnected has its own;
+- a body's import held, when none was (`lib/politicians/imports.server.ts`);
+- Google disconnecting a Gmail account (`lib/email/gmail-accounts.server.ts`);
 - letters to MPs waiting over three hours to go, until those it named
-  have gone (`LATE_HOURS` in `lib/server/letter-sending.ts`);
+  have gone (`LATE_HOURS` in `lib/letters/sending.server.ts`);
 - once a day at most, a report of the supporters' copies that bounced
   since the last, each address's domain and what its server said, and
-  how many replies to them are held (`lib/server/held-replies.ts`), to
+  how many replies to them are held (`lib/letters/held-replies.server.ts`), to
   see whether the form should check addresses harder;
 - an error outside an import's run, when it's new and at most once a day
   while it goes on, and a spam check refusing letter after letter
@@ -1515,7 +1517,9 @@ server without that stream has nothing suppressed on it, though Postmark
 failing does. A complaint can't be unblocked.
 
 What a bounce means depends on the email's purpose, so each purpose can
-have a hook (`lib/server/delivery-problems.ts`). A letter's hook marks the
+have a hook, which its feature hands the sending layer
+(`lib/email/delivery-problems.server.ts`; letters' are in
+`lib/letters/bounces.server.ts`). A letter's hook marks the
 letter bounced and emails staff. A purpose without a hook needs nothing
 beyond the block.
 
@@ -1528,7 +1532,7 @@ An address with "Do not email", in CiviCRM or as an opt-out of all email,
 gets only what the person just asked for or did: a login link, a link to
 the contact preferences page, a letter's copy and their MP's replies to it, which
 to them is mail from their MP that we pass on, and the like (`TRANSACTIONAL`
-in `lib/server/email.ts`); `send()` refuses any other. A broadcast's copies
+in `lib/email/email.server.ts`); `send()` refuses any other. A broadcast's copies
 go by `send()` too, each logged as `broadcast` with its copy ("Broadcasts
 to supporters", above).
 
@@ -1546,7 +1550,7 @@ A job that copies data in from outside:
 Two more jobs don't import but run on a schedule all the same: the
 15-minute sending and the nightly tidying (`JOBS` in `lib/import-runs.ts`). Whatever a
 scheduled job does, it goes here, despite the name
-(`docs/code-structure.md`).
+(`docs/code-structure.md`, "Scheduled jobs").
 
 Each job runs on a schedule or when staff press its button, and every run is
 recorded (`import_runs`):
@@ -1555,21 +1559,21 @@ recorded (`import_runs`):
 - who started it (`nightly` or a staff email);
 - how it ended, and why it failed, if it did;
 - its problems: what went wrong along the way without stopping it
-  (`lib/server/problems.ts`). Each is a fixed sentence, with any count or
+  (`lib/server/problems.server.ts`). Each is a fixed sentence, with any count or
   list as its error;
 - the job's own account of what it found.
 
 A run with problems is amber, "Problems", and lists them under its line.
 Staff are emailed about a failure, or about a problem the run before didn't
 have. So a job that keeps going wrong the same way says so once, until a run
-goes right (`lib/server/import-runs.ts`). A problem with an alert of its
+goes right (`lib/server/import-runs.server.ts`). A problem with an alert of its
 own, such as a Gmail account Google disconnected, is marked told, so the
 run's email leaves it out. A run can be held for staff to decide on, as a
 body's import that would change too much is.
 
 `/staff/scheduled-jobs` shows each job's newest run on a card. Each job's own
 page (`/staff/scheduled-jobs/<slug>`, `importPath()` in `lib/import-runs.ts`)
-has its button and every run it keeps (`lib/server/log-retention.ts`, run
+has its button and every run it keeps (`lib/jobs/log-retention.server.ts`, run
 nightly):
 
 - for a 5-minute, 15-minute or hourly job, a week of runs, and a month of those that
@@ -1578,7 +1582,7 @@ nightly):
 - for every job, its newest run and a held run.
 
 One run of a job goes at a time, whoever starts it, its schedule or a staff
-member's press (`runJob()` in `lib/server/jobs.ts`). A run marks the job
+member's press (`runJob()` in `lib/jobs/jobs.server.ts`). A run marks the job
 running (`job_presses`) until it ends, or for 5 minutes if it dies, and the
 job's page says so. A run started meanwhile doesn't go, and keeps no run, as
 it did nothing.
@@ -1587,7 +1591,7 @@ Each run is a request to the site, which Netlify stops at 30 seconds. So a
 job with more to do than that, as the Luma import has, works for its budget
 (`JOBS`) and leaves the rest for the next run.
 
-A job's page shows its runs under a heading for each day (`lib/run-log.ts`).
+A job's page shows its runs under a heading for each day (`lib/jobs/run-log.ts`).
 A job that runs every 5 or 15 minutes or hourly makes many runs a day,
 nearly all alike. So its page shows them in three ways:
 
@@ -1603,7 +1607,7 @@ A new job needs:
 - its name in the `import_runs` CHECK;
 - a result type, and how a run shows (`Run.tsx`);
 - a function that does it inside `asRun()`, which keeps the run, named in
-  `lib/server/jobs.ts`;
+  `lib/jobs/jobs.server.ts`;
 - its title (`jobTitles`), icon and description (`ImportJob.tsx`);
 - if it runs on a schedule, a scheduled function in
   `netlify/functions/<job>/` (`netlify/scheduled.ts`), whose schedule a test
@@ -1615,7 +1619,7 @@ its place and says in its result what's left.
 ## Errors
 
 What goes wrong outside a job's run is kept, so that it reaches someone
-(`errors_seen`, `lib/server/errors-seen.ts`). A job's failures and problems
+(`errors_seen`, `lib/oversight/errors-seen.server.ts`). A job's failures and problems
 are its run's ("Imports", above), not these. Three things are kept:
 
 - **An error the server throws** in a page, a route handler, a Server
@@ -1623,7 +1627,7 @@ are its run's ("Imports", above), not these. Three things are kept:
   (`instrumentation.ts`,
   https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation).
 - **A problem reported outside a run**: code that catches an error and
-  carries on calls `problem()` (`lib/server/problems.ts`), which in a form
+  carries on calls `problem()` (`lib/server/problems.server.ts`), which in a form
   or a webhook has no run to keep it on. It's kept by its sentence, with
   the error's words. One whose own alert has gone (`told`) isn't.
 - **An error in a visitor's browser**, which the server never sees. An
@@ -1638,7 +1642,7 @@ matches: what was running (its kind), where (the route's pattern, never
 the request's path, which can hold an ID or a token; for a browser's, the
 page's path with each part that's an ID or a number stood for), the
 error's class, and its words with what varies taken out, so "No politician
-4127" and "No politician 4128" are one (`lib/error-key.ts`). A Postgres
+4127" and "No politician 4128" are one (`lib/oversight/error-key.ts`). A Postgres
 error is known by its code and constraint, and nothing of its message,
 which can quote the value it refused. The key is coarse on purpose: two
 bugs sharing a row are found a day apart, but one bug making a row each
@@ -1680,7 +1684,7 @@ a page that threw, the one it shows when a site has none
 (`app/global-error.tsx`): it says only that the page couldn't load, and,
 for an error on the server, Next's digest of it, as Next keeps a server
 error's words from the browser. The nightly tidying
-deletes an error not seen for a month (`lib/server/log-retention.ts`), so
+deletes an error not seen for a month (`lib/jobs/log-retention.server.ts`), so
 one that's fixed drops off by itself.
 
 Not covered yet: the site being down, or a scheduled job that stops
@@ -1692,7 +1696,7 @@ mapping a browser's minified stack trace back to the source.
 ## Saved filters
 
 A saved filter is a staff list's filters under a name, for everyone who can
-open that list (`saved_filters`, `lib/server/saved-filters.ts`, and
+open that list (`saved_filters`, `lib/server/saved-filters.server.ts`, and
 `ui/SavedFilters` for how it looks). Politicians, Supporters, Events and the
 audit log have them. Anyone who can open a list can update, rename or delete
 any of its saved filters. The audit log records each change by the filter's
@@ -1726,21 +1730,21 @@ parameters (`docs/data-protection.md`).
 ## The audit log
 
 Every change made by staff, or by something acting on its own, records who,
-what and the details (`audit_log`, `lib/server/audit.ts`). The actor is a
+what and the details (`audit_log`, `lib/oversight/audit-log.server.ts`). The actor is a
 staff email, or the name of what did it: `sync`, `controlai`, `postmark`,
 `send-mailings`, `google`. Admins read the log at `/staff/audit-log`,
 searched and filtered by who, what and how recent, and sorted by date, who
 or what. A new kind of change logs itself the same way, inside the same
 transaction as the change. An entry is kept for a month. One that's part of
 a politician's history is kept while the politician is
-(`lib/server/log-retention.ts`).
+(`lib/jobs/log-retention.server.ts`).
 
 ### What is logged, and when
 
 The rule: **every change to a record about a person or a politician is
 logged once, against that record, by whoever or whatever made it**, in the
 same transaction. So the record's own page can tell its history
-(`politicianHistory` in `lib/server/politicians.ts`; a supporter's
+(`politicianHistory` in `lib/politicians/records.server.ts`; a supporter's
 history comes from the records themselves). A job that changes many
 records logs one summary entry for the run, and one entry per record it
 changed.
@@ -1791,7 +1795,7 @@ address may be a supporter's, and a download's filters may name one. A
 politician's details are public, so theirs are logged in full.
 
 An admin without `supporters` sees the log, and its download, without these
-entries (`WITHOUT_SUPPORTERS` in `lib/server/audit.ts`), and with a line
+entries (`WITHOUT_SUPPORTERS` in `lib/oversight/audit-log.server.ts`), and with a line
 saying so:
 
 - entries about a supporter or a broadcast;
@@ -1808,7 +1812,7 @@ finds it. If it blocks or frees an address, it names `address`.
 ## Staff
 
 Anyone with a pauseai.uk email address can log in, with a link sent to
-that address (`lib/server/staff-auth.ts`, `staff-login.ts`). A session
+that address (`lib/accounts/auth.server.ts`, `staff-login.ts`). A session
 lasts a day. With "Keep me signed in" it lasts 30 days, renewed on use.
 Anyone at pauseai.uk can be staff, paid or volunteer. The mailbox decides
 who can log in: a leaver's Google account is suspended or deleted, so no
@@ -1826,7 +1830,7 @@ account with none.
 An account opens the pages about politicians, events and imports
 (politicians, an MP's page, asks, mailings, Correspondence, Politicians' blocked
 emails, events, imports). Permissions open more
-(`lib/staff-permissions.ts`):
+(`lib/accounts/permissions.ts`):
 
 - `supporters` opens every page with a member of the public's details
   (supporters, broadcasts, campaigns and their letters, who wrote to which
@@ -1876,7 +1880,7 @@ first sees it (a dot on the folded rail). That goes for any page added to
 `STAFF_SECTIONS`, with nothing else to do. `staff_nav_seen` has a row for
 each account and page, with when they first saw it, and the signed-in layout
 adds a row for each page an account has none for
-(`lib/server/staff-nav-seen.ts`). A new account has no rows, so its pages
+(`lib/accounts/nav-seen.server.ts`). A new account has no rows, so its pages
 are marked as long since seen, except a page whose entry gives the day it
 went live (`added`): that's marked as seen then, so for its first days it's
 new to a new account too, and to a fresh development database, whose

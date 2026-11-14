@@ -17,7 +17,7 @@ import {
   normalisePostcode,
   signatureAddress,
 } from "./email-your-mp";
-import { docFromMarkup, toHtml, toText } from "./letter-format";
+import { docFromMarkup, toHtml, toText } from "@/lib/letters/format";
 
 const [letterToPm, bill] = campaigns;
 const ADDRESS = ["1 High St", "SW1A 1AA"];

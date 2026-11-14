@@ -2,7 +2,7 @@ import type { QrSize } from "@/lib/collateral/design";
 import { LIBRARY_PHOTOS } from "@/lib/collateral/photos";
 import type { DesignData, PartnerLogoData, ProjectPhoto } from "@/lib/collateral/project";
 import type { QrCode } from "@/lib/collateral/qr";
-import { drawableToJpegDataUrl, loadDataUrl, loadImage } from "@/lib/collateral/render";
+import { drawableToJpegDataUrl, loadDataUrl, loadImage } from "@/lib/collateral/render.client";
 import {
   DEFAULT_TEMPLATE_ID,
   defaultValues,

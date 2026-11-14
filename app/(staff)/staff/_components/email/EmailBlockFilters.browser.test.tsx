@@ -1,0 +1,18 @@
+import { describe, expect, it } from "vitest";
+import { render } from "vitest-browser-react";
+import { page } from "vitest/browser";
+import EmailBlockFilters from "./EmailBlockFilters";
+import { chips } from "@/tests/browser/staff";
+import { emailCopy } from "./copy";
+
+describe("EmailBlockFilters", () => {
+  it("searches the addresses on its page, and filters by cause", async () => {
+    await render(<EmailBlockFilters q="example.org" kind="complaint" action="/staff/politicians/addresses-to-fix" />);
+    const { columns, kinds } = emailCopy.emails;
+    await expect.element(page.getByRole("searchbox", { name: columns.address })).toHaveValue("example.org");
+    expect(page.getByRole("searchbox").element().closest("form")!.getAttribute("action")).toBe(
+      "/staff/politicians/addresses-to-fix",
+    );
+    expect(chips()).toEqual([`${columns.kind}: ${kinds.complaint}`]);
+  });
+});

@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { eventsNear, type LumaEvent } from "@/lib/events";
+import { eventsNear, type LumaEvent } from "@/lib/site-events";
 import UpcomingEvents from "@/components/events/UpcomingEvents";
-import { readLookup } from "./draft";
+import { readLookup } from "./draft.client";
 
 /**
  * On the "sent" page: the home page's "Upcoming events", with the events
  * near the postcode from "Find my MP", or online ones when there's none
- * (lib/events.ts eventsNear). Shown whether or not a letter was just sent,
+ * (lib/site-events.ts eventsNear). Shown whether or not a letter was just sent,
  * so the page is still of use opened from a link, and easy to try out.
  * Chosen once the page loads, as the postcode is in the browser
  * (sessionStorage).

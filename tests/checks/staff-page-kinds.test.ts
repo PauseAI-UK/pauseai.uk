@@ -23,8 +23,9 @@ const PAGES = join(STAFF, "(signed-in)");
 const OWN_TITLE: Record<string, string> = {
   "_components/ui/PageHead.tsx": "the head of every page but a record's",
   "_components/ui/Band.tsx": "the head of a record's page",
-  "_components/DraftWriter.tsx": "a draft's title, which the bar held at the window's top repeats once it scrolls away",
-  "_components/LoginCard.tsx": "the login page, which isn't one of the pages staff work in",
+  "_components/mailings/DraftWriter.tsx":
+    "a draft's title, which the bar held at the window's top repeats once it scrolls away",
+  "_components/accounts/LoginCard.tsx": "the login page, which isn't one of the pages staff work in",
 };
 
 function files(dir: string, wanted: (name: string) => boolean): string[] {
@@ -98,7 +99,8 @@ describe("the kinds of staff page", () => {
   });
 
   it("leaves a page's title to the two heads", () => {
-    const own = files(STAFF, (name) => name.endsWith(".tsx") && !name.includes(".test."))
+    // Tests and gallery examples aren't pages, so their heads are their own.
+    const own = files(STAFF, (name) => name.endsWith(".tsx") && !name.includes(".test.") && !name.includes(".gallery."))
       .filter((file) => /<h1[\s>]/.test(readFileSync(file, "utf8")))
       .map((file) => relative(STAFF, file).split("\\").join("/"));
     expect(own.sort()).toEqual(Object.keys(OWN_TITLE).sort());

@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 // only the code that records opt-outs, and erasure, which keeps them.
 const PATTERN = /\bopt_outs\b/;
 
-const ALLOWED = new Set(["lib/server/opt-outs.ts", "lib/server/erasure.ts"]);
+const ALLOWED = new Set(["lib/supporters/opt-outs.server.ts", "lib/erasure/erase.server.ts"]);
 
 // The site's code; tests and fixtures write opt-outs to set up what they check.
 const CODE_DIRS = ["app", "components", "lib", "netlify"];

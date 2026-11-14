@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { query } from "@/lib/server/db";
+import { query } from "@/lib/server/db.server";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { webhookRequest } from "@/tests/postmark-webhooks";
 import { POST } from "./route";

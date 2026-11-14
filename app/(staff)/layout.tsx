@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import NoAnalytics from "@/components/layout/NoAnalytics";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { NAV_FOLD_SCRIPT } from "@/lib/staff-nav";
 
 // The staff interface (/staff): no site header or footer, no analytics,
@@ -9,7 +9,7 @@ import { NAV_FOLD_SCRIPT } from "@/lib/staff-nav";
 // Every page here calls requireStaff(). A script folds the sidebar before
 // the page draws, if it was folded in this browser (lib/staff-nav.ts).
 export const metadata: Metadata = {
-  title: { default: staffCopy.metaTitle, template: `%s - ${staffCopy.metaTitle}` },
+  title: { default: staffVocabulary.metaTitle, template: `%s - ${staffVocabulary.metaTitle}` },
   robots: { index: false, follow: false },
 };
 

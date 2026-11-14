@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { navigation } from "@/tests/browser/navigation";
-import { readDraft, readSent, saveDraft } from "./draft";
+import { readDraft, readSent, saveDraft } from "./draft.client";
 import { exampleDraft, exampleMp } from "./draft.examples";
 import LetterPreview from "./LetterPreview";
 import type { TurnstileApi } from "@/components/ui/Turnstile";

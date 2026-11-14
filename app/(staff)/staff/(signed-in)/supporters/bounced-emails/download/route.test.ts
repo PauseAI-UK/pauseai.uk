@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { downloadAs } from "@/tests/staff-download";
-import { recordProblem } from "@/lib/server/email";
+import { recordProblem } from "@/lib/email/email.server";
 import { GET } from "./route";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
-import { listSignupUploads } from "@/lib/server/signup-uploads";
-import { requireStaff } from "@/lib/server/staff-auth";
+import { listSignupUploads } from "@/lib/supporters/signup-uploads.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import Page from "../../../../_components/ui/Page";
 import PageHead from "../../../../_components/ui/PageHead";
 import { now } from "@/lib/now";
-import { SignupUploadsList } from "../../../../_components/SignupUploadResult";
+import { SignupUploadsList } from "../../../../_components/supporters/SignupUploadResult";
+import { supportersCopy } from "../../../../_components/supporters/copy";
 
-const copy = staffCopy.signupUpload;
+const copy = supportersCopy.signupUpload;
 
 export const metadata: Metadata = { title: copy.uploads.title };
 
