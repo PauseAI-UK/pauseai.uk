@@ -160,8 +160,11 @@ through `outsideFetch` like any other outside service.
   A fixture build knows the address it's served at (`FIXTURE_ORIGIN`, from
   `lib/server/fixtures/fixture-env.mjs`, which both fixture builds use), as
   the live site knows its own. So every link in an email is whole, whether
-  or not the code that sent it had a request. The picture shows the link at
-  `pauseai.example.org`.
+  or not the code that sent it had a request. Each checkout serves its build
+  on its own port, so every frame (an email, a text or a page) shows the
+  site's address as `pauseai.example.org` wherever its text has the server's
+  (`showOrigin` in `tests/storyboard/frame.ts`), and main's frames and a
+  branch's don't differ by it.
 
 - **Gmail and Outlook are checked from the HTML.** `lib/letter-format.test.ts`
   runs the letter's HTML through doiuse-email

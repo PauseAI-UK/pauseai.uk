@@ -52,6 +52,22 @@ export async function frame(
   // not: a hover style that differs between runs. Out of the way first.
   await (hover ? hover.hover() : page.mouse.move(0, 0).catch(() => {}));
 
+  const putBack = await showOrigin(page);
+  try {
+    await picture(page, index, caption, { of, windowOnly });
+  } finally {
+    await putBack();
+  }
+}
+
+/** The picture `frame` takes, once the pointer is out of the way and the page shows SHOWN_ORIGIN. */
+async function picture(
+  page: Page,
+  index: number,
+  caption: string,
+  { of, windowOnly }: { of?: Locator; windowOnly: boolean },
+): Promise<void> {
+  const info = test.info();
   // Images below the fold load first, and the fonts, so the picture is of the
   // finished page; and any smooth scroll (a field scrolled into view, an
   // anchor) has come to rest, so it's of the place it ends up.
@@ -333,27 +349,57 @@ async function wholePage(page: Page): Promise<Buffer> {
     .toBuffer();
 }
 
-/** The site's address in a pictured email: a domain reserved for examples (RFC 2606), so it can't pass for a working link. */
+/** The site's address in a frame: a domain reserved for examples (RFC 2606), so it can't pass for a working link. */
 const SHOWN_ORIGIN = "https://pauseai.example.org";
+
+/**
+ * Puts SHOWN_ORIGIN in place of the server's origin wherever the page's text
+ * shows it, and gives back what puts the text back as it was, so the flow
+ * goes on with the page it had. A link the site writes out in full (in an
+ * email, a text, a staff page's copy of a text) has the address of the
+ * server that wrote it, and each checkout serves its build on its own port,
+ * so the same frame was pictured differently on main and on a branch. Only
+ * what's shown changes: a link's target is never pictured.
+ */
+async function showOrigin(page: Page): Promise<() => Promise<void>> {
+  const swaps = await page
+    .evaluateHandle(
+      ({ from, to }) => {
+        const undo: (() => void)[] = [];
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
+          if (!node.data.includes(from)) continue;
+          const text = node;
+          const data = text.data;
+          text.data = data.replaceAll(from, to);
+          undo.push(() => {
+            text.data = data;
+          });
+        }
+        return undo;
+      },
+      { from: new URL(LOCAL_URL).origin, to: SHOWN_ORIGIN },
+    )
+    // A page that navigated away: take the picture anyway.
+    .catch(() => undefined);
+  return async () => {
+    await swaps
+      ?.evaluate((undo) => undo.forEach((step) => step()))
+      // A page the picture navigated away from, or one closed.
+      .catch(() => {});
+  };
+}
 
 /**
  * A frame of an email the build sent (from the outbox, tests/steps.ts), as a
  * plain mail app shows it (tests/fixtures/email-view.ts): its headers, its
  * body and its attachments. In a page of its own, at the flow's viewport,
  * closed afterwards, so the flow's page is left where it was.
- *
- * A link in an email has the address of the server that sent it, and main's
- * build and this branch's run on different ports, so the same email was
- * pictured differently on each side. It's pictured with SHOWN_ORIGIN in
- * place of the sending server's address.
  */
 export async function emailFrame(page: Page, email: OutboxEmail, caption: string): Promise<void> {
-  const shown = (text: string) => text.replaceAll(new URL(LOCAL_URL).origin, SHOWN_ORIGIN);
   const mail = await page.context().newPage();
   try {
-    await mail.setContent(
-      emailView({ ...email, TextBody: shown(email.TextBody), HtmlBody: email.HtmlBody && shown(email.HtmlBody) }),
-    );
+    await mail.setContent(emailView(email));
     await frame(mail, caption);
   } finally {
     await mail.close();
