@@ -209,6 +209,29 @@ export async function addPoliticianAddress(politicianId: number, given: string, 
   const address = given.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return { added: false, why: "invalid" };
   if (isSharedInbox(address)) return { added: false, why: "shared" };
+  // Already theirs, however: their email, a past one, one their body lists, their office's, or a form of their name.
+  const [who] = await query<{
+    id: number;
+    name: string;
+    house: string;
+    constituency: string | null;
+    email: string | null;
+  }>(
+    `SELECT n.id::int AS id, n.name, p.house, p.constituency, n.email FROM notable_people n
+     JOIN politicians p ON p.id = n.id WHERE n.id = $1`,
+    [politicianId],
+  );
+  if (!who) return { added: false, why: "exists" };
+  const known = await politicianAliases(who);
+  const theirs = [
+    known.email?.toLowerCase(),
+    ...known.past,
+    ...known.parliament,
+    ...known.office,
+    ...known.added.map((row) => row.address),
+    ...known.forms,
+  ];
+  if (theirs.includes(address)) return { added: false, why: "exists" };
   const added = await transaction(async (db) => {
     const rows = await query(
       `INSERT INTO politician_addresses (address, notable_person_id, source, added_by)

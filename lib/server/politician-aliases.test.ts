@@ -278,6 +278,35 @@ describeWithDatabase("a politician's aliases", () => {
     });
   });
 
+  it("refuses an address that's already theirs: their email, one their body lists, their office's, or a form of their name", async () => {
+    const polly = await politician();
+    await query(
+      `INSERT INTO politician_addresses (address, notable_person_id, source) VALUES
+       ('listed@parliament.uk', $1, 'parliament'), ('aaron.lukas@parliament.uk', $1, 'office')`,
+      [polly.id],
+    );
+    for (const address of [
+      "Polly.Placeholder.MP@parliament.uk",
+      "listed@parliament.uk",
+      "aaron.lukas@parliament.uk",
+      "citiesoflondonandwestminster.mp@parliament.uk",
+    ]) {
+      expect(await addPoliticianAddress(polly.id, address, "jo@pauseai.uk"), address).toEqual({
+        added: false,
+        why: "exists",
+      });
+    }
+    expect(await query("SELECT count(*)::int AS n FROM politician_addresses WHERE source = 'staff'")).toEqual([
+      { n: 0 },
+    ]);
+    // With no email, the rest still counts.
+    await query("UPDATE notable_people SET email = NULL WHERE id = $1", [polly.id]);
+    expect(await addPoliticianAddress(polly.id, "listed@parliament.uk", "jo@pauseai.uk")).toEqual({
+      added: false,
+      why: "exists",
+    });
+  });
+
   it("removes only an address staff added, logged", async () => {
     const polly = await politician();
     await query(
