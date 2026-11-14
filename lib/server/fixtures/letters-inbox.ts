@@ -72,6 +72,10 @@ function receive(mailbox: Mailbox, raw: string, spam: boolean, sent?: { id: stri
     sent?.id ?? createHash("sha256").update(`${mailbox.messages.length}\n${steady}`).digest("hex").slice(0, 16);
   const labels = sent ? ["SENT", ...(sent.toSelf ? ["INBOX", "UNREAD"] : [])] : [spam ? "SPAM" : "INBOX", "UNREAD"];
   const message = { id, raw, labels: new Set(labels), historyId };
+  // One message to an ID, as in Gmail. A sent one's ID is the same every run, and a flow run again on one
+  // server sends its letter again into the mailbox of the same name: the newest takes the old one's place,
+  // so what's served under the ID is what the flow has just sent.
+  mailbox.messages = mailbox.messages.filter((other) => other.id !== id);
   mailbox.messages.push(message);
   return message;
 }

@@ -59,6 +59,19 @@ describe("the fake letters inbox", () => {
     expect(await gmail(`/history?startHistoryId=${third}`).json()).toEqual({ historyId: third });
   });
 
+  it("keeps one message under an ID: the newest sent with it, as a flow run again on one server sends its letter again", async () => {
+    const [local, domain] = LETTERS_INBOX.split("@");
+    const letter = (messageId: string) =>
+      `Message-ID: <${messageId}>\r\nTo: ${local}+mp@${domain}\r\nSubject: Letter\r\n\r\nHi`;
+    const { id } = await send(letter("00000000-0000-4000-8000-000000000001@pauseai.uk")).json();
+    expect((await send(letter("00000000-0000-4000-8000-000000000002@pauseai.uk")).json()).id).toBe(id);
+    expect(lettersMailbox().messages.map((m) => m.id)).toEqual([id]);
+    const headers = await gmail(`/messages/${id}?format=metadata&metadataHeaders=Message-ID`).json();
+    expect(headers).toMatchObject({
+      payload: { headers: [{ name: "Message-ID", value: "<00000000-0000-4000-8000-000000000002@pauseai.uk>" }] },
+    });
+  });
+
   it("serves a message's headers asked for, and whole; labels it, makes labels, and trashes it", async () => {
     deliverToLettersInbox("From: a@example.org\r\nSubject: Hi\r\nDate: Fri, 16 Oct 2026 12:00:00 +0000\r\n\r\nBody");
     deliverToLettersInbox("From: b@example.org", { spam: true });
