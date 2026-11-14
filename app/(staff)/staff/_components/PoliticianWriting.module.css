@@ -95,9 +95,14 @@
   animation: added-pulse 1.4s 0.15s ease-in-out;
 }
 
+/* The tint reaches out to the bubble's edges (its padding, --space-4) on
+   either side, while the row and its rule stay where they are. */
 @keyframes added-pulse {
   40% {
     background: var(--accent-light);
+    box-shadow:
+      calc(-1 * var(--space-4)) 0 0 var(--accent-light),
+      var(--space-4) 0 0 var(--accent-light);
   }
 }
 
