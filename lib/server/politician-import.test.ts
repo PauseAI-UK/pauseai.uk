@@ -8,6 +8,7 @@ import { PARLIAMENT_MEMBERS } from "@/lib/server/fixtures/politician-lists";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "./db";
 import { listRuns } from "./import-runs";
+import { editPoliticianDetails } from "./politician-edits";
 import { decideHeldImport, importPoliticians, isPoliticianImport } from "./politician-import";
 
 const JO = "jo@pauseai.uk";
@@ -291,6 +292,67 @@ describeWithDatabase("importPoliticians", () => {
       "SELECT details FROM audit_log WHERE action = 'edit politician' AND details->>'name' = 'Gwen Example'",
     );
     expect(logged.details.note).toBe("");
+  });
+
+  it("uses Wikidata's surname only where the member's name ends with it", async () => {
+    const female = { value: "http://www.wikidata.org/entity/Q6581072" };
+    server.use(
+      http.post("https://query.wikidata.org/sparql", () =>
+        HttpResponse.json({
+          results: {
+            bindings: [
+              { id: { value: "92004" }, gender: female, surname: { value: "Cooper" } },
+              { id: { value: "92005" }, gender: female, surname: { value: "Long Bailey" } },
+            ],
+          },
+        }),
+      ),
+      http.get("https://business.senedd.wales/mgwebservice.asmx/GetCouncillorsByWard", () =>
+        HttpResponse.text(
+          `<wards><ward><wardtitle>Ynys Môn</wardtitle>` +
+            `<councillor><councillorid>92004</councillorid><fullusername>Sarah Cooper-Lesadd MS</fullusername></councillor>` +
+            `<councillor><councillorid>92005</councillorid><fullusername>Jane Long Bailey MS</fullusername></councillor>` +
+            `</ward></wards>`,
+        ),
+      ),
+    );
+    await importPoliticians("senedd", JO);
+    expect((await people()).map((p) => [p.name, p.salutation])).toEqual([
+      ["Jane Long Bailey", "Ms Long Bailey"],
+      ["Sarah Cooper-Lesadd", "Ms Cooper-Lesadd"],
+    ]);
+  });
+
+  it("takes the salutation a title Parliament records makes over ours, but keeps one staff set, as a problem", async () => {
+    await importPoliticians("parliament", JO);
+    const [dora, mo] = await query<{ id: number }>(
+      "SELECT id::int AS id FROM notable_people WHERE name IN ('Ms Dora Dummy', 'Mo Example') ORDER BY name DESC",
+    );
+    // Dora's salutation is wrong, and the import's own change of it isn't staff's; Mo's, staff set.
+    await query("UPDATE notable_people SET salutation = 'Mrs Dummy' WHERE id = $1", [dora.id]);
+    await query(`INSERT INTO audit_log (actor, action, details) VALUES ('import-parliament', 'edit politician', $1)`, [
+      { id: dora.id, name: "Ms Dora Dummy", changed: { salutation: ["Ms Dummy", "Mrs Dummy"] } },
+    ]);
+    await editPoliticianDetails(mo.id, { salutation: "Mo" }, JO);
+    const sent = notifications();
+    const { result } = await importPoliticians("parliament", NIGHTLY);
+    expect(result.changes.changed).toEqual([
+      expect.objectContaining({ name: "Ms Dora Dummy", changed: { salutation: ["Mrs Dummy", "Ms Dummy"] } }),
+    ]);
+    expect((await people()).map((p) => [p.name, p.salutation])).toEqual(
+      expect.arrayContaining([
+        ["Ms Dora Dummy", "Ms Dummy"],
+        ["Mo Example", "Mo"],
+      ]),
+    );
+    const kept = staffCopy.politicianImports.keptSalutation("Mo Example", "Mo", "parliament", "Mx Example");
+    expect(kept).toBe("Mo Example: staff set Mo; Parliament records Mx Example");
+    await importPoliticians("parliament", NIGHTLY);
+    const [newest, before] = await runs("import-parliament");
+    expect([newest.problems, before.problems]).toEqual([[{ what: kept }], [{ what: kept }]]);
+    // Staff are emailed about it once, not each night it stays.
+    const title = staffCopy.politicianImports.titles["import-parliament"];
+    expect(sent.filter((n) => n.Subject === staffCopy.notifications.importProblems.subject(title))).toHaveLength(1);
   });
 
   it("adds the test MPs with no email when TEST_MP_EMAIL isn't set", async () => {

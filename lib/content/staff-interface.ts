@@ -4,6 +4,7 @@ import { daysInWords, FAILURES_TO_STOP, SENDING_DAYS, WAIT_DAYS } from "@/lib/br
 import type { Reason, Topic, Way } from "@/lib/contact-permissions";
 import { letterEditorCopy } from "@/lib/content/letter-editor";
 import type { AddressSearch, ImportJob } from "@/lib/import-runs";
+import type { Body } from "@/lib/politician-import";
 import { count, plural } from "@/lib/content/plural";
 
 /**
@@ -25,6 +26,14 @@ const bounceLine = (link: string | undefined) => (link ? `\n\nThe bounce, in Gma
 /** What a CiviCRM import run sent CiviCRM before it pulled, at the start of its line. */
 const sentToCivicrm = (u: { sent: number; refused: number; unanswered: number }): string =>
   `${count(u.sent, "opt-out", "opt-outs")} sent to CiviCRM${u.refused ? `, ${u.refused} refused` : ""}${u.unanswered ? `, ${u.unanswered} to try again` : ""}. `;
+
+/** Each body, as a sentence names it after its start. */
+const bodyNames: Record<Body, string> = {
+  parliament: "Parliament",
+  "scottish-parliament": "the Scottish Parliament",
+  senedd: "the Senedd",
+  "ni-assembly": "the Northern Ireland Assembly",
+};
 
 /** The button that sets a stopped broadcast going again, which the email about one stopping names. */
 const RESUME_SENDING = "Resume sending";
@@ -3030,6 +3039,9 @@ All events: ${link}`,
     genderLookupFailed: "Couldn't ask Wikidata for new members' genders, so their salutations are their names for now",
     // A problem of Parliament's import: constituencies with two MPs in office, which follow, so a postcode there finds the wrong one.
     twoMps: "Constituencies with two MPs in office:",
+    // A problem of an import: a salutation staff set by hand, which the import keeps, unlike the one the title their body records makes.
+    keptSalutation: (name: string, ours: string, body: Body, theirs: string) =>
+      `${name}: staff set ${ours}; ${bodyNames[body]} records ${theirs}`,
   },
   // The nightly import of ControlAI's statement's supporters (lib/server/controlai-statement-import.ts).
   controlAiStatement: {

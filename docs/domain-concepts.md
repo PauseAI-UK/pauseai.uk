@@ -52,7 +52,12 @@ A notable person has what all kinds share:
   staff can correct. Where the rule can't tell, as for a new MSP or member
   of the Senedd whose gender Wikidata doesn't know yet, it's their name,
   marked to check (`salutation_to_check`), and made again once it can.
-  Gender is read only to choose Mr or Ms, never kept;
+  Where their body records their title (an MP's in Parliament's list name,
+  as "Badenoch, Mrs Kemi"; every MLA's), that's how they asked to be
+  addressed, so each import makes their salutation from it, over ours,
+  unless staff have set ours by hand. Then it keeps ours, and reports the
+  difference as a problem on the run, for staff to check. Gender is read
+  only to choose Mr or Ms, never kept;
 - an email, if we know it;
 - notes;
 - Airtable's markers (important target, personal connection), which staff

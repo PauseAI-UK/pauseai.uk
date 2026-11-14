@@ -6,7 +6,7 @@
 
 import { constituencyCountry } from "./constituencies";
 import type { Ending, OfficialMember } from "./politician-import";
-import { mpSalutation, peerSalutation, type Gender } from "./salutation";
+import { mpSalutation, mpTitled, peerSalutation, type Gender } from "./salutation";
 
 const MEMBERS_API = "https://members-api.parliament.uk/api";
 const MEMBERS_DATA = "https://data.parliament.uk/membersdataplatform/services/mnis/members/query";
@@ -71,6 +71,7 @@ export function parliamentMembers(data: unknown): OfficialMember[] {
       emails: emailsOf(addresses),
       websites: addresses.flatMap((a) => (/^https?:\/\//i.test(a.Address1 ?? "") ? [a.Address1!.trim()] : [])),
       salutation: commons ? mpSalutation(m.ListAs, GENDERS[m.Gender ?? ""]) : peerSalutation(m.DisplayAs),
+      ...(commons && mpTitled(m.ListAs) ? { titled: true as const } : {}),
     };
   });
 }

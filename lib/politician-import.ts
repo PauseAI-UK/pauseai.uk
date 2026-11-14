@@ -37,6 +37,8 @@ export type OfficialMember = {
   websites: string[];
   /** Their salutation by rule (lib/salutation.ts), or null if the rule can't tell. */
   salutation: string | null;
+  /** Their body records their title, so `salutation` is how they asked to be addressed, and wins over ours. */
+  titled?: true;
   /** Their surname, where their body gives it apart, to make their salutation when it can't. */
   surname?: string;
 };
@@ -49,6 +51,8 @@ export type OurPolitician = {
   name: string;
   salutation: string;
   salutationToCheck: boolean;
+  /** Staff have set their salutation by hand, so it's kept whatever their body records. */
+  salutationByStaff: boolean;
   constituency: string | null;
   party: string;
   country: Country | null;
@@ -172,10 +176,20 @@ export function matchMembers(ours: OurPolitician[], members: OfficialMember[]): 
   return pairs;
 }
 
+/** Whether their body records a title for them that makes a salutation unlike ours. */
+const titleUnlike = (ours: OurPolitician, member: OfficialMember) =>
+  member.titled === true && member.salutation !== ours.salutation;
+
+/** Whether an import takes the salutation their body's title makes: unless staff have set ours by hand. */
+const takesTitle = (ours: OurPolitician, member: OfficialMember) =>
+  titleUnlike(ours, member) && !ours.salutationByStaff;
+
 /** What an existing politician becomes, given their member. */
 export function updated(ours: OurPolitician, member: OfficialMember): ImportedFields {
-  // A salutation made from the name alone is made again once the rule can tell, unless staff have set one since.
-  const remake = ours.salutationToCheck && ours.salutation === ours.name && member.salutation !== null;
+  // The salutation is made again from what their body lists where it records their title, or where ours was
+  // made from the name alone and the rule can now tell; either way, unless staff have set one since.
+  const remake =
+    (ours.salutationToCheck && ours.salutation === ours.name && member.salutation !== null) || takesTitle(ours, member);
   return {
     officialId: member.officialId,
     house: member.house,
@@ -250,7 +264,12 @@ export function compareMembers(
     if (matchName(ourOne.name) !== matchName(member.name)) {
       changes.renamed.push({ id: ourOne.id, from: ourOne.name, to: member.name });
     }
-    if (ourOne.officialId === null && member.salutation !== null && member.salutation !== ourOne.salutation) {
+    if (
+      ourOne.officialId === null &&
+      member.salutation !== null &&
+      member.salutation !== ourOne.salutation &&
+      !takesTitle(ourOne, member)
+    ) {
       changes.salutations.push({ id: ourOne.id, name: member.name, ours: ourOne.salutation, rule: member.salutation });
     }
   }
@@ -270,6 +289,18 @@ export function compareMembers(
     });
   }
   return { ...changes, pairs };
+}
+
+/** A salutation staff set by hand that an import keeps, though their body records a title that makes another. */
+export type KeptSalutation = { name: string; ours: string; theirs: string };
+
+/** The salutations staff set by hand unlike the titles their bodies record, among matched pairs, for staff to check. */
+export function keptSalutations(pairs: ReadonlyMap<OfficialMember, OurPolitician>): KeptSalutation[] {
+  return [...pairs].flatMap(([member, ourOne]) =>
+    ourOne.salutationByStaff && titleUnlike(ourOne, member)
+      ? [{ name: member.name, ours: ourOne.salutation, theirs: member.salutation! }]
+      : [],
+  );
 }
 
 /**

@@ -37,6 +37,7 @@ export function niAssemblyMembers(membersData: unknown, contactsData: unknown): 
   const contacts = membersOf<Contact>(contactsData, "contacts");
   return membersOf<Member>(membersData, "members").map((m) => {
     const surname = m.MemberLastName.trim();
+    const title = m.MemberPrefix?.trim() || undefined;
     const emails = contacts
       .filter((c) => c.PersonId === m.PersonId)
       .map((c) => c.EmaiAddress?.trim().toLowerCase() ?? "")
@@ -50,10 +51,9 @@ export function niAssemblyMembers(membersData: unknown, contactsData: unknown): 
       country: "northern-ireland",
       emails: [...new Set(emails)],
       websites: [],
-      salutation: personalSalutation(
-        { title: m.MemberPrefix?.trim() || undefined, first: m.MemberFirstName.trim(), surname },
-        undefined,
-      ),
+      salutation: personalSalutation({ title, first: m.MemberFirstName.trim(), surname }, undefined),
+      // The Assembly records every MLA's title, as its Official Report uses it.
+      ...(title ? { titled: true as const } : {}),
     };
   });
 }

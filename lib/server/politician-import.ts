@@ -9,6 +9,7 @@ import {
   compareMembers,
   holdsImport,
   importChangeCount,
+  keptSalutations,
   matchMembers,
   sharedAddresses,
   updated,
@@ -22,7 +23,7 @@ import { isSharedInbox } from "@/lib/one-off";
 import { personalSalutation, surnameOf } from "@/lib/salutation";
 import { TEST_MPS } from "@/lib/test-mps";
 import type { WikidataPerson } from "@/lib/wikidata";
-import { logChange } from "./audit";
+import { auditActions, logChange } from "./audit";
 import { config } from "./config";
 import { query, transaction, type Queryable } from "./db";
 import { asRun } from "./import-runs";
@@ -79,11 +80,19 @@ const PEOPLE: Partial<Record<Body, (ids: number[]) => Promise<Map<number, Wikida
   senedd: seneddPeople,
 };
 
-/** A body's politicians as an import compares them, test politicians aside. */
+/**
+ * A body's politicians as an import compares them, test politicians aside.
+ * Staff set a salutation by hand when a staff member's edit, logged by their
+ * email, changed it; an import's is logged by its job.
+ */
 async function bodyPoliticians(body: Body, db?: Queryable): Promise<OurPolitician[]> {
   return query<OurPolitician>(
     `SELECT n.id::int AS id, p.official_id AS "officialId", p.house, n.name, n.salutation,
-       n.salutation_to_check AS "salutationToCheck", p.constituency, p.party, p.country, n.email, n.status,
+       n.salutation_to_check AS "salutationToCheck",
+       EXISTS (SELECT 1 FROM audit_log l WHERE l.action = ${auditActions("edit politician")}
+         AND (l.details->>'id')::bigint = n.id AND l.details->'changed' ? 'salutation' AND l.actor LIKE '%@%')
+         AS "salutationByStaff",
+       p.constituency, p.party, p.country, n.email, n.status,
        coalesce(array_agg(a.address ORDER BY a.address) FILTER (WHERE a.address IS NOT NULL), '{}') AS listed
      FROM notable_people n JOIN politicians p ON p.id = n.id
        LEFT JOIN politician_addresses a ON a.notable_person_id = n.id AND a.source = 'parliament'
@@ -127,7 +136,9 @@ async function withSalutations(
     const person = people.get(m.officialId);
     if (!person) return m;
     const first = m.name.split(/\s+/)[0];
-    const surname = m.surname ?? person.surname ?? surnameOf(m.name);
+    // Wikidata's surname can be part of theirs ("Cooper" for Sarah Cooper-Lesadd), so it's used only where their name ends with it.
+    const wikidata = person.surname && m.name.endsWith(` ${person.surname}`) ? person.surname : undefined;
+    const surname = m.surname ?? wikidata ?? surnameOf(m.name);
     return { ...m, salutation: personalSalutation({ first, surname }, person.gender) };
   });
 }
@@ -319,8 +330,10 @@ export async function importPoliticians(body: Body, startedBy: string): Promise<
     const outcome = await transaction(async (db): Promise<PoliticianImportOutcome> => {
       if (body === "parliament") await ensureTestMps(db);
       const ours = await bodyPoliticians(body, db);
-      const { added, changed, left, renamed, unofficial, salutations } = compareMembers(ours, members, endings);
-      const changes = { added, changed, left, renamed, unofficial, salutations };
+      const { pairs, ...changes } = compareMembers(ours, members, endings);
+      for (const kept of keptSalutations(pairs)) {
+        problem(staffCopy.politicianImports.keptSalutation(kept.name, kept.ours, body, kept.theirs));
+      }
       // The very first import of a body fills it from nothing, so there's nothing to check it against.
       const held = ours.length > 0 && holdsImport(changes);
       const count = importChangeCount(changes);
