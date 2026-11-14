@@ -11,6 +11,76 @@ export default function Timeline() {
     <section className={styles.timeline}>
       <div className="container">
         <TimelineList>
+          <TimelineEntry id="edinburgh-conference" month="November" year="2026" title="Edinburgh Conference">
+            <EntryText>
+              <p>
+                Who is responsible when AI goes wrong? How are Scottish politicians and technical and policy experts
+                modelling the threats, uncertainties, opportunities and avenues that lie ahead?
+              </p>
+              <p>
+                We convened a panel of experts and politicians at the Playfair Library in Edinburgh to discuss the
+                issues, propose solutions and answer questions from the public. The discussion was chaired by Joseph
+                Miller, Director of PauseAI UK, and featured:
+              </p>
+              <EntryList>
+                <li>
+                  <strong>Jonathan Bostock</strong>, AI alignment researcher at Arcadia Impact.
+                </li>
+                <li>
+                  <strong>David Kirkwood</strong>, South Scotland regional MSP (Reform), on the cross-party group on
+                  Science &amp; Technology and cyber resilience.
+                </li>
+                <li>
+                  <strong>Ben Macpherson MSP</strong>, for Edinburgh Northern and Leith, and former Minister for
+                  Innovation, Technology and Tertiary Education.
+                </li>
+                <li>
+                  <strong>Lorenzo Martinico</strong>, Portobello/Craigmillar councillor (Green).
+                </li>
+                <li>
+                  <strong>Luke McNally</strong>, Senior Lecturer at the University of Edinburgh in complex systems and
+                  AI safety, who gave the keynote.
+                </li>
+                <li>
+                  <strong>Carol Mochan</strong>, South Scotland regional MSP (Labour).
+                </li>
+                <li>
+                  <strong>Susan Murray</strong>, MP for Mid Dunbartonshire (Liberal Democrats).
+                </li>
+                <li>
+                  <strong>Michael Rovatsos</strong>, Professor of AI at the University of Edinburgh and former director
+                  of the Bayes Centre.
+                </li>
+              </EntryList>
+            </EntryText>
+            <Photos count={4}>
+              <Shot
+                href="/images/edinburgh-conference-nov-2026/edinburgh-audience.jpg"
+                src="/images/edinburgh-conference-nov-2026/edinburgh-audience-thumb.jpg"
+                alt="The audience in the Playfair Library, between its columns and busts, facing the panel and a screen"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+              <Shot
+                href="/images/edinburgh-conference-nov-2026/edinburgh-panel.jpg"
+                src="/images/edinburgh-conference-nov-2026/edinburgh-panel-thumb.jpg"
+                alt="Four panellists at a table, one of them speaking"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+              <Shot
+                href="/images/edinburgh-conference-nov-2026/edinburgh-group.jpg"
+                src="/images/edinburgh-conference-nov-2026/edinburgh-group-thumb.jpg"
+                alt="Speakers, volunteers and guests behind a PauseAI banner in the Playfair Library"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+              <Shot
+                href="/images/edinburgh-conference-nov-2026/edinburgh-check-in.jpg"
+                src="/images/edinburgh-conference-nov-2026/edinburgh-check-in-thumb.jpg"
+                alt="Volunteers in PauseAI T-shirts checking in a guest at the door"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            </Photos>
+          </TimelineEntry>
+
           <TimelineEntry id="oxford-panel-discussion" month="October" year="2026" title={"Oxford Panel Discussion "}>
             <EntryText>
               <p>
