@@ -611,7 +611,8 @@ test("Marking a politician", async ({ page, request, flowDatabase }) => {
 
   story("What changed her record, folded at the foot of her page, says who changed each marker.");
   await page.getByRole("heading", { name: copy.recordTitle }).click();
-  await expect(page.getByText(staffEmail(), { exact: false }).first()).toBeVisible();
+  const record = page.locator("details").filter({ has: page.getByRole("heading", { name: copy.recordTitle }) });
+  await expect(record.getByText(staffEmail(), { exact: false }).first()).toBeVisible();
   await page.getByRole("heading", { name: copy.recordTitle }).scrollIntoViewIfNeeded();
   await frame(page, "The record of changes");
 });
