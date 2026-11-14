@@ -2049,7 +2049,7 @@ All events: ${link}`,
       // other address that links their emails, where they're changed.
       more: (n: number) => `+${n} more`,
       title: "Other addresses",
-      intro: "Policy emails referencing these addresses will be linked to this politician.",
+      intro: "Policy emails using these addresses will be linked to this politician.",
       columns: { address: "Address", from: "Source" },
       sources: {
         email: "Main address, we send email here",

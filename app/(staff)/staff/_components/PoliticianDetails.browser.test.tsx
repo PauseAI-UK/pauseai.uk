@@ -735,7 +735,7 @@ describe("PoliticianDetails", () => {
       `${copy["block address"]} polly.placeholder.mp@parliament.uk · ${staffCopy.emails.kinds.hard}12 Oct 2026, 09:10 · postmark`,
       `${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uk30 Sept 2026, 10:00 · samuel.whitlock@pauseai.uk`,
       `${copy["block address"]} polly@example.org · weird10 Aug 2026, 10:00 · postmark`,
-      "strange1 Aug 2026, 10:00 · x",
+      "strange 1 Aug 2026, 10:00 · x",
       `${copy["edit politician"]} Polly Placeholder · ${staffCopy.fields.party} Labour → Labour (Co-op)20 Jul 2026, 10:00 · sync`,
       `${copy["add politician"]} Polly Placeholder15 Jul 2026, 10:00 · import`,
     ]);
