@@ -43,6 +43,8 @@ const EXCEPTIONS = new Map([
   ["lib/server/email.server.ts  sendWith", "a suppressed address is recorded as blocked, its own report"],
   // A file that isn't UTF-8 is read as Windows-1252, as spreadsheets save it: the catch is the question.
   ["lib/supporters/signup-csv.ts  signupFileText", "a file that isn't UTF-8 is an answer: it's read as Windows-1252"],
+  // What's typed as a link that the URL parser refuses is no link: the catch is the question.
+  ["lib/letters/format.ts  linkHref", "text that isn't a web address is an answer: it's no link"],
 ]);
 
 /**

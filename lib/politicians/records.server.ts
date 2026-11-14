@@ -3,11 +3,12 @@ import { cache } from "react";
 import { windowStart } from "@/lib/staff-dashboard";
 import { now } from "@/lib/now";
 import { AGREED_STATUSES, type AskStatus } from "@/lib/asks/asks";
-import { MAILED, statusIn } from "@/lib/letter-status";
+import { MAILED, statusIn } from "@/lib/letters/status";
 import type { Mp, MpStatuses } from "@/lib/email-your-mp";
 import type { SortSpec } from "@/lib/staff-sort";
 import type { PoliticianSort } from "@/lib/staff-lists";
-import type { Country, EmailState, House, PersonStatus, PoliticianFlag } from "./filters";
+import type { Country, EmailState, House, PersonStatus } from "./filters";
+import { FLAG_CONDITIONS, type PoliticianFlag } from "@/lib/politician-flags";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { auditActions, type AuditEntry, logChange } from "@/lib/server/audit.server";
 import { ADDRESS_ACTIONS } from "@/lib/audit-events";
@@ -23,7 +24,7 @@ import { sql, type Sql } from "@/lib/server/sql.server";
 // (politician-edits.ts), and statuses, in the staff interface.
 
 export { COUNTRIES, HOUSES, PERSON_STATUSES } from "./filters";
-export type { Country, EmailState, House, PersonStatus, PoliticianFlag } from "./filters";
+export type { Country, EmailState, House, PersonStatus } from "./filters";
 
 export type StatusRecord = {
   status: AskStatus;
@@ -203,13 +204,6 @@ const POLITICIAN_COLUMNS: Record<PoliticianSort, string> = {
   asks: "(SELECT max(a.updated_at) FROM ask_statuses a WHERE a.notable_person_id = n.id)",
   first: '"firstActivityAt"',
   active: '"lastActivityAt"',
-};
-
-/** When a politician has each marker, `n` their notable_people row and `p` their politicians row. */
-export const FLAG_CONDITIONS: Record<PoliticianFlag, string> = {
-  important: "n.important_target",
-  connection: "n.personal_connection",
-  test: "p.is_test",
 };
 
 /** When we can write to a politician, or not. */

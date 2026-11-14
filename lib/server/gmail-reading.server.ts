@@ -2,16 +2,16 @@ import "server-only";
 import { config } from "./config.server";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { importPath, type GmailRead, type GmailReadResult } from "@/lib/import-runs";
-import { gmailMessageLink } from "@/lib/letter-links";
+import { gmailMessageLink } from "@/lib/letters/links";
 import { query } from "./db.server";
 import { handleDeliveryProblem } from "./delivery-problems.server";
-import { lettersInbox } from "./letters-inbox.server";
-import { readLettersInbox } from "./letters-inbox-reading.server";
+import { lettersInbox } from "@/lib/letters/letters-inbox.server";
+import { readLettersInbox } from "@/lib/letters/letters-inbox-reading.server";
 import { notifyStaff, staffLink } from "./notifications.server";
 import { gmailAccess, gmailReadingState, saveGmailName, saveHistoryId } from "@/lib/accounts/gmail-accounts.server";
 import { asRun, type Ran } from "./import-runs.server";
-import { keepsPoliticianThreads } from "@/lib/one-off";
-import { keepIfPoliticianThread, reportUnmatchedMail } from "./one-off-emails.server";
+import { keepsPoliticianThreads } from "@/lib/letters/one-off";
+import { keepIfPoliticianThread, reportUnmatchedMail } from "@/lib/letters/one-off-emails.server";
 import { searchAddedAddresses } from "@/lib/politicians/aliases.server";
 import { readBounce } from "@/lib/email-parsing/bounces";
 import { fromAddress, messageIds } from "@/lib/email-parsing/mime.server";
@@ -26,10 +26,11 @@ import {
   searchGmail,
   type GmailMessageHeaders,
 } from "./outside-services/gmail.server";
-import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "./letter-replies.server";
+import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "@/lib/letters/replies.server";
 import { copyAnswered, keepBroadcastReply } from "./broadcast-replies.server";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { describeError, problem } from "./problems.server";
+import { lettersCopy } from "@/lib/letters/copy";
 
 // Reading the connected Gmail accounts, every 5 minutes: the replies to PauseAI's
 // letters and to copies of broadcasts (broadcast-replies.server.ts), and the bounces of them. For each message that arrived since the
@@ -221,7 +222,7 @@ async function readAccount(account: string, historyId: string, request: Request 
  * and a link to the runs. Says whether it went.
  */
 async function alertNotUnderstood(accounts: GmailRead[], request: Request | undefined): Promise<boolean> {
-  const words = staffCopy.lettersInbox;
+  const words = lettersCopy.lettersInbox;
   const lines = accounts
     .filter((a) => a.notUnderstood)
     .flatMap((a) =>

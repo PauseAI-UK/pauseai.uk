@@ -5,7 +5,7 @@ import type { CampaignSummary } from "@/lib/mailings/campaigns.server";
 import { staffDate } from "@/lib/staff-time";
 import { countsOpening, type Count } from "../ui/Counts";
 import { NeedsAndFine } from "./CopyCounts";
-import { stateCounts } from "./CopyStatus";
+import { stateCounts } from "../letters/CopyStatus";
 import Empty from "../ui/Empty";
 import Grid, { spanClass } from "../ui/Grid";
 import StaffLink from "../ui/StaffLink";

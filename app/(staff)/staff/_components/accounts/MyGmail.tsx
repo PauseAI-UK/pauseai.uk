@@ -1,5 +1,4 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { GmailAccount } from "@/lib/accounts/gmail-accounts.server";
 import { staffDate } from "@/lib/staff-time";
 import { BROADCAST_SENDER } from "@/lib/broadcasts";
@@ -17,7 +16,7 @@ const copy = accountsCopy.gmail;
  * replies to what's sent from here: mailings, and from hello@ broadcasts too.
  */
 function KeptNote({ keeps, me }: { keeps: boolean; me: string }) {
-  const words = staffCopy.oneOff;
+  const words = copy;
   if (!keeps && me === BROADCAST_SENDER.email) {
     const both = words.notKeptBroadcasts;
     return (
@@ -36,7 +35,7 @@ function KeptNote({ keeps, me }: { keeps: boolean; me: string }) {
       <em>
         {before}{" "}
         {keeps ? (
-          <StaffLink href="/staff/emails?type=one-off">{words.title}</StaffLink>
+          <StaffLink href="/staff/emails?type=one-off">{words.oneOffEmails}</StaffLink>
         ) : (
           <StaffLink href="/staff/mailings">{shellCopy.nav.mailings}</StaffLink>
         )}

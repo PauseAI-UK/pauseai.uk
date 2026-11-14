@@ -1,7 +1,7 @@
 "use client";
 
 // PoliticianCorrespondence's example, its threads worked out in the browser (PoliticianCorrespondence.gallery.tsx).
-import { exampleLetter } from "@/app/(staff)/staff/_components/LettersTable.examples";
+import { exampleLetter } from "../letters/LettersTable.examples";
 import { correspondenceThreads } from "@/lib/politicians/threads";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
 

@@ -1,18 +1,20 @@
 import "server-only";
 import { checkMailingDoc, type MailingRecipientValues } from "./doc";
-import { IN_FLIGHT, statusIn } from "@/lib/letter-status";
+import { IN_FLIGHT, statusIn } from "@/lib/letters/status";
 import { now } from "@/lib/now";
 import { SENDING } from "@/lib/staff-time";
 import { logChange } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
 import { isBlocked, sentBy } from "@/lib/server/email.server";
 import { gmailAccount } from "@/lib/accounts/gmail-accounts.server";
-import { SentUnrecorded, sendLetterVia, transition } from "@/lib/server/letter-lifecycle.server";
+import { SentUnrecorded, sendLetterVia, transition } from "@/lib/letters/lifecycle.server";
 import { problem } from "@/lib/server/problems.server";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { lettersCopy } from "@/lib/letters/copy";
 import { attachmentsOf, emailFor } from "./drafts.server";
-import { mailingChannel, paced, type MailingChannel } from "./channels.server";
-import type { SkipReason } from "./records.server";
+import { mailingChannel } from "./channels.server";
+import { paced, type MailingChannel } from "@/lib/letters/channels.server";
+import type { SkipReason } from "@/lib/letters/copy-states";
 import { sql } from "@/lib/server/sql.server";
 
 // Sending the mailings that are due: the send-mailings job starts each
@@ -199,13 +201,13 @@ export async function sendDueLetters({
         const words = staffCopy.problems.anywhere;
         if (error instanceof SentUnrecorded) {
           // It went: it stays sending, for uncertainLetters to mark uncertain, so it isn't sent twice.
-          problem(words.sentUnrecorded(words.letterOf(letter.id)), error.cause);
+          problem(words.sentUnrecorded(lettersCopy.problems.letterOf(letter.id)), error.cause);
           run.sent++;
           continue;
         }
         // It never went (NotSentYet): back to go next run, and the rest of this mailing with it.
         await transition(letter.id, ["sending"], "scheduled");
-        problem(words.notSentYet(words.letterOf(letter.id)), error);
+        problem(words.notSentYet(lettersCopy.problems.letterOf(letter.id)), error);
         break;
       }
       if (result.sent) run.sent++;

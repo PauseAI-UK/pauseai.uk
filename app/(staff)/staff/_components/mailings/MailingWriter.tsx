@@ -27,7 +27,7 @@ import { leavePage } from "@/lib/leave-page.client";
 import { scheduleProblems } from "@/lib/mailings/schedule";
 import { filtersPath } from "@/lib/list-params";
 import { londonWhen } from "@/lib/staff-time";
-import type { ChannelResult } from "@/lib/mailings/channels.server";
+import type { ChannelResult } from "@/lib/letters/channels.server";
 import type { ScheduleResult, WrittenMailing } from "@/lib/mailings/drafts.server";
 import type { PreviewRecipient, WriterData } from "@/lib/mailings/pages.server";
 import {

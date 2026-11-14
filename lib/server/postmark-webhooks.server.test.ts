@@ -8,7 +8,7 @@ import { recordProblem } from "./email.server";
 import { forwardReply, isAutoReply, isPostmark, deliveryProblem } from "./postmark-webhooks.server";
 import { gunzipSync } from "node:zlib";
 import { letterReply } from "./outside-services/blobs.server";
-import { threadMessages } from "./letter-threads.server";
+import { threadMessages } from "@/lib/letters/threads.server";
 import { stubBlobsEnv } from "@/tests/gmail-sends";
 import { staffCopy } from "@/lib/content/staff-interface";
 

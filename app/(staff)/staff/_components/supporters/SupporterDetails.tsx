@@ -23,7 +23,7 @@ import Grid, { Card, Column } from "../ui/Grid";
 import { ListTable, type ListColumn } from "../ui/ListFrame";
 import styles from "../Details.module.css";
 import TestTag from "../TestTag";
-import { statusOf } from "../LetterStatus";
+import { statusOf } from "../letters/LetterStatus";
 import { supportersCopy } from "./copy";
 
 const copy = supportersCopy.supporters;

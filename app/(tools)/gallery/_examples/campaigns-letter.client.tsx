@@ -7,7 +7,7 @@
 import { CONTROLAI_LETTER_ASK } from "@/lib/asks/asks";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { campaigns } from "@/lib/content/email-your-mp";
-import { docFromMarkup, toText } from "@/lib/letter-format";
+import { docFromMarkup, toText } from "@/lib/letters/format";
 import {
   markSent,
   saveDraft,

@@ -60,6 +60,18 @@ export const accountsCopy = {
     // Back from Google having chosen an account other than the one logged in here, `me`.
     otherAccount: (me: string) =>
       `That Google account does not have the same email ${me} as your PauseAI UK staff account. Either pick a different Google account, or log in here with the same email.`,
+    // What's kept from it: in a mailbox that keeps every thread with politicians, around a link to the one-off
+    // emails, which says their title.
+    kept: { before: "All threads with politicians in this specific mailbox are kept, and show under", after: "." },
+    oneOffEmails: "One-off emails",
+    // In any other mailbox, around a link to the mailings.
+    notKept: { before: "Replies to threads sent like this will be kept, and show under", after: "." },
+    // In hello@'s, which sends the broadcasts too, around links to the mailings and the broadcasts.
+    notKeptBroadcasts: {
+      before: "Replies to mailings and broadcasts sent from here are kept, and show under",
+      and: "and",
+      after: ".",
+    },
   },
   // Your sessions, on your own page (/staff/me): one row each, and a way to end them all.
   sessions: {

@@ -190,3 +190,8 @@ function log(line: string): void {
 export function headerName(name: string): string {
   return name.replace(/["\\\r\n<>]/g, "").trim();
 }
+
+/** A person's own address as a To, Cc or Bcc line, with their name: "Jane Smith" <jane.smith@example.com>. */
+export function nameLine(name: string, address: string): string {
+  return `"${headerName(name)}" <${address}>`;
+}

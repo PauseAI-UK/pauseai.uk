@@ -8,12 +8,11 @@ import { now } from "@/lib/now";
 import { query, transaction } from "./db.server";
 import { isBlocked, type DeliveryProblem } from "./email.server";
 import { send } from "./email-sending.server";
-import type { HandlingReason, ReplyHandling } from "./letters.server";
-import { lettersDomain, notifyDomain, type Attachment } from "./outside-services/postmark.server";
-import { nameLine } from "./proxies.server";
+import type { HandlingReason, ReplyHandling } from "@/lib/letters/records.server";
+import { lettersDomain, nameLine, notifyDomain, type Attachment } from "./outside-services/postmark.server";
 import { gzipSync } from "node:zlib";
 import { messageIds } from "@/lib/email-parsing/mime.server";
-import { claimOneOffs, hasMessage } from "./letter-replies.server";
+import { claimOneOffs, hasMessage } from "@/lib/letters/replies.server";
 import { saveLetterReply } from "./outside-services/blobs.server";
 
 // What Postmark tells us: bounces and spam complaints, deliveries of

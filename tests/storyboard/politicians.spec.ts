@@ -12,6 +12,7 @@ import { importPath } from "@/lib/import-runs";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
 
@@ -538,7 +539,7 @@ test("PauseAI's email to a politician", async ({ page, request, flowDatabase }) 
   const history = page.getByRole("list", { name: copy.historyTitle });
   await history.getByRole("link", { name: staffVocabulary.theLetter }).first().click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    staffCopy.letters.oneTitle(staffCopy.letters.fromPauseai, "Polly Placeholder"),
+    lettersCopy.letters.oneTitle(lettersCopy.letters.fromPauseai, "Polly Placeholder"),
   );
   await expect(page).toHaveURL(/\/staff\/mailings\/\d+\/letters\/\d+$/);
   await frame(page, "PauseAI's email to Polly");
@@ -546,8 +547,8 @@ test("PauseAI's email to a politician", async ({ page, request, flowDatabase }) 
     "Copy Gmail search copies a search for it by Polly's address and when it went. Airtable didn't say which mailbox sent it, so the page says to look in one that did.",
   );
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.getByRole("button", { name: staffCopy.findInGmail.copy }).click();
-  await expect(page.getByRole("status")).toContainText(staffCopy.findInGmail.whereUnknown);
+  await page.getByRole("button", { name: lettersCopy.findInGmail.copy }).click();
+  await expect(page.getByRole("status")).toContainText(lettersCopy.findInGmail.whereUnknown);
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^to:polly\S+ after:\d+ before:\d+$/);
   await frame(page, "The search, copied");
 });

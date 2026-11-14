@@ -89,7 +89,7 @@ export type ImportRun<Job extends ImportJob, Result> = {
 );
 
 /**
- * What relinking the one-off threads did (lib/server/one-off-relink.server.ts):
+ * What relinking the one-off threads did (lib/letters/one-off-relink.server.ts):
  * messages whose quotes it read, those left to read, people linked to threads
  * and unlinked from them, and the offices' addresses it found.
  */

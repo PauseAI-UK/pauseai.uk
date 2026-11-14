@@ -17,6 +17,7 @@ import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };
 
@@ -446,7 +447,7 @@ test("Keeping Joseph's threads", async ({ page, flowDatabase }) => {
   await logInAsStaff(page, BASE, "joseph@pauseai.uk");
   await page.goto(`${BASE}/staff/me`);
   await page.getByRole("link", { name: accountsCopy.gmail.connect }).click();
-  await expect(page.getByText(staffCopy.oneOff.kept.before)).toBeVisible();
+  await expect(page.getByText(accountsCopy.gmail.kept.before)).toBeVisible();
   await frame(page, "Kept");
 });
 
@@ -460,7 +461,7 @@ test("Mail that matches nothing", async ({ page, request, flowDatabase }) => {
   runSql(flowDatabase, "INSERT INTO unmatched_mail (account, gmail_message_id) VALUES ('policy@pauseai.uk', '0b02')");
   await page.goto(`${BASE}${importPath("read-gmail")}`);
   await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
-  const subject = staffCopy.oneOff.unmatchedAlert.subject(1);
+  const subject = lettersCopy.oneOff.unmatchedAlert.subject(1);
   await expect.poll(() => newestEmail((email) => email.Subject === subject)).toBeTruthy();
   const report = newestEmail((email) => email.Subject === subject)!;
   expect(report.TextBody).toContain("Are you hiring?");

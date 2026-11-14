@@ -18,6 +18,7 @@ import type { Section } from "./report/frames";
 import { messageFrom, postWhatsAppWebhook, statusOf, templateStatus } from "../whatsapp-webhooks";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 
 export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
 
@@ -29,7 +30,7 @@ export const section: Section = { name: "Broadcasts to supporters", part: "Staff
 // fake WhatsApp, with what its webhook then brings: delivery, a reply, a stop.
 
 const copy = staffCopy.broadcastPages;
-const stateWords = mailingsCopy.copyStates;
+const stateWords = lettersCopy.copyStates;
 const mailingCopy = mailingsCopy.mailingPages;
 const EMAIL = "contact=email%3Aevents%3Ayes";
 const TEXT = "contact=text%3Aevents%3Ayes";

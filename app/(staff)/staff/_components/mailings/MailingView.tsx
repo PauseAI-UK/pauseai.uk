@@ -21,19 +21,20 @@ import { mailingCounts } from "./MailingsOverview";
 import Band, { BandFact } from "../ui/Band";
 import { countsFiltering } from "../ui/Counts";
 import { CountGroups } from "./CopyCounts";
-import { wentAndGone } from "./CopyStatus";
+import { wentAndGone } from "../letters/CopyStatus";
 import Grid, { Card } from "../ui/Grid";
 import Progress from "../ui/Progress";
 import Strip from "../ui/Strip";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
 import Bubble from "@/components/ui/Bubble";
 import AnswerWord from "../asks/AnswerWord";
-import LetterStatus from "../LetterStatus";
+import LetterStatus from "../letters/LetterStatus";
 import styles from "./MailingView.module.css";
 import TestTag from "../TestTag";
 import { asksCopy } from "@/lib/asks/copy";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { mailingsCopy } from "./copy";
+import { lettersCopy } from "../letters/copy";
 
 const copy = mailingsCopy.mailingPages;
 
@@ -74,7 +75,7 @@ function recipientColumns(mailing: Mailing): ListColumn<MailingRecipient>[] {
             <TestTag isTest={r.isTest} />
           </span>
           <Muted>
-            {[r.constituency, r.party, mailing.imported && r.personalised && mailingsCopy.mailings.personalised]
+            {[r.constituency, r.party, mailing.imported && r.personalised && lettersCopy.letters.personalised]
               .filter(Boolean)
               .join(" · ")}
           </Muted>
@@ -189,7 +190,7 @@ export function MailingStanding({
           value={mailing.answered}
           max={mailing.to}
           tone="green"
-          label={mailingsCopy.copyStates.tabs.answered}
+          label={lettersCopy.copyStates.tabs.answered}
           big
         >
           {copy.answeredBar(mailing.answered, mailing.to)}
@@ -247,7 +248,7 @@ function ImportedText({ mailing }: { mailing: Mailing }) {
       from={mailing.sentFrom ?? mailing.fromName ?? mailingsCopy.mailings.notRecorded}
       subject={mailing.importedSubject}
     >
-      {mailing.importedTextApproximate && <Strip tone="amber">{staffCopy.letterThread.approximate}</Strip>}
+      {mailing.importedTextApproximate && <Strip tone="amber">{lettersCopy.letterThread.approximate}</Strip>}
       <MailingLetter doc={doc} fields={mailingsCopy.mailings.importedFields} conditions={{}} />
     </MailEmail>
   );
@@ -337,9 +338,7 @@ export default function MailingView({
         <Card span={3} as="div">
           <div className={styles.recipientsHead}>
             <h2>
-              {mailing.tab === "all"
-                ? mailingsCopy.mailings.recipientsTitle
-                : mailingsCopy.copyStates.tabs[mailing.tab]}
+              {mailing.tab === "all" ? mailingsCopy.mailings.recipientsTitle : lettersCopy.copyStates.tabs[mailing.tab]}
             </h2>
             {mailing.tab !== "all" && <StaffLink href={path}>{copy.showEveryone}</StaffLink>}
           </div>

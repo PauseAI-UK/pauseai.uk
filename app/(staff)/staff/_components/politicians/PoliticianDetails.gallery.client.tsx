@@ -2,7 +2,7 @@
 
 // PoliticianDetails's example that logs its saves (PoliticianDetails.gallery.tsx).
 import { exampleBlock } from "@/app/(staff)/staff/_components/EmailBlocksTable.examples";
-import { exampleLetter } from "@/app/(staff)/staff/_components/LettersTable.examples";
+import { exampleLetter } from "../letters/LettersTable.examples";
 import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "@/app/(staff)/staff/_components/Notes.examples";
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import PoliticianDetails from "./PoliticianDetails";

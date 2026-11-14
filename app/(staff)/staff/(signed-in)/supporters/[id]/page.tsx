@@ -17,8 +17,8 @@ import EraseLink from "../../../_components/erasure/EraseLink";
 import Notes from "../../../_components/Notes";
 import SupporterBroadcasts from "../../../_components/SupporterBroadcasts";
 import SupporterDetails from "../../../_components/supporters/SupporterDetails";
-import { supporterOneOffs } from "@/lib/server/one-off-emails.server";
-import { OneOffTable } from "../../../_components/OneOffList";
+import { supporterOneOffs } from "@/lib/letters/one-off-emails.server";
+import { OneOffTable } from "../../../_components/letters/OneOffList";
 import Page from "../../../_components/ui/Page";
 
 type Params = { params: Promise<{ id: string }> };

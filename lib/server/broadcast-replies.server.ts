@@ -6,7 +6,7 @@ import { fromAddress, messageIds } from "@/lib/email-parsing/mime.server";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { logChange } from "./audit.server";
 import { query, transaction } from "./db.server";
-import { messageContent } from "./letter-threads.server";
+import { messageContent } from "@/lib/letters/threads.server";
 import { offCalendarAfter } from "@/lib/supporters/email-settings.server";
 import { recordStaffOptOut, type CalendarOptOut, type OptOutList } from "@/lib/supporters/opt-outs.server";
 import { saveLetterReply } from "./outside-services/blobs.server";

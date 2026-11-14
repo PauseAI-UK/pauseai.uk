@@ -11,8 +11,9 @@ import { staffCopy } from "./content/staff-interface";
 import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, valuesOf, type Params } from "./list-params";
-import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "@/lib/politicians/filters";
-import type { EmailChoice } from "./server/all-letters.server";
+import { COUNTRIES, EMAIL_STATES } from "@/lib/politicians/filters";
+import { POLITICIAN_FLAGS } from "@/lib/politician-flags";
+import type { EmailChoice } from "@/lib/letters/all-letters.server";
 import type { Ask } from "@/lib/asks/records.server";
 import type { SupporterChoices, SupportersPage } from "@/lib/supporters/records.server";
 import { WINDOW_OPTIONS } from "./staff-dashboard";
@@ -32,6 +33,7 @@ import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters/supporters";
 import { eventsCopy } from "@/lib/events/copy";
 import { supportersCopy } from "@/lib/supporters/copy";
 import { politiciansCopy } from "@/lib/politicians/copy";
+import { lettersCopy } from "@/lib/letters/copy";
 
 /**
  * A choice. Choices in a `group` come under its heading, its icon once,
@@ -419,7 +421,7 @@ export const SENT_EMAIL_FILTERS = listFilters(SENT_EMAILS_LIST, ({ supporters }:
 export const ALL_EMAIL_FILTERS = listFilters(
   ALL_EMAILS_LIST,
   ({ supporters, people }: { supporters: boolean; people: EmailChoice[] }) => {
-    const copy = staffCopy.allLetters;
+    const copy = lettersCopy.allLetters;
     return {
       from: {
         label: copy.from,
@@ -430,7 +432,7 @@ export const ALL_EMAIL_FILTERS = listFilters(
         })),
       },
       to: {
-        label: staffCopy.letters.columns.to,
+        label: lettersCopy.letters.columns.to,
         searchable: true,
         options: people.map((person) => ({
           value: String(person.id),
@@ -458,7 +460,7 @@ export const ALL_EMAIL_FILTERS = listFilters(
       },
       // Test MPs' emails show only with Test politician chosen.
       flag: {
-        label: staffCopy.letters.mpFlag,
+        label: lettersCopy.letters.mpFlag,
         options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: politiciansCopy.politicians.flags[flag] })),
       },
     };

@@ -4,7 +4,7 @@ import { EditorContent, Node, useEditor, useEditorState, type Editor, type JSONC
 import { useId, useMemo, useRef, useState } from "react";
 import { LinkIcon, QuoteIcon } from "@/components/ui/EditorIcons";
 import LinkBar from "@/components/ui/LinkBar";
-import { isLinkKey, letterExtensions } from "@/lib/letter-extensions";
+import { isLinkKey, letterExtensions } from "@/lib/letters/extensions";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { NOT_CONDITION } from "@/lib/mailings/doc";
 import { partFor, type MailingChoice } from "@/lib/mailings/fields";

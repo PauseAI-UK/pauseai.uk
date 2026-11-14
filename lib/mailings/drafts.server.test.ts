@@ -5,7 +5,7 @@ import { server } from "@/tests/fixtures/msw";
 import { http, HttpResponse } from "msw";
 import type { MailingDoc } from "./doc";
 import { query } from "@/lib/server/db.server";
-import type { MailingChannel } from "./channels.server";
+import type { MailingChannel } from "@/lib/letters/channels.server";
 import {
   addAttachment,
   changePicks,

@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/Button";
 import { ErrorText } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { answerSubject } from "@/lib/email-parsing/subjects";
-import { hasWords } from "@/lib/letter-format";
+import { hasWords } from "@/lib/letters/format";
 import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
 import type { AnswerResult } from "@/lib/server/broadcast-answers.server";
 import Alert from "./Alert";
 import MailingEditor from "./mailings/MailingEditor";
 import { ChatBubble, ChatWall } from "./TextBubble";
-import ThreadEmail from "./ThreadEmail";
+import ThreadEmail from "./letters/ThreadEmail";
 import styles from "./ReplyActions.module.css";
 
 const copy = staffCopy.broadcastPages.replies;

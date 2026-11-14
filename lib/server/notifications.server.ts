@@ -4,11 +4,10 @@ import { now } from "@/lib/now";
 import { siteUrlIfKnown } from "@/lib/site-url.server";
 import { query } from "./db.server";
 import { sendWith, type Purpose, type SendHooks } from "./email.server";
-import { notifyDomain } from "./outside-services/postmark.server";
+import { nameLine, notifyDomain } from "./outside-services/postmark.server";
 import { problem } from "./problems.server";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { gmailMessageLink } from "@/lib/letter-links";
-import { nameLine } from "./proxies.server";
+import { gmailMessageLink } from "@/lib/letters/links";
 import { staffAddressLine } from "@/lib/accounts/staff-address.server";
 
 // Emails to the notification inbox (NOTIFICATION_INBOX): something on the

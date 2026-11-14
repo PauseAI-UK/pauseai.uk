@@ -24,7 +24,7 @@ import {
   type MailingDoc,
 } from "@/lib/mailings/doc";
 import { named } from "@/lib/email-parsing/addresses";
-import type { ChannelResult } from "@/lib/mailings/channels.server";
+import type { ChannelResult } from "@/lib/letters/channels.server";
 import type {
   BroadcastScheduleResult,
   WhatsAppTemplate,

@@ -94,7 +94,7 @@ Where they come from:
   the one the body lists only once the body stops listing it. The House of
   Lords' shared inbox, which most Lords list as their only address, is never
   anyone's: a check constraint refuses it (`SHARED_INBOXES` in
-  `lib/one-off.ts`). Staff set a Lord's email by hand.
+  `lib/letters/one-off.ts`). Staff set a Lord's email by hand.
 - **Airtable's UK Parliamentarians**, which the policy team kept, is no
   longer read. Its salutations, markers and notes were copied before then;
   each politician who was in it keeps their record's ID (`airtable_id`).
@@ -281,15 +281,15 @@ A letter's ask is its campaign's or its mailing's, never its own.
 
 **A letter's history** is its events, shown on its page newest first,
 each with what it recorded (`historyOf` and `LetterHistory` in
-`app/(staff)/staff/_components/LetterHistory.tsx`; how they're laid out
+`app/(staff)/staff/_components/letters/LetterHistory.tsx`; how they're laid out
 is in `docs/style-guide.md`, "A history").
 
 ### Letters through the letters inbox
 
 Supporters' letters go to MPs from the letters inbox, a Gmail account used
-for nothing else (`LETTERS_INBOX`, `lib/server/letters-inbox.server.ts`). Each
+for nothing else (`LETTERS_INBOX`, `lib/letters/letters-inbox.server.ts`). Each
 side sees the other only as a proxy, a plus address on the inbox
-(`proxies`, `lib/server/proxies.server.ts`):
+(`proxies`, `lib/letters/proxies.server.ts`):
 
 - the MP gets the letter from
   `"Jane Smith (via PauseAI)" <letters+jane.smith@…>`;
@@ -301,7 +301,7 @@ keyed by their email address, so it's the same in every letter, and it's
 named from the name on their first letter. An MP's proxy is named the first
 time they're written to, and kept.
 
-- **Sending** (`lib/server/mp-letters.server.ts`, `letter-sending.server.ts`): a letter
+- **Sending** (`lib/server/mp-letters.server.ts`, `lib/letters/sending.server.ts`): a letter
   that passes the form's checks is kept, `queued`, and never deleted for
   failing to send. The request tries to send at once, in two steps:
   1. The letter, from the supporter's proxy to the MP alone.
@@ -322,7 +322,7 @@ time they're written to, and kept.
   of its words that are the supporter's own. Its page shows only what they
   changed, with the paragraphs they left alone folded (`LetterChanges`).
 
-- **Reading and relaying** (`lib/server/letters-inbox-reading.server.ts`,
+- **Reading and relaying** (`lib/letters/letters-inbox-reading.server.ts`,
   `relays.server.ts`): `read-gmail`, every 5 minutes, reads the letters inbox, Spam
   included, as all of its mail is ours. What it relays:
   - A message from the MP's office (Parliament's domain, or the address the
@@ -381,7 +381,7 @@ time they're written to, and kept.
   their address and holds later relays to them, in case staff unblock it.
   A day on, if a relay is still held, the MP's office is told once that it
   can't be passed on, from the supporter's proxy in the thread of their
-  reply (`lib/server/held-replies.server.ts`).
+  reply (`lib/letters/held-replies.server.ts`).
 
   A soft bounce is only noted.
 
@@ -431,7 +431,7 @@ The principles:
   went (an earlier opt-out, a blocked address, no address) is grey, not
   red. Red is for what this send itself broke or caused.
 
-The states, their colours and their words are one set (`lib/mailings/copy-states.ts`,
+The states, their colours and their words are one set (`lib/letters/copy-states.ts`,
 `mailingsCopy.copyStates`), and each copy's tag and the counts come from it
 (`CopyStatus.tsx` and `CopyCounts.tsx` in
 `app/(staff)/staff/_components/mailings/`). Each kind adds its own: a broadcast's
@@ -725,7 +725,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   letters inbox.
 
 - **A run that stops while sending** (`uncertainLetters` in
-  `lib/server/letter-sending.server.ts`): a letter (of a mailing or from the
+  `lib/letters/sending.server.ts`): a letter (of a mailing or from the
   letters inbox) or a supporter's copy is marked sending when a run takes
   it (`taken_at`, `copy_taken_at`), and sent once it has gone. A run that
   stops between the two leaves it sending. At the start of the next
@@ -764,7 +764,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   A Gmail thread is in one place. Once a message of it is on a letter, every
   other message in it is the letter's too, whoever wrote it, and any kept as
   a one-off email moves onto the letter (`claimOneOffs`,
-  `lib/server/letter-replies.server.ts`). Moving a message adds nothing to the
+  `lib/letters/replies.server.ts`). Moving a message adds nothing to the
   letter's history, but for an automatic reply's event.
 
   Each run is in the import log, with what it found in each account, and
@@ -774,7 +774,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   (`/staff/mailings/<id>/letters/<letter>`), reached from the politician's
   history and the mailing's recipients. A letter whose text the page
   doesn't have, one copied from Airtable, has Copy Gmail search in its
-  place (`lib/letter-links.ts`): a search for the letter by its
+  place (`lib/letters/links.ts`): a search for the letter by its
   Message-ID, to paste into Gmail wherever the mailbox it went from can be
   seen, a delegate's view included. It's a search because Gmail has no
   link into a delegated mailbox. A supporter's letter's page has the same. For a letter
@@ -813,20 +813,20 @@ letters, and the rest as one-off emails.
 
 Threads with a politician that aren't a letter of a campaign or mailing: Joseph's
 own emails, a volunteer copying policy@, an MP writing to us.
-`lib/server/one-off-emails.server.ts` keeps each message whole, in Netlify Blobs with a
+`lib/letters/one-off-emails.server.ts` keeps each message whole, in Netlify Blobs with a
 row in `one_off_messages`, in its thread (`one_off_threads`). Staff read them, and
 can't change them, on Correspondence (`/staff/emails`), in the navigation under
 Politicians, and on the politician's and the supporter's pages. On Correspondence,
 staff without `supporters` don't see supporters' letters or a thread with someone
 else in it.
 
-- **What counts** (`lib/one-off.ts`): a message counts if it has:
+- **What counts** (`lib/letters/one-off.ts`): a message counts if it has:
   - an address a politician has or has had (past ones come from the audit log);
   - an address on a politician's own domain; or
   - an address on a parliament's domain.
 
   Whose it is, the politicians a thread shows under, goes by the politician book
-  (`lib/politicians/book.server.ts`). An address is a politician's if it's:
+  (`lib/letters/book.server.ts`). An address is a politician's if it's:
   - their email, or one they had;
   - one in `politician_addresses`: listed for them by their body, added by
     staff (such as a personal Gmail), or their office's;
@@ -849,7 +849,7 @@ else in it.
   such as their caseworker's. Relinking works these out again each time, by the
   book without them.
 
-- **Relinking** (`lib/server/one-off-relink.server.ts`) works out every thread's
+- **Relinking** (`lib/letters/one-off-relink.server.ts`) works out every thread's
   politicians afresh from its messages' addresses, the addresses and names they
   quote, and the book as it is, and whether it has someone else in it. It runs
   at the end of each body's import (and its button), and when staff add or
@@ -861,7 +861,7 @@ else in it.
   the House of Lords' shared inbox, which the House forwards to the Lord its
   subject names ("For Baroness Verma: …"), links that Lord, when the name is
   one sitting Lord's, with or without their territorial part (`lordFor`,
-  `lordNamed` in `lib/one-off.ts`); a name that's no one's, or more than one
+  `lordNamed` in `lib/letters/one-off.ts`); a name that's no one's, or more than one
   Lord's, links no one.
 
 - **Aliases.** A politician's email, in the band at the top of their page,
@@ -1457,7 +1457,7 @@ the kinds with no supporter's details on them
 Every address an email is to, Cc'd or Bcc'd to has a name with it: the
 person's own name on their own address, `"Jane Smith"
 <jane.smith@example.com>`, and their name with "(via PauseAI)" on a proxy
-(`nameLine` and `proxyLine` in `lib/server/proxies.server.ts`). The exception is
+(`nameLine` and `proxyLine` in `lib/letters/proxies.server.ts`). The exception is
 staff: we don't know a staff account's name, nor a shared inbox's, so a
 login link, an alert or an event owner's email goes to the address alone.
 
@@ -1477,10 +1477,10 @@ each time it happens, with a link to where to deal with it:
 - a body's import held, when none was (`lib/politicians/imports.server.ts`);
 - Google disconnecting a Gmail account (`lib/accounts/gmail-accounts.server.ts`);
 - letters to MPs waiting over three hours to go, until those it named
-  have gone (`LATE_HOURS` in `lib/server/letter-sending.server.ts`);
+  have gone (`LATE_HOURS` in `lib/letters/sending.server.ts`);
 - once a day at most, a report of the supporters' copies that bounced
   since the last, each address's domain and what its server said, and
-  how many replies to them are held (`lib/server/held-replies.server.ts`), to
+  how many replies to them are held (`lib/letters/held-replies.server.ts`), to
   see whether the form should check addresses harder;
 - an error outside an import's run, when it's new and at most once a day
   while it goes on, and a spam check refusing letter after letter

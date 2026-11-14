@@ -10,13 +10,11 @@ import { useState } from "react";
 import Tag from "@/components/ui/Tag";
 import Counts, { type Count } from "../ui/Counts";
 import StaffLink from "../ui/StaffLink";
+import type { CountGroup } from "../letters/CopyStatus";
 import styles from "./CopyCounts.module.css";
-import { mailingsCopy } from "./copy";
+import { lettersCopy } from "../letters/copy";
 
-const copy = mailingsCopy.copyStates;
-
-/** A group of counts, its total before them. */
-export type CountGroup = { key: string; label: string; counts: Count[] };
+const copy = lettersCopy.copyStates;
 
 /** The tones that ask for a look: red bad, amber sad, blue for staff to do. */
 const NEEDS_A_LOOK = new Set<Count["tone"]>(["red", "amber", "blue"]);

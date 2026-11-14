@@ -1,6 +1,6 @@
 import type { BroadcastAnswer } from "@/lib/server/broadcast-answers.server";
 import type { BroadcastReply } from "@/lib/server/broadcast-replies.server";
-import type { LetterDoc } from "@/lib/letter-format";
+import type { LetterDoc } from "@/lib/letters/format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { MailingDoc } from "@/lib/mailings/doc";
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";

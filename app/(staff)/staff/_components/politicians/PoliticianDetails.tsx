@@ -10,8 +10,8 @@ import CampaignName from "../CampaignName";
 import { FieldChanges } from "../AuditDetail";
 import type { FieldChange } from "@/lib/field-changes";
 import type { EmailBlock } from "@/lib/server/email.server";
-import type { OneOffThreadRow } from "@/lib/server/one-off-emails.server";
-import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/server/letters.server";
+import type { OneOffThreadRow } from "@/lib/letters/one-off-emails.server";
+import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/letters/records.server";
 import type { Politician, PoliticianChange } from "@/lib/politicians/records.server";
 import { correspondenceThreads, hasReply, type ThreadMessages } from "@/lib/politicians/threads";
 import { staffDate, staffTime } from "@/lib/staff-time";
@@ -28,7 +28,7 @@ import UnblockForm from "../UnblockForm";
 import NotesCard from "../NotesCard";
 import { NoteEntry, type NotesProps } from "../Notes";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
-import { statusOf } from "../LetterStatus";
+import { statusOf } from "../letters/LetterStatus";
 import { Muted } from "@/components/ui/Text";
 import ExternalLink from "../ui/ExternalLink";
 import type { PoliticianAliases } from "@/lib/politicians/aliases.server";
@@ -37,6 +37,7 @@ import { AddressesBubble, SalutationBubble, type AliasActions } from "./Politici
 import { bodyOf, officialProfile } from "@/lib/politicians/official-profiles";
 import type { EditResult } from "@/lib/politicians/edits.server";
 import { politiciansCopy } from "./copy";
+import { lettersCopy } from "../letters/copy";
 
 const copy = politiciansCopy.politician;
 
@@ -383,15 +384,15 @@ export default function PoliticianDetails({
         at: thread.latestAt,
         what: (
           <>
-            {from ? copy.emailFrom(from) : staffCopy.oneOff.title}:{" "}
+            {from ? copy.emailFrom(from) : lettersCopy.oneOff.title}:{" "}
             {thread.subject === null ? (
-              <Withheld>{staffCopy.oneOff.hidden}</Withheld>
+              <Withheld>{lettersCopy.oneOff.hidden}</Withheld>
             ) : (
               <>
-                {thread.subject || staffCopy.oneOff.noSubject}
+                {thread.subject || lettersCopy.oneOff.noSubject}
                 <Muted>
                   {" · "}
-                  <StaffLink href={`/staff/one-off/${thread.id}`}>{staffCopy.allLetters.theThread}</StaffLink>
+                  <StaffLink href={`/staff/one-off/${thread.id}`}>{lettersCopy.allLetters.theThread}</StaffLink>
                 </Muted>
               </>
             )}

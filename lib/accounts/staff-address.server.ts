@@ -1,6 +1,6 @@
 import "server-only";
 import { query } from "@/lib/server/db.server";
-import { nameLine } from "@/lib/server/proxies.server";
+import { nameLine } from "@/lib/server/outside-services/postmark.server";
 
 /**
  * A staff member's address as a To or Cc line, with the name their Gmail

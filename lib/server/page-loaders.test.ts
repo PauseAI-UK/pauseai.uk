@@ -5,7 +5,7 @@ import { newRequest } from "@/tests/request-cache";
 import { askToEdit, listAsks } from "@/lib/asks/records.server";
 import { getCampaignSummary } from "@/lib/mailings/campaigns.server";
 import { query } from "./db.server";
-import { getPauseaiLetter, getSupporterLetter } from "./letters.server";
+import { getPauseaiLetter, getSupporterLetter } from "@/lib/letters/records.server";
 import { getPolitician, listParties } from "@/lib/politicians/records.server";
 import { savedFiltersState } from "./saved-filters.server";
 import { eventsPage } from "@/lib/events/staff-events.server";

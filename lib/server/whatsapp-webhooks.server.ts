@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { SITE_ACTOR } from "@/lib/broadcasts";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { LetterDoc } from "@/lib/letter-format";
+import type { LetterDoc } from "@/lib/letters/format";
 import type { Topic } from "@/lib/supporters/contact-permissions";
 import { siteUrl } from "@/lib/site-url.server";
 import { stopAnswer } from "@/lib/whatsapp-template";

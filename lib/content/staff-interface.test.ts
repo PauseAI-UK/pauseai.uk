@@ -8,9 +8,8 @@ describe("staff interface copy", () => {
     expect(staffCopy.tidying.result(counts)).toContain("0 errors");
   });
 
-  it("puts the number in each list's total", () => {
-    const { letters, changes } = staffCopy;
-    for (const list of [letters, changes]) expect(list.total(7)).toContain("7");
+  it("puts the number in the changes list's total", () => {
+    expect(staffCopy.changes.total(7)).toContain("7");
   });
 
   it("names what each change counts", () => {
@@ -36,12 +35,6 @@ describe("staff interface copy", () => {
       expect(staffCopy.broadcastPages.submitFailed(reason)).toContain("saying “Message too long.” Change it");
     }
   });
-
-  it("names a letter's page by whom it was from and to, and a supporter's letters' by who wrote them", () => {
-    expect(staffCopy.letters.oneTitle("Jane Smith", "Testy MP")).toContain("Jane Smith");
-    expect(staffCopy.letters.oneTitle("Jane Smith", "Testy MP")).toContain("Testy MP");
-    expect(staffCopy.letters.fromTitle("Jane Smith")).toContain("Jane Smith");
-  });
 });
 
 it("words the runs' times, problems and results", () => {
@@ -54,12 +47,7 @@ it("words the runs' times, problems and results", () => {
   }
   expect(anywhere.sendFailed("mailing")).toContain("mailing");
   expect(logs.badBody("Postmark")).toContain("Postmark");
-  expect(anywhere.letterNotSent(7)).toContain("7");
   expect(anywhere.charsetUnknown("x-mac")).toContain("x-mac");
-});
-
-it("says which inbox the one-off emails are copied to", () => {
-  expect(staffCopy.allLetters.intro("policy@example.org")).toContain("policy@example.org");
 });
 
 describe("the words of messages to supporters", () => {

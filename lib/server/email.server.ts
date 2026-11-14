@@ -58,7 +58,7 @@ export type SendOptions = {
   /**
    * By Gmail, the whole message to send in place of one made from the
    * email's fields, given the Message-ID and date it goes with: a relay
-   * (lib/server/relays.server.ts). The email's To still says whom it's to.
+   * (lib/letters/relays.server.ts). The email's To still says whom it's to.
    */
   raw?: (messageId: string, date: Date) => Buffer;
   /** By Gmail, the thread in the sending mailbox it joins, as an answer to a message there does. */

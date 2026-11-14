@@ -1,7 +1,7 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { gmailMessageLink } from "@/lib/letter-links";
+import { gmailMessageLink } from "@/lib/letters/links";
 import {
   type AnyImportRun,
   type ControlAiImport,
@@ -20,6 +20,7 @@ import { Muted } from "@/components/ui/Text";
 import Table from "@/components/ui/Table";
 import ExternalLink from "./ui/ExternalLink";
 import { politiciansCopy } from "./politicians/copy";
+import { lettersCopy } from "./letters/copy";
 
 /** The Server Action that applies or discards a held import. */
 export type Decide = (formData: FormData) => void | Promise<void>;
@@ -244,7 +245,7 @@ function GmailRun({ run, open, bare }: { run: GmailReading; open?: boolean; bare
     return <RunBox run={run} summary={staffCopy.luma.stoppedBy[run.result.stoppedBy]} open={open} bare={bare} />;
   }
   const words = staffCopy.gmailReading;
-  const inbox = staffCopy.lettersInbox;
+  const inbox = lettersCopy.lettersInbox;
   const { accounts, searched } = run.result;
   const lines = accounts.reduce((n, a) => n + 1 + (a.notUnderstood?.length ?? 0), 0);
   const summary = words.result(accounts);

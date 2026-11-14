@@ -2,7 +2,7 @@ import Table from "@/components/ui/Table";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { ProblemSummary } from "@/lib/server/email.server";
-import LetterLink from "./LetterLink";
+import LetterLink from "./letters/LetterLink";
 import Reason from "./BounceReason";
 import When from "./ui/When";
 import styles from "./EmailProblemsTable.module.css";

@@ -1,8 +1,8 @@
 import "server-only";
 import { JOBS, type SendingResult } from "@/lib/import-runs";
 import { asRun } from "./import-runs.server";
-import { sendLetterQueue } from "./letter-queue.server";
-import { uncertainLetters } from "./letter-sending.server";
+import { sendLetterQueue } from "@/lib/letters/queue.server";
+import { uncertainLetters } from "@/lib/letters/sending.server";
 import { sendDueLetters, startDueMailings } from "@/lib/mailings/sending.server";
 import { sendDueBroadcasts, startDueBroadcasts } from "./broadcast-sending.server";
 import { checkTemplates } from "./whatsapp-templates.server";
@@ -13,7 +13,7 @@ const JOB = "send-mailings";
  * One run of the sending, kept in the import log: first marking letters a
  * stopped run left sending as uncertain (uncertainLetters), so a mailing
  * with one can finish; then the letters inbox's queue
- * (letter-queue.server.ts), then the mailings due and their letters
+ * (lib/letters/queue.server.ts), then the mailings due and their letters
  * (mailing-sending.ts), then what WhatsApp has decided of our templates
  * (whatsapp-templates.server.ts), then the broadcasts to supporters due and their
  * copies (broadcast-sending.server.ts), for its budget (JOBS) in all, short of what Netlify

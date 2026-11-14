@@ -21,7 +21,7 @@ import TextBubble from "./TextBubble";
 import Band, { BandFact } from "./ui/Band";
 import { countsFiltering, type Count } from "./ui/Counts";
 import { CountGroups } from "./mailings/CopyCounts";
-import { CopyStatus, stateCounts, wentAndGone } from "./mailings/CopyStatus";
+import { CopyStatus, stateCounts, wentAndGone } from "./letters/CopyStatus";
 import Grid, { Card } from "./ui/Grid";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
@@ -29,6 +29,7 @@ import view from "./mailings/MailingView.module.css";
 import styles from "./Broadcasts.module.css";
 import { supportersCopy } from "./supporters/copy";
 import { mailingsCopy } from "./mailings/copy";
+import { lettersCopy } from "./letters/copy";
 
 const copy = staffCopy.broadcastPages;
 
@@ -260,7 +261,7 @@ export default function BroadcastView({
         <BroadcastWords written={written} parts={data.parts} />
         <Card span={3} as="div">
           <div className={view.recipientsHead}>
-            <h2>{tab === "all" ? copy.recipientsTitle : mailingsCopy.copyStates.tabs[tab]}</h2>
+            <h2>{tab === "all" ? copy.recipientsTitle : lettersCopy.copyStates.tabs[tab]}</h2>
             {tab !== "all" && <StaffLink href={path}>{mailingsCopy.mailingPages.showEveryone}</StaffLink>}
           </div>
           {/* Sending finds who it goes to, so one scheduled lists who its filters find now. */}

@@ -94,7 +94,7 @@ describe("plainAsHtml", () => {
 
 // Whether Gmail and Outlook can show it, from the Can I email tables
 // (https://www.caniemail.com), as the letter's HTML is checked
-// (lib/letter-format.test.ts).
+// (lib/letters/format.test.ts).
 describe("a plain email's HTML in Gmail and Outlook", () => {
   it("uses nothing they don't support", () => {
     const html = plainAsHtml(

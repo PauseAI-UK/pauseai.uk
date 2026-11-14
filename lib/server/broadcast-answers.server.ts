@@ -1,7 +1,7 @@
 import "server-only";
 import { named } from "@/lib/email-parsing/addresses";
 import { answerSubject } from "@/lib/email-parsing/subjects";
-import { checkDoc, isBlank, toHtml, toText, type LetterDoc } from "@/lib/letter-format";
+import { checkDoc, isBlank, toHtml, toText, type LetterDoc } from "@/lib/letters/format";
 import { logChange } from "./audit.server";
 import { problem } from "./problems.server";
 import { staffCopy } from "@/lib/content/staff-interface";

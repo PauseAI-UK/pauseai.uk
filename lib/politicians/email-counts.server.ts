@@ -1,8 +1,8 @@
 import "server-only";
 import { AUTO_REPLY_PATTERN } from "@/lib/email-parsing/subjects";
-import { NEVER_WENT, statusIn } from "@/lib/letter-status";
-import { PARLIAMENT_DOMAINS } from "@/lib/one-off";
-import { bookAddresses } from "./book.server";
+import { NEVER_WENT, statusIn } from "@/lib/letters/status";
+import { PARLIAMENT_DOMAINS } from "@/lib/letters/one-off";
+import { bookAddresses } from "@/lib/letters/book.server";
 
 // How many emails went to a politician, and how many came from them, in
 // SQL, so the politicians list has them for everyone at once and sorts by
@@ -16,10 +16,10 @@ import { bookAddresses } from "./book.server";
 export const AUTO_REPLY = `EXISTS (SELECT 1 FROM letter_events e WHERE e.letter_id = r.letter_id AND e.status = 'auto_reply'
   AND e.details->>'gmailMessageId' = r.gmail_message_id)`;
 
-/** What follows the last @ of the one-off message `m`'s sender, as domainOf (lib/one-off.ts) gives it. */
+/** What follows the last @ of the one-off message `m`'s sender, as domainOf (lib/letters/one-off.ts) gives it. */
 const DOMAIN = "split_part(m.from_address, '@', -1)";
 
-/** Whether that's a parliament's domain or under one, as onParliamentDomain (lib/one-off.ts). */
+/** Whether that's a parliament's domain or under one, as onParliamentDomain (lib/letters/one-off.ts). */
 const ON_PARLIAMENT = PARLIAMENT_DOMAINS.map(
   (domain) => `right('.' || ${DOMAIN}, ${domain.length + 1}) = '.${domain}'`,
 ).join(" OR ");
@@ -39,7 +39,7 @@ const ONE_OFFS = `one_off_thread_people tp JOIN one_off_messages m ON m.thread_i
  * Whether a message of ONE_OFFS is from the politician's office, as the
  * page's threads have it: from any parliament's address, or else from an
  * address of theirs in the book, or, for an address that's no one's in the
- * book, from a domain of their own (politiciansOf in lib/one-off.ts; an
+ * book, from a domain of their own (politiciansOf in lib/letters/one-off.ts; an
  * address it knows by its form is a parliament's).
  */
 const FROM_OFFICE = `(${ON_PARLIAMENT} OR CASE WHEN known.address IS NOT NULL

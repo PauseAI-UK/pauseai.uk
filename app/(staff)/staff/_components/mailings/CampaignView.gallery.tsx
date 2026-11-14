@@ -3,7 +3,7 @@
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import CampaignView from "./CampaignView";
 import { exampleChanged, exampleCampaign, exampleCampaignNoAsk, exampleVersions } from "./CampaignPages.examples";
-import { emptyLettersSearch, exampleLetter } from "../LettersTable.examples";
+import { emptyLettersSearch, exampleLetter } from "../letters/LettersTable.examples";
 import StaffPage from "../ui/StaffPage";
 
 export const campaignViewGallery: Example[] = [

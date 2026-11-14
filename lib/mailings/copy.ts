@@ -1,7 +1,8 @@
 // The words of mailings that the server or pure code uses, as well as the
-// staff pages: a mailing's editor and its merge fields, the pages for writing
-// one and its own page, and how each copy of one went. The staff pages' own
-// are in app/(staff)/staff/_components/mailings/copy.ts.
+// staff pages: a mailing's editor and its merge fields, and the pages for
+// writing one and its own page. How each copy of one went is letters'
+// (lib/letters/copy.ts). The staff pages' own are in
+// app/(staff)/staff/_components/mailings/copy.ts.
 import { letterEditorCopy } from "@/lib/content/letter-editor";
 import { count } from "@/lib/content/plural";
 
@@ -55,89 +56,6 @@ export const mailingsCopy = {
       declined: "declined",
     } as Record<string, string>,
     answered: (words: string, ask: string) => `${words} ${ask}`,
-  },
-  // How a copy of something sent to many went, a broadcast's to a supporter or a letter to a politician, in states
-  // (lib/mailings/copy-states.ts; docs/domain-concepts.md, "How a copy went"). Each is one colour: red bad, amber sad, green
-  // good, blue for staff to do, grey normal.
-  copyStates: {
-    // Over its recipients, how many are in each state, and the heading over those a count lists.
-    counts: {
-      sent: "sent",
-      delivered: "delivered",
-      read: "read",
-      replied: "replied",
-      answered: "answered",
-      look: "to check",
-      "opted-out": "opted out",
-      spam: "marked spam",
-      error: "error",
-      unreached: "didn't reach",
-      "not-sent": "not sent",
-    } as Record<string, string>,
-    tabs: {
-      sent: "Sent",
-      delivered: "Delivered",
-      read: "Read",
-      replied: "Replied",
-      answered: "Answered",
-      look: "Replies to check",
-      "opted-out": "Opted out because of this",
-      spam: "Marked as spam",
-      error: "Something went wrong",
-      unreached: "Didn't reach them",
-      "not-sent": "Not sent",
-    } as Record<string, string>,
-    // On its page, its counts in two groups, each under its total: those that went, and those that didn't.
-    groups: { went: "went", gone: "didn't go" },
-    // In a list, after the counts that need a look, the rest folded behind how many are fine; or all.
-    andFine: (n: number) => `and ${n.toLocaleString("en-GB")} fine`,
-    allFine: (n: number) => `all ${n.toLocaleString("en-GB")} fine`,
-    // A recipient's one tag: its state, and why, by state and why (state:why), or its state alone.
-    tags: {
-      queued: "Queued",
-      scheduled: "Scheduled",
-      sending: "Sending",
-      sent: "Sent",
-      // A letter that only an automatic reply has come back to, such as an out-of-office.
-      "sent:auto-reply": "Sent: auto-reply",
-      delivered: "Delivered",
-      read: "Read",
-      replied: "Replied",
-      answered: "Answered",
-      look: "To check: replied",
-      "opted-out": "Opted out",
-      "opted-out:whatsapp-reply": "Opted out: replied “stop”",
-      "opted-out:postmark-complaint": "Opted out: marked as spam",
-      "opted-out:link": "Opted out: unsubscribe link",
-      "opted-out:list-unsubscribe": "Opted out: unsubscribe link",
-      "opted-out:reply": "Opted out: by reply",
-      // A politician's office marked our letter as spam.
-      spam: "Marked spam",
-      error: "Error",
-      "error:gmail": "Error: Gmail refused it",
-      "error:postmark": "Error: Postmark refused it",
-      "error:whatsapp": "Error: WhatsApp refused it",
-      "error:unfinished": "Error: send cut off",
-      "error:limit": "Error: out of time",
-      "error:civicrm": "Error: CiviCRM down",
-      "error:pull": "Error: CiviCRM down",
-      "error:template": "Error: template paused",
-      "error:late": "Error: out of time, CiviCRM down",
-      "error:failing": "Error: sending kept failing",
-      "unreached:bounced": "Didn't reach: bounced",
-      "unreached:not-on-whatsapp": "Didn't reach: not on WhatsApp",
-      "not-sent": "Not sent",
-      "not-sent:cancelled": "Not sent: we cancelled",
-      "not-sent:unsubscribed": "Not sent: opted out before",
-      "not-sent:whatsapp": "Not sent: opted out before, in WhatsApp",
-      "not-sent:no-permission": "Not sent: consent ended",
-      "not-sent:suppressed": "Not sent: PauseAI Global",
-      "not-sent:blocked": "Not sent: address blocked",
-      "not-sent:not-on-whatsapp": "Not sent: not on WhatsApp",
-      // A mailing's letter to a politician who has left office, or has no address we know.
-      "not-sent:left-office": "Not sent: left office",
-      "not-sent:no-email": "Not sent: no email address",
-    } as Record<string, string>,
   },
   // The pages for writing a mailing, its own page once it's scheduled, and the list of them.
   mailingPages: {

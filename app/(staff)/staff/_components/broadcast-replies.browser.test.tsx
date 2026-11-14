@@ -5,7 +5,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { sendingStopsAt, SITE_ACTOR, waitStopsAt } from "@/lib/broadcasts";
 import { londonDate, staffTime } from "@/lib/staff-time";
 import { broadcastCounts, BroadcastWaiting } from "./BroadcastView";
-import { CopyStatus } from "./mailings/CopyStatus";
+import { CopyStatus } from "./letters/CopyStatus";
 import {
   exampleBroadcastAnswers,
   exampleBroadcastEmail,
@@ -23,9 +23,10 @@ import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
 import { supportersCopy } from "./supporters/copy";
 import { mailingsCopy } from "./mailings/copy";
+import { lettersCopy } from "./letters/copy";
 
 const copy = staffCopy.broadcastPages;
-const stateWords = mailingsCopy.copyStates;
+const stateWords = lettersCopy.copyStates;
 const topics = supportersCopy.supporters.detail.permissions.topics;
 const optOut = supportersCopy.supporters.detail.permissions.recordOptOut.open;
 const emailCopy = {
@@ -50,15 +51,15 @@ describe("replies to broadcasts", () => {
       .element(page.getByText(copy.replies.nothingDone("jo@pauseai.uk", staffTime(new Date("2026-11-07T10:00:00Z")))))
       .toBeVisible();
     // In the History, each with who did it on a line under it.
-    const history = page.getByRole("list", { name: staffCopy.letters.detail.historyTitle });
+    const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
     const entry = (label: string) => history.getByText(label, { exact: true }).element().closest("li")!.textContent;
-    expect(entry(copy.replies.historyNothing)).toContain(`${staffCopy.letters.detail.fields.by}jo@pauseai.uk`);
+    expect(entry(copy.replies.historyNothing)).toContain(`${lettersCopy.letters.detail.fields.by}jo@pauseai.uk`);
     // Too little recorded to open as JSON, as a letter's can be.
     expect(history.getByRole("button", { name: staffCopy.changes.json }).query()).toBeNull();
     // Jo's answer, after the reply it answers, and in the History.
     await expect.element(page.getByText("Hi Jane, it's on 6 December. See you there!")).toBeVisible();
     await expect.element(page.getByText(copy.replies.sentBy("jo@pauseai.uk"))).toBeVisible();
-    expect(entry(copy.replies.historyAnswered)).toContain(`${staffCopy.letters.detail.fields.by}jo@pauseai.uk`);
+    expect(entry(copy.replies.historyAnswered)).toContain(`${lettersCopy.letters.detail.fields.by}jo@pauseai.uk`);
     // The answered reply can still be an opt-out, but has no need of Nothing to do; any but the automatic one, answered.
     await expect.element(page.getByRole("button", { name: optOut })).toHaveLength(2);
     await expect.element(page.getByRole("button", { name: copy.replies.nothing })).toHaveLength(1);
@@ -89,11 +90,11 @@ describe("replies to broadcasts", () => {
     await expect.element(page.getByText("j.smith@example.org", { exact: true })).toBeVisible();
     await expect.element(page.getByRole("button", { name: optOut })).not.toBeInTheDocument();
     await expect.element(page.getByRole("button", { name: copy.replies.reply })).not.toBeInTheDocument();
-    const history = page.getByRole("list", { name: staffCopy.letters.detail.historyTitle });
+    const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
     expect(
       history.getByText(copy.replies.historyOptedOut, { exact: true }).element().closest("li")!.textContent,
     ).toContain(
-      `${staffCopy.letters.detail.fields.by}sam@pauseai.uk${staffCopy.letters.detail.fields.how}${copy.replies.how}`,
+      `${lettersCopy.letters.detail.fields.by}sam@pauseai.uk${lettersCopy.letters.detail.fields.how}${copy.replies.how}`,
     );
     await expect.element(page.getByText(copy.replies.stillSending("hello@pauseai.uk"))).toBeVisible();
   });
@@ -112,7 +113,7 @@ describe("replies to broadcasts", () => {
     // Said to be the site's own, not a person's.
     await expect.element(page.getByText(copy.replies.sentAutomatically, { exact: true })).toBeVisible();
     await expect.element(page.getByText(copy.replies.optedOutAutomatically(""), { exact: false })).toBeVisible();
-    const history = page.getByRole("list", { name: staffCopy.letters.detail.historyTitle });
+    const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
     await expect.element(history.getByText(copy.replies.historyOptedOut, { exact: true })).not.toBeInTheDocument();
     await expect.element(history.getByText(copy.replies.automatically, { exact: true })).toBeVisible();
   });

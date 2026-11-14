@@ -9,7 +9,7 @@ import { named } from "@/lib/email-parsing/addresses";
 import { londonWhenShort, staffDate } from "@/lib/staff-time";
 import { countsOpening, type Count } from "../ui/Counts";
 import { NeedsAndFine } from "./CopyCounts";
-import { stateCounts } from "./CopyStatus";
+import { stateCounts } from "../letters/CopyStatus";
 import Empty from "../ui/Empty";
 import IconText from "../ui/IconText";
 import Grid, { spanClass } from "../ui/Grid";

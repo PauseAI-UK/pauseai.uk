@@ -7,7 +7,7 @@ import { civicrmKey, fetchContactsPage, PAGE_SIZE, type CivicrmContact } from ".
 import { sendCivicrmUpdates } from "./civicrm-updates.server";
 import { recordCivicrmLists } from "@/lib/supporters/opt-outs.server";
 import { problem } from "./problems.server";
-import { resendAfterFix } from "./relays.server";
+import { resendAfterFix } from "@/lib/letters/relays.server";
 import { refreshSupporterFacts, refreshSupportersList } from "@/lib/supporters/facts.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
 

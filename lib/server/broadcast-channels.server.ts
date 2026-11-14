@@ -3,7 +3,8 @@ import { BROADCAST_SEND_BY, type BroadcastChannel, type BroadcastSendBy } from "
 import { staffCopy } from "@/lib/content/staff-interface";
 import { config } from "./config.server";
 import { FIXTURE_KEYS } from "./fixtures/whatsapp";
-import { gmailEmail, postmarkBroadcast, type MailingChannel } from "@/lib/mailings/channels.server";
+import { gmailEmail, postmarkBroadcast } from "@/lib/mailings/channels.server";
+import type { MailingChannel } from "@/lib/letters/channels.server";
 import { businessNumber, type BusinessNumber, type WhatsAppKeys } from "./outside-services/whatsapp.server";
 import { problem } from "./problems.server";
 

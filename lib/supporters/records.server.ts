@@ -26,7 +26,7 @@ import { SUPPORTER_SOURCES } from "./sources.server";
 import { contains, everyWord, phoneSearch } from "@/lib/server/search.server";
 import { sql, type Sql } from "@/lib/server/sql.server";
 import { placeFor, type FoundPlace } from "@/lib/server/outside-services/postcodes.server";
-import { REPLIES } from "@/lib/server/reply-count.server";
+import { REPLIES } from "@/lib/letters/reply-count.server";
 
 // Supporters: one per person, tied to each record about them in a source
 // (supporter_links). Linking is by email, trimmed and lowercased and

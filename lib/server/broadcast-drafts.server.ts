@@ -1,6 +1,6 @@
 import "server-only";
 import { checkMailingDoc, letterFor, type MailingDoc } from "@/lib/mailings/doc";
-import { toText } from "@/lib/letter-format";
+import { toText } from "@/lib/letters/format";
 import { storedFilter } from "@/lib/staff-search";
 import { type Params } from "@/lib/list-params";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -30,7 +30,7 @@ import { now } from "@/lib/now";
 import { logChange } from "./audit.server";
 import { query, transaction } from "./db.server";
 import { gmailAccount, GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-accounts.server";
-import type { ChannelResult } from "@/lib/mailings/channels.server";
+import type { ChannelResult } from "@/lib/letters/channels.server";
 import {
   getWrittenMailing,
   lockDraft,

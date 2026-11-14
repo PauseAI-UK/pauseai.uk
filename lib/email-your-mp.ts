@@ -3,7 +3,7 @@
 // checks what it's sent against the same campaigns.
 import { IMPORTED_ASKS } from "@/lib/asks/asks";
 import { campaigns, type Campaign, type LetterDetails, type MpStatuses } from "@/lib/content/email-your-mp";
-import { docFromMarkup, type Inline, type LetterDoc } from "@/lib/letter-format";
+import { docFromMarkup, type Inline, type LetterDoc } from "@/lib/letters/format";
 
 /** An MP as the form sees them. */
 export type Mp = {

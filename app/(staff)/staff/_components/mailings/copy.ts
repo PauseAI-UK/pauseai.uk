@@ -53,8 +53,6 @@ export const mailingsCopy = {
       name: "Politician",
       status: "Status",
     },
-    // A recipient's letter that was personalised, which Airtable kept.
-    personalised: "personalised",
   },
   // The campaigns page (/staff/campaigns): letters supporters write to politicians, and each campaign's own page.
   campaigns: {

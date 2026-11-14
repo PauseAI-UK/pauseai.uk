@@ -1,8 +1,8 @@
 import { expect, it } from "vitest";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "@/lib/server/db.server";
-import { letterState, letterStateSql } from "./copy-states";
-import { LETTER_STATUSES } from "@/lib/letter-status";
+import { letterState, letterStateSql } from "@/lib/letters/copy-states";
+import { LETTER_STATUSES } from "@/lib/letters/status";
 import { createDraft, saveDraft } from "./drafts.server";
 import {
   getMailing,

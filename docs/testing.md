@@ -167,7 +167,7 @@ through `outsideFetch` like any other outside service.
   (`showOrigin` in `tests/storyboard/frame.ts`), and main's frames and a
   branch's don't differ by it.
 
-- **Gmail and Outlook are checked from the HTML.** `lib/letter-format.test.ts`
+- **Gmail and Outlook are checked from the HTML.** `lib/letters/format.test.ts`
   runs the letter's HTML through doiuse-email
   (`@jsx-email/doiuse-email`, the Can I email tables,
   https://www.caniemail.com) for every Gmail and Outlook app, and fails on

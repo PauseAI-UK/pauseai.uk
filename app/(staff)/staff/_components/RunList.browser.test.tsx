@@ -29,6 +29,7 @@ import {
 } from "./RunList.examples";
 import { action, press } from "@/tests/browser/staff";
 import { politiciansCopy } from "./politicians/copy";
+import { lettersCopy } from "./letters/copy";
 
 const ran = exampleRun;
 
@@ -523,9 +524,9 @@ describe("RunList", () => {
     );
     await expect.element(page.getByText(staffCopy.runs.status.problems, { exact: true })).toBeVisible();
     await expect
-      .element(page.getByText(staffCopy.lettersInbox.result({ relayed: 4, spam: 2, uncertain: 1 }), { exact: false }))
+      .element(page.getByText(lettersCopy.lettersInbox.result({ relayed: 4, spam: 2, uncertain: 1 }), { exact: false }))
       .toBeVisible();
-    const links = page.getByRole("link", { name: staffCopy.lettersInbox.openInGmail });
+    const links = page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail });
     expect(links.all()).toHaveLength(2);
     await expect
       .element(links.first())
@@ -535,7 +536,7 @@ describe("RunList", () => {
       );
     await expect
       .element(
-        page.getByText(`someone@example.com, “Hello”: ${staffCopy.lettersInbox.reasons.stranger}.`, { exact: false }),
+        page.getByText(`someone@example.com, “Hello”: ${lettersCopy.lettersInbox.reasons.stranger}.`, { exact: false }),
       )
       .toBeVisible();
   });

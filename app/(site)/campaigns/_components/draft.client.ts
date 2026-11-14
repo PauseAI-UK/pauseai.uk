@@ -6,7 +6,7 @@ import "client-only";
 // and never goes in a URL: the lookup, then the letter as written, and once
 // it's sent, only the MP's name.
 import type { Place } from "@/lib/site-events";
-import type { LetterDoc } from "@/lib/letter-format";
+import type { LetterDoc } from "@/lib/letters/format";
 import type { Mp, MpStatuses } from "@/lib/email-your-mp";
 
 // "-2" since the lookup holds the address: one saved before it, without one, is ignored.
@@ -41,7 +41,7 @@ export type Draft = {
   address: string;
   subject: string;
   letter: LetterDoc;
-  /** The hash of the draft the form began with (lib/letter-changes.ts), so the server can tell it rebuilt the same one. */
+  /** The hash of the draft the form began with (lib/letters/changes.ts), so the server can tell it rebuilt the same one. */
   draftHash: string;
   /** The hidden field only a bot fills in, passed on for the server to check. */
   nickname: string;

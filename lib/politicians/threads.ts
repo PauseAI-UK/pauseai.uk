@@ -1,6 +1,6 @@
-import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/server/letters.server";
-import type { OneOffThreadRow } from "@/lib/server/one-off-emails.server";
-import { isIn, NEVER_WENT } from "@/lib/letter-status";
+import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/letters/records.server";
+import type { OneOffThreadRow } from "@/lib/letters/one-off-emails.server";
+import { isIn, NEVER_WENT } from "@/lib/letters/status";
 
 // A politician's threads as their page lists them: a line of who wrote and
 // when, from what the database knows of each message, never its text.

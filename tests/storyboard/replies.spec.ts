@@ -26,6 +26,7 @@ import { editor, newParagraphAboveSignOff } from "./editor-steps";
 import { scrollSettled } from "./settle";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { erasureCopy } from "@/lib/erasure/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 
 /** As much of Tiptap's editor as a flow drives directly. */
 type EditorHandle = {
@@ -54,7 +55,7 @@ export const section: Section = { name: "Replies to letters", part: "Staff pages
 // staff to see its page; mail arriving at the letters inbox is read by the
 // hourly job, run through its own route.
 
-const history = staffCopy.letters.detail;
+const history = lettersCopy.letters.detail;
 const JANES_PROXY = testProxy("jane.smith");
 
 /** The test MP's words in their reply: made up, but as long and as formal as a real one. */
@@ -103,9 +104,9 @@ test("Jane writes to her MP", async ({ page, flowDatabase }) => {
   const entries = await openLetter(page, id);
   // Sent, by Gmail, with her copy under it.
   await expect(entries).toHaveCount(1);
-  await expect(entries.first()).toContainText(staffCopy.letters.backends.gmail);
+  await expect(entries.first()).toContainText(lettersCopy.letters.backends.gmail);
   await expect(entries.first()).toContainText(`${history.fields.to}${OFFICE_ADDRESS}`);
-  await expect(entries.first()).toContainText(staffCopy.letters.status.copy_sent);
+  await expect(entries.first()).toContainText(lettersCopy.letters.status.copy_sent);
   await expect(page.getByRole("article").getByText(/unchanged/)).toBeVisible();
   await frame(page, "The letter's page");
 });
@@ -146,8 +147,8 @@ test("The MP replies, and Jane answers", async ({ page, request, flowDatabase })
   );
 
   const entries = await openLetter(page, id);
-  await expect(entries.first()).toContainText(staffCopy.letters.status.relayed);
-  await expect(entries.nth(1)).toContainText(staffCopy.letters.status.replied);
+  await expect(entries.first()).toContainText(lettersCopy.letters.status.relayed);
+  await expect(entries.nth(1)).toContainText(lettersCopy.letters.status.replied);
   await expect(page.getByRole("article")).toHaveCount(3);
   await expect(page.getByRole("article").nth(1)).toContainText("caseworker@parliament.example");
   await frame(page, "The letter's page");
@@ -250,20 +251,20 @@ test("Automatic replies", async ({ page, request, flowDatabase }) => {
   expect(line).toMatchObject({ relayed: 3, notUnderstood: [expect.objectContaining({ reason: "over_cap" })] });
   const alert = newestEmail(
     (email) =>
-      email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.lettersInbox.alert.subject(1, LETTERS_INBOX),
+      email.To === TO_NOTIFICATIONS && email.Subject === lettersCopy.lettersInbox.alert.subject(1, LETTERS_INBOX),
   )!;
-  expect(alert.TextBody).toContain(staffCopy.lettersInbox.reasons.over_cap);
+  expect(alert.TextBody).toContain(lettersCopy.lettersInbox.reasons.over_cap);
   await emailFrame(page, alert, "The email staff get");
   story("The letter's history says the last one wasn't relayed, and why.");
   const entries = await openLetter(page, id);
-  await expect(entries.first()).toContainText(staffCopy.letters.status.not_relayed);
+  await expect(entries.first()).toContainText(lettersCopy.letters.status.not_relayed);
   await expect(entries.first()).toContainText(history.reasons.over_cap);
   await frame(page, "The letter's history");
   story(
     "In the letter and its replies, each automatic reply of more than a paragraph is folded to its first, as the rest is rarely worth reading.",
   );
   const folded = page.getByRole("article", { name: "Automatic reply: Please back a pause" });
-  const fold = folded.getByText(staffCopy.letterThread.autoInFull);
+  const fold = folded.getByText(lettersCopy.letterThread.autoInFull);
   await fold.scrollIntoViewIfNeeded();
   await expect(folded.getByText("constituency office")).toBeHidden();
   await frame(page, "The acknowledgement, folded");
@@ -296,17 +297,17 @@ test("Emails that aren't relayed", async ({ page, request, flowDatabase }) => {
   expect(sentIds(flowDatabase, letterIdOf(flowDatabase, sender), "relay")).toEqual([]);
   const alert = newestEmail(
     (email) =>
-      email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.lettersInbox.alert.subject(2, LETTERS_INBOX),
+      email.To === TO_NOTIFICATIONS && email.Subject === lettersCopy.lettersInbox.alert.subject(2, LETTERS_INBOX),
   )!;
   await emailFrame(page, alert, "The email staff get");
   story("On the Gmail import's page, that run had problems, and lists the two emails.");
   await page.goto(`${BASE}/staff/scheduled-jobs/gmail`);
   await expect(page.getByText(staffCopy.runs.status.problems, { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: staffCopy.lettersInbox.openInGmail })).toHaveCount(2);
+  await expect(page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail })).toHaveCount(2);
   await frame(page, "The Gmail import's runs");
   story("The dashboard says so too, until a run reads the letters inbox without any.");
   await page.goto(`${BASE}/staff`);
-  await expect(page.getByText(staffCopy.lettersInbox.alert.subject(2, LETTERS_INBOX))).toBeVisible();
+  await expect(page.getByText(lettersCopy.lettersInbox.alert.subject(2, LETTERS_INBOX))).toBeVisible();
   await frame(page, "The dashboard");
 });
 
@@ -342,8 +343,8 @@ test("Jane's letter bounces", async ({ page, request, flowDatabase }) => {
   await emailFrame(page, resent, "The second email Jane gets");
   story("The letter's history shows each step.");
   const entries = await openLetter(page, id);
-  await expect(entries.first()).toContainText(staffCopy.letters.status.notice);
-  await expect(entries.filter({ hasText: new RegExp(`^${staffCopy.letters.status.bounced}`) })).toBeVisible();
+  await expect(entries.first()).toContainText(lettersCopy.letters.status.notice);
+  await expect(entries.filter({ hasText: new RegExp(`^${lettersCopy.letters.status.bounced}`) })).toBeVisible();
   await frame(page, "The letter's history");
 });
 
@@ -386,16 +387,16 @@ test("Jane's address bounces", async ({ page, request, flowDatabase }) => {
   expect(await readInbox(request)).toMatchObject({ replies: 1, relayed: 1 });
   expect(sentIds(flowDatabase, id, "relay")).toEqual([]);
   const entries = await openLetter(page, id);
-  await expect(entries.first()).toContainText(staffCopy.letters.status.relay_held);
+  await expect(entries.first()).toContainText(lettersCopy.letters.status.relay_held);
   await expect(entries.first()).toContainText(history.reasons.blocked);
-  await expect(page.getByText(staffCopy.letters.status.copy_bounced)).toBeVisible();
+  await expect(page.getByText(lettersCopy.letters.status.copy_bounced)).toBeVisible();
   await frame(page, "The letter's history");
 
   story(
     "Within the hour, the notification inbox gets the day's report of supporters' addresses that bounced, with each one's domain and what its server said, to see whether the form should check addresses harder.",
   );
   await runQueue(request);
-  const bounces = staffCopy.notifications.supporterBounces;
+  const bounces = lettersCopy.notifications.supporterBounces;
   const report = newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === bounces.subject(1))!;
   await emailFrame(page, report, "The report to the notification inbox");
 
@@ -411,7 +412,7 @@ test("Jane's address bounces", async ({ page, request, flowDatabase }) => {
 
   story("The letter's history says the office was told.");
   const later = await openLetter(page, id);
-  await expect(later.first()).toContainText(staffCopy.letters.status.office_told);
+  await expect(later.first()).toContainText(lettersCopy.letters.status.office_told);
   await frame(page, "The letter's history, the office told");
 });
 
@@ -463,7 +464,7 @@ test("The daily limit", async ({ page, request, flowDatabase }) => {
   );
   runSql(flowDatabase, `UPDATE letters SET created_at = now() - interval '3 hours 10 minutes' WHERE id = ${sams}`);
   await runQueue(request);
-  const waiting = staffCopy.notifications.lettersWaiting;
+  const waiting = lettersCopy.notifications.lettersWaiting;
   const notice = newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === waiting.subject(1, 3))!;
   await emailFrame(page, notice, "The email to the notification inbox");
   story(
@@ -479,7 +480,7 @@ test("The daily limit", async ({ page, request, flowDatabase }) => {
   );
   expect(order).toEqual([`letter ${sams}`, `relay ${janes}`]);
   entries = await openLetter(page, sams);
-  await expect(entries.first()).toContainText(staffCopy.letters.status.copy_sent);
+  await expect(entries.first()).toContainText(lettersCopy.letters.status.copy_sent);
   await frame(page, "Sam's letter, sent");
 });
 
@@ -516,7 +517,7 @@ test("Jane changes the letter", async ({ page, flowDatabase }) => {
   await logIn(page, flowDatabase, ["supporters"]);
   await openLetter(page, letterIdOf(flowDatabase, sender));
 
-  const words = staffCopy.letterChanges;
+  const words = lettersCopy.letterChanges;
   const letter = page.getByRole("article").first();
   await expect(letter.locator("ins").first()).toContainText("My children ask me about AI");
   await expect(letter.locator("del").first()).toContainText("arrange a short meeting");
@@ -606,11 +607,11 @@ test("A reply to an older letter", async ({ page, request, flowDatabase }) => {
   const entries = await openLetter(page, id);
   await expect(entries.first()).toContainText(history.handlingReasons.sender);
   await expect(entries.first()).toContainText(`${POLICY_INBOX} · `);
-  await expect(entries.first().getByText(staffCopy.letters.backends.postmark, { exact: true })).toBeVisible();
-  await expect(entries.last().getByText(staffCopy.letters.backends.postmark, { exact: true })).toBeVisible();
+  await expect(entries.first().getByText(lettersCopy.letters.backends.postmark, { exact: true })).toBeVisible();
+  await expect(entries.last().getByText(lettersCopy.letters.backends.postmark, { exact: true })).toBeVisible();
   await frame(page, "The letter's history");
   story("The reply itself is kept too, so its words are on the letter's page, below the letter.");
-  const thread = page.getByRole("region", { name: staffCopy.letterThread.title });
+  const thread = page.getByRole("region", { name: lettersCopy.letterThread.title });
   await expect(thread.getByRole("article")).toHaveCount(2);
   await expect(thread.getByRole("article").last()).toContainText(
     "Thank you for writing to me about the risks from frontier AI",

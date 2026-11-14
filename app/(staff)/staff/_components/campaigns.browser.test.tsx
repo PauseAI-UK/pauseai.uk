@@ -4,13 +4,9 @@ import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { changesSearch } from "@/lib/staff-search";
-import { staffTime } from "@/lib/staff-time";
 import ChangesTable from "./ChangesTable";
-import LetterThread from "./LetterThread";
-import { exampleThread } from "./LetterThread.examples";
 import MyGmail from "./accounts/MyGmail";
-import { OneOffTable } from "./OneOffList";
-import OneOffThreadView from "./OneOffThreadView";
+import { accountsCopy } from "./accounts/copy";
 import ListFrame from "./ui/ListFrame";
 import Withheld from "./ui/Withheld";
 import Tabs from "./ui/Tabs";
@@ -19,7 +15,6 @@ import { exampleRun } from "./RunList.examples";
 import SentEmails from "./SentEmails";
 import StaffNav from "./shell/StaffNav";
 import { shellCopy } from "./shell/copy";
-import { exampleForwardThread, exampleHiddenOneOff, exampleOneOffThread, exampleOneOffs } from "./OneOffList.examples";
 import { exampleSentEmails } from "./SentEmails.examples";
 
 const NOW = "2026-11-05T09:00:00Z";
@@ -36,129 +31,6 @@ describe("ChangesTable, without the supporters permission", () => {
     await says(staffCopy.changes.withheld);
     await rerender(<ChangesTable search={changesSearch({})} log={log} page={1} />);
     expect(document.body.textContent).not.toContain(staffCopy.changes.withheld);
-  });
-});
-
-describe("the one-off emails", () => {
-  it("on a person's page, lists each thread, whose it is and when, and hides what staff can't read", async () => {
-    await render(
-      <OneOffTable
-        threads={[...exampleOneOffs, exampleHiddenOneOff, { ...exampleOneOffs[0], id: 3, subject: "", people: [] }]}
-      />,
-    );
-    await says(staffTime(exampleOneOffs[0].latestAt));
-    await says(exampleOneOffs[0].mailboxes!.join(", "));
-    await says(exampleOneOffs[0].participants!.join(", "));
-    const answers = [...document.querySelectorAll("tbody tr")].map((row) => row.querySelectorAll("td")[3].textContent);
-    expect(answers.slice(0, 3)).toEqual([staffCopy.oneOff.answers.yes, staffCopy.oneOff.answers.no, "–"]);
-    await expect.element(link(exampleOneOffs[0].subject!)).toHaveAttribute("href", "/staff/one-off/1");
-    await says(staffCopy.oneOff.noPolitician);
-    await says(staffCopy.oneOff.hidden);
-    expect(link(staffCopy.oneOff.hidden).query()).toBeNull();
-    await expect.element(link(staffCopy.oneOff.noSubject)).toBeVisible();
-  });
-
-  it("on a person's page, shows nothing with none", async () => {
-    const { rerender } = await render(<OneOffTable threads={[]} />);
-    expect(page.getByRole("heading").query()).toBeNull();
-    await rerender(<OneOffTable threads={exampleOneOffs} />);
-    await expect.element(page.getByRole("heading", { name: staffCopy.oneOff.onPageTitle })).toBeVisible();
-  });
-
-  it("opens a thread's messages, and says when it can't", async () => {
-    const { rerender } = await render(<OneOffThreadView thread={exampleOneOffThread} />);
-    const title = page.getByRole("heading", { level: 1 });
-    const facts = () => page.getByRole("banner").element().querySelector("p")!.textContent;
-    await expect.element(title).toHaveTextContent("Thread between Joseph Example and Polly Placeholder");
-    expect(facts()).toBe(
-      [
-        staffCopy.oneOff.fact(staffCopy.oneOff.columns.subject, exampleOneOffThread.subject!),
-        staffCopy.oneOff.fact(staffCopy.oneOff.columns.mailbox, exampleOneOffThread.mailboxes!.join(", ")),
-        staffCopy.oneOff.fact(staffCopy.oneOff.columns.messages, exampleOneOffThread.messages),
-        staffCopy.oneOff.fact(staffCopy.oneOff.columns.when, staffTime(exampleOneOffThread.latestAt)),
-      ].join(" · "),
-    );
-    await says("Could we meet?");
-    await says(staffCopy.oneOff.unreadable);
-    // The out-of-office shows its first paragraph, the rest and its quote in one fold.
-    await says("I'm away until Monday.");
-    await expect.element(page.getByText("may be confidential", { exact: false })).not.toBeVisible();
-    expect(page.getByText(staffCopy.letterThread.quoted).query()).toBeNull();
-    await page.getByText(staffCopy.letterThread.autoInFull).click();
-    await expect.element(page.getByText("> Could we meet?", { exact: false })).toBeVisible();
-    for (const name of ["Placeholder, Polly", "polly.placeholder.mp@parliament.uk"]) {
-      await expect.element(link(name)).toHaveAttribute("href", "/staff/politicians/1");
-    }
-    await says("Jane Smith <jane.smith@example.com>");
-    await says("someone@example.com");
-    expect(link("Joseph Example").query()).toBeNull();
-    await rerender(<OneOffThreadView thread={{ ...exampleHiddenOneOff, messages_: null }} />);
-    await says(staffCopy.oneOff.hidden);
-    // One that's hidden says neither who wrote in it nor its subject.
-    await expect.element(title).toHaveTextContent(staffCopy.oneOff.title);
-    expect(facts()).not.toContain(staffCopy.oneOff.columns.subject);
-    expect(facts()).not.toContain(staffCopy.oneOff.columns.mailbox);
-    await rerender(
-      <OneOffThreadView
-        thread={{
-          ...exampleOneOffThread,
-          subject: "",
-        }}
-      />,
-    );
-    expect(facts()).toContain(staffCopy.oneOff.fact(staffCopy.oneOff.columns.subject, staffCopy.oneOff.noSubject));
-    // Only one person wrote in it: the thread is with them.
-    await rerender(<OneOffThreadView thread={{ ...exampleOneOffThread, participants: ["Jane Smith"] }} />);
-    await expect.element(title).toHaveTextContent("Thread with Jane Smith");
-    await rerender(<OneOffThreadView thread={{ ...exampleOneOffThread, people: [] }} />);
-    await says(staffCopy.oneOff.people.none);
-  });
-
-  it("rebuilds a forward's messages before it, oldest first, beside the politicians it's linked to", async () => {
-    await render(<OneOffThreadView thread={exampleForwardThread} />);
-    const emails = page.getByRole("article").all();
-    expect(emails.map((email) => email.element().getAttribute("aria-label"))).toEqual([
-      "Can we meet?",
-      "Re: Can we meet?",
-      "Fwd: my MP's answer",
-    ]);
-    const text = emails.map((email) => email.element().textContent);
-    expect(text[0]).toContain("15 Oct 2026, at 11:17");
-    // One rebuilt from an "On … wrote:" line says nothing of whom it was to, so it has no To.
-    const heads = (i: number) => [...emails[i].element().querySelectorAll("dt")].map((dt) => dt.textContent);
-    expect(heads(0)).not.toContain(staffCopy.letterThread.headers.to);
-    expect(heads(1)).toContain(staffCopy.letterThread.headers.to);
-    expect(text[1]).toContain(staffCopy.oneOff.rebuilt("Jane Smith"));
-    expect(text[2]).toContain(staffCopy.oneOff.forwardedAlone);
-    await expect.element(link("pollyplaceholdermp@parliament.uk")).not.toBeInTheDocument();
-    await expect.element(link("Polly Placeholder MP")).toHaveAttribute("href", "/staff/politicians/1");
-    const people = page.getByRole("region", { name: staffCopy.oneOff.people.title });
-    await expect
-      .element(people.getByRole("link", { name: "Polly Placeholder" }))
-      .toHaveAttribute("href", "/staff/politicians/1");
-  });
-
-  it("shows a forward's note over what it carries, and a carried message copied to someone", async () => {
-    const [message] = exampleForwardThread.messages_!;
-    const [first, second] = message.forwarded;
-    await render(
-      <OneOffThreadView
-        thread={{
-          ...exampleForwardThread,
-          messages_: [
-            {
-              ...message,
-              fromName: "",
-              text: "See below.",
-              forwarded: [{ ...first, cc: "jo@example.com" }, second],
-            },
-          ],
-        }}
-      />,
-    );
-    await says("See below.");
-    await says("jo@example.com");
-    await expect.element(page.getByText(staffCopy.oneOff.rebuilt(message.fromAddress)).first()).toBeVisible();
   });
 });
 
@@ -262,13 +134,6 @@ describe("SentEmails", () => {
   });
 });
 
-describe("a letter's imported text", () => {
-  it("says a letter's text is approximate on its page", async () => {
-    await render(<LetterThread thread={{ ...exampleThread, approximate: true }} />);
-    await says(staffCopy.letterThread.approximate);
-  });
-});
-
 describe("the rule over a list", () => {
   it("is the tabs', with none of the list's own to double it", async () => {
     await render(
@@ -333,15 +198,15 @@ describe("the rest", () => {
     const account = { email: "jo@pauseai.uk", name: "Jo", connectedAt: new Date(NOW), sentToday: 0, remaining: 1800 };
     const props = { me: "jo@pauseai.uk", account, outcome: "", disconnect: () => {} };
     const { rerender } = await render(<MyGmail {...props} keepsThreads />);
-    await says(staffCopy.oneOff.kept.before);
-    await expect.element(link(staffCopy.oneOff.title)).toHaveAttribute("href", "/staff/emails?type=one-off");
+    await says(accountsCopy.gmail.kept.before);
+    await expect.element(link(accountsCopy.gmail.oneOffEmails)).toHaveAttribute("href", "/staff/emails?type=one-off");
     await rerender(<MyGmail {...props} />);
-    expect(link(staffCopy.oneOff.title).query()).toBeNull();
-    await says(staffCopy.oneOff.notKept.before);
+    expect(link(accountsCopy.gmail.oneOffEmails).query()).toBeNull();
+    await says(accountsCopy.gmail.notKept.before);
     await expect.element(link(shellCopy.nav.mailings)).toHaveAttribute("href", "/staff/mailings");
     // hello@'s sends the broadcasts too.
     await rerender(<MyGmail {...props} me="hello@pauseai.uk" />);
-    await says(staffCopy.oneOff.notKeptBroadcasts.before);
+    await says(accountsCopy.gmail.notKeptBroadcasts.before);
     await expect.element(link(shellCopy.nav.broadcasts)).toHaveAttribute("href", "/staff/broadcasts");
     await rerender(<MyGmail {...props} lettersInbox />);
     expect(link(shellCopy.nav.mailings).query()).toBeNull();

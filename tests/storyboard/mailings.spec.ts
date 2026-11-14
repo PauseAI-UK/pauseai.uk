@@ -17,6 +17,7 @@ import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 
 export const section: Section = { name: "Mailings", part: "Staff pages", order: 40 };
 
@@ -32,7 +33,7 @@ export const section: Section = { name: "Mailings", part: "Staff pages", order: 
 
 const copy = mailingsCopy.mailingPages;
 const choosing = politiciansCopy.choosing;
-const stateWords = mailingsCopy.copyStates;
+const stateWords = lettersCopy.copyStates;
 
 /** This flow's own staff address: flows run alongside each other, and share the outbox. */
 const staffEmail = () => `mail-${test.info().testId.replace(/\W/g, "").slice(-8)}@pauseai.uk`;
@@ -420,7 +421,7 @@ test("A run stops while sending", async ({ page, request, flowDatabase }) => {
   story("The letter's page says so, and its history says when and to whom it may have gone, for someone to check.");
 
   await page.goto(`${BASE}/staff/mailings/${id}/letters/${letter}`);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(staffCopy.letters.fromPauseai);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(lettersCopy.letters.fromPauseai);
   await frame(page, "The uncertain letter's page");
 });
 
@@ -637,10 +638,10 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
     .click();
   // Her letter's page, not the mailing's still showing while it loads.
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    staffCopy.letters.oneTitle(staffCopy.letters.fromPauseai, "Morag Example"),
+    lettersCopy.letters.oneTitle(lettersCopy.letters.fromPauseai, "Morag Example"),
   );
   // Its text is here, so there's no search for it in Gmail.
-  await expect(page.getByRole("button", { name: staffCopy.findInGmail.copy })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: lettersCopy.findInGmail.copy })).toHaveCount(0);
   await frame(page, "Morag's letter");
   story(
     "Morag replies. Within the hour their Gmail is read, and her reply shows under the letter, without the letter she quotes.",
@@ -664,7 +665,7 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   story(
     "Her signature and the letter she quotes are folded under her reply, for anyone who wants her details or what she was answering.",
   );
-  await page.getByText(staffCopy.letterThread.quoted).click();
+  await page.getByText(lettersCopy.letterThread.quoted).click();
   const signature = page.getByText("Member of the Scottish Parliament for", { exact: false });
   await expect(signature).toBeVisible();
   await expect(page.getByText("We'd love to see you", { exact: false }).last()).toBeVisible();
@@ -694,7 +695,9 @@ test("Old mailings", async ({ page, request, flowDatabase }) => {
   await page.getByRole("link", { name: invitation, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(invitation);
   await expect(page.getByText(mailings.noText)).toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: "Polly Placeholder" })).toContainText(mailings.personalised);
+  await expect(page.getByRole("row").filter({ hasText: "Polly Placeholder" })).toContainText(
+    lettersCopy.letters.personalised,
+  );
   await frame(page, "The invitation's page");
 
   await page.getByRole("link", { name: "Polly Placeholder" }).click();

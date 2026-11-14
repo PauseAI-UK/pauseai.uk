@@ -1,12 +1,12 @@
 import "server-only";
 import type { Permission } from "@/lib/accounts/permissions";
-import { onParliamentDomain, politiciansOf } from "@/lib/one-off";
+import { onParliamentDomain, politiciansOf } from "@/lib/letters/one-off";
 import type { ThreadMessages, ThreadStep } from "./threads";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { query } from "@/lib/server/db.server";
-import { threadsWithSomeoneElse } from "@/lib/server/one-off-emails.server";
+import { threadsWithSomeoneElse } from "@/lib/letters/one-off-emails.server";
 import { AUTO_REPLY } from "./email-counts.server";
-import { politicianBook } from "./book.server";
+import { politicianBook } from "@/lib/letters/book.server";
 
 type Message = { id: number; at: Date; name: string; address: string; fromUs: boolean };
 

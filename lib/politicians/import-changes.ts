@@ -7,7 +7,7 @@
 import { isOfficialName } from "./constituencies";
 import { changedFields, type FieldChange } from "@/lib/field-changes";
 import { plainName } from "./domains";
-import { isSharedInbox } from "@/lib/one-off";
+import { isSharedInbox } from "@/lib/letters/one-off";
 import type { Country, House, PersonStatus } from "./filters";
 
 /** The bodies whose lists the imports read. Parliament's has two houses, with one ID for a member of either. */

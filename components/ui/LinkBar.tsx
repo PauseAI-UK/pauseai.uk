@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { Button } from "./Button";
 import { TextInput } from "./Controls";
 import { FieldError } from "./Field";
-import { linkHref } from "@/lib/letter-format";
+import { linkHref } from "@/lib/letters/format";
 import styles from "./LinkBar.module.css";
 
 /** The link bar's words, from the copy of the editor it's in. */

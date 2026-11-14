@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { stubLettersInboxEnv } from "@/tests/gmail-sends";
-import { addressForms } from "@/lib/one-off";
+import { addressForms } from "@/lib/letters/one-off";
 import { query } from "@/lib/server/db.server";
 import {
   addPoliticianAddress,

@@ -1,4 +1,4 @@
-import { docFromMarkup, type Inline } from "@/lib/letter-format";
+import { docFromMarkup, type Inline } from "@/lib/letters/format";
 import type { MailingDoc, MailingInline } from "./doc";
 
 // A campaign's text as its page shows it: its names as a mailing's merge

@@ -2,7 +2,7 @@
 
 // The interactive examples of the pages of broadcasts to supporters.
 import AnswerableReply, { type AnswerAction } from "@/app/(staff)/staff/_components/AnswerableReply";
-import ThreadEmail from "@/app/(staff)/staff/_components/ThreadEmail";
+import ThreadEmail from "@/app/(staff)/staff/_components/letters/ThreadEmail";
 import ReplyActions, { ReplyButton } from "@/app/(staff)/staff/_components/ReplyActions";
 import MessageCopyView from "@/app/(staff)/staff/_components/MessageCopyView";
 import BroadcastFor, { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";

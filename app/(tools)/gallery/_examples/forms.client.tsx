@@ -8,7 +8,7 @@ import { Checkbox, Radio, Segmented, Toggles } from "@/components/ui/Controls";
 import { Label } from "@/components/ui/Field";
 import LinkBar from "@/components/ui/LinkBar";
 import LinkButton from "@/components/ui/LinkButton";
-import { letterExtensions } from "@/lib/letter-extensions";
+import { letterExtensions } from "@/lib/letters/extensions";
 import StatusMessage from "@/components/ui/StatusMessage";
 import { Controlled, Logged } from "../_components/wiring";
 

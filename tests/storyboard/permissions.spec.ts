@@ -15,6 +15,7 @@ import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 
 export const section: Section = { name: "Permissions", part: "Staff pages", order: 140 };
 
@@ -227,7 +228,7 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   await page.reload();
   await blocked.getByRole("link", { name: `${staffCopy.emails.letterTo} ${bouncy.name}` }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    staffCopy.letters.oneTitle("Jane Smith", bouncy.name),
+    lettersCopy.letters.oneTitle("Jane Smith", bouncy.name),
   );
   await frame(page, "Jane's letter");
 });

@@ -32,6 +32,7 @@ import { Muted } from "@/components/ui/Text";
 import StaffLink from "./ui/StaffLink";
 import { shellCopy } from "./shell/copy";
 import { supportersCopy } from "./supporters/copy";
+import { lettersCopy } from "./letters/copy";
 
 const copy = staffCopy.home.dashboard;
 
@@ -58,7 +59,7 @@ function Action({ action }: { action: DashboardAction }) {
           ]
         : action.kind === "letters-inbox"
           ? [
-              staffCopy.lettersInbox.alert.subject(action.count, action.inbox),
+              lettersCopy.lettersInbox.alert.subject(action.count, action.inbox),
               words.lettersInboxDetail(staffTime(action.at)),
               words.lettersInboxButton,
               importPath("read-gmail"),

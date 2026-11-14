@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { exampleGmailAccount } from "../LetterThread.examples";
+import { exampleGmailAccount } from "../letters/LetterThread.examples";
 import { accountsCopy } from "./copy";
 import MyGmail from "./MyGmail";
 

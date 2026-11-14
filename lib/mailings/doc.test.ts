@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toHtml, toText } from "@/lib/letter-format";
+import { toHtml, toText } from "@/lib/letters/format";
 import {
   checkMailingDoc,
   conditionsIn,

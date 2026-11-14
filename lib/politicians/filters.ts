@@ -5,10 +5,6 @@
 export const COUNTRIES = ["england", "scotland", "wales", "northern-ireland"] as const;
 export type Country = (typeof COUNTRIES)[number];
 
-/** The politicians list's markers: the marks staff set, and our own test politicians. */
-export const POLITICIAN_FLAGS = ["important", "connection", "test"] as const;
-export type PoliticianFlag = (typeof POLITICIAN_FLAGS)[number];
-
 /** Whether we can write to them: an address we can use, none, or one that's blocked. */
 export const EMAIL_STATES = ["yes", "none", "blocked"] as const;
 export type EmailState = (typeof EMAIL_STATES)[number];

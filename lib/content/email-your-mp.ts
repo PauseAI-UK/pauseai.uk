@@ -46,7 +46,7 @@ type CampaignCommon = {
    * The letter to an MP who hasn't done it yet, through the sign-off and
    * the sender's name. The form adds their address and postcode under it
    * (lib/email-your-mp.ts). A blank line between paragraphs, **bold**,
-   * _italic_, and "- " for bullets (lib/letter-format.ts).
+   * _italic_, and "- " for bullets (lib/letters/format.ts).
    */
   letter: (details: LetterDetails) => string;
   attachments: Attachment[];

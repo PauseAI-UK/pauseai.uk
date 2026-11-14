@@ -12,9 +12,10 @@ import {
   exampleCampaignNoAsk,
   exampleVersions,
 } from "./CampaignPages.examples";
-import { emptyLettersSearch, exampleLetter } from "../LettersTable.examples";
+import { emptyLettersSearch, exampleLetter } from "../letters/LettersTable.examples";
 import { asksCopy } from "@/lib/asks/copy";
 import { mailingsCopy } from "./copy";
+import { lettersCopy } from "../letters/copy";
 
 const copy = mailingsCopy.campaigns;
 const NOW = "2026-11-05T09:00:00Z";
@@ -73,7 +74,7 @@ describe("CampaignView", () => {
     await expect.element(link(exampleCampaign.askTitle!)).toHaveAttribute("href", `/staff/asks/${exampleCampaign.ask}`);
     await says(staffVocabulary.statuses.signed);
     // Each letter's one tag: answered in place of sent; what refused one, where that's known.
-    const tags = mailingsCopy.copyStates.tags;
+    const tags = lettersCopy.copyStates.tags;
     await says(tags["unreached:bounced"]!);
     await says(tags.answered!);
     await says(tags.replied!);
@@ -82,9 +83,9 @@ describe("CampaignView", () => {
     // One only an automatic reply came back to, which is no reply.
     await says(tags["sent:auto-reply"]!);
     // The counts in two groups, each under its total.
-    await expect.element(page.getByRole("group", { name: `11 ${mailingsCopy.copyStates.groups.went}` })).toBeVisible();
+    await expect.element(page.getByRole("group", { name: `11 ${lettersCopy.copyStates.groups.went}` })).toBeVisible();
     await expect
-      .element(page.getByRole("link", { name: `1 ${mailingsCopy.copyStates.counts.unreached}` }))
+      .element(page.getByRole("link", { name: `1 ${lettersCopy.copyStates.counts.unreached}` }))
       .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}?tab=unreached`);
     await expect
       .element(page.getByRole("link", { name: copy.changedLink(exampleChanged) }))
@@ -98,15 +99,15 @@ describe("CampaignView", () => {
     const { unmount } = await render(view(exampleCampaignNoAsk));
     expect(document.body.textContent).toContain(asksCopy.asks.noAsk);
     expect(document.querySelector("progress")).toBeNull();
-    await expect.element(page.getByText(mailingsCopy.copyStates.counts.answered!)).not.toBeInTheDocument();
+    await expect.element(page.getByText(lettersCopy.copyStates.counts.answered!)).not.toBeInTheDocument();
     await unmount();
     // A count chosen heads the letters, and pressed again shows them all; so does the changed wording.
     const { unmount: again } = await render(
       view(exampleCampaignNoAsk, { ...emptyLettersSearch, tab: "replied", page: "2" }),
     );
-    await expect.element(page.getByRole("heading", { name: mailingsCopy.copyStates.tabs.replied })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: lettersCopy.copyStates.tabs.replied })).toBeVisible();
     await expect
-      .element(page.getByRole("link", { name: `2 ${mailingsCopy.copyStates.counts.replied}` }))
+      .element(page.getByRole("link", { name: `2 ${lettersCopy.copyStates.counts.replied}` }))
       .toHaveAttribute("title", copy.showAll);
     await expect.element(page.getByRole("link", { name: staffVocabulary.paging.previous })).toBeVisible();
     await again();

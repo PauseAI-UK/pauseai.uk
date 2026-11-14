@@ -2,7 +2,7 @@ import { allParts, messageIds, parseHeaders, parseMime, partText, type MimePart 
 
 // What a bounce says, wherever it was read from: a connected Gmail
 // (lib/server/gmail-reading.server.ts) or the letters inbox
-// (lib/server/letters-inbox-reading.server.ts).
+// (lib/letters/letters-inbox-reading.server.ts).
 
 /** One address a bounce says failed: what happened, in the server's words and its status code. */
 export type BouncedAddress = { address: string; status: string; reason: string; delayed: boolean };

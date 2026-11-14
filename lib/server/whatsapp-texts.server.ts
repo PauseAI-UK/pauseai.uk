@@ -2,7 +2,7 @@ import "server-only";
 import { fieldsIn, type MailingDoc, type MailingRecipientValues } from "@/lib/mailings/doc";
 import { paramName } from "@/lib/whatsapp-template";
 import { query } from "./db.server";
-import type { ChannelResult } from "@/lib/mailings/channels.server";
+import type { ChannelResult } from "@/lib/letters/channels.server";
 import type { TemplateParam, WhatsAppSend } from "./outside-services/whatsapp.server";
 
 // Sending a text by its template (lib/whatsapp-template.ts): each person's

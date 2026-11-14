@@ -299,17 +299,17 @@ the code should go instead. The rules below say which ones are enforced.
     with `netlify/database/schema.sql` (`docs/development.md`, "Adding a
     migration"). Tables follow the SQL rules below.
 - **A letter's status** changes only through `transition()`
-  (`lib/server/letter-lifecycle.server.ts`). It is one statement that moves
+  (`lib/letters/lifecycle.server.ts`). It is one statement that moves
   letters from the statuses it's allowed from and logs each one's event.
   So two runs can't both take a letter, and a letter's status always
   matches its history.
   - The statuses, their named sets (such as `ARRIVED` or `NEVER_WENT`) and
-    the events are in `lib/letter-status.ts`. `letter_events`' CHECK holds
+    the events are in `lib/letters/status.ts`. `letter_events`' CHECK holds
     to those events. A query asks for a set with `statusIn()`, never a
     list typed out.
   - Every letter, a supporter's or a mailing's, is sent by
     `sendLetterVia(channel, letter)`, beside `transition()`, with a
-    `MailingChannel` (`lib/mailings/channels.server.ts`). A new kind of
+    `MailingChannel` (`lib/letters/channels.server.ts`). A new kind of
     letter says what it sends and what becomes of one that can't go. A new
     way to send is a channel.
 - **Settings** come from `config` (`lib/server/config.server.ts`), which reads
@@ -430,8 +430,13 @@ app/(staff)/staff/_components/
   asks/               the asks: their list, an ask's page and its form,
                       and how an ask and an answer to it read
   mailings/           the list of mailings, writing one: its editor,
-                      files, time and buttons, a mailing's page, how each
-                      copy of one went, and the campaigns' list and pages
+                      files, time and buttons, a mailing's page and its
+                      counts, and the campaigns' list and pages
+  letters/            letters to politicians: their list and every email
+                      to and from politicians, a letter's page, thread,
+                      status and history, what a supporter changed in
+                      their draft, finding one in Gmail, the one-off
+                      emails, and how a copy of something sent to many went
   <feature>/          its components, with each one's test, its gallery
                       examples (Component.gallery.tsx), the words only its
                       components use (copy.ts) and its Server Actions
@@ -468,10 +473,19 @@ lib/
                       and count answers to asks; it stands on none of them
   mailings/           mailings: their drafts, the letter and its merge
                       fields, who they're for, their pages, channels,
-                      schedule, attachments and sending; how each copy of
-                      a mailing or broadcast went; and the campaigns and
-                      their letters' versions. It stands on politicians,
-                      whom it writes to, and asks
+                      schedule, attachments and sending, and a mailing's
+                      letter's thread; and the campaigns and their
+                      letters' versions. It stands on politicians, whom it
+                      writes to, asks and letters
+  letters/            letters to politicians and their lifecycle: sending,
+                      the queue, replies and threads, the letters inbox,
+                      its reading, proxies, relays and held replies, the
+                      channel a letter goes by, every email to and from
+                      politicians, the one-off emails and the address book
+                      that matches them, the letter document's format, and
+                      how a copy of something sent to many went. It stands
+                      on accounts and asks; politicians, mailings and
+                      supporters stand on it
   server/             what every feature stands on: the database, sql,
                       settings, problems and runs, random IDs, the outside
                       services and the fixtures

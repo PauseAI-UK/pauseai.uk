@@ -9,7 +9,7 @@ import type { BlocksFilter } from "@/lib/server/email.server";
 import type { PoliticianFilter } from "@/lib/politicians/records.server";
 import type { SentEmailsFilter } from "@/lib/server/sent-emails.server";
 import { campaignBySlug } from "@/lib/email-your-mp";
-import { LETTER_STATES } from "@/lib/mailings/copy-states";
+import { LETTER_STATES } from "@/lib/letters/copy-states";
 import {
   among,
   anyAndNone,
@@ -20,15 +20,9 @@ import {
   type ParamValue,
   type Params,
 } from "@/lib/list-params";
-import { SUPPORTER_LETTER_STATUSES } from "@/lib/letter-status";
-import {
-  COUNTRIES,
-  EMAIL_STATES,
-  isHouse,
-  isPersonStatus,
-  POLITICIAN_FLAGS,
-  type PoliticianFlag,
-} from "@/lib/politicians/filters";
+import { SUPPORTER_LETTER_STATUSES } from "@/lib/letters/status";
+import { COUNTRIES, EMAIL_STATES, isHouse, isPersonStatus } from "@/lib/politicians/filters";
+import { POLITICIAN_FLAGS, type PoliticianFlag } from "@/lib/politician-flags";
 import {
   ACCOUNTS_LIST,
   ALL_EMAILS_LIST,
@@ -69,7 +63,7 @@ export type LetterReply = (typeof LETTER_REPLIES)[number];
 /** The filters of the letters list that repeat, which can leave out as well as find. */
 type NegatableLetterFilter = "campaign" | "flags" | "backend";
 
-/** Which letters the letters page lists (recentLetters in lib/server/letters.server.ts). */
+/** Which letters the letters page lists (recentLetters in lib/letters/records.server.ts). */
 export type LetterFilter = {
   /** A letter's status, as SUPPORTER_LETTER_STATUSES. */
   status?: string;

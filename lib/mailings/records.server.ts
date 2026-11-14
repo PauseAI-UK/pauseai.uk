@@ -1,6 +1,6 @@
 import "server-only";
-import { ARRIVED, MAILING_FAILED, statusIn } from "@/lib/letter-status";
-import { LETTER_STATES, letterStateSql, type CountedLetterState } from "./copy-states";
+import { ARRIVED, MAILING_FAILED, statusIn } from "@/lib/letters/status";
+import { LETTER_STATES, letterStateSql, type CountedLetterState, type SkipReason } from "@/lib/letters/copy-states";
 import type { AskStatus } from "@/lib/asks/asks";
 import { mailingGroups, type MailingGroup } from "./groups";
 import { now } from "@/lib/now";
@@ -56,9 +56,6 @@ export type MailingSummary = MailingBase & {
   /** How many of its letters are in each state (LETTER_STATES). */
   states: Record<CountedLetterState, number>;
 };
-
-/** Why a mailing skipped a recipient: their address blocked, out of office, or in office with no address. */
-export type SkipReason = "blocked" | "left-office" | "no-email";
 
 export type MailingRecipient = {
   letterId: number;

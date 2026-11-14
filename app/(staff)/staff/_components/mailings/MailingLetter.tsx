@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { linkOf, type Mark } from "@/lib/letter-format";
+import { linkOf, type Mark } from "@/lib/letters/format";
 import type { MailingBlock, MailingDoc, MailingInline, OnlyForNode } from "@/lib/mailings/doc";
 import { NOT_CONDITION } from "@/lib/mailings/doc";
 import { partFor } from "@/lib/mailings/fields";

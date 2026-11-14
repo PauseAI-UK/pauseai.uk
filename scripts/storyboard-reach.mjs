@@ -387,7 +387,7 @@ export function flowReach(run, { graph, routes, root, reaches }, whole = false) 
 /**
  * The staff interface's words are one object, `staffCopy`, read by most of
  * the staff pages. A change to it counts only for the files that read the
- * keys it changed (staffCopy.letters, or `const { letters } = staffCopy`), or
+ * keys it changed (staffCopy.changes, or `const { changes } = staffCopy`), or
  * that pass the object whole.
  */
 export const STAFF_COPY = "lib/content/staff-interface.ts";

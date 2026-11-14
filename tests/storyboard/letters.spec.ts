@@ -15,6 +15,7 @@ import { TEST_MPS } from "@/lib/politicians/test-mps";
 import type { Section } from "./report/frames";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 
 export const section: Section = { name: "Letters and bounces", part: "Staff pages", order: 100 };
 
@@ -39,11 +40,11 @@ test("Letters by count", async ({ page, request, flowDatabase }) => {
   await page.reload();
   const janes = page.getByRole("row").filter({ hasText: "Jane Smith" });
   const sams = page.getByRole("row").filter({ hasText: "Sam Smith" });
-  await expect(janes).toContainText(mailingsCopy.copyStates.tags.sent!);
-  await expect(sams).toContainText(mailingsCopy.copyStates.tags["unreached:bounced"]!);
+  await expect(janes).toContainText(lettersCopy.copyStates.tags.sent!);
+  await expect(sams).toContainText(lettersCopy.copyStates.tags["unreached:bounced"]!);
   await frame(page, "The campaign's letters");
   story("The didn't reach count shows only the letter that bounced, and pressed again, all of them.");
-  await page.getByRole("link", { name: `1 ${mailingsCopy.copyStates.counts.unreached}` }).click();
+  await page.getByRole("link", { name: `1 ${lettersCopy.copyStates.counts.unreached}` }).click();
   await expect(page).toHaveURL(/tab=unreached/);
   await expect(sams).toBeVisible();
   await expect(janes).toHaveCount(0);
@@ -61,7 +62,7 @@ test("Correspondence", async ({ page, flowDatabase }) => {
   await sentLetterId(page, flowDatabase, madeUpAddress("Jane Smith", 13));
   story("A flow's letters can only go to a test MP, and the page leaves those out.");
   await page.goto(`${BASE}/staff/emails`);
-  await expect(page.getByText(staffCopy.allLetters.noneFound)).toBeVisible();
+  await expect(page.getByText(lettersCopy.allLetters.noneFound)).toBeVisible();
   await frame(page, "No emails, as hers is to a test MP");
 
   story("With Test politician chosen in MP marked, her letter shows.");
@@ -94,7 +95,7 @@ test("Correspondence", async ({ page, flowDatabase }) => {
   await frame(page, "Both emails");
 
   story("Its Topic heading sorts them by topic, A to Z, so the mailing comes first.");
-  await page.getByRole("link", { name: staffCopy.allLetters.topic, exact: true }).click();
+  await page.getByRole("link", { name: lettersCopy.allLetters.topic, exact: true }).click();
   await expect(page).toHaveURL(/sort=topic&dir=asc/);
   await expect(page.getByRole("row").nth(1)).toContainText("A letter about the march");
   await frame(page, "Sorted by topic");
@@ -129,8 +130,8 @@ test("Replies to letters", async ({ page, request, flowDatabase }) => {
   await page.reload();
   const janes = page.getByRole("row").filter({ hasText: "Jane Smith" });
   const sams = page.getByRole("row").filter({ hasText: "Sam Smith" });
-  await expect(janes).toContainText(mailingsCopy.copyStates.tags["sent:auto-reply"]!);
-  await expect(sams).toContainText(mailingsCopy.copyStates.tags.replied!);
+  await expect(janes).toContainText(lettersCopy.copyStates.tags["sent:auto-reply"]!);
+  await expect(sams).toContainText(lettersCopy.copyStates.tags.replied!);
   await frame(page, "The campaign's letters");
   story("The replied count shows Sam's, as an automatic reply doesn't count.");
   await page
@@ -156,20 +157,20 @@ test("A letter's page", async ({ page, flowDatabase }) => {
     .getByRole("link", { name: staffVocabulary.theLetter })
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    staffCopy.letters.oneTitle("Jane Smith", TEST_MPS[0].name),
+    lettersCopy.letters.oneTitle("Jane Smith", TEST_MPS[0].name),
   );
   const letter = page.getByRole("article");
   await expect(letter).toContainText(sender);
   // Sent as the campaign drafted it, so its text is folded away.
   await expect(letter.getByText(/unchanged/)).toBeVisible();
   // Its text is here, so there's no search for it in Gmail.
-  await expect(page.getByRole("button", { name: staffCopy.findInGmail.copy })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: lettersCopy.findInGmail.copy })).toHaveCount(0);
   await frame(page, "Jane's letter");
   story(
     "The MP has signed the campaign's ask. From the letter's page, staff mark the MP as Signed, with a note of how they know.",
   );
 
-  const ask = page.getByRole("region", { name: mailingsCopy.mailings.fields.ask });
+  const ask = page.getByRole("region", { name: lettersCopy.letters.detail.ask });
   await expect(ask.getByRole("link", { name: campaigns[0].title })).toBeVisible();
   await ask.getByRole("button", { name: politiciansCopy.politician.edit }).click();
   await page.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
@@ -181,7 +182,7 @@ test("A letter's page", async ({ page, flowDatabase }) => {
   await frame(page, "Editing the MP's answer", { window: true });
   story("Saved, the letter's tag says the MP answered.");
   await page.getByRole("button", { name: politiciansCopy.politician.save }).click();
-  const answered = page.getByText(mailingsCopy.copyStates.tags.answered!, { exact: true });
+  const answered = page.getByText(lettersCopy.copyStates.tags.answered!, { exact: true });
   await expect(answered).toBeVisible();
   // The edit form closing shortens the page, and where that leaves the window differs between runs:
   // the frame is of the tag, in the middle of the window.
@@ -202,7 +203,7 @@ test("A reply to a letter whose text isn't kept", async ({ page, flowDatabase })
        'Re: Please support a pause', '2026-10-16T15:00:00Z', false, 'fixture/dora-reply.eml.gz', 512)`,
   );
   await page.goto(`${BASE}/staff/letters/${id}`);
-  await expect(page.getByText(staffCopy.letterThread.supporterNoText)).toBeVisible();
+  await expect(page.getByText(lettersCopy.letterThread.supporterNoText)).toBeVisible();
   await expect(page.getByText("I will raise this at the next opportunity.")).toBeVisible();
   await frame(page, "The letter's page, with the reply");
 });
@@ -234,20 +235,20 @@ test("A letter bounces", async ({ page, request, flowDatabase }) => {
   // The letter, by whom it was to, leads to its own page.
   await blocked.getByRole("link", { name: `${staffCopy.emails.letterTo} ${bouncy.name}` }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    staffCopy.letters.oneTitle("Jane Smith", bouncy.name),
+    lettersCopy.letters.oneTitle("Jane Smith", bouncy.name),
   );
   // Who wrote it, leading to them as a supporter; their address is in its history too.
   await expect(page.getByRole("link", { name: `Jane Smith <${sender}>` })).toBeVisible();
   // The letter's own status, not the navigation's Bounced emails.
   await expect(
-    page.getByRole("main").getByText(staffCopy.letters.status.bounced, { exact: true }).first(),
+    page.getByRole("main").getByText(lettersCopy.letters.status.bounced, { exact: true }).first(),
   ).toBeVisible();
   await frame(page, "Jane's letter, bounced");
   story("The button beside the bounce in the letter's history shows what the bounce said.");
   await page
-    .getByRole("list", { name: staffCopy.letters.detail.historyTitle })
+    .getByRole("list", { name: lettersCopy.letters.detail.historyTitle })
     .getByRole("listitem")
-    .filter({ hasText: new RegExp(`^${staffCopy.letters.status.bounced}`) })
+    .filter({ hasText: new RegExp(`^${lettersCopy.letters.status.bounced}`) })
     // The bounce's own, not that of the notice to Jane under it.
     .getByRole("button")
     .first()

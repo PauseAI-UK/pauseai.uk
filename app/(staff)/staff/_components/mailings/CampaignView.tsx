@@ -1,9 +1,8 @@
 import { Muted } from "@/components/ui/Text";
 import { askHref } from "@/lib/asks/asks";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { campaignBySlug, campaignPath } from "@/lib/email-your-mp";
 import type { CampaignSummary, CampaignVersion } from "@/lib/mailings/campaigns.server";
-import type { LetterSummary } from "@/lib/server/letters.server";
+import type { LetterSummary } from "@/lib/letters/records.server";
 import { type LettersSearch } from "@/lib/staff-search";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
@@ -11,13 +10,13 @@ import CampaignLetter from "./CampaignLetter";
 import { CampaignAsk, campaignCounts } from "./CampaignsOverview";
 import Band, { BandFact } from "../ui/Band";
 import { CountGroups } from "./CopyCounts";
-import { wentAndGone } from "./CopyStatus";
+import { wentAndGone } from "../letters/CopyStatus";
 import Grid, { Card } from "../ui/Grid";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
 import Progress from "../ui/Progress";
 import StaffLink from "../ui/StaffLink";
 import AnswerWord from "../asks/AnswerWord";
-import LetterStatus from "../LetterStatus";
+import LetterStatus from "../letters/LetterStatus";
 import styles from "./MailingView.module.css";
 import TestTag from "../TestTag";
 import ExternalLink from "../ui/ExternalLink";
@@ -25,9 +24,10 @@ import When from "../ui/When";
 import { asksCopy } from "@/lib/asks/copy";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { mailingsCopy } from "./copy";
+import { lettersCopy } from "../letters/copy";
 
 const copy = mailingsCopy.campaigns;
-const words = staffCopy.letters;
+const words = lettersCopy.letters;
 
 /** A campaign's letters' columns: the politician, with their seat, party and answer; who wrote it and when; how much was their own; how it went, leading to it. */
 const campaignLetterColumns: ListColumn<LetterSummary>[] = [
@@ -151,7 +151,7 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
               value={campaign.answered}
               max={campaign.politicians}
               tone="green"
-              label={mailingsCopy.copyStates.tabs.answered}
+              label={lettersCopy.copyStates.tabs.answered}
               big
             >
               {mailingsCopy.mailingPages.answeredBar(campaign.answered, campaign.politicians)}
@@ -174,12 +174,12 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
                 ? copy.lettersTitle
                 : search.tab === "changed"
                   ? copy.tabs.changed
-                  : mailingsCopy.copyStates.tabs[search.tab]}
+                  : lettersCopy.copyStates.tabs[search.tab]}
             </h2>
             {search.tab && <StaffLink href={filtersPath(path, { ...filters, tab: "" })}>{copy.showAll}</StaffLink>}
           </div>
           <ListFrame
-            count={staffCopy.letters.total(letters.total)}
+            count={lettersCopy.letters.total(letters.total)}
             total={letters.total}
             page={Number(search.page) || 1}
             pages={letters.pages}

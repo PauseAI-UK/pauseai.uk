@@ -2,7 +2,7 @@
 
 // MyGmail's example that logs Disconnect (MyGmail.gallery.tsx).
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
-import { exampleGmailAccount } from "../LetterThread.examples";
+import { exampleGmailAccount } from "../letters/LetterThread.examples";
 import MyGmail from "./MyGmail";
 
 /** Your Gmail on your own page, connected or not, Disconnect logged. */

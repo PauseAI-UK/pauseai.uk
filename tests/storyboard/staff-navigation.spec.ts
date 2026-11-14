@@ -10,6 +10,7 @@ import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { asksCopy } from "@/lib/asks/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 
 export const section: Section = { name: "Dashboard and getting around", part: "Staff pages", order: 20 };
 
@@ -148,7 +149,7 @@ test("The dashboard's tabs and numbers", async ({ page, flowDatabase }) => {
   story("The supporter emails tile leads to those supporters sent in those days.");
   await page.locator('a[href="/staff/emails?type=campaign&sent=30"]').click();
   await expect(page).toHaveURL(`${BASE}/staff/emails?type=campaign&sent=30`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.allLetters.title);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(lettersCopy.allLetters.title);
   await frame(page, "Supporter emails, in those 30 days");
 });
 

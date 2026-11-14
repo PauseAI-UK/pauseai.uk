@@ -6,7 +6,7 @@ import { staffDate, staffTime } from "@/lib/staff-time";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { exampleBlock } from "../EmailBlocksTable.examples";
-import { exampleLetter } from "../LettersTable.examples";
+import { exampleLetter } from "../letters/LettersTable.examples";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import PoliticianDetails from "./PoliticianDetails";
 import { type ThreadMessages, type ThreadStep } from "@/lib/politicians/threads";
@@ -17,7 +17,8 @@ import { politiciansCopy } from "./copy";
 import { PoliticianDetailsExample } from "./PoliticianDetails.gallery.client";
 import { asksCopy } from "@/lib/asks/copy";
 import { exampleAsks } from "../asks/AsksList.examples";
-import { exampleHiddenOneOff, exampleOneOffs } from "../OneOffList.examples";
+import { exampleHiddenOneOff, exampleOneOffs } from "../letters/OneOffList.examples";
+import { lettersCopy } from "../letters/copy";
 
 const [pm] = campaigns;
 
@@ -316,7 +317,7 @@ describe("PoliticianDetails", () => {
 
   describe("their correspondence", () => {
     const words = politiciansCopy.politician.correspondence;
-    const kinds = staffCopy.allLetters.topicKinds;
+    const kinds = lettersCopy.allLetters.topicKinds;
     const region = () => page.getByRole("region", { name: words.title });
     const step = (at: string, who: ThreadStep["who"], fields: Partial<ThreadStep> = {}): ThreadStep => ({
       at: new Date(at),
@@ -386,7 +387,7 @@ describe("PoliticianDetails", () => {
       const items = region().getByRole("listitem");
       expect(items.nth(0).element().textContent).toBe(
         [
-          `${pm.title} ${kinds.campaign}${staffCopy.letters.columns.ownWords} ${staffCopy.letters.ownWords(0.14)}`,
+          `${pm.title} ${kinds.campaign}${lettersCopy.letters.columns.ownWords} ${lettersCopy.letters.ownWords(0.14)}`,
           words.wrote("Jane Smith", "13 Oct 2026"),
           words.auto("13 Oct 2026"),
           words.replied("Polly Placeholder", "14 Oct 2026"),
@@ -405,7 +406,7 @@ describe("PoliticianDetails", () => {
       );
       await expect.element(items.nth(1).getByRole("link")).toHaveAttribute("href", "/staff/mailings/3/letters/22");
       expect(items.nth(2).element().textContent).toBe(
-        `${staffCopy.oneOff.noSubject} ${kinds.oneOff}${words.sent("4 Aug 2026")}${words.replied("Polly", "5 Aug 2026")}`,
+        `${lettersCopy.oneOff.noSubject} ${kinds.oneOff}${words.sent("4 Aug 2026")}${words.replied("Polly", "5 Aug 2026")}`,
       );
     });
 
@@ -434,7 +435,7 @@ describe("PoliticianDetails", () => {
           .map((h) => h.element().textContent),
       ).toEqual(["2020"]);
       expect(page.getByRole("link").all()).toHaveLength(8);
-      expect(page.getByText(staffCopy.letters.columns.ownWords, { exact: false }).query()).toBeNull();
+      expect(page.getByText(lettersCopy.letters.columns.ownWords, { exact: false }).query()).toBeNull();
       await page.getByText(words.all(10)).click();
       expect(page.getByRole("link").all()).toHaveLength(10);
       expect(page.getByRole("heading").all()).toHaveLength(1);
@@ -512,7 +513,7 @@ describe("PoliticianDetails", () => {
     it("tags a thread that's hidden too, after its sealed words", async () => {
       await render(<PoliticianDetails {...none} politician={MP} unblock={vi.fn()} oneOffs={[exampleHiddenOneOff]} />);
       expect(region().getByRole("listitem").first().element().textContent).toContain(
-        `${staffCopy.oneOff.hidden} ${kinds.oneOff}`,
+        `${lettersCopy.oneOff.hidden} ${kinds.oneOff}`,
       );
     });
 
@@ -542,10 +543,10 @@ describe("PoliticianDetails", () => {
         )
         .toBeVisible();
       await expect
-        .element(history.getByRole("link", { name: staffCopy.allLetters.theThread }).first())
+        .element(history.getByRole("link", { name: lettersCopy.allLetters.theThread }).first())
         .toHaveAttribute("href", "/staff/one-off/23");
       await expect
-        .element(history.getByText(`${staffCopy.oneOff.title}: ${staffCopy.oneOff.noSubject}`, { exact: false }))
+        .element(history.getByText(`${lettersCopy.oneOff.title}: ${lettersCopy.oneOff.noSubject}`, { exact: false }))
         .toBeVisible();
       await expect
         .element(region().getByText(words.replied("Vera Volunteer", "5 Aug 2026"), { exact: false }))
@@ -589,8 +590,8 @@ describe("PoliticianDetails", () => {
       expect(items.first().element().textContent).toContain(`${pm.title} ${kinds.campaign} · made-up`);
       expect(items.first().element().textContent).toContain(`${sealed} 13 Oct 2026`);
       expect(items.first().element().textContent).toContain(words.replied("Polly", "14 Oct 2026"));
-      expect(items.nth(1).element().textContent).toContain(staffCopy.letters.status.sent);
-      await expect.element(region().getByText(staffCopy.oneOff.hidden)).toBeVisible();
+      expect(items.nth(1).element().textContent).toContain(lettersCopy.letters.status.sent);
+      await expect.element(region().getByText(lettersCopy.oneOff.hidden)).toBeVisible();
       expect(region().element().querySelector("li a")).toBeNull();
     });
   });
@@ -750,12 +751,12 @@ describe("PoliticianDetails", () => {
     const copy = politiciansCopy.politician.history;
     expect(history.map((item) => item.element().textContent)).toEqual([
       `15 Oct 2026, 09:00${copy["letter-replied"]} Anon Writer · ${pm.title} · ${staffVocabulary.theLetter}`,
-      `13 Oct 2026, 08:00${copy.letter} Anon Writer · ${pm.title} · ${staffCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
-      `12 Oct 2026, 09:00${copy.letter} ${exampleLetter.senderName} · ${pm.title} · ${staffCopy.letters.status.bounced} · ${staffVocabulary.theLetter}`,
-      `3 Oct 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${politiciansCopy.politician.personalised} · ${staffCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
+      `13 Oct 2026, 08:00${copy.letter} Anon Writer · ${pm.title} · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
+      `12 Oct 2026, 09:00${copy.letter} ${exampleLetter.senderName} · ${pm.title} · ${lettersCopy.letters.status.bounced} · ${staffVocabulary.theLetter}`,
+      `3 Oct 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${politiciansCopy.politician.personalised} · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
       // Dated the day before it was recorded, so on that day.
       `1 Oct 2026${statusLine(politiciansCopy.politician.statusSet(staffVocabulary.statuses.signed), ask("frontier-ai-letter").title)} · Told us at the march · jo@pauseai.uk`,
-      `2 Sept 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${staffCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
+      `2 Sept 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
       `1 Sept 2026, 10:00${statusLine(politiciansCopy.politician.statusCleared, "gone")} · jo@pauseai.uk`,
       `15 Aug 2026, 10:00${statusLine(politiciansCopy.politician.statusSet("odd"), pm.title)} · jo@pauseai.uk`,
       `12 Aug 2026, 10:00${statusLine(politiciansCopy.politician.statusSet(staffVocabulary.statuses.signed), "an-old-ask")} · airtable`,
@@ -863,9 +864,9 @@ describe("PoliticianDetails", () => {
         .map((item) => item.element().textContent),
     ).toEqual([
       `15 Oct 2026, 09:00${copy["unsigned-letter-replied"]} · ${pm.title}`,
-      `13 Oct 2026, 08:00${copy.unsignedLetter} · ${pm.title} · ${staffCopy.letters.status.sent}`,
+      `13 Oct 2026, 08:00${copy.unsignedLetter} · ${pm.title} · ${lettersCopy.letters.status.sent}`,
       `1 Jul 2026, 08:00${copy.unsignedLetter} · Old campaign, from pauseai.info · mislaid`,
-      `1 Jun 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${staffCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
+      `1 Jun 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
       `1 May 2026, 08:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffVocabulary.theLetter}`,
     ]);
     expect(list.element().querySelector('a[href^="/staff/letters"]')).toBeNull();
@@ -1339,15 +1340,15 @@ describe("PoliticianDetails", () => {
       />,
     );
     await expect.element(link(exampleOneOffs[0].subject!)).toHaveAttribute("href", "/staff/one-off/1");
-    await expect.element(link(staffCopy.oneOff.noSubject)).toHaveAttribute("href", "/staff/one-off/3");
+    await expect.element(link(lettersCopy.oneOff.noSubject)).toHaveAttribute("href", "/staff/one-off/3");
     await expect
       .element(
         page
           .getByRole("region", { name: politiciansCopy.politician.correspondence.title })
-          .getByText(staffCopy.oneOff.hidden),
+          .getByText(lettersCopy.oneOff.hidden),
       )
       .toBeVisible();
-    expect(link(staffCopy.oneOff.hidden).query()).toBeNull();
+    expect(link(lettersCopy.oneOff.hidden).query()).toBeNull();
   });
 });
 

@@ -1,13 +1,13 @@
 import "server-only";
-import { isSharedInbox, keepsPoliticianThreads, nameParts, type PoliticianBook } from "@/lib/one-off";
+import { isSharedInbox, keepsPoliticianThreads, nameParts, type PoliticianBook } from "@/lib/letters/one-off";
 import { auditActions, logChange } from "@/lib/server/audit.server";
 import { config } from "@/lib/server/config.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { gmailAccess } from "@/lib/accounts/gmail-accounts.server";
-import { ONE_OFF_HEADERS, isHeld, keepIfPoliticianThread } from "@/lib/server/one-off-emails.server";
-import { relinkOneOffs } from "@/lib/server/one-off-relink.server";
+import { ONE_OFF_HEADERS, isHeld, keepIfPoliticianThread } from "@/lib/letters/one-off-emails.server";
+import { relinkOneOffs } from "@/lib/letters/one-off-relink.server";
 import { GmailError, gmailMessageHeaders, searchGmail, unlessGone } from "@/lib/server/outside-services/gmail.server";
-import { connectedAccounts, readPoliticianBook } from "./book.server";
+import { connectedAccounts, readPoliticianBook } from "@/lib/letters/book.server";
 import type { AddressSearch } from "@/lib/import-runs";
 import { problem } from "@/lib/server/problems.server";
 import { politiciansCopy } from "./copy";

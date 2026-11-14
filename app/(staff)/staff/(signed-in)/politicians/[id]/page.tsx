@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { listAsks } from "@/lib/asks/records.server";
 import { blockOn } from "@/lib/server/email.server";
-import { pauseaiLetters, politicianLetters } from "@/lib/server/letters.server";
+import { pauseaiLetters, politicianLetters } from "@/lib/letters/records.server";
 import { notesOn } from "@/lib/server/notes.server";
 import { getPolitician, politicianHistory } from "@/lib/politicians/records.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
@@ -17,7 +17,7 @@ import {
   setAskStatus,
   setMarkNow,
 } from "../../../_components/politicians/actions";
-import { politicianOneOffs } from "@/lib/server/one-off-emails.server";
+import { politicianOneOffs } from "@/lib/letters/one-off-emails.server";
 import { politicianMessages } from "@/lib/politicians/correspondence.server";
 import PoliticianDetails from "../../../_components/politicians/PoliticianDetails";
 import Page from "../../../_components/ui/Page";

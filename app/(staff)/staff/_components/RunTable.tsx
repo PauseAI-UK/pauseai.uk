@@ -7,6 +7,7 @@ import Run, { type Decide } from "./Run";
 import { Muted } from "@/components/ui/Text";
 import Table from "@/components/ui/Table";
 import styles from "./RunTable.module.css";
+import { lettersCopy } from "./letters/copy";
 
 /** What a run's table has: a heading and a cell for each column. */
 type Column<Run> = { heading: string; cell: (run: Run) => string | number };
@@ -30,8 +31,8 @@ const GMAIL: Column<GmailReading>[] = [
   { heading: gmailWords.autoReplies, cell: (run) => overAccounts(run, (a) => a.autoReplies) },
   { heading: staffCopy.sentEmails.outcomes.bounced, cell: (run) => overAccounts(run, (a) => a.bounces) },
   { heading: gmailWords.oneOffs, cell: (run) => overAccounts(run, (a) => a.oneOffs) },
-  { heading: staffCopy.lettersInbox.labels.relayed, cell: (run) => overAccounts(run, (a) => a.relayed) },
-  { heading: staffCopy.lettersInbox.labels.spam, cell: (run) => overAccounts(run, (a) => a.spam) },
+  { heading: lettersCopy.lettersInbox.labels.relayed, cell: (run) => overAccounts(run, (a) => a.relayed) },
+  { heading: lettersCopy.lettersInbox.labels.spam, cell: (run) => overAccounts(run, (a) => a.spam) },
 ];
 
 /** The columns of a job's table: the jobs with routine runs (lib/run-log.ts) have their counts, Gmail's over every account read; the rest have none, and a run's own words span the table. */

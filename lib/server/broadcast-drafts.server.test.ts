@@ -26,7 +26,7 @@ import {
   withdrawTemplate,
 } from "./broadcast-drafts.server";
 import { fakeRecipient, FIELDS_AS_WORDS, TEXT_SENDER_NAME } from "@/lib/broadcasts";
-import { toText } from "@/lib/letter-format";
+import { toText } from "@/lib/letters/format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";

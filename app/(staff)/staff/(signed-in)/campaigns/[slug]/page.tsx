@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { campaignVersions, getCampaignSummary } from "@/lib/mailings/campaigns.server";
-import { listLetters } from "@/lib/server/letters.server";
+import { listLetters } from "@/lib/letters/records.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { lettersSearch, type LettersSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";

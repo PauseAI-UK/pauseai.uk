@@ -1,5 +1,5 @@
 import "server-only";
-import { isLettersInboxAddress } from "@/lib/server/letters-inbox.server";
+import { isLettersInboxAddress } from "@/lib/letters/letters-inbox.server";
 import { RECIPIENT_TABS, getMailing, type Mailing, type RecipientTab } from "./records.server";
 import type { MailingChoice } from "./fields";
 import type { MailingRecipientValues } from "./doc";

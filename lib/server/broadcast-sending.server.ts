@@ -25,7 +25,7 @@ import { supporterAudience } from "./broadcast-recipients.server";
 import { query } from "./db.server";
 import { hashOf } from "@/lib/supporters/email-settings.server";
 import { gmailAccount } from "@/lib/accounts/gmail-accounts.server";
-import { paced, type ChannelMessage, type ChannelResult } from "@/lib/mailings/channels.server";
+import { paced, type ChannelMessage, type ChannelResult } from "@/lib/letters/channels.server";
 import { attachmentsOf, emailFor } from "@/lib/mailings/drafts.server";
 import { newMessageId } from "./mime.server";
 import { notifyStaff, staffLink } from "./notifications.server";

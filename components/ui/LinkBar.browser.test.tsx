@@ -3,7 +3,7 @@ import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
-import { letterExtensions } from "@/lib/letter-extensions";
+import { letterExtensions } from "@/lib/letters/extensions";
 import LinkBar from "./LinkBar";
 
 const WORDS = { address: "Address", save: "Save", remove: "Remove", cancel: "Cancel", invalid: "Not an address" };

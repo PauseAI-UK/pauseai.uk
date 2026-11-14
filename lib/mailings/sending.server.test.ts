@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, onTestFinished, vi } from "vitest";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { lettersCopy } from "@/lib/letters/copy";
 import {
   addTestPolitician,
   connectTestGmail,
@@ -10,8 +11,8 @@ import {
 import type { MailingDoc } from "./doc";
 import { query } from "@/lib/server/db.server";
 import { recordProblem } from "@/lib/server/email.server";
-import type { ChannelMessage, MailingChannel } from "./channels.server";
-import { uncertainLetters } from "@/lib/server/letter-sending.server";
+import type { ChannelMessage, MailingChannel } from "@/lib/letters/channels.server";
+import { uncertainLetters } from "@/lib/letters/sending.server";
 import { createDraft, saveDraft, scheduleMailing } from "./drafts.server";
 import { sendDueLetters, startDueMailings } from "./sending.server";
 
@@ -212,7 +213,7 @@ describeWithDatabase("sending mailings", () => {
     expect((await letters()).map((letter) => letter.status)).toEqual(["scheduled", "scheduled"]);
     const [{ first }] = await query<{ first: number }>("SELECT min(id)::int AS first FROM letters_from_pauseai");
     const words = staffCopy.problems.anywhere;
-    expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(words.letterOf(first)));
+    expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(lettersCopy.problems.letterOf(first)));
   });
 
   it("puts back a letter it took but couldn't read, so it goes next run rather than being left sending", async () => {

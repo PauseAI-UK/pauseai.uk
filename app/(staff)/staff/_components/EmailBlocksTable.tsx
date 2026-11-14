@@ -5,7 +5,7 @@ import type { EmailBlock } from "@/lib/server/email.server";
 import type { DownloadFormat } from "@/lib/staff-list";
 import { staffTime } from "@/lib/staff-time";
 import Reason, { problemSource } from "./BounceReason";
-import LetterLink from "./LetterLink";
+import LetterLink from "./letters/LetterLink";
 import { UnblockBubble } from "./UnblockForm";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import TestTag from "./TestTag";

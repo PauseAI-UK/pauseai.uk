@@ -136,7 +136,7 @@
   padding-left: var(--space-5);
 }
 
-/* A quote, as the email shows it (lib/letter-format.ts): set in, with a rule down its left. */
+/* A quote, as the email shows it (lib/letters/format.ts): set in, with a rule down its left. */
 .editor blockquote {
   margin: 0 0 var(--space-3);
   padding-left: var(--space-3);

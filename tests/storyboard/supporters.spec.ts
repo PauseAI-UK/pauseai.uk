@@ -22,6 +22,7 @@ import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { erasureCopy } from "@/lib/erasure/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 
 export const section: Section = { name: "Supporters", part: "Staff pages", order: 50 };
 
@@ -441,7 +442,7 @@ test("A letter writer's page", async ({ page, request, flowDatabase }) => {
   // The letter's status leads to its page, and back to her.
   await page.getByRole("link", { name: staffVocabulary.theLetter }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    staffCopy.letters.oneTitle("Jane Smith", "Testy McTestface MP"),
+    lettersCopy.letters.oneTitle("Jane Smith", "Testy McTestface MP"),
   );
   await frame(page, "Jane's letter");
   story("Her name on the letter's page leads back to her page.");

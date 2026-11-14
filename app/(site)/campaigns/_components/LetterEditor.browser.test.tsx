@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { letterEditorCopy as words } from "@/lib/content/letter-editor";
-import type { LetterDoc } from "@/lib/letter-format";
+import type { LetterDoc } from "@/lib/letters/format";
 import LetterEditor from "./LetterEditor";
 
 async function renderEditor() {

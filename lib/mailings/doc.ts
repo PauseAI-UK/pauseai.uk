@@ -7,14 +7,14 @@ import {
   type Inline,
   type LetterDoc,
   type Mark,
-} from "@/lib/letter-format";
+} from "@/lib/letters/format";
 
-// A mailing's letter: a letter's formatting (lib/letter-format.ts), with
+// A mailing's letter: a letter's formatting (lib/letters/format.ts), with
 // merge fields, filled in with each recipient's values, and parts only
 // some recipients get, those who meet the part's condition. The editor
 // (MailingEditor) sends it as JSON; the server checks it here, and writes
 // each recipient's letter from it, as a plain letter, so the HTML and
-// text come from letter-format alone.
+// text come from lib/letters/format.ts alone.
 
 /** A merge field: an ID, such as "salutation", which each recipient has a value for. */
 export type FieldNode = { type: "field"; attrs: { field: string }; marks?: Mark[] };

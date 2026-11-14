@@ -2,7 +2,7 @@
 // (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import { broadcastCounts } from "../BroadcastView";
-import { wentAndGone } from "./CopyStatus";
+import { wentAndGone } from "../letters/CopyStatus";
 import { CountGroups, NeedsAndFine } from "./CopyCounts";
 import { countsOpening } from "../ui/Counts";
 import { exampleBroadcastSummary } from "../BroadcastWriter.examples";

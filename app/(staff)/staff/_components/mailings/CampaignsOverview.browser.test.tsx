@@ -5,6 +5,7 @@ import CampaignsOverview, { CampaignAsk, letterRange } from "./CampaignsOverview
 import { exampleCampaign, exampleCampaignEmpty, exampleCampaignNoAsk } from "./CampaignPages.examples";
 import { asksCopy } from "@/lib/asks/copy";
 import { mailingsCopy } from "./copy";
+import { lettersCopy } from "../letters/copy";
 
 const copy = mailingsCopy.campaigns;
 const NOW = "2026-11-05T09:00:00Z";
@@ -19,8 +20,8 @@ describe("CampaignsOverview", () => {
     );
     // What needs a look, leading to its letters, and the rest folded behind how many are fine.
     expect(document.querySelector(`a[href="/staff/campaigns/${exampleCampaign.slug}?tab=unreached"]`)).not.toBeNull();
-    expect(document.body.textContent).toContain(mailingsCopy.copyStates.andFine(11));
-    expect(document.body.textContent).toContain(mailingsCopy.copyStates.allFine(12));
+    expect(document.body.textContent).toContain(lettersCopy.copyStates.andFine(11));
+    expect(document.body.textContent).toContain(lettersCopy.copyStates.allFine(12));
     // How many went, after a dot: all but the one that bounced; nothing for one with no letters, which says so.
     expect(document.body.textContent).toContain(copy.sent(11));
     expect(document.body.textContent).not.toContain(copy.sent(0));

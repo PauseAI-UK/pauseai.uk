@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpResponse } from "msw";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { draftLetter, signatureAddress } from "@/lib/email-your-mp";
-import { draftHash } from "@/lib/letter-changes";
-import { docFromMarkup, toText } from "@/lib/letter-format";
+import { draftHash } from "@/lib/letters/changes";
+import { docFromMarkup, toText } from "@/lib/letters/format";
 import {
   addTestMp,
   addTestPolitician,
@@ -16,8 +16,8 @@ import { LETTERS_INBOX, recordGmail, testProxy } from "@/tests/gmail-sends";
 import { resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { query } from "./db.server";
 import { recordProblem } from "./email.server";
-import { recentLetters } from "./letters.server";
-import { LETTERS_DAILY_LIMIT } from "./letters-inbox.server";
+import { recentLetters } from "@/lib/letters/records.server";
+import { LETTERS_DAILY_LIMIT } from "@/lib/letters/letters-inbox.server";
 import { mayWriteTo, parseLetterForm, submitLetter, type LetterForm } from "./mp-letters.server";
 
 /** The draft the form gives Jane for the test MP and the letter to the PM: what the server rebuilds. */

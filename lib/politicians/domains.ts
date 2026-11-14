@@ -1,4 +1,4 @@
-import { onParliamentDomain } from "@/lib/one-off";
+import { onParliamentDomain } from "@/lib/letters/one-off";
 
 // Politicians' names as the imports match them, and the domains of their own
 // that their bodies list, which say whose a one-off thread is

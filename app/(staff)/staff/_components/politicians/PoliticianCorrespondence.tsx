@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { monthsAndYears } from "@/lib/dated-groups";
 import { now } from "@/lib/now";
 import type { CorrespondenceThread, ThreadStep } from "@/lib/politicians/threads";
@@ -10,8 +9,9 @@ import styles from "./PoliticianCorrespondence.module.css";
 import Empty from "../ui/Empty";
 import StaffLink from "../ui/StaffLink";
 import Withheld from "../ui/Withheld";
-import { statusOf } from "../LetterStatus";
+import { statusOf } from "../letters/LetterStatus";
 import { politiciansCopy } from "./copy";
+import { lettersCopy } from "../letters/copy";
 
 const copy = politiciansCopy.politician.correspondence;
 
@@ -40,16 +40,20 @@ function words(step: ThreadStep, first: boolean, sender: string | null): ReactNo
 
 function Thread({ thread }: { thread: CorrespondenceThread }) {
   const title =
-    thread.title === null ? <Withheld>{staffCopy.oneOff.hidden}</Withheld> : thread.title || staffCopy.oneOff.noSubject;
+    thread.title === null ? (
+      <Withheld>{lettersCopy.oneOff.hidden}</Withheld>
+    ) : (
+      thread.title || lettersCopy.oneOff.noSubject
+    );
   return (
     <li>
       {thread.href ? <StaffLink href={thread.href}>{title}</StaffLink> : title}{" "}
-      <Tag>{staffCopy.allLetters.topicKinds[thread.kind]}</Tag>
+      <Tag>{lettersCopy.allLetters.topicKinds[thread.kind]}</Tag>
       {thread.status && <Muted> · {statusOf(thread.status)}</Muted>}
       {(thread.ownWords ?? 0) >= OWN_WORDS_WORTH_MARKING && (
         <span className={styles.ownWords}>
           <Tag tone="amber">
-            {staffCopy.letters.columns.ownWords} {staffCopy.letters.ownWords(thread.ownWords!)}
+            {lettersCopy.letters.columns.ownWords} {lettersCopy.letters.ownWords(thread.ownWords!)}
           </Tag>
         </span>
       )}

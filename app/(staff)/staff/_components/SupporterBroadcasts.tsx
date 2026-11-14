@@ -5,7 +5,7 @@ import { staffDate } from "@/lib/staff-time";
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import { copyWent } from "./BroadcastView";
 import IconText from "./ui/IconText";
-import { CopyStatus } from "./mailings/CopyStatus";
+import { CopyStatus } from "./letters/CopyStatus";
 import Empty from "./ui/Empty";
 import { Card } from "./ui/Grid";
 import { ListTable, type ListColumn } from "./ui/ListFrame";

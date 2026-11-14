@@ -314,11 +314,12 @@ const STAFF_COMPONENTS = "app/(staff)/staff/_components";
 export const FEATURES = {
   accounts: [],
   events: ["accounts", "supporters"],
-  supporters: ["accounts", "politicians"],
+  supporters: ["accounts", "politicians", "letters"],
   erasure: ["accounts", "supporters", "letters"],
   politicians: ["accounts", "letters", "asks"],
   asks: ["accounts"],
-  mailings: ["accounts", "asks", "politicians"],
+  mailings: ["accounts", "asks", "politicians", "letters"],
+  letters: ["accounts", "asks"],
 };
 /** Each feature's folder of logic, lib/<feature>, where its server code is, beside lib/server/. */
 export const featureLibFolders = () => Object.keys(FEATURES).map((feature) => `lib/${feature}`);

@@ -6,17 +6,18 @@ import Reply, { type ReplyHandlers } from "./CopyReply";
 import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import { MailingLetter } from "./mailings/MailingLetter";
-import { CopyStatus } from "./mailings/CopyStatus";
+import { CopyStatus } from "./letters/CopyStatus";
 import { ChatBubble, ChatWall, TextWords } from "./TextBubble";
-import { LetterHistory, type HistoryEntry } from "./LetterHistory";
-import { Thread } from "./LetterThread";
-import ThreadEmail from "./ThreadEmail";
+import { LetterHistory, type HistoryEntry } from "./letters/LetterHistory";
+import { Thread } from "./letters/LetterThread";
+import ThreadEmail from "./letters/ThreadEmail";
 import bubble from "./Broadcasts.module.css";
 import Grid, { Card, Column } from "./ui/Grid";
 import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
 import Strip from "./ui/Strip";
 import { supportersCopy } from "./supporters/copy";
+import { lettersCopy } from "./letters/copy";
 
 const copy = staffCopy.broadcastPages;
 
@@ -146,7 +147,7 @@ export default function MessageCopyView({ one, actions }: { one: MessageCopy; ac
           </Thread>
         </Column>
         <Column span={3}>
-          <Card look="log" title={staffCopy.letters.detail.historyTitle} id="letter-history">
+          <Card look="log" title={lettersCopy.letters.detail.historyTitle} id="letter-history">
             <LetterHistory events={historyOf(one)} logged={false} />
           </Card>
         </Column>

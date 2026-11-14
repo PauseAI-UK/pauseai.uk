@@ -10,6 +10,7 @@ import { exampleDashboard, exampleQuietDashboard } from "./StaffDashboard.exampl
 import { shellCopy } from "./shell/copy";
 import { supportersCopy } from "./supporters/copy";
 import { politiciansCopy } from "./politicians/copy";
+import { lettersCopy } from "./letters/copy";
 
 const [pm, bill] = campaigns;
 
@@ -42,7 +43,7 @@ describe("StaffDashboard", () => {
       `${copy.actions.heldImport(jobTitles["import-parliament"], 24)}${copy.actions.heldImportDetail}${copy.actions.decide}`,
       `${copy.actions.blockedMp("Bouncy McTestface MP")} ${politiciansCopy.politicians.flags.test}${copy.actions.blockedMpDetail}${copy.actions.openMp}`,
       `${copy.actions.failedImport(jobTitles["import-controlai"])}${copy.actions.failedImportDetail("No PDF linked", "21 Oct 2026, 02:00")}${copy.actions.seeRun}`,
-      `${staffCopy.lettersInbox.alert.subject(2, "fixture-letters@pauseai.uk")}${copy.actions.lettersInboxDetail("21 Oct 2026, 03:20")}${copy.actions.lettersInboxButton}`,
+      `${lettersCopy.lettersInbox.alert.subject(2, "fixture-letters@pauseai.uk")}${copy.actions.lettersInboxDetail("21 Oct 2026, 03:20")}${copy.actions.lettersInboxButton}`,
     ]);
     await expect
       .element(page.getByRole("link", { name: copy.actions.decide }))

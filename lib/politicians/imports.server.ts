@@ -19,7 +19,7 @@ import {
   type OfficialMember,
   type OurPolitician,
 } from "./import-changes";
-import { isSharedInbox } from "@/lib/one-off";
+import { isSharedInbox } from "@/lib/letters/one-off";
 import { personalSalutation, surnameOf } from "./salutation";
 import { TEST_MPS } from "./test-mps";
 import type { WikidataPerson } from "./wikidata";
@@ -28,7 +28,7 @@ import { config } from "@/lib/server/config.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { asRun } from "@/lib/server/import-runs.server";
 import { notifyStaff, staffLink } from "@/lib/server/notifications.server";
-import { relinkOneOffs } from "@/lib/server/one-off-relink.server";
+import { relinkOneOffs } from "@/lib/letters/one-off-relink.server";
 import {
   niAssemblyMembersNow,
   scottishParliamentMembersNow,

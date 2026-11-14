@@ -19,7 +19,7 @@ import BroadcastFor, { BroadcastContact, BroadcastWho } from "./BroadcastFor";
 import { ChoosingBroadcastFrame, BroadcastSupporters } from "./BroadcastSupporters";
 import BroadcastView, { broadcastCounts } from "./BroadcastView";
 import { CountGroups, NeedsAndFine } from "./mailings/CopyCounts";
-import { CopyStatus, copyStatus } from "./mailings/CopyStatus";
+import { CopyStatus, copyStatus } from "./letters/CopyStatus";
 import { countsOpening } from "./ui/Counts";
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import BroadcastWriter, { templateLine, type BroadcastWriterActions } from "./BroadcastWriter";
@@ -42,13 +42,14 @@ import SupporterBroadcasts from "./SupporterBroadcasts";
 import TextBubble, { ChatBubble, LinkedText } from "./TextBubble";
 import { supportersCopy } from "./supporters/copy";
 import { mailingsCopy } from "./mailings/copy";
+import { lettersCopy } from "./letters/copy";
 
 const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
 vi.mock("@/lib/leave-page.client", () => ({ leavePage }));
 afterEach(() => leavePage.mockClear());
 
 const copy = staffCopy.broadcastPages;
-const stateWords = mailingsCopy.copyStates;
+const stateWords = lettersCopy.copyStates;
 const WAIT = { timeout: 3000 };
 const nothing = async () => {};
 
@@ -1519,7 +1520,7 @@ describe("MessageCopyView", () => {
     await expect
       .element(page.getByLabelText(copy.threadTitle).getByText(staffTime(exampleMessageCopy.sentAt!)))
       .toBeVisible();
-    const history = page.getByRole("list", { name: staffCopy.letters.detail.historyTitle });
+    const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
     await expect.element(history.getByText(copy.events.read)).toBeVisible();
     await expect.element(history.getByText(copy.events.sent)).toBeVisible();
   });
@@ -1539,7 +1540,7 @@ describe("MessageCopyView", () => {
       .element(page.getByRole("heading", { level: 1 }))
       .toHaveTextContent(copy.copyTitle("email", "Jane Example"));
     await expect.element(page.getByRole("article", { name: "Thank you" })).toBeVisible();
-    await expect.element(page.getByText(staffCopy.letters.detail.noHistory)).toBeVisible();
+    await expect.element(page.getByText(lettersCopy.letters.detail.noHistory)).toBeVisible();
   });
 
   it("keeps only that one was sent, once they're erased", async () => {

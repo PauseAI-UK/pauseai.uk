@@ -15,8 +15,8 @@ import {
   type Mp,
   type MpStatuses,
 } from "@/lib/email-your-mp";
-import { draftHash } from "@/lib/letter-changes";
-import { toText } from "@/lib/letter-format";
+import { draftHash } from "@/lib/letters/changes";
+import { toText } from "@/lib/letters/format";
 import AttachmentChips from "./AttachmentChips";
 import { saveDraft, type Draft } from "./draft.client";
 import LetterEditor from "./LetterEditor";

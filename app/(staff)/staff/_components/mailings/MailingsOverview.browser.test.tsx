@@ -6,9 +6,10 @@ import MailingsOverview from "./MailingsOverview";
 import { exampleDraft, exampleMailings, exampleScheduled, exampleSending } from "./MailingsTable.examples";
 import { asksCopy } from "@/lib/asks/copy";
 import { mailingsCopy } from "./copy";
+import { lettersCopy } from "../letters/copy";
 
 const copy = mailingsCopy.mailingPages;
-const states = mailingsCopy.copyStates;
+const states = lettersCopy.copyStates;
 
 describe("MailingsOverview", () => {
   const now = "2026-10-30T12:00:00Z";

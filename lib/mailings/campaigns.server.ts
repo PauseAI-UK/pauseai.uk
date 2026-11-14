@@ -1,5 +1,10 @@
 import "server-only";
-import { LETTER_STATES, letterStateSql, type CountedLetterState } from "./copy-states";
+import {
+  CAMPAIGN_ANSWERED,
+  CAMPAIGN_LETTER_STATE,
+  LETTER_STATES,
+  type CountedLetterState,
+} from "@/lib/letters/copy-states";
 import { cache } from "react";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { FORM_VERSIONS, formVersionAt } from "@/lib/content/pauseai-info-form";
@@ -27,13 +32,6 @@ export type CampaignSummary = {
   firstAt: Date | null;
   lastAt: Date | null;
 };
-
-/** Whether the politician of a campaign `c`'s letter `l` has answered its ask, in SQL. */
-const CAMPAIGN_ANSWERED =
-  "EXISTS (SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = l.notable_person_id AND st.ask = c.ask)";
-
-/** A campaign `c`'s letter `l`'s state (letterStateSql). */
-export const CAMPAIGN_LETTER_STATE = letterStateSql(CAMPAIGN_ANSWERED);
 
 const SELECT_CAMPAIGNS = `
   SELECT c.slug, c.title, c.ask, a.title AS "askTitle", a.kind AS "askKind", c.url,

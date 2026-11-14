@@ -1,9 +1,9 @@
 import "server-only";
 import { changedFields } from "@/lib/field-changes";
-import { isSharedInbox } from "@/lib/one-off";
+import { isSharedInbox } from "@/lib/letters/one-off";
 import { logChange } from "@/lib/server/audit.server";
 import { query, transaction } from "@/lib/server/db.server";
-import { relinkOneOffs } from "@/lib/server/one-off-relink.server";
+import { relinkOneOffs } from "@/lib/letters/one-off-relink.server";
 
 // What staff edit on a politician's page: only what no body's list has, as
 // the imports keep the rest (lib/politicians/imports.server.ts). The two

@@ -2,23 +2,23 @@ import "server-only";
 import { config } from "./config.server";
 import { copy } from "@/lib/content/email-your-mp";
 import { campaignBySlug, draftLetter, looksLikeEmail, signatureAddress } from "@/lib/email-your-mp";
-import { draftHash, ownWords } from "@/lib/letter-changes";
-import { checkDoc, isBlank, toText, type LetterDoc } from "@/lib/letter-format";
+import { draftHash, ownWords } from "@/lib/letters/changes";
+import { checkDoc, isBlank, toText, type LetterDoc } from "@/lib/letters/format";
 import { query, transaction } from "./db.server";
 import { findMp } from "@/lib/politicians/find-mp.server";
-import { sendLetter, type QueueReason } from "./letter-sending.server";
-import { isLettersInboxAddress } from "./letters-inbox.server";
+import { sendLetter, type QueueReason } from "@/lib/letters/sending.server";
+import { isLettersInboxAddress } from "@/lib/letters/letters-inbox.server";
 import { checkNotSpam } from "./outside-services/turnstile.server";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { sendBulkNotice } from "@/lib/supporters/email-settings.server";
 import { statusesOf } from "@/lib/politicians/records.server";
-import { politicianProxy, supporterProxy } from "./proxies.server";
+import { politicianProxy, supporterProxy } from "@/lib/letters/proxies.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
 import { problem } from "./problems.server";
 import { staffCopy } from "@/lib/content/staff-interface";
 
 // A letter from the form: checked, kept, then sent from the letters inbox
-// at once if it can be (lib/server/letter-sending.server.ts), else queued.
+// at once if it can be (lib/letters/sending.server.ts), else queued.
 
 export type LetterForm = {
   campaign: string;
@@ -85,7 +85,7 @@ function isOurAddress(email: string): boolean {
  * sender email gets one letter per campaign, except to the test MPs, so
  * they can be tried again and again. Once kept it's never deleted for
  * failing to send: what stops it waits in the queue, with its reason
- * (lib/server/letter-sending.server.ts), and the result says so.
+ * (lib/letters/sending.server.ts), and the result says so.
  */
 export async function submitLetter(form: LetterForm): Promise<SubmitResult> {
   const spam = await checkNotSpam(form);

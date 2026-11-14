@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
-import { staffCopy } from "@/lib/content/staff-interface";
 import SupporterDetails from "./SupporterDetails";
 import { exampleMemberDetails, exampleSupporter, exampleSupporterDetails } from "./SupportersTable.examples";
 import { supportersCopy } from "./copy";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { lettersCopy } from "../letters/copy";
 
 /** Opens every folded part of the page, such as a supporter's history. */
 function openHistory() {
@@ -120,7 +120,7 @@ describe("SupporterDetails", () => {
       .element(history.getByRole("link", { name: campaigns[0].title }).first())
       .toHaveAttribute("href", `/staff/campaigns/${campaigns[0].slug}`);
     expect(history.element().textContent).toContain(
-      `${copy.detail.kinds.letter} Polly Placeholder ${copy.detail.about} ${campaigns[0].title} · ${staffCopy.letters.status.sent}`,
+      `${copy.detail.kinds.letter} Polly Placeholder ${copy.detail.about} ${campaigns[0].title} · ${lettersCopy.letters.status.sent}`,
     );
 
     await expect.element(history.getByText(copy.lists["events"], { exact: false })).toBeVisible();

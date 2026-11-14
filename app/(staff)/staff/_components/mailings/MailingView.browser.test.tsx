@@ -12,9 +12,10 @@ import { asksCopy } from "@/lib/asks/copy";
 import { exampleAsks } from "../asks/AsksList.examples";
 import { mailingsCopy } from "./copy";
 import { MailingStandingExample } from "./MailingView.gallery.client";
+import { lettersCopy } from "../letters/copy";
 
 const copy = mailingsCopy.mailingPages;
-const states = mailingsCopy.copyStates;
+const states = lettersCopy.copyStates;
 const noAction = async () => {};
 /** Whether the page says `text`, whichever element it's in and however its line wraps. */
 const says = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
@@ -297,7 +298,9 @@ describe("MailingView, for a mailing imported from Airtable", () => {
     await expect.element(page.getByText("1 Oct 2026", { exact: true }).first()).toBeVisible();
     await expect.element(page.getByText(staffVocabulary.politicians(4))).toBeVisible();
     await expect.element(page.getByText(mailings.noText)).toBeVisible();
-    await expect.element(page.getByRole("row").filter({ hasText: "Polly" })).toMatchTextContent(mailings.personalised);
+    await expect
+      .element(page.getByRole("row").filter({ hasText: "Polly" }))
+      .toMatchTextContent(lettersCopy.letters.personalised);
     await expect
       .element(page.getByRole("link", { name: "Morag Example" }))
       .toHaveAttribute("href", "/staff/politicians/8");
@@ -338,9 +341,9 @@ describe("an imported mailing's text", () => {
     );
     await says("The subject");
     await says(mailingsCopy.mailings.importedFields.own);
-    expect(document.body.textContent).not.toContain(staffCopy.letterThread.approximate);
+    expect(document.body.textContent).not.toContain(lettersCopy.letterThread.approximate);
     await rerender(imported({ importedText: doc, sentFrom: null, importedTextApproximate: true, askKind: "letter" }));
-    await says(staffCopy.letterThread.approximate);
+    await says(lettersCopy.letterThread.approximate);
     await says(mailingsCopy.mailings.notRecorded);
     await says(asksCopy.asks.askTo.letter);
   });

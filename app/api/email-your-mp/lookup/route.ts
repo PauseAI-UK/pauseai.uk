@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const { mp } = found;
   return NextResponse.json({
     ok: true,
-    // An address that bounced can still be written to: the letter waits until it works (lib/server/letter-sending.server.ts).
+    // An address that bounced can still be written to: the letter waits until it works (lib/letters/sending.server.ts).
     mp,
     statuses: await statusesOf(mp.id),
     place: found.place ?? null,

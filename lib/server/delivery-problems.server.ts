@@ -1,13 +1,13 @@
 import "server-only";
-import { LETTER_STATUSES } from "@/lib/letter-status";
+import { LETTER_STATUSES } from "@/lib/letters/status";
 import { query } from "./db.server";
 import { liftBlock, recordProblem, type DeliveryProblem, type Purpose } from "./email.server";
-import { letterEvent, transition } from "./letter-lifecycle.server";
-import { noticeToSender } from "./letter-sending.server";
+import { letterEvent, transition } from "@/lib/letters/lifecycle.server";
+import { noticeToSender } from "@/lib/letters/sending.server";
 import { alertBouncedMp, alertIfPoliticianBlocked } from "./notifications.server";
 import { bareAddress } from "@/lib/email-parsing/addresses";
-import { gmailMessageLink } from "@/lib/letter-links";
-import { relayBounced, resendAfterFix } from "./relays.server";
+import { gmailMessageLink } from "@/lib/letters/links";
+import { relayBounced, resendAfterFix } from "@/lib/letters/relays.server";
 
 // What happens when an email bounces or is complained about: the address is
 // recorded and, for a hard bounce or complaint, blocked (email.server.ts), then the

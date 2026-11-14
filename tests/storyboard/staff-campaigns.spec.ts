@@ -13,6 +13,7 @@ import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { asksCopy } from "@/lib/asks/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 
 export const section: Section = { name: "Campaigns, asks and sent emails", part: "Staff pages", order: 80 };
 
@@ -52,11 +53,11 @@ test("Campaigns", async ({ page, flowDatabase }) => {
 
   story("Each count shows only the letters it counts: the sent count, the letters that went.");
   await page
-    .getByRole("link", { name: new RegExp(` ${mailingsCopy.copyStates.counts.sent}$`) })
+    .getByRole("link", { name: new RegExp(` ${lettersCopy.copyStates.counts.sent}$`) })
     .first()
     .click();
   await expect(page).toHaveURL(/tab=sent/);
-  await expect(page.getByRole("heading", { name: mailingsCopy.copyStates.tabs.sent })).toBeVisible();
+  await expect(page.getByRole("heading", { name: lettersCopy.copyStates.tabs.sent })).toBeVisible();
   await frame(page, "The letters sent");
 });
 

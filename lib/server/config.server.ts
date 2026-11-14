@@ -60,7 +60,7 @@ export const config = {
   get policyInbox(): string | undefined {
     return address(process.env.POLICY_INBOX);
   },
-  /** The letters inbox (LETTERS_INBOX, lib/server/letters-inbox.server.ts). */
+  /** The letters inbox (LETTERS_INBOX, lib/letters/letters-inbox.server.ts). */
   get lettersInbox(): string | undefined {
     return address(process.env.LETTERS_INBOX);
   },

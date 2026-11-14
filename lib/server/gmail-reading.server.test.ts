@@ -17,7 +17,7 @@ import {
 import { allResults, heldAtOnce } from "@/tests/at-once";
 import { query } from "./db.server";
 import { readGmail } from "./gmail-reading.server";
-import { noteAutoReply } from "./letter-replies.server";
+import { noteAutoReply } from "@/lib/letters/replies.server";
 import { listRuns, latestRun, startRunning, stopRunning } from "./import-runs.server";
 import { ANOTHER_RUNNING, runJob } from "./jobs.server";
 import { letterReply } from "./outside-services/blobs.server";

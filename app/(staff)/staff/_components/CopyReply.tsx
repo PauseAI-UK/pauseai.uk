@@ -15,7 +15,7 @@ import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import { MailingLetter } from "./mailings/MailingLetter";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
-import ThreadEmail from "./ThreadEmail";
+import ThreadEmail from "./letters/ThreadEmail";
 import { SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import styles from "./MessageCopyView.module.css";
 

@@ -19,40 +19,6 @@ const sentToCivicrm = (u: { sent: number; refused: number; unanswered: number })
 const RESUME_SENDING = "Resume sending";
 
 export const staffCopy = {
-  // A letter in Gmail, by its page's heading: a button that copies a
-  // search for it, then says to paste it, and where.
-  findInGmail: {
-    copy: "Copy Gmail search",
-    copied: "Copied!",
-    // The × that closes the note, as a screen reader names it.
-    close: "Close",
-    // Then, in the note under it, what to do, in bold, "paste" stressed; under that, where.
-    next: { before: "Next, ", stressed: "paste", after: " into Gmail search." },
-    where: (mailbox: string) => `You must be in an inbox that can see ${mailbox}'s mail.`,
-    // A supporter's letter sent before policy@ was a Gmail account, when it was a Google Group.
-    policyGroup: "You must be in an inbox that got policy@'s mail when it was sent, such as Joseph's.",
-    // A letter of PauseAI's copied from Airtable, which kept no record of the Gmail it went from.
-    whereUnknown: "You must be in an inbox that sent it. Most of these went from Joseph's.",
-  },
-  // One of PauseAI's letters, and the replies in its thread.
-  letterThread: {
-    title: "Letter and replies",
-    // Folds the mail a message quotes and its footer, under its text.
-    quoted: "Quoted mail and footer",
-    // Folds all of an automatic reply but its first paragraph: the rest, the mail it quotes and its footer.
-    autoInFull: "Automated reply in full",
-    // An imported letter, whose text Airtable didn't keep.
-    noText: "Text not available, as sent from Airtable.",
-    // Over the text of a letter that's built from the send before it and the person's earlier letter.
-    approximate:
-      "Approximate: rebuilt from an earlier letter found in Joseph's personal email. This isn't what they received, but it was probably much like this.",
-    // A supporter's letter whose text the site doesn't have.
-    supporterNoText: "Text not available.",
-    noReplies: "No replies yet.",
-    unreadable: "This message couldn't be read.",
-    // Over each message, as an email shows them.
-    headers: { from: "From", to: "To", cc: "Cc", date: "Date", subject: "Subject" },
-  },
   // The home page: the dashboard.
   home: {
     title: "Dashboard",
@@ -609,44 +575,6 @@ export const staffCopy = {
       running: "Another run was already going.",
     } as Record<string, string>,
   },
-  // A supporter's letter on its page: what they changed in the draft the campaign gave them.
-  letterChanges: {
-    // Toggles to the letter as the MP got it, and back.
-    asSent: "Show as sent",
-    showChanges: "Show changes",
-    // In place of paragraphs left as they were; a click unfolds them.
-    folded: (n: number) => `${count(n, "paragraph", "paragraphs")} unchanged`,
-  },
-  // The letters inbox, which supporters' letters to MPs go from (lib/server/letters-inbox-reading.server.ts).
-  lettersInbox: {
-    // The labels reading puts on each message in Gmail, by what it made of it.
-    labels: {
-      relayed: "Relayed",
-      noted: "Noted",
-      spam: "Spam",
-      notUnderstood: "Not understood",
-    },
-    // After the account's line in a run.
-    result: (a: { relayed: number; spam: number; uncertain: number }) =>
-      `${a.relayed} relayed, ${a.spam} spam, ${a.uncertain} matched to a letter only as its latest.`,
-    // Each message not understood, a line each, with a link to it in Gmail.
-    notUnderstood: "Not understood:",
-    reasons: {
-      unknown_proxy: "to a proxy we don't have",
-      no_proxy: "to none of our proxies",
-      stranger: "from neither the supporter nor their MP's office",
-      not_verified: "failed authentication",
-      over_cap: "over its letter's limit on relays",
-      bounce: "a bounce of nothing we sent",
-    } as Record<string, string>,
-    openInGmail: "Open in Gmail",
-    // The email to the policy inbox after a run with any.
-    alert: {
-      subject: (n: number, inbox: string) => `${n} MP ${plural(n, "email", "emails")} in ${inbox} not relayed`,
-      body: (inbox: string, lines: string[], runUrl: string) =>
-        `Open each in Gmail and deal with it by hand: forward it, answer it, or leave it.\n\n${lines.join("\n")}\n\nThe run: ${runUrl}`,
-    },
-  },
   // The names our own inboxes go by on the emails the site sends them: the
   // notification inbox, and the policy inbox an MP's reply is forwarded to.
   inboxNames: {
@@ -686,13 +614,6 @@ export const staffCopy = {
       subject: (n: number) => `${count(n, "MP's address", "MPs' addresses")} bounced a mailing`,
       body: (lines: string[], link: string) =>
         `These MPs' addresses bounced letters from a mailing since the last report:\n\n${lines.join("\n")}\n\nNothing more will be sent to them until they're unblocked here:\n${link}`,
-    },
-    // Once a day at most: the supporters' copies that bounced since the last, so their MP's replies can't be
-    // passed on; how many replies are held; each address's domain and what its server said.
-    supporterBounces: {
-      subject: (n: number) => `${n} supporters' ${plural(n, "address", "addresses")} bounced`,
-      body: (n: number, held: number, lines: string[], link: string) =>
-        `${n} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${count(held, "reply is", "replies are")} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nBounced emails: ${link}`,
     },
     // A broadcast that can't go, as CiviCRM didn't answer its check or no pull has completed for a day, to whoever
     // scheduled it and the inbox, once: it goes by itself when it can, or stops at `stops`.
@@ -797,12 +718,6 @@ export const staffCopy = {
       subject: (name: string) => `WhatsApp rejected the template: ${name}`,
       body: (reason: string, words: string, links: string[]) =>
         `WhatsApp rejected the template with ${reason}\n\nChange it, and send it for approval again.\n\n${words}\n\n${links.join("\n")}`,
-    },
-    // Letters to MPs have waited LATE_HOURS to go: how many, why, and the queued letters.
-    lettersWaiting: {
-      subject: (n: number, hours: number) => `${count(n, "letter", "letters")} to MPs waiting over ${hours} hours`,
-      body: (n: number, hours: number, why: string, link: string) =>
-        `${plural(n, "A letter", `${n} letters`)} to MPs ${plural(n, "has", "have")} waited over ${hours} hours to go. Why: ${why}.\n\nThe letters waiting: ${link}`,
     },
   },
   // The read every 5 minutes of the connected Gmail accounts for replies to our
@@ -1033,62 +948,6 @@ export const staffCopy = {
       },
     },
   },
-  oneOff: {
-    // The page's title, and a thread's way back.
-    title: "One-off emails",
-    columns: {
-      when: "Last message",
-      subject: "Subject",
-      messages: "Messages",
-      answered: "Answered",
-      politician: "Politician",
-      participants: "Participants",
-      mailbox: "Mailbox",
-    },
-    answers: { yes: "Yes", no: "No" },
-    hidden: "Only staff who see supporters can read this.",
-    noPolitician: "Parliament address",
-    noSubject: "(no subject)",
-    thread: "The thread",
-    // A thread's page's title: who wrote in it, "with" the one when only one did.
-    between: (who: string[]) =>
-      who.length === 1 ? `Thread with ${who[0]}` : `Thread between ${new Intl.ListFormat("en-GB").format(who)}`,
-    // A thread's own step of the trail above its page: the title's first word.
-    crumb: "Thread",
-    // Under a thread's subject, a fact each: a label, then what the list's column of that name shows.
-    fact: (label: string, value: string | number) => `${label}: ${value}`,
-    unreadable: "This message couldn't be read.",
-    // A message rebuilt from a forward's quote of it, at the right of its subject: who forwarded it.
-    rebuilt: (forwarder: string) => `Quoted in ${forwarder}'s forward`,
-    // A forward with no note over what it carries.
-    forwardedAlone: "(Forwarded without a message)",
-    // Beside the thread: the politicians it's linked to.
-    people: {
-      title: "Linked politicians",
-      none: "None",
-    },
-    // On a politician's and a supporter's page.
-    onPageTitle: "One-off emails",
-    // On your own page, under your Gmail.
-    // Around a link to the one-off emails, which says their title.
-    kept: { before: "All threads with politicians in this specific mailbox are kept, and show under", after: "." },
-    // In any other mailbox, around a link to the mailings.
-    notKept: { before: "Replies to threads sent like this will be kept, and show under", after: "." },
-    // In hello@'s, which sends the broadcasts too, around links to the mailings and the broadcasts.
-    notKeptBroadcasts: {
-      before: "Replies to mailings and broadcasts sent from here are kept, and show under",
-      and: "and",
-      after: ".",
-    },
-    unmatchedAlert: {
-      subject: (n: number) => `${count(n, "email", "emails")} in policy@ matched no politician`,
-      body: (lines: string[], link: string) =>
-        // Each line its sender, subject and a link to it in Gmail, which opens for someone signed in to its mailbox.
-        `Some emails arrived in the policy@ inbox and weren't kept, because they didn't match a politician. Work out who they're from, and widen the rule or add exceptions.\n\n${lines.join("\n")}\n\n${link}`,
-      // After the list, when a report is full: how many wait for the next one.
-      more: (n: number) => `And ${n} more, in the next report.`,
-    },
-  },
   // The hourly pull of Global's UK chapter contacts from CiviCRM (lib/server/civicrm-import.server.ts).
   civicrm: {
     title: "UK chapter contacts in CiviCRM",
@@ -1150,8 +1009,6 @@ export const staffCopy = {
       noInbox: "NOTIFICATION_INBOX isn't set, so nobody was emailed",
       // An email went by Gmail, but Gmail wouldn't say its Message-ID. Replies to it may not find their letter.
       messageIdUnknown: "Gmail wouldn't say which Message-ID an email went with",
-      // Something went wrong sending a queued letter. It's back in the queue, and the writer is told it's on its way.
-      letterNotSent: (id: number) => `Letter ${id} couldn't be sent, so it's gone back in the queue`,
       // Something went wrong before an email went: the letter or broadcast copy is back in line for the next run.
       notSentYet: (what: string) => `${what} couldn't be sent, it will be tried again`,
       // An email went, but recording that failed: a person must check, as sending it again would send it twice.
@@ -1169,9 +1026,6 @@ export const staffCopy = {
         "A supporter replied STOP and their texts are stopped, but our WhatsApp reply confirming it failed to send",
       // What those are, in them.
       copyOf: (id: number) => `Broadcast copy ${id}`,
-      letterOf: (id: number) => `Letter ${id}`,
-      letterCopyOf: (id: number) => `The supporter's copy of letter ${id}`,
-      relayOf: (id: number) => `Relay ${id}`,
       answerTo: (id: number) => `The answer to reply ${id}`,
       // Reading an email in a charset we don't know: a job reading mail, or staff opening a letter. It's read as UTF-8.
       charsetUnknown: (charset: string) =>
@@ -1303,183 +1157,6 @@ export const staffCopy = {
     frequent: "Every 5 minutes",
     "quarter-hour": "Every 15 minutes",
     hourly: "Hourly",
-  },
-  allLetters: {
-    title: "Correspondence",
-    // Under the title.
-    subtitle: "All emails to and from notable people",
-    // Over the list: how many there are.
-    total: (total: number) => count(total, "email", "emails"),
-    search: "Sender, politician or topic",
-    // Who a letter is from, the filter's name and its choices.
-    from: "Started by",
-    fromKinds: {
-      supporter: "Supporters",
-      pauseai: "PauseAI",
-      politician: "Politicians",
-      other: "Other",
-    },
-    // In a one-off thread's first column, in place of a status.
-    oneOff: "One-off",
-    // The filter by what a row is, under the Topic column's name.
-    types: { campaign: "Campaign", mailing: "Mailing", "one-off": "One-off" },
-    // What opens a one-off thread, in its first column.
-    theThread: "Thread →",
-    // Over the list, for staff without the supporters permission.
-    withheld: "Emails with supporters on them are not shown, as you don't have the supporters permission.",
-    // Under the title: what the one-offs are.
-    intro: (inbox: string) =>
-      `One-off emails are threads copied to ${inbox} that aren't part of a mailing or a campaign.`,
-    // When it was sent.
-    sent: "Sent",
-    // Whether it got a written reply, or got one in a window.
-    replied: "Replied",
-    repliedChoices: { yes: "Any time", no: "No reply" },
-    // What a row is about, and after it, plain, which kind of thing that is.
-    topic: "Topic",
-    topicKinds: { campaign: "campaign", mailing: "mailing", oneOff: "one-off" },
-    noneFound: "No emails found.",
-  },
-  letters: {
-    title: "Letters to MPs",
-    // Over the list: how many there are.
-    total: (total: number) => count(total, "letter", "letters"),
-    search: "Sender or MP",
-    // The Replied filter: whether the MP replied.
-    // The Replied filter: what came back to a letter.
-    answered: { yes: "Written reply", auto: "Automatic reply only", no: "No reply" },
-    // The titles of a letter's own page, and of a supporter's letters' page.
-    oneTitle: (from: string, to: string) => `Letter from ${from} to ${to}`,
-    fromTitle: (name: string) => `Letters from ${name}`,
-    // A letter's own step of the trail above its page, after its campaign or mailing.
-    crumb: "Letter",
-    // Who PauseAI's letters are from, in a letter's title.
-    fromPauseai: "PauseAI UK",
-    // A letter's own page: its facts beside the list's, and the way to read it as it was sent.
-    detail: {
-      subject: "Subject",
-      sent: "Sent",
-      mailing: "Mailing",
-      personalised: "Personalised",
-      historyTitle: "History",
-      // Under the ask a supporter's letter makes, before its campaign's name.
-      basedOn: "Based on the campaign",
-      noHistory: "Nothing recorded yet.",
-      // What a change of status recorded, each field's name before its value: Postmark's, a bounce's, a reply's.
-      fields: {
-        messageId: "Message ID",
-        type: "Type",
-        description: "Description",
-        reason: "Reason",
-        // What Gmail said when it refused to send a mailing's letter, as it said it.
-        detail: "Gmail said",
-        email: "Address",
-        from: "From",
-        to: "To",
-        cc: "Cc",
-        replyTo: "Reply-To",
-        subject: "Subject",
-        // What sending from Gmail and reading its mailbox record.
-        name: "Name",
-        account: "Gmail",
-        status: "Code",
-        bcc: "Bcc",
-        notice: "Notice",
-        uncertain: "Which letter",
-        // Who did it: a staff member, on a copy of a broadcast's history; and how they told us, of an opt-out.
-        by: "By",
-        how: "How they told us",
-      } as Record<string, string>,
-      // The value of uncertain: the reply named none of the supporter's letters to the MP, so it was put with the newest.
-      uncertainLetter: "A guess: their newest to this MP, as the reply didn't say which it answers",
-      // A reason, recorded as a word, in words: why a letter, copy or relay waits or wasn't relayed.
-      reasons: {
-        not_connected: "The letters inbox isn't connected",
-        daily_limit: "The letters inbox reached its daily limit",
-        failed: "Gmail refused it or couldn't be reached; it'll try again in every hour",
-        blocked: "The address is blocked, as it bounced",
-        not_verified: "It failed authentication, so may be forged",
-        over_cap: "Over the letter's limit on relays, in case of a loop",
-      } as Record<string, string>,
-      // What a notice to the supporter said.
-      notices: {
-        bounced: "Their message hasn't reached the MP",
-        resent: "It has now gone",
-        notResent: "It wasn't sent within a week, and we gave up",
-      } as Record<string, string>,
-      // Under a reply, what was done with it: each line's name, before who to; "Not forwarded" when it went to no one.
-      handling: {
-        forwarded: "Forwarded to",
-        not_forwarded: "Not forwarded to",
-        nowhere: "Not forwarded",
-        failed: "Forward failed",
-      },
-      // Why, under each line of what was done with a reply.
-      handlingReasons: {
-        policy_inbox: "Every reply goes to the shared inbox",
-        sender: "The sender, who wasn't sent it",
-        copied: "Already in its To or Cc",
-        own_follow_up: "It's their own follow-up",
-        bounce_address: "Came to the bounce address",
-        // A reply that came to one of our Gmail inboxes, so isn't forwarded there again.
-        gmail: "Already in our Gmail inbox",
-        refused: "Postmark refused it",
-        blocked: "The address is blocked",
-      },
-    },
-    none: "No letters.",
-    status: {
-      sending: "Sending",
-      sent: "Sent",
-      // Left sending by a run that stopped: it may have gone, or not, so it isn't sent again; a person checks.
-      uncertain: "Uncertain",
-      not_sent: "Not sent",
-      bounced: "Bounced",
-      spam_complaint: "Spam complaint",
-      replied: "Replied",
-      auto_reply: "Auto-reply",
-      // PauseAI's letters of a mailing written here, before and instead of sending.
-      scheduled: "Scheduled",
-      cancelled: "Cancelled: we stopped the mailing",
-      skipped: "Skipped",
-      // A supporter's letter from the letters inbox, waiting to go, and what's done with it and the messages both ways.
-      queued: "Queued",
-      copy_sent: "Copy sent to supporter",
-      copy_held: "Copy held",
-      copy_bounced: "Copy bounced",
-      copy_delayed: "Copy delayed",
-      // The supporter's copy, left sending by a run that stopped: it may have reached them, or not.
-      copy_uncertain: "Copy uncertain",
-      relayed: "Relayed",
-      relay_queued: "Relay queued",
-      relay_held: "Relay held",
-      relay_bounced: "Relay bounced",
-      relay_delayed: "Relay delayed",
-      relay_uncertain: "Relay uncertain",
-      not_relayed: "Not relayed",
-      notice: "Supporter told",
-      office_told: "MP's office told",
-    } as Record<string, string>,
-    columns: {
-      created: "Written",
-      sent: "Sent",
-      from: "From",
-      to: "To",
-      campaign: "Campaign",
-      // The share of the sent letter's words that weren't in the campaign's draft.
-      ownWords: "Own words",
-      backend: "Backend",
-      status: "Status",
-      replied: "Replied",
-      history: "History",
-    },
-    // A letter's own words, as a percentage of its words.
-    ownWords: (share: number) => `${Math.round(share * 100)}%`,
-    // What sent a letter: pauseai.info's old form, whose letters are copied from Airtable, or this site, by Postmark
-    // or by a staff member's Gmail.
-    backends: { airtable: "Airtable", postmark: "Postmark", gmail: "Gmail" },
-    // The filter by the MP's markers, which are the politicians list's.
-    mpFlag: "MP marked",
   },
   // The notes on a supporter's or a politician's page, and the form to add one.
   notes: {

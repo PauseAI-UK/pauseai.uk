@@ -32,7 +32,7 @@ import {
 } from "./staff-broadcasts.client";
 import { draftWriterGallery } from "@/app/(staff)/staff/_components/mailings/DraftWriter.gallery";
 import { copyCountsGallery } from "@/app/(staff)/staff/_components/mailings/CopyCounts.gallery";
-import { copyStatusGallery } from "@/app/(staff)/staff/_components/mailings/CopyStatus.gallery";
+import { copyStatusGallery } from "@/app/(staff)/staff/_components/letters/CopyStatus.gallery";
 import { mailingViewGallery } from "@/app/(staff)/staff/_components/mailings/MailingView.gallery";
 
 // MailingView's examples here, after the one the mailings group shows.

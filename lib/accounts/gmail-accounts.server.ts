@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { GMAIL_DAILY_LIMIT } from "./gmail-connect";
 import { logChange } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
-import { lettersInbox } from "@/lib/server/letters-inbox.server";
+import { config } from "@/lib/server/config.server";
 import { notifyStaff, staffLink } from "@/lib/server/notifications.server";
 import { decryptToken, encryptToken } from "./gmail-tokens.server";
 import { problem } from "@/lib/server/problems.server";
@@ -157,7 +157,7 @@ async function forgetRevoked(email: string): Promise<void> {
   const words = staffCopy.notifications.gmailDisconnected;
   await notifyStaff(
     words.subject(email),
-    words.body(email, email === lettersInbox(), staffLink(ACCOUNT_PATH, undefined)),
+    words.body(email, email === config.lettersInbox, staffLink(ACCOUNT_PATH, undefined)),
   );
 }
 
