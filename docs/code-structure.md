@@ -23,6 +23,8 @@ app/
                           data, fixture builds only (docs/testing.md)
   (staff)/staff/          the staff interface, behind email login; no <Nav>,
                           no analytics, noindex
+    _components/          its components: the kit in ui/, and a folder for
+                          each feature (Feature folders, below)
   (march)/protests/march-against-ai-extinction-nov-26/
                           the march's sign-up, with a stylesheet of its own
                           (Styling, below)
@@ -39,6 +41,8 @@ components/               React components used by more than one route
   tools/                  the tools index's cards, and the kit the
                           collateral maker and QR tool share
 lib/                      logic and data, no React state
+  staff-vocabulary.ts     the words every staff feature shares
+  <feature>/              a staff feature's logic (Feature folders, below)
   server/                 server-side logic and the database;
                           `import "server-only"`
     outside-services/     one binding per outside service, the only
@@ -102,7 +106,10 @@ the code should go instead. The rules below say which ones are enforced.
   - Nothing in `app/`, `components/` or `lib/` imports `tests/`. What a
     fixture build needs is in `lib/server/fixtures/`.
   - Tests may reach across. The component gallery imports every route's
-    components, but not `tests/`.
+    components, but not `tests/`, and so may a component's examples
+    beside it (`Component.gallery.tsx`).
+  - A staff feature imports only the features it's listed with
+    (`FEATURES` in `eslint.config.mjs`; "Feature folders", below).
   - No import cycles: no module imports itself, however far round, type
     imports aside (`tests/checks/import-cycles.test.ts`). Where a lower
     module needs something of a higher one, move it down, or have the
@@ -329,7 +336,11 @@ the code should go instead. The rules below say which ones are enforced.
   tool's words (labels, messages, errors, the emails it sends) go in one
   copy object in `lib/content/<feature>.ts`, such as `copy` in
   `lib/content/email-your-mp.ts` and `staffCopy` in
-  `lib/content/staff-interface.ts`. That way the wording can be changed in
+  `lib/content/staff-interface.ts`. A staff feature in its folders has its
+  own copy objects ("Feature folders", below), and the words every staff
+  feature shares are `staffVocabulary` (`lib/staff-vocabulary.ts`): the
+  page title, the trail, deleting, houses, statuses, countries, fields, and
+  a list's search, filters, paging and downloads. That way the wording can be changed in
   one file without touching the code. Components and tests refer to it by
   name (`staffCopy.syncs.syncNow`), so changing it breaks nothing. Words
   not written yet are placeholders: a draft in English, starting with the
@@ -363,6 +374,63 @@ the code should go instead. The rules below say which ones are enforced.
 - **Tests** sit next to the code they test (`*.test.ts`,
   `*.browser.test.tsx`); see `docs/testing.md`. Tests of the whole repo,
   rather than of one file, go in `tests/checks/`.
+
+## Feature folders
+
+The staff interface is made of features: accounts, events, supporters,
+politicians, campaigns, mailings, letters, broadcasts, jobs and oversight.
+Each feature's code is in two folders of its own, so the pieces of one are
+found together and what it depends on can be seen and held:
+
+```
+app/(staff)/staff/_components/
+  ui/                 the kit: page frame, tables, filters, menus
+  shell/              the staff pages' frame: navigation, page, dev preferences
+  <feature>/          its components, with each one's test, its gallery
+                      examples (Component.gallery.tsx), the words only its
+                      components use (copy.ts) and its Server Actions
+                      (actions.ts)
+lib/
+  staff-vocabulary.ts the words every feature shares
+  <feature>/          its logic, pure and server-only together (server
+                      files import "server-only"), and copy.ts with the
+                      words its server code sends or logs, and those its
+                      logic and components share
+  server/             what every feature stands on: the database, sql,
+                      settings, problems and runs, random IDs, the outside
+                      services and the fixtures
+```
+
+Features move into their folders one at a time. Until a feature has moved,
+its files are at the top of `_components/`, `lib/` and `lib/server/`, and
+its words are in `staffCopy`.
+
+- **Its words.** Each copy file exports one object named for the feature
+  (`eventsCopy`), and components and tests refer to its words by name. A
+  number in words goes through `plural()` or `count()`
+  (`lib/content/plural.ts`).
+- **Which feature uses which.** `FEATURES` in `eslint.config.mjs` lists
+  each feature that has moved, with the features it may use. A feature's
+  files may import the kit (`ui/`) and the frame (`shell/`), their own
+  folders, the listed features' folders, `components/`, `lib/`'s top-level
+  files and the folders every feature stands on (`lib/server/`,
+  `lib/content/`, `lib/email-parsing/`). An ESLint rule fails on an import
+  of any other folder beside theirs. A feature is listed with only the
+  features it really uses, and no two use each other.
+- **Only feature folders.** `tests/checks/staff-components.test.ts` lists
+  what stays at the top of `_components/`, `lib/` and `lib/server/`: what
+  every feature stands on, and the public site's own helpers (`STAYS`). The
+  files of features that haven't moved are `UNSORTED`. It fails on a file
+  on neither list, and on a listed file that's gone, so `UNSORTED` only
+  shrinks: a feature that moves takes its files off it.
+- **Gallery examples beside their components.** Every component in a
+  feature's folder has its examples in a `Component.gallery.tsx` beside it
+  (`docs/testing.md`, "The component gallery").
+- **Server Actions beside their forms.** A feature's Server Actions are in
+  its `actions.ts`, a `"use server"` file in its folder of components. A
+  page imports only the actions it has buttons for. Each calls
+  `requireStaff()` first, as every Server Action does
+  (`tests/checks/staff-auth.test.ts` finds them in `_components/` too).
 
 ## Comments
 

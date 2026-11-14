@@ -124,7 +124,7 @@ To see a component, use the component gallery (`/gallery`, fixture builds only; 
 npm run storyboard -- --no-main --no-open --paths gallery -g 'gallery: ui$'   # the UI kit, both viewports
 ```
 
-A new component gets its example in `app/(tools)/gallery/_examples/` (`tests/checks/gallery.test.ts` fails otherwise); look at it there before saying it's done. Check the gallery before writing a component or CSS, too: what you need may exist, or need only a variant (`docs/style-guide.md`).
+A new component gets its example in a `Component.gallery.tsx` beside it, or in `app/(tools)/gallery/_examples/` outside a staff feature's folder (`tests/checks/gallery.test.ts` fails otherwise; `docs/testing.md`, "The component gallery"); look at it there before saying it's done. Check the gallery before writing a component or CSS, too: what you need may exist, or need only a variant (`docs/style-guide.md`).
 
 ## Every change needs 100% test coverage
 

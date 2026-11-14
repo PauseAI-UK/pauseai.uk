@@ -1111,10 +1111,24 @@ pages are noindex.
   already does the job, and how the site's pieces look side by side. With
   `DATA_FIXTURES=1` in `.env.local`, `npm run dev` serves it at
   http://localhost:3000/gallery.
-- **Where examples go:** `app/(tools)/gallery/_examples/<group>.tsx`, one
-  entry per component, `{ name, file, variants: [{ label, render }] }`. One
-  that needs state or callbacks goes in the `.client.tsx` beside it.
-  `tests/checks/gallery.test.ts` fails if an exported component has none.
+- **Where examples go:** one entry per component, `{ name, file, variants:
+[{ label, render }] }`, in a file of examples beside the component or in
+  one of the gallery's own. `tests/checks/gallery.test.ts` fails if an
+  exported component has none.
+  - Beside it: `Component.gallery.tsx` exports the examples of every
+    component `Component.tsx` exports, as `componentGallery`, an
+    `Example[]` (`KeepSignedIn.gallery.tsx` exports
+    `keepSignedInGallery`). A group's file in `_examples/` imports it and
+    puts it in its list with `...componentGallery`, where it goes in the
+    group: Next can't look for these files as the page runs, and the check
+    fails on one that no group imports. Examples that need state or
+    callbacks go in `Component.gallery.client.tsx`, a `"use client"` file
+    beside it, as client components without props.
+  - A component in a staff feature's folder
+    (`app/(staff)/staff/_components/<feature>/`) has its examples beside
+    it. The rest may have them in the gallery's
+    `app/(tools)/gallery/_examples/<group>.tsx`, and those needing state or
+    callbacks in the `.client.tsx` beside that.
 - **A major variant** is a prop that changes how the component looks (a
   `variant`, a size, with and without an image). States someone reaches by
   using a page (open, submitted, an error) belong in the storyboard's
@@ -1235,7 +1249,8 @@ import("@/tests/next-headers"))` and put the session cookie in
   varies.
 - A new component ships with its `*.browser.test.tsx` in the same PR.
 - **A new component gets an example in the component gallery**
-  (`app/(tools)/gallery/_examples/`, one per major variant), or
+  (`Component.gallery.tsx` beside it, or `app/(tools)/gallery/_examples/`;
+  one per major variant), or
   `tests/checks/gallery.test.ts` fails. Look at it there on both viewports
   before calling it done ("The component gallery", above); the storyboard
   then pictures it in every review.
