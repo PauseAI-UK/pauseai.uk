@@ -4,7 +4,8 @@ The things the site's features are built from, and how far each is
 generalised. A new feature should use these, or grow one, rather than make
 its own: a new kind of email is a new purpose of the one email concept, not
 a second email system. The features themselves are listed in the README;
-where code goes and how it's written is in `docs/code-structure.md`.
+where their code goes and how it's written is in `docs/code-structure.md`,
+whose "Feature folders" says which staff feature holds each.
 
 Each section says what the concept is, where it lives, how to add another
 of its kind, and what it doesn't cover yet.
@@ -1549,7 +1550,7 @@ A job that copies data in from outside:
 Two more jobs don't import but run on a schedule all the same: the
 15-minute sending and the nightly tidying (`JOBS` in `lib/import-runs.ts`). Whatever a
 scheduled job does, it goes here, despite the name
-(`docs/code-structure.md`).
+(`docs/code-structure.md`, "Scheduled jobs").
 
 Each job runs on a schedule or when staff press its button, and every run is
 recorded (`import_runs`):

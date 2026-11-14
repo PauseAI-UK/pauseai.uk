@@ -39,7 +39,7 @@ Don't type what nothing distinguishes, and let truly unexpected errors throw.
 
 ## Limits
 
-- New wording is a placeholder (`AGENTS.md`). The problem strings in `lib/content/staff-interface.ts` have been
+- New wording is a placeholder (`AGENTS.md`). The problem strings (each feature's `problems` in `lib/<feature>/copy.ts`, and `serverCopy` in `lib/server/copy.ts`) have been
   reviewed, so check with Francis before moving groups of them.
 - Migrations `0078`–`0080` are pushed and can't be edited. Say how rows already stored in the old shape are handled.
 - Ask Francis about branching, and propose small steps that each pass the gate in `AGENTS.md`.

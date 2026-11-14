@@ -12,14 +12,12 @@ import { mailingFilesGallery } from "@/app/(staff)/staff/_components/mailings/Ma
 import { mailingsOverviewGallery } from "@/app/(staff)/staff/_components/mailings/MailingsOverview.gallery";
 import { mailingWriterGallery } from "@/app/(staff)/staff/_components/mailings/MailingWriter.gallery";
 import { mailingViewGallery } from "@/app/(staff)/staff/_components/mailings/MailingView.gallery";
+import { copyCountsGallery } from "@/app/(staff)/staff/_components/mailings/CopyCounts.gallery";
 import { mailingForGallery } from "@/app/(staff)/staff/_components/mailings/MailingFor.gallery";
 import { mailingLetterGallery } from "@/app/(staff)/staff/_components/mailings/MailingLetter.gallery";
 import { mailingPartsGallery } from "@/app/(staff)/staff/_components/mailings/MailingParts.gallery";
 import { dueTimeGallery } from "@/app/(staff)/staff/_components/mailings/DueTime.gallery";
 import { mailingButtonsGallery } from "@/app/(staff)/staff/_components/mailings/MailingButtons.gallery";
-
-// MailingView's examples here, before those the broadcasts group shows.
-const [mailingView] = mailingViewGallery;
 
 // The events' examples, in the order the group shows them.
 const [eventsTable, eventTabs, eventGroups, missing, eventsIntro] = eventsTableGallery;
@@ -42,7 +40,8 @@ export const staffMailingsEvents: Group = {
     eventsIntro,
     ...mailingsOverviewGallery,
     ...mailingWriterGallery,
-    mailingView,
+    ...mailingViewGallery,
+    ...copyCountsGallery,
     ...mailingForGallery,
     ...mailingLetterGallery,
     ...mailingPartsGallery,

@@ -12,7 +12,6 @@ import ThreadEmail from "./ThreadEmail";
 import LetterThread, { MessageText, SupporterLetterThread, Thread } from "./LetterThread";
 import { MailingLetter } from "../mailings/MailingLetter";
 import { exampleImportedThread, exampleThread } from "./LetterThread.examples";
-import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 /** A mailing's letter as it reads, as its page shows it. */
 const showLetter = (doc: LetterDoc) => <MailingLetter doc={doc} />;
@@ -111,16 +110,6 @@ export const letterThreadGallery: Example[] = [
           <StaffPage as="div">
             <Thread link={<a href="#">Open in Gmail</a>}>
               <ThreadEmail {...exampleEmail}>Dear Mr McTestface, thank you.</ThreadEmail>
-            </Thread>
-          </StaffPage>
-        ),
-      },
-      {
-        label: "Titled as a broadcast's message is",
-        render: () => (
-          <StaffPage as="div">
-            <Thread title={broadcastsCopy.broadcastPages.threadTitle}>
-              <ThreadEmail {...exampleEmail}>Hi Jane, the march meets at 11:00.</ThreadEmail>
             </Thread>
           </StaffPage>
         ),

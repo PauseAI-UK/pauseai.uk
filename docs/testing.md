@@ -1132,6 +1132,13 @@ pages are noindex.
     it. The rest may have them in the gallery's
     `app/(tools)/gallery/_examples/<group>.tsx`, and those needing state or
     callbacks in the `.client.tsx` beside that.
+  - Example data that the gallery and the component's tests share, or
+    that other features' examples build on, is in `Component.examples.ts`
+    beside it (`exampleAsks` in `AsksList.examples.ts`). A feature's
+    examples use its own data.
+  - A group that interleaves the examples of two files takes each out by
+    destructuring (`const [eventsTable, eventTabs] = eventsTableGallery`)
+    and lists them in its order.
 - **A major variant** is a prop that changes how the component looks (a
   `variant`, a size, with and without an image). States someone reaches by
   using a page (open, submitted, an error) belong in the storyboard's

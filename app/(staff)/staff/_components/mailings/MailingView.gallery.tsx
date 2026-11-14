@@ -1,10 +1,10 @@
 // MailingView in the component gallery (app/(tools)/gallery/), in the staff mailings and events
-// group (app/(tools)/gallery/_examples/staff-mailings-events.tsx) and the staff broadcasts group
-// (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
+// group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
 import { MailingWhen } from "./MailingView";
-import { exampleBroadcastSent, exampleBroadcastSummary } from "../broadcasts/BroadcastWriter.examples";
+import { exampleMailings } from "./MailingsTable.examples";
+import { exampleWrittenMailing } from "./MailingWriter.examples";
 import { MailingStandingExample, MailingViewExample } from "./MailingView.gallery.client";
 
 export const mailingViewGallery: Example[] = [
@@ -68,7 +68,7 @@ export const mailingViewGallery: Example[] = [
         label: "When it went",
         render: () => (
           <dl>
-            <MailingWhen mailing={exampleBroadcastSummary} written={exampleBroadcastSent.written} />
+            <MailingWhen mailing={exampleMailings[0]} written={{ ...exampleWrittenMailing, state: "sent" }} />
           </dl>
         ),
       },

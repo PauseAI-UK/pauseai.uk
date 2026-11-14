@@ -224,7 +224,7 @@ That records 0001 to 0011 as applied, then applies the rest.
 1. Add a file to `netlify/database/migrations/`, numbered after the last:
    `0003_what_it_does.sql`. It must be backward compatible (expand, then
    contract), and work with or without a transaction around it
-   (`docs/code-structure.md`).
+   (`docs/code-structure.md`, "Migrations").
 2. `npm run db:schema` rewrites `netlify/database/schema.sql`, the whole
    schema as the migrations leave it. It needs `pg_dump` 18.
 3. `npm run db:migrate` applies it to your dev database.
@@ -665,7 +665,7 @@ Set up outside the code:
 - **Postmark:** a server, with:
   - two sending domains, each with DKIM, Return-Path and DMARC. `notify.pauseai.uk` sends the site's own email, such as forwarded replies and staff emails. `letters.pauseai.uk` is the inbound domain, with its MX pointing at `inbound.postmarkapp.com`. The letters sent before the letters inbox went from it, and replies to them come to it.
   - `pauseai.uk` itself, verified with DKIM and Return-Path, which email broadcasts go from (`hello@pauseai.uk`, or a staff member's address).
-  - two message streams: `outbound`, the transactional stream, which every email but a broadcast's copies goes on (`TRANSACTIONAL_STREAM` in `lib/server/outside-services/postmark.server.ts`); and `broadcast`, a broadcast stream, for the copies of broadcasts to supporters (`BROADCAST_STREAM`), whose unsubscribe handling is set to Custom, as each copy carries its own link and `List-Unsubscribe` headers. Postmark refuses a broadcast stream's mail until its support approves it.
+  - two message streams: `outbound`, the transactional stream, which every email but a broadcast's copies goes on; and `broadcast`, a broadcast stream, for the copies of broadcasts to supporters (both `STREAMS` in `lib/server/outside-services/postmark.server.ts`), whose unsubscribe handling is set to Custom, as each copy carries its own link and `List-Unsubscribe` headers. Postmark refuses a broadcast stream's mail until its support approves it.
   - webhooks that carry basic auth in the URL, e.g. `https://postmark:<password>@pauseai.uk/api/postmark/bounce`. On each stream, Bounce and Spam complaint go to `/api/postmark/bounce`, and on the broadcast stream Delivery does too. Inbound goes to `/api/postmark/inbound`.
 - **hello@pauseai.uk:** a staff account with its Gmail connected on `/staff/me`, so the read of Gmail every 5 minutes keeps the replies to the broadcasts it sends.
 - **Before the first broadcast:** Google Postmaster Tools for pauseai.uk, and DMARC reports (`rua=`), to see the spam rate, which Google wants below 0.1% (https://support.google.com/a/answer/81126).

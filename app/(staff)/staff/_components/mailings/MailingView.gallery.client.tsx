@@ -4,10 +4,9 @@
 import { FilterPills } from "./MailingParts";
 import MailingView, { MailingStanding } from "./MailingView";
 import { exampleWriterData, exampleWrittenMailing } from "./MailingWriter.examples";
-import { exampleMailing, exampleMailings } from "./MailingsTable.examples";
+import { exampleMailing, exampleMailings, exampleSending } from "./MailingsTable.examples";
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import { exampleAsks } from "../asks/AsksList.examples";
-import { exampleBroadcastSent, exampleBroadcastSummary } from "../broadcasts/BroadcastWriter.examples";
 
 /** A Server Action that does nothing. */
 const nothing = async () => {};
@@ -30,12 +29,12 @@ export function MailingViewExample({ state }: { state: "scheduled" | "sending" |
   );
 }
 
-/** One sending, with Stop sending. */
+/** One to every MP, sending, with Stop sending. */
 export function MailingStandingExample() {
   return (
     <MailingStanding
-      mailing={exampleBroadcastSummary}
-      written={{ ...exampleBroadcastSent.written, state: "sending" }}
+      mailing={exampleSending}
+      written={{ ...exampleWrittenMailing, state: "sending" }}
       stop={nothing}
       reschedule={nothing}
     />

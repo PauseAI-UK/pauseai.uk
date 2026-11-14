@@ -3,9 +3,7 @@
 import { optOutFormGallery } from "@/app/(staff)/staff/_components/supporters/OptOutForm.gallery";
 import type { Group } from "../_components/types";
 import { draftWriterGallery } from "@/app/(staff)/staff/_components/mailings/DraftWriter.gallery";
-import { copyCountsGallery } from "@/app/(staff)/staff/_components/mailings/CopyCounts.gallery";
 import { copyStatusGallery } from "@/app/(staff)/staff/_components/letters/CopyStatus.gallery";
-import { mailingViewGallery } from "@/app/(staff)/staff/_components/mailings/MailingView.gallery";
 import { broadcastConsentGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastConsent.gallery";
 import { broadcastSupportersGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastSupporters.gallery";
 import { channelWriterGallery } from "@/app/(staff)/staff/_components/broadcasts/ChannelWriter.gallery";
@@ -20,8 +18,6 @@ import { answerableReplyGallery } from "@/app/(staff)/staff/_components/broadcas
 import { supporterBroadcastsGallery } from "@/app/(staff)/staff/_components/broadcasts/SupporterBroadcasts.gallery";
 import { textBubbleGallery } from "@/app/(staff)/staff/_components/broadcasts/TextBubble.gallery";
 
-// MailingView's examples here, after the one the mailings group shows.
-const [, mailingStanding, mailingWhen] = mailingViewGallery;
 // BroadcastView's examples, with how a copy went between its first two.
 const [broadcastChannelMark, broadcastWaiting, broadcastView] = broadcastViewGallery;
 
@@ -38,13 +34,10 @@ export const staffBroadcasts: Group = {
     ...draftWriterGallery,
     ...broadcastsOverviewGallery,
     broadcastChannelMark,
-    ...copyCountsGallery,
     ...copyStatusGallery,
     broadcastWaiting,
     broadcastView,
     ...broadcastForGallery,
-    mailingStanding,
-    mailingWhen,
     ...messageCopyViewGallery,
     ...replyActionsGallery,
     unsubscribeForm,
