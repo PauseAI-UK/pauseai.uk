@@ -1,10 +1,11 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addFilter, changeFilter } from "../steps";
+import { addFilter, changeFilter } from "./list-steps";
+import { holdNextPage, settled } from "./loading-steps";
+import { logIn } from "./login-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
-import { holdNextPage, logIn, settled } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Audit log", part: "Staff pages", order: 70 };

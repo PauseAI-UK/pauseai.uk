@@ -4,12 +4,15 @@ import { emailSettingsCopy as settingsCopy } from "@/lib/content/email-settings"
 import { SENDING_DAYS } from "@/lib/broadcast-days";
 import { GMAIL_DAILY_LIMIT } from "@/lib/gmail-connect";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addStaffAccount, importCivicrm, importLuma, logInAsStaff, newestEmail } from "../steps";
+import { connectGmail } from "./gmail-steps";
+import { addStaffAccount, logInAsStaff } from "./login-steps";
+import { newestEmail } from "./outbox-steps";
+import { importCivicrm, importLuma } from "./supporter-steps";
 import { caretInEmpty } from "./editor-steps";
-import { BASE, emailFrame, expect, frame, story, test, textFrame } from "./fixtures";
-import { newestText, OUR_CHAT, shownText, templateSent } from "./whatsapp-steps";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, story, test } from "./fixtures";
+import { newestText, OUR_CHAT, shownText, templateSent, textFrame } from "./whatsapp-steps";
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
-import { connectGmail } from "./staff-steps";
 import type { Section } from "./report/frames";
 import { messageFrom, postWhatsAppWebhook, statusOf, templateStatus } from "../whatsapp-webhooks";
 

@@ -3,10 +3,12 @@ import { join } from "node:path";
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { importCivicrm, importLuma, newestEmail } from "../steps";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { logIn } from "./login-steps";
+import { newestEmail } from "./outbox-steps";
+import { importCivicrm, importLuma } from "./supporter-steps";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
-import { logIn } from "./staff-steps";
 
 export const section: Section = { name: "Import sign-ups", part: "Staff pages", order: 55 };
 

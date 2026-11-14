@@ -2,9 +2,12 @@ import type { Page } from "@playwright/test";
 import { site } from "@/lib/content/site";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { TO_NOTIFICATIONS } from "./staff-steps";
-import { addStaffAccount, importLuma, logInAsStaff, newestEmail } from "../steps";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { addStaffAccount, logInAsStaff } from "./login-steps";
+import { newestEmail } from "./outbox-steps";
+import { TO_NOTIFICATIONS } from "./staff-inboxes";
+import { importLuma } from "./supporter-steps";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Events and their owners", part: "Staff pages", order: 120 };

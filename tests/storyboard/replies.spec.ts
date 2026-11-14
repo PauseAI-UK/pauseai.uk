@@ -3,7 +3,25 @@ import { copy } from "@/lib/content/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { TEST_MPS } from "@/lib/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { fakeTurnstile, fillLetter, lookUpTestMp, newestEmail, newestEmailTo, WEBHOOK_AUTH } from "../steps";
+import { fillLetter, letterIdOf, lookUpTestMp, sentLetterId } from "./letter-steps";
+import {
+  bounceOf,
+  deliver,
+  LETTERS_INBOX,
+  MPS_PROXY,
+  OFFICE,
+  OFFICE_ADDRESS,
+  readInbox,
+  runQueue,
+  sentEmail,
+  sentIds,
+  testProxy,
+} from "./letters-inbox-steps";
+import { logIn } from "./login-steps";
+import { newestEmail, newestEmailTo } from "./outbox-steps";
+import { bouncy, BOUNCY_ADDRESS, WEBHOOK_AUTH } from "./postmark-steps";
+import { POLICY_INBOX, TO_NOTIFICATIONS } from "./staff-inboxes";
+import { fakeTurnstile } from "./turnstile-steps";
 import { editor, newParagraphAboveSignOff } from "./editor-steps";
 import { scrollSettled } from "./settle";
 
@@ -20,22 +38,8 @@ type EditorHandle = {
 };
 import { FAILING_DIR } from "../checkout.mjs";
 import { failService } from "@/lib/server/fixtures/failing-services";
-import { BASE, emailFrame, expect, frame, madeUpAddress, story, test } from "./fixtures";
-import {
-  bounceOf,
-  deliver,
-  LETTERS_INBOX,
-  letterIdOf,
-  MPS_PROXY,
-  OFFICE,
-  OFFICE_ADDRESS,
-  readInbox,
-  runQueue,
-  sentEmail,
-  sentIds,
-  testProxy,
-} from "./letters-inbox-steps";
-import { bouncy, BOUNCY_ADDRESS, logIn, POLICY_INBOX, sentLetterId, TO_NOTIFICATIONS } from "./staff-steps";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Replies to letters", part: "Staff pages", order: 110 };

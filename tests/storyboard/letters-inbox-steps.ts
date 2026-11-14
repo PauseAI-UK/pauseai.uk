@@ -9,8 +9,8 @@ import { LETTERS_INBOX_DIR } from "../checkout.mjs";
 import { deliverToLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { LETTERS_INBOX, testMail, testProxy, type TestMail } from "../fixtures/test-mail";
 import type { OutboxEmail } from "@/lib/server/fixtures/outbox";
-import { newestEmail } from "../steps";
 import { BASE } from "./fixtures";
+import { newestEmail } from "./outbox-steps";
 
 export { LETTERS_INBOX, testProxy };
 
@@ -49,16 +49,6 @@ export async function runQueue(request: APIRequestContext) {
   return ((await res.json()) as { queue: { sent: number; left: number } }).queue;
 }
 
-/** The ID of the newest letter `sender` wrote, on the flow's `database`. */
-export function letterIdOf(database: string, sender: string): string {
-  const [id] = runSql(
-    database,
-    `SELECT s.id FROM letters_from_supporters s JOIN form_entries f ON f.id = s.entry_id
-     WHERE f.email = '${sender}' ORDER BY s.id DESC LIMIT 1`,
-  );
-  return id;
-}
-
 /** The Message-IDs, oldest first, of what the letters inbox sent about a letter, of `purpose`. */
 export function sentIds(database: string, letterId: string, purpose: string): string[] {
   return runSql(
@@ -89,4 +79,32 @@ export function bounceOf(messageId: string, address: string): string {
     "",
     `Your message wasn't delivered to ${address} because the address couldn't be found.`,
   ].join("\r\n");
+}
+
+/**
+ * The MP's office answers a letter, at its sender's proxy: written, or with
+ * `auto`, an acknowledgement marked only by its subject, as Parliament's
+ * Outlook sends them; then the hourly read relays it.
+ */
+export async function postReply(request: APIRequestContext, database: string, letterId: string, auto = false) {
+  const [tag] = runSql(
+    database,
+    `SELECT p.tag FROM letters_from_supporters s JOIN proxies p ON p.id = s.proxy_id WHERE s.id = ${letterId}`,
+  );
+  deliver(database, {
+    from: OFFICE,
+    to: testProxy(tag),
+    subject: auto ? "Automatic reply: Please back a pause" : "Re: Please back a pause",
+    text: auto
+      ? "Thank you for contacting me. Please take this reply as confirmation that your email has been received.\r\n"
+      : "Dear constituent,\r\n\r\nThank you for writing to me.\r\n",
+  });
+  await readInbox(request);
+}
+
+/** The letter bounces: its MP's mail server refuses it, and the hourly read finds the bounce in the letters inbox. */
+export async function bounceLetter(request: APIRequestContext, database: string, letterId: string, address: string) {
+  const [messageId] = sentIds(database, letterId, "letter");
+  deliver(database, bounceOf(messageId, address));
+  await readInbox(request);
 }

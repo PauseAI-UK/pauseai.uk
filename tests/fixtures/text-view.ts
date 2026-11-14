@@ -1,5 +1,5 @@
 // A WhatsApp text as a page, for the storyboard to picture (textFrame in
-// tests/storyboard/frame.ts): the chat with our number, its name and
+// tests/storyboard/whatsapp-steps.ts): the chat with our number, its name and
 // picture at the top, and the text in a bubble with its footer and Stop
 // button. A plain chat app, not WhatsApp's own look: it shows what the
 // supporter gets, as email-view.ts does an email.

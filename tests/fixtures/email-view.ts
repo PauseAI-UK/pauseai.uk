@@ -1,5 +1,5 @@
 // An email from the outbox (lib/server/fixtures/outbox.ts) as a page, for the
-// storyboard to picture (emailFrame in tests/storyboard/frame.ts): its
+// storyboard to picture (tests/storyboard/email-frame.ts): its
 // headers, its body as a mail app shows it, and its attachments. A plain,
 // generic mail app, not Gmail or Outlook: it shows what was sent, not how
 // each app will draw it. Whether the HTML works in them is checked from its

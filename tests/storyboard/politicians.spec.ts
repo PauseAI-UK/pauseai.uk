@@ -1,11 +1,13 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addFilter, addStaffAccount, changeFilter, logInAsStaff, recordAnswers, importPoliticians } from "../steps";
+import { connectPolicyMailboxes } from "./gmail-steps";
+import { addFilter, changeFilter } from "./list-steps";
+import { addStaffAccount, logInAsStaff } from "./login-steps";
+import { addPauseaiEmails, importPoliticians, PM_LETTER, recordAnswers } from "./politician-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
 import { importPath } from "@/lib/import-runs";
-import { addPauseaiEmails, connectPolicyMailboxes, PM_LETTER } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
@@ -668,6 +670,8 @@ test("A salutation to check", async ({ page, request, flowDatabase }) => {
   await expect(bubble.getByRole("button", { name: "Ms Example" })).toBeVisible();
   await frame(page, "The salutations it most likely is", { window: true });
   await bubble.getByRole("button", { name: "Ms Example" }).click();
+  // The bubble closes once it's saved: a reload before then would beat the save.
+  await expect(bubble).toHaveCount(0);
   await page.reload();
   await expect(page.getByText(words.fromName)).toHaveCount(0);
   await expect(page.getByText(words.dear("Ms Example"))).toBeVisible();

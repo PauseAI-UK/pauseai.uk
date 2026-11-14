@@ -16,10 +16,10 @@ import {
 import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs";
 import { FLOW_DATABASES, LOCAL_URL, REQUESTS_DIR, TEMPLATE_DATABASE } from "../checkout.mjs";
 import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
-import { historyIdNow } from "@/lib/server/fixtures/letters-inbox";
+import { historyIdNow } from "@/lib/server/fixtures/inbox-clock";
 
 export { expect } from "@playwright/test";
-export { emailFrame, frame, story, textFrame } from "./frame";
+export { frame, story } from "./frame";
 
 /** The build under test. */
 export const BASE = LOCAL_URL;

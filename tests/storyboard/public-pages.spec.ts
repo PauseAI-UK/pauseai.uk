@@ -4,7 +4,7 @@ import { BLOG, posts } from "../../lib/content/blog";
 import { BRIEFINGS, briefings } from "../../lib/content/briefings";
 import { feedPath } from "../../lib/content/posts";
 import { ROUTES } from "../routes";
-import { fakeTurnstile } from "../steps";
+import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
 import type { Section } from "./report/frames";

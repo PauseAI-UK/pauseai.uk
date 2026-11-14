@@ -13,6 +13,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { historyIdNow } from "./inbox-clock";
 
 export type InboxMessage = { id: string; raw: string; labels: Set<string>; historyId: number };
 
@@ -30,11 +31,6 @@ let lastHistory = 0;
 function nextHistoryId(): number {
   lastHistory = Math.max(lastHistory + 1, historyIdNow());
   return lastHistory;
-}
-
-/** A history ID no message has yet, from the clock: where a fresh flow's reading of the letters inbox starts. */
-export function historyIdNow(): number {
-  return Date.now() * 1000;
 }
 
 const MAILBOXES = ((globalThis as { fixtureLettersInbox?: Map<string, Mailbox> }).fixtureLettersInbox ??= new Map());

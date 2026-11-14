@@ -5,6 +5,7 @@
 // Relative, as next.config.ts imports this file and its loader resolves only its own "@/" imports.
 import { CONTROLAI_LETTER_ASK, FRONTIER_AI_LETTER_ASK, type AskStatus, type AskStatuses } from "../asks";
 import { signedControlAiLetter } from "../controlai-letter";
+import { FIRST_CAMPAIGN_SLUG } from "./redirect-addresses";
 import { site } from "./site";
 
 /** The MP's answer to each ask, keyed by the ask's slug (lib/asks.ts). */
@@ -83,7 +84,7 @@ export type Campaign = CampaignCommon &
  */
 export const campaigns: Campaign[] = [
   {
-    slug: "regulate-letter-pm",
+    slug: FIRST_CAMPAIGN_SLUG,
     title: "Regulate AI developers now",
     ask: FRONTIER_AI_LETTER_ASK,
     done: "signed",

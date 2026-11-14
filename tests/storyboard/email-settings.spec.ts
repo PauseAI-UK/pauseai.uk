@@ -2,8 +2,11 @@ import type { Page } from "@playwright/test";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
 import { marchSignupCopy } from "@/lib/content/march-signup";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { fakeTurnstile, importCivicrm, importLuma, newestEmail } from "../steps";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { newestEmail } from "./outbox-steps";
+import { importCivicrm, importLuma } from "./supporter-steps";
+import { fakeTurnstile } from "./turnstile-steps";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
 import type { Section } from "./report/frames";
 

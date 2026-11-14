@@ -6,9 +6,13 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { FIXTURE_NOW, LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { failService } from "@/lib/server/fixtures/failing-services";
-import { addStaffAccount, logInAsStaff, newestEmail, importPoliticians } from "../steps";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
-import { connectPolicyMailboxes, logIn, staffEmail, TO_NOTIFICATIONS } from "./staff-steps";
+import { connectPolicyMailboxes } from "./gmail-steps";
+import { addStaffAccount, logIn, logInAsStaff, staffEmail } from "./login-steps";
+import { newestEmail } from "./outbox-steps";
+import { importPoliticians } from "./politician-steps";
+import { TO_NOTIFICATIONS } from "./staff-inboxes";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };

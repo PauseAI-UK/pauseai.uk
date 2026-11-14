@@ -2,14 +2,15 @@
 // for its page (app/(march)/) and the march banner. The page's link preview
 // shows the date, time and route: after changing them, run
 // `npm run march:preview`.
+import { MARCH_PATH, MARCH_SHORT_PATH } from "./redirect-addresses";
 import { site } from "./site";
 
 export const march = {
   name: "March Against AI Extinction",
   /** The march's page, the sign-up. */
-  path: "/protests/march-against-ai-extinction-nov-26",
+  path: MARCH_PATH,
   /** Redirects to `path`, keeping its tags: the link to give out, short enough for a post or a poster. */
-  shortPath: "/march",
+  shortPath: MARCH_SHORT_PATH,
   /** The Luma event: where people register, and its slug in the calendar feed. */
   lumaUrl: "https://luma.com/pauseai-nov26",
   lumaSlug: "pauseai-nov26",

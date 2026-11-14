@@ -1,9 +1,12 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addFilter, changeFilter, importLuma, lockTable, importPoliticians } from "../steps";
+import { addFilter, changeFilter } from "./list-steps";
+import { lockTable } from "./loading-steps";
+import { logIn, staffEmail } from "./login-steps";
+import { importPoliticians } from "./politician-steps";
+import { importLuma } from "./supporter-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { logIn, staffEmail } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Saved filters", part: "Staff pages", order: 60 };
