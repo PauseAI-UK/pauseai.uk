@@ -72,15 +72,15 @@ export default function Timeline() {
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
               <Shot
-                href="/images/edinburgh-conference-nov-2026/edinburgh-group.jpg"
-                src="/images/edinburgh-conference-nov-2026/edinburgh-group-thumb.jpg"
-                alt="Speakers, volunteers and guests behind a PauseAI banner in the Playfair Library"
-                sizes="(max-width: 768px) 100vw, 50vw"
-              />
-              <Shot
                 href="/images/edinburgh-conference-nov-2026/edinburgh-check-in.jpg"
                 src="/images/edinburgh-conference-nov-2026/edinburgh-check-in-thumb.jpg"
                 alt="Volunteers in PauseAI T-shirts checking in a guest at the door"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+              <Shot
+                href="/images/edinburgh-conference-nov-2026/edinburgh-group.jpg"
+                src="/images/edinburgh-conference-nov-2026/edinburgh-group-thumb.jpg"
+                alt="Speakers, volunteers and guests behind a PauseAI banner in the Playfair Library"
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
             </Photos>
