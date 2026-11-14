@@ -19,8 +19,7 @@ export default function Timeline() {
               </p>
               <p>
                 We convened a panel of experts and politicians at the Playfair Library in Edinburgh to discuss the
-                issues, propose solutions and answer questions from the public. The discussion was chaired by Joseph
-                Miller, Director of PauseAI UK, and featured:
+                issues, propose solutions and answer questions from the public.
               </p>
               <EntryList>
                 <li>
@@ -28,7 +27,7 @@ export default function Timeline() {
                 </li>
                 <li>
                   <strong>David Kirkwood</strong>, South Scotland regional MSP (Reform), on the cross-party group on
-                  Science &amp; Technology and cyber resilience.
+                  Science &amp; Technology.
                 </li>
                 <li>
                   <strong>Ben Macpherson MSP</strong>, for Edinburgh Northern and Leith, and former Minister for
@@ -39,7 +38,7 @@ export default function Timeline() {
                 </li>
                 <li>
                   <strong>Luke McNally</strong>, Senior Lecturer at the University of Edinburgh in complex systems and
-                  AI safety, who gave the keynote.
+                  AI safety.
                 </li>
                 <li>
                   <strong>Carol Mochan</strong>, South Scotland regional MSP (Labour).
