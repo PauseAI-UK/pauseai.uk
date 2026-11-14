@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ComponentProps } from "react";
-import type { Channel } from "@/lib/contact-permissions";
+import type { Channel } from "@/lib/supporters/contact-permissions";
 import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
 import BroadcastWriter from "./BroadcastWriter";
 

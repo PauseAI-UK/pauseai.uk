@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { staffCopy } from "./staff-interface";
+import { supportersCopy } from "@/lib/supporters/copy";
 
 it("says what a CiviCRM run sent CiviCRM, refused and left to try again", () => {
   const run = { contacts: 1, added: 0, changed: 0, gone: 0, optOuts: 0, blocked: 0 };
@@ -12,7 +13,7 @@ it("says what a CiviCRM run sent CiviCRM, refused and left to try again", () => 
 });
 
 it("says where no bulk email, or no email, came from but CiviCRM", () => {
-  const { reasons } = staffCopy.supporters.detail.permissions;
+  const { reasons } = supportersCopy.supporters.detail.permissions;
   expect(reasons["no-bulk-email"]("2 Nov", "CiviCRM")).toBe("“No bulk emails” in CiviCRM, 2 Nov");
   expect(reasons["no-bulk-email"]("2 Nov", "their contact preferences")).toBe(
     "No bulk email, via their contact preferences, 2 Nov",

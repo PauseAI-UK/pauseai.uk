@@ -5,7 +5,7 @@ import { query, transaction } from "./db";
 import { newMessageId } from "./mime";
 import { GmailError, gmailMessageId, sendGmail, sendRawGmail } from "./outside-services/gmail";
 import { PostmarkError, sendEmail, unsuppress, type Email, type PostmarkStream } from "./outside-services/postmark";
-import { recordOptOut } from "./opt-outs";
+import { recordOptOut } from "@/lib/supporters/opt-outs";
 import { now } from "@/lib/now";
 import { plainAsHtml } from "@/lib/plain-email-html";
 import { problem } from "./problems";

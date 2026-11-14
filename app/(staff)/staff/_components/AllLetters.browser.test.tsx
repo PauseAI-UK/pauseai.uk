@@ -5,6 +5,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { AnyLetter } from "@/lib/server/all-letters";
 import AllLetters from "./AllLetters";
+import { supportersCopy } from "./supporters/copy";
 
 const copy = staffCopy.allLetters;
 
@@ -160,7 +161,9 @@ describe("AllLetters", () => {
     group.find((summary) => summary.textContent === staffCopy.letters.columns.to)!.click();
     await page.getByRole("searchbox").last().fill("poll");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.supporters.filters.mpChoice("Polly Placeholder", "Testford") }))
+      .element(
+        page.getByRole("link", { name: supportersCopy.supporters.filters.mpChoice("Polly Placeholder", "Testford") }),
+      )
       .toHaveAttribute("href", "/staff/emails?to=5&to=4");
   });
 

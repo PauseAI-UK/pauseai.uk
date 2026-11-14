@@ -2,11 +2,11 @@ import type { NextRequest } from "next/server";
 import { emailBlockFilters } from "../../../../_components/EmailBlockFilters";
 import { blockColumns } from "../../../../_components/EmailBlocksTable";
 import { filterWords } from "@/lib/staff-list-filters";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { listBlocks } from "@/lib/server/email";
 import { requireStaff } from "@/lib/accounts/auth";
 import { staffDownload } from "@/lib/server/staff-download";
 import { emailsSearch } from "@/lib/staff-search";
+import { supportersCopy } from "../../../../_components/supporters/copy";
 
 /**
  * Every other blocked address the page's filters find, in its columns,
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     async (params) => {
       const { q, kind, filter } = emailsSearch(params);
       return {
-        what: staffCopy.emails.titles.supporters,
+        what: supportersCopy.bouncedEmails.title,
         filters: filterWords(emailBlockFilters(), { q, kind }, "q"),
         columns: blockColumns(true),
         rows: await listBlocks("others", filter),

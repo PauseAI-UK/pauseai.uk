@@ -1,14 +1,14 @@
 import "server-only";
 import { gzipSync } from "node:zlib";
-import { hasWay, TOPICS, type Topic, type Way } from "@/lib/contact-permissions";
+import { hasWay, TOPICS, type Topic, type Way } from "@/lib/supporters/contact-permissions";
 import { inWindow } from "./broadcast-answers";
 import { fromAddress, messageIds } from "@/lib/email-parsing/mime";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
 import { messageContent } from "./letter-threads";
-import { offCalendarAfter } from "./email-settings";
-import { recordStaffOptOut, type CalendarOptOut, type OptOutList } from "./opt-outs";
+import { offCalendarAfter } from "@/lib/supporters/email-settings";
+import { recordStaffOptOut, type CalendarOptOut, type OptOutList } from "@/lib/supporters/opt-outs";
 import { saveLetterReply } from "./outside-services/blobs";
 import { gmailRawMessage, type GmailMessageHeaders } from "./outside-services/gmail";
 

@@ -1,6 +1,6 @@
 import "server-only";
 import { ASK_STATUSES } from "@/lib/asks";
-import { contactState } from "@/lib/contact-permissions";
+import { contactState } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "@/lib/politician-filters";
@@ -16,12 +16,12 @@ import {
   type StoredFilter,
 } from "@/lib/staff-search";
 import { notValue, valuesOf, type Params } from "@/lib/list-params";
-import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters";
+import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters/supporters";
 import { changeChoices } from "./audit";
 import { query } from "./db";
 import { HOUSES, PERSON_STATUSES } from "./politicians";
 import { eventChoices } from "@/lib/events/staff-events";
-import { MP_CHOICES } from "./supporters";
+import { MP_CHOICES } from "@/lib/supporters/records";
 import { eventsCopy } from "@/lib/events/copy";
 
 // A mailing's stored filter (StoredFilter, lib/staff-search.ts), or a saved

@@ -24,6 +24,8 @@ import { POLICY_INBOX, TO_NOTIFICATIONS } from "./staff-inboxes";
 import { fakeTurnstile } from "./turnstile-steps";
 import { editor, newParagraphAboveSignOff } from "./editor-steps";
 import { scrollSettled } from "./settle";
+import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
+import { erasureCopy } from "@/lib/erasure/copy";
 
 /** As much of Tiptap's editor as a flow drives directly. */
 type EditorHandle = {
@@ -630,16 +632,16 @@ test("Erasing Jane when her mail can't be cleared", async ({ page, request, flow
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Jane Smith" }).click();
   await page
-    .locator("summary", { has: page.getByRole("heading", { name: staffCopy.supporters.detail.everythingTitle }) })
+    .locator("summary", { has: page.getByRole("heading", { name: supportersCopy.supporters.detail.everythingTitle }) })
     .click();
-  await page.getByRole("link", { name: staffCopy.erase.title }).click();
-  await page.getByRole("textbox", { name: staffCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
-  await page.getByRole("checkbox", { name: staffCopy.erase.confirm }).check();
-  await page.getByRole("button", { name: staffCopy.erase.button }).click();
+  await page.getByRole("link", { name: erasureCopy.erase.title }).click();
+  await page.getByRole("textbox", { name: erasureCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
+  await page.getByRole("checkbox", { name: erasureCopy.erase.confirm }).check();
+  await page.getByRole("button", { name: erasureCopy.erase.button }).click();
   // The blobs client tries a failing request again, a second apart (failing-services.ts), before giving up.
   await expect(page).toHaveURL(/\/staff\/supporters\?erased=partly&why=mail$/, { timeout: 60_000 });
-  await expect(page.getByRole("status")).toContainText(staffCopy.erase.partly);
-  await expect(page.getByRole("status")).toContainText(staffCopy.erase.notCleared.mail);
+  await expect(page.getByRole("status")).toContainText(erasureCopy.erase.partly);
+  await expect(page.getByRole("status")).toContainText(erasureCopy.erase.notCleared.mail);
   await expect(page.getByRole("link", { name: "Jane Smith" })).toHaveCount(0);
   await frame(page, "Erased, but her mail couldn't be cleared");
 });

@@ -5,7 +5,7 @@
 // and act only for its address, only while it works, but for an email's
 // unsubscribe button, which works forever.
 import { after } from "next/server";
-import type { SettingsView } from "@/lib/email-settings";
+import type { SettingsView } from "@/lib/supporters/settings-view";
 import {
   emailSettingsLink,
   liftNoBulk,
@@ -16,7 +16,7 @@ import {
   stopEverything,
   unsubscribeCopy,
   type SettingsKind,
-} from "@/lib/server/email-settings";
+} from "@/lib/supporters/email-settings";
 import { actionRequest } from "@/lib/site-url";
 import { checkNotSpam } from "@/lib/server/outside-services/turnstile";
 

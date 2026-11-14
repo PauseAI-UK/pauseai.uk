@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { addTestLetter, addTestMp, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { allLettersSearch } from "@/lib/staff-search";
 import { emailPeople, listAllLetters } from "./all-letters";
-import { linkSupporters } from "./supporters";
+import { linkSupporters } from "@/lib/supporters/records";
 import { query } from "./db";
 
 const NOW = "2026-10-21T12:00:00.000Z";

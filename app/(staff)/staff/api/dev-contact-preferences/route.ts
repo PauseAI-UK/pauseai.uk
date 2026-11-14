@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { TOPICS, type Topic } from "@/lib/contact-permissions";
+import { TOPICS, type Topic } from "@/lib/supporters/contact-permissions";
 import { config } from "@/lib/server/config";
-import { newSettingsLink, newTopicLink } from "@/lib/server/email-settings";
+import { newSettingsLink, newTopicLink } from "@/lib/supporters/email-settings";
 import { requireStaff } from "@/lib/accounts/auth";
 import { siteUrl } from "@/lib/site-url";
 

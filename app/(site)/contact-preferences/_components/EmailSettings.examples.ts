@@ -1,6 +1,6 @@
 // Made-up contact preferences, as the page gets them, for the gallery and the tests.
-import type { ContactPermission } from "@/lib/contact-permissions";
-import { hold, type SettingsView } from "@/lib/email-settings";
+import type { ContactPermission } from "@/lib/supporters/contact-permissions";
+import { hold, type SettingsView } from "@/lib/supporters/settings-view";
 
 const AT = new Date("2026-11-02T10:00:00Z");
 const JANE = "jane.smith@example.com";

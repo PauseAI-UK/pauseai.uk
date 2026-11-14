@@ -8,6 +8,7 @@ import { spanClass } from "./ui/Grid";
 import StaffDashboard from "./StaffDashboard";
 import { exampleDashboard, exampleQuietDashboard } from "./StaffDashboard.examples";
 import { shellCopy } from "./shell/copy";
+import { supportersCopy } from "./supporters/copy";
 
 const [pm, bill] = campaigns;
 
@@ -128,9 +129,9 @@ describe("StaffDashboard", () => {
     // New supporters in bars by source, with the week's count of each source in the legend, and half the grid to fit them.
     const sourceBars = page.getByRole("img", { name: copy.bySourceName(copy.metrics.supportersAdded(176), 7, 8) });
     await expect.element(sourceBars).toBeVisible();
-    expect(supporters[0].element().textContent).toContain(`${staffCopy.supporters.sources.luma} · 115`);
-    expect(supporters[0].element().textContent).toContain(`${staffCopy.supporters.sources.civicrm} · 44`);
-    expect(supporters[0].element().textContent).not.toContain(staffCopy.supporters.sources["web-form"]);
+    expect(supporters[0].element().textContent).toContain(`${supportersCopy.supporters.sources.luma} · 115`);
+    expect(supporters[0].element().textContent).toContain(`${supportersCopy.supporters.sources.civicrm} · 44`);
+    expect(supporters[0].element().textContent).not.toContain(supportersCopy.supporters.sources["web-form"]);
     expect(supporters[0].element().className).toBe(spanClass(3));
     // Pointing at a bar says its week's count and what it's made of.
     const barsBox = sourceBars.element().getBoundingClientRect();
@@ -142,7 +143,7 @@ describe("StaffDashboard", () => {
     await expect
       .element(page.getByRole("status"))
       .toHaveTextContent(
-        `${copy.seriesPoint(7, staffDate(exampleDashboard.supportersBySource[7].from), 176)} ${staffCopy.supporters.sources.luma}115 ${staffCopy.supporters.sources.civicrm}44 ${staffCopy.supporters.sources["email-your-mp"]}17`,
+        `${copy.seriesPoint(7, staffDate(exampleDashboard.supportersBySource[7].from), 176)} ${supportersCopy.supporters.sources.luma}115 ${supportersCopy.supporters.sources.civicrm}44 ${supportersCopy.supporters.sources["email-your-mp"]}17`,
       );
     sourceBars.element().dispatchEvent(new PointerEvent("pointerout", { bubbles: true, relatedTarget: document.body }));
     await expect.element(page.getByRole("status")).not.toBeInTheDocument();

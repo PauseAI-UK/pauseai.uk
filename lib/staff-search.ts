@@ -3,7 +3,7 @@
 // reads their forms.
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { listWindow, type DashboardWindow } from "./staff-dashboard";
-import { contactState } from "@/lib/contact-permissions";
+import { contactState } from "@/lib/supporters/contact-permissions";
 import type { ChangesFilter } from "@/lib/server/audit";
 import type { BlocksFilter } from "@/lib/server/email";
 import type { PoliticianFilter } from "@/lib/server/politicians";
@@ -43,7 +43,7 @@ import {
 } from "@/lib/staff-lists";
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
 import { EVENT_GROUPINGS, EVENT_SORTS, type EventFilter } from "@/lib/events/list";
-import { isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters";
+import { isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters/supporters";
 
 /** Which of a campaign's letters its counts can show: those in one state, or whose text was changed. */
 export const LETTER_TABS = [...LETTER_STATES, "changed"] as const;

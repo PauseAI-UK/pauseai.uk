@@ -1,8 +1,8 @@
 import { query } from "@/lib/server/db";
 import { getWrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import { supporterAudience } from "@/lib/server/broadcast-recipients";
-import { refreshSupportersList } from "@/lib/server/supporter-facts";
-import { linkSupporters } from "@/lib/server/supporters";
+import { refreshSupportersList } from "@/lib/supporters/facts";
+import { linkSupporters } from "@/lib/supporters/records";
 
 // Supporters for the tests of broadcasts: each a Luma guest of one event, so
 // following the calendar says yes to emails about it, and a number given says

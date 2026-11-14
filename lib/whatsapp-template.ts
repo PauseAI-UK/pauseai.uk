@@ -1,4 +1,4 @@
-import type { Topic } from "@/lib/contact-permissions";
+import type { Topic } from "@/lib/supporters/contact-permissions";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { toText } from "@/lib/letter-format";
 import { fieldsIn, letterFor, type MailingDoc } from "@/lib/mailing-doc";

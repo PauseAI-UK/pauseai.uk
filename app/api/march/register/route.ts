@@ -8,8 +8,8 @@
 import { NextResponse } from "next/server";
 import { checkMarchRegistration, type MarchRegisterResult } from "@/lib/march-registration";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
-import { sendBulkNotice } from "@/lib/server/email-settings";
-import { addFormEntry } from "@/lib/server/form-entries";
+import { sendBulkNotice } from "@/lib/supporters/email-settings";
+import { addFormEntry } from "@/lib/supporters/form-entries";
 import { marchEventId } from "@/lib/events/march";
 import { addLumaGuest } from "@/lib/server/outside-services/luma-guests";
 import { problem } from "@/lib/server/problems";

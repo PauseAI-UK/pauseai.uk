@@ -9,6 +9,7 @@ import ChangesTable from "./ChangesTable";
 import { exampleChanges } from "./ChangesTable.examples";
 import { downloads } from "@/tests/browser/staff";
 import { accountsCopy } from "./accounts/copy";
+import { supportersCopy } from "./supporters/copy";
 
 const [pm] = campaigns;
 
@@ -48,7 +49,7 @@ describe("ChangesTable", () => {
     const cell = page.getByRole("row").nth(1).getByRole("cell").nth(4);
     const copy = staffCopy.changes;
     expect(cell.element().textContent).toBe(
-      `${staffCopy.signupUpload.uploads.title} · 5 ${copy.counts.imported(5)} · 2 ${copy.counts.heldBack(2)}`,
+      `${supportersCopy.signupUpload.uploads.title} · 5 ${copy.counts.imported(5)} · 2 ${copy.counts.heldBack(2)}`,
     );
     await expect.element(cell.getByRole("link")).toHaveAttribute("href", "/staff/supporters/import/previous/3");
   });

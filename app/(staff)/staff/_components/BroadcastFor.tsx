@@ -1,16 +1,17 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { BroadcastPageData } from "@/lib/server/broadcast-pages";
-import type { SupporterChoices } from "@/lib/server/supporters";
+import type { SupporterChoices } from "@/lib/supporters/records";
 import { type Params } from "@/lib/list-params";
 import { Muted } from "@/components/ui/Text";
 import { broadcastTerms } from "@/lib/broadcasts";
-import { consentKey } from "@/lib/contact-permissions";
+import { consentKey } from "@/lib/supporters/contact-permissions";
 import BroadcastView from "./BroadcastView";
 import ChannelWriter from "./ChannelWriter";
 import type { BroadcastWriterActions } from "./BroadcastWriter";
-import { othersThanConsent } from "./SupporterFilters";
+import { othersThanConsent } from "./supporters/SupporterFilters";
 import parts from "./MailingParts.module.css";
+import { supportersCopy } from "./supporters/copy";
 
 type FormAction = (form: FormData) => void | Promise<void>;
 
@@ -26,7 +27,7 @@ export function BroadcastContact({ params }: { params: Params }) {
   return (
     <>
       {staffVocabulary.filters.anyOf(
-        terms.topics.map((topic) => staffCopy.supporters.subscriptions.consents[consentKey({ way, topic })]),
+        terms.topics.map((topic) => supportersCopy.supporters.subscriptions.consents[consentKey({ way, topic })]),
       )}
     </>
   );

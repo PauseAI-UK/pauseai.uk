@@ -6,6 +6,7 @@ import { createSavedFilter } from "@/lib/server/saved-filters";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { openSavedList } from "./saved-lists";
 import { eventsCopy } from "@/lib/events/copy";
+import { supportersCopy } from "./_components/supporters/copy";
 
 const JO = "jo@pauseai.uk";
 
@@ -30,7 +31,7 @@ describeWithDatabase("openSavedList", () => {
       staffVocabulary.filters.pageTitle(staffCopy.politicians.title, "jo"),
     );
     expect(await (await openSavedList("supporters", { q: "jo" })).title(words)).toBe(
-      staffVocabulary.filters.pageTitle(staffCopy.supporters.title, "jo"),
+      staffVocabulary.filters.pageTitle(supportersCopy.supporters.title, "jo"),
     );
     expect(await (await openSavedList("events", {})).title(() => [])).toBe(eventsCopy.events.title);
   });

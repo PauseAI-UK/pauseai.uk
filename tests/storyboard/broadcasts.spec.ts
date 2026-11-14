@@ -16,6 +16,7 @@ import { newestText, OUR_CHAT, shownText, templateSent, textFrame } from "./what
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import type { Section } from "./report/frames";
 import { messageFrom, postWhatsAppWebhook, statusOf, templateStatus } from "../whatsapp-webhooks";
+import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 
 export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
 
@@ -165,7 +166,7 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await expect(saidYes.getByRole("radio")).toHaveCount(3);
   await frame(page, "The Consents by email, and an email's writer");
   story("Choosing one makes the draft, to everyone who said yes. Change who can narrow them, but needn't.");
-  await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.consents["email:events"] }).click();
+  await saidYes.getByRole("radio", { name: supportersCopy.supporters.subscriptions.consents["email:events"] }).click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
   await expect(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
   await expect(page.getByText(copy.willGet(EMAILABLE, "email"))).toBeVisible();
@@ -181,9 +182,11 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   story(
     "Its Consent can change while it's a draft, but, once it has words, only by email. Another topic takes the place of the one it had.",
   );
-  await saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.consents["email:newsletter"] }).click();
+  await saidYes
+    .getByRole("radio", { name: supportersCopy.supporters.subscriptions.consents["email:newsletter"] })
+    .click();
   await expect(
-    saidYes.getByRole("radio", { name: staffCopy.supporters.subscriptions.consents["email:newsletter"] }),
+    saidYes.getByRole("radio", { name: supportersCopy.supporters.subscriptions.consents["email:newsletter"] }),
   ).toHaveAttribute("aria-checked", "true");
   await frame(page, "Under the newsletter in place of events");
 });
@@ -508,7 +511,7 @@ test("Stop, replied in WhatsApp", async ({ page, request, flowDatabase }) => {
   story("Their page shows the stop of that topic's texts, and that it came from WhatsApp.");
   const [supporter] = runSql(flowDatabase, `SELECT supporter_id FROM broadcast_messages WHERE id = ${sent.copy}`);
   await page.goto(`${BASE}/staff/supporters/${supporter}`);
-  await expect(page.getByText(staffCopy.supporters.detail.permissions.sources.whatsapp).first()).toBeVisible();
+  await expect(page.getByText(supportersCopy.supporters.detail.permissions.sources.whatsapp).first()).toBeVisible();
   await frame(page, "Their page, texts stopped");
 });
 
@@ -719,7 +722,7 @@ test("A reply that asks us to stop", async ({ page, request, flowDatabase }) => 
   await page.getByRole("button", { name: copy.replies.reply }).scrollIntoViewIfNeeded();
   await frame(page, "The reply, with its buttons", { window: true });
   story("Unsubscribe them opens the form a supporter's page has, but needn't ask how they told us: by replying.");
-  const words = staffCopy.supporters.detail.permissions.recordOptOut;
+  const words = supportersCopy.supporters.detail.permissions.recordOptOut;
   await page.getByRole("button", { name: words.open }).click();
   await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
   await page.getByRole("button", { name: copy.replies.bulk }).click();
@@ -778,12 +781,12 @@ test("To more than one topic's yeses", async ({ page, request, flowDatabase }) =
   const saidYes = page.getByRole("group", { name: copy.facts.saidYes });
   await saidYes.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
   const newsletter = saidYes.getByRole("button", {
-    name: staffCopy.supporters.subscriptions.consents["email:newsletter"],
+    name: supportersCopy.supporters.subscriptions.consents["email:newsletter"],
   });
   await newsletter.click();
   await expect(newsletter).toHaveAttribute("aria-pressed", "true");
   await expect(
-    saidYes.getByRole("button", { name: staffCopy.supporters.subscriptions.consents["email:events"] }),
+    saidYes.getByRole("button", { name: supportersCopy.supporters.subscriptions.consents["email:events"] }),
   ).toHaveAttribute("aria-pressed", "true");
   await frame(page, "Newsletter or events");
 });

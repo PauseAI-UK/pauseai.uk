@@ -5,11 +5,12 @@ import { FieldSet } from "@/components/ui/Field";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { choiceTerms, consentChoice } from "@/lib/broadcasts";
-import { TOPICS, consentKey, type Channel, type Topic } from "@/lib/contact-permissions";
+import { TOPICS, consentKey, type Channel, type Topic } from "@/lib/supporters/contact-permissions";
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import LinkButton from "@/components/ui/LinkButton";
 import { useState } from "react";
 import own from "./Broadcasts.module.css";
+import { supportersCopy } from "./supporters/copy";
 
 const copy = staffCopy.broadcastPages;
 
@@ -54,7 +55,7 @@ export default function BroadcastConsent({
   const several = many || on.length > 1;
   const topics = TOPICS.map((topic) => ({
     value: topic,
-    label: staffCopy.supporters.subscriptions.consents[consentKey({ way, topic })],
+    label: supportersCopy.supporters.subscriptions.consents[consentKey({ way, topic })],
   }));
   const choose = (chosen: Topic[]) => pick(consentChoice({ channel: way, topics: chosen }));
   return (

@@ -33,7 +33,7 @@ Examples, not a complete list:
 - **It stays enforced**, by types first and by checks in `tests/checks/` where types can't reach.
 
 Existing code to learn from: `QueueReason`, `ScheduleResult`, `MarchRegisterResult`, `GmailError`, and `EraseLeftover`
-(`lib/staff-search.ts`) with `leftOver()` in `lib/server/erasure.ts`.
+(`lib/staff-search.ts`) with `leftOver()` in `lib/erasure/erase.ts`.
 
 Don't type what nothing distinguishes, and let truly unexpected errors throw.
 

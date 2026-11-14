@@ -6,7 +6,7 @@
 // such as the parties, the events, or who's in the log.
 import type { ReactNode } from "react";
 import { ASK_STATUSES } from "./asks";
-import { SENDS, TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "./contact-permissions";
+import { SENDS, TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
 import { staffCopy } from "./content/staff-interface";
 import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
@@ -14,7 +14,7 @@ import { firstOf, notValue, valuesOf, type Params } from "./list-params";
 import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "./politician-filters";
 import type { EmailChoice } from "./server/all-letters";
 import type { Ask } from "./server/asks";
-import type { SupporterChoices, SupportersPage } from "./server/supporters";
+import type { SupporterChoices, SupportersPage } from "@/lib/supporters/records";
 import { WINDOW_OPTIONS } from "./staff-dashboard";
 import { NO_OWNER, ONLINE } from "@/lib/events/list";
 import {
@@ -28,8 +28,9 @@ import {
 } from "./staff-lists";
 import { EMAIL_SENDERS, EMAIL_TYPES, SENT_EMAIL_LINKS, SENT_EMAILS_WITHOUT_SUPPORTERS } from "./staff-search";
 import { staffDate } from "./staff-time";
-import { NEAR_MILES, SUPPORTER_BADGES } from "./supporters";
+import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters/supporters";
 import { eventsCopy } from "@/lib/events/copy";
+import { supportersCopy } from "@/lib/supporters/copy";
 
 /**
  * A choice. Choices in a `group` come under its heading, its icon once,
@@ -244,7 +245,7 @@ export const CONSENT_ORDER: Consent[] = WAYS.flatMap((way) =>
 
 /** The words in the Near chip: where it found, or that it couldn't; as typed, when it wasn't looked up. */
 function nearWords(text: string, found: SupportersPage["near"]): string {
-  const copy = staffCopy.supporters.filters;
+  const copy = supportersCopy.supporters.filters;
   if (found === undefined) return text;
   if (found === "failed") return copy.failed(text);
   return found ? found.place : copy.notFound(text);
@@ -277,8 +278,8 @@ export type SupporterBarChoices = SupporterChoices & {
 export const SUPPORTER_FILTERS = listFilters(
   SUPPORTERS_LIST,
   ({ events, mps, near, found, channelIcon }: SupporterBarChoices) => {
-    const copy = staffCopy.supporters.filters;
-    const { columns } = staffCopy.supporters;
+    const copy = supportersCopy.supporters.filters;
+    const { columns } = supportersCopy.supporters;
     return {
       nation: { label: staffCopy.politician.country, oneEach: true, options: choicesOf(staffVocabulary.countries) },
       near: {
@@ -298,7 +299,7 @@ export const SUPPORTER_FILTERS = listFilters(
       },
       activity: {
         label: columns.badges,
-        options: SUPPORTER_BADGES.map((badge) => ({ value: badge, label: staffCopy.supporters.badges[badge] })),
+        options: SUPPORTER_BADGES.map((badge) => ({ value: badge, label: supportersCopy.supporters.badges[badge] })),
       },
       contact: {
         label: columns.subscriptions,
@@ -309,7 +310,7 @@ export const SUPPORTER_FILTERS = listFilters(
         // Each topic under its way's heading, chosen as those we can contact about it; then in its chip's second
         // half, yes or no. Changing the topic keeps the answer.
         options: CONSENT_ORDER.map(({ topic, way }) => {
-          const answers = staffCopy.supporters.detail.permissions.answers[way];
+          const answers = supportersCopy.supporters.detail.permissions.answers[way];
           return {
             value: stateValue({ way, topic, send: "yes" }),
             label: copy.topics[topic],
@@ -429,7 +430,7 @@ export const ALL_EMAIL_FILTERS = listFilters(
         options: people.map((person) => ({
           value: String(person.id),
           label: person.constituency
-            ? staffCopy.supporters.filters.mpChoice(person.name, person.constituency)
+            ? supportersCopy.supporters.filters.mpChoice(person.name, person.constituency)
             : person.name,
         })),
       },

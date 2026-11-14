@@ -2,8 +2,8 @@
 // and ways to read a list's menus and filter chips.
 import { vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 
 /** A stand-in Server Action that keeps what it was sent. */
 export function action() {
@@ -36,7 +36,7 @@ export const chips = () =>
           staffVocabulary.search,
           staffVocabulary.filters.add,
           staffVocabulary.filters.except,
-          staffCopy.supporters.columns.subscriptions,
+          supportersCopy.supporters.columns.subscriptions,
         ].includes(text!),
     );
 

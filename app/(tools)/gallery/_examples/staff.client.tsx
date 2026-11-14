@@ -1,10 +1,5 @@
 "use client";
 
-import { exampleSignupPlan } from "@/app/(staff)/staff/_components/SignupUpload.examples";
-import SignupUploadForm from "@/app/(staff)/staff/_components/SignupUploadForm";
-import SignupUploadHelp, { SignupColumnNames } from "@/app/(staff)/staff/_components/SignupUploadHelp";
-import SignupUploadPreview, { SignupPlanView } from "@/app/(staff)/staff/_components/SignupUploadPreview";
-
 // The staff screens' examples whose Server Actions are props: client
 // components with no props, each action logged rather than sent.
 import ChangesFilters from "@/app/(staff)/staff/_components/ChangesFilters";
@@ -52,7 +47,6 @@ import {
 } from "@/app/(staff)/staff/_components/LettersTable.examples";
 import Run from "@/app/(staff)/staff/_components/Run";
 import AskRow, { AskRows, PoliticianAsks } from "@/app/(staff)/staff/_components/AskRow";
-import EraseForm from "@/app/(staff)/staff/_components/EraseForm";
 import UnblockForm, { UnblockBubble } from "@/app/(staff)/staff/_components/UnblockForm";
 import NoteChanges from "@/app/(staff)/staff/_components/NoteChanges";
 import NotesCard from "@/app/(staff)/staff/_components/NotesCard";
@@ -109,9 +103,6 @@ import PasteForm from "@/app/(staff)/staff/_components/PasteForm";
 import PickBox from "@/app/(staff)/staff/_components/PickBox";
 import PoliticiansList, { ChoosingHead, type ChoosingActions } from "@/app/(staff)/staff/_components/PoliticiansList";
 import { Controlled, Logged } from "../_components/wiring";
-import OptOutForm from "@/app/(staff)/staff/_components/OptOutForm";
-import { CONSENTS } from "@/lib/contact-permissions";
-import { optOutChoices } from "@/lib/opt-out-choices";
 
 /** The table of politicians: one function for both examples. */
 function LoggedPoliticianTable({ politicians }: { politicians: Politician[] }) {
@@ -487,34 +478,6 @@ export function NotesCardExample({ lines = true, writable = true }: { lines?: bo
   );
 }
 
-/** Unsubscribe them, for a supporter with an address and a number. */
-export function OptOutFormExample({ opened = false }: { opened?: boolean }) {
-  const choices = optOutChoices([
-    ...CONSENTS.map((c) => ({
-      address: c.way === "email" ? "jane.smith@example.com" : "+447700900123",
-      channel: c.way === "email" ? ("email" as const) : ("phone" as const),
-      topic: c.topic,
-      way: c.way,
-      send: "yes" as const,
-    })),
-  ]);
-  return (
-    <Logged>
-      {(log) => (
-        <OptOutForm
-          supporterId={1}
-          choices={choices}
-          record={async (form) => {
-            log("record")(form);
-            return true;
-          }}
-          opened={opened}
-        />
-      )}
-    </Logged>
-  );
-}
-
 /** A note's text, its addresses links, and its lines kept. */
 export function NoteTextExample() {
   return <NoteText body={exampleNotes[0].body + "\n" + exampleNotes[1].body} />;
@@ -564,14 +527,6 @@ export function JobActionsExample() {
 export function ErrorSeenViewExample({ which }: { which: 0 | 1 | 2 | "done" }) {
   const error = which === "done" ? exampleErrorDone : exampleErrorsSeen[which];
   return <Logged>{(log) => <ErrorSeenView error={error} setDone={log("setDone")} />}</Logged>;
-}
-
-export function EraseFormExample() {
-  return (
-    <Logged>
-      {(log) => <EraseForm supporter={{ id: 7, name: "Jane Example" }} action={log("eraseSupporterNow")} />}
-    </Logged>
-  );
 }
 
 /** The merge fields and who a part can be for, as a mailing to politicians offers them: two lords have no constituency. */
@@ -1108,49 +1063,4 @@ export function SavedFilterExample({ state }: { state: keyof typeof SAVED_STATES
 /** The same, with part of the filter gone, which the bar says under itself. */
 export function SavedFilterGoneExample() {
   return <SavedFilterExample state="gone" />;
-}
-
-/** The upload's Server Actions here: a preview with someone in every pile, and an import that's upload 6. */
-const exampleUploadActions = {
-  preview: async () => exampleSignupPlan,
-  finish: async () => ({ uploadId: exampleSignupPlan.rows.length }),
-};
-
-/** The preview of a file with someone in every pile. */
-export function SignupPlanViewExample() {
-  return <SignupPlanView plan={exampleSignupPlan} />;
-}
-
-/** What a file will do, worked out by the example's preview, with its import. */
-export function SignupUploadPreviewExample() {
-  return <SignupUploadPreview input={exampleSignupPlan.input} blockers={[]} {...exampleUploadActions} />;
-}
-
-/** The upload page before a file, with an event to come. */
-export function SignupUploadFormExample() {
-  return (
-    <SignupUploadForm
-      today="2026-10-31"
-      events={[
-        {
-          id: "evt-march",
-          name: "PauseAI London March",
-          startAt: new Date("2026-11-21T12:00:00Z"),
-          url: "https://luma.com/example",
-        },
-      ]}
-      actions={exampleUploadActions}
-    />
-  );
-}
-
-/** What the file needs, with its button opening and closing the full list. */
-export function SignupUploadHelpExample() {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <SignupUploadHelp open={open} onToggle={() => setOpen(!open)} />
-      {open && <SignupColumnNames />}
-    </>
-  );
 }

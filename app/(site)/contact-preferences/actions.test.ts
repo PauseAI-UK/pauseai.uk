@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { query } from "@/lib/server/db";
-import { addFormEntry } from "@/lib/server/form-entries";
-import { hashOf, newSettingsLink } from "@/lib/server/email-settings";
+import { addFormEntry } from "@/lib/supporters/form-entries";
+import { hashOf, newSettingsLink } from "@/lib/supporters/email-settings";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { notifications } from "@/tests/notifications";
 import { POST } from "@/app/api/unsubscribe/[token]/route";

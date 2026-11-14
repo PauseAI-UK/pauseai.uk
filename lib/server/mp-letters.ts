@@ -10,10 +10,10 @@ import { sendLetter, type QueueReason } from "./letter-sending";
 import { isLettersInboxAddress } from "./letters-inbox";
 import { checkNotSpam } from "./outside-services/turnstile";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
-import { sendBulkNotice } from "./email-settings";
+import { sendBulkNotice } from "@/lib/supporters/email-settings";
 import { statusesOf } from "./politicians";
 import { politicianProxy, supporterProxy } from "./proxies";
-import { linkSupporters } from "./supporters";
+import { linkSupporters } from "@/lib/supporters/records";
 import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
 

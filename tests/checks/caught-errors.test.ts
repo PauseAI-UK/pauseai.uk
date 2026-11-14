@@ -35,6 +35,8 @@ const EXCEPTIONS = new Map([
   ["lib/server/outside-services/gmail.ts  gmailHistory", "history gone is an answer: the read searches, and says so"],
   // Postmark refusing a suppressed address is kept as that address blocked, which staff see.
   ["lib/server/email.ts  sendWith", "a suppressed address is recorded as blocked, its own report"],
+  // A file that isn't UTF-8 is read as Windows-1252, as spreadsheets save it: the catch is the question.
+  ["lib/supporters/signup-csv.ts  signupFileText", "a file that isn't UTF-8 is an answer: it's read as Windows-1252"],
 ]);
 
 /**

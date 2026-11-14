@@ -3,8 +3,8 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { downloadAs } from "@/tests/staff-download";
 import { query } from "@/lib/server/db";
-import { devBroadcastTitle, hashOf } from "@/lib/server/email-settings";
-import { addFormEntry } from "@/lib/server/form-entries";
+import { devBroadcastTitle, hashOf } from "@/lib/supporters/email-settings";
+import { addFormEntry } from "@/lib/supporters/form-entries";
 import { GET } from "./route";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));

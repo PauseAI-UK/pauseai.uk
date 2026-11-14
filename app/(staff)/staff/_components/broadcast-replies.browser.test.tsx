@@ -21,11 +21,12 @@ import type { BroadcastReply } from "@/lib/server/broadcast-replies";
 import MessageCopyView from "./MessageCopyView";
 import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
+import { supportersCopy } from "./supporters/copy";
 
 const copy = staffCopy.broadcastPages;
 const stateWords = staffCopy.copyStates;
-const topics = staffCopy.supporters.detail.permissions.topics;
-const optOut = staffCopy.supporters.detail.permissions.recordOptOut.open;
+const topics = supportersCopy.supporters.detail.permissions.topics;
+const optOut = supportersCopy.supporters.detail.permissions.recordOptOut.open;
 const emailCopy = {
   ...exampleMessageCopy,
   channel: "email" as const,
@@ -118,7 +119,7 @@ describe("replies to broadcasts", () => {
   it("record as an opt-out of what the email went under, or of all bulk email, in the form a supporter's page has", async () => {
     const deal = vi.fn();
     await render(<ReplyActions replyId={4} topics={["newsletter", "events"]} deal={deal} />);
-    const words = staffCopy.supporters.detail.permissions.recordOptOut;
+    const words = supportersCopy.supporters.detail.permissions.recordOptOut;
     const unsubscribe = async (choice: string) => {
       await page.getByRole("button", { name: optOut }).click();
       // How they told us is known, as it's the reply: no box for it.
@@ -263,7 +264,7 @@ describe("replies to broadcasts", () => {
     await expect.element(page.getByRole("button", { name: copy.replies.reply })).toHaveLength(2);
     // An opt-out of a reply to a text is of every text.
     await page.getByRole("button", { name: optOut }).last().click();
-    const words = staffCopy.supporters.detail.permissions.recordOptOut;
+    const words = supportersCopy.supporters.detail.permissions.recordOptOut;
     await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
     await expect.element(page.getByRole("button", { name: copy.replies.allTexts })).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.replies.topicsText(topics.events) })).toBeVisible();

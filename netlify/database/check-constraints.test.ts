@@ -1,21 +1,21 @@
 import type { AnswerStatus } from "@/lib/server/broadcast-answers";
 import { expect, it } from "vitest";
 import { ASK_STATUSES, ASKERS } from "@/lib/asks";
-import { TOPICS, WAYS, type Topic } from "@/lib/contact-permissions";
+import { TOPICS, WAYS, type Topic } from "@/lib/supporters/contact-permissions";
 import { ERROR_KINDS } from "@/lib/error-key";
 import { IMPORT_JOBS, type ImportRunStatus } from "@/lib/import-runs";
 import { RECORDED_LETTER_EVENTS } from "@/lib/letter-status";
 import { COUNTRIES } from "@/lib/politician-filters";
 import { query } from "@/lib/server/db";
 import type { Backend, ProblemKind, Purpose } from "@/lib/server/email";
-import type { EntryLuma } from "@/lib/server/form-entries";
+import type { EntryLuma } from "@/lib/supporters/form-entries";
 import { GUEST_STATUSES, type ImportList } from "@/lib/events/luma-import";
 import type { mailingChannel } from "@/lib/server/mailing-channels";
 import type { MailingState } from "@/lib/server/mailing-drafts";
 import type { SkipReason } from "@/lib/server/mailings";
 import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
 import type { AddressSource } from "@/lib/server/politician-aliases";
-import type { OptOutList, OptOutSource } from "@/lib/server/opt-outs";
+import type { OptOutList, OptOutSource } from "@/lib/supporters/opt-outs";
 import type { BroadcastReply } from "@/lib/server/broadcast-replies";
 import type { BroadcastSendBy } from "@/lib/broadcasts";
 import type { StopReason } from "@/lib/server/broadcast-sending";
@@ -27,7 +27,7 @@ import {
 } from "@/lib/server/outside-services/civicrm";
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar";
 import { HOUSES, PERSON_STATUSES } from "@/lib/server/politicians";
-import type { SignupUploadPerson } from "@/lib/server/signup-uploads";
+import type { SignupUploadPerson } from "@/lib/supporters/signup-uploads";
 import { PERMISSIONS } from "@/lib/accounts/permissions";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 

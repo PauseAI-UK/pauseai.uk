@@ -27,6 +27,7 @@ import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
 import view from "./MailingView.module.css";
 import styles from "./Broadcasts.module.css";
+import { supportersCopy } from "./supporters/copy";
 
 const copy = staffCopy.broadcastPages;
 
@@ -117,7 +118,9 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
       cell: (r) => (
         <span className={styles.stack}>
           {r.supporterId ? (
-            <StaffLink href={`/staff/supporters/${r.supporterId}`}>{r.name ?? staffCopy.supporters.noName}</StaffLink>
+            <StaffLink href={`/staff/supporters/${r.supporterId}`}>
+              {r.name ?? supportersCopy.supporters.noName}
+            </StaffLink>
           ) : (
             copy.erased
           )}

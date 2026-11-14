@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { withChoosing } from "@/lib/server/broadcast-pages";
 import { requireStaff } from "@/lib/accounts/auth";
-import { listSupporters, supporterChoices } from "@/lib/server/supporters";
+import { listSupporters, supporterChoices } from "@/lib/supporters/records";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
-import ErasedNotice from "../../_components/ErasedNotice";
+import ErasedNotice from "../../_components/erasure/ErasedNotice";
 import { ChoosingBroadcastFrame, BroadcastSupporters } from "../../_components/BroadcastSupporters";
-import SupporterFilters, { supporterWords } from "../../_components/SupporterFilters";
-import SupportersTable from "../../_components/SupportersTable";
+import SupporterFilters, { supporterWords } from "../../_components/supporters/SupporterFilters";
+import SupportersTable from "../../_components/supporters/SupportersTable";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
 import { keepFilterForBroadcast, newBroadcast } from "../../broadcast-actions";
 import { openSavedList } from "../../saved-lists";
+import { supportersCopy } from "../../_components/supporters/copy";
 
 type Props = { searchParams: Promise<Partial<SupportersSearch>> };
 
@@ -38,7 +38,7 @@ export default async function SupportersPage({ searchParams }: Props) {
   return (
     <Page kind="list">
       <ChoosingBroadcastFrame choosing={choosing} search={search} total={page.total} keep={keepFilterForBroadcast}>
-        <PageHead intro={staffCopy.supporters.intro}>{staffCopy.supporters.title}</PageHead>
+        <PageHead intro={supportersCopy.supporters.intro}>{supportersCopy.supporters.title}</PageHead>
         <ErasedNotice erased={search.erased} why={search.why} />
         <SupporterFilters
           search={search}

@@ -1,6 +1,5 @@
 import type { Page } from "@playwright/test";
 import { site } from "@/lib/content/site";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addStaffAccount, logInAsStaff } from "./login-steps";
@@ -11,6 +10,7 @@ import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { eventsCopy } from "@/lib/events/copy";
+import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 
 export const section: Section = { name: "Events and their owners", part: "Staff pages", order: 120 };
 
@@ -160,8 +160,8 @@ test("Event hosts", async ({ page, request, flowDatabase }) => {
   );
   await hosts.getByRole("link", { name: "Jane Fixture" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Jane Fixture" })).toBeVisible();
-  const events = page.getByRole("region", { name: staffCopy.supporters.detail.eventsTitle, exact: false });
-  await expect(events.getByRole("row").filter({ hasText: staffCopy.supporters.detail.host })).toHaveCount(1);
+  const events = page.getByRole("region", { name: supportersCopy.supporters.detail.eventsTitle, exact: false });
+  await expect(events.getByRole("row").filter({ hasText: supportersCopy.supporters.detail.host })).toHaveCount(1);
   // The events she registered for, not declined, or hosts, each once.
   const [count] = runSql(
     flowDatabase,
@@ -171,7 +171,7 @@ test("Event hosts", async ({ page, request, flowDatabase }) => {
   );
   const n = Number(count);
   await expect(page.locator("[class*=counts]").first()).toContainText(
-    `${n} ${staffCopy.supporters.detail.eventsCounted(n)}`,
+    `${n} ${supportersCopy.supporters.detail.eventsCounted(n)}`,
   );
   await frame(page, "Jane Fixture's page");
 });

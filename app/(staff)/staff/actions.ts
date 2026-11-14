@@ -8,18 +8,13 @@ import { type ImportJob, importPath, isImportJob } from "@/lib/import-runs";
 import { runJob } from "@/lib/server/jobs";
 import { actionRequest } from "@/lib/site-url";
 import { now } from "@/lib/now";
-import { erasedPath, staffBack } from "@/lib/staff-search";
-import { askFrom, eraseFrom, idFrom, noteEditFrom, noteFrom, statusFrom, unblockFrom } from "@/lib/staff-forms";
-import { chosen, optOutChoices } from "@/lib/opt-out-choices";
-import { offCalendarAfter } from "@/lib/server/email-settings";
-import { recordStaffOptOut } from "@/lib/server/opt-outs";
-import { getSupporter } from "@/lib/server/supporters";
+import { staffBack } from "@/lib/staff-search";
+import { askFrom, idFrom, noteEditFrom, noteFrom, statusFrom, unblockFrom } from "@/lib/staff-forms";
 import { addAsk, deleteAsk, editAsk } from "@/lib/server/asks";
 import { unblock } from "@/lib/server/delivery-problems";
 import { isPoliticianAddress } from "@/lib/server/email";
 import { setErrorDone } from "@/lib/server/errors-seen";
 import { ERRORS_LIST } from "@/lib/staff-lists";
-import { eraseSupporter } from "@/lib/server/erasure";
 import { decideHeldImport, isPoliticianImport } from "@/lib/server/politician-import";
 import { editPoliticianDetails, type EditResult, isMark, setMark } from "@/lib/server/politician-edits";
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
@@ -72,25 +67,6 @@ export async function editPoliticianNow(form: FormData): Promise<EditResult | un
   );
   if (result.saved) revalidatePath("/staff", "layout");
   return result;
-}
-
-/**
- * The form in a supporter's consents: records that they opted out of what
- * staff chose, at one of their addresses or numbers, with how they said so;
- * events by email, or every bulk email, takes them off our Luma calendar too.
- * Says whether it was new; false for a choice not theirs, or no how.
- */
-export async function recordOptOutNow(form: FormData): Promise<boolean> {
-  const { email } = await requireStaff("supporters");
-  const id = idFrom(form, "supporterId");
-  const how = String(form.get("how") ?? "").trim();
-  const supporter = id ? await getSupporter(id) : undefined;
-  const choice = supporter && chosen(form.get("choice"), optOutChoices(supporter.permissions));
-  if (!choice || !how) return false;
-  const recorded = await recordStaffOptOut(choice, email, { how });
-  if (recorded) await offCalendarAfter([{ ...choice, source: "staff" }]);
-  revalidatePath(`/staff/supporters/${id}`);
-  return recorded;
 }
 
 /** Refreshes the page of whom a note is about. */
@@ -217,21 +193,6 @@ export async function setErrorDoneNow(form: FormData): Promise<void> {
   // Its page, and both tabs of the list.
   revalidatePath(ERRORS_LIST.path, "layout");
   if (done) redirect(ERRORS_LIST.path);
-}
-
-/**
- * Erases a supporter, from their page, then goes to the list, which says
- * so, and what couldn't be cleared afterwards, if anything. A supporter
- * that's already gone is nothing to do.
- */
-export async function eraseSupporterNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff("supporters");
-  const parsed = eraseFrom(form);
-  if (!parsed) return;
-  const result = await eraseSupporter(parsed.id, parsed.reference, email);
-  if (!result) return;
-  revalidatePath("/staff", "layout");
-  redirect(erasedPath(result.notCleared));
 }
 
 /**

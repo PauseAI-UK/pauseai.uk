@@ -35,7 +35,7 @@ One PR each, in this order. Each moves its UI folder, its `lib/` domain, its wor
 |---|---|---|---|
 | accounts | `accounts/`, `shell/` | `lib/accounts/`: staff auth, login, dev login, sessions, permissions, staff accounts, Gmail connection and tokens, nav-seen | login, devLogin, loginEmail, me, sessions, gmail, accounts, nav |
 | events | `events/` | `lib/events/`: events, tags, owners, Luma webhooks and import, march event, staff events list | events |
-| supporters | `supporters/` | `lib/supporters/`: supporters, places, sources, facts, contact permissions, opt-outs, erasure, signup uploads, form entries, email settings | supporters, erase, signupUpload, emails (bounced), devPreferences (DevPreferences is a supporter's page's, not the frame's) |
+| supporters | `supporters/`, `erasure/` | `lib/supporters/`: supporters, places, sources, facts, contact permissions, opt-outs, signup uploads, form entries, email settings; `lib/erasure/` | supporters, erase, signupUpload, emails (bounced), devPreferences (DevPreferences is a supporter's page's, not the frame's) |
 | politicians | `politicians/` | `lib/politicians/`: politicians and their edits, aliases, book, correspondence, email counts, import, find-mp, parliaments, constituencies, wikidata, party colours | politicians, politician, emails (addresses to fix) |
 | campaigns | `campaigns/` | `lib/campaigns/`: asks, ask groups, campaigns, campaign versions | asks, campaigns |
 | mailings | `mailings/` | `lib/mailings/`: mailings, drafts, pages, recipients, sending, channels, fields, docs, schedule, attachments, copy states | mailings, mailingEditor, mailingPages, copyStates |
@@ -80,6 +80,15 @@ The base PR adds these, and `docs/code-structure.md`, "Feature folders", describ
 - **A group whose order interleaves two beside files** takes each example out by destructuring (`const [eventsTable, eventTabs, …] = eventsTableGallery`) and lists them in the old order, so no frame moves.
 - **Gallery examples' tests** (of `*.gallery.client.tsx`) go to the feature's own browser test file, out of `staff.browser.test.tsx`.
 - **`staffCopy.luma`** is the import run's words (Run, RunTable, ImportJob): left for jobs. **`TestTag`** is used by letters, mailings and supporters: left for whichever moves it (it's not events').
+
+## Settled by the supporters PR
+
+- **Erasure is a feature of its own**, `erasure/` and `lib/erasure/` (`erasureCopy.erase`), using accounts, supporters and letters: it erases from every table, so it imports letters' one-off emails and letters inbox, and letters uses supporters (`mp-letters.ts` links supporters). In `lib/supporters/` it would make supporters and letters use each other. The supporter's page and erase page import it; nothing in a feature does.
+- **Pure and server files** of one name: the pure one is named for what it holds, the server one keeps the name: `lib/supporters.ts` is `supporters.ts` and `lib/server/supporters.ts` is `records.ts`; `lib/email-settings.ts` is `settings-view.ts` and the server's `email-settings.ts`; `lib/contact-permissions.ts` keeps its name and the server's is `permissions-for.ts`; `lib/signup-upload.ts` is `signup-csv.ts`; `lib/supporter-place.ts` is `given-places.ts` and `lib/server/supporter-places.ts` `places.ts`.
+- **`events` uses supporters**: the Luma import links supporters and records opt-outs.
+- **Words of a key two features share are split by page**: `staffCopy.emails` is every blocked address's words; the bounced emails page's title and intro are `supportersCopy.bouncedEmails`. The rest, and the blocked addresses' components (`EmailBlocksTable`, `EmailBlockFilters`, `EmailProblemsTable`, `UnblockForm`, `BounceReason`) and `unblockAddress`, are the sending layer's, used by both pages: left for oversight (`lib/email/`), with `delivery-problems.ts`.
+- **Left at the top for their owners**: `SupporterBroadcasts` (broadcasts': its gallery group, test and data are), `PermissionTiles` (the dashboard's), `TestTag`, `lib/phone.ts` (STAYS, a small helper), `staffCopy.problems.logs.lumaImportNotStarted` (`lib/server/outside-services/netlify-functions.ts`'s), `staffCopy.luma.placesFailed` (jobs', with `luma`).
+- **`components/ui/ChannelIcon`** and the public contact preferences page import `lib/supporters/contact-permissions`'s types and `email-settings`: the public site stands on supporters there, as their own preferences are supporters'.
 
 ## How each feature PR goes
 

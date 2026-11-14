@@ -5,7 +5,7 @@ import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { marchSignupCopy } from "@/lib/content/march-signup";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import type { Reason, Topic } from "@/lib/contact-permissions";
+import type { Reason, Topic } from "@/lib/supporters/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
 import { TEST_MPS } from "@/lib/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
@@ -19,6 +19,8 @@ import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
+import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
+import { erasureCopy } from "@/lib/erasure/copy";
 
 export const section: Section = { name: "Supporters", part: "Staff pages", order: 50 };
 
@@ -34,7 +36,7 @@ async function logInWithSupporters(page: Page, database: string) {
   await logInAsStaff(page, BASE, staffEmail());
 }
 
-const copy = staffCopy.supporters;
+const copy = supportersCopy.supporters;
 
 /**
  * Posts one of Luma's calendar.person webhooks for `email`, signed with the
@@ -637,10 +639,10 @@ test("Their contact preferences, from their page", async ({ page, request, flowD
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Tom Seed" }).click();
-  const dev = page.getByRole("region", { name: staffCopy.devPreferences.title });
+  const dev = page.getByRole("region", { name: supportersCopy.devPreferences.title });
   await dev.scrollIntoViewIfNeeded();
   await frame(page, "A link for each address", { window: true });
-  await dev.getByRole("link", { name: staffCopy.devPreferences.preferences("tom.seed@example.com") }).click();
+  await dev.getByRole("link", { name: supportersCopy.devPreferences.preferences("tom.seed@example.com") }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(emailSettingsCopy.settings.title);
   await frame(page, "Tom's contact preferences");
 });
@@ -665,21 +667,21 @@ test("Erasing a supporter", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Sam Fixture" }).click();
   await openEverything(page);
-  const eraseLink = page.getByRole("link", { name: staffCopy.erase.title });
+  const eraseLink = page.getByRole("link", { name: erasureCopy.erase.title });
   await eraseLink.scrollIntoViewIfNeeded();
   await frame(page, "The end of Sam's page");
   story("The erase page's button can't be pressed yet.");
   await eraseLink.click();
   await expect(page).toHaveURL(/\/staff\/supporters\/\d+\/erase$/);
-  await expect(page.getByRole("button", { name: staffCopy.erase.button })).toBeDisabled();
+  await expect(page.getByRole("button", { name: erasureCopy.erase.button })).toBeDisabled();
   await frame(page, "The erase page");
   story("Staff give the request's reference, tick the box and erase Sam. The supporters list says it's done.");
 
-  await page.getByRole("textbox", { name: staffCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
-  await page.getByRole("checkbox", { name: staffCopy.erase.confirm }).check();
-  await page.getByRole("button", { name: staffCopy.erase.button }).click();
+  await page.getByRole("textbox", { name: erasureCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
+  await page.getByRole("checkbox", { name: erasureCopy.erase.confirm }).check();
+  await page.getByRole("button", { name: erasureCopy.erase.button }).click();
   await expect(page).toHaveURL(`${BASE}/staff/supporters?erased=1`);
-  await expect(page.getByRole("status")).toHaveText(staffCopy.erase.done);
+  await expect(page.getByRole("status")).toHaveText(erasureCopy.erase.done);
   await expect(page.getByRole("link", { name: "Sam Fixture" })).toHaveCount(0);
   await expect(page.getByText(copy.total(6), { exact: true })).toBeVisible();
   await frame(page, "The supporters list, without Sam");
@@ -708,11 +710,11 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Mara Member" }).click();
   await openEverything(page);
-  await page.getByRole("link", { name: staffCopy.erase.title }).click();
-  await page.getByRole("textbox", { name: staffCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
-  await page.getByRole("checkbox", { name: staffCopy.erase.confirm }).check();
-  await page.getByRole("button", { name: staffCopy.erase.button }).click();
-  await expect(page.getByRole("status")).toHaveText(staffCopy.erase.done);
+  await page.getByRole("link", { name: erasureCopy.erase.title }).click();
+  await page.getByRole("textbox", { name: erasureCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
+  await page.getByRole("checkbox", { name: erasureCopy.erase.confirm }).check();
+  await page.getByRole("button", { name: erasureCopy.erase.button }).click();
+  await expect(page.getByRole("status")).toHaveText(erasureCopy.erase.done);
   await expect(page.getByRole("link", { name: "Mara Member" })).toHaveCount(0);
 
   await importCivicrm(request, BASE);

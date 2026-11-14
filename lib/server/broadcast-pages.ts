@@ -14,7 +14,7 @@ import {
   type BroadcastTerms,
 } from "@/lib/broadcasts";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { Topic } from "@/lib/contact-permissions";
+import type { Topic } from "@/lib/supporters/contact-permissions";
 import { answersTo, type BroadcastAnswer } from "./broadcast-answers";
 import { repliesTo, type BroadcastReply } from "./broadcast-replies";
 import { query } from "./db";
@@ -29,9 +29,9 @@ import {
 } from "./broadcast-drafts";
 import { broadcastChoices, broadcastParts, supporterAudience } from "./broadcast-recipients";
 import type { MailingBase } from "./mailings";
-import { howOptedOutFrom, optedOutFrom } from "./opt-outs";
+import { howOptedOutFrom, optedOutFrom } from "@/lib/supporters/opt-outs";
 import { checkStoredFilter, filterProblems } from "./stored-filters";
-import { supporterChoices, type SupporterChoices } from "./supporters";
+import { supporterChoices, type SupporterChoices } from "@/lib/supporters/records";
 
 // What the pages of broadcasts to supporters show: the list of them, a draft
 // to write, one scheduled or sent with its recipients, and one copy as sent.

@@ -5,7 +5,7 @@ import { query } from "./db";
 import { send } from "./email-sending";
 import { recordProblem } from "./email";
 import { listSentEmails } from "./sent-emails";
-import { linkSupporters } from "./supporters";
+import { linkSupporters } from "@/lib/supporters/records";
 
 const log = (row: Record<string, unknown>) => {
   const keys = Object.keys(row);

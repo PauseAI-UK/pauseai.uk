@@ -5,11 +5,11 @@ import { query, transaction, type Queryable } from "./db";
 import { asRun } from "./import-runs";
 import { civicrmKey, fetchContactsPage, PAGE_SIZE, type CivicrmContact } from "./outside-services/civicrm";
 import { sendCivicrmUpdates } from "./civicrm-updates";
-import { recordCivicrmLists } from "./opt-outs";
+import { recordCivicrmLists } from "@/lib/supporters/opt-outs";
 import { problem } from "./problems";
 import { resendAfterFix } from "./relays";
-import { refreshSupporterFacts, refreshSupportersList } from "./supporter-facts";
-import { linkSupporters } from "./supporters";
+import { refreshSupporterFacts, refreshSupportersList } from "@/lib/supporters/facts";
+import { linkSupporters } from "@/lib/supporters/records";
 
 // Copies Global's UK chapter contacts from CiviCRM into civicrm_contacts:
 // hourly (/api/cron/import-civicrm) or when staff ask, each run in the

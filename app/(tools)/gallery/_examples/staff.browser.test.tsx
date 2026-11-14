@@ -15,7 +15,6 @@ import {
   MailingWriterExample,
   NoteChangesExample,
   NoteEntryExample,
-  OptOutFormExample,
   NotesCardExample,
   NotesExample,
   NoteTextExample,
@@ -25,9 +24,6 @@ import {
   PoliticianDetailsExample,
   PoliticianTableEmptyExample,
   PoliticianTableExample,
-  SignupPlanViewExample,
-  SignupUploadHelpExample,
-  SignupUploadPreviewExample,
 } from "./staff.client";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
@@ -41,24 +37,6 @@ const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listi
 const subject = () => page.getByLabelText(new RegExp(`^${staffCopy.mailingPages.subject}`));
 
 describe("the staff examples", () => {
-  it("opens and closes every column name under what the file needs", async () => {
-    await render(<SignupUploadHelpExample />);
-    const help = staffCopy.signupUpload.help;
-    await page.getByRole("button", { name: help.more }).click();
-    await expect.element(page.getByText(help.fields.postcode.values)).toBeVisible();
-    await page.getByRole("button", { name: help.less }).click();
-    expect(page.getByText(help.fields.postcode.values).elements()).toEqual([]);
-  });
-
-  it("previews and imports an upload, going to what it did", async () => {
-    await render(<SignupPlanViewExample />);
-    await render(<SignupUploadPreviewExample />);
-    const importNow = page.getByRole("button", { name: staffCopy.signupUpload.preview.importNow(3, 1) });
-    await expect.element(importNow).toBeEnabled();
-    await importNow.click();
-    await expect.poll(() => push.mock.calls).toEqual([["/staff/supporters/import/previous/6"]]);
-  });
-
   it("picks a mailing's hour and minutes, and logs Change the time's save", async () => {
     // The example's day, early, as the fixture clock has it, so no hour's too soon whenever this runs.
     vi.useFakeTimers({ now: new Date("2026-10-16T06:00:00Z"), toFake: ["Date"] });
@@ -128,21 +106,6 @@ describe("the staff examples", () => {
     await unmount();
     await render(<NoteEntryExample own={false} />);
     await expect.element(page.getByText(staffCopy.notes.edited, { exact: false })).toBeVisible();
-  });
-
-  it("logs recording an opt-out", async () => {
-    await render(<OptOutFormExample opened />);
-    const words = staffCopy.supporters.detail.permissions.recordOptOut;
-    await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
-    const newsletter = staffCopy.supporters.detail.permissions.topics.newsletter;
-    await page.getByRole("button", { name: `${newsletter}, jane.smith@example.com (${words.ways.email})` }).click();
-    await page.getByRole("textbox", { name: words.how }).fill("At the stall");
-    await page.getByRole("button", { name: words.record }).click();
-    await expect
-      .element(log().nth(0))
-      .toHaveTextContent(
-        'record({"supporterId":"1","choice":"email|newsletter|jane.smith@example.com","how":"At the stall"})',
-      );
   });
 
   it("closes a Notice with its ×, and opens it again", async () => {

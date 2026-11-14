@@ -125,7 +125,7 @@ the code should go instead. The rules below say which ones are enforced.
   in or a record merged into another. A helper in `lib/` makes those, and
   the page calls it before anything else: `requireStaff()`
   (`lib/accounts/auth.ts`), or `canonicalSupporter()`
-  (`lib/supporters.ts`) for a merged supporter's old ID. Links within the
+  (`lib/supporters/supporters.ts`) for a merged supporter's old ID. Links within the
   site never lead to these redirects, so no one clicking around sees the
   empty layout.
 - **A caught error is rethrown or reported.** Code that catches an error
@@ -378,9 +378,9 @@ the code should go instead. The rules below say which ones are enforced.
 ## Feature folders
 
 The staff interface is made of features: accounts, events, supporters,
-politicians, campaigns, mailings, letters, broadcasts, jobs and oversight.
-Each feature's code is in two folders of its own, so the pieces of one are
-found together and what it depends on can be seen and held:
+erasure, politicians, campaigns, mailings, letters, broadcasts, jobs and
+oversight. Each feature's code is in two folders of its own, so the pieces
+of one are found together and what it depends on can be seen and held:
 
 ```
 app/(staff)/staff/_components/
@@ -390,6 +390,11 @@ app/(staff)/staff/_components/
   accounts/           logging in, your own page, staff accounts, Gmail
   events/             the events page: its table, lists and filters, and
                       an event's edit form
+  supporters/         the supporters list, its filters and badges, a
+                      supporter's details and consents, recording an
+                      opt-out, and importing paper sign-ups
+  erasure/            erasing a supporter: the link on their page, its
+                      form, and the notice after
   <feature>/          its components, with each one's test, its gallery
                       examples (Component.gallery.tsx), the words only its
                       components use (copy.ts) and its Server Actions
@@ -405,6 +410,13 @@ lib/
   events/             staff events and their list, tags, owners and
                       tagging, the Luma import and webhooks, and the
                       march's and PauseFest's events on Luma
+  supporters/         supporters and the records linked into them, their
+                      places, sources and facts, contact permissions,
+                      opt-outs, the contact preferences page's settings,
+                      form entries and sign-up uploads
+  erasure/            erasing a supporter, from every table that holds
+                      them: above supporters and letters, which it erases
+                      from, so neither stands on it
   server/             what every feature stands on: the database, sql,
                       settings, problems and runs, random IDs, the outside
                       services and the fixtures

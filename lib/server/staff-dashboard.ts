@@ -17,7 +17,7 @@ import {
   type SourcePoint,
   WITH_SERIES,
 } from "@/lib/staff-dashboard";
-import type { SupporterSource } from "@/lib/supporters";
+import type { SupporterSource } from "@/lib/supporters/supporters";
 import { query } from "./db";
 import { latestRun } from "./import-runs";
 import { BODY_JOBS } from "./politician-import";

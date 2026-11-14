@@ -4,17 +4,12 @@ import { page } from "vitest/browser";
 import { type DownloadColumn } from "@/lib/staff-list";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { supportersCopy } from "@/lib/supporters/copy";
 import { blockColumns } from "./EmailBlocksTable";
 import { exampleBlock, exampleComplaint, exampleGmailBlock } from "./EmailBlocksTable.examples";
 import { politicianWords } from "./PoliticianFilters";
 import PoliticianTable, { politicianColumns, politicianContact } from "./PoliticianTable";
 import { exampleAsks, examplePolitician, emptyPoliticiansSearch } from "./PoliticianTable.examples";
-import { subscriptionWords } from "./SubscriptionBadges";
-import { supporterBadgeWords } from "./SupporterBadges";
-import { supporterWords } from "./SupporterFilters";
-import { supporterContact } from "./SupportersTable";
-import { exampleSupporterRows } from "./SupportersTable.examples";
-import { supportersSearch } from "@/lib/staff-search";
 
 describe("each list's download values and contact cards", () => {
   const values = <Row,>(columns: DownloadColumn<Row>[], row: Row) =>
@@ -31,7 +26,7 @@ describe("each list's download values and contact cards", () => {
       "Bouncy McTestface MP; Jane Example",
     );
     expect(values(columns, { ...exampleComplaint, supporters: [{ id: 8, name: null }] }).whose).toBe(
-      staffCopy.supporters.noName,
+      supportersCopy.supporters.noName,
     );
     expect(values(columns, { ...exampleComplaint, purpose: null }).sent).toBeNull();
     // After its reason, in brackets, who told us.
@@ -99,56 +94,9 @@ describe("each list's download values and contact cards", () => {
     expect(card(rows[0]).note).toEqual(expect.arrayContaining([`${emailsToThem}: 4`, `${emailsFromThem}: 1`]));
     expect(card(rows[1])).toMatchObject({ emails: [], title: null, address: { country: null } });
   });
-
-  it("supporters: what they are, what they get, and as cards, with what they have", () => {
-    const [jane, sam, gus] = exampleSupporterRows;
-    expect(
-      supporterBadgeWords({
-        ...sam,
-        lumaContact: true,
-        events: 1,
-        letters: 1,
-        sources: [...sam.sources, "march-2026-11"],
-      }),
-    ).toBe(
-      Object.values({
-        m: staffCopy.supporters.badges.member,
-        c: staffCopy.supporters.badges.lumaContact,
-        r: staffCopy.supporters.badges.registered,
-        l: staffCopy.supporters.badges.letter,
-        march: staffCopy.supporters.badges.march,
-      }).join("; "),
-    );
-    expect(subscriptionWords(sam.permissions)).toBe(
-      (["email:newsletter", "email:events", "text:volunteering"] as const)
-        .map((consent) => staffCopy.supporters.subscriptions.consents[consent])
-        .join("; "),
-    );
-    expect(subscriptionWords(gus.permissions)).toBe("");
-    const placed = {
-      ...jane,
-      phone: "+447700900001",
-      place: { name: "Leeds", basis: "postcode" as const, given: "LS1", country: "england" },
-    };
-    // Without the Subscriptions filter, a card has no address or number.
-    expect(supporterContact({ contact: [] })(placed)).toMatchObject({
-      emails: [],
-      phones: [],
-      address: { locality: "Leeds", country: staffVocabulary.countries.england },
-    });
-  });
 });
 
 describe("the lists' filters in words, for their titles", () => {
-  it("says a supporters search's Near as typed when it wasn't looked up, and each filter by its chip's words", () => {
-    const search = supportersSearch({ q: "jo", near: "LS1", activity: "member" });
-    expect(supporterWords(search, { events: [], mps: [] })).toEqual([
-      `${staffVocabulary.search}: jo`,
-      `${staffCopy.supporters.filters.near}: LS1`,
-      `${staffCopy.supporters.columns.badges}: ${staffCopy.supporters.badges.member}`,
-    ]);
-  });
-
   it("says the politicians' house first, or nothing for all of them", () => {
     const parties = ["Labour"];
     expect(politicianWords({ ...emptyPoliticiansSearch, house: "lords", party: ["Labour"] }, parties, [])).toEqual([

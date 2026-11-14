@@ -10,8 +10,9 @@ import EmailBlocksTable from "../../../_components/EmailBlocksTable";
 import EmailProblemsTable from "../../../_components/EmailProblemsTable";
 import Page from "../../../_components/ui/Page";
 import PageHead from "../../../_components/ui/PageHead";
+import { supportersCopy } from "../../../_components/supporters/copy";
 
-export const metadata: Metadata = { title: staffCopy.emails.titles.supporters };
+export const metadata: Metadata = { title: supportersCopy.bouncedEmails.title };
 
 /** Every blocked address but politicians', staff's and unknown ones included, and their bounces and complaints. */
 export default async function SupporterEmailsPage({
@@ -24,7 +25,7 @@ export default async function SupporterEmailsPage({
   const [blocks, problems] = await Promise.all([listBlocks("others", filter), recentProblems("others")]);
   return (
     <Page kind="list">
-      <PageHead intro={staffCopy.emails.intros.supporters}>{staffCopy.emails.titles.supporters}</PageHead>
+      <PageHead intro={supportersCopy.bouncedEmails.intro}>{supportersCopy.bouncedEmails.title}</PageHead>
       <EmailBlockFilters q={q} kind={kind} action="/staff/supporters/bounced-emails" />
       <EmailBlocksTable
         blocks={blocks}

@@ -40,6 +40,7 @@ import {
 import BroadcastsOverview from "./BroadcastsOverview";
 import SupporterBroadcasts from "./SupporterBroadcasts";
 import TextBubble, { ChatBubble, LinkedText } from "./TextBubble";
+import { supportersCopy } from "./supporters/copy";
 
 const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
 vi.mock("@/lib/leave-page", () => ({ leavePage }));
@@ -85,7 +86,7 @@ async function renderWriter(props: Partial<Parameters<typeof BroadcastWriter>[0]
 const button = (name: string | RegExp) => page.getByRole("button", { name });
 
 describe("BroadcastWriter's Consent", () => {
-  const consents = staffCopy.supporters.subscriptions.consents;
+  const consents = supportersCopy.supporters.subscriptions.consents;
   // Email or text, one of them; Said yes to, one of its topics, or after + Add, any of them, toggled.
   const toggled = (name: string) =>
     name === copy.facts.saidYes &&
@@ -932,7 +933,7 @@ describe("a broadcast's page", () => {
     await expect
       .element(page.getByRole("link", { name: copy.threadLink }).first())
       .toHaveAttribute("href", "/staff/broadcasts/5/21");
-    await expect.element(page.getByRole("link", { name: staffCopy.supporters.noName })).toBeVisible();
+    await expect.element(page.getByRole("link", { name: supportersCopy.supporters.noName })).toBeVisible();
   });
 
   it("lists a tab, with its heading and the way back; pressing its count again shows everyone", async () => {
@@ -1174,7 +1175,7 @@ describe("BroadcastFor", () => {
   });
 
   it("says what they said yes to apart, and the other filters as pills, or everyone who did", async () => {
-    const supporters = staffCopy.supporters.subscriptions.consents;
+    const supporters = supportersCopy.supporters.subscriptions.consents;
     const view = await render(
       <>
         <p>
@@ -1563,7 +1564,7 @@ describe("MessageCopyView", () => {
     await render(<MessageCopyView one={{ ...exampleMessageCopy, name: null, channel: "email", address: null }} />);
     await expect
       .element(page.getByRole("heading", { level: 1 }))
-      .toHaveTextContent(copy.copyTitle("email", staffCopy.supporters.noName));
+      .toHaveTextContent(copy.copyTitle("email", supportersCopy.supporters.noName));
   });
 });
 

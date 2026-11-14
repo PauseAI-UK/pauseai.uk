@@ -960,7 +960,7 @@ the import did for that person as it did it:
 The import's where collected is the entry's line in a supporter's history, and
 the import's own page is under Past imports.
 
-`lib/signup-upload.ts` reads the file. It's liberal about separators, encodings,
+`lib/supporters/signup-csv.ts` reads the file. It's liberal about separators, encodings,
 how a heading is spelt and ways of saying yes, and about nothing else. A column
 whose heading isn't on its list is ignored, so a doubt in a file is settled
 before it's imported. A row is held back, with nothing kept, if it has:
@@ -993,7 +993,7 @@ Records are matched by trimmed, lowercased email and nothing more, so
 name, email, phone or place of its own: those come from the linked
 records, newest first.
 
-`linkSupporters()` (`lib/server/supporters.ts`) only adds links. It runs at
+`linkSupporters()` (`lib/supporters/records.ts`) only adds links. It runs at
 the end of each Luma and CiviCRM import and when a form entry is kept, and
 it's set-based, so running it again does nothing. Then supporters who gave
 the same UK mobile number (`+447…` as `phone_number()` writes it) are made
@@ -1003,7 +1003,7 @@ newer. `supporter_merges` keeps the deleted one's ID, so its old page,
 `/staff/supporters/<id>`, redirects to the supporter it went into. Landlines
 and numbers abroad aren't matched, as households and offices share them.
 
-Each source (`lib/server/supporter-sources.ts`) gives three views in one
+Each source (`lib/supporters/sources.ts`) gives three views in one
 shape, made in the migrations:
 
 - `supporter_source_<name>` (`source_id`, `email`, `name`, `seen_at`), for
@@ -1030,7 +1030,7 @@ supporter's own page is always as they are now.
 
 When a supporter was first seen is the earliest `seen_at` of their records
 (`supporter_first_seen`). `refreshSupporterFacts()`
-(`lib/server/supporter-facts.ts`), which `linkSupporters()` runs, keeps it
+(`lib/supporters/facts.ts`), which `linkSupporters()` runs, keeps it
 on the supporter (`supporters.first_seen_at`). So the staff home counts new
 supporters by it without working it out each time.
 
@@ -1098,7 +1098,7 @@ they have:
 3. the newest event they registered for that isn't a big day or online.
 
 Each postcode and town is looked up at postcodes.io once, at the end of each
-Luma import (`lib/server/supporter-places.ts`), and a big import catches up
+Luma import (`lib/supporters/places.ts`), and a big import catches up
 over a few runs. Postcodes are kept in `postcode_places`, each with its
 constituency, and towns in `named_places`. A postcode's first half alone
 ("SE15") says roughly where someone is but not their constituency, so it
@@ -1106,10 +1106,10 @@ gives no MP.
 
 The list's Near filter reads the place. A supporter's MP is the one for
 their postcode's constituency. The supporter's page shows the cities they
-gave (`givenPlaces()` in `lib/supporter-place.ts`).
+gave (`givenPlaces()` in `lib/supporters/given-places.ts`).
 
 **Erasure.** When someone asks to be forgotten, staff erase the supporter
-from their page (`lib/server/erasure.ts`), under the request's reference.
+from their page (`lib/erasure/erase.ts`), under the request's reference.
 For each source, what that source holds goes:
 
 - A form entry, with its letter, the letter's events and the copies of
@@ -1197,7 +1197,7 @@ who changed it.
 ## Opt-outs
 
 Each time an address or number stopped a topic by a way, and when it
-opted back in, if it has (`opt_outs`, `lib/server/opt-outs.ts`). Keyed by
+opted back in, if it has (`opt_outs`, `lib/supporters/opt-outs.ts`). Keyed by
 address, not supporter, because an unsubscribe can arrive before we know
 whose address it is; the supporter pages join it to every address a
 supporter has. An address is opted out of a topic by a way while it has an
@@ -1275,7 +1275,7 @@ A new source is a name in the `CHECK` on `source`, and whatever records it.
 
 ### The contact preferences page
 
-`/contact-preferences` (`lib/server/email-settings.ts`) is where anyone sees and
+`/contact-preferences` (`lib/supporters/email-settings.ts`) is where anyone sees and
 changes what PauseAI UK sends them, and why. Someone asks for a link by
 their address, past Turnstile; one goes only to an address we have, after
 the page has answered, and the page says the same either way, so neither
@@ -1359,12 +1359,12 @@ number about each topic by each way, and why: `contact_permission()`
 explained), read through the `email_permissions` and `phone_permissions`
 views and `contact_permissions`, both of them. Everything that asks reads
 those: the supporter's page and the list's Consent, Email and Phone
-columns, through `permissionsFor()` in `lib/server/contact-permissions.ts`;
+columns, through `permissionsFor()` in `lib/supporters/permissions-for.ts`;
 the list's Consent filter; and who a broadcast goes to. Their stops are
 read through the `contact_unsubscribes` view, by the list's Unsubscribed
 filter and the staff home's count of new opt-outs. Nothing else reads `opt_outs` to answer it, and
 `tests/checks/opt-outs.test.ts` fails if code outside
-`lib/server/opt-outs.ts` and erasure does.
+`lib/supporters/opt-outs.ts` and erasure does.
 
 An address or a number does two jobs, kept apart. It says which records
 are one person, so every one is kept and shown, whatever its answers. And
@@ -1373,7 +1373,7 @@ consent and one address, so someone who gave Luma one number and the join
 form another has an answer for each.
 
 A consent is a topic, what we'd send, by a way (`CONSENTS` in
-`lib/contact-permissions.ts`): email to an address, or a text (WhatsApp too)
+`lib/supporters/contact-permissions.ts`): email to an address, or a text (WhatsApp too)
 or a call to a number. The topics:
 
 - **Newsletter**, the PauseAI UK newsletter, which includes events: a box

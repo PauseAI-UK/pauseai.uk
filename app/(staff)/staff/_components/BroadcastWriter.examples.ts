@@ -12,7 +12,7 @@ import type {
   BroadcastWriterData,
 } from "@/lib/server/broadcast-pages";
 import type { BroadcastPart } from "@/lib/server/broadcast-recipients";
-import type { SupporterChoices } from "@/lib/server/supporters";
+import type { SupporterChoices } from "@/lib/supporters/records";
 
 /** An email with a first name, a part only for those with a local group, and their MP. */
 const exampleBroadcastWords: MailingDoc = {

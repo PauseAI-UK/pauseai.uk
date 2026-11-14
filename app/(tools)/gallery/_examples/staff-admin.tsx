@@ -53,7 +53,7 @@ import {
   exampleBlockedPermissions,
   exampleMemberDetails,
   exampleSupporterDetails,
-} from "@/app/(staff)/staff/_components/SupportersTable.examples";
+} from "@/app/(staff)/staff/_components/supporters/SupportersTable.examples";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";

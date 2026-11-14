@@ -6,7 +6,7 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { importCivicrm } from "./civicrm-import";
 import { unblock } from "./delivery-problems";
-import { recordOptOut } from "./opt-outs";
+import { recordOptOut } from "@/lib/supporters/opt-outs";
 
 const GET = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
 

@@ -26,7 +26,7 @@ three days a broadcast may send for; and "Newsletter or events only".
   our march form, live since 28 October, whose box allows calls and
   texts.
 - `contact_permission()` answers for numbers, and `TOPIC_WAYS` in
-  `lib/contact-permissions.ts` says which ways each topic allows: calls,
+  `lib/supporters/contact-permissions.ts` says which ways each topic allows: calls,
   texts or both.
 - `opt_outs` takes numbers from Luma, staff and the preferences page,
   which also shows CiviCRM's "Do not SMS" and "Do not phone" on a

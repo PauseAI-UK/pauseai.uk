@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { query } from "@/lib/server/db";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { eraseSupporter } from "./erasure";
+import { eraseSupporter } from "@/lib/erasure/erase";
 import { addNote, deleteNote, editNote, notesOn } from "./notes";
 
 const jo = { email: "jo@pauseai.uk", permissions: ["supporters" as const] };

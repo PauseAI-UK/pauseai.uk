@@ -7,11 +7,12 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { staffDate } from "@/lib/staff-time";
 import type { FieldChange } from "@/lib/field-changes";
 import { importPath } from "@/lib/import-runs";
-import { signupUploadPath } from "@/lib/signup-upload";
+import { signupUploadPath } from "@/lib/supporters/signup-csv";
 import type { LoggedChange, Named } from "@/lib/server/audit";
 import CampaignName from "./CampaignName";
 import { DotParts } from "./Logged";
 import { accountsCopy } from "./accounts/copy";
+import { supportersCopy } from "./supporters/copy";
 
 const copy = staffCopy.changes;
 
@@ -245,7 +246,7 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "import sign-ups": (details) => ({
     parts: [
       <StaffLink key="upload" href={signupUploadPath(details.uploadId)}>
-        {staffCopy.signupUpload.uploads.title}
+        {supportersCopy.signupUpload.uploads.title}
       </StaffLink>,
     ],
     fields: ["uploadId"],

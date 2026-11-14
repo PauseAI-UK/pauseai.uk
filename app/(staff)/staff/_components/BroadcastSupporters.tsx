@@ -5,7 +5,7 @@ import type { ChoosingBroadcast } from "@/lib/server/broadcast-pages";
 import { storedFilter, type SupportersSearch } from "@/lib/staff-search";
 import { valuesOf } from "@/lib/list-params";
 import { broadcastTerms } from "@/lib/broadcasts";
-import { supporterFiltersOf } from "./SupportersTable";
+import { supporterFiltersOf } from "./supporters/SupportersTable";
 import list from "./PoliticiansList.module.css";
 import StaffLink from "./ui/StaffLink";
 import Strip from "./ui/Strip";

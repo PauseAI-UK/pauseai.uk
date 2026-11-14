@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { staffCopy } from "./content/staff-interface";
 import { listFilters, SUPPORTER_FILTERS } from "./staff-list-filters";
 import { defineStaffList } from "./staff-lists";
+import { supportersCopy } from "@/lib/supporters/copy";
 
 const LIST = defineStaffList({
   path: "/staff/things",
@@ -30,7 +30,7 @@ describe("listFilters", () => {
 describe("SUPPORTER_FILTERS", () => {
   const near = (found?: Parameters<typeof SUPPORTER_FILTERS>[0]["found"], text = "Leeds") =>
     SUPPORTER_FILTERS({ events: [], mps: [], near: text, found }).find((filter) => filter.name === "near")!.options;
-  const copy = staffCopy.supporters.filters;
+  const copy = supportersCopy.supporters.filters;
 
   it("says the Near filter's place as found, as typed before it's looked up, or that it couldn't be found", () => {
     expect(near({ place: "Leeds, West Yorkshire", latitude: 53.8, longitude: -1.5, country: "england" })).toEqual([

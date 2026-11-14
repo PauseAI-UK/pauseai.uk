@@ -13,7 +13,7 @@ import type { DownloadFormat } from "./staff-list";
 import type { Permission } from "@/lib/accounts/permissions";
 import type { Ask } from "./server/asks";
 import type { DeliveryProblem } from "./server/email";
-import type { ErasureResult } from "./server/erasure";
+import type { ErasureResult } from "@/lib/erasure/erase";
 import type { MailingState } from "./server/mailing-drafts";
 import type { NoteTarget } from "./server/notes";
 import type { House } from "./server/politicians";

@@ -5,6 +5,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import EmailBlocksTable from "./EmailBlocksTable";
 import { exampleBlock, exampleComplaint } from "./EmailBlocksTable.examples";
 import { action } from "@/tests/browser/staff";
+import { supportersCopy } from "./supporters/copy";
 
 describe("EmailBlocksTable", () => {
   it("lists each blocked address: why, since when, whose, the letter, emails not sent, and unblocks one", async () => {
@@ -57,9 +58,9 @@ describe("EmailBlocksTable", () => {
       .toHaveAttribute("href", "/staff/supporters/7");
     // Two supporters, one with no name.
     const two = page.getByRole("row").filter({ hasText: "two@example.org" });
-    await expect.element(two.getByText(`${staffCopy.supporters.noName}, Sam`)).toBeVisible();
+    await expect.element(two.getByText(`${supportersCopy.supporters.noName}, Sam`)).toBeVisible();
     await expect
-      .element(two.getByRole("link", { name: staffCopy.supporters.noName }))
+      .element(two.getByRole("link", { name: supportersCopy.supporters.noName }))
       .toHaveAttribute("href", "/staff/supporters/8");
     // What the email was: a letter, another of ours, or one the site has no record of.
     await expect.element(complained.getByText(staffCopy.emails.purposes["forwarded-reply"])).toBeVisible();

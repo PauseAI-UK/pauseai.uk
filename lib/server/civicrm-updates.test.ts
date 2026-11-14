@@ -5,7 +5,7 @@ import { query } from "@/lib/server/db";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { civicrmChange, queueBulkLift, sendCivicrmUpdates } from "./civicrm-updates";
-import { recordOptOut, type OptOut } from "./opt-outs";
+import { recordOptOut, type OptOut } from "@/lib/supporters/opt-outs";
 import { inRun } from "./run-store";
 
 const UPDATE = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions";

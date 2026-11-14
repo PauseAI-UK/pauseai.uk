@@ -2,8 +2,8 @@
 
 import EmailSettings from "@/app/(site)/contact-preferences/_components/EmailSettings";
 import SettingsStart from "@/app/(site)/contact-preferences/_components/SettingsStart";
-import type { SettingsView } from "@/lib/email-settings";
-import type { Topic } from "@/lib/contact-permissions";
+import type { SettingsView } from "@/lib/supporters/settings-view";
+import type { Topic } from "@/lib/supporters/contact-permissions";
 import { Logged } from "../_components/wiring";
 
 /** Asking for a link, its button logging what it would send. */

@@ -2,184 +2,35 @@
 // supporter's details, notes and erasure, on fake supporters.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
-import DevPreferences from "@/app/(staff)/staff/_components/DevPreferences";
-import EraseLink from "@/app/(staff)/staff/_components/EraseLink";
-import ErasedNotice from "@/app/(staff)/staff/_components/ErasedNotice";
-import { LumaReading } from "@/app/(staff)/staff/_components/SignupUploadPreview";
-import SupporterBadges from "@/app/(staff)/staff/_components/SupporterBadges";
-import SubscriptionBadges from "@/app/(staff)/staff/_components/SubscriptionBadges";
+import { eraseFormGallery } from "@/app/(staff)/staff/_components/erasure/EraseForm.gallery";
+import { eraseLinkGallery } from "@/app/(staff)/staff/_components/erasure/EraseLink.gallery";
+import { erasedNoticeGallery } from "@/app/(staff)/staff/_components/erasure/ErasedNotice.gallery";
+import { devPreferencesGallery } from "@/app/(staff)/staff/_components/supporters/DevPreferences.gallery";
+import { optOutFormGallery } from "@/app/(staff)/staff/_components/supporters/OptOutForm.gallery";
+import { signupUploadFormGallery } from "@/app/(staff)/staff/_components/supporters/SignupUploadForm.gallery";
+import { signupUploadHelpGallery } from "@/app/(staff)/staff/_components/supporters/SignupUploadHelp.gallery";
+import { signupUploadPreviewGallery } from "@/app/(staff)/staff/_components/supporters/SignupUploadPreview.gallery";
+import { signupUploadResultGallery } from "@/app/(staff)/staff/_components/supporters/SignupUploadResult.gallery";
+import { subscriptionBadgesGallery } from "@/app/(staff)/staff/_components/supporters/SubscriptionBadges.gallery";
+import { supporterBadgesGallery } from "@/app/(staff)/staff/_components/supporters/SupporterBadges.gallery";
+import { supporterDetailsGallery } from "@/app/(staff)/staff/_components/supporters/SupporterDetails.gallery";
+import { supporterFiltersGallery } from "@/app/(staff)/staff/_components/supporters/SupporterFilters.gallery";
+import { supportersTableGallery } from "@/app/(staff)/staff/_components/supporters/SupportersTable.gallery";
 import ChannelIcon from "@/components/ui/ChannelIcon";
-import SupporterDetails from "@/app/(staff)/staff/_components/SupporterDetails";
-import SupporterFilters from "@/app/(staff)/staff/_components/SupporterFilters";
-import SupportersTable from "@/app/(staff)/staff/_components/SupportersTable";
-import {
-  exampleMemberDetails,
-  exampleSupporter,
-  exampleSupporterRows,
-  exampleSupporterDetails,
-} from "@/app/(staff)/staff/_components/SupportersTable.examples";
-import { SignupColumnNames } from "@/app/(staff)/staff/_components/SignupUploadHelp";
-import SignupUploadResult, {
-  SignupUploadHead,
-  SignupUploadsList,
-} from "@/app/(staff)/staff/_components/SignupUploadResult";
-import { exampleSignupUpload, exampleSignupUploadPeople } from "@/app/(staff)/staff/_components/SignupUpload.examples";
-import { supportersSearch } from "@/lib/staff-search";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import type { Group } from "../_components/types";
-import {
-  EraseFormExample,
-  NotesExample,
-  NoteChangesExample,
-  NoteEntryExample,
-  NotesCardExample,
-  OptOutFormExample,
-  NoteTextExample,
-  SignupPlanViewExample,
-  SignupUploadFormExample,
-  SignupUploadHelpExample,
-  SignupUploadPreviewExample,
-} from "./staff.client";
+import { NotesExample, NoteChangesExample, NoteEntryExample, NotesCardExample, NoteTextExample } from "./staff.client";
 
-/** Luma events a filter of supporters picks from, newest first. */
-const exampleEventChoices = [
-  { id: "evt-1", name: "PauseAI Leicester meetup", startAt: new Date("2026-10-20T18:00:00Z") },
-  { id: "evt-2", name: "AI risk talk", startAt: new Date("2026-10-12T18:00:00Z") },
-  { id: "evt-3", name: "PauseAI London March", startAt: new Date("2026-09-05T11:00:00Z") },
-];
+const [optOutForm] = optOutFormGallery;
 
 export const staffSupporters: Group = {
   id: "staff-supporters",
   title: "The staff interface: supporters",
   examples: [
-    {
-      name: "SupporterFilters",
-      file: "app/(staff)/staff/_components/SupporterFilters.tsx",
-      variants: [
-        {
-          label: "The list's filters, with a search typed, two activities, a campaign not written in, and near Leeds",
-          render: () => (
-            <StaffPage as="div">
-              <SupporterFilters
-                search={supportersSearch({
-                  q: "jane",
-                  activity: ["registered", "member"],
-                  contact: "email:events:unsubscribed",
-                  campaign: "support-sobel-bill",
-                  wrote: "no",
-                  mp: "!7",
-                  near: "LS1",
-                  within: "25",
-                  sort: "name",
-                })}
-                choices={{
-                  events: exampleEventChoices,
-                  mps: [{ id: 7, name: "Alex Sobel", constituency: "Leeds Central and Headingley" }],
-                }}
-                near={{ latitude: 53.8, longitude: -1.55, place: "Leeds", country: "england" }}
-              />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Choosing who a broadcast goes to: its Consent locked",
-          render: () => (
-            <StaffPage as="div">
-              <SupporterFilters
-                search={supportersSearch({ contact: "email:newsletter:yes", near: "LS1", broadcast: "3" })}
-                choices={{ events: exampleEventChoices, mps: [] }}
-                lockConsent
-              />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Near somewhere postcodes.io doesn't know",
-          render: () => (
-            <StaffPage as="div">
-              <SupporterFilters
-                search={supportersSearch({ near: "Atlantis" })}
-                choices={{ events: [], mps: [] }}
-                near={null}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "SupportersTable",
-      file: "app/(staff)/staff/_components/SupportersTable.tsx",
-      variants: [
-        {
-          label: "Three supporters, one page of three",
-          render: () => (
-            <StaffPage as="div">
-              <SupportersTable
-                search={supportersSearch({ page: "2" })}
-                page={{
-                  supporters: exampleSupporterRows,
-                  total: 120,
-                  pages: 3,
-                }}
-              />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Nobody found",
-          render: () => (
-            <StaffPage as="div">
-              <SupportersTable search={supportersSearch({})} page={{ supporters: [], total: 0, pages: 1 }} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "SupporterBadges",
-      file: "app/(staff)/staff/_components/SupporterBadges.tsx",
-      variants: [
-        {
-          label: "A calendar contact who registered twice and wrote to their MP",
-          render: () => (
-            <StaffPage as="div">
-              <SupporterBadges supporter={exampleSupporter} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A member",
-          render: () => (
-            <StaffPage as="div">
-              <SupporterBadges supporter={exampleMemberDetails.summary} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "SubscriptionBadges",
-      file: "app/(staff)/staff/_components/SubscriptionBadges.tsx",
-      variants: [
-        {
-          label: "Agreed on their letter, unsubscribed from the calendar's emails",
-          render: () => (
-            <StaffPage as="div">
-              <SubscriptionBadges permissions={exampleSupporterRows[0].permissions} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "On the calendar; can't be sure of the updates",
-          render: () => (
-            <StaffPage as="div">
-              <SubscriptionBadges permissions={exampleSupporterRows[1].permissions} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...supporterFiltersGallery,
+    ...supportersTableGallery,
+    ...supporterBadgesGallery,
+    ...subscriptionBadgesGallery,
     {
       name: "ChannelIcon",
       file: "components/ui/ChannelIcon.tsx",
@@ -197,103 +48,10 @@ export const staffSupporters: Group = {
         },
       ],
     },
-    {
-      name: "SupporterDetails",
-      file: "app/(staff)/staff/_components/SupporterDetails.tsx",
-      variants: [
-        {
-          label: "A supporter known from Luma and a letter, opted out on one address",
-          render: () => (
-            <StaffPage as="div">
-              <SupporterDetails supporter={exampleSupporterDetails} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A member who opted out of the updates on joining, then asked for them on re-joining",
-          render: () => (
-            <StaffPage as="div">
-              <SupporterDetails supporter={exampleMemberDetails} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A supporter with no name, nothing given and no activity",
-          render: () => (
-            <StaffPage as="div">
-              <SupporterDetails
-                supporter={{
-                  mp: null,
-                  letters: [],
-                  summary: {
-                    ...exampleSupporter,
-                    name: null,
-                    emails: ["x@example.com"],
-                    events: 0,
-                    letters: 0,
-                    lumaContact: false,
-                  },
-                  identities: [{ source: "luma", email: "x@example.com", name: "", seenAt: null }],
-                  contacts: [],
-                  activity: [],
-                  permissions: [],
-                }}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EraseForm",
-      file: "app/(staff)/staff/_components/EraseForm.tsx",
-      variants: [
-        {
-          label: "The erase page's form",
-          render: () => (
-            <StaffPage as="div">
-              <EraseFormExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "ErasedNotice",
-      file: "app/(staff)/staff/_components/ErasedNotice.tsx",
-      variants: [
-        {
-          label: "Done",
-          render: () => (
-            <StaffPage as="div">
-              <ErasedNotice erased="1" />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Erased, but something couldn't be cleared",
-          render: () => (
-            <StaffPage as="div">
-              <ErasedNotice erased="partly" why="mail,oneOffs" />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EraseLink",
-      file: "app/(staff)/staff/_components/EraseLink.tsx",
-      variants: [
-        {
-          label: "At the foot of a supporter's page",
-          render: () => (
-            <StaffPage as="div">
-              <EraseLink supporterId={7} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...supporterDetailsGallery,
+    ...eraseFormGallery,
+    ...erasedNoticeGallery,
+    ...eraseLinkGallery,
     {
       name: "Notes",
       file: "app/(staff)/staff/_components/Notes.tsx",
@@ -370,144 +128,16 @@ export const staffSupporters: Group = {
         },
       ],
     },
-    {
-      name: "OptOutForm",
-      file: "app/(staff)/staff/_components/OptOutForm.tsx",
-      variants: [
-        { label: "Closed: the button that opens it", render: () => <OptOutFormExample /> },
-        {
-          label: "Opened: what of, at which address or number, and how they told us",
-          render: () => <OptOutFormExample opened />,
-        },
-      ],
-    },
-    {
-      name: "DevPreferences",
-      file: "app/(staff)/staff/_components/DevPreferences.tsx",
-      variants: [
-        {
-          label: "At the foot of a supporter's consents, in a fixture build only",
-          render: () => (
-            <DevPreferences
-              emails={["jane.smith@example.com", "jane@example.org"]}
-              permissions={[
-                { address: "jane.smith@example.com", topic: "newsletter", way: "email", send: "yes" },
-                { address: "jane.smith@example.com", topic: "events", way: "email", send: "yes" },
-              ]}
-              fixtures
-            />
-          ),
-        },
-      ],
-    },
+    optOutForm,
+    ...devPreferencesGallery,
     {
       name: "NoteText",
       file: "app/(staff)/staff/_components/Notes.tsx",
       variants: [{ label: "With addresses, as links, on two lines", render: () => <NoteTextExample /> }],
     },
-    {
-      name: "SignupUploadForm",
-      file: "app/(staff)/staff/_components/SignupUploadForm.tsx",
-      variants: [{ label: "Before a file: its four steps", render: () => <SignupUploadFormExample /> }],
-    },
-    {
-      name: "SignupUploadHelp",
-      file: "app/(staff)/staff/_components/SignupUploadHelp.tsx",
-      variants: [
-        {
-          label: "What the file needs, and the button that opens every name",
-          render: () => <SignupUploadHelpExample />,
-        },
-      ],
-    },
-    {
-      name: "SignupColumnNames",
-      file: "app/(staff)/staff/_components/SignupUploadHelp.tsx",
-      variants: [{ label: "Every column name, and its values", render: () => <SignupColumnNames /> }],
-    },
-    {
-      name: "SignupPlanView",
-      file: "app/(staff)/staff/_components/SignupUploadPreview.tsx",
-      variants: [
-        {
-          label:
-            "Someone in every pile, one emailed how to lift “No bulk emails”, with the email they'll get, and one with “Do not email”",
-          render: () => <SignupPlanViewExample />,
-        },
-      ],
-    },
-    {
-      name: "LumaReading",
-      file: "app/(staff)/staff/_components/SignupUploadPreview.tsx",
-      variants: [{ label: "On an import's page, while Luma's read", render: () => <LumaReading /> }],
-    },
-    {
-      name: "SignupUploadPreview",
-      file: "app/(staff)/staff/_components/SignupUploadPreview.tsx",
-      variants: [{ label: "Worked out, with someone in every pile", render: () => <SignupUploadPreviewExample /> }],
-    },
-    {
-      name: "SignupUploadResult",
-      file: "app/(staff)/staff/_components/SignupUploadResult.tsx",
-      variants: [
-        {
-          label: "With what Luma said of each",
-          render: () => <SignupUploadResult upload={exampleSignupUploadPeople} />,
-        },
-        {
-          label: "Just imported, while the Luma import it started reads the event's guests",
-          render: () => <SignupUploadResult upload={{ ...exampleSignupUploadPeople, lumaReading: true }} />,
-        },
-        {
-          label: "Everyone since erased, with no event or note",
-          render: () => (
-            <SignupUploadResult
-              upload={{ ...exampleSignupUpload, eventName: null, note: null, people: [], lumaReading: false }}
-            />
-          ),
-        },
-      ],
-    },
-    {
-      name: "SignupUploadHead",
-      file: "app/(staff)/staff/_components/SignupUploadResult.tsx",
-      variants: [
-        {
-          label: "An upload's file, and under it what came of it, with its event and where it was collected",
-          render: () => (
-            <StaffPage as="div">
-              <SignupUploadHead upload={exampleSignupUpload} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "With no event or note",
-          render: () => (
-            <StaffPage as="div">
-              <SignupUploadHead upload={{ ...exampleSignupUpload, eventName: null, note: null }} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "SignupUploadsList",
-      file: "app/(staff)/staff/_components/SignupUploadResult.tsx",
-      variants: [
-        {
-          label: "This year's and last year's, by the date on the forms",
-          render: () => (
-            <SignupUploadsList
-              now="2026-11-07T12:00:00Z"
-              uploads={[
-                exampleSignupUpload,
-                { ...exampleSignupUpload, id: 2, signedOn: "2025-06-14", note: null, eventName: null, heldBack: 0 },
-              ]}
-            />
-          ),
-        },
-        { label: "None yet", render: () => <SignupUploadsList now="2026-11-07T12:00:00Z" uploads={[]} /> },
-      ],
-    },
+    ...signupUploadFormGallery,
+    ...signupUploadHelpGallery,
+    ...signupUploadPreviewGallery,
+    ...signupUploadResultGallery,
   ],
 };

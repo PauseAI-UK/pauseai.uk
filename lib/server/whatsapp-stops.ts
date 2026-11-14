@@ -1,7 +1,7 @@
 import "server-only";
-import { hasWay, TOPICS, type Topic } from "@/lib/contact-permissions";
+import { hasWay, TOPICS, type Topic } from "@/lib/supporters/contact-permissions";
 import { query, transaction, type Queryable } from "./db";
-import { recordOptOut, recordSourceResume } from "./opt-outs";
+import { recordOptOut, recordSourceResume } from "@/lib/supporters/opt-outs";
 
 // Stops given in WhatsApp, whichever way: its "Offers and announcements"
 // setting, a reply asking to stop, or a text WhatsApp refused as the person

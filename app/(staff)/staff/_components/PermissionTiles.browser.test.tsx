@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
-import { exampleBlockedPermissions, exampleMemberDetails, exampleSupporterDetails } from "./SupportersTable.examples";
+import {
+  exampleBlockedPermissions,
+  exampleMemberDetails,
+  exampleSupporterDetails,
+} from "./supporters/SupportersTable.examples";
 import PermissionTiles from "./PermissionTiles";
-import { REASONS } from "@/lib/contact-permissions";
+import { REASONS } from "@/lib/supporters/contact-permissions";
+import { supportersCopy } from "./supporters/copy";
 
 describe("PermissionTiles", () => {
-  const copy = staffCopy.supporters.detail.permissions;
+  const copy = supportersCopy.supporters.detail.permissions;
   const rows = () => [...document.querySelectorAll("ul > li")];
   const head = (row: Element) => row.querySelector("[class*=head]")!.textContent;
   const answers = (row: Element) => [...row.querySelectorAll("[class*=answer]")];

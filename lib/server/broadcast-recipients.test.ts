@@ -5,8 +5,9 @@ import { registeredFor, wroteIn } from "@/lib/broadcasts";
 import { addTestLetter, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower } from "@/tests/broadcast-fixtures";
 import { supporterAudience } from "./broadcast-recipients";
-import { refreshSupportersList } from "./supporter-facts";
-import { linkSupporters } from "./supporters";
+import { refreshSupportersList } from "@/lib/supporters/facts";
+import { linkSupporters } from "@/lib/supporters/records";
+import { supportersCopy } from "@/lib/supporters/copy";
 
 const copy = staffCopy.broadcastPages;
 const FILTER = { list: "supporters" as const, params: {} };
@@ -75,7 +76,7 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
       id: "event:evt-1",
       label: copy.conditions.registered("evt-1"),
       group: copy.conditions.registeredGroup,
-      option: staffCopy.supporters.filters.eventChoice("evt-1", "1 Oct 2026"),
+      option: supportersCopy.supporters.filters.eventChoice("evt-1", "1 Oct 2026"),
       searchable: true,
       covers: 1,
     });

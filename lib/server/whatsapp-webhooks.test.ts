@@ -9,7 +9,7 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { notifications, type Notification } from "@/tests/notifications";
 import { createBroadcastDraft } from "./broadcast-drafts";
-import { linkPage } from "./email-settings";
+import { linkPage } from "@/lib/supporters/email-settings";
 import { recordWhatsAppWebhook } from "./whatsapp-webhooks";
 
 /** A webhook carrying one change. */

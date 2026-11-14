@@ -6,7 +6,7 @@ import type { SavedFilter, SavedFiltersState } from "@/lib/server/saved-filters"
 import EventFilters from "../events/EventFilters";
 import PoliticianFilters from "../PoliticianFilters";
 import { emptyPoliticiansSearch } from "../PoliticianTable.examples";
-import SupporterFilters from "../SupporterFilters";
+import SupporterFilters from "../supporters/SupporterFilters";
 import { eventsSearch, supportersSearch } from "@/lib/staff-search";
 import { filteredName } from "@/lib/staff-list-filters";
 import FilterBar from "./FilterBar";

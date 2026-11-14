@@ -12,8 +12,8 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { stubLettersInboxEnv } from "@/tests/gmail-sends";
 import { notifications } from "@/tests/notifications";
 import { query } from "./db";
-import { eraseSupporter } from "./erasure";
-import { addFormEntry } from "./form-entries";
+import { eraseSupporter } from "@/lib/erasure/erase";
+import { addFormEntry } from "@/lib/supporters/form-entries";
 import { readGmail } from "./gmail-reading";
 import {
   deleteOneOffBlobs,

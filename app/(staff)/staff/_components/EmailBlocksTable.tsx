@@ -9,11 +9,12 @@ import LetterLink from "./LetterLink";
 import { UnblockBubble } from "./UnblockForm";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import TestTag from "./TestTag";
+import { supportersCopy } from "./supporters/copy";
 
 const copy = staffCopy.emails;
 
 /** A supporter's name, or that they have none. */
-const supporterName = (s: EmailBlock["supporters"][number]) => s.name ?? staffCopy.supporters.noName;
+const supporterName = (s: EmailBlock["supporters"][number]) => s.name ?? supportersCopy.supporters.noName;
 
 /** What the email that found an address out was, in words: a letter, by whom it was to, or what the site sent. */
 function sentWords(block: EmailBlock): string | null {

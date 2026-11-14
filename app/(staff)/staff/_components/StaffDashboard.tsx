@@ -17,7 +17,7 @@ import {
   SERIES_POINTS,
   agreedHref,
 } from "@/lib/staff-dashboard";
-import { SUPPORTER_SOURCES } from "@/lib/supporters";
+import { SUPPORTER_SOURCES } from "@/lib/supporters/supporters";
 import type { Permission } from "@/lib/accounts/permissions";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import Grid, { spanClass } from "./ui/Grid";
@@ -31,6 +31,7 @@ import { buttonClass } from "@/components/ui/Button";
 import { Muted } from "@/components/ui/Text";
 import StaffLink from "./ui/StaffLink";
 import { shellCopy } from "./shell/copy";
+import { supportersCopy } from "./supporters/copy";
 
 const copy = staffCopy.home.dashboard;
 
@@ -133,7 +134,7 @@ function CampaignBar({ counts }: { counts: Record<string, number> }) {
 
 /** New supporters in bars by the window, each counted once and split by their earliest source. */
 function SourceBars({ dashboard, label }: { dashboard: Dashboard; label: string }) {
-  const sources = staffCopy.supporters.sources;
+  const sources = supportersCopy.supporters.sources;
   const points = dashboard.supportersBySource;
   return (
     <StackedBars

@@ -53,7 +53,7 @@ import { TEMPLATE_FOOTER, templateText } from "@/lib/whatsapp-template";
 import { supporterAudience } from "./broadcast-recipients";
 import { notifyStaff, staffLink } from "./notifications";
 import { filterProblems } from "./stored-filters";
-import type { Topic } from "@/lib/contact-permissions";
+import type { Topic } from "@/lib/supporters/contact-permissions";
 
 // A broadcast to supporters written on the site: a mailing to the supporters
 // list's filter, with one channel and its topics, fixed when it's made from

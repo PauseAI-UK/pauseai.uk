@@ -2,7 +2,7 @@ import "server-only";
 import { config } from "@/lib/server/config";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { now } from "@/lib/now";
-import { recordOptOut, recordResubscribe } from "@/lib/server/opt-outs";
+import { recordOptOut, recordResubscribe } from "@/lib/supporters/opt-outs";
 
 // What Luma tells us about the calendar's people: someone opted out of its
 // emails (an unsubscribe, a block or a spam report; Luma doesn't say which),

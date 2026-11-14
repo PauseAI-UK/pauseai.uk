@@ -1,4 +1,4 @@
-import { contactState, TOPICS, type Topic } from "./contact-permissions";
+import { contactState, TOPICS, type Topic } from "@/lib/supporters/contact-permissions";
 import { staffCopy } from "./content/staff-interface";
 import { toText } from "./letter-format";
 import {

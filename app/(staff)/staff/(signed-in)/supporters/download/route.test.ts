@@ -3,7 +3,7 @@ import { addTestContact, describeWithDatabase, useTestDatabase } from "@/tests/d
 import { requestCookies } from "@/tests/next-headers";
 import { downloadAs } from "@/tests/staff-download";
 import { query } from "@/lib/server/db";
-import { linkSupporters } from "@/lib/server/supporters";
+import { linkSupporters } from "@/lib/supporters/records";
 import { GET } from "./route";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));

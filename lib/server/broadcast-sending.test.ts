@@ -11,8 +11,8 @@ import { recordGmail } from "@/tests/gmail-sends";
 import { notifications, NOTIFICATIONS } from "@/tests/notifications";
 import { createBroadcastDraft, resumeBroadcast } from "./broadcast-drafts";
 import { sendDueBroadcasts, startDueBroadcasts } from "./broadcast-sending";
-import { hashOf } from "./email-settings";
-import { recordOptOut } from "./opt-outs";
+import { hashOf } from "@/lib/supporters/email-settings";
+import { recordOptOut } from "@/lib/supporters/opt-outs";
 import { recordProblem } from "./email";
 import { inRun } from "./run-store";
 

@@ -21,6 +21,7 @@ import TextBubble, { ChatBubble, ChatWall, LinkedText, TextWords } from "@/app/(
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import { mailingGroups } from "@/lib/mailing-groups";
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
+import { optOutFormGallery } from "@/app/(staff)/staff/_components/supporters/OptOutForm.gallery";
 import type { Group } from "../_components/types";
 import {
   ChoosingBroadcastFrameExample,
@@ -104,6 +105,8 @@ const EXAMPLE_TEXT_SUMMARY = {
     "not-sent": 6,
   },
 };
+
+const [, unsubscribeForm] = optOutFormGallery;
 
 export const staffBroadcasts: Group = {
   id: "staff-broadcasts",
@@ -633,20 +636,7 @@ export const staffBroadcasts: Group = {
         },
       ],
     },
-    {
-      name: "UnsubscribeForm",
-      file: "app/(staff)/staff/_components/OptOutForm.tsx",
-      variants: [
-        {
-          label: "On a reply: Reply before it and Nothing to do after, its form asking nothing of how they told us",
-          render: () => (
-            <StaffPage as="div">
-              <ReplyActionsExample write />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    unsubscribeForm,
     {
       name: "Reply",
       file: "app/(staff)/staff/_components/CopyReply.tsx",

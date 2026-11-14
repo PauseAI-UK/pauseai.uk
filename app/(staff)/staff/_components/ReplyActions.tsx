@@ -3,13 +3,14 @@
 import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { Topic } from "@/lib/contact-permissions";
-import { UnsubscribeForm } from "./OptOutForm";
+import type { Topic } from "@/lib/supporters/contact-permissions";
+import { UnsubscribeForm } from "./supporters/OptOutForm";
 import styles from "./ReplyActions.module.css";
+import { supportersCopy } from "./supporters/copy";
 
 const copy = staffCopy.broadcastPages;
 /** Each topic's name, as the consents and lists say it. */
-const topicNames = staffCopy.supporters.detail.permissions.topics;
+const topicNames = supportersCopy.supporters.detail.permissions.topics;
 
 /** Reply, in orange: opens the answer to a reply at the foot of the thread (AnswerableReply). */
 export function ReplyButton({ write }: { write: () => void }) {

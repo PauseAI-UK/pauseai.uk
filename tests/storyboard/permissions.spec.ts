@@ -13,6 +13,7 @@ import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, flowStorageState, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
+import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 
 export const section: Section = { name: "Permissions", part: "Staff pages", order: 140 };
 
@@ -245,7 +246,7 @@ test("Unblocking a supporter's address", async ({ page, request, flowDatabase })
 
   story("Bounced emails lists her address.");
   await page.goto(`${BASE}/staff/supporters/bounced-emails`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.emails.titles.supporters);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(supportersCopy.bouncedEmails.title);
   const row = page.getByRole("table").first().getByRole("row").filter({ hasText: "jane.fixture@example.com" });
   await expect(row).toContainText(staffCopy.emails.kinds.hard);
   await frame(page, "Bounced emails");

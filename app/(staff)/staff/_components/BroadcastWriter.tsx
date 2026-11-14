@@ -34,7 +34,7 @@ import type {
 import type { BroadcastWriterData } from "@/lib/server/broadcast-pages";
 import { filtersPath } from "@/lib/list-params";
 import { earliestRun, londonClock, londonWhen, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
-import type { Channel } from "@/lib/contact-permissions";
+import type { Channel } from "@/lib/supporters/contact-permissions";
 import {
   approvalProblems,
   rejectionWords,
@@ -66,7 +66,7 @@ import { DeleteDraft } from "./MailingButtons";
 import MailingEditor from "./MailingEditor";
 import MailingFiles from "./MailingFiles";
 import BroadcastConsent from "./BroadcastConsent";
-import { othersThanConsent } from "./SupporterFilters";
+import { othersThanConsent } from "./supporters/SupporterFilters";
 import { MailingLetter } from "./MailingLetter";
 import TextBubble from "./TextBubble";
 import { BandFact, Facts } from "./ui/Band";

@@ -4,11 +4,12 @@ import type { MailingChoice } from "@/lib/mailing-fields";
 import type { MailingRecipientValues } from "@/lib/mailing-doc";
 import { supportersSearch, type StoredFilter } from "@/lib/staff-search";
 import { firstNameOf, hasField, BROADCAST_FIELDS, registeredFor, wroteIn, type BroadcastTerms } from "@/lib/broadcasts";
-import type { Topic } from "@/lib/contact-permissions";
+import type { Topic } from "@/lib/supporters/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
-import type { SupporterRow } from "@/lib/supporters";
+import type { SupporterRow } from "@/lib/supporters/supporters";
 import { query } from "./db";
-import { listSupporters, supporterChoices } from "./supporters";
+import { listSupporters, supporterChoices } from "@/lib/supporters/records";
+import { supportersCopy } from "@/lib/supporters/copy";
 
 // Who a broadcast to supporters goes to: everyone the supporters list's filter
 // finds, of whom those contact_permission() says yes for, by the broadcast's
@@ -63,7 +64,7 @@ export async function broadcastParts(): Promise<BroadcastPart[]> {
       id: registeredFor(event.id),
       label: conditions.registered(event.name),
       group: conditions.registeredGroup,
-      option: staffCopy.supporters.filters.eventChoice(event.name, staffDate(event.startAt)),
+      option: supportersCopy.supporters.filters.eventChoice(event.name, staffDate(event.startAt)),
       searchable: true,
     })),
   ];

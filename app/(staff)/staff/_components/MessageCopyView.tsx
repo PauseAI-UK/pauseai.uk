@@ -16,6 +16,7 @@ import Grid, { Card, Column } from "./ui/Grid";
 import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
 import Strip from "./ui/Strip";
+import { supportersCopy } from "./supporters/copy";
 
 const copy = staffCopy.broadcastPages;
 
@@ -122,7 +123,7 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
  * says who it's from and to and when, so nothing repeats it.
  */
 export default function MessageCopyView({ one, actions }: { one: MessageCopy; actions?: ReplyHandlers }) {
-  const name = one.name ?? (one.supporterId ? staffCopy.supporters.noName : copy.erased);
+  const name = one.name ?? (one.supporterId ? supportersCopy.supporters.noName : copy.erased);
   return (
     <>
       <PageHead

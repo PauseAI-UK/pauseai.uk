@@ -9,7 +9,7 @@ import { getPauseaiLetter, getSupporterLetter } from "./letters";
 import { getPolitician, listParties } from "./politicians";
 import { savedFiltersState } from "./saved-filters";
 import { eventsPage } from "@/lib/events/staff-events";
-import { getSupporter, supporterChoices } from "./supporters";
+import { getSupporter, supporterChoices } from "@/lib/supporters/records";
 
 vi.mock("react", async (original) => ({
   ...(await original<typeof import("react")>()),

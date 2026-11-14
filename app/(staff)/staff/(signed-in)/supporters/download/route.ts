@@ -1,11 +1,11 @@
 import type { NextRequest } from "next/server";
-import { supporterWords } from "../../../_components/SupporterFilters";
-import { supporterColumns, supporterContact } from "../../../_components/SupportersTable";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { supporterWords } from "../../../_components/supporters/SupporterFilters";
+import { supporterColumns, supporterContact } from "../../../_components/supporters/SupportersTable";
 import { requireStaff } from "@/lib/accounts/auth";
 import { staffDownload } from "@/lib/server/staff-download";
-import { listSupporters, supporterChoices } from "@/lib/server/supporters";
+import { listSupporters, supporterChoices } from "@/lib/supporters/records";
 import { supportersSearch } from "@/lib/staff-search";
+import { supportersCopy } from "../../../_components/supporters/copy";
 
 /**
  * Every supporter the list's filters find, in the list's columns, named
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         supporterChoices(),
       ]);
       return {
-        what: staffCopy.supporters.title,
+        what: supportersCopy.supporters.title,
         filters: supporterWords(search, choices, near),
         columns: supporterColumns(search),
         rows: supporters,
