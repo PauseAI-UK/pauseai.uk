@@ -1,4 +1,5 @@
-// MailingParts in the component gallery (app/(tools)/gallery/), in the staff mailings and events group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
+// MailingParts in the component gallery (app/(tools)/gallery/), in the staff mailings and events
+// group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import { FilterPills } from "./MailingParts";
 import { examplePickedGroup, examplePickedList, exampleWriterData } from "./MailingWriter.examples";

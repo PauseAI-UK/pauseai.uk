@@ -1,4 +1,5 @@
-// CopyCounts in the component gallery (app/(tools)/gallery/), in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
+// CopyCounts in the component gallery (app/(tools)/gallery/), in the staff broadcasts group
+// (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import { broadcastCounts } from "../BroadcastView";
 import { wentAndGone } from "./CopyStatus";

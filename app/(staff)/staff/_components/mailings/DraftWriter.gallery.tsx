@@ -1,4 +1,5 @@
-// DraftWriter in the component gallery (app/(tools)/gallery/), in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
+// DraftWriter in the component gallery (app/(tools)/gallery/), in the staff broadcasts group
+// (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
 import { DraftFootExample, DraftTitleExample } from "./DraftWriter.gallery.client";

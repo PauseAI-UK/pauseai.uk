@@ -1,4 +1,5 @@
-// MailEmail in the component gallery (app/(tools)/gallery/), in the staff letters group (app/(tools)/gallery/_examples/staff-letters.tsx).
+// MailEmail in the component gallery (app/(tools)/gallery/), in the staff letters group
+// (app/(tools)/gallery/_examples/staff-letters.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import MailEmail from "./MailEmail";
 import StaffPage from "../ui/StaffPage";

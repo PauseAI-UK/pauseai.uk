@@ -1,4 +1,5 @@
-// MailingLetter in the component gallery (app/(tools)/gallery/), in the staff mailings and events group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
+// MailingLetter in the component gallery (app/(tools)/gallery/), in the staff mailings and events
+// group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import { MailingLetter } from "./MailingLetter";
 import { exampleMailingLetter } from "./MailingWriter.examples";

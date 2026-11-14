@@ -89,3 +89,9 @@ it("logs an answer sent to a reply", async () => {
   await expect.element(logged).toBeVisible();
   expect(logged.element().textContent).toMatch(/^answer\(1, "[0-9a-f-]{36}", \{"type":"doc"/);
 });
+
+it("does nothing when a scheduled broadcast is unscheduled", async () => {
+  await render(<BroadcastViewExample kind="scheduled" />);
+  await page.getByRole("button", { name: mailingsCopy.mailingPages.unschedule }).click();
+  await expect.element(page.getByRole("button", { name: mailingsCopy.mailingPages.unschedule })).toBeVisible();
+});
