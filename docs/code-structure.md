@@ -125,7 +125,7 @@ Each of these follows from the order above: a feature can't use one above
 it.
 
 - **The sending layer is at the bottom.** Every feature that writes to
-  anyone sends through `email`, so it can use none of them. What a bounce
+  anyone sends through `email`, so `email` can use none of them. What a bounce
   of a feature's email does (mark a letter, opt a supporter out) is handed
   in: each feature gives its hooks (`DeliveryHooks`), and
   `lib/oversight/delivery-problems.server.ts`, above them all, puts them
@@ -140,7 +140,10 @@ it.
   politicians' imports keep their runs in the import log
   (`lib/import-runs.ts`, `lib/server/import-runs.server.ts`). In
   `oversight` or `jobs`, the features they log would have to use those.
-  Reading them back for their pages is oversight's and jobs'.
+  Reading them back for their pages is oversight's and jobs'. Only the
+  sending layer is below them, as the import log emails staff about a
+  failed run; the audit log's entries name features' types, which cost
+  nothing at run time.
 - **Asks stand alone.** An ask needs nothing of politicians, while a
   politician's record, list and page all show answers to asks. So
   politicians, mailings and letters use asks.
@@ -161,7 +164,10 @@ it.
   whatever the feature (the database, `sql`, settings, problems, runs, the
   outside services' bindings, the fixtures, MIME, the lists' search,
   downloads and saved filters). A feature's server code is in its own
-  folder.
+  folder. Two kinds of file there read a feature's pure code: the saved
+  filters, which know each list's filters (below), and the bindings for
+  the bodies' lists of members and postcodes, which read politicians'
+  parsing of a list and constituencies' names.
 - **`CampaignName` is at the top of `_components/`.** Supporters',
   politicians', letters' and the audit log's pages show a campaign's link.
   In mailings, whose pages the campaigns are, it would make politicians
@@ -186,7 +192,8 @@ audit and import logs, small helpers (`lib/found.ts`, `lib/now.ts`), and
 the public site's own (`lib/site-events.ts`, `lib/email-your-mp.ts`).
 Most of it uses no feature. The staff lists' machinery is the exception:
 it knows every list's filters, so it reads their values from each
-feature's `lib/` folder, and each list uses it. `STAYS` in `tests/checks/staff-components.test.ts` lists each, with why. The
+feature's `lib/` folder, and each list uses it. `STAYS` in
+`tests/checks/staff-components.test.ts` lists each file, with why. The
 check fails on a file not on the list, so a new file goes in its feature's
 folder, or on the list with its reason.
 
@@ -436,9 +443,9 @@ holds it.
   from the statuses it's allowed from and logs each one's event, so two
   runs can't both take a letter. The statuses and their sets (`ARRIVED`,
   `NEVER_WENT`) are in `lib/letters/status.ts`, and a query asks for a set
-  with `statusIn()`. Every letter is sent by `sendLetterVia(channel,
-letter)` with a channel (`lib/letters/channels.server.ts`): a new way to
-  send is a channel.
+  with `statusIn()`. Every letter is sent by `sendLetterVia()` with a
+  channel (`lib/letters/channels.server.ts`): a new way to send is a
+  channel.
 - **Settings** come from `config` (`lib/server/config.server.ts`), which
   gives each environment variable one shape: an address trimmed and
   lowercased, unset and empty both undefined. Nothing else reads

@@ -1,6 +1,6 @@
 # Agent notes
 
-Read `README.md` first. It links the docs in `docs/`, including the code structure and styling rules (`docs/code-structure.md`), test policy (`docs/testing.md`) and the style guide (`docs/style-guide.md`). Plans for work in progress are in `plans/`. They're temporary, deleted when the work is done, so nothing references them (`plans/README.md`).
+Read `README.md` first. It links the docs in `docs/`, including the code's structure, where new code goes and the rules for it (`docs/code-structure.md`), test policy (`docs/testing.md`) and the style guide (`docs/style-guide.md`). Plans for work in progress are in `plans/`. They're temporary, deleted when the work is done, so nothing references them (`plans/README.md`).
 
 ## Log friction in `investments/`
 
